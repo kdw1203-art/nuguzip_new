@@ -27,7 +27,10 @@ export async function GET(req: Request) {
       queryResult = `throw: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   return NextResponse.json({
+    urlPreview: rawUrl.slice(0, 40),
+    urlLength: rawUrl.length,
     env: {
       NEXT_PUBLIC_SUPABASE_URL: present("NEXT_PUBLIC_SUPABASE_URL"),
       SUPABASE_URL: present("SUPABASE_URL"),
