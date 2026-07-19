@@ -289,6 +289,14 @@ export async function generateMetadata({
   ).slice(0, 150);
   const canonical = `${BASE_URL}/notes/${note.id}`;
 
+  // 동적 OG 이미지 — 실데이터(제목·점수·4축)를 URL 인코딩 (metadataBase 기준 절대화)
+  const view = toView(note);
+  const ogQuery = new URLSearchParams({
+    title: note.title,
+    score: String(view.totalScore),
+    badges: view.axes.map((a) => `${a.label} ${a.level}`).join(","),
+  });
+
   return {
     title,
     description,
@@ -303,6 +311,14 @@ export async function generateMetadata({
       type: "article",
       publishedTime: note.createdAt,
       modifiedTime: note.updatedAt,
+      images: [
+        {
+          url: `/api/og/note?${ogQuery.toString()}`,
+          width: 1200,
+          height: 630,
+          alt: `${note.title} 임장노트 카드`,
+        },
+      ],
     },
   };
 }

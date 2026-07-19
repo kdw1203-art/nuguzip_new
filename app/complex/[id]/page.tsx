@@ -278,19 +278,57 @@ export async function generateMetadata({
   const { id } = await params;
   let name = MOCK_VIEW.name;
   let region = "안양 동안구 관양동";
+  // OG 카드용 시세 — 목업 폴백값(시안 23b)
+  let price = MOCK_VIEW.metric.price;
+  let delta = "";
   try {
     const row = await getComplexById(id);
     if (row) {
       name = row.name;
       region = `${row.city} ${row.district}`.trim() || region;
+      const tx = await getTransactionHistory(row.id, 2).catch(
+        () => [] as ComplexTransactionRow[],
+      );
+      const latest = tx.length > 0 ? tx[tx.length - 1] : null;
+      const prev = tx.length > 1 ? tx[tx.length - 2] : null;
+      if (latest) {
+        price = formatManwon(latest.avg_manwon);
+        const d = deltaLabel(pctDelta(latest.avg_manwon, prev?.avg_manwon));
+        delta = d.tone === "flat" ? "" : `${d.delta} 전월비`;
+      } else {
+        price = "시세 준비 중";
+        delta = "";
+      }
     }
   } catch {
     // env 미설정·조회 실패 시 목업 메타 유지
   }
+
+  const title = `${name} 시세·매물·임장노트 | 누구집`;
+  const description = `${region} ${name} 단지 홈 — 실거래 시세, 매물, 이웃 임장노트, 안전 진단을 한 화면에서 확인하세요.`;
+  // 동적 OG 이미지 — 실데이터 값 URL 인코딩 (metadataBase 기준 절대화)
+  const ogQuery = new URLSearchParams({ name, price, region });
+  if (delta) ogQuery.set("delta", delta);
+
   return {
-    title: `${name} 시세·매물·임장노트 | 누구집`,
-    description: `${region} ${name} 단지 홈 — 실거래 시세, 매물, 이웃 임장노트, 안전 진단을 한 화면에서 확인하세요.`,
+    title,
+    description,
     robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      siteName: "누구집",
+      locale: "ko_KR",
+      type: "website",
+      images: [
+        {
+          url: `/api/og/complex?${ogQuery.toString()}`,
+          width: 1200,
+          height: 630,
+          alt: `${name} 시세 카드`,
+        },
+      ],
+    },
   };
 }
 

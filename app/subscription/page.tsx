@@ -1,4 +1,5 @@
 import { PageShell } from "@/app/components/PageShell";
+import { PlanCheckoutButton, type CheckoutTier } from "./PlanCheckoutButton";
 
 const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; proAccent?: boolean }[] = [
   { label: "임장노트 · 지도 · 실거래", free: "무제한", plus: "무제한", pro: "무제한" },
@@ -13,7 +14,19 @@ const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; pr
   { label: "광고 노출", free: "표시", plus: "제거", pro: "제거" },
 ];
 
-const PLANS = [
+const PLANS: {
+  name: string;
+  nameTone: string;
+  price: string;
+  priceSuffix: string;
+  dark: boolean;
+  features: { ok: boolean; text: string }[];
+  cta: string;
+  ctaClass: string;
+  badge: string | null;
+  /** 결제 연결용 구 멤버십 플랜 코드 (membership plans): 플러스=pro, 프로(전문가)=expert */
+  checkoutTier: CheckoutTier | null;
+}[] = [
   {
     name: "무료",
     nameTone: "text-ink",
@@ -29,6 +42,7 @@ const PLANS = [
     cta: "현재 이용 중",
     ctaClass: "bg-[#f2f4f8] text-text-1",
     badge: null,
+    checkoutTier: null,
   },
   {
     name: "플러스",
@@ -45,6 +59,7 @@ const PLANS = [
     cta: "14일 무료 체험",
     ctaClass: "btn-primary btn-cta",
     badge: "가장 인기",
+    checkoutTier: "pro",
   },
   {
     name: "프로 (전문가)",
@@ -61,8 +76,9 @@ const PLANS = [
     cta: "전문가 인증 신청",
     ctaClass: "border-[1.5px] border-ink bg-surface text-ink",
     badge: null,
+    checkoutTier: "expert",
   },
-] as const;
+];
 
 function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
@@ -139,12 +155,17 @@ export default function SubscriptionPage() {
               ))}
             </div>
             <div className="flex-1" />
-            <button
-              type="button"
-              className={`rounded-[14px] p-[13px] text-center text-sm font-bold ${p.ctaClass}`}
-            >
-              {p.cta}
-            </button>
+            {p.checkoutTier ? (
+              <PlanCheckoutButton tier={p.checkoutTier} label={p.cta} className={p.ctaClass} />
+            ) : (
+              <button
+                type="button"
+                disabled
+                className={`rounded-[14px] p-[13px] text-center text-sm font-bold ${p.ctaClass}`}
+              >
+                {p.cta}
+              </button>
+            )}
           </div>
         ))}
       </section>

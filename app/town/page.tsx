@@ -129,14 +129,18 @@ function ExampleBadge() {
 
 /* ---------- 페이지 ---------- */
 
+const PAGE_SIZE = 20;
+
 export default async function TownPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sub?: string; sort?: string }>;
+  searchParams: Promise<{ sub?: string; sort?: string; page?: string }>;
 }) {
   const sp = await searchParams;
   const sub = findSub(COMMUNITY_SUBCATEGORIES, sp.sub);
   const sort = sp.sort === "popular" ? "popular" : "latest";
+  const parsedPage = Number.parseInt(sp.page ?? "1", 10);
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 —
      더미데이터 정책: 실데이터 1건 이상이면 실데이터만, 0건일 때만 예시 목업 */
@@ -183,7 +187,9 @@ export default async function TownPage({
       );
     });
   }
-  const feed = posts.slice(0, 20);
+  /* #7 경량판 페이지네이션 — ?page=N 링크 방식(20건씩), 필터(sub·sort)와 조합 유지 */
+  const feed = posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const hasNextPage = posts.length > page * PAGE_SIZE;
 
   /* 내 관심 지역 — 게시글 상위 지역에서 도출 */
   const regionCount = new Map<string, number>();
@@ -212,12 +218,18 @@ export default async function TownPage({
   const groupsFallback = weekGroups.length === 0;
   if (groupsFallback) weekGroups = FALLBACK_GROUPS;
 
-  const hrefFor = (overrides: { sub?: string; sort?: string }) => {
+  const hrefFor = (overrides: {
+    sub?: string;
+    sort?: string;
+    page?: number;
+  }) => {
     const p = new URLSearchParams();
     const nextSub = overrides.sub ?? sub.id;
     const nextSort = overrides.sort ?? sort;
+    const nextPage = overrides.page ?? 1; // 필터·정렬 변경 시 1페이지로
     if (nextSub !== "all") p.set("sub", nextSub);
     if (nextSort !== "latest") p.set("sort", nextSort);
+    if (nextPage > 1) p.set("page", String(nextPage));
     const s = p.toString();
     return s ? `/town?${s}` : "/town";
   };
@@ -308,6 +320,24 @@ export default async function TownPage({
               </Link>
             );
           })}
+
+          {/* 더 보기 — 다음 페이지 존재 시만 (?page=N 링크 · 서버 컴포넌트 유지) */}
+          {hasNextPage && (
+            <Link
+              href={hrefFor({ page: page + 1 })}
+              className="card card-hover rounded-[14px] px-6 py-3.5 text-center text-[13px] font-bold text-primary"
+            >
+              더 보기
+            </Link>
+          )}
+          {page > 1 && (
+            <Link
+              href={hrefFor({ page: page - 1 })}
+              className="self-center text-xs font-semibold text-text-3"
+            >
+              ‹ 이전 페이지 ({page - 1}쪽)
+            </Link>
+          )}
 
           {feed.length === 0 && (
             /* 12j 빈 상태 규격: 일러스트 52px + 제목 + 한 줄 + CTA 1개 */

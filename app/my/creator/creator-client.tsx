@@ -4,17 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { HoloAvatar, TopScoutBadge } from "../../components/TopScoutBadge";
 
-/* 시안 22e(#51–60) 내 콘텐츠 성과 + 23c(#16–25) 탑 임장러 현황 — 탭 전환 */
+/* 시안 22e(#51–60) 내 콘텐츠 성과 + 23c(#16–25) 탑 임장러 현황 — 탭 전환
+   공개 노트·저장 수치는 서버(page.tsx)에서 실데이터 주입 — 미집계 지표는 "—" */
 
 const TABS = ["콘텐츠 성과", "탑 임장러 현황"] as const;
 type Tab = (typeof TABS)[number];
 
-const STATS = [
-  { label: "조회", value: "12.4k" },
-  { label: "저장", value: "1,180" },
-  { label: "SNS 공유", value: "214" },
-  { label: "검색 노출", value: "3.1k" },
-];
+export type CreatorStats = {
+  nickname: string | null;
+  /** 내 공개 노트 수 (실데이터 · 조회 불가 시 "—") */
+  publicNoteCount: string;
+  /** 내 공개 노트가 받은 총 저장 수 (실데이터 · 조회 불가 시 "—") */
+  totalSaves: string;
+};
 
 /* 23c 선정 기준 4항목 (분기 심사 · 구매 불가) */
 const CRITERIA = [
@@ -33,23 +35,29 @@ const INCENTIVES = [
   { name: "5 모임 수수료 5% + 챌린지 우선", desc: "모임 요율표 준용" },
 ];
 
-function PerformanceTab() {
+function PerformanceTab({ stats }: { stats: CreatorStats }) {
+  const tiles = [
+    { label: "공개 노트", value: stats.publicNoteCount },
+    { label: "저장", value: stats.totalSaves },
+    { label: "SNS 공유", value: "—" },
+    { label: "검색 노출", value: "—" },
+  ];
   return (
     <div className="flex flex-col gap-3">
-      {/* 상단 글래스 바 — 최근 30일 + 레벨 (22e #51) */}
+      {/* 상단 글래스 바 — 전체 기간 + 레벨 (22e #51) */}
       <div className="glass rise-in flex flex-wrap items-center gap-3 rounded-[14px] px-4 py-3">
         <span className="text-[14px] font-extrabold text-ink">
           내 콘텐츠 성과
         </span>
-        <span className="text-[12px] text-text-3">최근 30일</span>
+        <span className="text-[12px] text-text-3">전체 기간</span>
         <span className="ml-auto rounded-full bg-primary-soft px-[10px] py-1 text-[11px] font-extrabold text-primary">
           로컬 전문가 Lv.3 · 다음 레벨까지 노트 5
         </span>
       </div>
 
-      {/* 지표 4종 */}
+      {/* 지표 4종 — 공개 노트·저장은 실데이터, 미집계는 "—" */}
       <div className="rise-in-2 grid grid-cols-2 gap-2 md:grid-cols-4">
-        {STATS.map((s) => (
+        {tiles.map((s) => (
           <div key={s.label} className="card px-3 py-[10px]">
             <div className="text-[10px] text-text-3">{s.label}</div>
             <div className="mt-[2px] text-[17px] font-extrabold tabular-nums text-ink">
@@ -115,17 +123,18 @@ function PerformanceTab() {
   );
 }
 
-function TopScoutTab() {
+function TopScoutTab({ stats }: { stats: CreatorStats }) {
+  const name = stats.nickname?.trim() || "임장러버";
   return (
     <div className="flex flex-col gap-3">
       {/* 배지 상태 — 잉크 패널 (23c) */}
       <div className="rise-in rounded-[20px] bg-ink/[0.96] p-5">
         <div className="flex items-center gap-3">
-          <HoloAvatar size={52} label="임장러버 — 탑 임장러" />
+          <HoloAvatar size={52} label={`${name} — 탑 임장러`} />
           <div>
             <div className="flex items-center gap-[6px]">
               <span className="text-[15px] font-extrabold text-white">
-                임장러버
+                {name}
               </span>
               <TopScoutBadge />
             </div>
@@ -208,7 +217,7 @@ function TopScoutTab() {
   );
 }
 
-export function CreatorClient() {
+export function CreatorClient(props: CreatorStats) {
   const [tab, setTab] = useState<Tab>("콘텐츠 성과");
 
   return (
@@ -225,7 +234,11 @@ export function CreatorClient() {
           </button>
         ))}
       </div>
-      {tab === "콘텐츠 성과" ? <PerformanceTab /> : <TopScoutTab />}
+      {tab === "콘텐츠 성과" ? (
+        <PerformanceTab stats={props} />
+      ) : (
+        <TopScoutTab stats={props} />
+      )}
     </div>
   );
 }

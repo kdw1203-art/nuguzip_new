@@ -1,32 +1,84 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
 import { HoloAvatar, TopScoutBadge } from "../../components/TopScoutBadge";
 import {
+  listNotes,
   listPublicNotes,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
 /* 시안 22c — 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
-   실데이터(#36, 스키마 변경 없음): listPublicNotes 작성자 라벨 + profiles.nickname(읽기 전용) 매칭.
-   매칭 실패 시 404 대신 "프로필을 찾을 수 없어요" 빈 상태 → 발견 피드 안내 */
+   실데이터(스키마 변경 없음, 읽기 전용):
+   1) profiles.handle 일치(대소문자 무시 — lower unique)
+   2) 없으면 profiles.full_name(닉네임) 일치 폴백
+   3) 그래도 없으면 기존 목업 프로필(예시 라벨) — 목업 카드 진입용 핸들만
+   프로필 매칭 시 해당 사용자의 공개 노트(inspection_notes · is_public)를 그리드에 표시 */
 
 export const dynamic = "force-dynamic";
 
-/** profiles 테이블 nickname 일치 여부 (읽기 전용 · 테이블 없거나 env 미설정 시 false) */
-async function matchProfileNickname(nickname: string): Promise<boolean> {
+type PublicProfile = {
+  email: string;
+  name: string; // full_name = 서비스 닉네임
+  handle: string | null;
+  region: string | null;
+  bio: string | null;
+};
+
+/** ilike 패턴 이스케이프 — %·_·\ 를 리터럴로 */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
+/** profiles 조회: handle 일치(대소문자 무시) → full_name(닉네임) 폴백. env 미설정·오류 시 null */
+const findProfile = cache(async (input: string): Promise<PublicProfile | null> => {
+  const q = input.trim();
+  if (!q) return null;
   try {
     const sb = getServiceSupabase();
-    if (!sb) return false;
-    const { data, error } = await sb
+    if (!sb) return null;
+    const cols = "email, full_name, handle, region, bio";
+
+    // 1) handle 일치 (lower unique — 대소문자 무시)
+    const byHandle = await sb
       .from("profiles")
-      .select("nickname")
-      .eq("nickname", nickname)
-      .maybeSingle();
-    if (error || !data) return false;
-    return true;
+      .select(cols)
+      .ilike("handle", escapeLike(q))
+      .limit(1);
+    let row = byHandle.error ? null : (byHandle.data?.[0] ?? null);
+
+    // 2) nickname(full_name) 일치 폴백 — 대소문자 무시
+    if (!row) {
+      const byName = await sb
+        .from("profiles")
+        .select(cols)
+        .ilike("full_name", escapeLike(q))
+        .limit(1);
+      row = byName.error ? null : (byName.data?.[0] ?? null);
+    }
+    if (!row) return null;
+    return {
+      email: String(row.email ?? ""),
+      name: (row.full_name as string | null)?.trim() || q,
+      handle: (row.handle as string | null)?.trim() || null,
+      region: (row.region as string | null)?.trim() || null,
+      bio: (row.bio as string | null)?.trim() || null,
+    };
   } catch {
-    return false;
+    return null;
+  }
+});
+
+/** 프로필 사용자의 공개 노트 (author_email 기준 · is_public만) */
+async function listAuthorPublicNotes(email: string): Promise<InspectionNote[]> {
+  if (!email) return [];
+  try {
+    const rows = await listNotes(email);
+    return rows.filter((n) => n.isPublic);
+  } catch {
+    return [];
   }
 }
 
@@ -64,35 +116,68 @@ const SERIES = [
 /* 22b #13 — 임장 스토리 (세로 스와이프 뷰) 목업 */
 const STORIES = ["공작 302동", "한가람", "은하수", "귀인마을"];
 
+/* 더미데이터 정책: 목업 항목엔 작은 "예시" 라벨 */
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded border border-line bg-surface px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+      예시
+    </span>
+  );
+}
+
+function resolveDisplayName(rawInput: string): string {
+  return rawInput === "mock-1" ? "임장러버" : rawInput;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ handle: string }>;
+}): Promise<Metadata> {
+  const { handle: rawHandle } = await params;
+  const input = decodeURIComponent(rawHandle);
+  const profile = await findProfile(input);
+  const name = profile?.name ?? resolveDisplayName(input);
+  return {
+    title: `${name}님의 임장 프로필 — 누구집`,
+    description: `${name}님이 직접 다녀온 공개 임장노트를 모아 봅니다 — 누구집`,
+  };
+}
+
 export default async function PublicProfilePage({
   params,
 }: {
   params: Promise<{ handle: string }>;
 }) {
   const { handle: rawHandle } = await params;
-  const handle = decodeURIComponent(rawHandle);
+  const input = decodeURIComponent(rawHandle);
+
+  // 1) profiles.handle → 2) profiles.full_name(닉네임) 매칭
+  const profile = await findProfile(input);
+  const displayName = profile?.name ?? resolveDisplayName(input);
 
   // 목업 기준: "임장러버"가 탑 임장러 (23c 배지 위계 최상위)
-  const isTopScout = handle === "임장러버" || handle === "mock-1";
-  const displayName = handle === "mock-1" ? "임장러버" : handle;
+  const isTopScout = !profile && (input === "임장러버" || input === "mock-1");
+  const isMockHandle =
+    !profile && (input === "mock-1" || MOCK_HANDLES.has(displayName));
 
+  // 프로필 매칭 시 그 사용자의 공개 노트 · 미매칭 시 공개 노트 작성자 라벨 매칭 시도
   let authored: InspectionNote[] = [];
-  try {
-    const rows = await listPublicNotes(100);
-    authored = rows.filter(
-      (n) => (n.authorLabel ?? "").trim() === displayName,
-    );
-  } catch {
-    authored = [];
+  if (profile) {
+    authored = await listAuthorPublicNotes(profile.email);
+  } else {
+    try {
+      const rows = await listPublicNotes(100);
+      authored = rows.filter(
+        (n) => (n.authorLabel ?? "").trim() === displayName,
+      );
+    } catch {
+      authored = [];
+    }
   }
 
-  // 노트 작성자 라벨에 없으면 profiles.nickname과도 매칭 시도 (읽기 전용)
-  const profileMatched =
-    authored.length === 0 && (await matchProfileNickname(displayName));
-  const isMockHandle = handle === "mock-1" || MOCK_HANDLES.has(displayName);
-
   // 매칭 실패 — 404 대신 빈 상태 + 발견 피드 안내
-  if (authored.length === 0 && !profileMatched && !isMockHandle) {
+  if (!profile && authored.length === 0 && !isMockHandle) {
     return (
       <PageShell breadcrumb={`발견 › @${displayName}`}>
         <div className="mx-auto max-w-[640px]">
@@ -124,11 +209,15 @@ export default async function PublicProfilePage({
         }))
       : isMockHandle
         ? MOCK_GRID
-        : []; // 실 프로필(닉네임 매칭)인데 공개 노트 0건 — 목업 그리드로 채우지 않음
+        : []; // 실 프로필인데 공개 노트 0건 — 목업 그리드로 채우지 않음
   const noteCount =
     authored.length > 0 ? authored.length : isMockHandle ? 47 : 0;
   const region =
-    authored[0]?.region?.trim() || "관양동·평촌";
+    profile?.region || authored[0]?.region?.trim() || "관양동·평촌";
+  const handleLabel = profile?.handle ?? displayName;
+  const bio =
+    profile?.bio ??
+    "아이 둘, 학군 중심으로 봅니다. 주차·소음은 꼭 저녁에 재확인해요.";
 
   return (
     <PageShell breadcrumb={`발견 › @${displayName}`}>
@@ -168,9 +257,10 @@ export default async function PublicProfilePage({
                   로컬 전문가 Lv.3
                 </span>
                 {isTopScout && <TopScoutBadge />}
+                {isMockHandle && <ExampleBadge />}
               </div>
               <div className="mt-[2px] text-[11px] text-text-3">
-                nuguzip.com/@{displayName} · {region}
+                nuguzip.com/@{handleLabel} · {region}
               </div>
             </div>
             {/* 팔로우 미연결 — 클릭 시 로그인 유도 (22c #22) */}
@@ -184,8 +274,12 @@ export default async function PublicProfilePage({
 
           {/* 소개 + 테마 태그 (22c #24) */}
           <p className="mt-3 text-[13px] leading-[1.6] text-text-1">
-            아이 둘, 학군 중심으로 봅니다. 주차·소음은 꼭 저녁에 재확인해요.{" "}
-            <span className="font-bold text-primary">#학군 #구축리모델링</span>
+            {bio}{" "}
+            {!profile?.bio && (
+              <span className="font-bold text-primary">
+                #학군 #구축리모델링
+              </span>
+            )}
           </p>
 
           {/* 통계 3종 */}
@@ -224,8 +318,8 @@ export default async function PublicProfilePage({
 
         {/* 임장 스토리 (목업) */}
         <div className="rise-in-3 mt-4">
-          <div className="mb-2 text-[13px] font-extrabold text-ink">
-            임장 스토리
+          <div className="mb-2 flex items-center gap-[6px] text-[13px] font-extrabold text-ink">
+            임장 스토리 <ExampleBadge />
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1">
             {STORIES.map((s) => (
@@ -241,7 +335,9 @@ export default async function PublicProfilePage({
 
         {/* 시리즈 (목업) */}
         <div className="rise-in-4 mt-4">
-          <div className="mb-2 text-[13px] font-extrabold text-ink">시리즈</div>
+          <div className="mb-2 flex items-center gap-[6px] text-[13px] font-extrabold text-ink">
+            시리즈 <ExampleBadge />
+          </div>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {SERIES.map((s) => (
               <div
@@ -264,11 +360,12 @@ export default async function PublicProfilePage({
           </div>
         </div>
 
-        {/* 노트 그리드 (22c #26) */}
+        {/* 노트 그리드 (22c #26) — 프로필 매칭 시 해당 사용자의 공개 노트 실데이터 */}
         <div className="rise-in-5 mt-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[13px] font-extrabold text-ink">
+            <span className="flex items-center gap-[6px] text-[13px] font-extrabold text-ink">
               공개 노트
+              {grid.length > 0 && !grid[0].isReal && <ExampleBadge />}
             </span>
             <Link href="/notes" className="text-[12px] font-bold text-primary">
               전체 보기 ›

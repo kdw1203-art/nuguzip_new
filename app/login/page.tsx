@@ -8,6 +8,13 @@ import { Logo } from "@/app/components/Logo";
 
 type SocialProvider = "google" | "naver" | "kakao";
 
+/** `?callbackUrl=` 이 있으면 로그인 후 그 경로로 복귀 (내부 경로만 허용) */
+function resolveCallbackUrl(): string {
+  if (typeof window === "undefined") return "/";
+  const cb = new URLSearchParams(window.location.search).get("callbackUrl");
+  return cb && cb.startsWith("/") && !cb.startsWith("//") ? cb : "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -19,8 +26,8 @@ export default function LoginPage() {
     setError(null);
     setBusy(provider);
     try {
-      // OAuth는 리다이렉트 플로우 — 성공 시 / 로 돌아옵니다.
-      await signIn(provider, { callbackUrl: "/" });
+      // OAuth는 리다이렉트 플로우 — 성공 시 callbackUrl(기본 /) 로 돌아옵니다.
+      await signIn(provider, { callbackUrl: resolveCallbackUrl() });
     } catch {
       setError("로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.");
       setBusy(null);
@@ -44,14 +51,14 @@ export default function LoginPage() {
         email: email.trim().toLowerCase(),
         password,
         redirect: false,
-        callbackUrl: "/",
+        callbackUrl: resolveCallbackUrl(),
       });
       if (res?.error) {
         setError("이메일 또는 비밀번호가 올바르지 않습니다.");
         return;
       }
       if (res?.ok) {
-        router.push("/");
+        router.push(resolveCallbackUrl());
         router.refresh();
         return;
       }
@@ -124,6 +131,11 @@ export default function LoginPage() {
           >
             {busy === "password" ? "로그인 중…" : "이메일로 로그인"}
           </button>
+          <div className="text-center">
+            <Link href="/forgot-password" className="text-xs font-bold text-text-2">
+              비밀번호를 잊으셨나요?
+            </Link>
+          </div>
         </form>
 
         <div className="rise-in-4 flex items-center gap-3 text-[11px] text-[#adb5bd]">
