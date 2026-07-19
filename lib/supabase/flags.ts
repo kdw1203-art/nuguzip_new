@@ -5,11 +5,13 @@ export function isSupabaseAuthConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabasePublicKey());
 }
 
-/** Service Role + URL — 서버 전용 관리/배치 DB */
+/** Service Role + URL — 서버 전용 관리/배치 DB
+ *  키 형식 검증: 마스킹 플레이스홀더("[SENSITIVE]" 등)가 저장된 환경 대비 */
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    getSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
-  );
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const looksValid =
+    !!key && (key.startsWith("eyJ") || key.startsWith("sb_secret_"));
+  return Boolean(getSupabaseUrl() && looksValid);
 }
 
 /**

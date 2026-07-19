@@ -46,6 +46,16 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
           exit $STATUS
       # ---- 기존 Vercel 배포 단계 (그대로 유지) ----
+      # 공개 Supabase 값 정정 — 프로젝트 env에 "[SENSITIVE]" 플레이스홀더가
+      # 저장돼 있던 문제 수정 (URL·publishable 키는 공개 정보, RLS로 보호)
+      - name: Sync public Supabase env
+        run: |
+          for ENVTARGET in production preview; do
+            npx vercel env rm NEXT_PUBLIC_SUPABASE_URL $ENVTARGET --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+            printf 'https://pbhiskvwpwwhtkmnhkbm.supabase.co' | npx vercel env add NEXT_PUBLIC_SUPABASE_URL $ENVTARGET --token=${{ secrets.VERCEL_TOKEN }} || true
+            npx vercel env rm NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+            printf 'sb_publishable_UjkQXcYY6f9oBbjjfZvFAA_jYpui-OX' | npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --token=${{ secrets.VERCEL_TOKEN }} || true
+          done
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build

@@ -19,12 +19,17 @@ export function getSupabaseUrl(): string | undefined {
 }
 
 export function getSupabasePublicKey(): string | undefined {
+  // 형식 검증: JWT(anon) 또는 sb_publishable_ — 마스킹 플레이스홀더 배제
+  const valid = (k?: string) =>
+    k && (k.startsWith("eyJ") || k.startsWith("sb_publishable_"))
+      ? k
+      : undefined;
   const anon =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-    process.env.SUPABASE_ANON_KEY?.trim();
+    valid(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()) ||
+    valid(process.env.SUPABASE_ANON_KEY?.trim());
   const publishable =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
-    process.env.SUPABASE_PUBLISHABLE_KEY?.trim();
+    valid(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()) ||
+    valid(process.env.SUPABASE_PUBLISHABLE_KEY?.trim());
   return anon || publishable || undefined;
 }
 
