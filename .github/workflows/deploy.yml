@@ -56,6 +56,13 @@ jobs:
             npx vercel env rm NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
             printf 'sb_publishable_UjkQXcYY6f9oBbjjfZvFAA_jYpui-OX' | npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --token=${{ secrets.VERCEL_TOKEN }} || true
           done
+      # Service Role 키 동기화 — GitHub Secret(SUPABASE_SERVICE_ROLE_KEY)이
+      # 설정돼 있을 때만 Vercel env의 마스킹 값("[SENSITIVE]")을 실값으로 교체
+      - name: Sync service role env
+        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        run: |
+          npx vercel env rm SUPABASE_SERVICE_ROLE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+          printf '%s' "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | npx vercel env add SUPABASE_SERVICE_ROLE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build
