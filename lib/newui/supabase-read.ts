@@ -32,3 +32,8 @@ function getAnonSupabase(): SupabaseClient | null {
 export function getReadOnlySupabase(): SupabaseClient | null {
   return getServiceSupabase() ?? getAnonSupabase();
 }
+
+/** Service Role 키가 무효한 경우 대비 — anon 클라이언트 직접 접근 */
+export function getAnonReadOnlySupabase(): SupabaseClient | null {
+  return getAnonSupabase();
+}

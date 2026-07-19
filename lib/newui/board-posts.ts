@@ -11,7 +11,10 @@
  * automation_meta(jsonb)·is_published·created_at·updated_at
  */
 import "server-only";
-import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import {
+  getAnonReadOnlySupabase,
+  getReadOnlySupabase,
+} from "@/lib/newui/supabase-read";
 import { getPost, readPosts } from "@/lib/posts-store";
 import type { Post, PostAutomationMeta } from "@/lib/types/post";
 import { logger } from "@/lib/log";
@@ -81,6 +84,7 @@ export async function readBoardPosts(
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) {
+      logger.error("[readBoardPosts] with-comments query failed", error);
       // board_comments 중첩 카운트가 권한 등으로 막히면 카운트 없이 재시도
       ({ data, error } = await sb
         .from("board_posts")
@@ -89,6 +93,21 @@ export async function readBoardPosts(
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(limit));
+    }
+    if (error) {
+      logger.error("[readBoardPosts] plain query failed", error);
+      // Service Role 키 무효 등 클라이언트 자체 문제 대비 — anon으로 마지막 재시도
+      const anon = getAnonReadOnlySupabase();
+      if (anon && anon !== sb) {
+        ({ data, error } = await anon
+          .from("board_posts")
+          .select("*")
+          .eq("board_type", "community")
+          .eq("is_published", true)
+          .order("created_at", { ascending: false })
+          .limit(limit));
+        if (error) logger.error("[readBoardPosts] anon query failed", error);
+      }
     }
     if (error || !Array.isArray(data)) return [];
     return data.map((r) => boardRowToPost(r as Record<string, unknown>));
