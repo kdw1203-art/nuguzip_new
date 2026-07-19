@@ -20,7 +20,7 @@ export type FeedNote = {
   footer: string[];
   popularity: number;
   interested: boolean;
-  /** 단지 허브(/complex/[id]) 링크 — 실 id 없으면 /complex/mock-1 */
+  /** 단지 허브(/complex/[id]) 링크 — 실 id를 못 찾으면 undefined → 링크 숨김 */
   complexHref?: string;
 };
 
@@ -133,12 +133,14 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
                       <span key={f}>{f}</span>
                     ))}
                   </div>
-                  <Link
-                    href={n.complexHref ?? "/complex/mock-1"}
-                    className="relative z-[1] text-[11px] font-extrabold text-primary"
-                  >
-                    단지 허브 ›
-                  </Link>
+                  {n.complexHref && (
+                    <Link
+                      href={n.complexHref}
+                      className="relative z-[1] text-[11px] font-extrabold text-primary"
+                    >
+                      단지 허브 ›
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

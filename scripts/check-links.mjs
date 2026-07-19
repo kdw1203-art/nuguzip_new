@@ -1,5 +1,5 @@
 // 연동 매트릭스 검증: 전 라우트 크롤 → 내부 링크 전수 검사 (미연결 0 = v1 조건)
-const BASE = 'http://localhost:3100';
+const BASE = `http://localhost:${process.env.PORT || 3100}`;
 const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '/map', '/search', '/notifications', '/messages',
   '/analysis', '/analysis/compare', '/analysis/cycle', '/analysis/price', '/analysis/scenario', '/analysis/timing', '/analysis/portfolio', '/analysis/switch',
   '/town', '/town/news', '/town/news/mock-1', '/town/market', '/town/experts', '/town/groups', '/town/groups/mock-1',
@@ -27,5 +27,8 @@ for (const [h, from] of linkSources) {
   if (code !== 200 && code !== 307 && code !== 308) broken.push([h, code, from]);
 }
 console.log('총 검사 링크:', linkSources.size);
-if (broken.length) { console.log('끊긴 경로:'); broken.forEach(([p, c, f]) => console.log(`  ${c}  ${p}  (발견 위치: ${f})`)); }
-else console.log('끊긴 경로 0 ✓');
+if (broken.length) {
+  console.log('끊긴 경로:');
+  broken.forEach(([p, c, f]) => console.log(`  ${c}  ${p}  (발견 위치: ${f})`));
+  process.exit(1); // CI 게이트: 끊긴 링크 발견 시 배포 중단
+} else console.log('끊긴 경로 0 ✓');

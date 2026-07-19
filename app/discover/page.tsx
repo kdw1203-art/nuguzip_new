@@ -4,11 +4,12 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { DiscoverClient, type DiscoverCard } from "./discover-client";
+import { resolveComplexHref } from "@/lib/newui/complex-link";
 
 /* 시안 22a — 발견 피드 "오늘의 임장" (하단 내비 2번째 슬롯 · 비로그인 열람 허용)
    실데이터: inspection_notes(is_public) → listPublicNotes, 0건일 때만 예시 목업 */
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 const MOCK_CARDS: DiscoverCard[] = [
   {
@@ -28,6 +29,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d2",
@@ -46,6 +48,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d3",
@@ -64,6 +67,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d4",
@@ -82,6 +86,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d5",
@@ -100,6 +105,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d6",
@@ -118,6 +124,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d7",
@@ -136,6 +143,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "mock-d8",
@@ -154,6 +162,7 @@ const MOCK_CARDS: DiscoverCard[] = [
     ],
     createdAt: 0,
     isReal: false,
+    complexHref: "/complex/mock-1",
   },
 ];
 
@@ -171,7 +180,11 @@ function maskAuthor(n: InspectionNote): string {
 
 const SIZES: DiscoverCard["size"][] = ["tall", "short", "mid", "short", "mid", "tall"];
 
-function toCard(n: InspectionNote, i: number): DiscoverCard {
+function toCard(
+  n: InspectionNote,
+  i: number,
+  complexHref: string | null,
+): DiscoverCard {
   const oneLiner =
     n.summary?.trim() || n.sections.pros?.trim() || n.title;
   return {
@@ -191,6 +204,8 @@ function toCard(n: InspectionNote, i: number): DiscoverCard {
     ],
     createdAt: Date.parse(n.createdAt) || 0,
     isReal: true,
+    // 실 단지 id를 찾은 경우에만 /complex/[id], 못 찾으면 null → 링크 숨김 (mock-1로 보내지 않음)
+    complexHref,
   };
 }
 
@@ -198,7 +213,12 @@ export default async function DiscoverPage() {
   let cards: DiscoverCard[] = [];
   try {
     const rows = await listPublicNotes(40);
-    cards = rows.map(toCard);
+    // 아파트명(+지역)으로 complexes 실 id 조회 — 요청당 React cache로 중복 방지
+    cards = await Promise.all(
+      rows.map(async (n, i) =>
+        toCard(n, i, await resolveComplexHref(n.aptName, n.region)),
+      ),
+    );
   } catch {
     cards = [];
   }

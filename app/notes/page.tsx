@@ -4,10 +4,11 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
+import { resolveComplexHref } from "@/lib/newui/complex-link";
 
 /* 시안 7a — 공개 임장노트 피드. 실데이터: inspection_notes(is_public) → listPublicNotes */
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 /* 더미데이터 정책: 실데이터 0건일 때만 노출 — meta 앞의 "예시" 표기로 실기록과 구분 */
 const MOCK_NOTES: FeedNote[] = [
@@ -44,6 +45,7 @@ const MOCK_NOTES: FeedNote[] = [
     footer: ["공감 24", "댓글 11", "저장 19"],
     popularity: 24,
     interested: false,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "3",
@@ -60,6 +62,7 @@ const MOCK_NOTES: FeedNote[] = [
     footer: ["공감 7", "댓글 3", "저장 4"],
     popularity: 7,
     interested: true,
+    complexHref: "/complex/mock-1",
   },
 ];
 
@@ -98,7 +101,7 @@ function deriveTags(n: InspectionNote): FeedNote["tags"] {
   return tags.slice(0, 3);
 }
 
-function toFeedNote(n: InspectionNote): FeedNote {
+function toFeedNote(n: InspectionNote, complexHref: string | null): FeedNote {
   const avg = inspectionAverageScore(n.scores);
   const score = Math.round(avg * 20);
   const excerptSrc =
@@ -124,8 +127,8 @@ function toFeedNote(n: InspectionNote): FeedNote {
     ],
     popularity: score,
     interested: false,
-    // 임장노트에는 complexes 실 id가 없어 목업 허브로 연결
-    complexHref: "/complex/mock-1",
+    // 실 단지 id를 찾은 경우에만 /complex/[id] 연결, 못 찾으면 링크 숨김 (mock-1로 보내지 않음)
+    complexHref: complexHref ?? undefined,
   };
 }
 
@@ -133,7 +136,12 @@ export default async function NotesFeedPage() {
   let notes: FeedNote[] = [];
   try {
     const rows = await listPublicNotes(50);
-    notes = rows.map(toFeedNote);
+    // 아파트명(+지역)으로 complexes 실 id 조회 — 요청당 React cache로 중복 방지
+    notes = await Promise.all(
+      rows.map(async (n) =>
+        toFeedNote(n, await resolveComplexHref(n.aptName, n.region)),
+      ),
+    );
   } catch {
     notes = [];
   }

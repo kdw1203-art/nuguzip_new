@@ -18,6 +18,8 @@ export type DiscoverCard = {
   ratings: { icon: string; grade: "상" | "중" | "하" }[];
   createdAt: number;
   isReal: boolean;
+  /** 단지 허브(/complex/[id]) 링크 — 실 id를 못 찾으면 null → 링크 숨김 */
+  complexHref?: string | null;
 };
 
 const FILTERS = ["추천", "팔로잉", "최신", "📍 관양동"] as const;
@@ -84,9 +86,9 @@ function NoteCard({ card, delay }: { card: DiscoverCard; delay: number }) {
         </Link>
         <span>🔖 {card.saves}</span>
       </div>
-      {card.aptName && (
+      {card.aptName && card.complexHref && (
         <Link
-          href="/complex/mock-1"
+          href={card.complexHref}
           className="block border-t border-line px-3 py-[7px] text-[10px] font-bold text-primary"
         >
           🏢 {card.aptName} 단지 허브 ›

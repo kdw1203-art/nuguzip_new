@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
-import { safeReadPosts } from "@/lib/safe-home-data";
+import { readTownPosts } from "@/lib/newui/board-posts";
 import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
 import type { Post } from "@/lib/types/post";
 
@@ -114,7 +114,8 @@ export default async function TownNewsPage() {
   let newsPosts: Post[] = [];
   let ugcPosts: Post[] = [];
   try {
-    const all = await safeReadPosts();
+    /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 */
+    const all = await readTownPosts();
     newsPosts = all
       .filter(isNewsPost)
       .sort(

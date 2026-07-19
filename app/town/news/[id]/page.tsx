@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../../components/PageShell";
 import { AIPanel } from "../../../components/AIPanel";
-import { getPost, readPosts } from "@/lib/posts-store";
+import { getTownPost, readTownPosts } from "@/lib/newui/board-posts";
 import type { Post } from "@/lib/types/post";
 
 /* 시안 9g — 뉴스 상세 v2 — posts 실데이터(id 조회) 연동, 없으면 목업 */
@@ -112,9 +112,10 @@ export default async function TownNewsDetailPage({
   let post: Post | null = null;
   let similarPosts: { id: string | null; title: string; meta: string }[] = [];
   try {
-    post = await getPost(id);
+    /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 */
+    post = await getTownPost(id);
     if (post) {
-      const all = await readPosts();
+      const all = await readTownPosts();
       const sameCat = all.filter(
         (p) => p.id !== post!.id && p.category === post!.category,
       );

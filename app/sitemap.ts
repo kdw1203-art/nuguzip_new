@@ -62,5 +62,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // env 미설정·조회 실패 시 정적 라우트만 반환
   }
 
-  return [...staticEntries, ...noteEntries];
+  // 프로그래매틱 SEO(실행과제 CSO-14): 단지 허브 페이지 — 22f-65 SEO 핵심 랜딩
+  let complexEntries: MetadataRoute.Sitemap = [];
+  try {
+    const { searchComplexes } = await import("@/lib/complex/complex-store");
+    const complexes = await searchComplexes("", undefined, 200);
+    complexEntries = complexes.map((c) => ({
+      url: `${BASE_URL}/complex/${c.id}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }));
+  } catch {
+    // 조회 실패 시 생략
+  }
+
+  return [...staticEntries, ...noteEntries, ...complexEntries];
 }

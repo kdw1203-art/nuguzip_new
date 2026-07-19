@@ -5,11 +5,44 @@ import {
   listPublicNotes,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
+import { getServiceSupabase } from "@/lib/supabase/service";
 
 /* 시안 22c — 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
-   실데이터: listPublicNotes에서 작성자 라벨 일치 노트로 그리드 구성, 없으면 목업 */
+   실데이터(#36, 스키마 변경 없음): listPublicNotes 작성자 라벨 + profiles.nickname(읽기 전용) 매칭.
+   매칭 실패 시 404 대신 "프로필을 찾을 수 없어요" 빈 상태 → 발견 피드 안내 */
 
 export const dynamic = "force-dynamic";
+
+/** profiles 테이블 nickname 일치 여부 (읽기 전용 · 테이블 없거나 env 미설정 시 false) */
+async function matchProfileNickname(nickname: string): Promise<boolean> {
+  try {
+    const sb = getServiceSupabase();
+    if (!sb) return false;
+    const { data, error } = await sb
+      .from("profiles")
+      .select("nickname")
+      .eq("nickname", nickname)
+      .maybeSingle();
+    if (error || !data) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** 피드 목업 카드에 등장하는 작성자 핸들 — 목업 카드에서의 진입만 목업 프로필 유지 */
+const MOCK_HANDLES = new Set([
+  "임장러버",
+  "봄이네",
+  "밤임장",
+  "학군맘",
+  "가계부장",
+  "전세유목민",
+  "쌍둥이아빠",
+  "관양동 이웃",
+  "마포 이웃",
+  "과천 이웃",
+]);
 
 type GridNote = { id: string; title: string; isReal: boolean };
 
@@ -53,6 +86,35 @@ export default async function PublicProfilePage({
     authored = [];
   }
 
+  // 노트 작성자 라벨에 없으면 profiles.nickname과도 매칭 시도 (읽기 전용)
+  const profileMatched =
+    authored.length === 0 && (await matchProfileNickname(displayName));
+  const isMockHandle = handle === "mock-1" || MOCK_HANDLES.has(displayName);
+
+  // 매칭 실패 — 404 대신 빈 상태 + 발견 피드 안내
+  if (authored.length === 0 && !profileMatched && !isMockHandle) {
+    return (
+      <PageShell breadcrumb={`발견 › @${displayName}`}>
+        <div className="mx-auto max-w-[640px]">
+          <div className="rise-in card flex flex-col items-center gap-2 px-5 py-12 text-center">
+            <div className="text-[26px]">👤</div>
+            <div className="text-[15px] font-extrabold text-ink">
+              프로필을 찾을 수 없어요
+            </div>
+            <div className="text-[12px] leading-[1.6] text-text-3">
+              @{displayName} 님의 공개 프로필이 아직 없거나
+              <br />
+              닉네임이 바뀌었을 수 있어요
+            </div>
+            <Link href="/discover" className="btn-primary btn-md mt-2">
+              발견 피드 둘러보기
+            </Link>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
   const grid: GridNote[] =
     authored.length > 0
       ? authored.slice(0, 6).map((n) => ({
@@ -60,8 +122,11 @@ export default async function PublicProfilePage({
           title: n.aptName?.trim() || n.title,
           isReal: true,
         }))
-      : MOCK_GRID;
-  const noteCount = authored.length > 0 ? authored.length : 47;
+      : isMockHandle
+        ? MOCK_GRID
+        : []; // 실 프로필(닉네임 매칭)인데 공개 노트 0건 — 목업 그리드로 채우지 않음
+  const noteCount =
+    authored.length > 0 ? authored.length : isMockHandle ? 47 : 0;
   const region =
     authored[0]?.region?.trim() || "관양동·평촌";
 
@@ -209,6 +274,11 @@ export default async function PublicProfilePage({
               전체 보기 ›
             </Link>
           </div>
+          {grid.length === 0 && (
+            <div className="card px-5 py-8 text-center text-[12px] text-text-3">
+              아직 공개한 임장노트가 없어요
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-[6px]">
             {grid.map((g, i) => {
               const inner = (

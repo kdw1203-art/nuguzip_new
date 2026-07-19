@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
-import { safeReadPosts } from "@/lib/safe-home-data";
+import { readTownPosts } from "@/lib/newui/board-posts";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import {
   COMMUNITY_SUBCATEGORIES,
@@ -136,10 +136,11 @@ export default async function TownPage({
   const sub = findSub(COMMUNITY_SUBCATEGORIES, sp.sub);
   const sort = sp.sort === "popular" ? "popular" : "latest";
 
-  /* posts 실데이터 — 더미데이터 정책: 실데이터 1건 이상이면 실데이터만, 0건일 때만 예시 목업 */
+  /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 —
+     더미데이터 정책: 실데이터 1건 이상이면 실데이터만, 0건일 때만 예시 목업 */
   let allPosts: Post[] = [];
   try {
-    allPosts = await safeReadPosts();
+    allPosts = await readTownPosts();
   } catch {
     allPosts = [];
   }

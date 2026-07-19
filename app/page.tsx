@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Header } from "./components/Header";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
@@ -147,11 +148,22 @@ export default async function Home() {
           </div>
           <div className="rise-in-6">
             <AIPanel title="오늘의 시장 브리핑">
-              <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
-                예시 브리핑
-              </span>
-              수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을 좁힐
-              시기입니다.
+              {data.briefing ? (
+                <>
+                  {data.briefing.text}
+                  <span className="ml-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+                    {data.briefing.asOfLabel}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+                    예시 브리핑
+                  </span>
+                  수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을 좁힐
+                  시기입니다.
+                </>
+              )}
             </AIPanel>
           </div>
         </section>
@@ -182,8 +194,13 @@ export default async function Home() {
                   { label: "매매지수 서울", value: <>{saleIndexSeoul}</> },
                   { label: "기준 / 대출금리", value: <>2.75 / <span className="text-primary">{loanRate}</span></> },
                   { label: "오늘 새 노트", value: <span className="text-primary">{notesToday}</span> },
-                  // 사실 기반 원칙: 실시간 접속자 실데이터 없음 → 허위 수치 대신 "—"
-                  { label: "접속 중", value: <>—</> },
+                  // platform_activity_events 최근 15분 집계 — 집계 불가 시 "—"
+                  {
+                    label: "접속 중",
+                    value: (
+                      <>{data.activeNow !== null ? `${data.activeNow}명` : "—"}</>
+                    ),
+                  },
                 ].map((s, i) => (
                   <div key={i} className="rounded-xl bg-bg px-[13px] py-[11px]">
                     <div className="text-[10px] text-text-3">{s.label}</div>
@@ -267,11 +284,22 @@ export default async function Home() {
           <aside className="flex flex-col gap-3">
             <div className="rise-in-1">
               <AIPanel title="오늘의 시장 브리핑">
-                <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
-                  예시 브리핑
-                </span>
-                수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을 좁힐
-                시기입니다.
+                {data.briefing ? (
+                  <>
+                    {data.briefing.text}
+                    <span className="ml-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+                      {data.briefing.asOfLabel}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+                      예시 브리핑
+                    </span>
+                    수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을
+                    좁힐 시기입니다.
+                  </>
+                )}
               </AIPanel>
             </div>
             <div className="rise-in-2 card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
@@ -336,6 +364,26 @@ export default async function Home() {
           <div>
             시세·AI 분석 결과는 참고용 정보이며 투자 판단의 책임은 이용자 본인에게
             있습니다. 실거래가는 국토교통부 공개 데이터 기준입니다.
+          </div>
+          <div className="flex gap-3">
+            <Link
+              href="/legal/terms"
+              className="text-text-3 underline-offset-2 hover:underline"
+            >
+              이용약관
+            </Link>
+            <Link
+              href="/legal/privacy"
+              className="font-semibold text-text-2 underline-offset-2 hover:underline"
+            >
+              개인정보처리방침
+            </Link>
+            <Link
+              href="/legal"
+              className="text-text-3 underline-offset-2 hover:underline"
+            >
+              법적 고지
+            </Link>
           </div>
         </div>
       </footer>

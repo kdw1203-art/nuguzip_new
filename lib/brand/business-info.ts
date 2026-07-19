@@ -24,6 +24,8 @@ const ENV = {
     "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
     "MAIL_ORDER_SALES_NUMBER",
   ],
+  supportEmail: ["NEXT_PUBLIC_SUPPORT_EMAIL", "SUPPORT_EMAIL"],
+  privacyEmail: ["NEXT_PUBLIC_PRIVACY_EMAIL", "PRIVACY_EMAIL"],
 } as const;
 
 function readEnv(keys: readonly string[], fallback: string): string {
@@ -34,13 +36,15 @@ function readEnv(keys: readonly string[], fallback: string): string {
   return fallback;
 }
 
-/** Vercel env 미설정 시 기본값 — 운영 전 필수 항목을 env로 덮어쓰세요. */
+/** Vercel env 미설정 시 기본값 — 구 사이트(nuguzip.com)가 공개 게시한 실값. env가 있으면 env 우선. */
 const DEFAULTS = {
   legalName: "우리동네이야기",
-  representative: "",
-  registrationNumber: "",
-  address: "",
-  mailOrderSalesNumber: "",
+  representative: "고대웅",
+  registrationNumber: "378-06-02465",
+  address: "", // 구 코드에서 미확인 — env(NEXT_PUBLIC_COMPANY_ADDRESS)로 설정
+  mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
+  supportEmail: "nuguzip@naver.com",
+  privacyEmail: "nuguzip@naver.com",
 } as const;
 
 export function getBusinessInfo(): BusinessInfo {
@@ -52,8 +56,8 @@ export function getBusinessInfo(): BusinessInfo {
     registrationNumber: readEnv(ENV.registrationNumber, DEFAULTS.registrationNumber),
     address: readEnv(ENV.address, DEFAULTS.address),
     mailOrderSalesNumber: readEnv(ENV.mailOrderSalesNumber, DEFAULTS.mailOrderSalesNumber),
-    supportEmail: "support@nuguzip.com",
-    privacyEmail: "privacy@nuguzip.com",
+    supportEmail: readEnv(ENV.supportEmail, DEFAULTS.supportEmail),
+    privacyEmail: readEnv(ENV.privacyEmail, DEFAULTS.privacyEmail),
   };
 }
 
