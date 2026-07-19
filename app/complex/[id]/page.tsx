@@ -15,6 +15,7 @@ import {
   type HubNote,
   type HubListing,
 } from "./hub-client";
+import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 
 /* ============================================================
    시안 23b — 단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 22f-65 겸용)
@@ -23,7 +24,8 @@ import {
    비로그인 열람 허용 — index 대상(20b).
    ============================================================ */
 
-export const dynamic = "force-dynamic";
+// ISR(운영 P0): searchParams 미사용 — 경로별 2분 재검증 캐시 (SEO 랜딩 성능)
+export const revalidate = 120;
 
 interface HubView {
   id: string;
@@ -273,6 +275,8 @@ export default async function ComplexHubPage({
   const { id } = await params;
   const complexId = decodeURIComponent(id);
   const v = await loadView(complexId);
+  // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
+  const freshness = await getMarketFreshnessDateLabel();
 
   const cta = (
     <div className="flex gap-2">
@@ -333,6 +337,13 @@ export default async function ComplexHubPage({
           <div className="mt-0.5 text-[11px] text-text-3">안전 진단</div>
         </div>
       </div>
+
+      {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준 */}
+      {freshness && (
+        <p className="t-caption rise-in-1 mt-1.5 text-text-3">
+          실거래 기준: {freshness} (국토교통부)
+        </p>
+      )}
 
       {/* 본문 — 모바일 1열(시안), 데스크탑 2열 확장 */}
       <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">

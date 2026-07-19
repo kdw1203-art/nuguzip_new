@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../../components/PageShell";
 import { AIPanel } from "../../../components/AIPanel";
+import { ReportButton } from "../../../components/ReportButton";
 import { getTownPost, readTownPosts } from "@/lib/newui/board-posts";
 import type { Post } from "@/lib/types/post";
 
@@ -226,11 +227,15 @@ export default async function TownNewsDetailPage({
             </div>
 
             <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3.5">
-              <span className="text-[11px] text-[#adb5bd]">
-                {isAutomated || !post
-                  ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 · 오류 신고"
-                  : `${region} 이웃이 남긴 글 · 신고`}
-              </span>
+              <div className="flex flex-wrap items-center gap-1 text-[11px] text-[#adb5bd]">
+                <span>
+                  {isAutomated || !post
+                    ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 ·"
+                    : `${region} 이웃이 남긴 글 ·`}
+                </span>
+                {/* 신고 연결(#81) — POST /api/moderation/content-report */}
+                {post ? <ReportButton postId={post.id} /> : <span>오류 신고</span>}
+              </div>
               <div className="flex gap-3.5 text-xs text-text-2">
                 <span className="font-bold text-primary">
                   도움돼요 {likeCount}

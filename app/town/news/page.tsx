@@ -7,7 +7,8 @@ import type { Post } from "@/lib/types/post";
 
 /* 시안 8k — 자료(크롤링 뉴스) · 데스크탑 — posts 자동수집(뉴스) 실데이터 연동 */
 
-export const dynamic = "force-dynamic";
+// ISR(운영 P0): searchParams 미사용 — 2분 재검증 캐시로 접속마다 DB 재조회 방지
+export const revalidate = 120;
 
 const NEWS_SUB = COMMUNITY_SUBCATEGORIES.find((s) => s.id === "news");
 

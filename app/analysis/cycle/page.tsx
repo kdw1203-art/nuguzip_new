@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PageShell } from "../../components/PageShell";
+import { NextActions } from "../../components/NextActions";
 
 type PeriodKey = "1년" | "3년" | "5년" | "10년";
 
@@ -255,6 +256,14 @@ export default function CyclePage() {
             </div>
           </div>
         </div>
+
+        {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
+        <NextActions
+          actions={[
+            { label: "알림 기준 설정", href: "/notifications", primary: true },
+            { label: "시나리오 확인", href: "/analysis/scenario" },
+          ]}
+        />
       </div>
     </PageShell>
   );

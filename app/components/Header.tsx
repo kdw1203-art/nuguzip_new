@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { HeaderAuth } from "./HeaderAuth";
 
 /** 9m GNB — 호버 드롭다운(리퀴드 글래스, riseIn 180ms) */
 const NAV: {
@@ -15,9 +16,10 @@ const NAV: {
     label: "임장노트",
     href: "/notes",
     children: [
-      { label: "공개 임장노트", href: "/notes" },
       { label: "노트 쓰기", href: "/notes/new" },
-      { label: "다회차 비교", href: "/notes/compare" },
+      { label: "내 노트", href: "/my" },
+      { label: "공개 노트", href: "/notes" },
+      { label: "회차 비교", href: "/notes/compare" },
       { label: "발견 피드", href: "/discover" },
     ],
   },
@@ -26,7 +28,8 @@ const NAV: {
     href: "/map",
     children: [
       { label: "지도 탐색", href: "/map" },
-      { label: "단지 비교 담기", href: "/analysis/compare" },
+      { label: "매물 보기", href: "/map" },
+      { label: "실거래가", href: "/search" },
       { label: "청약 센터", href: "/apply" },
     ],
   },
@@ -34,22 +37,22 @@ const NAV: {
     label: "AI 분석",
     href: "/analysis",
     children: [
-      { label: "분석 허브", href: "/analysis" },
-      { label: "다자 비교", href: "/analysis/compare" },
-      { label: "시세 사이클", href: "/analysis/cycle" },
-      { label: "AI 제안가", href: "/analysis/price" },
-      { label: "계산기", href: "/calculator" },
+      { label: "임장노트 분석", href: "/analysis" },
+      { label: "후보 단지 비교", href: "/analysis/compare" },
+      { label: "시장·대출 시나리오", href: "/analysis/scenario" },
+      { label: "시세·타이밍", href: "/analysis/timing" },
+      { label: "포트폴리오", href: "/analysis/portfolio" },
     ],
   },
   {
     label: "동네이야기",
     href: "/town",
     children: [
-      { label: "커뮤니티", href: "/town" },
-      { label: "뉴스·자료", href: "/town/news" },
-      { label: "마켓", href: "/town/market" },
-      { label: "전문가", href: "/town/experts" },
+      { label: "피드", href: "/town" },
+      { label: "자료·뉴스", href: "/town/news" },
       { label: "임장 모임", href: "/town/groups" },
+      { label: "전문가", href: "/town/experts" },
+      { label: "마켓", href: "/town/market" },
     ],
   },
 ];
@@ -123,6 +126,9 @@ export function Header() {
         >
           노트 쓰기
         </Link>
+
+        {/* 세션 영역 — 로그인 시 아바타+플랜 배지+드롭다운 / 비로그인 시 로그인 링크 */}
+        <HeaderAuth />
 
         {/* 모바일 아이콘 */}
         <div className="flex gap-3.5 text-base text-text-1 md:hidden">

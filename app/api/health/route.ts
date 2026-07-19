@@ -7,6 +7,76 @@ import {
   isOdcloudConfigured,
 } from "@/lib/public-data/data-go-kr-keys";
 import { getPublicDataProbeSummaryCached } from "@/lib/public-data/cached-probe";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import { getSupabaseUrl } from "@/lib/supabase/env";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/** ETL 성공이 이 시간보다 오래되면 degraded (일 배치 기준 여유 48h) */
+const ETL_STALE_MS = 48 * 3600_000;
+
+type OpsChecks = {
+  db: { ok: boolean };
+  etl: { ok: boolean; lastSuccessAt: string | null };
+  env: { ok: boolean };
+};
+
+/**
+ * 운영 P0 체크 — DB ping(가벼운 단건 조회) · ETL 최근 성공 시각 · env 유효성.
+ * 코드베이스에 etl_runs 테이블은 없어 실제 수집 로그 테이블(market_ingest_log)을 사용.
+ * 민감정보(URL·키·에러 메시지)는 절대 반환하지 않는다 — boolean과 시각만.
+ */
+async function getOpsChecks(): Promise<OpsChecks> {
+  // env — supabase URL http(s) 검증 (값 자체는 노출하지 않음)
+  let envOk = false;
+  try {
+    const url = getSupabaseUrl();
+    if (url) {
+      const parsed = new URL(url);
+      envOk = parsed.protocol === "https:" || parsed.protocol === "http:";
+    }
+  } catch {
+    envOk = false;
+  }
+
+  let dbOk = false;
+  let etlOk = false;
+  let lastSuccessAt: string | null = null;
+  try {
+    const sb = getReadOnlySupabase();
+    if (sb) {
+      // db ping — 단건 조회 (가벼운 select 1 상당)
+      const { error } = await sb
+        .from("market_ingest_log")
+        .select("created_at")
+        .limit(1);
+      dbOk = !error;
+
+      // etl — 최근 성공(status=ok) 시각
+      if (dbOk) {
+        const { data, error: etlError } = await sb
+          .from("market_ingest_log")
+          .select("created_at")
+          .eq("status", "ok")
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (!etlError && data && data.length > 0) {
+          const at = new Date(String(data[0].created_at));
+          if (!Number.isNaN(at.getTime())) {
+            lastSuccessAt = at.toISOString();
+            etlOk = Date.now() - at.getTime() < ETL_STALE_MS;
+          }
+        }
+      }
+    }
+  } catch {
+    dbOk = false;
+    etlOk = false;
+  }
+
+  return { db: { ok: dbOk }, etl: { ok: etlOk, lastSuccessAt }, env: { ok: envOk } };
+}
 
 
 
@@ -85,7 +155,12 @@ export async function GET(req: Request) {
 
   const criticalOk = authSecret && supabaseUrl;
 
-  const status = loginReady ? (criticalOk ? "ok" : "degraded") : "no-login";
+  // 운영 P0: DB ping · ETL 최근 성공 · env 유효성 (인증 불필요, 민감정보 없음)
+  const ops = await getOpsChecks();
+
+  const opsOk = ops.db.ok && ops.etl.ok && ops.env.ok;
+
+  const status = loginReady ? (criticalOk && opsOk ? "ok" : "degraded") : "no-login";
 
 
 
@@ -97,7 +172,7 @@ export async function GET(req: Request) {
 
       {
 
-        status: loginReady ? "ok" : "degraded",
+        status: loginReady && opsOk ? "ok" : "degraded",
 
         timestamp: new Date().toISOString(),
 
@@ -106,6 +181,12 @@ export async function GET(req: Request) {
         cspRevision: CSP_REVISION,
 
         checks: {
+
+          db: ops.db,
+
+          etl: ops.etl,
+
+          env: ops.env,
 
           loginReady,
 
@@ -127,7 +208,7 @@ export async function GET(req: Request) {
 
       },
 
-      { status: 200 },
+      { status: 200, headers: { "Cache-Control": "no-store, max-age=0" } },
 
     );
 
@@ -255,6 +336,8 @@ export async function GET(req: Request) {
 
       timestamp: new Date().toISOString(),
 
+      checks: { db: ops.db, etl: ops.etl, env: ops.env },
+
       services,
 
       summary: {
@@ -277,7 +360,10 @@ export async function GET(req: Request) {
 
     },
 
-    { status: loginReady ? 200 : 503 },
+    {
+      status: loginReady ? 200 : 503,
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    },
 
   );
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
+import { NextActions } from "../../components/NextActions";
 
 const STEPS = [
   { label: "기준가 — 최근 6개월 동일평형 실거래 9건 회귀", value: "8.31억", tone: "ink" },
@@ -207,6 +208,17 @@ export default function PricePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
+      <div className="mt-4">
+        <NextActions
+          actions={[
+            { label: "이 단지 노트 쓰기", href: "/notes/new", primary: true },
+            { label: "비교에 추가", href: "/analysis/compare" },
+            { label: "협상 스크립트 보기", href: "/analysis" },
+          ]}
+        />
       </div>
     </PageShell>
   );

@@ -11,6 +11,8 @@ import type { Post } from "@/lib/types/post";
 
 /* 시안 6d(동네이야기 데스크탑) + 6e(동네이야기 모바일) — posts 실데이터 연동 */
 
+/* ISR 전환 검토(운영 P0): 이 페이지는 searchParams(sub·sort 필터)를 실제로 사용하므로
+   요청 시 자동 dynamic — revalidate로 바꿔도 효과가 없어 그대로 둔다. */
 export const dynamic = "force-dynamic";
 
 /* ---------- 목업 폴백 (DB 미연결 시) ---------- */

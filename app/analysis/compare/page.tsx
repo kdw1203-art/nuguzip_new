@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
+import { NextActions } from "../../components/NextActions";
 import {
   COMPARE_TRAY_MAX,
   listCompareTray,
@@ -534,6 +535,15 @@ export default function ComparePage() {
             </div>
           </>
         )}
+
+        {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
+        <NextActions
+          actions={[
+            { label: "노트 쓰러 가기", href: "/notes/new", primary: true },
+            { label: "계산기로 월 부담 확인", href: "/calculator" },
+            { label: "알림 설정", href: "/notifications" },
+          ]}
+        />
       </div>
     </PageShell>
   );

@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
+import { ReportButton } from "../../components/ReportButton";
+import { NextActions } from "../../components/NextActions";
 import {
   getNote,
   inspectionAverageScore,
@@ -503,6 +505,13 @@ export default async function NoteDetailPage({
               <Link href={COMPLEX_HREF} className="font-bold text-primary">
                 이 단지 노트 {isReal ? "더 보기" : "38"}
               </Link>
+              {/* 신고 연결(#81) — 실데이터 노트만, POST /api/moderation/content-report */}
+              {realNote && (
+                <>
+                  <span>·</span>
+                  <ReportButton postId={realNote.id} />
+                </>
+              )}
             </div>
           </div>
 
@@ -738,6 +747,17 @@ export default async function NoteDetailPage({
             ))}
           </div>
         </aside>
+      </div>
+
+      {/* 15h-43 노트→분석 상시 연결: 상세 하단 고정 다음 행동 */}
+      <div className="mt-5">
+        <NextActions
+          actions={[
+            { label: "AI 분석 실행", href: "/analysis", primary: true },
+            { label: "회차 비교", href: "/notes/compare" },
+            { label: "단지 허브 보기", href: COMPLEX_HREF },
+          ]}
+        />
       </div>
     </PageShell>
   );

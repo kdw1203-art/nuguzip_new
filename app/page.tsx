@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Header } from "./components/Header";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
+import { PersonalHome } from "./components/PersonalHome";
+import { JourneyBanner } from "./components/JourneyBanner";
 import { loadNewHomeData } from "@/lib/newui/home-data";
+import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getBusinessInfo } from "@/lib/brand/business-info";
 import type {
   DeltaTone,
@@ -63,6 +66,8 @@ function ExampleBadge() {
 
 export default async function Home() {
   const data = await loadNewHomeData();
+  // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
+  const freshness = await getMarketFreshnessDateLabel();
 
   // 실데이터가 1건이라도 있으면 그대로 사용, 0건일 때만 목업(예시 라벨 부착)
   const regionsIsMock = data.regions.length === 0;
@@ -90,24 +95,28 @@ export default async function Home() {
       <Header />
 
       <main className="mx-auto w-full max-w-[1240px] flex-1 px-5 pb-32 pt-5 md:pb-16">
+        {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
+        <PersonalHome />
+
         {/* ================= 모바일 히어로 (5b) ================= */}
         <section className="flex flex-col gap-3 md:hidden">
-          <h1 className="rise-in mt-2 text-[25px] font-extrabold leading-[1.3] tracking-[-0.5px] text-ink">
+          <h1 data-static-hero className="rise-in mt-2 text-[25px] font-extrabold leading-[1.3] tracking-[-0.5px] text-ink">
             오늘 본 집,
             <br />
             3분 만에 기록하세요
           </h1>
-          <p className="rise-in-1 text-sm text-text-2">
+          <p data-static-hero className="rise-in-1 text-sm text-text-2">
             AI가 장단점과 시세 맥락을 정리해 드립니다
           </p>
           <a
             href="#"
+            data-static-hero
             className="btn-primary rise-in-2 rounded-2xl p-[15px] text-center text-base"
             style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
           >
             임장노트 쓰기
           </a>
-          <div className="rise-in-3 flex gap-2">
+          <div data-static-hero className="rise-in-3 flex gap-2">
             <a href="#" className="glass flex-1 rounded-xl p-[11px] text-center text-[13px] font-bold text-text-1">
               지도 보기
             </a>
@@ -115,6 +124,7 @@ export default async function Home() {
               샘플 노트
             </a>
           </div>
+          <JourneyBanner />
           <div className="rise-in-4 flex gap-2">
             {[
               { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
@@ -172,7 +182,7 @@ export default async function Home() {
         <section className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-[1fr_340px]">
           <div className="flex flex-col gap-4">
             {/* 히어로 */}
-            <div className="rise-in card flex flex-col items-start justify-between gap-6 rounded-[20px] px-6 py-[22px] xl:flex-row xl:items-center">
+            <div data-static-hero className="rise-in card flex flex-col items-start justify-between gap-6 rounded-[20px] px-6 py-[22px] xl:flex-row xl:items-center">
               <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-extrabold leading-[1.3] text-ink">
                   임장 기록이 판단 근거가 됩니다
@@ -210,6 +220,8 @@ export default async function Home() {
               </div>
             </div>
 
+            <JourneyBanner />
+
             {/* 지역 시세 카드 4열 */}
             <div className="rise-in-1 grid grid-cols-2 gap-3 xl:grid-cols-4">
               {regions.slice(0, 4).map((r) => (
@@ -229,6 +241,13 @@ export default async function Home() {
                 </div>
               ))}
             </div>
+
+            {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준, null이면 미표시 */}
+            {freshness && (
+              <p className="t-caption -mt-2 text-text-3">
+                실거래 기준: {freshness} (국토교통부)
+              </p>
+            )}
 
             {/* 공개 노트 · 동네이야기 */}
             <div className="rise-in-2 grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -316,6 +335,17 @@ export default async function Home() {
                 </div>
               ))}
             </div>
+            {/* 전세 안전 진단 진입 카드 (제언-전략 #9) */}
+            <Link
+              href="/safety"
+              className="rise-in-3 card card-hover flex items-center justify-between gap-2 rounded-2xl px-[18px] py-4"
+            >
+              <span className="text-[13px] font-bold text-ink">
+                전세 계약 전 안전 진단 —{" "}
+                <span className="text-primary">보증보험 가능 여부 확인</span>
+              </span>
+              <span className="shrink-0 text-sm font-extrabold text-primary">›</span>
+            </Link>
             <div className="rise-in-3 card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
               <div className="text-[13px] font-extrabold text-ink">인기 전문가 리포트</div>
               {reports.map((r) => (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
+import { NextActions } from "../../components/NextActions";
 
 /* 시안 8c의 사이클 세그먼트 (absolute 위치·회전 그대로) */
 const SEGMENTS = [
@@ -130,6 +131,16 @@ export default function TimingPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
+      <div className="mt-5">
+        <NextActions
+          actions={[
+            { label: "알림 기준 설정", href: "/notifications", primary: true },
+            { label: "시나리오 확인", href: "/analysis/scenario" },
+          ]}
+        />
       </div>
     </PageShell>
   );

@@ -1,0 +1,123 @@
+import { NextResponse } from "next/server";
+import { safeAuth } from "@/lib/safe-auth";
+import { listNotes } from "@/lib/inspection/store-db";
+import { countWatchlist } from "@/lib/watchlist/store-db";
+import { loadMeProfile } from "@/lib/me/profile";
+import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
+import { getServiceSupabase } from "@/lib/supabase/service";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/* S13-13a 홈 이원화 — 로그인 개인화 데이터 (조회 실패 항목은 null, 허위값 금지)
+   비로그인 홈(app/page.tsx)은 ISR 정적 캐시 유지 — 개인화는 이 라우트로 지연 주입 */
+
+type PersonalRecentNote = {
+  id: string;
+  title: string;
+  region: string;
+  aptName: string | null;
+  createdAt: string;
+  /** 최근 노트의 미완료 체크리스트 개수 (없으면 null) */
+  pendingChecklist: number | null;
+};
+
+export type PersonalHomeData = {
+  nickname: string | null;
+  plan: string | null;
+  noteCount: number | null;
+  recentNote: PersonalRecentNote | null;
+  /** 비교 후보 수 (user_watchlist) */
+  compareCount: number | null;
+  /** 관심지역 한 줄 (app_users.primary_region) */
+  primaryRegion: string | null;
+  /** 관심지역 목록 (app_users.watch_regions) */
+  regions: string[] | null;
+  /** 최근 노트 3건 기준 미완료 체크 항목 합계 */
+  todoCount: number | null;
+};
+
+async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
+  }
+}
+
+async function loadWatchRegions(email: string): Promise<string[] | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("app_users")
+    .select("watch_regions")
+    .eq("email", email.trim().toLowerCase())
+    .maybeSingle();
+  if (error) return null;
+  const raw = data?.watch_regions;
+  if (!Array.isArray(raw)) return null;
+  return raw
+    .map((r) => {
+      const o = r as Record<string, unknown>;
+      const label = o.label ? String(o.label) : "";
+      const cityDistrict = [o.city, o.district]
+        .map((v) => String(v ?? "").trim())
+        .filter(Boolean)
+        .join(" ");
+      return (label || cityDistrict).trim();
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+export async function GET() {
+  const session = await safeAuth();
+  const email = session?.user?.email;
+  if (!email) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  const [profile, notes, compareCount, appUser, regions] = await Promise.all([
+    guarded(() =>
+      loadMeProfile(email, {
+        name: session.user?.name,
+        plan: (session.user as { plan?: string }).plan,
+        role: (session.user as { role?: string }).role,
+      }),
+    ),
+    guarded(() => listNotes(email)),
+    guarded(() => countWatchlist(email)),
+    guarded(() => fetchAppUserByEmail(email)),
+    guarded(() => loadWatchRegions(email)),
+  ]);
+
+  const recent = notes && notes.length > 0 ? notes[0] : null;
+  const pendingOf = (checklist: { done: boolean }[] | undefined | null) =>
+    Array.isArray(checklist) ? checklist.filter((c) => !c.done).length : 0;
+
+  const body: PersonalHomeData = {
+    nickname: profile?.name ?? session.user?.name ?? null,
+    plan: appUser?.plan ?? profile?.plan ?? null,
+    noteCount: notes ? notes.length : null,
+    recentNote: recent
+      ? {
+          id: recent.id,
+          title: recent.title,
+          region: recent.region,
+          aptName: recent.aptName ?? null,
+          createdAt: recent.createdAt,
+          pendingChecklist: pendingOf(recent.checklist),
+        }
+      : null,
+    compareCount: compareCount ?? null,
+    primaryRegion: profile?.primaryRegion ?? null,
+    regions,
+    todoCount: notes
+      ? notes.slice(0, 3).reduce((sum, n) => sum + pendingOf(n.checklist), 0)
+      : null,
+  };
+
+  return NextResponse.json(body, {
+    headers: { "Cache-Control": "private, max-age=300" },
+  });
+}

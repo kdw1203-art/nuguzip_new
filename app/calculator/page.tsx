@@ -260,6 +260,14 @@ export default function CalculatorPage() {
             </span>
             <span className="text-sm font-extrabold text-primary">›</span>
           </Link>
+
+          {/* 계산기→시나리오 연결 (15h) */}
+          <Link
+            href="/analysis/scenario"
+            className="rise-in-5 block text-center text-[13px] font-bold text-primary"
+          >
+            이 조건으로 시장·대출 시나리오 보기 ›
+          </Link>
         </div>
 
         {/* ---------- 결과 상세 (9j 우측) ---------- */}
