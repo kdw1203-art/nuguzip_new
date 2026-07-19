@@ -54,7 +54,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx vercel deploy --prebuilt ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | tee deploy.log
+          # --archive=tgz: 무료 플랜 24h 업로드 파일 수(5000) 한도 대응 — 아카이브 1개로 업로드
+          npx vercel deploy --prebuilt --archive=tgz ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | tee deploy.log
       - name: Report deploy failure
         if: failure()
         env:
