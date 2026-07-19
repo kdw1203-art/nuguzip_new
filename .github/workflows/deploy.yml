@@ -1,0 +1,28 @@
+# Vercel 자동 배포
+# - main 브랜치 푸시 → 프로덕션 (nuguzip.com)
+# - 그 외 브랜치 푸시 → 프리뷰 URL
+# 필요 시크릿: VERCEL_TOKEN (저장소 Settings → Secrets → Actions)
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: ["**"]
+
+env:
+  VERCEL_ORG_ID: team_HEspqLpVXaHn1GHTEjqbSZ2E
+  VERCEL_PROJECT_ID: prj_hsE8uEG7QyxefafQpVnKx6diCVqO
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pull Vercel environment
+        run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build
+        run: npx vercel build ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy
+        run: npx vercel deploy --prebuilt ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
