@@ -47,4 +47,17 @@ jobs:
       - name: Build
         run: npx vercel build ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Deploy
-        run: npx vercel deploy --prebuilt ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          set -o pipefail
+          npx vercel deploy --prebuilt ${{ github.ref_name == 'main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }} 2>&1 | tee deploy.log
+      - name: Report deploy failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAIL=$(tail -c 3000 deploy.log 2>/dev/null || echo "no log")
+          gh api repos/${{ github.repository }}/issues -f title="Deploy failure $(date -u +%FT%TZ)" -f body="run: ${{ github.run_id }}
+          \`\`\`
+          $TAIL
+          \`\`\`" || true
