@@ -1,0 +1,292 @@
+@import "tailwindcss";
+
+/* ============================================================
+   누구집 디자인 시스템 — 리퀴드 글래스 (클로드 디자인 핸드오프 기반)
+   ============================================================ */
+
+:root {
+  /* 컬러 토큰 */
+  --primary: #1d4fd8;
+  --primary-strong: #16389c;
+  --primary-soft: #edf2fe;
+  --ink: #191f28;
+  --danger: #d64545;
+  --danger-soft: #fdeeee;
+  --text-1: #333d4b;
+  --text-2: #6b7684;
+  --text-3: #8b95a1;
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --border: #e9edf3;
+  --border-strong: #dbe2ec;
+
+  /* 글래스 토큰 */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.62);
+  --glass-blur: blur(22px) saturate(1.6);
+  --glass-blur-strong: blur(26px) saturate(1.7);
+  --glass-border: rgba(255, 255, 255, 0.78);
+
+  /* 섀도 */
+  --shadow-card: 0 12px 40px rgba(29, 79, 216, 0.1);
+  --shadow-cta: 0 6px 18px rgba(29, 79, 216, 0.28);
+  --shadow-glass: 0 6px 20px rgba(16, 28, 54, 0.08);
+  --shadow-float: 0 12px 36px rgba(16, 28, 54, 0.14);
+
+  /* 모션 토큰 */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-tap: 120ms;
+  --dur-ui: 240ms;
+  --dur-page: 400ms;
+  --stagger: 70ms;
+
+  /* AI 패널 */
+  --ai-panel: rgba(25, 31, 40, 0.94);
+  --ai-accent: #7ea2ff;
+  --ai-text: #c9d2e0;
+  --ai-muted: #9aa6b8;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-ink: var(--ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ai-accent: var(--ai-accent);
+  --color-ai-text: var(--ai-text);
+  --color-ai-muted: var(--ai-muted);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro KR",
+    "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo", "Helvetica Neue",
+    system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: var(--primary);
+}
+a:hover {
+  color: var(--primary-strong);
+}
+
+/* ---------- 글래스 서피스 (헤더·탭바·플로팅 전용) ---------- */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-glass);
+}
+.glass-strong {
+  background: rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-float);
+}
+/* backdrop-filter 미지원 폴백 */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass,
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.92);
+  }
+}
+
+/* ---------- AI 패널 (항상 잉크 다크) ---------- */
+.ai-panel {
+  background: var(--ai-panel);
+  border-radius: 16px;
+  color: var(--ai-text);
+}
+.ai-chip {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* ---------- 버튼 ---------- */
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 10px;
+  transition: background var(--dur-tap) var(--ease-out),
+    transform var(--dur-tap) var(--ease-out);
+}
+.btn-primary:hover {
+  background: var(--primary-strong);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+}
+.btn-cta {
+  box-shadow: var(--shadow-cta);
+}
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text-1);
+  font-weight: 700;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  transition: background var(--dur-tap) var(--ease-out);
+}
+.btn-secondary:hover {
+  background: var(--bg);
+}
+.btn-soft {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+  border-radius: 10px;
+  transition: filter var(--dur-tap) var(--ease-out);
+}
+.btn-soft:hover {
+  filter: brightness(0.96);
+}
+
+/* ---------- 카드 ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.card-hover {
+  transition: transform var(--dur-ui) var(--ease-out),
+    box-shadow var(--dur-ui) var(--ease-out);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------- 칩 ---------- */
+.chip {
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chip-active {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+}
+.chip-soft {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ---------- 시세 관례: 상승 red / 하락 blue ---------- */
+.delta-up {
+  color: var(--danger);
+  font-weight: 700;
+}
+.delta-down {
+  color: var(--primary);
+  font-weight: 700;
+}
+.delta-flat {
+  color: var(--text-2);
+  font-weight: 700;
+}
+
+/* ---------- 모션 ---------- */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -360px 0;
+  }
+  100% {
+    background-position: 360px 0;
+  }
+}
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rise-in {
+  animation: riseIn var(--dur-page) var(--ease-out) both;
+}
+.rise-in-1 {
+  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 1) both;
+}
+.rise-in-2 {
+  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 2) both;
+}
+.rise-in-3 {
+  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 3) both;
+}
+.rise-in-4 {
+  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 4) both;
+}
+.rise-in-5 {
+  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 5) both;
+}
+.rise-in-6 {
+  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 6) both;
+}
+
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef1f6 25%, #f7f9fc 50%, #eef1f6 75%);
+  background-size: 720px 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .rise-in-1,
+  .rise-in-2,
+  .rise-in-3,
+  .rise-in-4,
+  .rise-in-5,
+  .rise-in-6 {
+    animation: riseIn 150ms ease both;
+    transform: none;
+  }
+  .skeleton {
+    animation: none;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
+}

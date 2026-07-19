@@ -1,0 +1,185 @@
+import Link from "next/link";
+import { PageShell } from "../../components/PageShell";
+
+/* 시안 8l — 마켓 (임장 서비스·리포트) + 8m 리포트 상품 상세 · 데스크탑 */
+
+const FILTERS = ["전체", "지역 리포트", "대리 임장", "체크리스트"];
+
+const PRODUCTS = [
+  {
+    badge: "지역 리포트",
+    badgeStyle: "bg-[#fdf3e7] text-[#c07a3a]",
+    meta: "구매 214",
+    title: "관양동 재건축 흐름 분석",
+    seller: "김OO 중개사 · ★4.9",
+    price: "9,900원",
+    selected: true,
+  },
+  {
+    badge: "대리 임장",
+    badgeStyle: "bg-[#edf2fe] text-primary",
+    meta: "구매 89",
+    title: "평촌 단지 대리 임장 (사진 30장+노트)",
+    seller: "박OO 임장러 · ★4.7",
+    price: "35,000원",
+    selected: false,
+  },
+  {
+    badge: "체크리스트",
+    badgeStyle: "bg-[#f2f4f8] text-text-2",
+    meta: "무료 · 1.2만",
+    title: "구축 아파트 40항목 체크리스트",
+    seller: "누구집 공식",
+    price: "받기",
+    selected: false,
+  },
+];
+
+export default function TownMarketPage() {
+  return (
+    <PageShell breadcrumb="동네이야기 › 마켓">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h1 className="rise-in text-[22px] font-extrabold text-ink">마켓</h1>
+        <div className="flex gap-1.5 overflow-x-auto text-[13px]">
+          {FILTERS.map((f, i) => (
+            <span
+              key={f}
+              className={`chip px-3.5 py-2 ${
+                i === 0
+                  ? "chip-active"
+                  : "bg-[rgba(255,255,255,.7)] text-text-2"
+              }`}
+            >
+              {f}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[380px_1fr]">
+        {/* ---------- 상품 목록 ---------- */}
+        <div className="flex flex-col gap-3">
+          {PRODUCTS.map((p, i) => (
+            <div
+              key={p.title}
+              className={`card-hover rise-in-${i + 1} flex flex-col gap-2 rounded-[18px] bg-surface p-[18px] ${
+                p.selected
+                  ? "border-[1.5px] border-primary"
+                  : "border border-line"
+              }`}
+            >
+              <div className="flex justify-between">
+                <span
+                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${p.badgeStyle}`}
+                >
+                  {p.badge}
+                </span>
+                <span className="text-[11px] text-text-3">{p.meta}</span>
+              </div>
+              <div className="text-[15px] font-extrabold text-ink">
+                {p.title}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-text-3">{p.seller}</span>
+                <span
+                  className={`font-extrabold ${
+                    p.price === "받기"
+                      ? "text-[13px] text-primary"
+                      : "text-[15px] text-ink"
+                  }`}
+                >
+                  {p.price}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ---------- 상품 상세 (8m) ---------- */}
+        <div className="rise-in-2 card flex flex-col gap-3.5 rounded-[20px] p-[26px]">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+            <div>
+              <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-[#c07a3a]">
+                지역 리포트
+              </span>
+              <h2 className="mt-2 text-[21px] font-extrabold text-ink">
+                관양동 재건축 흐름 분석 (2026 상반기판)
+              </h2>
+              <div className="mt-1 text-xs text-text-3">
+                PDF 34p · 07.10 발행 · 구매 후 갱신본 무료
+              </div>
+            </div>
+            <div className="shrink-0 sm:text-right">
+              <div className="text-[22px] font-extrabold text-ink">9,900원</div>
+              <div className="text-[11px] text-text-3">플러스 멤버 -20%</div>
+            </div>
+          </div>
+
+          {/* 판매자 */}
+          <div className="flex items-center gap-2.5 rounded-xl bg-bg px-3.5 py-3">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-extrabold text-ink">
+                  김OO 공인중개사
+                </span>
+                <span className="rounded bg-[#edf2fe] px-1.5 py-px text-[9px] font-extrabold text-primary">
+                  인증
+                </span>
+              </div>
+              <div className="text-[11px] text-text-3">
+                관양동 12년 · 리포트 8 · ★4.9 (214)
+              </div>
+            </div>
+            <Link
+              href="/town/experts"
+              className="text-xs font-bold text-primary"
+            >
+              프로필 ›
+            </Link>
+          </div>
+
+          {/* 목차 미리보기 */}
+          <div className="flex flex-col gap-1.5">
+            <div className="text-[13px] font-extrabold text-ink">
+              목차 미리보기
+            </div>
+            <div className="rounded-xl bg-bg px-4 py-3 text-xs leading-loose text-text-1">
+              1. 관양동 단지별 재건축 요건 현황 (공작·한가람 외 6곳)
+              <br />
+              2. 용적률·대지지분으로 본 사업성 순위
+              <br />
+              3. 1기 신도시 특별법 적용 시나리오
+              <br />
+              4.{" "}
+              <span className="text-[#adb5bd]">
+                🔒 추진위 동향과 예상 타임라인 (구매 후 열람)
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              className="btn-primary flex-1 rounded-[14px] p-[13px] text-sm"
+              style={{ boxShadow: "0 8px 22px rgba(29,79,216,.35)" }}
+            >
+              구매하기
+            </button>
+            <button
+              type="button"
+              className="btn-secondary rounded-[14px] px-5 py-[13px] text-sm"
+            >
+              저장 찜
+            </button>
+          </div>
+
+          <p className="text-[11px] text-[#adb5bd]">
+            리포트는 참고용 정보이며 투자 판단 책임은 구매자에게 있습니다 ·
+            디지털 상품 특성상 열람 후 환불 불가
+          </p>
+        </div>
+      </div>
+    </PageShell>
+  );
+}

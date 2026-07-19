@@ -1,0 +1,152 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+
+const GOALS = [
+  { icon: "🏠", title: "첫 내집마련", desc: "실거주 관점 체크리스트 중심" },
+  { icon: "📈", title: "투자 · 갈아타기", desc: "수익률·시세 흐름 중심" },
+  { icon: "💼", title: "전문가 · 중개사", desc: "리포트 발행·상담 도구" },
+] as const;
+
+const SEGMENTS: { name: string; options: string[]; initial: string }[] = [
+  { name: "나이대", options: ["20대", "30대", "40대", "50대+"], initial: "30대" },
+  { name: "성별", options: ["남", "여"], initial: "남" },
+  { name: "가구", options: ["1인 거주", "2인 거주", "3인 이상"], initial: "2인 거주" },
+  { name: "직업", options: ["직장인", "사업자", "법인"], initial: "직장인" },
+  { name: "생애최초", options: ["해당", "비해당"], initial: "해당" },
+  { name: "보유 주택", options: ["무주택", "1주택", "2주택+"], initial: "무주택" },
+];
+
+const REGIONS = ["안양 관양동", "서울 마포구", "과천시"];
+
+export default function SignupPage() {
+  const [goal, setGoal] = useState(0);
+  const [segments, setSegments] = useState<Record<string, string>>(
+    Object.fromEntries(SEGMENTS.map((s) => [s.name, s.initial]))
+  );
+  const [regions, setRegions] = useState<string[]>(["안양 관양동"]);
+
+  const toggleRegion = (r: string) =>
+    setRegions((prev) =>
+      prev.includes(r) ? prev.filter((v) => v !== r) : prev.length < 3 ? [...prev, r] : prev
+    );
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col gap-4 px-7 pb-8 pt-5">
+      <div className="flex items-center justify-between">
+        <Link href="/login" className="text-base text-text-1" aria-label="뒤로">
+          ‹
+        </Link>
+        <div className="relative h-1 w-[120px] rounded-sm bg-[#e9edf3]">
+          <div className="absolute left-0 top-0 h-1 w-1/2 rounded-sm bg-primary" />
+        </div>
+        <Link href="/" className="text-[13px] text-text-3">
+          건너뛰기
+        </Link>
+      </div>
+
+      <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+        어떤 집을 찾고 계세요?
+      </h1>
+      <p className="rise-in-1 -mt-2 text-[13px] text-text-2">맞춤 지표와 체크리스트를 준비해 드려요</p>
+
+      <div className="rise-in-2 flex flex-col gap-2.5">
+        {GOALS.map((g, i) => (
+          <button
+            key={g.title}
+            type="button"
+            onClick={() => setGoal(i)}
+            className={`flex items-center gap-3 rounded-2xl p-4 text-left ${
+              goal === i
+                ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.08)]"
+                : "card"
+            }`}
+          >
+            <span className="text-xl">{g.icon}</span>
+            <span className="flex-1">
+              <span className={`block text-sm font-extrabold ${goal === i ? "text-primary" : "text-ink"}`}>
+                {g.title}
+              </span>
+              <span className={`block text-xs ${goal === i ? "text-[#5b74b8]" : "text-text-3"}`}>
+                {g.desc}
+              </span>
+            </span>
+            {goal === i && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] text-white">
+                ✓
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="rise-in-3 flex flex-col gap-2">
+        <div className="text-[13px] font-extrabold text-ink">
+          기본 정보{" "}
+          <span className="text-[11px] font-medium text-text-3">맞춤 추천에 사용 · 나중에 수정 가능</span>
+        </div>
+        {SEGMENTS.map((seg) => (
+          <div key={seg.name} className="flex items-center gap-2">
+            <span className="w-[60px] shrink-0 text-xs text-text-2">{seg.name}</span>
+            <div className="flex flex-wrap gap-[5px]">
+              {seg.options.map((opt) => {
+                const active = segments[seg.name] === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setSegments((prev) => ({ ...prev, [seg.name]: opt }))}
+                    className={`rounded-full px-3 py-1.5 text-xs ${
+                      active
+                        ? "border-[1.5px] border-primary bg-primary-soft font-bold text-primary"
+                        : "border border-[#e2e7ee] bg-surface text-text-2"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rise-in-4 flex flex-col gap-2">
+        <div className="text-[13px] font-extrabold text-ink">
+          관심 지역 <span className="text-[11px] font-medium text-text-3">최대 3곳</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {REGIONS.map((r) => {
+            const active = regions.includes(r);
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => toggleRegion(r)}
+                className={`rounded-full px-[13px] py-[7px] text-xs ${
+                  active
+                    ? "bg-primary-soft font-bold text-primary"
+                    : "border border-[#e2e7ee] bg-surface text-text-2"
+                }`}
+              >
+                {active ? "✓ " : ""}
+                {r}
+              </button>
+            );
+          })}
+          <span className="rounded-full bg-[#f2f4f8] px-[13px] py-[7px] text-xs text-text-3">
+            ⌕ 검색
+          </span>
+        </div>
+      </div>
+
+      <Link
+        href="/my"
+        className="btn-primary btn-cta rise-in-5 rounded-2xl p-[15px] text-center text-base"
+      >
+        시작하기
+      </Link>
+    </main>
+  );
+}
