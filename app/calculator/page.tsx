@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
@@ -46,16 +46,62 @@ function formatEok(manwon: number): string {
   return `${eok}억 ${rest.toLocaleString()}만원`;
 }
 
+type LoanCalcResult = {
+  monthlyPayment: number; // 만원
+  totalInterest: number; // 만원
+  totalRepayment: number; // 만원
+};
+
 export default function CalculatorPage() {
   const [mode, setMode] = useState<(typeof MODES)[number]>("실거주");
   const [price, setPrice] = useState(84000); // 만원
   const [loanRatio, setLoanRatio] = useState(40); // %
   const [years, setYears] = useState(30);
+  const [serverCalc, setServerCalc] = useState<LoanCalcResult | null>(null);
 
   const loan = price * (loanRatio / 100);
   const r = RATE / 100 / 12;
   const n = years * 12;
-  const monthly = loan > 0 ? (loan * r) / (1 - Math.pow(1 + r, -n)) : 0; // 만원
+  const clientMonthly = loan > 0 ? (loan * r) / (1 - Math.pow(1 + r, -n)) : 0; // 만원 (폴백)
+
+  // 구 API /api/loan/calc 서버 계산 연결 — 실패 시 클라이언트 계산 폴백 유지
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/loan/calc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            price, // 만원 단위 그대로 전달 (응답도 만원 단위)
+            down: price - price * (loanRatio / 100),
+            ltv: 70,
+            annualRate: RATE,
+            years,
+            method: "annuity",
+          }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("loan calc failed");
+        const data = (await res.json()) as Partial<LoanCalcResult>;
+        if (typeof data.monthlyPayment === "number") {
+          setServerCalc({
+            monthlyPayment: data.monthlyPayment,
+            totalInterest: data.totalInterest ?? 0,
+            totalRepayment: data.totalRepayment ?? 0,
+          });
+        }
+      } catch {
+        if (!controller.signal.aborted) setServerCalc(null); // 폴백: 클라이언트 계산
+      }
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [price, loanRatio, years]);
+
+  const monthly = serverCalc ? serverCalc.monthlyPayment : clientMonthly;
   const cashNeeded = price - loan + price * 0.033; // 취득세·부대비용 포함
   const burden = Math.round(((monthly * 12) / INCOME) * 100);
   const burdenLabel = burden <= 30 ? "적정" : burden <= 40 ? "주의" : "위험";
@@ -179,9 +225,20 @@ export default function CalculatorPage() {
           {/* 계산 결과 (6h 다크 패널) */}
           <div className="rise-in-3 ai-panel flex flex-col gap-2.5 rounded-[20px] p-[18px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
             <div className="flex items-baseline justify-between">
-              <span className="text-[13px] text-ai-muted">월 원리금</span>
+              <span className="text-[13px] text-ai-muted">
+                월 원리금{" "}
+                <span className="text-[10px]">
+                  {serverCalc ? "· 서버 계산" : "· 간이 계산"}
+                </span>
+              </span>
               <span className="text-2xl font-extrabold text-white">{Math.round(monthly)}만원</span>
             </div>
+            {serverCalc && (
+              <div className="flex justify-between text-xs text-ai-muted">
+                <span>총 이자 ({years}년)</span>
+                <span className="font-bold text-ai-text">{formatEok(serverCalc.totalInterest)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-xs text-ai-muted">
               <span>필요 현금 (취득세 포함)</span>
               <span className="font-bold text-ai-text">{formatEok(Math.round(cashNeeded))}</span>

@@ -1,31 +1,17 @@
-"use client";
+import {
+  listPublicNotes,
+  inspectionAverageScore,
+  type InspectionNote,
+} from "@/lib/inspection/store-db";
+import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { PageShell } from "../components/PageShell";
+/* 시안 7a — 공개 임장노트 피드. 실데이터: inspection_notes(is_public) → listPublicNotes */
 
-/* 시안 7a — 공개 임장노트 피드 (데스크탑 피드 + 필터 칩) */
+export const dynamic = "force-dynamic";
 
-type TagTone = "pos" | "neg";
-
-type FeedNote = {
-  id: number;
-  author: string;
-  meta: string;
-  score: number;
-  scoreTone: "primary" | "muted";
-  title: string;
-  excerpt: string;
-  tags: { label: string; tone: TagTone }[];
-  likes: number;
-  comments: number;
-  saves: number;
-  interested: boolean;
-};
-
-const NOTES: FeedNote[] = [
+const MOCK_NOTES: FeedNote[] = [
   {
-    id: 1,
+    id: "1",
     author: "관양동 이웃",
     meta: "2시간 전 · 3번째 방문",
     score: 78,
@@ -37,13 +23,12 @@ const NOTES: FeedNote[] = [
       { label: "초품아", tone: "pos" },
       { label: "이중주차", tone: "neg" },
     ],
-    likes: 12,
-    comments: 5,
-    saves: 8,
+    footer: ["공감 12", "댓글 5", "저장 8"],
+    popularity: 12,
     interested: true,
   },
   {
-    id: 2,
+    id: "2",
     author: "마포 이웃",
     meta: "5시간 전 · 첫 방문",
     score: 82,
@@ -54,13 +39,12 @@ const NOTES: FeedNote[] = [
       { label: "역세권", tone: "pos" },
       { label: "커뮤니티", tone: "pos" },
     ],
-    likes: 24,
-    comments: 11,
-    saves: 19,
+    footer: ["공감 24", "댓글 11", "저장 19"],
+    popularity: 24,
     interested: false,
   },
   {
-    id: 3,
+    id: "3",
     author: "과천 이웃",
     meta: "어제 · 2번째 방문",
     score: 64,
@@ -71,123 +55,91 @@ const NOTES: FeedNote[] = [
       { label: "경사 심함", tone: "neg" },
       { label: "신축감", tone: "pos" },
     ],
-    likes: 7,
-    comments: 3,
-    saves: 4,
+    footer: ["공감 7", "댓글 3", "저장 4"],
+    popularity: 7,
     interested: true,
   },
 ];
 
-const FILTERS = ["최신", "인기", "내 관심 지역"] as const;
-type Filter = (typeof FILTERS)[number];
+function relativeTime(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "";
+  const diffMs = Date.now() - t;
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "방금 전";
+  if (min < 60) return `${min}분 전`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour}시간 전`;
+  const day = Math.floor(hour / 24);
+  if (day === 1) return "어제";
+  if (day < 31) return `${day}일 전`;
+  return iso.slice(0, 10);
+}
 
-export default function NotesFeedPage() {
-  const [filter, setFilter] = useState<Filter>("최신");
+function maskAuthor(n: InspectionNote): string {
+  if (n.authorLabel && n.authorLabel.trim()) return n.authorLabel.trim();
+  const local = n.authorEmail.split("@")[0] ?? "이웃";
+  const head = local.slice(0, 2) || "이웃";
+  return `${head}** 이웃`;
+}
 
-  const visible =
-    filter === "인기"
-      ? [...NOTES].sort((a, b) => b.likes - a.likes)
-      : filter === "내 관심 지역"
-        ? NOTES.filter((n) => n.interested)
-        : NOTES;
+function deriveTags(n: InspectionNote): FeedNote["tags"] {
+  const tags: FeedNote["tags"] = [];
+  const s = n.scores;
+  if (s.transport >= 4) tags.push({ label: "교통 좋음", tone: "pos" });
+  if (s.school >= 4) tags.push({ label: "학군 좋음", tone: "pos" });
+  if (s.location >= 4) tags.push({ label: "입지 좋음", tone: "pos" });
+  if (s.future >= 4) tags.push({ label: "미래가치", tone: "pos" });
+  if (s.facility <= 2) tags.push({ label: "시설 아쉬움", tone: "neg" });
+  if (s.location > 0 && s.location <= 2)
+    tags.push({ label: "입지 아쉬움", tone: "neg" });
+  return tags.slice(0, 3);
+}
 
-  return (
-    <PageShell>
-      <div className="flex flex-col gap-4">
-        {/* 피드 헤더 + 필터 칩 */}
-        <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">
-              공개 임장노트
-            </h1>
-            <p className="mt-1.5 text-sm text-text-2">
-              이웃들의 실제 임장 기록 — 샘플·시드 없이 실회원 기록만
-            </p>
-          </div>
-          <div className="flex gap-2 text-[13px]">
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className={`chip px-4 py-2 ${
-                  filter === f
-                    ? "chip-active"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
+function toFeedNote(n: InspectionNote): FeedNote {
+  const avg = inspectionAverageScore(n.scores);
+  const score = Math.round(avg * 20);
+  const excerptSrc =
+    n.summary?.trim() ||
+    n.sections.memo?.trim() ||
+    n.sections.pros?.trim() ||
+    "현장 기록이 등록된 임장노트입니다.";
+  const excerpt =
+    excerptSrc.length > 60 ? `“${excerptSrc.slice(0, 60)}…”` : `“${excerptSrc}”`;
+  return {
+    id: n.id,
+    author: maskAuthor(n),
+    meta: `${relativeTime(n.createdAt)} · ${n.region}`,
+    score,
+    scoreTone: avg >= 3.5 ? "primary" : "muted",
+    title: n.aptName ? `${n.aptName}` : n.title,
+    excerpt,
+    tags: deriveTags(n),
+    footer: [
+      `평점 ${avg.toFixed(1)}/5`,
+      `방문 ${n.visitDate}`,
+      `체크 ${n.checklist.filter((c) => c.done).length}/${n.checklist.length}`,
+    ],
+    popularity: score,
+    interested: false,
+  };
+}
 
-        {/* 노트 카드 그리드 */}
-        <div className="rise-in-1 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visible.map((n) => (
-            <Link
-              key={n.id}
-              href={`/notes/${n.id}`}
-              className="card card-hover flex flex-col gap-2.5 rounded-[20px] p-5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-7 w-7 rounded-full"
-                    style={{
-                      background:
-                        "repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2 5px,#eef2f8 5px,#eef2f8 10px)",
-                    }}
-                  />
-                  <div>
-                    <div className="text-xs font-bold text-ink">{n.author}</div>
-                    <div className="text-[10px] text-text-3">{n.meta}</div>
-                  </div>
-                </div>
-                <span
-                  className={`text-xs font-extrabold ${
-                    n.scoreTone === "primary" ? "text-primary" : "text-text-3"
-                  }`}
-                >
-                  {n.score}점
-                </span>
-              </div>
-              <div className="text-[15px] font-extrabold text-ink">{n.title}</div>
-              <div className="text-[13px] leading-[1.55] text-text-2">
-                {n.excerpt}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {n.tags.map((t) => (
-                  <span
-                    key={t.label}
-                    className={`rounded-full px-2 py-[3px] text-[11px] ${
-                      t.tone === "pos"
-                        ? "bg-primary-soft text-primary"
-                        : "bg-danger-soft text-danger"
-                    }`}
-                  >
-                    {t.label}
-                  </span>
-                ))}
-              </div>
-              <div className="flex gap-3.5 border-t border-[#f0f3f8] pt-2.5 text-[11px] text-text-3">
-                <span>공감 {n.likes}</span>
-                <span>댓글 {n.comments}</span>
-                <span>저장 {n.saves}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+export default async function NotesFeedPage() {
+  let notes: FeedNote[] = [];
+  try {
+    const rows = await listPublicNotes(50);
+    notes = rows.map(toFeedNote);
+  } catch {
+    notes = [];
+  }
+  // 공개 노트가 없거나 부족하면 목업 카드로 보강 (실데이터 우선 노출)
+  if (notes.length === 0) {
+    notes = MOCK_NOTES;
+  } else if (notes.length < 3) {
+    const ids = new Set(notes.map((n) => n.id));
+    notes = [...notes, ...MOCK_NOTES.filter((m) => !ids.has(m.id))];
+  }
 
-        {/* 모바일 전용 노트 쓰기 CTA (데스크탑은 헤더 CTA 사용) */}
-        <Link
-          href="/notes/new"
-          className="btn-primary rise-in-2 rounded-2xl p-[15px] text-center text-base md:hidden"
-          style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
-        >
-          노트 쓰기
-        </Link>
-      </div>
-    </PageShell>
-  );
+  return <NotesFeedClient notes={notes} />;
 }

@@ -2,6 +2,7 @@
 
 /* ============================================================
    누구집 디자인 시스템 — 리퀴드 글래스 (클로드 디자인 핸드오프 기반)
+   3차 갱신: S15 디자인 개선 50 (15a~15d) + S19 모션 시스템 50 (19a~19e)
    ============================================================ */
 
 :root {
@@ -11,7 +12,7 @@
   --primary-soft: #edf2fe;
   --ink: #191f28;
   --danger: #d64545;
-  --danger-soft: #fdeeee;
+  --danger-soft: #fbeaea; /* 15b 상태색 스케일: 위험 bg */
   --text-1: #333d4b;
   --text-2: #6b7684;
   --text-3: #8b95a1;
@@ -20,6 +21,42 @@
   --border: #e9edf3;
   --border-strong: #dbe2ec;
 
+  /* 15b 상태색 파생 스케일 — 각 상태 bg/border/text 3토큰 고정
+     (bg 위 text 대비 4.5:1 · 텍스트에 bg색 직접 사용 금지) */
+  --success: #1a7f4e;
+  --success-soft: #e7f5ee;
+  --success-border: rgba(26, 127, 78, 0.35);
+  --warning: #946200;
+  --warning-soft: #fdf3dd;
+  --warning-border: rgba(148, 98, 0, 0.35);
+  --danger-border: rgba(214, 69, 69, 0.35);
+
+  /* 15b 인터랙션 상태 */
+  --disabled-bg: #eef1f6;
+  --disabled-text: #b0b8c1;
+  --dim: rgba(25, 31, 40, 0.5); /* 딤 단일값 · 코치마크만 .7 */
+  --dim-coach: rgba(25, 31, 40, 0.7);
+
+  /* 15a 타입 7단 램프 (10/12/14/16 혼용 → 램프로 스냅) */
+  --fs-display: 28px; /* lh 1.3 · ls -1% · 홈 헤드라인 */
+  --fs-title: 21px; /* lh 1.35 · 화면 제목 */
+  --fs-section: 15px; /* lh 1.4 · 카드 제목 */
+  --fs-body: 13px; /* lh 1.6 · 최대 34자/행 */
+  --fs-sub: 11px; /* lh 1.5 · 보조 */
+  --fs-caption: 9px; /* ls +1% · 캡션·각주·출처 */
+
+  /* 15a 간격 8pt 스케일 */
+  --sp-inline: 8px; /* 인라인 */
+  --sp-el: 12px; /* 요소 간 */
+  --sp-card-in: 16px; /* 카드 내부 */
+  --sp-screen: 20px; /* 화면 패딩 */
+  --sp-card-gap: 24px; /* 카드 사이 */
+  --sp-section: 32px; /* 섹션 사이 */
+  /* 카드 패딩 3종 (11~24px 혼재 정리) */
+  --pad-compact: 14px;
+  --pad-card: 18px;
+  --pad-hero: 22px;
+
   /* 글래스 토큰 */
   --glass-bg: rgba(255, 255, 255, 0.55);
   --glass-bg-strong: rgba(255, 255, 255, 0.62);
@@ -27,24 +64,38 @@
   --glass-blur-strong: blur(26px) saturate(1.7);
   --glass-border: rgba(255, 255, 255, 0.78);
 
-  /* 섀도 */
-  --shadow-card: 0 12px 40px rgba(29, 79, 216, 0.1);
+  /* 15b 그림자 3단 (8종 → 3종)
+     플랫 = 보더만(본문 카드) / sm = 호버·드롭다운 / lg = 모달·플로팅
+     보더+그림자 동시 사용 금지 (글래스 제외) */
+  --shadow-sm: 0 4px 14px rgba(16, 28, 54, 0.08);
+  --shadow-lg: 0 12px 32px rgba(16, 28, 54, 0.14);
+  /* 하위호환 별칭 — 기존 토큰명 유지, 값은 3단으로 스냅 */
+  --shadow-card: var(--shadow-sm);
+  --shadow-glass: var(--shadow-sm);
+  --shadow-float: var(--shadow-lg);
   --shadow-cta: 0 6px 18px rgba(29, 79, 216, 0.28);
-  --shadow-glass: 0 6px 20px rgba(16, 28, 54, 0.08);
-  --shadow-float: 0 12px 36px rgba(16, 28, 54, 0.14);
 
-  /* 모션 토큰 */
-  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --dur-tap: 120ms;
-  --dur-ui: 240ms;
-  --dur-page: 400ms;
-  --stagger: 70ms;
+  /* 19e #50 전역 모션 토큰 — dur 4단 + 이징 2종으로만 구현 · 커스텀 값 금지 */
+  --dur-xs: 120ms; /* 탭 피드백 · 닫힘 · 스켈레톤 크로스페이드 */
+  --dur-sm: 200ms; /* 모달 등장 · 헤더 숨김 · UI 상태 전환 */
+  --dur-md: 300ms; /* 공유 요소 전환 · 성공 체크 · 다크 모드 확산 */
+  --dur-lg: 600ms; /* 차트 draw-in · 게이지 채움 · 딥링크 펄스 */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1); /* 등장·전환 기본 */
+  --ease-inout: cubic-bezier(0.45, 0, 0.25, 1); /* 왕복·모프·패럴랙스 */
+  /* 하위호환 별칭 */
+  --dur-tap: var(--dur-xs);
+  --dur-ui: var(--dur-sm);
+  --dur-page: var(--dur-md);
+  --stagger: 40ms; /* 19a #4 목록 스태거 40ms 간격 · 최대 8개 */
 
-  /* AI 패널 */
-  --ai-panel: rgba(25, 31, 40, 0.94);
-  --ai-accent: #7ea2ff;
-  --ai-text: #c9d2e0;
+  /* AI 패널 · 다크 패널 내 텍스트 (15b: 본문 #e2e8f2 · 보조 #9aa6b8 · 강조 #7ea2ff) */
+  --ai-panel: rgba(25, 31, 40, 0.96);
+  --ai-accent: #7ea2ff; /* 다크 위 파랑 #1d4fd8 금지 — 대비 부족 */
+  --ai-text: #e2e8f2;
   --ai-muted: #9aa6b8;
+
+  /* 15d 구분선 단일색 */
+  --divider: #f0f3f8;
 }
 
 @theme inline {
@@ -53,6 +104,10 @@
   --color-ink: var(--ink);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-text-1: var(--text-1);
   --color-text-2: var(--text-2);
   --color-text-3: var(--text-3);
@@ -60,6 +115,7 @@
   --color-surface: var(--surface);
   --color-line: var(--border);
   --color-line-strong: var(--border-strong);
+  --color-divider: var(--divider);
   --color-ai-accent: var(--ai-accent);
   --color-ai-text: var(--ai-text);
   --color-ai-muted: var(--ai-muted);
@@ -74,6 +130,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
+  word-break: keep-all; /* 15a 국문 keep-all 전면 */
 }
 
 a {
@@ -81,6 +138,62 @@ a {
 }
 a:hover {
   color: var(--primary-strong);
+}
+
+/* 15b focus: 2px primary 링 · 오프셋 2px */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ---------- 15a 타입 램프 유틸 ---------- */
+.t-display {
+  font-size: var(--fs-display);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  font-weight: 800;
+}
+.t-title {
+  font-size: var(--fs-title);
+  line-height: 1.35;
+  font-weight: 800;
+}
+.t-section {
+  font-size: var(--fs-section);
+  line-height: 1.4;
+  font-weight: 800;
+}
+.t-body {
+  font-size: var(--fs-body);
+  line-height: 1.6;
+}
+.t-sub {
+  font-size: var(--fs-sub);
+  line-height: 1.5;
+}
+.t-caption {
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+/* 큰 숫자(가격): 자간 -1% + lh 1.2 + tabular */
+.t-num {
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+/* 제목 2줄 clamp / 목록 1줄 말줄임 */
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.truncate-1 {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* ---------- 글래스 서피스 (헤더·탭바·플로팅 전용) ---------- */
@@ -123,14 +236,15 @@ a:hover {
   flex-shrink: 0;
 }
 
-/* ---------- 버튼 ---------- */
+/* ---------- 버튼 (15b 파랑 다이어트 · 15c 3사이즈) ----------
+   위계: 채움 primary = 화면당 1개 / 아웃라인 = 보조 / 고스트 = 3순위·목록 내 */
 .btn-primary {
   background: var(--primary);
   color: #fff;
   font-weight: 700;
   border-radius: 10px;
-  transition: background var(--dur-tap) var(--ease-out),
-    transform var(--dur-tap) var(--ease-out);
+  transition: background var(--dur-xs) var(--ease-out),
+    transform var(--dur-xs) var(--ease-out);
 }
 .btn-primary:hover {
   background: var(--primary-strong);
@@ -147,7 +261,7 @@ a:hover {
   font-weight: 700;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
-  transition: background var(--dur-tap) var(--ease-out);
+  transition: background var(--dur-xs) var(--ease-out);
 }
 .btn-secondary:hover {
   background: var(--bg);
@@ -157,28 +271,132 @@ a:hover {
   color: var(--primary);
   font-weight: 700;
   border-radius: 10px;
-  transition: filter var(--dur-tap) var(--ease-out);
+  transition: filter var(--dur-xs) var(--ease-out);
 }
 .btn-soft:hover {
   filter: brightness(0.96);
 }
+/* 신규: 아웃라인 — 보조 액션 */
+.btn-outline {
+  background: var(--surface);
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+  border-radius: 10px;
+  transition: background var(--dur-xs) var(--ease-out),
+    transform var(--dur-xs) var(--ease-out);
+}
+.btn-outline:hover {
+  background: var(--primary-soft);
+}
+.btn-outline:active {
+  transform: scale(0.98);
+}
+/* 신규: 고스트 — 3순위·목록 내 */
+.btn-ghost {
+  background: var(--bg);
+  color: var(--text-1);
+  font-weight: 700;
+  border-radius: 10px;
+  transition: background var(--dur-xs) var(--ease-out),
+    transform var(--dur-xs) var(--ease-out);
+}
+.btn-ghost:hover {
+  background: #eef1f6;
+}
+.btn-ghost:active {
+  transform: scale(0.98);
+}
+/* 15c 버튼 3사이즈 — 라운드는 높이 비례 (52→14 / 40→11 / 32→9) */
+.btn-lg {
+  height: 52px;
+  padding: 0 22px;
+  border-radius: 14px;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-md {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 아이콘 버튼 = md 40px 정사각 고정 (모바일 히트 44px 확보) */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-1);
+  transition: background var(--dur-xs) var(--ease-out),
+    transform var(--dur-xs) var(--ease-out);
+}
+.icon-btn:hover {
+  background: #eef1f6;
+}
+.icon-btn:active {
+  transform: scale(0.98);
+}
+/* 15b disabled: bg #eef1f6 · text #b0b8c1 (opacity 금지) */
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-soft:disabled,
+.btn-outline:disabled,
+.btn-ghost:disabled,
+.icon-btn:disabled {
+  background: var(--disabled-bg);
+  color: var(--disabled-text);
+  border-color: var(--disabled-bg);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
 
-/* ---------- 카드 ---------- */
+/* ---------- 카드 (플랫 = 보더만, 호버 시에만 sm 그림자) ---------- */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
 }
 .card-hover {
-  transition: transform var(--dur-ui) var(--ease-out),
-    box-shadow var(--dur-ui) var(--ease-out);
+  transition: transform var(--dur-sm) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out);
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-sm);
+}
+/* 15a 카드 패딩 3종 */
+.card-pad-sm {
+  padding: var(--pad-compact);
+}
+.card-pad {
+  padding: var(--pad-card);
+}
+.card-pad-lg {
+  padding: var(--pad-hero);
 }
 
-/* ---------- 칩 ---------- */
+/* ---------- 칩 (15c 3종 — 역할별 모양 분리) ---------- */
+/* 필터 칩 = 풀라운드 · 단일선택 잉크 */
 .chip {
   border-radius: 999px;
   font-weight: 600;
@@ -193,6 +411,157 @@ a:hover {
   background: var(--primary-soft);
   color: var(--primary);
   font-weight: 700;
+}
+/* 다중선택 칩 = 9px 라운드 + 체크 */
+.chip-check {
+  border-radius: 9px;
+  border: 1px solid #e2e7ee;
+  background: var(--surface);
+  color: var(--text-2);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--dur-xs) var(--ease-out),
+    border-color var(--dur-xs) var(--ease-out);
+}
+.chip-check-active {
+  border-radius: 9px;
+  border: 1px solid rgba(29, 79, 216, 0.35);
+  background: rgba(29, 79, 216, 0.08);
+  color: var(--primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+/* 태그 = 6px · 비인터랙티브 */
+.chip-tag {
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- 15c 입력 필드 상태 ---------- */
+.input {
+  border: 1px solid #e2e7ee;
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color var(--dur-xs) var(--ease-out),
+    box-shadow var(--dur-xs) var(--ease-out);
+}
+.input::placeholder {
+  color: var(--disabled-text);
+}
+.input:focus {
+  outline: none;
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 79, 216, 0.12);
+}
+.input-error {
+  border: 1.5px solid var(--danger);
+}
+.input-success {
+  border: 1px solid rgba(26, 127, 78, 0.4);
+}
+.input:disabled {
+  background: var(--disabled-bg);
+  border-color: var(--disabled-bg);
+  color: var(--disabled-text);
+}
+/* 에러 문구 예약 공간 16px (레이아웃 점프 방지) */
+.input-msg {
+  min-height: 16px;
+  font-size: var(--fs-sub);
+  line-height: 16px;
+}
+
+/* ---------- 15b 상태 배지·배너 ---------- */
+.state-success {
+  background: var(--success-soft);
+  color: var(--success);
+  font-weight: 700;
+}
+.state-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-weight: 700;
+}
+.state-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 700;
+}
+.state-success-line {
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+.state-warning-line {
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
+}
+.state-danger-line {
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+/* ---------- 15d 토스트 · 툴팁 · 구분선 · 테이블 · 배너 ---------- */
+/* 토스트: 탭바 위 12px · 3초 · 동시 1개 · 액션 링크 최대 1개 */
+.toast {
+  background: rgba(25, 31, 40, 0.96);
+  border-radius: 12px;
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn var(--dur-sm) var(--ease-out) both;
+}
+.toast-action {
+  color: var(--ai-accent);
+  font-weight: 700;
+}
+/* 툴팁: 잉크 배경 · 최대 2줄 · 링크·버튼 포함 금지 */
+.tooltip {
+  background: var(--ink);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1.5;
+  padding: 7px 11px;
+  border-radius: 8px;
+  max-width: 180px;
+}
+/* 구분선: 밀집 목록(설정·표)에만 · 색 단일 · 카드 안 이중 구분 금지 */
+.divider {
+  border: 0;
+  border-top: 1px solid var(--divider);
+}
+/* 테이블 행: 36(컴팩트)/44(기본) · 텍스트 좌 / 숫자 우 · 얼룩말은 8행+ */
+.table-num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.table-row {
+  border-bottom: 1px solid var(--divider);
+}
+.table-zebra > :nth-child(even) {
+  background: #fbfcfe;
+}
+/* 배너: 정보·프로모 = 항상 ✕ 닫기 / 안전 경고 = 닫기 없음 */
+.banner-info {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: 12px;
+}
+.banner-warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-radius: 12px;
+}
+.banner-danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: 12px;
+}
+/* 이미지 위 텍스트 스크림: 하단 62% 고정 */
+.scrim {
+  background: linear-gradient(180deg, transparent 30%, rgba(16, 22, 34, 0.62));
 }
 
 /* ---------- 시세 관례: 상승 red / 하락 blue ---------- */
@@ -209,7 +578,7 @@ a:hover {
   font-weight: 700;
 }
 
-/* ---------- 모션 ---------- */
+/* ---------- 모션 (19a~19e — dur-xs/sm/md/lg + 이징 2종만 사용) ---------- */
 @keyframes riseIn {
   from {
     opacity: 0;
@@ -242,27 +611,132 @@ a:hover {
     transform: rotate(360deg);
   }
 }
+/* 19a #5 모달 등장: scale .96→1 · 200ms · 바운스 금지 (닫힘은 120ms) */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* 19a #2 시트: 아래에서 */
+@keyframes sheetUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+/* 19a #9 딥링크 착지: 배경 펄스 1회 600ms */
+@keyframes pulseBg {
+  0% {
+    background-color: rgba(29, 79, 216, 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+/* 19c #23 입력 에러 셰이크: 좌우 4px 2회 (총 240ms) */
+@keyframes shakeX {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25%,
+  75% {
+    transform: translateX(-4px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+/* 15d 토스트 등장 */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* 19e #48 위험 경고: 페이드 금지 · 위에서 슬라이드+정지 */
+@keyframes slideDownIn {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+/* 19b #13 차트 draw-in: 좌→우 600ms · 1회만 (stroke-dasharray 기반) */
+@keyframes drawIn {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* 19e #49 스켈레톤 교체: 콘텐츠와 120ms 크로스페이드 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
+/* 19a #4 목록 스태거: 40ms 간격 · 최대 8개 · 스크롤 유입분은 즉시 */
 .rise-in {
-  animation: riseIn var(--dur-page) var(--ease-out) both;
+  animation: riseIn var(--dur-md) var(--ease-out) both;
 }
 .rise-in-1 {
-  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 1) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 1) both;
 }
 .rise-in-2 {
-  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 2) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 2) both;
 }
 .rise-in-3 {
-  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 3) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 3) both;
 }
 .rise-in-4 {
-  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 4) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 4) both;
 }
 .rise-in-5 {
-  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 5) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 5) both;
 }
 .rise-in-6 {
-  animation: riseIn var(--dur-page) var(--ease-out) calc(var(--stagger) * 6) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 6) both;
+}
+
+.modal-in {
+  animation: scaleIn var(--dur-sm) var(--ease-out) both;
+}
+.sheet-in {
+  animation: sheetUp var(--dur-md) var(--ease-out) both;
+}
+.pulse-once {
+  animation: pulseBg var(--dur-lg) var(--ease-inout) 1 both;
+}
+.shake {
+  animation: shakeX 240ms var(--ease-inout) 1;
+}
+.alert-in {
+  animation: slideDownIn var(--dur-sm) var(--ease-out) both;
+}
+.fade-in {
+  animation: fadeIn var(--dur-xs) var(--ease-out) both;
 }
 
 .skeleton {
@@ -279,14 +753,25 @@ a:hover {
   .rise-in-3,
   .rise-in-4,
   .rise-in-5,
-  .rise-in-6 {
+  .rise-in-6,
+  .modal-in,
+  .sheet-in,
+  .toast,
+  .alert-in,
+  .fade-in {
     animation: riseIn 150ms ease both;
     transform: none;
   }
+  .pulse-once,
+  .shake,
   .skeleton {
     animation: none;
   }
-  .card-hover:hover {
+  .card-hover:hover,
+  .btn-primary:active,
+  .btn-outline:active,
+  .btn-ghost:active,
+  .icon-btn:active {
     transform: none;
   }
 }

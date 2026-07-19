@@ -1,0 +1,29 @@
+[
+  {
+    "name": "양재시민의숲",
+    "district": "강남구",
+    "city": "서울",
+    "address": "양재동 236",
+    "lat": 37.471,
+    "lng": 127.0347,
+    "category": "park"
+  },
+  {
+    "name": "도곡근린공원",
+    "district": "강남구",
+    "city": "서울",
+    "address": "도곡동 527",
+    "lat": 37.4889,
+    "lng": 127.0467,
+    "category": "park"
+  },
+  {
+    "name": "망원한강공원",
+    "district": "마포구",
+    "city": "서울",
+    "address": "망원동 450",
+    "lat": 37.555,
+    "lng": 126.895,
+    "category": "park"
+  }
+]

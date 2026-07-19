@@ -1,29 +1,72 @@
 import { Header } from "./components/Header";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
+import { loadNewHomeData } from "@/lib/newui/home-data";
+import { getBusinessInfo } from "@/lib/brand/business-info";
+import type {
+  DeltaTone,
+  HomeMeetingItem,
+  HomeNoteItem,
+  HomePostItem,
+  HomeRegionCard,
+  HomeReportItem,
+} from "@/lib/newui/home-data";
 
-const REGIONS = [
-  { name: "강남구", meta: "서울 · 37건", price: "32.5억", delta: "▼ 4.2%", tone: "down" },
-  { name: "마포구", meta: "서울 · 27건", price: "11.4억", delta: "▼ 10.3%", tone: "down" },
-  { name: "송파구", meta: "서울 · 50건", price: "17.6억", delta: "▼ 6.4%", tone: "down" },
-  { name: "남양주", meta: "경기 · 387건", price: "5.84억", delta: "▼ 0.5%", tone: "flat" },
-] as const;
+// 빌드 타임 DB 접근 회피 — 구 홈(oldsite app/page.tsx)과 동일
+export const dynamic = "force-dynamic";
 
-const NOTES = [
-  { title: "공작아파트 302동 — “주차가 관건”", score: "78점", hot: true },
-  { title: "마포래미안 115동 — “역까지 실측 7분”", score: "82점", hot: true },
-  { title: "과천 위버필드 — “경사 심함, 후문 동선”", score: "64점", hot: false },
+/* ── 목업 폴백 (실데이터 없거나 조회 실패 시) ── */
+const MOCK_REGIONS: HomeRegionCard[] = [
+  { id: "gangnam", name: "강남구", meta: "서울 · 37건", price: "32.5억", delta: "▼ 4.2%", tone: "down" },
+  { id: "mapo", name: "마포구", meta: "서울 · 27건", price: "11.4억", delta: "▼ 10.3%", tone: "down" },
+  { id: "songpa", name: "송파구", meta: "서울 · 50건", price: "17.6억", delta: "▼ 6.4%", tone: "down" },
+  { id: "namyangju", name: "남양주", meta: "경기 · 387건", price: "5.84억", delta: "▼ 0.5%", tone: "flat" },
 ];
 
-const POSTS = [
-  { rank: 1, title: "“청년 82.6% 세입자 시대…월세 부담 낮춰야”", comments: 6 },
-  { rank: 2, title: "월세 세액공제 30% 상향 발의", comments: 6 },
-  { rank: 3, title: "서울 빌라 매매 46% 급증", comments: 7 },
+const MOCK_NOTES: HomeNoteItem[] = [
+  { id: "m1", title: "공작아파트 302동 — “주차가 관건”", score: "78점", hot: true },
+  { id: "m2", title: "마포래미안 115동 — “역까지 실측 7분”", score: "82점", hot: true },
+  { id: "m3", title: "과천 위버필드 — “경사 심함, 후문 동선”", score: "64점", hot: false },
 ];
 
-const deltaClass = { down: "delta-down", up: "delta-up", flat: "delta-flat" };
+const MOCK_POSTS: HomePostItem[] = [
+  { id: "p1", rank: 1, title: "“청년 82.6% 세입자 시대…월세 부담 낮춰야”", comments: 6 },
+  { id: "p2", rank: 2, title: "월세 세액공제 30% 상향 발의", comments: 6 },
+  { id: "p3", rank: 3, title: "서울 빌라 매매 46% 급증", comments: 7 },
+];
 
-export default function Home() {
+const MOCK_MEETINGS: HomeMeetingItem[] = [
+  { id: "mt1", label: "과천지식정보타운 · 토 10:00 · 4/6" },
+  { id: "mt2", label: "마포 리모델링 스터디 · 일 14:00 · 2/4" },
+];
+
+const MOCK_REPORTS: HomeReportItem[] = [
+  { id: "r1", title: "관양동 재건축 흐름 분석", priceLabel: "9,900원" },
+  { id: "r2", title: "평촌 학원가 실전 가이드", priceLabel: "7,900원" },
+];
+
+const deltaClass: Record<DeltaTone, string> = {
+  down: "delta-down",
+  up: "delta-up",
+  flat: "delta-flat",
+};
+
+export default async function Home() {
+  const data = await loadNewHomeData();
+
+  const regions = data.regions.length > 0 ? data.regions : MOCK_REGIONS;
+  const notes = data.notes.length > 0 ? data.notes : MOCK_NOTES;
+  const posts = data.posts.length > 0 ? data.posts : MOCK_POSTS;
+  const meetings = data.meetings.length > 0 ? data.meetings : MOCK_MEETINGS;
+  const reports = data.reports.length > 0 ? data.reports : MOCK_REPORTS;
+
+  const saleIndexSeoul = data.saleIndexSeoul ?? "198.76";
+  const loanRate = data.loanRate ?? "4.19%";
+  const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "156건";
+
+  const biz = getBusinessInfo();
+  const representative = biz.representative || "고대웅";
+
   return (
     <>
       <Header />
@@ -56,9 +99,9 @@ export default function Home() {
           </div>
           <div className="rise-in-4 flex gap-2">
             {[
-              { label: "매매지수 서울", value: "198.76", accent: false },
+              { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
               { label: "기준금리", value: "2.75%", accent: false },
-              { label: "대출금리", value: "4.19%", accent: true },
+              { label: "대출금리", value: loanRate, accent: true },
             ].map((s) => (
               <div key={s.label} className="glass min-w-0 flex-1 rounded-[14px] px-3 py-2.5">
                 <div className="whitespace-nowrap text-[11px] text-text-3">{s.label}</div>
@@ -69,8 +112,8 @@ export default function Home() {
             ))}
           </div>
           <div className="rise-in-5 flex flex-col gap-3">
-            {REGIONS.slice(0, 2).map((r) => (
-              <div key={r.name} className="glass flex items-center justify-between rounded-2xl px-4 py-3.5">
+            {regions.slice(0, 2).map((r) => (
+              <div key={r.id} className="glass flex items-center justify-between rounded-2xl px-4 py-3.5">
                 <div>
                   <div className="text-sm font-bold text-ink">{r.name}</div>
                   <div className="text-xs text-text-3">{r.meta}</div>
@@ -113,9 +156,9 @@ export default function Home() {
               </div>
               <div className="grid w-full shrink-0 grid-cols-2 gap-2 xl:w-[300px]">
                 {[
-                  { label: "지수 전국 / 서울", value: <>130.3 / 198.8</> },
-                  { label: "기준 / 대출금리", value: <>2.75 / <span className="text-primary">4.19%</span></> },
-                  { label: "오늘 새 노트", value: <span className="text-primary">156건</span> },
+                  { label: "매매지수 서울", value: <>{saleIndexSeoul}</> },
+                  { label: "기준 / 대출금리", value: <>2.75 / <span className="text-primary">{loanRate}</span></> },
+                  { label: "오늘 새 노트", value: <span className="text-primary">{notesToday}</span> },
                   { label: "접속 중", value: <>1,284명</> },
                 ].map((s, i) => (
                   <div key={i} className="rounded-xl bg-bg px-[13px] py-[11px]">
@@ -128,10 +171,10 @@ export default function Home() {
 
             {/* 지역 시세 카드 4열 */}
             <div className="rise-in-1 grid grid-cols-2 gap-3 xl:grid-cols-4">
-              {REGIONS.map((r) => (
-                <div key={r.name} className="card card-hover rounded-[14px] px-4 py-3.5">
+              {regions.slice(0, 4).map((r) => (
+                <div key={r.id} className="card card-hover rounded-[14px] px-4 py-3.5">
                   <div className="text-xs text-text-3">
-                    {r.name} · {r.meta.split("· ")[1]}
+                    {r.name} · {r.meta.split("· ")[1] ?? r.meta}
                   </div>
                   <div className="mt-[3px] flex items-baseline gap-1.5">
                     <span className="text-[17px] font-extrabold text-ink">{r.price}</span>
@@ -150,11 +193,11 @@ export default function Home() {
                   <span className="text-sm font-extrabold text-ink">공개 임장노트</span>
                   <a href="#" className="text-[11px] text-text-3">더보기</a>
                 </div>
-                {NOTES.map((n, i) => (
+                {notes.map((n, i) => (
                   <div
-                    key={n.title}
+                    key={n.id}
                     className={`flex items-center justify-between gap-3 py-[7px] text-xs ${
-                      i < NOTES.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                      i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
                     }`}
                   >
                     <span className="truncate font-semibold text-text-1">{n.title}</span>
@@ -169,11 +212,11 @@ export default function Home() {
                   <span className="text-sm font-extrabold text-ink">동네이야기 · 자료</span>
                   <a href="#" className="text-[11px] text-text-3">더보기</a>
                 </div>
-                {POSTS.map((p, i) => (
+                {posts.map((p, i) => (
                   <div
-                    key={p.rank}
+                    key={p.id}
                     className={`py-[7px] text-xs font-semibold text-text-1 ${
-                      i < POSTS.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                      i < posts.length - 1 ? "border-b border-[#f0f3f8]" : ""
                     }`}
                   >
                     {p.rank} {p.title}{" "}
@@ -194,23 +237,25 @@ export default function Home() {
             </div>
             <div className="rise-in-2 card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
               <div className="text-[13px] font-extrabold text-ink">이번 주 임장 모임</div>
-              <div className="border-b border-[#f0f3f8] py-1.5 text-xs text-text-1">
-                과천지식정보타운 · 토 10:00 · 4/6
-              </div>
-              <div className="py-1.5 text-xs text-text-1">
-                마포 리모델링 스터디 · 일 14:00 · 2/4
-              </div>
+              {meetings.map((m, i) => (
+                <div
+                  key={m.id}
+                  className={`py-1.5 text-xs text-text-1 ${
+                    i < meetings.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  }`}
+                >
+                  {m.label}
+                </div>
+              ))}
             </div>
             <div className="rise-in-3 card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
               <div className="text-[13px] font-extrabold text-ink">인기 전문가 리포트</div>
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-text-1">관양동 재건축 흐름 분석</span>
-                <span className="font-extrabold text-ink">9,900원</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-text-1">평촌 학원가 실전 가이드</span>
-                <span className="font-extrabold text-ink">7,900원</span>
-              </div>
+              {reports.map((r) => (
+                <div key={r.id} className="flex justify-between gap-3 text-xs">
+                  <span className="truncate font-semibold text-text-1">{r.title}</span>
+                  <span className="shrink-0 font-extrabold text-ink">{r.priceLabel}</span>
+                </div>
+              ))}
             </div>
             {/* AD 슬롯 — 항상 AD 라벨 */}
             <div className="rise-in-4 flex h-24 flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
@@ -225,13 +270,24 @@ export default function Home() {
         </section>
       </main>
 
-      {/* 푸터 — 면책 문구는 여기 1회만 */}
+      {/* 푸터 — 사업자 고지(lib/brand/business-info) + 면책 문구는 여기 1회만 */}
       <footer className="hidden border-t border-line bg-surface px-5 py-6 md:block">
         <div className="mx-auto flex max-w-[1240px] flex-col gap-1.5 text-[11px] leading-relaxed text-text-3">
           <div>
-            누구집 · 우리동네이야기 · 대표 고대웅 ·{" "}
-            <a href="mailto:kdw1203@gmail.com" className="text-text-3 underline-offset-2 hover:underline">
-              문의
+            누구집 · 상호: {biz.legalName}({biz.domain}) · 대표: {representative} ·
+            사업자등록번호: {biz.registrationNumber || "—"}
+          </div>
+          <div>
+            주소: {biz.address || "—"}
+            {biz.mailOrderSalesNumber
+              ? ` · 통신판매업 신고번호: ${biz.mailOrderSalesNumber}`
+              : ""}{" "}
+            ·{" "}
+            <a
+              href={`mailto:${biz.supportEmail}`}
+              className="text-text-3 underline-offset-2 hover:underline"
+            >
+              문의 {biz.supportEmail}
             </a>
           </div>
           <div>

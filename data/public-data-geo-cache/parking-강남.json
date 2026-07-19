@@ -1,0 +1,20 @@
+[
+  {
+    "name": "강남역 공영주차장",
+    "district": "강남구",
+    "city": "서울",
+    "address": "테헤란로 123",
+    "lat": 37.4979,
+    "lng": 127.0276,
+    "category": "parking"
+  },
+  {
+    "name": "선릉역 공영주차장",
+    "district": "강남구",
+    "city": "서울",
+    "address": "선릉로 456",
+    "lat": 37.5045,
+    "lng": 127.049,
+    "category": "parking"
+  }
+]

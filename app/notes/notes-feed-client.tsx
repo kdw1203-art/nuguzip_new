@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { PageShell } from "../components/PageShell";
+
+/* 시안 7a — 공개 임장노트 피드 (데스크탑 피드 + 필터 칩) */
+
+export type TagTone = "pos" | "neg";
+
+export type FeedNote = {
+  id: string;
+  author: string;
+  meta: string;
+  score: number; // 0~100
+  scoreTone: "primary" | "muted";
+  title: string;
+  excerpt: string;
+  tags: { label: string; tone: TagTone }[];
+  footer: string[];
+  popularity: number;
+  interested: boolean;
+};
+
+const FILTERS = ["최신", "인기", "내 관심 지역"] as const;
+type Filter = (typeof FILTERS)[number];
+
+export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
+  const [filter, setFilter] = useState<Filter>("최신");
+
+  const visible =
+    filter === "인기"
+      ? [...notes].sort((a, b) => b.popularity - a.popularity)
+      : filter === "내 관심 지역"
+        ? notes.filter((n) => n.interested)
+        : notes;
+
+  return (
+    <PageShell>
+      <div className="flex flex-col gap-4">
+        {/* 피드 헤더 + 필터 칩 */}
+        <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">
+              공개 임장노트
+            </h1>
+            <p className="mt-1.5 text-sm text-text-2">
+              이웃들의 실제 임장 기록 — 샘플·시드 없이 실회원 기록만
+            </p>
+          </div>
+          <div className="flex gap-2 text-[13px]">
+            {FILTERS.map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setFilter(f)}
+                className={`chip px-4 py-2 ${
+                  filter === f
+                    ? "chip-active"
+                    : "border border-[#e2e7ee] bg-surface text-text-2"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 노트 카드 그리드 */}
+        {visible.length === 0 ? (
+          <div className="rise-in-1 card rounded-[20px] p-8 text-center text-sm text-text-2">
+            해당 필터에 맞는 노트가 아직 없어요.
+          </div>
+        ) : (
+          <div className="rise-in-1 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visible.map((n) => (
+              <Link
+                key={n.id}
+                href={`/notes/${n.id}`}
+                className="card card-hover flex flex-col gap-2.5 rounded-[20px] p-5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-7 w-7 rounded-full"
+                      style={{
+                        background:
+                          "repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2 5px,#eef2f8 5px,#eef2f8 10px)",
+                      }}
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-ink">{n.author}</div>
+                      <div className="text-[10px] text-text-3">{n.meta}</div>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs font-extrabold ${
+                      n.scoreTone === "primary" ? "text-primary" : "text-text-3"
+                    }`}
+                  >
+                    {n.score}점
+                  </span>
+                </div>
+                <div className="text-[15px] font-extrabold text-ink">{n.title}</div>
+                <div className="text-[13px] leading-[1.55] text-text-2">
+                  {n.excerpt}
+                </div>
+                {n.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {n.tags.map((t) => (
+                      <span
+                        key={t.label}
+                        className={`rounded-full px-2 py-[3px] text-[11px] ${
+                          t.tone === "pos"
+                            ? "bg-primary-soft text-primary"
+                            : "bg-danger-soft text-danger"
+                        }`}
+                      >
+                        {t.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-3.5 border-t border-[#f0f3f8] pt-2.5 text-[11px] text-text-3">
+                  {n.footer.map((f) => (
+                    <span key={f}>{f}</span>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* 모바일 전용 노트 쓰기 CTA (데스크탑은 헤더 CTA 사용) */}
+        <Link
+          href="/notes/new"
+          className="btn-primary rise-in-2 rounded-2xl p-[15px] text-center text-base md:hidden"
+          style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
+        >
+          노트 쓰기
+        </Link>
+      </div>
+    </PageShell>
+  );
+}

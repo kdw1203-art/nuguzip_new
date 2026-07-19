@@ -1,0 +1,41 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "buildCommand": "STRICT_ENV_CHECK=1 npm run build",
+  "regions": ["icn1"],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "m.nuguzip.com" }],
+      "destination": "https://nuguzip.com/:path*",
+      "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/attendance-reminders",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/reb-ingest",
+      "schedule": "0 6 */3 * *"
+    },
+    {
+      "path": "/api/cron/kb-ingest",
+      "schedule": "30 6 */3 * *"
+    },
+    {
+      "path": "/api/cron/complex-crawl",
+      "schedule": "0 7 */3 * *"
+    },
+    {
+      "path": "/api/cron/kosis-ingest",
+      "schedule": "45 6 */3 * *"
+    },
+    {
+      "path": "/api/cron/molit-transactions-ingest",
+      "schedule": "0 4 1 * *"
+    }
+  ]
+}

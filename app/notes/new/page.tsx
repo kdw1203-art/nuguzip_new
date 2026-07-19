@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-/* 시안 6b(노트 작성 기본) + 6r(작성 확장판 — 선택·필터·고려사항) */
+/* 시안 6b(노트 작성 기본) + 6r(작성 확장판 — 선택·필터·고려사항)
+   저장: POST /api/inspection/notes (구 코드베이스 임장노트 작성 엔드포인트) */
 
 const LEVELS = ["좋음", "보통", "아쉬움"] as const;
 type Level = (typeof LEVELS)[number];
@@ -36,7 +38,13 @@ const TODOS: { text: string; level: "중요" | "보통" }[] = [
   { text: "관리비 내역·배관 교체 이력 문의", level: "보통" },
 ];
 
+const LEVEL_SCORE: Record<Level, number> = { 좋음: 5, 보통: 3, 아쉬움: 1 };
+
+const APT_NAME = "공작아파트 302동 84A";
+const REGION = "안양 관양동";
+
 export default function NoteNewPage() {
+  const router = useRouter();
   const [checks, setChecks] = useState<Record<string, Level>>(CHECK_DEFAULTS);
   const [visit, setVisit] = useState<Record<string, string>>({
     유형: "아파트",
@@ -50,6 +58,9 @@ export default function NoteNewPage() {
     "남향이라 오후 채광 좋음. 단지 뒤 도로 소음 약간 있음"
   );
   const [savedDraft, setSavedDraft] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [needLogin, setNeedLogin] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const toggleTag = (label: string) =>
     setTags((prev) =>
@@ -59,6 +70,63 @@ export default function NoteNewPage() {
     setDoneTodos((prev) =>
       prev.includes(text) ? prev.filter((t) => t !== text) : [...prev, text]
     );
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setNeedLogin(false);
+    setSaveError(null);
+    const lv = (k: string): number => LEVEL_SCORE[checks[k] ?? "보통"];
+    const posTags = TAGS.filter((t) => t.tone === "pos" && tags.includes(t.label));
+    const negTags = TAGS.filter((t) => t.tone === "neg" && tags.includes(t.label));
+    try {
+      const res = await fetch("/api/inspection/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${APT_NAME} 임장 기록`,
+          region: REGION,
+          aptName: APT_NAME,
+          visitDate: new Date().toISOString().slice(0, 10),
+          transportation: visit["시간대"] ?? null,
+          summary: memo.trim() || undefined,
+          scores: {
+            location: lv("경사"),
+            school: Math.max(1, Math.round(satisfaction / 2)),
+            transport: lv("교통"),
+            facility: Math.round((lv("채광") + lv("소음") + lv("주차")) / 3),
+            future: Math.max(1, Math.round(satisfaction / 2)),
+          },
+          checklist: TODOS.map((t) => ({
+            label: t.text,
+            done: doneTodos.includes(t.text),
+          })),
+          sections: {
+            memo: memo.trim() || undefined,
+            pros: posTags.map((t) => t.label).join(" · ") || undefined,
+            cons: negTags.map((t) => t.label).join(" · ") || undefined,
+          },
+          isPublic: true,
+        }),
+      });
+      if (res.status === 401) {
+        setNeedLogin(true);
+        return;
+      }
+      const json: { note?: { id: string }; error?: string } = await res
+        .json()
+        .catch(() => ({}));
+      if (!res.ok || !json.note?.id) {
+        setSaveError(json.error ?? "저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      router.push(`/notes/${json.note.id}`);
+    } catch {
+      setSaveError("네트워크 오류로 저장하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col px-5 pb-10">
@@ -345,13 +413,28 @@ export default function NoteNewPage() {
 
       {/* 하단 CTA */}
       <div className="mt-4 flex flex-col gap-2">
-        <Link
-          href="/notes/1"
-          className="btn-primary rounded-2xl p-[15px] text-center text-base"
+        {needLogin && (
+          <div className="rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.08)] px-4 py-3 text-center text-[13px] text-primary">
+            저장하려면 로그인이 필요해요 — 작성한 내용은 유지돼요.{" "}
+            <Link href="/login" className="font-extrabold underline underline-offset-2">
+              로그인하기 ›
+            </Link>
+          </div>
+        )}
+        {saveError && (
+          <div className="rounded-[14px] border border-[rgba(214,69,69,.2)] bg-danger-soft px-4 py-3 text-center text-[13px] font-semibold text-danger">
+            {saveError}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="btn-primary rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
           style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
         >
-          기록 완료 → AI 정리 받기
-        </Link>
+          {saving ? "저장 중…" : "기록 완료 → AI 정리 받기"}
+        </button>
         <div className="text-center text-xs text-text-3">
           저장할 때만 로그인 · 체크 항목은 다음 임장에도 유지
         </div>

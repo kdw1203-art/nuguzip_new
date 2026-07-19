@@ -14,7 +14,7 @@ export function AIPanel({
         <span className="ai-chip h-5 w-5 text-[10px]">AI</span>
         <span className="text-[13px] font-extrabold text-white">{title}</span>
       </div>
-      <div className="text-xs leading-[1.65] text-ai-text">{children}</div>
+      <div className="text-[13px] leading-[1.6] text-ai-text">{children}</div>
     </div>
   );
 }

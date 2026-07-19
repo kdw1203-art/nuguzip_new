@@ -1,27 +1,51 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
+import { listExperts, type UserExpertProfile } from "@/lib/experts/store-db";
+import {
+  EXPERT_SUBCATEGORIES,
+  findSub,
+  matchSubcategory,
+} from "@/lib/subcategories";
 
-/* 시안 6p(전문가 상담 데스크탑) + 8n(전문가 프로필 상세) + 9o(프로필 확장) */
+/* 시안 6p(전문가 상담 데스크탑) + 8n(전문가 프로필 상세) + 9o(프로필 확장)
+   — expert_profiles 실데이터 연동, 0건이면 목업 폴백 */
 
-const EXPERT_FILTERS = ["중개사", "세무사", "감정평가사"];
+export const dynamic = "force-dynamic";
 
-const EXPERTS = [
+type ExpertView = {
+  id: string | null;
+  name: string;
+  region: string;
+  tags: string[];
+  rating: string;
+  response: string;
+  secondary: string;
+  verified: boolean;
+};
+
+/* ---------- 목업 폴백 ---------- */
+
+const FALLBACK_EXPERTS: ExpertView[] = [
   {
+    id: null,
     name: "김OO 공인중개사",
     region: "안양 관양동 · 경력 12년",
     tags: ["재건축", "1기 신도시"],
     rating: "★ 4.9 (128)",
     response: "응답 평균 2시간",
-    reports: "리포트 8",
+    secondary: "리포트 8",
+    verified: true,
   },
   {
+    id: null,
     name: "이OO 세무사",
     region: "서울 전역 · 경력 9년",
     tags: ["취득세", "양도세 절세"],
     rating: "★ 4.8 (86)",
     response: "응답 평균 4시간",
-    reports: "리포트 3",
+    secondary: "리포트 3",
+    verified: true,
   },
 ];
 
@@ -62,7 +86,99 @@ const CAREERS = [
   { label: "동안구 중개사협회 이사", check: "자기 기재", verified: false },
 ];
 
-export default function TownExpertsPage() {
+/* ---------- 헬퍼 ---------- */
+
+function fee(n: number) {
+  if (n >= 10000 && n % 10000 === 0) return `${n / 10000}만원`;
+  return `${n.toLocaleString("ko-KR")}원`;
+}
+
+function toView(e: UserExpertProfile): ExpertView {
+  return {
+    id: e.id,
+    name: e.title ? `${e.name} ${e.title}` : e.name,
+    region: [e.regions.slice(0, 2).join("·") || "전국", e.experience ? `경력 ${e.experience}` : null]
+      .filter(Boolean)
+      .join(" · "),
+    tags: (e.specialties.length > 0 ? e.specialties : [e.category]).slice(0, 3),
+    rating: `★ ${e.rating.toFixed(1)} (${e.reviews})`,
+    response: e.responseTime ? `응답 평균 ${e.responseTime}` : `상담 ${e.consultations}건`,
+    secondary: e.reportFee > 0 ? `리포트 ${fee(e.reportFee)}` : "리포트 보기",
+    verified: e.isVerified,
+  };
+}
+
+/* ---------- 페이지 ---------- */
+
+export default async function TownExpertsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sub?: string }>;
+}) {
+  const sp = await searchParams;
+  const sub = findSub(EXPERT_SUBCATEGORIES, sp.sub);
+
+  let realExperts: UserExpertProfile[] = [];
+  try {
+    realExperts = await listExperts();
+  } catch {
+    realExperts = [];
+  }
+  const usingReal = realExperts.length > 0;
+
+  const filtered = usingReal
+    ? realExperts.filter((e) =>
+        matchSubcategory(sub, [e.category, e.title, ...e.specialties]),
+      )
+    : realExperts;
+  const experts: ExpertView[] = usingReal
+    ? filtered.map(toView)
+    : FALLBACK_EXPERTS;
+
+  /* 프로필 상세(8n) — 실데이터 1순위 전문가 기준, 없으면 목업 */
+  const top = usingReal ? realExperts[0] : null;
+  const profile = top
+    ? {
+        crumb: `전문가 › ${top.name} ${top.title}`.trim(),
+        name: top.name,
+        badge: top.isVerified ? `인증 ${top.title || "전문가"}` : top.title || "전문가",
+        sub: [top.introduction ? null : top.category, top.experience ? `경력 ${top.experience}` : null]
+          .filter(Boolean)
+          .join(" · ") || top.category,
+        stats: [
+          { v: top.rating.toFixed(1), l: `평점 ${top.reviews}`, accent: false },
+          { v: String(top.consultations), l: "상담 완료", accent: false },
+          { v: top.responseTime || `${top.responseRate}%`, l: top.responseTime ? "평균 응답" : "응답률", accent: true },
+        ],
+        tags: (top.specialties.length > 0 ? top.specialties : [top.category]).slice(0, 3),
+        licenseCheck: top.brokerRegistrationNo
+          ? `✓ 확인 (${top.brokerRegistrationNo})`
+          : top.isVerified
+            ? "✓ 확인"
+            : "확인 중",
+        regionLine: top.regions.join(" · ") || "전국",
+        consultFee: top.consultationFee > 0 ? fee(top.consultationFee) : "30,000원",
+        reportFee: top.reportFee > 0 ? fee(top.reportFee) : "9,900원",
+      }
+    : {
+        crumb: "전문가 › 김OO 공인중개사",
+        name: "김OO",
+        badge: "인증 중개사",
+        sub: "관양부동산 대표 · 경력 12년",
+        stats: [
+          { v: "4.9", l: "평점 128", accent: false },
+          { v: "342", l: "상담 완료", accent: false },
+          { v: "2h", l: "평균 응답", accent: true },
+        ],
+        tags: ["재건축", "1기 신도시", "갈아타기"],
+        licenseCheck: "✓ 확인 (제11-XXXX호)",
+        regionLine: "안양 동안구",
+        consultFee: "30,000원",
+        reportFee: "9,900원",
+      };
+
+  const chips = EXPERT_SUBCATEGORIES.slice(0, 5);
+
   return (
     <PageShell breadcrumb="동네이야기 › 전문가">
       {/* ---------- 6p 전문가 목록 ---------- */}
@@ -75,27 +191,28 @@ export default function TownExpertsPage() {
             자격 검증 완료 · 내 임장노트를 첨부해 바로 질문하세요
           </p>
         </div>
-        <div className="flex gap-1.5 text-[13px]">
-          {EXPERT_FILTERS.map((f, i) => (
-            <span
-              key={f}
-              className={`chip px-3.5 py-2 ${
-                i === 0
+        <div className="flex gap-1.5 overflow-x-auto text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {chips.map((c) => (
+            <Link
+              key={c.id}
+              href={c.id === "all" ? "/town/experts" : `/town/experts?sub=${c.id}`}
+              className={`chip shrink-0 px-3.5 py-2 ${
+                sub.id === c.id
                   ? "chip-active"
                   : "bg-[rgba(255,255,255,.7)] text-text-2"
               }`}
             >
-              {f}
-            </span>
+              {c.label}
+            </Link>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {EXPERTS.map((e, i) => (
+        {experts.map((e, i) => (
           <div
-            key={e.name}
-            className={`card card-hover rise-in-${i + 1} flex flex-col gap-3 rounded-[20px] p-[22px]`}
+            key={e.id ?? e.name}
+            className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col gap-3 rounded-[20px] p-[22px]`}
           >
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
@@ -104,9 +221,11 @@ export default function TownExpertsPage() {
                   <span className="text-[15px] font-extrabold text-ink">
                     {e.name}
                   </span>
-                  <span className="rounded-[5px] bg-[#edf2fe] px-[7px] py-px text-[10px] font-extrabold text-primary">
-                    인증
-                  </span>
+                  {e.verified && (
+                    <span className="rounded-[5px] bg-[#edf2fe] px-[7px] py-px text-[10px] font-extrabold text-primary">
+                      인증
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-text-3">{e.region}</div>
               </div>
@@ -136,11 +255,17 @@ export default function TownExpertsPage() {
                 href="/town/market"
                 className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-[13px]"
               >
-                {e.reports}
+                {e.secondary}
               </Link>
             </div>
           </div>
         ))}
+
+        {experts.length === 0 && (
+          <div className="card col-span-full rounded-[20px] px-6 py-10 text-center text-sm text-text-3">
+            {sub.label} 분야 전문가가 아직 없어요. 다른 분야를 선택해 보세요.
+          </div>
+        )}
 
         {/* 전문가 등록 CTA */}
         <div className="rise-in-3 flex flex-col items-center justify-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[#a9bde8] bg-[rgba(29,79,216,.06)] p-[22px] text-center">
@@ -163,7 +288,7 @@ export default function TownExpertsPage() {
 
       {/* ---------- 8n 프로필 상세 ---------- */}
       <div className="mt-8 mb-3 flex items-center justify-between">
-        <div className="text-[13px] text-text-3">전문가 › 김OO 공인중개사</div>
+        <div className="text-[13px] text-text-3">{profile.crumb}</div>
         <div className="flex gap-2 text-[13px]">
           <Link
             href="/messages"
@@ -186,21 +311,17 @@ export default function TownExpertsPage() {
             <div className="h-[76px] w-[76px] rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
             <div>
               <div className="flex items-center justify-center gap-1.5">
-                <span className="text-lg font-extrabold text-ink">김OO</span>
+                <span className="text-lg font-extrabold text-ink">
+                  {profile.name}
+                </span>
                 <span className="rounded-[5px] bg-[#edf2fe] px-2 py-px text-[10px] font-extrabold text-primary">
-                  인증 중개사
+                  {profile.badge}
                 </span>
               </div>
-              <div className="mt-1 text-xs text-text-3">
-                관양부동산 대표 · 경력 12년
-              </div>
+              <div className="mt-1 text-xs text-text-3">{profile.sub}</div>
             </div>
             <div className="flex w-full gap-2">
-              {[
-                { v: "4.9", l: "평점 128", accent: false },
-                { v: "342", l: "상담 완료", accent: false },
-                { v: "2h", l: "평균 응답", accent: true },
-              ].map((s) => (
+              {profile.stats.map((s) => (
                 <div key={s.l} className="flex-1 rounded-xl bg-bg p-2.5">
                   <div
                     className={`text-[15px] font-extrabold ${
@@ -214,7 +335,7 @@ export default function TownExpertsPage() {
               ))}
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
-              {["재건축", "1기 신도시", "갈아타기"].map((t) => (
+              {profile.tags.map((t) => (
                 <span
                   key={t}
                   className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2"
@@ -230,7 +351,7 @@ export default function TownExpertsPage() {
             <div className="flex justify-between text-xs">
               <span className="text-text-2">공인중개사 자격</span>
               <span className="font-bold text-primary">
-                ✓ 확인 (제11-XXXX호)
+                {profile.licenseCheck}
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -239,7 +360,7 @@ export default function TownExpertsPage() {
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-text-2">활동 지역</span>
-              <span className="font-bold text-text-1">안양 동안구</span>
+              <span className="font-bold text-text-1">{profile.regionLine}</span>
             </div>
           </div>
         </div>
@@ -257,7 +378,7 @@ export default function TownExpertsPage() {
                 </div>
               </div>
               <span className="text-[15px] font-extrabold text-ink">
-                30,000원
+                {profile.consultFee}
               </span>
             </div>
             <div className="flex items-center justify-between rounded-[14px] bg-bg px-4 py-3.5">
@@ -266,7 +387,7 @@ export default function TownExpertsPage() {
                   동행 임장 (2시간)
                 </div>
                 <div className="mt-0.5 text-[11px] text-text-3">
-                  관양동 한정 · 주말 가능
+                  활동 지역 한정 · 주말 가능
                 </div>
               </div>
               <span className="text-[15px] font-extrabold text-ink">
@@ -290,7 +411,7 @@ export default function TownExpertsPage() {
             <div className="flex justify-between border-b border-[#f0f3f8] py-[9px] text-[13px]">
               <span className="font-bold text-ink">관양동 재건축 흐름 분석</span>
               <span className="font-extrabold text-text-1">
-                9,900원 · 214구매
+                {profile.reportFee} · 214구매
               </span>
             </div>
             <div className="flex justify-between py-[9px] text-[13px]">
@@ -315,9 +436,7 @@ export default function TownExpertsPage() {
 
       {/* ---------- 9o 프로필 확장: 활동 통계 · 답변 이력 · 경력 검증 ---------- */}
       <div className="mt-8 mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-[13px] text-text-3">
-          전문가 › 김OO 공인중개사 › 활동
-        </div>
+        <div className="text-[13px] text-text-3">{profile.crumb} › 활동</div>
         <div className="flex gap-1.5 text-xs">
           {["활동 통계", "답변 이력", "경력·자격"].map((t, i) => (
             <span

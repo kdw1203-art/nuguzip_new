@@ -27,7 +27,7 @@ export function TabBar() {
           <Link key={tab.label} href={tab.href} className="block">
             <span
               className="mx-auto -mt-5 mb-0.5 flex h-[42px] w-[42px] items-center justify-center rounded-full bg-primary text-[21px] text-white"
-              style={{ boxShadow: "0 8px 20px rgba(29,79,216,.45)" }}
+              style={{ boxShadow: "var(--shadow-cta)" }}
             >
               {tab.icon}
             </span>

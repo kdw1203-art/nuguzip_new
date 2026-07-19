@@ -33,7 +33,7 @@ export function Header() {
               href={item.href}
               className={
                 isActive(item.href)
-                  ? "rounded-[10px] bg-[rgba(29,79,216,.12)] px-3.5 py-[7px] text-primary"
+                  ? "rounded-[10px] bg-primary-soft px-3.5 py-[7px] text-primary"
                   : "rounded-[10px] px-3.5 py-[7px] text-text-1 transition-colors hover:bg-[rgba(29,79,216,.07)] hover:text-primary"
               }
             >

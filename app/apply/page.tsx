@@ -1,5 +1,35 @@
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
+import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
+import type { ApplyhomeListingItem } from "@/lib/applyhome/types";
+
+// 빌드 타임 외부 API 접근 회피 — 요청 시 서버에서 청약홈 데이터를 조회
+export const dynamic = "force-dynamic";
+
+type ApplyLiveData = {
+  live: boolean;
+  items: ApplyhomeListingItem[];
+  totalCount: number;
+  fetchedAt?: string;
+};
+
+/** 구 lib(청약홈 odcloud)를 서버 컴포넌트에서 직접 호출 — 실패·미설정 시 목업 폴백 */
+async function getApplyLiveData(): Promise<ApplyLiveData> {
+  try {
+    const data = await searchApplyhome({ tab: "competition", page: 1, perPage: 8 });
+    if (data.mode === "live" && data.items.length > 0) {
+      return {
+        live: true,
+        items: data.items,
+        totalCount: data.totalCount,
+        fetchedAt: data.fetchedAt,
+      };
+    }
+  } catch {
+    // env 미설정·API 장애 시 목업 유지
+  }
+  return { live: false, items: [], totalCount: 0 };
+}
 
 const CAL_DAYS: { day: number; muted?: boolean; mark?: "receipt" | "announce" | "planned" }[] = [
   { day: 28, muted: true },
@@ -38,7 +68,8 @@ function AdSlot() {
   );
 }
 
-export default function ApplyPage() {
+export default async function ApplyPage() {
+  const liveData = await getApplyLiveData();
   return (
     <PageShell breadcrumb="지도 › 청약 센터" wide>
       {/* 상단 탭 + 필터 (9q) */}
@@ -195,35 +226,81 @@ export default function ApplyPage() {
             </span>
           </div>
 
-          {/* 지난 청약 (9q) */}
+          {/* 지난 청약 (9q) — 청약홈 실데이터 연결, 실패 시 목업 폴백 */}
           <div className="rise-in-4 px-1 pt-1.5 text-xs font-extrabold text-text-3">
-            지난 청약 12 · 결과 데이터
+            {liveData.live
+              ? `청약 경쟁률 · 청약홈 실데이터 ${liveData.totalCount.toLocaleString()}건`
+              : "지난 청약 12 · 결과 데이터"}
           </div>
-          <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
-            <div className="min-w-[520px]">
-              <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
-                <span>단지</span>
-                <span className="text-center">분양가(84)</span>
-                <span className="text-center">경쟁률</span>
-                <span className="text-center">당첨 컷</span>
-                <span className="text-center">현재 프리미엄</span>
-              </div>
-              <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
-                <span className="font-bold text-ink">과천 S6 (25.11)</span>
-                <span className="text-center font-bold text-text-1">8.6억</span>
-                <span className="text-center font-extrabold text-danger">98:1</span>
-                <span className="text-center font-bold text-text-1">58점</span>
-                <span className="text-center font-extrabold text-primary">+1.8억</span>
-              </div>
-              <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
-                <span className="font-bold text-ink">인덕원 퍼스비엘 (24.06)</span>
-                <span className="text-center font-bold text-text-1">10.1억</span>
-                <span className="text-center font-extrabold text-text-1">14:1</span>
-                <span className="text-center font-bold text-text-1">44점</span>
-                <span className="text-center font-extrabold text-text-2">+0.3억</span>
+          {liveData.live ? (
+            <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
+              <div className="min-w-[520px]">
+                <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                  <span>단지 · 지역</span>
+                  <span className="text-center">타입</span>
+                  <span className="text-center">공급</span>
+                  <span className="text-center">접수</span>
+                  <span className="text-center">경쟁률</span>
+                </div>
+                {liveData.items.map((item, i, arr) => (
+                  <div
+                    key={item.id}
+                    className={`grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] items-center gap-2 py-2.5 text-xs ${
+                      i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    }`}
+                  >
+                    <span className="font-bold text-ink">
+                      {item.houseName}
+                      <span className="ml-1 text-[10px] font-medium text-text-3">
+                        {item.region}
+                        {item.resideLabel ? ` · ${item.resideLabel}` : ""}
+                      </span>
+                    </span>
+                    <span className="text-center font-bold text-text-1">{item.houseType}</span>
+                    <span className="text-center font-bold text-text-1">
+                      {item.supplyCount.toLocaleString()}
+                    </span>
+                    <span className="text-center font-bold text-text-1">
+                      {item.requestCount ?? "—"}
+                    </span>
+                    <span className="text-center font-extrabold text-danger">
+                      {item.competitionRate ?? "—"}
+                    </span>
+                  </div>
+                ))}
+                <div className="pb-2 pt-1 text-[10px] text-[#adb5bd]">
+                  출처 청약홈(한국부동산원) 공공데이터
+                  {liveData.fetchedAt ? ` · ${liveData.fetchedAt.slice(0, 10)} 조회` : ""}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
+              <div className="min-w-[520px]">
+                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                  <span>단지</span>
+                  <span className="text-center">분양가(84)</span>
+                  <span className="text-center">경쟁률</span>
+                  <span className="text-center">당첨 컷</span>
+                  <span className="text-center">현재 프리미엄</span>
+                </div>
+                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
+                  <span className="font-bold text-ink">과천 S6 (25.11)</span>
+                  <span className="text-center font-bold text-text-1">8.6억</span>
+                  <span className="text-center font-extrabold text-danger">98:1</span>
+                  <span className="text-center font-bold text-text-1">58점</span>
+                  <span className="text-center font-extrabold text-primary">+1.8억</span>
+                </div>
+                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
+                  <span className="font-bold text-ink">인덕원 퍼스비엘 (24.06)</span>
+                  <span className="text-center font-bold text-text-1">10.1억</span>
+                  <span className="text-center font-extrabold text-text-1">14:1</span>
+                  <span className="text-center font-bold text-text-1">44점</span>
+                  <span className="text-center font-extrabold text-text-2">+0.3억</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 우측 사이드 (9q) */}

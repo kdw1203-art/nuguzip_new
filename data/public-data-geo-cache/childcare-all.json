@@ -1,0 +1,20 @@
+[
+  {
+    "name": "강남구립어린이집",
+    "district": "강남구",
+    "city": "서울",
+    "address": "역삼동 123",
+    "lat": 37.5001,
+    "lng": 127.036,
+    "category": "childcare"
+  },
+  {
+    "name": "개포동어린이집",
+    "district": "강남구",
+    "city": "서울",
+    "address": "개포동 456",
+    "lat": 37.4892,
+    "lng": 127.068,
+    "category": "childcare"
+  }
+]

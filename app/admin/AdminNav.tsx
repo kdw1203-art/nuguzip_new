@@ -12,6 +12,11 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "대시보드" },
   {
+    href: "/admin/revenue",
+    label: "수익",
+    badge: { text: "9", tone: "danger" },
+  },
+  {
     href: "/admin/moderation",
     label: "신고 · 모더레이션",
     badge: { text: "4", tone: "danger" },

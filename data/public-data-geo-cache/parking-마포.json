@@ -1,0 +1,11 @@
+[
+  {
+    "name": "마포구 공영주차장",
+    "district": "마포구",
+    "city": "서울",
+    "address": "월드컵로 100",
+    "lat": 37.5663,
+    "lng": 126.901,
+    "category": "parking"
+  }
+]
