@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { AIPanel } from "../components/AIPanel";
+import { SearchClient } from "./search-client";
 
 /* ============================================================
-   통합 검색 결과 (11c) — “공작” 검색 목업 · 최근 검색 포함
+   통합 검색 (11c) — 클라이언트 검색 입력 + 단지 자동완성(#48)
+   입력 전에는 기존 “공작” 검색 목업 결과 섹션 유지
    ============================================================ */
 
 const COUNT_TABS = [
@@ -40,25 +42,22 @@ function Highlight() {
 export default function SearchPage() {
   return (
     <PageShell>
-      {/* 검색 바 + 카운트 칩 */}
-      <div className="rise-in flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
-        <div className="flex w-full max-w-[320px] items-center gap-2 rounded-xl border-[1.5px] border-primary bg-surface px-3.5 py-2 text-sm text-ink">
-          ⌕ 공작<span className="text-primary">|</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5 text-xs">
-          {COUNT_TABS.map((t) => (
-            <span
-              key={t.label}
-              className={`chip px-3.5 py-[7px] ${
-                t.active
-                  ? "chip-active"
-                  : "border border-[#e2e7ee] bg-surface text-text-2"
-              }`}
-            >
-              {t.label}
-            </span>
-          ))}
-        </div>
+      {/* 클라이언트 검색 입력 + 자동완성 드롭다운(#48) — 입력 전에는 아래 목업 결과 유지 */}
+      <SearchClient>
+      {/* 카운트 칩 */}
+      <div className="rise-in flex flex-wrap gap-1.5 text-xs">
+        {COUNT_TABS.map((t) => (
+          <span
+            key={t.label}
+            className={`chip px-3.5 py-[7px] ${
+              t.active
+                ? "chip-active"
+                : "border border-[#e2e7ee] bg-surface text-text-2"
+            }`}
+          >
+            {t.label}
+          </span>
+        ))}
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
@@ -181,7 +180,7 @@ export default function SearchPage() {
           </div>
 
           <div className="rise-in-4 card flex flex-col gap-1.5 rounded-[18px] px-[18px] py-4">
-            <div className="text-xs font-extrabold text-ink">최근 검색 · 인기 검색</div>
+            <div className="text-xs font-extrabold text-ink">인기 검색</div>
             <div className="flex flex-wrap gap-[5px]">
               {RECENT_KEYWORDS.map((k) => (
                 <span
@@ -195,6 +194,7 @@ export default function SearchPage() {
           </div>
         </aside>
       </div>
+      </SearchClient>
     </PageShell>
   );
 }

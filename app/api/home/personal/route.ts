@@ -5,6 +5,7 @@ import { countWatchlist } from "@/lib/watchlist/store-db";
 import { loadMeProfile } from "@/lib/me/profile";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { loadNewHomeData, type HomeRegionCard } from "@/lib/newui/home-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +36,8 @@ export type PersonalHomeData = {
   regions: string[] | null;
   /** 최근 노트 3건 기준 미완료 체크 항목 합계 */
   todoCount: number | null;
+  /** #43 관심지역 기반 지역 시세 1건 — loadNewHomeData().regions 에서 관심지역명 매칭, 실패 시 null */
+  regionMarket: HomeRegionCard | null;
 };
 
 async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
@@ -70,6 +73,25 @@ async function loadWatchRegions(email: string): Promise<string[] | null> {
     .slice(0, 5);
 }
 
+/** #43 관심지역명(예: "서울 마포구")과 홈 시세 카드(예: "마포구")를 매칭해 1건 반환 */
+async function loadRegionMarket(
+  targets: Array<string | null | undefined>,
+): Promise<HomeRegionCard | null> {
+  const wanted = targets
+    .map((t) => (t ?? "").trim())
+    .filter((t) => t.length > 0);
+  if (wanted.length === 0) return null;
+  const home = await loadNewHomeData();
+  if (home.regions.length === 0) return null;
+  for (const t of wanted) {
+    const hit = home.regions.find(
+      (r) => t.includes(r.name) || r.name.includes(t),
+    );
+    if (hit) return hit;
+  }
+  return null;
+}
+
 export async function GET() {
   const session = await safeAuth();
   const email = session?.user?.email;
@@ -90,6 +112,10 @@ export async function GET() {
     guarded(() => fetchAppUserByEmail(email)),
     guarded(() => loadWatchRegions(email)),
   ]);
+
+  const regionMarket = await guarded(() =>
+    loadRegionMarket([profile?.primaryRegion, ...(regions ?? [])]),
+  );
 
   const recent = notes && notes.length > 0 ? notes[0] : null;
   const pendingOf = (checklist: { done: boolean }[] | undefined | null) =>
@@ -115,6 +141,7 @@ export async function GET() {
     todoCount: notes
       ? notes.slice(0, 3).reduce((sum, n) => sum + pendingOf(n.checklist), 0)
       : null,
+    regionMarket,
   };
 
   return NextResponse.json(body, {

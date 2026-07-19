@@ -1,0 +1,14 @@
+# gitleaks 설정 — 공개 설계 값(오탐 방지)만 허용
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Supabase publishable 키·프로젝트 URL은 공개 값(RLS 보호) — 시크릿 아님"
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
+  '''pbhiskvwpwwhtkmnhkbm\.supabase\.co''',
+]
+paths = [
+  '''\.env\.production$''',
+  '''\.env\.example$''',
+]

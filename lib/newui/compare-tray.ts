@@ -117,6 +117,76 @@ export function toggleCompareTray(input: {
   return { inTray: false, full: r.reason === "full", items: r.items };
 }
 
+/* ===== #46 비교 트레이 서버 승격 — 구 user_watchlist 쓰기 API(/api/me/watchlist) =====
+ * 로그인 상태면 담기/빼기를 서버 관심 단지 목록에도 반영하고,
+ * /analysis/compare 진입 시 서버 목록을 로컬 트레이에 병합한다.
+ * 비로그인(401)·네트워크 실패 시 조용히 무시 — localStorage 트레이만 유지. */
+
+/** 담기 시 서버 승격 (fire-and-forget, 실패 무시) */
+export function promoteCompareItemToServer(item: { id: string; name: string }): void {
+  if (typeof window === "undefined") return;
+  try {
+    void fetch("/api/me/watchlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ complexId: item.id, complexName: item.name }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // 실패 시 localStorage 트레이만 유지
+  }
+}
+
+/** 빼기 시 서버 목록에서도 제거 (fire-and-forget, 실패 무시) */
+export function removeCompareItemFromServer(id: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    void fetch(`/api/me/watchlist?complexId=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // no-op
+  }
+}
+
+/** 서버 user_watchlist 목록 조회 — 비로그인(401)·실패 시 null */
+export async function fetchServerCompareList(): Promise<CompareTrayItem[] | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch("/api/me/watchlist");
+    if (!res.ok) return null;
+    const json = (await res.json().catch(() => null)) as { items?: unknown } | null;
+    if (!json || !Array.isArray(json.items)) return null;
+    const out: CompareTrayItem[] = [];
+    for (const raw of json.items) {
+      if (!raw || typeof raw !== "object") continue;
+      const o = raw as Record<string, unknown>;
+      if (typeof o.complexId !== "string" || typeof o.complexName !== "string") continue;
+      out.push({
+        id: o.complexId,
+        name: o.complexName,
+        addedAt:
+          typeof o.createdAt === "string" ? o.createdAt : new Date().toISOString(),
+      });
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+/** 로그인 상태면 서버 목록을 로컬 트레이에 병합(중복 제외, 최대 5개) 후 최종 목록 반환 */
+export async function mergeServerCompareTray(): Promise<CompareTrayItem[]> {
+  const server = await fetchServerCompareList();
+  if (!server) return listCompareTray();
+  for (const item of server) {
+    if (listCompareTray().length >= COMPARE_TRAY_MAX) break;
+    addToCompareTray({ id: item.id, name: item.name });
+  }
+  return listCompareTray();
+}
+
 /** 트레이 변경 구독 (같은 탭 커스텀 이벤트 + 다른 탭 storage 이벤트). 해제 함수 반환 */
 export function subscribeCompareTray(cb: () => void): () => void {
   if (typeof window === "undefined") return () => {};

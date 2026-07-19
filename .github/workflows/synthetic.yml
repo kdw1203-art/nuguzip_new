@@ -1,0 +1,80 @@
+# 합성 모니터링 (#16)
+# - 하루 2회(UTC 21시/9시 = KST 06시/18시) 프로덕션 핵심 URL 5개의 200 응답 확인
+# - /api/health의 status가 "ok"가 아니면(degraded 포함) 세부 checks를 담아 이슈 생성
+# - 같은 제목의 open 이슈가 이미 있으면 중복 생성 스킵
+name: Synthetic monitoring
+
+on:
+  schedule:
+    - cron: "0 21,9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe production URLs
+        id: probe
+        run: |
+          BASE="https://nuguzip.com"
+          FAILED=""
+          for P in / /notes /town /complex/mock-1 /api/health; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 --retry 2 --retry-delay 5 "$BASE$P" || echo 000)
+            echo "$P -> $CODE"
+            if [ "$CODE" != "200" ]; then
+              FAILED="$FAILED $P($CODE)"
+            fi
+          done
+
+          # /api/health 상태 — "ok"가 아니면(degraded 포함) 문제로 간주
+          HEALTH_JSON=$(curl -s --max-time 30 "$BASE/api/health" || echo '{}')
+          HEALTH_STATUS=$(printf '%s' "$HEALTH_JSON" | jq -r '.status // "unreachable"' 2>/dev/null || echo "unparseable")
+          HEALTH_CHECKS=$(printf '%s' "$HEALTH_JSON" | jq -c '.checks // {}' 2>/dev/null || echo '{}')
+          echo "health status: $HEALTH_STATUS"
+          echo "health checks: $HEALTH_CHECKS"
+
+          {
+            echo "failed=${FAILED# }"
+            echo "health_status=$HEALTH_STATUS"
+            echo "health_checks=$HEALTH_CHECKS"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ -n "$FAILED" ] || [ "$HEALTH_STATUS" != "ok" ]; then
+            echo "problem=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "problem=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create issue on failure
+        if: steps.probe.outputs.problem == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAILED: ${{ steps.probe.outputs.failed }}
+          HEALTH_STATUS: ${{ steps.probe.outputs.health_status }}
+          HEALTH_CHECKS: ${{ steps.probe.outputs.health_checks }}
+        run: |
+          TITLE="Synthetic monitoring failure: nuguzip.com"
+          # 중복 이슈 방지 — 같은 제목의 open 이슈가 있으면 스킵
+          EXISTING=$(gh api "repos/${{ github.repository }}/issues?state=open&per_page=100" \
+            --jq "[.[] | select(.title == \"$TITLE\")] | length" || echo 0)
+          if [ "${EXISTING:-0}" -gt 0 ]; then
+            echo "Open issue with same title already exists — skipping"
+            exit 0
+          fi
+          BODY="Synthetic monitoring detected a problem at $(date -u +%FT%TZ) (run: ${{ github.run_id }}).
+
+          - Failed URLs (non-200): ${FAILED:-none}
+          - /api/health status: ${HEALTH_STATUS}
+
+          Health checks detail:
+          \`\`\`json
+          ${HEALTH_CHECKS}
+          \`\`\`
+
+          Runbook: docs/runbook.md"
+          gh api repos/${{ github.repository }}/issues \
+            -f title="$TITLE" -f body="$BODY" || true

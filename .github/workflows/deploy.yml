@@ -22,6 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks 이력 스캔을 위해 전체 히스토리 필요
+          fetch-depth: 0
+      # ---- 시크릿 스캔 (#94): 유출 감지 시 빌드 중단 ----
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -32,7 +40,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build for link check
-        run: npx next build
+        shell: bash
+        run: |
+          set -o pipefail
+          npx next build 2>&1 | tee build.log
+      # ---- 번들 예산 (#4): 라우트별 First Load JS 250kB 초과 경고 (실패시키지 않음) ----
+      - name: Bundle budget check (First Load JS <= 250kB, warn only)
+        run: |
+          if [ ! -f build.log ]; then
+            echo "build.log not found — skipping bundle budget check"
+            exit 0
+          fi
+          # next build 라우트 표에서 "<tree> <symbol> /route ... <size> <unit> <firstLoad> <unit>" 행 파싱
+          awk '
+            $3 ~ /^\// && NF >= 5 && $NF ~ /^(B|kB|MB)$/ {
+              unit = $NF; val = $(NF-1) + 0;
+              if (unit == "MB") kb = val * 1024;
+              else if (unit == "kB") kb = val;
+              else kb = val / 1024;
+              if (kb > 250) {
+                over++;
+                printf "::warning title=Bundle budget::First Load JS %s %s exceeds 250 kB budget: %s\n", $(NF-1), unit, $3;
+              }
+            }
+            END {
+              if (over) printf "%d route(s) over the 250 kB First Load JS budget (warning only)\n", over;
+              else print "All routes within the 250 kB First Load JS budget";
+            }
+          ' build.log
       - name: Link integrity check
         run: |
           npx next start -p 3100 &

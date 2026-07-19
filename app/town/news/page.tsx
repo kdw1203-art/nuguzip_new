@@ -5,10 +5,12 @@ import { readTownPosts } from "@/lib/newui/board-posts";
 import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
 import type { Post } from "@/lib/types/post";
 
-/* 시안 8k — 자료(크롤링 뉴스) · 데스크탑 — posts 자동수집(뉴스) 실데이터 연동 */
+/* 시안 8k — 자료(크롤링 뉴스) · 데스크탑 — posts 자동수집(뉴스) 실데이터 연동
+   #36: ?month=YYYY-MM 월별 아카이브 필터 + 월 선택 칩(실데이터 기반 최근 6개월) */
 
-// ISR(운영 P0): searchParams 미사용 — 2분 재검증 캐시로 접속마다 DB 재조회 방지
-export const revalidate = 120;
+// #36: ?month= searchParams 사용으로 ISR(revalidate) 제거 — force-dynamic 복귀.
+// searchParams를 읽는 순간 경로 단위 정적 캐시가 무의미해지므로 동적 렌더가 정직한 선택.
+export const dynamic = "force-dynamic";
 
 const NEWS_SUB = COMMUNITY_SUBCATEGORIES.find((s) => s.id === "news");
 
@@ -111,13 +113,27 @@ function ExampleBadge() {
 
 /* ---------- 페이지 ---------- */
 
-export default async function TownNewsPage() {
-  let newsPosts: Post[] = [];
+function monthOf(p: Post): string {
+  return displayIso(p).slice(0, 7); // YYYY-MM
+}
+
+function monthChipLabel(month: string): string {
+  return month.replace("-", "."); // 2026-07 → 2026.07
+}
+
+export default async function TownNewsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string }>;
+}) {
+  const { month } = await searchParams;
+
+  let allNews: Post[] = [];
   let ugcPosts: Post[] = [];
   try {
     /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 */
     const all = await readTownPosts();
-    newsPosts = all
+    allNews = all
       .filter(isNewsPost)
       .sort(
         (a, b) =>
@@ -125,11 +141,26 @@ export default async function TownNewsPage() {
       );
     ugcPosts = all.filter((p) => !p.isAutomated);
   } catch {
-    newsPosts = [];
+    allNews = [];
   }
+
+  // #36: 실데이터 기반 월 목록 (최신순 정렬 유지 → 중복 제거, 최근 6개월)
+  const months: string[] = [];
+  for (const p of allNews) {
+    const m = monthOf(p);
+    if (/^\d{4}-\d{2}$/.test(m) && !months.includes(m)) months.push(m);
+    if (months.length >= 6) break;
+  }
+  const activeMonth =
+    month && /^\d{4}-(0[1-9]|1[0-2])$/.test(month) ? month : null;
+  const newsPosts = activeMonth
+    ? allNews.filter((p) => monthOf(p) === activeMonth)
+    : allNews;
 
   const featuredPost = newsPosts[0];
   const featuredIsMock = !featuredPost;
+  // 월 필터 중 0건이면 목업 대신 빈 상태 노출 (허위 아카이브 방지)
+  const showFeatured = !!featuredPost || !activeMonth;
   const featured = featuredPost
     ? {
         id: featuredPost.id,
@@ -153,7 +184,8 @@ export default async function TownNewsPage() {
     : FALLBACK_FEATURED;
 
   // 더미데이터 정책: 실 뉴스가 1건이라도 있으면 목업으로 채우지 않음 (0건일 때만 예시 목업)
-  const latestIsMock = newsPosts.length === 0;
+  // 월 필터 활성 시에는 0건이어도 목업을 넣지 않고 빈 상태를 보여줌
+  const latestIsMock = newsPosts.length === 0 && !activeMonth;
   const latest = latestIsMock
     ? FALLBACK_LATEST
     : newsPosts.slice(1, 9).map((p) => ({
@@ -192,9 +224,39 @@ export default async function TownNewsPage() {
         </div>
       </div>
 
+      {/* #36: 월별 아카이브 칩 — 실데이터 기반 최근 6개월 */}
+      {months.length > 0 && (
+        <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
+          <Link
+            href="/town/news"
+            className={`chip px-3.5 py-[7px] ${
+              activeMonth
+                ? "border border-[#e2e7ee] bg-surface text-text-2"
+                : "chip-active"
+            }`}
+          >
+            전체
+          </Link>
+          {months.map((m) => (
+            <Link
+              key={m}
+              href={`/town/news?month=${m}`}
+              className={`chip px-3.5 py-[7px] ${
+                activeMonth === m
+                  ? "chip-active"
+                  : "border border-[#e2e7ee] bg-surface text-text-2"
+              }`}
+            >
+              {monthChipLabel(m)}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_340px]">
         <div className="flex flex-col gap-4">
           {/* 대표 자료 — 8k 본문 */}
+          {showFeatured && (
           <article className="rise-in card flex flex-col gap-3.5 rounded-[20px] p-[26px]">
             <div className="flex items-center gap-2">
               <span
@@ -250,6 +312,7 @@ export default async function TownNewsPage() {
               </span>
             </div>
           </article>
+          )}
 
           {/* 최신 자료 목록 */}
           <section className="rise-in-1 card flex flex-col gap-1 rounded-[20px] px-6 py-5">

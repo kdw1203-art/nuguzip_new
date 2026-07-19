@@ -63,10 +63,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // 프로그래매틱 SEO(실행과제 CSO-14): 단지 허브 페이지 — 22f-65 SEO 핵심 랜딩
+  // #33: 단지 200 → 2000 상향. 사이트맵 1파일 URL 한도(50,000)에 여유가 커서
+  // sitemap 인덱스 없이 단일 파일 유지 (2,000 + 정적 + 노트 ≪ 50,000).
   let complexEntries: MetadataRoute.Sitemap = [];
   try {
     const { searchComplexes } = await import("@/lib/complex/complex-store");
-    const complexes = await searchComplexes("", undefined, 200);
+    const complexes = await searchComplexes("", undefined, 2000);
     complexEntries = complexes.map((c) => ({
       url: `${BASE_URL}/complex/${c.id}`,
       lastModified: now,

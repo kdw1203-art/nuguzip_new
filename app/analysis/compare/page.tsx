@@ -7,12 +7,14 @@ import { NextActions } from "../../components/NextActions";
 import {
   COMPARE_TRAY_MAX,
   listCompareTray,
+  mergeServerCompareTray,
+  removeCompareItemFromServer,
   removeFromCompareTray,
   subscribeCompareTray,
   type CompareTrayItem,
 } from "@/lib/newui/compare-tray";
 
-/* ---------- 내가 담은 후보 (localStorage 비교 트레이) ---------- */
+/* ---------- 내가 담은 후보 (localStorage 비교 트레이 + #46 서버 병합) ---------- */
 
 function CompareTraySection() {
   const [items, setItems] = useState<CompareTrayItem[]>([]);
@@ -20,7 +22,16 @@ function CompareTraySection() {
   useEffect(() => {
     const sync = () => setItems(listCompareTray());
     sync();
-    return subscribeCompareTray(sync);
+    // #46 로그인 상태면 서버 user_watchlist 목록을 로컬 트레이에 병합 (실패·비로그인 시 로컬만)
+    let cancelled = false;
+    void mergeServerCompareTray().then((merged) => {
+      if (!cancelled) setItems(merged);
+    });
+    const unsubscribe = subscribeCompareTray(sync);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   return (
@@ -45,7 +56,10 @@ function CompareTraySection() {
               <button
                 type="button"
                 aria-label={`${item.name} 비교에서 빼기`}
-                onClick={() => setItems(removeFromCompareTray(item.id))}
+                onClick={() => {
+                  setItems(removeFromCompareTray(item.id));
+                  removeCompareItemFromServer(item.id); // #46 서버 목록에서도 제거
+                }}
                 className="font-bold text-text-3"
               >
                 ✕

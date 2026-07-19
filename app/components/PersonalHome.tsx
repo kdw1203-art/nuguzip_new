@@ -17,6 +17,16 @@ type PersonalRecentNote = {
   pendingChecklist: number | null;
 };
 
+/** #43 관심지역 매칭 지역 시세 1건 (/api/home/personal → loadNewHomeData regions) */
+type PersonalRegionMarket = {
+  id: string;
+  name: string;
+  meta: string;
+  price: string;
+  delta: string;
+  tone: "up" | "down" | "flat";
+};
+
 type PersonalHomeData = {
   nickname: string | null;
   plan: string | null;
@@ -26,6 +36,13 @@ type PersonalHomeData = {
   primaryRegion: string | null;
   regions: string[] | null;
   todoCount: number | null;
+  regionMarket: PersonalRegionMarket | null;
+};
+
+const DELTA_CLASS: Record<PersonalRegionMarket["tone"], string> = {
+  up: "delta-up",
+  down: "delta-down",
+  flat: "delta-flat",
 };
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
@@ -87,6 +104,11 @@ export function PersonalHome() {
     (data.regions && data.regions.length > 0 ? data.regions[0] : null);
   const extraRegions =
     data.regions && data.regions.length > 1 ? data.regions.length - 1 : 0;
+  /* #43 관심지역 칩 — 클릭 시 지도 탐색으로 이동 (/map 은 아직 ?region= 쿼리 미지원) */
+  const regionChips = (
+    data.regions && data.regions.length > 0 ? data.regions : region ? [region] : []
+  ).slice(0, 3);
+  const regionMarket = data.regionMarket;
 
   // 히어로 문구 — 실데이터 있으면 치환, 없으면 일반 안내 (허위 수치 금지)
   const heroSub = data.recentNote
@@ -129,9 +151,11 @@ export function PersonalHome() {
 
   const marketCard = {
     title: "매수 타이밍 신호 확인하기",
-    desc: region
-      ? `${region} 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.`
-      : "관심 지역의 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.",
+    desc: regionMarket
+      ? `${regionMarket.name} 평균 ${regionMarket.price} (${regionMarket.delta}) — 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.`
+      : region
+        ? `${region} 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.`
+        : "관심 지역의 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.",
     cta: "타이밍 분석 보기 ›",
   };
 
@@ -209,6 +233,20 @@ export function PersonalHome() {
               지도
             </Link>
           </div>
+          {regionChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] text-[#9aa6b8]">📍 관심지역</span>
+              {regionChips.map((r) => (
+                <Link
+                  key={r}
+                  href="/map"
+                  className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#c9d2e0]"
+                >
+                  {r} ›
+                </Link>
+              ))}
+            </div>
+          )}
           {journey && (
             <div className="flex items-center gap-2 rounded-xl bg-white/[.06] px-3 py-2.5">
               <div className="flex-1">
@@ -331,6 +369,34 @@ export function PersonalHome() {
               📍 내 관심지역{region ? ` · ${region}` : " · 미설정"}
               {extraRegions > 0 ? ` 외 ${extraRegions}` : ""}
             </div>
+            {/* #43 관심지역 칩 → 지도 탐색 */}
+            {regionChips.length > 0 && (
+              <div className="absolute left-3.5 top-[52px] flex flex-wrap gap-1.5">
+                {regionChips.map((r) => (
+                  <Link
+                    key={r}
+                    href="/map"
+                    className="glass rounded-full px-2.5 py-1 text-[10px] font-extrabold text-primary"
+                  >
+                    {r} ›
+                  </Link>
+                ))}
+              </div>
+            )}
+            {/* #43 관심지역 매칭 지역 시세 1건 */}
+            {regionMarket && (
+              <div className="glass absolute right-3.5 top-3.5 rounded-[10px] px-3 py-[7px] text-right">
+                <div className="text-[10px] font-semibold text-text-2">
+                  {regionMarket.name} · {regionMarket.meta}
+                </div>
+                <div className="text-xs font-extrabold text-ink">
+                  {regionMarket.price}{" "}
+                  <span className={DELTA_CLASS[regionMarket.tone]}>
+                    {regionMarket.delta}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] font-semibold text-[#7d8aa0]">
               네이버/카카오 지도 SDK 영역
             </div>

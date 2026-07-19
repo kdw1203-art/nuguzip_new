@@ -30,6 +30,8 @@ export default function TownWritePage() {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 모더레이션(금칙어) 위반으로 반려된 경우 — 안내 문구 강화 (#84) */
+  const [blockedWord, setBlockedWord] = useState<string | null>(null);
   const [needLogin, setNeedLogin] = useState(false);
 
   const districts = DISTRICTS[city] ?? [];
@@ -41,6 +43,7 @@ export default function TownWritePage() {
 
   const onSubmit = async () => {
     setError(null);
+    setBlockedWord(null);
     setNeedLogin(false);
     if (title.trim().length < 2) {
       setError("제목은 2글자 이상 입력해 주세요.");
@@ -72,9 +75,13 @@ export default function TownWritePage() {
         return;
       }
       if (!res.ok) {
+        // 서버측 검사(금칙어 포함)는 /api/community/posts 가 수행 —
+        // 여기서는 응답의 안내 문구를 그대로 보여주고, 금칙어 반려면 강조 표시
         const data = (await res.json().catch(() => null)) as {
           error?: string;
+          blockedWord?: string;
         } | null;
+        if (data?.blockedWord) setBlockedWord(data.blockedWord);
         setError(
           data?.error ?? "게시글 등록에 실패했어요. 잠시 후 다시 시도해 주세요.",
         );
@@ -189,8 +196,18 @@ export default function TownWritePage() {
 
         {/* 오류 안내 */}
         {error && (
-          <div className="card rounded-[14px] border-l-[3px] border-l-danger px-[15px] py-3 text-[13px] font-semibold text-danger">
-            {error}
+          <div className="card rounded-[14px] border-l-[3px] border-l-danger px-[15px] py-3">
+            <div className="text-[13px] font-semibold text-danger">{error}</div>
+            {blockedWord && (
+              <div className="mt-1.5 text-[12px] leading-[1.5] text-text-2">
+                누구집 커뮤니티는 이웃 모두가 안심하고 이용할 수 있도록 일부
+                표현의 게시를 제한하고 있어요. 제목·본문에서{" "}
+                <span className="font-bold text-danger">
+                  &quot;{blockedWord}&quot;
+                </span>{" "}
+                표현을 지우거나 바꾼 뒤 다시 등록해 주세요.
+              </div>
+            )}
           </div>
         )}
 

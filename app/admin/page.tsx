@@ -1,11 +1,15 @@
-const KPIS = [
-  { label: "DAU", value: "4,218", delta: "+12%", accent: false },
-  { label: "신규 임장노트", value: "156", delta: "+8%", accent: false },
-  { label: "노트 작성 전환율", value: "6.4%", delta: "+0.8%p", accent: true },
-  { label: "구독 매출 (월)", value: "842만원", delta: "+21%", accent: false },
-];
+import {
+  loadAdminDashboardMetrics,
+  type AdminDashboardMetrics,
+  type AdminPendingItem,
+} from "@/lib/newui/admin-metrics";
 
-const PENDING = [
+// 실집계(#83): DAU·신규 노트·전환율·구독 매출 4카드와 처리 대기 목록은
+// lib/newui/admin-metrics 실데이터 사용 — 조회 실패 시 "—" / 목업 폴백.
+export const dynamic = "force-dynamic";
+
+/** content_reports 조회 실패·빈 데이터 시 목업 폴백 */
+const PENDING_FALLBACK: AdminPendingItem[] = [
   {
     text: "신고: 커뮤니티 글 “연락처 유도” 외 3건",
     status: "긴급",
@@ -99,7 +103,33 @@ const darkCard =
   "rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.05)]";
 const panelCard = "rounded-2xl bg-[#12161f] p-5 border border-[rgba(255,255,255,.06)]";
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  let metrics: AdminDashboardMetrics = { kpis: [], pending: [] };
+  try {
+    metrics = await loadAdminDashboardMetrics();
+  } catch {
+    // 조회 실패 — 아래에서 "—"/목업 폴백
+  }
+  const kpis =
+    metrics.kpis.length > 0
+      ? metrics.kpis
+      : ([
+          { label: "DAU (24h)", value: "—", delta: null, accent: false },
+          { label: "신규 임장노트 (24h)", value: "—", delta: null, accent: false },
+          { label: "노트 작성 전환율", value: "—", delta: null, accent: true },
+          { label: "구독 매출", value: "—", delta: null, accent: false },
+        ] satisfies AdminDashboardMetrics["kpis"]);
+  const pending = metrics.pending.length > 0 ? metrics.pending : PENDING_FALLBACK;
+  const today = new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Seoul",
+  })
+    .format(new Date())
+    .replace(/\.\s*/g, ".")
+    .replace(/\.$/, "");
+
   return (
     <>
       {/* 헤더 */}
@@ -107,7 +137,7 @@ export default function AdminDashboardPage() {
         <div className="text-[19px] font-extrabold text-white">
           운영 대시보드{" "}
           <span className="text-xs font-medium text-[#9aa6b8]">
-            2026.07.19 (실시간)
+            {today} (실시간)
           </span>
         </div>
         <div className="flex gap-2 text-xs">
@@ -119,9 +149,9 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* KPI 4종 */}
+      {/* KPI 4종 — 실집계 (실패 시 "—") */}
       <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {KPIS.map((k) => (
+        {kpis.map((k) => (
           <div key={k.label} className={`${darkCard} p-4`}>
             <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>
             <div
@@ -129,8 +159,13 @@ export default function AdminDashboardPage() {
                 k.accent ? "text-[#7ea2ff]" : "text-white"
               }`}
             >
-              {k.value}{" "}
-              <span className="text-[11px] text-[#4ade80]">{k.delta}</span>
+              {k.value}
+              {k.delta ? (
+                <>
+                  {" "}
+                  <span className="text-[11px] text-[#4ade80]">{k.delta}</span>
+                </>
+              ) : null}
             </div>
           </div>
         ))}
@@ -139,12 +174,17 @@ export default function AdminDashboardPage() {
       {/* 처리 대기 · 크롤링 파이프라인 */}
       <div className="rise-in-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
         <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
-          <div className="text-sm font-extrabold text-white">처리 대기</div>
-          {PENDING.map((p, i) => (
+          <div className="text-sm font-extrabold text-white">
+            처리 대기{" "}
+            <span className="text-[10px] font-medium text-[#9aa6b8]">
+              {metrics.pending.length > 0 ? "신고 최근 5건" : "예시 데이터"}
+            </span>
+          </div>
+          {pending.map((p, i) => (
             <div
-              key={p.text}
-              className={`flex items-center justify-between py-[9px] text-xs ${
-                i < PENDING.length - 1
+              key={`${i}-${p.text}`}
+              className={`flex items-center justify-between gap-3 py-[9px] text-xs ${
+                i < pending.length - 1
                   ? "border-b border-[rgba(255,255,255,.06)]"
                   : ""
               }`}

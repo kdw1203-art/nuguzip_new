@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AIPanel } from "../../components/AIPanel";
 import {
   isInCompareTray,
+  promoteCompareItemToServer,
+  removeCompareItemFromServer,
   subscribeCompareTray,
   toggleCompareTray,
 } from "@/lib/newui/compare-tray";
@@ -62,6 +64,9 @@ export function CompareTrayButton({
     const r = toggleCompareTray({ id: complexId, name, region });
     setInTray(r.inTray);
     setFull(r.full);
+    // #46 로그인 상태면 서버 user_watchlist에도 반영 (실패 시 localStorage만 유지)
+    if (r.inTray) promoteCompareItemToServer({ id: complexId, name });
+    else if (!r.full) removeCompareItemFromServer(complexId);
   };
 
   return (

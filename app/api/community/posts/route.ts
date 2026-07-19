@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { findBlockedWord } from "@/lib/community/moderation";
 import { prependPost, readPosts } from "@/lib/posts-store";
 import type { Post } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
@@ -76,6 +77,22 @@ export async function POST(req: Request) {
   if (!city || !district || !category) {
     return NextResponse.json(
       { error: "시·도, 시·군·구, 카테고리를 선택해 주세요." },
+      { status: 400 },
+    );
+  }
+
+  // 모더레이션 필터 (#84): 구 lib 금칙어 검사(lib/community/moderation)를
+  // 제출 경로에서 서버측으로 적용 — 위반 시 안내 문구와 함께 400
+  const blockedWord =
+    findBlockedWord(title) ??
+    findBlockedWord(content) ??
+    (tags.length ? findBlockedWord(tags.join(" ")) : null);
+  if (blockedWord) {
+    return NextResponse.json(
+      {
+        error: `커뮤니티 이용 규칙에 어긋나는 표현(“${blockedWord}”)이 포함되어 있어요. 해당 표현을 수정한 뒤 다시 등록해 주세요.`,
+        blockedWord,
+      },
       { status: 400 },
     );
   }

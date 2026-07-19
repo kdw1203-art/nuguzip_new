@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { trackPlatformEvent } from "@/lib/platform-events-client";
 
 const GOALS = [
   { icon: "🏠", title: "첫 내집마련", desc: "실거주 관점 체크리스트 중심" },
@@ -43,14 +44,39 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<"done" | "confirm" | null>(null);
 
-  const toggleRegion = (r: string) =>
+  /* #44 가입 퍼널 계측 — /api/platform/event 로 fire-and-forget POST (실패해도 UI 무영향).
+     step_1: 페이지 진입 · step_2: 목표 선택 · step_3: 기본정보/관심지역 첫 선택 ·
+     step_4: 계정 폼 제출 시도 · signup_complete: 가입 성공. 스텝당 1회만 전송. */
+  const firedSteps = useRef<Set<string>>(new Set());
+  const trackStep = useCallback(
+    (eventName: string, metadata?: Record<string, unknown>) => {
+      if (firedSteps.current.has(eventName)) return;
+      firedSteps.current.add(eventName);
+      trackPlatformEvent({
+        eventName,
+        source: "signup",
+        campaign: "funnel",
+        metadata: { funnel: "signup", ...metadata },
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    trackStep("signup_step_1");
+  }, [trackStep]);
+
+  const toggleRegion = (r: string) => {
+    trackStep("signup_step_3", { section: "region" });
     setRegions((prev) =>
       prev.includes(r) ? prev.filter((v) => v !== r) : prev.length < 3 ? [...prev, r] : prev
     );
+  };
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    trackStep("signup_step_4");
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail.includes("@")) {
       setError("올바른 이메일을 입력해 주세요.");
@@ -101,6 +127,10 @@ export default function SignupPage() {
         setError(`${data.error ?? "가입에 실패했습니다."}${detail}`);
         return;
       }
+      trackStep("signup_complete", {
+        goal: GOALS[goal].title,
+        emailConfirmationRequired: Boolean(data.emailConfirmationRequired),
+      });
       setDone(data.emailConfirmationRequired ? "confirm" : "done");
     } catch {
       setError("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
@@ -168,7 +198,10 @@ export default function SignupPage() {
           <button
             key={g.title}
             type="button"
-            onClick={() => setGoal(i)}
+            onClick={() => {
+              trackStep("signup_step_2", { goal: g.title });
+              setGoal(i);
+            }}
             className={`flex items-center gap-3 rounded-2xl p-4 text-left ${
               goal === i
                 ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.08)]"
@@ -208,7 +241,10 @@ export default function SignupPage() {
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => setSegments((prev) => ({ ...prev, [seg.name]: opt }))}
+                    onClick={() => {
+                      trackStep("signup_step_3", { section: "segment" });
+                      setSegments((prev) => ({ ...prev, [seg.name]: opt }));
+                    }}
                     className={`rounded-full px-3 py-1.5 text-xs ${
                       active
                         ? "border-[1.5px] border-primary bg-primary-soft font-bold text-primary"

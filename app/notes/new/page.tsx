@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 /* 시안 6b(노트 작성 기본) + 6r(작성 확장판 — 선택·필터·고려사항)
-   저장: POST /api/inspection/notes (구 코드베이스 임장노트 작성 엔드포인트) */
+   저장: POST /api/inspection/notes (구 코드베이스 임장노트 작성 엔드포인트)
+   #45(11a) 임시저장: 입력 변경 시 localStorage(nz_note_draft) 1초 디바운스 자동 저장,
+   재방문 시 상단 복구 배너(이어서 쓰기 / 삭제) 표시 */
 
 const LEVELS = ["좋음", "보통", "아쉬움"] as const;
 type Level = (typeof LEVELS)[number];
@@ -43,6 +45,68 @@ const LEVEL_SCORE: Record<Level, number> = { 좋음: 5, 보통: 3, 아쉬움: 1 
 const APT_NAME = "공작아파트 302동 84A";
 const REGION = "안양 관양동";
 
+/* ===== #45 임시저장 (localStorage) ===== */
+
+const DRAFT_KEY = "nz_note_draft";
+
+type NoteDraft = {
+  v: 1;
+  savedAt: string;
+  checks: Record<string, Level>;
+  visit: Record<string, string>;
+  tags: string[];
+  doneTodos: string[];
+  satisfaction: number;
+  memo: string;
+};
+
+function isStringArray(v: unknown): v is string[] {
+  return Array.isArray(v) && v.every((x) => typeof x === "string");
+}
+
+function parseDraft(raw: string | null): NoteDraft | null {
+  if (!raw) return null;
+  try {
+    const o = JSON.parse(raw) as Record<string, unknown> | null;
+    if (!o || typeof o !== "object" || o.v !== 1) return null;
+    if (
+      typeof o.savedAt !== "string" ||
+      typeof o.memo !== "string" ||
+      typeof o.satisfaction !== "number" ||
+      !o.checks ||
+      typeof o.checks !== "object" ||
+      !o.visit ||
+      typeof o.visit !== "object" ||
+      !isStringArray(o.tags) ||
+      !isStringArray(o.doneTodos)
+    ) {
+      return null;
+    }
+    const checks: Record<string, Level> = {};
+    for (const [k, val] of Object.entries(o.checks as Record<string, unknown>)) {
+      if (typeof val === "string" && (LEVELS as readonly string[]).includes(val)) {
+        checks[k] = val as Level;
+      }
+    }
+    const visit: Record<string, string> = {};
+    for (const [k, val] of Object.entries(o.visit as Record<string, unknown>)) {
+      if (typeof val === "string") visit[k] = val;
+    }
+    return {
+      v: 1,
+      savedAt: o.savedAt,
+      checks,
+      visit,
+      tags: o.tags,
+      doneTodos: o.doneTodos,
+      satisfaction: o.satisfaction,
+      memo: o.memo,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function NoteNewPage() {
   const router = useRouter();
   const [checks, setChecks] = useState<Record<string, Level>>(CHECK_DEFAULTS);
@@ -61,6 +125,101 @@ export default function NoteNewPage() {
   const [saving, setSaving] = useState(false);
   const [needLogin, setNeedLogin] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  /* #45 복구 배너용 드래프트 스냅샷 — 마운트 시 1회 읽고, 배너에서 복원/삭제 */
+  const [pendingDraft, setPendingDraft] = useState<NoteDraft | null>(null);
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      setPendingDraft(parseDraft(window.localStorage.getItem(DRAFT_KEY)));
+    } catch {
+      /* 프라이빗 모드 등 접근 불가 — 배너 없이 진행 */
+    }
+  }, []);
+
+  const buildDraft = (): NoteDraft => ({
+    v: 1,
+    savedAt: new Date().toISOString(),
+    checks,
+    visit,
+    tags,
+    doneTodos,
+    satisfaction,
+    memo,
+  });
+
+  const writeDraft = () => {
+    try {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraft()));
+      setSavedDraft(true);
+    } catch {
+      /* 저장 불가 환경 — 조용히 무시 */
+    }
+  };
+
+  const clearDraft = () => {
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* no-op */
+    }
+  };
+
+  /* 입력 변경 시 1초 디바운스 자동 저장 (첫 렌더는 제외) */
+  useEffect(() => {
+    if (!hydratedRef.current) {
+      hydratedRef.current = true;
+      return;
+    }
+    const t = setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({
+            v: 1,
+            savedAt: new Date().toISOString(),
+            checks,
+            visit,
+            tags,
+            doneTodos,
+            satisfaction,
+            memo,
+          } satisfies NoteDraft),
+        );
+        setSavedDraft(true);
+      } catch {
+        /* no-op */
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [checks, visit, tags, doneTodos, satisfaction, memo]);
+
+  const restoreDraft = () => {
+    if (!pendingDraft) return;
+    setChecks({ ...CHECK_DEFAULTS, ...pendingDraft.checks });
+    setVisit((prev) => ({ ...prev, ...pendingDraft.visit }));
+    setTags(pendingDraft.tags);
+    setDoneTodos(pendingDraft.doneTodos);
+    setSatisfaction(pendingDraft.satisfaction);
+    setMemo(pendingDraft.memo);
+    setPendingDraft(null);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setPendingDraft(null);
+  };
+
+  const draftSavedLabel = (() => {
+    if (!pendingDraft) return null;
+    const t = Date.parse(pendingDraft.savedAt);
+    if (!Number.isFinite(t)) return null;
+    const d = new Date(t);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm} 저장됨`;
+  })();
 
   const toggleTag = (label: string) =>
     setTags((prev) =>
@@ -120,6 +279,7 @@ export default function NoteNewPage() {
         setSaveError(json.error ?? "저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
+      clearDraft(); // 정식 저장 완료 — 임시저장본 제거
       router.push(`/notes/${json.note.id}`);
     } catch {
       setSaveError("네트워크 오류로 저장하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
@@ -141,7 +301,7 @@ export default function NoteNewPage() {
         </div>
         <button
           type="button"
-          onClick={() => setSavedDraft(true)}
+          onClick={writeDraft}
           className="text-[13px] font-bold text-primary"
         >
           {savedDraft ? "저장됨 ✓" : "임시저장"}
@@ -154,6 +314,35 @@ export default function NoteNewPage() {
       </div>
 
       <div className="mt-3.5 flex flex-col gap-3">
+        {/* #45 임시저장 복구 배너 */}
+        {pendingDraft && (
+          <div className="rise-in flex items-center gap-2.5 rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.06)] px-4 py-3">
+            <span className="text-base">📝</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-extrabold text-ink">
+                작성 중이던 노트가 있어요
+              </div>
+              {draftSavedLabel && (
+                <div className="text-[10px] text-text-3">{draftSavedLabel}</div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={restoreDraft}
+              className="shrink-0 rounded-[9px] bg-primary px-3 py-2 text-[11px] font-bold text-white"
+            >
+              이어서 쓰기
+            </button>
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="shrink-0 rounded-[9px] border border-[#e2e7ee] bg-surface px-3 py-2 text-[11px] font-bold text-text-2"
+            >
+              삭제
+            </button>
+          </div>
+        )}
+
         {/* 로그인 없이 작성 안내 */}
         <div className="rise-in rounded-[14px] border border-[rgba(29,79,216,.15)] bg-[rgba(29,79,216,.08)] px-4 py-3 text-center text-xs font-semibold text-primary">
           로그인 없이 작성할 수 있어요 — 저장할 때만 로그인이 필요해요

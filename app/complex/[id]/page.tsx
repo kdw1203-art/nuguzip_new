@@ -5,6 +5,7 @@ import {
   getComplexById,
   getTransactionHistory,
   getComplexPosts,
+  searchComplexes,
   type ComplexRow,
   type ComplexTransactionRow,
 } from "@/lib/complex/complex-store";
@@ -50,6 +51,8 @@ interface HubView {
   trades: HubTrade[];
   notes: HubNote[];
   listings: HubListing[];
+  /** 내부 링크 그물(#34) — 같은 동 다른 단지 (0건이면 섹션 미표시) */
+  nearby: { id: string; name: string; meta: string }[];
 }
 
 /* ===== 목업 폴백 — 시안 23b 공작아파트 ===== */
@@ -119,6 +122,7 @@ const MOCK_VIEW: HubView = {
   trades: MOCK_TRADES,
   notes: MOCK_NOTES,
   listings: MOCK_LISTINGS,
+  nearby: [], // 목업 폴백 시 존재하지 않는 단지로 링크하지 않음
 };
 
 /* ===== 실데이터 변환 (map/page.tsx 방식) ===== */
@@ -170,10 +174,28 @@ interface ComplexPostRow {
   view_count: number | null;
 }
 
+/* 내부 링크 그물(#34): 같은 동(district) 단지 조회 → 카드 데이터 */
+function toNearby(rows: ComplexRow[], selfId: string): HubView["nearby"] {
+  return rows
+    .filter((c) => c.id !== selfId)
+    .slice(0, 4)
+    .map((c) => {
+      const parts: string[] = [];
+      if (c.build_year) parts.push(`${c.build_year}년`);
+      if (c.households) parts.push(`${c.households.toLocaleString("ko-KR")}세대`);
+      return {
+        id: c.id,
+        name: c.name,
+        meta: parts.length > 0 ? parts.join(" · ") : `${c.city} ${c.district}`.trim(),
+      };
+    });
+}
+
 function toView(
   row: ComplexRow,
   tx: ComplexTransactionRow[],
   posts: ComplexPostRow[],
+  nearby: HubView["nearby"],
 ): HubView {
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
@@ -225,6 +247,7 @@ function toView(
     trades,
     notes,
     listings: MOCK_LISTINGS,
+    nearby,
   };
 }
 
@@ -232,11 +255,15 @@ async function loadView(id: string): Promise<HubView> {
   try {
     const row = await getComplexById(id);
     if (!row) return MOCK_VIEW;
-    const [tx, posts] = await Promise.all([
+    const [tx, posts, sameDong] = await Promise.all([
       getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
       getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
+      // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
+      row.district
+        ? searchComplexes("", row.district, 5).catch(() => [] as ComplexRow[])
+        : Promise.resolve([] as ComplexRow[]),
     ]);
-    return toView(row, tx, posts);
+    return toView(row, tx, posts, toNearby(sameDong, row.id));
   } catch {
     return MOCK_VIEW;
   }
@@ -380,6 +407,29 @@ export default async function ComplexHubPage({
           </div>
         </aside>
       </div>
+
+      {/* 내부 링크 그물(#34) — 같은 동 다른 단지 (0건이면 미표시) */}
+      {v.nearby.length > 0 && (
+        <section className="rise-in-5 mt-6">
+          <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+            {v.dong} 다른 단지
+          </h2>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {v.nearby.map((n) => (
+              <Link
+                key={n.id}
+                href={`/complex/${encodeURIComponent(n.id)}`}
+                className="card card-hover rounded-2xl px-4 py-3.5"
+              >
+                <div className="truncate text-[13px] font-extrabold text-ink">
+                  {n.name}
+                </div>
+                <div className="mt-0.5 truncate text-[11px] text-text-3">{n.meta}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 모바일 CTA 2개 (시안 하단) */}
       <div className="rise-in-4 mt-4 lg:hidden">{cta}</div>

@@ -69,6 +69,59 @@ function boardRowToPost(row: Record<string, unknown>): Post {
 
 const BOARD_SELECT_WITH_COMMENTS = "*, board_comments(count)";
 
+/* ---------- 뉴스 품질 게이트 (#24) ----------
+ * 자동 수집 뉴스의 저품질 항목을 노출 전에 걸러낸다:
+ *  1) 광고 표기 제목 — "[부동산 AD]", "[AD]", "[광고]", "(광고)", "AD)" 접두 등
+ *  2) 제목 8자 미만 — 잘린/무의미 제목 (자동 수집 글에만 적용, 이웃 글은 유지)
+ *  3) external_key 중복 — 같은 원문이 두 번 적재된 경우 최신 1건만 유지
+ *     (readTownPosts 병합 단계의 id·external_key dedup 은 그대로 유지됨)
+ * 제외 건수는 logger 로 남긴다.
+ */
+
+/** 광고 표기 제목 패턴 — 본문 중 "광고" 단어 언급(예: 허위 광고 단속)은 제외하지 않도록 표기형만 매칭 */
+const AD_TITLE_RE =
+  /\[\s*(?:부동산\s*)?AD\s*\]|\[\s*광고\s*\]|\(\s*광고\s*\)|^\s*(?:AD|광고)\s*[)\]:·-]/i;
+
+function isAdTitle(title: string): boolean {
+  return AD_TITLE_RE.test(title);
+}
+
+/** 품질 게이트 적용 — 제외 사유별 건수를 로그로 남기고 통과분만 반환 */
+function applyNewsQualityGate(posts: Post[]): Post[] {
+  let excludedShortTitle = 0;
+  let excludedAdTitle = 0;
+  let excludedDupKey = 0;
+  const seenExternalKeys = new Set<string>();
+  const passed: Post[] = [];
+  for (const p of posts) {
+    const title = p.title.trim();
+    if (isAdTitle(title)) {
+      excludedAdTitle += 1;
+      continue;
+    }
+    // 제목 8자 미만: 자동 수집(뉴스) 글에만 적용 — 이웃이 쓴 짧은 제목 글은 유지
+    if (p.isAutomated && title.length < 8) {
+      excludedShortTitle += 1;
+      continue;
+    }
+    if (p.externalKey) {
+      if (seenExternalKeys.has(p.externalKey)) {
+        excludedDupKey += 1;
+        continue;
+      }
+      seenExternalKeys.add(p.externalKey);
+    }
+    passed.push(p);
+  }
+  const excludedTotal = excludedShortTitle + excludedAdTitle + excludedDupKey;
+  if (excludedTotal > 0) {
+    logger.info(
+      `[readBoardPosts] 품질 게이트 제외 ${excludedTotal}건 (짧은 제목 ${excludedShortTitle} · 광고 표기 ${excludedAdTitle} · external_key 중복 ${excludedDupKey})`,
+    );
+  }
+  return passed;
+}
+
 /** board_posts 공개(community) 글 최신순 — 실패 시 빈 배열 */
 export async function readBoardPosts(
   limit: number = BOARD_POSTS_LIMIT,
@@ -110,7 +163,9 @@ export async function readBoardPosts(
       }
     }
     if (error || !Array.isArray(data)) return [];
-    return data.map((r) => boardRowToPost(r as Record<string, unknown>));
+    return applyNewsQualityGate(
+      data.map((r) => boardRowToPost(r as Record<string, unknown>)),
+    );
   } catch (e) {
     logger.error("[readBoardPosts]", e);
     return [];
