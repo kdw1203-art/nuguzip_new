@@ -1,0 +1,55 @@
+# E2E 스모크 (#92)
+# - main 푸시·수동 실행 시 프로덕션 빌드를 로컬 기동 후 Playwright 스모크 30케이스 실행
+# - 배포 워크플로(deploy.yml)와 완전 독립 — 배포를 막거나 수정하지 않음
+# - 실패 시 이슈 자동 생성 (synthetic.yml 실패 리포트 패턴)
+name: E2E Smoke
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npx next build
+      - name: Start server and run E2E smoke
+        shell: bash
+        run: |
+          set -o pipefail
+          npx next start -p 3345 &
+          SERVER_PID=$!
+          # 서버 기동 대기 (최대 60초) — deploy.yml link-check 패턴
+          for i in $(seq 1 60); do
+            if curl -sfo /dev/null http://localhost:3345/; then break; fi
+            sleep 1
+          done
+          E2E_BASE_URL=http://localhost:3345 npx playwright test 2>&1 | tee e2e.log
+          STATUS=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $STATUS
+      - name: Report E2E failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAIL=$(tail -c 3000 e2e.log 2>/dev/null || echo "no log")
+          gh api repos/${{ github.repository }}/issues -f title="E2E smoke failure $(date -u +%FT%TZ)" -f body="run: ${{ github.run_id }}
+          \`\`\`
+          $TAIL
+          \`\`\`" || true

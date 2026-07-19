@@ -119,6 +119,186 @@ function toNotification(item: InboxItem): Notification {
   };
 }
 
+/* ---------- 알림 구독 (#47, /api/me/alerts) ---------- */
+
+type AlertSubscription = {
+  id: string;
+  type: "region" | "keyword";
+  value: string;
+  label: string;
+  createdAt: string;
+};
+
+const REGION_OPTIONS = [
+  "서울",
+  "경기",
+  "인천",
+  "부산",
+  "대구",
+  "대전",
+  "광주",
+  "울산",
+  "세종",
+] as const;
+
+function AlertSubscriptionSection() {
+  const [subs, setSubs] = useState<AlertSubscription[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [region, setRegion] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me/alerts");
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as { items?: AlertSubscription[] };
+        if (cancelled) return;
+        setSubs(Array.isArray(data.items) ? data.items : []);
+      } catch {
+        // 실패 시 빈 목록 유지 (섹션은 계속 표시)
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const addOne = async (type: "region" | "keyword", value: string) => {
+    const res = await fetch("/api/me/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, value }),
+    });
+    const data = (await res.json().catch(() => ({}))) as
+      | AlertSubscription
+      | { error?: string };
+    if (!res.ok) {
+      throw new Error(
+        ("error" in data && data.error) || "구독 추가에 실패했어요.",
+      );
+    }
+    const item = data as AlertSubscription;
+    setSubs((prev) => [item, ...prev.filter((s) => s.id !== item.id)]);
+  };
+
+  const onAdd = async () => {
+    if (busy) return;
+    const r = region.trim();
+    const k = keyword.trim();
+    if (!r && !k) {
+      setError("지역을 선택하거나 키워드를 입력해 주세요.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      if (r) await addOne("region", r);
+      if (k) await addOne("keyword", k);
+      setRegion("");
+      setKeyword("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "구독 추가에 실패했어요.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onRemove = async (id: string) => {
+    const prev = subs;
+    setSubs((cur) => cur.filter((s) => s.id !== id));
+    try {
+      const res = await fetch(
+        `/api/me/alerts?id=${encodeURIComponent(id)}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error(String(res.status));
+    } catch {
+      setSubs(prev);
+      setError("구독 해지에 실패했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  };
+
+  return (
+    <div className="rise-in-2 card mt-3 flex flex-col gap-2.5 rounded-[14px] px-[15px] py-[13px]">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-extrabold text-ink">알림 구독</span>
+        <span className="text-[10px] text-text-3">지역·키워드 새 소식 알림</span>
+      </div>
+
+      {/* 현재 구독 칩 */}
+      {loaded && subs.length === 0 && (
+        <div className="text-[11px] text-text-3">
+          아직 구독이 없어요. 지역이나 키워드를 구독해 보세요.
+        </div>
+      )}
+      {subs.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {subs.map((s) => (
+            <span
+              key={s.id}
+              className="chip inline-flex items-center gap-1.5 border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[11px] text-text-1"
+            >
+              <b className="font-bold text-ink">{s.label}</b>
+              <button
+                type="button"
+                aria-label={`${s.label} 구독 해지`}
+                onClick={() => onRemove(s.id)}
+                className="font-extrabold text-text-3 hover:text-danger"
+              >
+                해지
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 추가 폼 */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <select
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          className="h-8 rounded-[9px] border border-[#e2e7ee] bg-surface px-2 text-[11px] text-ink"
+          aria-label="구독할 지역"
+        >
+          <option value="">지역 선택</option>
+          {REGION_OPTIONS.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") void onAdd();
+          }}
+          maxLength={30}
+          placeholder="키워드 (예: 재건축)"
+          className="h-8 min-w-0 flex-1 rounded-[9px] border border-[#e2e7ee] bg-surface px-2.5 text-[11px] text-ink placeholder:text-text-3"
+          aria-label="구독할 키워드"
+        />
+        <button
+          type="button"
+          onClick={() => void onAdd()}
+          disabled={busy}
+          className="btn-primary h-8 rounded-[9px] px-3 text-[11px] font-extrabold disabled:opacity-60"
+        >
+          {busy ? "추가 중…" : "구독 추가"}
+        </button>
+      </div>
+      {error && <div className="text-[10px] font-bold text-danger">{error}</div>}
+    </div>
+  );
+}
+
 function NotificationCard({ n, index }: { n: Notification; index: number }) {
   const inner = (
     <div
@@ -223,16 +403,19 @@ export default function NotificationsPage() {
         {mode === "guest" && (
           <div className="rise-in-1 card mt-3 flex items-center justify-between rounded-[14px] border-l-[3px] border-l-primary px-[15px] py-3">
             <span className="text-xs font-bold text-ink">
-              로그인하면 내 알림이 표시됩니다
+              로그인하면 내 알림과 구독을 관리할 수 있어요
             </span>
             <Link
-              href="/login"
+              href="/login?callbackUrl=/notifications"
               className="shrink-0 text-xs font-extrabold text-primary"
             >
               로그인 ›
             </Link>
           </div>
         )}
+
+        {/* 알림 구독 (#47) — 로그인 상태에서만 */}
+        {mode === "live" && <AlertSubscriptionSection />}
 
         {/* 알림 리스트 */}
         <div className="mt-3 flex flex-col gap-2">
@@ -248,8 +431,8 @@ export default function NotificationsPage() {
 
           {mode === "live" && list.length === 0 && (
             <div className="card rounded-[14px] px-[15px] py-8 text-center text-xs text-text-3">
-              아직 도착한 알림이 없어요. 관심 단지를 팔로우하면 시세·급매 알림을
-              받아볼 수 있어요.
+              아직 알림이 없어요. 지역·키워드를 구독하면 새 소식 알림을 받아볼
+              수 있어요.
             </div>
           )}
         </div>

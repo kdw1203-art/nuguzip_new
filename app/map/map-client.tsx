@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Logo } from "../components/Logo";
-import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
+import { NaverMap, type MapIdleInfo, type MapMarkerData } from "@/components/map/NaverMap";
 
 /* ============================================================
    지도 탐색 (6a) — 실제 네이버 지도 + 글래스 오버레이 UI
@@ -122,6 +122,32 @@ interface MapClientProps {
   regionLabel: string;
 }
 
+/* ===== 서버 클러스터링 (/api/map/clusters) ===== */
+
+interface ClusterItem {
+  lat: number;
+  lng: number;
+  count: number;
+}
+
+interface ClusterPointItem {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+interface ClustersResponse {
+  mode: "clusters" | "points";
+  clusters: ClusterItem[];
+  points: ClusterPointItem[];
+}
+
+/** 이 네이버 줌 미만이면 서버 클러스터 마커를 표시 (API의 POINT_MODE_MIN_ZOOM과 동일) */
+const CLUSTER_MODE_MAX_ZOOM = 14;
+/** bounds 변경 → fetch 디바운스(ms) */
+const CLUSTER_FETCH_DEBOUNCE_MS = 350;
+
 export function MapClient({ danji, regionLabel }: MapClientProps) {
   const [zoom, setZoom] = useState<Zoom>("danji");
   const [level, setLevel] = useState<number>(LEVEL_BY_ZOOM.danji);
@@ -137,29 +163,102 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
   const selected = danji.find((d) => d.id === selectedId) ?? null;
 
-  const markers = useMemo<MapMarkerData[]>(
-    () =>
-      danji.map((d) => ({
-        id: d.id,
-        lat: d.lat,
-        lng: d.lng,
-        label: d.name,
-        priceLabel: d.price,
-        avgPriceWon: d.avgPriceWon ?? undefined,
-        // 시세 말풍선 스타일 강제 (avgPricePerM2 정의 시 price marker)
-        avgPricePerM2: d.avgPriceWon ? d.avgPriceWon / 84 : 1,
-        momPct: d.momPct ?? undefined,
-        selected: d.id === selectedId,
-        infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
-      })),
-    [danji, selectedId],
+  /* ===== 서버 클러스터링 상태 — 낮은 줌에서 42k 단지를 그리드 집계로 표시 ===== */
+  const [clusterMode, setClusterMode] = useState<"points" | "clusters">("points");
+  const [clusters, setClusters] = useState<ClusterItem[]>([]);
+  const [extraPoints, setExtraPoints] = useState<ClusterPointItem[]>([]);
+  const fetchTimerRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const handleMapIdle = useCallback((info: MapIdleInfo) => {
+    const bounds = info.bounds;
+    if (!bounds) return;
+    if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = window.setTimeout(() => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const params = new URLSearchParams({
+        minLat: String(bounds.swLat),
+        maxLat: String(bounds.neLat),
+        minLng: String(bounds.swLng),
+        maxLng: String(bounds.neLng),
+        zoom: String(info.zoom),
+      });
+      fetch(`/api/map/clusters?${params.toString()}`, { signal: controller.signal })
+        .then((res) => (res.ok ? (res.json() as Promise<ClustersResponse>) : null))
+        .then((json) => {
+          if (!json || controller.signal.aborted) return;
+          setClusterMode(json.mode);
+          setClusters(Array.isArray(json.clusters) ? json.clusters : []);
+          setExtraPoints(Array.isArray(json.points) ? json.points : []);
+        })
+        .catch(() => undefined); // 실패 시 기존 마커 유지
+    }, CLUSTER_FETCH_DEBOUNCE_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
+      abortRef.current?.abort();
+    },
+    [],
   );
+
+  const markers = useMemo<MapMarkerData[]>(() => {
+    // 낮은 줌: 서버 그리드 클러스터만 표시 (개수 배지 원형 마커)
+    if (clusterMode === "clusters" && clusters.length > 0) {
+      return clusters.map((c) => ({
+        id: `cluster:${c.lat}:${c.lng}`,
+        lat: c.lat,
+        lng: c.lng,
+        label: c.count.toLocaleString("ko-KR"),
+        pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
+        infoHtml: "",
+      }));
+    }
+    // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
+    const base: MapMarkerData[] = danji.map((d) => ({
+      id: d.id,
+      lat: d.lat,
+      lng: d.lng,
+      label: d.name,
+      priceLabel: d.price,
+      avgPriceWon: d.avgPriceWon ?? undefined,
+      // 시세 말풍선 스타일 강제 (avgPricePerM2 정의 시 price marker)
+      avgPricePerM2: d.avgPriceWon ? d.avgPriceWon / 84 : 1,
+      momPct: d.momPct ?? undefined,
+      selected: d.id === selectedId,
+      infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
+    }));
+    const known = new Set(base.map((m) => m.id));
+    for (const p of extraPoints) {
+      if (known.has(p.id)) continue;
+      base.push({ id: p.id, lat: p.lat, lng: p.lng, label: p.name, infoHtml: "" });
+    }
+    return base;
+  }, [clusterMode, clusters, extraPoints, danji, selectedId]);
 
   const selectDanji = (id: string) => {
     setSelectedId(id);
     setDetailTab("요약");
     const d = danji.find((x) => x.id === id);
     if (d) setCenter({ lat: d.lat, lng: d.lng });
+  };
+
+  const handleMarkerClick = (m: MapMarkerData) => {
+    // 클러스터 클릭 → 해당 지점으로 두 단계 확대
+    if (m.id.startsWith("cluster:")) {
+      setCenter({ lat: m.lat, lng: m.lng });
+      setLevel((v) => Math.max(1, v - 2));
+      return;
+    }
+    if (danji.some((d) => d.id === m.id)) {
+      selectDanji(m.id);
+      return;
+    }
+    // API 포인트(목록 밖 단지) — 지도 중심만 이동
+    setCenter({ lat: m.lat, lng: m.lng });
   };
 
   const goToMyLocation = () => {
@@ -291,7 +390,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         rounded={false}
         showControls={false}
         className="absolute inset-0 z-0"
-        onMarkerClick={(m) => selectDanji(m.id)}
+        onMarkerClick={handleMarkerClick}
+        onIdle={handleMapIdle}
         fallback={gradientFallback}
       />
 

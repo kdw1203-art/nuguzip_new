@@ -37,20 +37,19 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      // Supabase Storage
+      // Supabase Storage (`**` — 중첩 서브도메인 포함)
       {
         protocol: "https",
-        hostname: "*.supabase.co",
+        hostname: "**.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
       {
         protocol: "https",
-        hostname: "*.supabase.io",
+        hostname: "**.supabase.io",
         pathname: "/storage/v1/object/public/**",
       },
-      // Naver (프로필 이미지)
-      { protocol: "https", hostname: "phinf.pstatic.net" },
-      { protocol: "https", hostname: "ssl.pstatic.net" },
+      // Naver 정적 리소스/프로필 (phinf·ssl·map 등 모든 pstatic 서브도메인)
+      { protocol: "https", hostname: "**.pstatic.net" },
       // Google (프로필 이미지)
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       // 일반 CDN / 공공 이미지 허용

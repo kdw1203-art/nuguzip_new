@@ -28,7 +28,13 @@ function dbToItem(r: Record<string, unknown>): WatchlistItem {
 export async function listWatchlist(userEmail: string): Promise<WatchlistItem[]> {
   const sb = getServiceSupabase();
   if (!sb) return inMemory.filter((w) => w.userEmail === userEmail);
-  const { data } = await sb.from("user_watchlist").select("*").eq("user_email", userEmail).order("created_at", { ascending: false });
+  const { data } = await sb
+    .from("user_watchlist")
+    .select("*")
+    .eq("user_email", userEmail)
+    // 알림 구독(#47, lib/alerts/subscriptions) 행은 관심 단지 목록에서 제외
+    .not("complex_id", "like", "alert:%")
+    .order("created_at", { ascending: false });
   return (data ?? []).map(dbToItem);
 }
 
@@ -42,7 +48,9 @@ export async function countWatchlist(userEmail: string): Promise<number> {
   const { count } = await sb
     .from("user_watchlist")
     .select("id", { count: "exact", head: true })
-    .eq("user_email", em);
+    .eq("user_email", em)
+    // 알림 구독(#47) 행은 관심 단지 한도에 포함하지 않는다
+    .not("complex_id", "like", "alert:%");
   return count ?? 0;
 }
 
