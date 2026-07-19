@@ -10,6 +10,7 @@ npm-debug.log*
 # env files
 .env*
 !.env.example
+!.env.production
 # vercel
 .vercel
 # typescript
