@@ -12,6 +12,10 @@ env:
   VERCEL_ORG_ID: team_HEspqLpVXaHn1GHTEjqbSZ2E
   VERCEL_PROJECT_ID: prj_hsE8uEG7QyxefafQpVnKx6diCVqO
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
