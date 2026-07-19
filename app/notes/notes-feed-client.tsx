@@ -20,6 +20,8 @@ export type FeedNote = {
   footer: string[];
   popularity: number;
   interested: boolean;
+  /** 단지 허브(/complex/[id]) 링크 — 실 id 없으면 /complex/mock-1 */
+  complexHref?: string;
 };
 
 const FILTERS = ["최신", "인기", "내 관심 지역"] as const;
@@ -74,11 +76,15 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
         ) : (
           <div className="rise-in-1 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {visible.map((n) => (
-              <Link
+              <div
                 key={n.id}
-                href={`/notes/${n.id}`}
-                className="card card-hover flex flex-col gap-2.5 rounded-[20px] p-5"
+                className="card card-hover relative flex flex-col gap-2.5 rounded-[20px] p-5"
               >
+                <Link
+                  href={`/notes/${n.id}`}
+                  aria-label={`${n.title} 노트 보기`}
+                  className="absolute inset-0 rounded-[20px]"
+                />
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
@@ -121,12 +127,20 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-3.5 border-t border-[#f0f3f8] pt-2.5 text-[11px] text-text-3">
-                  {n.footer.map((f) => (
-                    <span key={f}>{f}</span>
-                  ))}
+                <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-2.5">
+                  <div className="flex gap-3.5 text-[11px] text-text-3">
+                    {n.footer.map((f) => (
+                      <span key={f}>{f}</span>
+                    ))}
+                  </div>
+                  <Link
+                    href={n.complexHref ?? "/complex/mock-1"}
+                    className="relative z-[1] text-[11px] font-extrabold text-primary"
+                  >
+                    단지 허브 ›
+                  </Link>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

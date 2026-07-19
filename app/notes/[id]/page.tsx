@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
 import {
@@ -7,44 +8,57 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 
-/* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석 — 점수 산출·편향 감지)
-   실데이터: inspection_notes → getNote(id) — 공개 노트만 노출, 없으면 목업 */
+/* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
+   실데이터: inspection_notes → getNote(id) — 공개 노트만 index, 비공개·목업은 noindex */
 
 export const dynamic = "force-dynamic";
 
-type Segment = { label: string; value: string; tone: string };
+const BASE_URL = "https://nuguzip.com";
+const COMPLEX_HREF = "/complex/mock-1";
+
+/* ---------- 뷰 모델 ---------- */
+
+type AxisLevel = "상" | "중" | "하";
+type Axis = { icon: string; label: string; level: AxisLevel };
 type Visit = { label: string; summary: string; latest: boolean };
 type ScoreBar = { label: string; value: number; bad: boolean };
 
 type NoteView = {
   breadcrumb: string;
-  title: string;
-  metaLine: string;
-  badge: string;
-  segments: Segment[];
+  chips: string[]; // 지역 › 단지 › 평형 칩 (20a ①)
+  oneLiner: string; // 한 줄 총평 = 제목 (20a ③)
+  directVisit: boolean; // 직접 방문 배지 (20a ①)
+  visitMeta: string; // 방문일·작성자 (20a ②)
+  axes: Axis[]; // 채광·소음·주차·교통 4축 (20a ④)
   body: string;
   photoCount: number;
   visits: Visit[];
-  strengths: string[];
-  weaknesses: string[];
+  goodPoints: string[]; // 좋았던 점 (20a ⑤)
+  cautionPoints: string[]; // 주의할 점 (20a ⑥)
   evidenceNote: string;
+  aiInline: string; // 본문 내 AI 요약 (20a ⑨ — AIPanel로 구분)
   aiSummary: string;
   totalScore: number; // 0~100
   scoreBars: ScoreBar[];
   checklistDone: number;
   checklistTotal: number;
+  sourceLabel: string; // 출처 각주 (20a ⑦)
+  baseDate: string; // 데이터 기준일 (20a ⑧)
+  regionLabel: string;
+  complexLabel: string;
 };
 
 const MOCK_VIEW: NoteView = {
-  breadcrumb: "내 임장노트 › 공작아파트",
-  title: "공작아파트 302동 84A",
-  metaLine: "2026.07.12 임장 · 3번째 방문 · 안양 관양동",
-  badge: "비공개",
-  segments: [
-    { label: "채광", value: "좋음", tone: "text-primary" },
-    { label: "소음", value: "보통", tone: "text-text-2" },
-    { label: "주차", value: "아쉬움", tone: "text-danger" },
-    { label: "학군", value: "좋음", tone: "text-primary" },
+  breadcrumb: "임장노트 › 공작아파트",
+  chips: ["관양동", "공작아파트", "84A 노트"],
+  oneLiner: "공작 302동 3차 임장 — 채광은 확실, 주차가 관건",
+  directVisit: true,
+  visitMeta: "방문 2026.7.12 (토) 14~16시 · 임장러버",
+  axes: [
+    { icon: "☀", label: "채광", level: "상" },
+    { icon: "🔊", label: "소음", level: "중" },
+    { icon: "🅿", label: "주차", level: "하" },
+    { icon: "🚇", label: "교통", level: "상" },
   ],
   body: "남향이라 오후 채광 좋음. 단지 뒤 도로 소음 약간 있음. 초등학교 도보 5분. 주차는 세대당 0.9대로 저녁엔 이중주차 많음.",
   photoCount: 4,
@@ -53,18 +67,11 @@ const MOCK_VIEW: NoteView = {
     { label: "2차 · 2026.06.14 (저녁)", summary: "주차 아쉬움 · 소음 보통", latest: false },
     { label: "3차 · 2026.07.12 (오후)", summary: "채광 좋음 · 학군 좋음", latest: true },
   ],
-  strengths: [
-    "학군 (초 5분, 5회 일관)",
-    "배수 (우천 확인)",
-    "가격 (적정가 -3.7% 급매 존재)",
-    "재건축 여지 + 재개발 인접",
-  ],
-  weaknesses: [
-    "주차 0.9대 (월 외부주차 8만 환산)",
-    "연식 38년 (관리비 +4만/월)",
-    "오전 채광 보통 (재택근무 감점)",
-  ],
+  goodPoints: ["오후 2시에도 거실 밝음", "초등학교 도보 7분", "재건축 여지 + 재개발 인접"],
+  cautionPoints: ["저녁 7시 지상 만차, 지하 2층까지", "연식 38년 (관리비 +4만/월)"],
   evidenceNote: "기록 5건 + 실거래 36건 + 공개 노트 38건",
+  aiInline:
+    "최근 90일 실거래 4건 평균 4.82억 — 이 노트의 감점(주차) 반영 시 적정가 4.7억",
   aiSummary:
     "3회 방문 기록 기준 — 채광·학군은 일관되게 강점입니다. 소음은 시간대 편차가 있고, 주차(세대당 0.9대)는 구조적 약점입니다.",
   totalScore: 81,
@@ -77,6 +84,10 @@ const MOCK_VIEW: NoteView = {
   ],
   checklistDone: 9,
   checklistTotal: 10,
+  sourceLabel: "국토부 실거래가",
+  baseDate: "2026.7.19",
+  regionLabel: "관양동",
+  complexLabel: "공작아파트",
 };
 
 const SUGGESTIONS = [
@@ -85,10 +96,30 @@ const SUGGESTIONS = [
   "관리비 내역(1988년 준공, 배관 이슈) 문의",
 ];
 
-function levelOf(score: number): { value: string; tone: string } {
-  if (score >= 4) return { value: "좋음", tone: "text-primary" };
-  if (score >= 3) return { value: "보통", tone: "text-text-2" };
-  return { value: "아쉬움", tone: "text-danger" };
+/* ---------- 실데이터 → 표준 뷰 변환 ---------- */
+
+function axisToneClass(level: AxisLevel): string {
+  if (level === "상") return "text-[#1a7f4e]";
+  if (level === "하") return "text-danger";
+  return "text-text-1";
+}
+
+function levelFromScore(score: number): AxisLevel {
+  if (score >= 4) return "상";
+  if (score > 0 && score <= 2) return "하";
+  return "중";
+}
+
+function detectAxisLevel(
+  keywords: string[],
+  pros: string,
+  cons: string,
+  fallbackScore: number,
+): AxisLevel {
+  const hit = (text: string) => keywords.some((k) => text.includes(k));
+  if (hit(cons)) return "하";
+  if (hit(pros)) return "상";
+  return levelFromScore(fallbackScore);
 }
 
 function splitLines(text?: string | null): string[] {
@@ -100,14 +131,24 @@ function splitLines(text?: string | null): string[] {
     .slice(0, 4);
 }
 
+function formatDate(iso?: string | null): string {
+  if (!iso) return "";
+  const d = iso.slice(0, 10);
+  const [y, m, day] = d.split("-");
+  if (!y || !m || !day) return d;
+  return `${y}.${Number(m)}.${Number(day)}`;
+}
+
 function toView(n: InspectionNote): NoteView {
   const avg = inspectionAverageScore(n.scores);
   const total = Math.round(avg * 20);
   const displayTitle = n.aptName?.trim() || n.title;
   const s = n.scores;
+  const pros = n.sections.pros ?? "";
+  const cons = n.sections.cons ?? "";
 
-  const strengths = splitLines(n.sections.pros);
-  const weaknesses = splitLines(n.sections.cons);
+  const goodPoints = splitLines(n.sections.pros);
+  const cautionPoints = splitLines(n.sections.cons);
   const scoreEntries: [string, number][] = [
     ["입지", s.location],
     ["학군", s.school],
@@ -115,35 +156,57 @@ function toView(n: InspectionNote): NoteView {
     ["시설", s.facility],
     ["미래가치", s.future],
   ];
-  if (strengths.length === 0) {
+  if (goodPoints.length === 0) {
     scoreEntries
       .filter(([, v]) => v >= 4)
-      .forEach(([label, v]) => strengths.push(`${label} 우수 (${v}/5)`));
+      .forEach(([label, v]) => goodPoints.push(`${label} 우수 (${v}/5)`));
   }
-  if (weaknesses.length === 0) {
+  if (cautionPoints.length === 0) {
     scoreEntries
       .filter(([, v]) => v > 0 && v <= 2)
-      .forEach(([label, v]) => weaknesses.push(`${label} 취약 (${v}/5)`));
+      .forEach(([label, v]) => cautionPoints.push(`${label} 취약 (${v}/5)`));
   }
-  if (strengths.length === 0) strengths.push("기록된 확정 강점이 아직 없어요");
-  if (weaknesses.length === 0) weaknesses.push("기록된 확정 약점이 아직 없어요");
+  if (goodPoints.length === 0) goodPoints.push("기록된 확정 강점이 아직 없어요");
+  if (cautionPoints.length === 0)
+    cautionPoints.push("기록된 확정 약점이 아직 없어요");
+
+  // 20a ④ 4축: 텍스트 키워드 우선, 없으면 점수 축으로 근사
+  const axes: Axis[] = [
+    {
+      icon: "☀",
+      label: "채광",
+      level: detectAxisLevel(["채광", "햇빛", "일조", "남향"], pros, cons, s.facility),
+    },
+    {
+      icon: "🔊",
+      label: "소음",
+      level: detectAxisLevel(["소음", "시끄", "조용"], pros, cons, s.location),
+    },
+    {
+      icon: "🅿",
+      label: "주차",
+      level: detectAxisLevel(["주차", "이중주차"], pros, cons, s.facility),
+    },
+    { icon: "🚇", label: "교통", level: levelFromScore(s.transport) },
+  ];
 
   const doneCount = n.checklist.filter((c) => c.done).length;
-  const meta: string[] = [`${n.visitDate} 임장`, n.region];
+  const meta: string[] = [`방문 ${n.visitDate}`];
   if (n.weather) meta.push(n.weather);
-  if (n.transportation) meta.push(n.transportation);
+  meta.push(n.authorLabel?.trim() || "누구집 스카우트");
+
+  const chips = [n.region, displayTitle].filter(Boolean);
+  const weakest = scoreEntries
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => a[1] - b[1])[0];
 
   return {
     breadcrumb: `공개 임장노트 › ${displayTitle}`,
-    title: displayTitle,
-    metaLine: meta.join(" · "),
-    badge: "공개",
-    segments: [
-      { label: "입지", ...levelOf(s.location) },
-      { label: "학군", ...levelOf(s.school) },
-      { label: "교통", ...levelOf(s.transport) },
-      { label: "시설", ...levelOf(s.facility) },
-    ],
+    chips,
+    oneLiner: n.title,
+    directVisit: Boolean(n.visitDate),
+    visitMeta: meta.join(" · "),
+    axes,
     body:
       n.summary?.trim() ||
       n.sections.memo?.trim() ||
@@ -156,18 +219,21 @@ function toView(n: InspectionNote): NoteView {
         latest: true,
       },
     ],
-    strengths: strengths.slice(0, 4),
-    weaknesses: weaknesses.slice(0, 4),
+    goodPoints: goodPoints.slice(0, 4),
+    cautionPoints: cautionPoints.slice(0, 4),
     evidenceNote: `점수 5개 축 + 체크 ${n.checklist.length}건 기준`,
+    aiInline: `5개 축 평균 ${avg.toFixed(1)}/5점 — ${
+      weakest ? `${weakest[0]} 축(${weakest[1]}/5)이 감점 요인입니다.` : "축별 점수를 참고하세요."
+    }`,
     aiSummary: `${n.region} ${displayTitle} 방문 기록 기준 — 5개 축 평균 ${avg.toFixed(
       1,
     )}점입니다. ${
-      strengths[0] && !strengths[0].includes("아직")
-        ? `강점은 ${strengths[0]}, `
+      goodPoints[0] && !goodPoints[0].includes("아직")
+        ? `강점은 ${goodPoints[0]}, `
         : ""
     }${
-      weaknesses[0] && !weaknesses[0].includes("아직")
-        ? `약점은 ${weaknesses[0]} 입니다.`
+      cautionPoints[0] && !cautionPoints[0].includes("아직")
+        ? `약점은 ${cautionPoints[0]} 입니다.`
         : "축별 점수를 참고해 다음 방문 계획을 세워보세요."
     }`,
     totalScore: total,
@@ -178,8 +244,103 @@ function toView(n: InspectionNote): NoteView {
     })),
     checklistDone: doneCount,
     checklistTotal: n.checklist.length,
+    sourceLabel: "국토부 실거래가 · 사용자 방문 기록",
+    baseDate: formatDate(n.updatedAt) || n.visitDate,
+    regionLabel: n.region,
+    complexLabel: displayTitle,
   };
 }
+
+/* ---------- SEO (20b): generateMetadata — 공개 노트만 index ---------- */
+
+async function fetchPublicNote(id: string): Promise<InspectionNote | null> {
+  try {
+    const note = await getNote(id);
+    return note && note.isPublic ? note : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const note = await fetchPublicNote(id);
+
+  if (!note) {
+    // 비공개 노트·목업 폴백은 색인 금지 (20b 색인 정책)
+    return {
+      title: "임장노트 — 누구집",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const displayTitle = note.aptName?.trim() || note.title;
+  const title = `${note.title} — ${note.region} 임장노트 | 누구집`;
+  const description = (
+    note.summary?.trim() ||
+    note.sections.memo?.trim() ||
+    `${note.region} ${displayTitle} 직접 방문 임장 기록 — 채광·소음·주차·교통 평가와 좋았던 점·주의할 점.`
+  ).slice(0, 150);
+  const canonical = `${BASE_URL}/notes/${note.id}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      siteName: "누구집",
+      locale: "ko_KR",
+      type: "article",
+      publishedTime: note.createdAt,
+      modifiedTime: note.updatedAt,
+    },
+  };
+}
+
+/* ---------- JSON-LD (Article) — 공개 노트만 ---------- */
+
+function articleJsonLd(note: InspectionNote): string {
+  const displayTitle = note.aptName?.trim() || note.title;
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: note.title,
+    description:
+      note.summary?.trim() ||
+      `${note.region} ${displayTitle} 직접 방문 임장 기록`,
+    datePublished: note.createdAt,
+    dateModified: note.updatedAt,
+    author: {
+      "@type": "Person",
+      name: note.authorLabel?.trim() || "누구집 스카우트",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "누구집",
+      url: BASE_URL,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${BASE_URL}/notes/${note.id}`,
+    },
+    articleSection: note.region,
+    about: {
+      "@type": "ApartmentComplex",
+      name: displayTitle,
+      address: note.region,
+    },
+  });
+}
+
+/* ---------- 페이지 ---------- */
 
 export default async function NoteDetailPage({
   params,
@@ -189,21 +350,30 @@ export default async function NoteDetailPage({
   const { id } = await params;
 
   let view = MOCK_VIEW;
-  let isReal = false;
+  let realNote: InspectionNote | null = null;
   try {
     const note = await getNote(id);
     if (note && note.isPublic) {
       view = toView(note);
-      isReal = true;
+      realNote = note;
     }
   } catch {
     // env 미설정·조회 실패 시 목업 유지
   }
+  const isReal = realNote !== null;
 
   const v = view;
 
   return (
     <PageShell breadcrumb={v.breadcrumb}>
+      {/* JSON-LD(Article) — 공개 실데이터 노트만 삽입 (20b) */}
+      {realNote && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: articleJsonLd(realNote) }}
+        />
+      )}
+
       {/* 상단 액션 */}
       <div className="rise-in mb-4 flex items-center justify-end gap-2">
         <button type="button" className="btn-soft px-3.5 py-2 text-[13px]">
@@ -218,30 +388,63 @@ export default async function NoteDetailPage({
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_400px]">
-        {/* ===== 좌측: 노트 본문 ===== */}
+        {/* ===== 좌측: 노트 본문 (20a 표준 구조) ===== */}
         <div className="flex flex-col gap-4">
-          {/* 노트 카드 */}
+          {/* 노트 카드 — 20a 표준 11항목 */}
           <div className="rise-in card flex flex-col gap-3.5 rounded-[20px] p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-[22px] font-extrabold text-ink">{v.title}</h1>
-                <div className="mt-1 text-[13px] text-text-3">{v.metaLine}</div>
-              </div>
-              <span className="rounded-lg bg-primary-soft px-2.5 py-[5px] text-xs font-bold text-primary">
-                {v.badge}
-              </span>
+            {/* ① 지역·단지 칩 */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {v.chips.map((c, i) => (
+                <span
+                  key={c}
+                  className={
+                    i === v.chips.length - 1
+                      ? "rounded-full bg-ink px-2.5 py-1 text-[11px] font-extrabold text-white"
+                      : "rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+                  }
+                >
+                  {c}
+                </span>
+              ))}
             </div>
 
-            {/* 세그먼트 평가 요약 */}
-            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-              {v.segments.map((s) => (
-                <div key={s.label} className="rounded-xl bg-bg px-3.5 py-3 text-center">
-                  <div className="text-xs text-text-3">{s.label}</div>
-                  <div className={`mt-0.5 text-[15px] font-extrabold ${s.tone}`}>
-                    {s.value}
+            {/* ② 한 줄 총평 (= 제목) */}
+            <h1 className="text-[21px] font-extrabold leading-[1.4] text-ink">
+              {v.oneLiner}
+            </h1>
+
+            {/* ③ 직접 방문 배지 + 방문일·작성자 */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {v.directVisit ? (
+                <span className="rounded-md bg-[#e7f5ee] px-2 py-[3px] text-[11px] font-extrabold text-[#1a7f4e]">
+                  ✓ 직접 방문
+                </span>
+              ) : (
+                <span className="rounded-md bg-bg px-2 py-[3px] text-[11px] font-extrabold text-text-3">
+                  자료 조사
+                </span>
+              )}
+              <span className="text-text-3">{v.visitMeta}</span>
+            </div>
+
+            {/* ④ 4축 항목 평가 — 채광·소음·주차·교통 상중하 */}
+            <div className="flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface p-3.5">
+              <div className="text-[11px] font-extrabold text-text-3">항목 평가</div>
+              <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
+                {v.axes.map((a) => (
+                  <div
+                    key={a.label}
+                    className="flex items-center justify-between rounded-lg bg-bg px-3 py-2 text-xs text-text-1"
+                  >
+                    <span>
+                      {a.icon} {a.label}
+                    </span>
+                    <b className={`font-extrabold ${axisToneClass(a.level)}`}>
+                      {a.level}
+                    </b>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             <p className="text-sm leading-[1.7] text-text-1">{v.body}</p>
@@ -264,6 +467,43 @@ export default async function NoteDetailPage({
                 )}
               </div>
             )}
+
+            {/* ⑤⑥ 좋았던 점 · 주의할 점 */}
+            <div className="rounded-[14px] border border-line bg-surface p-3.5 text-xs leading-[1.7] text-text-1">
+              <div>
+                <b className="text-[#1a7f4e]">좋았던 점</b> —{" "}
+                {v.goodPoints.join(" · ")}
+              </div>
+              <div className="mt-1">
+                <b className="text-danger">주의할 점</b> —{" "}
+                {v.cautionPoints.join(" · ")}
+              </div>
+            </div>
+
+            {/* ⑨ AI 작성부 구분 표시 — 잉크 다크 AIPanel (16c 패턴) */}
+            <AIPanel title="AI 요약">
+              <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
+            </AIPanel>
+
+            {/* ⑦⑧⑩ 출처·데이터 기준일 각주 + 지역·단지 실 내부 링크 */}
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-line pt-3 text-[11px] text-text-3">
+              <span className="h-[5px] w-[5px] rounded-full bg-[#1a7f4e]" />
+              <span>
+                {v.sourceLabel} · 기준일 {v.baseDate}
+              </span>
+              <span>·</span>
+              <Link href="/town/market" className="font-bold text-primary">
+                {v.regionLabel} 시세
+              </Link>
+              <span>·</span>
+              <Link href={COMPLEX_HREF} className="font-bold text-primary">
+                {v.complexLabel} 홈
+              </Link>
+              <span>·</span>
+              <Link href={COMPLEX_HREF} className="font-bold text-primary">
+                이 단지 노트 {isReal ? "더 보기" : "38"}
+              </Link>
+            </div>
           </div>
 
           {/* 방문 기록 비교 */}
@@ -299,19 +539,19 @@ export default async function NoteDetailPage({
             </div>
           </div>
 
-          {/* 강점 · 약점 요약 (10f) */}
+          {/* 좋았던 점 · 주의할 점 상세 (10f) */}
           <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[20px] p-6">
             <div className="text-[15px] font-extrabold text-ink">
-              강점 · 약점 요약{" "}
+              좋았던 점 · 주의할 점{" "}
               <span className="text-[11px] font-medium text-text-3">
                 {v.evidenceNote}
               </span>
             </div>
             <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-              <div className="flex flex-col gap-1.5 rounded-xl bg-[rgba(29,79,216,.05)] px-4 py-3">
-                <div className="text-xs font-extrabold text-primary">확정 강점</div>
+              <div className="flex flex-col gap-1.5 rounded-xl bg-[#e7f5ee] px-4 py-3">
+                <div className="text-xs font-extrabold text-[#1a7f4e]">좋았던 점</div>
                 <div className="text-xs leading-[1.6] text-text-1">
-                  {v.strengths.map((s, i) => (
+                  {v.goodPoints.map((s, i) => (
                     <span key={s}>
                       {i > 0 && <br />}· {s}
                     </span>
@@ -319,9 +559,9 @@ export default async function NoteDetailPage({
                 </div>
               </div>
               <div className="flex flex-col gap-1.5 rounded-xl bg-danger-soft px-4 py-3">
-                <div className="text-xs font-extrabold text-danger">확정 약점</div>
+                <div className="text-xs font-extrabold text-danger">주의할 점</div>
                 <div className="text-xs leading-[1.6] text-text-1">
-                  {v.weaknesses.map((s, i) => (
+                  {v.cautionPoints.map((s, i) => (
                     <span key={s}>
                       {i > 0 && <br />}· {s}
                     </span>

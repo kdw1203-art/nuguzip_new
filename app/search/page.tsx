@@ -90,7 +90,7 @@ export default function SearchPage() {
                 지도
               </Link>
               <Link
-                href="/map"
+                href="/complex/mock-1"
                 className="btn-primary rounded-[9px] px-[13px] py-2 text-[11px]"
               >
                 단지 홈
@@ -174,7 +174,9 @@ export default function SearchPage() {
             <AIPanel title="검색 요약">
               ‘공작’ 검색의 87%는 공작아파트입니다. 핵심: 급매 1건(7.9억) · 노트 평균
               76점 · 재건축 초기 논의.{" "}
-              <b className="text-ai-accent">단지 홈에서 한번에 보기 ›</b>
+              <Link href="/complex/mock-1" className="font-bold text-ai-accent">
+                단지 홈에서 한번에 보기 ›
+              </Link>
             </AIPanel>
           </div>
 

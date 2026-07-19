@@ -3,11 +3,12 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
+/** 22a IA 변경: 발견 탭이 하단 내비 2번째 슬롯 (홈·발견·노트·지도·마이) */
 const TABS = [
   { label: "홈", icon: "⌂", href: "/" },
-  { label: "지도", icon: "◎", href: "/map" },
+  { label: "발견", icon: "✦", href: "/discover" },
   { label: "노트", icon: "＋", href: "/notes/new", center: true },
-  { label: "동네", icon: "✎", href: "/town" },
+  { label: "지도", icon: "◎", href: "/map" },
   { label: "마이", icon: "◉", href: "/my" },
 ];
 

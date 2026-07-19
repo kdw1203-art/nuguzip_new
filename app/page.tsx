@@ -12,8 +12,8 @@ import type {
   HomeReportItem,
 } from "@/lib/newui/home-data";
 
-// 빌드 타임 DB 접근 회피 — 구 홈(oldsite app/page.tsx)과 동일
-export const dynamic = "force-dynamic";
+// 스케일 지침 #21: 비로그인 홈은 정적 캐시 (5분 재검증) — 접속마다 재계산 금지
+export const revalidate = 300;
 
 /* ── 목업 폴백 (실데이터 없거나 조회 실패 시) ── */
 const MOCK_REGIONS: HomeRegionCard[] = [

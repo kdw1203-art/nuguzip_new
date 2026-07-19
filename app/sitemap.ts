@@ -1,0 +1,66 @@
+import type { MetadataRoute } from "next";
+import { listPublicNotes } from "@/lib/inspection/store-db";
+
+/* 시안 20b — 사이트맵: 정적 공개 라우트 + 공개 임장노트.
+   DB 조회 실패(env 미설정 등) 시 정적 라우트만 반환. */
+
+export const dynamic = "force-dynamic";
+
+const BASE_URL = "https://nuguzip.com";
+
+const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
+  { path: "", priority: 1 },
+  { path: "/notes", priority: 0.9 },
+  { path: "/notes/compare", priority: 0.6 },
+  { path: "/map", priority: 0.9 },
+  { path: "/search", priority: 0.7 },
+  { path: "/analysis", priority: 0.8 },
+  { path: "/analysis/compare", priority: 0.6 },
+  { path: "/analysis/cycle", priority: 0.6 },
+  { path: "/analysis/price", priority: 0.6 },
+  { path: "/analysis/scenario", priority: 0.6 },
+  { path: "/analysis/timing", priority: 0.6 },
+  { path: "/analysis/portfolio", priority: 0.6 },
+  { path: "/analysis/switch", priority: 0.6 },
+  { path: "/town", priority: 0.8 },
+  { path: "/town/news", priority: 0.7 },
+  { path: "/town/market", priority: 0.7 },
+  { path: "/town/experts", priority: 0.6 },
+  { path: "/town/groups", priority: 0.6 },
+  { path: "/calculator", priority: 0.6 },
+  { path: "/apply", priority: 0.6 },
+  { path: "/digest", priority: 0.6 },
+  { path: "/subscription", priority: 0.5 },
+  { path: "/support", priority: 0.4 },
+  { path: "/safety", priority: 0.4 },
+  { path: "/login", priority: 0.3 },
+  { path: "/signup", priority: 0.3 },
+];
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date();
+
+  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
+    url: `${BASE_URL}${r.path}`,
+    lastModified: now,
+    changeFrequency: r.path === "" ? "daily" : "weekly",
+    priority: r.priority,
+  }));
+
+  let noteEntries: MetadataRoute.Sitemap = [];
+  try {
+    const notes = await listPublicNotes(200);
+    noteEntries = notes
+      .filter((n) => n.isPublic)
+      .map((n) => ({
+        url: `${BASE_URL}/notes/${n.id}`,
+        lastModified: n.updatedAt ? new Date(n.updatedAt) : now,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      }));
+  } catch {
+    // env 미설정·조회 실패 시 정적 라우트만 반환
+  }
+
+  return [...staticEntries, ...noteEntries];
+}

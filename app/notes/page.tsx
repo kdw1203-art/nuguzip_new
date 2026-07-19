@@ -26,6 +26,7 @@ const MOCK_NOTES: FeedNote[] = [
     footer: ["공감 12", "댓글 5", "저장 8"],
     popularity: 12,
     interested: true,
+    complexHref: "/complex/mock-1",
   },
   {
     id: "2",
@@ -122,6 +123,8 @@ function toFeedNote(n: InspectionNote): FeedNote {
     ],
     popularity: score,
     interested: false,
+    // 임장노트에는 complexes 실 id가 없어 목업 허브로 연결
+    complexHref: "/complex/mock-1",
   };
 }
 

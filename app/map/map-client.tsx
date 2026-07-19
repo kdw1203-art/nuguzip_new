@@ -459,6 +459,16 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
                 </span>
               </div>
               <div className="mt-1 text-xs text-text-2">{selected.meta}</div>
+              <Link
+                href={
+                  selected.id.startsWith("mock-")
+                    ? "/complex/mock-1"
+                    : `/complex/${selected.id}`
+                }
+                className="mt-1.5 inline-block text-xs font-extrabold text-primary"
+              >
+                단지 홈 ›
+              </Link>
             </div>
             <button
               type="button"
