@@ -1,3 +1,12 @@
+/**
+ * 최종 폴백 상수 — 프로젝트 URL과 publishable 키는 설계상 공개 값(RLS로 보호).
+ * 일부 배포 환경의 env에 "[SENSITIVE]" 마스킹 플레이스홀더가 저장돼 있어
+ * env가 무효할 때 이 값으로 동작한다. env가 유효하면 env가 우선.
+ */
+const FALLBACK_SUPABASE_URL = "https://pbhiskvwpwwhtkmnhkbm.supabase.co";
+const FALLBACK_PUBLISHABLE_KEY =
+  "sb_publishable_UjkQXcYY6f9oBbjjfZvFAA_jYpui-OX";
+
 /** 브라우저·서버(SSR) 공통 — anon(레거시) 또는 Publishable 키(신규) */
 export function getSupabaseUrl(): string | undefined {
   const candidates = [
@@ -15,7 +24,7 @@ export function getSupabaseUrl(): string | undefined {
       // 무시하고 다음 후보
     }
   }
-  return undefined;
+  return FALLBACK_SUPABASE_URL;
 }
 
 export function getSupabasePublicKey(): string | undefined {
@@ -30,7 +39,7 @@ export function getSupabasePublicKey(): string | undefined {
   const publishable =
     valid(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()) ||
     valid(process.env.SUPABASE_PUBLISHABLE_KEY?.trim());
-  return anon || publishable || undefined;
+  return anon || publishable || FALLBACK_PUBLISHABLE_KEY;
 }
 
 /** `https://xxx.supabase.co` → 프로젝트 ref `xxx` (대시보드 URL용). */
