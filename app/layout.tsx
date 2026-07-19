@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#f7f9fc",
+  viewportFit: "cover", // 세이프에어리어(env safe-area-inset-*) 활성화
 };
 
 export default function RootLayout({
@@ -26,6 +27,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased">
+      <head>
+        {/* 비애플 기기 폰트 폴백 — Pretendard Variable (dynamic subset) */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

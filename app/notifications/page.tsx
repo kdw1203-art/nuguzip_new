@@ -1,7 +1,13 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 
 /* ============================================================
    알림 센터 (11d) — 필터 칩 + 좌측 컬러 보더 알림 카드
+   실연동: 세션 있으면 GET /api/notifications (user_inbox_notifications)
+   비로그인·실패 시 시안 목업 + 로그인 안내 유지
    ============================================================ */
 
 const FILTERS = [
@@ -19,6 +25,7 @@ type Notification = {
   title: string;
   meta: string;
   read: boolean;
+  actionUrl?: string | null;
 };
 
 const NOTIFICATIONS: Notification[] = [
@@ -69,14 +76,129 @@ const NOTIFICATIONS: Notification[] = [
   },
 ];
 
+/* ---------- 실데이터 (GET /api/notifications) ---------- */
+
+type InboxItem = {
+  id: string;
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(diff)) return "";
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return "방금 전";
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}일 전`;
+  return new Date(iso).toLocaleDateString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
+function toNotification(item: InboxItem): Notification {
+  const read = Boolean(item.readAt);
+  return {
+    tag: "알림",
+    tagColor: read ? "#6b7684" : "#1d4fd8",
+    tagBg: read ? "#f2f4f8" : "#edf2fe",
+    border: read ? null : "#1d4fd8",
+    title: item.title,
+    meta: `${relativeTime(item.createdAt)}${item.body ? ` · ${item.body}` : ""}${
+      read ? " · 읽음" : ""
+    }`,
+    read,
+    actionUrl: item.actionUrl,
+  };
+}
+
+function NotificationCard({ n, index }: { n: Notification; index: number }) {
+  const inner = (
+    <div
+      className={`rise-in-${Math.min(index + 1, 6)} card flex gap-2.5 rounded-[14px] px-[15px] py-[13px] ${
+        n.read ? "opacity-75" : ""
+      }`}
+      style={n.border ? { borderLeft: `3px solid ${n.border}` } : undefined}
+    >
+      <div
+        className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[11px] font-extrabold"
+        style={{ background: n.tagBg, color: n.tagColor }}
+      >
+        {n.tag}
+      </div>
+      <div className="flex-1">
+        <div
+          className={`text-xs font-bold leading-[1.45] ${
+            n.read ? "text-text-1" : "text-ink"
+          }`}
+        >
+          {n.title}
+        </div>
+        <div className="mt-[3px] text-[10px] text-text-3">{n.meta}</div>
+      </div>
+    </div>
+  );
+  if (n.actionUrl && n.actionUrl.startsWith("/")) {
+    return <Link href={n.actionUrl}>{inner}</Link>;
+  }
+  return inner;
+}
+
 export default function NotificationsPage() {
+  const [mode, setMode] = useState<"loading" | "live" | "guest">("loading");
+  const [items, setItems] = useState<InboxItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/notifications");
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as { items?: InboxItem[] };
+        if (cancelled) return;
+        setItems(Array.isArray(data.items) ? data.items : []);
+        setMode("live");
+      } catch {
+        if (!cancelled) setMode("guest");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const markAllRead = async () => {
+    if (mode !== "live") return;
+    const now = new Date().toISOString();
+    setItems((prev) => prev.map((i) => ({ ...i, readAt: i.readAt ?? now })));
+    try {
+      await fetch("/api/notifications/read-all", { method: "POST" });
+    } catch {
+      // 네트워크 실패 시에도 화면 표시는 유지
+    }
+  };
+
+  const list: Notification[] =
+    mode === "live" ? items.map(toNotification) : NOTIFICATIONS;
+
   return (
     <PageShell>
       <div className="mx-auto w-full max-w-[560px]">
         {/* 타이틀 + 모두 읽음 */}
         <div className="rise-in flex items-center justify-between">
           <h1 className="text-[22px] font-extrabold text-ink">알림</h1>
-          <button type="button" className="text-xs font-bold text-primary">
+          <button
+            type="button"
+            onClick={markAllRead}
+            className="text-xs font-bold text-primary"
+          >
             모두 읽음
           </button>
         </div>
@@ -97,34 +219,39 @@ export default function NotificationsPage() {
           ))}
         </div>
 
+        {/* 비로그인 안내 (목업 표시 중) */}
+        {mode === "guest" && (
+          <div className="rise-in-1 card mt-3 flex items-center justify-between rounded-[14px] border-l-[3px] border-l-primary px-[15px] py-3">
+            <span className="text-xs font-bold text-ink">
+              로그인하면 내 알림이 표시됩니다
+            </span>
+            <Link
+              href="/login"
+              className="shrink-0 text-xs font-extrabold text-primary"
+            >
+              로그인 ›
+            </Link>
+          </div>
+        )}
+
         {/* 알림 리스트 */}
         <div className="mt-3 flex flex-col gap-2">
-          {NOTIFICATIONS.map((n, i) => (
-            <div
-              key={n.title}
-              className={`rise-in-${Math.min(i + 1, 6)} card flex gap-2.5 rounded-[14px] px-[15px] py-[13px] ${
-                n.read ? "opacity-75" : ""
-              }`}
-              style={n.border ? { borderLeft: `3px solid ${n.border}` } : undefined}
-            >
-              <div
-                className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[11px] font-extrabold"
-                style={{ background: n.tagBg, color: n.tagColor }}
-              >
-                {n.tag}
-              </div>
-              <div className="flex-1">
-                <div
-                  className={`text-xs font-bold leading-[1.45] ${
-                    n.read ? "text-text-1" : "text-ink"
-                  }`}
-                >
-                  {n.title}
-                </div>
-                <div className="mt-[3px] text-[10px] text-text-3">{n.meta}</div>
-              </div>
+          {mode === "loading" &&
+            [0, 1, 2].map((i) => (
+              <div key={i} className="skeleton h-[60px] rounded-[14px]" />
+            ))}
+
+          {mode !== "loading" &&
+            list.map((n, i) => (
+              <NotificationCard key={`${n.title}-${i}`} n={n} index={i} />
+            ))}
+
+          {mode === "live" && list.length === 0 && (
+            <div className="card rounded-[14px] px-[15px] py-8 text-center text-xs text-text-3">
+              아직 도착한 알림이 없어요. 관심 단지를 팔로우하면 시세·급매 알림을
+              받아볼 수 있어요.
             </div>
-          ))}
+          )}
         </div>
       </div>
     </PageShell>

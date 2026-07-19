@@ -7,7 +7,7 @@ import Link from "next/link";
 const TABS = [
   { label: "홈", icon: "⌂", href: "/" },
   { label: "발견", icon: "✦", href: "/discover" },
-  { label: "노트", icon: "＋", href: "/notes/new", center: true },
+  { label: "노트", icon: "＋", href: "/notes", center: true },
   { label: "지도", icon: "◎", href: "/map" },
   { label: "마이", icon: "◉", href: "/my" },
 ];
@@ -20,7 +20,8 @@ export function TabBar() {
 
   return (
     <nav
-      className="glass-strong fixed bottom-[18px] left-[18px] right-[18px] z-50 grid grid-cols-5 rounded-3xl px-2 pb-3 pt-2.5 text-center md:hidden"
+      className="glass-strong tabbar-autohide fixed left-[18px] right-[18px] z-50 grid grid-cols-5 rounded-3xl px-2 pb-3 pt-2.5 text-center md:hidden"
+      style={{ bottom: "max(18px, env(safe-area-inset-bottom, 0px))" }}
       aria-label="하단 내비게이션"
     >
       {TABS.map((tab) =>

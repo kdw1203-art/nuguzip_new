@@ -116,6 +116,15 @@ function meetingMeta(m: UserMeeting) {
   return `${when} · ${m.currentMembers}/${m.maxMembers}명`;
 }
 
+/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+      예시
+    </span>
+  );
+}
+
 /* ---------- 페이지 ---------- */
 
 export default async function TownPage({
@@ -127,7 +136,7 @@ export default async function TownPage({
   const sub = findSub(COMMUNITY_SUBCATEGORIES, sp.sub);
   const sort = sp.sort === "popular" ? "popular" : "latest";
 
-  /* posts 실데이터 (오류·빈 결과 시 목업 폴백) */
+  /* posts 실데이터 — 더미데이터 정책: 실데이터 1건 이상이면 실데이터만, 0건일 때만 예시 목업 */
   let allPosts: Post[] = [];
   try {
     allPosts = await safeReadPosts();
@@ -183,7 +192,9 @@ export default async function TownPage({
     .sort((a, b) => b[1] - a[1])
     .slice(0, 2)
     .map(([r]) => r);
-  const myRegions = topRegions.length > 0 ? topRegions : ["안양 관양동", "서울 마포구"];
+  // 실데이터 없으면 예시 라벨이 붙은 목업 지역 노출
+  const regionsFallback = topRegions.length === 0;
+  const myRegions = regionsFallback ? ["안양 관양동", "서울 마포구"] : topRegions;
 
   /* 이번 주 임장 모임 — meetings 실데이터 (없으면 목업) */
   let weekGroups: { id: string | null; title: string; meta: string }[] = [];
@@ -195,7 +206,8 @@ export default async function TownPage({
   } catch {
     weekGroups = [];
   }
-  if (weekGroups.length === 0) weekGroups = FALLBACK_GROUPS;
+  const groupsFallback = weekGroups.length === 0;
+  if (groupsFallback) weekGroups = FALLBACK_GROUPS;
 
   const hrefFor = (overrides: { sub?: string; sort?: string }) => {
     const p = new URLSearchParams();
@@ -213,12 +225,12 @@ export default async function TownPage({
         <h1 className="rise-in text-[22px] font-extrabold text-ink">
           동네이야기
         </h1>
-        <button
-          type="button"
+        <Link
+          href="/town/write"
           className="btn-primary btn-cta hidden px-4 py-[9px] text-[13px] md:block"
         >
           글쓰기
-        </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_340px]">
@@ -274,6 +286,7 @@ export default async function TownPage({
                     <span className="truncate text-xs text-text-3">
                       {byline} · {region} · {relativeTime(displayTimeIso(p))}
                     </span>
+                    {usingFallback && <ExampleBadge />}
                   </div>
                   <h2 className="text-base font-bold leading-[1.45] text-ink">
                     {p.title}
@@ -294,8 +307,27 @@ export default async function TownPage({
           })}
 
           {feed.length === 0 && (
-            <div className="card rounded-[18px] px-6 py-10 text-center text-sm text-text-3">
-              {sub.label} 게시판에 아직 글이 없어요. 첫 글을 남겨보세요.
+            /* 12j 빈 상태 규격: 일러스트 52px + 제목 + 한 줄 + CTA 1개 */
+            <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
+              <div
+                className="h-[52px] w-[52px] rounded-2xl"
+                style={{
+                  background:
+                    "repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2 5px,#eef2f8 5px,#eef2f8 10px)",
+                }}
+              />
+              <div className="text-sm font-bold text-text-1">
+                {sub.label} 게시판에 아직 글이 없어요
+              </div>
+              <div className="text-xs text-text-3">
+                첫 글을 남기면 이웃들에게 가장 먼저 보여요
+              </div>
+              <Link
+                href="/town/write"
+                className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs"
+              >
+                첫 글 쓰기
+              </Link>
             </div>
           )}
         </div>
@@ -308,9 +340,10 @@ export default async function TownPage({
               {myRegions.map((r) => (
                 <span
                   key={r}
-                  className="chip-soft rounded-full px-3 py-1.5 text-xs"
+                  className="chip-soft inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs"
                 >
                   {r}
+                  {regionsFallback && <ExampleBadge />}
                 </span>
               ))}
               <span className="rounded-full bg-[#f2f4f8] px-3 py-1.5 text-xs font-semibold text-text-2">
@@ -329,7 +362,10 @@ export default async function TownPage({
                 href={g.id ? `/town/groups/${g.id}` : "/town/groups"}
                 className="rounded-xl bg-bg px-3.5 py-3 transition-colors hover:bg-[#eef2f8]"
               >
-                <div className="text-[13px] font-bold text-ink">{g.title}</div>
+                <div className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
+                  <span className="min-w-0 truncate">{g.title}</span>
+                  {groupsFallback && <ExampleBadge />}
+                </div>
                 <div className="mt-[3px] text-[11px] text-text-3">{g.meta}</div>
               </Link>
             ))}
@@ -353,14 +389,14 @@ export default async function TownPage({
       </div>
 
       {/* 모바일 글쓰기 FAB (6e) */}
-      <button
-        type="button"
+      <Link
+        href="/town/write"
         aria-label="글쓰기"
         className="btn-primary fixed bottom-28 right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full text-[22px] md:hidden"
         style={{ boxShadow: "0 10px 24px rgba(29,79,216,.45)" }}
       >
         ✎
-      </button>
+      </Link>
     </PageShell>
   );
 }

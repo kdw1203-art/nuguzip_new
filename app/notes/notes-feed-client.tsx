@@ -154,6 +154,19 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
           노트 쓰기
         </Link>
       </div>
+
+      {/* 모바일 노트 쓰기 FAB — 탭바 중앙 '노트'가 /notes 목록으로 연결되므로 쓰기 진입 보장 */}
+      <Link
+        href="/notes/new"
+        aria-label="노트 쓰기"
+        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full text-[24px] md:hidden"
+        style={{
+          boxShadow: "0 10px 24px rgba(29,79,216,.45)",
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+        }}
+      >
+        ＋
+      </Link>
     </PageShell>
   );
 }

@@ -51,18 +51,35 @@ const deltaClass: Record<DeltaTone, string> = {
   flat: "delta-flat",
 };
 
+/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+      예시
+    </span>
+  );
+}
+
 export default async function Home() {
   const data = await loadNewHomeData();
 
-  const regions = data.regions.length > 0 ? data.regions : MOCK_REGIONS;
-  const notes = data.notes.length > 0 ? data.notes : MOCK_NOTES;
-  const posts = data.posts.length > 0 ? data.posts : MOCK_POSTS;
-  const meetings = data.meetings.length > 0 ? data.meetings : MOCK_MEETINGS;
-  const reports = data.reports.length > 0 ? data.reports : MOCK_REPORTS;
+  // 실데이터가 1건이라도 있으면 그대로 사용, 0건일 때만 목업(예시 라벨 부착)
+  const regionsIsMock = data.regions.length === 0;
+  const notesIsMock = data.notes.length === 0;
+  const postsIsMock = data.posts.length === 0;
+  const meetingsIsMock = data.meetings.length === 0;
+  const reportsIsMock = data.reports.length === 0;
 
-  const saleIndexSeoul = data.saleIndexSeoul ?? "198.76";
-  const loanRate = data.loanRate ?? "4.19%";
-  const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "156건";
+  const regions = regionsIsMock ? MOCK_REGIONS : data.regions;
+  const notes = notesIsMock ? MOCK_NOTES : data.notes;
+  const posts = postsIsMock ? MOCK_POSTS : data.posts;
+  const meetings = meetingsIsMock ? MOCK_MEETINGS : data.meetings;
+  const reports = reportsIsMock ? MOCK_REPORTS : data.reports;
+
+  // 사실 기반 원칙: 실데이터 없는 수치는 허위 값 대신 "—" 표기
+  const saleIndexSeoul = data.saleIndexSeoul ?? "—";
+  const loanRate = data.loanRate ?? "—";
+  const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
 
   const biz = getBusinessInfo();
   const representative = biz.representative || "고대웅";
@@ -115,7 +132,10 @@ export default async function Home() {
             {regions.slice(0, 2).map((r) => (
               <div key={r.id} className="glass flex items-center justify-between rounded-2xl px-4 py-3.5">
                 <div>
-                  <div className="text-sm font-bold text-ink">{r.name}</div>
+                  <div className="flex items-center gap-1.5 text-sm font-bold text-ink">
+                    {r.name}
+                    {regionsIsMock && <ExampleBadge />}
+                  </div>
                   <div className="text-xs text-text-3">{r.meta}</div>
                 </div>
                 <div className="text-right">
@@ -127,6 +147,9 @@ export default async function Home() {
           </div>
           <div className="rise-in-6">
             <AIPanel title="오늘의 시장 브리핑">
+              <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+                예시 브리핑
+              </span>
               수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을 좁힐
               시기입니다.
             </AIPanel>
@@ -159,7 +182,8 @@ export default async function Home() {
                   { label: "매매지수 서울", value: <>{saleIndexSeoul}</> },
                   { label: "기준 / 대출금리", value: <>2.75 / <span className="text-primary">{loanRate}</span></> },
                   { label: "오늘 새 노트", value: <span className="text-primary">{notesToday}</span> },
-                  { label: "접속 중", value: <>1,284명</> },
+                  // 사실 기반 원칙: 실시간 접속자 실데이터 없음 → 허위 수치 대신 "—"
+                  { label: "접속 중", value: <>—</> },
                 ].map((s, i) => (
                   <div key={i} className="rounded-xl bg-bg px-[13px] py-[11px]">
                     <div className="text-[10px] text-text-3">{s.label}</div>
@@ -173,8 +197,11 @@ export default async function Home() {
             <div className="rise-in-1 grid grid-cols-2 gap-3 xl:grid-cols-4">
               {regions.slice(0, 4).map((r) => (
                 <div key={r.id} className="card card-hover rounded-[14px] px-4 py-3.5">
-                  <div className="text-xs text-text-3">
-                    {r.name} · {r.meta.split("· ")[1] ?? r.meta}
+                  <div className="flex items-center gap-1.5 text-xs text-text-3">
+                    <span>
+                      {r.name} · {r.meta.split("· ")[1] ?? r.meta}
+                    </span>
+                    {regionsIsMock && <ExampleBadge />}
                   </div>
                   <div className="mt-[3px] flex items-baseline gap-1.5">
                     <span className="text-[17px] font-extrabold text-ink">{r.price}</span>
@@ -200,7 +227,10 @@ export default async function Home() {
                       i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
                     }`}
                   >
-                    <span className="truncate font-semibold text-text-1">{n.title}</span>
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate font-semibold text-text-1">{n.title}</span>
+                      {notesIsMock && <ExampleBadge />}
+                    </span>
                     <span className={`shrink-0 font-extrabold ${n.hot ? "text-primary" : "text-text-3"}`}>
                       {n.score}
                     </span>
@@ -221,6 +251,12 @@ export default async function Home() {
                   >
                     {p.rank} {p.title}{" "}
                     <span className="font-normal text-text-3">댓글 {p.comments}</span>
+                    {postsIsMock && (
+                      <>
+                        {" "}
+                        <ExampleBadge />
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -231,6 +267,9 @@ export default async function Home() {
           <aside className="flex flex-col gap-3">
             <div className="rise-in-1">
               <AIPanel title="오늘의 시장 브리핑">
+                <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+                  예시 브리핑
+                </span>
                 수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을 좁힐
                 시기입니다.
               </AIPanel>
@@ -240,11 +279,12 @@ export default async function Home() {
               {meetings.map((m, i) => (
                 <div
                   key={m.id}
-                  className={`py-1.5 text-xs text-text-1 ${
+                  className={`flex items-center gap-1.5 py-1.5 text-xs text-text-1 ${
                     i < meetings.length - 1 ? "border-b border-[#f0f3f8]" : ""
                   }`}
                 >
-                  {m.label}
+                  <span className="min-w-0 truncate">{m.label}</span>
+                  {meetingsIsMock && <ExampleBadge />}
                 </div>
               ))}
             </div>
@@ -252,7 +292,10 @@ export default async function Home() {
               <div className="text-[13px] font-extrabold text-ink">인기 전문가 리포트</div>
               {reports.map((r) => (
                 <div key={r.id} className="flex justify-between gap-3 text-xs">
-                  <span className="truncate font-semibold text-text-1">{r.title}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate font-semibold text-text-1">{r.title}</span>
+                    {reportsIsMock && <ExampleBadge />}
+                  </span>
                   <span className="shrink-0 font-extrabold text-ink">{r.priceLabel}</span>
                 </div>
               ))}

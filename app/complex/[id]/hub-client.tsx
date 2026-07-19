@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AIPanel } from "../../components/AIPanel";
+import {
+  isInCompareTray,
+  subscribeCompareTray,
+  toggleCompareTray,
+} from "@/lib/newui/compare-tray";
 
 /* 시안 23b — 단지 허브 탭 5개(요약·노트·매물·시세·내 기록) 전환 서브컴포넌트 */
 
@@ -27,6 +32,50 @@ export interface HubListing {
   priceNote: string | null;
   meta: string;
   agent: string;
+}
+
+/* ===== 비교 담기 버튼 — lib/newui/compare-tray (localStorage, 최대 5개) ===== */
+export function CompareTrayButton({
+  complexId,
+  name,
+  region,
+}: {
+  complexId: string;
+  name: string;
+  region?: string;
+}) {
+  const [inTray, setInTray] = useState(false);
+  const [full, setFull] = useState(false);
+
+  useEffect(() => {
+    setInTray(isInCompareTray(complexId));
+    return subscribeCompareTray(() => setInTray(isInCompareTray(complexId)));
+  }, [complexId]);
+
+  useEffect(() => {
+    if (!full) return;
+    const t = setTimeout(() => setFull(false), 2000);
+    return () => clearTimeout(t);
+  }, [full]);
+
+  const onClick = () => {
+    const r = toggleCompareTray({ id: complexId, name, region });
+    setInTray(r.inTray);
+    setFull(r.full);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={inTray}
+      className={`flex-1 rounded-[11px] p-3 text-center text-[13px] transition-colors ${
+        inTray ? "bg-ink font-extrabold text-white" : "btn-secondary"
+      }`}
+    >
+      {full ? "최대 5개까지 담겨요" : inTray ? "비교 담김 ✓" : "비교 담기"}
+    </button>
+  );
 }
 
 const TABS = ["요약", "노트", "매물", "시세", "내 기록"] as const;

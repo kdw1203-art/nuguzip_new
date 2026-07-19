@@ -19,7 +19,10 @@ export function Header() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-50 px-3.5 pt-3.5 md:px-5 md:pt-4">
+    <header
+      className="sticky top-0 z-50 px-3.5 md:px-5"
+      style={{ paddingTop: "max(14px, env(safe-area-inset-top, 0px))" }}
+    >
       <div className="glass mx-auto flex h-14 max-w-[1240px] items-center gap-3 rounded-2xl px-4 md:gap-6 md:px-5">
         <Link href="/" aria-label="누구집 홈">
           <Logo />

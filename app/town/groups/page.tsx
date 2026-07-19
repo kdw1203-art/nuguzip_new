@@ -111,6 +111,15 @@ function toDetail(m: UserMeeting): GroupDetail {
 
 const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd"];
 
+/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+      예시
+    </span>
+  );
+}
+
 /* ---------- 페이지 ---------- */
 
 export default async function TownGroupsPage() {
@@ -121,17 +130,20 @@ export default async function TownGroupsPage() {
     meetings = [];
   }
 
-  /* 실데이터가 부족(2건 미만)하면 목업으로 채움 */
+  /* 더미데이터 정책: 실데이터가 1건이라도 있으면 목업으로 채우지 않음.
+     0건일 때만 "예시" 라벨이 붙은 목업 노출 */
   const realViews = meetings.map(toView);
-  const groups: GroupView[] = [
-    ...realViews,
-    ...FALLBACK_GROUPS.slice(realViews.length >= 2 ? 2 : realViews.length ? 1 : 0),
-  ].slice(0, 6);
+  const listIsMock = realViews.length === 0;
+  const groups: GroupView[] = listIsMock
+    ? FALLBACK_GROUPS
+    : realViews.slice(0, 6);
 
-  const detail: GroupDetail =
-    meetings.length > 0 ? toDetail(meetings[0]) : FALLBACK_DETAIL;
+  const detailIsMock = meetings.length === 0;
+  const detail: GroupDetail = detailIsMock
+    ? FALLBACK_DETAIL
+    : toDetail(meetings[0]);
 
-  /* 지역 필터 칩 — 실데이터 지역에서 도출 */
+  /* 지역 필터 칩 — 실데이터 지역에서 도출 (실모임이 있으면 목업 지역 칩 미노출) */
   const regionSet = new Set<string>();
   for (const m of meetings) {
     const r = m.region || m.city;
@@ -140,7 +152,9 @@ export default async function TownGroupsPage() {
   const regionFilters =
     regionSet.size > 0
       ? ["전체", ...[...regionSet].slice(0, 3)]
-      : ["전체", "안양·과천", "서울 서부"];
+      : listIsMock
+        ? ["전체", "안양·과천", "서울 서부"]
+        : ["전체"];
 
   return (
     <PageShell>
@@ -177,10 +191,13 @@ export default async function TownGroupsPage() {
               className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col gap-2 rounded-2xl p-4`}
             >
               <div className="flex items-center justify-between">
-                <span
-                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${g.badgeStyle}`}
-                >
-                  {g.badge}
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${g.badgeStyle}`}
+                  >
+                    {g.badge}
+                  </span>
+                  {listIsMock && <ExampleBadge />}
                 </span>
                 <span className="text-[11px] text-text-3">{g.date}</span>
               </div>
@@ -225,8 +242,11 @@ export default async function TownGroupsPage() {
         <div className="flex flex-col gap-3">
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
             <div className="flex items-center justify-between">
-              <span className="rounded-[5px] bg-[#edf2fe] px-2 py-[3px] text-[11px] font-extrabold text-primary">
-                {detail.badge}
+              <span className="flex items-center gap-1.5">
+                <span className="rounded-[5px] bg-[#edf2fe] px-2 py-[3px] text-[11px] font-extrabold text-primary">
+                  {detail.badge}
+                </span>
+                {detailIsMock && <ExampleBadge />}
               </span>
               <span className="text-[11px] text-text-3">{detail.views}</span>
             </div>

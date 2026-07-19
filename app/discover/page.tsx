@@ -6,7 +6,7 @@ import {
 import { DiscoverClient, type DiscoverCard } from "./discover-client";
 
 /* 시안 22a — 발견 피드 "오늘의 임장" (하단 내비 2번째 슬롯 · 비로그인 열람 허용)
-   실데이터: inspection_notes(is_public) → listPublicNotes, 부족 시 목업 보강 */
+   실데이터: inspection_notes(is_public) → listPublicNotes, 0건일 때만 예시 목업 */
 
 export const dynamic = "force-dynamic";
 
@@ -202,10 +202,10 @@ export default async function DiscoverPage() {
   } catch {
     cards = [];
   }
-  // 공개 노트 부족 시 목업 보강 — 실데이터 우선 노출
-  if (cards.length < 8) {
-    const ids = new Set(cards.map((c) => c.id));
-    cards = [...cards, ...MOCK_CARDS.filter((m) => !ids.has(m.id))];
+  // 더미데이터 정책: 실데이터가 1건이라도 있으면 목업 보강 없이 실데이터만 노출.
+  // 실데이터 0건일 때만 목업(카드에 "예시" 라벨 표시, isReal=false) 노출.
+  if (cards.length === 0) {
+    cards = MOCK_CARDS;
   }
 
   return <DiscoverClient cards={cards} />;

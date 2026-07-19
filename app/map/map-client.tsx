@@ -280,7 +280,9 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   );
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
+    // fixed inset-0 + 100dvh: 문서 흐름에서 분리해 지도 아래 빈 공간(높이 계산 오차)을 제거.
+    // dvh 미지원 브라우저는 inset-0(bottom:0)이 폴백으로 풀스크린 유지.
+    <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
       {/* ===== 실제 네이버 지도 (실패 시 그라데이션 폴백) ===== */}
       <NaverMap
         markers={markers}
@@ -293,8 +295,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         fallback={gradientFallback}
       />
 
-      {/* ===== 상단 플로팅 글래스 헤더 ===== */}
-      <div className="glass-strong absolute left-1/2 top-4 z-40 flex h-[58px] w-[calc(100%-32px)] max-w-[1180px] -translate-x-1/2 items-center gap-4 rounded-[18px] px-5">
+      {/* ===== 상단 플로팅 글래스 헤더 (카메라섬 아래로 세이프에어리어 오프셋) ===== */}
+      <div
+        className="glass-strong absolute left-1/2 z-40 flex h-[58px] w-[calc(100%-32px)] max-w-[1180px] -translate-x-1/2 items-center gap-4 rounded-[18px] px-5"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
+      >
         <Link href="/" className="shrink-0">
           <Logo />
         </Link>
@@ -320,7 +325,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       </div>
 
       {/* ===== 줌 레벨 탭 ===== */}
-      <div className="glass absolute right-5 top-[92px] z-30 mt-9 flex items-center gap-0.5 rounded-full p-1 md:mt-0 md:translate-y-9">
+      <div
+        className="glass absolute right-5 z-30 mt-9 flex items-center gap-0.5 rounded-full p-1 md:mt-0 md:translate-y-9"
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
+      >
         {ZOOM_TABS.map((t) => (
           <button
             key={t.key}
@@ -344,7 +352,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
       {/* ===== 줌별 하단 정보 오버레이 ===== */}
       {zoom === "city" && (
-        <div className="glass absolute bottom-24 left-5 z-[3] flex w-[300px] flex-col gap-1.5 rounded-[14px] px-3.5 py-3">
+        <div
+          className="glass absolute left-5 z-[3] flex w-[300px] flex-col gap-1.5 rounded-[14px] px-3.5 py-3"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+        >
           <div className="flex justify-between text-[11px]">
             <span className="text-text-2">지금 이 지역을 보는 사람</span>
             <span className="font-extrabold text-primary">1,284명</span>
@@ -357,7 +368,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       )}
 
       {zoom === "dong" && (
-        <div className="glass absolute left-5 top-[92px] z-[3] rounded-[10px] px-3 py-[7px] text-[10px] text-text-2 md:left-auto md:right-[280px]">
+        <div
+          className="glass absolute left-5 z-[3] rounded-[10px] px-3 py-[7px] text-[10px] text-text-2 md:left-auto md:right-[280px]"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
+        >
           {regionLabel} — 이번 주 관심 급상승 +38%
         </div>
       )}
@@ -381,7 +395,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
       {/* ===== 좌측 사이드 패널 (320px, 접기 핸들) ===== */}
       {!selected && panelOpen && (
-        <aside className="glass-strong absolute bottom-5 left-5 top-[92px] z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex">
+        <aside
+          className="glass-strong absolute bottom-5 left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
+        >
           <div className="flex items-baseline justify-between px-5 pb-2.5 pt-4">
             <div className="text-[15px] font-extrabold text-ink">
               {regionLabel} 단지 {danji.length}
@@ -444,7 +461,13 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
       {/* ===== 단지 클릭 → 상세 패널 (9q, 460px) ===== */}
       {selected && (
-        <aside className="glass-strong rise-in absolute bottom-5 left-4 right-4 top-[92px] z-30 flex flex-col overflow-hidden rounded-[22px] md:left-5 md:right-auto md:w-[460px]">
+        <aside
+          className="glass-strong rise-in absolute left-4 right-4 z-30 flex flex-col overflow-hidden rounded-[22px] md:left-5 md:right-auto md:w-[460px]"
+          style={{
+            top: "calc(env(safe-area-inset-top, 0px) + 92px)",
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
+          }}
+        >
           <div className="flex items-start justify-between border-b border-[rgba(16,28,54,.06)] px-[22px] pb-3.5 pt-5">
             <div>
               <div className="flex items-center gap-2">
@@ -733,7 +756,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       )}
 
       {/* ===== 우하단 줌 컨트롤 ===== */}
-      <div className="absolute bottom-[88px] right-5 z-30 flex flex-col gap-1.5">
+      <div
+        className="absolute right-5 z-30 flex flex-col gap-1.5"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+      >
         <button
           type="button"
           aria-label="확대"
@@ -772,8 +798,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         </div>
       </div>
 
-      {/* ===== 중앙 하단 플로팅 카테고리 바 ===== */}
-      <nav className="glass-strong absolute bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-0.5 rounded-full p-1.5">
+      {/* ===== 중앙 하단 플로팅 카테고리 바 (홈 인디케이터 위로 세이프에어리어 오프셋) ===== */}
+      <nav
+        className="glass-strong absolute left-1/2 z-40 flex -translate-x-1/2 items-center gap-0.5 rounded-full p-1.5"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" }}
+      >
         <Link
           href="/"
           className="flex items-center gap-1.5 rounded-full px-4 py-[9px] text-[13px] font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary"

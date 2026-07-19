@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
+import { AiNoteAnalysisCard } from "./ai-note-analysis";
 
 const TOOLS = [
   {
@@ -73,6 +74,9 @@ export default function AnalysisHubPage() {
               <div className="text-xs font-bold text-primary">{t.foot}</div>
             </Link>
           ))}
+
+          {/* AI 노트 분석 — POST /api/ai/analysis 실연동 카드 */}
+          <AiNoteAnalysisCard />
 
           {/* 무엇이든 물어보기 — 잉크 다크 카드 */}
           <div className="ai-panel flex flex-col gap-2.5 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">

@@ -9,11 +9,12 @@ import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
 
 export const dynamic = "force-dynamic";
 
+/* 더미데이터 정책: 실데이터 0건일 때만 노출 — meta 앞의 "예시" 표기로 실기록과 구분 */
 const MOCK_NOTES: FeedNote[] = [
   {
     id: "1",
     author: "관양동 이웃",
-    meta: "2시간 전 · 3번째 방문",
+    meta: "예시 · 3번째 방문",
     score: 78,
     scoreTone: "primary",
     title: "공작아파트 302동 84A",
@@ -31,7 +32,7 @@ const MOCK_NOTES: FeedNote[] = [
   {
     id: "2",
     author: "마포 이웃",
-    meta: "5시간 전 · 첫 방문",
+    meta: "예시 · 첫 방문",
     score: 82,
     scoreTone: "primary",
     title: "마포래미안 115동 59A",
@@ -47,7 +48,7 @@ const MOCK_NOTES: FeedNote[] = [
   {
     id: "3",
     author: "과천 이웃",
-    meta: "어제 · 2번째 방문",
+    meta: "예시 · 2번째 방문",
     score: 64,
     scoreTone: "muted",
     title: "과천 위버필드 204동",
@@ -136,12 +137,10 @@ export default async function NotesFeedPage() {
   } catch {
     notes = [];
   }
-  // 공개 노트가 없거나 부족하면 목업 카드로 보강 (실데이터 우선 노출)
+  // 더미데이터 정책: 실데이터가 1건이라도 있으면 목업 보강 없이 실데이터만 노출.
+  // 실데이터 0건일 때만 "예시" 표기가 붙은 목업 노출.
   if (notes.length === 0) {
     notes = MOCK_NOTES;
-  } else if (notes.length < 3) {
-    const ids = new Set(notes.map((n) => n.id));
-    notes = [...notes, ...MOCK_NOTES.filter((m) => !ids.has(m.id))];
   }
 
   return <NotesFeedClient notes={notes} />;

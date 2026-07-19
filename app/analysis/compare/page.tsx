@@ -1,8 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
+import {
+  COMPARE_TRAY_MAX,
+  listCompareTray,
+  removeFromCompareTray,
+  subscribeCompareTray,
+  type CompareTrayItem,
+} from "@/lib/newui/compare-tray";
+
+/* ---------- 내가 담은 후보 (localStorage 비교 트레이) ---------- */
+
+function CompareTraySection() {
+  const [items, setItems] = useState<CompareTrayItem[]>([]);
+
+  useEffect(() => {
+    const sync = () => setItems(listCompareTray());
+    sync();
+    return subscribeCompareTray(sync);
+  }, []);
+
+  return (
+    <div className="rise-in card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
+      <div className="text-[13px] font-extrabold text-ink">
+        내가 담은 후보 {items.length}개
+        <span className="ml-1 font-semibold text-text-3">
+          / 최대 {COMPARE_TRAY_MAX}개
+        </span>
+      </div>
+      {items.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {items.map((item) => (
+            <span
+              key={item.id}
+              className="chip chip-soft flex items-center gap-1.5 px-[11px] py-[5px] text-[11px]"
+            >
+              <Link href={`/complex/${encodeURIComponent(item.id)}`}>
+                {item.name}
+                {item.region ? ` · ${item.region}` : ""}
+              </Link>
+              <button
+                type="button"
+                aria-label={`${item.name} 비교에서 빼기`}
+                onClick={() => setItems(removeFromCompareTray(item.id))}
+                className="font-bold text-text-3"
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="text-[11px] text-text-3">
+          아직 담은 후보가 없어요 — 단지 화면의 &quot;비교 담기&quot;로 최대{" "}
+          {COMPARE_TRAY_MAX}개까지 담을 수 있어요.
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ---------- 단지 비교 (9b) 데이터 ---------- */
 
@@ -291,6 +349,9 @@ export default function ComparePage() {
   return (
     <PageShell breadcrumb="AI 분석 › 다자 비교 (5/5)">
       <div className="flex flex-col gap-3.5">
+        {/* 내가 담은 후보 (비교 트레이) */}
+        <CompareTraySection />
+
         {/* 탭 */}
         <div className="rise-in flex gap-1.5 text-xs">
           <button

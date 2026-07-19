@@ -99,6 +99,15 @@ function summaryLines(body: string): string[] {
     .slice(0, 3);
 }
 
+/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+      예시
+    </span>
+  );
+}
+
 /* ---------- 페이지 ---------- */
 
 export default async function TownNewsPage() {
@@ -118,6 +127,7 @@ export default async function TownNewsPage() {
   }
 
   const featuredPost = newsPosts[0];
+  const featuredIsMock = !featuredPost;
   const featured = featuredPost
     ? {
         id: featuredPost.id,
@@ -140,27 +150,29 @@ export default async function TownNewsPage() {
       }
     : FALLBACK_FEATURED;
 
-  const latest =
-    newsPosts.length > 1
-      ? newsPosts.slice(1, 9).map((p) => ({
-          id: p.id,
-          badge: p.category || "뉴스",
-          title: p.title,
-          meta: `${p.sourceName || p.authorLabel} · ${shortDate(displayIso(p))}${
-            p.commentCount > 0 ? ` · 댓글 ${p.commentCount}` : ""
-          }`,
-        }))
-      : FALLBACK_LATEST;
+  // 더미데이터 정책: 실 뉴스가 1건이라도 있으면 목업으로 채우지 않음 (0건일 때만 예시 목업)
+  const latestIsMock = newsPosts.length === 0;
+  const latest = latestIsMock
+    ? FALLBACK_LATEST
+    : newsPosts.slice(1, 9).map((p) => ({
+        id: p.id,
+        badge: p.category || "뉴스",
+        title: p.title,
+        meta: `${p.sourceName || p.authorLabel} · ${shortDate(displayIso(p))}${
+          p.commentCount > 0 ? ` · 댓글 ${p.commentCount}` : ""
+        }`,
+      }));
 
-  const related =
-    ugcPosts.length > 0
-      ? [...ugcPosts]
-          .sort((a, b) => b.commentCount - a.commentCount)
-          .slice(0, 2)
-          .map((p) => ({ id: p.id, title: p.title, comments: p.commentCount }))
-      : FALLBACK_RELATED;
+  const relatedIsMock = ugcPosts.length === 0;
+  const related = relatedIsMock
+    ? FALLBACK_RELATED
+    : [...ugcPosts]
+        .sort((a, b) => b.commentCount - a.commentCount)
+        .slice(0, 2)
+        .map((p) => ({ id: p.id, title: p.title, comments: p.commentCount }));
 
-  const savedCount = featuredPost?.bookmarkCount ?? 12;
+  // 사실 기반 원칙: 실데이터 없는 수치는 허위 값 대신 "—"
+  const savedCount: number | null = featuredPost?.bookmarkCount ?? null;
 
   return (
     <PageShell breadcrumb="동네이야기 › 자료 › 정책">
@@ -170,7 +182,7 @@ export default async function TownNewsPage() {
         </h1>
         <div className="flex gap-2 text-[13px]">
           <span className="btn-soft rounded-[10px] px-3.5 py-2">
-            저장 {savedCount}
+            저장 {savedCount ?? "—"}
           </span>
           <span className="rounded-[10px] bg-[rgba(255,255,255,.7)] px-3.5 py-2 font-semibold text-text-2">
             공유
@@ -191,6 +203,7 @@ export default async function TownNewsPage() {
               <span className="truncate text-xs text-text-3">
                 {featured.sourceLine}
               </span>
+              {featuredIsMock && <ExampleBadge />}
             </div>
             {featured.id ? (
               <Link href={`/town/news/${featured.id}`}>
@@ -241,39 +254,75 @@ export default async function TownNewsPage() {
             <div className="mb-1 text-[15px] font-extrabold text-ink">
               최신 자료
             </div>
-            {latest.map((n, i) => (
-              <Link
-                key={n.id}
-                href={`/town/news/${n.id}`}
-                className={`flex items-center gap-3.5 py-3 ${
-                  i < latest.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
-              >
-                <div className="h-[38px] w-[52px] shrink-0 rounded-lg bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`shrink-0 rounded-[5px] px-1.5 py-px text-[10px] font-extrabold ${newsBadgeStyle(n.badge)}`}
-                    >
-                      {n.badge}
-                    </span>
-                    <span className="truncate text-[13px] font-bold text-ink">
-                      {n.title}
-                    </span>
+            {latest.map((n, i) => {
+              const row = (
+                <>
+                  <div className="h-[38px] w-[52px] shrink-0 rounded-lg bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`shrink-0 rounded-[5px] px-1.5 py-px text-[10px] font-extrabold ${newsBadgeStyle(n.badge)}`}
+                      >
+                        {n.badge}
+                      </span>
+                      <span className="truncate text-[13px] font-bold text-ink">
+                        {n.title}
+                      </span>
+                      {latestIsMock && <ExampleBadge />}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-text-3">{n.meta}</div>
                   </div>
-                  <div className="mt-0.5 text-[11px] text-text-3">{n.meta}</div>
+                  <span className="text-[#c3cad6]">›</span>
+                </>
+              );
+              const rowClass = `flex items-center gap-3.5 py-3 ${
+                i < latest.length - 1 ? "border-b border-[#f0f3f8]" : ""
+              }`;
+              // 목업 항목은 존재하지 않는 상세로 연결하지 않음
+              return latestIsMock ? (
+                <div key={n.id} className={rowClass}>
+                  {row}
                 </div>
-                <span className="text-[#c3cad6]">›</span>
-              </Link>
-            ))}
+              ) : (
+                <Link key={n.id} href={`/town/news/${n.id}`} className={rowClass}>
+                  {row}
+                </Link>
+              );
+            })}
+            {latest.length === 0 && (
+              /* 12j 빈 상태 규격: 일러스트 52px + 제목 + 한 줄 + CTA 1개 */
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <div
+                  className="h-[52px] w-[52px] rounded-2xl"
+                  style={{
+                    background:
+                      "repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2 5px,#eef2f8 5px,#eef2f8 10px)",
+                  }}
+                />
+                <div className="text-sm font-bold text-text-1">
+                  추가 자료가 아직 없어요
+                </div>
+                <div className="text-xs text-text-3">
+                  새 자료가 수집되면 이곳에 차례로 쌓여요
+                </div>
+                <Link
+                  href="/town"
+                  className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs"
+                >
+                  동네이야기 보기
+                </Link>
+              </div>
+            )}
           </section>
         </div>
 
         {/* ---------- 사이드바 ---------- */}
         <aside className="flex flex-col gap-4">
           <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">
+            <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
               나에게 미치는 영향
+              {/* 실계산 미연결 — 예시 수치임을 명시 (허위 수치 오인 방지) */}
+              <ExampleBadge />
             </div>
             <div className="flex justify-between rounded-[10px] bg-bg px-3 py-2.5 text-xs">
               <span className="text-text-2">현재 월세 65만 기준</span>
@@ -282,7 +331,7 @@ export default async function TownNewsPage() {
               </span>
             </div>
             <p className="text-[11px] leading-[1.5] text-text-3">
-              내 프로필(무주택·연소득 7,000만) 기준 자동 계산
+              예시 프로필(무주택·연소득 7,000만) 기준 계산 예시
             </p>
           </div>
 
@@ -296,8 +345,11 @@ export default async function TownNewsPage() {
                   i < related.length - 1 ? "border-b border-[#f0f3f8]" : ""
                 }`}
               >
-                <span className="line-clamp-1">
-                  “{r.title}” 댓글 {r.comments}
+                <span className="flex items-center gap-1.5">
+                  <span className="line-clamp-1">
+                    “{r.title}” 댓글 {r.comments}
+                  </span>
+                  {relatedIsMock && <ExampleBadge />}
                 </span>
               </Link>
             ))}

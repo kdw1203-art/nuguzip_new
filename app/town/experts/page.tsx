@@ -86,6 +86,15 @@ const CAREERS = [
   { label: "동안구 중개사협회 이사", check: "자기 기재", verified: false },
 ];
 
+/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
+function ExampleBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+      예시
+    </span>
+  );
+}
+
 /* ---------- 헬퍼 ---------- */
 
 function fee(n: number) {
@@ -157,8 +166,10 @@ export default async function TownExpertsPage({
             ? "✓ 확인"
             : "확인 중",
         regionLine: top.regions.join(" · ") || "전국",
-        consultFee: top.consultationFee > 0 ? fee(top.consultationFee) : "30,000원",
-        reportFee: top.reportFee > 0 ? fee(top.reportFee) : "9,900원",
+        bizCheck: top.isVerified ? "✓ 확인" : "확인 중",
+        // 사실 기반 원칙: 실등록 요금 없으면 허위 가격 대신 "—"
+        consultFee: top.consultationFee > 0 ? fee(top.consultationFee) : "—",
+        reportFee: top.reportFee > 0 ? fee(top.reportFee) : "—",
       }
     : {
         crumb: "전문가 › 김OO 공인중개사",
@@ -173,9 +184,11 @@ export default async function TownExpertsPage({
         tags: ["재건축", "1기 신도시", "갈아타기"],
         licenseCheck: "✓ 확인 (제11-XXXX호)",
         regionLine: "안양 동안구",
+        bizCheck: "✓ 확인",
         consultFee: "30,000원",
         reportFee: "9,900원",
       };
+  const profileIsMock = !top;
 
   const chips = EXPERT_SUBCATEGORIES.slice(0, 5);
 
@@ -226,6 +239,7 @@ export default async function TownExpertsPage({
                       인증
                     </span>
                   )}
+                  {!usingReal && <ExampleBadge />}
                 </div>
                 <div className="text-xs text-text-3">{e.region}</div>
               </div>
@@ -317,6 +331,7 @@ export default async function TownExpertsPage({
                 <span className="rounded-[5px] bg-[#edf2fe] px-2 py-px text-[10px] font-extrabold text-primary">
                   {profile.badge}
                 </span>
+                {profileIsMock && <ExampleBadge />}
               </div>
               <div className="mt-1 text-xs text-text-3">{profile.sub}</div>
             </div>
@@ -356,7 +371,7 @@ export default async function TownExpertsPage({
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-text-2">사업자 등록</span>
-              <span className="font-bold text-primary">✓ 확인</span>
+              <span className="font-bold text-primary">{profile.bizCheck}</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-text-2">활동 지역</span>
@@ -367,7 +382,10 @@ export default async function TownExpertsPage({
 
         <div className="flex flex-col gap-4">
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
-            <div className="text-[15px] font-extrabold text-ink">상담 상품</div>
+            <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+              상담 상품
+              {profileIsMock && <ExampleBadge />}
+            </div>
             <div className="flex items-center justify-between rounded-[14px] bg-bg px-4 py-3.5">
               <div>
                 <div className="text-sm font-bold text-ink">
@@ -383,8 +401,10 @@ export default async function TownExpertsPage({
             </div>
             <div className="flex items-center justify-between rounded-[14px] bg-bg px-4 py-3.5">
               <div>
-                <div className="text-sm font-bold text-ink">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-ink">
                   동행 임장 (2시간)
+                  {/* 실등록 상품 아님 — 예시 상품 */}
+                  <ExampleBadge />
                 </div>
                 <div className="mt-0.5 text-[11px] text-text-3">
                   활동 지역 한정 · 주말 가능
@@ -398,8 +418,10 @@ export default async function TownExpertsPage({
 
           <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
             <div className="flex items-baseline justify-between">
-              <div className="text-[15px] font-extrabold text-ink">
-                발행 리포트 8
+              <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+                발행 리포트
+                {/* 리포트 실데이터 미연결 — 예시 목록 */}
+                <ExampleBadge />
               </div>
               <Link
                 href="/town/market"
@@ -425,7 +447,11 @@ export default async function TownExpertsPage({
           </div>
 
           <div className="rise-in-3 card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
-            <div className="text-[15px] font-extrabold text-ink">최근 후기</div>
+            <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+              최근 후기
+              {/* 후기 실데이터 미연결 — 예시 후기 */}
+              <ExampleBadge />
+            </div>
             <div className="rounded-xl bg-bg px-3.5 py-3 text-[13px] leading-[1.6] text-text-1">
               ★5.0 “노트 첨부하고 상담받으니 30분이 알찼어요. 협상 포인트 3개를
               콕 집어주심.” <span className="text-text-3">— 첫집준비중 · 7.14</span>
@@ -456,7 +482,11 @@ export default async function TownExpertsPage({
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {STATS.map((s) => (
           <div key={s.label} className="card rounded-[14px] p-4">
-            <div className="text-[11px] text-text-3">{s.label}</div>
+            <div className="flex items-center gap-1.5 text-[11px] text-text-3">
+              {s.label}
+              {/* 활동 통계 실데이터 미연결 — 예시 수치 */}
+              <ExampleBadge />
+            </div>
             <div
               className={`mt-[3px] text-xl font-extrabold ${
                 s.accent ? "text-primary" : "text-ink"
@@ -470,7 +500,11 @@ export default async function TownExpertsPage({
 
       <div className="mt-3.5 grid grid-cols-1 gap-3.5 md:grid-cols-2">
         <div className="card flex flex-col gap-2.5 rounded-[18px] p-5">
-          <div className="text-sm font-extrabold text-ink">최근 답변 이력</div>
+          <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+            최근 답변 이력
+            {/* 답변 실데이터 미연결 — 예시 이력 */}
+            <ExampleBadge />
+          </div>
           {ANSWERS.map((a, i) => (
             <div
               key={a.q}
@@ -497,7 +531,9 @@ export default async function TownExpertsPage({
               경력 · 자격{" "}
               <span className="rounded bg-[#edf2fe] px-[7px] py-[2px] text-[10px] font-extrabold text-primary">
                 플랫폼 검증
-              </span>
+              </span>{" "}
+              {/* 경력 실데이터 미연결 — 예시 항목 */}
+              <ExampleBadge />
             </div>
             {CAREERS.map((c, i) => (
               <div
@@ -519,6 +555,9 @@ export default async function TownExpertsPage({
           </div>
 
           <AIPanel title="활동 지표 요약 (AI)">
+            <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+              예시
+            </span>
             응답 속도 상위 5% · 재건축 분야 채택률 1위(동안구) · 부정 후기
             0.8%. 신뢰 지표가 꾸준히 상승 중인 전문가입니다.
           </AIPanel>

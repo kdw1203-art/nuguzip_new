@@ -1,16 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { safeAuth } from "@/lib/safe-auth";
+import { canAccessAdminConsole } from "@/lib/auth/staff-roles";
 import { AdminNav } from "./AdminNav";
 
 export const metadata: Metadata = {
   title: "관리자 콘솔 · 누구집",
+  robots: { index: false, follow: false },
 };
 
-export default function AdminLayout({
+export const dynamic = "force-dynamic";
+
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // 관리자 접근 제어 (구 코드베이스 staff-roles 재사용) — 12o RBAC
+  const session = await safeAuth();
+  if (!session) {
+    redirect("/login?callbackUrl=/admin");
+  }
+  if (!canAccessAdminConsole(session)) {
+    redirect("/");
+  }
   return (
     <div className="flex min-h-screen flex-col bg-[#12161f] md:flex-row">
       {/* 사이드바 (모바일: 상단 바) */}

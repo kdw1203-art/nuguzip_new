@@ -54,6 +54,12 @@ function NoteCard({ card, delay }: { card: DiscoverCard; delay: number }) {
           <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 px-[7px] py-[2px] text-[10px] font-extrabold text-[#1a7f4e]">
             {card.visited ? "✓ 직접 방문" : "자료 정리"}
           </span>
+          {/* 더미데이터 정책: 목업 카드에만 작은 "예시" 라벨 */}
+          {!card.isReal && (
+            <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[6px] py-[2px] text-[9px] font-semibold text-text-3">
+              예시
+            </span>
+          )}
         </div>
         <div className="flex flex-col gap-[5px] px-3 pb-2 pt-[10px]">
           <div className="text-[12px] font-extrabold leading-[1.4] text-ink">
@@ -94,7 +100,13 @@ function MarketCard({ idx }: { idx: number }) {
   const m = MARKET_CARDS[idx % MARKET_CARDS.length];
   return (
     <div className="mb-3 break-inside-avoid rounded-[16px] bg-ink/[0.96] p-[13px]">
-      <div className="text-[10px] font-extrabold text-[#7ea2ff]">이 동네 시세</div>
+      <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-[#7ea2ff]">
+        이 동네 시세
+        {/* 시세 실데이터 미연결 — 예시 수치 (허위 수치 오인 방지) */}
+        <span className="inline-flex items-center rounded border border-white/20 px-1 py-px text-[9px] font-semibold text-[#9aa6b8]">
+          예시
+        </span>
+      </div>
       <div className="mt-1 text-[13px] font-extrabold text-white">
         {m.label}{" "}
         <span className={m.down ? "text-[#7ea2ff]" : "text-[#ff8f8f]"}>

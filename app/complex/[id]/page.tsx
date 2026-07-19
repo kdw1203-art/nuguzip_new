@@ -10,6 +10,7 @@ import {
 } from "@/lib/complex/complex-store";
 import {
   ComplexHubTabs,
+  CompareTrayButton,
   type HubTrade,
   type HubNote,
   type HubListing,
@@ -270,7 +271,8 @@ export default async function ComplexHubPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const v = await loadView(decodeURIComponent(id));
+  const complexId = decodeURIComponent(id);
+  const v = await loadView(complexId);
 
   const cta = (
     <div className="flex gap-2">
@@ -280,12 +282,7 @@ export default async function ComplexHubPage({
       >
         이 단지 노트 쓰기
       </Link>
-      <Link
-        href="/notes/compare"
-        className="btn-secondary flex-1 rounded-[11px] p-3 text-center text-[13px]"
-      >
-        비교 담기
-      </Link>
+      <CompareTrayButton complexId={complexId} name={v.name} region={v.dong} />
     </div>
   );
 

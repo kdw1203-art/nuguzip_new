@@ -119,9 +119,11 @@
   --color-ai-accent: var(--ai-accent);
   --color-ai-text: var(--ai-text);
   --color-ai-muted: var(--ai-muted);
+  /* 애플 기기 = 애플 시스템 폰트, 그 외(윈도우 등) = Pretendard 웹폰트 폴백 */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro KR",
-    "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo", "Helvetica Neue",
-    system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+    "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo",
+    "Pretendard Variable", Pretendard, "Helvetica Neue", system-ui, "Segoe UI",
+    "Malgun Gothic", sans-serif;
 }
 
 body {
@@ -131,6 +133,74 @@ body {
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
   word-break: keep-all; /* 15a 국문 keep-all 전면 */
+  position: relative;
+  min-height: 100dvh;
+}
+
+/* ── 리퀴드 글래스 앰비언스 (5a) — 그라데이션 블롭 배경 위에 글래스가 뜬다 ──
+   13b: blur 부하 최소화 위해 고정 레이어 2장만 사용 */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+body::before {
+  width: 560px;
+  height: 560px;
+  left: -140px;
+  top: -120px;
+  background: radial-gradient(
+    circle at 40% 40%,
+    rgba(29, 79, 216, 0.14),
+    rgba(126, 162, 255, 0.08) 55%,
+    transparent 75%
+  );
+  animation: blob 26s ease-in-out infinite;
+}
+body::after {
+  width: 640px;
+  height: 640px;
+  right: -180px;
+  top: 30%;
+  background: radial-gradient(
+    circle at 60% 40%,
+    rgba(95, 208, 224, 0.12),
+    rgba(29, 79, 216, 0.07) 55%,
+    transparent 75%
+  );
+  animation: blob 32s ease-in-out infinite reverse;
+}
+@keyframes blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(28px, -18px) scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
+}
+
+/* ── 모바일 세이프에어리어 (카메라섬·홈 인디케이터 대응) ── */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* 키보드 열림(입력 포커스) 시 하단 탭바 자동 숨김 — TabBar nav에 .tabbar-autohide 부여 */
+body:has(input:focus-visible) .tabbar-autohide,
+body:has(textarea:focus-visible) .tabbar-autohide {
+  display: none;
 }
 
 a {
