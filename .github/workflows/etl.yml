@@ -33,7 +33,10 @@ jobs:
           }
           call reb "https://nuguzip.com/api/cron/reb-ingest"
           call kb "https://nuguzip.com/api/cron/kb-ingest"
-          call kosis "https://nuguzip.com/api/cron/kosis-ingest"
+          # kosis: KOSIS 키 활성화 전까지 skipped 응답 — 실패로 집계하지 않음(소프트)
+          echo "== kosis (soft) =="
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/kosis-ingest" | head -c 500 || true
+          echo
           call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
           call attendance "https://nuguzip.com/api/cron/attendance-reminders"
           # molit 전국 실거래: 매월 1일에만
