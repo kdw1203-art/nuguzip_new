@@ -10,6 +10,8 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { followCounts } from "@/lib/follows/store-db";
+import { FollowButton } from "../../components/FollowButton";
 
 /* 시안 22c — 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
    실데이터(스키마 변경 없음, 읽기 전용):
@@ -159,6 +161,15 @@ export default async function PublicProfilePage({
     notFound();
   }
 
+  // 팔로워 수 실데이터 (user_follows) — 조회 실패 시 0
+  const followEmail = profile?.email || authored[0]?.authorEmail || "";
+  let followerCount = 0;
+  try {
+    followerCount = followEmail ? (await followCounts(followEmail)).followers : 0;
+  } catch {
+    followerCount = 0;
+  }
+
   const grid: GridNote[] = authored.slice(0, 6).map((n) => ({
     id: n.id,
     title: n.aptName?.trim() || n.title,
@@ -214,13 +225,17 @@ export default async function PublicProfilePage({
                 nuguzip.com/@{handleLabel} · {region}
               </div>
             </div>
-            {/* 팔로우 미연결 — 클릭 시 로그인 유도 (22c #22) */}
-            <Link
-              href="/login"
-              className="mb-1 shrink-0 rounded-full bg-primary px-4 py-[7px] text-[12px] font-bold text-white"
-            >
-              팔로우
-            </Link>
+            {/* 팔로우 실배선 (user_follows) — 프로필 매칭 시에만, 미매칭은 로그인 유도 유지 */}
+            {profile ? (
+              <FollowButton handle={profile.handle ?? profile.name} />
+            ) : (
+              <Link
+                href="/login"
+                className="mb-1 shrink-0 rounded-full bg-primary px-4 py-[7px] text-[12px] font-bold text-white"
+              >
+                팔로우
+              </Link>
+            )}
           </div>
 
           {/* 소개 + 테마 태그 (22c #24) */}
@@ -242,7 +257,9 @@ export default async function PublicProfilePage({
               <div className="text-[10px] text-text-3">공개 노트</div>
             </div>
             <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">
-              <div className="text-[16px] font-extrabold text-ink">1,204</div>
+              <div className="text-[16px] font-extrabold text-ink">
+                {followerCount.toLocaleString("ko-KR")}
+              </div>
               <div className="text-[10px] text-text-3">팔로워</div>
             </div>
             <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">

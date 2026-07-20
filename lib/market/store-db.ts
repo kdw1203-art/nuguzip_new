@@ -122,3 +122,18 @@ export async function closeMarketRequest(
   if (error) return { ok: false, message: error.message };
   return { ok: true };
 }
+
+/** 내 견적·자료 요청 목록 (requester_email 기준, 최신순) */
+export async function listMyMarketRequests(email: string): Promise<MarketRequest[]> {
+  if (!email) return [];
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("market_requests")
+    .select("*")
+    .eq("requester_email", email)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) return [];
+  return (data ?? []).map(mapRow);
+}

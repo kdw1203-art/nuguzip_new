@@ -2,30 +2,59 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { listReviews, upsertReview, calcSummary } from "@/lib/complex-reviews/store-db";
-import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
+import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+
+/** 작성자 이메일 마스킹 — 목록 공개 응답에 원본 이메일 노출 금지 */
+function maskAuthor(email: string): string {
+  const local = email.split("@")[0] ?? "";
+  return `${local.slice(0, 2) || "이웃"}** 이웃`;
+}
 
 export async function GET(req: NextRequest) {
   const complexId = req.nextUrl.searchParams.get("complexId");
   if (!complexId) return NextResponse.json({ error: "complexId 가 필요합니다." }, { status: 400 });
-  const reviews = await listReviews(complexId);
-  const summary = calcSummary(reviews);
+  const rows = await listReviews(complexId);
+  const summary = calcSummary(rows);
+  const reviews = rows.map((r) => ({
+    id: r.id,
+    author: maskAuthor(r.authorEmail),
+    noiseScore: r.noiseScore,
+    parkingScore: r.parkingScore,
+    mgmtScore: r.mgmtScore,
+    neighborScore: r.neighborScore,
+    transportScore: r.transportScore,
+    comment: r.comment,
+    createdAt: r.createdAt,
+  }));
   return NextResponse.json({ reviews, summary });
 }
 
 export async function POST(req: NextRequest) {
-  const limited = await applyRateLimit(req, WRITE_RATE_LIMIT);
-  if (limited) return limited;
+  // IP당 1시간에 5회 (인스턴스별 best-effort)
+  const rlIp = rateLimit(`complex-review:${getClientIp(req)}`, {
+    limit: 5,
+    windowMs: 60 * 60_000,
+  });
+  if (!rlIp.ok) return tooManyRequests(rlIp.retryAfterSec);
+
   const session = await safeAuth();
   if (!session?.user?.email) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  // 계정당 1시간에 5회
+  const rlUser = rateLimit(`complex-review:user:${session.user.email}`, {
+    limit: 5,
+    windowMs: 60 * 60_000,
+  });
+  if (!rlUser.ok) return tooManyRequests(rlUser.retryAfterSec);
 
   let body: Record<string, unknown>;
   try { body = (await req.json()) as Record<string, unknown>; }
   catch { return NextResponse.json({ error: "JSON이 필요합니다." }, { status: 400 }); }
 
-  const complexId = String(body.complexId ?? "").trim();
-  const complexName = String(body.complexName ?? "").trim();
+  const complexId = String(body.complexId ?? "").trim().slice(0, 160);
+  const complexName = String(body.complexName ?? "").trim().slice(0, 120);
   if (!complexId || !complexName) return NextResponse.json({ error: "complexId, complexName 이 필요합니다." }, { status: 400 });
 
   const toScore = (v: unknown, fallback = 3) => {

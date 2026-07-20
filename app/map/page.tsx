@@ -28,6 +28,8 @@ const FALLBACK_DANJI: DanjiItem[] = [
     lng: 126.9707,
     avgPriceWon: 840_000_000,
     momPct: -2.1,
+    areaM2: 84,
+    buildYear: 1988,
     trades: [],
   },
   {
@@ -43,6 +45,8 @@ const FALLBACK_DANJI: DanjiItem[] = [
     lng: 126.975,
     avgPriceWon: 790_000_000,
     momPct: 0.8,
+    areaM2: 84,
+    buildYear: 1992,
     trades: [],
   },
   {
@@ -58,6 +62,8 @@ const FALLBACK_DANJI: DanjiItem[] = [
     lng: 126.9605,
     avgPriceWon: 1_020_000_000,
     momPct: -1.4,
+    areaM2: 84,
+    buildYear: 2012,
     trades: [],
   },
 ];
@@ -122,6 +128,8 @@ function toDanjiItem(row: ComplexRow, tx: ComplexTransactionRow[]): DanjiItem {
     lng: row.lng as number,
     avgPriceWon: latest ? latest.avg_manwon * 10_000 : null,
     momPct,
+    areaM2: latest?.area_m2 ?? null,
+    buildYear: row.build_year,
     trades: toTrades(tx),
   };
 }

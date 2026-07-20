@@ -18,6 +18,7 @@ import {
 } from "./hub-client";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
+import { ComplexReviews } from "../ComplexReviews";
 import {
   SEOUL_BROWSE_REGIONS,
   buildComplexTxSlug,
@@ -519,6 +520,13 @@ export default async function ComplexHubPage({
               </Link>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* 거주민 후기 (호갱노노 벤치마크) — 실단지 매칭 시에만 (목업 폴백엔 미표시) */}
+      {v.id === complexId && complexId !== "mock-1" && (
+        <section className="rise-in-5 mt-6">
+          <ComplexReviews complexId={complexId} complexName={v.name} />
         </section>
       )}
 

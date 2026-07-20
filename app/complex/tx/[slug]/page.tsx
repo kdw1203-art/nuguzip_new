@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../../components/PageShell";
+import { ComplexReviews } from "../../ComplexReviews";
 import {
   parseComplexTxSlug,
   findComplexTxRegionById,
@@ -297,6 +298,14 @@ export default async function ComplexTxPage({
         <p className="mt-2 text-[11px] text-text-3">
           국토교통부 실거래가 공개시스템 신고 자료 기반이며, 실제 매물 호가와 다를 수 있습니다.
         </p>
+      </section>
+
+      {/* 거주민 후기 — 단지명+지역 기준 키 (apartment_complexes 매칭 시 그 id 공유) */}
+      <section className="rise-in-3 mb-6">
+        <ComplexReviews
+          complexId={aptMatch?.id ? `apt:${aptMatch.id}` : `tx:${region.id}:${complexName}`}
+          complexName={complexName}
+        />
       </section>
 
       {/* CTA */}

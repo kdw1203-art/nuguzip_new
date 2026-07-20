@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
 import { ConsultButton } from "./ConsultButton";
+import { QuoteRequestBanner } from "./QuoteRequest";
 import { listExperts, type UserExpertProfile } from "@/lib/experts/store-db";
 import {
   EXPERT_SUBCATEGORIES,
@@ -221,6 +222,9 @@ export default async function TownExpertsPage({
           ))}
         </div>
       </div>
+
+      {/* 견적 요청 플로우 (숨고 벤치마크 A4) — market_requests 실저장 */}
+      <QuoteRequestBanner />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {experts.map((e, i) => (

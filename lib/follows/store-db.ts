@@ -89,6 +89,36 @@ export async function listFollowers(followedEmail: string): Promise<FollowRecord
   }));
 }
 
+/** ilike 패턴 이스케이프 — %·_·\ 를 리터럴로 */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => `\\${m}`);
+}
+
+/**
+ * 핸들(또는 닉네임) → profiles.email 해석.
+ * /u/[handle]과 동일한 매칭 규칙: handle 일치(대소문자 무시) → full_name 폴백.
+ * 클라이언트에 이메일을 노출하지 않고 팔로우하기 위한 서버 전용 헬퍼.
+ */
+export async function resolveEmailByHandle(handleOrName: string): Promise<string | null> {
+  const q = handleOrName.trim();
+  if (!q) return null;
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  try {
+    const pattern = escapeLike(q);
+    const byHandle = await sb.from("profiles").select("email").ilike("handle", pattern).limit(1);
+    let row = byHandle.error ? null : (byHandle.data?.[0] ?? null);
+    if (!row) {
+      const byName = await sb.from("profiles").select("email").ilike("full_name", pattern).limit(1);
+      row = byName.error ? null : (byName.data?.[0] ?? null);
+    }
+    const email = row?.email ? String(row.email).trim() : "";
+    return email || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function followCounts(email: string): Promise<{ following: number; followers: number }> {
   const sb = getServiceSupabase();
   if (!sb) {

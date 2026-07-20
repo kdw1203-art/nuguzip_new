@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { ExampleBadge } from "../components/ExampleBadge";
@@ -133,10 +133,45 @@ function MarketCard() {
   );
 }
 
+type FollowFeedState = {
+  status: "idle" | "loading" | "empty" | "ready";
+  items: DiscoverCard[];
+};
+
 export function DiscoverClient({ cards }: { cards: DiscoverCard[] }) {
   const [filter, setFilter] = useState<Filter>("추천");
   // 더미 1개 원칙: 실데이터 0건일 때 서버가 예시 샘플 1건만 내려보냄
   const exampleOnly = cards.length > 0 && cards.every((c) => !c.isReal);
+
+  // 팔로잉 탭 — 로그인 + 팔로우 존재 시 팔로우한 작성자 노트만 (그 외엔 기존 빈 상태)
+  const [followFeed, setFollowFeed] = useState<FollowFeedState>({
+    status: "idle",
+    items: [],
+  });
+  useEffect(() => {
+    if (filter !== "팔로잉" || followFeed.status !== "idle") return;
+    let alive = true;
+    setFollowFeed({ status: "loading", items: [] });
+    fetch("/api/me/follows/feed", { cache: "no-store" })
+      .then(async (res) => {
+        if (!alive) return;
+        if (!res.ok) {
+          // 401(비로그인)·오류 → 기존 빈 상태
+          setFollowFeed({ status: "empty", items: [] });
+          return;
+        }
+        const data = (await res.json()) as { follows?: number; items?: DiscoverCard[] };
+        if (!data.follows || !Array.isArray(data.items)) {
+          setFollowFeed({ status: "empty", items: [] });
+          return;
+        }
+        setFollowFeed({ status: "ready", items: data.items });
+      })
+      .catch(() => alive && setFollowFeed({ status: "empty", items: [] }));
+    return () => {
+      alive = false;
+    };
+  }, [filter, followFeed.status]);
 
   const visible = useMemo(() => {
     if (filter === "최신")
@@ -194,19 +229,43 @@ export function DiscoverClient({ cards }: { cards: DiscoverCard[] }) {
       </Link>
 
       {filter === "팔로잉" ? (
-        /* 팔로잉 탭 — 팔로우 미연결 시 빈 상태 + 대안 행동 */
-        <div className="rise-in-4 card flex flex-col items-center gap-2 px-5 py-10 text-center">
-          <div className="text-[26px]">✦</div>
-          <div className="text-[15px] font-extrabold text-ink">
-            팔로잉 피드는 로그인 후 채워져요
+        followFeed.status === "loading" || followFeed.status === "idle" ? (
+          <div className="rise-in-4 card px-5 py-10 text-center text-[12px] text-text-3">
+            팔로잉 피드를 불러오는 중…
           </div>
-          <div className="text-[12px] text-text-3">
-            마음에 드는 임장러를 팔로우하면 새 노트가 여기에 모여요
+        ) : followFeed.status === "ready" ? (
+          followFeed.items.length === 0 ? (
+            <div className="rise-in-4 card flex flex-col items-center gap-2 px-5 py-10 text-center">
+              <div className="text-[26px]">✦</div>
+              <div className="text-[15px] font-extrabold text-ink">
+                팔로우한 임장러의 공개 노트가 아직 없어요
+              </div>
+              <div className="text-[12px] text-text-3">
+                새 노트가 올라오면 여기에 모여요
+              </div>
+            </div>
+          ) : (
+            <div className="columns-2 gap-3 md:columns-4">
+              {followFeed.items.map((card, i) => (
+                <NoteCard key={card.id} card={card} delay={(i % 6) + 1} />
+              ))}
+            </div>
+          )
+        ) : (
+          /* 비로그인·팔로우 없음 — 기존 빈 상태 + 대안 행동 */
+          <div className="rise-in-4 card flex flex-col items-center gap-2 px-5 py-10 text-center">
+            <div className="text-[26px]">✦</div>
+            <div className="text-[15px] font-extrabold text-ink">
+              팔로잉 피드는 로그인 후 채워져요
+            </div>
+            <div className="text-[12px] text-text-3">
+              마음에 드는 임장러를 팔로우하면 새 노트가 여기에 모여요
+            </div>
+            <Link href="/login" className="btn-primary btn-md mt-2">
+              로그인하고 팔로우 시작
+            </Link>
           </div>
-          <Link href="/login" className="btn-primary btn-md mt-2">
-            로그인하고 팔로우 시작
-          </Link>
-        </div>
+        )
       ) : visible.length === 0 ? (
         <div className="rise-in-4 card flex flex-col items-center gap-2 px-5 py-10 text-center">
           <div className="text-[26px]">📍</div>

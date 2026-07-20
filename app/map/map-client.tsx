@@ -32,6 +32,10 @@ export interface DanjiItem {
   lng: number;
   avgPriceWon: number | null;
   momPct: number | null;
+  /** 최근 실거래 평균 전용면적(㎡) — 면적대 필터용, 없으면 null */
+  areaM2: number | null;
+  /** 준공연도 — 준공연도 필터용, 없으면 null */
+  buildYear: number | null;
   trades: TradeItem[];
 }
 
@@ -117,6 +121,112 @@ function deltaClass(tone: "up" | "down" | "flat"): string {
   return tone === "down" ? "delta-down" : tone === "up" ? "delta-up" : "delta-flat";
 }
 
+/* ===== 필터 (네이버부동산·직방식 가격대·면적대·준공연도) =====
+   서버 클러스터(지역 집계 버블)는 셀 단위 합계라 적용 불가 —
+   단지 목록·단지 마커(포인트 모드)에만 클라이언트 필터링. */
+
+interface RangeOption {
+  key: string;
+  label: string;
+  /** 이상 (포함) */
+  min?: number;
+  /** 이하 (포함) */
+  max?: number;
+}
+
+/** 가격대 — 억 단위 (avgPriceWon / 1e8) */
+const PRICE_OPTIONS: RangeOption[] = [
+  { key: "all", label: "전체" },
+  { key: "u5", label: "5억 이하", max: 5 },
+  { key: "5-10", label: "5~10억", min: 5, max: 10 },
+  { key: "10-15", label: "10~15억", min: 10, max: 15 },
+  { key: "o15", label: "15억 초과", min: 15 },
+];
+
+/** 면적대 — 전용면적 ㎡ (59·84 국민평형 기준 구간) */
+const AREA_OPTIONS: RangeOption[] = [
+  { key: "all", label: "전체" },
+  { key: "u60", label: "~59㎡", max: 60 },
+  { key: "60-85", label: "60~84㎡", min: 60, max: 85 },
+  { key: "85-135", label: "85~134㎡", min: 85, max: 135 },
+  { key: "o135", label: "135㎡~", min: 135 },
+];
+
+/** 준공연도 */
+const YEAR_OPTIONS: RangeOption[] = [
+  { key: "all", label: "전체" },
+  { key: "2020s", label: "2020년 이후", min: 2020 },
+  { key: "2010s", label: "2010년대", min: 2010, max: 2019 },
+  { key: "2000s", label: "2000년대", min: 2000, max: 2009 },
+  { key: "u2000", label: "2000년 이전", max: 1999 },
+];
+
+/** 범위 판정 — 필터가 걸려 있는데 값이 없으면 제외 (불확실한 항목을 결과에 섞지 않음) */
+function inRange(value: number | null, opt: RangeOption): boolean {
+  if (opt.min === undefined && opt.max === undefined) return true;
+  if (value === null || !Number.isFinite(value)) return false;
+  if (opt.min !== undefined && value < opt.min) return false;
+  if (opt.max !== undefined && value > opt.max) return false;
+  return true;
+}
+
+type FilterKind = "price" | "area" | "year";
+
+function FilterDropdown({
+  kind,
+  label,
+  options,
+  valueKey,
+  open,
+  onToggle,
+  onSelect,
+}: {
+  kind: FilterKind;
+  label: string;
+  options: RangeOption[];
+  valueKey: string;
+  open: boolean;
+  onToggle: (kind: FilterKind) => void;
+  onSelect: (kind: FilterKind, key: string) => void;
+}) {
+  const current = options.find((o) => o.key === valueKey) ?? options[0];
+  const active = valueKey !== "all";
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => onToggle(kind)}
+        className={`chip whitespace-nowrap px-3 py-1.5 text-xs transition-colors ${
+          active
+            ? "bg-[rgba(29,79,216,.12)] font-bold text-primary"
+            : "bg-[rgba(255,255,255,.75)] text-text-2"
+        }`}
+      >
+        {active ? current.label : label} ▾
+      </button>
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-50 flex w-[136px] flex-col gap-0.5 rounded-xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.97)] p-1.5 shadow-[0_10px_30px_rgba(16,28,54,.16)]">
+          {options.map((o) => (
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => onSelect(kind, o.key)}
+              className={`rounded-lg px-2.5 py-1.5 text-left text-xs ${
+                o.key === valueKey
+                  ? "bg-primary-soft font-bold text-primary"
+                  : "text-text-1 hover:bg-[#f2f4f8]"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface MapClientProps {
   danji: DanjiItem[];
   regionLabel: string;
@@ -175,6 +285,85 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
   const selected = danji.find((d) => d.id === selectedId) ?? null;
 
+  /* ===== 가격대·면적대·준공연도 필터 상태 ===== */
+  const [priceKey, setPriceKey] = useState("all");
+  const [areaKey, setAreaKey] = useState("all");
+  const [yearKey, setYearKey] = useState("all");
+  const [openFilter, setOpenFilter] = useState<FilterKind | null>(null);
+
+  const filterActive = priceKey !== "all" || areaKey !== "all" || yearKey !== "all";
+
+  const toggleFilter = useCallback(
+    (kind: FilterKind) => setOpenFilter((v) => (v === kind ? null : kind)),
+    [],
+  );
+  const selectFilter = useCallback((kind: FilterKind, key: string) => {
+    if (kind === "price") setPriceKey(key);
+    else if (kind === "area") setAreaKey(key);
+    else setYearKey(key);
+    setOpenFilter(null);
+  }, []);
+  const resetFilters = useCallback(() => {
+    setPriceKey("all");
+    setAreaKey("all");
+    setYearKey("all");
+    setOpenFilter(null);
+  }, []);
+
+  const filteredDanji = useMemo(() => {
+    if (!filterActive) return danji;
+    const priceOpt = PRICE_OPTIONS.find((o) => o.key === priceKey) ?? PRICE_OPTIONS[0];
+    const areaOpt = AREA_OPTIONS.find((o) => o.key === areaKey) ?? AREA_OPTIONS[0];
+    const yearOpt = YEAR_OPTIONS.find((o) => o.key === yearKey) ?? YEAR_OPTIONS[0];
+    return danji.filter(
+      (d) =>
+        inRange(d.avgPriceWon !== null ? d.avgPriceWon / 100_000_000 : null, priceOpt) &&
+        inRange(d.areaM2, areaOpt) &&
+        inRange(d.buildYear, yearOpt),
+    );
+  }, [danji, filterActive, priceKey, areaKey, yearKey]);
+
+  const filterBar = (
+    <>
+      <FilterDropdown
+        kind="price"
+        label="가격"
+        options={PRICE_OPTIONS}
+        valueKey={priceKey}
+        open={openFilter === "price"}
+        onToggle={toggleFilter}
+        onSelect={selectFilter}
+      />
+      <FilterDropdown
+        kind="area"
+        label="면적"
+        options={AREA_OPTIONS}
+        valueKey={areaKey}
+        open={openFilter === "area"}
+        onToggle={toggleFilter}
+        onSelect={selectFilter}
+      />
+      <FilterDropdown
+        kind="year"
+        label="준공연도"
+        options={YEAR_OPTIONS}
+        valueKey={yearKey}
+        open={openFilter === "year"}
+        onToggle={toggleFilter}
+        onSelect={selectFilter}
+      />
+      {filterActive && (
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="whitespace-nowrap text-[11px] font-bold text-text-3 underline"
+        >
+          초기화
+        </button>
+      )}
+    </>
+  );
+
   /* ===== 서버 클러스터링 상태 — 낮은 줌에서 42k 단지를 그리드 집계로 표시 ===== */
   const [clusterMode, setClusterMode] = useState<"points" | "clusters">("points");
   const [clusters, setClusters] = useState<ClusterItem[]>([]);
@@ -232,7 +421,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       }));
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
-    const base: MapMarkerData[] = danji.map((d) => ({
+    const base: MapMarkerData[] = filteredDanji.map((d) => ({
       id: d.id,
       lat: d.lat,
       lng: d.lng,
@@ -245,13 +434,16 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       selected: d.id === selectedId,
       infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
     }));
-    const known = new Set(base.map((m) => m.id));
-    for (const p of extraPoints) {
-      if (known.has(p.id)) continue;
-      base.push({ id: p.id, lat: p.lat, lng: p.lng, label: p.name, infoHtml: "" });
+    // API 추가 포인트에는 가격·면적·연식 정보가 없어 필터 적용 시 제외
+    if (!filterActive) {
+      const known = new Set(base.map((m) => m.id));
+      for (const p of extraPoints) {
+        if (known.has(p.id)) continue;
+        base.push({ id: p.id, lat: p.lat, lng: p.lng, label: p.name, infoHtml: "" });
+      }
     }
     return base;
-  }, [clusterMode, clusters, extraPoints, danji, selectedId]);
+  }, [clusterMode, clusters, extraPoints, filteredDanji, filterActive, selectedId]);
 
   const selectDanji = (id: string) => {
     setSelectedId(id);
@@ -423,20 +615,26 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         >
           ⌕ {regionLabel}
         </Link>
-        <div className="hidden gap-1.5 lg:flex">
+        <div className="hidden items-center gap-1.5 lg:flex">
           <span className="chip chip-active px-3.5 py-2 text-[13px]">매매</span>
           <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-2">전세</span>
-          <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-2">평형 ▾</span>
-          <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-2">가격 ▾</span>
-          <span className="chip bg-[rgba(29,79,216,.12)] px-3.5 py-2 text-[13px] font-bold text-primary">
-            내 임장 단지만
-          </span>
+          {filterBar}
         </div>
         <div className="flex-1" />
         <Link href="/notes/new" className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] text-[13px]">
           이 지역 노트 쓰기
         </Link>
       </div>
+
+      {/* ===== 필터 바 (lg 미만 — lg 이상은 헤더에 표시) ===== */}
+      {!selected && (
+        <div
+          className="absolute left-4 z-30 flex items-center gap-1.5 md:left-[356px] lg:hidden"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 88px)" }}
+        >
+          {filterBar}
+        </div>
+      )}
 
       {/* ===== 줌 레벨 탭 ===== */}
       <div
@@ -515,12 +713,27 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         >
           <div className="flex items-baseline justify-between px-5 pb-2.5 pt-4">
             <div className="text-[15px] font-extrabold text-ink">
-              {regionLabel} 단지 {danji.length}
+              {regionLabel} 단지 {filteredDanji.length}
+              {filterActive && (
+                <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
+              )}
             </div>
             <div className="text-xs text-text-3">시세순 ▾</div>
           </div>
+          {filterActive && filteredDanji.length === 0 && (
+            <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
+              <div className="text-xs text-text-2">조건에 맞는 단지가 없어요.</div>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="btn-soft rounded-lg px-3 py-1.5 text-[11px]"
+              >
+                필터 초기화
+              </button>
+            </div>
+          )}
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3">
-            {danji.map((d, i) => (
+            {filteredDanji.map((d, i) => (
               <button
                 key={d.id}
                 type="button"

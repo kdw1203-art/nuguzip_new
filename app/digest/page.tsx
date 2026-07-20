@@ -69,6 +69,22 @@ export default async function DigestPage() {
           </div>
         </div>
 
+        {/* 구독 CTA — 매주 받아보기 → 알림 설정 */}
+        <Link
+          href="/notifications"
+          className="rise-in-1 card-hover flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3.5 no-underline"
+        >
+          <div>
+            <div className="text-[13px] font-extrabold text-ink">매주 받아보기</div>
+            <div className="mt-0.5 text-[11px] text-text-2">
+              알림 설정에서 주간 다이제스트 알림을 켜면 매주 요약을 보내드려요.
+            </div>
+          </div>
+          <span className="shrink-0 rounded-[10px] bg-primary-soft px-3.5 py-2 text-xs font-bold text-primary">
+            알림 설정 ›
+          </span>
+        </Link>
+
         <h1 className="rise-in-1 mt-2 text-[17px] font-extrabold text-ink">
           {digest.weekLabel} 주간 다이제스트
         </h1>
