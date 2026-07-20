@@ -41,19 +41,24 @@ export async function syncEcosKeyStats(): Promise<EcosSyncResult> {
   }
 
   const baseRate = pickBaseRate(stats);
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  // public_data_cache.expires_at 은 NOT NULL — 7일 뒤 만료 (주 1회 갱신)
+  const expiresIso = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const rows = [
     {
       source: CACHE_SOURCE,
       cache_key: "ecos:key-stats",
-      payload: { stats, fetchedAt: now },
-      fetched_at: now,
+      payload: { stats, fetchedAt: nowIso },
+      fetched_at: nowIso,
+      expires_at: expiresIso,
     },
     {
       source: CACHE_SOURCE,
       cache_key: "ecos:base-rate",
       payload: baseRate ?? {},
-      fetched_at: now,
+      fetched_at: nowIso,
+      expires_at: expiresIso,
     },
   ];
   const { error } = await sb
