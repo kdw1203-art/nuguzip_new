@@ -19,6 +19,7 @@ env:
   CODEF_SECRET: ${{ secrets.CODEF_CLIENT_SECRET }}
   CODEF_PUB: ${{ secrets.CODEF_PUBLIC_KEY }}
   ECOS_KEY: ${{ secrets.ECOS_API_KEY }}
+  ONBID_KEY: ${{ secrets.ONBID_SERVICE_KEY }}
 
 permissions:
   contents: read
@@ -129,6 +130,12 @@ jobs:
         run: |
           npx vercel env rm ECOS_API_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$ECOS_KEY" | npx vercel env add ECOS_API_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+      # 온비드(공공데이터포털) 인증키 동기화 — 서울 공매 물건 연동
+      - name: Sync ONBID key
+        if: ${{ env.ONBID_KEY != '' }}
+        run: |
+          npx vercel env rm ONBID_SERVICE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+          printf '%s' "$ONBID_KEY" | npx vercel env add ONBID_SERVICE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build

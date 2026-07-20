@@ -25,6 +25,7 @@ export const NAV: NavItem[] = [
       { label: "지도 탐색", href: "/map" },
       { label: "실거래 검색", href: "/search" },
       { label: "입주 물량", href: "/supply" },
+      { label: "공매 물건", href: "/auctions" },
       { label: "청약 센터", href: "/apply" },
       { label: "대출·비용 계산기", href: "/calculator" },
     ],

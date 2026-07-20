@@ -41,6 +41,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/data/records", priority: 0.5 },
   // 아파트 입주 예정 물량(공급 캘린더)
   { path: "/supply", priority: 0.7 },
+  // 온비드 서울 공매 물건
+  { path: "/auctions", priority: 0.7 },
   // 발견 피드 — 탭바 2번 슬롯·비로그인 랜딩 (감사 P1-11)
   { path: "/discover", priority: 0.8 },
   { path: "/subscription", priority: 0.5 },
