@@ -1,82 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PageShell } from "../components/PageShell";
 
 /* ============================================================
-   알림 센터 (11d) — 필터 칩 + 좌측 컬러 보더 알림 카드
-   실연동: 세션 있으면 GET /api/notifications (user_inbox_notifications)
-   비로그인·실패 시 시안 목업 + 로그인 안내 유지
+   통합 알림 센터 — 탭/필터 + 실데이터 병합
+   소스: 받은편지함(GET /api/notifications → items) + 포인트 원장(→ points)
+   탭: 전체 · 매물(승인/소유확인) · 관심지역(새 매물) · 활동(댓글·좋아요) · 포인트
+   - 안 읽음 카운트 · "모두 읽음"(read-all) · 항목 클릭 시 읽음 처리 후 이동
+   - 포인트 행은 읽기 전용(이동/읽음 없음)
+   - 비로그인 → 로그인 안내 + 샘플 미리보기
    ============================================================ */
 
-const FILTERS = [
-  { label: "전체", active: true },
-  { label: "시세·매물", active: false },
-  { label: "청약", active: false },
-  { label: "소셜", active: false },
-] as const;
-
-type Notification = {
-  tag: string;
-  tagColor: string;
-  tagBg: string;
-  border: string | null;
-  title: string;
-  meta: string;
-  read: boolean;
-  actionUrl?: string | null;
-};
-
-const NOTIFICATIONS: Notification[] = [
-  {
-    tag: "급매",
-    tagColor: "#d64545",
-    tagBg: "#fdeeee",
-    border: "#d64545",
-    title: "공작아파트 급매 7.9억 등록 — 시세 대비 -6%",
-    meta: "10분 전 · 관심 단지",
-    read: false,
-  },
-  {
-    tag: "AI",
-    tagColor: "#1d4fd8",
-    tagBg: "#edf2fe",
-    border: "#1d4fd8",
-    title: "매수 신호 68점 도달 — 알림 기준(70)까지 2점",
-    meta: "2시간 전 · 관양동",
-    read: false,
-  },
-  {
-    tag: "청약",
-    tagColor: "#c07a3a",
-    tagBg: "#fdf3e7",
-    border: "#c07a3a",
-    title: "과천 S7 특별공급 접수 D-3",
-    meta: "오늘 09:00 · 알림 신청 단지",
-    read: false,
-  },
-  {
-    tag: "모임",
-    tagColor: "#6b7684",
-    tagBg: "#f2f4f8",
-    border: null,
-    title: "과천 모임 채팅 — 투표가 시작됐어요",
-    meta: "어제 · 읽음",
-    read: true,
-  },
-  {
-    tag: "소셜",
-    tagColor: "#6b7684",
-    tagBg: "#f2f4f8",
-    border: null,
-    title: "내 공개 노트에 댓글 2 · 저장 5",
-    meta: "어제 · 읽음",
-    read: true,
-  },
-];
-
-/* ---------- 실데이터 (GET /api/notifications) ---------- */
+type Category = "매물" | "관심지역" | "활동" | "포인트";
+type TabKey = "전체" | Category;
 
 type InboxItem = {
   id: string;
@@ -86,6 +25,58 @@ type InboxItem = {
   readAt: string | null;
   createdAt: string;
 };
+
+type PointNotification = {
+  id: string;
+  delta: number;
+  label: string;
+  balance: number;
+  createdAt: string;
+};
+
+type UnifiedItem = {
+  kind: "inbox" | "point";
+  id: string;
+  category: Category;
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  read: boolean;
+  createdAt: string;
+  delta?: number;
+};
+
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "전체", label: "전체" },
+  { key: "매물", label: "매물" },
+  { key: "관심지역", label: "관심지역" },
+  { key: "활동", label: "활동" },
+  { key: "포인트", label: "포인트" },
+];
+
+const TAG: Record<Category, string> = {
+  매물: "매물",
+  관심지역: "지역",
+  활동: "활동",
+  포인트: "P",
+};
+
+const UNREAD_STYLE: Record<Category, { bg: string; color: string; border: string }> = {
+  매물: { bg: "var(--primary-soft)", color: "var(--primary)", border: "var(--primary)" },
+  관심지역: { bg: "var(--success-soft)", color: "var(--success)", border: "var(--success)" },
+  활동: { bg: "#efeafe", color: "#6b40d8", border: "#6b40d8" },
+  포인트: { bg: "var(--warning-soft)", color: "var(--warning)", border: "var(--warning)" },
+};
+
+const EMPTY: Record<TabKey, string> = {
+  전체: "아직 알림이 없어요. 관심 지역·키워드를 구독하면 새 소식을 여기에서 받아볼 수 있어요.",
+  매물: "매물 승인·소유확인 관련 알림이 아직 없어요.",
+  관심지역: "관심 지역의 새 매물 알림이 아직 없어요.",
+  활동: "댓글·좋아요 등 활동 알림이 아직 없어요.",
+  포인트: "포인트 적립·소비 내역이 아직 없어요.",
+};
+
+/* ---------- 유틸 ---------- */
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -103,21 +94,110 @@ function relativeTime(iso: string): string {
   });
 }
 
-function toNotification(item: InboxItem): Notification {
-  const read = Boolean(item.readAt);
-  return {
-    tag: "알림",
-    tagColor: read ? "#6b7684" : "#1d4fd8",
-    tagBg: read ? "#f2f4f8" : "#edf2fe",
-    border: read ? null : "#1d4fd8",
-    title: item.title,
-    meta: `${relativeTime(item.createdAt)}${item.body ? ` · ${item.body}` : ""}${
-      read ? " · 읽음" : ""
-    }`,
-    read,
-    actionUrl: item.actionUrl,
-  };
+/** 받은편지함 제목/본문 키워드로 카테고리 추론 (관심지역 우선) */
+function classifyInbox(title: string, body: string): Category {
+  const t = `${title} ${body}`;
+  if (t.includes("관심 지역") || t.includes("관심지역")) return "관심지역";
+  if (t.includes("댓글") || t.includes("좋아요")) return "활동";
+  if (
+    t.includes("매물") ||
+    t.includes("승인") ||
+    t.includes("소유확인") ||
+    t.includes("가격") ||
+    t.includes("시세")
+  ) {
+    return "매물";
+  }
+  return "활동";
 }
+
+function toUnified(inbox: InboxItem[], points: PointNotification[]): UnifiedItem[] {
+  const a: UnifiedItem[] = inbox.map((it) => ({
+    kind: "inbox",
+    id: it.id,
+    category: classifyInbox(it.title, it.body),
+    title: it.title,
+    body: it.body,
+    actionUrl: it.actionUrl,
+    read: Boolean(it.readAt),
+    createdAt: it.createdAt,
+  }));
+  const b: UnifiedItem[] = points.map((p) => ({
+    kind: "point",
+    id: p.id,
+    category: "포인트",
+    title: `포인트 ${p.delta >= 0 ? "+" : ""}${p.delta.toLocaleString("ko-KR")} ${p.label}`,
+    body: `잔액 ${p.balance.toLocaleString("ko-KR")}P`,
+    actionUrl: null,
+    read: true,
+    createdAt: p.createdAt,
+    delta: p.delta,
+  }));
+  return [...a, ...b].sort((x, y) => y.createdAt.localeCompare(x.createdAt));
+}
+
+function metaLine(item: UnifiedItem): string {
+  const parts = [relativeTime(item.createdAt)];
+  if (item.body) parts.push(item.body);
+  if (item.kind === "inbox" && item.read) parts.push("읽음");
+  return parts.filter(Boolean).join(" · ");
+}
+
+/* ---------- 비로그인 샘플 (미리보기용, 상호작용 없음) ---------- */
+
+const GUEST_SAMPLES: UnifiedItem[] = [
+  {
+    kind: "inbox",
+    id: "s1",
+    category: "매물",
+    title: "매물이 승인되었어요",
+    body: "'공작아파트' 매물이 검수를 통과해 지도에 노출됩니다",
+    actionUrl: null,
+    read: false,
+    createdAt: new Date(Date.now() - 8 * 60000).toISOString(),
+  },
+  {
+    kind: "inbox",
+    id: "s2",
+    category: "관심지역",
+    title: "관심 지역 새 매물",
+    body: "관양동 '인덕원마을' 매물이 등록됐어요",
+    actionUrl: null,
+    read: false,
+    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+  },
+  {
+    kind: "point",
+    id: "s3",
+    category: "포인트",
+    title: "포인트 +300 매물 등록 승인",
+    body: "잔액 1,300P",
+    actionUrl: null,
+    read: true,
+    createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
+    delta: 300,
+  },
+  {
+    kind: "inbox",
+    id: "s4",
+    category: "활동",
+    title: "새 댓글이 달렸어요",
+    body: "내 임장노트에 댓글이 달렸어요",
+    actionUrl: null,
+    read: true,
+    createdAt: new Date(Date.now() - 26 * 3600000).toISOString(),
+  },
+  {
+    kind: "inbox",
+    id: "s5",
+    category: "매물",
+    title: "소유확인 완료",
+    body: "소유확인이 완료돼 인증 배지가 표시됩니다",
+    actionUrl: null,
+    read: true,
+    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+  },
+];
 
 /* ---------- 알림 구독 (#47, /api/me/alerts) ---------- */
 
@@ -213,10 +293,9 @@ function AlertSubscriptionSection() {
     const prev = subs;
     setSubs((cur) => cur.filter((s) => s.id !== id));
     try {
-      const res = await fetch(
-        `/api/me/alerts?id=${encodeURIComponent(id)}`,
-        { method: "DELETE" },
-      );
+      const res = await fetch(`/api/me/alerts?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error(String(res.status));
     } catch {
       setSubs(prev);
@@ -299,41 +378,83 @@ function AlertSubscriptionSection() {
   );
 }
 
-function NotificationCard({ n, index }: { n: Notification; index: number }) {
-  const inner = (
+/* ---------- 알림 카드 ---------- */
+
+function NotificationCard({
+  item,
+  index,
+  onOpen,
+}: {
+  item: UnifiedItem;
+  index: number;
+  onOpen: (i: UnifiedItem) => void;
+}) {
+  const isPoint = item.kind === "point";
+  const up = (item.delta ?? 0) >= 0;
+  const dim = item.read && !isPoint;
+
+  const badge = isPoint
+    ? { bg: "var(--warning-soft)", color: "var(--warning)" }
+    : item.read
+      ? { bg: "#f2f4f8", color: "var(--text-2)" }
+      : {
+          bg: UNREAD_STYLE[item.category].bg,
+          color: UNREAD_STYLE[item.category].color,
+        };
+  const border = !isPoint && !item.read ? UNREAD_STYLE[item.category].border : null;
+
+  const card = (
     <div
-      className={`rise-in-${Math.min(index + 1, 6)} card flex gap-2.5 rounded-[14px] px-[15px] py-[13px] ${
-        n.read ? "opacity-75" : ""
-      }`}
-      style={n.border ? { borderLeft: `3px solid ${n.border}` } : undefined}
+      className={`card flex gap-2.5 rounded-[14px] px-[15px] py-[13px] ${dim ? "opacity-75" : ""}`}
+      style={border ? { borderLeft: `3px solid ${border}` } : undefined}
     >
       <div
         className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] text-[11px] font-extrabold"
-        style={{ background: n.tagBg, color: n.tagColor }}
+        style={{ background: badge.bg, color: badge.color }}
       >
-        {n.tag}
+        {TAG[item.category]}
       </div>
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <div
-          className={`text-xs font-bold leading-[1.45] ${
-            n.read ? "text-text-1" : "text-ink"
-          }`}
+          className={`text-xs font-bold leading-[1.45] ${dim ? "text-text-1" : "text-ink"}`}
+          style={isPoint ? { color: up ? "var(--success)" : "var(--danger)" } : undefined}
         >
-          {n.title}
+          {item.title}
         </div>
-        <div className="mt-[3px] text-[10px] text-text-3">{n.meta}</div>
+        <div className="mt-[3px] truncate text-[10px] text-text-3">
+          {metaLine(item)}
+        </div>
       </div>
+      {!isPoint && !item.read && (
+        <span
+          className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary"
+          aria-label="안 읽음"
+        />
+      )}
     </div>
   );
-  if (n.actionUrl && n.actionUrl.startsWith("/")) {
-    return <Link href={n.actionUrl}>{inner}</Link>;
-  }
-  return inner;
+
+  const wrapper = `rise-in-${Math.min(index + 1, 6)}`;
+  if (isPoint) return <div className={wrapper}>{card}</div>;
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(item)}
+      className={`${wrapper} block w-full text-left`}
+    >
+      {card}
+    </button>
+  );
 }
 
+/* ---------- 페이지 ---------- */
+
 export default function NotificationsPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<"loading" | "live" | "guest">("loading");
-  const [items, setItems] = useState<InboxItem[]>([]);
+  const [inbox, setInbox] = useState<InboxItem[]>([]);
+  const [points, setPoints] = useState<PointNotification[]>([]);
+  const [tab, setTab] = useState<TabKey>("전체");
 
   useEffect(() => {
     let cancelled = false;
@@ -341,9 +462,13 @@ export default function NotificationsPage() {
       try {
         const res = await fetch("/api/notifications");
         if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { items?: InboxItem[] };
+        const data = (await res.json()) as {
+          items?: InboxItem[];
+          points?: PointNotification[];
+        };
         if (cancelled) return;
-        setItems(Array.isArray(data.items) ? data.items : []);
+        setInbox(Array.isArray(data.items) ? data.items : []);
+        setPoints(Array.isArray(data.points) ? data.points : []);
         setMode("live");
       } catch {
         if (!cancelled) setMode("guest");
@@ -354,10 +479,37 @@ export default function NotificationsPage() {
     };
   }, []);
 
+  const unified = useMemo(
+    () => (mode === "guest" ? GUEST_SAMPLES : toUnified(inbox, points)),
+    [mode, inbox, points],
+  );
+
+  const unreadCount = useMemo(
+    () => unified.filter((u) => u.kind === "inbox" && !u.read).length,
+    [unified],
+  );
+
+  const counts = useMemo(() => {
+    const c: Record<TabKey, number> = {
+      전체: unified.length,
+      매물: 0,
+      관심지역: 0,
+      활동: 0,
+      포인트: 0,
+    };
+    for (const u of unified) c[u.category] += 1;
+    return c;
+  }, [unified]);
+
+  const visible = useMemo(
+    () => (tab === "전체" ? unified : unified.filter((u) => u.category === tab)),
+    [tab, unified],
+  );
+
   const markAllRead = async () => {
     if (mode !== "live") return;
     const now = new Date().toISOString();
-    setItems((prev) => prev.map((i) => ({ ...i, readAt: i.readAt ?? now })));
+    setInbox((prev) => prev.map((i) => ({ ...i, readAt: i.readAt ?? now })));
     try {
       await fetch("/api/notifications/read-all", { method: "POST" });
     } catch {
@@ -365,45 +517,81 @@ export default function NotificationsPage() {
     }
   };
 
-  const list: Notification[] =
-    mode === "live" ? items.map(toNotification) : NOTIFICATIONS;
+  const onOpen = async (item: UnifiedItem) => {
+    if (item.kind !== "inbox" || mode !== "live") return;
+    if (!item.read) {
+      const now = new Date().toISOString();
+      setInbox((prev) =>
+        prev.map((i) => (i.id === item.id ? { ...i, readAt: i.readAt ?? now } : i)),
+      );
+      try {
+        await fetch(`/api/notifications/${encodeURIComponent(item.id)}`, {
+          method: "PATCH",
+        });
+      } catch {
+        // 읽음 처리 실패해도 이동은 진행
+      }
+    }
+    if (item.actionUrl && item.actionUrl.startsWith("/")) {
+      router.push(item.actionUrl);
+    }
+  };
+
+  const showSubs = mode === "live" && (tab === "전체" || tab === "관심지역");
 
   return (
     <PageShell>
       <div className="mx-auto w-full max-w-[560px]">
-        {/* 타이틀 + 모두 읽음 */}
+        {/* 타이틀 + 안읽음 카운트 + 모두 읽음 */}
         <div className="rise-in flex items-center justify-between">
-          <h1 className="text-[22px] font-extrabold text-ink">알림</h1>
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="text-xs font-bold text-primary"
-          >
-            모두 읽음
-          </button>
-        </div>
-
-        {/* 필터 칩 */}
-        <div className="rise-in-1 mt-3 flex gap-1.5">
-          {FILTERS.map((f) => (
-            <span
-              key={f.label}
-              className={`chip px-[13px] py-1.5 text-xs ${
-                f.active
-                  ? "chip-active"
-                  : "border border-[#e2e7ee] bg-surface text-text-2"
-              }`}
+          <div className="flex items-center gap-2">
+            <h1 className="text-[22px] font-extrabold text-ink">알림</h1>
+            {mode === "live" && unreadCount > 0 && (
+              <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-extrabold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          {mode === "live" && unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={markAllRead}
+              className="text-xs font-bold text-primary"
             >
-              {f.label}
-            </span>
-          ))}
+              모두 읽음
+            </button>
+          )}
         </div>
 
-        {/* 비로그인 안내 (목업 표시 중) */}
+        {/* 탭 */}
+        <div className="rise-in-1 mt-3 flex gap-1.5 overflow-x-auto pb-1">
+          {TABS.map((t) => {
+            const active = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={`chip whitespace-nowrap px-[13px] py-1.5 text-xs ${
+                  active
+                    ? "chip-active"
+                    : "border border-[#e2e7ee] bg-surface text-text-2"
+                }`}
+              >
+                {t.label}
+                {mode === "live" && counts[t.key] > 0 && (
+                  <span className="ml-1 opacity-70">{counts[t.key]}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 비로그인 안내 (샘플 미리보기 표시 중) */}
         {mode === "guest" && (
           <div className="rise-in-1 card mt-3 flex items-center justify-between rounded-[14px] border-l-[3px] border-l-primary px-[15px] py-3">
             <span className="text-xs font-bold text-ink">
-              로그인하면 내 알림과 구독을 관리할 수 있어요
+              로그인하면 내 알림·포인트·구독을 한곳에서 볼 수 있어요
             </span>
             <Link
               href="/login?callbackUrl=/notifications"
@@ -414,8 +602,8 @@ export default function NotificationsPage() {
           </div>
         )}
 
-        {/* 알림 구독 (#47) — 로그인 상태에서만 */}
-        {mode === "live" && <AlertSubscriptionSection />}
+        {/* 알림 구독 (#47) — 로그인 상태의 전체·관심지역 탭 */}
+        {showSubs && <AlertSubscriptionSection />}
 
         {/* 알림 리스트 */}
         <div className="mt-3 flex flex-col gap-2">
@@ -425,14 +613,18 @@ export default function NotificationsPage() {
             ))}
 
           {mode !== "loading" &&
-            list.map((n, i) => (
-              <NotificationCard key={`${n.title}-${i}`} n={n} index={i} />
+            visible.map((item, i) => (
+              <NotificationCard
+                key={`${item.kind}-${item.id}`}
+                item={item}
+                index={i}
+                onOpen={onOpen}
+              />
             ))}
 
-          {mode === "live" && list.length === 0 && (
+          {mode !== "loading" && visible.length === 0 && (
             <div className="card rounded-[14px] px-[15px] py-8 text-center text-xs text-text-3">
-              아직 알림이 없어요. 지역·키워드를 구독하면 새 소식 알림을 받아볼
-              수 있어요.
+              {EMPTY[tab]}
             </div>
           )}
         </div>

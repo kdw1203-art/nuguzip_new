@@ -16,6 +16,11 @@ import {
   SEOUL_BROWSE_REGIONS,
   buildComplexTxSlug,
 } from "@/lib/market/complex-transactions";
+import {
+  comparePriceToMarket,
+  getComparableTransactions,
+} from "@/lib/listings/price-compare";
+import { realEstateListingJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 
 /* ============================================================
    매물 상세 — /listings/[id]
@@ -43,6 +48,22 @@ function priceLine(l: ListingDetail): string {
   if (l.listingType === "sale") return `매매 ${formatKrwShort(l.priceKrw)}`;
   if (l.listingType === "jeonse") return `전세 ${formatKrwShort(l.depositKrw)}`;
   return `월세 ${formatKrwShort(l.depositKrw)} / ${formatKrwShort(l.monthlyKrw)}`;
+}
+
+/** "202606" → "2026.06" */
+function formatYm(ym: string): string {
+  return ym.length === 6 ? `${ym.slice(0, 4)}.${ym.slice(4)}` : ym;
+}
+
+/** 시세 대비 배지 — 저렴(파랑)·비쌈(빨강)·시세 수준(회색) */
+function priceCompareBadge(deltaPct: number): { label: string; className: string } {
+  if (deltaPct <= -3) {
+    return { label: `시세 대비 저렴 ${deltaPct}%`, className: "bg-primary-soft text-primary" };
+  }
+  if (deltaPct >= 3) {
+    return { label: `시세 대비 +${deltaPct}%`, className: "bg-danger-soft text-danger" };
+  }
+  return { label: "시세 수준", className: "bg-[#f2f4f8] text-text-2" };
 }
 
 function txCompareHref(l: ListingDetail): string | null {
@@ -97,8 +118,44 @@ export default async function ListingDetailPage({
       ? [listing.thumbnailUrl]
       : [];
 
+  // 시세 비교 (매매 매물 + 같은 단지/면적대 실거래 존재 시에만) — graceful
+  const priceCompare = await comparePriceToMarket({
+    complexName: listing.complexName,
+    regionName: listing.regionName,
+    areaM2: listing.areaM2,
+    listingType: listing.listingType,
+    priceKrw: listing.priceKrw,
+    depositKrw: listing.depositKrw,
+  }).catch(() => null);
+  const comparableTx = priceCompare
+    ? await getComparableTransactions({
+        complexName: listing.complexName,
+        regionName: listing.regionName,
+        areaM2: listing.areaM2,
+      }).catch(() => [])
+    : [];
+  const compareBadge = priceCompare ? priceCompareBadge(priceCompare.deltaPct) : null;
+
+  // JSON-LD (RealEstateListing) — 실데이터 매물, 존재 필드만
+  const listingJsonLd = realEstateListingJsonLd({
+    id: listing.id,
+    name: listing.complexName,
+    description: body.trim() || null,
+    priceKrw: listing.listingType === "sale" ? listing.priceKrw : listing.depositKrw,
+    offerLabel: LISTING_TYPE_LABEL[listing.listingType],
+    areaM2: listing.areaM2,
+    address: listing.address,
+    regionName: listing.regionName,
+    images: photos,
+  });
+
   return (
     <PageShell breadcrumb="홈 › 실매물 › 상세">
+      {/* JSON-LD(RealEstateListing) — SEO 구조화 데이터 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(listingJsonLd) }}
+      />
       {/* 상태 안내 (소유주가 검수중/반려 매물을 볼 때) */}
       {listing.status !== "approved" && (
         <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-[#5b74b8]">
@@ -179,8 +236,17 @@ export default async function ListingDetailPage({
             <h1 className="text-[24px] font-extrabold leading-[1.3] text-ink">
               {listing.complexName}
             </h1>
-            <div className="mt-1.5 text-[22px] font-extrabold text-primary">
-              {priceLine(listing)}
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <span className="text-[22px] font-extrabold text-primary">
+                {priceLine(listing)}
+              </span>
+              {compareBadge && (
+                <span
+                  className={`rounded-[7px] px-2 py-[3px] text-[12px] font-extrabold ${compareBadge.className}`}
+                >
+                  {compareBadge.label}
+                </span>
+              )}
             </div>
           </div>
 
@@ -223,13 +289,63 @@ export default async function ListingDetailPage({
             </div>
           )}
 
-          {/* 실거래가 비교 */}
-          <Link
-            href={txHref ?? "/complex/tx"}
-            className="w-fit text-[13px] font-bold text-primary underline"
-          >
-            실거래가 비교 →
-          </Link>
+          {/* 시세 비교 — 같은 단지·면적대 최근 실거래 + 시세 대비 배지 (데이터 있을 때만) */}
+          {priceCompare && compareBadge ? (
+            <section className="card card-pad-sm flex flex-col gap-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="text-[15px] font-extrabold text-ink">
+                  시세 비교{" "}
+                  <span className="text-[11px] font-medium text-text-3">
+                    같은 단지·면적대 · 국토부 실거래가
+                  </span>
+                </h2>
+                <span
+                  className={`shrink-0 rounded-[7px] px-2 py-[3px] text-[12px] font-extrabold ${compareBadge.className}`}
+                >
+                  {compareBadge.label}
+                </span>
+              </div>
+              <p className="text-[13px] leading-[1.6] text-text-2">
+                최근 실거래 중위가{" "}
+                <b className="text-ink">{formatKrwShort(priceCompare.medianKrw)}</b> · 표본{" "}
+                {priceCompare.sampleCount}건
+                {listing.areaM2 !== null ? ` · 전용 ${listing.areaM2}㎡ 기준` : ""}
+              </p>
+              {comparableTx.length > 0 && (
+                <ul className="flex flex-col">
+                  {comparableTx.slice(0, 4).map((t, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between gap-3 border-b border-line py-2 last:border-0"
+                    >
+                      <span className="text-[12px] text-text-3">
+                        {formatYm(t.contractYm)}
+                        {t.contractDay ? `.${String(t.contractDay).padStart(2, "0")}` : ""}
+                        {t.areaM2 !== null ? ` · ${t.areaM2.toFixed(1)}㎡` : ""}
+                        {t.floor !== null ? ` · ${t.floor}층` : ""}
+                      </span>
+                      <span className="text-[13px] font-bold text-ink">
+                        {formatKrwShort(t.dealAmountKrw)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link
+                href={txHref ?? "/complex/browse"}
+                className="w-fit text-[13px] font-bold text-primary"
+              >
+                이 단지 실거래 전체 →
+              </Link>
+            </section>
+          ) : (
+            <Link
+              href={txHref ?? "/complex/tx"}
+              className="w-fit text-[13px] font-bold text-primary underline"
+            >
+              실거래가 비교 →
+            </Link>
+          )}
 
           {/* 신고 */}
           <div className="flex items-center gap-3">

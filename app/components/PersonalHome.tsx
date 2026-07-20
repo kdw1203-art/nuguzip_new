@@ -27,6 +27,20 @@ type PersonalRegionMarket = {
   tone: "up" | "down" | "flat";
 };
 
+/** 온보딩 개인화 — 관심 지역(허브 링크)·예산·목적 */
+type PurposeId = "live" | "invest" | "jeonse";
+type ResolvedRegion = { name: string; regionId: string | null; gu: string };
+type PersonalPreferences = {
+  regions: ResolvedRegion[];
+  budget: {
+    type: "sale" | "jeonse";
+    min: number | null;
+    max: number | null;
+    label: string | null;
+  } | null;
+  purpose: PurposeId | null;
+};
+
 type PersonalHomeData = {
   nickname: string | null;
   plan: string | null;
@@ -37,7 +51,40 @@ type PersonalHomeData = {
   regions: string[] | null;
   todoCount: number | null;
   regionMarket: PersonalRegionMarket | null;
+  preferences: PersonalPreferences | null;
 };
+
+const PURPOSE_META: Record<
+  PurposeId,
+  { label: string; emoji: string; rec: string }
+> = {
+  live: {
+    label: "실거주",
+    emoji: "🏠",
+    rec: "실거주 관점에서 학군·생활환경이 좋은 단지를 우선 살펴보세요.",
+  },
+  invest: {
+    label: "투자",
+    emoji: "📈",
+    rec: "투자 관점에서 시세 흐름·개발 호재를 먼저 확인해 보세요.",
+  },
+  jeonse: {
+    label: "전세",
+    emoji: "🔑",
+    rec: "전세 매물과 전세가율 흐름을 함께 확인해 보세요.",
+  },
+};
+
+/** 예산 구간 라벨 (억 단위) */
+function budgetRangeLabel(
+  b: NonNullable<PersonalPreferences["budget"]>,
+): string {
+  if (b.label) return b.label;
+  if (b.min != null && b.max != null) return `${b.min}~${b.max}억`;
+  if (b.max != null) return `${b.max}억 이하`;
+  if (b.min != null) return `${b.min}억 이상`;
+  return "예산 미설정";
+}
 
 const DELTA_CLASS: Record<PersonalRegionMarket["tone"], string> = {
   up: "delta-up",
@@ -267,6 +314,90 @@ export function PersonalHome() {
           )}
         </div>
       </section>
+
+      {/* ===== 관심 맞춤 (모바일·데스크탑 공통) ===== */}
+      {data.preferences ? (
+        <section className="rise-in-1 mb-4">
+          <div className="card flex flex-col gap-3 rounded-[20px] p-5">
+            <div className="flex items-center justify-between">
+              <span className="rounded-md bg-primary-soft px-[9px] py-[3px] text-[11px] font-extrabold text-primary">
+                관심 맞춤
+                {data.preferences.purpose
+                  ? ` · ${PURPOSE_META[data.preferences.purpose].emoji} ${PURPOSE_META[data.preferences.purpose].label}`
+                  : ""}
+              </span>
+              <Link href="/welcome" className="text-[11px] font-bold text-text-3">
+                관심 수정 ›
+              </Link>
+            </div>
+
+            <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
+              {region ? region : "관심 지역"}
+              {extraRegions > 0 ? ` 외 ${extraRegions}곳` : ""}
+              {data.preferences.budget
+                ? ` · ${budgetRangeLabel(data.preferences.budget)} ${
+                    data.preferences.budget.type === "sale" ? "매매" : "전세"
+                  } 기준`
+                : ""}
+            </div>
+
+            <p className="text-xs leading-[1.6] text-text-2">
+              {data.preferences.purpose
+                ? PURPOSE_META[data.preferences.purpose].rec
+                : "관심 지역·예산에 맞는 후보를 모아 보여드려요."}
+              {regionMarket
+                ? ` — ${regionMarket.name} 평균 ${regionMarket.price} (${regionMarket.delta}) 흐름을 확인해 보세요.`
+                : ""}
+            </p>
+
+            {/* 관심 지역별 퀵링크 — 지역 허브(/region) · 매물(/listings?gu=) */}
+            <div className="flex flex-col gap-2">
+              {data.preferences.regions.map((r) => (
+                <div key={r.name} className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-text-2">📍 {r.gu}</span>
+                  {r.regionId && (
+                    <Link
+                      href={`/region/${r.regionId}`}
+                      className="glass rounded-full px-2.5 py-1 text-[10px] font-extrabold text-primary"
+                    >
+                      시세 허브 ›
+                    </Link>
+                  )}
+                  <Link
+                    href={`/listings?gu=${encodeURIComponent(r.gu)}`}
+                    className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[10px] font-bold text-text-2"
+                  >
+                    매물 보기 ›
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : (
+        /* 개인화 미설정 — 관심 설정 유도 CTA */
+        <section className="rise-in-1 mb-4">
+          <Link
+            href="/welcome"
+            className="card card-hover flex items-center justify-between gap-3 rounded-[20px] p-5"
+          >
+            <div className="flex flex-col gap-1">
+              <span className="w-fit rounded-md bg-primary-soft px-[9px] py-[3px] text-[11px] font-extrabold text-primary">
+                맞춤 설정
+              </span>
+              <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
+                관심 지역·예산·목적을 알려주세요
+              </div>
+              <p className="text-xs leading-[1.6] text-text-2">
+                1분이면 홈과 추천이 내게 맞게 바뀌어요.
+              </p>
+            </div>
+            <span className="whitespace-nowrap text-[13px] font-extrabold text-primary">
+              관심 설정하기 ›
+            </span>
+          </Link>
+        </section>
+      )}
 
       {/* ===== 데스크탑 (9m) ===== */}
       <section className="mb-4 hidden flex-col gap-4 md:flex">

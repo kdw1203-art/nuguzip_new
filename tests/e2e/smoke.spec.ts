@@ -78,7 +78,9 @@ test("9. /map renders map shell (title + zoom controls, no tile wait)", async ({
 
 test("10. /search renders with search input", async ({ page }) => {
   await page.goto("/search");
-  await expect(page.getByPlaceholder("단지명·동 이름으로 검색")).toBeVisible();
+  await expect(
+    page.getByPlaceholder("단지·매물·임장노트·뉴스 통합 검색"),
+  ).toBeVisible();
 });
 
 // ---------- AI 분석 ----------

@@ -4,8 +4,14 @@ import { listNotes } from "@/lib/inspection/store-db";
 import { countWatchlist } from "@/lib/watchlist/store-db";
 import { loadMeProfile } from "@/lib/me/profile";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
-import { getServiceSupabase } from "@/lib/supabase/service";
 import { loadNewHomeData, type HomeRegionCard } from "@/lib/newui/home-data";
+import {
+  getOnboardingPersonalization,
+  resolveRegions,
+  type OnboardingBudget,
+  type PurposeId,
+  type ResolvedRegion,
+} from "@/lib/onboarding/personalization";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,12 +38,18 @@ export type PersonalHomeData = {
   compareCount: number | null;
   /** 관심지역 한 줄 (app_users.primary_region) */
   primaryRegion: string | null;
-  /** 관심지역 목록 (app_users.watch_regions) */
+  /** 관심지역 목록 (온보딩 개인화) */
   regions: string[] | null;
   /** 최근 노트 3건 기준 미완료 체크 항목 합계 */
   todoCount: number | null;
   /** #43 관심지역 기반 지역 시세 1건 — loadNewHomeData().regions 에서 관심지역명 매칭, 실패 시 null */
   regionMarket: HomeRegionCard | null;
+  /** 온보딩 개인화 — 관심 지역(허브 링크 포함)·예산·목적. 미설정 시 null → CTA */
+  preferences: {
+    regions: ResolvedRegion[];
+    budget: OnboardingBudget | null;
+    purpose: PurposeId | null;
+  } | null;
 };
 
 async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
@@ -46,31 +58,6 @@ async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
   } catch {
     return null;
   }
-}
-
-async function loadWatchRegions(email: string): Promise<string[] | null> {
-  const sb = getServiceSupabase();
-  if (!sb) return null;
-  const { data, error } = await sb
-    .from("app_users")
-    .select("watch_regions")
-    .eq("email", email.trim().toLowerCase())
-    .maybeSingle();
-  if (error) return null;
-  const raw = data?.watch_regions;
-  if (!Array.isArray(raw)) return null;
-  return raw
-    .map((r) => {
-      const o = r as Record<string, unknown>;
-      const label = o.label ? String(o.label) : "";
-      const cityDistrict = [o.city, o.district]
-        .map((v) => String(v ?? "").trim())
-        .filter(Boolean)
-        .join(" ");
-      return (label || cityDistrict).trim();
-    })
-    .filter(Boolean)
-    .slice(0, 5);
 }
 
 /** #43 관심지역명(예: "서울 마포구")과 홈 시세 카드(예: "마포구")를 매칭해 1건 반환 */
@@ -99,7 +86,7 @@ export async function GET() {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const [profile, notes, compareCount, appUser, regions] = await Promise.all([
+  const [profile, notes, compareCount, appUser, personalization] = await Promise.all([
     guarded(() =>
       loadMeProfile(email, {
         name: session.user?.name,
@@ -110,12 +97,25 @@ export async function GET() {
     guarded(() => listNotes(email)),
     guarded(() => countWatchlist(email)),
     guarded(() => fetchAppUserByEmail(email)),
-    guarded(() => loadWatchRegions(email)),
+    guarded(() => getOnboardingPersonalization(email)),
   ]);
+
+  const regions =
+    personalization && personalization.regions.length > 0
+      ? personalization.regions
+      : null;
 
   const regionMarket = await guarded(() =>
     loadRegionMarket([profile?.primaryRegion, ...(regions ?? [])]),
   );
+
+  const preferences = personalization
+    ? {
+        regions: resolveRegions(personalization.regions),
+        budget: personalization.budget,
+        purpose: personalization.purpose,
+      }
+    : null;
 
   const recent = notes && notes.length > 0 ? notes[0] : null;
   const pendingOf = (checklist: { done: boolean }[] | undefined | null) =>
@@ -142,6 +142,7 @@ export async function GET() {
       ? notes.slice(0, 3).reduce((sum, n) => sum + pendingOf(n.checklist), 0)
       : null,
     regionMarket,
+    preferences,
   };
 
   return NextResponse.json(body, {

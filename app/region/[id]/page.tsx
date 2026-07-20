@@ -19,6 +19,11 @@ import {
   type ComplexTxRegion,
 } from "@/lib/market/complex-transactions";
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
+import {
+  breadcrumbJsonLd,
+  regionPlaceJsonLd,
+  jsonLdScript,
+} from "@/lib/seo/jsonld";
 
 /* ============================================================
    지역 허브 SEO 페이지 — /region/[id]
@@ -166,11 +171,35 @@ export default async function RegionHubPage({
     { label: "전세가율", value: jeonseRatio },
   ];
 
+  // JSON-LD(BreadcrumbList + Place) — 실데이터 스냅샷, 존재 필드만
+  const regionJsonLd = [
+    breadcrumbJsonLd([
+      { name: "홈", url: "/" },
+      { name: "지역 시세" },
+      { name, url: `/region/${id}` },
+    ]),
+    regionPlaceJsonLd({
+      id,
+      name,
+      description:
+        snapshot.avgSale !== undefined
+          ? `${name} 아파트 평균 매매가 ${formatKrwShort(snapshot.avgSale)} (${formatYm(
+              snapshot.period,
+            )} 기준)`
+          : null,
+    }),
+  ];
+
   return (
     <PageShell
       breadcrumb={`홈 › 지역 시세 › ${name}`}
       title={`${name} 아파트 시세`}
     >
+      {/* JSON-LD(BreadcrumbList + Place) — 지역 SEO 구조화 데이터 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(regionJsonLd) }}
+      />
       <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
         {formatYm(snapshot.period)} 기준 · 출처{" "}
         {snapshot.source === "reb" ? "한국부동산원(R-ONE)" : snapshot.source === "kb" ? "KB부동산" : "자체 수집"}

@@ -5,6 +5,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
 import { isVerifiedExpert } from "@/lib/experts/is-verified";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { getCreatorSales } from "@/lib/creator/sales";
 
 /* 시안 22e — 크리에이터 대시보드 · 성장 보상 + 23c "탑 임장러 현황" 탭
    실데이터: 세션(safeAuth) 기준 내 공개 노트 수 + 총 저장 수(bookmarks · 내 공개 노트 대상)
@@ -64,12 +65,16 @@ export default async function CreatorDashboardPage() {
   let publicNoteCount: number | null = null;
   let totalSaves: number | null = null;
   let publicNotesLen = 0;
+  let noteOptions: { id: string; title: string }[] = [];
   try {
     if (getServiceSupabase()) {
       const notes = await listNotes(email);
       const publicNotes = notes.filter((n) => n.isPublic);
       publicNotesLen = publicNotes.length;
       publicNoteCount = publicNotes.length;
+      noteOptions = publicNotes
+        .slice(0, 30)
+        .map((n) => ({ id: n.id, title: n.title }));
       totalSaves = await countNoteSaves(publicNotes.map((n) => n.id));
     }
   } catch {
@@ -110,6 +115,8 @@ export default async function CreatorDashboardPage() {
     );
   }
 
+  const sales = await getCreatorSales(email);
+
   return (
     <PageShell breadcrumb="마이 › 크리에이터" title="크리에이터 대시보드">
       <CreatorClient
@@ -122,6 +129,8 @@ export default async function CreatorDashboardPage() {
         totalSaves={
           totalSaves === null ? "—" : totalSaves.toLocaleString("ko-KR")
         }
+        sales={sales}
+        noteOptions={noteOptions}
       />
     </PageShell>
   );

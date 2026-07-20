@@ -24,6 +24,11 @@ import {
   buildComplexTxSlug,
   listComplexTransactions,
 } from "@/lib/market/complex-transactions";
+import {
+  complexResidenceJsonLd,
+  breadcrumbJsonLd,
+  jsonLdScript,
+} from "@/lib/seo/jsonld";
 
 /* ============================================================
    시안 23b — 단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 22f-65 겸용)
@@ -370,6 +375,28 @@ export default async function ComplexHubPage({
   // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
   const freshness = await getMarketFreshnessDateLabel();
 
+  // JSON-LD(Residence/Place + Breadcrumb) — 실단지 매칭 시에만, 존재 필드만
+  const isRealComplex = v.id === complexId && complexId !== "mock-1";
+  const complexAddress = v.infoRows.find((r) => r.label === "주소")?.value ?? null;
+  const complexPriceRange =
+    v.metric.price && !/준비|수집/.test(v.metric.price) ? v.metric.price : null;
+  const complexJsonLd = isRealComplex
+    ? [
+        complexResidenceJsonLd({
+          id: complexId,
+          name: v.name,
+          address: complexAddress,
+          regionName: v.dong,
+          priceRange: complexPriceRange,
+        }),
+        breadcrumbJsonLd([
+          { name: "홈", url: "/" },
+          { name: v.dong },
+          { name: v.name, url: `/complex/${encodeURIComponent(complexId)}` },
+        ]),
+      ]
+    : null;
+
   const cta = (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
@@ -390,6 +417,14 @@ export default async function ComplexHubPage({
 
   return (
     <PageShell>
+      {/* JSON-LD(Residence/Place + Breadcrumb) — 실단지 SEO 구조화 데이터 */}
+      {complexJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(complexJsonLd) }}
+        />
+      )}
+
       {/* 최근 본 단지 기록 (localStorage nz_recent_complexes · 목업 폴백은 미기록) */}
       <RecentComplexRecorder id={v.id} name={v.name} region={v.dong} />
 
