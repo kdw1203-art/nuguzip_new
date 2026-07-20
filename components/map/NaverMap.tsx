@@ -147,7 +147,24 @@ export function NaverMap({
     if (typeof window === "undefined") return;
 
     let cancelled = false;
-    void loadNaverMapsScript(NAVER_MAP_CLIENT_ID, {
+    // 런타임 Client ID 우선 — 빌드 시 env 마스킹("[SENSITIVE]")으로 번들에
+    // 폴백 상수가 박혀도, 서버 런타임의 실값(/api/map/sdk-config)으로 로드한다.
+    const resolveRuntimeClientId = async (): Promise<string> => {
+      try {
+        const res = await fetch("/api/map/sdk-config", { cache: "force-cache" });
+        if (res.ok) {
+          const data = (await res.json()) as { ncpKeyId?: string };
+          const id = data.ncpKeyId?.trim();
+          if (id && /^[a-z0-9]{6,24}$/i.test(id)) return id;
+        }
+      } catch {
+        // 네트워크 실패 시 번들 상수로 폴백
+      }
+      return NAVER_MAP_CLIENT_ID;
+    };
+    void resolveRuntimeClientId().then((clientId) => {
+      if (cancelled) return;
+      return loadNaverMapsScript(clientId, {
       onAuthFailure: () => {
         if (cancelled) return;
         // 인증 실패의 가장 흔한 원인은 "현재 접속 origin 미등록"이라 실제 origin을 노출한다.
@@ -174,13 +191,14 @@ export function NaverMap({
         }
         setError(detail);
       },
-    })
-      .then(() => {
-        if (!cancelled) setLoaded(true);
       })
-      .catch(() => {
-        if (!cancelled) setError("네이버 지도 SDK 로드 실패");
-      });
+        .then(() => {
+          if (!cancelled) setLoaded(true);
+        })
+        .catch(() => {
+          if (!cancelled) setError("네이버 지도 SDK 로드 실패");
+        });
+    });
 
     return () => {
       cancelled = true;
