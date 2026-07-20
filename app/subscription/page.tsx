@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { PlanCheckoutButton, type CheckoutTier } from "./PlanCheckoutButton";
 
@@ -169,6 +170,17 @@ export default function SubscriptionPage() {
           </div>
         ))}
       </section>
+
+      {/* P2-8: 환불 규정 직링크 — 약관 제8조(청약철회) 앵커 */}
+      <p className="rise-in-4 mx-auto mt-4 w-full max-w-[1080px] text-center text-xs text-text-3">
+        결제 7일 이내 청약철회(환불) 가능 ·{" "}
+        <Link
+          href="/legal/terms#refund"
+          className="font-bold text-primary underline underline-offset-2"
+        >
+          환불 규정 안내
+        </Link>
+      </p>
 
       {/* 기능 비교표 (9k) */}
       <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] overflow-x-auto rounded-[20px] px-[22px] py-5">

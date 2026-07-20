@@ -141,7 +141,10 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col justify-center gap-4 px-7 pb-8 pt-5">
+      <main
+        className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col justify-center gap-4 px-7 pb-8"
+        style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
+      >
         <div className="rise-in card flex flex-col items-center gap-3 rounded-[20px] p-7 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-xl">
             {done === "confirm" ? "✉️" : "✓"}
@@ -175,7 +178,10 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col gap-4 px-7 pb-8 pt-5">
+    <main
+      className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col gap-4 px-7 pb-8"
+      style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
+    >
       <div className="flex items-center justify-between">
         <Link href="/login" className="text-base text-text-1" aria-label="뒤로">
           ‹

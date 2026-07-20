@@ -1,0 +1,53 @@
+# 시장 데이터 ETL 스케줄러
+# Vercel 크론이 플랜 제약으로 실행되지 않아 GitHub Actions 스케줄로 이관.
+# 각 잡은 프로덕션 크론 엔드포인트를 CRON_SECRET 으로 호출한다.
+# (엔드포인트는 x-vercel-cron 헤더 또는 x-cron-secret 일치 시 허용)
+name: Market ETL
+
+on:
+  schedule:
+    # 매일 21:00 UTC = 06:00 KST — reb/kb/kosis/complex-crawl + 출석 리마인더
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  etl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run daily ingests
+        env:
+          CRS: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -o pipefail
+          FAILED=""
+          call() {
+            NAME="$1"; URL="$2"
+            echo "== $NAME =="
+            BODY=$(curl -sS --max-time 290 -H "x-cron-secret: $CRS" "$URL" || echo '{"error":"curl failed"}')
+            echo "$BODY" | head -c 1000; echo
+            echo "$BODY" | grep -qi '"error"\|"ok":false' && FAILED="$FAILED $NAME" || true
+          }
+          call reb "https://nuguzip.com/api/cron/reb-ingest"
+          call kb "https://nuguzip.com/api/cron/kb-ingest"
+          call kosis "https://nuguzip.com/api/cron/kosis-ingest"
+          call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
+          call attendance "https://nuguzip.com/api/cron/attendance-reminders"
+          # molit 전국 실거래: 매월 1일에만
+          if [ "$(date -u +%d)" = "01" ]; then
+            call molit "https://nuguzip.com/api/cron/molit-transactions-ingest"
+          fi
+          if [ -n "$FAILED" ]; then
+            echo "failed:$FAILED" | tee etl-failed.txt
+            exit 1
+          fi
+      - name: Report ETL failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DETAIL=$(cat etl-failed.txt 2>/dev/null || echo "unknown")
+          gh api repos/${{ github.repository }}/issues -f title="Market ETL failure $(date -u +%FT%TZ)" -f body="run: ${{ github.run_id }} — $DETAIL" || true

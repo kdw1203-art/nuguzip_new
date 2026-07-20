@@ -78,12 +78,17 @@ function NoteCard({ card, delay }: { card: DiscoverCard; delay: number }) {
         </div>
       </Link>
       <div className="flex items-center justify-between px-3 pb-[10px] text-[10px] text-text-3">
-        <Link
-          href={`/u/${encodeURIComponent(card.author)}`}
-          className="font-semibold hover:text-primary"
-        >
-          {card.author}
-        </Link>
+        {/* 예시 카드(mock-*)의 작성자는 실프로필이 없어 404 — 실데이터만 링크 */}
+        {card.id.startsWith("mock-") ? (
+          <span className="font-semibold">{card.author}</span>
+        ) : (
+          <Link
+            href={`/u/${encodeURIComponent(card.author)}`}
+            className="font-semibold hover:text-primary"
+          >
+            {card.author}
+          </Link>
+        )}
         <span>🔖 {card.saves}</span>
       </div>
       {card.aptName && card.complexHref && (

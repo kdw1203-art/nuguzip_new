@@ -1,6 +1,8 @@
 import {
   loadAdminDashboardMetrics,
+  loadRecentMembers,
   type AdminDashboardMetrics,
+  type AdminMembersData,
   type AdminPendingItem,
 } from "@/lib/newui/admin-metrics";
 
@@ -45,39 +47,6 @@ const PIPELINE = [
   },
 ];
 
-const MEMBERS = [
-  {
-    name: "첫집준비중 (kakao)",
-    nameColor: "#fff",
-    sub: "✦ 플러스",
-    subColor: "#7ea2ff",
-    counts: "7 / 12",
-    last: "10분 전",
-    action: "상세 ›",
-    actionColor: "#7ea2ff",
-  },
-  {
-    name: "김OO 중개사 (naver)",
-    nameColor: "#fff",
-    sub: "✦ 프로",
-    subColor: "#f2c94c",
-    counts: "24 / 1,204",
-    last: "1시간 전",
-    action: "상세 ›",
-    actionColor: "#7ea2ff",
-  },
-  {
-    name: "spam_user_08 (정지)",
-    nameColor: "#d6708b",
-    sub: "무료",
-    subColor: "#9aa6b8",
-    counts: "0 / 47",
-    last: "3일 전",
-    action: "해제 검토",
-    actionColor: "#d6708b",
-  },
-];
-
 const CONTENTS = [
   {
     title: "공개 노트 — 동·호수 노출 의심 (자동 감지)",
@@ -105,8 +74,12 @@ const panelCard = "rounded-2xl bg-[#12161f] p-5 border border-[rgba(255,255,255,
 
 export default async function AdminDashboardPage() {
   let metrics: AdminDashboardMetrics = { kpis: [], pending: [] };
+  let membersData: AdminMembersData = { total: null, members: [] };
   try {
-    metrics = await loadAdminDashboardMetrics();
+    [metrics, membersData] = await Promise.all([
+      loadAdminDashboardMetrics(),
+      loadRecentMembers(5),
+    ]);
   } catch {
     // 조회 실패 — 아래에서 "—"/목업 폴백
   }
@@ -220,56 +193,41 @@ export default async function AdminDashboardPage() {
 
       {/* 세부 4종 (9r) — 회원 · 콘텐츠 · 신고 · 전문가 승인 */}
       <div className="rise-in-3 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {/* 회원 관리 */}
+        {/* 회원 관리 — P2-12: profiles 최근 가입 실데이터 (실패 시 빈 상태) */}
         <div className={`${panelCard} flex flex-col gap-3`}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">
               회원 관리
             </span>
             <span className="text-[11px] text-[#9aa6b8]">
-              총 48,214명 · 오늘 +312
+              {membersData.total !== null
+                ? `총 ${membersData.total.toLocaleString("ko-KR")}명`
+                : "총 —명"}
             </span>
           </div>
-          <div className="flex flex-wrap gap-1.5 text-[11px]">
-            <span className="rounded-full bg-[rgba(255,255,255,.1)] px-3 py-[5px] font-bold text-white">
-              전체
-            </span>
-            <span className="px-3 py-[5px] text-[#9aa6b8]">플러스 2,841</span>
-            <span className="px-3 py-[5px] text-[#9aa6b8]">프로 214</span>
-            <span className="px-3 py-[5px] text-[#9aa6b8]">정지 18</span>
+          <div className="grid grid-cols-[1.4fr_1fr] gap-1.5 border-b border-[rgba(255,255,255,.08)] py-1.5 text-[10px] text-[#9aa6b8]">
+            <span>최근 가입 회원</span>
+            <span className="text-right">가입</span>
           </div>
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_.8fr] gap-1.5 border-b border-[rgba(255,255,255,.08)] py-1.5 text-[10px] text-[#9aa6b8]">
-            <span>회원</span>
-            <span>구독</span>
-            <span>노트/글</span>
-            <span>최근 접속</span>
-            <span>액션</span>
-          </div>
-          {MEMBERS.map((m, i) => (
-            <div
-              key={m.name}
-              className={`grid grid-cols-[1.4fr_1fr_1fr_1fr_.8fr] items-center gap-1.5 py-2 text-[11px] ${
-                i < MEMBERS.length - 1
-                  ? "border-b border-[rgba(255,255,255,.06)]"
-                  : ""
-              }`}
-            >
-              <span className="font-bold" style={{ color: m.nameColor }}>
-                {m.name}
-              </span>
-              <span
-                className={m.sub === "무료" ? "" : "font-bold"}
-                style={{ color: m.subColor }}
-              >
-                {m.sub}
-              </span>
-              <span className="text-[#c9d2e0]">{m.counts}</span>
-              <span className="text-[#9aa6b8]">{m.last}</span>
-              <span className="font-bold" style={{ color: m.actionColor }}>
-                {m.action}
-              </span>
+          {membersData.members.length === 0 ? (
+            <div className="py-4 text-center text-[11px] text-[#9aa6b8]">
+              회원 데이터를 불러올 수 없습니다 (DB 연결·권한 확인)
             </div>
-          ))}
+          ) : (
+            membersData.members.map((m, i) => (
+              <div
+                key={`${i}-${m.name}`}
+                className={`grid grid-cols-[1.4fr_1fr] items-center gap-1.5 py-2 text-[11px] ${
+                  i < membersData.members.length - 1
+                    ? "border-b border-[rgba(255,255,255,.06)]"
+                    : ""
+                }`}
+              >
+                <span className="truncate font-bold text-white">{m.name}</span>
+                <span className="text-right text-[#9aa6b8]">{m.joined}</span>
+              </div>
+            ))
+          )}
         </div>
 
         {/* 노트 · 콘텐츠 관리 */}

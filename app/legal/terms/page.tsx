@@ -13,13 +13,15 @@ const UPDATED = "2025년 6월 1일";
 const Section = ({
   num,
   title,
+  id,
   children,
 }: {
   num: string;
   title: string;
+  id?: string;
   children: ReactNode;
 }) => (
-  <section className="mt-8 first:mt-0">
+  <section id={id} className="mt-8 scroll-mt-24 first:mt-0">
     <h2 className="text-base font-bold text-ink">
       제{num}조 ({title})
     </h2>
@@ -141,7 +143,8 @@ export default function TermsPage() {
           <p>③ 회사는 서비스 이용 관련 회원의 의견·불만을 수렴하여 신속히 처리하기 위해 노력합니다.</p>
         </Section>
 
-        <Section num="8" title="유료 서비스 및 결제">
+        {/* P2-8: /subscription "환불 규정 안내" 링크의 앵커 (#refund) — 청약철회·환불 조항 */}
+        <Section num="8" title="유료 서비스 및 결제" id="refund">
           <p>① 유료 서비스(PRO·EXPERT 플랜 등)를 이용하려면 회사가 정한 요금을 납부하여야 합니다.</p>
           <p>② 요금 및 결제 방식, 구독 갱신 주기는 서비스 내 요금제 페이지에서 확인할 수 있습니다.</p>
           <p>③ 구독 요금 결제 후 7일 이내에 한해 전자상거래법에 따른 청약철회(환불)가 가능합니다. 단, 디지털 콘텐츠를 이미 소비(다운로드 또는 열람)한 경우에는 청약철회가 제한될 수 있습니다.</p>

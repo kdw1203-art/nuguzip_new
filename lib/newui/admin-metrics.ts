@@ -202,6 +202,48 @@ async function loadPendingReports(): Promise<AdminPendingItem[]> {
   }
 }
 
+/* ---------- 회원 관리 (P2-12: 목업 대체 — profiles 최근 가입 실데이터) ---------- */
+
+export interface AdminMemberRow {
+  name: string;
+  /** 가입 상대 시각 ("10분 전" 등) */
+  joined: string;
+}
+
+export interface AdminMembersData {
+  /** 전체 회원 수 — 조회 실패 시 null */
+  total: number | null;
+  /** 최근 가입 회원 — 실패·빈 데이터 시 빈 배열 (페이지 쪽 빈 상태 렌더) */
+  members: AdminMemberRow[];
+}
+
+export async function loadRecentMembers(limit = 5): Promise<AdminMembersData> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return { total: null, members: [] };
+  try {
+    const { count } = await sb
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
+    const total = typeof count === "number" ? count : null;
+    const { data, error } = await sb
+      .from("profiles")
+      .select("full_name, email, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !Array.isArray(data)) return { total, members: [] };
+    const members = (
+      data as Array<{ full_name?: string | null; email?: string | null; created_at?: string | null }>
+    ).map((r) => ({
+      name: r.full_name?.trim() || r.email?.split("@")[0] || "이름 미입력",
+      joined: relativeLabel(r.created_at ?? null),
+    }));
+    return { total, members };
+  } catch (e) {
+    logger.error("[admin-metrics] profiles 최근 가입 조회", e);
+    return { total: null, members: [] };
+  }
+}
+
 /* ---------- 조립 ---------- */
 
 function formatKrw(total: number): string {

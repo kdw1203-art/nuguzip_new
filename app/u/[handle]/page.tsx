@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
 import { HoloAvatar, TopScoutBadge } from "../../components/TopScoutBadge";
@@ -82,30 +83,7 @@ async function listAuthorPublicNotes(email: string): Promise<InspectionNote[]> {
   }
 }
 
-/** 피드 목업 카드에 등장하는 작성자 핸들 — 목업 카드에서의 진입만 목업 프로필 유지 */
-const MOCK_HANDLES = new Set([
-  "임장러버",
-  "봄이네",
-  "밤임장",
-  "학군맘",
-  "가계부장",
-  "전세유목민",
-  "쌍둥이아빠",
-  "관양동 이웃",
-  "마포 이웃",
-  "과천 이웃",
-]);
-
-type GridNote = { id: string; title: string; isReal: boolean };
-
-const MOCK_GRID: GridNote[] = [
-  { id: "g1", title: "공작 302동 3차", isReal: false },
-  { id: "g2", title: "한가람 59 저녁 재방문", isReal: false },
-  { id: "g3", title: "은하수마을 주차 실측", isReal: false },
-  { id: "g4", title: "목련우성 관리비 정리", isReal: false },
-  { id: "g5", title: "귀인마을 학군 동선", isReal: false },
-  { id: "g6", title: "샛별한양 전세 후보", isReal: false },
-];
+type GridNote = { id: string; title: string };
 
 /* 22b #15 — 시리즈 묶기 목업 */
 const SERIES = [
@@ -141,6 +119,8 @@ export async function generateMetadata({
   return {
     title: `${name}님의 임장 프로필 — 누구집`,
     description: `${name}님이 직접 다녀온 공개 임장노트를 모아 봅니다 — 누구집`,
+    // P2-10 색인 정책: 공개 프로필은 당분간 색인하지 않음
+    robots: { index: false, follow: false },
   };
 }
 
@@ -158,8 +138,6 @@ export default async function PublicProfilePage({
 
   // 목업 기준: "임장러버"가 탑 임장러 (23c 배지 위계 최상위)
   const isTopScout = !profile && (input === "임장러버" || input === "mock-1");
-  const isMockHandle =
-    !profile && (input === "mock-1" || MOCK_HANDLES.has(displayName));
 
   // 프로필 매칭 시 그 사용자의 공개 노트 · 미매칭 시 공개 노트 작성자 라벨 매칭 시도
   let authored: InspectionNote[] = [];
@@ -176,42 +154,16 @@ export default async function PublicProfilePage({
     }
   }
 
-  // 매칭 실패 — 404 대신 빈 상태 + 발견 피드 안내
-  if (!profile && authored.length === 0 && !isMockHandle) {
-    return (
-      <PageShell breadcrumb={`발견 › @${displayName}`}>
-        <div className="mx-auto max-w-[640px]">
-          <div className="rise-in card flex flex-col items-center gap-2 px-5 py-12 text-center">
-            <div className="text-[26px]">👤</div>
-            <div className="text-[15px] font-extrabold text-ink">
-              프로필을 찾을 수 없어요
-            </div>
-            <div className="text-[12px] leading-[1.6] text-text-3">
-              @{displayName} 님의 공개 프로필이 아직 없거나
-              <br />
-              닉네임이 바뀌었을 수 있어요
-            </div>
-            <Link href="/discover" className="btn-primary btn-md mt-2">
-              발견 피드 둘러보기
-            </Link>
-          </div>
-        </div>
-      </PageShell>
-    );
+  // P2-6: 프로필도 공개 노트도 없는 미존재 핸들 — 목업 폴백 대신 404 (SEO 안전)
+  if (!profile && authored.length === 0) {
+    notFound();
   }
 
-  const grid: GridNote[] =
-    authored.length > 0
-      ? authored.slice(0, 6).map((n) => ({
-          id: n.id,
-          title: n.aptName?.trim() || n.title,
-          isReal: true,
-        }))
-      : isMockHandle
-        ? MOCK_GRID
-        : []; // 실 프로필인데 공개 노트 0건 — 목업 그리드로 채우지 않음
-  const noteCount =
-    authored.length > 0 ? authored.length : isMockHandle ? 47 : 0;
+  const grid: GridNote[] = authored.slice(0, 6).map((n) => ({
+    id: n.id,
+    title: n.aptName?.trim() || n.title,
+  }));
+  const noteCount = authored.length;
   const region =
     profile?.region || authored[0]?.region?.trim() || "관양동·평촌";
   const handleLabel = profile?.handle ?? displayName;
@@ -257,7 +209,6 @@ export default async function PublicProfilePage({
                   로컬 전문가 Lv.3
                 </span>
                 {isTopScout && <TopScoutBadge />}
-                {isMockHandle && <ExampleBadge />}
               </div>
               <div className="mt-[2px] text-[11px] text-text-3">
                 nuguzip.com/@{handleLabel} · {region}
@@ -365,7 +316,6 @@ export default async function PublicProfilePage({
           <div className="mb-2 flex items-center justify-between">
             <span className="flex items-center gap-[6px] text-[13px] font-extrabold text-ink">
               공개 노트
-              {grid.length > 0 && !grid[0].isReal && <ExampleBadge />}
             </span>
             <Link href="/notes" className="text-[12px] font-bold text-primary">
               전체 보기 ›
@@ -392,14 +342,10 @@ export default async function PublicProfilePage({
               );
               const cls =
                 "relative block aspect-square overflow-hidden rounded-[10px] bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]";
-              return g.isReal ? (
+              return (
                 <Link key={g.id} href={`/notes/${g.id}`} className={cls}>
                   {inner}
                 </Link>
-              ) : (
-                <div key={g.id} className={cls}>
-                  {inner}
-                </div>
               );
             })}
           </div>

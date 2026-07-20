@@ -136,7 +136,10 @@ export default function ResetPasswordPage() {
   ));
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col px-7 pb-8 pt-5">
+    <main
+      className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col px-7 pb-8"
+      style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
+    >
       <div className="flex justify-end">
         <Link href="/login" className="text-[17px] text-text-3" aria-label="닫기">
           ✕

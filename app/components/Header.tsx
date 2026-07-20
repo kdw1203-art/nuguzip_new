@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { HeaderAuth } from "./HeaderAuth";
+import { HeaderSearch } from "./HeaderSearch";
 
 /** 9m GNB — 호버 드롭다운(리퀴드 글래스, riseIn 180ms)
  *  네비 개편안(overhaul-audit): 4 대분류. /safety·/town/market 은 실연동 전까지 제외,
@@ -111,13 +112,8 @@ export function Header() {
 
         <div className="flex-1" />
 
-        {/* 데스크탑 검색 */}
-        <Link
-          href="/search"
-          className="hidden w-[200px] items-center gap-2 rounded-xl bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-3 lg:flex"
-        >
-          ⌕ 지역, 단지명 검색
-        </Link>
+        {/* 데스크탑 검색 — P2-14 인라인 자동완성 (HeaderSearch) */}
+        <HeaderSearch />
 
         {/* 데스크탑 알림 진입점 (P2-3) — 모바일 🔔과 동일 타깃 */}
         <Link

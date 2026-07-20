@@ -1,20 +1,40 @@
+import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { readBoardPosts } from "@/lib/newui/board-posts";
+import { SupportContactForm } from "./SupportContactForm";
 
-const SIDE_MENU = [
-  "지원 허브",
-  "공지사항",
-  "자주 묻는 질문",
-  "투자 제휴 문의",
-  "광고 문의",
-  "이용약관",
-  "개인정보처리방침",
-] as const;
+/* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
 
-const NOTICES = [
-  { tag: "업데이트", tagClass: "bg-primary-soft text-primary", title: "AI 비교 리포트 v2 — 층별 시세 분리", date: "07.15" },
-  { tag: "이벤트", tagClass: "bg-[#fdf3e7] text-[#c07a3a]", title: "첫 임장노트 작성 시 플러스 1개월", date: "07.10" },
-  { tag: "안내", tagClass: "bg-[#f2f4f8] text-text-2", title: "개인정보처리방침 개정 (7/15 시행)", date: "07.01" },
-] as const;
+const SIDE_MENU: { label: string; href: string }[] = [
+  { label: "지원 허브", href: "/support" },
+  { label: "공지사항", href: "#notices" },
+  { label: "자주 묻는 질문", href: "#faq" },
+  { label: "투자 제휴 문의", href: "#partner" },
+  { label: "광고 문의", href: "#ads" },
+  { label: "이용약관", href: "/legal/terms" },
+  { label: "개인정보처리방침", href: "/legal/privacy" },
+];
+
+type NoticeItem = { id: string; title: string; date: string };
+
+/** board_posts 공지 카테고리 최신 3건 — 실패·미존재 시 빈 배열(정직한 빈 상태) */
+async function loadNotices(): Promise<NoticeItem[]> {
+  try {
+    const posts = await readBoardPosts(300);
+    return posts
+      .filter((p) => p.category.trim() === "공지")
+      .slice(0, 3)
+      .map((p) => {
+        const t = new Date(p.createdAt);
+        const date = Number.isFinite(t.getTime())
+          ? `${String(t.getMonth() + 1).padStart(2, "0")}.${String(t.getDate()).padStart(2, "0")}`
+          : "";
+        return { id: p.id, title: p.title, date };
+      });
+  } catch {
+    return [];
+  }
+}
 
 const FAQ_CATEGORIES = [
   { icon: "📝", label: "노트 · 기록" },
@@ -53,7 +73,8 @@ const TICKETS = [
   },
 ] as const;
 
-export default function SupportPage() {
+export default async function SupportPage() {
+  const notices = await loadNotices();
   return (
     <PageShell breadcrumb="고객지원" title="고객지원 허브" wide>
       {/* 검색 (9n / 7g) */}
@@ -74,18 +95,29 @@ export default function SupportPage() {
       <div className="grid gap-4 md:grid-cols-[280px_1fr]">
         {/* 좌측 메뉴 (9n) */}
         <nav className="rise-in-1 card hidden h-fit flex-col rounded-[18px] py-2 md:flex">
-          {SIDE_MENU.map((m, i) => (
-            <div
-              key={m}
-              className={`px-5 py-3 text-[13px] ${
-                i === 0
-                  ? "border-l-[3px] border-primary bg-primary-soft font-bold text-primary"
-                  : "font-semibold text-text-1"
-              }`}
-            >
-              {m}
-            </div>
-          ))}
+          {SIDE_MENU.map((m, i) =>
+            m.href.startsWith("#") ? (
+              <a
+                key={m.label}
+                href={m.href}
+                className="px-5 py-3 text-[13px] font-semibold text-text-1 transition-colors hover:text-primary"
+              >
+                {m.label}
+              </a>
+            ) : (
+              <Link
+                key={m.label}
+                href={m.href}
+                className={`px-5 py-3 text-[13px] ${
+                  i === 0
+                    ? "border-l-[3px] border-primary bg-primary-soft font-bold text-primary"
+                    : "font-semibold text-text-1 transition-colors hover:text-primary"
+                }`}
+              >
+                {m.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="flex flex-col gap-3.5">
@@ -94,53 +126,78 @@ export default function SupportPage() {
             <div className="card flex flex-col gap-2 rounded-2xl p-5">
               <div className="text-[15px] font-extrabold text-ink">1:1 문의</div>
               <div className="text-xs leading-[1.55] text-text-2">평일 10-18시 · 평균 응답 4시간</div>
-              <div className="btn-primary mt-1 rounded-[10px] p-[9px] text-center text-xs">
+              <a href="#contact" className="btn-primary mt-1 rounded-[10px] p-[9px] text-center text-xs">
                 문의 남기기
-              </div>
+              </a>
             </div>
             <div className="card flex flex-col gap-2 rounded-2xl p-5">
               <div className="text-[15px] font-extrabold text-ink">자주 묻는 질문</div>
               <div className="text-xs leading-[1.55] text-text-2">노트 · 구독 · 결제 · 전문가 등록</div>
-              <div className="mt-1 rounded-[10px] bg-[#f2f4f8] p-[9px] text-center text-xs font-bold text-text-1">
+              <a
+                href="#faq"
+                className="mt-1 rounded-[10px] bg-[#f2f4f8] p-[9px] text-center text-xs font-bold text-text-1"
+              >
                 FAQ 보기
-              </div>
+              </a>
             </div>
             <div className="card flex flex-col gap-2 rounded-2xl p-5">
               <div className="text-[15px] font-extrabold text-ink">오류 · 데이터 신고</div>
               <div className="text-xs leading-[1.55] text-text-2">시세·크롤링 데이터 오류 제보</div>
-              <div className="mt-1 rounded-[10px] bg-[#f2f4f8] p-[9px] text-center text-xs font-bold text-text-1">
+              <a
+                href="#contact"
+                className="mt-1 rounded-[10px] bg-[#f2f4f8] p-[9px] text-center text-xs font-bold text-text-1"
+              >
                 신고하기
-              </div>
+              </a>
             </div>
           </div>
 
-          {/* 공지사항 (9n) */}
-          <div className="rise-in-3 card flex flex-col gap-1 rounded-2xl px-5 py-[18px]">
+          {/* 1:1 문의 폼 (P2-2) — /api/support 실연동 */}
+          <div id="contact" className="rise-in-3 card flex flex-col gap-3 scroll-mt-24 rounded-2xl px-5 py-[18px]">
+            <div>
+              <span className="text-sm font-extrabold text-ink">1:1 문의 남기기</span>
+              <span className="ml-2 text-[11px] text-text-3">영업일 기준 24~72시간 이내 답변</span>
+            </div>
+            <SupportContactForm />
+          </div>
+
+          {/* 공지사항 (9n) — board_posts 공지 카테고리 실데이터 (P2-2) */}
+          <div id="notices" className="rise-in-3 card flex flex-col gap-1 scroll-mt-24 rounded-2xl px-5 py-[18px]">
             <div className="mb-1.5 flex items-baseline justify-between">
               <span className="text-sm font-extrabold text-ink">공지사항</span>
-              <span className="text-[11px] font-bold text-primary">전체 ›</span>
+              <Link href="/town" className="text-[11px] font-bold text-primary">
+                전체 ›
+              </Link>
             </div>
-            {NOTICES.map((n, i, arr) => (
-              <div
-                key={n.title}
-                className={`flex justify-between py-2 text-xs ${
-                  i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
-              >
-                <span className="font-semibold text-text-1">
-                  <span className={`mr-1.5 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${n.tagClass}`}>
-                    {n.tag}
-                  </span>
-                  {n.title}
-                </span>
-                <span className="text-[#adb5bd]">{n.date}</span>
+            {notices.length === 0 ? (
+              <div className="py-4 text-center text-xs text-text-3">
+                등록된 공지사항이 아직 없습니다
               </div>
-            ))}
+            ) : (
+              notices.map((n, i, arr) => (
+                <Link
+                  key={n.id}
+                  href={`/town/news/${n.id}`}
+                  className={`flex justify-between gap-3 py-2 text-xs ${
+                    i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  }`}
+                >
+                  <span className="min-w-0 truncate font-semibold text-text-1">
+                    <span className="mr-1.5 rounded bg-primary-soft px-1.5 py-0.5 text-[10px] font-extrabold text-primary">
+                      공지
+                    </span>
+                    {n.title}
+                  </span>
+                  <span className="shrink-0 text-[#adb5bd]">{n.date}</span>
+                </Link>
+              ))
+            )}
           </div>
 
           {/* 내 문의 티켓 + 답변 상세 (10b) */}
           <div className="grid gap-3.5 lg:grid-cols-[340px_1fr]">
             <div className="rise-in-3 flex flex-col gap-2.5">
+              <div className="text-[10px] text-text-3">문의 내역 미리보기 (예시)</div>
               <div className="flex gap-1.5 text-xs">
                 <span className="rounded-full bg-ink px-[13px] py-1.5 font-bold text-white">전체 3</span>
                 <span className="rounded-full border border-[#e2e7ee] bg-surface px-[13px] py-1.5 font-semibold text-text-2">
@@ -214,7 +271,7 @@ export default function SupportPage() {
           </div>
 
           {/* FAQ (10b + 7g) */}
-          <div className="rise-in-4 card flex flex-col gap-1 rounded-[20px] px-6 py-[22px]">
+          <div id="faq" className="rise-in-4 card flex flex-col gap-1 scroll-mt-24 rounded-[20px] px-6 py-[22px]">
             <div className="mb-2 flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
               <span className="text-[15px] font-extrabold text-ink">자주 묻는 질문</span>
               <div className="flex gap-1.5 text-[11px]">
@@ -258,35 +315,49 @@ export default function SupportPage() {
               <div className="text-[13px] font-extrabold text-white">해결이 안 되셨나요?</div>
               <div className="mt-0.5 text-[11px] text-ai-muted">평일 10-18시 · 평균 응답 4시간</div>
             </div>
-            <span className="btn-primary rounded-full px-4 py-[9px] text-xs">1:1 문의</span>
+            <a href="#contact" className="btn-primary rounded-full px-4 py-[9px] text-xs">
+              1:1 문의
+            </a>
           </div>
 
           {/* 제휴 · 광고 (9n) */}
           <div className="rise-in-5 grid gap-3 md:grid-cols-2">
-            <div className="ai-panel flex flex-col gap-2 rounded-2xl p-5">
+            <div id="partner" className="ai-panel flex scroll-mt-24 flex-col gap-2 rounded-2xl p-5">
               <div className="text-sm font-extrabold text-white">투자 · 제휴 문의</div>
               <div className="text-xs leading-[1.6] text-ai-text">
                 IR 자료 요청, 데이터 제휴, 금융사 연동 제안은 별도 채널로 받고 있습니다.
               </div>
-              <div className="text-xs font-bold text-[#7ea2ff]">partner@nuguzip.com</div>
+              <a href="mailto:partner@nuguzip.com" className="text-xs font-bold text-[#7ea2ff]">
+                partner@nuguzip.com
+              </a>
             </div>
-            <div className="card flex flex-col gap-2 rounded-2xl p-5">
+            <div id="ads" className="card flex scroll-mt-24 flex-col gap-2 rounded-2xl p-5">
               <div className="text-sm font-extrabold text-ink">광고 문의</div>
               <div className="text-xs leading-[1.6] text-text-2">
                 지면 소개서(AD 슬롯 위치·단가)를 보내드립니다. 커뮤니티 어뷰징성 광고는 게재하지
                 않습니다.
               </div>
-              <div className="text-xs font-bold text-primary">ad@nuguzip.com · 미디어킷 다운로드</div>
+              <a href="mailto:ad@nuguzip.com" className="text-xs font-bold text-primary">
+                ad@nuguzip.com · 미디어킷 다운로드
+              </a>
             </div>
           </div>
 
           {/* 약관 푸터 (9n) */}
           <div className="rise-in-6 card flex flex-col justify-between gap-2 rounded-2xl px-6 py-[18px] md:flex-row md:items-center">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-2">
-              <span className="font-bold text-text-1">이용약관</span>
-              <span className="font-bold text-text-1">개인정보처리방침</span>
-              <span>위치기반서비스 약관</span>
-              <span>청소년보호정책</span>
+              <Link href="/legal/terms" className="font-bold text-text-1 hover:text-primary">
+                이용약관
+              </Link>
+              <Link href="/legal/privacy" className="font-bold text-text-1 hover:text-primary">
+                개인정보처리방침
+              </Link>
+              <Link href="/legal/location" className="hover:text-primary">
+                위치기반서비스 약관
+              </Link>
+              <Link href="/legal/youth" className="hover:text-primary">
+                청소년보호정책
+              </Link>
             </div>
             <span className="text-[11px] text-[#adb5bd]">시행 2026.07.15 · 이전 버전 보기</span>
           </div>

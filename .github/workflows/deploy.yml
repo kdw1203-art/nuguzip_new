@@ -14,6 +14,7 @@ env:
   VERCEL_ORG_ID: team_HEspqLpVXaHn1GHTEjqbSZ2E
   VERCEL_PROJECT_ID: prj_hsE8uEG7QyxefafQpVnKx6diCVqO
   SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  CRS: ${{ secrets.CRON_SECRET }}
 
 permissions:
   contents: read
@@ -101,6 +102,12 @@ jobs:
         run: |
           npx vercel env rm SUPABASE_SERVICE_ROLE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$SRK" | npx vercel env add SUPABASE_SERVICE_ROLE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+      # CRON_SECRET 동기화 — ETL 스케줄러(etl.yml)가 같은 값으로 크론 엔드포인트 호출
+      - name: Sync cron secret env
+        if: ${{ env.CRS != '' }}
+        run: |
+          npx vercel env rm CRON_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+          printf '%s' "$CRS" | npx vercel env add CRON_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build

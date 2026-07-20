@@ -51,6 +51,13 @@ export function SearchClient({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setRecent(readRecent());
+    // P2-14: GNB 인라인 검색에서 Enter → /search?q=… 진입 시 검색어 프리필
+    try {
+      const initial = new URLSearchParams(window.location.search).get("q")?.trim();
+      if (initial) setQ(initial);
+    } catch {
+      // URL 파싱 실패 — 무시
+    }
   }, []);
 
   /* 디바운스 200ms 서제스트 */
