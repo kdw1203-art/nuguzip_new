@@ -13,6 +13,7 @@ import {
   findApartmentComplexByName,
   type ComplexTransactionRecord,
 } from "@/lib/market/complex-transactions";
+import { getPublicRecordsForComplex } from "@/lib/market/public-records";
 
 /* ============================================================
    단지 실거래 상세 — /complex/tx/[slug]
@@ -115,6 +116,12 @@ export default async function ComplexTxPage({
   const { complexName, region, transactions } = data;
 
   const aptMatch = await findApartmentComplexByName(complexName, region).catch(() => null);
+  const publicRecords = await getPublicRecordsForComplex(complexName, 40).catch(
+    () => [],
+  );
+  const quoteRecords = publicRecords.filter(
+    (r) => r.dataset === "kb_price_quote" && (r.priceLowKrw || r.priceHighKrw),
+  );
 
   const latest = transactions[0];
   const address =
@@ -317,6 +324,43 @@ export default async function ComplexTxPage({
           complexName={complexName}
         />
       </section>
+
+      {/* KB 시세정보 (CODEF 연동 시 노출) */}
+      {quoteRecords.length > 0 && (
+        <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            KB 시세{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              면적별 매매 상·하한 평균가 · 만원 아님(원 환산 표기)
+            </span>
+          </h2>
+          <ul className="mt-2">
+            {quoteRecords.slice(0, 8).map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
+              >
+                <div className="min-w-0">
+                  <div className="text-[13px] font-bold text-ink">
+                    {r.areaM2 ? `${r.areaM2}㎡` : "면적 미상"}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-text-3">
+                    {r.recordDate ?? r.period ?? ""} 기준
+                  </div>
+                </div>
+                <div className="shrink-0 text-right text-[13px] font-extrabold text-ink">
+                  {r.priceLowKrw ? formatKrwShort(r.priceLowKrw) : "—"}
+                  {" ~ "}
+                  {r.priceHighKrw ? formatKrwShort(r.priceHighKrw) : "—"}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-text-3">
+            출처: KB부동산 시세(공개 자료) · 참고용, 실거래·계약 조건에 따라 다를 수 있습니다.
+          </p>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">
