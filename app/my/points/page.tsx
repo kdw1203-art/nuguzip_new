@@ -3,6 +3,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { safeAuth } from "@/lib/safe-auth";
 import { getBalance, getHistory, type LedgerRow } from "@/lib/points/ledger";
 import { EARN_RULES, getSpendItem } from "@/lib/points/catalog";
+import { AttendanceButton } from "./AttendanceButton";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -163,6 +164,7 @@ function WalletView({
             </div>
           </div>
         </div>
+        <AttendanceButton />
         <Link
           href="/points/shop"
           className="btn-primary rounded-[12px] py-2.5 text-center text-sm"

@@ -4,6 +4,7 @@
  * RLS deny-all(정책 없음) — service-role 경유만 허용. Supabase 미설정 시 빈 값.
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
 
 export const LISTING_TYPES = ["sale", "jeonse", "monthly"] as const;
@@ -166,6 +167,81 @@ export async function listApprovedListings(
     return data.map((r) => mapPublic(r as Record<string, unknown>));
   } catch (e) {
     logger.warn("[listings] listApprovedListings", e);
+    return [];
+  }
+}
+
+/** 지도 마커용 — 좌표를 가진 승인 매물 (최소 컬럼, author_email 비노출). */
+export interface BoundsListing {
+  id: string;
+  lat: number;
+  lng: number;
+  listingType: ListingType;
+  complexName: string;
+  priceKrw: number | null;
+  depositKrw: number | null;
+  monthlyKrw: number | null;
+  boostUntil: string | null;
+}
+
+/**
+ * 뷰포트(bounds) 안의 승인 매물 — 지도 매물 레이어 마커용.
+ * 좌표(lat/lng) 필수, 부스트 우선 → 최신순, 최대 limit건(기본 200).
+ * getReadOnlySupabase 경유 — env 미설정/조회 실패 시 빈 배열.
+ */
+export async function listListingsInBounds(bounds: {
+  swLat: number;
+  swLng: number;
+  neLat: number;
+  neLng: number;
+  limit?: number;
+  listingType?: ListingType;
+}): Promise<BoundsListing[]> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return [];
+  // min/max 뒤집힘 정규화
+  const swLat = Math.min(bounds.swLat, bounds.neLat);
+  const neLat = Math.max(bounds.swLat, bounds.neLat);
+  const swLng = Math.min(bounds.swLng, bounds.neLng);
+  const neLng = Math.max(bounds.swLng, bounds.neLng);
+  if (![swLat, neLat, swLng, neLng].every((n) => Number.isFinite(n))) return [];
+  const limit = Math.min(Math.max(Math.round(bounds.limit ?? 200), 1), 500);
+  try {
+    let q = sb
+      .from("listings")
+      .select(
+        "id,lat,lng,listing_type,complex_name,price_krw,deposit_krw,monthly_krw,boost_until,created_at",
+      )
+      .eq("status", "approved")
+      .not("lat", "is", null)
+      .not("lng", "is", null)
+      .gte("lat", swLat)
+      .lte("lat", neLat)
+      .gte("lng", swLng)
+      .lte("lng", neLng);
+    if (bounds.listingType) q = q.eq("listing_type", bounds.listingType);
+    const { data, error } = await q
+      .order("boost_until", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return (data as Array<Record<string, unknown>>)
+      .filter((r) => Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)))
+      .map((r) => ({
+        id: String(r.id ?? ""),
+        lat: Number(r.lat),
+        lng: Number(r.lng),
+        listingType: isListingType(String(r.listing_type))
+          ? (String(r.listing_type) as ListingType)
+          : "sale",
+        complexName: String(r.complex_name ?? ""),
+        priceKrw: r.price_krw != null ? Number(r.price_krw) : null,
+        depositKrw: r.deposit_krw != null ? Number(r.deposit_krw) : null,
+        monthlyKrw: r.monthly_krw != null ? Number(r.monthly_krw) : null,
+        boostUntil: r.boost_until != null ? String(r.boost_until) : null,
+      }));
+  } catch (e) {
+    logger.warn("[listings] listListingsInBounds", e);
     return [];
   }
 }

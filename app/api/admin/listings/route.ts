@@ -9,6 +9,7 @@ import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { updateListingStatus } from "@/lib/listings/store-db";
 import { awardPoints } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { appendInboxNotification } from "@/lib/notifications/inbox";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,6 +76,43 @@ export async function PATCH(req: NextRequest) {
     } catch {
       // 적립 중 오류가 나도 승인 자체는 성공 처리한다.
     }
+  }
+
+  // 인박스 알림 — 승인/반려 결과를 작성자에게 전달 (best-effort · 실패해도 검수 결과 유지)
+  try {
+    const sb = getServiceSupabase();
+    if (sb) {
+      const { data } = await sb
+        .from("listings")
+        .select("author_email, complex_name")
+        .eq("id", id)
+        .maybeSingle();
+      const row = (data ?? null) as {
+        author_email?: string | null;
+        complex_name?: string | null;
+      } | null;
+      const authorEmail = String(row?.author_email ?? "").trim();
+      if (authorEmail) {
+        const complexName = String(row?.complex_name ?? "").trim() || "매물";
+        if (action === "approve") {
+          await appendInboxNotification({
+            userEmail: authorEmail,
+            title: "매물이 승인되었어요",
+            body: `'${complexName}' 매물이 검수를 통과해 지도에 노출됩니다. 포인트가 지급되었어요.`,
+            actionUrl: `/listings/${id}`,
+          });
+        } else {
+          await appendInboxNotification({
+            userEmail: authorEmail,
+            title: "매물 검수 반려",
+            body: `'${complexName}' 매물이 반려되었어요. 사유: ${reason}`,
+            actionUrl: "/my/listings",
+          });
+        }
+      }
+    }
+  } catch {
+    // 알림 발송 실패는 검수 결과에 영향 주지 않는다.
   }
 
   return NextResponse.json({ ok: true });

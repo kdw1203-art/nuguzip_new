@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "../components/Logo";
 import { NaverMap, type MapIdleInfo, type MapMarkerData } from "@/components/map/NaverMap";
 
@@ -270,7 +271,31 @@ const CLUSTER_MODE_MAX_ZOOM = 14;
 /** bounds 변경 → fetch 디바운스(ms) */
 const CLUSTER_FETCH_DEBOUNCE_MS = 350;
 
+/* ===== 매물 레이어 (/api/map/listings) — 유저 등록 매물을 지도 마커로 ===== */
+
+interface MapListingItem {
+  id: string;
+  lat: number;
+  lng: number;
+  priceLabel: string;
+  listingType: "sale" | "jeonse" | "monthly";
+  boosted: boolean;
+}
+
+/** listing_type → 한글 라벨 (서버 모듈 import 없이 클라이언트 로컬) */
+const LISTING_TYPE_LABEL_MAP: Record<MapListingItem["listingType"], string> = {
+  sale: "매매",
+  jeonse: "전세",
+  monthly: "월세",
+};
+
+/** 매물 마커 전용 색 — 회색 단지 시세 마커와 시각적으로 구분 */
+const LISTING_MARKER_COLOR = "#1d4fd8";
+/** 매물 bounds fetch 디바운스(ms) */
+const LISTING_FETCH_DEBOUNCE_MS = 350;
+
 export function MapClient({ danji, regionLabel }: MapClientProps) {
+  const router = useRouter();
   const [zoom, setZoom] = useState<Zoom>("danji");
   const [level, setLevel] = useState<number>(LEVEL_BY_ZOOM.danji);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -284,6 +309,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   });
 
   const selected = danji.find((d) => d.id === selectedId) ?? null;
+
+  /* ===== 매물 레이어 상태 — 토글 ON일 때만 현재 뷰포트 매물을 마커로 ===== */
+  const [showListings, setShowListings] = useState(false);
+  const [listingItems, setListingItems] = useState<MapListingItem[]>([]);
 
   /* ===== 가격대·면적대·준공연도 필터 상태 ===== */
   const [priceKey, setPriceKey] = useState("all");
@@ -325,6 +354,18 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
   const filterBar = (
     <>
+      <button
+        type="button"
+        aria-pressed={showListings}
+        onClick={() => setShowListings((v) => !v)}
+        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
+          showListings
+            ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
+            : "bg-[rgba(255,255,255,.75)] text-text-2"
+        }`}
+      >
+        🏠 매물
+      </button>
       <FilterDropdown
         kind="price"
         label="가격"
@@ -371,9 +412,52 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   const fetchTimerRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const handleMapIdle = useCallback((info: MapIdleInfo) => {
+  /* ===== 매물 레이어 fetch/refs (상태 선언은 상단) ===== */
+  const showListingsRef = useRef(showListings);
+  showListingsRef.current = showListings;
+  const lastBoundsRef = useRef<MapIdleInfo["bounds"]>(null);
+  const listingTimerRef = useRef<number | null>(null);
+  const listingAbortRef = useRef<AbortController | null>(null);
+
+  const fetchListings = useCallback((bounds: NonNullable<MapIdleInfo["bounds"]>) => {
+    if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
+    listingTimerRef.current = window.setTimeout(() => {
+      listingAbortRef.current?.abort();
+      const controller = new AbortController();
+      listingAbortRef.current = controller;
+      const params = new URLSearchParams({
+        swLat: String(bounds.swLat),
+        swLng: String(bounds.swLng),
+        neLat: String(bounds.neLat),
+        neLng: String(bounds.neLng),
+      });
+      fetch(`/api/map/listings?${params.toString()}`, { signal: controller.signal })
+        .then((res) => (res.ok ? (res.json() as Promise<{ items: MapListingItem[] }>) : null))
+        .then((json) => {
+          if (!json || controller.signal.aborted) return;
+          setListingItems(Array.isArray(json.items) ? json.items : []);
+        })
+        .catch(() => undefined); // 실패 시 기존 마커 유지
+    }, LISTING_FETCH_DEBOUNCE_MS);
+  }, []);
+
+  // 토글 ON: 마지막 뷰포트로 즉시 로드 / OFF: 매물 마커 비우고 진행 중 요청 취소
+  useEffect(() => {
+    if (showListings) {
+      if (lastBoundsRef.current) fetchListings(lastBoundsRef.current);
+    } else {
+      if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
+      listingAbortRef.current?.abort();
+      setListingItems([]);
+    }
+  }, [showListings, fetchListings]);
+
+  const handleMapIdle = useCallback(
+    (info: MapIdleInfo) => {
     const bounds = info.bounds;
     if (!bounds) return;
+    lastBoundsRef.current = bounds;
+    if (showListingsRef.current) fetchListings(bounds);
     if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
     fetchTimerRef.current = window.setTimeout(() => {
       abortRef.current?.abort();
@@ -396,20 +480,44 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         })
         .catch(() => undefined); // 실패 시 기존 마커 유지
     }, CLUSTER_FETCH_DEBOUNCE_MS);
-  }, []);
+    },
+    [fetchListings],
+  );
 
   useEffect(
     () => () => {
       if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
       abortRef.current?.abort();
+      if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
+      listingAbortRef.current?.abort();
     },
     [],
   );
 
+  // 매물 레이어 마커 — 단지(회색 시세 말풍선)와 구분되는 파란 알약 + 유형·가격 라벨.
+  // avgPricePerM2 정의 → price marker 스타일, tierColor로 파란 강조, 부스트는 ★.
+  const listingMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showListings) return [];
+    return listingItems.map((l) => {
+      const typeLabel = LISTING_TYPE_LABEL_MAP[l.listingType] ?? "매물";
+      return {
+        id: `listing:${l.id}`,
+        lat: l.lat,
+        lng: l.lng,
+        label: typeLabel,
+        priceLabel: `${typeLabel} ${l.priceLabel}`.trim(),
+        avgPricePerM2: 1, // 시세 말풍선 스타일 강제
+        tierColor: LISTING_MARKER_COLOR,
+        favorite: l.boosted, // 부스트 매물 우선 노출(★)
+        infoHtml: "",
+      };
+    });
+  }, [showListings, listingItems]);
+
   const markers = useMemo<MapMarkerData[]>(() => {
-    // 낮은 줌: 서버 그리드 클러스터만 표시 (개수 배지 원형 마커)
+    // 낮은 줌: 서버 그리드 클러스터만 표시 (개수 배지 원형 마커) + 매물 레이어
     if (clusterMode === "clusters" && clusters.length > 0) {
-      return clusters.map((c) => ({
+      const base: MapMarkerData[] = clusters.map((c) => ({
         id: `cluster:${c.lat}:${c.lng}`,
         lat: c.lat,
         lng: c.lng,
@@ -419,6 +527,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
         infoHtml: "",
       }));
+      return [...base, ...listingMarkers];
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
     const base: MapMarkerData[] = filteredDanji.map((d) => ({
@@ -442,8 +551,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         base.push({ id: p.id, lat: p.lat, lng: p.lng, label: p.name, infoHtml: "" });
       }
     }
-    return base;
-  }, [clusterMode, clusters, extraPoints, filteredDanji, filterActive, selectedId]);
+    return [...base, ...listingMarkers];
+  }, [clusterMode, clusters, extraPoints, filteredDanji, filterActive, selectedId, listingMarkers]);
 
   const selectDanji = (id: string) => {
     setSelectedId(id);
@@ -453,6 +562,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   };
 
   const handleMarkerClick = (m: MapMarkerData) => {
+    // 매물 마커 클릭 → 매물 상세로 이동
+    if (m.id.startsWith("listing:")) {
+      router.push(`/listings/${m.id.slice("listing:".length)}`);
+      return;
+    }
     // 클러스터 클릭 → 해당 지점으로 두 단계 확대
     if (m.id.startsWith("cluster:")) {
       setCenter({ lat: m.lat, lng: m.lng });
@@ -1081,6 +1195,17 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           </div>
         </aside>
       )}
+
+      {/* ===== 매물 등록 플로팅 버튼 (우하단, 줌 컨트롤 위 · 탭바 위) ===== */}
+      <Link
+        href="/listings/new"
+        aria-label="매물 등록"
+        className="btn-primary btn-cta absolute right-5 z-30 flex items-center gap-1.5 rounded-full px-4 py-3 text-[13px] font-extrabold text-white shadow-[0_10px_28px_rgba(29,79,216,.42)]"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 214px)" }}
+      >
+        <span className="text-base leading-none">＋</span>
+        매물 등록
+      </Link>
 
       {/* ===== 우하단 줌 컨트롤 ===== */}
       <div

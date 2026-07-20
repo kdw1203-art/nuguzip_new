@@ -22,6 +22,9 @@ type Category = (typeof CATEGORIES)[number];
 const SEOUL_GUS = DISTRICTS["서울특별시"];
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
 
+/** 매물 사진 업로드 상한 (첫 장이 대표 이미지) */
+const MAX_PHOTOS = 5;
+
 interface GeocodeItem {
   address: string;
   roadAddress?: string;
@@ -56,6 +59,9 @@ export function ListingForm() {
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [photosUploading, setPhotosUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +126,52 @@ export function ListingForm() {
     }
   }
 
+  /** 선택한 이미지들을 POST /api/upload(folder=listings) 로 올려 URL 수집 */
+  async function onPhotoFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // 같은 파일 재선택 허용
+    if (files.length === 0) return;
+    setPhotoError(null);
+
+    const remaining = MAX_PHOTOS - photos.length;
+    if (remaining <= 0) {
+      setPhotoError(`사진은 최대 ${MAX_PHOTOS}장까지 올릴 수 있어요.`);
+      return;
+    }
+    const picked = files.slice(0, remaining);
+    setPhotosUploading(true);
+    try {
+      for (const file of picked) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("folder", "listings");
+        try {
+          const res = await fetch("/api/upload", { method: "POST", body: fd });
+          const data = (await res.json().catch(() => ({}))) as {
+            url?: string;
+            error?: string;
+          };
+          if (!res.ok || !data.url) {
+            setPhotoError(data.error ?? "사진 업로드에 실패했어요. 다시 시도해 주세요.");
+            continue;
+          }
+          const url = data.url;
+          setPhotos((prev) =>
+            prev.includes(url) ? prev : [...prev, url].slice(0, MAX_PHOTOS),
+          );
+        } catch {
+          setPhotoError("사진 업로드 중 네트워크 오류가 발생했어요.");
+        }
+      }
+    } finally {
+      setPhotosUploading(false);
+    }
+  }
+
+  function removePhoto(url: string) {
+    setPhotos((prev) => prev.filter((u) => u !== url));
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -131,7 +183,12 @@ export function ListingForm() {
     try {
       const desc = description.trim();
       const fullDescription = category ? `[${category}] ${desc}`.trim() : desc;
-      const thumb = thumbnailUrl.trim() || null;
+      const manualThumb = thumbnailUrl.trim();
+      // 업로드한 사진 + (있으면) 수기 입력한 대표 URL 을 합쳐 중복 제거 (첫 장이 대표)
+      const allPhotos = Array.from(
+        new Set([...(manualThumb ? [manualThumb] : []), ...photos]),
+      ).slice(0, MAX_PHOTOS);
+      const thumb = allPhotos[0] ?? null;
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,7 +208,8 @@ export function ListingForm() {
           lng: picked.lng,
           address: picked.address,
           thumbnail: thumb,
-          photos: thumb ? [thumb] : [],
+          thumbnail_url: thumb,
+          photos: allPhotos,
           agreeResponsibility: agree,
         }),
       });
@@ -484,6 +542,67 @@ export function ListingForm() {
         />
       </div>
 
+      {/* 매물 사진 업로드 */}
+      <div>
+        <span className={label}>매물 사진 (선택 · 최대 {MAX_PHOTOS}장)</span>
+        <p className="mb-2 text-[12px] leading-[1.6] text-text-3">
+          기기에서 사진을 골라 올리면 <b>첫 번째 사진</b>이 대표 이미지로 사용돼요.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {photos.map((url, i) => (
+            <div
+              key={url}
+              className="relative h-20 w-20 overflow-hidden rounded-xl border border-[rgba(0,0,0,.06)]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt={`매물 사진 ${i + 1}`} className="h-full w-full object-cover" />
+              {i === 0 && (
+                <span className="absolute left-1 top-1 rounded-md bg-[rgba(29,79,216,.85)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  대표
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => removePhoto(url)}
+                aria-label="사진 삭제"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[rgba(0,0,0,.55)] text-[13px] leading-none text-white"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {photos.length < MAX_PHOTOS && (
+            <label
+              className={`flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[rgba(0,0,0,.18)] text-[11px] text-text-3 ${
+                photosUploading
+                  ? "pointer-events-none opacity-60"
+                  : "cursor-pointer hover:border-primary hover:text-primary"
+              }`}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={photosUploading}
+                onChange={onPhotoFilesSelected}
+              />
+              {photosUploading ? (
+                <span>업로드 중…</span>
+              ) : (
+                <>
+                  <span className="text-[18px] leading-none">＋</span>
+                  <span>사진 추가</span>
+                </>
+              )}
+            </label>
+          )}
+        </div>
+        {photoError && (
+          <p className="mt-2 text-[12px] font-bold text-[#d64545]">{photoError}</p>
+        )}
+      </div>
+
       {/* 설명 */}
       <div>
         <label className={label} htmlFor="description">
@@ -535,8 +654,12 @@ export function ListingForm() {
         </div>
       )}
 
-      <button type="submit" className="btn-primary btn-lg" disabled={submitting || !agree}>
-        {submitting ? "등록 중…" : "매물 등록 접수"}
+      <button
+        type="submit"
+        className="btn-primary btn-lg"
+        disabled={submitting || !agree || photosUploading}
+      >
+        {submitting ? "등록 중…" : photosUploading ? "사진 업로드 중…" : "매물 등록 접수"}
       </button>
     </form>
   );
