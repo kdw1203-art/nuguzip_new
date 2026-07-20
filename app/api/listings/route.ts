@@ -34,6 +34,21 @@ function toPositiveNumber(v: unknown, max: number): number | null {
   return n;
 }
 
+/** 위경도 파싱 — 범위 밖·비유한값이면 null */
+function toCoord(v: unknown, min: number, max: number): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return n;
+}
+
+/** http(s) URL만 허용 (파일 업로드 없이 URL만 저장) */
+function toUrl(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  if (!s || !/^https?:\/\//i.test(s)) return null;
+  return s.slice(0, 500);
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const typeRaw = (sp.get("type") ?? "").trim();
@@ -128,6 +143,22 @@ export async function POST(req: NextRequest) {
   const description = String(body.description ?? "").trim().slice(0, 2000) || null;
   const contact = String(body.contact ?? "").trim().slice(0, 120) || null;
 
+  // 지도 핀 좌표 + 역지오코딩 주소 (선택이지만 지도 등록 흐름에서 함께 전달)
+  const lat = toCoord(body.lat, 32, 39); // 대한민국 위도 범위 근사
+  const lng = toCoord(body.lng, 124, 132); // 대한민국 경도 범위 근사
+  const address = String(body.address ?? "").trim().slice(0, 200) || null;
+
+  // 사진 — 파일 업로드 없이 URL만 (썸네일 1장 + 추가 사진 배열)
+  const thumbnailUrl = toUrl(body.thumbnail ?? body.thumbnailUrl);
+  const photos = Array.isArray(body.photos)
+    ? body.photos
+        .map((x) => toUrl(x))
+        .filter((x): x is string => x !== null)
+        .slice(0, 8)
+    : [];
+  // 썸네일이 사진 배열에 없으면 첫 장으로 편입
+  if (thumbnailUrl && !photos.includes(thumbnailUrl)) photos.unshift(thumbnailUrl);
+
   const agreed = body.agreeResponsibility === true;
   if (!agreed) {
     return NextResponse.json(
@@ -151,6 +182,11 @@ export async function POST(req: NextRequest) {
       floor,
       description,
       contact,
+      lat,
+      lng,
+      address,
+      thumbnailUrl,
+      photos,
     });
     return NextResponse.json({ ok: true, id, status: "pending" }, { status: 201 });
   } catch (e) {

@@ -26,6 +26,8 @@ const PLAN_BADGE: Record<string, string> = {
 
 const MENU = [
   { label: "마이", href: "/my" },
+  { label: "내 매물", href: "/my/listings" },
+  { label: "포인트 지갑", href: "/my/points" },
   { label: "크리에이터", href: "/my/creator" },
   { label: "구독 관리", href: "/subscription" },
   { label: "설정", href: "/my/settings" },

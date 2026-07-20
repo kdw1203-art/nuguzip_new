@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { deleteNote, getNote, updateNote } from "@/lib/inspection/store-db";
+import { awardPoints } from "@/lib/points/ledger";
 
 export async function GET(
   _req: Request,
@@ -54,6 +55,10 @@ export async function PATCH(
   if (!updated) return NextResponse.json({ error: "없음" }, { status: 404 });
   if (updated.isPublic) {
     void appendOnboardingStep(session.user.email, "share");
+    // 비공개 → 공개 전환 시에만 적립. refId=noteId 로 재공개 중복 지급 방지.
+    if (!exists.isPublic) {
+      await awardPoints(session.user.email, "note_public", id);
+    }
   }
   return NextResponse.json({ note: updated });
 }

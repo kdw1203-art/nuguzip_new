@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { awardPoints } from "@/lib/points/ledger";
 import { listReviews, upsertReview, calcSummary } from "@/lib/complex-reviews/store-db";
 import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 
@@ -73,5 +74,9 @@ export async function POST(req: NextRequest) {
     transportScore: toScore(body.transportScore),
     comment: body.comment ? String(body.comment).slice(0, 500) : null,
   });
+  // 후기 작성 적립 — refId=review.id 로 재작성(upsert) 중복 지급 방지.
+  if (session.user.email) {
+    await awardPoints(session.user.email, "review_written", review.id);
+  }
   return NextResponse.json(review, { status: 201 });
 }

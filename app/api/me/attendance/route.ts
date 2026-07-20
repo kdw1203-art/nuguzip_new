@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { checkIn, getPoints, getAttendanceHistory, getPointsHistory } from "@/lib/points/store-db";
+import { awardPoints } from "@/lib/points/ledger";
 import { applyRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -26,5 +27,10 @@ export async function POST(req: NextRequest) {
   const session = await safeAuth();
   if (!session?.user?.email) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   const result = await checkIn(session.user.email);
-  return NextResponse.json(result, { status: result.alreadyChecked ? 200 : 201 });
+  // 출석 포인트 적립 — catalog dailyCap=1 이 하루 1회를 보장.
+  const award = await awardPoints(session.user.email, "attendance");
+  return NextResponse.json(
+    { ok: true, awarded: award.awarded, balance: award.balance, ...result },
+    { status: result.alreadyChecked ? 200 : 201 },
+  );
 }

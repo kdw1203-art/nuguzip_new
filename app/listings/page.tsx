@@ -8,10 +8,6 @@ import {
   LISTING_SOURCE_LABEL,
   type PublicListing,
 } from "@/lib/listings/store-db";
-import {
-  SEOUL_BROWSE_REGIONS,
-  buildComplexTxSlug,
-} from "@/lib/market/complex-transactions";
 import { DISTRICTS } from "@/lib/regions";
 
 /* ============================================================
@@ -51,12 +47,11 @@ function priceLine(l: PublicListing): string {
   return `월세 ${formatKrwShort(l.depositKrw)} / ${formatKrwShort(l.monthlyKrw)}`;
 }
 
-/** 구 이름 → /complex/tx slug (서울 구만 매칭 — 실거래 비교 링크용) */
-function txCompareHref(l: PublicListing): string | null {
-  if (!l.regionName) return null;
-  const region = SEOUL_BROWSE_REGIONS.find((r) => r.name === l.regionName);
-  if (!region) return null;
-  return `/complex/tx/${buildComplexTxSlug(l.complexName, region.id)}`;
+/** 부스트 활성 여부 — 만료 시각이 현재보다 미래일 때 */
+function isBoostActive(boostUntil: string | null): boolean {
+  if (!boostUntil) return false;
+  const t = Date.parse(boostUntil);
+  return Number.isFinite(t) && t > Date.now();
 }
 
 function buildQuery(next: { type?: string; gu?: string }): string {
@@ -95,7 +90,7 @@ export default async function ListingsPage({
           </p>
         </div>
         <Link href="/listings/new" className="btn-primary btn-md">
-          매물 등록하기
+          지도에서 등록
         </Link>
       </div>
 
@@ -169,10 +164,24 @@ export default async function ListingsPage({
       ) : (
         <div className="rise-in-1 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {items.map((l) => {
-            const txHref = txCompareHref(l);
+            const boostOn = isBoostActive(l.boostUntil);
+            const desc = l.description?.replace(/^\[[^\]]{1,10}\]\s*/, "") ?? "";
             return (
-              <div key={l.id} className="card card-hover card-pad-sm flex flex-col gap-2">
-                <div className="flex items-center gap-1.5">
+              <Link
+                key={l.id}
+                href={`/listings/${l.id}`}
+                className="card card-hover card-pad-sm flex flex-col gap-2"
+              >
+                {l.thumbnailUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={l.thumbnailUrl}
+                    alt={`${l.complexName} 사진`}
+                    className="mb-1 h-[150px] w-full rounded-xl object-cover"
+                    loading="lazy"
+                  />
+                )}
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span
                     className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${
                       l.source === "owner"
@@ -185,6 +194,16 @@ export default async function ListingsPage({
                   <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
+                  {l.ownerVerified && (
+                    <span className="rounded-[6px] bg-[rgba(26,127,78,.1)] px-2 py-[3px] text-[11px] font-extrabold text-[#1a7f4e]">
+                      소유확인
+                    </span>
+                  )}
+                  {boostOn && (
+                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
+                      부스트
+                    </span>
+                  )}
                   {l.regionName && (
                     <span className="text-[11px] text-text-3">{l.regionName}</span>
                   )}
@@ -204,20 +223,15 @@ export default async function ListingsPage({
                     .filter(Boolean)
                     .join(" · ")}
                 </div>
-                {l.description && (
+                {desc.trim() && (
                   <p className="line-clamp-2 text-[13px] leading-[1.6] text-text-2">
-                    {l.description}
+                    {desc.trim()}
                   </p>
                 )}
-                {txHref && (
-                  <Link
-                    href={txHref}
-                    className="mt-auto text-[12px] font-bold text-primary underline"
-                  >
-                    실거래가 비교 →
-                  </Link>
-                )}
-              </div>
+                <span className="mt-auto text-[12px] font-bold text-primary">
+                  상세 보기 →
+                </span>
+              </Link>
             );
           })}
         </div>

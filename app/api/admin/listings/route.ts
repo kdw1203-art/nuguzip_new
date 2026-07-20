@@ -7,6 +7,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { updateListingStatus } from "@/lib/listings/store-db";
+import { awardPoints } from "@/lib/points/ledger";
+import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,5 +50,32 @@ export async function PATCH(req: NextRequest) {
       { status: 500 },
     );
   }
+
+  // 승인 시 포인트 적립 — awardPoints 가 캡·중복·once 를 방어하므로 그대로 호출.
+  // refId=listingId 로 재승인 중복 지급을 막고, 적립 실패는 승인 결과에 영향 주지 않음.
+  if (action === "approve") {
+    try {
+      const sb = getServiceSupabase();
+      if (sb) {
+        const { data } = await sb.from("listings").select("*").eq("id", id).maybeSingle();
+        const row = (data ?? null) as Record<string, unknown> | null;
+        const authorEmail = String(row?.author_email ?? "").trim();
+        if (row && authorEmail) {
+          await awardPoints(authorEmail, "listing_approved", id);
+          await awardPoints(authorEmail, "listing_first"); // once:true → 최초 승인만 1회 지급
+          if (row.owner_verified === true) {
+            await awardPoints(authorEmail, "listing_owner_verified", id);
+          }
+          const photos = row.photos;
+          if (Array.isArray(photos) && photos.length >= 3) {
+            await awardPoints(authorEmail, "listing_photos", id);
+          }
+        }
+      }
+    } catch {
+      // 적립 중 오류가 나도 승인 자체는 성공 처리한다.
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
