@@ -3,13 +3,14 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-/** 22a IA 변경: 발견 탭이 하단 내비 2번째 슬롯 (홈·발견·기록·지도·마이) */
+/** 운영자 확정(2026-07-20): 홈·AI분석·기록(＋)·지도·동네·마이 6슬롯 */
 const TABS = [
   { label: "홈", icon: "⌂", href: "/" },
-  { label: "발견", icon: "✦", href: "/discover" },
+  { label: "AI분석", icon: "✦", href: "/analysis" },
   // P0-2: 중앙 ＋는 목록이 아니라 작성 화면(/notes/new)으로 — 핵심 전환 동선
   { label: "기록", icon: "＋", href: "/notes/new", center: true },
   { label: "지도", icon: "◎", href: "/map" },
+  { label: "동네", icon: "☗", href: "/town" },
   { label: "마이", icon: "◉", href: "/my" },
 ];
 
@@ -21,7 +22,7 @@ export function TabBar() {
 
   return (
     <nav
-      className="glass-strong tabbar-autohide fixed left-[18px] right-[18px] z-50 grid grid-cols-5 rounded-3xl px-2 pb-3 pt-2.5 text-center md:hidden"
+      className="glass-strong tabbar-autohide fixed left-[18px] right-[18px] z-50 grid grid-cols-6 rounded-3xl px-2 pb-3 pt-2.5 text-center md:hidden"
       style={{ bottom: "max(18px, env(safe-area-inset-bottom, 0px))" }}
       aria-label="하단 내비게이션"
     >
