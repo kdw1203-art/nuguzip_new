@@ -62,7 +62,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     tier: "pro",
     name: "PRO",
     tagline: "임장 루틴 사용자",
-    priceMonthly: 6_900,
+    priceMonthly: 2_900, // 판매가 확정 (2026-07-20 운영자 결정)
     priceAnnualMonthly: annualMonthlyEquivalent("pro"),
     accentClass: "border-[#3182f6]",
     highlight: true,
@@ -90,7 +90,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     tier: "expert",
     name: "EXPERT",
     tagline: "전문가 · 파워유저 · 콘텐츠 판매자",
-    priceMonthly: 19_900,
+    priceMonthly: 18_900, // 판매가 확정 (2026-07-20 운영자 결정)
     priceAnnualMonthly: annualMonthlyEquivalent("expert"),
     accentClass: "border-violet-500",
     publicVisible: true,

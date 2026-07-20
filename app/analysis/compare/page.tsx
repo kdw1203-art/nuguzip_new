@@ -77,6 +77,182 @@ function CompareTraySection() {
   );
 }
 
+/* ---------- 지역 실시세 병합 + 종합 코멘트 (POST /api/ai/compare-summary) ---------- */
+
+type RegionSnapshotItem = {
+  regionId: string;
+  regionName: string;
+  period: string;
+  source: string;
+  avgSaleLabel: string | null;
+  saleChangeMonthly: number | null;
+  jeonseRatio: number | null;
+};
+
+type SummaryState =
+  | { kind: "loading" }
+  | { kind: "empty" }
+  | { kind: "limited"; message: string }
+  | {
+      kind: "done";
+      items: RegionSnapshotItem[];
+      comment: string;
+      mode: "llm" | "rule";
+      disclaimer: string;
+    };
+
+function deltaLabel(pct: number | null): { text: string; cls: string } {
+  if (pct === null) return { text: "—", cls: "text-text-3" };
+  if (pct > 0) return { text: `▲ ${pct.toFixed(1)}%`, cls: "text-danger" };
+  if (pct < 0) return { text: `▼ ${Math.abs(pct).toFixed(1)}%`, cls: "text-primary" };
+  return { text: "— 0.0%", cls: "text-text-3" };
+}
+
+/** 비교 트레이의 후보 지역(없으면 데모 비교표의 평촌 생활권) 실시세를 자동 병합 */
+function RegionMarketSummary() {
+  const [state, setState] = useState<SummaryState>({ kind: "loading" });
+  const [trayItems, setTrayItems] = useState<CompareTrayItem[] | null>(null);
+
+  useEffect(() => {
+    const sync = () => setTrayItems(listCompareTray());
+    sync();
+    return subscribeCompareTray(sync);
+  }, []);
+
+  const regions = [
+    ...new Set((trayItems ?? []).map((t) => (t.region ?? "").trim()).filter(Boolean)),
+  ];
+  // 데모 비교표(공작·동편3 등)는 안양시 동안구 생활권 — 후보가 없을 때 기본값
+  const targets = regions.length > 0 ? regions : ["안양시 동안구"];
+  const targetsKey = trayItems === null ? "" : targets.join("|");
+
+  useEffect(() => {
+    if (!targetsKey) return; // 트레이 로드 전에는 호출하지 않음 (사용량 절약)
+    let cancelled = false;
+    setState({ kind: "loading" });
+    void (async () => {
+      try {
+        const res = await fetch("/api/ai/compare-summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ regions: targetsKey.split("|") }),
+        });
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+          items?: RegionSnapshotItem[];
+          comment?: string;
+          mode?: string;
+          disclaimer?: string;
+        } | null;
+        if (cancelled) return;
+        if (res.status === 429) {
+          setState({
+            kind: "limited",
+            message:
+              data?.error ?? "AI 실행 사용량(시간당 10회)을 모두 썼어요. 잠시 후 다시 확인해 주세요.",
+          });
+          return;
+        }
+        if (!res.ok || !data || !Array.isArray(data.items) || data.items.length === 0) {
+          setState({ kind: "empty" });
+          return;
+        }
+        setState({
+          kind: "done",
+          items: data.items,
+          comment: data.comment ?? "",
+          mode: data.mode === "llm" ? "llm" : "rule",
+          disclaimer:
+            data.disclaimer ?? "본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다",
+        });
+      } catch {
+        if (!cancelled) setState({ kind: "empty" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetsKey]);
+
+  if (state.kind === "empty") return null; // 실시세 미보유 지역 — 조용히 숨김 (graceful)
+
+  return (
+    <div className="rise-in-2 card flex flex-col gap-3 rounded-[20px] p-[22px]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[15px] font-extrabold text-ink">
+          후보 지역 실시세 스냅샷
+        </div>
+        <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
+          실데이터 기준
+        </span>
+      </div>
+
+      {state.kind === "loading" ? (
+        <div className="text-xs text-text-3">지역 시세를 불러오는 중…</div>
+      ) : state.kind === "limited" ? (
+        <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
+          {state.message}
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <div className="min-w-[520px]">
+              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] pb-2 text-[11px] font-bold text-text-3">
+                <span>지역 (기준월)</span>
+                <span className="text-center">평균 매매가</span>
+                <span className="text-center">전월 대비</span>
+                <span className="text-center">전세가율</span>
+              </div>
+              {state.items.map((it) => {
+                const d = deltaLabel(it.saleChangeMonthly);
+                return (
+                  <div
+                    key={it.regionId}
+                    className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs"
+                  >
+                    <span className="font-bold text-ink">
+                      {it.regionName}
+                      <span className="ml-1 text-[10px] font-semibold text-text-3">
+                        {it.period} · {it.source.toUpperCase()}
+                      </span>
+                    </span>
+                    <span className="text-center font-extrabold text-text-1">
+                      {it.avgSaleLabel ?? "—"}
+                    </span>
+                    <span className={`text-center font-bold ${d.cls}`}>{d.text}</span>
+                    <span className="text-center font-bold text-text-1">
+                      {it.jeonseRatio !== null ? `${it.jeonseRatio.toFixed(0)}%` : "—"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {state.comment && (
+            <div className="ai-panel flex flex-col gap-2 rounded-2xl p-[18px]">
+              <div className="flex items-start gap-3">
+                <span className="ai-chip h-[22px] w-[22px] shrink-0 rounded-[7px] text-[11px]">
+                  AI
+                </span>
+                <div className="flex-1 text-xs leading-[1.65] text-ai-text">
+                  {state.comment}
+                </div>
+                <span className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted">
+                  {state.mode === "llm" ? "AI 생성" : "규칙 기반 요약"}
+                </span>
+              </div>
+              <div className="text-[9px] leading-[1.5] text-ai-muted">
+                {state.disclaimer}.
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ---------- 단지 비교 (9b) 데이터 ---------- */
 
 type Tone = "blue" | "red" | "default" | "gray";
@@ -460,6 +636,9 @@ export default function ComparePage() {
                 </div>
               </div>
             </div>
+
+            {/* 지역 실시세 자동 병합 + 종합 코멘트 (실데이터) */}
+            <RegionMarketSummary />
           </>
         ) : (
           <>

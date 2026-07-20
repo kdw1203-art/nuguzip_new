@@ -21,6 +21,13 @@ import {
   parseInspectionAiReport,
   type InspectionAiIntent,
 } from "@/lib/inspection/ai-report";
+import {
+  AI_DISCLAIMER,
+  describeSnapshot,
+  marketBulletsFromSnapshot,
+  resolveRegionSnapshotByName,
+} from "@/lib/ai/market-insight";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 /**
  * AI 임장 분석 엔드포인트.
@@ -32,6 +39,12 @@ export async function POST(req: Request) {
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
+  // AI 실행 사용량 제한: 10회/시간/IP
+  const rl = rateLimit(`ai-exec:${getClientIp(req)}`, {
+    limit: 10,
+    windowMs: 60 * 60_000,
+  });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const requestedModelId =
     typeof body.modelId === "string" ? body.modelId.trim() : "";
@@ -59,6 +72,9 @@ export async function POST(req: Request) {
       riskTolerance: normalizeNumber(body.riskTolerance, 3),
     });
 
+    // 지역 실시세 스냅샷(읽기 전용) — 실패 시 null로 안전 강등
+    const marketSnapshot = await resolveRegionSnapshotByName(note.region);
+
     let report = buildFallbackInspectionAiReport(note, { intent });
     if (modelOption) {
       try {
@@ -68,12 +84,17 @@ export async function POST(req: Request) {
             role: "system",
             content: [
               "당신은 nuguzip.com의 한국어 임장노트 분석 보조 AI입니다.",
+              "제공되는 marketSnapshot(지역 실시세: 평균 매매가·전월 대비 변동률·전세가율)이 있으면 강점/리스크/확인 항목·총평에 반드시 반영하세요.",
               inspectionAiReportJsonInstruction(),
             ].join("\n\n"),
           },
           {
             role: "user",
-            content: JSON.stringify(promptInput, null, 2),
+            content: JSON.stringify(
+              { ...promptInput, marketSnapshot: marketSnapshot ?? undefined },
+              null,
+              2,
+            ),
           },
         ]);
         if (llm.ok) {
@@ -93,6 +114,17 @@ export async function POST(req: Request) {
       }
     }
 
+    // 규칙 기반(폴백) 결과에는 실시세 델타 규칙 불릿을 병합 (LLM 결과는 프롬프트에서 반영)
+    if (marketSnapshot && report.source === "fallback") {
+      const bullets = marketBulletsFromSnapshot(marketSnapshot);
+      report = {
+        ...report,
+        strengths: [...new Set([...report.strengths, ...bullets.strengths])].slice(0, 6),
+        risks: [...new Set([...report.risks, ...bullets.risks])].slice(0, 6),
+        followUps: [...new Set([...report.followUps, ...bullets.followUps])].slice(0, 6),
+      };
+    }
+
     const analysis = mergeInspectionReportIntoAnalysis(baseAnalysis, report);
     if (body.persistAnalysis !== false) {
       await updateNote(note.id, {
@@ -106,7 +138,16 @@ export async function POST(req: Request) {
       });
     }
 
-    return NextResponse.json({ analysis, report });
+    return NextResponse.json({
+      analysis,
+      report,
+      // "AI 생성" vs "규칙 기반 요약" 라벨용 — fallback 이 아니면 LLM 생성
+      mode: report.source === "fallback" ? "rule" : "llm",
+      marketContext: marketSnapshot
+        ? { snapshot: marketSnapshot, summary: describeSnapshot(marketSnapshot) }
+        : null,
+      disclaimer: AI_DISCLAIMER,
+    });
   }
 
   const scores = scoresFrom(body.scores);
@@ -166,7 +207,12 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse.json({ analysis });
+  const engine = String((analysis as Record<string, unknown>).engine ?? "");
+  return NextResponse.json({
+    analysis,
+    mode: engine.startsWith("rule-based") || !engine ? "rule" : "llm",
+    disclaimer: AI_DISCLAIMER,
+  });
 }
 
 function scoresFrom(value: unknown): InspectionScores {

@@ -28,17 +28,17 @@ const TOOLS = [
     href: "/analysis/scenario",
     icon: "📊",
     title: "시장·대출 시나리오",
-    desc: "금리·시세 변동 시나리오별 원리금 스트레스 테스트",
-    foot: "예시 시나리오 살펴보기 ›",
-    sim: true,
+    desc: "지역 실시세 기준가로 금리·시세 변동 원리금 스트레스 테스트",
+    foot: "내 지역 실시세로 계산하기 ›",
+    sim: false,
   },
   {
     href: "/analysis/timing",
     icon: "⏱",
     title: "시세·타이밍 분석",
-    desc: "지역 사이클 위치와 매수 적기 신호를 판단",
-    foot: "예시 리포트 살펴보기 ›",
-    sim: true,
+    desc: "실제 12개월 지수 추세·모멘텀으로 매수 타이밍 신호 판단",
+    foot: "지역 추세 확인하기 ›",
+    sim: false,
   },
   {
     href: "/analysis/portfolio",
@@ -167,9 +167,9 @@ export default async function AnalysisHubPage({
             </Link>
           ))}
 
-          {/* AI 노트 분석 — POST /api/ai/analysis 실연동 카드 (?noteId= 컨텍스트 수신) */}
+          {/* 임장노트 AI 분석 — POST /api/inspection/ai 실연동 카드 (?noteId= 컨텍스트 수신) */}
           <div id="ai-note-analysis" className="h-full scroll-mt-24">
-            <AiNoteAnalysisCard noteId={noteId ?? null} />
+            <AiNoteAnalysisCard noteId={noteId ?? null} loggedIn={Boolean(email)} />
           </div>
 
           {/* 무엇이든 물어보기 — 잉크 다크 카드 */}

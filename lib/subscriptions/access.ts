@@ -148,8 +148,8 @@ export function checkAccess(
 export function upgradeMessage(requiredTier: PlanTier): string {
   const tierLabel: Record<PlanTier, string> = {
     basic: "FREE",
-    pro: "PRO (월 6,900원)",
-    expert: "EXPERT (월 19,900원)",
+    pro: "PRO (월 2,900원)",
+    expert: "EXPERT (월 18,900원)",
     enterprise: "ENTERPRISE (B2B 문의)",
   };
   return `이 기능을 이용하려면 ${tierLabel[requiredTier]} 이상으로 업그레이드가 필요합니다.`;

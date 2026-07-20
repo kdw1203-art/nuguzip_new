@@ -1,4 +1,4 @@
-/** App Store / Play Store 상품 ID ↔ 플랜 매핑 (PRO 6,900 / EXPERT 19,900) */
+/** App Store / Play Store 상품 ID ↔ 플랜 매핑 (PRO 2,900 / EXPERT 18,900) */
 
 export type IapPlan = "pro" | "expert";
 
