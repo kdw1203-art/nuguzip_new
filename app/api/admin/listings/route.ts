@@ -1,6 +1,8 @@
 /**
  * 어드민 매물 검수 — PATCH /api/admin/listings
- * body: { id, action: "approve" | "reject", reason? }
+ * body: { id, action: "approve" | "reject" | "verify", reason? }
+ *   - approve/reject: 검수 승인/반려
+ *   - verify: 소유확인 승인(owner_verified=true) + 포인트 적립 + 소유주 알림
  * 관리자 게이트: isAdminApiRequest (staff-roles 재사용)
  */
 import { NextResponse } from "next/server";
@@ -10,6 +12,7 @@ import { updateListingStatus } from "@/lib/listings/store-db";
 import { awardPoints } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
+import { notifyNewListingSubscribers } from "@/lib/notifications/region-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,11 +31,56 @@ export async function PATCH(req: NextRequest) {
 
   const id = String(body.id ?? "").trim();
   const action = String(body.action ?? "").trim();
-  if (!id || (action !== "approve" && action !== "reject")) {
+  if (!id || (action !== "approve" && action !== "reject" && action !== "verify")) {
     return NextResponse.json(
-      { error: "id와 action(approve|reject)이 필요합니다." },
+      { error: "id와 action(approve|reject|verify)이 필요합니다." },
       { status: 400 },
     );
+  }
+
+  // 소유확인 승인 — 검수 상태와 별개로 owner_verified 플래그를 세운다.
+  if (action === "verify") {
+    const sb = getServiceSupabase();
+    if (!sb) {
+      return NextResponse.json(
+        { error: "저장소가 준비되지 않았어요. 잠시 후 다시 시도해 주세요." },
+        { status: 503 },
+      );
+    }
+    const { data, error } = await sb
+      .from("listings")
+      .update({ owner_verified: true, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select("author_email, complex_name")
+      .maybeSingle();
+    if (error || !data) {
+      return NextResponse.json(
+        { error: "소유확인 처리에 실패했어요. 매물을 확인해 주세요." },
+        { status: 500 },
+      );
+    }
+    const row = data as { author_email?: string | null; complex_name?: string | null };
+    const authorEmail = String(row.author_email ?? "").trim();
+    if (authorEmail) {
+      // 포인트 적립 — refId=listingId 로 재실행 중복 지급을 막는다(멱등).
+      try {
+        await awardPoints(authorEmail, "listing_owner_verified", id);
+      } catch {
+        // 적립 실패는 소유확인 결과에 영향 주지 않는다.
+      }
+      try {
+        const complexName = String(row.complex_name ?? "").trim() || "매물";
+        await appendInboxNotification({
+          userEmail: authorEmail,
+          title: "소유확인 완료",
+          body: `'${complexName}' 소유확인이 완료돼 인증 배지가 표시됩니다.`,
+          actionUrl: `/listings/${id}`,
+        });
+      } catch {
+        // 알림 발송 실패는 소유확인 결과에 영향 주지 않는다.
+      }
+    }
+    return NextResponse.json({ ok: true });
   }
 
   const reason = String(body.reason ?? "").trim().slice(0, 500);
@@ -75,6 +123,31 @@ export async function PATCH(req: NextRequest) {
       }
     } catch {
       // 적립 중 오류가 나도 승인 자체는 성공 처리한다.
+    }
+  }
+
+  // 승인 시 관심 지역/키워드 구독자에게 새 매물 알림 (best-effort · 실패해도 승인 유지)
+  if (action === "approve") {
+    try {
+      const sb = getServiceSupabase();
+      if (sb) {
+        const { data } = await sb
+          .from("listings")
+          .select("id, region_name, complex_name, author_email")
+          .eq("id", id)
+          .maybeSingle();
+        if (data) {
+          const row = data as Record<string, unknown>;
+          await notifyNewListingSubscribers({
+            id: String(row.id ?? id),
+            regionName: row.region_name != null ? String(row.region_name) : null,
+            complexName: row.complex_name != null ? String(row.complex_name) : null,
+            authorEmail: row.author_email != null ? String(row.author_email) : null,
+          });
+        }
+      }
+    } catch {
+      // 구독자 알림 실패는 승인 결과에 영향 주지 않는다.
     }
   }
 

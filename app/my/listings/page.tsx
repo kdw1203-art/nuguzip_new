@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
+import { VerifyOwnershipButton } from "./VerifyOwnershipButton";
 import { safeAuth } from "@/lib/safe-auth";
 import {
   listMyListings,
@@ -153,6 +154,11 @@ export default async function MyListingsPage() {
                       노출 부스트
                     </Link>
                   )}
+                  {!l.ownerVerified &&
+                    l.status !== "rejected" &&
+                    l.status !== "closed" && (
+                      <VerifyOwnershipButton listingId={l.id} />
+                    )}
                 </div>
               </div>
             );
