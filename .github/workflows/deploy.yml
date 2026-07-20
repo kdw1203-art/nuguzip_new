@@ -6,7 +6,9 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: ["**"]
+    # main = 프로덕션. 스테이징 미러(design-revamp)는 main과 동일 커밋이라
+    # 중복 배포·실패 이슈 노이즈만 생겨 제외 — 프리뷰가 필요한 브랜치만 추가.
+    branches: ["main"]
 
 env:
   VERCEL_ORG_ID: team_HEspqLpVXaHn1GHTEjqbSZ2E

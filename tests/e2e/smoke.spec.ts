@@ -13,7 +13,7 @@ test("1. home renders with GNB labels 임장노트·지도·AI 분석·동네이
   await page.goto("/");
   const nav = page.locator("header nav");
   await expect(nav.getByRole("link", { name: "임장노트", exact: true })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "지도", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "지도·시세", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "AI 분석", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "동네이야기", exact: true })).toBeVisible();
 });
