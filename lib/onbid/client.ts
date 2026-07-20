@@ -57,8 +57,12 @@ export async function fetchOnbidList(opts: {
       logger.error("[onbid] non-json response", text.slice(0, 200));
       return null;
     }
-    const body = (data as { response?: { body?: Record<string, unknown> } })
-      .response?.body;
+    // 응답 래핑이 { header, body } (top-level) 또는 { response: { body } } 두 형태 모두 대응
+    const d = data as {
+      body?: Record<string, unknown>;
+      response?: { body?: Record<string, unknown> };
+    };
+    const body = d.body ?? d.response?.body;
     if (!body) return null;
     const rawItems = (body.items as { item?: OnbidItem | OnbidItem[] } | undefined)
       ?.item;
