@@ -6,8 +6,9 @@ name: Market ETL
 
 on:
   schedule:
-    # 매일 21:00 UTC = 06:00 KST — reb/kb/kosis/complex-crawl + 출석 리마인더
-    - cron: "0 21 * * *"
+    # 하루 2회 — 09:00 KST(00:00 UTC), 18:00 KST(09:00 UTC)
+    - cron: "0 0 * * *"
+    - cron: "0 9 * * *"
   workflow_dispatch:
 
 permissions:
