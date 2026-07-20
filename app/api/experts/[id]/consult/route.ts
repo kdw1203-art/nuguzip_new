@@ -16,6 +16,7 @@ import { getExpert } from "@/lib/experts/store-db";
 import { checkExpertConsultQuota, resolveQuotaPlan } from "@/lib/subscriptions/usage-summary";
 import { withUserQuotaLock } from "@/lib/subscriptions/quota-lock";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
+import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,10 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // IP당 1시간에 10회 (인스턴스별 best-effort)
+  const rl = rateLimit(`consult:${getClientIp(req)}`, { limit: 10, windowMs: 60 * 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

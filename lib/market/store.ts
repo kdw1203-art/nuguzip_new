@@ -342,3 +342,67 @@ export async function getRegionSeries(
     .map((r) => ({ period: String(r.period), value: Number(r.value) }))
     .reverse();
 }
+
+/* ---------- 지역 최근 실거래 (market_transactions 읽기 전용) ---------- */
+
+export interface RegionTransactionRow {
+  complexName: string;
+  address: string | null;
+  /** yyyymm */
+  contractYm: string;
+  contractDay: number | null;
+  dealAmountKrw: number;
+  areaM2: number | null;
+  floor: number | null;
+}
+
+/**
+ * market_transactions.region_name 표기("서울 강남구"·"고양 덕양구"·"과천시")와
+ * market_region_price.region_name 표기("강남구"·"고양시 덕양구")를 잇는 후보 목록.
+ */
+function transactionNameCandidates(regionId: string, regionName: string): string[] {
+  const name = regionName.trim();
+  const out = new Set<string>([name]);
+  if (name.includes(" ")) {
+    // "고양시 덕양구" → "고양 덕양구", "수원시 영통구" → "수원 영통구"
+    out.add(name.replace("시 ", " "));
+  } else if (name.endsWith("구")) {
+    out.add(regionId.startsWith("incheon-") ? `인천 ${name}` : `서울 ${name}`);
+  }
+  return [...out];
+}
+
+/** 지역 최근 아파트 매매 실거래 (계약일 내림차순). 실패 시 빈 배열. */
+export async function listRegionTransactions(
+  regionId: string,
+  regionName: string,
+  limit = 5,
+): Promise<RegionTransactionRow[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("market_transactions")
+      .select("complex_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor")
+      .in("region_name", transactionNameCandidates(regionId, regionName))
+      .eq("transaction_type", "trade")
+      .eq("property_type", "apartment")
+      .not("deal_amount_krw", "is", null)
+      .order("contract_ym", { ascending: false })
+      .order("contract_day", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data.map((r) => ({
+      complexName: String(r.complex_name ?? "단지명 미상"),
+      address: r.address ? String(r.address) : null,
+      contractYm: String(r.contract_ym ?? ""),
+      contractDay: r.contract_day === null ? null : Number(r.contract_day),
+      dealAmountKrw: Number(r.deal_amount_krw),
+      areaM2: r.area_m2 === null ? null : Number(r.area_m2),
+      floor: r.floor === null ? null : Number(r.floor),
+    }));
+  } catch (e) {
+    logger.warn("[market.store] listRegionTransactions", e);
+    return [];
+  }
+}

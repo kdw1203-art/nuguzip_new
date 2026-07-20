@@ -309,3 +309,181 @@ export async function loadAdminDashboardMetrics(): Promise<AdminDashboardMetrics
 
   return { kpis, pending };
 }
+
+/* ==========================================================================
+   운영 패널 보강 — 신고 상태별 카운트 · 최근 문의 · 가입 추이(14일) · ETL 상태
+   모두 읽기 전용, 실패 시 빈 배열 폴백 (페이지 쪽 빈 상태/목업 렌더).
+   ========================================================================== */
+
+export interface AdminStatusCount {
+  status: string;
+  count: number;
+}
+
+export interface AdminInquiryRow {
+  /** "[문의:결제·환불] 제목" 에서 파싱한 표시 텍스트 */
+  title: string;
+  /** 보낸이 이메일 — 파싱 실패 시 null */
+  from: string | null;
+  when: string;
+}
+
+export interface AdminSignupDay {
+  /** "MM.DD" (KST) */
+  label: string;
+  count: number;
+}
+
+export interface AdminEtlRow {
+  name: string;
+  status: string;
+  color: string;
+}
+
+export interface AdminOpsPanels {
+  /** content_reports 상태별 카운트 — 실패 시 빈 배열 */
+  reportCounts: AdminStatusCount[];
+  /** 최근 문의(support → 관리자 인박스 user_inbox_notifications) 최신 5 */
+  inquiries: AdminInquiryRow[];
+  /** profiles created_at 일별 최근 14일 (빈 날 0 포함) */
+  signupTrend: AdminSignupDay[];
+  /** market_ingest_log 최신 3 */
+  etl: AdminEtlRow[];
+}
+
+/** content_reports 상태별 카운트 (최근 1000건 기준) */
+async function loadReportStatusCounts(): Promise<AdminStatusCount[]> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("content_reports")
+      .select("status")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    if (error || !Array.isArray(data)) return [];
+    const counts = new Map<string, number>();
+    for (const r of data as Array<{ status?: string | null }>) {
+      const s = (r.status ?? "open").trim() || "open";
+      counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 최근 문의 — app/api/support 는 문의를 관리자 인박스
+ * (user_inbox_notifications, title "[문의:카테고리] 제목") 로 전달한다.
+ * 해당 행을 읽어 최신 5건 반환. 테이블·데이터 없으면 빈 배열(정직한 빈 상태).
+ */
+async function loadRecentInquiries(limit = 5): Promise<AdminInquiryRow[]> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return [];
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@nuguzip.com")
+    .trim()
+    .toLowerCase();
+  try {
+    const { data, error } = await sb
+      .from("user_inbox_notifications")
+      .select("title, body, created_at")
+      .eq("user_email", adminEmail)
+      .like("title", "[문의%")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !Array.isArray(data)) return [];
+    return (
+      data as Array<{ title?: string | null; body?: string | null; created_at?: string | null }>
+    ).map((r) => {
+      const title = (r.title ?? "").replace(/^\[문의:?/, "[").trim() || "제목 없음";
+      const m = /^보낸이:\s*(\S+)/.exec(r.body ?? "");
+      return {
+        title: title.length > 48 ? `${title.slice(0, 48)}…` : title,
+        from: m ? m[1] : null,
+        when: relativeLabel(r.created_at ?? null),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** profiles 가입 추이 — 일별(KST) 최근 14일, 빈 날 0 포함 */
+async function loadSignupTrend(days = 14): Promise<AdminSignupDay[]> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return [];
+  const sinceMs = Date.now() - days * DAY_MS;
+  const kstDay = (ms: number): string => {
+    const d = new Date(ms + 9 * 60 * 60 * 1000);
+    return `${String(d.getUTCMonth() + 1).padStart(2, "0")}.${String(d.getUTCDate()).padStart(2, "0")}`;
+  };
+  const loadCreated = async (table: string): Promise<string[] | null> => {
+    const { data, error } = await sb
+      .from(table)
+      .select("created_at")
+      .gte("created_at", new Date(sinceMs).toISOString())
+      .limit(10000);
+    if (error || !Array.isArray(data)) return null;
+    return (data as Array<{ created_at?: string | null }>)
+      .map((r) => r.created_at ?? "")
+      .filter(Boolean);
+  };
+  try {
+    const created =
+      (await loadCreated("profiles").catch(() => null)) ??
+      (await loadCreated("app_users").catch(() => null));
+    if (created === null) return [];
+    const counts = new Map<string, number>();
+    for (const iso of created) {
+      const t = Date.parse(iso);
+      if (!Number.isFinite(t)) continue;
+      const key = kstDay(t);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const out: AdminSignupDay[] = [];
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const label = kstDay(Date.now() - i * DAY_MS);
+      out.push({ label, count: counts.get(label) ?? 0 });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/** ETL 상태 — market_ingest_log 최신 3 (lib/market/store 읽기 로더 재사용) */
+async function loadEtlStatus(limit = 3): Promise<AdminEtlRow[]> {
+  try {
+    const { listIngestLog } = await import("@/lib/market/store");
+    const rows = await listIngestLog(limit);
+    return rows.map((r) => {
+      const ok = r.status === "ok";
+      const skipped = r.status === "skipped";
+      return {
+        name: `${r.source.toUpperCase()} · ${r.dataset} (${r.origin})`,
+        status: `${ok ? "●" : skipped ? "◦" : "▲"} ${
+          ok ? "정상" : skipped ? "건너뜀" : "오류"
+        } · ${r.rows.toLocaleString("ko-KR")}행 · ${relativeLabel(r.createdAt)}${
+          !ok && r.message ? ` · ${r.message.slice(0, 40)}` : ""
+        }`,
+        color: ok ? "#4ade80" : skipped ? "#9aa6b8" : "#f2c94c",
+      };
+    });
+  } catch (e) {
+    logger.info("[admin-metrics] market_ingest_log 조회 불가", e);
+    return [];
+  }
+}
+
+export async function loadAdminOpsPanels(): Promise<AdminOpsPanels> {
+  const [reportCounts, inquiries, signupTrend, etl] = await Promise.all([
+    loadReportStatusCounts().catch((): AdminStatusCount[] => []),
+    loadRecentInquiries(5).catch((): AdminInquiryRow[] => []),
+    loadSignupTrend(14).catch((): AdminSignupDay[] => []),
+    loadEtlStatus(3).catch((): AdminEtlRow[] => []),
+  ]);
+  return { reportCounts, inquiries, signupTrend, etl };
+}

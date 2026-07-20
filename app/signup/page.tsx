@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { trackPlatformEvent } from "@/lib/platform-events-client";
 
 const GOALS = [
@@ -29,6 +31,7 @@ type RegisterResponse = {
 };
 
 export default function SignupPage() {
+  const router = useRouter();
   const [goal, setGoal] = useState(0);
   const [segments, setSegments] = useState<Record<string, string>>(
     Object.fromEntries(SEGMENTS.map((s) => [s.name, s.initial]))
@@ -131,7 +134,23 @@ export default function SignupPage() {
         goal: GOALS[goal].title,
         emailConfirmationRequired: Boolean(data.emailConfirmationRequired),
       });
-      setDone(data.emailConfirmationRequired ? "confirm" : "done");
+      if (data.emailConfirmationRequired) {
+        setDone("confirm");
+        return;
+      }
+      // 가입 직후 자동 로그인 → /welcome 온보딩으로 이동 (실패해도 /welcome 이 로그인으로 안내)
+      try {
+        await signIn("password", {
+          email: normalizedEmail,
+          password,
+          redirect: false,
+          callbackUrl: "/welcome",
+        });
+      } catch {
+        /* 로그인 실패는 /welcome 쪽 가드가 처리 */
+      }
+      router.replace("/welcome");
+      router.refresh();
     } catch {
       setError("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
@@ -164,7 +183,7 @@ export default function SignupPage() {
             )}
           </p>
           <Link
-            href="/login"
+            href="/login?callbackUrl=/welcome"
             className="btn-primary btn-cta mt-1 w-full rounded-2xl p-[15px] text-center text-base"
           >
             로그인하러 가기

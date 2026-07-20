@@ -1,8 +1,10 @@
 import {
   loadAdminDashboardMetrics,
   loadRecentMembers,
+  loadAdminOpsPanels,
   type AdminDashboardMetrics,
   type AdminMembersData,
+  type AdminOpsPanels,
   type AdminPendingItem,
 } from "@/lib/newui/admin-metrics";
 
@@ -75,14 +77,22 @@ const panelCard = "rounded-2xl bg-[#12161f] p-5 border border-[rgba(255,255,255,
 export default async function AdminDashboardPage() {
   let metrics: AdminDashboardMetrics = { kpis: [], pending: [] };
   let membersData: AdminMembersData = { total: null, members: [] };
+  let ops: AdminOpsPanels = {
+    reportCounts: [],
+    inquiries: [],
+    signupTrend: [],
+    etl: [],
+  };
   try {
-    [metrics, membersData] = await Promise.all([
+    [metrics, membersData, ops] = await Promise.all([
       loadAdminDashboardMetrics(),
       loadRecentMembers(5),
+      loadAdminOpsPanels(),
     ]);
   } catch {
     // 조회 실패 — 아래에서 "—"/목업 폴백
   }
+  const maxSignup = Math.max(1, ...ops.signupTrend.map((d) => d.count));
   const kpis =
     metrics.kpis.length > 0
       ? metrics.kpis
@@ -147,11 +157,25 @@ export default async function AdminDashboardPage() {
       {/* 처리 대기 · 크롤링 파이프라인 */}
       <div className="rise-in-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
         <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
-          <div className="text-sm font-extrabold text-white">
-            처리 대기{" "}
-            <span className="text-[10px] font-medium text-[#9aa6b8]">
-              {metrics.pending.length > 0 ? "신고 최근 5건" : "예시 데이터"}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-extrabold text-white">
+              처리 대기{" "}
+              <span className="text-[10px] font-medium text-[#9aa6b8]">
+                {metrics.pending.length > 0 ? "신고 최근 5건" : "예시 데이터"}
+              </span>
+            </div>
+            {ops.reportCounts.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {ops.reportCounts.map((c) => (
+                  <span
+                    key={c.status}
+                    className="rounded-full bg-[rgba(255,255,255,.08)] px-2.5 py-[3px] text-[10px] font-bold text-[#c9d2e0]"
+                  >
+                    {c.status} {c.count.toLocaleString("ko-KR")}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
           {pending.map((p, i) => (
             <div
@@ -171,23 +195,121 @@ export default async function AdminDashboardPage() {
         </div>
         <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
           <div className="text-sm font-extrabold text-white">
-            크롤링 파이프라인
+            {ops.etl.length > 0 ? (
+              <>
+                ETL 상태{" "}
+                <span className="text-[10px] font-medium text-[#9aa6b8]">
+                  market_ingest_log 최신 {ops.etl.length}건
+                </span>
+              </>
+            ) : (
+              <>
+                크롤링 파이프라인{" "}
+                <span className="text-[10px] font-medium text-[#9aa6b8]">
+                  예시 데이터
+                </span>
+              </>
+            )}
           </div>
-          {PIPELINE.map((p, i) => (
+          {(ops.etl.length > 0 ? ops.etl : PIPELINE).map((p, i, arr) => (
             <div
-              key={p.name}
-              className={`flex items-center justify-between py-2 text-xs ${
-                i < PIPELINE.length - 1
+              key={`${i}-${p.name}`}
+              className={`flex items-center justify-between gap-3 py-2 text-xs ${
+                i < arr.length - 1
                   ? "border-b border-[rgba(255,255,255,.06)]"
                   : ""
               }`}
             >
-              <span className="text-[#c9d2e0]">{p.name}</span>
-              <span className="font-bold" style={{ color: p.color }}>
+              <span className="min-w-0 truncate text-[#c9d2e0]">{p.name}</span>
+              <span className="shrink-0 font-bold" style={{ color: p.color }}>
                 {p.status}
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 최근 문의 · 가입 추이 (실집계 — 실패 시 정직한 빈 상태) */}
+      <div className="rise-in-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
+          <div className="text-sm font-extrabold text-white">
+            최근 문의{" "}
+            <span className="text-[10px] font-medium text-[#9aa6b8]">
+              /support 접수 · 관리자 인박스 최신 5건
+            </span>
+          </div>
+          {ops.inquiries.length === 0 ? (
+            <div className="py-4 text-center text-[11px] text-[#9aa6b8]">
+              최근 문의가 없거나 불러올 수 없습니다
+            </div>
+          ) : (
+            ops.inquiries.map((q, i) => (
+              <div
+                key={`${i}-${q.title}`}
+                className={`flex items-center justify-between gap-3 py-[9px] text-xs ${
+                  i < ops.inquiries.length - 1
+                    ? "border-b border-[rgba(255,255,255,.06)]"
+                    : ""
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[#c9d2e0]">{q.title}</div>
+                  {q.from ? (
+                    <div className="mt-0.5 truncate text-[10px] text-[#9aa6b8]">
+                      {q.from}
+                    </div>
+                  ) : null}
+                </div>
+                <span className="shrink-0 text-[10px] text-[#9aa6b8]">
+                  {q.when}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+        <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
+          <div className="text-sm font-extrabold text-white">
+            가입 추이{" "}
+            <span className="text-[10px] font-medium text-[#9aa6b8]">
+              일별 최근 14일
+            </span>
+          </div>
+          {ops.signupTrend.length === 0 ? (
+            <div className="py-4 text-center text-[11px] text-[#9aa6b8]">
+              가입 데이터를 불러올 수 없습니다
+            </div>
+          ) : (
+            <>
+              <div className="flex h-[72px] items-end gap-[5px]">
+                {ops.signupTrend.map((d) => (
+                  <div
+                    key={d.label}
+                    className="flex min-w-0 flex-1 flex-col items-center"
+                    title={`${d.label} · ${d.count}명`}
+                  >
+                    <div
+                      className="w-full rounded-t-[3px]"
+                      style={{
+                        height: `${Math.max(3, Math.round((d.count / maxSignup) * 64))}px`,
+                        background:
+                          d.count > 0 ? "#7ea2ff" : "rgba(255,255,255,.12)",
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-[9px] text-[#9aa6b8]">
+                <span>{ops.signupTrend[0].label}</span>
+                <span>
+                  {ops.signupTrend[ops.signupTrend.length - 1].label} · 합{" "}
+                  {ops.signupTrend
+                    .reduce((a, d) => a + d.count, 0)
+                    .toLocaleString("ko-KR")}
+                  명
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

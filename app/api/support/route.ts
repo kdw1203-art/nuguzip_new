@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
+import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
+import { sendEmail } from "@/lib/email/send";
+import { supportInquiryEmail } from "@/lib/email/templates";
 
 const CATEGORIES = ["일반 문의", "결제·환불", "버그 신고", "개인정보", "악성 콘텐츠 신고", "기타"] as const;
 type Category = (typeof CATEGORIES)[number];
 
+/** 문의 알림 수신 주소 */
+const SUPPORT_NOTIFY_EMAIL = "nuguzip@naver.com";
+
 export async function POST(req: NextRequest) {
+  // IP당 10분에 5회 (인스턴스별 best-effort)
+  const rl = rateLimit(`support:${getClientIp(req)}`, { limit: 5, windowMs: 10 * 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
   const session = await safeAuth();
 
   const body = (await req.json().catch(() => null)) as {
@@ -43,6 +53,13 @@ export async function POST(req: NextRequest) {
     body: `보낸이: ${fromEmail}\n\n${message}`,
     actionUrl: `/admin/support`,
   }).catch(() => {/* ignore send failure */});
+
+  // 운영팀 이메일 알림 — 프로바이더(RESEND_API_KEY) 미설정 시 조용히 건너뜀
+  await sendEmail({
+    to: SUPPORT_NOTIFY_EMAIL,
+    replyTo: fromEmail,
+    ...supportInquiryEmail({ category, subject, message, fromEmail }),
+  }).catch(() => {/* 발송 실패해도 접수는 성공 처리 */});
 
   // 사용자에게 접수 확인 알림
   if (session?.user?.email) {

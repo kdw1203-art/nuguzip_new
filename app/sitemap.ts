@@ -91,5 +91,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 조회 실패 시 생략
   }
 
-  return [...staticEntries, ...noteEntries, ...complexEntries];
+  // 지역 허브 SEO 페이지 — market_region_price 61개 지역 (/region/[id])
+  let regionEntries: MetadataRoute.Sitemap = [];
+  try {
+    const { getAllRegionSnapshots } = await import("@/lib/market/store");
+    const snapshots = await getAllRegionSnapshots();
+    regionEntries = [...snapshots.keys()].map((id) => ({
+      url: `${BASE_URL}/region/${id}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }));
+  } catch {
+    // 조회 실패 시 생략
+  }
+
+  return [...staticEntries, ...noteEntries, ...complexEntries, ...regionEntries];
 }

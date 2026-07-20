@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
-import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 
 export const runtime = "nodejs";
@@ -170,8 +170,9 @@ async function recordConsent(
 }
 
 export async function POST(req: NextRequest) {
-  const limited = await applyRateLimit(req, AUTH_RATE_LIMIT);
-  if (limited) return limited;
+  // IP당 10분에 5회 (인스턴스별 best-effort)
+  const rl = rateLimit(`register:${getClientIp(req)}`, { limit: 5, windowMs: 10 * 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
 
   const sb = getServiceSupabase();
   const supabaseUrl = getSupabaseUrl();

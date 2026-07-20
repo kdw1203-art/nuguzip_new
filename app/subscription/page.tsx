@@ -1,6 +1,21 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { getPlan } from "@/lib/subscriptions/plans";
+import { BILLING_PERIOD_PRICES } from "@/lib/subscriptions/billing-periods";
 import { PlanCheckoutButton, type CheckoutTier } from "./PlanCheckoutButton";
+
+/* 가격 단일 출처: lib/subscriptions/plans.ts · billing-periods.ts (하드코딩 금지) */
+const fmtWon = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+const PLUS_MONTHLY = fmtWon(getPlan("pro").priceMonthly);
+const PRO_MONTHLY = fmtWon(getPlan("expert").priceMonthly);
+
+/** 기간별 최대 할인율 (pro/expert 중 큰 값, 반올림) — 히어로 토글 라벨용 */
+function maxDiscountPct(months: number): number {
+  const pcts = (["pro", "expert"] as const).map(
+    (t) => BILLING_PERIOD_PRICES[t].find((p) => p.months === months)?.discountPct ?? 0,
+  );
+  return Math.round(Math.max(...pcts));
+}
 
 const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; proAccent?: boolean }[] = [
   { label: "임장노트 · 지도 · 실거래", free: "무제한", plus: "무제한", pro: "무제한" },
@@ -48,8 +63,8 @@ const PLANS: {
   {
     name: "플러스",
     nameTone: "text-[#7ea2ff]",
-    price: "2,900원",
-    priceSuffix: "/월 · 연간 결제",
+    price: PLUS_MONTHLY,
+    priceSuffix: "/월",
     dark: true,
     features: [
       { ok: true, text: "무료 기능 전부" },
@@ -65,7 +80,7 @@ const PLANS: {
   {
     name: "프로 (전문가)",
     nameTone: "text-[#c07a3a]",
-    price: "19,000원",
+    price: PRO_MONTHLY,
     priceSuffix: "/월",
     dark: false,
     features: [
@@ -106,10 +121,14 @@ export default function SubscriptionPage() {
         </p>
         <div className="mt-2 inline-flex gap-1 rounded-full border border-line bg-surface p-1 text-xs md:text-[13px]">
           <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">월간</span>
-          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">3개월 -10%</span>
-          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">6개월 -15%</span>
+          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">
+            3개월 최대 -{maxDiscountPct(3)}%
+          </span>
+          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">
+            6개월 최대 -{maxDiscountPct(6)}%
+          </span>
           <span className="rounded-full bg-ink px-3 py-1.5 font-bold text-white md:px-4">
-            12개월 -20%
+            12개월 최대 -{maxDiscountPct(12)}%
           </span>
         </div>
       </section>
@@ -194,13 +213,13 @@ export default function SubscriptionPage() {
             <div className="rounded-[10px] bg-[rgba(29,79,216,.05)] py-1.5 text-center">
               <div className="text-sm font-extrabold text-primary">✦ 플러스</div>
               <div className="text-lg font-extrabold text-ink">
-                2,900원<span className="text-[11px] text-text-3">/월</span>
+                {PLUS_MONTHLY}<span className="text-[11px] text-text-3">/월</span>
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm font-extrabold text-[#c07a3a]">✦ 프로</div>
               <div className="text-lg font-extrabold text-ink">
-                19,000원<span className="text-[11px] text-text-3">/월</span>
+                {PRO_MONTHLY}<span className="text-[11px] text-text-3">/월</span>
               </div>
             </div>
           </div>
@@ -253,24 +272,47 @@ export default function SubscriptionPage() {
           </div>
           <div className="grid grid-cols-[120px_repeat(4,1fr)] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
             <span />
-            <span className="text-center">월간</span>
-            <span className="text-center">3개월 -10%</span>
-            <span className="text-center">6개월 -15%</span>
-            <span className="text-center">12개월 -20%</span>
+            {BILLING_PERIOD_PRICES.pro.map((p) => (
+              <span key={p.months} className="text-center">
+                {p.months === 1 ? "월간" : `${p.months}개월`}
+              </span>
+            ))}
           </div>
           <div className="grid grid-cols-[120px_repeat(4,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
             <span className="font-extrabold text-primary">✦ 플러스</span>
-            <span className="text-center font-bold text-text-1">2,900원</span>
-            <span className="text-center font-bold text-text-1">2,610원</span>
-            <span className="text-center font-bold text-text-1">2,465원</span>
-            <span className="text-center font-extrabold text-primary">2,320원</span>
+            {BILLING_PERIOD_PRICES.pro.map((p) => (
+              <span
+                key={p.months}
+                className={`text-center ${
+                  p.months === 12 ? "font-extrabold text-primary" : "font-bold text-text-1"
+                }`}
+              >
+                {fmtWon(p.monthlyEquivalentKrw)}
+                {p.discountPct > 0 && (
+                  <span className="ml-0.5 text-[10px] font-medium text-text-3">
+                    -{Math.round(p.discountPct)}%
+                  </span>
+                )}
+              </span>
+            ))}
           </div>
           <div className="grid grid-cols-[120px_repeat(4,1fr)] items-center gap-2 py-2.5 text-xs">
             <span className="font-extrabold text-[#c07a3a]">✦ 프로</span>
-            <span className="text-center font-bold text-text-1">19,000원</span>
-            <span className="text-center font-bold text-text-1">17,100원</span>
-            <span className="text-center font-bold text-text-1">16,150원</span>
-            <span className="text-center font-extrabold text-[#c07a3a]">15,200원</span>
+            {BILLING_PERIOD_PRICES.expert.map((p) => (
+              <span
+                key={p.months}
+                className={`text-center ${
+                  p.months === 12 ? "font-extrabold text-[#c07a3a]" : "font-bold text-text-1"
+                }`}
+              >
+                {fmtWon(p.monthlyEquivalentKrw)}
+                {p.discountPct > 0 && (
+                  <span className="ml-0.5 text-[10px] font-medium text-text-3">
+                    -{Math.round(p.discountPct)}%
+                  </span>
+                )}
+              </span>
+            ))}
           </div>
         </div>
       </section>
