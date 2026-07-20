@@ -24,7 +24,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/analysis/switch", priority: 0.6 },
   { path: "/town", priority: 0.8 },
   { path: "/town/news", priority: 0.7 },
-  { path: "/town/market", priority: 0.7 },
+  { path: "/town/library", priority: 0.7 },
   { path: "/town/experts", priority: 0.6 },
   { path: "/town/groups", priority: 0.6 },
   // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
@@ -47,7 +47,6 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/listings/new", priority: 0.6 },
   { path: "/points/shop", priority: 0.5 },
   // 발견 피드 — 탭바 2번 슬롯·비로그인 랜딩 (감사 P1-11)
-  { path: "/discover", priority: 0.8 },
   { path: "/subscription", priority: 0.5 },
   { path: "/support", priority: 0.4 },
   { path: "/safety", priority: 0.4 },

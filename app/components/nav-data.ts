@@ -1,6 +1,6 @@
 /** 9m GNB — 4 대분류 공유 데이터 (데스크탑 GNB · 모바일 전체 메뉴 공용)
- *  네비 개편안(overhaul-audit): /safety·/town/market 은 실연동 전까지 제외,
- *  analysis cycle·switch·price·portfolio 는 허브 카드로만 노출. */
+ *  대통합 IA(2026-07): 지도는 탐색·실거래·실매물·등록 통합(/map 단일),
+ *  대출·비용 계산기는 임장노트로, 입주물량·공매·청약은 동네이야기로 편입. */
 export type NavItem = {
   label: string;
   href: string;
@@ -16,20 +16,15 @@ export const NAV: NavItem[] = [
       { label: "공개 노트", href: "/notes" },
       { label: "회차 비교", href: "/notes/compare" },
       { label: "내 노트", href: "/my" },
+      { label: "대출·비용 계산기", href: "/calculator" },
     ],
   },
   {
-    label: "지도·시세",
+    label: "지도",
     href: "/map",
     children: [
-      { label: "지도 탐색", href: "/map" },
-      { label: "실거래 검색", href: "/search" },
-      { label: "입주 물량", href: "/supply" },
-      { label: "공매 물건", href: "/auctions" },
-      { label: "실매물", href: "/listings" },
+      { label: "통합 지도 (탐색·실거래·매물)", href: "/map" },
       { label: "매물 등록", href: "/listings/new" },
-      { label: "청약 센터", href: "/apply" },
-      { label: "대출·비용 계산기", href: "/calculator" },
     ],
   },
   {
@@ -47,11 +42,14 @@ export const NAV: NavItem[] = [
     href: "/town",
     children: [
       { label: "피드", href: "/town" },
-      { label: "발견 피드", href: "/discover" },
-      { label: "자료·뉴스", href: "/town/news" },
+      { label: "뉴스", href: "/town/news" },
+      { label: "자료", href: "/town/library" },
+      { label: "주간 다이제스트", href: "/digest" },
       { label: "임장 모임", href: "/town/groups" },
       { label: "전문가", href: "/town/experts" },
-      { label: "주간 다이제스트", href: "/digest" },
+      { label: "입주 물량", href: "/supply" },
+      { label: "공매 물건", href: "/auctions" },
+      { label: "청약 센터", href: "/apply" },
     ],
   },
 ];

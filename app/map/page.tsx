@@ -30,6 +30,8 @@ const FALLBACK_DANJI: DanjiItem[] = [
     momPct: -2.1,
     areaM2: 84,
     buildYear: 1988,
+    households: 1486,
+    buildingType: "아파트",
     trades: [],
   },
   {
@@ -47,6 +49,8 @@ const FALLBACK_DANJI: DanjiItem[] = [
     momPct: 0.8,
     areaM2: 84,
     buildYear: 1992,
+    households: 918,
+    buildingType: "아파트",
     trades: [],
   },
   {
@@ -64,6 +68,8 @@ const FALLBACK_DANJI: DanjiItem[] = [
     momPct: -1.4,
     areaM2: 84,
     buildYear: 2012,
+    households: 762,
+    buildingType: "아파트",
     trades: [],
   },
 ];
@@ -130,6 +136,8 @@ function toDanjiItem(row: ComplexRow, tx: ComplexTransactionRow[]): DanjiItem {
     momPct,
     areaM2: latest?.area_m2 ?? null,
     buildYear: row.build_year,
+    households: row.households,
+    buildingType: row.building_type ?? null,
     trades: toTrades(tx),
   };
 }

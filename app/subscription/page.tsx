@@ -1,21 +1,29 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
-import { getPlan } from "@/lib/subscriptions/plans";
-import { BILLING_PERIOD_PRICES } from "@/lib/subscriptions/billing-periods";
-import { PlanCheckoutButton, type CheckoutTier } from "./PlanCheckoutButton";
+import { safeAuth } from "@/lib/safe-auth";
+import { loadMeProfile } from "@/lib/me/profile";
+import { BILLING_PERIOD_PRICES, periodPrice } from "@/lib/subscriptions/billing-periods";
+import { PlanCards, type TierPricing } from "./PlanCards";
 
-/* 가격 단일 출처: lib/subscriptions/plans.ts · billing-periods.ts (하드코딩 금지) */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/* 가격 단일 출처: lib/subscriptions/billing-periods.ts (하드코딩 금지) */
 const fmtWon = (n: number) => `${n.toLocaleString("ko-KR")}원`;
-const PLUS_MONTHLY = fmtWon(getPlan("pro").priceMonthly);
-const PRO_MONTHLY = fmtWon(getPlan("expert").priceMonthly);
 
-/** 기간별 최대 할인율 (pro/expert 중 큰 값, 반올림) — 히어로 토글 라벨용 */
-function maxDiscountPct(months: number): number {
-  const pcts = (["pro", "expert"] as const).map(
-    (t) => BILLING_PERIOD_PRICES[t].find((p) => p.months === months)?.discountPct ?? 0,
-  );
-  return Math.round(Math.max(...pcts));
+function tierPricing(tier: "pro" | "expert"): TierPricing {
+  const m1 = periodPrice(tier, 1);
+  const m12 = periodPrice(tier, 12);
+  return {
+    monthly: m1?.monthlyEquivalentKrw ?? 0,
+    annualMonthly: m12?.monthlyEquivalentKrw ?? 0,
+    annualTotal: m12?.totalKrw ?? 0,
+    annualDiscountPct: m12?.discountPct ?? 0,
+  };
 }
+
+const PLUS_MONTHLY = fmtWon(tierPricing("pro").monthly);
+const PRO_MONTHLY = fmtWon(tierPricing("expert").monthly);
 
 const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; proAccent?: boolean }[] = [
   { label: "임장노트 · 지도 · 실거래", free: "무제한", plus: "무제한", pro: "무제한" },
@@ -30,71 +38,11 @@ const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; pr
   { label: "광고 노출", free: "표시", plus: "제거", pro: "제거" },
 ];
 
-const PLANS: {
-  name: string;
-  nameTone: string;
-  price: string;
-  priceSuffix: string;
-  dark: boolean;
-  features: { ok: boolean; text: string }[];
-  cta: string;
-  ctaClass: string;
-  badge: string | null;
-  /** 결제 연결용 구 멤버십 플랜 코드 (membership plans): 플러스=pro, 프로(전문가)=expert */
-  checkoutTier: CheckoutTier | null;
-}[] = [
-  {
-    name: "무료",
-    nameTone: "text-ink",
-    price: "0원",
-    priceSuffix: "",
-    dark: false,
-    features: [
-      { ok: true, text: "임장노트 무제한 작성" },
-      { ok: true, text: "지도 · 실거래가 조회" },
-      { ok: true, text: "AI 요약 월 3회" },
-      { ok: false, text: "단지 비교 리포트" },
-    ],
-    cta: "현재 이용 중",
-    ctaClass: "bg-[#f2f4f8] text-text-1",
-    badge: null,
-    checkoutTier: null,
-  },
-  {
-    name: "플러스",
-    nameTone: "text-[#7ea2ff]",
-    price: PLUS_MONTHLY,
-    priceSuffix: "/월",
-    dark: true,
-    features: [
-      { ok: true, text: "무료 기능 전부" },
-      { ok: true, text: "AI 요약 · 비교 리포트 무제한" },
-      { ok: true, text: "금리·시세 리스크 알림" },
-      { ok: true, text: "노트 PDF 내보내기" },
-    ],
-    cta: "14일 무료 체험",
-    ctaClass: "btn-primary btn-cta",
-    badge: "가장 인기",
-    checkoutTier: "pro",
-  },
-  {
-    name: "프로 (전문가)",
-    nameTone: "text-[#c07a3a]",
-    price: PRO_MONTHLY,
-    priceSuffix: "/월",
-    dark: false,
-    features: [
-      { ok: true, text: "플러스 기능 전부" },
-      { ok: true, text: "리포트 발행 · 판매 (수수료 15%)" },
-      { ok: true, text: "전문가 배지 · 상담 수신" },
-      { ok: true, text: "지역 통계 대시보드" },
-    ],
-    cta: "전문가 인증 신청",
-    ctaClass: "border-[1.5px] border-ink bg-surface text-ink",
-    badge: null,
-    checkoutTier: "expert",
-  },
-];
+const PLAN_LABEL: Record<"free" | "pro" | "expert", string> = {
+  free: "무료 플랜",
+  pro: "플러스",
+  expert: "프로 (전문가)",
+};
 
 function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
@@ -108,7 +56,19 @@ function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   );
 }
 
-export default function SubscriptionPage() {
+export default async function SubscriptionPage() {
+  const session = await safeAuth();
+  const email = session?.user?.email ?? null;
+  let currentPlan: "free" | "pro" | "expert" = "free";
+  if (email) {
+    const profile = await loadMeProfile(email, {
+      name: session?.user?.name,
+      plan: (session?.user as { plan?: string } | undefined)?.plan,
+      role: (session?.user as { role?: string } | undefined)?.role,
+    });
+    currentPlan = profile.plan;
+  }
+
   return (
     <PageShell breadcrumb="멤버십 상세" wide>
       {/* 히어로 (6l) */}
@@ -119,75 +79,20 @@ export default function SubscriptionPage() {
         <p className="text-[15px] text-text-2">
           임장노트와 지도는 영원히 무료. AI 분석의 깊이를 선택하세요.
         </p>
-        <div className="mt-2 inline-flex gap-1 rounded-full border border-line bg-surface p-1 text-xs md:text-[13px]">
-          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">월간</span>
-          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">
-            3개월 최대 -{maxDiscountPct(3)}%
+        {email && (
+          <span className="mt-1 rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
+            현재 플랜 · {PLAN_LABEL[currentPlan]}
           </span>
-          <span className="rounded-full px-3 py-1.5 text-text-3 md:px-4">
-            6개월 최대 -{maxDiscountPct(6)}%
-          </span>
-          <span className="rounded-full bg-ink px-3 py-1.5 font-bold text-white md:px-4">
-            12개월 최대 -{maxDiscountPct(12)}%
-          </span>
-        </div>
+        )}
       </section>
 
-      {/* 요금제 카드 3종 (6l) */}
-      <section className="mx-auto mt-8 grid w-full max-w-[1080px] gap-5 md:grid-cols-3">
-        {PLANS.map((p, i) => (
-          <div
-            key={p.name}
-            className={`rise-in-${i + 1} relative flex flex-col gap-4 rounded-3xl p-7 ${
-              p.dark
-                ? "bg-[rgba(25,31,40,.96)] shadow-[0_24px_60px_rgba(16,28,54,.28)] md:-translate-y-2"
-                : "card"
-            }`}
-          >
-            {p.badge && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3.5 py-[5px] text-[11px] font-extrabold text-white shadow-[0_6px_16px_rgba(29,79,216,.4)]">
-                {p.badge}
-              </span>
-            )}
-            <div className={`text-[15px] font-extrabold ${p.nameTone}`}>{p.name}</div>
-            <div className="flex items-baseline gap-1.5">
-              <span className={`text-[32px] font-extrabold ${p.dark ? "text-white" : "text-ink"}`}>
-                {p.price}
-              </span>
-              {p.priceSuffix && (
-                <span className={`text-[13px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
-                  {p.priceSuffix}
-                </span>
-              )}
-            </div>
-            <div
-              className={`flex flex-col gap-[9px] text-[13px] leading-[1.5] ${
-                p.dark ? "text-ai-text" : "text-text-1"
-              }`}
-            >
-              {p.features.map((f) => (
-                <div key={f.text} className={`flex gap-2 ${f.ok ? "" : "text-[#adb5bd]"}`}>
-                  <span className={f.ok ? `font-extrabold ${p.dark ? "text-[#7ea2ff]" : "text-primary"}` : ""}>
-                    {f.ok ? "✓" : "—"}
-                  </span>
-                  {f.text}
-                </div>
-              ))}
-            </div>
-            <div className="flex-1" />
-            {p.checkoutTier ? (
-              <PlanCheckoutButton tier={p.checkoutTier} label={p.cta} className={p.ctaClass} />
-            ) : (
-              <button
-                type="button"
-                disabled
-                className={`rounded-[14px] p-[13px] text-center text-sm font-bold ${p.ctaClass}`}
-              >
-                {p.cta}
-              </button>
-            )}
-          </div>
-        ))}
+      {/* 요금제 카드 3종 + 월간/연간 토글 (item 13) */}
+      <section className="mx-auto mt-8 w-full">
+        <PlanCards
+          currentPlan={currentPlan}
+          pro={tierPricing("pro")}
+          expert={tierPricing("expert")}
+        />
       </section>
 
       {/* P2-8: 환불 규정 직링크 — 약관 제8조(청약철회) 앵커 */}

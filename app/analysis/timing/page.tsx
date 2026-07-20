@@ -8,6 +8,7 @@ import {
   METRO_EXPLORE_DISTRICTS,
 } from "@/lib/map/seoul-districts";
 import { TimingRegionSelect } from "./region-select";
+import { TimingComplexPicker } from "./complex-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -136,9 +137,9 @@ const ALERTS = ["신호 70 도달 시 알림", "관양동 급매 등록 시 알�
 export default async function TimingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ region?: string }>;
+  searchParams: Promise<{ region?: string; complexId?: string; apt?: string }>;
 }) {
-  const { region } = await searchParams;
+  const { region, complexId, apt } = await searchParams;
   const selected =
     REGION_OPTIONS.find((r) => r.id === region) ?? REGION_OPTIONS[0];
   const trend = await loadTrend(selected.id);
@@ -147,10 +148,17 @@ export default async function TimingPage({
     <PageShell breadcrumb="AI 분석 › 시세·타이밍">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">시세·타이밍 분석</h1>
-        <TimingRegionSelect
-          options={REGION_OPTIONS.map((r) => ({ id: r.id, label: r.label }))}
-          value={selected.id}
-        />
+        <div className="flex flex-wrap items-end gap-2">
+          <TimingComplexPicker
+            initialComplexId={complexId ?? null}
+            initialApt={apt ?? null}
+            currentRegion={selected.id}
+          />
+          <TimingRegionSelect
+            options={REGION_OPTIONS.map((r) => ({ id: r.id, label: r.label }))}
+            value={selected.id}
+          />
+        </div>
       </div>
 
       {/* ── 실데이터 영역: 실제 지수 시리즈 기반 추세·모멘텀 판정 ── */}

@@ -5,6 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "../components/Logo";
 import { NaverMap, type MapIdleInfo, type MapMarkerData } from "@/components/map/NaverMap";
+import {
+  MapSearchBox,
+  type MapSearchSelectAddress,
+  type MapSearchSelectComplex,
+} from "./MapSearchBox";
+import { ComplexInfoPanel } from "./ComplexInfoPanel";
 
 /* ============================================================
    지도 탐색 (6a) — 실제 네이버 지도 + 글래스 오버레이 UI
@@ -37,6 +43,10 @@ export interface DanjiItem {
   areaM2: number | null;
   /** 준공연도 — 준공연도 필터용, 없으면 null */
   buildYear: number | null;
+  /** 세대수 — 세대수 규모 필터용, 없으면 null */
+  households: number | null;
+  /** 건물유형(아파트/오피스텔/빌라 등) — 매물유형 필터용, 없으면 null */
+  buildingType: string | null;
   trades: TradeItem[];
 }
 
@@ -162,6 +172,45 @@ const YEAR_OPTIONS: RangeOption[] = [
   { key: "u2000", label: "2000년 이전", max: 1999 },
 ];
 
+/** 세대수 규모 */
+const HOUSEHOLD_OPTIONS: RangeOption[] = [
+  { key: "all", label: "전체" },
+  { key: "u300", label: "~300세대", max: 300 },
+  { key: "300-1000", label: "300~1천세대", min: 300, max: 1000 },
+  { key: "1000-2000", label: "1천~2천세대", min: 1000, max: 2000 },
+  { key: "o2000", label: "2천세대~", min: 2000 },
+];
+
+interface StringOption {
+  key: string;
+  label: string;
+  /** buildingType 부분일치용 매칭 키워드 (all이면 미지정) */
+  match?: string[];
+}
+
+/** 매물 유형(단지 건물유형) — 아파트/오피스텔/빌라 */
+const BUILDING_TYPE_OPTIONS: StringOption[] = [
+  { key: "all", label: "전체" },
+  { key: "apt", label: "아파트", match: ["아파트"] },
+  { key: "officetel", label: "오피스텔", match: ["오피스텔"] },
+  { key: "villa", label: "빌라/연립", match: ["빌라", "연립", "다세대"] },
+];
+
+/** 거래유형(매물 레이어) — 매매/전세/월세 → /api/map/listings?type= */
+const LISTING_TRADE_OPTIONS: { key: string; label: string; type?: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "sale", label: "매매", type: "sale" },
+  { key: "jeonse", label: "전세", type: "jeonse" },
+  { key: "monthly", label: "월세", type: "monthly" },
+];
+
+/** buildingType 문자열이 옵션에 부합하는지 (필터 걸렸는데 값 없으면 제외) */
+function matchesBuildingType(value: string | null, opt: StringOption): boolean {
+  if (!opt.match) return true;
+  if (!value) return false;
+  return opt.match.some((m) => value.includes(m));
+}
+
 /** 범위 판정 — 필터가 걸려 있는데 값이 없으면 제외 (불확실한 항목을 결과에 섞지 않음) */
 function inRange(value: number | null, opt: RangeOption): boolean {
   if (opt.min === undefined && opt.max === undefined) return true;
@@ -171,59 +220,40 @@ function inRange(value: number | null, opt: RangeOption): boolean {
   return true;
 }
 
-type FilterKind = "price" | "area" | "year";
-
-function FilterDropdown({
-  kind,
+/** 필터 패널 내 라벨 + 칩 그룹 (모바일 친화 — 줄바꿈 칩) */
+function FilterChipGroup({
   label,
   options,
   valueKey,
-  open,
-  onToggle,
   onSelect,
 }: {
-  kind: FilterKind;
   label: string;
-  options: RangeOption[];
+  options: { key: string; label: string }[];
   valueKey: string;
-  open: boolean;
-  onToggle: (kind: FilterKind) => void;
-  onSelect: (kind: FilterKind, key: string) => void;
+  onSelect: (key: string) => void;
 }) {
-  const current = options.find((o) => o.key === valueKey) ?? options[0];
-  const active = valueKey !== "all";
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => onToggle(kind)}
-        className={`chip whitespace-nowrap px-3 py-1.5 text-xs transition-colors ${
-          active
-            ? "bg-[rgba(29,79,216,.12)] font-bold text-primary"
-            : "bg-[rgba(255,255,255,.75)] text-text-2"
-        }`}
-      >
-        {active ? current.label : label} ▾
-      </button>
-      {open && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 flex w-[136px] flex-col gap-0.5 rounded-xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.97)] p-1.5 shadow-[0_10px_30px_rgba(16,28,54,.16)]">
-          {options.map((o) => (
+    <div className="flex flex-col gap-1.5">
+      <div className="text-[11px] font-bold text-text-3">{label}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => {
+          const active = o.key === valueKey;
+          return (
             <button
               key={o.key}
               type="button"
-              onClick={() => onSelect(kind, o.key)}
-              className={`rounded-lg px-2.5 py-1.5 text-left text-xs ${
-                o.key === valueKey
-                  ? "bg-primary-soft font-bold text-primary"
-                  : "text-text-1 hover:bg-[#f2f4f8]"
+              onClick={() => onSelect(o.key)}
+              className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+                active
+                  ? "bg-primary text-white font-bold shadow-[0_2px_8px_rgba(29,79,216,.3)]"
+                  : "bg-[rgba(255,255,255,.85)] text-text-2"
               }`}
             >
               {o.label}
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -310,48 +340,67 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
   const selected = danji.find((d) => d.id === selectedId) ?? null;
 
+  /* ===== 검색 선택 · 단지 정보 패널 (item1·item2) =====
+     infoComplex: 목록 밖 단지(검색/포인트)용 정보 패널 대상.
+     searchMarker: 목록 밖 단지를 지도에 하이라이트하기 위한 임시 마커. */
+  const [infoComplex, setInfoComplex] = useState<{ id: string; name: string } | null>(null);
+  const [searchMarker, setSearchMarker] = useState<
+    { id: string; name: string; lat: number; lng: number } | null
+  >(null);
+
   /* ===== 매물 레이어 상태 — 토글 ON일 때만 현재 뷰포트 매물을 마커로 ===== */
   const [showListings, setShowListings] = useState(false);
   const [listingItems, setListingItems] = useState<MapListingItem[]>([]);
 
-  /* ===== 가격대·면적대·준공연도 필터 상태 ===== */
+  /* ===== 가격대·면적대·준공연도·세대수·유형 필터 상태 (확대 · item3) ===== */
   const [priceKey, setPriceKey] = useState("all");
   const [areaKey, setAreaKey] = useState("all");
   const [yearKey, setYearKey] = useState("all");
-  const [openFilter, setOpenFilter] = useState<FilterKind | null>(null);
+  const [householdKey, setHouseholdKey] = useState("all");
+  const [buildingKey, setBuildingKey] = useState("all");
+  /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
+  const [listingTradeKey, setListingTradeKey] = useState("all");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
-  const filterActive = priceKey !== "all" || areaKey !== "all" || yearKey !== "all";
+  const danjiFilterActive =
+    priceKey !== "all" ||
+    areaKey !== "all" ||
+    yearKey !== "all" ||
+    householdKey !== "all" ||
+    buildingKey !== "all";
+  const filterActive = danjiFilterActive || listingTradeKey !== "all";
+  const activeCount =
+    [priceKey, areaKey, yearKey, householdKey, buildingKey, listingTradeKey].filter(
+      (k) => k !== "all",
+    ).length;
 
-  const toggleFilter = useCallback(
-    (kind: FilterKind) => setOpenFilter((v) => (v === kind ? null : kind)),
-    [],
-  );
-  const selectFilter = useCallback((kind: FilterKind, key: string) => {
-    if (kind === "price") setPriceKey(key);
-    else if (kind === "area") setAreaKey(key);
-    else setYearKey(key);
-    setOpenFilter(null);
-  }, []);
   const resetFilters = useCallback(() => {
     setPriceKey("all");
     setAreaKey("all");
     setYearKey("all");
-    setOpenFilter(null);
+    setHouseholdKey("all");
+    setBuildingKey("all");
+    setListingTradeKey("all");
   }, []);
 
   const filteredDanji = useMemo(() => {
-    if (!filterActive) return danji;
+    if (!danjiFilterActive) return danji;
     const priceOpt = PRICE_OPTIONS.find((o) => o.key === priceKey) ?? PRICE_OPTIONS[0];
     const areaOpt = AREA_OPTIONS.find((o) => o.key === areaKey) ?? AREA_OPTIONS[0];
     const yearOpt = YEAR_OPTIONS.find((o) => o.key === yearKey) ?? YEAR_OPTIONS[0];
+    const hhOpt = HOUSEHOLD_OPTIONS.find((o) => o.key === householdKey) ?? HOUSEHOLD_OPTIONS[0];
+    const btOpt = BUILDING_TYPE_OPTIONS.find((o) => o.key === buildingKey) ?? BUILDING_TYPE_OPTIONS[0];
     return danji.filter(
       (d) =>
         inRange(d.avgPriceWon !== null ? d.avgPriceWon / 100_000_000 : null, priceOpt) &&
         inRange(d.areaM2, areaOpt) &&
-        inRange(d.buildYear, yearOpt),
+        inRange(d.buildYear, yearOpt) &&
+        inRange(d.households, hhOpt) &&
+        matchesBuildingType(d.buildingType, btOpt),
     );
-  }, [danji, filterActive, priceKey, areaKey, yearKey]);
+  }, [danji, danjiFilterActive, priceKey, areaKey, yearKey, householdKey, buildingKey]);
 
+  // 컴팩트 칩 행: 매물 토글 + "필터" 확장 버튼 (+활성 배지) + 초기화
   const filterBar = (
     <>
       <button
@@ -366,33 +415,24 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       >
         🏠 매물
       </button>
-      <FilterDropdown
-        kind="price"
-        label="가격"
-        options={PRICE_OPTIONS}
-        valueKey={priceKey}
-        open={openFilter === "price"}
-        onToggle={toggleFilter}
-        onSelect={selectFilter}
-      />
-      <FilterDropdown
-        kind="area"
-        label="면적"
-        options={AREA_OPTIONS}
-        valueKey={areaKey}
-        open={openFilter === "area"}
-        onToggle={toggleFilter}
-        onSelect={selectFilter}
-      />
-      <FilterDropdown
-        kind="year"
-        label="준공연도"
-        options={YEAR_OPTIONS}
-        valueKey={yearKey}
-        open={openFilter === "year"}
-        onToggle={toggleFilter}
-        onSelect={selectFilter}
-      />
+      <button
+        type="button"
+        aria-expanded={filtersExpanded}
+        onClick={() => setFiltersExpanded((v) => !v)}
+        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
+          filterActive || filtersExpanded
+            ? "bg-[rgba(29,79,216,.12)] text-primary"
+            : "bg-[rgba(255,255,255,.75)] text-text-2"
+        }`}
+      >
+        필터
+        {activeCount > 0 && (
+          <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-extrabold text-white">
+            {activeCount}
+          </span>
+        )}{" "}
+        ▾
+      </button>
       {filterActive && (
         <button
           type="button"
@@ -404,6 +444,46 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       )}
     </>
   );
+
+  // 확장 패널: 모든 범위/유형 필터 (칩 그룹) — 모바일 친화 접이식
+  const filterPanel = filtersExpanded ? (
+    <div className="glass-strong flex w-[300px] max-w-[calc(100vw-32px)] flex-col gap-3 rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-extrabold text-ink">상세 필터</span>
+        <button
+          type="button"
+          onClick={() => setFiltersExpanded(false)}
+          aria-label="필터 닫기"
+          className="text-[13px] text-text-3"
+        >
+          ✕
+        </button>
+      </div>
+      <FilterChipGroup label="가격대(매매)" options={PRICE_OPTIONS} valueKey={priceKey} onSelect={setPriceKey} />
+      <FilterChipGroup label="평형대(전용면적)" options={AREA_OPTIONS} valueKey={areaKey} onSelect={setAreaKey} />
+      <FilterChipGroup label="준공연도" options={YEAR_OPTIONS} valueKey={yearKey} onSelect={setYearKey} />
+      <FilterChipGroup label="세대수 규모" options={HOUSEHOLD_OPTIONS} valueKey={householdKey} onSelect={setHouseholdKey} />
+      <FilterChipGroup label="유형" options={BUILDING_TYPE_OPTIONS} valueKey={buildingKey} onSelect={setBuildingKey} />
+      <FilterChipGroup
+        label={`거래유형 (매물 레이어${showListings ? "" : " · 켜면 적용"})`}
+        options={LISTING_TRADE_OPTIONS}
+        valueKey={listingTradeKey}
+        onSelect={setListingTradeKey}
+      />
+      <div className="flex items-center justify-between border-t border-[rgba(16,28,54,.08)] pt-2.5">
+        <button type="button" onClick={resetFilters} className="text-[12px] font-bold text-text-3 underline">
+          전체 초기화
+        </button>
+        <button
+          type="button"
+          onClick={() => setFiltersExpanded(false)}
+          className="btn-primary rounded-lg px-4 py-1.5 text-xs"
+        >
+          단지 {filteredDanji.length} 적용
+        </button>
+      </div>
+    </div>
+  ) : null;
 
   /* ===== 서버 클러스터링 상태 — 낮은 줌에서 42k 단지를 그리드 집계로 표시 ===== */
   const [clusterMode, setClusterMode] = useState<"points" | "clusters">("points");
@@ -418,6 +498,9 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   const lastBoundsRef = useRef<MapIdleInfo["bounds"]>(null);
   const listingTimerRef = useRef<number | null>(null);
   const listingAbortRef = useRef<AbortController | null>(null);
+  // 거래유형 필터를 최신값으로 참조 (콜백 재생성 없이 type 파라미터 반영)
+  const listingTradeRef = useRef(listingTradeKey);
+  listingTradeRef.current = listingTradeKey;
 
   const fetchListings = useCallback((bounds: NonNullable<MapIdleInfo["bounds"]>) => {
     if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
@@ -431,6 +514,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         neLat: String(bounds.neLat),
         neLng: String(bounds.neLng),
       });
+      const tradeType = LISTING_TRADE_OPTIONS.find((o) => o.key === listingTradeRef.current)?.type;
+      if (tradeType) params.set("type", tradeType);
       fetch(`/api/map/listings?${params.toString()}`, { signal: controller.signal })
         .then((res) => (res.ok ? (res.json() as Promise<{ items: MapListingItem[] }>) : null))
         .then((json) => {
@@ -451,6 +536,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       setListingItems([]);
     }
   }, [showListings, fetchListings]);
+
+  // 거래유형(매매/전세/월세) 변경 → 매물 레이어가 켜져 있으면 서버 재조회
+  useEffect(() => {
+    if (showListings && lastBoundsRef.current) fetchListings(lastBoundsRef.current);
+  }, [listingTradeKey, showListings, fetchListings]);
 
   const handleMapIdle = useCallback(
     (info: MapIdleInfo) => {
@@ -515,6 +605,23 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   }, [showListings, listingItems]);
 
   const markers = useMemo<MapMarkerData[]>(() => {
+    const infoId = infoComplex?.id ?? null;
+    // 검색/포인트로 선택된 목록 밖 단지를 하이라이트 마커로 주입 (중복 id 제외)
+    const withSearch = (arr: MapMarkerData[]): MapMarkerData[] => {
+      if (!searchMarker || arr.some((m) => m.id === searchMarker.id)) return arr;
+      return [
+        ...arr,
+        {
+          id: searchMarker.id,
+          lat: searchMarker.lat,
+          lng: searchMarker.lng,
+          label: searchMarker.name,
+          pinColor: "#1d4fd8",
+          selected: true,
+          infoHtml: "",
+        },
+      ];
+    };
     // 낮은 줌: 서버 그리드 클러스터만 표시 (개수 배지 원형 마커) + 매물 레이어
     if (clusterMode === "clusters" && clusters.length > 0) {
       const base: MapMarkerData[] = clusters.map((c) => ({
@@ -527,7 +634,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
         infoHtml: "",
       }));
-      return [...base, ...listingMarkers];
+      return withSearch([...base, ...listingMarkers]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
     const base: MapMarkerData[] = filteredDanji.map((d) => ({
@@ -540,26 +647,89 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       // 시세 말풍선 스타일 강제 (avgPricePerM2 정의 시 price marker)
       avgPricePerM2: d.avgPriceWon ? d.avgPriceWon / 84 : 1,
       momPct: d.momPct ?? undefined,
-      selected: d.id === selectedId,
+      selected: d.id === selectedId || d.id === infoId,
       infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
     }));
     // API 추가 포인트에는 가격·면적·연식 정보가 없어 필터 적용 시 제외
-    if (!filterActive) {
+    if (!danjiFilterActive) {
       const known = new Set(base.map((m) => m.id));
       for (const p of extraPoints) {
         if (known.has(p.id)) continue;
-        base.push({ id: p.id, lat: p.lat, lng: p.lng, label: p.name, infoHtml: "" });
+        base.push({
+          id: p.id,
+          lat: p.lat,
+          lng: p.lng,
+          label: p.name,
+          selected: p.id === infoId,
+          infoHtml: "",
+        });
       }
     }
-    return [...base, ...listingMarkers];
-  }, [clusterMode, clusters, extraPoints, filteredDanji, filterActive, selectedId, listingMarkers]);
+    return withSearch([...base, ...listingMarkers]);
+  }, [
+    clusterMode,
+    clusters,
+    extraPoints,
+    filteredDanji,
+    danjiFilterActive,
+    selectedId,
+    infoComplex,
+    searchMarker,
+    listingMarkers,
+  ]);
 
   const selectDanji = (id: string) => {
+    setInfoComplex(null);
+    setSearchMarker(null);
     setSelectedId(id);
     setDetailTab("요약");
     const d = danji.find((x) => x.id === id);
     if (d) setCenter({ lat: d.lat, lng: d.lng });
   };
+
+  /* ===== 검색 선택 · 정보 패널 핸들러 (item1·item2) ===== */
+  const handleSearchSelectComplex = useCallback(
+    (item: MapSearchSelectComplex) => {
+      setFiltersExpanded(false);
+      const inList = danji.find((d) => d.id === item.id);
+      if (inList) {
+        // 목록에 있는 단지 → 기존 리치 상세 패널 재사용
+        selectDanji(item.id);
+        setLevel(LEVEL_BY_ZOOM.danji);
+        return;
+      }
+      // 목록 밖 단지 → 정보 패널이 상세를 fetch (좌표는 onLoaded에서 recenter)
+      setSelectedId(null);
+      setSearchMarker(null);
+      setInfoComplex({ id: item.id, name: item.name });
+      setLevel(LEVEL_BY_ZOOM.danji);
+    },
+    // selectDanji는 매 렌더 새로 생성되지만 danji가 실질 의존성
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [danji],
+  );
+
+  const handleSearchSelectAddress = useCallback((item: MapSearchSelectAddress) => {
+    setFiltersExpanded(false);
+    setSelectedId(null);
+    setInfoComplex(null);
+    setSearchMarker(null);
+    setCenter({ lat: item.lat, lng: item.lng });
+    setLevel(LEVEL_BY_ZOOM.danji);
+  }, []);
+
+  const handleInfoLoaded = useCallback(
+    (info: { id: string; name: string; lat: number; lng: number }) => {
+      setSearchMarker({ id: info.id, name: info.name, lat: info.lat, lng: info.lng });
+      setCenter({ lat: info.lat, lng: info.lng });
+    },
+    [],
+  );
+
+  const closeInfoPanel = useCallback(() => {
+    setInfoComplex(null);
+    setSearchMarker(null);
+  }, []);
 
   const handleMarkerClick = (m: MapMarkerData) => {
     // 매물 마커 클릭 → 매물 상세로 이동
@@ -577,8 +747,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       selectDanji(m.id);
       return;
     }
-    // API 포인트(목록 밖 단지) — 지도 중심만 이동
+    // API 포인트(목록 밖 단지) — 중심 이동 + 정보 패널 열기(item2)
+    setSelectedId(null);
     setCenter({ lat: m.lat, lng: m.lng });
+    setSearchMarker({ id: m.id, name: m.label, lat: m.lat, lng: m.lng });
+    setInfoComplex({ id: m.id, name: m.label });
   };
 
   const goToMyLocation = () => {
@@ -723,12 +896,15 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         <Link href="/" className="shrink-0">
           <Logo />
         </Link>
-        <Link
-          href="/search"
-          className="hidden w-[280px] items-center gap-2 rounded-xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-sm text-text-1 md:flex"
-        >
-          ⌕ {regionLabel}
-        </Link>
+        {/* 단지·주소 검색 (item1) — 헤더 인라인 (md+) */}
+        <div className="hidden w-[280px] md:block">
+          <MapSearchBox
+            variant="header"
+            placeholder={`아파트명·주소 (예: ${regionLabel})`}
+            onSelectComplex={handleSearchSelectComplex}
+            onSelectAddress={handleSearchSelectAddress}
+          />
+        </div>
         <div className="hidden items-center gap-1.5 lg:flex">
           <span className="chip chip-active px-3.5 py-2 text-[13px]">매매</span>
           <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-2">전세</span>
@@ -740,13 +916,36 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         </Link>
       </div>
 
-      {/* ===== 필터 바 (lg 미만 — lg 이상은 헤더에 표시) ===== */}
-      {!selected && (
+      {/* ===== 모바일 검색 (md 미만) — 패널 열려 있으면 숨김 ===== */}
+      {!selected && !infoComplex && (
         <div
-          className="absolute left-4 z-30 flex items-center gap-1.5 md:left-[356px] lg:hidden"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 88px)" }}
+          className="absolute left-4 right-4 z-40 md:hidden"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 82px)" }}
         >
+          <MapSearchBox
+            variant="floating"
+            onSelectComplex={handleSearchSelectComplex}
+            onSelectAddress={handleSearchSelectAddress}
+          />
+        </div>
+      )}
+
+      {/* ===== 필터 바 (lg 미만 — lg 이상은 헤더에 표시) =====
+           모바일은 검색바 아래(+140), md 이상은 헤더 우측 여백(+88). inline style는
+           반응형 top 클래스를 덮어쓰므로 top은 클래스로만 지정한다. */}
+      {!selected && (
+        <div className="absolute left-4 top-[calc(env(safe-area-inset-top,0px)+140px)] z-30 flex items-center gap-1.5 md:left-[356px] md:top-[calc(env(safe-area-inset-top,0px)+88px)] lg:hidden">
           {filterBar}
+        </div>
+      )}
+
+      {/* ===== 상세 필터 확장 패널 (item3) — 접이식·모바일 친화 ===== */}
+      {filtersExpanded && (
+        <div
+          className="absolute left-4 z-[41] md:left-[356px] lg:left-[200px]"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 184px)" }}
+        >
+          {filterPanel}
         </div>
       )}
 
@@ -763,6 +962,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
               setZoom(t.key);
               setLevel(LEVEL_BY_ZOOM[t.key]);
               setSelectedId(null);
+              setInfoComplex(null);
+              setSearchMarker(null);
             }}
             className={`chip px-3 py-1.5 text-xs transition-colors ${
               zoom === t.key ? "bg-[rgba(29,79,216,.12)] font-bold text-primary" : "text-text-1"
@@ -828,13 +1029,13 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           <div className="flex items-baseline justify-between px-5 pb-2.5 pt-4">
             <div className="text-[15px] font-extrabold text-ink">
               {regionLabel} 단지 {filteredDanji.length}
-              {filterActive && (
+              {danjiFilterActive && (
                 <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
               )}
             </div>
             <div className="text-xs text-text-3">시세순 ▾</div>
           </div>
-          {filterActive && filteredDanji.length === 0 && (
+          {danjiFilterActive && filteredDanji.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
               <div className="text-xs text-text-2">조건에 맞는 단지가 없어요.</div>
               <button
@@ -1026,22 +1227,22 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
                 </div>
                 <div className="flex gap-2">
                   <Link
-                    href="/notes/compare"
+                    href={`/notes/new?apt=${encodeURIComponent(selected.name)}`}
                     className="btn-primary btn-cta flex-1 rounded-xl p-[11px] text-center text-xs"
                   >
+                    이 단지 임장노트
+                  </Link>
+                  <Link
+                    href={`/analysis?complexId=${encodeURIComponent(selected.id)}`}
+                    className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-xs"
+                  >
+                    AI 분석
+                  </Link>
+                  <Link
+                    href="/notes/compare"
+                    className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-xs"
+                  >
                     비교에 담기
-                  </Link>
-                  <Link
-                    href="/notes/new"
-                    className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-xs"
-                  >
-                    노트 쓰기
-                  </Link>
-                  <Link
-                    href="/notifications"
-                    className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-xs"
-                  >
-                    알림 설정
                   </Link>
                 </div>
               </>
@@ -1194,6 +1395,16 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
             )}
           </div>
         </aside>
+      )}
+
+      {/* ===== 단지 정보 패널 (item2) — 검색/포인트 선택 시 실데이터 하단 시트 ===== */}
+      {infoComplex && (
+        <ComplexInfoPanel
+          complexId={infoComplex.id}
+          initialName={infoComplex.name}
+          onClose={closeInfoPanel}
+          onLoaded={handleInfoLoaded}
+        />
       )}
 
       {/* ===== 매물 등록 플로팅 버튼 (우하단, 줌 컨트롤 위 · 탭바 위) ===== */}

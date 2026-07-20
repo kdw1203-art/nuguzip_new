@@ -1,208 +1,111 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { readTownPosts } from "@/lib/newui/board-posts";
-import { ExampleBadge } from "../components/ExampleBadge";
-import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import {
-  COMMUNITY_SUBCATEGORIES,
-  findSub,
-  matchSubcategory,
-} from "@/lib/subcategories";
+  listPublicNotes,
+  inspectionAverageScore,
+  type InspectionNote,
+} from "@/lib/inspection/store-db";
+import { maskNoteAuthor } from "./shared";
+import { TownFeed, type FeedCard } from "./feed-client";
 import type { Post } from "@/lib/types/post";
 
-/* 시안 6d(동네이야기 데스크탑) + 6e(동네이야기 모바일) — posts 실데이터 연동 */
+/* 동네이야기 통합 피드(#5) — 기존 피드 + 발견 피드를 하나로 합친 사진 우선 카드 그리드.
+   공개 임장노트(사진 우선) + 커뮤니티 글을 섞어 오늘의집/인스타그램형으로 노출.
+   상단엔 동네이야기 하위 영역(뉴스·자료·모임·전문가) + 입주/공매/청약을 카테고리 카드로 통합. */
 
-/* ISR 전환 검토(운영 P0): 이 페이지는 searchParams(sub·sort 필터)를 실제로 사용하므로
-   요청 시 자동 dynamic — revalidate로 바꿔도 효과가 없어 그대로 둔다. */
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
-/* ---------- 목업 폴백 (DB 미연결 시) ---------- */
-
-/* 더미데이터 정책(더미 1개 원칙): 테스트용 샘플 게시글은 단 1건 —
-   실데이터 0건일 때만 "예시" 배지와 함께 노출 */
-const FALLBACK_POSTS: Post[] = [
-  {
-    id: "mock-1",
-    authorLabel: "첫집준비중",
-    category: "임장후기",
-    city: "경기도",
-    district: "안양시 동안구",
-    title: "공작아파트 3번째 임장 다녀왔어요 — 주차가 관건이네요",
-    body: "저녁 8시에 가보니 이중주차가 꽤 많았습니다. 채광이랑 학군은 확실히 좋은데…",
-    tags: ["임장", "후기"],
-    createdAt: new Date(Date.now() - 2 * 3600_000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 3600_000).toISOString(),
-    likeCount: 12,
-    commentCount: 8,
-    viewCount: 120,
-    comments: [],
-  },
+/* 동네이야기 카테고리 통합(#5·입주/공매/청약 편입) — 랜딩 상단 바로가기 카드 */
+const TOWN_LINKS: { href: string; label: string; icon: string; desc: string }[] = [
+  { href: "/town/news", label: "뉴스", icon: "📰", desc: "부동산 뉴스" },
+  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·노트·다이제스트" },
+  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
+  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "검증된 상담" },
+  { href: "/supply", label: "입주 물량", icon: "🏗️", desc: "공급 캘린더" },
+  { href: "/auctions", label: "공매 물건", icon: "🔨", desc: "온비드 공매" },
+  { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },
+  { href: "/digest", label: "다이제스트", icon: "🗞️", desc: "주간 요약" },
 ];
 
-/* 더미 1개 원칙: 예시 모임도 1건만 */
-const FALLBACK_GROUPS = [
-  { id: null, title: "과천지식정보타운 같이 봐요", meta: "7.25 (토) 10:00 · 4/6명" },
-];
+/* 더미데이터 정책(더미 1개 원칙): 실데이터 0건일 때만 예시 카드 1건 노출 */
+const EXAMPLE_CARD: FeedCard = {
+  id: "mock-feed-1",
+  href: "/town/write",
+  kind: "note",
+  cover: null,
+  title: "채광은 확실, 주차가 관건 — 공작 302동 임장 후기",
+  author: "임장러버",
+  region: "안양 관양동",
+  saves: 214,
+  tags: ["임장", "후기"],
+  visited: true,
+  createdAt: Date.now(),
+  isExample: true,
+};
 
-/* ---------- 헬퍼 ---------- */
-
-function relativeTime(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "방금 전";
-  if (min < 60) return `${min}분 전`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
-  const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}일 전`;
-  return new Date(iso).toLocaleDateString("ko-KR", {
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
-function displayTimeIso(p: Post) {
-  return p.sourcePublishedAt || p.createdAt;
-}
-
-function badgeStyle(category: string) {
-  const c = category ?? "";
-  if (["질문", "상담", "Q&A"].some((k) => c.includes(k)))
-    return "bg-[#fdf3e7] text-[#c07a3a]";
-  if (["뉴스", "정책", "시장", "이슈"].some((k) => c.includes(k)))
-    return "bg-[#f2f4f8] text-text-2";
-  return "bg-[#edf2fe] text-primary";
-}
-
-function meetingMeta(m: UserMeeting) {
-  const when = m.scheduledAt
-    ? new Date(m.scheduledAt).toLocaleDateString("ko-KR", {
-        month: "numeric",
-        day: "numeric",
-        weekday: "short",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "일정 미정";
-  return `${when} · ${m.currentMembers}/${m.maxMembers}명`;
-}
-
-/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 공용 ExampleBadge 사용 */
-
-/* ---------- 페이지 ---------- */
-
-const PAGE_SIZE = 20;
-
-export default async function TownPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ sub?: string; sort?: string; page?: string }>;
-}) {
-  const sp = await searchParams;
-  const sub = findSub(COMMUNITY_SUBCATEGORIES, sp.sub);
-  const sort = sp.sort === "popular" ? "popular" : "latest";
-  const parsedPage = Number.parseInt(sp.page ?? "1", 10);
-  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-
-  /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 —
-     더미데이터 정책: 실데이터 1건 이상이면 실데이터만, 0건일 때만 예시 목업 */
-  let allPosts: Post[] = [];
-  try {
-    allPosts = await readTownPosts();
-  } catch {
-    allPosts = [];
-  }
-  const usingFallback = allPosts.length === 0;
-  if (usingFallback) allPosts = FALLBACK_POSTS;
-
-  const countBySub = COMMUNITY_SUBCATEGORIES.map((c) => ({
-    ...c,
-    count:
-      c.id === "all"
-        ? allPosts.length
-        : allPosts.filter((p) =>
-            matchSubcategory(c, [p.category, p.title, ...(p.tags ?? [])]),
-          ).length,
-  }));
-
-  let posts =
-    sub.id === "all"
-      ? allPosts
-      : allPosts.filter((p) =>
-          matchSubcategory(sub, [p.category, p.title, ...(p.tags ?? [])]),
-        );
-
-  if (sort === "popular") {
-    posts = [...posts].sort(
-      (a, b) =>
-        b.likeCount + b.commentCount * 2 - (a.likeCount + a.commentCount * 2),
-    );
-  } else {
-    // 최신순: 이웃 글(UGC) 우선, 뉴스 자동수집 글은 뒤로 (구 커뮤니티 정렬 방식)
-    posts = [...posts].sort((a, b) => {
-      const autoDiff =
-        Number(Boolean(a.isAutomated)) - Number(Boolean(b.isAutomated));
-      if (autoDiff !== 0) return autoDiff;
-      return (
-        new Date(displayTimeIso(b)).getTime() -
-        new Date(displayTimeIso(a)).getTime()
-      );
-    });
-  }
-  /* #7 경량판 페이지네이션 — ?page=N 링크 방식(20건씩), 필터(sub·sort)와 조합 유지 */
-  const feed = posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const hasNextPage = posts.length > page * PAGE_SIZE;
-
-  /* 내 관심 지역 — 게시글 상위 지역에서 도출 */
-  const regionCount = new Map<string, number>();
-  for (const p of allPosts) {
-    const r = p.city && p.district ? `${p.city} ${p.district}` : p.city;
-    if (r) regionCount.set(r, (regionCount.get(r) ?? 0) + 1);
-  }
-  const topRegions = [...regionCount.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([r]) => r);
-  // 실데이터 없으면 예시 라벨이 붙은 목업 지역 노출
-  const regionsFallback = topRegions.length === 0;
-  // 더미 1개 원칙: 예시 지역 1건만
-  const myRegions = regionsFallback ? ["안양 관양동"] : topRegions;
-
-  /* 이번 주 임장 모임 — meetings 실데이터 (없으면 목업) */
-  let weekGroups: { id: string | null; title: string; meta: string }[] = [];
-  try {
-    const meetings = await listMeetings();
-    weekGroups = meetings
-      .slice(0, 2)
-      .map((m) => ({ id: m.id, title: m.title, meta: meetingMeta(m) }));
-  } catch {
-    weekGroups = [];
-  }
-  const groupsFallback = weekGroups.length === 0;
-  if (groupsFallback) weekGroups = FALLBACK_GROUPS;
-
-  const hrefFor = (overrides: {
-    sub?: string;
-    sort?: string;
-    page?: number;
-  }) => {
-    const p = new URLSearchParams();
-    const nextSub = overrides.sub ?? sub.id;
-    const nextSort = overrides.sort ?? sort;
-    const nextPage = overrides.page ?? 1; // 필터·정렬 변경 시 1페이지로
-    if (nextSub !== "all") p.set("sub", nextSub);
-    if (nextSort !== "latest") p.set("sort", nextSort);
-    if (nextPage > 1) p.set("page", String(nextPage));
-    const s = p.toString();
-    return s ? `/town?${s}` : "/town";
+function noteToCard(n: InspectionNote): FeedCard {
+  const oneLiner = n.summary?.trim() || n.sections.pros?.trim() || n.title;
+  const doneCount = n.checklist.filter((c) => c.done).length;
+  const tags: string[] = [];
+  if (n.aptName?.trim()) tags.push(n.aptName.trim());
+  if (n.visitDate) tags.push("직접방문");
+  return {
+    id: n.id,
+    href: `/notes/${n.id}`,
+    kind: "note",
+    cover: n.photos.find(Boolean) ?? null,
+    title: oneLiner.length > 40 ? `${oneLiner.slice(0, 40)}…` : oneLiner,
+    author: maskNoteAuthor(n.authorLabel, n.authorEmail),
+    region: n.region || "전국",
+    saves: Math.round(inspectionAverageScore(n.scores) * 40) + doneCount,
+    tags,
+    visited: Boolean(n.visitDate),
+    createdAt: Date.parse(n.createdAt) || 0,
+    isExample: false,
   };
+}
+
+function postToCard(p: Post): FeedCard {
+  const region = p.city && p.district ? `${p.city} ${p.district}` : p.city || "전국";
+  return {
+    id: p.id,
+    href: `/town/news/${p.id}`,
+    kind: "post",
+    cover: null,
+    title: p.title,
+    author: p.authorLabel || "이웃",
+    region,
+    saves: p.bookmarkCount ?? p.likeCount ?? 0,
+    tags: p.tags ?? [],
+    visited: false,
+    createdAt: Date.parse(p.createdAt) || 0,
+    isExample: false,
+  };
+}
+
+export default async function TownPage() {
+  /* 실데이터: 공개 임장노트(사진 우선) + 커뮤니티 글(비자동 posts). 뉴스(자동수집)는 /town/news로 분리. */
+  const [notes, posts] = await Promise.all([
+    listPublicNotes(40).catch((): InspectionNote[] => []),
+    readTownPosts().catch((): Post[] => []),
+  ]);
+
+  const noteCards = notes.map(noteToCard);
+  const postCards = posts.filter((p) => !p.isAutomated).map(postToCard);
+
+  /* 노트·글을 섞어 최신순 기본 정렬 (클라이언트에서 추천/최신/유형별 재정렬) */
+  let cards: FeedCard[] = [...noteCards, ...postCards].sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
+
+  const exampleOnly = cards.length === 0;
+  if (exampleOnly) cards = [EXAMPLE_CARD];
 
   return (
-    <PageShell>
+    <PageShell wide>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">
-          동네이야기
-        </h1>
+        <h1 className="rise-in text-[22px] font-extrabold text-ink">동네이야기</h1>
         <Link
           href="/town/write"
           className="btn-primary btn-cta hidden px-4 py-[9px] text-[13px] md:block"
@@ -211,191 +114,24 @@ export default async function TownPage({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_340px]">
-        {/* ---------- 피드 ---------- */}
-        <div className="flex flex-col gap-3.5">
-          <div className="rise-in flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {countBySub.map((c) => (
-              <Link
-                key={c.id}
-                href={hrefFor({ sub: c.id })}
-                className={`chip shrink-0 px-3.5 py-2 text-[13px] ${
-                  sub.id === c.id
-                    ? "chip-active"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
-                }`}
-              >
-                {c.label}
-                <span
-                  className={`ml-1 text-[11px] ${
-                    sub.id === c.id ? "text-white/75" : "text-text-3"
-                  }`}
-                >
-                  {c.count}
-                </span>
-              </Link>
-            ))}
-            <div className="flex-1" />
-            <Link
-              href={hrefFor({ sort: sort === "latest" ? "popular" : "latest" })}
-              className="shrink-0 self-center text-[13px] font-semibold text-text-3"
-            >
-              {sort === "latest" ? "최신순 ▾" : "인기순 ▾"}
-            </Link>
-          </div>
-
-          {/* 더미 1개 원칙: 예시 샘플만 있을 때 안내 캡션 */}
-          {usingFallback && (
-            <div className="flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
-              <ExampleBadge />
-              <span>
-                아직 등록된 글이 없어 샘플 1건을 보여드려요 — 실데이터가 쌓이면
-                자동으로 교체됩니다.
-              </span>
-            </div>
-          )}
-
-          {feed.map((p, i) => {
-            const byline = p.isAutomated
-              ? p.sourceName || "뉴스 자동수집"
-              : p.authorLabel;
-            const region =
-              p.city && p.district ? `${p.city} ${p.district}` : p.city || "전국";
-            return (
-              <Link key={p.id} href={`/town/news/${p.id}`}>
-                <article
-                  className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col gap-2.5 rounded-[18px] px-6 py-5`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-md px-2 py-[3px] text-[11px] font-bold ${badgeStyle(p.category)}`}
-                    >
-                      {p.category}
-                    </span>
-                    <span className="truncate text-xs text-text-3">
-                      {byline} · {region} · {relativeTime(displayTimeIso(p))}
-                    </span>
-                    {usingFallback && <ExampleBadge />}
-                  </div>
-                  <h2 className="text-base font-bold leading-[1.45] text-ink">
-                    {p.title}
-                  </h2>
-                  {p.body && (
-                    <p className="line-clamp-2 text-sm leading-[1.55] text-text-2">
-                      {p.body}
-                    </p>
-                  )}
-                  <div className="flex gap-4 text-xs text-text-3">
-                    <span>공감 {p.likeCount}</span>
-                    <span>댓글 {p.commentCount}</span>
-                    <span>조회 {p.viewCount}</span>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
-
-          {/* 더 보기 — 다음 페이지 존재 시만 (?page=N 링크 · 서버 컴포넌트 유지) */}
-          {hasNextPage && (
-            <Link
-              href={hrefFor({ page: page + 1 })}
-              className="card card-hover rounded-[14px] px-6 py-3.5 text-center text-[13px] font-bold text-primary"
-            >
-              더 보기
-            </Link>
-          )}
-          {page > 1 && (
-            <Link
-              href={hrefFor({ page: page - 1 })}
-              className="self-center text-xs font-semibold text-text-3"
-            >
-              ‹ 이전 페이지 ({page - 1}쪽)
-            </Link>
-          )}
-
-          {feed.length === 0 && (
-            /* 12j 빈 상태 규격: 일러스트 52px + 제목 + 한 줄 + CTA 1개 */
-            <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
-              <div
-                className="h-[52px] w-[52px] rounded-2xl"
-                style={{
-                  background:
-                    "repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2 5px,#eef2f8 5px,#eef2f8 10px)",
-                }}
-              />
-              <div className="text-sm font-bold text-text-1">
-                {sub.label} 게시판에 아직 글이 없어요
-              </div>
-              <div className="text-xs text-text-3">
-                첫 글을 남기면 이웃들에게 가장 먼저 보여요
-              </div>
-              <Link
-                href="/town/write"
-                className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs"
-              >
-                첫 글 쓰기
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* ---------- 사이드바 ---------- */}
-        <aside className="flex flex-col gap-4">
-          <div className="rise-in-2 card flex flex-col gap-3 rounded-[18px] p-5">
-            <div className="text-sm font-extrabold text-ink">내 관심 지역</div>
-            <div className="flex flex-wrap gap-2">
-              {myRegions.map((r) => (
-                <span
-                  key={r}
-                  className="chip-soft inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs"
-                >
-                  {r}
-                  {regionsFallback && <ExampleBadge />}
-                </span>
-              ))}
-              <span className="rounded-full bg-[#f2f4f8] px-3 py-1.5 text-xs font-semibold text-text-2">
-                ＋ 추가
-              </span>
-            </div>
-          </div>
-
-          <div className="rise-in-3 card flex flex-col gap-2.5 rounded-[18px] p-5">
-            <div className="text-sm font-extrabold text-ink">
-              이번 주 임장 모임
-            </div>
-            {weekGroups.map((g) => (
-              <Link
-                key={g.title}
-                href={g.id ? `/town/groups/${g.id}` : "/town/groups"}
-                className="rounded-xl bg-bg px-3.5 py-3 transition-colors hover:bg-[#eef2f8]"
-              >
-                <div className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                  <span className="min-w-0 truncate">{g.title}</span>
-                  {groupsFallback && <ExampleBadge />}
-                </div>
-                <div className="mt-[3px] text-[11px] text-text-3">{g.meta}</div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="rise-in-4 ai-panel flex flex-col gap-2 rounded-[18px] p-5">
-            <div className="text-[13px] font-extrabold text-white">
-              검증된 전문가 상담
-            </div>
-            <p className="text-xs leading-[1.55] text-ai-text">
-              중개사·세무사에게 노트를 첨부해 바로 질문하세요
-            </p>
-            <Link
-              href="/town/experts"
-              className="btn-primary mt-1 rounded-[10px] p-2.5 text-center text-xs"
-            >
-              전문가 찾기
-            </Link>
-          </div>
-        </aside>
+      {/* 동네이야기 카테고리 통합 — 뉴스·자료·모임·전문가 + 입주/공매/청약 */}
+      <div className="rise-in mb-5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {TOWN_LINKS.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="card card-hover flex min-w-[118px] shrink-0 flex-col gap-1 rounded-[16px] px-4 py-3.5"
+          >
+            <span className="text-[20px] leading-none">{l.icon}</span>
+            <span className="mt-1 text-[13px] font-extrabold text-ink">{l.label}</span>
+            <span className="text-[11px] leading-[1.4] text-text-3">{l.desc}</span>
+          </Link>
+        ))}
       </div>
 
-      {/* 모바일 글쓰기 FAB (6e) */}
+      <TownFeed cards={cards} exampleOnly={exampleOnly} />
+
+      {/* 모바일 글쓰기 FAB */}
       <Link
         href="/town/write"
         aria-label="글쓰기"

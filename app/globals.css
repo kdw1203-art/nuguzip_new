@@ -68,7 +68,11 @@
      플랫 = 보더만(본문 카드) / sm = 호버·드롭다운 / lg = 모달·플로팅
      보더+그림자 동시 사용 금지 (글래스 제외) */
   --shadow-sm: 0 4px 14px rgba(16, 28, 54, 0.08);
+  --shadow-md: 0 10px 28px rgba(16, 28, 54, 0.12);
   --shadow-lg: 0 12px 32px rgba(16, 28, 54, 0.14);
+  /* 트렌드 갱신: 컬러드 글로우 + 강한 플로팅 그림자 (bento/feature 카드용) */
+  --shadow-glow: 0 12px 34px rgba(29, 79, 216, 0.22);
+  --shadow-float-xl: 0 24px 60px rgba(16, 28, 54, 0.18);
   /* 하위호환 별칭 — 기존 토큰명 유지, 값은 3단으로 스냅 */
   --shadow-card: var(--shadow-sm);
   --shadow-glass: var(--shadow-sm);
@@ -96,6 +100,15 @@
 
   /* 15d 구분선 단일색 */
   --divider: #f0f3f8;
+
+  /* 트렌드 갱신: 그라데이션 액센트 (히어로 헤드라인·리본·bento 틴트) */
+  --grad-brand: linear-gradient(120deg, #1d4fd8 0%, #4b7bff 45%, #5fd0e0 100%);
+  --grad-brand-soft: linear-gradient(
+    135deg,
+    rgba(29, 79, 216, 0.1) 0%,
+    rgba(95, 208, 224, 0.08) 100%
+  );
+  --grad-ink: linear-gradient(150deg, #232a35 0%, #191f28 60%, #10151d 100%);
 }
 
 @theme inline {
@@ -789,6 +802,12 @@ a:hover {
 .rise-in-6 {
   animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 6) both;
 }
+.rise-in-7 {
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 7) both;
+}
+.rise-in-8 {
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 8) both;
+}
 
 .modal-in {
   animation: scaleIn var(--dur-sm) var(--ease-out) both;
@@ -824,6 +843,8 @@ a:hover {
   .rise-in-4,
   .rise-in-5,
   .rise-in-6,
+  .rise-in-7,
+  .rise-in-8,
   .modal-in,
   .sheet-in,
   .toast,
@@ -834,14 +855,211 @@ a:hover {
   }
   .pulse-once,
   .shake,
-  .skeleton {
+  .skeleton,
+  .float-slow,
+  .sheen::after {
     animation: none;
   }
   .card-hover:hover,
+  .hover-rise:hover,
   .btn-primary:active,
   .btn-outline:active,
   .btn-ghost:active,
   .icon-btn:active {
     transform: none;
+  }
+}
+
+/* ============================================================
+   트렌드 갱신 (2026): bento · 그라데이션 · 마이크로 인터랙션
+   기존 토큰/클래스는 유지 — 아래는 순수 추가분
+   ============================================================ */
+
+/* 그라데이션 텍스트 — 히어로 강조 단어 */
+.text-gradient {
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* bento 서피스 — 카드에 은은한 브랜드 틴트 + 라운드 확대 */
+.bento {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  overflow: hidden;
+}
+.bento-tint {
+  background:
+    var(--grad-brand-soft),
+    var(--surface);
+}
+.bento-ink {
+  background: var(--grad-ink);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+/* 그라데이션 링(테두리) — 피처 카드 강조. 보더+그림자 동시금지 규칙의 예외(글래스류) */
+.ring-grad {
+  position: relative;
+}
+.ring-grad::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--grad-brand);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* 강한 호버 리프트 — 피처/bento 카드 (card-hover보다 큰 이동 + shadow-md) */
+.hover-rise {
+  transition:
+    transform var(--dur-sm) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out);
+  will-change: transform;
+}
+.hover-rise:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.hover-rise:active {
+  transform: translateY(-1px);
+}
+
+/* 눌림 피드백 (링크·타일) */
+.press {
+  transition: transform var(--dur-xs) var(--ease-out);
+}
+.press:active {
+  transform: scale(0.985);
+}
+
+/* 컬러드 글로우 — CTA/피처 강조 */
+.glow {
+  box-shadow: var(--shadow-glow);
+}
+
+/* 상단 하이라이트 스윕(sheen) — glass/ink 서피스 위 은은한 광택 이동 */
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.14),
+    transparent
+  );
+  transform: skewX(-18deg);
+  animation: sheenSweep 6.5s var(--ease-inout) infinite;
+  pointer-events: none;
+}
+@keyframes sheenSweep {
+  0%,
+  60% {
+    left: -60%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+
+/* 느린 플로트 — 장식 블롭/배지 */
+.float-slow {
+  animation: floatY 7s var(--ease-inout) infinite;
+}
+
+/* 숫자 카운트업 느낌의 그라데이션 밑줄 (섹션 헤더) */
+.accent-underline {
+  position: relative;
+}
+.accent-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  height: 3px;
+  width: 26px;
+  border-radius: 3px;
+  background: var(--grad-brand);
+}
+
+/* ── 헤더 다이나믹 (스크롤 인지 · 언더라인 인디케이터) ── */
+.header-shell {
+  transition:
+    height var(--dur-sm) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out),
+    background-color var(--dur-sm) var(--ease-out),
+    border-color var(--dur-sm) var(--ease-out);
+}
+.header-scrolled {
+  box-shadow: var(--shadow-md);
+}
+/* 나브 아이템 언더라인 인디케이터 — hover/active 시 좌→우 확장 */
+.nav-underline {
+  position: relative;
+}
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--grad-brand);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+.nav-underline:hover::after,
+.nav-underline:focus-visible::after,
+.nav-underline[data-active="true"]::after {
+  transform: scaleX(1);
+}
+/* 드롭다운 스프링감 — translateY + scale 동반 (모션토큰만 사용) */
+.dropdown-panel {
+  transform-origin: top left;
+  animation: dropIn var(--dur-sm) var(--ease-out) both;
+}
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press:active,
+  .hover-rise:active {
+    transform: none;
+  }
+  .nav-underline::after,
+  .dropdown-panel {
+    transition: none;
+    animation: none;
   }
 }

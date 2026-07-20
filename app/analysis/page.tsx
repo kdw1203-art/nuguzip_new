@@ -3,7 +3,7 @@ import { PageShell } from "../components/PageShell";
 import { ExampleBadge } from "../components/ExampleBadge";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
-import { AiNoteAnalysisCard } from "./ai-note-analysis";
+import { HubComplexPicker } from "./hub-picker";
 
 /* P1-10·P1-12: 가짜 개인화 foot 문구 제거(정적 설명으로 교체),
    실연동 전 도구에는 "시뮬레이션" 칩을 붙여 오해 방지 */
@@ -61,9 +61,9 @@ export const dynamic = "force-dynamic";
 export default async function AnalysisHubPage({
   searchParams,
 }: {
-  searchParams: Promise<{ noteId?: string }>;
+  searchParams: Promise<{ noteId?: string; complexId?: string; apt?: string }>;
 }) {
-  const { noteId } = await searchParams;
+  const { noteId, complexId, apt } = await searchParams;
 
   // 로그인 시 실데이터(내 노트 수)로 시작 섹션 구성 — 허위 수치 없음
   const session = await safeAuth();
@@ -142,6 +142,14 @@ export default async function AnalysisHubPage({
           </div>
         )}
 
+        {/* 단지 선택기 + 임장노트 AI 분석 (지도/검색 ?complexId=·?apt= seed) */}
+        <HubComplexPicker
+          noteId={noteId ?? null}
+          initialComplexId={complexId ?? null}
+          initialApt={apt ?? null}
+          loggedIn={Boolean(email)}
+        />
+
         <div className="rise-in-1 grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map((t) => (
             <Link
@@ -166,11 +174,6 @@ export default async function AnalysisHubPage({
               <div className="text-xs font-bold text-primary">{t.foot}</div>
             </Link>
           ))}
-
-          {/* 임장노트 AI 분석 — POST /api/inspection/ai 실연동 카드 (?noteId= 컨텍스트 수신) */}
-          <div id="ai-note-analysis" className="h-full scroll-mt-24">
-            <AiNoteAnalysisCard noteId={noteId ?? null} loggedIn={Boolean(email)} />
-          </div>
 
           {/* 무엇이든 물어보기 — 잉크 다크 카드 */}
           <div className="ai-panel flex flex-col gap-2.5 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">

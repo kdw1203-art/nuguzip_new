@@ -3,6 +3,7 @@ import { PageShell } from "../../components/PageShell";
 import { CreatorClient } from "./creator-client";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
+import { isVerifiedExpert } from "@/lib/experts/is-verified";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
 /* 시안 22e — 크리에이터 대시보드 · 성장 보상 + 23c "탑 임장러 현황" 탭
@@ -62,16 +63,51 @@ export default async function CreatorDashboardPage() {
 
   let publicNoteCount: number | null = null;
   let totalSaves: number | null = null;
+  let publicNotesLen = 0;
   try {
     if (getServiceSupabase()) {
       const notes = await listNotes(email);
       const publicNotes = notes.filter((n) => n.isPublic);
+      publicNotesLen = publicNotes.length;
       publicNoteCount = publicNotes.length;
       totalSaves = await countNoteSaves(publicNotes.map((n) => n.id));
     }
   } catch {
     publicNoteCount = null;
     totalSaves = null;
+  }
+
+  // 크리에이터 게이트 (item 12): 인증 전문가 OR 크리에이터 요건(공개 노트 1건 이상)
+  const verified = await isVerifiedExpert(email).catch(() => false);
+  const isCreator = verified || publicNotesLen > 0;
+  if (!isCreator) {
+    return (
+      <PageShell breadcrumb="마이 › 크리에이터" title="크리에이터 대시보드">
+        <div className="mx-auto max-w-[520px]">
+          <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
+            <div className="text-[26px]">✍️</div>
+            <div className="text-[15px] font-extrabold text-ink">
+              크리에이터 대시보드는 조건 충족 후 열려요
+            </div>
+            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+              공개 임장노트를 1건 이상 발행하거나 전문가 인증을 마치면 콘텐츠
+              성과·탑 임장러 현황을 볼 수 있어요.
+            </p>
+            <div className="flex flex-col gap-2 md:flex-row">
+              <Link href="/notes/new" className="btn-primary btn-md no-underline">
+                공개 노트 작성하기
+              </Link>
+              <Link href="/town/experts" className="btn-soft btn-md no-underline">
+                전문가 인증 신청
+              </Link>
+            </div>
+            <Link href="/my" className="text-[12px] font-bold text-text-3 no-underline">
+              마이로 돌아가기 ›
+            </Link>
+          </div>
+        </div>
+      </PageShell>
+    );
   }
 
   return (

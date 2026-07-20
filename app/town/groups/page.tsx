@@ -1,117 +1,112 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
+import { CreateGroupCta } from "./CreateGroupCta";
 
-/* 시안 6q(지역별 임장 모임 목록 · 모바일) + 8o(모임 상세 · 모바일)
-   — meetings 실데이터 연동, 부족 시 목업 폴백 */
+/* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
+   지역·상태 필터 + 임박순/최신순 정렬 + 모임 만들기(POST /api/groups) 실배선.
+   실데이터 0건일 때만 "예시" 라벨 목업 폴백. */
 
 export const dynamic = "force-dynamic";
 
+type Params = Promise<{ region?: string; status?: string; sort?: string }>;
+
 type GroupView = {
   id: string | null;
-  badge: string;
-  badgeStyle: string;
-  date: string;
   title: string;
   desc: string;
+  region: string;
+  regionKey: string;
+  whenLabel: string;
+  whenTs: number;
+  createdTs: number;
   members: number;
+  max: number;
+  host: string;
+  statusKey: "open" | "closing" | "full";
+  tags: string[];
 };
 
-type GroupDetail = {
-  id: string | null;
-  badge: string;
-  views: string;
-  title: string;
-  when: string;
-  where: string;
-  course: string;
-  note: string;
-  hostLine: string;
-  hostSub: string;
-  others: number;
-};
-
-/* ---------- 목업 폴백 ---------- */
+/* ---------- 목업 폴백 (실데이터 0건일 때만) ---------- */
 
 const FALLBACK_GROUPS: GroupView[] = [
   {
     id: null,
-    badge: "모집 중 4/6",
-    badgeStyle: "bg-[#edf2fe] text-primary",
-    date: "7.25 (토) 10:00",
     title: "과천지식정보타운 같이 봐요",
     desc: "S6·S7블록 중심 2시간 코스. 초보 환영, 체크리스트 공유해요.",
+    region: "경기 과천시",
+    regionKey: "경기",
+    whenLabel: "7.25 (토) 10:00",
+    whenTs: 0,
+    createdTs: 0,
     members: 4,
+    max: 6,
+    host: "과천러버",
+    statusKey: "open",
+    tags: ["임장", "초보환영"],
   },
   {
     id: null,
-    badge: "마감 임박 2/4",
-    badgeStyle: "bg-[#fdf3e7] text-[#c07a3a]",
-    date: "7.26 (일) 14:00",
     title: "마포 구축 리모델링 스터디",
     desc: "리모델링 추진 단지 2곳 임장 + 카페 정리 1시간.",
-    members: 0,
+    region: "서울 마포구",
+    regionKey: "서울",
+    whenLabel: "7.26 (일) 14:00",
+    whenTs: 0,
+    createdTs: 0,
+    members: 2,
+    max: 4,
+    host: "마포지기",
+    statusKey: "closing",
+    tags: ["리모델링", "스터디"],
   },
 ];
 
-const FALLBACK_DETAIL: GroupDetail = {
-  id: null,
-  badge: "모집 중 4/6",
-  views: "62명이 봤어요",
-  title: "과천지식정보타운 같이 봐요",
-  when: "7.25 (토) 10:00 ~ 12:00",
-  where: "과천지식정보타운역 2번 출구",
-  course: "S6 → S7 → 상가권 도보 2시간",
-  note: "초보 환영! 제 체크리스트 공유해요. 끝나고 카페에서 노트 정리 같이 하실 분은 30분 더.",
-  hostLine: "모임장 · 과천러버",
-  hostSub: "임장노트 24 · 모임 8회 진행",
-  others: 3,
-};
-
 /* ---------- 헬퍼 ---------- */
 
-function formatWhen(iso: string | null) {
-  if (!iso) return "일정 미정";
+function formatWhen(iso: string | null): { label: string; ts: number } {
+  if (!iso) return { label: "일정 미정", ts: Number.MAX_SAFE_INTEGER };
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { label: "일정 미정", ts: Number.MAX_SAFE_INTEGER };
   const week = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getMonth() + 1}.${d.getDate()} (${week}) ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return {
+    label: `${d.getMonth() + 1}.${d.getDate()} (${week}) ${p(d.getHours())}:${p(d.getMinutes())}`,
+    ts: d.getTime(),
+  };
 }
 
 function toView(m: UserMeeting): GroupView {
-  const closing = m.maxMembers - m.currentMembers <= 1;
+  const remaining = m.maxMembers - m.currentMembers;
+  const statusKey: GroupView["statusKey"] =
+    remaining <= 0 ? "full" : remaining <= 1 ? "closing" : "open";
+  const when = formatWhen(m.scheduledAt);
+  const region = m.region || [m.city, m.district].filter(Boolean).join(" ") || "지역 미정";
   return {
     id: m.id,
-    badge: `${closing ? "마감 임박" : "모집 중"} ${m.currentMembers}/${m.maxMembers}`,
-    badgeStyle: closing
-      ? "bg-[#fdf3e7] text-[#c07a3a]"
-      : "bg-[#edf2fe] text-primary",
-    date: formatWhen(m.scheduledAt),
     title: m.title,
     desc: m.description,
+    region,
+    regionKey: region.split(" ")[0] || region,
+    whenLabel: when.label,
+    whenTs: when.ts,
+    createdTs: new Date(m.createdAt).getTime() || 0,
     members: m.currentMembers,
+    max: m.maxMembers,
+    host: m.organizerLabel || m.hostLabel || "주최자",
+    statusKey,
+    tags: (m.tags.length > 0 ? m.tags : [m.category]).filter(Boolean).slice(0, 3),
   };
 }
 
-function toDetail(m: UserMeeting): GroupDetail {
-  return {
-    id: m.id,
-    badge: `모집 중 ${m.currentMembers}/${m.maxMembers}`,
-    views: `${m.category} · ${m.fee > 0 ? `참가비 ${m.fee.toLocaleString("ko-KR")}원` : "무료"}`,
-    title: m.title,
-    when: formatWhen(m.scheduledAt),
-    where: m.region || [m.city, m.district].filter(Boolean).join(" ") || "장소 미정",
-    course: m.checklist.length > 0 ? m.checklist.slice(0, 3).join(" → ") : `${m.category} 코스`,
-    note: m.description,
-    hostLine: `모임장 · ${m.organizerLabel || m.hostLabel}`,
-    hostSub: (m.tags.length > 0 ? m.tags.slice(0, 3).join(" · ") : m.category) || "모임",
-    others: Math.max(0, m.currentMembers - 1),
-  };
-}
+const STATUS_META: Record<GroupView["statusKey"], { label: string; style: string }> = {
+  open: { label: "모집 중", style: "bg-[#edf2fe] text-primary" },
+  closing: { label: "마감 임박", style: "bg-[#fdf3e7] text-[#c07a3a]" },
+  full: { label: "모집 마감", style: "bg-[#f2f4f8] text-text-3" },
+};
 
 const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd"];
 
-/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
 function ExampleBadge() {
   return (
     <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
@@ -120,9 +115,24 @@ function ExampleBadge() {
   );
 }
 
+function qs(base: Record<string, string | undefined>, patch: Record<string, string | undefined>) {
+  const merged = { ...base, ...patch };
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(merged)) {
+    if (v && v !== "all") sp.set(k, v);
+  }
+  const s = sp.toString();
+  return s ? `/town/groups?${s}` : "/town/groups";
+}
+
 /* ---------- 페이지 ---------- */
 
-export default async function TownGroupsPage() {
+export default async function TownGroupsPage({ searchParams }: { searchParams: Params }) {
+  const sp = await searchParams;
+  const region = sp.region ?? "all";
+  const status = sp.status ?? "all";
+  const sort = sp.sort ?? "soon";
+
   let meetings: UserMeeting[] = [];
   try {
     meetings = await listMeetings();
@@ -130,195 +140,162 @@ export default async function TownGroupsPage() {
     meetings = [];
   }
 
-  /* 더미데이터 정책: 실데이터가 1건이라도 있으면 목업으로 채우지 않음.
-     0건일 때만 "예시" 라벨이 붙은 목업 노출 */
   const realViews = meetings.map(toView);
   const listIsMock = realViews.length === 0;
-  const groups: GroupView[] = listIsMock
-    ? FALLBACK_GROUPS
-    : realViews.slice(0, 6);
+  const all = listIsMock ? FALLBACK_GROUPS : realViews;
 
-  const detailIsMock = meetings.length === 0;
-  const detail: GroupDetail = detailIsMock
-    ? FALLBACK_DETAIL
-    : toDetail(meetings[0]);
+  /* 지역 칩 — 실데이터에서 도출 */
+  const regionKeys = [...new Set(all.map((g) => g.regionKey))].slice(0, 6);
 
-  /* 지역 필터 칩 — 실데이터 지역에서 도출 (실모임이 있으면 목업 지역 칩 미노출) */
-  const regionSet = new Set<string>();
-  for (const m of meetings) {
-    const r = m.region || m.city;
-    if (r) regionSet.add(r.split(" ")[0]!);
-  }
-  const regionFilters =
-    regionSet.size > 0
-      ? ["전체", ...[...regionSet].slice(0, 3)]
-      : listIsMock
-        ? ["전체", "안양·과천", "서울 서부"]
-        : ["전체"];
+  /* 필터 */
+  let groups = all.filter((g) => {
+    if (region !== "all" && g.regionKey !== region) return false;
+    if (status === "open" && g.statusKey === "full") return false;
+    if (status === "full" && g.statusKey !== "full") return false;
+    return true;
+  });
+
+  /* 정렬 */
+  groups = [...groups].sort((a, b) =>
+    sort === "new" ? b.createdTs - a.createdTs : a.whenTs - b.whenTs,
+  );
+
+  const base = { region, status, sort };
+  const statusChips = [
+    { id: "all", label: "전체" },
+    { id: "open", label: "모집 중" },
+    { id: "full", label: "모집 마감" },
+  ];
+  const sortChips = [
+    { id: "soon", label: "임박순" },
+    { id: "new", label: "최신순" },
+  ];
 
   return (
-    <PageShell>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">
-          지역별 임장 모임
-        </h1>
-        <button type="button" className="text-[13px] font-bold text-primary">
-          만들기
-        </button>
+    <PageShell breadcrumb="동네이야기 › 임장 모임">
+      <div className="mb-1 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="rise-in text-[26px] font-extrabold text-ink">지역별 임장 모임</h1>
+          <p className="mt-1.5 text-sm text-text-2">
+            같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
+          </p>
+        </div>
+        <CreateGroupCta />
       </div>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_400px]">
-        {/* ---------- 6q 모임 목록 ---------- */}
-        <div className="flex flex-col gap-2.5">
-          <div className="rise-in flex gap-1.5">
-            {regionFilters.map((f, i) => (
-              <span
-                key={f}
-                className={`chip px-[13px] py-1.5 text-xs ${
-                  i === 0
-                    ? "chip-active"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
-                }`}
-              >
-                {f}
-              </span>
-            ))}
-          </div>
+      {/* 필터 바 */}
+      <div className="mt-4 flex flex-col gap-2">
+        <div className="flex gap-1.5 overflow-x-auto text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Link
+            href={qs(base, { region: "all" })}
+            className={`chip shrink-0 px-3.5 py-1.5 ${region === "all" ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+          >
+            전체 지역
+          </Link>
+          {regionKeys.map((r) => (
+            <Link
+              key={r}
+              href={qs(base, { region: r })}
+              className={`chip shrink-0 px-3.5 py-1.5 ${region === r ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+            >
+              {r}
+            </Link>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
+          {statusChips.map((c) => (
+            <Link
+              key={c.id}
+              href={qs(base, { status: c.id })}
+              className={`chip px-3 py-1.5 ${status === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+            >
+              {c.label}
+            </Link>
+          ))}
+          <span className="mx-1 h-4 w-px bg-line" />
+          {sortChips.map((c) => (
+            <Link
+              key={c.id}
+              href={qs(base, { sort: c.id })}
+              className={`chip px-3 py-1.5 ${sort === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+      </div>
 
-          {groups.map((g, i) => (
+      {/* 목록 */}
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {groups.map((g, i) => {
+          const meta = STATUS_META[g.statusKey];
+          return (
             <div
               key={g.id ?? g.title}
-              className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col gap-2 rounded-2xl p-4`}
+              className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col gap-2.5 rounded-2xl p-4`}
             >
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <span
-                    className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${g.badgeStyle}`}
-                  >
-                    {g.badge}
+                  <span className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${meta.style}`}>
+                    {meta.label} {g.members}/{g.max}
                   </span>
                   {listIsMock && <ExampleBadge />}
                 </span>
-                <span className="text-[11px] text-text-3">{g.date}</span>
+                <span className="text-[11px] text-text-3">{g.whenLabel}</span>
               </div>
-              <div className="text-[15px] font-extrabold text-ink">
-                {g.title}
-              </div>
-              <p className="line-clamp-2 text-xs leading-[1.5] text-text-2">
-                {g.desc}
-              </p>
-              <div
-                className={`flex items-center ${
-                  g.members > 0 ? "justify-between" : "justify-end"
-                }`}
-              >
-                {g.members > 0 && (
-                  <div className="flex">
-                    {AVATAR_COLORS.slice(0, Math.min(g.members, 3)).map(
-                      (c, j) => (
-                        <div
-                          key={c}
-                          className={`h-6 w-6 rounded-full border-2 border-white ${
-                            j > 0 ? "-ml-2" : ""
-                          }`}
-                          style={{ background: c }}
-                        />
-                      ),
-                    )}
-                  </div>
-                )}
-                <Link
-                  href={g.id ? `/town/groups/${g.id}` : "/town/groups/1"}
-                  className="btn-primary rounded-full px-4 py-2 text-xs"
-                >
-                  참여하기
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {/* ---------- 8o 모임 상세 ---------- */}
-        <div className="flex flex-col gap-3">
-          <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="rounded-[5px] bg-[#edf2fe] px-2 py-[3px] text-[11px] font-extrabold text-primary">
-                  {detail.badge}
-                </span>
-                {detailIsMock && <ExampleBadge />}
-              </span>
-              <span className="text-[11px] text-text-3">{detail.views}</span>
-            </div>
-            <h2 className="text-lg font-extrabold leading-[1.35] text-ink">
-              {detail.title}
-            </h2>
-            <div className="flex flex-col gap-1.5 text-[13px] text-text-1">
-              <div className="flex gap-2">
-                <span>📅</span>
-                {detail.when}
-              </div>
-              <div className="flex gap-2">
-                <span>📍</span>
-                {detail.where}
-              </div>
-              <div className="flex gap-2">
-                <span>🚶</span>
-                {detail.course}
-              </div>
-            </div>
-            <p className="rounded-xl bg-bg px-3.5 py-3 text-[13px] leading-[1.6] text-text-2">
-              {detail.note}
-            </p>
-          </div>
+              <div className="text-[15px] font-extrabold text-ink">{g.title}</div>
+              <p className="line-clamp-2 text-xs leading-[1.5] text-text-2">{g.desc}</p>
 
-          <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[18px] p-4">
-            <div className="text-[13px] font-extrabold text-ink">
-              참여자 {detail.others + 1}
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
-              <div className="flex-1">
-                <div className="text-[13px] font-bold text-ink">
-                  {detail.hostLine}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
+                <span>📍 {g.region}</span>
+                <span>👤 {g.host}</span>
+              </div>
+
+              {g.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {g.tags.map((t) => (
+                    <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+                      #{t}
+                    </span>
+                  ))}
                 </div>
-                <div className="text-[11px] text-text-3">{detail.hostSub}</div>
-              </div>
-              <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[10px] font-extrabold text-[#c07a3a]">
-                열정 임장러
-              </span>
-            </div>
-            {detail.others > 0 && (
-              <div className="flex items-center">
-                {AVATAR_COLORS.slice(0, Math.min(detail.others, 3)).map(
-                  (c, j) => (
+              )}
+
+              <div className="mt-0.5 flex items-center justify-between">
+                <div className="flex items-center">
+                  {AVATAR_COLORS.slice(0, Math.min(Math.max(g.members, 1), 3)).map((c, j) => (
                     <div
                       key={c}
-                      className={`h-7 w-7 rounded-full border-2 border-white ${
-                        j > 0 ? "-ml-2" : ""
-                      }`}
+                      className={`h-6 w-6 rounded-full border-2 border-white ${j > 0 ? "-ml-2" : ""}`}
                       style={{ background: c }}
                     />
-                  ),
+                  ))}
+                  <span className="ml-2 text-[11px] text-text-3">멤버 {g.members}명</span>
+                </div>
+                {g.id ? (
+                  <Link href={`/town/groups/${g.id}`} className="btn-primary rounded-full px-4 py-2 text-xs no-underline">
+                    {g.statusKey === "full" ? "대기 참여" : "참여하기"}
+                  </Link>
+                ) : (
+                  <span className="cursor-default rounded-full border border-line bg-bg px-4 py-2 text-xs font-semibold text-text-3">
+                    예시 모임
+                  </span>
                 )}
-                <span className="ml-2 text-[11px] text-text-3">
-                  + {detail.others}명 참여 중
-                </span>
               </div>
-            )}
-          </div>
+            </div>
+          );
+        })}
 
-          <Link
-            href={detail.id ? `/town/groups/${detail.id}` : "/town/groups/1"}
-            className="btn-primary rise-in-3 rounded-2xl p-3.5 text-center text-[15px]"
-            style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
-          >
-            참여하기 → 채팅방 입장
-          </Link>
-          <p className="rise-in-4 text-center text-[11px] text-[#adb5bd]">
-            참여 확정 시 모임 채팅방이 열려요 · 연락처는 공개되지 않아요
-          </p>
-        </div>
+        {groups.length === 0 && (
+          <div className="card col-span-full rounded-2xl px-6 py-10 text-center text-sm text-text-3">
+            조건에 맞는 모임이 아직 없어요.{" "}
+            <Link href="/town/groups" className="font-semibold text-primary no-underline">
+              필터를 초기화
+            </Link>
+            하거나 직접 모임을 만들어 보세요.
+          </div>
+        )}
       </div>
     </PageShell>
   );

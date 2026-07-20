@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "../../components/PageShell";
 import { SimulationNotice } from "../../components/ExampleBadge";
+import { ComplexPicker } from "../ComplexPicker";
 import {
   SEOUL_DISTRICTS,
   METRO_EXPLORE_DISTRICTS,
@@ -103,8 +104,16 @@ export default function ScenarioPage() {
   const [pricePct, setPricePct] = useState(0);
   const [period, setPeriod] = useState("5년");
   const [regionId, setRegionId] = useState("");
+  const [pickedName, setPickedName] = useState<string | null>(null);
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [loadingBaseline, setLoadingBaseline] = useState(false);
+
+  // 딥링크 ?region= 초기 반영 (?complexId=/?apt= 는 ComplexPicker가 처리)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const r = new URLSearchParams(window.location.search).get("region");
+    if (r) setRegionId(r);
+  }, []);
 
   useEffect(() => {
     if (!regionId) {
@@ -207,6 +216,15 @@ export default function ScenarioPage() {
         <div className="rise-in-1 card flex flex-col gap-3.5 rounded-[20px] p-[22px]">
           <div className="text-[15px] font-extrabold text-ink">조건 설정</div>
 
+          {/* 단지 선택 → 그 단지 지역의 실시세로 기준가 프리필 */}
+          <ComplexPicker
+            label="단지로 기준가 채우기"
+            onSelect={(c) => {
+              setPickedName(c.name);
+              if (c.regionId) setRegionId(c.regionId);
+            }}
+          />
+
           {/* 지역 실시세 프리필 */}
           <label className="flex flex-col gap-1">
             <span className="text-[12px] font-bold text-text-2">기준 지역 (실시세)</span>
@@ -234,8 +252,8 @@ export default function ScenarioPage() {
               <span className="text-text-2">대상</span>
               <span className="text-right font-bold text-ink">
                 {isReal
-                  ? `${baseline.regionName} 평균 · ${baseline.avgSaleLabel}`
-                  : "공작아파트 84㎡ · 8.4억"}
+                  ? `${pickedName ? `${pickedName} · ` : ""}${baseline.regionName} 평균 · ${baseline.avgSaleLabel}`
+                  : `${pickedName ? `${pickedName} · ` : "공작아파트 84㎡ · "}8.4억`}
                 {isReal && (
                   <span className="ml-1 rounded border border-line px-1 py-px text-[9px] font-semibold text-text-3 align-middle">
                     실데이터 기준

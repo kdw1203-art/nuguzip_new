@@ -162,7 +162,7 @@ export function ChatRoom({
       {/* ---------- 채팅방 헤더 ---------- */}
       <div className="glass mx-3.5 mt-3.5 flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5">
         <Link
-          href="/town/groups"
+          href={`/town/groups/${groupId}`}
           aria-label="뒤로"
           className="text-base text-text-1"
         >
@@ -363,13 +363,22 @@ export function ChatRoom({
 
             <div className="flex-1" />
 
-            <Link
-              href="/town/groups"
-              className="btn-secondary rounded-xl p-2.5 text-center text-xs no-underline"
-              onClick={() => setMenuOpen(false)}
-            >
-              모임 목록으로
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                href={`/town/groups/${groupId}`}
+                className="btn-secondary flex-1 rounded-xl p-2.5 text-center text-xs no-underline"
+                onClick={() => setMenuOpen(false)}
+              >
+                모임 정보
+              </Link>
+              <Link
+                href="/town/groups"
+                className="btn-secondary flex-1 rounded-xl p-2.5 text-center text-xs no-underline"
+                onClick={() => setMenuOpen(false)}
+              >
+                모임 목록
+              </Link>
+            </div>
           </div>
         </>
       )}

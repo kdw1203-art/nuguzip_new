@@ -13,7 +13,7 @@ test("1. home renders with GNB labels 임장노트·지도·AI 분석·동네이
   await page.goto("/");
   const nav = page.locator("header nav");
   await expect(nav.getByRole("link", { name: "임장노트", exact: true })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "지도·시세", exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "지도", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "AI 분석", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "동네이야기", exact: true })).toBeVisible();
 });
@@ -60,9 +60,11 @@ test("7. /notes/compare renders with AI disclaimer", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("8. /discover renders with h1", async ({ page }) => {
+test("8. /discover redirects into the merged 동네이야기 feed", async ({ page }) => {
+  // 대통합 IA: 발견 피드가 /town 통합 피드로 합쳐짐
   await page.goto("/discover");
-  await expect(page.getByRole("heading", { level: 1, name: /오늘의 임장/ })).toBeVisible();
+  await page.waitForURL(/\/town$/);
+  await expect(page.getByRole("heading", { level: 1, name: /동네이야기/ })).toBeVisible();
 });
 
 // ---------- 지도 / 검색 ----------
@@ -107,7 +109,7 @@ test("14. /town?page=2 renders (pagination shell)", async ({ page }) => {
 
 test("15. /town/news renders with h1 뉴스 · 자료", async ({ page }) => {
   await page.goto("/town/news");
-  await expect(page.getByRole("heading", { level: 1, name: /뉴스 · 자료/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /뉴스/ })).toBeVisible();
 });
 
 // ---------- 구독 / 결제 ----------
@@ -118,7 +120,7 @@ test("16. /subscription renders with plan buttons", async ({ page }) => {
     page.getByRole("heading", { level: 1, name: /기록은 무료, 판단은 더 깊게/ }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "14일 무료 체험" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "전문가 인증 신청" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "전문가로 시작" })).toBeVisible();
 });
 
 test("17. clicking a plan button while logged out leads to /login", async ({ page }) => {

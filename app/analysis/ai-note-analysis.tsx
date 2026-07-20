@@ -43,14 +43,26 @@ const DISCLAIMER = "본 분석은 참고용이며 투자 판단의 책임은 이
 export function AiNoteAnalysisCard({
   noteId,
   loggedIn = true,
+  seedComplexName = null,
+  seedRegionId = null,
+  seedRegionLabel = null,
 }: {
   noteId?: string | null;
   loggedIn?: boolean;
+  /** 허브 단지 선택기에서 고른 단지명 — 컨텍스트 배너 표시 */
+  seedComplexName?: string | null;
+  /** 고른 단지 지역의 regionId — 실시세 스냅샷 프리필 */
+  seedRegionId?: string | null;
+  /** 고른 단지 지역 라벨 — 매칭 노트 자동 선택 */
+  seedRegionLabel?: string | null;
 }) {
   const [state, setState] = useState<CardState>({ kind: "idle" });
   const [notes, setNotes] = useState<NoteOption[]>([]);
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [selected, setSelected] = useState<string>(noteId ?? "");
+  const [seedSnap, setSeedSnap] = useState<{ avgSaleLabel: string; period: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!loggedIn) {
@@ -88,6 +100,46 @@ export function AiNoteAnalysisCard({
       cancelled = true;
     };
   }, [loggedIn]);
+
+  // 선택 단지 지역의 실시세 스냅샷 프리필 (컨텍스트 배너)
+  useEffect(() => {
+    if (!seedRegionId) {
+      setSeedSnap(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/ai/market-baseline?regionId=${encodeURIComponent(seedRegionId)}`,
+        );
+        const d = (await res.json().catch(() => null)) as
+          | { available?: boolean; avgSaleLabel?: string; period?: string }
+          | null;
+        if (cancelled) return;
+        setSeedSnap(
+          d?.available && d.avgSaleLabel
+            ? { avgSaleLabel: d.avgSaleLabel, period: d.period ?? "" }
+            : null,
+        );
+      } catch {
+        if (!cancelled) setSeedSnap(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [seedRegionId]);
+
+  // 고른 단지 지역과 일치하는 노트가 있으면 자동 선택
+  useEffect(() => {
+    if (!seedRegionLabel || notes.length === 0) return;
+    const key = seedRegionLabel.replace(/^서울\s*/, "").trim();
+    const match = notes.find(
+      (n) => n.region && (seedRegionLabel.includes(n.region) || n.region.includes(key)),
+    );
+    if (match) setSelected(match.id);
+  }, [seedRegionLabel, notes]);
 
   const run = async () => {
     if (state.kind === "running" || !selected) return;
@@ -180,6 +232,22 @@ export function AiNoteAnalysisCard({
             ))}
           </select>
         </label>
+      )}
+      {/* 허브 단지 선택기에서 고른 단지 컨텍스트 (실시세 프리필) */}
+      {seedComplexName && (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-[12px] bg-primary-soft px-3 py-2 text-[11px] font-bold text-primary">
+          <span>선택 단지 {seedComplexName}</span>
+          {seedRegionLabel && <span className="text-text-2">· {seedRegionLabel}</span>}
+          {seedSnap && (
+            <span className="text-text-2">
+              · 평균 {seedSnap.avgSaleLabel}
+              {seedSnap.period ? ` (${seedSnap.period})` : ""}
+            </span>
+          )}
+          <span className="ml-auto rounded border border-line px-1 py-px text-[9px] font-bold text-text-3">
+            실데이터 기준
+          </span>
+        </div>
       )}
       {loggedIn && notesLoaded && notes.length === 0 && state.kind !== "login" && (
         <div className="flex items-center justify-between rounded-[12px] bg-primary-soft px-3 py-2.5">

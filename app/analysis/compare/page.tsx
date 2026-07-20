@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
+import { ComplexPicker } from "../ComplexPicker";
 import {
+  addToCompareTray,
   COMPARE_TRAY_MAX,
   listCompareTray,
   mergeServerCompareTray,
@@ -13,6 +15,39 @@ import {
   subscribeCompareTray,
   type CompareTrayItem,
 } from "@/lib/newui/compare-tray";
+
+/* ---------- 단지 선택기 → 비교 트레이에 담기 (검색·지도·딥링크 공용) ---------- */
+
+function ComparePickerSection() {
+  const [note, setNote] = useState<string | null>(null);
+
+  return (
+    <div className="rise-in card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
+      <div className="text-[13px] font-extrabold text-ink">비교할 단지 담기</div>
+      <ComplexPicker
+        label="검색해서 최대 5개까지 담기"
+        placeholder="단지명으로 검색 (예: 공작아파트)"
+        clearOnSelect
+        showChip={false}
+        onSelect={(c) => {
+          const r = addToCompareTray({
+            id: c.id,
+            name: c.name,
+            region: c.region || c.regionLabel || undefined,
+          });
+          setNote(
+            r.ok
+              ? `${c.name} 담았어요`
+              : r.reason === "full"
+                ? `최대 ${COMPARE_TRAY_MAX}개까지만 담을 수 있어요`
+                : "담기에 실패했어요",
+          );
+        }}
+      />
+      {note && <div className="text-[11px] font-bold text-primary">{note}</div>}
+    </div>
+  );
+}
 
 /* ---------- 내가 담은 후보 (localStorage 비교 트레이 + #46 서버 병합) ---------- */
 
@@ -540,6 +575,9 @@ export default function ComparePage() {
   return (
     <PageShell breadcrumb="AI 분석 › 다자 비교 (5/5)">
       <div className="flex flex-col gap-3.5">
+        {/* 단지 선택기 → 비교 트레이 (검색·지도·?complexId=/?apt= 딥링크) */}
+        <ComparePickerSection />
+
         {/* 내가 담은 후보 (비교 트레이) */}
         <CompareTraySection />
 

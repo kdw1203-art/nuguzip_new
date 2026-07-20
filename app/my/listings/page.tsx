@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { VerifyOwnershipButton } from "./VerifyOwnershipButton";
 import { safeAuth } from "@/lib/safe-auth";
+import { getExpertStatus } from "@/lib/experts/is-verified";
 import {
   listMyListings,
   LISTING_TYPE_LABEL,
@@ -62,6 +63,37 @@ export default async function MyListingsPage() {
   const session = await safeAuth();
   if (!session?.user?.email) {
     redirect("/login?callbackUrl=/my/listings");
+  }
+
+  // 매물 등록·관리는 공인중개사 인증(isBroker) 사용자만 (item 11)
+  const expert = await getExpertStatus(session.user.email);
+  if (!expert.isBroker) {
+    return (
+      <PageShell breadcrumb="마이 › 내 매물" title="내 매물">
+        <div className="mx-auto max-w-[520px]">
+          <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
+            <div className="text-[26px]">🏢</div>
+            <div className="text-[15px] font-extrabold text-ink">
+              매물 등록은 공인중개사 인증 후 이용할 수 있어요
+            </div>
+            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+              개업공인중개사 자격을 인증하면 매물 등록·검수·노출 관리 기능이 열려요.
+              인증 후에는 이 화면에서 내 매물 상태와 조회수를 확인할 수 있어요.
+            </p>
+            <Link href="/town/experts" className="btn-primary btn-md mt-1 no-underline">
+              전문가 인증 신청
+            </Link>
+            <Link href="/my" className="text-[12px] font-bold text-text-3 no-underline">
+              마이로 돌아가기 ›
+            </Link>
+          </div>
+          <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+            누구집은 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물
+            등록·중개 행위는 개업공인중개사가 수행합니다.
+          </div>
+        </div>
+      </PageShell>
+    );
   }
 
   const items = await listMyListings(session.user.email);

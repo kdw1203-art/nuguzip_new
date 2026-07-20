@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { safeAuth } from "@/lib/safe-auth";
+import { getExpertStatus } from "@/lib/experts/is-verified";
 import { PageShell } from "../../components/PageShell";
 import { ListingForm } from "./ListingForm";
 
@@ -20,6 +22,38 @@ export default async function ListingNewPage() {
   const session = await safeAuth();
   if (!session?.user?.email) {
     redirect("/login?callbackUrl=/listings/new");
+  }
+
+  // 매물 등록은 공인중개사 인증(isBroker)만 — 미인증 시 폼 대신 안내 (item 11)
+  const expert = await getExpertStatus(session.user.email);
+  if (!expert.isBroker) {
+    return (
+      <PageShell breadcrumb="실매물 › 매물 등록" title="매물 등록">
+        <div className="mx-auto max-w-[520px]">
+          <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
+            <div className="text-[26px]">🏢</div>
+            <div className="text-[15px] font-extrabold text-ink">
+              매물 등록은 공인중개사 인증 후 이용할 수 있어요
+            </div>
+            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+              허위·과장 매물을 막기 위해 매물 등록은 개업공인중개사 인증을 마친
+              사용자에게만 열려 있어요. 인증을 완료하면 이 화면에서 매물을 등록할 수
+              있어요.
+            </p>
+            <Link href="/town/experts" className="btn-primary btn-md mt-1 no-underline">
+              전문가 인증 신청
+            </Link>
+            <Link href="/my" className="text-[12px] font-bold text-text-3 no-underline">
+              마이로 돌아가기 ›
+            </Link>
+          </div>
+          <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+            중개 행위는 개업공인중개사가 수행하며, 누구집은 광고 매체로서 정보를
+            게재할 뿐 중개 당사자가 아닙니다.
+          </div>
+        </div>
+      </PageShell>
+    );
   }
 
   return (

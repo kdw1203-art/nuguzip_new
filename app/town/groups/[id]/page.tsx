@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { getMeeting } from "@/lib/meetings/store-db";
 import { safeAuth } from "@/lib/safe-auth";
-import { ChatRoom } from "./ChatRoom";
+import { PageShell } from "../../../components/PageShell";
+import { ShareButton } from "./ShareButton";
 
-/* 시안 8p — 모임 그룹 채팅방 · 모바일 (+ 10c 채팅방 메뉴)
-   P0-6: id 기반 실제 모임 조회 + /api/groups/[id]/chat · /api/chat/rooms/[id]/messages 실배선 */
+/* 시안 8o(모임 상세) 고도화 — 모임 정보 카드(일정·장소·정원·참여자) + 공유 +
+   참여 상태별 CTA. "채팅방 입장"은 /town/groups/[id]/chat 로 분리(실채팅 유지). */
 
 export const dynamic = "force-dynamic";
 
-function formatSchedule(iso: string | null): string | null {
-  if (!iso) return null;
+function formatSchedule(iso: string | null): string {
+  if (!iso) return "일정 미정";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
+  if (Number.isNaN(d.getTime())) return "일정 미정";
   return d.toLocaleString("ko-KR", {
-    month: "numeric",
+    year: "numeric",
+    month: "long",
     day: "numeric",
     weekday: "short",
     hour: "2-digit",
@@ -21,7 +23,9 @@ function formatSchedule(iso: string | null): string | null {
   });
 }
 
-export default async function TownGroupChatPage({
+const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd", "#d6deea", "#c8d3e4"];
+
+export default async function TownGroupDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -34,73 +38,178 @@ export default async function TownGroupChatPage({
 
   if (!meeting) {
     return (
-      <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col items-center justify-center gap-3 bg-bg px-6 text-center">
-        <div className="text-lg font-extrabold text-ink">
-          모임을 찾을 수 없어요
+      <PageShell breadcrumb="동네이야기 › 임장 모임">
+        <div className="mx-auto flex max-w-[420px] flex-col items-center gap-3 py-20 text-center">
+          <div className="text-lg font-extrabold text-ink">모임을 찾을 수 없어요</div>
+          <p className="text-[13px] leading-[1.6] text-text-2">
+            삭제되었거나 잘못된 링크일 수 있어요.
+          </p>
+          <Link
+            href="/town/groups"
+            className="btn-primary rounded-xl px-5 py-2.5 text-[13px] no-underline"
+          >
+            모임 목록으로
+          </Link>
         </div>
-        <p className="text-[13px] leading-[1.6] text-text-2">
-          삭제되었거나 잘못된 링크일 수 있어요.
-        </p>
-        <Link
-          href="/town/groups"
-          className="btn-primary rounded-xl px-5 py-2.5 text-[13px] no-underline"
-        >
-          모임 목록으로
-        </Link>
-      </div>
+      </PageShell>
     );
   }
 
   const myEmail = session?.user?.email?.trim().toLowerCase() ?? null;
-  const metaLine = [
-    formatSchedule(meeting.scheduledAt),
-    `멤버 ${meeting.currentMembers}/${meeting.maxMembers}`,
-    meeting.region || null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  if (!myEmail) {
-    /* 비로그인: 가짜 채팅 대신 정직한 로그인 안내 */
-    return (
-      <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col bg-bg">
-        <div className="glass mx-3.5 mt-3.5 flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5">
-          <Link href="/town/groups" aria-label="뒤로" className="text-base text-text-1">
-            ‹
-          </Link>
-          <div className="flex-1">
-            <div className="text-sm font-extrabold text-ink">{meeting.title}</div>
-            <div className="text-[10px] text-text-3">{metaLine}</div>
-          </div>
-        </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-          <div className="text-[15px] font-extrabold text-ink">
-            로그인하면 모임 채팅에 참여할 수 있어요
-          </div>
-          <p className="text-[13px] leading-[1.6] text-text-2">
-            {meeting.description || "모임 멤버들과 일정·체크리스트를 나눠 보세요."}
-          </p>
-          <Link
-            href={`/login?callbackUrl=${encodeURIComponent(`/town/groups/${id}`)}`}
-            className="btn-primary rounded-xl px-6 py-3 text-[13px] no-underline"
-          >
-            로그인하고 참여하기
-          </Link>
-          <Link href="/town/groups" className="text-xs text-text-3 no-underline">
-            모임 목록으로 돌아가기
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const remaining = meeting.maxMembers - meeting.currentMembers;
+  const isFull = remaining <= 0;
+  const statusLabel = isFull ? "모집 마감" : remaining <= 1 ? "마감 임박" : "모집 중";
+  const statusStyle = isFull
+    ? "bg-[#f2f4f8] text-text-3"
+    : remaining <= 1
+      ? "bg-[#fdf3e7] text-[#c07a3a]"
+      : "bg-[#edf2fe] text-primary";
+  const isOrganizer = myEmail !== null && meeting.organizerEmail?.trim().toLowerCase() === myEmail;
+  const fillPct = Math.min(100, Math.round((meeting.currentMembers / Math.max(1, meeting.maxMembers)) * 100));
 
   return (
-    <ChatRoom
-      groupId={id}
-      myEmail={myEmail}
-      title={meeting.title}
-      metaLine={metaLine}
-      memberCount={meeting.currentMembers}
-    />
+    <PageShell breadcrumb="동네이야기 › 임장 모임">
+      <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
+        {/* ---------- 모임 정보 카드 ---------- */}
+        <div className="flex flex-col gap-4">
+          <div className="rise-in card flex flex-col gap-3 rounded-[20px] p-6">
+            <div className="flex items-center justify-between">
+              <span className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${statusStyle}`}>
+                {statusLabel} {meeting.currentMembers}/{meeting.maxMembers}
+              </span>
+              <span className="text-[11px] text-text-3">
+                {meeting.category}
+                {meeting.fee > 0 ? ` · 참가비 ${meeting.fee.toLocaleString("ko-KR")}원` : " · 무료"}
+              </span>
+            </div>
+
+            <h1 className="text-[22px] font-extrabold leading-[1.35] text-ink">{meeting.title}</h1>
+
+            <div className="flex flex-col gap-2 text-[13px] text-text-1">
+              <div className="flex gap-2">
+                <span className="w-5 text-center">📅</span>
+                <span>{formatSchedule(meeting.scheduledAt)}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="w-5 text-center">📍</span>
+                <span>{meeting.region || [meeting.city, meeting.district].filter(Boolean).join(" ") || "장소 미정"}</span>
+              </div>
+              <div className="flex gap-2">
+                <span className="w-5 text-center">👤</span>
+                <span>모임장 · {meeting.organizerLabel || meeting.hostLabel}</span>
+              </div>
+              {meeting.checklist.length > 0 && (
+                <div className="flex gap-2">
+                  <span className="w-5 text-center">🚶</span>
+                  <span>{meeting.checklist.slice(0, 4).join(" → ")}</span>
+                </div>
+              )}
+            </div>
+
+            {meeting.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {meeting.tags.slice(0, 6).map((t) => (
+                  <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+                    #{t}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="whitespace-pre-wrap rounded-xl bg-bg px-4 py-3.5 text-[13px] leading-[1.7] text-text-2">
+              {meeting.description || "모임 소개가 아직 없어요."}
+            </p>
+          </div>
+
+          {/* 참여자 카드 */}
+          <div className="rise-in-1 card flex flex-col gap-3 rounded-[18px] p-5">
+            <div className="flex items-center justify-between">
+              <div className="text-[13px] font-extrabold text-ink">
+                참여자 {meeting.currentMembers}
+                <span className="text-text-3"> / {meeting.maxMembers}</span>
+              </div>
+              <div className="text-[11px] text-text-3">{isFull ? "정원이 찼어요" : `${remaining}자리 남음`}</div>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-bg">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${fillPct}%` }} />
+            </div>
+            <div className="flex items-center">
+              {AVATAR_COLORS.slice(0, Math.min(Math.max(meeting.currentMembers, 1), 5)).map((c, j) => (
+                <div
+                  key={c}
+                  className={`h-8 w-8 rounded-full border-2 border-white ${j > 0 ? "-ml-2.5" : ""}`}
+                  style={{ background: c }}
+                />
+              ))}
+              {meeting.currentMembers > 5 && (
+                <span className="ml-2 text-[11px] text-text-3">+ {meeting.currentMembers - 5}명</span>
+              )}
+            </div>
+            <p className="text-[11px] leading-[1.5] text-text-3">
+              참여 확정 시 채팅방에서 멤버들과 일정·체크리스트를 나눌 수 있어요 · 연락처는 공개되지 않아요
+            </p>
+          </div>
+        </div>
+
+        {/* ---------- 사이드: 위치 + 공유 + CTA ---------- */}
+        <div className="flex flex-col gap-3">
+          <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-5">
+            <div className="text-[13px] font-extrabold text-ink">모임 장소</div>
+            {/* 지도 미니: 실좌표 미보유 → 지역 요약으로 대체(허위 지도 미표기) */}
+            <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-[#eef2f8] to-[#e2e8f2] text-center">
+              <div>
+                <div className="text-2xl">📍</div>
+                <div className="mt-1 text-[12px] font-bold text-text-1">
+                  {meeting.region || meeting.city || "장소 미정"}
+                </div>
+              </div>
+            </div>
+            <p className="text-[11px] leading-[1.5] text-text-3">
+              정확한 집결 장소는 모임 채팅방에서 안내돼요.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <ShareButton title={meeting.title} />
+            <Link
+              href="/town/groups"
+              className="btn-secondary flex-1 rounded-xl p-3 text-center text-[13px] no-underline"
+            >
+              목록
+            </Link>
+          </div>
+
+          {myEmail ? (
+            <>
+              <Link
+                href={`/town/groups/${id}/chat`}
+                className="btn-primary rise-in-2 rounded-2xl p-3.5 text-center text-[15px] no-underline"
+                style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
+              >
+                {isOrganizer ? "모임 채팅방 관리" : isFull ? "대기 참여 · 채팅방 입장" : "참여하기 → 채팅방 입장"}
+              </Link>
+              <p className="rise-in-3 text-center text-[11px] text-text-3">
+                {isOrganizer
+                  ? "내가 만든 모임이에요"
+                  : "채팅방 입장 시 모임 참여로 확정돼요"}
+              </p>
+            </>
+          ) : (
+            <>
+              <Link
+                href={`/login?callbackUrl=${encodeURIComponent(`/town/groups/${id}`)}`}
+                className="btn-primary rise-in-2 rounded-2xl p-3.5 text-center text-[15px] no-underline"
+                style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
+              >
+                로그인하고 참여하기
+              </Link>
+              <p className="rise-in-3 text-center text-[11px] text-text-3">
+                로그인하면 모임 채팅에 참여할 수 있어요
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </PageShell>
   );
 }

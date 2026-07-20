@@ -16,10 +16,12 @@ export function PlanCheckoutButton({
   tier,
   label,
   className,
+  billing = "monthly",
 }: {
   tier: CheckoutTier;
   label: string;
   className: string;
+  billing?: "monthly" | "annual";
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -45,7 +47,8 @@ export function PlanCheckoutButton({
     }
 
     // 2) 확인 문구 후 결제 생성 API 호출 → 결제창 URL로 이동
-    if (!window.confirm("결제창으로 이동합니다")) return;
+    const billingLabel = billing === "annual" ? "연간" : "월간";
+    if (!window.confirm(`${billingLabel} 결제창으로 이동합니다`)) return;
 
     setBusy(true);
     try {
@@ -53,7 +56,7 @@ export function PlanCheckoutButton({
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: tier, source: "subscription", campaign: "newui" }),
+        body: JSON.stringify({ plan: tier, billing, source: "subscription", campaign: "newui" }),
       });
       const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (res.ok && j.url) {
@@ -67,7 +70,7 @@ export function PlanCheckoutButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tier,
-          billing: "monthly",
+          billing,
           source: "subscription",
           campaign: "newui-kakaopay",
         }),
