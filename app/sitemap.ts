@@ -39,6 +39,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/redevelopment", priority: 0.6 },
   // 공공 부동산 자료 현황 (KB 시세·공시가격·실거래 연동)
   { path: "/data/records", priority: 0.5 },
+  // 아파트 입주 예정 물량(공급 캘린더)
+  { path: "/supply", priority: 0.7 },
   // 발견 피드 — 탭바 2번 슬롯·비로그인 랜딩 (감사 P1-11)
   { path: "/discover", priority: 0.8 },
   { path: "/subscription", priority: 0.5 },

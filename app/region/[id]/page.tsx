@@ -10,6 +10,7 @@ import {
 } from "@/lib/market/store";
 import type { RegionMarketSnapshot } from "@/lib/market/types";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import { getSupplyForArea, type SupplyItem } from "@/lib/market/supply";
 import type { InspectionNote } from "@/lib/inspection/store-db";
 import {
   findComplexTxRegionById,
@@ -135,6 +136,11 @@ export default async function RegionHubPage({
     ),
     listPublicNotes(100).catch(() => [] as InspectionNote[]),
   ]);
+  // 이 지역 자치구명으로 입주 예정 물량 매칭 (예: "강남구")
+  const supplyArea = name.trim().split(/\s+/).pop() ?? name;
+  const supply: SupplyItem[] = await getSupplyForArea(supplyArea, 6).catch(
+    () => [],
+  );
   const notes = allNotes
     .filter((n) => n.isPublic && noteMatchesRegion(n.region ?? "", name))
     .slice(0, 4);
@@ -305,6 +311,54 @@ export default async function RegionHubPage({
           </div>
         )}
       </section>
+
+      {/* 이 지역 입주 예정 물량 */}
+      {supply.length > 0 && (
+        <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            {name} 입주 예정 물량{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              공급 · 2026~2027
+            </span>
+          </h2>
+          <ul className="mt-2">
+            {supply.map((s, i) => (
+              <li
+                key={`${s.moveInYm}-${i}`}
+                className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-bold text-ink">
+                    {s.aptName ?? "미정"}
+                    {s.bizType ? (
+                      <span className="ml-1.5 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        {s.bizType}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-0.5 truncate text-[11px] text-text-3">
+                    {s.address ?? ""}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="text-[13px] font-extrabold text-ink">
+                    {s.moveInYm.slice(0, 4)}.{s.moveInYm.slice(4, 6)}
+                  </div>
+                  <div className="text-[11px] text-text-3">
+                    {s.households ? `${s.households.toLocaleString()}세대` : "—"}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href={`/supply?region=${encodeURIComponent(txRegion.city)}`}
+            className="mt-3 inline-block text-[12px] font-bold text-primary"
+          >
+            {txRegion.city} 전체 입주 물량 ›
+          </Link>
+        </section>
+      )}
 
       {/* 이 지역 공개 임장노트 */}
       <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">

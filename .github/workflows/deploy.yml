@@ -15,6 +15,9 @@ env:
   VERCEL_PROJECT_ID: prj_hsE8uEG7QyxefafQpVnKx6diCVqO
   SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
   CRS: ${{ secrets.CRON_SECRET }}
+  CODEF_ID: ${{ secrets.CODEF_CLIENT_ID }}
+  CODEF_SECRET: ${{ secrets.CODEF_CLIENT_SECRET }}
+  CODEF_PUB: ${{ secrets.CODEF_PUBLIC_KEY }}
 
 permissions:
   contents: read
@@ -108,6 +111,17 @@ jobs:
         run: |
           npx vercel env rm CRON_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$CRS" | npx vercel env add CRON_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
+      # CODEF 자격 증명 동기화 — GitHub Secret 설정 시에만 Vercel env로 반영
+      # (KB 시세·공시가격 등 CODEF 연동 활성화. 미설정이면 스킵)
+      - name: Sync CODEF credentials
+        if: ${{ env.CODEF_ID != '' }}
+        run: |
+          for KEY in CODEF_CLIENT_ID CODEF_CLIENT_SECRET CODEF_PUBLIC_KEY; do
+            npx vercel env rm $KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+          done
+          printf '%s' "$CODEF_ID"     | npx vercel env add CODEF_CLIENT_ID production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$CODEF_SECRET" | npx vercel env add CODEF_CLIENT_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$CODEF_PUB"    | npx vercel env add CODEF_PUBLIC_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build
