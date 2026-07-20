@@ -31,7 +31,14 @@ export async function GET(req: Request) {
     let items = await listPublicNotes(200);
     items = items.filter((n) => matchQ(n));
     if (minScore != null) items = items.filter((n) => scoreOf(n) >= minScore);
-    return NextResponse.json({ items });
+    // 개인정보 보호: 공개 목록 응답에서 작성자 이메일 제거 — 표시는 authorLabel 사용
+    const sanitized = items.map(({ authorEmail: _authorEmail, ...rest }) => ({
+      ...rest,
+      authorLabel:
+        rest.authorLabel?.trim() ||
+        `${_authorEmail.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`,
+    }));
+    return NextResponse.json({ items: sanitized });
   }
   const email = session?.user?.email ?? null;
   if (!email) {

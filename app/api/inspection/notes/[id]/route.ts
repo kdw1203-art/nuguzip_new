@@ -16,7 +16,17 @@ export async function GET(
   if (!note.isPublic && !isOwner) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
-  return NextResponse.json({ note });
+  if (isOwner) return NextResponse.json({ note });
+  // 개인정보 보호: 타인 공개 노트 응답에서 작성자 이메일 제거
+  const { authorEmail: _authorEmail, ...rest } = note;
+  return NextResponse.json({
+    note: {
+      ...rest,
+      authorLabel:
+        rest.authorLabel?.trim() ||
+        `${_authorEmail.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`,
+    },
+  });
 }
 
 export async function PATCH(
