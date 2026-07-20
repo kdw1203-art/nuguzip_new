@@ -109,6 +109,17 @@ function parseDraft(raw: string | null): NoteDraft | null {
 
 export default function NoteNewPage() {
   const router = useRouter();
+  /* 연결성: /complex/[id] → /notes/new?apt=단지명 프리필
+     (useSearchParams 대신 window 조회 — Suspense 경계 불필요, search-client와 동일 패턴) */
+  const [aptName, setAptName] = useState(APT_NAME);
+  useEffect(() => {
+    try {
+      const apt = new URLSearchParams(window.location.search).get("apt")?.trim();
+      if (apt) setAptName(apt.slice(0, 60));
+    } catch {
+      /* URL 파싱 실패 — 기본 단지명 유지 */
+    }
+  }, []);
   const [checks, setChecks] = useState<Record<string, Level>>(CHECK_DEFAULTS);
   const [visit, setVisit] = useState<Record<string, string>>({
     유형: "아파트",
@@ -243,9 +254,9 @@ export default function NoteNewPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: `${APT_NAME} 임장 기록`,
+          title: `${aptName} 임장 기록`,
           region: REGION,
-          aptName: APT_NAME,
+          aptName,
           visitDate: new Date().toISOString().slice(0, 10),
           transportation: visit["시간대"] ?? null,
           summary: memo.trim() || undefined,
@@ -352,7 +363,7 @@ export default function NoteNewPage() {
         <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">
           <span className="text-sm">📍</span>
           <div className="flex-1">
-            <div className="text-sm font-bold text-ink">공작아파트 302동 84A</div>
+            <div className="text-sm font-bold text-ink">{aptName}</div>
             <div className="text-[11px] text-text-3">현재 위치 자동 인식 · 수정</div>
           </div>
           <span className="text-[13px] text-[#c3cad6]">›</span>

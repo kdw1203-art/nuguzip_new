@@ -17,7 +17,8 @@ export const metadata: Metadata = buildPageMetadata({
 export default function FeesPolicyPage() {
   const info = getBusinessInfo();
   return (
-    <main className="mx-auto w-full max-w-3xl">
+    // 페이지 전환 모션 일관화 — globals.css riseIn(dur-md) 재사용
+    <main className="rise-in mx-auto w-full max-w-3xl">
       <h1 className="text-2xl font-bold text-ink">거래·수수료 안내</h1>
       <p className="mt-2 text-sm leading-relaxed text-text-2">
         nuguzip은 부동산 의사결정 도구에 맞게 거래 조건을 공개합니다. VAT·PG 실비는 별도 안내가

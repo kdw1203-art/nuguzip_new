@@ -172,7 +172,7 @@ export function ComplexHubTabs({
           {notes.map((n) => (
             <div
               key={n.title}
-              className="card flex items-center justify-between rounded-[14px] px-[15px] py-3.5"
+              className="card card-hover flex items-center justify-between rounded-[14px] px-[15px] py-3.5"
             >
               <div>
                 <div className="text-[13px] font-bold text-ink">{n.title}</div>
@@ -194,7 +194,7 @@ export function ComplexHubTabs({
           {listings.map((l) => (
             <div
               key={l.price}
-              className={`card flex flex-col gap-1.5 rounded-[16px] px-[15px] py-3.5 ${
+              className={`card card-hover flex flex-col gap-1.5 rounded-[16px] px-[15px] py-3.5 ${
                 l.urgent ? "border-[1.5px] border-primary" : ""
               }`}
             >

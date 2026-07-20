@@ -128,6 +128,18 @@ interface ClusterItem {
   lat: number;
   lng: number;
   count: number;
+  /** 셀 평균 매매가(만원) — 서버가 시세를 찾은 셀에만 존재 */
+  avgManwon?: number;
+}
+
+/** 만원 → "12.3억" / "8,200만" 라벨 (없으면 null) */
+function manwonLabel(manwon: number | undefined): string | null {
+  if (manwon === undefined || !Number.isFinite(manwon) || manwon <= 0) return null;
+  if (manwon >= 10_000) {
+    const eok = manwon / 10_000;
+    return `${eok >= 10 ? Math.round(eok).toLocaleString("ko-KR") : eok.toFixed(1)}억`;
+  }
+  return `${Math.round(manwon).toLocaleString("ko-KR")}만`;
 }
 
 interface ClusterPointItem {
@@ -213,6 +225,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         lat: c.lat,
         lng: c.lng,
         label: c.count.toLocaleString("ko-KR"),
+        // 셀 평균 매매가가 있으면 "N개 · 12.3억" 알약 라벨로 렌더 (호갱노노식)
+        priceLabel: manwonLabel(c.avgManwon) ?? undefined,
         pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
         infoHtml: "",
       }));
@@ -511,7 +525,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
                 key={d.id}
                 type="button"
                 onClick={() => selectDanji(d.id)}
-                className={`rise-in-${Math.min(i + 1, 6)} flex flex-col gap-1.5 rounded-[14px] bg-surface px-4 py-3.5 text-left ${
+                className={`rise-in-${Math.min(i + 1, 6)} card-hover flex flex-col gap-1.5 rounded-[14px] bg-surface px-4 py-3.5 text-left ${
                   d.id === selectedId ? "border-[1.5px] border-primary" : "border border-line"
                 }`}
               >

@@ -7,11 +7,14 @@
  * - zoom < 14 (클러스터 모드): 뷰포트 내 좌표(lat,lng)만 최대 5,000건 조회 후
  *   라우트에서 floor(lat/cell) 그리드로 집계 (PostgREST는 GROUP BY 집계를
  *   지원하지 않아 RPC 없이 JS 집계 — 최소 컬럼·하드캡으로 비용 제한).
+ *   호갱노노식 가격 라벨: 같은 그리드 셀의 평균 매매가(만원)를 best-effort로
+ *   함께 집계해 avgManwon으로 반환 (1순위 market_complex_price 좌표 조회,
+ *   0건이면 2순위 complex_transactions + complexes 임베드 조인 — 실패 시 개수만).
  * - zoom >= 14 (포인트 모드): 개별 단지 id/name/lat/lng 최대 300건.
  *   (대표 시세는 단지별 별도 테이블 조회가 필요해 여기서는 생략 —
  *   클라이언트가 이미 보유한 시세 마커와 병합해 사용)
  *
- * 응답: { mode: "clusters" | "points", clusters: [{lat,lng,count}], points: [...] }
+ * 응답: { mode: "clusters" | "points", clusters: [{lat,lng,count,avgManwon?}], points: [...] }
  */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -36,6 +39,8 @@ export interface MapClusterItem {
   lat: number;
   lng: number;
   count: number;
+  /** 셀 내 평균 매매가(만원) — 시세 데이터가 있을 때만 존재 */
+  avgManwon?: number;
 }
 
 export interface MapPointItem {
@@ -56,6 +61,97 @@ function cellSizeForZoom(zoom: number): number {
   if (zoom <= 11) return 0.1;
   if (zoom <= 12) return 0.05; // 동
   return 0.025; // 13
+}
+
+/** 그리드 셀 키 — 클러스터·가격 집계가 동일한 키를 쓰도록 공용화 */
+function cellKey(lat: number, lng: number, cell: number): string {
+  return `${Math.floor(lat / cell)}:${Math.floor(lng / cell)}`;
+}
+
+/** 가격 집계 소스 조회 하드캡 */
+const MAX_PRICE_SOURCE_ROWS = 4000;
+
+interface PriceBucket {
+  sum: number;
+  count: number;
+}
+
+type ReadOnlySb = NonNullable<ReturnType<typeof getReadOnlySupabase>>;
+
+/**
+ * 셀별 평균 매매가(만원) 집계 — best-effort.
+ * 1순위: market_complex_price (좌표 보유 · 크롤/KB 시세)
+ * 2순위: complex_transactions(전체 평균 행) + complexes 임베드 조인(실거래 캐시)
+ * 어떤 소스도 실패/0건이면 빈 Map → 클러스터는 개수만 표시 (graceful fallback).
+ */
+async function aggregateCellPrices(
+  sb: ReadOnlySb,
+  bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number },
+  cell: number,
+): Promise<Map<string, PriceBucket>> {
+  const buckets = new Map<string, PriceBucket>();
+  const add = (lat: number, lng: number, manwon: number) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if (!Number.isFinite(manwon) || manwon <= 0) return;
+    const key = cellKey(lat, lng, cell);
+    const b = buckets.get(key);
+    if (b) {
+      b.sum += manwon;
+      b.count += 1;
+    } else {
+      buckets.set(key, { sum: manwon, count: 1 });
+    }
+  };
+
+  // 1순위 — market_complex_price (lat/lng 직접 보유)
+  try {
+    const { data, error } = await sb
+      .from("market_complex_price")
+      .select("lat,lng,sale_general")
+      .not("lat", "is", null)
+      .not("lng", "is", null)
+      .not("sale_general", "is", null)
+      .gte("lat", bounds.minLat)
+      .lte("lat", bounds.maxLat)
+      .gte("lng", bounds.minLng)
+      .lte("lng", bounds.maxLng)
+      .limit(MAX_PRICE_SOURCE_ROWS);
+    if (!error) {
+      for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+        add(Number(r.lat), Number(r.lng), Number(r.sale_general));
+      }
+    }
+  } catch {
+    // 테이블 미구축 등 — 다음 소스로
+  }
+  if (buckets.size > 0) return buckets;
+
+  // 2순위 — complex_transactions(면적 구분 없는 전체 평균 행) + complexes 좌표 임베드
+  try {
+    // 최근 12개월분만 — yyyymm 문자열 비교
+    const now = new Date();
+    const from = `${now.getFullYear() - 1}${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const { data, error } = await sb
+      .from("complex_transactions")
+      .select("avg_manwon,complex:complexes!inner(lat,lng)")
+      .is("area_m2", null)
+      .gte("yyyymm", from)
+      .gte("complex.lat", bounds.minLat)
+      .lte("complex.lat", bounds.maxLat)
+      .gte("complex.lng", bounds.minLng)
+      .lte("complex.lng", bounds.maxLng)
+      .limit(MAX_PRICE_SOURCE_ROWS);
+    if (!error) {
+      for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+        const c = r.complex as { lat?: unknown; lng?: unknown } | null;
+        if (!c) continue;
+        add(Number(c.lat), Number(c.lng), Number(r.avg_manwon));
+      }
+    }
+  } catch {
+    // FK 미정의·조회 실패 — 가격 없이 개수만
+  }
+  return buckets;
 }
 
 export async function GET(req: NextRequest) {
@@ -141,7 +237,7 @@ export async function GET(req: NextRequest) {
       const lat = Number(row.lat);
       const lng = Number(row.lng);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-      const key = `${Math.floor(lat / cell)}:${Math.floor(lng / cell)}`;
+      const key = cellKey(lat, lng, cell);
       const b = buckets.get(key);
       if (b) {
         b.sumLat += lat;
@@ -152,11 +248,23 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const clusters: MapClusterItem[] = Array.from(buckets.values(), (b) => ({
-      lat: Math.round((b.sumLat / b.count) * 1e6) / 1e6,
-      lng: Math.round((b.sumLng / b.count) * 1e6) / 1e6,
-      count: b.count,
-    }));
+    // 호갱노노식 가격 라벨 — 셀별 평균 매매가(만원) best-effort 집계
+    const priceBuckets = await aggregateCellPrices(
+      sb,
+      { minLat, maxLat, minLng, maxLng },
+      cell,
+    ).catch(() => new Map<string, PriceBucket>());
+
+    const clusters: MapClusterItem[] = Array.from(buckets.entries(), ([key, b]) => {
+      const item: MapClusterItem = {
+        lat: Math.round((b.sumLat / b.count) * 1e6) / 1e6,
+        lng: Math.round((b.sumLng / b.count) * 1e6) / 1e6,
+        count: b.count,
+      };
+      const p = priceBuckets.get(key);
+      if (p && p.count > 0) item.avgManwon = Math.round(p.sum / p.count);
+      return item;
+    });
 
     return NextResponse.json({ mode, clusters, points: [] }, { headers: CACHE_HEADERS });
   } catch {

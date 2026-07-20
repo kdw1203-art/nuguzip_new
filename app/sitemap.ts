@@ -27,6 +27,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/town/market", priority: 0.7 },
   { path: "/town/experts", priority: 0.6 },
   { path: "/town/groups", priority: 0.6 },
+  // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
+  { path: "/complex/browse", priority: 0.8 },
   { path: "/calculator", priority: 0.6 },
   { path: "/apply", priority: 0.6 },
   { path: "/digest", priority: 0.6 },

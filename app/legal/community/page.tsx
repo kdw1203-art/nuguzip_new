@@ -11,7 +11,8 @@ const LAST_UPDATED = "2026-04-30";
 export default function CommunityPolicyPage() {
   return (
     <main className="mx-auto w-full max-w-3xl">
-      <article>
+      {/* 페이지 전환 모션 일관화 — globals.css riseIn(dur-md) 재사용 */}
+      <article className="rise-in">
         <h1 className="text-2xl font-bold text-ink">커뮤니티 운영정책</h1>
         <p className="mt-1 text-xs text-text-3">최종 업데이트: {LAST_UPDATED}</p>
 

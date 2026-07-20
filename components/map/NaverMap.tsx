@@ -345,7 +345,11 @@ export function NaverMap({
       const isCluster = data.id.startsWith("cluster:");
       const isPriceMarker = data.avgPricePerM2 !== undefined && !isCluster;
       if (isCluster) {
-        return { content: buildClusterMarkerHtml(data.label, color), anchor: new maps.Point(22, 22) };
+        // priceLabel이 있으면 "N개 · 12.3억" 알약형(호갱노노식), 없으면 기존 개수 원형
+        return {
+          content: buildClusterMarkerHtml(data.label, color, data.priceLabel),
+          anchor: data.priceLabel ? new maps.Point(0, 0) : new maps.Point(22, 22),
+        };
       }
       if (isPriceMarker) {
         return { content: buildPriceMarkerHtml(data), anchor: new maps.Point(0, 0) };
@@ -526,9 +530,16 @@ function buildMarkerHtml(label: string, color: string): string {
   return `<div style="width:28px;height:28px;border-radius:9999px;background:${color};color:#fff;font:bold 12px/28px sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid #fff">${initial}</div>`;
 }
 
-/** 클러스터 마커 — 묶인 개수를 그대로 표시 (라벨 = 카운트 문자열) */
-function buildClusterMarkerHtml(label: string, color: string): string {
+/**
+ * 클러스터 마커.
+ * - priceLabel 없음: 묶인 개수만 원형 배지로 표시 (기존 동작)
+ * - priceLabel 있음: "N개 · 12.3억" 알약형 라벨 (호갱노노식 지도 가격 라벨)
+ */
+function buildClusterMarkerHtml(label: string, color: string, priceLabel?: string): string {
   const count = label.trim() || "0";
+  if (priceLabel) {
+    return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border-radius:9999px;background:${color};color:#fff;font:bold 12px sans-serif;padding:6px 12px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff"><span style="opacity:.85">${count}개</span><span style="opacity:.55">·</span><span style="font-size:13px">${priceLabel}</span></div>`;
+  }
   const size = count.length >= 4 ? 52 : count.length >= 3 ? 46 : 40;
   return `<div style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:9999px;background:${color};color:#fff;font:bold 13px sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3);border:3px solid #fff">${count}</div>`;
 }

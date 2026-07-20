@@ -17,6 +17,12 @@ import {
   type HubListing,
 } from "./hub-client";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
+import { RecentComplexRecorder } from "../../components/RecentComplexes";
+import {
+  SEOUL_BROWSE_REGIONS,
+  buildComplexTxSlug,
+  listComplexTransactions,
+} from "@/lib/market/complex-transactions";
 
 /* ============================================================
    시안 23b — 단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 22f-65 겸용)
@@ -53,6 +59,8 @@ interface HubView {
   listings: HubListing[];
   /** 내부 링크 그물(#34) — 같은 동 다른 단지 (0건이면 섹션 미표시) */
   nearby: { id: string; name: string; meta: string }[];
+  /** 국토부 실거래 이력 상세(/complex/tx) — 동일 단지명 매칭 시에만 링크 */
+  txHref: string | null;
 }
 
 /* ===== 목업 폴백 — 시안 23b 공작아파트 ===== */
@@ -123,6 +131,7 @@ const MOCK_VIEW: HubView = {
   notes: MOCK_NOTES,
   listings: MOCK_LISTINGS,
   nearby: [], // 목업 폴백 시 존재하지 않는 단지로 링크하지 않음
+  txHref: null,
 };
 
 /* ===== 실데이터 변환 (map/page.tsx 방식) ===== */
@@ -191,11 +200,26 @@ function toNearby(rows: ComplexRow[], selfId: string): HubView["nearby"] {
     });
 }
 
+/** 서울 단지 — 동일 단지명 국토부 실거래 이력이 있으면 /complex/tx 링크 생성 */
+async function resolveTxHref(row: ComplexRow): Promise<string | null> {
+  if (!row.city?.startsWith("서울")) return null;
+  const region = SEOUL_BROWSE_REGIONS.find((r) => r.name === row.district?.trim());
+  if (!region) return null;
+  try {
+    const tx = await listComplexTransactions(row.name, region, 1);
+    if (tx.length === 0) return null;
+    return `/complex/tx/${buildComplexTxSlug(row.name, region.id)}`;
+  } catch {
+    return null;
+  }
+}
+
 function toView(
   row: ComplexRow,
   tx: ComplexTransactionRow[],
   posts: ComplexPostRow[],
   nearby: HubView["nearby"],
+  txHref: string | null,
 ): HubView {
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
@@ -248,6 +272,7 @@ function toView(
     notes,
     listings: MOCK_LISTINGS,
     nearby,
+    txHref,
   };
 }
 
@@ -255,15 +280,16 @@ async function loadView(id: string): Promise<HubView> {
   try {
     const row = await getComplexById(id);
     if (!row) return MOCK_VIEW;
-    const [tx, posts, sameDong] = await Promise.all([
+    const [tx, posts, sameDong, txHref] = await Promise.all([
       getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
       getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
       // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
       row.district
         ? searchComplexes("", row.district, 5).catch(() => [] as ComplexRow[])
         : Promise.resolve([] as ComplexRow[]),
+      resolveTxHref(row),
     ]);
-    return toView(row, tx, posts, toNearby(sameDong, row.id));
+    return toView(row, tx, posts, toNearby(sameDong, row.id), txHref);
   } catch {
     return MOCK_VIEW;
   }
@@ -344,19 +370,28 @@ export default async function ComplexHubPage({
   const freshness = await getMarketFreshnessDateLabel();
 
   const cta = (
-    <div className="flex gap-2">
-      <Link
-        href="/notes/new"
-        className="btn-primary btn-cta flex-1 rounded-[11px] p-3 text-center text-[13px]"
-      >
-        이 단지 노트 쓰기
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        {/* 연결성: 단지명 프리필로 임장노트 작성 진입 (notes/new?apt=) */}
+        <Link
+          href={`/notes/new?apt=${encodeURIComponent(v.name)}`}
+          className="btn-primary btn-cta flex-1 rounded-[11px] p-3 text-center text-[13px]"
+        >
+          이 단지 임장노트 쓰기
+        </Link>
+        <CompareTrayButton complexId={complexId} name={v.name} region={v.dong} />
+      </div>
+      <Link href="/map" className="btn-soft rounded-[11px] p-2.5 text-center text-xs">
+        지도에서 보기 ›
       </Link>
-      <CompareTrayButton complexId={complexId} name={v.name} region={v.dong} />
     </div>
   );
 
   return (
     <PageShell>
+      {/* 최근 본 단지 기록 (localStorage nz_recent_complexes · 목업 폴백은 미기록) */}
+      <RecentComplexRecorder id={v.id} name={v.name} region={v.dong} />
+
       {/* 브레드크럼 칩 — ‹ 지도 · 동 · 단지명 */}
       <div className="rise-in flex flex-wrap gap-1.5">
         <Link
@@ -402,6 +437,24 @@ export default async function ComplexHubPage({
           <div className="mt-0.5 text-[11px] text-text-3">안전 진단</div>
         </div>
       </div>
+
+      {/* 국토부 실거래 이력 상세 — 동일 단지명 매칭 시에만 노출 */}
+      {v.txHref && (
+        <div className="rise-in-1 mt-3">
+          <Link
+            href={v.txHref}
+            className="card card-hover flex items-center justify-between rounded-xl px-4 py-3"
+          >
+            <span className="text-[13px] font-bold text-ink">
+              {v.name} 국토부 실거래 이력 보기
+              <span className="ml-2 text-[11px] font-medium text-text-3">
+                실거래가 기반 · 매물 호가 아님
+              </span>
+            </span>
+            <span className="text-[13px] font-bold text-primary">→</span>
+          </Link>
+        </div>
+      )}
 
       {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준 */}
       {freshness && (

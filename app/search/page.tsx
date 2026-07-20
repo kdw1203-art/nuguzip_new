@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { AIPanel } from "../components/AIPanel";
 import { SearchClient } from "./search-client";
+import { RecentComplexChips } from "../components/RecentComplexes";
 
 /* ============================================================
    통합 검색 (11c) — 클라이언트 검색 입력 + 단지 자동완성(#48)
@@ -44,6 +45,9 @@ export default function SearchPage() {
     <PageShell>
       {/* 클라이언트 검색 입력 + 자동완성 드롭다운(#48) — 입력 전에는 아래 목업 결과 유지 */}
       <SearchClient>
+      {/* 최근 본 단지 칩 — localStorage 기록 있을 때만 노출 */}
+      <RecentComplexChips className="mb-4" />
+
       {/* 카운트 칩 */}
       <div className="rise-in flex flex-wrap gap-1.5 text-xs">
         {COUNT_TABS.map((t) => (

@@ -11,6 +11,13 @@ import {
 import type { RegionMarketSnapshot } from "@/lib/market/types";
 import { listPublicNotes } from "@/lib/inspection/store-db";
 import type { InspectionNote } from "@/lib/inspection/store-db";
+import {
+  findComplexTxRegionById,
+  listDistrictComplexSummaries,
+  type ComplexSummary,
+  type ComplexTxRegion,
+} from "@/lib/market/complex-transactions";
+import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
 
 /* ============================================================
    지역 허브 SEO 페이지 — /region/[id]
@@ -102,21 +109,30 @@ export async function generateMetadata({
 
 export default async function RegionHubPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ complexes?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const snapshot: RegionMarketSnapshot | null = await getRegionSnapshot(id).catch(
     () => null,
   );
   if (!snapshot) notFound();
 
   const name = snapshot.regionName;
-  const [series, transactions, allNotes] = await Promise.all([
+  // 단지별 현황 — 기본 12개, ?complexes=30 으로 확장
+  const complexLimit = sp.complexes === "30" ? 30 : 12;
+  const txRegion: ComplexTxRegion =
+    findComplexTxRegionById(id) ?? { id, name, city: id.startsWith("incheon-") ? "인천" : "서울" };
+  const [series, transactions, complexSummaries, allNotes] = await Promise.all([
     getRegionSeries(id, "sale_index", "monthly", 12).catch(
       () => [] as Array<{ period: string; value: number }>,
     ),
     listRegionTransactions(id, name, 5).catch(() => [] as RegionTransactionRow[]),
+    listDistrictComplexSummaries(txRegion, complexLimit).catch(
+      () => [] as ComplexSummary[],
+    ),
     listPublicNotes(100).catch(() => [] as InspectionNote[]),
   ]);
   const notes = allNotes
@@ -254,6 +270,39 @@ export default async function RegionHubPage({
               </li>
             ))}
           </ul>
+        )}
+      </section>
+
+      {/* 단지별 현황 — market_transactions 그룹 요약 */}
+      <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            단지별 현황{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              국토부 실거래가 기반 · 매물 호가 아님
+            </span>
+          </h2>
+          {complexSummaries.length > 0 && complexLimit === 12 && (
+            <Link
+              href={`/region/${id}?complexes=30`}
+              className="shrink-0 text-[12px] font-bold text-primary"
+            >
+              더 보기
+            </Link>
+          )}
+        </div>
+        <ComplexSummaryTable summaries={complexSummaries} regionId={id} />
+        {complexSummaries.length > 0 && (
+          <div className="mt-3 text-right">
+            <Link
+              href={`/complex/browse?district=${encodeURIComponent(
+                txRegion.city === "서울" ? `서울 ${txRegion.name}` : txRegion.name,
+              )}`}
+              className="text-[12px] font-bold text-primary"
+            >
+              서울 전체 단지 브라우즈 →
+            </Link>
+          </div>
         )}
       </section>
 
