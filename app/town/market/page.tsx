@@ -47,6 +47,22 @@ export default function TownMarketPage() {
         </div>
       </div>
 
+      {/* 실매물 연결 — 집주인 직접·중개사 등록 매물 */}
+      <Link
+        href="/listings"
+        className="rise-in card card-hover card-pad-sm mb-4 flex items-center justify-between gap-3"
+      >
+        <div>
+          <div className="text-[15px] font-extrabold text-ink">실매물 보기</div>
+          <p className="mt-0.5 text-[13px] leading-[1.6] text-text-2">
+            집주인 직접 등록·제휴 중개사 매물 — 검수를 통과한 매물만 모았어요.
+          </p>
+        </div>
+        <span className="shrink-0 text-[13px] font-extrabold text-primary">
+          바로가기 →
+        </span>
+      </Link>
+
       {/* 정직 안내 — 아래 상품·상세는 예시 화면 */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[12px] leading-[1.6] text-[#5b74b8]">
         <ExampleBadge />

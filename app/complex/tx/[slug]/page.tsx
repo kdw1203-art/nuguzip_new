@@ -149,6 +149,16 @@ export default async function ComplexTxPage({
         {formatYmd(latest.contractYm, latest.contractDay)})
       </p>
 
+      {/* 실매물 연결 — 집주인 직접·중개사 등록 (검수 통과분만) */}
+      <p className="rise-in mb-5 -mt-3 text-[13px]">
+        <Link
+          href={`/listings?complex=${encodeURIComponent(complexName)}`}
+          className="font-bold text-primary underline"
+        >
+          이 단지 매물 보기 →
+        </Link>
+      </p>
+
       {/* 단지 개요 */}
       <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">단지 개요</h2>

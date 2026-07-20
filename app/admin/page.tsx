@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { countPendingListings } from "@/lib/listings/store-db";
 import {
   loadAdminDashboardMetrics,
   loadRecentMembers,
@@ -92,6 +94,7 @@ export default async function AdminDashboardPage() {
   } catch {
     // 조회 실패 — 아래에서 "—"/목업 폴백
   }
+  const pendingListingsCount = await countPendingListings().catch(() => 0);
   const maxSignup = Math.max(1, ...ops.signupTrend.map((d) => d.count));
   const kpis =
     metrics.kpis.length > 0
@@ -124,6 +127,13 @@ export default async function AdminDashboardPage() {
           </span>
         </div>
         <div className="flex gap-2 text-xs">
+          {/* 매물 검수 대기 링크 (집주인 직접·중개사 등록) */}
+          <Link
+            href="/admin/listings"
+            className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] font-extrabold text-[#7ea2ff]"
+          >
+            매물 검수 {pendingListingsCount}건
+          </Link>
           <span className="rounded-[10px] bg-[rgba(255,255,255,.07)] px-3.5 py-[7px] font-semibold text-[#c9d2e0]">
             오늘
           </span>

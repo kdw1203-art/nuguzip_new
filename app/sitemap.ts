@@ -29,6 +29,9 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/town/groups", priority: 0.6 },
   // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
   { path: "/complex/browse", priority: 0.8 },
+  // 실매물 (집주인 직접·중개사 등록) + 중개사 제휴 안내
+  { path: "/listings", priority: 0.8 },
+  { path: "/partners", priority: 0.5 },
   { path: "/calculator", priority: 0.6 },
   { path: "/apply", priority: 0.6 },
   { path: "/digest", priority: 0.6 },
