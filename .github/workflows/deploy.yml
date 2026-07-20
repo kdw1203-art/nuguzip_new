@@ -18,6 +18,7 @@ env:
   CODEF_ID: ${{ secrets.CODEF_CLIENT_ID }}
   CODEF_SECRET: ${{ secrets.CODEF_CLIENT_SECRET }}
   CODEF_PUB: ${{ secrets.CODEF_PUBLIC_KEY }}
+  ECOS_KEY: ${{ secrets.ECOS_API_KEY }}
 
 permissions:
   contents: read
@@ -122,6 +123,12 @@ jobs:
           printf '%s' "$CODEF_ID"     | npx vercel env add CODEF_CLIENT_ID production --token=${{ secrets.VERCEL_TOKEN }} || true
           printf '%s' "$CODEF_SECRET" | npx vercel env add CODEF_CLIENT_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
           printf '%s' "$CODEF_PUB"    | npx vercel env add CODEF_PUBLIC_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+      # ECOS(한국은행) 인증키 동기화 — 설정 시 기준금리 등 지표 자동 연동
+      - name: Sync ECOS key
+        if: ${{ env.ECOS_KEY != '' }}
+        run: |
+          npx vercel env rm ECOS_API_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
+          printf '%s' "$ECOS_KEY" | npx vercel env add ECOS_API_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build

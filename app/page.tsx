@@ -6,6 +6,7 @@ import { PersonalHome } from "./components/PersonalHome";
 import { JourneyBanner } from "./components/JourneyBanner";
 import { Footer } from "./components/Footer";
 import { loadNewHomeData } from "@/lib/newui/home-data";
+import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getWeeklyDigest } from "@/lib/newui/digest";
 import type {
@@ -94,8 +95,9 @@ export default async function Home() {
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
   const loanRate = data.loanRate ?? "—";
   const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
-  // P1-10: 기준금리는 아직 실데이터 소스 미연동 — 하드코딩 수치 대신 "—" 표기 (허위 수치 금지)
-  const baseRate = "—";
+  // 기준금리: ECOS(한국은행) 연동 시 실값, 미연동 시 "—" (허위 수치 금지)
+  const baseRateData = await getBaseRate();
+  const baseRate = baseRateData?.label ?? "—";
 
   return (
     <>

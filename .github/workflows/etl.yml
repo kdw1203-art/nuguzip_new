@@ -37,6 +37,10 @@ jobs:
           echo "== kosis (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/kosis-ingest" | head -c 500 || true
           echo
+          # ecos: ECOS 키 활성화 전까지 skipped 응답 — 소프트
+          echo "== ecos (soft) =="
+          curl -sS --max-time 60 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/ecos-sync" | head -c 500 || true
+          echo
           call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
           call attendance "https://nuguzip.com/api/cron/attendance-reminders"
           # molit 전국 실거래: 매월 1일에만
