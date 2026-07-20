@@ -15,7 +15,8 @@ const NAVER_MAPS_READY_TIMEOUT_MS = 15_000;
  * 보호된다 (docs/naver-map-ncp-setup.md). Vercel env 가 마스킹("[SENSITIVE]")
  * 되어도 지도가 동작하도록 코드 폴백을 둔다.
  */
-const FALLBACK_NAVER_MAP_CLIENT_ID = "aida7jsxel";
+// 프로덕션 런타임 env 실값과 동일 (/api/map/sdk-config 로 확인, 2026-07-20)
+const FALLBACK_NAVER_MAP_CLIENT_ID = "henhsjxrng";
 
 function isValidNcpClientId(v: string | undefined): v is string {
   // NCP Client ID 형식: 영숫자 6~24자. "[SENSITIVE]" 등 플레이스홀더 거부.
