@@ -2,48 +2,55 @@ import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { AiNoteAnalysisCard } from "./ai-note-analysis";
 
+/* P1-10·P1-12: 가짜 개인화 foot 문구 제거(정적 설명으로 교체),
+   실연동 전 도구에는 "시뮬레이션" 칩을 붙여 오해 방지 */
 const TOOLS = [
   {
     href: "/notes",
     icon: "📝",
     title: "임장노트 분석",
     desc: "기록을 점수화하고 장단점·체크 제안을 정리",
-    foot: "노트 7건 분석 완료 ›",
+    foot: "내 노트에서 분석 시작 ›",
+    sim: false,
   },
   {
     href: "/analysis/compare",
     icon: "⚖️",
     title: "후보 단지 비교",
     desc: "같은 기준으로 항목·재무를 나란히 비교",
-    foot: "공작 vs 동편3 갱신됨 ›",
+    foot: "비교 트레이 열기 ›",
+    sim: false,
   },
   {
     href: "/analysis/scenario",
     icon: "📊",
     title: "시장·대출 시나리오",
     desc: "금리·시세 변동 시나리오별 원리금 스트레스 테스트",
-    foot: "시나리오 3개 저장됨 ›",
+    foot: "예시 시나리오 살펴보기 ›",
+    sim: true,
   },
   {
     href: "/analysis/timing",
     icon: "⏱",
     title: "시세·타이밍 분석",
     desc: "지역 사이클 위치와 매수 적기 신호를 판단",
-    foot: "관양동 브리핑 보기 ›",
+    foot: "예시 리포트 살펴보기 ›",
+    sim: true,
   },
   {
     href: "/analysis/portfolio",
     icon: "💼",
     title: "포트폴리오 분석",
     desc: "보유·후보 자산의 구성과 갈아타기 시뮬레이션",
-    foot: "자산 2건 등록됨 ›",
+    foot: "예시 리포트 살펴보기 ›",
+    sim: true,
   },
 ] as const;
 
 const QUICK = [
-  { href: "/analysis/cycle", label: "시세 사이클 — 공작 84㎡" },
-  { href: "/analysis/price", label: "AI 제안가 상세 — 급매 7.9억" },
-  { href: "/analysis/switch", label: "갈아타기 추천 지역" },
+  { href: "/analysis/cycle", label: "시세 사이클 (시뮬레이션)" },
+  { href: "/analysis/price", label: "AI 제안가 근거 (시뮬레이션)" },
+  { href: "/analysis/switch", label: "갈아타기 추천 (시뮬레이션)" },
 ] as const;
 
 export default function AnalysisHubPage() {
@@ -67,7 +74,14 @@ export default function AnalysisHubPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-[19px]">
                 {t.icon}
               </div>
-              <div className="text-base font-extrabold text-ink">{t.title}</div>
+              <div className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+                {t.title}
+                {t.sim && (
+                  <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+                    시뮬레이션
+                  </span>
+                )}
+              </div>
               <div className="text-[13px] leading-[1.55] text-text-2">
                 {t.desc}
               </div>

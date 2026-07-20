@@ -1,7 +1,8 @@
 import { Header } from "./Header";
 import { TabBar } from "./TabBar";
+import { Footer } from "./Footer";
 
-/** 공통 페이지 셸 — 글래스 헤더 + 본문 컨테이너 + 모바일 탭바 */
+/** 공통 페이지 셸 — 글래스 헤더 + 본문 컨테이너 + 공통 푸터 + 모바일 탭바 */
 export function PageShell({
   children,
   title,
@@ -31,6 +32,7 @@ export function PageShell({
         )}
         {children}
       </main>
+      <Footer />
       <TabBar />
     </>
   );

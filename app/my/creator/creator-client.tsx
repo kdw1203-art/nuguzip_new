@@ -92,7 +92,7 @@ function PerformanceTab({ stats }: { stats: CreatorStats }) {
           <b className="text-[#f2c94c]">유료 리포트로 승격</b>해 보세요
         </span>
         <Link
-          href="/library"
+          href="/my"
           className="shrink-0 text-[12px] font-extrabold text-[#7ea2ff]"
         >
           시작 ›

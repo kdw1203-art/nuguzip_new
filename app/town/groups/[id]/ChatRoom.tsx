@@ -1,81 +1,161 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-/* 시안 8p(모임 그룹 채팅방 · 모바일) + 10c(채팅방 메뉴 — 회원) */
+/* 시안 8p(모임 그룹 채팅방 · 모바일) + 10c(채팅방 메뉴 — 회원)
+   실배선: POST /api/groups/[id]/chat → roomId,
+   GET/POST /api/chat/rooms/[roomId]/messages (5초 폴링) */
 
-type Message =
-  | { type: "other"; name: string; body: string; leader?: boolean }
-  | { type: "attachment"; name: string; title: string; meta: string }
-  | { type: "mine"; body: string }
-  | { type: "system"; body: string };
+type ThreadMessage = {
+  id: string;
+  senderEmail: string;
+  body: string | null;
+  messageType: "text" | "file" | "system";
+  createdAt: string;
+};
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    type: "other",
-    name: "모임장 · 과천러버",
-    body: "토요일 다들 가능하시죠? 체크리스트 미리 공유해요 📋",
-    leader: true,
-  },
-  {
-    type: "attachment",
-    name: "평촌새댁",
-    title: "공유 체크리스트",
-    meta: "구축 40항목 · 누구집 마켓",
-  },
-  { type: "mine", body: "가능해요! S7 모델하우스도 지나가나요?" },
-  {
-    type: "system",
-    body: "투표 · 모임장이 투표를 시작했어요 — “끝나고 카페 정리?” 찬성 3 · 반대 0",
-  },
-];
+type ThreadMember = {
+  userEmail: string;
+  role: "owner" | "member" | "moderator";
+};
 
-const MEMBERS = [
-  {
-    name: "과천러버",
-    badge: "모임장",
-    badgeStyle: "bg-[#fdf3e7] text-[#c07a3a]",
-    meta: "노트 24 · 모임 8회",
-    action: "쪽지",
-    actionPrimary: true,
-  },
-  {
-    name: "평촌새댁",
-    badge: "✦",
-    badgeStyle: "rounded-full bg-ink text-[#7ea2ff]",
-    meta: "노트 12",
-    action: "쪽지",
-    actionPrimary: true,
-  },
-  {
-    name: "나 (첫집준비중)",
-    badge: "",
-    badgeStyle: "",
-    meta: "노트 7",
-    action: "프로필",
-    actionPrimary: false,
-  },
-];
+type Phase = "joining" | "ready" | "error";
 
-const MEMBER_MENUS = [
-  "내 체크리스트 공유하기",
-  "모임 일정 캘린더에 추가",
-  "신고하기",
-];
+function displayName(email: string, myEmail: string): string {
+  if (email === myEmail) return "나";
+  const local = email.split("@")[0] ?? email;
+  return local.length > 4 ? `${local.slice(0, 4)}***` : `${local}***`;
+}
 
-export function ChatRoom() {
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+function timeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+export function ChatRoom({
+  groupId,
+  myEmail,
+  title,
+  metaLine,
+  memberCount,
+}: {
+  groupId: string;
+  myEmail: string;
+  title: string;
+  metaLine: string;
+  memberCount: number;
+}) {
+  const [phase, setPhase] = useState<Phase>("joining");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [members, setMembers] = useState<ThreadMember[]>([]);
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [alarmOn, setAlarmOn] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastCountRef = useRef(0);
 
-  const send = () => {
+  const loadThread = useCallback(async (rid: string) => {
+    const res = await fetch(`/api/chat/rooms/${rid}/messages?limit=100`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      messages?: ThreadMessage[];
+      members?: ThreadMember[];
+    };
+    const sorted = [...(data.messages ?? [])].sort((a, b) =>
+      a.createdAt.localeCompare(b.createdAt),
+    );
+    setMessages(sorted);
+    setMembers(
+      (data.members ?? []).filter((m) => !m.userEmail.endsWith("@chat.local")),
+    );
+  }, []);
+
+  /* 입장(멱등) → 스레드 로드 */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/groups/${groupId}/chat`, {
+          method: "POST",
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          roomId?: string;
+          error?: { message?: string };
+        };
+        if (cancelled) return;
+        if (!res.ok || !data.roomId) {
+          setErrorMsg(
+            data.error?.message ?? "채팅은 모임 참여 후 이용할 수 있어요.",
+          );
+          setPhase("error");
+          return;
+        }
+        setRoomId(data.roomId);
+        await loadThread(data.roomId);
+        if (!cancelled) setPhase("ready");
+      } catch {
+        if (!cancelled) {
+          setErrorMsg("채팅방 연결에 실패했어요. 잠시 후 다시 시도해 주세요.");
+          setPhase("error");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [groupId, loadThread]);
+
+  /* 5초 폴링 */
+  useEffect(() => {
+    if (phase !== "ready" || !roomId) return;
+    const t = setInterval(() => {
+      void loadThread(roomId);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [phase, roomId, loadThread]);
+
+  /* 새 메시지 도착 시 맨 아래로 */
+  useEffect(() => {
+    if (messages.length !== lastCountRef.current) {
+      lastCountRef.current = messages.length;
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    }
+  }, [messages]);
+
+  const send = async () => {
     const text = draft.trim();
-    if (!text) return;
-    setMessages((prev) => [...prev, { type: "mine", body: text }]);
-    setDraft("");
+    if (!text || !roomId || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/chat/rooms/${roomId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text }),
+      });
+      if (res.ok) {
+        setDraft("");
+        await loadThread(roomId);
+      } else {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        setErrorMsg(data.error?.message ?? "전송에 실패했어요.");
+      }
+    } catch {
+      setErrorMsg("전송에 실패했어요. 네트워크를 확인해 주세요.");
+    } finally {
+      setSending(false);
+    }
   };
+
+  const shownMemberCount = Math.max(members.length, 1);
 
   return (
     <div className="relative mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-bg">
@@ -90,10 +170,12 @@ export function ChatRoom() {
         </Link>
         <div className="flex-1">
           <div className="text-sm font-extrabold text-ink">
-            과천지식정보타운 같이 봐요{" "}
-            <span className="text-[11px] font-semibold text-text-3">5</span>
+            {title}{" "}
+            <span className="text-[11px] font-semibold text-text-3">
+              {phase === "ready" ? shownMemberCount : memberCount}
+            </span>
           </div>
-          <div className="text-[10px] text-text-3">7.25 (토) 10:00 · D-6</div>
+          <div className="text-[10px] text-text-3">{metaLine}</div>
         </div>
         <button
           type="button"
@@ -105,66 +187,83 @@ export function ChatRoom() {
         </button>
       </div>
 
-      {/* 고정 공지 */}
-      <div className="mx-5 mt-2.5 flex items-center justify-between rounded-xl bg-[rgba(29,79,216,.08)] px-3.5 py-2.5">
-        <span className="text-[11px] font-bold text-primary">
-          고정 · 집결: 지식정보타운역 2번 출구 · 코스 지도 첨부
-        </span>
-        <span className="text-[11px] text-primary">›</span>
-      </div>
-
       {/* ---------- 메시지 ---------- */}
-      <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-5 py-3.5">
-        {messages.map((m, i) => {
-          if (m.type === "system") {
+      <div
+        ref={scrollRef}
+        className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-5 py-3.5"
+      >
+        {phase === "joining" && (
+          <div className="self-center rounded-full bg-[rgba(25,31,40,.08)] px-3.5 py-[5px] text-[10px] text-text-2">
+            채팅방에 연결하는 중…
+          </div>
+        )}
+
+        {phase === "error" && (
+          <div className="mt-8 flex flex-col items-center gap-2.5 self-center text-center">
+            <div className="text-sm font-extrabold text-ink">
+              채팅은 모임 참여 후 이용할 수 있어요
+            </div>
+            {errorMsg && (
+              <p className="max-w-[280px] text-xs leading-[1.6] text-text-2">
+                {errorMsg}
+              </p>
+            )}
+            <Link
+              href="/town/groups"
+              className="btn-secondary rounded-xl px-4 py-2 text-xs no-underline"
+            >
+              모임 목록으로
+            </Link>
+          </div>
+        )}
+
+        {phase === "ready" && messages.length === 0 && (
+          <div className="mt-8 flex flex-col items-center gap-1.5 self-center text-center">
+            <div className="text-sm font-extrabold text-ink">
+              아직 메시지가 없어요
+            </div>
+            <p className="text-xs text-text-2">
+              첫 인사를 남기고 임장 일정을 잡아 보세요.
+            </p>
+          </div>
+        )}
+
+        {messages.map((m) => {
+          if (m.messageType === "system") {
             return (
               <div
-                key={i}
+                key={m.id}
                 className="self-center rounded-full bg-[rgba(25,31,40,.08)] px-3.5 py-[5px] text-[10px] text-text-2"
               >
                 {m.body}
               </div>
             );
           }
-          if (m.type === "mine") {
+          if (m.senderEmail === myEmail) {
             return (
-              <div
-                key={i}
-                className="btn-primary max-w-[240px] self-end rounded-[14px] rounded-br-[4px] px-[13px] py-2.5 text-[13px] font-normal leading-[1.5]"
-              >
-                {m.body}
-              </div>
-            );
-          }
-          if (m.type === "attachment") {
-            return (
-              <div key={i} className="flex items-end gap-2">
-                <div className="h-7 w-7 shrink-0 rounded-full bg-[#dfe5ef]" />
-                <div>
-                  <div className="mb-[3px] text-[10px] text-text-3">
-                    {m.name}
-                  </div>
-                  <div className="flex max-w-[240px] items-center gap-2 rounded-[14px] border border-line bg-surface px-[13px] py-2.5">
-                    <span className="text-sm">📝</span>
-                    <div>
-                      <div className="text-xs font-bold text-ink">
-                        {m.title}
-                      </div>
-                      <div className="text-[10px] text-text-3">{m.meta}</div>
-                    </div>
-                  </div>
+              <div key={m.id} className="flex flex-col items-end gap-[3px]">
+                <div className="btn-primary max-w-[240px] self-end whitespace-pre-wrap break-words rounded-[14px] rounded-br-[4px] px-[13px] py-2.5 text-[13px] font-normal leading-[1.5]">
+                  {m.body}
                 </div>
+                <span className="text-[9px] text-text-3">
+                  {timeLabel(m.createdAt)}
+                </span>
               </div>
             );
           }
           return (
-            <div key={i} className="flex items-end gap-2">
+            <div key={m.id} className="flex items-end gap-2">
               <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
               <div>
-                <div className="mb-[3px] text-[10px] text-text-3">{m.name}</div>
-                <div className="max-w-[240px] rounded-[14px] rounded-bl-[4px] border border-line bg-surface px-[13px] py-2.5 text-[13px] leading-[1.5] text-text-1">
+                <div className="mb-[3px] text-[10px] text-text-3">
+                  {displayName(m.senderEmail, myEmail)}
+                </div>
+                <div className="max-w-[240px] whitespace-pre-wrap break-words rounded-[14px] rounded-bl-[4px] border border-line bg-surface px-[13px] py-2.5 text-[13px] leading-[1.5] text-text-1">
                   {m.body}
                 </div>
+                <span className="text-[9px] text-text-3">
+                  {timeLabel(m.createdAt)}
+                </span>
               </div>
             </div>
           );
@@ -173,23 +272,24 @@ export function ChatRoom() {
 
       {/* ---------- 입력바 ---------- */}
       <div className="glass-strong mx-3.5 mb-[18px] flex items-center gap-2 rounded-[18px] px-3.5 py-2.5">
-        <button type="button" aria-label="첨부" className="text-[15px] text-text-3">
-          ＋
-        </button>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") send();
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) void send();
           }}
-          placeholder="메시지 입력…"
-          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-text-3"
+          placeholder={
+            phase === "ready" ? "메시지 입력…" : "채팅방 연결 후 입력할 수 있어요"
+          }
+          disabled={phase !== "ready"}
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-text-3 disabled:opacity-60"
         />
         <button
           type="button"
           aria-label="전송"
-          onClick={send}
-          className="btn-primary flex h-8 w-8 items-center justify-center rounded-full text-sm"
+          onClick={() => void send()}
+          disabled={phase !== "ready" || sending || !draft.trim()}
+          className="btn-primary flex h-8 w-8 items-center justify-center rounded-full text-sm disabled:opacity-50"
         >
           ↑
         </button>
@@ -226,98 +326,50 @@ export function ChatRoom() {
             </div>
 
             <div className="flex flex-col gap-1 rounded-xl bg-bg px-3.5 py-3">
-              <div className="text-[13px] font-extrabold text-ink">
-                과천지식정보타운 같이 봐요
-              </div>
-              <div className="text-[11px] text-text-3">
-                7.25 (토) 10:00 · D-6 · 멤버 5/6
-              </div>
+              <div className="text-[13px] font-extrabold text-ink">{title}</div>
+              <div className="text-[11px] text-text-3">{metaLine}</div>
             </div>
 
             <div className="flex flex-col">
               <div className="py-1.5 text-[10px] font-extrabold tracking-widest text-[#adb5bd]">
-                멤버 5
+                멤버 {shownMemberCount}
               </div>
-              {MEMBERS.map((m, i) => (
+              {members.map((m, i) => (
                 <div
-                  key={m.name}
+                  key={m.userEmail}
                   className={`flex items-center gap-2.5 py-[9px] ${
-                    i < MEMBERS.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < members.length - 1 ? "border-b border-[#f0f3f8]" : ""
                   }`}
                 >
                   <div className="h-[30px] w-[30px] rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
                   <div className="flex-1">
                     <div className="text-xs font-bold text-ink">
-                      {m.name}{" "}
-                      {m.badge && (
-                        <span
-                          className={`rounded px-[5px] py-px text-[9px] font-extrabold ${m.badgeStyle}`}
-                        >
-                          {m.badge}
+                      {displayName(m.userEmail, myEmail)}{" "}
+                      {m.role === "owner" && (
+                        <span className="rounded bg-[#fdf3e7] px-[5px] py-px text-[9px] font-extrabold text-[#c07a3a]">
+                          모임장
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-text-3">{m.meta}</div>
                   </div>
-                  <span
-                    className={`text-[11px] ${
-                      m.actionPrimary
-                        ? "font-bold text-primary"
-                        : "text-text-3"
-                    }`}
-                  >
-                    {m.action}
-                  </span>
                 </div>
               ))}
-
-              <div className="pb-1 pt-2.5 text-[10px] font-extrabold tracking-widest text-[#adb5bd]">
-                회원 기능
-              </div>
-              {MEMBER_MENUS.map((label, i) => (
-                <div
-                  key={label}
-                  className={`flex justify-between py-2.5 text-[13px] font-semibold text-text-1 ${
-                    i < MEMBER_MENUS.length - 1
-                      ? "border-b border-[#f0f3f8]"
-                      : ""
-                  }`}
-                >
-                  <span>{label}</span>
-                  <span className="text-[#c3cad6]">›</span>
+              {members.length === 0 && (
+                <div className="py-2 text-[11px] text-text-3">
+                  멤버 정보를 불러오는 중이에요.
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="flex-1" />
 
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between text-xs text-text-1">
-                <span>알림</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={alarmOn}
-                  aria-label="알림"
-                  onClick={() => setAlarmOn((v) => !v)}
-                  className={`relative h-[22px] w-[38px] rounded-full transition-colors ${
-                    alarmOn ? "bg-primary" : "bg-[#e2e7ee]"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white transition-all ${
-                      alarmOn ? "left-[18px]" : "left-[2px]"
-                    }`}
-                  />
-                </button>
-              </div>
-              <button
-                type="button"
-                className="text-left text-xs font-semibold text-danger"
-              >
-                모임 나가기
-              </button>
-            </div>
+            <Link
+              href="/town/groups"
+              className="btn-secondary rounded-xl p-2.5 text-center text-xs no-underline"
+              onClick={() => setMenuOpen(false)}
+            >
+              모임 목록으로
+            </Link>
           </div>
         </>
       )}

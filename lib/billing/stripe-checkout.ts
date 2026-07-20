@@ -14,7 +14,7 @@ export type SubscriptionCheckoutInput = {
 
 /**
  * Stripe Checkout Session — 구독(mode: subscription).
- * Webhook `checkout.session.completed` 및 `/billing/success` 백업 검증과 함께 사용.
+ * Webhook `checkout.session.completed` 및 `/payment/success?provider=stripe` 백업 검증과 함께 사용.
  */
 export async function createSubscriptionCheckout(
   input: SubscriptionCheckoutInput,

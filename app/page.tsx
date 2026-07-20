@@ -4,9 +4,10 @@ import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
 import { JourneyBanner } from "./components/JourneyBanner";
+import { Footer } from "./components/Footer";
 import { loadNewHomeData } from "@/lib/newui/home-data";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
-import { getBusinessInfo } from "@/lib/brand/business-info";
+import { getWeeklyDigest } from "@/lib/newui/digest";
 import type {
   DeltaTone,
   HomeMeetingItem,
@@ -68,6 +69,13 @@ export default async function Home() {
   const data = await loadNewHomeData();
   // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
   const freshness = await getMarketFreshnessDateLabel();
+  // P1-9: 주간 다이제스트 진입 카드 티저 (1h 캐시, 실패 시 빈 섹션 폴백)
+  const digest = await getWeeklyDigest();
+  const digestTeaser =
+    digest.news[0]?.title ??
+    (digest.market.length > 0
+      ? `${digest.market[0].name} 등 주요 지역 시세 요약`
+      : "최근 7일 뉴스·시세·커뮤니티 요약");
 
   // 실데이터가 1건이라도 있으면 그대로 사용, 0건일 때만 목업(예시 라벨 부착)
   const regionsIsMock = data.regions.length === 0;
@@ -86,9 +94,8 @@ export default async function Home() {
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
   const loanRate = data.loanRate ?? "—";
   const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
-
-  const biz = getBusinessInfo();
-  const representative = biz.representative || "고대웅";
+  // P1-10: 기준금리는 아직 실데이터 소스 미연동 — 하드코딩 수치 대신 "—" 표기 (허위 수치 금지)
+  const baseRate = "—";
 
   return (
     <>
@@ -108,27 +115,28 @@ export default async function Home() {
           <p data-static-hero className="rise-in-1 text-sm text-text-2">
             AI가 장단점과 시세 맥락을 정리해 드립니다
           </p>
-          <a
-            href="#"
+          <Link
+            href="/notes/new"
             data-static-hero
             className="btn-primary rise-in-2 rounded-2xl p-[15px] text-center text-base"
             style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
           >
             임장노트 쓰기
-          </a>
+          </Link>
           <div data-static-hero className="rise-in-3 flex gap-2">
-            <a href="#" className="glass flex-1 rounded-xl p-[11px] text-center text-[13px] font-bold text-text-1">
+            <Link href="/map" className="glass flex-1 rounded-xl p-[11px] text-center text-[13px] font-bold text-text-1">
               지도 보기
-            </a>
-            <a href="#" className="flex-1 rounded-xl bg-[rgba(29,79,216,.1)] p-[11px] text-center text-[13px] font-bold text-primary">
+            </Link>
+            <Link href="/discover" className="flex-1 rounded-xl bg-[rgba(29,79,216,.1)] p-[11px] text-center text-[13px] font-bold text-primary">
               샘플 노트
-            </a>
+            </Link>
           </div>
           <JourneyBanner />
           <div className="rise-in-4 flex gap-2">
             {[
               { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
-              { label: "기준금리", value: "2.75%", accent: false },
+              // P1-10: 기준금리 실데이터 소스 미연동 — 허위 수치 대신 "—" (대출금리와 동일 원칙)
+              { label: "기준금리", value: baseRate, accent: false },
               { label: "대출금리", value: loanRate, accent: true },
             ].map((s) => (
               <div key={s.label} className="glass min-w-0 flex-1 rounded-[14px] px-3 py-2.5">
@@ -139,6 +147,9 @@ export default async function Home() {
               </div>
             ))}
           </div>
+          <p className="rise-in-4 -mt-1.5 text-[10px] text-text-3">
+            공시 데이터 기준 — 미조회 항목은 “—”로 표시됩니다
+          </p>
           <div className="rise-in-5 flex flex-col gap-3">
             {regions.slice(0, 2).map((r) => (
               <div key={r.id} className="glass flex items-center justify-between rounded-2xl px-4 py-3.5">
@@ -176,6 +187,21 @@ export default async function Home() {
               )}
             </AIPanel>
           </div>
+          {/* P1-9: 주간 다이제스트 진입 카드 (고아 라우트 해소) */}
+          <Link
+            href="/digest"
+            className="rise-in-6 glass flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+          >
+            <span className="min-w-0">
+              <span className="block text-[13px] font-extrabold text-ink">
+                주간 다이제스트 · {digest.weekLabel}
+              </span>
+              <span className="mt-0.5 block truncate text-[11px] text-text-3">
+                {digestTeaser}
+              </span>
+            </span>
+            <span className="shrink-0 text-sm font-extrabold text-primary">›</span>
+          </Link>
         </section>
 
         {/* ================= 데스크탑 홈 (9a 정보형) ================= */}
@@ -191,18 +217,19 @@ export default async function Home() {
                   3분 기록 → AI 정리 → 지도 비교. 로그인 없이 시작하세요.
                 </p>
                 <div className="mt-0.5 flex gap-2">
-                  <a href="#" className="btn-primary btn-cta rounded-xl px-5 py-2.5 text-[13px]">
+                  <Link href="/notes/new" className="btn-primary btn-cta rounded-xl px-5 py-2.5 text-[13px]">
                     임장노트 쓰기
-                  </a>
-                  <a href="#" className="rounded-xl bg-[#f2f4f8] px-5 py-2.5 text-[13px] font-bold text-text-1 transition-colors hover:bg-[#e9edf3]">
+                  </Link>
+                  <Link href="/discover" className="rounded-xl bg-[#f2f4f8] px-5 py-2.5 text-[13px] font-bold text-text-1 transition-colors hover:bg-[#e9edf3]">
                     샘플 보기
-                  </a>
+                  </Link>
                 </div>
               </div>
               <div className="grid w-full shrink-0 grid-cols-2 gap-2 xl:w-[300px]">
                 {[
                   { label: "매매지수 서울", value: <>{saleIndexSeoul}</> },
-                  { label: "기준 / 대출금리", value: <>2.75 / <span className="text-primary">{loanRate}</span></> },
+                  // P1-10: 기준금리 미연동 — "—" 표기
+                  { label: "기준 / 대출금리", value: <>{baseRate} / <span className="text-primary">{loanRate}</span></> },
                   { label: "오늘 새 노트", value: <span className="text-primary">{notesToday}</span> },
                   // platform_activity_events 최근 15분 집계 — 집계 불가 시 "—"
                   {
@@ -254,7 +281,7 @@ export default async function Home() {
               <div className="card flex flex-col gap-2 rounded-2xl px-5 py-[18px]">
                 <div className="flex justify-between">
                   <span className="text-sm font-extrabold text-ink">공개 임장노트</span>
-                  <a href="#" className="text-[11px] text-text-3">더보기</a>
+                  <Link href="/notes" className="text-[11px] text-text-3 transition-colors hover:text-primary">더보기</Link>
                 </div>
                 {notes.map((n, i) => (
                   <div
@@ -276,7 +303,7 @@ export default async function Home() {
               <div className="card flex flex-col gap-2 rounded-2xl px-5 py-[18px]">
                 <div className="flex justify-between">
                   <span className="text-sm font-extrabold text-ink">동네이야기 · 자료</span>
-                  <a href="#" className="text-[11px] text-text-3">더보기</a>
+                  <Link href="/town" className="text-[11px] text-text-3 transition-colors hover:text-primary">더보기</Link>
                 </div>
                 {posts.map((p, i) => (
                   <div
@@ -358,65 +385,27 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-            {/* AD 슬롯 — 항상 AD 라벨 */}
-            <div className="rise-in-4 flex h-24 flex-col items-center justify-center gap-1 rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-              <span className="rounded border border-[#e2e7ee] px-1.5 text-[9px] font-bold tracking-widest text-[#adb5bd]">
-                AD
+            {/* P1-9: 주간 다이제스트 진입 카드 (고아 라우트 해소) */}
+            <Link
+              href="/digest"
+              className="rise-in-4 card card-hover flex flex-col gap-1 rounded-2xl px-[18px] py-4"
+            >
+              <span className="flex items-center justify-between">
+                <span className="text-[13px] font-extrabold text-ink">
+                  주간 다이제스트 · {digest.weekLabel}
+                </span>
+                <span className="shrink-0 text-sm font-extrabold text-primary">›</span>
               </span>
-              <span className="font-mono text-[11px] text-[#adb5bd]">
-                Google AdSense 336×96
-              </span>
-            </div>
+              <span className="truncate text-xs text-text-3">{digestTeaser}</span>
+            </Link>
+            {/* P1-10: AdSense 점선 플레이스홀더 제거 — 광고 미송출 시 아무것도 렌더하지 않음
+                (실광고는 layout의 AdSenseLoader Auto ads가 담당) */}
           </aside>
         </section>
       </main>
 
-      {/* 푸터 — 사업자 고지(lib/brand/business-info) + 면책 문구는 여기 1회만 */}
-      <footer className="hidden border-t border-line bg-surface px-5 py-6 md:block">
-        <div className="mx-auto flex max-w-[1240px] flex-col gap-1.5 text-[11px] leading-relaxed text-text-3">
-          <div>
-            누구집 · 상호: {biz.legalName}({biz.domain}) · 대표: {representative} ·
-            사업자등록번호: {biz.registrationNumber || "—"}
-          </div>
-          <div>
-            주소: {biz.address || "—"}
-            {biz.mailOrderSalesNumber
-              ? ` · 통신판매업 신고번호: ${biz.mailOrderSalesNumber}`
-              : ""}{" "}
-            ·{" "}
-            <a
-              href={`mailto:${biz.supportEmail}`}
-              className="text-text-3 underline-offset-2 hover:underline"
-            >
-              문의 {biz.supportEmail}
-            </a>
-          </div>
-          <div>
-            시세·AI 분석 결과는 참고용 정보이며 투자 판단의 책임은 이용자 본인에게
-            있습니다. 실거래가는 국토교통부 공개 데이터 기준입니다.
-          </div>
-          <div className="flex gap-3">
-            <Link
-              href="/legal/terms"
-              className="text-text-3 underline-offset-2 hover:underline"
-            >
-              이용약관
-            </Link>
-            <Link
-              href="/legal/privacy"
-              className="font-semibold text-text-2 underline-offset-2 hover:underline"
-            >
-              개인정보처리방침
-            </Link>
-            <Link
-              href="/legal"
-              className="text-text-3 underline-offset-2 hover:underline"
-            >
-              법적 고지
-            </Link>
-          </div>
-        </div>
-      </footer>
+      {/* P0-3: 공통 푸터 컴포넌트 — 사업자 고지·약관 링크·면책, 모바일 포함 */}
+      <Footer />
 
       <TabBar />
     </>

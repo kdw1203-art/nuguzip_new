@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { AIPanel } from "@/app/components/AIPanel";
 import { PageShell } from "@/app/components/PageShell";
@@ -482,6 +483,18 @@ export default function SellerOnboardingPage() {
         <span className="ml-auto text-[11px] text-text-3">
           임시 저장됨 · 언제든 이어서
         </span>
+      </div>
+
+      {/* 정직한 상태 고지 (감사 P1-5) — 심사 접수 미오픈 안내 */}
+      <div
+        role="status"
+        className="rise-in mb-4 rounded-xl border border-[#f2c94c]/60 bg-[#fdf3dd] px-4 py-3 text-xs font-bold leading-relaxed text-[#946200]"
+      >
+        파트너 심사 접수는 준비 중입니다 — 아래 절차는 미리보기이며 실제 제출은
+        아직 열리지 않았습니다. 문의:{" "}
+        <Link href="/support" className="underline underline-offset-2">
+          고객센터
+        </Link>
       </div>
 
       <div className="rise-in-2">

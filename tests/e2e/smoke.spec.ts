@@ -168,9 +168,17 @@ test("22. /payment/fail renders", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("23. /billing/success renders", async ({ page }) => {
-  await page.goto("/billing/success");
-  await expect(page.getByRole("heading", { level: 1, name: /결제 안내/ })).toBeVisible();
+test("23. /billing/success redirects to /payment/success?provider=stripe (query 보존)", async ({
+  request,
+}) => {
+  const res = await request.get("/billing/success?session_id=cs_test_123", {
+    maxRedirects: 0,
+  });
+  expect([301, 302, 307, 308]).toContain(res.status());
+  const location = res.headers()["location"] ?? "";
+  expect(location).toContain("/payment/success");
+  expect(location).toContain("provider=stripe");
+  expect(location).toContain("session_id=cs_test_123");
 });
 
 // ---------- 지원 / 도구 페이지 ----------
@@ -179,7 +187,7 @@ test("24. /support and /safety render", async ({ page }) => {
   await page.goto("/support");
   await expect(page.getByRole("heading", { level: 1, name: /고객지원 허브/ })).toBeVisible();
   await page.goto("/safety");
-  await expect(page.getByText("안전 진단 실행").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "안전 진단" })).toBeVisible();
 });
 
 test("25. /calculator, /apply, /digest render", async ({ page }) => {

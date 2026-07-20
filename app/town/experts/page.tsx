@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
+import { ConsultButton } from "./ConsultButton";
 import { listExperts, type UserExpertProfile } from "@/lib/experts/store-db";
 import {
   EXPERT_SUBCATEGORIES,
@@ -259,12 +260,14 @@ export default async function TownExpertsPage({
               <span>{e.response}</span>
             </div>
             <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn-primary flex-1 rounded-xl p-[11px] text-[13px]"
-              >
-                상담 신청
-              </button>
+              {e.id ? (
+                <ConsultButton expertId={e.id} expertName={e.name} />
+              ) : (
+                /* 목업 폴백 전문가 — 실제 상담 접수 불가, 정직하게 비활성 표기 */
+                <span className="flex-1 cursor-default rounded-xl border border-line bg-bg p-[11px] text-center text-[13px] font-semibold text-text-3">
+                  예시 프로필 · 상담 불가
+                </span>
+              )}
               <Link
                 href="/town/market"
                 className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-[13px]"
@@ -291,12 +294,12 @@ export default async function TownExpertsPage({
             <br />
             수익을 만들 수 있어요
           </p>
-          <button
-            type="button"
-            className="btn-primary btn-cta rounded-xl px-[22px] py-[11px] text-[13px]"
+          <Link
+            href="/support"
+            className="btn-primary btn-cta rounded-xl px-[22px] py-[11px] text-[13px] no-underline"
           >
-            전문가 등록
-          </button>
+            전문가 등록 문의
+          </Link>
         </div>
       </div>
 
@@ -304,18 +307,17 @@ export default async function TownExpertsPage({
       <div className="mt-8 mb-3 flex items-center justify-between">
         <div className="text-[13px] text-text-3">{profile.crumb}</div>
         <div className="flex gap-2 text-[13px]">
-          <Link
-            href="/messages"
-            className="rounded-[10px] bg-[rgba(255,255,255,.7)] px-3.5 py-2 font-semibold text-text-2"
-          >
-            쪽지
-          </Link>
-          <button
-            type="button"
-            className="btn-primary btn-cta rounded-[10px] px-4 py-2"
-          >
-            상담 신청
-          </button>
+          {top ? (
+            <ConsultButton
+              expertId={top.id}
+              expertName={top.name}
+              className="btn-primary btn-cta rounded-[10px] px-4 py-2"
+            />
+          ) : (
+            <span className="cursor-default rounded-[10px] border border-line bg-bg px-4 py-2 font-semibold text-text-3">
+              예시 프로필 · 상담 불가
+            </span>
+          )}
         </div>
       </div>
 

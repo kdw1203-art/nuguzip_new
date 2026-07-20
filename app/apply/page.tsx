@@ -1,7 +1,11 @@
+import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
 import type { ApplyhomeListingItem } from "@/lib/applyhome/types";
+
+const APPLYHOME_URL = "https://www.applyhome.co.kr";
 
 // 빌드 타임 외부 API 접근 회피 — 요청 시 서버에서 청약홈 데이터를 조회
 export const dynamic = "force-dynamic";
@@ -82,13 +86,41 @@ export default async function ApplyPage() {
         </div>
         <div className="flex-1" />
         <div className="flex gap-1.5 text-xs">
-          <span className="rounded-full bg-[rgba(29,79,216,.12)] px-3.5 py-2 font-bold text-primary">
-            내 관심지역만
-          </span>
-          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">
-            가점 도달 가능만
-          </span>
+          {/* 정리표: 열람형 페이지에 상세 링크 + 알림 CTA 추가 */}
+          <a
+            href={APPLYHOME_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass rounded-full px-3.5 py-2 font-bold text-primary no-underline"
+          >
+            청약홈 공고 보기 ↗
+          </a>
+          <Link
+            href="/notifications"
+            className="rounded-full bg-[rgba(29,79,216,.12)] px-3.5 py-2 font-bold text-primary no-underline"
+          >
+            알림 받기
+          </Link>
         </div>
+      </div>
+
+      {/* 정직 안내 — 캘린더·접수 중 카드·가점 패널은 예시 화면 */}
+      <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[12px] leading-[1.6] text-[#5b74b8]">
+        <ExampleBadge />
+        <span>
+          캘린더·접수 중 카드·가점 전략은 서비스 <b>예시 화면</b>이에요. 실제
+          공고·일정은{" "}
+          <a
+            href={APPLYHOME_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-primary underline"
+          >
+            청약홈(applyhome.co.kr)
+          </a>
+          에서 확인하세요. 아래 “청약 경쟁률” 표는 청약홈 공공데이터 연동 시
+          실데이터로 표시됩니다.
+        </span>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
@@ -96,7 +128,9 @@ export default async function ApplyPage() {
           {/* 캘린더 (9q) */}
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-ink">8월 청약 캘린더</span>
+              <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                8월 청약 캘린더 <ExampleBadge />
+              </span>
               <div className="flex gap-2.5 text-[11px]">
                 <span className="flex items-center gap-1 text-text-2">
                   <span className="h-2 w-2 rounded-[2px] bg-danger" />
@@ -146,7 +180,8 @@ export default async function ApplyPage() {
                   과천지식정보타운 S7{" "}
                   <span className="rounded bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-[#c07a3a]">
                     공공
-                  </span>
+                  </span>{" "}
+                  <ExampleBadge />
                 </div>
                 <div className="text-[11px] text-text-3">84 기준 8.9억 · 시세 대비 -21% · 608세대</div>
               </div>
@@ -160,7 +195,14 @@ export default async function ApplyPage() {
                 <div className="text-[11px] text-text-3">내 가점 52 vs 컷</div>
                 <div className="text-[13px] font-extrabold text-danger">-6점</div>
               </div>
-              <span className="btn-primary rounded-[10px] px-4 py-[9px] text-xs">상세 ›</span>
+              <a
+                href={APPLYHOME_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary rounded-[10px] px-4 py-[9px] text-xs no-underline"
+              >
+                청약홈 상세 ↗
+              </a>
             </div>
           </div>
           <div className="rise-in-2 card flex flex-col gap-3 rounded-2xl px-[18px] py-3.5 md:flex-row md:items-center md:justify-between">
@@ -173,7 +215,8 @@ export default async function ApplyPage() {
                   안양 어반포레 자이{" "}
                   <span className="rounded bg-[#f2f4f8] px-[7px] py-0.5 text-[10px] font-extrabold text-text-2">
                     민간
-                  </span>
+                  </span>{" "}
+                  <ExampleBadge />
                 </div>
                 <div className="text-[11px] text-text-3">84 기준 9.8억 · 시세 대비 -8% · 1,021세대</div>
               </div>
@@ -187,7 +230,14 @@ export default async function ApplyPage() {
                 <div className="text-[11px] text-text-3">내 가점 52 vs 컷</div>
                 <div className="text-[13px] font-extrabold text-primary">+3점 도달</div>
               </div>
-              <span className="btn-primary rounded-[10px] px-4 py-[9px] text-xs">상세 ›</span>
+              <a
+                href={APPLYHOME_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary rounded-[10px] px-4 py-[9px] text-xs no-underline"
+              >
+                청약홈 상세 ↗
+              </a>
             </div>
           </div>
 
@@ -205,9 +255,12 @@ export default async function ApplyPage() {
                 </div>
               </div>
             </div>
-            <span className="rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary">
-              공고 알림 ✓
-            </span>
+            <Link
+              href="/notifications"
+              className="rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
+            >
+              공고 알림 받기 ›
+            </Link>
           </div>
           <div className="rise-in-3 card flex items-center justify-between rounded-2xl px-[18px] py-3.5">
             <div className="flex items-center gap-3">
@@ -221,9 +274,12 @@ export default async function ApplyPage() {
                 </div>
               </div>
             </div>
-            <span className="rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary">
-              공고 알림 ›
-            </span>
+            <Link
+              href="/notifications"
+              className="rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
+            >
+              공고 알림 받기 ›
+            </Link>
           </div>
 
           {/* 지난 청약 (9q) — 청약홈 실데이터 연결, 실패 시 목업 폴백 */}
@@ -306,7 +362,7 @@ export default async function ApplyPage() {
         {/* 우측 사이드 (9q) */}
         <aside className="flex flex-col gap-3.5">
           <div className="rise-in-2">
-            <AIPanel title="내 가점 52점으로는" className="rounded-[18px]">
+            <AIPanel title="내 가점 전략 (예시)" className="rounded-[18px]">
               <div className="mb-1.5 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
                 <span className="text-ai-muted">가점제 당첨권</span>
                 <span className="font-extrabold text-[#7ea2ff]">24건 중 2건</span>
@@ -317,9 +373,7 @@ export default async function ApplyPage() {
               </div>
               이번 달은 <b className="text-[#7ea2ff]">어반포레 자이(가점 도달)</b>가 현실적
               기회입니다. S7은 추첨제 59타입만 지원을 권장합니다.
-              <div className="btn-primary mt-2.5 rounded-[10px] p-[11px] text-center text-xs">
-                가점 도달 가능만 보기
-              </div>
+              
             </AIPanel>
           </div>
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
@@ -359,14 +413,19 @@ export default async function ApplyPage() {
                   공공분양
                 </span>
               </div>
-              <h2 className="mt-2 text-[21px] font-extrabold text-ink">과천지식정보타운 S7블록</h2>
+              <h2 className="mt-2 flex items-center gap-2 text-[21px] font-extrabold text-ink">
+                과천지식정보타운 S7블록 <ExampleBadge />
+              </h2>
               <p className="mt-1 text-[13px] text-text-2">
                 전용 59·84 · 608세대 · 2029.03 입주 예정 · 특별공급 8.1 접수
               </p>
             </div>
-            <span className="w-fit rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary">
-              알림 받는 중 ✓
-            </span>
+            <Link
+              href="/notifications"
+              className="w-fit rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
+            >
+              공고 알림 받기 ›
+            </Link>
           </div>
           <div className="grid gap-2.5 md:grid-cols-3">
             <div className="rounded-xl bg-bg p-3.5">
@@ -415,7 +474,12 @@ export default async function ApplyPage() {
                 <span className="text-center font-bold text-[#c07a3a]">예정</span>
                 <span className="text-center font-bold text-text-3">미정</span>
                 <span className="text-center font-bold text-text-3">—</span>
-                <span className="text-center text-[11px] font-bold text-primary">알림 신청 ›</span>
+                <Link
+                  href="/notifications"
+                  className="text-center text-[11px] font-bold text-primary no-underline"
+                >
+                  알림 신청 ›
+                </Link>
               </div>
             </div>
           </div>
@@ -467,7 +531,7 @@ export default async function ApplyPage() {
 
         <aside className="flex flex-col gap-3.5">
           <div className="rise-in-5">
-            <AIPanel title="내 청약 전략" className="rounded-[18px]">
+            <AIPanel title="내 청약 전략 (예시)" className="rounded-[18px]">
               <div className="mb-1.5 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
                 <span className="text-ai-muted">내 가점 (무주택 7년·부양 2)</span>
                 <span className="font-extrabold text-white">52점</span>
@@ -479,9 +543,12 @@ export default async function ApplyPage() {
               가점제 당첨권에는 6점 부족합니다.{" "}
               <b className="text-[#7ea2ff]">추첨제 물량(59 타입 30%)</b> 지원 + 기존 매수 트랙을
               병행하는 전략을 권장합니다.
-              <div className="btn-primary mt-2.5 rounded-[10px] p-[11px] text-center text-xs">
+              <Link
+                href="/analysis/scenario"
+                className="btn-primary mt-2.5 block rounded-[10px] p-[11px] text-center text-xs no-underline"
+              >
                 매수 vs 청약 대기 시나리오 비교
-              </div>
+              </Link>
             </AIPanel>
           </div>
           <div className="rise-in-6 card flex flex-col gap-2 rounded-[18px] p-[18px]">

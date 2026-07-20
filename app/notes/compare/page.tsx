@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
+import { ExampleBadge } from "../../components/ExampleBadge";
 
-/* 시안 9e — 노트 다회차 비교 (1~5차 + 추이) */
+/* 시안 9e — 노트 다회차 비교 (1~5차 + 추이)
+   P0-5 목업 정직화: 아래 표·추이는 예시 데이터 — 내 노트 자동 비교는 준비 중.
+   (tests/e2e/smoke.spec.ts 7번: h1 "노트 다회차 비교" + AI 면책 문구 유지) */
 
 type CellTone = "good" | "avg" | "bad" | "none";
 
@@ -122,16 +125,17 @@ const TREND_LABELS = [
 
 export default function NotesComparePage() {
   return (
-    <PageShell breadcrumb="내 임장노트 › 공작 302동 › 회차 비교 (5회)">
+    <PageShell breadcrumb="임장노트 › 회차 비교 (예시)">
       <div className="flex flex-col gap-3.5">
         {/* 헤더 + 회차 칩 */}
         <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-[22px] font-extrabold text-ink">
-              노트 다회차 비교
+            <h1 className="flex items-center gap-2 text-[22px] font-extrabold text-ink">
+              노트 다회차 비교 <ExampleBadge />
             </h1>
             <p className="mt-1.5 text-sm text-text-2">
-              1~5차 방문 기록과 점수 추이를 한눈에
+              1~5차 방문 기록과 점수 추이를 한눈에 — 아래는 <b>예시 데이터</b>
+              예요. 내 노트 자동 비교는 준비 중이에요.
             </p>
           </div>
           <div className="flex flex-wrap gap-1.5 text-xs">
@@ -247,9 +251,12 @@ export default function NotesComparePage() {
           </div>
         </div>
 
-        {/* AI 종합 판단 */}
+        {/* AI 종합 판단 (예시) */}
         <div className="rise-in-2">
-          <AIPanel title="다회차 종합 판단">
+          <AIPanel title="다회차 종합 판단 (예시)">
+            <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+              예시
+            </span>
             5회 방문으로 시간대·날씨 변수가 모두 확인됐습니다.{" "}
             <b className="text-ai-accent">
               확정 강점: 학군·배수 / 확정 약점: 주차
@@ -260,11 +267,31 @@ export default function NotesComparePage() {
           </AIPanel>
         </div>
 
-        {/* 노트 상세로 돌아가기 */}
-        <div className="rise-in-3 flex justify-end">
-          <Link href="/notes/1" className="btn-secondary px-4 py-2 text-[13px]">
-            ‹ 노트 상세로
-          </Link>
+        {/* 내 노트로 시작하기 — 예시가 아닌 실제 기록으로 */}
+        <div className="rise-in-3 card flex flex-col items-start gap-2.5 rounded-[20px] px-[22px] py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-extrabold text-ink">
+              내 노트로 회차 비교를 만들어 보세요
+            </div>
+            <p className="mt-0.5 text-xs text-text-2">
+              같은 단지를 2회 이상 기록하면 이런 비교 화면이 자동으로 채워질
+              예정이에요.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Link
+              href="/notes/new"
+              className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+            >
+              임장노트 쓰기
+            </Link>
+            <Link
+              href="/notes"
+              className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+            >
+              내 노트 보기
+            </Link>
+          </div>
         </div>
       </div>
     </PageShell>

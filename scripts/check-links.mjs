@@ -3,9 +3,23 @@ const BASE = `http://localhost:${process.env.PORT || 3100}`;
 const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '/map', '/search', '/notifications', '/messages',
   '/analysis', '/analysis/compare', '/analysis/cycle', '/analysis/price', '/analysis/scenario', '/analysis/timing', '/analysis/portfolio', '/analysis/switch',
   '/town', '/town/news', '/town/news/mock-1', '/town/market', '/town/experts', '/town/groups', '/town/groups/mock-1',
-  '/my', '/my/settings', '/my/assets', '/my/dashboard', '/my/creator', '/subscription', '/login', '/signup', '/calculator', '/apply', '/support', '/safety', '/digest',
+  '/my', '/my/settings', '/my/assets', '/my/creator', '/subscription', '/login', '/signup', '/calculator', '/apply', '/support', '/safety', '/digest',
   '/admin', '/admin/moderation', '/admin/quality', '/admin/ops', '/admin/market', '/admin/revenue',
-  '/library', '/seller', '/upgrade', '/discover', '/complex/mock-1', '/u/mock-user'];
+  '/seller', '/discover', '/complex/mock-1', '/u/mock-user',
+  // 미들웨어 EXACT_REDIRECTS 키 전수 — 리다이렉트 타깃 404 회귀 방지 (감사 P0-4)
+  '/register', '/mypage', '/my-page', '/map-home', '/map-price', '/map-analysis', '/map/price', '/map/analysis', '/region-comparison',
+  '/terms', '/privacy', '/create-post', '/community/create', '/community/write', '/create-meeting', '/inspection/create-meeting', '/groups/create',
+  '/create-meeting-market', '/create-product', '/market', '/market/create', '/market/product/101', '/meeting-market', '/content-market',
+  '/report', '/reports', '/subscriptions', '/subscription-management', '/subscription-calendar', '/subscription-schedule', '/admin-dashboard',
+  '/inspection-hub', '/inspection/hub', '/my-inspection', '/my-inspections', '/my-inspection-reports',
+  '/inspection/create-report', '/inspection/my-reports', '/inspection/reports', '/inspection/my-schedule',
+  '/info/public-data', '/comprehensive-calculator', '/investment-tools', '/calculator/acquisition', '/calculator/rent-vs-buy', '/calculator/tax', '/calculator/investment',
+  '/compare-properties', '/property-comparison', '/apartment-comparison', '/properties', '/property-search', '/real-price',
+  '/point-shop', '/expert', '/expert-matching', '/expert-verification', '/development-info', '/info/redevelopment',
+  '/news', '/notice', '/events', '/price-prediction', '/ai-analysis/ai-prediction', '/supabase-guide', '/supabase-connect',
+  '/community', '/ai-analysis', '/ai', '/auth/login', '/auth/signup', '/auth/register', '/auth/forgot-password', '/auth/reset-password',
+  '/pricing', '/explore', '/experts', '/calculators', '/chat',
+  '/upgrade', '/my/dashboard', '/library', '/post/123', '/community/456'];
 const seen = new Map(); const broken = [];
 async function check(path, from) {
   if (seen.has(path)) return seen.get(path);

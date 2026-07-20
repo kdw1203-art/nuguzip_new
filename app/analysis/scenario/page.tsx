@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PageShell } from "../../components/PageShell";
+import { SimulationNotice } from "../../components/ExampleBadge";
 
 const RATE_CHIPS = ["기준 4.19%", "-1.0%p", "-0.5%p", "+0.5%p", "+1.0%p", "+2.0%p"];
 const PRICE_CHIPS = ["▲ +10% 급등", "▲ +5%", "보합", "▼ -5%", "▼ -10%", "▼ -20% 급락"];
@@ -45,9 +46,11 @@ export default function ScenarioPage() {
 
   return (
     <PageShell breadcrumb="AI 분석 › 시장·대출 시나리오">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">시장·대출 시나리오</h1>
-        <button className="btn-soft rounded-[10px] px-3.5 py-2 text-[13px]">시나리오 저장</button>
+      </div>
+      <div className="rise-in mb-3">
+        <SimulationNotice />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_1fr]">
@@ -108,9 +111,10 @@ export default function ScenarioPage() {
             </div>
           </div>
 
-          <button className="btn-primary btn-cta rounded-[14px] p-[13px] text-sm shadow-[0_8px_20px_rgba(29,79,216,.35)]">
-            시나리오 실행
-          </button>
+          {/* 계산 엔진 실연동 전 — 우측 결과는 예시 수치 */}
+          <div className="rounded-[14px] bg-bg p-3 text-center text-xs font-semibold text-text-3">
+            자동 계산 연동 준비 중 · 우측 결과는 예시 수치예요
+          </div>
         </div>
 
         {/* 결과 */}
@@ -152,13 +156,18 @@ export default function ScenarioPage() {
             </div>
           </div>
 
-          <div className="rise-in-4 ai-panel flex items-start gap-3 rounded-[20px] p-5 shadow-[0_14px_36px_rgba(16,28,54,.22)]">
-            <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
-            <div className="text-[13px] leading-[1.65] text-ai-text">
-              금리 1%p 상승까지는 소득 대비 부담이 32%로 감내 범위입니다. 다만 보유 현금 5.5억 중
-              5.3억이 묶이므로, <b className="text-white">예비비 6개월치(약 1,000만)를 남기는 41% 대출안</b>
-              을 권장합니다.
+          <div className="rise-in-4 ai-panel flex flex-col gap-2 rounded-[20px] p-5 shadow-[0_14px_36px_rgba(16,28,54,.22)]">
+            <div className="flex items-start gap-3">
+              <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
+              <div className="text-[13px] leading-[1.65] text-ai-text">
+                금리 1%p 상승까지는 소득 대비 부담이 32%로 감내 범위입니다. 다만 보유 현금 5.5억 중
+                5.3억이 묶이므로, <b className="text-white">예비비 6개월치(약 1,000만)를 남기는 41% 대출안</b>
+                을 권장합니다.
+              </div>
             </div>
+            <div className="text-[9px] leading-[1.5] text-ai-muted">
+                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
+              </div>
           </div>
         </div>
       </div>

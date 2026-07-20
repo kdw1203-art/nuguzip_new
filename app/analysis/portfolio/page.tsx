@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
+import { SimulationNotice } from "../../components/ExampleBadge";
 
 const SIM_ROWS = [
   { label: "추가 필요 자금", value: "2.4억 (취득세 포함)", tone: "white" },
@@ -21,9 +22,14 @@ const ALERTS = [
 export default function PortfolioPage() {
   return (
     <PageShell breadcrumb="AI 분석 › 포트폴리오">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">포트폴리오 분석</h1>
-        <button className="btn-soft rounded-[10px] px-3.5 py-2 text-[13px]">＋ 자산 등록</button>
+        <Link href="/my/assets" className="btn-soft rounded-[10px] px-3.5 py-2 text-[13px] no-underline">
+          ＋ 자산 등록
+        </Link>
+      </div>
+      <div className="rise-in mb-3">
+        <SimulationNotice text="아래 자산·수치는 예시 데이터예요. 자산 등록 기능이 열리면 내 자산 기준으로 계산됩니다." />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -118,7 +124,12 @@ export default function PortfolioPage() {
               ⚠ 오피스텔 보유로 취득세 중과 여부는 <b className="text-ai-accent">세무사 확인</b>이
               필요합니다.
             </div>
-            <button className="btn-primary rounded-xl p-[11px] text-[13px]">세무사 상담 연결</button>
+            <div className="text-[9px] leading-[1.5] text-ai-muted">
+                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
+              </div>
+            <Link href="/town/experts" className="btn-primary rounded-xl p-[11px] text-center text-[13px] no-underline">
+              세무사 상담 연결
+            </Link>
           </div>
         </div>
 
@@ -231,22 +242,32 @@ export default function PortfolioPage() {
                   </span>
                 </div>
               ))}
-              <button className="btn-primary rounded-[10px] p-[11px] text-xs">
+              <div className="text-[9px] leading-[1.5] text-ai-muted">
+                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
+              </div>
+              <Link
+                href="/analysis/scenario"
+                className="btn-primary rounded-[10px] p-[11px] text-center text-xs no-underline"
+              >
                 매도 vs 보유 시나리오 비교
-              </button>
+              </Link>
             </div>
 
             {/* 자산 알림 */}
             <div className="rise-in-5 card flex flex-col gap-2 rounded-[18px] p-[18px]">
               <div className="text-[13px] font-extrabold text-ink">자산 알림</div>
+              {/* 장식용 가짜 토글 제거 — 실제 알림 설정으로 연결 */}
               {ALERTS.map((a) => (
-                <div key={a} className="flex items-center justify-between text-xs text-text-1">
-                  <span>{a}</span>
-                  <div className="relative h-[22px] w-[38px] rounded-full bg-primary">
-                    <div className="absolute right-0.5 top-0.5 h-[18px] w-[18px] rounded-full bg-white" />
-                  </div>
+                <div key={a} className="text-xs text-text-1">
+                  · {a}
                 </div>
               ))}
+              <Link
+                href="/notifications"
+                className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
+              >
+                알림 설정 열기
+              </Link>
             </div>
           </div>
         </div>

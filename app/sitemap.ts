@@ -30,9 +30,21 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/calculator", priority: 0.6 },
   { path: "/apply", priority: 0.6 },
   { path: "/digest", priority: 0.6 },
+  // 발견 피드 — 탭바 2번 슬롯·비로그인 랜딩 (감사 P1-11)
+  { path: "/discover", priority: 0.8 },
   { path: "/subscription", priority: 0.5 },
   { path: "/support", priority: 0.4 },
   { path: "/safety", priority: 0.4 },
+  // 법적 고지 허브 + 하위 8종 (감사 P1-11)
+  { path: "/legal", priority: 0.3 },
+  { path: "/legal/terms", priority: 0.3 },
+  { path: "/legal/privacy", priority: 0.3 },
+  { path: "/legal/location", priority: 0.3 },
+  { path: "/legal/youth", priority: 0.3 },
+  { path: "/legal/community", priority: 0.3 },
+  { path: "/legal/expert", priority: 0.3 },
+  { path: "/legal/fees", priority: 0.3 },
+  { path: "/legal/privacy-request", priority: 0.3 },
   { path: "/login", priority: 0.3 },
   { path: "/signup", priority: 0.3 },
 ];

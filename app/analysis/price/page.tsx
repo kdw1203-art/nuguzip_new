@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
 import { NextActions } from "../../components/NextActions";
+import { ExampleBadge, SimulationNotice } from "../../components/ExampleBadge";
 
 const STEPS = [
   { label: "기준가 — 최근 6개월 동일평형 실거래 9건 회귀", value: "8.31억", tone: "ink" },
@@ -45,9 +46,14 @@ const EXPERTS = [
 export default function PricePage() {
   return (
     <PageShell breadcrumb="매물 A (공작 84A 급매 7.9억) › AI 제안가 근거">
-      <div className="mb-3 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">AI 제안가 상세</h1>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="rise-in flex items-center gap-2 text-[22px] font-extrabold text-ink">
+          AI 제안가 상세 <ExampleBadge label="예시 시뮬레이션" />
+        </h1>
         <span className="text-[11px] text-[#adb5bd]">참고용 · 투자 판단 책임은 이용자에게</span>
+      </div>
+      <div className="rise-in mb-3">
+        <SimulationNotice />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
@@ -144,10 +150,10 @@ export default function PricePage() {
               <span className="font-extrabold text-ink">+0.30억</span>
             </div>
             <Link
-              href="/messages"
+              href="/town/experts"
               className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
             >
-              중개사에게 협상 근거와 함께 문의
+              전문가에게 협상 근거와 함께 문의
             </Link>
           </div>
 
@@ -178,9 +184,10 @@ export default function PricePage() {
           </div>
 
           <div className="rise-in-4 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">
-              이 거래에 필요한 전문가{" "}
-              <span className="text-[10px] font-medium text-text-3">인증 · 관양동 활동 기준</span>
+            <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
+              이 거래에 필요한 전문가
+              {/* 전문가 실데이터 미연결 — 예시 목록 */}
+              <ExampleBadge />
             </div>
             {EXPERTS.map((e, i) => (
               <div

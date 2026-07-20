@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
+
+/* P0-5 목업 정직화: 자산 등록은 예시 화면 — 저장·자동 시세 등 실기능 미연동을
+   명시하고 죽은 버튼을 정직한 상태로 교체 */
 
 const REPAY_STATS = [
   { label: "남은 대출금", value: "2.1억", tone: "text-ink" },
@@ -30,8 +34,22 @@ export default function AssetsPage() {
           <Link href="/my" className="text-base text-text-1" aria-label="닫기">
             ✕
           </Link>
-          <h1 className="text-[15px] font-extrabold text-ink">자산 등록</h1>
-          <span className="text-[13px] font-bold text-primary">저장</span>
+          <h1 className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+            자산 등록 <ExampleBadge />
+          </h1>
+          {/* 저장 API 미연동 — 가짜 저장 버튼 대신 정직한 표기 */}
+          <span className="text-[13px] font-bold text-text-3">준비 중</span>
+        </div>
+
+        <div className="rise-in flex items-start gap-1.5 rounded-xl bg-[rgba(29,79,216,.06)] px-3.5 py-2.5 text-[11px] leading-[1.6] text-[#5b74b8]">
+          <span>
+            아래는 자산 등록 기능의 <b>예시 화면</b>이에요. 단지·금액은 가상의
+            데이터이며 저장·자동 시세 연동은 준비 중입니다. 오픈 소식은{" "}
+            <Link href="/notifications" className="font-bold text-primary underline">
+              알림
+            </Link>
+            으로 받아보세요.
+          </span>
         </div>
 
         <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">

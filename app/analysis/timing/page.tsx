@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
+import { SimulationNotice } from "../../components/ExampleBadge";
 
 /* 시안 8c의 사이클 세그먼트 (absolute 위치·회전 그대로) */
 const SEGMENTS = [
@@ -23,13 +24,17 @@ const ALERTS = ["신호 70 도달 시 알림", "관양동 급매 등록 시 알�
 export default function TimingPage() {
   return (
     <PageShell breadcrumb="AI 분석 › 시세·타이밍">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">시세·타이밍 분석</h1>
         <div className="flex gap-1.5 text-[13px]">
           <span className="chip chip-active px-3.5 py-2">관양동</span>
           <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-text-2">마포구</span>
           <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-text-2">＋ 지역</span>
         </div>
+      </div>
+
+      <div className="rise-in mb-3">
+        <SimulationNotice />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_400px]">
@@ -114,21 +119,25 @@ export default function TimingPage() {
                 </div>
               ))}
             </div>
+            <div className="text-[9px] leading-[1.5] text-ai-muted">
+                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
+              </div>
           </div>
 
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[20px] p-5">
             <div className="text-sm font-extrabold text-ink">알림 설정</div>
+            {/* 장식용 가짜 토글 제거 — 실제 알림 설정으로 연결 */}
             {ALERTS.map((a) => (
-              <div
-                key={a}
-                className="flex items-center justify-between text-[13px] text-text-1"
-              >
-                <span>{a}</span>
-                <div className="relative h-[26px] w-11 rounded-full bg-primary">
-                  <div className="absolute right-[3px] top-[3px] h-5 w-5 rounded-full bg-white" />
-                </div>
+              <div key={a} className="text-[13px] text-text-1">
+                · {a}
               </div>
             ))}
+            <Link
+              href="/notifications"
+              className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
+            >
+              알림 설정 열기
+            </Link>
           </div>
         </div>
       </div>

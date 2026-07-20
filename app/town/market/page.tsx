@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
+import { ExampleBadge } from "../../components/ExampleBadge";
 
-/* 시안 8l — 마켓 (임장 서비스·리포트) + 8m 리포트 상품 상세 · 데스크탑 */
+/* 시안 8l — 마켓 (임장 서비스·리포트) + 8m 리포트 상품 상세 · 데스크탑
+   P0-5 목업 정직화: 상품·상세는 예시 데이터 — 예시 배지 + 오픈 준비 중 명시,
+   결제로 오해될 죽은 버튼 제거 */
 
 const FILTERS = ["전체", "지역 리포트", "대리 임장", "체크리스트"];
 
@@ -39,7 +42,12 @@ export default function TownMarketPage() {
   return (
     <PageShell breadcrumb="동네이야기 › 마켓">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">마켓</h1>
+        <h1 className="rise-in text-[22px] font-extrabold text-ink">
+          마켓{" "}
+          <span className="align-middle rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
+            오픈 준비 중
+          </span>
+        </h1>
         <div className="flex gap-1.5 overflow-x-auto text-[13px]">
           {FILTERS.map((f, i) => (
             <span
@@ -56,6 +64,19 @@ export default function TownMarketPage() {
         </div>
       </div>
 
+      {/* 정직 안내 — 아래 상품·상세는 예시 화면 */}
+      <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[12px] leading-[1.6] text-[#5b74b8]">
+        <ExampleBadge />
+        <span>
+          아래 상품과 상세 화면은 오픈 준비 중인 마켓의 <b>예시</b>예요. 아직
+          실제로 구매할 수 없어요 — 오픈 소식은{" "}
+          <Link href="/notifications" className="font-bold text-primary underline">
+            알림
+          </Link>
+          으로 받아보세요.
+        </span>
+      </div>
+
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[380px_1fr]">
         {/* ---------- 상품 목록 ---------- */}
         <div className="flex flex-col gap-3">
@@ -69,10 +90,13 @@ export default function TownMarketPage() {
               }`}
             >
               <div className="flex justify-between">
-                <span
-                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${p.badgeStyle}`}
-                >
-                  {p.badge}
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${p.badgeStyle}`}
+                  >
+                    {p.badge}
+                  </span>
+                  <ExampleBadge />
                 </span>
                 <span className="text-[11px] text-text-3">{p.meta}</span>
               </div>
@@ -101,7 +125,8 @@ export default function TownMarketPage() {
             <div>
               <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-[#c07a3a]">
                 지역 리포트
-              </span>
+              </span>{" "}
+              <ExampleBadge />
               <h2 className="mt-2 text-[21px] font-extrabold text-ink">
                 관양동 재건축 흐름 분석 (2026 상반기판)
               </h2>
@@ -159,24 +184,21 @@ export default function TownMarketPage() {
           </div>
 
           <div className="flex gap-2.5">
-            <button
-              type="button"
-              className="btn-primary flex-1 rounded-[14px] p-[13px] text-sm"
-              style={{ boxShadow: "0 8px 22px rgba(29,79,216,.35)" }}
+            {/* 실결제 미연동 — 가짜 구매 버튼 대신 정직한 상태 표기 */}
+            <span className="flex-1 cursor-default rounded-[14px] border border-line bg-bg p-[13px] text-center text-sm font-bold text-text-3">
+              구매 오픈 준비 중
+            </span>
+            <Link
+              href="/support"
+              className="btn-secondary rounded-[14px] px-5 py-[13px] text-center text-sm no-underline"
             >
-              구매하기
-            </button>
-            <button
-              type="button"
-              className="btn-secondary rounded-[14px] px-5 py-[13px] text-sm"
-            >
-              저장 찜
-            </button>
+              문의하기
+            </Link>
           </div>
 
           <p className="text-[11px] text-[#adb5bd]">
-            리포트는 참고용 정보이며 투자 판단 책임은 구매자에게 있습니다 ·
-            디지털 상품 특성상 열람 후 환불 불가
+            예시 화면입니다 · 오픈 시 리포트는 참고용 정보이며 투자 판단 책임은
+            구매자에게 있습니다
           </p>
         </div>
       </div>

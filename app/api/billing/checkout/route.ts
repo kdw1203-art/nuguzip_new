@@ -73,8 +73,8 @@ export async function POST(req: Request) {
       plan,
       source,
       campaign,
-      successUrl: `${base}/billing/success?session_id={CHECKOUT_SESSION_ID}&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
-      cancelUrl: `${base}/pricing?checkout=cancel&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
+      successUrl: `${base}/payment/success?provider=stripe&session_id={CHECKOUT_SESSION_ID}&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
+      cancelUrl: `${base}/payment/fail?provider=stripe&checkout=cancel&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
     });
     if (!checkout.url) {
       return NextResponse.json(

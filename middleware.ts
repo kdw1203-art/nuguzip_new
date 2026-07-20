@@ -73,59 +73,71 @@ function requestWithPathnameHeader(request: NextRequest): NextRequest {
  */
 export const EXACT_REDIRECTS: Record<string, string> = {
   /** `/login` `/my` `/subscription` `/calculator` 는 새 앱의 실제 페이지 — 레거시 매핑 제거 */
-  "/register": "/auth/signup",
+  /** 모든 타깃은 "실존 라우트로 1홉 직행" 원칙 (개편 감사 P0-4) — 죽은 타깃·2단 홉 금지 */
+  "/register": "/signup",
   "/mypage": "/my",
   "/my-page": "/my",
-  "/map-home": "/explore",
-  "/map-price": "/map/price",
-  "/map-analysis": "/map/analysis",
+  "/map-home": "/map",
+  "/map-price": "/map",
+  "/map-analysis": "/map",
+  "/map/price": "/map",
+  "/map/analysis": "/map",
+  "/region-comparison": "/map",
   "/terms": "/legal/terms",
   "/privacy": "/legal/privacy",
-  "/create-post": "/community/write",
-  "/community/create": "/community/write",
-  "/create-meeting": "/groups/create",
-  "/create-meeting-market": "/market/create",
-  "/create-product": "/market/create",
-  "/report": "/reports",
+  "/create-post": "/town/write",
+  "/community/create": "/town/write",
+  "/community/write": "/town/write",
+  "/create-meeting": "/town/groups",
+  "/inspection/create-meeting": "/town/groups",
+  "/groups/create": "/town/groups",
+  "/create-meeting-market": "/town/market",
+  "/create-product": "/town/market",
+  "/market": "/town/market",
+  "/market/create": "/town/market",
+  "/market/product/101": "/town/market",
+  "/meeting-market": "/town/market",
+  "/content-market": "/town/market",
+  "/report": "/analysis",
+  "/reports": "/analysis",
   "/subscriptions": "/subscription",
   "/subscription-management": "/my",
   "/subscription-calendar": "/subscription",
   "/subscription-schedule": "/subscription",
-  "/meeting-market": "/market",
   "/admin-dashboard": "/admin",
-  "/inspection-hub": "/inspection/hub",
-  "/my-inspection": "/inspection/hub",
-  "/my-inspections": "/inspection/hub",
-  "/inspection/create-meeting": "/groups/create",
-  "/inspection/create-report": "/inspection/hub?tab=reports",
-  "/inspection/my-reports": "/inspection/hub?tab=reports",
-  "/inspection/reports": "/inspection/hub?tab=reports",
-  "/inspection/my-schedule": "/inspection/hub?tab=schedules",
-  "/market/product/101": "/market",
+  "/inspection-hub": "/notes",
+  "/inspection/hub": "/notes",
+  "/my-inspection": "/notes",
+  "/my-inspections": "/notes",
+  "/my-inspection-reports": "/notes",
+  "/inspection/create-report": "/notes",
+  "/inspection/my-reports": "/notes",
+  "/inspection/reports": "/notes",
+  "/inspection/my-schedule": "/notes",
   "/info/public-data": "/",
-  "/comprehensive-calculator": "/calculators",
-  "/investment-tools": "/calculators",
-  "/compare-properties": "/property-search",
-  "/property-comparison": "/property-search",
-  "/apartment-comparison": "/property-search",
-  "/properties": "/property-search",
-  "/calculator/acquisition": "/calculator/tax",
-  "/calculator/rent-vs-buy": "/calculator/investment",
-  "/content-market": "/market",
-  "/point-shop": "/pricing",
-  "/expert": "/experts",
-  "/expert-matching": "/experts",
-  "/expert-verification": "/experts",
-  "/development-info": "/info/redevelopment",
-  "/news": "/community",
-  "/notice": "/community",
-  "/events": "/community",
-  "/my-inspection-reports": "/inspection/hub",
-  "/map/analysis": "/region-comparison",
-  "/real-price": "/property-search",
-  "/price-prediction": "/ai-analysis/ai-prediction",
-  "/post/123": "/community",
-  "/post/456": "/community",
+  "/comprehensive-calculator": "/calculator",
+  "/investment-tools": "/calculator",
+  "/calculator/acquisition": "/calculator",
+  "/calculator/rent-vs-buy": "/calculator",
+  "/calculator/tax": "/calculator",
+  "/calculator/investment": "/calculator",
+  "/compare-properties": "/search",
+  "/property-comparison": "/search",
+  "/apartment-comparison": "/search",
+  "/properties": "/search",
+  "/property-search": "/search",
+  "/real-price": "/search",
+  "/point-shop": "/subscription",
+  "/expert": "/town/experts",
+  "/expert-matching": "/town/experts",
+  "/expert-verification": "/town/experts",
+  "/development-info": "/town/news",
+  "/info/redevelopment": "/town/news",
+  "/news": "/town",
+  "/notice": "/town",
+  "/events": "/town",
+  "/price-prediction": "/analysis/timing",
+  "/ai-analysis/ai-prediction": "/analysis/timing",
   "/supabase-guide": "/",
   "/supabase-connect": "/",
   /** 구 경로 → 새 앱 경로 매핑 */
@@ -142,6 +154,11 @@ export const EXACT_REDIRECTS: Record<string, string> = {
   "/experts": "/town/experts",
   "/calculators": "/calculator",
   "/chat": "/town/groups",
+  /** 중복 페이지 정리 (감사 P1-1·P1-2·P1-4·정리표) — 페이지 삭제 후 canonical 로 흡수 */
+  "/upgrade": "/subscription",
+  "/my/dashboard": "/my",
+  "/library": "/my",
+  "/billing/success": "/payment/success?provider=stripe",
 };
 
 function copyCookies(from: NextResponse, to: NextResponse) {
@@ -150,27 +167,18 @@ function copyCookies(from: NextResponse, to: NextResponse) {
   });
 }
 
-function isDocumentRequest(request: NextRequest): boolean {
-  return (
-    request.headers.get("sec-fetch-dest") === "document" ||
-    (request.headers.get("accept")?.includes("text/html") ?? false)
-  );
-}
-
-/** stale HTML·SW 캐시 우회 — 문서 GET 을 ?_wd=<rev> 로 한 번 307 리다이렉트 */
-function maybeForceCspRefresh(request: NextRequest): NextResponse | null {
-  const host = normalizeHost(
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
-  );
-  if (host === "localhost" || host.startsWith("127.")) return null;
+/**
+ * 구 `?_wd=<rev>` 캐시 우회 파라미터 제거 — URL 을 https://nuguzip.com/ 형태로
+ * 유지해야 네이버 지도 등 도메인/URL 등록형 API 연동이 가능하다.
+ * (stale 캐시 대응은 CSP_REV_COOKIE + Clear-Site-Data + deploy-sync 스크립트가 담당)
+ * 과거 공유·북마크된 `?_wd=` 링크는 파라미터를 벗겨 308 정규화한다.
+ */
+function maybeStripLegacyWdParam(request: NextRequest): NextResponse | null {
   if (request.method !== "GET") return null;
-  if (request.nextUrl.pathname.startsWith("/api")) return null;
-  if (!isDocumentRequest(request)) return null;
-  if (request.nextUrl.searchParams.get("_wd") === CSP_REVISION) return null;
-
+  if (!request.nextUrl.searchParams.has("_wd")) return null;
   const url = request.nextUrl.clone();
-  url.searchParams.set("_wd", CSP_REVISION);
-  return applySecurityHeaders(NextResponse.redirect(url, 307), request);
+  url.searchParams.delete("_wd");
+  return applySecurityHeaders(NextResponse.redirect(url, 308), request);
 }
 
 export async function middleware(request: NextRequest) {
@@ -179,16 +187,18 @@ export async function middleware(request: NextRequest) {
   const origin = request.headers.get("origin");
   const hostname = normalizeHost(host);
 
-  if (hostname === "m.nuguzip.com") {
+  // m.·www. → 정식 도메인(nuguzip.com) 정규화 — 네이버 지도 등 URL 등록형 API 대응
+  if (hostname === "m.nuguzip.com" || hostname === "www.nuguzip.com") {
     const canonical = new URL(
       request.nextUrl.pathname + request.nextUrl.search,
       DEFAULT_DESKTOP_ORIGIN,
     );
+    canonical.searchParams.delete("_wd");
     return applySecurityHeaders(NextResponse.redirect(canonical, 308), request);
   }
 
-  const cspRefresh = maybeForceCspRefresh(request);
-  if (cspRefresh) return cspRefresh;
+  const wdStrip = maybeStripLegacyWdParam(request);
+  if (wdStrip) return wdStrip;
 
   // 앱인토스 미니앱(Webview) CORS
   if (isApi && isAllowedMiniAppOrigin(origin)) {
@@ -239,15 +249,19 @@ export async function middleware(request: NextRequest) {
         u.searchParams.set(k, v);
       }
     });
-    const redirect = NextResponse.redirect(u);
+    // 레거시 경로는 영구 이전 — 308 로 검색엔진 색인 이관
+    const redirect = NextResponse.redirect(u, 308);
     copyCookies(sessionResponse, redirect);
     return applySecurityHeaders(redirect, request);
   }
 
-  const postMatch = /^\/post\/([^/]+)$/.exec(path);
+  // 구 커뮤니티 게시글 경로(/post/:id, /community/:id) → /town 피드로 1홉 직행.
+  // (/community, /community/write, /community/create 는 위 EXACT_REDIRECTS 에서 먼저 처리됨)
+  const postMatch = /^\/(?:post|community)\/([^/]+)$/.exec(path);
   if (postMatch) {
     const redirect = NextResponse.redirect(
-      new URL(`/community/${postMatch[1]}`, request.url),
+      new URL(`/town?post=${encodeURIComponent(postMatch[1])}`, request.url),
+      308,
     );
     copyCookies(sessionResponse, redirect);
     return applySecurityHeaders(redirect, request);

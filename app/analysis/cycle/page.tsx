@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
+import { SimulationNotice } from "../../components/ExampleBadge";
 
 type PeriodKey = "1년" | "3년" | "5년" | "10년";
 
@@ -108,7 +109,8 @@ export default function CyclePage() {
     <PageShell breadcrumb="AI 분석 › 시세·타이밍 › 공작아파트 84㎡">
       <div className="flex flex-col gap-4">
         {/* 기간 토글 */}
-        <div className="rise-in flex justify-end">
+        <div className="rise-in flex flex-wrap items-center justify-between gap-2">
+          <SimulationNotice />
           <div className="card flex gap-1 rounded-full p-[3px] text-xs">
             {(Object.keys(PERIODS) as PeriodKey[]).map((p) => (
               <button
@@ -244,6 +246,9 @@ export default function CyclePage() {
               <div className="flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-[9px] text-xs">
                 <span className="text-ai-muted">{d.expectLabel}</span>
                 <span className="font-extrabold text-ai-accent">{d.expectValue}</span>
+              </div>
+              <div className="text-[9px] leading-[1.5] text-ai-muted">
+                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
               </div>
             </div>
 

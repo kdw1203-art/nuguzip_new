@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { markPaid } from "@/lib/payments/store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
+import { getStripe } from "@/lib/billing/stripe";
+import { normalizePlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import type { AppPlan } from "@/lib/billing/plan";
 
@@ -15,8 +17,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 /**
- * 토스·카카오페이 결제 성공 리다이렉트 처리. (구 app/payment/success 포트)
- * 쿼리로 전달된 paymentKey·orderId·amount 를 서버에서 Confirm API 에 전달합니다.
+ * 결제 성공 랜딩 통합(감사 P1-4): 토스·카카오페이(orderId·paymentKey) +
+ * Stripe(provider=stripe&session_id — 구 /billing/success 흡수, 미들웨어가 1홉 리다이렉트).
+ * Stripe 는 Webhook 과 병행해 session_id 로 플랜을 idempotent 하게 반영합니다.
  */
 export default async function PaymentSuccessPage({
   searchParams,
@@ -26,6 +29,7 @@ export default async function PaymentSuccessPage({
     paymentKey?: string;
     amount?: string;
     provider?: string;
+    session_id?: string;
     source?: string;
     campaign?: string;
   }>;
@@ -38,7 +42,45 @@ export default async function PaymentSuccessPage({
   let status: "ok" | "mock" | "error" = "error";
   let message = "결제 정보를 확인할 수 없습니다.";
 
-  if (sp.provider === "kakaopay" && orderId) {
+  if (sp.provider === "stripe") {
+    // Stripe Checkout 성공 리턴 (구 /billing/success) — session_id 로 백업 검증
+    const sessionId = sp.session_id?.trim();
+    message = "결제 세션을 확인할 수 없습니다. 마이 페이지에서 플랜을 확인해 주세요.";
+    if (sessionId) {
+      const stripe = getStripe();
+      if (stripe) {
+        try {
+          const checkout = await stripe.checkout.sessions.retrieve(sessionId);
+          if (checkout.payment_status === "paid" || checkout.status === "complete") {
+            const auth = await safeAuth();
+            const email = String(
+              checkout.metadata?.email ||
+                checkout.customer_details?.email ||
+                checkout.customer_email ||
+                auth?.user?.email ||
+                "",
+            )
+              .trim()
+              .toLowerCase();
+            const plan = normalizePlan(checkout.metadata?.plan);
+            if (email && plan !== "free") {
+              await applyPlanToUserByEmail(email, plan);
+            }
+            status = "ok";
+            message = "구독 결제가 완료되었습니다. 잠시 후 마이 페이지에서 플랜을 확인해 주세요.";
+          } else {
+            status = "mock";
+            message = "결제 확인 중입니다. Webhook 반영까지 1~2분 걸릴 수 있습니다.";
+          }
+        } catch {
+          message = "결제 세션 조회에 실패했습니다. 마이 페이지에서 플랜을 확인해 주세요.";
+        }
+      } else {
+        status = "mock";
+        message = "Stripe 가 설정되지 않았습니다. 관리자에게 문의해 주세요.";
+      }
+    }
+  } else if (sp.provider === "kakaopay" && orderId) {
     // 카카오페이는 /api/payments/kakaopay/approve 에서 승인·기록을 마치고 리다이렉트됩니다.
     status = "ok";
     message = "결제가 완료되어 구독이 활성화됐습니다.";

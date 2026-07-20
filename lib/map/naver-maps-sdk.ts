@@ -9,13 +9,26 @@ export const kakaoLevelToNaverZoom = mapLevelToNaverZoom;
 const NAVER_MAPS_CALLBACK = "__woodongNaverMapsReady";
 const NAVER_MAPS_READY_TIMEOUT_MS = 15_000;
 
+/**
+ * NCP 통합 콘솔 Client ID 폴백 — 지도 Client ID 는 브라우저 요청 URL 에
+ * 그대로 노출되는 공개 값이며, NCP 콘솔의 Web 서비스 URL(도메인) 등록으로
+ * 보호된다 (docs/naver-map-ncp-setup.md). Vercel env 가 마스킹("[SENSITIVE]")
+ * 되어도 지도가 동작하도록 코드 폴백을 둔다.
+ */
+const FALLBACK_NAVER_MAP_CLIENT_ID = "aida7jsxel";
+
+function isValidNcpClientId(v: string | undefined): v is string {
+  // NCP Client ID 형식: 영숫자 6~24자. "[SENSITIVE]" 등 플레이스홀더 거부.
+  return !!v && /^[a-z0-9]{6,24}$/i.test(v);
+}
+
 /** NCP 통합 콘솔 Client ID (= maps.js 의 ncpKeyId 값) */
 export function resolveNaverMapClientId(): string {
-  return (
+  const fromEnv =
     process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_NAVER_NCP_KEY_ID?.trim() ||
-    ""
-  );
+    process.env.NEXT_PUBLIC_NAVER_NCP_KEY_ID?.trim();
+  if (isValidNcpClientId(fromEnv)) return fromEnv;
+  return FALLBACK_NAVER_MAP_CLIENT_ID;
 }
 
 export const NAVER_MAP_CLIENT_ID = resolveNaverMapClientId();

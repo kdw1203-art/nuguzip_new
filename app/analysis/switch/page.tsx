@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
+import { ExampleBadge, SimulationNotice } from "../../components/ExampleBadge";
 
 const PROFILE_ON = ["30대", "남", "2인 거주", "직장인"];
 const PROFILE_OFF = ["1인 거주", "3인 이상", "사업자", "법인"];
@@ -68,9 +69,12 @@ const FLOWS = [
 export default function SwitchPage() {
   return (
     <PageShell breadcrumb="AI 분석 › 포트폴리오 › 갈아타기 추천">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">갈아타기 추천 지역</h1>
         <span className="text-xs text-text-3">기준: 평촌 초원마을 매도 (가용 6.9억 + 대출)</span>
+      </div>
+      <div className="rise-in mb-3">
+        <SimulationNotice />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
@@ -90,7 +94,9 @@ export default function SwitchPage() {
                 <span className="text-text-3">금액대</span>
                 <span className="font-extrabold text-ink">7~10억 ▾</span>
               </div>
-              <button className="btn-primary rounded-[10px] px-4 py-[9px] text-xs">추천 받기</button>
+              <span className="cursor-default rounded-[10px] border border-line bg-bg px-4 py-[9px] text-center text-xs font-semibold text-text-3">
+                추천 오픈 준비 중
+              </span>
             </div>
             <div className="flex flex-wrap items-center gap-[5px]">
               <span className="mr-0.5 text-[10px] text-text-3">내 프로필</span>
@@ -196,9 +202,10 @@ export default function SwitchPage() {
 
         {/* 이동 흐름 */}
         <div className="rise-in-2 card flex h-fit flex-col gap-2.5 rounded-[18px] px-5 py-[18px]">
-          <div className="text-[13px] font-extrabold text-ink">
-            평촌에서 갈아탄 이용자들은{" "}
-            <span className="text-[10px] font-medium text-text-3">최근 6개월 · 노트 이동 기준</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-extrabold text-ink">
+            평촌에서 갈아탄 이용자들은
+            {/* 이동 통계 실데이터 미연결 — 예시 수치 */}
+            <ExampleBadge />
           </div>
           {FLOWS.map((f) => (
             <div key={f.label} className="flex items-center gap-2.5">
