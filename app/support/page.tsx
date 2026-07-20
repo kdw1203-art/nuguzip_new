@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { readBoardPosts } from "@/lib/newui/board-posts";
 import { SupportContactForm } from "./SupportContactForm";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
 
@@ -43,6 +44,7 @@ const FAQ_CATEGORIES = [
   { icon: "🔒", label: "계정 · 보안" },
 ] as const;
 
+/* 더미 1개 원칙: 예시 티켓은 단 1건 — 우측 답변 상세와 동일 건 */
 const TICKETS = [
   {
     tag: "결제",
@@ -52,24 +54,6 @@ const TICKETS = [
     title: "플러스 연간 결제 영수증 재발급",
     meta: "#T-4821 · 07.18 접수 · 07.18 답변",
     active: true,
-  },
-  {
-    tag: "데이터 오류",
-    tagClass: "bg-primary-soft text-primary",
-    status: "답변 대기 · 4h 내",
-    statusClass: "text-danger",
-    title: "공작아파트 실거래 1건 누락 신고",
-    meta: "#T-4835 · 오늘 10:24 접수",
-    active: false,
-  },
-  {
-    tag: "계정",
-    tagClass: "bg-[#f2f4f8] text-text-2",
-    status: "완료",
-    statusClass: "text-text-3",
-    title: "카카오 → 네이버 계정 연결 변경",
-    meta: "#T-4102 · 06.30",
-    active: false,
   },
 ] as const;
 
@@ -197,22 +181,15 @@ export default async function SupportPage() {
           {/* 내 문의 티켓 + 답변 상세 (10b) */}
           <div className="grid gap-3.5 lg:grid-cols-[340px_1fr]">
             <div className="rise-in-3 flex flex-col gap-2.5">
-              <div className="text-[10px] text-text-3">문의 내역 미리보기 (예시)</div>
-              <div className="flex gap-1.5 text-xs">
-                <span className="rounded-full bg-ink px-[13px] py-1.5 font-bold text-white">전체 3</span>
-                <span className="rounded-full border border-[#e2e7ee] bg-surface px-[13px] py-1.5 font-semibold text-text-2">
-                  답변 대기 1
-                </span>
-                <span className="rounded-full border border-[#e2e7ee] bg-surface px-[13px] py-1.5 font-semibold text-text-2">
-                  완료 2
-                </span>
+              <div className="flex items-center gap-1.5 text-[10px] text-text-3">
+                문의 내역 미리보기 <ExampleBadge />
               </div>
               {TICKETS.map((t) => (
                 <div
                   key={t.title}
                   className={`flex flex-col gap-[5px] rounded-[14px] bg-surface px-4 py-3.5 ${
                     t.active ? "border-[1.5px] border-primary" : "border border-line"
-                  } ${t.status === "완료" ? "opacity-70" : ""}`}
+                  }`}
                 >
                   <div className="flex justify-between">
                     <span className={`rounded-[5px] px-2 py-0.5 text-[11px] font-extrabold ${t.tagClass}`}>
@@ -224,6 +201,11 @@ export default async function SupportPage() {
                   <div className="text-[10px] text-text-3">{t.meta}</div>
                 </div>
               ))}
+              {/* 더미 1개 원칙 — 샘플 티켓 1건만 유지 */}
+              <p className="px-1 text-[10px] leading-[1.6] text-text-3">
+                예시 티켓 1건이에요 — 문의를 남기면 내 문의 내역이 여기에
+                표시됩니다.
+              </p>
             </div>
 
             <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[20px] p-6">
@@ -236,7 +218,9 @@ export default async function SupportPage() {
                     플러스 연간 결제 영수증 재발급
                   </span>
                 </div>
-                <span className="text-[11px] text-text-3">#T-4821</span>
+                <span className="flex items-center gap-1.5 text-[11px] text-text-3">
+                  #T-4821 <ExampleBadge />
+                </span>
               </div>
               <div className="max-w-[420px] self-end rounded-[14px] rounded-br-[4px] bg-primary px-[15px] py-3 text-[13px] leading-[1.6] text-white">
                 연간 결제 영수증을 회사 제출용으로 재발급 받고 싶습니다. 사업자 정보 포함 가능한가요?

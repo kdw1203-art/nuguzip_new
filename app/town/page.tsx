@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { readTownPosts } from "@/lib/newui/board-posts";
+import { ExampleBadge } from "../components/ExampleBadge";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import {
   COMMUNITY_SUBCATEGORIES,
@@ -17,6 +18,8 @@ export const dynamic = "force-dynamic";
 
 /* ---------- 목업 폴백 (DB 미연결 시) ---------- */
 
+/* 더미데이터 정책(더미 1개 원칙): 테스트용 샘플 게시글은 단 1건 —
+   실데이터 0건일 때만 "예시" 배지와 함께 노출 */
 const FALLBACK_POSTS: Post[] = [
   {
     id: "mock-1",
@@ -34,45 +37,11 @@ const FALLBACK_POSTS: Post[] = [
     viewCount: 120,
     comments: [],
   },
-  {
-    id: "mock-2",
-    authorLabel: "마포러버",
-    category: "질문/상담",
-    city: "서울특별시",
-    district: "마포구",
-    title: "마포 신축 vs 구축 리모델링, 첫 집으로 어떤 게 나을까요?",
-    body: "",
-    tags: ["질문"],
-    createdAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 3600_000).toISOString(),
-    likeCount: 24,
-    commentCount: 17,
-    viewCount: 310,
-    comments: [],
-  },
-  {
-    id: "mock-3",
-    authorLabel: "뉴스 자동수집",
-    category: "부동산 뉴스",
-    city: "기타(전국)",
-    district: "",
-    title: "“청년 82.6% 세입자 시대…월세 부담 낮춰야”",
-    body: "",
-    tags: ["뉴스"],
-    createdAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
-    updatedAt: new Date(Date.now() - 26 * 3600_000).toISOString(),
-    likeCount: 31,
-    commentCount: 6,
-    viewCount: 540,
-    comments: [],
-    isAutomated: true,
-    sourceName: "OO일보",
-  },
 ];
 
+/* 더미 1개 원칙: 예시 모임도 1건만 */
 const FALLBACK_GROUPS = [
   { id: null, title: "과천지식정보타운 같이 봐요", meta: "7.25 (토) 10:00 · 4/6명" },
-  { id: null, title: "마포 구축 리모델링 스터디", meta: "7.26 (일) 14:00 · 2/4명" },
 ];
 
 /* ---------- 헬퍼 ---------- */
@@ -118,14 +87,7 @@ function meetingMeta(m: UserMeeting) {
   return `${when} · ${m.currentMembers}/${m.maxMembers}명`;
 }
 
-/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
-function ExampleBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
-      예시
-    </span>
-  );
-}
+/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 공용 ExampleBadge 사용 */
 
 /* ---------- 페이지 ---------- */
 
@@ -203,7 +165,8 @@ export default async function TownPage({
     .map(([r]) => r);
   // 실데이터 없으면 예시 라벨이 붙은 목업 지역 노출
   const regionsFallback = topRegions.length === 0;
-  const myRegions = regionsFallback ? ["안양 관양동", "서울 마포구"] : topRegions;
+  // 더미 1개 원칙: 예시 지역 1건만
+  const myRegions = regionsFallback ? ["안양 관양동"] : topRegions;
 
   /* 이번 주 임장 모임 — meetings 실데이터 (없으면 목업) */
   let weekGroups: { id: string | null; title: string; meta: string }[] = [];
@@ -280,6 +243,17 @@ export default async function TownPage({
               {sort === "latest" ? "최신순 ▾" : "인기순 ▾"}
             </Link>
           </div>
+
+          {/* 더미 1개 원칙: 예시 샘플만 있을 때 안내 캡션 */}
+          {usingFallback && (
+            <div className="flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
+              <ExampleBadge />
+              <span>
+                아직 등록된 글이 없어 샘플 1건을 보여드려요 — 실데이터가 쌓이면
+                자동으로 교체됩니다.
+              </span>
+            </div>
+          )}
 
           {feed.map((p, i) => {
             const byline = p.isAutomated

@@ -5,58 +5,11 @@ import Link from "next/link";
 import { Logo } from "./Logo";
 import { HeaderAuth } from "./HeaderAuth";
 import { HeaderSearch } from "./HeaderSearch";
+import { MobileMenu } from "./MobileMenu";
+import { NAV } from "./nav-data";
 
 /** 9m GNB — 호버 드롭다운(리퀴드 글래스, riseIn 180ms)
- *  네비 개편안(overhaul-audit): 4 대분류. /safety·/town/market 은 실연동 전까지 제외,
- *  analysis cycle·switch·price·portfolio 는 허브 카드로만 노출. */
-const NAV: {
-  label: string;
-  href: string;
-  children?: { label: string; href: string }[];
-}[] = [
-  {
-    label: "임장노트",
-    href: "/notes",
-    children: [
-      { label: "노트 쓰기", href: "/notes/new" },
-      { label: "공개 노트", href: "/notes" },
-      { label: "회차 비교", href: "/notes/compare" },
-      { label: "내 노트", href: "/my" },
-    ],
-  },
-  {
-    label: "지도·시세",
-    href: "/map",
-    children: [
-      { label: "지도 탐색", href: "/map" },
-      { label: "실거래 검색", href: "/search" },
-      { label: "청약 센터", href: "/apply" },
-      { label: "대출·비용 계산기", href: "/calculator" },
-    ],
-  },
-  {
-    label: "AI 분석",
-    href: "/analysis",
-    children: [
-      { label: "분석 허브", href: "/analysis" },
-      { label: "후보 단지 비교", href: "/analysis/compare" },
-      { label: "시장·대출 시나리오", href: "/analysis/scenario" },
-      { label: "시세·타이밍", href: "/analysis/timing" },
-    ],
-  },
-  {
-    label: "동네이야기",
-    href: "/town",
-    children: [
-      { label: "피드", href: "/town" },
-      { label: "발견 피드", href: "/discover" },
-      { label: "자료·뉴스", href: "/town/news" },
-      { label: "임장 모임", href: "/town/groups" },
-      { label: "전문가", href: "/town/experts" },
-      { label: "주간 다이제스트", href: "/digest" },
-    ],
-  },
-];
+ *  NAV 데이터는 nav-data.ts 공유 (데스크탑 GNB · 모바일 전체 메뉴 동기화) */
 
 /** 글래스 플로팅 GNB — 데스크탑은 메뉴+검색+CTA, 모바일은 로고+아이콘 */
 export function Header() {
@@ -135,10 +88,11 @@ export function Header() {
         {/* 세션 영역 — 로그인 시 아바타+플랜 배지+드롭다운 / 비로그인 시 로그인 링크 */}
         <HeaderAuth />
 
-        {/* 모바일 아이콘 */}
-        <div className="flex gap-3.5 text-base text-text-1 md:hidden">
+        {/* 모바일 아이콘 + 전체 메뉴(☰) */}
+        <div className="flex items-center gap-3.5 text-base text-text-1 md:hidden">
           <Link href="/search" aria-label="검색">⌕</Link>
           <Link href="/notifications" aria-label="알림">🔔</Link>
+          <MobileMenu />
         </div>
       </div>
     </header>

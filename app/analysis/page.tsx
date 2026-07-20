@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
+import { ExampleBadge } from "../components/ExampleBadge";
+import { safeAuth } from "@/lib/safe-auth";
+import { listNotes } from "@/lib/inspection/store-db";
 import { AiNoteAnalysisCard } from "./ai-note-analysis";
 
 /* P1-10·P1-12: 가짜 개인화 foot 문구 제거(정적 설명으로 교체),
@@ -53,7 +56,27 @@ const QUICK = [
   { href: "/analysis/switch", label: "갈아타기 추천 (시뮬레이션)" },
 ] as const;
 
-export default function AnalysisHubPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AnalysisHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ noteId?: string }>;
+}) {
+  const { noteId } = await searchParams;
+
+  // 로그인 시 실데이터(내 노트 수)로 시작 섹션 구성 — 허위 수치 없음
+  const session = await safeAuth();
+  const email = session?.user?.email ?? null;
+  let myNoteCount: number | null = null;
+  if (email) {
+    try {
+      myNoteCount = (await listNotes(email)).length;
+    } catch {
+      myNoteCount = null; // 집계 실패 시 수치 미표기 (가짜 숫자 금지)
+    }
+  }
+
   return (
     <PageShell>
       <div className="flex flex-col gap-4">
@@ -63,6 +86,61 @@ export default function AnalysisHubPage() {
             내 노트와 실거래 데이터가 연결된 5가지 분석
           </div>
         </div>
+
+        {/* 시작 섹션 — 로그인: 실 카운트 + CTA / 비로그인: 예시 분석 1건 + 로그인 CTA */}
+        {email ? (
+          <div className="rise-in-1 card flex flex-col gap-3 rounded-[20px] p-5 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-[15px] font-extrabold text-ink">
+                {myNoteCount !== null
+                  ? myNoteCount > 0
+                    ? `내 노트 ${myNoteCount}건이 분석을 기다려요`
+                    : "아직 작성한 임장노트가 없어요"
+                  : "내 노트로 바로 분석할 수 있어요"}
+              </div>
+              <div className="mt-1 text-[12px] text-text-3">
+                {myNoteCount === 0
+                  ? "첫 임장노트를 남기면 AI 분석이 열려요"
+                  : "기록을 점수화하고 강점·약점·체크 제안을 정리해 드려요"}
+              </div>
+            </div>
+            {myNoteCount === 0 ? (
+              <Link href="/notes/new" className="btn-primary btn-md shrink-0">
+                첫 노트 쓰기
+              </Link>
+            ) : (
+              <a href="#ai-note-analysis" className="btn-primary btn-md shrink-0">
+                내 노트로 분석 시작
+              </a>
+            )}
+          </div>
+        ) : (
+          <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-5">
+            {/* 더미 1개 원칙: 비로그인 샘플 분석 카드는 1건 — 예시 배지 명시 */}
+            <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+              샘플 분석 리포트 <ExampleBadge />
+            </div>
+            <div className="ai-panel flex flex-col gap-1.5 rounded-[14px] p-3.5">
+              <div className="text-xs font-extrabold text-white">
+                공작아파트 3차 방문 — 채광·학군 강점, 주차는 구조적 약점
+              </div>
+              <div className="text-[11px] leading-[1.55] text-ai-text">
+                · 채광·학군은 방문 기록에서 일관되게 강점으로 나타났어요
+              </div>
+              <div className="text-[11px] leading-[1.55] text-ai-text">
+                · 주차는 시간대와 무관한 감점 요인 — 저녁 재방문을 제안해요
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <span className="text-[12px] text-text-3">
+                로그인하면 내 임장노트 기준으로 똑같이 분석해 드려요
+              </span>
+              <Link href="/login" className="btn-primary btn-md shrink-0">
+                로그인하고 분석 시작
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="rise-in-1 grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
           {TOOLS.map((t) => (
@@ -89,8 +167,10 @@ export default function AnalysisHubPage() {
             </Link>
           ))}
 
-          {/* AI 노트 분석 — POST /api/ai/analysis 실연동 카드 */}
-          <AiNoteAnalysisCard />
+          {/* AI 노트 분석 — POST /api/ai/analysis 실연동 카드 (?noteId= 컨텍스트 수신) */}
+          <div id="ai-note-analysis" className="h-full scroll-mt-24">
+            <AiNoteAnalysisCard noteId={noteId ?? null} />
+          </div>
 
           {/* 무엇이든 물어보기 — 잉크 다크 카드 */}
           <div className="ai-panel flex flex-col gap-2.5 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">

@@ -10,7 +10,8 @@ import { resolveComplexHref } from "@/lib/newui/complex-link";
 
 export const revalidate = 120;
 
-/* 더미데이터 정책: 실데이터 0건일 때만 노출 — meta 앞의 "예시" 표기로 실기록과 구분 */
+/* 더미데이터 정책(더미 1개 원칙): 테스트용 샘플은 단 1건 —
+   실데이터 0건일 때만 "예시" 배지와 함께 노출 */
 const MOCK_NOTES: FeedNote[] = [
   {
     id: "1",
@@ -29,40 +30,7 @@ const MOCK_NOTES: FeedNote[] = [
     popularity: 12,
     interested: true,
     complexHref: "/complex/mock-1",
-  },
-  {
-    id: "2",
-    author: "마포 이웃",
-    meta: "예시 · 첫 방문",
-    score: 82,
-    scoreTone: "primary",
-    title: "마포래미안 115동 59A",
-    excerpt: "“역까지 실측 도보 7분. 커뮤니티 시설이 기대 이상, 관리비는…”",
-    tags: [
-      { label: "역세권", tone: "pos" },
-      { label: "커뮤니티", tone: "pos" },
-    ],
-    footer: ["공감 24", "댓글 11", "저장 19"],
-    popularity: 24,
-    interested: false,
-    complexHref: "/complex/mock-1",
-  },
-  {
-    id: "3",
-    author: "과천 이웃",
-    meta: "예시 · 2번째 방문",
-    score: 64,
-    scoreTone: "muted",
-    title: "과천 위버필드 204동",
-    excerpt: "“경사가 생각보다 심함. 유모차 동선은 후문 쪽만 가능…”",
-    tags: [
-      { label: "경사 심함", tone: "neg" },
-      { label: "신축감", tone: "pos" },
-    ],
-    footer: ["공감 7", "댓글 3", "저장 4"],
-    popularity: 7,
-    interested: true,
-    complexHref: "/complex/mock-1",
+    isExample: true,
   },
 ];
 

@@ -69,9 +69,9 @@ export async function DELETE(req: NextRequest) {
   if (!UUID_RE.test(id)) {
     return NextResponse.json({ error: "id 가 필요합니다." }, { status: 400 });
   }
-  const ok = await removeAlertSubscription(session.user.email, id);
-  if (!ok) {
-    return NextResponse.json({ error: "구독 해지에 실패했어요." }, { status: 500 });
+  const result = await removeAlertSubscription(session.user.email, id);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
   return NextResponse.json({ ok: true });
 }

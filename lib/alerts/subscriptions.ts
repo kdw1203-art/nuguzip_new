@@ -128,15 +128,29 @@ export async function addAlertSubscription(
   return { ok: true, item };
 }
 
+export type RemoveAlertResult =
+  | { ok: true }
+  | { ok: false; status: number; error: string };
+
 /** 알림 구독 해지 — 본인 소유 + alert: 접두 행만 삭제. */
-export async function removeAlertSubscription(userEmail: string, id: string): Promise<boolean> {
+export async function removeAlertSubscription(
+  userEmail: string,
+  id: string,
+): Promise<RemoveAlertResult> {
   const sb = getServiceSupabase();
-  if (!sb) return false;
+  if (!sb) {
+    // 저장소 미설정은 서버 오류(500)가 아니라 일시적 사용 불가(503)로 구분한다
+    // (POST 경로의 addAlertSubscription 과 동일한 계약).
+    return { ok: false, status: 503, error: "일시적으로 구독을 해지할 수 없어요." };
+  }
   const { error } = await sb
     .from("user_watchlist")
     .delete()
     .eq("id", id)
     .eq("user_email", normEmail(userEmail))
     .like("complex_id", `${ALERT_PREFIX}%`);
-  return !error;
+  if (error) {
+    return { ok: false, status: 500, error: "구독 해지에 실패했어요." };
+  }
+  return { ok: true };
 }

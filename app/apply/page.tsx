@@ -35,6 +35,7 @@ async function getApplyLiveData(): Promise<ApplyLiveData> {
   return { live: false, items: [], totalCount: 0 };
 }
 
+/* 더미 1개 원칙: 캘린더의 예시 일정은 1건(접수 마크)만 표시 */
 const CAL_DAYS: { day: number; muted?: boolean; mark?: "receipt" | "announce" | "planned" }[] = [
   { day: 28, muted: true },
   { day: 29, muted: true },
@@ -43,15 +44,15 @@ const CAL_DAYS: { day: number; muted?: boolean; mark?: "receipt" | "announce" | 
   { day: 1, mark: "receipt" },
   { day: 2 },
   { day: 3 },
-  { day: 4, mark: "receipt" },
+  { day: 4 },
   { day: 5 },
   { day: 6 },
-  { day: 7, mark: "planned" },
+  { day: 7 },
   { day: 8 },
   { day: 9 },
   { day: 10 },
   { day: 11 },
-  { day: 12, mark: "announce" },
+  { day: 12 },
   { day: 13 },
   { day: 14 },
   { day: 15 },
@@ -78,11 +79,12 @@ export default async function ApplyPage() {
     <PageShell breadcrumb="지도 › 청약 센터" wide>
       {/* 상단 탭 + 필터 (9q) */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
+        {/* 더미 1개 원칙: 실연동 전 가짜 건수 표기 제거 */}
         <div className="flex flex-wrap gap-1.5 text-[13px]">
-          <span className="rounded-full bg-ink px-3.5 py-2 font-bold text-white">전체 24</span>
-          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">예정 9</span>
-          <span className="glass rounded-full px-3.5 py-2 font-bold text-danger">접수 중 3</span>
-          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">지난 청약 12</span>
+          <span className="rounded-full bg-ink px-3.5 py-2 font-bold text-white">전체</span>
+          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">예정</span>
+          <span className="glass rounded-full px-3.5 py-2 font-bold text-danger">접수 중</span>
+          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">지난 청약</span>
         </div>
         <div className="flex-1" />
         <div className="flex gap-1.5 text-xs">
@@ -134,15 +136,7 @@ export default async function ApplyPage() {
               <div className="flex gap-2.5 text-[11px]">
                 <span className="flex items-center gap-1 text-text-2">
                   <span className="h-2 w-2 rounded-[2px] bg-danger" />
-                  접수
-                </span>
-                <span className="flex items-center gap-1 text-text-2">
-                  <span className="h-2 w-2 rounded-[2px] bg-primary" />
-                  발표
-                </span>
-                <span className="flex items-center gap-1 text-text-2">
-                  <span className="h-2 w-2 rounded-[2px] bg-[#c9d4e5]" />
-                  예정 공고
+                  접수 (예시 1건)
                 </span>
               </div>
             </div>
@@ -168,8 +162,8 @@ export default async function ApplyPage() {
             </div>
           </div>
 
-          {/* 접수 중 목록 (9q) */}
-          <div className="rise-in-2 px-1 text-xs font-extrabold text-danger">접수 중 3</div>
+          {/* 접수 중 목록 (9q) — 더미 1개 원칙: 예시 샘플 1건 */}
+          <div className="rise-in-2 px-1 text-xs font-extrabold text-danger">접수 중 (예시 1건)</div>
           <div className="rise-in-2 flex flex-col gap-3 rounded-2xl border-[1.5px] border-danger bg-surface px-[18px] py-3.5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-3">
               <span className="rounded-md bg-danger px-2 py-1 text-[11px] font-extrabold text-white">
@@ -205,51 +199,17 @@ export default async function ApplyPage() {
               </a>
             </div>
           </div>
-          <div className="rise-in-2 card flex flex-col gap-3 rounded-2xl px-[18px] py-3.5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="rounded-md bg-danger px-2 py-1 text-[11px] font-extrabold text-white">
-                D-5
-              </span>
-              <div>
-                <div className="text-sm font-extrabold text-ink">
-                  안양 어반포레 자이{" "}
-                  <span className="rounded bg-[#f2f4f8] px-[7px] py-0.5 text-[10px] font-extrabold text-text-2">
-                    민간
-                  </span>{" "}
-                  <ExampleBadge />
-                </div>
-                <div className="text-[11px] text-text-3">84 기준 9.8억 · 시세 대비 -8% · 1,021세대</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3.5">
-              <div className="text-right">
-                <div className="text-[11px] text-text-3">예상 경쟁률</div>
-                <div className="text-[13px] font-extrabold text-text-1">22:1</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[11px] text-text-3">내 가점 52 vs 컷</div>
-                <div className="text-[13px] font-extrabold text-primary">+3점 도달</div>
-              </div>
-              <a
-                href={APPLYHOME_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary rounded-[10px] px-4 py-[9px] text-xs no-underline"
-              >
-                청약홈 상세 ↗
-              </a>
-            </div>
-          </div>
-
-          {/* 예정 (9q) */}
-          <div className="rise-in-3 px-1 pt-1.5 text-xs font-extrabold text-text-3">예정 9 · 가까운 순</div>
+          {/* 예정 (9q) — 더미 1개 원칙: 예시 샘플 1건 */}
+          <div className="rise-in-3 px-1 pt-1.5 text-xs font-extrabold text-text-3">예정 (예시 1건)</div>
           <div className="rise-in-3 card flex items-center justify-between rounded-2xl px-[18px] py-3.5">
             <div className="flex items-center gap-3">
               <span className="rounded-md bg-[#f2f4f8] px-2 py-1 text-[11px] font-extrabold text-text-2">
                 9월
               </span>
               <div>
-                <div className="text-sm font-extrabold text-ink">인덕원 자이 SK뷰</div>
+                <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                  인덕원 자이 SK뷰 <ExampleBadge />
+                </div>
                 <div className="text-[11px] text-text-3">
                   분양가 미정 (추정 10.2억) · 771세대 · 공고 예정 9.4
                 </div>
@@ -262,31 +222,16 @@ export default async function ApplyPage() {
               공고 알림 받기 ›
             </Link>
           </div>
-          <div className="rise-in-3 card flex items-center justify-between rounded-2xl px-[18px] py-3.5">
-            <div className="flex items-center gap-3">
-              <span className="rounded-md bg-[#f2f4f8] px-2 py-1 text-[11px] font-extrabold text-text-2">
-                2027
-              </span>
-              <div>
-                <div className="text-sm font-extrabold text-ink">안양 관양 재개발</div>
-                <div className="text-[11px] text-text-3">
-                  일반분양 2,340세대 중 약 600 · 내 노트 단지 인접
-                </div>
-              </div>
-            </div>
-            <Link
-              href="/notifications"
-              className="rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
-            >
-              공고 알림 받기 ›
-            </Link>
-          </div>
+          <p className="rise-in-3 px-1 text-[11px] leading-[1.6] text-text-3">
+            접수·예정 카드는 예시 샘플 1건씩만 보여드려요 — 실제 공고 데이터가
+            연동되면 자동으로 교체됩니다.
+          </p>
 
           {/* 지난 청약 (9q) — 청약홈 실데이터 연결, 실패 시 목업 폴백 */}
           <div className="rise-in-4 px-1 pt-1.5 text-xs font-extrabold text-text-3">
             {liveData.live
               ? `청약 경쟁률 · 청약홈 실데이터 ${liveData.totalCount.toLocaleString()}건`
-              : "지난 청약 12 · 결과 데이터"}
+              : "지난 청약 (예시 1건)"}
           </div>
           {liveData.live ? (
             <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
@@ -340,19 +285,18 @@ export default async function ApplyPage() {
                   <span className="text-center">당첨 컷</span>
                   <span className="text-center">현재 프리미엄</span>
                 </div>
-                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
-                  <span className="font-bold text-ink">과천 S6 (25.11)</span>
+                {/* 더미 1개 원칙 — 예시 결과 행 1건만 */}
+                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
+                  <span className="flex items-center gap-1.5 font-bold text-ink">
+                    과천 S6 (25.11) <ExampleBadge />
+                  </span>
                   <span className="text-center font-bold text-text-1">8.6억</span>
                   <span className="text-center font-extrabold text-danger">98:1</span>
                   <span className="text-center font-bold text-text-1">58점</span>
                   <span className="text-center font-extrabold text-primary">+1.8억</span>
                 </div>
-                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
-                  <span className="font-bold text-ink">인덕원 퍼스비엘 (24.06)</span>
-                  <span className="text-center font-bold text-text-1">10.1억</span>
-                  <span className="text-center font-extrabold text-text-1">14:1</span>
-                  <span className="text-center font-bold text-text-1">44점</span>
-                  <span className="text-center font-extrabold text-text-2">+0.3억</span>
+                <div className="pb-2 pt-1 text-[10px] text-[#adb5bd]">
+                  예시 1건 — 청약홈 공공데이터 연동 시 실데이터로 자동 교체됩니다
                 </div>
               </div>
             </div>
@@ -364,35 +308,30 @@ export default async function ApplyPage() {
           <div className="rise-in-2">
             <AIPanel title="내 가점 전략 (예시)" className="rounded-[18px]">
               <div className="mb-1.5 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
-                <span className="text-ai-muted">가점제 당첨권</span>
-                <span className="font-extrabold text-[#7ea2ff]">24건 중 2건</span>
+                <span className="text-ai-muted">내 가점 (예시)</span>
+                <span className="font-extrabold text-white">52점</span>
               </div>
               <div className="mb-2 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
-                <span className="text-ai-muted">추첨제 지원 가능</span>
-                <span className="font-extrabold text-white">7건</span>
+                <span className="text-ai-muted">S7 예상 커트라인 (예시)</span>
+                <span className="font-extrabold text-[#7ea2ff]">58점</span>
               </div>
-              이번 달은 <b className="text-[#7ea2ff]">어반포레 자이(가점 도달)</b>가 현실적
-              기회입니다. S7은 추첨제 59타입만 지원을 권장합니다.
-              
+              예시 기준으로는 가점제 당첨권에 못 미쳐{" "}
+              <b className="text-[#7ea2ff]">S7 추첨제 59타입</b> 지원을 권장합니다.
+              실공고 연동 시 내 가점 기준으로 계산됩니다.
             </AIPanel>
           </div>
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">지역별 요약</div>
-            {[
-              { region: "과천", meta: "접수 1 · 예정 2 · 평균 경쟁 84:1" },
-              { region: "안양", meta: "접수 2 · 예정 4 · 평균 경쟁 19:1" },
-              { region: "의왕", meta: "예정 3 · 평균 경쟁 11:1" },
-            ].map((r, i, arr) => (
-              <div
-                key={r.region}
-                className={`flex justify-between py-[7px] text-xs ${
-                  i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
-              >
-                <span className="font-bold text-ink">{r.region}</span>
-                <span className="text-text-2">{r.meta}</span>
-              </div>
-            ))}
+            <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
+              지역별 요약 <ExampleBadge />
+            </div>
+            {/* 더미 1개 원칙 — 예시 지역 1건만 */}
+            <div className="flex justify-between py-[7px] text-xs">
+              <span className="font-bold text-ink">과천</span>
+              <span className="text-text-2">접수 1 · 평균 경쟁 84:1</span>
+            </div>
+            <p className="text-[10px] leading-[1.6] text-text-3">
+              실공고 데이터가 연동되면 지역별 요약이 자동으로 채워집니다.
+            </p>
           </div>
           <div className="rise-in-4">
             <AdSlot />
@@ -447,7 +386,9 @@ export default async function ApplyPage() {
 
           <div className="overflow-x-auto">
             <div className="min-w-[560px]">
-              <div className="mb-1.5 text-[13px] font-extrabold text-ink">인근 청약 히스토리 · 예정</div>
+              <div className="mb-1.5 text-[13px] font-extrabold text-ink">
+                인근 청약 히스토리 (예시 1건)
+              </div>
               <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
                 <span>단지</span>
                 <span className="text-center">구분</span>
@@ -455,31 +396,13 @@ export default async function ApplyPage() {
                 <span className="text-center">경쟁률</span>
                 <span className="text-center">현재 시세/프리미엄</span>
               </div>
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
+              {/* 더미 1개 원칙 — 예시 히스토리 1건만 */}
+              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
                 <span className="font-bold text-ink">과천 S6 (2025.11)</span>
                 <span className="text-center text-text-2">지난 청약</span>
                 <span className="text-center font-bold text-text-1">8.6억</span>
                 <span className="text-center font-extrabold text-danger">98:1</span>
                 <span className="text-center font-extrabold text-primary">+1.8억</span>
-              </div>
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
-                <span className="font-bold text-ink">인덕원 퍼스비엘 (2024.06)</span>
-                <span className="text-center text-text-2">지난 청약</span>
-                <span className="text-center font-bold text-text-1">10.1억</span>
-                <span className="text-center font-extrabold text-text-1">14:1</span>
-                <span className="text-center font-extrabold text-text-2">+0.3억</span>
-              </div>
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
-                <span className="font-bold text-ink">안양 관양 재개발 (2027 예정)</span>
-                <span className="text-center font-bold text-[#c07a3a]">예정</span>
-                <span className="text-center font-bold text-text-3">미정</span>
-                <span className="text-center font-bold text-text-3">—</span>
-                <Link
-                  href="/notifications"
-                  className="text-center text-[11px] font-bold text-primary no-underline"
-                >
-                  알림 신청 ›
-                </Link>
               </div>
             </div>
           </div>
@@ -488,7 +411,7 @@ export default async function ApplyPage() {
             <div className="min-w-[640px]">
               <div className="flex items-baseline justify-between">
                 <span className="text-[13px] font-extrabold text-ink">
-                  인근 단지 시세 비교{" "}
+                  인근 단지 시세 비교 (예시 1건){" "}
                   <span className="text-[11px] font-medium text-text-3">분양가 8.9억 대비 · 84 기준</span>
                 </span>
                 <span className="text-[11px] font-bold text-primary">지도에서 보기 ›</span>
@@ -501,16 +424,13 @@ export default async function ApplyPage() {
                 <span className="text-center">연식</span>
                 <span className="text-center">3개월 흐름</span>
               </div>
+              {/* 더미 1개 원칙 — 예시 비교 단지 1곳만 */}
               {[
-                { name: "과천 위버필드 (0.8km)", price: "12.1억", py: "4,470만", diff: "+3.2억 (+36%)", diffTone: "text-primary", age: "5년", trend: "▼0.6%", trendTone: "text-primary" },
                 { name: "과천 S6 푸르지오 (0.4km)", price: "10.4억", py: "3,840만", diff: "+1.5억 (+17%)", diffTone: "text-primary", age: "입주 1년", trend: "보합", trendTone: "text-text-2" },
-                { name: "인덕원 푸르지오 (1.6km)", price: "9.6억", py: "3,550만", diff: "+0.7억 (+8%)", diffTone: "text-text-1", age: "8년", trend: "▼1.1%", trendTone: "text-primary" },
-              ].map((r, i, arr) => (
+              ].map((r) => (
                 <div
                   key={r.name}
-                  className={`grid grid-cols-[1.5fr_1fr_1fr_1fr_.8fr_.9fr] items-center gap-2 py-2.5 text-xs ${
-                    i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                  }`}
+                  className="grid grid-cols-[1.5fr_1fr_1fr_1fr_.8fr_.9fr] items-center gap-2 py-2.5 text-xs"
                 >
                   <span className="font-bold text-ink">{r.name}</span>
                   <span className="text-center font-extrabold text-ink">{r.price}</span>
@@ -521,9 +441,9 @@ export default async function ApplyPage() {
                 </div>
               ))}
               <div className="mt-1.5 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 text-[11px] text-[#5b74b8]">
-                인근 신축 3곳 평균 시세 10.7억(평단가 3,950만) — 분양가 8.9억(평단가 3,290만)은{" "}
-                <b className="text-primary">안전마진 약 1.8억(+20%)</b> 구간. 가장 보수적인
-                인덕원(3,550만) 기준으로도 평단가 +8%입니다.
+                예시: 인접 신축 S6 푸르지오 시세 10.4억(평단가 3,840만) 대비 분양가
+                8.9억(평단가 3,290만)은 <b className="text-primary">안전마진 약 1.5억(+17%)</b>{" "}
+                구간입니다 — 실거래 연동 시 인근 단지 비교가 자동으로 채워집니다.
               </div>
             </div>
           </div>

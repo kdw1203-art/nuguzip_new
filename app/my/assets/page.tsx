@@ -123,13 +123,10 @@ export default function AssetsPage() {
               </span>
               <span className="text-[10px] text-[#5b74b8]">07.19 기준</span>
             </div>
+            {/* 더미 1개 원칙 — 예시 추천 상품은 1건만 */}
             <div className="flex justify-between text-[11px]">
               <span className="text-[#5b74b8]">S은행 대환 고정 3.42%</span>
               <span className="font-extrabold text-primary">월 -9.8만 · 총 -2,700만</span>
-            </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-[#5b74b8]">보금자리론 고정 3.60%</span>
-              <span className="font-extrabold text-text-1">월 -5.2만 · 중도상환수수료 0</span>
             </div>
             <div className="text-[10px] text-text-3">
               중도상환수수료(잔여 0.4%) 반영한 실익 기준 · 자세히 ›

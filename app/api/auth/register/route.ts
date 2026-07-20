@@ -100,6 +100,17 @@ async function signUpWithSupabaseAuth(
     },
   });
   if (error) {
+    // 네트워크 단절·게이트웨이 오류 등 업스트림(Supabase Auth) 장애는
+    // 클라이언트 잘못(400)이 아니라 일시적 사용 불가(503)로 구분한다.
+    const status = (error as { status?: number }).status;
+    const upstreamUnavailable =
+      status === undefined || status === 0 || status >= 500;
+    if (upstreamUnavailable) {
+      return NextResponse.json(
+        { error: "일시적으로 가입 처리를 할 수 없습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: "가입 처리 중 오류가 발생했습니다.", detail: error.message },
       { status: 400 },

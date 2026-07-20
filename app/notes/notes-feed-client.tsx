@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
+import { ExampleBadge } from "../components/ExampleBadge";
 
 /* 시안 7a — 공개 임장노트 피드 (데스크탑 피드 + 필터 칩) */
 
@@ -22,6 +23,8 @@ export type FeedNote = {
   interested: boolean;
   /** 단지 허브(/complex/[id]) 링크 — 실 id를 못 찾으면 undefined → 링크 숨김 */
   complexHref?: string;
+  /** 더미 1개 원칙: 실데이터 0건일 때만 노출되는 테스트용 샘플 표시 */
+  isExample?: boolean;
 };
 
 const FILTERS = ["최신", "인기", "내 관심 지역"] as const;
@@ -29,6 +32,8 @@ type Filter = (typeof FILTERS)[number];
 
 export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
   const [filter, setFilter] = useState<Filter>("최신");
+  // 더미 1개 원칙: 실데이터 0건이면 서버가 예시 샘플 1건만 내려보냄
+  const exampleOnly = notes.length > 0 && notes.every((n) => n.isExample);
 
   const visible =
     filter === "인기"
@@ -47,7 +52,7 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
               공개 임장노트
             </h1>
             <p className="mt-1.5 text-sm text-text-2">
-              이웃들의 실제 임장 기록 — 샘플·시드 없이 실회원 기록만
+              이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요
             </p>
           </div>
           <div className="flex gap-2 text-[13px]">
@@ -67,6 +72,17 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
             ))}
           </div>
         </div>
+
+        {/* 더미 1개 원칙: 예시 샘플만 있을 때 안내 캡션 */}
+        {exampleOnly && (
+          <div className="rise-in-1 flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
+            <ExampleBadge />
+            <span>
+              아직 공개된 임장노트가 없어 샘플 1건을 보여드려요 — 실데이터가
+              쌓이면 자동으로 교체됩니다.
+            </span>
+          </div>
+        )}
 
         {/* 노트 카드 그리드 */}
         {visible.length === 0 ? (
@@ -95,7 +111,10 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
                       }}
                     />
                     <div>
-                      <div className="text-xs font-bold text-ink">{n.author}</div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-ink">
+                        {n.author}
+                        {n.isExample && <ExampleBadge />}
+                      </div>
                       <div className="text-[10px] text-text-3">{n.meta}</div>
                     </div>
                   </div>

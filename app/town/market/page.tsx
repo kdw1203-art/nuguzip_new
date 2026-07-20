@@ -8,6 +8,7 @@ import { ExampleBadge } from "../../components/ExampleBadge";
 
 const FILTERS = ["전체", "지역 리포트", "대리 임장", "체크리스트"];
 
+/* 더미 1개 원칙: 테스트용 샘플 상품은 단 1건 — 상세 예시와 동일 상품 */
 const PRODUCTS = [
   {
     badge: "지역 리포트",
@@ -17,24 +18,6 @@ const PRODUCTS = [
     seller: "김OO 중개사 · ★4.9",
     price: "9,900원",
     selected: true,
-  },
-  {
-    badge: "대리 임장",
-    badgeStyle: "bg-[#edf2fe] text-primary",
-    meta: "구매 89",
-    title: "평촌 단지 대리 임장 (사진 30장+노트)",
-    seller: "박OO 임장러 · ★4.7",
-    price: "35,000원",
-    selected: false,
-  },
-  {
-    badge: "체크리스트",
-    badgeStyle: "bg-[#f2f4f8] text-text-2",
-    meta: "무료 · 1.2만",
-    title: "구축 아파트 40항목 체크리스트",
-    seller: "누구집 공식",
-    price: "받기",
-    selected: false,
   },
 ];
 
@@ -117,6 +100,11 @@ export default function TownMarketPage() {
               </div>
             </div>
           ))}
+          {/* 더미 1개 원칙 — 샘플 1건만 유지, 오픈 시 실상품으로 교체 */}
+          <p className="px-1 text-[11px] leading-[1.6] text-text-3">
+            샘플 상품 1건만 보여드려요 — 마켓이 오픈되면 실제 상품 목록으로
+            자동으로 교체됩니다.
+          </p>
         </div>
 
         {/* ---------- 상품 상세 (8m) ---------- */}

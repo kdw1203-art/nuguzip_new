@@ -19,7 +19,7 @@ type CardState =
   | { kind: "quota"; message: string }
   | { kind: "error"; message: string };
 
-export function AiNoteAnalysisCard() {
+export function AiNoteAnalysisCard({ noteId }: { noteId?: string | null }) {
   const [state, setState] = useState<CardState>({ kind: "idle" });
 
   const run = async () => {
@@ -33,7 +33,11 @@ export function AiNoteAnalysisCard() {
           tool: "ai-inspection",
           input: {
             source: "analysis-hub",
-            request: "최근 임장노트의 강점·약점과 확인할 체크리스트를 요약해 주세요.",
+            // 노트 상세에서 ?noteId= 로 진입한 경우 해당 노트 컨텍스트 전달
+            ...(noteId ? { noteId } : {}),
+            request: noteId
+              ? "이 임장노트(noteId)의 강점·약점과 확인할 체크리스트를 요약해 주세요."
+              : "최근 임장노트의 강점·약점과 확인할 체크리스트를 요약해 주세요.",
           },
         }),
       });
@@ -78,7 +82,7 @@ export function AiNoteAnalysisCard() {
   };
 
   return (
-    <div className="card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
+    <div className="card flex h-full flex-col gap-2.5 rounded-[20px] p-[22px]">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-[19px]">
         🤖
       </div>
@@ -86,6 +90,11 @@ export function AiNoteAnalysisCard() {
       <div className="text-[13px] leading-[1.55] text-text-2">
         버튼 한 번으로 내 임장노트를 AI가 점수화·요약해 드려요
       </div>
+      {noteId && (
+        <div className="rounded-[10px] bg-primary-soft px-3 py-2 text-[11px] font-bold text-primary">
+          선택한 노트 기준으로 분석해요
+        </div>
+      )}
 
       {state.kind === "done" ? (
         <div className="ai-panel flex flex-col gap-1.5 rounded-[14px] p-3.5">

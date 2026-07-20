@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
+import { ExampleBadge } from "../components/ExampleBadge";
 
 /* 시안 22a — 발견 피드 클라이언트: 필터 칩 + 2열 매소너리 + 6번째마다 시세 데이터 카드 */
 
@@ -25,12 +26,14 @@ export type DiscoverCard = {
 const FILTERS = ["추천", "팔로잉", "최신", "📍 관양동"] as const;
 type Filter = (typeof FILTERS)[number];
 
-/* 22a #7 — 피드 6번째마다 삽입되는 시세 데이터 카드 (콘텐츠↔시세 교차, 광고 아님) */
-const MARKET_CARDS = [
-  { label: "관양동 전세", delta: "-0.3%", meta: "실거래 12건", down: true },
-  { label: "평촌동 매매", delta: "+0.4%", meta: "실거래 8건", down: false },
-  { label: "비산동 전세", delta: "-0.1%", meta: "실거래 5건", down: true },
-];
+/* 22a #7 — 피드에 삽입되는 시세 데이터 카드 (콘텐츠↔시세 교차, 광고 아님)
+   더미 1개 원칙: 시세 실데이터 미연결 — 예시 샘플 1건만 1회 삽입 */
+const MARKET_CARD = {
+  label: "관양동 전세",
+  delta: "-0.3%",
+  meta: "실거래 12건",
+  down: true,
+};
 
 const COVER_H: Record<DiscoverCard["size"], string> = {
   tall: "h-[150px]",
@@ -56,10 +59,10 @@ function NoteCard({ card, delay }: { card: DiscoverCard; delay: number }) {
           <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 px-[7px] py-[2px] text-[10px] font-extrabold text-[#1a7f4e]">
             {card.visited ? "✓ 직접 방문" : "자료 정리"}
           </span>
-          {/* 더미데이터 정책: 목업 카드에만 작은 "예시" 라벨 */}
+          {/* 더미데이터 정책: 목업 카드에만 작은 "예시" 배지 */}
           {!card.isReal && (
-            <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[6px] py-[2px] text-[9px] font-semibold text-text-3">
-              예시
+            <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">
+              <ExampleBadge />
             </span>
           )}
         </div>
@@ -103,8 +106,8 @@ function NoteCard({ card, delay }: { card: DiscoverCard; delay: number }) {
   );
 }
 
-function MarketCard({ idx }: { idx: number }) {
-  const m = MARKET_CARDS[idx % MARKET_CARDS.length];
+function MarketCard() {
+  const m = MARKET_CARD;
   return (
     <div className="mb-3 break-inside-avoid rounded-[16px] bg-ink/[0.96] p-[13px]">
       <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-[#7ea2ff]">
@@ -132,6 +135,8 @@ function MarketCard({ idx }: { idx: number }) {
 
 export function DiscoverClient({ cards }: { cards: DiscoverCard[] }) {
   const [filter, setFilter] = useState<Filter>("추천");
+  // 더미 1개 원칙: 실데이터 0건일 때 서버가 예시 샘플 1건만 내려보냄
+  const exampleOnly = cards.length > 0 && cards.every((c) => !c.isReal);
 
   const visible = useMemo(() => {
     if (filter === "최신")
@@ -142,14 +147,12 @@ export function DiscoverClient({ cards }: { cards: DiscoverCard[] }) {
     return [...cards].sort((a, b) => b.saves - a.saves);
   }, [cards, filter]);
 
-  // 6번째 슬롯마다 시세 데이터 카드 삽입
+  // 시세 데이터 카드는 5번째 카드 뒤 1회만 삽입 (예시 수치 반복 노출 방지)
   const feed: React.ReactNode[] = [];
-  let marketIdx = 0;
   visible.forEach((card, i) => {
     feed.push(<NoteCard key={card.id} card={card} delay={(i % 6) + 1} />);
-    if ((i + 1) % 5 === 0) {
-      feed.push(<MarketCard key={`market-${i}`} idx={marketIdx} />);
-      marketIdx += 1;
+    if (i === 4) {
+      feed.push(<MarketCard key="market-0" />);
     }
   });
 
@@ -218,8 +221,19 @@ export function DiscoverClient({ cards }: { cards: DiscoverCard[] }) {
           </Link>
         </div>
       ) : (
-        /* 2열 매소너리 — 데스크탑 4열 */
-        <div className="columns-2 gap-3 md:columns-4">{feed}</div>
+        <>
+          {exampleOnly && (
+            <div className="rise-in-4 mb-3 flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
+              <ExampleBadge />
+              <span>
+                아직 공개된 임장노트가 없어 샘플 1건을 보여드려요 — 실데이터가
+                쌓이면 자동으로 교체됩니다.
+              </span>
+            </div>
+          )}
+          {/* 2열 매소너리 — 데스크탑 4열 */}
+          <div className="columns-2 gap-3 md:columns-4">{feed}</div>
+        </>
       )}
     </PageShell>
   );

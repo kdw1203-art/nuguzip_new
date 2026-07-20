@@ -9,6 +9,10 @@ import {
   inspectionAverageScore,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
+import { safeAuth } from "@/lib/safe-auth";
+import { resolveComplexHref } from "@/lib/newui/complex-link";
+import { ExampleBadge } from "../../components/ExampleBadge";
+import { NoteDetailActions } from "./note-actions";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
    실데이터: inspection_notes → getNote(id) — 공개 노트만 index, 비공개·목업은 noindex */
@@ -16,7 +20,8 @@ import {
 export const dynamic = "force-dynamic";
 
 const BASE_URL = "https://nuguzip.com";
-const COMPLEX_HREF = "/complex/mock-1";
+/* 목업(예시) 노트에서만 쓰는 예시 단지 링크 — 실노트는 resolveComplexHref로 실 id 조회 */
+const MOCK_COMPLEX_HREF = "/complex/mock-1";
 
 /* ---------- 뷰 모델 ---------- */
 
@@ -64,9 +69,8 @@ const MOCK_VIEW: NoteView = {
   ],
   body: "남향이라 오후 채광 좋음. 단지 뒤 도로 소음 약간 있음. 초등학교 도보 5분. 주차는 세대당 0.9대로 저녁엔 이중주차 많음.",
   photoCount: 4,
+  /* 더미 1개 원칙: 예시 방문 기록은 1건만 */
   visits: [
-    { label: "1차 · 2026.05.02 (오전)", summary: "채광 보통 · 소음 좋음", latest: false },
-    { label: "2차 · 2026.06.14 (저녁)", summary: "주차 아쉬움 · 소음 보통", latest: false },
     { label: "3차 · 2026.07.12 (오후)", summary: "채광 좋음 · 학군 좋음", latest: true },
   ],
   goodPoints: ["오후 2시에도 거실 밝음", "초등학교 도보 7분", "재건축 여지 + 재개발 인접"],
@@ -92,11 +96,8 @@ const MOCK_VIEW: NoteView = {
   complexLabel: "공작아파트",
 };
 
-const SUGGESTIONS = [
-  "평일 오전 등교 시간대 단지 앞 교통 확인",
-  "302동 저층 채광 — 겨울 기준 재확인 필요",
-  "관리비 내역(1988년 준공, 배관 이슈) 문의",
-];
+/* 더미 1개 원칙: 예시 체크 제안 1건만 — 목업 노트에서만 노출 */
+const SUGGESTIONS = ["평일 오전 등교 시간대 단지 앞 교통 확인"];
 
 /* ---------- 실데이터 → 표준 뷰 변환 ---------- */
 
@@ -367,18 +368,38 @@ export default async function NoteDetailPage({
 }) {
   const { id } = await params;
 
+  // 뷰어 세션 — 소유자면 비공개 노트도 열람 + 공개/비공개 토글 제공
+  const session = await safeAuth();
+  const viewerEmail = session?.user?.email?.trim().toLowerCase() ?? null;
+
   let view = MOCK_VIEW;
   let realNote: InspectionNote | null = null;
+  let isOwner = false;
   try {
     const note = await getNote(id);
-    if (note && note.isPublic) {
-      view = toView(note);
-      realNote = note;
+    if (note) {
+      isOwner = Boolean(
+        viewerEmail && note.authorEmail.toLowerCase() === viewerEmail,
+      );
+      if (note.isPublic || isOwner) {
+        view = toView(note);
+        realNote = note;
+      }
     }
   } catch {
     // env 미설정·조회 실패 시 목업 유지
   }
   const isReal = realNote !== null;
+
+  // 실노트는 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김 (mock-1로 보내지 않음)
+  let complexHref: string | null = MOCK_COMPLEX_HREF;
+  if (realNote) {
+    try {
+      complexHref = await resolveComplexHref(realNote.aptName, realNote.region);
+    } catch {
+      complexHref = null;
+    }
+  }
 
   const v = view;
 
@@ -392,11 +413,23 @@ export default async function NoteDetailPage({
         />
       )}
 
-      {/* 상단 액션 */}
-      <div className="rise-in mb-4 flex items-center justify-end gap-2">
-        <button type="button" className="btn-soft px-3.5 py-2 text-[13px]">
-          공유 링크
-        </button>
+      {/* 더미데이터 정책: 실노트가 없을 때만 예시 화면 — 명시 캡션 */}
+      {!isReal && (
+        <div className="rise-in mb-3 flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
+          <ExampleBadge />
+          <span>
+            예시 노트 화면이에요 — 노트를 작성하면 내 실데이터로 표시됩니다.
+          </span>
+        </div>
+      )}
+
+      {/* 상단 액션 — 공유(클립보드)·공개 토글(소유자) 실동작 */}
+      <div className="rise-in mb-4 flex flex-wrap items-center justify-end gap-2">
+        <NoteDetailActions
+          noteId={id}
+          isOwner={isReal && isOwner}
+          initialIsPublic={realNote?.isPublic ?? false}
+        />
         <Link href="/notes/compare" className="btn-secondary px-3.5 py-2 text-[13px]">
           회차 비교
         </Link>
@@ -513,16 +546,21 @@ export default async function NoteDetailPage({
               <Link href="/town/market" className="font-bold text-primary">
                 {v.regionLabel} 시세
               </Link>
-              <span>·</span>
-              <Link href={COMPLEX_HREF} className="font-bold text-primary">
-                {v.complexLabel} 홈
-              </Link>
-              <span>·</span>
-              <Link href={COMPLEX_HREF} className="font-bold text-primary">
-                이 단지 노트 {isReal ? "더 보기" : "38"}
-              </Link>
-              {/* 신고 연결(#81) — 실데이터 노트만, POST /api/moderation/content-report */}
-              {realNote && (
+              {/* 단지 링크 — 실 단지 id를 찾은 경우에만 (mock-1로 보내지 않음) */}
+              {complexHref && (
+                <>
+                  <span>·</span>
+                  <Link href={complexHref} className="font-bold text-primary">
+                    {v.complexLabel} 홈
+                  </Link>
+                  <span>·</span>
+                  <Link href={complexHref} className="font-bold text-primary">
+                    이 단지 노트 {isReal ? "더 보기" : "38"}
+                  </Link>
+                </>
+              )}
+              {/* 신고 연결(#81) — 타인의 실데이터 노트만, POST /api/moderation/content-report */}
+              {realNote && !isOwner && (
                 <>
                   <span>·</span>
                   <ReportButton postId={realNote.id} />
@@ -618,16 +656,29 @@ export default async function NoteDetailPage({
                     {v.totalScore} / 100
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
-                  <span className="text-xs">최근 3개월 실거래</span>
-                  <span className="text-sm font-extrabold text-ai-accent">
-                    ▼ 4.1% 하락 구간
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
-                  <span className="text-xs">예산 내 대안 단지</span>
-                  <span className="text-sm font-extrabold text-white">2곳</span>
-                </div>
+                {isReal ? (
+                  /* 실노트: 실기록 기반 수치만 노출 (허위 수치 금지) */
+                  <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
+                    <span className="text-xs">체크 항목 완료</span>
+                    <span className="text-sm font-extrabold text-white">
+                      {v.checklistDone}/{v.checklistTotal}
+                    </span>
+                  </div>
+                ) : (
+                  /* 예시 노트 전용 예시 수치 */
+                  <>
+                    <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
+                      <span className="text-xs">최근 3개월 실거래 (예시)</span>
+                      <span className="text-sm font-extrabold text-ai-accent">
+                        ▼ 4.1% 하락 구간
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
+                      <span className="text-xs">예산 내 대안 단지 (예시)</span>
+                      <span className="text-sm font-extrabold text-white">2곳</span>
+                    </div>
+                  </>
+                )}
               </div>
               <Link
                 href="/analysis/compare"
@@ -721,9 +772,10 @@ export default async function NoteDetailPage({
             </div>
           </div>
 
-          {/* AI 판단 편향 감지 (10f) */}
+          {/* AI 판단 편향 감지 (10f) — 예시 노트 전용 (실노트 편향 분석 미연동) */}
+          {!isReal && (
           <div className="rise-in-4">
-            <AIPanel title="판단 편향 감지">
+            <AIPanel title="판단 편향 감지 (예시)">
               <p>
                 기록 5건 중 4건이{" "}
                 <b className="text-[#f2c94c]">긍정 표현 위주</b>입니다 — 이미
@@ -748,10 +800,14 @@ export default async function NoteDetailPage({
               </div>
             </AIPanel>
           </div>
+          )}
 
-          {/* 체크 제안 (6c) */}
+          {/* 체크 제안 (6c) — 예시 노트 전용 샘플 1건 */}
+          {!isReal && (
           <div className="rise-in-5 card flex flex-col gap-2.5 rounded-[20px] p-5">
-            <div className="text-sm font-extrabold text-ink">체크 제안</div>
+            <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+              체크 제안 <ExampleBadge />
+            </div>
             {SUGGESTIONS.map((s) => (
               <div
                 key={s}
@@ -762,16 +818,24 @@ export default async function NoteDetailPage({
               </div>
             ))}
           </div>
+          )}
         </aside>
       </div>
 
-      {/* 15h-43 노트→분석 상시 연결: 상세 하단 고정 다음 행동 */}
+      {/* 15h-43 노트→분석 상시 연결: 상세 하단 고정 다음 행동
+          — 실노트는 노트 컨텍스트(?noteId=)를 /analysis 허브로 전달 */}
       <div className="mt-5">
         <NextActions
           actions={[
-            { label: "AI 분석 실행", href: "/analysis", primary: true },
+            {
+              label: "AI 분석 실행",
+              href: isReal ? `/analysis?noteId=${encodeURIComponent(id)}` : "/analysis",
+              primary: true,
+            },
             { label: "회차 비교", href: "/notes/compare" },
-            { label: "단지 허브 보기", href: COMPLEX_HREF },
+            ...(complexHref
+              ? [{ label: "단지 허브 보기", href: complexHref }]
+              : []),
           ]}
         />
       </div>

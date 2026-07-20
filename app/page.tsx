@@ -132,6 +132,25 @@ export default async function Home() {
             </Link>
           </div>
           <JourneyBanner />
+          {/* 모바일 카테고리 숏컷 — GNB 4 대분류 진입 (data-static-hero 밖: 로그인/비로그인 공통 노출) */}
+          <nav aria-label="카테고리 바로가기" className="rise-in-3 -mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max gap-2">
+              {[
+                { label: "임장노트", href: "/notes" },
+                { label: "지도·시세", href: "/map" },
+                { label: "AI 분석", href: "/analysis" },
+                { label: "동네이야기", href: "/town" },
+              ].map((c) => (
+                <Link
+                  key={c.href}
+                  href={c.href}
+                  className="chip chip-soft px-3.5 py-[7px] text-[13px]"
+                >
+                  {c.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
           <div className="rise-in-4 flex gap-2">
             {[
               { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
