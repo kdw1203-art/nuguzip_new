@@ -2,16 +2,17 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { Icon } from "./Icon";
 
 /** 균형 5슬롯(2-＋-2) — ＋가 정중앙에 오도록 재배치(2026-07-21 리디자인).
- *  홈·지도·기록(＋)·동네·마이. AI분석은 홈 숏컷·전체 메뉴(☰)·GNB에서 진입. */
+ *  홈·지도·기록(＋)·동네·마이. 통일 라인 아이콘 사용. */
 const TABS = [
-  { label: "홈", icon: "⌂", href: "/" },
-  { label: "지도", icon: "◎", href: "/map" },
+  { label: "홈", icon: "house", href: "/" },
+  { label: "지도", icon: "map", href: "/map" },
   // 중앙 ＋는 핵심 전환 동선 '노트 쓰기'(/notes/new) 고정
-  { label: "기록", icon: "＋", href: "/notes/new", center: true },
-  { label: "동네", icon: "☗", href: "/town" },
-  { label: "마이", icon: "◉", href: "/my" },
+  { label: "기록", icon: "plus", href: "/notes/new", center: true },
+  { label: "동네", icon: "messages-square", href: "/town" },
+  { label: "마이", icon: "user", href: "/my" },
 ];
 
 /** 모바일 하단 플로팅 글래스 탭바 — 중앙 정렬·균형 5슬롯 */
@@ -36,13 +37,13 @@ export function TabBar() {
               className="flex flex-col items-center"
             >
               <span
-                className="press -mt-6 mb-[3px] flex h-[52px] w-[52px] items-center justify-center rounded-full text-[26px] font-light leading-none text-white"
+                className="press -mt-6 mb-[3px] flex h-[52px] w-[52px] items-center justify-center rounded-full leading-none text-white"
                 style={{
                   background: "linear-gradient(135deg,#4573f5 0%,#1d4fd8 100%)",
                   boxShadow: "0 8px 22px rgba(29,79,216,.42)",
                 }}
               >
-                {tab.icon}
+                <Icon name={tab.icon} size={26} strokeWidth={2.2} />
               </span>
               <span className="text-[10px] font-extrabold text-primary">
                 {tab.label}
@@ -63,11 +64,11 @@ export function TabBar() {
                 }`}
               />
               <span
-                className={`text-[18px] leading-none transition-transform duration-200 ${
+                className={`flex leading-none transition-transform duration-200 ${
                   isActive(tab.href) ? "scale-110" : ""
                 }`}
               >
-                {tab.icon}
+                <Icon name={tab.icon} size={22} />
               </span>
               <span
                 className={`text-[10px] leading-none ${

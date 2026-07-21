@@ -7,6 +7,7 @@ import Link from "next/link";
 import { NAV } from "./nav-data";
 import { ThemeToggle } from "./ThemeToggle";
 import { PushSubscribe } from "@/components/PushSubscribe";
+import { Icon } from "./Icon";
 
 /** 모바일 전체 메뉴 — ☰ 트리거 + 우측 슬라이드 글래스 시트 (md:hidden)
  *  GNB 4 대분류 + 서비스·내 계정·고객지원 섹션까지 노출하는 전체 사이트 디렉토리.
@@ -14,42 +15,42 @@ import { PushSubscribe } from "@/components/PushSubscribe";
  *  오버레이는 createPortal로 document.body에 렌더 — 헤더 글래스의 backdrop-filter가
  *  position:fixed 컨테이닝 블록이 되어 시트 높이가 헤더로 클램프되던 문제를 회피. */
 
-/** 4 대분류 라벨 → 아이콘 */
+/** 4 대분류 라벨 → 라인 아이콘 이름 */
 const CAT_ICON: Record<string, string> = {
-  임장노트: "📝",
-  지도: "🗺️",
-  "AI 분석": "✦",
-  동네이야기: "🏘️",
+  임장노트: "notebook-pen",
+  지도: "map",
+  "AI 분석": "sparkles",
+  동네이야기: "messages-square",
 };
 
 type LinkItem = { label: string; href: string; icon: string };
 
 const SERVICE_LINKS: LinkItem[] = [
-  { label: "통합 검색", href: "/search", icon: "🔍" },
-  { label: "실매물 보기", href: "/listings", icon: "🏠" },
-  { label: "매물 등록", href: "/listings/new", icon: "➕" },
-  { label: "공매·경매", href: "/auctions", icon: "🔨" },
-  { label: "개발 물건 중개", href: "/dev-deals", icon: "🏗️" },
-  { label: "정비사업", href: "/redevelopment", icon: "🧱" },
-  { label: "공공 데이터 현황", href: "/data/records", icon: "📊" },
-  { label: "포인트 상점", href: "/points/shop", icon: "🎁" },
-  { label: "중개사 제휴", href: "/partners", icon: "🤝" },
+  { label: "통합 검색", href: "/search", icon: "search" },
+  { label: "실매물 보기", href: "/listings", icon: "house" },
+  { label: "매물 등록", href: "/listings/new", icon: "square-plus" },
+  { label: "공매·경매", href: "/auctions", icon: "gavel" },
+  { label: "개발 물건 중개", href: "/dev-deals", icon: "construction" },
+  { label: "정비사업", href: "/redevelopment", icon: "building2" },
+  { label: "공공 데이터 현황", href: "/data/records", icon: "bar" },
+  { label: "포인트 상점", href: "/points/shop", icon: "gift" },
+  { label: "중개사 제휴", href: "/partners", icon: "users" },
 ];
 
 const ACCOUNT_LINKS: LinkItem[] = [
-  { label: "마이페이지", href: "/my", icon: "👤" },
-  { label: "관심 목록", href: "/my/wishlist", icon: "❤️" },
-  { label: "포인트 지갑", href: "/my/points", icon: "💰" },
-  { label: "친구 추천", href: "/my/referral", icon: "🎉" },
-  { label: "내 매물", href: "/my/listings", icon: "🏢" },
-  { label: "알림", href: "/notifications", icon: "🔔" },
-  { label: "구독 관리", href: "/subscription", icon: "✦" },
-  { label: "설정", href: "/my/settings", icon: "⚙️" },
+  { label: "마이페이지", href: "/my", icon: "user" },
+  { label: "관심 목록", href: "/my/wishlist", icon: "heart" },
+  { label: "포인트 지갑", href: "/my/points", icon: "wallet" },
+  { label: "친구 추천", href: "/my/referral", icon: "user-plus" },
+  { label: "내 매물", href: "/my/listings", icon: "building" },
+  { label: "알림", href: "/notifications", icon: "bell" },
+  { label: "구독 관리", href: "/subscription", icon: "crown" },
+  { label: "설정", href: "/my/settings", icon: "settings" },
 ];
 
 const SUPPORT_LINKS: LinkItem[] = [
-  { label: "고객센터", href: "/support", icon: "💬" },
-  { label: "법적 고지", href: "/legal", icon: "📄" },
+  { label: "고객센터", href: "/support", icon: "life" },
+  { label: "법적 고지", href: "/legal", icon: "scale" },
 ];
 
 export function MobileMenu() {
@@ -89,9 +90,9 @@ export function MobileMenu() {
         aria-label="전체 메뉴 열기"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="flex h-8 w-8 items-center justify-center rounded-xl text-lg text-text-1 transition-colors active:bg-[rgba(29,79,216,.08)] md:hidden"
+        className="flex h-8 w-8 items-center justify-center rounded-xl text-text-1 transition-colors active:bg-[rgba(29,79,216,.08)] md:hidden"
       >
-        ☰
+        <Icon name="menu" size={20} />
       </button>
 
       {open && mounted &&
@@ -119,9 +120,9 @@ export function MobileMenu() {
                 type="button"
                 aria-label="메뉴 닫기"
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-base text-text-2 transition-colors active:bg-[rgba(29,79,216,.08)]"
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-text-2 transition-colors active:bg-[rgba(29,79,216,.08)]"
               >
-                ✕
+                <Icon name="x" size={18} />
               </button>
             </div>
 
@@ -129,9 +130,10 @@ export function MobileMenu() {
               {/* 통합 검색 진입 */}
               <Link
                 href="/search"
-                className="mb-3 flex items-center gap-2 rounded-xl bg-[rgba(255,255,255,.7)] px-3.5 py-2.5 text-[13px] text-text-3 ring-1 ring-line"
+                className="mb-3 flex items-center gap-2 rounded-xl bg-[rgba(127,140,158,.08)] px-3.5 py-2.5 text-[13px] text-text-3 ring-1 ring-line"
               >
-                🔍 지역·단지·매물 검색
+                <Icon name="search" size={16} />
+                지역·단지·매물 검색
               </Link>
 
               {/* 4 대분류 + 하위 메뉴 */}
@@ -146,7 +148,7 @@ export function MobileMenu() {
                           : "flex items-center gap-2 rounded-xl px-3 py-2 text-[15px] font-extrabold text-ink transition-colors active:bg-[rgba(29,79,216,.07)]"
                       }
                     >
-                      <span className="text-[15px]">{CAT_ICON[item.label] ?? "•"}</span>
+                      <Icon name={CAT_ICON[item.label] ?? "search"} size={18} />
                       {item.label}
                     </Link>
                     {item.children && (
@@ -174,7 +176,7 @@ export function MobileMenu() {
                 <div className="grid grid-cols-2 gap-x-1">
                   {SERVICE_LINKS.map((l) => (
                     <Link key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
-                      <span className="text-[14px]">{l.icon}</span>
+                      <Icon name={l.icon} size={17} />
                       <span className="truncate">{l.label}</span>
                     </Link>
                   ))}
@@ -189,7 +191,7 @@ export function MobileMenu() {
                 <div className="grid grid-cols-2 gap-x-1">
                   {ACCOUNT_LINKS.map((l) => (
                     <Link key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
-                      <span className="text-[14px]">{l.icon}</span>
+                      <Icon name={l.icon} size={17} />
                       <span className="truncate">{l.label}</span>
                     </Link>
                   ))}
@@ -204,7 +206,7 @@ export function MobileMenu() {
                 <div className="grid grid-cols-2 gap-x-1">
                   {SUPPORT_LINKS.map((l) => (
                     <Link key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
-                      <span className="text-[14px]">{l.icon}</span>
+                      <Icon name={l.icon} size={17} />
                       <span className="truncate">{l.label}</span>
                     </Link>
                   ))}

@@ -8,6 +8,7 @@ import { HeaderAuth } from "./HeaderAuth";
 import { HeaderSearch } from "./HeaderSearch";
 import { MobileMenu } from "./MobileMenu";
 import { NAV } from "./nav-data";
+import { Icon } from "./Icon";
 
 /** 9m GNB — 호버 드롭다운(리퀴드 글래스) · 트렌드 갱신: 스크롤 인지 · 언더라인 인디케이터
  *  NAV 데이터는 nav-data.ts 공유 (데스크탑 GNB · 모바일 전체 메뉴 동기화) */
@@ -97,9 +98,9 @@ export function Header() {
         <Link
           href="/notifications"
           aria-label="알림"
-          className="press hidden h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,.7)] text-[15px] text-text-1 transition-colors hover:text-primary md:flex"
+          className="press hidden h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,.7)] text-text-1 transition-colors hover:text-primary md:flex"
         >
-          🔔
+          <Icon name="bell" size={18} />
         </Link>
 
         {/* 화면당 primary CTA는 1개 — 노트 쓰기 (마이크로 인터랙션: 리프트 + 글로우) */}
@@ -114,9 +115,13 @@ export function Header() {
         <HeaderAuth />
 
         {/* 모바일 아이콘 + 전체 메뉴(☰) */}
-        <div className="flex items-center gap-3.5 text-base text-text-1 md:hidden">
-          <Link href="/search" aria-label="검색" className="press">⌕</Link>
-          <Link href="/notifications" aria-label="알림" className="press">🔔</Link>
+        <div className="flex items-center gap-3 text-text-1 md:hidden">
+          <Link href="/search" aria-label="검색" className="press flex h-8 w-8 items-center justify-center">
+            <Icon name="search" size={19} />
+          </Link>
+          <Link href="/notifications" aria-label="알림" className="press flex h-8 w-8 items-center justify-center">
+            <Icon name="bell" size={19} />
+          </Link>
           <MobileMenu />
         </div>
       </div>
