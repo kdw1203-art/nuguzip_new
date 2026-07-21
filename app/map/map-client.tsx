@@ -115,15 +115,13 @@ const LISTINGS = [
   },
 ] as const;
 
+// 예시 폴백: 실거래(국토부 크롤링) 없을 때만, 1건만
 const FALLBACK_TRADES: TradeItem[] = [
   { date: "2026.06.28", price: "8.15억", sub: "5층", delta: "▼ 1.8%", tone: "down" },
-  { date: "2026.05.14", price: "8.3억", sub: "11층", delta: "▼ 0.6%", tone: "down" },
-  { date: "2026.03.02", price: "8.75억", sub: "7층", delta: "▲ 0.9%", tone: "up" },
 ];
 
 const NOTES = [
   { title: "공작 302동 — “주차가 관건, 저녁 실측”", author: "첫집준비중 · 07.12", score: "78점" },
-  { title: "공작 105동 — “겨울 채광 확인함”", author: "관양토박이 · 07.15", score: "81점" },
 ] as const;
 
 function HomeIcon() {
