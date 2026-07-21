@@ -27,6 +27,7 @@ type LinkItem = { label: string; href: string; icon: string };
 
 const SERVICE_LINKS: LinkItem[] = [
   { label: "통합 검색", href: "/search", icon: "search" },
+  { label: "맞춤 추천", href: "/recommend", icon: "sparkles" },
   { label: "실매물 보기", href: "/listings", icon: "house" },
   { label: "매물 등록", href: "/listings/new", icon: "square-plus" },
   { label: "공매·경매", href: "/auctions", icon: "gavel" },

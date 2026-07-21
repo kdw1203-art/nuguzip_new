@@ -78,37 +78,61 @@ export default async function InvitePage({
       {code ? <script dangerouslySetInnerHTML={{ __html: cookieScript }} /> : null}
 
       <div className="card glass w-full rounded-[22px] p-7 text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft text-[26px]">
-          <Icon name="🎁" size={26} />
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Icon name="gift" size={28} />
         </div>
 
-        <h1 className="text-[20px] font-extrabold leading-[1.35] text-text-1">
-          친구가 초대했어요
-        </h1>
-
         {inviter ? (
-          <p className="mt-1 text-[13px] text-text-3">
-            <span className="font-bold text-text-2">{inviter}</span> 님의 초대
-          </p>
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
+            <Icon name="user-plus" size={13} />
+            <span>{inviter} 님의 초대</span>
+          </div>
         ) : (
-          <p className="mt-1 text-[13px] text-text-3">누구집에 오신 걸 환영해요</p>
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
+            <Icon name="user-plus" size={13} />
+            <span>친구의 초대</span>
+          </div>
         )}
 
-        <div className="mt-5 rounded-[16px] bg-primary-soft px-4 py-4">
-          <div className="text-[15px] font-extrabold text-primary">
-            가입하면 둘 다 300P 적립
-          </div>
-          <div className="mt-1 text-[12px] leading-[1.6] text-text-2">
-            초대 링크로 가입을 완료하면 초대한 친구와 나 모두에게 포인트를 드려요.
-          </div>
+        <h1 className="text-[21px] font-extrabold leading-[1.35] text-text-1">
+          친구가 초대했어요
+          <br />
+          가입하면 <span className="text-primary">둘 다 300P</span>
+        </h1>
+
+        <p className="mt-2 text-[13px] leading-[1.6] text-text-3">
+          초대 링크로 가입을 완료하면 초대한 친구와 나 모두에게
+          <br className="hidden sm:block" /> 300P를 바로 드려요.
+        </p>
+
+        <div className="mt-5 flex flex-col gap-2 text-left">
+          {[
+            { icon: "coin", t: "가입 즉시 300P", d: "나와 초대한 친구 모두 적립" },
+            { icon: "trending-up", t: "실거래가·시세 열람", d: "관심 단지 가격을 한눈에" },
+            { icon: "sparkles", t: "AI 분석·리포트", d: "포인트로 바로 이용" },
+          ].map((b) => (
+            <div
+              key={b.t}
+              className="flex items-center gap-3 rounded-[14px] bg-surface px-3.5 py-2.5"
+              style={{ border: "1px solid var(--border)" }}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <Icon name={b.icon} size={16} />
+              </span>
+              <div>
+                <div className="text-[13px] font-bold text-text-1">{b.t}</div>
+                <div className="text-[11px] text-text-3">{b.d}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="mt-6 flex flex-col gap-2.5">
           <Link
             href="/signup"
-            className="btn-primary press rounded-[12px] py-3 text-center text-sm no-underline"
+            className="btn-primary btn-cta press rounded-[12px] py-3.5 text-center text-[15px] font-bold no-underline"
           >
-            카카오 · 구글로 3초 가입
+            카카오 · 구글로 3초 가입하고 300P 받기
           </Link>
           <Link
             href="/login"
@@ -118,20 +142,10 @@ export default async function InvitePage({
           </Link>
         </div>
 
-        <ol className="mt-6 flex flex-col gap-2 text-left">
-          {[
-            "초대 링크로 3초 만에 가입",
-            "가입 완료 시 둘 다 300P 자동 적립",
-            "포인트로 AI 분석·리포트를 이용",
-          ].map((t, i) => (
-            <li key={t} className="flex items-start gap-2 text-[12px] text-text-3">
-              <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[10px] font-extrabold text-primary">
-                {i + 1}
-              </span>
-              <span>{t}</span>
-            </li>
-          ))}
-        </ol>
+        <p className="mt-4 flex items-center justify-center gap-1 text-[11px] text-text-3">
+          <Icon name="check" size={12} className="text-primary" />
+          가입만 완료하면 포인트가 자동으로 적립돼요
+        </p>
       </div>
 
       <p className="mt-4 text-center text-[11px] text-text-3">

@@ -19,6 +19,12 @@ import {
   type Poi,
   type PoiBounds,
 } from "@/lib/listings/poi";
+import {
+  PRICE_HEAT_DISTRICTS,
+  PRICE_TIERS,
+  priceTier,
+  pyeongPriceLabel,
+} from "@/lib/map/price-heat";
 import { Icon } from "@/app/components/Icon";
 
 /* ============================================================
@@ -408,6 +414,9 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   const anyPoiLayerRef = useRef(anyPoiLayer);
   anyPoiLayerRef.current = anyPoiLayer;
 
+  /* ===== 시세 히트맵 레이어 (#A2) — 구 단위 평균 시세를 색으로. 낮은 줌에서만 표시 ===== */
+  const [showPriceHeat, setShowPriceHeat] = useState(false);
+
   /* ===== 출퇴근 필터 (#10) 상태 ===== */
   const [officeInput, setOfficeInput] = useState("");
   const [officeQuery, setOfficeQuery] = useState(""); // 적용된 회사 주소(제출값)
@@ -574,9 +583,22 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
               </button>
             );
           })}
+          {/* 시세 히트맵 토글 (#A2) — POI 토글과 동일 스타일, 구 단위 평균 시세 */}
+          <button
+            type="button"
+            aria-pressed={showPriceHeat}
+            onClick={() => setShowPriceHeat((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+              showPriceHeat
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[rgba(255,255,255,.85)] text-text-2"
+            }`}
+          >
+            <Icon name="🔥" size={14} className="inline align-middle" /> 시세
+          </button>
         </div>
         <div className="text-[10px] text-text-3">
-          지하철·학교·마트는 샘플/참고 데이터예요.
+          지하철·학교·마트는 샘플/참고 데이터예요. 시세는 구 단위 평균(축소 시 표시)이에요.
         </div>
       </div>
 
@@ -869,6 +891,23 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     return out;
   }, [anyPoiLayer, poiLayers, poiBounds]);
 
+  // 시세 히트맵(#A2) 마커 — 구 단위 평균 시세를 티어 색 말풍선으로. POI 마커와 동일하게
+  // 시세 말풍선 스타일(avgPricePerM2:1 + tierColor)을 재사용하고, 라벨은 평당 근사가.
+  // 낮은 줌(클러스터 모드)에서만 노출해 클러터를 방지 — 확대 시 배열이 비어 자동 숨김.
+  const priceHeatMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showPriceHeat || clusterMode !== "clusters") return [];
+    return PRICE_HEAT_DISTRICTS.map((d) => ({
+      id: `heat:${d.id}`,
+      lat: d.lat,
+      lng: d.lng,
+      label: d.name,
+      priceLabel: pyeongPriceLabel(d.avgPricePerM2),
+      avgPricePerM2: 1, // 시세 말풍선 스타일 강제 (라벨 전체 렌더)
+      tierColor: priceTier(d.avgPricePerM2).color,
+      infoHtml: "",
+    }));
+  }, [showPriceHeat, clusterMode]);
+
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
     // 검색/포인트로 선택된 목록 밖 단지를 하이라이트 마커로 주입 (중복 id 제외)
@@ -899,7 +938,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
         infoHtml: "",
       }));
-      return withSearch([...base, ...listingMarkers, ...poiMarkers]);
+      return withSearch([...base, ...listingMarkers, ...poiMarkers, ...priceHeatMarkers]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
     const base: MapMarkerData[] = filteredDanji.map((d) => ({
@@ -930,7 +969,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         });
       }
     }
-    return withSearch([...base, ...listingMarkers, ...poiMarkers]);
+    return withSearch([...base, ...listingMarkers, ...poiMarkers, ...priceHeatMarkers]);
   }, [
     clusterMode,
     clusters,
@@ -942,6 +981,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     searchMarker,
     listingMarkers,
     poiMarkers,
+    priceHeatMarkers,
   ]);
 
   const selectDanji = (id: string) => {
@@ -1049,8 +1089,9 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   }, [handleSearchSelectComplex, handleSearchSelectAddress]);
 
   const handleMarkerClick = (m: MapMarkerData) => {
-    // 편의 레이어(POI) 마커 — 표시 전용, 클릭 무시
+    // 편의 레이어(POI)·시세 히트맵 마커 — 표시 전용, 클릭 무시
     if (m.id.startsWith("poi:")) return;
+    if (m.id.startsWith("heat:")) return;
     // 매물 마커 클릭 → 매물 상세로 이동
     if (m.id.startsWith("listing:")) {
       router.push(`/listings/${m.id.slice("listing:".length)}`);
@@ -1779,6 +1820,45 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           미방문
         </div>
       </div>
+
+      {/* ===== 시세 히트맵 범례 (#A2) — 레이어 ON일 때 좌하단. city 탭이면 위로 오프셋 ===== */}
+      {showPriceHeat && (
+        <div
+          className="glass absolute left-5 z-30 flex w-[188px] flex-col gap-1.5 rounded-xl px-3 py-2.5"
+          style={{
+            bottom:
+              zoom === "city"
+                ? "calc(env(safe-area-inset-bottom, 0px) + 200px)"
+                : "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+          }}
+        >
+          <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-ink">
+            <Icon name="🔥" size={13} className="inline align-middle" /> 시세 히트맵
+          </div>
+          {clusterMode === "clusters" ? (
+            <>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-text-3">저</span>
+                <span className="flex flex-1 overflow-hidden rounded-full">
+                  {PRICE_TIERS.map((t) => (
+                    <span
+                      key={t.level}
+                      className="h-2 flex-1"
+                      style={{ backgroundColor: t.color }}
+                    />
+                  ))}
+                </span>
+                <span className="text-[10px] text-text-3">고</span>
+              </div>
+              <div className="text-[10px] text-text-3">구 단위 평균 · 참고용</div>
+            </>
+          ) : (
+            <div className="text-[10px] text-text-3">
+              지도를 축소하면 구 단위 시세가 표시돼요.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ===== 중앙 하단 플로팅 카테고리 바 (홈 인디케이터 위로 세이프에어리어 오프셋) ===== */}
       <nav

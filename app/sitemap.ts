@@ -14,6 +14,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/notes/compare", priority: 0.6 },
   { path: "/map", priority: 0.9 },
   { path: "/search", priority: 0.7 },
+  { path: "/recommend", priority: 0.6 },
   { path: "/analysis", priority: 0.8 },
   { path: "/analysis/compare", priority: 0.6 },
   { path: "/analysis/cycle", priority: 0.6 },

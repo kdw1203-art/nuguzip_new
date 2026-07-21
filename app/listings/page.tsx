@@ -9,6 +9,9 @@ import {
   type PublicListing,
 } from "@/lib/listings/store-db";
 import { DISTRICTS } from "@/lib/regions";
+import { ListingCompareToggle } from "@/components/ListingCompareToggle";
+import { ListingCompareTray } from "@/components/ListingCompareTray";
+import type { CompareListing } from "@/components/listing-compare-store";
 
 /* ============================================================
    실매물 목록 — /listings
@@ -52,6 +55,25 @@ function isBoostActive(boostUntil: string | null): boolean {
   if (!boostUntil) return false;
   const t = Date.parse(boostUntil);
   return Number.isFinite(t) && t > Date.now();
+}
+
+/** 비교함(클라이언트 스토어)에 담을 직렬화 요약으로 변환 */
+function toCompareListing(l: PublicListing): CompareListing {
+  return {
+    id: l.id,
+    complexName: l.complexName,
+    regionName: l.regionName,
+    listingType: l.listingType,
+    priceKrw: l.priceKrw,
+    depositKrw: l.depositKrw,
+    monthlyKrw: l.monthlyKrw,
+    areaM2: l.areaM2,
+    floor: l.floor,
+    createdAt: l.createdAt,
+    refreshedAt: l.refreshedAt,
+    source: l.source,
+    ownerVerified: l.ownerVerified,
+  };
 }
 
 function buildQuery(next: { type?: string; gu?: string }): string {
@@ -228,14 +250,20 @@ export default async function ListingsPage({
                     {desc.trim()}
                   </p>
                 )}
-                <span className="mt-auto text-[12px] font-bold text-primary">
-                  상세 보기 →
-                </span>
+                <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                  <span className="text-[12px] font-bold text-primary">
+                    상세 보기 →
+                  </span>
+                  <ListingCompareToggle item={toCompareListing(l)} />
+                </div>
               </Link>
             );
           })}
         </div>
       )}
+
+      {/* 매물 비교함 — 담긴 매물이 있을 때만 하단 고정 노출 */}
+      <ListingCompareTray />
 
       {/* 법적 고지 */}
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
