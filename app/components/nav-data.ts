@@ -41,15 +41,18 @@ export const NAV: NavItem[] = [
     label: "동네이야기",
     href: "/town",
     children: [
+      // 콘텐츠·소식
       { label: "피드", href: "/town" },
       { label: "뉴스", href: "/town/news" },
       { label: "자료", href: "/town/library" },
       { label: "주간 다이제스트", href: "/digest" },
+      // 사람·모임
       { label: "임장 모임", href: "/town/groups" },
       { label: "전문가", href: "/town/experts" },
-      { label: "입주 물량", href: "/supply" },
-      { label: "공매 물건", href: "/auctions" },
+      // 분양·물건·거래
       { label: "청약 센터", href: "/apply" },
+      { label: "입주 물량", href: "/supply" },
+      { label: "공매·경매", href: "/auctions" },
       { label: "개발 물건 중개", href: "/dev-deals" },
     ],
   },

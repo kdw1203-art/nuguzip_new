@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import {
@@ -20,6 +21,14 @@ export const metadata: Metadata = {
     "한국자산관리공사 온비드 공매 부동산 — 서울권 아파트·오피스텔·빌라 감정가·최저입찰가·입찰일정. 공공 데이터 기반.",
   robots: { index: true, follow: true },
 };
+
+/** 테마 구분: 공매·경매 = 보라 (딜·긴급). subtree 안에서 text-primary·bg-primary-soft·
+ *  chip-active·btn-primary 가 보라로 재테마됨 (예시 배지 앰버는 그대로 대비 유지). */
+const AUCTION_THEME = {
+  "--primary": "#7c3aed",
+  "--primary-soft": "#f1ebfe",
+  "--primary-strong": "#6528d6",
+} as CSSProperties;
 
 function fmtKrw(won: number | null): string {
   if (!won || won <= 0) return "—";
@@ -77,6 +86,7 @@ export default async function AuctionsPage({
 
     return (
       <PageShell breadcrumb="홈 › 매물 › 법원경매 물건" title="법원경매 물건">
+        <div style={AUCTION_THEME}>
         <SourceTabs active="court" />
 
         <p
@@ -91,6 +101,23 @@ export default async function AuctionsPage({
           법원 부동산경매 물건 <strong className="text-ink">{total.toLocaleString()}건</strong>{" "}
           — 감정가·최저매각가격·매각기일은 참고용 예시 데이터입니다.
         </p>
+
+        <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
+          <a
+            href="https://www.courtauction.go.kr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass rounded-full px-3.5 py-2 font-bold text-primary no-underline"
+          >
+            법원경매정보 ↗
+          </a>
+          <Link
+            href="/notifications"
+            className="rounded-full bg-primary-soft px-3.5 py-2 font-bold text-primary no-underline"
+          >
+            경매 알림 받기
+          </Link>
+        </div>
 
         {/* 유형 필터 */}
         <section className="rise-in-1 mb-5 flex flex-wrap gap-1.5">
@@ -193,6 +220,7 @@ export default async function AuctionsPage({
           출처: 데이터 소스 연결 전 예시(스캐폴드) · 권리분석·명도·정확한 매각조건은
           대법원 법원경매정보(courtauction.go.kr) 원문과 전문가 확인이 필요합니다.
         </p>
+        </div>
       </PageShell>
     );
   }
@@ -205,6 +233,7 @@ export default async function AuctionsPage({
 
   return (
     <PageShell breadcrumb="홈 › 매물 › 공매 물건" title="서울 공매 물건">
+      <div style={AUCTION_THEME}>
       <SourceTabs active="onbid" />
       <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
         한국자산관리공사 <strong className="text-ink">온비드</strong> 공매 부동산 —
@@ -212,6 +241,23 @@ export default async function AuctionsPage({
         감정가·최저입찰가·입찰일정은 공공 데이터 기준이며, 실제 입찰·명도 조건은 온비드 원문을
         반드시 확인하세요.
       </p>
+
+      <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
+        <a
+          href="https://www.onbid.co.kr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="glass rounded-full px-3.5 py-2 font-bold text-primary no-underline"
+        >
+          온비드 바로가기 ↗
+        </a>
+        <Link
+          href="/notifications"
+          className="rounded-full bg-primary-soft px-3.5 py-2 font-bold text-primary no-underline"
+        >
+          공매 알림 받기
+        </Link>
+      </div>
 
       {/* 유형 필터 */}
       <section className="rise-in-1 mb-5 flex flex-wrap gap-1.5">
@@ -299,6 +345,7 @@ export default async function AuctionsPage({
         출처: 한국자산관리공사 온비드(공공데이터포털) · 참고용 정보이며 권리분석·명도·정확한
         입찰조건은 온비드 공고 원문과 전문가 확인이 필요합니다.
       </p>
+      </div>
     </PageShell>
   );
 }
