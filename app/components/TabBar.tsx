@@ -3,18 +3,18 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-/** 운영자 확정(2026-07-20): 홈·AI분석·기록(＋)·지도·동네·마이 6슬롯 */
+/** 균형 5슬롯(2-＋-2) — ＋가 정중앙에 오도록 재배치(2026-07-21 리디자인).
+ *  홈·지도·기록(＋)·동네·마이. AI분석은 홈 숏컷·전체 메뉴(☰)·GNB에서 진입. */
 const TABS = [
   { label: "홈", icon: "⌂", href: "/" },
-  { label: "AI분석", icon: "✦", href: "/analysis" },
-  // P0-2: 중앙 ＋는 목록이 아니라 작성 화면(/notes/new)으로 — 핵심 전환 동선
-  { label: "기록", icon: "＋", href: "/notes/new", center: true },
   { label: "지도", icon: "◎", href: "/map" },
+  // 중앙 ＋는 핵심 전환 동선 '노트 쓰기'(/notes/new) 고정
+  { label: "기록", icon: "＋", href: "/notes/new", center: true },
   { label: "동네", icon: "☗", href: "/town" },
   { label: "마이", icon: "◉", href: "/my" },
 ];
 
-/** 모바일 하단 글래스 탭바 — 중앙 ＋는 핵심 액션 '노트 쓰기' 고정 */
+/** 모바일 하단 플로팅 글래스 탭바 — 중앙 정렬·균형 5슬롯 */
 export function TabBar() {
   const pathname = usePathname();
   const isActive = (href: string) =>
@@ -22,36 +22,64 @@ export function TabBar() {
 
   return (
     <nav
-      className="glass-strong tabbar-autohide fixed left-[18px] right-[18px] z-50 grid grid-cols-6 rounded-3xl px-2 pb-3 pt-2.5 text-center md:hidden"
-      style={{ bottom: "max(18px, env(safe-area-inset-bottom, 0px))" }}
+      className="tabbar-autohide fixed left-1/2 z-50 w-[min(420px,calc(100%-28px))] -translate-x-1/2 md:hidden"
+      style={{ bottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}
       aria-label="하단 내비게이션"
     >
-      {TABS.map((tab) =>
-        tab.center ? (
-          <Link key={tab.label} href={tab.href} className="block">
-            <span
-              className="mx-auto -mt-5 mb-0.5 flex h-[42px] w-[42px] items-center justify-center rounded-full bg-primary text-[21px] text-white"
-              style={{ boxShadow: "var(--shadow-cta)" }}
+      <div className="glass-strong grid grid-cols-5 items-end rounded-[26px] px-2 pb-2 pt-2 shadow-[0_12px_32px_rgba(15,23,42,.18)]">
+        {TABS.map((tab) =>
+          tab.center ? (
+            <Link
+              key={tab.label}
+              href={tab.href}
+              aria-label={tab.label}
+              className="flex flex-col items-center"
             >
-              {tab.icon}
-            </span>
-            <span className="text-[10px] font-bold text-primary">
-              {tab.label}
-            </span>
-          </Link>
-        ) : (
-          <Link
-            key={tab.label}
-            href={tab.href}
-            className={`block text-[10px] ${
-              isActive(tab.href) ? "font-bold text-primary" : "text-text-3"
-            }`}
-          >
-            <span className="block text-[17px] leading-tight">{tab.icon}</span>
-            {tab.label}
-          </Link>
-        )
-      )}
+              <span
+                className="press -mt-6 mb-[3px] flex h-[52px] w-[52px] items-center justify-center rounded-full text-[26px] font-light leading-none text-white"
+                style={{
+                  background: "linear-gradient(135deg,#4573f5 0%,#1d4fd8 100%)",
+                  boxShadow: "0 8px 22px rgba(29,79,216,.42)",
+                }}
+              >
+                {tab.icon}
+              </span>
+              <span className="text-[10px] font-extrabold text-primary">
+                {tab.label}
+              </span>
+            </Link>
+          ) : (
+            <Link
+              key={tab.label}
+              href={tab.href}
+              aria-current={isActive(tab.href) ? "page" : undefined}
+              className={`relative flex flex-col items-center gap-[3px] py-1.5 transition-colors ${
+                isActive(tab.href) ? "text-primary" : "text-text-3"
+              }`}
+            >
+              <span
+                className={`absolute top-0 h-[3px] w-[3px] rounded-full bg-primary transition-opacity ${
+                  isActive(tab.href) ? "opacity-100" : "opacity-0"
+                }`}
+              />
+              <span
+                className={`text-[18px] leading-none transition-transform duration-200 ${
+                  isActive(tab.href) ? "scale-110" : ""
+                }`}
+              >
+                {tab.icon}
+              </span>
+              <span
+                className={`text-[10px] leading-none ${
+                  isActive(tab.href) ? "font-bold" : "font-semibold"
+                }`}
+              >
+                {tab.label}
+              </span>
+            </Link>
+          ),
+        )}
+      </div>
     </nav>
   );
 }
