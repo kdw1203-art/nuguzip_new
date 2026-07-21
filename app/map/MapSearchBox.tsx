@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Icon } from "@/app/components/Icon";
 
 /* ============================================================
    지도 단지 검색 박스 (6a·item1) — 아파트명·주소 자동완성.
@@ -214,7 +215,7 @@ export function MapSearchBox({
               onClick={() => pickAddress(address)}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#f2f4f8]"
             >
-              <span className="text-sm">📍</span>
+              <Icon name="📍" size={16} className="shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-bold text-ink">
                   {address.address}
@@ -230,7 +231,7 @@ export function MapSearchBox({
               onClick={() => pickComplex(c)}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#f2f4f8]"
             >
-              <span className="text-sm">🏢</span>
+              <Icon name="🏢" size={16} className="shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-bold text-ink">{c.name}</span>
                 {c.region && (

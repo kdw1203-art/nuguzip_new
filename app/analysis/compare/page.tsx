@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
+import { Icon } from "@/app/components/Icon";
 import { ComplexPicker } from "../ComplexPicker";
 import {
   addToCompareTray,
@@ -614,8 +615,9 @@ export default function ComparePage() {
                       key={c.name}
                       className={`text-center ${c.crown ? "rounded-[10px] bg-[rgba(29,79,216,.05)] py-1" : ""}`}
                     >
-                      <div className={`text-[13px] font-extrabold ${c.crown ? "text-primary" : "text-ink"}`}>
-                        {c.name}
+                      <div className={`flex items-center justify-center gap-1 text-[13px] font-extrabold ${c.crown ? "text-primary" : "text-ink"}`}>
+                        {c.name.replace(/\s*👑/u, "")}
+                        {c.crown && <Icon name="👑" size={13} />}
                       </div>
                       <div className="text-[10px] text-text-3">{c.meta}</div>
                       <div className="mt-0.5 text-sm font-extrabold text-ink">{c.price}</div>

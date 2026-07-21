@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { ExampleBadge } from "../components/ExampleBadge";
+import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
 import { HubComplexPicker } from "./hub-picker";
@@ -157,8 +158,8 @@ export default async function AnalysisHubPage({
               href={t.href}
               className="card card-hover flex flex-col gap-2.5 rounded-[20px] p-[22px] no-underline"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-[19px]">
-                {t.icon}
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+                <Icon name={t.icon.replace(/\uFE0F/g, "")} size={19} />
               </div>
               <div className="flex items-center gap-1.5 text-base font-extrabold text-ink">
                 {t.title}

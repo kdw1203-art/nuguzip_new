@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { HoloAvatar, TopScoutBadge } from "../../components/TopScoutBadge";
 import {
   listNotes,
@@ -272,11 +273,11 @@ export default async function PublicProfilePage({
 
           {/* 배지 진열장 (22c #25) */}
           <div className="mt-3 flex flex-wrap gap-[5px]">
-            <span className="rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-[#946200]">
-              🏆 6월 베스트
+            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-[#946200]">
+              <Icon name="🏆" size={12} />6월 베스트
             </span>
-            <span className="rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-text-1">
-              🔥 12주 연속
+            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-text-1">
+              <Icon name="🔥" size={12} />12주 연속
             </span>
             <span className="rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-text-1">
               앰배서더
@@ -317,7 +318,7 @@ export default async function PublicProfilePage({
                     {s.title}
                   </div>
                   <div className="mt-[2px] text-[11px] text-text-3">
-                    {s.progress} · 🔖 {s.saves}
+                    {s.progress} · <Icon name="🔖" size={12} className="inline align-middle" /> {s.saves}
                   </div>
                 </div>
                 <span className="text-[12px] font-bold text-primary">

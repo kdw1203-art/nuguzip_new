@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { loadMeProfile } from "@/lib/me/profile";
 import { getExpertStatus } from "@/lib/experts/is-verified";
@@ -177,7 +178,7 @@ export default async function MyPage() {
               </div>
             </div>
             <Link href="/my/settings" className="text-lg text-ai-muted no-underline" aria-label="설정">
-              ⚙
+              <Icon name="⚙" size={18} />
             </Link>
           </div>
 
@@ -289,9 +290,10 @@ export default async function MyPage() {
               {alerts.map((a: AlertSubscription) => (
                 <span
                   key={a.id}
-                  className="chip-tag rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                  className="chip-tag inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold"
                 >
-                  {a.type === "region" ? "📍" : "🔔"} {a.value}
+                  <Icon name={a.type === "region" ? "📍" : "🔔"} size={14} />
+                  {a.value}
                 </span>
               ))}
             </div>
@@ -363,7 +365,9 @@ export default async function MyPage() {
             </div>
           ) : (
             <div className="card flex flex-col items-center gap-2 rounded-[16px] px-4 py-7 text-center">
-              <div className="text-[22px]">🏢</div>
+              <div className="text-[22px]">
+                <Icon name="🏢" size={22} />
+              </div>
               <div className="text-[13px] font-extrabold text-ink">
                 매물 등록은 공인중개사 인증 후 이용할 수 있어요
               </div>

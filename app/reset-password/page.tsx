@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/app/components/Logo";
+import { Icon } from "@/app/components/Icon";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 /**
@@ -158,9 +159,7 @@ export default function ResetPasswordPage() {
 
         {done ? (
           <div className="rise-in card flex flex-col gap-2.5 rounded-[16px] px-5 py-6 text-center">
-            <span className="text-[32px]" aria-hidden>
-              ✅
-            </span>
+            <Icon name="✅" size={28} />
             <div className="text-[15px] font-extrabold text-ink">비밀번호가 변경되었습니다</div>
             <p className="text-[13px] text-text-2">3초 후 로그인 페이지로 이동합니다…</p>
             <Link
@@ -176,9 +175,7 @@ export default function ResetPasswordPage() {
           </div>
         ) : mode === "invalid" ? (
           <div className="rise-in card flex flex-col gap-2.5 rounded-[16px] px-5 py-6 text-center">
-            <span className="text-[32px]" aria-hidden>
-              ⚠️
-            </span>
+            <Icon name="⚠" size={28} />
             <div className="text-[15px] font-extrabold text-ink">링크가 유효하지 않습니다</div>
             <p className="text-[13px] leading-[1.6] text-text-2">
               링크가 만료됐거나 이미 사용됐습니다. 이메일의 링크로 접근했는지 확인하고, 다시

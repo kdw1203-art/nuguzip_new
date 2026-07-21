@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Icon } from "@/app/components/Icon";
 
 /* ============================================================
    임장노트 AI 분석 카드 — 내 노트 선택 → POST /api/inspection/ai (noteId)
@@ -208,8 +209,8 @@ export function AiNoteAnalysisCard({
 
   return (
     <div className="card flex h-full flex-col gap-2.5 rounded-[20px] p-[22px]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-[19px]">
-        🤖
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+        <Icon name="🤖" size={19} />
       </div>
       <div className="text-base font-extrabold text-ink">임장노트 AI 분석</div>
       <div className="text-[13px] leading-[1.55] text-text-2">

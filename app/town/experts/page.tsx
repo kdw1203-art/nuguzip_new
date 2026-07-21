@@ -5,6 +5,7 @@ import { ExpertApplyCta } from "./ExpertApplyCta";
 import { QuoteRequestBanner } from "./QuoteRequest";
 import { listExperts, type UserExpertProfile } from "@/lib/experts/store-db";
 import { EXPERT_SUBCATEGORIES, findSub, matchSubcategory } from "@/lib/subcategories";
+import { Icon } from "@/app/components/Icon";
 
 /* 시안 6p(전문가 상담) 고도화 — expert_profiles 실데이터 연동.
    인증(is_verified) 전문가만 실제 상담 가능 · 지역·분야 필터 + 평점/상담수 정렬.
@@ -237,7 +238,7 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
 
         {/* 전문가 등록/인증 신청 CTA */}
         <div className="rise-in-3 flex flex-col items-center justify-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[#a9bde8] bg-[rgba(29,79,216,.06)] p-[22px] text-center">
-          <div className="text-2xl">🛡️</div>
+          <div className="text-2xl"><Icon name="🛡" size={24} /></div>
           <div className="text-[15px] font-extrabold text-primary">전문가이신가요?</div>
           <p className="text-[13px] leading-[1.6] text-[#5b74b8]">
             자격 인증 후 상담·리포트 수익과

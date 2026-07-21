@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
+import { Icon } from "@/app/components/Icon";
 
 /* P0-5 목업 정직화: 자산 등록은 예시 화면 — 저장·자동 시세 등 실기능 미연동을
    명시하고 죽은 버튼을 정직한 상태로 교체 */
@@ -53,7 +54,7 @@ export default function AssetsPage() {
         </div>
 
         <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">
-          <span className="text-sm">🏠</span>
+          <Icon name="🏠" size={16} className="shrink-0" />
           <div className="flex-1">
             <div className="text-sm font-bold text-ink">평촌 초원마을 6단지 512동</div>
             <div className="text-[11px] text-text-3">주소 검색 자동 인식 · 59㎡</div>

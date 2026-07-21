@@ -1,3 +1,5 @@
+import { Icon } from "@/app/components/Icon";
+
 const lightCard =
   "flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-5";
 
@@ -67,19 +69,25 @@ export default function AdminQualityPage() {
               <div className="text-xl font-extrabold tabular-nums text-ink">
                 91.4%
               </div>
-              <div className="text-[9px] text-text-3">👍 비율 (n=2,140)</div>
+              <div className="text-[9px] text-text-3">
+                <Icon name="👍" size={11} className="mr-0.5 inline align-middle" />
+                비율 (n=2,140)
+              </div>
             </div>
             <div className="flex-1 rounded-xl bg-bg p-3 text-center">
               <div className="text-xl font-extrabold tabular-nums text-danger">
                 184
               </div>
-              <div className="text-[9px] text-text-3">👎 리뷰 대기</div>
+              <div className="text-[9px] text-text-3">
+                <Icon name="👎" size={11} className="mr-0.5 inline align-middle" />
+                리뷰 대기
+              </div>
             </div>
           </div>
           <div className="flex flex-col gap-[5px] text-[10px]">
             <div className="rounded-[9px] bg-[#fbeaea] px-[11px] py-2 text-text-1">
-              <b className="text-danger">패턴:</b> 표본 3건 미만 단지에서 적정가
-              👎 집중 (62건) → 신뢰도 라벨 &quot;낮음&quot; 강등 룰 제안
+              <b className="text-danger">패턴:</b> 표본 3건 미만 단지에서 적정가{" "}
+              <Icon name="👎" size={11} className="inline align-middle" /> 집중 (62건) → 신뢰도 라벨 &quot;낮음&quot; 강등 룰 제안
             </div>
             <div className="rounded-[9px] bg-bg px-[11px] py-2 text-text-1">
               <b>오답 리뷰:</b> 공작 84A 적정가 4.7억 vs 실거래 5.05억 · 원인:
@@ -87,7 +95,8 @@ export default function AdminQualityPage() {
             </div>
           </div>
           <div className="text-[10px] text-text-3">
-            👎 사유는 12k 피드백 버튼에서 수집 · 주간 리포트로 모델팀 전달
+            <Icon name="👎" size={11} className="mr-0.5 inline align-middle" />
+            사유는 12k 피드백 버튼에서 수집 · 주간 리포트로 모델팀 전달
           </div>
         </div>
 

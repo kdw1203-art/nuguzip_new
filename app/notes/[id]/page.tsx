@@ -13,6 +13,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ExampleBadge } from "../../components/ExampleBadge";
 import { NoteDetailActions } from "./note-actions";
+import { Icon } from "@/app/components/Icon";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
    실데이터: inspection_notes → getNote(id) — 공개 노트만 index, 비공개·목업은 noindex */
@@ -487,8 +488,8 @@ export default async function NoteDetailPage({
                     key={a.label}
                     className="flex items-center justify-between rounded-lg bg-bg px-3 py-2 text-xs text-text-1"
                   >
-                    <span>
-                      {a.icon} {a.label}
+                    <span className="inline-flex items-center gap-1">
+                      <Icon name={a.icon} size={16} /> {a.label}
                     </span>
                     <b className={`font-extrabold ${axisToneClass(a.level)}`}>
                       {a.level}

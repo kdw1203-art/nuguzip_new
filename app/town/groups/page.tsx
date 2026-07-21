@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
+import { Icon } from "@/app/components/Icon";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
    지역·상태 필터 + 임박순/최신순 정렬 + 모임 만들기(POST /api/groups) 실배선.
@@ -248,8 +249,8 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
               <p className="line-clamp-2 text-xs leading-[1.5] text-text-2">{g.desc}</p>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
-                <span>📍 {g.region}</span>
-                <span>👤 {g.host}</span>
+                <span className="inline-flex items-center gap-1"><Icon name="📍" size={12} />{g.region}</span>
+                <span className="inline-flex items-center gap-1"><Icon name="👤" size={12} />{g.host}</span>
               </div>
 
               {g.tags.length > 0 && (

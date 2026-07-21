@@ -1,6 +1,8 @@
 /* 시안 16i — 관리자 수익 대시보드 (RBAC: 운영·재무만)
    데스크탑: KPI 8종 + 결제 실패·환불 분쟁 큐 / 모바일: 읽기 전용 요약 */
 
+import { Icon } from "@/app/components/Icon";
+
 const KPIS = [
   { label: "MRR", value: "2,140만", delta: "+6.2%", tone: "up" },
   { label: "ARR (run-rate)", value: "2.57억", delta: "—", tone: "flat" },
@@ -71,7 +73,8 @@ export default function AdminRevenuePage() {
           ))}
         </div>
         <div className="rise-in-2 rounded-[10px] bg-[rgba(214,69,69,.16)] px-3 py-2.5 text-xs font-bold text-[#e06a6a]">
-          ⚠ 결제 실패 9 · 분쟁 4 — 데스크탑에서 처리
+          <Icon name="⚠" size={14} className="mr-1 inline align-middle" />
+          결제 실패 9 · 분쟁 4 — 데스크탑에서 처리
         </div>
         <div className="rise-in-2 text-[11px] text-[#9aa6b8]">
           모바일은 모니터링 전용 — 환불·정산 실행은 데스크탑 + 2차 인증

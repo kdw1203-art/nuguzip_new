@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ReportButton } from "../components/ReportButton";
+import { Icon } from "@/app/components/Icon";
 
 type ReviewItem = {
   id: string;
@@ -441,7 +442,7 @@ export function ComplexReviews({
                       : "bg-surface text-text-2 hover:text-primary"
                   } disabled:opacity-70`}
                 >
-                  <span aria-hidden>👍</span>
+                  <Icon name="👍" size={13} />
                   도움돼요 {helpfulOverride[r.id] ?? r.helpfulCount ?? 0}
                 </button>
               </div>

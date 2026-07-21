@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { trackPlatformEvent } from "@/lib/platform-events-client";
+import { Icon } from "@/app/components/Icon";
 
 const GOALS = [
   { icon: "🏠", title: "첫 내집마련", desc: "실거주 관점 체크리스트 중심" },
@@ -166,7 +167,7 @@ export default function SignupPage() {
       >
         <div className="rise-in card flex flex-col items-center gap-3 rounded-[20px] p-7 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-xl">
-            {done === "confirm" ? "✉️" : "✓"}
+            {done === "confirm" ? <Icon name="✉" size={24} /> : "✓"}
           </span>
           <h1 className="text-[20px] font-extrabold text-ink">
             {done === "confirm" ? "인증 메일을 보냈어요" : "가입이 완료됐어요"}
@@ -233,7 +234,7 @@ export default function SignupPage() {
                 : "card"
             }`}
           >
-            <span className="text-xl">{g.icon}</span>
+            <Icon name={g.icon} size={20} />
             <span className="flex-1">
               <span className={`block text-sm font-extrabold ${goal === i ? "text-primary" : "text-ink"}`}>
                 {g.title}

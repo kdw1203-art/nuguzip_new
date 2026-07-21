@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Icon } from "@/app/components/Icon";
 import { ComplexPicker, type PickedComplex } from "./ComplexPicker";
 import { AiNoteAnalysisCard } from "./ai-note-analysis";
 
@@ -32,8 +33,8 @@ export function HubComplexPicker({
     >
       {/* 단지 선택기 */}
       <div className="card flex flex-col gap-3 rounded-[20px] p-[22px]">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-[19px]">
-          🏢
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
+          <Icon name="🏢" size={19} />
         </div>
         <div className="text-base font-extrabold text-ink">단지 선택기</div>
         <div className="text-[13px] leading-[1.55] text-text-2">

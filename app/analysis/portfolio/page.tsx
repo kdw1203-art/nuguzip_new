@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { SimulationNotice } from "../../components/ExampleBadge";
+import { Icon } from "@/app/components/Icon";
 
 const SIM_ROWS = [
   { label: "추가 필요 자금", value: "2.4억 (취득세 포함)", tone: "white" },
@@ -121,7 +122,8 @@ export default function PortfolioPage() {
               ))}
             </div>
             <div className="text-xs leading-[1.6] text-ai-text">
-              ⚠ 오피스텔 보유로 취득세 중과 여부는 <b className="text-ai-accent">세무사 확인</b>이
+              <Icon name="⚠" size={14} className="mr-1 inline align-middle" />
+              오피스텔 보유로 취득세 중과 여부는 <b className="text-ai-accent">세무사 확인</b>이
               필요합니다.
             </div>
             <div className="text-[9px] leading-[1.5] text-ai-muted">

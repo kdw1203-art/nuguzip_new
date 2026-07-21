@@ -17,6 +17,7 @@ import {
   type NaverMarker,
 } from "@/lib/map/naver-maps-sdk";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/app/components/Icon";
 
 export interface MapMarkerData {
   id: string;
@@ -479,7 +480,9 @@ export function NaverMap({
       <div
         className={`flex flex-col items-center justify-center gap-3 rounded-2xl bg-slate-50 border border-dashed border-slate-300 ${className}`}
       >
-        <p className="text-2xl">🗺️</p>
+        <p className="text-2xl">
+          <Icon name="🗺" size={24} />
+        </p>
         <p className="text-sm font-semibold text-slate-700">지도 미리보기</p>
         <p className="text-xs text-slate-500 text-center px-4">
           네이버 지도 API Client ID가 필요합니다.
@@ -512,7 +515,7 @@ export function NaverMap({
           title="내 위치"
           aria-label="내 위치로 이동"
         >
-          {geoLoading ? "…" : "📍"}
+          {geoLoading ? "…" : <Icon name="📍" size={18} />}
         </button>
       ) : null}
       {!loaded ? (

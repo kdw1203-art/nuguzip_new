@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Logo } from "@/app/components/Logo";
+import { Icon } from "@/app/components/Icon";
 
 /** 비밀번호 찾기 — 구 app/auth/forgot-password 포트 (기존 /api/auth/forgot-password 연결 유지) */
 export default function ForgotPasswordPage() {
@@ -61,9 +62,7 @@ export default function ForgotPasswordPage() {
 
         {sent ? (
           <div className="rise-in card flex flex-col gap-2.5 rounded-[16px] px-5 py-6 text-center">
-            <span className="text-[32px]" aria-hidden>
-              📬
-            </span>
+            <Icon name="📬" size={28} />
             <div className="text-[15px] font-extrabold text-ink">메일을 보냈습니다</div>
             <p className="text-[13px] leading-[1.6] text-text-2">
               <strong className="text-ink">{email}</strong> 으로 비밀번호 초기화 링크를

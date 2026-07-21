@@ -3,6 +3,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { readBoardPosts } from "@/lib/newui/board-posts";
 import { SupportContactForm } from "./SupportContactForm";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
+import { Icon } from "@/app/components/Icon";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
 
@@ -70,7 +71,9 @@ export default async function SupportPage() {
       <div className="rise-in-1 mb-4 grid grid-cols-2 gap-2 md:hidden">
         {FAQ_CATEGORIES.map((c) => (
           <div key={c.label} className="card rounded-[14px] p-3.5 text-center">
-            <div className="text-lg">{c.icon}</div>
+            <div className="text-lg">
+              <Icon name={c.icon} size={22} className="inline align-middle" />
+            </div>
             <div className="mt-1 text-xs font-bold text-text-1">{c.label}</div>
           </div>
         ))}
@@ -236,7 +239,9 @@ export default async function SupportPage() {
                   <div className="max-w-[460px] rounded-[14px] rounded-tl-[4px] bg-bg px-[15px] py-3 text-[13px] leading-[1.65] text-text-1">
                     가능합니다. 설정 › 결제 내역에서 &lsquo;영수증 › 사업자 정보 입력&rsquo; 후
                     재발급하시면 됩니다. 방금 고객님 계정에 해당 메뉴를 활성화해 두었어요. 첨부한
-                    가이드 이미지를 참고해 주세요. 📄 receipt-guide.png
+                    가이드 이미지를 참고해 주세요.{" "}
+                    <Icon name="📄" size={14} className="inline align-middle" />{" "}
+                    receipt-guide.png
                   </div>
                 </div>
               </div>

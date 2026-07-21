@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/app/components/Icon";
 
 /* 시안 6b(노트 작성 기본) + 6r(작성 확장판 — 선택·필터·고려사항)
    저장: POST /api/inspection/notes (구 코드베이스 임장노트 작성 엔드포인트)
@@ -328,7 +329,7 @@ export default function NoteNewPage() {
         {/* #45 임시저장 복구 배너 */}
         {pendingDraft && (
           <div className="rise-in flex items-center gap-2.5 rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.06)] px-4 py-3">
-            <span className="text-base">📝</span>
+            <Icon name="📝" size={18} className="shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="text-xs font-extrabold text-ink">
                 작성 중이던 노트가 있어요
@@ -361,7 +362,7 @@ export default function NoteNewPage() {
 
         {/* 위치 카드 */}
         <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">
-          <span className="text-sm">📍</span>
+          <Icon name="📍" size={16} className="shrink-0" />
           <div className="flex-1">
             <div className="text-sm font-bold text-ink">{aptName}</div>
             <div className="text-[11px] text-text-3">현재 위치 자동 인식 · 수정</div>
@@ -599,13 +600,13 @@ export default function NoteNewPage() {
               type="button"
               className="flex-1 rounded-[10px] bg-bg p-[11px] text-center text-[13px] font-bold text-text-1"
             >
-              📷 사진 4
+              <Icon name="📷" size={16} className="inline align-middle" /> 사진 4
             </button>
             <button
               type="button"
               className="flex-1 rounded-[10px] bg-bg p-[11px] text-center text-[13px] font-bold text-text-1"
             >
-              🎙 음성 메모
+              <Icon name="🎙" size={16} className="inline align-middle" /> 음성 메모
             </button>
           </div>
         </div>

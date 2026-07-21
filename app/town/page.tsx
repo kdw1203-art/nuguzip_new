@@ -9,6 +9,7 @@ import {
 import { maskNoteAuthor } from "./shared";
 import { TownFeed, type FeedCard } from "./feed-client";
 import type { Post } from "@/lib/types/post";
+import { Icon } from "@/app/components/Icon";
 
 /* 동네이야기 통합 피드(#5) — 기존 피드 + 발견 피드를 하나로 합친 사진 우선 카드 그리드.
    공개 임장노트(사진 우선) + 커뮤니티 글을 섞어 오늘의집/인스타그램형으로 노출.
@@ -122,7 +123,9 @@ export default async function TownPage() {
             href={l.href}
             className="card card-hover flex min-w-[118px] shrink-0 flex-col gap-1 rounded-[16px] px-4 py-3.5"
           >
-            <span className="text-[20px] leading-none">{l.icon}</span>
+            <span className="text-[20px] leading-none">
+              <Icon name={l.icon} size={20} />
+            </span>
             <span className="mt-1 text-[13px] font-extrabold text-ink">{l.label}</span>
             <span className="text-[11px] leading-[1.4] text-text-3">{l.desc}</span>
           </Link>

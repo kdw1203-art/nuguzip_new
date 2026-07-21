@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Icon } from "@/app/components/Icon";
 
 export const metadata: Metadata = {
   title: "커뮤니티 운영정책 | 우리동네이야기",
@@ -26,10 +27,10 @@ export default function CommunityPolicyPage() {
         <section className="card mt-6 p-5">
           <h2 className="text-base font-bold text-ink">1. 기본 원칙</h2>
           <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-text-1">
-            <li>✅ 서로 존중하고 배려하는 언어를 사용합니다.</li>
-            <li>✅ 부동산 실무 정보는 출처를 명시하고 정확하게 공유합니다.</li>
-            <li>✅ 개인의 경험과 의견은 자유롭게 나눌 수 있으나, 타인을 비방하지 않습니다.</li>
-            <li>✅ 저작권이 있는 자료는 허락 없이 무단 게재하지 않습니다.</li>
+            <li><Icon name="✅" size={16} className="inline align-middle" /> 서로 존중하고 배려하는 언어를 사용합니다.</li>
+            <li><Icon name="✅" size={16} className="inline align-middle" /> 부동산 실무 정보는 출처를 명시하고 정확하게 공유합니다.</li>
+            <li><Icon name="✅" size={16} className="inline align-middle" /> 개인의 경험과 의견은 자유롭게 나눌 수 있으나, 타인을 비방하지 않습니다.</li>
+            <li><Icon name="✅" size={16} className="inline align-middle" /> 저작권이 있는 자료는 허락 없이 무단 게재하지 않습니다.</li>
           </ul>
         </section>
 
@@ -41,7 +42,7 @@ export default function CommunityPolicyPage() {
           </p>
           <div className="mt-3 space-y-3 text-sm text-text-1">
             <div>
-              <p className="font-semibold text-danger">🚫 불법·유해 콘텐츠</p>
+              <p className="flex items-center gap-1.5 font-semibold text-danger"><Icon name="🚫" size={16} />불법·유해 콘텐츠</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-text-2">
                 <li>허위 부동산 정보 유포 및 사기성 매물 광고</li>
                 <li>음란·폭력적 표현, 혐오 발언</li>
@@ -49,7 +50,7 @@ export default function CommunityPolicyPage() {
               </ul>
             </div>
             <div>
-              <p className="font-semibold text-danger">🚫 광고·스팸</p>
+              <p className="flex items-center gap-1.5 font-semibold text-danger"><Icon name="🚫" size={16} />광고·스팸</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-text-2">
                 <li>무단 상업 광고, 홍보성 도배 게시물</li>
                 <li>타 서비스 회원 유인 목적의 링크·연락처 대량 게시</li>
@@ -57,14 +58,14 @@ export default function CommunityPolicyPage() {
               </ul>
             </div>
             <div>
-              <p className="font-semibold text-danger">🚫 개인정보 침해</p>
+              <p className="flex items-center gap-1.5 font-semibold text-danger"><Icon name="🚫" size={16} />개인정보 침해</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-text-2">
                 <li>타인의 실명·연락처·주소 등 개인정보 무단 게시</li>
                 <li>회원 동의 없는 사진·영상 게재</li>
               </ul>
             </div>
             <div>
-              <p className="font-semibold text-danger">🚫 계정 악용</p>
+              <p className="flex items-center gap-1.5 font-semibold text-danger"><Icon name="🚫" size={16} />계정 악용</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-5 text-text-2">
                 <li>다중 계정 운영을 통한 커뮤니티 조작</li>
                 <li>타인 계정 도용 또는 사칭</li>

@@ -19,6 +19,7 @@ import {
   type Poi,
   type PoiBounds,
 } from "@/lib/listings/poi";
+import { Icon } from "@/app/components/Icon";
 
 /* ============================================================
    지도 탐색 (6a) — 실제 네이버 지도 + 글래스 오버레이 UI
@@ -493,7 +494,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
             : "bg-[rgba(255,255,255,.75)] text-text-2"
         }`}
       >
-        🏠 매물
+        <Icon name="🏠" size={14} className="inline align-middle" /> 매물
       </button>
       <button
         type="button"
@@ -571,7 +572,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
                     : "bg-[rgba(255,255,255,.85)] text-text-2"
                 }`}
               >
-                {l.emoji} {l.label}
+                <Icon name={l.emoji} size={14} className="inline align-middle" /> {l.label}
               </button>
             );
           })}

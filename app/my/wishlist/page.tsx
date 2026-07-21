@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { listBookmarks } from "@/lib/bookmarks/store";
 import {
@@ -72,7 +73,9 @@ export default async function WishlistPage() {
 
       {items.length === 0 ? (
         <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[26px]">🤍</div>
+          <div className="text-[26px]">
+            <Icon name="🤍" size={26} />
+          </div>
           <div className="text-[15px] font-extrabold text-ink">아직 저장한 매물이 없어요</div>
           <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
             마음에 드는 매물의 관심(♥) 버튼을 누르면 여기에 모여요. 실거래가와 비교하며

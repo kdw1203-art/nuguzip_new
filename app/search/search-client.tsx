@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Icon } from "@/app/components/Icon";
 
 /* ============================================================
    통합 검색 경험 — 단지·매물·임장노트·뉴스 통합 결과
@@ -232,7 +233,7 @@ export function SearchClient() {
           onClick={() => saveRecent(q)}
           className="btn-soft rise-in inline-flex w-fit items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-bold text-primary"
         >
-          🗺️ ‘{q.trim()}’ 지도에서 보기 ›
+          <Icon name="🗺" size={16} /> ‘{q.trim()}’ 지도에서 보기 ›
         </Link>
       )}
 

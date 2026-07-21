@@ -3,6 +3,7 @@ import { getMeeting } from "@/lib/meetings/store-db";
 import { safeAuth } from "@/lib/safe-auth";
 import { PageShell } from "../../../components/PageShell";
 import { ShareButton } from "./ShareButton";
+import { Icon } from "@/app/components/Icon";
 
 /* 시안 8o(모임 상세) 고도화 — 모임 정보 카드(일정·장소·정원·참여자) + 공유 +
    참여 상태별 CTA. "채팅방 입장"은 /town/groups/[id]/chat 로 분리(실채팅 유지). */
@@ -87,20 +88,20 @@ export default async function TownGroupDetailPage({
 
             <div className="flex flex-col gap-2 text-[13px] text-text-1">
               <div className="flex gap-2">
-                <span className="w-5 text-center">📅</span>
+                <span className="w-5 text-center"><Icon name="📅" size={16} className="inline align-middle" /></span>
                 <span>{formatSchedule(meeting.scheduledAt)}</span>
               </div>
               <div className="flex gap-2">
-                <span className="w-5 text-center">📍</span>
+                <span className="w-5 text-center"><Icon name="📍" size={16} className="inline align-middle" /></span>
                 <span>{meeting.region || [meeting.city, meeting.district].filter(Boolean).join(" ") || "장소 미정"}</span>
               </div>
               <div className="flex gap-2">
-                <span className="w-5 text-center">👤</span>
+                <span className="w-5 text-center"><Icon name="👤" size={16} className="inline align-middle" /></span>
                 <span>모임장 · {meeting.organizerLabel || meeting.hostLabel}</span>
               </div>
               {meeting.checklist.length > 0 && (
                 <div className="flex gap-2">
-                  <span className="w-5 text-center">🚶</span>
+                  <span className="w-5 text-center"><Icon name="🚶" size={16} className="inline align-middle" /></span>
                   <span>{meeting.checklist.slice(0, 4).join(" → ")}</span>
                 </div>
               )}
@@ -158,7 +159,7 @@ export default async function TownGroupDetailPage({
             {/* 지도 미니: 실좌표 미보유 → 지역 요약으로 대체(허위 지도 미표기) */}
             <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-[#eef2f8] to-[#e2e8f2] text-center">
               <div>
-                <div className="text-2xl">📍</div>
+                <div className="text-2xl"><Icon name="📍" size={24} /></div>
                 <div className="mt-1 text-[12px] font-bold text-text-1">
                   {meeting.region || meeting.city || "장소 미정"}
                 </div>

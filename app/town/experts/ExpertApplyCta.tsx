@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/app/components/Icon";
 
 /* 전문가 등록/인증 신청 — POST /api/experts/register → submitExpertApplication
    (expert_verification_requests 적재 · 1차 자동검증). 심사 후 인증되면
@@ -101,7 +102,7 @@ export function ExpertApplyCta() {
           <div className="max-h-[90vh] w-full max-w-[460px] overflow-y-auto rounded-t-3xl bg-surface p-5 sm:rounded-3xl">
             {phase === "done" ? (
               <div className="flex flex-col items-center gap-2.5 py-5 text-center">
-                <div className="text-2xl">🛡️</div>
+                <div className="text-2xl"><Icon name="🛡" size={24} /></div>
                 <div className="text-[15px] font-extrabold text-ink">인증 신청이 접수됐어요</div>
                 <p className="text-xs leading-[1.7] text-text-2">
                   자격·서류 심사 후 인증됩니다. 인증이 완료되면 상담·리포트 판매와

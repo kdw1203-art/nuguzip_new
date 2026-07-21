@@ -5,6 +5,7 @@ import { readTownPosts } from "@/lib/newui/board-posts";
 import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
 import { seedGradient, faviconUrl, hostOf, relativeTime } from "../shared";
 import type { Post } from "@/lib/types/post";
+import { Icon } from "@/app/components/Icon";
 
 /* 뉴스 전용(#6·#7) — 자료(리포트·노트·다이제스트)와 분리한 부동산 뉴스 그리드.
    썸네일(출처 파비콘 + 그라디언트) · 제목 · 출처 · 시간, 지역 필터 지원.
@@ -214,7 +215,7 @@ export default async function TownNewsPage({
       {/* 지역 필터 결과 0건 — 빈 상태 */}
       {list.length === 0 && active && (
         <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
-          <div className="text-[26px]">🗞️</div>
+          <div className="text-[26px]"><Icon name="🗞" size={26} /></div>
           <div className="text-sm font-bold text-text-1">
             {active} 관련 뉴스가 아직 없어요
           </div>

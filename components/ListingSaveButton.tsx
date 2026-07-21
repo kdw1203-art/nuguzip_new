@@ -7,6 +7,7 @@
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/app/components/Icon";
 
 export function ListingSaveButton({
   listingId,
@@ -84,7 +85,7 @@ export function ListingSaveButton({
             : "border-line bg-surface text-text-2 hover:border-danger hover:text-danger"
         } ${className ?? ""}`}
       >
-        <span aria-hidden>{saved ? "♥" : "♡"}</span>
+        <Icon name="heart" size={15} style={saved ? { fill: "currentColor" } : undefined} />
         {saved ? "관심 저장됨" : "관심"}
       </button>
       {error && <span className="text-[11px] font-bold text-danger">{error}</span>}

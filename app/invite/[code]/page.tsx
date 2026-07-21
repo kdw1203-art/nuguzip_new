@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { Icon } from "@/app/components/Icon";
 import { getReferralByCode } from "@/lib/referral/store";
 
 /**
@@ -78,7 +79,7 @@ export default async function InvitePage({
 
       <div className="card glass w-full rounded-[22px] p-7 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft text-[26px]">
-          🎁
+          <Icon name="🎁" size={26} />
         </div>
 
         <h1 className="text-[20px] font-extrabold leading-[1.35] text-text-1">

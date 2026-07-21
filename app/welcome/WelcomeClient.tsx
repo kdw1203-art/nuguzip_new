@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/app/components/Icon";
 
 /** 온보딩 3스텝 → 기존 온보딩 인프라(app_users.onboarding_progress) 스텝 매핑 */
 const STEP_IDS = ["explore", "inspection", "share"] as const;
@@ -328,7 +329,7 @@ export function WelcomeClient() {
                   }`}
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 text-lg">
-                    {o.emoji}
+                    <Icon name={o.emoji} size={22} />
                   </span>
                   <span className="flex flex-col">
                     <span
@@ -347,7 +348,10 @@ export function WelcomeClient() {
           {/* 선택 요약 */}
           {regions.length > 0 && (
             <div className="rise-in-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-text-3">📍 관심지역</span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-text-3">
+                <Icon name="📍" size={12} />
+                관심지역
+              </span>
               {regions.map((r) => (
                 <span
                   key={r}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Logo } from "@/app/components/Logo";
+import { Icon } from "@/app/components/Icon";
 
 type SocialProvider = "google" | "naver" | "kakao";
 
@@ -92,7 +93,7 @@ export default function LoginPage() {
         <p className="rise-in-2 text-sm text-text-2">3초 로그인 — 작성한 내용은 그대로 유지됩니다</p>
 
         <div className="rise-in-3 card flex items-center gap-2.5 rounded-[14px] px-4 py-3.5">
-          <span className="text-[13px]">📝</span>
+          <Icon name="📝" size={18} />
           <div className="flex-1">
             <div className="text-[13px] font-bold text-ink">공작아파트 302동 · 오늘</div>
             <div className="text-[11px] text-text-3">체크 6항목 · 사진 4장 · 고려사항 2건</div>

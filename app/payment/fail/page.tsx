@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { markFailed } from "@/lib/payments/store";
 
 export const metadata: Metadata = {
@@ -35,7 +36,7 @@ export default async function PaymentFailPage({
     <PageShell breadcrumb="구독 · 결제 결과">
       <section className="rise-in mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 pt-10 text-center">
         <span className="text-[44px]" aria-hidden>
-          😵
+          <Icon name="😵" size={40} />
         </span>
         <h1 className="text-[22px] font-extrabold tracking-[-0.4px] text-ink">
           결제가 완료되지 않았습니다

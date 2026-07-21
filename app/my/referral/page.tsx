@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { PageShell } from "@/app/components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { getReferralStats } from "@/lib/referral/store";
 import { CopyLink } from "./CopyLink";
@@ -27,8 +28,8 @@ function GuestView() {
   return (
     <div className="mx-auto flex max-w-[520px] flex-col items-center gap-3">
       <div className="card glass flex w-full flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
-        <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-[24px]">
-          🎁
+        <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Icon name="🎁" size={24} />
         </div>
         <div className="text-base font-extrabold text-text-1">
           친구를 초대하고 둘 다 300P 받으세요

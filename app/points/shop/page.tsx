@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { getBalance } from "@/lib/points/ledger";
 import { SPEND_ITEMS } from "@/lib/points/catalog";
@@ -15,7 +16,7 @@ function GuestView() {
   return (
     <div className="mx-auto flex max-w-[720px] flex-col gap-3">
       <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
-        <div className="text-2xl">🛍️</div>
+        <div className="text-2xl"><Icon name="shopping-bag" size={24} /></div>
         <div className="mt-1 text-base font-extrabold text-white">
           로그인하고 포인트를 교환하세요
         </div>

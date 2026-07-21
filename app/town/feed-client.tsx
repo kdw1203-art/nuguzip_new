@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { seedGradient, seedCoverHeight } from "./shared";
 import { ExampleBadge } from "../components/ExampleBadge";
+import { Icon } from "@/app/components/Icon";
 
 /* 동네이야기 통합 피드 — 오늘의집/인스타그램형 사진 우선 카드 그리드(매소너리).
    공개 임장노트(사진 우선) + 커뮤니티 글을 한 피드로 섞어 보여준다.
@@ -88,7 +89,10 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               {card.author}
               {card.region ? ` · ${card.region}` : ""}
             </span>
-            <span className="shrink-0">🔖 {card.saves}</span>
+            <span className="inline-flex shrink-0 items-center gap-1">
+              <Icon name="🔖" size={12} />
+              {card.saves}
+            </span>
           </div>
         </div>
       </Link>
@@ -140,7 +144,7 @@ export function TownFeed({
 
       {visible.length === 0 ? (
         <div className="rise-in-3 card flex flex-col items-center gap-2 px-5 py-12 text-center">
-          <div className="text-[26px]">📍</div>
+          <div className="text-[26px]"><Icon name="📍" size={26} /></div>
           <div className="text-[15px] font-extrabold text-ink">
             아직 이 필터에 보여줄 글이 없어요
           </div>

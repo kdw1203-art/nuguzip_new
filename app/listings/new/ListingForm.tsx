@@ -5,6 +5,7 @@
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { NaverMap, type MapIdleInfo } from "@/components/map/NaverMap";
+import { Icon } from "@/app/components/Icon";
 import { DISTRICTS } from "@/lib/regions";
 
 const TYPES = [
@@ -295,10 +296,10 @@ export function ListingForm() {
           {/* 고정 중앙 핀(크로스헤어) — 지도 조작 방해 금지 */}
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
             <div
-              className="-translate-y-[14px] text-[30px] leading-none drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]"
+              className="-translate-y-[14px] leading-none drop-shadow-[0_2px_3px_rgba(0,0,0,.35)]"
               aria-hidden
             >
-              📍
+              <Icon name="📍" size={30} />
             </div>
           </div>
           {/* 위치 확정 버튼 */}

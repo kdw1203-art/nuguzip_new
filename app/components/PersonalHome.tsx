@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Icon } from "@/app/components/Icon";
 
 /* S13-13a 홈 이원화 — 정적 CDN 셸 위에 로그인 개인화 지연 주입 (시안 9m 데스크탑 · 10g 모바일)
    마운트 후 /api/auth/session → 로그인일 때만 /api/home/personal 로드.
@@ -282,7 +283,10 @@ export function PersonalHome() {
           </div>
           {regionChips.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] text-[#9aa6b8]">📍 관심지역</span>
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#9aa6b8]">
+                <Icon name="📍" size={12} />
+                관심지역
+              </span>
               {regionChips.map((r) => (
                 <Link
                   key={r}
@@ -322,9 +326,19 @@ export function PersonalHome() {
             <div className="flex items-center justify-between">
               <span className="rounded-md bg-primary-soft px-[9px] py-[3px] text-[11px] font-extrabold text-primary">
                 관심 맞춤
-                {data.preferences.purpose
-                  ? ` · ${PURPOSE_META[data.preferences.purpose].emoji} ${PURPOSE_META[data.preferences.purpose].label}`
-                  : ""}
+                {data.preferences.purpose ? (
+                  <>
+                    {" · "}
+                    <Icon
+                      name={PURPOSE_META[data.preferences.purpose].emoji}
+                      size={12}
+                      className="inline align-middle"
+                    />{" "}
+                    {PURPOSE_META[data.preferences.purpose].label}
+                  </>
+                ) : (
+                  ""
+                )}
               </span>
               <Link href="/welcome" className="text-[11px] font-bold text-text-3">
                 관심 수정 ›
@@ -354,7 +368,10 @@ export function PersonalHome() {
             <div className="flex flex-col gap-2">
               {data.preferences.regions.map((r) => (
                 <div key={r.name} className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-text-2">📍 {r.gu}</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-2">
+                    <Icon name="📍" size={12} />
+                    {r.gu}
+                  </span>
                   {r.regionId && (
                     <Link
                       href={`/region/${r.regionId}`}
@@ -497,7 +514,7 @@ export function PersonalHome() {
           {/* 관심지역 미니지도 자리 */}
           <div className="rise-in-1 relative min-h-[220px] overflow-hidden rounded-[22px] border border-line bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
             <div className="glass absolute left-3.5 top-3.5 rounded-[10px] px-3 py-[7px] text-[11px] font-bold text-ink">
-              📍 내 관심지역{region ? ` · ${region}` : " · 미설정"}
+              <Icon name="📍" size={12} className="inline align-middle" /> 내 관심지역{region ? ` · ${region}` : " · 미설정"}
               {extraRegions > 0 ? ` 외 ${extraRegions}` : ""}
             </div>
             {/* #43 관심지역 칩 → 지도 탐색 */}
@@ -561,7 +578,7 @@ export function PersonalHome() {
                 >
                   {c.badge}
                 </span>
-                <span className="text-sm">{c.emoji}</span>
+                <Icon name={c.emoji} size={16} />
               </div>
               <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
                 {c.title}

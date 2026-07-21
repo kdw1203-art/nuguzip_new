@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Icon } from "@/app/components/Icon";
 import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
 import {
   SEOUL_DISTRICTS,
@@ -134,9 +135,7 @@ export function HomeMiniMap({
 
   const staticFallback = (
     <div className="relative flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#e6ecf9] to-[#cdd9f0]">
-      <span className="text-2xl" aria-hidden>
-        🗺️
-      </span>
+      <Icon name="🗺" size={28} />
       <p className="text-[12px] font-bold text-text-1">지도를 준비 중이에요</p>
       <p className="px-6 text-center text-[10px] leading-snug text-text-3">
         관심지역 시세를 지도에서 바로 확인하세요
@@ -169,7 +168,8 @@ export function HomeMiniMap({
       {/* 상단 좌: 관심지역 배지 */}
       <div className="pointer-events-none absolute left-3.5 top-3.5 z-10">
         <span className="glass inline-flex items-center gap-1 rounded-full px-3 py-[6px] text-[11px] font-extrabold text-ink shadow-sm">
-          📍 내 관심지역
+          <Icon name="📍" size={12} />
+          내 관심지역
           {focus.regionLabel ? (
             <span className="text-primary"> · {focus.regionLabel}</span>
           ) : (

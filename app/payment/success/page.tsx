@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { markPaid } from "@/lib/payments/store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import { getStripe } from "@/lib/billing/stripe";
@@ -132,7 +133,7 @@ export default async function PaymentSuccessPage({
     <PageShell breadcrumb="구독 · 결제 결과">
       <section className="rise-in mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 pt-10 text-center">
         <span className="text-[44px]" aria-hidden>
-          {ok ? "🎉" : "⚠️"}
+          {ok ? <Icon name="🎉" size={40} /> : <Icon name="⚠" size={40} />}
         </span>
         <h1 className="text-[22px] font-extrabold tracking-[-0.4px] text-ink">
           {ok ? "결제가 완료되었습니다" : "결제 확인에 실패했습니다"}

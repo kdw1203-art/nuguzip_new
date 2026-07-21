@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { safeAuth } from "@/lib/safe-auth";
 import { getExpertStatus } from "@/lib/experts/is-verified";
 import { PageShell } from "../../components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { ListingForm } from "./ListingForm";
 
 /* ============================================================
@@ -31,7 +32,7 @@ export default async function ListingNewPage() {
       <PageShell breadcrumb="실매물 › 매물 등록" title="매물 등록">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
-            <div className="text-[26px]">🏢</div>
+            <div className="text-[26px]"><Icon name="🏢" size={26} /></div>
             <div className="text-[15px] font-extrabold text-ink">
               매물 등록은 공인중개사 인증 후 이용할 수 있어요
             </div>

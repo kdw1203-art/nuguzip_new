@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Icon } from "@/app/components/Icon";
 
 /* PWA 웹 푸시 구독 (#19)
    흐름: GET /api/push/subscribe(공개키) → 권한 요청 → serviceWorker.ready →
@@ -121,7 +122,9 @@ export function PushSubscribe() {
 
   if (status === "subscribed") {
     return (
-      <span className="text-[11px] font-semibold text-text-3">🔔 알림 켜짐</span>
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
+        <Icon name="bell" size={13} />알림 켜짐
+      </span>
     );
   }
 
@@ -138,11 +141,15 @@ export function PushSubscribe() {
       disabled={status === "loading"}
       className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-text-2 transition-colors hover:text-primary disabled:opacity-60"
     >
-      {status === "loading"
-        ? "설정 중…"
-        : status === "error"
-          ? "다시 시도"
-          : "🔔 알림 켜기"}
+      {status === "loading" ? (
+        "설정 중…"
+      ) : status === "error" ? (
+        "다시 시도"
+      ) : (
+        <>
+          <Icon name="bell" size={13} />알림 켜기
+        </>
+      )}
     </button>
   );
 }

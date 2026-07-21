@@ -8,6 +8,7 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { seedGradient, maskNoteAuthor } from "../shared";
+import { Icon } from "@/app/components/Icon";
 
 /* 자료(#8) — 리포트 + 공개 임장노트 공유 + 주간 다이제스트(피처드).
    시안 8l(마켓)을 자료 중심으로 개편: 다이제스트를 자료와 합치고(#6),
@@ -62,7 +63,7 @@ export default async function TownLibraryPage() {
       >
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#7ea2ff]">
-            🗞️ 주간 다이제스트
+            <Icon name="🗞" size={14} />주간 다이제스트
             <span className="rounded bg-white/10 px-1.5 py-px text-[10px] text-ai-text">
               {digest?.weekLabel ?? "최근 7일"}
             </span>
@@ -123,7 +124,7 @@ export default async function TownLibraryPage() {
 
         {notes.length === 0 ? (
           <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
-            <div className="text-[26px]">🗂️</div>
+            <div className="text-[26px]"><Icon name="🗂" size={26} /></div>
             <div className="text-sm font-bold text-text-1">
               공개된 임장노트가 아직 없어요
             </div>
