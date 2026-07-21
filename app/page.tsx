@@ -22,34 +22,26 @@ import type {
 // 스케일 지침 #21: 비로그인 홈은 정적 캐시 (5분 재검증) — 접속마다 재계산 금지
 export const revalidate = 300;
 
-/* ── 목업 폴백 (실데이터 없거나 조회 실패 시) ── */
+/* ── 예시 폴백 (실데이터 0건일 때만, 섹션당 1개만) ──
+   정책: 실데이터/크롤링 데이터 우선. 없으면 "예시" 1건만 노출, 그 외 더미 금지. */
 const MOCK_REGIONS: HomeRegionCard[] = [
   { id: "gangnam", name: "강남구", meta: "서울 · 37건", price: "32.5억", delta: "▼ 4.2%", tone: "down" },
-  { id: "mapo", name: "마포구", meta: "서울 · 27건", price: "11.4억", delta: "▼ 10.3%", tone: "down" },
-  { id: "songpa", name: "송파구", meta: "서울 · 50건", price: "17.6억", delta: "▼ 6.4%", tone: "down" },
-  { id: "namyangju", name: "남양주", meta: "경기 · 387건", price: "5.84억", delta: "▼ 0.5%", tone: "flat" },
 ];
 
 const MOCK_NOTES: HomeNoteItem[] = [
   { id: "m1", title: "공작아파트 302동 — “주차가 관건”", score: "78점", hot: true },
-  { id: "m2", title: "마포래미안 115동 — “역까지 실측 7분”", score: "82점", hot: true },
-  { id: "m3", title: "과천 위버필드 — “경사 심함, 후문 동선”", score: "64점", hot: false },
 ];
 
 const MOCK_POSTS: HomePostItem[] = [
   { id: "p1", rank: 1, title: "“청년 82.6% 세입자 시대…월세 부담 낮춰야”", comments: 6 },
-  { id: "p2", rank: 2, title: "월세 세액공제 30% 상향 발의", comments: 6 },
-  { id: "p3", rank: 3, title: "서울 빌라 매매 46% 급증", comments: 7 },
 ];
 
 const MOCK_MEETINGS: HomeMeetingItem[] = [
   { id: "mt1", label: "과천지식정보타운 · 토 10:00 · 4/6" },
-  { id: "mt2", label: "마포 리모델링 스터디 · 일 14:00 · 2/4" },
 ];
 
 const MOCK_REPORTS: HomeReportItem[] = [
   { id: "r1", title: "관양동 재건축 흐름 분석", priceLabel: "9,900원" },
-  { id: "r2", title: "평촌 학원가 실전 가이드", priceLabel: "7,900원" },
 ];
 
 const deltaClass: Record<DeltaTone, string> = {

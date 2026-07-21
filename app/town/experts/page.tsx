@@ -37,25 +37,6 @@ const FALLBACK_EXPERTS: ExpertCardData[] = [
     actionable: false,
     pendingLabel: "예시",
   },
-  {
-    id: null,
-    name: "이OO",
-    title: "세무사",
-    initial: "이",
-    regionLine: "서울 전역 · 경력 9년",
-    regions: ["서울"],
-    tags: ["취득세", "양도세 절세"],
-    ratingLabel: "★ 4.8",
-    reviews: 86,
-    consultations: 210,
-    responseLabel: "4h",
-    introduction: "다주택·1주택 양도세 시나리오 비교 상담을 제공합니다.",
-    consultFeeLabel: "40,000원",
-    reportFeeLabel: "—",
-    verified: false,
-    actionable: false,
-    pendingLabel: "예시",
-  },
 ];
 
 /* ---------- 헬퍼 ---------- */

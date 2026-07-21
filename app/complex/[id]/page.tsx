@@ -70,6 +70,7 @@ interface HubView {
 }
 
 /* ===== 목업 폴백 — 시안 23b 공작아파트 ===== */
+// 예시 폴백: 실데이터 0건일 때만, 섹션당 1개만 (그 외 더미 금지)
 const MOCK_LISTINGS: HubListing[] = [
   {
     badge: "급매",
@@ -79,33 +80,14 @@ const MOCK_LISTINGS: HubListing[] = [
     meta: "84A · 5층/15층 · 남향 · 즉시입주 · 올수리",
     agent: "관양공인 · 오늘 등록",
   },
-  {
-    badge: "일반",
-    urgent: false,
-    price: "매매 8.4억",
-    priceNote: null,
-    meta: "84A · 12층/15층 · 남동향 · 협의 · 로얄층",
-    agent: "평촌공인 · 3일 전",
-  },
-  {
-    badge: "전세",
-    urgent: false,
-    price: "전세 4.9억",
-    priceNote: "▼3,000",
-    meta: "84B · 9층/15층 · 남서향 · 세안고",
-    agent: "관양중앙공인 · 1주 전",
-  },
 ];
 
 const MOCK_TRADES: HubTrade[] = [
   { date: "2026.06", price: "8.15억", sub: "5층", delta: "▼ 1.8%", tone: "down" },
-  { date: "2026.05", price: "8.3억", sub: "11층", delta: "▼ 0.6%", tone: "down" },
-  { date: "2026.03", price: "8.75억", sub: "7층", delta: "▲ 0.9%", tone: "up" },
 ];
 
 const MOCK_NOTES: HubNote[] = [
   { title: "공작 302동 — “주차가 관건, 저녁 실측”", author: "첫집준비중 · 07.12", score: "78점" },
-  { title: "공작 105동 — “겨울 채광 확인함”", author: "관양토박이 · 07.15", score: "81점" },
 ];
 
 const MOCK_VIEW: HubView = {
@@ -261,21 +243,24 @@ function toView(
       priceSub: latest ? `${delta} 전월비` : "실거래 수집 중",
       priceSubClass:
         tone === "down" ? "delta-down" : tone === "up" ? "delta-up" : "text-text-3",
-      listings: "매물 12",
-      listingsSub: "전세 7 · 매매 5",
-      notes: `노트 ${posts.length > 0 ? posts.length.toLocaleString("ko-KR") : "3,812"}`,
-      notesSub: posts.length > 0 ? "단지 이야기 포함" : "이번 주 +38",
-      safety: "A",
+      // 사실 기반: 실매물 소스 미연동 — 허위 수치 대신 "—"
+      listings: "매물 —",
+      listingsSub: "등록 대기",
+      notes: `노트 ${posts.length.toLocaleString("ko-KR")}`,
+      notesSub: posts.length > 0 ? "단지 이야기 포함" : "첫 노트를 남겨보세요",
+      // 안전등급 산정 미연동 — 허위 등급 금지
+      safety: "—",
     },
     aiTitle: `AI 요약 · ${row.name}`,
     aiBody: latest
-      ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) · 채광 상(87%) · 주차 하(74%) — 저층 위주로 현장 확인을 권해요.`
-      : "채광 상(87%) · 주차 하(74%) · 최근 “누수” 언급 3단지 저층 집중 (13c 재사용)",
-    myRecord: "노트 3건 · 비교 후보 · 예상가 4.7억",
-    listingsLabel: "매물 12 · 전세 7 · 매매 5",
+      ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) — 국토교통부 실거래가 기준. 현장 확인 후 판단하세요.`
+      : "실거래·후기가 쌓이면 AI 요약을 제공합니다.",
+    myRecord: "—",
+    listingsLabel: "실매물 준비 중",
     infoRows,
     trades,
     notes,
+    // 실매물 소스 미연동: 실데이터 없으면 예시 1건만
     listings: MOCK_LISTINGS,
     nearby,
     txHref,

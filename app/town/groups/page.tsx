@@ -46,21 +46,6 @@ const FALLBACK_GROUPS: GroupView[] = [
     statusKey: "open",
     tags: ["임장", "초보환영"],
   },
-  {
-    id: null,
-    title: "마포 구축 리모델링 스터디",
-    desc: "리모델링 추진 단지 2곳 임장 + 카페 정리 1시간.",
-    region: "서울 마포구",
-    regionKey: "서울",
-    whenLabel: "7.26 (일) 14:00",
-    whenTs: 0,
-    createdTs: 0,
-    members: 2,
-    max: 4,
-    host: "마포지기",
-    statusKey: "closing",
-    tags: ["리모델링", "스터디"],
-  },
 ];
 
 /* ---------- 헬퍼 ---------- */

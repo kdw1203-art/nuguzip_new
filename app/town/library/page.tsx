@@ -17,16 +17,12 @@ import { Icon } from "@/app/components/Icon";
 export const revalidate = 600;
 
 /* 더미데이터 정책: 리포트 상품은 오픈 준비 중 — 예시 배지로 정직 표기 */
+// 예시 폴백: 실데이터 0건일 때만 1개만
 const EXAMPLE_REPORTS = [
   {
     badge: "단지 리포트",
     title: "관양동 재건축 흐름 분석 (2026 상반기판)",
     meta: "PDF 34p · 김OO 중개사",
-  },
-  {
-    badge: "지역 리포트",
-    title: "1기 신도시 특별법 적용 시나리오 정리",
-    meta: "PDF 22p · 편집팀",
   },
 ];
 

@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 /* ---------- 목업 폴백 (해당 id 글이 없을 때) ---------- */
 
+// 예시 폴백: 실데이터 0건일 때만, 섹션당 1개만
 const MOCK_COMMENTS = [
   {
     name: "관양토박이",
@@ -21,21 +22,10 @@ const MOCK_COMMENTS = [
     likes: "좋아요 12",
     replies: "답글 3",
   },
-  {
-    name: "김OO 중개사",
-    badge: "인증",
-    badgeStyle: "rounded bg-[#edf2fe] text-primary",
-    time: "1시간 전",
-    body: "일반분양가 ㎡당 1,100만이면 공작 현 시세(940만)와 격차가 꽤 납니다. 구축 갭 메우기가 관전 포인트예요.",
-    likes: "좋아요 24",
-    replies: "답글 5",
-  },
 ];
 
 const MOCK_SIMILAR = [
   { id: null as string | null, title: "1기 신도시 특별법 시행령 입법예고", meta: "OO일보 · 07.16" },
-  { id: null as string | null, title: "평촌 리모델링 3개 단지 조합 설립", meta: "OO경제 · 07.14" },
-  { id: null as string | null, title: "수도권 재개발 일반분양가 상승세", meta: "OO신문 · 07.11" },
 ];
 
 const MOCK_BODY = [
@@ -44,16 +34,12 @@ const MOCK_BODY = [
   "전문가들은 다만 시공사 선정 이후에도 관리처분·이주까지 최소 4~5년이 소요되는 만큼 단기 시세보다는 장기 관점의 접근을 권고했다.",
 ];
 
+// 예시 폴백: 1개만
 const NOTES = [
   {
     title: "공작 302동 — “재개발 소음 확인”",
     meta: "첫집준비중 · 07.12",
     score: "78점",
-  },
-  {
-    title: "한가람 105동 — “구역 경계 도보 3분”",
-    meta: "관양토박이 · 07.08",
-    score: "72점",
   },
 ];
 
