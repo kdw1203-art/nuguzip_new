@@ -1063,3 +1063,78 @@ a:hover {
     animation: none;
   }
 }
+
+/* ============================================================
+   #16 다크 모드 — 토큰 오버라이드 (next-themes class="dark")
+   토큰 기반 컴포넌트(.glass/.card/bg-surface/text-text-*)는 자동 반영.
+   수동 토글 기본값 light; 시스템 동기화는 표면 감사 후 활성화 예정. */
+.dark {
+  color-scheme: dark;
+  --primary: #5b8bff;
+  --primary-strong: #86a9ff;
+  --primary-soft: #1a2540;
+  --ink: #f0f3f8;
+  --danger: #ff6b6b;
+  --danger-soft: rgba(214, 69, 69, 0.18);
+  --danger-border: rgba(255, 107, 107, 0.4);
+  --text-1: #e2e8f2;
+  --text-2: #aab4c2;
+  --text-3: #7d8998;
+  --bg: #0e1116;
+  --surface: #171b22;
+  --border: #262c36;
+  --border-strong: #333b47;
+
+  --success: #4ecb8a;
+  --success-soft: rgba(26, 127, 78, 0.2);
+  --success-border: rgba(78, 203, 138, 0.35);
+  --warning: #e0a92e;
+  --warning-soft: rgba(148, 98, 0, 0.24);
+  --warning-border: rgba(224, 169, 46, 0.35);
+
+  --disabled-bg: #20262f;
+  --disabled-text: #5b6673;
+  --dim: rgba(0, 0, 0, 0.6);
+  --dim-coach: rgba(0, 0, 0, 0.78);
+
+  --glass-bg: rgba(23, 27, 34, 0.55);
+  --glass-bg-strong: rgba(23, 27, 34, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-cta: 0 6px 18px rgba(29, 79, 216, 0.5);
+
+  --divider: #20262f;
+}
+
+/* #18 a11y — 스크린리더 전용 텍스트 유틸 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.sr-only:focus,
+.sr-only:focus-visible {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  width: auto;
+  height: auto;
+  padding: 10px 16px;
+  margin: 0;
+  clip: auto;
+  white-space: normal;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}

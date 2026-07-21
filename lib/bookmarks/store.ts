@@ -6,7 +6,8 @@ export type BookmarkTargetType =
   | "expert"
   | "meeting"
   | "market"
-  | "complex";
+  | "complex"
+  | "listing";
 
 export type Bookmark = {
   id: string;

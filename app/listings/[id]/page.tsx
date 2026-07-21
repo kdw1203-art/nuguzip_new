@@ -3,11 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { ReportButton } from "../../components/ReportButton";
+import { RefreshButton } from "./RefreshButton";
+import { ListingSaveButton } from "@/components/ListingSaveButton";
 import { NaverMap } from "@/components/map/NaverMap";
 import { safeAuth } from "@/lib/safe-auth";
+import { isBookmarked } from "@/lib/bookmarks/store";
 import {
   getListingById,
   incrementView,
+  isListingStale,
   LISTING_TYPE_LABEL,
   LISTING_SOURCE_LABEL,
   type ListingDetail,
@@ -29,10 +33,54 @@ import { realEstateListingJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "매물 상세 · 누구집",
-  description: "집주인 직접·중개사 등록 매물의 상세 정보. 실거래가와 비교하며 확인하세요.",
-};
+/** 매물별 동적 메타데이터 — 동적 OG 카드(/api/og/listing) 이미지 포함. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const base: Metadata = {
+    title: "매물 상세 · 누구집",
+    description:
+      "집주인 직접·중개사 등록 매물의 상세 정보. 실거래가와 비교하며 확인하세요.",
+  };
+  const listing = await getListingById(id).catch(() => null);
+  // 미존재/숨김 매물은 OG 카드를 노출하지 않는다.
+  if (!listing || listing.isHidden) return base;
+
+  const price =
+    listing.listingType === "monthly"
+      ? `${formatKrwShort(listing.depositKrw)}/${formatKrwShort(listing.monthlyKrw)}`
+      : formatKrwShort(listing.listingType === "sale" ? listing.priceKrw : listing.depositKrw);
+  const area = listing.areaM2 !== null ? `전용 ${listing.areaM2}㎡` : "";
+  const ogUrl =
+    `/api/og/listing?title=${encodeURIComponent(listing.complexName)}` +
+    `&price=${encodeURIComponent(price)}` +
+    `&region=${encodeURIComponent(listing.regionName ?? "")}` +
+    `&area=${encodeURIComponent(area)}` +
+    `&type=${encodeURIComponent(LISTING_TYPE_LABEL[listing.listingType])}`;
+
+  const title = `${listing.complexName} · ${priceLine(listing)} · 누구집`;
+  const description =
+    `${listing.regionName ? `${listing.regionName} · ` : ""}${LISTING_TYPE_LABEL[listing.listingType]} 매물 — 실거래가와 비교하며 확인하세요.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [{ url: ogUrl, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogUrl],
+    },
+  };
+}
 
 /** 원(KRW) → "28.6억" / "9,800만" */
 function formatKrwShort(krw: number | null | undefined): string {
@@ -100,6 +148,9 @@ export default async function ListingDetailPage({
   const viewerEmail = session?.user?.email ?? null;
   const isOwner = viewerEmail !== null && viewerEmail === listing.authorEmail;
 
+  // 숨김(신고 누적 등) 매물은 공개 열람 불가 — 소유주 본인만 열람 가능
+  if (listing.isHidden && !isOwner) notFound();
+
   // 승인 전 매물은 소유주 본인만 열람 가능
   if (listing.status !== "approved" && !isOwner) notFound();
 
@@ -107,6 +158,12 @@ export default async function ListingDetailPage({
   if (listing.status === "approved" && !isOwner) {
     await incrementView(id);
   }
+
+  // #1 관심 저장 초기 상태 · #6 신선도("확인 필요") 판정
+  const savedInitial = viewerEmail
+    ? await isBookmarked(viewerEmail, "listing", listing.id).catch(() => false)
+    : false;
+  const stale = isListingStale(listing);
 
   const { category, body } = splitCategory(listing.description);
   const txHref = txCompareHref(listing);
@@ -229,6 +286,14 @@ export default async function ListingDetailPage({
                 부스트
               </span>
             )}
+            {stale && (
+              <span
+                className="rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold"
+                style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
+              >
+                확인 필요
+              </span>
+            )}
           </div>
 
           {/* 제목 · 가격 */}
@@ -249,6 +314,22 @@ export default async function ListingDetailPage({
               )}
             </div>
           </div>
+
+          {/* 관심 저장(#1) · 소유주 끌어올리기(#6) */}
+          <div className="flex flex-wrap items-center gap-2">
+            <ListingSaveButton
+              listingId={listing.id}
+              label={listing.complexName}
+              initialSaved={savedInitial}
+            />
+            {isOwner && stale && <RefreshButton listingId={listing.id} />}
+          </div>
+          {stale && (
+            <p className="text-[12px] leading-[1.6] text-text-3">
+              마지막 갱신 이후 시간이 지난 매물이에요. 정보가 유효한지 등록자에게 확인해 주세요.
+              {isOwner ? " 끌어올리기를 누르면 최신 매물로 다시 노출돼요." : ""}
+            </p>
+          )}
 
           {/* 스펙 */}
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-text-2">

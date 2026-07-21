@@ -6,6 +6,14 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
+import { comparePriceToMarket } from "@/lib/listings/price-compare";
+
+/** 갱신 없이 이 일수를 넘기면 "확인 필요"(stale) — 표시 전용, 자동 삭제 없음. */
+export const LISTING_STALE_DAYS = 21;
+/** 누적 신고가 이 값에 도달하면 자동 숨김(is_hidden=true). */
+export const LISTING_REPORT_HIDE_THRESHOLD = 3;
+/** 호가가 실거래 중위가 대비 이 %를 벗어나면 이상가로 플래그. */
+export const LISTING_PRICE_ANOMALY_PCT = 40;
 
 export const LISTING_TYPES = ["sale", "jeonse", "monthly"] as const;
 export type ListingType = (typeof LISTING_TYPES)[number];
@@ -60,6 +68,16 @@ export interface PublicListing {
   ownerVerified: boolean;
   /** 상세 조회수 */
   viewCount: number;
+  /** 마지막 갱신(끌어올리기) 시각(ISO) — 신선도 판정 기준. null이면 created_at 사용. */
+  refreshedAt: string | null;
+  /** 누적 신고 수 */
+  reportCount: number;
+  /** 신고 누적 등으로 자동 숨김된 매물 여부 — 공개 목록/상세에서 제외 */
+  isHidden: boolean;
+  /** 허위·중복·이상가 자동 플래그 사유(내부용). null이면 플래그 없음. */
+  flagReason: string | null;
+  /** 중복 주소 의심 여부 */
+  isDuplicate: boolean;
 }
 
 /** 어드민 검수용 — 연락처·이메일 포함 */
@@ -99,7 +117,22 @@ function mapPublic(r: Record<string, unknown>): PublicListing {
     boostUntil: r.boost_until != null ? String(r.boost_until) : null,
     ownerVerified: r.owner_verified === true,
     viewCount: r.view_count != null ? Number(r.view_count) : 0,
+    refreshedAt: r.refreshed_at != null ? String(r.refreshed_at) : null,
+    reportCount: r.report_count != null ? Number(r.report_count) : 0,
+    isHidden: r.is_hidden === true,
+    flagReason: r.flag_reason != null ? String(r.flag_reason) : null,
+    isDuplicate: r.is_duplicate === true,
   };
+}
+
+/** 신선도 판정 — refreshed_at(없으면 created_at) 기준 LISTING_STALE_DAYS 초과 시 stale. 표시 전용. */
+export function isListingStale(
+  listing: Pick<PublicListing, "refreshedAt" | "createdAt">,
+): boolean {
+  const basis = listing.refreshedAt ?? listing.createdAt;
+  const t = Date.parse(basis);
+  if (!Number.isFinite(t)) return false;
+  return Date.now() - t > LISTING_STALE_DAYS * 86_400_000;
 }
 
 /** jsonb photos → string[] (URL 배열) */
@@ -152,9 +185,10 @@ export async function listApprovedListings(
     let q = sb
       .from("listings")
       .select(
-        "id,author_label,source,listing_type,complex_name,region_name,price_krw,deposit_krw,monthly_krw,area_m2,floor,description,created_at,lat,lng,thumbnail_url,boost_until,owner_verified,view_count",
+        "id,author_label,source,listing_type,complex_name,region_name,price_krw,deposit_krw,monthly_krw,area_m2,floor,description,created_at,lat,lng,thumbnail_url,boost_until,owner_verified,view_count,refreshed_at,report_count,is_hidden,flag_reason,is_duplicate",
       )
-      .eq("status", "approved");
+      .eq("status", "approved")
+      .eq("is_hidden", false);
     if (filter.listingType) q = q.eq("listing_type", filter.listingType);
     if (filter.regionName) q = q.eq("region_name", filter.regionName);
     if (filter.complexName) q = q.eq("complex_name", filter.complexName);
@@ -213,6 +247,7 @@ export async function listListingsInBounds(bounds: {
         "id,lat,lng,listing_type,complex_name,price_krw,deposit_krw,monthly_krw,boost_until,created_at",
       )
       .eq("status", "approved")
+      .eq("is_hidden", false)
       .not("lat", "is", null)
       .not("lng", "is", null)
       .gte("lat", swLat)
@@ -303,6 +338,19 @@ export async function createListing(input: {
 }): Promise<{ id: string }> {
   const sb = getServiceSupabase();
   if (!sb) throw new Error("저장소가 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
+
+  // #5 허위매물 자동 플래그 (1) 중복 주소 — best-effort, 등록을 막지 않는다.
+  let isDuplicate = false;
+  let flagReason: string | null = null;
+  try {
+    if (await detectDuplicateAddress(input.address, input.listingType)) {
+      isDuplicate = true;
+      flagReason = "중복 주소 의심";
+    }
+  } catch (e) {
+    logger.warn("[listings] createListing:duplicate", e);
+  }
+
   const { data, error } = await sb
     .from("listings")
     .insert({
@@ -325,6 +373,8 @@ export async function createListing(input: {
       thumbnail_url: input.thumbnailUrl ?? null,
       photos: input.photos && input.photos.length > 0 ? input.photos : null,
       status: "pending",
+      is_duplicate: isDuplicate,
+      flag_reason: flagReason,
     })
     .select("id")
     .single();
@@ -332,7 +382,122 @@ export async function createListing(input: {
     logger.warn("[listings] createListing", error);
     throw new Error("매물 등록에 실패했어요. 잠시 후 다시 시도해 주세요.");
   }
-  return { id: String(data.id) };
+  const id = String(data.id);
+
+  // #5 허위매물 자동 플래그 (2) 이상가 — 매매만, 삽입 후 best-effort. 등록 결과에 영향 주지 않는다.
+  if (input.listingType === "sale") {
+    try {
+      const cmp = await comparePriceToMarket({
+        complexName: input.complexName,
+        regionName: input.regionName,
+        areaM2: input.areaM2 ?? null,
+        listingType: input.listingType,
+        priceKrw: input.priceKrw ?? null,
+        depositKrw: input.depositKrw ?? null,
+      });
+      if (cmp && Math.abs(cmp.deltaPct) > LISTING_PRICE_ANOMALY_PCT) {
+        const priceReason = `시세 대비 ${cmp.deltaPct > 0 ? "고가" : "저가"} ${cmp.deltaPct}%`;
+        const combined = flagReason ? `${flagReason}; ${priceReason}` : priceReason;
+        await sb.from("listings").update({ flag_reason: combined }).eq("id", id);
+      }
+    } catch (e) {
+      logger.warn("[listings] createListing:priceAnomaly", e);
+    }
+  }
+
+  return { id };
+}
+
+/** 주소 정규화 — 공백 제거 + 소문자 (중복 판정 비교용). */
+function normalizeAddress(address: string): string {
+  return address.replace(/\s+/g, "").toLowerCase();
+}
+
+/**
+ * 같은 정규화 주소 + 같은 거래유형 매물이 이미 존재하는지 — 중복 매물 자동 플래그용.
+ * best-effort: 저장소 미설정/조회 실패 시 false. 후보를 정규화 비교(최대 1000건).
+ */
+export async function detectDuplicateAddress(
+  address: string | null | undefined,
+  listingType: ListingType,
+): Promise<boolean> {
+  const raw = (address ?? "").trim();
+  if (!raw) return false;
+  const target = normalizeAddress(raw);
+  if (!target) return false;
+  const sb = getServiceSupabase();
+  if (!sb) return false;
+  try {
+    const { data, error } = await sb
+      .from("listings")
+      .select("address")
+      .eq("listing_type", listingType)
+      .not("address", "is", null)
+      .limit(1000);
+    if (error || !data) return false;
+    return (data as Array<Record<string, unknown>>).some(
+      (r) => normalizeAddress(String(r.address ?? "")) === target,
+    );
+  } catch (e) {
+    logger.warn("[listings] detectDuplicateAddress", e);
+    return false;
+  }
+}
+
+/**
+ * #6 끌어올리기(갱신) — 소유자 본인만. refreshed_at·updated_at 을 now 로 갱신.
+ * 소유자 불일치/미존재 시 ok:false.
+ */
+export async function refreshListing(
+  id: string,
+  ownerEmail: string,
+): Promise<{ ok: boolean; refreshedAt: string | null }> {
+  const sb = getServiceSupabase();
+  if (!sb || !id || !ownerEmail) return { ok: false, refreshedAt: null };
+  const now = new Date().toISOString();
+  try {
+    const { data, error } = await sb
+      .from("listings")
+      .update({ refreshed_at: now, updated_at: now })
+      .eq("id", id)
+      .eq("author_email", ownerEmail)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) return { ok: false, refreshedAt: null };
+    return { ok: true, refreshedAt: now };
+  } catch (e) {
+    logger.warn("[listings] refreshListing", e);
+    return { ok: false, refreshedAt: null };
+  }
+}
+
+/**
+ * #5 신고 누적 — report_count +1, LISTING_REPORT_HIDE_THRESHOLD(3) 도달 시 is_hidden=true.
+ * best-effort(원자성 미보장, 실패 무시).
+ */
+export async function markListingReport(
+  listingId: string,
+): Promise<{ ok: boolean; reportCount: number; hidden: boolean }> {
+  const sb = getServiceSupabase();
+  if (!sb || !listingId) return { ok: false, reportCount: 0, hidden: false };
+  try {
+    const { data } = await sb
+      .from("listings")
+      .select("report_count,is_hidden")
+      .eq("id", listingId)
+      .maybeSingle();
+    const row = (data ?? {}) as Record<string, unknown>;
+    const current = row.report_count != null ? Number(row.report_count) : 0;
+    const next = current + 1;
+    const nowHidden = next >= LISTING_REPORT_HIDE_THRESHOLD;
+    const update: Record<string, unknown> = { report_count: next };
+    if (nowHidden) update.is_hidden = true;
+    await sb.from("listings").update(update).eq("id", listingId);
+    return { ok: true, reportCount: next, hidden: nowHidden || row.is_hidden === true };
+  } catch (e) {
+    logger.warn("[listings] markListingReport", e);
+    return { ok: false, reportCount: 0, hidden: false };
+  }
 }
 
 /** 승인/반려 처리 — 어드민 전용. */

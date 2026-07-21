@@ -6,7 +6,7 @@
  */
 import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
 
-export type PoiKind = "subway" | "school";
+export type PoiKind = "subway" | "school" | "mart";
 
 export interface Poi {
   id: string;
@@ -53,6 +53,10 @@ const SUBWAY_LINES: { name: string; color: string }[] = [
 const SCHOOL_LEVELS = ["초등학교", "중학교", "고등학교"];
 const SCHOOL_COLOR = "#1f9d55";
 
+/** 대형마트 체인(샘플) — 지하철/학교와 구분되는 주황 계열 */
+const MART_CHAINS = ["이마트", "홈플러스", "롯데마트", "코스트코", "하나로마트"];
+const MART_COLOR = "#f5820a";
+
 type DistrictSeed = { name: string; lat: number; lng: number };
 
 function allDistricts(): DistrictSeed[] {
@@ -63,9 +67,10 @@ function allDistricts(): DistrictSeed[] {
   }));
 }
 
-function buildPois(): { subway: Poi[]; schools: Poi[] } {
+function buildPois(): { subway: Poi[]; schools: Poi[]; marts: Poi[] } {
   const subway: Poi[] = [];
   const schools: Poi[] = [];
+  const marts: Poi[] = [];
 
   for (const d of allDistricts()) {
     const rnd = mulberry32(hashStr(`poi:${d.name}`));
@@ -104,14 +109,33 @@ function buildPois(): { subway: Poi[]; schools: Poi[] } {
         color: SCHOOL_COLOR,
       });
     }
+
+    // 대형마트(샘플) — 구당 1~2곳. subway/school 이후에 draw 하므로 기존 출력 불변.
+    const martCount = 1 + Math.floor(rnd() * 2); // 1~2
+    for (let i = 0; i < martCount; i++) {
+      const chain = MART_CHAINS[Math.floor(rnd() * MART_CHAINS.length)];
+      const lat = d.lat + (rnd() - 0.5) * 0.024;
+      const lng = d.lng + (rnd() - 0.5) * 0.03;
+      marts.push({
+        id: `mart:${d.name}:${i}`,
+        kind: "mart",
+        name: `${chain} ${shortName}점`,
+        lat,
+        lng,
+        district: d.name,
+        meta: chain,
+        color: MART_COLOR,
+      });
+    }
   }
-  return { subway, schools };
+  return { subway, schools, marts };
 }
 
 const built = buildPois();
 
 export const ALL_SUBWAY: Poi[] = built.subway;
 export const ALL_SCHOOLS: Poi[] = built.schools;
+export const ALL_MARTS: Poi[] = built.marts;
 
 export interface NearestSubway {
   poi: Poi;

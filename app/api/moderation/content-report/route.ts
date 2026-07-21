@@ -3,6 +3,8 @@ import { safeAuth } from "@/lib/safe-auth";
 import { createContentReport } from "@/lib/moderation/reports-store";
 import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
+import { getListingById, markListingReport } from "@/lib/listings/store-db";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 
@@ -65,6 +67,20 @@ export async function POST(req: NextRequest) {
       path: "/api/moderation/content-report",
       metadata: { postId, reportCategory, hasComment: Boolean(commentId) },
     });
+  }
+
+  // 매물(listing) 신고 연동 (#5) — 매물 상세의 신고 버튼은 postId=매물 id 로 전송한다.
+  // post_id 가 실제 매물이고 댓글 신고가 아닐 때만 신고 누적 처리(3회 도달 시 자동 숨김).
+  // 커뮤니티 글/댓글 신고 동작에는 영향이 없다(매물이 아니면 no-op). 실패는 best-effort 로 무시.
+  if (!commentId) {
+    try {
+      const listing = await getListingById(postId);
+      if (listing) {
+        await markListingReport(postId);
+      }
+    } catch (e) {
+      logger.warn("[content-report] markListingReport 실패", e);
+    }
   }
 
   return NextResponse.json({ ok: true });

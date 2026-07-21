@@ -36,6 +36,14 @@
     {
       "path": "/api/cron/molit-transactions-ingest",
       "schedule": "0 4 1 * *"
+    },
+    {
+      "path": "/api/cron/price-alerts",
+      "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/court-auction-sync",
+      "schedule": "15 6 */3 * *"
     }
   ]
 }

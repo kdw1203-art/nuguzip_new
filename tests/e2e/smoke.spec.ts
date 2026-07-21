@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * 스모크 스위트 (#92) — 정확히 30개 케이스.
+ * 스모크 스위트 (#92) — 35개 케이스 (신규 IA/기능 5종 추가).
  * 원칙: DB 실데이터에 의존하는 단언 금지 — 구조 요소·HTTP 상태·코드베이스의
  * 고정 한국어 레이블만 검증한다. (로컬/CI 모두 supabase·naver 미접속 상태에서
  * 페이지의 graceful fallback 렌더링을 전제로 한다)
@@ -266,4 +266,44 @@ test("30. mobile viewport shows bottom tab bar with 홈·지도 labels", async (
   // 탭 레이블은 아이콘 문자와 같은 링크 요소 안에 있어 exact 텍스트 매칭 불가
   await expect(tabBar).toContainText("홈");
   await expect(tabBar).toContainText("지도");
+});
+
+// ---------- 개발물건 중개 (B2B 디벨로퍼 매칭) ----------
+
+test("31. /dev-deals renders 개발물건 중개 hub with CTAs", async ({ page }) => {
+  await page.goto("/dev-deals");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /개발물건 중개/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "개발물건 등록" }).first()).toBeVisible();
+});
+
+test("32. /dev-deals/fees renders tiered commission schedule", async ({ page }) => {
+  await page.goto("/dev-deals/fees");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /중개 수수료 안내/ }),
+  ).toBeVisible();
+  await expect(page.getByText("사업규모별 기준 수수료").first()).toBeVisible();
+});
+
+test("33. /dev-deals/partners renders partner directory", async ({ page }) => {
+  await page.goto("/dev-deals/partners");
+  await expect(page.locator("main")).toBeVisible();
+  await expect(page.getByText("협력업체").first()).toBeVisible();
+});
+
+// ---------- 법원경매 소스 토글 ----------
+
+test("34. /auctions?source=court renders 법원경매 tab", async ({ page }) => {
+  await page.goto("/auctions?source=court");
+  await expect(page.getByText(/법원경매/).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /경매\(법원\)/ })).toBeVisible();
+});
+
+// ---------- 친구 추천 초대 랜딩 ----------
+
+test("35. /invite/[code] renders invite landing", async ({ page }) => {
+  await page.goto("/invite/TESTCODE");
+  await expect(page.locator("main")).toBeVisible();
+  await expect(page.getByText(/초대|가입/).first()).toBeVisible();
 });

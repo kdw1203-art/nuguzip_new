@@ -1,6 +1,6 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { FUNNEL_EVENT } from "@/lib/platform-funnel-events";
-import type { AdminKpi } from "@/lib/admin/stats";
+import { loadAdminKpi, type AdminKpi } from "@/lib/admin/stats";
 
 export type LayerMetric = {
   key: string;
@@ -452,4 +452,20 @@ export async function loadOperatingDashboard(
       approvalRatePct,
     },
   };
+}
+
+/**
+ * /admin/ops 전환 퍼널 위젯 전용 경량 헬퍼.
+ * loadAdminKpi → loadOperatingDashboard 를 묶어 실집계 FunnelStep[] 만 반환한다.
+ * (가입 → 관심 저장 → 첫 임장·노트 → AI 실행 → 글 작성 → 결제, pctOfSignup 포함)
+ * 조회 실패 시 빈 배열([]) — 페이지 쪽에서 "데이터 없음" 빈 상태로 렌더한다.
+ */
+export async function getOperatingMetrics(): Promise<FunnelStep[]> {
+  try {
+    const kpi = await loadAdminKpi();
+    const data = await loadOperatingDashboard(kpi);
+    return data.funnel;
+  } catch {
+    return [];
+  }
 }

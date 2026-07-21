@@ -28,6 +28,10 @@ export async function GET(req: NextRequest) {
     transportScore: r.transportScore,
     comment: r.comment,
     createdAt: r.createdAt,
+    helpfulCount: r.helpfulCount,
+    isResident: r.isResident,
+    isVisitVerified: r.isVisitVerified,
+    residentPeriod: r.residentPeriod,
   }));
   return NextResponse.json({ reviews, summary });
 }
@@ -63,6 +67,9 @@ export async function POST(req: NextRequest) {
     return isNaN(n) ? fallback : Math.min(5, Math.max(1, Math.round(n)));
   };
 
+  // 신뢰 신호(선택) — 미전송 시 기존 동작(false / null) 유지
+  const residentPeriodRaw = body.residentPeriod ? String(body.residentPeriod).trim().slice(0, 60) : "";
+
   const review = await upsertReview({
     complexId,
     complexName,
@@ -73,6 +80,9 @@ export async function POST(req: NextRequest) {
     neighborScore: toScore(body.neighborScore),
     transportScore: toScore(body.transportScore),
     comment: body.comment ? String(body.comment).slice(0, 500) : null,
+    isResident: body.isResident === true,
+    isVisitVerified: body.isVisitVerified === true,
+    residentPeriod: residentPeriodRaw || null,
   });
   // 후기 작성 적립 — refId=review.id 로 재작성(upsert) 중복 지급 방지.
   if (session.user.email) {

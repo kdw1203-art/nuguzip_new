@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { awardPoints } from "@/lib/points/ledger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,6 +94,21 @@ export async function PATCH(req: Request) {
     .maybeSingle();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   const normalized = normalizeProgress(data?.onboarding_progress, data?.onboarding_completed_at ?? null);
-  return NextResponse.json({ progress: normalized, steps: normalized.completedSteps, stored: true });
+  // #4 온보딩 완주 리워드 — 3/3 완료 시 1회 보너스 (once 룰로 중복 방지)
+  let bonus = 0;
+  if (normalized.completedSteps.length >= ALLOWED_STEPS.size) {
+    try {
+      const res = await awardPoints(session.user.email.trim().toLowerCase(), "onboarding_complete");
+      bonus = res.awarded;
+    } catch {
+      // 포인트 적립 실패는 온보딩 저장을 막지 않음
+    }
+  }
+  return NextResponse.json({
+    progress: normalized,
+    steps: normalized.completedSteps,
+    stored: true,
+    bonusAwarded: bonus,
+  });
 }
 

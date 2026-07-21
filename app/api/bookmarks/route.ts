@@ -23,7 +23,8 @@ function isValidType(v: unknown): v is BookmarkTargetType {
     v === "expert" ||
     v === "meeting" ||
     v === "market" ||
-    v === "complex"
+    v === "complex" ||
+    v === "listing"
   );
 }
 

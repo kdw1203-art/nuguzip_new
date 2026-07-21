@@ -1,5 +1,31 @@
+import { getOperatingMetrics } from "@/lib/admin/operating-metrics";
+
 const lightCard =
   "flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-5";
+
+/** 전환 퍼널 바 색상 (진함 → 옅음) — 기존 정적 퍼널 팔레트 계승 */
+const FUNNEL_BAR_COLORS = [
+  "#1d4fd8",
+  "#3a63de",
+  "#4a72e2",
+  "#6a8de9",
+  "#7ea2ff",
+  "#b9cbf5",
+];
+
+function funnelBarColor(i: number): string {
+  return FUNNEL_BAR_COLORS[Math.min(i, FUNNEL_BAR_COLORS.length - 1)];
+}
+
+/** 가장 옅은 마지막 색은 대비를 위해 어두운 글자 */
+function funnelTextColor(i: number): string {
+  return i >= FUNNEL_BAR_COLORS.length - 1 ? "#33415e" : "#fff";
+}
+
+/** 라벨의 "(30일)" 등 괄호 보조 문구 제거 */
+function stripParen(label: string): string {
+  return label.replace(/\s*\(.*?\)\s*/g, "").trim();
+}
 
 const SCHEDULES = [
   {
@@ -32,13 +58,6 @@ const WEEKLY = [
   { label: "D30 리텐션", value: "41%", delta: "+2%p", up: true },
 ];
 
-const FUNNEL = [
-  { flex: 1, bg: "#1d4fd8", color: "#fff", label: "100%" },
-  { flex: 0.62, bg: "#4a72e2", color: "#fff", label: "62%" },
-  { flex: 0.38, bg: "#7ea2ff", color: "#fff", label: "38%" },
-  { flex: 0.2, bg: "#b9cbf5", color: "#33415e", label: "8%" },
-];
-
 const RBAC = [
   { perm: "신고 판정·배지 회수", ops: "✓", cs: "—", fin: "—" },
   { perm: "티켓 응대·환불 요청", ops: "✓", cs: "✓", fin: "—" },
@@ -58,7 +77,28 @@ function rbacCell(v: string) {
   return <span className="flex-1 text-center text-[#c9d4e5]">—</span>;
 }
 
-export default function AdminOpsPage() {
+export default async function AdminOpsPage() {
+  // #15 실집계 전환 퍼널 (가입 → 관심 저장 → 첫 임장·노트 → AI 실행 → 글 작성 → 결제).
+  // 조회 실패·빈 데이터 시 빈 배열 → 아래에서 "데이터 없음" 빈 상태 렌더.
+  const funnel = await getOperatingMetrics();
+  const hasFunnel = funnel.length > 0 && funnel.some((s) => s.count > 0);
+  const funnelHeader = hasFunnel
+    ? funnel.map((s) => stripParen(s.label)).join(" → ")
+    : "가입 → 관심 저장 → 첫 임장·노트 → AI 실행 → 글 작성 → 결제";
+
+  // 최대 이탈 구간 = 연속 스텝 pctOfSignup 차이가 가장 큰 구간 (실집계 기반)
+  let maxDrop: { from: string; to: string; pp: number } | null = null;
+  for (let i = 1; i < funnel.length; i += 1) {
+    const prev = funnel[i - 1];
+    const cur = funnel[i];
+    if (prev.pctOfSignup != null && cur.pctOfSignup != null) {
+      const pp = Math.round((prev.pctOfSignup - cur.pctOfSignup) * 10) / 10;
+      if (pp > 0 && (maxDrop === null || pp > maxDrop.pp)) {
+        maxDrop = { from: stripParen(prev.label), to: stripParen(cur.label), pp };
+      }
+    }
+  }
+
   return (
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">
@@ -126,24 +166,60 @@ export default function AdminOpsPage() {
                 </div>
               ))}
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="text-[10px] font-extrabold text-text-3">
-                전환 퍼널: 가입 → 첫 노트 → AI 분석 → 구독
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="min-w-0 text-[10px] font-extrabold text-text-3">
+                  전환 퍼널: {funnelHeader}
+                </div>
+                <span className="shrink-0 text-[9px] text-text-3">
+                  가입 30일 기준
+                </span>
               </div>
-              <div className="flex items-center gap-1">
-                {FUNNEL.map((f) => (
-                  <div
-                    key={f.label}
-                    className="flex h-[22px] items-center justify-center rounded-md text-[9px] font-extrabold"
-                    style={{ flex: f.flex, background: f.bg, color: f.color }}
-                  >
-                    {f.label}
+              {hasFunnel ? (
+                <>
+                  <div className="flex items-center gap-1">
+                    {funnel.map((step, i) => {
+                      const pct = step.pctOfSignup;
+                      const flex = Math.max(0.14, Math.min(1, (pct ?? 0) / 100));
+                      return (
+                        <div
+                          key={step.label}
+                          title={`${step.label} · ${step.count.toLocaleString(
+                            "ko-KR",
+                          )}명${pct != null ? ` · ${pct}%` : ""}`}
+                          className="flex h-[22px] items-center justify-center overflow-hidden rounded-md px-1 text-[9px] font-extrabold"
+                          style={{
+                            flex,
+                            background: funnelBarColor(i),
+                            color: funnelTextColor(i),
+                          }}
+                        >
+                          {pct != null ? `${pct}%` : "—"}
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-              <div className="text-[9px] text-text-3">
-                최대 이탈: 첫 노트 → AI 분석 (-24%p) — 12k 가이드 모드 실험 중
-              </div>
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-text-3">
+                    {funnel.map((step) => (
+                      <span key={step.label} className="tabular-nums">
+                        {stripParen(step.label)}{" "}
+                        <b className="text-text-1">
+                          {step.count.toLocaleString("ko-KR")}
+                        </b>
+                      </span>
+                    ))}
+                  </div>
+                  {maxDrop ? (
+                    <div className="text-[9px] text-text-3">
+                      최대 이탈: {maxDrop.from} → {maxDrop.to} (−{maxDrop.pp}%p)
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <div className="rounded-md bg-bg px-3 py-4 text-center text-[10px] text-text-3">
+                  퍼널 데이터 없음 — 집계 이벤트가 쌓이면 표시됩니다
+                </div>
+              )}
             </div>
           </div>
         </div>

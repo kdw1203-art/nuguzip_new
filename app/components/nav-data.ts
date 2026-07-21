@@ -50,6 +50,7 @@ export const NAV: NavItem[] = [
       { label: "입주 물량", href: "/supply" },
       { label: "공매 물건", href: "/auctions" },
       { label: "청약 센터", href: "/apply" },
+      { label: "개발 물건 중개", href: "/dev-deals" },
     ],
   },
 ];

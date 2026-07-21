@@ -225,6 +225,17 @@ export function SearchClient() {
         )}
       </div>
 
+      {/* 검색↔지도 연동 (#9b) — 현재 검색어로 지도 이동 */}
+      {hasQuery && (
+        <Link
+          href={`/map?q=${encodeURIComponent(q.trim())}`}
+          onClick={() => saveRecent(q)}
+          className="btn-soft rise-in inline-flex w-fit items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-bold text-primary"
+        >
+          🗺️ ‘{q.trim()}’ 지도에서 보기 ›
+        </Link>
+      )}
+
       {/* 검색어 없음 — 최근·인기 검색 */}
       {!hasQuery && (
         <div className="rise-in mt-2 flex flex-col gap-5">
@@ -299,9 +310,20 @@ export function SearchClient() {
                   <div className="text-[13px] font-extrabold text-ink">
                     {g.label} <span className="text-text-3">{g.rows.length}</span>
                   </div>
-                  <Link href={g.more} className="text-[12px] font-bold text-primary">
-                    더 보기 ›
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    {g.key === "complexes" && (
+                      <Link
+                        href={`/map?q=${encodeURIComponent(q.trim())}`}
+                        onClick={() => saveRecent(q)}
+                        className="text-[12px] font-bold text-primary"
+                      >
+                        지도 ›
+                      </Link>
+                    )}
+                    <Link href={g.more} className="text-[12px] font-bold text-primary">
+                      더 보기 ›
+                    </Link>
+                  </div>
                 </header>
                 <div className="flex flex-col">
                   {g.rows.map((r, i) => (

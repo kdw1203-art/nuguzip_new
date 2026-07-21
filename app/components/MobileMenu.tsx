@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { NAV } from "./nav-data";
+import { ThemeToggle } from "./ThemeToggle";
+import { PushSubscribe } from "@/components/PushSubscribe";
 
 /** 모바일 전체 메뉴 — ☰ 트리거 + 우측 슬라이드 글래스 시트 (md:hidden)
  *  GNB 4 대분류 + 서비스·내 계정·고객지원 섹션까지 노출하는 전체 사이트 디렉토리.
@@ -26,8 +28,9 @@ const SERVICE_LINKS: LinkItem[] = [
   { label: "통합 검색", href: "/search", icon: "🔍" },
   { label: "실매물 보기", href: "/listings", icon: "🏠" },
   { label: "매물 등록", href: "/listings/new", icon: "➕" },
-  { label: "공매 물건", href: "/auctions", icon: "🔨" },
-  { label: "정비사업", href: "/redevelopment", icon: "🏗️" },
+  { label: "공매·경매", href: "/auctions", icon: "🔨" },
+  { label: "개발 물건 중개", href: "/dev-deals", icon: "🏗️" },
+  { label: "정비사업", href: "/redevelopment", icon: "🧱" },
   { label: "공공 데이터 현황", href: "/data/records", icon: "📊" },
   { label: "포인트 상점", href: "/points/shop", icon: "🎁" },
   { label: "중개사 제휴", href: "/partners", icon: "🤝" },
@@ -35,7 +38,9 @@ const SERVICE_LINKS: LinkItem[] = [
 
 const ACCOUNT_LINKS: LinkItem[] = [
   { label: "마이페이지", href: "/my", icon: "👤" },
+  { label: "관심 목록", href: "/my/wishlist", icon: "❤️" },
   { label: "포인트 지갑", href: "/my/points", icon: "💰" },
+  { label: "친구 추천", href: "/my/referral", icon: "🎉" },
   { label: "내 매물", href: "/my/listings", icon: "🏢" },
   { label: "알림", href: "/notifications", icon: "🔔" },
   { label: "구독 관리", href: "/subscription", icon: "✦" },
@@ -103,7 +108,7 @@ export function MobileMenu() {
           <div
             className="glass-strong absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl [animation:riseIn_220ms_var(--ease-out)_both]"
             style={{
-              background: "rgba(255,255,255,.96)",
+              background: "var(--surface)",
               paddingTop: "max(16px, env(safe-area-inset-top, 0px))",
               paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px))",
             }}
@@ -203,6 +208,17 @@ export function MobileMenu() {
                       <span className="truncate">{l.label}</span>
                     </Link>
                   ))}
+                </div>
+              </div>
+
+              {/* 화면·알림 설정 */}
+              <div className="mt-5">
+                <div className="mb-1 px-1 text-[11px] font-bold uppercase tracking-wide text-text-3">
+                  화면 · 알림
+                </div>
+                <div className="grid grid-cols-2 items-center gap-x-1">
+                  <ThemeToggle />
+                  <PushSubscribe />
                 </div>
               </div>
             </div>

@@ -11,6 +11,14 @@ import {
   type MapSearchSelectComplex,
 } from "./MapSearchBox";
 import { ComplexInfoPanel } from "./ComplexInfoPanel";
+import {
+  ALL_SUBWAY,
+  ALL_SCHOOLS,
+  ALL_MARTS,
+  poisInBounds,
+  type Poi,
+  type PoiBounds,
+} from "@/lib/listings/poi";
 
 /* ============================================================
    지도 탐색 (6a) — 실제 네이버 지도 + 글래스 오버레이 UI
@@ -324,6 +332,34 @@ const LISTING_MARKER_COLOR = "#1d4fd8";
 /** 매물 bounds fetch 디바운스(ms) */
 const LISTING_FETCH_DEBOUNCE_MS = 350;
 
+/* ===== 지도 편의 레이어 (#8) — 지하철/학교/마트 POI (샘플·참고 데이터) ===== */
+type PoiLayerKey = "subway" | "school" | "mart";
+const POI_LAYERS: { key: PoiLayerKey; label: string; emoji: string; pois: Poi[] }[] = [
+  { key: "subway", label: "지하철", emoji: "🚇", pois: ALL_SUBWAY },
+  { key: "school", label: "학교", emoji: "🏫", pois: ALL_SCHOOLS },
+  { key: "mart", label: "마트", emoji: "🛒", pois: ALL_MARTS },
+];
+/** 레이어당 마커 하드캡 (마커 과다 방지) */
+const POI_MAX_PER_LAYER = 24;
+
+/* ===== 출퇴근 필터 (#10) — 회사 위치 기준 예상 소요시간 ===== */
+const COMMUTE_OPTIONS: { key: string; label: string; max: number | null }[] = [
+  { key: "off", label: "해제", max: null },
+  { key: "30", label: "≤30분", max: 30 },
+  { key: "45", label: "≤45분", max: 45 },
+  { key: "60", label: "≤60분", max: 60 },
+];
+/** 출퇴근 추정 요청 단지 수 상한(서버와 별개의 클라 가드) */
+const COMMUTE_MAX_POINTS = 60;
+
+interface CommuteResponse {
+  office: { lat: number; lng: number } | null;
+  basis: "directions" | "haversine";
+  results: { id: string; minutes: number }[];
+  note?: string;
+  error?: string;
+}
+
 export function MapClient({ danji, regionLabel }: MapClientProps) {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom>("danji");
@@ -362,17 +398,48 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   const [listingTradeKey, setListingTradeKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
+  /* ===== 지도 편의 레이어 (#8) — POI 토글 + 현재 bounds ===== */
+  const [poiLayers, setPoiLayers] = useState<Record<PoiLayerKey, boolean>>({
+    subway: false,
+    school: false,
+    mart: false,
+  });
+  const anyPoiLayer = poiLayers.subway || poiLayers.school || poiLayers.mart;
+  const [poiBounds, setPoiBounds] = useState<PoiBounds | null>(null);
+  const anyPoiLayerRef = useRef(anyPoiLayer);
+  anyPoiLayerRef.current = anyPoiLayer;
+
+  /* ===== 출퇴근 필터 (#10) 상태 ===== */
+  const [officeInput, setOfficeInput] = useState("");
+  const [officeQuery, setOfficeQuery] = useState(""); // 적용된 회사 주소(제출값)
+  const [commuteKey, setCommuteKey] = useState("off");
+  const [commuteMinutes, setCommuteMinutes] = useState<Map<string, number> | null>(null);
+  const [commuteBasis, setCommuteBasis] = useState<"directions" | "haversine" | null>(null);
+  const [commuteOfficeResolved, setCommuteOfficeResolved] = useState(false);
+  const [commuteLoading, setCommuteLoading] = useState(false);
+  const [commuteError, setCommuteError] = useState<string | null>(null);
+  const commuteAbortRef = useRef<AbortController | null>(null);
+  const commuteThreshold = COMMUTE_OPTIONS.find((o) => o.key === commuteKey)?.max ?? null;
+  const commuteActive =
+    commuteThreshold !== null && commuteOfficeResolved && commuteMinutes !== null;
+
   const danjiFilterActive =
     priceKey !== "all" ||
     areaKey !== "all" ||
     yearKey !== "all" ||
     householdKey !== "all" ||
     buildingKey !== "all";
-  const filterActive = danjiFilterActive || listingTradeKey !== "all";
-  const activeCount =
-    [priceKey, areaKey, yearKey, householdKey, buildingKey, listingTradeKey].filter(
-      (k) => k !== "all",
-    ).length;
+  const filterActive =
+    danjiFilterActive || listingTradeKey !== "all" || commuteKey !== "off";
+  const activeCount = [
+    priceKey,
+    areaKey,
+    yearKey,
+    householdKey,
+    buildingKey,
+    listingTradeKey,
+    commuteKey,
+  ].filter((k) => k !== "all" && k !== "off").length;
 
   const resetFilters = useCallback(() => {
     setPriceKey("all");
@@ -381,9 +448,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     setHouseholdKey("all");
     setBuildingKey("all");
     setListingTradeKey("all");
+    setCommuteKey("off");
   }, []);
 
-  const filteredDanji = useMemo(() => {
+  // 범위/유형 필터만 적용한 단지 (출퇴근 추정 요청·비교의 기준 집합)
+  const rangeFilteredDanji = useMemo(() => {
     if (!danjiFilterActive) return danji;
     const priceOpt = PRICE_OPTIONS.find((o) => o.key === priceKey) ?? PRICE_OPTIONS[0];
     const areaOpt = AREA_OPTIONS.find((o) => o.key === areaKey) ?? AREA_OPTIONS[0];
@@ -399,6 +468,17 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         matchesBuildingType(d.buildingType, btOpt),
     );
   }, [danji, danjiFilterActive, priceKey, areaKey, yearKey, householdKey, buildingKey]);
+
+  // 출퇴근(#10) 필터를 범위 필터 위에 덧입힘 — 임계 초과 단지는 숨김.
+  const filteredDanji = useMemo(() => {
+    if (!commuteActive || commuteMinutes === null || commuteThreshold === null) {
+      return rangeFilteredDanji;
+    }
+    return rangeFilteredDanji.filter((d) => {
+      const m = commuteMinutes.get(d.id);
+      return m !== undefined && m <= commuteThreshold;
+    });
+  }, [rangeFilteredDanji, commuteActive, commuteMinutes, commuteThreshold]);
 
   // 컴팩트 칩 행: 매물 토글 + "필터" 확장 버튼 (+활성 배지) + 초기화
   const filterBar = (
@@ -447,7 +527,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
 
   // 확장 패널: 모든 범위/유형 필터 (칩 그룹) — 모바일 친화 접이식
   const filterPanel = filtersExpanded ? (
-    <div className="glass-strong flex w-[300px] max-w-[calc(100vw-32px)] flex-col gap-3 rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
+    <div className="glass-strong flex max-h-[calc(100dvh-210px)] w-[300px] max-w-[calc(100vw-32px)] flex-col gap-3 overflow-y-auto rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
       <div className="flex items-center justify-between">
         <span className="text-sm font-extrabold text-ink">상세 필터</span>
         <button
@@ -470,6 +550,99 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         valueKey={listingTradeKey}
         onSelect={setListingTradeKey}
       />
+
+      {/* ===== 지도 편의 레이어 (#8) — 지하철/학교/마트 POI 토글 ===== */}
+      <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
+        <div className="text-[11px] font-bold text-text-3">지도 레이어</div>
+        <div className="flex flex-wrap gap-1.5">
+          {POI_LAYERS.map((l) => {
+            const active = poiLayers[l.key];
+            return (
+              <button
+                key={l.key}
+                type="button"
+                aria-pressed={active}
+                onClick={() =>
+                  setPoiLayers((prev) => ({ ...prev, [l.key]: !prev[l.key] }))
+                }
+                className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+                  active
+                    ? "bg-primary-soft font-bold text-primary"
+                    : "bg-[rgba(255,255,255,.85)] text-text-2"
+                }`}
+              >
+                {l.emoji} {l.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="text-[10px] text-text-3">
+          지하철·학교·마트는 샘플/참고 데이터예요.
+        </div>
+      </div>
+
+      {/* ===== 출퇴근 필터 (#10) — 회사 주소 + 임계 소요시간 ===== */}
+      <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
+        <div className="text-[11px] font-bold text-text-3">출퇴근 (회사 위치)</div>
+        <input
+          type="text"
+          value={officeInput}
+          onChange={(e) => setOfficeInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              setOfficeQuery(officeInput.trim());
+            }
+          }}
+          placeholder="회사 주소 (예: 강남구 테헤란로 152)"
+          aria-label="회사 주소"
+          className="w-full rounded-lg border border-line bg-[rgba(255,255,255,.9)] px-2.5 py-1.5 text-xs text-text-1 outline-none placeholder:text-text-3"
+        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setOfficeQuery(officeInput.trim())}
+            className="btn-soft rounded-lg px-2.5 py-1.5 text-[11px] font-bold"
+          >
+            적용
+          </button>
+          {COMMUTE_OPTIONS.map((o) => {
+            const active = o.key === commuteKey;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => setCommuteKey(o.key)}
+                className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+                  active
+                    ? "bg-primary font-bold text-white"
+                    : "bg-[rgba(255,255,255,.85)] text-text-2"
+                }`}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+        {commuteLoading && (
+          <div className="text-[10px] text-text-3">소요시간 계산 중…</div>
+        )}
+        {commuteError && <div className="text-[10px] text-danger">{commuteError}</div>}
+        {!commuteError && commuteOfficeResolved && commuteBasis === "haversine" && (
+          <div className="text-[10px] text-text-3">
+            직선거리 기준(정확 소요시간은 연동 시)
+          </div>
+        )}
+        {!commuteError && commuteOfficeResolved && commuteBasis === "directions" && (
+          <div className="text-[10px] text-text-3">실시간 경로 기준 소요시간</div>
+        )}
+        {commuteActive && commuteThreshold !== null && (
+          <div className="text-[10px] font-bold text-primary">
+            출퇴근 {commuteThreshold}분 이내 · 단지 {filteredDanji.length}개
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center justify-between border-t border-[rgba(16,28,54,.08)] pt-2.5">
         <button type="button" onClick={resetFilters} className="text-[12px] font-bold text-text-3 underline">
           전체 초기화
@@ -547,6 +720,14 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     const bounds = info.bounds;
     if (!bounds) return;
     lastBoundsRef.current = bounds;
+    if (anyPoiLayerRef.current) {
+      setPoiBounds({
+        swLat: bounds.swLat,
+        swLng: bounds.swLng,
+        neLat: bounds.neLat,
+        neLng: bounds.neLng,
+      });
+    }
     if (showListingsRef.current) fetchListings(bounds);
     if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
     fetchTimerRef.current = window.setTimeout(() => {
@@ -580,9 +761,71 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       abortRef.current?.abort();
       if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
       listingAbortRef.current?.abort();
+      commuteAbortRef.current?.abort();
     },
     [],
   );
+
+  // POI 레이어 ON: 마지막으로 알려진 뷰포트로 bounds 시드 (idle 전에도 즉시 표시)
+  useEffect(() => {
+    if (anyPoiLayer && lastBoundsRef.current) {
+      const b = lastBoundsRef.current;
+      setPoiBounds({ swLat: b.swLat, swLng: b.swLng, neLat: b.neLat, neLng: b.neLng });
+    }
+  }, [anyPoiLayer]);
+
+  // 출퇴근(#10): 회사 주소 제출 → /api/map/commute 로 (범위 필터된) 단지 소요시간 추정.
+  // 임계값(commuteKey) 변경은 재조회 없이 클라 필터만 갱신하므로 deps 에서 제외.
+  useEffect(() => {
+    const q = officeQuery.trim();
+    commuteAbortRef.current?.abort();
+    if (!q) {
+      setCommuteMinutes(null);
+      setCommuteBasis(null);
+      setCommuteOfficeResolved(false);
+      setCommuteError(null);
+      setCommuteLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    commuteAbortRef.current = controller;
+    setCommuteLoading(true);
+    setCommuteError(null);
+    const points = rangeFilteredDanji
+      .slice(0, COMMUTE_MAX_POINTS)
+      .map((d) => ({ id: d.id, lat: d.lat, lng: d.lng }));
+    fetch("/api/map/commute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ office: q, points }),
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? (res.json() as Promise<CommuteResponse>) : null))
+      .then((json) => {
+        if (!json || controller.signal.aborted) return;
+        setCommuteBasis(json.basis ?? null);
+        if (!json.office) {
+          setCommuteMinutes(null);
+          setCommuteOfficeResolved(false);
+          setCommuteError(json.error ?? "회사 위치를 확인할 수 없어요.");
+          return;
+        }
+        const map = new Map<string, number>();
+        for (const r of json.results ?? []) {
+          if (typeof r.id === "string" && Number.isFinite(r.minutes)) map.set(r.id, r.minutes);
+        }
+        setCommuteMinutes(map);
+        setCommuteOfficeResolved(true);
+        setCommuteError(null);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setCommuteError("소요시간을 불러오지 못했어요.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCommuteLoading(false);
+      });
+    return () => controller.abort();
+  }, [officeQuery, rangeFilteredDanji]);
 
   // 매물 레이어 마커 — 단지(회색 시세 말풍선)와 구분되는 파란 알약 + 유형·가격 라벨.
   // avgPricePerM2 정의 → price marker 스타일, tierColor로 파란 강조, 부스트는 ★.
@@ -603,6 +846,29 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       };
     });
   }, [showListings, listingItems]);
+
+  // 편의 레이어(#8) 마커 — 뷰포트 내 지하철/학교/마트 POI. 시세 말풍선 스타일을 재사용해
+  // 이모지+이름 라벨을 그대로 표시하고, POI 색으로 강조(tierColor). 클릭은 무시(핀 표시 전용).
+  const poiMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!anyPoiLayer) return [];
+    const out: MapMarkerData[] = [];
+    for (const layer of POI_LAYERS) {
+      if (!poiLayers[layer.key]) continue;
+      for (const p of poisInBounds(layer.pois, poiBounds, POI_MAX_PER_LAYER)) {
+        out.push({
+          id: `poi:${p.id}`,
+          lat: p.lat,
+          lng: p.lng,
+          label: `${layer.emoji} ${p.name}`,
+          priceLabel: `${layer.emoji} ${p.name}`,
+          avgPricePerM2: 1, // 시세 말풍선 스타일 강제 (라벨 전체 렌더)
+          tierColor: p.color,
+          infoHtml: "",
+        });
+      }
+    }
+    return out;
+  }, [anyPoiLayer, poiLayers, poiBounds]);
 
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
@@ -634,7 +900,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
         infoHtml: "",
       }));
-      return withSearch([...base, ...listingMarkers]);
+      return withSearch([...base, ...listingMarkers, ...poiMarkers]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
     const base: MapMarkerData[] = filteredDanji.map((d) => ({
@@ -665,7 +931,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         });
       }
     }
-    return withSearch([...base, ...listingMarkers]);
+    return withSearch([...base, ...listingMarkers, ...poiMarkers]);
   }, [
     clusterMode,
     clusters,
@@ -676,6 +942,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     infoComplex,
     searchMarker,
     listingMarkers,
+    poiMarkers,
   ]);
 
   const selectDanji = (id: string) => {
@@ -731,7 +998,60 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     setSearchMarker(null);
   }, []);
 
+  /* ===== 검색↔지도 연동 (#9a) — 마운트 시 ?q= 를 기존 선택 로직으로 재현 ===== */
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+    let q = "";
+    try {
+      q = new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+    } catch {
+      q = "";
+    }
+    if (!q) return;
+    const controller = new AbortController();
+    void (async () => {
+      // 1) 단지 서제스트 우선 — 있으면 첫 후보를 선택(recenter+하이라이트)
+      try {
+        const r = await fetch(`/api/search/suggest?q=${encodeURIComponent(q)}`, {
+          signal: controller.signal,
+        });
+        const j = r.ok
+          ? ((await r.json()) as {
+              suggestions?: { id: string; name: string; region: string }[];
+            })
+          : null;
+        const first = j?.suggestions?.[0];
+        if (first) {
+          handleSearchSelectComplex({ id: first.id, name: first.name, region: first.region });
+          return;
+        }
+      } catch {
+        // 서제스트 실패 → 지오코딩 폴백
+      }
+      // 2) 주소 지오코딩 폴백 — 좌표가 있으면 지도 이동
+      try {
+        const r = await fetch(`/api/map/geocode?q=${encodeURIComponent(q)}&limit=1`, {
+          signal: controller.signal,
+        });
+        const j = r.ok
+          ? ((await r.json()) as { items?: { address: string; lat: number; lng: number }[] })
+          : null;
+        const it = j?.items?.[0];
+        if (it && Number.isFinite(it.lat) && Number.isFinite(it.lng)) {
+          handleSearchSelectAddress({ address: it.address, lat: it.lat, lng: it.lng });
+        }
+      } catch {
+        // 지오코딩 미설정/실패 — 조용히 무시
+      }
+    })();
+    return () => controller.abort();
+  }, [handleSearchSelectComplex, handleSearchSelectAddress]);
+
   const handleMarkerClick = (m: MapMarkerData) => {
+    // 편의 레이어(POI) 마커 — 표시 전용, 클릭 무시
+    if (m.id.startsWith("poi:")) return;
     // 매물 마커 클릭 → 매물 상세로 이동
     if (m.id.startsWith("listing:")) {
       router.push(`/listings/${m.id.slice("listing:".length)}`);
@@ -1029,13 +1349,13 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           <div className="flex items-baseline justify-between px-5 pb-2.5 pt-4">
             <div className="text-[15px] font-extrabold text-ink">
               {regionLabel} 단지 {filteredDanji.length}
-              {danjiFilterActive && (
+              {(danjiFilterActive || commuteActive) && (
                 <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
               )}
             </div>
             <div className="text-xs text-text-3">시세순 ▾</div>
           </div>
-          {danjiFilterActive && filteredDanji.length === 0 && (
+          {(danjiFilterActive || commuteActive) && filteredDanji.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
               <div className="text-xs text-text-2">조건에 맞는 단지가 없어요.</div>
               <button

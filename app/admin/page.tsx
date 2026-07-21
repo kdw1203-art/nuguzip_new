@@ -96,6 +96,9 @@ export default async function AdminDashboardPage() {
   }
   const pendingListingsCount = await countPendingListings().catch(() => 0);
   const maxSignup = Math.max(1, ...ops.signupTrend.map((d) => d.count));
+  // 신고 처리 배지: content_reports 상태별 실집계에서 open 건수 (없으면 null → 배지 숨김)
+  const openReportCount =
+    ops.reportCounts.find((c) => c.status === "open")?.count ?? null;
   const kpis =
     metrics.kpis.length > 0
       ? metrics.kpis
@@ -368,13 +371,13 @@ export default async function AdminDashboardPage() {
             <span className="text-[15px] font-extrabold text-white">
               노트 · 콘텐츠 관리
             </span>
-            <span className="text-[11px] text-[#9aa6b8]">
-              오늘 노트 156 · 글 89 · 크롤링 148
+            <span className="rounded-full bg-[rgba(255,255,255,.08)] px-2 py-px text-[10px] font-bold text-[#9aa6b8]">
+              예시 데이터
             </span>
           </div>
           <div className="flex flex-wrap gap-1.5 text-[11px]">
             <span className="rounded-full bg-[rgba(255,255,255,.1)] px-3 py-[5px] font-bold text-white">
-              검수 대기 7
+              검수 대기
             </span>
             <span className="px-3 py-[5px] text-[#9aa6b8]">공개 노트</span>
             <span className="px-3 py-[5px] text-[#9aa6b8]">커뮤니티</span>
@@ -409,13 +412,15 @@ export default async function AdminDashboardPage() {
         <div className={`${panelCard} flex flex-col gap-3`}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">
-              신고 처리{" "}
-              <span className="ml-1 rounded-full bg-danger px-[7px] py-px text-[10px] font-extrabold text-white">
-                4
-              </span>
+              신고 처리
+              {openReportCount !== null ? (
+                <span className="ml-1 rounded-full bg-danger px-[7px] py-px text-[10px] font-extrabold text-white">
+                  {openReportCount.toLocaleString("ko-KR")}
+                </span>
+              ) : null}
             </span>
             <span className="text-[11px] text-[#9aa6b8]">
-              SLA: 긴급 2h · 일반 24h
+              아래 목록 예시 · SLA: 긴급 2h · 일반 24h
             </span>
           </div>
           <div className="flex flex-col gap-2">
@@ -484,8 +489,8 @@ export default async function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">
               전문가 승인{" "}
-              <span className="ml-1 rounded-full bg-[#f2c94c] px-[7px] py-px text-[10px] font-extrabold text-[#12161f]">
-                2
+              <span className="ml-1 rounded-full bg-[rgba(255,255,255,.12)] px-2 py-px text-[10px] font-bold text-[#9aa6b8]">
+                예시
               </span>
             </span>
             <span className="text-[11px] text-[#9aa6b8]">

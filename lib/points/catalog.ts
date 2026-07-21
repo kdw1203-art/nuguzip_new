@@ -22,6 +22,12 @@ export const EARN_RULES: Record<string, EarnRule> = {
   review_written: { key: "review_written", label: "단지 후기 작성", points: 30, dailyCap: 5 },
   attendance: { key: "attendance", label: "출석", points: 10, dailyCap: 1 },
   referral: { key: "referral", label: "친구 추천 가입", points: 300 },
+  onboarding_complete: {
+    key: "onboarding_complete",
+    label: "온보딩 완주 보너스",
+    points: 200,
+    once: true,
+  },
 };
 
 export type SpendItem = {

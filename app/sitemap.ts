@@ -41,8 +41,12 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/data/records", priority: 0.5 },
   // 아파트 입주 예정 물량(공급 캘린더)
   { path: "/supply", priority: 0.7 },
-  // 온비드 서울 공매 물건
+  // 온비드 서울 공매 + 법원경매 물건
   { path: "/auctions", priority: 0.7 },
+  // 개발물건 중개 (B2B 디벨로퍼 매칭)
+  { path: "/dev-deals", priority: 0.7 },
+  { path: "/dev-deals/partners", priority: 0.5 },
+  { path: "/dev-deals/fees", priority: 0.4 },
   // 매물 등록·포인트
   { path: "/listings/new", priority: 0.6 },
   { path: "/points/shop", priority: 0.5 },

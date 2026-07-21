@@ -6,41 +6,18 @@ import { usePathname } from "next/navigation";
 type NavItem = {
   href: string;
   label: string;
-  badge?: { text: string; tone: "danger" | "warn" };
 };
 
+// 정적 배지(수익 9 · 신고 4 · 품질 2)는 실집계가 아닌 하드코딩 값이라 제거했다.
+// 실시간 대기 건수는 각 페이지(대시보드/모더레이션 등)의 실데이터 패널에서 노출한다.
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "대시보드" },
-  {
-    href: "/admin/revenue",
-    label: "수익",
-    badge: { text: "9", tone: "danger" },
-  },
-  {
-    href: "/admin/moderation",
-    label: "신고 · 모더레이션",
-    badge: { text: "4", tone: "danger" },
-  },
-  {
-    href: "/admin/quality",
-    label: "품질 · 인증",
-    badge: { text: "2", tone: "warn" },
-  },
+  { href: "/admin/revenue", label: "수익" },
+  { href: "/admin/moderation", label: "신고 · 모더레이션" },
+  { href: "/admin/quality", label: "품질 · 인증" },
   { href: "/admin/ops", label: "운영 · 공지" },
   { href: "/admin/market", label: "마켓 · 정산" },
 ];
-
-function Badge({ text, tone }: { text: string; tone: "danger" | "warn" }) {
-  return (
-    <span
-      className={`ml-1 rounded-full px-[7px] py-px text-[10px] font-extrabold ${
-        tone === "danger" ? "bg-danger text-white" : "bg-[#f2c94c] text-[#12161f]"
-      }`}
-    >
-      {text}
-    </span>
-  );
-}
 
 export function AdminNav() {
   const pathname = usePathname();
@@ -63,7 +40,6 @@ export function AdminNav() {
             }`}
           >
             {item.label}
-            {item.badge ? <Badge text={item.badge.text} tone={item.badge.tone} /> : null}
           </Link>
         );
       })}

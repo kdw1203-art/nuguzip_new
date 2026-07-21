@@ -21,6 +21,10 @@ type ReviewItem = {
   transportScore: number;
   comment: string | null;
   createdAt: string;
+  helpfulCount?: number;
+  isResident?: boolean;
+  isVisitVerified?: boolean;
+  residentPeriod?: string | null;
 };
 
 type Summary = {
@@ -117,8 +121,42 @@ export function ComplexReviews({
     transportScore: 0,
   });
   const [comment, setComment] = useState("");
+  const [isResident, setIsResident] = useState(false);
+  const [isVisitVerified, setIsVisitVerified] = useState(false);
+  const [residentPeriod, setResidentPeriod] = useState("");
   const [submitState, setSubmitState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  // 도움돼요 — 서버 authoritative count 오버라이드 + 투표 완료 표시(중복 방지)
+  const [helpfulOverride, setHelpfulOverride] = useState<Record<string, number>>({});
+  const [votedIds, setVotedIds] = useState<Record<string, boolean>>({});
+  const [helpfulBusy, setHelpfulBusy] = useState<Record<string, boolean>>({});
+
+  const voteHelpful = async (reviewId: string) => {
+    if (votedIds[reviewId] || helpfulBusy[reviewId]) return;
+    setHelpfulBusy((m) => ({ ...m, [reviewId]: true }));
+    try {
+      const res = await fetch("/api/complex-reviews/helpful", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewId }),
+      });
+      if (res.status === 401) {
+        router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? "/")}`);
+        return;
+      }
+      const data = (await res.json().catch(() => ({}))) as { count?: number; already?: boolean };
+      if (!res.ok) return;
+      if (typeof data.count === "number") {
+        setHelpfulOverride((m) => ({ ...m, [reviewId]: data.count as number }));
+      }
+      setVotedIds((m) => ({ ...m, [reviewId]: true }));
+    } catch {
+      // 네트워크 오류 시 조용히 무시 — 재시도 가능하도록 상태 유지
+    } finally {
+      setHelpfulBusy((m) => ({ ...m, [reviewId]: false }));
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -156,6 +194,9 @@ export function ComplexReviews({
           complexName,
           ...scores,
           comment: comment.trim() || null,
+          isResident,
+          isVisitVerified,
+          residentPeriod: residentPeriod.trim() || null,
         }),
       });
       if (res.status === 401) {
@@ -171,6 +212,9 @@ export function ComplexReviews({
       setSubmitState("done");
       setFormOpen(false);
       setComment("");
+      setIsResident(false);
+      setIsVisitVerified(false);
+      setResidentPeriod("");
       await load();
     } catch {
       setError("후기 등록에 실패했어요. 네트워크를 확인해 주세요.");
@@ -226,6 +270,40 @@ export function ComplexReviews({
             placeholder="한줄 후기 (선택 · 500자 이내) — 예: 저녁 8시 이후 주차 자리가 부족해요"
             className="w-full resize-none rounded-xl border border-line bg-surface p-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
+
+          {/* 신뢰 신호 — 실거주/방문 인증 (선택) */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-bold text-text-2">신뢰 정보 (선택)</span>
+            <div className="flex flex-wrap gap-2">
+              <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-text-1">
+                <input
+                  type="checkbox"
+                  checked={isResident}
+                  onChange={(e) => setIsResident(e.target.checked)}
+                  className="accent-primary"
+                />
+                실거주 (자가/세입자)
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-text-1">
+                <input
+                  type="checkbox"
+                  checked={isVisitVerified}
+                  onChange={(e) => setIsVisitVerified(e.target.checked)}
+                  className="accent-primary"
+                />
+                방문 (임장)
+              </label>
+            </div>
+            <input
+              type="text"
+              value={residentPeriod}
+              onChange={(e) => setResidentPeriod(e.target.value)}
+              maxLength={60}
+              placeholder="거주/방문 시기 (선택) — 예: 2023~2024, 2024년 3월 방문"
+              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-[12px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            />
+          </div>
+
           {error && <div className="text-[11px] font-semibold text-danger">{error}</div>}
           <div className="flex gap-2">
             <button
@@ -316,6 +394,29 @@ export function ComplexReviews({
                 <span className="text-[10px] text-text-3">{formatDate(r.createdAt)}</span>
                 <ReportButton postId={`complex-review:${r.id}`} className="ml-auto" />
               </div>
+
+              {/* 신뢰 배지 — 실거주 / 방문 / 시기 */}
+              {(r.isResident || r.isVisitVerified || r.residentPeriod) && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {r.isResident && (
+                    <span
+                      className="chip px-2 py-0.5 text-[10px]"
+                      style={{ background: "var(--success-soft)", color: "var(--success)" }}
+                    >
+                      실거주
+                    </span>
+                  )}
+                  {r.isVisitVerified && (
+                    <span className="chip bg-primary-soft px-2 py-0.5 text-[10px] text-primary">
+                      방문
+                    </span>
+                  )}
+                  {r.residentPeriod && (
+                    <span className="text-[10px] text-text-3">{r.residentPeriod}</span>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[10px] text-text-3">
                 {CATEGORIES.map((c) => (
                   <span key={c.key}>
@@ -326,6 +427,24 @@ export function ComplexReviews({
               {r.comment && (
                 <p className="text-[13px] leading-[1.6] text-text-1">{r.comment}</p>
               )}
+
+              {/* 도움돼요 투표 */}
+              <div className="mt-0.5 flex items-center">
+                <button
+                  type="button"
+                  onClick={() => void voteHelpful(r.id)}
+                  disabled={votedIds[r.id] || helpfulBusy[r.id]}
+                  aria-pressed={votedIds[r.id] ?? false}
+                  className={`press chip inline-flex items-center gap-1 border border-line px-2.5 py-1 text-[11px] ${
+                    votedIds[r.id]
+                      ? "bg-primary-soft text-primary"
+                      : "bg-surface text-text-2 hover:text-primary"
+                  } disabled:opacity-70`}
+                >
+                  <span aria-hidden>👍</span>
+                  도움돼요 {helpfulOverride[r.id] ?? r.helpfulCount ?? 0}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

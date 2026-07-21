@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SwRegister } from "./components/SwRegister";
 import { AdSenseLoader } from "./components/AdSenseLoader";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { ReferralRedeem } from "@/components/ReferralRedeem";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nuguzip.com"),
@@ -29,18 +31,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className="h-full antialiased">
+    <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <head>
         {/* 비애플 기기 폰트 폴백 — Pretendard Variable (dynamic subset) */}
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        {/* #19 PWA — iOS 홈 화면 아이콘 · 웹앱 메타 */}
+        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="누구집" />
       </head>
       <body className="min-h-full flex flex-col">
-        {children}
-        <SwRegister />
-        <AdSenseLoader />
+        {/* #18 a11y — 본문 바로가기 (키보드 첫 Tab) */}
+        <a href="#main-content" className="sr-only">
+          본문 바로가기
+        </a>
+        <ThemeProvider>
+          {children}
+          {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
+          <ReferralRedeem />
+          <SwRegister />
+          <AdSenseLoader />
+        </ThemeProvider>
       </body>
     </html>
   );

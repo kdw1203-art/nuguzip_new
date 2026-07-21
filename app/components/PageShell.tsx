@@ -18,6 +18,7 @@ export function PageShell({
     <>
       <Header />
       <main
+        id="main-content"
         className={`mx-auto w-full flex-1 px-5 pb-32 pt-5 md:pb-16 ${
           wide ? "max-w-[1400px]" : "max-w-[1240px]"
         }`}
