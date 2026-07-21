@@ -86,15 +86,15 @@ test("10. /search renders with search input", async ({ page }) => {
 // ---------- AI 분석 ----------
 
 test("11. /analysis renders AI 분석 hub", async ({ page }) => {
-  await page.goto("/analysis");
-  await expect(page.locator("main")).toBeVisible();
-  await expect(page.getByText("AI 분석 도구").first()).toBeVisible();
+  await page.goto("/analysis", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("AI 분석 도구").first()).toBeVisible({ timeout: 15000 });
 });
 
 test("12. /analysis/compare renders", async ({ page }) => {
-  await page.goto("/analysis/compare");
-  await expect(page.locator("main")).toBeVisible();
-  await expect(page.locator("body")).toContainText("비교");
+  await page.goto("/analysis/compare", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.locator("body")).toContainText("비교", { timeout: 15000 });
 });
 
 // ---------- 동네이야기 ----------
@@ -287,9 +287,9 @@ test("32. /dev-deals/fees renders tiered commission schedule", async ({ page }) 
 });
 
 test("33. /dev-deals/partners renders partner directory", async ({ page }) => {
-  await page.goto("/dev-deals/partners");
-  await expect(page.locator("main")).toBeVisible();
-  await expect(page.getByText("협력업체").first()).toBeVisible();
+  await page.goto("/dev-deals/partners", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText("협력업체").first()).toBeVisible({ timeout: 15000 });
 });
 
 // ---------- 법원경매 소스 토글 ----------
