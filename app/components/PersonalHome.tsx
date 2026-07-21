@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { HomeMiniMap, type HomeMiniRegion } from "./HomeMiniMap";
 
 /* S13-13a 홈 이원화 — 정적 CDN 셸 위에 로그인 개인화 지연 주입 (시안 9m 데스크탑 · 10g 모바일)
    마운트 후 /api/auth/session → 로그인일 때만 /api/home/personal 로드.
@@ -157,6 +158,26 @@ export function PersonalHome() {
     data.regions && data.regions.length > 0 ? data.regions : region ? [region] : []
   ).slice(0, 3);
   const regionMarket = data.regionMarket;
+
+  // 관심지역 실지도용 — 관심지역명을 좌표로 해석(HomeMiniMap 내부), 매칭 지역엔 시세 부착
+  const miniRegions: HomeMiniRegion[] = (
+    data.regions && data.regions.length > 0 ? data.regions : region ? [region] : []
+  )
+    .slice(0, 4)
+    .map((rname) => {
+      const matched =
+        !!regionMarket &&
+        (regionMarket.name === rname ||
+          rname.includes(regionMarket.name) ||
+          regionMarket.name.includes(rname));
+      return {
+        id: rname,
+        name: rname,
+        price: matched ? regionMarket.price : "",
+        delta: matched ? regionMarket.delta : "",
+        tone: (matched ? regionMarket.tone : "flat") as HomeMiniRegion["tone"],
+      };
+    });
 
   // 히어로 문구 — 실데이터 있으면 치환, 없으면 일반 안내 (허위 수치 금지)
   const heroSub = data.recentNote
@@ -511,56 +532,9 @@ export function PersonalHome() {
             </div>
           </div>
 
-          {/* 관심지역 미니지도 자리 */}
-          <div className="rise-in-1 relative min-h-[220px] overflow-hidden rounded-[22px] border border-line bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
-            <div className="glass absolute left-3.5 top-3.5 rounded-[10px] px-3 py-[7px] text-[11px] font-bold text-ink">
-              <Icon name="📍" size={12} className="inline align-middle" /> 내 관심지역{region ? ` · ${region}` : " · 미설정"}
-              {extraRegions > 0 ? ` 외 ${extraRegions}` : ""}
-            </div>
-            {/* #43 관심지역 칩 → 지도 탐색 */}
-            {regionChips.length > 0 && (
-              <div className="absolute left-3.5 top-[52px] flex flex-wrap gap-1.5">
-                {regionChips.map((r) => (
-                  <Link
-                    key={r}
-                    href="/map"
-                    className="glass rounded-full px-2.5 py-1 text-[10px] font-extrabold text-primary"
-                  >
-                    {r} ›
-                  </Link>
-                ))}
-              </div>
-            )}
-            {/* #43 관심지역 매칭 지역 시세 1건 */}
-            {regionMarket && (
-              <div className="glass absolute right-3.5 top-3.5 rounded-[10px] px-3 py-[7px] text-right">
-                <div className="text-[10px] font-semibold text-text-2">
-                  {regionMarket.name} · {regionMarket.meta}
-                </div>
-                <div className="text-xs font-extrabold text-ink">
-                  {regionMarket.price}{" "}
-                  <span className={DELTA_CLASS[regionMarket.tone]}>
-                    {regionMarket.delta}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] font-semibold text-[#7d8aa0]">
-              네이버/카카오 지도 SDK 영역
-            </div>
-            <Link
-              href="/map"
-              className="glass absolute bottom-3.5 left-3.5 right-3.5 flex items-center justify-between rounded-xl px-3.5 py-2.5"
-            >
-              <span className="text-[11px] text-text-2">
-                {region
-                  ? `${region} 주변 실거래·노트를 지도에서 확인`
-                  : "관심지역을 설정하고 지도에서 살펴보세요"}
-              </span>
-              <span className="text-[11px] font-extrabold text-primary">
-                지도 열기 ›
-              </span>
-            </Link>
+          {/* 관심지역 실지도 (네이버 지도 SDK) */}
+          <div className="rise-in-1">
+            <HomeMiniMap regions={miniRegions} className="h-[240px]" />
           </div>
         </div>
 

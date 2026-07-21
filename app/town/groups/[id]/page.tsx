@@ -3,6 +3,7 @@ import { getMeeting } from "@/lib/meetings/store-db";
 import { safeAuth } from "@/lib/safe-auth";
 import { PageShell } from "../../../components/PageShell";
 import { ShareButton } from "./ShareButton";
+import { GroupLocationMap } from "./GroupLocationMap";
 import { Icon } from "@/app/components/Icon";
 
 /* 시안 8o(모임 상세) 고도화 — 모임 정보 카드(일정·장소·정원·참여자) + 공유 +
@@ -156,17 +157,15 @@ export default async function TownGroupDetailPage({
         <div className="flex flex-col gap-3">
           <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-5">
             <div className="text-[13px] font-extrabold text-ink">모임 장소</div>
-            {/* 지도 미니: 실좌표 미보유 → 지역 요약으로 대체(허위 지도 미표기) */}
-            <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-[#eef2f8] to-[#e2e8f2] text-center">
-              <div>
-                <div className="text-2xl"><Icon name="📍" size={24} /></div>
-                <div className="mt-1 text-[12px] font-bold text-text-1">
-                  {meeting.region || meeting.city || "장소 미정"}
-                </div>
-              </div>
-            </div>
+            {/* 지역명을 좌표로 해석해 네이버 지도로 표시(정확 집결지는 채팅방 안내) */}
+            <GroupLocationMap
+              region={meeting.region}
+              city={meeting.city}
+              district={meeting.district}
+              label={meeting.region || meeting.city || "모임 장소"}
+            />
             <p className="text-[11px] leading-[1.5] text-text-3">
-              정확한 집결 장소는 모임 채팅방에서 안내돼요.
+              지역 기준 지도예요 · 정확한 집결 장소는 모임 채팅방에서 안내돼요.
             </p>
           </div>
 
