@@ -14,6 +14,7 @@ import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ExampleBadge } from "../../components/ExampleBadge";
 import { NoteDetailActions } from "./note-actions";
 import { Icon } from "@/app/components/Icon";
+import { JsonLd } from "@/app/components/JsonLd";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
    실데이터: inspection_notes → getNote(id) — 공개 노트만 index, 비공개·목업은 noindex */
@@ -360,6 +361,43 @@ function articleJsonLd(note: InspectionNote): string {
   });
 }
 
+/* ---------- JSON-LD (항목 H37) — 공유 JsonLd 헬퍼용 오브젝트 빌더 ----------
+   점수(0~100)가 있으면 Review, 없으면 Article. 존재하는 필드만 채워 반환한다. */
+function noteJsonLd(
+  note: InspectionNote,
+  view: NoteView,
+): Record<string, unknown> {
+  const apt = note.aptName?.trim() || undefined;
+  const author = note.authorLabel?.trim() || "누구집 스카우트";
+  const datePublished = note.createdAt || undefined;
+  const score = view.totalScore;
+
+  if (score > 0) {
+    return {
+      "@context": "https://schema.org",
+      "@type": "Review",
+      headline: note.title,
+      author: { "@type": "Person", name: author },
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: score,
+        bestRating: 100,
+      },
+      ...(apt ? { itemReviewed: { "@type": "Residence", name: apt } } : {}),
+      ...(datePublished ? { datePublished } : {}),
+    };
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: note.title,
+    author: { "@type": "Person", name: author },
+    ...(apt ? { about: apt } : {}),
+    ...(datePublished ? { datePublished } : {}),
+  };
+}
+
 /* ---------- 페이지 ---------- */
 
 export default async function NoteDetailPage({
@@ -413,6 +451,8 @@ export default async function NoteDetailPage({
           dangerouslySetInnerHTML={{ __html: articleJsonLd(realNote) }}
         />
       )}
+      {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 (실노트만, additive) */}
+      {realNote && <JsonLd data={noteJsonLd(realNote, v)} />}
 
       {/* 더미데이터 정책: 실노트가 없을 때만 예시 화면 — 명시 캡션 */}
       {!isReal && (

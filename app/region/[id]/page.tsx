@@ -24,6 +24,7 @@ import {
   regionPlaceJsonLd,
   jsonLdScript,
 } from "@/lib/seo/jsonld";
+import { JsonLd } from "@/app/components/JsonLd";
 
 /* ============================================================
    지역 허브 SEO 페이지 — /region/[id]
@@ -190,6 +191,17 @@ export default async function RegionHubPage({
     }),
   ];
 
+  // 항목 H37 — 공유 JsonLd 헬퍼용 Place (지역명 + 시/도 addressRegion). 실데이터만.
+  const placeJsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name,
+    address: {
+      "@type": "PostalAddress",
+      addressRegion: txRegion.city || name,
+    },
+  };
+
   return (
     <PageShell
       breadcrumb={`홈 › 지역 시세 › ${name}`}
@@ -200,6 +212,8 @@ export default async function RegionHubPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(regionJsonLd) }}
       />
+      {/* 항목 H37 — 공유 JsonLd 헬퍼로 Place 구조화 데이터 삽입 (additive) */}
+      <JsonLd data={placeJsonLd} />
       <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
         {formatYm(snapshot.period)} 기준 · 출처{" "}
         {snapshot.source === "reb" ? "한국부동산원(R-ONE)" : snapshot.source === "kb" ? "KB부동산" : "자체 수집"}

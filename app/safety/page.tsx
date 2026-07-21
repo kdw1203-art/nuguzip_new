@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
+import { JeonseSelfCheck } from "./JeonseSelfCheck";
 
 /* P0-5 목업 정직화: 특정 단지의 가짜 진단 "결과"를 통째로 보여주던 화면을
    입력 기반으로 전환. 자동 진단 엔진은 아직 없으므로 결과를 지어내지 않고
@@ -177,6 +178,9 @@ export default function SafetyPage() {
           </div>
         </aside>
       </div>
+
+      {/* 전세 안심 진단(자가진단) — 입력 기반 순수 클라이언트 계산 (F27 lite) */}
+      <JeonseSelfCheck />
     </PageShell>
   );
 }

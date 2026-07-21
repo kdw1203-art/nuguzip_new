@@ -50,6 +50,8 @@ const ACCOUNT_LINKS: LinkItem[] = [
 
 const SUPPORT_LINKS: LinkItem[] = [
   { label: "고객센터", href: "/support", icon: "life" },
+  { label: "규제·세금 안내", href: "/guides/regulations", icon: "landmark" },
+  { label: "계약 가이드", href: "/guides/contract", icon: "file-text" },
   { label: "법적 고지", href: "/legal", icon: "scale" },
 ];
 

@@ -29,6 +29,15 @@ import {
   breadcrumbJsonLd,
   jsonLdScript,
 } from "@/lib/seo/jsonld";
+import { JsonLd } from "@/app/components/JsonLd";
+import { RoadviewButton } from "@/components/map/RoadviewButton";
+
+/** undefined 값을 가진 키를 제거한다(JSON-LD 직렬화 전 정리용). */
+function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, val]) => val !== undefined),
+  ) as T;
+}
 
 /* ============================================================
    시안 23b — 단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 22f-65 겸용)
@@ -67,6 +76,9 @@ interface HubView {
   nearby: { id: string; name: string; meta: string }[];
   /** 국토부 실거래 이력 상세(/complex/tx) — 동일 단지명 매칭 시에만 링크 */
   txHref: string | null;
+  /** 지도 좌표 — 거리뷰·JSON-LD geo 용 (목업 폴백은 없음 → 거리뷰 자동 숨김) */
+  lat?: number | null;
+  lng?: number | null;
 }
 
 /* ===== 목업 폴백 — 시안 23b 공작아파트 ===== */
@@ -264,6 +276,8 @@ function toView(
     listings: MOCK_LISTINGS,
     nearby,
     txHref,
+    lat: row.lat,
+    lng: row.lng,
   };
 }
 
@@ -382,6 +396,27 @@ export default async function ComplexHubPage({
       ]
     : null;
 
+  // JSON-LD(항목 H37) — Residence 구조화 데이터. 이미 가진 페이지 데이터만 사용.
+  const residenceAddress = pruneUndefined({
+    "@type": "PostalAddress",
+    addressLocality: v.dong || undefined,
+    streetAddress: complexAddress || undefined,
+  });
+  const residenceGeo =
+    typeof v.lat === "number" &&
+    Number.isFinite(v.lat) &&
+    typeof v.lng === "number" &&
+    Number.isFinite(v.lng)
+      ? { "@type": "GeoCoordinates", latitude: v.lat, longitude: v.lng }
+      : undefined;
+  const residenceJsonLd = pruneUndefined({
+    "@context": "https://schema.org",
+    "@type": "Residence",
+    name: v.name,
+    address: Object.keys(residenceAddress).length > 1 ? residenceAddress : undefined,
+    geo: residenceGeo,
+  });
+
   const cta = (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
@@ -410,6 +445,9 @@ export default async function ComplexHubPage({
         />
       )}
 
+      {/* JSON-LD(항목 H37) — Residence 구조화 데이터 */}
+      <JsonLd data={residenceJsonLd} />
+
       {/* 최근 본 단지 기록 (localStorage nz_recent_complexes · 목업 폴백은 미기록) */}
       <RecentComplexRecorder id={v.id} name={v.name} region={v.dong} />
 
@@ -436,6 +474,13 @@ export default async function ComplexHubPage({
           {v.followerLabel}
         </button>
       </div>
+
+      {/* 거리뷰(항목 A5) — 좌표가 유한할 때만 (목업 폴백은 좌표 없음 → 자동 숨김) */}
+      {typeof v.lat === "number" && typeof v.lng === "number" && (
+        <div className="rise-in mt-2">
+          <RoadviewButton lat={v.lat} lng={v.lng} label={v.name} />
+        </div>
+      )}
 
       {/* 지표 4카드 — 시세·매물·노트 수·안전 등급 */}
       <div className="rise-in-1 mt-3 grid grid-cols-2 gap-1.5 md:grid-cols-4">

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
 import { ExampleBadge } from "../../components/ExampleBadge";
+import { CompareView } from "./CompareView";
+import { Timeline, type AxisChangeKind, type TimelineStep } from "./Timeline";
 
 /* 시안 9e — 노트 다회차 비교 (1~5차 + 추이)
    P0-5 목업 정직화: 아래 표·추이는 예시 데이터 — 내 노트 자동 비교는 준비 중.
@@ -123,6 +125,46 @@ const TREND_LABELS = [
   { left: "90%", top: 0, value: "81", cls: "text-[11px] font-extrabold text-primary" },
 ];
 
+/* 타임라인 뷰용 파생 데이터 — 위 표(HEADERS·ROWS·SCORES)에서만 계산.
+   회차별로 이전 회차 대비 종합 점수 델타와 바뀐 항목을 산출한다. */
+const TONE_RANK: Record<CellTone, number> = { none: 0, bad: 1, avg: 2, good: 3 };
+
+const TIMELINE_STEPS: TimelineStep[] = HEADERS.map((h, i) => {
+  const score = SCORES[i].value;
+  const prevScore = i > 0 ? SCORES[i - 1].value : null;
+  const changes =
+    i === 0
+      ? []
+      : ROWS.flatMap((row) => {
+          const cur = row.cells[i];
+          const prev = row.cells[i - 1];
+          if (cur.text === prev.text) return [];
+          let kind: AxisChangeKind;
+          if (prev.tone === "none") kind = "new";
+          else if (cur.tone === "none") kind = "drop";
+          else if (TONE_RANK[cur.tone] > TONE_RANK[prev.tone]) kind = "improve";
+          else if (TONE_RANK[cur.tone] < TONE_RANK[prev.tone]) kind = "decline";
+          else kind = "lateral";
+          return [
+            {
+              axis: row.label,
+              from: prev.text,
+              to: cur.text,
+              toTone: cur.tone,
+              kind,
+            },
+          ];
+        });
+  return {
+    n: h.n,
+    meta: h.meta,
+    latest: h.latest,
+    score,
+    scoreDelta: prevScore === null ? null : score - prevScore,
+    changes,
+  };
+});
+
 export default function NotesComparePage() {
   return (
     <PageShell breadcrumb="임장노트 › 회차 비교 (예시)">
@@ -147,8 +189,11 @@ export default function NotesComparePage() {
           </div>
         </div>
 
-        {/* 회차 비교 테이블 */}
-        <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
+        {/* 회차 비교 — 표 / 타임라인 토글 (두 뷰 모두 같은 예시 데이터 공유) */}
+        <CompareView
+          timeline={<Timeline steps={TIMELINE_STEPS} />}
+          table={
+            <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
           <div className="min-w-[720px]">
             {/* 헤더 행 */}
             <div className="grid grid-cols-[90px_repeat(5,1fr)] items-end gap-2 border-b border-[#f0f3f8] pb-2.5 pt-2 text-[11px] text-text-3">
@@ -249,7 +294,9 @@ export default function NotesComparePage() {
               </div>
             </div>
           </div>
-        </div>
+            </div>
+          }
+        />
 
         {/* AI 종합 판단 (예시) */}
         <div className="rise-in-2">

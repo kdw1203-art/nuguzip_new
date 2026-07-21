@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
+import { Icon } from "@/app/components/Icon";
+import { RealEstateTools } from "./realestate-tools";
+
+/* B10: 상단 섹션 탭 — 기존 대출·수익률 계산기 + 신규 부동산 계산기 */
+const SECTIONS = [
+  { key: "loan", label: "대출·수익률", icon: "calculator" },
+  { key: "realestate", label: "부동산 계산기", icon: "repeat" },
+] as const;
+type Section = (typeof SECTIONS)[number]["key"];
 
 const MODES = ["실거주", "전세", "월세"] as const;
 const FALLBACK_RATE = 4.19; // 은행 평균 (%) — 실데이터 미연동 시 예시값
@@ -105,6 +114,7 @@ type LoanCalcResult = {
 };
 
 export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) {
+  const [section, setSection] = useState<Section>("loan");
   const [mode, setMode] = useState<(typeof MODES)[number]>("실거주");
   const [price, setPrice] = useState(84000); // 만원
   const [loanRatio, setLoanRatio] = useState(40); // %
@@ -167,6 +177,27 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
         입력 정보는 기기에만 저장 · 외부 전송 없음
       </div>
 
+      <div className="rise-in mb-4 flex gap-2">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => setSection(s.key)}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] ${
+              section === s.key
+                ? "bg-ink font-bold text-white"
+                : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+            }`}
+          >
+            <Icon name={s.icon} size={15} />
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {section === "realestate" && <RealEstateTools />}
+
+      {section === "loan" && (
       <div className="grid gap-4 lg:grid-cols-[400px_1fr]">
         {/* ---------- 입력 (9j 좌측 + 6h 슬라이더) ---------- */}
         <div className="flex flex-col gap-3">
@@ -511,6 +542,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           </div>
         </div>
       </div>
+      )}
     </PageShell>
   );
 }

@@ -25,6 +25,15 @@ import {
   getComparableTransactions,
 } from "@/lib/listings/price-compare";
 import { realEstateListingJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
+import { JsonLd } from "@/app/components/JsonLd";
+import { RoadviewButton } from "@/components/map/RoadviewButton";
+
+/** undefined 값을 가진 키를 제거한다(JSON-LD 직렬화 전 정리용). */
+function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, val]) => val !== undefined),
+  ) as T;
+}
 
 /* ============================================================
    매물 상세 — /listings/[id]
@@ -206,6 +215,23 @@ export default async function ListingDetailPage({
     images: photos,
   });
 
+  // JSON-LD(항목 H37) — Product/Offer. 이미 가진 페이지 데이터만 사용, undefined 정리.
+  const productName = listing.complexName || listing.regionName || undefined;
+  const productJsonLd = productName
+    ? pruneUndefined({
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: productName,
+        category: LISTING_TYPE_LABEL[listing.listingType],
+        offers: pruneUndefined({
+          "@type": "Offer",
+          price: listing.priceKrw ?? undefined,
+          priceCurrency: "KRW",
+          availability: "https://schema.org/InStock",
+        }),
+      })
+    : null;
+
   return (
     <PageShell breadcrumb="홈 › 실매물 › 상세">
       {/* JSON-LD(RealEstateListing) — SEO 구조화 데이터 */}
@@ -213,6 +239,8 @@ export default async function ListingDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(listingJsonLd) }}
       />
+      {/* JSON-LD(항목 H37) — Product/Offer 구조화 데이터 */}
+      {productJsonLd && <JsonLd data={productJsonLd} />}
       {/* 상태 안내 (소유주가 검수중/반려 매물을 볼 때) */}
       {listing.status !== "approved" && (
         <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-[#5b74b8]">
@@ -454,6 +482,15 @@ export default async function ListingDetailPage({
                 className="h-full w-full"
               />
             </div>
+          )}
+
+          {/* 거리뷰(항목 A5) — 좌표가 있을 때만 (없으면 컴포넌트가 자동 숨김) */}
+          {hasCoord && (
+            <RoadviewButton
+              lat={listing.lat as number}
+              lng={listing.lng as number}
+              label={listing.complexName}
+            />
           )}
 
           {/* 연락처 — 로그인 시 노출 */}
