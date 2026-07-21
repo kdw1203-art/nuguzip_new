@@ -8,7 +8,9 @@ import { Icon } from "@/app/components/Icon";
    - 입력(디바운스) → GET /api/search/suggest?q= 로 단지 후보 드롭다운.
    - 주소성 질의(숫자·로/길/동/구/시)면 GET /api/map/geocode?q= 도 함께 조회해
      "📍 '주소'로 이동" 옵션을 상단에 제시(설정 안 됐거나 실패하면 조용히 생략).
-   - 선택 시 상위(map-client)로 위임: 단지→recenter+하이라이트, 주소→지도 이동.
+   - 내부 단지 결과가 얇으면 서버가 외부 장소검색(Kakao/Naver)을 폴백으로 붙여
+     places[] 로 함께 반환 → "지도 장소" 그룹으로 노출(키 미설정 시 빈 배열=미표시).
+   - 선택 시 상위(map-client)로 위임: 단지→recenter+하이라이트, 주소·장소→지도 이동.
    자체 fetch·아웃사이드 클릭·키보드(Enter/Esc)만 담당하는 프레젠테이션 컴포넌트. */
 
 interface SuggestItem {
@@ -19,6 +21,14 @@ interface SuggestItem {
 }
 
 interface GeocodeItem {
+  address: string;
+  lat: number;
+  lng: number;
+}
+
+/** 외부(지도) 장소검색 폴백 항목 — 내부 단지 결과가 얇을 때만 서버가 채워줌. */
+interface PlaceItem {
+  name: string;
   address: string;
   lat: number;
   lng: number;
@@ -65,6 +75,7 @@ export function MapSearchBox({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [complexes, setComplexes] = useState<SuggestItem[]>([]);
+  const [places, setPlaces] = useState<PlaceItem[]>([]);
   const [address, setAddress] = useState<GeocodeItem | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -77,6 +88,7 @@ export function MapSearchBox({
     if (q.length < 1) {
       abortRef.current?.abort();
       setComplexes([]);
+      setPlaces([]);
       setAddress(null);
       setLoading(false);
       return;
@@ -89,8 +101,12 @@ export function MapSearchBox({
       const suggestP = fetch(`/api/search/suggest?q=${encodeURIComponent(q)}`, {
         signal: controller.signal,
       })
-        .then((r) => (r.ok ? (r.json() as Promise<{ suggestions?: SuggestItem[] }>) : null))
-        .then((j) => (controller.signal.aborted ? null : (j?.suggestions ?? [])))
+        .then((r) =>
+          r.ok
+            ? (r.json() as Promise<{ suggestions?: SuggestItem[]; places?: PlaceItem[] }>)
+            : null,
+        )
+        .then((j) => (controller.signal.aborted ? null : j))
         .catch(() => null);
 
       const geoP: Promise<GeocodeItem | null> = looksLikeAddress(q)
@@ -107,7 +123,8 @@ export function MapSearchBox({
 
       void Promise.all([suggestP, geoP]).then(([sug, geo]) => {
         if (controller.signal.aborted) return;
-        setComplexes(sug ?? []);
+        setComplexes(sug?.suggestions ?? []);
+        setPlaces(sug?.places ?? []);
         setAddress(geo);
         setLoading(false);
         setOpen(true);
@@ -133,6 +150,7 @@ export function MapSearchBox({
   const clear = useCallback(() => {
     setQuery("");
     setComplexes([]);
+    setPlaces([]);
     setAddress(null);
     setOpen(false);
   }, []);
@@ -155,6 +173,17 @@ export function MapSearchBox({
     [onSelectAddress],
   );
 
+  // 외부 장소 선택 → 주소 이동 흐름 재사용(지도 recenter). 좌표를 그대로 위임.
+  const pickPlace = useCallback(
+    (p: PlaceItem) => {
+      const label = p.address ? `${p.name} (${p.address})` : p.name;
+      onSelectAddress({ address: label, lat: p.lat, lng: p.lng });
+      setQuery(p.name);
+      setOpen(false);
+    },
+    [onSelectAddress],
+  );
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       setOpen(false);
@@ -163,10 +192,11 @@ export function MapSearchBox({
     if (e.key === "Enter") {
       if (complexes.length > 0) pickComplex(complexes[0]);
       else if (address) pickAddress(address);
+      else if (places.length > 0) pickPlace(places[0]);
     }
   };
 
-  const hasResults = complexes.length > 0 || address !== null;
+  const hasResults = complexes.length > 0 || address !== null || places.length > 0;
   const shellClass =
     variant === "floating"
       ? "glass-strong flex items-center gap-2 rounded-[16px] px-3.5 py-2.5"
@@ -241,6 +271,30 @@ export function MapSearchBox({
               <span className="shrink-0 text-[11px] font-bold text-primary">선택 ›</span>
             </button>
           ))}
+          {places.length > 0 && (
+            <div className="mt-1 border-t border-[rgba(16,28,54,.06)] pt-1">
+              <div className="px-3 pb-0.5 pt-1.5 text-[10px] font-bold uppercase tracking-wide text-text-3">
+                지도 장소 · 실시간 검색
+              </div>
+              {places.map((p, i) => (
+                <button
+                  key={`place-${i}-${p.name}`}
+                  type="button"
+                  onClick={() => pickPlace(p)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#f2f4f8]"
+                >
+                  <Icon name="📍" size={16} className="shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-bold text-ink">{p.name}</span>
+                    {p.address && (
+                      <span className="block truncate text-[11px] text-text-3">{p.address}</span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-bold text-primary">이동 ›</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
