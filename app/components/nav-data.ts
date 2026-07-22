@@ -13,6 +13,7 @@ export const NAV: NavItem[] = [
     href: "/notes",
     children: [
       { label: "노트 쓰기", href: "/notes/new" },
+      { label: "노트 템플릿", href: "/notes/templates" },
       { label: "공개 노트", href: "/notes" },
       { label: "회차 비교", href: "/notes/compare" },
       { label: "내 노트", href: "/my" },
@@ -49,6 +50,7 @@ export const NAV: NavItem[] = [
       // 사람·모임
       { label: "임장 모임", href: "/town/groups" },
       { label: "전문가", href: "/town/experts" },
+      { label: "단지 Q&A", href: "/qna" },
       // 분양·물건·거래
       { label: "청약 센터", href: "/apply" },
       { label: "입주 물량", href: "/supply" },

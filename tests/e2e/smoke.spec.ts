@@ -307,3 +307,34 @@ test("35. /invite/[code] renders invite landing", async ({ page }) => {
   await expect(page.locator("main")).toBeVisible();
   await expect(page.getByText(/초대|가입/).first()).toBeVisible();
 });
+
+// ---------- 웨이브 3: 노트 템플릿 · 단지 Q&A · 저장 검색 ----------
+
+test("36. /notes/templates renders template marketplace (공식 템플릿)", async ({ page }) => {
+  await page.goto("/notes/templates", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/임장 노트 템플릿/).first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/체크리스트/).first()).toBeVisible({ timeout: 15000 });
+});
+
+test("37. template detail links to /notes/new?tpl", async ({ page }) => {
+  await page.goto("/notes/templates/official-basic", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByRole("link", { name: /이 템플릿으로 노트 쓰기/ }),
+  ).toBeVisible({ timeout: 15000 });
+});
+
+test("38. /qna renders 단지 Q&A list", async ({ page }) => {
+  await page.goto("/qna", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByRole("heading", { name: /단지 Q&A/ }).first(),
+  ).toBeVisible({ timeout: 15000 });
+});
+
+test("39. /my/saved-searches renders (login prompt when logged out)", async ({ page }) => {
+  await page.goto("/my/saved-searches", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/저장 검색/).first()).toBeVisible({ timeout: 15000 });
+});

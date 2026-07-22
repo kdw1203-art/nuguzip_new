@@ -28,6 +28,8 @@ type LinkItem = { label: string; href: string; icon: string };
 const SERVICE_LINKS: LinkItem[] = [
   { label: "통합 검색", href: "/search", icon: "search" },
   { label: "맞춤 추천", href: "/recommend", icon: "sparkles" },
+  { label: "노트 템플릿", href: "/notes/templates", icon: "notebook-pen" },
+  { label: "단지 Q&A", href: "/qna", icon: "messages-square" },
   { label: "실매물 보기", href: "/listings", icon: "house" },
   { label: "매물 등록", href: "/listings/new", icon: "square-plus" },
   { label: "공매·경매", href: "/auctions", icon: "gavel" },
@@ -40,6 +42,7 @@ const SERVICE_LINKS: LinkItem[] = [
 
 const ACCOUNT_LINKS: LinkItem[] = [
   { label: "마이페이지", href: "/my", icon: "user" },
+  { label: "저장 검색", href: "/my/saved-searches", icon: "search" },
   { label: "관심 목록", href: "/my/wishlist", icon: "heart" },
   { label: "포인트 지갑", href: "/my/points", icon: "wallet" },
   { label: "친구 추천", href: "/my/referral", icon: "user-plus" },

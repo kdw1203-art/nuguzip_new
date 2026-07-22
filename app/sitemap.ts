@@ -11,6 +11,7 @@ const BASE_URL = "https://nuguzip.com";
 const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "", priority: 1 },
   { path: "/notes", priority: 0.9 },
+  { path: "/notes/templates", priority: 0.6 },
   { path: "/notes/compare", priority: 0.6 },
   { path: "/map", priority: 0.9 },
   { path: "/search", priority: 0.7 },
@@ -28,6 +29,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/town/library", priority: 0.7 },
   { path: "/town/experts", priority: 0.6 },
   { path: "/town/groups", priority: 0.6 },
+  // 단지 Q&A (커뮤니티 질문·답변)
+  { path: "/qna", priority: 0.6 },
   // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
   { path: "/complex/browse", priority: 0.8 },
   // 실매물 (집주인 직접·중개사 등록) + 중개사 제휴 안내
