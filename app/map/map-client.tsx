@@ -984,6 +984,21 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     });
   }, [showRedevelopment, redevItems]);
 
+  // 정비사업 레이어 범례 (#20) — 화면에 실제 존재하는 사업종류만 색상칩으로 노출
+  const redevLegend = useMemo<{ color: string; label: string }[]>(() => {
+    if (!showRedevelopment) return [];
+    const seen = new Map<string, { color: string; label: string }>();
+    for (const p of redevItems) {
+      if (!seen.has(p.typeKey)) {
+        seen.set(p.typeKey, {
+          color: colorForType(p.typeKey),
+          label: labelForType(p.typeKey),
+        });
+      }
+    }
+    return Array.from(seen.values());
+  }, [showRedevelopment, redevItems]);
+
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
     // 검색/포인트로 선택된 목록 밖 단지를 하이라이트 마커로 주입 (중복 id 제외)
@@ -1936,6 +1951,30 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           미방문
         </div>
       </div>
+
+      {/* ===== 정비사업 종류 범례 (#20) — 레이어 ON & 화면 내 사업종류만, 기본 범례 위에 스택 ===== */}
+      {showRedevelopment && redevLegend.length > 0 && (
+        <div
+          className="glass absolute right-5 z-30 hidden max-h-[42vh] w-[184px] flex-col gap-1.5 overflow-y-auto rounded-xl px-3 py-2.5 md:flex"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
+        >
+          <div className="text-[11px] font-extrabold text-ink">정비사업 종류</div>
+          <div className="flex flex-col gap-1">
+            {redevLegend.map((it) => (
+              <div
+                key={it.label}
+                className="flex items-center gap-1.5 text-[11px] text-text-1"
+              >
+                <span
+                  className="h-[9px] w-[9px] shrink-0 rounded-full"
+                  style={{ background: it.color }}
+                />
+                <span className="truncate">{it.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ===== 시세 히트맵 범례 (#A2) — 레이어 ON일 때 좌하단. city 탭이면 위로 오프셋 ===== */}
       {showPriceHeat && (
