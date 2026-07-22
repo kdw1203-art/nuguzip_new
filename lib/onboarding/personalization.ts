@@ -124,14 +124,15 @@ export function resolveRegions(regions: string[]): ResolvedRegion[] {
   }));
 }
 
-/** app_users.personalization 에서 온보딩 개인화 조회. 없으면 null (graceful). */
+/** user_personalization(email PK)에서 온보딩 개인화 조회. 없으면 null (graceful).
+ *  (구 app_users.personalization 은 app_users 가 비어 upsert 불가 → 전용 테이블로 이전) */
 export async function getOnboardingPersonalization(
   email: string,
 ): Promise<OnboardingPersonalization | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
   const { data, error } = await sb
-    .from("app_users")
+    .from("user_personalization")
     .select("personalization")
     .eq("email", normEmail(email))
     .maybeSingle();
@@ -139,7 +140,7 @@ export async function getOnboardingPersonalization(
   return parse((data as Record<string, unknown>).personalization);
 }
 
-/** 온보딩 개인화 저장(전체 덮어쓰기) — service-role write. 실패는 흡수. */
+/** 온보딩 개인화 저장(전체 덮어쓰기) — email 기준 upsert. 실패는 흡수. */
 export async function saveOnboardingPersonalization(
   email: string,
   input: { regions?: unknown; budget?: unknown; purpose?: unknown },
@@ -153,9 +154,11 @@ export async function saveOnboardingPersonalization(
   const sb = getServiceSupabase();
   if (!sb) return value;
   const { error } = await sb
-    .from("app_users")
-    .update({ personalization: value })
-    .eq("email", normEmail(email));
+    .from("user_personalization")
+    .upsert(
+      { email: normEmail(email), personalization: value, updated_at: value.updatedAt },
+      { onConflict: "email" },
+    );
   if (error) logger.warn("[onboarding] save personalization failed", error.message);
   return value;
 }

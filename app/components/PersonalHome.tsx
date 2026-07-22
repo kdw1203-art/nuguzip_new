@@ -110,21 +110,56 @@ function journeyOf(noteCount: number | null) {
 
 export function PersonalHome() {
   const [data, setData] = useState<PersonalHomeData | null>(null);
+  // 이전 방문에서 로그인 개인화가 활성이었으면(플래그) 정적 히어로를 즉시 숨겨
+  // "옛 정적 화면이 잠깐 보였다 사라지는" 플래시를 방지한다.
+  const [primed, setPrimed] = useState(false);
+
+  useEffect(() => {
+    let flagged = false;
+    try {
+      flagged = window.localStorage.getItem("nz_home_personal") === "1";
+    } catch {
+      /* 프라이빗 모드 등 — 플래그 없이 진행 */
+    }
+    if (flagged) {
+      setPrimed(true);
+      document.body.setAttribute("data-personal-active", "1");
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const sRes = await fetch("/api/auth/session");
+        const sRes = await fetch("/api/auth/session", { cache: "no-store" });
         if (!sRes.ok) return;
         const s = (await sRes.json().catch(() => null)) as {
           user?: { email?: string | null };
         } | null;
-        if (!s?.user?.email) return; // 비로그인 → 정적 홈 유지
-        const pRes = await fetch("/api/home/personal");
+        if (!s?.user?.email) {
+          // 비로그인 → 정적 홈 복귀 + 조기 숨김 해제
+          if (!cancelled) {
+            setPrimed(false);
+            try {
+              window.localStorage.removeItem("nz_home_personal");
+            } catch {
+              /* noop */
+            }
+            document.body.removeAttribute("data-personal-active");
+          }
+          return;
+        }
+        const pRes = await fetch("/api/home/personal", { cache: "no-store" });
         if (!pRes.ok) return;
         const d = (await pRes.json()) as PersonalHomeData;
-        if (!cancelled) setData(d);
+        if (!cancelled) {
+          setData(d);
+          try {
+            window.localStorage.setItem("nz_home_personal", "1");
+          } catch {
+            /* noop */
+          }
+        }
       } catch {
         /* 에러 시 정적 홈 유지 */
       }
@@ -137,12 +172,26 @@ export function PersonalHome() {
   useEffect(() => {
     if (!data) return;
     document.body.setAttribute("data-personal-active", "1");
-    return () => {
-      document.body.removeAttribute("data-personal-active");
-    };
   }, [data]);
 
-  if (!data) return null;
+  if (!data) {
+    // 로그인 확인된 재방문 → 정적 히어로 대신 로딩 스켈레톤(플래시 방지)
+    if (primed) {
+      return (
+        <div className="rise-in mt-2 overflow-hidden rounded-[22px] bg-[#141a26] p-5">
+          <div className="h-3 w-28 rounded bg-white/10" />
+          <div className="mt-3 h-6 w-3/5 rounded bg-white/10" />
+          <div className="mt-2 h-6 w-2/5 rounded bg-white/10" />
+          <div className="mt-4 flex gap-2.5">
+            <div className="h-11 w-40 rounded-xl bg-white/10" />
+            <div className="h-11 w-32 rounded-xl bg-white/[.06]" />
+          </div>
+          <div className="mt-4 h-16 rounded-xl bg-white/[.05]" />
+        </div>
+      );
+    }
+    return null;
+  }
 
   const now = new Date();
   const dateLabel = `${now.getMonth() + 1}월 ${now.getDate()}일 ${DAY_LABELS[now.getDay()]}요일`;
