@@ -9,7 +9,7 @@ import {
 import { maskNoteAuthor } from "./shared";
 import { TownFeed, type FeedCard } from "./feed-client";
 import type { Post } from "@/lib/types/post";
-import { Icon } from "@/app/components/Icon";
+import { TownCategoryNav } from "./TownCategoryNav";
 
 /* 동네이야기 통합 피드(#5) — 기존 피드 + 발견 피드를 하나로 합친 사진 우선 카드 그리드.
    공개 임장노트(사진 우선) + 커뮤니티 글을 섞어 오늘의집/인스타그램형으로 노출.
@@ -19,14 +19,13 @@ export const revalidate = 120;
 
 /* 동네이야기 카테고리 통합(#5·입주/공매/청약 편입) — 랜딩 상단 바로가기 카드 */
 const TOWN_LINKS: { href: string; label: string; icon: string; desc: string }[] = [
-  { href: "/town/news", label: "뉴스", icon: "📰", desc: "부동산 뉴스" },
-  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·노트·다이제스트" },
-  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
-  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "검증된 상담" },
+  { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },
   { href: "/supply", label: "입주 물량", icon: "🏗️", desc: "공급 캘린더" },
   { href: "/auctions", label: "공매 물건", icon: "🔨", desc: "온비드 공매" },
-  { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },
-  { href: "/digest", label: "다이제스트", icon: "🗞️", desc: "주간 요약" },
+  { href: "/town/news", label: "뉴스·다이제스트", icon: "📰", desc: "부동산 뉴스·주간 요약" },
+  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·임장노트" },
+  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
+  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "검증된 상담" },
 ];
 
 /* 더미데이터 정책(더미 1개 원칙): 실데이터 0건일 때만 예시 카드 1건 노출 */
@@ -115,22 +114,8 @@ export default async function TownPage() {
         </Link>
       </div>
 
-      {/* 동네이야기 카테고리 통합 — 뉴스·자료·모임·전문가 + 입주/공매/청약 */}
-      <div className="rise-in mb-5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {TOWN_LINKS.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className="card card-hover flex min-w-[118px] shrink-0 flex-col gap-1 rounded-[16px] px-4 py-3.5"
-          >
-            <span className="text-[20px] leading-none">
-              <Icon name={l.icon} size={20} />
-            </span>
-            <span className="mt-1 text-[13px] font-extrabold text-ink">{l.label}</span>
-            <span className="text-[11px] leading-[1.4] text-text-3">{l.desc}</span>
-          </Link>
-        ))}
-      </div>
+      {/* 동네이야기 카테고리 — 청약·입주·공매 + 뉴스·자료·모임·전문가 (인터랙티브) */}
+      <TownCategoryNav items={TOWN_LINKS} />
 
       <TownFeed cards={cards} exampleOnly={exampleOnly} />
 

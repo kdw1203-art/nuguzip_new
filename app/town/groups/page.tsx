@@ -5,6 +5,7 @@ import { CreateGroupCta } from "./CreateGroupCta";
 import { Icon } from "@/app/components/Icon";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
+   자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 필터 칩 + 라벨 섹션(모집 중 / 마감된 모임).
    지역·상태 필터 + 임박순/최신순 정렬 + 모임 만들기(POST /api/groups) 실배선.
    실데이터 0건일 때만 "예시" 라벨 목업 폴백. */
 
@@ -114,6 +115,108 @@ function qs(base: Record<string, string | undefined>, patch: Record<string, stri
   return s ? `/town/groups?${s}` : "/town/groups";
 }
 
+/* ---------- 모임 카드 (지역·일정·모집인원·상태) ---------- */
+
+function MeetingCard({ g, i, isMock }: { g: GroupView; i: number; isMock: boolean }) {
+  const meta = STATUS_META[g.statusKey];
+  const remaining = Math.max(g.max - g.members, 0);
+  const pct = Math.min(100, Math.round((g.members / Math.max(g.max, 1)) * 100));
+  return (
+    <div
+      className={`card card-hover press rise-in-${Math.min(i + 2, 8)} flex flex-col gap-3 rounded-[16px] p-4`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-extrabold ${meta.style}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+            {meta.label}
+          </span>
+          {isMock && <ExampleBadge />}
+        </span>
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
+          <Icon name="calendar" size={12} />
+          {g.whenLabel}
+        </span>
+      </div>
+
+      <div>
+        <h3 className="line-clamp-1 text-[15px] font-extrabold text-ink">{g.title}</h3>
+        <p className="mt-1 line-clamp-2 text-xs leading-[1.55] text-text-2">{g.desc}</p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
+        <span className="inline-flex items-center gap-1">
+          <Icon name="pin" size={12} />
+          {g.region}
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <Icon name="user" size={12} />
+          {g.host}
+        </span>
+      </div>
+
+      {g.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {g.tags.map((t) => (
+            <span key={t} className="chip-tag px-2.5 py-1 text-[11px]">
+              #{t}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 모집 인원 */}
+      <div className="mt-auto">
+        <div className="mb-1 flex items-center justify-between text-[11px]">
+          <span className="inline-flex items-center gap-1 text-text-3">
+            <Icon name="users" size={12} />
+            모집 인원
+          </span>
+          <span className="font-bold text-ink">
+            {g.members}/{g.max}
+          </span>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg">
+          <div
+            className={`h-full rounded-full ${g.statusKey === "full" ? "bg-text-3" : "bg-primary"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 푸터 */}
+      <div className="flex items-center justify-between border-t border-line pt-3">
+        <div className="flex items-center">
+          {AVATAR_COLORS.slice(0, Math.min(Math.max(g.members, 1), 3)).map((c, j) => (
+            <div
+              key={c}
+              className={`h-6 w-6 rounded-full border-2 border-surface ${j > 0 ? "-ml-2" : ""}`}
+              style={{ background: c }}
+            />
+          ))}
+          <span className="ml-2 text-[11px] font-medium text-text-3">
+            {remaining > 0 ? `${remaining}자리 남음` : "모집 마감"}
+          </span>
+        </div>
+        {g.id ? (
+          <Link
+            href={`/town/groups/${g.id}`}
+            className="btn-primary rounded-lg px-4 py-2 text-xs no-underline"
+          >
+            {g.statusKey === "full" ? "대기 참여" : "참여하기"}
+          </Link>
+        ) : (
+          <span className="cursor-default rounded-lg border border-line bg-bg px-4 py-2 text-xs font-semibold text-text-3">
+            예시 모임
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- 페이지 ---------- */
 
 export default async function TownGroupsPage({ searchParams }: { searchParams: Params }) {
@@ -149,6 +252,10 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
     sort === "new" ? b.createdTs - a.createdTs : a.whenTs - b.whenTs,
   );
 
+  /* 자료 섹션 분류 — 모집 중 / 마감된 모임 */
+  const recruiting = groups.filter((g) => g.statusKey !== "full");
+  const closed = groups.filter((g) => g.statusKey === "full");
+
   const base = { region, status, sort };
   const statusChips = [
     { id: "all", label: "전체" },
@@ -159,54 +266,25 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
     { id: "soon", label: "임박순" },
     { id: "new", label: "최신순" },
   ];
-
-  /* 헤더 요약 — 표시용 파생값 (데이터 변경 없음) */
-  const openCount = all.filter((g) => g.statusKey !== "full").length;
-  const closingCount = all.filter((g) => g.statusKey === "closing").length;
   const filtersActive = region !== "all" || status !== "all" || sort !== "soon";
-  const heroStats: { icon: string; label: string; value: number }[] = [
-    { icon: "users", label: "열린 모임", value: all.length },
-    { icon: "sparkles", label: "모집 중", value: openCount },
-    { icon: "bell", label: "마감 임박", value: closingCount },
-  ];
 
   return (
     <PageShell breadcrumb="동네이야기 › 임장 모임">
-      {/* ---------- 히어로 ---------- */}
-      <section className="rise-in bento bento-tint ring-grad overflow-hidden p-6 sm:p-7">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="max-w-xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[11px] font-extrabold text-primary">
-              <Icon name="footprints" size={13} />
-              임장 모임
-            </span>
-            <h1 className="mt-3 text-[26px] font-extrabold leading-[1.2] text-ink sm:text-[30px]">
-              같이 걸으면 <span className="text-gradient">임장</span>이 쉬워져요
-            </h1>
-            <p className="mt-2 text-sm leading-[1.6] text-text-2">
-              같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {heroStats.map((s) => (
-                <span
-                  key={s.label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2"
-                >
-                  <Icon name={s.icon} size={13} className="text-primary" />
-                  {s.label}
-                  <b className="text-ink">{s.value}</b>
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="shrink-0">
-            <CreateGroupCta />
-          </div>
+      {/* ---------- 페이지 헤더 ---------- */}
+      <div className="rise-in mb-5 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-extrabold text-ink">임장 모임</h1>
+          <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
+            같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
+          </p>
         </div>
-      </section>
+        <div className="shrink-0">
+          <CreateGroupCta />
+        </div>
+      </div>
 
       {/* ---------- 필터 ---------- */}
-      <div className="rise-in-1 mt-5 flex flex-col gap-2.5">
+      <div className="rise-in-1 mb-6 flex flex-col gap-2.5">
         <div className="flex gap-1.5 overflow-x-auto pb-0.5 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Link
             href={qs(base, { region: "all" })}
@@ -244,131 +322,20 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
               {c.label}
             </Link>
           ))}
+          {filtersActive && (
+            <Link
+              href="/town/groups"
+              className="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline"
+            >
+              <Icon name="x" size={12} /> 필터 초기화
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* ---------- 결과 헤더 ---------- */}
-      <div className="rise-in-2 mb-3 mt-5 flex items-center justify-between px-0.5">
-        <span className="text-[13px] font-bold text-text-2">
-          <b className="text-ink">{groups.length}</b>개 모임
-          <span className="ml-1.5 text-text-3">· {sort === "new" ? "최신순" : "임박순"}</span>
-        </span>
-        {filtersActive && (
-          <Link
-            href="/town/groups"
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline"
-          >
-            <Icon name="x" size={12} /> 필터 초기화
-          </Link>
-        )}
-      </div>
-
-      {/* ---------- 목록 ---------- */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {groups.map((g, i) => {
-          const meta = STATUS_META[g.statusKey];
-          const remaining = Math.max(g.max - g.members, 0);
-          const pct = Math.min(100, Math.round((g.members / Math.max(g.max, 1)) * 100));
-          return (
-            <div
-              key={g.id ?? g.title}
-              className={`card card-hover press rise-in-${Math.min(i + 2, 8)} flex flex-col gap-3 p-4`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-extrabold ${meta.style}`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                    {meta.label}
-                  </span>
-                  {listIsMock && <ExampleBadge />}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
-                  <Icon name="calendar" size={12} />
-                  {g.whenLabel}
-                </span>
-              </div>
-
-              <div>
-                <h3 className="line-clamp-1 text-[15px] font-extrabold text-ink">{g.title}</h3>
-                <p className="mt-1 line-clamp-2 text-xs leading-[1.55] text-text-2">{g.desc}</p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="pin" size={12} />
-                  {g.region}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Icon name="user" size={12} />
-                  {g.host}
-                </span>
-              </div>
-
-              {g.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {g.tags.map((t) => (
-                    <span key={t} className="chip-tag px-2.5 py-1 text-[11px]">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* 모집 인원 */}
-              <div className="mt-auto">
-                <div className="mb-1 flex items-center justify-between text-[11px]">
-                  <span className="inline-flex items-center gap-1 text-text-3">
-                    <Icon name="users" size={12} />
-                    모집 인원
-                  </span>
-                  <span className="font-bold text-ink">
-                    {g.members}/{g.max}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg">
-                  <div
-                    className={`h-full rounded-full ${g.statusKey === "full" ? "bg-text-3" : "bg-primary"}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* 푸터 */}
-              <div className="flex items-center justify-between border-t border-line pt-3">
-                <div className="flex items-center">
-                  {AVATAR_COLORS.slice(0, Math.min(Math.max(g.members, 1), 3)).map((c, j) => (
-                    <div
-                      key={c}
-                      className={`h-6 w-6 rounded-full border-2 border-surface ${j > 0 ? "-ml-2" : ""}`}
-                      style={{ background: c }}
-                    />
-                  ))}
-                  <span className="ml-2 text-[11px] font-medium text-text-3">
-                    {remaining > 0 ? `${remaining}자리 남음` : "모집 마감"}
-                  </span>
-                </div>
-                {g.id ? (
-                  <Link
-                    href={`/town/groups/${g.id}`}
-                    className="btn-primary rounded-lg px-4 py-2 text-xs no-underline"
-                  >
-                    {g.statusKey === "full" ? "대기 참여" : "참여하기"}
-                  </Link>
-                ) : (
-                  <span className="cursor-default rounded-lg border border-line bg-bg px-4 py-2 text-xs font-semibold text-text-3">
-                    예시 모임
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {groups.length === 0 && (
-        <div className="rise-in-2 card mt-3 flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center">
+      {/* ---------- 섹션 ---------- */}
+      {groups.length === 0 ? (
+        <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
             <Icon name="search" size={22} />
           </div>
@@ -380,6 +347,51 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             필터 초기화
           </Link>
         </div>
+      ) : (
+        <>
+          {/* 모집 중 모임 */}
+          <section className="mb-8">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h2 className="text-[15px] font-extrabold text-ink">모집 중 모임</h2>
+              <span className="text-[12px] font-semibold text-text-3">{recruiting.length}개</span>
+            </div>
+            {recruiting.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {recruiting.map((g, i) => (
+                  <MeetingCard key={g.id ?? g.title} g={g} i={i} isMock={listIsMock} />
+                ))}
+              </div>
+            ) : (
+              <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+                  <Icon name="users" size={22} />
+                </div>
+                <div className="text-sm font-bold text-text-1">지금 모집 중인 모임이 없어요</div>
+                <div className="max-w-xs text-xs leading-[1.6] text-text-3">
+                  직접 모임을 만들어 이웃을 모아보세요.
+                </div>
+                <div className="mt-1">
+                  <CreateGroupCta />
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* 마감된 모임 */}
+          {closed.length > 0 && (
+            <section>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-[15px] font-extrabold text-ink">마감된 모임</h2>
+                <span className="text-[12px] font-semibold text-text-3">{closed.length}개</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {closed.map((g, i) => (
+                  <MeetingCard key={g.id ?? g.title} g={g} i={i} isMock={listIsMock} />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </PageShell>
   );

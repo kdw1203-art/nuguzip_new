@@ -6,10 +6,13 @@ import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
 import { seedGradient, faviconUrl, hostOf, relativeTime } from "../shared";
 import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
+import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 
-/* 뉴스 전용(#6·#7) — 자료(리포트·노트·다이제스트)와 분리한 부동산 뉴스 그리드.
-   썸네일(출처 파비콘 + 그라디언트) · 제목 · 출처 · 시간, 지역 필터 지원.
-   Post에는 이미지 필드가 없어 커버는 출처 기반 그라디언트 + 파비콘으로 구성한다. */
+/* 뉴스·다이제스트(#6·#7) — 부동산 뉴스 그리드 상단에 주간 다이제스트 요약을 합쳤다.
+   · 주간 다이제스트: getWeeklyDigest() 요약 카드(실패·빈 데이터 시 섹션 생략, fail-soft).
+   · 썸네일: 자동수집 automation_meta 에 og:image 등이 실려오면 실이미지 커버,
+     없으면 출처 기반 그라디언트 + 파비콘 + 아이콘 플레이스홀더로 폴백.
+   제목 · 출처 · 시간, 지역 필터 지원. */
 
 export const dynamic = "force-dynamic";
 
@@ -33,13 +36,63 @@ function badgeStyle(category: string): string {
   return "bg-[#f2f4f8] text-text-2";
 }
 
+/* 뉴스 썸네일 후보 키 — 자동수집 automation_meta(jsonb)에 아래 키로 이미지 URL이
+   실려오면 실이미지 커버로 사용한다. Post 타입에는 전용 이미지 필드가 없어,
+   PostAutomationMeta 의 unknown 값을 string 으로 타입 안전하게 좁힌다(any·단언 없음). */
+const IMAGE_META_KEYS = [
+  "ogImage",
+  "og_image",
+  "image",
+  "imageUrl",
+  "image_url",
+  "thumbnail",
+  "thumbnailUrl",
+  "cover",
+  "coverImage",
+] as const;
+
+/** automation_meta 에서 유효한 http(s) 이미지 URL을 찾으면 반환, 없으면 null */
+function newsImageUrl(post: Post): string | null {
+  const meta = post.automationMeta;
+  if (!meta) return null;
+  for (const key of IMAGE_META_KEYS) {
+    const value = meta[key];
+    if (typeof value === "string" && /^https?:\/\//.test(value.trim())) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
 function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
+  const image = newsImageUrl(post);
   const favicon = faviconUrl(post.sourceUrl);
   return (
     <div
       className={`relative w-full overflow-hidden ${tall ? "h-[200px]" : "h-[128px]"}`}
-      style={{ background: seedGradient(post.sourceName || post.city || post.id) }}
+      style={
+        image
+          ? undefined
+          : { background: seedGradient(post.sourceName || post.city || post.id) }
+      }
     >
+      {image ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt=""
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent" />
+        </>
+      ) : (
+        /* 이미지 없는 항목 폴백 — 그라디언트 박스 위 아이콘 플레이스홀더로 레이아웃 유지 */
+        <span className="absolute inset-0 flex items-center justify-center text-white/70">
+          <Icon name="file-text" size={tall ? 34 : 26} />
+        </span>
+      )}
       <span
         className={`absolute left-2 top-2 rounded-[5px] px-2 py-[3px] text-[10px] font-extrabold ${badgeStyle(post.category)}`}
       >
@@ -53,6 +106,24 @@ function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
       )}
     </div>
   );
+}
+
+/* 주간 다이제스트 요약 라인 — 뉴스·시세·커뮤니티 건수(있는 항목만) */
+function digestSummaryLine(d: WeeklyDigest): string {
+  const parts: string[] = [];
+  if (d.news.length > 0) parts.push(`뉴스 ${d.news.length}건`);
+  if (d.market.length > 0) parts.push(`주요 지역 시세 ${d.market.length}곳`);
+  if (d.community.count > 0) parts.push(`이웃 글 ${d.community.count}건`);
+  return parts.length > 0
+    ? `이번 주 ${parts.join(" · ")}`
+    : "이번 주 요약을 준비 중이에요";
+}
+
+/* 다이제스트 티저 — 최신 뉴스 제목(없으면 시장 요약) */
+function digestTeaserOf(d: WeeklyDigest): string | null {
+  if (d.news.length > 0) return d.news[0].title;
+  if (d.market.length > 0) return `${d.market[0].name} 등 주요 지역 시세 요약`;
+  return null;
 }
 
 /* 더미데이터 정책(더미 1개 원칙): 실 뉴스 0건일 때만 예시 카드 1건 노출 */
@@ -69,6 +140,21 @@ export default async function TownNewsPage({
   searchParams: Promise<{ region?: string }>;
 }) {
   const { region } = await searchParams;
+
+  /* 주간 다이제스트 요약 (#6: 뉴스·다이제스트 통합) — 실패·빈 데이터 시 섹션 생략(fail-soft) */
+  let digest: WeeklyDigest | null = null;
+  try {
+    digest = await getWeeklyDigest();
+  } catch {
+    digest = null;
+  }
+  const digestHasContent =
+    digest !== null &&
+    (digest.news.length > 0 ||
+      digest.market.length > 0 ||
+      digest.community.count > 0);
+  const digestTeaser =
+    digest && digestHasContent ? digestTeaserOf(digest) : null;
 
   let news: Post[] = [];
   try {
@@ -100,6 +186,36 @@ export default async function TownNewsPage({
           자료·리포트 ›
         </Link>
       </div>
+
+      {/* 주간 다이제스트 요약 (#6) — 뉴스·다이제스트 통합. 실패·빈 데이터 시 생략(fail-soft) */}
+      {digest && digestHasContent && (
+        <Link
+          href="/digest"
+          className="rise-in ai-panel mb-4 flex items-center justify-between gap-3 rounded-[18px] p-5 no-underline"
+        >
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#7ea2ff]">
+              <Icon name="file-text" size={14} />
+              주간 다이제스트
+              <span className="rounded bg-white/10 px-1.5 py-px text-[10px] text-ai-text">
+                {digest.weekLabel}
+              </span>
+            </div>
+            <div className="text-[15px] font-extrabold text-white">
+              {digestSummaryLine(digest)}
+            </div>
+            {digestTeaser && (
+              <div className="truncate text-xs text-ai-text">{digestTeaser}</div>
+            )}
+          </div>
+          <span
+            className="shrink-0 rounded-[10px] bg-white/15 px-3.5 py-2 text-xs font-bold text-white"
+            style={{ color: "#fff" }}
+          >
+            전체 보기 ›
+          </span>
+        </Link>
+      )}
 
       {/* 지역 필터 칩 (실데이터 기반) */}
       {regions.length > 0 && (

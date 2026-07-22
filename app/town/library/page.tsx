@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { ExampleBadge } from "../../components/ExampleBadge";
-import { getWeeklyDigest } from "@/lib/newui/digest";
 import {
   listPublicNotes,
   inspectionAverageScore,
@@ -10,9 +9,9 @@ import {
 import { seedGradient, maskNoteAuthor } from "../shared";
 import { Icon } from "@/app/components/Icon";
 
-/* 자료(#8) — 리포트 + 공개 임장노트 공유 + 주간 다이제스트(피처드).
-   시안 8l(마켓)을 자료 중심으로 개편: 다이제스트를 자료와 합치고(#6),
-   공개 임장노트(listPublicNotes)를 열람 가능한 카드로 노출한다. */
+/* 자료(#8) — 리포트 + 공개 임장노트 공유.
+   깔끔한 라벨 섹션(리포트 · 공개 임장노트)으로 정리한 자료 허브.
+   주간 다이제스트는 뉴스로 이동(제거). 공개 임장노트(listPublicNotes)를 열람 카드로 노출. */
 
 export const revalidate = 600;
 
@@ -26,57 +25,30 @@ const EXAMPLE_REPORTS = [
   },
 ];
 
-function digestPreview(
-  d: Awaited<ReturnType<typeof getWeeklyDigest>> | null,
-): string {
-  if (!d) return "이번 주 요약을 준비 중이에요";
-  const parts: string[] = [];
-  if (d.news.length > 0) parts.push(`뉴스 ${d.news.length}건`);
-  if (d.market.length > 0) parts.push(`주요 지역 시세 ${d.market.length}곳`);
-  if (d.community.count > 0) parts.push(`이웃 글 ${d.community.count}건`);
-  return parts.length > 0 ? `이번 주 ${parts.join(" · ")}` : "이번 주 요약을 준비 중이에요";
-}
-
 export default async function TownLibraryPage() {
-  const [digest, notes] = await Promise.all([
-    getWeeklyDigest().catch(() => null),
-    listPublicNotes(24).catch((): InspectionNote[] => []),
-  ]);
+  const notes = await listPublicNotes(24).catch((): InspectionNote[] => []);
 
   return (
     <PageShell breadcrumb="동네이야기 › 자료">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">자료</h1>
-        <Link href="/town/news" className="text-[13px] font-bold text-primary">
-          뉴스 ›
-        </Link>
+      {/* ---------- 페이지 헤더 ---------- */}
+      <div className="rise-in mb-6">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-[22px] font-extrabold text-ink">자료</h1>
+          <Link
+            href="/town/news"
+            className="text-[13px] font-bold text-primary no-underline"
+          >
+            뉴스 ›
+          </Link>
+        </div>
+        <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
+          리포트와 이웃들의 공개 임장노트를 한곳에서 열람하세요
+        </p>
       </div>
 
-      {/* 피처드 — 주간 다이제스트 (#6: 다이제스트를 자료와 합침) */}
-      <Link
-        href="/digest"
-        className="rise-in ai-panel mb-6 flex items-center justify-between gap-3 rounded-[20px] p-6 no-underline"
-      >
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#7ea2ff]">
-            <Icon name="🗞" size={14} />주간 다이제스트
-            <span className="rounded bg-white/10 px-1.5 py-px text-[10px] text-ai-text">
-              {digest?.weekLabel ?? "최근 7일"}
-            </span>
-          </div>
-          <div className="text-[15px] font-extrabold text-white">
-            {digestPreview(digest)}
-          </div>
-          <div className="text-xs text-ai-text">뉴스·시세·커뮤니티를 한눈에 요약</div>
-        </div>
-        <span className="shrink-0 rounded-[10px] bg-white/15 px-3.5 py-2 text-xs font-bold text-white">
-          전체 보기 ›
-        </span>
-      </Link>
-
-      {/* 리포트 (단지·지역 리포트 등) — 오픈 준비 중 예시 */}
-      <section className="mb-6">
-        <div className="mb-2.5 flex items-center gap-2">
+      {/* ---------- 리포트 (단지·지역 리포트 등) — 오픈 준비 중 예시 ---------- */}
+      <section className="mb-8">
+        <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[15px] font-extrabold text-ink">리포트</h2>
           <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
             오픈 준비 중
@@ -109,27 +81,32 @@ export default async function TownLibraryPage() {
         </p>
       </section>
 
-      {/* 공개 임장노트 공유 — listPublicNotes 실데이터 */}
+      {/* ---------- 공개 임장노트 공유 — listPublicNotes 실데이터 ---------- */}
       <section>
-        <div className="mb-2.5 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-[15px] font-extrabold text-ink">공개 임장노트</h2>
-          <Link href="/notes" className="text-xs font-bold text-primary">
+          <Link
+            href="/notes"
+            className="text-[12px] font-bold text-primary no-underline"
+          >
             모두 보기 ›
           </Link>
         </div>
 
         {notes.length === 0 ? (
-          <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
-            <div className="text-[26px]"><Icon name="🗂" size={26} /></div>
+          <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <Icon name="folder" size={22} />
+            </div>
             <div className="text-sm font-bold text-text-1">
               공개된 임장노트가 아직 없어요
             </div>
-            <div className="text-xs text-text-3">
+            <div className="max-w-xs text-xs leading-[1.6] text-text-3">
               노트를 공개하면 이웃들이 자료로 열람할 수 있어요
             </div>
             <Link
               href="/notes/new"
-              className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs"
+              className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs no-underline"
             >
               첫 노트 쓰기
             </Link>

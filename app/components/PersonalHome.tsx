@@ -466,14 +466,15 @@ export function PersonalHome() {
             <div className="flex gap-2.5">
               <Link
                 href={data.recentNote ? `/notes/${data.recentNote.id}` : "/notes/new"}
-                className="rounded-xl bg-primary px-[22px] py-3 text-[13px] font-bold text-white"
-                style={{ boxShadow: "0 8px 22px rgba(29,79,216,.45)" }}
+                className="rounded-xl bg-primary px-[22px] py-3 text-[13px] font-bold"
+                style={{ boxShadow: "0 8px 22px rgba(29,79,216,.45)", color: "#fff" }}
               >
                 {data.recentNote ? "최근 노트 이어서 완성하기" : "임장노트 쓰기"}
               </Link>
               <Link
                 href="/analysis"
-                className="rounded-xl border border-white/10 bg-white/10 px-[22px] py-3 text-[13px] font-bold text-[#c9d2e0]"
+                className="rounded-xl border border-white/10 bg-white/10 px-[22px] py-3 text-[13px] font-bold"
+                style={{ color: "#fff" }}
               >
                 AI 분석 열기
               </Link>
