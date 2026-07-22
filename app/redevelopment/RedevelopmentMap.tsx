@@ -14,6 +14,7 @@ import {
 import { Icon } from "@/app/components/Icon";
 import { TypeFilterPanel } from "./TypeFilterPanel";
 import { DataSourceCard } from "./DataSourceCard";
+import { NearbyPanel } from "./NearbyPanel";
 
 const SEOUL_CENTER = { lat: 37.5665, lng: 126.978 };
 const MARKER_PREFIX = "redev:";
@@ -252,6 +253,11 @@ export function RedevelopmentMap({
           onMarkerClick={handleMarkerClick}
         />
       </div>
+
+      {/* ===== 선택 구역 인근 매물·실거래 ===== */}
+      {selectedProject ? (
+        <NearbyPanel projectId={selectedProject.id} projectName={selectedProject.name} />
+      ) : null}
 
       {/* ===== 목록 ===== */}
       {filtered.length === 0 ? (

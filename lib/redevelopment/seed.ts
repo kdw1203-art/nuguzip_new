@@ -59,6 +59,26 @@ const RAW: Seed[] = [
   { id: "seed-moa-beon", name: "번동 모아타운", typeKey: "moa", stageKey: "designated", sido: "서울", sigungu: "강북구", address: "강북구 번동", lat: 37.6335, lng: 127.0325, households: null, summary: "모아타운 관리계획" },
   { id: "seed-moa-myeonmok", name: "면목동 모아타운", typeKey: "moa", stageKey: "union", sido: "서울", sigungu: "중랑구", address: "중랑구 면목동", lat: 37.5885, lng: 127.0875, households: null, summary: "모아타운" },
   { id: "seed-garo-cheonho", name: "천호동 가로주택정비", typeKey: "garo", stageKey: "plan_approved", sido: "서울", sigungu: "강동구", address: "강동구 천호동", lat: 37.5385, lng: 127.1235, households: null, summary: "가로주택정비사업" },
+
+  // ── 경기 ──
+  { id: "seed-gm-11r", name: "광명11R구역", typeKey: "redev", stageKey: "plan_approved", sido: "경기", sigungu: "광명시", address: "광명시 광명동", lat: 37.4785, lng: 126.8645, households: 4291, summary: "광명뉴타운" },
+  { id: "seed-gm-4r", name: "광명4R구역", typeKey: "redev", stageKey: "moving", sido: "경기", sigungu: "광명시", address: "광명시 광명동", lat: 37.4735, lng: 126.8585, households: 1957, summary: "광명뉴타운" },
+  { id: "seed-sn-sujin1", name: "성남 수진1구역", typeKey: "redev", stageKey: "designated", sido: "경기", sigungu: "성남시 수정구", address: "성남시 수정구 수진동", lat: 37.4405, lng: 127.1475, households: null, summary: "성남 원도심 재개발" },
+  { id: "seed-sn-sinheung1", name: "성남 신흥1구역", typeKey: "redev", stageKey: "designated", sido: "경기", sigungu: "성남시 수정구", address: "성남시 수정구 신흥동", lat: 37.4455, lng: 127.1455, households: null, summary: "성남 원도심 재개발" },
+  { id: "seed-sw-paldal8", name: "수원 팔달8구역", typeKey: "redev", stageKey: "mgmt_approved", sido: "경기", sigungu: "수원시 팔달구", address: "수원시 팔달구 우만동", lat: 37.2775, lng: 127.0205, households: 3603, summary: "수원 재개발" },
+  { id: "seed-sw-gwonseon6", name: "수원 권선6구역", typeKey: "redev", stageKey: "moving", sido: "경기", sigungu: "수원시 권선구", address: "수원시 권선구 권선동", lat: 37.2635, lng: 126.9725, households: 2178, summary: "수원 재개발" },
+  { id: "seed-ay-naengcheon", name: "안양 냉천지구", typeKey: "redev", stageKey: "plan_approved", sido: "경기", sigungu: "안양시 만안구", address: "안양시 만안구 안양동", lat: 37.3985, lng: 126.9255, households: null, summary: "안양 재개발" },
+  { id: "seed-bc-sosa3", name: "부천 소사본3동구역", typeKey: "redev", stageKey: "designated", sido: "경기", sigungu: "부천시 소사구", address: "부천시 소사구 소사본동", lat: 37.4835, lng: 126.7925, households: null, summary: "부천 재개발" },
+  { id: "seed-gy-neunggok2", name: "고양 능곡2구역", typeKey: "redev", stageKey: "plan_approved", sido: "경기", sigungu: "고양시 덕양구", address: "고양시 덕양구 토당동", lat: 37.6355, lng: 126.8355, households: null, summary: "능곡뉴타운" },
+  { id: "seed-gc-jugong", name: "과천주공(별양) 재건축", typeKey: "recon_apt", stageKey: "moving", sido: "경기", sigungu: "과천시", address: "과천시 별양동", lat: 37.4285, lng: 126.9975, households: null, summary: "과천 재건축 벨트" },
+  { id: "seed-as-wongok", name: "안산 원곡 재건축", typeKey: "recon_apt", stageKey: "union", sido: "경기", sigungu: "안산시 단원구", address: "안산시 단원구 원곡동", lat: 37.3255, lng: 126.8155, households: null, summary: "안산 재건축" },
+
+  // ── 인천 ──
+  { id: "seed-ic-hakik3", name: "인천 학익3구역", typeKey: "redev", stageKey: "plan_approved", sido: "인천", sigungu: "미추홀구", address: "인천 미추홀구 학익동", lat: 37.4425, lng: 126.6575, households: null, summary: "인천 재개발" },
+  { id: "seed-ic-sipjeong4", name: "인천 십정4구역", typeKey: "redev", stageKey: "designated", sido: "인천", sigungu: "부평구", address: "인천 부평구 십정동", lat: 37.4755, lng: 126.7005, households: null, summary: "인천 재개발" },
+  { id: "seed-ic-songnim", name: "인천 송림초주변구역", typeKey: "redev", stageKey: "moving", sido: "인천", sigungu: "동구", address: "인천 동구 송림동", lat: 37.4785, lng: 126.6435, households: null, summary: "인천 재개발" },
+  { id: "seed-ic-jakjeon", name: "인천 작전현대 재건축", typeKey: "recon_apt", stageKey: "union", sido: "인천", sigungu: "계양구", address: "인천 계양구 작전동", lat: 37.5355, lng: 126.7355, households: null, summary: "인천 재건축" },
+  { id: "seed-ic-gajeong1", name: "인천 가정1구역(도심공공복합)", typeKey: "dosim_public", stageKey: "designated", sido: "인천", sigungu: "서구", address: "인천 서구 가정동", lat: 37.5245, lng: 126.6725, households: null, summary: "루원시티 인근" },
 ];
 
 export const SEED_PROJECTS: RedevelopmentProject[] = RAW.map((r) => ({
