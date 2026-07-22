@@ -364,3 +364,16 @@ test("41. /api/redevelopment/projects returns filtered items", async ({ request 
     expect(it.stageKey).toBe("mgmt_approved");
   }
 });
+
+// ---------- 임장노트 위치(단지·주소) 검색 연동 ----------
+
+test("42. /notes/new prefills 단지 from query and shows location search", async ({ page }) => {
+  await page.goto("/notes/new?apt=" + encodeURIComponent("은마아파트") + "&region=" + encodeURIComponent("서울 강남구"), {
+    waitUntil: "domcontentloaded",
+  });
+  // 프리필된 단지명이 위치 카드에 반영(클라이언트 하이드레이션 후)
+  await expect(page.getByText("은마아파트").first()).toBeVisible({ timeout: 15000 });
+  // 위치 카드 클릭 → 검색 입력 노출
+  await page.getByText(/눌러서 변경/).first().click();
+  await expect(page.getByPlaceholder(/단지명 또는 주소/)).toBeVisible({ timeout: 10000 });
+});

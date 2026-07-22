@@ -118,7 +118,17 @@ export function ComplexInfoPanel({
 
   const priceLabel = manwonLabel(latest?.avg_manwon);
   const detailHref = complexId.startsWith("mock-") ? "/complex/mock-1" : `/complex/${complexId}`;
-  const noteHref = `/notes/new?apt=${encodeURIComponent(name)}`;
+  // 임장노트 연결 — 단지명·지역·단지ID·좌표까지 프리필해 노트가 위치와 완전히 연동되게 한다.
+  const noteHref = (() => {
+    const params = new URLSearchParams({ apt: name });
+    if (cityDistrict) params.set("region", cityDistrict);
+    if (complexId && !complexId.startsWith("mock-")) params.set("complexId", complexId);
+    if (complex?.lat != null && complex?.lng != null) {
+      params.set("lat", String(complex.lat));
+      params.set("lng", String(complex.lng));
+    }
+    return `/notes/new?${params.toString()}`;
+  })();
   const analysisHref = `/analysis?complexId=${encodeURIComponent(complexId)}`;
 
   const metaParts = [

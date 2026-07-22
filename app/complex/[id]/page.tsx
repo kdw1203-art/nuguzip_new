@@ -420,9 +420,18 @@ export default async function ComplexHubPage({
   const cta = (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
-        {/* 연결성: 단지명 프리필로 임장노트 작성 진입 (notes/new?apt=) */}
+        {/* 연결성: 단지명·지역·단지ID·좌표 프리필로 임장노트 작성 진입 */}
         <Link
-          href={`/notes/new?apt=${encodeURIComponent(v.name)}`}
+          href={(() => {
+            const params = new URLSearchParams({ apt: v.name });
+            if (v.dong) params.set("region", v.dong);
+            if (complexId) params.set("complexId", complexId);
+            if (typeof v.lat === "number" && typeof v.lng === "number") {
+              params.set("lat", String(v.lat));
+              params.set("lng", String(v.lng));
+            }
+            return `/notes/new?${params.toString()}`;
+          })()}
           className="btn-primary btn-cta flex-1 rounded-[11px] p-3 text-center text-[13px]"
         >
           이 단지 임장노트 쓰기

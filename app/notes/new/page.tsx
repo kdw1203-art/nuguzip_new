@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { NoteLocationSearch, type NoteLocation } from "./NoteLocationSearch";
 
 /* 시안 6b(노트 작성 기본) + 6r(작성 확장판 — 선택·필터·고려사항)
    저장: POST /api/inspection/notes (구 코드베이스 임장노트 작성 엔드포인트)
@@ -112,13 +113,35 @@ export default function NoteNewPage() {
   const router = useRouter();
   /* 연결성: /complex/[id] → /notes/new?apt=단지명 프리필
      (useSearchParams 대신 window 조회 — Suspense 경계 불필요, search-client와 동일 패턴) */
-  const [aptName, setAptName] = useState(APT_NAME);
+  /* 위치(단지·주소) — 노트 작성 화면 내 검색 + 지도/단지 상세에서 프리필 연동.
+     프리필 파라미터: apt=단지명, region=지역, complexId=단지ID, lat/lng=좌표 */
+  const [loc, setLoc] = useState<NoteLocation>({
+    aptName: APT_NAME,
+    region: REGION,
+    complexId: null,
+    lat: null,
+    lng: null,
+  });
+  const aptName = loc.aptName;
   useEffect(() => {
     try {
-      const apt = new URLSearchParams(window.location.search).get("apt")?.trim();
-      if (apt) setAptName(apt.slice(0, 60));
+      const sp = new URLSearchParams(window.location.search);
+      const apt = sp.get("apt")?.trim();
+      const region = sp.get("region")?.trim();
+      const complexId = sp.get("complexId")?.trim() || null;
+      const latRaw = Number(sp.get("lat"));
+      const lngRaw = Number(sp.get("lng"));
+      if (apt || region || complexId) {
+        setLoc((prev) => ({
+          aptName: apt ? apt.slice(0, 60) : prev.aptName,
+          region: region ? region.slice(0, 60) : prev.region,
+          complexId,
+          lat: Number.isFinite(latRaw) && latRaw !== 0 ? latRaw : null,
+          lng: Number.isFinite(lngRaw) && lngRaw !== 0 ? lngRaw : null,
+        }));
+      }
     } catch {
-      /* URL 파싱 실패 — 기본 단지명 유지 */
+      /* URL 파싱 실패 — 기본 위치 유지 */
     }
   }, []);
   const [checks, setChecks] = useState<Record<string, Level>>(CHECK_DEFAULTS);
@@ -256,7 +279,7 @@ export default function NoteNewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: `${aptName} 임장 기록`,
-          region: REGION,
+          region: loc.region || REGION,
           aptName,
           visitDate: new Date().toISOString().slice(0, 10),
           transportation: visit["시간대"] ?? null,
@@ -276,6 +299,12 @@ export default function NoteNewPage() {
             memo: memo.trim() || undefined,
             pros: posTags.map((t) => t.label).join(" · ") || undefined,
             cons: negTags.map((t) => t.label).join(" · ") || undefined,
+          },
+          // 위치 연동 — 단지ID·좌표를 메타데이터로 보존(지도·단지 연결용)
+          metadata: {
+            complexId: loc.complexId ?? undefined,
+            lat: loc.lat ?? undefined,
+            lng: loc.lng ?? undefined,
           },
           isPublic: true,
         }),
@@ -360,15 +389,8 @@ export default function NoteNewPage() {
           로그인 없이 작성할 수 있어요 — 저장할 때만 로그인이 필요해요
         </div>
 
-        {/* 위치 카드 */}
-        <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">
-          <Icon name="📍" size={16} className="shrink-0" />
-          <div className="flex-1">
-            <div className="text-sm font-bold text-ink">{aptName}</div>
-            <div className="text-[11px] text-text-3">현재 위치 자동 인식 · 수정</div>
-          </div>
-          <span className="text-[13px] text-[#c3cad6]">›</span>
-        </div>
+        {/* 위치 카드 — 단지·주소 검색으로 연결 */}
+        <NoteLocationSearch value={loc} onChange={setLoc} />
 
         {/* 방문 정보 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 p-4">
