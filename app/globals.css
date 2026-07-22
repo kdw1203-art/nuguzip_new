@@ -79,6 +79,21 @@
   --shadow-float: var(--shadow-lg);
   --shadow-cta: 0 6px 18px rgba(29, 79, 216, 0.28);
 
+  /* #3 반경(radius) 4단 — rounded-[10/14/16/18px]·2xl 혼재 정리용 */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* #5 z-index 레이어 상수 — z-[55]/[60]/30/40 혼재 정리용 */
+  --z-base: 1;
+  --z-sticky: 20;
+  --z-header: 40;
+  --z-panel: 50;
+  --z-overlay: 60;
+  --z-toast: 80;
+
   /* 19e #50 전역 모션 토큰 — dur 4단 + 이징 2종으로만 구현 · 커스텀 값 금지 */
   --dur-xs: 120ms; /* 탭 피드백 · 닫힘 · 스켈레톤 크로스페이드 */
   --dur-sm: 200ms; /* 모달 등장 · 헤더 숨김 · UI 상태 전환 */
@@ -216,11 +231,16 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   display: none;
 }
 
-a {
-  color: var(--primary);
-}
-a:hover {
-  color: var(--primary-strong);
+/* #1 근본수정: a 링크 기본색을 @layer base로 내려 텍스트 색 유틸리티(text-white·
+   text-ink 등)가 항상 이기도록 한다. (이전엔 unlayered a{color}가 링크 위 text-white를
+   덮어 '채워진 필/버튼의 흰 글자가 사라지는' 버그가 반복됨) */
+@layer base {
+  a {
+    color: var(--primary);
+  }
+  a:hover {
+    color: var(--primary-strong);
+  }
 }
 
 /* 15b focus: 2px primary 링 · 오프셋 2px */
