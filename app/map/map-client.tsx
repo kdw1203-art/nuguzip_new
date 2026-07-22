@@ -11,6 +11,7 @@ import {
   type MapSearchSelectComplex,
 } from "./MapSearchBox";
 import { ComplexInfoPanel } from "./ComplexInfoPanel";
+import { ListingPreviewPanel } from "./ListingPreviewPanel";
 import {
   ALL_SUBWAY,
   ALL_SCHOOLS,
@@ -426,6 +427,9 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
   const [showRedevelopment, setShowRedevelopment] = useState(false);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
+
+  /* ===== 매물 미리보기 패널 — 매물 마커 클릭 시 하단 시트로 미리보기(이탈 없이) ===== */
+  const [listingPreviewId, setListingPreviewId] = useState<string | null>(null);
 
   /* ===== 출퇴근 필터 (#10) 상태 ===== */
   const [officeInput, setOfficeInput] = useState("");
@@ -1178,9 +1182,11 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     if (m.id.startsWith("poi:")) return;
     if (m.id.startsWith("heat:")) return;
     if (m.id.startsWith("redev:")) return; // 정비사업 마커는 네이티브 인포윈도우만
-    // 매물 마커 클릭 → 매물 상세로 이동
+    // 매물 마커 클릭 → 하단 미리보기 패널(이탈 없이). 상세는 패널의 "상세 보기"로.
     if (m.id.startsWith("listing:")) {
-      router.push(`/listings/${m.id.slice("listing:".length)}`);
+      setInfoComplex(null);
+      setSelectedId(null);
+      setListingPreviewId(m.id.slice("listing:".length));
       return;
     }
     // 클러스터 클릭 → 해당 지점으로 두 단계 확대
@@ -1850,6 +1856,14 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           initialName={infoComplex.name}
           onClose={closeInfoPanel}
           onLoaded={handleInfoLoaded}
+        />
+      )}
+
+      {/* ===== 매물 미리보기 패널 (하단 시트) ===== */}
+      {listingPreviewId && (
+        <ListingPreviewPanel
+          listingId={listingPreviewId}
+          onClose={() => setListingPreviewId(null)}
         />
       )}
 

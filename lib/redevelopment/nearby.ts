@@ -81,12 +81,18 @@ async function fetchNearbyTransactions(p: RedevelopmentProject): Promise<NearbyT
       .select("complex_name,area_m2,floor,deal_amount_krw,contract_ym,contract_day")
       .in("region_name", candidates)
       .eq("transaction_type", "trade")
-      .not("deal_amount_krw", "is", null)
       .order("contract_ym", { ascending: false })
       .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(8);
-    if (error) return [];
-    const rows = (data ?? []) as Record<string, unknown>[];
+      .limit(24);
+    if (error) {
+      logger.warn("[redev.nearby.tx] query error", error.message, "cands", candidates);
+      return [];
+    }
+    const raw = (data ?? []) as Record<string, unknown>[];
+    if (raw.length === 0) {
+      logger.warn("[redev.nearby.tx] 0 rows", "cands", JSON.stringify(candidates));
+    }
+    const rows = raw.filter((r) => num(r.deal_amount_krw) != null).slice(0, 8);
     return rows.map((r) => {
       const ym = String(r.contract_ym ?? "");
       const day = num(r.contract_day);
