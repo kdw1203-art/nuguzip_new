@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 import { listQuestions } from "@/lib/qna/store";
 import type { QnaQuestion } from "@/lib/qna/types";
 import { AskForm } from "./AskForm";
@@ -119,11 +120,19 @@ export default async function QnaListPage() {
           <h2 className="text-[14px] font-bold text-ink">최근 질문</h2>
           <span className="text-[12px] text-text-3">{items.length}개</span>
         </div>
-        <div className="flex flex-col gap-3">
-          {items.map((q) => (
-            <QuestionCard key={q.id} q={q} />
-          ))}
-        </div>
+        {items.length === 0 ? (
+          <EmptyState
+            icon="messages-square"
+            title="아직 등록된 질문이 없어요"
+            desc="이 단지·지역에 대해 궁금한 점을 위에서 첫 질문으로 남겨보세요."
+          />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {items.map((q) => (
+              <QuestionCard key={q.id} q={q} />
+            ))}
+          </div>
+        )}
       </section>
 
       <p className="mt-6 text-[11px] leading-relaxed text-text-3">

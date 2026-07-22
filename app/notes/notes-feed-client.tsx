@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { ExampleBadge } from "../components/ExampleBadge";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 
 /* 시안 7a — 공개 임장노트 피드 (데스크탑 피드 + 필터 칩) */
 
@@ -86,8 +87,13 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
 
         {/* 노트 카드 그리드 */}
         {visible.length === 0 ? (
-          <div className="rise-in-1 card rounded-[20px] p-8 text-center text-sm text-text-2">
-            해당 필터에 맞는 노트가 아직 없어요.
+          <div className="rise-in-1">
+            <EmptyState
+              icon="file-text"
+              title="해당 필터에 맞는 노트가 아직 없어요"
+              desc="필터를 바꾸거나, 첫 임장노트를 직접 작성해 보세요."
+              action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+            />
           </div>
         ) : (
           <div className="rise-in-1 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
