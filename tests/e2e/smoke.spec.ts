@@ -338,3 +338,29 @@ test("39. /my/saved-searches renders (login prompt when logged out)", async ({ p
   await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(/저장 검색/).first()).toBeVisible({ timeout: 15000 });
 });
+
+// ---------- 정비사업 지도 (재개발·재건축 사업장) ----------
+
+test("40. /redevelopment renders 정비사업 지도 with 사업종류 filter + 데이터 출처", async ({
+  page,
+}) => {
+  await page.goto("/redevelopment", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("main").first()).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByRole("heading", { name: /정비사업 지도/ }).first(),
+  ).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/사업종류/).first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(/데이터 출처/).first()).toBeVisible({ timeout: 15000 });
+});
+
+test("41. /api/redevelopment/projects returns filtered items", async ({ request }) => {
+  const res = await request.get("/api/redevelopment/projects?types=redev&stages=mgmt_approved");
+  expect(res.ok()).toBeTruthy();
+  const json = await res.json();
+  expect(Array.isArray(json.items)).toBeTruthy();
+  expect(json.items.length).toBeGreaterThan(0);
+  for (const it of json.items) {
+    expect(it.typeKey).toBe("redev");
+    expect(it.stageKey).toBe("mgmt_approved");
+  }
+});

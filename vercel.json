@@ -48,6 +48,10 @@
     {
       "path": "/api/cron/apt-master-ingest",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/redevelopment-ingest",
+      "schedule": "30 4 * * *"
     }
   ]
 }

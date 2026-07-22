@@ -3,6 +3,9 @@ import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { readBoardPosts } from "@/lib/newui/board-posts";
 import type { Post } from "@/lib/types/post";
+import { listProjects, countBySigungu } from "@/lib/redevelopment/store";
+import { SEED_SOURCES } from "@/lib/redevelopment/seed";
+import { RedevelopmentMap } from "./RedevelopmentMap";
 
 /* ============================================================
    정비사업 추적 라이트 (재개발닷컴 벤치마크 D2 축소판)
@@ -17,9 +20,9 @@ import type { Post } from "@/lib/types/post";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "정비사업 진행단계 트래커 | 누구집",
+  title: "정비사업 지도 | 누구집",
   description:
-    "재개발·재건축 8단계 진행 절차를 단계별 설명·유의점·확인 체크리스트로 정리하고 최신 정비사업 뉴스를 한곳에서 확인하세요.",
+    "재개발·재건축·소규모 정비사업을 사업종류별 컬러 마커로 보는 정비사업 지도. 사업종류·진행단계로 필터링하고, 8단계 진행 절차와 최신 정비사업 뉴스를 한곳에서 확인하세요.",
 };
 
 /** 도시 및 주거환경정비법 기준 일반 절차 8단계 — 개념 안내용.
@@ -186,12 +189,32 @@ async function loadRedevelopmentNews(): Promise<Post[]> {
 }
 
 export default async function RedevelopmentPage() {
-  const news = await loadRedevelopmentNews();
+  const [news, projects, sigunguCounts] = await Promise.all([
+    loadRedevelopmentNews(),
+    listProjects({ limit: 3000 }),
+    countBySigungu(),
+  ]);
 
   return (
-    <PageShell breadcrumb="동네 › 정비사업" title="정비사업 진행단계 트래커">
-      <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
-        {/* ===== 진행단계 개요 스트립 ===== */}
+    <PageShell breadcrumb="홈 › 동네이야기 › 정비사업 지도" title="정비사업 지도">
+      <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-6">
+        {/* ===== 정비사업 지도 히어로 ===== */}
+        <section className="rise-in flex flex-col gap-3">
+          <p className="text-[13px] leading-[1.6] text-text-2">
+            재개발·재건축·소규모 정비사업을 사업종류별 컬러 마커로 한눈에 보고,
+            사업종류·진행단계로 걸러 원하는 구역만 골라보세요. 마커·목록을 누르면 해당 구역으로
+            지도가 이동해요.
+          </p>
+          <RedevelopmentMap
+            initialProjects={projects}
+            sigunguCounts={sigunguCounts}
+            sources={SEED_SOURCES}
+          />
+        </section>
+
+        {/* ===== 아래: 진행단계 가이드 + 뉴스(기존 콘텐츠 보존) ===== */}
+        <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
+          {/* ===== 진행단계 개요 스트립 ===== */}
         <section className="rise-in card rounded-2xl px-5 py-4">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-extrabold text-ink">
@@ -370,6 +393,7 @@ export default async function RedevelopmentPage() {
             </p>
           )}
         </section>
+        </div>
       </div>
     </PageShell>
   );

@@ -25,6 +25,12 @@ import {
   priceTier,
   pyeongPriceLabel,
 } from "@/lib/map/price-heat";
+import {
+  colorForType,
+  labelForType,
+  stageLabel,
+  type RedevelopmentProject,
+} from "@/lib/redevelopment/types";
 import { Icon } from "@/app/components/Icon";
 
 /* ============================================================
@@ -417,6 +423,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   /* ===== 시세 히트맵 레이어 (#A2) — 구 단위 평균 시세를 색으로. 낮은 줌에서만 표시 ===== */
   const [showPriceHeat, setShowPriceHeat] = useState(false);
 
+  /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
+  const [showRedevelopment, setShowRedevelopment] = useState(false);
+  const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
+
   /* ===== 출퇴근 필터 (#10) 상태 ===== */
   const [officeInput, setOfficeInput] = useState("");
   const [officeQuery, setOfficeQuery] = useState(""); // 적용된 회사 주소(제출값)
@@ -596,9 +606,23 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           >
             <Icon name="🔥" size={14} className="inline align-middle" /> 시세
           </button>
+          {/* 정비사업 레이어 토글 — 재개발·재건축 사업장을 사업종류별 색상 마커로 */}
+          <button
+            type="button"
+            aria-pressed={showRedevelopment}
+            onClick={() => setShowRedevelopment((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+              showRedevelopment
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[rgba(255,255,255,.85)] text-text-2"
+            }`}
+          >
+            <Icon name="landmark" size={14} className="inline align-middle" /> 정비사업
+          </button>
         </div>
         <div className="text-[10px] text-text-3">
           지하철·학교·마트는 샘플/참고 데이터예요. 시세는 구 단위 평균(축소 시 표시)이에요.
+          정비사업은 공개 자료 기준 참고값이에요.
         </div>
       </div>
 
@@ -908,6 +932,54 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     }));
   }, [showPriceHeat, clusterMode]);
 
+  /* ===== 정비사업 레이어 — 토글 ON 시 1회 로드(전국 소량 · bbox 불필요) ===== */
+  useEffect(() => {
+    if (!showRedevelopment || redevItems.length > 0) return;
+    const controller = new AbortController();
+    fetch("/api/redevelopment/projects?limit=3000", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((json: { items?: RedevelopmentProject[] }) => {
+        setRedevItems(Array.isArray(json.items) ? json.items : []);
+      })
+      .catch(() => {
+        /* abort/네트워크 오류 무시 */
+      });
+    return () => controller.abort();
+  }, [showRedevelopment, redevItems.length]);
+
+  const redevelopmentMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showRedevelopment) return [];
+    return redevItems.map((p) => {
+      const color = colorForType(p.typeKey);
+      const src = p.sourceUrl
+        ? `<a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#3182f6">출처 ↗</a>`
+        : "";
+      const hh = p.households
+        ? `<p style="font-size:11px;color:#888;margin:2px 0 0">예정 ${p.households.toLocaleString()}세대</p>`
+        : "";
+      const infoHtml = `<div style="min-width:180px;max-width:230px">
+        <p style="font-size:13px;font-weight:800;color:#191f28;margin:0">${p.name}</p>
+        <p style="font-size:12px;margin:3px 0 0;display:flex;align-items:center;gap:5px">
+          <span style="display:inline-block;width:9px;height:9px;border-radius:9999px;background:${color}"></span>
+          <span style="color:#333;font-weight:600">${labelForType(p.typeKey)}</span>
+          <span style="color:#aaa">·</span>
+          <span style="color:#555">${stageLabel(p.stageKey)}</span>
+        </p>
+        <p style="font-size:11px;color:#888;margin:3px 0 0">${p.sigungu}${p.address ? " · " + p.address : ""}</p>
+        ${hh}
+        <div style="margin-top:5px">${src}</div>
+      </div>`;
+      return {
+        id: `redev:${p.id}`,
+        lat: p.lat,
+        lng: p.lng,
+        label: p.name,
+        pinColor: color,
+        infoHtml,
+      };
+    });
+  }, [showRedevelopment, redevItems]);
+
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
     // 검색/포인트로 선택된 목록 밖 단지를 하이라이트 마커로 주입 (중복 id 제외)
@@ -938,7 +1010,13 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
         infoHtml: "",
       }));
-      return withSearch([...base, ...listingMarkers, ...poiMarkers, ...priceHeatMarkers]);
+      return withSearch([
+      ...base,
+      ...listingMarkers,
+      ...poiMarkers,
+      ...priceHeatMarkers,
+      ...redevelopmentMarkers,
+    ]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
     const base: MapMarkerData[] = filteredDanji.map((d) => ({
@@ -969,7 +1047,13 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         });
       }
     }
-    return withSearch([...base, ...listingMarkers, ...poiMarkers, ...priceHeatMarkers]);
+    return withSearch([
+      ...base,
+      ...listingMarkers,
+      ...poiMarkers,
+      ...priceHeatMarkers,
+      ...redevelopmentMarkers,
+    ]);
   }, [
     clusterMode,
     clusters,
@@ -982,6 +1066,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     listingMarkers,
     poiMarkers,
     priceHeatMarkers,
+    redevelopmentMarkers,
   ]);
 
   const selectDanji = (id: string) => {
@@ -1092,6 +1177,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     // 편의 레이어(POI)·시세 히트맵 마커 — 표시 전용, 클릭 무시
     if (m.id.startsWith("poi:")) return;
     if (m.id.startsWith("heat:")) return;
+    if (m.id.startsWith("redev:")) return; // 정비사업 마커는 네이티브 인포윈도우만
     // 매물 마커 클릭 → 매물 상세로 이동
     if (m.id.startsWith("listing:")) {
       router.push(`/listings/${m.id.slice("listing:".length)}`);
