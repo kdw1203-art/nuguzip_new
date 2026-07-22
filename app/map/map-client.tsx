@@ -1093,11 +1093,27 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         setLevel(LEVEL_BY_ZOOM.danji);
         return;
       }
-      // 목록 밖 단지 → 정보 패널이 상세를 fetch (좌표는 onLoaded에서 recenter)
+      // 목록 밖 단지 → 정보 패널 + 주소 on-demand 지오코딩으로 지도 이동·핀
       setSelectedId(null);
-      setSearchMarker(null);
       setInfoComplex({ id: item.id, name: item.name });
       setLevel(LEVEL_BY_ZOOM.danji);
+      const addr = item.address?.trim();
+      if (!addr) {
+        setSearchMarker(null);
+        return;
+      }
+      fetch(`/api/map/geocode?q=${encodeURIComponent(addr)}&limit=1`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((json: { items?: { lat: number; lng: number }[] } | null) => {
+          const it = json?.items?.[0];
+          if (it && Number.isFinite(it.lat) && Number.isFinite(it.lng)) {
+            setCenter({ lat: it.lat, lng: it.lng });
+            setSearchMarker({ id: item.id, name: item.name, lat: it.lat, lng: it.lng });
+          }
+        })
+        .catch(() => {
+          /* 지오코딩 실패 — 정보 패널만 유지 */
+        });
     },
     // selectDanji는 매 렌더 새로 생성되지만 danji가 실질 의존성
     // eslint-disable-next-line react-hooks/exhaustive-deps

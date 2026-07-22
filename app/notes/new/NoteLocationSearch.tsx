@@ -17,7 +17,7 @@ export type NoteLocation = {
   lng?: number | null;
 };
 
-type Suggestion = { id: string; name: string; region: string; dong?: string };
+type Suggestion = { id: string; name: string; region: string; dong?: string; address?: string };
 type Place = { name: string; address: string; lat: number; lng: number };
 
 export function NoteLocationSearch({
@@ -76,9 +76,23 @@ export function NoteLocationSearch({
   }, [q]);
 
   const pickComplex = (s: Suggestion) => {
+    // 즉시 반영(반응성) 후, 주소 on-demand 지오코딩으로 좌표 보강(노트에 위치 저장)
     onChange({ aptName: s.name, region: s.region, complexId: s.id, lat: null, lng: null });
     setOpen(false);
     setQ("");
+    const addr = (s.address || `${s.region} ${s.name}`).trim();
+    if (!addr) return;
+    fetch(`/api/map/geocode?q=${encodeURIComponent(addr)}&limit=1`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { items?: { lat: number; lng: number }[] } | null) => {
+        const it = json?.items?.[0];
+        if (it && Number.isFinite(it.lat) && Number.isFinite(it.lng)) {
+          onChange({ aptName: s.name, region: s.region, complexId: s.id, lat: it.lat, lng: it.lng });
+        }
+      })
+      .catch(() => {
+        /* 지오코딩 실패 — 좌표 없이 이름·지역만 연결 */
+      });
   };
   const pickPlace = (p: Place) => {
     // 주소에서 시군구까지를 지역으로 사용

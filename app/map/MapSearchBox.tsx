@@ -18,6 +18,7 @@ interface SuggestItem {
   name: string;
   region: string;
   dong: string;
+  address?: string;
 }
 
 interface GeocodeItem {
@@ -38,6 +39,8 @@ export interface MapSearchSelectComplex {
   id: string;
   name: string;
   region: string;
+  /** 지오코딩용 주소(도로명 우선) — 목록 밖 단지의 지도 이동에 사용 */
+  address?: string;
 }
 
 export interface MapSearchSelectAddress {
@@ -157,7 +160,7 @@ export function MapSearchBox({
 
   const pickComplex = useCallback(
     (c: SuggestItem) => {
-      onSelectComplex({ id: c.id, name: c.name, region: c.region });
+      onSelectComplex({ id: c.id, name: c.name, region: c.region, address: c.address });
       setQuery(c.name);
       setOpen(false);
     },

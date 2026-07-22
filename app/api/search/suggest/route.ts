@@ -15,6 +15,8 @@ export interface SuggestItem {
   name: string;
   region: string;
   dong: string;
+  /** 선택 시 지도 이동용 지오코딩 대상 주소(도로명 우선). 좌표는 클라이언트가 on-demand 지오코딩. */
+  address: string;
 }
 
 /** 외부(지도) 장소검색 폴백 항목 — 클릭 시 지도 이동에 필요한 좌표 포함. */
@@ -46,6 +48,7 @@ export async function GET(req: Request) {
       name: c.name,
       region: `${c.city} ${c.district}`.trim(),
       dong: c.district || c.city || "",
+      address: c.road_address || c.address || `${c.city} ${c.district} ${c.name}`.trim(),
     }));
   } catch {
     // env 미설정·조회 실패 시 빈 목록 (클라이언트는 드롭다운 미표시)
