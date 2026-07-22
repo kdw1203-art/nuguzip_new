@@ -5,6 +5,7 @@ import Link from "next/link";
 import { seedGradient, seedCoverHeight } from "./shared";
 import { ExampleBadge } from "../components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
+import { CoverImage } from "@/app/components/CoverImage";
 
 /* 동네이야기 통합 피드 — 오늘의집/인스타그램형 사진 우선 카드 그리드(매소너리).
    공개 임장노트(사진 우선) + 커뮤니티 글을 한 피드로 섞어 보여준다.
@@ -42,13 +43,12 @@ function Cover({ card }: { card: FeedCard }) {
       className="relative w-full overflow-hidden"
       style={{ background: seedGradient(card.region || card.id) }}
     >
-      {card.cover ? (
-        // 업로드 실패 시 그라디언트가 뒤에서 비쳐 보이도록 배경 위에 얹는다
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={card.cover} alt="" loading="lazy" className="block w-full object-cover" />
-      ) : (
-        <div style={{ height: seedCoverHeight(card.id) }} />
-      )}
+      {/* 로드 실패 시 그라디언트 배경이 보이도록 spacer 폴백으로 교체 (#18) */}
+      <CoverImage
+        src={card.cover}
+        imgClassName="block w-full object-cover"
+        fallback={<div style={{ height: seedCoverHeight(card.id) }} />}
+      />
       <span
         className={`absolute left-2 top-2 rounded-[6px] bg-white/90 px-2 py-[2px] text-[10px] font-extrabold ${labelColor}`}
       >

@@ -6,6 +6,7 @@ import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
 import { seedGradient, faviconUrl, hostOf, relativeTime } from "../shared";
 import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
+import { CoverImage } from "@/app/components/CoverImage";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 
 /* 뉴스·다이제스트(#6·#7) — 부동산 뉴스 그리드 상단에 주간 다이제스트 요약을 합쳤다.
@@ -70,29 +71,23 @@ function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
   return (
     <div
       className={`relative w-full overflow-hidden ${tall ? "h-[200px]" : "h-[128px]"}`}
-      style={
-        image
-          ? undefined
-          : { background: seedGradient(post.sourceName || post.city || post.id) }
-      }
     >
-      {image ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={image}
-            alt=""
-            loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent" />
-        </>
-      ) : (
-        /* 이미지 없는 항목 폴백 — 그라디언트 박스 위 아이콘 플레이스홀더로 레이아웃 유지 */
-        <span className="absolute inset-0 flex items-center justify-center text-white/70">
-          <Icon name="file-text" size={tall ? 34 : 26} />
-        </span>
-      )}
+      {/* 이미지 없음/로드 실패 모두 그라디언트+아이콘 폴백으로 통일 (#18) */}
+      <CoverImage
+        src={image}
+        imgClassName="absolute inset-0 h-full w-full object-cover"
+        scrim
+        fallback={
+          <span
+            className="absolute inset-0 flex items-center justify-center text-white/70"
+            style={{
+              background: seedGradient(post.sourceName || post.city || post.id),
+            }}
+          >
+            <Icon name="file-text" size={tall ? 34 : 26} />
+          </span>
+        }
+      />
       <span
         className={`absolute left-2 top-2 rounded-[5px] px-2 py-[3px] text-[10px] font-extrabold ${badgeStyle(post.category)}`}
       >
