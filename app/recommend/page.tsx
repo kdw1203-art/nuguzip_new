@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { safeAuth } from "@/lib/safe-auth";
 import type { PurposeId } from "@/lib/onboarding/personalization";
 import {
@@ -36,18 +37,6 @@ const deltaClass: Record<RecItem["tone"], string> = {
   down: "delta-down",
   flat: "delta-flat",
 };
-
-/* ── 예시 배지 (더미데이터 정책 · warning-soft) ── */
-function ExampleBadge() {
-  return (
-    <span
-      className="chip inline-flex shrink-0 items-center px-2 py-0.5 text-[10px] font-bold leading-[1.4]"
-      style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
-    >
-      예시
-    </span>
-  );
-}
 
 /* ── 비로그인 안내 ── */
 function LoginPrompt() {

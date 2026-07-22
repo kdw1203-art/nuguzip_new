@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { AIPanel } from "@/app/components/AIPanel";
 import { Icon } from "@/app/components/Icon";
 import { RealEstateTools } from "./realestate-tools";
@@ -96,15 +97,6 @@ function monthlyPaymentOf(loanManwon: number, annualRatePct: number, years: numb
   const n = years * 12;
   if (r === 0) return loanManwon / n;
   return (loanManwon * r) / (1 - Math.pow(1 + r, -n));
-}
-
-/** 더미데이터 정책 — 예시 표시 배지 */
-function ExampleBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded border border-line bg-surface px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
-      예시
-    </span>
-  );
 }
 
 type LoanCalcResult = {

@@ -3,6 +3,7 @@ import { Header } from "./components/Header";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
+import { ExampleBadge } from "./components/ExampleBadge";
 import { JourneyBanner } from "./components/JourneyBanner";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { Footer } from "./components/Footer";
@@ -49,15 +50,6 @@ const deltaClass: Record<DeltaTone, string> = {
   up: "delta-up",
   flat: "delta-flat",
 };
-
-/* 더미데이터 정책: 실데이터 0건일 때만 목업 노출 — 목업 항목엔 작은 "예시" 라벨 */
-function ExampleBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
-      예시
-    </span>
-  );
-}
 
 export default async function Home() {
   const data = await loadNewHomeData();

@@ -5,8 +5,7 @@ export type BadgeTone =
   | "success"
   | "danger"
   | "warning"
-  | "neutral"
-  | "example";
+  | "neutral";
 
 const TONES: Record<BadgeTone, string> = {
   primary: "bg-primary-soft text-primary",
@@ -14,7 +13,6 @@ const TONES: Record<BadgeTone, string> = {
   danger: "bg-[var(--danger-soft)] text-[var(--danger)]",
   warning: "bg-[var(--warning-soft)] text-[var(--warning)]",
   neutral: "bg-[rgba(127,140,158,.12)] text-text-3",
-  example: "bg-[rgba(127,140,158,.12)] text-text-3",
 };
 
 export type BadgeProps = {
@@ -22,15 +20,16 @@ export type BadgeProps = {
   children?: ReactNode;
 };
 
-/** Small status pill. `example` tone defaults its label to "예시". */
+/**
+ * Small status pill. NOTE: the "예시"(sample-data) label is intentionally NOT a
+ * Badge tone — it has a single canonical implementation in
+ * `@/app/components/ExampleBadge`. Use that for sample-data labels so the look
+ * stays unified site-wide.
+ */
 export function Badge({ tone = "neutral", children }: BadgeProps) {
-  const content =
-    tone === "example" && (children === undefined || children === null)
-      ? "예시"
-      : children;
   const cls = [
     "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
     TONES[tone],
   ].join(" ");
-  return <span className={cls}>{content}</span>;
+  return <span className={cls}>{children}</span>;
 }

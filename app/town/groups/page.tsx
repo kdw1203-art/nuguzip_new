@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
@@ -96,14 +97,6 @@ const STATUS_META: Record<
 };
 
 const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd"];
-
-function ExampleBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
-      예시
-    </span>
-  );
-}
 
 function qs(base: Record<string, string | undefined>, patch: Record<string, string | undefined>) {
   const merged = { ...base, ...patch };

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
+import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { HoloAvatar, TopScoutBadge } from "../../components/TopScoutBadge";
 import {
@@ -96,15 +97,6 @@ const SERIES = [
 
 /* 22b #13 — 임장 스토리 (세로 스와이프 뷰) 목업 */
 const STORIES = ["공작 302동", "한가람", "은하수", "귀인마을"];
-
-/* 더미데이터 정책: 목업 항목엔 작은 "예시" 라벨 */
-function ExampleBadge() {
-  return (
-    <span className="inline-flex shrink-0 items-center rounded border border-line bg-surface px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
-      예시
-    </span>
-  );
-}
 
 function resolveDisplayName(rawInput: string): string {
   return rawInput === "mock-1" ? "임장러버" : rawInput;
