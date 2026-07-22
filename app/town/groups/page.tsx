@@ -85,10 +85,13 @@ function toView(m: UserMeeting): GroupView {
   };
 }
 
-const STATUS_META: Record<GroupView["statusKey"], { label: string; style: string }> = {
-  open: { label: "모집 중", style: "bg-[#edf2fe] text-primary" },
-  closing: { label: "마감 임박", style: "bg-[#fdf3e7] text-[#c07a3a]" },
-  full: { label: "모집 마감", style: "bg-[#f2f4f8] text-text-3" },
+const STATUS_META: Record<
+  GroupView["statusKey"],
+  { label: string; style: string; dot: string }
+> = {
+  open: { label: "모집 중", style: "bg-primary-soft text-primary", dot: "bg-primary" },
+  closing: { label: "마감 임박", style: "state-warning", dot: "bg-warning" },
+  full: { label: "모집 마감", style: "bg-bg text-text-3", dot: "bg-text-3" },
 };
 
 const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd"];
@@ -157,24 +160,57 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
     { id: "new", label: "최신순" },
   ];
 
+  /* 헤더 요약 — 표시용 파생값 (데이터 변경 없음) */
+  const openCount = all.filter((g) => g.statusKey !== "full").length;
+  const closingCount = all.filter((g) => g.statusKey === "closing").length;
+  const filtersActive = region !== "all" || status !== "all" || sort !== "soon";
+  const heroStats: { icon: string; label: string; value: number }[] = [
+    { icon: "users", label: "열린 모임", value: all.length },
+    { icon: "sparkles", label: "모집 중", value: openCount },
+    { icon: "bell", label: "마감 임박", value: closingCount },
+  ];
+
   return (
     <PageShell breadcrumb="동네이야기 › 임장 모임">
-      <div className="mb-1 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="rise-in text-[26px] font-extrabold text-ink">지역별 임장 모임</h1>
-          <p className="mt-1.5 text-sm text-text-2">
-            같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
-          </p>
+      {/* ---------- 히어로 ---------- */}
+      <section className="rise-in bento bento-tint ring-grad overflow-hidden p-6 sm:p-7">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[11px] font-extrabold text-primary">
+              <Icon name="footprints" size={13} />
+              임장 모임
+            </span>
+            <h1 className="mt-3 text-[26px] font-extrabold leading-[1.2] text-ink sm:text-[30px]">
+              같이 걸으면 <span className="text-gradient">임장</span>이 쉬워져요
+            </h1>
+            <p className="mt-2 text-sm leading-[1.6] text-text-2">
+              같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {heroStats.map((s) => (
+                <span
+                  key={s.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2"
+                >
+                  <Icon name={s.icon} size={13} className="text-primary" />
+                  {s.label}
+                  <b className="text-ink">{s.value}</b>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="shrink-0">
+            <CreateGroupCta />
+          </div>
         </div>
-        <CreateGroupCta />
-      </div>
+      </section>
 
-      {/* 필터 바 */}
-      <div className="mt-4 flex flex-col gap-2">
-        <div className="flex gap-1.5 overflow-x-auto text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* ---------- 필터 ---------- */}
+      <div className="rise-in-1 mt-5 flex flex-col gap-2.5">
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <Link
             href={qs(base, { region: "all" })}
-            className={`chip shrink-0 px-3.5 py-1.5 ${region === "all" ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+            className={`chip press shrink-0 px-3.5 py-1.5 ${region === "all" ? "chip-active" : "border border-line bg-surface text-text-2"}`}
           >
             전체 지역
           </Link>
@@ -182,7 +218,7 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             <Link
               key={r}
               href={qs(base, { region: r })}
-              className={`chip shrink-0 px-3.5 py-1.5 ${region === r ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+              className={`chip press shrink-0 px-3.5 py-1.5 ${region === r ? "chip-active" : "border border-line bg-surface text-text-2"}`}
             >
               {r}
             </Link>
@@ -193,7 +229,7 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             <Link
               key={c.id}
               href={qs(base, { status: c.id })}
-              className={`chip px-3 py-1.5 ${status === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+              className={`chip press px-3 py-1.5 ${status === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
             >
               {c.label}
             </Link>
@@ -203,7 +239,7 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             <Link
               key={c.id}
               href={qs(base, { sort: c.id })}
-              className={`chip px-3 py-1.5 ${sort === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+              className={`chip press px-3 py-1.5 ${sort === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
             >
               {c.label}
             </Link>
@@ -211,60 +247,117 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
         </div>
       </div>
 
-      {/* 목록 */}
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+      {/* ---------- 결과 헤더 ---------- */}
+      <div className="rise-in-2 mb-3 mt-5 flex items-center justify-between px-0.5">
+        <span className="text-[13px] font-bold text-text-2">
+          <b className="text-ink">{groups.length}</b>개 모임
+          <span className="ml-1.5 text-text-3">· {sort === "new" ? "최신순" : "임박순"}</span>
+        </span>
+        {filtersActive && (
+          <Link
+            href="/town/groups"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline"
+          >
+            <Icon name="x" size={12} /> 필터 초기화
+          </Link>
+        )}
+      </div>
+
+      {/* ---------- 목록 ---------- */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {groups.map((g, i) => {
           const meta = STATUS_META[g.statusKey];
+          const remaining = Math.max(g.max - g.members, 0);
+          const pct = Math.min(100, Math.round((g.members / Math.max(g.max, 1)) * 100));
           return (
             <div
               key={g.id ?? g.title}
-              className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col gap-2.5 rounded-2xl p-4`}
+              className={`card card-hover press rise-in-${Math.min(i + 2, 8)} flex flex-col gap-3 p-4`}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5">
-                  <span className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${meta.style}`}>
-                    {meta.label} {g.members}/{g.max}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-extrabold ${meta.style}`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                    {meta.label}
                   </span>
                   {listIsMock && <ExampleBadge />}
                 </span>
-                <span className="text-[11px] text-text-3">{g.whenLabel}</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
+                  <Icon name="calendar" size={12} />
+                  {g.whenLabel}
+                </span>
               </div>
 
-              <div className="text-[15px] font-extrabold text-ink">{g.title}</div>
-              <p className="line-clamp-2 text-xs leading-[1.5] text-text-2">{g.desc}</p>
+              <div>
+                <h3 className="line-clamp-1 text-[15px] font-extrabold text-ink">{g.title}</h3>
+                <p className="mt-1 line-clamp-2 text-xs leading-[1.55] text-text-2">{g.desc}</p>
+              </div>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
-                <span className="inline-flex items-center gap-1"><Icon name="📍" size={12} />{g.region}</span>
-                <span className="inline-flex items-center gap-1"><Icon name="👤" size={12} />{g.host}</span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="pin" size={12} />
+                  {g.region}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Icon name="user" size={12} />
+                  {g.host}
+                </span>
               </div>
 
               {g.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {g.tags.map((t) => (
-                    <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+                    <span key={t} className="chip-tag px-2.5 py-1 text-[11px]">
                       #{t}
                     </span>
                   ))}
                 </div>
               )}
 
-              <div className="mt-0.5 flex items-center justify-between">
+              {/* 모집 인원 */}
+              <div className="mt-auto">
+                <div className="mb-1 flex items-center justify-between text-[11px]">
+                  <span className="inline-flex items-center gap-1 text-text-3">
+                    <Icon name="users" size={12} />
+                    모집 인원
+                  </span>
+                  <span className="font-bold text-ink">
+                    {g.members}/{g.max}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg">
+                  <div
+                    className={`h-full rounded-full ${g.statusKey === "full" ? "bg-text-3" : "bg-primary"}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 푸터 */}
+              <div className="flex items-center justify-between border-t border-line pt-3">
                 <div className="flex items-center">
                   {AVATAR_COLORS.slice(0, Math.min(Math.max(g.members, 1), 3)).map((c, j) => (
                     <div
                       key={c}
-                      className={`h-6 w-6 rounded-full border-2 border-white ${j > 0 ? "-ml-2" : ""}`}
+                      className={`h-6 w-6 rounded-full border-2 border-surface ${j > 0 ? "-ml-2" : ""}`}
                       style={{ background: c }}
                     />
                   ))}
-                  <span className="ml-2 text-[11px] text-text-3">멤버 {g.members}명</span>
+                  <span className="ml-2 text-[11px] font-medium text-text-3">
+                    {remaining > 0 ? `${remaining}자리 남음` : "모집 마감"}
+                  </span>
                 </div>
                 {g.id ? (
-                  <Link href={`/town/groups/${g.id}`} className="btn-primary rounded-full px-4 py-2 text-xs no-underline">
+                  <Link
+                    href={`/town/groups/${g.id}`}
+                    className="btn-primary rounded-lg px-4 py-2 text-xs no-underline"
+                  >
                     {g.statusKey === "full" ? "대기 참여" : "참여하기"}
                   </Link>
                 ) : (
-                  <span className="cursor-default rounded-full border border-line bg-bg px-4 py-2 text-xs font-semibold text-text-3">
+                  <span className="cursor-default rounded-lg border border-line bg-bg px-4 py-2 text-xs font-semibold text-text-3">
                     예시 모임
                   </span>
                 )}
@@ -272,17 +365,22 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             </div>
           );
         })}
-
-        {groups.length === 0 && (
-          <div className="card col-span-full rounded-2xl px-6 py-10 text-center text-sm text-text-3">
-            조건에 맞는 모임이 아직 없어요.{" "}
-            <Link href="/town/groups" className="font-semibold text-primary no-underline">
-              필터를 초기화
-            </Link>
-            하거나 직접 모임을 만들어 보세요.
-          </div>
-        )}
       </div>
+
+      {groups.length === 0 && (
+        <div className="rise-in-2 card mt-3 flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+            <Icon name="search" size={22} />
+          </div>
+          <p className="text-sm font-bold text-ink">조건에 맞는 모임이 아직 없어요</p>
+          <p className="max-w-xs text-xs leading-[1.6] text-text-3">
+            필터를 바꾸거나 직접 모임을 만들어 이웃을 모아보세요.
+          </p>
+          <Link href="/town/groups" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+            필터 초기화
+          </Link>
+        </div>
+      )}
     </PageShell>
   );
 }

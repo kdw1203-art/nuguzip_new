@@ -131,6 +131,7 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
     { id: "rating", label: "평점순" },
     { id: "consult", label: "상담수순" },
   ];
+  const filtersActive = sub.id !== "all" || region !== "all" || sort !== "rating";
 
   function qs(patch: Record<string, string | undefined>) {
     const merged = { sub: sub.id, region, sort, ...patch };
@@ -142,25 +143,55 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
 
   return (
     <PageShell breadcrumb="동네이야기 › 전문가">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="rise-in text-[26px] font-extrabold text-ink">검증된 전문가</h1>
-          <p className="mt-1.5 text-sm text-text-2">
-            자격 검증 완료{usingReal ? ` · 인증 전문가 ${verifiedCount}명` : ""} · 내 임장노트를
-            첨부해 바로 질문하세요
-          </p>
+      {/* ---------- 히어로 ---------- */}
+      <section className="rise-in bento bento-tint ring-grad overflow-hidden p-6 sm:p-7">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[11px] font-extrabold text-primary">
+              <Icon name="shield" size={13} />
+              검증된 전문가
+            </span>
+            <h1 className="mt-3 text-[26px] font-extrabold leading-[1.2] text-ink sm:text-[30px]">
+              믿을 수 있는 <span className="text-gradient">전문가</span>와 상담하세요
+            </h1>
+            <p className="mt-2 text-sm leading-[1.6] text-text-2">
+              자격 검증 완료 · 내 임장노트를 첨부해 공인중개사·세무사·감정평가사에게 바로 질문하세요
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              {usingReal && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2">
+                  <Icon name="check" size={13} className="text-primary" />
+                  인증 전문가 <b className="text-ink">{verifiedCount}</b>명
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2">
+                <Icon name="star" size={13} className="text-primary" />
+                평점·상담 후기 기반
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0">
+            <ExpertApplyCta />
+          </div>
         </div>
-        <ExpertApplyCta />
+      </section>
+
+      {/* 인증 안내 — 인증 전문가만 실제 상담 가능 */}
+      <div className="rise-in-1 mt-4 flex items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-2.5 text-[12px] leading-[1.6] text-[#5b74b8]">
+        <Icon name="shield" size={15} className="shrink-0 text-primary" />
+        <span>
+          <b className="text-primary">인증</b> 배지가 있는 전문가만 실제 상담·견적 요청이 가능해요.
+        </span>
       </div>
 
-      {/* 분야 필터 */}
-      <div className="mb-2 flex gap-1.5 overflow-x-auto text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* ---------- 분야 필터 ---------- */}
+      <div className="rise-in-1 mt-4 flex gap-1.5 overflow-x-auto pb-0.5 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {subChips.map((c) => (
           <Link
             key={c.id}
             href={qs({ sub: c.id })}
-            className={`chip shrink-0 px-3.5 py-2 ${
-              sub.id === c.id ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
+            className={`chip press shrink-0 px-3.5 py-2 ${
+              sub.id === c.id ? "chip-active" : "border border-line bg-surface text-text-2"
             }`}
           >
             {c.label}
@@ -170,10 +201,10 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
 
       {/* 지역 + 정렬 필터 */}
       {usingReal && (
-        <div className="mb-4 flex flex-wrap items-center gap-1.5 text-[13px]">
+        <div className="rise-in-2 mt-2 flex flex-wrap items-center gap-1.5 text-[13px]">
           <Link
             href={qs({ region: "all" })}
-            className={`chip px-3 py-1.5 ${region === "all" ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+            className={`chip press px-3 py-1.5 ${region === "all" ? "chip-active" : "border border-line bg-surface text-text-2"}`}
           >
             전체 지역
           </Link>
@@ -181,7 +212,7 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
             <Link
               key={r}
               href={qs({ region: r })}
-              className={`chip px-3 py-1.5 ${region === r ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+              className={`chip press px-3 py-1.5 ${region === r ? "chip-active" : "border border-line bg-surface text-text-2"}`}
             >
               {r}
             </Link>
@@ -191,7 +222,7 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
             <Link
               key={c.id}
               href={qs({ sort: c.id })}
-              className={`chip px-3 py-1.5 ${sort === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
+              className={`chip press px-3 py-1.5 ${sort === c.id ? "chip-active" : "border border-line bg-surface text-text-2"}`}
             >
               {c.label}
             </Link>
@@ -200,26 +231,54 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
       )}
 
       {/* 견적 요청 플로우 (숨고 벤치마크 A4) — market_requests 실저장 */}
-      <QuoteRequestBanner />
+      <div className="mt-4">
+        <QuoteRequestBanner />
+      </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {/* 결과 헤더 */}
+      <div className="rise-in-2 mb-3 flex items-center justify-between px-0.5">
+        <span className="text-[13px] font-bold text-text-2">
+          <b className="text-ink">{cards.length}</b>명의 전문가
+          {usingReal && (
+            <span className="ml-1.5 text-text-3">· {sort === "consult" ? "상담수순" : "평점순"}</span>
+          )}
+        </span>
+        {filtersActive && (
+          <Link
+            href="/town/experts"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary no-underline"
+          >
+            <Icon name="x" size={12} /> 필터 초기화
+          </Link>
+        )}
+      </div>
+
+      {/* ---------- 전문가 그리드 ---------- */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((e, i) => (
           <ExpertCard key={e.id ?? `${e.name}-${i}`} e={e} index={i} />
         ))}
 
         {cards.length === 0 && (
-          <div className="card col-span-full rounded-[20px] px-6 py-10 text-center text-sm text-text-3">
-            {sub.label} 분야 전문가가 아직 없어요.{" "}
-            <Link href="/town/experts" className="font-semibold text-primary no-underline">
-              필터를 초기화
+          <div className="rise-in-2 card col-span-full flex flex-col items-center gap-3 rounded-[20px] px-6 py-12 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+              <Icon name="search" size={22} />
+            </div>
+            <p className="text-sm font-bold text-ink">{sub.label} 분야 전문가가 아직 없어요</p>
+            <p className="max-w-xs text-xs leading-[1.6] text-text-3">
+              다른 분야나 지역으로 바꿔보세요.
+            </p>
+            <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+              필터 초기화
             </Link>
-            해 보세요.
           </div>
         )}
 
         {/* 전문가 등록/인증 신청 CTA */}
-        <div className="rise-in-3 flex flex-col items-center justify-center gap-2.5 rounded-[20px] border-[1.5px] border-dashed border-[#a9bde8] bg-[rgba(29,79,216,.06)] p-[22px] text-center">
-          <div className="text-2xl"><Icon name="🛡" size={24} /></div>
+        <div className="rise-in-3 flex flex-col items-center justify-center gap-3 rounded-[20px] border-[1.5px] border-dashed border-[#a9bde8] bg-[rgba(29,79,216,.05)] p-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+            <Icon name="shield" size={24} />
+          </div>
           <div className="text-[15px] font-extrabold text-primary">전문가이신가요?</div>
           <p className="text-[13px] leading-[1.6] text-[#5b74b8]">
             자격 인증 후 상담·리포트 수익과

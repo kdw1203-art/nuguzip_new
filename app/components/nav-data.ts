@@ -13,11 +13,8 @@ export const NAV: NavItem[] = [
     href: "/notes",
     children: [
       { label: "노트 쓰기", href: "/notes/new" },
-      { label: "노트 템플릿", href: "/notes/templates" },
       { label: "공개 노트", href: "/notes" },
       { label: "회차 비교", href: "/notes/compare" },
-      { label: "내 노트", href: "/my" },
-      { label: "대출·비용 계산기", href: "/calculator" },
     ],
   },
   {
@@ -42,20 +39,11 @@ export const NAV: NavItem[] = [
     label: "동네이야기",
     href: "/town",
     children: [
-      // 콘텐츠·소식
+      // 콘텐츠·소식 + 사람·모임 (분양·물건·거래는 전체 메뉴/각 페이지에서 접근)
       { label: "피드", href: "/town" },
       { label: "뉴스", href: "/town/news" },
-      { label: "자료", href: "/town/library" },
-      { label: "주간 다이제스트", href: "/digest" },
-      // 사람·모임
       { label: "임장 모임", href: "/town/groups" },
       { label: "전문가", href: "/town/experts" },
-      { label: "단지 Q&A", href: "/qna" },
-      // 분양·물건·거래
-      { label: "청약 센터", href: "/apply" },
-      { label: "입주 물량", href: "/supply" },
-      { label: "공매·경매", href: "/auctions" },
-      { label: "개발 물건 중개", href: "/dev-deals" },
     ],
   },
 ];
