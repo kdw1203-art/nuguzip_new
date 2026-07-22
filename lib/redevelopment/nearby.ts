@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import { listListingsInBounds } from "@/lib/listings/store-db";
 import { logger } from "@/lib/log";
 import type { RedevelopmentProject } from "./types";
@@ -71,7 +71,8 @@ function num(v: unknown): number | null {
 }
 
 async function fetchNearbyTransactions(p: RedevelopmentProject): Promise<NearbyTransaction[]> {
-  const sb = getReadOnlySupabase();
+  // 검증된 fetchDistrictTransactions 패턴과 동일하게 service-role + property_type 필터 사용.
+  const sb = getServiceSupabase();
   if (!sb) return [];
   try {
     const candidates = regionNameCandidates(p.sido, p.sigungu);
@@ -81,18 +82,18 @@ async function fetchNearbyTransactions(p: RedevelopmentProject): Promise<NearbyT
       .select("complex_name,area_m2,floor,deal_amount_krw,contract_ym,contract_day")
       .in("region_name", candidates)
       .eq("transaction_type", "trade")
+      .eq("property_type", "apartment")
+      .not("deal_amount_krw", "is", null)
       .order("contract_ym", { ascending: false })
       .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(24);
+      .limit(10);
     if (error) {
-      logger.warn("[redev.nearby.tx] query error", error.message, "cands", candidates);
+      logger.warn("[redev.nearby.tx] query error", error.message);
       return [];
     }
-    const raw = (data ?? []) as Record<string, unknown>[];
-    if (raw.length === 0) {
-      logger.warn("[redev.nearby.tx] 0 rows", "cands", JSON.stringify(candidates));
-    }
-    const rows = raw.filter((r) => num(r.deal_amount_krw) != null).slice(0, 8);
+    const rows = ((data ?? []) as Record<string, unknown>[])
+      .filter((r) => num(r.deal_amount_krw) != null)
+      .slice(0, 8);
     return rows.map((r) => {
       const ym = String(r.contract_ym ?? "");
       const day = num(r.contract_day);
