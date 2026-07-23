@@ -19,13 +19,13 @@ export const revalidate = 120;
 
 /* 동네이야기 카테고리 통합(#5·입주/공매/청약 편입) — 랜딩 상단 바로가기 카드 */
 const TOWN_LINKS: { href: string; label: string; icon: string; desc: string }[] = [
+  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
+  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·임장노트" },
+  { href: "/town/news", label: "뉴스·다이제스트", icon: "📰", desc: "부동산 뉴스·주간 요약" },
+  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "검증된 상담" },
   { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },
   { href: "/supply", label: "입주 물량", icon: "🏗️", desc: "공급 캘린더" },
   { href: "/auctions", label: "공매 물건", icon: "🔨", desc: "온비드 공매" },
-  { href: "/town/news", label: "뉴스·다이제스트", icon: "📰", desc: "부동산 뉴스·주간 요약" },
-  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·임장노트" },
-  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
-  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "검증된 상담" },
 ];
 
 /* 더미데이터 정책(더미 1개 원칙): 실데이터 0건일 때만 예시 카드 1건 노출 */
