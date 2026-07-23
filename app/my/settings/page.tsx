@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
+import { useToast } from "@/app/components/toast/ToastProvider";
 
 /* 설정 (item 14) — 진짜 설정만 유지, 네비게이션성 항목 제거.
    섹션: 계정 · 알림 · 개인정보. 저장되는 토글만 실배선(/api/me/notification-prefs),
@@ -28,7 +29,11 @@ type PrefKey =
   | "pushMeeting"
   | "pushExpert";
 
-type Prefs = Record<PrefKey, boolean>;
+type Prefs = Record<PrefKey, boolean> & {
+  /** SMS(NCP SENS) 관심단지 가격 알림 — 별도 카드에서 관리 */
+  alertPhone?: string | null;
+  smsPriceAlerts?: boolean;
+};
 
 const PREF_GROUPS: {
   title: string;
@@ -68,6 +73,121 @@ function Toggle({ on }: { on: boolean }) {
         }`}
       />
     </span>
+  );
+}
+
+/* SMS(문자) 알림 옵트인 — 관심단지 가격 변동을 NCP SENS 문자로 수신.
+   전화번호 저장 + 토글 + 동의 문구. 저장 시 토스트. */
+function SmsAlertCard({
+  initialPhone,
+  initialOn,
+}: {
+  initialPhone: string | null;
+  initialOn: boolean;
+}) {
+  const { showToast } = useToast();
+  const [phone, setPhone] = useState(initialPhone ?? "");
+  const [savedPhone, setSavedPhone] = useState<string | null>(initialPhone);
+  const [on, setOn] = useState(initialOn);
+  const [busy, setBusy] = useState(false);
+
+  const digits = phone.replace(/\D/g, "");
+  const phoneValid = /^01\d{8,9}$/.test(digits);
+
+  async function patch(body: Record<string, unknown>): Promise<boolean> {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/me/notification-prefs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as {
+        prefs?: { alertPhone?: string | null; smsPriceAlerts?: boolean };
+      };
+      if (data.prefs) {
+        setSavedPhone(data.prefs.alertPhone ?? null);
+        setOn(Boolean(data.prefs.smsPriceAlerts));
+      }
+      return true;
+    } catch {
+      showToast("저장에 실패했어요. 잠시 후 다시 시도해 주세요");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function savePhone() {
+    if (!phoneValid) {
+      showToast("올바른 휴대폰 번호를 입력해 주세요");
+      return;
+    }
+    if (await patch({ alertPhone: digits })) showToast("번호를 저장했어요");
+  }
+
+  async function toggle() {
+    if (busy) return;
+    if (!on) {
+      if (!savedPhone && !phoneValid) {
+        showToast("먼저 휴대폰 번호를 입력·저장해 주세요");
+        return;
+      }
+      const body = savedPhone
+        ? { smsPriceAlerts: true }
+        : { alertPhone: digits, smsPriceAlerts: true };
+      if (await patch(body)) showToast("SMS 알림을 켰어요");
+    } else {
+      if (await patch({ smsPriceAlerts: false })) showToast("SMS 알림을 껐어요");
+    }
+  }
+
+  return (
+    <div className="card flex flex-col rounded-2xl px-4 py-1">
+      <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">SMS 알림 (문자)</div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        onClick={() => void toggle()}
+        disabled={busy}
+        className="flex w-full items-center justify-between py-[11px] text-left disabled:opacity-60"
+      >
+        <span>
+          <span className="block text-[13px] font-semibold text-text-1">
+            관심단지 가격 변동 SMS 받기
+          </span>
+          <span className="block text-[10px] text-text-3">
+            시세가 의미 있게 변하면 문자로 알려드려요
+          </span>
+        </span>
+        <Toggle on={on} />
+      </button>
+      <div className="flex items-center gap-2 border-t border-[#f0f3f8] py-2.5">
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="휴대폰 번호 (예: 01012345678)"
+          aria-label="SMS 알림 수신 번호"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink outline-none placeholder:text-text-3"
+        />
+        <button
+          type="button"
+          onClick={() => void savePhone()}
+          disabled={busy || !phoneValid}
+          className="shrink-0 rounded-lg bg-primary px-3 py-2 text-[12px] font-bold text-white disabled:opacity-50"
+        >
+          번호 저장
+        </button>
+      </div>
+      <p className="pb-2.5 text-[10px] leading-[1.6] text-text-3">
+        입력한 번호는 SMS 알림 발송에만 사용되며, 이 화면에서 언제든 해지할 수 있어요.
+        문자 수신 시 통신사 요금 정책이 적용될 수 있습니다.
+      </p>
+    </div>
   );
 }
 
@@ -200,6 +320,10 @@ function NotificationTab() {
               ))}
             </div>
           ))}
+          <SmsAlertCard
+            initialPhone={prefs.alertPhone ?? null}
+            initialOn={prefs.smsPriceAlerts ?? false}
+          />
           <div className="text-[10px] text-text-3">
             변경 즉시 저장돼요 · 방해 금지 시간 등 세부 옵션은 준비 중이에요
           </div>

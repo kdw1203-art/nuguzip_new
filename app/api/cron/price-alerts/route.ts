@@ -4,6 +4,8 @@ import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
+import { getPrefs } from "@/lib/notification-prefs/store-db";
+import { isNcpSensConfigured, sendSensSms } from "@/lib/ncp/sens-sms";
 import { captureException } from "@/lib/monitoring/capture";
 import { logger } from "@/lib/log";
 
@@ -82,15 +84,51 @@ interface RunSummary {
   ok: boolean;
   checked: number;
   notified: number;
+  /** 인앱 알림 중 SMS(NCP SENS)로도 발송된 건수 (옵트인 사용자) */
+  smsSent: number;
   skipped: number;
   reason?: string;
+}
+
+/**
+ * 옵트인 사용자에게 관심단지 가격 알림을 SMS(NCP SENS)로도 발송.
+ * NCP SENS 미설정 시 조용히 no-op. 인앱 알림과 별개로 동작(실패해도 크론은 계속).
+ */
+async function maybeSendPriceAlertSms(
+  userEmail: string,
+  complexName: string,
+  priceKrw: number,
+  dir: string,
+  complexId: string,
+): Promise<boolean> {
+  if (!isNcpSensConfigured()) return false;
+  try {
+    const prefs = await getPrefs(userEmail);
+    if (!prefs.smsPriceAlerts || !prefs.alertPhone) return false;
+    const content =
+      `[누구집] 관심단지 시세 알림\n` +
+      `${complexName} 시세가 ${formatKrwShort(priceKrw)}(으)로 ${dir}했어요.\n` +
+      `자세히: https://nuguzip.com/complex/${complexId}\n\n` +
+      `수신거부: 마이 > 알림 설정`;
+    const result = await sendSensSms({
+      type: "LMS",
+      contentType: "COMM",
+      subject: "관심단지 시세 알림",
+      content,
+      messages: [{ to: prefs.alertPhone }],
+    });
+    return result.ok;
+  } catch (e) {
+    captureException(e, { where: "cron/price-alerts:sms", userEmail });
+    return false;
+  }
 }
 
 async function runPriceAlerts(): Promise<RunSummary> {
   const read = getReadOnlySupabase();
   if (!read) {
     // 저장소 미설정 — 안전한 no-op.
-    return { ok: true, checked: 0, notified: 0, skipped: 0, reason: "no-store" };
+    return { ok: true, checked: 0, notified: 0, smsSent: 0, skipped: 0, reason: "no-store" };
   }
   const write = getServiceSupabase();
 
@@ -109,6 +147,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
       ok: true,
       checked: 0,
       notified: 0,
+      smsSent: 0,
       skipped: 0,
       reason: "query-failed",
     };
@@ -119,6 +158,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
   const priceCache = new Map<string, number | null>();
   let checked = 0;
   let notified = 0;
+  let smsSent = 0;
   let skipped = 0;
   let sawPrice = false;
 
@@ -169,6 +209,10 @@ async function runPriceAlerts(): Promise<RunSummary> {
             actionUrl: `/complex/${complexId}`,
           });
           notified++;
+          // 옵트인 사용자에게 SMS(NCP SENS)로도 발송 — 미설정/미동의 시 no-op
+          if (await maybeSendPriceAlertSms(userEmail, name, priceKrw, dir, complexId)) {
+            smsSent++;
+          }
         }
       }
 
@@ -197,9 +241,9 @@ async function runPriceAlerts(): Promise<RunSummary> {
 
   // 단 한 건도 시세를 못 구했으면(가격 소스 없음) 명시적으로 알린다.
   if (!sawPrice && rows.length > 0) {
-    return { ok: true, checked, notified: 0, skipped, reason: "no-price-source" };
+    return { ok: true, checked, notified: 0, smsSent: 0, skipped, reason: "no-price-source" };
   }
-  return { ok: true, checked, notified, skipped };
+  return { ok: true, checked, notified, smsSent, skipped };
 }
 
 async function handle(req: Request): Promise<Response> {
