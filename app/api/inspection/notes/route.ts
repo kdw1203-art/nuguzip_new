@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { createNote, listNotes, listPublicNotes } from "@/lib/inspection/store-db";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
@@ -87,6 +88,11 @@ export async function POST(req: Request) {
           : undefined,
     });
     const isPublic = Boolean(body.isPublic);
+    // 공개 노트로 생성되면 공개 피드를 즉시 갱신(ISR 대기 없이 바로 반영)
+    if (isPublic) {
+      revalidatePath("/notes");
+      revalidatePath("/");
+    }
     void recordFunnelEvent(req, {
       eventName: FUNNEL_EVENT.INSPECTION_NOTE_CREATE,
       userEmail: session.user.email,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { deleteNote, getNote, updateNote } from "@/lib/inspection/store-db";
@@ -59,6 +60,12 @@ export async function PATCH(
     if (!exists.isPublic) {
       await awardPoints(session.user.email, "note_public", id);
     }
+  }
+  // 공개 여부가 바뀌면 공개 피드를 즉시 갱신(ISR 대기 없이 바로 반영)
+  if (exists.isPublic !== updated.isPublic) {
+    revalidatePath("/notes");
+    revalidatePath("/");
+    revalidatePath(`/notes/${id}`);
   }
   return NextResponse.json({ note: updated });
 }
