@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import {
   getComplexById,
@@ -40,10 +41,10 @@ function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
 }
 
 /* ============================================================
-   시안 23b — 단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 22f-65 겸용)
+   단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 겸용)
    실데이터: complexes(getComplexById) + complex_transactions(getTransactionHistory)
-   + posts(getComplexPosts). 조회 실패/없음 시 시안 목업(공작아파트) 폴백.
-   비로그인 열람 허용 — index 대상(20b).
+   + posts(getComplexPosts). 존재하지 않는 단지 → notFound() (사실 우선: 목업 금지).
+   비로그인 열람 허용 — index 대상.
    ============================================================ */
 
 // ISR(운영 P0): searchParams 미사용 — 경로별 2분 재검증 캐시 (SEO 랜딩 성능)
@@ -80,59 +81,6 @@ interface HubView {
   lat?: number | null;
   lng?: number | null;
 }
-
-/* ===== 목업 폴백 — 시안 23b 공작아파트 ===== */
-// 예시 폴백: 실데이터 0건일 때만, 섹션당 1개만 (그 외 더미 금지)
-const MOCK_LISTINGS: HubListing[] = [
-  {
-    badge: "급매",
-    urgent: true,
-    price: "매매 7.9억",
-    priceNote: "시세 대비 -6%",
-    meta: "84A · 5층/15층 · 남향 · 즉시입주 · 올수리",
-    agent: "관양공인 · 오늘 등록",
-  },
-];
-
-const MOCK_TRADES: HubTrade[] = [
-  { date: "2026.06", price: "8.15억", sub: "5층", delta: "▼ 1.8%", tone: "down" },
-];
-
-const MOCK_NOTES: HubNote[] = [
-  { title: "공작 302동 — “주차가 관건, 저녁 실측”", author: "첫집준비중 · 07.12", score: "78점" },
-];
-
-const MOCK_VIEW: HubView = {
-  id: "mock-1",
-  name: "공작아파트",
-  dong: "관양동",
-  followerLabel: "+ 단지 팔로우 1.2k",
-  metric: {
-    price: "4.9억",
-    priceSub: "전세 ▼3,000",
-    priceSubClass: "text-[#1a7f4e]",
-    listings: "매물 12",
-    listingsSub: "전세 7 · 매매 5",
-    notes: "노트 3,812",
-    notesSub: "이번 주 +38",
-    safety: "A",
-  },
-  aiTitle: "AI 요약 · 노트 3,812건",
-  aiBody: "채광 상(87%) · 주차 하(74%) · 최근 “누수” 언급 3단지 저층 집중 (13c 재사용)",
-  myRecord: "노트 3건 · 비교 후보 · 예상가 4.7억",
-  listingsLabel: "매물 12 · 전세 7 · 매매 5",
-  infoRows: [
-    { label: "준공", value: "1988년" },
-    { label: "세대수", value: "1,486세대" },
-    { label: "용적률", value: "199%" },
-    { label: "주소", value: "안양 동안구 관양동" },
-  ],
-  trades: MOCK_TRADES,
-  notes: MOCK_NOTES,
-  listings: MOCK_LISTINGS,
-  nearby: [], // 목업 폴백 시 존재하지 않는 단지로 링크하지 않음
-  txHref: null,
-};
 
 /* ===== 실데이터 변환 (map/page.tsx 방식) ===== */
 
@@ -225,7 +173,8 @@ function toView(
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   const { delta, tone } = deltaLabel(latest ? pctDelta(latest.avg_manwon, prev?.avg_manwon) : null);
   const dong = row.district || row.city || "지역";
-  const trades = tx.length > 0 ? toTrades(tx) : MOCK_TRADES;
+  // 사실 우선: 실거래 데이터가 없으면 목업 대신 빈 배열(클라이언트가 안내 문구 표시)
+  const trades = tx.length > 0 ? toTrades(tx) : [];
   const notes: HubNote[] =
     posts.length > 0
       ? posts.slice(0, 6).map((p) => ({
@@ -233,7 +182,7 @@ function toView(
           author: `${p.district ?? dong} · ${p.created_at.slice(5, 10).replace("-", ".")}`,
           score: `공감 ${p.like_count ?? 0}`,
         }))
-      : MOCK_NOTES;
+      : [];
 
   const infoRows: { label: string; value: string }[] = [];
   if (row.build_year) infoRows.push({ label: "준공", value: `${row.build_year}년` });
@@ -267,13 +216,13 @@ function toView(
     aiBody: latest
       ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) — 국토교통부 실거래가 기준. 현장 확인 후 판단하세요.`
       : "실거래·후기가 쌓이면 AI 요약을 제공합니다.",
-    myRecord: "—",
+    myRecord: "로그인하면 이 단지에 남긴 임장노트를 볼 수 있어요",
     listingsLabel: "실매물 준비 중",
     infoRows,
     trades,
     notes,
-    // 실매물 소스 미연동: 실데이터 없으면 예시 1건만
-    listings: MOCK_LISTINGS,
+    // 실매물 소스 미연동: 허위 매물 대신 빈 배열
+    listings: [],
     nearby,
     txHref,
     lat: row.lat,
@@ -281,23 +230,20 @@ function toView(
   };
 }
 
-async function loadView(id: string): Promise<HubView> {
-  try {
-    const row = await getComplexById(id);
-    if (!row) return MOCK_VIEW;
-    const [tx, posts, sameDong, txHref] = await Promise.all([
-      getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
-      getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
-      // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
-      row.district
-        ? searchComplexes("", row.district, 5).catch(() => [] as ComplexRow[])
-        : Promise.resolve([] as ComplexRow[]),
-      resolveTxHref(row),
-    ]);
-    return toView(row, tx, posts, toNearby(sameDong, row.id), txHref);
-  } catch {
-    return MOCK_VIEW;
-  }
+async function loadView(id: string): Promise<HubView | null> {
+  // 사실 우선: 존재하지 않는 단지는 목업 대신 null → notFound()
+  const row = await getComplexById(id);
+  if (!row) return null;
+  const [tx, posts, sameDong, txHref] = await Promise.all([
+    getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
+    getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
+    // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
+    row.district
+      ? searchComplexes("", row.district, 5).catch(() => [] as ComplexRow[])
+      : Promise.resolve([] as ComplexRow[]),
+    resolveTxHref(row),
+  ]);
+  return toView(row, tx, posts, toNearby(sameDong, row.id), txHref);
 }
 
 /* ===== SEO — 단지명 title/description, 비로그인 열람 허용 (index 대상) ===== */
@@ -307,32 +253,34 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  let name = MOCK_VIEW.name;
-  let region = "안양 동안구 관양동";
-  // OG 카드용 시세 — 목업 폴백값(시안 23b)
-  let price = MOCK_VIEW.metric.price;
-  let delta = "";
+  // 사실 우선: 존재하지 않는 단지는 목업 메타 대신 noindex 안내
+  let row: ComplexRow | null = null;
   try {
-    const row = await getComplexById(id);
-    if (row) {
-      name = row.name;
-      region = `${row.city} ${row.district}`.trim() || region;
-      const tx = await getTransactionHistory(row.id, 2).catch(
-        () => [] as ComplexTransactionRow[],
-      );
-      const latest = tx.length > 0 ? tx[tx.length - 1] : null;
-      const prev = tx.length > 1 ? tx[tx.length - 2] : null;
-      if (latest) {
-        price = formatManwon(latest.avg_manwon);
-        const d = deltaLabel(pctDelta(latest.avg_manwon, prev?.avg_manwon));
-        delta = d.tone === "flat" ? "" : `${d.delta} 전월비`;
-      } else {
-        price = "시세 준비 중";
-        delta = "";
-      }
-    }
+    row = await getComplexById(id);
   } catch {
-    // env 미설정·조회 실패 시 목업 메타 유지
+    row = null;
+  }
+  if (!row) {
+    return {
+      title: "단지를 찾을 수 없습니다 | 누구집",
+      description: "요청하신 단지 정보를 찾을 수 없습니다.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const name = row.name;
+  const region = `${row.city} ${row.district}`.trim() || "지역";
+  let price = "시세 준비 중";
+  let delta = "";
+  const tx = await getTransactionHistory(row.id, 2).catch(
+    () => [] as ComplexTransactionRow[],
+  );
+  const latest = tx.length > 0 ? tx[tx.length - 1] : null;
+  const prev = tx.length > 1 ? tx[tx.length - 2] : null;
+  if (latest) {
+    price = formatManwon(latest.avg_manwon);
+    const d = deltaLabel(pctDelta(latest.avg_manwon, prev?.avg_manwon));
+    delta = d.tone === "flat" ? "" : `${d.delta} 전월비`;
   }
 
   const title = `${name} 시세·매물·임장노트 | 누구집`;
@@ -371,11 +319,13 @@ export default async function ComplexHubPage({
   const { id } = await params;
   const complexId = decodeURIComponent(id);
   const v = await loadView(complexId);
+  // 사실 우선: 존재하지 않는 단지는 목업 대신 404
+  if (!v) notFound();
   // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
   const freshness = await getMarketFreshnessDateLabel();
 
-  // JSON-LD(Residence/Place + Breadcrumb) — 실단지 매칭 시에만, 존재 필드만
-  const isRealComplex = v.id === complexId && complexId !== "mock-1";
+  // JSON-LD(Residence/Place + Breadcrumb) — 실단지이므로 항상 생성
+  const isRealComplex = true;
   const complexAddress = v.infoRows.find((r) => r.label === "주소")?.value ?? null;
   const complexPriceRange =
     v.metric.price && !/준비|수집/.test(v.metric.price) ? v.metric.price : null;

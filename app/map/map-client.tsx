@@ -21,12 +21,6 @@ import {
   type PoiBounds,
 } from "@/lib/listings/poi";
 import {
-  PRICE_HEAT_DISTRICTS,
-  PRICE_TIERS,
-  priceTier,
-  pyeongPriceLabel,
-} from "@/lib/map/price-heat";
-import {
   colorForType,
   labelForType,
   stageLabel,
@@ -89,53 +83,9 @@ const ZOOM_CAPTION: Record<Zoom, string> = {
 /** 내부 level(1~14) — naver zoom = 21 - level (city 9 / dong 12 / danji 15) */
 const LEVEL_BY_ZOOM: Record<Zoom, number> = { city: 12, dong: 9, danji: 6 };
 
-const DETAIL_TABS = ["요약", "매물 12", "실거래", "노트 15", "이야기"] as const;
+// 사실 우선: 단지 상세 탭 라벨엔 허위 건수(매물 12·노트 15)를 넣지 않는다
+const DETAIL_TABS = ["요약", "매물", "실거래", "노트", "이야기"] as const;
 type DetailTab = (typeof DETAIL_TABS)[number];
-
-const LISTINGS = [
-  {
-    badge: "급매",
-    urgent: true,
-    watching: "34명이 보는 중",
-    price: "매매 7.9억",
-    priceNote: "시세 대비 -6%",
-    meta: "84A · 5층/15층 · 남향 · 즉시입주",
-    tags: [
-      { label: "올수리", tone: "blue" },
-      { label: "주차 1대", tone: "gray" },
-    ],
-    agent: "관양공인 · 오늘 등록",
-  },
-  {
-    badge: "일반",
-    urgent: false,
-    watching: "8명이 보는 중",
-    price: "매매 8.4억",
-    priceNote: null,
-    meta: "84A · 12층/15층 · 남동향 · 협의",
-    tags: [{ label: "로얄층", tone: "blue" }],
-    agent: "평촌공인 · 3일 전",
-  },
-  {
-    badge: "일반",
-    urgent: false,
-    watching: "5명이 보는 중",
-    price: "매매 8.2억",
-    priceNote: null,
-    meta: "84B · 9층/15층 · 남서향 · 세안고",
-    tags: [{ label: "수리 필요", tone: "red" }],
-    agent: "관양중앙공인 · 1주 전",
-  },
-] as const;
-
-// 예시 폴백: 실거래(국토부 크롤링) 없을 때만, 1건만
-const FALLBACK_TRADES: TradeItem[] = [
-  { date: "2026.06.28", price: "8.15억", sub: "5층", delta: "▼ 1.8%", tone: "down" },
-];
-
-const NOTES = [
-  { title: "공작 302동 — “주차가 관건, 저녁 실측”", author: "첫집준비중 · 07.12", score: "78점" },
-] as const;
 
 function HomeIcon() {
   return (
@@ -421,8 +371,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
   const anyPoiLayerRef = useRef(anyPoiLayer);
   anyPoiLayerRef.current = anyPoiLayer;
 
-  /* ===== 시세 히트맵 레이어 (#A2) — 구 단위 평균 시세를 색으로. 낮은 줌에서만 표시 ===== */
-  const [showPriceHeat, setShowPriceHeat] = useState(false);
+  /* 시세 히트맵 레이어(#A2)는 구 단위 평균이 하드코딩 목업 값이라 사실 우선 원칙에 따라 제거함.
+     실제 구·셀 단위 평균 시세는 서버 클러스터(/api/map/clusters)의 실데이터로 이미 제공됨. */
 
   /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
   const [showRedevelopment, setShowRedevelopment] = useState(false);
@@ -597,19 +547,6 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
               </button>
             );
           })}
-          {/* 시세 히트맵 토글 (#A2) — POI 토글과 동일 스타일, 구 단위 평균 시세 */}
-          <button
-            type="button"
-            aria-pressed={showPriceHeat}
-            onClick={() => setShowPriceHeat((v) => !v)}
-            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
-              showPriceHeat
-                ? "bg-primary-soft font-bold text-primary"
-                : "bg-[rgba(255,255,255,.85)] text-text-2"
-            }`}
-          >
-            <Icon name="🔥" size={14} className="inline align-middle" /> 시세
-          </button>
           {/* 정비사업 레이어 토글 — 재개발·재건축 사업장을 사업종류별 색상 마커로 */}
           <button
             type="button"
@@ -625,8 +562,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           </button>
         </div>
         <div className="text-[10px] text-text-3">
-          지하철·학교·마트는 샘플/참고 데이터예요. 시세는 구 단위 평균(축소 시 표시)이에요.
-          정비사업은 공개 자료 기준 참고값이에요.
+          지하철·학교·마트는 샘플/참고 데이터예요. 정비사업은 공개 자료 기준 참고값이에요.
         </div>
       </div>
 
@@ -919,23 +855,6 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     return out;
   }, [anyPoiLayer, poiLayers, poiBounds]);
 
-  // 시세 히트맵(#A2) 마커 — 구 단위 평균 시세를 티어 색 말풍선으로. POI 마커와 동일하게
-  // 시세 말풍선 스타일(avgPricePerM2:1 + tierColor)을 재사용하고, 라벨은 평당 근사가.
-  // 낮은 줌(클러스터 모드)에서만 노출해 클러터를 방지 — 확대 시 배열이 비어 자동 숨김.
-  const priceHeatMarkers = useMemo<MapMarkerData[]>(() => {
-    if (!showPriceHeat || clusterMode !== "clusters") return [];
-    return PRICE_HEAT_DISTRICTS.map((d) => ({
-      id: `heat:${d.id}`,
-      lat: d.lat,
-      lng: d.lng,
-      label: d.name,
-      priceLabel: pyeongPriceLabel(d.avgPricePerM2),
-      avgPricePerM2: 1, // 시세 말풍선 스타일 강제 (라벨 전체 렌더)
-      tierColor: priceTier(d.avgPricePerM2).color,
-      infoHtml: "",
-    }));
-  }, [showPriceHeat, clusterMode]);
-
   /* ===== 정비사업 레이어 — 토글 ON 시 1회 로드(전국 소량 · bbox 불필요) ===== */
   useEffect(() => {
     if (!showRedevelopment || redevItems.length > 0) return;
@@ -1033,7 +952,6 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       ...base,
       ...listingMarkers,
       ...poiMarkers,
-      ...priceHeatMarkers,
       ...redevelopmentMarkers,
     ]);
     }
@@ -1070,7 +988,6 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       ...base,
       ...listingMarkers,
       ...poiMarkers,
-      ...priceHeatMarkers,
       ...redevelopmentMarkers,
     ]);
   }, [
@@ -1084,7 +1001,6 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     searchMarker,
     listingMarkers,
     poiMarkers,
-    priceHeatMarkers,
     redevelopmentMarkers,
   ]);
 
@@ -1246,111 +1162,20 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     );
   };
 
-  const trades = selected && selected.trades.length > 0 ? selected.trades : FALLBACK_TRADES;
+  // 사실 우선: 실거래는 서버(complex_transactions) 실데이터만 — 없으면 빈 배열(안내 문구)
+  const trades = selected ? selected.trades : [];
 
-  /* ===== SDK 로드 실패/미설정 시 그라데이션 폴백 (기존 목업 오버레이 유지) ===== */
+  /* ===== SDK 로드 실패/미설정 시 폴백 — 허위 시세 대신 정직한 안내 =====
+     기존엔 가짜 지역 시세 버블(동안구 7.1억 등)을 그렸으나, 사실 우선 원칙에 따라
+     실데이터가 아닌 수치는 표시하지 않고 "지도를 불러올 수 없어요" 상태로 대체. */
   const gradientFallback = (
-    <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
-      <div className="absolute right-5 top-[92px] z-[2] rounded-lg bg-[rgba(255,255,255,.8)] px-2.5 py-[5px] font-mono text-[11px] text-text-2">
-        네이버/카카오 지도 SDK 영역
-      </div>
-
-      {zoom === "city" && (
-        <>
-          <div className="rise-in absolute left-[38%] top-[24%] z-[2] flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[rgba(29,79,216,.85)] text-white shadow-[0_10px_28px_rgba(29,79,216,.35)]">
-            <div className="text-[13px] font-extrabold">동안구</div>
-            <div className="text-base font-extrabold">7.1억</div>
-            <div className="text-[10px] opacity-85">▼1.2% · 342건</div>
-          </div>
-          <div className="rise-in-1 absolute left-[58%] top-[48%] z-[2] flex h-[90px] w-[90px] flex-col items-center justify-center rounded-full bg-[rgba(29,79,216,.65)] text-white">
-            <div className="text-xs font-extrabold">과천시</div>
-            <div className="text-sm font-extrabold">14.2억</div>
-            <div className="text-[9px] opacity-85">▼0.8% · 98건</div>
-          </div>
-          <div className="rise-in-2 absolute left-[64%] top-[26%] z-[2] flex h-[74px] w-[74px] flex-col items-center justify-center rounded-full border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.85)] text-ink shadow-[0_4px_14px_rgba(16,28,54,.12)]">
-            <div className="text-[11px] font-extrabold">만안구</div>
-            <div className="text-[13px] font-extrabold">5.4억</div>
-            <div className="delta-up text-[9px]">▲0.3%</div>
-          </div>
-        </>
-      )}
-
-      {zoom === "dong" && (
-        <>
-          <div className="rise-in absolute left-[36%] top-[28%] z-[2] rounded-[14px] bg-[rgba(29,79,216,.92)] px-3.5 py-2.5 text-white shadow-[0_8px_22px_rgba(29,79,216,.35)]">
-            <div className="text-xs font-extrabold">관양동</div>
-            <div className="text-[15px] font-extrabold">
-              8.1억 <span className="text-[10px]">▼2.1%</span>
-            </div>
-            <div className="text-[9px] opacity-85">214 · 노트 38 · 전문가 5</div>
-          </div>
-          <div className="rise-in-1 absolute left-[56%] top-[44%] z-[2] rounded-[14px] border border-[rgba(255,255,255,.95)] bg-[rgba(255,255,255,.88)] px-3.5 py-2.5 text-ink shadow-[0_4px_14px_rgba(16,28,54,.12)]">
-            <div className="text-xs font-extrabold">평촌동</div>
-            <div className="text-[15px] font-extrabold">
-              9.3억 <span className="delta-down text-[10px]">▼1.5%</span>
-            </div>
-            <div className="text-[9px] text-text-3">156 · 노트 24 · 전문가 8</div>
-          </div>
-          <div className="rise-in-2 absolute left-[40%] top-[62%] z-[2] rounded-[14px] border border-[rgba(255,255,255,.95)] bg-[rgba(255,255,255,.88)] px-3.5 py-2.5 text-ink shadow-[0_4px_14px_rgba(16,28,54,.12)]">
-            <div className="text-xs font-extrabold">비산동</div>
-            <div className="text-[15px] font-extrabold">
-              6.7억 <span className="delta-flat text-[10px]">—</span>
-            </div>
-            <div className="text-[9px] text-text-3">89 · 노트 11 · 전문가 2</div>
-          </div>
-        </>
-      )}
-
-      {zoom === "danji" && (
-        <>
-          {danji.slice(0, 3).map((d, i) => {
-            const positions = [
-              { left: "42%", top: "32%" },
-              { left: "62%", top: "22%" },
-              { left: "55%", top: "56%" },
-            ];
-            const pos = positions[i];
-            const isSel = d.id === selectedId;
-            return i === 0 ? (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => selectDanji(d.id)}
-                className={`absolute z-[2] rounded-xl bg-primary px-3 py-2 text-left text-[13px] font-extrabold text-white ${
-                  isSel
-                    ? "shadow-[0_0_0_4px_rgba(29,79,216,.25),0_8px_20px_rgba(29,79,216,.45)]"
-                    : "shadow-[0_6px_18px_rgba(29,79,216,.4)]"
-                }`}
-                style={{
-                  left: pos.left,
-                  top: pos.top,
-                  animation: isSel ? undefined : "floatY 6s ease-in-out infinite",
-                }}
-              >
-                {d.price}
-                <div className="text-[10px] font-semibold opacity-85">
-                  {isSel ? `${d.name} · 선택됨` : `${d.name} · ${d.note ?? "노트 없음"}`}
-                </div>
-              </button>
-            ) : (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => selectDanji(d.id)}
-                className="absolute z-[2] rounded-xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.85)] px-3 py-2 text-left text-[13px] font-extrabold text-ink shadow-[0_4px_12px_rgba(16,28,54,.12)]"
-                style={{ left: pos.left, top: pos.top }}
-              >
-                {d.price}
-                <div className="text-[10px] font-semibold text-text-3">{d.name}</div>
-              </button>
-            );
-          })}
-          <span className="absolute left-[41.5%] top-[31%] z-[2] h-2.5 w-2.5 rounded-full border-2 border-white bg-danger shadow-[0_2px_6px_rgba(214,69,69,.5)]" />
-          <div className="ai-panel absolute left-[40%] top-[44%] z-[2] rounded-[10px] px-2.5 py-1.5 text-[10px] font-bold text-white">
-            지금 34명이 이 단지를 보는 중
-          </div>
-        </>
-      )}
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] px-8 text-center">
+      <Icon name="🗺" size={34} />
+      <div className="text-[15px] font-extrabold text-ink">지도를 불러오지 못했어요</div>
+      <p className="max-w-[280px] text-[12px] leading-relaxed text-text-2">
+        네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요. 좌측 목록에서 단지 시세·실거래는
+        그대로 확인할 수 있어요.
+      </p>
     </div>
   );
 
@@ -1460,48 +1285,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         {ZOOM_CAPTION[zoom]}
       </div>
 
-      {/* ===== 줌별 하단 정보 오버레이 ===== */}
-      {zoom === "city" && (
-        <div
-          className="glass absolute left-5 z-[3] flex w-[300px] flex-col gap-1.5 rounded-[14px] px-3.5 py-3"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
-        >
-          <div className="flex justify-between text-[11px]">
-            <span className="text-text-2">지금 이 지역을 보는 사람</span>
-            <span className="font-extrabold text-primary">1,284명</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="text-text-2">활동 전문가 / 이번 주 새 노트</span>
-            <span className="font-extrabold text-ink">전문가 23명 · 노트 156건</span>
-          </div>
-        </div>
-      )}
-
-      {zoom === "dong" && (
-        <div
-          className="glass absolute left-5 z-[3] rounded-[10px] px-3 py-[7px] text-[10px] text-text-2 md:left-auto md:right-[280px]"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
-        >
-          {regionLabel} — 이번 주 관심 급상승 +38%
-        </div>
-      )}
-
-      {zoom === "danji" && !selected && (
-        <div className="glass absolute bottom-24 right-5 z-[3] hidden w-[280px] flex-col gap-[5px] rounded-[14px] px-3.5 py-3 md:flex">
-          <div className="flex justify-between text-[11px]">
-            <span className="text-text-2">이 단지 담당 전문가</span>
-            <span className="font-extrabold text-ink">전문가 3명 (중개 2 · 세무 1)</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="text-text-2">24시간 조회 / 관심 등록</span>
-            <span className="font-extrabold text-primary">412회 / +18명</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="text-text-2">🔴 급매 등록</span>
-            <span className="font-extrabold text-danger">1건 · 시세 -6%</span>
-          </div>
-        </div>
-      )}
+      {/* 줌별 하단 정보 오버레이(보는 사람 수·전문가 수·조회수·급매 등)는
+          집계 소스가 없어 허위 수치였으므로 사실 우선 원칙에 따라 제거함. */}
 
       {/* ===== 좌측 사이드 패널 (320px, 접기 핸들) ===== */}
       {!selected && panelOpen && (
@@ -1564,7 +1349,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
               href="/notes/compare"
               className="btn-soft block rounded-xl p-3 text-center text-[13px]"
             >
-              선택 단지 비교 (2)
+              선택 단지 비교
             </Link>
           </div>
         </aside>
@@ -1602,17 +1387,10 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
                     내 {selected.note}
                   </span>
                 )}
-                <span className="rounded-[5px] bg-danger-soft px-2 py-0.5 text-[10px] font-extrabold text-danger">
-                  급매 1
-                </span>
               </div>
               <div className="mt-1 text-xs text-text-2">{selected.meta}</div>
               <Link
-                href={
-                  selected.id.startsWith("mock-")
-                    ? "/complex/mock-1"
-                    : `/complex/${selected.id}`
-                }
+                href={`/complex/${encodeURIComponent(selected.id)}`}
                 className="mt-1.5 inline-block text-xs font-extrabold text-primary"
               >
                 단지 홈 ›
@@ -1647,67 +1425,28 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
           <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-[22px] py-4">
             {detailTab === "요약" && (
               <>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="card rounded-xl px-3 py-[11px]">
-                    <div className="text-[10px] text-text-3">시세 ({selected.size})</div>
-                    <div className="mt-0.5 text-base font-extrabold text-ink">{selected.price}</div>
-                    <div className={`text-[10px] ${deltaClass(selected.deltaTone)}`}>
+                {/* 사실 우선: 서버 실데이터(시세·전월비)만 표시. 조회수·전문가수·급매·판정은
+                    집계 소스가 없어 허위였으므로 제거. */}
+                <div className="card rounded-[14px] px-[15px] py-3.5">
+                  <div className="text-[10px] text-text-3">
+                    실거래 평균 ({selected.size}) · 국토교통부 기준
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-[22px] font-extrabold text-ink">{selected.price}</span>
+                    <span className={`text-xs ${deltaClass(selected.deltaTone)}`}>
                       {selected.delta === "—" ? "— (전월비)" : `${selected.delta} (전월비)`}
-                    </div>
-                  </div>
-                  <div className="card rounded-xl px-3 py-[11px]">
-                    <div className="text-[10px] text-text-3">24h 조회</div>
-                    <div className="mt-0.5 text-base font-extrabold text-ink">412회</div>
-                    <div className="text-[10px] text-text-3">관심 +18명</div>
-                  </div>
-                  <div className="card rounded-xl px-3 py-[11px]">
-                    <div className="text-[10px] text-text-3">담당 전문가</div>
-                    <div className="mt-0.5 text-base font-extrabold text-ink">3명</div>
-                    <div className="text-[10px] text-text-3">중개 2 · 세무 1</div>
+                    </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDetailTab("매물 12")}
-                  className="flex items-center justify-between rounded-[14px] border-[1.5px] border-primary bg-surface px-[15px] py-[13px] text-left"
+                <Link
+                  href={`/complex/${encodeURIComponent(selected.id)}`}
+                  className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-[15px] py-[13px] text-left"
                 >
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="rounded bg-danger-soft px-[7px] py-0.5 text-[10px] font-extrabold text-danger">
-                        급매
-                      </span>
-                      <span className="text-sm font-extrabold text-ink">7.9억 · 5층 · 올수리</span>
-                    </div>
-                    <div className="mt-[3px] text-[11px] text-text-3">
-                      시세 -6% · AI 적정가 8.2억 · 34명이 보는 중
-                    </div>
-                  </div>
-                  <span className="text-xs font-extrabold text-primary">상세 ›</span>
-                </button>
-                <div className="card flex flex-col gap-[7px] rounded-[14px] px-[15px] py-[13px]">
-                  <div className="flex justify-between">
-                    <span className="text-xs font-extrabold text-ink">내 노트 판정</span>
-                    <span className="text-xs font-extrabold text-primary">81점 · 5회 방문</span>
-                  </div>
-                  <div className="flex flex-wrap gap-[5px]">
-                    <span className="chip bg-primary-soft px-2 py-[3px] text-[10px] text-primary">
-                      학군 확정 강점
-                    </span>
-                    <span className="chip bg-primary-soft px-2 py-[3px] text-[10px] text-primary">
-                      배수 양호
-                    </span>
-                    <span className="chip bg-danger-soft px-2 py-[3px] text-[10px] text-danger">
-                      주차 확정 약점
-                    </span>
-                  </div>
-                </div>
-                <div className="ai-panel flex items-start gap-2.5 rounded-[14px] px-[15px] py-[13px]">
-                  <span className="ai-chip h-5 w-5 text-[10px]">AI</span>
-                  <div className="text-[11px] leading-[1.6] text-ai-text">
-                    노트 5회 + 급매 출현 — 판단 단계 완료. 협상 전략(1차 7.75억)을 준비해
-                    두었어요.
-                  </div>
-                </div>
+                  <span className="text-[13px] font-bold text-ink">
+                    단지 홈에서 실거래 이력·노트 보기
+                  </span>
+                  <span className="text-xs font-extrabold text-primary">›</span>
+                </Link>
                 <div className="flex gap-2">
                   <Link
                     href={`/notes/new?apt=${encodeURIComponent(selected.name)}`}
@@ -1731,148 +1470,75 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
               </>
             )}
 
-            {detailTab === "매물 12" && (
-              <>
-                <div className="flex items-center gap-1.5 text-[13px]">
-                  <span className="chip chip-active px-3.5 py-2">매매 12</span>
-                  <span className="chip bg-surface px-3.5 py-2 text-text-2">전세 7</span>
-                  <span className="chip bg-[rgba(29,79,216,.12)] px-3.5 py-2 font-bold text-primary">
-                    급매만
-                  </span>
-                  <span className="ml-auto text-[13px] text-text-3">낮은 가격순 ▾</span>
+            {detailTab === "매물" && (
+              <div className="flex flex-col gap-3">
+                {/* 사실 우선: 단지별 실매물 피드 미연동 — 허위 매물 목록 대신 지도 매물 레이어로 안내 */}
+                <div className="card rounded-[14px] px-[15px] py-6 text-center">
+                  <div className="text-[13px] font-bold text-ink">
+                    이 단지의 실매물은 준비 중이에요
+                  </div>
+                  <div className="mt-1 text-[11px] leading-relaxed text-text-3">
+                    지도 상단의 “매물” 레이어를 켜면 주변에 등록된 실매물을 지도에서 볼 수 있어요.
+                  </div>
                 </div>
-                {LISTINGS.map((l) => (
-                  <div
-                    key={l.price}
-                    className={`flex gap-3.5 rounded-[18px] bg-surface p-[18px] ${
-                      l.urgent ? "border-[1.5px] border-primary" : "border border-line"
-                    }`}
-                  >
-                    <div className="flex h-[80px] w-[96px] shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa] font-mono text-[10px] text-text-3">
-                      매물 사진
-                    </div>
-                    <div className="flex flex-1 flex-col gap-[5px]">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${
-                            l.urgent ? "bg-danger-soft text-danger" : "bg-[#f2f4f8] font-bold text-text-2"
-                          }`}
-                        >
-                          {l.badge}
-                        </span>
-                        <span
-                          className={`text-[11px] ${
-                            l.urgent ? "font-bold text-primary" : "text-text-3"
-                          }`}
-                        >
-                          {l.watching}
-                        </span>
-                      </div>
-                      <div className="text-base font-extrabold text-ink">
-                        {l.price}{" "}
-                        {l.priceNote && (
-                          <span className="text-xs font-bold text-primary">{l.priceNote}</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-text-2">{l.meta}</div>
-                      <div className="flex gap-1.5">
-                        {l.tags.map((t) => (
-                          <span
-                            key={t.label}
-                            className={`chip px-2 py-[3px] text-[11px] ${
-                              t.tone === "blue"
-                                ? "bg-primary-soft text-primary"
-                                : t.tone === "red"
-                                  ? "bg-danger-soft text-danger"
-                                  : "bg-[#f2f4f8] text-text-2"
-                            }`}
-                          >
-                            {t.label}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="mt-0.5 flex items-center justify-between">
-                        <span className="text-[11px] text-text-3">{l.agent}</span>
-                        <Link href="/notes/compare" className="text-xs font-bold text-primary">
-                          내 노트와 비교 ›
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                <div className="ai-panel flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-                  <div className="flex items-center gap-2">
-                    <span className="ai-chip h-5 w-5 text-[10px]">AI</span>
-                    <span className="text-[13px] font-extrabold text-white">매물 읽기</span>
-                  </div>
-                  <div className="text-xs leading-[1.65] text-ai-text">
-                    급매(7.9억)는 5층·올수리로 실질 가치가 높습니다. 최근 실거래(8.15억, 5층)
-                    대비 <b className="text-ai-accent">-3% 수준의 진성 급매</b>로 판단됩니다.
-                    34명이 함께 보고 있어 회전이 빠를 수 있어요.
-                  </div>
-                  <Link
-                    href="/notes/new"
-                    className="btn-primary rounded-[10px] p-2.5 text-center text-xs"
-                  >
-                    이 매물로 임장노트 시작
-                  </Link>
-                </div>
-              </>
-            )}
-
-            {detailTab === "실거래" && (
-              <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
-                {trades.map((t, i) => (
-                  <div
-                    key={`${t.date}-${i}`}
-                    className={`flex items-center justify-between py-2.5 text-[13px] ${
-                      i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                    }`}
-                  >
-                    <span className="text-text-2">
-                      {t.date} · {t.sub}
-                    </span>
-                    <span className="flex items-baseline gap-2">
-                      <span className="font-extrabold text-ink">{t.price}</span>
-                      <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
-                    </span>
-                  </div>
-                ))}
+                <Link href="/listings/new" className="btn-soft rounded-xl p-3 text-center text-[13px]">
+                  내 매물 등록하기
+                </Link>
               </div>
             )}
 
-            {detailTab === "노트 15" && (
+            {detailTab === "실거래" && (
               <>
-                {NOTES.map((n) => (
-                  <div
-                    key={n.title}
-                    className="card flex items-center justify-between rounded-[14px] px-[15px] py-3.5"
-                  >
-                    <div>
-                      <div className="text-[13px] font-bold text-ink">{n.title}</div>
-                      <div className="mt-0.5 text-[11px] text-text-3">{n.author}</div>
-                    </div>
-                    <span className="text-xs font-extrabold text-primary">{n.score}</span>
+                <div className="px-1 text-[11px] font-bold text-text-3">
+                  국토교통부 실거래가 기준
+                </div>
+                {trades.length > 0 ? (
+                  <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
+                    {trades.map((t, i) => (
+                      <div
+                        key={`${t.date}-${i}`}
+                        className={`flex items-center justify-between py-2.5 text-[13px] ${
+                          i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        }`}
+                      >
+                        <span className="text-text-2">
+                          {t.date} · {t.sub}
+                        </span>
+                        <span className="flex items-baseline gap-2">
+                          <span className="font-extrabold text-ink">{t.price}</span>
+                          <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                    아직 수집된 국토교통부 실거래가 없어요
+                  </div>
+                )}
+              </>
+            )}
+
+            {detailTab === "노트" && (
+              <>
+                {/* 사실 우선: 단지별 공개 노트 피드 미연동 — 허위 노트 대신 안내 + 전체 노트 링크 */}
+                <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                  이 단지에 연결된 공개 임장노트를 모아 보여드릴 예정이에요
+                </div>
                 <Link href="/notes" className="btn-soft rounded-xl p-3 text-center text-[13px]">
-                  공개 노트 15개 모두 보기
+                  공개 임장노트 보기
                 </Link>
               </>
             )}
 
             {detailTab === "이야기" && (
               <>
-                <div className="card rounded-[14px] px-[15px] py-3.5">
-                  <div className="text-[13px] font-bold text-ink">
-                    공작 재건축 추진위 실체가 있나요?
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-text-3">
-                    질문 · 댓글 9 · 김OO 중개사 채택 답변
-                  </div>
+                {/* 사실 우선: 하드코딩 Q&A 제거 — 동네이야기로 연결 */}
+                <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                  이 지역의 질문·이야기를 동네이야기에서 확인해 보세요
                 </div>
                 <Link href="/town" className="btn-soft rounded-xl p-3 text-center text-[13px]">
-                  동네이야기 더 보기
+                  동네이야기 보기
                 </Link>
               </>
             )}
@@ -1973,45 +1639,6 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* ===== 시세 히트맵 범례 (#A2) — 레이어 ON일 때 좌하단. city 탭이면 위로 오프셋 ===== */}
-      {showPriceHeat && (
-        <div
-          className="glass absolute left-5 z-30 flex w-[188px] flex-col gap-1.5 rounded-xl px-3 py-2.5"
-          style={{
-            bottom:
-              zoom === "city"
-                ? "calc(env(safe-area-inset-bottom, 0px) + 200px)"
-                : "calc(env(safe-area-inset-bottom, 0px) + 96px)",
-          }}
-        >
-          <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-ink">
-            <Icon name="🔥" size={13} className="inline align-middle" /> 시세 히트맵
-          </div>
-          {clusterMode === "clusters" ? (
-            <>
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] text-text-3">저</span>
-                <span className="flex flex-1 overflow-hidden rounded-full">
-                  {PRICE_TIERS.map((t) => (
-                    <span
-                      key={t.level}
-                      className="h-2 flex-1"
-                      style={{ backgroundColor: t.color }}
-                    />
-                  ))}
-                </span>
-                <span className="text-[10px] text-text-3">고</span>
-              </div>
-              <div className="text-[10px] text-text-3">구 단위 평균 · 참고용</div>
-            </>
-          ) : (
-            <div className="text-[10px] text-text-3">
-              지도를 축소하면 구 단위 시세가 표시돼요.
-            </div>
-          )}
         </div>
       )}
 

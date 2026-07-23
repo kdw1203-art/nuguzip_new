@@ -85,7 +85,9 @@ export default async function Home() {
   const baseRate = baseRateData?.label ?? "—";
 
   // 홈 미니지도 마커용 시세 지역 (좌표 매핑은 HomeMiniMap 내부)
-  const mapRegions = regions.slice(0, 4);
+  // 사실 우선: 예시(목업) 지역은 지도 마커로 노출하지 않음 — 마커엔 "예시" 라벨을 못 붙이므로
+  // 허위 시세 말풍선이 사실처럼 보이는 것을 방지. 실데이터가 있을 때만 마커 표시.
+  const mapRegions = regionsIsMock ? [] : regions.slice(0, 4);
 
   return (
     <>

@@ -117,7 +117,7 @@ export function ComplexInfoPanel({
     (cityDistrict || (initialName ? "" : "주소 준비 중"));
 
   const priceLabel = manwonLabel(latest?.avg_manwon);
-  const detailHref = complexId.startsWith("mock-") ? "/complex/mock-1" : `/complex/${complexId}`;
+  const detailHref = `/complex/${encodeURIComponent(complexId)}`;
   // 임장노트 연결 — 단지명·지역·단지ID·좌표까지 프리필해 노트가 위치와 완전히 연동되게 한다.
   const noteHref = (() => {
     const params = new URLSearchParams({ apt: name });

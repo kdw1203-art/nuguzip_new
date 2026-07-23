@@ -22,8 +22,6 @@ import { JsonLd } from "@/app/components/JsonLd";
 export const dynamic = "force-dynamic";
 
 const BASE_URL = "https://nuguzip.com";
-/* 목업(예시) 노트에서만 쓰는 예시 단지 링크 — 실노트는 resolveComplexHref로 실 id 조회 */
-const MOCK_COMPLEX_HREF = "/complex/mock-1";
 
 /* ---------- 뷰 모델 ---------- */
 
@@ -440,8 +438,8 @@ export default async function NoteDetailPage({
   }
   const isReal = realNote !== null;
 
-  // 실노트는 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김 (mock-1로 보내지 않음)
-  let complexHref: string | null = MOCK_COMPLEX_HREF;
+  // 실노트는 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김 (예시 화면은 링크 없음)
+  let complexHref: string | null = null;
   if (realNote) {
     try {
       complexHref = await resolveComplexHref(realNote.aptName, realNote.region);

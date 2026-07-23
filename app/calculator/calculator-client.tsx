@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
-import { AIPanel } from "@/app/components/AIPanel";
 import { Icon } from "@/app/components/Icon";
 import { RealEstateTools } from "./realestate-tools";
 
@@ -54,13 +53,6 @@ const BANK_ROWS = [
     best: false,
     policy: true,
   },
-] as const;
-
-const SIM_CARDS = [
-  { label: "실투자금", value: "5.66억", tone: "text-ink", sub: "현금 5.4억 + 취득세·부대 0.26억", soft: false },
-  { label: "5년 총비용", value: "7,180만", tone: "text-danger", sub: "이자 4,480만 + 보유세·관리비", soft: false },
-  { label: "기준 시나리오 (+8%)", value: "+5,140만", tone: "text-primary", sub: "연 환산 1.8% · 실거주 가치 별도", soft: true },
-  { label: "손익분기 매도가", value: "8.62억", tone: "text-ink", sub: "양도세(비과세 가정)·중개비 포함", soft: false },
 ] as const;
 
 function formatEok(manwon: number): string {
@@ -211,7 +203,13 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           </div>
 
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-            <div className="text-sm font-extrabold text-ink">1. 내 정보</div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-extrabold text-ink">1. 내 정보</span>
+              <ExampleBadge />
+            </div>
+            <div className="-mt-1 text-[11px] text-text-3">
+              아래 소득·현금은 예시 가정값이에요. 부담률 계산의 기준으로만 쓰여요.
+            </div>
             <div className="flex items-center justify-between text-[13px]">
               <span className="text-text-2">연 소득 (세전)</span>
               <span className="rounded-lg bg-bg px-3 py-[7px] font-extrabold text-ink">7,000만원</span>
@@ -334,11 +332,11 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           </div>
 
           <Link
-            href="/notes"
+            href="/notes/new"
             className="rise-in-4 flex items-center justify-between rounded-[14px] bg-primary-soft px-4 py-[13px]"
           >
             <span className="text-[13px] font-bold text-primary">
-              이 조건으로 공작아파트 노트에 저장
+              이 조건으로 임장노트에 저장
             </span>
             <span className="text-sm font-extrabold text-primary">›</span>
           </Link>
@@ -354,25 +352,32 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
 
         {/* ---------- 결과 상세 (9j 우측) ---------- */}
         <div className="flex flex-col gap-3">
+          {/* 사실 우선: 슬라이더 입력과 무관하게 고정돼 있던 결과를 실제 입력 기반 계산으로 교체 */}
           <div className="rise-in-1 grid gap-3 md:grid-cols-3">
             <div className="ai-panel rounded-2xl p-[18px]">
-              <div className="text-[11px] text-ai-muted">최대 대출 가능 금액</div>
-              <div className="mt-1 text-[23px] font-extrabold text-[#7ea2ff]">5.53억</div>
+              <div className="text-[11px] text-ai-muted">최대 대출 (LTV 70%)</div>
+              <div className="mt-1 text-[23px] font-extrabold text-[#7ea2ff]">
+                {formatEok(Math.round(price * 0.7))}
+              </div>
               <div className="mt-[3px] text-[10px] text-ai-muted">
-                생애최초 LTV 70% · DSR 40% 중 낮은 값
+                매매가 {formatEok(price)}의 70% · DSR·소득요건은 은행 심사 별도
               </div>
             </div>
             <div className="card rounded-2xl p-[18px]">
-              <div className="text-[11px] text-text-3">권장 대출 (예비비 확보)</div>
-              <div className="mt-1 text-[23px] font-extrabold text-ink">2.5억</div>
-              <div className="mt-[3px] text-[10px] text-text-3">현금 5.5억 중 1,000만 예비비 유지</div>
+              <div className="text-[11px] text-text-3">선택한 대출액</div>
+              <div className="mt-1 text-[23px] font-extrabold text-ink">
+                {formatEok(Math.round(loan))}
+              </div>
+              <div className="mt-[3px] text-[10px] text-text-3">대출 비율 {loanRatio}%</div>
             </div>
             <div className="card rounded-2xl p-[18px]">
-              <div className="text-[11px] text-text-3">예상 월 원리금 (2.5억 기준)</div>
+              <div className="text-[11px] text-text-3">월 원리금 (선택 조건)</div>
               <div className="mt-1 text-[23px] font-extrabold text-primary">
-                {Math.round(monthlyPaymentOf(25000, rate, years))}만원
+                {Math.round(monthly)}만원
               </div>
-              <div className="mt-[3px] text-[10px] text-primary">DSR 24% · 여유</div>
+              <div className="mt-[3px] text-[10px] text-primary">
+                금리 {rate}% · {years}년 원리금균등
+              </div>
             </div>
           </div>
 
@@ -477,60 +482,15 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             )}
           </div>
 
-          <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] px-5 py-[18px]">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-extrabold text-ink">
-                4. 수익률 시뮬레이션{" "}
-                <span className="text-[11px] font-medium text-text-3">
-                  7.9억 매수 · 대출 2.5억 · 5년 보유 가정
-                </span>
-              </span>
-              <span className="text-[11px] font-bold text-primary">가정 수정 ›</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
-              {SIM_CARDS.map((c) => (
-                <div
-                  key={c.label}
-                  className={`rounded-xl px-3.5 py-3 ${c.soft ? "bg-[rgba(29,79,216,.06)]" : "bg-bg"}`}
-                >
-                  <div className={`text-[10px] ${c.soft ? "text-[#5b74b8]" : "text-text-3"}`}>{c.label}</div>
-                  <div className={`text-base font-extrabold ${c.tone}`}>{c.value}</div>
-                  <div className={`text-[9px] ${c.soft ? "text-[#5b74b8]" : "text-text-3"}`}>{c.sub}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-0.5 flex flex-col gap-1.5">
-              {[
-                { label: "적극 +24%", width: "82%", bg: "bg-danger opacity-85", text: "+1.62억 · 연 5.2%", tone: "text-danger" },
-                { label: "기준 +8%", width: "46%", bg: "bg-primary", text: "+5,140만 · 연 1.8%", tone: "text-primary" },
-                { label: "보수 -7%", width: "26%", bg: "bg-[#8b95a1]", text: "-1.27억", tone: "text-text-3" },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-2.5">
-                  <span className={`w-24 text-[11px] font-bold ${s.tone}`}>{s.label}</span>
-                  <div className="relative h-4 flex-1 rounded-[5px] bg-[#eef1f6]">
-                    <div
-                      className={`absolute left-0 flex h-4 items-center justify-end rounded-[5px] pr-2 text-[10px] font-bold text-white ${s.bg}`}
-                      style={{ width: s.width }}
-                    >
-                      {s.text}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col justify-between gap-1 border-t border-[#f0f3f8] pt-2 text-[11px] text-text-3 md:flex-row">
-              <span>비교: 전세 유지 + 여유자금 예금(3.2%) 시 5년 +9,060만</span>
-              <span className="font-bold text-primary">월세 vs 매수 상세 비교 ›</span>
-            </div>
-          </div>
-
-          <div className="rise-in-4">
-            <AIPanel title="AI 판단 보조">
-              생애최초 요건으로 <b className="text-[#7ea2ff]">보금자리론 고정 3.80%</b>가 최적입니다.
-              취득세 감면(-200만) 포함 시 손익분기 매도가는 8.60억으로 내려갑니다. 기준 시나리오의 금전
-              수익률(연 1.8%)은 예금보다 낮지만,{" "}
-              <b className="text-white">월세 대체 효과(연 2,400만)를 더하면 실질 연 6% 수준</b>입니다.
-            </AIPanel>
+          {/* 사실 우선: 임의 가정(+8% 상승·손익분기·연 수익률 등) 기반 수익률 시뮬레이션과
+              특정 수치를 단정하던 AI 판단 보조를 제거. 시세 상승 전망은 사실이 아니므로 표시하지 않음. */}
+          <div className="rise-in-3 card flex flex-col gap-1.5 rounded-[18px] px-5 py-[18px]">
+            <div className="text-sm font-extrabold text-ink">참고 안내</div>
+            <p className="text-[12px] leading-relaxed text-text-2">
+              위 금액은 입력한 매매가·대출 비율·금리·기간에 따른 원리금균등 계산 결과예요. 실제
+              대출 한도와 금리는 소득·DSR·주택 수 등 은행 심사에 따라 달라지고, 정책대출(보금자리론·디딤돌)
+              자격이 우선 검토됩니다. 향후 시세 상승·수익률은 확정된 사실이 아니므로 표시하지 않아요.
+            </p>
           </div>
         </div>
       </div>

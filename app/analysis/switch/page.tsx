@@ -219,10 +219,7 @@ export default function SwitchPage() {
               <span className={`text-[11px] font-extrabold ${f.pctTone}`}>{f.pct}</span>
             </div>
           ))}
-          <div className="rounded-xl bg-bg px-[13px] py-[11px] text-[11px] leading-[1.6] text-text-2">
-            지금 나와 비슷한 조건의 이용자 <b className="text-primary">128명</b>이 관양동을 보고
-            있어요
-          </div>
+          {/* 사실 우선: 실시간 접속자 수 집계 소스가 없어 허위 "128명 보는 중" 문구 제거 */}
         </div>
       </div>
     </PageShell>

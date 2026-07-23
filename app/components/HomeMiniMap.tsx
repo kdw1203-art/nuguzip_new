@@ -119,8 +119,8 @@ export function HomeMiniMap({
         lat: d.lat,
         lng: d.lng,
         label: r.name,
-        priceLabel: r.price,
-        avgPricePerM2: d.avgPricePerM2, // 정의되어야 시세 말풍선 마커로 렌더
+        priceLabel: r.price, // 서버 실데이터 시세 라벨만 표시
+        avgPricePerM2: 1, // 시세 말풍선 스타일 플래그(표시값 아님) — 목업 시세 유입 차단
         momPct: toMomPct(r.delta, r.tone),
         infoHtml: "", // 인포윈도우 억제 — 클릭은 지도 열기로
         selected: r.id === focus.selectedId,

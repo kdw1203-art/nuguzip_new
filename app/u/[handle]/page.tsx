@@ -3,9 +3,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
-import { ExampleBadge } from "@/app/components/ExampleBadge";
-import { Icon } from "@/app/components/Icon";
-import { HoloAvatar, TopScoutBadge } from "../../components/TopScoutBadge";
 import {
   listNotes,
   listPublicNotes,
@@ -15,12 +12,12 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { followCounts } from "@/lib/follows/store-db";
 import { FollowButton } from "../../components/FollowButton";
 
-/* 시안 22c — 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
+/* 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
    실데이터(스키마 변경 없음, 읽기 전용):
    1) profiles.handle 일치(대소문자 무시 — lower unique)
    2) 없으면 profiles.full_name(닉네임) 일치 폴백
-   3) 그래도 없으면 기존 목업 프로필(예시 라벨) — 목업 카드 진입용 핸들만
-   프로필 매칭 시 해당 사용자의 공개 노트(inspection_notes · is_public)를 그리드에 표시 */
+   프로필 매칭 시 해당 사용자의 공개 노트(inspection_notes · is_public)를 그리드에 표시.
+   사실 우선: 등급·오차·배지·스토리·시리즈 등 산정 근거 없는 수치·라벨은 표시하지 않는다. */
 
 export const dynamic = "force-dynamic";
 
@@ -89,17 +86,8 @@ async function listAuthorPublicNotes(email: string): Promise<InspectionNote[]> {
 
 type GridNote = { id: string; title: string };
 
-/* 22b #15 — 시리즈 묶기 목업 */
-const SERIES = [
-  { title: "공작아파트 정복기", progress: "3/5편", saves: 214 },
-  { title: "평촌 학원가 도보 실측", progress: "2/4편", saves: 96 },
-];
-
-/* 22b #13 — 임장 스토리 (세로 스와이프 뷰) 목업 */
-const STORIES = ["공작 302동", "한가람", "은하수", "귀인마을"];
-
 function resolveDisplayName(rawInput: string): string {
-  return rawInput === "mock-1" ? "임장러버" : rawInput;
+  return rawInput;
 }
 
 export async function generateMetadata({
@@ -130,9 +118,6 @@ export default async function PublicProfilePage({
   // 1) profiles.handle → 2) profiles.full_name(닉네임) 매칭
   const profile = await findProfile(input);
   const displayName = profile?.name ?? resolveDisplayName(input);
-
-  // 목업 기준: "임장러버"가 탑 임장러 (23c 배지 위계 최상위)
-  const isTopScout = !profile && (input === "임장러버" || input === "mock-1");
 
   // 프로필 매칭 시 그 사용자의 공개 노트 · 미매칭 시 공개 노트 작성자 라벨 매칭 시도
   let authored: InspectionNote[] = [];
@@ -168,12 +153,10 @@ export default async function PublicProfilePage({
     title: n.aptName?.trim() || n.title,
   }));
   const noteCount = authored.length;
-  const region =
-    profile?.region || authored[0]?.region?.trim() || "관양동·평촌";
+  // 사실 우선: 지역·소개는 실데이터가 있을 때만 (허위 기본값 금지)
+  const region = profile?.region || authored[0]?.region?.trim() || null;
   const handleLabel = profile?.handle ?? displayName;
-  const bio =
-    profile?.bio ??
-    "아이 둘, 학군 중심으로 봅니다. 주차·소음은 꼭 저녁에 재확인해요.";
+  const bio = profile?.bio ?? null;
 
   return (
     <PageShell breadcrumb={`발견 › @${displayName}`}>
@@ -197,25 +180,16 @@ export default async function PublicProfilePage({
         <div className="rise-in-2 card rounded-t-none border-t-0 px-5 pb-5">
           {/* 아바타 + 이름 + 팔로우 */}
           <div className="-mt-6 flex items-end gap-3">
-            {isTopScout ? (
-              <span className="rounded-full border-[3px] border-bg">
-                <HoloAvatar size={56} label={`${displayName} — 탑 임장러`} />
-              </span>
-            ) : (
-              <span className="h-[56px] w-[56px] shrink-0 rounded-full border-[3px] border-bg bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]" />
-            )}
+            <span className="h-[56px] w-[56px] shrink-0 rounded-full border-[3px] border-bg bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]" />
             <div className="min-w-0 flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-[6px]">
                 <span className="text-[16px] font-extrabold text-ink">
                   {displayName}
                 </span>
-                <span className="rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[10px] font-extrabold text-primary">
-                  로컬 전문가 Lv.3
-                </span>
-                {isTopScout && <TopScoutBadge />}
               </div>
               <div className="mt-[2px] text-[11px] text-text-3">
-                nuguzip.com/@{handleLabel} · {region}
+                nuguzip.com/@{handleLabel}
+                {region ? ` · ${region}` : ""}
               </div>
             </div>
             {/* 팔로우 실배선 (user_follows) — 프로필 매칭 시에만, 미매칭은 로그인 유도 유지 */}
@@ -231,18 +205,13 @@ export default async function PublicProfilePage({
             )}
           </div>
 
-          {/* 소개 + 테마 태그 (22c #24) */}
-          <p className="mt-3 text-[13px] leading-[1.6] text-text-1">
-            {bio}{" "}
-            {!profile?.bio && (
-              <span className="font-bold text-primary">
-                #학군 #구축리모델링
-              </span>
-            )}
-          </p>
+          {/* 소개 — 실데이터가 있을 때만 (허위 소개·태그 금지) */}
+          {bio && (
+            <p className="mt-3 text-[13px] leading-[1.6] text-text-1">{bio}</p>
+          )}
 
-          {/* 통계 3종 */}
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          {/* 통계 2종 — 실데이터(공개 노트 수·팔로워)만 */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">
               <div className="text-[16px] font-extrabold text-ink">
                 {noteCount}
@@ -255,73 +224,10 @@ export default async function PublicProfilePage({
               </div>
               <div className="text-[10px] text-text-3">팔로워</div>
             </div>
-            <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">
-              <div className="text-[16px] font-extrabold text-[#1a7f4e]">
-                3.2%
-              </div>
-              <div className="text-[10px] text-text-3">예상 오차</div>
-            </div>
-          </div>
-
-          {/* 배지 진열장 (22c #25) */}
-          <div className="mt-3 flex flex-wrap gap-[5px]">
-            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-[#946200]">
-              <Icon name="🏆" size={12} />6월 베스트
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-text-1">
-              <Icon name="🔥" size={12} />12주 연속
-            </span>
-            <span className="rounded-full border border-line bg-surface px-[9px] py-1 text-[10px] font-bold text-text-1">
-              앰배서더
-            </span>
           </div>
         </div>
 
-        {/* 임장 스토리 (목업) */}
-        <div className="rise-in-3 mt-4">
-          <div className="mb-2 flex items-center gap-[6px] text-[13px] font-extrabold text-ink">
-            임장 스토리 <ExampleBadge />
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {STORIES.map((s) => (
-              <div key={s} className="flex w-[64px] shrink-0 flex-col items-center gap-1">
-                <span className="h-[56px] w-[56px] rounded-full border-2 border-primary bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] p-[2px]" />
-                <span className="w-full truncate text-center text-[10px] text-text-2">
-                  {s}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 시리즈 (목업) */}
-        <div className="rise-in-4 mt-4">
-          <div className="mb-2 flex items-center gap-[6px] text-[13px] font-extrabold text-ink">
-            시리즈 <ExampleBadge />
-          </div>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            {SERIES.map((s) => (
-              <div
-                key={s.title}
-                className="card card-hover flex items-center justify-between px-4 py-3"
-              >
-                <div>
-                  <div className="text-[13px] font-extrabold text-ink">
-                    {s.title}
-                  </div>
-                  <div className="mt-[2px] text-[11px] text-text-3">
-                    {s.progress} · <Icon name="🔖" size={12} className="inline align-middle" /> {s.saves}
-                  </div>
-                </div>
-                <span className="text-[12px] font-bold text-primary">
-                  보기 ›
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 노트 그리드 (22c #26) — 프로필 매칭 시 해당 사용자의 공개 노트 실데이터 */}
+        {/* 노트 그리드 — 프로필 매칭 시 해당 사용자의 공개 노트 실데이터 */}
         <div className="rise-in-5 mt-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="flex items-center gap-[6px] text-[13px] font-extrabold text-ink">

@@ -591,11 +591,11 @@ export default function NotificationsPage() {
           })}
         </div>
 
-        {/* 비로그인 안내 (샘플 미리보기 표시 중) */}
+        {/* 비로그인 안내 (샘플 미리보기 표시 중) — 사실 우선: 아래 항목이 예시임을 명시 */}
         {mode === "guest" && (
           <div className="rise-in-1 card mt-3 flex items-center justify-between rounded-[14px] border-l-[3px] border-l-primary px-[15px] py-3">
             <span className="text-xs font-bold text-ink">
-              로그인하면 내 알림·포인트·구독을 한곳에서 볼 수 있어요
+              아래는 예시 미리보기예요 · 로그인하면 내 실제 알림·포인트·구독을 볼 수 있어요
             </span>
             <Link
               href="/login?callbackUrl=/notifications"

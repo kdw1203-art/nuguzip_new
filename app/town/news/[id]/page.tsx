@@ -1,47 +1,14 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { PageShell } from "../../../components/PageShell";
 import { AIPanel } from "../../../components/AIPanel";
 import { ReportButton } from "../../../components/ReportButton";
 import { getTownPost, readTownPosts } from "@/lib/newui/board-posts";
 import type { Post } from "@/lib/types/post";
 
-/* 시안 9g — 뉴스 상세 v2 — posts 실데이터(id 조회) 연동, 없으면 목업 */
+/* 뉴스 상세 — posts 실데이터(id 조회) 연동. 없는 글은 notFound() (사실 우선: 목업 기사 금지). */
 
 export const dynamic = "force-dynamic";
-
-/* ---------- 목업 폴백 (해당 id 글이 없을 때) ---------- */
-
-// 예시 폴백: 실데이터 0건일 때만, 섹션당 1개만
-const MOCK_COMMENTS = [
-  {
-    name: "관양토박이",
-    badge: "✦ 플러스",
-    badgeStyle: "rounded-full bg-ink text-[#7ea2ff]",
-    time: "2시간 전",
-    body: "현장 다녀왔는데 이주 시작한 구역도 있어요. 공작 쪽은 아직 추진위 단계라 온도차 큽니다.",
-    likes: "좋아요 12",
-    replies: "답글 3",
-  },
-];
-
-const MOCK_SIMILAR = [
-  { id: null as string | null, title: "1기 신도시 특별법 시행령 입법예고", meta: "OO일보 · 07.16" },
-];
-
-const MOCK_BODY = [
-  "안양시 동안구 관양동 일대 재개발 사업이 다음 달 시공사 선정 총회를 앞두고 있다. 조합에 따르면 대형 건설사 2곳이 입찰참여의향서를 제출했으며, 총 2,340세대 규모로 조성될 예정이다.",
-  "사업 구역과 도로 하나를 사이에 둔 공작아파트(1988년 준공)와 한가람세경(1992년) 등 인근 구축 단지에서는 1기 신도시 특별법과 맞물린 재건축 기대감이 커지고 있다. 관양동 A공인 관계자는 “재개발 발표 이후 매수 문의가 2배가량 늘었다”고 전했다.",
-  "전문가들은 다만 시공사 선정 이후에도 관리처분·이주까지 최소 4~5년이 소요되는 만큼 단기 시세보다는 장기 관점의 접근을 권고했다.",
-];
-
-// 예시 폴백: 1개만
-const NOTES = [
-  {
-    title: "공작 302동 — “재개발 소음 확인”",
-    meta: "첫집준비중 · 07.12",
-    score: "78점",
-  },
-];
 
 /* ---------- 헬퍼 ---------- */
 
@@ -101,52 +68,44 @@ export default async function TownNewsDetailPage({
   try {
     /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 */
     post = await getTownPost(id);
-    if (post) {
-      const all = await readTownPosts();
-      const sameCat = all.filter(
-        (p) => p.id !== post!.id && p.category === post!.category,
-      );
-      const others = all.filter(
-        (p) => p.id !== post!.id && p.category !== post!.category && p.isAutomated,
-      );
-      similarPosts = [...sameCat, ...others].slice(0, 3).map((p) => ({
-        id: p.id,
-        title: p.title,
-        meta: `${p.sourceName || p.authorLabel} · ${shortDate(p.sourcePublishedAt || p.createdAt)}`,
-      }));
-    }
   } catch {
     post = null;
   }
-  if (similarPosts.length === 0) similarPosts = MOCK_SIMILAR;
+  // 사실 우선: 존재하지 않는 글은 목업 기사 대신 404
+  if (!post) notFound();
 
-  const isAutomated = Boolean(post?.isAutomated);
-  const byline = post
-    ? isAutomated
-      ? `자동 수집 · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
-      : `${post.authorLabel} · ${fullDateTime(post.createdAt)}`
-    : "자동 수집 · OO경제 · 2026.07.18 14:20 · 기자 김OO";
-  const title = post
-    ? post.title
-    : "안양 관양 재개발 구역, 시공사 선정 임박 — 인근 구축 단지 재건축 기대감 확산";
-  const category = post ? post.category : "개발 · 매물 연관";
-  const region = post
-    ? [post.city, post.district].filter(Boolean).join(" ") || "전국"
-    : "안양 관양동";
-  const bodyParas = post ? paragraphs(post.body) : MOCK_BODY;
-  const summary = post
-    ? bodyParas.slice(0, 3).map((s, i) => `${["①", "②", "③"][i] ?? "·"} ${s.slice(0, 55)}`)
-    : [
-        "① 관양 재개발 8월 시공사 총회",
-        "② 예상 일반분양가 ㎡당 1,100만",
-        "③ 인근 공작·한가람 재건축 추진 기대감으로 문의 증가",
-      ];
-  const activeComments = post
-    ? post.comments.filter((c) => !c.deletedAt).slice(0, 8)
-    : null;
-  const commentCount = post ? post.commentCount : 17;
-  const likeCount = post ? post.likeCount : 42;
-  const saveCount = post?.bookmarkCount ?? 28;
+  try {
+    const all = await readTownPosts();
+    const sameCat = all.filter(
+      (p) => p.id !== post!.id && p.category === post!.category,
+    );
+    const others = all.filter(
+      (p) => p.id !== post!.id && p.category !== post!.category && p.isAutomated,
+    );
+    similarPosts = [...sameCat, ...others].slice(0, 3).map((p) => ({
+      id: p.id,
+      title: p.title,
+      meta: `${p.sourceName || p.authorLabel} · ${shortDate(p.sourcePublishedAt || p.createdAt)}`,
+    }));
+  } catch {
+    similarPosts = [];
+  }
+
+  const isAutomated = Boolean(post.isAutomated);
+  const byline = isAutomated
+    ? `자동 수집 · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
+    : `${post.authorLabel} · ${fullDateTime(post.createdAt)}`;
+  const title = post.title;
+  const category = post.category;
+  const region = [post.city, post.district].filter(Boolean).join(" ") || "전국";
+  const bodyParas = paragraphs(post.body);
+  const summary = bodyParas
+    .slice(0, 3)
+    .map((s, i) => `${["①", "②", "③"][i] ?? "·"} ${s.slice(0, 55)}`);
+  const activeComments = post.comments.filter((c) => !c.deletedAt).slice(0, 8);
+  const commentCount = post.commentCount;
+  const likeCount = post.likeCount;
+  const saveCount = post.bookmarkCount ?? 0;
 
   return (
     <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
@@ -182,12 +141,12 @@ export default async function TownNewsDetailPage({
               ))}
             </AIPanel>
 
-            {/* 원문 사진 플레이스홀더 */}
-            {isAutomated || !post ? (
+            {/* 원문 사진 플레이스홀더 (자동 수집 기사) */}
+            {isAutomated ? (
               <div className="relative flex h-[280px] items-end overflow-hidden rounded-[14px] bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]">
                 <span className="rounded-tr-[10px] bg-[rgba(255,255,255,.85)] px-3 py-[5px] font-mono text-[11px] text-text-3">
-                  원문 기사 사진 — {region} (출처:{" "}
-                  {post?.sourceName || "OO경제"})
+                  원문 기사 사진 — {region}
+                  {post.sourceName ? ` (출처: ${post.sourceName})` : ""}
                 </span>
               </div>
             ) : null}
@@ -215,18 +174,17 @@ export default async function TownNewsDetailPage({
             <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3.5">
               <div className="flex flex-wrap items-center gap-1 text-[11px] text-[#adb5bd]">
                 <span>
-                  {isAutomated || !post
+                  {isAutomated
                     ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 ·"
                     : `${region} 이웃이 남긴 글 ·`}
                 </span>
                 {/* 신고 연결(#81) — POST /api/moderation/content-report */}
-                {post ? <ReportButton postId={post.id} /> : <span>오류 신고</span>}
+                <ReportButton postId={post.id} />
               </div>
               <div className="flex gap-3.5 text-xs text-text-2">
                 <span className="font-bold text-primary">
                   도움돼요 {likeCount}
                 </span>
-                <span>별로예요 {Math.max(0, Math.round(likeCount / 14))}</span>
               </div>
             </div>
           </article>
@@ -236,59 +194,29 @@ export default async function TownNewsDetailPage({
             <div className="text-[15px] font-extrabold text-ink">
               댓글 {commentCount}
             </div>
-            {activeComments ? (
-              activeComments.length > 0 ? (
-                activeComments.map((c) => (
-                  <div key={c.id} className="flex gap-2.5">
-                    <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
-                    <div className="flex flex-1 flex-col gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-extrabold text-ink">
-                          {c.authorLabel}
-                        </span>
-                        <span className="text-[10px] text-[#adb5bd]">
-                          {relativeTime(c.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-[13px] leading-[1.55] text-text-1">
-                        {c.body}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="py-2 text-[13px] text-text-3">
-                  아직 댓글이 없어요. 첫 댓글을 남겨보세요.
-                </p>
-              )
-            ) : (
-              MOCK_COMMENTS.map((c) => (
-                <div key={c.name} className="flex gap-2.5">
+            {activeComments.length > 0 ? (
+              activeComments.map((c) => (
+                <div key={c.id} className="flex gap-2.5">
                   <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
                   <div className="flex flex-1 flex-col gap-1">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-extrabold text-ink">
-                        {c.name}
-                      </span>
-                      <span
-                        className={`px-1.5 py-px text-[9px] font-extrabold ${c.badgeStyle}`}
-                      >
-                        {c.badge}
+                        {c.authorLabel}
                       </span>
                       <span className="text-[10px] text-[#adb5bd]">
-                        {c.time}
+                        {relativeTime(c.createdAt)}
                       </span>
                     </div>
                     <p className="text-[13px] leading-[1.55] text-text-1">
                       {c.body}
                     </p>
-                    <div className="flex gap-3 text-[11px] text-text-3">
-                      <span>{c.likes}</span>
-                      <span>{c.replies}</span>
-                    </div>
                   </div>
                 </div>
               ))
+            ) : (
+              <p className="py-2 text-[13px] text-text-3">
+                아직 댓글이 없어요. 첫 댓글을 남겨보세요.
+              </p>
             )}
             <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2.5">
               <span className="flex-1 text-[13px] text-text-3">
@@ -320,69 +248,61 @@ export default async function TownNewsDetailPage({
                 지도에서 열기 ›
               </Link>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-text-2">연관 단지</span>
-              <span className="font-bold text-ink">
-                {post?.relatedSite || "공작 · 한가람 · 인덕원대우"}
-              </span>
-            </div>
-          </div>
-
-          {/* 이 지역 임장노트 */}
-          <div className="rise-in-3 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">
-              이 지역 임장노트{" "}
-              <span className="text-[11px] font-medium text-text-3">
-                공개 38건
-              </span>
-            </div>
-            {NOTES.map((n, i) => (
-              <div
-                key={n.title}
-                className={`flex items-center justify-between py-2 ${
-                  i < NOTES.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
-              >
-                <div>
-                  <div className="text-xs font-bold text-ink">{n.title}</div>
-                  <div className="text-[10px] text-text-3">{n.meta}</div>
-                </div>
-                <span className="text-[11px] font-extrabold text-primary">
-                  {n.score}
-                </span>
+            {post.relatedSite && (
+              <div className="flex justify-between text-xs">
+                <span className="text-text-2">연관 단지</span>
+                <span className="font-bold text-ink">{post.relatedSite}</span>
               </div>
-            ))}
-            <Link
-              href="/notes/new"
-              className="btn-soft rounded-[10px] p-2.5 text-center text-xs"
-            >
-              이 지역 노트 쓰기
-            </Link>
+            )}
           </div>
 
-          {/* 유사 기사 */}
-          <div className="rise-in-4 card flex flex-col gap-1 rounded-[18px] p-[18px]">
-            <div className="mb-1.5 text-[13px] font-extrabold text-ink">
-              유사 기사
-            </div>
-            {similarPosts.map((s, i) => (
+          {/* 이 지역 임장노트 — 사실 우선: 허위 노트 목록·건수 제거, 작성/열람 진입만 */}
+          <div className="rise-in-3 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
+            <div className="text-[13px] font-extrabold text-ink">이 지역 임장노트</div>
+            <p className="text-[11px] leading-relaxed text-text-3">
+              현장을 다녀오셨다면 임장노트로 기록해 이웃과 공유해 보세요.
+            </p>
+            <div className="flex gap-2">
               <Link
-                key={s.title}
-                href={s.id ? `/town/news/${s.id}` : "/town/news"}
-                className={`flex gap-2.5 py-[7px] ${
-                  i < similarPosts.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
+                href="/notes/new"
+                className="btn-primary btn-cta flex-1 rounded-[10px] p-2.5 text-center text-xs"
               >
-                <div className="h-[38px] w-[52px] shrink-0 rounded-lg bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]" />
-                <div>
-                  <div className="line-clamp-2 text-xs font-bold leading-[1.4] text-ink">
-                    {s.title}
-                  </div>
-                  <div className="text-[10px] text-text-3">{s.meta}</div>
-                </div>
+                이 지역 노트 쓰기
               </Link>
-            ))}
+              <Link
+                href="/notes"
+                className="btn-soft flex-1 rounded-[10px] p-2.5 text-center text-xs"
+              >
+                공개 노트 보기
+              </Link>
+            </div>
           </div>
+
+          {/* 유사 기사 — 실데이터 있을 때만 */}
+          {similarPosts.length > 0 && (
+            <div className="rise-in-4 card flex flex-col gap-1 rounded-[18px] p-[18px]">
+              <div className="mb-1.5 text-[13px] font-extrabold text-ink">
+                유사 기사
+              </div>
+              {similarPosts.map((s, i) => (
+                <Link
+                  key={s.title}
+                  href={s.id ? `/town/news/${s.id}` : "/town/news"}
+                  className={`flex gap-2.5 py-[7px] ${
+                    i < similarPosts.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  }`}
+                >
+                  <div className="h-[38px] w-[52px] shrink-0 rounded-lg bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]" />
+                  <div>
+                    <div className="line-clamp-2 text-xs font-bold leading-[1.4] text-ink">
+                      {s.title}
+                    </div>
+                    <div className="text-[10px] text-text-3">{s.meta}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* AD 슬롯 */}
           <div className="rise-in-5 flex h-20 flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">

@@ -145,30 +145,41 @@ export function ComplexHubTabs({
         <div className="rise-in-3 flex flex-col gap-3">
           <AIPanel title={aiTitle}>{aiBody}</AIPanel>
           {myRecordCard}
-          <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
-            {trades.slice(0, 3).map((t, i) => (
-              <div
-                key={`${t.date}-${i}`}
-                className={`flex items-center justify-between py-2.5 text-[13px] ${
-                  i < Math.min(trades.length, 3) - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
-              >
-                <span className="text-text-2">
-                  {t.date} · {t.sub}
-                </span>
-                <span className="flex items-baseline gap-2">
-                  <span className="font-extrabold text-ink">{t.price}</span>
-                  <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
-                </span>
-              </div>
-            ))}
-          </div>
+          {trades.length > 0 ? (
+            <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
+              {trades.slice(0, 3).map((t, i) => (
+                <div
+                  key={`${t.date}-${i}`}
+                  className={`flex items-center justify-between py-2.5 text-[13px] ${
+                    i < Math.min(trades.length, 3) - 1 ? "border-b border-[#f0f3f8]" : ""
+                  }`}
+                >
+                  <span className="text-text-2">
+                    {t.date} · {t.sub}
+                  </span>
+                  <span className="flex items-baseline gap-2">
+                    <span className="font-extrabold text-ink">{t.price}</span>
+                    <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+              아직 수집된 국토교통부 실거래가 없어요
+            </div>
+          )}
         </div>
       )}
 
       {/* ===== 노트 ===== */}
       {tab === "노트" && (
         <div className="rise-in-3 flex flex-col gap-2.5">
+          {notes.length === 0 && (
+            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+              아직 이 단지에 공개된 임장노트가 없어요
+            </div>
+          )}
           {notes.map((n) => (
             <div
               key={n.title}
@@ -191,6 +202,11 @@ export function ComplexHubTabs({
       {tab === "매물" && (
         <div className="rise-in-3 flex flex-col gap-2.5">
           <div className="px-1 text-xs font-extrabold text-text-3">{listingsLabel}</div>
+          {listings.length === 0 && (
+            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+              등록된 실매물이 아직 없어요 · 지도에서 주변 매물을 확인해 보세요
+            </div>
+          )}
           {listings.map((l) => (
             <div
               key={l.price}
@@ -224,25 +240,33 @@ export function ComplexHubTabs({
       {/* ===== 시세 ===== */}
       {tab === "시세" && (
         <div className="rise-in-3 flex flex-col gap-2.5">
-          <div className="px-1 text-xs font-extrabold text-text-3">실거래 히스토리</div>
-          <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
-            {trades.map((t, i) => (
-              <div
-                key={`${t.date}-${i}`}
-                className={`flex items-center justify-between py-2.5 text-[13px] ${
-                  i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                }`}
-              >
-                <span className="text-text-2">
-                  {t.date} · {t.sub}
-                </span>
-                <span className="flex items-baseline gap-2">
-                  <span className="font-extrabold text-ink">{t.price}</span>
-                  <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
-                </span>
-              </div>
-            ))}
+          <div className="px-1 text-xs font-extrabold text-text-3">
+            실거래 히스토리 <span className="font-medium text-text-3">· 국토교통부 기준</span>
           </div>
+          {trades.length > 0 ? (
+            <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
+              {trades.map((t, i) => (
+                <div
+                  key={`${t.date}-${i}`}
+                  className={`flex items-center justify-between py-2.5 text-[13px] ${
+                    i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  }`}
+                >
+                  <span className="text-text-2">
+                    {t.date} · {t.sub}
+                  </span>
+                  <span className="flex items-baseline gap-2">
+                    <span className="font-extrabold text-ink">{t.price}</span>
+                    <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+              아직 수집된 국토교통부 실거래가 없어요
+            </div>
+          )}
           <Link href="/analysis/price" className="btn-soft rounded-xl p-3 text-center text-[13px]">
             AI 시세 분석 보기
           </Link>
@@ -253,22 +277,20 @@ export function ComplexHubTabs({
       {tab === "내 기록" && (
         <div className="rise-in-3 flex flex-col gap-2.5">
           {myRecordCard}
-          <div className="card flex flex-col gap-[7px] rounded-[14px] px-[15px] py-[13px]">
-            <div className="flex justify-between">
-              <span className="text-xs font-extrabold text-ink">내 노트 판정</span>
-              <span className="text-xs font-extrabold text-primary">81점 · 5회 방문</span>
-            </div>
-            <div className="flex flex-wrap gap-[5px]">
-              <span className="chip bg-primary-soft px-2 py-[3px] text-[10px] text-primary">
-                학군 확정 강점
-              </span>
-              <span className="chip bg-primary-soft px-2 py-[3px] text-[10px] text-primary">
-                배수 양호
-              </span>
-              <span className="chip bg-danger-soft px-2 py-[3px] text-[10px] text-danger">
-                주차 확정 약점
-              </span>
-            </div>
+          {/* 사실 우선: 개인화된 노트 판정은 실제 작성 노트가 있을 때만 — 허위 점수·강약점 제거 */}
+          <div className="card flex flex-col items-center gap-1.5 rounded-[14px] px-[15px] py-6 text-center">
+            <span className="text-[13px] font-bold text-ink">
+              아직 이 단지에 남긴 임장노트가 없어요
+            </span>
+            <span className="text-[11px] text-text-3">
+              직접 방문해 기록하면 내 판정·방문 이력이 여기에 쌓여요
+            </span>
+            <Link
+              href="/notes/new"
+              className="btn-primary btn-cta mt-1 rounded-[10px] px-4 py-2 text-xs"
+            >
+              임장노트 쓰기
+            </Link>
           </div>
           <div className="card flex items-center justify-between rounded-[14px] px-[15px] py-3.5">
             <span className="text-[13px] text-text-1">

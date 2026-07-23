@@ -13,67 +13,6 @@ export const metadata = {
   description: "지도에서 단지 시세·실거래·임장노트를 한 번에 탐색하세요.",
 };
 
-/* ===== 목업 폴백 (DB/env 없을 때) — 관양동 시안 데이터 ===== */
-const FALLBACK_DANJI: DanjiItem[] = [
-  {
-    id: "mock-gongjak",
-    name: "공작아파트",
-    note: "노트 3",
-    meta: "1988년 · 1,486세대 · 용적률 199%",
-    price: "8.4억",
-    delta: "▼ 2.1%",
-    deltaTone: "down",
-    size: "84㎡",
-    lat: 37.3946,
-    lng: 126.9707,
-    avgPriceWon: 840_000_000,
-    momPct: -2.1,
-    areaM2: 84,
-    buildYear: 1988,
-    households: 1486,
-    buildingType: "아파트",
-    trades: [],
-  },
-  {
-    id: "mock-hangaram",
-    name: "한가람세경",
-    note: null,
-    meta: "1992년 · 918세대 · 용적률 214%",
-    price: "7.9억",
-    delta: "▲ 0.8%",
-    deltaTone: "up",
-    size: "84㎡",
-    lat: 37.3921,
-    lng: 126.975,
-    avgPriceWon: 790_000_000,
-    momPct: 0.8,
-    areaM2: 84,
-    buildYear: 1992,
-    households: 918,
-    buildingType: "아파트",
-    trades: [],
-  },
-  {
-    id: "mock-dongpyeon3",
-    name: "동편마을 3단지",
-    note: "노트 1",
-    meta: "2012년 · 762세대 · 용적률 179%",
-    price: "10.2억",
-    delta: "▼ 1.4%",
-    deltaTone: "down",
-    size: "84㎡",
-    lat: 37.4003,
-    lng: 126.9605,
-    avgPriceWon: 1_020_000_000,
-    momPct: -1.4,
-    areaM2: 84,
-    buildYear: 2012,
-    households: 762,
-    buildingType: "아파트",
-    trades: [],
-  },
-];
-
 /** 만원 단위 → "8.4억" / "8,200만" 라벨 */
 function formatManwon(manwon: number): string {
   if (!Number.isFinite(manwon) || manwon <= 0) return "—";
@@ -182,8 +121,9 @@ async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }
 }
 
 export default async function MapPage() {
+  // 사실 우선: DB 조회 실패/빈 결과 시 허위 단지(공작아파트 등) 대신 빈 목록 — 지도만 표시
   const db = await loadDanjiFromDb();
   return (
-    <MapClient danji={db?.items ?? FALLBACK_DANJI} regionLabel={db?.region ?? "관양동"} />
+    <MapClient danji={db?.items ?? []} regionLabel={db?.region ?? "수도권"} />
   );
 }
