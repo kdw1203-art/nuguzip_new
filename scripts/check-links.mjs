@@ -2,11 +2,12 @@
 const BASE = `http://localhost:${process.env.PORT || 3100}`;
 const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '/map', '/search', '/notifications', '/messages',
   '/analysis', '/analysis/compare', '/analysis/cycle', '/analysis/price', '/analysis/scenario', '/analysis/timing', '/analysis/portfolio', '/analysis/switch',
-  '/town', '/town/news', '/town/news/mock-1', '/town/market', '/town/experts', '/town/groups', '/town/groups/mock-1',
+  '/town', '/town/news', '/town/market', '/town/experts', '/town/groups', '/town/groups/mock-1',
   '/my', '/my/settings', '/my/assets', '/my/creator', '/subscription', '/login', '/signup', '/calculator', '/apply', '/support', '/safety', '/digest',
   '/admin', '/admin/moderation', '/admin/quality', '/admin/ops', '/admin/market', '/admin/revenue',
-  // /u/[handle] 은 미존재 핸들 → 404 가 정상 동작 (P2-6) — 시드 제외
-  '/seller', '/discover', '/complex/mock-1',
+  // 사실 우선(facts-first): 존재하지 않는 단지/글/핸들은 목업 대신 404가 정상.
+  // /complex/mock-1, /town/news/mock-1, /u/[handle] 은 의도된 404이므로 시드에서 제외.
+  '/seller', '/discover',
   // 미들웨어 EXACT_REDIRECTS 키 전수 — 리다이렉트 타깃 404 회귀 방지 (감사 P0-4)
   '/register', '/mypage', '/my-page', '/map-home', '/map-price', '/map-analysis', '/map/price', '/map/analysis', '/region-comparison',
   '/terms', '/privacy', '/create-post', '/community/create', '/community/write', '/create-meeting', '/inspection/create-meeting', '/groups/create',

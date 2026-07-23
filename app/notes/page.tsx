@@ -29,7 +29,7 @@ const MOCK_NOTES: FeedNote[] = [
     footer: ["공감 12", "댓글 5", "저장 8"],
     popularity: 12,
     interested: true,
-    complexHref: "/complex/mock-1",
+    // 사실 우선: 예시 카드는 존재하지 않는 단지(mock-1)로 링크하지 않음 (404 방지)
     isExample: true,
   },
 ];

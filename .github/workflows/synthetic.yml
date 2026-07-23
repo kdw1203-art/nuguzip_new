@@ -22,7 +22,7 @@ jobs:
         run: |
           BASE="https://nuguzip.com"
           FAILED=""
-          for P in / /notes /town /complex/mock-1 /api/health; do
+          for P in / /notes /town /calculator /api/health; do
             CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 --retry 2 --retry-delay 5 "$BASE$P" || echo 000)
             echo "$P -> $CODE"
             if [ "$CODE" != "200" ]; then
