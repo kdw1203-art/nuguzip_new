@@ -5,6 +5,7 @@ import {
   type ComplexRow,
   type ComplexTransactionRow,
 } from "@/lib/complex/complex-store";
+import { loadRegionMarketMarkers } from "@/lib/map/region-market";
 
 export const dynamic = "force-dynamic";
 
@@ -122,8 +123,15 @@ async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }
 
 export default async function MapPage() {
   // 사실 우선: DB 조회 실패/빈 결과 시 허위 단지(공작아파트 등) 대신 빈 목록 — 지도만 표시
-  const db = await loadDanjiFromDb();
+  const [db, regionMarkers] = await Promise.all([
+    loadDanjiFromDb(),
+    loadRegionMarketMarkers().catch(() => []),
+  ]);
   return (
-    <MapClient danji={db?.items ?? []} regionLabel={db?.region ?? "수도권"} />
+    <MapClient
+      danji={db?.items ?? []}
+      regionLabel={db?.region ?? "수도권"}
+      regionMarkers={regionMarkers}
+    />
   );
 }

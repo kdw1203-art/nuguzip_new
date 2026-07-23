@@ -228,9 +228,24 @@ function FilterChipGroup({
   );
 }
 
+/** 지역(구/시) 실시세 마커 — 서버(region-market)에서 REB 실데이터로 주입 */
+export type RegionMarker = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  avgManwon: number;
+  perM2Manwon: number | null;
+  changePct: number | null;
+  tradeCount: number;
+  jeonseRatio: number | null;
+  period: string;
+};
+
 interface MapClientProps {
   danji: DanjiItem[];
   regionLabel: string;
+  regionMarkers: RegionMarker[];
 }
 
 /* ===== 서버 클러스터링 (/api/map/clusters) ===== */
@@ -322,18 +337,23 @@ interface CommuteResponse {
   error?: string;
 }
 
-export function MapClient({ danji, regionLabel }: MapClientProps) {
+export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps) {
   const router = useRouter();
-  const [zoom, setZoom] = useState<Zoom>("danji");
-  const [level, setLevel] = useState<number>(LEVEL_BY_ZOOM.danji);
+  const [zoom, setZoom] = useState<Zoom>(danji.length > 0 ? "danji" : "city");
+  const [level, setLevel] = useState<number>(
+    danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
+  );
   const [panelOpen, setPanelOpen] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("요약");
   const [center, setCenter] = useState(() => {
-    if (danji.length === 0) return { lat: 37.4006, lng: 126.9705 }; // 관양동
-    const lat = danji.reduce((s, d) => s + d.lat, 0) / danji.length;
-    const lng = danji.reduce((s, d) => s + d.lng, 0) / danji.length;
-    return { lat, lng };
+    if (danji.length > 0) {
+      const lat = danji.reduce((s, d) => s + d.lat, 0) / danji.length;
+      const lng = danji.reduce((s, d) => s + d.lng, 0) / danji.length;
+      return { lat, lng };
+    }
+    // 단지 좌표가 없으면 지역 시세 마커 중심(수도권) — 서울 시청 근방
+    return { lat: 37.5665, lng: 126.978 };
   });
 
   const selected = danji.find((d) => d.id === selectedId) ?? null;
@@ -918,8 +938,39 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     return Array.from(seen.values());
   }, [showRedevelopment, redevItems]);
 
+  // 지역(구/시) 실시세 마커 — 한국부동산원(REB) 실데이터. 시·군·구/동 줌에서만 노출.
+  const regionMarketMarkers = useMemo<MapMarkerData[]>(() => {
+    if (regionMarkers.length === 0) return [];
+    return regionMarkers.map((r) => {
+      const price = manwonLabel(r.avgManwon) ?? "—";
+      const up = (r.changePct ?? 0) >= 0;
+      const chgHtml =
+        r.changePct != null
+          ? `<span style="color:${up ? "#e11900" : "#1565d8"};font-weight:700">${up ? "▲" : "▼"}${Math.abs(r.changePct).toFixed(2)}%</span>`
+          : "";
+      const infoHtml = `<div style="min-width:150px;font-family:sans-serif">
+        <p style="font-weight:800;font-size:13px;margin:0;color:#191f28">${r.name}</p>
+        <p style="font-size:12px;margin:3px 0 0;color:#333">평균 매매 <b>${price}</b> ${chgHtml}</p>
+        <p style="font-size:11px;color:#888;margin:2px 0 0">거래 ${r.tradeCount.toLocaleString("ko-KR")}건${r.jeonseRatio != null ? ` · 전세가율 ${Math.round(r.jeonseRatio)}%` : ""}</p>
+        <p style="font-size:10px;color:#aaa;margin:2px 0 0">${r.period.slice(0, 4)}.${r.period.slice(4, 6)} · 한국부동산원</p>
+      </div>`;
+      return {
+        id: `region:${r.id}`,
+        lat: r.lat,
+        lng: r.lng,
+        label: r.name,
+        priceLabel: price,
+        avgPricePerM2: 1, // 시세 말풍선 스타일 플래그
+        momPct: r.changePct ?? undefined,
+        infoHtml,
+      };
+    });
+  }, [regionMarkers]);
+
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
+    // 지역 시세 마커는 시·군·구/동 줌에서만 (단지 줌에선 숨김)
+    const regionLayer = zoom === "danji" ? [] : regionMarketMarkers;
     // 검색/포인트로 선택된 목록 밖 단지를 하이라이트 마커로 주입 (중복 id 제외)
     const withSearch = (arr: MapMarkerData[]): MapMarkerData[] => {
       if (!searchMarker || arr.some((m) => m.id === searchMarker.id)) return arr;
@@ -949,6 +1000,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
         infoHtml: "",
       }));
       return withSearch([
+      ...regionLayer,
       ...base,
       ...listingMarkers,
       ...poiMarkers,
@@ -985,6 +1037,7 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
       }
     }
     return withSearch([
+      ...regionLayer,
       ...base,
       ...listingMarkers,
       ...poiMarkers,
@@ -1002,6 +1055,8 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     listingMarkers,
     poiMarkers,
     redevelopmentMarkers,
+    regionMarketMarkers,
+    zoom,
   ]);
 
   const selectDanji = (id: string) => {
@@ -1129,6 +1184,12 @@ export function MapClient({ danji, regionLabel }: MapClientProps) {
     if (m.id.startsWith("poi:")) return;
     if (m.id.startsWith("heat:")) return;
     if (m.id.startsWith("redev:")) return; // 정비사업 마커는 네이티브 인포윈도우만
+    // 지역 시세 마커 클릭 → 해당 지역으로 한 단계 확대(인포윈도우는 네이티브로 표시)
+    if (m.id.startsWith("region:")) {
+      setCenter({ lat: m.lat, lng: m.lng });
+      setLevel((v) => Math.max(1, v - 2));
+      return;
+    }
     // 매물 마커 클릭 → 하단 미리보기 패널(이탈 없이). 상세는 패널의 "상세 보기"로.
     if (m.id.startsWith("listing:")) {
       setInfoComplex(null);
