@@ -1,11 +1,13 @@
 import { MapClient, type DanjiItem, type TradeItem } from "./map-client";
 import {
-  searchComplexes,
   getTransactionHistory,
+  encodeComplexId,
   type ComplexRow,
   type ComplexTransactionRow,
 } from "@/lib/complex/complex-store";
 import { loadRegionMarketMarkers } from "@/lib/map/region-market";
+import { backfillGeocode } from "@/lib/map/complex-geocode";
+import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
 
@@ -82,32 +84,84 @@ function toDanjiItem(row: ComplexRow, tx: ComplexTransactionRow[]): DanjiItem {
   };
 }
 
-/** Supabase(구 lib)에서 단지 목록 + 실거래 시세 로드. 실패/빈 결과 시 null. */
+/** region_name("서울 송파구") → city/district */
+function splitRegion(region: string): { city: string; district: string } {
+  const parts = region.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { city: region, district: region };
+  return { city: parts[0], district: parts.slice(1).join(" ") };
+}
+
+/** 좌표 캐시(complex_geocode)에 저장된 지오코딩 완료 단지 조회 */
+async function loadGeocodedComplexes(
+  limit: number,
+): Promise<{ region_name: string; complex_name: string; lat: number; lng: number }[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("complex_geocode")
+    .select("region_name, complex_name, lat, lng")
+    .eq("status", "ok")
+    .not("lat", "is", null)
+    .order("trade_count", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  return (
+    (data as
+      | { region_name: string; complex_name: string; lat: number; lng: number }[]
+      | null) ?? []
+  ).filter((g) => g.complex_name && Number.isFinite(g.lat) && Number.isFinite(g.lng));
+}
+
+/**
+ * 실거래·지오코딩 좌표 기반 지도 단지 로드.
+ * 좌표 캐시가 비어 있으면 상위 거래량 단지를 소량 인라인 지오코딩(1회 부트스트랩) 후 재조회.
+ * 이후는 캐시만 읽어 빠르게 동작 — 대량 백필은 cron(geocode-complexes)이 담당.
+ */
 async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string } | null> {
   try {
-    // 시안 지역(안양 동안구) 우선 → 없으면 전체에서 조회
-    let rows = await searchComplexes("", "동안구", 24);
-    if (rows.length === 0) rows = await searchComplexes("", "", 24);
-    const withCoords = rows.filter((r) => r.lat !== null && r.lng !== null);
-    if (withCoords.length === 0) return null;
+    let geo = await loadGeocodedComplexes(30);
+    if (geo.length === 0) {
+      // 최초 진입 부트스트랩 — 캐시가 비었을 때만 소량 지오코딩(이후엔 캐시·cron 사용)
+      await backfillGeocode(12).catch(() => undefined);
+      geo = await loadGeocodedComplexes(30);
+    }
+    if (geo.length === 0) return null;
 
-    const top = withCoords.slice(0, 16);
     const items = await Promise.all(
-      top.map(async (row) => {
-        const tx = await getTransactionHistory(row.id, 6).catch(
+      geo.map(async (g) => {
+        const id = encodeComplexId(g.region_name, g.complex_name);
+        const tx = await getTransactionHistory(id, 6).catch(
           () => [] as ComplexTransactionRow[],
         );
+        const { city, district } = splitRegion(g.region_name);
+        const row: ComplexRow = {
+          id,
+          kapt_code: null,
+          name: g.complex_name,
+          city,
+          district,
+          address: null,
+          road_address: null,
+          lat: g.lat,
+          lng: g.lng,
+          building_type: "아파트",
+          build_year: null,
+          total_floors: null,
+          households: null,
+          parking_per_hh: null,
+          builder_name: null,
+          heating: null,
+        };
         return toDanjiItem(row, tx);
       }),
     );
 
-    // 최빈 지역명으로 패널 헤더 라벨
+    // 패널 헤더 라벨 — 최빈 시/도
     const counts = new Map<string, number>();
-    for (const r of top) {
-      const key = r.district || r.city;
-      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+    for (const g of geo) {
+      const { city } = splitRegion(g.region_name);
+      if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
     }
-    let region = "관양동";
+    let region = "수도권";
     let best = 0;
     for (const [k, n] of counts) {
       if (n > best) {

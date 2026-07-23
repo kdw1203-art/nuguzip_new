@@ -47,6 +47,8 @@ jobs:
           curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/onbid-sync" | head -c 500 || true
           echo
           call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
+          # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용 (회당 상위 거래량 250건)
+          call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=250"
           call attendance "https://nuguzip.com/api/cron/attendance-reminders"
           # molit 전국 실거래: 매월 1일에만
           if [ "$(date -u +%d)" = "01" ]; then

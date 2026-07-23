@@ -18,6 +18,8 @@ import {
   type HubListing,
 } from "./hub-client";
 import type { PricePoint } from "./PriceTrendChart";
+import { decodeComplexId } from "@/lib/complex/complex-store";
+import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
 import { ComplexReviews } from "../ComplexReviews";
@@ -244,7 +246,8 @@ async function loadView(id: string): Promise<HubView | null> {
   // 사실 우선: 존재하지 않는 단지는 목업 대신 null → notFound()
   const row = await getComplexById(id);
   if (!row) return null;
-  const [tx, posts, sameDong, txHref] = await Promise.all([
+  const dec = decodeComplexId(id);
+  const [tx, posts, sameDong, txHref, coord] = await Promise.all([
     getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
     getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
@@ -252,8 +255,13 @@ async function loadView(id: string): Promise<HubView | null> {
       ? searchComplexes("", row.district, 5).catch(() => [] as ComplexRow[])
       : Promise.resolve([] as ComplexRow[]),
     resolveTxHref(row),
+    // 좌표 지연 지오코딩(캐시) — 거리뷰·JSON-LD geo 용. 실패 시 좌표 없이 진행.
+    dec
+      ? geocodeAndCache(dec.region, dec.name, row.address ?? undefined).catch(() => null)
+      : Promise.resolve(null),
   ]);
-  return toView(row, tx, posts, toNearby(sameDong, row.id), txHref);
+  const located: ComplexRow = coord ? { ...row, lat: coord.lat, lng: coord.lng } : row;
+  return toView(located, tx, posts, toNearby(sameDong, located.id), txHref);
 }
 
 /* ===== SEO — 단지명 title/description, 비로그인 열람 허용 (index 대상) ===== */
