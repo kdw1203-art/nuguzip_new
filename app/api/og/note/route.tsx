@@ -9,6 +9,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { OG_SIZE } from "@/lib/og/theme";
+import { fetchStaticMapDataUri } from "@/lib/map/naver-maps-rest";
 
 /** 쿼리 값 정규화 — 60자 절단 + 공백 정리 */
 function q(req: NextRequest, key: string, fallback: string): string {
@@ -38,6 +39,14 @@ export async function GET(req: NextRequest) {
     .map((b) => b.trim())
     .filter(Boolean)
     .slice(0, 4);
+
+  // 네이버 Static Map 썸네일(위치) — 좌표 + NCP Maps 키가 있을 때만. 없으면 지도 없이 폴백.
+  const latNum = Number(req.nextUrl.searchParams.get("lat"));
+  const lngNum = Number(req.nextUrl.searchParams.get("lng"));
+  const mapDataUri =
+    Number.isFinite(latNum) && Number.isFinite(lngNum)
+      ? await fetchStaticMapDataUri(latNum, lngNum, { w: 320, h: 200, level: 15 })
+      : null;
 
   return new ImageResponse(
     (
@@ -233,13 +242,39 @@ export async function GET(req: NextRequest) {
             </div>
             <div
               style={{
-                fontSize: "20px",
-                fontWeight: 600,
-                color: "#7b8494",
                 display: "flex",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: "28px",
               }}
             >
-              임장 기록이 판단 근거가 됩니다 · nuguzip.com
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 600,
+                  color: "#7b8494",
+                  display: "flex",
+                }}
+              >
+                임장 기록이 판단 근거가 됩니다 · nuguzip.com
+              </div>
+              {mapDataUri && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={mapDataUri}
+                  alt=""
+                  width={232}
+                  height={146}
+                  style={{
+                    width: "232px",
+                    height: "146px",
+                    borderRadius: "16px",
+                    border: "1px solid rgba(17,24,39,0.10)",
+                    objectFit: "cover",
+                    flexShrink: 0,
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -299,6 +299,16 @@ export async function generateMetadata({
     score: String(view.totalScore),
     badges: view.axes.map((a) => `${a.label} ${a.level}`).join(","),
   });
+  // 좌표가 있으면 OG 카드에 네이버 Static Map 썸네일 노출(키 있을 때). 없으면 지도 없이 폴백.
+  {
+    const m = (note.metadata ?? {}) as Record<string, unknown>;
+    const lat = Number(m.lat ?? m.latitude);
+    const lng = Number(m.lng ?? m.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)) {
+      ogQuery.set("lat", String(lat));
+      ogQuery.set("lng", String(lng));
+    }
+  }
 
   return {
     title,

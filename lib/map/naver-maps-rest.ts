@@ -136,6 +136,53 @@ function buildRequest(
   };
 }
 
+const STATIC_MAP_PATH = "/map-static/v2/raster";
+
+/**
+ * 네이버 Static Map 이미지를 data URI(base64 PNG)로 반환.
+ * 키 미설정·좌표 이상·실패 시 null (OG 카드 등에서 지도 없는 버전으로 폴백).
+ * @param lat 위도, @param lng 경도
+ */
+export async function fetchStaticMapDataUri(
+  lat: number,
+  lng: number,
+  opts: { w?: number; h?: number; level?: number; marker?: boolean } = {},
+): Promise<string | null> {
+  if (!isNaverMapsRestConfigured()) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+
+  const w = Math.min(Math.max(Math.round(opts.w ?? 440), 100), 1024);
+  const h = Math.min(Math.max(Math.round(opts.h ?? 280), 100), 1024);
+  const level = Math.min(Math.max(Math.round(opts.level ?? 15), 6), 20);
+
+  const params = new URLSearchParams({
+    w: String(w),
+    h: String(h),
+    center: `${lng},${lat}`,
+    level: String(level),
+    format: "png",
+    scale: "2",
+  });
+  if (opts.marker !== false) {
+    params.set("markers", `type:d|size:mid|color:0x1d4fd8|pos:${lng} ${lat}`);
+  }
+
+  try {
+    const { url, headers } = buildRequest(STATIC_MAP_PATH, params);
+    const res = await fetch(url, {
+      headers: { ...headers, Accept: "image/png" },
+      next: { revalidate: 86400 },
+    });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length < 100) return null;
+    return `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 type GeocodeAddress = {
   roadAddress?: string;
   jibunAddress?: string;
