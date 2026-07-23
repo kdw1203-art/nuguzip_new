@@ -1,160 +1,164 @@
-import { Icon } from "@/app/components/Icon";
+import Link from "next/link";
+import { loadAdminKpi } from "@/lib/admin/stats";
+import {
+  loadExpertOpsSummary,
+  loadPendingVerificationQueue,
+} from "@/lib/admin/expert-ops-metrics";
+
+/* 사용자 세그먼트 · AI 품질 · 인증 심사 — 사실 우선: 하드코딩 목업 제거, 실 테이블 집계만.
+   집계 소스가 없는 지표(휴면/이탈 코호트, 👍비율)는 허위 수치 대신 "준비 중"으로 표기. */
+
+export const dynamic = "force-dynamic";
 
 const lightCard =
   "flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-5";
 
-export default function AdminQualityPage() {
+function fmt(n: number): string {
+  return n.toLocaleString("ko-KR");
+}
+
+function relDate(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export default async function AdminQualityPage() {
+  const [kpi, ops, queue] = await Promise.all([
+    loadAdminKpi().catch(() => null),
+    loadExpertOpsSummary().catch(() => null),
+    loadPendingVerificationQueue(12).catch(() => []),
+  ]);
+
+  // 사실 기반 세그먼트 — 정의 가능한 실측치만 (휴면/이탈 코호트는 행동 정의 필요 → 준비 중)
+  const paidSubscribers = kpi
+    ? Object.entries(kpi.planCounts)
+        .filter(([tier]) => tier && tier !== "free" && tier !== "basic")
+        .reduce((s, [, c]) => s + (c || 0), 0)
+    : 0;
+
+  const segments = [
+    { dot: "#1a7f4e", label: "전체 가입", sub: "profiles", value: kpi ? fmt(kpi.totalUsers) : "—" },
+    {
+      dot: "#3182f6",
+      label: "최근 7일 활동 작성자",
+      sub: "글·노트 작성 유니크",
+      value: kpi ? fmt(kpi.activeUsers7d) : "—",
+    },
+    { dot: "#e8a13a", label: "오늘 신규 가입", sub: "24시간", value: kpi ? fmt(kpi.newUsersToday) : "—" },
+    { dot: "#7c3aed", label: "유료 구독", sub: "무료 제외 tier", value: kpi ? fmt(paidSubscribers) : "—" },
+  ];
+
   return (
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">
-        사용자 세그먼트 · AI 품질 모니터링 · 중개사 인증 심사
+        사용자 세그먼트 · AI 품질 모니터링 · 인증 심사
+      </div>
+      <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
+        모든 수치는 실 테이블 집계입니다. 집계 소스가 없는 지표는 &quot;준비 중&quot;으로 표기해요.
       </div>
 
       <div className="rise-in-1 grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {/* 사용자 세그먼트 */}
+        {/* 사용자 세그먼트 (실데이터) */}
         <div className={lightCard}>
           <div className="text-sm font-extrabold text-ink">사용자 세그먼트</div>
           <div className="flex flex-col gap-1.5 text-[11px]">
-            <div className="flex items-center justify-between rounded-[10px] bg-bg px-3 py-2.5">
-              <span>
-                <b className="text-[#1a7f4e]">●</b>{" "}
-                <b className="text-ink">임장 활성</b> (주 1+ 노트)
-              </span>
-              <span className="font-extrabold tabular-nums text-ink">
-                4,210 <b className="text-[9px] text-[#1a7f4e]">+8%</b>
-              </span>
-            </div>
-            <div className="flex items-center justify-between rounded-[10px] bg-bg px-3 py-2.5">
-              <span>
-                <b className="text-[#e8a13a]">●</b>{" "}
-                <b className="text-ink">휴면 전환 위험</b> (14일 무활동)
-              </span>
-              <span className="font-extrabold tabular-nums text-ink">1,873</span>
-            </div>
-            <div className="flex items-center justify-between rounded-[10px] bg-bg px-3 py-2.5">
-              <span>
-                <b className="text-danger">●</b>{" "}
-                <b className="text-ink">이탈 위험</b> (30일+ · 구독 중)
-              </span>
-              <span className="font-extrabold tabular-nums text-ink">412</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between rounded-xl bg-[rgba(25,31,40,.96)] px-3.5 py-3">
-            <span className="text-[11px] text-[#e2e8f2]">
-              이탈 위험 412명에게
-              <br />
-              <b className="text-ai-accent">&quot;찜 매물 변동&quot; 다이제스트</b>{" "}
-              발송
-            </span>
-            <button className="rounded-[9px] bg-primary px-[13px] py-2 text-[11px] font-bold text-white">
-              캠페인 생성
-            </button>
+            {segments.map((s) => (
+              <div
+                key={s.label}
+                className="flex items-center justify-between rounded-[10px] bg-bg px-3 py-2.5"
+              >
+                <span>
+                  <b style={{ color: s.dot }}>●</b> <b className="text-ink">{s.label}</b>{" "}
+                  <span className="text-text-3">({s.sub})</span>
+                </span>
+                <span className="font-extrabold tabular-nums text-ink">{s.value}</span>
+              </div>
+            ))}
           </div>
           <div className="text-[10px] text-text-3">
-            세그먼트 조건 빌더로 커스텀 코호트 저장 · 발송은 알림 피로도
-            규칙(12l) 준수
+            휴면·이탈 위험 코호트는 행동 이벤트 정의가 확정되면 추가됩니다 (허위 수치 미표기).
           </div>
         </div>
 
-        {/* AI 품질 모니터링 */}
+        {/* AI 품질 모니터링 (실데이터 + 정직한 준비중) */}
         <div className={lightCard}>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-ink">
-              AI 품질 모니터링
-            </span>
+            <span className="text-sm font-extrabold text-ink">AI 품질 모니터링</span>
             <span className="text-[10px] text-text-3">최근 7일</span>
           </div>
           <div className="flex gap-2">
             <div className="flex-1 rounded-xl bg-bg p-3 text-center">
               <div className="text-xl font-extrabold tabular-nums text-ink">
-                91.4%
+                {kpi?.aiAnalysisRuns7d != null ? fmt(kpi.aiAnalysisRuns7d) : "—"}
               </div>
-              <div className="text-[9px] text-text-3">
-                <Icon name="👍" size={11} className="mr-0.5 inline align-middle" />
-                비율 (n=2,140)
-              </div>
+              <div className="text-[9px] text-text-3">AI 분석 실행</div>
             </div>
             <div className="flex-1 rounded-xl bg-bg p-3 text-center">
-              <div className="text-xl font-extrabold tabular-nums text-danger">
-                184
+              <div className="text-xl font-extrabold tabular-nums text-ink">
+                {kpi?.platformActivityEvents7d != null ? fmt(kpi.platformActivityEvents7d) : "—"}
               </div>
-              <div className="text-[9px] text-text-3">
-                <Icon name="👎" size={11} className="mr-0.5 inline align-middle" />
-                리뷰 대기
-              </div>
+              <div className="text-[9px] text-text-3">플랫폼 활동 이벤트</div>
             </div>
           </div>
-          <div className="flex flex-col gap-[5px] text-[10px]">
-            <div className="rounded-[9px] bg-[#fbeaea] px-[11px] py-2 text-text-1">
-              <b className="text-danger">패턴:</b> 표본 3건 미만 단지에서 적정가{" "}
-              <Icon name="👎" size={11} className="inline align-middle" /> 집중 (62건) → 신뢰도 라벨 &quot;낮음&quot; 강등 룰 제안
-            </div>
-            <div className="rounded-[9px] bg-bg px-[11px] py-2 text-text-1">
-              <b>오답 리뷰:</b> 공작 84A 적정가 4.7억 vs 실거래 5.05억 · 원인:
-              급매 1건이 평균 왜곡
-            </div>
-          </div>
-          <div className="text-[10px] text-text-3">
-            <Icon name="👎" size={11} className="mr-0.5 inline align-middle" />
-            사유는 12k 피드백 버튼에서 수집 · 주간 리포트로 모델팀 전달
+          <div className="rounded-[9px] bg-bg px-[11px] py-2 text-[10px] text-text-1">
+            👍/👎 만족도 비율과 오답 리뷰 집계는 피드백 적재 파이프라인 연동 후 제공됩니다. 지금은
+            실행량만 실측으로 표시해요.
           </div>
         </div>
 
-        {/* 중개사 인증 심사 */}
+        {/* 인증 심사 (실 대기열) */}
         <div className={lightCard}>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-ink">
-              중개사 인증 심사
+            <span className="text-sm font-extrabold text-ink">전문가·중개사 인증 심사</span>
+            <span className="text-[10px] text-text-3">
+              대기 {ops ? fmt(ops.pendingVerifications) : "—"}건
             </span>
-            <span className="text-[10px] text-text-3">대기 7건 · 평균 1.2일</span>
           </div>
-          <div className="flex flex-col gap-2 rounded-[14px] bg-bg p-3.5">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="h-[34px] w-[34px] rounded-full"
-                style={{
-                  background:
-                    "repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2 5px,#eef2f8 5px,#eef2f8 10px)",
-                }}
-              />
-              <div>
-                <div className="text-xs font-extrabold text-ink">
-                  관양부동산 · 김OO
+
+          {queue.length === 0 ? (
+            <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+              현재 심사 대기 중인 신청이 없어요.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {queue.map((q) => (
+                <div
+                  key={`${q.kind}-${q.id}`}
+                  className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`rounded px-1.5 py-px text-[9px] font-extrabold ${
+                          q.kind === "expert"
+                            ? "bg-primary-soft text-primary"
+                            : "bg-[#fdf3e7] text-[#c07a3a]"
+                        }`}
+                      >
+                        {q.kind === "expert" ? "전문가" : "소유확인"}
+                      </span>
+                      <span className="truncate text-xs font-extrabold text-ink">{q.label}</span>
+                    </div>
+                    <div className="mt-0.5 truncate text-[9px] text-text-3">
+                      {q.sub}
+                      {q.createdAt ? ` · 신청 ${relDate(q.createdAt)}` : ""}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[9px] text-text-3">
-                  신청 7/17 · 담당 지역 관양동
-                </div>
-              </div>
+              ))}
             </div>
-            <div className="flex flex-col gap-1 text-[10px] text-text-1">
-              <div className="flex justify-between">
-                <span>공인중개사 자격증</span>
-                <b className="text-[#1a7f4e]">국가자격 DB 일치 ✓</b>
-              </div>
-              <div className="flex justify-between">
-                <span>사업자등록·개설등록</span>
-                <b className="text-[#1a7f4e]">유효 ✓</b>
-              </div>
-              <div className="flex justify-between">
-                <span>사무소 실사진</span>
-                <b className="text-[#e8a13a]">검토 필요</b>
-              </div>
-            </div>
-            <div className="flex gap-1.5">
-              <button className="flex-1 rounded-[9px] bg-primary p-2 text-center text-[11px] font-bold text-white">
-                승인
-              </button>
-              <button className="flex-1 rounded-[9px] border border-line-strong bg-surface p-2 text-center text-[11px] font-bold text-text-1">
-                보완 요청
-              </button>
-              <button className="flex-1 rounded-[9px] border border-line-strong bg-surface p-2 text-center text-[11px] font-bold text-danger">
-                반려
-              </button>
-            </div>
-          </div>
+          )}
+
+          <Link
+            href="/admin/moderation"
+            className="rounded-[9px] bg-primary p-2 text-center text-[11px] font-bold text-white"
+          >
+            심사 콘솔로 이동 ›
+          </Link>
           <div className="text-[10px] text-text-3">
-            승인 시 인증 배지 발급(11g) · 매년 자동 재검증 · 반려 사유 템플릿
-            6종
+            승인·반려 처리는 심사 콘솔에서 수행하며 admin_audit_logs에 기록됩니다.
           </div>
         </div>
       </div>
