@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/app/components/Icon";
+import { useToast } from "@/app/components/toast/ToastProvider";
 import {
   SCOPE_LABELS,
   type SavedSearch,
@@ -17,6 +18,7 @@ function riseClass(index: number): string {
 }
 
 export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
+  const { showToast } = useToast();
   const [items, setItems] = useState<SavedSearch[]>(initial);
   const [label, setLabel] = useState("");
   const [scope, setScope] = useState<SavedSearchScope>("map");
@@ -65,6 +67,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
       setQuery("");
       setScope("map");
       await refresh();
+      showToast("검색을 저장했어요");
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장에 실패했어요.");
     } finally {
@@ -86,6 +89,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
         throw new Error(data.error ?? "변경에 실패했어요.");
       }
       await refresh();
+      showToast(item.alertEnabled ? "알림을 껐어요" : "알림을 켰어요");
     } catch (err) {
       setError(err instanceof Error ? err.message : "변경에 실패했어요.");
     } finally {
@@ -105,6 +109,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
         throw new Error(data.error ?? "삭제에 실패했어요.");
       }
       await refresh();
+      showToast("검색을 삭제했어요");
     } catch (err) {
       setError(err instanceof Error ? err.message : "삭제에 실패했어요.");
     } finally {

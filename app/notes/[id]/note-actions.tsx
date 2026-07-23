@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "../../components/toast/ToastProvider";
 
 /* 노트 상세 실동작 액션 (더미 버튼 제거)
    - 공유: 현재 URL 클립보드 복사 (실패 시 prompt 폴백) + 성공 토스트
@@ -17,22 +18,9 @@ export function NoteDetailActions({
   initialIsPublic: boolean;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [busy, setBusy] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
-  }, []);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setToast(null), 2200);
-  };
 
   const share = async () => {
     const url = window.location.href;
@@ -75,11 +63,6 @@ export function NoteDetailActions({
 
   return (
     <div className="relative flex items-center gap-2">
-      {toast && (
-        <span className="rounded-full bg-ink px-3 py-1.5 text-[11px] font-bold text-white">
-          {toast}
-        </span>
-      )}
       {isOwner && (
         <button
           type="button"

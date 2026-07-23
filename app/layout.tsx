@@ -3,6 +3,7 @@ import "./globals.css";
 import { SwRegister } from "./components/SwRegister";
 import { AdSenseLoader } from "./components/AdSenseLoader";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { ToastProvider } from "./components/toast/ToastProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
 
 export const metadata: Metadata = {
@@ -50,11 +51,13 @@ export default function RootLayout({
           본문 바로가기
         </a>
         <ThemeProvider>
-          {children}
-          {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
-          <ReferralRedeem />
-          <SwRegister />
-          <AdSenseLoader />
+          <ToastProvider>
+            {children}
+            {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
+            <ReferralRedeem />
+            <SwRegister />
+            <AdSenseLoader />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageShell } from "../components/PageShell";
+import { useToast } from "@/app/components/toast/ToastProvider";
 
 /* ============================================================
    통합 알림 센터 — 탭/필터 + 실데이터 병합
@@ -222,6 +223,7 @@ const REGION_OPTIONS = [
 ] as const;
 
 function AlertSubscriptionSection() {
+  const { showToast } = useToast();
   const [subs, setSubs] = useState<AlertSubscription[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [region, setRegion] = useState("");
@@ -282,6 +284,7 @@ function AlertSubscriptionSection() {
       if (k) await addOne("keyword", k);
       setRegion("");
       setKeyword("");
+      showToast("구독을 추가했어요");
     } catch (e) {
       setError(e instanceof Error ? e.message : "구독 추가에 실패했어요.");
     } finally {
@@ -297,6 +300,7 @@ function AlertSubscriptionSection() {
         method: "DELETE",
       });
       if (!res.ok) throw new Error(String(res.status));
+      showToast("구독을 해지했어요");
     } catch {
       setSubs(prev);
       setError("구독 해지에 실패했어요. 잠시 후 다시 시도해 주세요.");
