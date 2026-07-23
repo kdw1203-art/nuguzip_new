@@ -1,11 +1,13 @@
 /**
- * 단지 마스터 데이터 — Supabase CRUD
- * complexes 테이블(047 마이그레이션) 읽기/쓰기.
- * 공동주택 API(apartment-api.ts) 결과를 영구 저장하고, 이후 DB에서 빠르게 조회한다.
+ * 단지(complex) 데이터 — 실거래(market_transactions) 기반.
+ *
+ * 배경(사실 우선): 과거엔 `complexes`/`complex_transactions` 테이블을 가정했으나
+ * 운영 DB엔 존재하지 않아 단지 허브가 항상 목업이었다. 실데이터는 국토교통부 실거래
+ * `market_transactions`(complex_name·region_name·contract_ym·deal_amount_krw)에 있으므로
+ * 단지 식별자를 base64url(region_name + SEP + complex_name)로 인코딩해 이 테이블을 단지처럼 조회한다.
+ * 좌표(lat/lng)는 실거래에 없어 null → 거리뷰·지도 마커는 자동 숨김.
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
-import { fetchAptComplexDetail } from "@/lib/national-data/apartment-api";
-import type { AptComplexDetail } from "@/lib/national-data/apartment-api";
 
 export interface ComplexRow {
   id: string;
@@ -37,109 +39,182 @@ export interface ComplexTransactionRow {
   source: string;
 }
 
+// ── 단지 식별자 인코딩/디코딩 ─────────────────────────────────────────
+/** region_name / complex_name 구분자 — 이름·지역에 나타나지 않는 제어문자(U+0001) */
+const SEP = String.fromCharCode(1);
+
+/** region_name + complex_name → URL-safe id */
+export function encodeComplexId(region: string, name: string): string {
+  return Buffer.from(`${region}${SEP}${name}`, "utf8").toString("base64url");
+}
+
+/** id → { region, name } (실패 시 null) */
+export function decodeComplexId(id: string): { region: string; name: string } | null {
+  try {
+    const raw = Buffer.from(id, "base64url").toString("utf8");
+    const idx = raw.indexOf(SEP);
+    if (idx < 0) return null;
+    const region = raw.slice(0, idx);
+    const name = raw.slice(idx + 1);
+    if (!region || !name) return null;
+    return { region, name };
+  } catch {
+    return null;
+  }
+}
+
+/** region_name("서울 송파구"·"광명시")을 city/district로 분해 */
+function splitRegion(region: string): { city: string; district: string } {
+  const parts = region.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { city: region, district: region };
+  if (parts.length === 1) return { city: parts[0], district: parts[0] };
+  return { city: parts[0], district: parts.slice(1).join(" ") };
+}
+
+function toComplexRow(
+  region: string,
+  name: string,
+  sample: { address?: string | null; build_year?: number | null } = {},
+): ComplexRow {
+  const { city, district } = splitRegion(region);
+  return {
+    id: encodeComplexId(region, name),
+    kapt_code: null,
+    name,
+    city,
+    district,
+    address: sample.address?.trim() || null,
+    road_address: null,
+    lat: null,
+    lng: null,
+    building_type: "아파트",
+    build_year: sample.build_year ?? null,
+    total_floors: null,
+    households: null,
+    parking_per_hh: null,
+    builder_name: null,
+    heating: null,
+  };
+}
+
 // ── 단지 조회 ────────────────────────────────────────────────────────
 
 export async function getComplexById(id: string): Promise<ComplexRow | null> {
+  const dec = decodeComplexId(id);
+  if (!dec) return null;
   const sb = getServiceSupabase();
   if (!sb) return null;
+  // 이 단지의 매매 실거래가 1건이라도 있으면 실재하는 단지로 간주 (대표 정보 도출)
   const { data } = await sb
-    .from("complexes")
-    .select("id,kapt_code,name,city,district,address,road_address,lat,lng,building_type,build_year,total_floors,households,parking_per_hh,builder_name,heating")
-    .eq("id", id)
-    .maybeSingle();
-  return (data as ComplexRow | null) ?? null;
+    .from("market_transactions")
+    .select("address, build_year")
+    .eq("complex_name", dec.name)
+    .eq("region_name", dec.region)
+    .eq("transaction_type", "trade")
+    .order("build_year", { ascending: false, nullsFirst: false })
+    .limit(1);
+  const row = (data as { address: string | null; build_year: number | null }[] | null)?.[0];
+  if (!row) return null;
+  return toComplexRow(dec.region, dec.name, row);
 }
 
-export async function getComplexByKaptCode(kaptCode: string): Promise<ComplexRow | null> {
-  const sb = getServiceSupabase();
-  if (!sb) return null;
-  const { data } = await sb
-    .from("complexes")
-    .select("id,kapt_code,name,city,district,address,road_address,lat,lng,building_type,build_year,total_floors,households,parking_per_hh,builder_name,heating")
-    .eq("kapt_code", kaptCode)
-    .maybeSingle();
-  return (data as ComplexRow | null) ?? null;
+export async function getComplexByKaptCode(_kaptCode: string): Promise<ComplexRow | null> {
+  // K-apt 코드↔실거래 매핑은 별도 파이프라인 필요 — 현재 미지원 (허위 반환 금지)
+  return null;
 }
 
-export async function searchComplexes(query: string, district?: string, limit = 20): Promise<ComplexRow[]> {
+export async function searchComplexes(
+  query: string,
+  district?: string,
+  limit = 20,
+): Promise<ComplexRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data } = await sb.rpc("search_complexes", {
-    p_query: query ?? "",
-    p_district: district ?? "",
-    p_limit: limit,
-  });
-  return (data as ComplexRow[]) ?? [];
-}
+  let q = sb
+    .from("market_transactions")
+    .select("complex_name, region_name, address, build_year")
+    .eq("transaction_type", "trade")
+    .not("complex_name", "is", null);
 
-// ── 단지 저장 (upsert) ────────────────────────────────────────────────
+  const term = (query ?? "").trim();
+  if (term) q = q.ilike("complex_name", `%${term}%`);
+  const dist = (district ?? "").trim();
+  if (dist) q = q.ilike("region_name", `%${dist}%`);
 
-function toSlug(name: string, district: string): string {
-  // 단지명 + 구 → URL-safe ID
-  const base = `${district}-${name}`.replace(/\s+/g, "-").replace(/[^가-힣a-zA-Z0-9-]/g, "");
-  return base.toLowerCase().slice(0, 80);
-}
+  // 넉넉히 가져와 (region_name, complex_name) 기준 중복 제거
+  const { data } = await q.order("contract_ym", { ascending: false }).limit(800);
+  const rows =
+    (data as
+      | {
+          complex_name: string;
+          region_name: string;
+          address: string | null;
+          build_year: number | null;
+        }[]
+      | null) ?? [];
 
-export async function upsertComplexFromApi(detail: AptComplexDetail): Promise<string | null> {
-  const sb = getServiceSupabase();
-  if (!sb || !detail.kaptCode) return null;
-
-  const district = detail.raw.as2 ?? "";
-  const city = detail.raw.as1 ?? "";
-  const id = toSlug(detail.kaptName, district);
-
-  const row = {
-    id,
-    kapt_code: detail.kaptCode,
-    name: detail.kaptName,
-    city,
-    district,
-    address: detail.kaptAddr ?? null,
-    road_address: detail.doroJuso ?? null,
-    lat: detail.lat ? Number(detail.lat) : null,
-    lng: detail.lng ? Number(detail.lng) : null,
-    building_type: "아파트",
-    build_year: detail.kaptUsedate ? Number(detail.kaptUsedate.slice(0, 4)) : null,
-    total_floors: null,
-    households: detail.hhldCnt ? Number(detail.hhldCnt) : null,
-    parking_per_hh: null,
-    builder_name: detail.kaptdaNm ?? null,
-    heating: detail.heatSplyMthdCd ?? null,
-    raw_api: detail.raw,
-  };
-
-  const { error } = await sb.from("complexes").upsert(row, { onConflict: "id" });
-  if (error) {
-    console.warn("[complex-store] upsert failed:", error.message);
-    return null;
+  const seen = new Map<string, ComplexRow>();
+  for (const r of rows) {
+    if (!r.complex_name || !r.region_name) continue;
+    const key = `${r.region_name}${SEP}${r.complex_name}`;
+    if (seen.has(key)) continue;
+    seen.set(key, toComplexRow(r.region_name, r.complex_name, r));
+    if (seen.size >= limit) break;
   }
-  return id;
+  return [...seen.values()];
 }
 
-// ── 실거래가 캐시 ─────────────────────────────────────────────────────
+// ── 실거래가 (market_transactions 월별 집계) ──────────────────────────
 
 export async function getTransactionHistory(
   complexId: string,
   limit = 12,
 ): Promise<ComplexTransactionRow[]> {
+  const dec = decodeComplexId(complexId);
+  if (!dec) return [];
   const sb = getServiceSupabase();
   if (!sb) return [];
   const { data } = await sb
-    .from("complex_transactions")
-    .select("complex_id,yyyymm,area_m2,avg_manwon,min_manwon,max_manwon,deal_count,source")
-    .eq("complex_id", complexId)
-    .is("area_m2", null) // 전체 평균 (면적 구분 없음)
-    .order("yyyymm", { ascending: false })
-    .limit(limit);
-  return ((data as ComplexTransactionRow[]) ?? []).reverse();
+    .from("market_transactions")
+    .select("contract_ym, deal_amount_krw")
+    .eq("complex_name", dec.name)
+    .eq("region_name", dec.region)
+    .eq("transaction_type", "trade")
+    .gt("deal_amount_krw", 0);
+
+  const rows = (data as { contract_ym: string; deal_amount_krw: number }[] | null) ?? [];
+  const byYm = new Map<string, { sum: number; n: number; min: number; max: number }>();
+  for (const r of rows) {
+    const ym = r.contract_ym;
+    const amt = Number(r.deal_amount_krw);
+    if (!ym || !Number.isFinite(amt) || amt <= 0) continue;
+    const cur = byYm.get(ym) ?? { sum: 0, n: 0, min: amt, max: amt };
+    cur.sum += amt;
+    cur.n += 1;
+    cur.min = Math.min(cur.min, amt);
+    cur.max = Math.max(cur.max, amt);
+    byYm.set(ym, cur);
+  }
+
+  // 만원 단위 변환(원→만원) + 과거→최신 정렬, 최근 limit개월
+  return [...byYm.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-limit)
+    .map(([ym, v]) => ({
+      complex_id: complexId,
+      yyyymm: ym,
+      area_m2: null,
+      avg_manwon: Math.round(v.sum / v.n / 10_000),
+      min_manwon: Math.round(v.min / 10_000),
+      max_manwon: Math.round(v.max / 10_000),
+      deal_count: v.n,
+      source: "molit",
+    }));
 }
 
-export async function upsertTransactions(rows: ComplexTransactionRow[]): Promise<void> {
-  const sb = getServiceSupabase();
-  if (!sb || rows.length === 0) return;
-  await sb.from("complex_transactions").upsert(rows, {
-    onConflict: "complex_id,yyyymm,area_m2",
-  });
+export async function upsertTransactions(_rows: ComplexTransactionRow[]): Promise<void> {
+  // 실거래 적재는 market_transactions ETL(molit-transactions-ingest)이 담당 — 여기선 no-op
+  return;
 }
 
 // ── 단지별 커뮤니티 글 ─────────────────────────────────────────────────
@@ -155,23 +230,4 @@ export async function getComplexPosts(complexId: string, limit = 10) {
     .order("created_at", { ascending: false })
     .limit(limit);
   return data ?? [];
-}
-
-// ── kaptCode로 단지 정보 확보 (캐시 우선 + API fallback) ─────────────────
-
-export async function resolveComplexByKaptCode(kaptCode: string): Promise<{ row: ComplexRow | null; isLive: boolean }> {
-  // 1. DB 캐시 조회
-  const cached = await getComplexByKaptCode(kaptCode);
-  if (cached) return { row: cached, isLive: false };
-
-  // 2. 공공 API 호출 후 DB 저장
-  const { detail, mode } = await fetchAptComplexDetail(kaptCode);
-  if (mode === "live" && detail) {
-    const id = await upsertComplexFromApi(detail);
-    if (id) {
-      const fresh = await getComplexById(id);
-      return { row: fresh, isLive: true };
-    }
-  }
-  return { row: null, isLive: false };
 }

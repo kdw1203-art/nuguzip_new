@@ -17,6 +17,7 @@ import {
   type HubNote,
   type HubListing,
 } from "./hub-client";
+import type { PricePoint } from "./PriceTrendChart";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
 import { ComplexReviews } from "../ComplexReviews";
@@ -73,6 +74,8 @@ interface HubView {
   trades: HubTrade[];
   notes: HubNote[];
   listings: HubListing[];
+  /** 실거래 월별 평균 시계열 (차트용 · 실데이터만) */
+  priceSeries: PricePoint[];
   /** 내부 링크 그물(#34) — 같은 동 다른 단지 (0건이면 섹션 미표시) */
   nearby: { id: string; name: string; meta: string }[];
   /** 국토부 실거래 이력 상세(/complex/tx) — 동일 단지명 매칭 시에만 링크 */
@@ -175,6 +178,12 @@ function toView(
   const dong = row.district || row.city || "지역";
   // 사실 우선: 실거래 데이터가 없으면 목업 대신 빈 배열(클라이언트가 안내 문구 표시)
   const trades = tx.length > 0 ? toTrades(tx) : [];
+  // 차트용 월별 평균 시계열 (tx는 과거→최신 정렬) — 실데이터만
+  const priceSeries: PricePoint[] = tx.map((r) => ({
+    ym: r.yyyymm,
+    avgManwon: r.avg_manwon,
+    dealCount: r.deal_count,
+  }));
   const notes: HubNote[] =
     posts.length > 0
       ? posts.slice(0, 6).map((p) => ({
@@ -221,6 +230,7 @@ function toView(
     infoRows,
     trades,
     notes,
+    priceSeries,
     // 실매물 소스 미연동: 허위 매물 대신 빈 배열
     listings: [],
     nearby,
@@ -498,6 +508,7 @@ export default async function ComplexHubPage({
           trades={v.trades}
           notes={v.notes}
           listings={v.listings}
+          priceSeries={v.priceSeries}
         />
 
         {/* 데스크탑 우측 컬럼 */}

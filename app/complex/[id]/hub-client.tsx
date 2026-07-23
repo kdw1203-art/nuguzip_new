@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AIPanel } from "../../components/AIPanel";
+import { PriceTrendChart, type PricePoint } from "./PriceTrendChart";
 import {
   isInCompareTray,
   promoteCompareItemToServer,
@@ -98,6 +99,7 @@ export function ComplexHubTabs({
   trades,
   notes,
   listings,
+  priceSeries,
 }: {
   aiTitle: string;
   aiBody: string;
@@ -106,6 +108,7 @@ export function ComplexHubTabs({
   trades: HubTrade[];
   notes: HubNote[];
   listings: HubListing[];
+  priceSeries: PricePoint[];
 }) {
   const [tab, setTab] = useState<Tab>("요약");
 
@@ -144,6 +147,8 @@ export function ComplexHubTabs({
       {tab === "요약" && (
         <div className="rise-in-3 flex flex-col gap-3">
           <AIPanel title={aiTitle}>{aiBody}</AIPanel>
+          {/* 실거래 가격 추이 차트 (실데이터 2개월 이상일 때만) */}
+          {priceSeries.length >= 2 && <PriceTrendChart points={priceSeries} />}
           {myRecordCard}
           {trades.length > 0 ? (
             <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
@@ -243,6 +248,8 @@ export function ComplexHubTabs({
           <div className="px-1 text-xs font-extrabold text-text-3">
             실거래 히스토리 <span className="font-medium text-text-3">· 국토교통부 기준</span>
           </div>
+          {/* 실거래 가격 추이 차트 (실데이터 2개월 이상일 때만) */}
+          {priceSeries.length >= 2 && <PriceTrendChart points={priceSeries} />}
           {trades.length > 0 ? (
             <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
               {trades.map((t, i) => (
