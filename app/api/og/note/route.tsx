@@ -6,34 +6,11 @@
  * - 폰트: 시스템 기본만 사용 (커스텀 폰트 로드 금지)
  * - 쿼리 값은 60자 절단 후 JSX 텍스트로만 렌더 (XSS 안전)
  */
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { OG_SIZE } from "@/lib/og/theme";
 import { fetchStaticMapDataUri } from "@/lib/map/naver-maps-rest";
-
-/**
- * 한글 폰트(Pretendard Bold 서브셋)를 번들에서 1회 로드.
- * next/og(satori)는 시스템 폰트를 못 쓰므로 한글이 □로 깨지는 걸 방지.
- * 여러 후보 경로를 시도(로컬 소스 트리 + Vercel 트레이싱 경로). 실패 시 null 폴백.
- */
-const PRETENDARD_BOLD: Buffer | null = (() => {
-  const candidates = [
-    join(process.cwd(), "app/api/og/note/fonts/Pretendard-Bold.subset.ttf"),
-    new URL("./fonts/Pretendard-Bold.subset.ttf", import.meta.url),
-  ];
-  for (const c of candidates) {
-    try {
-      const buf = readFileSync(c as string);
-      if (buf && buf.length > 1000) return buf;
-    } catch {
-      /* 다음 후보 시도 */
-    }
-  }
-  console.error("[og/note] Pretendard 폰트 로드 실패 — 시스템 폰트 폴백");
-  return null;
-})();
+import { OG_FONT_FAMILY, ogFonts } from "@/lib/og/font";
 
 /** 쿼리 값 정규화 — 60자 절단 + 공백 정리 */
 function q(req: NextRequest, key: string, fallback: string): string {
@@ -83,8 +60,7 @@ export async function GET(req: NextRequest) {
           alignItems: "center",
           justifyContent: "center",
           background: "#f7f9fc",
-          fontFamily:
-            '"Pretendard", system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
+          fontFamily: OG_FONT_FAMILY,
           position: "relative",
           overflow: "hidden",
           padding: "56px 72px",
@@ -304,21 +280,6 @@ export async function GET(req: NextRequest) {
         </div>
       </div>
     ),
-    {
-      width: OG_SIZE.width,
-      height: OG_SIZE.height,
-      ...(PRETENDARD_BOLD
-        ? {
-            fonts: [
-              {
-                name: "Pretendard",
-                data: PRETENDARD_BOLD,
-                weight: 700 as const,
-                style: "normal" as const,
-              },
-            ],
-          }
-        : {}),
-    },
+    { width: OG_SIZE.width, height: OG_SIZE.height, ...ogFonts() },
   );
 }

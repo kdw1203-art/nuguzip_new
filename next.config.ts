@@ -15,9 +15,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   compress: true,
-  // OG 공유 카드 한글 폰트(Pretendard 서브셋)를 서버리스 번들에 포함 — process.cwd() 경로로 읽음
+  // OG 공유 카드 한글 폰트(Pretendard 서브셋)를 각 서버리스 번들에 포함 — process.cwd() 경로로 읽음
   outputFileTracingIncludes: {
-    "/api/og/note": ["./app/api/og/note/fonts/**"],
+    "/api/og/note": ["./lib/og/fonts/**"],
+    "/api/og/complex": ["./lib/og/fonts/**"],
+    "/api/og/listing": ["./lib/og/fonts/**"],
+    "/api/screenshot": ["./lib/og/fonts/**"],
   },
   eslint: {
     // 빌드는 통과시키고 lint는 별도 `npm run lint` / CI에서 강제합니다.

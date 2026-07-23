@@ -5,6 +5,7 @@
  */
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
+import { OG_FONT_FAMILY, ogFonts } from "@/lib/og/font";
 
 const PAGE_CONFIG: Record<
   string,
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest) {
           background: "#f2f4f6",
           display: "flex",
           flexDirection: "column",
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: OG_FONT_FAMILY,
         }}
       >
         {/* 상단 바 */}
@@ -195,9 +196,6 @@ export async function GET(req: NextRequest) {
         </div>
       </div>
     ),
-    {
-      width: 390,
-      height: 844,
-    },
+    { width: 390, height: 844, ...ogFonts() },
   );
 }

@@ -9,6 +9,7 @@
 import { ImageResponse } from "next/og";
 import { NextRequest } from "next/server";
 import { OG_SIZE } from "@/lib/og/theme";
+import { OG_FONT_FAMILY, ogFonts } from "@/lib/og/font";
 
 /** 쿼리 값 정규화 — 60자 절단 + 공백 정리 */
 function q(req: NextRequest, key: string, fallback: string): string {
@@ -36,8 +37,7 @@ export async function GET(req: NextRequest) {
           display: "flex",
           flexDirection: "column",
           background: "#f7f9fc",
-          fontFamily:
-            'system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
+          fontFamily: OG_FONT_FAMILY,
           position: "relative",
           overflow: "hidden",
         }}
@@ -215,6 +215,6 @@ export async function GET(req: NextRequest) {
         </div>
       </div>
     ),
-    { width: OG_SIZE.width, height: OG_SIZE.height },
+    { width: OG_SIZE.width, height: OG_SIZE.height, ...ogFonts() },
   );
 }
