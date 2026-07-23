@@ -95,6 +95,7 @@ function toFeedNote(n: InspectionNote, complexHref: string | null): FeedNote {
     ],
     popularity: score,
     interested: false,
+    region: n.region,
     // 인스타 피드형 커버 — 첫 사진(있으면). 없으면 클라이언트에서 그라디언트 타일 폴백.
     coverUrl: n.photos?.[0] ?? null,
     // 실 단지 id를 찾은 경우에만 /complex/[id] 연결, 못 찾으면 링크 숨김 (mock-1로 보내지 않음)
