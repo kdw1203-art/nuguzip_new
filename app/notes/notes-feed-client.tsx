@@ -61,8 +61,8 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
   const IG_RING =
     "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)";
   return (
-    <div className="-mx-5 overflow-x-auto px-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-3.5 pb-1">
+    <div className="-mx-5 overflow-x-auto px-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:rounded-2xl md:border md:border-line md:bg-surface md:px-4 md:py-3">
+      <div className="flex gap-3.5 pb-1 md:pb-0">
         {/* 내 스토리 = 노트 쓰기 */}
         <Link
           href="/notes/new"
@@ -116,11 +116,11 @@ function GridTile({ n }: { n: FeedNote }) {
     <Link
       href={`/notes/${n.id}`}
       aria-label={`${n.title} 노트 보기`}
-      className="relative block aspect-[3/4] overflow-hidden bg-bg"
+      className="group relative block aspect-[3/4] overflow-hidden bg-bg md:rounded-2xl md:shadow-[0_1px_2px_rgba(16,28,54,.05),0_8px_20px_rgba(16,28,54,.06)] md:transition-transform md:duration-200 md:hover:-translate-y-1"
     >
       <CoverImage
         src={n.coverUrl}
-        imgClassName="absolute inset-0 h-full w-full object-cover"
+        imgClassName="absolute inset-0 h-full w-full object-cover md:transition-transform md:duration-300 md:group-hover:scale-[1.06]"
         fallback={
           <span
             className="absolute inset-0"
@@ -129,7 +129,7 @@ function GridTile({ n }: { n: FeedNote }) {
         }
       />
       {/* 점수 배지 (인스타 조회수/캐러셀 인디케이터 위치) */}
-      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-extrabold text-white backdrop-blur-sm">
+      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:text-[11px]">
         {n.score}점
       </span>
       {n.isExample && (
@@ -138,12 +138,14 @@ function GridTile({ n }: { n: FeedNote }) {
         </span>
       )}
       {/* 하단 스크림 + 제목·지역 오버레이 */}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/25 to-transparent px-2 pb-2 pt-7">
-        <p className="line-clamp-2 text-[11.5px] font-bold leading-[1.25] text-white drop-shadow-sm">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/25 to-transparent px-2 pb-2 pt-7 md:px-3 md:pb-3">
+        <p className="line-clamp-2 text-[11.5px] font-bold leading-[1.25] text-white drop-shadow-sm md:text-[14px]">
           {n.title}
         </p>
         {n.region && (
-          <p className="mt-0.5 truncate text-[9.5px] text-white/85">{n.region}</p>
+          <p className="mt-0.5 truncate text-[9.5px] text-white/85 md:mt-1 md:text-[11.5px]">
+            {n.region}
+          </p>
         )}
       </div>
     </Link>
@@ -304,7 +306,7 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
 
   return (
     <PageShell>
-      <div className="mx-auto flex w-full max-w-[935px] flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 md:gap-5">
         {/* 헤더 */}
         <div className="px-1">
           <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">
@@ -382,7 +384,8 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
             action={{ label: "임장노트 쓰기", href: "/notes/new" }}
           />
         ) : view === "grid" ? (
-          <div className="-mx-5 grid grid-cols-3 gap-0.5 md:mx-0 md:gap-1.5">
+          // 모바일: 가장자리까지 붙는 촘촘한 3열(인스타 앱). 데스크탑: 넓은 4~5열 보드(둥근 카드·호버·여백)
+          <div className="-mx-5 grid grid-cols-3 gap-0.5 md:mx-0 md:grid-cols-4 md:gap-3.5 xl:grid-cols-5">
             {visible.map((n) => (
               <GridTile key={n.id} n={n} />
             ))}
