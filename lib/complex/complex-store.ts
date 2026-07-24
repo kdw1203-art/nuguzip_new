@@ -99,6 +99,67 @@ function toComplexRow(
 
 // ── 단지 조회 ────────────────────────────────────────────────────────
 
+/** 단지명 정규화 — 공백 제거 + 후행 "아파트" 제거 (모델 간 name-매칭 기준). */
+function normalizeComplexName(s: string): string {
+  return s.replace(/\s+/g, "").replace(/아파트$/, "");
+}
+
+type AptEnrich = {
+  kaptCode: string | null;
+  buildYear: number | null;
+  heating: string | null;
+  roadAddress: string | null;
+};
+
+/**
+ * D7 — market_transactions(complex_name) ↔ apartment_complexes(name) 정합.
+ * 실거래 단지명은 브랜드 기본형("리센츠")인데 대장 마스터는 접두/접미가 붙는다("잠실리센츠",
+ * "헬리오시티아파트"). 시군구로 스코프하고 name ILIKE %기본형% (정방향 포함)으로 매칭한 뒤
+ * 정규화 완전일치·최단 이름을 최적 매칭으로 골라 metadata(세대·준공·난방 등)를 뽑는다.
+ * 조회 실패/무매칭 시 null(허브는 실거래만으로 graceful).
+ */
+async function enrichFromApartmentComplex(
+  region: string,
+  name: string,
+): Promise<AptEnrich | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { district } = splitRegion(region); // 시군구 (예: 송파구)
+  const core = normalizeComplexName(name).replace(/[%_]/g, "");
+  if (core.length < 2) return null;
+
+  let q = sb.from("apartment_complexes").select("name, metadata").ilike("name", `%${core}%`).limit(25);
+  if (district) q = q.ilike("address", `%${district}%`);
+  const { data } = await q;
+  const rows =
+    (data as { name: string; metadata: Record<string, unknown> | null }[] | null) ?? [];
+  if (rows.length === 0) return null;
+
+  // 최적 매칭: 정규화 완전일치 우선 → 이름 길이 근접(기본형에 가장 가까운 것).
+  const target = normalizeComplexName(name);
+  let best = rows[0];
+  let bestScore = Number.POSITIVE_INFINITY;
+  for (const r of rows) {
+    const rn = normalizeComplexName(r.name);
+    const score = (rn === target ? 0 : 1000) + Math.abs(rn.length - target.length);
+    if (score < bestScore) {
+      bestScore = score;
+      best = r;
+    }
+  }
+
+  const m = best.metadata ?? {};
+  const approval = typeof m.approvalDate === "string" ? m.approvalDate : "";
+  const buildYear = /^\d{8}$/.test(approval) ? Number(approval.slice(0, 4)) : null;
+  // 주의: metadata.householdCount 는 소스 품질 문제로 상당수 과대(중앙값 4천대)라 사용하지 않는다.
+  return {
+    kaptCode: typeof m.kaptCode === "string" ? m.kaptCode : null,
+    buildYear,
+    heating: typeof m.heating === "string" ? m.heating : null,
+    roadAddress: typeof m.roadAddress === "string" ? m.roadAddress : null,
+  };
+}
+
 export async function getComplexById(id: string): Promise<ComplexRow | null> {
   const dec = decodeComplexId(id);
   if (!dec) return null;
@@ -115,7 +176,17 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
     .limit(1);
   const row = (data as { address: string | null; build_year: number | null }[] | null)?.[0];
   if (!row) return null;
-  return toComplexRow(dec.region, dec.name, row);
+
+  const base = toComplexRow(dec.region, dec.name, row);
+  // D7 — 대장 마스터(apartment_complexes) 매칭 enrich (세대수·준공·난방·도로명·kapt).
+  const apt = await enrichFromApartmentComplex(dec.region, dec.name).catch(() => null);
+  if (apt) {
+    base.kapt_code = apt.kaptCode ?? base.kapt_code;
+    base.build_year = base.build_year ?? apt.buildYear; // 실거래 build_year 우선
+    base.heating = apt.heating ?? base.heating;
+    base.road_address = apt.roadAddress ?? base.road_address;
+  }
+  return base;
 }
 
 export async function getComplexByKaptCode(_kaptCode: string): Promise<ComplexRow | null> {
