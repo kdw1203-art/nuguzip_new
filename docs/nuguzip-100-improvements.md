@@ -116,7 +116,7 @@
 | F6 | 미스케줄 cron 연결 | 부분 | P1 | S | API키 | `ecos-sync`/`onbid-sync`/`codef-sync` 라우트가 `vercel.json` crons에 없음 — 스케줄 추가(각 소스 키 필요). |
 | F7 | 중복 단지 병합 도구 | 없음 | P1 | L | 없음 | `complexes`/`apartment_complexes` 중복을 관리자 병합 UI로(D7 정합과 연계). |
 | F8 | 코어 테이블 자체 파이프라인화 | 없음 | P1 | L | API키 | 65k `market_transactions`·42k `apartment_complexes`의 외부(Flask) 적재를 in-repo cron/업로드로 흡수해 재현성 확보. |
-| F9 | 스키마 마이그레이션 정본화 | 없음 | P0 | M | 없음 | `supabase/schema.sql`에 `listings` 등 원격 전용 테이블이 없고 migrations 디렉터리 부재 — 드리프트 해소. |
+| F9 | 스키마 마이그레이션 정본화 | 완료 | P0 | M | 없음 | 허구였던 `supabase/schema.sql`(선언 10개 중 8개가 운영 DB에 미존재, 실 133개 중 123개 누락) 삭제. 실측 인벤토리 `supabase/SCHEMA.md`(133테이블/1,529컬럼) + `supabase/migrations/` 규약·96건 이력 README + `db:schema:doc`·`db:migrations:export` 스크립트로 대체. |
 | F10 | 법원경매 실 어댑터 | 부분 | P2 | M | API키 | `court_auctions` 소스가 미구현 스텁(skipped, is_sample만) — 실 어댑터 구현. |
 
 ## 7. 홈페이지 품질 (Performance / A11y / SEO / Reliability)

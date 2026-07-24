@@ -22,6 +22,8 @@
     "seed:admin": "node ./scripts/seed-admin.mjs",
     "db:apply": "node ./scripts/apply-migration.mjs",
     "db:check": "node ./scripts/check-supabase.mjs",
+    "db:schema:doc": "node ./scripts/generate-schema-doc.mjs",
+    "db:migrations:export": "node ./scripts/export-remote-migrations.mjs",
     "db:apply:funnel": "node ./scripts/apply-funnel-migrations.mjs",
     "db:push:supabase": "npx supabase@latest db push",
     "sync:platform": "node ./scripts/sync-platform-src.mjs",
