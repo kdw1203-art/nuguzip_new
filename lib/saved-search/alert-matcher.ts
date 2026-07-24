@@ -66,6 +66,9 @@ export async function countSavedSearchMatches(
         read
           .from("court_auctions")
           .select("external_key", { count: "exact", head: true })
+          // 사실 우선: 예시 사건기록은 알림 카운트에도 넣지 않는다.
+          // (목록과 같은 기준 — lib/court-auction/store.ts 참고)
+          .eq("is_sample", false)
           .or(`name.ilike.${p},address.ilike.${p},sido.ilike.${p},sigungu.ilike.${p}`),
         read
           .from("onbid_auctions")

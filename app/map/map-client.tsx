@@ -13,14 +13,6 @@ import {
 import { ComplexInfoPanel } from "./ComplexInfoPanel";
 import { ListingPreviewPanel } from "./ListingPreviewPanel";
 import {
-  ALL_SUBWAY,
-  ALL_SCHOOLS,
-  ALL_MARTS,
-  poisInBounds,
-  type Poi,
-  type PoiBounds,
-} from "@/lib/listings/poi";
-import {
   colorForType,
   labelForType,
   stageLabel,
@@ -309,15 +301,13 @@ const LISTING_MARKER_COLOR = "#1d4fd8";
 /** 매물 bounds fetch 디바운스(ms) */
 const LISTING_FETCH_DEBOUNCE_MS = 350;
 
-/* ===== 지도 편의 레이어 (#8) — 지하철/학교/마트 POI (샘플·참고 데이터) ===== */
-type PoiLayerKey = "subway" | "school" | "mart";
-const POI_LAYERS: { key: PoiLayerKey; label: string; emoji: string; pois: Poi[] }[] = [
-  { key: "subway", label: "지하철", emoji: "🚇", pois: ALL_SUBWAY },
-  { key: "school", label: "학교", emoji: "🏫", pois: ALL_SCHOOLS },
-  { key: "mart", label: "마트", emoji: "🛒", pois: ALL_MARTS },
-];
-/** 레이어당 마커 하드캡 (마커 과다 방지) */
-const POI_MAX_PER_LAYER = 24;
+/* 지도 편의 레이어(지하철/학교/마트 POI)는 사실 우선 원칙에 따라 제거했다.
+   lib/listings/poi.ts 가 구 중심 좌표를 시드로 역·학교·마트를 지어내고 있었다.
+   실존 노선명(2·3·5·7·9호선·신분당선·GTX-A)과 실존 체인(이마트·홈플러스·
+   롯데마트·코스트코·하나로마트)을 붙인 마커를 지도 위 임의 좌표에 찍었고,
+   nearestSubway() 는 그 가짜 좌표로 "도보 N분"까지 계산했다. 실재하지 않는
+   역·마트를 보고 임장 동선을 짜게 되는 종류의 오류라 레이어째 걷어냈다.
+   실제 교통·학군·상권 소스(서울열린데이터광장 등)가 연결되면 다시 세운다. */
 
 /* ===== 출퇴근 필터 (#10) — 회사 위치 기준 예상 소요시간 ===== */
 const COMMUTE_OPTIONS: { key: string; label: string; max: number | null }[] = [
@@ -397,17 +387,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
   const [listingTradeKey, setListingTradeKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-
-  /* ===== 지도 편의 레이어 (#8) — POI 토글 + 현재 bounds ===== */
-  const [poiLayers, setPoiLayers] = useState<Record<PoiLayerKey, boolean>>({
-    subway: false,
-    school: false,
-    mart: false,
-  });
-  const anyPoiLayer = poiLayers.subway || poiLayers.school || poiLayers.mart;
-  const [poiBounds, setPoiBounds] = useState<PoiBounds | null>(null);
-  const anyPoiLayerRef = useRef(anyPoiLayer);
-  anyPoiLayerRef.current = anyPoiLayer;
 
   /* 시세 히트맵 레이어(#A2)는 구 단위 평균이 하드코딩 목업 값이라 사실 우선 원칙에 따라 제거함.
      실제 구·셀 단위 평균 시세는 서버 클러스터(/api/map/clusters)의 실데이터로 이미 제공됨. */
@@ -589,30 +568,10 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         onSelect={setListingTradeKey}
       />
 
-      {/* ===== 지도 편의 레이어 (#8) — 지하철/학교/마트 POI 토글 ===== */}
+      {/* ===== 지도 레이어 — 정비사업(실적재 공개 자료) ===== */}
       <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
         <div className="text-[11px] font-bold text-text-3">지도 레이어</div>
         <div className="flex flex-wrap gap-1.5">
-          {POI_LAYERS.map((l) => {
-            const active = poiLayers[l.key];
-            return (
-              <button
-                key={l.key}
-                type="button"
-                aria-pressed={active}
-                onClick={() =>
-                  setPoiLayers((prev) => ({ ...prev, [l.key]: !prev[l.key] }))
-                }
-                className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
-                  active
-                    ? "bg-primary-soft font-bold text-primary"
-                    : "bg-[rgba(255,255,255,.85)] text-text-2"
-                }`}
-              >
-                <Icon name={l.emoji} size={14} className="inline align-middle" /> {l.label}
-              </button>
-            );
-          })}
           {/* 정비사업 레이어 토글 — 재개발·재건축 사업장을 사업종류별 색상 마커로 */}
           <button
             type="button"
@@ -628,7 +587,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           </button>
         </div>
         <div className="text-[10px] text-text-3">
-          지하철·학교·마트는 샘플/참고 데이터예요. 정비사업은 공개 자료 기준 참고값이에요.
+          정비사업은 공개 자료 기준 참고값이에요. 실제 추진 단계는 관할 구청 고시를 확인하세요.
         </div>
       </div>
 
@@ -771,14 +730,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     const bounds = info.bounds;
     if (!bounds) return;
     lastBoundsRef.current = bounds;
-    if (anyPoiLayerRef.current) {
-      setPoiBounds({
-        swLat: bounds.swLat,
-        swLng: bounds.swLng,
-        neLat: bounds.neLat,
-        neLng: bounds.neLng,
-      });
-    }
     if (showListingsRef.current) fetchListings(bounds);
     if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
     fetchTimerRef.current = window.setTimeout(() => {
@@ -816,14 +767,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     },
     [],
   );
-
-  // POI 레이어 ON: 마지막으로 알려진 뷰포트로 bounds 시드 (idle 전에도 즉시 표시)
-  useEffect(() => {
-    if (anyPoiLayer && lastBoundsRef.current) {
-      const b = lastBoundsRef.current;
-      setPoiBounds({ swLat: b.swLat, swLng: b.swLng, neLat: b.neLat, neLng: b.neLng });
-    }
-  }, [anyPoiLayer]);
 
   // 출퇴근(#10): 회사 주소 제출 → /api/map/commute 로 (범위 필터된) 단지 소요시간 추정.
   // 임계값(commuteKey) 변경은 재조회 없이 클라 필터만 갱신하므로 deps 에서 제외.
@@ -897,29 +840,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       };
     });
   }, [showListings, listingItems]);
-
-  // 편의 레이어(#8) 마커 — 뷰포트 내 지하철/학교/마트 POI. 시세 말풍선 스타일을 재사용해
-  // 이모지+이름 라벨을 그대로 표시하고, POI 색으로 강조(tierColor). 클릭은 무시(핀 표시 전용).
-  const poiMarkers = useMemo<MapMarkerData[]>(() => {
-    if (!anyPoiLayer) return [];
-    const out: MapMarkerData[] = [];
-    for (const layer of POI_LAYERS) {
-      if (!poiLayers[layer.key]) continue;
-      for (const p of poisInBounds(layer.pois, poiBounds, POI_MAX_PER_LAYER)) {
-        out.push({
-          id: `poi:${p.id}`,
-          lat: p.lat,
-          lng: p.lng,
-          label: `${layer.emoji} ${p.name}`,
-          priceLabel: `${layer.emoji} ${p.name}`,
-          avgPricePerM2: 1, // 시세 말풍선 스타일 강제 (라벨 전체 렌더)
-          tierColor: p.color,
-          infoHtml: "",
-        });
-      }
-    }
-    return out;
-  }, [anyPoiLayer, poiLayers, poiBounds]);
 
   /* ===== 정비사업 레이어 — 토글 ON 시 1회 로드(전국 소량 · bbox 불필요) ===== */
   useEffect(() => {
@@ -1049,7 +969,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       ...regionLayer,
       ...base,
       ...listingMarkers,
-      ...poiMarkers,
       ...redevelopmentMarkers,
     ]);
     }
@@ -1090,7 +1009,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       ...regionLayer,
       ...shownBase,
       ...listingMarkers,
-      ...poiMarkers,
       ...redevelopmentMarkers,
     ]);
   }, [
@@ -1103,7 +1021,6 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     infoComplex,
     searchMarker,
     listingMarkers,
-    poiMarkers,
     redevelopmentMarkers,
     regionMarketMarkers,
     zoom,
@@ -1234,8 +1151,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   }, [handleSearchSelectComplex, handleSearchSelectAddress]);
 
   const handleMarkerClick = (m: MapMarkerData) => {
-    // 편의 레이어(POI)·시세 히트맵 마커 — 표시 전용, 클릭 무시
-    if (m.id.startsWith("poi:")) return;
+    // 시세 히트맵 마커 — 표시 전용, 클릭 무시
     if (m.id.startsWith("heat:")) return;
     if (m.id.startsWith("redev:")) return; // 정비사업 마커는 네이티브 인포윈도우만
     // 지역 시세 마커 클릭 → 해당 지역으로 한 단계 확대(인포윈도우는 네이티브로 표시)

@@ -4,6 +4,17 @@
  * RLS deny-all(정책 없음) 테이블(dev_deals / dev_partners / dev_inquiries) 이므로
  * service-role(또는 read-only) 클라이언트 경유로만 접근한다. 미설정 시 빈 값.
  * 원본 연락처(email/phone) 는 공개 조회에서 select 하지 않는다.
+ *
+ * 사실 우선: 공개 조회에서 is_sample=true 행은 제외한다.
+ * 테이블에 남아 있던 예시 행은 실제 등록 건과 구분이 어렵다 —
+ * "[예시] 강북구 미아동 가로주택정비사업 시공사 모집"(168세대·총사업비 420억·담당 김○○)과
+ * "[예시] 대성종합건설"(시공사·책임준공 실적 다수)은 둘 다 is_verified=true 라
+ * 카드에 초록 "검증" 배지까지 달려 나갔다. 여기 오는 사람은 시공사·설계사·신탁이고
+ * 카드의 "참여 문의" 는 실제 제안으로 이어진다. 존재하지 않는 사업장에 제안을 넣게
+ * 만드는 종류라 목록·상세·문의 검증에서 모두 걷어낸다.
+ * 물건이 0건일 때 레이아웃은 app/dev-deals/page.tsx 의 EXAMPLE_DEAL 이 대신한다
+ * (지역을 "○○구" 로 가려 실제 사업장으로 오인할 수 없는 형태).
+ * (행 자체는 지우지 않는다.)
  */
 import "server-only";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
@@ -109,7 +120,7 @@ export async function listDeals(filter: DealFilter = {}): Promise<DevDeal[]> {
   const sb = getReadOnlySupabase();
   if (!sb) return [];
   try {
-    let q = sb.from("dev_deals").select(DEAL_COLUMNS);
+    let q = sb.from("dev_deals").select(DEAL_COLUMNS).eq("is_sample", false);
     if (filter.type) q = q.eq("deal_type", filter.type);
     if (filter.region) q = q.eq("region", filter.region);
     if (filter.status) q = q.eq("status", filter.status);
@@ -134,6 +145,7 @@ export async function getDeal(id: string): Promise<DevDeal | null> {
       .from("dev_deals")
       .select(DEAL_COLUMNS)
       .eq("id", id)
+      .eq("is_sample", false) // 예시 물건 상세·문의 진입 차단
       .maybeSingle();
     if (error || !data) return null;
     return mapDeal(data as Record<string, unknown>);
@@ -176,7 +188,7 @@ export async function listPartners(filter: PartnerFilter = {}): Promise<DevPartn
   const sb = getReadOnlySupabase();
   if (!sb) return [];
   try {
-    let q = sb.from("dev_partners").select(PARTNER_COLUMNS);
+    let q = sb.from("dev_partners").select(PARTNER_COLUMNS).eq("is_sample", false);
     if (filter.type) q = q.eq("partner_type", filter.type);
     const { data, error } = await q
       .order("created_at", { ascending: false })
@@ -198,6 +210,7 @@ export async function getPartner(id: string): Promise<DevPartner | null> {
       .from("dev_partners")
       .select(PARTNER_COLUMNS)
       .eq("id", id)
+      .eq("is_sample", false) // 예시 업체 상세 진입 차단
       .maybeSingle();
     if (error || !data) return null;
     return mapPartner(data as Record<string, unknown>);

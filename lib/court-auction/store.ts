@@ -5,9 +5,17 @@ import { logger } from "@/lib/log";
 /**
  * 법원경매(court auction) 물건 읽기 전용 로더.
  *
- * 온비드 공매(lib/onbid/store.ts)의 형제 소스. 현재는 is_sample=true 예시 행을
- * 렌더링하며, 실 데이터 소스가 연결되면(lib/court-auction/sync.ts) 동일 테이블에
- * 적재된다. RLS deny-all 이므로 서버(Service Role/anon) 헬퍼로만 접근한다.
+ * 온비드 공매(lib/onbid/store.ts)의 형제 소스. 실 데이터 소스가 연결되면
+ * (lib/court-auction/sync.ts) 동일 테이블에 적재된다.
+ * RLS deny-all 이므로 서버(Service Role/anon) 헬퍼로만 접근한다.
+ *
+ * 사실 우선: is_sample=true 행은 조회에서 제외한다.
+ * 테이블에 남아 있는 예시 행("2025타경12345 · 서울북부지방법원 · 노원구 상계동 ***
+ * · 감정가 8.2억 · 최저가 6.55억 · 매각기일 2026-08-12")은 실제 사건기록과
+ * 형태가 완전히 같다 — 실존 법원명과 실제 동을 달고, 사건번호·감정가·매각기일까지
+ * 갖췄다. 경매는 이 숫자들이 곧 입찰 판단이라, 화면 어딘가의 "예시" 배지로
+ * 감당할 수 있는 종류가 아니다. 실적재 전까지는 빈 목록 → 빈 상태를 띄운다.
+ * (행 자체는 지우지 않는다. 소스 연결 시 sync 가 덮어쓴다.)
  */
 
 export type CourtAuctionItem = {
@@ -81,6 +89,7 @@ export async function getCourtAuctions(opts: {
     let q = sb
       .from("court_auctions")
       .select("*")
+      .eq("is_sample", false) // 사실 우선: 예시 사건기록은 노출하지 않는다
       .order("bid_date", { ascending: true, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .limit(opts.limit ?? 100);
@@ -111,7 +120,8 @@ export async function getCourtAuctionCount(): Promise<number> {
   try {
     const { count, error } = await sb
       .from("court_auctions")
-      .select("id", { count: "exact", head: true });
+      .select("id", { count: "exact", head: true })
+      .eq("is_sample", false); // 목록과 같은 기준 — 예시 행은 세지 않는다
     if (error) return 0;
     return count ?? 0;
   } catch {

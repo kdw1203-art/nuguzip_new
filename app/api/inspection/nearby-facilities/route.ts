@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       mode: "mock",
       checks: [],
-      summary: "SEOUL_DATA_API_KEY 미설정 — 목업 모드",
+      summary: "SEOUL_DATA_API_KEY 미설정 — 주변 시설을 불러오지 못했습니다",
       counts: null,
     });
   }

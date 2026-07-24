@@ -41,29 +41,25 @@ export type FacilitySummary = {
   nearest: FacilityPoint[];
 };
 
-function mockFacilities(location: LocationRef): FacilitySummary {
-  const seed = `${location.city}${location.district ?? ""}`.length;
-  const counts: Record<FacilityCategory, number> = {
-    hospital: 12 + (seed % 9),
-    pharmacy: 18 + (seed % 11),
-    mart: 2 + (seed % 4),
-    subway: 3 + (seed % 5),
-    bus: 22 + (seed % 17),
-    park: 4 + (seed % 4),
-    daycare: 14 + (seed % 8),
-    library: 2 + (seed % 3),
-  };
-  const labels: FacilityCategory[] = ["hospital", "pharmacy", "mart", "subway", "park"];
-  const baseLat = location.lat ?? 37.5665;
-  const baseLng = location.lng ?? 126.978;
-  const nearest: FacilityPoint[] = labels.map((cat, i) => ({
-    name: `${location.district ?? ""} ${FACILITY_LABEL[cat]} ${i + 1}호`,
-    category: cat,
-    lat: baseLat + ((seed + i) % 7) * 0.0009,
-    lng: baseLng + ((seed + i) % 9) * 0.0009,
-    distanceMeters: 120 + ((seed + i) % 12) * 55,
-  }));
-  return { location, counts, nearest };
+/* 사실 우선: 여기 있던 mockFacilities() 를 삭제했다.
+   지역명 길이를 시드로 병원 12~20개·약국 18~28개·지하철 3~7개 같은 집계를
+   만들어 냈고, 거기에 더해 "강남구 병원 1호" 같은 시설을 임의 좌표에 찍어
+   distanceMeters 까지 붙였다 — 지도에 없는 시설을 있는 것처럼 표시하는 값이다.
+   그러면서 attribution 은 "서울열린데이터광장"이었다.
+   모르는 것은 0/빈 목록으로 둔다. */
+const EMPTY_COUNTS: Record<FacilityCategory, number> = {
+  hospital: 0,
+  pharmacy: 0,
+  mart: 0,
+  subway: 0,
+  bus: 0,
+  park: 0,
+  daycare: 0,
+  library: 0,
+};
+
+function unavailableFacilities(location: LocationRef): FacilitySummary {
+  return { location, counts: { ...EMPTY_COUNTS }, nearest: [] };
 }
 
 export async function getFacilitySummary(
@@ -115,15 +111,16 @@ export async function getFacilitySummary(
     }
   }
 
+  // 실집계를 못 받아온 상태 — 공공 출처 표기를 달지 않는다(그 데이터가 아니므로).
   return {
     source: "public-facilities",
-    sourceLabel: "생활편의시설",
+    sourceLabel: "생활편의시설 (미연동)",
     unit: "COUNT",
     viz: "map_marker",
     updatedAt: new Date().toISOString().slice(0, 10),
     mode: "mock",
-    attribution: "서울열린데이터광장 · 공공데이터포털",
+    attribution: "API 키 미설정 — 편의시설 데이터를 불러오지 못했습니다",
     isLocationBased: true,
-    data: mockFacilities(location),
+    data: unavailableFacilities(location),
   };
 }

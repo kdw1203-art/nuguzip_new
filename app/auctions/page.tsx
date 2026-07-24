@@ -351,13 +351,16 @@ function AuctionView({
           {/* a) 입찰 캘린더 카드 */}
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
             <div className="flex items-center justify-between">
+              {/* 캘린더·인사이트·용도분포는 모두 아래 목록(cards/dist)에서 파생된 값이다.
+                  온비드는 공공데이터포털 실데이터이므로 "예시" 라벨을 떼었다 — 실데이터를
+                  예시라고 부르는 것도 사실과 다르다. 법원경매처럼 목록이 비면 표시도 빈다. */}
               <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-                {monthLabel} 입찰 캘린더 <ExampleBadge />
+                {monthLabel} 입찰 캘린더
               </span>
               <div className="flex gap-2.5 text-[11px]">
                 <span className="flex items-center gap-1 text-text-2">
                   <span className="h-2 w-2 rounded-[2px] bg-primary" />
-                  입찰/매각 (예시)
+                  입찰/매각일
                 </span>
               </div>
             </div>
@@ -539,7 +542,7 @@ function AuctionView({
         <aside className="flex flex-col gap-3.5">
           {/* a) AI 인사이트 — 표시 데이터에서 파생 */}
           <div className="rise-in-2">
-            <AIPanel title="공매·경매 인사이트 (예시)" className="rounded-[18px]">
+            <AIPanel title="공매·경매 인사이트" className="rounded-[18px]">
               <div className="mb-1.5 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
                 <span className="text-ai-muted">전체 물건수</span>
                 <span className="font-extrabold text-white">{total.toLocaleString()}건</span>
@@ -573,7 +576,7 @@ function AuctionView({
           {/* b) 용도별 요약 — 용도 필터/카운트 기반 */}
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
             <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
-              용도별 요약 <ExampleBadge />
+              용도별 요약
             </div>
             {dist.length > 0 ? (
               dist.map((d) => (
@@ -623,7 +626,13 @@ export default async function AuctionsPage({
 }) {
   const { usage, gu, source } = await searchParams;
 
-  // 법원경매(court) 소스 — 예시 스캐폴드
+  /* 법원경매(court) 소스 — 대법원 법원경매정보 미연동 상태.
+     사실 우선: 예전에는 court_auctions 의 예시 행("2025타경12345 · 서울북부지방법원 ·
+     감정가 8.2억 · 매각기일 2026-08-12")을 그대로 띄우고 화면 곳곳에 "예시" 배지를 달았다.
+     경매는 감정가·최저매각가격·매각기일이 곧 입찰 판단이라 배지로 감당할 수 있는 종류가
+     아니라, store 에서 is_sample 행을 걷어냈다(lib/court-auction/store.ts).
+     그래서 이 화면의 문구도 "표시된 숫자가 예시"가 아니라 "소스가 아직 연결되지 않았다"로
+     바꿨다 — 목록은 비어 있고, 비어 있다고 말한다. */
   if (source === "court") {
     const [items, total] = await Promise.all([
       getCourtAuctions({ usage, sigungu: gu, limit: 120 }),
@@ -644,17 +653,18 @@ export default async function AuctionsPage({
             baseHref="/auctions?source=court"
             summary={
               <>
-                법원 부동산경매(<strong className="text-ink">법원경매</strong>) 물건{" "}
-                <strong className="text-ink">{total.toLocaleString()}건</strong> —
-                감정가·최저매각가격·매각기일은 참고용 예시 데이터입니다.
+                법원 부동산경매(<strong className="text-ink">법원경매</strong>) —{" "}
+                <strong className="text-ink">대법원 법원경매정보 연동 준비 중</strong>이라 아직
+                표시할 물건이 없어요. 공매(온비드)는 실데이터로 보실 수 있어요.
               </>
             }
             banner={
               <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6] text-primary">
-                <ExampleBadge />
+                <ExampleBadge label="미연동" />
                 <span>
-                  법원경매 캘린더·물건 카드·인사이트는 데이터 소스 연결 전 참고용{" "}
-                  <b className="font-bold">예시(스캐폴드)</b>예요. 실제 입찰 전 대법원{" "}
+                  법원경매는 <b className="font-bold">아직 데이터 소스가 연결되지 않았어요.</b>{" "}
+                  사건번호·감정가·최저매각가격·매각기일은 지어내지 않고 비워 둡니다. 지금 물건을
+                  찾으신다면 대법원{" "}
                   <a
                     href="https://www.courtauction.go.kr"
                     target="_blank"
@@ -663,7 +673,7 @@ export default async function AuctionsPage({
                   >
                     법원경매정보(courtauction.go.kr)
                   </a>
-                  에서 매각조건을 반드시 확인하세요.
+                  에서 확인하세요.
                 </span>
               </div>
             }
@@ -685,15 +695,15 @@ export default async function AuctionsPage({
                 </Link>
               </div>
             }
-            emptyText="현재 조건의 법원경매 물건이 없어요."
-            footNote="출처: 데이터 소스 연결 전 예시(스캐폴드) · 권리분석·명도·정확한 매각조건은 대법원 법원경매정보(courtauction.go.kr) 원문과 전문가 확인이 필요합니다."
+            emptyText="대법원 법원경매정보 연동 전이라 표시할 물건이 없어요. 공매(온비드) 탭은 실데이터로 운영 중이에요."
+            footNote="법원경매는 대법원 법원경매정보(courtauction.go.kr) 연동 준비 중입니다 · 권리분석·명도·정확한 매각조건은 언제나 원문과 전문가 확인이 필요합니다."
             dist={dist}
             notifyLabel="경매 알림 받기"
             sourceHref="https://www.courtauction.go.kr"
             sourceLabel="법원경매정보 바로가기"
             dateColLabel="매각기일"
-            tableHeading={`전체 물건 · 법원경매 (예시) ${total.toLocaleString()}건`}
-            tableCaption="예시(스캐폴드) — 실 데이터 소스 연결 시 대법원 법원경매정보 실데이터로 자동 교체됩니다."
+            tableHeading={`전체 물건 · 법원경매 ${total.toLocaleString()}건`}
+            tableCaption="출처: 대법원 법원경매정보(courtauction.go.kr)"
           />
         </div>
       </PageShell>
@@ -727,11 +737,12 @@ export default async function AuctionsPage({
           }
           banner={
             <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6] text-primary">
-              <ExampleBadge />
               <span>
-                캘린더·인사이트는 서비스 <b className="font-bold">예시 화면</b>이에요. 온비드 공매
-                부동산의 감정가·최저입찰가·입찰일정은 <b className="font-bold">공공 데이터</b> 기준이며,
-                실제 입찰·명도 조건은{" "}
+                {/* 캘린더·인사이트도 아래 목록(온비드 실데이터)에서 파생된 값이라
+                    "예시 화면"이라는 안내를 뺐다 — 실데이터를 예시라고 부르는 것도 사실과 다르다.
+                    대신 남겨야 할 진짜 주의사항(갱신 주기·원문 확인)을 앞에 세운다. */}
+                감정가·최저입찰가·입찰일정은 <b className="font-bold">공공 데이터</b> 기준이며 하루
+                2회 갱신됩니다. 갱신 사이에 변경·취소될 수 있으니 실제 입찰·명도 조건은{" "}
                 <a
                   href="https://www.onbid.co.kr"
                   target="_blank"
