@@ -150,8 +150,23 @@ export async function upsertComplexPrices(rows: ComplexPriceRow[]): Promise<numb
   return n;
 }
 
+/**
+ * F3 — 적재 로그 소스. market_* 계열(MarketSource) 외에 실거래·단지마스터·금리·
+ * 공매/경매·정비사업·지오코딩 크론도 같은 로그 테이블(market_ingest_log)에 남긴다.
+ * DB 컬럼은 text 이고 CHECK 제약이 없어 마이그레이션 없이 확장 가능.
+ */
+export type IngestSource =
+  | MarketSource
+  | "molit"
+  | "apt-master"
+  | "ecos"
+  | "onbid"
+  | "court-auction"
+  | "redevelopment"
+  | "geocode";
+
 export async function logIngest(entry: {
-  source: MarketSource;
+  source: IngestSource;
   dataset: string;
   origin: "api" | "upload" | "cron-fetch" | "crawl";
   rows: number;

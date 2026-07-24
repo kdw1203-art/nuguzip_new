@@ -1,23 +1,28 @@
 /**
- * GET /api/cron/molit-transactions-ingest
- * vercel.json cron: "0 4 1 * *" (매월 1일 새벽 4시)
+ * GET/POST /api/cron/molit-transactions-ingest
  *
- * 전달(yyyymm) 국토부 아파트 실거래가를 Supabase complex_transactions 에 캐시.
- * DB에 등록된 complexes 각각에 대해 MOLIT API를 호출 → 월별 집계를 upsert.
- * MOLIT_SERVICE_KEY 없으면 no-op.
+ * 국토교통부 아파트 실거래가(RTMS) → `market_transactions` 적재.
+ * 시군구 슬라이스를 12시간 창 기준으로 회전하며 전국을 순차 커버한다.
+ * 이미 데이터가 있는 (시군구, 계약월) 조합은 건너뛰므로 이중 계상이 없다.
+ *
+ * 파라미터
+ *   ?yyyymm=202606      대상 계약월 (기본: 전달)
+ *   ?slice=3            슬라이스 인덱스 수동 지정
+ *   ?size=16            1회 처리 시군구 수 (1~60)
+ *   ?codes=11680,11710  특정 시군구 코드만 처리
+ *
+ * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션.
+ * MOLIT 인증키 미설정 시 적재 0건으로 정상 반환(가짜 데이터 생성 없음).
  */
 import { NextResponse } from "next/server";
-import { fetchMolitDeals } from "@/lib/national-data/molit-api";
-import { getServiceSupabase } from "@/lib/supabase/service";
-import { upsertTransactions } from "@/lib/complex/complex-store";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { ingestMolitTransactions } from "@/lib/market/molit-transactions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export async function GET(req: Request) {
-  // 인증 확인
+async function handle(req: Request) {
   const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
   const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
@@ -28,104 +33,32 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
 
-  const molitKey = process.env.MOLIT_SERVICE_KEY?.trim();
-  if (!molitKey) {
-    return NextResponse.json({ skipped: true, reason: "MOLIT_SERVICE_KEY not set" });
-  }
+  const num = (key: string): number | undefined => {
+    const raw = url.searchParams.get(key);
+    if (!raw) return undefined;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const codes = url.searchParams
+    .get("codes")
+    ?.split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 
-  const sb = getServiceSupabase();
-  if (!sb) {
-    return NextResponse.json({ skipped: true, reason: "Supabase not configured" });
-  }
-
-  // 처리할 yyyymm — 기본: 전달. ?yyyymm=202506 로 수동 지정 가능.
-  const now = new Date();
-  const target = url.searchParams.get("yyyymm") ?? (() => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
-  })();
-
-  // DB에 등록된 단지 목록 가져오기
-  const { data: complexes } = await sb
-    .from("complexes")
-    .select("id,district,name")
-    .not("district", "is", null)
-    .limit(500);
-
-  if (!complexes || complexes.length === 0) {
-    return NextResponse.json({ processed: 0, yyyymm: target, reason: "no complexes in DB" });
-  }
-
-  let processed = 0;
-  let skipped = 0;
-  let errors = 0;
-  const districtsDone = new Set<string>();
-
-  // 구(district)별로 한 번씩만 MOLIT 호출 후 단지 ID를 매칭
-  const districtGroups = new Map<string, typeof complexes>();
-  for (const c of complexes) {
-    const d = c.district as string;
-    if (!d) continue;
-    const g = districtGroups.get(d) ?? [];
-    g.push(c);
-    districtGroups.set(d, g);
-  }
-
-  for (const [district, group] of districtGroups) {
-    if (districtsDone.has(district)) continue;
-    districtsDone.add(district);
-
-    try {
-      const { deals, mode } = await fetchMolitDeals("apt-sale", {
-        district,
-        yyyymm: target,
-        numOfRows: 300,
-      });
-
-      if (mode !== "live" || deals.length === 0) {
-        skipped += group.length;
-        continue;
-      }
-
-      // 단지명으로 deal 분류
-      for (const complex of group) {
-        const name = (complex.name as string) ?? "";
-        const matching = deals.filter(
-          (d) => d.name && name && (d.name.includes(name.slice(0, 3)) || name.includes(d.name?.slice(0, 3) ?? ""))
-        );
-        const pool = matching.length >= 3 ? matching : deals; // 매칭 부족 시 구 전체 평균 사용
-        const valid = pool.filter((d) => typeof d.dealManwon === "number" && d.dealManwon > 0);
-        if (valid.length === 0) { skipped++; continue; }
-
-        const manwons = valid.map((d) => d.dealManwon as number);
-        await upsertTransactions([{
-          complex_id: complex.id as string,
-          yyyymm: target,
-          area_m2: null,
-          avg_manwon: Math.round(manwons.reduce((a, b) => a + b, 0) / manwons.length),
-          min_manwon: Math.min(...manwons),
-          max_manwon: Math.max(...manwons),
-          deal_count: valid.length,
-          source: "molit",
-        }]);
-        processed++;
-      }
-    } catch (e) {
-      errors++;
-      console.warn(`[molit-ingest] ${district} ${target} error:`, e);
-    }
-
-    // API rate limit 방지 (구별 200ms 딜레이)
-    await new Promise((r) => setTimeout(r, 200));
-  }
-
-  return NextResponse.json({
-    status: "ok",
-    yyyymm: target,
-    totalComplexes: complexes.length,
-    processed,
-    skipped,
-    errors,
-    finishedAt: new Date().toISOString(),
+  const result = await ingestMolitTransactions({
+    yyyymm: url.searchParams.get("yyyymm") ?? undefined,
+    slice: num("slice"),
+    sliceSize: num("size"),
+    codes: codes?.length ? codes : undefined,
   });
+
+  return NextResponse.json({ ...result, finishedAt: new Date().toISOString() });
+}
+
+export async function GET(req: Request) {
+  return handle(req);
+}
+
+export async function POST(req: Request) {
+  return handle(req);
 }

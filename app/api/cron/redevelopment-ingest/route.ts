@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { ingestSeoulRedevelopment, isRedevIngestConfigured } from "@/lib/redevelopment/ingest";
+import { logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,17 @@ async function handle(req: Request) {
 
   const configured = isRedevIngestConfigured();
   const result = await ingestSeoulRedevelopment();
+  // F3 — 적재 로그
+  await logIngest({
+    source: "redevelopment",
+    dataset: "서울 정비사업 현황",
+    origin: "cron-fetch",
+    rows: result.upserted,
+    status: !configured ? "skipped" : result.upserted > 0 ? "ok" : "skipped",
+    message:
+      result.reason ??
+      `조회=${result.fetched} 좌표없음제외=${result.skippedNoGeo}`,
+  });
   return NextResponse.json({
     ok: true,
     mode: configured ? "live" : "mock",

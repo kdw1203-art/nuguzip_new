@@ -5,6 +5,7 @@ import {
   listAllSigunguCodes,
   ingestAptMasterBatch,
 } from "@/lib/national-data/apartment-ingest";
+import { logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,6 +46,18 @@ async function handle(req: Request) {
   const configured = isDataGoKrEncodingConfigured();
   const { sigungu, upserted } = await ingestAptMasterBatch(batch);
   const mode: "live" | "mock" = configured ? "live" : "mock";
+
+  // F3 — 적재 로그(신선도 대시보드·운영 추적용)
+  await logIngest({
+    source: "apt-master",
+    dataset: "전국 공동주택 단지 마스터",
+    origin: "cron-fetch",
+    rows: upserted,
+    status: !configured ? "skipped" : upserted > 0 ? "ok" : "skipped",
+    message: !configured
+      ? "data.go.kr 인증키 미설정"
+      : `slice=${idx}/${Math.ceil(total / SLICE)} 시군구=${sigungu}`,
+  });
 
   return NextResponse.json({
     ok: true,

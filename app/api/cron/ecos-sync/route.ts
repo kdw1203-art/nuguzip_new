@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { isEcosConfigured } from "@/lib/ecos/client";
 import { syncEcosKeyStats } from "@/lib/ecos/sync";
+import { logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   if (!isEcosConfigured()) {
+    await logIngest({
+      source: "ecos",
+      dataset: "한국은행 100대 통계지표",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "skipped",
+      message: "ECOS_API_KEY 미설정",
+    });
     return NextResponse.json({
       ok: false,
       skipped: true,
@@ -32,5 +41,14 @@ export async function GET(req: Request) {
     });
   }
   const result = await syncEcosKeyStats();
+  // F3 — 적재 로그
+  await logIngest({
+    source: "ecos",
+    dataset: "한국은행 100대 통계지표",
+    origin: "cron-fetch",
+    rows: result.count ?? 0,
+    status: result.ok ? "ok" : result.skipped ? "skipped" : "error",
+    message: result.reason ?? (result.baseRate ? `기준금리 ${result.baseRate}` : undefined),
+  });
   return NextResponse.json(result);
 }

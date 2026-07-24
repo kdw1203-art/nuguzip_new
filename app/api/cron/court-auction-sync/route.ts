@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { syncCourtAuctions } from "@/lib/court-auction/sync";
+import { logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,15 @@ async function handle(req: Request) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   const result = await syncCourtAuctions();
+  // F3 — 적재 로그
+  await logIngest({
+    source: "court-auction",
+    dataset: "법원경매 물건",
+    origin: "cron-fetch",
+    rows: result.inserted ?? 0,
+    status: result.skipped ? "skipped" : result.ok ? "ok" : "error",
+    message: result.reason,
+  });
   return NextResponse.json(result);
 }
 

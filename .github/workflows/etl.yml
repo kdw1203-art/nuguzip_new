@@ -46,14 +46,28 @@ jobs:
           echo "== onbid (soft) =="
           curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/onbid-sync" | head -c 500 || true
           echo
+          # court-auction: 법원경매 — 소스 미구현/키 없으면 skipped (소프트)
+          echo "== court-auction (soft) =="
+          curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/court-auction-sync" | head -c 500 || true
+          echo
+          # redevelopment: 서울 정비사업 — 키 없으면 mock/no-op (소프트)
+          echo "== redevelopment (soft) =="
+          curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/redevelopment-ingest" | head -c 500 || true
+          echo
+          # apt-master: 전국 공동주택 단지 마스터 — 시군구 슬라이스 회전 (소프트)
+          echo "== apt-master (soft) =="
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-master-ingest" | head -c 500 || true
+          echo
           call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
           # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용 (회당 상위 거래량 250건)
           call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=250"
           call attendance "https://nuguzip.com/api/cron/attendance-reminders"
-          # molit 전국 실거래: 매월 1일에만
-          if [ "$(date -u +%d)" = "01" ]; then
-            call molit "https://nuguzip.com/api/cron/molit-transactions-ingest"
-          fi
+          # molit 전국 실거래: 매 실행마다 시군구 슬라이스 1구간씩 회전(12시간 창 기준 자동).
+          # 이미 채워진 (구, 계약월) 조합은 라우트에서 건너뛰므로 이중 계상 없음. 소프트 처리 —
+          # 일부 구가 실패해도 ETL 전체를 실패시키지 않는다.
+          echo "== molit (soft) =="
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?size=16" | head -c 800 || true
+          echo
           if [ -n "$FAILED" ]; then
             echo "failed:$FAILED" | tee etl-failed.txt
             exit 1

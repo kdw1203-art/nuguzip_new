@@ -8,6 +8,7 @@ import { NextResponse } from "next/server";
 import { backfillGeocode } from "@/lib/map/complex-geocode";
 import { isNaverMapsRestConfigured } from "@/lib/map/naver-maps-rest";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,14 @@ export async function GET(req: Request) {
   }
 
   if (!isNaverMapsRestConfigured()) {
+    await logIngest({
+      source: "geocode",
+      dataset: "단지 좌표 지오코딩",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "skipped",
+      message: "NAVER Maps REST API 미설정",
+    });
     return NextResponse.json(
       { ok: false, skipped: true, message: "NAVER Maps REST API 미설정" },
       { status: 200 },
@@ -38,11 +47,26 @@ export async function GET(req: Request) {
   try {
     const result = await backfillGeocode(limit);
     // result: { processed, ok(성공 좌표수), skipped? } — 응답 성공 플래그는 success 로 분리
+    // F3 — 적재 로그
+    await logIngest({
+      source: "geocode",
+      dataset: "단지 좌표 지오코딩",
+      origin: "cron-fetch",
+      rows: result.ok ?? 0,
+      status: (result.ok ?? 0) > 0 ? "ok" : "skipped",
+      message: `처리=${result.processed ?? 0} 성공=${result.ok ?? 0}`,
+    });
     return NextResponse.json({ success: true, ...result });
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "지오코딩 실패" },
-      { status: 500 },
-    );
+    const message = err instanceof Error ? err.message : "지오코딩 실패";
+    await logIngest({
+      source: "geocode",
+      dataset: "단지 좌표 지오코딩",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

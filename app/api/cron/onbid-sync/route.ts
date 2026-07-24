@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { isOnbidConfigured } from "@/lib/onbid/client";
 import { syncOnbidSeoul } from "@/lib/onbid/sync";
+import { logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +26,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   if (!isOnbidConfigured()) {
+    await logIngest({
+      source: "onbid",
+      dataset: "온비드 공매 물건",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "skipped",
+      message: "ONBID_SERVICE_KEY 미설정",
+    });
     return NextResponse.json({
       ok: false,
       skipped: true,
@@ -57,5 +66,14 @@ export async function GET(req: Request) {
   const sido = url.searchParams.get("sido")?.trim() || undefined;
   const maxPages = Number(url.searchParams.get("pages") ?? "5") || 5;
   const result = await syncOnbidSeoul({ sido, maxPages });
+  // F3 — 적재 로그
+  await logIngest({
+    source: "onbid",
+    dataset: `온비드 공매 물건 (${sido ?? "서울특별시"})`,
+    origin: "cron-fetch",
+    rows: result.inserted ?? 0,
+    status: result.ok ? "ok" : result.skipped ? "skipped" : "error",
+    message: result.reason,
+  });
   return NextResponse.json(result);
 }
