@@ -10,6 +10,7 @@
 import "server-only";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
+import { sendPush, type PushPayload } from "@/lib/push/vapid";
 import { ALERT_PREFIX } from "@/lib/alerts/subscriptions";
 import { logger } from "@/lib/log";
 
@@ -112,5 +113,43 @@ export async function notifyNewListingSubscribers(
       // best-effort — 개별 발송 실패는 무시하고 계속 진행한다.
     }
   }
+
+  // B5 신규매물 웹푸시 — 대상 이메일들의 구독을 한 번에 조회해 병행 발송(best-effort).
+  //  VAPID/구독 없으면 no-op. inbox 발송 수(sent)는 그대로 반환해 호출부 계약 유지.
+  try {
+    const { data: subRows } = await sb
+      .from("push_subscriptions")
+      .select("endpoint, p256dh, auth")
+      .in("user_email", targets)
+      .limit(2000);
+    const subs = (subRows ?? []) as Array<Record<string, unknown>>;
+    if (subs.length > 0) {
+      const payload: PushPayload = {
+        title,
+        body,
+        url: actionUrl,
+        tag: `newlisting-${id}`,
+        eventType: "generic",
+      };
+      await Promise.allSettled(
+        subs.map(async (s) => {
+          try {
+            await sendPush(
+              {
+                endpoint: String(s.endpoint),
+                keys: { p256dh: String(s.p256dh), auth: String(s.auth) },
+              },
+              payload,
+            );
+          } catch {
+            // 개별 구독 실패는 무시
+          }
+        }),
+      );
+    }
+  } catch (e) {
+    logger.warn("[region-alerts] push 발송 실패", e);
+  }
+
   return sent;
 }

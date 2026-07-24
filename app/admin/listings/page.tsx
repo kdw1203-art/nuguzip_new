@@ -80,6 +80,17 @@ export default async function AdminListingsPage() {
               {l.description && (
                 <p className="text-[12px] leading-[1.6] text-[#9aa6b8]">{l.description}</p>
               )}
+              {(l.isDuplicate || l.flagReason) && (
+                <div className="flex flex-wrap items-center gap-1.5 rounded-lg bg-[rgba(214,69,69,.08)] px-2.5 py-1.5">
+                  <span className="rounded-[6px] bg-[rgba(214,69,69,.2)] px-2 py-[2px] text-[10px] font-extrabold text-[#ff8a8a]">
+                    ⚠ 자동 플래그
+                  </span>
+                  <span className="text-[11px] font-bold text-[#ffb3b3]">
+                    {l.flagReason ?? "중복 주소 의심"}
+                  </span>
+                  <span className="text-[10px] text-[#9aa6b8]">— 승인 전 확인 권장</span>
+                </div>
+              )}
               <div className="text-[11px] text-[#9aa6b8]">
                 등록자: {l.authorLabel} ({l.authorEmail})
                 {l.contact ? ` · 연락: ${l.contact}` : ""} ·{" "}

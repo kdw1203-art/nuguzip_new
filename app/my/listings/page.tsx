@@ -223,6 +223,12 @@ export default async function MyListingsPage() {
                   </div>
                 )}
 
+                {l.status !== "rejected" && l.flagReason && (
+                  <div className="rounded-lg bg-[rgba(245,158,11,.08)] px-3 py-2 text-[12px] leading-[1.6] text-[#b45309]">
+                    확인 필요 · {l.flagReason}
+                  </div>
+                )}
+
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <Link href={`/listings/${l.id}`} className="btn-outline btn-sm">
                     상세 보기
