@@ -27,36 +27,13 @@ export type Banner = {
   createdAt: string;
 };
 
-const FALLBACK_BANNERS: Banner[] = [
-  {
-    id: "fallback-1",
-    title: "AI 투자 분석 무료 체험",
-    subtitle: "AI로 내 투자 스타일을 분석해 보세요",
-    ctaLabel: "AI 분석 시작",
-    ctaUrl: "/ai-analysis",
-    bgFrom: "#3182f6",
-    bgTo: "#7c3aed",
-    textColor: "white",
-    placement: "home",
-    isActive: true,
-    priority: 100,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "fallback-2",
-    title: "임장 모임 함께해요",
-    subtitle: "이번 주말 강남·마포 임장 모임에 참여하세요",
-    ctaLabel: "모임 보기",
-    ctaUrl: "/market",
-    bgFrom: "#10b981",
-    bgTo: "#0d9488",
-    textColor: "white",
-    placement: "home",
-    isActive: true,
-    priority: 90,
-    createdAt: new Date().toISOString(),
-  },
-];
+/* 사실 우선: 여기 있던 FALLBACK_BANNERS 2건을 삭제했다.
+   - "AI 투자 분석 무료 체험" → ctaUrl "/ai-analysis" (없는 경로. 실제는 /analysis) = 404
+   - "임장 모임 함께해요 / 이번 주말 강남·마포 임장 모임에 참여하세요"
+     → ctaUrl "/market" (없는 경로. 실제는 /town/market) = 404
+   둘 다 홈 첫 화면에 공개 노출되는 프로모션이었다. 하지도 않는 행사를
+   "이번 주말"이라고 못박아 광고하고, 눌러도 404 로 떨어진다. 배너는 DB(banners)
+   에 등록된 것만 노출한다 — 등록이 없으면 배너 영역을 그리지 않는다. */
 
 function mapRow(row: Record<string, unknown>): Banner {
   return {
@@ -91,12 +68,8 @@ function isActive(b: Banner): boolean {
 /** 특정 위치의 활성 배너 목록 반환 */
 export async function listBanners(placement?: BannerPlacement): Promise<Banner[]> {
   const sb = getServiceSupabase();
-  if (!sb) {
-    const filtered = FALLBACK_BANNERS.filter(
-      (b) => !placement || b.placement === placement || b.placement === "global",
-    );
-    return filtered;
-  }
+  // DB 미연결이면 노출할 배너를 "모른다" — 지어낸 프로모션 대신 빈 목록.
+  if (!sb) return [];
 
   let query = sb
     .from("banners")
@@ -109,7 +82,8 @@ export async function listBanners(placement?: BannerPlacement): Promise<Banner[]
   }
 
   const { data } = await query;
-  if (!data) return FALLBACK_BANNERS;
+  // 조회 실패도 "노출할 배너 없음"으로 처리한다(가짜 배너로 채우지 않는다).
+  if (!data) return [];
 
   const now = new Date().toISOString();
   return (data as Record<string, unknown>[])

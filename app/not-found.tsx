@@ -25,11 +25,13 @@ export default function NotFound() {
         </Link>
       </div>
       <div className="rise-in-4 mt-1 flex gap-1.5">
+        {/* 사실 우선: 라벨이 "공작아파트 단지 홈"이었다 — 링크는 /search 로 가는데
+            존재하지 않는 특정 단지를 가리키는 것처럼 읽혔다. 하는 일 그대로 쓴다. */}
         <Link
           href="/search"
           className="rounded-full bg-primary-soft px-[13px] py-[7px] text-[11px] font-bold text-primary"
         >
-          공작아파트 단지 홈
+          단지 검색
         </Link>
         <Link
           href="/notes"

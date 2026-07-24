@@ -12,7 +12,7 @@ import {
    항목 H39 — 임베드 위젯 (블로그·카페 배포)
    외부 사이트가 <iframe> 으로 삽입하는, 단일 단지용 콤팩트 카드.
    실데이터: complexes(getComplexById) + complex_transactions(getTransactionHistory).
-   서비스 롤 미설정/미조회/무데이터 시 → 예시 카드로 우아하게 폴백 (never crash).
+   서비스 롤 미설정/미조회/무데이터 시 → 시세 없이 "불러올 수 없음" 카드 (never crash).
    사이트 크롬 없음(app/embed/layout.tsx), noindex.
    ============================================================ */
 
@@ -46,16 +46,14 @@ function deltaLabel(pct: number | null): { delta: string; tone: "up" | "down" | 
 // ── 뷰 모델 ────────────────────────────────────────────────────────────
 
 interface EmbedView {
-  /** 자세히 보기 대상 단지 id — 폴백(예시)이면 null → 홈으로 링크 */
-  complexId: string | null;
+  /** 자세히 보기 대상 단지 id */
+  complexId: string;
   name: string;
   dong: string;
   price: string;
   priceSub: string;
   priceSubClass: string;
   stats: { label: string; value: string }[];
-  /** 예시(폴백) 카드 여부 — 배지 표기 + CTA 홈 링크 처리 */
-  isExample: boolean;
 }
 
 /** 실데이터 → 뷰 */
@@ -77,51 +75,69 @@ function buildView(row: ComplexRow, tx: ComplexTransactionRow[]): EmbedView {
     priceSub: latest ? `${delta} 전월비` : "실거래 수집 중",
     priceSubClass: tone === "down" ? "delta-down" : tone === "up" ? "delta-up" : "text-text-3",
     stats,
-    isExample: false,
   };
 }
 
-/** 폴백(예시) 뷰 — 서비스 롤 미설정 / 미조회 / 무데이터 시 */
-const EXAMPLE_VIEW: EmbedView = {
-  complexId: null,
-  name: "예시 단지",
-  dong: "○○구 ○○동",
-  price: "8.2억",
-  priceSub: "▼ 1.8% 전월비",
-  priceSubClass: "delta-down",
-  stats: [
-    { label: "준공", value: "2003년" },
-    { label: "세대수", value: "1,200세대" },
-  ],
-  isExample: true,
-};
+/* 사실 우선: 여기 있던 EXAMPLE_VIEW 를 삭제했다.
+   "예시 단지 · 8.2억 · ▼1.8% 전월비 · 2003년 · 1,200세대" 를 폴백으로 그렸는데,
+   이 위젯은 <iframe> 으로 외부 블로그·카페에 박히는 카드다. 남의 글 안에서
+   누구집 워드마크와 "국토교통부 실거래가 기준" 문구를 달고 지어낸 가격이 뜬다 —
+   작은 "예시" 배지로 상쇄되지 않는다. 조회에 실패하면 가격을 아예 그리지 않는다. */
 
 // ── 카드 ───────────────────────────────────────────────────────────────
 
-function EmbedCard({ view }: { view: EmbedView }) {
-  const detailHref = view.complexId ? `/complex/${view.complexId}` : "/";
-
+/** 단지를 찾지 못했거나 조회에 실패했을 때 — 숫자를 그리지 않는 카드. */
+function UnavailableCard({ reason }: { reason: "notfound" | "error" }) {
   return (
     <div className="card card-pad-sm relative mx-auto w-full max-w-[360px]">
-      {/* 코너 워드마크(attribution) — 홈 링크 */}
+      <Wordmark />
+      <div className="pr-16">
+        <div className="text-base font-extrabold leading-tight text-ink">
+          {reason === "notfound" ? "단지 정보를 찾을 수 없어요" : "시세를 불러오지 못했어요"}
+        </div>
+        <div className="mt-1 text-xs leading-[1.6] text-text-2">
+          {reason === "notfound"
+            ? "주소가 바뀌었거나 아직 등록되지 않은 단지예요."
+            : "일시적인 오류입니다. 잠시 후 다시 시도해 주세요."}
+        </div>
+      </div>
       <Link
         href="/"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="누구집 홈"
-        className="absolute right-3 top-3 inline-flex items-center gap-1 text-[10px] font-extrabold text-text-3 transition-colors hover:text-primary"
+        className="mt-3 flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
       >
-        <Icon name="house" size={11} />
-        누구집
+        누구집에서 단지 찾기 →
       </Link>
+    </div>
+  );
+}
+
+/** 코너 워드마크(attribution) — 홈 링크 */
+function Wordmark() {
+  return (
+    <Link
+      href="/"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="누구집 홈"
+      className="absolute right-3 top-3 inline-flex items-center gap-1 text-[10px] font-extrabold text-text-3 transition-colors hover:text-primary"
+    >
+      <Icon name="house" size={11} />
+      누구집
+    </Link>
+  );
+}
+
+function EmbedCard({ view }: { view: EmbedView }) {
+  const detailHref = `/complex/${view.complexId}`;
+
+  return (
+    <div className="card card-pad-sm relative mx-auto w-full max-w-[360px]">
+      <Wordmark />
 
       {/* 헤더 — 단지명 · 지역 */}
       <div className="pr-16">
-        {view.isExample && (
-          <span className="mb-1 inline-block rounded bg-primary-soft px-1.5 py-0.5 text-[10px] font-bold text-primary">
-            예시 · 단지 정보를 불러오는 중
-          </span>
-        )}
         <div className="text-base font-extrabold leading-tight text-ink">{view.name}</div>
         <div className="mt-0.5 flex items-center gap-1 text-xs text-text-2">
           <Icon name="pin" size={12} />
@@ -179,19 +195,25 @@ export default async function EmbedComplexPage({
 }) {
   const { id } = await params;
 
-  // 조회 실패/서비스 롤 미설정 시에도 절대 크래시하지 않는다 → 예시 폴백.
-  let view: EmbedView = EXAMPLE_VIEW;
-  if (id) {
-    try {
-      const row = await getComplexById(id);
-      if (row) {
-        const tx = await getTransactionHistory(id);
-        view = buildView(row, tx);
-      }
-    } catch {
-      view = EXAMPLE_VIEW;
-    }
+  // 절대 크래시하지 않되, 못 불러온 것을 시세인 척 그리지도 않는다.
+  // "없음"(notfound)과 "실패"(error)는 다른 상태이므로 나눠서 알린다.
+  if (!id) return <UnavailableCard reason="notfound" />;
+
+  let row: ComplexRow | null;
+  try {
+    row = await getComplexById(id);
+  } catch {
+    return <UnavailableCard reason="error" />;
+  }
+  if (!row) return <UnavailableCard reason="notfound" />;
+
+  // 단지는 찾았고 거래 이력만 실패한 경우 — 단지 카드는 그리되 시세는 "준비 중".
+  let tx: ComplexTransactionRow[] = [];
+  try {
+    tx = await getTransactionHistory(id);
+  } catch {
+    tx = [];
   }
 
-  return <EmbedCard view={view} />;
+  return <EmbedCard view={buildView(row, tx)} />;
 }
