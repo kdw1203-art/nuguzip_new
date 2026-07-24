@@ -287,6 +287,69 @@ export async function suggestComplexes(query: string, limit = 6): Promise<Comple
   return [...seen.values()];
 }
 
+// ── 지역 대비 상대 위치 (D6) ──────────────────────────────────────────
+
+export interface RegionRelative {
+  district: string;
+  complexPerM2Manwon: number;
+  districtPerM2Manwon: number;
+  deltaPct: number;
+  saleChangePct: number | null;
+  jeonseRatio: number | null;
+  period: string | null;
+}
+
+/**
+ * 단지 ㎡당 시세를 소재 구 평균(market_region_price, REB 실집계)과 비교(D6).
+ * 면적 정규화(㎡당)로 프리미엄/디스카운트를 공정 비교. 데이터 없으면 null.
+ */
+export async function getRegionRelative(complexId: string): Promise<RegionRelative | null> {
+  const dec = decodeComplexId(complexId);
+  if (!dec) return null;
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { district } = splitRegion(dec.region);
+  if (!district) return null;
+
+  const { data: reg } = await sb
+    .from("market_region_price")
+    .select("per_m2_sale, sale_change, jeonse_ratio, period")
+    .eq("region_name", district)
+    .order("period", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const districtPerM2 = reg?.per_m2_sale != null ? Number(reg.per_m2_sale) : 0;
+  if (!Number.isFinite(districtPerM2) || districtPerM2 <= 0) return null;
+
+  const { data: tx } = await sb
+    .from("market_transactions")
+    .select("deal_amount_krw, area_m2")
+    .eq("complex_name", dec.name)
+    .eq("region_name", dec.region)
+    .eq("transaction_type", "trade")
+    .gt("deal_amount_krw", 0)
+    .not("area_m2", "is", null)
+    .order("contract_ym", { ascending: false })
+    .limit(60);
+  const rows = (tx as { deal_amount_krw: number; area_m2: number }[] | null) ?? [];
+  const perM2s = rows
+    .map((r) => Number(r.deal_amount_krw) / Number(r.area_m2))
+    .filter((v) => Number.isFinite(v) && v > 0);
+  if (perM2s.length === 0) return null;
+  const complexPerM2 = perM2s.reduce((s, v) => s + v, 0) / perM2s.length;
+  const deltaPct = Math.round(((complexPerM2 - districtPerM2) / districtPerM2) * 1000) / 10;
+
+  return {
+    district,
+    complexPerM2Manwon: Math.round(complexPerM2 / 10000),
+    districtPerM2Manwon: Math.round(districtPerM2 / 10000),
+    deltaPct,
+    saleChangePct: reg?.sale_change != null ? Number(reg.sale_change) : null,
+    jeonseRatio: reg?.jeonse_ratio != null ? Math.round(Number(reg.jeonse_ratio) * 10) / 10 : null,
+    period: reg?.period ? String(reg.period) : null,
+  };
+}
+
 // ── 면적대별 시세 (D5) ────────────────────────────────────────────────
 
 export interface AreaBandRow {

@@ -24,6 +24,7 @@ import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
 import { ComplexReviews } from "../ComplexReviews";
 import { ComplexAreaBands } from "./ComplexAreaBands";
+import { RegionRelative } from "./RegionRelative";
 import { NearbyRedevelopment } from "./NearbyRedevelopment";
 import { UpcomingSupply } from "./UpcomingSupply";
 import { ComplexQna } from "./ComplexQna";
@@ -627,8 +628,9 @@ export default async function ComplexHubPage({
         </section>
       )}
 
-      {/* D5 면적대별 시세 · D3 인근 정비사업 · D4 입주물량 · D2 Q&A (실데이터, 없으면 자동 생략) */}
+      {/* D5 면적대별 시세 · D6 지역 대비 · D3 정비사업 · D4 입주물량 · D2 Q&A (실데이터, 없으면 자동 생략) */}
       <ComplexAreaBands complexId={complexId} />
+      <RegionRelative complexId={complexId} />
       <NearbyRedevelopment sigungu={v.dong} />
       <UpcomingSupply area={v.dong} />
       <ComplexQna complexName={v.name} />
