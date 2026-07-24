@@ -107,6 +107,55 @@ export async function listSavedSearches(email: string): Promise<SavedSearch[]> {
   }
 }
 
+/**
+ * 알림 켜진 저장 검색 전체(크로스 유저) — 알림 러너(cron)용. service-role 경유.
+ * RLS deny-all 이라 읽기도 service 로. 최대 limit 건.
+ */
+export async function listAlertEnabledSavedSearches(
+  limit = 500,
+): Promise<SavedSearch[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from(TABLE)
+      .select("*")
+      .eq("alert_enabled", true)
+      .order("last_checked_at", { ascending: true, nullsFirst: true })
+      .limit(limit);
+    if (error || !Array.isArray(data)) return [];
+    return data.map((r) => rowToSavedSearch(r as Record<string, unknown>));
+  } catch (e) {
+    logger.error("[saved-search] listAlertEnabledSavedSearches", e);
+    return [];
+  }
+}
+
+/**
+ * 알림 러너 체크 결과 기록 — last_checked_at(now) + last_match_count 갱신.
+ * 시스템(cron) 호출이라 사용자 스코프 없이 id 로만 갱신한다.
+ */
+export async function markSavedSearchChecked(
+  id: string,
+  matchCount: number,
+): Promise<void> {
+  const targetId = id.trim();
+  if (!targetId) return;
+  const sb = getServiceSupabase();
+  if (!sb) return;
+  try {
+    await sb
+      .from(TABLE)
+      .update({
+        last_checked_at: new Date().toISOString(),
+        last_match_count: Math.max(0, Math.round(matchCount)),
+      })
+      .eq("id", targetId);
+  } catch (e) {
+    logger.error("[saved-search] markSavedSearchChecked", e);
+  }
+}
+
 /* ---------------- 쓰기 ---------------- */
 
 /** 저장 검색 1건 생성. label 80자·query 200자 캡. */

@@ -42,6 +42,10 @@
       "schedule": "0 21 * * *"
     },
     {
+      "path": "/api/cron/saved-search-alerts",
+      "schedule": "30 21 * * *"
+    },
+    {
       "path": "/api/cron/court-auction-sync",
       "schedule": "15 6 */3 * *"
     },
