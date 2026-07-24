@@ -23,6 +23,9 @@ import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
 import { ComplexReviews } from "../ComplexReviews";
+import { NearbyRedevelopment } from "./NearbyRedevelopment";
+import { UpcomingSupply } from "./UpcomingSupply";
+import { ComplexQna } from "./ComplexQna";
 import {
   SEOUL_BROWSE_REGIONS,
   buildComplexTxSlug,
@@ -622,6 +625,11 @@ export default async function ComplexHubPage({
           <ComplexReviews complexId={complexId} complexName={v.name} />
         </section>
       )}
+
+      {/* D3 인근 정비사업 · D4 인근 입주물량 · D2 단지 Q&A (실데이터, 없으면 자동 생략) */}
+      <NearbyRedevelopment sigungu={v.dong} />
+      <UpcomingSupply area={v.dong} />
+      <ComplexQna complexName={v.name} />
 
       {/* 모바일 CTA 2개 (시안 하단) */}
       <div className="rise-in-4 mt-4 lg:hidden">{cta}</div>

@@ -104,6 +104,14 @@ async function fetchFromDb(f?: ProjectFilter): Promise<RedevelopmentProject[] | 
   }
 }
 
+/**
+ * DB 확정 정비사업장만 조회 — 시드 폴백 없음(단지 상세 임베드 등 사실 우선용).
+ * 조회 불가/미존재 시 빈 배열 → 호출측이 "표시 안 함"으로 처리.
+ */
+export async function listDbProjects(f?: ProjectFilter): Promise<RedevelopmentProject[]> {
+  return (await fetchFromDb(f)) ?? [];
+}
+
 /** 정비사업장 목록 — DB 우선, 없으면 시드 폴백(필터 동일 적용). */
 export async function listProjects(f?: ProjectFilter): Promise<RedevelopmentProject[]> {
   const db = await fetchFromDb(f);

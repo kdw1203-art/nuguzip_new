@@ -143,6 +143,35 @@ export async function listQuestions(
   return [sampleQuestion()];
 }
 
+/**
+ * 특정 단지의 Q&A — 단지 상세 임베드용. complex_name 정확 일치(실데이터만, 샘플 폴백 없음).
+ * 없으면 빈 배열 → 호출측이 "첫 질문 남기기" 안내를 표시.
+ */
+export async function listQuestionsForComplex(
+  complexName: string,
+  limit = 5,
+): Promise<QnaQuestion[]> {
+  const name = complexName.trim();
+  if (!name) return [];
+  const sb = getReadOnlySupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("complex_questions")
+      .select(QUESTION_COLUMNS)
+      .eq("complex_name", name)
+      .order("created_at", { ascending: false })
+      .limit(Math.min(Math.max(limit, 1), 20));
+    if (error || !Array.isArray(data)) return [];
+    return data
+      .map((r) => mapQuestion(r as Record<string, unknown>))
+      .filter((q) => !q.isSample);
+  } catch (e) {
+    logger.warn("[qna] listQuestionsForComplex", e);
+    return [];
+  }
+}
+
 /** 상세 조회수 +1 — service client, best-effort(원자성 미보장, 실패 무시). */
 async function incrementViewCount(id: string): Promise<void> {
   const sb = getServiceSupabase();
