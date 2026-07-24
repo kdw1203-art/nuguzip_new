@@ -2,6 +2,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 
 const STEPS = ["explore", "inspection", "share"] as const;
+export const ONBOARDING_STEPS = STEPS;
 export type OnboardingStepId = (typeof STEPS)[number];
 const SET = new Set<string>(STEPS);
 
@@ -16,6 +17,40 @@ function normalizeProgress(value: unknown, completedAt: string | null) {
     ? raw.completedSteps.map(String).filter(isStep)
     : [];
   return { completedSteps: [...new Set(completedSteps)] as string[], completedAt };
+}
+
+export type OnboardingProgress = {
+  completedSteps: OnboardingStepId[];
+  isComplete: boolean;
+  total: number;
+};
+
+/** 온보딩 진행 상황 조회 — A6 /my 진행바용. app_users.onboarding_progress 기준. */
+export async function getOnboardingProgress(email: string): Promise<OnboardingProgress> {
+  const total = STEPS.length;
+  const sb = getServiceSupabase();
+  const em = email.trim().toLowerCase();
+  if (!sb || !em) return { completedSteps: [], isComplete: false, total };
+  try {
+    const { data } = await sb
+      .from("app_users")
+      .select("onboarding_progress, onboarding_completed_at")
+      .eq("email", em)
+      .maybeSingle();
+    const norm = normalizeProgress(
+      data?.onboarding_progress,
+      data?.onboarding_completed_at ?? null,
+    );
+    const completedSteps = norm.completedSteps.filter(isStep);
+    return {
+      completedSteps,
+      isComplete: Boolean(norm.completedAt) || completedSteps.length >= total,
+      total,
+    };
+  } catch (e) {
+    logger.warn("[onboarding] getOnboardingProgress", e);
+    return { completedSteps: [], isComplete: false, total };
+  }
 }
 
 /**

@@ -14,6 +14,7 @@ import {
 } from "@/lib/inspection/store-db";
 import { listBookmarks } from "@/lib/bookmarks/store";
 import { listAlertSubscriptions, type AlertSubscription } from "@/lib/alerts/subscriptions";
+import { getOnboardingProgress } from "@/lib/onboarding/append-step";
 import { AttendanceButton } from "./points/AttendanceButton";
 
 /* 마이 허브 (item 10) — 프로필·포인트지갑 통합
@@ -127,19 +128,21 @@ export default async function MyPage() {
   }
 
   const email = session.user.email;
-  const [profile, balance, history, notes, savedNotes, alerts, expert] = await Promise.all([
-    loadMeProfile(email, {
-      name: session.user.name,
-      plan: (session.user as { plan?: string }).plan,
-      role: (session.user as { role?: string }).role,
-    }),
-    getBalance(email),
-    getHistory(email, 4),
-    listNotes(email),
-    loadSavedNotes(email),
-    listAlertSubscriptions(email),
-    getExpertStatus(email),
-  ]);
+  const [profile, balance, history, notes, savedNotes, alerts, expert, onboarding] =
+    await Promise.all([
+      loadMeProfile(email, {
+        name: session.user.name,
+        plan: (session.user as { plan?: string }).plan,
+        role: (session.user as { role?: string }).role,
+      }),
+      getBalance(email),
+      getHistory(email, 4),
+      listNotes(email),
+      loadSavedNotes(email),
+      listAlertSubscriptions(email),
+      getExpertStatus(email),
+      getOnboardingProgress(email),
+    ]);
 
   const name = profile.name?.trim() || email.split("@")[0] || "회원";
   const total = notes.length;
@@ -199,6 +202,66 @@ export default async function MyPage() {
 
           <AttendanceButton />
         </section>
+
+        {/* ── A6 온보딩 완주 진행바 (완주 전까지만) ── */}
+        {!onboarding.isComplete &&
+          (() => {
+            const steps = [
+              { id: "explore", label: "관심 단지·권역 담기", href: "/map" },
+              { id: "inspection", label: "첫 임장노트 작성", href: "/notes/new" },
+              { id: "share", label: "임장노트 공개 공유", href: "/notes?mine=1" },
+            ] as const;
+            const done = onboarding.completedSteps.length;
+            const pct = Math.round((done / onboarding.total) * 100);
+            return (
+              <section className="rise-in card flex flex-col gap-3 rounded-[16px] p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-extrabold text-ink">
+                    시작하기 {done}/{onboarding.total}
+                  </span>
+                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-bold text-primary">
+                    완주 시 200P
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,.06)]">
+                  <span
+                    className="block h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  {steps.map((s, i) => {
+                    const isDone = onboarding.completedSteps.includes(s.id);
+                    return (
+                      <Link
+                        key={s.id}
+                        href={s.href}
+                        className={`flex items-center gap-2.5 py-2 no-underline ${
+                          i < steps.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        }`}
+                      >
+                        <span
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${
+                            isDone
+                              ? "bg-[rgba(26,127,78,.12)] text-[#1a7f4e]"
+                              : "bg-[rgba(0,0,0,.06)] text-text-3"
+                          }`}
+                        >
+                          {isDone ? "✓" : i + 1}
+                        </span>
+                        <span
+                          className={`text-[13px] ${isDone ? "text-text-3 line-through" : "font-semibold text-text-1"}`}
+                        >
+                          {s.label}
+                        </span>
+                        {!isDone && <span className="ml-auto text-[13px] font-bold text-primary">→</span>}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })()}
 
         <div className="grid gap-4 md:grid-cols-2">
           {/* ── 내 임장노트 ── */}
