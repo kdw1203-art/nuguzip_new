@@ -287,6 +287,67 @@ export async function suggestComplexes(query: string, limit = 6): Promise<Comple
   return [...seen.values()];
 }
 
+// ── 면적대별 시세 (D5) ────────────────────────────────────────────────
+
+export interface AreaBandRow {
+  label: string;
+  count: number;
+  latestManwon: number;
+  latestYm: string;
+  avgManwon: number;
+}
+
+const AREA_BANDS: Array<{ label: string; min: number; max: number }> = [
+  { label: "~59㎡", min: 0, max: 60 },
+  { label: "60~85㎡", min: 60, max: 85.5 },
+  { label: "85~102㎡", min: 85.5, max: 102 },
+  { label: "102~135㎡", min: 102, max: 135 },
+  { label: "135㎡~", min: 135, max: Number.POSITIVE_INFINITY },
+];
+
+/**
+ * 단지 면적대별 시세 요약 — 허브 승격용(D5). 최근 거래 기준 면적 구간별 최근가·평균가.
+ * market_transactions(디코드 name+region) 최근 400건에서 집계. 실거래 없으면 빈 배열.
+ */
+export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
+  const dec = decodeComplexId(complexId);
+  if (!dec) return [];
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("market_transactions")
+    .select("area_m2, deal_amount_krw, contract_ym")
+    .eq("complex_name", dec.name)
+    .eq("region_name", dec.region)
+    .eq("transaction_type", "trade")
+    .gt("deal_amount_krw", 0)
+    .not("area_m2", "is", null)
+    .order("contract_ym", { ascending: false })
+    .limit(400);
+  const rows =
+    (data as { area_m2: number | null; deal_amount_krw: number; contract_ym: string }[] | null) ??
+    [];
+  if (rows.length === 0) return [];
+
+  const out: AreaBandRow[] = [];
+  for (const band of AREA_BANDS) {
+    const inBand = rows.filter(
+      (r) => r.area_m2 != null && r.area_m2 >= band.min && r.area_m2 < band.max,
+    );
+    if (inBand.length === 0) continue;
+    const latest = inBand[0]; // 최신순 정렬됨
+    const avgKrw = inBand.reduce((s, r) => s + Number(r.deal_amount_krw), 0) / inBand.length;
+    out.push({
+      label: band.label,
+      count: inBand.length,
+      latestManwon: Math.round(Number(latest.deal_amount_krw) / 10000),
+      latestYm: String(latest.contract_ym),
+      avgManwon: Math.round(avgKrw / 10000),
+    });
+  }
+  return out;
+}
+
 // ── 실거래가 (market_transactions 월별 집계) ──────────────────────────
 
 export async function getTransactionHistory(
