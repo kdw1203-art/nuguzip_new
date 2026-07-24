@@ -354,7 +354,10 @@ export default async function MyPage() {
                   {expert.brokerNo ? `등록번호 ${expert.brokerNo} · ` : ""}매물을 등록하고 관리할 수 있어요
                 </div>
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link href="/my/leads" className="btn-soft btn-md no-underline">
+                  받은 문의
+                </Link>
                 <Link href="/my/listings" className="btn-soft btn-md no-underline">
                   내 매물 관리
                 </Link>
@@ -380,6 +383,24 @@ export default async function MyPage() {
             </div>
           )}
         </section>
+
+        {/* ── 전문가 활동 (인증 전문가 게이트) ── */}
+        {expert.isVerified && (
+          <section className="flex flex-col gap-2.5">
+            <SectionHead title="전문가 활동" />
+            <div className="card flex flex-col gap-3 rounded-[16px] p-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-[13px] font-extrabold text-ink">전문가 인증 완료</div>
+                <div className="mt-0.5 text-[11px] text-text-3">
+                  받은 상담을 확인하고 답변을 등록할 수 있어요
+                </div>
+              </div>
+              <Link href="/my/consultations" className="btn-primary btn-md shrink-0 no-underline">
+                상담 관리
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* ── 구독 상태 ── */}
         <section className="flex flex-col gap-2.5">

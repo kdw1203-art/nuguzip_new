@@ -28,14 +28,23 @@ function mapRow(r: Record<string, unknown>): ExpertConsultation {
     id: String(r.id ?? ""),
     expertId: String(r.expert_id ?? r.expertId ?? ""),
     expertLabel: r.expert_label ? String(r.expert_label) : null,
-    userEmail: String(r.user_email ?? r.userEmail ?? ""),
-    userName: r.user_name ? String(r.user_name) : null,
+    // 실제 컬럼은 requester_email/requester_label — 구 코드 호환 위해 fallback 유지.
+    userEmail: String(r.requester_email ?? r.user_email ?? r.userEmail ?? ""),
+    userName: r.requester_label
+      ? String(r.requester_label)
+      : r.user_name
+        ? String(r.user_name)
+        : null,
     type: (r.consult_type as ConsultType) ?? "text",
     message: String(r.message ?? ""),
     contactInfo: r.contact_info ? String(r.contact_info) : null,
     preferredTime: r.preferred_time ? String(r.preferred_time) : null,
     status: (r.status as ConsultStatus) ?? "pending",
-    reply: r.reply ? String(r.reply) : null,
+    reply: r.reply_message
+      ? String(r.reply_message)
+      : r.reply
+        ? String(r.reply)
+        : null,
     repliedAt: r.replied_at ? String(r.replied_at) : null,
     createdAt: String(r.created_at ?? new Date().toISOString()),
   };
@@ -79,9 +88,8 @@ export async function createConsultation(input: {
     .from("expert_consultations")
     .insert({
       expert_id: item.expertId,
-      expert_label: item.expertLabel,
-      user_email: item.userEmail,
-      user_name: item.userName,
+      requester_email: item.userEmail,
+      requester_label: item.userName,
       consult_type: item.type,
       message: item.message,
       contact_info: item.contactInfo,
@@ -124,7 +132,7 @@ export async function listMyConsultations(
   const { data, error } = await sb
     .from("expert_consultations")
     .select("*")
-    .eq("user_email", normalised)
+    .eq("requester_email", normalised)
     .order("created_at", { ascending: false });
 
   if (error) return [];
@@ -147,7 +155,7 @@ export async function countConsultationsThisMonth(userEmail: string): Promise<nu
   const { count } = await sb
     .from("expert_consultations")
     .select("id", { count: "exact", head: true })
-    .eq("user_email", em)
+    .eq("requester_email", em)
     .gte("created_at", since);
   return count ?? 0;
 }
@@ -155,23 +163,27 @@ export async function countConsultationsThisMonth(userEmail: string): Promise<nu
 export async function replyConsultation(
   id: string,
   reply: string,
+  expertId?: string,
 ): Promise<ExpertConsultation | null> {
   const sb = getServiceSupabase();
   const now = new Date().toISOString();
 
   if (!sb) {
-    const idx = memory.findIndex((c) => c.id === id);
+    const idx = memory.findIndex(
+      (c) => c.id === id && (!expertId || c.expertId === expertId),
+    );
     if (idx === -1) return null;
     memory[idx] = { ...memory[idx], reply, repliedAt: now, status: "replied" };
     return memory[idx];
   }
 
-  const { data, error } = await sb
+  let q = sb
     .from("expert_consultations")
-    .update({ reply, replied_at: now, status: "replied" })
-    .eq("id", id)
-    .select()
-    .single();
+    .update({ reply_message: reply, replied_at: now, status: "replied" })
+    .eq("id", id);
+  // 상담이 해당 전문가 소유인지까지 스코프(다른 전문가 상담 답변 방지).
+  if (expertId) q = q.eq("expert_id", expertId);
+  const { data, error } = await q.select().single();
 
   if (error) return null;
   return mapRow(data as Record<string, unknown>);

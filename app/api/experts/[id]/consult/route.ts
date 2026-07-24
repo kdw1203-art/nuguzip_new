@@ -168,7 +168,7 @@ export async function PATCH(
     );
   }
 
-  const result = await replyConsultation(consultationId, replyMessage);
+  const result = await replyConsultation(consultationId, replyMessage, expertId);
   if (!result) {
     return NextResponse.json({ error: "답변 실패" }, { status: 500 });
   }
