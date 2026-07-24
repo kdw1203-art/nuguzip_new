@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 import { RealEstateTools } from "./realestate-tools";
 
 /* B10: 상단 섹션 탭 — 기존 대출·수익률 계산기 + 신규 부동산 계산기 */
@@ -15,7 +16,10 @@ const SECTIONS = [
 type Section = (typeof SECTIONS)[number]["key"];
 
 const MODES = ["실거주", "전세", "월세"] as const;
-const FALLBACK_RATE = 4.19; // 은행 평균 (%) — 실데이터 미연동 시 예시값
+/* G10 / 사실 우선: 예전 상수명은 FALLBACK_RATE("은행 평균 4.19%")였다. 어떤 은행의
+   평균도 아닌 임의값을 "은행 평균"이라 부르면 사용자가 시장 금리로 읽는다.
+   공시 실데이터가 없을 때는 "사용자가 조정하는 가정 금리"로만 쓰고 그렇게 표기한다. */
+const ASSUMED_RATE_DEFAULT = 4.0; // 계산 시작값 (사용자가 슬라이더로 조정)
 const INCOME = 7000; // 연 소득 (만원)
 
 /* P2-4: 서버에서 주입되는 주담대 공시 금리 (lib/finance/mortgage-rates 결과와 동일 형태) */
@@ -33,27 +37,9 @@ export interface MortgageRatesProp {
   rates: MortgageRateItem[];
 }
 
-const BANK_ROWS = [
-  {
-    bank: "K은행 · 최저",
-    base: "4.31%",
-    applied: "3.89%",
-    monthly: "104만",
-    cond: "생애최초 -0.3 · 급여이체 -0.1",
-    best: true,
-  },
-  { bank: "S은행", base: "4.25%", applied: "3.98%", monthly: "106만", cond: "카드 실적 -0.2", best: false },
-  { bank: "H은행", base: "4.42%", applied: "4.05%", monthly: "107만", cond: "비대면 신청 -0.15", best: false },
-  {
-    bank: "보금자리론 (정책)",
-    base: "고정 4.10%",
-    applied: "3.80%",
-    monthly: "103만",
-    cond: "주택가 9억 이하 · 소득요건 충족",
-    best: false,
-    policy: true,
-  },
-] as const;
+/* G10: 여기 있던 BANK_ROWS(K은행 4.31%→3.89%, S은행, H은행, 보금자리론 고정 4.10% 등)는
+   전부 지어낸 금리·우대조건이었다. 대출 은행 선택에 직접 영향을 주는 수치라
+   "예시" 배지로 감쌀 성질이 아니어서 삭제하고, 공시가 없으면 원출처로 안내한다. */
 
 function formatEok(manwon: number): string {
   const eok = Math.floor(manwon / 10000);
@@ -105,10 +91,12 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
   const [years, setYears] = useState(30);
   const [serverCalc, setServerCalc] = useState<LoanCalcResult | null>(null);
 
-  // P2-4: 공시 실데이터가 있으면 은행별 변동금리 중간값 평균, 없으면 예시 상수
+  // P2-4: 공시 실데이터가 있으면 은행별 변동금리 중간값 평균을 그대로 쓰고,
+  // 없으면 사용자가 직접 정하는 가정 금리로만 계산한다(시장 금리라고 주장하지 않는다).
   const liveRate = mortgage.live ? deriveAverageRate(mortgage.rates) : null;
-  const rate = liveRate ?? FALLBACK_RATE;
   const rateIsLive = liveRate !== null;
+  const [assumedRate, setAssumedRate] = useState(ASSUMED_RATE_DEFAULT);
+  const rate = liveRate ?? assumedRate;
 
   const loan = price * (loanRatio / 100);
   const clientMonthly = monthlyPaymentOf(loan, rate, years); // 만원 (폴백)
@@ -275,12 +263,24 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
               <span className="flex items-center gap-1.5 text-[13px] text-text-2">
                 금리{" "}
                 <span className="text-[11px] text-text-3">
-                  {rateIsLive ? "(공시 평균)" : "(은행 평균)"}
+                  {rateIsLive ? "(공시 평균)" : "(직접 입력한 가정치)"}
                 </span>
-                {!rateIsLive && <ExampleBadge />}
               </span>
               <span className="text-base font-extrabold text-primary">{rate}%</span>
             </div>
+            {/* 공시 실데이터가 없으면 금리를 사용자가 직접 정한다 — 임의값을 시장 금리처럼 굳혀두지 않는다. */}
+            {!rateIsLive && (
+              <input
+                type="range"
+                min={2}
+                max={9}
+                step={0.05}
+                value={assumedRate}
+                onChange={(e) => setAssumedRate(Number(e.target.value))}
+                className="w-full accent-[#1d4fd8]"
+                aria-label="가정 금리"
+              />
+            )}
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-text-2">상환 기간</span>
               <div className="flex gap-1">
@@ -389,11 +389,9 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                 <span className="text-[11px] font-medium text-text-3">
                   {mortgage.live
                     ? `주담대 공시 금리${mortgage.asOf ? ` · ${mortgage.asOf} 기준` : ""}`
-                    : "주담대 40년"}
+                    : "공시 미연동"}
                 </span>
-                {!mortgage.live && <ExampleBadge />}
               </span>
-              <span className="text-[11px] font-bold text-primary">우대조건 입력 ›</span>
             </div>
             {mortgage.live ? (
               <div className="min-w-[540px]">
@@ -440,45 +438,15 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                 </div>
               </div>
             ) : (
-              <div className="min-w-[540px]">
-                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1.2fr] gap-2 border-b border-[#f0f3f8] py-2 text-[11px] text-text-3">
-                  <span>은행</span>
-                  <span className="text-center">기본 금리</span>
-                  <span className="text-center">우대 적용</span>
-                  <span className="text-center">월 원리금</span>
-                  <span className="text-center">우대 조건</span>
-                </div>
-                {BANK_ROWS.map((row) => (
-                  <div
-                    key={row.bank}
-                    className={`grid grid-cols-[1.2fr_1fr_1fr_1fr_1.2fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs last:border-b-0 ${
-                      row.best ? "rounded-lg bg-[rgba(29,79,216,.04)]" : ""
-                    }`}
-                  >
-                    <span className={`pl-1.5 font-bold ${row.best ? "text-primary" : "text-text-1"}`}>
-                      {row.bank}
-                    </span>
-                    <span className="text-center font-bold text-text-1">{row.base}</span>
-                    <span
-                      className={`text-center font-extrabold ${
-                        row.best
-                          ? "text-primary"
-                          : "policy" in row && row.policy
-                            ? "text-[#c07a3a]"
-                            : "text-text-1"
-                      }`}
-                    >
-                      {row.applied}
-                    </span>
-                    <span className="text-center font-extrabold text-ink">{row.monthly}</span>
-                    <span className="text-center text-[10px] text-text-2">{row.cond}</span>
-                  </div>
-                ))}
-                <div className="mt-2 text-[11px] text-[#adb5bd]">
-                  금리는 참고용 예시이며 실제 조건은 은행 심사에 따라 달라집니다 · 정책
-                  대출(보금자리론·디딤돌) 자격이 우선 검토됩니다
-                </div>
-              </div>
+              <EmptyState
+                icon="bar"
+                title="은행별 공시 금리를 아직 불러올 수 없어요"
+                desc="금융감독원 공시 연동 전이라 은행별 금리를 표시하지 않습니다. 지어낸 금리를 보여주는 대신, 원출처에서 직접 확인해 주세요. 위 계산은 직접 정한 가정 금리를 쓴 참고 계산입니다."
+                action={{
+                  label: "금융상품 한눈에에서 비교하기",
+                  href: "https://finlife.fss.or.kr",
+                }}
+              />
             )}
           </div>
 

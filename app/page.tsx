@@ -3,7 +3,7 @@ import { Header } from "./components/Header";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
-import { ExampleBadge } from "./components/ExampleBadge";
+import { EmptyState } from "./components/ui/EmptyState";
 import { JourneyBanner } from "./components/JourneyBanner";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { Footer } from "./components/Footer";
@@ -11,39 +11,19 @@ import { loadNewHomeData } from "@/lib/newui/home-data";
 import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getWeeklyDigest } from "@/lib/newui/digest";
-import type {
-  DeltaTone,
-  HomeMeetingItem,
-  HomeNoteItem,
-  HomePostItem,
-  HomeRegionCard,
-  HomeReportItem,
-} from "@/lib/newui/home-data";
+import type { DeltaTone } from "@/lib/newui/home-data";
 
 // 스케일 지침 #21: 비로그인 홈은 정적 캐시 (5분 재검증) — 접속마다 재계산 금지
 export const revalidate = 300;
 
-/* ── 예시 폴백 (실데이터 0건일 때만, 섹션당 1개만) ──
-   정책: 실데이터/크롤링 데이터 우선. 없으면 "예시" 1건만 노출, 그 외 더미 금지. */
-const MOCK_REGIONS: HomeRegionCard[] = [
-  { id: "gangnam", name: "강남구", meta: "서울 · 37건", price: "32.5억", delta: "▼ 4.2%", tone: "down" },
-];
-
-const MOCK_NOTES: HomeNoteItem[] = [
-  { id: "m1", title: "공작아파트 302동 — “주차가 관건”", score: "78점", hot: true },
-];
-
-const MOCK_POSTS: HomePostItem[] = [
-  { id: "p1", rank: 1, title: "“청년 82.6% 세입자 시대…월세 부담 낮춰야”", comments: 6 },
-];
-
-const MOCK_MEETINGS: HomeMeetingItem[] = [
-  { id: "mt1", label: "과천지식정보타운 · 토 10:00 · 4/6" },
-];
-
-const MOCK_REPORTS: HomeReportItem[] = [
-  { id: "r1", title: "관양동 재건축 흐름 분석", priceLabel: "9,900원" },
-];
+/* G10 / 사실 우선: 여기 있던 5개 예시 폴백을 삭제했다.
+   - MOCK_REGIONS: "강남구 32.5억 ▼4.2%" — 실존 자치구에 지어낸 시세·변동률
+   - MOCK_NOTES:   "공작아파트 302동 78점" — 존재하지 않는 노트(클릭 시 죽은 링크)
+   - MOCK_POSTS:   "청년 82.6% 세입자 시대…" — 지어낸 통계가 박힌 가짜 헤드라인
+   - MOCK_MEETINGS:"과천지식정보타운 · 토 10:00 · 4/6" — 실제 장소의 없는 모임(사람이 나갈 수 있다)
+   - MOCK_REPORTS: "관양동 재건축 흐름 분석 · 9,900원" — 팔지 않는 상품
+   "예시" 배지를 붙여도 홈 첫 화면에서는 실데이터와 같은 카드 모양으로 읽힌다.
+   데이터가 없으면 없다고 말하고, 채우는 행동(CTA)으로 안내한다. */
 
 const deltaClass: Record<DeltaTone, string> = {
   down: "delta-down",
@@ -63,18 +43,12 @@ export default async function Home() {
       ? `${digest.market[0].name} 등 주요 지역 시세 요약`
       : "최근 7일 뉴스·시세·커뮤니티 요약");
 
-  // 실데이터가 1건이라도 있으면 그대로 사용, 0건일 때만 목업(예시 라벨 부착)
-  const regionsIsMock = data.regions.length === 0;
-  const notesIsMock = data.notes.length === 0;
-  const postsIsMock = data.posts.length === 0;
-  const meetingsIsMock = data.meetings.length === 0;
-  const reportsIsMock = data.reports.length === 0;
-
-  const regions = regionsIsMock ? MOCK_REGIONS : data.regions;
-  const notes = notesIsMock ? MOCK_NOTES : data.notes;
-  const posts = postsIsMock ? MOCK_POSTS : data.posts;
-  const meetings = meetingsIsMock ? MOCK_MEETINGS : data.meetings;
-  const reports = reportsIsMock ? MOCK_REPORTS : data.reports;
+  // 실데이터만 사용한다 — 0건이면 빈 상태를 그린다(가짜 카드로 채우지 않는다).
+  const regions = data.regions;
+  const notes = data.notes;
+  const posts = data.posts;
+  const meetings = data.meetings;
+  const reports = data.reports;
 
   // 사실 기반 원칙: 실데이터 없는 수치는 허위 값 대신 "—" 표기
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
@@ -84,10 +58,8 @@ export default async function Home() {
   const baseRateData = await getBaseRate();
   const baseRate = baseRateData?.label ?? "—";
 
-  // 홈 미니지도 마커용 시세 지역 (좌표 매핑은 HomeMiniMap 내부)
-  // 사실 우선: 예시(목업) 지역은 지도 마커로 노출하지 않음 — 마커엔 "예시" 라벨을 못 붙이므로
-  // 허위 시세 말풍선이 사실처럼 보이는 것을 방지. 실데이터가 있을 때만 마커 표시.
-  const mapRegions = regionsIsMock ? [] : regions.slice(0, 4);
+  // 홈 미니지도 마커용 시세 지역 (좌표 매핑은 HomeMiniMap 내부) — 실데이터만 마커로 표시
+  const mapRegions = regions.slice(0, 4);
 
   return (
     <>
@@ -149,21 +121,27 @@ export default async function Home() {
           </div>
 
           <div className="rise-in-5 flex flex-col gap-3">
-            {regions.slice(0, 2).map((r) => (
-              <div key={r.id} className="card card-hover flex items-center justify-between rounded-2xl px-4 py-3.5">
-                <div>
-                  <div className="flex items-center gap-1.5 text-sm font-bold text-ink">
-                    {r.name}
-                    {regionsIsMock && <ExampleBadge />}
+            {regions.length === 0 ? (
+              <EmptyState
+                icon="map"
+                title="지역 시세를 아직 불러오지 못했어요"
+                desc="실거래 스냅샷이 준비되면 여기에 표시됩니다."
+                action={{ label: "지도에서 찾아보기", href: "/map" }}
+              />
+            ) : (
+              regions.slice(0, 2).map((r) => (
+                <div key={r.id} className="card card-hover flex items-center justify-between rounded-2xl px-4 py-3.5">
+                  <div>
+                    <div className="text-sm font-bold text-ink">{r.name}</div>
+                    <div className="text-xs text-text-3">{r.meta}</div>
                   </div>
-                  <div className="text-xs text-text-3">{r.meta}</div>
+                  <div className="text-right">
+                    <div className="t-num text-base text-ink">{r.price}</div>
+                    <div className={`text-xs ${deltaClass[r.tone]}`}>{r.delta}</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="t-num text-base text-ink">{r.price}</div>
-                  <div className={`text-xs ${deltaClass[r.tone]}`}>{r.delta}</div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           <div className="rise-in-6">
             <AIPanel title="오늘의 시장 브리핑">
@@ -175,13 +153,9 @@ export default async function Home() {
                   </span>
                 </>
               ) : (
-                <>
-                  <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
-                    예시 브리핑
-                  </span>
-                  수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을 좁힐
-                  시기입니다.
-                </>
+                /* G10: "수도권 하락 폭 3주 연속 둔화 · 거래량 +12%"는 근거 없이 고정된
+                   문장이었다. 시장 판단 문구는 예시라도 사실처럼 읽히므로 삭제. */
+                <>오늘 브리핑을 아직 만들지 못했어요. 실거래 데이터가 갱신되면 표시됩니다.</>
               )}
             </AIPanel>
           </div>
@@ -265,24 +239,31 @@ export default async function Home() {
             </div>
 
             {/* 지역 시세 카드 4열 — 라운드 확대 + 호버 리프트 */}
-            <div className="rise-in-2 grid grid-cols-2 gap-3 xl:grid-cols-4">
-              {regions.slice(0, 4).map((r) => (
-                <div key={r.id} className="card card-hover rounded-2xl px-4 py-4">
-                  <div className="flex items-center gap-1.5 text-xs text-text-3">
-                    <span>
+            {regions.length === 0 ? (
+              <EmptyState
+                className="rise-in-2"
+                icon="map"
+                title="지역 시세를 아직 불러오지 못했어요"
+                desc="국토교통부 실거래 스냅샷이 적재되면 이 자리에 지역별 평균가와 변동률이 표시됩니다."
+                action={{ label: "지도에서 찾아보기", href: "/map" }}
+              />
+            ) : (
+              <div className="rise-in-2 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {regions.slice(0, 4).map((r) => (
+                  <div key={r.id} className="card card-hover rounded-2xl px-4 py-4">
+                    <div className="text-xs text-text-3">
                       {r.name} · {r.meta.split("· ")[1] ?? r.meta}
-                    </span>
-                    {regionsIsMock && <ExampleBadge />}
+                    </div>
+                    <div className="mt-1.5 flex items-baseline gap-1.5">
+                      <span className="t-num text-[19px] text-ink">{r.price}</span>
+                      <span className={`text-[11px] ${deltaClass[r.tone]}`}>
+                        {r.delta.replace(" ", "")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-1.5 flex items-baseline gap-1.5">
-                    <span className="t-num text-[19px] text-ink">{r.price}</span>
-                    <span className={`text-[11px] ${deltaClass[r.tone]}`}>
-                      {r.delta.replace(" ", "")}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준, null이면 미표시 */}
             {freshness && (
@@ -298,45 +279,54 @@ export default async function Home() {
                   <span className="accent-underline text-sm font-extrabold text-ink">공개 임장노트</span>
                   <Link href="/notes" className="text-[11px] text-text-3 transition-colors hover:text-primary">더보기</Link>
                 </div>
-                {notes.map((n, i) => (
-                  <div
-                    key={n.id}
-                    className={`flex items-center justify-between gap-3 py-[7px] text-xs ${
-                      i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                    }`}
-                  >
-                    <span className="flex min-w-0 items-center gap-1.5">
+                {notes.length === 0 ? (
+                  <EmptyState
+                    icon="notebook-pen"
+                    title="아직 공개된 임장노트가 없어요"
+                    desc="첫 노트를 남기면 여기에 소개됩니다."
+                    action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+                  />
+                ) : (
+                  notes.map((n, i) => (
+                    <div
+                      key={n.id}
+                      className={`flex items-center justify-between gap-3 py-[7px] text-xs ${
+                        i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                      }`}
+                    >
                       <span className="truncate font-semibold text-text-1">{n.title}</span>
-                      {notesIsMock && <ExampleBadge />}
-                    </span>
-                    <span className={`shrink-0 font-extrabold ${n.hot ? "text-primary" : "text-text-3"}`}>
-                      {n.score}
-                    </span>
-                  </div>
-                ))}
+                      <span className={`shrink-0 font-extrabold ${n.hot ? "text-primary" : "text-text-3"}`}>
+                        {n.score}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
               <div className="card card-hover flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
                   <span className="accent-underline text-sm font-extrabold text-ink">동네이야기 · 자료</span>
                   <Link href="/town" className="text-[11px] text-text-3 transition-colors hover:text-primary">더보기</Link>
                 </div>
-                {posts.map((p, i) => (
-                  <div
-                    key={p.id}
-                    className={`py-[7px] text-xs font-semibold text-text-1 ${
-                      i < posts.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                    }`}
-                  >
-                    {p.rank} {p.title}{" "}
-                    <span className="font-normal text-text-3">댓글 {p.comments}</span>
-                    {postsIsMock && (
-                      <>
-                        {" "}
-                        <ExampleBadge />
-                      </>
-                    )}
-                  </div>
-                ))}
+                {posts.length === 0 ? (
+                  <EmptyState
+                    icon="messages-square"
+                    title="아직 올라온 글이 없어요"
+                    desc="동네 이야기를 먼저 시작해 보세요."
+                    action={{ label: "글쓰기", href: "/town/write" }}
+                  />
+                ) : (
+                  posts.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`py-[7px] text-xs font-semibold text-text-1 ${
+                        i < posts.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                      }`}
+                    >
+                      {p.rank} {p.title}{" "}
+                      <span className="font-normal text-text-3">댓글 {p.comments}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -353,29 +343,32 @@ export default async function Home() {
                     </span>
                   </>
                 ) : (
-                  <>
-                    <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
-                      예시 브리핑
-                    </span>
-                    수도권 하락 폭 3주 연속 둔화. 거래량 +12% — 관심 지역을
-                    좁힐 시기입니다.
-                  </>
+                  <>오늘 브리핑을 아직 만들지 못했어요. 실거래 데이터가 갱신되면 표시됩니다.</>
                 )}
               </AIPanel>
             </div>
             <div className="rise-in-2 card card-hover flex flex-col gap-2 rounded-2xl px-5 py-4">
               <div className="accent-underline text-[13px] font-extrabold text-ink">이번 주 임장 모임</div>
-              {meetings.map((m, i) => (
-                <div
-                  key={m.id}
-                  className={`flex items-center gap-1.5 py-1.5 text-xs text-text-1 ${
-                    i < meetings.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                  }`}
-                >
-                  <span className="min-w-0 truncate">{m.label}</span>
-                  {meetingsIsMock && <ExampleBadge />}
-                </div>
-              ))}
+              {/* 없는 모임을 예시로라도 띄우면 실제로 그 장소에 나가는 사람이 생긴다. */}
+              {meetings.length === 0 ? (
+                <p className="py-1.5 text-xs leading-[1.6] text-text-3">
+                  예정된 모임이 없어요.{" "}
+                  <Link href="/town/groups" className="font-bold text-primary">
+                    임장 모임 보기 ›
+                  </Link>
+                </p>
+              ) : (
+                meetings.map((m, i) => (
+                  <div
+                    key={m.id}
+                    className={`py-1.5 text-xs text-text-1 ${
+                      i < meetings.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    }`}
+                  >
+                    <span className="block truncate">{m.label}</span>
+                  </div>
+                ))
+              )}
             </div>
             {/* 전세 안전 진단 진입 카드 (제언-전략 #9) */}
             <Link
@@ -390,15 +383,22 @@ export default async function Home() {
             </Link>
             <div className="rise-in-3 card card-hover flex flex-col gap-2 rounded-2xl px-5 py-4">
               <div className="accent-underline text-[13px] font-extrabold text-ink">인기 전문가 리포트</div>
-              {reports.map((r) => (
-                <div key={r.id} className="flex justify-between gap-3 text-xs">
-                  <span className="flex min-w-0 items-center gap-1.5">
+              {/* 팔지 않는 리포트를 가격표까지 붙여 예시로 띄우지 않는다. */}
+              {reports.length === 0 ? (
+                <p className="text-xs leading-[1.6] text-text-3">
+                  아직 발행된 리포트가 없어요.{" "}
+                  <Link href="/town/market" className="font-bold text-primary">
+                    전문가 마켓 ›
+                  </Link>
+                </p>
+              ) : (
+                reports.map((r) => (
+                  <div key={r.id} className="flex justify-between gap-3 text-xs">
                     <span className="truncate font-semibold text-text-1">{r.title}</span>
-                    {reportsIsMock && <ExampleBadge />}
-                  </span>
-                  <span className="shrink-0 font-extrabold text-ink">{r.priceLabel}</span>
-                </div>
-              ))}
+                    <span className="shrink-0 font-extrabold text-ink">{r.priceLabel}</span>
+                  </div>
+                ))
+              )}
             </div>
             {/* P1-9: 주간 다이제스트 진입 카드 (고아 라우트 해소) */}
             <Link

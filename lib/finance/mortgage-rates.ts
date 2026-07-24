@@ -2,7 +2,8 @@
  * 주택담보대출 금리 — 금융감독원 "금융상품 한눈에"(finlife.fss.or.kr) 공시 API 실연동.
  *
  * FINLIFE_API_KEY 가 설정되면 은행권(topFinGrpNo=020000) 주담대 상품의 공시 금리를
- * 은행별 변동/고정 min~max 로 집계해 실데이터를 반환한다. 키 미설정·실패 시 폴백 표.
+ * 은행별 변동/고정 min~max 로 집계해 실데이터를 반환한다. 키 미설정·실패 시
+ * `rates: []` + `live: false` — 지어낸 금리는 반환하지 않는다(사실 우선).
  * 캐시: public_data_cache(24h) 재사용.
  */
 import "server-only";
@@ -26,14 +27,19 @@ export interface MortgageRatesResult {
   rates: MortgageRate[];
 }
 
-/** 공시 API 연동 전·실패 시 사용하는 폴백 표 (대략적 시장 범위). */
-export const FALLBACK_MORTGAGE_RATES: MortgageRate[] = [
-  { bank: "케이뱅크", variable: "3.62~5.13%", fixed: "3.48~4.79%", note: "비대면 전용" },
-  { bank: "카카오뱅크", variable: "3.71~5.02%", fixed: "3.55~4.66%", note: "중도상환 면제" },
-  { bank: "KB국민", variable: "3.94~5.34%", fixed: "3.79~5.19%", note: "주거래 우대" },
-  { bank: "신한", variable: "3.98~5.28%", fixed: "3.83~5.11%", note: "급여이체 우대" },
-  { bank: "하나", variable: "4.01~5.31%", fixed: "3.88~5.18%", note: "전자약정 우대" },
-];
+/* G10 / 사실 우선: 예전에는 여기 케이뱅크·카카오뱅크·KB국민·신한·하나의 금리 범위를
+   소수점까지 지어내 폴백으로 내보냈다. 실존하는 금융기관에 존재하지 않는 상품 조건을
+   붙이는 것이고, 사용자가 이걸 보고 대출 은행을 고를 수 있다. "샘플" 라벨로는
+   중화되지 않으므로 폴백 표 자체를 삭제한다 — 공시를 못 받으면 빈 목록을 반환하고
+   화면에서 원출처(금융감독원 금융상품 한눈에)로 안내한다. */
+
+/** 공시를 받지 못했을 때의 결과 — 지어낸 금리 대신 빈 목록. */
+const UNAVAILABLE: MortgageRatesResult = {
+  live: false,
+  source: "금융감독원 금융상품 한눈에",
+  asOf: null,
+  rates: [],
+};
 
 export function isMortgageRateLive(): boolean {
   return Boolean(process.env.FINLIFE_API_KEY?.trim());
@@ -187,9 +193,7 @@ async function fetchLive(): Promise<MortgageRatesResult | null> {
 
 /** 주담대 금리 (실데이터 우선, 폴백 포함). 24h 캐시. */
 export async function getMortgageRates(): Promise<MortgageRatesResult> {
-  if (!isMortgageRateLive()) {
-    return { live: false, source: "샘플", asOf: null, rates: FALLBACK_MORTGAGE_RATES };
-  }
+  if (!isMortgageRateLive()) return UNAVAILABLE;
   const cached = (await readPublicDataCache(CACHE_KEY)) as MortgageRatesResult | null;
   if (cached?.live && cached.rates?.length) return cached;
   try {
@@ -199,7 +203,7 @@ export async function getMortgageRates(): Promise<MortgageRatesResult> {
       return live;
     }
   } catch (err) {
-    logger.warn("[finlife] live fetch failed, fallback", err);
+    logger.warn("[finlife] live fetch failed — 지어낸 금리 대신 빈 목록 반환", err);
   }
-  return { live: false, source: "샘플", asOf: null, rates: FALLBACK_MORTGAGE_RATES };
+  return UNAVAILABLE;
 }
