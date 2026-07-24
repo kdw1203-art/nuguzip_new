@@ -134,7 +134,7 @@ CSP·이미지 최적화·PWA·sitemap(단지 2,000+지역 61)·JSON-LD는 견�
 | G7 | 이미지·폰트 최적화 감사 | 부분 | P2 | S | 없음 | `next/image` 미사용 지점·LCP 우선순위·Pretendard 서브셋 점검. |
 | G8 | 성능 예산 CI | 없음 | P2 | M | 없음 | Lighthouse/번들 예산 CI 게이트로 회귀 방지(Playwright 이미 존재). |
 | G9 | PWA·오프라인 완성도 | 부분 | P2 | M | 없음 | `sw.js` 캐시 전략·설치 프롬프트·오프라인 폴백 점검(manifest 존재). |
-| G10 | 빈·에러 상태 컴포넌트 통일 | 부분 | P1 | S | 없음 | 곳곳의 DB 실패 목업 폴백을 통일된 empty/error 컴포넌트로 대체. |
+| G10 | 빈·에러 상태 컴포넌트 통일 | 완료 | P1 | S | 없음 | `EmptyState`/`ErrorState`에 light·admin 톤 도입, `app/error.tsx`·`app/global-error.tsx` 신설(+`/api/monitoring/client-error` 경유 캡처). `/notes/[id]` 허구 노트(MOCK_VIEW)·운영 대시보드 목업(가짜 신고·초록불 ETL·가짜 전문가 심사) 제거 → "0건"과 "조회 실패"를 구분해 표시. |
 
 ## 8. 광고·수익화 (Ads / Monetization Beyond Subscription)
 

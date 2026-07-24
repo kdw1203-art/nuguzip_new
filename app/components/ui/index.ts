@@ -10,8 +10,13 @@ export type { ChipProps, ChipRowProps, ChipTone } from "./Chip";
 export { Badge } from "./Badge";
 export type { BadgeProps, BadgeTone } from "./Badge";
 
-export { EmptyState } from "./EmptyState";
-export type { EmptyStateProps, EmptyStateAction } from "./EmptyState";
+export { EmptyState, ErrorState } from "./EmptyState";
+export type {
+  EmptyStateProps,
+  EmptyStateAction,
+  ErrorStateProps,
+  StateTone,
+} from "./EmptyState";
 
 export { SectionHeader } from "./SectionHeader";
 export type { SectionHeaderProps, SectionHeaderAction } from "./SectionHeader";

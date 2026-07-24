@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
@@ -11,7 +12,7 @@ import {
 } from "@/lib/inspection/store-db";
 import { safeAuth } from "@/lib/safe-auth";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
-import { ExampleBadge } from "../../components/ExampleBadge";
+import { ErrorState } from "@/app/components/ui/EmptyState";
 import { NoteDetailActions } from "./note-actions";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
@@ -55,49 +56,26 @@ type NoteView = {
   complexLabel: string;
 };
 
-const MOCK_VIEW: NoteView = {
-  breadcrumb: "임장노트 › 공작아파트",
-  chips: ["관양동", "공작아파트", "84A 노트"],
-  oneLiner: "공작 302동 3차 임장 — 채광은 확실, 주차가 관건",
-  directVisit: true,
-  visitMeta: "방문 2026.7.12 (토) 14~16시 · 임장러버",
-  axes: [
-    { icon: "☀", label: "채광", level: "상" },
-    { icon: "🔊", label: "소음", level: "중" },
-    { icon: "🅿", label: "주차", level: "하" },
-    { icon: "🚇", label: "교통", level: "상" },
-  ],
-  body: "남향이라 오후 채광 좋음. 단지 뒤 도로 소음 약간 있음. 초등학교 도보 5분. 주차는 세대당 0.9대로 저녁엔 이중주차 많음.",
-  photoCount: 4,
-  /* 더미 1개 원칙: 예시 방문 기록은 1건만 */
-  visits: [
-    { label: "3차 · 2026.07.12 (오후)", summary: "채광 좋음 · 학군 좋음", latest: true },
-  ],
-  goodPoints: ["오후 2시에도 거실 밝음", "초등학교 도보 7분", "재건축 여지 + 재개발 인접"],
-  cautionPoints: ["저녁 7시 지상 만차, 지하 2층까지", "연식 38년 (관리비 +4만/월)"],
-  evidenceNote: "기록 5건 + 실거래 36건 + 공개 노트 38건",
-  aiInline:
-    "최근 90일 실거래 4건 평균 4.82억 — 이 노트의 감점(주차) 반영 시 적정가 4.7억",
-  aiSummary:
-    "3회 방문 기록 기준 — 채광·학군은 일관되게 강점입니다. 소음은 시간대 편차가 있고, 주차(세대당 0.9대)는 구조적 약점입니다.",
-  totalScore: 81,
-  scoreBars: [
-    { label: "입지", value: 86, bad: false },
-    { label: "환경", value: 78, bad: false },
-    { label: "단지", value: 62, bad: true },
-    { label: "가격", value: 84, bad: false },
-    { label: "미래가치", value: 80, bad: false },
-  ],
-  checklistDone: 9,
-  checklistTotal: 10,
-  sourceLabel: "국토부 실거래가",
-  baseDate: "2026.7.19",
-  regionLabel: "관양동",
-  complexLabel: "공작아파트",
-};
+/* G10: 예전에는 조회 실패·미존재 시 MOCK_VIEW(허구의 "공작아파트 3차 임장" 노트)를
+   실제 URL 로 그대로 내보냈다. 존재하지 않는 임장 기록을 사실처럼 읽히게 하므로 삭제하고,
+   아래 loadNote() 의 3분기(정상·미존재·조회실패)로 대체한다. */
 
-/* 더미 1개 원칙: 예시 체크 제안 1건만 — 목업 노트에서만 노출 */
-const SUGGESTIONS = ["평일 오전 등교 시간대 단지 앞 교통 확인"];
+type LoadResult =
+  | { kind: "ok"; note: InspectionNote }
+  | { kind: "missing" }
+  | { kind: "error"; message: string };
+
+async function loadNote(id: string): Promise<LoadResult> {
+  try {
+    const note = await getNote(id);
+    return note ? { kind: "ok", note } : { kind: "missing" };
+  } catch (err) {
+    return {
+      kind: "error",
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
 
 /* ---------- 실데이터 → 표준 뷰 변환 ---------- */
 
@@ -247,7 +225,9 @@ function toView(n: InspectionNote): NoteView {
     })),
     checklistDone: doneCount,
     checklistTotal: n.checklist.length,
-    sourceLabel: "국토부 실거래가 · 사용자 방문 기록",
+    // 이 화면의 수치는 전부 작성자가 직접 남긴 방문 기록에서 나온다 —
+    // 실거래가를 근거로 쓰지 않으므로 출처에 적지 않는다.
+    sourceLabel: "작성자 직접 방문 기록",
     baseDate: formatDate(n.updatedAt) || n.visitDate,
     regionLabel: n.region,
     complexLabel: displayTitle,
@@ -419,65 +399,56 @@ export default async function NoteDetailPage({
   const session = await safeAuth();
   const viewerEmail = session?.user?.email?.trim().toLowerCase() ?? null;
 
-  let view = MOCK_VIEW;
-  let realNote: InspectionNote | null = null;
-  let isOwner = false;
-  try {
-    const note = await getNote(id);
-    if (note) {
-      isOwner = Boolean(
-        viewerEmail && note.authorEmail.toLowerCase() === viewerEmail,
-      );
-      if (note.isPublic || isOwner) {
-        view = toView(note);
-        realNote = note;
-      }
-    }
-  } catch {
-    // env 미설정·조회 실패 시 목업 유지
-  }
-  const isReal = realNote !== null;
+  const loaded = await loadNote(id);
 
-  // 실노트는 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김 (예시 화면은 링크 없음)
+  // 조회 실패 — "노트가 없다"고 말하면 거짓이므로 실패 그대로 알린다.
+  if (loaded.kind === "error") {
+    return (
+      <PageShell breadcrumb="임장노트">
+        <ErrorState
+          title="노트를 불러오지 못했어요"
+          desc="일시적인 조회 오류예요. 잠시 뒤 새로고침하면 대부분 정상으로 돌아옵니다."
+          cause={loaded.message}
+          action={{ label: "임장노트 목록", href: "/notes" }}
+        />
+      </PageShell>
+    );
+  }
+
+  // 미존재 노트는 404. 비공개 노트는 소유자가 아니면 존재 여부까지 숨긴다.
+  if (loaded.kind === "missing") notFound();
+  const realNote = loaded.note;
+  const isOwner = Boolean(
+    viewerEmail && realNote.authorEmail.toLowerCase() === viewerEmail,
+  );
+  if (!realNote.isPublic && !isOwner) notFound();
+
+  // 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김
   let complexHref: string | null = null;
-  if (realNote) {
-    try {
-      complexHref = await resolveComplexHref(realNote.aptName, realNote.region);
-    } catch {
-      complexHref = null;
-    }
+  try {
+    complexHref = await resolveComplexHref(realNote.aptName, realNote.region);
+  } catch {
+    complexHref = null;
   }
 
-  const v = view;
+  const v = toView(realNote);
 
   return (
     <PageShell breadcrumb={v.breadcrumb}>
       {/* JSON-LD(Article) — 공개 실데이터 노트만 삽입 (20b) */}
-      {realNote && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: articleJsonLd(realNote) }}
-        />
-      )}
-      {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 (실노트만, additive) */}
-      {realNote && <JsonLd data={noteJsonLd(realNote, v)} />}
-
-      {/* 더미데이터 정책: 실노트가 없을 때만 예시 화면 — 명시 캡션 */}
-      {!isReal && (
-        <div className="rise-in mb-3 flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
-          <ExampleBadge />
-          <span>
-            예시 노트 화면이에요 — 노트를 작성하면 내 실데이터로 표시됩니다.
-          </span>
-        </div>
-      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: articleJsonLd(realNote) }}
+      />
+      {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
+      <JsonLd data={noteJsonLd(realNote, v)} />
 
       {/* 상단 액션 — 공유(클립보드)·공개 토글(소유자) 실동작 */}
       <div className="rise-in mb-4 flex flex-wrap items-center justify-end gap-2">
         <NoteDetailActions
           noteId={id}
-          isOwner={isReal && isOwner}
-          initialIsPublic={realNote?.isPublic ?? false}
+          isOwner={isOwner}
+          initialIsPublic={realNote.isPublic}
         />
         <Link href="/notes/compare" className="btn-secondary px-3.5 py-2 text-[13px]">
           회차 비교
@@ -604,12 +575,12 @@ export default async function NoteDetailPage({
                   </Link>
                   <span>·</span>
                   <Link href={complexHref} className="font-bold text-primary">
-                    이 단지 노트 {isReal ? "더 보기" : "38"}
+                    이 단지 노트 더 보기
                   </Link>
                 </>
               )}
-              {/* 신고 연결(#81) — 타인의 실데이터 노트만, POST /api/moderation/content-report */}
-              {realNote && !isOwner && (
+              {/* 신고 연결(#81) — 타인의 노트만, POST /api/moderation/content-report */}
+              {!isOwner && (
                 <>
                   <span>·</span>
                   <ReportButton postId={realNote.id} />
@@ -684,9 +655,7 @@ export default async function NoteDetailPage({
             <div className="flex items-center justify-between rounded-xl bg-bg px-3.5 py-3">
               <span className="text-xs text-text-2">다음 단계 제안</span>
               <span className="text-xs font-extrabold text-primary">
-                {isReal
-                  ? "관심 단지라면 시간대를 바꿔 재방문 ›"
-                  : "추가 방문 불필요 → 협상 단계 진행 ›"}
+                관심 단지라면 시간대를 바꿔 재방문 ›
               </span>
             </div>
           </div>
@@ -705,29 +674,13 @@ export default async function NoteDetailPage({
                     {v.totalScore} / 100
                   </span>
                 </div>
-                {isReal ? (
-                  /* 실노트: 실기록 기반 수치만 노출 (허위 수치 금지) */
-                  <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
-                    <span className="text-xs">체크 항목 완료</span>
-                    <span className="text-sm font-extrabold text-white">
-                      {v.checklistDone}/{v.checklistTotal}
-                    </span>
-                  </div>
-                ) : (
-                  /* 예시 노트 전용 예시 수치 */
-                  <>
-                    <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
-                      <span className="text-xs">최근 3개월 실거래 (예시)</span>
-                      <span className="text-sm font-extrabold text-ai-accent">
-                        ▼ 4.1% 하락 구간
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
-                      <span className="text-xs">예산 내 대안 단지 (예시)</span>
-                      <span className="text-sm font-extrabold text-white">2곳</span>
-                    </div>
-                  </>
-                )}
+                {/* 실기록 기반 수치만 노출 (허위 수치 금지) */}
+                <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
+                  <span className="text-xs">체크 항목 완료</span>
+                  <span className="text-sm font-extrabold text-white">
+                    {v.checklistDone}/{v.checklistTotal}
+                  </span>
+                </div>
               </div>
               <Link
                 href="/analysis/compare"
@@ -755,17 +708,8 @@ export default async function NoteDetailPage({
               </div>
             </div>
             <div className="text-center text-xs text-text-2">
-              {isReal ? (
-                <>
-                  5개 축 평균 <b className="text-primary">{v.totalScore}점</b> ·
-                  공개 노트 기준
-                </>
-              ) : (
-                <>
-                  관양동 공개 노트 상위 <b className="text-primary">12%</b> · 기록
-                  완성도 높음
-                </>
-              )}
+              5개 축 평균 <b className="text-primary">{v.totalScore}점</b> · 이 노트
+              기록 기준
             </div>
             <div className="flex w-full flex-col gap-[7px]">
               {v.scoreBars.map((b) => (
@@ -808,66 +752,19 @@ export default async function NoteDetailPage({
             <div className="flex justify-between text-xs">
               <span className="text-text-2">시간대 커버리지</span>
               <span className="font-extrabold text-primary">
-                {isReal ? "1회 방문 기록" : "오전·오후·저녁·우천 ✓"}
+                {v.visits.length}회 방문 기록
               </span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-text-2">미확인 항목</span>
               <span className="font-extrabold text-danger">
-                {isReal
-                  ? `${Math.max(v.checklistTotal - v.checklistDone, 0)}건`
-                  : "겨울 채광 1건"}
+                {Math.max(v.checklistTotal - v.checklistDone, 0)}건
               </span>
             </div>
           </div>
 
-          {/* AI 판단 편향 감지 (10f) — 예시 노트 전용 (실노트 편향 분석 미연동) */}
-          {!isReal && (
-          <div className="rise-in-4">
-            <AIPanel title="판단 편향 감지 (예시)">
-              <p>
-                기록 5건 중 4건이{" "}
-                <b className="text-[#f2c94c]">긍정 표현 위주</b>입니다 — 이미
-                마음이 기운 상태에서의 확증 편향 가능성이 있어요. 균형을 위해: ①
-                이 단지의 <b className="text-white">부정 공개 노트 3건</b>을
-                읽어보세요 ② 체크 항목 중 &apos;아쉬움&apos;이 2개 이상인
-                항목(주차·연식)에 실제 월 비용을 붙여 다시 평가해 보세요.
-              </p>
-              <div className="mt-2.5 flex gap-2">
-                <button
-                  type="button"
-                  className="btn-primary flex-1 rounded-[10px] p-2.5 text-center text-xs text-white"
-                >
-                  반대 관점 노트 3건 보기
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 rounded-[10px] bg-[rgba(255,255,255,.08)] p-2.5 text-center text-xs font-bold text-ai-text"
-                >
-                  약점 비용 환산
-                </button>
-              </div>
-            </AIPanel>
-          </div>
-          )}
-
-          {/* 체크 제안 (6c) — 예시 노트 전용 샘플 1건 */}
-          {!isReal && (
-          <div className="rise-in-5 card flex flex-col gap-2.5 rounded-[20px] p-5">
-            <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-              체크 제안 <ExampleBadge />
-            </div>
-            {SUGGESTIONS.map((s) => (
-              <div
-                key={s}
-                className="flex items-baseline gap-2 text-[13px] leading-[1.5] text-text-1"
-              >
-                <span className="font-extrabold text-primary">·</span>
-                {s}
-              </div>
-            ))}
-          </div>
-          )}
+          {/* G10: '판단 편향 감지'·'체크 제안' 패널은 실제 분석 없이 문구만 고정돼 있던
+              허구 패널이라 제거했다. 편향 분석이 실제로 붙으면 그때 되살린다. */}
         </aside>
       </div>
 
@@ -878,7 +775,7 @@ export default async function NoteDetailPage({
           actions={[
             {
               label: "AI 분석 실행",
-              href: isReal ? `/analysis?noteId=${encodeURIComponent(id)}` : "/analysis",
+              href: `/analysis?noteId=${encodeURIComponent(id)}`,
               primary: true,
             },
             { label: "회차 비교", href: "/notes/compare" },
@@ -890,11 +787,11 @@ export default async function NoteDetailPage({
       </div>
 
       {/* A9 공개노트 전환 훅 — 비로그인 열람자에게 관심단지·알림 로그인 유도 */}
-      {!viewerEmail && isReal && complexHref && (
+      {!viewerEmail && complexHref && (
         <div className="mt-4 rounded-2xl bg-[rgba(29,79,216,.05)] p-5 text-center">
           <div className="text-[15px] font-extrabold text-ink">이 단지가 궁금하신가요?</div>
           <p className="mx-auto mt-1 max-w-[440px] text-[13px] leading-[1.7] text-text-3">
-            로그인하면 {realNote?.aptName?.trim() || "이 단지"}를 관심 단지로 저장하고, 실거래·시세
+            로그인하면 {realNote.aptName?.trim() || "이 단지"}를 관심 단지로 저장하고, 실거래·시세
             변동 알림을 받을 수 있어요.
           </p>
           <Link

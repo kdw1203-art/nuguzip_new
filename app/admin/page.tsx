@@ -7,70 +7,23 @@ import {
   type AdminDashboardMetrics,
   type AdminMembersData,
   type AdminOpsPanels,
-  type AdminPendingItem,
 } from "@/lib/newui/admin-metrics";
+import {
+  loadExpertOpsSummary,
+  type ExpertOpsSummary,
+} from "@/lib/admin/expert-ops-metrics";
+import { loadAdminKpi, type AdminKpi } from "@/lib/admin/stats";
+import { EmptyState, ErrorState } from "@/app/components/ui/EmptyState";
 
 // 실집계(#83): DAU·신규 노트·전환율·구독 매출 4카드와 처리 대기 목록은
-// lib/newui/admin-metrics 실데이터 사용 — 조회 실패 시 "—" / 목업 폴백.
+// lib/newui/admin-metrics 실데이터 사용 — 조회 실패 시 "—" 또는 정직한 빈/오류 상태.
+//
+// G10: 예전에는 조회가 실패하거나 0건일 때 목업(가짜 신고 3건, 초록불 ETL 3줄,
+// 가짜 콘텐츠 검수 3건, 가짜 전문가 승인 심사)을 그대로 그렸다. 운영 대시보드에서
+// 존재하지 않는 처리 대기 건이 보이면 운영자가 없는 일을 처리하려 들고,
+// 죽은 파이프라인이 초록불로 보이면 장애를 놓친다. 전부 제거하고
+// 실집계 + 실제 콘솔 링크 + EmptyState/ErrorState 로 대체했다.
 export const dynamic = "force-dynamic";
-
-/** content_reports 조회 실패·빈 데이터 시 목업 폴백 */
-const PENDING_FALLBACK: AdminPendingItem[] = [
-  {
-    text: "신고: 커뮤니티 글 “연락처 유도” 외 3건",
-    status: "긴급",
-    color: "#d64545",
-  },
-  {
-    text: "전문가 전문가 승인: 이OO 세무사 (서류 완료)",
-    status: "검토",
-    color: "#f2c94c",
-  },
-  {
-    text: "마켓 정산: 7월 1차 (전문가 12명 · 216만원)",
-    status: "D-2",
-    color: "#9aa6b8",
-  },
-];
-
-const PIPELINE = [
-  {
-    name: "국토부 실거래가 API",
-    status: "● 정상 · 10분 전 동기화",
-    color: "#4ade80",
-  },
-  {
-    name: "뉴스·정책 수집 (32개 소스)",
-    status: "● 정상 · 오늘 148건",
-    color: "#4ade80",
-  },
-  {
-    name: "청약홈 분양 공고",
-    status: "▲ 지연 42분 · 재시도 중",
-    color: "#f2c94c",
-  },
-];
-
-const CONTENTS = [
-  {
-    title: "공개 노트 — 동·호수 노출 의심 (자동 감지)",
-    sub: "공작 302동 노트 · AI 마스킹 실패 가능성 82%",
-    primary: "가림 적용",
-    secondary: "통과",
-  },
-  {
-    title: "크롤링 뉴스 — 요약 오류 신고 2건",
-    sub: "“월세 세액공제 30%” 기사 · 수치 불일치 신고",
-    primary: "재요약",
-    secondary: "원문 확인",
-  },
-  {
-    title: "마켓 리포트 — 신규 등록 검수",
-    sub: "“관양동 재건축 2026 하반기판” · 김OO 프로",
-    primary: "승인",
-    secondary: "반려",
-  },
-];
 
 const darkCard =
   "rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.05)]";
@@ -85,15 +38,25 @@ export default async function AdminDashboardPage() {
     signupTrend: [],
     etl: [],
   };
+  let expertOps: ExpertOpsSummary | null = null;
+  let kpi: AdminKpi | null = null;
+  // 조회 실패는 "0건"과 다르다 — 실패 사유를 담아 두고 화면에서 구분해 표시한다.
+  let loadError: string | null = null;
   try {
-    [metrics, membersData, ops] = await Promise.all([
+    [metrics, membersData, ops, expertOps, kpi] = await Promise.all([
       loadAdminDashboardMetrics(),
       loadRecentMembers(5),
       loadAdminOpsPanels(),
+      loadExpertOpsSummary(),
+      loadAdminKpi(),
     ]);
-  } catch {
-    // 조회 실패 — 아래에서 "—"/목업 폴백
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : String(err);
   }
+  // DB 미연결이면 loadAdminKpi 는 예외 대신 전부 0 을 돌려준다 — 0 과 "모름"을 구분한다.
+  const kpiReady = Boolean(kpi?.supabaseConfigured);
+  const num = (v: number | null | undefined): string =>
+    kpiReady && typeof v === "number" ? v.toLocaleString("ko-KR") : "—";
   const pendingListingsCount = await countPendingListings().catch(() => 0);
   const maxSignup = Math.max(1, ...ops.signupTrend.map((d) => d.count));
   // 신고 처리 배지: content_reports 상태별 실집계에서 open 건수 (없으면 null → 배지 숨김)
@@ -108,7 +71,6 @@ export default async function AdminDashboardPage() {
           { label: "노트 작성 전환율", value: "—", delta: null, accent: true },
           { label: "구독 매출", value: "—", delta: null, accent: false },
         ] satisfies AdminDashboardMetrics["kpis"]);
-  const pending = metrics.pending.length > 0 ? metrics.pending : PENDING_FALLBACK;
   const today = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
@@ -174,7 +136,7 @@ export default async function AdminDashboardPage() {
             <div className="text-sm font-extrabold text-white">
               처리 대기{" "}
               <span className="text-[10px] font-medium text-[#9aa6b8]">
-                {metrics.pending.length > 0 ? "신고 최근 5건" : "예시 데이터"}
+                content_reports 최근 5건
               </span>
             </div>
             {ops.reportCounts.length > 0 ? (
@@ -190,55 +152,85 @@ export default async function AdminDashboardPage() {
               </div>
             ) : null}
           </div>
-          {pending.map((p, i) => (
-            <div
-              key={`${i}-${p.text}`}
-              className={`flex items-center justify-between gap-3 py-[9px] text-xs ${
-                i < pending.length - 1
-                  ? "border-b border-[rgba(255,255,255,.06)]"
-                  : ""
-              }`}
-            >
-              <span className="text-[#c9d2e0]">{p.text}</span>
-              <span className="font-bold" style={{ color: p.color }}>
-                {p.status}
-              </span>
-            </div>
-          ))}
+          {metrics.pending.length === 0 ? (
+            loadError ? (
+              <ErrorState
+                tone="admin"
+                title="처리 대기를 불러오지 못했어요"
+                desc="조회가 실패해 실제 대기 건수를 알 수 없습니다. 0건이라는 뜻이 아닙니다."
+                cause={loadError}
+                action={{ label: "신고 콘솔 열기", href: "/admin/moderation" }}
+              />
+            ) : (
+              <EmptyState
+                tone="admin"
+                icon="check"
+                title="처리 대기 없음"
+                desc="접수된 신고가 없습니다."
+                action={{ label: "신고 콘솔 열기", href: "/admin/moderation" }}
+              />
+            )
+          ) : (
+            metrics.pending.map((p, i) => (
+              <div
+                key={`${i}-${p.text}`}
+                className={`flex items-center justify-between gap-3 py-[9px] text-xs ${
+                  i < metrics.pending.length - 1
+                    ? "border-b border-[rgba(255,255,255,.06)]"
+                    : ""
+                }`}
+              >
+                <span className="text-[#c9d2e0]">{p.text}</span>
+                <span className="font-bold" style={{ color: p.color }}>
+                  {p.status}
+                </span>
+              </div>
+            ))
+          )}
         </div>
         <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
           <div className="text-sm font-extrabold text-white">
-            {ops.etl.length > 0 ? (
-              <>
-                ETL 상태{" "}
-                <span className="text-[10px] font-medium text-[#9aa6b8]">
-                  market_ingest_log 최신 {ops.etl.length}건
-                </span>
-              </>
-            ) : (
-              <>
-                크롤링 파이프라인{" "}
-                <span className="text-[10px] font-medium text-[#9aa6b8]">
-                  예시 데이터
-                </span>
-              </>
-            )}
+            ETL 상태{" "}
+            <span className="text-[10px] font-medium text-[#9aa6b8]">
+              market_ingest_log 최신 {ops.etl.length}건
+            </span>
           </div>
-          {(ops.etl.length > 0 ? ops.etl : PIPELINE).map((p, i, arr) => (
-            <div
-              key={`${i}-${p.name}`}
-              className={`flex items-center justify-between gap-3 py-2 text-xs ${
-                i < arr.length - 1
-                  ? "border-b border-[rgba(255,255,255,.06)]"
-                  : ""
-              }`}
-            >
-              <span className="min-w-0 truncate text-[#c9d2e0]">{p.name}</span>
-              <span className="shrink-0 font-bold" style={{ color: p.color }}>
-                {p.status}
-              </span>
-            </div>
-          ))}
+          {/* 죽은 파이프라인을 초록불 목업으로 덮으면 장애를 놓친다 — 기록이 없으면 없다고 말한다. */}
+          {ops.etl.length === 0 ? (
+            loadError ? (
+              <ErrorState
+                tone="admin"
+                title="ETL 상태를 불러오지 못했어요"
+                desc="파이프라인이 정상이라는 뜻이 아니라, 상태를 확인하지 못했다는 뜻입니다."
+                cause={loadError}
+                action={{ label: "데이터 콘솔 열기", href: "/admin/data" }}
+              />
+            ) : (
+              <EmptyState
+                tone="admin"
+                icon="clock"
+                title="적재 기록 없음"
+                desc="market_ingest_log 에 남은 실행 기록이 없습니다. 수집이 한 번도 돌지 않았을 수 있어요."
+                action={{ label: "데이터 콘솔 열기", href: "/admin/data" }}
+              />
+            )
+          ) : (
+            ops.etl.map((p, i, arr) => (
+              <div
+                key={`${i}-${p.name}`}
+                className={`flex items-center justify-between gap-3 py-2 text-xs ${
+                  i < arr.length - 1
+                    ? "border-b border-[rgba(255,255,255,.06)]"
+                    : ""
+                }`}
+              >
+                <span className="min-w-0 truncate text-[#c9d2e0]">{p.name}</span>
+                <span className="shrink-0 font-bold" style={{ color: p.color }}>
+                  {p.status}
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -251,10 +243,23 @@ export default async function AdminDashboardPage() {
               /support 접수 · 관리자 인박스 최신 5건
             </span>
           </div>
+          {/* "없거나 불러올 수 없습니다"는 두 상태를 뭉갠 문구였다 — 실패와 0건을 나눠 말한다. */}
           {ops.inquiries.length === 0 ? (
-            <div className="py-4 text-center text-[11px] text-[#9aa6b8]">
-              최근 문의가 없거나 불러올 수 없습니다
-            </div>
+            loadError ? (
+              <ErrorState
+                tone="admin"
+                title="문의를 불러오지 못했어요"
+                desc="문의가 없다는 뜻이 아닙니다."
+                cause={loadError}
+              />
+            ) : (
+              <EmptyState
+                tone="admin"
+                icon="mail"
+                title="새 문의 없음"
+                desc="/support 로 접수된 문의가 없습니다."
+              />
+            )
           ) : (
             ops.inquiries.map((q, i) => (
               <div
@@ -288,9 +293,12 @@ export default async function AdminDashboardPage() {
             </span>
           </div>
           {ops.signupTrend.length === 0 ? (
-            <div className="py-4 text-center text-[11px] text-[#9aa6b8]">
-              가입 데이터를 불러올 수 없습니다
-            </div>
+            <ErrorState
+              tone="admin"
+              title="가입 추이를 불러오지 못했어요"
+              desc="profiles 조회가 실패했습니다. 가입이 0명이라는 뜻이 아닙니다."
+              cause={loadError ?? undefined}
+            />
           ) : (
             <>
               <div className="flex h-[72px] items-end gap-[5px]">
@@ -345,9 +353,21 @@ export default async function AdminDashboardPage() {
             <span className="text-right">가입</span>
           </div>
           {membersData.members.length === 0 ? (
-            <div className="py-4 text-center text-[11px] text-[#9aa6b8]">
-              회원 데이터를 불러올 수 없습니다 (DB 연결·권한 확인)
-            </div>
+            membersData.total === null || loadError ? (
+              <ErrorState
+                tone="admin"
+                title="회원 데이터를 불러오지 못했어요"
+                desc="DB 연결·권한을 확인해 주세요."
+                cause={loadError ?? undefined}
+              />
+            ) : (
+              <EmptyState
+                tone="admin"
+                icon="users"
+                title="최근 가입 회원 없음"
+                desc="아직 가입한 회원이 없습니다."
+              />
+            )
           ) : (
             membersData.members.map((m, i) => (
               <div
@@ -365,47 +385,86 @@ export default async function AdminDashboardPage() {
           )}
         </div>
 
-        {/* 노트 · 콘텐츠 관리 */}
+        {/* 노트 · 콘텐츠 관리 — G10: 가짜 검수 대기 3건 + 동작하지 않는 버튼을 걷어내고
+            실제 테이블 집계와 실제 콘솔 링크만 남긴다. */}
         <div className={`${panelCard} flex flex-col gap-3`}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">
-              노트 · 콘텐츠 관리
+              노트 · 콘텐츠 현황
             </span>
-            <span className="rounded-full bg-[rgba(255,255,255,.08)] px-2 py-px text-[10px] font-bold text-[#9aa6b8]">
-              예시 데이터
+            <span className="text-[11px] text-[#9aa6b8]">
+              {kpiReady ? "DB 실집계" : "DB 미연결 · 집계 불가"}
             </span>
           </div>
-          <div className="flex flex-wrap gap-1.5 text-[11px]">
-            <span className="rounded-full bg-[rgba(255,255,255,.1)] px-3 py-[5px] font-bold text-white">
-              검수 대기
-            </span>
-            <span className="px-3 py-[5px] text-[#9aa6b8]">공개 노트</span>
-            <span className="px-3 py-[5px] text-[#9aa6b8]">커뮤니티</span>
-            <span className="px-3 py-[5px] text-[#9aa6b8]">크롤링 뉴스</span>
-          </div>
-          {CONTENTS.map((c, i) => (
-            <div
-              key={c.title}
-              className={`flex items-center justify-between gap-3 py-[9px] text-[11px] ${
-                i < CONTENTS.length - 1
-                  ? "border-b border-[rgba(255,255,255,.06)]"
-                  : ""
-              }`}
-            >
-              <div>
-                <div className="font-bold text-white">{c.title}</div>
-                <div className="mt-0.5 text-[#9aa6b8]">{c.sub}</div>
+          {!kpiReady ? (
+            <ErrorState
+              tone="admin"
+              title="콘텐츠 집계를 불러오지 못했어요"
+              desc="Supabase 연결·권한을 확인해 주세요. 0건이라는 뜻이 아닙니다."
+              cause={loadError ?? undefined}
+              action={{ label: "데이터 콘솔 열기", href: "/admin/data" }}
+            />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  {
+                    label: "임장노트",
+                    value: num(kpi?.totalInspections),
+                    sub: `최근 7일 +${num(kpi?.inspectionsThisWeek)}`,
+                  },
+                  {
+                    label: "커뮤니티 글",
+                    value: num(kpi?.totalPosts),
+                    sub: `최근 7일 +${num(kpi?.postsThisWeek)}`,
+                  },
+                  {
+                    label: "리포트 문서",
+                    value: num(kpi?.totalReportDocs),
+                    sub: `오늘 +${num(kpi?.reportDocsToday)}`,
+                  },
+                  {
+                    label: "매물 검수 대기",
+                    value: pendingListingsCount.toLocaleString("ko-KR"),
+                    sub: "소유확인 심사 큐",
+                  },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] px-3 py-2.5"
+                  >
+                    <div className="text-[10px] text-[#9aa6b8]">{s.label}</div>
+                    <div className="mt-0.5 text-[17px] font-extrabold text-white">
+                      {s.value}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-[#6b7688]">
+                      {s.sub}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex flex-shrink-0 gap-1.5">
-                <button className="rounded-lg bg-primary px-2.5 py-[5px] font-bold text-white">
-                  {c.primary}
-                </button>
-                <button className="rounded-lg bg-[rgba(255,255,255,.08)] px-2.5 py-[5px] text-[#c9d2e0]">
-                  {c.secondary}
-                </button>
+              <div className="flex flex-wrap gap-1.5 text-[11px]">
+                <Link
+                  href="/admin/listings"
+                  className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3 py-[6px] font-extrabold text-[#7ea2ff]"
+                >
+                  매물 검수
+                </Link>
+                <Link
+                  href="/admin/moderation"
+                  className="rounded-[10px] bg-[rgba(255,255,255,.08)] px-3 py-[6px] font-bold text-[#c9d2e0]"
+                >
+                  신고 · 블라인드
+                </Link>
+                <Link
+                  href="/admin/data"
+                  className="rounded-[10px] bg-[rgba(255,255,255,.08)] px-3 py-[6px] font-bold text-[#c9d2e0]"
+                >
+                  데이터 적재
+                </Link>
               </div>
-            </div>
-          ))}
+            </>
+          )}
         </div>
 
         {/* 신고 처리 */}
@@ -420,127 +479,155 @@ export default async function AdminDashboardPage() {
               ) : null}
             </span>
             <span className="text-[11px] text-[#9aa6b8]">
-              아래 목록 예시 · SLA: 긴급 2h · 일반 24h
+              content_reports 상태별 실집계
             </span>
           </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(214,69,69,.25)] bg-[rgba(214,69,69,.08)] px-3.5 py-3">
-              <div>
-                <div className="text-xs font-extrabold text-white">
-                  연락처 유도 (커뮤니티 글){" "}
-                  <span className="rounded bg-danger px-1.5 py-px text-[9px] font-extrabold text-white">
-                    긴급
-                  </span>
-                </div>
-                <div className="mt-[3px] text-[10px] text-[#9aa6b8]">
-                  “직거래 원하시면 010-…” · 신고 3건 · 작성자 전과 1회
-                </div>
+          {/* G10: 존재하지 않는 신고 3건(연락처 유도·허위 매물·비방 댓글)을 동작 안 하는
+              버튼과 함께 그리던 자리. 없는 일을 처리하려 들게 만들므로 제거하고,
+              실제 처리는 /admin/moderation 콘솔로 보낸다. */}
+          {ops.reportCounts.length === 0 ? (
+            loadError ? (
+              <ErrorState
+                tone="admin"
+                title="신고 집계를 불러오지 못했어요"
+                desc="신고가 없다는 뜻이 아니라, 집계를 확인하지 못했다는 뜻입니다."
+                cause={loadError}
+                action={{ label: "신고 콘솔 열기", href: "/admin/moderation" }}
+              />
+            ) : (
+              <EmptyState
+                tone="admin"
+                icon="shield"
+                title="접수된 신고 없음"
+                desc="content_reports 에 기록된 신고가 없습니다."
+                action={{ label: "신고 콘솔 열기", href: "/admin/moderation" }}
+              />
+            )
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                {ops.reportCounts.map((c) => {
+                  const isOpen = c.status === "open";
+                  return (
+                    <div
+                      key={c.status}
+                      className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3 ${
+                        isOpen
+                          ? "border-[rgba(214,69,69,.25)] bg-[rgba(214,69,69,.08)]"
+                          : "border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)]"
+                      }`}
+                    >
+                      <div className="text-xs font-extrabold text-white">
+                        {c.status}
+                      </div>
+                      <div
+                        className={`text-[15px] font-extrabold ${
+                          isOpen ? "text-[#f87171]" : "text-[#c9d2e0]"
+                        }`}
+                      >
+                        {c.count.toLocaleString("ko-KR")}건
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex flex-shrink-0 gap-1.5 text-[11px]">
-                <button className="rounded-lg bg-danger px-3 py-1.5 font-bold text-white">
-                  삭제+정지 7일
-                </button>
-                <button className="rounded-lg bg-[rgba(255,255,255,.08)] px-3 py-1.5 text-[#c9d2e0]">
-                  보류
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] px-3.5 py-3">
-              <div>
-                <div className="text-xs font-extrabold text-white">
-                  허위 매물 의심 (쪽지 신고)
-                </div>
-                <div className="mt-[3px] text-[10px] text-[#9aa6b8]">
-                  급매 7.9억 매물 · 신고 1건 · 중개사 소명 요청됨
-                </div>
-              </div>
-              <div className="flex flex-shrink-0 gap-1.5 text-[11px]">
-                <button className="rounded-lg bg-primary px-3 py-1.5 font-bold text-white">
-                  소명 대기
-                </button>
-                <button className="rounded-lg bg-[rgba(255,255,255,.08)] px-3 py-1.5 text-[#c9d2e0]">
-                  기각
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] px-3.5 py-3">
-              <div>
-                <div className="text-xs font-extrabold text-white">
-                  비방 댓글 (뉴스 댓글)
-                </div>
-                <div className="mt-[3px] text-[10px] text-[#9aa6b8]">
-                  신고 2건 · AI 판정: 경계선 (욕설 없음)
-                </div>
-              </div>
-              <div className="flex flex-shrink-0 gap-1.5 text-[11px]">
-                <button className="rounded-lg bg-[rgba(255,255,255,.08)] px-3 py-1.5 text-[#c9d2e0]">
-                  블라인드
-                </button>
-                <button className="rounded-lg bg-[rgba(255,255,255,.08)] px-3 py-1.5 text-[#c9d2e0]">
-                  기각
-                </button>
-              </div>
-            </div>
-          </div>
+              <Link
+                href="/admin/moderation"
+                className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-center text-[11px] font-extrabold text-[#7ea2ff]"
+              >
+                신고 콘솔에서 처리하기
+              </Link>
+            </>
+          )}
         </div>
 
         {/* 전문가 승인 */}
         <div className={`${panelCard} flex flex-col gap-3`}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">
-              전문가 승인{" "}
-              <span className="ml-1 rounded-full bg-[rgba(255,255,255,.12)] px-2 py-px text-[10px] font-bold text-[#9aa6b8]">
-                예시
-              </span>
+              전문가 승인
+              {expertOps && !expertOps.isDemo && expertOps.pendingVerifications > 0 ? (
+                <span className="ml-1 rounded-full bg-danger px-[7px] py-px text-[10px] font-extrabold text-white">
+                  {expertOps.pendingVerifications.toLocaleString("ko-KR")}
+                </span>
+              ) : null}
             </span>
             <span className="text-[11px] text-[#9aa6b8]">
               승인 시 프로 배지·마켓 발행 권한
             </span>
           </div>
-          <div className="flex flex-col gap-2 rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] p-3.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] font-extrabold text-white">
-                이OO 세무사
-              </span>
-              <span className="text-[10px] font-bold text-[#f2c94c]">
-                검토 중 · D-1
-              </span>
-            </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-[#9aa6b8]">세무사 자격증 (제OOOO호)</span>
-              <span className="font-bold text-[#4ade80]">국세청 대조 ✓</span>
-            </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-[#9aa6b8]">사업자등록증 · 신분증</span>
-              <span className="font-bold text-[#4ade80]">서류 확인 ✓</span>
-            </div>
-            <div className="flex justify-between text-[11px]">
-              <span className="text-[#9aa6b8]">활동 이력 (답변 24 · 채택 9)</span>
-              <span className="font-bold text-[#c9d2e0]">양호</span>
-            </div>
-            <div className="mt-0.5 flex gap-1.5 text-[11px]">
-              <button className="flex-1 rounded-lg bg-primary p-2 text-center font-bold text-white">
-                승인
-              </button>
-              <button className="flex-1 rounded-lg bg-[rgba(255,255,255,.08)] p-2 text-center text-[#c9d2e0]">
-                보완 요청
-              </button>
-              <button className="flex-1 rounded-lg bg-[rgba(214,69,69,.15)] p-2 text-center text-[#d6708b]">
-                반려
-              </button>
-            </div>
-          </div>
-          <div className="flex items-center justify-between rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] p-3.5">
-            <div>
-              <div className="text-[13px] font-extrabold text-white">
-                박OO 감정평가사
+          {/* G10: "이OO 세무사 · 국세청 대조 ✓" 같은 존재하지 않는 심사 건을 그리던 자리.
+              실제 심사 큐는 /admin/quality 의 VerificationQueue 가 이미 담당한다. */}
+          {!expertOps || expertOps.isDemo ? (
+            <ErrorState
+              tone="admin"
+              title="전문가 심사 현황을 불러오지 못했어요"
+              desc="DB 연결·권한을 확인해 주세요. 심사 대기가 없다는 뜻이 아닙니다."
+              cause={loadError ?? undefined}
+              action={{ label: "심사 콘솔 열기", href: "/admin/quality" }}
+            />
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  {
+                    label: "심사 대기",
+                    value: expertOps.pendingVerifications,
+                    color: expertOps.pendingVerifications > 0 ? "#f2c94c" : "#c9d2e0",
+                  },
+                  {
+                    label: "승인 전문가",
+                    value: expertOps.approvedExperts,
+                    color: "#4ade80",
+                  },
+                  {
+                    label: "미답변 상담",
+                    value: expertOps.consultationsOpen,
+                    color: expertOps.consultationsOpen > 0 ? "#f87171" : "#c9d2e0",
+                  },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] px-3 py-2.5 text-center"
+                  >
+                    <div className="text-[10px] text-[#9aa6b8]">{s.label}</div>
+                    <div
+                      className="mt-0.5 text-[18px] font-extrabold"
+                      style={{ color: s.color }}
+                    >
+                      {s.value.toLocaleString("ko-KR")}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="mt-[3px] text-[10px] text-[#9aa6b8]">
-                서류 1건 누락 (자격증 사본) · 보완 요청 발송됨
+              <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] px-3.5 py-3 text-[11px] text-[#9aa6b8]">
+                최근 7일 답변{" "}
+                <b className="text-[#c9d2e0]">
+                  {expertOps.consultationsAnswered7d.toLocaleString("ko-KR")}건
+                </b>{" "}
+                · 최근 30일 상담{" "}
+                <b className="text-[#c9d2e0]">
+                  {expertOps.consultationsTotal30d.toLocaleString("ko-KR")}건
+                </b>
               </div>
-            </div>
-            <span className="text-[11px] text-[#9aa6b8]">대기 3일</span>
-          </div>
+              {expertOps.pendingVerifications === 0 ? (
+                <EmptyState
+                  tone="admin"
+                  icon="check"
+                  title="심사 대기 없음"
+                  desc="제출된 전문가 인증 신청이 없습니다."
+                  action={{ label: "심사 콘솔 열기", href: "/admin/quality" }}
+                />
+              ) : (
+                <Link
+                  href="/admin/quality"
+                  className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-center text-[11px] font-extrabold text-[#7ea2ff]"
+                >
+                  심사 콘솔에서 서류 검토하기
+                </Link>
+              )}
+            </>
+          )}
         </div>
       </div>
     </>
