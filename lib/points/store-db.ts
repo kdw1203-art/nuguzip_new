@@ -53,7 +53,7 @@ export async function checkIn(userEmail: string): Promise<{ streak: number; poin
     if (yestEntry) streak = yestEntry.streak + 1;
   }
 
-  // Points based on streak
+  // 스트릭 티어(표시용). 포인트 적립은 원장(point_ledger)이 단독 담당한다.
   const pointsEarned = streak >= 7 ? 50 : streak >= 3 ? 20 : 10;
 
   // Save attendance
@@ -65,8 +65,8 @@ export async function checkIn(userEmail: string): Promise<{ streak: number; poin
     memAttendance.set(userEmail, list.slice(0, 30));
   }
 
-  // Add points
-  await addPoints(userEmail, pointsEarned, `출석 체크 (${streak}일 연속)`);
+  // B2: 이중적립 제거 — 과거엔 여기서 user_points 에도 적립했으나(원장과 잔액 불일치 유발),
+  // 포인트 적립은 라우트의 awardPoints(원장) 단독으로 일원화한다. 여기선 출석/스트릭만 기록.
 
   return { streak, pointsEarned, alreadyChecked: false };
 }
