@@ -35,6 +35,11 @@ import {
 } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/app/components/JsonLd";
 import { RoadviewButton } from "@/components/map/RoadviewButton";
+import {
+  listApprovedListings,
+  LISTING_TYPE_LABEL,
+  type PublicListing,
+} from "@/lib/listings/store-db";
 
 /** undefined 값을 가진 키를 제거한다(JSON-LD 직렬화 전 정리용). */
 function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
@@ -93,6 +98,43 @@ function formatManwon(manwon: number): string {
   if (!Number.isFinite(manwon) || manwon <= 0) return "—";
   if (manwon >= 10_000) return `${(manwon / 10_000).toFixed(1).replace(/\.0$/, "")}억`;
   return `${Math.round(manwon).toLocaleString("ko-KR")}만`;
+}
+
+/** 부스트 활성 여부 (만료·null 은 false) */
+function isBoostActive(boostUntil: string | null): boolean {
+  if (!boostUntil) return false;
+  const t = Date.parse(boostUntil);
+  return Number.isFinite(t) && t > Date.now();
+}
+
+/** 매물 가격 라벨 (WON → 매매/전세/월세). 값 없으면 "—". */
+function listingPriceLine(l: PublicListing): string {
+  if (l.listingType === "monthly") {
+    return `월세 ${formatManwon((l.depositKrw ?? 0) / 1e4)}/${formatManwon((l.monthlyKrw ?? 0) / 1e4)}`;
+  }
+  const krw = l.listingType === "sale" ? l.priceKrw : l.depositKrw;
+  return `${LISTING_TYPE_LABEL[l.listingType]} ${formatManwon((krw ?? 0) / 1e4)}`;
+}
+
+/** PublicListing → HubListing (허브 매물 탭 카드). D8: 빈 탭에 실 매물 연결. */
+function toHubListing(l: PublicListing): HubListing {
+  const boost = isBoostActive(l.boostUntil);
+  const meta =
+    [
+      l.areaM2 != null ? `전용 ${l.areaM2}㎡` : null,
+      l.floor != null ? `${l.floor}층` : null,
+      l.regionName,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "실매물";
+  return {
+    badge: LISTING_TYPE_LABEL[l.listingType],
+    urgent: boost,
+    price: listingPriceLine(l),
+    priceNote: boost ? "부스트" : l.ownerVerified ? "소유확인" : null,
+    meta,
+    agent: l.authorLabel,
+  };
 }
 
 function pctDelta(curr: number, prev: number | undefined): number | null {
@@ -173,11 +215,14 @@ function toView(
   posts: ComplexPostRow[],
   nearby: HubView["nearby"],
   txHref: string | null,
+  listingRows: PublicListing[] = [],
 ): HubView {
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   const { delta, tone } = deltaLabel(latest ? pctDelta(latest.avg_manwon, prev?.avg_manwon) : null);
   const dong = row.district || row.city || "지역";
+  // D8: 이 단지 실 매물(승인) 연결 — 없으면 빈 배열(클라이언트가 안내 문구 표시)
+  const hubListings = listingRows.map(toHubListing);
   // 사실 우선: 실거래 데이터가 없으면 목업 대신 빈 배열(클라이언트가 안내 문구 표시)
   const trades = tx.length > 0 ? toTrades(tx) : [];
   // 차트용 월별 평균 시계열 (tx는 과거→최신 정렬) — 실데이터만
@@ -215,9 +260,9 @@ function toView(
       priceSub: latest ? `${delta} 전월비` : "실거래 수집 중",
       priceSubClass:
         tone === "down" ? "delta-down" : tone === "up" ? "delta-up" : "text-text-3",
-      // 사실 기반: 실매물 소스 미연동 — 허위 수치 대신 "—"
-      listings: "매물 —",
-      listingsSub: "등록 대기",
+      // D8: 실 매물 연동 — 등록 건수 반영(없으면 "—")
+      listings: hubListings.length > 0 ? `매물 ${hubListings.length}` : "매물 —",
+      listingsSub: hubListings.length > 0 ? "등록된 실매물" : "등록 대기",
       notes: `노트 ${posts.length.toLocaleString("ko-KR")}`,
       notesSub: posts.length > 0 ? "단지 이야기 포함" : "첫 노트를 남겨보세요",
       // 안전등급 산정 미연동 — 허위 등급 금지
@@ -228,13 +273,16 @@ function toView(
       ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) — 국토교통부 실거래가 기준. 현장 확인 후 판단하세요.`
       : "실거래·후기가 쌓이면 AI 요약을 제공합니다.",
     myRecord: "로그인하면 이 단지에 남긴 임장노트를 볼 수 있어요",
-    listingsLabel: "실매물 준비 중",
+    listingsLabel:
+      hubListings.length > 0
+        ? `등록된 실매물 ${hubListings.length}건 · 국토부 실거래가와 비교하세요`
+        : "실매물 준비 중",
     infoRows,
     trades,
     notes,
     priceSeries,
-    // 실매물 소스 미연동: 허위 매물 대신 빈 배열
-    listings: [],
+    // D8: 이 단지 실 매물(승인) 연결
+    listings: hubListings,
     nearby,
     txHref,
     lat: row.lat,
@@ -247,7 +295,7 @@ async function loadView(id: string): Promise<HubView | null> {
   const row = await getComplexById(id);
   if (!row) return null;
   const dec = decodeComplexId(id);
-  const [tx, posts, sameDong, txHref, coord] = await Promise.all([
+  const [tx, posts, sameDong, txHref, coord, listingRows] = await Promise.all([
     getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
     getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
@@ -259,9 +307,11 @@ async function loadView(id: string): Promise<HubView | null> {
     dec
       ? geocodeAndCache(dec.region, dec.name, row.address ?? undefined).catch(() => null)
       : Promise.resolve(null),
+    // D8: 이 단지명으로 등록된 승인 매물 (정확 일치)
+    listApprovedListings({ complexName: row.name }).catch(() => [] as PublicListing[]),
   ]);
   const located: ComplexRow = coord ? { ...row, lat: coord.lat, lng: coord.lng } : row;
-  return toView(located, tx, posts, toNearby(sameDong, located.id), txHref);
+  return toView(located, tx, posts, toNearby(sameDong, located.id), txHref, listingRows);
 }
 
 /* ===== SEO — 단지명 title/description, 비로그인 열람 허용 (index 대상) ===== */
