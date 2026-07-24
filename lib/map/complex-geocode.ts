@@ -40,6 +40,39 @@ export async function getCachedCoordMap(
   return out;
 }
 
+export type GeocodeProgress = {
+  ok: number;
+  notfound: number;
+  cached: number;
+  total: number;
+  configured: boolean;
+};
+
+/** 지오코딩 진행 상황 — 관리자 데이터 페이지용 */
+export async function getGeocodeProgress(): Promise<GeocodeProgress> {
+  const sb = getServiceSupabase();
+  const base: GeocodeProgress = {
+    ok: 0,
+    notfound: 0,
+    cached: 0,
+    total: 0,
+    configured: isNaverMapsRestConfigured(),
+  };
+  if (!sb) return base;
+  const [okRes, nfRes, totalRes] = await Promise.all([
+    sb.from("complex_geocode").select("region_name", { count: "exact", head: true }).eq("status", "ok"),
+    sb
+      .from("complex_geocode")
+      .select("region_name", { count: "exact", head: true })
+      .eq("status", "notfound"),
+    sb.rpc("trade_complex_total"),
+  ]);
+  const ok = okRes.count ?? 0;
+  const notfound = nfRes.count ?? 0;
+  const total = typeof totalRes.data === "number" ? totalRes.data : Number(totalRes.data ?? 0);
+  return { ok, notfound, cached: ok + notfound, total, configured: base.configured };
+}
+
 async function geocodeQuery(query: string): Promise<Coord | null> {
   try {
     const items = await naverGeocode(query, 1);

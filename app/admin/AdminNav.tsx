@@ -17,6 +17,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/quality", label: "품질 · 인증" },
   { href: "/admin/ops", label: "운영 · 공지" },
   { href: "/admin/market", label: "마켓 · 정산" },
+  { href: "/admin/data", label: "데이터 · 지오코딩" },
 ];
 
 export function AdminNav() {
