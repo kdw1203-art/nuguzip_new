@@ -67,6 +67,13 @@ export function RecentComplexRecorder({
       ...readRecents().filter((r) => r.id !== id),
     ];
     writeRecents(next);
+    // B8 — 로그인 사용자면 서버에도 기록(크로스디바이스). 비로그인은 API가 no-op.
+    void fetch("/api/me/recent-complexes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name, region }),
+      keepalive: true,
+    }).catch(() => {});
   }, [id, name, region]);
   return null;
 }
@@ -76,7 +83,27 @@ export function RecentComplexChips({ className }: { className?: string }) {
   const [items, setItems] = useState<RecentComplex[]>([]);
 
   useEffect(() => {
-    setItems(readRecents());
+    const local = readRecents();
+    setItems(local);
+    // B8 — 로그인 사용자는 서버 기록과 병합(크로스디바이스). 최신순·id 중복 제거.
+    let cancelled = false;
+    fetch("/api/me/recent-complexes", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { items?: RecentComplex[] } | null) => {
+        if (cancelled || !j || !Array.isArray(j.items) || j.items.length === 0) return;
+        const merged = new Map<string, RecentComplex>();
+        for (const r of [...j.items, ...local]) {
+          const prev = merged.get(r.id);
+          if (!prev || (r.at ?? 0) > (prev.at ?? 0)) merged.set(r.id, r);
+        }
+        const list = [...merged.values()].sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, MAX);
+        setItems(list);
+        writeRecents(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const remove = (id: string) => {
@@ -85,6 +112,12 @@ export function RecentComplexChips({ className }: { className?: string }) {
       writeRecents(next);
       return next;
     });
+    // B8 — 서버에서도 제거(로그인 시). 비로그인은 no-op.
+    void fetch("/api/me/recent-complexes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
   };
 
   if (items.length === 0) return null;
