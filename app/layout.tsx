@@ -5,6 +5,7 @@ import { AdSenseLoader } from "./components/AdSenseLoader";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/toast/ToastProvider";
+import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
 
 export const metadata: Metadata = {
@@ -53,12 +54,15 @@ export default function RootLayout({
         </a>
         <ThemeProvider>
           <ToastProvider>
-            {children}
-            {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
-            <ReferralRedeem />
-            <SwRegister />
-            <AdSenseLoader />
-            <WebVitalsReporter />
+            {/* A3 비로그인 액션 → 소프트 가입 프롬프트 (401 즉시 리다이렉트 대체) */}
+            <SoftSignupProvider>
+              {children}
+              {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
+              <ReferralRedeem />
+              <SwRegister />
+              <AdSenseLoader />
+              <WebVitalsReporter />
+            </SoftSignupProvider>
           </ToastProvider>
         </ThemeProvider>
       </body>

@@ -1,5 +1,6 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
+import { mergeTours, readTours } from "@/lib/onboarding/tours";
 
 const STEPS = ["explore", "inspection", "share"] as const;
 export const ONBOARDING_STEPS = STEPS;
@@ -75,7 +76,8 @@ export async function appendOnboardingStep(email: string, step: OnboardingStepId
   ].filter(isStep);
   const completedAt =
     completedSteps.length >= STEPS.length ? new Date().toISOString() : null;
-  const progress = { completedSteps };
+  // 코치마크 투어 상태(tours)는 같은 JSON 에 살고 있으므로 덮어쓰지 않고 보존한다.
+  const progress = mergeTours({ completedSteps }, readTours(data?.onboarding_progress));
   const { error: upErr } = await sb
     .from("app_users")
     .update({

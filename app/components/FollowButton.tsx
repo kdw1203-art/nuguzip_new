@@ -2,17 +2,26 @@
 
 /**
  * 임장러 팔로우 버튼 (당근/SNS 벤치마크) — user_follows 실배선
- * - 로그인 상태 확인은 GET /api/me/follows?checkHandle= (401 → 클릭 시 /login 이동)
+ * - 로그인 상태 확인은 GET /api/me/follows?checkHandle= (401 → A3 소프트 가입 프롬프트)
  * - 팔로우: POST /api/me/follows { handle } · 언팔로우: DELETE (이메일 비노출)
  */
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 export function FollowButton({ handle }: { handle: string }) {
-  const router = useRouter();
   const pathname = usePathname();
+  const { promptSignup } = useSoftSignup();
   const [state, setState] = useState<"loading" | "anon" | "off" | "on">("loading");
   const [busy, setBusy] = useState(false);
+
+  const askSignup = () =>
+    promptSignup({
+      action: "follow_user",
+      title: "이 임장러를 팔로우할까요?",
+      benefit: "가입하면 이 사람이 새 임장노트를 공개할 때 피드에서 먼저 볼 수 있어요.",
+      callbackUrl: pathname ?? "/",
+    });
 
   useEffect(() => {
     let alive = true;
@@ -41,7 +50,7 @@ export function FollowButton({ handle }: { handle: string }) {
   const toggle = async () => {
     if (busy || state === "loading") return;
     if (state === "anon") {
-      router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? "/")}`);
+      askSignup();
       return;
     }
     setBusy(true);
@@ -52,7 +61,7 @@ export function FollowButton({ handle }: { handle: string }) {
         body: JSON.stringify({ handle }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? "/")}`);
+        askSignup();
         return;
       }
       if (res.ok) setState(state === "on" ? "off" : "on");

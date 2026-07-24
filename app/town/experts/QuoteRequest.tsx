@@ -9,7 +9,7 @@
  * - QuoteRequestBanner: 목록 상단 배너 + 자체 트리거
  */
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 const CATEGORIES = ["임장 동행", "세무", "대출", "인테리어"] as const;
 type Category = (typeof CATEGORIES)[number];
@@ -42,7 +42,7 @@ export function QuoteRequestModal({
   presetCategory?: Category | null;
   headline?: string;
 }) {
-  const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [category, setCategory] = useState<Category | null>(presetCategory);
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
@@ -98,7 +98,15 @@ export function QuoteRequestModal({
         }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent("/town/experts")}`);
+        // 입력한 요청 내용을 유지한 채 안내만 띄운다. status 를 idle 로 되돌려야 재시도가 된다.
+        setStatus("idle");
+        promptSignup({
+          action: "market_request_create",
+          title: "견적 요청을 보낼까요?",
+          benefit:
+            "요청은 계정으로 접수돼요. 가입하면 전문가들이 보낸 견적을 한 곳에서 비교하고, 내 요청 목록에서 진행 상황을 볼 수 있습니다.",
+          callbackUrl: "/town/experts",
+        });
         return;
       }
       if (res.status === 429) {

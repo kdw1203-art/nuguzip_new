@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* P1-6: 죽어 있던 상담 버튼 실배선 — POST /api/experts/[id]/consult
    비로그인(401) → /login?callbackUrl= 이동. 실제 write 성공 시에만 완료 표시 */
@@ -15,7 +15,7 @@ export function ConsultButton({
   expertName: string;
   className?: string;
 }) {
-  const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
@@ -36,7 +36,15 @@ export function ConsultButton({
         body: JSON.stringify({ message: text, consultType: "text" }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent("/town/experts")}`);
+        // 작성한 상담 내용을 날리지 않기 위해 이동 대신 프롬프트. status 는 되돌린다.
+        setStatus("idle");
+        promptSignup({
+          action: "expert_consult",
+          title: `${expertName} 님께 상담을 신청할까요?`,
+          benefit:
+            "상담은 계정으로 주고받아요. 가입하면 전문가 답변이 등록될 때 내 상담 내역에서 확인할 수 있습니다.",
+          callbackUrl: "/town/experts",
+        });
         return;
       }
       const data = (await res.json().catch(() => ({}))) as { error?: string };

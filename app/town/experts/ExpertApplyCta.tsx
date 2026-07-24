@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* 전문가 등록/인증 신청 — POST /api/experts/register → submitExpertApplication
    (expert_verification_requests 적재 · 1차 자동검증). 심사 후 인증되면
@@ -20,7 +20,7 @@ const TYPES = [
 type Phase = "idle" | "sending" | "done";
 
 export function ExpertApplyCta() {
-  const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [open, setOpen] = useState(false);
   const [expertType, setExpertType] = useState<(typeof TYPES)[number]>("공인중개사");
   const [name, setName] = useState("");
@@ -62,7 +62,15 @@ export function ExpertApplyCta() {
         }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent("/town/experts")}`);
+        // 프롬프트를 닫으면 입력하던 폼이 그대로 남는다 → phase 를 되돌려야 버튼이 다시 눌린다.
+        setPhase("idle");
+        promptSignup({
+          action: "expert_register",
+          title: "전문가 인증을 접수할까요?",
+          benefit:
+            "인증 신청은 계정에 연결해서 접수해요. 1차 자동 검증 결과와 이후 심사 안내를 내 알림함으로 받아보실 수 있습니다.",
+          callbackUrl: "/town/experts",
+        });
         return;
       }
       const data = (await res.json().catch(() => ({}))) as { error?: string };

@@ -19,6 +19,27 @@ import {
   type RedevelopmentProject,
 } from "@/lib/redevelopment/types";
 import { Icon } from "@/app/components/Icon";
+import { CoachmarkTour, type CoachmarkStep } from "@/app/components/CoachmarkTour";
+
+/** A1 — 지도 첫 방문 3스텝 안내. 대상이 화면에 없으면 그 스텝은 자동 생략된다. */
+const MAP_TOUR_STEPS: CoachmarkStep[] = [
+  {
+    target: "map-price-panel",
+    keepIfMissing: true,
+    title: "가격은 실거래 기준이에요",
+    body: "지도와 목록의 금액은 국토부 실거래가 평균입니다. 중개사가 올린 매물 호가와는 다른 값이니, 두 숫자를 섞어서 보지 마세요.",
+  },
+  {
+    target: "map-filter",
+    title: "조건으로 후보 좁히기",
+    body: "면적·준공연도·세대수·통근시간으로 임장 후보를 걸러낼 수 있어요. 반경 그리기도 여기 있습니다.",
+  },
+  {
+    target: "map-note-cta",
+    title: "본 곳은 바로 임장노트로",
+    body: "관심 단지를 찾았다면 노트를 남겨두세요. 다음 방문 때 체크리스트와 사진이 그대로 이어집니다.",
+  },
+];
 
 /* ============================================================
    지도 탐색 (6a) — 실제 네이버 지도 + 글래스 오버레이 UI
@@ -487,6 +508,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       <button
         type="button"
         aria-expanded={filtersExpanded}
+        data-tour="map-filter"
         onClick={() => setFiltersExpanded((v) => !v)}
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           filterActive || filtersExpanded
@@ -1251,7 +1273,11 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           {filterBar}
         </div>
         <div className="flex-1" />
-        <Link href="/notes/new" className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] text-[13px]">
+        <Link
+          href="/notes/new"
+          data-tour="map-note-cta"
+          className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] text-[13px]"
+        >
           이 지역 노트 쓰기
         </Link>
       </div>
@@ -1323,6 +1349,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       {/* ===== 좌측 사이드 패널 (320px, 접기 핸들) ===== */}
       {!selected && panelOpen && (
         <aside
+          data-tour="map-price-panel"
           className="glass-strong absolute bottom-5 left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
         >
@@ -1725,6 +1752,9 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           동네이야기
         </Link>
       </nav>
+
+      {/* A1 — 첫 방문 코치마크. 한 번 보면 localStorage + app_users.onboarding_progress.tours 에 남는다. */}
+      <CoachmarkTour tourId="map" steps={MAP_TOUR_STEPS} />
     </div>
   );
 }

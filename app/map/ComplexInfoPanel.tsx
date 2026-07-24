@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/app/components/toast/ToastProvider";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* ============================================================
    단지 정보 패널 (6a·item2) — 검색 결과/포인트 마커 선택 시.
@@ -123,7 +123,9 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
 }
 
 /* C10 — 마커 패널에서 관심 단지 원클릭 토글(로그인 유도 포함).
-   GET/POST/DELETE /api/me/watchlist. 비로그인 401 → 로그인, 한도 403 → 토스트.
+   GET/POST/DELETE /api/me/watchlist. 한도 403 → 토스트.
+   A3: 비로그인 401 은 /login 즉시 이동 대신 소프트 가입 프롬프트로 받는다 —
+   지도 보던 맥락을 끊지 않고, 어떤 액션이 가입으로 이어지는지도 집계된다.
    mock 좌표(mock-)는 관심 대상이 아니라 렌더하지 않는다. */
 function WatchlistToggle({
   complexId,
@@ -132,10 +134,19 @@ function WatchlistToggle({
   complexId: string;
   complexName: string;
 }) {
-  const router = useRouter();
   const { showToast } = useToast();
+  const { promptSignup } = useSoftSignup();
   const [watching, setWatching] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const askSignup = () =>
+    promptSignup({
+      action: "watchlist_add",
+      title: "관심 단지로 저장할까요?",
+      benefit:
+        "가입하면 이 단지의 국토부 실거래가가 새로 등록될 때 알림을 받고, 임장노트와 함께 모아볼 수 있어요.",
+      callbackUrl: "/map",
+    });
 
   const disabled = !complexId || complexId.startsWith("mock-");
 
@@ -168,7 +179,7 @@ function WatchlistToggle({
           { method: "DELETE" },
         );
         if (res.status === 401) {
-          router.push("/login?callbackUrl=/map");
+          askSignup();
           return;
         }
         if (res.ok) {
@@ -182,7 +193,7 @@ function WatchlistToggle({
           body: JSON.stringify({ complexId, complexName }),
         });
         if (res.status === 401) {
-          router.push("/login?callbackUrl=/map");
+          askSignup();
           return;
         }
         const j = (await res.json().catch(() => ({}))) as { error?: string };

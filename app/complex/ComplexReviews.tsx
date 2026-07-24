@@ -4,13 +4,14 @@
  * 거주민 후기 섹션 (호갱노노 "이야기" 벤치마크 — docs/benchmark-proposals.md D4 계열)
  * - GET /api/complex-reviews?complexId= 로 목록·평균 표시 (빈 상태 정직)
  * - 로그인 시 작성: 항목별 별점(1~5) + 한줄 후기 → POST /api/complex-reviews (5회/시간 제한)
- * - 비로그인 작성 시도 → /login 이동 (401)
+ * - 비로그인 작성 시도(401) → A3 소프트 가입 프롬프트 (즉시 리다이렉트 대신 그 자리에서 설명)
  * - 신고: 기존 ReportButton 재사용 (postId = "complex-review:<id>")
  */
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ReportButton } from "../components/ReportButton";
 import { Icon } from "@/app/components/Icon";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 type ReviewItem = {
   id: string;
@@ -107,8 +108,8 @@ export function ComplexReviews({
   complexId: string;
   complexName: string;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
+  const { promptSignup } = useSoftSignup();
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
@@ -143,7 +144,13 @@ export function ComplexReviews({
         body: JSON.stringify({ reviewId }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? "/")}`);
+        promptSignup({
+          action: "review_helpful_vote",
+          title: "도움된 후기에 표시할까요?",
+          benefit:
+            "가입하면 후기마다 한 번씩 '도움돼요'를 남길 수 있어요. 도움 표시가 많은 후기가 위로 올라가서, 다음 사람이 실제로 쓸모 있는 이야기를 먼저 봅니다.",
+          callbackUrl: pathname ?? "/",
+        });
         return;
       }
       const data = (await res.json().catch(() => ({}))) as { count?: number; already?: boolean };
@@ -201,7 +208,17 @@ export function ComplexReviews({
         }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent(pathname ?? "/")}`);
+        // 예전엔 여기서 곧바로 이동해서 "전송 중" 상태로 남아도 상관없었지만,
+        // 이제는 프롬프트를 닫으면 이 화면에 그대로 머문다. idle 로 되돌리지 않으면
+        // 등록 버튼이 영영 비활성 상태로 굳는다.
+        setSubmitState("idle");
+        promptSignup({
+          action: "complex_review_create",
+          title: "후기를 남기려면 로그인이 필요해요",
+          benefit:
+            "후기는 로그인한 계정으로만 남길 수 있어요. 같은 사람이 반복해서 올리는 걸 막기 위해서입니다. 등록하면 30P가 적립돼요.",
+          callbackUrl: pathname ?? "/",
+        });
         return;
       }
       const data = (await res.json().catch(() => ({}))) as { error?: string };

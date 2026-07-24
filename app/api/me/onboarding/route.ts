@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { awardPoints } from "@/lib/points/ledger";
+import { mergeTours, readTours } from "@/lib/onboarding/tours";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,20 +61,26 @@ export async function PATCH(req: Request) {
       : [];
   const sb = getServiceSupabase();
   let currentSteps: string[] = [];
-  if (sb && typeof body.step === "string" && !Array.isArray(body.completedSteps)) {
+  // 같은 JSON 안에 A1 코치마크 투어 상태(tours)가 함께 산다.
+  // 여기서 progress 를 통째로 덮어쓰므로 읽어서 보존하지 않으면 투어가 매번 다시 뜬다.
+  let currentRaw: unknown = null;
+  if (sb) {
     const { data } = await sb
       .from("app_users")
       .select("onboarding_progress")
       .eq("email", session.user.email.trim().toLowerCase())
       .maybeSingle();
-    currentSteps = normalizeProgress(data?.onboarding_progress, null).completedSteps;
+    currentRaw = data?.onboarding_progress ?? null;
+    if (typeof body.step === "string" && !Array.isArray(body.completedSteps)) {
+      currentSteps = normalizeProgress(currentRaw, null).completedSteps;
+    }
   }
   const completedSteps = [
     ...new Set([...currentSteps, ...requested].filter((step) => ALLOWED_STEPS.has(step))),
   ];
   const completedAt =
     completedSteps.length >= ALLOWED_STEPS.size ? new Date().toISOString() : null;
-  const progress = { completedSteps };
+  const progress = mergeTours({ completedSteps }, readTours(currentRaw));
 
   if (!sb) {
     return NextResponse.json({
