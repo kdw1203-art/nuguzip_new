@@ -23,7 +23,12 @@ export function VerifyOwnershipButton({ listingId }: { listingId: string }) {
       fd.append("file", file);
       fd.append("folder", "listing-verify");
       const up = await fetch("/api/upload", { method: "POST", body: fd });
-      const upData = (await up.json().catch(() => ({}))) as { url?: string; error?: string };
+      const upData = (await up.json().catch(() => ({}))) as {
+        url?: string;
+        path?: string;
+        mime?: string;
+        error?: string;
+      };
       if (!up.ok || !upData.url) {
         setPhase("error");
         setMsg(upData.error ?? "증빙 업로드에 실패했어요. 다시 시도해 주세요.");
@@ -33,16 +38,31 @@ export function VerifyOwnershipButton({ listingId }: { listingId: string }) {
       const res = await fetch(`/api/listings/${listingId}/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ proofUrl: upData.url }),
+        body: JSON.stringify({
+          proofUrl: upData.url,
+          proofPath: upData.path ?? null,
+          proofMime: upData.mime ?? file.type,
+        }),
       });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        alreadyPending?: boolean;
+        alreadyVerified?: boolean;
+      };
       if (!res.ok || !data.ok) {
         setPhase("error");
         setMsg(data.error ?? "소유확인 신청에 실패했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
       setPhase("done");
-      setMsg("신청 접수 · 검토 후 인증 배지가 표시돼요");
+      setMsg(
+        data.alreadyVerified
+          ? "이미 소유확인이 완료된 매물이에요"
+          : data.alreadyPending
+            ? "이미 접수된 신청이 심사 대기 중이에요"
+            : "신청 접수 · 증빙 검토 후 인증 배지가 표시돼요",
+      );
     } catch {
       setPhase("error");
       setMsg("네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");

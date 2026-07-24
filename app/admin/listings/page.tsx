@@ -1,7 +1,9 @@
 import { listPendingListings, LISTING_TYPE_LABEL, LISTING_SOURCE_LABEL } from "@/lib/listings/store-db";
+import { listOwnerVerifications } from "@/lib/listings/owner-verification";
 import { ListingReviewActions } from "./ListingReviewActions";
+import { OwnerVerificationQueue } from "./OwnerVerificationQueue";
 
-/* 어드민 매물 검수 — pending 목록 + 승인/반려(사유).
+/* 어드민 매물 검수 — pending 목록 + 승인/반려(사유) + 소유확인 심사 큐(I1).
    접근 제어는 app/admin/layout.tsx (canAccessAdminConsole) 재사용. */
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,11 @@ function formatKrwShort(krw: number | null): string {
 }
 
 export default async function AdminListingsPage() {
-  const pending = await listPendingListings();
+  const [pending, verifications] = await Promise.all([
+    listPendingListings(),
+    listOwnerVerifications("all", 100).catch(() => []),
+  ]);
+  const pendingVerifications = verifications.filter((v) => v.status === "pending").length;
 
   return (
     <>
@@ -29,6 +35,11 @@ export default async function AdminListingsPage() {
           <span className="ml-1 rounded-[6px] bg-[rgba(126,162,255,.15)] px-2 py-[3px] text-[12px] font-extrabold text-[#7ea2ff]">
             대기 {pending.length}건
           </span>
+          {pendingVerifications > 0 && (
+            <span className="ml-1 rounded-[6px] bg-[rgba(242,201,76,.15)] px-2 py-[3px] text-[12px] font-extrabold text-[#f2c94c]">
+              소유확인 {pendingVerifications}건
+            </span>
+          )}
         </div>
         <span className="text-[11px] text-[#9aa6b8]">
           검수는 형식 요건 확인 — 승인 시 /listings에 즉시 노출
@@ -102,6 +113,21 @@ export default async function AdminListingsPage() {
             </div>
           ))
         )}
+      </div>
+
+      {/* I1 — 소유확인 심사 큐. 증빙을 확인한 뒤에만 인증 배지가 세워진다. */}
+      <div className="rise-in-2 flex items-center justify-between">
+        <div className="text-[16px] font-extrabold text-white">소유확인 심사</div>
+        <span className="text-[11px] text-[#9aa6b8]">
+          증빙 확인 후 승인 — 승인 시 매물에 소유확인 배지 표시
+        </span>
+      </div>
+      <div className={`rise-in-2 ${panelCard}`}>
+        <OwnerVerificationQueue items={verifications} />
+        <div className="text-[10px] leading-relaxed text-[#6b7688]">
+          증빙 파일은 신청자가 직접 올린 원본입니다. 등기부등본·계약서 등 민감 정보가 포함될 수
+          있으니 심사 목적 외로 사용하지 마세요.
+        </div>
       </div>
     </>
   );

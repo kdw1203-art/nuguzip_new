@@ -8,7 +8,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { safeAuth } from "@/lib/safe-auth";
 import { updateListingStatus } from "@/lib/listings/store-db";
+import { recordDirectOwnerVerification } from "@/lib/listings/owner-verification";
 import { awardPoints } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
@@ -39,6 +41,9 @@ export async function PATCH(req: NextRequest) {
   }
 
   // 소유확인 승인 — 검수 상태와 별개로 owner_verified 플래그를 세운다.
+  // I1: 이 경로는 증빙 심사 없이 배지를 세우는 "직권 승인"이다. 없애면 운영이 막히므로
+  // 남기되, owner_verifications 에 근거 없음(증빙 심사 없음)을 명시한 이력을 반드시 남긴다.
+  // 증빙이 있는 정상 심사는 PATCH /api/admin/owner-verifications 로 처리한다.
   if (action === "verify") {
     const sb = getServiceSupabase();
     if (!sb) {
@@ -51,7 +56,7 @@ export async function PATCH(req: NextRequest) {
       .from("listings")
       .update({ owner_verified: true, updated_at: new Date().toISOString() })
       .eq("id", id)
-      .select("author_email, complex_name")
+      .select("author_email, complex_name, region_name, address")
       .maybeSingle();
     if (error || !data) {
       return NextResponse.json(
@@ -59,8 +64,26 @@ export async function PATCH(req: NextRequest) {
         { status: 500 },
       );
     }
-    const row = data as { author_email?: string | null; complex_name?: string | null };
+    const row = data as {
+      author_email?: string | null;
+      complex_name?: string | null;
+      region_name?: string | null;
+      address?: string | null;
+    };
     const authorEmail = String(row.author_email ?? "").trim();
+    try {
+      const session = await safeAuth();
+      await recordDirectOwnerVerification({
+        listingId: id,
+        reviewerEmail: session?.user?.email ?? "unknown",
+        complexName: String(row.complex_name ?? ""),
+        region: String(row.region_name ?? ""),
+        address: String(row.address ?? ""),
+        applicantEmail: authorEmail,
+      });
+    } catch {
+      // 이력 적재 실패가 승인 자체를 되돌리지는 않는다(플래그는 이미 반영됨).
+    }
     if (authorEmail) {
       // 포인트 적립 — refId=listingId 로 재실행 중복 지급을 막는다(멱등).
       try {
