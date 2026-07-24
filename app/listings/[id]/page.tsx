@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { ReportButton } from "../../components/ReportButton";
 import { RefreshButton } from "./RefreshButton";
+import { InquiryForm } from "./InquiryForm";
 import { ListingSaveButton } from "@/components/ListingSaveButton";
 import { NaverMap } from "@/components/map/NaverMap";
 import { safeAuth } from "@/lib/safe-auth";
@@ -514,6 +515,17 @@ export default async function ListingDetailPage({
             )}
             <div className="text-[12px] text-text-3">등록자 · {listing.authorLabel}</div>
           </div>
+
+          {/* 문의 남기기 — 승인 매물 + 등록자 본인이 아닐 때만 */}
+          {listing.status === "approved" && !isOwner && (
+            <div className="card card-pad-sm flex flex-col gap-2.5">
+              <div className="text-[13px] font-bold text-ink">문의하기</div>
+              <p className="text-[12px] leading-[1.6] text-text-3">
+                전화 대신 문의를 남기면 등록자가 확인 후 남겨 주신 연락처로 회신해요.
+              </p>
+              <InquiryForm listingId={listing.id} loggedIn={viewerEmail !== null} />
+            </div>
+          )}
         </div>
       </div>
 

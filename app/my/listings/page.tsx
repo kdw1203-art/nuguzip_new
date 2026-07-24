@@ -12,6 +12,7 @@ import {
   type ListingDetail,
   type ListingStatus,
 } from "@/lib/listings/store-db";
+import { getOwnerInquiryStats } from "@/lib/listings/inquiries";
 
 /* ============================================================
    내 매물 — /my/listings (로그인 필수)
@@ -99,22 +100,62 @@ export default async function MyListingsPage() {
     );
   }
 
-  const items = await listMyListings(session.user.email);
+  const [items, inquiry] = await Promise.all([
+    listMyListings(session.user.email),
+    getOwnerInquiryStats(session.user.email),
+  ]);
   const counts = items.reduce<Record<string, number>>((acc, l) => {
     acc[l.status] = (acc[l.status] ?? 0) + 1;
     return acc;
   }, {});
+  const totalViews = items.reduce((s, l) => s + (l.viewCount || 0), 0);
+  const activeCount = counts.approved ?? 0;
 
   return (
     <PageShell breadcrumb="마이 › 내 매물" title="내 매물">
+      {/* 실적 요약 — 실집계(노출중·총 조회·받은 문의) */}
+      {items.length > 0 && (
+        <div className="rise-in mb-4 grid grid-cols-3 gap-2.5">
+          <div className="card card-pad-sm flex flex-col gap-0.5">
+            <span className="text-[11px] text-text-3">노출중 매물</span>
+            <span className="text-[20px] font-extrabold text-ink">{activeCount}</span>
+          </div>
+          <div className="card card-pad-sm flex flex-col gap-0.5">
+            <span className="text-[11px] text-text-3">총 조회</span>
+            <span className="text-[20px] font-extrabold text-ink">
+              {totalViews.toLocaleString("ko-KR")}
+            </span>
+          </div>
+          <Link
+            href="/my/leads"
+            className="card card-pad-sm flex flex-col gap-0.5 no-underline transition-colors hover:bg-[rgba(29,79,216,.03)]"
+          >
+            <span className="text-[11px] text-text-3">받은 문의</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-[20px] font-extrabold text-ink">{inquiry.total}</span>
+              {inquiry.unread > 0 && (
+                <span className="rounded-full bg-primary px-1.5 py-[1px] text-[10px] font-extrabold text-white">
+                  새 {inquiry.unread}
+                </span>
+              )}
+            </span>
+          </Link>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-[13px] text-text-3">
           검수중 {counts.pending ?? 0} · 노출중 {counts.approved ?? 0} · 반려{" "}
           {counts.rejected ?? 0} · 마감 {counts.closed ?? 0}
         </p>
-        <Link href="/listings/new" className="btn-primary btn-md">
-          지도에서 매물 등록
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/my/leads" className="btn-outline btn-md no-underline">
+            받은 문의{inquiry.unread > 0 ? ` · 새 ${inquiry.unread}` : ""}
+          </Link>
+          <Link href="/listings/new" className="btn-primary btn-md">
+            지도에서 매물 등록
+          </Link>
+        </div>
       </div>
 
       {items.length === 0 ? (
