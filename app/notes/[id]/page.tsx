@@ -888,6 +888,23 @@ export default async function NoteDetailPage({
           ]}
         />
       </div>
+
+      {/* A9 공개노트 전환 훅 — 비로그인 열람자에게 관심단지·알림 로그인 유도 */}
+      {!viewerEmail && isReal && complexHref && (
+        <div className="mt-4 rounded-2xl bg-[rgba(29,79,216,.05)] p-5 text-center">
+          <div className="text-[15px] font-extrabold text-ink">이 단지가 궁금하신가요?</div>
+          <p className="mx-auto mt-1 max-w-[440px] text-[13px] leading-[1.7] text-text-3">
+            로그인하면 {realNote?.aptName?.trim() || "이 단지"}를 관심 단지로 저장하고, 실거래·시세
+            변동 알림을 받을 수 있어요.
+          </p>
+          <Link
+            href={`/login?callbackUrl=${encodeURIComponent(complexHref)}`}
+            className="btn-primary btn-md mt-3 inline-block no-underline"
+          >
+            로그인하고 시세 알림 받기
+          </Link>
+        </div>
+      )}
     </PageShell>
   );
 }

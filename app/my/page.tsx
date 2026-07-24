@@ -15,6 +15,8 @@ import {
 import { listBookmarks } from "@/lib/bookmarks/store";
 import { listAlertSubscriptions, type AlertSubscription } from "@/lib/alerts/subscriptions";
 import { getOnboardingProgress } from "@/lib/onboarding/append-step";
+import { getUsageSummary } from "@/lib/subscriptions/usage-summary";
+import type { ProfilePlanTier } from "@/lib/subscriptions/labels";
 import { AttendanceButton } from "./points/AttendanceButton";
 
 /* 마이 허브 (item 10) — 프로필·포인트지갑 통합
@@ -143,6 +145,10 @@ export default async function MyPage() {
       getExpertStatus(email),
       getOnboardingProgress(email),
     ]);
+
+  // A10 — 무료 가치 카운터(AI 분석 월 사용량) — 결제 전 가치 증명·자연 유도
+  const usage = await getUsageSummary(email, profile.plan as ProfilePlanTier).catch(() => null);
+  const aiUsage = usage?.items.find((i) => i.key === "ai_analysis") ?? null;
 
   const name = profile.name?.trim() || email.split("@")[0] || "회원";
   const total = notes.length;
@@ -486,6 +492,48 @@ export default async function MyPage() {
               {profile.plan === "free" ? "업그레이드" : "관리"}
             </Link>
           </div>
+
+          {/* A10 무료 가치 카운터 — AI 분석 이번 달 사용량 */}
+          {aiUsage &&
+            (() => {
+              const unlimited = aiUsage.limit == null;
+              const limit = aiUsage.limit ?? 0;
+              const remaining = unlimited ? null : Math.max(0, limit - aiUsage.used);
+              const pct = unlimited ? 100 : Math.min(100, Math.round((aiUsage.used / Math.max(1, limit)) * 100));
+              const atLimit = !unlimited && remaining === 0;
+              return (
+                <div className="card flex flex-col gap-2 rounded-[16px] p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-bold text-ink">이번 달 AI 분석</span>
+                    <span className="text-[12px] tabular-nums text-text-2">
+                      {unlimited ? (
+                        <b className="text-primary">무제한</b>
+                      ) : (
+                        <>
+                          <b className={atLimit ? "text-danger" : "text-ink"}>{aiUsage.used}</b>
+                          <span className="text-text-3"> / {limit}회</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  {!unlimited && (
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,.06)]">
+                      <span
+                        className={`block h-full rounded-full ${atLimit ? "bg-danger" : "bg-primary"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  )}
+                  <div className="text-[11px] text-text-3">
+                    {unlimited
+                      ? "유료 플랜은 AI 비교 리포트가 무제한이에요."
+                      : atLimit
+                        ? "이번 달 무료 한도를 다 썼어요. 플러스로 올리면 무제한으로 분석할 수 있어요."
+                        : `이번 달 무료로 ${remaining}회 더 분석할 수 있어요.`}
+                  </div>
+                </div>
+              );
+            })()}
         </section>
 
         {/* ── 기타 메뉴 ── */}
