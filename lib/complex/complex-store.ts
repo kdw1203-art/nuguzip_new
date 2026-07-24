@@ -164,6 +164,58 @@ export async function searchComplexes(
   return [...seen.values()];
 }
 
+/**
+ * A8 — 검색 무결과 대안 제안. 정확 매칭이 실패했을 때, 질의를 토큰으로 쪼개
+ * complex_name/region_name 어느 한 쪽이라도 포함하는 실거래 단지를 폭넓게 추천한다.
+ * (searchComplexes 는 전체 질의 contains 라 "래미안 강남" 같은 조합은 못 잡음 → 토큰 OR 로 보완)
+ */
+export async function suggestComplexes(query: string, limit = 6): Promise<ComplexRow[]> {
+  const sb = getServiceSupabase();
+  const raw = (query ?? "").trim();
+  if (!sb || !raw) return [];
+  // 토큰 정제(한글·영숫자만, 2자 이상, 최대 3개) — PostgREST or 필터 안전.
+  const tokens = [
+    ...new Set(
+      raw
+        .split(/\s+/)
+        .map((t) => t.replace(/[^0-9A-Za-z가-힣]/g, ""))
+        .filter((t) => t.length >= 2),
+    ),
+  ].slice(0, 3);
+  if (tokens.length === 0) return [];
+
+  const ors = tokens
+    .flatMap((t) => [`complex_name.ilike.%${t}%`, `region_name.ilike.%${t}%`])
+    .join(",");
+  const { data } = await sb
+    .from("market_transactions")
+    .select("complex_name, region_name, address, build_year")
+    .eq("transaction_type", "trade")
+    .not("complex_name", "is", null)
+    .or(ors)
+    .order("contract_ym", { ascending: false })
+    .limit(400);
+
+  const rows =
+    (data as
+      | {
+          complex_name: string;
+          region_name: string;
+          address: string | null;
+          build_year: number | null;
+        }[]
+      | null) ?? [];
+  const seen = new Map<string, ComplexRow>();
+  for (const r of rows) {
+    if (!r.complex_name || !r.region_name) continue;
+    const key = `${r.region_name}${SEP}${r.complex_name}`;
+    if (seen.has(key)) continue;
+    seen.set(key, toComplexRow(r.region_name, r.complex_name, r));
+    if (seen.size >= limit) break;
+  }
+  return [...seen.values()];
+}
+
 // ── 실거래가 (market_transactions 월별 집계) ──────────────────────────
 
 export async function getTransactionHistory(

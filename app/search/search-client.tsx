@@ -75,6 +75,7 @@ interface Group {
 export function SearchClient() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<UnifiedResults>(EMPTY);
+  const [suggestions, setSuggestions] = useState<UnifiedResults["complexes"]>([]);
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
@@ -95,6 +96,7 @@ export function SearchClient() {
     const query = q.trim();
     if (!query) {
       setResults(EMPTY);
+      setSuggestions([]);
       setLoading(false);
       abortRef.current?.abort();
       return;
@@ -109,15 +111,21 @@ export function SearchClient() {
           signal: ac.signal,
         });
         if (!res.ok) throw new Error("unified failed");
-        const json = (await res.json()) as Partial<UnifiedResults>;
+        const json = (await res.json()) as Partial<UnifiedResults> & {
+          suggestions?: UnifiedResults["complexes"];
+        };
         setResults({
           complexes: json.complexes ?? [],
           listings: json.listings ?? [],
           notes: json.notes ?? [],
           news: json.news ?? [],
         });
+        setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
       } catch {
-        if (!ac.signal.aborted) setResults(EMPTY);
+        if (!ac.signal.aborted) {
+          setResults(EMPTY);
+          setSuggestions([]);
+        }
       } finally {
         if (!ac.signal.aborted) setLoading(false);
       }
@@ -288,7 +296,7 @@ export function SearchClient() {
         <div className="mt-6 text-center text-sm text-text-3">검색 중…</div>
       )}
 
-      {/* 빈 결과 */}
+      {/* 빈 결과 + A8 대안 단지 제안 */}
       {hasQuery && !loading && total === 0 && (
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
           <div className="text-[15px] font-extrabold text-ink">
@@ -297,6 +305,33 @@ export function SearchClient() {
           <div className="text-[12px] text-text-3">
             단지명·지역·매물·임장노트·뉴스를 검색할 수 있어요.
           </div>
+
+          {suggestions.length > 0 && (
+            <div className="mt-5 w-full max-w-[520px] text-left">
+              <div className="mb-2 px-1 text-[13px] font-extrabold text-ink">
+                혹시 이 단지를 찾으셨나요?
+              </div>
+              <div className="flex flex-col gap-2">
+                {suggestions.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/complex/${encodeURIComponent(c.id)}`}
+                    className="card card-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3 no-underline"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-[14px] font-extrabold text-ink">
+                        {c.name}
+                      </div>
+                      {c.region && (
+                        <div className="truncate text-[11px] text-text-3">{c.region}</div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-[16px] text-[#c3cad6]">›</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

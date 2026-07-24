@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { searchComplexes } from "@/lib/complex/complex-store";
+import { searchComplexes, suggestComplexes } from "@/lib/complex/complex-store";
 import {
   listApprovedListings,
   LISTING_TYPE_LABEL,
@@ -126,8 +126,25 @@ export async function GET(req: Request) {
     }),
   ]);
 
+  // A8 — 전 그룹 무결과일 때만 대안 단지 제안(토큰 완화 매칭). 결과 있으면 빈 배열.
+  const allEmpty =
+    complexes.length === 0 &&
+    listings.length === 0 &&
+    notes.length === 0 &&
+    news.length === 0;
+  const suggestions: UnifiedComplex[] = allEmpty
+    ? await safe<UnifiedComplex>(async () => {
+        const rows = await suggestComplexes(q, 6);
+        return rows.map((c) => ({
+          id: c.id,
+          name: c.name,
+          region: `${c.city} ${c.district}`.trim(),
+        }));
+      })
+    : [];
+
   return NextResponse.json(
-    { complexes, listings, notes, news, query: q },
+    { complexes, listings, notes, news, suggestions, query: q },
     { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
   );
 }
