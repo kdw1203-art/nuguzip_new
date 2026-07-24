@@ -1,148 +1,118 @@
-/* 시안 16i — 관리자 수익 대시보드 (RBAC: 운영·재무만)
-   데스크탑: KPI 8종 + 결제 실패·환불 분쟁 큐 / 모바일: 읽기 전용 요약 */
+/* 관리자 수익 대시보드 — 실집계.
+   구독 MRR(실 플랜 카운트)·유료 전환·30일 결제(payments)·전문가 수 등 실데이터만 노출.
+   결제 실패/환불 분쟁은 정산 연동 전까지 '준비 중'으로 정직하게 표기. */
 
-import { Icon } from "@/app/components/Icon";
+import { loadAdminKpi } from "@/lib/admin/stats";
+import {
+  estimateSubscriptionMrrKrw,
+  paidSubscriptionCount,
+  buildSubscriptionAdminRows,
+} from "@/lib/admin/subscription-metrics";
 
-const KPIS = [
-  { label: "MRR", value: "2,140만", delta: "+6.2%", tone: "up" },
-  { label: "ARR (run-rate)", value: "2.57억", delta: "—", tone: "flat" },
-  { label: "유료 전환율", value: "3.4%", delta: "-0.2%p", tone: "down" },
-  { label: "해지율 (월)", value: "2.1%", delta: "-0.4%p", tone: "up" },
-  { label: "ARPPU", value: "14,800원", delta: "+320", tone: "up" },
-  { label: "리포트 GMV", value: "890만", delta: "+18%", tone: "up" },
-  { label: "전문가 GMV", value: "340만", delta: "파일럿", tone: "flat" },
-  { label: "수수료 매출 (순)", value: "118만", delta: "PG 비용 차감", tone: "flat" },
-] as const;
-
-const MOBILE_KPIS = [
-  { label: "MRR", value: "2,140만", accent: false },
-  { label: "전환율", value: "3.4%", accent: false },
-  { label: "해지율", value: "2.1%", accent: true },
-  { label: "GMV 합", value: "1,230만", accent: false },
-] as const;
-
-const deltaColor = {
-  up: "text-[#4ade80]",
-  down: "text-[#e06a6a]",
-  flat: "text-[#9aa6b8]",
-} as const;
+export const dynamic = "force-dynamic";
 
 const darkCard =
   "rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.05)]";
 
-export default function AdminRevenuePage() {
+/** 원(KRW) → "2,140만" / "2.6억" / "0원" */
+function won(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0원";
+  if (n >= 1e8) {
+    const eok = n / 1e8;
+    return `${(eok >= 100 ? Math.round(eok) : Math.round(eok * 10) / 10).toLocaleString("ko-KR")}억`;
+  }
+  if (n >= 1e4) return `${Math.round(n / 1e4).toLocaleString("ko-KR")}만`;
+  return `${Math.round(n).toLocaleString("ko-KR")}원`;
+}
+
+function pct(part: number, whole: number): string {
+  if (whole <= 0) return "—";
+  return `${((part / whole) * 100).toFixed(1)}%`;
+}
+
+export default async function AdminRevenuePage() {
+  const kpi = await loadAdminKpi();
+  const mrr = estimateSubscriptionMrrKrw(kpi.planCounts);
+  const paid = paidSubscriptionCount(kpi.planCounts);
+  const rows = buildSubscriptionAdminRows(kpi.planCounts);
+
+  const kpis: { label: string; value: string; sub?: string }[] = [
+    { label: "MRR (구독 추정)", value: won(mrr), sub: "유료 플랜 × 요금" },
+    { label: "유료 구독", value: paid.toLocaleString("ko-KR"), sub: `전환율 ${pct(paid, kpi.totalUsers)}` },
+    { label: "전체 사용자", value: kpi.totalUsers.toLocaleString("ko-KR"), sub: `활성(7일) ${kpi.activeUsers7d.toLocaleString("ko-KR")}` },
+    { label: "전문가 수", value: kpi.totalExperts.toLocaleString("ko-KR"), sub: "인증 완료" },
+    { label: "30일 결제 건수", value: kpi.paymentsCompleted30d.toLocaleString("ko-KR"), sub: "payments 완료" },
+    { label: "30일 결제 매출", value: won(kpi.paymentsRevenue30dKrw), sub: "실 결제 합계" },
+  ];
+
   return (
     <>
       {/* 헤더 */}
       <div className="rise-in flex flex-wrap items-center justify-between gap-3">
         <div className="text-[19px] font-extrabold text-white">
           수익 대시보드{" "}
-          <span className="text-xs font-medium text-[#9aa6b8]">
-            RBAC: 운영·재무만
-          </span>
+          <span className="text-xs font-medium text-[#9aa6b8]">실집계 · 운영·재무</span>
         </div>
-        <div className="hidden gap-2 text-xs md:flex">
-          <span className="rounded-[10px] bg-[rgba(255,255,255,.07)] px-3.5 py-[7px] font-semibold text-[#c9d2e0]">
-            이번 달
-          </span>
-          <span className="px-3.5 py-[7px] text-[#9aa6b8]">분기</span>
-          <span className="px-3.5 py-[7px] text-[#9aa6b8]">연간</span>
+        <span className="rounded-[10px] bg-[rgba(255,255,255,.07)] px-3.5 py-[7px] text-xs font-semibold text-[#c9d2e0]">
+          {kpi.stripeConfigured ? "결제 연동됨" : "결제 미연동"}
+        </span>
+      </div>
+
+      {/* KPI (실데이터) */}
+      <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {kpis.map((k) => (
+          <div key={k.label} className={`${darkCard} p-4`}>
+            <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>
+            <div className="mt-1 text-[20px] font-extrabold tabular-nums text-white">
+              {k.value}
+            </div>
+            {k.sub && <div className="mt-0.5 text-[11px] text-[#9aa6b8]">{k.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* 구독 플랜 분해 (실 카운트) */}
+      <div className="rise-in-2 mt-4 flex flex-col gap-2">
+        <div className="text-[15px] font-extrabold text-white">구독 플랜 분해</div>
+        <div className={`${darkCard} overflow-hidden`}>
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-[rgba(255,255,255,.08)] text-[11px] text-[#9aa6b8]">
+                <th className="px-4 py-2.5 font-semibold">플랜</th>
+                <th className="px-4 py-2.5 font-semibold">인원</th>
+                <th className="px-4 py-2.5 font-semibold">요금</th>
+                <th className="px-4 py-2.5 text-right font-semibold">MRR 기여</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-b border-[rgba(255,255,255,.05)] last:border-0">
+                  <td className="px-4 py-2.5 font-bold text-white">{r.label}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-[#c9d2e0]">
+                    {r.count.toLocaleString("ko-KR")}
+                  </td>
+                  <td className="px-4 py-2.5 text-[#9aa6b8]">{r.priceLabel}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-[#7ea2ff]">
+                    {won(r.mrrPortion)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* ===== 모바일 요약 (읽기 전용) ===== */}
-      <section className="flex flex-col gap-3 md:hidden">
-        <div className="rise-in-1 flex items-center justify-between px-0.5">
-          <span className="text-[13px] font-extrabold text-white">
-            Admin · 수익 요약
-          </span>
-          <span className="text-[10px] text-[#9aa6b8]">모바일 (읽기 전용)</span>
+      {/* 정직한 준비 중 — 실 데이터 소스 없는 항목 */}
+      <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">
+        <div className="text-[13px] font-extrabold text-white">
+          결제 실패 · 환불 분쟁 큐{" "}
+          <span className="text-[11px] font-medium text-[#9aa6b8]">준비 중</span>
         </div>
-        <div className="rise-in-1 grid grid-cols-2 gap-2">
-          {MOBILE_KPIS.map((k) => (
-            <div key={k.label} className={`${darkCard} p-3`}>
-              <div className="text-[10px] text-[#9aa6b8]">{k.label}</div>
-              <div
-                className={`mt-0.5 text-[17px] font-extrabold tabular-nums ${
-                  k.accent ? "text-[#5fbf8a]" : "text-white"
-                }`}
-              >
-                {k.value}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="rise-in-2 rounded-[10px] bg-[rgba(214,69,69,.16)] px-3 py-2.5 text-xs font-bold text-[#e06a6a]">
-          <Icon name="⚠" size={14} className="mr-1 inline align-middle" />
-          결제 실패 9 · 분쟁 4 — 데스크탑에서 처리
-        </div>
-        <div className="rise-in-2 text-[11px] text-[#9aa6b8]">
-          모바일은 모니터링 전용 — 환불·정산 실행은 데스크탑 + 2차 인증
-        </div>
-      </section>
-
-      {/* ===== 데스크탑 ===== */}
-      <section className="hidden flex-col gap-4 md:flex">
-        {/* KPI 8종 */}
-        <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {KPIS.map((k) => (
-            <div key={k.label} className={`${darkCard} p-4`}>
-              <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>
-              <div className="mt-1 text-[20px] font-extrabold tabular-nums text-white">
-                {k.value}
-              </div>
-              <div className={`mt-0.5 text-[11px] font-bold ${deltaColor[k.tone]}`}>
-                {k.delta}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* 결제 실패 · 환불 분쟁 큐 */}
-        <div className="rise-in-2 grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <div className={`${darkCard} flex flex-col gap-2 p-[18px]`}>
-            <div className="text-sm font-extrabold text-white">
-              결제 실패 · 유예 중 9건
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-[rgba(242,201,76,.12)] px-3 py-2 text-xs">
-              <span className="font-bold text-[#f2c94c]">
-                유예 D-1 · 3건 — 재시도 예약됨
-              </span>
-              <button type="button" className="font-bold text-[#7ea2ff]">
-                보기
-              </button>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-[rgba(255,255,255,.05)] px-3 py-2 text-xs">
-              <span className="text-[#c9d2e0]">
-                중복 결제 자동 탐지 · 이번 주 2건 자동 환불
-              </span>
-              <button type="button" className="text-[#9aa6b8]">
-                로그
-              </button>
-            </div>
-          </div>
-
-          <div className={`${darkCard} flex flex-col gap-2 p-[18px]`}>
-            <div className="text-sm font-extrabold text-white">환불·분쟁 큐 4건</div>
-            <div className="flex items-center justify-between rounded-lg bg-[rgba(214,69,69,.14)] px-3 py-2 text-xs">
-              <span className="font-bold text-[#e06a6a]">
-                &quot;설명과 다름&quot; 리포트 분쟁 — 해당 주문 정산 보류
-              </span>
-              <button type="button" className="font-bold text-[#7ea2ff]">
-                처리
-              </button>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-[rgba(255,255,255,.05)] px-3 py-2 text-xs">
-              <span className="text-[#c9d2e0]">
-                AI 리포트 생성 실패 1건 — 자동 전액 환불 완료
-              </span>
-              <button type="button" className="text-[#9aa6b8]">
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+        <p className="mt-1 text-[12px] leading-relaxed text-[#9aa6b8]">
+          결제·정산 파이프라인(PG) 연동 후 실 데이터로 집계합니다. 현재는 추정·조작
+          수치를 노출하지 않아요. MRR은 실제 유료 플랜 카운트로만 계산한 추정치입니다.
+        </p>
+      </div>
     </>
   );
 }
