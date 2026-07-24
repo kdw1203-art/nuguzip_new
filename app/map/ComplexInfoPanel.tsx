@@ -63,6 +63,63 @@ function ymLabel(yyyymm: string): string {
   return `${yyyymm.slice(0, 4)}.${yyyymm.slice(4, 6)}`;
 }
 
+/* C4 — 마커 패널 실거래 스파크라인. tx(면적대 혼재)를 월별 평균으로 집계해
+   컴팩트 추이 곡선으로 표시. 포인트 3개 미만이면 렌더하지 않는다. */
+function Sparkline({ tx }: { tx: TxRow[] }) {
+  // 월별 평균가(만원) 집계 — 같은 달 여러 면적대 평균.
+  const byYm = new Map<string, { sum: number; n: number }>();
+  for (const t of tx) {
+    if (!t.yyyymm || !Number.isFinite(t.avg_manwon) || t.avg_manwon <= 0) continue;
+    const cur = byYm.get(t.yyyymm) ?? { sum: 0, n: 0 };
+    cur.sum += t.avg_manwon;
+    cur.n += 1;
+    byYm.set(t.yyyymm, cur);
+  }
+  const series = [...byYm.entries()]
+    .map(([ym, v]) => ({ ym, avg: v.sum / v.n }))
+    .sort((a, b) => a.ym.localeCompare(b.ym));
+  if (series.length < 3) return null;
+
+  const W = 300;
+  const H = 46;
+  const PAD = 4;
+  const vals = series.map((s) => s.avg);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const span = max - min || 1;
+  const stepX = (W - PAD * 2) / (series.length - 1);
+  const pts = series.map((s, i) => {
+    const x = PAD + i * stepX;
+    const y = PAD + (H - PAD * 2) * (1 - (s.avg - min) / span);
+    return { x, y };
+  });
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${H - PAD} L${pts[0].x.toFixed(1)},${H - PAD} Z`;
+  const last = pts[pts.length - 1];
+  const first = series[0].avg;
+  const lastVal = series[series.length - 1].avg;
+  const deltaPct = first > 0 ? Math.round(((lastVal - first) / first) * 1000) / 10 : 0;
+  const up = lastVal >= first;
+  const stroke = up ? "#1d4fd8" : "#d64545";
+
+  return (
+    <div className="card rounded-[14px] px-[15px] py-3">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[11px] font-bold text-text-2">실거래가 추이</span>
+        <span className={`text-[11px] font-extrabold ${up ? "text-primary" : "text-danger"}`}>
+          {ymLabel(series[0].ym)} → {ymLabel(series[series.length - 1].ym)} · {deltaPct > 0 ? "+" : ""}
+          {deltaPct}%
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
+        <path d={area} fill={up ? "rgba(29,79,216,.08)" : "rgba(214,69,69,.08)"} />
+        <path d={line} fill="none" stroke={stroke} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx={last.x} cy={last.y} r={2.6} fill={stroke} />
+      </svg>
+    </div>
+  );
+}
+
 export function ComplexInfoPanel({
   complexId,
   initialName,
@@ -207,6 +264,9 @@ export function ComplexInfoPanel({
             </div>
           </div>
         </div>
+
+        {/* C4 실거래가 추이 스파크라인 (월 3개 이상일 때만) */}
+        <Sparkline tx={tx} />
 
         {recent.length > 0 && (
           <div className="card flex flex-col rounded-[14px] px-[15px] py-1">
