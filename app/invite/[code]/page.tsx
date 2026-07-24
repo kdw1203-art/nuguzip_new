@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { Icon } from "@/app/components/Icon";
@@ -18,10 +19,44 @@ import { getReferralByCode } from "@/lib/referral/store";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "친구 초대 · 누구집",
-  robots: { index: false, follow: false },
-};
+/**
+ * A4 — 초대 공유카드(OG). 페이지는 noindex 유지(검색 색인 방지)하되,
+ * openGraph/twitter 이미지로 카카오·링크 공유 미리보기 CTR 을 높인다.
+ * (og:image 스크랩은 robots noindex 와 무관하게 동작)
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}): Promise<Metadata> {
+  const { code: rawCode } = await params;
+  const code = sanitizeCode(rawCode);
+  const ref = code ? await getReferralByCode(code) : null;
+  const inviter = ref ? maskEmail(ref.referrerEmail) : "친구의 초대";
+  const ogUrl = `/api/og/invite?by=${encodeURIComponent(inviter)}`;
+  const title = "친구가 초대했어요 · 가입하면 둘 다 300P — 누구집";
+  const description =
+    "초대 링크로 가입하면 초대한 친구와 나 모두 300P. 실거래가·시세·AI 임장 분석을 바로 이용하세요.";
+  return {
+    title,
+    description,
+    robots: { index: false, follow: false },
+    openGraph: {
+      title,
+      description,
+      siteName: "누구집",
+      type: "website",
+      locale: "ko_KR",
+      images: [{ url: ogUrl, width: 1200, height: 630, alt: "누구집 친구 초대" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogUrl],
+    },
+  };
+}
 
 const COOKIE_NAME = "ref_code";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30일(초)

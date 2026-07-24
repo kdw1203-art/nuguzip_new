@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/app/components/toast/ToastProvider";
 
 /* ============================================================
    단지 정보 패널 (6a·item2) — 검색 결과/포인트 마커 선택 시.
@@ -117,6 +119,108 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
         <circle cx={last.x} cy={last.y} r={2.6} fill={stroke} />
       </svg>
     </div>
+  );
+}
+
+/* C10 — 마커 패널에서 관심 단지 원클릭 토글(로그인 유도 포함).
+   GET/POST/DELETE /api/me/watchlist. 비로그인 401 → 로그인, 한도 403 → 토스트.
+   mock 좌표(mock-)는 관심 대상이 아니라 렌더하지 않는다. */
+function WatchlistToggle({
+  complexId,
+  complexName,
+}: {
+  complexId: string;
+  complexName: string;
+}) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const [watching, setWatching] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const disabled = !complexId || complexId.startsWith("mock-");
+
+  useEffect(() => {
+    if (disabled) {
+      setWatching(false);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/me/watchlist?complexId=${encodeURIComponent(complexId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled && j) setWatching(Boolean(j.watching));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [complexId, disabled]);
+
+  if (disabled) return null;
+
+  async function toggle() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (watching) {
+        const res = await fetch(
+          `/api/me/watchlist?complexId=${encodeURIComponent(complexId)}`,
+          { method: "DELETE" },
+        );
+        if (res.status === 401) {
+          router.push("/login?callbackUrl=/map");
+          return;
+        }
+        if (res.ok) {
+          setWatching(false);
+          showToast("관심 단지에서 뺐어요");
+        }
+      } else {
+        const res = await fetch("/api/me/watchlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ complexId, complexName }),
+        });
+        if (res.status === 401) {
+          router.push("/login?callbackUrl=/map");
+          return;
+        }
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        if (res.status === 403) {
+          showToast(j.error ?? "관심 단지 한도를 초과했어요");
+          return;
+        }
+        if (res.ok) {
+          setWatching(true);
+          showToast("관심 단지에 담았어요. 시세 변동 알림을 받아요.");
+        } else {
+          showToast(j.error ?? "관심 담기에 실패했어요");
+        }
+      }
+    } catch {
+      showToast("네트워크 오류가 발생했어요");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void toggle()}
+      disabled={busy}
+      aria-pressed={watching === true}
+      className={`flex w-full items-center justify-center gap-1.5 rounded-xl border p-[11px] text-xs font-extrabold transition-colors disabled:opacity-60 ${
+        watching
+          ? "border-primary bg-[rgba(29,79,216,.08)] text-primary"
+          : "border-line bg-surface text-text-2"
+      }`}
+    >
+      <span className={watching ? "text-primary" : "text-[#d64545]"}>
+        {watching ? "♥" : "♡"}
+      </span>
+      {watching ? "관심 단지 담김 · 알림 받는 중" : "관심 단지 담고 시세 알림 받기"}
+    </button>
   );
 }
 
@@ -293,6 +397,8 @@ export function ComplexInfoPanel({
             최근 실거래 데이터가 아직 없어요.
           </div>
         )}
+
+        <WatchlistToggle complexId={complexId} complexName={name} />
 
         <div className="grid grid-cols-3 gap-2">
           <Link
