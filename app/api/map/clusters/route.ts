@@ -1,8 +1,9 @@
 /**
  * GET /api/map/clusters?minLat=&maxLat=&minLng=&maxLng=&zoom=
  *
- * 지도 서버 클러스터링 — 뷰포트 안 단지(complexes)를 줌 레벨에 따라
- * 그리드 셀로 묶어 반환한다.
+ * 지도 서버 클러스터링 — 뷰포트 안 지오코딩 단지(complex_geocode)를 줌 레벨에 따라
+ * 그리드 셀로 묶어 반환한다. 개별 포인트 id 는 encodeComplexId(region,name) — 상세 패널이
+ * /api/complex/[id]/detail 로 그대로 해석한다.
  *
  * - zoom < 14 (클러스터 모드): 뷰포트 내 좌표(lat,lng)만 최대 5,000건 조회 후
  *   라우트에서 floor(lat/cell) 그리드로 집계 (PostgREST는 GROUP BY 집계를
@@ -20,6 +21,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import { encodeComplexId } from "@/lib/complex/complex-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -124,33 +126,7 @@ async function aggregateCellPrices(
   } catch {
     // 테이블 미구축 등 — 다음 소스로
   }
-  if (buckets.size > 0) return buckets;
-
-  // 2순위 — complex_transactions(면적 구분 없는 전체 평균 행) + complexes 좌표 임베드
-  try {
-    // 최근 12개월분만 — yyyymm 문자열 비교
-    const now = new Date();
-    const from = `${now.getFullYear() - 1}${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const { data, error } = await sb
-      .from("complex_transactions")
-      .select("avg_manwon,complex:complexes!inner(lat,lng)")
-      .is("area_m2", null)
-      .gte("yyyymm", from)
-      .gte("complex.lat", bounds.minLat)
-      .lte("complex.lat", bounds.maxLat)
-      .gte("complex.lng", bounds.minLng)
-      .lte("complex.lng", bounds.maxLng)
-      .limit(MAX_PRICE_SOURCE_ROWS);
-    if (!error) {
-      for (const r of (data ?? []) as Array<Record<string, unknown>>) {
-        const c = r.complex as { lat?: unknown; lng?: unknown } | null;
-        if (!c) continue;
-        add(Number(c.lat), Number(c.lng), Number(r.avg_manwon));
-      }
-    }
-  } catch {
-    // FK 미정의·조회 실패 — 가격 없이 개수만
-  }
+  // market_complex_price 좌표 시세만 사용(2순위 complex_transactions/complexes 는 미존재 테이블이라 제거).
   return buckets;
 }
 
@@ -194,23 +170,32 @@ export async function GET(req: NextRequest) {
 
   try {
     if (mode === "points") {
+      // 개별 단지 포인트 — 지오코딩 캐시(complex_geocode)에서 뷰포트 내 좌표. 거래량 상위.
       const { data, error } = await sb
-        .from("complexes")
-        .select("id,name,lat,lng")
+        .from("complex_geocode")
+        .select("region_name,complex_name,lat,lng")
+        .eq("status", "ok")
         .not("lat", "is", null)
         .not("lng", "is", null)
         .gte("lat", minLat)
         .lte("lat", maxLat)
         .gte("lng", minLng)
         .lte("lng", maxLng)
+        .order("trade_count", { ascending: false, nullsFirst: false })
         .limit(MAX_POINTS);
       if (error) throw error;
 
       const points: MapPointItem[] = ((data ?? []) as Array<Record<string, unknown>>)
-        .filter((r) => Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)))
+        .filter(
+          (r) =>
+            r.region_name &&
+            r.complex_name &&
+            Number.isFinite(Number(r.lat)) &&
+            Number.isFinite(Number(r.lng)),
+        )
         .map((r) => ({
-          id: String(r.id),
-          name: String(r.name ?? ""),
+          id: encodeComplexId(String(r.region_name), String(r.complex_name)),
+          name: String(r.complex_name ?? ""),
           lat: Number(r.lat),
           lng: Number(r.lng),
         }));
@@ -218,10 +203,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ mode, clusters: [], points }, { headers: CACHE_HEADERS });
     }
 
-    // 클러스터 모드 — 좌표만 가져와 그리드 집계
+    // 클러스터 모드 — 좌표만 가져와 그리드 집계 (complex_geocode)
     const { data, error } = await sb
-      .from("complexes")
+      .from("complex_geocode")
       .select("lat,lng")
+      .eq("status", "ok")
       .not("lat", "is", null)
       .not("lng", "is", null)
       .gte("lat", minLat)
