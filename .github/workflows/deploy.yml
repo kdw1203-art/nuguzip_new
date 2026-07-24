@@ -76,6 +76,11 @@ jobs:
               else print "All routes within the 250 kB First Load JS budget";
             }
           ' build.log
+      # ---- G5: 공개 CDN 캐시 허용 목록이 실제 prerender 산출물과 맞는지 검증 ----
+      # 목록에 있는 경로가 동적 렌더로 바뀌면 사용자별 응답이 공유 캐시에 섞일 수 있으므로
+      # 배포 전에 실패시킨다. (lib/http/cache-policy.ts)
+      - name: Cache policy check
+        run: node scripts/check-cache-policy.mjs
       - name: Link integrity check
         run: |
           npx next start -p 3100 &

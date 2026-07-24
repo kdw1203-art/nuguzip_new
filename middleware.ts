@@ -10,6 +10,7 @@ import {
 } from "@/lib/mini-app/cors";
 import { buildContentSecurityPolicy } from "@/lib/security/content-security-policy";
 import { CSP_REV_COOKIE, CSP_REVISION, currentDeployId, DEPLOY_COOKIE } from "@/lib/security/deploy-sync";
+import { publicDocumentCacheControl } from "@/lib/http/cache-policy";
 
 function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
@@ -25,8 +26,11 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
   // 모든 미들웨어 통과 응답에 타입 스니핑 방지 헤더 추가
   response.headers.set("X-Content-Type-Options", "nosniff");
 
+  // G5: 값이 이미 같은 쿠키는 다시 심지 않는다. 매 응답에 Set-Cookie 가 붙으면
+  // 공유 캐시(CDN)가 그 응답을 저장하지 않으므로, 아래 공개 캐시가 무력화된다.
   const deployId = currentDeployId();
-  if (deployId) {
+  const needsDeployCookie = Boolean(deployId) && request?.cookies.get(DEPLOY_COOKIE)?.value !== deployId;
+  if (deployId && needsDeployCookie) {
     response.cookies.set(DEPLOY_COOKIE, deployId, {
       path: "/",
       sameSite: "lax",
@@ -34,20 +38,34 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
       maxAge: 60 * 60 * 24,
     });
   }
-  response.cookies.set(CSP_REV_COOKIE, CSP_REVISION, {
-    path: "/",
-    sameSite: "lax",
-    secure: !isDev,
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  const needsCspCookie = request?.cookies.get(CSP_REV_COOKIE)?.value !== CSP_REVISION;
+  if (needsCspCookie) {
+    response.cookies.set(CSP_REV_COOKIE, CSP_REVISION, {
+      path: "/",
+      sameSite: "lax",
+      secure: !isDev,
+      maxAge: 60 * 60 * 24 * 365,
+    });
+  }
 
   if (isDocument) {
-    // Vercel CDN이 추가하는 must-revalidate 포함 조합을 no-store로 덮어씀
-    response.headers.set("Cache-Control", "no-store");
+    /* G5 — 공개 prerender 라우트만 CDN 공유 캐시를 허용한다.
+       단, 이 응답에 Set-Cookie 가 하나라도 실려 있으면(세션 갱신·CSP 리비전 등)
+       사용자별 상태가 섞인 응답이므로 캐시를 포기하고 no-store 로 되돌린다.
+       판단 근거와 대상 목록은 lib/http/cache-policy.ts 주석 참고. */
+    const publicCache = request ? publicDocumentCacheControl(request.nextUrl.pathname) : null;
+    const carriesClientState = response.cookies.getAll().length > 0;
+    if (publicCache && !carriesClientState) {
+      response.headers.set("Cache-Control", publicCache);
+    } else {
+      // Vercel CDN이 추가하는 must-revalidate 포함 조합을 no-store로 덮어씀
+      response.headers.set("Cache-Control", "no-store");
+    }
     response.headers.delete("Pragma");
     response.headers.delete("Expires");
-    const cspCookie = request?.cookies.get(CSP_REV_COOKIE)?.value;
-    if (cspCookie !== CSP_REVISION) {
+    if (needsCspCookie) {
+      // 캐시된 응답에 이게 섞이면 남의 브라우저 캐시까지 비운다 — 쿠키가 실린
+      // 응답은 위에서 이미 no-store 로 떨어지므로 공유 캐시에 들어가지 않는다.
       response.headers.set("Clear-Site-Data", '"cache"');
     }
   } else if (isApiPath) {

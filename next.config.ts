@@ -86,8 +86,12 @@ const nextConfig: NextConfig = {
       { key: "Content-Security-Policy", value: csp },
       // X-Frame-Options 제거 — CSP frame-ancestors 'self' 로 대체 (더 정확하고 강력)
       { key: "X-Content-Type-Options", value: "nosniff" },
-      // 동적 페이지 기본 캐시 정책 (정적 자산은 더 구체적인 패턴이 덮어씀)
-      { key: "Cache-Control", value: "no-store" },
+      /* G5: 여기 있던 전역 `Cache-Control: no-store` 를 제거했다.
+         `/:path*` 에 걸려 있어서 빌드 시 prerender 해 둔 공개 페이지까지 CDN 이
+         재사용하지 못했다(매 요청 오리진 왕복 = TTFB 손해).
+         문서·API 응답의 캐시 정책은 미들웨어가 경로별로 판단한다:
+         공개 prerender 라우트만 s-maxage 허용, 그 외는 그대로 no-store.
+         (lib/http/cache-policy.ts + scripts/check-cache-policy.mjs) */
       {
         key: "Referrer-Policy",
         value: "strict-origin-when-cross-origin",
