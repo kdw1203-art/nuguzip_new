@@ -102,87 +102,59 @@ async function writeCache(key: string, payload: unknown, ttlMs = 3_600_000): Pro
   }
 }
 
-// ── Mock 데이터 ───────────────────────────────────────────────────
-function mockMotTransactions(params: LocationRef) {
-  const district = params.district ?? "강남구";
-  const months: Array<{ yyyymm: string; avgPrice: number; count: number }> = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const yyyymm = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
-    months.push({
-      yyyymm,
-      avgPrice: Math.round((8_000_000 + Math.random() * 2_000_000) * (1 + i * 0.003)),
-      count: Math.floor(50 + Math.random() * 100),
-    });
-  }
-  return { district, city: params.city ?? "서울", months, mode: "mock" as const };
-}
-
-function mockKosisPopulation(params: LocationRef) {
+// ── 미연동(unavailable) 응답 ──────────────────────────────────────
+/* 사실 우선: 여기 있던 MOCK_BUILDERS 6종은 전부 `Math.random()` 으로 숫자를
+   지어냈다. 실제 구(區) 이름을 달고 인구 50~70만, 학교 10~30개, 병원 5~25개,
+   정비사업 0~8건, 학군 평균점수 70~90점 같은 값을 만들어 냈고 — 난수라서
+   같은 지역을 두 번 조회하면 값이 달라졌다. district 기본값도 "강남구" 라,
+   지역을 지정하지 않으면 강남구의 통계인 것처럼 보였다.
+   이제 모양(스키마)만 유지하고 값은 비운다: 모르는 것은 null 이다.
+   `mode: "mock"` 은 그대로 두어 호출측이 "실데이터 아님"을 판별할 수 있게 한다. */
+function unavailable<T extends Record<string, unknown>>(params: LocationRef, extra: T) {
   return {
-    district: params.district ?? "강남구",
-    totalPopulation: 500_000 + Math.floor(Math.random() * 200_000),
-    households: 200_000 + Math.floor(Math.random() * 100_000),
-    avgAge: 35 + Math.random() * 10,
-    yoyGrowthPct: -0.5 + Math.random() * 1.5,
+    district: params.district ?? null,
+    city: params.city ?? null,
     mode: "mock" as const,
-  };
-}
-
-function mockFacilities(params: LocationRef) {
-  return {
-    district: params.district ?? "강남구",
-    schools: Math.floor(10 + Math.random() * 20),
-    hospitals: Math.floor(5 + Math.random() * 20),
-    subwayStations: Math.floor(3 + Math.random() * 8),
-    parks: Math.floor(3 + Math.random() * 12),
-    convenienceStores: Math.floor(30 + Math.random() * 60),
-    pharmacies: Math.floor(8 + Math.random() * 15),
-    childcare: Math.floor(5 + Math.random() * 12),
-    mode: "mock" as const,
-  };
-}
-
-function mockSchools(params: LocationRef) {
-  return {
-    district: params.district ?? "강남구",
-    elementary: Math.floor(5 + Math.random() * 15),
-    middle: Math.floor(3 + Math.random() * 10),
-    high: Math.floor(3 + Math.random() * 10),
-    specialPurpose: Math.floor(Math.random() * 5),
-    avgScore: 70 + Math.random() * 20,
-    mode: "mock" as const,
-  };
-}
-
-function mockRedevelopment(params: LocationRef) {
-  return {
-    district: params.district ?? "강남구",
-    activeProjects: Math.floor(Math.random() * 8),
-    plannedProjects: Math.floor(Math.random() * 12),
-    estimatedUnits: Math.floor(500 + Math.random() * 5000),
-    nearestCompletionYear: 2026 + Math.floor(Math.random() * 5),
-    projects: [],
-    mode: "mock" as const,
-  };
-}
-
-function mockExCongestion(params: LocationRef) {
-  return {
-    routeNo: null,
-    zoneQuery: params.district ?? "",
-    mode: "mock" as const,
+    ...extra,
   };
 }
 
 const MOCK_BUILDERS: Record<DataSourceId, (p: LocationRef) => unknown> = {
-  "mot-transactions": mockMotTransactions,
-  "kosis-population": mockKosisPopulation,
-  facilities: mockFacilities,
-  schools: mockSchools,
-  redevelopment: mockRedevelopment,
-  "ex-congestion": mockExCongestion,
+  "mot-transactions": (p) => unavailable(p, { months: [] }),
+  "kosis-population": (p) =>
+    unavailable(p, {
+      totalPopulation: null,
+      households: null,
+      avgAge: null,
+      yoyGrowthPct: null,
+    }),
+  facilities: (p) =>
+    unavailable(p, {
+      schools: null,
+      hospitals: null,
+      subwayStations: null,
+      parks: null,
+      convenienceStores: null,
+      pharmacies: null,
+      childcare: null,
+    }),
+  schools: (p) =>
+    unavailable(p, {
+      elementary: null,
+      middle: null,
+      high: null,
+      specialPurpose: null,
+      avgScore: null,
+    }),
+  redevelopment: (p) =>
+    unavailable(p, {
+      activeProjects: null,
+      plannedProjects: null,
+      estimatedUnits: null,
+      nearestCompletionYear: null,
+      projects: [],
+    }),
+  "ex-congestion": (p) => unavailable(p, { routeNo: null, zoneQuery: p.district ?? "" }),
 };
 
 // ── 실제 API 호출 ──────────────────────────────────────────────────

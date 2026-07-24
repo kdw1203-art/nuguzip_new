@@ -7,7 +7,7 @@ import {
 } from "@/lib/listings/store-db";
 import { listPublicNotes } from "@/lib/inspection/store-db";
 import { readBoardPosts } from "@/lib/newui/board-posts";
-import { formatPriceKrw, formatRentLabel } from "@/lib/listings/filter";
+import { formatPriceKrw, formatRentLabel } from "@/lib/listings/format";
 
 /* 통합 검색 API — 단지 + 매물 + 임장노트 + 뉴스를 한 번에.
    그룹별 상위 ~5건, 각 소스 실패 시 해당 그룹만 [] (부분 실패 허용).

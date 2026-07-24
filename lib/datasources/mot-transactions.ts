@@ -26,34 +26,21 @@ export type RealEstateSummary = {
   tradeCount30d: number;
 };
 
-function mockRealEstate(location: LocationRef): RealEstateSummary {
-  const seed = `${location.city}${location.district ?? ""}`.length;
-  const base = 2200 + (seed % 18) * 180;
-  const mom = ((seed % 7) - 3) * 0.35;
-  const complexes = ["래미안", "자이", "푸르지오", "힐스테이트", "더샵", "트리마제", "롯데캐슬"];
-  const sizes = [59.9, 74.8, 84.9, 99.1, 114.7];
-  const now = new Date();
-  const trades: RealEstateTrade[] = Array.from({ length: 6 }, (_, i) => {
-    const size = sizes[(seed + i) % sizes.length];
-    const price = Math.round(base * size * (0.98 + ((seed + i) % 7) / 100)) / 10_000;
-    const d = new Date(now);
-    d.setDate(d.getDate() - i * 4 - (seed % 5));
-    return {
-      complexName: `${location.district ?? location.city} ${complexes[(seed + i) % complexes.length]}`,
-      dealDate: d.toISOString().slice(0, 10),
-      priceKrw: Math.round(price * 10_000),
-      sizeM2: size,
-      floor: 3 + ((seed + i) % 20),
-      tradeType: i % 4 === 0 ? "전세" : "매매",
-    };
-  });
-
+/* 사실 우선: 여기 있던 mockRealEstate() 를 삭제했다.
+   시드 난수로 "강남구 래미안 · 2026-07-15 · 8.4억 · 84.9㎡ · 12층 · 매매" 같은
+   실거래 레코드 6건을 지어냈다. 실존 브랜드명(래미안·자이·푸르지오·힐스테이트·
+   더샵·트리마제·롯데캐슬)과 실제 구 이름을 붙였고, 무엇보다 이 응답이
+   sourceLabel "국토교통부 실거래가" + attribution "국토교통부 실거래가 공개시스템"
+   을 달고 나갔다. 정부 출처를 붙인 채 날짜·가격·층수까지 있는 가짜 계약 기록을
+   내보내는 것은 이 서비스에서 할 수 있는 최악의 거짓말이다.
+   실거래는 실제로 받아온 것만 내보낸다 — 없으면 빈 목록이다. */
+function unavailableRealEstate(location: LocationRef): RealEstateSummary {
   return {
     location,
-    averagePricePerM2: base * 10_000,
-    monthOverMonthPct: Math.round(mom * 100) / 100,
-    recentTrades: trades,
-    tradeCount30d: 48 + (seed % 30),
+    averagePricePerM2: 0,
+    monthOverMonthPct: 0,
+    recentTrades: [],
+    tradeCount30d: 0,
   };
 }
 
@@ -170,15 +157,16 @@ export async function getRealEstateSummary(
     }
   }
 
+  // 실거래를 못 받아온 상태 — 정부 출처 표기를 달지 않는다(그 데이터가 아니므로).
   return {
     source: "mot-transactions",
-    sourceLabel: "국토교통부 실거래가",
+    sourceLabel: "실거래가 (미연동)",
     unit: "KRW_PER_M2",
     viz: "card_number",
     updatedAt: new Date().toISOString().slice(0, 10),
     mode: "mock",
-    attribution: "국토교통부 실거래가 공개시스템 (rt.molit.go.kr)",
+    attribution: "API 키 미설정 — 실거래 데이터를 불러오지 못했습니다",
     isLocationBased: true,
-    data: mockRealEstate(location),
+    data: unavailableRealEstate(location),
   };
 }

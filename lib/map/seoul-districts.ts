@@ -1,11 +1,30 @@
-/** 서울 주요 구 좌표·목업 시세 (지도/API 공용 — 서버 import 가능) */
+/**
+ * 수도권 시군구 좌표 카탈로그 (지도/API 공용 — 서버 import 가능)
+ *
+ * 사실 우선: 이 파일에 있던 `avgPricePerM2` / `momPct` / `tradeCount30d` 하드코딩
+ * 값 62건을 전부 삭제했다. 근거 없는 숫자였을 뿐 아니라, 이미 DB 에 들어와 있는
+ * 한국부동산원(REB) 실집계와 대조하니 실제로 크게 틀렸다 —
+ *   강남구 25.0M vs 실제 30.4M / 도봉구 6.5M vs 8.4M / 과천시 18.0M vs 25.6M,
+ *   남양주시 7.1M vs 3.7M (약 2배), 남양주 momPct +0.3 vs 실제 -2.92 (부호까지 반대).
+ * 하드코딩된 62개 지역 중 61개는 `market_region_price` 에 동일한 region_id 로
+ * 실데이터(per_m2_sale / sale_change / trade_count)가 이미 적재돼 있다. 유일한
+ * 예외는 `hwaseong-dongtan` — 동탄은 신도시라 REB 가 시군구로 집계하지 않는다.
+ *
+ * 따라서 이 파일이 단언하는 사실은 좌표와 이름뿐이다: id / name / lat / lng / city.
+ * 시세·변동률·거래량은 `lib/map/region-market.ts`(loadRegionMarketMarkers) 또는
+ * `lib/market/store.ts`(getAllRegionSnapshots / getRegionSnapshot)로 실데이터를
+ * 조인해서 얻는다. 없으면 "모름"으로 두고, 절대 기본값으로 채우지 않는다.
+ */
 export interface SeoulDistrictInfo {
   id: string;
   name: string;
   lat: number;
   lng: number;
+  /** ㎡당 매매가(원). 정적 값 없음 — 실데이터 조인 시에만 채워진다. */
   avgPricePerM2?: number;
+  /** 전월 대비 변동률(%). 정적 값 없음 — 실데이터 조인 시에만 채워진다. */
   momPct?: number;
+  /** 최근 거래 건수. 정적 값 없음 — 실데이터 조인 시에만 채워진다. */
   tradeCount30d?: number;
   /** 시/도 표기 (미지정 시 서울로 간주) */
   city?: string;
@@ -15,72 +34,73 @@ export interface SeoulDistrictInfo {
 export type RegionInfo = SeoulDistrictInfo;
 
 export const SEOUL_DISTRICTS: SeoulDistrictInfo[] = [
-  { id: "gangnam", name: "강남구", lat: 37.5172, lng: 127.0473, avgPricePerM2: 25_000_000, momPct: 0.8, tradeCount30d: 143 },
-  { id: "gangdong", name: "강동구", lat: 37.5301, lng: 127.1238, avgPricePerM2: 14_000_000, momPct: 0.2, tradeCount30d: 88 },
-  { id: "gangbuk", name: "강북구", lat: 37.6396, lng: 127.0257, avgPricePerM2: 7_500_000, momPct: -0.3, tradeCount30d: 42 },
-  { id: "gangseo", name: "강서구", lat: 37.5509, lng: 126.8495, avgPricePerM2: 9_500_000, momPct: 0.1, tradeCount30d: 95 },
-  { id: "gwanak", name: "관악구", lat: 37.4784, lng: 126.9516, avgPricePerM2: 8_500_000, momPct: -0.1, tradeCount30d: 67 },
-  { id: "gwangjin", name: "광진구", lat: 37.5385, lng: 127.0823, avgPricePerM2: 13_500_000, momPct: 0.4, tradeCount30d: 71 },
-  { id: "guro", name: "구로구", lat: 37.4955, lng: 126.8874, avgPricePerM2: 10_500_000, momPct: 0.0, tradeCount30d: 82 },
-  { id: "geumcheon", name: "금천구", lat: 37.4519, lng: 126.902, avgPricePerM2: 8_000_000, momPct: -0.2, tradeCount30d: 48 },
-  { id: "nowon", name: "노원구", lat: 37.6542, lng: 127.0568, avgPricePerM2: 8_000_000, momPct: -0.5, tradeCount30d: 89 },
-  { id: "dobong", name: "도봉구", lat: 37.6688, lng: 127.0471, avgPricePerM2: 6_500_000, momPct: -0.7, tradeCount30d: 61 },
-  { id: "dongdaemun", name: "동대문구", lat: 37.5744, lng: 127.0396, avgPricePerM2: 11_500_000, momPct: 0.3, tradeCount30d: 64 },
-  { id: "dongjak", name: "동작구", lat: 37.5124, lng: 126.9393, avgPricePerM2: 12_000_000, momPct: 0.2, tradeCount30d: 58 },
-  { id: "mapo", name: "마포구", lat: 37.5638, lng: 126.9085, avgPricePerM2: 15_000_000, momPct: -0.2, tradeCount30d: 76 },
-  { id: "seodaemun", name: "서대문구", lat: 37.5791, lng: 126.9368, avgPricePerM2: 10_000_000, momPct: 0.1, tradeCount30d: 53 },
-  { id: "seocho", name: "서초구", lat: 37.4836, lng: 127.0327, avgPricePerM2: 24_000_000, momPct: 0.4, tradeCount30d: 98 },
-  { id: "seongdong", name: "성동구", lat: 37.5634, lng: 127.0369, avgPricePerM2: 16_000_000, momPct: 0.6, tradeCount30d: 73 },
-  { id: "seongbuk", name: "성북구", lat: 37.5894, lng: 127.0167, avgPricePerM2: 11_000_000, momPct: 0.0, tradeCount30d: 56 },
-  { id: "songpa", name: "송파구", lat: 37.5145, lng: 127.1059, avgPricePerM2: 18_000_000, momPct: 0.3, tradeCount30d: 124 },
-  { id: "yangcheon", name: "양천구", lat: 37.517, lng: 126.8664, avgPricePerM2: 12_500_000, momPct: 0.1, tradeCount30d: 69 },
-  { id: "yeongdeungpo", name: "영등포구", lat: 37.5264, lng: 126.8962, avgPricePerM2: 14_500_000, momPct: 0.5, tradeCount30d: 91 },
-  { id: "yongsan", name: "용산구", lat: 37.5324, lng: 126.9903, avgPricePerM2: 20_000_000, momPct: 1.1, tradeCount30d: 52 },
-  { id: "eunpyeong", name: "은평구", lat: 37.6026, lng: 126.9291, avgPricePerM2: 9_000_000, momPct: 0.1, tradeCount30d: 55 },
-  { id: "jongno", name: "종로구", lat: 37.5735, lng: 126.979, avgPricePerM2: 17_000_000, momPct: 0.2, tradeCount30d: 38 },
-  { id: "jung", name: "중구", lat: 37.5641, lng: 126.9979, avgPricePerM2: 16_500_000, momPct: 0.3, tradeCount30d: 45 },
-  { id: "jungnang", name: "중랑구", lat: 37.6066, lng: 127.0927, avgPricePerM2: 8_800_000, momPct: -0.1, tradeCount30d: 59 },
+  { id: "gangnam", name: "강남구", lat: 37.5172, lng: 127.0473 },
+  { id: "gangdong", name: "강동구", lat: 37.5301, lng: 127.1238 },
+  { id: "gangbuk", name: "강북구", lat: 37.6396, lng: 127.0257 },
+  { id: "gangseo", name: "강서구", lat: 37.5509, lng: 126.8495 },
+  { id: "gwanak", name: "관악구", lat: 37.4784, lng: 126.9516 },
+  { id: "gwangjin", name: "광진구", lat: 37.5385, lng: 127.0823 },
+  { id: "guro", name: "구로구", lat: 37.4955, lng: 126.8874 },
+  { id: "geumcheon", name: "금천구", lat: 37.4519, lng: 126.902 },
+  { id: "nowon", name: "노원구", lat: 37.6542, lng: 127.0568 },
+  { id: "dobong", name: "도봉구", lat: 37.6688, lng: 127.0471 },
+  { id: "dongdaemun", name: "동대문구", lat: 37.5744, lng: 127.0396 },
+  { id: "dongjak", name: "동작구", lat: 37.5124, lng: 126.9393 },
+  { id: "mapo", name: "마포구", lat: 37.5638, lng: 126.9085 },
+  { id: "seodaemun", name: "서대문구", lat: 37.5791, lng: 126.9368 },
+  { id: "seocho", name: "서초구", lat: 37.4836, lng: 127.0327 },
+  { id: "seongdong", name: "성동구", lat: 37.5634, lng: 127.0369 },
+  { id: "seongbuk", name: "성북구", lat: 37.5894, lng: 127.0167 },
+  { id: "songpa", name: "송파구", lat: 37.5145, lng: 127.1059 },
+  { id: "yangcheon", name: "양천구", lat: 37.517, lng: 126.8664 },
+  { id: "yeongdeungpo", name: "영등포구", lat: 37.5264, lng: 126.8962 },
+  { id: "yongsan", name: "용산구", lat: 37.5324, lng: 126.9903 },
+  { id: "eunpyeong", name: "은평구", lat: 37.6026, lng: 126.9291 },
+  { id: "jongno", name: "종로구", lat: 37.5735, lng: 126.979 },
+  { id: "jung", name: "중구", lat: 37.5641, lng: 126.9979 },
+  { id: "jungnang", name: "중랑구", lat: 37.6066, lng: 127.0927 },
 ];
 
 /** 서울 외 주요 권역 (지역 탐색용) — 수도권(경기·인천) 위주 */
 export const METRO_EXPLORE_DISTRICTS: SeoulDistrictInfo[] = [
   // ── 경기 ──
-  { id: "seongnam-bundang", name: "성남시 분당구", lat: 37.3825, lng: 127.1235, avgPricePerM2: 14_500_000, momPct: 0.6, tradeCount30d: 67, city: "경기" },
-  { id: "seongnam-sujeong", name: "성남시 수정구", lat: 37.4500, lng: 127.1450, avgPricePerM2: 10_000_000, momPct: 0.3, tradeCount30d: 41, city: "경기" },
-  { id: "seongnam-jungwon", name: "성남시 중원구", lat: 37.4300, lng: 127.1370, avgPricePerM2: 9_200_000, momPct: 0.1, tradeCount30d: 38, city: "경기" },
-  { id: "suwon-yeongtong", name: "수원시 영통구", lat: 37.2595, lng: 127.0467, avgPricePerM2: 9_800_000, momPct: 0.7, tradeCount30d: 72, city: "경기" },
-  { id: "suwon-jangan", name: "수원시 장안구", lat: 37.3010, lng: 127.0107, avgPricePerM2: 7_400_000, momPct: 0.0, tradeCount30d: 49, city: "경기" },
-  { id: "suwon-paldal", name: "수원시 팔달구", lat: 37.2790, lng: 127.0145, avgPricePerM2: 8_000_000, momPct: 0.2, tradeCount30d: 44, city: "경기" },
-  { id: "suwon-gwonseon", name: "수원시 권선구", lat: 37.2580, lng: 126.9720, avgPricePerM2: 7_600_000, momPct: -0.1, tradeCount30d: 51, city: "경기" },
-  { id: "yongin-suji", name: "용인시 수지구", lat: 37.3220, lng: 127.0978, avgPricePerM2: 10_200_000, momPct: 0.5, tradeCount30d: 63, city: "경기" },
-  { id: "yongin-giheung", name: "용인시 기흥구", lat: 37.2800, lng: 127.1150, avgPricePerM2: 8_600_000, momPct: 0.3, tradeCount30d: 58, city: "경기" },
-  { id: "yongin-cheoin", name: "용인시 처인구", lat: 37.2340, lng: 127.2010, avgPricePerM2: 5_600_000, momPct: -0.2, tradeCount30d: 34, city: "경기" },
-  { id: "goyang-ilsandong", name: "고양시 일산동구", lat: 37.6580, lng: 126.7770, avgPricePerM2: 8_200_000, momPct: -0.3, tradeCount30d: 47, city: "경기" },
-  { id: "goyang-ilsanseo", name: "고양시 일산서구", lat: 37.6760, lng: 126.7500, avgPricePerM2: 7_900_000, momPct: -0.4, tradeCount30d: 43, city: "경기" },
-  { id: "goyang-deogyang", name: "고양시 덕양구", lat: 37.6370, lng: 126.8320, avgPricePerM2: 7_500_000, momPct: 0.1, tradeCount30d: 52, city: "경기" },
-  { id: "anyang-dongan", name: "안양시 동안구", lat: 37.3920, lng: 126.9540, avgPricePerM2: 11_000_000, momPct: 0.6, tradeCount30d: 56, city: "경기" },
-  { id: "anyang-manan", name: "안양시 만안구", lat: 37.3870, lng: 126.9320, avgPricePerM2: 8_400_000, momPct: 0.2, tradeCount30d: 39, city: "경기" },
-  { id: "bucheon", name: "부천시", lat: 37.5035, lng: 126.7660, avgPricePerM2: 8_500_000, momPct: 0.0, tradeCount30d: 88, city: "경기" },
-  { id: "gwangmyeong", name: "광명시", lat: 37.4790, lng: 126.8645, avgPricePerM2: 11_500_000, momPct: 0.8, tradeCount30d: 61, city: "경기" },
-  { id: "hanam", name: "하남시", lat: 37.5390, lng: 127.2140, avgPricePerM2: 12_000_000, momPct: 1.0, tradeCount30d: 57, city: "경기" },
-  { id: "namyangju", name: "남양주시", lat: 37.6360, lng: 127.2160, avgPricePerM2: 7_100_000, momPct: 0.3, tradeCount30d: 64, city: "경기" },
-  { id: "gimpo", name: "김포시", lat: 37.6150, lng: 126.7160, avgPricePerM2: 7_000_000, momPct: 0.2, tradeCount30d: 59, city: "경기" },
-  { id: "uijeongbu", name: "의정부시", lat: 37.7380, lng: 127.0340, avgPricePerM2: 6_600_000, momPct: -0.1, tradeCount30d: 48, city: "경기" },
-  { id: "ansan-danwon", name: "안산시 단원구", lat: 37.3210, lng: 126.8310, avgPricePerM2: 6_500_000, momPct: -0.2, tradeCount30d: 42, city: "경기" },
-  { id: "ansan-sangnok", name: "안산시 상록구", lat: 37.2960, lng: 126.8480, avgPricePerM2: 6_800_000, momPct: 0.0, tradeCount30d: 45, city: "경기" },
-  { id: "hwaseong-dongtan", name: "화성시 동탄", lat: 37.2000, lng: 127.0750, avgPricePerM2: 9_000_000, momPct: 0.9, tradeCount30d: 76, city: "경기" },
-  { id: "gwacheon", name: "과천시", lat: 37.4290, lng: 126.9877, avgPricePerM2: 18_000_000, momPct: 0.7, tradeCount30d: 24, city: "경기" },
-  { id: "uiwang", name: "의왕시", lat: 37.3446, lng: 126.9683, avgPricePerM2: 9_000_000, momPct: 0.4, tradeCount30d: 31, city: "경기" },
-  { id: "gunpo", name: "군포시", lat: 37.3617, lng: 126.9352, avgPricePerM2: 8_500_000, momPct: 0.1, tradeCount30d: 36, city: "경기" },
-  { id: "guri", name: "구리시", lat: 37.5944, lng: 127.1296, avgPricePerM2: 8_700_000, momPct: 0.2, tradeCount30d: 33, city: "경기" },
-  { id: "siheung", name: "시흥시", lat: 37.3800, lng: 126.8030, avgPricePerM2: 6_700_000, momPct: 0.3, tradeCount30d: 54, city: "경기" },
-  { id: "pyeongtaek", name: "평택시", lat: 36.9920, lng: 127.1127, avgPricePerM2: 5_500_000, momPct: 0.5, tradeCount30d: 69, city: "경기" },
+  { id: "seongnam-bundang", name: "성남시 분당구", lat: 37.3825, lng: 127.1235, city: "경기" },
+  { id: "seongnam-sujeong", name: "성남시 수정구", lat: 37.45, lng: 127.145, city: "경기" },
+  { id: "seongnam-jungwon", name: "성남시 중원구", lat: 37.43, lng: 127.137, city: "경기" },
+  { id: "suwon-yeongtong", name: "수원시 영통구", lat: 37.2595, lng: 127.0467, city: "경기" },
+  { id: "suwon-jangan", name: "수원시 장안구", lat: 37.301, lng: 127.0107, city: "경기" },
+  { id: "suwon-paldal", name: "수원시 팔달구", lat: 37.279, lng: 127.0145, city: "경기" },
+  { id: "suwon-gwonseon", name: "수원시 권선구", lat: 37.258, lng: 126.972, city: "경기" },
+  { id: "yongin-suji", name: "용인시 수지구", lat: 37.322, lng: 127.0978, city: "경기" },
+  { id: "yongin-giheung", name: "용인시 기흥구", lat: 37.28, lng: 127.115, city: "경기" },
+  { id: "yongin-cheoin", name: "용인시 처인구", lat: 37.234, lng: 127.201, city: "경기" },
+  { id: "goyang-ilsandong", name: "고양시 일산동구", lat: 37.658, lng: 126.777, city: "경기" },
+  { id: "goyang-ilsanseo", name: "고양시 일산서구", lat: 37.676, lng: 126.75, city: "경기" },
+  { id: "goyang-deogyang", name: "고양시 덕양구", lat: 37.637, lng: 126.832, city: "경기" },
+  { id: "anyang-dongan", name: "안양시 동안구", lat: 37.392, lng: 126.954, city: "경기" },
+  { id: "anyang-manan", name: "안양시 만안구", lat: 37.387, lng: 126.932, city: "경기" },
+  { id: "bucheon", name: "부천시", lat: 37.5035, lng: 126.766, city: "경기" },
+  { id: "gwangmyeong", name: "광명시", lat: 37.479, lng: 126.8645, city: "경기" },
+  { id: "hanam", name: "하남시", lat: 37.539, lng: 127.214, city: "경기" },
+  { id: "namyangju", name: "남양주시", lat: 37.636, lng: 127.216, city: "경기" },
+  { id: "gimpo", name: "김포시", lat: 37.615, lng: 126.716, city: "경기" },
+  { id: "uijeongbu", name: "의정부시", lat: 37.738, lng: 127.034, city: "경기" },
+  { id: "ansan-danwon", name: "안산시 단원구", lat: 37.321, lng: 126.831, city: "경기" },
+  { id: "ansan-sangnok", name: "안산시 상록구", lat: 37.296, lng: 126.848, city: "경기" },
+  // 동탄은 신도시(행정 시군구 아님) — REB 집계 대상이 아니라 시세 조인이 되지 않는다.
+  { id: "hwaseong-dongtan", name: "화성시 동탄", lat: 37.2, lng: 127.075, city: "경기" },
+  { id: "gwacheon", name: "과천시", lat: 37.429, lng: 126.9877, city: "경기" },
+  { id: "uiwang", name: "의왕시", lat: 37.3446, lng: 126.9683, city: "경기" },
+  { id: "gunpo", name: "군포시", lat: 37.3617, lng: 126.9352, city: "경기" },
+  { id: "guri", name: "구리시", lat: 37.5944, lng: 127.1296, city: "경기" },
+  { id: "siheung", name: "시흥시", lat: 37.38, lng: 126.803, city: "경기" },
+  { id: "pyeongtaek", name: "평택시", lat: 36.992, lng: 127.1127, city: "경기" },
   // ── 인천 ──
-  { id: "incheon-yeonsu", name: "연수구", lat: 37.4106, lng: 126.6788, avgPricePerM2: 9_800_000, momPct: 0.2, tradeCount30d: 54, city: "인천" },
-  { id: "incheon-namdong", name: "남동구", lat: 37.4470, lng: 126.7310, avgPricePerM2: 7_000_000, momPct: 0.1, tradeCount30d: 62, city: "인천" },
-  { id: "incheon-bupyeong", name: "부평구", lat: 37.5070, lng: 126.7220, avgPricePerM2: 7_500_000, momPct: 0.0, tradeCount30d: 58, city: "인천" },
-  { id: "incheon-seo", name: "서구", lat: 37.5450, lng: 126.6760, avgPricePerM2: 7_800_000, momPct: 0.6, tradeCount30d: 71, city: "인천" },
-  { id: "incheon-michuhol", name: "미추홀구", lat: 37.4636, lng: 126.6505, avgPricePerM2: 6_500_000, momPct: 0.1, tradeCount30d: 47, city: "인천" },
-  { id: "incheon-gyeyang", name: "계양구", lat: 37.5370, lng: 126.7380, avgPricePerM2: 6_400_000, momPct: -0.1, tradeCount30d: 38, city: "인천" },
-  { id: "incheon-jung", name: "인천 중구", lat: 37.4740, lng: 126.6210, avgPricePerM2: 6_200_000, momPct: 0.4, tradeCount30d: 41, city: "인천" },
+  { id: "incheon-yeonsu", name: "연수구", lat: 37.4106, lng: 126.6788, city: "인천" },
+  { id: "incheon-namdong", name: "남동구", lat: 37.447, lng: 126.731, city: "인천" },
+  { id: "incheon-bupyeong", name: "부평구", lat: 37.507, lng: 126.722, city: "인천" },
+  { id: "incheon-seo", name: "서구", lat: 37.545, lng: 126.676, city: "인천" },
+  { id: "incheon-michuhol", name: "미추홀구", lat: 37.4636, lng: 126.6505, city: "인천" },
+  { id: "incheon-gyeyang", name: "계양구", lat: 37.537, lng: 126.738, city: "인천" },
+  { id: "incheon-jung", name: "인천 중구", lat: 37.474, lng: 126.621, city: "인천" },
 ];

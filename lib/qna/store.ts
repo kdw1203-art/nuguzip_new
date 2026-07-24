@@ -7,7 +7,9 @@
  * PRIVACY: author_email 은 PII 다. 목록/상세에는 절대 원본 이메일을 노출하지 않고
  * `maskEmail()` 로 마스킹한 `authorLabel` 만 반환 타입에 담는다.
  *
- * 더미데이터 정책: 실데이터 우선, 없으면 정확히 1건의 예시(isSample)만 노출한다.
+ * 더미데이터 정책: 실데이터만 노출한다. 질문이 없으면 빈 목록을 반환하고,
+ * 화면은 "아직 등록된 질문이 없어요" 빈 상태를 그린다.
+ * (DB 행에 is_sample=true 로 운영자가 직접 심어둔 예시는 배지와 함께 그대로 노출한다.)
  */
 import "server-only";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
@@ -81,41 +83,15 @@ function mapAnswer(r: Record<string, unknown>): QnaAnswer {
   };
 }
 
-/* ---------- 예시(샘플) 폴백 — 실데이터가 하나도 없을 때만 사용 ---------- */
-
-const SAMPLE_ID = "sample-eunma-0001";
-
-function sampleQuestion(): QnaQuestion {
-  return {
-    id: SAMPLE_ID,
-    complexId: null,
-    complexName: "은마아파트",
-    region: "서울 강남구 대치동",
-    authorLabel: "sam***",
-    title: "은마아파트 재건축 진행 상황이 궁금해요 (조합 설립 이후 일정)",
-    body: "대치동 은마아파트 재건축 관련해서, 조합 설립 인가 이후 사업시행인가까지 대략 어느 정도 걸릴지, 지금은 어느 단계인지 아시는 분 계실까요? 실거주 목적으로 매수를 고민 중인데 입주까지 시간이 얼마나 걸릴지 감이 안 잡혀서요. 학군(대치초·대청중)이랑 주차 상황도 같이 알려주시면 감사하겠습니다.",
-    tags: ["재건축", "강남구", "학군", "실거주"],
-    bountyPoints: 300,
-    status: "answered",
-    answerCount: 1,
-    viewCount: 128,
-    isSample: true,
-    createdAt: new Date("2026-07-15T09:00:00.000Z").toISOString(),
-  };
-}
-
-function sampleAnswer(): QnaAnswer {
-  return {
-    id: "sample-eunma-answer-0001",
-    questionId: SAMPLE_ID,
-    authorLabel: "nzp***",
-    body: "은마는 조합 설립 인가 이후 정비계획·시공 관련 절차가 이어지는 단계예요. 사업시행인가 → 관리처분 → 착공 → 입주까지는 통상 수년 이상 걸리므로, 실거주 목적이라면 일정에 여유를 두고 보시는 게 좋습니다. 학군은 대치초·대청중 배정권이라 선호가 높고, 주차는 세대당 대수가 부족한 편이라는 의견이 많아요. (개인 의견이니 참고만 하세요.)",
-    isAccepted: true,
-    helpfulCount: 12,
-    isSample: true,
-    createdAt: new Date("2026-07-16T02:30:00.000Z").toISOString(),
-  };
-}
+/* 사실 우선: 여기 있던 예시 Q&A 1쌍(sample-eunma-0001)을 삭제했다.
+   실존하는 은마아파트(서울 강남구 대치동)를 지목해, 재건축이 "조합 설립 인가 이후
+   정비계획·시공 절차가 이어지는 단계"라고 진행 단계를 단정하고, 학군 배정(대치초·
+   대청중)과 주차 사정까지 사실처럼 서술한 답변이었다. 게다가 채택 표시와 "도움됨
+   12"까지 붙여 실제 이웃이 검증해 준 답변인 것처럼 보이게 했다 — 작성자도 답변도
+   실재하지 않는다.
+   재건축 단계는 매수 판단을 직접 좌우하는 정보이고, 시점에 따라 사실이 달라진다.
+   "예시" 배지 하나로 감당할 수 있는 종류의 오류가 아니다.
+   질문이 없으면 빈 목록을 반환한다 — 화면에는 "첫 질문 남기기" 빈 상태가 뜬다. */
 
 /* ---------- 조회 ---------- */
 
@@ -139,8 +115,8 @@ export async function listQuestions(
       logger.warn("[qna] listQuestions", e);
     }
   }
-  // 실데이터 없음/미설정 → 예시 정확히 1건 (예시 배지로 구분)
-  return [sampleQuestion()];
+  // 실데이터 없음/미설정 → 빈 목록. 질문을 지어내지 않는다.
+  return [];
 }
 
 /**
@@ -198,9 +174,6 @@ export async function getQuestion(
   id: string,
 ): Promise<{ question: QnaQuestion; answers: QnaAnswer[] } | null> {
   if (!id) return null;
-  if (id === SAMPLE_ID) {
-    return { question: sampleQuestion(), answers: [sampleAnswer()] };
-  }
 
   const sb = getReadOnlySupabase();
   if (!sb) return null;
@@ -302,9 +275,6 @@ export async function createAnswer(input: {
 }): Promise<{ ok: boolean; id?: string; error?: string }> {
   const questionId = (input.questionId ?? "").trim();
   if (!questionId) return { ok: false, error: "질문을 찾을 수 없어요." };
-  if (questionId === SAMPLE_ID) {
-    return { ok: false, error: "예시 질문에는 답변할 수 없어요." };
-  }
 
   const email = (input.email ?? "").trim();
   if (!email) return { ok: false, error: "로그인이 필요합니다." };

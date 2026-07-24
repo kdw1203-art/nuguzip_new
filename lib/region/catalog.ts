@@ -1,8 +1,8 @@
 // ─── 지역 마스터(SSOT) ────────────────────────────────────────
-// 지역 식별·정규화의 단일 출처. 좌표·시세 시드는 seoul-districts 에 두고,
+// 지역 식별·정규화의 단일 출처. 좌표·이름은 seoul-districts 에 두고,
 // 여기서는 "정규화 키"와 "카탈로그 조회"를 한 곳으로 모은다.
-// explore-data(EXPLORE_REGIONS)·region-filter(검색)·ai/region-map(브릿지)가
-// 모두 이 모듈의 normalizeRegionKey 를 공유하도록 한다.
+// 시세는 이 카탈로그가 알지 못한다 — lib/map/region-market.ts 또는
+// lib/market/store.ts 로 실데이터를 조인해서 얻는다(사실 우선).
 
 import {
   METRO_EXPLORE_DISTRICTS,

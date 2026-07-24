@@ -1,11 +1,16 @@
 /**
  * GET /api/market/top-regions?limit=5
- * REB·KB 스냅샷 기준 거래량 상위 지역. 데이터 없으면 정적 SEOUL_DISTRICTS 폴백.
+ * REB·KB 스냅샷 기준 거래량 상위 지역.
+ *
+ * 사실 우선: 실집계가 없을 때 SEOUL_DISTRICTS 의 하드코딩 시세로 "거래량 상위
+ * 지역" 순위를 만들어 내보내던 폴백을 삭제했다. `source: "mock"` 이라고 적어두긴
+ * 했지만, 응답을 받는 쪽에서 그 필드를 읽는다는 보장이 없고 순위 자체가 근거가
+ * 없었다(그 하드코딩 값들은 실제 REB 집계와 최대 2배까지 틀렸다).
+ * 데이터가 없으면 빈 목록을 반환한다.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
 import { getAllRegionSnapshots } from "@/lib/market/store";
-import { SEOUL_DISTRICTS } from "@/lib/map/seoul-districts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,14 +44,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const rows = SEOUL_DISTRICTS.map((d) => ({
-    id: d.id,
-    name: d.name,
-    avgPricePerM2: d.avgPricePerM2 ?? 0,
-    momPct: d.momPct ?? 0,
-    tradeCount30d: d.tradeCount30d ?? 0,
-  }))
-    .sort((a, b) => b.tradeCount30d - a.tradeCount30d)
-    .slice(0, limit);
-  return NextResponse.json({ live: false, source: "mock", rows });
+  // 실집계 없음 — 순위를 지어내지 않는다.
+  return NextResponse.json({ live: false, source: null, rows: [] });
 }

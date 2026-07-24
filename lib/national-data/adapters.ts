@@ -83,11 +83,14 @@ async function molitAptSale(q: NationalPlanQuery): Promise<NationalPlanFetchResu
         : "MOLIT_SERVICE_KEY(인코딩 키) 설정 시 전국 국토부 API로 확장됩니다.",
     });
   }
+  // 사실 우선: 여기서 `avgPricePerM2: 12_500_000, count: 48` 을 "샘플 시세"로
+  // 내보냈다. 실제 구 이름이 붙은 ㎡당 단가라 화면에서는 실측과 구분되지 않는다.
+  // 키가 없으면 시세를 모르는 것이다 — 빈 목록으로 알린다.
   return base("molit-apt-sale", {
     title: "아파트 매매 실거래가",
     mode: "sample",
-    summary: "샘플 시세 (API 키 미설정)",
-    items: [{ district, avgPricePerM2: 12_500_000, count: 48, month: "202605" }],
+    summary: `${district} 실거래 데이터 미연동`,
+    items: [],
     notice: "SEOUL_DATA_API_KEY 또는 MOLIT_SERVICE_KEY를 설정하세요.",
   });
 }
