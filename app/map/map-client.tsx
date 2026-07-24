@@ -1703,6 +1703,24 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         </div>
       )}
 
+      {/* C8 가격 표기 범례 — 매물(호가) vs 실거래(국토부 확정가) 구분 명시 (매물 레이어 ON) */}
+      {showListings && (
+        <div
+          className="glass absolute left-5 z-30 hidden w-[196px] flex-col gap-1 rounded-xl px-3 py-2.5 md:flex"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
+        >
+          <div className="text-[11px] font-extrabold text-ink">가격 표기 안내</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-primary" />
+            <span>매물 = 호가(등록가)</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#1a7f4e]" />
+            <span>실거래 = 국토부 확정가</span>
+          </div>
+        </div>
+      )}
+
       {/* ===== 중앙 하단 플로팅 카테고리 바 (홈 인디케이터 위로 세이프에어리어 오프셋) ===== */}
       <nav
         className="glass-strong absolute left-1/2 z-40 flex -translate-x-1/2 items-center gap-0.5 rounded-full p-1.5"
