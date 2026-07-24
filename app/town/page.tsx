@@ -8,6 +8,7 @@ import {
 } from "@/lib/inspection/store-db";
 import { maskNoteAuthor } from "./shared";
 import { TownFeed, type FeedCard } from "./feed-client";
+import { AdSlot } from "../components/ads/AdSlot";
 import type { Post } from "@/lib/types/post";
 import { TownCategoryNav } from "./TownCategoryNav";
 
@@ -117,7 +118,14 @@ export default async function TownPage() {
       {/* 동네이야기 카테고리 — 청약·입주·공매 + 뉴스·자료·모임·전문가 (인터랙티브) */}
       <TownCategoryNav items={TOWN_LINKS} />
 
-      <TownFeed cards={cards} exampleOnly={exampleOnly} />
+      {/* H3 광고 슬롯 — 서버에서 렌더해 피드 중간(8번째 카드 뒤)에 꽂는다.
+          이 페이지도 revalidate=120 공유 캐시라 보는 사람의 플랜을 알 수 없어 plan={null}.
+          등록 배너도 하우스 광고도 없으면 AdSlot 이 null 을 반환해 자리를 안 만든다. */}
+      <TownFeed
+        cards={cards}
+        exampleOnly={exampleOnly}
+        ad={<AdSlot placement="community_feed" seed={0} plan={null} />}
+      />
 
       {/* 모바일 글쓰기 FAB */}
       <Link

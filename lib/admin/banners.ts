@@ -95,6 +95,39 @@ export async function listBanners(placement?: BannerPlacement): Promise<Banner[]
     });
 }
 
+export type BannerLifecycle = "live" | "scheduled" | "expired" | "paused";
+
+/**
+ * 배너의 현재 상태를 하나로 정리한다.
+ * 어드민에서 "왜 안 보이지?" 를 즉시 답하기 위한 값 — 비활성/기간 전/기간 후를 구분한다.
+ */
+export function bannerLifecycle(b: Banner, now = new Date()): BannerLifecycle {
+  if (!b.isActive) return "paused";
+  const t = now.getTime();
+  if (b.startsAt && new Date(b.startsAt).getTime() > t) return "scheduled";
+  if (b.endsAt && new Date(b.endsAt).getTime() < t) return "expired";
+  return "live";
+}
+
+/**
+ * 어드민용 전체 목록 — 비활성·기간 지난 것까지 포함한다.
+ *
+ * listBanners() 는 `is_active = true` 로 걸러서 노출용으로 쓰는 함수라,
+ * 그걸 어드민에 그대로 쓰면 꺼둔 배너가 목록에서 사라져 되살릴 방법이 없어진다.
+ * (H4 CMS 의 핵심 요구가 "노출기간 관리" 라 지난 배너를 봐야 한다.)
+ */
+export async function listAllBanners(): Promise<Banner[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("banners")
+    .select("*")
+    .order("priority", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map(mapRow);
+}
+
 /** 배너 생성 (관리자) */
 export async function createBanner(
   input: Omit<Banner, "id" | "createdAt"> & { createdBy?: string },
@@ -143,6 +176,10 @@ export async function updateBanner(
       ...(input.subtitle !== undefined ? { subtitle: input.subtitle } : {}),
       ...(input.ctaLabel !== undefined ? { cta_label: input.ctaLabel } : {}),
       ...(input.ctaUrl !== undefined ? { cta_url: input.ctaUrl } : {}),
+      // image_url·text_color·target_plan 이 빠져 있어서 생성 후에는 영영 못 고쳤다.
+      ...(input.imageUrl !== undefined ? { image_url: input.imageUrl } : {}),
+      ...(input.textColor !== undefined ? { text_color: input.textColor } : {}),
+      ...(input.targetPlan !== undefined ? { target_plan: input.targetPlan } : {}),
       ...(input.bgFrom !== undefined ? { bg_from: input.bgFrom } : {}),
       ...(input.bgTo !== undefined ? { bg_to: input.bgTo } : {}),
       ...(input.placement !== undefined ? { placement: input.placement } : {}),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { seedGradient, seedCoverHeight } from "./shared";
 import { ExampleBadge } from "../components/ExampleBadge";
@@ -100,12 +100,24 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
   );
 }
 
+/**
+ * 피드 안에 광고를 끼워 넣는 위치.
+ * lib/ads/adsense-policy 의 정책은 "커뮤니티는 8번째마다"지만, 지금 슬롯이 내려주는
+ * 크리에이티브는 한 개뿐이라 8칸마다 반복하면 같은 배너가 화면에 여러 번 잡힌다.
+ * 그래서 첫 지점(8번째 카드 뒤)에서 한 번만 넣는다. 카드가 8개도 안 되면
+ * 피드가 짧다는 뜻이므로 그리드 아래에 붙인다.
+ */
+const AD_AFTER_INDEX = 7;
+
 export function TownFeed({
   cards,
   exampleOnly,
+  ad = null,
 }: {
   cards: FeedCard[];
   exampleOnly: boolean;
+  /** 서버에서 렌더한 광고 슬롯(없으면 null) */
+  ad?: ReactNode;
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
 
@@ -156,11 +168,19 @@ export function TownFeed({
           </Link>
         </div>
       ) : (
-        <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
-          {visible.map((card, i) => (
-            <FeedCardView key={card.id} card={card} delay={(i % 6) + 1} />
-          ))}
-        </div>
+        <>
+          <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
+            {visible.map((card, i) => (
+              <Fragment key={card.id}>
+                <FeedCardView card={card} delay={(i % 6) + 1} />
+                {ad && i === AD_AFTER_INDEX && (
+                  <div className="mb-3 break-inside-avoid">{ad}</div>
+                )}
+              </Fragment>
+            ))}
+          </div>
+          {ad && visible.length <= AD_AFTER_INDEX && <div className="mt-1">{ad}</div>}
+        </>
       )}
     </>
   );

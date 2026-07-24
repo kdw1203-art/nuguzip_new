@@ -6,6 +6,7 @@ import { PersonalHome } from "./components/PersonalHome";
 import { EmptyState } from "./components/ui/EmptyState";
 import { JourneyBanner } from "./components/JourneyBanner";
 import { HomeMiniMap } from "./components/HomeMiniMap";
+import { AdSlot } from "./components/ads/AdSlot";
 import { Footer } from "./components/Footer";
 import { loadNewHomeData } from "@/lib/newui/home-data";
 import { getBaseRate } from "@/lib/market/base-rate";
@@ -174,6 +175,11 @@ export default async function Home() {
             </span>
             <span className="shrink-0 text-sm font-extrabold text-primary">›</span>
           </Link>
+
+          {/* H3 광고 슬롯 — 등록 배너 없으면 하우스 광고, 그것도 없으면 아무것도 안 그림.
+              이 페이지는 revalidate=300 공유 캐시라 보는 사람의 플랜을 알 수 없다.
+              그래서 plan={null} — 특정 플랜 겨냥 배너는 여기서 제외된다. */}
+          <AdSlot placement="home_feed" seed={0} plan={null} className="rise-in-6" />
         </section>
 
         {/* ================= 데스크탑 홈 (9a 정보형 · 트렌드 갱신 bento) ================= */}
@@ -413,8 +419,12 @@ export default async function Home() {
               </span>
               <span className="truncate text-xs text-text-3">{digestTeaser}</span>
             </Link>
-            {/* P1-10: AdSense 점선 플레이스홀더 제거 — 광고 미송출 시 아무것도 렌더하지 않음
-                (실광고는 layout의 AdSenseLoader Auto ads가 담당) */}
+            {/* P1-10: AdSense 점선 플레이스홀더는 제거된 상태 유지 — 광고 미송출 시 아무것도
+                렌더하지 않는다. (외부 실광고는 layout의 AdSenseLoader Auto ads가 담당)
+                H3: 여기 슬롯은 어드민 등록 배너 → 하우스 광고 순으로 채우고, 둘 다 없으면
+                역시 아무것도 그리지 않는다. seed 를 모바일(0)과 다르게 줘서 같은 방문에
+                같은 문구가 두 번 잡히지 않도록 한다. */}
+            <AdSlot placement="home_feed" seed={1} plan={null} className="rise-in-4" />
           </aside>
         </section>
       </main>
