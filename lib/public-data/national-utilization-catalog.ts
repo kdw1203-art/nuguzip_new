@@ -603,8 +603,9 @@ export function resolveNationalIntegrationStatus(
   }
   const runtime = getNationalPlanCapability(plan.id);
   if (runtime !== "planned") return runtime;
-  if (plan.envKey !== "NONE" && process.env[plan.envKey]?.trim()) {
-    return "partial";
-  }
+  // 사실 우선: 예전에는 여기서 "envKey 가 설정돼 있으면 partial" 로 올렸다.
+  // 키가 있다는 건 호출부가 있다는 뜻이 아니다 — 실제로는 파서가 없어
+  // 빈 목록을 돌려주는 계획까지 '부분 연동'으로 집계됐다.
+  // 런타임 판정(getNationalPlanCapability)이 planned 면 planned 다.
   return plan.integrationStatus;
 }

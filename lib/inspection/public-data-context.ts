@@ -69,9 +69,16 @@ export async function getInspectionPublicContext(input: {
     ),
   );
 
+  // 사실 우선: 미연동(mode "planned") 계획은 컨텍스트에서 아예 뺀다.
+  // 남겨두면 소비자들이 items 는 안 보고 summary 만 읽어서,
+  // "날씨: 강남구 단기예보 미연동" 을 장점(pros)으로,
+  // "상권·유동: 강남구 표준데이터 미적재" 를 단점(cons)으로 리포트에 올린다
+  // (app/api/ai/inspection-note/route.ts, lib/inspection/session-public-context.ts).
+  // 모르는 항목은 근거 목록에도 넣지 않는다 — 말하지 않는 게 맞다.
   const plans = results
     .filter((r): r is PromiseFulfilledResult<NationalPlanFetchResult> => r.status === "fulfilled")
-    .map((r) => sliceFromResult(r.value));
+    .map((r) => sliceFromResult(r.value))
+    .filter((p) => p.mode !== "planned");
 
   const weather = plans.find((p) => p.planId === "weather-short");
   const air = plans.find((p) => p.planId === "air-quality");

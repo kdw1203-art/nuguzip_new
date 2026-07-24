@@ -113,9 +113,14 @@ export async function buildAiPublicContext(
     ),
   );
 
+  // 사실 우선: 미연동(mode "planned") 계획은 AI 근거에서 뺀다.
+  // 여기 들어온 plan 은 프롬프트의 [공공데이터] 블록과
+  // evidenceRefsFromPublicContext() 를 통해 사용자에게 보이는 근거 목록이 된다.
+  // "강남구 실거래 데이터 미연동" 같은 summary 를 근거로 넣으면
+  // 모델이 그걸 시장 상황으로 읽는다. 아래 extraIds 루프와 같은 기준.
   const plans: AiPublicContextPlan[] = [];
   for (const r of results) {
-    if (r.status === "fulfilled") plans.push(r.value);
+    if (r.status === "fulfilled" && r.value.mode !== "planned") plans.push(r.value);
   }
 
   // 유형 다변화 근거(오피스텔 매매·분양권전매) — 투자/비교/타이밍 도구에 추가
