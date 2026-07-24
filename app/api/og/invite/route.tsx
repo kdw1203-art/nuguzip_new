@@ -112,8 +112,9 @@ export async function GET(req: NextRequest) {
             }}
           >
             <span style={{ display: "flex" }}>가입하면</span>
-            <span style={{ display: "flex" }}>
-              둘 다&nbsp;<span style={{ color: "#1d4fd8" }}>300P</span>
+            <span style={{ display: "flex", alignItems: "baseline" }}>
+              <span style={{ display: "flex" }}>둘 다&nbsp;</span>
+              <span style={{ display: "flex", color: "#1d4fd8" }}>300P</span>
             </span>
           </div>
 

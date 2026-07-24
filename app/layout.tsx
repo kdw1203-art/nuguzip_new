@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SwRegister } from "./components/SwRegister";
 import { AdSenseLoader } from "./components/AdSenseLoader";
+import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
@@ -57,6 +58,7 @@ export default function RootLayout({
             <ReferralRedeem />
             <SwRegister />
             <AdSenseLoader />
+            <WebVitalsReporter />
           </ToastProvider>
         </ThemeProvider>
       </body>
