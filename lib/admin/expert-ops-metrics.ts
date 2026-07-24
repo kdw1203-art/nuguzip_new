@@ -116,3 +116,80 @@ export async function loadPendingVerificationQueue(
     .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
     .slice(0, limit);
 }
+
+/* ---------------- J8 전문가 이상행위 로그 ---------------- */
+
+export type FraudEventItem = {
+  id: string;
+  userEmail: string;
+  eventType: string;
+  severity: string;
+  createdAt: string | null;
+};
+
+/** 최근 전문가 이상행위 로그(expert_fraud_events) — 관리자 모니터. 없으면 빈 배열. */
+export async function loadRecentFraudEvents(limit = 15): Promise<FraudEventItem[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("expert_fraud_events")
+    .select("id, user_email, event_type, severity, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !Array.isArray(data)) return [];
+  return data.map((r) => {
+    const row = r as Record<string, unknown>;
+    return {
+      id: String(row.id ?? ""),
+      userEmail: String(row.user_email ?? ""),
+      eventType: String(row.event_type ?? ""),
+      severity: String(row.severity ?? "warn"),
+      createdAt: (row.created_at as string | null) ?? null,
+    };
+  });
+}
+
+/* ---------------- J7 전문가 성과 랭킹 ---------------- */
+
+export type ExpertPerfItem = {
+  expertId: string;
+  name: string;
+  total: number;
+  replied: number;
+  replyRate: number; // 0~100
+};
+
+/** 전문가 성과 랭킹 — 상담 수·답변율(expert_consultations + expert_profiles). 없으면 빈 배열. */
+export async function loadExpertPerformance(limit = 10): Promise<ExpertPerfItem[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const [consultRes, profileRes] = await Promise.all([
+    sb.from("expert_consultations").select("expert_id, status").limit(5000),
+    sb.from("expert_profiles").select("id, name").limit(500),
+  ]);
+  const consults = (consultRes.data as { expert_id: string; status: string }[] | null) ?? [];
+  if (consults.length === 0) return [];
+  const names = new Map<string, string>();
+  for (const p of (profileRes.data as { id: string; name: string }[] | null) ?? []) {
+    names.set(String(p.id), String(p.name));
+  }
+  const agg = new Map<string, { total: number; replied: number }>();
+  for (const c of consults) {
+    const id = String(c.expert_id ?? "");
+    if (!id) continue;
+    const cur = agg.get(id) ?? { total: 0, replied: 0 };
+    cur.total += 1;
+    if (c.status === "replied" || c.status === "closed") cur.replied += 1;
+    agg.set(id, cur);
+  }
+  return [...agg.entries()]
+    .map(([expertId, v]) => ({
+      expertId,
+      name: names.get(expertId) ?? "전문가",
+      total: v.total,
+      replied: v.replied,
+      replyRate: v.total > 0 ? Math.round((v.replied / v.total) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, limit);
+}

@@ -3,6 +3,8 @@ import { loadAdminKpi } from "@/lib/admin/stats";
 import {
   loadExpertOpsSummary,
   loadPendingVerificationQueue,
+  loadExpertPerformance,
+  loadRecentFraudEvents,
 } from "@/lib/admin/expert-ops-metrics";
 
 /* 사용자 세그먼트 · AI 품질 · 인증 심사 — 사실 우선: 하드코딩 목업 제거, 실 테이블 집계만.
@@ -25,11 +27,19 @@ function relDate(iso: string | null): string {
 }
 
 export default async function AdminQualityPage() {
-  const [kpi, ops, queue] = await Promise.all([
+  const [kpi, ops, queue, perf, fraud] = await Promise.all([
     loadAdminKpi().catch(() => null),
     loadExpertOpsSummary().catch(() => null),
     loadPendingVerificationQueue(12).catch(() => []),
+    loadExpertPerformance(8).catch(() => []),
+    loadRecentFraudEvents(12).catch(() => []),
   ]);
+
+  const fraudSeverityMeta: Record<string, { label: string; cls: string }> = {
+    warn: { label: "주의", cls: "bg-[#fdf3e7] text-[#c07a3a]" },
+    review_queue: { label: "검토", cls: "bg-primary-soft text-primary" },
+    block: { label: "차단", cls: "bg-[#fdecec] text-[#d64545]" },
+  };
 
   // 사실 기반 세그먼트 — 정의 가능한 실측치만 (휴면/이탈 코호트는 행동 정의 필요 → 준비 중)
   const paidSubscribers = kpi
@@ -159,6 +169,78 @@ export default async function AdminQualityPage() {
           </Link>
           <div className="text-[10px] text-text-3">
             승인·반려 처리는 심사 콘솔에서 수행하며 admin_audit_logs에 기록됩니다.
+          </div>
+        </div>
+      </div>
+
+      {/* J7 전문가 성과 랭킹 · J8 이상행위 로그 (실집계, 없으면 안내) */}
+      <div className="rise-in-2 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className={lightCard}>
+          <div className="text-sm font-extrabold text-ink">전문가 성과 랭킹</div>
+          {perf.length === 0 ? (
+            <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+              집계할 상담 데이터가 아직 없어요.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {perf.map((p, i) => (
+                <div
+                  key={p.expertId}
+                  className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-2.5"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <b className="text-text-3">{i + 1}</b>
+                    <b className="truncate text-xs text-ink">{p.name}</b>
+                  </span>
+                  <span className="shrink-0 text-[11px] text-text-2">
+                    상담 <b className="text-ink">{fmt(p.total)}</b> · 답변율{" "}
+                    <b className={p.replyRate >= 70 ? "text-[#1a7f4e]" : "text-text-2"}>
+                      {p.replyRate}%
+                    </b>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="text-[10px] text-text-3">
+            상담 수·답변율 기준(expert_consultations). 데이터가 쌓이면 자동 갱신돼요.
+          </div>
+        </div>
+
+        <div className={lightCard}>
+          <div className="text-sm font-extrabold text-ink">전문가 이상행위 로그</div>
+          {fraud.length === 0 ? (
+            <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+              최근 감지된 이상행위가 없어요.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {fraud.map((f) => {
+                const meta = fraudSeverityMeta[f.severity] ?? fraudSeverityMeta.warn;
+                return (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`rounded px-1.5 py-px text-[9px] font-extrabold ${meta.cls}`}
+                        >
+                          {meta.label}
+                        </span>
+                        <span className="truncate text-xs font-bold text-ink">{f.eventType}</span>
+                      </div>
+                      <div className="mt-0.5 truncate text-[9px] text-text-3">{f.userEmail}</div>
+                    </div>
+                    <span className="shrink-0 text-[9px] text-text-3">{relDate(f.createdAt)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="text-[10px] text-text-3">
+            자동 감지(중복·이상 패턴)가 expert_fraud_events에 적재되면 여기서 모니터링합니다.
           </div>
         </div>
       </div>

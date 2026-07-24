@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { VerifyOwnershipButton } from "./VerifyOwnershipButton";
+import { BoostButton } from "./BoostButton";
 import { safeAuth } from "@/lib/safe-auth";
 import { getExpertStatus } from "@/lib/experts/is-verified";
 import {
@@ -226,9 +227,7 @@ export default async function MyListingsPage() {
                     상세 보기
                   </Link>
                   {l.status === "approved" && (
-                    <Link href="/points/shop" className="btn-primary btn-sm">
-                      노출 부스트
-                    </Link>
+                    <BoostButton listingId={l.id} active={Boolean(boost)} />
                   )}
                   {!l.ownerVerified &&
                     l.status !== "rejected" &&

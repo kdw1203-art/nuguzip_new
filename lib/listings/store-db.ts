@@ -472,6 +472,42 @@ export async function refreshListing(
 }
 
 /**
+ * I5 매물 부스트 — boost_until 을 max(현재 부스트, now) + days 로 연장(소유자 스코프).
+ * 결제가 아닌 포인트 소비로 셀프서비스. 반환: 성공 시 boostUntil, 실패 시 null.
+ */
+export async function boostListing(
+  id: string,
+  ownerEmail: string,
+  days: number,
+): Promise<string | null> {
+  const sb = getServiceSupabase();
+  if (!sb || !id || !ownerEmail || days <= 0) return null;
+  try {
+    const { data: cur } = await sb
+      .from("listings")
+      .select("boost_until")
+      .eq("id", id)
+      .eq("author_email", ownerEmail)
+      .maybeSingle();
+    if (!cur) return null;
+    const now = Date.now();
+    const prev = cur.boost_until ? Date.parse(String(cur.boost_until)) : 0;
+    const base = Number.isFinite(prev) && prev > now ? prev : now;
+    const until = new Date(base + days * 86_400_000).toISOString();
+    const { error } = await sb
+      .from("listings")
+      .update({ boost_until: until, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("author_email", ownerEmail);
+    if (error) return null;
+    return until;
+  } catch (e) {
+    logger.warn("[listings] boostListing", e);
+    return null;
+  }
+}
+
+/**
  * #5 신고 누적 — report_count +1, LISTING_REPORT_HIDE_THRESHOLD(3) 도달 시 is_hidden=true.
  * best-effort(원자성 미보장, 실패 무시).
  */
