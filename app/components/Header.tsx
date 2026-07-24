@@ -7,6 +7,7 @@ import { Logo } from "./Logo";
 import { HeaderAuth } from "./HeaderAuth";
 import { HeaderSearch } from "./HeaderSearch";
 import { MobileMenu } from "./MobileMenu";
+import { NotificationBell } from "./NotificationBell";
 import { NAV } from "./nav-data";
 import { Icon } from "./Icon";
 
@@ -94,14 +95,8 @@ export function Header() {
         {/* 데스크탑 검색 — P2-14 인라인 자동완성 (HeaderSearch) */}
         <HeaderSearch />
 
-        {/* 데스크탑 알림 진입점 (P2-3) — 모바일 🔔과 동일 타깃 */}
-        <Link
-          href="/notifications"
-          aria-label="알림"
-          className="press hidden h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,.7)] text-text-1 transition-colors hover:text-primary md:flex"
-        >
-          <Icon name="bell" size={18} />
-        </Link>
+        {/* 데스크탑 알림 진입점 (P2-3) — 미읽음 배지 포함(B10) */}
+        <NotificationBell variant="desktop" />
 
         {/* 화면당 primary CTA는 1개 — 노트 쓰기 (마이크로 인터랙션: 리프트 + 글로우) */}
         <Link
@@ -119,9 +114,7 @@ export function Header() {
           <Link href="/search" aria-label="검색" className="press flex h-8 w-8 items-center justify-center">
             <Icon name="search" size={19} />
           </Link>
-          <Link href="/notifications" aria-label="알림" className="press flex h-8 w-8 items-center justify-center">
-            <Icon name="bell" size={19} />
-          </Link>
+          <NotificationBell variant="mobile" />
           <MobileMenu />
         </div>
       </div>

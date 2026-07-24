@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       userEmail: ownerEmail,
       title: "전문가 프로필이 접수되었습니다",
       body: "검수 후 전문가 목록에 공개됩니다. 프로필은 언제든 수정할 수 있습니다.",
-      actionUrl: `/experts/${expert.id}`,
+      actionUrl: `/town/experts`,
     });
     return NextResponse.json({ expert: sanitizeExpertForPublic(expert) });
   } catch (e) {

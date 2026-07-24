@@ -208,7 +208,7 @@ export async function sendMessageByPolicy(
       userEmail: email,
       title: "새 채팅 메시지",
       body: preview,
-      actionUrl: `/chat?room=${input.roomId}`,
+      actionUrl: `/town/groups/${input.roomId}/chat`,
     });
     await enqueueEmailNotification({
       to: email,

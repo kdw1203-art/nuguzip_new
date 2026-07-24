@@ -91,7 +91,7 @@ export async function POST(req: Request) {
       userEmail: session.user.email,
       title: "전문가 인증 접수 완료",
       body: "1차 자동 검증을 마쳤습니다. 문서·출처 검증 후 순차 안내드립니다.",
-      actionUrl: "/me?tab=expert",
+      actionUrl: "/my/consultations",
     });
 
     return NextResponse.json({

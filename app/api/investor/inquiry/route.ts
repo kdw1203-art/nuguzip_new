@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       userEmail: adminEmail,
       title: "새 투자/IR 문의가 접수되었습니다",
       body: `${title}\n\n${bodyMd}`,
-      actionUrl: "/admin/business",
+      actionUrl: "/admin",
     }).catch(() => {});
   }
 

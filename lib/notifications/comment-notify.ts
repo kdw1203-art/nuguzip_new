@@ -29,7 +29,7 @@ export async function notifyPostAuthorOfNewComment(input: {
   const html = `
     <p><strong>${escapeHtml(comment.authorLabel)}</strong> 님이 댓글을 남겼습니다.</p>
     <blockquote style="border-left:3px solid #3182f6;padding-left:12px;color:#334155">${escapeHtml(preview)}</blockquote>
-    <p><a href="${base}/community/${post.id}">글에서 보기</a></p>
+    <p><a href="${base}/town">글에서 보기</a></p>
   `;
 
   // 인앱 받은편지함 알림 (Supabase 연동 여부와 관계없이 시도)
@@ -37,7 +37,7 @@ export async function notifyPostAuthorOfNewComment(input: {
     userEmail: to,
     title: "새 댓글이 달렸어요",
     body: `"${post.title.slice(0, 30)}"에 ${comment.authorLabel}님이 댓글을 남겼습니다.`,
-    actionUrl: `/community/${post.id}`,
+    actionUrl: `/town`,
   }).catch(() => {});
 
   const sent = await trySendViaResend({ to, subject, html });

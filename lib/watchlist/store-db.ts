@@ -123,7 +123,7 @@ export async function notifyPriceChange(
       userEmail: String(w.user_email),
       title: `${complexName} 가격 변동 알림`,
       body: `현재 평균 ${(currentPricePerM2 / 10_000).toFixed(0)}만원/㎡`,
-      actionUrl: `/info/apt/${complexId}`,
+      actionUrl: `/complex/${complexId}`,
     });
   }
 }

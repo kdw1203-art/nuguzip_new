@@ -127,5 +127,22 @@ export async function markAllInboxRead(email: string): Promise<void> {
     .is("read_at", null);
 }
 
+/** 미읽음 알림 수 — 헤더 벨 배지용(B10). read_at null 카운트. */
+export async function countUnreadInbox(email: string): Promise<number> {
+  const key = normEmail(email);
+  if (!key) return 0;
+  const sb = getServiceSupabase();
+  if (!sb) {
+    const list = memory.get(key) ?? [];
+    return list.filter((x) => !x.readAt).length;
+  }
+  const { count } = await sb
+    .from("user_inbox_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_email", key)
+    .is("read_at", null);
+  return count ?? 0;
+}
+
 /** Alias for appendInboxNotification — preferred name going forward */
 export const pushInboxNotification = appendInboxNotification;
