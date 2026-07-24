@@ -1,5 +1,10 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getAppUserIdByEmail } from "@/lib/me/profile";
+import {
+  createExpert,
+  getExpertByOwnerEmail,
+  markExpertVerified,
+} from "@/lib/experts/store-db";
 import type { ExpertVerificationStageId } from "@/lib/experts/verification-policy";
 import { EXPERT_POST_APPROVAL } from "@/lib/experts/verification-policy";
 import {
@@ -275,4 +280,133 @@ export function computeNextRevalidation(from = new Date()): string {
   const d = new Date(from);
   d.setDate(d.getDate() + EXPERT_POST_APPROVAL.revalidationIntervalDays);
   return d.toISOString();
+}
+
+/* ============================================================
+   J1 — 전문가 인증 승인 브리지
+   expert_verification_requests(접수) 승인 시 expert_profiles(공개 프로필)를
+   find-or-create 하고 is_verified=true 로 표시한다. 두 테이블이 단절돼
+   승인해도 검증 전문가가 되지 않던 문제(markExpertVerified 데드코드)를 해소.
+   반려는 요청 상태만 갱신한다. 신청자 알림·감사로그는 API 라우트가 담당.
+   ============================================================ */
+
+export type ApproveExpertResult =
+  | { ok: true; expertId: string; applicantEmail: string; displayName: string }
+  | { ok: false; error: string };
+
+export async function approveExpertVerification(
+  requestId: string,
+  reviewerEmail: string,
+  note?: string | null,
+): Promise<ApproveExpertResult> {
+  const sb = getServiceSupabase();
+  if (!sb) return { ok: false, error: "저장소가 준비되지 않았어요." };
+  const now = new Date().toISOString();
+
+  const { data: reqRow, error: reqErr } = await sb
+    .from("expert_verification_requests")
+    .select("*")
+    .eq("id", requestId)
+    .maybeSingle();
+  if (reqErr || !reqRow) return { ok: false, error: "인증 신청을 찾을 수 없어요." };
+  const req = mapRow(reqRow);
+  if (req.status === "approved") {
+    return { ok: false, error: "이미 승인된 신청이에요." };
+  }
+  const applicantEmail = req.applicantEmail.trim().toLowerCase();
+  if (!applicantEmail) {
+    return { ok: false, error: "신청자 이메일이 없어 승인할 수 없어요." };
+  }
+
+  const nextReval = computeNextRevalidation(new Date());
+  const reviewer = reviewerEmail.trim().toLowerCase();
+  const cleanNote = note?.trim() || null;
+
+  // 1) 접수 상태 갱신 (승인)
+  const { error: updErr } = await sb
+    .from("expert_verification_requests")
+    .update({
+      status: "approved",
+      workflow_stage: "approved",
+      reviewer_email: reviewer,
+      reviewed_at: now,
+      review_note: cleanNote,
+      source_verified_at: now,
+      next_revalidation_at: nextReval,
+    })
+    .eq("id", requestId);
+  if (updErr) return { ok: false, error: updErr.message };
+
+  // 2) 공개 프로필 find-or-create (owner_email 기준)
+  let profile = await getExpertByOwnerEmail(applicantEmail);
+  if (!profile) {
+    try {
+      profile = await createExpert({
+        name: req.displayName || applicantEmail,
+        title: req.specialty || "전문가",
+        category: req.expertType || req.specialty || "expert",
+        regions: req.regions,
+        specialties: [],
+        introduction: req.intro ?? "",
+        experience: req.yearsExperience ? `${req.yearsExperience}년` : "",
+        userId: null,
+        ownerEmail: applicantEmail,
+      });
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "프로필 생성에 실패했어요.",
+      };
+    }
+  }
+
+  // 3) 인증 표시
+  const verified = await markExpertVerified(profile.id, {
+    brokerRegistrationNo: req.certNumber ?? null,
+    verificationNote: cleanNote,
+    nextRevalidationAt: nextReval,
+  });
+
+  return {
+    ok: true,
+    expertId: (verified ?? profile).id,
+    applicantEmail,
+    displayName: req.displayName || applicantEmail,
+  };
+}
+
+export type RejectExpertResult =
+  | { ok: true; applicantEmail: string; displayName: string }
+  | { ok: false; error: string };
+
+export async function rejectExpertVerification(
+  requestId: string,
+  reviewerEmail: string,
+  note: string,
+): Promise<RejectExpertResult> {
+  const sb = getServiceSupabase();
+  if (!sb) return { ok: false, error: "저장소가 준비되지 않았어요." };
+  const cleanNote = note.trim();
+  if (!cleanNote) return { ok: false, error: "반려 사유를 입력해 주세요." };
+  const now = new Date().toISOString();
+
+  const { data, error } = await sb
+    .from("expert_verification_requests")
+    .update({
+      status: "rejected",
+      workflow_stage: "rejected",
+      reviewer_email: reviewerEmail.trim().toLowerCase(),
+      reviewed_at: now,
+      review_note: cleanNote,
+    })
+    .eq("id", requestId)
+    .select("applicant_email, display_name, status")
+    .maybeSingle();
+  if (error || !data) return { ok: false, error: "반려 처리에 실패했어요." };
+
+  return {
+    ok: true,
+    applicantEmail: String((data as Record<string, unknown>).applicant_email ?? ""),
+    displayName: String((data as Record<string, unknown>).display_name ?? ""),
+  };
 }

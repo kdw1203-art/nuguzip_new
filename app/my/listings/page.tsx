@@ -5,6 +5,7 @@ import { PageShell } from "../../components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { VerifyOwnershipButton } from "./VerifyOwnershipButton";
 import { BoostButton } from "./BoostButton";
+import { ListingManageActions } from "./ListingManageActions";
 import { safeAuth } from "@/lib/safe-auth";
 import { getExpertStatus } from "@/lib/experts/is-verified";
 import {
@@ -222,7 +223,7 @@ export default async function MyListingsPage() {
                   </div>
                 )}
 
-                <div className="mt-1 flex flex-wrap gap-2">
+                <div className="mt-1 flex flex-wrap items-center gap-2">
                   <Link href={`/listings/${l.id}`} className="btn-outline btn-sm">
                     상세 보기
                   </Link>
@@ -234,6 +235,20 @@ export default async function MyListingsPage() {
                     l.status !== "closed" && (
                       <VerifyOwnershipButton listingId={l.id} />
                     )}
+                  {l.status !== "closed" && (
+                    <ListingManageActions
+                      listingId={l.id}
+                      listingType={l.listingType}
+                      priceKrw={l.priceKrw}
+                      depositKrw={l.depositKrw}
+                      monthlyKrw={l.monthlyKrw}
+                      areaM2={l.areaM2}
+                      floor={l.floor}
+                      description={l.description}
+                      contact={l.contact}
+                      status={l.status}
+                    />
+                  )}
                 </div>
               </div>
             );

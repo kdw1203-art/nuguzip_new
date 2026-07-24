@@ -30,7 +30,10 @@ export async function loadExpertOpsSummary(): Promise<ExpertOpsSummary> {
       .from("expert_verification_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
-    sb.from("experts").select("id", { count: "exact", head: true }).eq("is_verified", true),
+    sb
+      .from("expert_profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("is_verified", true),
     sb
       .from("expert_consultations")
       .select("id", { count: "exact", head: true })

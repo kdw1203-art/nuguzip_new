@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { loadAdminKpi } from "@/lib/admin/stats";
 import {
   loadExpertOpsSummary,
@@ -6,6 +5,7 @@ import {
   loadExpertPerformance,
   loadRecentFraudEvents,
 } from "@/lib/admin/expert-ops-metrics";
+import { VerificationQueue } from "./VerificationQueue";
 
 /* 사용자 세그먼트 · AI 품질 · 인증 심사 — 사실 우선: 하드코딩 목업 제거, 실 테이블 집계만.
    집계 소스가 없는 지표(휴면/이탈 코호트, 👍비율)는 허위 수치 대신 "준비 중"으로 표기. */
@@ -127,48 +127,11 @@ export default async function AdminQualityPage() {
             </span>
           </div>
 
-          {queue.length === 0 ? (
-            <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
-              현재 심사 대기 중인 신청이 없어요.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {queue.map((q) => (
-                <div
-                  key={`${q.kind}-${q.id}`}
-                  className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`rounded px-1.5 py-px text-[9px] font-extrabold ${
-                          q.kind === "expert"
-                            ? "bg-primary-soft text-primary"
-                            : "bg-[#fdf3e7] text-[#c07a3a]"
-                        }`}
-                      >
-                        {q.kind === "expert" ? "전문가" : "소유확인"}
-                      </span>
-                      <span className="truncate text-xs font-extrabold text-ink">{q.label}</span>
-                    </div>
-                    <div className="mt-0.5 truncate text-[9px] text-text-3">
-                      {q.sub}
-                      {q.createdAt ? ` · 신청 ${relDate(q.createdAt)}` : ""}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <VerificationQueue queue={queue} />
 
-          <Link
-            href="/admin/moderation"
-            className="rounded-[9px] bg-primary p-2 text-center text-[11px] font-bold text-white"
-          >
-            심사 콘솔로 이동 ›
-          </Link>
           <div className="text-[10px] text-text-3">
-            승인·반려 처리는 심사 콘솔에서 수행하며 admin_audit_logs에 기록됩니다.
+            전문가 신청은 이 자리에서 바로 승인·반려하며 결과는 신청자 알림·감사로그(audit_logs)에
+            기록됩니다. 소유확인 건은 매물 심사에서 처리해요.
           </div>
         </div>
       </div>

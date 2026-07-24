@@ -6,6 +6,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { getPrefs } from "@/lib/notification-prefs/store-db";
 import { isNcpSensConfigured, sendSensSms } from "@/lib/ncp/sens-sms";
+import { sendPush, type PushPayload } from "@/lib/push/vapid";
 import { captureException } from "@/lib/monitoring/capture";
 import { logger } from "@/lib/log";
 
@@ -86,6 +87,8 @@ interface RunSummary {
   notified: number;
   /** 인앱 알림 중 SMS(NCP SENS)로도 발송된 건수 (옵트인 사용자) */
   smsSent: number;
+  /** 인앱 알림 중 웹푸시(VAPID)로도 발송된 구독 수 (구독자) */
+  pushSent: number;
   skipped: number;
   reason?: string;
 }
@@ -124,11 +127,71 @@ async function maybeSendPriceAlertSms(
   }
 }
 
+/**
+ * B4 관심단지 실거래 웹푸시 — 인앱 알림과 함께 사용자의 push_subscriptions 로 발송.
+ * VAPID 미설정/구독 없음 시 조용히 no-op. best-effort(실패해도 크론 계속).
+ * 반환: 발송 성공한 구독 수.
+ */
+async function maybeSendPriceAlertPush(
+  sb: SupabaseClient,
+  userEmail: string,
+  complexName: string,
+  priceKrw: number,
+  dir: string,
+  complexId: string,
+): Promise<number> {
+  try {
+    const { data } = await sb
+      .from("push_subscriptions")
+      .select("endpoint, p256dh, auth")
+      .eq("user_email", userEmail.toLowerCase())
+      .limit(20);
+    const subs = (data ?? []) as Array<Record<string, unknown>>;
+    if (subs.length === 0) return 0;
+    const payload: PushPayload = {
+      title: "관심 단지 가격 변동",
+      body: `${complexName} 시세가 ${formatKrwShort(priceKrw)}(으)로 ${dir}했어요.`,
+      url: `/complex/${complexId}`,
+      tag: `watchlist-${complexId}`,
+      eventType: "generic",
+    };
+    let sent = 0;
+    await Promise.allSettled(
+      subs.map(async (s) => {
+        try {
+          const r = await sendPush(
+            {
+              endpoint: String(s.endpoint),
+              keys: { p256dh: String(s.p256dh), auth: String(s.auth) },
+            },
+            payload,
+          );
+          if (r.ok) sent += 1;
+        } catch {
+          // 개별 구독 실패는 무시
+        }
+      }),
+    );
+    return sent;
+  } catch (e) {
+    captureException(e, { where: "cron/price-alerts:push", userEmail });
+    return 0;
+  }
+}
+
 async function runPriceAlerts(): Promise<RunSummary> {
   const read = getReadOnlySupabase();
   if (!read) {
     // 저장소 미설정 — 안전한 no-op.
-    return { ok: true, checked: 0, notified: 0, smsSent: 0, skipped: 0, reason: "no-store" };
+    return {
+      ok: true,
+      checked: 0,
+      notified: 0,
+      smsSent: 0,
+      pushSent: 0,
+      skipped: 0,
+      reason: "no-store",
+    };
   }
   const write = getServiceSupabase();
 
@@ -148,6 +211,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
       checked: 0,
       notified: 0,
       smsSent: 0,
+      pushSent: 0,
       skipped: 0,
       reason: "query-failed",
     };
@@ -159,6 +223,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
   let checked = 0;
   let notified = 0;
   let smsSent = 0;
+  let pushSent = 0;
   let skipped = 0;
   let sawPrice = false;
 
@@ -213,6 +278,17 @@ async function runPriceAlerts(): Promise<RunSummary> {
           if (await maybeSendPriceAlertSms(userEmail, name, priceKrw, dir, complexId)) {
             smsSent++;
           }
+          // B4 웹푸시(VAPID)로도 발송 — 구독 없음/미설정 시 no-op. write(service) 경유.
+          if (write) {
+            pushSent += await maybeSendPriceAlertPush(
+              write,
+              userEmail,
+              name,
+              priceKrw,
+              dir,
+              complexId,
+            );
+          }
         }
       }
 
@@ -241,9 +317,17 @@ async function runPriceAlerts(): Promise<RunSummary> {
 
   // 단 한 건도 시세를 못 구했으면(가격 소스 없음) 명시적으로 알린다.
   if (!sawPrice && rows.length > 0) {
-    return { ok: true, checked, notified: 0, smsSent: 0, skipped, reason: "no-price-source" };
+    return {
+      ok: true,
+      checked,
+      notified: 0,
+      smsSent: 0,
+      pushSent: 0,
+      skipped,
+      reason: "no-price-source",
+    };
   }
-  return { ok: true, checked, notified, smsSent, skipped };
+  return { ok: true, checked, notified, smsSent, pushSent, skipped };
 }
 
 async function handle(req: Request): Promise<Response> {

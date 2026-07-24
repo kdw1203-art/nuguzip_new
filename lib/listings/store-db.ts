@@ -188,7 +188,8 @@ export async function listApprovedListings(
         "id,author_label,source,listing_type,complex_name,region_name,price_krw,deposit_krw,monthly_krw,area_m2,floor,description,created_at,lat,lng,thumbnail_url,boost_until,owner_verified,view_count,refreshed_at,report_count,is_hidden,flag_reason,is_duplicate",
       )
       .eq("status", "approved")
-      .eq("is_hidden", false);
+      .eq("is_hidden", false)
+      .is("deleted_at", null);
     if (filter.listingType) q = q.eq("listing_type", filter.listingType);
     if (filter.regionName) q = q.eq("region_name", filter.regionName);
     if (filter.complexName) q = q.eq("complex_name", filter.complexName);
@@ -248,6 +249,7 @@ export async function listListingsInBounds(bounds: {
       )
       .eq("status", "approved")
       .eq("is_hidden", false)
+      .is("deleted_at", null)
       .not("lat", "is", null)
       .not("lng", "is", null)
       .gte("lat", swLat)
@@ -290,6 +292,7 @@ export async function listPendingListings(): Promise<AdminListing[]> {
       .from("listings")
       .select("*")
       .eq("status", "pending")
+      .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(100);
     if (error || !data) return [];
@@ -536,6 +539,121 @@ export async function markListingReport(
   }
 }
 
+/** I2 매물 수정 시 갱신 가능한 필드. */
+export type ListingEditPatch = Partial<{
+  listingType: ListingType;
+  priceKrw: number | null;
+  depositKrw: number | null;
+  monthlyKrw: number | null;
+  areaM2: number | null;
+  floor: number | null;
+  description: string | null;
+  contact: string | null;
+}>;
+
+/**
+ * I2 매물 수정 — 소유자 본인만. 편집 가능 필드만 갱신한다.
+ * 승인·반려 상태였다면 편집 내용 재검수를 위해 pending 으로 되돌리고 반려사유를 지운다
+ * (라이브 매물의 가격 등이 무검수로 바뀌지 않도록 — 사실 우선/신뢰).
+ * 마감·삭제된 매물은 수정 불가.
+ */
+export async function updateListing(
+  id: string,
+  ownerEmail: string,
+  patch: ListingEditPatch,
+): Promise<{ ok: boolean; status?: ListingStatus; error?: string }> {
+  const sb = getServiceSupabase();
+  if (!sb || !id || !ownerEmail) {
+    return { ok: false, error: "저장소가 준비되지 않았어요." };
+  }
+  try {
+    const { data: cur } = await sb
+      .from("listings")
+      .select("author_email, status, deleted_at")
+      .eq("id", id)
+      .maybeSingle();
+    const row = (cur ?? null) as Record<string, unknown> | null;
+    if (!row) return { ok: false, error: "매물을 찾을 수 없어요." };
+    if (row.deleted_at != null) return { ok: false, error: "이미 삭제된 매물이에요." };
+    const owner = String(row.author_email ?? "").trim().toLowerCase();
+    if (!owner || owner !== ownerEmail.trim().toLowerCase()) {
+      return { ok: false, error: "본인 매물만 수정할 수 있어요." };
+    }
+    const curStatus = String(row.status ?? "pending") as ListingStatus;
+    if (curStatus === "closed") {
+      return { ok: false, error: "마감된 매물은 수정할 수 없어요." };
+    }
+
+    const body: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.listingType !== undefined) body.listing_type = patch.listingType;
+    if (patch.priceKrw !== undefined) body.price_krw = patch.priceKrw;
+    if (patch.depositKrw !== undefined) body.deposit_krw = patch.depositKrw;
+    if (patch.monthlyKrw !== undefined) body.monthly_krw = patch.monthlyKrw;
+    if (patch.areaM2 !== undefined) body.area_m2 = patch.areaM2;
+    if (patch.floor !== undefined) body.floor = patch.floor;
+    if (patch.description !== undefined) body.description = patch.description;
+    if (patch.contact !== undefined) body.contact = patch.contact;
+
+    let nextStatus = curStatus;
+    if (curStatus === "approved" || curStatus === "rejected") {
+      body.status = "pending";
+      body.reject_reason = null;
+      nextStatus = "pending";
+    }
+
+    const { error } = await sb.from("listings").update(body).eq("id", id);
+    if (error) {
+      logger.warn("[listings] updateListing", error);
+      return { ok: false, error: "수정에 실패했어요. 잠시 후 다시 시도해 주세요." };
+    }
+    return { ok: true, status: nextStatus };
+  } catch (e) {
+    logger.warn("[listings] updateListing", e);
+    return { ok: false, error: "수정 처리 중 오류가 발생했어요." };
+  }
+}
+
+/**
+ * I2 매물 삭제 — 소유자 본인만. 하드 삭제 대신 deleted_at 소프트 삭제.
+ * 리드·조회 이력을 보존하고 되돌릴 수 있게 한다(멱등: 이미 삭제면 ok).
+ */
+export async function deleteListing(
+  id: string,
+  ownerEmail: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const sb = getServiceSupabase();
+  if (!sb || !id || !ownerEmail) {
+    return { ok: false, error: "저장소가 준비되지 않았어요." };
+  }
+  try {
+    const { data: cur } = await sb
+      .from("listings")
+      .select("author_email, deleted_at")
+      .eq("id", id)
+      .maybeSingle();
+    const row = (cur ?? null) as Record<string, unknown> | null;
+    if (!row) return { ok: false, error: "매물을 찾을 수 없어요." };
+    if (row.deleted_at != null) return { ok: true };
+    const owner = String(row.author_email ?? "").trim().toLowerCase();
+    if (!owner || owner !== ownerEmail.trim().toLowerCase()) {
+      return { ok: false, error: "본인 매물만 삭제할 수 있어요." };
+    }
+    const now = new Date().toISOString();
+    const { error } = await sb
+      .from("listings")
+      .update({ deleted_at: now, updated_at: now })
+      .eq("id", id);
+    if (error) {
+      logger.warn("[listings] deleteListing", error);
+      return { ok: false, error: "삭제에 실패했어요. 잠시 후 다시 시도해 주세요." };
+    }
+    return { ok: true };
+  } catch (e) {
+    logger.warn("[listings] deleteListing", e);
+    return { ok: false, error: "삭제 처리 중 오류가 발생했어요." };
+  }
+}
+
 /** 승인/반려 처리 — 어드민 전용. */
 export async function updateListingStatus(
   id: string,
@@ -569,6 +687,7 @@ export async function getListingById(id: string): Promise<ListingDetail | null> 
       .from("listings")
       .select("*")
       .eq("id", id)
+      .is("deleted_at", null)
       .maybeSingle();
     if (error || !data) return null;
     return mapDetail(data as Record<string, unknown>);
@@ -587,6 +706,7 @@ export async function listMyListings(email: string): Promise<ListingDetail[]> {
       .from("listings")
       .select("*")
       .eq("author_email", email)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(100);
     if (error || !data) return [];
