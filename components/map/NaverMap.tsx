@@ -102,7 +102,16 @@ interface NaverMapProps {
   rounded?: boolean;
   /** SDK 로드 실패·Client ID 미설정 시 대신 렌더할 노드 (미지정 시 OSM 폴백) */
   fallback?: React.ReactNode;
+  /** 반경 원 오버레이(C3) — 지정 시 중심·반경(m)으로 원을 그린다. null/미지정 시 없음. */
+  circle?: { lat: number; lng: number; radiusM: number } | null;
 }
+
+/** naver.maps.Circle 최소 인터페이스 */
+type NaverCircle = {
+  setMap: (m: unknown | null) => void;
+  setCenter: (c: unknown) => void;
+  setRadius: (r: number) => void;
+};
 
 export function NaverMap({
   markers = [],
@@ -119,6 +128,7 @@ export function NaverMap({
   onIdle,
   rounded = true,
   fallback,
+  circle = null,
 }: NaverMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -134,6 +144,7 @@ export function NaverMap({
   const infoWindowRef = useRef<NaverInfoWindow | null>(null);
   const trafficLayerRef = useRef<NaverLayer | null>(null);
   const cadastralLayerRef = useRef<NaverLayer | null>(null);
+  const circleRef = useRef<NaverCircle | null>(null);
   const bicycleLayerRef = useRef<NaverLayer | null>(null);
 
   useEffect(() => {
@@ -330,6 +341,38 @@ export function NaverMap({
 
     maps.Event.addListener(map, "idle", emit);
   }, [loaded]);
+
+  // 반경 원 오버레이(C3) — circle prop 있을 때만 생성/갱신, 없으면 제거. 기존 지도엔 영향 없음.
+  useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const maps = getNaverMapsWindow().naver?.maps as
+      | { Circle: new (opts: Record<string, unknown>) => NaverCircle; LatLng: new (a: number, b: number) => unknown }
+      | undefined;
+    if (!maps) return;
+    if (!circle) {
+      if (circleRef.current) {
+        circleRef.current.setMap(null);
+        circleRef.current = null;
+      }
+      return;
+    }
+    const centerLL = new maps.LatLng(circle.lat, circle.lng);
+    if (circleRef.current) {
+      circleRef.current.setCenter(centerLL);
+      circleRef.current.setRadius(circle.radiusM);
+    } else {
+      circleRef.current = new maps.Circle({
+        map: mapRef.current,
+        center: centerLL,
+        radius: circle.radiusM,
+        fillColor: "#1d4fd8",
+        fillOpacity: 0.08,
+        strokeColor: "#1d4fd8",
+        strokeOpacity: 0.6,
+        strokeWeight: 2,
+      });
+    }
+  }, [loaded, circle]);
 
   // 마커 증분 업데이트: id로 diff 하여 추가/갱신/제거만 반영(destroy-all 제거).
   useEffect(() => {

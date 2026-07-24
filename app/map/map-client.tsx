@@ -337,6 +337,21 @@ interface CommuteResponse {
   error?: string;
 }
 
+/** 두 좌표 간 거리(m) — 하버사인. C3 반경 필터용. */
+function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6_371_000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/** C3 반경 프리셋(m) */
+const RADIUS_PRESETS = [500, 1000, 2000] as const;
+
 export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps) {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom>(danji.length > 0 ? "danji" : "city");
@@ -368,6 +383,9 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
 
   /* ===== 매물 레이어 상태 — 토글 ON일 때만 현재 뷰포트 매물을 마커로 ===== */
   const [showListings, setShowListings] = useState(false);
+  // C3 반경 그리기 필터 — 중심(지도 중심) 기준 반경 내 단지만 표시
+  const [radiusMode, setRadiusMode] = useState(false);
+  const [radiusM, setRadiusM] = useState<number>(1000);
   const [listingItems, setListingItems] = useState<MapListingItem[]>([]);
 
   /* ===== 가격대·면적대·준공연도·세대수·유형 필터 상태 (확대 · item3) ===== */
@@ -514,6 +532,34 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           초기화
         </button>
       )}
+      {/* C3 반경 필터 토글 + 프리셋 */}
+      <button
+        type="button"
+        aria-pressed={radiusMode}
+        onClick={() => setRadiusMode((v) => !v)}
+        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
+          radiusMode
+            ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
+            : "bg-[rgba(255,255,255,.75)] text-text-2"
+        }`}
+      >
+        ◎ 반경
+      </button>
+      {radiusMode &&
+        RADIUS_PRESETS.map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRadiusM(r)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs font-bold transition-colors ${
+              radiusM === r
+                ? "bg-[rgba(29,79,216,.12)] text-primary"
+                : "bg-[rgba(255,255,255,.75)] text-text-2"
+            }`}
+          >
+            {r >= 1000 ? `${r / 1000}km` : `${r}m`}
+          </button>
+        ))}
     </>
   );
 
@@ -1036,9 +1082,13 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         });
       }
     }
+    // C3 반경 필터 — 반경 모드일 때 중심에서 radiusM 내 단지 마커만 표시
+    const shownBase = radiusMode
+      ? base.filter((m) => haversineM(center.lat, center.lng, m.lat, m.lng) <= radiusM)
+      : base;
     return withSearch([
       ...regionLayer,
-      ...base,
+      ...shownBase,
       ...listingMarkers,
       ...poiMarkers,
       ...redevelopmentMarkers,
@@ -1057,6 +1107,10 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     redevelopmentMarkers,
     regionMarketMarkers,
     zoom,
+    radiusMode,
+    radiusM,
+    center.lat,
+    center.lng,
   ]);
 
   const selectDanji = (id: string) => {
@@ -1255,6 +1309,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         onMarkerClick={handleMarkerClick}
         onIdle={handleMapIdle}
         fallback={gradientFallback}
+        circle={radiusMode ? { lat: center.lat, lng: center.lng, radiusM } : null}
       />
 
       {/* ===== 상단 플로팅 글래스 헤더 (카메라섬 아래로 세이프에어리어 오프셋) ===== */}
