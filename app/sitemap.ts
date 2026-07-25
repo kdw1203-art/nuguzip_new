@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { listPublicNotes } from "@/lib/inspection/store-db";
 import {
   capSitemapUrls,
+  listBandSitemapEntries,
   listComplexSitemapEntries,
   periodToDate,
 } from "@/lib/seo/sitemap-entries";
@@ -49,6 +50,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/qna", priority: 0.6 },
   // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
   { path: "/complex/browse", priority: 0.8 },
+  // 지역 × 면적대·가격대 실거래 랜딩 인덱스 (A5) — 하위는 아래 bandEntries 로 개별 등록
+  { path: "/tx", priority: 0.8 },
   // 실매물 (집주인 직접·중개사 등록) + 중개사 제휴 안내
   { path: "/listings", priority: 0.8 },
   { path: "/partners", priority: 0.5 },
@@ -146,11 +149,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 조회 실패 시 생략
   }
 
+  // A5 — 지역 × 면적대·가격대 실거래 랜딩. 거래 10건 이상인 셀만 페이지가 있으므로
+  // 여기 실리는 URL 은 전부 실제 데이터가 있는 페이지다(사이트맵에 404 를 넣지 않는다).
+  let bandEntries: MetadataRoute.Sitemap = [];
+  try {
+    const bands = await listBandSitemapEntries();
+    bandEntries = bands.map((b) => ({
+      url: `${BASE_URL}${b.path}`,
+      ...(b.lastModified ? { lastModified: b.lastModified } : {}),
+      priority: b.isHub ? 0.7 : 0.6,
+    }));
+  } catch {
+    // 조회 실패 시 생략
+  }
+
   // 1파일 50,000 URL 상한 — 넘치면 잘라내되 경고 로그를 남긴다(인덱스 분할 신호).
   return capSitemapUrls([
     ...staticEntries,
     ...noteEntries,
     ...complexEntries,
     ...regionEntries,
+    ...bandEntries,
   ]);
 }

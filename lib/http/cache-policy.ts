@@ -46,6 +46,9 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/notes", ...FEED_DOC },
   { path: "/discover", ...FEED_DOC },
   { path: "/digest", ...FEED_DOC },
+  /* A5 실거래 구간 인덱스 — 전 사용자 동일한 공개 집계(로그인 여부와 무관).
+     라우트 자체가 revalidate 3600 이라 눈금을 맞춘다. */
+  { path: "/tx", sMaxAge: 3600, swr: 86400 },
 
   // 도구·안내 — 빌드 시 고정
   { path: "/calculator", ...STATIC_DOC },

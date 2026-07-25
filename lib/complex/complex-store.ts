@@ -8,6 +8,7 @@
  * 좌표(lat/lng)는 실거래에 없어 null → 거리뷰·지도 마커는 자동 숨김.
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { AREA_BANDS } from "@/lib/market/bands";
 
 export interface ComplexRow {
   id: string;
@@ -360,13 +361,7 @@ export interface AreaBandRow {
   avgManwon: number;
 }
 
-const AREA_BANDS: Array<{ label: string; min: number; max: number }> = [
-  { label: "~59㎡", min: 0, max: 60 },
-  { label: "60~85㎡", min: 60, max: 85.5 },
-  { label: "85~102㎡", min: 85.5, max: 102 },
-  { label: "102~135㎡", min: 102, max: 135 },
-  { label: "135㎡~", min: 135, max: Number.POSITIVE_INFINITY },
-];
+/* 구간표는 lib/market/bands.ts 한 곳에만 둔다 (A5) — 여기 있던 사본은 제거했다. */
 
 /**
  * 단지 면적대별 시세 요약 — 허브 승격용(D5). 최근 거래 기준 면적 구간별 최근가·평균가.

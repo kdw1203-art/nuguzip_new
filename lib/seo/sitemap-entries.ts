@@ -101,6 +101,52 @@ export async function listComplexSitemapEntries(
   return out;
 }
 
+/* ---------- A5: 지역 × 구간(면적대·가격대) 랜딩 ---------- */
+
+export type BandSitemapEntry = {
+  /** 사이트맵에 그대로 넣을 경로 — 이미 URL 인코딩되어 있다 */
+  path: string;
+  lastModified?: Date;
+  /** 지역 허브(true)인지 구간 랜딩(false)인지 — priority 를 다르게 준다 */
+  isHub: boolean;
+};
+
+/**
+ * /tx 계열 URL 목록 — 지역 허브 + 그 아래 면적대·가격대 랜딩.
+ *
+ * 거래 10건 미만 셀은 애초에 페이지가 없으므로(tx-bands.listBandCells) 여기에도
+ * 나오지 않는다. 사이트맵에 있는데 404 인 URL 은 색인 신뢰도를 깎는다.
+ *
+ * 경로에 한글이 들어가므로 encodeURIComponent 로 감싼다. sitemaps.org 규격상
+ * URL 은 이스케이프된 형태여야 하고, 크롤러가 raw UTF-8 을 받아 주더라도
+ * 규격을 지키는 쪽이 안전하다.
+ *
+ * lastModified 는 뷰의 last_data_at(= max(created_at))이다. 그 셀에 마지막으로
+ * 새 거래가 들어온 시각이라는 확인된 사실이며, 없으면 적지 않는다.
+ */
+export async function listBandSitemapEntries(): Promise<BandSitemapEntry[]> {
+  const { listTxRegions } = await import("@/lib/market/tx-bands");
+  const regions = await listTxRegions();
+  const out: BandSitemapEntry[] = [];
+
+  for (const region of regions) {
+    const slug = encodeURIComponent(region.slug);
+    out.push({
+      path: `/tx/${slug}`,
+      ...(region.lastDataAt ? { lastModified: region.lastDataAt } : {}),
+      isHub: true,
+    });
+    for (const cell of [...region.areaCells, ...region.priceCells]) {
+      out.push({
+        path: `/tx/${slug}/${cell.kind}/${cell.bandSlug}`,
+        ...(cell.lastDataAt ? { lastModified: cell.lastDataAt } : {}),
+        isHub: false,
+      });
+    }
+  }
+  return out;
+}
+
 /**
  * "YYYYMM" → 그 달 1일(UTC). 형식이 아니면 undefined.
  *

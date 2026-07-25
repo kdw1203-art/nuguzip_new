@@ -19,6 +19,8 @@ import {
   type ComplexTxRegion,
 } from "@/lib/market/complex-transactions";
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
+import { findTxRegionForMarketRegion, type TxRegionSummary } from "@/lib/market/tx-bands";
+import { BAND_KIND_LABEL } from "@/lib/market/bands";
 import {
   breadcrumbJsonLd,
   regionPlaceJsonLd,
@@ -152,6 +154,12 @@ export default async function RegionHubPage({
   const notes = allNotes
     .filter((n) => n.isPublic && noteMatchesRegion(n.region ?? "", name))
     .slice(0, 4);
+
+  // A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
+  // 없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
+  const txBandRegion: TxRegionSummary | null = await findTxRegionForMarketRegion(id, name).catch(
+    () => null,
+  );
 
   const delta = deltaView(snapshot.saleChangeMonthly);
   const jeonseRatio =
@@ -430,6 +438,49 @@ export default async function RegionHubPage({
           </div>
         )}
       </section>
+
+      {/* A5 — 면적대·가격대별 실거래 랜딩 내부 링크 */}
+      {txBandRegion && (
+        <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            면적대·가격대별 실거래{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              국토부 신고 {txBandRegion.txCount.toLocaleString("ko-KR")}건 기준
+            </span>
+          </h2>
+          {(["area", "price"] as const).map((kind) => {
+            const cells = kind === "area" ? txBandRegion.areaCells : txBandRegion.priceCells;
+            if (cells.length === 0) return null;
+            return (
+              <div key={kind} className="mt-3">
+                <div className="mb-1.5 text-[11px] text-text-3">{BAND_KIND_LABEL[kind]}</div>
+                <div className="flex flex-wrap gap-2">
+                  {cells.map((c) => (
+                    <Link
+                      key={c.bandSlug}
+                      href={`/tx/${encodeURIComponent(txBandRegion.slug)}/${kind}/${c.bandSlug}`}
+                      className="card-hover rounded-full border border-border px-3 py-1.5 text-[12px] font-bold text-ink"
+                    >
+                      {c.bandLabel}
+                      <span className="ml-1 font-medium text-text-3">
+                        {c.txCount.toLocaleString("ko-KR")}건
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <p className="mt-3 text-[12px] text-text-3">
+            <Link
+              href={`/tx/${encodeURIComponent(txBandRegion.slug)}`}
+              className="font-bold text-primary underline"
+            >
+              {txBandRegion.name} 구간 전체 보기 →
+            </Link>
+          </p>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">

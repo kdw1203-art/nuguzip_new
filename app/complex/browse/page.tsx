@@ -78,6 +78,13 @@ export default async function ComplexBrowsePage({
         최근 실거래가·평단가·거래량을 확인하세요.
       </p>
 
+      {/* A5 — 면적대·가격대 랜딩 진입점 */}
+      <p className="rise-in mb-4 -mt-2 text-[13px]">
+        <Link href="/tx" className="font-bold text-primary underline">
+          지역별 면적대·가격대 실거래 보기 →
+        </Link>
+      </p>
+
       {/* 구 선택 칩 — 강남4구 우선 */}
       <div className="rise-in-1 mb-5 flex flex-wrap gap-1.5">
         {SEOUL_BROWSE_REGIONS.map((r) => {

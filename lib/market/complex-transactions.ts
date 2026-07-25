@@ -6,6 +6,7 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
+import { AREA_BANDS } from "@/lib/market/bands";
 
 /* ---------- 지역 매핑 ---------- */
 
@@ -366,13 +367,8 @@ export interface AreaBandSummary {
   avgAmountKrw: number;
 }
 
-const AREA_BANDS: Array<{ label: string; min: number; max: number }> = [
-  { label: "~59㎡", min: 0, max: 60 },
-  { label: "60~85㎡", min: 60, max: 85.5 },
-  { label: "85~102㎡", min: 85.5, max: 102 },
-  { label: "102~135㎡", min: 102, max: 135 },
-  { label: "135㎡~", min: 135, max: Infinity },
-];
+/* 구간표는 lib/market/bands.ts 한 곳에만 둔다 — A5 에서 같은 배열이 여기와
+   complex-store.ts 에 복사돼 있던 것을 합쳤다. 자세한 이유는 그 파일 주석 참고. */
 
 /** 면적대(59/84 등 구간)별 최근가·평균가 요약 */
 export function summarizeAreaBands(rows: ComplexTransactionRecord[]): AreaBandSummary[] {
