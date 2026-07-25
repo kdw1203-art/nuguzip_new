@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { loadBillingHistory } from "@/lib/subscriptions/billing-history";
 
 export const runtime = "nodejs";
 
@@ -14,25 +15,18 @@ export async function GET() {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const sb = getServiceSupabase();
   const email = session.user.email.trim().toLowerCase();
 
   // 현재 플랜 조회
   const plan = (session.user as { plan?: string }).plan ?? "free";
 
-  // 결제 내역 최신 5건
-  let payments: unknown[] = [];
-  if (sb) {
-    const { data } = await sb
-      .from("payments")
-      .select("id, plan, billing, amount, status, requested_at, paid_at, receipt_url")
-      .eq("user_email", email)
-      .order("requested_at", { ascending: false })
-      .limit(5);
-    payments = data ?? [];
-  }
+  /* 결제 내역은 `lib/subscriptions/billing-history` 단일 출처를 쓴다(E1).
+     `/subscription` 화면이 같은 함수를 호출하므로, 여기서 따로 질의하면
+     API와 화면이 서로 다른 컬럼·정렬을 보게 된다. `ok`를 함께 내려
+     "조회 실패"와 "결제 없음"을 클라이언트가 구분할 수 있게 한다. */
+  const { ok, payments } = await loadBillingHistory(email, 5);
 
-  return NextResponse.json({ plan, payments });
+  return NextResponse.json({ plan, payments, ok });
 }
 
 /** 플랜을 직접 변경하는 관리자용 엔드포인트. 일반 사용자는 /pricing 에서 결제 후 자동 반영. */

@@ -4,6 +4,8 @@ import { safeAuth } from "@/lib/safe-auth";
 import { loadMeProfile } from "@/lib/me/profile";
 import { BILLING_PERIOD_PRICES, periodPrice } from "@/lib/subscriptions/billing-periods";
 import { PlanCards, type TierPricing } from "./PlanCards";
+import { BillingPanel } from "./BillingPanel";
+import { SETTLEMENT } from "@/lib/creator/sales";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 export const metadata = buildPageMetadata({
@@ -32,11 +34,16 @@ function tierPricing(tier: "pro" | "expert"): TierPricing {
 
 const PLUS_MONTHLY = fmtWon(tierPricing("pro").monthly);
 const PRO_MONTHLY = fmtWon(tierPricing("expert").monthly);
+const FEE_PCT = `${Math.round(SETTLEMENT.platformFeeRate * 100)}%`;
 
 const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; proAccent?: boolean }[] = [
   { label: "임장노트 · 지도 · 실거래", free: "무제한", plus: "무제한", pro: "무제한" },
   { label: "AI 요약 · 비교 리포트 생성", free: "월 3회", plus: "무제한", pro: "무제한" },
-  { label: "마켓 리포트 발행 (판매)", free: "—", plus: "월 3회 · 수수료 20%", pro: "무제한 · 수수료 15%", proAccent: true },
+  /* 수수료는 `lib/creator/sales.ts` 의 SETTLEMENT.platformFeeRate 단일 출처에서 읽는다.
+     여기엔 20%/15% 라고 적혀 있었지만 코드가 실제로 떼는 값은 7% 하나뿐이었다.
+     표시가 코드보다 높으면 그 자체로 허위 고지라, 플랜별로 다른 척하지 않고
+     실제 요율 하나를 그대로 적는다(PlanCards.tsx 도 같은 상수를 쓴다). */
+  { label: "마켓 리포트 발행 (판매)", free: "—", plus: `월 3회 · 수수료 ${FEE_PCT}`, pro: `무제한 · 수수료 ${FEE_PCT}`, proAccent: true },
   { label: "유료 상담 수신 · 동행 임장", free: "—", plus: "—", pro: "포함 (전문가 인증 필수)", proAccent: true },
   { label: "다자 비교 단지 수", free: "2개 (1:1)", plus: "5개", pro: "5개 + PDF 내보내기" },
   { label: "시나리오 저장 개수", free: "1개", plus: "10개", pro: "무제한" },
@@ -114,6 +121,10 @@ export default async function SubscriptionPage() {
         </Link>
       </p>
 
+      {/* E1 — 구독 관리·결제 내역. `/my` 가 "구독 페이지에서 관리해요"라고 보내던 목적지.
+          로그인하지 않았으면 보여 줄 사실이 없으므로 아예 렌더하지 않는다. */}
+      {email && <BillingPanel email={email} currentPlan={currentPlan} />}
+
       {/* 기능 비교표 (9k) */}
       <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] overflow-x-auto rounded-[20px] px-[22px] py-5">
         <div className="min-w-[640px]">
@@ -180,7 +191,7 @@ export default async function SubscriptionPage() {
           <div className="mb-1.5 flex items-baseline justify-between">
             <span className="text-sm font-extrabold text-ink">기간별 할인 (월 환산가)</span>
             <span className="text-[11px] text-text-3">
-              일시불 결제 · 중도 해지 시 잔여기간 일할 환불
+              일시불 결제 · 중도 해지 시 잔여기간 일할 환불(고객센터 접수)
             </span>
           </div>
           <div className="grid grid-cols-[120px_repeat(4,1fr)] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
@@ -268,8 +279,10 @@ export default async function SubscriptionPage() {
       </section>
 
       <p className="mx-auto mt-5 w-full max-w-[1080px] text-xs text-text-3">
-        언제든 해지 가능 · 결제 7일 이내 전액 환불 · 부가세 포함 · 커뮤니티 글·공개 노트·채팅 등 모든
-        닉네임 노출 지점에 동일 배지 적용
+        {/* "언제든 해지 가능"만 적어 두면 화면 어딘가에 해지 버튼이 있다는 뜻으로 읽힌다.
+            셀프서비스 해지는 아직 없으므로 실제 접수 경로를 함께 적는다(E1). */}
+        해지·환불은 고객센터 1:1 문의로 접수 · 결제 7일 이내 전액 환불 · 부가세 포함 · 커뮤니티
+        글·공개 노트·채팅 등 모든 닉네임 노출 지점에 동일 배지 적용
       </p>
     </PageShell>
   );

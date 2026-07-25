@@ -480,9 +480,14 @@ export default async function MyPage() {
                 현재 플랜 · {planLabel(profile.plan)}
               </div>
               <div className="mt-0.5 text-[11px] text-text-3">
+                {/* E1 — 예전 문구는 "결제일·플랜 변경·해지는 구독 페이지에서 관리해요"였는데,
+                    구독 페이지에는 그 셋 중 무엇도 없었다(요금제 카드와 비교표뿐). 지금은
+                    결제 내역·해지 접수 안내가 실제로 그 자리에 있으므로, 있는 것만 적는다.
+                    갱신일은 저장되는 곳이 자체가 없어(`membership_expires_at` 레포 0건)
+                    문구에서 뺐다. */}
                 {profile.plan === "free"
                   ? "플러스로 업그레이드하면 AI 비교 리포트가 무제한이에요"
-                  : "결제일·플랜 변경·해지는 구독 페이지에서 관리해요"}
+                  : "결제 내역과 해지·환불 접수 방법은 구독 페이지에서 확인할 수 있어요"}
               </div>
             </div>
             <Link

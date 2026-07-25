@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
+import { AdSlot } from "@/app/components/ads/AdSlot";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import {
   getAuctions,
@@ -211,16 +212,11 @@ function courtToCard(a: CourtAuctionItem): AuctionCardData {
 /* ── 프레젠테이션 컴포넌트 ────────────────────────────────── */
 
 /** AdSense 자리 (청약 센터와 동일 플레이스홀더) */
-function AdSlot() {
-  return (
-    <div className="flex h-16 flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-      <span className="rounded border border-[#e2e7ee] px-1.5 text-[9px] font-bold tracking-widest text-text-3">
-        AD
-      </span>
-      <span className="font-mono text-[11px] text-text-3">AdSense 320×64</span>
-    </div>
-  );
-}
+/* H1 — 이 자리에는 "AD / AdSense 320×64" 라고 적힌 점선 상자가 있었다.
+   개발용 자리표시자가 그대로 프로덕션에 나가 있던 것으로, 사용자에게는
+   광고가 실릴 자리가 아니라 **깨진 광고**로 보인다. 실제 슬롯
+   (`app/components/ads/AdSlot.tsx`)으로 교체한다 — 등록 배너가 있으면 배너를,
+   없으면 하우스 광고를, 둘 다 없으면 `null` 을 반환해 **빈 상자를 남기지 않는다.** */
 
 /** 공매(온비드) ↔ 경매(법원) 소스 전환 탭 — 청약 센터 스타일의 강조 필 */
 function SourceTabs({ active }: { active: "onbid" | "court" }) {
@@ -611,7 +607,7 @@ function AuctionView({
 
           {/* c) 광고 자리 */}
           <div className="rise-in-4">
-            <AdSlot />
+            <AdSlot placement="community_feed" seed={0} plan={null} />
           </div>
         </aside>
       </div>

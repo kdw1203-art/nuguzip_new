@@ -262,7 +262,10 @@ export function PersonalHome() {
       badge: "맞춤 제안 · 노트 기반",
       badgeClass: "bg-primary-soft text-primary",
       emoji: "📝",
-      href: "/notes",
+      /* A2 — 노트가 0건인 사람에게는 목록이 아니라 작성 화면으로 보낸다.
+         버튼에는 "노트 시작하기"라고 적어 놓고 빈 목록으로 떨구면, 시작하려던
+         사람이 거기서 한 번 더 길을 찾아야 한다(첫 노트 전환의 가장 큰 누수). */
+      href: data.recentNote ? "/notes" : "/notes/new",
       ...noteCard,
     },
     {
