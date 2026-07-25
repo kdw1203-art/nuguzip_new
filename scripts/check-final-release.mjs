@@ -23,8 +23,21 @@ function fail(area, item, detail = "") {
   results.push({ area, item, status: "FAIL", detail });
 }
 
+/**
+ * 파일이 없으면 빈 문자열을 준다.
+ *
+ * 예전에는 readFileSync 가 그대로 throw 해서, 점검 항목 하나가 가리키는 파일이
+ * 사라지면 릴리스 점검 **전체**가 ENOENT 로 죽었다(실제로 죽어 있었다:
+ * components/inspection/field-capture-consent.tsx). 한 항목의 부재가 나머지
+ * 수십 개 항목의 결과를 통째로 가리는 건 점검 도구로서 잘못된 실패 방식이다.
+ * 이제는 그 항목만 조용히 미충족(WARN/FAIL)으로 떨어지고 나머지는 계속 돈다.
+ */
 function read(rel) {
-  return fs.readFileSync(path.join(ROOT, rel), "utf8");
+  try {
+    return fs.readFileSync(path.join(ROOT, rel), "utf8");
+  } catch {
+    return "";
+  }
 }
 function exists(rel) {
   return fs.existsSync(path.join(ROOT, rel));

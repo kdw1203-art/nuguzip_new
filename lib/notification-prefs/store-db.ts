@@ -11,6 +11,12 @@ export type NotificationPrefs = {
   pushLikes: boolean;
   pushMeeting: boolean;
   pushExpert: boolean;
+  /**
+   * B9 — 쓰다 만 임장노트·관심 단지 재알림. 기본 true.
+   * 광고가 아니라 "본인이 쓰다 만 본인 기록"을 알리는 것이라 기본값이 켜짐이고,
+   * 이 화면에서 끄면 크론이 이 사람을 후보에서 제외한다.
+   */
+  pushReengagement: boolean;
   /** SMS(NCP SENS) 관심단지 가격 알림 수신 번호(숫자만) — 옵트인 시에만 저장 */
   alertPhone: string | null;
   /** 관심단지 가격변동 SMS 수신 동의(옵트인) */
@@ -30,6 +36,7 @@ const DEFAULT_PREFS: Omit<NotificationPrefs, "userEmail" | "updatedAt"> = {
   pushLikes: true,
   pushMeeting: true,
   pushExpert: true,
+  pushReengagement: true,
   alertPhone: null,
   smsPriceAlerts: false,
   smsConsentAt: null,
@@ -56,6 +63,7 @@ function mapRow(r: Record<string, unknown>): NotificationPrefs {
     pushLikes: Boolean(r.push_likes ?? DEFAULT_PREFS.pushLikes),
     pushMeeting: Boolean(r.push_meeting ?? DEFAULT_PREFS.pushMeeting),
     pushExpert: Boolean(r.push_expert ?? DEFAULT_PREFS.pushExpert),
+    pushReengagement: Boolean(r.push_reengagement ?? DEFAULT_PREFS.pushReengagement),
     alertPhone: r.alert_phone ? String(r.alert_phone) : null,
     smsPriceAlerts: Boolean(r.sms_price_alerts ?? DEFAULT_PREFS.smsPriceAlerts),
     smsConsentAt: r.sms_consent_at ? String(r.sms_consent_at) : null,
@@ -97,6 +105,8 @@ export async function upsertPrefs(
   if (patch.pushLikes !== undefined) payload.push_likes = patch.pushLikes;
   if (patch.pushMeeting !== undefined) payload.push_meeting = patch.pushMeeting;
   if (patch.pushExpert !== undefined) payload.push_expert = patch.pushExpert;
+  if (patch.pushReengagement !== undefined)
+    payload.push_reengagement = patch.pushReengagement;
   // 전화번호: 서버에서 정규화(숫자만·01x·10~11자리) 후 저장, 그 외 null
   if (patch.alertPhone !== undefined) {
     payload.alert_phone = patch.alertPhone ? normalizeAlertPhone(patch.alertPhone) : null;

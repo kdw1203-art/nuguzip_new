@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { useExperiment } from "@/lib/experiments/client";
 
 /**
  * A3 — 비로그인 액션 → 소프트 가입 프롬프트.
@@ -60,7 +61,19 @@ export function useSoftSignup(): SoftSignupContextValue {
   );
 }
 
-function track(eventName: string, metadata: Record<string, unknown>) {
+/* A7 — 이 배너의 CTA 문구가 첫 실험 대상이다(lib/experiments/registry.ts).
+   문구만 나뉘고 조건·혜택은 두 변형이 완전히 같다. "가입은 무료" 는 실제 사실이라
+   어느 쪽 문구도 없는 이야기를 하지 않는다. */
+const EXPERIMENT_KEY = "signup_cta_copy";
+
+const CTA_LABEL: Record<string, string> = {
+  control: "가입하고 이어하기",
+  free_first: "무료로 가입하고 이어보기",
+};
+
+type ExperimentTag = { experimentKey: string; variant: string; anonId: string | null } | null;
+
+function track(eventName: string, metadata: Record<string, unknown>, tag: ExperimentTag) {
   try {
     void fetch("/api/platform/event", {
       method: "POST",
@@ -71,6 +84,9 @@ function track(eventName: string, metadata: Record<string, unknown>) {
         campaign: "funnel",
         path: typeof window !== "undefined" ? window.location.pathname : undefined,
         metadata,
+        ...(tag
+          ? { experimentKey: tag.experimentKey, variant: tag.variant, anonId: tag.anonId }
+          : {}),
       }),
       keepalive: true,
     }).catch(() => {});
@@ -84,14 +100,25 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
+  /* 배정은 마운트 직후 끝난다. 이 배너는 사용자가 무언가를 누른 뒤에야 열리므로
+     열릴 시점엔 ready 다 — 첫 렌더 깜빡임이 생기지 않는다. */
+  const exp = useExperiment(EXPERIMENT_KEY);
+  const tag: ExperimentTag = exp.active && exp.ready
+    ? { experimentKey: EXPERIMENT_KEY, variant: exp.variant, anonId: exp.anonId }
+    : null;
+  const tagRef = useRef<ExperimentTag>(tag);
+  tagRef.current = tag;
+
+  const ctaLabel = CTA_LABEL[tag?.variant ?? "control"] ?? CTA_LABEL.control;
+
   const promptSignup = useCallback((next: SoftSignupIntent) => {
     setIntent(next);
-    track("soft_signup_prompt_view", { action: next.action });
+    track("soft_signup_prompt_view", { action: next.action }, tagRef.current);
   }, []);
 
   const dismiss = useCallback(() => {
     setIntent((cur) => {
-      if (cur) track("soft_signup_prompt_dismiss", { action: cur.action });
+      if (cur) track("soft_signup_prompt_dismiss", { action: cur.action }, tagRef.current);
       return null;
     });
   }, []);
@@ -131,10 +158,12 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
             <p className="mt-2 text-[13px] leading-relaxed text-text-2">{intent.benefit}</p>
             <a
               href={loginHref(callback)}
-              onClick={() => track("soft_signup_prompt_click", { action: intent.action })}
+              onClick={() =>
+                track("soft_signup_prompt_click", { action: intent.action }, tagRef.current)
+              }
               className="btn-primary mt-4 block rounded-xl px-4 py-3 text-center text-[14px] font-bold no-underline"
             >
-              가입하고 이어하기
+              {ctaLabel}
             </a>
             <button
               ref={closeRef}
