@@ -1,7 +1,9 @@
 /**
  * 정비사업장 공공 API 적재 크론 (서울 열린데이터광장).
  * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션 (apt-master-ingest 패턴).
- * SEOUL_OPENAPI_KEY 미설정 시 no-op(mode:"mock", reason:"no-key") — 시드/DB 유지.
+ * SEOUL_OPENAPI_KEY 미설정 시 no-op(mode:"mock", reason:"no-key"),
+ * 키는 있어도 실 데이터셋 서비스명(SEOUL_OPENAPI_SERVICE) 미지정 시
+ * no-op(reason:"source-not-configured") — 둘 다 시드/DB 유지.
  */
 import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";

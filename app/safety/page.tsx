@@ -4,11 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
-import { JeonseSelfCheck } from "./JeonseSelfCheck";
+import { JeonseSelfCheck, SELF_CHECK_ANCHOR_ID } from "./JeonseSelfCheck";
 
 /* P0-5 목업 정직화: 특정 단지의 가짜 진단 "결과"를 통째로 보여주던 화면을
-   입력 기반으로 전환. 자동 진단 엔진은 아직 없으므로 결과를 지어내지 않고
-   "진단 준비 중" 상태 + 직접 확인용 체크리스트 안내만 제공한다. */
+   입력 기반으로 전환. 자동 진단 엔진은 아직 없으므로 결과를 지어내지 않고,
+   "안전 진단" 버튼은 실제로 동작하는 자가진단(JeonseSelfCheck)으로
+   스크롤·프리필 연결한다 + 직접 확인용 체크리스트 안내를 제공한다. */
 
 type Mode = "매매" | "전세" | "월세";
 
@@ -49,6 +50,12 @@ export default function SafetyPage() {
     const q = address.trim();
     if (!q) return;
     setSubmitted(q);
+    // 실제로 동작하는 자가진단으로 연결 — 대상 프리필 후 스크롤
+    requestAnimationFrame(() => {
+      document
+        .getElementById(SELF_CHECK_ANCHOR_ID)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   return (
@@ -97,17 +104,24 @@ export default function SafetyPage() {
                 “{submitted}” {mode} 안전 진단
               </div>
               <p className="text-[13px] leading-[1.7] text-text-2">
+                아래 <b className="text-ink">전세 안심 진단(자가진단)</b>에 이 대상이
+                연결됐어요. 보증금·시세·근저당을 입력하면 위험도가 바로 계산돼요.
                 등기부·건축물대장 자동 대조 진단은 <b className="text-ink">준비 중</b>
-                이에요. 지금은 자동 판정 결과를 제공하지 않아요 — 아래 체크리스트로
-                계약 전 직접 확인하시고, 기능이 열리면 알림으로 안내해 드릴게요.
+                이라 자동 판정 결과는 지어내지 않아요 — 체크리스트로 직접 확인도
+                병행하세요.
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
-                <Link
-                  href="/notifications"
-                  className="btn-primary rounded-[10px] px-4 py-2.5 text-xs no-underline"
+                <button
+                  type="button"
+                  onClick={() =>
+                    document
+                      .getElementById(SELF_CHECK_ANCHOR_ID)
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                  }
+                  className="btn-primary rounded-[10px] px-4 py-2.5 text-xs"
                 >
-                  오픈 알림 받기
-                </Link>
+                  자가진단으로 확인하기
+                </button>
                 <Link
                   href="/notes/new"
                   className="btn-secondary rounded-[10px] px-4 py-2.5 text-xs no-underline"
@@ -122,8 +136,9 @@ export default function SafetyPage() {
                 계약 전, 보증금을 지키는 6가지 확인
               </div>
               <p className="text-[13px] leading-[1.7] text-text-2">
-                주소를 입력하면 해당 매물 기준으로 확인 항목을 정리해 드려요.
-                등기부 자동 분석 진단 기능은 준비 중입니다.
+                주소를 입력하고 “안전 진단”을 누르면 아래 자가진단에 대상이 연결되고,
+                해당 지역 실거래 평균으로 시세를 채울 수 있어요. 등기부 자동 분석
+                진단 기능은 준비 중입니다.
               </p>
             </div>
           )}
@@ -179,8 +194,8 @@ export default function SafetyPage() {
         </aside>
       </div>
 
-      {/* 전세 안심 진단(자가진단) — 입력 기반 순수 클라이언트 계산 (F27 lite) */}
-      <JeonseSelfCheck />
+      {/* 전세 안심 진단(자가진단) — 입력 기반 계산 + 실거래 평균 조회 (F27 lite) */}
+      <JeonseSelfCheck subject={submitted} />
     </PageShell>
   );
 }

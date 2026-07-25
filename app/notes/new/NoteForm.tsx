@@ -223,9 +223,12 @@ function metaNumber(meta: Record<string, unknown> | null | undefined, key: strin
 export function NoteForm({
   template,
   initialNote,
+  presetMemo,
 }: {
   template?: NoteFormTemplate | null;
   initialNote?: NoteFormInitialNote | null;
+  /** 작성 모드 메모 초안 프리필 (?memo= — /calculator 조건 전달용) */
+  presetMemo?: string | null;
 }) {
   const router = useRouter();
   const isEdit = Boolean(initialNote);
@@ -297,9 +300,10 @@ export function NoteForm({
     const v = metaNumber(initialNote?.metadata, "satisfaction");
     return v == null ? 7.5 : Math.max(0, Math.min(10, v));
   });
-  /* 메모·태그는 기본 빈 값 — 예시 문구는 placeholder 로만 노출 */
+  /* 메모·태그는 기본 빈 값 — 예시 문구는 placeholder 로만 노출.
+     작성 모드에서 ?memo= 프리셋이 오면 초안으로 채운다. */
   const [memo, setMemo] = useState(() =>
-    initialNote ? (initialNote.sections.memo ?? initialNote.summary ?? "") : "",
+    initialNote ? (initialNote.sections.memo ?? initialNote.summary ?? "") : (presetMemo ?? ""),
   );
   /* 공개 여부 — 기본 비공개, 저장 직전 명시적으로 선택 */
   const [isPublic, setIsPublic] = useState(initialNote?.isPublic ?? false);
