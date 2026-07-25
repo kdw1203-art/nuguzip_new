@@ -17,6 +17,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { fetchMolitDeals, type MolitDeal, type MolitRtmsType } from "@/lib/national-data/molit-api";
 import { getSigunguInfo, getAllSido, getSigunguBySido, type SigunguInfo } from "@/lib/national-data/region-codes";
 import { logIngest } from "@/lib/market/store";
+import { refreshMarketAggregates, type RefreshAggregatesResult } from "@/lib/market/refresh-aggregates";
 import { logger } from "@/lib/log";
 
 /** 1평 = 3.305785㎡ */
@@ -131,6 +132,11 @@ export interface MolitIngestResult {
   errors: number;
   regions: { code: string; name: string; rows: number; status: "inserted" | "covered" | "empty" | "error" }[];
   reason?: string;
+  /**
+   * 적재 후 실거래 집계 MV 재계산 결과.
+   * 적재된 행이 0이면 집계가 달라질 수 없어 호출하지 않는다(= undefined).
+   */
+  aggregates?: RefreshAggregatesResult;
 }
 
 /** 기본 대상 월 — 전달(yyyymm) */
@@ -264,6 +270,15 @@ export async function ingestMolitTransactions(opts: {
   }
 
   result.ok = result.errors === 0;
+
+  // 새 실거래가 들어왔을 때만 집계 MV 를 다시 계산한다.
+  // (`/tx` 랜딩과 지도 시세 색상이 이 집계를 읽는다. 갱신하지 않으면 새로 적재한
+  //  거래가 화면에 영영 반영되지 않는다.)
+  // 적재 0건이면 집계 결과가 바뀔 수 없으므로 8초짜리 재계산을 건너뛴다.
+  // 갱신이 실패해도 적재 자체는 이미 성공했으므로 result.ok 를 뒤집지 않는다.
+  if (result.inserted > 0) {
+    result.aggregates = await refreshMarketAggregates();
+  }
 
   await logIngest({
     source: "molit",

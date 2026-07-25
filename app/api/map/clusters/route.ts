@@ -33,6 +33,7 @@ import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { encodeComplexId } from "@/lib/complex/complex-store";
 import { krwPerPyeongToManwon } from "@/lib/map/price-tiers";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -167,10 +168,20 @@ async function fetchPriceSource(
       // 거래가 많은 단지부터 — 하드캡에 걸려 잘리더라도 근거가 두꺼운 쪽이 남는다
       .order("tx_count", { ascending: false, nullsFirst: false })
       .limit(MAX_PRICE_SOURCE_ROWS);
-    if (error) return [];
+    if (error) {
+      // 조용히 삼키면 안 된다. 실제로 이 침묵 때문에 시세 색상이 운영에서
+      // 통째로 죽어 있었는데(집계 뷰가 statement_timeout 을 넘겨 취소됨)
+      // 지도는 아무 일 없다는 듯 회색 마커만 그렸다. 화면은 "데이터 없음"으로
+      // 정직하게 물러나되, 원인은 반드시 로그에 남긴다.
+      logger.warn("[map/clusters] 시세 집계 조회 실패:", error.message);
+      return [];
+    }
     return (data ?? []) as unknown as PriceSourceRow[];
-  } catch {
-    // 뷰 미구축 등 — 시세 없이 개수만
+  } catch (e) {
+    logger.warn(
+      "[map/clusters] 시세 집계 조회 예외:",
+      e instanceof Error ? e.message : String(e),
+    );
     return [];
   }
 }

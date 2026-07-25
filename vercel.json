@@ -3,11 +3,18 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "buildCommand": "STRICT_ENV_CHECK=1 npm run build",
-  "regions": ["icn1"],
+  "regions": [
+    "icn1"
+  ],
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "m.nuguzip.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "m.nuguzip.com"
+        }
+      ],
       "destination": "https://nuguzip.com/:path*",
       "permanent": true
     }
@@ -56,6 +63,10 @@
     {
       "path": "/api/cron/redevelopment-ingest",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/market-aggregates-refresh",
+      "schedule": "10 5 * * *"
     }
   ]
 }
