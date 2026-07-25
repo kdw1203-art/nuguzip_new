@@ -24,6 +24,12 @@ export type NotificationPrefs = {
    */
   pushListingStale: boolean;
   /**
+   * 출석 리마인드 푸시(매일 18:00 KST, 오늘 미출석자에게 1회). 기본 true.
+   * 위 두 개와 같은 "본인 루틴 안내" 계열이라 기본 켜짐 — 끄면
+   * attendance-reminders 크론이 이 사람을 발송 대상에서 제외한다.
+   */
+  pushAttendance: boolean;
+  /**
    * 주간 다이제스트 수신함·푸시. 기본 **false**.
    * 위 두 개와 달리 "본인 기록 관리 안내"가 아니라 주기적 소식지라서 옵트인이다.
    * /digest 화면 문구도 "켜면 보내드려요"이므로 기본값이 켜져 있으면 안 된다.
@@ -50,6 +56,7 @@ const DEFAULT_PREFS: Omit<NotificationPrefs, "userEmail" | "updatedAt"> = {
   pushExpert: true,
   pushReengagement: true,
   pushListingStale: true,
+  pushAttendance: true,
   pushWeeklyDigest: false,
   alertPhone: null,
   smsPriceAlerts: false,
@@ -79,6 +86,7 @@ function mapRow(r: Record<string, unknown>): NotificationPrefs {
     pushExpert: Boolean(r.push_expert ?? DEFAULT_PREFS.pushExpert),
     pushReengagement: Boolean(r.push_reengagement ?? DEFAULT_PREFS.pushReengagement),
     pushListingStale: Boolean(r.push_listing_stale ?? DEFAULT_PREFS.pushListingStale),
+    pushAttendance: Boolean(r.push_attendance ?? DEFAULT_PREFS.pushAttendance),
     pushWeeklyDigest: Boolean(r.push_weekly_digest ?? DEFAULT_PREFS.pushWeeklyDigest),
     alertPhone: r.alert_phone ? String(r.alert_phone) : null,
     smsPriceAlerts: Boolean(r.sms_price_alerts ?? DEFAULT_PREFS.smsPriceAlerts),
@@ -125,6 +133,7 @@ export async function upsertPrefs(
     payload.push_reengagement = patch.pushReengagement;
   if (patch.pushListingStale !== undefined)
     payload.push_listing_stale = patch.pushListingStale;
+  if (patch.pushAttendance !== undefined) payload.push_attendance = patch.pushAttendance;
   if (patch.pushWeeklyDigest !== undefined)
     payload.push_weekly_digest = patch.pushWeeklyDigest;
   // 전화번호: 서버에서 정규화(숫자만·01x·10~11자리) 후 저장, 그 외 null
