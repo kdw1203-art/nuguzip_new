@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { getOpenAiApiKey, getOpenAiModel } from "@/lib/ai/env-keys";
 import { buildAiPublicContext } from "@/lib/ai/public-data-context";
-import { WOODONG_AI_SYSTEM, stubReply } from "@/lib/ai/system-prompt";
+import { WOODONG_AI_SYSTEM } from "@/lib/ai/system-prompt";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -32,11 +34,31 @@ function trimMessages(raw: unknown): ChatMessage[] | null {
 }
 
 export async function POST(req: Request) {
+  // 인증 필수 — 비로그인 호출은 401로 명확히 거절
+  const session = await auth();
+  const email = session?.user?.email?.trim().toLowerCase();
+  if (!email) {
+    return NextResponse.json(
+      { ok: false, error: "AI 채팅은 로그인 후 이용할 수 있습니다.", code: "LOGIN_REQUIRED" },
+      { status: 401 },
+    );
+  }
+
+  // 사용자별 별도 버킷: 시간당 10회 (IP 버킷과 분리)
+  const rl = rateLimit(`ai-chat:${email || getClientIp(req)}`, {
+    limit: 10,
+    windowMs: 60 * 60_000,
+  });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON 본문이 필요합니다." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "JSON 본문이 필요합니다." },
+      { status: 400 },
+    );
   }
 
   const b = body as {
@@ -48,15 +70,13 @@ export async function POST(req: Request) {
   const messages = trimMessages(b.messages);
   if (!messages) {
     return NextResponse.json(
-      { error: "messages 배열에 user/assistant 역할의 텍스트가 필요합니다." },
+      { ok: false, error: "messages 배열에 user/assistant 역할의 텍스트가 필요합니다." },
       { status: 400 },
     );
   }
 
   const apiKey = getOpenAiApiKey();
   const model = getOpenAiModel();
-
-  const lastUser = [...messages].reverse().find((m) => m.role === "user");
 
   let contextBlock = "";
   const district = String(b.district ?? "").trim();
@@ -77,11 +97,16 @@ export async function POST(req: Request) {
   }
 
   if (!apiKey) {
-    return NextResponse.json({
-      ok: true,
-      source: "stub" as const,
-      reply: stubReply(lastUser?.content ?? ""),
-    });
+    // 키 미설정 — 성공(200/stub)으로 뭉개지 않고 서비스 불가로 명확히 응답
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "AI 답변 기능이 아직 준비 중이에요. 잠시 후 다시 시도해 주세요. 그동안은 지도·커뮤니티·리포트에서 자료를 확인할 수 있어요.",
+        code: "AI_UNAVAILABLE",
+      },
+      { status: 503 },
+    );
   }
 
   try {
@@ -110,23 +135,26 @@ export async function POST(req: Request) {
     if (!res.ok) {
       const msg = data.error?.message ?? res.statusText;
       logger.error("[ai/chat]", res.status, msg);
-      return NextResponse.json({
-        ok: true,
-        source: "stub" as const,
-        reply: stubReply(
-          lastUser?.content ?? "",
-          `OpenAI 호출에 실패했습니다 (${res.status}). 잠시 후 다시 시도하거나 키·모델명을 확인해 주세요.`,
-        ),
-      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "AI 응답 생성에 실패했어요. 잠시 후 다시 시도해 주세요.",
+          code: "UPSTREAM_ERROR",
+        },
+        { status: 502 },
+      );
     }
 
     const reply = data.choices?.[0]?.message?.content?.trim();
     if (!reply) {
-      return NextResponse.json({
-        ok: true,
-        source: "stub" as const,
-        reply: stubReply(lastUser?.content ?? ""),
-      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "AI 응답이 비어 있어요. 질문을 조금 바꿔 다시 시도해 주세요.",
+          code: "EMPTY_REPLY",
+        },
+        { status: 502 },
+      );
     }
 
     return NextResponse.json({
@@ -137,13 +165,13 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     logger.error("[ai/chat]", e);
-    return NextResponse.json({
-      ok: true,
-      source: "stub" as const,
-      reply: stubReply(
-        lastUser?.content ?? "",
-        "네트워크 오류로 AI 응답을 가져오지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.",
-      ),
-    });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "네트워크 오류로 AI 응답을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.",
+        code: "NETWORK_ERROR",
+      },
+      { status: 502 },
+    );
   }
 }

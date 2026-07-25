@@ -46,6 +46,18 @@ const EXPERTS = [
 export default function PricePage() {
   return (
     <PageShell breadcrumb="매물 A (공작 84A 급매 7.9억) › AI 제안가 근거">
+      {/* 화면 최상단 예시 밴드 — 아래 모든 수치는 실데이터가 아닌 데모용 예시 */}
+      <div
+        role="note"
+        className="rise-in mb-3 rounded-[14px] border-[1.5px] border-danger bg-danger-soft px-4 py-3"
+      >
+        <div className="text-[13px] font-extrabold text-danger">예시 화면입니다</div>
+        <div className="mt-0.5 text-[12px] leading-relaxed text-text-1">
+          아래에 표시되는 매물·가격·보정 항목·비용은 모두 실데이터가 아닌 데모용 예시
+          수치예요. 실제 시세·실거래와 무관하며, 실데이터 연동 후 실제 매물 기준으로
+          제공될 예정이에요.
+        </div>
+      </div>
       <div className="mb-2 flex items-center justify-between">
         <h1 className="rise-in flex items-center gap-2 text-[22px] font-extrabold text-ink">
           AI 제안가 상세 <ExampleBadge label="예시 시뮬레이션" />
@@ -80,12 +92,13 @@ export default function PricePage() {
               <span className="shrink-0 font-extrabold text-primary">+0.17억</span>
             </div>
             <div className="flex justify-between rounded-[10px] bg-[rgba(29,79,216,.05)] px-3 py-[11px] text-sm font-extrabold text-primary">
-              <span>AI 적정가 (신뢰구간 ±0.15억)</span>
+              <span>예시 적정가</span>
               <span>8.20억</span>
             </div>
             <div className="text-[11px] text-text-3">
-              호가 7.9억은 적정가 대비 -3.7% — 진성 급매 판정 (하위 8% 가격대) · 하락
-              보정(실거래·호가)과 상승 보정(정비사업)이 상쇄된 결과
+              예시: 호가 7.9억은 위 예시 적정가 대비 -3.7% — 하락 보정(실거래·호가)과
+              상승 보정(정비사업)이 상쇄된 데모 계산이에요. 신뢰구간·가격대 백분위 등
+              통계 지표는 실데이터 연동 후 제공돼요.
             </div>
           </div>
 

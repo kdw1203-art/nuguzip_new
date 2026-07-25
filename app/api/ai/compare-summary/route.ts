@@ -4,9 +4,11 @@
  * + 종합 코멘트 생성 (LLM 가능 시 LLM, 아니면 규칙 기반 — mode 로 구분).
  *
  * body: { regions: string[] }  // 지역명 자유 표기 (예: "안양시 동안구", "강남구")
- * 사용량: AI 실행 10회/시간/IP (rateLimit — 임장노트 분석과 동일 예산 공유)
+ * 사용량: ai-compare 전용 버킷 10회/시간 (로그인 시 사용자별, 아니면 IP별 —
+ * 임장노트 분석의 ai-exec 버킷과 분리)
  */
 import { NextResponse } from "next/server";
+import { safeAuth } from "@/lib/safe-auth";
 import {
   AI_DISCLAIMER,
   describeSnapshot,
@@ -65,7 +67,9 @@ function ruleComment(snaps: AnalysisRegionSnapshot[]): string {
 }
 
 export async function POST(req: Request) {
-  const rl = rateLimit(`ai-exec:${getClientIp(req)}`, {
+  const session = await safeAuth();
+  const rlKey = session?.user?.email?.trim().toLowerCase() || getClientIp(req);
+  const rl = rateLimit(`ai-compare:${rlKey}`, {
     limit: 10,
     windowMs: 60 * 60_000,
   });

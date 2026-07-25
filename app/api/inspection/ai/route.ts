@@ -4,9 +4,19 @@ import {
   computeAiSummary,
   getNote,
   updateNote,
+  type InspectionNote,
+  type InspectionNoteMetadata,
   type InspectionScores,
   type InspectionSections,
 } from "@/lib/inspection/store-db";
+import { detectShellFromUserAgent } from "@/lib/platform-shell";
+import { appendRun, objectiveHash } from "@/lib/ai/presets-store";
+import {
+  checkAiAnalysisQuota,
+  quotaDeniedJson,
+  resolveQuotaPlan,
+} from "@/lib/subscriptions/usage-summary";
+import { logger } from "@/lib/log";
 import { callLlmChat } from "@/lib/ai/llm-provider";
 import {
   LLM_MODEL_OPTIONS,
@@ -29,16 +39,59 @@ import {
 } from "@/lib/ai/market-insight";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
+/** 임장노트 metadata 확장 필드 — AI 재분석 캐시·직전 결과 1개 보관 */
+type InspectionAiCacheMeta = InspectionNoteMetadata & {
+  /** 마지막 분석 시점의 노트 내용 해시 (내용 미변경 시 캐시 반환) */
+  aiContentHash?: string;
+  /** 덮어쓰기 직전 분석 결과 1개 보관 */
+  previousAiAnalysis?: Record<string, unknown> | null;
+};
+
+/** 노트 내용 기반 해시 — 내용이 그대로면 재분석 대신 기존 결과를 반환한다. */
+function noteContentHash(note: InspectionNote, intent: InspectionAiIntent): string {
+  return objectiveHash({
+    intent,
+    title: note.title,
+    region: note.region,
+    visitDate: (note as { visitDate?: unknown }).visitDate ?? null,
+    scores: note.scores,
+    sections: note.sections,
+    checklist: note.checklist,
+    photos: note.photos,
+  });
+}
+
+function reportRunMarkdown(report: {
+  headline: string;
+  verdict: string;
+  strengths: string[];
+  risks: string[];
+  followUps: string[];
+}): string {
+  return [
+    `## ${report.headline}`,
+    report.verdict,
+    "",
+    ...report.strengths.map((s) => `- 강점: ${s}`),
+    ...report.risks.map((s) => `- 리스크: ${s}`),
+    ...report.followUps.map((s) => `- 확인: ${s}`),
+  ].join("\n");
+}
+
 /**
  * AI 임장 분석 엔드포인트.
  * - noteId가 있으면 저장된 임장노트 기준으로 구조화 리포트를 생성하고 ai_analysis에 저장
+ *   (노트 내용 미변경 시 캐시 반환 — body.force=true 또는 ?force=1 로 강제 재분석)
  * - noteId가 없으면 기존 점수/섹션 기반 분석으로 동작
+ * - 성공 시 ai_analysis_runs 에 기록해 월 사용량(무료 3회/월)을 실제로 집계·강제한다.
  */
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
+  const email = session.user.email.trim().toLowerCase();
+  const sessionPlan = (session.user as { plan?: string }).plan ?? null;
   // AI 실행 사용량 제한: 10회/시간/IP
   const rl = rateLimit(`ai-exec:${getClientIp(req)}`, {
     limit: 10,
@@ -63,6 +116,36 @@ export async function POST(req: Request) {
     }
 
     const intent = normalizeIntent(body.intent, note.metadata?.intent);
+    const meta = (note.metadata ?? {}) as InspectionAiCacheMeta;
+    const contentHash = noteContentHash(note, intent);
+    const force =
+      body.force === true ||
+      body.force === "1" ||
+      new URL(req.url).searchParams.get("force") === "1";
+
+    // 노트 내용이 변하지 않았으면 저장된 분석을 그대로 반환 (사용량 미차감)
+    if (!force && note.aiAnalysis && meta.aiContentHash === contentHash && meta.inspectionReport) {
+      const cachedReport = meta.inspectionReport as { source?: string };
+      return NextResponse.json({
+        analysis: note.aiAnalysis,
+        report: meta.inspectionReport,
+        cached: true,
+        mode: cachedReport.source === "fallback" ? "rule" : "llm",
+        marketContext: null,
+        disclaimer: AI_DISCLAIMER,
+      });
+    }
+
+    // 월 사용량 한도(무료 3회/월) — 새 분석을 만들기 전에 강제
+    const plan = await resolveQuotaPlan(email, sessionPlan);
+    const quota = await checkAiAnalysisQuota(email, plan);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        quotaDeniedJson(quota.message, quota.requiredTier, quota.used, quota.limit),
+        { status: 403 },
+      );
+    }
+
     const baseAnalysis = computeAiSummary({
       scores: note.scores,
       sections: note.sections,
@@ -126,28 +209,74 @@ export async function POST(req: Request) {
     }
 
     const analysis = mergeInspectionReportIntoAnalysis(baseAnalysis, report);
+
+    // 사용량 계측 — /my "AI 분석 월 사용량" 카운터가 실제로 오르도록 기록
+    try {
+      const score = (analysis as { score?: unknown }).score;
+      await appendRun({
+        authorEmail: email,
+        tool: "ai-inspection",
+        inputSnapshot: { noteId: note.id, region: note.region, intent },
+        modelId: (analysis as { modelId?: string | null }).modelId ?? null,
+        source: report.source === "fallback" ? "internal" : report.source,
+        platform: detectShellFromUserAgent(req.headers.get("user-agent")),
+        structuredSummary: {
+          headline: report.headline,
+          bullets: [...report.strengths, ...report.risks].slice(0, 5),
+          score: typeof score === "number" && Number.isFinite(score) ? Math.round(score) : null,
+          tags: [note.region, intent].filter(Boolean),
+        },
+        markdown: reportRunMarkdown(report),
+      });
+    } catch (e) {
+      // 기록 실패가 분석 결과 자체를 막지는 않는다 (best-effort 계측)
+      logger.error("[inspection/ai] run append failed", e);
+    }
+
     if (body.persistAnalysis !== false) {
+      const nextMeta: InspectionAiCacheMeta = {
+        ...meta,
+        intent,
+        inspectionReport: report as unknown as Record<string, unknown>,
+        inspectionReportGeneratedAt: report.generatedAt,
+        aiContentHash: contentHash,
+        // 덮어쓰기 직전 결과 1개 보관
+        previousAiAnalysis: note.aiAnalysis
+          ? {
+              analysis: note.aiAnalysis,
+              report: meta.inspectionReport ?? null,
+              savedAt: new Date().toISOString(),
+            }
+          : (meta.previousAiAnalysis ?? null),
+      };
       await updateNote(note.id, {
         aiAnalysis: analysis,
-        metadata: {
-          ...note.metadata,
-          intent,
-          inspectionReport: report,
-          inspectionReportGeneratedAt: report.generatedAt,
-        },
+        metadata: nextMeta as InspectionNoteMetadata,
       });
     }
 
     return NextResponse.json({
       analysis,
       report,
+      cached: false,
       // "AI 생성" vs "규칙 기반 요약" 라벨용 — fallback 이 아니면 LLM 생성
       mode: report.source === "fallback" ? "rule" : "llm",
       marketContext: marketSnapshot
         ? { snapshot: marketSnapshot, summary: describeSnapshot(marketSnapshot) }
         : null,
+      usage: { used: quota.used + 1, limit: quota.limit },
       disclaimer: AI_DISCLAIMER,
     });
+  }
+
+  // noteId 없는 경로도 동일하게 월 사용량 한도를 강제
+  const freePlan = await resolveQuotaPlan(email, sessionPlan);
+  const freeQuota = await checkAiAnalysisQuota(email, freePlan);
+  if (!freeQuota.allowed) {
+    return NextResponse.json(
+      quotaDeniedJson(freeQuota.message, freeQuota.requiredTier, freeQuota.used, freeQuota.limit),
+      { status: 403 },
+    );
   }
 
   const scores = scoresFrom(body.scores);
@@ -208,9 +337,32 @@ export async function POST(req: Request) {
   }
 
   const engine = String((analysis as Record<string, unknown>).engine ?? "");
+
+  // 사용량 계측 (noteId 없는 경로) — best-effort
+  try {
+    const summaryText = String(
+      (analysis as Record<string, unknown>).llmDetailedConclusion ??
+        (analysis as Record<string, unknown>).summary ??
+        "임장 분석 실행",
+    );
+    await appendRun({
+      authorEmail: email,
+      tool: "ai-inspection",
+      inputSnapshot: { region: String(body.region ?? ""), scores },
+      modelId: (analysis as { modelId?: string | null }).modelId ?? null,
+      source: String((analysis as Record<string, unknown>).source ?? "internal"),
+      platform: detectShellFromUserAgent(req.headers.get("user-agent")),
+      structuredSummary: null,
+      markdown: summaryText.slice(0, 4000),
+    });
+  } catch (e) {
+    logger.error("[inspection/ai] run append failed", e);
+  }
+
   return NextResponse.json({
     analysis,
     mode: engine.startsWith("rule-based") || !engine ? "rule" : "llm",
+    usage: { used: freeQuota.used + 1, limit: freeQuota.limit },
     disclaimer: AI_DISCLAIMER,
   });
 }
