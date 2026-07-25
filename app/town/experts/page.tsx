@@ -69,7 +69,10 @@ function toCard(e: UserExpertProfile): ExpertCardData {
       .join(" · "),
     regions: e.regions,
     tags: (e.specialties.length > 0 ? e.specialties : [e.category]).filter(Boolean).slice(0, 4),
-    ratingLabel: `★ ${e.rating.toFixed(1)}`,
+    // 후기가 한 건도 없으면 평점을 숫자로 보여 주지 않는다. 예전에는 리뷰 0건인
+    // 전문가도 "★ 0.0" 으로 찍혀서, 평가가 없는 것과 낮은 평가를 받은 것이
+    // 구분되지 않았다(전문가 후기 테이블 자체가 아직 없어서 항상 0이다).
+    ratingLabel: e.reviews > 0 ? `★ ${e.rating.toFixed(1)}` : "평가 없음",
     reviews: e.reviews,
     consultations: e.consultations,
     responseLabel: e.responseTime
@@ -92,7 +95,10 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const sub = findSub(EXPERT_SUBCATEGORIES, sp.sub);
   const region = sp.region ?? "all";
-  const sort = sp.sort ?? "rating";
+  /* J8 — "평점순"을 없앴다. expert_profiles.rating 은 아무도 쓰지 않는 상수 0 컬럼이라
+     그 정렬은 0끼리 비교하는, 아무 일도 하지 않는 정렬이었다. 전문가 후기 테이블이
+     생기면 그때 다시 넣는다. 기본값은 최근 등록순. 옛 링크(?sort=rating)도 여기로 온다. */
+  const sort = sp.sort === "consult" ? "consult" : "recent";
 
   let realExperts: UserExpertProfile[] = [];
   try {
@@ -119,7 +125,8 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
     list = [...list].sort((a, b) => {
       // 인증 우선 노출 후, 정렬 기준 적용
       if (a.isVerified !== b.isVerified) return a.isVerified ? -1 : 1;
-      return sort === "consult" ? b.consultations - a.consultations : b.rating - a.rating;
+      if (sort === "consult") return b.consultations - a.consultations;
+      return b.createdAt.localeCompare(a.createdAt);
     });
     cards = list.map(toCard);
   } else {
@@ -132,15 +139,15 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
 
   const subChips = EXPERT_SUBCATEGORIES.slice(0, 6);
   const sortChips = [
-    { id: "rating", label: "평점순" },
-    { id: "consult", label: "상담수순" },
+    { id: "recent", label: "최근 등록순" },
+    { id: "consult", label: "상담 많은 순" },
   ];
-  const filtersActive = sub.id !== "all" || region !== "all" || sort !== "rating";
+  const filtersActive = sub.id !== "all" || region !== "all" || sort !== "recent";
 
   function qs(patch: Record<string, string | undefined>) {
     const merged = { sub: sub.id, region, sort, ...patch };
     const usp = new URLSearchParams();
-    for (const [k, v] of Object.entries(merged)) if (v && v !== "all" && !(k === "sort" && v === "rating")) usp.set(k, v);
+    for (const [k, v] of Object.entries(merged)) if (v && v !== "all" && !(k === "sort" && v === "recent")) usp.set(k, v);
     const s = usp.toString();
     return s ? `/town/experts?${s}` : "/town/experts";
   }

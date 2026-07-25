@@ -33,16 +33,49 @@ export type UserExpertProfile = {
 
 const memory: UserExpertProfile[] = [];
 
+/**
+ * 전문가별 "실제로 답변이 나간" 상담 건수.
+ *
+ * J8 — expert_profiles.consultations 컬럼은 default 0 이고 이 값을 올려 주는 코드가
+ * 저장소·라우트·DB 트리거 어디에도 없다(확인함). 그래서 목록의 "상담 N건"은 항상 0 이고,
+ * 그 컬럼으로 정렬하는 "상담수순"은 영원히 0 끼리 비교하는 정렬이었다.
+ * 컬럼을 믿는 대신 실제 원장인 expert_consultations 에서 센다 — replied_at 이 있는 행,
+ * 즉 전문가가 실제로 답을 보낸 건만 "상담"으로 인정한다(요청만 하고 만 건은 제외).
+ *
+ * PostgREST 는 GROUP BY 를 못 하므로 expert_id 만 받아 와서 JS 에서 센다.
+ */
+async function countRepliedConsultations(): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  const sb = getServiceSupabase();
+  if (!sb) return counts;
+  const { data, error } = await sb
+    .from("expert_consultations")
+    .select("expert_id")
+    .not("expert_id", "is", null)
+    .not("replied_at", "is", null)
+    .limit(20000);
+  if (error) return counts;
+  for (const row of data ?? []) {
+    const key = String((row as { expert_id: unknown }).expert_id);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
+
 export async function listExperts(): Promise<UserExpertProfile[]> {
   const sb = getServiceSupabase();
   if (!sb) return memory;
+  // 정렬 기준을 rating 에서 created_at 으로 바꿨다 — rating 은 아무도 쓰지 않는
+  // 상수 0 컬럼이라 "평점 높은 순"이 아니라 사실상 무작위 순서였다.
   const { data, error } = await sb
     .from("expert_profiles")
     .select("*")
-    .order("rating", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(200);
   if (error) return [];
-  return (data ?? []).map(mapRow);
+  const rows = (data ?? []).map(mapRow);
+  const counts = await countRepliedConsultations();
+  return rows.map((e) => ({ ...e, consultations: counts.get(e.id) ?? 0 }));
 }
 
 export async function getExpert(id: string): Promise<UserExpertProfile | null> {

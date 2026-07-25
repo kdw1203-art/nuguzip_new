@@ -137,9 +137,14 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
             </div>
 
             <div className="mb-3 grid grid-cols-3 gap-2">
+              {/* 후기 0건이면 숫자를 만들어 내지 않는다 — "0.0점"과 "아직 평가 없음"은 다르다. */}
               <div className="rounded-xl bg-bg p-2.5 text-center">
-                <div className="text-[15px] font-extrabold text-ink">{e.ratingLabel.replace("★ ", "")}</div>
-                <div className="text-[10px] text-text-3">평점 {e.reviews}</div>
+                <div className="text-[15px] font-extrabold text-ink">
+                  {e.reviews > 0 ? e.ratingLabel.replace("★ ", "") : "—"}
+                </div>
+                <div className="text-[10px] text-text-3">
+                  {e.reviews > 0 ? `후기 ${e.reviews}건` : "평가 없음"}
+                </div>
               </div>
               <div className="rounded-xl bg-bg p-2.5 text-center">
                 <div className="text-[15px] font-extrabold text-ink">{e.consultations}</div>
