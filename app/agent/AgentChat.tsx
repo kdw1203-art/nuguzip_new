@@ -12,7 +12,9 @@ type TraceEntry = { tool: string; label: string; ok: boolean };
 
 type ChatMsg =
   | { role: "user"; content: string }
-  | { role: "assistant"; content: string; trace: TraceEntry[] };
+  | { role: "assistant"; content: string; trace: TraceEntry[]; model?: string };
+
+export type AgentModelChoice = { id: string; label: string; description: string };
 
 const SUGGESTIONS = [
   "내 임장노트 요약해줘",
@@ -21,11 +23,12 @@ const SUGGESTIONS = [
   "내 노트의 단지 실거래가는 지금 어때?",
 ];
 
-export function AgentChat() {
+export function AgentChat({ models }: { models: AgentModelChoice[] }) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelId, setModelId] = useState(models[0]?.id ?? "default");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,11 +49,13 @@ export function AgentChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map((m) => ({ role: m.role, content: m.content })),
+          model: modelId,
         }),
       });
       const data = (await res.json().catch(() => null)) as {
         reply?: string;
         trace?: TraceEntry[];
+        model?: string;
         error?: string;
       } | null;
       if (!res.ok || !data?.reply) {
@@ -59,7 +64,12 @@ export function AgentChat() {
       }
       setMessages((cur) => [
         ...cur,
-        { role: "assistant", content: data.reply ?? "", trace: data.trace ?? [] },
+        {
+          role: "assistant",
+          content: data.reply ?? "",
+          trace: data.trace ?? [],
+          model: data.model,
+        },
       ]);
     } catch {
       setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
@@ -68,8 +78,33 @@ export function AgentChat() {
     }
   };
 
+  const currentModel = models.find((m) => m.id === modelId);
+
   return (
     <div className="flex flex-col gap-3">
+      {/* 모델 선택 — 키가 설정된 벤더의 모델만 서버가 내려준다 */}
+      {models.length > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="flex items-center gap-2 text-[12px] font-bold text-text-2">
+            AI 모델
+            <select
+              value={modelId}
+              onChange={(e) => setModelId(e.target.value)}
+              className="rounded-[10px] border border-line bg-surface px-2.5 py-1.5 text-[12px] font-bold text-ink outline-none focus:border-primary"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {currentModel && (
+            <span className="text-[11px] text-text-3">{currentModel.description}</span>
+          )}
+        </div>
+      )}
+
       {/* 대화 영역 */}
       <div className="card flex min-h-[380px] flex-col gap-3 rounded-[20px] p-5">
         {messages.length === 0 && (
@@ -107,19 +142,28 @@ export function AgentChat() {
               <div className="rounded-2xl rounded-bl-md bg-bg px-4 py-3 text-[13px] leading-[1.7] text-text-1 whitespace-pre-wrap">
                 {m.content}
               </div>
-              {m.trace.length > 0 && (
+              {(m.trace.length > 0 || m.model) && (
                 <div className="flex flex-wrap items-center gap-1 px-1">
-                  <span className="text-[10px] font-bold text-text-3">조회한 데이터:</span>
-                  {m.trace.map((t, j) => (
-                    <span
-                      key={j}
-                      className={`rounded border px-1.5 py-px text-[10px] font-semibold ${
-                        t.ok ? "border-line text-text-2" : "border-line text-text-3 line-through"
-                      }`}
-                    >
-                      {t.label}
+                  {m.trace.length > 0 && (
+                    <>
+                      <span className="text-[10px] font-bold text-text-3">조회한 데이터:</span>
+                      {m.trace.map((t, j) => (
+                        <span
+                          key={j}
+                          className={`rounded border px-1.5 py-px text-[10px] font-semibold ${
+                            t.ok ? "border-line text-text-2" : "border-line text-text-3 line-through"
+                          }`}
+                        >
+                          {t.label}
+                        </span>
+                      ))}
+                    </>
+                  )}
+                  {m.model && (
+                    <span className="rounded bg-bg px-1.5 py-px text-[10px] font-semibold text-text-3">
+                      {m.model}
                     </span>
-                  ))}
+                  )}
                 </div>
               )}
             </div>

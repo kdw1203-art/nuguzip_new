@@ -10,6 +10,7 @@
  * - 키 미설정이면 지어내지 않고 configured:false 를 반환한다
  */
 import { getOpenAiApiKey, getOpenAiModel } from "@/lib/ai/env-keys";
+import { getModelOption, LLM_MODEL_OPTIONS } from "@/lib/ai/llm-models";
 import {
   AGENT_TOOLS,
   executeAgentTool,
@@ -45,8 +46,42 @@ export const AGENT_SYSTEM_PROMPT = `당신은 "누구집 AI 에이전트"입니�
 export type AgentMessage = { role: "user" | "assistant"; content: string };
 
 export type AgentRunResult =
-  | { ok: true; reply: string; trace: ToolTraceEntry[]; vendor: "openai" | "anthropic" }
+  | {
+      ok: true;
+      reply: string;
+      trace: ToolTraceEntry[];
+      vendor: "openai" | "anthropic";
+      modelLabel: string;
+    }
   | { ok: false; configured: boolean; error: string };
+
+/* ---------- 선택 가능한 모델 목록 ---------- */
+
+export type AgentModelChoice = { id: string; label: string; description: string };
+
+/**
+ * 사용자에게 보여줄 모델 선택지 — 키가 설정된 벤더의 모델만 노출한다.
+ * "default"는 운영 기본(OPENAI_MODEL / AGENT_LLM_BASE_URL 환경변수를 따름)으로,
+ * 자체 모델·국산 API 로 전환해도 이 항목이 자동으로 그 모델을 가리킨다.
+ */
+export function listAgentModels(): AgentModelChoice[] {
+  const out: AgentModelChoice[] = [];
+  const hasOpenAi = Boolean(getOpenAiApiKey());
+  const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+  if (hasOpenAi || hasAnthropic) {
+    out.push({
+      id: "default",
+      label: `기본 (${hasOpenAi ? getOpenAiModel() : "Claude"})`,
+      description: "운영 기본 설정 · 빠른 응답",
+    });
+  }
+  for (const m of LLM_MODEL_OPTIONS) {
+    if (m.vendor === "openai" && !hasOpenAi) continue;
+    if (m.vendor === "anthropic" && !hasAnthropic) continue;
+    out.push({ id: m.id, label: m.label, description: m.description });
+  }
+  return out;
+}
 
 /* ---------- OpenAI function-calling 루프 ---------- */
 
@@ -65,8 +100,8 @@ async function runOpenAiLoop(
   key: string,
   messages: AgentMessage[],
   userEmail: string,
+  model: string,
 ): Promise<AgentRunResult> {
-  const model = getOpenAiModel();
   const trace: ToolTraceEntry[] = [];
   const convo: OaMessage[] = [
     { role: "system", content: AGENT_SYSTEM_PROMPT },
@@ -103,7 +138,7 @@ async function runOpenAiLoop(
     if (calls.length === 0) {
       const text = (msg.content ?? "").trim();
       if (!text) return { ok: false, configured: true, error: "빈 응답" };
-      return { ok: true, reply: text, trace, vendor: "openai" };
+      return { ok: true, reply: text, trace, vendor: "openai", modelLabel: model };
     }
 
     convo.push({ role: "assistant", content: msg.content ?? null, tool_calls: calls });
@@ -135,8 +170,8 @@ async function runAnthropicLoop(
   key: string,
   messages: AgentMessage[],
   userEmail: string,
+  model: string,
 ): Promise<AgentRunResult> {
-  const model = process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022";
   const trace: ToolTraceEntry[] = [];
   const convo: AnMessage[] = messages.map((m) => ({ role: m.role, content: m.content }));
   const tools = AGENT_TOOLS.map((t) => ({
@@ -178,7 +213,7 @@ async function runAnthropicLoop(
         .join("")
         .trim();
       if (!text) return { ok: false, configured: true, error: "빈 응답" };
-      return { ok: true, reply: text, trace, vendor: "anthropic" };
+      return { ok: true, reply: text, trace, vendor: "anthropic", modelLabel: model };
     }
 
     convo.push({ role: "assistant", content: data.content });
@@ -198,11 +233,29 @@ async function runAnthropicLoop(
 export async function runNuguzipAgent(
   messages: AgentMessage[],
   userEmail: string,
+  modelId?: string,
 ): Promise<AgentRunResult> {
   const openai = getOpenAiApiKey();
-  if (openai) return runOpenAiLoop(openai, messages, userEmail);
   const anthropic = process.env.ANTHROPIC_API_KEY?.trim();
-  if (anthropic) return runAnthropicLoop(anthropic, messages, userEmail);
+
+  /* 사용자가 고른 모델 — 해당 벤더 키가 있을 때만 존중, 아니면 기본으로 폴백 */
+  const opt = modelId && modelId !== "default" ? getModelOption(modelId) : null;
+  if (opt?.vendor === "openai" && openai) {
+    return runOpenAiLoop(openai, messages, userEmail, opt.apiModel);
+  }
+  if (opt?.vendor === "anthropic" && anthropic) {
+    return runAnthropicLoop(anthropic, messages, userEmail, opt.apiModel);
+  }
+
+  if (openai) return runOpenAiLoop(openai, messages, userEmail, getOpenAiModel());
+  if (anthropic) {
+    return runAnthropicLoop(
+      anthropic,
+      messages,
+      userEmail,
+      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022",
+    );
+  }
   return {
     ok: false,
     configured: false,

@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = (await req.json().catch(() => ({}))) as { messages?: unknown };
+  const body = (await req.json().catch(() => ({}))) as {
+    messages?: unknown;
+    model?: unknown;
+  };
   const messages = parseMessages(body.messages);
   if (!messages) {
     return NextResponse.json(
@@ -57,7 +60,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = await runNuguzipAgent(messages, email);
+  /* 모델 선택 — 알 수 없는 id 는 loop 쪽에서 기본 모델로 폴백된다 */
+  const modelId = typeof body.model === "string" ? body.model.slice(0, 40) : undefined;
+
+  const result = await runNuguzipAgent(messages, email, modelId);
 
   if (!result.ok) {
     return NextResponse.json(
@@ -75,6 +81,7 @@ export async function POST(req: NextRequest) {
     reply: result.reply,
     trace: result.trace,
     vendor: result.vendor,
+    model: result.modelLabel,
     disclaimer: DISCLAIMER,
   });
 }

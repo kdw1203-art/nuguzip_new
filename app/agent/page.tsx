@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { safeAuth } from "@/lib/safe-auth";
+import { listAgentModels } from "@/lib/agent/loop";
 import { AgentChat } from "./AgentChat";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
@@ -33,7 +34,8 @@ export default async function AgentPage() {
 
       {signedIn ? (
         <div className="rise-in-2">
-          <AgentChat />
+          {/* 모델 선택지는 서버에서 계산 — 키가 설정된 벤더의 모델만 노출된다 */}
+          <AgentChat models={listAgentModels()} />
         </div>
       ) : (
         <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[20px] px-6 py-12 text-center">
