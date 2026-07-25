@@ -9,6 +9,12 @@ import { getOpenAiApiKey } from "@/lib/ai/env-keys";
 
 export type LlmVendor = "openai" | "anthropic";
 
+/**
+ * Anthropic 기본(현행 안정) 모델 ID — 에이전트 루프 등 lib 전역에서 이 상수로
+ * 통일해 쓴다. 구세대 ID(claude-3-5-sonnet-20241022 등) 하드코딩 금지.
+ */
+export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
+
 export type LlmModelOption = {
   id: string;
   label: string;
@@ -34,18 +40,18 @@ export const LLM_MODEL_OPTIONS: LlmModelOption[] = [
     apiModel: "gpt-4o",
   },
   {
-    id: "claude-3-5-sonnet",
-    label: "Claude 3.5 Sonnet",
+    id: "claude-sonnet-4-5",
+    label: "Claude Sonnet 4.5",
     description: "Anthropic · 균형 잡힌 추론",
     vendor: "anthropic",
-    apiModel: "claude-3-5-sonnet-20241022",
+    apiModel: DEFAULT_ANTHROPIC_MODEL,
   },
   {
-    id: "claude-3-opus",
-    label: "Claude 3 Opus",
+    id: "claude-opus-4-1",
+    label: "Claude Opus 4.1",
     description: "Anthropic · 고난도 분석용",
     vendor: "anthropic",
-    apiModel: "claude-3-opus-20240229",
+    apiModel: "claude-opus-4-1-20250805",
   },
 ];
 
@@ -61,6 +67,6 @@ export function defaultModelIdFromEnv(): string {
   const fromEnv = process.env.AI_DEFAULT_MODEL?.trim();
   if (fromEnv && BY_ID.has(fromEnv)) return fromEnv;
   if (getOpenAiApiKey()) return "gpt-4o-mini";
-  if (process.env.ANTHROPIC_API_KEY?.trim()) return "claude-3-5-sonnet";
+  if (process.env.ANTHROPIC_API_KEY?.trim()) return "claude-sonnet-4-5";
   return "gpt-4o-mini";
 }

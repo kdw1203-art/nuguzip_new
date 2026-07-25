@@ -91,7 +91,7 @@ export const AGENT_TOOLS: AgentToolDef[] = [
   {
     name: "get_region_market",
     description:
-      "시군구 단위 시장 상황을 조회한다: 평균 매매가·전월 대비 변동·전세가율(있는 경우), 매매가격지수 12개월 추세, 월별 거래량. district는 한국어 구·시 이름(예: 강남구, 과천시, 동안구).",
+      "시군구 단위 시장 상황을 조회한다: 평균 매매가·전월 대비 변동·전세가율(있는 경우), 매매가격지수 12개월 추세, 월별 거래량. district는 한국어 구·시 이름(예: 강남구, 과천시, 동안구). 지원 범위는 현재 수도권(서울 자치구·경기·인천 주요 시)뿐이다 — 그 외 지역은 미지원 결과가 반환되며, 그 사실을 사용자에게 그대로 전달해야 한다.",
     parameters: {
       type: "object",
       properties: { district: { type: "string", description: "구·시 이름" } },
@@ -242,7 +242,9 @@ async function runGetRegionMarket(district: string): Promise<ToolResult> {
   if (!region) {
     return {
       label: `지역 「${district.slice(0, 20)}」 미지원`,
-      data: { error: `"${district}" 지역을 찾지 못했습니다. 서울 자치구·수도권 주요 시 단위로 다시 시도하세요.` },
+      data: {
+        error: `"${district}" 지역은 아직 지원하지 않습니다. 지역 시세 조회는 현재 수도권(서울 자치구·경기·인천 주요 시) 실거래 기준으로만 제공됩니다. 수도권 지역이라면 구·시 이름(예: 강남구, 과천시)으로 다시 시도하고, 수도권 밖 지역이라면 "현재 수도권만 지원한다"는 사실을 사용자에게 그대로 알려 주세요.`,
+      },
     };
   }
   const [snapshot, series, volume] = await Promise.all([

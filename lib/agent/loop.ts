@@ -10,12 +10,17 @@
  * - 키 미설정이면 지어내지 않고 configured:false 를 반환한다
  */
 import { getOpenAiApiKey, getOpenAiModel } from "@/lib/ai/env-keys";
-import { getModelOption, LLM_MODEL_OPTIONS } from "@/lib/ai/llm-models";
+import {
+  DEFAULT_ANTHROPIC_MODEL,
+  getModelOption,
+  LLM_MODEL_OPTIONS,
+} from "@/lib/ai/llm-models";
 import {
   AGENT_TOOLS,
   executeAgentTool,
   type ToolTraceEntry,
 } from "@/lib/agent/tools";
+import { logger } from "@/lib/log";
 
 const ROUNDS = 4;
 const MAX_OUT = 1200;
@@ -24,12 +29,30 @@ const MAX_OUT = 1200;
  * 자체 모델 전환 스위치 — AGENT_LLM_BASE_URL 을 설정하면 OpenAI 호환 API 를
  * 제공하는 어떤 서버로도 에이전트가 붙는다(자체 vLLM/Ollama GPU 서버,
  * 업스테이지 솔라, 하이퍼클로바X 등). 코드 수정 없이 Vercel 환경변수
- * (AGENT_LLM_BASE_URL + OPENAI_API_KEY + OPENAI_MODEL)만 바꾸면 된다.
- * 미설정 시 기본은 OpenAI.
+ * (AGENT_LLM_BASE_URL + OPENAI_API_KEY + OPENAI_MODEL[, AGENT_LLM_MODELS])만
+ * 바꾸면 된다. 미설정 시 기본은 OpenAI.
  */
 function agentLlmBaseUrl(): string {
   const v = process.env.AGENT_LLM_BASE_URL?.trim().replace(/\/+$/, "");
   return v || "https://api.openai.com";
+}
+
+/** 자체(OpenAI 호환) 백엔드가 설정됐는지 — 설정 시 OpenAI 모델 카탈로그 대신 백엔드 모델 목록을 쓴다. */
+function hasCustomBackend(): boolean {
+  return Boolean(process.env.AGENT_LLM_BASE_URL?.trim());
+}
+
+/**
+ * 자체 백엔드에서 선택 가능한 모델 목록 — `AGENT_LLM_MODELS`(콤마 구분).
+ * 미설정이면 base URL 의 기본 모델(OPENAI_MODEL) 1개만 노출한다.
+ */
+function customBackendModelIds(): string[] {
+  const csv = process.env.AGENT_LLM_MODELS?.trim();
+  if (csv) {
+    const ids = csv.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ids.length > 0) return ids;
+  }
+  return [getOpenAiModel()];
 }
 
 export const AGENT_SYSTEM_PROMPT = `당신은 "누구집 AI 에이전트"입니다. 누구집(nuguzip.com)은 임장(현장 방문) 기록을 판단 근거로 만드는 한국 부동산 서비스입니다.
@@ -41,7 +64,8 @@ export const AGENT_SYSTEM_PROMPT = `당신은 "누구집 AI 에이전트"입니�
 4. 단지 시세는 search_complex → get_complex_stats, 지역 시장은 get_region_market 을 사용합니다.
 5. 매수·매도를 지시하지 않습니다. 데이터를 보여주고 사용자가 판단하도록 돕습니다. 필요하면 "직접 임장으로 확인할 것"을 권합니다.
 6. 한국어로, 간결하게(대개 6문장 이내), 인용한 수치에는 기준 시점을 붙입니다(예: "최근 6개월 평균 12.4억").
-7. 노트 기록과 실거래 데이터가 서로 다르게 말하면 둘 다 보여줍니다 — 기록은 사용자의 관찰, 실거래는 시장의 사실입니다.`;
+7. 노트 기록과 실거래 데이터가 서로 다르게 말하면 둘 다 보여줍니다 — 기록은 사용자의 관찰, 실거래는 시장의 사실입니다.
+8. 지역·단지 시세 도구는 현재 수도권(서울·경기·인천) 실거래 기준입니다. 도구가 "지원하지 않는 지역"이라고 반환하면 그 사실을 그대로 알리고, 없는 지방 시세를 추정해 답하지 않습니다.`;
 
 export type AgentMessage = { role: "user" | "assistant"; content: string };
 
@@ -52,6 +76,8 @@ export type AgentRunResult =
       trace: ToolTraceEntry[];
       vendor: "openai" | "anthropic";
       modelLabel: string;
+      /** 최종 답까지 사용한 LLM 호출 라운드 수 (1 = 도구 없이 즉답) */
+      rounds: number;
     }
   | { ok: false; configured: boolean; error: string };
 
@@ -65,6 +91,15 @@ export type AgentModelChoice = { id: string; label: string; description: string 
  * 자체 모델·국산 API 로 전환해도 이 항목이 자동으로 그 모델을 가리킨다.
  */
 export function listAgentModels(): AgentModelChoice[] {
+  /* 자체 백엔드 모드 — OpenAI 카탈로그 대신 백엔드가 실제 서빙하는 모델만 노출 */
+  if (hasCustomBackend()) {
+    return customBackendModelIds().map((id, i) => ({
+      id,
+      label: id,
+      description: i === 0 ? "자체 LLM 백엔드 · 기본" : "자체 LLM 백엔드",
+    }));
+  }
+
   const out: AgentModelChoice[] = [];
   const hasOpenAi = Boolean(getOpenAiApiKey());
   const hasAnthropic = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
@@ -101,6 +136,7 @@ async function runOpenAiLoop(
   messages: AgentMessage[],
   userEmail: string,
   model: string,
+  maxRounds: number,
 ): Promise<AgentRunResult> {
   const trace: ToolTraceEntry[] = [];
   const convo: OaMessage[] = [
@@ -112,7 +148,7 @@ async function runOpenAiLoop(
     function: { name: t.name, description: t.description, parameters: t.parameters },
   }));
 
-  for (let round = 0; round <= ROUNDS; round += 1) {
+  for (let round = 0; round <= maxRounds; round += 1) {
     const res = await fetch(`${agentLlmBaseUrl()}/v1/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -122,7 +158,7 @@ async function runOpenAiLoop(
         max_tokens: MAX_OUT,
         messages: convo,
         // 마지막 라운드에는 도구를 빼서 반드시 최종 답을 만들게 한다
-        ...(round < ROUNDS ? { tools } : {}),
+        ...(round < maxRounds ? { tools } : {}),
       }),
     });
     const data = (await res.json().catch(() => null)) as {
@@ -130,15 +166,26 @@ async function runOpenAiLoop(
       choices?: { message?: { content?: string | null; tool_calls?: OaToolCall[] } }[];
     } | null;
     if (!res.ok || !data?.choices?.length) {
-      return { ok: false, configured: true, error: data?.error?.message ?? `OpenAI ${res.status}` };
+      const error = data?.error?.message ?? `OpenAI ${res.status}`;
+      logger.warn("[agent/loop] OpenAI 루프 실패", { model, round, error });
+      return { ok: false, configured: true, error };
     }
     const msg = data.choices[0].message ?? {};
     const calls = msg.tool_calls ?? [];
 
     if (calls.length === 0) {
       const text = (msg.content ?? "").trim();
-      if (!text) return { ok: false, configured: true, error: "빈 응답" };
-      return { ok: true, reply: text, trace, vendor: "openai", modelLabel: model };
+      if (!text) {
+        logger.warn("[agent/loop] OpenAI 빈 응답", { model, round });
+        return { ok: false, configured: true, error: "빈 응답" };
+      }
+      logger.info("[agent/loop] 완료", {
+        vendor: "openai",
+        model,
+        rounds: round + 1,
+        toolCalls: trace.length,
+      });
+      return { ok: true, reply: text, trace, vendor: "openai", modelLabel: model, rounds: round + 1 };
     }
 
     convo.push({ role: "assistant", content: msg.content ?? null, tool_calls: calls });
@@ -154,6 +201,7 @@ async function runOpenAiLoop(
       convo.push({ role: "tool", tool_call_id: call.id, content: resultJson });
     }
   }
+  logger.warn("[agent/loop] OpenAI 라운드 초과", { model, maxRounds, toolCalls: trace.length });
   return { ok: false, configured: true, error: "도구 호출이 반복돼 답을 만들지 못했어요." };
 }
 
@@ -171,6 +219,7 @@ async function runAnthropicLoop(
   messages: AgentMessage[],
   userEmail: string,
   model: string,
+  maxRounds: number,
 ): Promise<AgentRunResult> {
   const trace: ToolTraceEntry[] = [];
   const convo: AnMessage[] = messages.map((m) => ({ role: m.role, content: m.content }));
@@ -180,7 +229,7 @@ async function runAnthropicLoop(
     input_schema: t.parameters,
   }));
 
-  for (let round = 0; round <= ROUNDS; round += 1) {
+  for (let round = 0; round <= maxRounds; round += 1) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -193,7 +242,7 @@ async function runAnthropicLoop(
         max_tokens: MAX_OUT,
         system: AGENT_SYSTEM_PROMPT,
         messages: convo,
-        ...(round < ROUNDS ? { tools } : {}),
+        ...(round < maxRounds ? { tools } : {}),
       }),
     });
     const data = (await res.json().catch(() => null)) as {
@@ -202,7 +251,9 @@ async function runAnthropicLoop(
       stop_reason?: string;
     } | null;
     if (!res.ok || !data?.content) {
-      return { ok: false, configured: true, error: data?.error?.message ?? `Anthropic ${res.status}` };
+      const error = data?.error?.message ?? `Anthropic ${res.status}`;
+      logger.warn("[agent/loop] Anthropic 루프 실패", { model, round, error });
+      return { ok: false, configured: true, error };
     }
 
     const toolUses = data.content.filter((c): c is Extract<AnContent, { type: "tool_use" }> => c.type === "tool_use");
@@ -212,8 +263,17 @@ async function runAnthropicLoop(
         .map((c) => c.text)
         .join("")
         .trim();
-      if (!text) return { ok: false, configured: true, error: "빈 응답" };
-      return { ok: true, reply: text, trace, vendor: "anthropic", modelLabel: model };
+      if (!text) {
+        logger.warn("[agent/loop] Anthropic 빈 응답", { model, round });
+        return { ok: false, configured: true, error: "빈 응답" };
+      }
+      logger.info("[agent/loop] 완료", {
+        vendor: "anthropic",
+        model,
+        rounds: round + 1,
+        toolCalls: trace.length,
+      });
+      return { ok: true, reply: text, trace, vendor: "anthropic", modelLabel: model, rounds: round + 1 };
     }
 
     convo.push({ role: "assistant", content: data.content });
@@ -225,35 +285,59 @@ async function runAnthropicLoop(
     }
     convo.push({ role: "user", content: results });
   }
+  logger.warn("[agent/loop] Anthropic 라운드 초과", { model, maxRounds, toolCalls: trace.length });
   return { ok: false, configured: true, error: "도구 호출이 반복돼 답을 만들지 못했어요." };
 }
 
 /* ---------- 진입점 ---------- */
 
+export type AgentRunOptions = {
+  /** 도구 사용 가능 라운드 상한 (기본 4, 1~4 로 클램프) — 레이트리밋 degraded 시 보수 운행용 */
+  maxRounds?: number;
+};
+
 export async function runNuguzipAgent(
   messages: AgentMessage[],
   userEmail: string,
   modelId?: string,
+  opts?: AgentRunOptions,
 ): Promise<AgentRunResult> {
+  const maxRounds = Math.max(1, Math.min(opts?.maxRounds ?? ROUNDS, ROUNDS));
   const openai = getOpenAiApiKey();
   const anthropic = process.env.ANTHROPIC_API_KEY?.trim();
+
+  /* 자체 백엔드 모드 — 카탈로그 모델 대신 백엔드 모델 목록(AGENT_LLM_MODELS)만 존중 */
+  if (hasCustomBackend()) {
+    if (!openai) {
+      return {
+        ok: false,
+        configured: false,
+        error: "AGENT_LLM_BASE_URL 은 설정됐지만 백엔드 키(OPENAI_API_KEY)가 없습니다.",
+      };
+    }
+    const ids = customBackendModelIds();
+    const chosen =
+      modelId && modelId !== "default" && ids.includes(modelId) ? modelId : ids[0];
+    return runOpenAiLoop(openai, messages, userEmail, chosen, maxRounds);
+  }
 
   /* 사용자가 고른 모델 — 해당 벤더 키가 있을 때만 존중, 아니면 기본으로 폴백 */
   const opt = modelId && modelId !== "default" ? getModelOption(modelId) : null;
   if (opt?.vendor === "openai" && openai) {
-    return runOpenAiLoop(openai, messages, userEmail, opt.apiModel);
+    return runOpenAiLoop(openai, messages, userEmail, opt.apiModel, maxRounds);
   }
   if (opt?.vendor === "anthropic" && anthropic) {
-    return runAnthropicLoop(anthropic, messages, userEmail, opt.apiModel);
+    return runAnthropicLoop(anthropic, messages, userEmail, opt.apiModel, maxRounds);
   }
 
-  if (openai) return runOpenAiLoop(openai, messages, userEmail, getOpenAiModel());
+  if (openai) return runOpenAiLoop(openai, messages, userEmail, getOpenAiModel(), maxRounds);
   if (anthropic) {
     return runAnthropicLoop(
       anthropic,
       messages,
       userEmail,
-      process.env.ANTHROPIC_MODEL?.trim() || "claude-3-5-sonnet-20241022",
+      process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL,
+      maxRounds,
     );
   }
   return {

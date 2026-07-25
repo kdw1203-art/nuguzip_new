@@ -219,6 +219,71 @@ export async function applyRateLimit(
   return null;
 }
 
+/* ------------------------------------------------------------------ */
+/* 신규 헬퍼: 키 기반 상세 결과 (keyRateLimit) — 기존 API 동작 불변       */
+/* ------------------------------------------------------------------ */
+
+export interface DetailedRateLimitResult {
+  ok: boolean;
+  /** 윈도우 내 남은 요청 수 */
+  remaining: number;
+  /** 윈도우 리셋 시각(ms epoch) */
+  resetAt: number;
+  /**
+   * 분산 백엔드(Upstash) 호출이 실패해 fail-open 으로 통과시켰는지 여부.
+   * 호출자가 이 플래그를 보고 로깅·보수적 완화(예: 작업량 축소)를 결정할 수 있다.
+   */
+  degraded: boolean;
+}
+
+/**
+ * 키 기반 고정 윈도우 속도 제한 — `applyRateLimit` 과 같은 백엔드
+ * (Upstash 설정 시 Redis, 미설정 시 프로세스 내 Map)를 쓰되,
+ *  1) IP 가 아니라 호출자가 준 키(예: `agent:{email}`)로 집계하고
+ *  2) 백엔드 실패(fail-open)를 `degraded` 로 드러낸다.
+ * 기존 `applyRateLimit`/`requestRateLimit` 의 동작은 바꾸지 않는다.
+ */
+export async function keyRateLimit(
+  key: string,
+  { max, windowMs }: { max: number; windowMs: number },
+): Promise<DetailedRateLimitResult> {
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (upstashUrl && upstashToken) {
+    try {
+      const windowSec = Math.ceil(windowMs / 1000);
+      const pipeline = [
+        ["INCR", key],
+        ["EXPIRE", key, windowSec.toString()],
+      ];
+      const res = await fetch(`${upstashUrl}/pipeline`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${upstashToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(pipeline),
+      });
+      if (!res.ok) throw new Error(`upstash ${res.status}`);
+      const json = (await res.json()) as Array<{ result: number }>;
+      const count = Number(json?.[0]?.result);
+      if (!Number.isFinite(count)) throw new Error("upstash bad response");
+      return {
+        ok: count <= max,
+        remaining: Math.max(0, max - count),
+        resetAt: Date.now() + windowMs,
+        degraded: false,
+      };
+    } catch {
+      /* fail-open — 판단(로깅·완화)은 호출자에게 맡긴다 */
+      return { ok: true, remaining: max, resetAt: Date.now() + windowMs, degraded: true };
+    }
+  }
+
+  return { ...memoryRateLimit(key, max, windowMs), degraded: false };
+}
+
 /** 5분에 10회 — 로그인·회원가입 등 민감 엔드포인트용 */
 export const AUTH_RATE_LIMIT: RateLimitOptions = { max: 10, windowMs: 5 * 60_000 };
 /** 1분에 30회 — 일반 POST 엔드포인트 */
