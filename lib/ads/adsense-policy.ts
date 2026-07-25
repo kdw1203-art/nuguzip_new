@@ -22,6 +22,9 @@ export const ADSENSE_EXCLUDED_PATH_PREFIXES = [
   "/pricing",
   "/settings",
   "/auth",
+  /* AI 에이전트 채팅 — 대화에 본인 임장노트 내용이 표시되는 개인 화면.
+     결제·개인 허브와 같은 이유로 광고 스크립트를 아예 싣지 않는다. */
+  "/agent",
 ] as const;
 
 const PLACEMENT_ENV: Record<AdPlacement, string> = {

@@ -187,19 +187,22 @@ export default async function AnalysisHubPage({
             </Link>
           ))}
 
-          {/* 무엇이든 물어보기 — 잉크 다크 카드 */}
-          <div className="ai-panel flex flex-col gap-2.5 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
-            <div className="ai-chip h-10 w-10 rounded-xl text-[15px]">AI</div>
-            <div className="text-base font-extrabold text-white">
-              무엇이든 물어보기
-            </div>
+          {/* 누구집 AI 에이전트 — 예전엔 눌러도 아무 일 없는 가짜 입력창 목업이었다.
+              이제 실제 에이전트(/agent)로 연결된다: 내 임장노트·실거래를 도구로
+              직접 조회해 답하고, 조회한 데이터 목록을 답변과 함께 보여 준다. */}
+          <Link
+            href="/agent"
+            className="ai-panel card-hover flex flex-col gap-2.5 rounded-[20px] p-[22px] no-underline shadow-[0_14px_36px_rgba(16,28,54,.22)]"
+          >
+            <div className="ai-chip flex h-10 w-10 items-center justify-center rounded-xl text-[15px]">AI</div>
+            <div className="text-base font-extrabold text-white">AI 에이전트에게 물어보기</div>
             <div className="text-[13px] leading-[1.55] text-ai-text">
-              “관양동에서 9억 예산이면 어디부터 볼까?”
+              “내 노트 중 점수가 가장 높았던 단지, 지금 실거래는 어때?”
             </div>
-            <div className="rounded-[10px] bg-[rgba(255,255,255,.08)] px-3 py-[9px] text-xs text-ai-muted">
-              질문 입력… <span className="text-ai-accent">↵</span>
+            <div className="text-xs font-bold text-ai-accent">
+              내 노트·실거래 데이터로 답해요 ›
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* 최근 분석 바로가기 */}
