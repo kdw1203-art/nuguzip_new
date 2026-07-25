@@ -1,8 +1,11 @@
-import { listDbProjects } from "@/lib/redevelopment/store";
+import Link from "next/link";
+import { listProjects } from "@/lib/redevelopment/store";
 import { PROJECT_TYPES, stageLabel } from "@/lib/redevelopment/types";
 
-/* D3 — 인근 정비사업 섹션. 단지 소재 시군구의 실 정비사업(redevelopment_projects)만.
-   DB 확정 데이터만 노출(시드 폴백 없음) — 없으면 렌더 자체를 생략(사실 우선). */
+/* D3 — 인근 정비사업 섹션. 단지 소재 시군구의 정비사업을 보여준다.
+   예전에는 listDbProjects(시드 폴백 없음)를 써서 DB가 비어 있는 동안 항상 숨겨졌다.
+   listProjects(시드 폴백 포함)로 교체하되, 시드(공개자료 취합본) 기반일 때는
+   취합 시점 캡션을 함께 표기해 사실 라벨을 유지한다. */
 
 function typeLabel(key: string): string {
   return PROJECT_TYPES.find((t) => t.key === key)?.label ?? key;
@@ -12,8 +15,15 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
   const gu = sigungu.trim();
   if (!gu) return null;
 
-  const projects = await listDbProjects({ sigungu: gu, limit: 6 }).catch(() => []);
+  const projects = await listProjects({ sigungu: gu, limit: 6 }).catch(
+    () => [] as Awaited<ReturnType<typeof listProjects>>,
+  );
   if (projects.length === 0) return null;
+
+  // 시드 취합 시점 — 전부 같은 시점일 때만 캡션에 노출(혼합 시 개별 표기 없이 일반 문구)
+  const asOfSet = new Set(projects.map((p) => p.asOf).filter(Boolean));
+  const seedAsOf = asOfSet.size === 1 ? [...asOfSet][0] : null;
+  const hasSeed = projects.some((p) => p.asOf != null);
 
   return (
     <section className="rise-in-5 mt-6">
@@ -46,9 +56,18 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
           </div>
         ))}
       </div>
-      <a href="/map" className="mt-2 inline-block px-1 text-[13px] font-bold text-primary">
-        지도에서 정비사업 전체 보기 →
-      </a>
+      {hasSeed && (
+        <p className="mt-1.5 px-1 text-[10px] leading-[1.6] text-text-3">
+          {seedAsOf ? `${seedAsOf} ` : ""}공개자료(정비사업 정보몽땅·지자체 고시 등) 취합 기준
+          참고 정보예요 — 최신 단계와 다를 수 있어요.
+        </p>
+      )}
+      <Link
+        href="/redevelopment"
+        className="mt-2 inline-block px-1 text-[13px] font-bold text-primary"
+      >
+        정비사업 지도에서 전체 보기 →
+      </Link>
     </section>
   );
 }

@@ -1,12 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Icon } from "@/app/components/Icon";
+import { lookupAvgTradePrice } from "./actions";
 
 /* 전세 안심 진단(자가진단) — 항목 F27 lite.
-   순수 클라이언트 계산기. 외부 데이터·API·키 없음. 입력 기반으로
-   전세가율·근저당비율·부채비율을 계산해 안전/주의/위험 3단계를 안내한다.
+   입력 기반으로 전세가율·근저당비율·부채비율을 계산해 안전/주의/위험 3단계를 안내한다.
+   시세는 직접 입력이 기본이고, 원하면 입력한 주소/단지명으로 해당 지역 실거래
+   평균(국토부 실거래·근사 매칭)을 조회해 채울 수 있다.
    판정 결과를 지어내지 않으며, 어디까지나 일반 참고용 자가진단임을 명시한다. */
+
+/** 상단 "안전 진단" 버튼이 스크롤 타깃으로 쓰는 앵커 id */
+export const SELF_CHECK_ANCHOR_ID = "jeonse-self-check";
 
 type HousingType = "아파트" | "빌라·다세대" | "오피스텔";
 type Level = "안전" | "주의" | "위험";
@@ -78,11 +83,37 @@ function LevelBadge({ level }: { level: Level }) {
   );
 }
 
-export function JeonseSelfCheck() {
+export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
   const [deposit, setDeposit] = useState(""); // 전세보증금 (만원)
   const [price, setPrice] = useState(""); // 매매 시세 추정 (만원)
   const [lien, setLien] = useState(""); // 선순위 근저당 채권최고액 (만원)
   const [type, setType] = useState<HousingType>("아파트");
+
+  /* 실거래 평균 조회 — 상단에서 입력한 주소/단지명(subject) 기반 근사 매칭 */
+  const [lookingUp, startLookup] = useTransition();
+  const [lookupNote, setLookupNote] = useState<string | null>(null);
+  const runLookup = () => {
+    const q = (subject ?? "").trim();
+    if (!q || lookingUp) return;
+    startLookup(async () => {
+      const r = await lookupAvgTradePrice(q);
+      if (r.ok) {
+        setPrice(String(r.avgManwon));
+        const ym =
+          r.latestYm.length === 6 ? `${r.latestYm.slice(0, 4)}.${r.latestYm.slice(4, 6)}` : "";
+        setLookupNote(
+          `${[r.regionName, r.complexName].filter(Boolean).join(" ")} 최근 매매 ${r.sampleSize}건 평균` +
+            `${ym ? ` (~${ym})` : ""} — 단지명 부분일치 근사값이라 실제 시세와 다를 수 있어요.`,
+        );
+      } else {
+        setLookupNote(
+          r.reason === "not-found" || r.reason === "empty-query"
+            ? "입력한 주소/단지명과 일치하는 최근 실거래를 찾지 못했어요. 시세를 직접 입력해 주세요."
+            : "실거래 조회가 지금은 어려워요. 시세를 직접 입력해 주세요.",
+        );
+      }
+    });
+  };
 
   const depositN = parseNum(deposit);
   const priceN = parseNum(price);
@@ -96,11 +127,18 @@ export function JeonseSelfCheck() {
     const lienRatio = (lienN / priceN) * 100; // 근저당비율
     const debtRatio = ((depositN + lienN) / priceN) * 100; // 부채비율(깡통전세 핵심)
 
-    // 종합 등급: 부채비율·전세가율 중 나쁜 쪽을 따른다
-    let overall: Level = "안전";
-    if (debtRatio >= t.debtWarn || jeonseRatio >= t.jeonseWarn) overall = "위험";
-    else if (debtRatio > t.debtSafe || jeonseRatio > t.jeonseSafe)
-      overall = "주의";
+    const jeonseLevel = classify(jeonseRatio, t.jeonseSafe, t.jeonseWarn);
+    const lienLevel = classify(lienRatio, 30, 60);
+    const debtLevel = classify(debtRatio, t.debtSafe, t.debtWarn);
+
+    // 종합 등급: 세 지표 중 가장 나쁜 쪽을 따른다 — 어느 한 축이라도 '위험'이면
+    // 종합이 '안전'으로 나오지 않는다(근저당비율 포함).
+    const levels: Level[] = [jeonseLevel, lienLevel, debtLevel];
+    const overall: Level = levels.includes("위험")
+      ? "위험"
+      : levels.includes("주의")
+        ? "주의"
+        : "안전";
 
     return {
       t,
@@ -109,7 +147,7 @@ export function JeonseSelfCheck() {
         {
           key: "전세가율",
           value: jeonseRatio,
-          level: classify(jeonseRatio, t.jeonseSafe, t.jeonseWarn),
+          level: jeonseLevel,
           formula: "보증금 ÷ 시세",
           explain:
             "매매 시세 대비 보증금 비율이에요. 높을수록 집값이 내렸을 때 보증금을 온전히 돌려받기 어려워요.",
@@ -117,7 +155,7 @@ export function JeonseSelfCheck() {
         {
           key: "근저당비율",
           value: lienRatio,
-          level: classify(lienRatio, 30, 60),
+          level: lienLevel,
           formula: "선순위 근저당 ÷ 시세",
           explain:
             "집에 이미 잡혀 있는 대출(근저당) 규모예요. 경매로 넘어가면 근저당이 내 보증금보다 먼저 변제돼요.",
@@ -125,7 +163,7 @@ export function JeonseSelfCheck() {
         {
           key: "부채비율",
           value: debtRatio,
-          level: classify(debtRatio, t.debtSafe, t.debtWarn),
+          level: debtLevel,
           formula: "(보증금 + 근저당) ÷ 시세",
           explain:
             "보증금과 선순위 근저당을 합친 총부담이 시세에서 차지하는 비율이에요. 깡통전세를 가늠하는 핵심 지표로, 통상 90%를 넘으면 위험이 커요.",
@@ -138,7 +176,7 @@ export function JeonseSelfCheck() {
     "w-full rounded-[10px] border border-line bg-surface px-3.5 py-2 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary";
 
   return (
-    <section className="mt-5">
+    <section id={SELF_CHECK_ANCHOR_ID} className="mt-5 scroll-mt-[72px]">
       <div className="card flex flex-col gap-4 rounded-[20px] p-[22px]">
         {/* 헤더 */}
         <div className="flex items-start gap-2.5">
@@ -157,6 +195,9 @@ export function JeonseSelfCheck() {
               보증금·시세·선순위 근저당을 입력하면 전세가율·근저당비율·부채비율을
               계산해 깡통전세 위험도를 안전·주의·위험으로 알려드려요.
             </p>
+            {subject ? (
+              <p className="text-[12px] font-bold text-primary">진단 대상: {subject}</p>
+            ) : null}
           </div>
         </div>
 
@@ -178,13 +219,34 @@ export function JeonseSelfCheck() {
             <span className="text-[12px] font-bold text-text-1">
               매매 시세(추정) <span className="text-text-3">(만원)</span>
             </span>
-            <input
-              inputMode="numeric"
-              value={priceN ? fmt(priceN) : ""}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="예: 40,000"
-              className={inputCls}
-            />
+            <div className="flex gap-1.5">
+              <input
+                inputMode="numeric"
+                value={priceN ? fmt(priceN) : ""}
+                onChange={(e) => {
+                  setPrice(e.target.value);
+                  setLookupNote(null);
+                }}
+                placeholder="예: 40,000"
+                className={inputCls}
+              />
+              <button
+                type="button"
+                onClick={runLookup}
+                disabled={!subject?.trim() || lookingUp}
+                title={
+                  subject?.trim()
+                    ? "입력한 주소/단지명으로 최근 실거래 평균을 조회해요"
+                    : "상단에 주소/단지명을 먼저 입력하세요"
+                }
+                className="btn-soft shrink-0 whitespace-nowrap rounded-[10px] px-2.5 py-2 text-[11px] font-bold disabled:opacity-50"
+              >
+                {lookingUp ? "조회 중…" : "실거래 평균"}
+              </button>
+            </div>
+            {lookupNote ? (
+              <span className="text-[10px] leading-[1.5] text-text-3">{lookupNote}</span>
+            ) : null}
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-[12px] font-bold text-text-1">
@@ -248,7 +310,8 @@ export function JeonseSelfCheck() {
                 </span>
                 <span className="text-[12px] font-medium leading-[1.5] opacity-90">
                   {LEVEL_STYLE[result.overall].headline} · {type} 기준(부채비율{" "}
-                  {result.t.debtSafe}% 이하 안전 / {result.t.debtWarn}% 이상 위험)
+                  {result.t.debtSafe}% 이하 안전 / {result.t.debtWarn}% 이상 위험) · 전세가율·
+                  근저당비율·부채비율 중 가장 나쁜 등급을 따라요
                 </span>
               </div>
             </div>

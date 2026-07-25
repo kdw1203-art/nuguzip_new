@@ -14,7 +14,10 @@ import type { RedevelopmentProject, ProjectTypeKey, StageKey } from "./types";
 const SRC = "공개 자료 정리본(정비사업 정보몽땅·지자체 고시·언론)";
 const SRC_URL = "https://cleanup.seoul.go.kr";
 
-type Seed = Omit<RedevelopmentProject, "isSample" | "source" | "sourceUrl" | "updatedAt"> & {
+/** 시드 작성(공개 자료 취합) 시점 — 화면에 "○○○○.○○ 공개자료 기준"으로 노출한다. */
+export const SEED_AS_OF = "2026.07";
+
+type Seed = Omit<RedevelopmentProject, "isSample" | "source" | "sourceUrl" | "updatedAt" | "asOf"> & {
   typeKey: ProjectTypeKey;
   stageKey: StageKey;
 };
@@ -85,13 +88,21 @@ export const SEED_PROJECTS: RedevelopmentProject[] = RAW.map((r) => ({
   ...r,
   source: SRC,
   sourceUrl: SRC_URL,
-  isSample: false, // 공개 자료 기반 실데이터(예시 아님) — 정확도는 출처 카드·면책으로 고지
+  isSample: false, // 공개 자료 기반 실데이터(예시 아님) — 정확도는 asOf·출처 카드·면책으로 고지
   updatedAt: null,
+  asOf: SEED_AS_OF, // 취합 시점 — 최신 고시·단계와 다를 수 있음을 화면에 함께 표기
 }));
 
-/** 시드 데이터 출처 카드용 메타. */
+/** 데이터 출처 카드용 메타 — 이 화면이 실제로 사용하는 데이터만 적는다(미사용 출처 금지). */
 export const SEED_SOURCES: { kind: string; source: string; cycle: string }[] = [
-  { kind: "구역·진행 정보", source: "정비사업 정보몽땅 · 각 지자체 고시", cycle: "공개 자료 취합" },
-  { kind: "실거래가", source: "국토교통부 실거래가 공개시스템", cycle: "매일" },
-  { kind: "건물 정보", source: "국토교통부 건축물대장", cycle: "월 1회" },
+  {
+    kind: "구역·진행 정보",
+    source: "정비사업 정보몽땅 · 각 지자체 고시 · 언론 공개자료 취합",
+    cycle: `${SEED_AS_OF} 공개자료 기준 (최신 단계와 다를 수 있음)`,
+  },
+  {
+    kind: "실거래가",
+    source: "국토교통부 실거래가 공개시스템 — 구역이 속한 시군구 단위 근사",
+    cycle: "수집 시점 기준 (구역 경계와 정확히 일치하지 않음)",
+  },
 ];

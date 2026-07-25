@@ -26,4 +26,5 @@ export const TOWN_CATEGORY_LINKS: TownCategoryLink[] = [
   { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },
   { href: "/supply", label: "입주 물량", icon: "🏗️", desc: "공급 캘린더" },
   { href: "/auctions", label: "공매 물건", icon: "🔨", desc: "온비드 공매" },
+  { href: "/redevelopment", label: "정비사업 지도", icon: "🗺️", desc: "재개발·재건축" },
 ];

@@ -7,18 +7,29 @@ import { isProjectTypeKey, isStageKey } from "./types";
 /**
  * 정비사업장 공공 API 적재 (서울 열린데이터광장 정비사업 현황).
  *
- * 환경변수 SEOUL_OPENAPI_KEY 가 있어야 동작한다(사용자가 Vercel 환경변수에 직접 추가).
- * 키가 없으면 no-op(configured:false) — 큐레이션 시드/DB 값이 그대로 노출된다.
+ * 환경변수 SEOUL_OPENAPI_KEY(인증키)와 SEOUL_OPENAPI_SERVICE(실 데이터셋 서비스명)가
+ * 모두 있어야 동작한다(사용자가 Vercel 환경변수에 직접 추가).
+ * 키가 없으면 reason:"no-key", 서비스명이 없으면 reason:"source-not-configured"로
+ * no-op(configured:false) — 큐레이션 시드/DB 값이 그대로 노출된다.
  *
  * 서울 API 응답에 좌표(X/Y·경위도)가 포함된 행만 upsert 하며, 좌표가 없는 행은
  * 건너뛴다(정확도 보전 — 좌표를 임의로 만들지 않는다). 사업종류·진행단계는
  * 원문 문자열을 내부 택소노미 키로 best-effort 매핑한다.
  */
 
-const SEOUL_SERVICE = "tbGtnHousingRedevelopment"; // 예시 서비스명(운영키 발급 시 실제 서비스명으로 교체)
+/**
+ * 실제 데이터셋 서비스명은 환경변수 SEOUL_OPENAPI_SERVICE 로만 받는다.
+ * 예전에는 존재하지 않는 예시 서비스명("tbGtnHousingRedevelopment")이 하드코딩돼
+ * 키가 있어도 매번 빈 응답만 받는 "돌지만 아무것도 안 하는" 크론이었다.
+ * 서비스명이 확인·설정되기 전에는 호출하지 않고 reason:"source-not-configured"를
+ * 명시적으로 반환해 로그에서 no-key/실패와 구분되게 한다.
+ */
+function seoulServiceName(): string {
+  return process.env.SEOUL_OPENAPI_SERVICE?.trim() ?? "";
+}
 
 export function isRedevIngestConfigured(): boolean {
-  return Boolean(process.env.SEOUL_OPENAPI_KEY?.trim());
+  return Boolean(process.env.SEOUL_OPENAPI_KEY?.trim()) && Boolean(seoulServiceName());
 }
 
 /** 원문 사업구분 문자열 → 내부 typeKey (best-effort). */
@@ -81,6 +92,18 @@ export async function ingestSeoulRedevelopment(
     return { configured: false, fetched: 0, upserted: 0, skippedNoGeo: 0, reason: "no-key" };
   }
 
+  const service = seoulServiceName();
+  if (!service) {
+    // 키는 있지만 실 데이터셋(서비스명)이 미지정 — 무의미한 호출 대신 상태를 명시한다.
+    return {
+      configured: false,
+      fetched: 0,
+      upserted: 0,
+      skippedNoGeo: 0,
+      reason: "source-not-configured",
+    };
+  }
+
   const sb = getServiceSupabase();
   if (!sb) {
     return { configured: true, fetched: 0, upserted: 0, skippedNoGeo: 0, reason: "no-db" };
@@ -88,7 +111,7 @@ export async function ingestSeoulRedevelopment(
 
   const url = `http://openapi.seoul.go.kr:8088/${encodeURIComponent(
     key,
-  )}/json/${SEOUL_SERVICE}/${startIndex}/${endIndex}/`;
+  )}/json/${service}/${startIndex}/${endIndex}/`;
 
   let rows: Record<string, unknown>[] = [];
   try {
@@ -97,7 +120,7 @@ export async function ingestSeoulRedevelopment(
       return { configured: true, fetched: 0, upserted: 0, skippedNoGeo: 0, reason: `http-${res.status}` };
     }
     const json = (await res.json()) as Record<string, unknown>;
-    const svc = json[SEOUL_SERVICE] as Record<string, unknown> | undefined;
+    const svc = json[service] as Record<string, unknown> | undefined;
     rows = (svc?.row as Record<string, unknown>[] | undefined) ?? [];
   } catch (e) {
     logger.error("[redev.ingest] fetch", e);

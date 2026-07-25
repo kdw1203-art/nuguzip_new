@@ -143,6 +143,8 @@ export type RedevelopmentProject = {
   sourceUrl: string | null; // 출처 링크
   isSample: boolean;
   updatedAt: string | null;
+  /** 공개 자료 취합 시점("YYYY.MM") — 시드(수기 정리본)에만 존재. DB 적재분은 updatedAt 사용. */
+  asOf: string | null;
 };
 
 export type ProjectFilter = {

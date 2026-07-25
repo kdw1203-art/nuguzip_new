@@ -5,6 +5,7 @@ import { readBoardPosts } from "@/lib/newui/board-posts";
 import type { Post } from "@/lib/types/post";
 import { listProjects, countBySigungu } from "@/lib/redevelopment/store";
 import { SEED_SOURCES } from "@/lib/redevelopment/seed";
+import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { RedevelopmentMap } from "./RedevelopmentMap";
 
 /* ============================================================
@@ -13,8 +14,9 @@ import { RedevelopmentMap } from "./RedevelopmentMap";
      · 각 단계 설명·유의점·"이 단계에서 확인할 것" 체크리스트
    — board_posts 자동 수집 뉴스에서 재건축·재개발·정비사업 키워드
      매칭 최신 기사 리스트 (실데이터, 없으면 빈 상태)
-   — 관심 등록 CTA → /notifications
-   개념 안내 전용 — 특정 구역/조합의 실제 단계 데이터는 담지 않는다.
+   — 관심 등록 CTA → /my/saved-searches (실제 존재하는 저장 검색 알림)
+   지도 구역·단계는 공개자료 취합 시드/DB 기반 참고값 — asOf(취합 시점)를
+   마커·목록·면책에 함께 표기해 최신 고시와 다를 수 있음을 고지한다.
    ============================================================ */
 
 export const revalidate = 3600;
@@ -197,6 +199,8 @@ export default async function RedevelopmentPage() {
 
   return (
     <PageShell breadcrumb="홈 › 동네이야기 › 정비사업 지도" title="정비사업 지도">
+      {/* 카테고리 줄 고정 — 형제 카테고리 페이지(청약·입주·공매)와 동일 패턴 */}
+      <TownCategoryNav stick />
       <div className="mx-auto flex w-full max-w-[1080px] flex-col gap-6">
         {/* ===== 정비사업 지도 히어로 ===== */}
         <section className="rise-in flex flex-col gap-3">
@@ -343,21 +347,23 @@ export default async function RedevelopmentPage() {
           </dl>
         </section>
 
-        {/* ===== 관심 등록 CTA ===== */}
+        {/* ===== 관심 등록 CTA — 실제 존재하는 기능(저장 검색 알림)으로만 연결.
+             "정비사업 소식 알림"은 아직 없는 기능이라 약속하지 않는다. */}
         <Link
-          href="/notifications"
+          href="/my/saved-searches"
           className="rise-in-3 card-hover flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-4 no-underline"
         >
           <div>
             <div className="text-[13px] font-extrabold text-ink">
-              관심 지역 정비사업 소식 받아보기
+              관심 지역 검색조건 저장하기
             </div>
             <div className="mt-0.5 text-[11px] text-text-2">
-              알림 설정에서 관심 지역을 등록하면 새 소식을 놓치지 않아요.
+              저장한 조건에 맞는 새 매물이 올라오면 알림으로 알려드려요. 정비사업 단계 변경
+              알림은 아직 제공하지 않아요.
             </div>
           </div>
           <span className="shrink-0 rounded-[10px] bg-primary-soft px-3.5 py-2 text-xs font-bold text-primary">
-            알림 설정 ›
+            저장 검색 ›
           </span>
         </Link>
 

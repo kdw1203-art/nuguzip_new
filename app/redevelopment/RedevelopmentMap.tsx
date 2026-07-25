@@ -40,6 +40,9 @@ function buildInfoHtml(p: RedevelopmentProject): string {
   const stage = stageLabel(p.stageKey);
   const loc = [p.sigungu, p.address].filter(Boolean).join(" · ");
   const households = householdsLabel(p.households);
+  const asOfLine = p.asOf
+    ? `<div style="font-size:10px;color:#9ca3af;margin-top:4px">${esc(p.asOf)} 공개자료 기준 · 최신 단계와 다를 수 있음</div>`
+    : "";
   const source =
     p.sourceUrl != null
       ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:2px;font-size:11px;font-weight:700;color:#1d4fd8;text-decoration:none">출처 ›</a>`
@@ -55,6 +58,7 @@ function buildInfoHtml(p: RedevelopmentProject): string {
     </div>
     ${loc ? `<div style="font-size:11px;color:#6b7280;margin:0 0 2px">${esc(loc)}</div>` : ""}
     ${households ? `<div style="font-size:11px;color:#374151">예정 ${esc(households)}</div>` : ""}
+    ${asOfLine}
     ${source}
   </div>`;
 }
@@ -149,6 +153,14 @@ export function RedevelopmentMap({
 
   const total = initialProjects.length;
   const topSigungu = sigunguCounts.slice(0, 12);
+
+  // 전체가 같은 취합 시점(시드)일 때만 면책에 시점을 못 박는다 — 혼합 데이터면 개별 표기.
+  const asOfLabel = useMemo(() => {
+    const set = new Set(
+      initialProjects.map((p) => p.asOf).filter((v): v is string => Boolean(v)),
+    );
+    return set.size === 1 ? [...set][0] : null;
+  }, [initialProjects]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -313,6 +325,11 @@ export function RedevelopmentMap({
                 {households ? (
                   <div className="mt-0.5 text-[11px] text-text-3">예정 {households}</div>
                 ) : null}
+                {p.asOf ? (
+                  <div className="mt-0.5 text-[10px] text-text-3">
+                    {p.asOf} 공개자료 기준 · 최신 단계와 다를 수 있음
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -326,8 +343,8 @@ export function RedevelopmentMap({
       <p className="flex gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2 text-[10px] leading-[1.6] text-primary">
         <Icon name="landmark" size={13} className="mt-px shrink-0" />
         <span>
-          구역·진행단계는 공개 자료 기준 참고값이며 좌표는 구역 대표점 근사값 — 최신 고시와 다를 수
-          있어요.
+          구역·진행단계는 {asOfLabel ? `${asOfLabel} ` : ""}공개자료 기준 참고값이며 좌표는 구역
+          대표점 근사값 — 최신 고시·단계와 다를 수 있어요.
         </span>
       </p>
     </div>

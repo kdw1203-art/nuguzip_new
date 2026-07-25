@@ -48,6 +48,7 @@ function mapRow(r: Record<string, unknown>): RedevelopmentProject | null {
     sourceUrl: r.source_url != null ? String(r.source_url) : null,
     isSample: r.is_sample === true,
     updatedAt: r.updated_at != null ? String(r.updated_at) : null,
+    asOf: null, // DB 적재분은 updated_at이 기준 시점 — asOf는 시드(수기 취합본) 전용
   };
 }
 

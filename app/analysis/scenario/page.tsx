@@ -113,11 +113,21 @@ export default function ScenarioPage() {
   const [baseline, setBaseline] = useState<Baseline | null>(null);
   const [loadingBaseline, setLoadingBaseline] = useState(false);
 
-  // 딥링크 ?region= 초기 반영 (?complexId=/?apt= 는 ComplexPicker가 처리)
+  // 딥링크 ?region=·?ltv=·?income=·?rate= 초기 반영 (?complexId=/?apt= 는 ComplexPicker가 처리)
+  // ltv/income/rate 는 /calculator "이 조건으로 시나리오 보기"가 현재 조건을 넘겨주는 통로.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const r = new URLSearchParams(window.location.search).get("region");
+    const sp = new URLSearchParams(window.location.search);
+    const r = sp.get("region");
     if (r) setRegionId(r);
+    const ltv = Number(sp.get("ltv"));
+    if (Number.isFinite(ltv) && ltv >= 0 && ltv <= 100)
+      setLtvPct(Math.min(70, Math.round(ltv / 5) * 5)); // 슬라이더 step=5에 맞춰 반올림
+    const income = Number(sp.get("income"));
+    if (Number.isFinite(income) && income >= 100 && income <= 100_000)
+      setIncomeManwon(Math.round(income));
+    const rate = Number(sp.get("rate"));
+    if (Number.isFinite(rate) && rate >= 0.5 && rate <= 15) setBaseRate(rate);
   }, []);
 
   useEffect(() => {
