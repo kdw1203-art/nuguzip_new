@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
     "/api/og/complex": ["./lib/og/fonts/**"],
     "/api/og/listing": ["./lib/og/fonts/**"],
     "/api/screenshot": ["./lib/og/fonts/**"],
+    "/og-image": ["./lib/og/fonts/**"],
   },
   eslint: {
     // 빌드는 통과시키고 lint는 별도 `npm run lint` / CI에서 강제합니다.

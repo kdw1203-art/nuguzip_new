@@ -5,8 +5,9 @@ import { PageShell } from "../../components/PageShell";
 import { findTxRegionBySlug, type BandCell, type TxRegionSummary } from "@/lib/market/tx-bands";
 import { BAND_KIND_LABEL, type BandKind } from "@/lib/market/bands";
 import { formatKrwShort, formatYmRange } from "@/lib/market/format";
-import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
+import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { QaBlock } from "@/app/components/QaBlock";
 
 /* ============================================================
    지역 실거래 구간 허브 — /tx/[region]
@@ -100,6 +101,33 @@ function BandTable({
   );
 }
 
+/* G5+G12 — 지역 Q&A: 이 페이지가 이미 가진 실데이터로만 답을 만든다.
+   수치가 없으면 그 질문은 넣지 않는다(빈 답·추정 금지). */
+function buildRegionFaq(region: TxRegionSummary, range: string | null): FaqItem[] {
+  const items: FaqItem[] = [];
+  if (region.txCount > 0) {
+    items.push({
+      q: `${region.name} 아파트 실거래는 몇 건인가요?`,
+      a: `국토교통부 신고 기준${range ? ` ${range}` : ""} ${region.name} 아파트 매매 실거래는 ${region.txCount.toLocaleString("ko-KR")}건, 거래 단지는 ${region.complexCount.toLocaleString("ko-KR")}곳입니다. 매물 호가가 아닌 신고된 실거래만 집계한 값입니다.`,
+    });
+  }
+  const topArea = [...region.areaCells].sort((a, b) => b.txCount - a.txCount)[0];
+  if (topArea) {
+    items.push({
+      q: `${region.name}에서 가장 거래가 많은 면적대는 어디인가요?`,
+      a: `전용면적 ${topArea.bandLabel} 구간이 ${topArea.txCount.toLocaleString("ko-KR")}건으로 가장 많이 거래됐고, 이 구간의 거래금액 중앙값은 ${formatKrwShort(topArea.medianKrw)}입니다${range ? ` (${range} 신고 기준)` : ""}.`,
+    });
+  }
+  const topPrice = [...region.priceCells].sort((a, b) => b.txCount - a.txCount)[0];
+  if (topPrice) {
+    items.push({
+      q: `${region.name} 아파트는 주로 어느 가격대에서 거래되나요?`,
+      a: `${topPrice.bandLabel} 구간의 거래가 ${topPrice.txCount.toLocaleString("ko-KR")}건으로 가장 많습니다${range ? ` (${range} 신고 기준)` : ""}. 계약 후 신고까지 최대 30일의 시차가 있어 최근 달 수치는 이후 늘어날 수 있습니다.`,
+    });
+  }
+  return items;
+}
+
 export default async function TxRegionPage({
   params,
 }: {
@@ -110,6 +138,7 @@ export default async function TxRegionPage({
   if (!region) notFound();
 
   const range = formatYmRange(region.firstYm, region.latestYm);
+  const faq = buildRegionFaq(region, range);
   const crumbs = breadcrumbJsonLd([
     { name: "홈", url: "/" },
     { name: "지역별 실거래 구간", url: "/tx" },
@@ -136,6 +165,9 @@ export default async function TxRegionPage({
 
       <BandTable region={region} kind="area" cells={region.areaCells} />
       <BandTable region={region} kind="price" cells={region.priceCells} />
+
+      {/* G5+G13 — 실데이터 기반 Q&A + FAQPage 스키마 (같은 배열에서 생성) */}
+      <QaBlock title={`${region.name} 실거래 Q&A`} items={faq} />
 
       <p className="mb-8 text-[12px] leading-[1.7] text-text-3">
         거래 10건 미만 구간은 평균이 한두 건에 크게 흔들려 따로 페이지를 만들지 않습니다. 면적은

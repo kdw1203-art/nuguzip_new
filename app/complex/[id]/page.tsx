@@ -22,6 +22,9 @@ import { decodeComplexId } from "@/lib/complex/complex-store";
 import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
+import { QaBlock } from "../../components/QaBlock";
+import { AdSlot } from "@/app/components/ads/AdSlot";
+import type { FaqItem } from "@/lib/seo/jsonld";
 import { ComplexReviews } from "../ComplexReviews";
 import { ComplexAreaBands } from "./ComplexAreaBands";
 import { RegionRelative } from "./RegionRelative";
@@ -576,12 +579,9 @@ export default async function ComplexHubPage({
             ))}
           </div>
           <div className="rise-in-3">{cta}</div>
-          <div className="rise-in-4 card flex h-[92px] items-center justify-center rounded-[18px] text-xs text-text-3">
-            <span className="mr-1.5 rounded bg-[#f2f4f8] px-1.5 py-px font-mono text-[9px] font-bold">
-              AD
-            </span>
-            이 지역 추천 서비스
-          </div>
+          {/* H1 — "AD / 이 지역 추천 서비스" 가짜 광고 상자였던 자리.
+              실제 슬롯으로 교체 — 보여 줄 광고가 없으면 빈 상자를 남기지 않는다. */}
+          <AdSlot placement="community_feed" seed={0} plan={null} />
         </aside>
       </div>
 
@@ -621,6 +621,24 @@ export default async function ComplexHubPage({
       <NearbyRedevelopment sigungu={v.dong} />
       <UpcomingSupply area={v.dong} />
       <ComplexQna complexName={v.name} />
+
+      {/* G5+G13 — 실데이터 Q&A + FAQPage 스키마. 시세가 "준비 중"이면 그 질문은 뺀다. */}
+      {(() => {
+        const faq: FaqItem[] = [];
+        if (complexPriceRange) {
+          faq.push({
+            q: `${v.name} 최근 실거래 평균가는 얼마인가요?`,
+            a: `국토교통부 실거래 신고 기준 ${v.name}의 최근 월 실거래 평균은 ${v.metric.price}입니다 (${v.metric.priceSub}). 면적대별 시세는 위 면적대별 표를 참고하세요. 매물 호가가 아닌 신고된 실거래 기준입니다.`,
+          });
+        }
+        if (typeof v.households === "number" && v.households > 0) {
+          faq.push({
+            q: `${v.name}는 몇 세대 단지인가요?`,
+            a: `${v.name}는 ${v.dong}에 위치한 총 ${v.households.toLocaleString("ko-KR")}세대 단지입니다 (공동주택 공공데이터 기준).`,
+          });
+        }
+        return <div className="mt-6"><QaBlock title={`${v.name} Q&A`} items={faq} /></div>;
+      })()}
 
       {/* 모바일 CTA 2개 (시안 하단) */}
       <div className="rise-in-4 mt-4 lg:hidden">{cta}</div>

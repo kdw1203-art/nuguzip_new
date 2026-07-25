@@ -215,6 +215,26 @@ export function breadcrumbJsonLd(
   };
 }
 
+/* ---------- FAQPage (G13/S19 — Q&A 블록과 반드시 같은 배열에서 생성) ---------- */
+
+export type FaqItem = { q: string; a: string };
+
+/**
+ * FAQPage JSON-LD. 규칙: 화면에 실제로 보이는 Q&A 와 같은 items 배열로만 만든다 —
+ * 화면에 없는 질문을 스키마에만 넣는 것은 구글 정책 위반이자 허위 표기다.
+ */
+export function faqJsonLd(items: FaqItem[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((it) => ({
+      "@type": "Question",
+      name: it.q,
+      acceptedAnswer: { "@type": "Answer", text: it.a },
+    })),
+  };
+}
+
 /** JSON-LD 객체 → 안전한 <script> 문자열 (XSS 차단: < 이스케이프) */
 export function jsonLdScript(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");

@@ -8,11 +8,20 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
+import { SiteJsonLd } from "./components/SiteJsonLd";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nuguzip.com"),
   manifest: "/manifest.webmanifest",
+  /* S2·S3 — 검색엔진 소유 확인 메타태그 (2026-07-25 소유자 제공 토큰).
+     구글: 정식 도메인 속성 인증은 Vercel DNS 의 TXT 레코드로 하고, 이 태그는
+     URL 접두어 속성용 폴백. 네이버: 서치어드바이저 HTML 태그 방식(정식).
+     검증 토큰은 공개돼도 되는 값이다(시크릿 아님). */
+  verification: {
+    google: "d4jn9bf7SyTraz2EEnn4aNIPemHwz-Bqqflre4DEuXU",
+    other: { "naver-site-verification": "411fe0d67e731e16c96f4994d904f6160e4927af" },
+  },
   title: "누구집 — 임장 기록이 판단 근거가 됩니다",
   description:
     "3분 기록 → AI 정리 → 지도 비교. 부동산 임장노트 플랫폼 누구집. 로그인 없이 시작하세요.",
@@ -22,6 +31,8 @@ export const metadata: Metadata = {
     siteName: "누구집",
     locale: "ko_KR",
     type: "website",
+    // S4 — 기본 공유 카드(/og-image). 페이지 전용 카드가 있으면 각 페이지가 덮어쓴다.
+    images: [{ url: "/og-image", width: 1200, height: 630, alt: "누구집" }],
   },
 };
 
@@ -55,6 +66,8 @@ export default function RootLayout({
             받지 않는다 — 지금까지 iOS 에서 홈 화면에 추가하면 아이콘이 아니라
             페이지 스크린샷 축소판이 박혔다는 뜻이다(조용히 실패해서 티가 안 났다). */}
         <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+        {/* S16/G16 — Organization·WebSite JSON-LD (정적 값만, 데이터 페칭 없음) */}
+        <SiteJsonLd />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="누구집" />
