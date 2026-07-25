@@ -5,8 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 
-/** 온보딩 3스텝 → 기존 온보딩 인프라(app_users.onboarding_progress) 스텝 매핑 */
-const STEP_IDS = ["explore", "inspection", "share"] as const;
+/** 위저드 화면 진행 기록용 id — 퍼널 관측 전용.
+    진짜 온보딩 스텝(explore·inspection·share)은 서버가 실데이터로 판정하므로
+    (app/api/me/onboarding/verify.ts) 여기서 그 id 를 보내면 안 된다. 화면만 넘기고
+    "관심 담기·첫 노트·공개 공유"가 완료된 것처럼 기록되던 문제의 재발 방지. */
+const STEP_IDS = ["profile_region", "profile_budget", "profile_purpose"] as const;
 
 /** 서울·경기·인천 주요 지역 (알림 구독 value 로 그대로 전송, ≤30자) */
 const REGION_GROUPS: { label: string; regions: string[] }[] = [
@@ -97,7 +100,7 @@ export function WelcomeClient() {
     };
   }, [router]);
 
-  /* 기존 온보딩 인프라에 스텝 기록 (fire-and-forget, 실패 무시) */
+  /* 위저드 진행 기록 (fire-and-forget, 실패 무시) — 퍼널 관측용 wizardSteps 로만 쌓인다 */
   const recordStep = useCallback((index: number) => {
     const id = STEP_IDS[index];
     if (!id) return;
@@ -128,11 +131,11 @@ export function WelcomeClient() {
     setStep(2);
   };
 
-  /* step3 완료: 관심지역 알림 구독 + 개인화 저장 + 온보딩 완료 → 홈 (실패 무시, graceful) */
+  /* step3 완료: 관심지역 알림 구독 + 개인화 저장 → 첫 행동(임장노트 쓰기)으로 (실패 무시, graceful) */
   const finish = useCallback(async () => {
     if (busy || !purpose) return;
     setBusy(true);
-    recordStep(2); // 3스텝 모두 기록 → onboarding_completed_at 세팅
+    recordStep(2); // 위저드 마지막 화면 통과 기록 (완료 판정·보너스와 무관)
 
     const band = BUDGET_BANDS[budgetType].find((b) => b.id === budgetBandId) ?? null;
     const budget = band
@@ -156,7 +159,14 @@ export function WelcomeClient() {
       }),
     ]).catch(() => {});
 
-    router.push("/");
+    // 종착지는 홈이 아니라 "첫 행동" — 고른 관심 지역을 프리필해 첫 임장노트 작성으로 보낸다.
+    // (/notes/new 는 ?region= 프리필을 지원한다. NoteForm 참조)
+    const firstRegion = regions[0];
+    router.push(
+      firstRegion
+        ? `/notes/new?region=${encodeURIComponent(firstRegion)}&from=welcome`
+        : "/notes/new?from=welcome",
+    );
   }, [busy, purpose, recordStep, budgetType, budgetBandId, regions, router]);
 
   if (!ready) {
@@ -363,6 +373,16 @@ export function WelcomeClient() {
             </div>
           )}
 
+          {/* 다음 행동 예고 — 완료하면 첫 임장노트 작성으로 이어진다 */}
+          <div className="rise-in-2 rounded-2xl bg-[#f2f4f8] px-4 py-3 text-[12px] leading-[1.6] text-text-2">
+            <span className="font-extrabold text-ink">다음은 첫 임장노트예요.</span> 임장노트는
+            직접 가 본 단지의 느낌·장단점을 체크리스트로 남기는 기록이에요. 완료하면 고른
+            지역으로 바로 이어 드릴게요.
+            <Link href="/digest" className="ml-1 font-bold text-primary no-underline">
+              먼저 주요 지역 다이제스트 보기 ›
+            </Link>
+          </div>
+
           <div className="flex-1" />
           <button
             type="button"
@@ -370,7 +390,7 @@ export function WelcomeClient() {
             disabled={busy || !purpose}
             className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
           >
-            {busy ? "저장 중…" : "설정 완료하고 시작하기"}
+            {busy ? "저장 중…" : "완료하고 첫 임장노트 써보기"}
           </button>
         </>
       )}

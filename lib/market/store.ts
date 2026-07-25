@@ -166,7 +166,9 @@ export type IngestSource =
   | "redevelopment"
   | "geocode"
   /** 구독 만료 스윕(app/api/cron/plan-expiry-sweep) — 시장 데이터는 아니지만 크론 실행 기록은 같은 로그로 남긴다 */
-  | "plan-expiry";
+  | "plan-expiry"
+  /** 포인트 만료 스윕(app/api/cron/points-expiry-sweep) — 위와 같은 이유로 같은 로그를 쓴다 */
+  | "points-expiry";
 
 /**
  * F3(#147) — 크론이 던진 예외를 적재 로그에 남길 수 있는 한 줄짜리 사유로 만든다.

@@ -174,7 +174,19 @@ export type SpendResult = {
   reason?: string;
 };
 
-/** 포인트 소비 — 잔액 검증 후 차감 원장 기록 */
+/** RPC 미배포(마이그레이션 전) 감지 — PostgREST 는 함수를 못 찾으면 PGRST202 를 준다 */
+function isMissingRpc(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST202" || error.code === "42883") return true;
+  const msg = error.message ?? "";
+  return /point_ledger_spend/.test(msg) && /(not find|not exist|does not exist)/i.test(msg);
+}
+
+/**
+ * 포인트 소비 — 원자적 RPC(point_ledger_spend)로 잔액 검증+차감을 단일 트랜잭션 처리.
+ * (기존 "조회 후 insert" 2왕복은 동시 요청이 같은 잔액을 읽어 이중 차감되는 경합이 있었다.)
+ * 마이그레이션이 아직 적용되지 않은 환경에서는 기존 경로로 폴백한다.
+ */
 export async function spendPoints(
   email: string,
   cost: number,
@@ -186,20 +198,45 @@ export async function spendPoints(
     return { ok: false, spent: 0, balance: await getBalance(email), reason: "invalid" };
   }
   try {
+    const { data, error } = await sb.rpc("point_ledger_spend", {
+      p_user_email: email,
+      p_cost: cost,
+      p_reason: reason,
+      p_ref_id: refId ?? null,
+    });
+    if (!error) {
+      const r = (data ?? {}) as {
+        ok?: boolean;
+        spent?: number;
+        balance?: number;
+        reason?: string;
+      };
+      return {
+        ok: Boolean(r.ok),
+        spent: Number(r.spent) || 0,
+        balance: Number(r.balance) || 0,
+        reason: r.ok ? undefined : (r.reason ?? "error"),
+      };
+    }
+    if (!isMissingRpc(error)) {
+      logger.error("[spendPoints] rpc", error);
+      return { ok: false, spent: 0, balance: await getBalance(email), reason: "db" };
+    }
+    // ── 폴백(비원자): RPC 함수가 아직 없는 환경 전용 ──
     const bal = await getBalance(email);
     if (bal < cost) {
       return { ok: false, spent: 0, balance: bal, reason: "insufficient" };
     }
     const newBal = bal - cost;
-    const { error } = await sb.from("point_ledger").insert({
+    const { error: insertError } = await sb.from("point_ledger").insert({
       user_email: email,
       delta: -cost,
       reason,
       ref_id: refId ?? null,
       balance: newBal,
     });
-    if (error) {
-      logger.error("[spendPoints] insert", error);
+    if (insertError) {
+      logger.error("[spendPoints] insert", insertError);
       return { ok: false, spent: 0, balance: bal, reason: "db" };
     }
     return { ok: true, spent: cost, balance: newBal };

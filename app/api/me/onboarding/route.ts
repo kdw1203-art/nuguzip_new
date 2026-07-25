@@ -1,28 +1,28 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
-import { awardPoints } from "@/lib/points/ledger";
-import { mergeTours, readTours } from "@/lib/onboarding/tours";
+import { getVerifiedOnboarding } from "./verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_STEPS = new Set(["explore", "inspection", "share"]);
+/**
+ * 온보딩 진행 API.
+ *
+ * - completedSteps(explore·inspection·share)는 더 이상 클라이언트 신고를 믿지 않는다.
+ *   GET/PATCH 모두 서버가 실데이터(user_watchlist·inspection_notes)로 판정한다
+ *   — ./verify.ts 참조. 200P 완주 보너스도 그 판정으로만, 멱등 지급된다.
+ * - /welcome 위저드의 화면 진행은 별도 id(profile_region·profile_budget·profile_purpose)로
+ *   `onboarding_progress.wizardSteps` 에 기록한다. 퍼널 관측용일 뿐 스텝 완료·보너스와 무관하다.
+ */
 
-type OnboardingProgress = {
-  completedSteps: string[];
-  completedAt: string | null;
-};
+const WIZARD_STEPS = new Set(["profile_region", "profile_budget", "profile_purpose"]);
 
-function normalizeProgress(value: unknown, completedAt: string | null): OnboardingProgress {
-  const raw =
-    value && typeof value === "object" && !Array.isArray(value)
-      ? (value as { completedSteps?: unknown })
-      : {};
-  const completedSteps = Array.isArray(raw.completedSteps)
-    ? raw.completedSteps.map(String).filter((step) => ALLOWED_STEPS.has(step))
-    : [];
-  return { completedSteps: [...new Set(completedSteps)], completedAt };
+function readWizardSteps(value: unknown): string[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const raw = (value as { wizardSteps?: unknown }).wizardSteps;
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.map(String).filter((s) => WIZARD_STEPS.has(s)))];
 }
 
 export async function GET() {
@@ -31,18 +31,13 @@ export async function GET() {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
   const sb = getServiceSupabase();
-  if (!sb) {
-    const progress = normalizeProgress(null, null);
-    return NextResponse.json({ progress, steps: progress.completedSteps, stored: false });
-  }
-  const { data, error } = await sb
-    .from("app_users")
-    .select("onboarding_progress, onboarding_completed_at")
-    .eq("email", session.user.email.trim().toLowerCase())
-    .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const progress = normalizeProgress(data?.onboarding_progress, data?.onboarding_completed_at ?? null);
-  return NextResponse.json({ progress, steps: progress.completedSteps, stored: true });
+  const verified = await getVerifiedOnboarding(session.user.email);
+  return NextResponse.json({
+    progress: { completedSteps: verified.completedSteps, completedAt: verified.completedAt },
+    steps: verified.completedSteps,
+    stored: Boolean(sb),
+    bonusAwarded: verified.bonusAwarded,
+  });
 }
 
 export async function PATCH(req: Request) {
@@ -50,72 +45,47 @@ export async function PATCH(req: Request) {
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
+  const email = session.user.email.trim().toLowerCase();
   const body = (await req.json().catch(() => ({}))) as {
     completedSteps?: unknown;
     step?: unknown;
   };
-  const requested = Array.isArray(body.completedSteps)
-    ? body.completedSteps.map(String)
-    : typeof body.step === "string"
-      ? [body.step]
-      : [];
+  // 위저드 화면 진행 id 만 받는다. 과거 클라이언트가 보내던 explore/inspection/share 는
+  // 서버 판정으로 대체됐으므로 조용히 무시한다 (기록도, 보너스도 없음).
+  const requested = (
+    Array.isArray(body.completedSteps)
+      ? body.completedSteps.map(String)
+      : typeof body.step === "string"
+        ? [body.step]
+        : []
+  ).filter((s) => WIZARD_STEPS.has(s));
+
   const sb = getServiceSupabase();
-  let currentSteps: string[] = [];
-  // 같은 JSON 안에 A1 코치마크 투어 상태(tours)가 함께 산다.
-  // 여기서 progress 를 통째로 덮어쓰므로 읽어서 보존하지 않으면 투어가 매번 다시 뜬다.
-  let currentRaw: unknown = null;
-  if (sb) {
+  if (sb && requested.length > 0) {
+    // onboarding_progress JSON 에는 코치마크 투어(tours)·실스텝(completedSteps)이 함께 산다.
+    // wizardSteps 키만 병합하고 나머지는 보존한다.
     const { data } = await sb
       .from("app_users")
       .select("onboarding_progress")
-      .eq("email", session.user.email.trim().toLowerCase())
+      .eq("email", email)
       .maybeSingle();
-    currentRaw = data?.onboarding_progress ?? null;
-    if (typeof body.step === "string" && !Array.isArray(body.completedSteps)) {
-      currentSteps = normalizeProgress(currentRaw, null).completedSteps;
-    }
-  }
-  const completedSteps = [
-    ...new Set([...currentSteps, ...requested].filter((step) => ALLOWED_STEPS.has(step))),
-  ];
-  const completedAt =
-    completedSteps.length >= ALLOWED_STEPS.size ? new Date().toISOString() : null;
-  const progress = mergeTours({ completedSteps }, readTours(currentRaw));
-
-  if (!sb) {
-    return NextResponse.json({
-      progress: { ...progress, completedAt },
-      steps: completedSteps,
-      stored: false,
-    });
+    const raw = data?.onboarding_progress;
+    const base =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? { ...(raw as Record<string, unknown>) }
+        : {};
+    const wizardSteps = [...new Set([...readWizardSteps(raw), ...requested])];
+    await sb
+      .from("app_users")
+      .update({ onboarding_progress: { ...base, wizardSteps } })
+      .eq("email", email);
   }
 
-  const { data, error } = await sb
-    .from("app_users")
-    .update({
-      onboarding_progress: progress,
-      onboarding_completed_at: completedAt,
-    })
-    .eq("email", session.user.email.trim().toLowerCase())
-    .select("onboarding_progress, onboarding_completed_at")
-    .maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  const normalized = normalizeProgress(data?.onboarding_progress, data?.onboarding_completed_at ?? null);
-  // #4 온보딩 완주 리워드 — 3/3 완료 시 1회 보너스 (once 룰로 중복 방지)
-  let bonus = 0;
-  if (normalized.completedSteps.length >= ALLOWED_STEPS.size) {
-    try {
-      const res = await awardPoints(session.user.email.trim().toLowerCase(), "onboarding_complete");
-      bonus = res.awarded;
-    } catch {
-      // 포인트 적립 실패는 온보딩 저장을 막지 않음
-    }
-  }
+  const verified = await getVerifiedOnboarding(email);
   return NextResponse.json({
-    progress: normalized,
-    steps: normalized.completedSteps,
-    stored: true,
-    bonusAwarded: bonus,
+    progress: { completedSteps: verified.completedSteps, completedAt: verified.completedAt },
+    steps: verified.completedSteps,
+    stored: Boolean(sb),
+    bonusAwarded: verified.bonusAwarded,
   });
 }
-

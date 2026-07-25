@@ -21,6 +21,20 @@ export const EARN_RULES: Record<string, EarnRule> = {
   note_public: { key: "note_public", label: "임장노트 공개", points: 100, dailyCap: 5 },
   review_written: { key: "review_written", label: "단지 후기 작성", points: 30, dailyCap: 5 },
   attendance: { key: "attendance", label: "출석", points: 10, dailyCap: 1 },
+  /* 연속 출석 보너스 — 출석 기본 10P 에 얹는 추가분(3일 +10P → 합 20P, 7일 +40P → 합 50P).
+     lib/points/store-db.checkIn 의 스트릭 티어(10/20/50)와 합이 일치해야 한다. */
+  attendance_streak_3: {
+    key: "attendance_streak_3",
+    label: "3일 연속 출석 보너스",
+    points: 10,
+    dailyCap: 1,
+  },
+  attendance_streak_7: {
+    key: "attendance_streak_7",
+    label: "7일 연속 출석 보너스",
+    points: 40,
+    dailyCap: 1,
+  },
   referral: { key: "referral", label: "친구 추천 가입", points: 300 },
   onboarding_complete: {
     key: "onboarding_complete",
@@ -36,7 +50,7 @@ export type SpendItem = {
   cost: number;
   desc: string;
   /** 소비 후 부여되는 효과 종류 */
-  effect: "complex_report" | "listing_boost" | "plan_pro" | "plan_expert";
+  effect: "listing_boost" | "plan_pro" | "plan_expert";
   /** 부스트 등 기간성 효과의 일수 */
   durationDays?: number;
 };
@@ -44,9 +58,10 @@ export type SpendItem = {
 /* "AI 임장 분석 1회"(ai_analysis, 200P)는 제거 — 크레딧을 기록만 하고 실제로
    분석 횟수를 늘려 주는 소비 지점이 어디에도 없던 유령 상품이었다. 포인트만 받고
    아무것도 주지 않는 셈이라 판매를 중단한다. 기존 구매 이력(원장 reason
-   spend:ai_analysis)은 화면에서 "포인트 사용" 폴백 라벨로 계속 표시된다. */
+   spend:ai_analysis)은 화면에서 "포인트 사용" 폴백 라벨로 계속 표시된다.
+   "단지 리포트 PDF"(complex_report, 300P)도 같은 이유로 제거 — 크레딧만 기록될 뿐
+   PDF 를 내려주는 소비 지점이 없었다. 기존 이력도 같은 폴백 라벨로 표시된다. */
 export const SPEND_ITEMS: SpendItem[] = [
-  { key: "complex_report", label: "단지 리포트 PDF", cost: 300, desc: "단지 실거래·시세 리포트 다운로드", effect: "complex_report" },
   { key: "listing_boost_7d", label: "매물 상단 노출 7일", cost: 500, desc: "내 매물을 목록·지도 상단에 노출", effect: "listing_boost", durationDays: 7 },
   { key: "plan_pro_1m", label: "PRO 구독 1개월 교환", cost: 2900, desc: "PRO 기능 1개월 이용권", effect: "plan_pro", durationDays: 30 },
   { key: "plan_expert_1m", label: "EXPERT 구독 1개월 교환", cost: 18900, desc: "EXPERT 기능 1개월 이용권", effect: "plan_expert", durationDays: 30 },
