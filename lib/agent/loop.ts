@@ -19,6 +19,18 @@ import {
 const ROUNDS = 4;
 const MAX_OUT = 1200;
 
+/**
+ * 자체 모델 전환 스위치 — AGENT_LLM_BASE_URL 을 설정하면 OpenAI 호환 API 를
+ * 제공하는 어떤 서버로도 에이전트가 붙는다(자체 vLLM/Ollama GPU 서버,
+ * 업스테이지 솔라, 하이퍼클로바X 등). 코드 수정 없이 Vercel 환경변수
+ * (AGENT_LLM_BASE_URL + OPENAI_API_KEY + OPENAI_MODEL)만 바꾸면 된다.
+ * 미설정 시 기본은 OpenAI.
+ */
+function agentLlmBaseUrl(): string {
+  const v = process.env.AGENT_LLM_BASE_URL?.trim().replace(/\/+$/, "");
+  return v || "https://api.openai.com";
+}
+
 export const AGENT_SYSTEM_PROMPT = `당신은 "누구집 AI 에이전트"입니다. 누구집(nuguzip.com)은 임장(현장 방문) 기록을 판단 근거로 만드는 한국 부동산 서비스입니다.
 
 절대 규칙 — 사실 우선:
@@ -66,7 +78,7 @@ async function runOpenAiLoop(
   }));
 
   for (let round = 0; round <= ROUNDS; round += 1) {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(`${agentLlmBaseUrl()}/v1/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
