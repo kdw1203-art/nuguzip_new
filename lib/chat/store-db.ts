@@ -149,6 +149,56 @@ export async function ensureRoomMembership(
     .insert({ room_id: roomId, user_email: email, role: "member" });
 }
 
+/**
+ * 나간(left_at) 이력까지 포함해 멤버십 레코드 존재 여부 확인.
+ * 그룹 채팅 입장 시 current_members 중복 증가를 막는 멱등 판정용 —
+ * 한 번이라도 입장했던 사용자는 이미 정원에 집계돼 있다.
+ */
+export async function hasRoomMembershipRecord(
+  roomId: string,
+  userEmail: string,
+): Promise<boolean> {
+  const email = normalizeEmail(userEmail);
+  const sb = getServiceSupabase();
+  if (!sb) {
+    return memory.members.some(
+      (m) => m.roomId === roomId && normalizeEmail(m.userEmail) === email,
+    );
+  }
+  const { data } = await sb
+    .from("chat_room_members")
+    .select("id")
+    .eq("room_id", roomId)
+    .eq("user_email", email)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+/** 방 나가기 — left_at 기록(소프트). 멤버가 아니면 false. */
+export async function leaveChatRoom(roomId: string, userEmail: string): Promise<boolean> {
+  const email = normalizeEmail(userEmail);
+  const sb = getServiceSupabase();
+  if (!sb) {
+    const member = memory.members.find(
+      (m) =>
+        m.roomId === roomId &&
+        normalizeEmail(m.userEmail) === email &&
+        m.leftAt == null,
+    );
+    if (!member) return false;
+    member.leftAt = nowIso();
+    return true;
+  }
+  const { data } = await sb
+    .from("chat_room_members")
+    .update({ left_at: nowIso() })
+    .eq("room_id", roomId)
+    .eq("user_email", email)
+    .is("left_at", null)
+    .select("id");
+  return (data ?? []).length > 0;
+}
+
 export async function listChatRoomsForUser(
   userEmail: string,
   keyword?: string,

@@ -16,7 +16,6 @@ export function AskForm() {
   const [body, setBody] = useState("");
   const [complexName, setComplexName] = useState("");
   const [region, setRegion] = useState("");
-  const [bounty, setBounty] = useState("");
   const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +26,6 @@ export function AskForm() {
     setBody("");
     setComplexName("");
     setRegion("");
-    setBounty("");
     setTags("");
   }
 
@@ -51,7 +49,6 @@ export function AskForm() {
           body: body.trim(),
           complexName: complexName.trim() || undefined,
           region: region.trim() || undefined,
-          bountyPoints: bounty.trim() ? Number(bounty) : undefined,
           tags,
         }),
       });
@@ -140,24 +137,13 @@ export function AskForm() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <input
-          type="number"
-          min={0}
-          inputMode="numeric"
-          className={INPUT}
-          placeholder="현상금 포인트 (선택)"
-          value={bounty}
-          onChange={(e) => setBounty(e.target.value)}
-        />
-        <input
-          className={INPUT}
-          placeholder="태그 (쉼표로 구분, 예: 재건축,학군)"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          maxLength={120}
-        />
-      </div>
+      <input
+        className={INPUT}
+        placeholder="태그 (쉼표로 구분, 예: 재건축,학군)"
+        value={tags}
+        onChange={(e) => setTags(e.target.value)}
+        maxLength={120}
+      />
 
       {needLogin && (
         <div className="rounded-xl bg-primary-soft px-3.5 py-2.5 text-[13px] text-primary">
@@ -185,9 +171,6 @@ export function AskForm() {
         </button>
       </div>
 
-      <p className="text-[11px] text-text-3">
-        현상금 포인트는 현재 버전에서 표시용이며, 실제 포인트가 차감·지급되지 않아요.
-      </p>
     </form>
   );
 }

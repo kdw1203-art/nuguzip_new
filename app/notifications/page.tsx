@@ -144,62 +144,6 @@ function metaLine(item: UnifiedItem): string {
   return parts.filter(Boolean).join(" · ");
 }
 
-/* ---------- 비로그인 샘플 (미리보기용, 상호작용 없음) ---------- */
-
-const GUEST_SAMPLES: UnifiedItem[] = [
-  {
-    kind: "inbox",
-    id: "s1",
-    category: "매물",
-    title: "매물이 승인되었어요",
-    body: "'공작아파트' 매물이 검수를 통과해 지도에 노출됩니다",
-    actionUrl: null,
-    read: false,
-    createdAt: new Date(Date.now() - 8 * 60000).toISOString(),
-  },
-  {
-    kind: "inbox",
-    id: "s2",
-    category: "관심지역",
-    title: "관심 지역 새 매물",
-    body: "관양동 '인덕원마을' 매물이 등록됐어요",
-    actionUrl: null,
-    read: false,
-    createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-  },
-  {
-    kind: "point",
-    id: "s3",
-    category: "포인트",
-    title: "포인트 +300 매물 등록 승인",
-    body: "잔액 1,300P",
-    actionUrl: null,
-    read: true,
-    createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
-    delta: 300,
-  },
-  {
-    kind: "inbox",
-    id: "s4",
-    category: "활동",
-    title: "새 댓글이 달렸어요",
-    body: "내 임장노트에 댓글이 달렸어요",
-    actionUrl: null,
-    read: true,
-    createdAt: new Date(Date.now() - 26 * 3600000).toISOString(),
-  },
-  {
-    kind: "inbox",
-    id: "s5",
-    category: "매물",
-    title: "소유확인 완료",
-    body: "소유확인이 완료돼 인증 배지가 표시됩니다",
-    actionUrl: null,
-    read: true,
-    createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-];
-
 /* ---------- 알림 구독 (#47, /api/me/alerts) ---------- */
 
 type AlertSubscription = {
@@ -483,10 +427,7 @@ export default function NotificationsPage() {
     };
   }, []);
 
-  const unified = useMemo(
-    () => (mode === "guest" ? GUEST_SAMPLES : toUnified(inbox, points)),
-    [mode, inbox, points],
-  );
+  const unified = useMemo(() => toUnified(inbox, points), [inbox, points]);
 
   const unreadCount = useMemo(
     () => unified.filter((u) => u.kind === "inbox" && !u.read).length,
@@ -568,6 +509,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* 탭 */}
+        {mode !== "guest" && (
         <div className="rise-in-1 mt-3 flex gap-1.5 overflow-x-auto pb-1">
           {TABS.map((t) => {
             const active = tab === t.key;
@@ -590,18 +532,22 @@ export default function NotificationsPage() {
             );
           })}
         </div>
+        )}
 
-        {/* 비로그인 안내 (샘플 미리보기 표시 중) — 사실 우선: 아래 항목이 예시임을 명시 */}
+        {/* 비로그인 — 가짜 샘플 알림 대신 로그인 안내 빈 상태(#10) */}
         {mode === "guest" && (
-          <div className="rise-in-1 card mt-3 flex items-center justify-between rounded-[14px] border-l-[3px] border-l-primary px-[15px] py-3">
-            <span className="text-xs font-bold text-ink">
-              아래는 예시 미리보기예요 · 로그인하면 내 실제 알림·포인트·구독을 볼 수 있어요
-            </span>
+          <div className="rise-in-1 card mt-3 flex flex-col items-center gap-2.5 rounded-[14px] px-[15px] py-10 text-center">
+            <div className="text-sm font-extrabold text-ink">
+              로그인하면 알림을 모아볼 수 있어요
+            </div>
+            <p className="max-w-[300px] text-xs leading-[1.6] text-text-3">
+              매물 승인·관심 지역 새 매물·댓글·포인트 소식이 이곳에 쌓여요.
+            </p>
             <Link
               href="/login?callbackUrl=/notifications"
-              className="shrink-0 text-xs font-extrabold text-primary"
+              className="btn-primary mt-1 rounded-xl px-5 py-2.5 text-xs no-underline"
             >
-              로그인 ›
+              로그인
             </Link>
           </div>
         )}
@@ -626,7 +572,7 @@ export default function NotificationsPage() {
               />
             ))}
 
-          {mode !== "loading" && visible.length === 0 && (
+          {mode !== "loading" && mode !== "guest" && visible.length === 0 && (
             <div className="card rounded-[14px] px-[15px] py-8 text-center text-xs text-text-3">
               {EMPTY[tab]}
             </div>

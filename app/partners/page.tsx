@@ -42,6 +42,13 @@ export default function PartnersPage() {
           있어요. 중개 행위는 제휴 중개사가 직접 수행하고, 누구집은 광고 매체로서
           매물 정보를 게재합니다.
         </p>
+        <p className="mt-2 text-[13px] leading-[1.7] text-text-3">
+          상담·리포트 판매용 전문가 인증(세무사·감정평가사 포함)은{" "}
+          <Link href="/town/experts" className="font-bold text-primary underline underline-offset-2">
+            전문가 페이지
+          </Link>
+          에서 신청해 주세요.
+        </p>
       </div>
 
       <div className="rise-in-1 mb-8 grid grid-cols-1 gap-3 md:grid-cols-3">

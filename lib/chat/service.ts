@@ -1,5 +1,5 @@
 import { getExpert } from "@/lib/experts/store-db";
-import { getMeeting } from "@/lib/meetings/store-db";
+import { getMeeting, joinMeeting, type UserMeeting } from "@/lib/meetings/store-db";
 import { enqueueEmailNotification } from "@/lib/notifications/outbox";
 import { pushInboxNotification } from "@/lib/notifications/inbox";
 import { getPrefs } from "@/lib/notification-prefs/store-db";
@@ -11,6 +11,8 @@ import {
   ensureRoomMembership,
   findGroupRoomIdByMeeting,
   getChatRoomByIdForUser,
+  hasRoomMembershipRecord,
+  leaveChatRoom,
   listBlocksForUser,
   listChatMessagesForRoom,
   listChatReportsForAdmin,
@@ -104,9 +106,30 @@ export async function listRoomsByPolicy(actor: SessionActor, keyword?: string) {
   return listChatRoomsForUser(actor.email, keyword);
 }
 
+/** 모임 status·정원 검사 — 신규 입장자에게만 적용(기존 멤버·주최자는 통과). */
+function assertMeetingJoinable(meeting: UserMeeting) {
+  if (meeting.status === "cancelled") throw new Error("CHAT_GROUP_CANCELLED");
+  if (meeting.status !== "open") throw new Error("CHAT_GROUP_CLOSED");
+  if (meeting.currentMembers >= meeting.maxMembers) throw new Error("CHAT_GROUP_FULL");
+}
+
+/** joinMeeting 실패 메시지를 채팅 에러 코드로 변환해 throw. Supabase 미설정은 통과(개발 폴백). */
+function throwFromJoinFailure(message?: string): void {
+  if (!message || message === "Supabase 미설정") return;
+  if (message.includes("정원")) throw new Error("CHAT_GROUP_FULL");
+  if (message.includes("취소")) throw new Error("CHAT_GROUP_CANCELLED");
+  if (message.includes("마감")) throw new Error("CHAT_GROUP_CLOSED");
+  throw new Error("CHAT_GROUP_CLOSED");
+}
+
 /**
  * 모임 상세에서 호출 — 해당 모임의 그룹 채팅방을 찾거나 생성하고,
  * 현재 사용자를 멤버로 보장한 뒤 roomId 를 돌려준다 (idempotent).
+ *
+ * 정원·상태 실집행(#4): 신규 입장자는 status=open + 정원 검사를 통과해야 하고,
+ * 통과 시 joinMeeting() 으로 current_members 를 증가시킨다. 이미 채팅방 멤버면
+ * 어떤 검사·증가도 없이 그대로 재입장한다(멱등). 주최자는 개설 시점에 이미
+ * current_members=1 로 집계돼 있으므로 증가시키지 않는다.
  */
 export async function getOrCreateGroupRoomByPolicy(
   actor: SessionActor,
@@ -115,21 +138,44 @@ export async function getOrCreateGroupRoomByPolicy(
   const meeting = await getMeeting(meetingId);
   if (!meeting) throw new Error("CHAT_GROUP_NOT_FOUND");
 
+  const actorEmail = toEmail(actor.email);
+  const isOrganizer = toEmail(meeting.organizerEmail || "") === actorEmail;
+
   const existingId = await findGroupRoomIdByMeeting(meetingId);
   if (existingId) {
-    await ensureRoomMembership(existingId, actor.email);
+    // 나갔다 돌아온 사용자도 이미 정원에 집계돼 있으므로(멱등) 증가·검사 없이 재입장
+    const alreadyCounted = await hasRoomMembershipRecord(existingId, actorEmail);
+    if (!alreadyCounted && !isOrganizer) {
+      assertMeetingJoinable(meeting);
+      const joined = await joinMeeting(meetingId, actorEmail);
+      if (!joined.ok) throwFromJoinFailure(joined.message);
+    }
+    await ensureRoomMembership(existingId, actorEmail);
     return { roomId: existingId };
+  }
+
+  if (!isOrganizer) {
+    assertMeetingJoinable(meeting);
+    const joined = await joinMeeting(meetingId, actorEmail);
+    if (!joined.ok) throwFromJoinFailure(joined.message);
   }
 
   const room = await createChatRoom({
     roomType: "group",
-    actorEmail: toEmail(actor.email),
-    memberEmails: [toEmail(actor.email), `group-${meetingId}@chat.local`],
+    actorEmail,
+    memberEmails: [actorEmail, `group-${meetingId}@chat.local`],
     title: meeting.title ?? "모임 채팅",
     meetingId,
     metadata: {},
   });
   return { roomId: room.id };
+}
+
+/** 방 나가기 — 멤버가 아니면 403. */
+export async function leaveRoomByPolicy(actor: SessionActor, roomId: string) {
+  const left = await leaveChatRoom(roomId, actor.email);
+  if (!left) throw new Error("CHAT_ROOM_FORBIDDEN");
+  return { ok: true };
 }
 
 export async function getRoomThreadByPolicy(

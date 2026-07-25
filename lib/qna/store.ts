@@ -14,6 +14,7 @@
 import "server-only";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { pushInboxNotification } from "@/lib/notifications/inbox";
 import { logger } from "@/lib/log";
 import type { QnaQuestion, QnaAnswer } from "@/lib/qna/types";
 
@@ -289,7 +290,7 @@ export async function createAnswer(input: {
     // 질문 존재 확인 (없으면 거절)
     const { data: qRow, error: qErr } = await sb
       .from("complex_questions")
-      .select("id,answer_count")
+      .select("id,answer_count,author_email,title")
       .eq("id", questionId)
       .maybeSingle();
     const question = qRow as Record<string, unknown> | null;
@@ -327,6 +328,23 @@ export async function createAnswer(input: {
         .eq("id", questionId);
     } catch (e) {
       logger.warn("[qna] createAnswer bump", e);
+    }
+
+    // 질문자 인앱 알림 — 본인 답변 제외, best-effort
+    try {
+      const questionAuthor =
+        question.author_email != null ? String(question.author_email).trim() : "";
+      if (questionAuthor && questionAuthor.toLowerCase() !== email.toLowerCase()) {
+        const title = question.title != null ? String(question.title) : "";
+        await pushInboxNotification({
+          userEmail: questionAuthor,
+          title: "내 질문에 새 답변이 달렸어요",
+          body: title ? `"${title.slice(0, 60)}" 질문에 답변이 등록됐어요.` : "질문에 답변이 등록됐어요.",
+          actionUrl: `/qna/${questionId}`,
+        });
+      }
+    } catch (e) {
+      logger.warn("[qna] createAnswer notify", e);
     }
 
     return { ok: true, id: String(newId) };
