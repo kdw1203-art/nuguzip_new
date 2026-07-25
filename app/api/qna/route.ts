@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
   const complexName = b.complexName != null ? String(b.complexName).trim() : undefined;
   const region = b.region != null ? String(b.region).trim() : undefined;
   const tags = parseTags(b.tags);
-  const bountyPoints = parseBounty(b.bountyPoints);
 
+  // 현상금 포인트는 검증·차감·지급 실체가 없어 접수하지 않는다(AskForm 필드도 제거, #8).
   const result = await createQuestion({
     email,
     title,
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     complexName,
     region,
     tags,
-    bountyPoints,
+    bountyPoints: 0,
   });
   if (!result.ok) {
     return NextResponse.json(
@@ -84,13 +84,3 @@ function parseTags(v: unknown): string[] {
 }
 
 /** 현상금 포인트: 숫자/숫자문자열만 허용, 음수·NaN 은 0 으로. */
-function parseBounty(v: unknown): number {
-  if (typeof v === "number" && Number.isFinite(v)) {
-    return Math.max(0, Math.trunc(v));
-  }
-  if (typeof v === "string" && v.trim() !== "") {
-    const n = Number(v);
-    return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
-  }
-  return 0;
-}

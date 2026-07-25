@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
+import { isPastMeeting, listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
@@ -221,13 +221,21 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
 
   let meetings: UserMeeting[] = [];
   try {
-    meetings = await listMeetings();
+    // 지난 모임까지 받아와 아래에서 "지난 모임" 접힌 섹션으로 분리한다.
+    meetings = await listMeetings({ includePast: true });
   } catch {
     meetings = [];
   }
 
-  const realViews = meetings.map(toView);
-  const listIsMock = realViews.length === 0;
+  const now = Date.now();
+  const upcomingMeetings = meetings.filter((m) => !isPastMeeting(m, now));
+  const pastViews = meetings
+    .filter((m) => isPastMeeting(m, now))
+    .map(toView)
+    .sort((a, b) => b.whenTs - a.whenTs);
+
+  const realViews = upcomingMeetings.map(toView);
+  const listIsMock = realViews.length === 0 && pastViews.length === 0;
   const all = listIsMock ? FALLBACK_GROUPS : realViews;
 
   /* 지역 칩 — 실데이터에서 도출 */
@@ -388,6 +396,23 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             </section>
           )}
         </>
+      )}
+
+      {/* 지난 모임 — 일정이 이미 지난 모임은 기본 목록에서 빼고 접힌 섹션으로 */}
+      {pastViews.length > 0 && (
+        <details className="mt-8">
+          <summary className="flex cursor-pointer list-none items-center gap-2 text-[15px] font-extrabold text-ink [&::-webkit-details-marker]:hidden">
+            지난 모임
+            <span className="text-[12px] font-semibold text-text-3">
+              {pastViews.length}개 · 펼쳐 보기
+            </span>
+          </summary>
+          <div className="mt-3 grid grid-cols-1 gap-3 opacity-80 sm:grid-cols-2">
+            {pastViews.map((g, i) => (
+              <MeetingCard key={g.id ?? g.title} g={g} i={i} isMock={false} />
+            ))}
+          </div>
+        </details>
       )}
     </PageShell>
   );

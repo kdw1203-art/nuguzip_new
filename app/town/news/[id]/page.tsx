@@ -4,6 +4,7 @@ import { PageShell } from "../../../components/PageShell";
 import { AIPanel } from "../../../components/AIPanel";
 import { ReportButton } from "../../../components/ReportButton";
 import { getTownPost, readTownPosts } from "@/lib/newui/board-posts";
+import { isPostHidden } from "@/lib/moderation/reports-store";
 import type { Post } from "@/lib/types/post";
 
 /* 뉴스 상세 — posts 실데이터(id 조회) 연동. 없는 글은 notFound() (사실 우선: 목업 기사 금지). */
@@ -73,6 +74,8 @@ export default async function TownNewsDetailPage({
   }
   // 사실 우선: 존재하지 않는 글은 목업 기사 대신 404
   if (!post) notFound();
+  // 신고 누적/처리로 숨김된 글(posts.visibility="hidden")도 상세 노출 차단(#7)
+  if (await isPostHidden(id).catch(() => false)) notFound();
 
   try {
     const all = await readTownPosts();

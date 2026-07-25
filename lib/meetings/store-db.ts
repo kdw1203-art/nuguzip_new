@@ -73,17 +73,40 @@ function mapRow(r: Record<string, unknown>): UserMeeting {
   };
 }
 
-export async function listMeetings(): Promise<UserMeeting[]> {
+/** 지난 모임(scheduled_at < now) 여부 — 일정 미정(null)은 지난 모임으로 보지 않는다. */
+export function isPastMeeting(m: UserMeeting, now = Date.now()): boolean {
+  if (!m.scheduledAt) return false;
+  const ts = Date.parse(m.scheduledAt);
+  return Number.isFinite(ts) && ts < now;
+}
+
+/**
+ * 모임 목록.
+ * 기본값은 지난 모임(scheduled_at < now)을 제외한다 — 검색·랜딩 등 일반 소비처가
+ * 이미 끝난 모임을 "모집 중"처럼 노출하지 않도록. 지난 모임까지 필요한 화면
+ * (예: /town/groups 의 "지난 모임" 접힌 섹션)만 includePast 를 켠다.
+ */
+export async function listMeetings(
+  opts: { includePast?: boolean } = {},
+): Promise<UserMeeting[]> {
   const sb = getServiceSupabase();
-  if (!sb) return filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)));
-  const { data, error } = await sb
-    .from("meetings")
-    .select("*")
-    .eq("status", "open")
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) return filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)));
-  return filterPublicContent((data ?? []).map(mapRow));
+  let rows: UserMeeting[];
+  if (!sb) {
+    rows = filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)));
+  } else {
+    const { data, error } = await sb
+      .from("meetings")
+      .select("*")
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    rows = error
+      ? filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)))
+      : filterPublicContent((data ?? []).map(mapRow));
+  }
+  if (opts.includePast) return rows;
+  const now = Date.now();
+  return rows.filter((m) => !isPastMeeting(m, now));
 }
 
 export async function getMeeting(id: string): Promise<UserMeeting | null> {
@@ -181,6 +204,8 @@ export async function joinMeeting(
     .maybeSingle();
 
   if (!meeting) return { ok: false, message: "모임을 찾을 수 없습니다." };
+  if (meeting.status === "cancelled")
+    return { ok: false, message: "취소된 모임입니다." };
   if (meeting.status !== "open") return { ok: false, message: "마감된 모임입니다." };
   if (meeting.current_members >= meeting.max_members)
     return { ok: false, message: "정원이 초과되었습니다." };

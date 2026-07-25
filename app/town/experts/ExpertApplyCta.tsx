@@ -19,6 +19,19 @@ const TYPES = [
 
 type Phase = "idle" | "sending" | "done";
 
+/* 등록번호 간단 형식 검증 — "제11-1234호", "11-1234", "2023-서울-1234" 류.
+   숫자·한글 토큰이 대시로 1회 이상 연결된 형태만 통과시킨다(공백 무시). */
+const CERT_NUMBER_RE = /^제?[0-9A-Za-z가-힣]{1,12}(-[0-9A-Za-z가-힣]{1,12}){1,3}호?$/;
+
+function isValidHttpUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function ExpertApplyCta() {
   const { promptSignup } = useSoftSignup();
   const [open, setOpen] = useState(false);
@@ -30,6 +43,7 @@ export function ExpertApplyCta() {
   const [district, setDistrict] = useState("");
   const [specialties, setSpecialties] = useState("");
   const [bio, setBio] = useState("");
+  const [documentUrls, setDocumentUrls] = useState<string[]>([""]);
   const [agree, setAgree] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +52,14 @@ export function ExpertApplyCta() {
     if (name.trim().length < 2) return setError("실명(대표자명)을 입력해 주세요.");
     if (!city.trim()) return setError("활동 지역(시/도)을 입력해 주세요.");
     if (bio.trim().length < 20) return setError("소개는 20자 이상 입력해 주세요.");
+    const cert = certNumber.trim().replace(/\s+/g, "");
+    if (cert && !CERT_NUMBER_RE.test(cert)) {
+      return setError("등록번호 형식을 확인해 주세요. (예: 제11-1234호)");
+    }
+    const docUrls = documentUrls.map((u) => u.trim()).filter(Boolean);
+    if (docUrls.some((u) => !isValidHttpUrl(u))) {
+      return setError("증빙 URL은 http(s)로 시작하는 주소여야 해요.");
+    }
     if (!agree) return setError("전문가 운영정책 및 약관에 동의해 주세요.");
     setPhase("sending");
     setError(null);
@@ -58,6 +80,7 @@ export function ExpertApplyCta() {
             .split(/[,，]/)
             .map((s) => s.trim())
             .filter(Boolean),
+          documentUrls: docUrls,
           consent: { terms: true },
         }),
       });
@@ -181,9 +204,51 @@ export function ExpertApplyCta() {
                   value={certNumber}
                   onChange={(e) => setCertNumber(e.target.value)}
                   maxLength={40}
-                  placeholder="중개등록번호 / 자격번호 (예: 제11-XXXX호)"
+                  placeholder="중개등록번호 / 자격번호 (예: 제11-1234호)"
                   className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
                 />
+
+                {/* 증빙 URL — 자격증·등록증 사본, 사무소 등록 조회 링크 등. 심사 자료로 실전송된다. */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="text-[11px] font-bold text-text-2">
+                    증빙 URL <span className="font-normal text-text-3">(선택 · 자격증 사본, 등록 조회 링크 등)</span>
+                  </div>
+                  {documentUrls.map((u, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input
+                        value={u}
+                        onChange={(e) =>
+                          setDocumentUrls((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
+                        }
+                        maxLength={500}
+                        inputMode="url"
+                        placeholder="https://…"
+                        className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+                      />
+                      {documentUrls.length > 1 && (
+                        <button
+                          type="button"
+                          aria-label="증빙 URL 삭제"
+                          onClick={() =>
+                            setDocumentUrls((prev) => prev.filter((_, j) => j !== i))
+                          }
+                          className="shrink-0 text-[13px] text-text-3"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {documentUrls.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setDocumentUrls((prev) => [...prev, ""])}
+                      className="self-start text-[11px] font-bold text-primary"
+                    >
+                      + 증빙 URL 추가
+                    </button>
+                  )}
+                </div>
 
                 <div className="flex gap-2">
                   <input

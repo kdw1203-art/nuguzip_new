@@ -20,7 +20,10 @@ export type FeedCard = {
   title: string;
   author: string;
   region: string;
-  saves: number;
+  /** 실측 저장(북마크) 수 — 지표가 없으면 undefined 로 두고 표시하지 않는다 */
+  saves?: number;
+  /** 임장노트 평균 평점(1~5) — 실데이터. 없으면 미표시 */
+  rating?: number | null;
   tags: string[];
   visited: boolean;
   createdAt: number;
@@ -89,10 +92,16 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               {card.author}
               {card.region ? ` · ${card.region}` : ""}
             </span>
-            <span className="inline-flex shrink-0 items-center gap-1">
-              <Icon name="🔖" size={12} />
-              {card.saves}
-            </span>
+            {typeof card.rating === "number" && card.rating > 0 ? (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                ★ {card.rating.toFixed(1)}
+              </span>
+            ) : typeof card.saves === "number" ? (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <Icon name="🔖" size={12} />
+                {card.saves}
+              </span>
+            ) : null}
           </div>
         </div>
       </Link>
@@ -108,6 +117,17 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
  * 피드가 짧다는 뜻이므로 그리드 아래에 붙인다.
  */
 const AD_AFTER_INDEX = 7;
+
+/**
+ * 추천 정렬 점수 — 실데이터(최신성 + 노트 평점 + 글 저장수)만 사용한다.
+ * 예전의 "계산식 저장수(평점×40)" 허수를 없애고, 평점 1점 = 신선도 6시간,
+ * 저장 1건 = 1시간(최대 20건)만큼 가산해 최신순을 보정한다.
+ */
+function recommendScore(c: FeedCard): number {
+  const ratingBoost = (c.rating ?? 0) * 6 * 3_600_000;
+  const savesBoost = Math.min(c.saves ?? 0, 20) * 3_600_000;
+  return c.createdAt + ratingBoost + savesBoost;
+}
 
 export function TownFeed({
   cards,
@@ -126,7 +146,7 @@ export function TownFeed({
     if (filter === "note") list = cards.filter((c) => c.kind === "note");
     else if (filter === "post") list = cards.filter((c) => c.kind === "post");
     if (filter === "latest") return [...list].sort((a, b) => b.createdAt - a.createdAt);
-    return [...list].sort((a, b) => b.saves - a.saves);
+    return [...list].sort((a, b) => recommendScore(b) - recommendScore(a));
   }, [cards, filter]);
 
   return (

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
 import { createMeeting, listMeetings } from "@/lib/meetings/store-db";
 
 export const runtime = "nodejs";
@@ -9,8 +10,17 @@ export async function GET() {
   return NextResponse.json({ groups });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await applyRateLimit(req, WRITE_RATE_LIMIT);
+  if (limited) return limited;
+
+  // 모임 개설 보호(#5) — 로그인 필수. 예전 "게스트" 폴백은 익명 스팸 개설을 허용했다.
   const session = await safeAuth();
+  const sessionEmail = session?.user?.email?.trim();
+  if (!sessionEmail) {
+    return NextResponse.json({ error: "로그인 후 모임을 만들 수 있어요." }, { status: 401 });
+  }
+
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;
@@ -40,10 +50,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "시·군·구를 선택해 주세요." }, { status: 400 });
   }
 
-  const organizerLabel = session?.user
-    ? (session.user.name?.trim() || session.user.email?.split("@")[0]?.trim() || "회원")
-    : String(body.hostLabel ?? body.organizerLabel ?? "").trim() || "게스트";
-  const organizerEmail = session?.user?.email ?? String(body.organizerEmail ?? "게스트").trim();
+  const organizerLabel =
+    session?.user?.name?.trim() || sessionEmail.split("@")[0]?.trim() || "회원";
+  const organizerEmail = sessionEmail;
 
   try {
     const group = await createMeeting({

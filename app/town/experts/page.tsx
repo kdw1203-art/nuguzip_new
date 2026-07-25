@@ -161,7 +161,7 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
         <div>
           <h1 className="text-[22px] font-extrabold text-ink">전문가</h1>
           <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
-            자격 검증을 마친 공인중개사·세무사·감정평가사에게 내 임장노트를 첨부해 바로 질문하세요
+            검증 절차를 거치는 공인중개사·세무사·감정평가사에게 내 임장노트를 첨부해 바로 질문하세요
           </p>
         </div>
         <div className="shrink-0">
@@ -310,6 +310,13 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
           <br />내 매물 등록·크리에이터 활동이 열려요
         </p>
         <ExpertApplyCta />
+        <p className="text-[11px] text-text-3">
+          중개사무소 매물 노출·상담 연결 제휴는{" "}
+          <Link href="/partners" className="font-bold text-primary underline underline-offset-2">
+            중개사 제휴 안내
+          </Link>
+          에서 신청할 수 있어요.
+        </p>
       </div>
 
       <p className="mt-4 text-center text-[11px] leading-[1.6] text-text-3">

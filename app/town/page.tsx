@@ -7,6 +7,7 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { maskNoteAuthor } from "./shared";
+import { listHiddenPostIds } from "@/lib/moderation/reports-store";
 import { TownFeed, type FeedCard } from "./feed-client";
 import { AdSlot } from "../components/ads/AdSlot";
 import type { Post } from "@/lib/types/post";
@@ -35,7 +36,6 @@ const EXAMPLE_CARD: FeedCard = {
   title: "채광은 확실, 주차가 관건 — 공작 302동 임장 후기",
   author: "임장러버",
   region: "안양 관양동",
-  saves: 214,
   tags: ["임장", "후기"],
   visited: true,
   createdAt: Date.now(),
@@ -44,10 +44,12 @@ const EXAMPLE_CARD: FeedCard = {
 
 function noteToCard(n: InspectionNote): FeedCard {
   const oneLiner = n.summary?.trim() || n.sections.pros?.trim() || n.title;
-  const doneCount = n.checklist.filter((c) => c.done).length;
   const tags: string[] = [];
   if (n.aptName?.trim()) tags.push(n.aptName.trim());
   if (n.visitDate) tags.push("직접방문");
+  // 허수 제거(#9): 예전의 "저장수 = 평균 평점×40 + 체크 수" 계산식을 없앴다.
+  // 노트에는 실측 저장 지표가 없으므로 saves 미표시, 실데이터인 평균 평점만 노출.
+  const rating = inspectionAverageScore(n.scores);
   return {
     id: n.id,
     href: `/notes/${n.id}`,
@@ -56,7 +58,7 @@ function noteToCard(n: InspectionNote): FeedCard {
     title: oneLiner.length > 40 ? `${oneLiner.slice(0, 40)}…` : oneLiner,
     author: maskNoteAuthor(n.authorLabel, n.authorEmail),
     region: n.region || "전국",
-    saves: Math.round(inspectionAverageScore(n.scores) * 40) + doneCount,
+    rating: rating > 0 ? rating : null,
     tags,
     visited: Boolean(n.visitDate),
     createdAt: Date.parse(n.createdAt) || 0,
@@ -90,7 +92,12 @@ export default async function TownPage() {
   ]);
 
   const noteCards = notes.map(noteToCard);
-  const postCards = posts.filter((p) => !p.isAutomated).map(postToCard);
+  // 신고 누적/처리로 숨김된 글(posts.visibility="hidden")은 피드에서 제외(#7)
+  const communityPosts = posts.filter((p) => !p.isAutomated);
+  const hiddenIds = await listHiddenPostIds(communityPosts.map((p) => p.id)).catch(
+    () => new Set<string>(),
+  );
+  const postCards = communityPosts.filter((p) => !hiddenIds.has(p.id)).map(postToCard);
 
   /* 노트·글을 섞어 최신순 기본 정렬 (클라이언트에서 추천/최신/유형별 재정렬) */
   let cards: FeedCard[] = [...noteCards, ...postCards].sort(

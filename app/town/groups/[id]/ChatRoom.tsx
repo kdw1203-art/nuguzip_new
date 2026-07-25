@@ -2,10 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /* 시안 8p(모임 그룹 채팅방 · 모바일) + 10c(채팅방 메뉴 — 회원)
    실배선: POST /api/groups/[id]/chat → roomId,
-   GET/POST /api/chat/rooms/[roomId]/messages (5초 폴링) */
+   GET/POST /api/chat/rooms/[roomId]/messages (5초 폴링),
+   메시지 신고(POST /api/chat/messages/[id]/report) ·
+   사용자 차단(POST/DELETE /api/chat/blocks) ·
+   방 나가기(POST /api/chat/rooms/[roomId]/leave) */
 
 type ThreadMessage = {
   id: string;
@@ -21,6 +25,8 @@ type ThreadMember = {
 };
 
 type Phase = "joining" | "ready" | "error";
+
+const REPORT_REASONS = ["스팸·광고", "욕설·비방", "허위 정보", "기타"] as const;
 
 function displayName(email: string, myEmail: string): string {
   if (email === myEmail) return "나";
@@ -47,6 +53,7 @@ export function ChatRoom({
   metaLine: string;
   memberCount: number;
 }) {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("joining");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -55,8 +62,29 @@ export function ChatRoom({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  /* 메시지 신고·차단 액션 시트 대상 (내 메시지·시스템 메시지는 대상 아님) */
+  const [actionMsg, setActionMsg] = useState<ThreadMessage | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  /* 내가 차단한 이메일 목록 */
+  const [blocked, setBlocked] = useState<string[]>([]);
+  /* 처리 결과 안내 (몇 초 후 자동 소멸) */
+  const [notice, setNotice] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastCountRef = useRef(0);
+  const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showNotice = useCallback((text: string) => {
+    setNotice(text);
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    noticeTimerRef.current = setTimeout(() => setNotice(null), 3500);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+    };
+  }, []);
 
   const loadThread = useCallback(async (rid: string) => {
     const res = await fetch(`/api/chat/rooms/${rid}/messages?limit=100`, {
@@ -152,6 +180,106 @@ export function ChatRoom({
       setErrorMsg("전송에 실패했어요. 네트워크를 확인해 주세요.");
     } finally {
       setSending(false);
+    }
+  };
+
+  /* 차단 목록 로드 — 차단한 사용자의 메시지는 본문 대신 안내로 표시 */
+  useEffect(() => {
+    if (phase !== "ready") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/chat/blocks", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          blocks?: Array<{ blockedEmail: string }>;
+        };
+        if (!cancelled) {
+          setBlocked((data.blocks ?? []).map((b) => b.blockedEmail));
+        }
+      } catch {
+        // 차단 목록 로드 실패는 치명적이지 않음
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [phase]);
+
+  const reportMessage = async (msg: ThreadMessage, reason: string) => {
+    if (actionBusy) return;
+    setActionBusy(true);
+    try {
+      const res = await fetch(`/api/chat/messages/${msg.id}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: `${reason} 신고` }),
+      });
+      if (res.ok) {
+        showNotice("신고가 접수됐어요. 운영팀이 확인할게요.");
+        setActionMsg(null);
+      } else {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        showNotice(data.error?.message ?? "신고 접수에 실패했어요.");
+      }
+    } catch {
+      showNotice("신고 접수에 실패했어요. 네트워크를 확인해 주세요.");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const toggleBlock = async (email: string) => {
+    if (actionBusy) return;
+    const isBlocked = blocked.includes(email);
+    setActionBusy(true);
+    try {
+      const res = await fetch("/api/chat/blocks", {
+        method: isBlocked ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockedEmail: email }),
+      });
+      if (res.ok) {
+        setBlocked((prev) =>
+          isBlocked ? prev.filter((e) => e !== email) : [...prev, email],
+        );
+        showNotice(isBlocked ? "차단을 해제했어요." : "사용자를 차단했어요.");
+        setActionMsg(null);
+      } else {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: { message?: string };
+        };
+        showNotice(data.error?.message ?? "차단 처리에 실패했어요.");
+      }
+    } catch {
+      showNotice("차단 처리에 실패했어요. 네트워크를 확인해 주세요.");
+    } finally {
+      setActionBusy(false);
+    }
+  };
+
+  const leaveRoom = async () => {
+    if (!roomId || leaving) return;
+    if (!window.confirm("이 채팅방에서 나갈까요? 다시 입장하면 재참여돼요.")) return;
+    setLeaving(true);
+    try {
+      const res = await fetch(`/api/chat/rooms/${roomId}/leave`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        router.push(`/town/groups/${groupId}`);
+        return;
+      }
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: { message?: string };
+      };
+      showNotice(data.error?.message ?? "나가기에 실패했어요.");
+    } catch {
+      showNotice("나가기에 실패했어요. 네트워크를 확인해 주세요.");
+    } finally {
+      setLeaving(false);
     }
   };
 
@@ -251,24 +379,44 @@ export function ChatRoom({
               </div>
             );
           }
+          const isBlocked = blocked.includes(m.senderEmail);
           return (
-            <div key={m.id} className="flex items-end gap-2">
+            <div key={m.id} className="group flex items-end gap-2">
               <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
               <div>
                 <div className="mb-[3px] text-[10px] text-text-3">
                   {displayName(m.senderEmail, myEmail)}
                 </div>
-                <div className="max-w-[240px] whitespace-pre-wrap break-words rounded-[14px] rounded-bl-[4px] border border-line bg-surface px-[13px] py-2.5 text-[13px] leading-[1.5] text-text-1">
-                  {m.body}
+                <div
+                  className={`max-w-[240px] whitespace-pre-wrap break-words rounded-[14px] rounded-bl-[4px] border border-line bg-surface px-[13px] py-2.5 text-[13px] leading-[1.5] ${
+                    isBlocked ? "italic text-text-3" : "text-text-1"
+                  }`}
+                >
+                  {isBlocked ? "차단한 사용자의 메시지예요." : m.body}
                 </div>
                 <span className="text-[9px] text-text-3">
                   {timeLabel(m.createdAt)}
                 </span>
               </div>
+              <button
+                type="button"
+                aria-label="메시지 신고·차단"
+                onClick={() => setActionMsg(m)}
+                className="mb-3 shrink-0 px-1 text-[13px] text-text-3 opacity-60 transition-opacity hover:opacity-100"
+              >
+                ⋯
+              </button>
             </div>
           );
         })}
       </div>
+
+      {/* ---------- 처리 결과 안내 ---------- */}
+      {notice && (
+        <div className="pointer-events-none mx-auto mb-1.5 w-fit max-w-[90%] rounded-full bg-[rgba(25,31,40,.78)] px-4 py-1.5 text-[11px] font-semibold text-white">
+          {notice}
+        </div>
+      )}
 
       {/* ---------- 입력바 ---------- */}
       <div className="glass-strong mx-3.5 mb-[18px] flex items-center gap-2 rounded-[18px] px-3.5 py-2.5">
@@ -352,6 +500,20 @@ export function ChatRoom({
                       )}
                     </div>
                   </div>
+                  {m.userEmail !== myEmail && (
+                    <button
+                      type="button"
+                      disabled={actionBusy}
+                      onClick={() => void toggleBlock(m.userEmail)}
+                      className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold disabled:opacity-40 ${
+                        blocked.includes(m.userEmail)
+                          ? "border-line bg-bg text-text-2"
+                          : "border-line bg-surface text-text-3 hover:text-danger"
+                      }`}
+                    >
+                      {blocked.includes(m.userEmail) ? "차단 해제" : "차단"}
+                    </button>
+                  )}
                 </div>
               ))}
               {members.length === 0 && (
@@ -363,22 +525,98 @@ export function ChatRoom({
 
             <div className="flex-1" />
 
-            <div className="flex gap-2">
-              <Link
-                href={`/town/groups/${groupId}`}
-                className="btn-secondary flex-1 rounded-xl p-2.5 text-center text-xs no-underline"
-                onClick={() => setMenuOpen(false)}
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Link
+                  href={`/town/groups/${groupId}`}
+                  className="btn-secondary flex-1 rounded-xl p-2.5 text-center text-xs no-underline"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  모임 정보
+                </Link>
+                <Link
+                  href="/town/groups"
+                  className="btn-secondary flex-1 rounded-xl p-2.5 text-center text-xs no-underline"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  모임 목록
+                </Link>
+              </div>
+              <button
+                type="button"
+                onClick={() => void leaveRoom()}
+                disabled={leaving || phase !== "ready"}
+                className="rounded-xl border border-line bg-bg p-2.5 text-center text-xs font-bold text-danger disabled:opacity-50"
               >
-                모임 정보
-              </Link>
-              <Link
-                href="/town/groups"
-                className="btn-secondary flex-1 rounded-xl p-2.5 text-center text-xs no-underline"
-                onClick={() => setMenuOpen(false)}
-              >
-                모임 목록
-              </Link>
+                {leaving ? "나가는 중…" : "방 나가기"}
+              </button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* ---------- 메시지 신고·차단 액션 시트 ---------- */}
+      {actionMsg && (
+        <>
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={() => setActionMsg(null)}
+            className="absolute inset-0 z-40 bg-[rgba(16,24,40,.3)] backdrop-blur-[2px]"
+          />
+          <div
+            className="absolute inset-x-3.5 bottom-4 z-50 flex flex-col gap-3 rounded-2xl bg-surface px-[18px] py-4"
+            style={{ boxShadow: "0 16px 44px rgba(16,28,54,.24)" }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-extrabold text-ink">
+                {displayName(actionMsg.senderEmail, myEmail)} 님의 메시지
+              </span>
+              <button
+                type="button"
+                aria-label="닫기"
+                onClick={() => setActionMsg(null)}
+                className="text-[15px] text-text-3"
+              >
+                ✕
+              </button>
+            </div>
+            {actionMsg.body && (
+              <p className="line-clamp-2 rounded-xl bg-bg px-3 py-2 text-[11px] leading-[1.5] text-text-2">
+                {actionMsg.body}
+              </p>
+            )}
+            <div>
+              <div className="mb-1.5 text-[10px] font-extrabold tracking-widest text-text-3">
+                신고 사유 선택
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {REPORT_REASONS.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    disabled={actionBusy}
+                    onClick={() => void reportMessage(actionMsg, r)}
+                    className="chip border border-line bg-bg px-3 py-1.5 text-[11px] font-bold text-text-2 hover:border-danger hover:text-danger disabled:opacity-40"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={() => void toggleBlock(actionMsg.senderEmail)}
+              className="rounded-xl border border-line bg-bg p-2.5 text-xs font-bold text-danger disabled:opacity-40"
+            >
+              {blocked.includes(actionMsg.senderEmail)
+                ? "이 사용자 차단 해제"
+                : "이 사용자 차단하기"}
+            </button>
+            <p className="text-[10px] leading-[1.5] text-text-3">
+              신고는 운영팀이 확인해요 · 차단하면 이 사용자의 메시지가 가려집니다
+            </p>
           </div>
         </>
       )}

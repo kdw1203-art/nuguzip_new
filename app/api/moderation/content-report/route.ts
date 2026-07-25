@@ -1,9 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
-import { createContentReport } from "@/lib/moderation/reports-store";
+import {
+  createContentReport,
+  markContentReportTarget,
+  type ReportTargetType,
+} from "@/lib/moderation/reports-store";
 import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import { getListingById, markListingReport } from "@/lib/listings/store-db";
+import { getNote } from "@/lib/inspection/store-db";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -49,8 +54,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "신고 사유를 3자 이상 입력해 주세요." }, { status: 400 });
   }
 
+  // FK 버그 수정(#1) — 노트 신고 버튼도 postId 에 노트 id 를 담아 보낸다. 노트 id 를
+  // content_reports.post_id(->posts FK)에 넣으면 위반이므로, 대상이 임장노트면
+  // target_note_id 로 분기한다. 호출부(ReportButton 등) 시그니처는 그대로 유지.
+  let targetType: ReportTargetType = "post";
+  if (!commentId) {
+    const note = await getNote(postId).catch(() => null);
+    if (note) targetType = "note";
+  }
+
   const res = await createContentReport({
     postId,
+    targetType,
     commentId,
     reporterEmail: session?.user?.email?.trim() ?? null,
     reason,
@@ -69,17 +84,20 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 매물(listing) 신고 연동 (#5) — 매물 상세의 신고 버튼은 postId=매물 id 로 전송한다.
-  // post_id 가 실제 매물이고 댓글 신고가 아닐 때만 신고 누적 처리(3회 도달 시 자동 숨김).
-  // 커뮤니티 글/댓글 신고 동작에는 영향이 없다(매물이 아니면 no-op). 실패는 best-effort 로 무시.
+  // 신고 누적 처리(3회 도달 시 자동 숨김, #7) — 매물(markListingReport)뿐 아니라
+  // 노트·게시글도 동일 패턴으로 확장. 댓글 신고는 본문 누적에 포함하지 않는다.
+  // 실패는 best-effort 로 무시.
   if (!commentId) {
     try {
-      const listing = await getListingById(postId);
-      if (listing) {
-        await markListingReport(postId);
+      if (targetType === "note") {
+        await markContentReportTarget("note", postId);
+      } else {
+        const listing = await getListingById(postId);
+        if (listing) await markListingReport(postId);
+        else await markContentReportTarget("post", postId);
       }
     } catch (e) {
-      logger.warn("[content-report] markListingReport 실패", e);
+      logger.warn("[content-report] 신고 누적 처리 실패", e);
     }
   }
 
