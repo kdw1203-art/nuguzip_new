@@ -30,8 +30,11 @@ import "server-only";
  * - 실패는 삼키지 않고 failed 카운트로 **올려보낸다** — 호출부(크론)가 이걸로
  *   market_ingest_log.status='error' 를 낼 수 있어야 하기 때문이다(F3/#147).
  */
-import { fetchAptComplexList } from "@/lib/national-data/apartment-api";
-import type { AptComplex } from "@/lib/national-data/apartment-api";
+import {
+  fetchAptComplexDetail,
+  fetchAptComplexList,
+} from "@/lib/national-data/apartment-api";
+import type { AptComplex, AptComplexDetail } from "@/lib/national-data/apartment-api";
 import { getAllSido, getSigunguBySido } from "@/lib/national-data/region-codes";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
@@ -246,4 +249,186 @@ export async function ingestAptMasterBatch(
     sigungu += 1;
   }
   return { sigungu, upserted, failed, errors };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   단지 기본정보(AptBasisInfoService2) 상세 백필 — D7 잔여 과제
+   ──────────────────────────────────────────────────────────────────────
+   위 마스터 ETL 이 쓰는 단지 목록 API 에는 좌표·주차·건설사가 없다. 그 값들은
+   단지 기본정보 API(getAptsaleInfo)에만 있는데, 지금까지는 읽기 경로
+   (/api/apt/complexes/[kaptCode])에서만 조회하고 DB 에는 아무도 되쓰지 않아
+   단지 허브와 지도가 계속 데이터 빈곤 상태였다. 여기서 하루 N건씩(기본 50)
+   미보강 행을 골라 상세를 받아 metadata 에 병합한다.
+
+   - 멱등/커서: 시도한 행에 metadata.detailFetchedAt 을 찍고, 선택 쿼리가
+     detailFetchedAt 이 없는 행만 고른다(external_id 오름차순 — 결정적 순서).
+     별도 커서 테이블 없이 매 실행이 이어달리기가 된다.
+   - 실패 처리: 상세가 안 오는 단지(miss)도 스탬프를 찍는다 — 안 찍으면 같은
+     50건이 매일 다시 뽑혀 파이프라인이 영원히 멈춘다. 단, 한 배치에서 성공이
+     0건이면 API 장애일 가능성이 높으므로 아무 행에도 찍지 않고 error 로
+     올려보낸다(장애날 50건을 miss 로 낙인찍지 않기 위해).
+   - 쓰기는 마스터 ETL 과 같은 병합 RPC(upsert_apartment_complexes)만 쓴다 —
+     통째 치환으로 기존 키를 지우는 사고를 DB 가 막게 하기 위해서다(위 주석 참조).
+   - 지도 좌표 캐시(complex_geocode)에는 여기서 쓰지 않는다. 그 테이블의 키는
+     실거래 이름 (region_name="서울 송파구", complex_name="리센츠") 인데 대장의
+     이름은 "잠실리센츠"·"서울특별시" 꼴이라 키가 맞지 않는다 — 대장 이름으로
+     행을 넣으면 지도 조회(getCachedCoordMap)에 절대 걸리지 않는 죽은 행만 쌓인다.
+     대장 좌표는 metadata.lat/lng 로 저장하고, 단지 허브가 D7 이름 매칭을 통해
+     소비한다(lib/complex/complex-store.ts). 실거래 키 → 좌표는 기존
+     geocode-complexes 크론(네이버 지오코딩)이 계속 담당한다.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/** 상세 API 호출 간 지연(ms) — 공공 API 를 정중하게 순차 호출한다. */
+const DETAIL_DELAY_MS = 60;
+
+/**
+ * 위경도 검증 — 한반도 밖 좌표는 버린다. 좌표는 지도에 바로 찍히는 값이라
+ * (adapters.ts 의 molit-geocoder 주석과 같은 이유) 오염 위험이 가장 높다.
+ */
+function toKoreaCoord(
+  latRaw: string | undefined,
+  lngRaw: string | undefined,
+): { lat: number; lng: number } | null {
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < 33 || lat > 39.5 || lng < 124 || lng > 132) return null;
+  return { lat, lng };
+}
+
+/**
+ * AptComplexDetail → metadata 병합 패치.
+ * 키 이름은 기존 행의 모양을 따른다(roadAddress·heating·manageType·approvalDate 는
+ * 이미 21,658행에 있는 키). 새로 들어가는 키는 builder·parkingCount·elevatorCount·
+ * lat·lng 뿐이며, 좌표는 lat·lng 둘 다 유효할 때만 넣는다(한쪽만 있는 좌표는 좌표가 아니다).
+ */
+function toDetailPatch(d: AptComplexDetail): Record<string, unknown> {
+  const coord = toKoreaCoord(d.lat, d.lng);
+  return compact({
+    roadAddress: clean(d.doroJuso),
+    heating: clean(d.heatSplyMthdCd),
+    manageType: clean(d.kaptMgrStle),
+    builder: clean(d.kaptdaNm),
+    parkingCount: toPositiveInt(d.parkingLotCnt),
+    elevatorCount: toPositiveInt(d.elevCnt),
+    approvalDate: toApprovalDate(d.kaptUsedate),
+    buildingCount: toPositiveInt(d.kaptDongCnt),
+    householdCount: toPositiveInt(d.hhldCnt),
+    lat: coord?.lat ?? null,
+    lng: coord?.lng ?? null,
+  });
+}
+
+export interface AptDetailEnrichResult {
+  /** 상세 조회를 시도한 행 수 */
+  processed: number;
+  /** 상세를 받아 metadata 에 병합한 행 수 */
+  enriched: number;
+  /** 상세를 받지 못한 행 수(miss + RPC 실패) */
+  failed: number;
+  /** 배치를 아예 시작하지 못한 사유 */
+  skipped?: "no-service" | "no-rows";
+  /** 첫 오류 메시지들(최대 3) — 크론 로그용 */
+  errors: string[];
+}
+
+/**
+ * 미보강 단지 상세 백필 배치. 절대 throw 하지 않음 — 마스터 ETL 과 같은 계약으로
+ * 실패를 failed/errors 로 반환해 호출부(크론)가 적재 로그 status 를 판단한다.
+ */
+export async function enrichAptDetailBatch(limit: number): Promise<AptDetailEnrichResult> {
+  const sb = getServiceSupabase();
+  if (!sb) return { processed: 0, enriched: 0, failed: 0, skipped: "no-service", errors: [] };
+
+  // external_id(=kaptCode)는 k-apt-basic 네임스페이스에서 항상 채워져 있다
+  // (마스터 ETL 의 toRpcRow 가 kaptCode 없는 행을 저장하지 않는다).
+  const { data, error: selectError } = await sb
+    .from("apartment_complexes")
+    .select("external_id, name, address, lawd_cd")
+    .eq("source_key", APT_MASTER_SOURCE_KEY)
+    .is("metadata->detailFetchedAt", null)
+    .order("external_id", { ascending: true })
+    .limit(limit);
+  if (selectError) {
+    return { processed: 0, enriched: 0, failed: limit, errors: [selectError.message] };
+  }
+  const rows =
+    (data as
+      | { external_id: string; name: string; address: string | null; lawd_cd: string | null }[]
+      | null) ?? [];
+  if (rows.length === 0) {
+    return { processed: 0, enriched: 0, failed: 0, skipped: "no-rows", errors: [] };
+  }
+
+  const fetchedAt = new Date().toISOString();
+  const errors: string[] = [];
+  // 병합 RPC 행 — name/address/lawd_cd 는 읽은 값을 그대로 되돌려 보낸다
+  // (상세의 kaptName 으로 이름을 갈아치우면 이름 기반 신원(D7)이 흔들린다).
+  const toWriteRow = (
+    r: (typeof rows)[number],
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown> => ({
+    source_key: APT_MASTER_SOURCE_KEY,
+    external_id: r.external_id,
+    name: r.name,
+    address: r.address,
+    lawd_cd: r.lawd_cd,
+    metadata,
+  });
+
+  const okRows: Record<string, unknown>[] = [];
+  const missRows: Record<string, unknown>[] = [];
+  for (const r of rows) {
+    try {
+      const { detail } = await fetchAptComplexDetail(r.external_id);
+      if (detail && detail.kaptCode) {
+        okRows.push(
+          toWriteRow(r, {
+            ...toDetailPatch(detail),
+            detailStatus: "ok",
+            detailFetchedAt: fetchedAt,
+          }),
+        );
+      } else {
+        missRows.push(toWriteRow(r, { detailStatus: "miss", detailFetchedAt: fetchedAt }));
+      }
+    } catch (err) {
+      missRows.push(toWriteRow(r, { detailStatus: "miss", detailFetchedAt: fetchedAt }));
+      if (errors.length < 3) {
+        errors.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+    await new Promise((res) => setTimeout(res, DETAIL_DELAY_MS));
+  }
+
+  // 성공이 0건이면 키 미설정 또는 API 장애다 — miss 스탬프를 찍지 않고 그대로
+  // 반환한다(다음 실행이 같은 행을 다시 시도). 성공이 있으면 miss 도 찍어
+  // 커서를 전진시킨다. miss 행은 metadata.detailStatus='miss' 로 남으므로
+  // 나중에 재시도 배치를 따로 돌릴 수 있다.
+  if (okRows.length === 0) {
+    return { processed: rows.length, enriched: 0, failed: missRows.length, errors };
+  }
+
+  let enriched = 0;
+  let failed = 0;
+  const writeRows = [...okRows, ...missRows];
+  for (let i = 0; i < writeRows.length; i += UPSERT_BATCH) {
+    const chunk = writeRows.slice(i, i + UPSERT_BATCH);
+    const { error: rpcError } = await sb.rpc("upsert_apartment_complexes", { rows: chunk });
+    if (rpcError) {
+      failed += chunk.length;
+      if (errors.length < 3) errors.push(rpcError.message);
+      logger.warn("[apt-detail-enrich] upsert 실패", {
+        rows: chunk.length,
+        message: rpcError.message,
+      });
+    }
+  }
+  // 상세 병합 성공 = ok 행 중 RPC 까지 통과한 수. ok/miss 를 한 배열로 썼으므로
+  // RPC 실패 청크에 섞인 ok 행은 enriched 에서 빼고 failed 로 센다.
+  const rpcFailedOk = Math.min(failed, okRows.length);
+  enriched = okRows.length - rpcFailedOk;
+  failed = missRows.length + rpcFailedOk;
+
+  return { processed: rows.length, enriched, failed, errors };
 }

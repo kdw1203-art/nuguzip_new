@@ -159,6 +159,7 @@ export type IngestSource =
   | MarketSource
   | "molit"
   | "apt-master"
+  | "apt-detail"
   | "ecos"
   | "onbid"
   | "court-auction"

@@ -62,6 +62,16 @@ jobs:
           echo "== apt-master (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-master-ingest" | head -c 500 || true
           echo
+          # apt-detail: 단지 기본정보(좌표·주차·건설사) 백필 — 회당 50단지 (소프트)
+          # 예산이 50/일이라 잡이 하루 2회 돌아도 18:00 KST(09:00 UTC) 실행에서만 호출한다.
+          # 시도한 행에 metadata.detailFetchedAt 스탬프가 남아 재실행해도 같은 행을 다시 긁지 않는다.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "0 9 * * *" ]; then
+            echo "== apt-detail (soft) =="
+            curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=50" | head -c 500 || true
+            echo
+          else
+            echo "== apt-detail skipped (하루 1회 — 09:00 UTC 실행에서만)"
+          fi
           call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
           # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용 (회당 상위 거래량 250건)
           call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=250"

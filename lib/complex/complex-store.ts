@@ -5,7 +5,9 @@
  * 운영 DB엔 존재하지 않아 단지 허브가 항상 목업이었다. 실데이터는 국토교통부 실거래
  * `market_transactions`(complex_name·region_name·contract_ym·deal_amount_krw)에 있으므로
  * 단지 식별자를 base64url(region_name + SEP + complex_name)로 인코딩해 이 테이블을 단지처럼 조회한다.
- * 좌표(lat/lng)는 실거래에 없어 null → 거리뷰·지도 마커는 자동 숨김.
+ * 좌표(lat/lng)는 실거래에 없어 기본 null → 거리뷰·지도 마커는 자동 숨김.
+ * 단, apt-detail-enrich 크론이 대장 마스터 metadata 에 좌표를 백필하므로,
+ * D7 매칭이 성공한 단지는 아래 enrich 에서 좌표·건설사가 채워진다.
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { AREA_BANDS } from "@/lib/market/bands";
@@ -111,6 +113,10 @@ type AptEnrich = {
   buildYear: number | null;
   heating: string | null;
   roadAddress: string | null;
+  builder: string | null;
+  /** 좌표 — apt-detail-enrich 크론이 백필한 metadata.lat/lng. 둘 다 있을 때만 채운다. */
+  lat: number | null;
+  lng: number | null;
 };
 
 /**
@@ -169,12 +175,18 @@ async function enrichFromApartmentComplex(
   const m = best.metadata ?? {};
   const approval = typeof m.approvalDate === "string" ? m.approvalDate : "";
   const buildYear = /^\d{8}$/.test(approval) ? Number(approval.slice(0, 4)) : null;
+  const lat = typeof m.lat === "number" && Number.isFinite(m.lat) ? m.lat : null;
+  const lng = typeof m.lng === "number" && Number.isFinite(m.lng) ? m.lng : null;
+  const hasCoord = lat != null && lng != null;
   // 주의: metadata.householdCount 는 소스 품질 문제로 상당수 과대(중앙값 4천대)라 사용하지 않는다.
   return {
     kaptCode: typeof m.kaptCode === "string" ? m.kaptCode : null,
     buildYear,
     heating: typeof m.heating === "string" ? m.heating : null,
     roadAddress: typeof m.roadAddress === "string" ? m.roadAddress : null,
+    builder: typeof m.builder === "string" ? m.builder : null,
+    lat: hasCoord ? lat : null,
+    lng: hasCoord ? lng : null,
   };
 }
 
@@ -204,6 +216,11 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
     base.build_year = base.build_year ?? apt.buildYear; // 실거래 build_year 우선
     base.heating = apt.heating ?? base.heating;
     base.road_address = apt.roadAddress ?? base.road_address;
+    base.builder_name = apt.builder ?? base.builder_name;
+    if (apt.lat != null && apt.lng != null) {
+      base.lat = apt.lat;
+      base.lng = apt.lng;
+    }
   }
   return base;
 }
