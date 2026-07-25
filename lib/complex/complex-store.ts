@@ -9,6 +9,7 @@
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { AREA_BANDS } from "@/lib/market/bands";
+import { APT_MASTER_SOURCE_KEY } from "@/lib/complex/apartment-master";
 
 export interface ComplexRow {
   id: string;
@@ -118,6 +119,17 @@ type AptEnrich = {
  * "헬리오시티아파트"). 시군구로 스코프하고 name ILIKE %기본형% (정방향 포함)으로 매칭한 뒤
  * 정규화 완전일치·최단 이름을 최적 매칭으로 골라 metadata(세대·준공·난방 등)를 뽑는다.
  * 조회 실패/무매칭 시 null(허브는 실거래만으로 graceful).
+ *
+ * source_key 스코프를 명시한 이유 — apartment_complexes 의 45%(17,704행)는 단지가 아니라
+ * REB 이름 별칭·ID 레코드이고, 여기서 뽑으려는 네 필드(kaptCode·approvalDate·heating·
+ * roadAddress)를 하나도 갖고 있지 않다. 지금까지는 아래 address 필터가 우연히 이들을
+ * 걸러줬다 — 별칭 행은 address 가 빈 문자열이라 `%시군구%` 에 걸릴 수 없기 때문이다.
+ * 하지만 그건 의도가 아니라 부수효과라, region 이 빈 문자열이면(district 가 falsy)
+ * address 필터 자체가 사라지면서 별칭 행이 그대로 후보에 들어온다. 그때 아래 점수식은
+ * 정규화 이름이 완전일치하면 0점을 주므로, 아무 정보도 없는 별칭 행이 진짜 마스터
+ * ("잠실리센츠": 1000점대)를 이기고 뽑혀 enrich 가 조용히 전부 null 을 돌려준다.
+ * .limit(25) 가 관련도 정렬보다 먼저 걸리는 것도 같은 이유로 위험하다.
+ * 의도를 코드로 적는 편이 낫다.
  */
 async function enrichFromApartmentComplex(
   region: string,
@@ -129,7 +141,12 @@ async function enrichFromApartmentComplex(
   const core = normalizeComplexName(name).replace(/[%_]/g, "");
   if (core.length < 2) return null;
 
-  let q = sb.from("apartment_complexes").select("name, metadata").ilike("name", `%${core}%`).limit(25);
+  let q = sb
+    .from("apartment_complexes")
+    .select("name, metadata")
+    .eq("source_key", APT_MASTER_SOURCE_KEY)
+    .ilike("name", `%${core}%`)
+    .limit(25);
   if (district) q = q.ilike("address", `%${district}%`);
   const { data } = await q;
   const rows =

@@ -7,6 +7,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
 import { AREA_BANDS } from "@/lib/market/bands";
+import { APT_MASTER_SOURCE_KEY } from "@/lib/complex/apartment-master";
 
 /* ---------- 지역 매핑 ---------- */
 
@@ -430,27 +431,63 @@ export interface ApartmentComplexMatch {
   address: string | null;
 }
 
-/** apartment_complexes 에서 동일 단지명 매칭 (주소에 구 이름 포함 시 우선) */
+/**
+ * D7 — 실거래 단지명 ↔ apartment_complexes 대장 마스터 매칭.
+ *
+ * 이 함수가 돌려준 id 는 /complex/tx/[slug] 에서 거주민 후기 키(`apt:<id>`)가
+ * 된다. 틀린 행을 고르면 서로 다른 단지의 후기가 한 통에 섞인다. 그래서
+ * "이름이 같다" 만으로는 부족하고 아래 두 조건을 모두 강제한다.
+ *
+ * 1) source_key 스코프 — apartment_complexes 39,362행 중 17,704행(45%)은 단지가
+ *    아니라 REB 이름 별칭·ID 레코드다(자세한 실측은 lib/complex/apartment-master.ts).
+ *    별칭 행은 address 가 전부 빈 문자열이라 아래 지역 검증을 통과할 수 없는데,
+ *    예전 코드는 `rows.find(주소에 구 포함) ?? rows[0]` 이라 검증에 떨어진 뒤에도
+ *    `rows[0]` 폴백으로 선택될 수 있었다. 실거래 단지명과 정확히 일치하는 행이
+ *    별칭밖에 없는 (지역,단지) 쌍이 679개다.
+ *
+ * 2) 주소에 시군구 포함 — 동명이지가 실제로 많다. 이름이 정확히 일치하는 마스터가
+ *    있는 1,901쌍 중 676쌍은 그 마스터가 **다른 지역** 단지다. 예: "고양 덕양구
+ *    한라비발디" 의 동명 마스터는 원주·남양주·안양·의정부·김해·대전 서구·부산진구·
+ *    목포에 있고 덕양구에는 없다. 예전 코드는 그 경우 원주 한라비발디의 id 를
+ *    돌려줬고, 그러면 덕양구·원주·목포 후기가 전부 같은 키로 합쳐진다.
+ *
+ * 지역 검증을 통과하는 마스터가 없으면 null 을 돌려준다. 호출부는 그때
+ * `tx:<regionId>:<단지명>` 이라는 지역 스코프 키로 폴백하니, 억지 매칭보다
+ * 미매칭이 언제나 안전하다. 2,580쌍 중 지역까지 확인되는 건 1,225쌍이고
+ * 나머지 1,355쌍이 지금까지 잘못된 id 를 받아왔다.
+ * (수정 시점 complex_reviews 0행 — 이미 쌓인 후기가 없어 마이그레이션 부담 없음.)
+ *
+ * order("id") 는 취향이 아니라 필수다. ORDER BY 없는 결과 순서는 보장되지 않는데
+ * 여기서 고른 행의 id 가 곧 저장 키라, 순서가 흔들리면 같은 단지의 후기가 요청마다
+ * 다른 키로 갈린다. 같은 시군구에 동명 마스터가 2개인 쌍은 3개뿐(최대 2개)이라
+ * 결정적으로 첫 행을 쓰면 충분하다.
+ */
 export async function findApartmentComplexByName(
   complexName: string,
   region: ComplexTxRegion,
 ): Promise<ApartmentComplexMatch | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
+  // "고양시 덕양구" → "덕양구" · "강남구" → "강남구". region.name 은 내부 상수라
+  // 와일드카드가 들어올 일이 없지만, ilike 패턴에 넣으므로 방어적으로 제거한다.
+  const gu = (region.name.trim().split(/\s+/).pop() ?? region.name).replace(/[%_]/g, "");
+  if (!gu) return null;
   try {
     const { data, error } = await sb
       .from("apartment_complexes")
       .select("id,name,address")
       .eq("name", complexName)
+      .eq("source_key", APT_MASTER_SOURCE_KEY)
+      .ilike("address", `%${gu}%`)
+      .order("id", { ascending: true })
       .limit(10);
     if (error || !data || data.length === 0) return null;
-    const gu = region.name.trim().split(/\s+/).pop() ?? region.name;
-    const rows = data.map((r) => ({
+    const r = data[0];
+    return {
       id: String(r.id),
       name: String(r.name),
       address: r.address ? String(r.address) : null,
-    }));
-    return rows.find((r) => r.address?.includes(gu)) ?? rows[0];
+    };
   } catch (e) {
     logger.warn("[complex-transactions] findApartmentComplexByName", e);
     return null;

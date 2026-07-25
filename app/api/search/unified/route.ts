@@ -71,7 +71,10 @@ export async function GET(req: Request) {
   const lower = q.toLowerCase();
 
   const [complexes, listings, notes, news] = await Promise.all([
-    // 단지 — search_complexes RPC(프리픽스), 상위 5
+    // 단지 — market_transactions 기반 searchComplexes, 상위 5.
+    // (예전 주석은 search_complexes RPC 를 쓴다고 했는데 사실이 아니다. 그 RPC 는
+    //  apartment_complexes 를 보고, 이 앱에서는 아무 데서도 호출하지 않는다.
+    //  단지 식별은 실거래 기준이라 여기서도 market_transactions 를 직접 읽는다.)
     safe<UnifiedComplex>(async () => {
       const rows = await searchComplexes(q, undefined, GROUP_CAP);
       return rows.slice(0, GROUP_CAP).map((c) => ({

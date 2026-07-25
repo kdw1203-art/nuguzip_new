@@ -35,13 +35,17 @@ import type { AptComplex } from "@/lib/national-data/apartment-api";
 import { getAllSido, getSigunguBySido } from "@/lib/national-data/region-codes";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
+import { APT_MASTER_SOURCE_KEY } from "@/lib/complex/apartment-master";
 
 const NUM_OF_ROWS = 100;
 const MAX_PAGES = 20;
 const UPSERT_BATCH = 200;
 
-/** apartment_complexes.source_key — 이 ETL 이 소유하는 네임스페이스 */
-export const APT_MASTER_SOURCE_KEY = "k-apt-basic";
+/* apartment_complexes.source_key — 이 ETL 이 소유하는 네임스페이스.
+   값의 단일 출처는 lib/complex/apartment-master.ts 다(조회 측에서도 같은 값으로
+   스코프해야 하는데, 그쪽이 이 ETL 모듈을 import 하면 공공데이터 API 클라이언트가
+   페이지 번들에 딸려온다). 기존 import 경로를 깨지 않으려고 여기서 재export 한다. */
+export { APT_MASTER_SOURCE_KEY };
 
 /**
  * 전국 실제 시군구 코드 목록.
