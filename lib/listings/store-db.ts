@@ -329,6 +329,60 @@ export async function listPendingListings(): Promise<AdminListing[]> {
   }
 }
 
+/**
+ * 신고가 쌓였거나 자동 숨김된 매물 — 어드민 전용.
+ *
+ * I7·I8 — 지금까지 어드민 큐는 status="pending" 만 봤다. 그런데 자동 숨김은
+ * **이미 승인된** 매물에서 일어난다(reportListing 이 report_count 를 올리다가
+ * LISTING_REPORT_HIDE_THRESHOLD 에 닿으면 is_hidden=true). 그 매물은 pending 이
+ * 아니므로 어느 화면에도 뜨지 않았다 — 신고를 받아 감추기는 하는데 사람이 그걸
+ * 들여다보는 자리가 없었고, 억울하게 숨겨진 매물이 되살아날 길도 없었다.
+ * 신고가 한 건이라도 있거나 숨김 상태인 매물을 여기서 모아 준다.
+ */
+export async function listReportedListings(limit = 100): Promise<AdminListing[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("listings")
+      .select("*")
+      .or("report_count.gt.0,is_hidden.eq.true")
+      .is("deleted_at", null)
+      .order("report_count", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return data.map((r) => mapAdmin(r as Record<string, unknown>));
+  } catch (e) {
+    logger.warn("[listings] listReportedListings", e);
+    return [];
+  }
+}
+
+/**
+ * 숨김 해제 / 재숨김 — 운영자 판단으로 되돌리는 경로(I8).
+ * 해제할 때 report_count 를 0 으로 되돌린다. 안 그러면 임계값을 이미 넘긴 상태라
+ * 다음 신고 한 건에 즉시 다시 숨겨져서, 해제가 사실상 아무 효과가 없다.
+ */
+export async function setListingHidden(
+  id: string,
+  hidden: boolean,
+): Promise<boolean> {
+  const sb = getServiceSupabase();
+  if (!sb || !id) return false;
+  try {
+    const update: Record<string, unknown> = {
+      is_hidden: hidden,
+      updated_at: new Date().toISOString(),
+    };
+    if (!hidden) update.report_count = 0;
+    const { error } = await sb.from("listings").update(update).eq("id", id);
+    return !error;
+  } catch (e) {
+    logger.warn("[listings] setListingHidden", e);
+    return false;
+  }
+}
+
 /** 검수 대기 건수 — 어드민 대시보드 링크 배지용. */
 export async function countPendingListings(): Promise<number> {
   const sb = getServiceSupabase();

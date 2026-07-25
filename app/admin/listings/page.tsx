@@ -1,6 +1,12 @@
-import { listPendingListings, LISTING_TYPE_LABEL, LISTING_SOURCE_LABEL } from "@/lib/listings/store-db";
+import {
+  listPendingListings,
+  listReportedListings,
+  LISTING_TYPE_LABEL,
+  LISTING_SOURCE_LABEL,
+} from "@/lib/listings/store-db";
 import { listOwnerVerifications } from "@/lib/listings/owner-verification";
 import { ListingReviewActions } from "./ListingReviewActions";
+import { ReportedListingActions } from "./ReportedListingActions";
 import { OwnerVerificationQueue } from "./OwnerVerificationQueue";
 
 /* 어드민 매물 검수 — pending 목록 + 승인/반려(사유) + 소유확인 심사 큐(I1).
@@ -21,8 +27,9 @@ function formatKrwShort(krw: number | null): string {
 }
 
 export default async function AdminListingsPage() {
-  const [pending, verifications] = await Promise.all([
+  const [pending, reported, verifications] = await Promise.all([
     listPendingListings(),
+    listReportedListings().catch(() => []),
     listOwnerVerifications("all", 100).catch(() => []),
   ]);
   const pendingVerifications = verifications.filter((v) => v.status === "pending").length;
@@ -110,6 +117,68 @@ export default async function AdminListingsPage() {
                 })}
               </div>
               <ListingReviewActions id={l.id} />
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* I7·I8 — 신고 누적 / 자동 숨김 매물.
+          자동 숨김은 이미 승인된 매물에서 일어나므로 pending 큐에 절대 뜨지 않는다.
+          여기가 없으면 신고를 받아 감추기만 하고 아무도 확인하지 않는 상태가 된다. */}
+      <div className="rise-in-2 flex items-center justify-between">
+        <div className="text-[16px] font-extrabold text-white">
+          신고 누적 · 자동 숨김{" "}
+          {reported.length > 0 && (
+            <span className="ml-1 rounded-[6px] bg-[rgba(214,69,69,.18)] px-2 py-[3px] text-[12px] font-extrabold text-[#ff8a8a]">
+              {reported.length}건
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] text-[#9aa6b8]">
+          신고 3건 누적 시 자동 숨김 — 확인 후 해제할 수 있어요
+        </span>
+      </div>
+      <div className={`rise-in-2 ${panelCard}`}>
+        {reported.length === 0 ? (
+          <div className="py-10 text-center text-[13px] text-[#9aa6b8]">
+            신고가 접수된 매물이 없어요.
+          </div>
+        ) : (
+          reported.map((l) => (
+            <div
+              key={l.id}
+              className="flex flex-col gap-2 rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] p-4"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-[6px] bg-[rgba(214,69,69,.2)] px-2 py-[2px] text-[10px] font-extrabold text-[#ff8a8a]">
+                  신고 {l.reportCount}건
+                </span>
+                {l.isHidden && (
+                  <span className="rounded-[6px] bg-[rgba(255,255,255,.12)] px-2 py-[2px] text-[10px] font-extrabold text-[#c9d2e0]">
+                    숨김 중
+                  </span>
+                )}
+                <span className="text-[14px] font-extrabold text-white">{l.complexName}</span>
+                {l.regionName && (
+                  <span className="text-[11px] text-[#9aa6b8]">{l.regionName}</span>
+                )}
+                <span className="rounded-[6px] bg-[rgba(255,255,255,.08)] px-2 py-[2px] text-[10px] font-extrabold text-[#c9d2e0]">
+                  {LISTING_TYPE_LABEL[l.listingType]}
+                </span>
+              </div>
+              {l.flagReason && (
+                <div className="text-[11px] font-bold text-[#ffb3b3]">
+                  자동 플래그: {l.flagReason}
+                </div>
+              )}
+              {l.description && (
+                <p className="text-[12px] leading-[1.6] text-[#9aa6b8]">{l.description}</p>
+              )}
+              <div className="text-[11px] text-[#9aa6b8]">
+                등록자: {l.authorLabel} ({l.authorEmail}) ·{" "}
+                {new Date(l.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+              </div>
+              <ReportedListingActions id={l.id} hidden={l.isHidden} />
             </div>
           ))
         )}

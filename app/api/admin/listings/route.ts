@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { safeAuth } from "@/lib/safe-auth";
-import { updateListingStatus } from "@/lib/listings/store-db";
+import { updateListingStatus, setListingHidden } from "@/lib/listings/store-db";
 import { recordDirectOwnerVerification } from "@/lib/listings/owner-verification";
 import { awardPoints } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
@@ -33,11 +33,57 @@ export async function PATCH(req: NextRequest) {
 
   const id = String(body.id ?? "").trim();
   const action = String(body.action ?? "").trim();
-  if (!id || (action !== "approve" && action !== "reject" && action !== "verify")) {
+  const KNOWN = ["approve", "reject", "verify", "unhide", "hide"];
+  if (!id || !KNOWN.includes(action)) {
     return NextResponse.json(
-      { error: "id와 action(approve|reject|verify)이 필요합니다." },
+      { error: `id와 action(${KNOWN.join("|")})이 필요합니다.` },
       { status: 400 },
     );
+  }
+
+  /**
+   * I8 — 신고 누적 자동 숨김의 복구/수동 숨김 경로.
+   * 자동 숨김은 사람 판단 없이 걸리므로, 사람이 되돌릴 수 있어야 한다.
+   * 해제 시 작성자에게 결과를 알려 준다(자기 매물이 왜 안 보였는지 알 수 있게).
+   */
+  if (action === "unhide" || action === "hide") {
+    const hidden = action === "hide";
+    const ok = await setListingHidden(id, hidden);
+    if (!ok) {
+      return NextResponse.json(
+        { error: "처리에 실패했어요. 매물을 확인해 주세요." },
+        { status: 500 },
+      );
+    }
+    try {
+      const sb = getServiceSupabase();
+      if (sb) {
+        const { data } = await sb
+          .from("listings")
+          .select("author_email, complex_name")
+          .eq("id", id)
+          .maybeSingle();
+        const row = (data ?? null) as {
+          author_email?: string | null;
+          complex_name?: string | null;
+        } | null;
+        const authorEmail = String(row?.author_email ?? "").trim();
+        if (authorEmail) {
+          const complexName = String(row?.complex_name ?? "").trim() || "매물";
+          await appendInboxNotification({
+            userEmail: authorEmail,
+            title: hidden ? "매물이 숨김 처리되었어요" : "매물 숨김이 해제되었어요",
+            body: hidden
+              ? `'${complexName}' 매물이 운영자 검토로 목록에서 숨겨졌어요.`
+              : `'${complexName}' 매물이 검토를 마치고 다시 목록에 노출됩니다.`,
+            actionUrl: "/my/listings",
+          });
+        }
+      }
+    } catch {
+      // 알림 실패가 숨김 처리 결과를 되돌리지는 않는다.
+    }
+    return NextResponse.json({ ok: true, hidden });
   }
 
   // 소유확인 승인 — 검수 상태와 별개로 owner_verified 플래그를 세운다.
