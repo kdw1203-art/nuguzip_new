@@ -43,7 +43,8 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/town", ...FEED_DOC },
   { path: "/town/library", ...FEED_DOC },
   { path: "/town/market", ...FEED_DOC },
-  { path: "/notes", ...FEED_DOC },
+  /* /notes 는 ?mine=1(내 노트, 비공개 포함)로 세션별 응답이 갈리는 동적 라우트가 되어
+     공개 캐시 목록에서 제외 — 사용자별 응답이 CDN 공유 캐시에 섞이면 안 된다. */
   { path: "/discover", ...FEED_DOC },
   { path: "/digest", ...FEED_DOC },
   /* A5 실거래 구간 인덱스 — 전 사용자 동일한 공개 집계(로그인 여부와 무관).
