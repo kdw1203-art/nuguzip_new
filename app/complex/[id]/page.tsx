@@ -38,20 +38,13 @@ import {
   breadcrumbJsonLd,
   jsonLdScript,
 } from "@/lib/seo/jsonld";
-import { JsonLd } from "@/app/components/JsonLd";
+import { seoAlternates } from "@/lib/seo/alternates";
 import { RoadviewButton } from "@/components/map/RoadviewButton";
 import {
   listApprovedListings,
   LISTING_TYPE_LABEL,
   type PublicListing,
 } from "@/lib/listings/store-db";
-
-/** undefined 값을 가진 키를 제거한다(JSON-LD 직렬화 전 정리용). */
-function pruneUndefined<T extends Record<string, unknown>>(obj: T): T {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, val]) => val !== undefined),
-  ) as T;
-}
 
 /* ============================================================
    단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 겸용)
@@ -67,6 +60,10 @@ interface HubView {
   id: string;
   name: string;
   dong: string;
+  /** 시/도 — JSON-LD addressRegion 용 (dong 은 시군구라 addressLocality) */
+  city: string;
+  /** 총 세대수 — 대장 마스터에 매칭됐을 때만 값이 있다 */
+  households: number | null;
   followerLabel: string;
   metric: {
     price: string;
@@ -259,6 +256,8 @@ function toView(
     id: row.id,
     name: row.name,
     dong,
+    city: row.city,
+    households: row.households,
     followerLabel: "+ 단지 팔로우",
     metric: {
       price: latest ? formatManwon(latest.avg_manwon) : "시세 준비 중",
@@ -362,13 +361,19 @@ export async function generateMetadata({
   const ogQuery = new URLSearchParams({ name, price, region });
   if (delta) ogQuery.set("delta", delta);
 
+  // G6: 단지 허브는 사이트맵 URL 의 대부분(2,000건)을 차지하는 롱테일 랜딩이다.
+  // canonical 이 없으면 `?utm_...`·중복 진입 경로마다 별개 URL 로 색인돼 신호가 쪼개진다.
+  const alternates = seoAlternates(`/complex/${encodeURIComponent(row.id)}`);
+
   return {
     title,
     description,
     robots: { index: true, follow: true },
+    alternates,
     openGraph: {
       title,
       description,
+      url: alternates.canonical as string,
       siteName: "누구집",
       locale: "ko_KR",
       type: "website",
@@ -397,48 +402,33 @@ export default async function ComplexHubPage({
   // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
   const freshness = await getMarketFreshnessDateLabel();
 
-  // JSON-LD(Residence/Place + Breadcrumb) — 실단지이므로 항상 생성
-  const isRealComplex = true;
+  /* JSON-LD — 이 페이지가 설명하는 실체는 "단지 하나"다.
+     G6 이전엔 ApartmentComplex(@id 있음)와 별도의 Residence(@id 없음) 두 노드를
+     같이 내보내 같은 건물이 서로 다른 두 엔티티로 읽혔다. 하나로 합치고,
+     Residence 쪽에만 있던 좌표·읍면동을 ApartmentComplex 로 옮겼다.
+     값은 전부 페이지가 이미 가진 실데이터 — 없으면 필드 자체를 넣지 않는다. */
   const complexAddress = v.infoRows.find((r) => r.label === "주소")?.value ?? null;
   const complexPriceRange =
     v.metric.price && !/준비|수집/.test(v.metric.price) ? v.metric.price : null;
-  const complexJsonLd = isRealComplex
-    ? [
-        complexResidenceJsonLd({
-          id: complexId,
-          name: v.name,
-          address: complexAddress,
-          regionName: v.dong,
-          priceRange: complexPriceRange,
-        }),
-        breadcrumbJsonLd([
-          { name: "홈", url: "/" },
-          { name: v.dong },
-          { name: v.name, url: `/complex/${encodeURIComponent(complexId)}` },
-        ]),
-      ]
-    : null;
-
-  // JSON-LD(항목 H37) — Residence 구조화 데이터. 이미 가진 페이지 데이터만 사용.
-  const residenceAddress = pruneUndefined({
-    "@type": "PostalAddress",
-    addressLocality: v.dong || undefined,
-    streetAddress: complexAddress || undefined,
-  });
-  const residenceGeo =
-    typeof v.lat === "number" &&
-    Number.isFinite(v.lat) &&
-    typeof v.lng === "number" &&
-    Number.isFinite(v.lng)
-      ? { "@type": "GeoCoordinates", latitude: v.lat, longitude: v.lng }
-      : undefined;
-  const residenceJsonLd = pruneUndefined({
-    "@context": "https://schema.org",
-    "@type": "Residence",
-    name: v.name,
-    address: Object.keys(residenceAddress).length > 1 ? residenceAddress : undefined,
-    geo: residenceGeo,
-  });
+  const complexJsonLd = [
+    complexResidenceJsonLd({
+      id: complexId,
+      name: v.name,
+      address: complexAddress,
+      // dong = row.district(시군구) 이므로 addressLocality, 시/도는 city
+      regionName: v.city,
+      locality: v.dong,
+      lat: v.lat,
+      lng: v.lng,
+      households: v.households,
+      priceRange: complexPriceRange,
+    }),
+    breadcrumbJsonLd([
+      { name: "홈", url: "/" },
+      { name: v.dong },
+      { name: v.name, url: `/complex/${encodeURIComponent(complexId)}` },
+    ]),
+  ];
 
   const cta = (
     <div className="flex flex-col gap-2">
@@ -469,16 +459,11 @@ export default async function ComplexHubPage({
 
   return (
     <PageShell>
-      {/* JSON-LD(Residence/Place + Breadcrumb) — 실단지 SEO 구조화 데이터 */}
-      {complexJsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdScript(complexJsonLd) }}
-        />
-      )}
-
-      {/* JSON-LD(항목 H37) — Residence 구조화 데이터 */}
-      <JsonLd data={residenceJsonLd} />
+      {/* JSON-LD(ApartmentComplex + Breadcrumb) — 단지 하나를 한 노드로 기술 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(complexJsonLd) }}
+      />
 
       {/* 최근 본 단지 기록 (localStorage nz_recent_complexes · 목업 폴백은 미기록) */}
       <RecentComplexRecorder id={v.id} name={v.name} region={v.dong} />

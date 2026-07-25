@@ -24,7 +24,7 @@ import {
   regionPlaceJsonLd,
   jsonLdScript,
 } from "@/lib/seo/jsonld";
-import { JsonLd } from "@/app/components/JsonLd";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
    지역 허브 SEO 페이지 — /region/[id]
@@ -97,14 +97,16 @@ export async function generateMetadata({
     snapshot.avgSale !== undefined ? `평균 매매가 ${formatKrwShort(snapshot.avgSale)}` : "시세 준비 중";
   const title = `${name} 아파트 시세·실거래 | 누구집`;
   const description = `${name} 아파트 ${price} (${formatYm(snapshot.period)} 기준) — 매매·전세 시세 추이, 최근 실거래, 이웃 임장노트를 한 화면에서 확인하세요.`;
+  const alternates = seoAlternates(`/region/${id}`);
   return {
     title,
     description,
     robots: { index: true, follow: true },
-    alternates: { canonical: `https://nuguzip.com/region/${id}` },
+    alternates,
     openGraph: {
       title,
       description,
+      url: alternates.canonical as string,
       siteName: "누구집",
       locale: "ko_KR",
       type: "website",
@@ -179,6 +181,9 @@ export default async function RegionHubPage({
       { name: "지역 시세" },
       { name, url: `/region/${id}` },
     ]),
+    /* G6: 예전엔 여기 Place 와 별개로 @id 없는 Place 를 하나 더 내보내
+       같은 지역이 두 엔티티로 읽혔다. 상위 시/도(txRegion.city)를 넘겨
+       addressRegion=시/도 + addressLocality=구 로 합쳤다. */
     regionPlaceJsonLd({
       id,
       name,
@@ -188,19 +193,9 @@ export default async function RegionHubPage({
               snapshot.period,
             )} 기준)`
           : null,
+      parentRegion: txRegion.city && txRegion.city !== name ? txRegion.city : null,
     }),
   ];
-
-  // 항목 H37 — 공유 JsonLd 헬퍼용 Place (지역명 + 시/도 addressRegion). 실데이터만.
-  const placeJsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Place",
-    name,
-    address: {
-      "@type": "PostalAddress",
-      addressRegion: txRegion.city || name,
-    },
-  };
 
   return (
     <PageShell
@@ -212,8 +207,6 @@ export default async function RegionHubPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(regionJsonLd) }}
       />
-      {/* 항목 H37 — 공유 JsonLd 헬퍼로 Place 구조화 데이터 삽입 (additive) */}
-      <JsonLd data={placeJsonLd} />
       <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
         {formatYm(snapshot.period)} 기준 · 출처{" "}
         {snapshot.source === "reb" ? "한국부동산원(R-ONE)" : snapshot.source === "kb" ? "KB부동산" : "자체 수집"}

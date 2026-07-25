@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const SITE_NAME = "우리동네이야기";
 
@@ -23,13 +23,14 @@ export function buildPageMetadata(input: PageMetaInput): Metadata {
     ? input.title
     : `${input.title} | ${SITE_NAME}`;
 
-  const origin = DEFAULT_DESKTOP_ORIGIN.replace(/\/$/, "");
-  const canonical = input.path ? `${origin}${input.path.startsWith("/") ? input.path : `/${input.path}`}` : undefined;
+  // G6: canonical 뿐 아니라 hreflang(ko-KR·x-default)까지 한 곳에서 만든다.
+  const alternates = input.path ? seoAlternates(input.path) : undefined;
+  const canonical = alternates?.canonical as string | undefined;
 
   return {
     title,
     description: input.description,
-    ...(canonical ? { alternates: { canonical } } : {}),
+    ...(alternates ? { alternates } : {}),
     openGraph: {
       siteName: SITE_NAME,
       title,

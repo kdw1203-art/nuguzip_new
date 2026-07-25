@@ -16,6 +16,7 @@ import { ErrorState } from "@/app/components/ui/EmptyState";
 import { NoteDetailActions } from "./note-actions";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
    실데이터: inspection_notes → getNote(id) — 공개 노트만 index, 비공개·목업은 noindex */
@@ -291,7 +292,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical },
+    alternates: seoAlternates(`/notes/${note.id}`),
     robots: { index: true, follow: true },
     openGraph: {
       title,

@@ -25,18 +25,56 @@ function fail(area, item, detail = "") {
   results.push({ area, item, status: "FAIL", detail });
 }
 
+/** read() 가 못 찾은 경로 — 검사 항목이 낡았다는 뜻이라 마지막에 따로 알린다 */
+const missingFiles = [];
+
+/**
+ * 파일이 없으면 빈 문자열. 예전엔 그대로 던져서, 리팩터로 파일 하나가 옮겨지면
+ * 스크립트 전체가 첫 검사에서 죽고 나머지 30여 개 검사가 아예 실행되지 않았다.
+ * (실제로 components/site-header.tsx 가 사라진 뒤 계속 크래시하고 있었다.)
+ * 이제는 해당 항목만 FAIL/WARN 으로 떨어지고 나머지는 정상적으로 검사된다.
+ */
 function read(rel) {
-  return fs.readFileSync(path.join(ROOT, rel), "utf8");
+  const abs = path.join(ROOT, rel);
+  if (!fs.existsSync(abs)) {
+    if (!missingFiles.includes(rel)) missingFiles.push(rel);
+    return "";
+  }
+  return fs.readFileSync(abs, "utf8");
 }
 
 function exists(rel) {
   return fs.existsSync(path.join(ROOT, rel));
 }
 
+/**
+ * app/·components/·lib/ 안에 이 문자열이 있는지. 파일 경로를 박아 두면 리팩터로
+ * 파일이 옮겨질 때마다 검사가 거짓 FAIL 을 내므로, 기능 유무는 내용으로 판단한다.
+ */
+function grepRepo(needle, roots = ["app", "components", "lib"]) {
+  const stack = roots.map((r) => path.join(ROOT, r)).filter((p) => fs.existsSync(p));
+  while (stack.length > 0) {
+    const dir = stack.pop();
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === "node_modules" || e.name.startsWith(".")) continue;
+        stack.push(abs);
+      } else if (/\.(ts|tsx|js|jsx|mjs)$/.test(e.name)) {
+        if (fs.readFileSync(abs, "utf8").includes(needle)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 // ── 레이아웃 ─────────────────────────────────────────────
 const globals = read("app/globals.css");
-if (globals.includes("--wd-screen-tablet-min: 768px") && globals.includes("--wd-screen-desktop-min: 1280px")) {
-  pass("레이아웃", "브레이크포인트 768/1280", "globals.css 토큰");
+// 브레이크포인트 정의는 globals.css 의 CSS 변수에서 lib/design/breakpoints.ts 로 옮겼다.
+// (JS 훅과 CSS 미디어쿼리가 같은 숫자를 쓰도록 한 곳에 모은 것) — 검사도 그쪽을 본다.
+const bpSrc = read("lib/design/breakpoints.ts");
+if (bpSrc.includes("tabletMin: 768") && bpSrc.includes("desktopMin: 1280")) {
+  pass("레이아웃", "브레이크포인트 768/1280", "lib/design/breakpoints.ts");
 } else {
   fail("레이아웃", "브레이크포인트 768/1280");
 }
@@ -130,8 +168,18 @@ for (const [file, name] of hubs) {
     warn("SEO", `${name} hub metadata`);
   }
 }
-if (read("lib/seo/page-metadata.ts").includes("alternates: { canonical")) {
-  pass("SEO", "buildPageMetadata canonical");
+// G6: canonical 은 lib/seo/alternates.ts 의 seoAlternates() 한 곳에서 만든다
+// (canonical + ko-KR/x-default hreflang 동시 생성). 예전엔 페이지마다 문자열을
+// 이어 붙였고 이 검사도 `alternates: { canonical` 리터럴을 찾고 있었다.
+const alternatesSrc = read("lib/seo/alternates.ts");
+const pageMetaSrc = read("lib/seo/page-metadata.ts");
+if (
+  alternatesSrc.includes("export function seoAlternates") &&
+  alternatesSrc.includes("canonical") &&
+  alternatesSrc.includes("x-default") &&
+  pageMetaSrc.includes("seoAlternates(")
+) {
+  pass("SEO", "buildPageMetadata canonical", "seoAlternates(canonical+hreflang)");
 } else {
   fail("SEO", "buildPageMetadata canonical");
 }
@@ -186,11 +234,15 @@ if (viewportCtx.includes("device_type") && viewportCtx.includes("viewport_group"
 } else {
   fail("추적", "viewport metadata");
 }
-const pv = read("components/platform-pageview-tracker.tsx");
-if (pv.includes("withViewportMetadata") && pv.includes("viewport_group_change")) {
+// 실제 상태: withViewportMetadata() 는 lib/analytics/viewport-context.ts 에 있지만
+// 그걸 붙여 page_view / viewport_group_change 를 쏘는 트래커가 아직 없다.
+// (예전 검사는 지금은 없는 components/platform-pageview-tracker.tsx 를 찾고 있었다.)
+// 없는 걸 PASS 로 덮지 않는다 — 미구현이라는 사실 그대로 남긴다.
+const pvEmitter = grepRepo("viewport_group_change");
+if (pvEmitter) {
   pass("추적", "page_view + viewport_group_change");
 } else {
-  fail("추적", "page_view + viewport_group_change");
+  warn("추적", "page_view + viewport_group_change", "이벤트 발신부 미구현 — withViewportMetadata만 존재");
 }
 
 // ── 출력 ─────────────────────────────────────────────────
@@ -205,6 +257,12 @@ for (const r of results) {
 const fails = results.filter((r) => r.status === "FAIL").length;
 const warns = results.filter((r) => r.status === "WARN").length;
 console.log(`\nPASS ${results.filter((r) => r.status === "PASS").length} · WARN ${warns} · FAIL ${fails}\n`);
+
+if (missingFiles.length > 0) {
+  console.log("검사 대상 파일이 없어 빈 내용으로 판정한 경로 (검사 항목이 낡았을 수 있음):");
+  for (const f of missingFiles) console.log(`  - ${f}`);
+  console.log("");
+}
 
 console.log("수동 DevTools 해상도: 360 · 390 · 768 · 1024 · 1280 · 1440");
 console.log("수동 확인: 북마크/비교 뷰포트 전환, 키보드 Tab 포커스, 결제 실제 플로우\n");

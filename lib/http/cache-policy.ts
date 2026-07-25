@@ -79,6 +79,30 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
 const RULE_BY_PATH = new Map(PUBLIC_CACHE_RULES.map((r) => [r.path, r]));
 
 /**
+ * 크롤러용 기계 판독 엔드포인트 — 사람이 로그인해서 보는 문서가 아니다.
+ *
+ * 이 둘은 Accept 헤더에 text/html 이 섞여 오는 탓에 위 `isDocument` 분기를 타서
+ * 매 요청 no-store + 세션·CSP 쿠키 + Clear-Site-Data 까지 받고 있었다. 크롤러는
+ * 쿠키를 들고 오지 않으니 쿠키가 매번 새로 실렸고, 그래서 영영 캐시되지 않았다.
+ *
+ * 응답 내용은 공개 데이터만으로 만들어져 요청자와 무관하게 동일하다(sitemap.ts 는
+ * 실거래·공개노트, robots.ts 는 상수). 게다가 sitemap 은 5,000행짜리 집계 조회라
+ * 크롤 때마다 오리진을 때릴 이유가 전혀 없다. 그래서 공유 캐시를 허용한다.
+ *
+ * 단, 응답에 쿠키가 실렸다면(로그인한 사람이 브라우저로 열어 세션이 갱신된 경우)
+ * 미들웨어가 공개 캐시를 포기하고 no-store 로 되돌린다 — 공개 문서와 같은 규칙이다.
+ */
+const CRAWLER_ENDPOINTS = new Set(["/robots.txt", "/sitemap.xml"]);
+
+export function isCrawlerEndpoint(pathname: string): boolean {
+  return CRAWLER_ENDPOINTS.has(pathname);
+}
+
+/** 크롤러 엔드포인트 캐시 — 사이트맵 원본 데이터가 하루 단위로 바뀌므로 1시간이면 충분 */
+export const CRAWLER_ENDPOINT_CACHE_CONTROL =
+  "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400";
+
+/**
  * 이 경로의 문서 응답에 붙일 Cache-Control. 목록에 없으면 null(= 기존대로 no-store).
  *
  * 브라우저 몫은 max-age=0 으로 둔다. 개인 기기 디스크에 HTML 을 남길 이유가 없고,

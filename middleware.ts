@@ -10,14 +10,22 @@ import {
 } from "@/lib/mini-app/cors";
 import { buildContentSecurityPolicy } from "@/lib/security/content-security-policy";
 import { CSP_REV_COOKIE, CSP_REVISION, currentDeployId, DEPLOY_COOKIE } from "@/lib/security/deploy-sync";
-import { publicDocumentCacheControl } from "@/lib/http/cache-policy";
+import {
+  CRAWLER_ENDPOINT_CACHE_CONTROL,
+  isCrawlerEndpoint,
+  publicDocumentCacheControl,
+} from "@/lib/http/cache-policy";
 
 function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
   const isApiPath = request?.nextUrl.pathname.startsWith("/api") ?? false;
+  // robots.txt·sitemap.xml 은 Accept 에 text/html 이 섞여 와서 문서로 오인된다.
+  // 크롤러에게 세션 쿠키·Clear-Site-Data 를 심을 이유가 없으므로 따로 뗀다.
+  const isCrawlerDoc = isCrawlerEndpoint(request?.nextUrl.pathname ?? "");
   const isDocument =
-    request?.headers.get("sec-fetch-dest") === "document" ||
-    (request?.headers.get("accept")?.includes("text/html") ?? false);
+    !isCrawlerDoc &&
+    (request?.headers.get("sec-fetch-dest") === "document" ||
+      (request?.headers.get("accept")?.includes("text/html") ?? false));
 
   // CSP는 HTML 문서 응답에만 포함 (API·정적자산에는 불필요하고 노이즈)
   if (!isApiPath) {
@@ -29,7 +37,10 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
   // G5: 값이 이미 같은 쿠키는 다시 심지 않는다. 매 응답에 Set-Cookie 가 붙으면
   // 공유 캐시(CDN)가 그 응답을 저장하지 않으므로, 아래 공개 캐시가 무력화된다.
   const deployId = currentDeployId();
-  const needsDeployCookie = Boolean(deployId) && request?.cookies.get(DEPLOY_COOKIE)?.value !== deployId;
+  const needsDeployCookie =
+    !isCrawlerDoc &&
+    Boolean(deployId) &&
+    request?.cookies.get(DEPLOY_COOKIE)?.value !== deployId;
   if (deployId && needsDeployCookie) {
     response.cookies.set(DEPLOY_COOKIE, deployId, {
       path: "/",
@@ -38,7 +49,8 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
       maxAge: 60 * 60 * 24,
     });
   }
-  const needsCspCookie = request?.cookies.get(CSP_REV_COOKIE)?.value !== CSP_REVISION;
+  const needsCspCookie =
+    !isCrawlerDoc && request?.cookies.get(CSP_REV_COOKIE)?.value !== CSP_REVISION;
   if (needsCspCookie) {
     response.cookies.set(CSP_REV_COOKIE, CSP_REVISION, {
       path: "/",
@@ -48,7 +60,18 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
     });
   }
 
-  if (isDocument) {
+  if (isCrawlerDoc) {
+    /* G6 — robots.txt·sitemap.xml 은 요청자와 무관하게 같은 내용이라 공유 캐시 가능.
+       단 이 응답에 쿠키가 실렸다면(로그인 사용자가 브라우저로 연 경우) 공개 문서와
+       같은 이유로 캐시를 포기한다. 근거는 lib/http/cache-policy.ts 주석 참고. */
+    const carriesClientState = response.cookies.getAll().length > 0;
+    response.headers.set(
+      "Cache-Control",
+      carriesClientState ? "no-store" : CRAWLER_ENDPOINT_CACHE_CONTROL,
+    );
+    response.headers.delete("Pragma");
+    response.headers.delete("Expires");
+  } else if (isDocument) {
     /* G5 — 공개 prerender 라우트만 CDN 공유 캐시를 허용한다.
        단, 이 응답에 Set-Cookie 가 하나라도 실려 있으면(세션 갱신·CSP 리비전 등)
        사용자별 상태가 섞인 응답이므로 캐시를 포기하고 no-store 로 되돌린다.

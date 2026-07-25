@@ -14,6 +14,7 @@ import {
   type ComplexTransactionRecord,
 } from "@/lib/market/complex-transactions";
 import { getPublicRecordsForComplex } from "@/lib/market/public-records";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
    단지 실거래 상세 — /complex/tx/[slug]
@@ -90,9 +91,9 @@ export async function generateMetadata({
     title,
     description,
     robots: { index: true, follow: true },
-    alternates: {
-      canonical: `https://nuguzip.com/complex/tx/${encodeURIComponent(complexName)}--${region.id}`,
-    },
+    alternates: seoAlternates(
+      `/complex/tx/${encodeURIComponent(complexName)}--${region.id}`,
+    ),
     openGraph: {
       title,
       description,

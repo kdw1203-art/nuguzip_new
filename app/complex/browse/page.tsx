@@ -9,6 +9,7 @@ import {
   type ComplexTxRegion,
 } from "@/lib/market/complex-transactions";
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
    서울 단지 브라우즈 — /complex/browse?district=서울+강남구
@@ -45,7 +46,9 @@ export async function generateMetadata({
     title,
     description,
     robots: { index: true, follow: true },
-    alternates: { canonical: "https://nuguzip.com/complex/browse" },
+    // 구 필터(`?district=`)는 canonical 에서 떨어뜨린다 — 같은 표를 필터만 바꿔 보여주는
+    // URL 들이 각자 색인되면 신호가 쪼개진다.
+    alternates: seoAlternates("/complex/browse"),
     openGraph: {
       title,
       description,

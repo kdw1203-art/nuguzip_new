@@ -42,17 +42,33 @@ function absoluteUrl(path: string): string {
 
 function postalAddress(input: {
   streetAddress?: string | null;
+  /** 시/도 — 예: "서울" */
   addressRegion?: string | null;
+  /** 시군구·읍면동 — 예: "송파구", "잠실동" */
+  addressLocality?: string | null;
 }): Record<string, unknown> | undefined {
   const street = input.streetAddress?.trim() || undefined;
   const region = input.addressRegion?.trim() || undefined;
-  if (!street && !region) return undefined;
+  const locality = input.addressLocality?.trim() || undefined;
+  if (!street && !region && !locality) return undefined;
   return compact({
     "@type": "PostalAddress",
     addressCountry: "KR",
     addressRegion: region,
+    addressLocality: locality,
     streetAddress: street,
   });
+}
+
+/** 실좌표가 있을 때만 GeoCoordinates. 0,0(미지오코딩 기본값)은 좌표 없음으로 본다. */
+function geoCoordinates(
+  lat?: number | null,
+  lng?: number | null,
+): Record<string, unknown> | undefined {
+  if (typeof lat !== "number" || typeof lng !== "number") return undefined;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+  if (lat === 0 && lng === 0) return undefined;
+  return { "@type": "GeoCoordinates", latitude: lat, longitude: lng };
 }
 
 /* ---------- RealEstateListing (/listings/[id]) ---------- */
@@ -109,6 +125,13 @@ export function complexResidenceJsonLd(input: {
   name: string;
   address?: string | null;
   regionName?: string | null;
+  /** 읍면동 — 예: "잠실동". 없으면 생략(추정하지 않는다). */
+  locality?: string | null;
+  /** 지오코딩된 실좌표. 없으면 geo 자체를 넣지 않는다. */
+  lat?: number | null;
+  lng?: number | null;
+  /** 총 세대수 — 공공데이터에 있을 때만 */
+  households?: number | null;
   /** 표시용 가격대(예: "8.2억") — 데이터 있을 때만 */
   priceRange?: string | null;
   /** 최근 실거래가(원) — AggregateOffer 용 */
@@ -124,7 +147,13 @@ export function complexResidenceJsonLd(input: {
     address: postalAddress({
       streetAddress: input.address,
       addressRegion: input.regionName,
+      addressLocality: input.locality,
     }),
+    geo: geoCoordinates(input.lat, input.lng),
+    numberOfAccommodationUnits:
+      typeof input.households === "number" && input.households > 0
+        ? { "@type": "QuantitativeValue", value: input.households }
+        : undefined,
     priceRange: input.priceRange?.trim() || undefined,
     makesOffer:
       input.latestAmountKrw && input.latestAmountKrw > 0
@@ -146,8 +175,11 @@ export function regionPlaceJsonLd(input: {
   id: string;
   name: string;
   description?: string | null;
+  /** 상위 시/도 — 예: 지역이 "송파구"면 "서울". 없으면 지역명 자체를 시/도로 둔다. */
+  parentRegion?: string | null;
 }): Record<string, unknown> {
   const url = `${BASE_URL}/region/${input.id}`;
+  const parent = input.parentRegion?.trim() || undefined;
   const obj: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Place",
@@ -155,7 +187,11 @@ export function regionPlaceJsonLd(input: {
     url,
     name: input.name,
     description: input.description?.trim() || undefined,
-    address: postalAddress({ addressRegion: input.name }),
+    // 상위 시/도를 알면 addressRegion=시/도 + addressLocality=구 로 나눠 적는다.
+    // 모르면 지역명 하나만 addressRegion 으로 둔다(없는 상위 지역을 지어내지 않는다).
+    address: parent
+      ? postalAddress({ addressRegion: parent, addressLocality: input.name })
+      : postalAddress({ addressRegion: input.name }),
   };
   return compact(obj);
 }

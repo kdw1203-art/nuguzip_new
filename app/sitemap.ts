@@ -1,8 +1,24 @@
 import type { MetadataRoute } from "next";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import {
+  capSitemapUrls,
+  listComplexSitemapEntries,
+  periodToDate,
+} from "@/lib/seo/sitemap-entries";
 
-/* 시안 20b — 사이트맵: 정적 공개 라우트 + 공개 임장노트.
-   DB 조회 실패(env 미설정 등) 시 정적 라우트만 반환. */
+/* 사이트맵 — 정적 공개 라우트 + 공개 임장노트 + 단지 허브 + 지역 허브.
+   DB 조회 실패(env 미설정 등) 시 그 블록만 비우고 나머지는 그대로 낸다.
+
+   ── G6 에서 바뀐 것 ────────────────────────────────────────────
+   1) 단지 URL: searchComplexes() 는 내부 `.limit(800)` 때문에 5,147개 단지 중
+      수백 개만 냈다. complex_sitemap_source 뷰로 전부 싣는다.
+   2) lastModified: 예전엔 전 URL 에 `new Date()` 를 찍었다. 매 크롤마다 모든
+      페이지가 방금 바뀌었다고 주장하는 셈이라, 크롤러 입장에선 신호가 아니라
+      잡음이다(그리고 사실이 아니다). 이제는 확인된 갱신 시각이 있는 URL 에만
+      적고, 없으면 아예 생략한다 — <lastmod> 는 선택 항목이다.
+   3) changeFrequency: 삭제. Google 은 이 값을 무시한다고 명시했고, 우리가 적던
+      "weekly" 는 근거 없는 추측이었다. priority 는 우리 쪽 상대 중요도 표현이라
+      사실 주장이 아니므로 유지한다. */
 
 export const dynamic = "force-dynamic";
 
@@ -76,12 +92,10 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-
+  // 정적 라우트는 배포할 때 바뀐다 — 언제였는지 런타임에서 알 방법이 없으므로
+  // lastModified 를 적지 않는다(추측한 날짜보다 없는 편이 정확하다).
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
     url: `${BASE_URL}${r.path}`,
-    lastModified: now,
-    changeFrequency: r.path === "" ? "daily" : "weekly",
     priority: r.priority,
   }));
 
@@ -90,27 +104,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const notes = await listPublicNotes(200);
     noteEntries = notes
       .filter((n) => n.isPublic)
-      .map((n) => ({
-        url: `${BASE_URL}/notes/${n.id}`,
-        lastModified: n.updatedAt ? new Date(n.updatedAt) : now,
-        changeFrequency: "weekly" as const,
-        priority: 0.7,
-      }));
+      .map((n) => {
+        const at = n.updatedAt ? new Date(n.updatedAt) : null;
+        return {
+          url: `${BASE_URL}/notes/${n.id}`,
+          ...(at && !Number.isNaN(at.getTime()) ? { lastModified: at } : {}),
+          priority: 0.7,
+        };
+      });
   } catch {
-    // env 미설정·조회 실패 시 정적 라우트만 반환
+    // env 미설정·조회 실패 시 생략
   }
 
-  // 프로그래매틱 SEO(실행과제 CSO-14): 단지 허브 페이지 — 22f-65 SEO 핵심 랜딩
-  // #33: 단지 200 → 2000 상향. 사이트맵 1파일 URL 한도(50,000)에 여유가 커서
-  // sitemap 인덱스 없이 단일 파일 유지 (2,000 + 정적 + 노트 ≪ 50,000).
+  // 프로그래매틱 SEO 핵심 랜딩 — 실거래가 있는 단지 전체(현재 5,147개).
   let complexEntries: MetadataRoute.Sitemap = [];
   try {
-    const { searchComplexes } = await import("@/lib/complex/complex-store");
-    const complexes = await searchComplexes("", undefined, 2000);
+    const complexes = await listComplexSitemapEntries();
     complexEntries = complexes.map((c) => ({
       url: `${BASE_URL}/complex/${c.id}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
+      ...(c.lastModified ? { lastModified: c.lastModified } : {}),
       priority: 0.8,
     }));
   } catch {
@@ -122,15 +134,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const { getAllRegionSnapshots } = await import("@/lib/market/store");
     const snapshots = await getAllRegionSnapshots();
-    regionEntries = [...snapshots.keys()].map((id) => ({
-      url: `${BASE_URL}/region/${id}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    }));
+    regionEntries = [...snapshots.values()].map((s) => {
+      const at = periodToDate(s.period);
+      return {
+        url: `${BASE_URL}/region/${s.regionId}`,
+        ...(at ? { lastModified: at } : {}),
+        priority: 0.8,
+      };
+    });
   } catch {
     // 조회 실패 시 생략
   }
 
-  return [...staticEntries, ...noteEntries, ...complexEntries, ...regionEntries];
+  // 1파일 50,000 URL 상한 — 넘치면 잘라내되 경고 로그를 남긴다(인덱스 분할 신호).
+  return capSitemapUrls([
+    ...staticEntries,
+    ...noteEntries,
+    ...complexEntries,
+    ...regionEntries,
+  ]);
 }
