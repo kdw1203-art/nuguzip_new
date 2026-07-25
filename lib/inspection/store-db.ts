@@ -37,6 +37,10 @@ export type InspectionNoteMetadata = {
   inspectionReport?: Record<string, unknown>;
   inspectionReportGeneratedAt?: string;
   intent?: "실거주" | "투자" | "전월세";
+  /** 작성 폼의 종합 만족도 슬라이더(0~10) — 점수 축으로 파생시키지 않고 원본 그대로 보존 */
+  satisfaction?: number;
+  /** 작성 시 적용한 노트 템플릿 id (출처 표시용) */
+  templateId?: string;
 };
 
 export type InspectionNote = {
@@ -189,6 +193,36 @@ export async function listPublicNotes(limit = 50): Promise<InspectionNote[]> {
     .select("*")
     .eq("is_public", true)
     .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map(mapRow);
+}
+
+/**
+ * 같은 작성자의 같은 단지(aptName) 노트 묶음 — 회차(방문 기록) 비교용.
+ * 방문일 오름차순(같으면 생성일 오름차순)으로 반환한다.
+ */
+export async function listNotesByAuthorForApt(
+  authorEmail: string,
+  aptName: string,
+  limit = 20,
+): Promise<InspectionNote[]> {
+  const sb = getServiceSupabase();
+  if (!sb) {
+    return memory
+      .filter((n) => n.authorEmail === authorEmail && (n.aptName ?? "") === aptName)
+      .sort(
+        (a, b) =>
+          a.visitDate.localeCompare(b.visitDate) || a.createdAt.localeCompare(b.createdAt),
+      )
+      .slice(0, limit);
+  }
+  const { data } = await sb
+    .from("inspection_notes")
+    .select("*")
+    .eq("author_email", authorEmail)
+    .eq("apt_name", aptName)
+    .order("visit_date", { ascending: true })
+    .order("created_at", { ascending: true })
     .limit(limit);
   return (data ?? []).map(mapRow);
 }

@@ -169,6 +169,18 @@ export default function NotesComparePage() {
   return (
     <PageShell breadcrumb="임장노트 › 회차 비교 (예시)">
       <div className="flex flex-col gap-3.5">
+        {/* 예시 화면 밴드 — 이 화면 전체가 예시 데이터임을 명확히 고지 */}
+        <div className="rise-in flex items-start gap-2 rounded-[14px] border border-[#f0d48a] bg-[#fff8e6] px-4 py-3 text-[13px] leading-[1.6] text-[#7a5c12]">
+          <span className="mt-px shrink-0 rounded bg-[#7a5c12] px-1.5 py-px text-[10px] font-extrabold text-white">
+            예시 화면
+          </span>
+          <span>
+            아래 표·추이는 <b>실제 데이터가 아닌 예시</b>입니다. 같은 단지를 2회
+            이상 기록하면 노트 상세의 &lsquo;방문 기록 비교&rsquo;에서 실제
+            회차가 자동으로 묶여요.
+          </span>
+        </div>
+
         {/* 헤더 + 회차 칩 */}
         <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
           <div>
@@ -333,7 +345,7 @@ export default function NotesComparePage() {
               임장노트 쓰기
             </Link>
             <Link
-              href="/notes"
+              href="/notes?mine=1"
               className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
             >
               내 노트 보기

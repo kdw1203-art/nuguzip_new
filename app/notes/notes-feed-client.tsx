@@ -206,25 +206,17 @@ function PostCard({ n }: { n: FeedNote }) {
           }
         />
       </Link>
-      <div className="flex items-center gap-4 px-3.5 pt-3 text-text-1">
-        <Link href={detailHref} aria-label="좋아요" className="press">
-          <Icon name="heart" size={23} />
-        </Link>
-        <Link href={detailHref} aria-label="댓글" className="press">
-          <Icon name="messages-square" size={22} />
-        </Link>
-        {n.complexHref && (
+      {/* 하트·댓글·북마크 아이콘 제거 — 기능이 없는 장식은 두지 않는다. 상세 진입은 카드/자세히 보기로 충분 */}
+      {n.complexHref && (
+        <div className="flex items-center px-3.5 pt-3">
           <Link
             href={n.complexHref}
             className="text-[12px] font-bold text-primary no-underline"
           >
             단지 허브 ›
           </Link>
-        )}
-        <Link href={detailHref} aria-label="저장" className="press ml-auto">
-          <Icon name="bookmark" size={22} />
-        </Link>
-      </div>
+        </div>
+      )}
       <div className="px-3.5 pb-3.5 pt-2">
         <p className="text-[13px] leading-[1.55] text-text-1">
           <span className="font-bold text-ink">{n.author}</span>{" "}
@@ -292,7 +284,14 @@ function FeedGlyph({ active }: { active: boolean }) {
   );
 }
 
-export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
+export function NotesFeedClient({
+  notes,
+  mine = false,
+}: {
+  notes: FeedNote[];
+  /** 내 노트 뷰(?mine=1) — 세션 사용자의 노트(비공개 포함) */
+  mine?: boolean;
+}) {
   const [filter, setFilter] = useState<Filter>("최신");
   const [view, setView] = useState<ViewMode>("grid");
   const exampleOnly = notes.length > 0 && notes.every((n) => n.isExample);
@@ -310,10 +309,12 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
         {/* 헤더 */}
         <div className="px-1">
           <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">
-            공개 임장노트
+            {mine ? "내 임장노트" : "공개 임장노트"}
           </h1>
           <p className="mt-1.5 text-sm text-text-2">
-            이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요
+            {mine
+              ? "내가 남긴 임장 기록 — 비공개 노트도 여기서만 보여요"
+              : "이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요"}
           </p>
         </div>
 
@@ -379,8 +380,16 @@ export function NotesFeedClient({ notes }: { notes: FeedNote[] }) {
         {visible.length === 0 ? (
           <EmptyState
             icon="file-text"
-            title="해당 필터에 맞는 노트가 아직 없어요"
-            desc="필터를 바꾸거나, 첫 임장노트를 직접 작성해 보세요."
+            title={
+              mine
+                ? "아직 작성한 임장노트가 없어요"
+                : "해당 필터에 맞는 노트가 아직 없어요"
+            }
+            desc={
+              mine
+                ? "첫 임장노트를 작성하면 비공개 노트까지 여기에 모여요."
+                : "필터를 바꾸거나, 첫 임장노트를 직접 작성해 보세요."
+            }
             action={{ label: "임장노트 쓰기", href: "/notes/new" }}
           />
         ) : view === "grid" ? (

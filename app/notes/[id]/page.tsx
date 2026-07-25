@@ -8,8 +8,10 @@ import { NextActions } from "../../components/NextActions";
 import {
   getNote,
   inspectionAverageScore,
+  listNotesByAuthorForApt,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
+import { CoverImage } from "@/app/components/CoverImage";
 import { safeAuth } from "@/lib/safe-auth";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ErrorState } from "@/app/components/ui/EmptyState";
@@ -40,12 +42,13 @@ type NoteView = {
   visitMeta: string; // 방문일·작성자 (20a ②)
   axes: Axis[]; // 채광·소음·주차·교통 4축 (20a ④)
   body: string;
-  photoCount: number;
+  photos: string[];
   visits: Visit[];
   goodPoints: string[]; // 좋았던 점 (20a ⑤)
   cautionPoints: string[]; // 주의할 점 (20a ⑥)
   evidenceNote: string;
   aiInline: string; // 본문 내 AI 요약 (20a ⑨ — AIPanel로 구분)
+  aiBadge: string; // 저장된 AI 분석 vs 규칙 기반 문구 구분 배지
   aiSummary: string;
   totalScore: number; // 0~100
   scoreBars: ScoreBar[];
@@ -121,7 +124,7 @@ function formatDate(iso?: string | null): string {
   return `${y}.${Number(m)}.${Number(day)}`;
 }
 
-function toView(n: InspectionNote): NoteView {
+function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
   const avg = inspectionAverageScore(n.scores);
   const total = Math.round(avg * 20);
   const displayTitle = n.aptName?.trim() || n.title;
@@ -182,6 +185,22 @@ function toView(n: InspectionNote): NoteView {
     .filter(([, v]) => v > 0)
     .sort((a, b) => a[1] - b[1])[0];
 
+  /* AI 요약 — 저장된 note.aiAnalysis(실호출 결과)를 우선 표시.
+     없을 때만 규칙 기반 문구로 폴백하고, 배지로 출처를 구분한다. */
+  const ai = (n.aiAnalysis ?? null) as Record<string, unknown> | null;
+  const storedAiText = [ai?.narrativeSummary, ai?.summary, ai?.detailedConclusion].find(
+    (x): x is string => typeof x === "string" && x.trim().length > 0,
+  );
+  const aiEngine = typeof ai?.engine === "string" ? ai.engine : "";
+  const ruleInline = `5개 축 평균 ${avg.toFixed(1)}/5점 — ${
+    weakest ? `${weakest[0]} 축(${weakest[1]}/5)이 감점 요인입니다.` : "축별 점수를 참고하세요."
+  }`;
+  const aiBadge = storedAiText
+    ? aiEngine.startsWith("rule-based")
+      ? "규칙 기반 분석"
+      : "AI 생성"
+    : "규칙 기반 요약";
+
   return {
     breadcrumb: `공개 임장노트 › ${displayTitle}`,
     chips,
@@ -193,20 +212,22 @@ function toView(n: InspectionNote): NoteView {
       n.summary?.trim() ||
       n.sections.memo?.trim() ||
       "본문 메모 없이 점수·체크리스트만 기록된 노트입니다.",
-    photoCount: n.photos.length,
-    visits: [
-      {
-        label: `1차 · ${n.visitDate}`,
-        summary: `평점 ${avg.toFixed(1)}/5 · 체크 ${doneCount}/${n.checklist.length}`,
-        latest: true,
-      },
-    ],
+    photos: n.photos,
+    visits:
+      visitsOverride && visitsOverride.length > 0
+        ? visitsOverride
+        : [
+            {
+              label: `1차 · ${n.visitDate}`,
+              summary: `평점 ${avg.toFixed(1)}/5 · 체크 ${doneCount}/${n.checklist.length}`,
+              latest: true,
+            },
+          ],
     goodPoints: goodPoints.slice(0, 4),
     cautionPoints: cautionPoints.slice(0, 4),
     evidenceNote: `점수 5개 축 + 체크 ${n.checklist.length}건 기준`,
-    aiInline: `5개 축 평균 ${avg.toFixed(1)}/5점 — ${
-      weakest ? `${weakest[0]} 축(${weakest[1]}/5)이 감점 요인입니다.` : "축별 점수를 참고하세요."
-    }`,
+    aiInline: storedAiText ?? ruleInline,
+    aiBadge,
     aiSummary: `${n.region} ${displayTitle} 방문 기록 기준 — 5개 축 평균 ${avg.toFixed(
       1,
     )}점입니다. ${
@@ -219,11 +240,14 @@ function toView(n: InspectionNote): NoteView {
         : "축별 점수를 참고해 다음 방문 계획을 세워보세요."
     }`,
     totalScore: total,
-    scoreBars: scoreEntries.map(([label, v]) => ({
-      label,
-      value: Math.round(v * 20),
-      bad: v > 0 && v <= 2,
-    })),
+    // 값이 기록되지 않은 축(0점)은 막대에서 생략 — 없는 기록을 있는 것처럼 그리지 않는다
+    scoreBars: scoreEntries
+      .filter(([, v]) => v > 0)
+      .map(([label, v]) => ({
+        label,
+        value: Math.round(v * 20),
+        bad: v <= 2,
+      })),
     checklistDone: doneCount,
     checklistTotal: n.checklist.length,
     // 이 화면의 수치는 전부 작성자가 직접 남긴 방문 기록에서 나온다 —
@@ -432,7 +456,30 @@ export default async function NoteDetailPage({
     complexHref = null;
   }
 
-  const v = toView(realNote);
+  // 방문 기록 비교 — 같은 작성자·같은 단지의 노트를 실제로 묶어 회차 표시.
+  // 비소유자에게는 공개 노트 회차만 보여 비공개 기록의 존재를 드러내지 않는다.
+  let visits: Visit[] | undefined;
+  if (realNote.aptName?.trim()) {
+    try {
+      const grouped = await listNotesByAuthorForApt(
+        realNote.authorEmail,
+        realNote.aptName.trim(),
+      );
+      let visible = isOwner ? grouped : grouped.filter((x) => x.isPublic);
+      if (!visible.some((x) => x.id === realNote.id)) visible = [...visible, realNote];
+      visits = visible.map((x, i) => ({
+        label: `${i + 1}차 · ${x.visitDate}`,
+        summary: `평점 ${inspectionAverageScore(x.scores).toFixed(1)}/5 · 체크 ${
+          x.checklist.filter((c) => c.done).length
+        }/${x.checklist.length}`,
+        latest: x.id === realNote.id,
+      }));
+    } catch {
+      visits = undefined;
+    }
+  }
+
+  const v = toView(realNote, visits);
 
   return (
     <PageShell breadcrumb={v.breadcrumb}>
@@ -451,9 +498,7 @@ export default async function NoteDetailPage({
           isOwner={isOwner}
           initialIsPublic={realNote.isPublic}
         />
-        <Link href="/notes/compare" className="btn-secondary px-3.5 py-2 text-[13px]">
-          회차 비교
-        </Link>
+        {/* 회차 비교(예시 화면) 유도 링크는 '방문 기록 비교' 카드 1곳만 유지 — 상단·하단 중복 제거 */}
         <Link href="/map" className="btn-primary btn-cta px-3.5 py-2 text-[13px]">
           지도에서 비교
         </Link>
@@ -521,22 +566,23 @@ export default async function NoteDetailPage({
 
             <p className="text-sm leading-[1.7] text-text-1">{v.body}</p>
 
-            {/* 현장 사진 플레이스홀더 */}
-            {v.photoCount > 0 && (
-              <div className="flex gap-2">
-                {Array.from({ length: Math.min(v.photoCount, 2) }, (_, i) => (
-                  <div
-                    key={i}
-                    className="flex h-[78px] w-[110px] items-center justify-center rounded-[10px] bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] font-mono text-[10px] text-text-3"
-                  >
-                    현장 사진
+            {/* 현장 사진 — 업로드된 실제 사진 노출 */}
+            {v.photos.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {v.photos.slice(0, 10).map((p, i) => (
+                  <div key={p} className="h-[78px] w-[110px] shrink-0 overflow-hidden rounded-[10px] bg-bg">
+                    <CoverImage
+                      src={p}
+                      alt={`현장 사진 ${i + 1}`}
+                      imgClassName="h-full w-full object-cover"
+                      fallback={
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] font-mono text-[10px] text-text-3">
+                          현장 사진
+                        </div>
+                      }
+                    />
                   </div>
                 ))}
-                {v.photoCount > 2 && (
-                  <div className="flex h-[78px] w-[110px] items-center justify-center rounded-[10px] bg-[#f2f4f8] text-xs font-bold text-text-2">
-                    +{v.photoCount - 2}
-                  </div>
-                )}
               </div>
             )}
 
@@ -552,8 +598,11 @@ export default async function NoteDetailPage({
               </div>
             </div>
 
-            {/* ⑨ AI 작성부 구분 표시 — 잉크 다크 AIPanel (16c 패턴) */}
+            {/* ⑨ AI 작성부 구분 표시 — 저장된 aiAnalysis 우선, 없으면 규칙 기반 문구 + 배지 구분 */}
             <AIPanel title="AI 요약">
+              <span className="mb-1.5 inline-flex items-center rounded border border-white/20 px-1.5 py-px text-[9px] font-semibold text-ai-muted">
+                {v.aiBadge}
+              </span>
               <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
             </AIPanel>
 
@@ -737,7 +786,8 @@ export default async function NoteDetailPage({
               ))}
             </div>
             <div className="text-[10px] text-text-3">
-              점수 = 내 기록 60% + 공공 데이터 40% 가중
+              점수 = 5개 축(입지·학군·교통·시설·미래가치) 단순 평균 × 20 · 기록하지
+              않은 축은 0점 처리, 막대에는 표시하지 않아요
             </div>
           </div>
 
@@ -779,7 +829,6 @@ export default async function NoteDetailPage({
               href: `/analysis?noteId=${encodeURIComponent(id)}`,
               primary: true,
             },
-            { label: "회차 비교", href: "/notes/compare" },
             ...(complexHref
               ? [{ label: "단지 허브 보기", href: complexHref }]
               : []),

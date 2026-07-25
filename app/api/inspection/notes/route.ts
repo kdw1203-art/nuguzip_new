@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { createNote, listNotes, listPublicNotes } from "@/lib/inspection/store-db";
+import { awardPoints } from "@/lib/points/ledger";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 
@@ -59,15 +60,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
   const body = await req.json().catch(() => ({}));
-  if (!body.title || !body.region) {
+  // 최소 검증 — 공백만 있는 제목·지역 거부
+  const title = String(body.title ?? "").trim();
+  const region = String(body.region ?? "").trim();
+  if (!title || !region) {
     return NextResponse.json({ error: "제목·지역은 필수입니다." }, { status: 400 });
   }
   try {
     const note = await createNote({
       authorEmail: session.user.email,
       authorLabel: session.user.name ?? session.user.email,
-      title: String(body.title),
-      region: String(body.region),
+      title,
+      region,
       aptName: body.aptName ? String(body.aptName) : undefined,
       visitDate: body.visitDate ? String(body.visitDate) : undefined,
       weather: body.weather ? String(body.weather) : undefined,
@@ -92,6 +96,9 @@ export async function POST(req: Request) {
     if (isPublic) {
       revalidatePath("/notes");
       revalidatePath("/");
+      // 공개 상태로 최초 생성 시에도 100P 적립.
+      // refId=note.id 멱등 — 이후 PATCH(비공개→공개)에서 같은 refId 로 중복 지급되지 않음.
+      await awardPoints(session.user.email, "note_public", note.id);
     }
     void recordFunnelEvent(req, {
       eventName: FUNNEL_EVENT.INSPECTION_NOTE_CREATE,

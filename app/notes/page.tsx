@@ -1,13 +1,18 @@
+import { redirect } from "next/navigation";
 import {
+  listNotes,
   listPublicNotes,
   inspectionAverageScore,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
+import { safeAuth } from "@/lib/safe-auth";
 import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-/* 시안 7a — 공개 임장노트 피드. 실데이터: inspection_notes(is_public) → listPublicNotes */
+/* 시안 7a — 공개 임장노트 피드. 실데이터: inspection_notes(is_public) → listPublicNotes
+   ?mine=1 — 세션 사용자의 노트(비공개 포함)를 서버에서 조회하는 내 노트 뷰.
+   searchParams 분기 때문에 이 라우트는 동적 렌더(기존 revalidate=120 ISR 제거). */
 
 export const metadata = buildPageMetadata({
   title: "임장노트",
@@ -16,15 +21,15 @@ export const metadata = buildPageMetadata({
   path: "/notes",
 });
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 /* 더미데이터 정책(더미 1개 원칙): 테스트용 샘플은 단 1건 —
-   실데이터 0건일 때만 "예시" 배지와 함께 노출 */
+   실데이터 0건일 때만 "예시" 배지와 함께 노출. 허수 지표(공감·댓글·저장 수) 없음. */
 const MOCK_NOTES: FeedNote[] = [
   {
     id: "1",
     author: "관양동 이웃",
-    meta: "예시 · 3번째 방문",
+    meta: "예시",
     score: 78,
     scoreTone: "primary",
     title: "공작아파트 302동 84A",
@@ -34,8 +39,8 @@ const MOCK_NOTES: FeedNote[] = [
       { label: "초품아", tone: "pos" },
       { label: "이중주차", tone: "neg" },
     ],
-    footer: ["공감 12", "댓글 5", "저장 8"],
-    popularity: 12,
+    footer: [],
+    popularity: 0,
     interested: true,
     // 사실 우선: 예시 카드는 존재하지 않는 단지(mock-1)로 링크하지 않음 (404 방지)
     isExample: true,
@@ -64,20 +69,24 @@ function maskAuthor(n: InspectionNote): string {
   return `${head}** 이웃`;
 }
 
+/* 파생 태그 — 작성자가 직접 입력한 축(입지·교통·시설)만 사용.
+   학군·미래가치는 과거 만족도 슬라이더에서 파생되던 값이라 태그로 만들지 않는다. */
 function deriveTags(n: InspectionNote): FeedNote["tags"] {
   const tags: FeedNote["tags"] = [];
   const s = n.scores;
   if (s.transport >= 4) tags.push({ label: "교통 좋음", tone: "pos" });
-  if (s.school >= 4) tags.push({ label: "학군 좋음", tone: "pos" });
   if (s.location >= 4) tags.push({ label: "입지 좋음", tone: "pos" });
-  if (s.future >= 4) tags.push({ label: "미래가치", tone: "pos" });
   if (s.facility <= 2) tags.push({ label: "시설 아쉬움", tone: "neg" });
   if (s.location > 0 && s.location <= 2)
     tags.push({ label: "입지 아쉬움", tone: "neg" });
   return tags.slice(0, 3);
 }
 
-function toFeedNote(n: InspectionNote, complexHref: string | null): FeedNote {
+function toFeedNote(
+  n: InspectionNote,
+  complexHref: string | null,
+  opts?: { mine?: boolean },
+): FeedNote {
   const avg = inspectionAverageScore(n.scores);
   const score = Math.round(avg * 20);
   const excerptSrc =
@@ -90,7 +99,9 @@ function toFeedNote(n: InspectionNote, complexHref: string | null): FeedNote {
   return {
     id: n.id,
     author: maskAuthor(n),
-    meta: `${relativeTime(n.createdAt)} · ${n.region}`,
+    meta: opts?.mine
+      ? `${n.isPublic ? "공개" : "비공개"} · ${relativeTime(n.createdAt)} · ${n.region}`
+      : `${relativeTime(n.createdAt)} · ${n.region}`,
     score,
     scoreTone: avg >= 3.5 ? "primary" : "muted",
     title: n.aptName ? `${n.aptName}` : n.title,
@@ -111,7 +122,35 @@ function toFeedNote(n: InspectionNote, complexHref: string | null): FeedNote {
   };
 }
 
-export default async function NotesFeedPage() {
+export default async function NotesFeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const mine = sp.mine === "1";
+
+  // 내 노트 뷰 — 세션 사용자의 노트(비공개 포함)를 동적 조회. 목업 보강 없음.
+  if (mine) {
+    const session = await safeAuth();
+    const email = session?.user?.email ?? null;
+    if (!email) {
+      redirect(`/login?callbackUrl=${encodeURIComponent("/notes?mine=1")}`);
+    }
+    let notes: FeedNote[] = [];
+    try {
+      const rows = await listNotes(email);
+      notes = await Promise.all(
+        rows.map(async (n) =>
+          toFeedNote(n, await resolveComplexHref(n.aptName, n.region), { mine: true }),
+        ),
+      );
+    } catch {
+      notes = [];
+    }
+    return <NotesFeedClient notes={notes} mine />;
+  }
+
   let notes: FeedNote[] = [];
   try {
     const rows = await listPublicNotes(50);

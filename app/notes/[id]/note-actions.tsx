@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "../../components/toast/ToastProvider";
 
 /* 노트 상세 실동작 액션 (더미 버튼 제거)
    - 공유: 현재 URL 클립보드 복사 (실패 시 prompt 폴백) + 성공 토스트
-   - 소유자: 공개/비공개 토글 — PATCH /api/inspection/notes/[id] { isPublic } */
+   - 소유자: 수정(/notes/[id]/edit) + 공개/비공개 토글 — PATCH /api/inspection/notes/[id] */
 
 export function NoteDetailActions({
   noteId,
@@ -63,6 +64,14 @@ export function NoteDetailActions({
 
   return (
     <div className="relative flex items-center gap-2">
+      {isOwner && (
+        <Link
+          href={`/notes/${noteId}/edit`}
+          className="btn-soft px-3.5 py-2 text-[13px] no-underline"
+        >
+          수정
+        </Link>
+      )}
       {isOwner && (
         <button
           type="button"

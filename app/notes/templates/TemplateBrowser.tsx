@@ -50,10 +50,7 @@ function TemplateCard({ t, delay }: { t: NoteTemplate; delay: string }) {
           <Icon name="check" size={13} />
           {itemCount}개 항목
         </span>
-        <span className="inline-flex items-center gap-1">
-          <Icon name="file-text" size={13} />
-          {t.useCount.toLocaleString()}회 사용
-        </span>
+        {/* 사용 횟수 표기는 실집계가 아니었으므로 제거 — 실지표가 생기면 되살린다 */}
       </div>
 
       <span className="text-[13px] font-semibold text-primary">
