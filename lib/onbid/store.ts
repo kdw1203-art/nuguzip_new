@@ -22,6 +22,7 @@ export type AuctionItem = {
   bidEnd: string | null;
   status: string | null;
   onbidCltrno: string | null;
+  cltrMngNo: string | null;
   pbctNo: string | null;
 };
 
@@ -54,8 +55,28 @@ function mapRow(r: Record<string, unknown>): AuctionItem {
     bidEnd: r.bid_end ? String(r.bid_end) : null,
     status: r.status ? String(r.status) : null,
     onbidCltrno: r.onbid_cltrno ? String(r.onbid_cltrno) : null,
+    cltrMngNo: r.cltr_mng_no ? String(r.cltr_mng_no) : null,
     pbctNo: r.pbct_no ? String(r.pbct_no) : null,
   };
+}
+
+/**
+ * 입찰마감(bid_end)이 오늘보다 이전인지 판정.
+ * bid_end 는 온비드 원문 텍스트 컬럼("YYYYMMDDHHMM"·"YYYY-MM-DD HH:MM" 등 형식 관용) —
+ * 숫자만 추출해 날짜로 해석하고, 형식 불명·미상은 "지난 것"으로 단정하지 않는다.
+ */
+export function isPastBidEnd(bidEnd: string | null, now: Date = new Date()): boolean {
+  if (!bidEnd) return false;
+  const digits = bidEnd.replace(/\D/g, "");
+  if (digits.length < 8) return false;
+  const y = Number(digits.slice(0, 4));
+  const mo = Number(digits.slice(4, 6));
+  const da = Number(digits.slice(6, 8));
+  if (!y || !mo || !da) return false;
+  const end = new Date(y, mo - 1, da);
+  if (Number.isNaN(end.getTime())) return false;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return end.getTime() < today.getTime();
 }
 
 export async function getAuctions(opts: {
@@ -99,6 +120,30 @@ export async function getAuctionCount(): Promise<number> {
       .select("id", { count: "exact", head: true });
     if (error) return 0;
     return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * 입찰 중·예정(마감 전) 물건 수 — "입찰 중·예정 N건" 표기용.
+ * bid_end 가 형식 자유 텍스트라 SQL 비교(gte)로는 형식이 섞이면 오판할 수 있어,
+ * bid_end 만 가져와 isPastBidEnd 로 앱에서 센다(목록 필터와 동일 기준).
+ */
+export async function getActiveAuctionCount(): Promise<number> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return 0;
+  try {
+    const { data, error } = await sb
+      .from("onbid_auctions")
+      .select("bid_end")
+      .limit(5000);
+    if (error || !Array.isArray(data)) return 0;
+    const now = new Date();
+    return data.filter((r) => {
+      const v = (r as { bid_end?: unknown }).bid_end;
+      return !isPastBidEnd(v ? String(v) : null, now);
+    }).length;
   } catch {
     return 0;
   }
