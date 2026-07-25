@@ -112,6 +112,165 @@ function CompareTraySection() {
   );
 }
 
+/* ---------- 단지별 실거래 비교표 (POST /api/analysis/complex-compare) ---------- */
+
+type CompareItem = {
+  id: string;
+  name: string;
+  region: string;
+  hasData: boolean;
+  avg6mKrw: number | null;
+  avgPyeong6mKrw: number | null;
+  count6m: number;
+  count12m: number;
+  latest: { ym: string; amountKrw: number; areaM2: number | null; floor: number | null } | null;
+};
+
+function fmtEok(krw: number | null): string {
+  if (krw === null) return "—";
+  const e = krw / 100_000_000;
+  return `${(e >= 10 ? e.toFixed(1) : e.toFixed(2)).replace(/\.?0+$/, "")}억`;
+}
+
+function fmtManwon(krw: number | null): string {
+  if (krw === null) return "—";
+  return `${Math.round(krw / 10_000).toLocaleString("ko-KR")}만`;
+}
+
+function fmtYm(ym: string): string {
+  return /^\d{6}$/.test(ym) ? `${ym.slice(2, 4)}.${ym.slice(4)}` : ym;
+}
+
+/** 트레이에 담은 단지들의 실거래 요약 비교표.
+    예전 이 자리에는 "단지별 항목 비교표는 준비 중이에요" 카드가 있었다. */
+function ComplexCompareTable() {
+  const [ids, setIds] = useState<string[] | null>(null);
+  const [items, setItems] = useState<CompareItem[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setIds(listCompareTray().map((t) => t.id));
+    sync();
+    return subscribeCompareTray(sync);
+  }, []);
+
+  const idsKey = ids === null ? "" : ids.join("|");
+
+  useEffect(() => {
+    if (ids === null) return;
+    if (ids.length === 0) {
+      setItems(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch("/api/analysis/complex-compare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: idsKey.split("|") }),
+        });
+        const data = (await res.json().catch(() => null)) as { items?: CompareItem[] } | null;
+        if (!cancelled) setItems(res.ok && Array.isArray(data?.items) ? data.items : null);
+      } catch {
+        if (!cancelled) setItems(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
+
+  if (!ids || ids.length === 0) {
+    return (
+      <div className="rise-in card flex flex-col gap-1.5 rounded-2xl px-[18px] py-4">
+        <div className="text-[13px] font-extrabold text-ink">단지별 실거래 비교표</div>
+        <div className="text-[11px] leading-relaxed text-text-3">
+          위에서 단지를 담으면 최근 6개월 평균가·평당가·거래량을 나란히 비교해 드려요.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rise-in card flex flex-col gap-3 rounded-[20px] p-[22px]">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[15px] font-extrabold text-ink">단지별 실거래 비교표</div>
+        <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
+          실데이터 기준
+        </span>
+      </div>
+      {loading && !items ? (
+        <div className="text-xs text-text-3">실거래를 집계하는 중…</div>
+      ) : items ? (
+        <>
+          <div className="overflow-x-auto">
+            <div className="min-w-[620px]">
+              <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] gap-2 border-b border-[#f0f3f8] pb-2 text-[11px] font-bold text-text-3">
+                <span>단지</span>
+                <span className="text-center">6개월 평균가</span>
+                <span className="text-center">평당가 (6개월)</span>
+                <span className="text-center">거래 6/12개월</span>
+                <span className="text-center">최근 거래</span>
+              </div>
+              {items.map((it) => (
+                <div
+                  key={it.id}
+                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs"
+                >
+                  <span className="font-bold text-ink">
+                    <Link href={`/complex/${encodeURIComponent(it.id)}`} className="no-underline">
+                      {it.name}
+                    </Link>
+                    <span className="ml-1 text-[10px] font-semibold text-text-3">{it.region}</span>
+                  </span>
+                  {it.hasData ? (
+                    <>
+                      <span className="text-center font-extrabold text-text-1">
+                        {fmtEok(it.avg6mKrw)}
+                      </span>
+                      <span className="text-center font-bold text-text-1">
+                        {fmtManwon(it.avgPyeong6mKrw)}
+                      </span>
+                      <span className="text-center font-bold text-text-1">
+                        {it.count6m}/{it.count12m}건
+                      </span>
+                      <span className="text-center text-[11px] text-text-2">
+                        {it.latest
+                          ? `${fmtYm(it.latest.ym)} · ${fmtEok(it.latest.amountKrw)}${
+                              it.latest.areaM2 ? ` · ${Math.round(it.latest.areaM2)}㎡` : ""
+                            }${it.latest.floor ? ` · ${it.latest.floor}층` : ""}`
+                          : "—"}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="col-span-4 text-center text-[11px] text-text-3">
+                      최근 12개월 실거래 없음
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="text-[9px] leading-[1.5] text-text-3">
+            국토교통부 실거래 기준(해제 신고분 제외) · 면적·타입 구분 없는 단순 평균이므로
+            같은 단지라도 평형 구성에 따라 체감과 다를 수 있어요. 평형별 시세는 단지
+            상세에서 확인하세요.
+          </div>
+        </>
+      ) : (
+        <div className="text-xs text-text-3">
+          집계에 실패했어요. 잠시 후 다시 시도해 주세요.
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- 지역 실시세 병합 + 종합 코멘트 (POST /api/ai/compare-summary) ---------- */
 
 type RegionSnapshotItem = {
@@ -298,15 +457,9 @@ export default function ComparePage() {
         {/* 내가 담은 후보 (비교 트레이) */}
         <CompareTraySection />
 
-        {/* 사실 우선: 하드코딩된 예시 단지 비교표(공작·동편3 등)와 임의 AI 총평을 제거.
-            담은 단지의 지역 실거래·시세 스냅샷(실데이터)만 제공한다. */}
-        <div className="rise-in card flex flex-col gap-1.5 rounded-2xl px-[18px] py-4">
-          <div className="text-[13px] font-extrabold text-ink">단지별 항목 비교표는 준비 중이에요</div>
-          <div className="text-[11px] leading-relaxed text-text-3">
-            지금은 담은 단지가 속한 지역의 국토교통부 실거래 기반 시세 스냅샷과 요약을 보여드려요.
-            단지별 세부 항목(평단가·전세가율·교통·학군 등) 비교표는 실데이터 연동 후 제공될 예정이에요.
-          </div>
-        </div>
+        {/* 단지별 실거래 비교표 — "준비 중" 카드였던 자리. 이제 트레이에 담은
+            단지들의 최근 6개월 평균가·평당가·거래량을 실거래에서 직접 집계한다. */}
+        <ComplexCompareTable />
 
         {/* 지역 실시세 자동 병합 + 종합 코멘트 (실데이터) */}
         <RegionMarketSummary />

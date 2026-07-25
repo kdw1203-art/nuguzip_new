@@ -2,21 +2,23 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
-import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
-   자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 필터 칩 + 라벨 섹션(모집 중 / 마감된 모임).
+   자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 필터 칩 + 라벨 섹션.
    지역·상태 필터 + 임박순/최신순 정렬 + 모임 만들기(POST /api/groups) 실배선.
-   실데이터 0건일 때만 "예시" 라벨 목업 폴백. */
+
+   예시 목업 폴백은 제거했다 — "7.25 (토)" 같은 구체적 날짜가 박힌 가짜 모임은
+   예시 배지가 붙어 있어도 진짜 모임처럼 읽힌다. 0건이면 0건이라고 말하고
+   만들기 CTA 를 보여 주는 편이 정직하다. */
 
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ region?: string; status?: string; sort?: string }>;
 
 type GroupView = {
-  id: string | null;
+  id: string;
   title: string;
   desc: string;
   region: string;
@@ -27,29 +29,11 @@ type GroupView = {
   members: number;
   max: number;
   host: string;
-  statusKey: "open" | "closing" | "full";
+  fee: number;
+  /** past = 예정 일시가 이미 지난 모임 (모집 중으로 보이면 안 된다) */
+  statusKey: "open" | "closing" | "full" | "past";
   tags: string[];
 };
-
-/* ---------- 목업 폴백 (실데이터 0건일 때만) ---------- */
-
-const FALLBACK_GROUPS: GroupView[] = [
-  {
-    id: null,
-    title: "과천지식정보타운 같이 봐요",
-    desc: "S6·S7블록 중심 2시간 코스. 초보 환영, 체크리스트 공유해요.",
-    region: "경기 과천시",
-    regionKey: "경기",
-    whenLabel: "7.25 (토) 10:00",
-    whenTs: 0,
-    createdTs: 0,
-    members: 4,
-    max: 6,
-    host: "과천러버",
-    statusKey: "open",
-    tags: ["임장", "초보환영"],
-  },
-];
 
 /* ---------- 헬퍼 ---------- */
 
@@ -65,11 +49,19 @@ function formatWhen(iso: string | null): { label: string; ts: number } {
   };
 }
 
-function toView(m: UserMeeting): GroupView {
+function toView(m: UserMeeting, now: number): GroupView {
   const remaining = m.maxMembers - m.currentMembers;
-  const statusKey: GroupView["statusKey"] =
-    remaining <= 0 ? "full" : remaining <= 1 ? "closing" : "open";
   const when = formatWhen(m.scheduledAt);
+  /* 예정 일시가 지난 모임은 정원이 남아 있어도 "모집 중"이 아니다 —
+     지난 날짜의 모임에 "참여하기"를 보여 주면 그 자체가 거짓 안내다. */
+  const isPast = when.ts !== Number.MAX_SAFE_INTEGER && when.ts < now;
+  const statusKey: GroupView["statusKey"] = isPast
+    ? "past"
+    : remaining <= 0
+      ? "full"
+      : remaining <= 1
+        ? "closing"
+        : "open";
   const region = m.region || [m.city, m.district].filter(Boolean).join(" ") || "지역 미정";
   return {
     id: m.id,
@@ -83,6 +75,7 @@ function toView(m: UserMeeting): GroupView {
     members: m.currentMembers,
     max: m.maxMembers,
     host: m.organizerLabel || m.hostLabel || "주최자",
+    fee: m.fee,
     statusKey,
     tags: (m.tags.length > 0 ? m.tags : [m.category]).filter(Boolean).slice(0, 3),
   };
@@ -95,9 +88,8 @@ const STATUS_META: Record<
   open: { label: "모집 중", style: "bg-primary-soft text-primary", dot: "bg-primary" },
   closing: { label: "마감 임박", style: "state-warning", dot: "bg-warning" },
   full: { label: "모집 마감", style: "bg-bg text-text-3", dot: "bg-text-3" },
+  past: { label: "일정 종료", style: "bg-bg text-text-3", dot: "bg-text-3" },
 };
-
-const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd"];
 
 function qs(base: Record<string, string | undefined>, patch: Record<string, string | undefined>) {
   const merged = { ...base, ...patch };
@@ -111,10 +103,11 @@ function qs(base: Record<string, string | undefined>, patch: Record<string, stri
 
 /* ---------- 모임 카드 (지역·일정·모집인원·상태) ---------- */
 
-function MeetingCard({ g, i, isMock }: { g: GroupView; i: number; isMock: boolean }) {
+function MeetingCard({ g, i }: { g: GroupView; i: number }) {
   const meta = STATUS_META[g.statusKey];
   const remaining = Math.max(g.max - g.members, 0);
   const pct = Math.min(100, Math.round((g.members / Math.max(g.max, 1)) * 100));
+  const joinable = g.statusKey === "open" || g.statusKey === "closing";
   return (
     <div
       className={`card card-hover press rise-in-${Math.min(i + 2, 8)} flex flex-col gap-3 rounded-[16px] p-4`}
@@ -127,7 +120,11 @@ function MeetingCard({ g, i, isMock }: { g: GroupView; i: number; isMock: boolea
             <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
             {meta.label}
           </span>
-          {isMock && <ExampleBadge />}
+          {g.fee > 0 && (
+            <span className="inline-flex items-center rounded-md bg-bg px-2 py-1 text-[11px] font-bold text-text-2">
+              참가비 {g.fee.toLocaleString("ko-KR")}원
+            </span>
+          )}
         </span>
         <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
           <Icon name="calendar" size={12} />
@@ -180,32 +177,25 @@ function MeetingCard({ g, i, isMock }: { g: GroupView; i: number; isMock: boolea
         </div>
       </div>
 
-      {/* 푸터 */}
+      {/* 푸터 — 가짜 아바타 원(장식용 색 원 3개)은 제거했다. 실제 참여자
+          프로필이 아닌 그림은 "사람이 있는 것처럼" 보이게 만들 뿐이다. */}
       <div className="flex items-center justify-between border-t border-line pt-3">
-        <div className="flex items-center">
-          {AVATAR_COLORS.slice(0, Math.min(Math.max(g.members, 1), 3)).map((c, j) => (
-            <div
-              key={c}
-              className={`h-6 w-6 rounded-full border-2 border-surface ${j > 0 ? "-ml-2" : ""}`}
-              style={{ background: c }}
-            />
-          ))}
-          <span className="ml-2 text-[11px] font-medium text-text-3">
-            {remaining > 0 ? `${remaining}자리 남음` : "모집 마감"}
-          </span>
-        </div>
-        {g.id ? (
-          <Link
-            href={`/town/groups/${g.id}`}
-            className="btn-primary rounded-lg px-4 py-2 text-xs no-underline"
-          >
-            {g.statusKey === "full" ? "대기 참여" : "참여하기"}
-          </Link>
-        ) : (
-          <span className="cursor-default rounded-lg border border-line bg-bg px-4 py-2 text-xs font-semibold text-text-3">
-            예시 모임
-          </span>
-        )}
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-3">
+          <Icon name="users" size={12} />
+          {g.statusKey === "past"
+            ? `${g.members}명 참여했어요`
+            : remaining > 0
+              ? `${remaining}자리 남음`
+              : "모집 마감"}
+        </span>
+        <Link
+          href={`/town/groups/${g.id}`}
+          className={`rounded-lg px-4 py-2 text-xs no-underline ${
+            joinable ? "btn-primary" : "btn-soft"
+          }`}
+        >
+          {joinable ? "참여하기" : g.statusKey === "full" ? "대기 참여" : "모임 보기"}
+        </Link>
       </div>
     </div>
   );
@@ -226,18 +216,17 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
     meetings = [];
   }
 
-  const realViews = meetings.map(toView);
-  const listIsMock = realViews.length === 0;
-  const all = listIsMock ? FALLBACK_GROUPS : realViews;
+  const now = Date.now();
+  const all = meetings.map((m) => toView(m, now));
 
   /* 지역 칩 — 실데이터에서 도출 */
   const regionKeys = [...new Set(all.map((g) => g.regionKey))].slice(0, 6);
 
-  /* 필터 */
+  /* 필터 — "모집 중"에는 일정이 지난 모임(past)도 제외한다 */
   let groups = all.filter((g) => {
     if (region !== "all" && g.regionKey !== region) return false;
-    if (status === "open" && g.statusKey === "full") return false;
-    if (status === "full" && g.statusKey !== "full") return false;
+    if (status === "open" && (g.statusKey === "full" || g.statusKey === "past")) return false;
+    if (status === "full" && g.statusKey !== "full" && g.statusKey !== "past") return false;
     return true;
   });
 
@@ -246,9 +235,9 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
     sort === "new" ? b.createdTs - a.createdTs : a.whenTs - b.whenTs,
   );
 
-  /* 자료 섹션 분류 — 모집 중 / 마감된 모임 */
-  const recruiting = groups.filter((g) => g.statusKey !== "full");
-  const closed = groups.filter((g) => g.statusKey === "full");
+  /* 자료 섹션 분류 — 모집 중 / 마감·종료된 모임 */
+  const recruiting = groups.filter((g) => g.statusKey === "open" || g.statusKey === "closing");
+  const closed = groups.filter((g) => g.statusKey === "full" || g.statusKey === "past");
 
   const base = { region, status, sort };
   const statusChips = [
@@ -354,7 +343,7 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             {recruiting.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {recruiting.map((g, i) => (
-                  <MeetingCard key={g.id ?? g.title} g={g} i={i} isMock={listIsMock} />
+                  <MeetingCard key={g.id} g={g} i={i} />
                 ))}
               </div>
             ) : (
@@ -377,12 +366,12 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
           {closed.length > 0 && (
             <section>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-[15px] font-extrabold text-ink">마감된 모임</h2>
+                <h2 className="text-[15px] font-extrabold text-ink">마감·종료된 모임</h2>
                 <span className="text-[12px] font-semibold text-text-3">{closed.length}개</span>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {closed.map((g, i) => (
-                  <MeetingCard key={g.id ?? g.title} g={g} i={i} isMock={listIsMock} />
+                  <MeetingCard key={g.id} g={g} i={i} />
                 ))}
               </div>
             </section>

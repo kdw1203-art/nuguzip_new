@@ -438,3 +438,56 @@ export async function listRegionTransactions(
     return [];
   }
 }
+
+/* ---------- 지역 월별 거래량 (market_region_monthly 읽기 전용) ---------- */
+
+export interface RegionMonthlyVolumeRow {
+  /** yyyymm */
+  month: string;
+  count: number;
+  avgDealAmountKrw: number | null;
+}
+
+/**
+ * 지역 월별 아파트 매매 거래량·평균가 (오름차순).
+ * `market_region_monthly` 집계 테이블(실거래 기반)에서 읽는다 — 타이밍 화면의
+ * "거래량 신호"가 지어낸 숫자가 아니라 이 실측치에서 계산되게 하기 위한 헬퍼.
+ * 주의: 최신 1~2개월은 신고 지연으로 실제보다 적게 잡힐 수 있다(화면에 명기할 것).
+ */
+export async function getRegionMonthlyVolume(
+  regionId: string,
+  regionName: string,
+  limit = 8,
+): Promise<RegionMonthlyVolumeRow[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  try {
+    const { data, error } = await sb
+      .from("market_region_monthly")
+      .select("month, transaction_count, avg_deal_amount_krw, region_name")
+      .in("region_name", transactionNameCandidates(regionId, regionName))
+      .eq("deal_type", "trade")
+      .eq("property_type", "apartment")
+      .order("month", { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    // 같은 월에 표기 다른 후보명이 겹치면 건수 합산
+    const byMonth = new Map<string, RegionMonthlyVolumeRow>();
+    for (const r of data) {
+      const month = String(r.month ?? "");
+      if (!/^\d{6}$/.test(month)) continue;
+      const prev = byMonth.get(month);
+      const count = Number(r.transaction_count ?? 0);
+      const avg = r.avg_deal_amount_krw === null ? null : Number(r.avg_deal_amount_krw);
+      if (!prev) byMonth.set(month, { month, count, avgDealAmountKrw: avg });
+      else {
+        prev.count += count;
+        if (prev.avgDealAmountKrw === null) prev.avgDealAmountKrw = avg;
+      }
+    }
+    return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+  } catch (e) {
+    logger.warn("[market.store] getRegionMonthlyVolume", e);
+    return [];
+  }
+}

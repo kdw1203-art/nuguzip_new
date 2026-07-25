@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
-import { SimulationNotice } from "../../components/ExampleBadge";
-import { getRegionSeries } from "@/lib/market/store";
+import { getRegionSeries, getRegionMonthlyVolume, type RegionMonthlyVolumeRow } from "@/lib/market/store";
 import {
   SEOUL_DISTRICTS,
   METRO_EXPLORE_DISTRICTS,
@@ -13,10 +12,13 @@ import { TimingComplexPicker } from "./complex-picker";
 export const dynamic = "force-dynamic";
 
 /* ============================================================
-   시세·타이밍 분석
+   시세·타이밍 분석 — 전 구간 실데이터.
    - 상단: 지역 선택 → 실제 매매가격지수 시리즈(getRegionSeries) 기반
-     추세·모멘텀 규칙 판정 (실데이터 영역 — 예시 배지 없음)
-   - 하단: 사이클/신호 시뮬레이션 (예시 배지 유지)
+     추세·모멘텀 규칙 판정
+   - 하단 좌: 월별 매매 거래량(market_region_monthly 실측)
+   - 하단 우: 시장 온도 = 지수 모멘텀 + 거래량 추이 합성 (규칙 기반)
+   예전의 하드코딩 사이클 그림·"매수 신호 62/100"은 제거했다 — 구체적인
+   숫자는 실측처럼 읽히므로, 실측이 아니면 그리지 않는다.
    ============================================================ */
 
 const REGION_OPTIONS = [
@@ -117,22 +119,99 @@ function periodLabel(period: string): string {
   return m ? `${m[1].slice(2)}.${m[2]}` : period;
 }
 
-const SEGMENTS = [
-  { left: "0%", bottom: "20%", width: "14%", color: "#c9d4e5", rotate: 0 },
-  { left: "14%", bottom: "32%", width: "16%", color: "#c9d4e5", rotate: -8 },
-  { left: "30%", bottom: "52%", width: "18%", color: "#8fa8dd", rotate: -14 },
-  { left: "48%", bottom: "66%", width: "16%", color: "#8fa8dd", rotate: 0 },
-  { left: "64%", bottom: "56%", width: "16%", color: "#1d4fd8", rotate: 10 },
-  { left: "80%", bottom: "46%", width: "14%", color: "#1d4fd8", rotate: 4 },
-] as const;
+/* ============================================================
+   시장 온도 신호 — 실측치 2개(지수 모멘텀 · 거래량 추이)의 합성.
+   예전 이 자리에는 하드코딩된 "매수 신호 62/100"과 지어낸 근거 3줄
+   ("거래량 회복 초기", "하락 폭 -4.1→-2.1%", "금리 동결 전망")이 있었다.
+   숫자가 구체적일수록 실측처럼 읽히므로, 실측이 아니면 아예 그리지 않는다.
+   금리는 우리가 관측하는 데이터가 아니라서 입력에서 뺐다.
+   ============================================================ */
 
-const SIGNALS = [
-  { label: "거래량 (3개월)", value: "▲ 회복 초기", accent: true },
-  { label: "하락 폭", value: "둔화 (-4.1→-2.1%)", accent: true },
-  { label: "금리 방향", value: "동결 전망", accent: false },
-] as const;
+type MarketTemp = {
+  score: number;
+  headline: string;
+  inputs: { label: string; value: string; accent: boolean }[];
+  volumeNote: string | null;
+};
 
-const ALERTS = ["신호 70 도달 시 알림", "관양동 급매 등록 시 알림"];
+function currentYyyymm(): string {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+/**
+ * 시장 온도(0~100) — 50이 중립. 지수 모멘텀 ±25점 + 거래량 추이 ±25점.
+ * 거래량은 신고 지연이 있는 이번 달을 제외하고, 완결월 4개 이상일 때만 반영한다.
+ */
+function computeMarketTemp(
+  trend: TrendResult | null,
+  volume: RegionMonthlyVolumeRow[],
+): MarketTemp | null {
+  if (!trend) return null;
+  const unit = trend.periodType === "monthly" ? "월" : "주";
+  const recent = mean(trend.changes.slice(-3));
+  const prior = mean(trend.changes.slice(-6, -3));
+  // 월 ±1% 변동을 ±25점 만점으로 환산 (주간이면 ±0.3%)
+  const momScale = trend.periodType === "monthly" ? 25 : 83;
+  const momPts = clamp(recent * momScale, -25, 25);
+
+  const inputs: MarketTemp["inputs"] = [
+    {
+      label: `지수 최근 3개${unit} 평균`,
+      value: `${recent >= 0 ? "+" : ""}${recent.toFixed(2)}%`,
+      accent: recent > 0,
+    },
+    {
+      label: `직전 3개${unit} 평균`,
+      value: `${prior >= 0 ? "+" : ""}${prior.toFixed(2)}%`,
+      accent: false,
+    },
+  ];
+
+  // 거래량: 이번 달(신고 지연) 제외한 완결월만
+  const nowYm = currentYyyymm();
+  const complete = volume.filter((v) => v.month < nowYm);
+  let volPts = 0;
+  let volumeNote: string | null = null;
+  if (complete.length >= 4) {
+    const half = Math.min(3, Math.floor(complete.length / 2));
+    const recentMonths = complete.slice(-half);
+    const priorMonths = complete.slice(-half * 2, -half);
+    const recentSum = recentMonths.reduce((s, v) => s + v.count, 0);
+    const priorSum = priorMonths.reduce((s, v) => s + v.count, 0);
+    if (priorSum > 0) {
+      const deltaPct = ((recentSum - priorSum) / priorSum) * 100;
+      volPts = clamp(deltaPct * 0.5, -25, 25); // ±50% 변화를 ±25점으로
+      inputs.push({
+        label: `거래량 최근 ${half}개월 합`,
+        value: `${recentSum.toLocaleString("ko-KR")}건 (직전 ${priorSum.toLocaleString("ko-KR")}건, ${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)}%)`,
+        accent: deltaPct > 0,
+      });
+    }
+  } else {
+    volumeNote =
+      complete.length > 0
+        ? `거래량 완결월이 ${complete.length}개뿐이라 신호에는 지수 모멘텀만 반영했어요.`
+        : "이 지역의 월별 거래량 집계가 아직 없어 신호에는 지수 모멘텀만 반영했어요.";
+  }
+
+  const score = Math.round(clamp(50 + momPts + volPts, 5, 95));
+  const headline =
+    score >= 65
+      ? "가격·거래 모두 달아오르는 구간"
+      : score >= 55
+        ? "완만한 회복 흐름"
+        : score >= 45
+          ? "방향성 탐색 구간"
+          : score >= 35
+            ? "조정 흐름 지속"
+            : "가격·거래 모두 식은 구간";
+  return { score, headline, inputs, volumeNote };
+}
 
 export default async function TimingPage({
   searchParams,
@@ -142,7 +221,13 @@ export default async function TimingPage({
   const { region, complexId, apt } = await searchParams;
   const selected =
     REGION_OPTIONS.find((r) => r.id === region) ?? REGION_OPTIONS[0];
-  const trend = await loadTrend(selected.id);
+  const [trend, volume] = await Promise.all([
+    loadTrend(selected.id),
+    getRegionMonthlyVolume(selected.id, selected.name, 12),
+  ]);
+  const temp = computeMarketTemp(trend, volume);
+  const nowYm = currentYyyymm();
+  const maxVolCount = Math.max(1, ...volume.map((v) => v.count));
 
   return (
     <PageShell breadcrumb="AI 분석 › 시세·타이밍">
@@ -228,106 +313,120 @@ export default async function TimingPage({
         )}
       </div>
 
-      {/* ── 시뮬레이션 영역 (예시) ── */}
-      <div className="rise-in mb-3">
-        <SimulationNotice />
-      </div>
-
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_400px]">
-        {/* 사이클 차트 */}
+        {/* ── 월별 거래량 (실데이터) — 예전 이 자리의 "관양동 시세 사이클"은
+              좌표를 손으로 찍은 그림이었다. 실측 거래량 막대로 교체. ── */}
         <div className="rise-in-1 card flex flex-col gap-4 rounded-[20px] p-6">
-          <div className="flex items-baseline justify-between">
-            <div className="text-base font-extrabold text-ink">관양동 시세 사이클</div>
-            <div className="flex gap-1.5 text-xs">
-              <span className="chip chip-soft px-3 py-[5px]">3년</span>
-              <span className="px-3 py-[5px] text-text-3">10년</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-base font-extrabold text-ink">
+              {selected.label} 월별 매매 거래량
             </div>
+            <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
+              실데이터 기준
+            </span>
           </div>
-          <div className="relative h-[220px] border-b border-line">
-            <div className="absolute inset-x-0 top-[30%] border-t border-dashed border-[#eef1f6]" />
-            <div className="absolute inset-x-0 top-[60%] border-t border-dashed border-[#eef1f6]" />
-            {SEGMENTS.map((s, i) => (
-              <div
-                key={i}
-                className="absolute h-[3px] rounded-[2px]"
-                style={{
-                  left: s.left,
-                  bottom: s.bottom,
-                  width: s.width,
-                  background: s.color,
-                  transform: s.rotate ? `rotate(${s.rotate}deg)` : undefined,
-                  transformOrigin: "left",
-                }}
-              />
-            ))}
-            <div className="absolute bottom-[40%] left-[86%] h-3.5 w-3.5 rounded-full border-[3px] border-white bg-primary shadow-[0_4px_12px_rgba(29,79,216,.4)]" />
-            <div className="absolute left-[64%] top-[6%] rounded-lg bg-[rgba(25,31,40,.92)] px-2.5 py-1.5 text-[11px] font-bold text-white">
-              현재: 하락 후반 → 바닥 다지기 구간
+          {volume.length > 0 ? (
+            <>
+              <div className="flex h-[200px] items-end gap-2 border-b border-line pb-px">
+                {volume.map((v) => {
+                  const h = 8 + Math.round((v.count / maxVolCount) * 88);
+                  const isCurrentMonth = v.month >= nowYm;
+                  return (
+                    <div key={v.month} className="flex flex-1 flex-col items-center gap-1">
+                      <span className="text-[10px] font-bold text-text-2">
+                        {v.count.toLocaleString("ko-KR")}
+                      </span>
+                      <div
+                        title={`${v.month.slice(0, 4)}.${v.month.slice(4)} · ${v.count}건`}
+                        className="w-full rounded-t-[4px]"
+                        style={{
+                          height: `${h}%`,
+                          background: isCurrentMonth ? "#c9d4e5" : "#1d4fd8",
+                        }}
+                      />
+                      <span className="text-[10px] text-text-3">
+                        {v.month.slice(2, 4)}.{v.month.slice(4)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-[10px] leading-[1.5] text-text-3">
+                국토교통부 실거래 집계 · 이번 달(연한 막대)과 직전 월은 신고 지연(계약 후
+                30일 이내 신고)으로 실제보다 적게 표시될 수 있어요.
+              </div>
+            </>
+          ) : (
+            <div className="rounded-[12px] bg-bg px-3 py-3 text-xs text-text-3">
+              {selected.label}의 월별 거래량 집계가 아직 없어요. 실거래 수집이 쌓이면
+              자동으로 표시됩니다.
             </div>
-          </div>
-          <div className="flex justify-between text-[11px] text-text-3">
-            <span>2023</span>
-            <span>2024</span>
-            <span>2025</span>
-            <span>2026</span>
-          </div>
-          <Link
-            href="/analysis/cycle"
-            className="self-start text-xs font-bold text-primary no-underline"
-          >
-            공작아파트 84㎡ 사이클 전망 상세 ›
-          </Link>
+          )}
         </div>
 
         {/* 우측 */}
         <div className="flex flex-col gap-4">
-          <div className="rise-in-2 ai-panel flex flex-col gap-3 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
-            <div className="flex items-center gap-2">
-              <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
-              <span className="text-sm font-extrabold text-white">타이밍 신호</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[5px] text-base font-extrabold text-ai-accent"
-                style={{
-                  borderColor: "rgba(126,162,255,.25)",
-                  borderTopColor: "#7ea2ff",
-                  borderRightColor: "#7ea2ff",
-                }}
-              >
-                62
-              </div>
-              <div className="text-xs leading-[1.6] text-ai-text">
-                매수 신호 62/100 — 거래량 회복 초기 + 하락 폭 둔화.{" "}
-                <b className="text-white">급할 필요는 없지만 후보를 좁힐 시기</b>입니다.
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {SIGNALS.map((s) => (
-                <div
-                  key={s.label}
-                  className="flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs"
-                >
-                  <span className="text-ai-muted">{s.label}</span>
-                  <span className={`font-bold ${s.accent ? "text-ai-accent" : "text-ai-text"}`}>
-                    {s.value}
-                  </span>
+          {temp ? (
+            <div className="rise-in-2 ai-panel flex flex-col gap-3 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
+                  <span className="text-sm font-extrabold text-white">시장 온도</span>
                 </div>
-              ))}
-            </div>
-            <div className="text-[9px] leading-[1.5] text-ai-muted">
-                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
+                <span className="rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted">
+                  규칙 기반 · 실데이터 입력
+                </span>
               </div>
-          </div>
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[5px] text-base font-extrabold text-ai-accent"
+                  style={{
+                    borderColor: "rgba(126,162,255,.25)",
+                    borderTopColor: "#7ea2ff",
+                    borderRightColor: "#7ea2ff",
+                  }}
+                >
+                  {temp.score}
+                </div>
+                <div className="text-xs leading-[1.6] text-ai-text">
+                  {selected.label} 시장 온도 {temp.score}/100 —{" "}
+                  <b className="text-white">{temp.headline}</b>. 50이 중립이며, 아래
+                  실측 지표에서 계산됩니다.
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {temp.inputs.map((s) => (
+                  <div
+                    key={s.label}
+                    className="flex justify-between gap-2 rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs"
+                  >
+                    <span className="shrink-0 text-ai-muted">{s.label}</span>
+                    <span className={`text-right font-bold ${s.accent ? "text-ai-accent" : "text-ai-text"}`}>
+                      {s.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {temp.volumeNote && (
+                <div className="text-[10px] leading-[1.5] text-ai-muted">{temp.volumeNote}</div>
+              )}
+              <div className="text-[9px] leading-[1.5] text-ai-muted">
+                지수 모멘텀(±25점)과 거래량 추이(±25점)를 50점 기준에 더한 값입니다.
+                매수·매도 추천이 아니며, 본 분석은 참고용으로 투자 판단의 책임은
+                이용자에게 있습니다.
+              </div>
+            </div>
+          ) : (
+            <div className="rise-in-2 card rounded-[20px] p-5 text-xs text-text-3">
+              이 지역은 지수 시계열이 아직 없어 시장 온도를 계산할 수 없어요.
+            </div>
+          )}
 
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[20px] p-5">
             <div className="text-sm font-extrabold text-ink">알림 설정</div>
-            {/* 장식용 가짜 토글 제거 — 실제 알림 설정으로 연결 */}
-            {ALERTS.map((a) => (
-              <div key={a} className="text-[13px] text-text-1">
-                · {a}
-              </div>
-            ))}
+            <div className="text-[12px] leading-[1.6] text-text-2">
+              관심 지역의 실거래 등록·시세 변동 알림을 받아보세요.
+            </div>
             <Link
               href="/notifications"
               className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
