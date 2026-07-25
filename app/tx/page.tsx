@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
-import { listTxRegions, type TxRegionSummary } from "@/lib/market/tx-bands";
+import {
+  getTxCoverage,
+  listTxRegions,
+  MIN_BAND_TX,
+  type TxRegionSummary,
+} from "@/lib/market/tx-bands";
 import { formatYmRange } from "@/lib/market/format";
 import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -19,10 +24,11 @@ const PATH = "/tx";
 
 export async function generateMetadata(): Promise<Metadata> {
   const regions = await listTxRegions().catch(() => [] as TxRegionSummary[]);
+  // 구간에 정리된 건수. 전체 신고분과 다를 수 있어 문장에서도 "정리했다"로 쓴다.
   const total = regions.reduce((s, r) => s + r.txCount, 0);
   const description =
     regions.length > 0
-      ? `국토교통부 아파트 매매 실거래 ${total.toLocaleString("ko-KR")}건을 ${regions.length}개 지역 × 면적대·가격대로 나눠 봅니다. 신고 기준 ${formatYmRange(
+      ? `국토교통부 아파트 매매 실거래 ${total.toLocaleString("ko-KR")}건을 ${regions.length}개 지역 × 면적대·가격대 구간으로 정리했습니다. 신고 기준 ${formatYmRange(
           regions.reduce<string | null>((a, r) => (r.firstYm && (!a || r.firstYm < a) ? r.firstYm : a), null),
           regions.reduce<string | null>((a, r) => (r.latestYm && (!a || r.latestYm > a) ? r.latestYm : a), null),
         )}. 매물 호가가 아닙니다.`
@@ -43,6 +49,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TxIndexPage() {
   const regions = await listTxRegions().catch(() => [] as TxRegionSummary[]);
   const total = regions.reduce((s, r) => s + r.txCount, 0);
+  // 커버리지: 구간에 정리된 건수(total)와 면적대 셀 전체 합을 분리해서 받는다.
+  // 둘이 다르면 그 차이를 감추지 않고 문장으로 드러낸다 — 아래 uncovered 참고.
+  const coverage = await getTxCoverage().catch(() => null);
+  const uncovered = coverage ? Math.max(0, coverage.totalTx - coverage.coveredTx) : 0;
   const firstYm = regions.reduce<string | null>(
     (a, r) => (r.firstYm && (!a || r.firstYm < a) ? r.firstYm : a),
     null,
@@ -71,11 +81,21 @@ export default async function TxIndexPage() {
           <>
             {" "}
             현재 <strong className="text-ink">{regions.length}개 지역</strong> ·{" "}
-            <strong className="text-ink">{total.toLocaleString("ko-KR")}건</strong>
-            {range && ` (${range} 신고 기준)`}.
+            <strong className="text-ink">{total.toLocaleString("ko-KR")}건</strong>이
+            구간으로 정리돼 있습니다{range && ` (${range} 신고 기준)`}.
           </>
         )}{" "}
         매물 호가가 아니라 실제 체결·신고된 금액입니다.
+        {uncovered > 0 && coverage && (
+          <>
+            {" "}
+            같은 기간 면적이 확인된 신고분{" "}
+            <strong className="text-ink">{coverage.totalTx.toLocaleString("ko-KR")}건</strong> 가운데,
+            구간당 {MIN_BAND_TX}건에 못 미쳐 페이지를 만들지 않은{" "}
+            <strong className="text-ink">{uncovered.toLocaleString("ko-KR")}건</strong>은 위 숫자에서
+            빠져 있습니다.
+          </>
+        )}
       </p>
 
       {regions.length === 0 ? (
@@ -126,7 +146,9 @@ export default async function TxIndexPage() {
             현재 가격을 뜻하지 않습니다.
           </li>
           <li>
-            · 거래 10건 미만 구간은 평균이 한두 건에 흔들려 페이지를 만들지 않습니다.
+            · 거래 {MIN_BAND_TX}건 미만 구간은 평균이 한두 건에 흔들려 페이지를 만들지 않습니다.
+            그 구간의 거래는 위 합계에도 포함하지 않았습니다 — 없는 거래가 아니라, 평균을
+            내기에 표본이 모자란 구간입니다.
           </li>
         </ul>
       </section>

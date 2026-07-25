@@ -21,7 +21,21 @@ import {
       "weekly" 는 근거 없는 추측이었다. priority 는 우리 쪽 상대 중요도 표현이라
       사실 주장이 아니므로 유지한다. */
 
-export const dynamic = "force-dynamic";
+/* ── 왜 force-dynamic 을 걷어냈나 (실측 근거) ──────────────────────────
+   운영에서 /sitemap.xml 응답 헤더를 재보니 미들웨어가 붙이는 크롤러 캐시 정책
+   (`public, max-age=0, s-maxage=3600, stale-while-revalidate=86400`) 이 아니라
+   `public, max-age=0, must-revalidate` 가 나왔고 `x-vercel-cache: MISS` 였다.
+   force-dynamic 라우트에 Next 가 자기 헤더를 얹으면서 미들웨어 값을 덮은 것이다.
+   같은 시각 /robots.txt 는(정적 생성) 크롤러 정책이 그대로 붙어 있었다.
+
+   결과적으로 크롤러가 사이트맵을 칠 때마다 5,615개 URL(약 980KB)을 DB 조회
+   네 번으로 매번 새로 만들고 있었다. 사이트맵 원본은 하루 단위로 바뀌므로
+   ISR 1시간이면 충분하다. 실패해도 블록별로 비우고 나머지는 그대로 내는 기존
+   방어는 유지되고, 최대 1시간이면 스스로 회복한다.
+
+   주의: 이 값은 "언제 다시 만드느냐"일 뿐 내용을 지어내지 않는다. 조회에
+   실패한 블록은 여전히 비워서 낸다 — 없는 URL 을 사이트맵에 올리지 않는다. */
+export const revalidate = 3600;
 
 const BASE_URL = "https://nuguzip.com";
 

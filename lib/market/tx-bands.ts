@@ -202,7 +202,11 @@ export async function listBandCells(minTx = MIN_BAND_TX): Promise<BandCell[]> {
 export type TxRegionSummary = {
   name: string;
   slug: string;
-  /** 면적대 셀 기준 총 거래 건수 = 그 지역 전체 매매 건수 */
+  /**
+   * 면적대 셀 기준 거래 건수. **그 지역 전체 매매 건수가 아니다** — `minTx`(기본 10건)
+   * 미만이라 페이지를 만들지 않은 구간의 거래는 여기서 빠진다. 화면에 "전체 신고분"
+   * 처럼 쓰면 사실과 어긋난다. 전체 대비 커버리지는 `getTxCoverage()` 로 얻는다.
+   */
   txCount: number;
   complexCount: number;
   areaCells: BandCell[];
@@ -263,6 +267,38 @@ export async function listTxRegions(minTx = MIN_BAND_TX): Promise<TxRegionSummar
   }
 
   return [...map.values()].sort((a, b) => b.txCount - a.txCount || a.name.localeCompare(b.name, "ko"));
+}
+
+export type TxCoverage = {
+  /** 구간 페이지를 가진 지역 수 */
+  regions: number;
+  /** 구간(면적대, minTx 이상)에 실제로 정리된 거래 건수 */
+  coveredTx: number;
+  /** 같은 집계의 면적대 셀 전체 합 = 면적이 확인된 매매 신고분 전량 */
+  totalTx: number;
+};
+
+/**
+ * 커버리지 — "정리된 건수"와 "전체 신고분"을 분리해서 돌려준다.
+ *
+ * 왜 필요한가: `/tx` 는 지역 카드의 `txCount` 합을 그대로 "N건"으로 찍고 있었는데,
+ * 그 합은 10건 미만이라 구간을 만들지 않은 거래가 빠진 값이다. 실측으로 21,789건이
+ * 찍혔지만 같은 기간 면적대 셀 전체 합은 21,960건이었다 — 171건 차이. 숫자 자체는
+ * 집계에서 나온 진짜 값이지만, 문장이 "실거래 신고분"을 가리키면 171건을 없는 것처럼
+ * 만든다. 두 값을 같이 노출해 그 차이를 화면에서 드러낸다.
+ *
+ * 추가 쿼리는 없다. `loadAllCells()` 가 이미 필터 이전의 전체 셀을 캐시하고 있어
+ * 필터링 여부만 다르게 집계한다.
+ */
+export async function getTxCoverage(minTx = MIN_BAND_TX): Promise<TxCoverage> {
+  const all = await loadAllCells();
+  const areaCells = all.filter((c) => c.kind === "area");
+  const kept = areaCells.filter((c) => c.txCount >= minTx);
+  return {
+    regions: new Set(all.filter((c) => c.txCount >= minTx).map((c) => c.regionName)).size,
+    coveredTx: kept.reduce((s, c) => s + c.txCount, 0),
+    totalTx: areaCells.reduce((s, c) => s + c.txCount, 0),
+  };
 }
 
 /** 슬러그 → 지역 요약. DB 에 있는 지역만 통과시킨다(임의 문자열은 null → 404). */
