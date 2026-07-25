@@ -15,6 +15,17 @@
 
 **표 범례** — 현황: 있음 / 부분 / 없음 · 우선순위: P0 / P1 / P2 · 난이도: S(며칠) / M(1~2 스프린트) / L(설계·파이프라인) · 키의존: 없음 / PG키 / 광고계정 / API키.
 
+> **현황 열의 신뢰 범위 (2026-07-25 기준).** 이 표의 "현황"은 한동안 코드보다 뒤처져 있었다 —
+> 실제로는 배포까지 끝난 항목이 문서에는 "부분"으로 남아 있는 경우가 많았다. 그래서 이번에
+> 코드를 직접 확인한 행에는 근거(파일 경로 또는 커밋 해시)를 설명 칸에 적었다.
+>
+> - **근거를 붙여 재검증한 구간:** A5·A7, **B1~B4·B7~B10**, **D1~D6** (+ 이전 회차의 D7~D9).
+> - **아직 재검증하지 않은 구간:** A1~A4·A6·A8~A10, **C 전체**, **E 전체**, **F~J 대부분**.
+>   이 행들의 "부분/없음"은 *마지막으로 적힌 시점의 기록*이지 오늘 확인한 사실이 아니다.
+>   착수 전에 반드시 코드를 먼저 확인할 것 — "부분"이라 적혀 있어도 이미 끝나 있을 수 있다.
+> - **문서보다 나쁜 쪽으로 정정된 행:** B3(디렉터리 자체가 없어 신규 구축), D10(안전등급 미연동 —
+>   `app/complex/[id]/page.tsx` 가 의도적으로 `safety: "—"` 를 쓴다. 허위 등급을 만들지 않기 위해서다).
+
 ---
 
 ## 1. 고객 이용률·전환 (Acquisition / Activation)
@@ -27,9 +38,9 @@
 | A2 | "3분 첫 임장노트" 활성화 퍼널 | 부분 | P0 | S | 없음 | 온보딩 `inspection` 스텝을 홈 히어로 위젯으로 승격, `inspection_notes` 0건 사용자에게 우선 노출. |
 | A3 | 비로그인 액션 → 소프트 가입 프롬프트 | 부분 | P1 | M | 없음 | 지도에서 워치리스트/비교 담기 클릭 시 `share_link_copy` 등 퍼널 이벤트와 함께 경량 회원가입 유도. |
 | A4 | 초대 OG 공유카드 렌더 | 부분 | P1 | S | 없음 | `/invite/[code]` 초대자·"둘 다 300P"를 `app/api/og`로 이미지화해 카톡 공유 CTR 향상(현재 `ref_code` 쿠키만 존재). |
-| A5 | 실거래 기반 SEO 랜딩 확장 | 부분 | P1 | M | 없음 | `sitemap.ts` 단지 2,000 + 지역 61(`/region`)에 더해 면적대·가격대 검색 랜딩을 프로그래매틱 생성. |
+| A5 | 실거래 기반 SEO 랜딩 확장 | 완료 | P1 | M | 없음 | `/tx` · `/tx/[region]` · `/tx/[region]/[kind]/[band]` 로 면적대·가격대 랜딩을 프로그래매틱 생성한다(커밋 `6b7c43a`). 집계는 `market_agg` MV 로 고정했고(`7f59d79`), 건수 표기를 커버리지와 분리해 "수집한 만큼"이 "전부"처럼 읽히지 않게 했다(`1005689`). |
 | A6 | 온보딩 완주 보상 진행바 | 부분 | P1 | S | 없음 | `onboarding_complete` 200P 적립(있음)을 `/my`에 3/3 진행바로 시각화해 완주율 상승. |
-| A7 | A/B 실험 프레임워크 | 없음 | P2 | L | 없음 | open-beta 체크리스트에 todo로 남은 실험 프레임을 `platform_activity_events`에 variant 태그로 도입. |
+| A7 | A/B 실험 프레임워크 | 완료 | P2 | L | 없음 | `lib/experiments/`(registry·assign·server·client·results) + `app/admin/experiments` 결과 화면. 커밋 `97a92d9`. |
 | A8 | 검색 무결과 → 대안 제안 | 없음 | P1 | M | 없음 | `/search` 무결과 시 `apartment_complexes` 42k에서 인접 지역·유사 단지를 추천해 이탈 차단. |
 | A9 | 공개 임장노트 → 전환 훅 | 부분 | P1 | S | 없음 | `/notes/[id]` 하단에 "이 단지 워치리스트+알림" 로그인 유도(공개노트는 이미 sitemap 색인). |
 | A10 | 무료 가치 카운터로 업그레이드 유도 | 부분 | P1 | S | 없음 | `usage-summary`의 AI 요약 월 3회 잔여를 노출해 결제 전 가치 증명(구독 강매 아닌 자연 유도). |
@@ -40,16 +51,16 @@
 
 | 번호 | 방안 | 현황 | 우선순위 | 난이도 | 키의존 | 설명 |
 |---|---|---|---|---|---|---|
-| B1 | 저장검색 알림 러너 완성 | 부분 | P0 | M | 없음 | `saved_searches`의 `alert_enabled`/`last_checked_at`/`last_match_count`가 스키마·UI만 있고 도는 cron이 없음 — `price-alerts` cron 패턴으로 러너 신설. |
-| B2 | 포인트 시스템 단일화 | 부분 | P0 | M | 없음 | `point_ledger`(캡·만료 정본)와 `user_points`/`user_attendance`가 이중 적립(출석 라우트가 둘 다 호출) — 원장 단일화로 잔액 불일치 제거. |
-| B3 | 게이미피케이션 서버 지속화 | 부분 | P1 | L | 없음 | `lib/gamification`이 localStorage 전용(XP·레벨·뱃지) — 서버/`point_ledger` 연동으로 크로스디바이스·되돌리기 방지. |
-| B4 | 관심단지 실거래 웹푸시 | 부분 | P1 | S | 없음 | 워치리스트 price-alert가 inbox+SMS만 발송 — 이미 있는 VAPID/`sw.js`/`push_subscriptions`로 푸시 채널 추가. |
+| B1 | 저장검색 알림 러너 완성 | 완료 | P0 | M | 없음 | `app/api/cron/saved-search-alerts/route.ts` 가 실제로 존재하고 `.github/workflows/etl.yml` 의 `alerts` 잡(매일 09:00 UTC = 18:00 KST)이 호출한다. 문서가 "cron 없음"이라고 적혀 있던 것은 오래된 기록이다. |
+| B2 | 포인트 시스템 단일화 | 완료 | P0 | M | 없음 | 출석 라우트의 이중 적립을 제거해 적립을 원장(`point_ledger`) 단독으로 일원화했다(`lib/points/store-db.ts` checkIn 주석 참조 — 여기서는 출석·스트릭만 기록). 폐기된 `user_points` 를 읽던 `addPoints`/`getPoints`/`getPointsHistory` 는 importer 0 상태로 남아 있다가 삭제됐다. |
+| B3 | 게이미피케이션 서버 지속화 | 없음 | P1 | L | 없음 | **문서보다 나쁜 쪽으로 정정.** `lib/gamification/` 디렉터리 자체가 없다(커밋 `66e54a2` 계열 정리에서 제거). localStorage 구현을 서버로 "옮기는" 작업이 아니라 XP·레벨·뱃지를 처음부터 새로 만드는 작업이다. 착수 전 이 사실을 전제로 견적을 다시 잡아야 한다. |
+| B4 | 관심단지 실거래 웹푸시 | 완료 | P1 | S | 없음 | `app/api/cron/price-alerts/route.ts` 가 `sendPush` 를 호출한다(inbox·SMS 외 웹푸시 채널 추가됨). |
 | B5 | 신규매물 알림 다채널화 | 부분 | P1 | S | 없음 | `notifyNewListingSubscribers`가 inbox-only — Resend 이메일·웹푸시 인프라 재사용으로 도달률 향상. |
 | B6 | 출석 스트릭 리텐션 루프 | 부분 | P1 | S | 없음 | `user_attendance` streak를 홈 위젯+리마인드로 노출(B2 단일화와 함께). |
-| B7 | 주간 개인화 다이제스트 | 부분 | P1 | M | 없음 | 워치리스트 단지의 실거래·시세 변동을 기존 `digest` 인프라로 주 1회 이메일 발송. |
-| B8 | 최근 본 단지 서버 동기화 | 부분 | P2 | S | 없음 | localStorage `nz_recent_complexes`(구현됨)를 로그인 시 서버 저장해 재방문 첫 화면 개인화. |
-| B9 | 이탈 위험 세그먼트 리마인드 | 없음 | P2 | M | 없음 | `platform_activity_events`로 N일 미방문 사용자에게 미완 임장노트·관심단지 알림. |
-| B10 | 인앱 알림 딥링크·읽음 정합 | 부분 | P1 | S | 없음 | `user_inbox_notifications`의 `actionUrl` 정합성(전문가 `/me?tab=expert` 데드링크 수정) + 읽음 배지. |
+| B7 | 주간 개인화 다이제스트 | 부분 | P1 | M | Resend | **발송 경로는 생겼고, 남은 것은 "개인화"와 "이메일"이다.** `/digest` 화면은 "알림 설정에서 켜면 매주 보내드려요"라고 안내하면서 정작 켤 설정도 보내는 크론도 없는 상태였다 — 지킬 수 없는 약속이었다. 지금은 옵트인 스위치(`notification_preferences.push_weekly_digest`, 기본 false)와 `app/api/cron/weekly-digest`(월요일 18:00 KST, 수신함+웹푸시)가 있고, 그 주 수집분이 0이면 `skipped:"empty"` 로 아무것도 보내지 않는다. 아직 **전체 공통 요약**이며 워치리스트 단지별 개인화가 아니고, 이메일 채널은 발신 도메인 미구성으로 빠져 있다. |
+| B8 | 최근 본 단지 서버 동기화 | 완료 | P2 | S | 없음 | 기록(`/complex/[id]` → POST)·서버 병합 조회(`/api/me/recent-complexes`)에 더해 **읽는 화면**이 생겼다. 그 전까지 읽기 컴포넌트(`RecentComplexChips`)의 importer 가 0이라 기록만 쌓이고 아무 데도 안 보였다. 홈 히어로의 "이어서 보기" 패널(`app/components/HomeResumePanel.tsx`)이 `useRecentComplexes()` 로 같은 경로를 쓴다. |
+| B9 | 이탈 위험 세그먼트 리마인드 | 완료 | P2 | M | 없음 | **문서보다 앞서 있던 항목.** `app/api/cron/reengage-reminders/route.ts` + `lib/reengagement/candidates.ts` 로 구현되어 있고, 화요일 18:00 KST 주 1회(사람당 쿨다운 30일) 수신함+웹푸시로 나간다. `pushReengagement` 로 끌 수 있다. |
+| B10 | 인앱 알림 딥링크·읽음 정합 | 완료 | P1 | S | 없음 | 없는 라우트 `/me` 로 가던 딥링크를 정리했고(커밋 `66e54a2`), 읽음 배지는 `app/api/notifications/unread-count/route.ts` 로 집계한다. |
 
 ## 3. 지도 고도화 (Map UX / Features)
 
@@ -74,12 +85,12 @@
 
 | 번호 | 방안 | 현황 | 우선순위 | 난이도 | 키의존 | 설명 |
 |---|---|---|---|---|---|---|
-| D1 | 단지 허브 실거래 차트 | 부분 | P0 | M | 없음 | `/complex/[id]` 텍스트 리스트를 recharts 월별 추이 차트로(`market_transactions`/`complex_transactions`), 차트는 현재 `/complex/tx`에만 존재. |
-| D2 | Q&A 단지 상세 임베드 | 부분 | P1 | S | 없음 | `complex_questions`/`complex_answers`(lib/qna 존재)를 허브 탭으로 임베드(현재 `/qna` 분리). |
-| D3 | 정비사업 배지·섹션 | 부분 | P1 | M | 없음 | 인근 `redevelopment_projects`(40건)를 단지 상세에 표시(현재 지도·전용 페이지만). |
-| D4 | 입주물량 캘린더 연동 | 부분 | P1 | M | 없음 | `apartment_supply`(675건) 인근 공급을 "향후 공급" 블록으로 상세에 노출. |
-| D5 | 면적대별 시세표 허브 승격 | 부분 | P1 | S | 없음 | `/complex/tx`의 면적대별 시세 표를 허브 요약으로 승격. |
-| D6 | 지역 대비 상대 위치 | 부분 | P1 | M | 없음 | `market_region_price`/`market_region_series`로 "이 동네 대비" 상대 지표 표시. |
+| D1 | 단지 허브 실거래 차트 | 완료 | P0 | M | 없음 | `app/complex/[id]/PriceTrendChart.tsx`. recharts 대신 **인라인 SVG** 로 그렸다 — 차트 하나 때문에 번들에 라이브러리를 얹지 않기 위해서다(성능 예산). 해제분 제외한 `market_transactions` 실거래만 쓴다. 커밋 `061b085`. |
+| D2 | Q&A 단지 상세 임베드 | 완료 | P1 | S | 없음 | `app/complex/[id]/ComplexQna.tsx` — 해당 단지의 실 질문만, 없으면 첫 질문 유도 CTA(가짜 Q&A 없음). 커밋 `005d122`. |
+| D3 | 정비사업 배지·섹션 | 완료 | P1 | M | 없음 | `app/complex/[id]/NearbyRedevelopment.tsx` — 단지 소재 시군구의 실 `redevelopment_projects` 만, 시드 폴백 없이 없으면 섹션 자체를 생략. 커밋 `005d122`. |
+| D4 | 입주물량 캘린더 연동 | 완료 | P1 | M | 없음 | `app/complex/[id]/UpcomingSupply.tsx` — 인근 `apartment_supply` 실데이터, 없으면 렌더 생략. 커밋 `005d122`. |
+| D5 | 면적대별 시세표 허브 승격 | 완료 | P1 | S | 없음 | `app/complex/[id]/ComplexAreaBands.tsx` — 국토부 실거래 기준 면적 구간별 최근가·평균가. 커밋 `8269feb`. |
+| D6 | 지역 대비 상대 위치 | 완료 | P1 | M | 없음 | `app/complex/[id]/RegionRelative.tsx` — 단지 ㎡당 시세를 소재 구 평균(REB 실집계)과 비교. 커밋 `a6351cb`. |
 | D7 | 두 데이터 모델 정합 | 완료(설계 수정) | P0 | L | 없음 | **원안은 실행 불가였다.** `public.complexes` 테이블은 존재하지 않고(단지 신원은 `lib/complex/complex-store.ts`가 `encodeComplexId(region, name)`로 `market_transactions`에서 파생), `apartment_complexes`에는 `kapt_code`도 좌표 컬럼도 없다(8컬럼, kaptCode는 `metadata` JSON 안). 즉 "`kapt_code`/좌표로 매핑"할 대상 자체가 없다. 실제로 한 일: `apartment_complexes` 조회를 `source_key='k-apt-basic'`(실 단지 대장 21,658행)으로 스코프해 별칭·식별자 17,704행이 단지처럼 검색되던 것을 차단하고, `search_complexes` RPC에 지역 검증을 넣었다. 잔여 위험은 F4가 계측한다 — 같은 구 동명 단지 152군(주소가 같은 군은 0)이 이름 기반 신원 때문에 한 페이지로 합쳐진다. |
 | D8 | 매물 탭 실연동 | 완료 | P1 | S | 없음 | 허브 "매물" 탭이 `hub-client.tsx`에서 실제 `listings`를 렌더한다. `public.listings`는 현재 0행이라 화면은 "등록된 실매물이 아직 없어요 · 지도에서 주변 매물을 확인해 보세요" 빈 상태를 보여준다 — 숫자를 지어내지 않는다. |
 | D9 | 거주민 후기 신뢰 카드 | 완료(범위 조정) | P2 | S | 없음 | 요약 카드(전체 평균 + 소음·주차·관리·이웃·교통 항목별 평균)와 실거주/방문/거주시기 배지는 `ComplexReviews.tsx`에 있었는데 **정렬이 도움돼요 수만 봤다** — 배지를 붙여 놓고 순서로는 무시해 신뢰 신호가 장식이었다. 실거주 > 방문 > 도움돼요 > 최신 순으로 바꾸고(메모리 폴백 비교자까지 동일), 그 사실을 섹션 안내 문구에 적었다. **"상세 상단"으로 올리지는 않았다** — `complex_reviews` 0행 상태에서 빈 카드를 실거래 위에 두면 사실이 있는 자리를 사실 없는 카드가 차지한다. 후기가 쌓이면 승격한다. |
