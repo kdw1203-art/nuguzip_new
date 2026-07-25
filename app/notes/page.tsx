@@ -5,8 +5,16 @@ import {
 } from "@/lib/inspection/store-db";
 import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 시안 7a — 공개 임장노트 피드. 실데이터: inspection_notes(is_public) → listPublicNotes */
+
+export const metadata = buildPageMetadata({
+  title: "임장노트",
+  description:
+    "직접 다녀온 사람이 남긴 공개 임장노트. 단지별 항목 점수와 현장 메모를 모아 봅니다.",
+  path: "/notes",
+});
 
 export const revalidate = 120;
 

@@ -308,30 +308,49 @@ const NOINDEX_ROUTES = new Set([
   "admin", "login", "signup", "forgot-password", "reset-password",
   "notifications", "messages", "my", "apply", "seller", "points", "welcome",
 ]);
+/* 리다이렉트 전용 스텁(예: /discover → /town)은 세지 않는다.
+   redirect() 하는 페이지는 렌더된 적이 없으니 <head> 도 나간 적이 없다.
+   여기에 metadata 를 달면 검사기만 초록으로 만드는 죽은 코드가 된다. */
+const isRedirectStub = (src) => {
+  const body = stripComments(src);
+  return /\b(permanentRedirect|redirect)\s*\(/.test(body) && !/<[A-Za-z/]/.test(body);
+};
+
+/* metadata 는 page.tsx 뿐 아니라 같은 폴더 layout.tsx 에 있어도 유효하다.
+   "use client" 페이지(/safety)는 클라이언트 모듈에서 metadata 를 내보낼 수
+   없어 서버 컴포넌트인 중첩 레이아웃에 얹는 게 Next 의 정석 경로다. */
+const META_RE = /export const metadata|generateMetadata/;
+const hasMeta = (route) =>
+  META_RE.test(srcOf(path.join("app", route, "page.tsx")) ?? "") ||
+  META_RE.test(srcOf(path.join("app", route, "layout.tsx")) ?? "");
+
 const appDir = path.join(ROOT, "app");
 const publicRoutes = [];
+const redirectStubs = [];
 if (fs.existsSync(appDir)) {
   for (const e of fs.readdirSync(appDir, { withFileTypes: true })) {
     if (!e.isDirectory()) continue;
     if (e.name === "api" || e.name === "components" || e.name.startsWith("(")) continue;
     if (NOINDEX_ROUTES.has(e.name)) continue;
-    if (!fs.existsSync(path.join(appDir, e.name, "page.tsx"))) continue;
+    const pageSrc = srcOf(path.join("app", e.name, "page.tsx"));
+    if (pageSrc === null) continue;
+    if (isRedirectStub(pageSrc)) { redirectStubs.push(e.name); continue; }
     publicRoutes.push(e.name);
   }
 }
-const noMeta = publicRoutes.filter((r) => {
-  const s = srcOf(path.join("app", r, "page.tsx")) ?? "";
-  return !/export const metadata|generateMetadata/.test(s);
-});
+const noMeta = publicRoutes.filter((r) => !hasMeta(r));
+const stubNote = redirectStubs.length
+  ? ` · 리다이렉트 스텁 제외: ${redirectStubs.join(", ")}`
+  : "";
 if (publicRoutes.length === 0) {
   warn("SEO", "공개 라우트 metadata", "최상위 공개 라우트를 못 찾음");
 } else if (noMeta.length === 0) {
-  pass("SEO", "공개 라우트 metadata", `${publicRoutes.length}개 전부 보유`);
+  pass("SEO", "공개 라우트 metadata", `${publicRoutes.length}개 전부 보유${stubNote}`);
 } else {
   warn(
     "SEO",
     "공개 라우트 metadata",
-    `${publicRoutes.length - noMeta.length}/${publicRoutes.length} 보유 · 누락: ${noMeta.join(", ")}`,
+    `${publicRoutes.length - noMeta.length}/${publicRoutes.length} 보유 · 누락: ${noMeta.join(", ")}${stubNote}`,
   );
 }
 

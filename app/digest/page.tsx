@@ -2,6 +2,14 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { HouseMark } from "@/app/components/Logo";
 import { getWeeklyDigest, type DigestDeltaTone } from "@/lib/newui/digest";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+export const metadata = buildPageMetadata({
+  title: "주간 다이제스트",
+  description:
+    "최근 7일 부동산 뉴스, 지역 시세 변동, 이웃 글을 한 장으로 요약합니다. 실제 수집된 데이터만 싣습니다.",
+  path: "/digest",
+});
 
 /* ============================================================
    주간 다이제스트 (#86) — 최근 7일 실데이터 요약

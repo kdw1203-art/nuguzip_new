@@ -11,6 +11,14 @@ import { TownFeed, type FeedCard } from "./feed-client";
 import { AdSlot } from "../components/ads/AdSlot";
 import type { Post } from "@/lib/types/post";
 import { TownCategoryNav } from "./TownCategoryNav";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+export const metadata = buildPageMetadata({
+  title: "동네 이야기",
+  description:
+    "우리 동네 커뮤니티 글과 공개 임장노트를 한 피드에서. 사진으로 먼저 보고 관심 단지로 이어집니다.",
+  path: "/town",
+});
 
 /* 동네이야기 통합 피드(#5) — 기존 피드 + 발견 피드를 하나로 합친 사진 우선 카드 그리드.
    공개 임장노트(사진 우선) + 커뮤니티 글을 섞어 오늘의집/인스타그램형으로 노출.

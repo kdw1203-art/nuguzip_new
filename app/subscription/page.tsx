@@ -4,6 +4,14 @@ import { safeAuth } from "@/lib/safe-auth";
 import { loadMeProfile } from "@/lib/me/profile";
 import { BILLING_PERIOD_PRICES, periodPrice } from "@/lib/subscriptions/billing-periods";
 import { PlanCards, type TierPricing } from "./PlanCards";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+export const metadata = buildPageMetadata({
+  title: "요금제",
+  description:
+    "무료·프로·전문가 플랜의 기능 차이와 월간/연간 가격을 비교합니다.",
+  path: "/subscription",
+});
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

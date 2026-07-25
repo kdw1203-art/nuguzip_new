@@ -5,6 +5,17 @@ import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
 import { HubComplexPicker } from "./hub-picker";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+/* 설명문은 이 화면이 실제로 하는 일만 적는다. 아래 TOOLS 의 sim:true 항목은
+   아직 실연동이 아니므로 "시뮬레이션" 이라는 사실을 description 에도 남긴다 —
+   검색 결과만 보고 실측 분석을 기대하고 들어오면 그게 곧 거짓말이 된다. */
+export const metadata = buildPageMetadata({
+  title: "분석 도구",
+  description:
+    "임장노트 점수화, 후보 단지 비교, 금리·시세 시나리오를 한곳에서. 실연동 전 도구는 '시뮬레이션'으로 따로 표시합니다.",
+  path: "/analysis",
+});
 
 /* P1-10·P1-12: 가짜 개인화 foot 문구 제거(정적 설명으로 교체),
    실연동 전 도구에는 "시뮬레이션" 칩을 붙여 오해 방지 */

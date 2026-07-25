@@ -4,8 +4,16 @@ import { readBoardPosts } from "@/lib/newui/board-posts";
 import { SupportContactForm } from "./SupportContactForm";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
+
+export const metadata = buildPageMetadata({
+  title: "고객지원",
+  description:
+    "공지사항, 자주 묻는 질문, 오류 신고와 제휴 문의를 한곳에서 처리합니다.",
+  path: "/support",
+});
 
 const SIDE_MENU: { label: string; href: string }[] = [
   { label: "지원 허브", href: "/support" },
