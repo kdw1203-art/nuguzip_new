@@ -56,6 +56,7 @@ export async function countSavedSearchMatches(
         .from("market_transactions")
         .select("id", { count: "exact", head: true })
         .eq("transaction_type", "trade")
+        .eq("is_cancelled", false)
         .or(`complex_name.ilike.${p},region_name.ilike.${p},address.ilike.${p}`);
       return error ? null : count ?? 0;
     }

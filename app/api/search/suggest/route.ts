@@ -3,7 +3,7 @@ import { searchComplexes } from "@/lib/complex/complex-store";
 import { isPlaceSearchConfigured, searchPlaces } from "@/lib/search/place-search";
 
 /* 검색 자동완성(#48) — 단지명 프리픽스 서제스트.
-   complexes(search_complexes RPC) 상위 8건 {id,name,region,dong} 반환.
+   실거래(market_transactions) 기반 searchComplexes 상위 8건 {id,name,region,dong} 반환.
    내부 결과가 부족(<3)하고 외부 장소검색 키가 설정돼 있으면 Kakao/Naver
    키워드 장소검색을 폴백으로 붙여 places[] 로 함께 반환한다(env-gated no-op).
    CDN 캐시 s-maxage=3600 (인기 프리픽스 재활용). */

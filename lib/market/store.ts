@@ -401,6 +401,7 @@ export async function listRegionTransactions(
       .select("complex_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor")
       .in("region_name", transactionNameCandidates(regionId, regionName))
       .eq("transaction_type", "trade")
+      .eq("is_cancelled", false)
       .eq("property_type", "apartment")
       .not("deal_amount_krw", "is", null)
       .order("contract_ym", { ascending: false })

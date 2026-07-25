@@ -1288,7 +1288,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     );
   };
 
-  // 사실 우선: 실거래는 서버(complex_transactions) 실데이터만 — 없으면 빈 배열(안내 문구)
+  // 사실 우선: 실거래는 서버(market_transactions) 실데이터만 — 없으면 빈 배열(안내 문구)
   const trades = selected ? selected.trades : [];
 
   /* ===== SDK 로드 실패/미설정 시 폴백 — 허위 시세 대신 정직한 안내 =====

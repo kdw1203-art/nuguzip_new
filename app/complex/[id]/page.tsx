@@ -48,8 +48,10 @@ import {
 
 /* ============================================================
    단지 허브 (연동 중심축 화면, SEO 핵심 랜딩 겸용)
-   실데이터: complexes(getComplexById) + complex_transactions(getTransactionHistory)
+   실데이터: market_transactions(국토부 실거래) → getComplexById·getTransactionHistory
    + posts(getComplexPosts). 존재하지 않는 단지 → notFound() (사실 우선: 목업 금지).
+   (#150 — 이전 주석은 complexes·complex_transactions 를 가리켰으나 두 테이블은
+    운영 DB에 없다. 단지·시세 모두 market_transactions 에서 파생된다.)
    비로그인 열람 허용 — index 대상.
    ============================================================ */
 

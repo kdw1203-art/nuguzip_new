@@ -11,7 +11,7 @@ import {
 /* ============================================================
    항목 H39 — 임베드 위젯 (블로그·카페 배포)
    외부 사이트가 <iframe> 으로 삽입하는, 단일 단지용 콤팩트 카드.
-   실데이터: complexes(getComplexById) + complex_transactions(getTransactionHistory).
+   실데이터: market_transactions(국토부 실거래) → getComplexById·getTransactionHistory.
    서비스 롤 미설정/미조회/무데이터 시 → 시세 없이 "불러올 수 없음" 카드 (never crash).
    사이트 크롬 없음(app/embed/layout.tsx), noindex.
    ============================================================ */

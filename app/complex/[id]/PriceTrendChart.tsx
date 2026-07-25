@@ -2,7 +2,7 @@
 
 import { useId } from "react";
 
-/* 단지 실거래 가격 추이 차트 (사실 우선 — complex_transactions 실데이터만).
+/* 단지 실거래 가격 추이 차트 (사실 우선 — market_transactions 실거래만, 해제분 제외).
    외부 차트 라이브러리 없이 인라인 SVG로 렌더. 좌→우 = 과거→최신. */
 
 export type PricePoint = {

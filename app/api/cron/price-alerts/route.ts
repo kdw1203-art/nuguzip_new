@@ -9,6 +9,8 @@ import { isNcpSensConfigured, sendSensSms } from "@/lib/ncp/sens-sms";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
 import { captureException } from "@/lib/monitoring/capture";
 import { logger } from "@/lib/log";
+import { resolveComplexPrice, type ComplexPriceResult } from "@/lib/market/complex-price";
+import { formatKrwShort, formatYmRange } from "@/lib/market/format";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,11 +19,27 @@ export const maxDuration = 120;
 /**
  * #1 관심 단지 가격 변동 알림 크론.
  *
- * user_watchlist 행을 순회하며 각 단지의 현재 시세(국토부 실거래 캐시
- * complex_transactions 최근월 전체 평균가)를 last_price_krw 와 비교한다.
+ * user_watchlist 행을 순회하며 각 단지의 현재가를 last_price_krw 와 비교한다.
+ * 현재가는 lib/market/complex-price.ts 가 산출한다 — 거래가 가장 많은 전용면적
+ * 구간의 최근 6건 평균(최소 3건).
+ *
+ * #150 이전에는 운영 DB에 존재하지 않는 `complex_transactions` 테이블의 최근월
+ * 전면적 평균을 읽었다. 조회가 항상 null 이라 알림이 한 건도 나가지 않는 죽은
+ * 경로였고, 그렇다고 "최근월 전면적 평균" 규칙을 그대로 옮기면 평형 구성이 바뀐 것을
+ * 가격이 변한 것으로 오인해 대량 오알림이 난다(실측 근거는 complex-price.ts 주석).
+ *
  * ▸ ±1% 이상 변동, 또는 alert_price_min/alert_price_max 경계를 새로 넘긴 경우 알림.
- * ▸ 알림 시 인앱 수신함에 적재하고 last_price_krw·last_notified_at 갱신.
- * ▸ 관측만 하고 알림이 없어도 last_price_krw(기준가)는 최신값으로 갱신(bookkeeping).
+ * ▸ 알림 시 인앱 수신함에 적재하고 last_price_krw·last_price_band·last_notified_at 갱신.
+ * ▸ 관측만 하고 알림이 없어도 기준가(last_price_krw·last_price_band)는 최신값으로 갱신.
+ *
+ * ⚠️ 대표 면적대가 바뀌면 알림하지 않고 기준가만 다시 세운다.
+ *    59㎡ 평균과 84㎡ 평균의 차이는 가격 변동이 아니라 평형이 바뀐 것이다.
+ *    이 판정에 user_watchlist.last_price_band 를 쓴다.
+ *
+ * ⚠️ 검증 한계(사실): 2026-07-25 기준 운영 DB의 user_watchlist 는 1행뿐이고, 그 1행은
+ *    이 크론이 의도적으로 제외하는 지역 알림(complex_id="alert:region:서울 강남구")이다.
+ *    실단지 관심 행이 0건이라 알림 발송까지의 종단 검증은 실데이터로 하지 못했다.
+ *    가격 산출부(complex-price)는 운영 DB 실거래로 직접 검증했다.
  *
  * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션
  *       — onbid-sync 와 동일. 키 없으면 통과(개발/폴백).
@@ -47,39 +65,31 @@ async function authorize(req: Request): Promise<boolean> {
 }
 
 /**
- * 단지 현재 시세(원). complex_transactions 의 최근월 전체(면적 무관) 평균 실거래가
- * avg_manwon(만원) × 10,000. 조회 실패/미존재 시 null.
+ * 원(KRW) → "12.3억" / "8,400만원".
+ *
+ * 표기 규칙 자체는 lib/market/format.ts 가 갖는다(#150 이전에는 이 파일이 12번째
+ * 사본을 들고 있었다). 다만 공용 헬퍼는 "9,800만" 처럼 '원' 을 붙이지 않는다 —
+ * 문장 안에서 읽히는 알림 문구는 기존 표기("8,400만원")를 유지해야 하므로 여기서만 덧붙인다.
  */
-async function resolveComplexPriceKrw(
-  read: SupabaseClient,
-  complexId: string,
-): Promise<number | null> {
-  try {
-    const { data } = await read
-      .from("complex_transactions")
-      .select("avg_manwon, yyyymm")
-      .eq("complex_id", complexId)
-      .is("area_m2", null)
-      .order("yyyymm", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const raw = data as Record<string, unknown> | null;
-    const manwon = raw?.avg_manwon != null ? Number(raw.avg_manwon) : null;
-    if (manwon === null || !Number.isFinite(manwon) || manwon <= 0) return null;
-    return Math.round(manwon * 10_000);
-  } catch {
-    return null;
-  }
+function priceText(krw: number): string {
+  const s = formatKrwShort(krw);
+  return s.endsWith("만") ? `${s}원` : s;
 }
 
-/** 원(KRW) → "12.3억" / "8,400만원" 짧은 표기. */
-function formatKrwShort(krw: number): string {
-  if (krw >= 1e8) {
-    const eok = Math.round((krw / 1e8) * 10) / 10;
-    return `${eok.toLocaleString("ko-KR")}억`;
-  }
-  return `${Math.round(krw / 1e4).toLocaleString("ko-KR")}만원`;
+/**
+ * 알림 한 줄. "무엇을 근거로 그렇게 말하는지" 를 문장에 포함한다.
+ * 평균의 대상(면적대)·표본 수·신고 기간을 빼면 "시세가 올랐다" 는 검증 불가능한
+ * 주장이 된다. 실제로 산출한 것은 특정 면적대 최근 N건의 실거래 평균이다.
+ */
+function alertBody(name: string, price: ComplexPriceOk, dir: string): string {
+  const period = formatYmRange(price.firstYm, price.latestYm);
+  return (
+    `${name} ${price.bandLabel} 실거래 평균이 ${priceText(price.priceKrw)}(으)로 ${dir}했어요.` +
+    ` (최근 ${price.sampleSize}건${period ? ` · ${period} 신고 기준` : ""})`
+  );
 }
+
+type ComplexPriceOk = Extract<ComplexPriceResult, { ok: true }>["price"];
 
 interface RunSummary {
   ok: boolean;
@@ -90,6 +100,11 @@ interface RunSummary {
   /** 인앱 알림 중 웹푸시(VAPID)로도 발송된 구독 수 (구독자) */
   pushSent: number;
   skipped: number;
+  /**
+   * 건너뛴 사유별 건수. 대부분의 skip 은 버그가 아니라 "아직 판단할 근거가 없다"
+   * 이므로(thin-sample·no-trades), 뭉뚱그리면 운영자가 고장과 구분할 수 없다.
+   */
+  skipReasons?: Record<string, number>;
   reason?: string;
 }
 
@@ -99,9 +114,7 @@ interface RunSummary {
  */
 async function maybeSendPriceAlertSms(
   userEmail: string,
-  complexName: string,
-  priceKrw: number,
-  dir: string,
+  body: string,
   complexId: string,
 ): Promise<boolean> {
   if (!isNcpSensConfigured()) return false;
@@ -109,14 +122,14 @@ async function maybeSendPriceAlertSms(
     const prefs = await getPrefs(userEmail);
     if (!prefs.smsPriceAlerts || !prefs.alertPhone) return false;
     const content =
-      `[누구집] 관심단지 시세 알림\n` +
-      `${complexName} 시세가 ${formatKrwShort(priceKrw)}(으)로 ${dir}했어요.\n` +
+      `[누구집] 관심단지 실거래 알림\n` +
+      `${body}\n` +
       `자세히: https://nuguzip.com/complex/${complexId}\n\n` +
       `수신거부: 마이 > 알림 설정`;
     const result = await sendSensSms({
       type: "LMS",
       contentType: "COMM",
-      subject: "관심단지 시세 알림",
+      subject: "관심단지 실거래 알림",
       content,
       messages: [{ to: prefs.alertPhone }],
     });
@@ -135,9 +148,7 @@ async function maybeSendPriceAlertSms(
 async function maybeSendPriceAlertPush(
   sb: SupabaseClient,
   userEmail: string,
-  complexName: string,
-  priceKrw: number,
-  dir: string,
+  body: string,
   complexId: string,
 ): Promise<number> {
   try {
@@ -150,7 +161,7 @@ async function maybeSendPriceAlertPush(
     if (subs.length === 0) return 0;
     const payload: PushPayload = {
       title: "관심 단지 가격 변동",
-      body: `${complexName} 시세가 ${formatKrwShort(priceKrw)}(으)로 ${dir}했어요.`,
+      body,
       url: `/complex/${complexId}`,
       tag: `watchlist-${complexId}`,
       eventType: "generic",
@@ -199,7 +210,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
   const { data, error } = await read
     .from("user_watchlist")
     .select(
-      "id, user_email, complex_id, complex_name, alert_price_min, alert_price_max, last_price_krw",
+      "id, user_email, complex_id, complex_name, alert_price_min, alert_price_max, last_price_krw, last_price_band",
     )
     .not("complex_id", "like", "alert:%")
     .limit(BATCH);
@@ -218,42 +229,57 @@ async function runPriceAlerts(): Promise<RunSummary> {
   }
 
   const rows = (data ?? []) as Array<Record<string, unknown>>;
-  // 여러 사용자가 같은 단지를 볼 수 있으므로 단지 단위로 시세를 1회만 조회.
-  const priceCache = new Map<string, number | null>();
+  // 여러 사용자가 같은 단지를 볼 수 있으므로 단지 단위로 1회만 산출.
+  const priceCache = new Map<string, ComplexPriceResult>();
   let checked = 0;
   let notified = 0;
   let smsSent = 0;
   let pushSent = 0;
   let skipped = 0;
   let sawPrice = false;
+  const skipReasons: Record<string, number> = {};
+  const noteSkip = (reason: string) => {
+    skipped++;
+    skipReasons[reason] = (skipReasons[reason] ?? 0) + 1;
+  };
 
   for (const row of rows) {
     checked++;
     try {
       const complexId = String(row.complex_id ?? "");
       if (!complexId) {
-        skipped++;
+        noteSkip("empty-complex-id");
         continue;
       }
 
-      let priceKrw = priceCache.get(complexId);
-      if (priceKrw === undefined) {
-        priceKrw = await resolveComplexPriceKrw(read, complexId);
-        priceCache.set(complexId, priceKrw);
+      let result = priceCache.get(complexId);
+      if (result === undefined) {
+        result = await resolveComplexPrice(complexId, read);
+        priceCache.set(complexId, result);
       }
-      if (priceKrw === null) {
-        skipped++;
+      if (!result.ok) {
+        noteSkip(result.reason);
         continue;
       }
+      const price = result.price;
+      const priceKrw = price.priceKrw;
       sawPrice = true;
 
       const prev = row.last_price_krw != null ? Number(row.last_price_krw) : null;
+      const prevBand = row.last_price_band != null ? String(row.last_price_band) : null;
       const min = row.alert_price_min != null ? Number(row.alert_price_min) : null;
       const max = row.alert_price_max != null ? Number(row.alert_price_max) : null;
 
-      // 최초 관측(prev 없음)은 기준가만 기록하고 알림하지 않는다.
+      /* 비교 가능성 판정이 먼저다.
+         - prev 가 없다(최초 관측): 비교 대상이 없다.
+         - prevBand 가 없다: #150 이전에 기록된 기준가라 어느 면적대의 값인지 모른다.
+         - prevBand 가 지금과 다르다: 대표 평형이 바뀐 것이라 두 값은 애초에 같은
+           것을 재고 있지 않다. 차이를 "변동" 이라 부르면 거짓이 된다.
+         셋 다 알림하지 않고 기준가만 다시 세운다. */
+      const comparable = prev !== null && prev > 0 && prevBand !== null && prevBand === price.bandSlug;
+
       let shouldNotify = false;
-      if (prev !== null && prev > 0) {
+      if (comparable && prev !== null) {
         const pct = Math.abs(priceKrw - prev) / prev;
         const meaningful = pct >= CHANGE_THRESHOLD;
         // 경계를 "새로" 넘긴 경우에만(직전엔 안쪽, 지금은 바깥) 알림 — 중복 알림 방지.
@@ -265,38 +291,38 @@ async function runPriceAlerts(): Promise<RunSummary> {
       if (shouldNotify && prev !== null) {
         const name = String(row.complex_name ?? "관심 단지");
         const dir = priceKrw >= prev ? "상승" : "하락";
+        const body = alertBody(name, price, dir);
         const userEmail = String(row.user_email ?? "").trim();
         if (userEmail) {
           await appendInboxNotification({
             userEmail,
             title: "관심 단지 가격 변동",
-            body: `${name} 시세가 ${formatKrwShort(priceKrw)}(으)로 ${dir}했어요.`,
+            body,
             actionUrl: `/complex/${complexId}`,
           });
           notified++;
           // 옵트인 사용자에게 SMS(NCP SENS)로도 발송 — 미설정/미동의 시 no-op
-          if (await maybeSendPriceAlertSms(userEmail, name, priceKrw, dir, complexId)) {
+          if (await maybeSendPriceAlertSms(userEmail, body, complexId)) {
             smsSent++;
           }
           // B4 웹푸시(VAPID)로도 발송 — 구독 없음/미설정 시 no-op. write(service) 경유.
           if (write) {
-            pushSent += await maybeSendPriceAlertPush(
-              write,
-              userEmail,
-              name,
-              priceKrw,
-              dir,
-              complexId,
-            );
+            pushSent += await maybeSendPriceAlertPush(write, userEmail, body, complexId);
           }
         }
       }
 
-      // 기준가는 관측할 때마다 최신값으로 갱신(bookkeeping);
-      // 알림을 보낸 경우에만 last_notified_at 도 함께 기록.
+      /* 기준가는 관측할 때마다 최신값으로 갱신(bookkeeping).
+         금액이 같아도 대표 면적대가 바뀌었으면 반드시 같이 갱신해야 한다 —
+         안 그러면 다음 회차에도 "구간이 다르다" 로 영원히 알림이 억제된다. */
       if (write) {
-        if (priceKrw !== prev) {
-          const update: Record<string, unknown> = { last_price_krw: priceKrw };
+        const priceChanged = priceKrw !== prev;
+        const bandChanged = price.bandSlug !== prevBand;
+        if (priceChanged || bandChanged) {
+          const update: Record<string, unknown> = {
+            last_price_krw: priceKrw,
+            last_price_band: price.bandSlug,
+          };
           if (shouldNotify) update.last_notified_at = new Date().toISOString();
           await write.from("user_watchlist").update(update).eq("id", row.id);
         } else if (shouldNotify) {
@@ -307,7 +333,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
         }
       }
     } catch (e) {
-      skipped++;
+      noteSkip("exception");
       captureException(e, {
         where: "cron/price-alerts",
         complexId: String(row.complex_id ?? ""),
@@ -315,7 +341,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
     }
   }
 
-  // 단 한 건도 시세를 못 구했으면(가격 소스 없음) 명시적으로 알린다.
+  // 단 한 건도 값을 못 구했으면 명시적으로 알린다 — 사유별 내역을 함께 남긴다.
   if (!sawPrice && rows.length > 0) {
     return {
       ok: true,
@@ -324,10 +350,19 @@ async function runPriceAlerts(): Promise<RunSummary> {
       smsSent: 0,
       pushSent: 0,
       skipped,
+      skipReasons,
       reason: "no-price-source",
     };
   }
-  return { ok: true, checked, notified, smsSent, pushSent, skipped };
+  return {
+    ok: true,
+    checked,
+    notified,
+    smsSent,
+    pushSent,
+    skipped,
+    ...(skipped > 0 ? { skipReasons } : {}),
+  };
 }
 
 async function handle(req: Request): Promise<Response> {

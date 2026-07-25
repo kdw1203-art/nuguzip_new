@@ -5,8 +5,8 @@ import { naverGeocode, type NaverGeocodeItem } from "@/lib/map/naver-maps-rest";
 
 /* ============================================================
    외부 실시간 장소 검색 폴백 — 지도 아파트 검색 보완.
-   내부 complexes 테이블이 비어 있을 때 Kakao/Naver 키워드 장소
-   검색으로 아파트명·건물명 등을 실시간으로 보충한다.
+   내부 실거래(market_transactions) 기반 단지 검색 결과가 부족할 때 Kakao/Naver
+   키워드 장소 검색으로 아파트명·건물명 등을 실시간으로 보충한다.
 
    - 완전 env-gated: 키 미설정 시 no-op ([] 반환) → 아무것도 깨지지 않음.
    - Kakao 우선(WGS84 좌표를 직접 반환 → 이동 부위 적음).

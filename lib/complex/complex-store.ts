@@ -173,6 +173,7 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
     .eq("complex_name", dec.name)
     .eq("region_name", dec.region)
     .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
     .order("build_year", { ascending: false, nullsFirst: false })
     .limit(1);
   const row = (data as { address: string | null; build_year: number | null }[] | null)?.[0];
@@ -206,6 +207,7 @@ export async function searchComplexes(
     .from("market_transactions")
     .select("complex_name, region_name, address, build_year")
     .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
     .not("complex_name", "is", null);
 
   const term = (query ?? "").trim();
@@ -263,6 +265,7 @@ export async function suggestComplexes(query: string, limit = 6): Promise<Comple
     .from("market_transactions")
     .select("complex_name, region_name, address, build_year")
     .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
     .not("complex_name", "is", null)
     .or(ors)
     .order("contract_ym", { ascending: false })
@@ -328,6 +331,7 @@ export async function getRegionRelative(complexId: string): Promise<RegionRelati
     .eq("complex_name", dec.name)
     .eq("region_name", dec.region)
     .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
     .gt("deal_amount_krw", 0)
     .not("area_m2", "is", null)
     .order("contract_ym", { ascending: false })
@@ -378,6 +382,7 @@ export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
     .eq("complex_name", dec.name)
     .eq("region_name", dec.region)
     .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
     .gt("deal_amount_krw", 0)
     .not("area_m2", "is", null)
     .order("contract_ym", { ascending: false })
@@ -408,6 +413,14 @@ export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
 
 // ── 실거래가 (market_transactions 월별 집계) ──────────────────────────
 
+/**
+ * 단지 월별 실거래 추이. 해제(취소) 신고된 계약은 제외한다(is_cancelled=false).
+ *
+ * 해제분은 행 자체는 남아 있다 — 해제됐다는 사실도 데이터이기 때문이다. 다만
+ * "이 단지가 얼마에 거래됐나"를 묻는 화면에는 들어가면 안 된다. 실측(2026-07-25)
+ * 기준 매매 22,869행 중 402행이 해제분이었고, 321개 단지의 평균가를 최대 21.7%
+ * 움직이고 있었다. — #150
+ */
 export async function getTransactionHistory(
   complexId: string,
   limit = 12,
@@ -422,6 +435,7 @@ export async function getTransactionHistory(
     .eq("complex_name", dec.name)
     .eq("region_name", dec.region)
     .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
     .gt("deal_amount_krw", 0);
 
   const rows = (data as { contract_ym: string; deal_amount_krw: number }[] | null) ?? [];

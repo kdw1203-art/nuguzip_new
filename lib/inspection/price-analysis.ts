@@ -97,7 +97,7 @@ export async function analyzePrice(input: {
       const jeon = complex?.priceJeonMan;
       return {
         status: "fair" as PriceViewStatus,
-        reason: "업로드·ingest된 실거래 캐시 기준입니다.",
+        reason: "국토부 실거래 신고분의 월별 평균 기준입니다.",
         estimateRange: { min: Math.round(min * 0.98), max: Math.round(max * 1.02) },
         recentDeals: dbTx.map((t) => ({
           date: `${t.yyyymm.slice(0, 4)}.${t.yyyymm.slice(4, 6)}`,
@@ -108,7 +108,12 @@ export async function analyzePrice(input: {
         jeonseRatio: jeon && avg > 0 ? Math.round((jeon / avg) * 1000) / 10 : null,
         dealCount: dbTx.length,
         source: "live" as const,
-        disclaimer: "complex_transactions 캐시 · AI 추정 참고용",
+        /* #150 — 이전 문구는 "complex_transactions 캐시" 였는데 그 테이블은 운영 DB에
+           존재하지 않는다. 실제 출처는 market_transactions(국토부 실거래 신고분)를
+           getTransactionHistory 가 월별로 평균 낸 값이다. 그리고 그 평균은 전용면적을
+           구분하지 않으므로, 큰 평형이 팔린 달은 단지가 오른 것처럼 보인다 —
+           사용자가 그 한계를 알고 봐야 하는 값이라 문구에 그대로 적는다. */
+        disclaimer: "국토부 실거래 월별 평균(전용면적 구분 없음) · AI 추정 참고용",
       };
     }
   }

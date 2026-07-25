@@ -82,6 +82,7 @@ async function fetchNearbyTransactions(p: RedevelopmentProject): Promise<NearbyT
       .select("complex_name,area_m2,floor,deal_amount_krw,contract_ym,contract_day")
       .in("region_name", candidates)
       .eq("transaction_type", "trade")
+      .eq("is_cancelled", false)
       .eq("property_type", "apartment")
       .not("deal_amount_krw", "is", null)
       .order("contract_ym", { ascending: false })

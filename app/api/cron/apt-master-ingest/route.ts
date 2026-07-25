@@ -44,29 +44,38 @@ async function handle(req: Request) {
   const batch = codes.slice(idx * SLICE, idx * SLICE + SLICE);
 
   const configured = isDataGoKrEncodingConfigured();
-  const { sigungu, upserted } = await ingestAptMasterBatch(batch);
+  const { sigungu, upserted, failed, errors } = await ingestAptMasterBatch(batch);
   const mode: "live" | "mock" = configured ? "live" : "mock";
 
-  // F3 — 적재 로그(신선도 대시보드·운영 추적용)
+  /* F3/#147 — 적재 로그(신선도 대시보드·운영 추적용).
+     이전 버전은 status 가 skipped/ok 둘 중 하나밖에 될 수 없었다. 적재 함수가
+     모든 오류를 삼키고 카운트만 돌려줬기 때문이다. 그래서 #150 이전의 "없는
+     테이블에 쓰기" 실패가 로그상으로는 매번 '키 없음으로 건너뜀' 과 구별되지
+     않았다. 이제 failed 를 올려 받아 error 를 낼 수 있다. */
+  const status = failed > 0 ? "error" : !configured ? "skipped" : upserted > 0 ? "ok" : "skipped";
+  const slice = `slice=${idx}/${Math.ceil(total / SLICE)} 시군구=${sigungu}`;
   await logIngest({
     source: "apt-master",
     dataset: "전국 공동주택 단지 마스터",
     origin: "cron-fetch",
     rows: upserted,
-    status: !configured ? "skipped" : upserted > 0 ? "ok" : "skipped",
+    status,
     message: !configured
       ? "data.go.kr 인증키 미설정"
-      : `slice=${idx}/${Math.ceil(total / SLICE)} 시군구=${sigungu}`,
+      : failed > 0
+        ? `${slice} 실패=${failed}행${errors.length > 0 ? ` · ${errors.join(" / ")}` : ""}`
+        : slice,
   });
 
   return NextResponse.json({
-    ok: true,
+    ok: failed === 0,
     slice: idx,
     sigungu,
     upserted,
     mode,
     total,
     batch,
+    ...(failed > 0 ? { failed, errors } : {}),
     ...(upserted === 0 && !configured ? { reason: "no-key" } : {}),
   });
 }

@@ -75,6 +75,19 @@ export function findAreaBand(slug: string): AreaBand | null {
   return AREA_BY_SLUG.get(slug) ?? null;
 }
 
+/**
+ * 전용면적(㎡) → 해당 구간. 값이 없거나 0 이하면 null.
+ *
+ * `r.area_m2 >= band.min && r.area_m2 < band.max` 를 손으로 쓴 곳이 이미 세 군데
+ * 있었다(complex-store · complex-transactions · 그리고 여기로 오기 전의 복사본).
+ * 경계 판정은 이 파일이 단일 진실 공급원이라고 위에 적어 놓고 정작 판정식은
+ * 흩어져 있으면, 경계를 옮길 때 한 곳을 빠뜨려도 아무 경고 없이 라벨만 어긋난다.
+ */
+export function areaBandOf(m2: number | null | undefined): AreaBand | null {
+  if (m2 === null || m2 === undefined || !Number.isFinite(m2) || m2 <= 0) return null;
+  return AREA_BANDS.find((b) => m2 >= b.min && m2 < b.max) ?? null;
+}
+
 export function findPriceBand(slug: string): PriceBand | null {
   return PRICE_BY_SLUG.get(slug) ?? null;
 }

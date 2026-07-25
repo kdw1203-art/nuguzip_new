@@ -224,6 +224,12 @@ export async function POST(req: Request) {
 
     const areaM2 = num(r["전용면적(㎡)"] ?? r["전용면적"]);
     const jibun = (r["번지"] ?? "").trim();
+    /* #150 — 해제(취소) 계약. RTMS CSV 는 API 의 cdealType/cdealDay 대신
+       "해제사유발생일"(예 "26.07.10") 또는 "해제여부"("O") 로 준다. 행은 남기되
+       is_cancelled 로 표시해 시세·집계·알림에서 빠지게 한다. */
+    const cancelDay = (r["해제사유발생일"] ?? "").trim();
+    const cancelFlag = (r["해제여부"] ?? "").trim().toUpperCase();
+    const isCancelled = cancelFlag === "O" || cancelDay.length > 0;
     const floor = num(r["층"]);
     const buildYear = num(r["건축년도"]);
     const address =
@@ -271,6 +277,7 @@ export async function POST(req: Request) {
         transactionType === "trade" ? dealKrw : depositKrw,
         areaM2,
       ),
+      is_cancelled: isCancelled,
       raw: {
         aptNm: name,
         umdNm: located.umd,
@@ -280,6 +287,9 @@ export async function POST(req: Request) {
         day,
         floor,
         buildYear,
+        // API 응답과 같은 키로 담아 두 경로의 raw 모양을 맞춘다.
+        cdealType: isCancelled ? "O" : " ",
+        ...(cancelDay ? { cdealDay: cancelDay } : {}),
         ingest: "admin-csv",
         file: file.name,
       },

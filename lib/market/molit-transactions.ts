@@ -62,6 +62,25 @@ function manwonToKrw(v: number | undefined): number | null {
   return typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10000) : null;
 }
 
+/**
+ * 해제(취소)된 계약인가.
+ *
+ * RTMS 매매 응답은 정상 거래에 cdealType=" "(공백 한 칸), 해제신고된 계약에
+ * cdealType="O" 와 해제사유발생일(cdealDay, 예 "26.07.10")을 준다. 전월세 응답에는
+ * 두 필드가 아예 없다.
+ *
+ * 이 값을 그동안 raw 에 담기만 하고 아무도 보지 않았다. 그 결과 2026-07-25 기준
+ * 매매 22,869행 중 402행(1.76%)의 "없던 일이 된 계약"이 평균가·구간집계·지도
+ * 시세·알림가에 정상 거래로 섞여 있었다(361개 단지 영향, 그중 33개 단지는 실거래가
+ * 전부 해제분이라 존재 근거 자체가 해제된 계약뿐이었다). — #150
+ */
+export function isCancelledDeal(raw: Record<string, unknown> | null | undefined): boolean {
+  const type = String(raw?.cdealType ?? "").trim();
+  if (type.toUpperCase() === "O") return true;
+  // cdealType 이 비어도 해제일자가 찍혀 오는 응답이 있어 함께 본다(보수적 판정).
+  return String(raw?.cdealDay ?? "").trim().length > 0;
+}
+
 /** 거래 1건 → market_transactions row. 필수값(계약일·단지명) 없으면 null. */
 function toRow(
   deal: MolitDeal,
@@ -108,6 +127,9 @@ function toRow(
     floor: Number.isFinite(deal.floor) ? deal.floor : null,
     build_year: Number.isFinite(deal.buildYear) ? deal.buildYear : null,
     price_per_pyeong_krw: pricePerPyeong(ctx.kind === "trade" ? dealKrw : depositKrw, areaM2),
+    // 해제분도 행 자체는 남긴다(해제 이력도 사실이다). 다만 시세·집계·알림에서는
+    // is_cancelled=true 로 걸러진다 — 판정은 적재 시 한 번만 한다.
+    is_cancelled: isCancelledDeal(deal.raw),
     raw: deal.raw,
     collected_at: new Date().toISOString(),
   };
