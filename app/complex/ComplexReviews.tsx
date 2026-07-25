@@ -260,7 +260,7 @@ export function ComplexReviews({
       </div>
       <p className="mt-1 text-[11px] text-text-3">
         직접 살아봤거나 임장에서 확인한 내용만 남겨주세요 · 같은 단지 재작성 시 기존 후기가
-        갱신돼요
+        갱신돼요 · 실거주·방문 후기가 먼저 보여요
       </p>
 
       {submitState === "done" && (

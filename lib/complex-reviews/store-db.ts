@@ -70,8 +70,21 @@ function dbToReview(r: Record<string, unknown>): ComplexReview {
   };
 }
 
-/** 도움돼요(helpful_count) 내림차순 → 최신순 정렬 비교자. */
-function byHelpfulThenRecent(a: ComplexReview, b: ComplexReview): number {
+/* D9 — 신뢰 신호를 정렬 1순위로.
+   화면에는 "실거주"·"방문" 배지가 예전부터 있었지만 정렬은 도움돼요 수만 봤다.
+   그러면 살아본 적 없는 사람의 후기가 도움돼요 한 표 차이로 실거주 후기 위에 올라간다.
+   배지를 붙여 놓고 순서로는 무시하는 셈이라, 신뢰 신호가 장식이 된다.
+   실거주(2) > 방문(1) > 미표기(0) → 도움돼요 → 최신 순으로 바꾼다. */
+function trustRank(r: ComplexReview): number {
+  if (r.isResident) return 2;
+  if (r.isVisitVerified) return 1;
+  return 0;
+}
+
+/** 신뢰(실거주>방문) → 도움돼요 → 최신순 정렬 비교자. */
+function byTrustThenHelpful(a: ComplexReview, b: ComplexReview): number {
+  const t = trustRank(b) - trustRank(a);
+  if (t !== 0) return t;
   if (b.helpfulCount !== a.helpfulCount) return b.helpfulCount - a.helpfulCount;
   return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0;
 }
@@ -79,11 +92,15 @@ function byHelpfulThenRecent(a: ComplexReview, b: ComplexReview): number {
 export async function listReviews(complexId: string): Promise<ComplexReview[]> {
   const sb = getServiceSupabase();
   if (!sb)
-    return inMemory.filter((r) => r.complexId === complexId).sort(byHelpfulThenRecent);
+    return inMemory.filter((r) => r.complexId === complexId).sort(byTrustThenHelpful);
   const { data } = await sb
     .from("complex_reviews")
     .select("*")
     .eq("complex_id", complexId)
+    // Postgres 는 false < true 라 내림차순이 곧 "인증된 것 먼저"다.
+    // nullsFirst:false — 미표기(NULL)가 인증 위로 올라오지 않도록.
+    .order("is_resident", { ascending: false, nullsFirst: false })
+    .order("is_visit_verified", { ascending: false, nullsFirst: false })
     .order("helpful_count", { ascending: false })
     .order("created_at", { ascending: false });
   return (data ?? []).map(dbToReview);

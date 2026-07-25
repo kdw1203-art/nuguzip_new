@@ -14,7 +14,11 @@ export const ADSENSE_EXCLUDED_PATH_PREFIXES = [
   "/inspection/session",
   "/inspection/create-schedule",
   "/payment",
-  "/me",
+  /* H8/J4 — 개인 허브는 `/my` 다. 예전에는 `/me` 가 적혀 있었는데 그런 라우트는 없어서
+     제외가 한 건도 걸리지 않았고, 정작 결제·포인트·리드가 보이는 `/my` 에는 광고가 붙었다.
+     매칭은 `path === prefix || startsWith(prefix + "/")` 라 `/messages` 를 잡지는 않았다. */
+  "/my",
+  "/subscription",
   "/pricing",
   "/settings",
   "/auth",
