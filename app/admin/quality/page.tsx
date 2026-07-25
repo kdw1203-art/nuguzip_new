@@ -6,11 +6,32 @@ import {
   loadRecentFraudEvents,
 } from "@/lib/admin/expert-ops-metrics";
 import { VerificationQueue } from "./VerificationQueue";
+import {
+  loadDataQuality,
+  pct,
+  VERDICT_LABEL,
+  VERDICT_MARK,
+  VERDICT_COLOR,
+  type QualityVerdict,
+} from "@/lib/admin/data-quality";
 
 /* 사용자 세그먼트 · AI 품질 · 인증 심사 — 사실 우선: 하드코딩 목업 제거, 실 테이블 집계만.
-   집계 소스가 없는 지표(휴면/이탈 코호트, 👍비율)는 허위 수치 대신 "준비 중"으로 표기. */
+   집계 소스가 없는 지표(휴면/이탈 코호트, 👍비율)는 허위 수치 대신 "준비 중"으로 표기.
+
+   F4 — 데이터 품질 검사를 이 페이지 맨 위에 붙였다. 판정과 문구는 여기서 만들지 않는다.
+   lib/admin/data-quality.ts 가 단일 판정층이고 이 파일은 그 결과를 그리기만 한다.
+   0건으로 통과한 회귀 감시 항목을 한 줄로 접는 이유: 스무 개를 전부 초록으로 늘어놓으면
+   "스무 가지 문제를 잡았다"처럼 읽히는데 사실은 하나도 안 잡힌 것이다. */
 
 export const dynamic = "force-dynamic";
+
+/* 결함 → 확인 필요 → 정상 순. 눈이 먼저 닿는 자리에 고칠 것을 둔다. */
+const VERDICT_ORDER: Record<QualityVerdict, number> = {
+  defect: 0,
+  note: 1,
+  normal: 2,
+  pass: 3,
+};
 
 const lightCard =
   "flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-5";
@@ -27,12 +48,13 @@ function relDate(iso: string | null): string {
 }
 
 export default async function AdminQualityPage() {
-  const [kpi, ops, queue, perf, fraud] = await Promise.all([
+  const [kpi, ops, queue, perf, fraud, quality] = await Promise.all([
     loadAdminKpi().catch(() => null),
     loadExpertOpsSummary().catch(() => null),
     loadPendingVerificationQueue(12).catch(() => []),
     loadExpertPerformance(8).catch(() => []),
     loadRecentFraudEvents(12).catch(() => []),
+    loadDataQuality().catch(() => null),
   ]);
 
   const fraudSeverityMeta: Record<string, { label: string; cls: string }> = {
@@ -63,13 +85,119 @@ export default async function AdminQualityPage() {
   return (
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">
-        사용자 세그먼트 · AI 품질 모니터링 · 인증 심사
+        데이터 품질 · 사용자 세그먼트 · AI 품질 모니터링 · 인증 심사
       </div>
       <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
         모든 수치는 실 테이블 집계입니다. 집계 소스가 없는 지표는 &quot;준비 중&quot;으로 표기해요.
       </div>
 
-      <div className="rise-in-1 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      {/* F4 — 데이터 품질 검사 (public.data_quality_report 실집계) */}
+      <div className={`rise-in-1 ${lightCard}`}>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-extrabold text-ink">데이터 품질 검사</span>
+          <span className="text-[10px] text-text-3">
+            {quality
+              ? `${quality.generatedAt} 기준 · 검사 시점에 DB 전량을 다시 셉니다`
+              : "집계 실패"}
+          </span>
+        </div>
+
+        {!quality ? (
+          <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+            품질 집계를 불러오지 못했어요. 수치를 지어내지 않고 비워 둡니다.
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-1.5 text-[10px] font-extrabold">
+              {(["defect", "note", "normal", "pass"] as QualityVerdict[]).map((v) => (
+                <span
+                  key={v}
+                  className="rounded-[8px] bg-bg px-2.5 py-1.5 tabular-nums"
+                  style={{ color: VERDICT_COLOR[v] }}
+                >
+                  {VERDICT_MARK[v]} {v === "pass" ? "회귀 감시 통과" : VERDICT_LABEL[v]}{" "}
+                  {fmt(quality.counts[v])}
+                </span>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+              {quality.groups.map((g) => (
+                <div key={g.key} className="flex flex-col gap-2 rounded-[14px] bg-bg p-3.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-extrabold text-ink">
+                      {g.label}{" "}
+                      <span className="font-bold text-text-3">{g.table}</span>
+                    </span>
+                    <span className="shrink-0 text-[10px] tabular-nums text-text-3">
+                      {fmt(g.rows)}행
+                    </span>
+                  </div>
+
+                  {g.checks.length === 0 ? (
+                    <div className="py-3 text-center text-[11px] text-text-3">
+                      따로 볼 항목이 없어요.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      {[...g.checks]
+                        .sort((a, b) => VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict])
+                        .map((c) => {
+                          const ratio = pct(c.count, c.base);
+                          return (
+                            <div
+                              key={c.key}
+                              className="rounded-[10px] border border-line bg-surface px-3 py-2.5"
+                            >
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="text-[11px] font-extrabold text-ink">
+                                  <span style={{ color: VERDICT_COLOR[c.verdict] }}>
+                                    {VERDICT_MARK[c.verdict]}
+                                  </span>{" "}
+                                  {c.label}
+                                </span>
+                                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-ink">
+                                  {fmt(c.count)}
+                                  {ratio && (
+                                    <span className="ml-1 font-bold text-text-3">({ratio})</span>
+                                  )}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-[10px] leading-[1.7] text-text-2">
+                                {c.detail}
+                              </div>
+                              <div className="mt-0.5 text-[10px] leading-[1.7] text-text-3">
+                                <b style={{ color: VERDICT_COLOR[c.verdict] }}>
+                                  {VERDICT_LABEL[c.verdict]}
+                                </b>{" "}
+                                — {c.why}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+
+                  {g.guards.length > 0 && (
+                    <div className="text-[10px] leading-[1.7] text-text-3">
+                      <b className="text-[#1a7f4e]">● 회귀 감시 {g.guards.length}개 통과</b> —{" "}
+                      {g.guards.join(" · ")}. 전부 0건이라 접어 뒀어요. 값이 잡히면 위 목록으로
+                      올라옵니다.
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="text-[10px] leading-[1.7] text-text-3">
+              &quot;정상&quot;은 0건이 아닌데도 실측으로 문제 없음을 확인한 항목입니다 — 근거를 각
+              줄에 함께 적어 두었어요. 판정 기준은 lib/admin/data-quality.ts 한 곳에만 있습니다.
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="rise-in-2 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* 사용자 세그먼트 (실데이터) */}
         <div className={lightCard}>
           <div className="text-sm font-extrabold text-ink">사용자 세그먼트</div>
@@ -137,7 +265,7 @@ export default async function AdminQualityPage() {
       </div>
 
       {/* J7 전문가 성과 랭킹 · J8 이상행위 로그 (실집계, 없으면 안내) */}
-      <div className="rise-in-2 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="rise-in-3 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className={lightCard}>
           <div className="text-sm font-extrabold text-ink">전문가 성과 랭킹</div>
           {perf.length === 0 ? (
