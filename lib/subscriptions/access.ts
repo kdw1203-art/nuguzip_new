@@ -5,6 +5,8 @@
  * 서버 컴포넌트/API 라우트에서 사용하세요.
  */
 
+import { monthlyPrice } from "@/lib/subscriptions/billing-periods";
+
 export type PlanTier = "basic" | "pro" | "expert" | "enterprise";
 
 /** 티어 순서 (높을수록 상위) */
@@ -146,10 +148,14 @@ export function checkAccess(
  * 접근 불가 시 업그레이드 안내 메시지를 반환합니다.
  */
 export function upgradeMessage(requiredTier: PlanTier): string {
+  /* 가격은 billing-periods.ts 단일 출처에서 읽는다 — 하드코딩 금지.
+     (여기 적혀 있던 "월 2,900원"은 이번엔 우연히 맞았지만, 같은 방식으로 적힌
+      구독 페이지의 6,900원은 실제 청구액과 달랐다. 숫자는 한 곳에만 둔다.) */
+  const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
   const tierLabel: Record<PlanTier, string> = {
     basic: "FREE",
-    pro: "PRO (월 2,900원)",
-    expert: "EXPERT (월 18,900원)",
+    pro: `PRO (월 ${won(monthlyPrice("pro"))})`,
+    expert: `EXPERT (월 ${won(monthlyPrice("expert"))})`,
     enterprise: "ENTERPRISE (B2B 문의)",
   };
   return `이 기능을 이용하려면 ${tierLabel[requiredTier]} 이상으로 업그레이드가 필요합니다.`;

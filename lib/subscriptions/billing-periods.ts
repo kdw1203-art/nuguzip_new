@@ -9,22 +9,33 @@ export type PeriodPrice = {
   discountPct: number;
 };
 
-/** 공개 3단계 — 1·3·6·12개월 총액 (2026 재설계안) */
+/**
+ * 판매가 단일 출처 — 이 파일 밖에 가격 숫자를 적지 않는다.
+ *
+ * 2026-07-25 운영자 확정:
+ * - 월간: 플러스(pro) 2,900원 / 프로(expert) 18,900원.
+ *   (예전 표는 6,900/19,900원이었는데, 실제 청구 코드는 plans.ts 의 2,900/18,900원을
+ *    쓰고 있었다. 표시가 청구와 다르면 그 자체로 허위 고지라 운영자에게 물었고,
+ *    "2900/18900이 진짜"라는 답을 받았다.)
+ * - 연간: 약 20% 할인 — 플러스 연 27,600원(월 2,300원꼴), 프로 연 181,200원(월 15,100원꼴).
+ *   (같은 날 운영자 선택. 예전 표 기준으로는 연 결제 월환산가가 새 월간가보다 비싸지는
+ *    모순이 생겨, 연간 가격도 함께 확정받았다.)
+ *
+ * 3·6개월 행은 삭제했다 — 결제 경로(toss/create)는 monthly|annual 두 가지만 팔고,
+ * 화면(PlanCards)도 월간·연간만 보여 준다. 팔지도 않는 기간의 가격을 표에 남겨 두면
+ * 이번처럼 아무도 안 보는 숫자가 썩는다.
+ */
 export const BILLING_PERIOD_PRICES: Record<
   Extract<PlanTier, "pro" | "expert">,
   PeriodPrice[]
 > = {
   pro: [
-    { months: 1, totalKrw: 6_900, monthlyEquivalentKrw: 6_900, discountPct: 0 },
-    { months: 3, totalKrw: 18_900, monthlyEquivalentKrw: 6_300, discountPct: 8.7 },
-    { months: 6, totalKrw: 35_400, monthlyEquivalentKrw: 5_900, discountPct: 14.5 },
-    { months: 12, totalKrw: 64_800, monthlyEquivalentKrw: 5_400, discountPct: 21.7 },
+    { months: 1, totalKrw: 2_900, monthlyEquivalentKrw: 2_900, discountPct: 0 },
+    { months: 12, totalKrw: 27_600, monthlyEquivalentKrw: 2_300, discountPct: 20.7 },
   ],
   expert: [
-    { months: 1, totalKrw: 19_900, monthlyEquivalentKrw: 19_900, discountPct: 0 },
-    { months: 3, totalKrw: 56_700, monthlyEquivalentKrw: 18_900, discountPct: 5.0 },
-    { months: 6, totalKrw: 106_800, monthlyEquivalentKrw: 17_800, discountPct: 10.6 },
-    { months: 12, totalKrw: 190_800, monthlyEquivalentKrw: 15_900, discountPct: 20.1 },
+    { months: 1, totalKrw: 18_900, monthlyEquivalentKrw: 18_900, discountPct: 0 },
+    { months: 12, totalKrw: 181_200, monthlyEquivalentKrw: 15_100, discountPct: 20.1 },
   ],
 };
 
@@ -33,6 +44,11 @@ export function periodPrice(
   months: BillingPeriodMonths,
 ): PeriodPrice | undefined {
   return BILLING_PERIOD_PRICES[tier].find((p) => p.months === months);
+}
+
+/** 월간 판매가 — plans.ts 가 이 값을 읽는다(같은 숫자를 두 곳에 적지 않기 위해). */
+export function monthlyPrice(tier: Extract<PlanTier, "pro" | "expert">): number {
+  return periodPrice(tier, 1)?.totalKrw ?? 0;
 }
 
 /** 연 결제 UI — 12개월 행의 월 환산가 */
