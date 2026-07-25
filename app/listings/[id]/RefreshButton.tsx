@@ -4,11 +4,20 @@
  * #6 끌어올리기(갱신) 버튼 — 소유자에게만 노출.
  * POST /api/listings/[id]/refresh → refreshed_at=now. 성공 시 페이지 새로고침으로
  * "확인 필요" 배지가 사라진다.
+ *
+ * I10 — /my/listings 에서도 같은 버튼을 쓴다. 로그인이 풀렸을 때 돌아올 곳이
+ * 화면마다 다르므로 callbackUrl 을 받되, 안 주면 예전처럼 매물 상세로 돌아간다.
  */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function RefreshButton({ listingId }: { listingId: string }) {
+export function RefreshButton({
+  listingId,
+  callbackUrl,
+}: {
+  listingId: string;
+  callbackUrl?: string;
+}) {
   const router = useRouter();
   const [phase, setPhase] = useState<"idle" | "busy" | "done" | "error">("idle");
 
@@ -19,7 +28,9 @@ export function RefreshButton({ listingId }: { listingId: string }) {
         method: "POST",
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=/listings/${listingId}`);
+        router.push(
+          `/login?callbackUrl=${encodeURIComponent(callbackUrl ?? `/listings/${listingId}`)}`,
+        );
         return;
       }
       if (!res.ok) {

@@ -1,9 +1,14 @@
 "use client";
 
-/* I2 — 내 매물 수정/삭제 (소유자 본인).
+/* I2 — 내 매물 수정/거래완료/삭제 (소유자 본인).
    수정: 인라인 폼(거래유형·가격[만원]·면적·층·설명·연락처) → PATCH /api/listings/[id].
          승인 매물을 수정하면 서버가 재검수(pending)로 되돌린다.
-   삭제: 오클릭 방지 2단계 → DELETE(소프트 삭제). 브라우저 confirm() 미사용. */
+   삭제: 오클릭 방지 2단계 → DELETE(소프트 삭제). 브라우저 confirm() 미사용.
+
+   I10 — 거래완료(마감) 버튼을 여기에 붙였다. POST /api/listings/[id]/sold 는 예전부터
+   있었는데 **화면 어디에서도 부르지 않았다.** 그래서 마감하려면 삭제하는 수밖에 없었고,
+   신선도 알림이 "끝났으면 마감해 주세요"라고 말해도 누를 곳이 없는 상태였다.
+   마감은 되돌릴 수 없으므로(마감 매물은 수정도 안 된다) 삭제와 같은 2단계 확인을 쓴다. */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/components/toast/ToastProvider";
@@ -38,7 +43,11 @@ export function ListingManageActions(props: {
 }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [mode, setMode] = useState<"idle" | "edit" | "confirmDelete" | "busy">("idle");
+  const [mode, setMode] = useState<
+    "idle" | "edit" | "confirmDelete" | "confirmSold" | "busy"
+  >("idle");
+
+  const [soldBusy, setSoldBusy] = useState(false);
 
   const [type, setType] = useState<ListingType>(props.listingType);
   const [price, setPrice] = useState(wonToManwon(props.priceKrw));
@@ -87,6 +96,41 @@ export function ListingManageActions(props: {
     } catch {
       showToast("네트워크 오류가 발생했어요");
       setMode("edit");
+    }
+  }
+
+  /* 거래완료(마감) — status='closed'. 되돌릴 수 없다.
+     busy 를 mode 로 쓰지 않는 이유: mode==="busy" 는 수정 폼 렌더 분기라
+     여기서 쓰면 확인 문구 대신 폼이 튀어나온다. */
+  async function markSold() {
+    setSoldBusy(true);
+    try {
+      const res = await fetch(`/api/listings/${props.listingId}/sold`, {
+        method: "POST",
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        awarded?: number;
+        error?: string;
+      };
+      if (!res.ok || !json.ok) {
+        showToast(json.error ?? "마감에 실패했어요");
+        setSoldBusy(false);
+        setMode("idle");
+        return;
+      }
+      showToast(
+        json.awarded
+          ? `거래완료로 마감했어요. ${json.awarded}P 적립!`
+          : "거래완료로 마감했어요.",
+      );
+      setSoldBusy(false);
+      setMode("idle");
+      router.refresh();
+    } catch {
+      showToast("네트워크 오류가 발생했어요");
+      setSoldBusy(false);
+      setMode("idle");
     }
   }
 
@@ -238,6 +282,32 @@ export function ListingManageActions(props: {
     );
   }
 
+  if (mode === "confirmSold") {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <span className="text-[12px] font-bold text-text-3">
+          거래가 끝났나요? 마감하면 목록에서 내려가고 다시 수정할 수 없어요.
+        </span>
+        <button
+          type="button"
+          disabled={soldBusy}
+          onClick={() => void markSold()}
+          className="btn-primary btn-sm disabled:opacity-50"
+        >
+          {soldBusy ? "처리 중…" : "거래완료로 마감"}
+        </button>
+        <button
+          type="button"
+          disabled={soldBusy}
+          onClick={() => setMode("idle")}
+          className="btn-ghost btn-sm"
+        >
+          취소
+        </button>
+      </span>
+    );
+  }
+
   if (mode === "confirmDelete") {
     return (
       <span className="inline-flex items-center gap-1.5">
@@ -265,6 +335,15 @@ export function ListingManageActions(props: {
       <button type="button" onClick={() => setMode("edit")} className="btn-outline btn-sm">
         수정
       </button>
+      {(props.status === "approved" || props.status === "pending") && (
+        <button
+          type="button"
+          onClick={() => setMode("confirmSold")}
+          className="btn-outline btn-sm"
+        >
+          거래완료
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setMode("confirmDelete")}

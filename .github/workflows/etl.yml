@@ -90,7 +90,8 @@ jobs:
           gh api repos/${{ github.repository }}/issues -f title="Market ETL failure $(date -u +%FT%TZ)" -f body="run: ${{ github.run_id }} — $DETAIL" || true
 
   # ── 알림 러너 ────────────────────────────────────────────────────────────────
-  # price-alerts · saved-search-alerts · attendance-reminders · reengage-reminders 는
+  # price-alerts · saved-search-alerts · attendance-reminders · listing-stale-reminders ·
+  # reengage-reminders 는
   # vercel.json 의 crons 에만 적혀 있었고 Vercel 크론이 이 플랜에서 실행되지 않으므로
   # 실제로는 한 번도 돌지 않았다. (근거: 2026-07-25 04:52 UTC 기준, vercel.json 이
   #  03:00 UTC 로 예약한 apt-master 와 04:30 UTC 로 예약한 redevelopment 는 매 호출마다
@@ -122,6 +123,10 @@ jobs:
           call saved-search "https://nuguzip.com/api/cron/saved-search-alerts"
           # 출석 리마인드 — 오늘 미출석 구독자에게만
           call attendance "https://nuguzip.com/api/cron/attendance-reminders"
+          # 내 매물 신선도 — 21일 끌어올리기 안내 / 60일 마감 제안.
+          # 매일 돌아도 매물당 stale_notice_stage 가 올라갈 때만 나가므로 최대 2번이다.
+          # 자동 마감은 하지 않는다 — 제안만 하고 status 는 소유자가 바꾼다.
+          call listing-stale "https://nuguzip.com/api/cron/listing-stale-reminders"
           # 이탈 리마인드는 화요일만(사람당 쿨다운 30일이라 매일 돌릴 이유가 없다)
           if [ "$(date -u +%u)" = "2" ]; then
             call reengage "https://nuguzip.com/api/cron/reengage-reminders"

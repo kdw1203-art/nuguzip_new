@@ -6,19 +6,32 @@ import { Icon } from "@/app/components/Icon";
 import { VerifyOwnershipButton } from "./VerifyOwnershipButton";
 import { BoostButton } from "./BoostButton";
 import { ListingManageActions } from "./ListingManageActions";
+import { RefreshButton } from "@/app/listings/[id]/RefreshButton";
 import { safeAuth } from "@/lib/safe-auth";
 import { getExpertStatus } from "@/lib/experts/is-verified";
 import {
   listMyListings,
+  listingStaleStage,
   LISTING_TYPE_LABEL,
+  LISTING_STALE_DAYS,
+  LISTING_CLOSE_SUGGEST_DAYS,
   type ListingDetail,
   type ListingStatus,
+  type ListingStaleStage,
 } from "@/lib/listings/store-db";
 import { getOwnerInquiryStats } from "@/lib/listings/inquiries";
 
 /* ============================================================
    내 매물 — /my/listings (로그인 필수)
    상태별(검수중·노출중·반려·마감)·조회수·부스트 잔여·노출 부스트 안내.
+
+   I10 — 신선도(끌어올린 지 얼마나 됐는지)를 여기에 넣었다. 예전엔 /listings/[id]
+   상세에만 배지가 있었는데, 중개사가 매일 여는 화면은 여기다. 자기 매물이
+   몇 건이나 낡았는지 이 화면에서 안 보이면 사실상 아무도 못 보는 것과 같다.
+
+   조건은 크론(app/api/cron/listing-stale-reminders)과 같은 status='approved' 다.
+   화면과 알림이 갈리면 "화면엔 멀쩡한데 알림은 오는" 상태가 생기고, 그건 알림을
+   끄게 만드는 가장 빠른 길이다.
    ============================================================ */
 
 export const dynamic = "force-dynamic";
@@ -49,6 +62,29 @@ function priceLine(l: ListingDetail): string {
   if (l.listingType === "jeonse") return `전세 ${formatKrwShort(l.depositKrw)}`;
   return `월세 ${formatKrwShort(l.depositKrw)} / ${formatKrwShort(l.monthlyKrw)}`;
 }
+
+/** 신선도 기준시각(refreshed_at, 없으면 created_at) 이후 경과일 */
+function staleAgeDays(l: ListingDetail): number {
+  const t = Date.parse(l.refreshedAt ?? l.createdAt);
+  if (!Number.isFinite(t)) return 0;
+  return Math.max(0, Math.floor((Date.now() - t) / 86_400_000));
+}
+
+const STALE_META: Record<
+  Exclude<ListingStaleStage, 0>,
+  { label: string; cls: string; noticeCls: string }
+> = {
+  1: {
+    label: "확인 필요",
+    cls: "bg-[rgba(245,158,11,.14)] text-[#b45309]",
+    noticeCls: "bg-[rgba(245,158,11,.08)] text-[#b45309]",
+  },
+  2: {
+    label: "마감 검토",
+    cls: "bg-[rgba(214,69,69,.1)] text-[#d64545]",
+    noticeCls: "bg-[rgba(214,69,69,.06)] text-[#d64545]",
+  },
+};
 
 /** 부스트 잔여 — 만료 전이면 "D-일" / "N시간", 아니면 null */
 function boostRemaining(boostUntil: string | null): string | null {
@@ -112,6 +148,10 @@ export default async function MyListingsPage() {
   }, {});
   const totalViews = items.reduce((s, l) => s + (l.viewCount || 0), 0);
   const activeCount = counts.approved ?? 0;
+  /* 노출중 매물만 신선도를 따진다 — 크론과 같은 조건. */
+  const staleCount = items.filter(
+    (l) => l.status === "approved" && listingStaleStage(l) >= 1,
+  ).length;
 
   return (
     <PageShell breadcrumb="마이 › 내 매물" title="내 매물">
@@ -142,6 +182,15 @@ export default async function MyListingsPage() {
               )}
             </span>
           </Link>
+        </div>
+      )}
+
+      {/* I10 — 낡은 매물이 있을 때만 뜨는 안내. 없으면 아무 말도 하지 않는다. */}
+      {staleCount > 0 && (
+        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 text-[12px] leading-[1.7] text-[#b45309]">
+          노출중 매물 {staleCount}건이 {LISTING_STALE_DAYS}일 넘게 갱신되지 않았어요.
+          아직 거래 중이면 끌어올리고, 끝난 거래는 거래완료로 마감해 주세요. 오래된
+          호가가 남아 있으면 문의가 와도 헛걸음이 돼요.
         </div>
       )}
 
@@ -176,6 +225,8 @@ export default async function MyListingsPage() {
           {items.map((l) => {
             const meta = STATUS_META[l.status];
             const boost = boostRemaining(l.boostUntil);
+            const staleStage = l.status === "approved" ? listingStaleStage(l) : 0;
+            const staleMeta = staleStage === 0 ? null : STALE_META[staleStage];
             return (
               <div key={l.id} className="card card-pad-sm flex flex-col gap-2.5">
                 <div className="flex items-center gap-1.5">
@@ -195,6 +246,13 @@ export default async function MyListingsPage() {
                   {boost && (
                     <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
                       {boost}
+                    </span>
+                  )}
+                  {staleMeta && (
+                    <span
+                      className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${staleMeta.cls}`}
+                    >
+                      {staleMeta.label}
                     </span>
                   )}
                 </div>
@@ -229,10 +287,24 @@ export default async function MyListingsPage() {
                   </div>
                 )}
 
+                {staleMeta && (
+                  <div
+                    className={`rounded-lg px-3 py-2 text-[12px] leading-[1.6] ${staleMeta.noticeCls}`}
+                  >
+                    {staleAgeDays(l)}일째 갱신되지 않았어요.{" "}
+                    {staleStage === 2
+                      ? `${LISTING_CLOSE_SUGGEST_DAYS}일이 넘었으니 끝난 거래라면 거래완료로 마감해 주세요.`
+                      : "아직 거래 중이면 끌어올려 주세요."}
+                  </div>
+                )}
+
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <Link href={`/listings/${l.id}`} className="btn-outline btn-sm">
                     상세 보기
                   </Link>
+                  {staleStage >= 1 && (
+                    <RefreshButton listingId={l.id} callbackUrl="/my/listings" />
+                  )}
                   {l.status === "approved" && (
                     <BoostButton listingId={l.id} active={Boolean(boost)} />
                   )}

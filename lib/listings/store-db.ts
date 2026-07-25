@@ -8,8 +8,15 @@ import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
 import { comparePriceToMarket } from "@/lib/listings/price-compare";
 
-/** 갱신 없이 이 일수를 넘기면 "확인 필요"(stale) — 표시 전용, 자동 삭제 없음. */
+/** 갱신 없이 이 일수를 넘기면 "확인 필요"(stale). 자동 삭제 없음. */
 export const LISTING_STALE_DAYS = 21;
+/**
+ * 갱신 없이 이 일수를 넘기면 마감을 제안한다. **제안일 뿐, 자동 마감은 하지 않는다.**
+ * 갱신이 없다는 사실이 "거래가 끝났다"를 뜻하지는 않는다 — 그냥 바쁜 중개사일 수도 있다.
+ * 60일인 이유: 21일의 세 주기쯤 지나야 "잊혔다"고 볼 만하고, 그전에 마감을 권하면
+ * 아직 파는 중인 매물에 대고 그만두라는 소리가 된다.
+ */
+export const LISTING_CLOSE_SUGGEST_DAYS = 60;
 /** 누적 신고가 이 값에 도달하면 자동 숨김(is_hidden=true). */
 export const LISTING_REPORT_HIDE_THRESHOLD = 3;
 /** 호가가 실거래 중위가 대비 이 %를 벗어나면 이상가로 플래그. */
@@ -125,14 +132,33 @@ function mapPublic(r: Record<string, unknown>): PublicListing {
   };
 }
 
-/** 신선도 판정 — refreshed_at(없으면 created_at) 기준 LISTING_STALE_DAYS 초과 시 stale. 표시 전용. */
+/**
+ * 신선도 단계 — 0 정상 · 1 확인 필요(21일) · 2 마감 제안(60일).
+ * 기준시각은 refreshed_at, 없으면 created_at.
+ *
+ * 화면(배지)과 크론(알림)이 같은 함수를 쓴다. 둘이 갈리면 "화면엔 멀쩡한데
+ * 알림은 오는" 상태가 생기고, 그건 알림을 끄게 만드는 가장 빠른 길이다.
+ */
+export type ListingStaleStage = 0 | 1 | 2;
+
+export function listingStaleStage(
+  listing: Pick<PublicListing, "refreshedAt" | "createdAt">,
+  now: number = Date.now(),
+): ListingStaleStage {
+  const basis = listing.refreshedAt ?? listing.createdAt;
+  const t = Date.parse(basis);
+  if (!Number.isFinite(t)) return 0;
+  const age = now - t;
+  if (age > LISTING_CLOSE_SUGGEST_DAYS * 86_400_000) return 2;
+  if (age > LISTING_STALE_DAYS * 86_400_000) return 1;
+  return 0;
+}
+
+/** 신선도 판정 — LISTING_STALE_DAYS 초과 시 stale(1단계 이상). */
 export function isListingStale(
   listing: Pick<PublicListing, "refreshedAt" | "createdAt">,
 ): boolean {
-  const basis = listing.refreshedAt ?? listing.createdAt;
-  const t = Date.parse(basis);
-  if (!Number.isFinite(t)) return false;
-  return Date.now() - t > LISTING_STALE_DAYS * 86_400_000;
+  return listingStaleStage(listing) >= 1;
 }
 
 /** jsonb photos → string[] (URL 배열) */
@@ -450,6 +476,11 @@ export async function detectDuplicateAddress(
 /**
  * #6 끌어올리기(갱신) — 소유자 본인만. refreshed_at·updated_at 을 now 로 갱신.
  * 소유자 불일치/미존재 시 ok:false.
+ *
+ * I10 — 신선도 알림 단계도 함께 0 으로 되돌린다. 이걸 빠뜨리면 끌어올린 매물이
+ * 60일 뒤 다시 낡았을 때 stale_notice_stage 가 이미 1 이라 1단계 안내를 건너뛰고
+ * 곧장 마감 제안이 나간다. "끌어올렸다"는 곧 "이 매물은 다시 새것"이라는 뜻이므로
+ * 알림 주기도 그 시점부터 새로 시작해야 한다.
  */
 export async function refreshListing(
   id: string,
@@ -461,7 +492,12 @@ export async function refreshListing(
   try {
     const { data, error } = await sb
       .from("listings")
-      .update({ refreshed_at: now, updated_at: now })
+      .update({
+        refreshed_at: now,
+        updated_at: now,
+        stale_notified_at: null,
+        stale_notice_stage: 0,
+      })
       .eq("id", id)
       .eq("author_email", ownerEmail)
       .select("id")
