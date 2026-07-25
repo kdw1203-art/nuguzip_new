@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getServiceSupabase } from "@/lib/supabase/service";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
 import {
   AREA_BANDS,
@@ -28,6 +28,20 @@ import {
  * TS 가 모르는 band_key 가 내려오는데, 그런 행은 **버리고 경고를 남긴다**.
  * 라벨을 추측해서 붙이면 "60~85㎡ 페이지에 102㎡ 거래가 들어있는" 상태가 조용히
  * 만들어진다. 부동산 숫자에서 그건 버그가 아니라 허위 정보다.
+ *
+ * ── 왜 Service Role 이 아니라 읽기 전용 클라이언트인가 ──────────────
+ * 이 로더는 `next build` 중에도 돈다(/tx 와 구간 랜딩이 prerender 라우트다).
+ * 빌드 환경에 Service Role 키가 없으면 getServiceSupabase() 가 null 을 주고,
+ * 그러면 빈 배열이 그대로 HTML 에 굳어 "실거래 데이터를 불러오지 못했습니다" 가
+ * revalidate 주기 내내(1시간) 모든 방문자·크롤러에게 나간다. 실제로 그랬다.
+ *
+ * getReadOnlySupabase() 는 Service Role 이 있으면 그대로 쓰고(운영 런타임 동작 불변),
+ * 없을 때만 publishable 키로 폴백한다. 폴백이 안전한 근거:
+ *   - market_transactions 에 `market_transactions_public_read`(SELECT, qual=true)
+ *     정책이 있고 anon 에 SELECT 권한이 있다 — 국토교통부 공개 실거래 자료다.
+ *   - 두 뷰 모두 security_invoker = on 이라 원본 RLS 가 그대로 적용된다.
+ *     즉 anon 으로 읽어도 열람 범위가 넓어지지 않는다(실측: 384행 / 13,944행).
+ * 새로 열어 주는 권한이 아니라, 이미 공개된 집계를 빌드가 읽게 하는 것뿐이다.
  */
 
 /** 페이지·사이트맵에 올릴 최소 거래 건수. 표본이 너무 작으면 평균이 숫자놀음이 된다. */
@@ -102,7 +116,7 @@ async function loadAllCells(): Promise<BandCell[]> {
   const now = Date.now();
   if (cellCache && now - cellCache.at < CELL_TTL_MS) return cellCache.data;
 
-  const sb = getServiceSupabase();
+  const sb = getReadOnlySupabase();
   if (!sb) return [];
 
   const { data, error } = await sb
@@ -323,7 +337,7 @@ export async function listBandComplexes(
   bandSlug: string,
   limit = 30,
 ): Promise<BandComplex[]> {
-  const sb = getServiceSupabase();
+  const sb = getReadOnlySupabase();
   if (!sb) return [];
 
   const { data, error } = await sb

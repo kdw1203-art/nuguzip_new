@@ -34,11 +34,31 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
   // 모든 미들웨어 통과 응답에 타입 스니핑 방지 헤더 추가
   response.headers.set("X-Content-Type-Options", "nosniff");
 
-  // G5: 값이 이미 같은 쿠키는 다시 심지 않는다. 매 응답에 Set-Cookie 가 붙으면
-  // 공유 캐시(CDN)가 그 응답을 저장하지 않으므로, 아래 공개 캐시가 무력화된다.
+  /* ── G5 공유 캐시 가능 여부를 "우리 쿠키를 심기 전에" 판정한다 ──────────────
+     이전 구현은 배포·CSP 쿠키를 먼저 심고 나서 `cookies.getAll().length > 0` 로
+     캐시 가능 여부를 봤다. 그런데 그 두 쿠키는 쿠키를 안 들고 오는 요청(= 첫 방문,
+     CDN 재검증, 크롤러)에는 **항상** 붙는다. 그래서 조건이 영영 참이 되지 않아
+     공개 캐시 헤더가 단 한 번도 나가지 못했다(운영에서 실측 확인).
+
+     여기서 재는 것은 "사용자별 상태"뿐이다. 이 시점의 쿠키는 updateSession 이 실은
+     Supabase 세션 갱신 쿠키밖에 없다. 배포 ID·CSP 리비전은 배포 전역 상수라
+     사용자 상태가 아니지만, Set-Cookie 가 붙은 응답은 공유 캐시가 저장하지 않으므로
+     공유 가능한 응답에는 아예 심지 않는다.
+
+     안전 근거 — 쿠키를 건너뛰어도 배포 갱신 감지는 죽지 않는다:
+     deploy-sync 인라인 스크립트가 `wd-deploy` 쿠키가 없으면 /api/health 를 찔러
+     deployId·cspRevision 을 직접 확인한다(API 응답은 공유 캐시 대상이 아니라 항상
+     쿠키가 실린다). 즉 첫 요청 뒤 한 번의 폴링으로 스스로 복구된다. */
+  const carriesUserState = response.cookies.getAll().length > 0;
+  const publicCache =
+    request && !isCrawlerDoc ? publicDocumentCacheControl(request.nextUrl.pathname) : null;
+  const shareable =
+    !carriesUserState && (isCrawlerDoc || (isDocument && Boolean(publicCache)));
+
   const deployId = currentDeployId();
   const needsDeployCookie =
     !isCrawlerDoc &&
+    !shareable &&
     Boolean(deployId) &&
     request?.cookies.get(DEPLOY_COOKIE)?.value !== deployId;
   if (deployId && needsDeployCookie) {
@@ -50,7 +70,9 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
     });
   }
   const needsCspCookie =
-    !isCrawlerDoc && request?.cookies.get(CSP_REV_COOKIE)?.value !== CSP_REVISION;
+    !isCrawlerDoc &&
+    !shareable &&
+    request?.cookies.get(CSP_REV_COOKIE)?.value !== CSP_REVISION;
   if (needsCspCookie) {
     response.cookies.set(CSP_REV_COOKIE, CSP_REVISION, {
       path: "/",
@@ -62,24 +84,20 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
 
   if (isCrawlerDoc) {
     /* G6 — robots.txt·sitemap.xml 은 요청자와 무관하게 같은 내용이라 공유 캐시 가능.
-       단 이 응답에 쿠키가 실렸다면(로그인 사용자가 브라우저로 연 경우) 공개 문서와
-       같은 이유로 캐시를 포기한다. 근거는 lib/http/cache-policy.ts 주석 참고. */
-    const carriesClientState = response.cookies.getAll().length > 0;
+       단 이 응답에 세션 쿠키가 실렸다면(로그인 사용자가 브라우저로 연 경우) 공개
+       문서와 같은 이유로 캐시를 포기한다. 근거는 lib/http/cache-policy.ts 주석 참고. */
     response.headers.set(
       "Cache-Control",
-      carriesClientState ? "no-store" : CRAWLER_ENDPOINT_CACHE_CONTROL,
+      shareable ? CRAWLER_ENDPOINT_CACHE_CONTROL : "no-store",
     );
     response.headers.delete("Pragma");
     response.headers.delete("Expires");
   } else if (isDocument) {
     /* G5 — 공개 prerender 라우트만 CDN 공유 캐시를 허용한다.
-       단, 이 응답에 Set-Cookie 가 하나라도 실려 있으면(세션 갱신·CSP 리비전 등)
-       사용자별 상태가 섞인 응답이므로 캐시를 포기하고 no-store 로 되돌린다.
+       세션 쿠키가 실린 응답(로그인 사용자)은 사용자별 상태가 섞였으므로 no-store.
        판단 근거와 대상 목록은 lib/http/cache-policy.ts 주석 참고. */
-    const publicCache = request ? publicDocumentCacheControl(request.nextUrl.pathname) : null;
-    const carriesClientState = response.cookies.getAll().length > 0;
-    if (publicCache && !carriesClientState) {
-      response.headers.set("Cache-Control", publicCache);
+    if (shareable) {
+      response.headers.set("Cache-Control", publicCache as string);
     } else {
       // Vercel CDN이 추가하는 must-revalidate 포함 조합을 no-store로 덮어씀
       response.headers.set("Cache-Control", "no-store");
@@ -87,8 +105,10 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
     response.headers.delete("Pragma");
     response.headers.delete("Expires");
     if (needsCspCookie) {
-      // 캐시된 응답에 이게 섞이면 남의 브라우저 캐시까지 비운다 — 쿠키가 실린
-      // 응답은 위에서 이미 no-store 로 떨어지므로 공유 캐시에 들어가지 않는다.
+      /* CSP 리비전 쿠키를 실제로 새로 심는 응답에서만 낡은 캐시를 비운다.
+         쿠키를 심지 않는(= 공유 캐시로 나가는) 응답에 이게 섞이면 그 한 벌을 받는
+         모든 방문자의 브라우저 캐시를 지우게 된다. needsCspCookie 는 위에서 이미
+         !shareable 로 묶여 있어 그 경우가 나오지 않는다. */
       response.headers.set("Clear-Site-Data", '"cache"');
     }
   } else if (isApiPath) {
