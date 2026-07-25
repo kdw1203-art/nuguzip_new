@@ -10,18 +10,15 @@ export const WOODONG_AI_SYSTEM = `당신은 한국 부동산 커뮤니티 플랫
 - 한국어, 간결한 문단과 필요 시 글머리 기호.
 - 가능하면 출처 유형을 구분합니다(예: 공공데이터 vs 커뮤니티 의견).`;
 
+/** 사용자에게 보여지는 대체 답변 — 개발/설정 안내를 포함하지 않는다. */
 export function stubReply(userText: string, intro?: string): string {
   const t = userText.trim().slice(0, 200);
   return [
-    intro ??
-      "지금은 **OpenAI API 키가 설정되지 않은** 모드입니다.",
-    "",
-    "로컬: `.env.local`에 `OPENAI_API_KEY`(또는 `OPENAI_KEY`)를 넣고 서버를 다시 시작하세요.",
-    "Vercel: Project → Settings → **Environment Variables**에 `OPENAI_API_KEY` 추가 후 **Redeploy** (Preview/Production 모두 확인).",
+    intro ?? "지금은 AI 답변을 생성할 수 없어요. 잠시 후 다시 시도해 주세요.",
     "",
     t
-      ? `질문 일부를 받았습니다: 「${t}${userText.length > 200 ? "…" : ""}」`
-      : "질문을 입력해 주시면, 키 연동 후 같은 화면에서 바로 답합니다.",
+      ? `받은 질문: 「${t}${userText.length > 200 ? "…" : ""}」`
+      : "질문을 입력해 주시면 준비되는 대로 같은 화면에서 답해 드려요.",
     "",
     "그동안은 **정보 → 지도**, **커뮤니티**, **리포트** 메뉴에서 사람들의 글과 자료를 참고해 주세요.",
   ].join("\n");

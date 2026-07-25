@@ -5,6 +5,7 @@ import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
 import { HubComplexPicker } from "./hub-picker";
+import { AskAiCard } from "./ask-ai-card";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 설명문은 이 화면이 실제로 하는 일만 적는다. 아래 TOOLS 의 sim:true 항목은
@@ -187,19 +188,8 @@ export default async function AnalysisHubPage({
             </Link>
           ))}
 
-          {/* 무엇이든 물어보기 — 잉크 다크 카드 */}
-          <div className="ai-panel flex flex-col gap-2.5 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
-            <div className="ai-chip h-10 w-10 rounded-xl text-[15px]">AI</div>
-            <div className="text-base font-extrabold text-white">
-              무엇이든 물어보기
-            </div>
-            <div className="text-[13px] leading-[1.55] text-ai-text">
-              “관양동에서 9억 예산이면 어디부터 볼까?”
-            </div>
-            <div className="rounded-[10px] bg-[rgba(255,255,255,.08)] px-3 py-[9px] text-xs text-ai-muted">
-              질문 입력… <span className="text-ai-accent">↵</span>
-            </div>
-          </div>
+          {/* 무엇이든 물어보기 — /api/ai/chat 실연결 (로그인 필수·시간당 10회) */}
+          <AskAiCard loggedIn={Boolean(email)} />
         </div>
 
         {/* 최근 분석 바로가기 */}

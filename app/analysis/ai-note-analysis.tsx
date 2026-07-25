@@ -22,6 +22,7 @@ type NoteOption = {
 
 type AiResult = {
   mode: "llm" | "rule";
+  cached: boolean;
   headline: string;
   verdict: string;
   strengths: string[];
@@ -36,7 +37,7 @@ type CardState =
   | { kind: "running" }
   | { kind: "done"; result: AiResult }
   | { kind: "login" }
-  | { kind: "quota"; message: string }
+  | { kind: "quota"; message: string; upgrade: boolean }
   | { kind: "error"; message: string };
 
 const DISCLAIMER = "본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다";
@@ -142,14 +143,14 @@ export function AiNoteAnalysisCard({
     if (match) setSelected(match.id);
   }, [seedRegionLabel, notes]);
 
-  const run = async () => {
+  const run = async (force = false) => {
     if (state.kind === "running" || !selected) return;
     setState({ kind: "running" });
     try {
       const res = await fetch("/api/inspection/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ noteId: selected }),
+        body: JSON.stringify({ noteId: selected, ...(force ? { force: true } : {}) }),
       });
       if (res.status === 401) {
         setState({ kind: "login" });
@@ -157,7 +158,10 @@ export function AiNoteAnalysisCard({
       }
       const data = (await res.json().catch(() => null)) as {
         error?: string;
+        code?: string;
+        requiredTier?: string;
         mode?: string;
+        cached?: boolean;
         report?: {
           headline?: string;
           verdict?: string;
@@ -174,7 +178,9 @@ export function AiNoteAnalysisCard({
           kind: "quota",
           message:
             data?.error ??
-            "AI 분석 사용량(시간당 10회)을 모두 썼어요. 잠시 후 다시 시도해 주세요.",
+            "AI 분석 사용량을 모두 썼어요. 잠시 후 다시 시도해 주세요.",
+          // 월 한도 초과·플랜 부족이면 업그레이드 안내 노출
+          upgrade: res.status === 403 || data?.code === "QUOTA_EXCEEDED",
         });
         return;
       }
@@ -190,6 +196,7 @@ export function AiNoteAnalysisCard({
         kind: "done",
         result: {
           mode: data.mode === "llm" ? "llm" : "rule",
+          cached: data.cached === true,
           headline: r.headline?.trim() || "임장노트 AI 분석 결과",
           verdict: (r.verdict ?? r.summary ?? "").trim(),
           strengths: (r.strengths ?? []).slice(0, 3),
@@ -267,10 +274,37 @@ export function AiNoteAnalysisCard({
             <span className="text-xs font-extrabold text-white">
               {state.result.headline}
             </span>
-            <span className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted">
+            <span
+              className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted"
+              title={
+                state.result.mode === "llm"
+                  ? "AI 모델이 노트 내용과 지역 실시세를 바탕으로 생성한 결과예요."
+                  : "AI 모델 응답을 받지 못해 점수·기록 기반 규칙으로 요약했어요. 다시 시도하면 AI 생성 결과를 받을 수 있어요."
+              }
+            >
               {state.result.mode === "llm" ? "AI 생성" : "규칙 기반 요약"}
             </span>
           </div>
+          {state.result.cached && (
+            <div className="text-[10px] font-bold text-ai-muted">
+              노트 내용이 그대로라 저장된 분석을 다시 보여드려요. 새로 분석하려면
+              &quot;다시 분석하기&quot;를 누르세요.
+            </div>
+          )}
+          {state.result.mode === "rule" && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[rgba(255,255,255,.07)] px-2.5 py-1.5">
+              <span className="flex-1 text-[10px] leading-[1.5] text-ai-muted">
+                AI 모델이 일시적으로 응답하지 않아 규칙 기반으로 요약했어요.
+              </span>
+              <button
+                type="button"
+                onClick={() => run(true)}
+                className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-2 py-0.5 text-[10px] font-bold text-ai-accent"
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
           {state.result.marketSummary && (
             <div className="rounded-lg bg-[rgba(255,255,255,.07)] px-2.5 py-1.5 text-[10px] font-bold text-ai-accent">
               실시세 {state.result.marketSummary}
@@ -327,6 +361,14 @@ export function AiNoteAnalysisCard({
       ) : state.kind === "quota" ? (
         <div className="flex flex-col gap-1.5 rounded-[12px] bg-danger-soft px-3 py-2.5">
           <span className="text-xs font-bold text-danger">{state.message}</span>
+          {state.upgrade && (
+            <Link
+              href="/subscription"
+              className="self-start text-xs font-extrabold text-primary"
+            >
+              플랜 업그레이드하고 한도 늘리기 ›
+            </Link>
+          )}
         </div>
       ) : state.kind === "error" ? (
         <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
@@ -336,7 +378,7 @@ export function AiNoteAnalysisCard({
 
       <button
         type="button"
-        onClick={run}
+        onClick={() => run(state.kind === "done")}
         disabled={
           state.kind === "running" || !loggedIn || (notesLoaded && notes.length === 0)
         }

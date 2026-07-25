@@ -40,13 +40,17 @@ const PRICE_CHIPS: { label: string; pct: number }[] = [
   { label: "▼ -10%", pct: -10 },
   { label: "▼ -20% 급락", pct: -20 },
 ];
-const PERIOD_CHIPS = ["3년", "5년", "10년"];
+const PERIOD_CHIPS: { label: string; years: number }[] = [
+  { label: "3년", years: 3 },
+  { label: "5년", years: 5 },
+  { label: "10년", years: 10 },
+];
 
 /** 예시 기본값: 공작아파트 84㎡ · 8.4억 */
 const EXAMPLE_PRICE_WON = 840_000_000;
-const LTV = 0.4;
-const INCOME_WON = 70_000_000; // 연 소득 7,000만
-const LOAN_MONTHS = 360; // 30년 원리금균등
+const DEFAULT_LTV_PCT = 40;
+const DEFAULT_INCOME_MAN = 7_000; // 연 소득 7,000만 (만원 단위)
+const LOAN_MONTHS = 360; // 30년 원리금균등 (대출 상환기간 — 보유 기간과 별개)
 
 type Baseline = {
   regionName: string;
@@ -62,6 +66,20 @@ function monthlyPayment(principalWon: number, annualRatePct: number): number {
   if (r <= 0) return principalWon / LOAN_MONTHS;
   const pow = Math.pow(1 + r, LOAN_MONTHS);
   return (principalWon * r * pow) / (pow - 1);
+}
+
+/** 원리금균등 상환 k개월 후 남은 원금 */
+function remainingPrincipal(
+  principalWon: number,
+  annualRatePct: number,
+  monthsElapsed: number,
+): number {
+  const k = Math.min(LOAN_MONTHS, Math.max(0, monthsElapsed));
+  const r = annualRatePct / 100 / 12;
+  if (r <= 0) return principalWon * (1 - k / LOAN_MONTHS);
+  const pow = Math.pow(1 + r, LOAN_MONTHS);
+  const powK = Math.pow(1 + r, k);
+  return (principalWon * (pow - powK)) / (pow - 1);
 }
 
 function manwon(won: number): string {
@@ -102,7 +120,9 @@ function Chip({
 export default function ScenarioPage() {
   const [rateOffset, setRateOffset] = useState(0);
   const [pricePct, setPricePct] = useState(0);
-  const [period, setPeriod] = useState("5년");
+  const [holdingYears, setHoldingYears] = useState(5);
+  const [ltvPct, setLtvPct] = useState(DEFAULT_LTV_PCT);
+  const [incomeMan, setIncomeMan] = useState(DEFAULT_INCOME_MAN);
   const [regionId, setRegionId] = useState("");
   const [pickedName, setPickedName] = useState<string | null>(null);
   const [baseline, setBaseline] = useState<Baseline | null>(null);
@@ -156,26 +176,43 @@ export default function ScenarioPage() {
 
   const isReal = baseline !== null;
   const priceWon = baseline?.avgSaleWon ?? EXAMPLE_PRICE_WON;
-  const loanWon = priceWon * LTV;
+  const loanWon = (priceWon * ltvPct) / 100;
   const cashWon = priceWon - loanWon;
 
   const calc = useMemo(() => {
     const rate = BASE_RATE + rateOffset;
+    const incomeWon = Math.max(0, incomeMan) * 10_000;
     const pay = monthlyPayment(loanWon, rate);
     const payStress = monthlyPayment(loanWon, rate + 1);
-    const dsr = (pay * 12) / INCOME_WON;
-    const dsrStress = (payStress * 12) / INCOME_WON;
+    const dsr = incomeWon > 0 ? (pay * 12) / incomeWon : Infinity;
+    const dsrStress = incomeWon > 0 ? (payStress * 12) / incomeWon : Infinity;
     const priceDeltaWon = (priceWon * pricePct) / 100;
     const newPrice = priceWon + priceDeltaWon;
-    const ltvAfter = newPrice > 0 ? (loanWon / newPrice) * 100 : 0;
+    // 보유기간 경과 후 남은 대출 원금 기준 LTV·순자산 (시세 시나리오 반영)
+    const remainWon = remainingPrincipal(loanWon, rate, holdingYears * 12);
+    const ltvAfter = newPrice > 0 ? (remainWon / newPrice) * 100 : 0;
+    const equityAfterWon = newPrice - remainWon;
+    const principalPaidWon = loanWon - remainWon;
     const bars = [
       { label: `기준 ${rate.toFixed(2)}%`, pay, color: "#1d4fd8" },
       { label: "+1.0%p", pay: payStress, color: "#d64545" },
       { label: "-0.5%p", pay: monthlyPayment(loanWon, Math.max(0.5, rate - 0.5)), color: "#7ea2ff" },
     ];
     const maxPay = Math.max(...bars.map((b) => b.pay));
-    return { rate, pay, payStress, dsr, dsrStress, priceDeltaWon, ltvAfter, bars, maxPay };
-  }, [loanWon, priceWon, rateOffset, pricePct]);
+    return {
+      rate,
+      pay,
+      payStress,
+      dsr,
+      dsrStress,
+      priceDeltaWon,
+      ltvAfter,
+      equityAfterWon,
+      principalPaidWon,
+      bars,
+      maxPay,
+    };
+  }, [loanWon, priceWon, rateOffset, pricePct, incomeMan, holdingYears]);
 
   const dsrTone = (v: number) =>
     v < 0.3
@@ -184,6 +221,9 @@ export default function ScenarioPage() {
         ? { label: "주의", cls: "text-danger" }
         : { label: "위험", cls: "text-danger" };
 
+  const dsrPctLabel = (v: number) =>
+    Number.isFinite(v) ? `${(v * 100).toFixed(0)}%` : "—";
+
   const aiComment = useMemo(() => {
     const stress = dsrTone(calc.dsrStress);
     const head = isReal
@@ -191,14 +231,11 @@ export default function ScenarioPage() {
       : "예시 시세(8.4억) 기준 계산입니다. 지역을 선택하면 실제 평균가로 다시 계산해요.";
     const body =
       calc.dsrStress < 0.35
-        ? `금리 1%p 상승 시에도 월 ${manwon(calc.payStress)}(소득 대비 ${(calc.dsrStress * 100).toFixed(0)}%)로 ${stress.label} 범위입니다.`
-        : `금리 1%p 상승 시 월 ${manwon(calc.payStress)}(소득 대비 ${(calc.dsrStress * 100).toFixed(0)}%)로 부담이 커집니다. 대출 비율을 낮추거나 예산을 재조정하세요.`;
-    const tail =
-      pricePct < 0
-        ? ` 시세 ${pricePct}% 시나리오에서 LTV는 ${calc.ltvAfter.toFixed(0)}%로 ${calc.ltvAfter < 60 ? "안전권" : "주의 구간"}입니다.`
-        : "";
+        ? `대출 ${ltvPct}%·연 소득 ${incomeMan.toLocaleString("ko-KR")}만원 기준, 금리 1%p 상승 시에도 월 ${manwon(calc.payStress)}(소득 대비 ${dsrPctLabel(calc.dsrStress)})로 ${stress.label} 범위입니다.`
+        : `대출 ${ltvPct}%·연 소득 ${incomeMan.toLocaleString("ko-KR")}만원 기준, 금리 1%p 상승 시 월 ${manwon(calc.payStress)}(소득 대비 ${dsrPctLabel(calc.dsrStress)})로 부담이 커집니다. 대출 비율을 낮추거나 예산을 재조정하세요.`;
+    const tail = ` ${holdingYears}년 보유·시세 ${pricePct === 0 ? "보합" : `${pricePct > 0 ? "+" : ""}${pricePct}%`} 시나리오에서 잔여 대출 기준 LTV는 ${calc.ltvAfter.toFixed(0)}%로 ${calc.ltvAfter < 60 ? "안전권" : "주의 구간"}입니다.`;
     return `${head} ${body}${tail}`;
-  }, [baseline, calc, isReal, pricePct]);
+  }, [baseline, calc, isReal, pricePct, ltvPct, incomeMan, holdingYears]);
 
   return (
     <PageShell breadcrumb="AI 분석 › 시장·대출 시나리오">
@@ -272,19 +309,37 @@ export default function ScenarioPage() {
                 </span>
               </div>
             )}
-            <div className="flex justify-between text-[13px]">
-              <span className="text-text-2">대출 비율</span>
-              <span className="font-extrabold text-ink">40%</span>
-            </div>
-            {/* 슬라이더 */}
-            <div className="relative h-1.5 rounded-[3px] bg-[#eef1f6]">
-              <div className="absolute left-0 top-0 h-1.5 w-[40%] rounded-[3px] bg-primary" />
-              <div className="absolute left-[40%] top-[-5px] -ml-2 h-4 w-4 rounded-full border-2 border-primary bg-surface" />
-            </div>
-            <div className="flex justify-between text-[13px]">
-              <span className="text-text-2">연 소득</span>
-              <span className="font-extrabold text-ink">7,000만원</span>
-            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="flex justify-between text-[13px]">
+                <span className="text-text-2">대출 비율 (LTV)</span>
+                <span className="font-extrabold text-ink">{ltvPct}%</span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={70}
+                step={5}
+                value={ltvPct}
+                onChange={(e) => setLtvPct(Number(e.target.value))}
+                className="w-full accent-primary"
+                aria-label="대출 비율(LTV) 퍼센트"
+              />
+            </label>
+            <label className="flex items-center justify-between gap-2 text-[13px]">
+              <span className="text-text-2">연 소득 (만원)</span>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                value={incomeMan}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  setIncomeMan(Number.isFinite(n) && n >= 0 ? n : 0);
+                }}
+                className="w-[120px] rounded-[10px] border border-line bg-surface px-2.5 py-1.5 text-right text-[13px] font-extrabold text-ink"
+                aria-label="연 소득(만원)"
+              />
+            </label>
             <div className="flex justify-between text-[13px]">
               <span className="text-text-2">필요 현금 (시세−대출)</span>
               <span className="font-extrabold text-ink">{eok(cashWon)}</span>
@@ -318,10 +373,10 @@ export default function ScenarioPage() {
             <div className="flex gap-1.5">
               {PERIOD_CHIPS.map((c) => (
                 <Chip
-                  key={c}
-                  label={c}
-                  active={period === c}
-                  onClick={() => setPeriod(c)}
+                  key={c.label}
+                  label={c.label}
+                  active={holdingYears === c.years}
+                  onClick={() => setHoldingYears(c.years)}
                   className="flex-1 text-center"
                 />
               ))}
@@ -351,7 +406,7 @@ export default function ScenarioPage() {
                 {manwon(calc.pay)}원
               </div>
               <div className={`mt-0.5 text-[11px] font-bold ${dsrTone(calc.dsr).cls}`}>
-                소득 대비 {(calc.dsr * 100).toFixed(0)}% · {dsrTone(calc.dsr).label}
+                소득 대비 {dsrPctLabel(calc.dsr)} · {dsrTone(calc.dsr).label}
               </div>
             </div>
             <div className="card rounded-2xl p-[18px]">
@@ -360,12 +415,13 @@ export default function ScenarioPage() {
                 {manwon(calc.payStress)}원
               </div>
               <div className={`mt-0.5 text-[11px] font-bold ${dsrTone(calc.dsrStress).cls}`}>
-                소득 대비 {(calc.dsrStress * 100).toFixed(0)}% · {dsrTone(calc.dsrStress).label}
+                소득 대비 {dsrPctLabel(calc.dsrStress)} · {dsrTone(calc.dsrStress).label}
               </div>
             </div>
             <div className="card rounded-2xl p-[18px]">
               <div className="text-xs text-text-3">
-                시세 {pricePct === 0 ? "보합" : `${pricePct > 0 ? "+" : ""}${pricePct}%`} 시 자산
+                {holdingYears}년 보유 · 시세{" "}
+                {pricePct === 0 ? "보합" : `${pricePct > 0 ? "+" : ""}${pricePct}%`} 시
               </div>
               <div
                 className={`mt-1 text-[22px] font-extrabold ${
@@ -377,8 +433,10 @@ export default function ScenarioPage() {
                   : `${calc.priceDeltaWon > 0 ? "+" : "-"}${manwon(Math.abs(calc.priceDeltaWon))}`}
               </div>
               <div className="mt-0.5 text-[11px] text-text-3">
-                LTV {calc.ltvAfter.toFixed(0)}%로 {pricePct < 0 ? "상승" : "변동"} ·{" "}
-                {calc.ltvAfter < 60 ? "안전권" : "주의"}
+                {holdingYears}년간 원금 {manwon(calc.principalPaidWon)} 상환 · 잔여 대출
+                기준 LTV {calc.ltvAfter.toFixed(0)}% ·{" "}
+                {calc.ltvAfter < 60 ? "안전권" : "주의"} · 순자산{" "}
+                {eok(calc.equityAfterWon)}
               </div>
             </div>
           </div>

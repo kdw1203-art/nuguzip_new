@@ -55,21 +55,34 @@ function approximateMonthlyPaymentDeltaMan(
   };
 }
 
+/** 개발자용 내부 필드(_notice·_llmError 등)는 사용자 마크다운에 노출하지 않는다. */
+function stripInternalFields(input: unknown): unknown {
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      if (k.startsWith("_")) continue;
+      out[k] = v;
+    }
+    return out;
+  }
+  return input;
+}
+
 export function buildStubMarkdown(tool: AiAnalysisToolId, input: unknown): string {
   return [
     "## 요약",
-    `**${tool}** 도구에 대한 분석입니다. 외부 LLM API 키가 없거나 호출에 실패한 경우, 아래는 규칙 기반 안내 문구입니다.`,
+    `**${tool}** 도구 실행 결과입니다. 지금은 AI 모델 응답을 받을 수 없어 규칙 기반 안내로 대신 알려드려요.`,
     "",
-    "## 핵심 포인트",
-    "- 공공 실거래·KB·국토부 API를 연동하면 정확도가 크게 올라갑니다.",
-    "- `OPENAI_API_KEY` 또는 `ANTHROPIC_API_KEY`를 설정하면 같은 화면에서 실제 모델 응답을 받을 수 있습니다.",
+    "## 안내",
+    "- 잠시 후 같은 조건으로 다시 실행하면 AI 분석 결과를 받을 수 있어요.",
+    "- 그동안 실거래·시세는 **지도**와 **단지 상세** 화면에서 직접 확인할 수 있어요.",
     "",
     "## 입력 요약",
     "```json",
-    safeStr(input, 4000),
+    safeStr(stripInternalFields(input), 4000),
     "```",
     "",
-    "다음 단계 링크는 화면 오른쪽 **빠른 이동**에서 안내합니다.",
+    "본 안내는 참고용이며 투자 판단의 책임은 이용자에게 있습니다.",
   ].join("\n");
 }
 
@@ -526,28 +539,32 @@ function buildDataSnapshot(tool: AiAnalysisToolId, input: Record<string, unknown
           : NaN;
       const ltvN = Number.isFinite(ltvRaw) && ltvRaw > 0 ? ltvRaw : 60;
       const rateN = Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 4.5;
-      const holdY =
-        typeof in_.holdingYears === "number" && !Number.isNaN(in_.holdingYears)
-          ? in_.holdingYears
-          : 30;
+      // 월 상환액 민감도는 "대출 상환기간" 기준으로 계산한다.
+      // holdingYears(보유 기간)는 별개의 입력으로, 상환기간과 혼용하지 않는다.
+      const amortRaw = Number(in_.loanTermYears ?? in_.amortYears ?? NaN);
+      const amortY = Number.isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 30;
       const usedAssumptions =
         !(Number.isFinite(ltvRaw) && ltvRaw > 0) || !(Number.isFinite(rateRaw) && rateRaw > 0);
       const loanPrincipalMan = priceMan > 0 ? Math.round(priceMan * (ltvN / 100)) : 0;
       const rateSens =
         loanPrincipalMan > 0
           ? (() => {
-              const up = approximateMonthlyPaymentDeltaMan(loanPrincipalMan, rateN, holdY, 1);
-              const down = approximateMonthlyPaymentDeltaMan(loanPrincipalMan, rateN, holdY, -1);
+              const up = approximateMonthlyPaymentDeltaMan(loanPrincipalMan, rateN, amortY, 1);
+              const down = approximateMonthlyPaymentDeltaMan(loanPrincipalMan, rateN, amortY, -1);
               return {
                 loanPrincipalMan,
                 ltvPctAssumed: ltvN,
                 ratePctAssumed: rateN,
-                assumedAmortYears: holdY,
+                /** 원리금균등 상환기간(년) 가정 — 보유 기간(holdingYears)과 별개 */
+                assumedAmortYears: amortY,
                 monthlyDeltaIfRatePlus1ppMan: up.deltaManRounded,
                 monthlyDeltaIfRateMinus1ppMan: down.deltaManRounded,
-                note: usedAssumptions
-                  ? `${up.footnote} LTV·금리 미입력 시 설명용으로 60%·4.5%를 가정했습니다.`
-                  : up.footnote,
+                note: [
+                  usedAssumptions
+                    ? `${up.footnote} LTV·금리 미입력 시 설명용으로 60%·4.5%를 가정했습니다.`
+                    : up.footnote,
+                  `상환기간은 대출 상환기간 ${amortY}년 기준이며 보유 기간과는 별개입니다.`,
+                ].join(" "),
               };
             })()
           : undefined;

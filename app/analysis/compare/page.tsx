@@ -125,9 +125,11 @@ type RegionSnapshotItem = {
 };
 
 type SummaryState =
+  | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "empty" }
   | { kind: "limited"; message: string }
+  | { kind: "error"; message: string }
   | {
       kind: "done";
       items: RegionSnapshotItem[];
@@ -143,9 +145,9 @@ function deltaLabel(pct: number | null): { text: string; cls: string } {
   return { text: "— 0.0%", cls: "text-text-3" };
 }
 
-/** 비교 트레이의 후보 지역(없으면 데모 비교표의 평촌 생활권) 실시세를 자동 병합 */
+/** 비교 트레이의 후보 지역 실시세 요약 — "요약 생성" 버튼을 눌렀을 때만 호출 */
 function RegionMarketSummary() {
-  const [state, setState] = useState<SummaryState>({ kind: "loading" });
+  const [state, setState] = useState<SummaryState>({ kind: "idle" });
   const [trayItems, setTrayItems] = useState<CompareTrayItem[] | null>(null);
 
   useEffect(() => {
@@ -157,59 +159,57 @@ function RegionMarketSummary() {
   const regions = [
     ...new Set((trayItems ?? []).map((t) => (t.region ?? "").trim()).filter(Boolean)),
   ];
-  // 데모 비교표(공작·동편3 등)는 안양시 동안구 생활권 — 후보가 없을 때 기본값
-  const targets = regions.length > 0 ? regions : ["안양시 동안구"];
-  const targetsKey = trayItems === null ? "" : targets.join("|");
 
-  useEffect(() => {
-    if (!targetsKey) return; // 트레이 로드 전에는 호출하지 않음 (사용량 절약)
-    let cancelled = false;
+  const generate = async () => {
+    if (state.kind === "loading" || regions.length === 0) return;
     setState({ kind: "loading" });
-    void (async () => {
-      try {
-        const res = await fetch("/api/ai/compare-summary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ regions: targetsKey.split("|") }),
-        });
-        const data = (await res.json().catch(() => null)) as {
-          error?: string;
-          items?: RegionSnapshotItem[];
-          comment?: string;
-          mode?: string;
-          disclaimer?: string;
-        } | null;
-        if (cancelled) return;
-        if (res.status === 429) {
-          setState({
-            kind: "limited",
-            message:
-              data?.error ?? "AI 실행 사용량(시간당 10회)을 모두 썼어요. 잠시 후 다시 확인해 주세요.",
-          });
-          return;
-        }
-        if (!res.ok || !data || !Array.isArray(data.items) || data.items.length === 0) {
-          setState({ kind: "empty" });
-          return;
-        }
+    try {
+      const res = await fetch("/api/ai/compare-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ regions }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        items?: RegionSnapshotItem[];
+        comment?: string;
+        mode?: string;
+        disclaimer?: string;
+      } | null;
+      if (res.status === 429) {
         setState({
-          kind: "done",
-          items: data.items,
-          comment: data.comment ?? "",
-          mode: data.mode === "llm" ? "llm" : "rule",
-          disclaimer:
-            data.disclaimer ?? "본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다",
+          kind: "limited",
+          message:
+            data?.error ?? "요약 생성 사용량(시간당 10회)을 모두 썼어요. 잠시 후 다시 확인해 주세요.",
         });
-      } catch {
-        if (!cancelled) setState({ kind: "empty" });
+        return;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [targetsKey]);
-
-  if (state.kind === "empty") return null; // 실시세 미보유 지역 — 조용히 숨김 (graceful)
+      if (!res.ok) {
+        setState({
+          kind: "error",
+          message: data?.error ?? "요약 생성에 실패했어요. 잠시 후 다시 시도해 주세요.",
+        });
+        return;
+      }
+      if (!data || !Array.isArray(data.items) || data.items.length === 0) {
+        setState({ kind: "empty" });
+        return;
+      }
+      setState({
+        kind: "done",
+        items: data.items,
+        comment: data.comment ?? "",
+        mode: data.mode === "llm" ? "llm" : "rule",
+        disclaimer:
+          data.disclaimer ?? "본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다",
+      });
+    } catch {
+      setState({
+        kind: "error",
+        message: "네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.",
+      });
+    }
+  };
 
   return (
     <div className="rise-in-2 card flex flex-col gap-3 rounded-[20px] p-[22px]">
@@ -217,14 +217,34 @@ function RegionMarketSummary() {
         <div className="text-[15px] font-extrabold text-ink">
           후보 지역 실시세 스냅샷
         </div>
-        <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
-          실데이터 기준
-        </span>
+        {regions.length > 0 && state.kind !== "loading" && (
+          <button
+            type="button"
+            onClick={generate}
+            className="btn-primary rounded-[10px] px-3 py-1.5 text-xs font-bold"
+          >
+            {state.kind === "done" ? "요약 다시 생성" : "요약 생성"}
+          </button>
+        )}
       </div>
 
-      {state.kind === "loading" ? (
+      {regions.length === 0 ? (
+        <div className="text-[11px] leading-relaxed text-text-3">
+          아직 담은 후보가 없어요. 위에서 단지를 담으면 후보 지역의 국토교통부 실거래
+          기반 시세 스냅샷과 종합 코멘트를 만들어 드려요.
+        </div>
+      ) : state.kind === "idle" ? (
+        <div className="text-[11px] leading-relaxed text-text-3">
+          담은 후보 {regions.length}개 지역의 시세 스냅샷을 준비했어요. &quot;요약
+          생성&quot; 버튼을 누르면 지역 실시세와 종합 코멘트를 불러와요.
+        </div>
+      ) : state.kind === "loading" ? (
         <div className="text-xs text-text-3">지역 시세를 불러오는 중…</div>
-      ) : state.kind === "limited" ? (
+      ) : state.kind === "empty" ? (
+        <div className="text-[11px] leading-relaxed text-text-3">
+          담은 후보 지역의 실시세 데이터가 아직 없어요. 시세 수집 후 다시 시도해 주세요.
+        </div>
+      ) : state.kind === "limited" || state.kind === "error" ? (
         <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
           {state.message}
         </div>
@@ -308,7 +328,7 @@ export default function ComparePage() {
           </div>
         </div>
 
-        {/* 지역 실시세 자동 병합 + 종합 코멘트 (실데이터) */}
+        {/* 지역 실시세 요약 — "요약 생성" 버튼을 눌렀을 때만 API 호출 */}
         <RegionMarketSummary />
 
         {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
