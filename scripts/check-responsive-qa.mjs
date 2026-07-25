@@ -104,9 +104,23 @@ function srcOf(rel) {
  * 포함하므로, 단순 이름으로 찾으면 인덱스 정렬 순서에 따라 구현 파일 대신
  * 사용처가 잡힌다(첫 실행 때 BREAKPOINT_PX 의 정의를 lib/design 이 아니라
  * lib/analytics 에서 찾아 값 불일치 FAIL 을 냈다).
+ *
+ * 같은 사고가 두 번째로 났다: 탭바를 `aria-label="하단 내비게이션"` 으로 찾았는데
+ * InstallPrompt 의 `querySelector('nav[aria-label="하단 내비게이션"]')` 가 인덱스
+ * 순서상 먼저 걸려, 실제로는 `md:hidden` 이 멀쩡히 있는데도 "데스크톱에 하단바
+ * 노출" FAIL 을 냈다. 없는 결함을 보고하는 검사기는 있는 결함을 놓치는 검사기보다
+ * 나쁘다 — 한 번 거짓으로 빨간불이 되면 그다음부터 아무도 안 본다.
+ * 그래서 needle 이 여러 파일에 걸리면 조용히 첫 번째를 쓰지 않고 로그로 드러낸다.
  */
 function locate(needle) {
-  const rel = findOne(needle);
+  const all = findAll(needle);
+  if (all.length > 1) {
+    console.error(
+      `[locate] 모호한 needle ${String(needle)} — ${all.length}개 파일에 걸림: ${all.join(", ")}\n` +
+        `         첫 번째(${all[0]})를 측정합니다. 선언부만 가리키도록 needle 을 좁히세요.`,
+    );
+  }
+  const rel = all[0] ?? null;
   return rel ? [rel, srcOf(rel)] : [null, null];
 }
 function basenames(name) {
@@ -162,7 +176,10 @@ pass(
 );
 
 // ── 내비게이션 ───────────────────────────────────────────
-const [tabRel, tabSrc] = locate('aria-label="하단 내비게이션"');
+/* JSX 속성으로 **선언된** 자리만 잡는다. 문자열 안에 같은 셀렉터를 담고 있는
+   InstallPrompt(배너를 탭바 위에 놓으려고 탭바를 조회한다)나 주석이 걸리지 않게,
+   줄 전체가 속성 하나인 형태로 좁혔다. */
+const [tabRel, tabSrc] = locate(/^\s*aria-label="하단 내비게이션"\s*$/m);
 if (!tabSrc) {
   fail("내비게이션", "모바일 하단 탭바", "aria-label=\"하단 내비게이션\" 을 가진 파일 없음");
 } else {
@@ -188,12 +205,15 @@ if (!tabSrc) {
 // ── 폼 입력 (터치 타깃) ──────────────────────────────────
 /* 44px 는 iOS HIG, 48px 는 Material 권장 최소 터치 타깃. 개별 화면마다 확인하는
    대신, 공용 버튼 토큰이 그 크기를 보장하는지 본다(토큰을 쓰면 전부 따라온다). */
-const [touchRel, touchSrc] = locate(/min-h-\[(44|48)px\]/);
-if (!touchSrc) {
+/* 여기서는 선언 하나를 찾는 게 아니라 사용처를 세는 것이므로 locate 를 쓰지
+   않는다 — locate 는 여러 파일에 걸리면 "모호한 needle" 로 경고하는데, 이 검사는
+   여러 파일에 걸리는 게 정상이다. 정상 동작에 경고를 내는 검사기는 경고를
+   무의미하게 만든다. */
+const touchUsers = findAll(/min-h-\[(44|48)px\]/);
+if (touchUsers.length === 0) {
   warn("폼 입력", "44px+ 터치 타깃 토큰", "min-h-[44px] / min-h-[48px] 사용처 없음 — 수동 QA 필요");
 } else {
-  const users = findAll(/min-h-\[(44|48)px\]/).length;
-  pass("폼 입력", "44px+ 터치 타깃 토큰", `${touchRel} 외 ${users - 1}개 파일`);
+  pass("폼 입력", "44px+ 터치 타깃 토큰", `${touchUsers[0]} 외 ${touchUsers.length - 1}개 파일`);
 }
 
 // ── 성능 (홈 로딩) ───────────────────────────────────────

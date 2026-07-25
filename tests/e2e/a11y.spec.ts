@@ -121,16 +121,30 @@ function describe(violations: AxeViolation[]): string {
  * globals.css 가 로드되지 않으면 :root 의 커스텀 프로퍼티가 아예 정의되지 않아
  * 빈 문자열이 된다. 그 한 가지만 보면 "CSS 가 붙었는가" 를 확실히 가를 수 있다.
  * 특정 색값을 박지 않는 이유는 토큰을 조정할 때마다 테스트가 깨지지 않게 하려고.
+ *
+ * 한 번만 읽지 않고 폴링하는 이유: `openWithoutMotion` 은 `domcontentloaded` 에서
+ * 멈추는데, App Router 의 스타일시트는 React 가 삽입하므로 그 시점에 아직
+ * 적용되지 않았을 수 있다. 실제로 갓 기동한 `next start` 에 8워커가 동시에
+ * 붙으면 첫 라운드에서만 /, /notes, 모바일 홈 3건이 이 단언에서 떨어지고
+ * 두 번째 실행부터는 57건 전부 통과했다. 서버가 진짜로 낡아서 CSS 가 404 면
+ * 폴링해도 끝내 빈 문자열이라 원래 잡으려던 사고는 그대로 잡힌다 —
+ * 없앤 것은 검사 능력이 아니라 시간에 따라 결과가 바뀌던 부분이다.
  */
 async function assertStylesLoaded(page: import("@playwright/test").Page) {
-  const token = await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue("--text-3").trim(),
-  );
-  expect(
-    token,
-    "globals.css 가 적용되지 않았습니다 — 스타일 없는 페이지는 대비 검사를 무조건 통과하므로 결과가 무의미합니다. " +
-      "이전 빌드의 next start 가 포트를 잡고 있지 않은지 확인하세요.",
-  ).not.toBe("");
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() =>
+          getComputedStyle(document.documentElement).getPropertyValue("--text-3").trim(),
+        ),
+      {
+        timeout: 10_000,
+        message:
+          "globals.css 가 적용되지 않았습니다 — 스타일 없는 페이지는 대비 검사를 무조건 통과하므로 결과가 무의미합니다. " +
+          "이전 빌드의 next start 가 포트를 잡고 있지 않은지 확인하세요.",
+      },
+    )
+    .not.toBe("");
 }
 
 /**

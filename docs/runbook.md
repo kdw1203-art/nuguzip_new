@@ -59,20 +59,22 @@ git push origin main          # 푸시 → deploy.yml이 자동으로 프로덕�
 
 ## 4. 크론/ETL 중단
 
-크론은 **Vercel Crons**(`vercel.json`)로 동작한다:
+크론은 **GitHub Actions**(`.github/workflows/etl.yml`)로 동작한다. `vercel.json` 에는 `crons` 를 두지 않는다 — Vercel 크론이 현재 플랜에서 실행되지 않기 때문이고, 양쪽에 두면 플랜이 바뀌는 순간 같은 작업이 두 번 돌기 때문이다.
 
-| 경로 | 스케줄 (UTC) |
-|---|---|
-| `/api/cron/attendance-reminders` | 매일 10:00 |
-| `/api/cron/reb-ingest` | 3일마다 06:00 |
-| `/api/cron/kb-ingest` | 3일마다 06:30 |
-| `/api/cron/kosis-ingest` | 3일마다 06:45 |
-| `/api/cron/complex-crawl` | 3일마다 07:00 |
-| `/api/cron/molit-transactions-ingest` | 매월 1일 04:00 |
+> **확인된 사실(2026-07-25)**: `vercel.json` 이 03:00 UTC 로 예약했던 `apt-master-ingest`, 04:30 UTC 로 예약했던 `redevelopment-ingest` 는 호출될 때마다 `market_ingest_log` 에 무조건 기록한다. 04:52 UTC 시점에 그 두 시각의 로그가 없고, 같은 날 02:57(GitHub Actions 실행) 기록만 있었다. → Vercel 크론은 돌지 않는다.
+
+| 잡 | 스케줄 (UTC) | 호출하는 엔드포인트 |
+|---|---|---|
+| `etl` | 매일 00:00 · 09:00 | reb · kb · kosis · ecos · onbid · court-auction · redevelopment · apt-master · complex-crawl · geocode(`?limit=250`) · molit(`?size=16`) · market-aggregates-refresh |
+| `alerts` | 매일 09:00 (1회) | price-alerts · saved-search-alerts · attendance-reminders · reengage-reminders(화요일만) |
+
+알림 러너를 하루 1회만 도는 이유는 적재와 성격이 달라서다 — 같은 변동을 하루 두 번 알리면 정보가 두 배가 되는 게 아니라 신뢰가 반이 된다. 실제 실행 시각은 GitHub Actions 스케줄 지연으로 예약 시각보다 2~3시간 늦게 잡히는 경우가 있다(실측: 02:56·10:52 UTC). 이는 GitHub 쪽 큐잉이며 정상 범위다.
+
+`codef-sync` 는 어느 스케줄에도 없다 — 대상 단지 목록이 코드에 없어 지금은 호출해도 `skipped` 를 돌려준다. 관리자 화면에서 단건 테스트만 가능하다.
 
 1. **감지**: `https://nuguzip.com/api/health`의 `checks.etl` 확인 — `market_ingest_log`의 마지막 성공(status=ok)이 **48시간**보다 오래되면 `ok: false`(→ 전체 status `degraded`, 합성 모니터링이 이슈 생성). `lastSuccessAt`으로 마지막 성공 시각 확인.
-2. **크론 실행 로그**: Vercel 대시보드 → 프로젝트 → Settings/Observability → **Cron Jobs**에서 최근 실행·응답코드 확인. 함수 오류는 Logs(Functions)에서 `/api/cron/*` 필터.
-3. **수동 재실행**: 해당 크론 엔드포인트를 직접 호출해 재수행 가능(핸들러는 `app/api/cron/*/route.ts`). 인증 헤더가 필요한 경우 핸들러 코드에서 요구 조건 확인.
+2. **크론 실행 로그**: GitHub → Actions → **Market ETL** 워크플로의 최근 실행에서 각 `== 이름 ==` 블록의 응답 본문 확인. 실패 시 워크플로가 이슈를 자동 생성한다. 함수 쪽 오류는 Vercel Logs(Functions)에서 `/api/cron/*` 필터. 적재 결과 요약은 `/admin/data` 의 "최근 적재 로그"(=`market_ingest_log`)에서도 볼 수 있다.
+3. **수동 재실행**: `/admin/data` → "수집 작업 실행" 패널에서 버튼으로 즉시 1회 실행(관리자 세션으로 인가된다). 워크플로 전체를 다시 돌리려면 GitHub Actions → Market ETL → **Run workflow**. 엔드포인트를 직접 부를 때는 `x-cron-secret` 헤더에 `CRON_SECRET` 을 넣는다.
 4. 외부 API 키 문제(국토부·KOSIS·서울열린데이터 등)는 `/api/health?detail=1`(운영에서는 `HEALTHCHECK_TOKEN` 필요)의 `publicData` 섹션으로 어느 키가 비었는지 확인.
 
 ## 5. 도메인/SSL

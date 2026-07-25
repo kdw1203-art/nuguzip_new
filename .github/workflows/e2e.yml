@@ -31,6 +31,9 @@ jobs:
       - name: Start server and run E2E smoke
         shell: bash
         run: |
+          # ⚠️ pipefail 을 지우지 말 것. 아래 playwright 호출은 tee 로 파이프되므로
+          #    pipefail 이 없으면 $? 가 항상 tee 의 0 이 되고, 이 게이트는 무슨 일이
+          #    있어도 초록으로 끝난다(= 게이트가 아니게 된다).
           set -o pipefail
           npx next start -p 3345 &
           SERVER_PID=$!
@@ -38,6 +41,11 @@ jobs:
           for i in $(seq 1 60); do
             if curl -sfo /dev/null http://localhost:3345/; then break; fi
             sleep 1
+          done
+          # 검사 대상 라우트를 한 번씩 미리 친다. 갓 기동한 서버에 워커가 한꺼번에
+          # 붙으면 첫 요청들이 서로 밀려 스타일 적용 전에 단언이 도는 경우가 있었다.
+          for P in / /notes /town /search /subscription /login /offline; do
+            curl -sfo /dev/null "http://localhost:3345$P" || true
           done
           E2E_BASE_URL=http://localhost:3345 npx playwright test 2>&1 | tee e2e.log
           STATUS=$?

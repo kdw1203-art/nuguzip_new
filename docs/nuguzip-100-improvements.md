@@ -108,12 +108,12 @@
 
 | 번호 | 방안 | 현황 | 우선순위 | 난이도 | 키의존 | 설명 |
 |---|---|---|---|---|---|---|
-| F1 | 데이터 관리 어드민 페이지 신설 | 없음 | P0 | M | 없음 | `AdminNav`에 "데이터/ETL" 탭 추가, curl 전용인 molit-csv·kb-upload·archive·reb-catalog 엔드포인트에 UI 연결. |
+| F1 | 데이터 관리 어드민 페이지 신설 | 완료 | P0 | M | 없음 | `AdminNav` "데이터 · 지오코딩" 탭 + `/admin/data`. curl 전용이던 molit-csv·kb-upload·archive(`UploadPanel`)·reb-catalog(`RebCatalogPanel`) 연결 완료. `CronRunPanel` 은 크론 16개를 **수집/집계/알림** 3그룹으로 나누고, 각 버튼에 `etl.yml` 기준 실제 주기를 배지로 찍는다 — 스케줄러에 연결되지 않은 라우트는 "수동 전용"으로 드러나 "돌고 있겠지"라는 추측이 화면에서 사라진다. 실제로 사용자에게 발송되는 3개(price-alerts·saved-search·attendance)는 빨간 "발송" 배지 + 2단 확인, 이탈 리마인드는 버튼에서 `?dry=1` 고정. 알림 러너는 fail-soft(HTTP 200 + `ok:false`)라 200만 보고 성공으로 칠하지 않고 `ok:false` 를 실패로 표시한다. `attendance-reminders` 만 관리자 세션 인가가 빠져 이 패널에서 403 이 나던 것도 함께 고쳤다. |
 | F2 | 신선도 대시보드 | 부분 | P0 | M | 없음 | `market_ingest_log`+각 테이블 최신일자로 소스별 as-of·지연 표시(현재 최신 3행 패널만). |
 | F3 | 인제스트 로깅 계측 확대 | 완료 | P0 | S | 없음 | 성공 로그는 molit·apt-master·ecos·onbid·redev·geocode·court-auction까지 확대 완료. 추가로 **실패 경로**를 계측했다 — 이전에는 크론이 예외로 죽으면 `market_ingest_log`에 아무것도 남지 않아 "실패했다"와 "아예 안 돌았다"가 구분되지 않았다. 이제 molit·ecos·onbid·redevelopment·court-auction·reb·kosis·kb 8개 라우트가 예외를 잡아 `status:"error"`로 기록한다. 저장 전 `ingestErrorMessage()`가 오류 메시지의 `serviceKey`·`apiKey` 등 인증키 쿼리 파라미터를 `***`로 지우고 400자로 자른다(적재 로그는 어드민 화면에 그대로 표시되므로). |
 | F4 | 데이터 품질 검사 | 없음 | P0 | M | 없음 | `app/admin/quality`의 하드코딩 목업을 `market_transactions`/`apartment_complexes` 실 null율·범위·중복 체크로 대체. |
 | F5 | 이상치 탐지 | 없음 | P1 | M | 없음 | 실거래 가격 이상·행수 급감·스키마 드리프트 감지(listings의 ±40% 이상치 로직 재사용). |
-| F6 | 미스케줄 cron 연결 | 부분 | P1 | S | API키 | `ecos-sync`/`onbid-sync`/`codef-sync` 라우트가 `vercel.json` crons에 없음 — 스케줄 추가(각 소스 키 필요). |
+| F6 | 미스케줄 cron 연결 | 부분 | P1 | S | API키 | 스케줄러는 `vercel.json` 이 아니라 `.github/workflows/etl.yml` 이다(Vercel 크론은 이 플랜에서 실행되지 않는 것을 2026-07-25 로그로 확인 — `vercel.json` 의 crons 13개는 삭제). `ecos-sync`·`onbid-sync` 는 etl.yml 에 연결 완료(키 없으면 skipped). **`vercel.json` 에만 있어 한 번도 돌지 않던 `market-aggregates-refresh`·`price-alerts`·`saved-search-alerts`·`reengage-reminders` 4개를 etl.yml 로 이관**(집계는 적재 직후, 알림은 하루 1회 `alerts` 잡, 이탈 리마인드는 화요일만). 남은 것은 `codef-sync` — 대상 단지 목록이 없어 지금 호출해도 `skipped` 라 스케줄을 붙이지 않았다(키 + 목록 필요). |
 | F7 | 중복 단지 병합 도구 | 없음 | P1 | L | 없음 | `complexes`/`apartment_complexes` 중복을 관리자 병합 UI로(D7 정합과 연계). |
 | F8 | 코어 테이블 자체 파이프라인화 | 없음 | P1 | L | API키 | 65k `market_transactions`·42k `apartment_complexes`의 외부(Flask) 적재를 in-repo cron/업로드로 흡수해 재현성 확보. |
 | F9 | 스키마 마이그레이션 정본화 | 완료 | P0 | M | 없음 | 허구였던 `supabase/schema.sql`(선언 10개 중 8개가 운영 DB에 미존재, 실 133개 중 123개 누락) 삭제. 실측 인벤토리 `supabase/SCHEMA.md`(133테이블/1,529컬럼) + `supabase/migrations/` 규약·96건 이력 README + `db:schema:doc`·`db:migrations:export` 스크립트로 대체. |

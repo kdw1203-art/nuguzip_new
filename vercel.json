@@ -18,59 +18,5 @@
       "destination": "https://nuguzip.com/:path*",
       "permanent": true
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/attendance-reminders",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/reb-ingest",
-      "schedule": "0 6 */3 * *"
-    },
-    {
-      "path": "/api/cron/kb-ingest",
-      "schedule": "30 6 */3 * *"
-    },
-    {
-      "path": "/api/cron/complex-crawl",
-      "schedule": "0 7 */3 * *"
-    },
-    {
-      "path": "/api/cron/kosis-ingest",
-      "schedule": "45 6 */3 * *"
-    },
-    {
-      "path": "/api/cron/molit-transactions-ingest",
-      "schedule": "0 4 1 * *"
-    },
-    {
-      "path": "/api/cron/price-alerts",
-      "schedule": "0 21 * * *"
-    },
-    {
-      "path": "/api/cron/saved-search-alerts",
-      "schedule": "30 21 * * *"
-    },
-    {
-      "path": "/api/cron/court-auction-sync",
-      "schedule": "15 6 */3 * *"
-    },
-    {
-      "path": "/api/cron/apt-master-ingest",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/redevelopment-ingest",
-      "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/cron/market-aggregates-refresh",
-      "schedule": "10 5 * * *"
-    },
-    {
-      "path": "/api/cron/reengage-reminders",
-      "schedule": "0 9 * * 2"
-    }
   ]
 }

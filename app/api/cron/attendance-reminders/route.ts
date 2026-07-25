@@ -1,13 +1,35 @@
 import { NextResponse } from "next/server";
+import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
+/**
+ * 출석 리마인드 — 오늘 아직 출석하지 않은 웹푸시 구독자에게 1회 발송.
+ *
+ * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션.
+ * 다른 크론과 같은 규칙으로 맞춘 것은 어드민 "수집 작업 실행" 패널에서
+ * 이 라우트만 403 이 나던 문제 때문이다(관리자 세션 인가가 빠져 있었다).
+ *
+ * ⚠️ 알려진 한계(고치지 않고 남겨 둠): `today` 는 UTC 날짜다. 적립 쪽
+ *    (lib/points/store-db.ts checkIn)도 같은 UTC 기준이라 이 크론의 "오늘 출석했나"
+ *    판정 자체는 어긋나지 않는다. 다만 한국 사용자에게는 하루가 09:00 KST 에
+ *    바뀌는 셈이라 연속 출석 스트릭이 그 시각 경계에서 끊길 수 있다. 기준을
+ *    KST 로 옮기려면 이미 쌓인 user_attendance 행의 의미까지 함께 옮겨야 해서
+ *    이 변경과 분리했다.
+ */
 export async function GET(req: Request) {
   const expected = process.env.CRON_SECRET?.trim();
-  const provided = new URL(req.url).searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  if (expected && provided !== expected) {
+  const url = new URL(req.url);
+  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
+  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
+  const authorized =
+    fromVercelCron ||
+    (expected ? provided === expected : true) ||
+    (await isAdminApiRequest());
+  if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
 
