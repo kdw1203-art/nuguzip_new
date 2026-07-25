@@ -14,6 +14,14 @@ import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   metadataBase: new URL("https://nuguzip.com"),
   manifest: "/manifest.webmanifest",
+  /* S2·S3 — 검색엔진 소유 확인 메타태그 (2026-07-25 소유자 제공 토큰).
+     구글: 정식 도메인 속성 인증은 Vercel DNS 의 TXT 레코드로 하고, 이 태그는
+     URL 접두어 속성용 폴백. 네이버: 서치어드바이저 HTML 태그 방식(정식).
+     검증 토큰은 공개돼도 되는 값이다(시크릿 아님). */
+  verification: {
+    google: "d4jn9bf7SyTraz2EEnn4aNIPemHwz-Bqqflre4DEuXU",
+    other: { "naver-site-verification": "411fe0d67e731e16c96f4994d904f6160e4927af" },
+  },
   title: "누구집 — 임장 기록이 판단 근거가 됩니다",
   description:
     "3분 기록 → AI 정리 → 지도 비교. 부동산 임장노트 플랫폼 누구집. 로그인 없이 시작하세요.",
