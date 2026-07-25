@@ -2,6 +2,7 @@ import { getExpert } from "@/lib/experts/store-db";
 import { getMeeting } from "@/lib/meetings/store-db";
 import { enqueueEmailNotification } from "@/lib/notifications/outbox";
 import { pushInboxNotification } from "@/lib/notifications/inbox";
+import { getPrefs } from "@/lib/notification-prefs/store-db";
 import { checkAccess } from "@/lib/subscriptions/access";
 import type { ChatReportStatus, ChatRoomType } from "@/lib/chat/types";
 import {
@@ -202,20 +203,47 @@ export async function sendMessageByPolicy(
   const preview =
     message.body?.slice(0, 120) ??
     (message.attachments.length > 0 ? "첨부 파일이 도착했습니다." : "새 메시지가 도착했습니다.");
+  // /town/groups/[id]/chat 의 [id] 는 meetingId 다 — 예전에는 roomId 를 넣어서
+  // 알림을 누르면 getMeeting(roomId)=null → "모임을 찾을 수 없어요"로 떨어졌다.
+  // room→meeting 매핑(chat_rooms.meeting_id)으로 올바른 URL 을 만들고,
+  // 모임이 아닌 방(전문가 상담·1:1)은 각자 열람 지점으로 보낸다.
+  const actionUrl =
+    room.roomType === "group" && room.meetingId
+      ? `/town/groups/${room.meetingId}/chat`
+      : room.roomType === "expert"
+        ? "/my/consultations"
+        : "/notifications";
   for (const email of recipients) {
+    // 모임 채팅은 수신자의 알림 설정(pushMeeting=인앱 · emailMeeting=이메일)을 존중한다.
+    // 설정 조회에 실패하면 기본값(켜짐)으로 발송 — 알림 유실보다 중복이 낫다.
+    let allowInbox = true;
+    let allowEmail = true;
+    if (room.roomType === "group") {
+      try {
+        const prefs = await getPrefs(email);
+        allowInbox = prefs.pushMeeting;
+        allowEmail = prefs.emailMeeting;
+      } catch {
+        /* 기본 발송 유지 */
+      }
+    }
     // 인앱 알림은 실시간성, 이메일 outbox는 백오프 전송용
-    await pushInboxNotification({
-      userEmail: email,
-      title: "새 채팅 메시지",
-      body: preview,
-      actionUrl: `/town/groups/${input.roomId}/chat`,
-    });
-    await enqueueEmailNotification({
-      to: email,
-      subject: "[우리동네이야기] 새 채팅 메시지",
-      body: preview,
-      metadata: { roomId: input.roomId, messageId: message.id, from: sender },
-    });
+    if (allowInbox) {
+      await pushInboxNotification({
+        userEmail: email,
+        title: "새 채팅 메시지",
+        body: preview,
+        actionUrl,
+      });
+    }
+    if (allowEmail) {
+      await enqueueEmailNotification({
+        to: email,
+        subject: "[우리동네이야기] 새 채팅 메시지",
+        body: preview,
+        metadata: { roomId: input.roomId, messageId: message.id, from: sender },
+      });
+    }
   }
   return message;
 }

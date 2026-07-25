@@ -30,6 +30,7 @@ type PrefKey =
   | "pushExpert"
   | "pushReengagement"
   | "pushListingStale"
+  | "pushAttendance"
   | "pushWeeklyDigest";
 
 type Prefs = Record<PrefKey, boolean> & {
@@ -67,6 +68,11 @@ const PREF_GROUPS: {
         key: "pushListingStale",
         label: "내 매물 신선도 알림",
         desc: "등록한 매물이 21일 넘게 그대로면 끌어올리기 안내, 60일이면 마감 제안",
+      },
+      {
+        key: "pushAttendance",
+        label: "출석 리마인드",
+        desc: "오늘 출석을 아직 안 했으면 저녁에 1회 (기본 켜짐)",
       },
       {
         key: "pushWeeklyDigest",

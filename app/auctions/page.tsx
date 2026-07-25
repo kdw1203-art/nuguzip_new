@@ -5,6 +5,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { AdSlot } from "@/app/components/ads/AdSlot";
+import { getAdViewer, type AdViewer } from "@/lib/ads/viewer";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import {
   getAuctions,
@@ -281,6 +282,7 @@ function UsageFilterChips({
 
 /** 두 소스가 공유하는 청약 센터형 레이아웃 (양쪽 브랜치 공통) */
 function AuctionView({
+  viewer,
   active,
   total,
   cards,
@@ -300,6 +302,7 @@ function AuctionView({
   tableHeading,
   tableCaption,
 }: {
+  viewer: AdViewer;
   active: "onbid" | "court";
   total: number;
   cards: AuctionCardData[];
@@ -607,7 +610,13 @@ function AuctionView({
 
           {/* c) 광고 자리 */}
           <div className="rise-in-4">
-            <AdSlot placement="community_feed" seed={0} plan={null} />
+            <AdSlot
+              placement="community_feed"
+              seed={0}
+              adFree={viewer.adFree}
+              signedIn={viewer.signedIn}
+              plan={viewer.plan}
+            />
           </div>
         </aside>
       </div>
@@ -622,6 +631,8 @@ export default async function AuctionsPage({
   searchParams: Promise<{ usage?: string; gu?: string; source?: string }>;
 }) {
   const { usage, gu, source } = await searchParams;
+  // 유료 플랜 광고 제거(H4) — 이 페이지는 force-dynamic 이라 세션을 읽어도 비용이 없다
+  const viewer = await getAdViewer();
 
   /* 법원경매(court) 소스 — 대법원 법원경매정보 미연동 상태.
      사실 우선: 예전에는 court_auctions 의 예시 행("2025타경12345 · 서울북부지방법원 ·
@@ -644,6 +655,7 @@ export default async function AuctionsPage({
         <TownCategoryNav stick />
         <div style={AUCTION_THEME}>
           <AuctionView
+            viewer={viewer}
             active="court"
             total={total}
             cards={cards}
@@ -723,6 +735,7 @@ export default async function AuctionsPage({
       <TownCategoryNav stick />
       <div style={AUCTION_THEME}>
         <AuctionView
+          viewer={viewer}
           active="onbid"
           total={total}
           cards={cards}

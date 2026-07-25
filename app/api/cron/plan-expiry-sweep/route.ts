@@ -1,0 +1,101 @@
+import { NextResponse } from "next/server";
+import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { getServiceSupabase } from "@/lib/supabase/service";
+import { ingestErrorMessage, logIngest } from "@/lib/market/store";
+import { logger } from "@/lib/log";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * 구독 만료 스윕 — 일회성 결제(카카오페이·토스·포인트 교환)로 부여된 유료 플랜을
+ * `plan_expires_at` 이 지나면 무료 플랜으로 강등한다. 하루 1회(etl.yml alerts 잡).
+ *
+ * - 대상: 유료 플랜(free/basic 제외) AND plan_expires_at < now()
+ * - Stripe 구독은 applyPlanToUserByEmail 이 만료를 null 로 저장하므로 애초에
+ *   스윕 대상이 아니다 (해지·미납 강등은 웹훅 담당).
+ * - 강등 값은 'free' — 이 코드베이스가 app_users.plan 에 쓰는 무료 플랜 값이다
+ *   (가입·웹훅 강등 모두 'free' 를 쓴다. 'basic' 은 표시용 tier 별칭으로,
+ *   조회 측 normalize 가 둘 다 무료로 취급하지만 쓰기는 'free' 로 통일한다).
+ * - 실행 기록은 다른 크론과 같은 ingest-log(market_ingest_log)에 남긴다.
+ *
+ * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션
+ * (attendance-reminders 와 같은 규칙).
+ */
+export async function GET(req: Request) {
+  const expected = process.env.CRON_SECRET?.trim();
+  const url = new URL(req.url);
+  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
+  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
+  const authorized =
+    fromVercelCron ||
+    (expected ? provided === expected : true) ||
+    (await isAdminApiRequest());
+  if (!authorized) {
+    return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
+  }
+
+  const sb = getServiceSupabase();
+  if (!sb) return NextResponse.json({ ok: true, demoted: 0, note: "Supabase 미설정" });
+
+  const nowIso = new Date().toISOString();
+  try {
+    const { data: expired, error } = await sb
+      .from("app_users")
+      .select("id, email, plan, plan_expires_at")
+      .not("plan", "in", '("free","basic")')
+      .not("plan_expires_at", "is", null)
+      .lt("plan_expires_at", nowIso)
+      .limit(500);
+    if (error) throw new Error(error.message);
+
+    const targets = expired ?? [];
+    if (targets.length === 0) {
+      await logIngest({
+        source: "plan-expiry",
+        dataset: "app_users",
+        origin: "cron-fetch",
+        rows: 0,
+        status: "ok",
+        message: "만료된 유료 플랜 없음",
+      });
+      return NextResponse.json({ ok: true, demoted: 0 });
+    }
+
+    const ids = targets.map((r) => String(r.id));
+    const { data: demotedRows, error: updateError } = await sb
+      .from("app_users")
+      .update({ plan: "free", plan_expires_at: null })
+      .in("id", ids)
+      // 조회와 갱신 사이에 재결제로 만료가 갱신된 사용자를 지키는 이중 조건
+      .lt("plan_expires_at", nowIso)
+      .select("id");
+    if (updateError) throw new Error(updateError.message);
+
+    const demoted = demotedRows?.length ?? 0;
+    logger.info(`[plan-expiry-sweep] ${demoted}명 강등 (후보 ${targets.length}명)`);
+    await logIngest({
+      source: "plan-expiry",
+      dataset: "app_users",
+      origin: "cron-fetch",
+      rows: demoted,
+      status: "ok",
+      message: `만료 강등 ${demoted}명 (후보 ${targets.length}명)`,
+    });
+    return NextResponse.json({ ok: true, demoted, candidates: targets.length });
+  } catch (e) {
+    logger.error("[plan-expiry-sweep]", e);
+    await logIngest({
+      source: "plan-expiry",
+      dataset: "app_users",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message: ingestErrorMessage(e),
+    });
+    return NextResponse.json(
+      { ok: false, error: e instanceof Error ? e.message : "sweep failed" },
+      { status: 500 },
+    );
+  }
+}

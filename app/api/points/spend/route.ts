@@ -124,7 +124,10 @@ export async function POST(req: NextRequest) {
     const tier = item.effect === "plan_pro" ? "pro" : "expert";
     let granted = false;
     try {
-      granted = await applyPlanToUserByEmail(email, tier);
+      // 포인트 교환도 일회성 — 카탈로그의 이용 일수만큼 만료를 기록한다 (만료는 스윕 크론)
+      granted = await applyPlanToUserByEmail(email, tier, {
+        durationDays: item.durationDays ?? 30,
+      });
     } catch (e) {
       logger.warn("[points:spend] plan grant", e);
     }
@@ -139,18 +142,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── AI 분석 / 단지 리포트: 소비 크레딧 기록 후 성공 ──
+  // ── 단지 리포트: 소비 크레딧 기록 후 성공 ──
+  // (구 ai_analysis 분기는 카탈로그에서 상품이 내려가면서 함께 제거 — 존재하지 않는
+  //  itemKey 는 위 getSpendItem 에서 "존재하지 않는 상품이에요"로 걸러진다)
   const spend = await spendPoints(email, item.cost, `spend:${item.key}`);
   if (!spend.ok) return spendError(spend);
-  const note =
-    item.effect === "ai_analysis"
-      ? "AI 임장 분석 1회가 충전됐어요. 내 노트에서 분석을 실행해 보세요."
-      : "단지 리포트 PDF 이용권이 적용됐어요.";
   return NextResponse.json({
     ok: true,
     balance: spend.balance,
     effect: item.effect,
     grant: item.key,
-    note,
+    note: "단지 리포트 PDF 이용권이 적용됐어요.",
   });
 }

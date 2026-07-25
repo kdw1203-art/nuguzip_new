@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
       method: approved.payment_method_type ?? "kakaopay",
     });
 
-    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan);
+    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
 
     return NextResponse.redirect(
       `${base}/payment/success?orderId=${encodeURIComponent(orderId)}&provider=kakaopay`,
@@ -115,9 +115,14 @@ export async function GET(req: NextRequest) {
 async function maybeApplyPlan(
   userEmail: string | null,
   tier: "basic" | "pro" | "expert" | "enterprise",
+  billing: "monthly" | "annual",
 ): Promise<void> {
   if (!userEmail) return;
   if (tier === "basic") return;
   const appPlan: AppPlan = tier;
-  await applyPlanToUserByEmail(userEmail, appPlan);
+  // 카카오페이는 일회성 결제 — 결제 주기만큼만 이용 기간을 기록한다.
+  // 만료 후 강등은 plan-expiry-sweep 크론이 처리한다.
+  await applyPlanToUserByEmail(userEmail, appPlan, {
+    durationDays: billing === "annual" ? 365 : 30,
+  });
 }

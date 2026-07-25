@@ -36,13 +36,16 @@ export type SpendItem = {
   cost: number;
   desc: string;
   /** 소비 후 부여되는 효과 종류 */
-  effect: "ai_analysis" | "complex_report" | "listing_boost" | "plan_pro" | "plan_expert";
+  effect: "complex_report" | "listing_boost" | "plan_pro" | "plan_expert";
   /** 부스트 등 기간성 효과의 일수 */
   durationDays?: number;
 };
 
+/* "AI 임장 분석 1회"(ai_analysis, 200P)는 제거 — 크레딧을 기록만 하고 실제로
+   분석 횟수를 늘려 주는 소비 지점이 어디에도 없던 유령 상품이었다. 포인트만 받고
+   아무것도 주지 않는 셈이라 판매를 중단한다. 기존 구매 이력(원장 reason
+   spend:ai_analysis)은 화면에서 "포인트 사용" 폴백 라벨로 계속 표시된다. */
 export const SPEND_ITEMS: SpendItem[] = [
-  { key: "ai_analysis", label: "AI 임장 분석 1회", cost: 200, desc: "내 노트를 AI가 분석해 강·약점 요약", effect: "ai_analysis" },
   { key: "complex_report", label: "단지 리포트 PDF", cost: 300, desc: "단지 실거래·시세 리포트 다운로드", effect: "complex_report" },
   { key: "listing_boost_7d", label: "매물 상단 노출 7일", cost: 500, desc: "내 매물을 목록·지도 상단에 노출", effect: "listing_boost", durationDays: 7 },
   { key: "plan_pro_1m", label: "PRO 구독 1개월 교환", cost: 2900, desc: "PRO 기능 1개월 이용권", effect: "plan_pro", durationDays: 30 },

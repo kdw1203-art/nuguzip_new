@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       providerPaymentKey: "MOCK-PAYMENT-KEY",
       method: "mock-card",
     });
-    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan);
+    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
     return NextResponse.json({ ok: true, mock: true, payment: paid });
   }
 
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
           ? ((data.receipt as { url?: string }).url ?? undefined)
           : undefined,
     });
-    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan);
+    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
     return NextResponse.json({ ok: true, payment: paid });
   } catch (e) {
     await markFailed(orderId);
@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
 async function maybeApplyPlan(
   userEmail: string | null,
   tier: "basic" | "pro" | "expert" | "enterprise",
+  billing: "monthly" | "annual",
 ): Promise<void> {
   if (!userEmail) {
     const session = await safeAuth();
@@ -146,5 +147,8 @@ async function maybeApplyPlan(
   // 멤버십 등급을 변경하지 않는다.
   if (tier === "basic") return;
   const appPlan: AppPlan = tier;
-  await applyPlanToUserByEmail(userEmail, appPlan);
+  // 토스는 일회성 결제 — 결제 주기만큼만 이용 기간을 기록한다 (만료는 스윕 크론).
+  await applyPlanToUserByEmail(userEmail, appPlan, {
+    durationDays: billing === "annual" ? 365 : 30,
+  });
 }

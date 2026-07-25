@@ -127,6 +127,8 @@ jobs:
             curl -sS --max-time 290 -H "x-cron-secret: $CRS" "$URL" | head -c 600 || true
             echo
           }
+          # 구독 만료 스윕 — 일회성 결제 plan_expires_at 지난 사용자를 무료 플랜으로 강등
+          call plan-expiry "https://nuguzip.com/api/cron/plan-expiry-sweep"
           # 관심 단지 가격 변동 — 대표 면적대 최근 6건 평균 기준(lib/market/complex-price.ts).
           call price-alerts "https://nuguzip.com/api/cron/price-alerts"
           # 저장 검색 신규 매치

@@ -52,6 +52,18 @@ export async function GET(req: Request) {
     .in("user_email", emails.length ? emails : ["__none__"]);
   const checkedSet = new Set((checked ?? []).map((r) => String(r.user_email).toLowerCase()));
 
+  // 설정에서 출석 리마인드를 끈 사람 제외 — 예전에는 push_subscriptions 전체에
+  // 발송해서 /my/settings 의 어떤 스위치로도 벗어날 수 없었다. 행이 없거나
+  // 값이 true 면 발송(기본 켜짐 규칙), 명시적으로 false 인 사람만 제외한다.
+  const { data: optedOut } = await sb
+    .from("notification_preferences")
+    .select("user_email")
+    .eq("push_attendance", false)
+    .in("user_email", emails.length ? emails : ["__none__"]);
+  const optedOutSet = new Set(
+    (optedOut ?? []).map((r) => String(r.user_email).toLowerCase()),
+  );
+
   const payload: PushPayload = {
     title: "오늘 출석 체크를 잊지 마세요",
     body: "연속 출석 포인트를 받고 투자 루틴을 이어가세요.",
@@ -64,9 +76,10 @@ export async function GET(req: Request) {
   };
 
   let sent = 0;
-  const targets = (subs ?? []).filter(
-    (s) => !checkedSet.has(String(s.user_email).toLowerCase()),
-  );
+  const targets = (subs ?? []).filter((s) => {
+    const em = String(s.user_email).toLowerCase();
+    return !checkedSet.has(em) && !optedOutSet.has(em);
+  });
   await Promise.allSettled(
     targets.map(async (sub) => {
       const result = await sendPush(

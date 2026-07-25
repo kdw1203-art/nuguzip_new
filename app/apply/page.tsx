@@ -3,6 +3,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { AdSlot } from "@/app/components/ads/AdSlot";
+import { getAdViewer } from "@/lib/ads/viewer";
 import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
 import type { ApplyhomeListingItem } from "@/lib/applyhome/types";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
@@ -72,6 +73,8 @@ const MARK_BG = { receipt: "bg-danger", announce: "bg-primary", planned: "bg-[#c
 
 export default async function ApplyPage() {
   const liveData = await getApplyLiveData();
+  // 유료 플랜 광고 제거(H4) — 이 페이지는 force-dynamic 이라 세션을 읽어도 비용이 없다
+  const viewer = await getAdViewer();
   return (
     <PageShell breadcrumb="지도 › 청약 센터" wide>
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
@@ -333,7 +336,13 @@ export default async function ApplyPage() {
             </p>
           </div>
           <div className="rise-in-4">
-            <AdSlot placement="community_feed" seed={0} plan={null} />
+            <AdSlot
+              placement="community_feed"
+              seed={0}
+              adFree={viewer.adFree}
+              signedIn={viewer.signedIn}
+              plan={viewer.plan}
+            />
           </div>
         </aside>
       </div>
@@ -493,7 +502,13 @@ export default async function ApplyPage() {
               </div>
             ))}
           </div>
-          <AdSlot placement="community_feed" seed={1} plan={null} />
+          <AdSlot
+            placement="community_feed"
+            seed={1}
+            adFree={viewer.adFree}
+            signedIn={viewer.signedIn}
+            plan={viewer.plan}
+          />
         </aside>
       </div>
     </PageShell>
