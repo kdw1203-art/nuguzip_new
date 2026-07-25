@@ -23,11 +23,11 @@ export async function POST(req: Request) {
 
   const stripe = getStripe();
   if (!stripe) {
+    // 503 본문은 사용자에게 그대로 보여줄 수 있는 문구로 — 환경변수 이름 같은
+    // 내부 사정은 로그에만 남긴다 (PlanCheckoutButton 이 이 문구를 노출한다).
+    logger.warn("[billing:checkout] STRIPE_SECRET_KEY 미설정 — 카드 결제 비활성");
     return NextResponse.json(
-      {
-        error:
-          "Stripe 비밀키가 없습니다. STRIPE_SECRET_KEY 와 Price ID 환경변수를 설정하세요.",
-      },
+      { error: "카드 결제가 아직 준비되지 않았어요. 다른 결제 수단으로 시도해 주세요." },
       { status: 503 },
     );
   }
@@ -69,12 +69,13 @@ export async function POST(req: Request) {
   const priceEnv = billing === "annual" ? `${monthlyPriceEnv}_ANNUAL` : monthlyPriceEnv;
   const priceId = process.env[priceEnv]?.trim();
   if (!priceId) {
+    logger.warn(`[billing:checkout] ${priceEnv} 미설정 — ${plan}/${billing} 카드 결제 비활성`);
     return NextResponse.json(
       {
         error:
           billing === "annual"
-            ? `연간 결제 상품(${priceEnv})이 아직 등록되지 않았습니다. 월간 결제로 진행해 주세요.`
-            : `${priceEnv} 가 비어 있습니다.`,
+            ? "연간 카드 결제 상품이 아직 등록되지 않았어요. 월간 결제로 진행해 주세요."
+            : "카드 결제가 아직 준비되지 않았어요. 다른 결제 수단으로 시도해 주세요.",
       },
       { status: 503 },
     );
@@ -93,7 +94,8 @@ export async function POST(req: Request) {
       source,
       campaign,
       successUrl: `${base}/payment/success?provider=stripe&session_id={CHECKOUT_SESSION_ID}&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
-      cancelUrl: `${base}/payment/fail?provider=stripe&checkout=cancel&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
+      // plan/billing 을 실어 보내야 실패 페이지의 "다시 시도하기"가 고른 상품을 기억한다
+      cancelUrl: `${base}/payment/fail?provider=stripe&checkout=cancel&plan=${plan}&billing=${billing}&source=${encodeURIComponent(source)}&campaign=${encodeURIComponent(campaign)}`,
     });
     if (!checkout.url) {
       return NextResponse.json(

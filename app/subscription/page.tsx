@@ -18,7 +18,8 @@ export const metadata = buildPageMetadata({
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* 가격 단일 출처: lib/subscriptions/billing-periods.ts (하드코딩 금지) */
+/* 가격 단일 출처: lib/subscriptions/base-prices.ts 의 확정 판매가에서
+   billing-periods.ts 가 기간별 금액을 파생한다 (화면 하드코딩 금지) */
 const fmtWon = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 function tierPricing(tier: "pro" | "expert"): TierPricing {
@@ -71,7 +72,15 @@ function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   );
 }
 
-export default async function SubscriptionPage() {
+export default async function SubscriptionPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ plan?: string; billing?: string }>;
+}) {
+  // 결제 실패 페이지의 "다시 시도하기"가 plan/billing 쿼리를 들고 돌아온다 —
+  // 고른 주기를 다시 고르게 하지 않도록 토글 초기값으로 반영한다.
+  const sp = (await searchParams) ?? {};
+  const initialBilling = sp.billing === "annual" ? ("annual" as const) : ("monthly" as const);
   const session = await safeAuth();
   const email = session?.user?.email ?? null;
   let currentPlan: "free" | "pro" | "expert" = "free";
@@ -107,6 +116,7 @@ export default async function SubscriptionPage() {
           currentPlan={currentPlan}
           pro={tierPricing("pro")}
           expert={tierPricing("expert")}
+          initialBilling={initialBilling}
         />
       </section>
 

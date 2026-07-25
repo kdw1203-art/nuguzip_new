@@ -93,12 +93,15 @@ export function PlanCards({
   currentPlan,
   pro,
   expert,
+  initialBilling = "monthly",
 }: {
   currentPlan: PlanKind;
   pro: TierPricing;
   expert: TierPricing;
+  /** 결제 실패 후 재시도 등 — 서버가 쿼리로 넘긴 초기 결제 주기 */
+  initialBilling?: Billing;
 }) {
-  const [billing, setBilling] = useState<Billing>("monthly");
+  const [billing, setBilling] = useState<Billing>(initialBilling);
   const pricing: Record<"pro" | "expert", TierPricing> = { pro, expert };
 
   return (

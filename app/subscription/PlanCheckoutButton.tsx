@@ -53,52 +53,90 @@ export function PlanCheckoutButton({
     }
 
     // 2) 결제 생성 API 호출 → 결제창 URL로 이동 (확인은 버튼 자리에서 이미 받았다)
+    //    실패했을 때 "결제 준비 중입니다" 하나로 뭉개지 않는다 — Stripe 미설정(503)·
+    //    카카오페이 실패·네트워크 단절은 사용자가 취할 다음 행동이 서로 다르다.
     setConfirming(false);
     setBusy(true);
+
+    type Failure = { kind: "unavailable" | "error" | "network"; message?: string };
+
     try {
       // 1순위: Stripe Checkout (구 /api/billing/checkout — { url } 반환)
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: tier, billing, source: "subscription", campaign: "newui" }),
-      });
-      const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-      if (res.ok && j.url) {
-        window.location.href = j.url;
-        return;
+      let stripeFailure: Failure;
+      try {
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: tier, billing, source: "subscription", campaign: "newui" }),
+        });
+        const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+        if (res.ok && j.url) {
+          window.location.href = j.url;
+          return;
+        }
+        stripeFailure =
+          res.status === 503
+            ? { kind: "unavailable", message: j.error } // 서버가 사용자용 문구를 준다 (연간 미등록 안내 등)
+            : { kind: "error" };
+      } catch {
+        stripeFailure = { kind: "network" };
       }
 
       // 2순위: 카카오페이 (구 /api/payments/kakaopay/ready — 결제창 redirect URL 반환)
-      const kp = await fetch("/api/payments/kakaopay/ready", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tier,
-          billing,
-          source: "subscription",
-          campaign: "newui-kakaopay",
-        }),
-      });
-      const kj = (await kp.json().catch(() => ({}))) as {
-        nextRedirectPcUrl?: string | null;
-        nextRedirectMobileUrl?: string | null;
-        error?: string;
-      };
-      const isMobile =
-        typeof navigator !== "undefined" &&
-        /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
-      const payUrl =
-        (isMobile ? kj.nextRedirectMobileUrl : kj.nextRedirectPcUrl) ??
-        kj.nextRedirectPcUrl ??
-        kj.nextRedirectMobileUrl;
-      if (kp.ok && payUrl) {
-        window.location.href = payUrl;
-        return;
+      let kakaoFailure: Failure;
+      try {
+        const kp = await fetch("/api/payments/kakaopay/ready", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tier,
+            billing,
+            source: "subscription",
+            campaign: "newui-kakaopay",
+          }),
+        });
+        const kj = (await kp.json().catch(() => ({}))) as {
+          nextRedirectPcUrl?: string | null;
+          nextRedirectMobileUrl?: string | null;
+          error?: string;
+        };
+        const isMobile =
+          typeof navigator !== "undefined" &&
+          /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+        const payUrl =
+          (isMobile ? kj.nextRedirectMobileUrl : kj.nextRedirectPcUrl) ??
+          kj.nextRedirectPcUrl ??
+          kj.nextRedirectMobileUrl;
+        if (kp.ok && payUrl) {
+          window.location.href = payUrl;
+          return;
+        }
+        kakaoFailure = kp.status === 503 ? { kind: "unavailable" } : { kind: "error" };
+      } catch {
+        kakaoFailure = { kind: "network" };
       }
 
-      setNotice("결제 준비 중입니다. 잠시 후 다시 시도해 주세요.");
-    } catch {
-      setNotice("결제 준비 중입니다. 잠시 후 다시 시도해 주세요.");
+      // 두 수단 모두 실패 — 원인별로 다른 안내
+      if (stripeFailure.kind === "network" && kakaoFailure.kind === "network") {
+        setNotice("네트워크 연결이 불안정해요. 연결을 확인한 뒤 다시 시도해 주세요.");
+      } else if (stripeFailure.kind === "unavailable" && kakaoFailure.kind === "unavailable") {
+        setNotice(
+          "지금은 카드·카카오페이 결제를 모두 사용할 수 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.",
+        );
+      } else if (kakaoFailure.kind === "network") {
+        setNotice("네트워크 연결이 불안정해요. 연결을 확인한 뒤 다시 시도해 주세요.");
+      } else if (stripeFailure.kind === "unavailable") {
+        // 카드 결제가 막힌 이유(연간 미등록 등)를 알려주고, 카카오페이 실패도 함께 안내
+        setNotice(
+          `${stripeFailure.message ?? "카드 결제가 아직 준비되지 않았어요."} 카카오페이 연결도 실패해 결제를 시작하지 못했어요.`,
+        );
+      } else if (kakaoFailure.kind === "unavailable") {
+        setNotice(
+          "카드 결제에 실패했고 카카오페이는 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.",
+        );
+      } else {
+        setNotice("결제 시작에 실패했어요. 잠시 후 다시 시도해 주세요. 반복되면 고객센터로 문의해 주세요.");
+      }
     } finally {
       setBusy(false);
     }
