@@ -15,6 +15,14 @@ import {
   APPLYHOME_PORTAL_URL,
 } from "@/lib/applyhome/types";
 
+/**
+ * 상세(분양정보) API 미승인 상태에서 단지명·지역을 확보하지 못한 행의 정직한 라벨.
+ * 예전에는 `APT ${HOUSE_TY}` 처럼 타입코드(예: "APT 084.9700")를 단지명 자리에
+ * 노출했는데, 이는 존재하지 않는 단지명을 지어내는 표기라 제거했다.
+ */
+const UNNAMED_HOUSE_LABEL = "단지명 미제공(청약홈 상세 승인 대기)";
+const UNNAMED_REGION_LABEL = "지역 미제공";
+
 let detailAccessCache: boolean | null = null;
 let detailAccessCheckedAt = 0;
 const DETAIL_CACHE_MS = 10 * 60 * 1000;
@@ -56,7 +64,7 @@ function detailToBaseItem(detail: AptDetailRow): Partial<ApplyhomeListingItem> {
     houseManageNo: detail.HOUSE_MANAGE_NO,
     pblancNo: detail.PBLANC_NO,
     houseName: detail.HOUSE_NM,
-    region: detail.SUBSCRPT_AREA_CODE_NM ?? "—",
+    region: detail.SUBSCRPT_AREA_CODE_NM ?? UNNAMED_REGION_LABEL,
     address: detail.HSSPLY_ADRES,
     houseKind: detail.HOUSE_SECD_NM,
     subscriptionPeriod: formatPeriod(detail.RCEPT_BGNDE, detail.RCEPT_ENDDE),
@@ -75,8 +83,8 @@ function competitionToItem(
     id: `${row.HOUSE_MANAGE_NO}:${row.PBLANC_NO}:${row.HOUSE_TY}:${row.SUBSCRPT_RANK_CODE ?? 0}`,
     houseManageNo: row.HOUSE_MANAGE_NO,
     pblancNo: row.PBLANC_NO,
-    houseName: detail?.HOUSE_NM ?? `APT ${row.HOUSE_TY}`,
-    region: detail?.SUBSCRPT_AREA_CODE_NM ?? row.RESIDE_SENM ?? "—",
+    houseName: detail?.HOUSE_NM ?? UNNAMED_HOUSE_LABEL,
+    region: detail?.SUBSCRPT_AREA_CODE_NM ?? row.RESIDE_SENM ?? UNNAMED_REGION_LABEL,
     address: detail?.HSSPLY_ADRES,
     houseType: row.HOUSE_TY,
     houseKind: detail?.HOUSE_SECD_NM,
@@ -100,8 +108,8 @@ function specialToItem(row: AptSpecialSupplyRow, detail?: AptDetailRow): Applyho
     id: `${row.HOUSE_MANAGE_NO}:${row.PBLANC_NO}:${row.HOUSE_TY}`,
     houseManageNo: row.HOUSE_MANAGE_NO,
     pblancNo: row.PBLANC_NO,
-    houseName: detail?.HOUSE_NM ?? `APT ${row.HOUSE_TY}`,
-    region: detail?.SUBSCRPT_AREA_CODE_NM ?? "—",
+    houseName: detail?.HOUSE_NM ?? UNNAMED_HOUSE_LABEL,
+    region: detail?.SUBSCRPT_AREA_CODE_NM ?? UNNAMED_REGION_LABEL,
     address: detail?.HSSPLY_ADRES,
     houseType: row.HOUSE_TY,
     houseKind: detail?.HOUSE_SECD_NM,

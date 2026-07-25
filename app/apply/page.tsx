@@ -1,69 +1,40 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
-import { AIPanel } from "@/app/components/AIPanel";
-import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { getAdViewer } from "@/lib/ads/viewer";
 import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
-import type { ApplyhomeListingItem } from "@/lib/applyhome/types";
+import type { ApplyhomeSearchPayload } from "@/lib/applyhome/types";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
+import { ApplySearchClient } from "./ApplySearchClient";
 
 const APPLYHOME_URL = "https://www.applyhome.co.kr";
 
 // 빌드 타임 외부 API 접근 회피 — 요청 시 서버에서 청약홈 데이터를 조회
 export const dynamic = "force-dynamic";
 
-type ApplyLiveData = {
-  live: boolean;
-  items: ApplyhomeListingItem[];
-  totalCount: number;
-  fetchedAt?: string;
+export const metadata: Metadata = {
+  title: "청약 센터 — 청약홈 경쟁률·특별공급 | 누구집",
+  description:
+    "청약홈(한국부동산원) 공공데이터 기반 아파트 청약 경쟁률·특별공급 접수현황 — 지역·단지명 검색.",
+  robots: { index: true, follow: true },
 };
 
-/** 구 lib(청약홈 odcloud)를 서버 컴포넌트에서 직접 호출 — 실패·미설정 시 목업 폴백 */
-async function getApplyLiveData(): Promise<ApplyLiveData> {
+/* 정직화 리라이트 기록:
+   - 예전 이 페이지는 "과천지식정보타운 S7블록"이라는 실명 단지에 지어낸
+     분양가(8.9억)·예상 경쟁률(120:1)·가점 컷(58점)·인근 시세 비교(안전마진 1.5억)를
+     붙인 하드코딩 카드 + 정적 "8월 청약 캘린더" 상수 + 동작하지 않는 탭·알림 토글로
+     구성돼 있었다. 실명에 붙은 가짜 수치는 "예시" 배지로 감당할 수 없는 종류라 전부
+     제거하고, 실데이터(청약홈 경쟁률·특별공급 API)를 페이지 중심으로 승격했다.
+   - 검색·탭·더보기는 이미 완성돼 있던 /api/applyhome/search 를 배선한 것(ApplySearchClient). */
+
+/** 구 lib(청약홈 odcloud)를 서버 컴포넌트에서 직접 호출 — 초기 화면용. 실패 시 null. */
+async function getInitialPayload(): Promise<ApplyhomeSearchPayload | null> {
   try {
-    const data = await searchApplyhome({ tab: "competition", page: 1, perPage: 8 });
-    if (data.mode === "live" && data.items.length > 0) {
-      return {
-        live: true,
-        items: data.items,
-        totalCount: data.totalCount,
-        fetchedAt: data.fetchedAt,
-      };
-    }
+    return await searchApplyhome({ tab: "competition", page: 1, perPage: 15 });
   } catch {
-    // env 미설정·API 장애 시 목업 유지
+    return null;
   }
-  return { live: false, items: [], totalCount: 0 };
 }
-
-/* 더미 1개 원칙: 캘린더의 예시 일정은 1건(접수 마크)만 표시 */
-const CAL_DAYS: { day: number; muted?: boolean; mark?: "receipt" | "announce" | "planned" }[] = [
-  { day: 28, muted: true },
-  { day: 29, muted: true },
-  { day: 30, muted: true },
-  { day: 31, muted: true },
-  { day: 1, mark: "receipt" },
-  { day: 2 },
-  { day: 3 },
-  { day: 4 },
-  { day: 5 },
-  { day: 6 },
-  { day: 7 },
-  { day: 8 },
-  { day: 9 },
-  { day: 10 },
-  { day: 11 },
-  { day: 12 },
-  { day: 13 },
-  { day: 14 },
-  { day: 15 },
-  { day: 16 },
-  { day: 17 },
-];
-
-const MARK_BG = { receipt: "bg-danger", announce: "bg-primary", planned: "bg-[#c9d4e5]" } as const;
 
 /* H1 — 이 자리에는 "AD / AdSense 320×64" 라고 적힌 점선 상자가 있었다.
    개발용 자리표시자가 그대로 프로덕션에 나가 있던 것으로, 사용자에게는
@@ -72,267 +43,64 @@ const MARK_BG = { receipt: "bg-danger", announce: "bg-primary", planned: "bg-[#c
    없으면 하우스 광고를, 둘 다 없으면 `null` 을 반환해 **빈 상자를 남기지 않는다.** */
 
 export default async function ApplyPage() {
-  const liveData = await getApplyLiveData();
+  const initial = await getInitialPayload();
   // 유료 플랜 광고 제거(H4) — 이 페이지는 force-dynamic 이라 세션을 읽어도 비용이 없다
   const viewer = await getAdViewer();
+
   return (
     <PageShell breadcrumb="지도 › 청약 센터" wide>
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
-      {/* 상단 탭 + 필터 (9q) */}
+
+      {/* 상단 CTA — 예전의 정적 탭(전체·예정·접수 중·지난 청약)은 클릭해도 아무
+          동작이 없는 장식이라 제거했다. 실동작 탭(경쟁률/특별공급)은 아래 검색 영역에 있다. */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
-        {/* 더미 1개 원칙: 실연동 전 가짜 건수 표기 제거 */}
-        <div className="flex flex-wrap gap-1.5 text-[13px]">
-          <span className="rounded-full bg-ink px-3.5 py-2 font-bold text-white">전체</span>
-          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">예정</span>
-          <span className="glass rounded-full px-3.5 py-2 font-bold text-danger">접수 중</span>
-          <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">지난 청약</span>
-        </div>
+        <h1 className="text-[17px] font-extrabold text-ink">
+          청약 경쟁률 · 특별공급 <span className="text-[12px] font-bold text-primary">청약홈 실데이터</span>
+        </h1>
         <div className="flex-1" />
-        <div className="flex gap-1.5 text-xs">
-          {/* 정리표: 열람형 페이지에 상세 링크 + 알림 CTA 추가 */}
-          <a
-            href={APPLYHOME_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="glass rounded-full px-3.5 py-2 font-bold text-primary no-underline"
-          >
-            청약홈 공고 보기 ↗
-          </a>
-          <Link
-            href="/notifications"
-            className="rounded-full bg-[rgba(29,79,216,.12)] px-3.5 py-2 font-bold text-primary no-underline"
-          >
-            알림 받기
-          </Link>
-        </div>
+        <a
+          href={APPLYHOME_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="glass press rounded-full px-3.5 py-2 text-xs font-bold text-primary no-underline"
+        >
+          청약홈 공고 보기 ↗
+        </a>
       </div>
 
-      {/* 정직 안내 — 캘린더·접수 중 카드·가점 패널은 예시 화면 */}
-      <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[12px] leading-[1.6] text-[#5b74b8]">
-        <ExampleBadge />
-        <span>
-          캘린더·접수 중 카드·가점 전략은 서비스 <b>예시 화면</b>이에요. 실제
-          공고·일정은{" "}
-          <a
-            href={APPLYHOME_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-bold text-primary underline"
-          >
-            청약홈(applyhome.co.kr)
-          </a>
-          에서 확인하세요. 아래 “청약 경쟁률” 표는 청약홈 공공데이터 연동 시
-          실데이터로 표시됩니다.
-        </span>
+      {/* 정직 안내 — 이 페이지의 표는 전부 청약홈 공공데이터 실데이터 */}
+      <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[12px] leading-[1.6] text-[#5b74b8]">
+        경쟁률·특별공급 표는 <b>청약홈(한국부동산원) 공공데이터</b>예요. 접수
+        일정·공고 원문·청약 신청은{" "}
+        <a
+          href={APPLYHOME_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-bold text-primary underline"
+        >
+          청약홈(applyhome.co.kr)
+        </a>
+        에서 확인하세요.
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="flex flex-col gap-3">
-          {/* 캘린더 (9q) */}
-          <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-                8월 청약 캘린더 <ExampleBadge />
-              </span>
-              <div className="flex gap-2.5 text-[11px]">
-                <span className="flex items-center gap-1 text-text-2">
-                  <span className="h-2 w-2 rounded-[2px] bg-danger" />
-                  접수 (예시 1건)
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-text-3">
-              {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
-                <span key={d}>{d}</span>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {CAL_DAYS.map((d, i) => (
-                <div
-                  key={i}
-                  className={`h-11 rounded-lg px-1.5 py-1 text-[10px] ${
-                    d.mark
-                      ? "border border-line bg-[rgba(29,79,216,.05)] text-text-1"
-                      : "bg-bg text-text-3"
-                  }`}
-                >
-                  {d.day}
-                  {d.mark && <div className={`mt-0.5 h-1.5 rounded-[2px] ${MARK_BG[d.mark]}`} />}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* 본문 — 청약홈 실데이터 검색 (경쟁률/특별공급 탭 + 지역·단지명 + 더보기) */}
+        <ApplySearchClient initial={initial} />
 
-          {/* 접수 중 목록 (9q) — 더미 1개 원칙: 예시 샘플 1건 */}
-          <div className="rise-in-2 px-1 text-xs font-extrabold text-danger">접수 중 (예시 1건)</div>
-          <div className="rise-in-2 flex flex-col gap-3 rounded-2xl border-[1.5px] border-danger bg-surface px-[18px] py-3.5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="rounded-md bg-danger px-2 py-1 text-[11px] font-extrabold text-white">
-                D-2
-              </span>
-              <div>
-                <div className="text-sm font-extrabold text-ink">
-                  과천지식정보타운 S7{" "}
-                  <span className="rounded bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-warning">
-                    공공
-                  </span>{" "}
-                  <ExampleBadge />
-                </div>
-                <div className="text-[11px] text-text-3">84 기준 8.9억 · 시세 대비 -21% · 608세대</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3.5">
-              <div className="text-right">
-                <div className="text-[11px] text-text-3">예상 경쟁률</div>
-                <div className="text-[13px] font-extrabold text-danger">120:1</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[11px] text-text-3">내 가점 52 vs 컷</div>
-                <div className="text-[13px] font-extrabold text-danger">-6점</div>
-              </div>
-              <a
-                href={APPLYHOME_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary rounded-[10px] px-4 py-[9px] text-xs no-underline"
-              >
-                청약홈 상세 ↗
-              </a>
-            </div>
-          </div>
-          {/* 예정 (9q) — 더미 1개 원칙: 예시 샘플 1건 */}
-          <div className="rise-in-3 px-1 pt-1.5 text-xs font-extrabold text-text-3">예정 (예시 1건)</div>
-          <div className="rise-in-3 card flex items-center justify-between rounded-2xl px-[18px] py-3.5">
-            <div className="flex items-center gap-3">
-              <span className="rounded-md bg-[#f2f4f8] px-2 py-1 text-[11px] font-extrabold text-text-2">
-                9월
-              </span>
-              <div>
-                <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-                  인덕원 자이 SK뷰 <ExampleBadge />
-                </div>
-                <div className="text-[11px] text-text-3">
-                  분양가 미정 (추정 10.2억) · 771세대 · 공고 예정 9.4
-                </div>
-              </div>
-            </div>
-            <Link
-              href="/notifications"
-              className="rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
-            >
-              공고 알림 받기 ›
-            </Link>
-          </div>
-          <p className="rise-in-3 px-1 text-[11px] leading-[1.6] text-text-3">
-            접수·예정 카드는 예시 샘플 1건씩만 보여드려요 — 실제 공고 데이터가
-            연동되면 자동으로 교체됩니다.
-          </p>
-
-          {/* 지난 청약 (9q) — 청약홈 실데이터 연결, 실패 시 목업 폴백 */}
-          <div className="rise-in-4 px-1 pt-1.5 text-xs font-extrabold text-text-3">
-            {liveData.live
-              ? `청약 경쟁률 · 청약홈 실데이터 ${liveData.totalCount.toLocaleString()}건`
-              : "지난 청약 (예시 1건)"}
-          </div>
-          {liveData.live ? (
-            <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
-              <div className="min-w-[520px]">
-                <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
-                  <span>단지 · 지역</span>
-                  <span className="text-center">타입</span>
-                  <span className="text-center">공급</span>
-                  <span className="text-center">접수</span>
-                  <span className="text-center">경쟁률</span>
-                </div>
-                {liveData.items.map((item, i, arr) => (
-                  <div
-                    key={item.id}
-                    className={`grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] items-center gap-2 py-2.5 text-xs ${
-                      i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                    }`}
-                  >
-                    <span className="font-bold text-ink">
-                      {item.houseName}
-                      <span className="ml-1 text-[10px] font-medium text-text-3">
-                        {item.region}
-                        {item.resideLabel ? ` · ${item.resideLabel}` : ""}
-                      </span>
-                    </span>
-                    <span className="text-center font-bold text-text-1">{item.houseType}</span>
-                    <span className="text-center font-bold text-text-1">
-                      {item.supplyCount.toLocaleString()}
-                    </span>
-                    <span className="text-center font-bold text-text-1">
-                      {item.requestCount ?? "—"}
-                    </span>
-                    <span className="text-center font-extrabold text-danger">
-                      {item.competitionRate ?? "—"}
-                    </span>
-                  </div>
-                ))}
-                <div className="pb-2 pt-1 text-[10px] text-text-3">
-                  출처 청약홈(한국부동산원) 공공데이터
-                  {liveData.fetchedAt ? ` · ${liveData.fetchedAt.slice(0, 10)} 조회` : ""}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
-              <div className="min-w-[520px]">
-                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
-                  <span>단지</span>
-                  <span className="text-center">분양가(84)</span>
-                  <span className="text-center">경쟁률</span>
-                  <span className="text-center">당첨 컷</span>
-                  <span className="text-center">현재 프리미엄</span>
-                </div>
-                {/* 더미 1개 원칙 — 예시 결과 행 1건만 */}
-                <div className="grid grid-cols-[1.6fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
-                  <span className="flex items-center gap-1.5 font-bold text-ink">
-                    과천 S6 (25.11) <ExampleBadge />
-                  </span>
-                  <span className="text-center font-bold text-text-1">8.6억</span>
-                  <span className="text-center font-extrabold text-danger">98:1</span>
-                  <span className="text-center font-bold text-text-1">58점</span>
-                  <span className="text-center font-extrabold text-primary">+1.8억</span>
-                </div>
-                <div className="pb-2 pt-1 text-[10px] text-text-3">
-                  예시 1건 — 청약홈 공공데이터 연동 시 실데이터로 자동 교체됩니다
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 우측 사이드 (9q) */}
+        {/* 우측 사이드 */}
         <aside className="flex flex-col gap-3.5">
-          <div className="rise-in-2">
-            <AIPanel title="내 가점 전략 (예시)" className="rounded-[18px]">
-              <div className="mb-1.5 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
-                <span className="text-ai-muted">내 가점 (예시)</span>
-                <span className="font-extrabold text-white">52점</span>
-              </div>
-              <div className="mb-2 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
-                <span className="text-ai-muted">S7 예상 커트라인 (예시)</span>
-                <span className="font-extrabold text-[#7ea2ff]">58점</span>
-              </div>
-              예시 기준으로는 가점제 당첨권에 못 미쳐{" "}
-              <b className="text-[#7ea2ff]">S7 추첨제 59타입</b> 지원을 권장합니다.
-              실공고 연동 시 내 가점 기준으로 계산됩니다.
-            </AIPanel>
-          </div>
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-            <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
-              지역별 요약 <ExampleBadge />
-            </div>
-            {/* 더미 1개 원칙 — 예시 지역 1건만 */}
-            <div className="flex justify-between py-[7px] text-xs">
-              <span className="font-bold text-ink">과천</span>
-              <span className="text-text-2">접수 1 · 평균 경쟁 84:1</span>
-            </div>
-            <p className="text-[10px] leading-[1.6] text-text-3">
-              실공고 데이터가 연동되면 지역별 요약이 자동으로 채워집니다.
+            <div className="text-[13px] font-extrabold text-ink">데이터 안내</div>
+            <p className="text-[12px] leading-[1.7] text-text-2">
+              경쟁률은 공고·주택형(타입)·순위별 행으로 제공돼요. 단지명이
+              &ldquo;단지명 미제공&rdquo;으로 표시되는 행은 청약홈 분양정보(상세)
+              API 승인 대기 상태라 공고 번호만 확보된 경우예요 — 타입코드를
+              단지명처럼 보여드리지 않아요.
+            </p>
+            <p className="text-[11px] leading-[1.6] text-text-3">
+              출처: 청약홈(한국부동산원) 공공데이터포털 · 조회 시점 기준이며 실제
+              공고·결과는 청약홈 원문이 우선합니다.
             </p>
           </div>
           <div className="rise-in-4">
@@ -344,171 +112,6 @@ export default async function ApplyPage() {
               plan={viewer.plan}
             />
           </div>
-        </aside>
-      </div>
-
-      {/* ================= 청약 상세 (9p — 과천 S7) ================= */}
-      <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[20px] p-6">
-          <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-[5px] bg-danger px-2 py-[3px] text-[11px] font-extrabold text-white">
-                  D-12
-                </span>
-                <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
-                  공공분양
-                </span>
-              </div>
-              <h2 className="mt-2 flex items-center gap-2 text-[21px] font-extrabold text-ink">
-                과천지식정보타운 S7블록 <ExampleBadge />
-              </h2>
-              <p className="mt-1 text-[13px] text-text-2">
-                전용 59·84 · 608세대 · 2029.03 입주 예정 · 특별공급 8.1 접수
-              </p>
-            </div>
-            <Link
-              href="/notifications"
-              className="w-fit rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
-            >
-              공고 알림 받기 ›
-            </Link>
-          </div>
-          <div className="grid gap-2.5 md:grid-cols-3">
-            <div className="rounded-xl bg-bg p-3.5">
-              <div className="text-[11px] text-text-3">분양가 (84 기준)</div>
-              <div className="mt-[3px] text-[19px] font-extrabold text-ink">8.9억</div>
-              <div className="mt-0.5 text-[10px] text-text-3">㎡당 1,060만</div>
-            </div>
-            <div className="rounded-xl bg-[rgba(29,79,216,.06)] p-3.5">
-              <div className="text-[11px] text-[#5b74b8]">인근 시세 대비</div>
-              <div className="mt-[3px] text-[19px] font-extrabold text-primary">-21%</div>
-              <div className="mt-0.5 text-[10px] text-[#5b74b8]">과천 신축 84 평균 11.3억</div>
-            </div>
-            <div className="rounded-xl bg-bg p-3.5">
-              <div className="text-[11px] text-text-3">예상 경쟁률 (AI)</div>
-              <div className="mt-[3px] text-[19px] font-extrabold text-danger">120:1 내외</div>
-              <div className="mt-0.5 text-[10px] text-text-3">S6 실적 98:1 기반 추정</div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[560px]">
-              <div className="mb-1.5 text-[13px] font-extrabold text-ink">
-                인근 청약 히스토리 (예시 1건)
-              </div>
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
-                <span>단지</span>
-                <span className="text-center">구분</span>
-                <span className="text-center">분양가(84)</span>
-                <span className="text-center">경쟁률</span>
-                <span className="text-center">현재 시세/프리미엄</span>
-              </div>
-              {/* 더미 1개 원칙 — 예시 히스토리 1건만 */}
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] items-center gap-2 py-2.5 text-xs">
-                <span className="font-bold text-ink">과천 S6 (2025.11)</span>
-                <span className="text-center text-text-2">지난 청약</span>
-                <span className="text-center font-bold text-text-1">8.6억</span>
-                <span className="text-center font-extrabold text-danger">98:1</span>
-                <span className="text-center font-extrabold text-primary">+1.8억</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[640px]">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[13px] font-extrabold text-ink">
-                  인근 단지 시세 비교 (예시 1건){" "}
-                  <span className="text-[11px] font-medium text-text-3">분양가 8.9억 대비 · 84 기준</span>
-                </span>
-                <span className="text-[11px] font-bold text-primary">지도에서 보기 ›</span>
-              </div>
-              <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_.8fr_.9fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
-                <span>단지 (거리)</span>
-                <span className="text-center">시세</span>
-                <span className="text-center">평단가</span>
-                <span className="text-center">분양가 대비</span>
-                <span className="text-center">연식</span>
-                <span className="text-center">3개월 흐름</span>
-              </div>
-              {/* 더미 1개 원칙 — 예시 비교 단지 1곳만 */}
-              {[
-                { name: "과천 S6 푸르지오 (0.4km)", price: "10.4억", py: "3,840만", diff: "+1.5억 (+17%)", diffTone: "text-primary", age: "입주 1년", trend: "보합", trendTone: "text-text-2" },
-              ].map((r) => (
-                <div
-                  key={r.name}
-                  className="grid grid-cols-[1.5fr_1fr_1fr_1fr_.8fr_.9fr] items-center gap-2 py-2.5 text-xs"
-                >
-                  <span className="font-bold text-ink">{r.name}</span>
-                  <span className="text-center font-extrabold text-ink">{r.price}</span>
-                  <span className="text-center font-bold text-text-1">{r.py}</span>
-                  <span className={`text-center font-extrabold ${r.diffTone}`}>{r.diff}</span>
-                  <span className="text-center font-bold text-text-1">{r.age}</span>
-                  <span className={`text-center font-bold ${r.trendTone}`}>{r.trend}</span>
-                </div>
-              ))}
-              <div className="mt-1.5 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 text-[11px] text-[#5b74b8]">
-                예시: 인접 신축 S6 푸르지오 시세 10.4억(평단가 3,840만) 대비 분양가
-                8.9억(평단가 3,290만)은 <b className="text-primary">안전마진 약 1.5억(+17%)</b>{" "}
-                구간입니다 — 실거래 연동 시 인근 단지 비교가 자동으로 채워집니다.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <aside className="flex flex-col gap-3.5">
-          <div className="rise-in-5">
-            <AIPanel title="내 청약 전략 (예시)" className="rounded-[18px]">
-              <div className="mb-1.5 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
-                <span className="text-ai-muted">내 가점 (무주택 7년·부양 2)</span>
-                <span className="font-extrabold text-white">52점</span>
-              </div>
-              <div className="mb-2 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
-                <span className="text-ai-muted">S6 당첨 커트라인</span>
-                <span className="font-extrabold text-[#7ea2ff]">58점</span>
-              </div>
-              가점제 당첨권에는 6점 부족합니다.{" "}
-              <b className="text-[#7ea2ff]">추첨제 물량(59 타입 30%)</b> 지원 + 기존 매수 트랙을
-              병행하는 전략을 권장합니다.
-              <Link
-                href="/analysis/scenario"
-                className="btn-primary mt-2.5 block rounded-[10px] p-[11px] text-center text-xs no-underline"
-              >
-                매수 vs 청약 대기 시나리오 비교
-              </Link>
-            </AIPanel>
-          </div>
-          <div className="rise-in-6 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">청약 알림 설정</div>
-            {[
-              { label: "관심지역 신규 공고", on: true },
-              { label: "접수 마감 D-3 리마인드", on: true },
-              { label: "당첨 결과·커트라인 공개", on: false },
-            ].map((row) => (
-              <div key={row.label} className="flex items-center justify-between text-xs text-text-1">
-                <span>{row.label}</span>
-                <span
-                  className={`relative inline-block h-[22px] w-[38px] rounded-full ${
-                    row.on ? "bg-primary" : "bg-[#e2e7ee]"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white ${
-                      row.on ? "right-0.5" : "left-0.5"
-                    }`}
-                  />
-                </span>
-              </div>
-            ))}
-          </div>
-          <AdSlot
-            placement="community_feed"
-            seed={1}
-            adFree={viewer.adFree}
-            signedIn={viewer.signedIn}
-            plan={viewer.plan}
-          />
         </aside>
       </div>
     </PageShell>
