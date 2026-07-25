@@ -199,6 +199,10 @@ export default async function AnalysisHubPage({
             <div className="text-[13px] leading-[1.55] text-ai-text">
               “내 노트 중 점수가 가장 높았던 단지, 지금 실거래는 어때?”
             </div>
+            <div className="text-[11px] leading-[1.5] text-ai-text opacity-80">
+              AI 분석은 단지·노트 1건을 깊게, 에이전트는 여러 데이터를
+              검색·조합해 질문에 답합니다 (현재 수도권 실거래 기준)
+            </div>
             <div className="text-xs font-bold text-ai-accent">
               내 노트·실거래 데이터로 답해요 ›
             </div>
