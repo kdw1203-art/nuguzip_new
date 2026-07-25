@@ -53,11 +53,14 @@ export function buildPageMetadata(input: PageMetaInput): Metadata {
       type: "website",
       locale: "ko_KR",
       ...(canonical ? { url: canonical } : {}),
+      // S4 — 기본 공유 카드. 단지·노트 등 전용 카드가 있는 페이지는 개별 metadata 로 덮어쓴다.
+      images: [{ url: "/og-image", width: 1200, height: 630, alt: SITE_NAME }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: input.description,
+      images: ["/og-image"],
     },
     ...(input.noIndex
       ? { robots: { index: false, follow: false } }

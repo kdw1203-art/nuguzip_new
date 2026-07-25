@@ -8,6 +8,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
+import { SiteJsonLd } from "./components/SiteJsonLd";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
     siteName: "누구집",
     locale: "ko_KR",
     type: "website",
+    // S4 — 기본 공유 카드(/og-image). 페이지 전용 카드가 있으면 각 페이지가 덮어쓴다.
+    images: [{ url: "/og-image", width: 1200, height: 630, alt: "누구집" }],
   },
 };
 
@@ -55,6 +58,8 @@ export default function RootLayout({
             받지 않는다 — 지금까지 iOS 에서 홈 화면에 추가하면 아이콘이 아니라
             페이지 스크린샷 축소판이 박혔다는 뜻이다(조용히 실패해서 티가 안 났다). */}
         <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+        {/* S16/G16 — Organization·WebSite JSON-LD (정적 값만, 데이터 페칭 없음) */}
+        <SiteJsonLd />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="누구집" />

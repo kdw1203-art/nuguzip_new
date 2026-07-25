@@ -99,6 +99,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/subscription", priority: 0.5 },
   { path: "/support", priority: 0.4 },
   { path: "/safety", priority: 0.4 },
+  { path: "/methodology", priority: 0.5 }, // G18 — 데이터 방법론 (EEAT·GEO 인용 근거)
   // 법적 고지 허브 + 하위 8종 (감사 P1-11)
   { path: "/legal", priority: 0.3 },
   { path: "/legal/terms", priority: 0.3 },
