@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { ingestKosis } from "@/lib/kosis/ingest";
 import { isKosisConfigured } from "@/lib/kosis/client";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,9 +40,16 @@ export async function GET(req: Request) {
     const result = await ingestKosis({ recentCount });
     return NextResponse.json(result);
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "수집 실패" },
-      { status: 500 },
-    );
+    // F3(#147) — 성공 로그는 ingestKosis() 안에서 남는다. 실패는 여기서만 남길 수 있다.
+    const message = ingestErrorMessage(err, "KOSIS 수집 실패");
+    await logIngest({
+      source: "kosis",
+      dataset: "all",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

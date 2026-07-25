@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { ingestSeoulRedevelopment, isRedevIngestConfigured } from "@/lib/redevelopment/ingest";
-import { logIngest } from "@/lib/market/store";
+import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,23 +26,36 @@ async function handle(req: Request) {
   }
 
   const configured = isRedevIngestConfigured();
-  const result = await ingestSeoulRedevelopment();
-  // F3 — 적재 로그
-  await logIngest({
-    source: "redevelopment",
-    dataset: "서울 정비사업 현황",
-    origin: "cron-fetch",
-    rows: result.upserted,
-    status: !configured ? "skipped" : result.upserted > 0 ? "ok" : "skipped",
-    message:
-      result.reason ??
-      `조회=${result.fetched} 좌표없음제외=${result.skippedNoGeo}`,
-  });
-  return NextResponse.json({
-    ok: true,
-    mode: configured ? "live" : "mock",
-    ...result,
-  });
+  // F3(#147) — 던져서 끝나면 로그가 비어 "안 돌았다"와 구분되지 않으므로 예외도 기록한다.
+  try {
+    const result = await ingestSeoulRedevelopment();
+    await logIngest({
+      source: "redevelopment",
+      dataset: "서울 정비사업 현황",
+      origin: "cron-fetch",
+      rows: result.upserted,
+      status: !configured ? "skipped" : result.upserted > 0 ? "ok" : "skipped",
+      message:
+        result.reason ??
+        `조회=${result.fetched} 좌표없음제외=${result.skippedNoGeo}`,
+    });
+    return NextResponse.json({
+      ok: true,
+      mode: configured ? "live" : "mock",
+      ...result,
+    });
+  } catch (err) {
+    const message = ingestErrorMessage(err, "정비사업 적재 실패");
+    await logIngest({
+      source: "redevelopment",
+      dataset: "서울 정비사업 현황",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
 }
 
 export async function GET(req: Request) {

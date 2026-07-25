@@ -165,6 +165,22 @@ export type IngestSource =
   | "redevelopment"
   | "geocode";
 
+/**
+ * F3(#147) — 크론이 던진 예외를 적재 로그에 남길 수 있는 한 줄짜리 사유로 만든다.
+ *
+ * 공공 API 오류 메시지에는 요청 URL 이 통째로 들어오는 경우가 있고, 그 URL 에는
+ * serviceKey·apiKey 같은 인증키가 붙어 있다. 적재 로그(market_ingest_log)는
+ * 어드민 화면에 그대로 표시되므로, 키로 보이는 쿼리 파라미터는 지운 뒤 저장한다.
+ * 길이도 400자로 자른다(스택 트레이스가 통째로 들어오는 것을 막기 위함).
+ */
+export function ingestErrorMessage(err: unknown, fallback = "알 수 없는 오류"): string {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const text = raw.trim() || fallback;
+  return text
+    .replace(/([?&](?:serviceKey|apiKey|api_key|key|secret|token|auth_key|authKey)=)[^&\s"']+/gi, "$1***")
+    .slice(0, 400);
+}
+
 export async function logIngest(entry: {
   source: IngestSource;
   dataset: string;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { syncCourtAuctions } from "@/lib/court-auction/sync";
-import { logIngest } from "@/lib/market/store";
+import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,17 +25,30 @@ async function handle(req: Request) {
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
-  const result = await syncCourtAuctions();
-  // F3 — 적재 로그
-  await logIngest({
-    source: "court-auction",
-    dataset: "법원경매 물건",
-    origin: "cron-fetch",
-    rows: result.inserted ?? 0,
-    status: result.skipped ? "skipped" : result.ok ? "ok" : "error",
-    message: result.reason,
-  });
-  return NextResponse.json(result);
+  // F3(#147) — 던져서 끝나면 로그가 비어 "안 돌았다"와 구분되지 않으므로 예외도 기록한다.
+  try {
+    const result = await syncCourtAuctions();
+    await logIngest({
+      source: "court-auction",
+      dataset: "법원경매 물건",
+      origin: "cron-fetch",
+      rows: result.inserted ?? 0,
+      status: result.skipped ? "skipped" : result.ok ? "ok" : "error",
+      message: result.reason,
+    });
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = ingestErrorMessage(err, "법원경매 동기화 실패");
+    await logIngest({
+      source: "court-auction",
+      dataset: "법원경매 물건",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
 }
 
 export async function GET(req: Request) {

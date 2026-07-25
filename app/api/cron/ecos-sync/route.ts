@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { isEcosConfigured } from "@/lib/ecos/client";
 import { syncEcosKeyStats } from "@/lib/ecos/sync";
-import { logIngest } from "@/lib/market/store";
+import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,15 +40,28 @@ export async function GET(req: Request) {
       reason: "ECOS_API_KEY 미설정 — 설정 시 기준금리 등 지표가 자동 적재됩니다.",
     });
   }
-  const result = await syncEcosKeyStats();
-  // F3 — 적재 로그
-  await logIngest({
-    source: "ecos",
-    dataset: "한국은행 100대 통계지표",
-    origin: "cron-fetch",
-    rows: result.count ?? 0,
-    status: result.ok ? "ok" : result.skipped ? "skipped" : "error",
-    message: result.reason ?? (result.baseRate ? `기준금리 ${result.baseRate}` : undefined),
-  });
-  return NextResponse.json(result);
+  // F3(#147) — 던져서 끝나면 로그가 비어 "안 돌았다"와 구분되지 않으므로 예외도 기록한다.
+  try {
+    const result = await syncEcosKeyStats();
+    await logIngest({
+      source: "ecos",
+      dataset: "한국은행 100대 통계지표",
+      origin: "cron-fetch",
+      rows: result.count ?? 0,
+      status: result.ok ? "ok" : result.skipped ? "skipped" : "error",
+      message: result.reason ?? (result.baseRate ? `기준금리 ${result.baseRate}` : undefined),
+    });
+    return NextResponse.json(result);
+  } catch (err) {
+    const message = ingestErrorMessage(err, "ECOS 동기화 실패");
+    await logIngest({
+      source: "ecos",
+      dataset: "한국은행 100대 통계지표",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
 }

@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { ingestKbWorkbook } from "@/lib/kb/ingest";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,9 +42,16 @@ export async function GET(req: Request) {
     const result = await ingestKbWorkbook(buffer);
     return NextResponse.json(result);
   } catch (err) {
-    return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "KB 수집 실패" },
-      { status: 500 },
-    );
+    // F3(#147) — 성공 로그는 ingestKbWorkbook() 안에서 남는다. 실패는 여기서만 남길 수 있다.
+    const message = ingestErrorMessage(err, "KB 수집 실패");
+    await logIngest({
+      source: "kb",
+      dataset: "KB 시계열 자동 수집",
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

@@ -110,7 +110,7 @@
 |---|---|---|---|---|---|---|
 | F1 | 데이터 관리 어드민 페이지 신설 | 없음 | P0 | M | 없음 | `AdminNav`에 "데이터/ETL" 탭 추가, curl 전용인 molit-csv·kb-upload·archive·reb-catalog 엔드포인트에 UI 연결. |
 | F2 | 신선도 대시보드 | 부분 | P0 | M | 없음 | `market_ingest_log`+각 테이블 최신일자로 소스별 as-of·지연 표시(현재 최신 3행 패널만). |
-| F3 | 인제스트 로깅 계측 확대 | 부분 | P0 | S | 없음 | molit·apt-master·ecos·onbid·redev 인제스트에 `logIngest` 추가(현재 REB/KOSIS/KB/crawl만 기록 → 신선도 라벨 부정확). |
+| F3 | 인제스트 로깅 계측 확대 | 완료 | P0 | S | 없음 | 성공 로그는 molit·apt-master·ecos·onbid·redev·geocode·court-auction까지 확대 완료. 추가로 **실패 경로**를 계측했다 — 이전에는 크론이 예외로 죽으면 `market_ingest_log`에 아무것도 남지 않아 "실패했다"와 "아예 안 돌았다"가 구분되지 않았다. 이제 molit·ecos·onbid·redevelopment·court-auction·reb·kosis·kb 8개 라우트가 예외를 잡아 `status:"error"`로 기록한다. 저장 전 `ingestErrorMessage()`가 오류 메시지의 `serviceKey`·`apiKey` 등 인증키 쿼리 파라미터를 `***`로 지우고 400자로 자른다(적재 로그는 어드민 화면에 그대로 표시되므로). |
 | F4 | 데이터 품질 검사 | 없음 | P0 | M | 없음 | `app/admin/quality`의 하드코딩 목업을 `market_transactions`/`apartment_complexes` 실 null율·범위·중복 체크로 대체. |
 | F5 | 이상치 탐지 | 없음 | P1 | M | 없음 | 실거래 가격 이상·행수 급감·스키마 드리프트 감지(listings의 ±40% 이상치 로직 재사용). |
 | F6 | 미스케줄 cron 연결 | 부분 | P1 | S | API키 | `ecos-sync`/`onbid-sync`/`codef-sync` 라우트가 `vercel.json` crons에 없음 — 스케줄 추가(각 소스 키 필요). |
