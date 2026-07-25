@@ -25,6 +25,12 @@ export function PlanCheckoutButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  /**
+   * 결제창 이동 전 한 번 더 묻는 단계. 예전에는 `window.confirm` 을 썼는데,
+   * 브라우저 모달은 페이지 이벤트를 통째로 막고(자동화·접근성 도구 포함) 문구를
+   * 다듬을 수도 없다. 버튼 자리에서 바로 확인받는 2단계 방식으로 바꾼다.
+   */
+  const [confirming, setConfirming] = useState(false);
 
   async function startCheckout() {
     if (busy) return;
@@ -46,10 +52,8 @@ export function PlanCheckoutButton({
       return;
     }
 
-    // 2) 확인 문구 후 결제 생성 API 호출 → 결제창 URL로 이동
-    const billingLabel = billing === "annual" ? "연간" : "월간";
-    if (!window.confirm(`${billingLabel} 결제창으로 이동합니다`)) return;
-
+    // 2) 결제 생성 API 호출 → 결제창 URL로 이동 (확인은 버튼 자리에서 이미 받았다)
+    setConfirming(false);
     setBusy(true);
     try {
       // 1순위: Stripe Checkout (구 /api/billing/checkout — { url } 반환)
@@ -100,16 +104,45 @@ export function PlanCheckoutButton({
     }
   }
 
+  const billingLabel = billing === "annual" ? "연간" : "월간";
+
   return (
     <div className="flex flex-col gap-1.5">
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void startCheckout()}
-        className={`rounded-[14px] p-[13px] text-center text-sm font-bold disabled:opacity-60 ${className}`}
-      >
-        {busy ? "연결 중…" : label}
-      </button>
+      {confirming && !busy ? (
+        <div className="flex flex-col gap-1.5">
+          <p className="text-center text-[11px] font-bold text-text-2">
+            {billingLabel} 결제창으로 이동합니다
+          </p>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              className="flex-1 rounded-[14px] border border-line bg-surface p-[13px] text-center text-sm font-bold text-text-1"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={() => void startCheckout()}
+              className={`flex-1 rounded-[14px] p-[13px] text-center text-sm font-bold ${className}`}
+            >
+              계속
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            setNotice(null);
+            setConfirming(true);
+          }}
+          className={`rounded-[14px] p-[13px] text-center text-sm font-bold disabled:opacity-60 ${className}`}
+        >
+          {busy ? "연결 중…" : label}
+        </button>
+      )}
       {notice && (
         <p role="alert" className="text-center text-[11px] font-bold text-danger">
           {notice}

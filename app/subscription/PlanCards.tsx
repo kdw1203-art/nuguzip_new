@@ -61,7 +61,11 @@ const CARDS: PlanCard[] = [
     ],
     badge: "가장 인기",
     checkoutTier: "pro",
-    cta: "14일 무료 체험",
+    // 이 버튼은 곧바로 결제창으로 간다(PlanCheckoutButton). 예전 문구는 "14일 무료 체험"
+    // 이었는데 체험 기간을 만들어 주는 코드가 어디에도 없다 — 누르는 순간 결제다.
+    // 없는 혜택을 적어 두는 것은 그 자체로 거짓이므로 문구를 실제 동작에 맞춘다.
+    // (무료 체험을 실제로 도입하려면 결제 생성 쪽에 trial_period_days 가 먼저 필요하다.)
+    cta: "플러스 시작하기",
     ctaClass: "btn-primary btn-cta",
   },
   {
@@ -71,7 +75,10 @@ const CARDS: PlanCard[] = [
     dark: false,
     features: [
       { ok: true, text: "플러스 기능 전부" },
-      { ok: true, text: "리포트 발행 · 판매 (수수료 15%)" },
+      // 실제 요율은 lib/creator/sales.ts 의 SETTLEMENT.platformFeeRate = 0.07.
+      // 카드에 15% 라고 적혀 있었는데 코드가 떼는 값과 달랐다 — 수수료는 돈 문제라
+      // 표시가 코드보다 높으면 그대로 허위 고지가 된다. 단일 출처(7%)에 맞춘다.
+      { ok: true, text: "리포트 발행 · 판매 (수수료 7%)" },
       { ok: true, text: "전문가 배지 · 상담 수신" },
       { ok: true, text: "지역 통계 대시보드" },
     ],
