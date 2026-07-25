@@ -64,7 +64,7 @@ export default async function TownGroupDetailPage({
   const statusStyle = isFull
     ? "bg-[#f2f4f8] text-text-3"
     : remaining <= 1
-      ? "bg-[#fdf3e7] text-[#c07a3a]"
+      ? "bg-[#fdf3e7] text-warning"
       : "bg-[#edf2fe] text-primary";
   const isOrganizer = myEmail !== null && meeting.organizerEmail?.trim().toLowerCase() === myEmail;
   const fillPct = Math.min(100, Math.round((meeting.currentMembers / Math.max(1, meeting.maxMembers)) * 100));

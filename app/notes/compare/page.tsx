@@ -282,14 +282,14 @@ export default function NotesComparePage() {
                 {["1차", "2차", "3차", "4차", "5차"].map((c, i) => (
                   <span
                     key={c}
-                    className="absolute -translate-x-1/2 text-[10px] text-[#adb5bd]"
+                    className="absolute -translate-x-1/2 text-[10px] text-text-3"
                     style={{ left: `${10 + i * 20}%` }}
                   >
                     {c}
                   </span>
                 ))}
               </div>
-              <div className="mt-1 text-[10px] text-[#adb5bd]">
+              <div className="mt-1 text-[10px] text-text-3">
                 점수 추이 68 → 81 · 방문할수록 확신 상승
               </div>
             </div>

@@ -1,4 +1,13 @@
-/** 반응형 브레이크포인트 — CSS `globals.css` 미디어 쿼리와 동기화 */
+/**
+ * 반응형 브레이크포인트 — Tailwind 기본 스케일과 동기화.
+ *
+ * 예전 주석은 "globals.css 미디어 쿼리와 동기화" 라고 적혀 있었는데, globals.css
+ * 에는 폭 기반 미디어쿼리가 하나도 없다(있는 건 prefers-reduced-motion 3개뿐).
+ * 실제 레이아웃 분기는 전부 Tailwind 유틸리티(`md:` `lg:` `xl:`)로 처리한다.
+ * 여기 숫자는 Tailwind v4 기본값과 맞춘 것이다 — md=768, xl=1280.
+ * globals.css 의 @theme 에서 --breakpoint-* 를 재정의하면 이 값과 갈라지므로,
+ * scripts/check-responsive-qa.mjs 가 그 재정의 여부를 감시한다.
+ */
 
 export type Breakpoint = "mobile" | "tablet" | "desktop";
 

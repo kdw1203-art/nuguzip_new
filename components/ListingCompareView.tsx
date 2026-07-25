@@ -164,7 +164,7 @@ export function ListingCompareView({
                           className={`rounded-[6px] px-1.5 py-[2px] text-[10px] font-extrabold ${
                             r.source === "owner"
                               ? "bg-primary-soft text-primary"
-                              : "bg-[#fdf3e7] text-[#c07a3a]"
+                              : "bg-[#fdf3e7] text-warning"
                           }`}
                         >
                           {SOURCE_LABEL[r.source]}

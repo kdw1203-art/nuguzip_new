@@ -32,7 +32,7 @@ function displayIso(p: Post): string {
 function badgeStyle(category: string): string {
   const c = category ?? "";
   if (["개발", "재건축", "재개발", "분양"].some((k) => c.includes(k)))
-    return "bg-[#fdf3e7] text-[#c07a3a]";
+    return "bg-[#fdf3e7] text-warning";
   if (["정책", "뉴스"].some((k) => c.includes(k))) return "bg-[#edf2fe] text-primary";
   return "bg-[#f2f4f8] text-text-2";
 }
@@ -95,8 +95,22 @@ function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
       </span>
       {favicon && (
         <span className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 shadow-sm">
+          {/* G7 — next/image 를 쓰지 않는 이유: 언론사 도메인의 favicon 은
+              출처가 임의라 next.config 의 remotePatterns 로 허용 목록을 만들 수
+              없다(뉴스 소스가 늘 때마다 배포가 필요해진다). 대신 최적화가 필요한
+              이미지도 아니다 — 20px 아이콘이다.
+              width/height 는 CSS 가 적용되기 전 브라우저가 자리를 잡도록 명시.
+              alt="" 는 의도적: 옆의 언론사 이름이 이미 같은 정보를 준다. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={favicon} alt="" loading="lazy" className="h-5 w-5 rounded" />
+          <img
+            src={favicon}
+            alt=""
+            width={20}
+            height={20}
+            loading="lazy"
+            decoding="async"
+            className="h-5 w-5 rounded"
+          />
         </span>
       )}
     </div>

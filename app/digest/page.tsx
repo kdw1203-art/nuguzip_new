@@ -174,7 +174,7 @@ export default async function DigestPage() {
           )}
         </div>
 
-        <p className="rise-in-5 text-center text-[10px] text-[#adb5bd]">
+        <p className="rise-in-5 text-center text-[10px] text-text-3">
           데이터 기준 시각 {asOfLabel(digest.generatedAt)}
           {digest.marketAsOf ? ` · 실거래 기준 ${digest.marketAsOf} (국토교통부)` : ""}
         </p>

@@ -142,7 +142,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        <div className="rise-in-4 flex items-center gap-3 text-[11px] text-[#adb5bd]">
+        <div className="rise-in-4 flex items-center gap-3 text-[11px] text-text-3">
           <span className="h-px flex-1 bg-[#e9edf3]" />
           또는
           <span className="h-px flex-1 bg-[#e9edf3]" />
@@ -174,13 +174,13 @@ export default function LoginPage() {
             Google로 시작
           </button>
         </div>
-        <div className="rise-in-5 text-center text-xs text-[#adb5bd]">
+        <div className="rise-in-5 text-center text-xs text-text-3">
           처음이신가요?{" "}
           <Link href="/signup" className="font-bold text-primary">
             회원가입 온보딩
           </Link>
         </div>
-        <p className="text-center text-[11px] leading-[1.6] text-[#adb5bd]">
+        <p className="text-center text-[11px] leading-[1.6] text-text-3">
           시작하면 이용약관·개인정보처리방침에 동의하게 됩니다
         </p>
       </div>

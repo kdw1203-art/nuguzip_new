@@ -49,7 +49,7 @@ const FAQ_CATEGORIES = [
 const TICKETS = [
   {
     tag: "결제",
-    tagClass: "bg-[#fdf3e7] text-[#c07a3a]",
+    tagClass: "bg-[#fdf3e7] text-warning",
     status: "답변 완료",
     statusClass: "text-primary",
     title: "플러스 연간 결제 영수증 재발급",
@@ -175,7 +175,7 @@ export default async function SupportPage() {
                     </span>
                     {n.title}
                   </span>
-                  <span className="shrink-0 text-[#adb5bd]">{n.date}</span>
+                  <span className="shrink-0 text-text-3">{n.date}</span>
                 </Link>
               ))
             )}
@@ -214,7 +214,7 @@ export default async function SupportPage() {
             <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[20px] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-[#c07a3a]">
+                  <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
                     결제
                   </span>
                   <span className="ml-2 text-base font-extrabold text-ink">
@@ -348,9 +348,9 @@ export default async function SupportPage() {
                 청소년보호정책
               </Link>
             </div>
-            <span className="text-[11px] text-[#adb5bd]">시행 2026.07.15 · 이전 버전 보기</span>
+            <span className="text-[11px] text-text-3">시행 2026.07.15 · 이전 버전 보기</span>
           </div>
-          <p className="px-1 text-[11px] leading-[1.6] text-[#adb5bd]">
+          <p className="px-1 text-[11px] leading-[1.6] text-text-3">
             우리동네이야기 · 대표 고대웅 · 사업자 378-06-02465 · 통신판매업 제2026-안양동안-0000호 ·
             nuguzip@naver.com · 제공 정보는 참고용이며 투자 판단의 책임은 이용자에게 있습니다
           </p>

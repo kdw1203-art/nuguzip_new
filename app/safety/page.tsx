@@ -147,7 +147,7 @@ export default function SafetyPage() {
                 <span className="text-[11px] text-text-3">{c.how}</span>
               </div>
             ))}
-            <div className="text-[10px] text-[#adb5bd]">
+            <div className="text-[10px] text-text-3">
               등기부등본은 인터넷등기소(iros.go.kr), 건축물대장은
               정부24(gov.kr)에서 열람할 수 있어요
             </div>

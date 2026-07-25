@@ -65,10 +65,10 @@ const MARK_BG = { receipt: "bg-danger", announce: "bg-primary", planned: "bg-[#c
 function AdSlot() {
   return (
     <div className="flex h-16 flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-      <span className="rounded border border-[#e2e7ee] px-1.5 text-[9px] font-bold tracking-widest text-[#adb5bd]">
+      <span className="rounded border border-[#e2e7ee] px-1.5 text-[9px] font-bold tracking-widest text-text-3">
         AD
       </span>
-      <span className="font-mono text-[11px] text-[#adb5bd]">AdSense 320×64</span>
+      <span className="font-mono text-[11px] text-text-3">AdSense 320×64</span>
     </div>
   );
 }
@@ -140,7 +140,7 @@ export default async function ApplyPage() {
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[#adb5bd]">
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-text-3">
               {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
                 <span key={d}>{d}</span>
               ))}
@@ -172,7 +172,7 @@ export default async function ApplyPage() {
               <div>
                 <div className="text-sm font-extrabold text-ink">
                   과천지식정보타운 S7{" "}
-                  <span className="rounded bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-[#c07a3a]">
+                  <span className="rounded bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-warning">
                     공공
                   </span>{" "}
                   <ExampleBadge />
@@ -269,7 +269,7 @@ export default async function ApplyPage() {
                     </span>
                   </div>
                 ))}
-                <div className="pb-2 pt-1 text-[10px] text-[#adb5bd]">
+                <div className="pb-2 pt-1 text-[10px] text-text-3">
                   출처 청약홈(한국부동산원) 공공데이터
                   {liveData.fetchedAt ? ` · ${liveData.fetchedAt.slice(0, 10)} 조회` : ""}
                 </div>
@@ -295,7 +295,7 @@ export default async function ApplyPage() {
                   <span className="text-center font-bold text-text-1">58점</span>
                   <span className="text-center font-extrabold text-primary">+1.8억</span>
                 </div>
-                <div className="pb-2 pt-1 text-[10px] text-[#adb5bd]">
+                <div className="pb-2 pt-1 text-[10px] text-text-3">
                   예시 1건 — 청약홈 공공데이터 연동 시 실데이터로 자동 교체됩니다
                 </div>
               </div>
@@ -348,7 +348,7 @@ export default async function ApplyPage() {
                 <span className="rounded-[5px] bg-danger px-2 py-[3px] text-[11px] font-extrabold text-white">
                   D-12
                 </span>
-                <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-[#c07a3a]">
+                <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
                   공공분양
                 </span>
               </div>

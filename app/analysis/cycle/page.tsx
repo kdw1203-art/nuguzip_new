@@ -208,7 +208,7 @@ export default function CyclePage() {
                 오늘
               </div>
             </div>
-            <div className="flex justify-between text-[11px] text-[#adb5bd]">
+            <div className="flex justify-between text-[11px] text-text-3">
               {d.axis.map((a) => (
                 <span key={a}>{a}</span>
               ))}
@@ -254,10 +254,10 @@ export default function CyclePage() {
 
             {/* AD 슬롯 */}
             <div className="rise-in-4 flex h-[72px] flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-              <span className="rounded border border-[#e2e7ee] px-1.5 py-px text-[9px] font-bold tracking-[1px] text-[#adb5bd]">
+              <span className="rounded border border-[#e2e7ee] px-1.5 py-px text-[9px] font-bold tracking-[1px] text-text-3">
                 AD
               </span>
-              <span className="font-mono text-[11px] text-[#adb5bd]">AdSense 320×72</span>
+              <span className="font-mono text-[11px] text-text-3">AdSense 320×72</span>
             </div>
           </div>
         </div>

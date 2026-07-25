@@ -58,12 +58,15 @@ export default function GlobalError({
           <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.5 }}>
             페이지를 열 수 없어요
           </div>
+          {/* global-error 는 루트 레이아웃을 대체하므로 globals.css 도 토큰도 없다.
+              색을 직접 적을 수밖에 없는데, 그러면 토큰을 고쳐도 여기만 남는다.
+              #8b95a1 → #656f7c 는 --text-3 과 같은 값(흰 배경 5.10:1). */}
           <p
             style={{
               marginTop: 8,
               fontSize: 13,
               lineHeight: 1.7,
-              color: "#8b95a1",
+              color: "#656f7c",
             }}
           >
             일시적인 오류로 화면이 로드되지 않았습니다.
@@ -76,7 +79,7 @@ export default function GlobalError({
                 marginTop: 10,
                 fontSize: 11,
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                color: "#8b95a1",
+                color: "#656f7c",
               }}
             >
               오류 코드 {error.digest}

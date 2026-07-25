@@ -79,7 +79,7 @@ export default function PortfolioPage() {
               <div>
                 <div className="text-sm font-bold text-ink">
                   인천 검단 오피스텔{" "}
-                  <span className="rounded-[5px] bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-[#c07a3a]">
+                  <span className="rounded-[5px] bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-warning">
                     임대
                   </span>
                 </div>
@@ -187,7 +187,7 @@ export default function PortfolioPage() {
                   9.4억
                 </div>
               </div>
-              <div className="flex justify-between text-[10px] text-[#adb5bd]">
+              <div className="flex justify-between text-[10px] text-text-3">
                 <span>2023</span>
                 <span>2024</span>
                 <span>2025</span>

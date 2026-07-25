@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SwRegister } from "./components/SwRegister";
+import { InstallPrompt } from "./components/InstallPrompt";
 import { AdSenseLoader } from "./components/AdSenseLoader";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -36,13 +37,23 @@ export default function RootLayout({
   return (
     <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        {/* G7 — 폰트 CDN 사전 연결.
+            아래 Pretendard stylesheet 은 렌더 블로킹이라, 이 한 줄이 늦으면 첫
+            화면 전체가 늦는다. preconnect 없이는 DNS→TCP→TLS 세 왕복이 링크를
+            만난 뒤에야 시작된다. 미리 열어 두면 그 왕복이 HTML 파싱과 겹친다.
+            crossOrigin 은 필수 — 폰트는 CORS 로 받으므로 이게 없으면 연결이
+            재사용되지 않고 따로 하나 더 열린다. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         {/* 비애플 기기 폰트 폴백 — Pretendard Variable (dynamic subset) */}
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
-        {/* #19 PWA — iOS 홈 화면 아이콘 · 웹앱 메타 */}
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        {/* #19 PWA — iOS 홈 화면 아이콘 · 웹앱 메타
+            G9: .svg → .png 로 교체했다. Safari 는 apple-touch-icon 으로 SVG 를
+            받지 않는다 — 지금까지 iOS 에서 홈 화면에 추가하면 아이콘이 아니라
+            페이지 스크린샷 축소판이 박혔다는 뜻이다(조용히 실패해서 티가 안 났다). */}
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="누구집" />
@@ -60,6 +71,10 @@ export default function RootLayout({
               {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
               <ReferralRedeem />
               <SwRegister />
+              {/* G9 — 설치 프롬프트. 브라우저가 beforeinstallprompt 를 보낼 때만 뜬다
+                  (안 오면 아무것도 렌더하지 않는다). SwRegister 바로 뒤에 둔 건
+                  순서 의존이 아니라 읽는 사람 편의 — 둘 다 PWA 관련이다. */}
+              <InstallPrompt />
               <AdSenseLoader />
               <WebVitalsReporter />
             </SoftSignupProvider>

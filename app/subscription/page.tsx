@@ -122,7 +122,7 @@ export default async function SubscriptionPage() {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-extrabold text-[#c07a3a]">✦ 프로</div>
+              <div className="text-sm font-extrabold text-warning">✦ 프로</div>
               <div className="text-lg font-extrabold text-ink">
                 {PRO_MONTHLY}<span className="text-[11px] text-text-3">/월</span>
               </div>
@@ -134,19 +134,19 @@ export default async function SubscriptionPage() {
               className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs"
             >
               <span className="text-text-2">{r.label}</span>
-              <span className={`text-center ${r.free === "—" ? "text-[#adb5bd]" : "text-text-2"}`}>
+              <span className={`text-center ${r.free === "—" ? "text-text-3" : "text-text-2"}`}>
                 {r.free}
               </span>
               <span
                 className={`bg-[rgba(29,79,216,.04)] py-1 text-center ${
-                  r.plus === "—" ? "text-[#adb5bd]" : "font-bold text-primary"
+                  r.plus === "—" ? "text-text-3" : "font-bold text-primary"
                 }`}
               >
                 {r.plus}
               </span>
               <span
                 className={`text-center font-bold ${
-                  r.pro === "—" ? "font-normal text-[#adb5bd]" : r.proAccent ? "text-[#c07a3a]" : "text-primary"
+                  r.pro === "—" ? "font-normal text-text-3" : r.proAccent ? "text-warning" : "text-primary"
                 }`}
               >
                 {r.pro}
@@ -155,7 +155,7 @@ export default async function SubscriptionPage() {
           ))}
           <div className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 py-2.5 text-xs">
             <span className="text-text-2">프로필 인증배지</span>
-            <span className="text-center text-[#adb5bd]">—</span>
+            <span className="text-center text-text-3">—</span>
             <span className="bg-[rgba(29,79,216,.04)] py-1 text-center">
               <PlanBadge tier="plus" />
             </span>
@@ -202,12 +202,12 @@ export default async function SubscriptionPage() {
             ))}
           </div>
           <div className="grid grid-cols-[120px_repeat(4,1fr)] items-center gap-2 py-2.5 text-xs">
-            <span className="font-extrabold text-[#c07a3a]">✦ 프로</span>
+            <span className="font-extrabold text-warning">✦ 프로</span>
             {BILLING_PERIOD_PRICES.expert.map((p) => (
               <span
                 key={p.months}
                 className={`text-center ${
-                  p.months === 12 ? "font-extrabold text-[#c07a3a]" : "font-bold text-text-1"
+                  p.months === 12 ? "font-extrabold text-warning" : "font-bold text-text-1"
                 }`}
               >
                 {fmtWon(p.monthlyEquivalentKrw)}

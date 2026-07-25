@@ -36,7 +36,7 @@ export default async function AdminQualityPage() {
   ]);
 
   const fraudSeverityMeta: Record<string, { label: string; cls: string }> = {
-    warn: { label: "주의", cls: "bg-[#fdf3e7] text-[#c07a3a]" },
+    warn: { label: "주의", cls: "bg-[#fdf3e7] text-warning" },
     review_queue: { label: "검토", cls: "bg-primary-soft text-primary" },
     block: { label: "차단", cls: "bg-[#fdecec] text-[#d64545]" },
   };

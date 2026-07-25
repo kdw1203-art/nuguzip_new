@@ -213,10 +213,10 @@ function courtToCard(a: CourtAuctionItem): AuctionCardData {
 function AdSlot() {
   return (
     <div className="flex h-16 flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-      <span className="rounded border border-[#e2e7ee] px-1.5 text-[9px] font-bold tracking-widest text-[#adb5bd]">
+      <span className="rounded border border-[#e2e7ee] px-1.5 text-[9px] font-bold tracking-widest text-text-3">
         AD
       </span>
-      <span className="font-mono text-[11px] text-[#adb5bd]">AdSense 320×64</span>
+      <span className="font-mono text-[11px] text-text-3">AdSense 320×64</span>
     </div>
   );
 }
@@ -364,7 +364,7 @@ function AuctionView({
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[#adb5bd]">
+            <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-text-3">
               {weekdays.map((d) => (
                 <span key={d}>{d}</span>
               ))}
@@ -530,7 +530,7 @@ function AuctionView({
                     <span className="text-center font-bold text-text-1">{c.dateValue}</span>
                   </div>
                 ))}
-                <div className="pb-2 pt-1 text-[10px] text-[#adb5bd]">{tableCaption}</div>
+                <div className="pb-2 pt-1 text-[10px] text-text-3">{tableCaption}</div>
               </div>
             </div>
           )}

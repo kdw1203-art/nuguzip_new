@@ -112,7 +112,7 @@ export default function SwitchPage() {
               ))}
               <span className="px-1.5 py-1 text-[11px] text-text-3">✎ 프로필 수정</span>
             </div>
-            <div className="text-[10px] text-[#adb5bd]">
+            <div className="text-[10px] text-text-3">
               30대 · 2인 · 직장인 기준 — 통근 30분 내, DSR 여유, 향후 3인 확장(방3) 조건에 가중치가
               적용됩니다
             </div>

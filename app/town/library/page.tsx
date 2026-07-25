@@ -61,7 +61,7 @@ export default async function TownLibraryPage() {
               className={`card rise-in-${i + 1} flex flex-col gap-2 rounded-[16px] p-[18px]`}
             >
               <div className="flex items-center gap-1.5">
-                <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-[#c07a3a]">
+                <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
                   {r.badge}
                 </span>
                 <ExampleBadge />

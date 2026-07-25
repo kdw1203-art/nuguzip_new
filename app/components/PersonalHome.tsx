@@ -287,7 +287,7 @@ export function PersonalHome() {
     },
     {
       badge: "맞춤 제안 · 지역 기반",
-      badgeClass: "bg-[#fdf3e7] text-[#c07a3a]",
+      badgeClass: "bg-[#fdf3e7] text-warning",
       emoji: "🗺",
       href: "/analysis/compare",
       ...regionCard,

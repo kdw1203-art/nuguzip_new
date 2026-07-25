@@ -250,7 +250,7 @@ export default function ResetPasswordPage() {
         )}
 
         <div className="flex-1" />
-        <div className="rise-in-5 text-center text-xs text-[#adb5bd]">
+        <div className="rise-in-5 text-center text-xs text-text-3">
           비밀번호가 기억났나요?{" "}
           <Link href="/login" className="font-bold text-primary">
             로그인

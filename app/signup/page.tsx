@@ -381,7 +381,7 @@ export default function SignupPage() {
         >
           {busy ? "가입 중…" : "시작하기"}
         </button>
-        <div className="text-center text-xs text-[#adb5bd]">
+        <div className="text-center text-xs text-text-3">
           이미 계정이 있나요?{" "}
           <Link href="/login" className="font-bold text-primary">
             로그인

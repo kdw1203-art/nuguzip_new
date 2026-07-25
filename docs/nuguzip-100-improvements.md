@@ -128,12 +128,12 @@ CSP·이미지 최적화·PWA·sitemap(단지 2,000+지역 61)·JSON-LD는 견�
 | G1 | 홈·관리자 목업 사실화 | 부분 | P0 | S | 없음 | `app/page.tsx`의 `PIPELINE`/`CONTENTS`·`admin/page.tsx` `PENDING_FALLBACK`을 실데이터 또는 "예시" 라벨로(사실 우선의 핵심). |
 | G2 | Web Vitals RUM 계측 | 없음 | P1 | S | 없음 | web-vitals/Vercel Speed Insights로 LCP·INP·CLS 실사용자 수집. |
 | G3 | 에러 모니터링 설치 | 부분 | P1 | S | API키 | `lib/monitoring/capture`는 Sentry-ready이나 SDK 미설치 — DSN 연결. |
-| G4 | 접근성 표준화 + axe CI | 부분 | P1 | M | 없음 | `role=alert`/`aria-live`가 일부만 적용 — 폼·토스트·모달 a11y 스윕 + CI 게이트. |
+| G4 | 접근성 표준화 + axe CI | 완료 | P1 | M | 없음 | `tests/e2e/a11y.spec.ts` 게이트 신설(7개 공개 라우트 + 모바일 홈, serious·critical 0건). axe 가 잡은 대비 위반 161건의 원인은 토큰 2개(`--text-2` `--text-3`)와 하드코딩 색 2종(`#adb5bd`·`#c07a3a`)이었고, 토큰 계층에서 고쳐 33개 파일이 함께 해결됨. 하단 탭바 비활성 라벨 3.03:1 → 4.83:1. 예외는 네이버 로그인 버튼(브랜드 규격) 하나뿐이며 색 조합으로 좁게 걸고 매 실행 로그로 남긴다. 게이트가 "측정을 못 해서" 초록이 되는 것을 막는 `assertStylesLoaded` 가드 포함. |
 | G5 | 공개 라우트 캐시 전략 | 부분 | P1 | M | 없음 | 전역 `Cache-Control: no-store`(전부 동적)를 공개 정적 라우트에 `s-maxage`/ISR 적용해 TTFB 개선. |
 | G6 | 프로그래매틱 SEO 메타 강화 | 부분 | P1 | M | 없음 | 단지·지역 랜딩에 `lib/seo`(alternates·jsonld) 확장, sitemap 인덱스 분할 대비. |
-| G7 | 이미지·폰트 최적화 감사 | 부분 | P2 | S | 없음 | `next/image` 미사용 지점·LCP 우선순위·Pretendard 서브셋 점검. |
-| G8 | 성능 예산 CI | 없음 | P2 | M | 없음 | Lighthouse/번들 예산 CI 게이트로 회귀 방지(Playwright 이미 존재). |
-| G9 | PWA·오프라인 완성도 | 부분 | P2 | M | 없음 | `sw.js` 캐시 전략·설치 프롬프트·오프라인 폴백 점검(manifest 존재). |
+| G7 | 이미지·폰트 최적화 감사 | 완료 | P2 | S | 없음 | Pretendard CDN `preconnect`(crossOrigin 포함 — 없으면 연결이 재사용되지 않음) 추가로 렌더 블로킹 stylesheet 의 DNS·TCP·TLS 왕복을 HTML 파싱과 겹치게 함. PWA 아이콘 SVG → PNG 래스터화(`npm run icons:png`) — Safari 는 `apple-touch-icon` 으로 SVG 를 받지 않아 iOS 홈 화면에 아이콘 대신 페이지 축소판이 박히고 있었다(조용히 실패). |
+| G8 | 성능 예산 CI | 완료 | P2 | M | 없음 | `npm run check:perf-budget` — 라우트별 First Load JS 예산 게이트(공유 청크 115KB·라우트 190KB). 현재 공유 100KB, 최대 176.9KB(`/reset-password`). `npm run check:cache-policy` 로 G5 캐시 정책이 실제 prerender 로 반영됐는지 31건 대조. |
+| G9 | PWA·오프라인 완성도 | 완료 | P2 | M | 없음 | `sw.js` 네트워크 우선 + 이동(navigate) 실패 시에만 `/offline` 폴백(시세·실거래는 절대 캐시하지 않음 — 오래된 숫자를 지금 값처럼 보여주는 게 안 보여주는 것보다 나쁘다). `/offline` 라우트·PNG 아이콘·manifest 정합. 설치 프롬프트 `app/components/InstallPrompt.tsx` 신설: 브라우저가 `beforeinstallprompt` 를 보낼 때만 노출, 30일 재노출 억제, standalone 감지, 탭바 높이 실측 배치. **미구현(사실): iOS Safari** — `beforeinstallprompt` 미구현 브라우저라 배너가 뜨지 않는다. UA 판별 안내 UI 는 실기기 검증이 불가능해 넣지 않았다(틀린 안내 > 없는 안내). 회귀 테스트 `tests/e2e/install-prompt.spec.ts` 7건. |
 | G10 | 빈·에러 상태 컴포넌트 통일 | 완료 | P1 | S | 없음 | `EmptyState`/`ErrorState`에 light·admin 톤 도입, `app/error.tsx`·`app/global-error.tsx` 신설(+`/api/monitoring/client-error` 경유 캡처). `/notes/[id]` 허구 노트(MOCK_VIEW)·운영 대시보드 목업(가짜 신고·초록불 ETL·가짜 전문가 심사) 제거 → "0건"과 "조회 실패"를 구분해 표시. |
 
 ## 8. 광고·수익화 (Ads / Monetization Beyond Subscription)

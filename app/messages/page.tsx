@@ -40,7 +40,7 @@ export default function MessagesPage() {
           </Link>
         </div>
 
-        <div className="rise-in-2 mt-3 text-center text-[11px] text-[#adb5bd]">
+        <div className="rise-in-2 mt-3 text-center text-[11px] text-text-3">
           쪽지는 닉네임으로만 오가도록 준비하고 있어요 · 연락처 요구는 신고
           대상입니다
         </div>

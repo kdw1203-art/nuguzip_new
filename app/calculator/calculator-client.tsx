@@ -145,7 +145,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
 
   return (
     <PageShell breadcrumb="투자 도구 › 대출·수익률 계산기" title="대출·수익률 계산기" wide>
-      <div className="rise-in -mt-2 mb-4 text-[11px] text-[#adb5bd]">
+      <div className="rise-in -mt-2 mb-4 text-[11px] text-text-3">
         입력 정보는 기기에만 저장 · 외부 전송 없음
       </div>
 
@@ -430,7 +430,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                     </div>
                   );
                 })}
-                <div className="mt-2 text-[11px] text-[#adb5bd]">
+                <div className="mt-2 text-[11px] text-text-3">
                   금리 출처: {mortgage.source}
                   {mortgage.asOf ? ` · 공시 기준월 ${mortgage.asOf}` : ""} · 월 원리금은 현재 입력한
                   대출액({formatEok(Math.round(loan))})·{years}년 원리금균등 기준 참고 계산이며 실제

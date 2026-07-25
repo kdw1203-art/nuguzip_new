@@ -67,7 +67,7 @@ const CARDS: PlanCard[] = [
   {
     kind: "expert",
     name: "프로 (전문가)",
-    nameTone: "text-[#c07a3a]",
+    nameTone: "text-warning",
     dark: false,
     features: [
       { ok: true, text: "플러스 기능 전부" },
@@ -168,7 +168,7 @@ export function PlanCards({
                 }`}
               >
                 {p.features.map((f) => (
-                  <div key={f.text} className={`flex gap-2 ${f.ok ? "" : "text-[#adb5bd]"}`}>
+                  <div key={f.text} className={`flex gap-2 ${f.ok ? "" : "text-text-3"}`}>
                     <span className={f.ok ? `font-extrabold ${p.dark ? "text-[#7ea2ff]" : "text-primary"}` : ""}>
                       {f.ok ? "✓" : "—"}
                     </span>

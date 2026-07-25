@@ -212,7 +212,7 @@ export default async function TimingPage({
                 });
               })()}
             </div>
-            <div className="flex justify-between text-[10px] text-[#adb5bd]">
+            <div className="flex justify-between text-[10px] text-text-3">
               <span>{periodLabel(trend.points[0].period)}</span>
               <span>{periodLabel(trend.points[trend.points.length - 1].period)}</span>
             </div>
@@ -265,7 +265,7 @@ export default async function TimingPage({
               현재: 하락 후반 → 바닥 다지기 구간
             </div>
           </div>
-          <div className="flex justify-between text-[11px] text-[#adb5bd]">
+          <div className="flex justify-between text-[11px] text-text-3">
             <span>2023</span>
             <span>2024</span>
             <span>2025</span>

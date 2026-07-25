@@ -123,7 +123,7 @@ export default async function TownNewsDetailPage({
           {/* ---------- 기사 본문 ---------- */}
           <article className="rise-in card flex flex-col gap-4 rounded-[20px] p-7">
             <div className="flex items-center gap-2">
-              <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-[#c07a3a]">
+              <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
                 {category}
               </span>
               <span className="truncate text-xs text-text-3">{byline}</span>
@@ -172,7 +172,7 @@ export default async function TownNewsDetailPage({
             </div>
 
             <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3.5">
-              <div className="flex flex-wrap items-center gap-1 text-[11px] text-[#adb5bd]">
+              <div className="flex flex-wrap items-center gap-1 text-[11px] text-text-3">
                 <span>
                   {isAutomated
                     ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 ·"
@@ -203,7 +203,7 @@ export default async function TownNewsDetailPage({
                       <span className="text-xs font-extrabold text-ink">
                         {c.authorLabel}
                       </span>
-                      <span className="text-[10px] text-[#adb5bd]">
+                      <span className="text-[10px] text-text-3">
                         {relativeTime(c.createdAt)}
                       </span>
                     </div>
@@ -238,7 +238,7 @@ export default async function TownNewsDetailPage({
               <span className="absolute left-2 top-2 font-mono text-[10px] text-text-3">
                 네이버/카카오 지도 SDK 영역
               </span>
-              <div className="absolute left-10 top-[38px] rounded-lg bg-[#c07a3a] px-2 py-1 text-[10px] font-extrabold text-white">
+              <div className="absolute left-10 top-[38px] rounded-lg bg-warning px-2 py-1 text-[10px] font-extrabold text-white">
                 {region}
               </div>
               <Link
@@ -306,10 +306,10 @@ export default async function TownNewsDetailPage({
 
           {/* AD 슬롯 */}
           <div className="rise-in-5 flex h-20 flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-            <span className="rounded border border-[#e2e7ee] px-1.5 py-px text-[9px] font-bold tracking-widest text-[#adb5bd]">
+            <span className="rounded border border-[#e2e7ee] px-1.5 py-px text-[9px] font-bold tracking-widest text-text-3">
               AD
             </span>
-            <span className="font-mono text-[11px] text-[#adb5bd]">
+            <span className="font-mono text-[11px] text-text-3">
               AdSense 320×80
             </span>
           </div>

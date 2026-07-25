@@ -331,7 +331,7 @@ export function ChatRoom({
             </div>
 
             <div className="flex flex-col">
-              <div className="py-1.5 text-[10px] font-extrabold tracking-widest text-[#adb5bd]">
+              <div className="py-1.5 text-[10px] font-extrabold tracking-widest text-text-3">
                 멤버 {shownMemberCount}
               </div>
               {members.map((m, i) => (
@@ -346,7 +346,7 @@ export function ChatRoom({
                     <div className="text-xs font-bold text-ink">
                       {displayName(m.userEmail, myEmail)}{" "}
                       {m.role === "owner" && (
-                        <span className="rounded bg-[#fdf3e7] px-[5px] py-px text-[9px] font-extrabold text-[#c07a3a]">
+                        <span className="rounded bg-[#fdf3e7] px-[5px] py-px text-[9px] font-extrabold text-warning">
                           모임장
                         </span>
                       )}

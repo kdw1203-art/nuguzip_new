@@ -168,7 +168,7 @@ export function VerificationQueue({ queue }: { queue: QueueItem[] }) {
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="rounded bg-[#fdf3e7] px-1.5 py-px text-[9px] font-extrabold text-[#c07a3a]">
+                <span className="rounded bg-[#fdf3e7] px-1.5 py-px text-[9px] font-extrabold text-warning">
                   소유확인
                 </span>
                 <span className="truncate text-xs font-extrabold text-ink">{q.label}</span>

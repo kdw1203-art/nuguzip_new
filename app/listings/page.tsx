@@ -208,7 +208,7 @@ export default async function ListingsPage({
                     className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${
                       l.source === "owner"
                         ? "bg-[rgba(29,79,216,.08)] text-primary"
-                        : "bg-[#fdf3e7] text-[#c07a3a]"
+                        : "bg-[#fdf3e7] text-warning"
                     }`}
                   >
                     {LISTING_SOURCE_LABEL[l.source]}

@@ -50,7 +50,7 @@ export default function PricePage() {
         <h1 className="rise-in flex items-center gap-2 text-[22px] font-extrabold text-ink">
           AI 제안가 상세 <ExampleBadge label="예시 시뮬레이션" />
         </h1>
-        <span className="text-[11px] text-[#adb5bd]">참고용 · 투자 판단 책임은 이용자에게</span>
+        <span className="text-[11px] text-text-3">참고용 · 투자 판단 책임은 이용자에게</span>
       </div>
       <div className="rise-in mb-3">
         <SimulationNotice />
@@ -103,7 +103,7 @@ export default function PricePage() {
                 ▼ 이 매물 7.9억
               </div>
             </div>
-            <div className="flex justify-between text-[10px] text-[#adb5bd]">
+            <div className="flex justify-between text-[10px] text-text-3">
               <span>7.9</span>
               <span>8.1</span>
               <span>8.3</span>
@@ -178,7 +178,7 @@ export default function PricePage() {
               <span className="text-ink">부대비용 합계</span>
               <span className="text-danger">약 1,285만</span>
             </div>
-            <div className="text-[10px] text-[#adb5bd]">
+            <div className="text-[10px] text-text-3">
               올수리 매물로 인테리어 비용 0원 가정 · 항목별 조정 가능 ›
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function PricePage() {
                 <span className="text-[11px] font-bold text-primary">{e.action}</span>
               </div>
             ))}
-            <div className="text-[10px] text-[#adb5bd]">
+            <div className="text-[10px] text-text-3">
               추천은 평점·응답속도 기준이며 광고비 영향을 받지 않습니다
             </div>
           </div>

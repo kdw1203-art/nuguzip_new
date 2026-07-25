@@ -387,7 +387,7 @@ export default async function RedevelopmentPage() {
             </Link>
           ))}
           {news.length > 0 && (
-            <p className="text-[10px] text-[#adb5bd]">
+            <p className="text-[10px] text-text-3">
               재건축·재개발·정비사업 키워드 매칭 자동 수집 기사 — 원문·출처는 각 기사에서
               확인하세요.
             </p>

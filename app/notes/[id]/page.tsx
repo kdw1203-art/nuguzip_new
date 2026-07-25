@@ -736,7 +736,7 @@ export default async function NoteDetailPage({
                 </div>
               ))}
             </div>
-            <div className="text-[10px] text-[#adb5bd]">
+            <div className="text-[10px] text-text-3">
               점수 = 내 기록 60% + 공공 데이터 40% 가중
             </div>
           </div>
