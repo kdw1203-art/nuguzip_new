@@ -250,6 +250,7 @@ export async function searchComplexes(
   if (dist) q = q.ilike("region_name", `%${dist}%`);
 
   // 넉넉히 가져와 (region_name, complex_name) 기준 중복 제거
+  // (ilike 는 complex_name trigram GIN 인덱스를 탄다)
   const { data } = await q.order("contract_ym", { ascending: false }).limit(800);
   const rows =
     (data as
@@ -261,15 +262,32 @@ export async function searchComplexes(
         }[]
       | null) ?? [];
 
-  const seen = new Map<string, ComplexRow>();
+  // 랭킹: 정확일치 > 접두 > 포함 — 같은 등급 안에서는 최근 거래량(조회분 내 출현 건수) 많은 순.
+  // "래미안" 검색 시 우연히 최근 거래된 "OO래미안2차"가 "래미안"보다 위로 오는 문제를 막는다.
+  const normTerm = term.replace(/\s+/g, "").toLowerCase();
+  const seen = new Map<string, { row: ComplexRow; tier: number; txCount: number }>();
   for (const r of rows) {
     if (!r.complex_name || !r.region_name) continue;
     const key = `${r.region_name}${SEP}${r.complex_name}`;
-    if (seen.has(key)) continue;
-    seen.set(key, toComplexRow(r.region_name, r.complex_name, r));
-    if (seen.size >= limit) break;
+    const cur = seen.get(key);
+    if (cur) {
+      cur.txCount += 1; // 최근 800건 내 출현 횟수 = 거래량 가중치
+      continue;
+    }
+    const normName = r.complex_name.replace(/\s+/g, "").toLowerCase();
+    const tier = !normTerm
+      ? 2
+      : normName === normTerm
+        ? 0
+        : normName.startsWith(normTerm)
+          ? 1
+          : 2;
+    seen.set(key, { row: toComplexRow(r.region_name, r.complex_name, r), tier, txCount: 1 });
   }
-  return [...seen.values()];
+  return [...seen.values()]
+    .sort((a, b) => a.tier - b.tier || b.txCount - a.txCount)
+    .slice(0, limit)
+    .map((e) => e.row);
 }
 
 /**

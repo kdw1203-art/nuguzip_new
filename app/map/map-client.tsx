@@ -85,6 +85,10 @@ export interface DanjiItem {
   /** 건물유형(아파트/오피스텔/빌라 등) — 매물유형 필터용, 없으면 null */
   buildingType: string | null;
   trades: TradeItem[];
+  /** 최신 거래월 라벨("2026.07") — 대표가격 근거 표기용, 없으면 null */
+  latestYm: string | null;
+  /** 최신월 거래 건수 — 대표가격 근거·표본 부족 판단용, 없으면 null */
+  latestDealCount: number | null;
 }
 
 type Zoom = "city" | "dong" | "danji";
@@ -163,29 +167,11 @@ const YEAR_OPTIONS: RangeOption[] = [
   { key: "u2000", label: "2000년 이전", max: 1999 },
 ];
 
-/** 세대수 규모 */
-const HOUSEHOLD_OPTIONS: RangeOption[] = [
-  { key: "all", label: "전체" },
-  { key: "u300", label: "~300세대", max: 300 },
-  { key: "300-1000", label: "300~1천세대", min: 300, max: 1000 },
-  { key: "1000-2000", label: "1천~2천세대", min: 1000, max: 2000 },
-  { key: "o2000", label: "2천세대~", min: 2000 },
-];
-
-interface StringOption {
-  key: string;
-  label: string;
-  /** buildingType 부분일치용 매칭 키워드 (all이면 미지정) */
-  match?: string[];
-}
-
-/** 매물 유형(단지 건물유형) — 아파트/오피스텔/빌라 */
-const BUILDING_TYPE_OPTIONS: StringOption[] = [
-  { key: "all", label: "전체" },
-  { key: "apt", label: "아파트", match: ["아파트"] },
-  { key: "officetel", label: "오피스텔", match: ["오피스텔"] },
-  { key: "villa", label: "빌라/연립", match: ["빌라", "연립", "다세대"] },
-];
+/* 세대수 필터는 실데이터 소스가 아직 없다(실거래엔 세대수가 없고, 대장 마스터
+   householdCount 는 품질 문제로 미사용). 예전엔 칩을 눌러도 전 단지가 제외돼
+   항상 0건이 되는 "동작하는 척"이었다 — 지금은 "데이터 준비 중" 비활성으로
+   정직하게 보여주고 필터 적용에서 뺀다. 유형도 국토부 아파트 실거래만 수집하므로
+   아파트 단일로 표시한다. */
 
 /** 거래유형(매물 레이어) — 매매/전세/월세 → /api/map/listings?type= */
 const LISTING_TRADE_OPTIONS: { key: string; label: string; type?: string }[] = [
@@ -194,13 +180,6 @@ const LISTING_TRADE_OPTIONS: { key: string; label: string; type?: string }[] = [
   { key: "jeonse", label: "전세", type: "jeonse" },
   { key: "monthly", label: "월세", type: "monthly" },
 ];
-
-/** buildingType 문자열이 옵션에 부합하는지 (필터 걸렸는데 값 없으면 제외) */
-function matchesBuildingType(value: string | null, opt: StringOption): boolean {
-  if (!opt.match) return true;
-  if (!value) return false;
-  return opt.match.some((m) => value.includes(m));
-}
 
 /** 범위 판정 — 필터가 걸려 있는데 값이 없으면 제외 (불확실한 항목을 결과에 섞지 않음) */
 function inRange(value: number | null, opt: RangeOption): boolean {
@@ -300,6 +279,19 @@ interface ClusterPointItem {
   pyeongManwon?: number;
   /** 그 평단가를 만든 실거래 건수 */
   txCount?: number;
+  /** 전세 평균 보증금(만원) — type=rent 요청 시에만 존재 */
+  jeonseManwon?: number;
+  /** 그 평균을 만든 전세 실거래 건수 */
+  jeonseCount?: number;
+}
+
+/** item9 — 노트 탭에 싣는 그 단지 임장노트 (GET /api/map/complex-notes) */
+interface ComplexNoteItem {
+  id: string;
+  title: string;
+  visitDate: string | null;
+  region: string | null;
+  mine: boolean;
 }
 
 /** 범례가 "언제 신고된 거래인지"를 말하게 하는 근거 — 서버가 뷰포트 기준으로 계산 */
@@ -351,6 +343,8 @@ const LISTING_TYPE_LABEL_MAP: Record<MapListingItem["listingType"], string> = {
 
 /** 매물 마커 전용 색 — 회색 단지 시세 마커와 시각적으로 구분 */
 const LISTING_MARKER_COLOR = "#1d4fd8";
+/** 전세(평균 보증금) 마커 색 — 매매 평단가 색상 티어와 구분되는 단일 색 */
+const JEONSE_MARKER_COLOR = "#1a7f4e";
 /** 매물 bounds fetch 디바운스(ms) */
 const LISTING_FETCH_DEBOUNCE_MS = 350;
 
@@ -431,15 +425,18 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   const [radiusM, setRadiusM] = useState<number>(1000);
   const [listingItems, setListingItems] = useState<MapListingItem[]>([]);
 
-  /* ===== 가격대·면적대·준공연도·세대수·유형 필터 상태 (확대 · item3) ===== */
+  /* ===== 가격대·면적대·준공연도 필터 상태 (확대 · item3) =====
+     세대수·유형은 실데이터 소스가 없어 필터에서 제외 — 패널에 "데이터 준비 중"으로 표시 */
   const [priceKey, setPriceKey] = useState("all");
   const [areaKey, setAreaKey] = useState("all");
   const [yearKey, setYearKey] = useState("all");
-  const [householdKey, setHouseholdKey] = useState("all");
-  const [buildingKey, setBuildingKey] = useState("all");
   /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
   const [listingTradeKey, setListingTradeKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+  /** 실거래 거래유형 토글 — 매매(trade) / 전세(rent, 평균 보증금). /api/map/clusters?type= */
+  const [txType, setTxType] = useState<"trade" | "rent">("trade");
+  /** 모바일 접이식 범례 (item7) — 기본 접힘 */
+  const [mobileLegendOpen, setMobileLegendOpen] = useState(false);
 
   /* ===== C1 시세 색상 오버레이 =====
      한때 있던 히트맵(#A2)은 구 단위 평균이 하드코딩 목업이라 사실 우선 원칙에 따라 걷어냈다.
@@ -470,50 +467,34 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     commuteThreshold !== null && commuteOfficeResolved && commuteMinutes !== null;
 
   const danjiFilterActive =
-    priceKey !== "all" ||
-    areaKey !== "all" ||
-    yearKey !== "all" ||
-    householdKey !== "all" ||
-    buildingKey !== "all";
+    priceKey !== "all" || areaKey !== "all" || yearKey !== "all";
   const filterActive =
     danjiFilterActive || listingTradeKey !== "all" || commuteKey !== "off";
-  const activeCount = [
-    priceKey,
-    areaKey,
-    yearKey,
-    householdKey,
-    buildingKey,
-    listingTradeKey,
-    commuteKey,
-  ].filter((k) => k !== "all" && k !== "off").length;
+  const activeCount = [priceKey, areaKey, yearKey, listingTradeKey, commuteKey].filter(
+    (k) => k !== "all" && k !== "off",
+  ).length;
 
   const resetFilters = useCallback(() => {
     setPriceKey("all");
     setAreaKey("all");
     setYearKey("all");
-    setHouseholdKey("all");
-    setBuildingKey("all");
     setListingTradeKey("all");
     setCommuteKey("off");
   }, []);
 
-  // 범위/유형 필터만 적용한 단지 (출퇴근 추정 요청·비교의 기준 집합)
+  // 범위 필터만 적용한 단지 (출퇴근 추정 요청·비교의 기준 집합)
   const rangeFilteredDanji = useMemo(() => {
     if (!danjiFilterActive) return danji;
     const priceOpt = PRICE_OPTIONS.find((o) => o.key === priceKey) ?? PRICE_OPTIONS[0];
     const areaOpt = AREA_OPTIONS.find((o) => o.key === areaKey) ?? AREA_OPTIONS[0];
     const yearOpt = YEAR_OPTIONS.find((o) => o.key === yearKey) ?? YEAR_OPTIONS[0];
-    const hhOpt = HOUSEHOLD_OPTIONS.find((o) => o.key === householdKey) ?? HOUSEHOLD_OPTIONS[0];
-    const btOpt = BUILDING_TYPE_OPTIONS.find((o) => o.key === buildingKey) ?? BUILDING_TYPE_OPTIONS[0];
     return danji.filter(
       (d) =>
         inRange(d.avgPriceWon !== null ? d.avgPriceWon / 100_000_000 : null, priceOpt) &&
         inRange(d.areaM2, areaOpt) &&
-        inRange(d.buildYear, yearOpt) &&
-        inRange(d.households, hhOpt) &&
-        matchesBuildingType(d.buildingType, btOpt),
+        inRange(d.buildYear, yearOpt),
     );
-  }, [danji, danjiFilterActive, priceKey, areaKey, yearKey, householdKey, buildingKey]);
+  }, [danji, danjiFilterActive, priceKey, areaKey, yearKey]);
 
   // 출퇴근(#10) 필터를 범위 필터 위에 덧입힘 — 임계 초과 단지는 숨김.
   const filteredDanji = useMemo(() => {
@@ -526,9 +507,29 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     });
   }, [rangeFilteredDanji, commuteActive, commuteMinutes, commuteThreshold]);
 
-  // 컴팩트 칩 행: 매물 토글 + "필터" 확장 버튼 (+활성 배지) + 초기화
+  // 컴팩트 칩 행: 매매/전세 토글 + 매물 토글 + "필터" 확장 버튼 (+활성 배지) + 초기화
   const filterBar = (
     <>
+      {(
+        [
+          { key: "trade", label: "매매" },
+          { key: "rent", label: "전세" },
+        ] as const
+      ).map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          aria-pressed={txType === t.key}
+          onClick={() => setTxType(t.key)}
+          className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
+            txType === t.key
+              ? "chip-active"
+              : "bg-[rgba(255,255,255,.75)] text-text-2"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
       <button
         type="button"
         aria-pressed={showListings}
@@ -617,8 +618,32 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       <FilterChipGroup label="가격대(매매)" options={PRICE_OPTIONS} valueKey={priceKey} onSelect={setPriceKey} />
       <FilterChipGroup label="평형대(전용면적)" options={AREA_OPTIONS} valueKey={areaKey} onSelect={setAreaKey} />
       <FilterChipGroup label="준공연도" options={YEAR_OPTIONS} valueKey={yearKey} onSelect={setYearKey} />
-      <FilterChipGroup label="세대수 규모" options={HOUSEHOLD_OPTIONS} valueKey={householdKey} onSelect={setHouseholdKey} />
-      <FilterChipGroup label="유형" options={BUILDING_TYPE_OPTIONS} valueKey={buildingKey} onSelect={setBuildingKey} />
+      {/* 세대수 — 실데이터 소스 미연동. 동작하지 않는 칩을 살려두는 대신 정직하게 비활성 */}
+      <div className="flex flex-col gap-1.5">
+        <div className="text-[11px] font-bold text-text-3">
+          세대수 규모 <span className="font-normal">· 데이터 준비 중</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <span
+            aria-disabled="true"
+            className="chip cursor-not-allowed whitespace-nowrap bg-[rgba(255,255,255,.55)] px-2.5 py-1.5 text-xs text-[#c3cad6]"
+          >
+            데이터 연동 후 제공돼요
+          </span>
+        </div>
+      </div>
+      {/* 유형 — 국토부 아파트 실거래만 수집 중이라 아파트 단일 (선택할 것이 없음) */}
+      <div className="flex flex-col gap-1.5">
+        <div className="text-[11px] font-bold text-text-3">유형</div>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="chip whitespace-nowrap bg-primary-soft px-2.5 py-1.5 text-xs font-bold text-primary">
+            아파트
+          </span>
+          <span className="self-center text-[10px] text-text-3">
+            오피스텔·빌라는 준비 중
+          </span>
+        </div>
+      </div>
       <FilterChipGroup
         label={`거래유형 (매물 레이어${showListings ? "" : " · 켜면 적용"})`}
         options={LISTING_TRADE_OPTIONS}
@@ -745,8 +770,20 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   const [extraPoints, setExtraPoints] = useState<ClusterPointItem[]>([]);
   /** C1 — 화면에 칠한 색의 출처(최근 계약월·건수). 범례가 이 값을 그대로 읽는다. */
   const [priceMeta, setPriceMeta] = useState<PriceMeta>(EMPTY_PRICE_META);
+  /** item5 — 마지막 클러스터 조회 결과. "빈 결과"와 "조회 실패"를 구분해 안내한다. */
+  const [clusterFetchStatus, setClusterFetchStatus] = useState<"idle" | "ok" | "error">(
+    "idle",
+  );
+  /** item5 — 현재 뷰포트(빈 지도 판정에 사용). idle 마다 갱신 */
+  const [viewBounds, setViewBounds] = useState<MapIdleInfo["bounds"]>(null);
   const fetchTimerRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // 거래유형(매매/전세) 최신값 참조 + 마지막 idle 정보(토글 변경 시 재조회용)
+  const txTypeRef = useRef(txType);
+  txTypeRef.current = txType;
+  const lastIdleRef = useRef<{ bounds: NonNullable<MapIdleInfo["bounds"]>; zoom: number } | null>(
+    null,
+  );
 
   /* ===== 매물 레이어 fetch/refs (상태 선언은 상단) ===== */
   const showListingsRef = useRef(showListings);
@@ -798,38 +835,65 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     if (showListings && lastBoundsRef.current) fetchListings(lastBoundsRef.current);
   }, [listingTradeKey, showListings, fetchListings]);
 
+  /** 클러스터/포인트 조회 예약 — 디바운스 후 현재 거래유형(매매/전세)으로 요청 */
+  const scheduleClusterFetch = useCallback(
+    (bounds: NonNullable<MapIdleInfo["bounds"]>, mapZoom: number) => {
+      if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
+      fetchTimerRef.current = window.setTimeout(() => {
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+        const params = new URLSearchParams({
+          minLat: String(bounds.swLat),
+          maxLat: String(bounds.neLat),
+          minLng: String(bounds.swLng),
+          maxLng: String(bounds.neLng),
+          zoom: String(mapZoom),
+        });
+        if (txTypeRef.current === "rent") params.set("type", "rent");
+        fetch(`/api/map/clusters?${params.toString()}`, { signal: controller.signal })
+          .then((res) => (res.ok ? (res.json() as Promise<ClustersResponse>) : null))
+          .then((json) => {
+            if (controller.signal.aborted) return;
+            if (!json) {
+              // HTTP 오류 — 기존 마커는 유지하되, 빈 결과 안내와 구분되는 실패 상태 기록
+              setClusterFetchStatus("error");
+              return;
+            }
+            setClusterMode(json.mode);
+            setClusters(Array.isArray(json.clusters) ? json.clusters : []);
+            setExtraPoints(Array.isArray(json.points) ? json.points : []);
+            setPriceMeta(json.priceMeta ?? EMPTY_PRICE_META);
+            setClusterFetchStatus("ok");
+          })
+          .catch(() => {
+            // 실패 시 기존 마커 유지 — 상태만 오류로 (abort 는 오류 아님)
+            if (!controller.signal.aborted) setClusterFetchStatus("error");
+          });
+      }, CLUSTER_FETCH_DEBOUNCE_MS);
+    },
+    [],
+  );
+
   const handleMapIdle = useCallback(
     (info: MapIdleInfo) => {
-    const bounds = info.bounds;
-    if (!bounds) return;
-    lastBoundsRef.current = bounds;
-    if (showListingsRef.current) fetchListings(bounds);
-    if (fetchTimerRef.current !== null) window.clearTimeout(fetchTimerRef.current);
-    fetchTimerRef.current = window.setTimeout(() => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      const params = new URLSearchParams({
-        minLat: String(bounds.swLat),
-        maxLat: String(bounds.neLat),
-        minLng: String(bounds.swLng),
-        maxLng: String(bounds.neLng),
-        zoom: String(info.zoom),
-      });
-      fetch(`/api/map/clusters?${params.toString()}`, { signal: controller.signal })
-        .then((res) => (res.ok ? (res.json() as Promise<ClustersResponse>) : null))
-        .then((json) => {
-          if (!json || controller.signal.aborted) return;
-          setClusterMode(json.mode);
-          setClusters(Array.isArray(json.clusters) ? json.clusters : []);
-          setExtraPoints(Array.isArray(json.points) ? json.points : []);
-          setPriceMeta(json.priceMeta ?? EMPTY_PRICE_META);
-        })
-        .catch(() => undefined); // 실패 시 기존 마커 유지
-    }, CLUSTER_FETCH_DEBOUNCE_MS);
+      const bounds = info.bounds;
+      if (!bounds) return;
+      lastBoundsRef.current = bounds;
+      lastIdleRef.current = { bounds, zoom: info.zoom };
+      setViewBounds(bounds);
+      if (showListingsRef.current) fetchListings(bounds);
+      scheduleClusterFetch(bounds, info.zoom);
     },
-    [fetchListings],
+    [fetchListings, scheduleClusterFetch],
   );
+
+  // 매매/전세 토글 변경 → 마지막 뷰포트로 즉시 재조회
+  useEffect(() => {
+    if (lastIdleRef.current) {
+      scheduleClusterFetch(lastIdleRef.current.bounds, lastIdleRef.current.zoom);
+    }
+  }, [txType, scheduleClusterFetch]);
 
   useEffect(
     () => () => {
@@ -1009,8 +1073,9 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
 
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
-    // 지역 시세 마커는 시·군·구/동 줌에서만 (단지 줌에선 숨김)
-    const regionLayer = zoom === "danji" ? [] : regionMarketMarkers;
+    // 지역 시세 마커는 시·군·구/동 줌에서만 — 매매 평균이라 전세 모드에선 숨김(값 혼동 방지)
+    const regionLayer =
+      zoom === "danji" || txType === "rent" ? [] : regionMarketMarkers;
     // 검색/포인트로 선택된 목록 밖 단지를 하이라이트 마커로 주입 (중복 id 제외)
     const withSearch = (arr: MapMarkerData[]): MapMarkerData[] => {
       if (!searchMarker || arr.some((m) => m.id === searchMarker.id)) return arr;
@@ -1037,8 +1102,9 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           label: c.count.toLocaleString("ko-KR"),
           infoHtml: "",
         };
-        // 오버레이 OFF — 예전처럼 개수만 세는 파란 원형 배지
-        if (!showPriceOverlay) {
+        // 오버레이 OFF — 예전처럼 개수만 세는 파란 원형 배지.
+        // 전세 모드도 개수만 — 셀 단위 보증금 집계가 없어서 색을 칠면 거짓이 된다.
+        if (!showPriceOverlay || txType === "rent") {
           return { ...common, pinColor: "rgba(29,79,216,.85)" };
         }
         // ON — "N개 · 4,020만/평" 알약. 실거래가 없는 셀은 회색 + "데이터 없음"이라
@@ -1057,22 +1123,28 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       ...redevelopmentMarkers,
     ]);
     }
-    // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트
-    const base: MapMarkerData[] = filteredDanji.map((d) => ({
-      id: d.id,
-      lat: d.lat,
-      lng: d.lng,
-      label: d.name,
-      priceLabel: d.price,
-      avgPriceWon: d.avgPriceWon ?? undefined,
-      // 시세 말풍선 스타일 강제 (avgPricePerM2 정의 시 price marker)
-      avgPricePerM2: d.avgPriceWon ? d.avgPriceWon / 84 : 1,
-      momPct: d.momPct ?? undefined,
-      selected: d.id === selectedId || d.id === infoId,
-      infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
-    }));
-    // API 추가 포인트에는 가격·면적·연식 정보가 없어 필터 적용 시 제외
-    if (!danjiFilterActive) {
+    // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트.
+    // 전세 모드에선 매매 평균 말풍선(danji 목록 마커)을 걷어내고, 서버 포인트의
+    // 전세 평균 보증금 라벨로 대체한다 — 매매가를 전세가처럼 보이게 두지 않는다.
+    const base: MapMarkerData[] =
+      txType === "rent"
+        ? []
+        : filteredDanji.map((d) => ({
+            id: d.id,
+            lat: d.lat,
+            lng: d.lng,
+            label: d.name,
+            priceLabel: d.price,
+            avgPriceWon: d.avgPriceWon ?? undefined,
+            // 시세 말풍선 스타일 강제 (avgPricePerM2 정의 시 price marker)
+            avgPricePerM2: d.avgPriceWon ? d.avgPriceWon / 84 : 1,
+            momPct: d.momPct ?? undefined,
+            selected: d.id === selectedId || d.id === infoId,
+            infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
+          }));
+    // API 추가 포인트에는 가격·면적·연식 정보가 없어 (매매)필터 적용 시 제외.
+    // 전세 모드는 매매 기준 필터와 무관하므로 항상 표시.
+    if (!danjiFilterActive || txType === "rent") {
       const known = new Set(base.map((m) => m.id));
       for (const p of extraPoints) {
         if (known.has(p.id)) continue;
@@ -1084,13 +1156,23 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           selected: p.id === infoId,
           infoHtml: "",
         };
-        // C1 — 단지 줌에서도 색이 이어지도록 실거래 평단가를 말풍선으로.
-        // 거래가 없는 단지는 손대지 않는다(기존 원형 마커 = 아무 시세도 주장하지 않음).
-        const label = showPriceOverlay ? pyeongPriceLabel(p.pyeongManwon) : null;
-        if (label) {
-          marker.priceLabel = label;
-          marker.avgPricePerM2 = 1; // 시세 말풍선 스타일 플래그
-          marker.tierColor = tierColor(p.pyeongManwon);
+        if (txType === "rent") {
+          // 전세 — 평균 보증금 말풍선(전용 색). 전세 실거래 없는 단지는 기본 마커.
+          const rentLabel = p.jeonseManwon ? manwonLabel(p.jeonseManwon) : null;
+          if (rentLabel) {
+            marker.priceLabel = `전세 ${rentLabel}`;
+            marker.avgPricePerM2 = 1; // 시세 말풍선 스타일 플래그
+            marker.tierColor = JEONSE_MARKER_COLOR;
+          }
+        } else {
+          // C1 — 단지 줌에서도 색이 이어지도록 실거래 평단가를 말풍선으로.
+          // 거래가 없는 단지는 손대지 않는다(기존 원형 마커 = 아무 시세도 주장하지 않음).
+          const label = showPriceOverlay ? pyeongPriceLabel(p.pyeongManwon) : null;
+          if (label) {
+            marker.priceLabel = label;
+            marker.avgPricePerM2 = 1; // 시세 말풍선 스타일 플래그
+            marker.tierColor = tierColor(p.pyeongManwon);
+          }
         }
         base.push(marker);
       }
@@ -1119,11 +1201,31 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     redevelopmentMarkers,
     regionMarketMarkers,
     zoom,
+    txType,
     radiusMode,
     radiusM,
     center.lat,
     center.lng,
   ]);
+
+  /* ===== item5 — 빈 지도 안내. 조회 실패("일시적 오류")와 빈 결과를 구분한다. ===== */
+  const viewportEmpty = useMemo(() => {
+    if (clusterFetchStatus !== "ok") return false;
+    if (clusters.length > 0 || extraPoints.length > 0) return false;
+    if (!viewBounds) return false;
+    // 서버 주입 단지 마커가 뷰포트 안에 있으면 빈 지도가 아니다 (전세 모드는 미표시라 제외)
+    if (txType !== "rent") {
+      const anyInView = filteredDanji.some(
+        (d) =>
+          d.lat >= viewBounds.swLat &&
+          d.lat <= viewBounds.neLat &&
+          d.lng >= viewBounds.swLng &&
+          d.lng <= viewBounds.neLng,
+      );
+      if (anyInView) return false;
+    }
+    return true;
+  }, [clusterFetchStatus, clusters.length, extraPoints.length, viewBounds, filteredDanji, txType]);
 
   const selectDanji = (id: string) => {
     setInfoComplex(null);
@@ -1291,6 +1393,50 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   // 사실 우선: 실거래는 서버(market_transactions) 실데이터만 — 없으면 빈 배열(안내 문구)
   const trades = selected ? selected.trades : [];
 
+  /* ===== item10 — 노트 쓰기 링크에 단지ID·좌표까지 전달 (작성 페이지가 읽는 파라미터) ===== */
+  const noteHrefFor = (d: DanjiItem) => {
+    const params = new URLSearchParams({
+      apt: d.name,
+      complexId: d.id,
+      lat: String(d.lat),
+      lng: String(d.lng),
+    });
+    return `/notes/new?${params.toString()}`;
+  };
+
+  /* ===== item9 — 노트 탭: 그 단지 임장노트 실제 조회 (inspection_notes 단지명 매칭) ===== */
+  const [complexNotes, setComplexNotes] = useState<ComplexNoteItem[]>([]);
+  const [complexNotesStatus, setComplexNotesStatus] = useState<
+    "idle" | "loading" | "ok" | "error"
+  >("idle");
+  const selectedName = selected?.name ?? null;
+  useEffect(() => {
+    if (detailTab !== "노트" || !selectedName) {
+      setComplexNotes([]);
+      setComplexNotesStatus("idle");
+      return;
+    }
+    const controller = new AbortController();
+    setComplexNotesStatus("loading");
+    fetch(`/api/map/complex-notes?name=${encodeURIComponent(selectedName)}`, {
+      signal: controller.signal,
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<{ notes?: ComplexNoteItem[] }>) : null))
+      .then((j) => {
+        if (controller.signal.aborted) return;
+        if (!j) {
+          setComplexNotesStatus("error");
+          return;
+        }
+        setComplexNotes(Array.isArray(j.notes) ? j.notes : []);
+        setComplexNotesStatus("ok");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setComplexNotesStatus("error");
+      });
+    return () => controller.abort();
+  }, [detailTab, selectedName]);
+
   /* ===== SDK 로드 실패/미설정 시 폴백 — 허위 시세 대신 정직한 안내 =====
      기존엔 가짜 지역 시세 버블(동안구 7.1억 등)을 그렸으나, 사실 우선 원칙에 따라
      실데이터가 아닌 수치는 표시하지 않고 "지도를 불러올 수 없어요" 상태로 대체. */
@@ -1323,6 +1469,19 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         circle={radiusMode ? { lat: center.lat, lng: center.lng, radiusM } : null}
       />
 
+      {/* ===== item5 — 빈 뷰포트/조회 실패 안내. 실패와 빈 결과를 구분한다 ===== */}
+      {(viewportEmpty || clusterFetchStatus === "error") && (
+        <div
+          role="status"
+          className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-center text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
+        >
+          {clusterFetchStatus === "error"
+            ? "일시적 오류로 단지 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요"
+            : "이 지역 단지 좌표를 준비 중이에요 — 곳곳에서 순차 확충 중"}
+        </div>
+      )}
+
       {/* ===== 상단 플로팅 글래스 헤더 (카메라섬 아래로 세이프에어리어 오프셋) ===== */}
       <div
         className="glass-strong absolute left-1/2 z-40 flex h-[58px] w-[calc(100%-32px)] max-w-[1180px] -translate-x-1/2 items-center gap-4 rounded-[18px] px-5"
@@ -1340,11 +1499,8 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
             onSelectAddress={handleSearchSelectAddress}
           />
         </div>
-        <div className="hidden items-center gap-1.5 lg:flex">
-          <span className="chip chip-active px-3.5 py-2 text-[13px]">매매</span>
-          <span className="chip bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-2">전세</span>
-          {filterBar}
-        </div>
+        {/* 매매/전세는 filterBar 안의 실제 토글 — 장식용 칩이었던 것을 배선(item2) */}
+        <div className="hidden items-center gap-1.5 lg:flex">{filterBar}</div>
         <div className="flex-1" />
         <Link
           href="/notes/new"
@@ -1435,6 +1591,11 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
             </div>
             <div className="text-xs text-text-3">시세순 ▾</div>
           </div>
+          {txType === "rent" && (
+            <div className="px-5 pb-1.5 text-[10px] text-text-3">
+              목록 가격은 매매 실거래 평균이에요 — 전세 보증금은 지도 마커에서 확인
+            </div>
+          )}
           {(danjiFilterActive || commuteActive) && filteredDanji.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
               <div className="text-xs text-text-2">조건에 맞는 단지가 없어요.</div>
@@ -1560,14 +1721,24 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
                 {/* 사실 우선: 서버 실데이터(시세·전월비)만 표시. 조회수·전문가수·급매·판정은
                     집계 소스가 없어 허위였으므로 제거. */}
                 <div className="card rounded-[14px] px-[15px] py-3.5">
+                  {/* item3 — 대표가격 근거 병기: 면적 통합 평균 + 언제·몇 건인지 */}
                   <div className="text-[10px] text-text-3">
-                    실거래 평균 ({selected.size}) · 국토교통부 기준
+                    실거래 평균 (면적 통합
+                    {selected.latestYm && selected.latestDealCount != null
+                      ? ` · ${selected.latestYm} ${selected.latestDealCount}건`
+                      : ""}
+                    ) · 국토교통부 기준
                   </div>
                   <div className="mt-1 flex items-baseline gap-2">
                     <span className="text-[22px] font-extrabold text-ink">{selected.price}</span>
-                    <span className={`text-xs ${deltaClass(selected.deltaTone)}`}>
-                      {selected.delta === "—" ? "— (전월비)" : `${selected.delta} (전월비)`}
-                    </span>
+                    {selected.delta === "표본 부족" ? (
+                      // 최신월 3건 미만 — 등락률은 노이즈라 표시하지 않는다
+                      <span className="text-xs text-text-3">표본 부족 · 전월비 생략</span>
+                    ) : (
+                      <span className={`text-xs ${deltaClass(selected.deltaTone)}`}>
+                        {selected.delta === "—" ? "— (전월비)" : `${selected.delta} (전월비)`}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <Link
@@ -1581,7 +1752,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
                 </Link>
                 <div className="flex gap-2">
                   <Link
-                    href={`/notes/new?apt=${encodeURIComponent(selected.name)}`}
+                    href={noteHrefFor(selected)}
                     className="btn-primary btn-cta flex-1 rounded-xl p-[11px] text-center text-xs"
                   >
                     이 단지 임장노트
@@ -1653,13 +1824,61 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
 
             {detailTab === "노트" && (
               <>
-                {/* 사실 우선: 단지별 공개 노트 피드 미연동 — 허위 노트 대신 안내 + 전체 노트 링크 */}
-                <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
-                  이 단지에 연결된 공개 임장노트를 모아 보여드릴 예정이에요
+                {/* item9 — inspection_notes 단지명 매칭 실조회. 없으면 정직한 빈 상태 + 실링크 */}
+                {complexNotesStatus === "loading" && (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                    이 단지 임장노트를 찾는 중…
+                  </div>
+                )}
+                {complexNotesStatus === "error" && (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                    일시적 오류로 노트를 불러오지 못했어요
+                  </div>
+                )}
+                {complexNotesStatus === "ok" && complexNotes.length > 0 && (
+                  <div className="card flex flex-col rounded-[14px] px-[15px] py-1">
+                    {complexNotes.map((n, i) => (
+                      <Link
+                        key={n.id}
+                        href={`/notes/${encodeURIComponent(n.id)}`}
+                        className={`flex items-center justify-between gap-2 py-2.5 text-[13px] ${
+                          i < complexNotes.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        }`}
+                      >
+                        <span className="min-w-0 truncate font-bold text-ink">
+                          {n.mine && (
+                            <span className="mr-1.5 rounded-[4px] bg-primary-soft px-1.5 py-[1px] text-[10px] font-extrabold text-primary">
+                              내 노트
+                            </span>
+                          )}
+                          {n.title}
+                        </span>
+                        <span className="shrink-0 text-[11px] text-text-3">
+                          {n.visitDate ?? ""}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {complexNotesStatus === "ok" && complexNotes.length === 0 && (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                    아직 이 단지의 임장노트가 없어요 — 첫 노트를 남겨보세요
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Link
+                    href={noteHrefFor(selected)}
+                    className="btn-primary btn-cta flex-1 rounded-xl p-3 text-center text-[13px]"
+                  >
+                    이 단지 노트 쓰기
+                  </Link>
+                  <Link
+                    href="/notes"
+                    className="btn-soft flex-1 rounded-xl p-3 text-center text-[13px]"
+                  >
+                    공개 노트 모아보기
+                  </Link>
                 </div>
-                <Link href="/notes" className="btn-soft rounded-xl p-3 text-center text-[13px]">
-                  공개 임장노트 보기
-                </Link>
               </>
             )}
 
@@ -1738,7 +1957,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         </button>
       </div>
 
-      {/* ===== 범례 ===== */}
+      {/* ===== 범례 (md+) ===== */}
       <div className="glass absolute bottom-5 right-5 z-30 hidden gap-3.5 rounded-xl px-3.5 py-[9px] md:flex">
         <div className="flex items-center gap-1.5 text-[11px] text-text-1">
           <span className="h-[9px] w-[9px] rounded-[3px] bg-primary" />
@@ -1748,6 +1967,57 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           <span className="h-[9px] w-[9px] rounded-[3px] border border-[#c3cad6] bg-surface" />
           미방문
         </div>
+      </div>
+
+      {/* ===== item7 — 모바일 접이식 범례 (기본 접힘). md 전용이던 범례·줌 캡션을 노출 ===== */}
+      <div
+        className="absolute left-4 z-30 flex flex-col items-start gap-1.5 md:hidden"
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+      >
+        {mobileLegendOpen && (
+          <div className="glass flex w-[196px] flex-col gap-1.5 rounded-xl px-3 py-2.5">
+            <div className="text-[11px] font-extrabold text-ink">범례</div>
+            <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+              <span className="h-[9px] w-[9px] shrink-0 rounded-[3px] bg-primary" />
+              임장한 단지 (내 노트 있음)
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+              <span className="h-[9px] w-[9px] shrink-0 rounded-[3px] border border-[#c3cad6] bg-surface" />
+              미방문
+            </div>
+            {txType === "rent" ? (
+              <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+                <span
+                  className="h-[9px] w-[9px] shrink-0 rounded-full"
+                  style={{ background: JEONSE_MARKER_COLOR }}
+                />
+                전세 평균 보증금 (단지 줌)
+              </div>
+            ) : (
+              showPriceOverlay && (
+                <div className="flex overflow-hidden rounded-[3px]">
+                  {PRICE_TIERS.map((t) => (
+                    <span
+                      key={t.slug}
+                      className="h-[8px] flex-1"
+                      style={{ background: t.color }}
+                      title={t.label}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+            <div className="text-[10px] leading-[1.5] text-text-3">{ZOOM_CAPTION[zoom]}</div>
+          </div>
+        )}
+        <button
+          type="button"
+          aria-expanded={mobileLegendOpen}
+          onClick={() => setMobileLegendOpen((v) => !v)}
+          className="glass rounded-full px-3 py-1.5 text-[11px] font-bold text-text-1"
+        >
+          범례 {mobileLegendOpen ? "▾" : "▸"}
+        </button>
       </div>
 
       {/* ===== 정비사업 종류 범례 (#20) — 레이어 ON & 화면 내 사업종류만, 기본 범례 위에 스택 ===== */}
@@ -1803,45 +2073,68 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
               : "calc(env(safe-area-inset-bottom, 0px) + 60px)",
           }}
         >
-          <div className="text-[11px] font-extrabold text-ink">실거래 평단가 (만원/평)</div>
-          <div>
-            <div className="flex overflow-hidden rounded-[3px]">
-              {PRICE_TIERS.map((t) => (
+          {txType === "rent" ? (
+            <>
+              {/* item2 — 전세 모드 범례: 매매 평단가 색표를 보증금에 갖다 붙이지 않는다 */}
+              <div className="text-[11px] font-extrabold text-ink">전세 평균 보증금</div>
+              <div className="flex items-center gap-1.5 text-[11px] text-text-1">
                 <span
-                  key={t.slug}
-                  className="h-[10px] flex-1"
-                  style={{ background: t.color }}
-                  title={t.label}
+                  className="h-[9px] w-[9px] shrink-0 rounded-full"
+                  style={{ background: JEONSE_MARKER_COLOR }}
                 />
-              ))}
-            </div>
-            {/* 눈금 — 색이 갈리는 지점을 정확한 값으로 표시 */}
-            <div className="relative mt-[3px] h-[12px]">
-              {PRICE_TIERS.slice(1).map((t, i) => (
+                <span>단지 줌에서 평균 보증금 표시</span>
+              </div>
+              <div className="text-[10px] leading-[1.5] text-text-3">
+                국토교통부 전월세 실거래 중 전세 계약 기준 · 월세 계약 제외
+                {ymLabel(priceMeta.latestYm) ? ` · ~${ymLabel(priceMeta.latestYm)} 신고분` : ""}
+                {priceMeta.txCount > 0
+                  ? ` · 화면 내 ${priceMeta.txCount.toLocaleString("ko-KR")}건`
+                  : ""}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-[11px] font-extrabold text-ink">실거래 평단가 (만원/평)</div>
+              <div>
+                <div className="flex overflow-hidden rounded-[3px]">
+                  {PRICE_TIERS.map((t) => (
+                    <span
+                      key={t.slug}
+                      className="h-[10px] flex-1"
+                      style={{ background: t.color }}
+                      title={t.label}
+                    />
+                  ))}
+                </div>
+                {/* 눈금 — 색이 갈리는 지점을 정확한 값으로 표시 */}
+                <div className="relative mt-[3px] h-[12px]">
+                  {PRICE_TIERS.slice(1).map((t, i) => (
+                    <span
+                      key={t.slug}
+                      className="absolute top-0 -translate-x-1/2 text-[10px] leading-[12px] text-text-3"
+                      style={{ left: `${((i + 1) / PRICE_TIERS.length) * 100}%` }}
+                    >
+                      {t.minManwon.toLocaleString("ko-KR")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] text-text-1">
                 <span
-                  key={t.slug}
-                  className="absolute top-0 -translate-x-1/2 text-[10px] leading-[12px] text-text-3"
-                  style={{ left: `${((i + 1) / PRICE_TIERS.length) * 100}%` }}
-                >
-                  {t.minManwon.toLocaleString("ko-KR")}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-            <span
-              className="h-[9px] w-[9px] shrink-0 rounded-[3px]"
-              style={{ background: NO_DATA_COLOR }}
-            />
-            <span>{NO_DATA_LABEL} (실거래 없음)</span>
-          </div>
-          <div className="text-[10px] leading-[1.5] text-text-3">
-            국토교통부 실거래가(매매) 기준 · 매물 호가 아님
-            {ymLabel(priceMeta.latestYm) ? ` · ~${ymLabel(priceMeta.latestYm)} 신고분` : ""}
-            {priceMeta.txCount > 0
-              ? ` · 화면 내 ${priceMeta.txCount.toLocaleString("ko-KR")}건`
-              : ""}
-          </div>
+                  className="h-[9px] w-[9px] shrink-0 rounded-[3px]"
+                  style={{ background: NO_DATA_COLOR }}
+                />
+                <span>{NO_DATA_LABEL} (실거래 없음)</span>
+              </div>
+              <div className="text-[10px] leading-[1.5] text-text-3">
+                국토교통부 실거래가(매매) 기준 · 매물 호가 아님
+                {ymLabel(priceMeta.latestYm) ? ` · ~${ymLabel(priceMeta.latestYm)} 신고분` : ""}
+                {priceMeta.txCount > 0
+                  ? ` · 화면 내 ${priceMeta.txCount.toLocaleString("ko-KR")}건`
+                  : ""}
+              </div>
+            </>
+          )}
         </div>
       )}
 

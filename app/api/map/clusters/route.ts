@@ -68,6 +68,10 @@ export interface MapPointItem {
   pyeongManwon?: number;
   /** 그 평단가를 만든 실거래 건수 */
   txCount?: number;
+  /** 전세 평균 보증금(만원) — type=rent 요청 + 최근 전세 실거래가 있을 때만 존재 */
+  jeonseManwon?: number;
+  /** 그 평균을 만든 전세 실거래 건수 */
+  jeonseCount?: number;
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -147,6 +151,93 @@ function summarizePriceMeta(rows: PriceSourceRow[]): MapPriceMeta {
     if (Number.isFinite(ym) && ym > 0 && (latestYm == null || ym > latestYm)) latestYm = ym;
   }
   return { latestYm, txCount, complexCount };
+}
+
+/* ── 전월세(type=rent) — 전세 평균 보증금 ─────────────────────────────
+   market_transactions 에는 좌표가 없어 뷰포트 조회가 불가능하므로,
+   포인트 모드에서 뷰포트 안 단지 이름 목록으로 최근 전세 실거래를 IN 조회해
+   단지별 평균 보증금을 계산한다. 클러스터 모드(낮은 줌)는 이름 목록이 수천 개라
+   비용이 커서 개수만 반환한다 — 전세 시세는 단지 줌에서만 표시(정직한 축소). */
+
+/** 전세 집계 조회 기간(개월) */
+const RENT_LOOKBACK_MONTHS = 24;
+/** 전세 집계 소스 조회 하드캡 */
+const MAX_RENT_SOURCE_ROWS = 5000;
+/** IN 조회 이름 상한 (URL 길이·쿼리 비용 가드) */
+const MAX_RENT_NAMES = 200;
+
+function rentCutoffYm(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() - RENT_LOOKBACK_MONTHS);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+interface RentBucket {
+  sumDepositKrw: number;
+  count: number;
+  latestYm: number;
+}
+
+/**
+ * 단지별 전세(보증금만 있고 월세 0) 평균 보증금 집계.
+ * 실패 시 빈 맵 — 지도는 이름 마커만으로 계속 동작한다.
+ */
+async function fetchJeonseByComplex(
+  sb: ReadOnlySb,
+  pairs: { region: string; name: string }[],
+): Promise<Map<string, RentBucket>> {
+  const out = new Map<string, RentBucket>();
+  if (pairs.length === 0) return out;
+  const limited = pairs.slice(0, MAX_RENT_NAMES);
+  const regions = [...new Set(limited.map((p) => p.region))];
+  const names = [...new Set(limited.map((p) => p.name))];
+  try {
+    const { data, error } = await sb
+      .from("market_transactions")
+      .select("region_name,complex_name,deposit_krw,monthly_rent_krw,contract_ym")
+      .eq("transaction_type", "rent")
+      .eq("is_cancelled", false)
+      .gt("deposit_krw", 0)
+      .gte("contract_ym", rentCutoffYm())
+      .in("region_name", regions)
+      .in("complex_name", names)
+      // 하드캡에 잘리더라도 최근 계약분이 남도록
+      .order("contract_ym", { ascending: false })
+      .limit(MAX_RENT_SOURCE_ROWS);
+    if (error) {
+      logger.warn("[map/clusters] 전세 집계 조회 실패:", error.message);
+      return out;
+    }
+    const want = new Set(limited.map((p) => complexKey(p.region, p.name)));
+    for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+      const monthly = Number(r.monthly_rent_krw ?? 0);
+      if (Number.isFinite(monthly) && monthly > 0) continue; // 월세 계약 제외 — 전세 보증금 평균만
+      const deposit = Number(r.deposit_krw);
+      if (!Number.isFinite(deposit) || deposit <= 0) continue;
+      const key = complexKey(String(r.region_name ?? ""), String(r.complex_name ?? ""));
+      if (!want.has(key)) continue; // IN×IN 교차곱 오매칭 제거
+      const ym = Number(r.contract_ym);
+      const b = out.get(key);
+      if (b) {
+        b.sumDepositKrw += deposit;
+        b.count += 1;
+        if (Number.isFinite(ym) && ym > b.latestYm) b.latestYm = ym;
+      } else {
+        out.set(key, {
+          sumDepositKrw: deposit,
+          count: 1,
+          latestYm: Number.isFinite(ym) ? ym : 0,
+        });
+      }
+    }
+    return out;
+  } catch (e) {
+    logger.warn(
+      "[map/clusters] 전세 집계 조회 예외:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return out;
+  }
 }
 
 /**
@@ -249,6 +340,8 @@ export async function GET(req: NextRequest) {
   const minLng = clamp(Math.min(rawMinLng, rawMaxLng), -180, 180);
   const maxLng = clamp(Math.max(rawMinLng, rawMaxLng), -180, 180);
   const zoom = clamp(Math.round(rawZoom), 1, 21);
+  /** 거래유형 — trade(매매, 기본) | rent(전월세: 전세 평균 보증금) */
+  const txType = url.searchParams.get("type") === "rent" ? "rent" : "trade";
 
   const mode: "clusters" | "points" = zoom >= POINT_MODE_MIN_ZOOM ? "points" : "clusters";
 
@@ -280,7 +373,8 @@ export async function GET(req: NextRequest) {
           .lte("lng", maxLng)
           .order("trade_count", { ascending: false, nullsFirst: false })
           .limit(MAX_POINTS),
-        fetchPriceSource(sb, bounds),
+        // 매매 모드에서만 매매 평단가 뷰 조회 — 전세 모드는 아래 IN 집계를 쓴다
+        txType === "trade" ? fetchPriceSource(sb, bounds) : Promise.resolve([]),
       ]);
       if (geoRes.error) throw geoRes.error;
 
@@ -295,39 +389,75 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      const points: MapPointItem[] = ((geoRes.data ?? []) as Array<Record<string, unknown>>)
-        .filter(
-          (r) =>
-            r.region_name &&
-            r.complex_name &&
-            Number.isFinite(Number(r.lat)) &&
-            Number.isFinite(Number(r.lng)),
-        )
-        .map((r) => {
-          const region = String(r.region_name);
-          const name = String(r.complex_name);
-          const point: MapPointItem = {
-            id: encodeComplexId(region, name),
-            name,
-            lat: Number(r.lat),
-            lng: Number(r.lng),
-          };
-          // 거래가 없으면 필드를 아예 붙이지 않는다 — 클라이언트가 "데이터 없음"으로 그린다
-          const price = priceByComplex.get(complexKey(region, name));
-          if (price) {
-            point.pyeongManwon = price.manwon;
-            point.txCount = price.txCount;
-          }
-          return point;
-        });
+      const geoRows = ((geoRes.data ?? []) as Array<Record<string, unknown>>).filter(
+        (r) =>
+          r.region_name &&
+          r.complex_name &&
+          Number.isFinite(Number(r.lat)) &&
+          Number.isFinite(Number(r.lng)),
+      );
+
+      // 전세 모드 — 뷰포트 단지들의 최근 전세 보증금 평균(단지별)
+      const jeonseByComplex =
+        txType === "rent"
+          ? await fetchJeonseByComplex(
+              sb,
+              geoRows.map((r) => ({
+                region: String(r.region_name),
+                name: String(r.complex_name),
+              })),
+            )
+          : new Map<string, RentBucket>();
+
+      const points: MapPointItem[] = geoRows.map((r) => {
+        const region = String(r.region_name);
+        const name = String(r.complex_name);
+        const point: MapPointItem = {
+          id: encodeComplexId(region, name),
+          name,
+          lat: Number(r.lat),
+          lng: Number(r.lng),
+        };
+        // 거래가 없으면 필드를 아예 붙이지 않는다 — 클라이언트가 "데이터 없음"으로 그린다
+        const price = priceByComplex.get(complexKey(region, name));
+        if (price) {
+          point.pyeongManwon = price.manwon;
+          point.txCount = price.txCount;
+        }
+        const jeonse = jeonseByComplex.get(complexKey(region, name));
+        if (jeonse && jeonse.count > 0) {
+          point.jeonseManwon = Math.round(jeonse.sumDepositKrw / jeonse.count / 10_000);
+          point.jeonseCount = jeonse.count;
+        }
+        return point;
+      });
+
+      // 범례 근거 — 전세 모드는 전세 집계에서, 매매 모드는 매매 뷰에서
+      const priceMeta =
+        txType === "rent"
+          ? (() => {
+              let latestYm: number | null = null;
+              let txCount = 0;
+              let complexCount = 0;
+              for (const b of jeonseByComplex.values()) {
+                txCount += b.count;
+                complexCount += 1;
+                if (b.latestYm > 0 && (latestYm == null || b.latestYm > latestYm)) {
+                  latestYm = b.latestYm;
+                }
+              }
+              return { latestYm, txCount, complexCount } satisfies MapPriceMeta;
+            })()
+          : summarizePriceMeta(priceRows);
 
       return NextResponse.json(
-        { mode, clusters: [], points, priceMeta: summarizePriceMeta(priceRows) },
+        { mode, clusters: [], points, priceMeta },
         { headers: CACHE_HEADERS },
       );
     }
 
-    // 클러스터 모드 — 좌표만 가져와 그리드 집계 (complex_geocode) + 셀별 실거래 평단가
+    // 클러스터 모드 — 좌표만 가져와 그리드 집계 (complex_geocode) + 셀별 실거래 평단가.
+    // 전세 모드는 셀 단위 보증금 집계 비용이 커 개수만 반환한다(시세 없는 셀 = 회색).
     const [geoRes, priceRows] = await Promise.all([
       sb
         .from("complex_geocode")
@@ -340,7 +470,7 @@ export async function GET(req: NextRequest) {
         .gte("lng", minLng)
         .lte("lng", maxLng)
         .limit(MAX_CLUSTER_SOURCE_ROWS),
-      fetchPriceSource(sb, bounds),
+      txType === "trade" ? fetchPriceSource(sb, bounds) : Promise.resolve([]),
     ]);
     if (geoRes.error) throw geoRes.error;
 

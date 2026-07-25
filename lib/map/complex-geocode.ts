@@ -1,6 +1,7 @@
 import "server-only";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { isNaverMapsRestConfigured, naverGeocode } from "@/lib/map/naver-maps-rest";
+import { logger } from "@/lib/log";
 
 /**
  * 단지 좌표 지오코딩 캐시 — complex_geocode 테이블.
@@ -73,17 +74,50 @@ export async function getGeocodeProgress(): Promise<GeocodeProgress> {
   return { ok, notfound, cached: ok + notfound, total, configured: base.configured };
 }
 
-async function geocodeQuery(query: string): Promise<Coord | null> {
+/**
+ * 지오코딩 1회 시도 결과 — "못 찾음"과 "오류"를 구분한다.
+ * 예전 코드는 API 예외까지 삼켜 notfound 로 저장했는데, 그러면 키 미설정·쿼터 초과
+ * 같은 일시 오류가 영구 실패로 캐시돼 다시는 시도되지 않는 문제가 있었다.
+ */
+type GeocodeAttempt =
+  | { kind: "ok"; coord: Coord; query: string }
+  | { kind: "notfound" }
+  | { kind: "error"; message: string };
+
+async function tryGeocode(query: string): Promise<GeocodeAttempt> {
   try {
     const items = await naverGeocode(query, 1);
     const it = items[0];
     if (it && Number.isFinite(it.lat) && Number.isFinite(it.lng)) {
-      return { lat: it.lat, lng: it.lng };
+      return { kind: "ok", coord: { lat: it.lat, lng: it.lng }, query };
     }
-  } catch {
-    return null;
+    return { kind: "notfound" }; // API는 정상 응답, 결과가 없을 뿐
+  } catch (e) {
+    return { kind: "error", message: e instanceof Error ? e.message : String(e) };
   }
-  return null;
+}
+
+/**
+ * 다단 지오코딩 — 네이버 지오코더는 POI(단지명)가 아니라 "주소" 전용이라
+ * "서울 송파구 리센츠" 같은 지역명+단지명 쿼리는 대부분 실패한다(실측 성공률 ~1%).
+ * 그래서 주소형 쿼리(실거래 address: "서울 송파구 문정동 3")를 최우선으로 하고,
+ * 실패 시 지역명+단지명 → 단지명 단독 순으로 내려간다.
+ *
+ * 모든 시도가 "결과 없음"이어야 notfound. 시도 중 오류가 하나라도 있고 성공이
+ * 없으면 error — 호출부는 이 경우 캐시에 저장하지 않는다(다음 배치에서 재시도).
+ */
+async function geocodeWithFallback(queries: string[]): Promise<GeocodeAttempt> {
+  let lastError: GeocodeAttempt | null = null;
+  const seen = new Set<string>();
+  for (const raw of queries) {
+    const q = raw.trim();
+    if (!q || seen.has(q)) continue;
+    seen.add(q);
+    const r = await tryGeocode(q);
+    if (r.kind === "ok") return r;
+    if (r.kind === "error") lastError = r;
+  }
+  return lastError ?? { kind: "notfound" };
 }
 
 /**
@@ -110,16 +144,26 @@ export async function geocodeAndCache(
   }
   if (!isNaverMapsRestConfigured()) return null;
 
-  const q = (query || `${region} ${name}`).trim();
-  const coord = await geocodeQuery(q);
+  const attempt = await geocodeWithFallback([
+    query ?? "",
+    `${region} ${name}`,
+    name,
+  ]);
+  if (attempt.kind === "error") {
+    // 일시 오류를 notfound 로 굳히지 않는다 — 저장 없이 로그만
+    logger.warn(`[geocode] ${region} ${name} 오류(캐시 저장 안 함): ${attempt.message}`);
+    return null;
+  }
+  const coord = attempt.kind === "ok" ? attempt.coord : null;
   await sb.from("complex_geocode").upsert(
     {
       region_name: region,
       complex_name: name,
-      query: q,
+      query: attempt.kind === "ok" ? attempt.query : (query || `${region} ${name}`).trim(),
       lat: coord?.lat ?? null,
       lng: coord?.lng ?? null,
       status: coord ? "ok" : "notfound",
+      geocoded_at: new Date().toISOString(),
     },
     { onConflict: "region_name,complex_name" },
   );
@@ -132,7 +176,7 @@ export async function geocodeAndCache(
  */
 export async function backfillGeocode(
   limit = 150,
-): Promise<{ processed: number; ok: number; skipped?: boolean }> {
+): Promise<{ processed: number; ok: number; errors?: number; skipped?: boolean }> {
   const sb = getServiceSupabase();
   if (!sb) return { processed: 0, ok: 0, skipped: true };
   if (!isNaverMapsRestConfigured()) return { processed: 0, ok: 0, skipped: true };
@@ -144,23 +188,42 @@ export async function backfillGeocode(
       | null) ?? [];
 
   let ok = 0;
+  let errors = 0;
   for (const r of rows) {
-    const q = (r.address?.trim() || `${r.region_name} ${r.complex_name}`).trim();
-    const coord = await geocodeQuery(q);
+    // 주소형 쿼리 우선(네이버 지오코더는 주소 전용) → 지역+단지명 → 단지명 단독
+    const attempt = await geocodeWithFallback([
+      r.address ?? "",
+      `${r.region_name} ${r.complex_name}`,
+      r.complex_name,
+    ]);
+    if (attempt.kind === "error") {
+      // 오류는 notfound 로 저장하지 않는다 — 다음 배치가 다시 시도한다
+      errors += 1;
+      logger.warn(
+        `[geocode] ${r.region_name} ${r.complex_name} 오류(캐시 저장 안 함): ${attempt.message}`,
+      );
+      await new Promise((res) => setTimeout(res, 40));
+      continue;
+    }
+    const coord = attempt.kind === "ok" ? attempt.coord : null;
     await sb.from("complex_geocode").upsert(
       {
         region_name: r.region_name,
         complex_name: r.complex_name,
-        query: q,
+        query:
+          attempt.kind === "ok"
+            ? attempt.query
+            : (r.address?.trim() || `${r.region_name} ${r.complex_name}`).trim(),
         lat: coord?.lat ?? null,
         lng: coord?.lng ?? null,
         status: coord ? "ok" : "notfound",
         trade_count: r.trade_count,
+        geocoded_at: new Date().toISOString(),
       },
       { onConflict: "region_name,complex_name" },
     );
     if (coord) ok += 1;
     await new Promise((res) => setTimeout(res, 40));
   }
-  return { processed: rows.length, ok };
+  return { processed: rows.length, ok, errors };
 }
