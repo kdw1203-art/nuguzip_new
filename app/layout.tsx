@@ -8,6 +8,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://nuguzip.com"),
@@ -77,6 +78,9 @@ export default function RootLayout({
               <InstallPrompt />
               <AdSenseLoader />
               <WebVitalsReporter />
+              {/* Vercel Web Analytics — 프로덕션(Vercel 배포)에서만 수집,
+                  로컬에서는 아무것도 전송하지 않는다. */}
+              <Analytics />
             </SoftSignupProvider>
           </ToastProvider>
         </ThemeProvider>
