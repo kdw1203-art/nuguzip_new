@@ -23,6 +23,29 @@ export type SupplyMonthBucket = {
   households: number;
 };
 
+/**
+ * 데이터 적재 기준 시점 — apartment_supply 최신 created_at.
+ * 이 테이블은 자동 갱신 경로가 없는 수동 적재 데이터라, 화면의 "기준" 표기는
+ * 하드코딩("2026.02 기준")이 아니라 실제 DB 적재 시점에서 읽는다. 없으면 null.
+ */
+export async function getSupplyDataAsOf(): Promise<string | null> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb
+      .from("apartment_supply")
+      .select("created_at")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (error || !Array.isArray(data) || data.length === 0) return null;
+    const raw = (data[0] as Record<string, unknown>).created_at;
+    return raw ? String(raw) : null;
+  } catch (e) {
+    logger.error("[getSupplyDataAsOf]", e);
+    return null;
+  }
+}
+
 /** 시도 목록(물량 순) */
 export async function getSupplyRegions(): Promise<
   { region: string; count: number; households: number }[]

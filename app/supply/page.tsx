@@ -10,6 +10,7 @@ import {
   getSupplyRegions,
   getSupplyMonthly,
   getSupplyList,
+  getSupplyDataAsOf,
 } from "@/lib/market/supply";
 import type { SupplyItem } from "@/lib/market/supply";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
@@ -130,14 +131,19 @@ export default async function SupplyPage({
   // 유료 플랜 광고 제거(H4) — 이 페이지는 force-dynamic 이라 세션을 읽어도 비용이 없다
   const viewer = await getAdViewer();
 
-  const [regions, monthly, list] = await Promise.all([
+  const [regions, monthly, list, dataAsOf] = await Promise.all([
     getSupplyRegions(),
     getSupplyMonthly(active),
     getSupplyList(active, 200),
+    getSupplyDataAsOf(),
   ]);
 
+  // 갱신 기준 표기 — 하드코딩 대신 DB(apartment_supply) 최신 적재 시점(created_at).
+  // 자동 갱신 경로가 없는 수동 적재 데이터라는 사실을 함께 표기한다.
+  const asOfLabel =
+    dataAsOf && dataAsOf.length >= 7 ? `${dataAsOf.slice(0, 4)}.${dataAsOf.slice(5, 7)}` : null;
+
   const totalHouseholds = monthly.reduce((s, m) => s + m.households, 0);
-  const totalCount = monthly.reduce((s, m) => s + m.count, 0);
   const peak =
     monthly.length > 0
       ? monthly.reduce((a, b) => (b.households > a.households ? b : a))
@@ -177,22 +183,9 @@ export default async function SupplyPage({
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
       <div style={SUPPLY_THEME}>
-        {/* 상단 탭 + CTA (청약 센터 상단 row 패턴) */}
+        {/* 상단 CTA — 예전의 정적 탭 4개(전체·이번 분기·예정·지난 입주)는 클릭해도
+            아무 동작이 없는 장식이라 제거했다. 섹션 구분은 아래 본문 제목으로 충분하다. */}
         <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1.5 text-[13px]">
-            <span className="rounded-full bg-ink px-3.5 py-2 font-bold text-white">
-              전체
-            </span>
-            <span className="glass rounded-full px-3.5 py-2 font-bold text-primary">
-              이번 분기
-            </span>
-            <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">
-              예정
-            </span>
-            <span className="glass rounded-full px-3.5 py-2 font-semibold text-text-2">
-              지난 입주
-            </span>
-          </div>
           <div className="flex-1" />
           <div className="flex flex-wrap gap-1.5 text-xs">
             <a
@@ -226,9 +219,11 @@ export default async function SupplyPage({
           <ExampleBadge />
           <span>
             입주 캘린더는 서비스 <b>예시 구성</b>이에요 (입주는 월 단위
-            자료라 대표 일자로 표시). 공개 입주예정물량 자료(2026.02 기준)를
-            취합한 참고 정보이며, 사업 진행·일정 변경에 따라 실제와 다를 수
-            있어요. 아래 “지난·전체 입주 예정 단지” 표는{" "}
+            자료라 대표 일자로 표시). 공개 입주예정물량 자료를 수동으로
+            적재한 데이터
+            {asOfLabel ? `(최근 적재 ${asOfLabel})` : ""}로 자동 갱신되지
+            않으며, 사업 진행·일정 변경에 따라 실제와 다를 수 있어요. 아래
+            “지난·전체 입주 예정 단지” 표는{" "}
             <a
               href={SOURCE_URL}
               target="_blank"
@@ -449,7 +444,9 @@ export default async function SupplyPage({
                     </div>
                   ))}
                   <div className="pb-2 pt-1 text-[10px] text-text-3">
-                    출처 공공데이터(data.go.kr) 입주예정물량 · 2026.02 기준
+                    출처 공공데이터(data.go.kr) 입주예정물량 · 수동 적재
+                    데이터{asOfLabel ? ` (최근 적재 ${asOfLabel})` : ""} · 자동
+                    갱신 없음
                   </div>
                 </div>
               </div>
