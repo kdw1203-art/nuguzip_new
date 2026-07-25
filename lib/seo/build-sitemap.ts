@@ -1,5 +1,8 @@
+import "server-only";
+
 import type { MetadataRoute } from "next";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import { logger } from "@/lib/log";
 import {
   capSitemapUrls,
   listBandSitemapEntries,
@@ -7,7 +10,7 @@ import {
   periodToDate,
 } from "@/lib/seo/sitemap-entries";
 
-/* 사이트맵 — 정적 공개 라우트 + 공개 임장노트 + 단지 허브 + 지역 허브.
+/* 사이트맵 본문 생성 — 정적 공개 라우트 + 공개 임장노트 + 단지 + 지역 + 실거래 구간.
    DB 조회 실패(env 미설정 등) 시 그 블록만 비우고 나머지는 그대로 낸다.
 
    ── G6 에서 바뀐 것 ────────────────────────────────────────────
@@ -19,23 +22,25 @@ import {
       적고, 없으면 아예 생략한다 — <lastmod> 는 선택 항목이다.
    3) changeFrequency: 삭제. Google 은 이 값을 무시한다고 명시했고, 우리가 적던
       "weekly" 는 근거 없는 추측이었다. priority 는 우리 쪽 상대 중요도 표현이라
-      사실 주장이 아니므로 유지한다. */
+      사실 주장이 아니므로 유지한다.
 
-/* ── 왜 force-dynamic 을 걷어냈나 (실측 근거) ──────────────────────────
-   운영에서 /sitemap.xml 응답 헤더를 재보니 미들웨어가 붙이는 크롤러 캐시 정책
-   (`public, max-age=0, s-maxage=3600, stale-while-revalidate=86400`) 이 아니라
-   `public, max-age=0, must-revalidate` 가 나왔고 `x-vercel-cache: MISS` 였다.
-   force-dynamic 라우트에 Next 가 자기 헤더를 얹으면서 미들웨어 값을 덮은 것이다.
-   같은 시각 /robots.txt 는(정적 생성) 크롤러 정책이 그대로 붙어 있었다.
+   ── 왜 app/sitemap.ts 가 아니라 이 모듈 + 라우트 핸들러인가 (실측 근거) ────
+   메타데이터 규약(app/sitemap.ts)에서는 캐시 방식이 두 가지뿐이었고 둘 다 틀렸다.
 
-   결과적으로 크롤러가 사이트맵을 칠 때마다 5,615개 URL(약 980KB)을 DB 조회
-   네 번으로 매번 새로 만들고 있었다. 사이트맵 원본은 하루 단위로 바뀌므로
-   ISR 1시간이면 충분하다. 실패해도 블록별로 비우고 나머지는 그대로 내는 기존
-   방어는 유지되고, 최대 1시간이면 스스로 회복한다.
+   (a) `dynamic = "force-dynamic"`: 미들웨어가 붙인 크롤러 캐시 정책이 Next 자체
+       헤더에 덮여 `public, max-age=0, must-revalidate` + `x-vercel-cache: MISS`
+       로 나갔다. 크롤이 올 때마다 5,615개 URL(약 980KB)을 DB 조회 네 번으로
+       새로 만들고 있었다.
+   (b) `revalidate = 3600`: 캐시는 붙었지만 생성 시점이 **빌드 타임**으로 옮겨갔다.
+       빌드 환경에는 SUPABASE_SERVICE_ROLE_KEY 가 없어서 getServiceSupabase() 가
+       null 을 주고, 공개노트·단지·지역 세 블록이 통째로 비었다. 실측: 운영
+       /sitemap.xml 이 5,615개 → 403개(정적 53 + 실거래 구간 350)로 줄었다.
+       실거래 구간만 살아남은 이유는 그 로더만 getReadOnlySupabase() 폴백을
+       쓰기 때문이다(lib/market/tx-bands.ts 주석 참고).
 
-   주의: 이 값은 "언제 다시 만드느냐"일 뿐 내용을 지어내지 않는다. 조회에
-   실패한 블록은 여전히 비워서 낸다 — 없는 URL 을 사이트맵에 올리지 않는다. */
-export const revalidate = 3600;
+   그래서 라우트 핸들러(app/sitemap.xml/route.ts)로 옮겼다. 런타임에 생성하니
+   서비스 롤이 항상 있고(= 데이터가 빠지지 않는다), 응답에 Cache-Control 을
+   직접 실으니 Next 가 덮지 않는다(= CDN 공유 캐시가 실제로 걸린다). */
 
 const BASE_URL = "https://nuguzip.com";
 
@@ -108,7 +113,22 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/signup", priority: 0.3 },
 ];
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+/** 블록별 URL 수 — 조용한 누락을 잡기 위한 계측값 */
+export type SitemapBlockCounts = {
+  static: number;
+  notes: number;
+  complexes: number;
+  regions: number;
+  bands: number;
+  total: number;
+};
+
+export type BuiltSitemap = {
+  entries: MetadataRoute.Sitemap;
+  counts: SitemapBlockCounts;
+};
+
+export async function buildSitemap(): Promise<BuiltSitemap> {
   // 정적 라우트는 배포할 때 바뀐다 — 언제였는지 런타임에서 알 방법이 없으므로
   // lastModified 를 적지 않는다(추측한 날짜보다 없는 편이 정확하다).
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
@@ -178,11 +198,67 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // 1파일 50,000 URL 상한 — 넘치면 잘라내되 경고 로그를 남긴다(인덱스 분할 신호).
-  return capSitemapUrls([
+  const entries = capSitemapUrls([
     ...staticEntries,
     ...noteEntries,
     ...complexEntries,
     ...regionEntries,
     ...bandEntries,
   ]);
+
+  const counts: SitemapBlockCounts = {
+    static: staticEntries.length,
+    notes: noteEntries.length,
+    complexes: complexEntries.length,
+    regions: regionEntries.length,
+    bands: bandEntries.length,
+    total: entries.length,
+  };
+
+  /* 조용한 누락 금지 — 블록이 통째로 비면 경고를 남긴다.
+     실제로 이 경고가 있었다면 사이트맵이 5,615 → 403 으로 줄어든 걸 배포 직후
+     알 수 있었다. 비는 것 자체는 방어 동작이지 예외가 아니라서 try/catch 로는
+     드러나지 않는다. */
+  const empty = (Object.keys(counts) as Array<keyof SitemapBlockCounts>).filter(
+    (k) => k !== "total" && k !== "notes" && counts[k] === 0,
+  );
+  if (empty.length > 0) {
+    logger.warn(
+      `[sitemap] 블록이 비어 있습니다: ${empty.join(", ")} — DB 조회 실패이거나 키가 없습니다. ` +
+        `(total=${counts.total}, complexes=${counts.complexes}, regions=${counts.regions}, bands=${counts.bands})`,
+    );
+  }
+
+  return { entries, counts };
+}
+
+/** XML 텍스트 노드 이스케이프 — URL 에 `&` 가 섞여도 파싱이 깨지지 않게 한다. */
+function xmlEscape(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * MetadataRoute.Sitemap → sitemaps.org XML.
+ *
+ * 출력 형태는 Next 메타데이터 규약이 내던 것과 같게 맞춘다(요소 순서·줄바꿈 포함).
+ * 크롤러가 보는 내용이 라우트 방식 변경만으로 달라지면 안 된다.
+ */
+export function serializeSitemap(entries: MetadataRoute.Sitemap): string {
+  const body = entries
+    .map((e) => {
+      const parts = [`<loc>${xmlEscape(String(e.url))}</loc>`];
+      if (e.lastModified) {
+        const at = e.lastModified instanceof Date ? e.lastModified : new Date(e.lastModified);
+        if (!Number.isNaN(at.getTime())) parts.push(`<lastmod>${at.toISOString()}</lastmod>`);
+      }
+      if (typeof e.priority === "number") parts.push(`<priority>${e.priority}</priority>`);
+      return `<url>\n${parts.join("\n")}\n</url>`;
+    })
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }

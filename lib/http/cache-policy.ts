@@ -88,7 +88,7 @@ const RULE_BY_PATH = new Map(PUBLIC_CACHE_RULES.map((r) => [r.path, r]));
  * 매 요청 no-store + 세션·CSP 쿠키 + Clear-Site-Data 까지 받고 있었다. 크롤러는
  * 쿠키를 들고 오지 않으니 쿠키가 매번 새로 실렸고, 그래서 영영 캐시되지 않았다.
  *
- * 응답 내용은 공개 데이터만으로 만들어져 요청자와 무관하게 동일하다(sitemap.ts 는
+ * 응답 내용은 공개 데이터만으로 만들어져 요청자와 무관하게 동일하다(sitemap 은
  * 실거래·공개노트, robots.ts 는 상수). 게다가 sitemap 은 5,000행짜리 집계 조회라
  * 크롤 때마다 오리진을 때릴 이유가 전혀 없다. 그래서 공유 캐시를 허용한다.
  *
