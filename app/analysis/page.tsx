@@ -5,7 +5,6 @@ import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
 import { HubComplexPicker } from "./hub-picker";
-import { AskAiCard } from "./ask-ai-card";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 설명문은 이 화면이 실제로 하는 일만 적는다. 아래 TOOLS 의 sim:true 항목은
@@ -188,8 +187,22 @@ export default async function AnalysisHubPage({
             </Link>
           ))}
 
-          {/* 무엇이든 물어보기 — /api/ai/chat 실연결 (로그인 필수·시간당 10회) */}
-          <AskAiCard loggedIn={Boolean(email)} />
+          {/* 누구집 AI 에이전트 — 예전엔 눌러도 아무 일 없는 가짜 입력창 목업이었다.
+              이제 실제 에이전트(/agent)로 연결된다: 내 임장노트·실거래를 도구로
+              직접 조회해 답하고, 조회한 데이터 목록을 답변과 함께 보여 준다. */}
+          <Link
+            href="/agent"
+            className="ai-panel card-hover flex flex-col gap-2.5 rounded-[20px] p-[22px] no-underline shadow-[0_14px_36px_rgba(16,28,54,.22)]"
+          >
+            <div className="ai-chip flex h-10 w-10 items-center justify-center rounded-xl text-[15px]">AI</div>
+            <div className="text-base font-extrabold text-white">AI 에이전트에게 물어보기</div>
+            <div className="text-[13px] leading-[1.55] text-ai-text">
+              “내 노트 중 점수가 가장 높았던 단지, 지금 실거래는 어때?”
+            </div>
+            <div className="text-xs font-bold text-ai-accent">
+              내 노트·실거래 데이터로 답해요 ›
+            </div>
+          </Link>
         </div>
 
         {/* 최근 분석 바로가기 */}

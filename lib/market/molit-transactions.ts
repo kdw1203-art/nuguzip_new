@@ -221,6 +221,12 @@ export async function ingestMolitTransactions(opts: {
 
   const result: MolitIngestResult = { ...base, ok: true, slice: sliceIdx };
 
+  /* 첫 오류의 실제 메시지. 2026-07-25 장애 때 적재 로그에는 "오류=13"이라는 숫자만
+     남아 있어서, 원인(legal_regions FK 위반)을 찾으려면 Postgres 로그를 뒤져야 했다 —
+     Vercel 런타임 로그는 보존 기간이 짧아 이미 사라진 뒤였다. 로그는 "몇 개 실패"가
+     아니라 "왜 실패"까지 남아야 다음 사람이 같은 삽질을 반복하지 않는다. */
+  let firstError: string | null = null;
+
   for (const info of targets) {
     const regionName = molitRegionLabel(info);
     try {
@@ -276,6 +282,7 @@ export async function ingestMolitTransactions(opts: {
       if (error) {
         result.errors += 1;
         result.regions.push({ code: info.sigunguCd, name: regionName, rows: 0, status: "error" });
+        firstError ??= `${info.sigunguCd}: ${error.message}`;
         logger.warn("[molit-tx]", info.sigunguCd, error.message);
         continue;
       }
@@ -284,7 +291,9 @@ export async function ingestMolitTransactions(opts: {
     } catch (e) {
       result.errors += 1;
       result.regions.push({ code: info.sigunguCd, name: regionName, rows: 0, status: "error" });
-      logger.warn("[molit-tx]", info.sigunguCd, e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      firstError ??= `${info.sigunguCd}: ${msg}`;
+      logger.warn("[molit-tx]", info.sigunguCd, msg);
     }
 
     // data.go.kr rate limit 여유
@@ -308,7 +317,9 @@ export async function ingestMolitTransactions(opts: {
     origin: "cron-fetch",
     rows: result.inserted,
     status: result.errors > 0 ? "error" : result.inserted > 0 ? "ok" : "skipped",
-    message: `slice=${result.slice} 시도=${result.attempted} 기존커버=${result.alreadyCovered} 빈응답=${result.empty} 오류=${result.errors}`,
+    message:
+      `slice=${result.slice} 시도=${result.attempted} 기존커버=${result.alreadyCovered} 빈응답=${result.empty} 오류=${result.errors}` +
+      (firstError ? ` 첫오류=${firstError.slice(0, 300)}` : ""),
   });
 
   return result;

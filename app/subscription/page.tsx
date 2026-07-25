@@ -18,8 +18,7 @@ export const metadata = buildPageMetadata({
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* 가격 단일 출처: lib/subscriptions/base-prices.ts 의 확정 판매가에서
-   billing-periods.ts 가 기간별 금액을 파생한다 (화면 하드코딩 금지) */
+/* 가격 단일 출처: lib/subscriptions/billing-periods.ts — 화면에 금액을 하드코딩하지 않는다 */
 const fmtWon = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
 function tierPricing(tier: "pro" | "expert"): TierPricing {
@@ -204,7 +203,7 @@ export default async function SubscriptionPage({
               일시불 결제 · 중도 해지 시 잔여기간 일할 환불(고객센터 접수)
             </span>
           </div>
-          <div className="grid grid-cols-[120px_repeat(4,1fr)] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
             <span />
             {BILLING_PERIOD_PRICES.pro.map((p) => (
               <span key={p.months} className="text-center">
@@ -212,7 +211,7 @@ export default async function SubscriptionPage({
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-[120px_repeat(4,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
             <span className="font-extrabold text-primary">✦ 플러스</span>
             {BILLING_PERIOD_PRICES.pro.map((p) => (
               <span
@@ -230,7 +229,7 @@ export default async function SubscriptionPage({
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-[120px_repeat(4,1fr)] items-center gap-2 py-2.5 text-xs">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 py-2.5 text-xs">
             <span className="font-extrabold text-warning">✦ 프로</span>
             {BILLING_PERIOD_PRICES.expert.map((p) => (
               <span

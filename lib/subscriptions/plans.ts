@@ -1,6 +1,5 @@
 import type { PlanTier } from "@/components/ui-kit";
-import { BASE_MONTHLY_PRICE_KRW } from "@/lib/subscriptions/base-prices";
-import { annualMonthlyEquivalent } from "@/lib/subscriptions/billing-periods";
+import { annualMonthlyEquivalent, monthlyPrice } from "@/lib/subscriptions/billing-periods";
 
 export type PlanFeature = {
   label: string;
@@ -63,7 +62,10 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     tier: "pro",
     name: "PRO",
     tagline: "임장 루틴 사용자",
-    priceMonthly: BASE_MONTHLY_PRICE_KRW.pro, // 판매가 확정 (2026-07-20 운영자 결정) — base-prices.ts 단일 소스
+    /* 판매가는 billing-periods.ts 단일 출처에서 읽는다 (2026-07-25 운영자 확정: 2,900원).
+       예전엔 여기 하드코딩된 2,900원과 billing-periods 의 6,900원이 따로 놀아서,
+       화면은 6,900원을 보여 주고 청구는 2,900원을 하고 있었다. */
+    priceMonthly: monthlyPrice("pro"),
     priceAnnualMonthly: annualMonthlyEquivalent("pro"),
     accentClass: "border-[#3182f6]",
     highlight: true,
@@ -91,7 +93,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     tier: "expert",
     name: "EXPERT",
     tagline: "전문가 · 파워유저 · 콘텐츠 판매자",
-    priceMonthly: BASE_MONTHLY_PRICE_KRW.expert, // 판매가 확정 (2026-07-20 운영자 결정) — base-prices.ts 단일 소스
+    priceMonthly: monthlyPrice("expert"), // 판매가 단일 출처: billing-periods.ts (18,900원)
     priceAnnualMonthly: annualMonthlyEquivalent("expert"),
     accentClass: "border-violet-500",
     publicVisible: true,

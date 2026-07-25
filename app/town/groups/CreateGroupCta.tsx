@@ -8,15 +8,30 @@ import { useRouter } from "next/navigation";
 
 const TYPES = ["임장 모임", "투자 스터디", "세미나/강의", "네트워킹", "청약 스터디"] as const;
 
+/* 시/도는 자유 입력 대신 표준 목록에서 고른다 — "경기"·"경기도"·"경기 도" 가
+   뒤섞이면 목록의 지역 필터 칩이 같은 지역을 서로 다른 칩으로 쪼갠다. */
+const CITIES = [
+  "서울", "경기", "인천", "부산", "대구", "대전", "광주", "울산", "세종",
+  "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
+] as const;
+
+/** datetime-local min 값 — 지난 날짜의 모임은 만들 수 없다 */
+function nowLocalMinute(): string {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
 export function CreateGroupCta() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [meetType, setMeetType] = useState<(typeof TYPES)[number]>("임장 모임");
-  const [city, setCity] = useState("");
+  const [city, setCity] = useState<(typeof CITIES)[number]>("서울");
   const [district, setDistrict] = useState("");
   const [nextAt, setNextAt] = useState("");
   const [maxMembers, setMaxMembers] = useState("8");
+  const [fee, setFee] = useState("0");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [status, setStatus] = useState<"idle" | "sending">("idle");
@@ -24,9 +39,10 @@ export function CreateGroupCta() {
 
   const reset = () => {
     setTitle("");
-    setCity("");
+    setCity("서울");
     setDistrict("");
     setNextAt("");
+    setFee("0");
     setDescription("");
     setTags("");
     setError(null);
@@ -37,6 +53,9 @@ export function CreateGroupCta() {
     if (title.trim().length < 2) return setError("모임 제목을 2자 이상 입력해 주세요.");
     if (!district.trim()) return setError("시·군·구를 입력해 주세요.");
     if (description.trim().length < 10) return setError("모임 소개를 10자 이상 입력해 주세요.");
+    if (nextAt && new Date(nextAt).getTime() < Date.now()) {
+      return setError("모임 일시가 이미 지났어요. 앞으로의 일시를 선택해 주세요.");
+    }
     setStatus("sending");
     setError(null);
     try {
@@ -46,11 +65,12 @@ export function CreateGroupCta() {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim(),
-          city: city.trim() || "서울특별시",
+          city,
           district: district.trim(),
           meetType,
           nextAt: nextAt ? new Date(nextAt).toISOString() : null,
           maxMembers: Number(maxMembers) || 8,
+          fee: Math.max(0, Number(fee) || 0),
           tags: tags.trim(),
         }),
       });
@@ -131,13 +151,18 @@ export function CreateGroupCta() {
               />
 
               <div className="flex gap-2">
-                <input
+                <select
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  maxLength={20}
-                  placeholder="시/도 (예: 경기)"
-                  className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
-                />
+                  onChange={(e) => setCity(e.target.value as (typeof CITIES)[number])}
+                  aria-label="시/도"
+                  className="w-[110px] shrink-0 rounded-xl border border-line bg-bg p-3 text-[13px] font-bold text-ink outline-none focus:border-primary"
+                >
+                  {CITIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
                 <input
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
@@ -153,11 +178,12 @@ export function CreateGroupCta() {
                   <input
                     type="datetime-local"
                     value={nextAt}
+                    min={nowLocalMinute()}
                     onChange={(e) => setNextAt(e.target.value)}
                     className="w-full rounded-xl border border-line bg-bg p-2.5 text-[13px] text-ink outline-none focus:border-primary"
                   />
                 </label>
-                <label className="flex w-[110px] flex-col gap-1 text-[11px] font-bold text-text-2">
+                <label className="flex w-[80px] flex-col gap-1 text-[11px] font-bold text-text-2">
                   정원
                   <input
                     type="number"
@@ -165,6 +191,17 @@ export function CreateGroupCta() {
                     max={200}
                     value={maxMembers}
                     onChange={(e) => setMaxMembers(e.target.value)}
+                    className="w-full rounded-xl border border-line bg-bg p-2.5 text-[13px] text-ink outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex w-[110px] flex-col gap-1 text-[11px] font-bold text-text-2">
+                  참가비(원)
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value)}
                     className="w-full rounded-xl border border-line bg-bg p-2.5 text-[13px] text-ink outline-none focus:border-primary"
                   />
                 </label>
