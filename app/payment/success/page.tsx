@@ -119,7 +119,10 @@ export default async function PaymentSuccessPage({
         if (paid.plan !== "basic") {
           const plan: AppPlan = paid.plan;
           if (session?.user?.email) {
-            await applyPlanToUserByEmail(session.user.email, plan);
+            // 목업 재확정도 일회성 결제 경로 — 실제 경로와 같은 이용 기간을 기록한다
+            await applyPlanToUserByEmail(session.user.email, plan, {
+              durationDays: paid.billing === "annual" ? 365 : 30,
+            });
           }
         }
         status = "mock";

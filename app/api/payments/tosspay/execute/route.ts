@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       method: success.payMethod ?? undefined,
       receiptUrl: success.salesCheckLinkUrl ?? undefined,
     });
-    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan);
+    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
     return NextResponse.json({ ok: true, payment: paid, toss: success });
   } catch (e) {
     await markFailed(orderNo);
@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
 async function maybeApplyPlan(
   userEmail: string | null,
   tier: "basic" | "pro" | "expert" | "enterprise",
+  billing: "monthly" | "annual",
 ): Promise<void> {
   if (!userEmail) {
     const session = await safeAuth();
@@ -133,5 +134,8 @@ async function maybeApplyPlan(
   if (!userEmail) return;
   if (tier === "basic") return;
   const appPlan: AppPlan = tier;
-  await applyPlanToUserByEmail(userEmail, appPlan);
+  // 토스페이는 일회성 결제 — 결제 주기만큼만 이용 기간을 기록한다 (만료는 스윕 크론).
+  await applyPlanToUserByEmail(userEmail, appPlan, {
+    durationDays: billing === "annual" ? 365 : 30,
+  });
 }
