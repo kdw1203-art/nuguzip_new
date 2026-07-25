@@ -8,6 +8,7 @@ import { formatKrwShort, formatYmRange } from "@/lib/market/format";
 import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { QaBlock } from "@/app/components/QaBlock";
+import { CitationBlock } from "@/app/components/CitationBlock";
 
 /* ============================================================
    지역 실거래 구간 허브 — /tx/[region]
@@ -139,6 +140,21 @@ export default async function TxRegionPage({
 
   const range = formatYmRange(region.firstYm, region.latestYm);
   const faq = buildRegionFaq(region, range);
+
+  /* S18/G15 — Dataset 스키마: 이 페이지가 실제로 보여주는 집계를 데이터셋으로 기술.
+     구글 데이터셋 검색 노출 + AI 의 출처 인식(원출처 국토교통부 명시). */
+  const datasetJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: `${region.name} 아파트 매매 실거래 집계`,
+    description: `${region.name} 아파트 매매 실거래 ${region.txCount.toLocaleString("ko-KR")}건의 면적대·가격대별 집계${range ? ` (${range} 신고 기준)` : ""}. 해제 신고분 제외.`,
+    url: `https://nuguzip.com/tx/${encodeURIComponent(region.slug)}`,
+    inLanguage: "ko-KR",
+    creator: { "@id": "https://nuguzip.com/#organization" },
+    isBasedOn: "https://rt.molit.go.kr",
+    license: "https://nuguzip.com/methodology",
+    keywords: [region.name, "아파트", "실거래가", "매매"],
+  };
   const crumbs = breadcrumbJsonLd([
     { name: "홈", url: "/" },
     { name: "지역별 실거래 구간", url: "/tx" },
@@ -152,7 +168,7 @@ export default async function TxRegionPage({
     >
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript([crumbs, datasetJsonLd]) }}
       />
 
       <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
@@ -168,6 +184,13 @@ export default async function TxRegionPage({
 
       {/* G5+G13 — 실데이터 기반 Q&A + FAQPage 스키마 (같은 배열에서 생성) */}
       <QaBlock title={`${region.name} 실거래 Q&A`} items={faq} />
+
+      {/* G8 — 인용 유도: 출처·기준월이 붙은 완결 인용문 제공 */}
+      {region.txCount > 0 && (
+        <CitationBlock
+          sentence={`누구집(nuguzip.com) 집계에 따르면, ${region.name} 아파트 매매 실거래는${range ? ` ${range}` : ""} ${region.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 해제분 제외).`}
+        />
+      )}
 
       <p className="mb-8 text-[12px] leading-[1.7] text-text-3">
         거래 10건 미만 구간은 평균이 한두 건에 크게 흔들려 따로 페이지를 만들지 않습니다. 면적은
