@@ -142,16 +142,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── 단지 리포트: 소비 크레딧 기록 후 성공 ──
-  // (구 ai_analysis 분기는 카탈로그에서 상품이 내려가면서 함께 제거 — 존재하지 않는
+  // (구 ai_analysis · complex_report 분기는 카탈로그에서 상품이 내려가면서 함께 제거 —
+  //  둘 다 크레딧만 기록하고 실제 소비 지점이 없던 유령 상품이었다. 존재하지 않는
   //  itemKey 는 위 getSpendItem 에서 "존재하지 않는 상품이에요"로 걸러진다)
-  const spend = await spendPoints(email, item.cost, `spend:${item.key}`);
-  if (!spend.ok) return spendError(spend);
-  return NextResponse.json({
-    ok: true,
-    balance: spend.balance,
-    effect: item.effect,
-    grant: item.key,
-    note: "단지 리포트 PDF 이용권이 적용됐어요.",
-  });
+  return NextResponse.json({ error: "지원하지 않는 상품이에요.", balance }, { status: 400 });
 }

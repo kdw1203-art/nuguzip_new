@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 import { logger } from "@/lib/log";
 
@@ -73,6 +74,24 @@ export async function GET(req: Request) {
     if (updateError) throw new Error(updateError.message);
 
     const demoted = demotedRows?.length ?? 0;
+
+    // 무통보 강등 금지 — 실제로 강등된 사용자에게 인앱 알림을 남긴다 (fail-soft)
+    const emailById = new Map(targets.map((r) => [String(r.id), String(r.email ?? "")]));
+    for (const row of demotedRows ?? []) {
+      const email = emailById.get(String(row.id));
+      if (!email) continue;
+      try {
+        await appendInboxNotification({
+          userEmail: email,
+          title: "구독 이용 기간 종료",
+          body: "이용권 기간이 끝나 무료 플랜으로 전환됐어요. 언제든 다시 이용권을 받을 수 있어요.",
+          actionUrl: "/subscription",
+        });
+      } catch (notifyErr) {
+        logger.warn("[plan-expiry-sweep] notify", notifyErr);
+      }
+    }
+
     logger.info(`[plan-expiry-sweep] ${demoted}명 강등 (후보 ${targets.length}명)`);
     await logIngest({
       source: "plan-expiry",

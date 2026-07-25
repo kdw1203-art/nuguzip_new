@@ -14,8 +14,17 @@ export interface AttendanceRecord {
 // In-memory fallback
 const memAttendance = new Map<string, AttendanceRecord[]>();
 
-export async function checkIn(userEmail: string): Promise<{ streak: number; pointsEarned: number; alreadyChecked: boolean }> {
-  const today = new Date().toISOString().slice(0, 10);
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/** KST(Asia/Seoul, UTC+9 고정·DST 없음) 기준 YYYY-MM-DD.
+    서버는 UTC 로 돌기 때문에 toISOString() 을 그대로 쓰면 한국 시간 0시~9시 사이
+    출석이 "어제" 로 기록돼 스트릭이 끊기던 문제의 수정. */
+export function kstDateString(at: Date = new Date()): string {
+  return new Date(at.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+export async function checkIn(userEmail: string): Promise<{ date: string; streak: number; pointsEarned: number; alreadyChecked: boolean }> {
+  const today = kstDateString();
   const sb = getServiceSupabase();
 
   // Check if already checked in today
@@ -26,17 +35,17 @@ export async function checkIn(userEmail: string): Promise<{ streak: number; poin
       .eq("user_email", userEmail)
       .eq("date", today)
       .maybeSingle();
-    if (existing) return { streak: Number(existing.streak), pointsEarned: 0, alreadyChecked: true };
+    if (existing) return { date: today, streak: Number(existing.streak), pointsEarned: 0, alreadyChecked: true };
   } else {
     const list = memAttendance.get(userEmail) ?? [];
     if (list.some((a) => a.date === today)) {
-      return { streak: list[0]?.streak ?? 1, pointsEarned: 0, alreadyChecked: true };
+      return { date: today, streak: list[0]?.streak ?? 1, pointsEarned: 0, alreadyChecked: true };
     }
   }
 
-  // Calculate streak
+  // Calculate streak — 어제도 KST 기준
   let streak = 1;
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const yesterday = kstDateString(new Date(Date.now() - 86400000));
   if (sb) {
     const { data: yest } = await sb
       .from("user_attendance")
@@ -51,7 +60,9 @@ export async function checkIn(userEmail: string): Promise<{ streak: number; poin
     if (yestEntry) streak = yestEntry.streak + 1;
   }
 
-  // 스트릭 티어(표시용). 포인트 적립은 원장(point_ledger)이 단독 담당한다.
+  // 스트릭 티어 — 기본 10P, 3일 연속 20P, 7일 연속 50P.
+  // 실제 지급은 라우트(app/api/me/attendance)가 원장 규칙
+  // (attendance + attendance_streak_3/7)으로 집행한다. 여기 값은 그 합과 일치해야 한다.
   const pointsEarned = streak >= 7 ? 50 : streak >= 3 ? 20 : 10;
 
   // Save attendance
@@ -66,13 +77,13 @@ export async function checkIn(userEmail: string): Promise<{ streak: number; poin
   // B2: 이중적립 제거 — 과거엔 여기서 user_points 에도 적립했으나(원장과 잔액 불일치 유발),
   // 포인트 적립은 라우트의 awardPoints(원장) 단독으로 일원화한다. 여기선 출석/스트릭만 기록.
 
-  return { streak, pointsEarned, alreadyChecked: false };
+  return { date: today, streak, pointsEarned, alreadyChecked: false };
 }
 
 export async function getAttendanceHistory(userEmail: string, days = 30): Promise<AttendanceRecord[]> {
   const sb = getServiceSupabase();
   if (sb) {
-    const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    const since = kstDateString(new Date(Date.now() - days * 86400000));
     const { data } = await sb
       .from("user_attendance")
       .select("date, streak")

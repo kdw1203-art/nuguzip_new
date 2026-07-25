@@ -25,8 +25,11 @@ function fmtDate(iso: string): string {
   return `${d.getFullYear()}.${mm}.${dd}`;
 }
 
-/** 원장 reason → 한글 라벨 (적립: EARN_RULES · 소비: SPEND_ITEMS) */
+/** 원장 reason → 한글 라벨 (적립: EARN_RULES · 소비: SPEND_ITEMS · 만료: expire)
+    판매 중단 상품(spend:ai_analysis · spend:complex_report)의 과거 이력은
+    "포인트 사용" 폴백으로 계속 표시된다. */
 function reasonLabel(reason: string): string {
+  if (reason === "expire") return "포인트 기한 만료";
   if (reason.startsWith("spend:")) {
     const item = getSpendItem(reason.slice("spend:".length));
     return item ? item.label : "포인트 사용";
@@ -94,7 +97,7 @@ function GuestView() {
         <div className="text-xs leading-[1.6] text-ai-muted">
           매물 등록 · 임장노트 공개 · 출석으로 포인트가 쌓이고,
           <br />
-          상점에서 AI 분석·구독 이용권으로 교환할 수 있어요
+          상점에서 구독 이용권·매물 상단 노출로 교환할 수 있어요
         </div>
         <Link
           href="/login?callbackUrl=/my/points"

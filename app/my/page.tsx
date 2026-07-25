@@ -14,7 +14,8 @@ import {
 } from "@/lib/inspection/store-db";
 import { listBookmarks } from "@/lib/bookmarks/store";
 import { listAlertSubscriptions, type AlertSubscription } from "@/lib/alerts/subscriptions";
-import { getOnboardingProgress } from "@/lib/onboarding/append-step";
+import { getVerifiedOnboarding } from "@/app/api/me/onboarding/verify";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import { getUsageSummary } from "@/lib/subscriptions/usage-summary";
 import type { ProfilePlanTier } from "@/lib/subscriptions/labels";
 import { AttendanceButton } from "./points/AttendanceButton";
@@ -37,6 +38,7 @@ function shortDate(iso: string): string {
   return m ? `${m[2]}.${m[3]}` : iso || "-";
 }
 function reasonLabel(reason: string): string {
+  if (reason === "expire") return "포인트 기한 만료";
   if (reason.startsWith("spend:")) {
     const item = getSpendItem(reason.slice("spend:".length));
     return item ? item.label : "포인트 사용";
@@ -48,6 +50,30 @@ function planLabel(plan: string): string {
 }
 function planBadgeTone(plan: string): string {
   return plan === "expert" ? "text-[#f2c94c]" : plan === "pro" ? "text-[#7ea2ff]" : "text-ai-muted";
+}
+
+/** 일회성 결제·포인트 교환 플랜의 만료 시각 — 구독 카드 표기용 (Stripe 구독은 null) */
+async function loadPlanExpiresAt(email: string): Promise<string | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  try {
+    const { data } = await sb
+      .from("app_users")
+      .select("plan_expires_at")
+      .eq("email", email.trim().toLowerCase())
+      .maybeSingle();
+    return data?.plan_expires_at ? String(data.plan_expires_at) : null;
+  } catch {
+    return null;
+  }
+}
+
+function fmtExpiry(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return "";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}.${mm}.${dd}`;
 }
 
 /** 북마크 target_id 를 임장노트로 해석 (노트가 아니면 null → 자연 필터). 최대 10개만 조회. */
@@ -130,7 +156,7 @@ export default async function MyPage() {
   }
 
   const email = session.user.email;
-  const [profile, balance, history, notes, savedNotes, alerts, expert, onboarding] =
+  const [profile, balance, history, notes, savedNotes, alerts, expert, onboarding, planExpiresAt] =
     await Promise.all([
       loadMeProfile(email, {
         name: session.user.name,
@@ -143,7 +169,9 @@ export default async function MyPage() {
       loadSavedNotes(email),
       listAlertSubscriptions(email),
       getExpertStatus(email),
-      getOnboardingProgress(email),
+      // 온보딩 진행은 저장된 신고값이 아니라 실데이터 서버 판정 (완주 200P 도 여기서 멱등 지급)
+      getVerifiedOnboarding(email),
+      loadPlanExpiresAt(email),
     ]);
 
   // A10 — 무료 가치 카운터(AI 분석 월 사용량) — 결제 전 가치 증명·자연 유도
@@ -480,14 +508,13 @@ export default async function MyPage() {
                 현재 플랜 · {planLabel(profile.plan)}
               </div>
               <div className="mt-0.5 text-[11px] text-text-3">
-                {/* E1 — 예전 문구는 "결제일·플랜 변경·해지는 구독 페이지에서 관리해요"였는데,
-                    구독 페이지에는 그 셋 중 무엇도 없었다(요금제 카드와 비교표뿐). 지금은
-                    결제 내역·해지 접수 안내가 실제로 그 자리에 있으므로, 있는 것만 적는다.
-                    갱신일은 저장되는 곳이 자체가 없어(`membership_expires_at` 레포 0건)
-                    문구에서 뺐다. */}
+                {/* 만료일은 app_users.plan_expires_at (일회성 결제·포인트 교환 경로).
+                    Stripe 구독은 웹훅이 관리하므로 null → 만료일 없이 관리 안내만. */}
                 {profile.plan === "free"
                   ? "플러스로 업그레이드하면 AI 비교 리포트가 무제한이에요"
-                  : "결제 내역과 해지·환불 접수 방법은 구독 페이지에서 확인할 수 있어요"}
+                  : planExpiresAt
+                    ? `${fmtExpiry(planExpiresAt)}까지 이용할 수 있어요 · 이후 무료 플랜으로 전환돼요`
+                    : "결제 내역과 해지·환불 접수 방법은 구독 페이지에서 확인할 수 있어요"}
               </div>
             </div>
             <Link
