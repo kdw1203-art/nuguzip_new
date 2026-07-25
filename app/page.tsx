@@ -178,7 +178,8 @@ export default async function Home() {
 
           {/* H3 광고 슬롯 — 등록 배너 없으면 하우스 광고, 그것도 없으면 아무것도 안 그림.
               이 페이지는 revalidate=300 공유 캐시라 보는 사람의 플랜을 알 수 없다.
-              그래서 plan={null} — 특정 플랜 겨냥 배너는 여기서 제외된다. */}
+              그래서 plan={null} — 특정 플랜 겨냥 배너는 여기서 제외되고, 유료 플랜의
+              광고 제거는 AdSlot 안의 AdFreeGate 가 클라이언트에서 처리한다(캐시 유지). */}
           <AdSlot placement="home_feed" seed={0} plan={null} className="rise-in-6" />
         </section>
 

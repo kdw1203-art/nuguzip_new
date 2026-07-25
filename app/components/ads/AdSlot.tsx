@@ -1,8 +1,11 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { listBanners, type Banner, type BannerPlacement } from "@/lib/admin/banners";
 import { pickHouseAd, type HouseAd } from "@/lib/ads/house-ads";
 import type { AdPlacement } from "@/lib/ads/adsense-policy";
+import { isAdFreePlan } from "@/lib/ads/ad-free";
 import { AdSlotTracker } from "./AdSlotTracker";
+import { AdFreeGate } from "./AdFreeGate";
 
 /**
  * H3·H4 — 광고 슬롯 (서버 컴포넌트).
@@ -110,7 +113,9 @@ export async function AdSlot({
   plan?: string | null;
   className?: string;
 }) {
-  if (adFree) return null;
+  // adFree 를 직접 받았거나(동적 페이지 — lib/ads/viewer.ts getAdViewer), plan 이
+  // 광고 제거 플랜이면 서버에서부터 아무것도 그리지 않는다.
+  if (adFree || isAdFreePlan(plan)) return null;
 
   const all = await listBanners(PLACEMENT_MAP[placement]).catch(() => [] as Banner[]);
   const banners = all.filter((b) => {
@@ -120,22 +125,27 @@ export async function AdSlot({
   });
   const banner = banners.length > 0 ? banners[seed % banners.length] : null;
 
+  let content: ReactNode = null;
   if (banner) {
-    return (
+    content = (
       <div className={className}>
         <BannerCard banner={banner} />
       </div>
     );
+  } else {
+    const house = pickHouseAd(placement, seed, { signedIn });
+    if (!house) return null;
+    content = (
+      <div className={className}>
+        <HouseAdCard ad={house} />
+      </div>
+    );
   }
 
-  const house = pickHouseAd(placement, seed, { signedIn });
-  if (!house) return null;
-
-  return (
-    <div className={className}>
-      <HouseAdCard ad={house} />
-    </div>
-  );
+  // plan === null 은 "보는 사람을 모른다"(정적 캐시 페이지) — 캐시를 살리기 위해
+  // 광고를 그대로 내려보내되, 클라이언트에서 유료 플랜이면 숨긴다.
+  if (plan == null) return <AdFreeGate>{content}</AdFreeGate>;
+  return content;
 }
 
 export default AdSlot;

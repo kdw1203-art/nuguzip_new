@@ -5,6 +5,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { AdSlot } from "@/app/components/ads/AdSlot";
+import { getAdViewer } from "@/lib/ads/viewer";
 import {
   getSupplyRegions,
   getSupplyMonthly,
@@ -126,6 +127,8 @@ export default async function SupplyPage({
 }) {
   const { region } = await searchParams;
   const active = (region ?? "").trim() || undefined;
+  // 유료 플랜 광고 제거(H4) — 이 페이지는 force-dynamic 이라 세션을 읽어도 비용이 없다
+  const viewer = await getAdViewer();
 
   const [regions, monthly, list] = await Promise.all([
     getSupplyRegions(),
@@ -533,7 +536,13 @@ export default async function SupplyPage({
 
             {/* AD 슬롯 (청약 센터와 동일) */}
             <div className="rise-in-4">
-              <AdSlot placement="community_feed" seed={0} plan={null} />
+              <AdSlot
+                placement="community_feed"
+                seed={0}
+                adFree={viewer.adFree}
+                signedIn={viewer.signedIn}
+                plan={viewer.plan}
+              />
             </div>
           </aside>
         </div>
