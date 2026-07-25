@@ -20,6 +20,14 @@ import {
 } from "@/lib/redevelopment/types";
 import { Icon } from "@/app/components/Icon";
 import { CoachmarkTour, type CoachmarkStep } from "@/app/components/CoachmarkTour";
+import {
+  NO_DATA_COLOR,
+  NO_DATA_LABEL,
+  PRICE_TIERS,
+  pyeongPriceLabel,
+  tierColor,
+  tierTextColor,
+} from "@/lib/map/price-tiers";
 
 /** A1 — 지도 첫 방문 3스텝 안내. 대상이 화면에 없으면 그 스텝은 자동 생략된다. */
 const MAP_TOUR_STEPS: CoachmarkStep[] = [
@@ -267,8 +275,10 @@ interface ClusterItem {
   lat: number;
   lng: number;
   count: number;
-  /** 셀 평균 매매가(만원) — 서버가 시세를 찾은 셀에만 존재 */
-  avgManwon?: number;
+  /** 셀 실거래 평단가(만원/평) — 매매 실거래가 있는 셀에만 존재 (C1) */
+  pyeongManwon?: number;
+  /** 그 평단가를 만든 실거래 건수 */
+  txCount?: number;
 }
 
 /** 만원 → "12.3억" / "8,200만" 라벨 (없으면 null) */
@@ -286,12 +296,34 @@ interface ClusterPointItem {
   name: string;
   lat: number;
   lng: number;
+  /** 단지 실거래 평단가(만원/평) — 매매 실거래가 있는 단지에만 존재 (C1) */
+  pyeongManwon?: number;
+  /** 그 평단가를 만든 실거래 건수 */
+  txCount?: number;
+}
+
+/** 범례가 "언제 신고된 거래인지"를 말하게 하는 근거 — 서버가 뷰포트 기준으로 계산 */
+interface PriceMeta {
+  latestYm: number | null;
+  txCount: number;
+  complexCount: number;
+}
+
+const EMPTY_PRICE_META: PriceMeta = { latestYm: null, txCount: 0, complexCount: 0 };
+
+/** 202607 → "2026.07". 값이 없으면 null */
+function ymLabel(ym: number | null): string | null {
+  if (ym == null || !Number.isFinite(ym)) return null;
+  const s = String(Math.trunc(ym));
+  if (s.length !== 6) return null;
+  return `${s.slice(0, 4)}.${s.slice(4, 6)}`;
 }
 
 interface ClustersResponse {
   mode: "clusters" | "points";
   clusters: ClusterItem[];
   points: ClusterPointItem[];
+  priceMeta?: PriceMeta;
 }
 
 /** 이 네이버 줌 미만이면 서버 클러스터 마커를 표시 (API의 POINT_MODE_MIN_ZOOM과 동일) */
@@ -409,8 +441,12 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   const [listingTradeKey, setListingTradeKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
-  /* 시세 히트맵 레이어(#A2)는 구 단위 평균이 하드코딩 목업 값이라 사실 우선 원칙에 따라 제거함.
-     실제 구·셀 단위 평균 시세는 서버 클러스터(/api/map/clusters)의 실데이터로 이미 제공됨. */
+  /* ===== C1 시세 색상 오버레이 =====
+     한때 있던 히트맵(#A2)은 구 단위 평균이 하드코딩 목업이라 사실 우선 원칙에 따라 걷어냈다.
+     그 자리를 국토교통부 실거래(매매) 평단가로 다시 채운 것이 이 오버레이다.
+     색은 lib/map/price-tiers.ts 의 전국 공통 절대 구간을 따르고, 거래가 없는 칸은
+     색 대신 회색 + "데이터 없음"으로 남긴다. 끄면 예전처럼 개수만 보인다. */
+  const [showPriceOverlay, setShowPriceOverlay] = useState(true);
 
   /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
   const [showRedevelopment, setShowRedevelopment] = useState(false);
@@ -594,6 +630,19 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
         <div className="text-[11px] font-bold text-text-3">지도 레이어</div>
         <div className="flex flex-wrap gap-1.5">
+          {/* C1 시세 색상 오버레이 토글 — 실거래 평단가 구간별 색 */}
+          <button
+            type="button"
+            aria-pressed={showPriceOverlay}
+            onClick={() => setShowPriceOverlay((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+              showPriceOverlay
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[rgba(255,255,255,.85)] text-text-2"
+            }`}
+          >
+            <Icon name="🎨" size={14} className="inline align-middle" /> 시세 색상
+          </button>
           {/* 정비사업 레이어 토글 — 재개발·재건축 사업장을 사업종류별 색상 마커로 */}
           <button
             type="button"
@@ -694,6 +743,8 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
   const [clusterMode, setClusterMode] = useState<"points" | "clusters">("points");
   const [clusters, setClusters] = useState<ClusterItem[]>([]);
   const [extraPoints, setExtraPoints] = useState<ClusterPointItem[]>([]);
+  /** C1 — 화면에 칠한 색의 출처(최근 계약월·건수). 범례가 이 값을 그대로 읽는다. */
+  const [priceMeta, setPriceMeta] = useState<PriceMeta>(EMPTY_PRICE_META);
   const fetchTimerRef = useRef<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -772,6 +823,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           setClusterMode(json.mode);
           setClusters(Array.isArray(json.clusters) ? json.clusters : []);
           setExtraPoints(Array.isArray(json.points) ? json.points : []);
+          setPriceMeta(json.priceMeta ?? EMPTY_PRICE_META);
         })
         .catch(() => undefined); // 실패 시 기존 마커 유지
     }, CLUSTER_FETCH_DEBOUNCE_MS);
@@ -977,16 +1029,27 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     };
     // 낮은 줌: 서버 그리드 클러스터만 표시 (개수 배지 원형 마커) + 매물 레이어
     if (clusterMode === "clusters" && clusters.length > 0) {
-      const base: MapMarkerData[] = clusters.map((c) => ({
-        id: `cluster:${c.lat}:${c.lng}`,
-        lat: c.lat,
-        lng: c.lng,
-        label: c.count.toLocaleString("ko-KR"),
-        // 셀 평균 매매가가 있으면 "N개 · 12.3억" 알약 라벨로 렌더 (호갱노노식)
-        priceLabel: manwonLabel(c.avgManwon) ?? undefined,
-        pinColor: "rgba(29,79,216,.85)", // 기존 지역 집계 버블과 동일 톤
-        infoHtml: "",
-      }));
+      const base: MapMarkerData[] = clusters.map((c) => {
+        const common = {
+          id: `cluster:${c.lat}:${c.lng}`,
+          lat: c.lat,
+          lng: c.lng,
+          label: c.count.toLocaleString("ko-KR"),
+          infoHtml: "",
+        };
+        // 오버레이 OFF — 예전처럼 개수만 세는 파란 원형 배지
+        if (!showPriceOverlay) {
+          return { ...common, pinColor: "rgba(29,79,216,.85)" };
+        }
+        // ON — "N개 · 4,020만/평" 알약. 실거래가 없는 셀은 회색 + "데이터 없음"이라
+        // 색이 없는 사실을 색으로 메우지 않는다.
+        return {
+          ...common,
+          priceLabel: pyeongPriceLabel(c.pyeongManwon) ?? NO_DATA_LABEL,
+          pinColor: tierColor(c.pyeongManwon),
+          pinTextColor: tierTextColor(c.pyeongManwon),
+        };
+      });
       return withSearch([
       ...regionLayer,
       ...base,
@@ -1013,14 +1076,23 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
       const known = new Set(base.map((m) => m.id));
       for (const p of extraPoints) {
         if (known.has(p.id)) continue;
-        base.push({
+        const marker: MapMarkerData = {
           id: p.id,
           lat: p.lat,
           lng: p.lng,
           label: p.name,
           selected: p.id === infoId,
           infoHtml: "",
-        });
+        };
+        // C1 — 단지 줌에서도 색이 이어지도록 실거래 평단가를 말풍선으로.
+        // 거래가 없는 단지는 손대지 않는다(기존 원형 마커 = 아무 시세도 주장하지 않음).
+        const label = showPriceOverlay ? pyeongPriceLabel(p.pyeongManwon) : null;
+        if (label) {
+          marker.priceLabel = label;
+          marker.avgPricePerM2 = 1; // 시세 말풍선 스타일 플래그
+          marker.tierColor = tierColor(p.pyeongManwon);
+        }
+        base.push(marker);
       }
     }
     // C3 반경 필터 — 반경 모드일 때 중심에서 radiusM 내 단지 마커만 표시
@@ -1037,6 +1109,7 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     clusterMode,
     clusters,
     extraPoints,
+    showPriceOverlay,
     filteredDanji,
     danjiFilterActive,
     selectedId,
@@ -1715,6 +1788,59 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           <div className="flex items-center gap-1.5 text-[11px] text-text-1">
             <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#1a7f4e]" />
             <span>실거래 = 국토부 확정가</span>
+          </div>
+        </div>
+      )}
+
+      {/* C1 시세 색상 범례 — 색이 무엇을 뜻하고 어디서 왔는지를 화면에서 바로 읽게 한다.
+          매물 안내 범례가 켜져 있으면 그 위로 쌓는다. */}
+      {showPriceOverlay && (
+        <div
+          className="glass absolute left-5 z-30 hidden w-[216px] flex-col gap-1.5 rounded-xl px-3 py-2.5 md:flex"
+          style={{
+            bottom: showListings
+              ? "calc(env(safe-area-inset-bottom, 0px) + 142px)"
+              : "calc(env(safe-area-inset-bottom, 0px) + 60px)",
+          }}
+        >
+          <div className="text-[11px] font-extrabold text-ink">실거래 평단가 (만원/평)</div>
+          <div>
+            <div className="flex overflow-hidden rounded-[3px]">
+              {PRICE_TIERS.map((t) => (
+                <span
+                  key={t.slug}
+                  className="h-[10px] flex-1"
+                  style={{ background: t.color }}
+                  title={t.label}
+                />
+              ))}
+            </div>
+            {/* 눈금 — 색이 갈리는 지점을 정확한 값으로 표시 */}
+            <div className="relative mt-[3px] h-[12px]">
+              {PRICE_TIERS.slice(1).map((t, i) => (
+                <span
+                  key={t.slug}
+                  className="absolute top-0 -translate-x-1/2 text-[10px] leading-[12px] text-text-3"
+                  style={{ left: `${((i + 1) / PRICE_TIERS.length) * 100}%` }}
+                >
+                  {t.minManwon.toLocaleString("ko-KR")}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span
+              className="h-[9px] w-[9px] shrink-0 rounded-[3px]"
+              style={{ background: NO_DATA_COLOR }}
+            />
+            <span>{NO_DATA_LABEL} (실거래 없음)</span>
+          </div>
+          <div className="text-[10px] leading-[1.5] text-text-3">
+            국토교통부 실거래가(매매) 기준 · 매물 호가 아님
+            {ymLabel(priceMeta.latestYm) ? ` · ~${ymLabel(priceMeta.latestYm)} 신고분` : ""}
+            {priceMeta.txCount > 0
+              ? ` · 화면 내 ${priceMeta.txCount.toLocaleString("ko-KR")}건`
+              : ""}
           </div>
         </div>
       )}

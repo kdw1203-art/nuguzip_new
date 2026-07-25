@@ -34,6 +34,12 @@ export interface MapMarkerData {
   infoHtml?: string;
   /** 마커 핀 색 (HTML 마커) */
   pinColor?: string;
+  /**
+   * 클러스터 알약 라벨의 글자색. C1 시세 색상 오버레이는 옅은 노랑~진한 빨강까지
+   * 배경 명도가 크게 벌어져서, 흰 글자 하나로는 옅은 칸에서 읽히지 않는다.
+   * 지정하지 않으면 기존대로 흰색.
+   */
+  pinTextColor?: string;
   /** 시세 말풍선 강조색 (마커 색상 단계 = 가격대 히트) */
   tierColor?: string;
   /** 관심 단지(★) */
@@ -55,6 +61,7 @@ function markerSignature(d: MapMarkerData): string {
     d.lng,
     d.label,
     d.pinColor ?? "",
+    d.pinTextColor ?? "",
     d.tierColor ?? "",
     d.avgPriceWon ?? "",
     d.priceLabel ?? "",
@@ -391,7 +398,12 @@ export function NaverMap({
       if (isCluster) {
         // priceLabel이 있으면 "N개 · 12.3억" 알약형(호갱노노식), 없으면 기존 개수 원형
         return {
-          content: buildClusterMarkerHtml(data.label, color, data.priceLabel),
+          content: buildClusterMarkerHtml(
+            data.label,
+            color,
+            data.priceLabel,
+            data.pinTextColor,
+          ),
           anchor: data.priceLabel ? new maps.Point(0, 0) : new maps.Point(22, 22),
         };
       }
@@ -579,12 +591,21 @@ function buildMarkerHtml(label: string, color: string): string {
 /**
  * 클러스터 마커.
  * - priceLabel 없음: 묶인 개수만 원형 배지로 표시 (기존 동작)
- * - priceLabel 있음: "N개 · 12.3억" 알약형 라벨 (호갱노노식 지도 가격 라벨)
+ * - priceLabel 있음: "N개 · 4,020만/평" 알약형 라벨 (C1 시세 색상 오버레이)
+ *
+ * textColor 는 배경 명도에 맞춰 호출부가 골라 준다. 배경이 옅은 노랑일 때 흰 글자를
+ * 그대로 쓰면 읽히지 않아서, 색상 단계와 글자색을 한 쌍으로 다룬다.
  */
-function buildClusterMarkerHtml(label: string, color: string, priceLabel?: string): string {
+function buildClusterMarkerHtml(
+  label: string,
+  color: string,
+  priceLabel?: string,
+  textColor?: string,
+): string {
   const count = label.trim() || "0";
   if (priceLabel) {
-    return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border-radius:9999px;background:${color};color:#fff;font:bold 12px sans-serif;padding:6px 12px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff"><span style="opacity:.85">${count}개</span><span style="opacity:.55">·</span><span style="font-size:13px">${priceLabel}</span></div>`;
+    const fg = textColor ?? "#fff";
+    return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border-radius:9999px;background:${color};color:${fg};font:bold 12px sans-serif;padding:6px 12px;box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff"><span style="opacity:.85">${count}개</span><span style="opacity:.55">·</span><span style="font-size:13px">${priceLabel}</span></div>`;
   }
   const size = count.length >= 4 ? 52 : count.length >= 3 ? 46 : 40;
   return `<div style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:9999px;background:${color};color:#fff;font:bold 13px sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3);border:3px solid #fff">${count}</div>`;
