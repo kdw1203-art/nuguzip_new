@@ -10,6 +10,7 @@ import {
   getSupplyList,
 } from "@/lib/market/supply";
 import type { SupplyItem } from "@/lib/market/supply";
+import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 
 export const dynamic = "force-dynamic";
 
@@ -174,6 +175,8 @@ export default async function SupplyPage({
 
   return (
     <PageShell breadcrumb="동네이야기 › 입주 물량" wide>
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       <div style={SUPPLY_THEME}>
         {/* 상단 탭 + CTA (청약 센터 상단 row 패턴) */}
         <div className="rise-in mb-4 flex flex-wrap items-center gap-2">

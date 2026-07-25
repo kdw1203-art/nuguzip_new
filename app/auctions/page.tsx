@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
+import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import {
   getAuctions,
   getAuctionCount,
@@ -643,6 +644,8 @@ export default async function AuctionsPage({
 
     return (
       <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
+        {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+        <TownCategoryNav stick />
         <div style={AUCTION_THEME}>
           <AuctionView
             active="court"
@@ -720,6 +723,8 @@ export default async function AuctionsPage({
 
   return (
     <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       <div style={AUCTION_THEME}>
         <AuctionView
           active="onbid"

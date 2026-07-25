@@ -8,6 +8,7 @@ import {
 } from "@/lib/inspection/store-db";
 import { seedGradient, maskNoteAuthor } from "../shared";
 import { Icon } from "@/app/components/Icon";
+import { TownCategoryNav } from "../TownCategoryNav";
 
 /* 자료(#8) — 리포트 + 공개 임장노트 공유.
    깔끔한 라벨 섹션(리포트 · 공개 임장노트)으로 정리한 자료 허브.
@@ -30,6 +31,8 @@ export default async function TownLibraryPage() {
 
   return (
     <PageShell breadcrumb="동네이야기 › 자료">
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       {/* ---------- 페이지 헤더 ---------- */}
       <div className="rise-in mb-6">
         <div className="flex items-center justify-between gap-2">

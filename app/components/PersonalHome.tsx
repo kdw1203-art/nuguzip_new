@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
-import { HomeMiniMap, type HomeMiniRegion } from "./HomeMiniMap";
+import { HomeResumePanel } from "./HomeResumePanel";
 
 /* S13-13a 홈 이원화 — 정적 CDN 셸 위에 로그인 개인화 지연 주입 (시안 9m 데스크탑 · 10g 모바일)
    마운트 후 /api/auth/session → 로그인일 때만 /api/home/personal 로드.
@@ -207,26 +207,6 @@ export function PersonalHome() {
     data.regions && data.regions.length > 0 ? data.regions : region ? [region] : []
   ).slice(0, 3);
   const regionMarket = data.regionMarket;
-
-  // 관심지역 실지도용 — 관심지역명을 좌표로 해석(HomeMiniMap 내부), 매칭 지역엔 시세 부착
-  const miniRegions: HomeMiniRegion[] = (
-    data.regions && data.regions.length > 0 ? data.regions : region ? [region] : []
-  )
-    .slice(0, 4)
-    .map((rname) => {
-      const matched =
-        !!regionMarket &&
-        (regionMarket.name === rname ||
-          rname.includes(regionMarket.name) ||
-          regionMarket.name.includes(rname));
-      return {
-        id: rname,
-        name: rname,
-        price: matched ? regionMarket.price : "",
-        delta: matched ? regionMarket.delta : "",
-        tone: (matched ? regionMarket.tone : "flat") as HomeMiniRegion["tone"],
-      };
-    });
 
   // 히어로 문구 — 실데이터 있으면 치환, 없으면 일반 안내 (허위 수치 금지)
   const heroSub = data.recentNote
@@ -582,9 +562,11 @@ export function PersonalHome() {
             </div>
           </div>
 
-          {/* 관심지역 실지도 (네이버 지도 SDK) */}
+          {/* 이어서 보기 — 최근 본 단지.
+              예전엔 여기에도 지도(HomeMiniMap)가 있었는데 아래 벤토의 지도와 겹쳐
+              한 화면에 지도가 두 개 보였다. 중복을 걷어내고 실데이터 패널로 교체. */}
           <div className="rise-in-1">
-            <HomeMiniMap regions={miniRegions} className="h-[240px]" />
+            <HomeResumePanel regions={regionChips} className="h-[240px]" />
           </div>
         </div>
 

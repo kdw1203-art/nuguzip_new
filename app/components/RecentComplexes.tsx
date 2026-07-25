@@ -78,9 +78,22 @@ export function RecentComplexRecorder({
   return null;
 }
 
-/** 최근 본 단지 칩 행 — 기록이 있을 때만 렌더 */
-export function RecentComplexChips({ className }: { className?: string }) {
+/**
+ * 최근 본 단지 목록 훅 — localStorage 즉시 표시 후 서버 기록과 병합.
+ *
+ * 원래 이 로직은 `RecentComplexChips` 안에만 있었다. 그런데 그 컴포넌트를 쓰는 곳이
+ * 한 군데도 없어서(importer 0), 방문 기록은 서버에 쌓이는데 그걸 보여주는 화면이
+ * 레포 어디에도 없는 상태였다. 홈 "이어서 보기" 패널이 같은 데이터를 쓰도록
+ * 훅으로 빼서, 읽기 경로를 실제로 사용자에게 연결한다.
+ */
+export function useRecentComplexes(): {
+  items: RecentComplex[];
+  /** 서버 병합 응답 전인지 — 빈 목록과 "아직 못 불러옴"을 구분하기 위함 */
+  loading: boolean;
+  remove: (id: string) => void;
+} {
   const [items, setItems] = useState<RecentComplex[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const local = readRecents();
@@ -90,7 +103,8 @@ export function RecentComplexChips({ className }: { className?: string }) {
     fetch("/api/me/recent-complexes", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((j: { items?: RecentComplex[] } | null) => {
-        if (cancelled || !j || !Array.isArray(j.items) || j.items.length === 0) return;
+        if (cancelled) return;
+        if (!j || !Array.isArray(j.items) || j.items.length === 0) return;
         const merged = new Map<string, RecentComplex>();
         for (const r of [...j.items, ...local]) {
           const prev = merged.get(r.id);
@@ -100,7 +114,10 @@ export function RecentComplexChips({ className }: { className?: string }) {
         setItems(list);
         writeRecents(list);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -119,6 +136,13 @@ export function RecentComplexChips({ className }: { className?: string }) {
       body: JSON.stringify({ id }),
     }).catch(() => {});
   };
+
+  return { items, loading, remove };
+}
+
+/** 최근 본 단지 칩 행 — 기록이 있을 때만 렌더 */
+export function RecentComplexChips({ className }: { className?: string }) {
+  const { items, remove } = useRecentComplexes();
 
   if (items.length === 0) return null;
 

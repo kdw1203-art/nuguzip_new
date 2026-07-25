@@ -4,6 +4,7 @@ import { AIPanel } from "@/app/components/AIPanel";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
 import type { ApplyhomeListingItem } from "@/lib/applyhome/types";
+import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 
 const APPLYHOME_URL = "https://www.applyhome.co.kr";
 
@@ -77,6 +78,8 @@ export default async function ApplyPage() {
   const liveData = await getApplyLiveData();
   return (
     <PageShell breadcrumb="지도 › 청약 센터" wide>
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       {/* 상단 탭 + 필터 (9q) */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
         {/* 더미 1개 원칙: 실연동 전 가짜 건수 표기 제거 */}

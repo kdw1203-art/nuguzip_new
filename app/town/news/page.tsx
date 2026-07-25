@@ -8,6 +8,7 @@ import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
 import { CoverImage } from "@/app/components/CoverImage";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
+import { TownCategoryNav } from "../TownCategoryNav";
 
 /* 뉴스·다이제스트(#6·#7) — 부동산 뉴스 그리드 상단에 주간 다이제스트 요약을 합쳤다.
    · 주간 다이제스트: getWeeklyDigest() 요약 카드(실패·빈 데이터 시 섹션 생략, fail-soft).
@@ -189,6 +190,8 @@ export default async function TownNewsPage({
 
   return (
     <PageShell breadcrumb="동네이야기 › 뉴스">
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">뉴스</h1>
         <Link href="/town/library" className="text-[13px] font-bold text-primary">

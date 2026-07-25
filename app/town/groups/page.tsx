@@ -4,6 +4,7 @@ import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
+import { TownCategoryNav } from "../TownCategoryNav";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
    자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 필터 칩 + 라벨 섹션(모집 중 / 마감된 모임).
@@ -263,6 +264,8 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
 
   return (
     <PageShell breadcrumb="동네이야기 › 임장 모임">
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       {/* ---------- 페이지 헤더 ---------- */}
       <div className="rise-in mb-5 flex items-start justify-between gap-3">
         <div>

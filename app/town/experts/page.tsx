@@ -6,6 +6,7 @@ import { QuoteRequestBanner } from "./QuoteRequest";
 import { listExperts, type UserExpertProfile } from "@/lib/experts/store-db";
 import { EXPERT_SUBCATEGORIES, findSub, matchSubcategory } from "@/lib/subcategories";
 import { Icon } from "@/app/components/Icon";
+import { TownCategoryNav } from "../TownCategoryNav";
 
 /* 시안 6p(전문가 상담) 고도화 — expert_profiles 실데이터 연동.
    자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 인증 안내 + 필터 칩 + 라벨 섹션(인증 전문가 / 그 외).
@@ -146,6 +147,8 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
 
   return (
     <PageShell breadcrumb="동네이야기 › 전문가">
+      {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
+      <TownCategoryNav stick />
       {/* ---------- 페이지 헤더 ---------- */}
       <div className="rise-in mb-4 flex items-start justify-between gap-3">
         <div>

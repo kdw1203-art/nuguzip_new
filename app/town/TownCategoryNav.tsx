@@ -3,18 +3,32 @@
 import { useCallback, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import {
+  TOWN_CATEGORY_LINKS,
+  type TownCategoryLink,
+} from "@/lib/town/category-links";
 
 /**
  * 동네이야기 카테고리 바로가기 — 인터랙티브.
  * 카드를 누르면 설명이 접히며 세로로 살짝 줄어드는 "고정(pinned)" 애니메이션이
  * 재생된 뒤 해당 카테고리로 이동한다. 현재 경로와 일치하는 카드는 고정 상태로 표시.
+ *
+ * `stick` — 하위 카테고리 페이지에서 쓰는 모드. 헤더(스크롤 시 56px) 바로 아래에
+ * 붙여 스크롤해도 카테고리 줄이 사라지지 않게 한다. 랜딩(`/town`)은 목록 자체가
+ * 히어로 역할이라 고정하지 않는다.
  */
 
-type Item = { href: string; label: string; icon: string; desc: string };
+type Item = TownCategoryLink;
 
 const NAV_DELAY_MS = 170; // 축소·고정 애니메이션을 보여준 뒤 이동
 
-export function TownCategoryNav({ items }: { items: Item[] }) {
+export function TownCategoryNav({
+  items = TOWN_CATEGORY_LINKS,
+  stick = false,
+}: {
+  items?: Item[];
+  stick?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, setPending] = useState<string | null>(null);
@@ -34,7 +48,16 @@ export function TownCategoryNav({ items }: { items: Item[] }) {
   );
 
   return (
-    <div className="rise-in mb-5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className={`rise-in mb-5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+        stick
+          ? /* 헤더는 sticky top-0 이고 스크롤 시 높이가 56px(패딩 8 + h-12)로 줄어든다.
+               그 아래에 붙이고 z-40(헤더 z-50 미만)으로 두어 헤더가 항상 위에 오게 한다.
+               좌우 -mx/px 는 컨테이너 패딩을 넘어 배경을 끝까지 채우기 위한 것. */
+            "sticky top-[56px] z-40 -mx-5 bg-bg px-5 pt-2"
+          : ""
+      }`}
+    >
       {items.map((l) => {
         const pinned = pending === l.href || activeHref === l.href;
         return (
