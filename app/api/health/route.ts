@@ -9,6 +9,7 @@ import {
 import { getPublicDataProbeSummaryCached } from "@/lib/public-data/cached-probe";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { getSupabaseUrl } from "@/lib/supabase/env";
+import { classifyIngestRun, type IngestOutcome } from "@/lib/market/ingest-outcome";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,16 +17,50 @@ export const dynamic = "force-dynamic";
 /** ETL 성공이 이 시간보다 오래되면 degraded (일 배치 기준 여유 48h) */
 const ETL_STALE_MS = 48 * 3600_000;
 
+/** 소스별 마지막 실행이 실패·부분 실패인 것 — 소스명과 시각만, 메시지는 담지 않는다 */
+type TroubledSource = { source: string; outcome: IngestOutcome; at: string };
+
 type OpsChecks = {
   db: { ok: boolean };
-  etl: { ok: boolean; lastSuccessAt: string | null };
+  etl: {
+    /**
+     * 수집이 **살아 있는가** — 48h 안에 성공한 실행이 하나라도 있었는가.
+     *
+     * 부분 실패는 여기서 false 가 아니다. 이유는 이 값이 무엇을 켜는지에 있다:
+     * synthetic.yml 은 `status != "ok"` 면 GitHub 이슈를 연다(하루 2회 실행).
+     * 2,096행이 들어온 실행을 장애로 부르면 만성 키/쿼터 문제 하나로 이슈가
+     * 매일 열리고, 그 다음부터는 아무도 안 본다 — 진짜 정지했을 때 구분이 안 된다.
+     * 그래서 판정은 "전부 멎었는가" 에만 걸고, 부분 실패는 아래 필드로 드러낸다.
+     */
+    ok: boolean;
+    lastSuccessAt: string | null;
+    /** 성패를 가리지 않은 가장 최근 실행 — ok 만 보면 그 뒤의 실패가 안 보인다 */
+    lastRunAt: string | null;
+    lastRunOutcome: IngestOutcome;
+    /** 마지막 실행이 실패·부분 실패로 끝난 소스들. 정상이면 빈 배열 */
+    troubled: TroubledSource[];
+  };
   env: { ok: boolean };
 };
+
+type RawLogRow = { source?: unknown; status?: unknown; rows?: unknown; created_at?: unknown };
 
 /**
  * 운영 P0 체크 — DB ping(가벼운 단건 조회) · ETL 최근 성공 시각 · env 유효성.
  * 코드베이스에 etl_runs 테이블은 없어 실제 수집 로그 테이블(market_ingest_log)을 사용.
- * 민감정보(URL·키·에러 메시지)는 절대 반환하지 않는다 — boolean과 시각만.
+ * 민감정보(URL·키·에러 메시지)는 절대 반환하지 않는다 — boolean·시각·소스명만.
+ *
+ * ── #148 에서 고친 것 ────────────────────────────────────────────────────────
+ * 원래는 `status='ok'` 인 마지막 행 하나만 읽었다. 그래서 그 뒤에 일어난 실패는
+ * 헬스체크에 **전혀** 나타나지 않았다. 2026-07-25 프로덕션 실측:
+ *
+ *   02:58:11  geocode  status=ok                  ← 헬스체크가 본 유일한 행
+ *   02:59:15  molit    status=error rows=2096     ← 시군구 16곳 중 13곳 실패
+ *
+ * 화면은 `etl.ok=true, lastSuccessAt=02:58:11` 로 초록이었다. 뒤에 일어난 사고를
+ * 못 본 게 아니라, 볼 수 있는 자리가 없었다. 이제 마지막 실행과 소스별 문제를
+ * 같이 싣는다 — synthetic.yml 이 `checks` 를 통째로 이슈 본문에 넣으므로,
+ * 다른 이유로 알람이 울릴 때도 이 정보가 함께 나온다.
  */
 async function getOpsChecks(): Promise<OpsChecks> {
   // env — supabase URL http(s) 검증 (값 자체는 노출하지 않음)
@@ -43,29 +78,55 @@ async function getOpsChecks(): Promise<OpsChecks> {
   let dbOk = false;
   let etlOk = false;
   let lastSuccessAt: string | null = null;
+  let lastRunAt: string | null = null;
+  let lastRunOutcome: IngestOutcome = "none";
+  let troubled: TroubledSource[] = [];
   try {
     const sb = getReadOnlySupabase();
     if (sb) {
-      // db ping — 단건 조회 (가벼운 select 1 상당)
-      const { error } = await sb
+      /* 로그를 한 번만 읽어 ping·최근 성공·소스별 최근 실행을 모두 여기서 뽑는다.
+         200행이면 소스가 열 몇 개인 지금 구성에서 전 소스의 마지막 실행을 덮는다. */
+      const { data, error } = await sb
         .from("market_ingest_log")
-        .select("created_at")
-        .limit(1);
+        .select("source, status, rows, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
       dbOk = !error;
 
-      // etl — 최근 성공(status=ok) 시각
-      if (dbOk) {
-        const { data, error: etlError } = await sb
-          .from("market_ingest_log")
-          .select("created_at")
-          .eq("status", "ok")
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (!etlError && data && data.length > 0) {
-          const at = new Date(String(data[0].created_at));
-          if (!Number.isNaN(at.getTime())) {
-            lastSuccessAt = at.toISOString();
-            etlOk = Date.now() - at.getTime() < ETL_STALE_MS;
+      if (dbOk && Array.isArray(data)) {
+        const rows = data as RawLogRow[];
+        const seen = new Set<string>();
+        const now = Date.now();
+
+        for (const r of rows) {
+          const at = new Date(String(r.created_at ?? ""));
+          if (Number.isNaN(at.getTime())) continue;
+          const iso = at.toISOString();
+          const status = String(r.status ?? "");
+          const count = Number(r.rows ?? 0);
+          const outcome = classifyIngestRun(status, Number.isFinite(count) ? count : 0);
+
+          // 정렬이 내림차순이므로 처음 만나는 행이 그 소스의 마지막 실행이다
+          if (lastRunAt === null) {
+            lastRunAt = iso;
+            lastRunOutcome = outcome;
+          }
+          /* noop(status=ok, 새 행 0건)도 성공으로 친다 — 파이프라인은 돌아서 정상
+             종료했고, 그날 새 데이터가 없던 건 우리가 어쩔 수 있는 게 아니다.
+             여기서 rows>0 을 요구하면 조용한 날에 헬스체크가 빨개진다. */
+          if (lastSuccessAt === null && (outcome === "ok" || outcome === "noop")) {
+            lastSuccessAt = iso;
+            etlOk = now - at.getTime() < ETL_STALE_MS;
+          }
+
+          const source = String(r.source ?? "").trim();
+          if (source && !seen.has(source)) {
+            seen.add(source);
+            /* skipped(대개 키 미설정)는 여기 넣지 않는다 — 시도조차 안 한 것이라
+               "실행하다 잘못됐다" 와는 다른 얘기다. 그건 env 쪽 문제로 봐야 한다. */
+            if (outcome === "partial" || outcome === "failed") {
+              troubled.push({ source, outcome, at: iso });
+            }
           }
         }
       }
@@ -73,9 +134,17 @@ async function getOpsChecks(): Promise<OpsChecks> {
   } catch {
     dbOk = false;
     etlOk = false;
+    lastSuccessAt = null;
+    lastRunAt = null;
+    lastRunOutcome = "none";
+    troubled = [];
   }
 
-  return { db: { ok: dbOk }, etl: { ok: etlOk, lastSuccessAt }, env: { ok: envOk } };
+  return {
+    db: { ok: dbOk },
+    etl: { ok: etlOk, lastSuccessAt, lastRunAt, lastRunOutcome, troubled },
+    env: { ok: envOk },
+  };
 }
 
 

@@ -1,6 +1,17 @@
 import { getGeocodeProgress } from "@/lib/map/complex-geocode";
-import { loadDataFreshness, loadIngestSourceSummary } from "@/lib/admin/data-freshness";
-import type { FreshnessRow, FreshnessStatus } from "@/lib/admin/data-freshness";
+import {
+  loadDataFreshness,
+  loadIngestSourceSummary,
+  OUTCOME_COLOR,
+  OUTCOME_LABEL,
+  tallyText,
+} from "@/lib/admin/data-freshness";
+import type {
+  FreshnessRow,
+  FreshnessStatus,
+  IngestOutcome,
+  IngestSourceSummary,
+} from "@/lib/admin/data-freshness";
 import { GeocodeRunButton } from "./GeocodeRunButton";
 import { CronRunPanel } from "./CronRunPanel";
 import { UploadPanel } from "./UploadPanel";
@@ -8,12 +19,17 @@ import { RebCatalogPanel } from "./RebCatalogPanel";
 
 /*
  * 데이터 관리 (F1·F2·F3)
- *  - 데이터셋별 신선도: 행 수 · 데이터 기준 시점 · 마지막 쓰기 · 경과일 (전부 실집계)
+ *  - 데이터셋별 신선도: 행 수 · 데이터 기준 시점 · 마지막 신규 행 · 마지막 수집 결과 (전부 실집계)
  *  - 소스별 최근 적재 로그 (market_ingest_log)
  *  - 수동 업로드 / 수집 작업 실행 / R-ONE 카탈로그 조회
  *
  * 이전 버전은 "최근 실거래 반영" 이라는 라벨 아래 REB 지수 적재 시각을 보여줬다.
  * 라벨과 값이 어긋나 잘못된 판단을 유도하므로 테이블별 실집계로 대체했다.
+ *
+ * #148 에서 다시 한 번: "마지막 적재" 로 쓰던 max(updated_at) 은 백필 UPDATE 에도
+ * 오늘로 올라간다(2026-07-25 실측 — 신규 행 02:59 vs 쓰기 04:26, 그 사이에 들어온
+ * 실거래는 0건). 그리고 부분 실패(2,096행 적재 + 시군구 13곳 실패)를 표현할 칸이
+ * 없어서 빨간 "오류" 한 칸으로 뭉개고 있었다. 둘 다 아래에서 분리해 보여준다.
  */
 
 export const dynamic = "force-dynamic";
@@ -33,6 +49,19 @@ const STATUS_META: Record<FreshnessStatus, { label: string; color: string; bg: s
   unknown: { label: "확인불가", color: "#9aa6b8", bg: "rgba(154,166,184,.14)" },
 };
 
+/* 부분 실패는 초록도 빨강도 아니다 — 주황으로 따로 둔다(OUTCOME_COLOR.partial).
+   초록으로 칠하면 장애를 놓치고, 빨강으로 칠하면 "아무것도 안 들어왔다" 로 읽혀서
+   둘 다 사실과 다르다.
+
+   색은 lib/market/ingest-outcome 의 OUTCOME_COLOR 하나만 쓴다. 배경은 같은 색을
+   옅게 깐 것뿐이라 rgba 를 따로 적어 두면 나중에 한쪽만 고쳐져 어긋난다. */
+function tint(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = Number.parseInt(full, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 function StatusChip({ status }: { status: FreshnessStatus }) {
   const m = STATUS_META[status];
   return (
@@ -45,6 +74,18 @@ function StatusChip({ status }: { status: FreshnessStatus }) {
   );
 }
 
+function OutcomeChip({ outcome }: { outcome: IngestOutcome }) {
+  const color = OUTCOME_COLOR[outcome];
+  return (
+    <span
+      className="rounded px-1.5 py-px text-[9.5px] font-bold"
+      style={{ color, background: tint(color, 0.15) }}
+    >
+      {OUTCOME_LABEL[outcome]}
+    </span>
+  );
+}
+
 function lagText(row: FreshnessRow): string {
   if (row.rows === 0) return "—";
   if (row.lagDays == null) return "기록 없음";
@@ -52,11 +93,42 @@ function lagText(row: FreshnessRow): string {
   return `${fmt(row.lagDays)}일 전`;
 }
 
+/** 서버에서 렌더하므로 표준시를 못 박는다 — 운영자가 보는 시계는 KST 다. */
+const KST = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+function clock(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${KST.format(d)} KST`;
+}
+
+function relDays(lagDays: number | null): string {
+  if (lagDays == null) return "기록 없음";
+  if (lagDays === 0) return "오늘";
+  return `${fmt(lagDays)}일 전`;
+}
+
+/** 마지막 수집 한 줄 요약 — 행 수와 조각 집계 중 실제로 있는 것만 붙인다. */
+function runDetail(run: NonNullable<FreshnessRow["ingest"]>): string {
+  const parts = [`${fmt(run.rows)}행`];
+  const t = tallyText(run.tally);
+  if (t) parts.push(t);
+  return parts.join(" · ");
+}
+
 export default async function AdminDataPage() {
   const [geo, freshness, ingest] = await Promise.all([
     getGeocodeProgress().catch(() => null),
     loadDataFreshness().catch(() => [] as FreshnessRow[]),
-    loadIngestSourceSummary().catch(() => []),
+    loadIngestSourceSummary().catch(() => [] as IngestSourceSummary[]),
   ]);
 
   const ok = geo?.ok ?? 0;
@@ -72,6 +144,12 @@ export default async function AdminDataPage() {
   );
   const totalRows = freshness.reduce((a, r) => a + r.rows, 0);
 
+  /* 요약 카드에 "부분 실패" 를 세운다 — 이 숫자가 0이 아니면 데이터는 들어왔지만
+     일부 구간이 비어 있다는 뜻이고, 그건 초록 화면 뒤에 숨으면 안 되는 사실이다. */
+  const troubled = ingest.filter((r) => r.outcome === "partial" || r.outcome === "failed");
+  const partialCount = ingest.filter((r) => r.outcome === "partial").length;
+  const failedCount = ingest.filter((r) => r.outcome === "failed").length;
+
   return (
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">데이터 관리</div>
@@ -85,7 +163,11 @@ export default async function AdminDataPage() {
           { label: "총 적재 행", value: fmt(totalRows), color: "#ffffff" },
           { label: "최신", value: `${counts.fresh}개 데이터셋`, color: "#4ade80" },
           { label: "지연·정체", value: `${counts.aging + counts.stale}개`, color: "#f2c94c" },
-          { label: "비어있음", value: `${counts.empty}개`, color: "#9aa6b8" },
+          {
+            label: "마지막 수집 부분 실패·실패",
+            value: `${partialCount}건 · ${failedCount}건`,
+            color: partialCount + failedCount > 0 ? "#fb923c" : "#9aa6b8",
+          },
         ].map((s) => (
           <div
             key={s.label}
@@ -98,6 +180,28 @@ export default async function AdminDataPage() {
           </div>
         ))}
       </div>
+
+      {/* 부분 실패 배너 — 요약 숫자만으로는 어느 소스인지 알 수 없어서 한 줄 더 준다 */}
+      {troubled.length > 0 && (
+        <div className="rise-in-1 rounded-2xl border border-[rgba(251,146,60,.28)] bg-[rgba(251,146,60,.08)] px-4 py-3">
+          <div className="text-[11.5px] font-bold text-[#fb923c]">
+            마지막 수집에서 문제가 있었던 소스 {troubled.length}건
+          </div>
+          <ul className="mt-1.5 flex flex-col gap-1">
+            {troubled.map((r) => (
+              <li key={`${r.source}|${r.dataset}`} className="text-[11px] text-[#c7d0de]">
+                <code className="text-[#fb923c]">{r.source}</code> {r.dataset} —{" "}
+                {OUTCOME_LABEL[r.outcome]} · {fmt(r.rows)}행 적재
+                {tallyText(r.tally) ? ` · ${tallyText(r.tally)}` : ""}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-1.5 text-[10px] leading-relaxed text-[#9aa6b8]">
+            &ldquo;부분 실패&rdquo; 는 일부 행은 실제로 들어왔다는 뜻입니다. 화면에 보이는 수치는
+            사실이지만 해당 구간의 커버리지가 비어 있을 수 있어요.
+          </div>
+        </div>
+      )}
 
       {/* 데이터셋 신선도 */}
       <div className={`rise-in-2 ${card}`}>
@@ -112,51 +216,95 @@ export default async function AdminDataPage() {
           </div>
         ) : (
           <div className="-mx-1 overflow-x-auto">
-            <table className="w-full min-w-[680px] border-collapse text-[11.5px]">
+            <table className="w-full min-w-[820px] border-collapse text-[11.5px]">
               <thead>
                 <tr className="text-left text-[10px] text-[#9aa6b8]">
                   <th className="px-2 py-2 font-semibold">데이터셋</th>
                   <th className="px-2 py-2 text-right font-semibold">행 수</th>
                   <th className="px-2 py-2 font-semibold">데이터 기준</th>
-                  <th className="px-2 py-2 font-semibold">마지막 적재</th>
+                  <th className="px-2 py-2 font-semibold">마지막 신규 행</th>
+                  <th className="px-2 py-2 font-semibold">마지막 수집</th>
                   <th className="px-2 py-2 font-semibold">상태</th>
                 </tr>
               </thead>
               <tbody>
-                {freshness.map((r) => (
-                  <tr key={r.key} className="border-t border-[rgba(255,255,255,.05)]">
-                    <td className="px-2 py-2.5">
-                      <div className="font-bold text-white">{r.label}</div>
-                      <div className="text-[10px] text-[#9aa6b8]">
-                        {r.source} · <code className="text-[#6b7688]">{r.table}</code>
-                        {r.sampleRows ? (
-                          <span className="ml-1 text-[#f2c94c]">예시 {fmt(r.sampleRows)}건 포함</span>
+                {freshness.map((r) => {
+                  const writeClock = clock(r.lastWriteAt);
+                  const insertClock = clock(r.lastInsertAt);
+                  /* 백필로 쓰기 시각만 올라간 경우를 눈에 보이게 한다 */
+                  const writeDiffers =
+                    Boolean(r.lastInsertAt && r.lastWriteAt) && r.lastInsertAt !== r.lastWriteAt;
+                  return (
+                    <tr key={r.key} className="border-t border-[rgba(255,255,255,.05)]">
+                      <td className="px-2 py-2.5 align-top">
+                        <div className="font-bold text-white">{r.label}</div>
+                        <div className="text-[10px] text-[#9aa6b8]">
+                          {r.source} · <code className="text-[#6b7688]">{r.table}</code>
+                          {r.sampleRows ? (
+                            <span className="ml-1 text-[#f2c94c]">
+                              예시 {fmt(r.sampleRows)}건 포함
+                            </span>
+                          ) : null}
+                        </div>
+                        {r.note ? (
+                          <div className="mt-0.5 text-[9.5px] leading-snug text-[#6b7688]">
+                            {r.note}
+                          </div>
                         ) : null}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2.5 text-right font-bold tabular-nums text-white">
-                      {fmt(r.rows)}
-                    </td>
-                    <td className="px-2 py-2.5 text-[#c7d0de]">{r.dataAsOf ?? "—"}</td>
-                    <td className="px-2 py-2.5">
-                      <span className="text-[#c7d0de]">{lagText(r)}</span>
-                      <span className="ml-1 text-[10px] text-[#6b7688]">
-                        (기대 {r.expectedDays}일)
-                      </span>
-                    </td>
-                    <td className="px-2 py-2.5">
-                      <StatusChip status={r.status} />
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-2 py-2.5 text-right align-top font-bold tabular-nums text-white">
+                        {fmt(r.rows)}
+                      </td>
+                      <td className="px-2 py-2.5 align-top text-[#c7d0de]">{r.dataAsOf ?? "—"}</td>
+                      <td className="px-2 py-2.5 align-top">
+                        <span className="text-[#c7d0de]">{lagText(r)}</span>
+                        <span className="ml-1 text-[10px] text-[#6b7688]">
+                          (기대 {r.expectedDays}일)
+                        </span>
+                        <div className="text-[9.5px] text-[#6b7688]">
+                          {r.lagBasis === "insert"
+                            ? insertClock
+                              ? `신규 행 ${insertClock}`
+                              : "신규 행 기록 없음"
+                            : writeClock
+                              ? `쓰기 ${writeClock} · 신규 행 시각 컬럼 없음`
+                              : "쓰기 기록 없음"}
+                        </div>
+                        {writeDiffers && (
+                          <div className="text-[9.5px] text-[#fb923c]">
+                            쓰기 {writeClock} — 수집이 아닌 갱신
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2.5 align-top">
+                        {r.ingest ? (
+                          <>
+                            <OutcomeChip outcome={r.ingest.outcome} />
+                            <div className="mt-0.5 text-[9.5px] text-[#9aa6b8]">
+                              {relDays(r.ingest.lagDays)} · {runDetail(r.ingest)}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-[#6b7688]">수집 로그 없음</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-2.5 align-top">
+                        <StatusChip status={r.status} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
         <div className="text-[10px] leading-relaxed text-[#9aa6b8]">
-          &ldquo;데이터 기준&rdquo; 은 계약월·기준월처럼 데이터 자체의 시점, &ldquo;마지막
-          적재&rdquo; 는 테이블에 마지막으로 쓴 시각입니다. 둘은 다를 수 있어요(예: 오늘 적재한
-          지난달 실거래). 상태는 마지막 적재 경과일이 기대 주기를 넘겼는지로만 판정합니다.
+          &ldquo;데이터 기준&rdquo; 은 계약월·기준월처럼 데이터 자체의 시점입니다. &ldquo;마지막
+          신규 행&rdquo; 은 테이블에 <b className="text-[#c7d0de]">새 행이 들어온</b> 시각이고,
+          기존 행을 고치기만 한 UPDATE 는 여기에 반영되지 않습니다 — 백필 한 번에 모든 데이터셋이
+          &ldquo;오늘&rdquo; 로 보이는 일을 막기 위해서예요. created_at 이 없는 테이블은 쓰기
+          시각으로 대신 재고, 그 사실을 각 줄에 적어 뒀습니다. &ldquo;마지막 수집&rdquo; 은
+          market_ingest_log 에 남은 그 소스의 최근 실행 결과입니다.
         </div>
       </div>
 
@@ -207,7 +355,7 @@ export default async function AdminDataPage() {
               {ingest.slice(0, 40).map((r) => (
                 <div
                   key={`${r.source}|${r.dataset}`}
-                  className="flex items-center justify-between gap-3 border-b border-[rgba(255,255,255,.05)] px-3 py-2 last:border-0"
+                  className="flex items-start justify-between gap-3 border-b border-[rgba(255,255,255,.05)] px-3 py-2 last:border-0"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
@@ -218,18 +366,14 @@ export default async function AdminDataPage() {
                       {r.origin} · {r.rows > 0 ? `${fmt(r.rows)}행` : "0행"} ·{" "}
                       {r.lagDays === 0 ? "오늘" : `${fmt(r.lagDays)}일 전`}
                     </div>
+                    {tallyText(r.tally) ? (
+                      <div className="text-[10px] text-[#fb923c]">{tallyText(r.tally)}</div>
+                    ) : r.message ? (
+                      <div className="truncate text-[10px] text-[#6b7688]">{r.message}</div>
+                    ) : null}
                   </div>
-                  <span
-                    className="shrink-0 rounded px-1.5 py-px text-[9.5px] font-bold"
-                    style={
-                      r.status === "ok"
-                        ? { color: "#4ade80", background: "rgba(74,222,128,.14)" }
-                        : r.status === "error"
-                          ? { color: "#f87171", background: "rgba(248,113,113,.14)" }
-                          : { color: "#9aa6b8", background: "rgba(154,166,184,.14)" }
-                    }
-                  >
-                    {r.status === "ok" ? "성공" : r.status === "error" ? "오류" : "건너뜀"}
+                  <span className="shrink-0">
+                    <OutcomeChip outcome={r.outcome} />
                   </span>
                 </div>
               ))}
@@ -237,7 +381,9 @@ export default async function AdminDataPage() {
           )}
           <div className="text-[10px] leading-relaxed text-[#9aa6b8]">
             소스·데이터셋별 가장 최근 1건입니다. &ldquo;건너뜀&rdquo; 은 대개 해당 공공 API
-            인증키가 없어 수집이 일어나지 않은 경우예요.
+            인증키가 없어 수집이 일어나지 않은 경우예요. &ldquo;부분 실패&rdquo; 는 일부 행은
+            들어왔지만 일부 조각이 실패했다는 뜻이고, &ldquo;새 데이터 없음&rdquo; 은 정상
+            실행이었지만 새로 들어온 행이 0건이라는 뜻입니다.
           </div>
         </div>
       </div>

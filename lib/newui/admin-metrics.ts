@@ -454,22 +454,33 @@ async function loadSignupTrend(days = 14): Promise<AdminSignupDay[]> {
   }
 }
 
-/** ETL 상태 — market_ingest_log 최신 3 (lib/market/store 읽기 로더 재사용) */
+/**
+ * ETL 상태 — market_ingest_log 최신 3 (lib/market/store 읽기 로더 재사용)
+ *
+ * status 문자열만 보고 정상/건너뜀/오류 셋으로 나누던 걸 rows 와 함께 보도록 고쳤다(#148).
+ * `status=error rows=2096` 인 실행 — 2,096행은 들어왔는데 조각 일부가 실패한 경우 —
+ * 을 그냥 "오류" 라고 쓰면 읽는 사람은 아무것도 안 들어온 줄 안다. 판정은
+ * lib/market/ingest-outcome 한 곳에서 가져다 쓴다.
+ *
+ * 잘린 message 를 붙이던 자리에는 파싱된 집계("16곳 중 13곳 실패")를 우선 쓴다.
+ * 40자에서 잘린 원문은 대개 문장 중간에서 끊겨 오히려 오해를 만들었다.
+ */
 async function loadEtlStatus(limit = 3): Promise<AdminEtlRow[]> {
   try {
     const { listIngestLog } = await import("@/lib/market/store");
+    const { classifyIngestRun, parseRunTally, tallyText, OUTCOME_LABEL, OUTCOME_COLOR, OUTCOME_MARK } =
+      await import("@/lib/market/ingest-outcome");
     const rows = await listIngestLog(limit);
     return rows.map((r) => {
-      const ok = r.status === "ok";
-      const skipped = r.status === "skipped";
+      const outcome = classifyIngestRun(r.status, r.rows);
+      const detail = tallyText(parseRunTally(r.message)) ?? r.message?.slice(0, 40) ?? null;
+      const showDetail = outcome !== "ok" && outcome !== "noop" && detail;
       return {
         name: `${r.source.toUpperCase()} · ${r.dataset} (${r.origin})`,
-        status: `${ok ? "●" : skipped ? "◦" : "▲"} ${
-          ok ? "정상" : skipped ? "건너뜀" : "오류"
-        } · ${r.rows.toLocaleString("ko-KR")}행 · ${relativeLabel(r.createdAt)}${
-          !ok && r.message ? ` · ${r.message.slice(0, 40)}` : ""
-        }`,
-        color: ok ? "#4ade80" : skipped ? "#9aa6b8" : "#f2c94c",
+        status: `${OUTCOME_MARK[outcome]} ${OUTCOME_LABEL[outcome]} · ${r.rows.toLocaleString(
+          "ko-KR",
+        )}행 · ${relativeLabel(r.createdAt)}${showDetail ? ` · ${detail}` : ""}`,
+        color: OUTCOME_COLOR[outcome],
       };
     });
   } catch (e) {
