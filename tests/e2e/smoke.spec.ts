@@ -121,13 +121,17 @@ test("16. /subscription renders with plan buttons", async ({ page }) => {
   await expect(
     page.getByRole("heading", { level: 1, name: /기록은 무료, 판단은 더 깊게/ }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "14일 무료 체험" })).toBeVisible();
+  // 8908947: 무료 체험 코드가 없는데 "14일 무료 체험"이라 적는 건 허위 고지라
+  // CTA 문구가 실제 동작("플러스 시작하기" → 곧바로 결제)에 맞게 바뀌었다.
+  await expect(page.getByRole("button", { name: "플러스 시작하기" })).toBeVisible();
   await expect(page.getByRole("button", { name: "전문가로 시작" })).toBeVisible();
 });
 
 test("17. clicking a plan button while logged out leads to /login", async ({ page }) => {
   await page.goto("/subscription");
-  await page.getByRole("button", { name: "14일 무료 체험" }).click();
+  await page.getByRole("button", { name: "플러스 시작하기" }).click();
+  // 8908947: window.confirm 대신 버튼 자리에서 확인받는 2단계 — "계속"을 눌러야 진행된다.
+  await page.getByRole("button", { name: "계속" }).click();
   // PlanCheckoutButton: 비로그인 → /login?callbackUrl=/subscription 이동
   await page.waitForURL(/\/login/);
   expect(page.url()).toContain("/login");
