@@ -78,14 +78,19 @@ export default async function DigestPage() {
         </div>
 
         {/* 구독 CTA — 매주 받아보기 → 알림 설정 */}
+        {/* 설정 → 푸시 알림 → "주간 다이제스트". 예전에는 이 링크가 수신함(/notifications)
+            으로 갔고, 정작 켤 스위치도 보내는 크론도 없어서 지킬 수 없는 안내였다.
+            지금은 옵트인 스위치(notification_preferences.push_weekly_digest)와
+            발송 크론(/api/cron/weekly-digest, 월 18:00 KST)이 실제로 있다. */}
         <Link
-          href="/notifications"
+          href="/my/settings"
           className="rise-in-1 card-hover flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3.5 no-underline"
         >
           <div>
             <div className="text-[13px] font-extrabold text-ink">매주 받아보기</div>
             <div className="mt-0.5 text-[11px] text-text-2">
-              알림 설정에서 주간 다이제스트 알림을 켜면 매주 요약을 보내드려요.
+              설정 › 알림 › 푸시 알림에서 ‘주간 다이제스트’를 켜면 매주 월요일 저녁에
+              이 요약을 한 번 보내드려요.
             </div>
           </div>
           <span className="shrink-0 rounded-[10px] bg-primary-soft px-3.5 py-2 text-xs font-bold text-primary">

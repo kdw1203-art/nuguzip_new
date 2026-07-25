@@ -133,5 +133,12 @@ jobs:
           else
             echo "== reengage skipped (화요일 아님: $(date -u +%A)) =="
           fi
+          # 주간 다이제스트는 월요일만. 옵트인(push_weekly_digest=true)한 사람에게만 나가고,
+          # 그 주에 실제로 모인 내용이 없으면 라우트가 skipped:"empty" 로 아무것도 안 보낸다.
+          if [ "$(date -u +%u)" = "1" ]; then
+            call weekly-digest "https://nuguzip.com/api/cron/weekly-digest"
+          else
+            echo "== weekly-digest skipped (월요일 아님: $(date -u +%A)) =="
+          fi
           # 알림 러너는 fail-soft 라 여기서 워크플로를 실패시키지 않는다. 실패는
           # 각 라우트가 JSON 요약(ok:false)으로 드러내고 위 로그에 그대로 찍힌다.

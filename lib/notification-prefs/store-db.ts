@@ -23,6 +23,12 @@ export type NotificationPrefs = {
    * 이 사람의 매물을 후보에서 제외한다.
    */
   pushListingStale: boolean;
+  /**
+   * 주간 다이제스트 수신함·푸시. 기본 **false**.
+   * 위 두 개와 달리 "본인 기록 관리 안내"가 아니라 주기적 소식지라서 옵트인이다.
+   * /digest 화면 문구도 "켜면 보내드려요"이므로 기본값이 켜져 있으면 안 된다.
+   */
+  pushWeeklyDigest: boolean;
   /** SMS(NCP SENS) 관심단지 가격 알림 수신 번호(숫자만) — 옵트인 시에만 저장 */
   alertPhone: string | null;
   /** 관심단지 가격변동 SMS 수신 동의(옵트인) */
@@ -44,6 +50,7 @@ const DEFAULT_PREFS: Omit<NotificationPrefs, "userEmail" | "updatedAt"> = {
   pushExpert: true,
   pushReengagement: true,
   pushListingStale: true,
+  pushWeeklyDigest: false,
   alertPhone: null,
   smsPriceAlerts: false,
   smsConsentAt: null,
@@ -72,6 +79,7 @@ function mapRow(r: Record<string, unknown>): NotificationPrefs {
     pushExpert: Boolean(r.push_expert ?? DEFAULT_PREFS.pushExpert),
     pushReengagement: Boolean(r.push_reengagement ?? DEFAULT_PREFS.pushReengagement),
     pushListingStale: Boolean(r.push_listing_stale ?? DEFAULT_PREFS.pushListingStale),
+    pushWeeklyDigest: Boolean(r.push_weekly_digest ?? DEFAULT_PREFS.pushWeeklyDigest),
     alertPhone: r.alert_phone ? String(r.alert_phone) : null,
     smsPriceAlerts: Boolean(r.sms_price_alerts ?? DEFAULT_PREFS.smsPriceAlerts),
     smsConsentAt: r.sms_consent_at ? String(r.sms_consent_at) : null,
@@ -117,6 +125,8 @@ export async function upsertPrefs(
     payload.push_reengagement = patch.pushReengagement;
   if (patch.pushListingStale !== undefined)
     payload.push_listing_stale = patch.pushListingStale;
+  if (patch.pushWeeklyDigest !== undefined)
+    payload.push_weekly_digest = patch.pushWeeklyDigest;
   // 전화번호: 서버에서 정규화(숫자만·01x·10~11자리) 후 저장, 그 외 null
   if (patch.alertPhone !== undefined) {
     payload.alert_phone = patch.alertPhone ? normalizeAlertPhone(patch.alertPhone) : null;

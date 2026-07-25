@@ -29,7 +29,8 @@ type PrefKey =
   | "pushMeeting"
   | "pushExpert"
   | "pushReengagement"
-  | "pushListingStale";
+  | "pushListingStale"
+  | "pushWeeklyDigest";
 
 type Prefs = Record<PrefKey, boolean> & {
   /** SMS(NCP SENS) 관심단지 가격 알림 — 별도 카드에서 관리 */
@@ -66,6 +67,11 @@ const PREF_GROUPS: {
         key: "pushListingStale",
         label: "내 매물 신선도 알림",
         desc: "등록한 매물이 21일 넘게 그대로면 끌어올리기 안내, 60일이면 마감 제안",
+      },
+      {
+        key: "pushWeeklyDigest",
+        label: "주간 다이제스트",
+        desc: "매주 월요일 저녁, 최근 7일 뉴스·시세 요약 1회 (기본 꺼짐)",
       },
     ],
   },

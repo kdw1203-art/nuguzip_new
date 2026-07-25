@@ -55,7 +55,10 @@ export async function GET(req: Request) {
   const payload: PushPayload = {
     title: "오늘 출석 체크를 잊지 마세요",
     body: "연속 출석 포인트를 받고 투자 루틴을 이어가세요.",
-    url: "/attendance",
+    // 출석 체크 버튼은 /my/points 안에 있다(app/my/points/AttendanceButton.tsx).
+    // 예전에는 `/attendance` 로 보냈는데 그런 라우트가 없어서 알림을 누르면
+    // not-found 로 떨어졌다.
+    url: "/my/points",
     tag: `attendance-${today}`,
     eventType: "attendance",
   };
