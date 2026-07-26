@@ -27,9 +27,23 @@ function resolveNcpSecretKey(): string {
   );
 }
 
-/** IAM 시그니처 인증 사용 가능 여부 (Access + Secret 둘 다 존재). */
+/**
+ * IAM 시그니처 인증 사용 여부.
+ *
+ * 2026-07 변경: 예전엔 IAM 키(NCP_ACCESS_KEY 등)가 존재하기만 하면 시그니처 모드가
+ * "우선"이었다. 그 탓에 Vercel env 에 잘못된/유효하지 않은 IAM 키가 남아 있으면,
+ * 검증된 REST Client ID/Secret(NAVER_MAP_REST_KEY_ID/KEY)이 있어도 무시되고 401 이
+ * 났다. 이제 단순 키 헤더 쌍이 구성돼 있으면 그것을 우선 사용하고, 시그니처 모드는
+ * 단순 키가 없을 때만 폴백으로 쓴다.
+ */
 function isSignatureMode(): boolean {
+  if (hasSimpleKeyPair()) return false;
   return Boolean(resolveNcpAccessKey() && resolveNcpSecretKey());
+}
+
+/** 단순 키 헤더 쌍(x-ncp-apigw-api-key-id / x-ncp-apigw-api-key) 구성 여부. */
+function hasSimpleKeyPair(): boolean {
+  return Boolean(resolveRestKeyId() && resolveRestSecret());
 }
 
 /**
@@ -256,7 +270,8 @@ export async function naverGeocode(
   const { url, headers } = buildRequest(GEOCODE_PATH, params);
   const res = await fetch(url, { headers, next: { revalidate: 3600 } });
   if (!res.ok) {
-    throw new Error(`Geocoding failed (${res.status})`);
+    const mode = isSignatureMode() ? "iam-signature" : "api-key";
+    throw new Error(`Geocoding failed (${res.status}, auth=${mode})`);
   }
 
   const json = (await res.json()) as GeocodeResponse;
