@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { CookieSettingsLink } from "@/components/consent/cookie-settings-link";
 
 /* P0-3 공통 푸터 — 사업자·통신판매업 고지(전자상거래법) + 약관 링크를 모든 페이지·모바일에 노출.
    모바일에서는 하단 탭바와 겹치지 않게 pb-28 확보. */
@@ -60,6 +61,8 @@ export function Footer() {
               {l.label}
             </Link>
           ))}
+          {/* S22 — 동의 철회·변경 경로: 저장된 결정을 지우고 배너를 다시 띄운다 */}
+          <CookieSettingsLink />
         </div>
 
         {/* 3행: 면책 */}
