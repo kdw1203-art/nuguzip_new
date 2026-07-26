@@ -17,6 +17,7 @@ import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { submitIndexNow } from "@/lib/seo/indexnow";
 import { listReportMonths } from "@/lib/reports/monthly";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import { withBudget } from "@/lib/async/with-budget";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,36 +29,64 @@ const NOTE_FRESH_DAYS = 7;
 /** 데이터가 매일 갱신되는 허브 — 여기는 "바뀌었다"가 사실이다. */
 const DAILY_HUBS = ["/", "/reports", "/tx"];
 
-async function collectUrls(): Promise<{ urls: string[]; detail: Record<string, number> }> {
+/**
+ * 수집에 주는 시간(ms). 이 라우트는 maxDuration=60 이라 수집이 늦어지면 제출도
+ * 못 해 보고 통째로 죽는다(실제로 60초 타임아웃으로 죽은 기록이 있다). 25초에
+ * 접으면 남은 시간으로 허브 3개라도 제출하고, 무엇이 빠졌는지 응답에 남긴다.
+ */
+const COLLECT_BUDGET_MS = 25_000;
+
+type Collected = {
+  urls: string[];
+  detail: Record<string, number>;
+  /** 조회에 실패해서 빠진 블록. 비어 있음(0건)과 구분하기 위해 따로 싣는다. */
+  missing: string[];
+};
+
+async function collectUrls(): Promise<Collected> {
   const urls: string[] = DAILY_HUBS.map((p) => `${BASE}${p}`);
   const detail: Record<string, number> = { hubs: DAILY_HUBS.length, reports: 0, notes: 0 };
+  const missing: string[] = [];
+
+  /* 둘을 나란히 돌린다 — 순차로 돌리면 예산이 두 배로 쌓여 25초 상한이 50초가
+     되고, maxDuration=60 안에 제출까지 끝낼 여유가 없어진다. */
+  const [monthsRun, notesRun] = await Promise.all([
+    withBudget(
+      Promise.resolve().then(() => listReportMonths()),
+      COLLECT_BUDGET_MS,
+    ),
+    withBudget(
+      Promise.resolve().then(() => listPublicNotes(200)),
+      COLLECT_BUDGET_MS,
+    ),
+  ]);
 
   // 최신 2개월 리포트 — 신고 지연 때문에 이 두 달의 수치만 계속 움직인다.
-  try {
-    const months = await listReportMonths();
-    const recent = months.slice(0, 2);
+  /* 실패해도 제출 자체를 포기하지는 않는다(허브는 여전히 보낼 값어치가 있다).
+     다만 reports: 0 을 "이번 달 리포트가 없다"로 읽으면 안 되므로 missing 에 남긴다. */
+  if (monthsRun.state === "ok") {
+    const recent = monthsRun.value.slice(0, 2);
     for (const m of recent) urls.push(`${BASE}/reports/${m.ym}`);
     detail.reports = recent.length;
-  } catch {
-    // 조회 실패 시 그 블록만 생략 — 제출 자체를 포기하지 않는다.
+  } else {
+    missing.push(monthsRun.state === "timeout" ? "reports(시간 초과)" : "reports(조회 실패)");
   }
 
   // 최근 7일 내 갱신된 공개 노트
-  try {
+  if (notesRun.state === "ok") {
     const cutoff = Date.now() - NOTE_FRESH_DAYS * 24 * 60 * 60 * 1000;
-    const notes = await listPublicNotes(200);
-    const fresh = notes.filter((n) => {
+    const fresh = notesRun.value.filter((n) => {
       if (!n.isPublic) return false;
       const t = n.updatedAt ? new Date(n.updatedAt).getTime() : NaN;
       return Number.isFinite(t) && t >= cutoff;
     });
     for (const n of fresh) urls.push(`${BASE}/notes/${n.id}`);
     detail.notes = fresh.length;
-  } catch {
-    // 생략
+  } else {
+    missing.push(notesRun.state === "timeout" ? "notes(시간 초과)" : "notes(조회 실패)");
   }
 
-  return { urls, detail };
+  return { urls, detail, missing };
 }
 
 async function handle(req: Request) {
@@ -71,11 +100,11 @@ async function handle(req: Request) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
 
-  const { urls, detail } = await collectUrls();
+  const { urls, detail, missing } = await collectUrls();
 
   // dryRun=1 이면 무엇을 보낼지만 확인한다(운영에서 눈으로 점검할 때 쓴다).
   if (url.searchParams.get("dryRun") === "1") {
-    return NextResponse.json({ dryRun: true, count: urls.length, detail, urls });
+    return NextResponse.json({ dryRun: true, count: urls.length, detail, missing, urls });
   }
 
   const result = await submitIndexNow(urls);
@@ -86,6 +115,9 @@ async function handle(req: Request) {
       status: result.status,
       message: result.message,
       detail,
+      /* 빠진 블록이 있으면 숨기지 않는다 — detail.notes === 0 이 "새 노트가 없다"
+         인지 "못 읽었다"인지는 여기를 봐야 구분된다. */
+      ...(missing.length > 0 ? { missing } : {}),
       finishedAt: new Date().toISOString(),
     },
     // 제출 실패를 200 으로 감추지 않는다 — 조용히 죽으면 아무도 모른다.
