@@ -213,6 +213,10 @@ export default async function TxIndexPage() {
         <Link href="/complex/browse" className="font-bold text-primary underline">
           단지 실거래 브라우즈
         </Link>
+        , 같은 동 단지끼리 나란히 보려면{" "}
+        <Link href="/complex/compare" className="font-bold text-primary underline">
+          단지 vs 단지 비교
+        </Link>
         , 지역 시세 흐름은{" "}
         <Link href="/analysis/price" className="font-bold text-primary underline">
           가격 분석

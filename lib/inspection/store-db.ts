@@ -1,4 +1,5 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { WORKBENCH_COMPLEXES, compositeScore } from "@/lib/ai/workbench-constants";
 
 export type InspectionScores = {
@@ -185,15 +186,49 @@ export async function listNotes(authorEmail: string | null): Promise<InspectionN
   return (data ?? []).map(mapRow);
 }
 
+/**
+ * 공개 임장노트 목록 (최신순).
+ *
+ * ── 2026-07-26: 두 가지를 고쳤다 ────────────────────────────────────────────
+ * 1) 조회 실패를 빈 배열로 바꾸지 않는다.
+ *    `const { data } = await …` 는 error 를 통째로 버리고, 실패하면 `data` 가
+ *    null 이라 `[]` 가 나간다. 그러면 "공개 노트가 아직 없다" 와 "DB 를 못
+ *    읽었다" 가 화면에서 같은 모양이 된다 — 이 레포가 이미 /tx 에서 하루 동안
+ *    당한 사고다(lib/market/tx-bands.ts 헤더). 특히 이 함수는
+ *    /sitemap-notes.xml 과 /feed.xml 도 먹여서, 실패 한 번이 "이 노트들은
+ *    없어졌다" 는 신호로 크롤러에 나간다. 이제 실패는 던지고, 부르는 쪽이
+ *    둘을 구분한다.
+ * 2) getServiceSupabase() → getReadOnlySupabase()
+ *    빌드·프리렌더 환경에는 서비스 롤 키가 없어 sb === null → 빈 메모리 배열이
+ *    나갔다. inspection_notes 에는 anon 읽기 정책이 실제로 있으므로
+ *    (inspection_notes_public_read: is_public AND slug 존재,
+ *     inspection_notes_select_public_published: is_public AND published_at AND
+ *     status='analyzed') anon 으로도 공개 노트를 읽는다. 서비스 롤이 있으면
+ *    그대로 쓰고, 없을 때만 anon 으로 떨어진다.
+ *    ※ anon 은 RLS 를 타므로 slug 도 published_at 도 없는 공개 노트는 보이지
+ *      않는다. 서비스 롤보다 적게 보일 수 있다는 뜻이고, 이는 "권한대로 보인
+ *      것" 이지 실패가 아니다.
+ */
 export async function listPublicNotes(limit = 50): Promise<InspectionNote[]> {
-  const sb = getServiceSupabase();
-  if (!sb) return memory.filter((n) => n.isPublic).slice(0, limit);
-  const { data } = await sb
+  const sb = getReadOnlySupabase();
+  if (!sb) {
+    throw new Error(
+      "inspection_notes 를 읽을 수단이 없습니다 — SUPABASE_SERVICE_ROLE_KEY 도 " +
+        "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY 도 설정되지 않았습니다.",
+    );
+  }
+  const { data, error } = await sb
     .from("inspection_notes")
     .select("*")
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (error) {
+    throw new Error(
+      `inspection_notes 조회 실패 (공개 노트) — ${error.message}` +
+        `${error.code ? ` [${error.code}]` : ""}${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
+    );
+  }
   return (data ?? []).map(mapRow);
 }
 

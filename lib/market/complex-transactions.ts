@@ -28,6 +28,32 @@ export function findComplexTxRegionById(regionId: string): ComplexTxRegion | nul
   return ALL_REGIONS.find((r) => r.id === regionId) ?? null;
 }
 
+/**
+ * region_name → 내부 지역 역방향 맵. 후보 이름이 두 지역에 걸리면 **버린다**.
+ *
+ * 정방향(transactionRegionCandidates)은 한 지역이 여러 표기를 가질 수 있다는
+ * 사실만 다루면 되지만, 역방향은 "이 표기는 어느 지역인가"를 단정해야 한다.
+ * 단정할 수 없는 이름까지 아무 쪽으로 붙이면 한 지역의 페이지에 다른 지역
+ * 데이터가 실린다 — 그래서 모호하면 null 이다(모르는 것을 아는 척하지 않는다).
+ */
+const REGION_BY_TX_NAME: Map<string, ComplexTxRegion | null> = (() => {
+  const map = new Map<string, ComplexTxRegion | null>();
+  for (const region of ALL_REGIONS) {
+    for (const name of transactionRegionCandidates(region)) {
+      if (map.has(name) && map.get(name)?.id !== region.id) map.set(name, null);
+      else map.set(name, region);
+    }
+  }
+  return map;
+})();
+
+/** market_transactions.region_name 표기로 내부 지역 찾기. 모호하거나 없으면 null. */
+export function findComplexTxRegionByTransactionName(
+  regionName: string,
+): ComplexTxRegion | null {
+  return REGION_BY_TX_NAME.get(regionName.trim()) ?? null;
+}
+
 /** 강남4구 우선 정렬된 서울 25개 구 목록 (/complex/browse 칩용) */
 export const SEOUL_BROWSE_REGIONS: ComplexTxRegion[] = (() => {
   const priority = ["gangnam", "seocho", "songpa", "gangdong"];
@@ -130,7 +156,19 @@ export interface ComplexSummary {
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const summaryCache = new Map<string, { at: number; data: ComplexSummary[] }>();
-const txCache = new Map<string, { at: number; data: ComplexTransactionRecord[] }>();
+/**
+ * 거래 이력 캐시. `fetched` 는 **그때 서버에 요청한 행 수**다 — 캐시된 배열 길이가
+ * 아니다. 둘을 헷갈리면 조용히 잘린 답을 준다:
+ *   limit=30 으로 먼저 부르면 120행을 받아 캐시한다. 뒤이어 limit=400 으로 부르면
+ *   예전 코드는 캐시 적중으로 판단해 120행만 돌려줬고, 호출부는 그게 전부인 줄 알고
+ *   "최근 12개월 120건"이라 적었다(실제로는 236건).
+ * 그래서 요청량이 캐시 때보다 크면 다시 받는다. 단, 지난번에 요청한 것보다 **적게**
+ * 돌아왔다면 그게 이 단지의 전부이므로 재조회하지 않는다.
+ */
+const txCache = new Map<
+  string,
+  { at: number; fetched: number; data: ComplexTransactionRecord[] }
+>();
 
 function cacheGet<T>(map: Map<string, { at: number; data: T }>, key: string): T | null {
   const hit = map.get(key);
@@ -194,36 +232,41 @@ function derivePerPyeong(rec: ComplexTransactionRecord): number | null {
   return null;
 }
 
-/** 구 단위 최근 거래 원본 조회 (최신순, 최대 sampleLimit 행) */
+/**
+ * 구 단위 최근 거래 원본 조회 (최신순, 최대 sampleLimit 행).
+ *
+ * 조회가 실패하면 던진다. 예전에는 빈 배열을 돌려줬는데, 그러면 화면이
+ * "이 지역의 단지별 실거래 데이터를 준비 중입니다"를 띄운다 — 데이터는 이미
+ * 수십만 건 있는데 잠깐 못 읽었을 뿐인 상황에서 방문자와 크롤러 모두에게
+ * 거짓을 말하는 문장이다. 빈 배열은 "정말로 거래가 없다"만 뜻하게 둔다.
+ *
+ * 서비스 키가 없는 경우(CI 프리렌더)는 장애가 아니므로 그대로 빈 배열이다.
+ */
 async function fetchDistrictTransactions(
   region: ComplexTxRegion,
   sampleLimit: number,
 ): Promise<ComplexTransactionRecord[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("market_transactions")
-      .select(TX_SELECT)
-      .in("region_name", transactionRegionCandidates(region))
-      .eq("transaction_type", "trade")
-      .eq("is_cancelled", false)
-      .eq("property_type", "apartment")
-      .not("deal_amount_krw", "is", null)
-      .order("contract_ym", { ascending: false })
-      .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(sampleLimit);
-    if (error || !data) {
-      if (error) logger.warn("[complex-transactions] fetchDistrictTransactions", error.message);
-      return [];
-    }
-    return (data as RawTxRow[])
-      .map(toRecord)
-      .filter((r): r is ComplexTransactionRecord => r !== null);
-  } catch (e) {
-    logger.warn("[complex-transactions] fetchDistrictTransactions", e);
-    return [];
+  const { data, error } = await sb
+    .from("market_transactions")
+    .select(TX_SELECT)
+    .in("region_name", transactionRegionCandidates(region))
+    .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
+    .eq("property_type", "apartment")
+    .not("deal_amount_krw", "is", null)
+    .order("contract_ym", { ascending: false })
+    .order("contract_day", { ascending: false, nullsFirst: false })
+    .limit(sampleLimit);
+  if (error || !data) {
+    throw new Error(
+      `[complex-transactions] ${region.id} 실거래 조회 실패${error?.message ? `: ${error.message}` : ""}`,
+    );
   }
+  return (data as RawTxRow[])
+    .map(toRecord)
+    .filter((r): r is ComplexTransactionRecord => r !== null);
 }
 
 /* ---------- 공개 로더 ---------- */
@@ -326,8 +369,17 @@ export async function listComplexTransactions(
   limit = 30,
 ): Promise<ComplexTransactionRecord[]> {
   const cacheKey = `${region.id}|${complexName}`;
-  const cached = cacheGet(txCache, cacheKey);
-  if (cached) return cached.slice(0, limit);
+  const want = Math.max(limit, 120); // 면적대·월별 집계용 여유분 확보
+  const hit = txCache.get(cacheKey);
+  if (
+    hit &&
+    Date.now() - hit.at < CACHE_TTL_MS &&
+    // 지난번에 이만큼 이상 요청했거나(= 충분히 담겨 있다),
+    // 요청보다 적게 돌아왔거나(= 이 단지 거래는 그게 전부다)
+    (hit.fetched >= want || hit.data.length < hit.fetched)
+  ) {
+    return hit.data.slice(0, limit);
+  }
 
   const sb = getServiceSupabase();
   if (!sb) return [];
@@ -343,7 +395,7 @@ export async function listComplexTransactions(
       .not("deal_amount_krw", "is", null)
       .order("contract_ym", { ascending: false })
       .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(Math.max(limit, 120)); // 면적대·월별 집계용 여유분 확보
+      .limit(want);
     if (error || !data) {
       if (error) logger.warn("[complex-transactions] listComplexTransactions", error.message);
       return [];
@@ -351,7 +403,7 @@ export async function listComplexTransactions(
     const rows = (data as RawTxRow[])
       .map(toRecord)
       .filter((r): r is ComplexTransactionRecord => r !== null);
-    txCache.set(cacheKey, { at: Date.now(), data: rows });
+    txCache.set(cacheKey, { at: Date.now(), fetched: want, data: rows });
     return rows.slice(0, limit);
   } catch (e) {
     logger.warn("[complex-transactions] listComplexTransactions", e);

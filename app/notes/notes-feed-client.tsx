@@ -287,10 +287,13 @@ function FeedGlyph({ active }: { active: boolean }) {
 export function NotesFeedClient({
   notes,
   mine = false,
+  loadError = null,
 }: {
   notes: FeedNote[];
   /** 내 노트 뷰(?mine=1) — 세션 사용자의 노트(비공개 포함) */
   mine?: boolean;
+  /** 조회 자체가 실패했을 때의 사유. "노트가 없다" 와 반드시 구분해 표시한다. */
+  loadError?: string | null;
 }) {
   const [filter, setFilter] = useState<Filter>("최신");
   const [view, setView] = useState<ViewMode>("grid");
@@ -316,7 +319,22 @@ export function NotesFeedClient({
               ? "내가 남긴 임장 기록 — 비공개 노트도 여기서만 보여요"
               : "이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요"}
           </p>
+          {!mine && (
+            <p className="mt-2 text-[12px]">
+              <Link href="/notes/best" className="font-bold text-primary underline">
+                이달의 공개 임장노트 — 선정 기준까지 공개 ›
+              </Link>
+            </p>
+          )}
         </div>
+
+        {/* 조회 실패 — 이 경우 "노트가 없다" 고 읽히면 안 되므로 빈 상태와 분리한다 */}
+        {loadError && (
+          <div className="rounded-[12px] border border-line bg-surface px-3.5 py-3 text-[12px] leading-[1.6] text-text-2">
+            공개 임장노트를 <strong className="text-ink">불러오지 못했습니다</strong>. 노트가
+            없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해 주세요.
+          </div>
+        )}
 
         {/* 스토리 줄 */}
         {visible.length > 0 && <StoryRail notes={visible} />}

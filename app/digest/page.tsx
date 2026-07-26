@@ -187,6 +187,14 @@ export default async function DigestPage() {
           )}
         </div>
 
+        {/* N23 — 이 페이지는 "최근 7일" 이라 어제 본 내용과 오늘 본 내용이 다르다.
+            그래서 이 주소는 인용할 수 없다. 주 단위로 고정된 아카이브를 따로 둔다. */}
+        <p className="rise-in-5 text-center text-[11px] text-text-3">
+          <Link href="/digest/archive" className="font-extrabold text-primary">
+            지난 주간 다이제스트 아카이브 ›
+          </Link>
+        </p>
+
         <p className="rise-in-5 text-center text-[10px] text-text-3">
           데이터 기준 시각 {asOfLabel(digest.generatedAt)}
           {digest.marketAsOf ? ` · 실거래 기준 ${digest.marketAsOf} (국토교통부)` : ""}

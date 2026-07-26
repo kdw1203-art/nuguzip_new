@@ -52,6 +52,12 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   /* A5 실거래 구간 인덱스 — 전 사용자 동일한 공개 집계(로그인 여부와 무관).
      라우트 자체가 revalidate 3600 이라 눈금을 맞춘다. */
   { path: "/tx", sMaxAge: 3600, swr: 86400 },
+  /* N10 단지 비교 허브 — 같은 성격의 공개 집계. 라우트 revalidate 와 눈금을 맞춘다. */
+  { path: "/complex/compare", sMaxAge: 3600, swr: 86400 },
+  /* N11 시장 온도 주간 기록 허브 — 크론이 하루 두 번 갱신하므로 같은 눈금(1시간)이면
+     충분하다. 지역별 상세는 동적 라우트라 여기 대상이 아니다(프리렌더 매니페스트에
+     없으면 check-cache-policy 가 실패한다). */
+  { path: "/analysis/temperature", sMaxAge: 3600, swr: 86400 },
 
   // 도구·안내 — 빌드 시 고정
   { path: "/calculator", ...STATIC_DOC },
@@ -60,6 +66,7 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/safety", ...STATIC_DOC },
   { path: "/methodology", ...STATIC_DOC },
   { path: "/glossary", ...STATIC_DOC },
+  { path: "/developers", ...STATIC_DOC },
   { path: "/reports", ...STATIC_DOC },
   { path: "/about", ...STATIC_DOC },
   { path: "/seller", ...STATIC_DOC },

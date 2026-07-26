@@ -71,6 +71,9 @@ const KNOWN_TYPES = new Set([
   "Offer",
   "AggregateOffer",
   "QuantitativeValue",
+  /* N20 — /developers 의 공개 집계 API. schema.org 정식 타입이다
+     (https://schema.org/WebAPI, Service 하위). */
+  "WebAPI",
 ]);
 
 /** 타입별 필수 필드 검사 — 통과 못 하면 검색엔진이 그 블록을 통째로 버린다. */

@@ -58,6 +58,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/analysis/price", priority: 0.6 },
   { path: "/analysis/scenario", priority: 0.6 },
   { path: "/analysis/timing", priority: 0.6 },
+  { path: "/analysis/temperature", priority: 0.6 },
   { path: "/analysis/portfolio", priority: 0.6 },
   { path: "/analysis/switch", priority: 0.6 },
   { path: "/town", priority: 0.8 },
@@ -69,6 +70,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/qna", priority: 0.6 },
   // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
   { path: "/complex/browse", priority: 0.8 },
+  // N10 — 단지 vs 단지 비교 허브 (하위 조합은 아래 pairEntries 로 개별 등록)
+  { path: "/complex/compare", priority: 0.7 },
   // 지역 × 면적대·가격대 실거래 랜딩 인덱스 (A5) — 하위는 아래 bandEntries 로 개별 등록
   { path: "/tx", priority: 0.8 },
   // 실매물 (집주인 직접·중개사 등록) + 중개사 제휴 안내
@@ -103,6 +106,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/safety", priority: 0.4 },
   { path: "/methodology", priority: 0.5 }, // G18 — 데이터 방법론 (EEAT·GEO 인용 근거)
   { path: "/glossary", priority: 0.5 }, // S14 — 정의형 용어사전
+  { path: "/developers", priority: 0.4 }, // N20 — 공개 집계 JSON API 문서
   { path: "/reports", priority: 0.6 }, // S11 — 월간 실거래 리포트 허브
   { path: "/about", priority: 0.4 }, // G22 — 소개·운영 원칙
   // 법적 고지 허브 + 하위 8종 (감사 P1-11)
@@ -172,7 +176,7 @@ export function loadStaticEntries(): MetadataRoute.Sitemap {
 export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
   return section("공개 임장노트", async () => {
     const notes = await listPublicNotes(200);
-    return notes
+    const noteEntries: MetadataRoute.Sitemap = notes
       .filter((n) => n.isPublic)
       .map((n) => {
         const at = n.updatedAt ? new Date(n.updatedAt) : null;
@@ -182,6 +186,19 @@ export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
           priority: 0.7,
         };
       });
+
+    /* N13 — 이달의 공개 임장노트. 위에서 읽은 노트로 그대로 계산한다(같은
+       질의를 두 번 던지지 않는다). 기준 미달로 만들어지지 않는 달은
+       bestNoteMonthsFrom 이 애초에 내보내지 않으므로, 사이트맵에 404 가
+       될 URL 이 실리지 않는다. */
+    const { bestNoteMonthsFrom } = await import("@/lib/inspection/best-notes");
+    const bestMonths = bestNoteMonthsFrom(notes);
+    if (bestMonths.length === 0) return noteEntries;
+    return [
+      ...noteEntries,
+      { url: `${BASE_URL}/notes/best`, priority: 0.6 },
+      ...bestMonths.map((m) => ({ url: `${BASE_URL}/notes/best/${m.ym}`, priority: 0.6 })),
+    ];
   });
 }
 
@@ -226,15 +243,90 @@ export async function loadBandEntries(): Promise<MetadataRoute.Sitemap> {
   });
 }
 
+/**
+ * N10 — 단지 vs 단지 비교. MV(market_agg.complex_pair_mv)에 있는 조합만 페이지가
+ * 존재하므로, 여기 실리는 URL 은 전부 200 이 나오는 페이지다.
+ *
+ * lastModified 는 `last_data_at`(그 단지 거래를 마지막으로 수집한 시각)을 쓴다.
+ * 계약월(last_contract_ym)은 월 단위라 "언제 바뀌었나"를 말하기엔 너무 거칠고,
+ * 수집 시각은 실제로 이 페이지의 내용이 갱신될 수 있었던 시점이다.
+ */
+export async function loadPairEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("단지 비교", async () => {
+    const { listComplexPairs, complexPairPath } = await import("@/lib/market/complex-pairs");
+    const pairs = await listComplexPairs();
+    return pairs.map((p) => ({
+      url: `${BASE_URL}${complexPairPath(p)}`,
+      ...(p.lastDataAt ? { lastModified: p.lastDataAt } : {}),
+      priority: 0.6,
+    }));
+  });
+}
+
+/**
+ * N11 — 시장 온도 주간 기록의 지역별 페이지.
+ *
+ * 아카이브에 **한 주라도 값이 있는 지역만** 싣는다. 대상 지역 목록
+ * (TEMPERATURE_REGIONS)을 그대로 쓰면 지수 시계열이 부족해 아직 점수를 만들지
+ * 못한 지역까지 광고하게 되는데, 그 페이지는 "아직 기록이 없습니다"만 적고
+ * noindex 로 나간다 — 크롤러를 빈 페이지로 부르는 셈이다.
+ *
+ * lastModified 를 적지 않는 이유: 이 페이지의 내용은 "그 지역의 주간 기록 전체"라
+ * 마지막 주의 날짜(week_start)는 내용이 바뀐 시각이 아니라 관측 구간의 이름이다.
+ * 정확한 갱신 시각을 알려면 지역마다 observed_at 최댓값을 따로 읽어야 하는데,
+ * 사이트맵 한 번에 62번의 추가 조회를 붙일 만한 값어치가 없다. 추측한 날짜를
+ * 적느니 생략한다(정적 라우트와 같은 원칙).
+ */
+export async function loadTemperatureEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("시장 온도 주간 기록", async () => {
+    const { listArchivedRegionIds } = await import("@/lib/market/temperature-archive");
+    const ids = await listArchivedRegionIds();
+    return ids.map((id) => ({
+      url: `${BASE_URL}/analysis/temperature/${encodeURIComponent(id)}`,
+      priority: 0.6,
+    }));
+  });
+}
+
+/**
+ * N23 — 주간 다이제스트 아카이브.
+ *
+ * 완결된 주 중 수집 항목이 기준을 넘긴 주만 나온다(lib/digest/archive.ts).
+ * 페이지가 404 로 답할 URL 을 사이트맵에 넣지 않는다는 원칙은 여기서도 같다.
+ * lastmod 는 적지 않는다 — 주 페이지의 내용은 그 주가 끝난 뒤에는 사실상
+ * 바뀌지 않고, 주소의 날짜가 이미 관측 구간을 말해 주기 때문이다.
+ */
+export async function loadDigestEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("주간 다이제스트 아카이브", async () => {
+    const { listDigestWeeks } = await import("@/lib/digest/archive");
+    const weeks = await listDigestWeeks();
+    if (weeks.length === 0) return [];
+    return [
+      { url: `${BASE_URL}/digest/archive`, priority: 0.6 },
+      ...weeks.map((w) => ({ url: `${BASE_URL}/digest/${w.slug}`, priority: 0.5 })),
+    ];
+  });
+}
+
 /** S11 — 월간 실거래 리포트 (데이터 있는 달만 — 빈 리포트 URL 을 넣지 않는다) */
 export async function loadReportEntries(): Promise<MetadataRoute.Sitemap> {
   return section("월간 실거래 리포트", async () => {
     const { listReportMonths } = await import("@/lib/reports/monthly");
+    const { listSeasonAvailability } = await import("@/lib/reports/seasonal");
     const months = await listReportMonths();
-    return months.map((m) => ({
-      url: `${BASE_URL}/reports/${m.ym}`,
-      priority: 0.7,
-    }));
+    /* N12 — 계절 리포트는 같은 월 요약에서 순수 계산으로 나오므로 조회가 늘지
+       않는다. 관측된 계절(모든 달이 확정 집계된 해가 1개 이상)만 싣는다 —
+       페이지가 404 로 답할 URL 을 사이트맵에 넣지 않는다. */
+    return [
+      ...months.map((m) => ({
+        url: `${BASE_URL}/reports/${m.ym}`,
+        priority: 0.7,
+      })),
+      ...listSeasonAvailability(months).map((s) => ({
+        url: `${BASE_URL}/reports/season/${s.def.slug}`,
+        priority: 0.6,
+      })),
+    ];
   });
 }
 

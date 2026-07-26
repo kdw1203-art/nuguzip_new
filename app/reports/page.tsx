@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { listReportMonths, formatYmKo, type ReportMonthSummary } from "@/lib/reports/monthly";
+import { listSeasonAvailability, type SeasonAvailability } from "@/lib/reports/seasonal";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
 
@@ -26,6 +27,11 @@ export const revalidate = 3600;
 
 type ReportsIndexData = {
   months: ReportMonthSummary[];
+  /**
+   * N12 — 계절 리포트 중 "관측된" 것만. 월 요약만으로 판정되는 순수 계산이라
+   * 조회가 추가로 늘지 않는다.
+   */
+  seasons: SeasonAvailability[];
   /** 조회 자체가 실패한 사유. null 이면 "읽었고 결과가 이만큼" 이라는 뜻이다. */
   loadError: string | null;
 };
@@ -36,14 +42,15 @@ type ReportsIndexData = {
  */
 const loadReportsIndex = cache(async (): Promise<ReportsIndexData> => {
   try {
-    return { months: await listReportMonths(), loadError: null };
+    const months = await listReportMonths();
+    return { months, seasons: listSeasonAvailability(months), loadError: null };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     logger.error(
       "[/reports] 월간 집계를 읽지 못했습니다 — 리포트가 없는 것이 아니라 조회가 실패했습니다:",
       message,
     );
-    return { months: [], loadError: message };
+    return { months: [], seasons: [], loadError: message };
   }
 });
 
@@ -60,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ReportsIndexPage() {
-  const { months, loadError } = await loadReportsIndex();
+  const { months, seasons, loadError } = await loadReportsIndex();
 
   return (
     <PageShell breadcrumb="월간 실거래 리포트">
@@ -103,6 +110,38 @@ export default async function ReportsIndexPage() {
           <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] text-text-3">
             아직 집계된 월이 없어요. 실거래 수집이 쌓이면 자동으로 생성됩니다.
           </div>
+        )}
+
+        {/* N12 — 계절(이사철) 검증 리포트. 계절의 모든 달이 확정 집계된 해가
+            하나라도 있어야 목록에 나온다. 절반만 모인 계절은 만들지 않는다. */}
+        {seasons.length > 0 && (
+          <section className="rise-in-4 mt-8">
+            <h2 className="text-[17px] font-extrabold text-ink">이사철 통념 검증 리포트</h2>
+            <p className="mt-1.5 text-[13px] leading-[1.7] text-text-2">
+              &ldquo;2~3월은 이사철이라 거래가 몰린다&rdquo; 같은 말을 실거래 신고 집계로
+              확인합니다. 같은 해 다른 달과 <strong className="text-ink">같은 지역끼리만</strong>{" "}
+              비교하며, 신고가 진행 중인 잠정 월은 넣지 않습니다.
+            </p>
+            <div className="mt-3 flex flex-col gap-3">
+              {seasons.map((s) => (
+                <Link
+                  key={s.def.slug}
+                  href={`/reports/season/${s.def.slug}`}
+                  className="card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
+                >
+                  <span>
+                    <span className="block text-[15px] font-extrabold text-ink">
+                      {s.def.label} ({s.def.monthsLabel})
+                    </span>
+                    <span className="mt-0.5 block text-[12px] text-text-3">{s.def.claim}</span>
+                  </span>
+                  <span className="shrink-0 pl-3 text-[12px] font-semibold text-text-3">
+                    {s.observedYears.map((y) => `${y}년`).join(" · ")} ›
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
         )}
       </div>
     </PageShell>

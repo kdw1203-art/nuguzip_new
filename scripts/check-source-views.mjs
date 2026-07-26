@@ -17,9 +17,11 @@
  * 각 뷰를 anon 과(키가 있으면) service_role 로 한 번씩 실제로 조회한다.
  *
  * ── 판정 규칙 ──────────────────────────────────────────────────────────
- *   PostgREST 오류(42501 등)  → FAIL. 이게 이 게이트의 존재 이유다.
+ *   PostgREST 4xx 오류(42501 등) → FAIL. 이게 이 게이트의 존재 이유다.
  *   행 0개                    → PASS + 경고. 권한 문제와 다르며, 계절적으로
  *                               정말 빌 수 있는 뷰도 있으므로 배포를 막지 않는다.
+ *   5xx                       → SKIP. 권한이 아니라 가용성 문제다. 서버가 답을
+ *                               못 만든 것이므로 "읽을 수 있는가"에 아무 답도 없다.
  *   네트워크 도달 불가         → SKIP. 샌드박스·오프라인 러너에서 깨끗이 물러난다
  *                               (없는 사실을 지어내지 않고 "확인 못 함"이라 적는다).
  *   키 없음                   → SKIP.
@@ -62,6 +64,15 @@ const VIEWS = [
   { name: "tx_band_complex_source", roles: ["anon", "service"], note: "/tx/[region]/[kind]/[band]" },
   { name: "map_price_point_source", roles: ["service"], note: "/api/map/clusters" },
   { name: "complex_sitemap_source", roles: ["service"], note: "/sitemap-complexes.xml" },
+  {
+    /* 빌드 시 prerender 가 getReadOnlySupabase() 로 읽는다. 배포 빌드 환경에는
+       SUPABASE_SERVICE_ROLE_KEY 가 없어 실제로는 anon 으로 나가므로, anon 권한이
+       빠지면 정적 HTML 에 "데이터 없음" 이 그대로 구워진다 — anon 도 검사한다.
+       (밑단 GRANT: 20260726061500_restore_market_agg_mv_grants.sql) */
+    name: "complex_pair_source",
+    roles: ["anon", "service"],
+    note: "/complex/compare · /complex/compare/[slug] · /sitemap-pairs.xml",
+  },
 ];
 
 const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");
@@ -152,6 +163,22 @@ for (const view of VIEWS) {
       const detail = [pg.message, pg.code && `[${pg.code}]`, pg.hint && `힌트: ${pg.hint}`]
         .filter(Boolean)
         .join(" ");
+      /* 5xx 는 권한 문제가 아니다 — 서버가 답을 못 만든 것이다.
+         이 게이트가 답해야 하는 질문은 "이 롤이 이 뷰를 읽을 수 있는가" 하나뿐인데,
+         5xx 는 그 질문에 아무 답도 주지 않는다. 실제로 2026-07-26, DB 가 디스크 I/O
+         로 막혀 PostgREST 가 JSON 본문을 단 503(57014 statement timeout)을 뿜자
+         이 블록이 그걸 권한 실패로 세어 배포를 통째로 막았다. GRANT 는 멀쩡했다.
+         권한 오류는 401/403(42501)으로 오지 5xx 로 오지 않으므로, 5xx 는
+         "확인 못 함"(SKIP)이다 — 초록으로 위장하지도, 헛되이 막지도 않는다. */
+      if (res.status >= 500) {
+        networkDown = true;
+        console.warn(
+          `${TAG} SKIP — Supabase 가 요청을 처리하지 못했습니다 (HTTP ${res.status} — ${detail}). ` +
+            `권한이 아니라 가용성 문제입니다. 권한을 확인하지 못했습니다 — ` +
+            `"이상 없음" 이 아니라 "확인 못 함" 입니다.`,
+        );
+        break;
+      }
       failures.push(`${view.name} (${role}) HTTP ${res.status} — ${detail} · 쓰는 곳: ${view.note}`);
       continue;
     }

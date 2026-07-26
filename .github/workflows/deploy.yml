@@ -25,9 +25,24 @@ permissions:
   contents: read
   issues: write
 
+# 같은 브랜치의 배포는 한 번에 하나만. 새 푸시가 오면 앞선 실행을 취소한다.
+#
+# 이걸 넣는 이유(2026-07-26 실제 사고): DB 가 느려진 사이 시작된 배포 실행이
+# 링크 점검 단계에서 3시간 동안 멈춰 있었다. 그 뒤에 최신 코드로 배포가 성공해도,
+# 멈춰 있던 옛 실행이 나중에 깨어나 성공하면 **두 단계 전 코드가 운영에 덮인다.**
+# 동시 실행 그룹이 없으면 "나중에 끝난 쪽이 이긴다"가 되어 배포 순서가 커밋
+# 순서와 무관해진다. cancel-in-progress 로 항상 최신 커밋이 이기게 만든다.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # 기본값은 360분이다. 링크 점검이 멈추면 러너 하나를 6시간 붙잡고 있다가
+    # 실패하는데, 그 6시간 동안 아무도 "멈췄다"는 사실을 알 수 없다.
+    # 정상 배포는 10분 안쪽이므로 35분이면 넉넉하고, 넘으면 그건 고장이다.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,6 +62,13 @@ jobs:
       # 검사용 next build를 1회 별도 수행 (빌드 2회 허용 — 안정성 우선)
       - name: Install dependencies
         run: npm ci
+      # ---- 시크릿 스캐너 표식 재확인 (로컬에서도 같은 검사를 돌릴 수 있게) ----
+      # 위 gitleaks 스텝은 CI 에서만 돈다. 그래서 2026-07-26 에 주석 속 PEM 머리글
+      # 한 줄이 배포를 51초 만에 죽였는데, 로그를 열기 전에는 원인이 안 보였다.
+      # 같은 규칙을 npm run check:secret-markers 로 로컬에서 돌릴 수 있게 해 두고,
+      # 여기서도 한 번 더 확인한다 — 두 검사가 어긋나면 그 자체가 신호다.
+      - name: Secret marker lint (local-runnable mirror)
+        run: node scripts/check-secret-markers.mjs
       # ---- 정적 린트: drop 한 뷰/MV 에 GRANT 를 다시 줬는가 ----
       # DROP MATERIALIZED VIEW 는 GRANT 를 같이 지우는데 CREATE OR REPLACE 가 없어
       # 재부여를 잊기 쉽다. 2026-07-25 에 이걸 빠뜨려 /tx 가 하루 죽었다.
@@ -61,6 +83,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/check-source-views.mjs
       - name: Build for link check
+        # prerender 는 DB 를 읽는다. DB 가 느려지면 빌드가 조용히 길어지는데,
+        # 잡 상한(35분)만 있으면 "빌드가 먹었다"는 사실이 로그 끝까지 가야 보인다.
+        # 정상 빌드는 5분 안쪽이다 — 15분을 넘으면 그건 고장이다.
+        # (조회 자체의 상한은 lib/newui/supabase-read.ts 에 요청당 25초로 있다.)
+        timeout-minutes: 15
         shell: bash
         run: |
           set -o pipefail
@@ -95,6 +122,9 @@ jobs:
       - name: Cache policy check
         run: node scripts/check-cache-policy.mjs
       - name: Link integrity check
+        # 스텝 단위 상한도 따로 둔다. 잡 상한(35분)만 있으면 어느 스텝이 잡아먹었는지
+        # 로그를 끝까지 뒤져야 알 수 있는데, 여기서 끊기면 원인이 바로 드러난다.
+        timeout-minutes: 12
         run: |
           npx next start -p 3100 &
           SERVER_PID=$!

@@ -5,11 +5,14 @@ import { logger } from "@/lib/log";
 import {
   loadBandEntries,
   loadComplexEntries,
+  loadDigestEntries,
   loadGlossaryEntries,
   loadNoteEntries,
+  loadPairEntries,
   loadRegionEntries,
   loadReportEntries,
   loadStaticEntries,
+  loadTemperatureEntries,
   serializeSitemap,
 } from "@/lib/seo/build-sitemap";
 import { capSitemapUrls } from "@/lib/seo/sitemap-entries";
@@ -74,9 +77,23 @@ export const SITEMAP_SECTIONS: readonly SitemapSection[] = [
   { slug: "complexes", label: "단지", required: true, load: loadComplexEntries },
   { slug: "regions", label: "지역 허브", required: true, load: loadRegionEntries },
   { slug: "tx", label: "실거래 구간", required: true, load: loadBandEntries },
+  /* 단지 비교를 required 로 두는 이유: 조합의 통과 기준(같은 동 · 양쪽 12개월
+     20건 이상 · 동별 상위 3개)은 서울·수도권 62개 구를 훑어 669개 조합을 남긴다.
+     이 숫자가 0 이 되는 현실적인 경로는 "거래가 전부 사라졌다"가 아니라
+     "조회가 실패했다"뿐이다. 그러니 0개는 실패로 다루는 편이 사실에 가깝다. */
+  { slug: "pairs", label: "단지 비교", required: true, load: loadPairEntries },
   { slug: "reports", label: "월간 리포트", required: false, load: loadReportEntries },
   { slug: "notes", label: "공개 임장노트", required: false, load: loadNoteEntries },
   { slug: "glossary", label: "용어사전", required: true, load: loadGlossaryEntries },
+  /* N11 시장 온도를 required 로 두지 않는 이유: 이 유형은 주간 스냅샷 크론이 한 번
+     이라도 돌아야 행이 생긴다. 첫 실행 전에는 0개가 **사실**이고, 그때 503 을 내면
+     "지금은 못 준다"는 거짓말이 된다. 크론이 도는 순간부터는 62개 언저리로 채워지고,
+     그 뒤에 0 이 되면 required 여부와 무관하게 인덱스에서 빠지면서 드러난다. */
+  { slug: "temperature", label: "시장 온도 주간 기록", required: false, load: loadTemperatureEntries },
+  /* N23 주간 아카이브도 required 가 아니다. 아카이브는 **완결된** 주만 싣고
+     항목이 기준 미만인 주는 아예 만들지 않으므로, 수집이 막 시작된 시기에는
+     0개가 사실이다. 그때 503 을 내면 "지금은 못 준다"는 거짓이 된다. */
+  { slug: "digest", label: "주간 다이제스트 아카이브", required: false, load: loadDigestEntries },
 ];
 
 const SECTION_BY_SLUG = new Map(SITEMAP_SECTIONS.map((s) => [s.slug, s]));

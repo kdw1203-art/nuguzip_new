@@ -17,6 +17,24 @@ try {
 }
 
 const BASE = `http://localhost:${process.env.PORT || 3100}`;
+
+/* 요청 하나당 상한 20초.
+   전에는 상한이 없었다. 2026-07-26 에 DB 가 느려졌을 때 동적 라우트 하나가
+   응답을 영원히 붙잡았고, 순차 크롤이라 배포 실행 전체가 3시간을 멈춰 있었다.
+
+   그리고 **타임아웃을 "끊긴 링크 아님"으로 넘기지 않는다.** 응답을 못 받은 것은
+   200 이 아니고 404 도 아니다 — "확인하지 못했다"는 별도의 사실이고, 배포를
+   막아야 하는 상태다. 아래에서 코드 0 으로 남겨 broken 에 들어가게 둔다. */
+const REQ_TIMEOUT_MS = 20_000;
+async function get(path, init) {
+  try {
+    return await fetch(BASE + path, { ...init, signal: AbortSignal.timeout(REQ_TIMEOUT_MS) });
+  } catch (err) {
+    const why = err?.name === "TimeoutError" ? `응답 없음(${REQ_TIMEOUT_MS / 1000}초 초과)` : err?.message;
+    console.log(`  ! ${path} — ${why}`);
+    return null;
+  }
+}
 const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '/map', '/search', '/notifications', '/messages',
   '/analysis', '/analysis/compare', '/analysis/cycle', '/analysis/price', '/analysis/scenario', '/analysis/timing', '/analysis/portfolio', '/analysis/switch',
   '/town', '/town/news', '/town/market', '/town/experts', '/town/groups', '/town/groups/mock-1',
@@ -32,14 +50,14 @@ const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '
 const seen = new Map(); const broken = [];
 async function check(path, from) {
   if (seen.has(path)) return seen.get(path);
-  const res = await fetch(BASE + path, { redirect: 'manual' }).catch(() => null);
+  const res = await get(path, { redirect: 'manual' });
   const code = res ? res.status : 0;
   seen.set(path, code);
   return code;
 }
 const linkSources = new Map();
 for (const s of seeds) {
-  const res = await fetch(BASE + s).catch(() => null);
+  const res = await get(s);
   if (!res || res.status !== 200) { broken.push([s, res ? res.status : 0, '(seed)']); continue; }
   const html = await res.text();
   const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]).filter(h => !h.startsWith('/_next') && !h.startsWith('/api'));
@@ -53,6 +71,10 @@ for (const [h, from] of linkSources) {
 console.log('총 검사 링크:', linkSources.size);
 if (broken.length) {
   console.log('끊긴 경로:');
-  broken.forEach(([p, c, f]) => console.log(`  ${c}  ${p}  (발견 위치: ${f})`));
+  // 코드 0 은 "404 를 받았다"가 아니라 "응답 자체를 못 받았다"는 뜻이다.
+  // 이 둘을 같은 줄로 적으면 로그를 보고 원인을 잘못 짚게 된다.
+  broken.forEach(([p, c, f]) =>
+    console.log(`  ${c === 0 ? '응답없음' : c}  ${p}  (발견 위치: ${f})`),
+  );
   process.exit(1); // CI 게이트: 끊긴 링크 발견 시 배포 중단
 } else console.log('끊긴 경로 0 ✓');

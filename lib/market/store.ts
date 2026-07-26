@@ -17,6 +17,28 @@ const SNAPSHOT_TTL_MS = 60 * 60 * 1000; // 1h
 let snapshotCache: { at: number; map: Map<string, RegionMarketSnapshot> } | null = null;
 let hasDataCache: { at: number; value: boolean } | null = null;
 
+/**
+ * 조회 실패는 "데이터 없음"이 아니다.
+ *
+ * 예전에는 이 파일의 지역 로더들이 PostgREST 오류를 삼키고 빈 값을 돌려줬다.
+ * 그러면 화면은 "데이터를 준비 중입니다"를 띄우고, /region/[id] 는 스냅샷이
+ * null 이라며 404 를 냈다. DB 가 잠깐 느려진 것뿐인데 크롤러에게 "이 지역
+ * 페이지는 없어졌다"고 확정 신고한 셈이다. 게다가 getAllRegionSnapshots 는
+ * 그 빈 결과를 한 시간 캐시까지 해서, 장애가 끝난 뒤에도 한 시간 동안 404 가
+ * 이어졌다.
+ *
+ * 그래서 실패는 던진다(→ 5xx = "지금은 못 준다, 나중에 다시 와라"). 빈 배열은
+ * 이제 "정말로 없다"만 뜻한다.
+ *
+ * 다만 `getServiceSupabase()` 가 null 인 경우는 던지지 않는다 — CI 프리렌더
+ * 환경에는 서비스 키가 없고, 그건 장애가 아니라 "이 환경에서는 못 읽는다"는
+ * 정상 상태다. 여기서 던지면 빌드가 깨진다.
+ */
+function throwQueryFailure(what: string, error: { message?: string } | null): never {
+  const detail = error?.message ? `: ${error.message}` : "";
+  throw new Error(`[market.store] ${what} 조회 실패${detail}`);
+}
+
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
@@ -270,10 +292,9 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
       "source,region_id,region_name,period,per_m2_sale,avg_sale,median_sale,jeonse_ratio,sale_change,trade_count,buy_superiority,jeonse_supply",
     )
     .eq("property_type", "apt");
-  if (error || !data) {
-    snapshotCache = { at: Date.now(), map };
-    return map;
-  }
+  /* 실패는 캐시하지 않는다. 예전에는 여기서 빈 맵을 캐시했고, 그 결과
+     getRegionSnapshot() 이 null → /region/[id] 가 404 를 한 시간 동안 냈다. */
+  if (error || !data) throwQueryFailure("market_region_price", error);
   // REB 우선: 같은 region_id 에 대해 reb 가 kb 를 덮어쓴다.
   const priority: Record<string, number> = { reb: 2, kb: 1, crawl: 0 };
   for (const row of data) {
@@ -373,7 +394,7 @@ export async function getRegionSeries(
     .eq("period_type", periodType)
     .order("period", { ascending: false })
     .limit(limit);
-  if (error || !data) return [];
+  if (error || !data) throwQueryFailure(`market_region_series(${regionId}/${metric})`, error);
   return data
     .map((r) => ({ period: String(r.period), value: Number(r.value) }))
     .reverse();
@@ -408,7 +429,12 @@ function transactionNameCandidates(regionId: string, regionName: string): string
   return [...out];
 }
 
-/** 지역 최근 아파트 매매 실거래 (계약일 내림차순). 실패 시 빈 배열. */
+/**
+ * 지역 최근 아파트 매매 실거래 (계약일 내림차순).
+ *
+ * 빈 배열은 "그 지역에 수집된 매매 실거래가 없다"만 뜻한다. 조회가 실패하면
+ * 던진다 — 예전처럼 빈 배열로 뭉개면 화면이 "거래가 없는 동네"라고 거짓말한다.
+ */
 export async function listRegionTransactions(
   regionId: string,
   regionName: string,
@@ -416,32 +442,27 @@ export async function listRegionTransactions(
 ): Promise<RegionTransactionRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("market_transactions")
-      .select("complex_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor")
-      .in("region_name", transactionNameCandidates(regionId, regionName))
-      .eq("transaction_type", "trade")
-      .eq("is_cancelled", false)
-      .eq("property_type", "apartment")
-      .not("deal_amount_krw", "is", null)
-      .order("contract_ym", { ascending: false })
-      .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(limit);
-    if (error || !data) return [];
-    return data.map((r) => ({
-      complexName: String(r.complex_name ?? "단지명 미상"),
-      address: r.address ? String(r.address) : null,
-      contractYm: String(r.contract_ym ?? ""),
-      contractDay: r.contract_day === null ? null : Number(r.contract_day),
-      dealAmountKrw: Number(r.deal_amount_krw),
-      areaM2: r.area_m2 === null ? null : Number(r.area_m2),
-      floor: r.floor === null ? null : Number(r.floor),
-    }));
-  } catch (e) {
-    logger.warn("[market.store] listRegionTransactions", e);
-    return [];
-  }
+  const { data, error } = await sb
+    .from("market_transactions")
+    .select("complex_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor")
+    .in("region_name", transactionNameCandidates(regionId, regionName))
+    .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
+    .eq("property_type", "apartment")
+    .not("deal_amount_krw", "is", null)
+    .order("contract_ym", { ascending: false })
+    .order("contract_day", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error || !data) throwQueryFailure(`market_transactions(${regionId})`, error);
+  return data.map((r) => ({
+    complexName: String(r.complex_name ?? "단지명 미상"),
+    address: r.address ? String(r.address) : null,
+    contractYm: String(r.contract_ym ?? ""),
+    contractDay: r.contract_day === null ? null : Number(r.contract_day),
+    dealAmountKrw: Number(r.deal_amount_krw),
+    areaM2: r.area_m2 === null ? null : Number(r.area_m2),
+    floor: r.floor === null ? null : Number(r.floor),
+  }));
 }
 
 /* ---------- 지역 월별 거래량 (market_region_monthly 읽기 전용) ---------- */
@@ -466,33 +487,28 @@ export async function getRegionMonthlyVolume(
 ): Promise<RegionMonthlyVolumeRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("market_region_monthly")
-      .select("month, transaction_count, avg_deal_amount_krw, region_name")
-      .in("region_name", transactionNameCandidates(regionId, regionName))
-      .eq("deal_type", "trade")
-      .eq("property_type", "apartment")
-      .order("month", { ascending: false })
-      .limit(limit);
-    if (error || !data) return [];
-    // 같은 월에 표기 다른 후보명이 겹치면 건수 합산
-    const byMonth = new Map<string, RegionMonthlyVolumeRow>();
-    for (const r of data) {
-      const month = String(r.month ?? "");
-      if (!/^\d{6}$/.test(month)) continue;
-      const prev = byMonth.get(month);
-      const count = Number(r.transaction_count ?? 0);
-      const avg = r.avg_deal_amount_krw === null ? null : Number(r.avg_deal_amount_krw);
-      if (!prev) byMonth.set(month, { month, count, avgDealAmountKrw: avg });
-      else {
-        prev.count += count;
-        if (prev.avgDealAmountKrw === null) prev.avgDealAmountKrw = avg;
-      }
+  const { data, error } = await sb
+    .from("market_region_monthly")
+    .select("month, transaction_count, avg_deal_amount_krw, region_name")
+    .in("region_name", transactionNameCandidates(regionId, regionName))
+    .eq("deal_type", "trade")
+    .eq("property_type", "apartment")
+    .order("month", { ascending: false })
+    .limit(limit);
+  if (error || !data) throwQueryFailure(`market_region_monthly(${regionId})`, error);
+  // 같은 월에 표기 다른 후보명이 겹치면 건수 합산
+  const byMonth = new Map<string, RegionMonthlyVolumeRow>();
+  for (const r of data) {
+    const month = String(r.month ?? "");
+    if (!/^\d{6}$/.test(month)) continue;
+    const prev = byMonth.get(month);
+    const count = Number(r.transaction_count ?? 0);
+    const avg = r.avg_deal_amount_krw === null ? null : Number(r.avg_deal_amount_krw);
+    if (!prev) byMonth.set(month, { month, count, avgDealAmountKrw: avg });
+    else {
+      prev.count += count;
+      if (prev.avgDealAmountKrw === null) prev.avgDealAmountKrw = avg;
     }
-    return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
-  } catch (e) {
-    logger.warn("[market.store] getRegionMonthlyVolume", e);
-    return [];
   }
+  return [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
 }

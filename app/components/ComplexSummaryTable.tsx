@@ -25,10 +25,27 @@ function shortYm(ym: string): string {
 export function ComplexSummaryTable({
   summaries,
   regionId,
+  failed = false,
 }: {
   summaries: ComplexSummary[];
   regionId: string;
+  /**
+   * 조회 자체가 실패했는가.
+   *
+   * 예전에는 "0건"과 "못 읽었다"가 같은 문장("준비 중입니다")으로 나갔다. 앞은
+   * 사실이지만 뒤는 거짓이다 — 데이터는 있는데 잠깐 못 읽은 것뿐이기 때문이다.
+   * 호출부가 구분해서 넘긴다.
+   */
+  failed?: boolean;
 }) {
+  if (failed) {
+    return (
+      <p className="py-6 text-center text-[13px] leading-[1.7] text-text-3">
+        단지별 실거래를 지금 불러오지 못했습니다. 데이터가 없다는 뜻이 아니라 조회에
+        실패했다는 뜻입니다 — 잠시 후 새로고침해 주세요.
+      </p>
+    );
+  }
   if (summaries.length === 0) {
     return (
       <p className="py-6 text-center text-[13px] text-text-3">

@@ -53,6 +53,14 @@ const TOOLS = [
     sim: false,
   },
   {
+    href: "/analysis/temperature",
+    icon: "🌡",
+    title: "지역별 시장 온도 주간 기록",
+    desc: "매주 남긴 온도 기록으로 지금 값이 아니라 추세를 확인",
+    foot: "주간 기록 보기 ›",
+    sim: false,
+  },
+  {
     href: "/analysis/portfolio",
     icon: "💼",
     title: "포트폴리오 분석",

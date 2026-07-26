@@ -40,6 +40,7 @@
     "check:tx-filters": "node ./scripts/check-tx-filters.mjs",
     "check:source-views": "node ./scripts/check-source-views.mjs",
     "check:migration-grants": "node ./scripts/check-migration-grants.mjs",
+    "check:secret-markers": "node ./scripts/check-secret-markers.mjs",
     "seed:public-data-bundled": "node ./scripts/seed-public-data-bundled.mjs",
     "generate:vapid": "node ./scripts/generate-vapid-keys.mjs",
     "generate:vapid:force": "node ./scripts/generate-vapid-keys.mjs --force",
