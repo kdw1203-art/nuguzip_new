@@ -1,0 +1,69 @@
+# 데이터 백필 — 수동 실행 전용 (GitHub → Actions → Data Backfill → Run workflow)
+#
+# 왜 별도 워크플로인가: etl.yml 의 일일 예산은 "매일 조금씩"용이다. 지오코딩 좌표와
+# 과거 실거래처럼 한 번에 크게 메워야 체감이 바뀌는 데이터는 이 워크플로를 손으로
+# 눌러 몰아서 채운다. 모든 라우트가 "이미 채워진 조합은 건너뛰기"라 중간에 끊겨도
+# 다시 실행하면 이어서 진행된다(재실행 안전).
+#
+# ⚠️ MOLIT 공공데이터 키의 일일 트래픽 한도를 확인할 것. 개발계정(일 1,000회)이면
+#    months=3 이하로 나눠 며칠에 걸쳐 실행하는 편이 안전하다. 운영계정이면 6~12 가능.
+name: Data Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "실거래 백필 개월 수 (직전월부터 거슬러)"
+        default: "6"
+        required: true
+      geocode_rounds:
+        description: "지오코딩 배치 횟수 (회당 500단지)"
+        default: "10"
+        required: true
+      detail_rounds:
+        description: "단지 상세 배치 횟수 (회당 300단지)"
+        default: "4"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Run backfill
+        env:
+          CRS: ${{ secrets.CRON_SECRET }}
+        shell: bash
+        run: |
+          set -o pipefail
+          hit() { # name url — 소프트 호출, 본문 앞부분만 로그
+            echo "== $1 =="
+            curl -sS --max-time 290 -H "x-cron-secret: $CRS" "$2" | head -c 600 || true
+            echo
+          }
+
+          # 1) 지오코딩 몰아치기 — 주소 우선 다단 쿼리, 회당 500단지.
+          #    대상이 소진되면 라우트가 빠르게 0건으로 돌아오므로 라운드 낭비가 작다.
+          for i in $(seq 1 ${{ github.event.inputs.geocode_rounds }}); do
+            hit "geocode round $i" "https://nuguzip.com/api/cron/geocode-complexes?limit=500"
+          done
+
+          # 2) 단지 상세(좌표·주차·건설사) 몰아치기 — 회당 300단지, detailFetchedAt 스탬프로 이어달리기.
+          for i in $(seq 1 ${{ github.event.inputs.detail_rounds }}); do
+            hit "apt-detail round $i" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=300"
+          done
+
+          # 3) 과거 실거래 백필 — 직전월부터 N개월, 월마다 시군구 슬라이스 0..4 (size=60 → 최대 300곳).
+          #    이미 채워진 (시군구, 계약월) 조합은 라우트가 건너뛴다.
+          for m in $(seq 1 ${{ github.event.inputs.months }}); do
+            YM=$(date -u -d "-$m month" +%Y%m)
+            for s in 0 1 2 3 4; do
+              hit "molit $YM slice $s" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$YM&slice=$s&size=60"
+            done
+          done
+
+          # 4) 집계 MV 재계산 — 적재가 끝난 뒤 한 번.
+          hit "market-agg refresh" "https://nuguzip.com/api/cron/market-aggregates-refresh"
