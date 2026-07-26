@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getServiceSupabase } from "@/lib/supabase/service";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import {
   findComplexTxRegionByTransactionName,
   type ComplexTxRegion,
@@ -23,6 +23,25 @@ import {
  * 숫자·괄호·공백이 섞여 있어 두 순서가 갈릴 수 있다. 그래서 조회는 **두 방향을
  * 모두 받아들이고**(`.in()` 두 번), 정규 URL 은 조회로 돌아온 행이 정한다.
  * 이렇게 해야 콜레이션이 무엇이든 정규 주소가 하나로 수렴한다.
+ *
+ * ── getServiceSupabase() 가 아니라 getReadOnlySupabase() 인 이유 (2026-07-26 사고) ──
+ * 이 파일은 처음에 getServiceSupabase() 를 썼고, 그 때문에 운영 /complex/compare 가
+ * 배포 직후부터 한 시간 내내 이렇게 나갔다:
+ *
+ *   "비교 조합 목록을 불러오지 못했습니다.
+ *    비교할 단지가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다."
+ *
+ * DB 는 멀쩡했다(service_role 로 count → 669). 런타임 로그에도 오류가 한 줄도 없었다.
+ * 실패한 건 **빌드**다. /complex/compare 는 `revalidate = 3600` 이라 배포 산출물에
+ * 프리렌더되는데, 프로덕션 빌드를 돌리는 GitHub Actions 의 `vercel build --prod`
+ * 환경에는 SUPABASE_SERVICE_ROLE_KEY 가 없다. 클라이언트가 null → 로더가 던짐 →
+ * **실패 화면이 HTML 에 그대로 구워져** 다음 재검증까지 모든 방문자·크롤러에게 나갔다.
+ *
+ * lib/market/tx-bands.ts 주석에 같은 사고가 이미 두 번 적혀 있고, 거기서 얻은 결론이
+ * getReadOnlySupabase() 다 — Service Role 이 있으면 그대로 쓰고(운영 런타임 동작 불변)
+ * 없을 때만 publishable 키로 폴백한다. 폴백이 실제로 읽으려면 anon 이 MV 와 뷰 양쪽에
+ * SELECT 를 들고 있어야 한다(security_invoker = on 이라 바깥 뷰 GRANT 만으로는 안 된다).
+ * 그 권한은 supabase/migrations/20260726140000_public_read_for_build_prerender.sql 에 있다.
  */
 
 export interface ComplexPair {
@@ -175,8 +194,10 @@ export async function findComplexPair(
   nameX: string,
   nameY: string,
 ): Promise<ComplexPair | null> {
-  const sb = getServiceSupabase();
-  if (!sb) throw new Error("complex_pair_source: 서비스 롤 키가 없어 조회할 수 없습니다.");
+  const sb = getReadOnlySupabase();
+  if (!sb) {
+    throw new Error("complex_pair_source: Supabase 읽기 키가 하나도 없어 조회할 수 없습니다.");
+  }
 
   const { transactionRegionCandidates } = await import("@/lib/market/complex-transactions");
   const { data, error } = await sb
@@ -212,8 +233,10 @@ const PAGE_SIZE = 1000;
  * 존재하지 않는다고 적극적으로 거짓말하는 셈이다).
  */
 export async function listComplexPairs(max = 10_000): Promise<ComplexPair[]> {
-  const sb = getServiceSupabase();
-  if (!sb) throw new Error("complex_pair_source: 서비스 롤 키가 없어 조회할 수 없습니다.");
+  const sb = getReadOnlySupabase();
+  if (!sb) {
+    throw new Error("complex_pair_source: Supabase 읽기 키가 하나도 없어 조회할 수 없습니다.");
+  }
 
   const out: ComplexPair[] = [];
   let from = 0;

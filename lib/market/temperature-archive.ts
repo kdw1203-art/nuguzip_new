@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
 import {
   TEMPERATURE_REGIONS,
@@ -83,11 +84,32 @@ const SELECT =
   "region_id,region_label,week_start,score,headline,period_type,momentum_pct,prior_pct," +
   "volume_recent_count,volume_prior_count,volume_delta_pct,index_latest,formula_version,observed_at";
 
+/**
+ * 읽기 전용 클라이언트 — Service Role 이 있으면 그대로, 없으면 publishable 키로 폴백.
+ *
+ * 왜 getServiceSupabase() 를 직접 쓰지 않나 (2026-07-26 /complex/compare 사고):
+ * /analysis/temperature 는 `revalidate = 3600` 이라 배포 산출물에 프리렌더된다.
+ * 그런데 프로덕션 빌드를 돌리는 GitHub Actions 의 `vercel build --prod` 환경에는
+ * SUPABASE_SERVICE_ROLE_KEY 가 없다. 서비스 키만 보면 빌드에서 클라이언트가 null →
+ * 로더가 던짐 → **실패 화면이 HTML 에 굳어** 다음 재검증(최대 1시간)까지 그대로 나간다.
+ * 이 페이지는 loadError 일 때 robots noindex 까지 붙이므로, 배포할 때마다 한 시간씩
+ * 색인에서 스스로 빠지는 셈이 된다. 같은 사고가 lib/market/tx-bands.ts 에 두 번,
+ * lib/market/complex-pairs.ts 에 한 번 기록돼 있다.
+ *
+ * 폴백이 실제로 행을 읽으려면 GRANT 와 RLS 정책이 둘 다 있어야 한다. 이 표는 RLS 가
+ * 켜져 있고 정책이 없었기 때문에 GRANT 만으로는 "권한은 있는데 0행"이 되어, 조회 실패가
+ * "기록 없음"으로 위장됐을 것이다. 권한·정책은
+ * supabase/migrations/20260726140000_public_read_for_build_prerender.sql 에 있다.
+ *
+ * 쓰기(runTemperatureSnapshot)는 폴백을 쓰지 않는다 — 쓰기 정책이 없으므로 anon 으로는
+ * 어차피 못 쓰고, 크론은 service_role 로만 돈다.
+ */
 function requireClient() {
-  const sb = getServiceSupabase();
+  const sb = getReadOnlySupabase();
   if (!sb) {
     throw new Error(
-      "Supabase 서비스 키가 없어 시장 온도 아카이브를 읽을 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY).",
+      "Supabase 읽기 키가 하나도 없어 시장 온도 아카이브를 읽을 수 없습니다 " +
+        "(SUPABASE_SERVICE_ROLE_KEY / NEXT_PUBLIC_SUPABASE_ANON_KEY).",
     );
   }
   return sb;
