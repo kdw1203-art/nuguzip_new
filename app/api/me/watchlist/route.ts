@@ -11,8 +11,12 @@ import {
   resolveQuotaPlan,
 } from "@/lib/subscriptions/usage-summary";
 import { withUserQuotaLock } from "@/lib/subscriptions/quota-lock";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
+
+/** 못 읽은 목록을 "등록한 단지가 없어요"로 그리지 않기 위한 안내. */
+const WATCHLIST_UNAVAILABLE = "지금은 관심 단지를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export async function GET(req: NextRequest) {
   const session = await safeAuth();
@@ -20,11 +24,19 @@ export async function GET(req: NextRequest) {
 
   const complexId = req.nextUrl.searchParams.get("complexId");
   if (complexId) {
-    const watching = await isWatching(session.user.email, complexId);
-    return NextResponse.json({ watching });
+    try {
+      const watching = await isWatching(session.user.email, complexId);
+      return NextResponse.json({ watching });
+    } catch (err) {
+      return dbUnavailable(`관심 등록 여부 조회 실패 (complex=${complexId})`, err, WATCHLIST_UNAVAILABLE);
+    }
   }
-  const list = await listWatchlist(session.user.email);
-  return NextResponse.json({ items: list });
+  try {
+    const list = await listWatchlist(session.user.email);
+    return NextResponse.json({ items: list });
+  } catch (err) {
+    return dbUnavailable("관심 단지 목록 조회 실패", err, WATCHLIST_UNAVAILABLE);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -44,11 +56,20 @@ export async function POST(req: NextRequest) {
   const email = session.user.email;
 
   return withUserQuotaLock(`watchlist:${email}`, async () => {
-    const [watching, plan] = await Promise.all([
-      isWatching(email, complexId),
-      resolveQuotaPlan(email, session.user.plan),
-    ]);
-    const quota = await checkWatchlistAddQuota(email, plan, watching);
+    /* 등록 여부·현재 개수를 못 읽은 채로 진행하면 한도 검사가 통째로 풀린다
+       (개수 0 = 전부 남음). 여기서는 넣지 않고 "지금은 못 한다"고 답한다. */
+    let watching: boolean;
+    let quota: Awaited<ReturnType<typeof checkWatchlistAddQuota>>;
+    try {
+      const [w, plan] = await Promise.all([
+        isWatching(email, complexId),
+        resolveQuotaPlan(email, session.user.plan),
+      ]);
+      watching = w;
+      quota = await checkWatchlistAddQuota(email, plan, watching);
+    } catch (err) {
+      return dbUnavailable(`관심 단지 한도 확인 실패 (complex=${complexId})`, err, WATCHLIST_UNAVAILABLE);
+    }
     if (!quota.allowed) {
       return NextResponse.json(quotaDeniedJson(quota.message, quota.requiredTier, quota.used, quota.limit), {
         status: 403,

@@ -10,6 +10,7 @@ import {
 } from "@/lib/inspection/store-db";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { followCounts } from "@/lib/follows/store-db";
+import { logger } from "@/lib/log";
 import { FollowButton } from "../../components/FollowButton";
 
 /* 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
@@ -139,13 +140,20 @@ export default async function PublicProfilePage({
     notFound();
   }
 
-  // 팔로워 수 실데이터 (user_follows) — 조회 실패 시 0
+  /* 팔로워 수 실데이터 (user_follows).
+     조회에 실패하면 `0` 이 아니라 null 이다 — "팔로워 0명"은 사실 주장이고,
+     못 셌다는 말과 바꿔 쓸 수 없다. 아래에서 null 은 "—"로 그린다.
+     팔로우할 대상 자체가 없는 경우(followEmail 없음)만 진짜 0 이다. */
   const followEmail = profile?.email || authored[0]?.authorEmail || "";
-  let followerCount = 0;
-  try {
-    followerCount = followEmail ? (await followCounts(followEmail)).followers : 0;
-  } catch {
-    followerCount = 0;
+  let followerCount: number | null = 0;
+  if (followEmail) {
+    followerCount = await followCounts(followEmail).then(
+      (c) => c.followers,
+      (err: unknown) => {
+        logger.error(`[u/[handle]] 팔로워 수 조회 실패 (${followEmail})`, err);
+        return null;
+      },
+    );
   }
 
   const grid: GridNote[] = authored.slice(0, 6).map((n) => ({
@@ -220,9 +228,11 @@ export default async function PublicProfilePage({
             </div>
             <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">
               <div className="text-[16px] font-extrabold text-ink">
-                {followerCount.toLocaleString("ko-KR")}
+                {followerCount === null ? "—" : followerCount.toLocaleString("ko-KR")}
               </div>
-              <div className="text-[10px] text-text-3">팔로워</div>
+              <div className="text-[10px] text-text-3">
+                {followerCount === null ? "팔로워 (못 불러옴)" : "팔로워"}
+              </div>
             </div>
           </div>
         </div>

@@ -17,8 +17,12 @@ import {
   resolveEmailByHandle,
 } from "@/lib/follows/store-db";
 import { applyRateLimit, WRITE_RATE_LIMIT, READ_RATE_LIMIT } from "@/lib/rate-limit";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
+
+/** 못 읽은 팔로우 상태를 "팔로우 안 함"·"0명"으로 답하지 않기 위한 안내. */
+const FOLLOWS_UNAVAILABLE = "지금은 팔로우 정보를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export async function GET(req: NextRequest) {
   const limited = await applyRateLimit(req, READ_RATE_LIMIT);
@@ -32,28 +36,40 @@ export async function GET(req: NextRequest) {
 
   const check = req.nextUrl.searchParams.get("check");
   if (check) {
-    const following = await isFollowing(myEmail, check);
-    return NextResponse.json({ following });
+    try {
+      const following = await isFollowing(myEmail, check);
+      return NextResponse.json({ following });
+    } catch (err) {
+      return dbUnavailable("팔로우 여부 조회 실패", err, FOLLOWS_UNAVAILABLE);
+    }
   }
 
   // 핸들(닉네임) 기준 확인 — 클라이언트에 이메일 노출 없이 상태 조회
   const checkHandle = req.nextUrl.searchParams.get("checkHandle");
   if (checkHandle) {
-    const email = await resolveEmailByHandle(checkHandle);
-    const following = email ? await isFollowing(myEmail, email) : false;
-    return NextResponse.json({ following });
+    try {
+      const email = await resolveEmailByHandle(checkHandle);
+      /* 핸들이 안 풀린 것(email 없음)은 "그런 사용자가 없다"라서 false 가 맞다. */
+      const following = email ? await isFollowing(myEmail, email) : false;
+      return NextResponse.json({ following });
+    } catch (err) {
+      return dbUnavailable("팔로우 여부 조회 실패 (handle)", err, FOLLOWS_UNAVAILABLE);
+    }
   }
 
-  const [list, counts] = await Promise.all([
-    listFollowing(myEmail),
-    followCounts(myEmail),
-  ]);
-
-  return NextResponse.json({
-    following: list,
-    followingCount: counts.following,
-    followerCount: counts.followers,
-  });
+  try {
+    const [list, counts] = await Promise.all([
+      listFollowing(myEmail),
+      followCounts(myEmail),
+    ]);
+    return NextResponse.json({
+      following: list,
+      followingCount: counts.following,
+      followerCount: counts.followers,
+    });
+  } catch (err) {
+    return dbUnavailable("팔로잉 목록·팔로워 수 조회 실패", err, FOLLOWS_UNAVAILABLE);
+  }
 }
 
 export async function POST(req: NextRequest) {
