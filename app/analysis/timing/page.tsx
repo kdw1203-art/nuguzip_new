@@ -413,7 +413,10 @@ export default async function TimingPage({
               <div className="text-[9px] leading-[1.5] text-ai-muted">
                 지수 모멘텀(±25점)과 거래량 추이(±25점)를 50점 기준에 더한 값입니다.
                 매수·매도 추천이 아니며, 본 분석은 참고용으로 투자 판단의 책임은
-                이용자에게 있습니다.
+                이용자에게 있습니다.{" "}
+                <Link href="/methodology#temperature" className="font-bold text-ai-accent no-underline">
+                  계산 공식 보기 ›
+                </Link>
               </div>
             </div>
           ) : (

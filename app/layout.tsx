@@ -9,6 +9,8 @@ import { ToastProvider } from "./components/toast/ToastProvider";
 import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
 import { ReferralRedeem } from "@/components/ReferralRedeem";
 import { SiteJsonLd } from "./components/SiteJsonLd";
+import { CookieConsentBanner } from "@/components/consent/cookie-consent-banner";
+import { Ga4GtagLoader } from "@/components/ga4-gtag-loader";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
@@ -91,6 +93,10 @@ export default function RootLayout({
               <InstallPrompt />
               <AdSenseLoader />
               <WebVitalsReporter />
+              {/* S22 — 쿠키 동의 배너 + 동의 게이트 GA4 (동의 전에는 스크립트
+                  로드 자체가 없다). NEXT_PUBLIC_GA4_ID 미설정 시 GA4는 무동작. */}
+              <CookieConsentBanner />
+              <Ga4GtagLoader />
               {/* Vercel Web Analytics — 프로덕션(Vercel 배포)에서만 수집,
                   로컬에서는 아무것도 전송하지 않는다. */}
               <Analytics />

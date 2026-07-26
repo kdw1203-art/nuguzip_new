@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { CookieSettingsLink } from "@/components/consent/cookie-settings-link";
 
 /* P0-3 공통 푸터 — 사업자·통신판매업 고지(전자상거래법) + 약관 링크를 모든 페이지·모바일에 노출.
    모바일에서는 하단 탭바와 겹치지 않게 pb-28 확보. */
@@ -12,6 +13,11 @@ const LEGAL_LINKS = [
   { label: "법적 고지", href: "/legal", bold: false },
   { label: "고객센터", href: "/support", bold: false },
   { label: "구독 안내", href: "/subscription", bold: false },
+  /* S20 — 신뢰·데이터 페이지 내부 링크 (전 페이지 크롤 경로 확보) */
+  { label: "소개", href: "/about", bold: false },
+  { label: "데이터 방법론", href: "/methodology", bold: false },
+  { label: "용어사전", href: "/glossary", bold: false },
+  { label: "월간 리포트", href: "/reports", bold: false },
 ] as const;
 
 export function Footer() {
@@ -55,6 +61,8 @@ export function Footer() {
               {l.label}
             </Link>
           ))}
+          {/* S22 — 동의 철회·변경 경로: 저장된 결정을 지우고 배너를 다시 띄운다 */}
+          <CookieSettingsLink />
         </div>
 
         {/* 3행: 면책 */}

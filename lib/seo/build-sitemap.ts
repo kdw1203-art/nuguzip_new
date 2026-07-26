@@ -100,6 +100,9 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/support", priority: 0.4 },
   { path: "/safety", priority: 0.4 },
   { path: "/methodology", priority: 0.5 }, // G18 — 데이터 방법론 (EEAT·GEO 인용 근거)
+  { path: "/glossary", priority: 0.5 }, // S14 — 정의형 용어사전
+  { path: "/reports", priority: 0.6 }, // S11 — 월간 실거래 리포트 허브
+  { path: "/about", priority: 0.4 }, // G22 — 소개·운영 원칙
   // 법적 고지 허브 + 하위 8종 (감사 P1-11)
   { path: "/legal", priority: 0.3 },
   { path: "/legal/terms", priority: 0.3 },
@@ -198,6 +201,19 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
     // 조회 실패 시 생략
   }
 
+  // S11 — 월간 실거래 리포트 (데이터 있는 달만 — 빈 리포트 URL 을 넣지 않는다)
+  let reportEntries: MetadataRoute.Sitemap = [];
+  try {
+    const { listReportMonths } = await import("@/lib/reports/monthly");
+    const months = await listReportMonths();
+    reportEntries = months.map((m) => ({
+      url: `${BASE_URL}/reports/${m.ym}`,
+      priority: 0.7,
+    }));
+  } catch {
+    // 조회 실패 시 생략
+  }
+
   // 1파일 50,000 URL 상한 — 넘치면 잘라내되 경고 로그를 남긴다(인덱스 분할 신호).
   const entries = capSitemapUrls([
     ...staticEntries,
@@ -205,6 +221,7 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
     ...complexEntries,
     ...regionEntries,
     ...bandEntries,
+    ...reportEntries,
   ]);
 
   const counts: SitemapBlockCounts = {
