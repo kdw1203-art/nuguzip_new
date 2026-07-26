@@ -34,7 +34,7 @@ export async function findNearbyProviders(input: {
 
   if (sb) {
     const box = bboxForRadius(input.lat, input.lng, radius);
-    const { data } = await sb
+    const { data, error } = await sb
       .from("expert_profiles")
       .select(
         "id,name,title,category,organization_name,office_address,office_phone,provider_type,is_verified,lat,lng",
@@ -46,6 +46,15 @@ export async function findNearbyProviders(input: {
       .gte("lng", box.minLng)
       .lte("lng", box.maxLng)
       .limit(200);
+
+    /* 못 읽은 것을 [] 로 돌려주면 "이 근처에는 전문가가 없다"가 된다. 게다가 그
+       응답은 s-maxage=120 으로 CDN 에 얹혀, 한 번의 조회 실패가 그 좌표의
+       "주변 전문가 없음"을 2분 동안 굳힌다. 못 읽었으면 던진다. */
+    if (error) {
+      throw new Error(
+        `expert_profiles 조회 실패 (주변 전문가): ${error.message ?? "알 수 없는 오류"}`,
+      );
+    }
 
     const items: NearbyProviderItem[] = [];
     for (const row of data ?? []) {

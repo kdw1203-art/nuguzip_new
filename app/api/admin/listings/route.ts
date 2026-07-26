@@ -175,11 +175,25 @@ export async function PATCH(req: NextRequest) {
 
   // 승인 시 포인트 적립 — awardPoints 가 캡·중복·once 를 방어하므로 그대로 호출.
   // refId=listingId 로 재승인 중복 지급을 막고, 적립 실패는 승인 결과에 영향 주지 않음.
+  let pointsAwarded = false;
   if (action === "approve") {
     try {
       const sb = getServiceSupabase();
       if (sb) {
-        const { data } = await sb.from("listings").select("*").eq("id", id).maybeSingle();
+        const { data, error } = await sb
+          .from("listings")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        /* 이 조회가 실패하면 아래 적립이 통째로 건너뛰어진다. 그런데 그 아래 인박스
+           알림은 여전히 "포인트가 지급되었어요"라고 말한다 — 지급되지 않은 포인트에
+           대한 거짓 통보다. 실패는 남기고, 알림 문구도 실제 지급 여부를 따라가게 한다. */
+        if (error) {
+          logger.error(
+            `[admin/listings] 승인 매물 조회 실패 (listing=${id}) — 포인트를 적립하지 못했습니다.`,
+            error,
+          );
+        }
         const row = (data ?? null) as Record<string, unknown> | null;
         const authorEmail = String(row?.author_email ?? "").trim();
         if (row && authorEmail) {
@@ -192,6 +206,7 @@ export async function PATCH(req: NextRequest) {
           if (Array.isArray(photos) && photos.length >= 3) {
             await awardPoints(authorEmail, "listing_photos", id);
           }
+          pointsAwarded = true;
         }
       }
     } catch {
@@ -252,7 +267,9 @@ export async function PATCH(req: NextRequest) {
           await appendInboxNotification({
             userEmail: authorEmail,
             title: "매물이 승인되었어요",
-            body: `'${complexName}' 매물이 검수를 통과해 지도에 노출됩니다. 포인트가 지급되었어요.`,
+            body:
+              `'${complexName}' 매물이 검수를 통과해 지도에 노출됩니다.` +
+              (pointsAwarded ? " 포인트가 지급되었어요." : ""),
             actionUrl: `/listings/${id}`,
           });
         } else {

@@ -13,6 +13,7 @@ import {
   resolveQuotaPlan,
 } from "@/lib/subscriptions/usage-summary";
 import { withUserQuotaLock } from "@/lib/subscriptions/quota-lock";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 
@@ -62,7 +63,14 @@ export async function POST(req: Request) {
       resolveQuotaPlan(email, session.user.plan),
       isBookmarked(email, targetType, targetId),
     ]);
-    const quota = await checkBookmarkAddQuota(email, plan, already);
+    /* 한도 계산이 실패했는데 그냥 담아 주면 플랜 한도를 넘겨서도 계속 담긴다.
+       못 셌으면 담지 않고 못 셌다고 말한다(503). */
+    let quota: Awaited<ReturnType<typeof checkBookmarkAddQuota>>;
+    try {
+      quota = await checkBookmarkAddQuota(email, plan, already);
+    } catch (e) {
+      return dbUnavailable("bookmark-quota", e);
+    }
     if (!quota.allowed) {
       const payload = quotaDeniedJson(
         quota.message,

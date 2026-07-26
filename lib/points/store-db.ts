@@ -84,12 +84,21 @@ export async function getAttendanceHistory(userEmail: string, days = 30): Promis
   const sb = getServiceSupabase();
   if (sb) {
     const since = kstDateString(new Date(Date.now() - days * 86400000));
-    const { data } = await sb
+    const { data, error } = await sb
       .from("user_attendance")
       .select("date, streak")
       .eq("user_email", userEmail)
       .gte("date", since)
       .order("date", { ascending: false });
+    /* 조회 실패를 빈 배열로 흘려보내면 라우트가 streak=0 · checkedToday=false 로
+       계산해 "연속 출석 0일"을 그린다 — 이어오던 기록이 끊긴 것처럼 보이고,
+       사용자는 오늘 이미 한 출석을 다시 누른다. 라우트는 이 throw 를 받아
+       503 으로 답하도록 이미 되어 있다(app/api/me/attendance/route.ts). */
+    if (error) {
+      throw new Error(
+        `user_attendance 조회 실패: ${error.message ?? "알 수 없는 오류"}`,
+      );
+    }
     return (data ?? []).map((r) => ({ date: String(r.date), streak: Number(r.streak) }));
   }
   return memAttendance.get(userEmail) ?? [];

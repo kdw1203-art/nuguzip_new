@@ -4,6 +4,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { awardPoints } from "@/lib/points/ledger";
 import { listReviews, upsertReview, calcSummary } from "@/lib/complex-reviews/store-db";
 import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,14 @@ function maskAuthor(email: string): string {
 export async function GET(req: NextRequest) {
   const complexId = req.nextUrl.searchParams.get("complexId");
   if (!complexId) return NextResponse.json({ error: "complexId 가 필요합니다." }, { status: 400 });
-  const rows = await listReviews(complexId);
+  /* 조회 실패를 200 + 빈 목록으로 답하면 "이 단지 후기 0건 · 평점 0점"이 된다.
+     못 읽었을 뿐이라는 사실을 상태 코드로 말한다. */
+  let rows: Awaited<ReturnType<typeof listReviews>>;
+  try {
+    rows = await listReviews(complexId);
+  } catch (e) {
+    return dbUnavailable("complex-reviews", e);
+  }
   const summary = calcSummary(rows);
   const reviews = rows.map((r) => ({
     id: r.id,

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
-import { submitExpertApplication } from "@/lib/experts/verification-store";
+import {
+  ExpertVerificationUnavailableError,
+  submitExpertApplication,
+} from "@/lib/experts/verification-store";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 import { hasBlockingFraudHit } from "@/lib/experts/fraud-guards";
 
 export const runtime = "nodejs";
@@ -101,6 +105,11 @@ export async function POST(req: Request) {
       flags: auto.flags,
     });
   } catch (e) {
+    /* 자동 검증 조회가 실패한 것은 "검증에서 떨어졌다"가 아니다. 500 으로
+       뭉뚱그리지 않고, 다시 시도하면 되는 상태라는 것을 503 으로 말한다. */
+    if (e instanceof ExpertVerificationUnavailableError) {
+      return dbUnavailable("expert-register", e);
+    }
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "접수 실패" },
       { status: 500 },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 import type { UserRegion } from "@/lib/me/user-regions";
 
 export const runtime = "nodejs";
@@ -30,11 +31,19 @@ export async function GET() {
   const sb = getServiceSupabase();
   if (!sb) return NextResponse.json({ regions: [], stored: false });
 
-  const { data } = await sb
+  const { data, error } = await sb
     .from("app_users")
     .select("watch_regions")
     .eq("email", session.user.email.trim().toLowerCase())
     .maybeSingle();
+
+  /* 못 읽은 것을 `{regions: [], stored: true}` 로 답하면 "관심 지역을 등록한 적이
+     없다"는 단정이 된다. 게다가 fetchUserRegions 가 그 빈 배열을 그대로
+     localStorage 에 덮어써(writeUserRegionsLocal) 기기에 남아 있던 목록까지 지운다.
+     못 읽었으면 503 으로 말한다 — 클라이언트는 로컬 캐시를 유지한다. */
+  if (error) {
+    return dbUnavailable("me-regions", error);
+  }
 
   return NextResponse.json({
     regions: normalizeRegions(data?.watch_regions),

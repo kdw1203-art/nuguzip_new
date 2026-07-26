@@ -103,10 +103,18 @@ export async function countBookmarks(userEmail: string): Promise<number> {
   if (!sb) {
     return [...memory.values()].filter((b) => b.userEmail.trim().toLowerCase() === em).length;
   }
-  const { count } = await sb
+  const { count, error } = await sb
     .from("bookmarks")
     .select("id", { count: "exact", head: true })
     .eq("user_email", em);
+  /* 못 센 것을 0 으로 돌려주면 두 곳에서 사실과 어긋난다.
+     - 사용량 화면: 북마크를 채워 둔 사람에게 "0 / 30" 이라고 말한다.
+     - 한도 게이트(checkBookmarkAddQuota): `used >= limit` 이 항상 거짓이 되어
+       플랜 한도를 넘겨서도 계속 담기게 된다 — 실패가 한도를 여는 쪽으로 샌다.
+     못 셌으면 던진다. 부르는 쪽(api/me/usage, api/bookmarks)이 503 으로 답한다. */
+  if (error) {
+    throw new Error(`bookmarks 개수 조회 실패: ${error.message ?? "알 수 없는 오류"}`);
+  }
   return count ?? 0;
 }
 

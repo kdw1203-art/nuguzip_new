@@ -126,14 +126,33 @@ export type AutoValidationResult = {
   flags: FraudScanHit[];
 };
 
+/**
+ * 자동 검증에 필요한 조회 자체가 실패했을 때 던지는 에러.
+ *
+ * 이 파일의 두 조회는 실패를 각각 반대 방향으로 흘려보내고 있었다.
+ * - loadIdentityVerified: 실패 → false → 이미 본인인증을 마친 신청자에게
+ *   "본인인증(휴대폰)이 완료되지 않았습니다" 플래그를 단다(거짓 진술).
+ * - findDuplicateCert: 실패 → false → 중복 자격번호 차단이 그냥 열린다.
+ * 어느 쪽도 "검증했다"고 말할 수 없으므로, 못 읽었으면 접수를 진행하지 않는다.
+ */
+export class ExpertVerificationUnavailableError extends Error {
+  constructor(where: string, message?: string) {
+    super(`${where} 조회 실패: ${message ?? "알 수 없는 오류"}`);
+    this.name = "ExpertVerificationUnavailableError";
+  }
+}
+
 async function loadIdentityVerified(email: string): Promise<boolean> {
   const sb = getServiceSupabase();
   if (!sb) return false;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("app_users")
     .select("identity_verified")
     .eq("email", email.trim().toLowerCase())
     .maybeSingle();
+  if (error) {
+    throw new ExpertVerificationUnavailableError("app_users (본인인증)", error.message);
+  }
   return Boolean((data as { identity_verified?: boolean } | null)?.identity_verified);
 }
 
@@ -148,11 +167,17 @@ async function findDuplicateCert(normalized: string): Promise<boolean> {
         m.workflowStage !== "rejected",
     );
   }
-  const { count } = await sb
+  const { count, error } = await sb
     .from("expert_verification_requests")
     .select("id", { count: "exact", head: true })
     .eq("cert_number_normalized", normalized)
     .neq("status", "rejected");
+  if (error) {
+    throw new ExpertVerificationUnavailableError(
+      "expert_verification_requests (중복 자격번호)",
+      error.message,
+    );
+  }
   return (count ?? 0) > 0;
 }
 

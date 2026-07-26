@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getVerifiedOnboarding } from "./verify";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,11 +65,28 @@ export async function PATCH(req: Request) {
   if (sb && requested.length > 0) {
     // onboarding_progress JSON 에는 코치마크 투어(tours)·실스텝(completedSteps)이 함께 산다.
     // wizardSteps 키만 병합하고 나머지는 보존한다.
-    const { data } = await sb
+    const { data, error } = await sb
       .from("app_users")
       .select("onboarding_progress")
       .eq("email", email)
       .maybeSingle();
+    /* 이 조회가 실패했는데 그대로 진행하면 base 가 {} 가 되고, 바로 아래 update 가
+       그 빈 객체로 onboarding_progress 를 통째로 덮어쓴다 — 실스텝(completedSteps)과
+       코치마크 투어(tours) 기록이 지워진다. 못 읽었으면 쓰지 않는다.
+       (같은 패턴이 lib/onboarding/append-step.ts 에 이미 있다.) */
+    if (error) {
+      logger.error(
+        `[me/onboarding] onboarding_progress 조회 실패 (${email}) — 위저드 진행을 저장하지 않았습니다.`,
+        error,
+      );
+      return NextResponse.json(
+        {
+          error: "지금은 저장할 수 없어요. 잠시 후 다시 시도해 주세요.",
+          stored: false,
+        },
+        { status: 503, headers: { "Retry-After": "30" } },
+      );
+    }
     const raw = data?.onboarding_progress;
     const base =
       raw && typeof raw === "object" && !Array.isArray(raw)

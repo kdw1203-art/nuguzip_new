@@ -39,8 +39,11 @@ export async function fetchUserRegions(): Promise<UserRegion[]> {
   try {
     const res = await fetch("/api/me/regions");
     if (!res.ok) return readUserRegionsLocal();
-    const data = (await res.json()) as { regions?: UserRegion[] };
-    if (Array.isArray(data.regions)) {
+    const data = (await res.json()) as { regions?: UserRegion[]; stored?: boolean };
+    /* stored:false 는 "서버에 저장소가 없어서 못 읽었다"는 뜻이지 "등록한 지역이
+       없다"가 아니다. 그때 내려오는 빈 배열을 로컬에 덮어쓰면 이 기기에 남아 있던
+       관심 지역이 지워진다. 서버가 실제로 읽었을 때만 로컬을 갱신한다. */
+    if (Array.isArray(data.regions) && data.stored) {
       writeUserRegionsLocal(data.regions);
       return data.regions;
     }

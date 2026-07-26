@@ -93,7 +93,7 @@ export async function listReviews(complexId: string): Promise<ComplexReview[]> {
   const sb = getServiceSupabase();
   if (!sb)
     return inMemory.filter((r) => r.complexId === complexId).sort(byTrustThenHelpful);
-  const { data } = await sb
+  const { data, error } = await sb
     .from("complex_reviews")
     .select("*")
     .eq("complex_id", complexId)
@@ -103,6 +103,14 @@ export async function listReviews(complexId: string): Promise<ComplexReview[]> {
     .order("is_visit_verified", { ascending: false, nullsFirst: false })
     .order("helpful_count", { ascending: false })
     .order("created_at", { ascending: false });
+  /* 못 읽은 것을 [] 로 돌려주면 화면에는 "후기 0건"에 더해 calcSummary([]) 가 만든
+     0점짜리 요약까지 붙는다 — 후기를 남긴 이웃들이 있는 단지에 대고 "평가가 없다"고
+     단정하는 셈이다. 못 읽었으면 던진다(라우트가 503 으로 답한다). */
+  if (error) {
+    throw new Error(
+      `complex_reviews 조회 실패 (${complexId}): ${error.message ?? "알 수 없는 오류"}`,
+    );
+  }
   return (data ?? []).map(dbToReview);
 }
 

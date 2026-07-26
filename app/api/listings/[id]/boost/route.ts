@@ -82,9 +82,13 @@ export async function POST(
   }
 
   const spend = await spendPoints(email, item.cost, "listing_boost", listingId);
+  /* 차감이 실패했는데 `balance - item.cost` 를 내려보내면 일어나지 않은 차감을
+     일어난 것처럼 적는다 — 화면의 잔액과 실제 원장이 어긋난 채로 남는다.
+     차감이 성사됐을 때만 새 잔액을 말하고, 아니면 차감 직전에 읽은 값 그대로 둔다. */
   return NextResponse.json({
     ok: true,
     boostUntil,
-    balance: spend.ok ? spend.balance : balance - item.cost,
+    balance: spend.ok ? spend.balance : balance,
+    pointsCharged: spend.ok,
   });
 }

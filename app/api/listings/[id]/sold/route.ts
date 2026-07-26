@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { awardPoints } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,11 +36,16 @@ export async function POST(
     );
   }
 
-  const { data } = await sb
+  const { data, error: readError } = await sb
     .from("listings")
     .select("author_email, status")
     .eq("id", listingId)
     .maybeSingle();
+  /* 조회 실패를 아래 404 로 흘려보내면 멀쩡히 있는 자기 매물에 대고
+     "매물을 찾을 수 없습니다"라고 답하게 된다. 못 읽은 것은 못 읽었다고 말한다. */
+  if (readError) {
+    return dbUnavailable("listing-sold", readError);
+  }
   const row = (data ?? null) as Record<string, unknown> | null;
   if (!row) {
     return NextResponse.json({ error: "매물을 찾을 수 없습니다." }, { status: 404 });
@@ -63,5 +69,13 @@ export async function POST(
 
   // 거래완료 신고 적립 — refId=listingId 로 중복 지급 방지.
   const award = await awardPoints(ownerEmail, "listing_sold", listingId);
-  return NextResponse.json({ ok: true, awarded: award.awarded, balance: award.balance });
+  /* awardPoints 는 실패 경로에서 balance 자리에 0 을 채워 보낸다(ledger.ts 의
+     balanceForFailure — 언제나 `ok:false` 와 함께 나가므로 그 자체로는 거짓이
+     아니다). 그런데 여기서 바깥에 `ok: true` 를 씌우면 그 0 이 "당신의 잔액은
+     0P" 라는 단독 주장이 되어 버린다. 적립이 성사됐을 때만 잔액을 말한다. */
+  return NextResponse.json({
+    ok: true,
+    awarded: award.awarded,
+    balance: award.ok ? award.balance : null,
+  });
 }
