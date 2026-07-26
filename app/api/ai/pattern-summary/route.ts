@@ -132,11 +132,16 @@ export async function POST(req: Request) {
   }
 
   if (sb) {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("app_users")
       .select("watch_regions")
       .eq("email", email.trim().toLowerCase())
       .maybeSingle();
+    /* 위 노트 조회와 같은 취급 — 보조 입력이라 요약 전체를 막지는 않지만,
+       빈 결과를 "관심 지역 없음"으로 조용히 단정하지도 않는다. */
+    if (error) {
+      logger.warn("[pattern-summary] watch_regions 조회 실패 — 관심 지역 힌트 없이 계속", error);
+    }
     if (Array.isArray(data?.watch_regions)) {
       for (const r of data.watch_regions as Array<{ district?: string }>) {
         const d = parseDistrict(String(r.district ?? ""));

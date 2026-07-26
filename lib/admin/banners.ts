@@ -4,6 +4,7 @@
  * Supabase 미설정 시 정적 기본 배너를 반환합니다.
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { logger } from "@/lib/log";
 
 export type BannerPlacement = "home" | "community" | "market" | "inspection" | "global";
 
@@ -81,8 +82,14 @@ export async function listBanners(placement?: BannerPlacement): Promise<Banner[]
     query = query.in("placement", [placement, "global"]);
   }
 
-  const { data } = await query;
-  // 조회 실패도 "노출할 배너 없음"으로 처리한다(가짜 배너로 채우지 않는다).
+  const { data, error } = await query;
+  /* 조회 실패도 "노출할 배너 없음"으로 처리한다(가짜 배너로 채우지 않는다).
+     다만 그 판단이 조용하면 안 된다 — 배너가 안 뜨는 이유가 "설정한 배너가
+     없어서"인지 "못 읽어서"인지 로그로 구분할 수 있어야 한다. */
+  if (error) {
+    logger.warn(`[banners] banners 조회 실패 (placement=${placement ?? "-"}) — 배너 없이 진행`, error);
+    return [];
+  }
   if (!data) return [];
 
   const now = new Date().toISOString();

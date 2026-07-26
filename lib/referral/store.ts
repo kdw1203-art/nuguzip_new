@@ -64,11 +64,18 @@ async function readCodeFor(
   client: NonNullable<ReturnType<typeof getServiceSupabase>>,
   email: string,
 ): Promise<string | null> {
-  const { data } = await client
+  const { data, error } = await client
     .from("referral_codes")
     .select("code")
     .eq("user_email", email)
     .maybeSingle();
+  /* 실패를 null 로 흘려보내면 "이 사용자는 아직 코드가 없다"가 되어, 아래
+     getOrCreateCode 가 이미 있는 코드를 두고 발급을 시도한다. PK(user_email)
+     가 막아 주긴 하지만 그 뒤 재조회도 같은 장애로 실패해 8번을 헛돌고
+     결국 null 을 돌려준다 — 사용자에게는 코드가 사라진 것처럼 보인다. */
+  if (error) {
+    throw new Error(`referral_codes 조회 실패 (${email}): ${error.message ?? "알 수 없는 오류"}`);
+  }
   return data?.code ? String(data.code) : null;
 }
 
@@ -79,10 +86,16 @@ async function readCodeFor(
 export async function getOrCreateCode(email: string): Promise<string | null> {
   if (!email) return null;
 
+  /* readCodeFor 는 조회 실패를 던진다. 못 읽은 상태에서 발급 루프로 들어가면
+     헛도는 8회 insert 만 남기고 결국 null 이므로, 여기서 접고 이유를 남긴다.
+     (anon 읽기가 막힌 것뿐일 수도 있으니 아래 service-role 재확인은 해 본다.) */
   // 1) 기존 코드 (읽기 전용 클라이언트)
   const read = getReadOnlySupabase();
   if (read) {
-    const existing = await readCodeFor(read, email);
+    const existing = await readCodeFor(read, email).catch((e: unknown) => {
+      logger.warn("[referral] 기존 코드 조회 실패(anon) — service-role 로 재확인", e);
+      return null;
+    });
     if (existing) return existing;
   }
 
@@ -91,7 +104,13 @@ export async function getOrCreateCode(email: string): Promise<string | null> {
   if (!write) return null;
 
   // 경합 대비 재확인 (read 가 anon 이라 못 봤을 수도 있음)
-  const already = await readCodeFor(write, email);
+  let already: string | null;
+  try {
+    already = await readCodeFor(write, email);
+  } catch (e) {
+    logger.error("[referral] 기존 코드 조회 실패 — 새 코드를 발급하지 않습니다.", e);
+    return null;
+  }
   if (already) return already;
 
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -106,7 +125,10 @@ export async function getOrCreateCode(email: string): Promise<string | null> {
     if (!error && data?.code) return String(data.code);
     if (error?.code === "23505") {
       // PK(user_email) 경합이면 이미 발급된 코드 반환, code 충돌이면 다음 시드로 재시도
-      const raced = await readCodeFor(write, email);
+      const raced = await readCodeFor(write, email).catch((e: unknown) => {
+        logger.error("[referral] 경합 후 코드 재조회 실패", e);
+        return null;
+      });
       if (raced) return raced;
       continue;
     }
