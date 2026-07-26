@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { NoteLocationSearch, type NoteLocation } from "./NoteLocationSearch";
+import { FieldCaptureConsentNotice } from "@/components/inspection/field-capture-consent";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -975,6 +976,8 @@ export function NoteForm({
             {saveError}
           </div>
         )}
+        {/* AI 처리 고지 — 버튼을 누르기 전에 알린다 (몰래 보내지 않는다) */}
+        <FieldCaptureConsentNotice />
         <button
           type="button"
           onClick={handleSave}

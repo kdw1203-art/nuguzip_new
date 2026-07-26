@@ -396,6 +396,10 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
     danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
   );
   const [panelOpen, setPanelOpen] = useState(true);
+  /* 모바일 지도↔목록 전환 — 데스크탑은 좌측 목록 패널이 항상 있지만 모바일은
+     지도뿐이었다. 저사양 기기·지도 로드 실패 시 대안이 없고, 목록으로 훑고
+     싶은 사용자도 있다. "list"면 지도 위에 전체 화면 목록을 덮는다. */
+  const [mobileView, setMobileView] = useState<"map" | "list">("map");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("요약");
   const [center, setCenter] = useState(() => {
@@ -1646,6 +1650,81 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
             </Link>
           </div>
         </aside>
+      )}
+
+      {/* ===== 모바일 목록 뷰 (지도↔목록 전환) — 데스크탑은 좌측 패널이 담당 ===== */}
+      {mobileView === "list" && !selected && (
+        <div
+          className="absolute inset-x-0 bottom-0 z-30 flex flex-col bg-bg md:hidden"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 86px)" }}
+        >
+          <div className="flex items-baseline justify-between px-5 pb-2 pt-3">
+            <div className="text-[15px] font-extrabold text-ink">
+              {regionLabel} 단지 {filteredDanji.length}
+              {(danjiFilterActive || commuteActive) && (
+                <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
+              )}
+            </div>
+            <span className="text-[11px] text-text-3">국토부 실거래 평균</span>
+          </div>
+          {filteredDanji.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
+              <div className="text-xs text-text-2">
+                {danjiFilterActive || commuteActive
+                  ? "조건에 맞는 단지가 없어요."
+                  : "이 지역 단지 목록을 준비 중이에요."}
+              </div>
+              {(danjiFilterActive || commuteActive) && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="btn-soft rounded-lg px-3 py-1.5 text-[11px]"
+                >
+                  필터 초기화
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              className="flex flex-1 flex-col gap-2 overflow-y-auto px-4"
+              style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+            >
+              {filteredDanji.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => {
+                    selectDanji(d.id);
+                    setMobileView("map"); // 상세 패널이 지도 위에 뜨므로 지도로 복귀
+                  }}
+                  className="card flex flex-col gap-1.5 rounded-[14px] bg-surface px-4 py-3.5 text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-[15px] font-bold text-ink">{d.name}</div>
+                    <span className="text-xs text-text-3">{d.size}</span>
+                  </div>
+                  <div className="text-xs text-text-3">{d.meta}</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[17px] font-extrabold text-ink">{d.price}</span>
+                    <span className={`text-xs ${deltaClass(d.deltaTone)}`}>{d.delta}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 모바일 지도↔목록 토글 (탭바 위 플로팅) */}
+      {!selected && (
+        <button
+          type="button"
+          onClick={() => setMobileView((v) => (v === "map" ? "list" : "map"))}
+          className="glass-strong absolute left-1/2 z-40 -translate-x-1/2 rounded-full px-5 py-2.5 text-[13px] font-extrabold text-ink shadow-[0_8px_22px_rgba(16,28,54,.2)] md:hidden"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+        >
+          {mobileView === "map" ? "☰ 목록으로 보기" : "🗺 지도로 보기"}
+        </button>
       )}
 
       {/* 접기 핸들 ‹ */}
