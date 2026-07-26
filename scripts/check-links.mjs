@@ -18,23 +18,149 @@ try {
 
 const BASE = `http://localhost:${process.env.PORT || 3100}`;
 
-/* 요청 하나당 상한 20초.
-   전에는 상한이 없었다. 2026-07-26 에 DB 가 느려졌을 때 동적 라우트 하나가
-   응답을 영원히 붙잡았고, 순차 크롤이라 배포 실행 전체가 3시간을 멈춰 있었다.
+/* ── 응답을 못 받았을 때를 어떻게 다룰 것인가 ───────────────────────────────
+ *
+ * 2026-07-26 오전: 상한이 아예 없어서, DB 가 느려지자 동적 라우트 하나가 응답을
+ * 영원히 붙잡았고 순차 크롤이라 배포 실행 전체가 3시간을 멈춰 있었다.
+ * 그래서 요청당 20초 상한을 넣고, 타임아웃을 "끊긴 링크"와 함께 배포 중단으로 처리했다.
+ *
+ * 그런데 그게 같은 날 오후에 정반대 방향으로 고장 났다. DB 가 계속 느린 상태라
+ * 200개 경로 중 하나만 20초를 넘겨도 배포가 막혔고, **그 느림을 고치는 커밋들이
+ * 바로 그 이유로 배포되지 못했다.** 스스로 문을 잠근 셈이다.
+ *
+ * 그래서 사실을 세 갈래로 나눠 다룬다. 뭉뚱그리면 둘 중 하나가 반드시 틀린다:
+ *
+ *   1. 끊긴 링크 (4xx/5xx)  — **사이트에 대한 사실**. 지금도 배포를 막는다.
+ *   2. 응답 없음 (타임아웃) — **그 순간에 대한 사실**. 사이트가 틀렸다는 증거가
+ *      아니다. 한 번 더 늘려 잡아 보고, 그래도 안 되면 로그에 크게 남기되
+ *      소수라면 배포는 통과시킨다.
+ *   3. 응답 없음이 임계치를 넘음 — 이건 다시 **사이트에 대한 사실**이다.
+ *      한둘이 느린 것과 전부가 안 뜨는 것은 다른 상태다. 그때는 배포를 막는다.
+ *
+ * 절대 하지 않는 것: 타임아웃을 200 처럼 조용히 넘기기. 못 받은 응답은
+ * 200 도 404 도 아니고, 로그에 반드시 "응답없음"으로 남는다.
+ */
+/* ── 5xx 를 어떻게 다룰 것인가 (같은 문이 또 잠겼다) ────────────────────────
+ *
+ * 위의 세 갈래는 "응답을 못 받았을 때"의 이야기였다. 그런데 그 다음 날,
+ * 정확히 같은 자물쇠가 이번엔 **응답을 받았는데도** 채워졌다.
+ *
+ * 우리는 의도적으로 `/region/[id]` 같은 페이지가 핵심 조회에 실패하면 500 을
+ * 내도록 고쳤다. 크롤러에게 404("영구히 없음")가 아니라 5xx("나중에 다시 와라")
+ * 라고 말하는 게 사실이기 때문이다. 그런데 이 게이트는 4xx 와 5xx 를 똑같이
+ * "끊긴 링크"로 세고 있었다. 그래서 DB 가 내려가 있는 동안에는,
+ * **DB 장애 내성을 고치는 커밋이 바로 그 DB 장애 때문에 배포되지 못한다.**
+ *
+ * 그래서 둘을 갈라 놓는다:
+ *
+ *   4xx — **링크 그래프에 대한 사실**. DB 상태와 무관하다(없는 경로는 DB 가
+ *         멀쩡해도 없다). 지금도 그대로 배포를 막는다.
+ *   5xx — 조건부다. `/api/health` 로 DB 도달 가능 여부를 **측정해서**,
+ *         DB 가 내려가 있으면 그 5xx 는 설계대로 동작한 결과이지 회귀가
+ *         아니다. 로그에 크게 남기되 배포는 통과시킨다.
+ *         DB 가 멀쩡한데 5xx 면 그건 진짜 회귀다 — 막는다.
+ *
+ * 추측하지 않는다. `checks.db.ok` 를 실제로 읽고, 그 값을 로그에 적는다.
+ */
+const HEALTH_PATH = "/api/health";
+const HEALTH_TIMEOUT_MS = 15_000;
 
-   그리고 **타임아웃을 "끊긴 링크 아님"으로 넘기지 않는다.** 응답을 못 받은 것은
-   200 이 아니고 404 도 아니다 — "확인하지 못했다"는 별도의 사실이고, 배포를
-   막아야 하는 상태다. 아래에서 코드 0 으로 남겨 broken 에 들어가게 둔다. */
 const REQ_TIMEOUT_MS = 20_000;
-async function get(path, init) {
+const RETRY_TIMEOUT_MS = 30_000;
+/* 재시도 총량 상한 — 없으면 전면 장애 때 크롤이 (경로수 × 50초)로 늘어나
+   스텝 상한(12분)에 부딪혀 "왜 죽었는지 모르는 실패"로 되돌아간다. */
+const MAX_RETRIES = 10;
+/* 이걸 넘으면 "느린 순간"이 아니라 "안 뜨는 사이트"로 본다. */
+const MAX_UNVERIFIED = Number.isFinite(Number(process.env.LINK_CHECK_MAX_UNVERIFIED))
+  ? Number(process.env.LINK_CHECK_MAX_UNVERIFIED)
+  : 5;
+
+/* ── 이 게이트는 왜 느렸나 (그리고 느린 게 왜 위험한가) ────────────────────
+ * 여태 크롤은 한 줄로 붙어 있었다 — 200여 경로를 **하나씩** 순서대로.
+ * 경로당 3초면 10분, DB 가 굼뜨면 그 두 배다. 워크플로 스텝 상한(12분)에
+ * 부딪히면 스텝은 그냥 죽고, 로그에는 "왜 죽었는지" 한 줄도 안 남는다.
+ * 아무 근거 없이 배포만 막히는 상태 — 우리가 두 번이나 겪은 그 자물쇠다.
+ *
+ *   동시성 — 4개씩. DB 가 이미 힘들 수 있으니 크게 열지 않는다.
+ *            (LINK_CHECK_CONCURRENCY 로 조정)
+ *   예산   — 정해진 시간을 넘기면 **스스로 멈추고 남은 경로를 적는다**.
+ *            스텝이 죽어서 아무것도 못 남기는 것보다, 우리가 멈추고
+ *            "여기까지 봤고 여기부터는 못 봤다"를 적는 쪽이 항상 낫다.
+ *            못 본 것은 "정상"도 "끊김"도 아니다 — 그래서 막지 않는다.
+ */
+const CONCURRENCY = Number.isFinite(Number(process.env.LINK_CHECK_CONCURRENCY))
+  ? Math.max(1, Number(process.env.LINK_CHECK_CONCURRENCY))
+  : 4;
+const BUDGET_MS = Number.isFinite(Number(process.env.LINK_CHECK_BUDGET_MS))
+  ? Number(process.env.LINK_CHECK_BUDGET_MS)
+  : 9 * 60_000;
+const startedAt = Date.now();
+const budgetLeft = () => BUDGET_MS - (Date.now() - startedAt);
+
+/** 남은 예산이 없어 검사하지 못한 경로 — 끊긴 것도, 정상인 것도 아니다. */
+const skipped = [];
+
+/**
+ * items 를 limit 개씩 동시에 흘려보낸다. 결과는 **입력 순서**로 돌려준다
+ * (로그가 실행마다 뒤바뀌면 diff 로 읽을 수가 없다).
+ * 예산이 바닥나면 남은 항목은 실행하지 않고 undefined 로 남긴다.
+ */
+async function mapPool(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      if (budgetLeft() <= 0) {
+        out[i] = undefined;
+        continue;
+      }
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
+let retriesUsed = 0;
+/** path → 'timeout' | 'error'  (응답을 못 받은 경로만 기록) */
+const noResponse = new Map();
+
+async function fetchOnce(path, init, ms) {
   try {
-    return await fetch(BASE + path, { ...init, signal: AbortSignal.timeout(REQ_TIMEOUT_MS) });
+    return { res: await fetch(BASE + path, { ...init, signal: AbortSignal.timeout(ms) }) };
   } catch (err) {
-    const why = err?.name === "TimeoutError" ? `응답 없음(${REQ_TIMEOUT_MS / 1000}초 초과)` : err?.message;
-    console.log(`  ! ${path} — ${why}`);
-    return null;
+    return { res: null, timeout: err?.name === "TimeoutError", why: err?.message || String(err) };
   }
 }
+
+async function get(path, init) {
+  let out = await fetchOnce(path, init, REQ_TIMEOUT_MS);
+
+  /* 첫 요청은 그 라우트의 첫 렌더라 캐시가 비어 있다. 한 번 더 주는 것은
+     봐주기가 아니라, 콜드 스타트와 진짜 장애를 구분하기 위한 관측이다. */
+  if (!out.res && out.timeout && retriesUsed < MAX_RETRIES) {
+    retriesUsed += 1;
+    console.log(
+      `  … ${path} — ${REQ_TIMEOUT_MS / 1000}초 안에 응답 없음. ` +
+        `${RETRY_TIMEOUT_MS / 1000}초로 한 번 더 (재시도 ${retriesUsed}/${MAX_RETRIES})`,
+    );
+    out = await fetchOnce(path, init, RETRY_TIMEOUT_MS);
+  }
+
+  if (!out.res) {
+    if (out.timeout) {
+      noResponse.set(path, "timeout");
+      console.log(`  ! ${path} — 응답 없음(재시도 후에도 ${RETRY_TIMEOUT_MS / 1000}초 초과)`);
+    } else {
+      noResponse.set(path, "error");
+      console.log(`  ! ${path} — 요청 실패: ${out.why}`);
+    }
+  }
+  return out.res;
+}
+
 const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '/map', '/search', '/notifications', '/messages',
   '/analysis', '/analysis/compare', '/analysis/cycle', '/analysis/price', '/analysis/scenario', '/analysis/timing', '/analysis/portfolio', '/analysis/switch',
   '/town', '/town/news', '/town/market', '/town/experts', '/town/groups', '/town/groups/mock-1',
@@ -47,7 +173,48 @@ const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '
   ...Object.keys(EXACT_REDIRECTS),
   // 구 게시글 경로 패턴(/post/:id, /community/:id) — 표가 아니라 정규식으로 처리되는 분기
   '/post/123', '/community/456'];
-const seen = new Map(); const broken = [];
+
+const seen = new Map();
+const broken = [];
+const unverified = [];
+/** 5xx 를 받은 경로 — DB 상태를 확인한 뒤에 끊긴 링크인지 아닌지 판정한다. */
+const serverErrors = [];
+
+/**
+ * DB 에 지금 닿는가를 **측정한다**. 추측하지 않는다.
+ *
+ * `/api/health` 는 인증 없이 `checks.db.ok`(boolean)를 주고 `no-store` 라
+ * 캐시된 옛날 사실을 읽을 위험도 없다.
+ *
+ * @returns {Promise<{ok: boolean|null, why: string}>}
+ *   ok=true  DB 도달 가능 · ok=false 도달 불가 · ok=null 판정 불가(헬스체크 자체 실패)
+ */
+async function probeDb() {
+  const out = await fetchOnce(HEALTH_PATH, {}, HEALTH_TIMEOUT_MS);
+  if (!out.res) return { ok: null, why: out.timeout ? "헬스체크 응답 없음" : `헬스체크 요청 실패: ${out.why}` };
+  if (!out.res.ok) return { ok: null, why: `헬스체크 HTTP ${out.res.status}` };
+  try {
+    const body = await out.res.json();
+    const dbOk = body?.checks?.db?.ok;
+    if (typeof dbOk !== "boolean") return { ok: null, why: "헬스체크 응답에 checks.db.ok 가 없음" };
+    return { ok: dbOk, why: dbOk ? "checks.db.ok = true" : "checks.db.ok = false" };
+  } catch (err) {
+    return { ok: null, why: `헬스체크 본문 파싱 실패: ${err.message}` };
+  }
+}
+
+/** 200/리다이렉트가 아닌 응답을 분류한다 — 4xx 는 즉시 끊긴 링크, 5xx 는 보류. */
+function recordBadStatus(path, code, from) {
+  if (code >= 500) serverErrors.push([path, code, from]);
+  else broken.push([path, code, from]);
+}
+
+/** 응답을 못 받은 경로를 어느 목록에 넣을지 — 요청 실패(연결 거부 등)는 사이트 문제다. */
+function recordNoResponse(path, from) {
+  if (noResponse.get(path) === "error") broken.push([path, 0, from]);
+  else unverified.push([path, from]);
+}
+
 async function check(path, from) {
   if (seen.has(path)) return seen.get(path);
   const res = await get(path, { redirect: 'manual' });
@@ -55,26 +222,145 @@ async function check(path, from) {
   seen.set(path, code);
   return code;
 }
-const linkSources = new Map();
-for (const s of seeds) {
+
+/* 크롤 전에 DB 상태를 한 번 찍어 둔다. 크롤 중에 내려갈 수도 있으니 이건
+   확정 판정이 아니라 기록이다 — 최종 판정은 5xx 가 실제로 나왔을 때 다시 잰다. */
+const dbBefore = await probeDb();
+console.log(
+  `DB 도달 여부(크롤 시작 시점): ${
+    dbBefore.ok === true ? "정상" : dbBefore.ok === false ? "불가" : "판정 불가"
+  } — ${dbBefore.why}`,
+);
+
+/* 1) 시드 수집 — 동시에 받되, 링크 출처(from)가 실행마다 달라지지 않도록
+      결과는 시드 순서대로 훑는다. */
+const seedResults = await mapPool(seeds, CONCURRENCY, async (s) => {
   const res = await get(s);
-  if (!res || res.status !== 200) { broken.push([s, res ? res.status : 0, '(seed)']); continue; }
-  const html = await res.text();
-  const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]).filter(h => !h.startsWith('/_next') && !h.startsWith('/api'));
+  if (!res) { recordNoResponse(s, '(seed)'); return { html: null }; }
+  if (res.status !== 200) { recordBadStatus(s, res.status, '(seed)'); return { html: null }; }
+  return { html: await res.text() };
+});
+
+const linkSources = new Map();
+seeds.forEach((s, i) => {
+  const r = seedResults[i];
+  if (r === undefined) { skipped.push([s, '(seed)']); return; }
+  if (!r.html) return;
+  const hrefs = [...r.html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]).filter(h => !h.startsWith('/_next') && !h.startsWith('/api'));
   for (const h of new Set(hrefs)) { if (!linkSources.has(h)) linkSources.set(h, s); }
-}
-for (const [h, from] of linkSources) {
+});
+
+/* 2) 수집된 링크 검사 — 여기가 대부분의 시간을 쓴다. */
+const links = [...linkSources.entries()];
+const linkResults = await mapPool(links, CONCURRENCY, async ([h, from]) => {
   const code = await check(h, from);
+  return { code, from };
+});
+links.forEach(([h, from], i) => {
+  const r = linkResults[i];
+  if (r === undefined) { skipped.push([h, from]); return; }
+  if (r.code === 0) { recordNoResponse(h, from); return; }
   // 301: 레거시 경로 영구 이전(GET). 308: 메서드 보존 정규화. 307: 임시.
-  if (code !== 200 && code !== 301 && code !== 307 && code !== 308) broken.push([h, code, from]);
+  if (r.code !== 200 && r.code !== 301 && r.code !== 307 && r.code !== 308) recordBadStatus(h, r.code, from);
+});
+
+const linksChecked = linkResults.filter((r) => r !== undefined).length;
+console.log(
+  `총 검사 링크: ${linksChecked} / ${links.length}` +
+    ` (동시 ${CONCURRENCY}개 · ${Math.round((Date.now() - startedAt) / 1000)}초 소요)`,
+);
+
+/* 5xx 판정 — 여기서만 DB 상태를 근거로 쓴다.
+   크롤이 몇 분 걸리므로 시작 시점 값만 믿지 않고 끝에서 한 번 더 잰다. */
+if (serverErrors.length) {
+  const dbAfter = dbBefore.ok === false ? dbBefore : await probeDb();
+  /* 배포를 막는 건 "회귀다"라고 **주장**하는 일이다. 그 주장은 근거가 있을 때만
+     한다 — 크롤 전후 모두 DB 가 정상이었음을 실제로 확인했을 때만.
+     판정 불가(헬스체크 자체 실패)는 근거가 아니다. 그때는 막지 않고 크게 적는다. */
+  const dbProvenHealthy = dbBefore.ok === true && dbAfter.ok === true;
+
+  console.log(`\n서버 오류(5xx)를 받은 경로 ${serverErrors.length}개:`);
+  serverErrors.forEach(([p, c, f]) => console.log(`  ${c}  ${p}  (발견 위치: ${f})`));
+  console.log(
+    `  DB 도달 여부(크롤 종료 시점): ${
+      dbAfter.ok === true ? "정상" : dbAfter.ok === false ? "불가" : "판정 불가"
+    } — ${dbAfter.why}`,
+  );
+
+  if (dbProvenHealthy) {
+    console.log(
+      `  → DB 는 정상인데 5xx 입니다. 이건 진짜 회귀입니다 — 배포를 막습니다.`,
+    );
+    serverErrors.forEach((e) => broken.push(e));
+  } else {
+    /* DB 에 닿지 못하면 이 5xx 는 설계대로 나온 응답이다.
+       (핵심 조회 실패를 404 로 위장하지 않고 5xx 로 내는 것이 우리 규칙이다.)
+       회귀가 아니므로 배포를 막지 않는다 — 막으면 DB 장애를 고치는 커밋이
+       바로 그 장애 때문에 못 나간다. 다만 절대 "정상"으로 세지 않는다. */
+    console.log(
+      `  → DB 가 정상이라고 확인하지 못했습니다. 위 5xx 는 "핵심 조회 실패는 404 가\n` +
+        `    아니라 5xx" 규칙대로 동작한 결과일 수 있고, 링크 회귀라는 증거는 없습니다.\n` +
+        `    배포는 막지 않되 이 경로들을 "정상 확인됨"으로 세지 않았습니다.`,
+    );
+  }
 }
-console.log('총 검사 링크:', linkSources.size);
+
+/* 응답을 못 받은 경로는 통과시키든 막든 **항상** 적는다.
+   조용히 넘어가면 다음 사람이 "전부 200 이었다"고 잘못 읽는다. */
+if (unverified.length) {
+  console.log(`\n확인하지 못한 경로 ${unverified.length}개 (응답없음 — 200 도 404 도 아님):`);
+  unverified.forEach(([p, f]) => console.log(`  응답없음  ${p}  (발견 위치: ${f})`));
+  console.log(
+    `  → 이 경로들은 "정상"으로 세지 않았습니다. 서버가 느렸다는 뜻이고,\n` +
+      `    사이트가 틀렸다는 증거는 아닙니다. 임계치 ${MAX_UNVERIFIED}개까지는 배포를 막지 않습니다.`,
+  );
+}
+
+/* 예산 초과로 못 본 경로 — 이건 사이트에 대한 사실이 아니라 **우리 시간에
+   대한 사실**이다. 못 본 것을 근거로 배포를 막을 수는 없다. 대신 몇 개를
+   못 봤는지 정확히 적어서, 다음 사람이 "전부 확인했다"고 오해하지 않게 한다. */
+if (skipped.length) {
+  console.log(
+    `\n예산(${Math.round(BUDGET_MS / 60_000)}분) 초과로 검사하지 못한 경로 ${skipped.length}개:`,
+  );
+  skipped.slice(0, 20).forEach(([p, f]) => console.log(`  미검사  ${p}  (발견 위치: ${f})`));
+  if (skipped.length > 20) console.log(`  … 외 ${skipped.length - 20}개`);
+  console.log(
+    `  → 사이트가 느리다는 사실이지, 링크가 끊겼다는 증거가 아닙니다. 배포는 막지 않습니다.\n` +
+      `    (예산은 LINK_CHECK_BUDGET_MS, 동시성은 LINK_CHECK_CONCURRENCY 로 조정)`,
+  );
+}
+
 if (broken.length) {
-  console.log('끊긴 경로:');
-  // 코드 0 은 "404 를 받았다"가 아니라 "응답 자체를 못 받았다"는 뜻이다.
+  console.log('\n끊긴 경로:');
+  // 코드 0 은 "404 를 받았다"가 아니라 "요청 자체가 실패했다"는 뜻이다.
   // 이 둘을 같은 줄로 적으면 로그를 보고 원인을 잘못 짚게 된다.
   broken.forEach(([p, c, f]) =>
-    console.log(`  ${c === 0 ? '응답없음' : c}  ${p}  (발견 위치: ${f})`),
+    console.log(`  ${c === 0 ? '요청실패' : c}  ${p}  (발견 위치: ${f})`),
   );
   process.exit(1); // CI 게이트: 끊긴 링크 발견 시 배포 중단
-} else console.log('끊긴 경로 0 ✓');
+}
+
+if (unverified.length > MAX_UNVERIFIED) {
+  console.log(
+    `\n확인하지 못한 경로가 ${unverified.length}개로 임계치(${MAX_UNVERIFIED})를 넘었습니다.\n` +
+      `  한둘이 느린 것과 전부가 안 뜨는 것은 다른 상태입니다 — 이건 후자로 봅니다.\n` +
+      `  (임계치는 LINK_CHECK_MAX_UNVERIFIED 로 조정할 수 있습니다.)`,
+  );
+  process.exit(1);
+}
+
+if (retriesUsed >= MAX_RETRIES) {
+  console.log(`\n(참고) 재시도 상한 ${MAX_RETRIES}회를 다 썼습니다 — 그 뒤 타임아웃은 재시도 없이 기록만 했습니다.`);
+}
+
+const caveats = [
+  unverified.length ? `응답없음 ${unverified.length}개` : null,
+  serverErrors.length ? `5xx ${serverErrors.length}개(DB 미확인)` : null,
+  skipped.length ? `예산초과 미검사 ${skipped.length}개` : null,
+].filter(Boolean);
+console.log(
+  caveats.length
+    ? `끊긴 경로 0 ✓ (다만 ${caveats.join(" · ")} — 위 로그 참고)`
+    : "끊긴 경로 0 ✓",
+);

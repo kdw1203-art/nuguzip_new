@@ -66,13 +66,31 @@ function rowToPost(row: Record<string, unknown>): Post {
   };
 }
 
-export async function readPostsSb(): Promise<Post[]> {
+/**
+ * 한 번에 읽어 오는 글 수 상한.
+ *
+ * 예전에는 상한이 아예 없었다 — `select=*` 에 `order=created_at.desc` 만.
+ * 이 함수는 홈·타운·검색·내 활동·커뮤니티 API 가 전부 거쳐 가는 길목이라,
+ * 글이 하루치씩 쌓이는 만큼 요청 하나가 매일 조금씩 더 무거워졌다. 게다가
+ * `*` 는 본문(body)과 댓글(jsonb)까지 통째로 들고 온다. "지금은 행이 적으니
+ * 괜찮다"는 건 오늘에 대한 사실일 뿐, 설계에 대한 사실이 아니다.
+ *
+ * 그래서 상한을 둔다. 다만 상한은 **자르는 것**이므로, 전수 집계가 필요한
+ * 곳(관리자 통계의 총계 등)은 이 목록으로 세지 말고 count 질의를 써야 한다.
+ */
+export const POSTS_READ_LIMIT = 500;
+
+/** 최신순 글 목록 — 기본 상한 {@link POSTS_READ_LIMIT} 건. */
+export async function readPostsSb(
+  limit: number = POSTS_READ_LIMIT,
+): Promise<Post[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
   const { data, error } = await sb
     .from("posts")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, limit));
   if (error || !data) return [];
   return data.map((r) => rowToPost(r as Record<string, unknown>));
 }

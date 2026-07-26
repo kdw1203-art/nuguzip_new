@@ -238,14 +238,19 @@ export async function loadAdminKpi(): Promise<AdminKpi> {
     platformActivityEvents7d: null,
   };
 
-  // 파일 기반 fallback 우선 집계
-  try {
-    const posts = await readPosts();
-    base.totalPosts = posts.length;
-    base.postsToday = posts.filter((p) => p.createdAt >= today).length;
-    base.postsThisWeek = posts.filter((p) => p.createdAt >= weekAgo).length;
-  } catch {
-    /* ignore */
+  /* 파일 기반 fallback 집계.
+     Supabase 가 붙어 있을 때는 아래에서 count 질의로 정확히 다시 구하므로,
+     여기서 글 전체를 읽는 건 순수한 낭비였다(그리고 readPosts 에 상한이
+     생긴 뒤로는 length 로 총계를 세는 것 자체가 틀린 답이 된다). */
+  if (!sb) {
+    try {
+      const posts = await readPosts();
+      base.totalPosts = posts.length;
+      base.postsToday = posts.filter((p) => p.createdAt >= today).length;
+      base.postsThisWeek = posts.filter((p) => p.createdAt >= weekAgo).length;
+    } catch {
+      /* ignore */
+    }
   }
   try {
     const market = await readMarketRequestsFile();
@@ -284,6 +289,8 @@ export async function loadAdminKpi(): Promise<AdminKpi> {
     paymentsPaid30Res,
     inboxTotalRes,
     postsWeekRes,
+    postsTodayCountRes,
+    postsWeekCountRes,
   ] = await Promise.all([
     sb.from("app_users").select("*", { count: "exact", head: true }),
     sb.from("app_users").select("*", { count: "exact", head: true }).eq("role", "admin"),
@@ -331,6 +338,16 @@ export async function loadAdminKpi(): Promise<AdminKpi> {
       .select("author_label, notify_email")
       .gte("created_at", weekAgo)
       .limit(4000),
+    /* 오늘·이번 주 글 수 — 예전엔 글 전체를 받아 와 자바스크립트에서 셌다.
+       count 질의는 행을 하나도 실어 보내지 않으면서 정확하다. */
+    sb
+      .from("posts")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", today),
+    sb
+      .from("posts")
+      .select("*", { count: "exact", head: true })
+      .gte("created_at", weekAgo),
   ]);
 
   if (typeof usersRes.count === "number") base.totalUsers = usersRes.count;
@@ -338,6 +355,8 @@ export async function loadAdminKpi(): Promise<AdminKpi> {
   if (typeof new7Res.count === "number") base.newUsers7d = new7Res.count;
   if (typeof new30Res.count === "number") base.newUsers30d = new30Res.count;
   if (typeof postsCountRes.count === "number") base.totalPosts = postsCountRes.count;
+  if (typeof postsTodayCountRes.count === "number") base.postsToday = postsTodayCountRes.count;
+  if (typeof postsWeekCountRes.count === "number") base.postsThisWeek = postsWeekCountRes.count;
   if (typeof openReportsRes.count === "number") base.openReports = openReportsRes.count;
   if (typeof totalReportsRes.count === "number") base.totalReports = totalReportsRes.count;
   if (typeof pendingOutboxRes.count === "number") base.pendingOutbox = pendingOutboxRes.count;
@@ -412,8 +431,19 @@ export type PopularPost = {
   commentCount: number;
 };
 
+/**
+ * 인기 글·지역 분포가 훑는 표본 크기.
+ *
+ * 예전에는 "전체 글"을 훑었지만, 전체를 훑는 질의는 상한이 없어 매일 조금씩
+ * 무거워졌다. 지금은 **최신 이만큼**을 표본으로 쓴다 — 그래서 아래 두 값은
+ * "전체 기준"이 아니라 "최근 {@link ADMIN_POST_SAMPLE} 건 기준"이다.
+ * 이 구분은 CSV 내려받기에도 그대로 적어 둔다(app/api/admin/report).
+ */
+export const ADMIN_POST_SAMPLE = 500;
+
+/** 인기 글 상위 8 — 최근 {@link ADMIN_POST_SAMPLE} 건 표본 기준. */
 export async function loadPopularPosts(): Promise<PopularPost[]> {
-  const posts = await readPosts();
+  const posts = await readPosts(ADMIN_POST_SAMPLE);
   return posts
     .slice()
     .sort((a, b) => b.viewCount * 2 + b.likeCount * 5 - (a.viewCount * 2 + a.likeCount * 5))
@@ -431,8 +461,9 @@ export async function loadPopularPosts(): Promise<PopularPost[]> {
 
 export type RegionShare = { region: string; count: number; pct: number };
 
+/** 지역 분포 상위 10 — 최근 {@link ADMIN_POST_SAMPLE} 건 표본 기준(전체 아님). */
 export async function loadRegionDistribution(): Promise<RegionShare[]> {
-  const posts = await readPosts();
+  const posts = await readPosts(ADMIN_POST_SAMPLE);
   const bucket = new Map<string, number>();
   for (const p of posts) {
     const key = p.city || "미상";
@@ -483,9 +514,9 @@ export async function loadAdminRecent(): Promise<AdminRecent> {
     recentOutbox: [],
   };
 
-  // 최근 글 (파일/Supabase 공통 경로)
+  // 최근 글 (파일/Supabase 공통 경로) — 10건만 쓰므로 10건만 읽는다.
   try {
-    const posts = await readPosts();
+    const posts = await readPosts(10);
     out.recentPosts = posts.slice(0, 10).map((p) => ({
       id: p.id,
       title: p.title,

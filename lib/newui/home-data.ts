@@ -93,6 +93,19 @@ export interface NewHomeData {
   posts: HomePostItem[];
   meetings: HomeMeetingItem[];
   reports: HomeReportItem[];
+  /**
+   * 조회 자체가 실패한 섹션. 빈 배열이 "아직 없음"인지 "못 불러옴"인지는
+   * 배열만 봐서는 구분이 안 된다 — 화면이 둘을 다르게 말하려면 이 값이 필요하다.
+   * 예전에는 전부 `.catch(() => [])` 라, DB 가 죽으면 홈이 "아직 올라온 글이
+   * 없어요"라고 말했다. 글은 있는데 그렇게 말한 것이다.
+   */
+  failed: {
+    regions: boolean;
+    notes: boolean;
+    posts: boolean;
+    meetings: boolean;
+    reports: boolean;
+  };
 }
 
 export const EMPTY_NEW_HOME_DATA: NewHomeData = {
@@ -106,6 +119,15 @@ export const EMPTY_NEW_HOME_DATA: NewHomeData = {
   posts: [],
   meetings: [],
   reports: [],
+  /* 이 상수가 쓰이는 경로는 "로더가 통째로 실패했다" 하나뿐이다.
+     그러니 전 섹션이 실패다 — 빈 데이터가 아니다. */
+  failed: {
+    regions: true,
+    notes: true,
+    posts: true,
+    meetings: true,
+    reports: true,
+  },
 };
 
 /** 홈 시세 카드로 보여줄 지역 (내부 region id — seoul-districts 기준) */
@@ -283,11 +305,25 @@ async function loadActiveNow(): Promise<number | null> {
 }
 
 async function loadNewHomeDataInternal(): Promise<NewHomeData> {
+  /* 실패를 삼키되 "삼켰다는 사실"은 남긴다. 아래 failed 로 화면까지 전달된다. */
+  let regionsFailed = false;
+  let notesFailed = false;
   const [home, snapshots, publicNotes, saleIndexSeoul, mortgage, briefing, activeNow] =
     await Promise.all([
-      loadHomeData().catch((): HomeData => EMPTY_HOME_DATA),
-      getAllRegionSnapshots().catch(() => new Map<string, never>()),
-      listPublicNotes(50).catch((): InspectionNote[] => []),
+      loadHomeData().catch((err): HomeData => {
+        logger.error("[loadNewHomeData] loadHomeData 실패", err);
+        return EMPTY_HOME_DATA;
+      }),
+      getAllRegionSnapshots().catch((err) => {
+        logger.error("[loadNewHomeData] 지역 스냅샷 조회 실패", err);
+        regionsFailed = true;
+        return new Map<string, never>();
+      }),
+      listPublicNotes(50).catch((err): InspectionNote[] => {
+        logger.error("[loadNewHomeData] 공개 임장노트 조회 실패", err);
+        notesFailed = true;
+        return [];
+      }),
       loadSaleIndexSeoul().catch(() => null),
       getMortgageRates().catch(() => null),
       loadBriefingCached().catch((): HomeBriefing | null => null),
@@ -369,6 +405,13 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     posts,
     meetings,
     reports,
+    failed: {
+      regions: regionsFailed,
+      notes: notesFailed,
+      posts: home.failedSources.includes("posts"),
+      meetings: home.failedSources.includes("meetings"),
+      reports: home.failedSources.includes("reports"),
+    },
   };
 }
 

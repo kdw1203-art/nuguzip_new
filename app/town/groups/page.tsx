@@ -221,11 +221,18 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
   const sort = sp.sort ?? "soon";
 
   let meetings: UserMeeting[] = [];
+  /* 목록을 **못 읽은 것**과 목록이 **비어 있는 것**은 다른 사실이다.
+     예전에는 실패를 빈 배열로 삼켜서 "지금 모집 중인 모임이 없어요"를 띄웠다 —
+     모임이 있는데도 없다고 말한 셈이다. 이제는 실패를 실패라고 그린다.
+     (페이지 자체는 200 으로 둔다. 목록을 못 읽었다고 해서 이 URL 이 사라진
+      건 아니고, 검색엔진에 5xx 를 줄 이유도 없다.) */
+  let loadFailed = false;
   try {
     // listMeetings 기본값은 지난 모임 제외 — 이 화면은 "마감·종료된 모임" 섹션에
     // 일정이 지난 모임(statusKey: past)도 보여 주므로 includePast 를 켠다.
     meetings = await listMeetings({ includePast: true });
   } catch {
+    loadFailed = true;
     meetings = [];
   }
 
@@ -332,7 +339,21 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
       </div>
 
       {/* ---------- 섹션 ---------- */}
-      {groups.length === 0 ? (
+      {loadFailed ? (
+        <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
+            <Icon name="warning" size={22} />
+          </div>
+          <p className="text-sm font-bold text-ink">모임 목록을 불러오지 못했어요</p>
+          <p className="max-w-xs text-xs leading-[1.6] text-text-3">
+            일시적인 오류예요. 모임이 없는 게 아니라, 지금 목록을 읽지 못한
+            상태입니다. 잠시 뒤 새로고침해 주세요.
+          </p>
+          <Link href="/town/groups" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+            다시 불러오기
+          </Link>
+        </div>
+      ) : groups.length === 0 ? (
         <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
             <Icon name="search" size={22} />

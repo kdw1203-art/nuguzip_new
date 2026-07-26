@@ -311,8 +311,15 @@ export async function listListingsInBounds(bounds: {
 
 /** 검수 대기(pending) 목록 — 어드민 전용. */
 export async function listPendingListings(): Promise<AdminListing[]> {
+  /* 2026-07-26: 실패를 `[]` 로 삼켰다. 그러면 /admin/listings 는 "대기 0건 ·
+     검수 대기 중인 매물이 없어요" 라고 말한다 — 올라온 매물이 며칠씩 검수 없이
+     묶여 있어도 아무도 모른다. 실패는 던진다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "[listings] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
   try {
     const { data, error } = await sb
       .from("listings")
@@ -321,11 +328,12 @@ export async function listPendingListings(): Promise<AdminListing[]> {
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(100);
-    if (error || !data) return [];
+    if (error) throw new Error(`listings(pending) 조회 실패: ${error.message}`);
+    if (!Array.isArray(data)) throw new Error("listings(pending) 응답이 배열이 아닙니다");
     return data.map((r) => mapAdmin(r as Record<string, unknown>));
   } catch (e) {
-    logger.warn("[listings] listPendingListings", e);
-    return [];
+    logger.error("[listings] 검수 대기 목록 조회 실패", e);
+    throw e;
   }
 }
 
@@ -340,8 +348,14 @@ export async function listPendingListings(): Promise<AdminListing[]> {
  * 신고가 한 건이라도 있거나 숨김 상태인 매물을 여기서 모아 준다.
  */
 export async function listReportedListings(limit = 100): Promise<AdminListing[]> {
+  /* 2026-07-26: 실패를 `[]` 로 삼켰다. 신고 3건이면 자동 숨김이 걸리는 큐라서,
+     실패가 "신고 0건"으로 보이면 감춰진 매물을 아무도 확인하지 않게 된다. 던진다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "[listings] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
   try {
     const { data, error } = await sb
       .from("listings")
@@ -350,11 +364,12 @@ export async function listReportedListings(limit = 100): Promise<AdminListing[]>
       .is("deleted_at", null)
       .order("report_count", { ascending: false })
       .limit(limit);
-    if (error || !data) return [];
+    if (error) throw new Error(`listings(reported) 조회 실패: ${error.message}`);
+    if (!Array.isArray(data)) throw new Error("listings(reported) 응답이 배열이 아닙니다");
     return data.map((r) => mapAdmin(r as Record<string, unknown>));
   } catch (e) {
-    logger.warn("[listings] listReportedListings", e);
-    return [];
+    logger.error("[listings] 신고 매물 조회 실패", e);
+    throw e;
   }
 }
 
@@ -385,18 +400,25 @@ export async function setListingHidden(
 
 /** 검수 대기 건수 — 어드민 대시보드 링크 배지용. */
 export async function countPendingListings(): Promise<number> {
+  /* 2026-07-26: 실패를 전부 0 으로 눌렀다. 어드민 헤더에 "매물 검수 0건" 이라고
+     뜨면 운영자는 검수 화면을 열지 않는다 — 실제로는 대기가 쌓여 있는데도.
+     집계 실패는 0건이 아니다. 던져서 호출부가 "—" 로 그리게 한다. */
   const sb = getServiceSupabase();
-  if (!sb) return 0;
-  try {
-    const { count, error } = await sb
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending");
-    if (error) return 0;
-    return count ?? 0;
-  } catch {
-    return 0;
+  if (!sb) {
+    throw new Error(
+      "[listings] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
   }
+  const { count, error } = await sb
+    .from("listings")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) {
+    logger.error("[listings] 검수 대기 건수 집계 실패", error.message);
+    throw new Error(`listings(pending) 집계 실패: ${error.message}`);
+  }
+  if (typeof count !== "number") throw new Error("listings(pending) 집계 결과가 숫자가 아닙니다");
+  return count;
 }
 
 export async function createListing(input: {

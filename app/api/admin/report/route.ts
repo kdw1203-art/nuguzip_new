@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { estimateSubscriptionMrrKrw } from "@/lib/admin/subscription-metrics";
-import { loadAdminKpi, loadRegionDistribution } from "@/lib/admin/stats";
+import {
+  ADMIN_POST_SAMPLE,
+  loadAdminKpi,
+  loadRegionDistribution,
+} from "@/lib/admin/stats";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +63,13 @@ export async function GET() {
   for (const [plan, count] of Object.entries(kpi.planCounts)) {
     rows.push([`plan_${plan}`, String(count)]);
   }
+  /* 지역 분포는 전체 글이 아니라 **최근 N건 표본** 기준이다. 표본이라는
+     사실을 CSV 안에 같이 적어 두지 않으면, 받아 본 사람은 이 비율을 전체
+     비율로 읽는다 — 우리가 준 적 없는 사실이 그렇게 만들어진다. */
+  rows.push([
+    "regionShare_basis",
+    `최근 ${ADMIN_POST_SAMPLE}건 표본 (전체 ${kpi.totalPosts}건 중)`,
+  ]);
   for (const r of regions) {
     rows.push([`region_${r.region}`, `${r.count} (${r.pct}%)`]);
   }

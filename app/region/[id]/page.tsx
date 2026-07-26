@@ -13,6 +13,7 @@ import {
 } from "@/lib/market/store";
 import type { RegionMarketSnapshot } from "@/lib/market/types";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getSupplyForArea, type SupplyItem } from "@/lib/market/supply";
 import type { InspectionNote } from "@/lib/inspection/store-db";
 import {
@@ -66,16 +67,10 @@ export const revalidate = 3600;
 
 /* ---------- 세 갈래 상태 (정상 / 정말 없음 / 조회 실패) ---------- */
 
-type Settled<T> = { ok: true; data: T } | { ok: false };
-
-async function settle<T>(what: string, work: Promise<T>): Promise<Settled<T>> {
-  try {
-    return { ok: true, data: await work };
-  } catch (e) {
-    logger.error(`[/region] ${what} 조회 실패:`, e instanceof Error ? e.message : String(e));
-    return { ok: false };
-  }
-}
+/* 세 갈래 상태와 공유 예산은 lib/data/section-budget.ts 로 옮겼다.
+   /complex/[id] 등 다른 화면도 같은 규칙을 써야 하기 때문이다.
+   핵심 스냅샷은 이 예산에 포함되지 않는다 — 그건 페이지의 존재 이유라서,
+   실패하면 여전히 던져서 5xx 가 되어야 한다. */
 
 function LoadFailed({ what }: { what: string }) {
   return (
@@ -204,18 +199,22 @@ export default async function RegionHubPage({
   // 이 지역 자치구명 (예: "고양시 덕양구" → "덕양구") — 공급·정비사업 매칭 키
   const shortName = name.trim().split(/\s+/).pop() ?? name;
 
+  /* 곁다리 7개는 공유 마감시계 하나를 함께 본다. 하나가 늦어도 나머지가
+     끝났으면 페이지는 8초 안에 그려진다. */
+  const budget = startDeadline();
   const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR] =
     await Promise.all([
-      settle(`${id} 매매가격지수`, getRegionSeries(id, "sale_index", "monthly", 12)),
-      settle(`${id} 최근 실거래`, listRegionTransactions(id, name, 5)),
-      settle(`${id} 단지별 현황`, listDistrictComplexSummaries(txRegion, complexLimit)),
-      settle("공개 임장노트", listPublicNotes(100)),
-      settle(`${id} 월별 거래량`, getRegionMonthlyVolume(id, name, 12)),
+      settle(`${id} 매매가격지수`, getRegionSeries(id, "sale_index", "monthly", 12), budget.expired),
+      settle(`${id} 최근 실거래`, listRegionTransactions(id, name, 5), budget.expired),
+      settle(`${id} 단지별 현황`, listDistrictComplexSummaries(txRegion, complexLimit), budget.expired),
+      settle("공개 임장노트", listPublicNotes(100), budget.expired),
+      settle(`${id} 월별 거래량`, getRegionMonthlyVolume(id, name, 12), budget.expired),
       /* 정비사업은 DB 확정분만 쓴다(시드 폴백 없음). 이 화면은 "○○구에 산다는 것"을
          사실로만 조립하는 곳이고, 시드는 수기 정리본이라 여기 섞으면 안 된다. */
-      settle(`${shortName} 정비사업`, listDbProjects({ sigungu: shortName, limit: 200 })),
-      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6)),
+      settle(`${shortName} 정비사업`, listDbProjects({ sigungu: shortName, limit: 200 }), budget.expired),
+      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6), budget.expired),
     ]);
+  budget.done();
 
   const series: Array<{ period: string; value: number }> = seriesR.ok ? seriesR.data : [];
   const transactions: RegionTransactionRow[] = transactionsR.ok ? transactionsR.data : [];

@@ -141,6 +141,9 @@ export function HeaderAuth() {
               </Link>
             ))}
             <div className="mx-2 my-1 border-t border-line" />
+            {/* 라우트 핸들러(로그아웃)라서 <Link> 프리페치 대상이 아니다.
+                프리페치되면 마우스만 올려도 로그아웃될 수 있어 <a> 가 맞다. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/api/auth/signout"
               role="menuitem"

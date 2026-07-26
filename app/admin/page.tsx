@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin/expert-ops-metrics";
 import { loadAdminKpi, type AdminKpi } from "@/lib/admin/stats";
 import { EmptyState, ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 
 // 실집계(#83): DAU·신규 노트·전환율·구독 매출 4카드와 처리 대기 목록은
 // lib/newui/admin-metrics 실데이터 사용 — 조회 실패 시 "—" 또는 정직한 빈/오류 상태.
@@ -57,7 +58,17 @@ export default async function AdminDashboardPage() {
   const kpiReady = Boolean(kpi?.supabaseConfigured);
   const num = (v: number | null | undefined): string =>
     kpiReady && typeof v === "number" ? v.toLocaleString("ko-KR") : "—";
-  const pendingListingsCount = await countPendingListings().catch(() => 0);
+  /* 2026-07-26: `.catch(() => 0)` 이었다. 집계가 실패하면 헤더에 "매물 검수 0건"
+     이 뜨고, 운영자는 검수 화면을 열 이유가 없다고 읽는다. 실패는 "—" 로 쓴다. */
+  const pendingListingsCount = await countPendingListings().then(
+    (n) => n,
+    (err: unknown) => {
+      logger.error("[admin] 검수 대기 건수 집계 실패", err);
+      return null;
+    },
+  );
+  const pendingListingsLabel =
+    pendingListingsCount === null ? "—" : pendingListingsCount.toLocaleString("ko-KR");
   const maxSignup = Math.max(1, ...ops.signupTrend.map((d) => d.count));
   // 신고 처리 배지: content_reports 상태별 실집계에서 open 건수 (없으면 null → 배지 숨김)
   const openReportCount =
@@ -97,7 +108,7 @@ export default async function AdminDashboardPage() {
             href="/admin/listings"
             className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] font-extrabold text-[#7ea2ff]"
           >
-            매물 검수 {pendingListingsCount}건
+            매물 검수 {pendingListingsCount === null ? "—" : `${pendingListingsLabel}건`}
           </Link>
           <span className="rounded-[10px] bg-[rgba(255,255,255,.07)] px-3.5 py-[7px] font-semibold text-[#c9d2e0]">
             오늘
@@ -425,7 +436,7 @@ export default async function AdminDashboardPage() {
                   },
                   {
                     label: "매물 검수 대기",
-                    value: pendingListingsCount.toLocaleString("ko-KR"),
+                    value: pendingListingsLabel,
                     sub: "소유확인 심사 큐",
                   },
                 ].map((s) => (

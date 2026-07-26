@@ -48,17 +48,25 @@ interface RegionPriceRow {
 }
 
 export async function loadRegionMarketMarkers(): Promise<RegionMarketMarker[]> {
+  /* 2026-07-26: 클라이언트 생성 실패와 쿼리 실패를 모두 `[]` 로 삼켰다. 그러면
+     지도에서 지역 시세 말풍선이 통째로 사라지는데, 보는 쪽에서는 "이 지역은
+     거래가 없다" 로 읽힌다 — 실제로는 집계 테이블을 못 읽은 것뿐이다.
+     실패는 던지고 호출부(app/map/page.tsx)가 안내 문구로 구분한다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb
+  if (!sb) {
+    throw new Error("[region-market] Supabase 서비스 클라이언트를 만들 수 없습니다 (환경변수 누락)");
+  }
+  const { data, error } = await sb
     .from("market_region_price")
     .select(
       "region_id, region_name, avg_sale, per_m2_sale, sale_change, trade_count, jeonse_ratio, period, property_type",
     )
     .eq("property_type", "apt")
     .order("period", { ascending: false });
+  if (error) throw new Error(`market_region_price 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) throw new Error("market_region_price 응답이 배열이 아닙니다");
 
-  const rows = (data as RegionPriceRow[] | null) ?? [];
+  const rows = data as RegionPriceRow[];
   const coords = coordIndex();
   const seen = new Set<string>();
   const out: RegionMarketMarker[] = [];

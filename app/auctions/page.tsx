@@ -15,6 +15,8 @@ import {
   type AuctionItem,
 } from "@/lib/onbid/store";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
@@ -333,10 +335,37 @@ export default async function AuctionsPage({
   }
 
   // 온비드 공매(기본)
-  const [items, activeTotal] = await Promise.all([
+  /* 2026-07-26: store 가 실패 때 `[]`·`0` 을 돌려주던 걸 던지도록 고쳤다.
+     여기서 받아서 "지금 불러오지 못했다"고 말한다 — 물건이 0건인 것과 조회가
+     죽은 것을 같은 화면으로 그리면 안 된다. */
+  const loaded = await Promise.all([
     getAuctions({ usage, sigungu: gu, limit: 200 }),
     getActiveAuctionCount(),
-  ]);
+  ]).then(
+    ([items, activeTotal]) => ({ ok: true as const, items, activeTotal }),
+    (err: unknown) => {
+      logger.error("[auctions] 온비드 공매 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+
+  if (!loaded.ok) {
+    return (
+      <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
+        <TownCategoryNav stick />
+        <div style={AUCTION_THEME}>
+          <ErrorState
+            title="공매 물건을 지금 불러오지 못했어요"
+            desc="진행 중인 물건이 0건인 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요. 급하시면 온비드에서 직접 확인하실 수 있어요."
+            cause={loaded.cause}
+            action={{ href: "https://www.onbid.co.kr", label: "온비드 바로가기" }}
+          />
+        </div>
+      </PageShell>
+    );
+  }
+
+  const { items, activeTotal } = loaded;
 
   // 지난 물건 정리: 목록·표는 마감 전(진행·예정)만, 마감분은 접힌 섹션으로 분리.
   // store 정렬(bid_end 오름차순)이 곧 마감 임박순. 마감일 미상은 지난 것으로

@@ -62,7 +62,8 @@ function noteToInsight(n: InspectionNote): MyNoteInsight {
     districtId: workbenchDistrictIdFromLabel(n.region),
     avgScore: Number(inspectionAverageScore(n.scores).toFixed(1)),
     createdAt: n.createdAt,
-    href: `/inspection/${n.id}`,
+    /* 임장노트 상세는 app/notes/[id]. `/inspection/{id}` 는 없는 경로다. */
+    href: `/notes/${n.id}`,
   };
 }
 
@@ -75,9 +76,12 @@ function runToInsight(r: AiAnalysisRunRow): MyRunInsight {
     score: r.structuredSummary?.score ?? null,
     districtId: r.districtId,
     createdAt: r.createdAt,
+    /* tool 은 분석 엔진 식별자이지 라우트가 아니다(툴별 페이지가 없다).
+       실존하는 건 분석 허브 /analysis 하나뿐이라 거기로 보낸다. district 는
+       허브가 읽지 않더라도 맥락 손실 없이 붙여 둔다. */
     href: r.districtId
-      ? `/ai-analysis/${r.tool}?district=${encodeURIComponent(r.districtId)}`
-      : `/ai-analysis/${r.tool}`,
+      ? `/analysis?district=${encodeURIComponent(r.districtId)}`
+      : "/analysis",
   };
 }
 

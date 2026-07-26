@@ -76,9 +76,11 @@ type SourceRow = {
  * 잘린 사이트맵은 빈 사이트맵보다 나쁘다 — 크롤러에게 "나머지 22,000개는
  * 존재하지 않는다"고 적극적으로 거짓말하는 것이기 때문이다.
  *
- * 그래서 실패는 예외로 올린다. 호출부(loadComplexEntries)가 로그를 남기고 빈
- * 배열로 바꾸면, 사이트맵 인덱스가 그 섹션을 "필수인데 비었다"로 보고 503 +
- * no-store 를 낸다. 틀린 상태를 한 시간 캐시에 굳히지 않는 쪽이 맞다.
+ * 그래서 실패는 예외로 올린다. loadComplexEntries 의 section() 이 로그를 남기고
+ * SitemapSectionError 로 다시 던지면, 자식 사이트맵은 503 + no-store 로 답하고
+ * 인덱스는 그 유형을 빼지 않은 채 캐시를 끈다. 틀린 상태를 한 시간 캐시에
+ * 굳히지 않는 쪽이 맞다. (예전엔 여기서 빈 배열로 바뀌어, 선택 유형에서는
+ * "실패"와 "원래 없음"이 구분되지 않았다.)
  */
 export async function listComplexSitemapEntries(
   max = SITEMAP_URL_LIMIT,

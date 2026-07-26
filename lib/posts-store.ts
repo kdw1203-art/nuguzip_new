@@ -17,6 +17,7 @@ import {
   getPostSb,
   incrementViewCountSb,
   prependPostSb,
+  POSTS_READ_LIMIT,
   readPostsSb,
   softDeleteCommentSb,
   togglePostLikeSb,
@@ -25,12 +26,25 @@ import {
 } from "@/lib/posts-store-supabase";
 import type { Post, PostComment } from "@/lib/types/post";
 
+export { POSTS_READ_LIMIT };
+
 function storageBackendIsSupabase() {
   return isSupabaseConfigured();
 }
 
-export async function readPosts(): Promise<Post[]> {
-  return storageBackendIsSupabase() ? readPostsSb() : readPostsFile();
+/**
+ * 최신순 글 목록. **전부가 아니라 최신 `limit` 건**이다(기본
+ * {@link POSTS_READ_LIMIT}). 총계·비율처럼 전수가 필요한 값은 이 목록의
+ * length 로 세면 안 된다 — 상한에 걸리면 조용히 틀린 수를 내놓는다.
+ * 그런 곳은 count 질의를 쓴다.
+ */
+export async function readPosts(
+  limit: number = POSTS_READ_LIMIT,
+): Promise<Post[]> {
+  if (storageBackendIsSupabase()) return readPostsSb(limit);
+  /* 파일 백엔드는 애초에 전량을 메모리에 올리므로 상한이 부하 문제는 아니지만,
+     두 백엔드가 같은 개수를 돌려주도록 여기서도 똑같이 자른다. */
+  return (await readPostsFile()).slice(0, Math.max(1, limit));
 }
 
 export async function prependPost(post: Post): Promise<void> {

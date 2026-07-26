@@ -64,12 +64,21 @@ function normStatus(v: unknown): QueueStatus {
 
 /** content_reports + chat_reports → 통합 큐. 최신순. */
 export async function loadModerationQueue(limit = 200): Promise<QueueItem[]> {
+  /* 2026-07-26: 여기서 error 를 로그만 남기고 빈 배열로 넘겼다. 그러면
+     /admin/moderation 은 "미처리 0건" 옆에 "표시되는 수치는 모두 DB 실집계입니다"
+     라고 적어 놓은 화면을 그대로 그린다 — 신고가 쌓여 있어도 운영자는 "처리할 게
+     없다"고 읽는다. 호출부에 ErrorState 를 붙여도 여기서 삼키면 영원히 안 뜬다.
+     그래서 삼키던 자리를 던지는 자리로 바꾼다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "[moderation-queue] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
   const now = Date.now();
 
   // Supabase 쿼리 빌더는 예외를 던지지 않고 { data, error } 를 돌려준다.
-  // (PromiseLike 라 .catch() 도 못 붙는다) — error 는 로그만 남기고 빈 배열로 취급한다.
+  // (PromiseLike 라 .catch() 도 못 붙는다) — error 를 직접 보고 던져야 한다.
   const [content, chat] = await Promise.all([
     sb
       .from("content_reports")
@@ -87,8 +96,16 @@ export async function loadModerationQueue(limit = 200): Promise<QueueItem[]> {
       .limit(limit),
   ]);
 
-  if (content.error) logger.warn("[moderation-queue] content_reports", content.error.message);
-  if (chat.error) logger.warn("[moderation-queue] chat_reports", chat.error.message);
+  /* 한쪽만 실패해도 던진다 — 남은 쪽만 보여 주면 "커뮤니티 신고 3건 · 채팅 0건"
+     처럼 절반이 빠진 수치가 사실인 것처럼 보인다. */
+  if (content.error) {
+    logger.error("[moderation-queue] content_reports 조회 실패", content.error.message);
+    throw new Error(`content_reports 조회 실패: ${content.error.message}`);
+  }
+  if (chat.error) {
+    logger.error("[moderation-queue] chat_reports 조회 실패", chat.error.message);
+    throw new Error(`chat_reports 조회 실패: ${chat.error.message}`);
+  }
 
   const items: QueueItem[] = [];
 

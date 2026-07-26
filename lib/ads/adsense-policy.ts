@@ -10,6 +10,11 @@ export type AdPlacement = "home_feed" | "community_feed" | "report_free_body";
 export const ADSENSE_EXCLUDED_PATH_PREFIXES = [
   "/explore",
   "/map",
+  /* 2026-07-26 — `/me` 때와 똑같은 일이 임장노트 작성 화면에서도 있었다.
+     여기 적혀 있던 `/inspection/*` 는 이 앱에 없는 경로라 제외가 한 건도
+     걸리지 않았고, 정작 작성 중인 노트가 보이는 `/notes/new` 에는 광고가
+     붙고 있었다. 옛 경로는 리다이렉트가 살아 있는 동안 그대로 둔다. */
+  "/notes/new",
   "/inspection/create",
   "/inspection/session",
   "/inspection/create-schedule",

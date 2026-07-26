@@ -12,6 +12,8 @@ import type {
   IngestOutcome,
   IngestSourceSummary,
 } from "@/lib/admin/data-freshness";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 import { GeocodeRunButton } from "./GeocodeRunButton";
 import { CronRunPanel } from "./CronRunPanel";
 import { UploadPanel } from "./UploadPanel";
@@ -87,6 +89,8 @@ function OutcomeChip({ outcome }: { outcome: IngestOutcome }) {
 }
 
 function lagText(row: FreshnessRow): string {
+  /* rows 가 null 이면 행 수를 못 읽은 것이다 — 경과일도 믿을 수 없으니 같이 비운다. */
+  if (row.rows == null) return "—";
   if (row.rows === 0) return "—";
   if (row.lagDays == null) return "기록 없음";
   if (row.lagDays === 0) return "오늘";
@@ -125,11 +129,28 @@ function runDetail(run: NonNullable<FreshnessRow["ingest"]>): string {
 }
 
 export default async function AdminDataPage() {
-  const [geo, freshness, ingest] = await Promise.all([
+  /* 2026-07-26: 신선도·적재 로그가 `.catch(() => [])` 였다. 이 화면 머리말은
+     "표시되는 수치는 모두 DB 실집계입니다" 라고 못 박고 있는데, 조회가 실패하면
+     "총 적재 행 0 · 최신 0개 데이터셋 · 부분 실패 0건 · 0건" 이라는 **초록으로
+     보이는 전면 0 화면**이 뜬다. 데이터 파이프라인이 통째로 죽었을 때 가장 먼저
+     열어 보는 화면이 그 사고를 "이상 없음" 으로 그리는 셈이다. 실패는 실패로 쓴다. */
+  const settle = <T,>(p: Promise<T>, tag: string) =>
+    p.then(
+      (value) => ({ ok: true as const, value }),
+      (err: unknown) => {
+        logger.error(`[admin/data] ${tag} 조회 실패`, err);
+        return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+      },
+    );
+
+  const [geo, freshnessLoaded, ingestLoaded] = await Promise.all([
     getGeocodeProgress().catch(() => null),
-    loadDataFreshness().catch(() => [] as FreshnessRow[]),
-    loadIngestSourceSummary().catch(() => [] as IngestSourceSummary[]),
+    settle(loadDataFreshness(), "데이터셋 신선도"),
+    settle(loadIngestSourceSummary(), "적재 로그"),
   ]);
+  const freshness: FreshnessRow[] = freshnessLoaded.ok ? freshnessLoaded.value : [];
+  const ingest: IngestSourceSummary[] = ingestLoaded.ok ? ingestLoaded.value : [];
+  const summaryReady = freshnessLoaded.ok && ingestLoaded.ok;
 
   const ok = geo?.ok ?? 0;
   const total = geo?.total ?? 0;
@@ -142,7 +163,10 @@ export default async function AdminDataPage() {
     },
     { fresh: 0, aging: 0, stale: 0, empty: 0, unknown: 0 },
   );
-  const totalRows = freshness.reduce((a, r) => a + r.rows, 0);
+  /* 행 수를 못 읽은 테이블은 합계에서 빠진다 — 그래서 합계는 "최소 이만큼" 이지
+     정확한 총합이 아니다. 그 사실을 라벨에 적는다(0 으로 채워 넣지 않는다). */
+  const rowsUnknownCount = freshness.filter((r) => r.rows == null).length;
+  const totalRows = freshness.reduce((a, r) => a + (r.rows ?? 0), 0);
 
   /* 요약 카드에 "부분 실패" 를 세운다 — 이 숫자가 0이 아니면 데이터는 들어왔지만
      일부 구간이 비어 있다는 뜻이고, 그건 초록 화면 뒤에 숨으면 안 되는 사실이다. */
@@ -154,19 +178,42 @@ export default async function AdminDataPage() {
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">데이터 관리</div>
       <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
-        데이터셋별 신선도·적재 로그와 수동 수집 도구입니다. 표시되는 수치는 모두 DB 실집계입니다.
+        데이터셋별 신선도·적재 로그와 수동 수집 도구입니다.{" "}
+        {summaryReady
+          ? "표시되는 수치는 모두 DB 실집계입니다."
+          : "지금은 일부 집계를 불러오지 못해 아래 수치가 불완전합니다 — 실패한 칸은 “—”로 표시했습니다."}
       </div>
 
       {/* 요약 */}
       <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "총 적재 행", value: fmt(totalRows), color: "#ffffff" },
-          { label: "최신", value: `${counts.fresh}개 데이터셋`, color: "#4ade80" },
-          { label: "지연·정체", value: `${counts.aging + counts.stale}개`, color: "#f2c94c" },
+          /* 집계에 실패한 칸은 0 이 아니라 "—" 다 — 0 으로 쓰면 "이상 없음" 으로 읽힌다. */
+          {
+            label:
+              freshnessLoaded.ok && rowsUnknownCount > 0
+                ? `총 적재 행 (${rowsUnknownCount}개 집계 실패)`
+                : "총 적재 행",
+            value: freshnessLoaded.ok
+              ? rowsUnknownCount > 0
+                ? `${fmt(totalRows)}+`
+                : fmt(totalRows)
+              : "—",
+            color: "#ffffff",
+          },
+          {
+            label: "최신",
+            value: freshnessLoaded.ok ? `${counts.fresh}개 데이터셋` : "—",
+            color: freshnessLoaded.ok ? "#4ade80" : "#9aa6b8",
+          },
+          {
+            label: "지연·정체",
+            value: freshnessLoaded.ok ? `${counts.aging + counts.stale}개` : "—",
+            color: freshnessLoaded.ok ? "#f2c94c" : "#9aa6b8",
+          },
           {
             label: "마지막 수집 부분 실패·실패",
-            value: `${partialCount}건 · ${failedCount}건`,
-            color: partialCount + failedCount > 0 ? "#fb923c" : "#9aa6b8",
+            value: ingestLoaded.ok ? `${partialCount}건 · ${failedCount}건` : "—",
+            color: ingestLoaded.ok && partialCount + failedCount > 0 ? "#fb923c" : "#9aa6b8",
           },
         ].map((s) => (
           <div
@@ -210,7 +257,14 @@ export default async function AdminDataPage() {
           <span className="text-[11px] text-[#9aa6b8]">테이블별 실집계</span>
         </div>
 
-        {freshness.length === 0 ? (
+        {!freshnessLoaded.ok ? (
+          <ErrorState
+            tone="admin"
+            title="데이터셋 신선도를 지금 불러오지 못했어요"
+            desc="집계가 0인 게 아니라 조회 자체가 실패했습니다. 이 화면의 요약 숫자도 함께 믿지 마세요."
+            cause={freshnessLoaded.cause}
+          />
+        ) : freshness.length === 0 ? (
           <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-6 text-center text-[11.5px] text-[#9aa6b8]">
             Supabase 연결이 없어 집계를 표시할 수 없습니다.
           </div>
@@ -253,7 +307,14 @@ export default async function AdminDataPage() {
                         ) : null}
                       </td>
                       <td className="px-2 py-2.5 text-right align-top font-bold tabular-nums text-white">
-                        {fmt(r.rows)}
+                        {/* null = 집계 실패. 0 으로 그리면 "빈 테이블" 로 읽힌다. */}
+                        {r.rows == null ? (
+                          <span className="text-[#9aa6b8]" title="행 수 집계에 실패했습니다">
+                            —
+                          </span>
+                        ) : (
+                          fmt(r.rows)
+                        )}
                       </td>
                       <td className="px-2 py-2.5 align-top text-[#c7d0de]">{r.dataAsOf ?? "—"}</td>
                       <td className="px-2 py-2.5 align-top">
@@ -346,7 +407,14 @@ export default async function AdminDataPage() {
             <span className="text-[15px] font-extrabold text-white">최근 적재 로그</span>
             <span className="text-[11px] text-[#9aa6b8]">market_ingest_log</span>
           </div>
-          {ingest.length === 0 ? (
+          {!ingestLoaded.ok ? (
+            <ErrorState
+              tone="admin"
+              title="적재 로그를 지금 불러오지 못했어요"
+              desc="로그가 없는 게 아니라 조회 자체가 실패했습니다. 수집이 돌았는지 여부를 이 화면으로 판단하지 마세요."
+              cause={ingestLoaded.cause}
+            />
+          ) : ingest.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-6 text-center text-[11.5px] text-[#9aa6b8]">
               적재 로그가 아직 없습니다.
             </div>

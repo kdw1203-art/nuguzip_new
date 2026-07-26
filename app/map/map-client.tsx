@@ -246,6 +246,15 @@ interface MapClientProps {
   danji: DanjiItem[];
   regionLabel: string;
   regionMarkers: RegionMarker[];
+  /**
+   * 2026-07-26: 서버에서 단지 목록 조회가 **실패**했는지. 예전에는 실패도 빈 배열로
+   * 내려와서 좌측 패널이 "수도권 단지 0", 모바일 목록이 "이 지역 단지 목록을 준비
+   * 중이에요" 라고 썼다 — 좌표 캐시를 못 읽은 것뿐인데 서비스가 미완성인 것처럼
+   * 보인다. 실패는 "—" 와 안내 문구로 구분해서 그린다.
+   */
+  danjiLoadFailed?: boolean;
+  /** 지역 시세 마커 조회가 실패했는지 — 실패면 가격 말풍선이 통째로 빠진다 */
+  regionMarkersLoadFailed?: boolean;
 }
 
 /* ===== 서버 클러스터링 (/api/map/clusters) ===== */
@@ -389,7 +398,13 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): num
 /** C3 반경 프리셋(m) */
 const RADIUS_PRESETS = [500, 1000, 2000] as const;
 
-export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps) {
+export function MapClient({
+  danji,
+  regionLabel,
+  regionMarkers,
+  danjiLoadFailed = false,
+  regionMarkersLoadFailed = false,
+}: MapClientProps) {
   const router = useRouter();
   const [zoom, setZoom] = useState<Zoom>(danji.length > 0 ? "danji" : "city");
   const [level, setLevel] = useState<number>(
@@ -1588,19 +1603,41 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         >
           <div className="flex items-baseline justify-between px-5 pb-2.5 pt-4">
             <div className="text-[15px] font-extrabold text-ink">
-              {regionLabel} 단지 {filteredDanji.length}
-              {(danjiFilterActive || commuteActive) && (
+              {/* 조회 실패는 0 이 아니다 — 숫자 자리에 "—" 를 쓴다 */}
+              {regionLabel} 단지 {danjiLoadFailed ? "—" : filteredDanji.length}
+              {!danjiLoadFailed && (danjiFilterActive || commuteActive) && (
                 <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
               )}
             </div>
             <div className="text-xs text-text-3">시세순 ▾</div>
           </div>
+          {danjiLoadFailed && (
+            <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+              <div className="text-[12px] font-extrabold text-ink">
+                단지 목록을 지금 불러오지 못했어요
+              </div>
+              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+                이 지역에 단지가 0개인 게 아니라 조회 자체가 실패했습니다. 지도는 그대로 쓸 수
+                있어요 — 잠시 후 새로고침해 주세요.
+              </p>
+            </div>
+          )}
+          {!danjiLoadFailed && regionMarkersLoadFailed && (
+            <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+              <div className="text-[12px] font-extrabold text-ink">
+                지역 시세 말풍선을 불러오지 못했어요
+              </div>
+              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+                거래가 없는 게 아니라 조회가 실패했습니다. 단지 목록과 지도는 그대로 쓸 수 있어요.
+              </p>
+            </div>
+          )}
           {txType === "rent" && (
             <div className="px-5 pb-1.5 text-[10px] text-text-3">
               목록 가격은 매매 실거래 평균이에요 — 전세 보증금은 지도 마커에서 확인
             </div>
           )}
-          {(danjiFilterActive || commuteActive) && filteredDanji.length === 0 && (
+          {!danjiLoadFailed && (danjiFilterActive || commuteActive) && filteredDanji.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
               <div className="text-xs text-text-2">조건에 맞는 단지가 없어요.</div>
               <button
@@ -1660,8 +1697,8 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
         >
           <div className="flex items-baseline justify-between px-5 pb-2 pt-3">
             <div className="text-[15px] font-extrabold text-ink">
-              {regionLabel} 단지 {filteredDanji.length}
-              {(danjiFilterActive || commuteActive) && (
+              {regionLabel} 단지 {danjiLoadFailed ? "—" : filteredDanji.length}
+              {!danjiLoadFailed && (danjiFilterActive || commuteActive) && (
                 <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
               )}
             </div>
@@ -1669,12 +1706,16 @@ export function MapClient({ danji, regionLabel, regionMarkers }: MapClientProps)
           </div>
           {filteredDanji.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
+              {/* 2026-07-26: 조회 실패도 여기로 떨어져서 "이 지역 단지 목록을 준비 중이에요"
+                  라고 안내했다 — 수집이 안 된 것과 못 읽은 것은 전혀 다른 사건이다. */}
               <div className="text-xs text-text-2">
-                {danjiFilterActive || commuteActive
-                  ? "조건에 맞는 단지가 없어요."
-                  : "이 지역 단지 목록을 준비 중이에요."}
+                {danjiLoadFailed
+                  ? "단지 목록을 지금 불러오지 못했어요. 단지가 0개인 게 아니라 조회가 실패했습니다."
+                  : danjiFilterActive || commuteActive
+                    ? "조건에 맞는 단지가 없어요."
+                    : "이 지역 단지 목록을 준비 중이에요."}
               </div>
-              {(danjiFilterActive || commuteActive) && (
+              {!danjiLoadFailed && (danjiFilterActive || commuteActive) && (
                 <button
                   type="button"
                   onClick={resetFilters}

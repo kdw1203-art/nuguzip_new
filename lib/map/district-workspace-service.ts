@@ -239,7 +239,8 @@ async function loadVerifiedExperts(district: string): Promise<WorkspaceExpertChi
       name: e.name,
       category: e.category,
       verified: e.isVerified,
-      href: `/experts/${e.id}`,
+      /* `/experts/{id}` 라우트 없음 — 목록으로. (전문가 상세가 생기면 되돌린다) */
+      href: "/town/experts",
     }));
 }
 

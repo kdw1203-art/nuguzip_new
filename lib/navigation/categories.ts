@@ -32,6 +32,20 @@ export type SiteCategory = {
 const startsWithAny = (p: string, prefixes: string[]) =>
   prefixes.some((prefix) => p === prefix || p.startsWith(`${prefix}/`));
 
+/* ── 2026-07-26: href 를 "지금 실제로 있는 경로"로 맞춤 ───────────────────────
+ * 여기 적혀 있던 /inspection/hub·/ai-analysis·/explore·/community·/market·
+ * /property-search·/calculators 는 전부 app/ 아래에 없는 경로였다. 미들웨어
+ * 리다이렉트(lib/seo/redirect-map.ts)가 받아 주고 있어서 404 는 아니었지만,
+ * **사이트에서 제일 많이 눌리는 링크들이 매번 301 한 번을 더 타고 있었다.**
+ * 클릭할 때마다 왕복이 한 번씩 더 붙는다는 뜻이다. 그래서 목적지를 직접 가리킨다.
+ *
+ * 예외 하나: `/presale` 은 리다이렉트조차 없었다 — 홈 퀵메뉴 "청약"이 그냥
+ * 404 였다. 청약 화면은 app/apply (청약홈 공공데이터 기반 "청약 센터")다.
+ *
+ * match 배열에서는 옛 경로를 **지우지 않는다**. 리다이렉트가 살아 있는 동안
+ * 옛 URL 로 들어온 사람도 탭 강조가 맞아야 하고, 지워서 얻는 것도 없다.
+ * ────────────────────────────────────────────────────────────────────────── */
+
 export const SITE_CATEGORIES: SiteCategory[] = [
   {
     key: "home",
@@ -43,81 +57,101 @@ export const SITE_CATEGORIES: SiteCategory[] = [
   {
     key: "imjang-ai",
     label: "임장",
-    href: "/inspection/hub",
-    match: (p) => startsWithAny(p, ["/inspection", "/ai-analysis"]),
+    href: "/notes",
+    match: (p) => startsWithAny(p, ["/notes", "/analysis", "/inspection", "/ai-analysis"]),
     tabs: [
       {
-        href: "/inspection/hub",
+        href: "/notes",
         label: "임장",
-        match: (p) => startsWithAny(p, ["/inspection"]),
+        match: (p) => startsWithAny(p, ["/notes", "/inspection"]),
       },
       {
-        href: "/ai-analysis",
+        href: "/analysis",
         label: "AI",
-        match: (p) => startsWithAny(p, ["/ai-analysis"]),
+        match: (p) => startsWithAny(p, ["/analysis", "/ai-analysis"]),
       },
     ],
   },
   {
     key: "region",
     label: "지도",
-    href: "/explore",
+    href: "/map",
     match: (p) =>
       startsWithAny(p, [
+        "/map",
+        "/search",
+        "/apply",
+        "/complex",
+        "/listings",
+        // 레거시(리다이렉트로 살아 있는 경로)
         "/explore",
         "/info/map",
-        "/map",
         "/property-search",
         "/presale",
-        "/complex",
       ]),
     tabs: [
       {
-        href: "/explore",
+        href: "/map",
         label: "지도",
         match: (p) =>
           startsWithAny(p, [
+            "/search",
+            "/apply",
             "/explore",
             "/info/map",
             "/property-search",
             "/presale",
-          ]) ||
-          (startsWithAny(p, ["/map"]) && !startsWithAny(p, ["/map/listings"])),
+          ]) || startsWithAny(p, ["/map"]),
       },
       {
-        href: "/map/listings",
+        /* `/map/listings` 는 **페이지가 없다** — app/api/map/listings 는 API 라우트고
+           app/map 아래에는 하위 디렉터리가 하나도 없다. 리다이렉트 규칙도 없어서
+           지도 허브의 "매물" 탭이 그냥 404 였다. 매물 목록 화면은 app/listings 다. */
+        href: "/listings",
         label: "매물",
-        match: (p) => startsWithAny(p, ["/map/listings", "/complex"]),
+        match: (p) => startsWithAny(p, ["/listings", "/complex"]),
       },
     ],
   },
   {
     key: "community",
     label: "동네이야기",
-    href: "/community",
-    match: (p) => startsWithAny(p, ["/community"]),
+    href: "/town",
+    /* `/town` 아래에는 모임 카테고리(experts·groups·market)도 산다. 그래서
+       여기서는 `startsWithAny(p, ["/town"])` 처럼 통째로 잡으면 안 된다 —
+       findCategoryByPath 가 배열 순서대로 첫 매치를 돌려주므로 모임 화면이
+       "동네이야기"로 잡혀 버린다. 속하는 하위 경로만 이름으로 적는다. */
+    match: (p) =>
+      p === "/town" ||
+      startsWithAny(p, ["/town/write", "/town/news", "/town/library", "/community"]),
     tabs: [
       {
-        href: "/community",
+        href: "/town",
         label: "피드",
         match: (p) =>
+          p === "/town" ||
+          startsWithAny(p, ["/town/news", "/town/library"]) ||
           p === "/community" ||
           (startsWithAny(p, ["/community/"]) && !p.startsWith("/community/write")),
       },
       {
-        href: "/community/write",
+        href: "/town/write",
         label: "글쓰기",
-        match: (p) => p.startsWith("/community/write"),
+        match: (p) => p.startsWith("/town/write") || p.startsWith("/community/write"),
       },
     ],
   },
   {
     key: "gwangjang",
     label: "모임",
-    href: "/market",
+    href: "/town/market",
     match: (p) =>
       startsWithAny(p, [
         "/reports",
+        "/town/market",
+        "/town/groups",
+        "/town/experts",
+        // 레거시(리다이렉트로 살아 있는 경로)
         "/market",
         "/meeting-market",
         "/groups",
@@ -125,17 +159,19 @@ export const SITE_CATEGORIES: SiteCategory[] = [
       ]),
     tabs: [
       {
-        href: "/market",
+        href: "/town/market",
         label: "모임",
         match: (p, s) =>
-          startsWithAny(p, ["/groups", "/experts"]) ||
-          (startsWithAny(p, ["/market", "/meeting-market"]) && s?.get("tab") !== "market"),
+          startsWithAny(p, ["/town/groups", "/town/experts", "/groups", "/experts"]) ||
+          (startsWithAny(p, ["/town/market", "/market", "/meeting-market"]) &&
+            s?.get("tab") !== "market"),
       },
       {
-        href: "/market?tab=market",
+        href: "/town/market?tab=market",
         label: "마켓",
         match: (p, s) =>
-          startsWithAny(p, ["/market", "/meeting-market"]) && s?.get("tab") === "market",
+          startsWithAny(p, ["/town/market", "/market", "/meeting-market"]) &&
+          s?.get("tab") === "market",
       },
       {
         href: "/reports",
@@ -153,19 +189,19 @@ export const DESKTOP_NAV_CATEGORIES = SITE_CATEGORIES;
 export const MOBILE_HEADER_NAV = [
   { href: "/", label: "홈", shortLabel: "홈", match: (p: string) => p === "/" },
   {
-    href: "/inspection/hub",
+    href: "/notes",
     label: "임장",
     shortLabel: "임장",
-    match: (p: string) => p.startsWith("/inspection"),
+    match: (p: string) => p.startsWith("/notes") || p.startsWith("/inspection"),
   },
   {
-    href: "/ai-analysis",
+    href: "/analysis",
     label: "AI",
     shortLabel: "AI",
-    match: (p: string) => p.startsWith("/ai-analysis"),
+    match: (p: string) => p.startsWith("/analysis") || p.startsWith("/ai-analysis"),
   },
   {
-    href: "/explore",
+    href: "/map",
     label: "지도",
     shortLabel: "지도",
     match: SITE_CATEGORIES.find((c) => c.key === "region")!.match,
@@ -183,14 +219,16 @@ export const FOOTER_CATEGORY_LINKS = SITE_CATEGORIES.filter((c) => c.key !== "ho
 
 /** 홈 8 바로가기 — 라벨·경로 단일 소스 (아이콘은 shared.ts) */
 export const HOME_QUICK_LINKS = [
-  { key: "inspection", label: "임장노트", href: "/inspection/hub", desc: "AI 자동작성", highlight: true },
-  { key: "ai", label: "AI 분석", href: "/ai-analysis", desc: "맞춤형 AI", highlight: true },
-  { key: "explore", label: "지도", href: "/explore", desc: "시세·실거래" },
-  { key: "property", label: "아파트", href: "/property-search", desc: "매물 조회" },
-  { key: "calc", label: "계산기", href: "/calculators", desc: "투자 계산" },
-  { key: "presale", label: "청약", href: "/presale", desc: "분양·경쟁률" },
-  { key: "community", label: "동네이야기", href: "/community", desc: "임장 후기·Q&A" },
-  { key: "market", label: "모임/마켓", href: "/market", desc: "함께 임장" },
+  { key: "inspection", label: "임장노트", href: "/notes", desc: "AI 자동작성", highlight: true },
+  { key: "ai", label: "AI 분석", href: "/analysis", desc: "맞춤형 AI", highlight: true },
+  { key: "explore", label: "지도", href: "/map", desc: "시세·실거래" },
+  { key: "property", label: "아파트", href: "/search", desc: "매물 조회" },
+  { key: "calc", label: "계산기", href: "/calculator", desc: "투자 계산" },
+  /* "청약"은 /presale 이었는데 그런 라우트도, 리다이렉트 규칙도 없었다 —
+     홈 퀵메뉴에서 누르면 404 였다. 청약 화면은 app/apply 다. */
+  { key: "presale", label: "청약", href: "/apply", desc: "분양·경쟁률" },
+  { key: "community", label: "동네이야기", href: "/town", desc: "임장 후기·Q&A" },
+  { key: "market", label: "모임/마켓", href: "/town/market", desc: "함께 임장" },
 ] as const;
 
 /** 홈을 제외하고 현재 경로가 속한 통합 카테고리를 찾는다(허브 탭바용). */

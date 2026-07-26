@@ -109,6 +109,10 @@ export default function GlobalError({
             >
               다시 시도
             </button>
+            {/* global-error 는 루트 레이아웃까지 대체하는 최후의 경계다.
+                이 안에서는 라우터가 이미 깨져 있을 수 있어 <Link> 를 쓰면
+                안 된다 — 전체 새로고침이 되는 <a> 가 맞다. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
               href="/"
               style={{

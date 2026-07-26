@@ -28,8 +28,16 @@ export const SURFACE_TIER_NOTICE: Record<FeatureSurfaceTier, string | null> = {
   explore: "곳곳에 채워 넣는 단계예요. 지역·주제를 좁혀 키워 갑니다.",
 };
 
+/* 여기 prefix 는 **지금 브라우저에 찍히는 경로**와 맞아야 한다. 안 맞으면
+   조용히 아무 안내도 안 뜬다(틀렸다는 신호가 없다). 2026-07-26 기준 모임·
+   마켓·전문가는 /town/* 아래로 옮겨졌는데 이 표는 옛 경로만 갖고 있어서
+   해당 화면에서 "탐색 단계" 안내가 사라져 있었다. 옛 경로는 리다이렉트가
+   살아 있는 동안 그대로 둔다(지워서 얻는 게 없다). */
 const TIER_RULES_RAW: { prefix: string; tier: FeatureSurfaceTier }[] = [
   { prefix: "/reports", tier: "beta" },
+  { prefix: "/town/market", tier: "explore" },
+  { prefix: "/town/experts", tier: "explore" },
+  { prefix: "/town/groups", tier: "explore" },
   { prefix: "/market", tier: "explore" },
   { prefix: "/experts", tier: "explore" },
   { prefix: "/groups", tier: "explore" },

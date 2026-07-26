@@ -47,11 +47,14 @@ export async function POST(req: Request) {
     eventType === "comment"
       ? "/notifications?filter=comments"
       : eventType === "meeting"
-        ? "/market?source=push&campaign=meeting"
+        ? "/town/market?source=push&campaign=meeting"
         : eventType === "expert"
-          ? "/experts?source=push"
+          ? "/town/experts?source=push"
           : eventType === "attendance"
-            ? "/attendance?source=push&campaign=attendance_reminder"
+            /* 출석 체크 버튼은 /my/points 안에 있다.
+               `/attendance` 라우트는 없다 — app/api/cron/attendance-reminders
+               에서 같은 이유로 이미 고쳐 둔 경로와 맞춘다. */
+            ? "/my/points?source=push&campaign=attendance_reminder"
             : eventType === "payment"
               ? "/payment/history?source=push"
               : "/notifications";
