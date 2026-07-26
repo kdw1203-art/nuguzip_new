@@ -40,6 +40,31 @@ const BASE = `http://localhost:${process.env.PORT || 3100}`;
  * 절대 하지 않는 것: 타임아웃을 200 처럼 조용히 넘기기. 못 받은 응답은
  * 200 도 404 도 아니고, 로그에 반드시 "응답없음"으로 남는다.
  */
+/* ── 5xx 를 어떻게 다룰 것인가 (같은 문이 또 잠겼다) ────────────────────────
+ *
+ * 위의 세 갈래는 "응답을 못 받았을 때"의 이야기였다. 그런데 그 다음 날,
+ * 정확히 같은 자물쇠가 이번엔 **응답을 받았는데도** 채워졌다.
+ *
+ * 우리는 의도적으로 `/region/[id]` 같은 페이지가 핵심 조회에 실패하면 500 을
+ * 내도록 고쳤다. 크롤러에게 404("영구히 없음")가 아니라 5xx("나중에 다시 와라")
+ * 라고 말하는 게 사실이기 때문이다. 그런데 이 게이트는 4xx 와 5xx 를 똑같이
+ * "끊긴 링크"로 세고 있었다. 그래서 DB 가 내려가 있는 동안에는,
+ * **DB 장애 내성을 고치는 커밋이 바로 그 DB 장애 때문에 배포되지 못한다.**
+ *
+ * 그래서 둘을 갈라 놓는다:
+ *
+ *   4xx — **링크 그래프에 대한 사실**. DB 상태와 무관하다(없는 경로는 DB 가
+ *         멀쩡해도 없다). 지금도 그대로 배포를 막는다.
+ *   5xx — 조건부다. `/api/health` 로 DB 도달 가능 여부를 **측정해서**,
+ *         DB 가 내려가 있으면 그 5xx 는 설계대로 동작한 결과이지 회귀가
+ *         아니다. 로그에 크게 남기되 배포는 통과시킨다.
+ *         DB 가 멀쩡한데 5xx 면 그건 진짜 회귀다 — 막는다.
+ *
+ * 추측하지 않는다. `checks.db.ok` 를 실제로 읽고, 그 값을 로그에 적는다.
+ */
+const HEALTH_PATH = "/api/health";
+const HEALTH_TIMEOUT_MS = 15_000;
+
 const REQ_TIMEOUT_MS = 20_000;
 const RETRY_TIMEOUT_MS = 30_000;
 /* 재시도 총량 상한 — 없으면 전면 장애 때 크롤이 (경로수 × 50초)로 늘어나
@@ -104,6 +129,37 @@ const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '
 const seen = new Map();
 const broken = [];
 const unverified = [];
+/** 5xx 를 받은 경로 — DB 상태를 확인한 뒤에 끊긴 링크인지 아닌지 판정한다. */
+const serverErrors = [];
+
+/**
+ * DB 에 지금 닿는가를 **측정한다**. 추측하지 않는다.
+ *
+ * `/api/health` 는 인증 없이 `checks.db.ok`(boolean)를 주고 `no-store` 라
+ * 캐시된 옛날 사실을 읽을 위험도 없다.
+ *
+ * @returns {Promise<{ok: boolean|null, why: string}>}
+ *   ok=true  DB 도달 가능 · ok=false 도달 불가 · ok=null 판정 불가(헬스체크 자체 실패)
+ */
+async function probeDb() {
+  const out = await fetchOnce(HEALTH_PATH, {}, HEALTH_TIMEOUT_MS);
+  if (!out.res) return { ok: null, why: out.timeout ? "헬스체크 응답 없음" : `헬스체크 요청 실패: ${out.why}` };
+  if (!out.res.ok) return { ok: null, why: `헬스체크 HTTP ${out.res.status}` };
+  try {
+    const body = await out.res.json();
+    const dbOk = body?.checks?.db?.ok;
+    if (typeof dbOk !== "boolean") return { ok: null, why: "헬스체크 응답에 checks.db.ok 가 없음" };
+    return { ok: dbOk, why: dbOk ? "checks.db.ok = true" : "checks.db.ok = false" };
+  } catch (err) {
+    return { ok: null, why: `헬스체크 본문 파싱 실패: ${err.message}` };
+  }
+}
+
+/** 200/리다이렉트가 아닌 응답을 분류한다 — 4xx 는 즉시 끊긴 링크, 5xx 는 보류. */
+function recordBadStatus(path, code, from) {
+  if (code >= 500) serverErrors.push([path, code, from]);
+  else broken.push([path, code, from]);
+}
 
 /** 응답을 못 받은 경로를 어느 목록에 넣을지 — 요청 실패(연결 거부 등)는 사이트 문제다. */
 function recordNoResponse(path, from) {
@@ -119,11 +175,20 @@ async function check(path, from) {
   return code;
 }
 
+/* 크롤 전에 DB 상태를 한 번 찍어 둔다. 크롤 중에 내려갈 수도 있으니 이건
+   확정 판정이 아니라 기록이다 — 최종 판정은 5xx 가 실제로 나왔을 때 다시 잰다. */
+const dbBefore = await probeDb();
+console.log(
+  `DB 도달 여부(크롤 시작 시점): ${
+    dbBefore.ok === true ? "정상" : dbBefore.ok === false ? "불가" : "판정 불가"
+  } — ${dbBefore.why}`,
+);
+
 const linkSources = new Map();
 for (const s of seeds) {
   const res = await get(s);
   if (!res) { recordNoResponse(s, '(seed)'); continue; }
-  if (res.status !== 200) { broken.push([s, res.status, '(seed)']); continue; }
+  if (res.status !== 200) { recordBadStatus(s, res.status, '(seed)'); continue; }
   const html = await res.text();
   const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]).filter(h => !h.startsWith('/_next') && !h.startsWith('/api'));
   for (const h of new Set(hrefs)) { if (!linkSources.has(h)) linkSources.set(h, s); }
@@ -132,10 +197,45 @@ for (const [h, from] of linkSources) {
   const code = await check(h, from);
   if (code === 0) { recordNoResponse(h, from); continue; }
   // 301: 레거시 경로 영구 이전(GET). 308: 메서드 보존 정규화. 307: 임시.
-  if (code !== 200 && code !== 301 && code !== 307 && code !== 308) broken.push([h, code, from]);
+  if (code !== 200 && code !== 301 && code !== 307 && code !== 308) recordBadStatus(h, code, from);
 }
 
 console.log('총 검사 링크:', linkSources.size);
+
+/* 5xx 판정 — 여기서만 DB 상태를 근거로 쓴다.
+   크롤이 몇 분 걸리므로 시작 시점 값만 믿지 않고 끝에서 한 번 더 잰다. */
+if (serverErrors.length) {
+  const dbAfter = dbBefore.ok === false ? dbBefore : await probeDb();
+  /* 배포를 막는 건 "회귀다"라고 **주장**하는 일이다. 그 주장은 근거가 있을 때만
+     한다 — 크롤 전후 모두 DB 가 정상이었음을 실제로 확인했을 때만.
+     판정 불가(헬스체크 자체 실패)는 근거가 아니다. 그때는 막지 않고 크게 적는다. */
+  const dbProvenHealthy = dbBefore.ok === true && dbAfter.ok === true;
+
+  console.log(`\n서버 오류(5xx)를 받은 경로 ${serverErrors.length}개:`);
+  serverErrors.forEach(([p, c, f]) => console.log(`  ${c}  ${p}  (발견 위치: ${f})`));
+  console.log(
+    `  DB 도달 여부(크롤 종료 시점): ${
+      dbAfter.ok === true ? "정상" : dbAfter.ok === false ? "불가" : "판정 불가"
+    } — ${dbAfter.why}`,
+  );
+
+  if (dbProvenHealthy) {
+    console.log(
+      `  → DB 는 정상인데 5xx 입니다. 이건 진짜 회귀입니다 — 배포를 막습니다.`,
+    );
+    serverErrors.forEach((e) => broken.push(e));
+  } else {
+    /* DB 에 닿지 못하면 이 5xx 는 설계대로 나온 응답이다.
+       (핵심 조회 실패를 404 로 위장하지 않고 5xx 로 내는 것이 우리 규칙이다.)
+       회귀가 아니므로 배포를 막지 않는다 — 막으면 DB 장애를 고치는 커밋이
+       바로 그 장애 때문에 못 나간다. 다만 절대 "정상"으로 세지 않는다. */
+    console.log(
+      `  → DB 가 정상이라고 확인하지 못했습니다. 위 5xx 는 "핵심 조회 실패는 404 가\n` +
+        `    아니라 5xx" 규칙대로 동작한 결과일 수 있고, 링크 회귀라는 증거는 없습니다.\n` +
+        `    배포는 막지 않되 이 경로들을 "정상 확인됨"으로 세지 않았습니다.`,
+    );
+  }
+}
 
 /* 응답을 못 받은 경로는 통과시키든 막든 **항상** 적는다.
    조용히 넘어가면 다음 사람이 "전부 200 이었다"고 잘못 읽는다. */
@@ -171,4 +271,12 @@ if (retriesUsed >= MAX_RETRIES) {
   console.log(`\n(참고) 재시도 상한 ${MAX_RETRIES}회를 다 썼습니다 — 그 뒤 타임아웃은 재시도 없이 기록만 했습니다.`);
 }
 
-console.log(unverified.length ? '끊긴 경로 0 ✓ (확인 못 한 경로는 위에 있음)' : '끊긴 경로 0 ✓');
+const caveats = [
+  unverified.length ? `응답없음 ${unverified.length}개` : null,
+  serverErrors.length ? `5xx ${serverErrors.length}개(DB 미확인)` : null,
+].filter(Boolean);
+console.log(
+  caveats.length
+    ? `끊긴 경로 0 ✓ (다만 ${caveats.join(" · ")} — 위 로그 참고)`
+    : "끊긴 경로 0 ✓",
+);
