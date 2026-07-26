@@ -5,6 +5,8 @@ import {
   LISTING_SOURCE_LABEL,
 } from "@/lib/listings/store-db";
 import { listOwnerVerifications } from "@/lib/listings/owner-verification";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 import { ListingReviewActions } from "./ListingReviewActions";
 import { ReportedListingActions } from "./ReportedListingActions";
 import { OwnerVerificationQueue } from "./OwnerVerificationQueue";
@@ -27,11 +29,30 @@ function formatKrwShort(krw: number | null): string {
 }
 
 export default async function AdminListingsPage() {
-  const [pending, reported, verifications] = await Promise.all([
+  /* 2026-07-26: 신고·소유확인이 `.catch(() => [])` 였다. 조회가 실패해도 화면은
+     "신고가 접수된 매물이 없어요"라고 말했다. 신고 3건이면 자동 숨김이 걸리는
+     큐라서, 실패를 0건으로 보이게 하면 감춰진 매물을 아무도 확인하지 않게 된다.
+     실패한 섹션은 실패했다고 말한다. (pending 은 원래부터 catch 하지 않는다 —
+     그건 던져서 에러 경계로 가는 게 맞다.) */
+  const [pending, reportedLoaded, verificationsLoaded] = await Promise.all([
     listPendingListings(),
-    listReportedListings().catch(() => []),
-    listOwnerVerifications("all", 100).catch(() => []),
+    listReportedListings().then(
+      (items) => ({ ok: true as const, items }),
+      (err: unknown) => {
+        logger.error("[admin/listings] 신고 매물 조회 실패", err);
+        return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+      },
+    ),
+    listOwnerVerifications("all", 100).then(
+      (items) => ({ ok: true as const, items }),
+      (err: unknown) => {
+        logger.error("[admin/listings] 소유확인 큐 조회 실패", err);
+        return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+      },
+    ),
   ]);
+  const reported = reportedLoaded.ok ? reportedLoaded.items : [];
+  const verifications = verificationsLoaded.ok ? verificationsLoaded.items : [];
   const pendingVerifications = verifications.filter((v) => v.status === "pending").length;
 
   return (
@@ -139,7 +160,14 @@ export default async function AdminListingsPage() {
         </span>
       </div>
       <div className={`rise-in-2 ${panelCard}`}>
-        {reported.length === 0 ? (
+        {!reportedLoaded.ok ? (
+          <ErrorState
+            tone="admin"
+            title="신고 매물을 지금 불러오지 못했어요"
+            desc="신고가 0건인 게 아니라 조회가 실패했습니다. 자동 숨김된 매물이 있을 수 있으니 새로고침 후 다시 확인해 주세요."
+            cause={reportedLoaded.cause}
+          />
+        ) : reported.length === 0 ? (
           <div className="py-10 text-center text-[13px] text-[#9aa6b8]">
             신고가 접수된 매물이 없어요.
           </div>
@@ -192,7 +220,16 @@ export default async function AdminListingsPage() {
         </span>
       </div>
       <div className={`rise-in-2 ${panelCard}`}>
-        <OwnerVerificationQueue items={verifications} />
+        {verificationsLoaded.ok ? (
+          <OwnerVerificationQueue items={verifications} />
+        ) : (
+          <ErrorState
+            tone="admin"
+            title="소유확인 심사 큐를 지금 불러오지 못했어요"
+            desc="신청이 0건인 게 아니라 조회가 실패했습니다. 잠시 후 새로고침해 주세요."
+            cause={verificationsLoaded.cause}
+          />
+        )}
         <div className="text-[10px] leading-relaxed text-[#6b7688]">
           증빙 파일은 신청자가 직접 올린 원본입니다. 등기부등본·계약서 등 민감 정보가 포함될 수
           있으니 심사 목적 외로 사용하지 마세요.

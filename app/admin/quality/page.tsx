@@ -14,6 +14,8 @@ import {
   VERDICT_COLOR,
   type QualityVerdict,
 } from "@/lib/admin/data-quality";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 
 /* 사용자 세그먼트 · AI 품질 · 인증 심사 — 사실 우선: 하드코딩 목업 제거, 실 테이블 집계만.
    집계 소스가 없는 지표(휴면/이탈 코호트, 👍비율)는 허위 수치 대신 "준비 중"으로 표기.
@@ -48,14 +50,31 @@ function relDate(iso: string | null): string {
 }
 
 export default async function AdminQualityPage() {
-  const [kpi, ops, queue, perf, fraud, quality] = await Promise.all([
+  /* 2026-07-26: 목록 세 개가 `.catch(() => [])` 였다. 조회가 실패해도 화면은
+     "최근 감지된 이상행위가 없어요"·"집계할 상담 데이터가 아직 없어요"라고 말했다.
+     이 화면 머리말은 "모든 수치는 실 테이블 집계입니다"라고 못 박고 있어서,
+     실패를 0건으로 보이게 하면 그 문장이 그대로 거짓이 된다. 실패는 실패로 쓴다.
+     (kpi·ops·quality 는 null 로 두고 이미 "—"·"집계 실패"로 표기 중이다.) */
+  const settle = <T,>(p: Promise<T>, tag: string) =>
+    p.then(
+      (value) => ({ ok: true as const, value }),
+      (err: unknown) => {
+        logger.error(`[admin/quality] ${tag} 조회 실패`, err);
+        return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+      },
+    );
+
+  const [kpi, ops, queueLoaded, perfLoaded, fraudLoaded, quality] = await Promise.all([
     loadAdminKpi().catch(() => null),
     loadExpertOpsSummary().catch(() => null),
-    loadPendingVerificationQueue(12).catch(() => []),
-    loadExpertPerformance(8).catch(() => []),
-    loadRecentFraudEvents(12).catch(() => []),
+    settle(loadPendingVerificationQueue(12), "전문가 인증 심사 큐"),
+    settle(loadExpertPerformance(8), "전문가 성과"),
+    settle(loadRecentFraudEvents(12), "이상행위 로그"),
     loadDataQuality().catch(() => null),
   ]);
+  const queue = queueLoaded.ok ? queueLoaded.value : [];
+  const perf = perfLoaded.ok ? perfLoaded.value : [];
+  const fraud = fraudLoaded.ok ? fraudLoaded.value : [];
 
   const fraudSeverityMeta: Record<string, { label: string; cls: string }> = {
     warn: { label: "주의", cls: "bg-[#fdf3e7] text-warning" },
@@ -255,7 +274,15 @@ export default async function AdminQualityPage() {
             </span>
           </div>
 
-          <VerificationQueue queue={queue} />
+          {queueLoaded.ok ? (
+            <VerificationQueue queue={queue} />
+          ) : (
+            <ErrorState
+              title="인증 심사 큐를 지금 불러오지 못했어요"
+              desc="대기 중인 신청이 0건인 게 아니라 조회가 실패했습니다."
+              cause={queueLoaded.cause}
+            />
+          )}
 
           <div className="text-[10px] text-text-3">
             전문가 신청은 이 자리에서 바로 승인·반려하며 결과는 신청자 알림·감사로그(audit_logs)에
@@ -268,7 +295,13 @@ export default async function AdminQualityPage() {
       <div className="rise-in-3 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className={lightCard}>
           <div className="text-sm font-extrabold text-ink">전문가 성과 랭킹</div>
-          {perf.length === 0 ? (
+          {!perfLoaded.ok ? (
+            <ErrorState
+              title="전문가 성과를 지금 불러오지 못했어요"
+              desc="데이터가 없는 게 아니라 집계 조회가 실패했습니다."
+              cause={perfLoaded.cause}
+            />
+          ) : perf.length === 0 ? (
             <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
               집계할 상담 데이터가 아직 없어요.
             </div>
@@ -300,7 +333,13 @@ export default async function AdminQualityPage() {
 
         <div className={lightCard}>
           <div className="text-sm font-extrabold text-ink">전문가 이상행위 로그</div>
-          {fraud.length === 0 ? (
+          {!fraudLoaded.ok ? (
+            <ErrorState
+              title="이상행위 로그를 지금 불러오지 못했어요"
+              desc="감지된 게 0건인 게 아니라 조회가 실패했습니다."
+              cause={fraudLoaded.cause}
+            />
+          ) : fraud.length === 0 ? (
             <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
               최근 감지된 이상행위가 없어요.
             </div>
