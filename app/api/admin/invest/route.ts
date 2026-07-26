@@ -17,6 +17,10 @@ import {
   revokeIrInvestorAccess,
   updateIrDocument,
 } from "@/lib/admin/business-dashboards";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 조회가 실패한 것을 "0건"으로 그리지 않기 위한 안내. */
+const UNAVAILABLE = "지금은 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,12 +35,17 @@ async function assertAdmin() {
 export async function GET() {
   const s = await assertAdmin();
   if (!s) return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
-  const [documents, access, downloads] = await Promise.all([
-    listIrDocuments(),
-    listIrInvestorAccess(),
-    listIrDownloadsLog(50),
-  ]);
-  return NextResponse.json({ documents, access, downloads });
+  /* 못 읽은 것을 "문서 0건 · 권한 0명"으로 그리지 않는다. */
+  try {
+    const [documents, access, downloads] = await Promise.all([
+      listIrDocuments(),
+      listIrInvestorAccess(),
+      listIrDownloadsLog(50),
+    ]);
+    return NextResponse.json({ documents, access, downloads });
+  } catch (err) {
+    return dbUnavailable("IR 대시보드 조회 실패", err, UNAVAILABLE);
+  }
 }
 
 export async function POST(req: Request) {

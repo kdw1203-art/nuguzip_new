@@ -15,6 +15,10 @@ import {
   upsertFinanceCashBalance,
   type FinanceKind,
 } from "@/lib/admin/business-dashboards";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 조회가 실패한 것을 "0건"으로 그리지 않기 위한 안내. */
+const UNAVAILABLE = "지금은 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,12 +31,18 @@ async function assertAdmin() {
 
 export async function GET() {
   if (!(await assertAdmin())) return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
-  const [entries, cashBalance, monthly] = await Promise.all([
-    listFinanceEntries(),
-    listFinanceCashBalance(),
-    aggregateFinanceMonths(),
-  ]);
-  return NextResponse.json({ entries, cashBalance, monthly });
+  /* 재무는 이 화면으로 판단한다. 못 읽은 것을 "이번 달 0원"으로 그리면
+     숫자가 아니라 결론이 틀린다. */
+  try {
+    const [entries, cashBalance, monthly] = await Promise.all([
+      listFinanceEntries(),
+      listFinanceCashBalance(),
+      aggregateFinanceMonths(),
+    ]);
+    return NextResponse.json({ entries, cashBalance, monthly });
+  } catch (err) {
+    return dbUnavailable("재무 대시보드 조회 실패", err, UNAVAILABLE);
+  }
 }
 
 export async function POST(req: Request) {

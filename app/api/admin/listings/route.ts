@@ -15,6 +15,7 @@ import { awardPoints } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { notifyNewListingSubscribers } from "@/lib/notifications/region-alerts";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -127,8 +128,11 @@ export async function PATCH(req: NextRequest) {
         address: String(row.address ?? ""),
         applicantEmail: authorEmail,
       });
-    } catch {
-      // 이력 적재 실패가 승인 자체를 되돌리지는 않는다(플래그는 이미 반영됨).
+    } catch (err) {
+      /* 이력 적재 실패가 승인 자체를 되돌리지는 않는다(플래그는 이미 반영됨).
+         다만 조용히 넘기면 "증빙 없이 세운 배지"의 근거가 아무 데도 남지 않으므로,
+         무엇이 빠졌는지는 로그에 남긴다. */
+      logger.error(`[admin/listings] 소유확인 이력 적재 실패 (listing=${id})`, err);
     }
     if (authorEmail) {
       // 포인트 적립 — refId=listingId 로 재실행 중복 지급을 막는다(멱등).

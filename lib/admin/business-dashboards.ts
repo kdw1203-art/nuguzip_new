@@ -1,7 +1,14 @@
 /**
  * 관리자 비즈니스 대시보드 5종 데이터 레이어 — 마이그레이션 038 의 테이블/뷰 사용.
  *
- * Supabase 미설정 시 빈 배열/0을 반환하여 UI 가 "데이터 없음" 카드로 동작.
+ * 목록 조회는 **실패하면 던진다.** 예전에는 빈 배열을 돌려줘서, DB 가 잠깐 안 될 때
+ * 대시보드가 "IR 문서 없음", "제휴사 0곳", "이번 달 매출 0원"으로 그려졌다. 운영·재무
+ * 판단을 그 화면으로 하는 자리에서, 못 읽은 것과 없는 것을 같은 그림으로 보여주면
+ * 안 된다. 부르는 라우트(app/api/admin/**)는 이 예외를 503 으로 옮긴다.
+ *
+ * 쓰기 함수는 지금처럼 boolean 을 돌려준다 — false 는 "안 됐다"이고, 라우트가 이미
+ * 5xx 로 답하고 있어 성공으로 오인될 여지가 없다.
+ *
  * 모든 함수는 service role 키로만 호출되므로 RLS 가드(is_admin_request) 와는 별개로
  * 라우트에서 호출 전에 admin 세션 검증이 선행되어야 합니다.
  */
@@ -46,12 +53,15 @@ export type IrDownloadLog = {
 
 export async function listIrDocuments(): Promise<IrDocument[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("ir_documents 조회 불가: 저장소가 준비되지 않았습니다");
   const { data, error } = await sb
     .from("ir_documents")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error || !data) return [];
+  if (error) throw new Error(`ir_documents 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("ir_documents 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     version: String(r.version ?? ""),
@@ -120,9 +130,15 @@ export async function deleteIrDocument(id: string): Promise<boolean> {
 
 export async function listIrInvestorAccess(): Promise<IrInvestorAccess[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb.from("ir_investor_access").select("*").order("granted_at", { ascending: false });
-  if (!data) return [];
+  if (!sb) throw new Error("ir_investor_access 조회 불가: 저장소가 준비되지 않았습니다");
+  const { data, error } = await sb
+    .from("ir_investor_access")
+    .select("*")
+    .order("granted_at", { ascending: false });
+  if (error) throw new Error(`ir_investor_access 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("ir_investor_access 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     email: String(r.email ?? ""),
@@ -159,13 +175,16 @@ export async function revokeIrInvestorAccess(email: string): Promise<boolean> {
 
 export async function listIrDownloadsLog(limit = 50): Promise<IrDownloadLog[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb
+  if (!sb) throw new Error("ir_downloads_log 조회 불가: 저장소가 준비되지 않았습니다");
+  const { data, error } = await sb
     .from("ir_downloads_log")
     .select("*")
     .order("accessed_at", { ascending: false })
     .limit(limit);
-  if (!data) return [];
+  if (error) throw new Error(`ir_downloads_log 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("ir_downloads_log 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     documentId: r.document_id ? String(r.document_id) : null,
@@ -209,9 +228,15 @@ export type B2bInquiry = {
 
 export async function listBusinessPartners(): Promise<BusinessPartner[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb.from("business_partners").select("*").order("created_at", { ascending: false });
-  if (!data) return [];
+  if (!sb) throw new Error("business_partners 조회 불가: 저장소가 준비되지 않았습니다");
+  const { data, error } = await sb
+    .from("business_partners")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`business_partners 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("business_partners 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     name: String(r.name ?? ""),
@@ -282,9 +307,15 @@ export async function deleteBusinessPartner(id: string): Promise<boolean> {
 
 export async function listB2bInquiries(): Promise<B2bInquiry[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb.from("b2b_inquiries").select("*").order("created_at", { ascending: false });
-  if (!data) return [];
+  if (!sb) throw new Error("b2b_inquiries 조회 불가: 저장소가 준비되지 않았습니다");
+  const { data, error } = await sb
+    .from("b2b_inquiries")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`b2b_inquiries 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("b2b_inquiries 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     partnerId: r.partner_id ? String(r.partner_id) : null,
@@ -377,11 +408,14 @@ export type RoadmapMilestone = {
 
 export async function listOkrObjectives(quarter?: string): Promise<OkrObjective[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("okr_objectives 조회 불가: 저장소가 준비되지 않았습니다");
   let q = sb.from("okr_objectives").select("*");
   if (quarter) q = q.eq("quarter", quarter);
-  const { data } = await q.order("created_at", { ascending: false });
-  if (!data) return [];
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw new Error(`okr_objectives 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("okr_objectives 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     quarter: String(r.quarter ?? ""),
@@ -419,11 +453,14 @@ export async function deleteOkrObjective(id: string): Promise<boolean> {
 export async function listOkrKeyResults(objectiveIds: string[]): Promise<OkrKeyResult[]> {
   const sb = getServiceSupabase();
   if (!sb || !objectiveIds.length) return [];
-  const { data } = await sb
+  const { data, error } = await sb
     .from("okr_key_results")
     .select("*")
     .in("objective_id", objectiveIds);
-  if (!data) return [];
+  if (error) throw new Error(`okr_key_results 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("okr_key_results 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     objectiveId: String(r.objective_id),
@@ -482,11 +519,14 @@ export async function deleteOkrKeyResult(id: string): Promise<boolean> {
 
 export async function listRoadmapMilestones(quarter?: string): Promise<RoadmapMilestone[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("roadmap_milestones 조회 불가: 저장소가 준비되지 않았습니다");
   let q = sb.from("roadmap_milestones").select("*");
   if (quarter) q = q.eq("quarter", quarter);
-  const { data } = await q.order("created_at", { ascending: false });
-  if (!data) return [];
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw new Error(`roadmap_milestones 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("roadmap_milestones 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     quarter: String(r.quarter ?? ""),
@@ -567,11 +607,14 @@ export type FinanceCashBalance = {
 
 export async function listFinanceEntries(monthFilter?: string): Promise<FinanceEntry[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("finance_entries 조회 불가: 저장소가 준비되지 않았습니다");
   let q = sb.from("finance_entries").select("*");
   if (monthFilter) q = q.eq("month", monthFilter);
-  const { data } = await q.order("created_at", { ascending: false });
-  if (!data) return [];
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw new Error(`finance_entries 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("finance_entries 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     id: String(r.id),
     month: String(r.month ?? ""),
@@ -614,9 +657,15 @@ export async function deleteFinanceEntry(id: string): Promise<boolean> {
 
 export async function listFinanceCashBalance(): Promise<FinanceCashBalance[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb.from("finance_cash_balance").select("*").order("month", { ascending: false });
-  if (!data) return [];
+  if (!sb) throw new Error("finance_cash_balance 조회 불가: 저장소가 준비되지 않았습니다");
+  const { data, error } = await sb
+    .from("finance_cash_balance")
+    .select("*")
+    .order("month", { ascending: false });
+  if (error) throw new Error(`finance_cash_balance 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("finance_cash_balance 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     month: String(r.month ?? ""),
     balanceKrw: Number(r.balance_krw ?? 0),
@@ -673,14 +722,17 @@ export type AcquisitionRow = {
 
 export async function listAcquisitionSignups(daysBack = 30): Promise<AcquisitionRow[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("admin_acquisition_signups 조회 불가: 저장소가 준비되지 않았습니다");
   const sinceIso = new Date(Date.now() - daysBack * 24 * 3600 * 1000).toISOString().slice(0, 10);
   const { data, error } = await sb
     .from("admin_acquisition_signups")
     .select("*")
     .gte("day", sinceIso)
     .order("day", { ascending: false });
-  if (error || !data) return [];
+  if (error) throw new Error(`admin_acquisition_signups 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("admin_acquisition_signups 조회 실패: 응답이 배열이 아닙니다");
+  }
   return (data as Record<string, unknown>[]).map((r) => ({
     day: String(r.day ?? ""),
     utmSource: String(r.utm_source ?? "direct"),

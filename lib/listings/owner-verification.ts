@@ -306,22 +306,29 @@ export async function recordDirectOwnerVerification(input: {
   applicantEmail: string;
 }): Promise<void> {
   const sb = getServiceSupabase();
-  if (!sb) return;
+  if (!sb) throw new Error("owner_verifications 접근 불가: 서비스 키가 없습니다");
   const nowIso = new Date().toISOString();
-  // 미처리 신청이 있으면 그 건을 승인 처리로 닫는다(중복 이력 방지).
-  const { data } = await sb
+  /* 미처리 신청이 있으면 그 건을 승인 처리로 닫는다(중복 이력 방지).
+     이 조회가 실패한 것을 "미처리 신청 없음"으로 읽으면, 이미 있는 신청 옆에
+     승인 이력을 하나 더 만든다 — 같은 매물에 심사 이력이 둘이 되고, 원래 신청은
+     영영 pending 으로 남는다. 실패는 던져서 부르는 쪽이 다시 시도하게 한다
+     (배지 플래그는 이미 반영됐고, 재실행해도 같은 결과가 된다). */
+  const { data, error } = await sb
     .from("owner_verifications")
     .select("id")
     .eq("listing_id", input.listingId)
     .eq("status", "pending")
     .limit(1)
     .maybeSingle();
+  if (error) throw new Error(`owner_verifications 조회 실패: ${error.message}`);
   const pendingId = (data as { id?: string } | null)?.id ?? null;
   const reviewerId = await profileIdByEmail(input.reviewerEmail);
   const adminNote = `관리자 직권 승인(증빙 심사 없음) · 심사자 ${input.reviewerEmail}`;
 
   if (pendingId) {
-    await sb
+    /* 갱신이 안 됐는데 조용히 끝내면, 신청은 pending 인 채로 남고 관리자 화면은
+       처리된 것으로 보인다 — 아무도 그 건을 다시 보지 않는다. */
+    const { error: updErr } = await sb
       .from("owner_verifications")
       .update({
         status: "approved",
@@ -331,10 +338,11 @@ export async function recordDirectOwnerVerification(input: {
         updated_at: nowIso,
       })
       .eq("id", pendingId);
+    if (updErr) throw new Error(`owner_verifications 갱신 실패: ${updErr.message}`);
     return;
   }
 
-  await sb.from("owner_verifications").insert({
+  const { error: insErr } = await sb.from("owner_verifications").insert({
     user_id: await profileIdByEmail(input.applicantEmail),
     listing_id: input.listingId,
     applicant_email: input.applicantEmail.trim().toLowerCase(),
@@ -348,4 +356,7 @@ export async function recordDirectOwnerVerification(input: {
     reviewed_by: reviewerId,
     reviewed_at: nowIso,
   });
+  /* 이력이 남지 않으면 "증빙 없이 직권으로 세운 배지"라는 사실이 어디에도
+     기록되지 않는다. 배지만 남고 근거가 사라지는 것이 가장 나쁜 결과다. */
+  if (insErr) throw new Error(`owner_verifications 기록 실패: ${insErr.message}`);
 }

@@ -21,6 +21,10 @@ import {
   updateRoadmapMilestone,
   type RoadmapStatus,
 } from "@/lib/admin/business-dashboards";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 조회가 실패한 것을 "0건"으로 그리지 않기 위한 안내. */
+const UNAVAILABLE = "지금은 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,10 +39,15 @@ export async function GET(req: Request) {
   if (!(await assertAdmin())) return NextResponse.json({ error: "관리자 권한 필요" }, { status: 403 });
   const url = new URL(req.url);
   const quarter = url.searchParams.get("quarter") ?? undefined;
-  const objectives = await listOkrObjectives(quarter);
-  const keyResults = await listOkrKeyResults(objectives.map((o) => o.id));
-  const milestones = await listRoadmapMilestones(quarter);
-  return NextResponse.json({ objectives, keyResults, milestones });
+  /* 못 읽은 것을 "이번 분기 목표 없음"으로 그리지 않는다. */
+  try {
+    const objectives = await listOkrObjectives(quarter);
+    const keyResults = await listOkrKeyResults(objectives.map((o) => o.id));
+    const milestones = await listRoadmapMilestones(quarter);
+    return NextResponse.json({ objectives, keyResults, milestones });
+  } catch (err) {
+    return dbUnavailable("OKR·로드맵 조회 실패", err, UNAVAILABLE);
+  }
 }
 
 export async function POST(req: Request) {
