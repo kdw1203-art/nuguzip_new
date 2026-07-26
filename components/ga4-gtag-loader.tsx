@@ -16,7 +16,12 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useCookieConsent } from "./consent/use-cookie-consent";
 
-const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID?.trim() || "";
+/* 측정 ID — 2026-07-26 소유자 제공(G-XEJPECJM53). 측정 ID는 모든 방문자의
+   페이지 HTML에 노출되도록 설계된 공개 값이라(시크릿 아님) 코드 기본값으로 둔다.
+   교체가 필요하면 Vercel 환경변수 NEXT_PUBLIC_GA4_ID 가 이 값을 덮어쓴다.
+   ※ 구글 안내문은 <head>에 무조건 삽입하라고 하지만, 우리는 의도적으로
+   쿠키 동의를 거친 뒤에만 로드한다 — 동의 없이 로드하지 않는 것이 방침이다. */
+const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID?.trim() || "G-XEJPECJM53";
 
 declare global {
   interface Window {
