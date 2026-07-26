@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listQuestionsForComplex } from "@/lib/qna/store";
+import { logger } from "@/lib/log";
 
 /* D2 — 단지 Q&A 임베드. 이 단지(complex_name 일치)의 실 질문만.
    질문이 없으면 첫 질문 유도 CTA(참여 유도) — 조작 데이터 아님. */
@@ -20,7 +21,41 @@ export async function ComplexQna({ complexName }: { complexName: string }) {
   const name = complexName.trim();
   if (!name) return null;
 
-  const questions = await listQuestionsForComplex(name, 5).catch(() => []);
+  /* 2026-07-26: `.catch(() => [])` 였다. 조회가 실패하면 아래 빈 상태 CTA
+     ("첫 질문을 남겨 보세요")가 뜨는데, 이미 남아 있는 질문을 없는 것처럼
+     보이게 만든다. 실패는 실패라고 쓴다 — 질문 남기기 링크는 그대로 둔다. */
+  const loaded = await listQuestionsForComplex(name, 5).then(
+    (items) => ({ ok: true as const, items }),
+    (err: unknown) => {
+      logger.error("[complex] 단지 Q&A 조회 실패", err);
+      return { ok: false as const };
+    },
+  );
+  const questions = loaded.ok ? loaded.items : [];
+
+  if (!loaded.ok) {
+    return (
+      <section className="rise-in-5 mt-6">
+        <div className="mb-2 flex items-center justify-between gap-2 px-1">
+          <h2 className="text-[15px] font-extrabold text-ink">이 단지 Q&amp;A</h2>
+          <Link href="/qna" className="text-[12px] font-bold text-primary">
+            전체 보기 →
+          </Link>
+        </div>
+        <div className="card flex flex-col items-center gap-1.5 rounded-2xl px-4 py-8 text-center">
+          <div className="text-[14px] font-extrabold text-ink">
+            질문을 지금 불러오지 못했어요
+          </div>
+          <p className="text-[12px] leading-[1.6] text-text-3">
+            질문이 없는 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요.
+          </p>
+          <Link href="/qna" className="btn-primary btn-sm mt-1 no-underline">
+            Q&amp;A 전체 보기
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="rise-in-5 mt-6">

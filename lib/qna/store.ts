@@ -130,10 +130,15 @@ export async function listQuestionsForComplex(
   complexName: string,
   limit = 5,
 ): Promise<QnaQuestion[]> {
+  /* 2026-07-26: 실패를 `[]` 로 삼켰다. 단지 상세의 Q&A 섹션은 목록이 비면
+     "이 단지에 대해 궁금한 점이 있나요? / 첫 질문을 남겨 보세요" 로 그린다 —
+     이미 이웃들이 남겨 둔 질문이 있어도 없는 것처럼 보이고, 답변을 기다리던
+     질문자는 자기 글이 지워진 줄 안다. 실패는 던진다.
+     (행이 0개인 것은 진짜 첫 질문 자리이므로 그대로 `[]`.) */
   const name = complexName.trim();
   if (!name) return [];
   const sb = getReadOnlySupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("Supabase 읽기 클라이언트를 만들 수 없습니다 (환경변수 누락)");
   try {
     const { data, error } = await sb
       .from("complex_questions")
@@ -141,13 +146,14 @@ export async function listQuestionsForComplex(
       .eq("complex_name", name)
       .order("created_at", { ascending: false })
       .limit(Math.min(Math.max(limit, 1), 20));
-    if (error || !Array.isArray(data)) return [];
+    if (error) throw new Error(error.message);
+    if (!Array.isArray(data)) throw new Error("complex_questions 응답이 배열이 아닙니다");
     return data
       .map((r) => mapQuestion(r as Record<string, unknown>))
       .filter((q) => !q.isSample);
   } catch (e) {
-    logger.warn("[qna] listQuestionsForComplex", e);
-    return [];
+    logger.error("[qna] 단지 Q&A 조회 실패", e);
+    throw e;
   }
 }
 
