@@ -173,10 +173,28 @@ export async function geocodeAndCache(
 /**
  * 배치 백필(cron/관리자) — 아직 지오코딩 안 된 상위 거래량 단지 N개를 지오코딩·저장.
  * 네이버 API rate-limit 완충을 위해 호출 간 소폭 지연.
+ *
+ * 처리량 메모(2026-07-26): 예전엔 단지 1건마다 upsert 를 개별 왕복으로 보냈다.
+ * Vercel(iad1) → Supabase 왕복이 건당 ~200ms 라 500건이면 저장에만 100초가 갔고,
+ * 지오코딩 시간까지 더하면 maxDuration(300초)에 걸려 라운드가 중간에 잘렸다.
+ * 이제 UPSERT_CHUNK 단위로 모아 보내고(왕복 500회 → 5회), 시간 예산을 넘기기 전에
+ * 스스로 멈춰 지금까지 결과를 저장하고 정상 응답한다 — 잘리는 대신 이어달린다.
  */
+const UPSERT_CHUNK = 100;
+/** 라운드 자체 종료 기한 — maxDuration(300s)·curl(290s)보다 앞서 끊는다. */
+const TIME_BUDGET_MS = 240_000;
+
 export async function backfillGeocode(
   limit = 150,
-): Promise<{ processed: number; ok: number; errors?: number; errorSample?: string; skipped?: boolean }> {
+): Promise<{
+  processed: number;
+  ok: number;
+  errors?: number;
+  errorSample?: string;
+  skipped?: boolean;
+  /** 시간 예산으로 조기 종료했는가 (남은 대상은 다음 라운드가 이어서 처리) */
+  budgetStopped?: boolean;
+}> {
   const sb = getServiceSupabase();
   if (!sb) return { processed: 0, ok: 0, skipped: true };
   if (!isNaverMapsRestConfigured()) return { processed: 0, ok: 0, skipped: true };
@@ -189,8 +207,34 @@ export async function backfillGeocode(
 
   let ok = 0;
   let errors = 0;
+  let processed = 0;
+  let budgetStopped = false;
   let errorSample: string | undefined;
+  const startedAt = Date.now();
+  let pending: Record<string, unknown>[] = [];
+
+  const flush = async () => {
+    if (pending.length === 0) return;
+    const batch = pending;
+    pending = [];
+    const { error } = await sb
+      .from("complex_geocode")
+      .upsert(batch, { onConflict: "region_name,complex_name" });
+    if (error) {
+      // 저장 실패는 조용히 넘기지 않는다 — 예전엔 upsert 오류를 아무도 안 봐서
+      // "지오코딩은 성공했는데 좌표가 안 늘어나는" 현상의 원인이 안 보였다.
+      errors += batch.length;
+      errorSample ??= `저장 실패: ${error.message}`;
+      logger.warn(`[geocode] upsert ${batch.length}건 실패: ${error.message}`);
+    }
+  };
+
   for (const r of rows) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) {
+      budgetStopped = true;
+      break;
+    }
+    processed += 1;
     // 주소형 쿼리 우선(네이버 지오코더는 주소 전용) → 지역+단지명 → 단지명 단독
     const attempt = await geocodeWithFallback([
       r.address ?? "",
@@ -208,24 +252,23 @@ export async function backfillGeocode(
       continue;
     }
     const coord = attempt.kind === "ok" ? attempt.coord : null;
-    await sb.from("complex_geocode").upsert(
-      {
-        region_name: r.region_name,
-        complex_name: r.complex_name,
-        query:
-          attempt.kind === "ok"
-            ? attempt.query
-            : (r.address?.trim() || `${r.region_name} ${r.complex_name}`).trim(),
-        lat: coord?.lat ?? null,
-        lng: coord?.lng ?? null,
-        status: coord ? "ok" : "notfound",
-        trade_count: r.trade_count,
-        geocoded_at: new Date().toISOString(),
-      },
-      { onConflict: "region_name,complex_name" },
-    );
+    pending.push({
+      region_name: r.region_name,
+      complex_name: r.complex_name,
+      query:
+        attempt.kind === "ok"
+          ? attempt.query
+          : (r.address?.trim() || `${r.region_name} ${r.complex_name}`).trim(),
+      lat: coord?.lat ?? null,
+      lng: coord?.lng ?? null,
+      status: coord ? "ok" : "notfound",
+      trade_count: r.trade_count,
+      geocoded_at: new Date().toISOString(),
+    });
     if (coord) ok += 1;
+    if (pending.length >= UPSERT_CHUNK) await flush();
     await new Promise((res) => setTimeout(res, 40));
   }
-  return { processed: rows.length, ok, errors, errorSample };
+  await flush();
+  return { processed, ok, errors, errorSample, budgetStopped };
 }

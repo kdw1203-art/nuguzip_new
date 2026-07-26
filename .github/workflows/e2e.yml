@@ -51,13 +51,43 @@ jobs:
           STATUS=$?
           kill $SERVER_PID 2>/dev/null || true
           exit $STATUS
+      # 실패 리포트는 이슈 하나를 재사용한다.
+      # 예전엔 실패할 때마다 새 이슈를 팠다. 한 가지 원인(쿠키 동의 배너가 설치
+      # 프롬프트 클릭을 가로챔)으로 12개 이슈와 메일이 쌓여, 정작 새로운 실패가
+      # 묻혔다. 열려 있는 리포트가 있으면 코멘트만 달고, 없을 때만 새로 연다.
       - name: Report E2E failure
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAIL=$(tail -c 3000 e2e.log 2>/dev/null || echo "no log")
-          gh api repos/${{ github.repository }}/issues -f title="E2E smoke failure $(date -u +%FT%TZ)" -f body="run: ${{ github.run_id }}
+          BODY="run: ${{ github.run_id }} ($(date -u +%FT%TZ))
+
           \`\`\`
           $TAIL
-          \`\`\`" || true
+          \`\`\`"
+          EXISTING=$(gh issue list --repo ${{ github.repository }} \
+            --label e2e-failure --state open --limit 1 --json number \
+            --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo ${{ github.repository }} --body "$BODY" || true
+          else
+            gh label create e2e-failure --repo ${{ github.repository }} \
+              --color B60205 --description "E2E 스모크 실패 리포트" 2>/dev/null || true
+            gh issue create --repo ${{ github.repository }} \
+              --title "E2E smoke failure" --label e2e-failure --body "$BODY" || true
+          fi
+
+      # 초록으로 돌아오면 열려 있던 리포트를 자동으로 닫는다 — 사람이 기억해서
+      # 닫아야 하는 상태를 남기지 않는다.
+      - name: Close E2E failure report on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for N in $(gh issue list --repo ${{ github.repository }} \
+            --label e2e-failure --state open --limit 20 --json number \
+            --jq '.[].number' 2>/dev/null); do
+            gh issue close "$N" --repo ${{ github.repository }} \
+              --comment "run ${{ github.run_id }} 통과 — 자동 종료" || true
+          done
