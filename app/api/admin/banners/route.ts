@@ -8,6 +8,7 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { logger } from "@/lib/log";
 import {
   listAllBanners,
   createBanner,
@@ -53,9 +54,20 @@ export async function GET(req: Request) {
   // 어드민은 꺼둔 배너·기간 지난 배너까지 봐야 되살리거나 기간을 늘릴 수 있다.
   const url = new URL(req.url);
   const placement = url.searchParams.get("placement") as BannerPlacement | null;
-  const all = await listAllBanners();
-  const banners = placement ? all.filter((b) => b.placement === placement) : all;
-  return NextResponse.json({ banners });
+  /* 2026-07-26: listAllBanners 가 실패를 삼키고 [] 를 주던 걸 던지도록 고쳤다.
+     여기서 다시 삼켜 200 { banners: [] } 를 주면 클라이언트는 "등록 0건"으로
+     그린다 — 조회 실패는 빈 목록이 아니라 503 이다. */
+  try {
+    const all = await listAllBanners();
+    const banners = placement ? all.filter((b) => b.placement === placement) : all;
+    return NextResponse.json({ banners });
+  } catch (e) {
+    logger.error("[api/admin/banners] 배너 목록 조회 실패", e);
+    return NextResponse.json(
+      { error: "배너 목록을 지금 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 503 },
+    );
+  }
 }
 
 export async function POST(req: Request) {

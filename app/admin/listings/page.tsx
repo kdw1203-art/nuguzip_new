@@ -32,10 +32,20 @@ export default async function AdminListingsPage() {
   /* 2026-07-26: 신고·소유확인이 `.catch(() => [])` 였다. 조회가 실패해도 화면은
      "신고가 접수된 매물이 없어요"라고 말했다. 신고 3건이면 자동 숨김이 걸리는
      큐라서, 실패를 0건으로 보이게 하면 감춰진 매물을 아무도 확인하지 않게 된다.
-     실패한 섹션은 실패했다고 말한다. (pending 은 원래부터 catch 하지 않는다 —
-     그건 던져서 에러 경계로 가는 게 맞다.) */
-  const [pending, reportedLoaded, verificationsLoaded] = await Promise.all([
-    listPendingListings(),
+     실패한 섹션은 실패했다고 말한다.
+
+     2026-07-26 (2차): 앞선 수정은 사실상 무효였다 — store 세 개가 *안에서*
+     실패를 삼키고 `[]` 를 돌려주고 있어서, 여기 붙인 ErrorState 분기는 영원히
+     안 걸렸다. store 를 던지도록 고치고, pending 도 같은 방식으로 감싼다.
+     (한 섹션이 죽어도 나머지 두 섹션은 계속 보이는 편이 낫다.) */
+  const [pendingLoaded, reportedLoaded, verificationsLoaded] = await Promise.all([
+    listPendingListings().then(
+      (items) => ({ ok: true as const, items }),
+      (err: unknown) => {
+        logger.error("[admin/listings] 검수 대기 목록 조회 실패", err);
+        return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+      },
+    ),
     listReportedListings().then(
       (items) => ({ ok: true as const, items }),
       (err: unknown) => {
@@ -51,6 +61,7 @@ export default async function AdminListingsPage() {
       },
     ),
   ]);
+  const pending = pendingLoaded.ok ? pendingLoaded.items : [];
   const reported = reportedLoaded.ok ? reportedLoaded.items : [];
   const verifications = verificationsLoaded.ok ? verificationsLoaded.items : [];
   const pendingVerifications = verifications.filter((v) => v.status === "pending").length;
@@ -61,7 +72,7 @@ export default async function AdminListingsPage() {
         <div className="text-[19px] font-extrabold text-white">
           매물 검수{" "}
           <span className="ml-1 rounded-[6px] bg-[rgba(126,162,255,.15)] px-2 py-[3px] text-[12px] font-extrabold text-[#7ea2ff]">
-            대기 {pending.length}건
+            {pendingLoaded.ok ? `대기 ${pending.length}건` : "대기 —"}
           </span>
           {pendingVerifications > 0 && (
             <span className="ml-1 rounded-[6px] bg-[rgba(242,201,76,.15)] px-2 py-[3px] text-[12px] font-extrabold text-[#f2c94c]">
@@ -75,7 +86,14 @@ export default async function AdminListingsPage() {
       </div>
 
       <div className={`rise-in-1 ${panelCard}`}>
-        {pending.length === 0 ? (
+        {!pendingLoaded.ok ? (
+          <ErrorState
+            tone="admin"
+            title="검수 대기 목록을 지금 불러오지 못했어요"
+            desc="대기 중인 매물이 0건인 게 아니라 조회 자체가 실패했습니다. 검수를 기다리는 매물이 묶여 있을 수 있으니 잠시 후 새로고침해 주세요."
+            cause={pendingLoaded.cause}
+          />
+        ) : pending.length === 0 ? (
           <div className="py-10 text-center text-[13px] text-[#9aa6b8]">
             검수 대기 중인 매물이 없어요.
           </div>

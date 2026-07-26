@@ -164,8 +164,15 @@ export async function listOwnerVerifications(
   status: OwnerVerificationStatus | "all" = "all",
   limit = 100,
 ): Promise<OwnerVerificationItem[]> {
+  /* 2026-07-26: 실패를 로그만 남기고 `[]` 로 넘겼다. 그러면 /admin/listings 는
+     "소유확인 신청 0건"으로 읽는다 — 증빙을 올려 둔 신청자가 무기한 방치된다.
+     실패는 던져서 호출부가 "지금 못 불러왔다"고 말하게 한다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "[owner-verification] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
   let q = sb
     .from("owner_verifications")
     .select(
@@ -177,8 +184,8 @@ export async function listOwnerVerifications(
 
   const { data, error } = await q;
   if (error) {
-    logger.warn("[owner-verification] list failed", error.message);
-    return [];
+    logger.error("[owner-verification] 심사 큐 조회 실패", error.message);
+    throw new Error(`owner_verifications 조회 실패: ${error.message}`);
   }
   const now = Date.now();
   const items = ((data as Record<string, unknown>[] | null) ?? []).map((r) => toItem(r, now));

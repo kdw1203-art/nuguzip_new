@@ -124,8 +124,18 @@ export function twoProportionPValue(
 }
 
 export async function loadExperimentResults(): Promise<ExperimentResult[]> {
+  /* 2026-07-26: 여기서 실패를 삼켰다. 클라이언트를 못 만들면 "노출 0 · 전환 0"
+     인 빈 결과를 그대로 돌려주고, 쿼리가 깨지면 logger.warn 만 남기고 역시 빈
+     행으로 계산했다. 그러면 /admin/experiments 는 "표본이 아직 안 모였어요"
+     라고 말한다 — 실험이 돌고 있는데도 결과가 없는 것처럼 보이고, 반대로
+     "이 실험은 효과가 없다"는 잘못된 판단으로 이어진다. 조회 실패는 표본 0이
+     아니다. 던져서 호출부가 구분하게 한다. */
   const sb = getServiceSupabase();
-  if (!sb) return EXPERIMENTS.map((def) => emptyResult(def));
+  if (!sb) {
+    throw new Error(
+      "[experiments] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
 
   const [events, assignments] = await Promise.all([
     sb
@@ -138,11 +148,22 @@ export async function loadExperimentResults(): Promise<ExperimentResult[]> {
       ),
   ]);
 
-  if (events.error) logger.warn("[experiments] results", events.error.message);
-  if (assignments.error) logger.warn("[experiments] assignments", assignments.error.message);
+  /* 한쪽만 실패해도 던진다 — 노출은 읽히고 배정만 실패하면 "노출 1,200 · 대상자
+     0명" 같은 앞뒤가 안 맞는 수치가 사실인 것처럼 표에 박힌다. */
+  if (events.error) {
+    logger.error("[experiments] 실험 이벤트 집계 조회 실패", events.error.message);
+    throw new Error(`experiment_results_source 조회 실패: ${events.error.message}`);
+  }
+  if (assignments.error) {
+    logger.error("[experiments] 실험 배정 집계 조회 실패", assignments.error.message);
+    throw new Error(`experiment_assignment_stats 조회 실패: ${assignments.error.message}`);
+  }
+  if (!Array.isArray(events.data)) throw new Error("experiment_results_source 응답이 배열이 아닙니다");
+  if (!Array.isArray(assignments.data))
+    throw new Error("experiment_assignment_stats 응답이 배열이 아닙니다");
 
-  const eventRows = (events.data ?? []) as ResultRow[];
-  const assignRows = (assignments.data ?? []) as AssignmentRow[];
+  const eventRows = events.data as ResultRow[];
+  const assignRows = assignments.data as AssignmentRow[];
 
   return EXPERIMENTS.map((def) => {
     const mine = eventRows.filter((r) => r.experiment_key === def.key);
@@ -209,26 +230,7 @@ export async function loadExperimentResults(): Promise<ExperimentResult[]> {
     };
   });
 }
-
-function emptyResult(def: ExperimentDef): ExperimentResult {
-  return {
-    def,
-    variants: def.variants.map((v, i) => ({
-      key: v.key,
-      label: v.label,
-      isControl: i === 0,
-      exposures: 0,
-      conversions: 0,
-      rate: null,
-      subjects: 0,
-      userSubjects: 0,
-      variantConflicts: 0,
-    })),
-    totalExposures: 0,
-    totalConversions: 0,
-    firstAt: null,
-    lastAt: null,
-    hasEnoughSample: false,
-    comparison: null,
-  };
-}
+/* emptyResult() 는 여기 있던 헬퍼였는데, 유일한 호출부가 "Supabase 클라이언트를
+   못 만들면 전 실험을 노출 0·전환 0 으로 돌려준다" 는 자리였다. 그 자리를 throw 로
+   바꾸면서 호출부가 사라졌다 — 빈 결과를 만들어 내는 함수가 남아 있으면 다음에
+   누군가 또 같은 방식으로 실패를 덮게 되므로 같이 지운다. */
