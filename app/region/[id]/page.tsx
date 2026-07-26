@@ -72,14 +72,39 @@ export const revalidate = 3600;
    핵심 스냅샷은 이 예산에 포함되지 않는다 — 그건 페이지의 존재 이유라서,
    실패하면 여전히 던져서 5xx 가 되어야 한다. */
 
+/**
+ * 곁다리 섹션 하나가 빠졌을 때의 안내.
+ *
+ * "새로고침해 주세요" 라고 쓰지 않는다 — 이 페이지는 revalidate=3600 이라
+ * 이 화면이 그려진 순간 최대 1시간 동안 그대로 저장된다. 새로고침해도 같은
+ * 화면이 나오는데 "새로고침하면 된다"고 적으면, 그것도 사실이 아닌 안내다.
+ */
 function LoadFailed({ what }: { what: string }) {
   return (
     <p className="py-6 text-center text-[13px] leading-[1.7] text-text-3">
       {what}을 지금 불러오지 못했습니다. 데이터가 없다는 뜻이 아니라 조회에 실패했다는
-      뜻입니다 — 잠시 후 새로고침해 주세요.
+      뜻입니다 — 이 화면은 최대 1시간 저장되므로, 잠시 뒤에 다시 방문해 주세요.
     </p>
   );
 }
+
+/**
+ * 곁다리 7개 중 몇 개가 실패하면 "페이지가 아니라 DB 가 문제"로 볼 것인가.
+ *
+ * 곁다리들은 공유 마감시계(8초) 하나를 함께 본다. 그래서 DB 가 밀리는 순간에는
+ * 하나가 아니라 남아 있던 것 전부가 동시에 실패한다. 그렇게 만들어진 화면은
+ * 머리말만 있고 본문이 거의 없는 껍데기인데, revalidate=3600 이라 그 껍데기가
+ * **1시간 동안 고정**된다. 방문자에게도 크롤러에게도 그건 "이 지역은 내용이
+ * 없는 페이지"라는 잘못된 사실이 된다(승인 문서가 금지한 얇은 페이지 그대로다).
+ *
+ * 그래서 이 선을 넘으면 그리지 않고 던진다. 5xx 는 캐시되지 않으므로 DB 가
+ * 회복된 다음 방문자는 제대로 된 페이지를 받는다 — "지금은 못 준다"가
+ * "여긴 원래 비어 있다"보다 정확하다.
+ *
+ * 5/7 로 잡은 이유: 한두 섹션이 늦는 것은 평상시에도 있는 일이고, 그때는
+ * 나머지 본문이 충분히 남아 있어 페이지로서 값어치가 있다.
+ */
+const SIDE_FAILURE_ABORT_THRESHOLD = 5;
 
 /* ---------- 포맷 헬퍼 ---------- */
 
@@ -215,6 +240,18 @@ export default async function RegionHubPage({
       settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6), budget.expired),
     ]);
   budget.done();
+
+  /* 껍데기를 1시간 얼리지 않는다 (위 SIDE_FAILURE_ABORT_THRESHOLD 설명 참고).
+     실패 개수만 세서 판단한다 — 어떤 섹션이 실패했는지는 settle() 이 이미
+     각각 로그로 남겼다. */
+  const sideResults = [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR];
+  const sideFailures = sideResults.filter((r) => !r.ok).length;
+  if (sideFailures >= SIDE_FAILURE_ABORT_THRESHOLD) {
+    throw new Error(
+      `[/region/${id}] 곁다리 섹션 ${sideResults.length}개 중 ${sideFailures}개 조회 실패 — ` +
+        "빈 껍데기를 캐시에 남기지 않기 위해 렌더를 중단합니다",
+    );
+  }
 
   const series: Array<{ period: string; value: number }> = seriesR.ok ? seriesR.data : [];
   const transactions: RegionTransactionRow[] = transactionsR.ok ? transactionsR.data : [];
