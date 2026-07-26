@@ -204,11 +204,19 @@ export async function PATCH(req: NextRequest) {
     try {
       const sb = getServiceSupabase();
       if (sb) {
-        const { data } = await sb
+        const { data, error } = await sb
           .from("listings")
           .select("id, region_name, complex_name, author_email")
           .eq("id", id)
           .maybeSingle();
+        /* 이 조회가 실패하면 아래 알림이 통째로 건너뛰어진다. 승인은 그대로 두되
+           "구독자에게 안 갔다"는 사실은 남긴다 — 조용히 넘어가면 알 길이 없다. */
+        if (error) {
+          logger.error(
+            `[admin/listings] 승인 매물 조회 실패 (listing=${id}) — 새 매물 알림을 보내지 못했습니다.`,
+            error,
+          );
+        }
         if (data) {
           const row = data as Record<string, unknown>;
           await notifyNewListingSubscribers({

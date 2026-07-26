@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildDistrictWorkspace } from "@/lib/map/district-workspace-service";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 
@@ -20,12 +21,19 @@ export async function GET(req: Request) {
   const lat = latRaw ? Number(latRaw) : undefined;
   const lng = lngRaw ? Number(lngRaw) : undefined;
 
-  const payload = await buildDistrictWorkspace({
-    city,
-    district,
-    lat: Number.isFinite(lat) ? lat : undefined,
-    lng: Number.isFinite(lng) ? lng : undefined,
-  });
+  /* 스냅샷 조회가 실패하면 아래가 던진다. 그대로 두면 500 에 내부 오류 메시지가
+     실려 나간다. 못 읽었을 뿐이라고 503 으로 말한다. */
+  let payload: Awaited<ReturnType<typeof buildDistrictWorkspace>>;
+  try {
+    payload = await buildDistrictWorkspace({
+      city,
+      district,
+      lat: Number.isFinite(lat) ? lat : undefined,
+      lng: Number.isFinite(lng) ? lng : undefined,
+    });
+  } catch (e) {
+    return dbUnavailable("map-workspace", e);
+  }
 
   return NextResponse.json(payload);
 }

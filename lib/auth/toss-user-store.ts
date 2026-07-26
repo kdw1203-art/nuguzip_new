@@ -23,6 +23,22 @@ const TOSS_PASSWORD_SENTINEL = "toss-login-no-password";
 
 export type TossLinkResult = { email: string; role: UserRole; plan: AppPlan };
 
+/**
+ * 계정 조회/생성 자체가 실패했을 때 던지는 에러.
+ *
+ * 예전에는 app_users 조회 실패를 "그런 계정 없음"으로 흘려보냈다. 그러면 이미
+ * 관리자이거나 유료 플랜인 사람이 DB 가 잠깐 흔들리는 동안 토스로 로그인했을 때
+ * role:"user" · plan:"free" 로 세션이 만들어진다 — 그 사람의 권한과 결제 상태에
+ * 대한 거짓 진술이고, 화면에는 "구독하기"가 뜬다. 못 읽었으면 로그인을 내주지
+ * 않는 편이 사실에 가깝다(auth.ts 가 null 을 돌려 "다시 시도"로 이어진다).
+ */
+export class TossLinkUnavailableError extends Error {
+  constructor(where: string, message?: string) {
+    super(`${where} 조회 실패: ${message ?? "알 수 없는 오류"}`);
+    this.name = "TossLinkUnavailableError";
+  }
+}
+
 /** 이메일 동의가 없을 때 사용할 앱 내부 식별용 합성 이메일. */
 export function synthTossEmail(userKey: number): string {
   return `toss_${userKey}@toss.nuguzip.local`;
@@ -78,19 +94,21 @@ export async function linkTossUser(
     } | null = null;
 
     {
-      const { data } = await sb
+      const { data, error } = await sb
         .from("app_users")
         .select("id, email, role, plan, name")
         .eq("toss_user_key", profile.userKey)
         .maybeSingle();
+      if (error) throw new TossLinkUnavailableError("app_users (toss_user_key)", error.message);
       existing = data ?? null;
     }
     if (!existing) {
-      const { data } = await sb
+      const { data, error } = await sb
         .from("app_users")
         .select("id, email, role, plan, name")
         .eq("email", email)
         .maybeSingle();
+      if (error) throw new TossLinkUnavailableError("app_users (email)", error.message);
       existing = data ?? null;
     }
 
@@ -126,10 +144,13 @@ export async function linkTossUser(
       toss_ci: profile.ci ?? null,
       toss_linked_at: now,
     });
-    if (error) logger.warn("[toss-login] link insert failed", error);
+    /* 생성이 실패했는데 free 계정인 척 세션을 내주면, 다음 로그인에서 또 없는
+       계정이 되고 그동안의 활동은 어디에도 붙지 않는다. 실패는 실패로 돌린다. */
+    if (error) throw new TossLinkUnavailableError("app_users (생성)", error.message);
     await storeTossTokens(profile.userKey, tokens);
     return { email, role: "user", plan: "free" };
   } catch (e) {
+    if (e instanceof TossLinkUnavailableError) throw e;
     logger.warn("[toss-login] linkTossUser error", e);
     return { email, role: "user", plan: "free" };
   }

@@ -56,17 +56,22 @@ export async function notifyNewListingSubscribers(
   const authorEmail = listing.authorEmail ? normEmail(String(listing.authorEmail)) : null;
 
   const recipients = new Set<string>();
+  /* 구독자 조회가 실패해도 recipients 는 그냥 비어 있을 뿐이라, 지금까지는
+     "이 지역을 지켜보는 사람이 아무도 없었다"와 구분되지 않은 채 0 을 돌려줬다.
+     알림을 못 보낸 것과 보낼 사람이 없던 것은 다른 사건이므로 로그에서 갈라 적는다. */
+  let lookupFailed = false;
 
   try {
     // 1) 지역 구독자 — complex_id IN (alert:region:<후보>…)
     if (regionName) {
       const keys = regionCandidates(regionName).map((v) => `${ALERT_PREFIX}region:${v}`);
       if (keys.length > 0) {
-        const { data } = await sb
+        const { data, error } = await sb
           .from("user_watchlist")
           .select("user_email")
           .in("complex_id", keys)
           .limit(MAX_RECIPIENTS * 2);
+        if (error) lookupFailed = true;
         for (const r of (data ?? []) as Array<Record<string, unknown>>) {
           const e = normEmail(String(r.user_email ?? ""));
           if (e) recipients.add(e);
@@ -77,11 +82,12 @@ export async function notifyNewListingSubscribers(
     // 2) 키워드 구독자 — 키워드가 단지명/지역명에 포함될 때
     if (complexName || regionName) {
       const haystack = `${complexName} ${regionName}`;
-      const { data } = await sb
+      const { data, error } = await sb
         .from("user_watchlist")
         .select("user_email, complex_id")
         .like("complex_id", `${KEYWORD_PREFIX}%`)
         .limit(1000);
+      if (error) lookupFailed = true;
       for (const r of (data ?? []) as Array<Record<string, unknown>>) {
         const key = String(r.complex_id ?? "");
         const kw = key.slice(KEYWORD_PREFIX.length).trim();
@@ -92,7 +98,15 @@ export async function notifyNewListingSubscribers(
       }
     }
   } catch (e) {
+    lookupFailed = true;
     logger.warn("[region-alerts] 구독자 조회 실패", e);
+  }
+
+  if (lookupFailed) {
+    logger.error(
+      `[region-alerts] 구독자 조회 실패 — listing=${id} 알림이 일부/전부 누락됐습니다. ` +
+        "구독자가 없다는 뜻이 아닙니다.",
+    );
   }
 
   if (authorEmail) recipients.delete(authorEmail);

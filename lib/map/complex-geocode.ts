@@ -23,12 +23,17 @@ export async function getCachedCoordMap(
   if (!sb || pairs.length === 0) return out;
   const regions = [...new Set(pairs.map((p) => p.region))];
   const names = [...new Set(pairs.map((p) => p.name))];
-  const { data } = await sb
+  const { data, error } = await sb
     .from("complex_geocode")
     .select("region_name, complex_name, lat, lng, status")
     .in("region_name", regions)
     .in("complex_name", names)
     .eq("status", "ok");
+  /* 빈 Map 을 돌려주면 부르는 쪽에는 "좌표가 캐시된 단지가 하나도 없다"로 보인다 —
+     지도에서 마커가 통째로 사라지는 모습이다. 못 읽었으면 못 읽었다고 던진다. */
+  if (error) {
+    throw new Error(`complex_geocode 조회 실패: ${error.message ?? "알 수 없는 오류"}`);
+  }
   const want = new Set(pairs.map((p) => coordKey(p.region, p.name)));
   for (const r of (data as
     | { region_name: string; complex_name: string; lat: number | null; lng: number | null }[]
@@ -131,12 +136,21 @@ export async function geocodeAndCache(
 ): Promise<Coord | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
-  const { data: cached } = await sb
+  const { data: cached, error: cachedError } = await sb
     .from("complex_geocode")
     .select("lat, lng, status")
     .eq("region_name", region)
     .eq("complex_name", name)
     .maybeSingle();
+  /* 캐시 조회 실패를 "캐시 없음"으로 흘려보내면 아래에서 다시 지오코딩을 하고,
+     그 결과가 notfound 면 이미 잘 저장돼 있던 좌표를 notfound 로 덮어쓴다.
+     못 읽었을 때는 쓰지 않는다 — 다음 요청이 다시 시도하면 된다. */
+  if (cachedError) {
+    logger.warn(
+      `[geocode] ${region} ${name} 캐시 조회 실패(재지오코딩 안 함): ${cachedError.message}`,
+    );
+    return null;
+  }
   if (cached) {
     return cached.status === "ok" && cached.lat != null && cached.lng != null
       ? { lat: Number(cached.lat), lng: Number(cached.lng) }
@@ -199,7 +213,16 @@ export async function backfillGeocode(
   if (!sb) return { processed: 0, ok: 0, skipped: true };
   if (!isNaverMapsRestConfigured()) return { processed: 0, ok: 0, skipped: true };
 
-  const { data } = await sb.rpc("complexes_needing_geocode", { p_limit: limit });
+  /* 대상 목록 조회가 실패했는데 []로 흘리면 processed:0 · ok:0 으로 "할 일이
+     없었다"는 정상 응답이 되어, 크론 브리핑에는 백필이 잘 돌고 있는 것처럼 남는다. */
+  const { data, error: rpcError } = await sb.rpc("complexes_needing_geocode", {
+    p_limit: limit,
+  });
+  if (rpcError) {
+    throw new Error(
+      `complexes_needing_geocode 조회 실패: ${rpcError.message ?? "알 수 없는 오류"}`,
+    );
+  }
   const rows =
     (data as
       | { region_name: string; complex_name: string; address: string | null; trade_count: number }[]
