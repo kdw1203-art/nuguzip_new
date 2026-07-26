@@ -24,8 +24,14 @@ const CODE_LEN = 6;
 export type ReferralLookup = { referrerEmail: string };
 export type ReferralStats = {
   code: string | null;
-  invitedCount: number;
-  pointsEarned: number;
+  /**
+   * 초대 성사 수. **못 셌으면 null 이다.**
+   * 예전에는 조회 실패도 `0` 이었는데, "아직 아무도 초대 못 했다"와
+   * "지금 셀 수 없다"는 전혀 다른 말이고 화면에는 앞의 것만 보였다.
+   */
+  invitedCount: number | null;
+  /** 성사 수 × 300P. invitedCount 를 못 셌으면 이것도 null. */
+  pointsEarned: number | null;
 };
 export type RedeemResult = { ok: boolean; reason?: string; awarded?: number };
 
@@ -124,23 +130,34 @@ export async function getReferralByCode(code: string): Promise<ReferralLookup | 
     .select("user_email")
     .eq("code", c)
     .maybeSingle();
-  if (error || !data?.user_email) return null;
+  /* error 와 "행 없음"을 갈라 놓는다. 예전에는 둘 다 null 이라, 조회가 밀리는
+     동안 멀쩡한 초대 코드가 redeemReferral 에서 `invalid_code` 로 처리됐다 —
+     사용자에게는 "없는 코드"라고 말한 셈이다. 이제 실패는 던지고, 바깥의
+     try/catch 가 그것을 `error` 로 구분해 돌려준다. */
+  if (error) throw new Error(`referral_codes 조회 실패: ${error.message}`);
+  if (!data?.user_email) return null;
   return { referrerEmail: String(data.user_email) };
 }
 
 /** 내 코드 + 초대 성사 수 + 적립 포인트(성사 수 × 300). */
 export async function getReferralStats(email: string): Promise<ReferralStats> {
   const code = await getOrCreateCode(email);
-  let invitedCount = 0;
   const read = getReadOnlySupabase();
-  if (read && email) {
-    const { count, error } = await read
-      .from("referral_redemptions")
-      .select("id", { count: "exact", head: true })
-      .eq("referrer_email", email);
-    if (!error) invitedCount = count ?? 0;
+  if (!read || !email) {
+    return { code, invitedCount: null, pointsEarned: null };
   }
-  return { code, invitedCount, pointsEarned: invitedCount * REFERRAL_POINTS };
+  const { count, error } = await read
+    .from("referral_redemptions")
+    .select("id", { count: "exact", head: true })
+    .eq("referrer_email", email);
+  /* 여기서 던지지 않는 것은 코드·초대 링크가 이 조회와 무관하게 이미 있기
+     때문이다. 화면은 링크를 계속 보여 주되, 못 센 숫자는 null 로 넘겨
+     "0명"이 아니라 "—"로 그린다. */
+  if (error || typeof count !== "number") {
+    if (error) logger.error("[referral] 초대 성사 수 조회 실패", error);
+    return { code, invitedCount: null, pointsEarned: null };
+  }
+  return { code, invitedCount: count, pointsEarned: count * REFERRAL_POINTS };
 }
 
 /**

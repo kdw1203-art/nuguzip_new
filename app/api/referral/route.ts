@@ -19,6 +19,11 @@ function originFrom(req: NextRequest): string {
 /**
  * GET /api/referral — 로그인 사용자의 추천 코드·초대 링크·통계.
  * → { code, link, invitedCount, pointsEarned }, 비로그인 401.
+ *
+ * `invitedCount`·`pointsEarned` 는 **null 일 수 있다.** 성사 수 조회가 실패한
+ * 경우로, `0`(= 아직 아무도 초대 못 함)과 구분해야 한다. 이 값을 화면에 그리는
+ * 쪽은 null 을 숫자로 접지 말고 "—" 처럼 모른다는 표시로 두어야 한다.
+ * 코드·링크는 이 조회와 무관하게 유효하므로 그대로 내려간다.
  */
 export async function GET(req: NextRequest) {
   const session = await safeAuth();

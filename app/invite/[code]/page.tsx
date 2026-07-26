@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { Icon } from "@/app/components/Icon";
 import { getReferralByCode } from "@/lib/referral/store";
+import { logger } from "@/lib/log";
 
 /**
  * 공개 초대 랜딩 — /invite/[code].
@@ -20,6 +21,24 @@ import { getReferralByCode } from "@/lib/referral/store";
 export const dynamic = "force-dynamic";
 
 /**
+ * 추천인 조회 — 이 페이지에서만은 실패를 삼킨다.
+ *
+ * getReferralByCode 는 이제 조회 실패에 던진다("없는 코드"와 구분하기 위해서다).
+ * 하지만 이 랜딩의 본래 일은 ref_code 쿠키를 심는 것이고, 그건 조회와 무관하게
+ * 된다. 이름 하나 때문에 초대 링크 전체를 오류 화면으로 바꾸면 초대가 끊긴다.
+ * 그래서 여기서는 이름을 숨기되, 왜 숨겼는지는 기록으로 남긴다.
+ */
+async function lookupInviter(code: string) {
+  return getReferralByCode(code).then(
+    (r) => r,
+    (err: unknown) => {
+      logger.error("[invite] 추천인 조회 실패 — 이름 없이 계속", err);
+      return null;
+    },
+  );
+}
+
+/**
  * A4 — 초대 공유카드(OG). 페이지는 noindex 유지(검색 색인 방지)하되,
  * openGraph/twitter 이미지로 카카오·링크 공유 미리보기 CTR 을 높인다.
  * (og:image 스크랩은 robots noindex 와 무관하게 동작)
@@ -31,7 +50,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { code: rawCode } = await params;
   const code = sanitizeCode(rawCode);
-  const ref = code ? await getReferralByCode(code) : null;
+  /* 조회가 실패해도 초대 자체는 계속 성립한다(쿠키는 심기고, 리딤은 나중에
+     /api/referral/redeem 이 다시 조회한다). 여기서 하는 일은 추천인 이름을
+     보여줄지 말지뿐이라, 못 읽었으면 이름 없는 일반 초대로 그린다 —
+     "없는 코드"라고 말하지는 않는다. */
+  const ref = code ? await lookupInviter(code) : null;
   const inviter = ref ? maskEmail(ref.referrerEmail) : "친구의 초대";
   const ogUrl = `/api/og/invite?by=${encodeURIComponent(inviter)}`;
   const title = "친구가 초대했어요 · 가입하면 둘 다 300P — 누구집";
@@ -98,7 +121,7 @@ export default async function InvitePage({
   }
 
   // 코드가 유효하면 추천인 표시, 아니면 일반 초대로 폴백 (crash 금지)
-  const ref = code ? await getReferralByCode(code) : null;
+  const ref = code ? await lookupInviter(code) : null;
   const inviter = ref ? maskEmail(ref.referrerEmail) : null;
 
   // 2) 클라이언트 쿠키 세팅 (실질적으로 여기서 심긴다)

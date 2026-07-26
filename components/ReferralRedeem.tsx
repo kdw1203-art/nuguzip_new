@@ -46,7 +46,9 @@ export function ReferralRedeem() {
           body: JSON.stringify({ code }),
         });
         // 2xx 면 종료 상태(리딤됨/자기추천/이미/코드무효) → 쿠키 제거.
-        // 401 등은 쿠키를 남겨 로그인 후 재시도한다.
+        // 401(비로그인)·503(DB 일시 실패)은 쿠키를 남겨 다음 마운트에 재시도한다.
+        // 서버가 "지금 못 한다"를 2xx 로 답하지 않는다는 약속에 기대는 코드다
+        // (app/api/referral/redeem/route.ts 의 RETRYABLE_REASONS).
         if (res.ok) clearCookie(COOKIE_NAME);
       } catch {
         /* 네트워크 오류 등은 무시 (쿠키 유지) */
