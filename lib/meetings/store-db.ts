@@ -92,6 +92,7 @@ export async function listMeetings(
   const sb = getServiceSupabase();
   let rows: UserMeeting[];
   if (!sb) {
+    /* 클라이언트가 아예 없는 경우 — "설정이 없다"이지 "조회에 실패했다"가 아니다. */
     rows = filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)));
   } else {
     const { data, error } = await sb
@@ -100,9 +101,17 @@ export async function listMeetings(
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(200);
-    rows = error
-      ? filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)))
-      : filterPublicContent((data ?? []).map(mapRow));
+    /* 예전에는 error 를 파일 스토어 폴백으로 삼켰다. 그런데 파일 스토어
+       (data/groups.json)는 저장소에 없다 — 운영에서는 **항상 빈 배열**이다.
+       즉 이 폴백은 "조회 실패"를 "모임이 하나도 없음"으로 바꿔 놓는 장치였고,
+       화면에는 "지금 모집 중인 모임이 없어요"가 떴다. 못 읽은 것과 없는 것은
+       다른 사실이므로 던진다 — 부르는 쪽이 그 둘을 구분해 그리게. */
+    if (error) {
+      throw new Error(
+        `[meetings.listMeetings] 모임 목록 조회 실패: ${error.message ?? "unknown"}`,
+      );
+    }
+    rows = filterPublicContent((data ?? []).map(mapRow));
   }
   if (opts.includePast) return rows;
   const now = Date.now();
