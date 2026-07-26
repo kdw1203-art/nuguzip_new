@@ -1,0 +1,51 @@
+"use client";
+
+/**
+ * S22 — 쿠키 동의 배너.
+ *
+ * 결정 전에만 표시되고, "필수만 허용"이 시각적으로 동등한 선택지다
+ * (다크 패턴 금지 — 거절 버튼을 흐리게 만들지 않는다). 분석 쿠키는
+ * 동의한 경우에만 GA4 로더(components/ga4-gtag-loader.tsx)가 싣는다.
+ */
+import Link from "next/link";
+import { useCookieConsent } from "./use-cookie-consent";
+
+export function CookieConsentBanner() {
+  const { state, decide } = useCookieConsent();
+  if (state.status !== "undecided") return null;
+
+  return (
+    <div
+      role="region"
+      aria-label="쿠키 사용 동의"
+      className="fixed inset-x-0 z-[70] px-4"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+    >
+      <div className="glass-strong mx-auto flex max-w-[560px] flex-col gap-2.5 rounded-2xl p-4 shadow-[0_12px_32px_rgba(15,23,42,.18)]">
+        <p className="text-[12px] leading-[1.6] text-text-1">
+          누구집은 서비스 운영에 필요한 필수 쿠키를 사용해요. 이용 통계 분석 쿠키는{" "}
+          <b>동의하신 경우에만</b> 사용합니다.{" "}
+          <Link href="/legal/privacy" className="font-bold text-primary underline">
+            개인정보처리방침
+          </Link>
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => decide(false)}
+            className="flex-1 rounded-[10px] border border-line bg-surface px-3 py-2.5 text-[12px] font-bold text-text-1"
+          >
+            필수만 허용
+          </button>
+          <button
+            type="button"
+            onClick={() => decide(true)}
+            className="btn-primary flex-1 rounded-[10px] px-3 py-2.5 text-[12px]"
+          >
+            모두 허용
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

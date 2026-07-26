@@ -137,6 +137,36 @@ if (exists("app/og-image/route.tsx") || exists("app/og-image/page.tsx")) {
 } else {
   warn("SEO", "og-image route");
 }
+// S1 — 사이트맵 정적 목록 ↔ 실제 라우트 대조.
+// STATIC_ROUTES 에 있는데 app/ 에 페이지가 없으면 사이트맵이 404 를 광고하는 것이다.
+{
+  const sitemapSrc = read("lib/seo/build-sitemap.ts");
+  const staticBlock = sitemapSrc.split("STATIC_ROUTES")[1]?.split("];")[0] ?? "";
+  const paths = [...staticBlock.matchAll(/path:\s*"([^"]+)"/g)].map((m) => m[1]);
+  const missing = paths.filter((p) => {
+    if (p === "/") return !exists("app/page.tsx");
+    const seg = p.replace(/^\//, "");
+    return !exists(`app/${seg}/page.tsx`) && !exists(`app/${seg}/route.ts`) && !exists(`app/${seg}/route.tsx`);
+  });
+  if (paths.length === 0) {
+    warn("SEO", "Sitemap static routes parse");
+  } else if (missing.length > 0) {
+    fail("SEO", "Sitemap static routes exist", `없는 라우트: ${missing.join(", ")}`);
+  } else {
+    pass("SEO", "Sitemap static routes exist", `${paths.length}개 확인`);
+  }
+}
+// G2 — llms.txt / G16 — 전역 JSON-LD
+if (exists("public/llms.txt")) {
+  pass("SEO", "llms.txt (GEO)");
+} else {
+  warn("SEO", "llms.txt (GEO)");
+}
+if (read("app/layout.tsx").includes("SiteJsonLd")) {
+  pass("SEO", "Organization/WebSite JSON-LD");
+} else {
+  warn("SEO", "Organization/WebSite JSON-LD");
+}
 for (const f of ["app/robots.ts", "app/robots.txt", "public/robots.txt"]) {
   if (exists(f)) {
     pass("SEO", "robots", f);

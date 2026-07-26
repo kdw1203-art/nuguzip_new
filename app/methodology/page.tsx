@@ -115,6 +115,17 @@ export default function MethodologyPage() {
           ))}
         </div>
 
+        {/* G21 — 정정 이력. 데이터·집계 오류를 고치면 여기 남긴다.
+            아직 0건이라고 정직하게 적는 것부터가 이 제도의 시작이다. */}
+        <section id="corrections" className="card mt-6 rounded-[18px] p-6">
+          <h2 className="text-[16px] font-extrabold text-ink">정정 이력</h2>
+          <p className="mt-2 text-[13px] leading-[1.75] text-text-1">
+            공개된 수치·집계에서 오류를 발견해 정정하면 날짜와 내용을 이 목록에
+            남깁니다. 이 페이지 공개(2026년 7월) 이후 기록된 정정은 아직 없습니다.
+            오류 제보는 고객센터로 부탁드립니다.
+          </p>
+        </section>
+
         <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
           본 문서의 방식은 서비스 개선에 따라 바뀔 수 있으며, 바뀌면 이 페이지를
           갱신합니다. 시세·분석 결과는 참고용 정보이며 투자 판단의 책임은 이용자

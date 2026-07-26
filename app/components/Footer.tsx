@@ -12,6 +12,11 @@ const LEGAL_LINKS = [
   { label: "법적 고지", href: "/legal", bold: false },
   { label: "고객센터", href: "/support", bold: false },
   { label: "구독 안내", href: "/subscription", bold: false },
+  /* S20 — 신뢰·데이터 페이지 내부 링크 (전 페이지 크롤 경로 확보) */
+  { label: "소개", href: "/about", bold: false },
+  { label: "데이터 방법론", href: "/methodology", bold: false },
+  { label: "용어사전", href: "/glossary", bold: false },
+  { label: "월간 리포트", href: "/reports", bold: false },
 ] as const;
 
 export function Footer() {
