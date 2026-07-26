@@ -101,7 +101,15 @@ async function countActiveReports(
       ? q.eq("target_note_id", targetId)
       : q.eq("post_id", targetId).is("comment_id", null);
   const { count, error } = await q;
-  if (error) return 0;
+  /* 못 센 것을 0 으로 돌려주면 아래 `reportCount >= 3` 자동 숨김이 절대 발동하지
+     않는다 — 신고가 쌓인 콘텐츠가 조회 실패 한 번 때문에 공개된 채로 남는다.
+     실패가 "가려지지 않는 쪽"으로 새는 셈이라, 못 셌으면 던진다. */
+  if (error) {
+    throw new Error(
+      `content_reports 개수 조회 실패 (${targetType}/${targetId}): ` +
+        `${error.message ?? "알 수 없는 오류"}`,
+    );
+  }
   return count ?? 0;
 }
 
@@ -179,7 +187,7 @@ export async function hideReportedContent(
 export async function markContentReportTarget(
   targetType: ReportTargetType,
   targetId: string,
-): Promise<{ ok: boolean; reportCount: number; hidden: boolean }> {
+): Promise<{ ok: boolean; reportCount: number | null; hidden: boolean }> {
   try {
     const reportCount = await countActiveReports(targetType, targetId);
     if (reportCount >= CONTENT_REPORT_HIDE_THRESHOLD) {
@@ -188,8 +196,13 @@ export async function markContentReportTarget(
     }
     return { ok: true, reportCount, hidden: false };
   } catch (e) {
-    logger.warn("[moderation] markContentReportTarget", e);
-    return { ok: false, reportCount: 0, hidden: false };
+    /* 자동 숨김이 조용히 건너뛰어진 것이므로 warn 이 아니라 error 로 남긴다.
+       reportCount 도 0 이 아니라 null — "신고 0건"이 아니라 "못 셌다"이다. */
+    logger.error(
+      `[moderation] 자동 숨김 판정 실패 (${targetType}/${targetId}) — 임계값 확인을 건너뛰었습니다.`,
+      e,
+    );
+    return { ok: false, reportCount: null, hidden: false };
   }
 }
 

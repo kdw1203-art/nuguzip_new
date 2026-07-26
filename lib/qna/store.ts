@@ -162,11 +162,17 @@ async function incrementViewCount(id: string): Promise<void> {
   const sb = getServiceSupabase();
   if (!sb || !id) return;
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("complex_questions")
       .select("view_count")
       .eq("id", id)
       .maybeSingle();
+    /* 못 읽은 것을 0 으로 보고 아래 update 를 태우면 쌓인 조회수가 1 로
+       덮어써진다 — best-effort 인 +1 이 데이터 파괴가 된다. 못 읽었으면 쓰지 않는다. */
+    if (error) {
+      logger.warn(`[qna] view_count 조회 실패 (${id}) — +1 을 건너뜁니다.`, error);
+      return;
+    }
     const row = data as Record<string, unknown> | null;
     const current = row && row.view_count != null ? Number(row.view_count) : 0;
     await sb

@@ -466,11 +466,18 @@ export async function incrementUseCount(id: string): Promise<void> {
   const sb = getServiceSupabase();
   if (!sb) return;
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("note_templates")
       .select("use_count")
       .eq("id", id)
       .maybeSingle();
+    /* 못 읽은 것을 0 으로 보고 아래 update 를 그대로 태우면, 쌓여 있던 사용
+       횟수가 1 로 덮어써진다 — best-effort 인 +1 이 데이터 파괴가 된다.
+       못 읽었으면 쓰지 않는다(카운터 하나 못 올리는 건 감수할 수 있다). */
+    if (error) {
+      logger.warn(`[note-templates] use_count 조회 실패 (${id}) — +1 을 건너뜁니다.`, error);
+      return;
+    }
     const current =
       data && (data as Record<string, unknown>).use_count != null
         ? Number((data as Record<string, unknown>).use_count)

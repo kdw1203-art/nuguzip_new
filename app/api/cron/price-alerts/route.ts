@@ -152,11 +152,19 @@ async function maybeSendPriceAlertPush(
   complexId: string,
 ): Promise<number> {
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth")
       .eq("user_email", userEmail.toLowerCase())
       .limit(20);
+    /* 못 읽은 것을 빈 배열로 흘려보내면 "이 사용자는 웹푸시를 구독하지 않았다"와
+       구분이 안 된다 — 크론 요약에는 그냥 0건으로 적히고, 알림이 왜 안 갔는지
+       나중에 알 길이 없다. 발송은 best-effort 라 계속하되(한 사람 때문에 크론
+       전체를 접지 않는다), 못 읽었다는 사실은 로그에 남긴다. */
+    if (error) {
+      logger.warn(`[cron/price-alerts] push_subscriptions 조회 실패 (${userEmail})`, error);
+      return 0;
+    }
     const subs = (data ?? []) as Array<Record<string, unknown>>;
     if (subs.length === 0) return 0;
     const payload: PushPayload = {

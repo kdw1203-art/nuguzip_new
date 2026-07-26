@@ -174,7 +174,7 @@ async function fetchTxBatch(
   const regions = [...new Set(geo.map((g) => g.region_name))];
   const names = [...new Set(geo.map((g) => g.complex_name))];
   const want = new Set(geo.map((g) => pairKey(g.region_name, g.complex_name)));
-  const { data } = await sb
+  const { data, error } = await sb
     .from("market_transactions")
     .select("region_name, complex_name, contract_ym, deal_amount_krw, area_m2, build_year")
     .eq("transaction_type", "trade")
@@ -185,6 +185,16 @@ async function fetchTxBatch(
     .in("complex_name", names)
     .order("contract_ym", { ascending: false })
     .limit(MAX_TX_ROWS);
+  /* 이 조회 하나가 목록 전체의 시세를 담당한다. 실패를 빈 맵으로 흘려보내면
+     30개 단지가 **모두** "시세 준비 중" 으로 그려진다 — 실거래가 멀쩡히 쌓여
+     있는 단지들에 대고 "아직 데이터가 없다"고 단정하는 셈이다.
+     loadDanjiFromDb 는 이미 실패를 던지도록 되어 있고(위 주석), MapPage 는
+     dbRun.state === "error" 를 따로 안내한다. 여기서도 못 읽었으면 던진다. */
+  if (error) {
+    throw new Error(
+      `market_transactions 조회 실패 (지도 시세 배치): ${error.message ?? "알 수 없는 오류"}`,
+    );
+  }
   for (const r of (data as TxRow[] | null) ?? []) {
     const key = pairKey(r.region_name, r.complex_name);
     if (!want.has(key)) continue;

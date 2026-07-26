@@ -86,11 +86,17 @@ async function pushIfSubscribed(
 ): Promise<number> {
   if (!sb) return 0;
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth")
       .eq("user_email", g.userEmail)
       .limit(20);
+    /* 못 읽은 것과 "구독 없음"은 다른 사실이다. 발송은 best-effort 라 계속하되
+       못 읽었다는 것만은 로그에 남긴다(안 그러면 0건으로만 보인다). */
+    if (error) {
+      logger.warn(`[cron/listing-stale] push_subscriptions 조회 실패 (${g.userEmail})`, error);
+      return 0;
+    }
     const subs = (data ?? []) as Array<Record<string, unknown>>;
     if (subs.length === 0) return 0;
 
