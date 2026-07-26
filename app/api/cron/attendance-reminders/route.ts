@@ -45,21 +45,40 @@ export async function GET(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const emails = [...new Set((subs ?? []).map((s) => String(s.user_email)).filter(Boolean))];
-  const { data: checked } = await sb
+
+  /* 오늘 이미 출석한 사람 — 이 조회가 실패하면 집합이 비고, 그러면 오늘 출석을
+     마친 사람에게도 "출석하세요" 가 간다. 보내지 않고 접는다. */
+  const { data: checked, error: checkedError } = await sb
     .from("user_attendance")
     .select("user_email")
     .eq("date", today)
     .in("user_email", emails.length ? emails : ["__none__"]);
+  if (checkedError) {
+    return NextResponse.json(
+      { ok: false, sent: 0, skipped: `출석 기록 조회 실패: ${checkedError.message}` },
+      { status: 503, headers: { "Retry-After": "600" } },
+    );
+  }
   const checkedSet = new Set((checked ?? []).map((r) => String(r.user_email).toLowerCase()));
 
   // 설정에서 출석 리마인드를 끈 사람 제외 — 예전에는 push_subscriptions 전체에
   // 발송해서 /my/settings 의 어떤 스위치로도 벗어날 수 없었다. 행이 없거나
   // 값이 true 면 발송(기본 켜짐 규칙), 명시적으로 false 인 사람만 제외한다.
-  const { data: optedOut } = await sb
+  /* 이 조회가 실패하면 제외 집합이 비어 "아무도 끄지 않았다"가 되고, 알림을 끈
+     사람 전원에게 그대로 발송된다. 껐는지 모르는 채로 보내는 쪽이 한 번 덜
+     보내는 쪽보다 나쁘다 — 아무에게도 보내지 않는다(lib/listings/staleness.ts 와
+     같은 태도). 다음 크론(매일 18:00 KST)에 다시 시도된다. */
+  const { data: optedOut, error: prefsError } = await sb
     .from("notification_preferences")
     .select("user_email")
     .eq("push_attendance", false)
     .in("user_email", emails.length ? emails : ["__none__"]);
+  if (prefsError) {
+    return NextResponse.json(
+      { ok: false, sent: 0, skipped: `알림 설정 조회 실패: ${prefsError.message}` },
+      { status: 503, headers: { "Retry-After": "600" } },
+    );
+  }
   const optedOutSet = new Set(
     (optedOut ?? []).map((r) => String(r.user_email).toLowerCase()),
   );

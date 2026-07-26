@@ -95,16 +95,32 @@ function mapRow(r: Record<string, unknown>): NotificationPrefs {
   };
 }
 
+/**
+ * 알림 설정 조회. **실패하면 던진다.**
+ *
+ * 예전에는 error 를 받지 않아, 조회가 실패하면 아래 `!data` 가지로 떨어져
+ * DEFAULT_PREFS 를 돌려줬다. 기본값에는 켜져 있는 항목이 여럿이라(댓글 메일,
+ * 모임 메일, 재알림·매물·출석 푸시) 그 결과는 **알림을 끈 사람에게 켜져 있다고
+ * 말하는 것**이 된다.
+ *
+ * 특히 /my/settings 화면이 위험했다: 토글이 켜진 채로 그려지고, 그 상태에서
+ * 하나라도 저장하면 잘못 그려진 값이 그대로 DB 에 박힌다 — 몇 초짜리 조회
+ * 실패가 영구적인 설정 변경으로 바뀌는 길이었다.
+ *
+ * 행이 없는 것(아직 한 번도 설정을 저장하지 않은 사람)은 error 없이 data=null
+ * 로 오므로, 그때만 기본값이다.
+ */
 export async function getPrefs(userEmail: string): Promise<NotificationPrefs> {
   const sb = getServiceSupabase();
   if (!sb) {
     return { userEmail, ...DEFAULT_PREFS, updatedAt: new Date().toISOString() };
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("notification_preferences")
     .select("*")
     .eq("user_email", userEmail)
     .maybeSingle();
+  if (error) throw new Error(`notification_preferences 조회 실패: ${error.message}`);
   if (!data) return { userEmail, ...DEFAULT_PREFS, updatedAt: new Date().toISOString() };
   return mapRow(data as Record<string, unknown>);
 }
