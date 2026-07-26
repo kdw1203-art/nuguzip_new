@@ -18,7 +18,9 @@ on:
         required: true
       geocode_rounds:
         description: "지오코딩 배치 횟수 (회당 500단지)"
-        default: "10"
+        # 2026-07-26 기준 미지오코딩 단지가 2만 곳대라 10라운드(5,000곳)로는 한참 모자랐다.
+        # upsert 배치화로 라운드당 소요가 절반으로 줄어 30라운드도 1시간대에 끝난다.
+        default: "30"
         required: true
       detail_rounds:
         description: "단지 상세 배치 횟수 (회당 300단지)"
