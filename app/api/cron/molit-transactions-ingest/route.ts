@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { ingestMolitTransactions } from "@/lib/market/molit-transactions";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
+import { withBudget, CRON_WORK_BUDGET_MS } from "@/lib/async/with-budget";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,20 +52,47 @@ async function handle(req: Request) {
   /* F3(#147) — 성공 로그는 ingestMolitTransactions() 안에서 남긴다. 여기서는
      그 함수가 통째로 던졌을 때(키 만료·공공 API 장애·DB 오류)를 받는다.
      이걸 잡지 않으면 실패한 실행이 로그에 아무 흔적도 남기지 않아서,
-     어드민 신선도 화면에서 "크론이 아예 안 돌았다"와 구분되지 않는다. */
-  try {
-    const result = await ingestMolitTransactions({
-      yyyymm,
-      slice: num("slice"),
-      sliceSize: num("size"),
-      codes: codes?.length ? codes : undefined,
-    });
-    return NextResponse.json({ ...result, finishedAt: new Date().toISOString() });
-  } catch (err) {
-    const message = ingestErrorMessage(err, "실거래 적재 실패");
+     어드민 신선도 화면에서 "크론이 아예 안 돌았다"와 구분되지 않는다.
+
+     시간 초과도 같은 문제다 — maxDuration=300 에 걸려 죽으면 catch 도 안 돌아
+     아무 기록이 안 남는다. 슬라이스가 크거나 공공 API 가 느린 날 실제로 그랬다.
+     270초에 스스로 접는다. 이미 채운 (시군구, 계약월) 조합은 건너뛰므로 중간에
+     버려도 이중 계상이 없고, 남은 시군구는 다음 회전에서 다시 잡힌다. */
+  const run = await withBudget(
+    Promise.resolve().then(() =>
+      ingestMolitTransactions({
+        yyyymm,
+        slice: num("slice"),
+        sliceSize: num("size"),
+        codes: codes?.length ? codes : undefined,
+      }),
+    ),
+    CRON_WORK_BUDGET_MS,
+  );
+
+  const dataset = `아파트 매매·전월세 실거래 ${yyyymm ?? "(전달)"}`;
+
+  if (run.state === "timeout") {
+    const message = `시간 초과로 중단 (${Math.round(CRON_WORK_BUDGET_MS / 1000)}초) — 다음 실행에서 이어서`;
     await logIngest({
       source: "molit",
-      dataset: `아파트 매매·전월세 실거래 ${yyyymm ?? "(전달)"}`,
+      dataset,
+      origin: "cron-fetch",
+      rows: 0,
+      status: "error",
+      message,
+    });
+    return NextResponse.json(
+      { ok: false, error: message, timedOut: true, finishedAt: new Date().toISOString() },
+      { status: 503 },
+    );
+  }
+
+  if (run.state === "error") {
+    const message = ingestErrorMessage(run.error, "실거래 적재 실패");
+    await logIngest({
+      source: "molit",
+      dataset,
       origin: "cron-fetch",
       rows: 0,
       status: "error",
@@ -75,6 +103,8 @@ async function handle(req: Request) {
       { status: 500 },
     );
   }
+
+  return NextResponse.json({ ...run.value, finishedAt: new Date().toISOString() });
 }
 
 export async function GET(req: Request) {
