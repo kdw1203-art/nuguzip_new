@@ -75,6 +75,54 @@ const MAX_UNVERIFIED = Number.isFinite(Number(process.env.LINK_CHECK_MAX_UNVERIF
   ? Number(process.env.LINK_CHECK_MAX_UNVERIFIED)
   : 5;
 
+/* ── 이 게이트는 왜 느렸나 (그리고 느린 게 왜 위험한가) ────────────────────
+ * 여태 크롤은 한 줄로 붙어 있었다 — 200여 경로를 **하나씩** 순서대로.
+ * 경로당 3초면 10분, DB 가 굼뜨면 그 두 배다. 워크플로 스텝 상한(12분)에
+ * 부딪히면 스텝은 그냥 죽고, 로그에는 "왜 죽었는지" 한 줄도 안 남는다.
+ * 아무 근거 없이 배포만 막히는 상태 — 우리가 두 번이나 겪은 그 자물쇠다.
+ *
+ *   동시성 — 4개씩. DB 가 이미 힘들 수 있으니 크게 열지 않는다.
+ *            (LINK_CHECK_CONCURRENCY 로 조정)
+ *   예산   — 정해진 시간을 넘기면 **스스로 멈추고 남은 경로를 적는다**.
+ *            스텝이 죽어서 아무것도 못 남기는 것보다, 우리가 멈추고
+ *            "여기까지 봤고 여기부터는 못 봤다"를 적는 쪽이 항상 낫다.
+ *            못 본 것은 "정상"도 "끊김"도 아니다 — 그래서 막지 않는다.
+ */
+const CONCURRENCY = Number.isFinite(Number(process.env.LINK_CHECK_CONCURRENCY))
+  ? Math.max(1, Number(process.env.LINK_CHECK_CONCURRENCY))
+  : 4;
+const BUDGET_MS = Number.isFinite(Number(process.env.LINK_CHECK_BUDGET_MS))
+  ? Number(process.env.LINK_CHECK_BUDGET_MS)
+  : 9 * 60_000;
+const startedAt = Date.now();
+const budgetLeft = () => BUDGET_MS - (Date.now() - startedAt);
+
+/** 남은 예산이 없어 검사하지 못한 경로 — 끊긴 것도, 정상인 것도 아니다. */
+const skipped = [];
+
+/**
+ * items 를 limit 개씩 동시에 흘려보낸다. 결과는 **입력 순서**로 돌려준다
+ * (로그가 실행마다 뒤바뀌면 diff 로 읽을 수가 없다).
+ * 예산이 바닥나면 남은 항목은 실행하지 않고 undefined 로 남긴다.
+ */
+async function mapPool(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      if (budgetLeft() <= 0) {
+        out[i] = undefined;
+        continue;
+      }
+      out[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
 let retriesUsed = 0;
 /** path → 'timeout' | 'error'  (응답을 못 받은 경로만 기록) */
 const noResponse = new Map();
@@ -184,23 +232,43 @@ console.log(
   } — ${dbBefore.why}`,
 );
 
-const linkSources = new Map();
-for (const s of seeds) {
+/* 1) 시드 수집 — 동시에 받되, 링크 출처(from)가 실행마다 달라지지 않도록
+      결과는 시드 순서대로 훑는다. */
+const seedResults = await mapPool(seeds, CONCURRENCY, async (s) => {
   const res = await get(s);
-  if (!res) { recordNoResponse(s, '(seed)'); continue; }
-  if (res.status !== 200) { recordBadStatus(s, res.status, '(seed)'); continue; }
-  const html = await res.text();
-  const hrefs = [...html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]).filter(h => !h.startsWith('/_next') && !h.startsWith('/api'));
-  for (const h of new Set(hrefs)) { if (!linkSources.has(h)) linkSources.set(h, s); }
-}
-for (const [h, from] of linkSources) {
-  const code = await check(h, from);
-  if (code === 0) { recordNoResponse(h, from); continue; }
-  // 301: 레거시 경로 영구 이전(GET). 308: 메서드 보존 정규화. 307: 임시.
-  if (code !== 200 && code !== 301 && code !== 307 && code !== 308) recordBadStatus(h, code, from);
-}
+  if (!res) { recordNoResponse(s, '(seed)'); return { html: null }; }
+  if (res.status !== 200) { recordBadStatus(s, res.status, '(seed)'); return { html: null }; }
+  return { html: await res.text() };
+});
 
-console.log('총 검사 링크:', linkSources.size);
+const linkSources = new Map();
+seeds.forEach((s, i) => {
+  const r = seedResults[i];
+  if (r === undefined) { skipped.push([s, '(seed)']); return; }
+  if (!r.html) return;
+  const hrefs = [...r.html.matchAll(/href="(\/[^"#?]*)/g)].map(m => m[1]).filter(h => !h.startsWith('/_next') && !h.startsWith('/api'));
+  for (const h of new Set(hrefs)) { if (!linkSources.has(h)) linkSources.set(h, s); }
+});
+
+/* 2) 수집된 링크 검사 — 여기가 대부분의 시간을 쓴다. */
+const links = [...linkSources.entries()];
+const linkResults = await mapPool(links, CONCURRENCY, async ([h, from]) => {
+  const code = await check(h, from);
+  return { code, from };
+});
+links.forEach(([h, from], i) => {
+  const r = linkResults[i];
+  if (r === undefined) { skipped.push([h, from]); return; }
+  if (r.code === 0) { recordNoResponse(h, from); return; }
+  // 301: 레거시 경로 영구 이전(GET). 308: 메서드 보존 정규화. 307: 임시.
+  if (r.code !== 200 && r.code !== 301 && r.code !== 307 && r.code !== 308) recordBadStatus(h, r.code, from);
+});
+
+const linksChecked = linkResults.filter((r) => r !== undefined).length;
+console.log(
+  `총 검사 링크: ${linksChecked} / ${links.length}` +
+    ` (동시 ${CONCURRENCY}개 · ${Math.round((Date.now() - startedAt) / 1000)}초 소요)`,
+);
 
 /* 5xx 판정 — 여기서만 DB 상태를 근거로 쓴다.
    크롤이 몇 분 걸리므로 시작 시점 값만 믿지 않고 끝에서 한 번 더 잰다. */
@@ -248,6 +316,21 @@ if (unverified.length) {
   );
 }
 
+/* 예산 초과로 못 본 경로 — 이건 사이트에 대한 사실이 아니라 **우리 시간에
+   대한 사실**이다. 못 본 것을 근거로 배포를 막을 수는 없다. 대신 몇 개를
+   못 봤는지 정확히 적어서, 다음 사람이 "전부 확인했다"고 오해하지 않게 한다. */
+if (skipped.length) {
+  console.log(
+    `\n예산(${Math.round(BUDGET_MS / 60_000)}분) 초과로 검사하지 못한 경로 ${skipped.length}개:`,
+  );
+  skipped.slice(0, 20).forEach(([p, f]) => console.log(`  미검사  ${p}  (발견 위치: ${f})`));
+  if (skipped.length > 20) console.log(`  … 외 ${skipped.length - 20}개`);
+  console.log(
+    `  → 사이트가 느리다는 사실이지, 링크가 끊겼다는 증거가 아닙니다. 배포는 막지 않습니다.\n` +
+      `    (예산은 LINK_CHECK_BUDGET_MS, 동시성은 LINK_CHECK_CONCURRENCY 로 조정)`,
+  );
+}
+
 if (broken.length) {
   console.log('\n끊긴 경로:');
   // 코드 0 은 "404 를 받았다"가 아니라 "요청 자체가 실패했다"는 뜻이다.
@@ -274,6 +357,7 @@ if (retriesUsed >= MAX_RETRIES) {
 const caveats = [
   unverified.length ? `응답없음 ${unverified.length}개` : null,
   serverErrors.length ? `5xx ${serverErrors.length}개(DB 미확인)` : null,
+  skipped.length ? `예산초과 미검사 ${skipped.length}개` : null,
 ].filter(Boolean);
 console.log(
   caveats.length
