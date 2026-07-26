@@ -14,6 +14,7 @@ import { formatKrwShort, formatYm, formatYmRange, m2ToPyeong } from "@/lib/marke
 import { encodeComplexId } from "@/lib/complex/complex-store";
 import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { logger } from "@/lib/log";
 
 /* ============================================================
    지역 × 구간 실거래 랜딩 — /tx/[region]/[kind]/[band]
@@ -35,10 +36,19 @@ type Loaded = {
   crossCells: BandCell[];
 };
 
+/**
+ * null 은 오직 "그런 구간이 없다"(→ 404)일 때만 돌려준다.
+ *
+ * 예전엔 `findTxRegionBySlug(...).catch(() => null)` 이었다. 그러면 DB 조회 실패가
+ * 404 로 둔갑한다 — 크롤러에게 404 는 "이 URL 은 없어졌다" 라는 확정 신호라
+ * 색인에서 빠지지만, 5xx 는 "나중에 다시 오라" 다. 일시적 장애를 영구 삭제로
+ * 신고하는 셈이었다. 그래서 조회 실패는 그대로 던진다(ISR 이 직전 정상 페이지를
+ * 계속 서빙하고 다음 요청에 재시도한다).
+ */
 async function load(params: Params): Promise<Loaded | null> {
   if (!isBandKind(params.kind)) return null;
   const kind = params.kind;
-  const region = await findTxRegionBySlug(params.region).catch(() => null);
+  const region = await findTxRegionBySlug(params.region);
   if (!region) return null;
   const cells = kind === "area" ? region.areaCells : region.priceCells;
   const cell = cells.find((c) => c.bandSlug === params.band);
@@ -93,9 +103,20 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
   if (!data) notFound();
 
   const { region, kind, cell, siblings, crossCells } = data;
-  const complexes = await listBandComplexes(region.name, kind, cell.bandSlug, 40).catch(
-    () => [] as BandComplex[],
-  );
+  // 단지 목록은 이 페이지의 부속 정보다(핵심 통계는 이미 cell 에 있다). 그래서
+  // 실패해도 페이지 전체를 죽이지 않지만, "못 읽었다" 와 "없다" 는 구분해서 적는다.
+  // 이 셀은 정의상 거래 10건 이상이므로 정상 조회에서 빈 목록이 나올 수는 없다.
+  let complexes: BandComplex[] = [];
+  let complexesFailed = false;
+  try {
+    complexes = await listBandComplexes(region.name, kind, cell.bandSlug, 40);
+  } catch (e) {
+    complexesFailed = true;
+    logger.error(
+      `[/tx/${region.slug}/${kind}/${cell.bandSlug}] 단지 목록 조회 실패:`,
+      e instanceof Error ? e.message : String(e),
+    );
+  }
   const range = formatYmRange(cell.firstYm, cell.latestYm);
   const regionHref = `/tx/${encodeURIComponent(region.slug)}`;
   const pyeong = m2ToPyeong(cell.avgAreaM2);
@@ -188,9 +209,13 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
             거래 많은 순 · 상위 {Math.min(complexes.length, 40)}곳
           </span>
         </h2>
-        {complexes.length === 0 ? (
+        {complexesFailed ? (
           <p className="py-6 text-center text-[13px] text-text-3">
-            단지별 내역을 불러오지 못했습니다.
+            단지별 내역을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.
+          </p>
+        ) : complexes.length === 0 ? (
+          <p className="py-6 text-center text-[13px] text-text-3">
+            이 구간에서 거래된 단지 내역이 아직 정리되지 않았습니다.
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">

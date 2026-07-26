@@ -21,6 +21,7 @@ import {
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
 import { findTxRegionForMarketRegion, type TxRegionSummary } from "@/lib/market/tx-bands";
 import { BAND_KIND_LABEL } from "@/lib/market/bands";
+import { logger } from "@/lib/log";
 import {
   breadcrumbJsonLd,
   regionPlaceJsonLd,
@@ -157,8 +158,18 @@ export default async function RegionHubPage({
 
   // A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
   // 없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
+  //
+  // 여기서는 실패를 삼켜도 된다 — 이 페이지의 본문은 지역 시세 스냅샷이고 이건
+  // 곁다리 내부 링크라, 못 읽었으면 링크 하나가 빠질 뿐 틀린 내용이 나가지 않는다.
+  // 다만 **조용히** 삼키지는 않는다. 2026-07-25 사고의 교훈이 정확히 그것이다.
   const txBandRegion: TxRegionSummary | null = await findTxRegionForMarketRegion(id, name).catch(
-    () => null,
+    (e: unknown) => {
+      logger.error(
+        `[/region/${id}] 실거래 구간 지역 매칭 실패 — 링크 섹션을 생략합니다:`,
+        e instanceof Error ? e.message : String(e),
+      );
+      return null;
+    },
   );
 
   const delta = deltaView(snapshot.saleChangeMonthly);

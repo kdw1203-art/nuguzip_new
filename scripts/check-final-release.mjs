@@ -259,7 +259,7 @@ if (exists("app/api/health/route.ts")) {
  * check-jsonld 는 빌드 산출물이 있어야 의미가 있는데, 없으면 스스로 exit 0 으로
  * 건너뛴다(그 경우 여기서도 WARN 으로 남겨 "검사했다"고 오해하지 않게 한다).
  */
-function runGate(area, item, script, { needsBuild = false } = {}) {
+function runGate(area, item, script, { needsBuild = false, skipRe = null } = {}) {
   const r = spawnSync(process.execPath, [path.join(ROOT, "scripts", script)], {
     cwd: ROOT,
     encoding: "utf8",
@@ -268,6 +268,12 @@ function runGate(area, item, script, { needsBuild = false } = {}) {
   if (r.status === 0) {
     if (needsBuild && /건너뜁니다/.test(out)) {
       warn(area, item, "빌드 산출물이 없어 검사하지 못함 — next build 후 재실행");
+      return;
+    }
+    // exit 0 이지만 실제로는 확인하지 못한 경우(접속 불가 등) — PASS 로 세면
+    // "확인 못 함" 이 "이상 없음" 으로 둔갑한다. 이번 장애가 정확히 그 모양이었다.
+    if (skipRe && skipRe.test(out)) {
+      warn(area, item, out.split("\n")[0]?.slice(0, 160) ?? "확인하지 못함");
       return;
     }
     pass(area, item, out.split("\n")[0]?.replace(/^✓\s*/, "") ?? "");
@@ -281,6 +287,11 @@ runGate("SEO", "사이트맵 인덱스 배선 (N4)", "check-sitemap-index.mjs");
 runGate("SEO", "리다이렉트 맵 검증 (N6)", "check-redirect-map.mjs");
 runGate("SEO", "파라미터 canonical 감사 (N7)", "check-param-canonical.mjs");
 runGate("SEO", "구조화 데이터 검증 (N8)", "check-jsonld.mjs", { needsBuild: true });
+// DROP 이 GRANT 를 지우는 함정 — 2026-07-25 /tx 장애의 정적/실측 재발 방지 게이트
+runGate("데이터", "마이그레이션 GRANT 린트", "check-migration-grants.mjs");
+runGate("데이터", "public.*_source 뷰 실조회 권한", "check-source-views.mjs", {
+  skipRe: /\bSKIP\b/,
+});
 
 // ── 출력 ───────────────────────────────────────────────
 console.log("\n=== 최종 릴리스 자동 점검 ===\n");

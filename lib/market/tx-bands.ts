@@ -52,8 +52,30 @@ import {
  *
  * 그래서 집계를 머티리얼라이즈드 뷰(market_agg 스키마)로 미리 계산해 두고,
  * 두 뷰의 본문을 `select * from <mv>` 로 바꿨다. 이름·컬럼·이 파일의 조회 코드는
- * 그대로다. 지금은 anon 으로도 즉시 384행 / 13,944행이 나온다.
- * 갱신은 lib/market/refresh-aggregates.ts 참고(인제스트 직후 + 하루 1회 크론).
+ * 그대로다. 갱신은 lib/market/refresh-aggregates.ts 참고(인제스트 직후 + 하루 1회 크론).
+ *
+ * ── 2026-07-26: 세 번째로 같은 화면이 비었다. 이번엔 권한이었다 ──────────────
+ * MV 로 내린 뒤에도 /tx 는 다시 "실거래 데이터를 불러오지 못했습니다" 로 돌아갔고
+ * /sitemap-tx.xml 은 503 이었다. DB 에 직접 물어본 결과:
+ *
+ *   set local role service_role;
+ *   select count(*) from public.tx_band_landing_source;
+ *   → ERROR: 42501: permission denied for materialized view tx_band_landing_mv
+ *
+ * 마이그레이션 20260725042708 이 취소거래 필터를 넣으려고 MV 3개를 drop+create 했는데,
+ * DROP MATERIALIZED VIEW 가 GRANT 를 같이 버린다는 걸 놓치고 바깥 뷰에만 다시 GRANT 를
+ * 줬다. 두 뷰는 security_invoker = on 이라 **호출 롤이 MV 자체에** SELECT 를 들고
+ * 있어야 하므로, 뷰 GRANT 는 아무 효과가 없었다. 복구는 20260726061500.
+ * 복구 후 실측: tx_band_landing_source 1,723행 · tx_band_complex_source 70,830행
+ * (anon·service_role 동일).
+ *
+ * ── 그래서 이 파일은 더 이상 실패를 빈 배열로 바꾸지 않는다 ──────────────────
+ * 하루를 잃은 이유는 화면이 틀렸기 때문이 아니라 **아무도 몰랐기 때문**이다.
+ * 42501 은 로그에 한 줄만 찍혔어도 즉시 잡혔을 오류인데, `return []` 이 그것을
+ * "이 지역엔 거래가 없다" 와 구별 불가능한 상태로 만들어 버렸다.
+ * 이제 조회 실패는 예외로 올린다. 부르는 쪽이 "못 읽었다" 와 "없다" 를 반드시
+ * 구분하도록 강제하는 것이 목적이다(app/tx/page.tsx 참고).
+ * 배포 전 감지는 scripts/check-source-views.mjs 가 맡는다.
  */
 
 /** 페이지·사이트맵에 올릴 최소 거래 건수. 표본이 너무 작으면 평균이 숫자놀음이 된다. */
@@ -123,13 +145,25 @@ function numOrNull(v: number | string | null | undefined): number | null {
 const CELL_TTL_MS = 10 * 60 * 1000;
 let cellCache: { at: number; data: BandCell[] } | null = null;
 
-/** 요약 뷰 전체(구간 미달 포함). 조회 실패 시 빈 배열 — 페이지를 죽이지 않는다. */
+/**
+ * 요약 뷰 전체(구간 미달 포함).
+ *
+ * 실패하면 **던진다**. 예전엔 `return []` 이었고, 그 빈 배열이 "이 지역엔 거래가
+ * 없다" 와 똑같이 생겨서 42501 권한 오류가 하루 동안 화면에 "데이터 없음" 으로
+ * 위장됐다(위 헤더 참고). 성공한 결과만 캐시에 올린다 — 실패를 10분간
+ * 캐시하면 복구가 그만큼 늦어진다.
+ */
 async function loadAllCells(): Promise<BandCell[]> {
   const now = Date.now();
   if (cellCache && now - cellCache.at < CELL_TTL_MS) return cellCache.data;
 
   const sb = getReadOnlySupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "tx_band_landing_source 를 읽을 수단이 없습니다 — SUPABASE_SERVICE_ROLE_KEY 도 " +
+        "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY 도 설정되지 않았습니다.",
+    );
+  }
 
   const { data, error } = await sb
     .from("tx_band_landing_source")
@@ -140,8 +174,13 @@ async function loadAllCells(): Promise<BandCell[]> {
     .limit(1000);
 
   if (error) {
-    logger.warn("[tx-bands] loadAllCells", error.message);
-    return [];
+    // code·hint 를 반드시 함께 올린다. 이번 사고에서 필요했던 정보가 정확히 이 둘이다
+    // ("42501" · "GRANT SELECT ON market_agg.tx_band_landing_mv TO service_role").
+    throw new Error(
+      `tx_band_landing_source 조회 실패 — ${error.message}` +
+        `${error.code ? ` [${error.code}]` : ""}` +
+        `${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
+    );
   }
 
   const unknown = new Set<string>();
@@ -378,7 +417,7 @@ type ComplexRow = {
   latest_ym: string | null;
 };
 
-/** 셀 안의 단지 목록 — 거래 많은 순. 조회 실패 시 빈 배열. */
+/** 셀 안의 단지 목록 — 거래 많은 순. 조회 실패 시 던진다(loadAllCells 와 같은 이유). */
 export async function listBandComplexes(
   regionName: string,
   kind: BandKind,
@@ -386,7 +425,9 @@ export async function listBandComplexes(
   limit = 30,
 ): Promise<BandComplex[]> {
   const sb = getReadOnlySupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error("tx_band_complex_source 를 읽을 수단이 없습니다 — Supabase 접속 정보 미설정.");
+  }
 
   const { data, error } = await sb
     .from("tx_band_complex_source")
@@ -398,8 +439,11 @@ export async function listBandComplexes(
     .limit(Math.min(Math.max(limit, 1), 100));
 
   if (error) {
-    logger.warn("[tx-bands] listBandComplexes", error.message);
-    return [];
+    throw new Error(
+      `tx_band_complex_source 조회 실패 (${regionName}/${kind}/${bandSlug}) — ${error.message}` +
+        `${error.code ? ` [${error.code}]` : ""}` +
+        `${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
+    );
   }
 
   return ((data ?? []) as ComplexRow[])

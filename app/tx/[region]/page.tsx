@@ -19,8 +19,14 @@ import { CitationBlock } from "@/app/components/CitationBlock";
 
 export const revalidate = 3600;
 
+/**
+ * null 은 "그런 지역이 없다"(→ 404) 일 때만이다. 조회 실패는 던진다 —
+ * 예전의 `.catch(() => null)` 은 DB 장애를 404 로 바꿔 크롤러에게 "이 URL 은
+ * 없어졌다" 고 확정 신고하는 꼴이었다(5xx 는 재시도를 부르지만 404 는 색인에서
+ * 지운다). 자세한 경위는 lib/market/tx-bands.ts 헤더 참고.
+ */
 async function load(regionSlug: string): Promise<TxRegionSummary | null> {
-  return findTxRegionBySlug(regionSlug).catch(() => null);
+  return findTxRegionBySlug(regionSlug);
 }
 
 export async function generateMetadata({

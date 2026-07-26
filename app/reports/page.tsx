@@ -1,21 +1,66 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
-import { listReportMonths, formatYmKo } from "@/lib/reports/monthly";
+import { listReportMonths, formatYmKo, type ReportMonthSummary } from "@/lib/reports/monthly";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
-
-export const metadata = buildPageMetadata({
-  title: "월간 아파트 실거래 리포트",
-  description:
-    "국토교통부 실거래 집계로 매월 자동 생성되는 지역별 아파트 거래량·평균가 리포트 목록.",
-  path: "/reports",
-});
+import { logger } from "@/lib/log";
 
 export const revalidate = 3600;
 
-/* S11/G7 — 월간 리포트 목록. 데이터가 있는 달만 나열한다(빈 달 페이지 양산 금지). */
+/* ============================================================
+   S11/G7 — 월간 리포트 목록. 데이터가 있는 달만 나열한다(빈 달 페이지 양산 금지).
+
+   ── "못 읽었다" 와 "없다" 를 섞지 않는다 ─────────────────────────
+   이 페이지는 빌드 때 프리렌더되는데(revalidate 1시간), 로더가 서비스 롤
+   키를 요구하는 바람에 CI 러너에서 항상 빈 배열을 받아 "아직 집계된 월이
+   없어요" 가 HTML 에 굳어 있었다. 같은 데이터를 읽는 런타임 라우트
+   /sitemap-reports.xml 은 세 달을 정상으로 돌려주고 있었다.
+   지금은 lib/reports/monthly.ts 가 anon 으로도 읽고, 실패하면 던진다.
+   여기서는 그 예외를 잡아 세 상태를 각각 다르게 렌더한다 —
+   프리렌더 라우트라 던지면 빌드가 깨지기 때문이다:
+     1) 정상 — 월 목록
+     2) 조회 실패 — 그렇게 말하고 noindex (깨진 껍데기를 색인시키지 않는다)
+     3) 정말로 빈 결과 — "아직 집계된 월이 없다" 는 별개의 문장
+   ============================================================ */
+
+type ReportsIndexData = {
+  months: ReportMonthSummary[];
+  /** 조회 자체가 실패한 사유. null 이면 "읽었고 결과가 이만큼" 이라는 뜻이다. */
+  loadError: string | null;
+};
+
+/**
+ * generateMetadata 와 페이지 본문이 같은 렌더에서 각각 부르므로 react cache 로
+ * 한 번만 질의한다.
+ */
+const loadReportsIndex = cache(async (): Promise<ReportsIndexData> => {
+  try {
+    return { months: await listReportMonths(), loadError: null };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger.error(
+      "[/reports] 월간 집계를 읽지 못했습니다 — 리포트가 없는 것이 아니라 조회가 실패했습니다:",
+      message,
+    );
+    return { months: [], loadError: message };
+  }
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { loadError } = await loadReportsIndex();
+  const base = buildPageMetadata({
+    title: "월간 아파트 실거래 리포트",
+    description:
+      "국토교통부 실거래 집계로 매월 자동 생성되는 지역별 아파트 거래량·평균가 리포트 목록.",
+    path: "/reports",
+  });
+  // 조회가 실패한 상태의 껍데기를 색인시키지 않는다. 다음 재검증에서 성공하면 사라진다.
+  return loadError ? { ...base, robots: { index: false, follow: true } } : base;
+}
 
 export default async function ReportsIndexPage() {
-  const months = await listReportMonths();
+  const { months, loadError } = await loadReportsIndex();
 
   return (
     <PageShell breadcrumb="월간 실거래 리포트">
@@ -30,7 +75,14 @@ export default async function ReportsIndexPage() {
           을 따릅니다.
         </p>
 
-        {months.length > 0 ? (
+        {loadError ? (
+          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
+            월간 집계를 <strong className="text-ink">불러오지 못했습니다</strong>.
+            <br />
+            리포트가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시
+            확인해 주세요.
+          </div>
+        ) : months.length > 0 ? (
           <div className="mt-6 flex flex-col gap-3">
             {months.map((m, i) => (
               <Link
