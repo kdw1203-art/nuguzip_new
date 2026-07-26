@@ -14,6 +14,7 @@ import { listMyConsultations } from "@/lib/expert-consultations/store-db";
 import { listRuns } from "@/lib/ai/presets-store";
 import { TOOL_IDENTITIES } from "@/lib/ai/tool-identity";
 import type { AiAnalysisToolId } from "@/lib/ai/ai-tools";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -206,5 +207,28 @@ export async function GET() {
   // 최신순 정렬
   items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return NextResponse.json({ items: items.slice(0, 30) });
+  /* allSettled 는 실패한 묶음을 조용히 버린다. 그대로 200 을 주면 화면에는
+     "아직 활동이 없어요"나 일부만 빠진 피드가 뜨는데, 둘 다 사실이 아니다.
+     무엇을 못 읽었는지 같이 내려보내고, 실패가 섞인 응답은 캐시하지 않는다. */
+  const groups: Array<[string, PromiseSettledResult<unknown>]> = [
+    ["posts", allPosts],
+    ["reports", allReports],
+    ["payments", payments],
+    ["bookmarks", bookmarks],
+    ["meetings", meetings],
+    ["notes", notes],
+    ["consultations", consultations],
+    ["ai-runs", aiRuns],
+  ];
+  const failed = groups.filter(([, r]) => r.status === "rejected").map(([k]) => k);
+  for (const [key, r] of groups) {
+    if (r.status === "rejected") {
+      logger.error(`[me/activity] ${key} 조회 실패 (${email})`, r.reason);
+    }
+  }
+
+  return NextResponse.json(
+    { items: items.slice(0, 30), failed },
+    failed.length > 0 ? { headers: { "Cache-Control": "no-store" } } : undefined,
+  );
 }

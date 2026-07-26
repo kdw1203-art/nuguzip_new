@@ -12,6 +12,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { followCounts } from "@/lib/follows/store-db";
 import { logger } from "@/lib/log";
 import { FollowButton } from "../../components/FollowButton";
+import { ErrorState } from "../../components/ui/EmptyState";
 
 /* 공개 프로필 · 팔로우 (/@닉네임 · ProfilePage 구조화 데이터 대상)
    실데이터(스키마 변경 없음, 읽기 전용):
@@ -35,13 +36,21 @@ function escapeLike(s: string): string {
   return s.replace(/[\\%_]/g, (m) => `\\${m}`);
 }
 
-/** profiles 조회: handle 일치(대소문자 무시) → full_name(닉네임) 폴백. env 미설정·오류 시 null */
-const findProfile = cache(async (input: string): Promise<PublicProfile | null> => {
+/* 조회 실패를 null·[] 로 흘려보내면 아래 `!profile && authored.length === 0`
+   가르마에서 notFound() 로 떨어진다 — 멀쩡히 존재하는 사람의 프로필에
+   "그런 사용자는 없습니다"라고 답하는 화면이다. 못 읽은 것은 못 읽었다고
+   구분해 두고, 404 대신 "지금은 불러올 수 없어요"를 그린다. */
+type ProfileLookup =
+  | { ok: true; profile: PublicProfile | null }
+  | { ok: false; profile: null };
+
+/** profiles 조회: handle 일치(대소문자 무시) → full_name(닉네임) 폴백. env 미설정 시 ok+null */
+const findProfile = cache(async (input: string): Promise<ProfileLookup> => {
   const q = input.trim();
-  if (!q) return null;
+  if (!q) return { ok: true, profile: null };
   try {
     const sb = getServiceSupabase();
-    if (!sb) return null;
+    if (!sb) return { ok: true, profile: null };
     const cols = "email, full_name, handle, region, bio";
 
     // 1) handle 일치 (lower unique — 대소문자 무시)
@@ -50,7 +59,11 @@ const findProfile = cache(async (input: string): Promise<PublicProfile | null> =
       .select(cols)
       .ilike("handle", escapeLike(q))
       .limit(1);
-    let row = byHandle.error ? null : (byHandle.data?.[0] ?? null);
+    if (byHandle.error) {
+      logger.error(`[u/[handle]] profiles(handle) 조회 실패 (${q})`, byHandle.error);
+      return { ok: false, profile: null };
+    }
+    let row = byHandle.data?.[0] ?? null;
 
     // 2) nickname(full_name) 일치 폴백 — 대소문자 무시
     if (!row) {
@@ -59,29 +72,40 @@ const findProfile = cache(async (input: string): Promise<PublicProfile | null> =
         .select(cols)
         .ilike("full_name", escapeLike(q))
         .limit(1);
-      row = byName.error ? null : (byName.data?.[0] ?? null);
+      if (byName.error) {
+        logger.error(`[u/[handle]] profiles(full_name) 조회 실패 (${q})`, byName.error);
+        return { ok: false, profile: null };
+      }
+      row = byName.data?.[0] ?? null;
     }
-    if (!row) return null;
+    if (!row) return { ok: true, profile: null };
     return {
-      email: String(row.email ?? ""),
-      name: (row.full_name as string | null)?.trim() || q,
-      handle: (row.handle as string | null)?.trim() || null,
-      region: (row.region as string | null)?.trim() || null,
-      bio: (row.bio as string | null)?.trim() || null,
+      ok: true,
+      profile: {
+        email: String(row.email ?? ""),
+        name: (row.full_name as string | null)?.trim() || q,
+        handle: (row.handle as string | null)?.trim() || null,
+        region: (row.region as string | null)?.trim() || null,
+        bio: (row.bio as string | null)?.trim() || null,
+      },
     };
-  } catch {
-    return null;
+  } catch (e) {
+    logger.error(`[u/[handle]] profiles 조회 실패 (${q})`, e);
+    return { ok: false, profile: null };
   }
 });
 
 /** 프로필 사용자의 공개 노트 (author_email 기준 · is_public만) */
-async function listAuthorPublicNotes(email: string): Promise<InspectionNote[]> {
-  if (!email) return [];
+async function listAuthorPublicNotes(
+  email: string,
+): Promise<{ ok: boolean; notes: InspectionNote[] }> {
+  if (!email) return { ok: true, notes: [] };
   try {
     const rows = await listNotes(email);
-    return rows.filter((n) => n.isPublic);
-  } catch {
-    return [];
+    return { ok: true, notes: rows.filter((n) => n.isPublic) };
+  } catch (e) {
+    logger.error(`[u/[handle]] 공개 노트 조회 실패 (${email})`, e);
+    return { ok: false, notes: [] };
   }
 }
 
@@ -98,7 +122,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { handle: rawHandle } = await params;
   const input = decodeURIComponent(rawHandle);
-  const profile = await findProfile(input);
+  const { profile } = await findProfile(input);
   const name = profile?.name ?? resolveDisplayName(input);
   return {
     title: `${name}님의 임장 프로필 — 누구집`,
@@ -117,22 +141,43 @@ export default async function PublicProfilePage({
   const input = decodeURIComponent(rawHandle);
 
   // 1) profiles.handle → 2) profiles.full_name(닉네임) 매칭
-  const profile = await findProfile(input);
+  const lookup = await findProfile(input);
+  const profile = lookup.profile;
   const displayName = profile?.name ?? resolveDisplayName(input);
+  let loadFailed = !lookup.ok;
 
   // 프로필 매칭 시 그 사용자의 공개 노트 · 미매칭 시 공개 노트 작성자 라벨 매칭 시도
   let authored: InspectionNote[] = [];
   if (profile) {
-    authored = await listAuthorPublicNotes(profile.email);
+    const res = await listAuthorPublicNotes(profile.email);
+    authored = res.notes;
+    if (!res.ok) loadFailed = true;
   } else {
     try {
       const rows = await listPublicNotes(100);
       authored = rows.filter(
         (n) => (n.authorLabel ?? "").trim() === displayName,
       );
-    } catch {
-      authored = [];
+    } catch (e) {
+      logger.error(`[u/[handle]] 공개 노트 목록 조회 실패 (${displayName})`, e);
+      loadFailed = true;
     }
+  }
+
+  /* 조회가 실패해 아무것도 못 찾은 것을 404 로 답하면 "그런 사용자 없음"이 된다.
+     못 읽었을 뿐이라고 말하고, 새로고침으로 되돌아올 수 있게 둔다. */
+  if (!profile && authored.length === 0 && loadFailed) {
+    return (
+      <PageShell breadcrumb={`발견 › @${displayName}`}>
+        <div className="mx-auto max-w-[640px] py-10">
+          <ErrorState
+            title="지금은 프로필을 불러올 수 없어요"
+            desc="이 사용자가 없다는 뜻이 아니라, 조회 자체가 실패했다는 뜻입니다."
+            cause="잠시 후 새로고침해 주세요."
+          />
+        </div>
+      </PageShell>
+    );
   }
 
   // P2-6: 프로필도 공개 노트도 없는 미존재 핸들 — 목업 폴백 대신 404 (SEO 안전)
