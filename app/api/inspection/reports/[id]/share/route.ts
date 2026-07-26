@@ -4,6 +4,10 @@ import { getSession, createShareLink, updateSession } from "@/lib/inspection/ses
 import { hasAccess, normalizePlanToGate, requirePlan } from "@/lib/subscriptions/access-gate";
 import { canUseFeatureTrial, consumeFeatureTrial } from "@/lib/subscriptions/feature-trial";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 조회가 실패한 것을 "체험을 아직 안 썼다"로 읽지 않기 위한 안내. */
+const TRIAL_UNAVAILABLE = "지금은 이용 권한을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +31,13 @@ export async function POST(req: Request, ctx: Ctx) {
     if (mode === "team") {
       return NextResponse.json({ error: "EXPERT 플랜에서 팀 공유를 사용할 수 있습니다." }, { status: 402 });
     }
-    const trialOk = await canUseFeatureTrial(session.user.email, "share");
+    /* 체험 기록 조회 실패를 "아직 안 씀"으로 읽지 않는다 — compare 쪽과 같다. */
+    let trialOk: boolean;
+    try {
+      trialOk = await canUseFeatureTrial(session.user.email, "share");
+    } catch (err) {
+      return dbUnavailable("체험 사용 기록 조회 실패 (share)", err, TRIAL_UNAVAILABLE);
+    }
     if (!trialOk) {
       return NextResponse.json({ error: "PRO 이상 플랜이 필요합니다." }, { status: 402 });
     }

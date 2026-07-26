@@ -5,6 +5,10 @@ import { createJob } from "@/lib/inspection/session-store";
 import { processInspectionJob } from "@/lib/inspection/job-runner";
 import { checkReportQuota } from "@/lib/inspection/quota";
 import { recordFunnelEvent, FUNNEL_EVENT } from "@/lib/platform-funnel-events";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 조회가 실패한 것을 "0회 사용"으로 읽지 않기 위한 안내. */
+const QUOTA_UNAVAILABLE = "지금은 사용량을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +30,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const quota = await checkReportQuota(session.user.email);
+  /* 사용량 조회 실패를 "0회 사용"으로 읽지 않는다 — /api/inspection/jobs 와 같다. */
+  let quota;
+  try {
+    quota = await checkReportQuota(session.user.email);
+  } catch (err) {
+    return dbUnavailable("AI 리포트 사용량 조회 실패", err, QUOTA_UNAVAILABLE);
+  }
   if (!quota.allowed) {
     return NextResponse.json({ error: "월 AI 리포트 한도 초과", quota }, { status: 402 });
   }
