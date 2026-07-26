@@ -1,3 +1,21 @@
+/**
+ * 임장 세션 저장소 — 세션 · 미디어 · AI 작업 · 공유 링크.
+ *
+ * 이 파일의 조회·갱신은 **실패하면 던진다.** 예전에는 error 를 받지 않아서,
+ * DB 가 몇 초 밀리는 동안 사용자가 현장에서 녹음·촬영해 만든 임장 세션이
+ * 통째로 "없는 것"이 됐다 — 목록은 빈 배열(= 기록 없음), 단건은 null 이라
+ * 라우트가 404 "not found" 를 내보냈다. 자기가 방금 만든 임장노트를 열었더니
+ * 없다고 하는 화면은, 지워졌다는 말과 구분되지 않는다.
+ *
+ * 갱신도 마찬가지다. update 결과를 확인하지 않으면 현장에서 적은 capture 가
+ * 저장되지 않았는데 저장된 것처럼 보이고, AI 작업은 ready 로 못 바뀐 채
+ * 영원히 "처리 중"으로 남는다. 공유 링크는 insert 가 실패해도 토큰이 발급된
+ * 것처럼 돌아가서, 사용자가 아무 데도 닿지 않는 링크를 남에게 보낸다.
+ *
+ * 부르는 쪽(app/api/inspection/**)은 이 예외를 lib/api/db-unavailable 의
+ * 503 + Retry-After 로 옮긴다. 404 로 옮기면 안 된다 — 없는 것과 못 읽은 것은
+ * 다른 사실이다.
+ */
 import { getServiceSupabase } from "@/lib/supabase/service";
 import type { StructuredReport } from "@/lib/inspection/ontology";
 
@@ -195,20 +213,30 @@ export async function createSession(input: {
 export async function getSession(id: string): Promise<InspectionSession | null> {
   const sb = getServiceSupabase();
   if (!sb) return memSessions.find((s) => s.id === id) ?? null;
-  const { data } = await sb.from("inspection_sessions").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await sb
+    .from("inspection_sessions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  /* 행이 없으면 error 없이 data=null 이다 — 그 null 만 "없는 세션"이다. */
+  if (error) throw new Error(`inspection_sessions 조회 실패: ${error.message}`);
   return data ? mapSession(data) : null;
 }
 
 export async function listSessions(authorEmail: string, limit = 50): Promise<InspectionSession[]> {
   const sb = getServiceSupabase();
   if (!sb) return memSessions.filter((s) => s.authorEmail === authorEmail).slice(0, limit);
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_sessions")
     .select("*")
     .eq("author_email", authorEmail)
     .order("created_at", { ascending: false })
     .limit(limit);
-  return (data ?? []).map(mapSession);
+  if (error) throw new Error(`inspection_sessions 목록 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("inspection_sessions 목록 조회 실패: 응답이 배열이 아닙니다");
+  }
+  return data.map(mapSession);
 }
 
 export async function updateSession(
@@ -243,7 +271,15 @@ export async function updateSession(
   if (patch.endedAt !== undefined) body.ended_at = patch.endedAt;
   if (patch.metadata !== undefined) body.metadata = patch.metadata;
   if (patch.privacyClass !== undefined) body.privacy_class = patch.privacyClass;
-  const { data } = await sb.from("inspection_sessions").update(body).eq("id", id).select().maybeSingle();
+  /* 저장이 안 됐는데 "저장됨"으로 보이는 것이 여기서 가장 나쁜 결과다.
+     현장에서 적은 내용은 다시 만들 수 없다. 실패는 그대로 올린다. */
+  const { data, error } = await sb
+    .from("inspection_sessions")
+    .update(body)
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(`inspection_sessions 갱신 실패: ${error.message}`);
   return data ? mapSession(data) : null;
 }
 
@@ -295,12 +331,18 @@ export async function addSessionMedia(input: {
 export async function listSessionMedia(sessionId: string): Promise<SessionMedia[]> {
   const sb = getServiceSupabase();
   if (!sb) return memMedia.filter((m) => m.sessionId === sessionId);
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_session_media")
     .select("*")
     .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
-  return (data ?? []).map(mapMedia);
+  /* 빈 배열은 "이 세션에 사진·녹음이 없다"는 말이다. 조회가 실패한 세션을
+     그렇게 그리면, 올려둔 자료가 사라진 것처럼 보인다. */
+  if (error) throw new Error(`inspection_session_media 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) {
+    throw new Error("inspection_session_media 조회 실패: 응답이 배열이 아닙니다");
+  }
+  return data.map(mapMedia);
 }
 
 export async function updateSessionMedia(
@@ -321,7 +363,11 @@ export async function updateSessionMedia(
   if (patch.transcript !== undefined) body.transcript = patch.transcript;
   if (patch.imageTags !== undefined) body.image_tags = patch.imageTags;
   if (patch.uploadStatus !== undefined) body.upload_status = patch.uploadStatus;
-  await sb.from("inspection_session_media").update(body).eq("id", id);
+  /* 예전에는 결과를 아예 보지 않았다 — STT 전사·이미지 태그가 저장되지 않아도
+     호출부는 성공으로 알고 다음 단계로 넘어갔고, 리포트에는 그 내용이 빠진
+     채로 완성본이 만들어졌다. */
+  const { error } = await sb.from("inspection_session_media").update(body).eq("id", id);
+  if (error) throw new Error(`inspection_session_media 갱신 실패: ${error.message}`);
 }
 
 export async function createJob(input: {
@@ -366,7 +412,14 @@ export async function createJob(input: {
 export async function getJob(id: string): Promise<AiJob | null> {
   const sb = getServiceSupabase();
   if (!sb) return memJobs.find((j) => j.id === id) ?? null;
-  const { data } = await sb.from("inspection_ai_jobs").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await sb
+    .from("inspection_ai_jobs")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  /* 폴링 중인 화면이 이 null 을 받으면 "작업 없음"으로 접는다 — 실제로는
+     돌아가고 있는 AI 작업을 사용자에게 없다고 말하게 된다. */
+  if (error) throw new Error(`inspection_ai_jobs 조회 실패: ${error.message}`);
   return data ? mapJob(data) : null;
 }
 
@@ -394,7 +447,15 @@ export async function updateJob(
   if (patch.error !== undefined) body.error = patch.error;
   if (patch.modelVersion !== undefined) body.model_version = patch.modelVersion;
   if (patch.completedAt !== undefined) body.completed_at = patch.completedAt;
-  const { data } = await sb.from("inspection_ai_jobs").update(body).eq("id", id).select().maybeSingle();
+  /* status 를 ready/failed 로 못 바꾸면 작업은 영원히 "처리 중"으로 남는다.
+     실패를 삼키면 그 사실을 아무도 모른 채 사용자만 계속 기다린다. */
+  const { data, error } = await sb
+    .from("inspection_ai_jobs")
+    .update(body)
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(`inspection_ai_jobs 갱신 실패: ${error.message}`);
   return data ? mapJob(data) : null;
 }
 
@@ -418,7 +479,10 @@ export async function createShareLink(input: {
     : null;
   const maxDownloads = input.maxDownloads ?? (mode === "team" ? 20 : null);
   if (!sb) return { token, expiresAt, mode };
-  await sb.from("inspection_share_links").insert({
+  /* insert 결과를 보지 않으면 저장되지 않은 토큰을 돌려주게 된다. 사용자는
+     그 링크를 남에게 보내고, 받은 사람은 "없는 링크"를 본다. 발급에 실패했으면
+     실패했다고 말해야 다시 만들 수 있다. */
+  const { error } = await sb.from("inspection_share_links").insert({
     session_id: input.sessionId ?? null,
     note_id: input.noteId ?? null,
     token,
@@ -426,6 +490,7 @@ export async function createShareLink(input: {
     expires_at: expiresAt,
     max_downloads: maxDownloads,
   });
+  if (error) throw new Error(`inspection_share_links 발급 실패: ${error.message}`);
   return { token, expiresAt, mode };
 }
 
@@ -436,11 +501,14 @@ export async function getShareByToken(token: string): Promise<{
 } | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_share_links")
     .select("session_id, note_id, author_email, expires_at")
     .eq("token", token)
     .maybeSingle();
+  /* null 은 곧 "만료됐거나 없는 링크"로 그려진다 — 멀쩡한 공유 링크를 받은
+     사람에게 그렇게 말하면, 보낸 사람이 잘못 보낸 것처럼 된다. */
+  if (error) throw new Error(`inspection_share_links 조회 실패: ${error.message}`);
   if (!data) return null;
   if (data.expires_at && new Date(data.expires_at as string) < new Date()) return null;
   return {

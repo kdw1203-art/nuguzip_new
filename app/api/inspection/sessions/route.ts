@@ -2,17 +2,27 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createSession, listSessions } from "@/lib/inspection/session-store";
 import { recordFunnelEvent, FUNNEL_EVENT } from "@/lib/platform-funnel-events";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** 못 읽은 목록을 "기록 없음"으로 답하지 않기 위한 안내. */
+const SESSIONS_UNAVAILABLE = "지금은 임장 기록을 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ items: [] });
   }
-  const items = await listSessions(session.user.email);
-  return NextResponse.json({ items });
+  /* 빈 items 는 화면에서 "아직 임장 기록이 없어요"가 된다. 조회가 실패했을 뿐인
+     사용자에게 그렇게 말하면, 만들어 둔 기록이 사라진 것으로 읽힌다. */
+  try {
+    const items = await listSessions(session.user.email);
+    return NextResponse.json({ items });
+  } catch (err) {
+    return dbUnavailable("임장 세션 목록 조회 실패", err, SESSIONS_UNAVAILABLE);
+  }
 }
 
 export async function POST(req: Request) {

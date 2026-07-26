@@ -49,27 +49,40 @@ async function transcribeAudio(url: string, clientText?: string): Promise<{ text
   return transcribeAudioUrl(url, { language: "ko", clientText });
 }
 
+/**
+ * AI 작업 실행기.
+ *
+ * session-store 의 함수들은 이제 조회·갱신에 실패하면 던진다. 여기서 그 예외를
+ * 그냥 흘려보내면 작업 행이 `processing` 인 채로 남고, 폴링하는 화면은 영영
+ * "처리 중"이 된다 — 끝나지 않는 진행 표시는 실패보다 나쁘다. 그래서 아래
+ * catch 에서 작업을 `failed` 로 닫아 사용자가 다시 시도할 수 있게 한다.
+ * 닫는 것마저 실패하면 원래 오류를 그대로 올려, 부르는 라우트가 503 으로
+ * 답하게 한다(성공했다고 답하지는 않는다).
+ */
 export async function processInspectionJob(job: AiJob): Promise<AiJob> {
-  await updateJob(job.id, { status: "processing" });
   const sessionId = job.sessionId;
-  if (!sessionId) {
-    return (await updateJob(job.id, {
-      status: "failed",
-      error: "session_id required",
-      completedAt: new Date().toISOString(),
-    }))!;
-  }
-
-  const session = await getSession(sessionId);
-  if (!session) {
-    return (await updateJob(job.id, {
-      status: "failed",
-      error: "session not found",
-      completedAt: new Date().toISOString(),
-    }))!;
-  }
 
   try {
+    await updateJob(job.id, { status: "processing" });
+    if (!sessionId) {
+      return (await updateJob(job.id, {
+        status: "failed",
+        error: "session_id required",
+        completedAt: new Date().toISOString(),
+      }))!;
+    }
+
+    /* 조회 실패와 "세션 없음"은 다르다. 없으면 null 이라 아래에서 failed 로 닫고,
+       못 읽었으면 던져서 catch 로 간다. */
+    const session = await getSession(sessionId);
+    if (!session) {
+      return (await updateJob(job.id, {
+        status: "failed",
+        error: "session not found",
+        completedAt: new Date().toISOString(),
+      }))!;
+    }
+
     const media = await listSessionMedia(sessionId);
 
     if (job.jobType === "stt") {
@@ -162,10 +175,16 @@ export async function processInspectionJob(job: AiJob): Promise<AiJob> {
       completedAt: new Date().toISOString(),
     }))!;
   } catch (e) {
-    return (await updateJob(job.id, {
-      status: "failed",
-      error: e instanceof Error ? e.message : "job failed",
-      completedAt: new Date().toISOString(),
-    }))!;
+    /* 작업을 닫는 것도 DB 다. 그것마저 안 되면 원래 오류를 올린다 — 여기서
+       삼키면 라우트가 "성공"으로 답하고, 작업은 processing 에 갇힌다. */
+    try {
+      return (await updateJob(job.id, {
+        status: "failed",
+        error: e instanceof Error ? e.message : "job failed",
+        completedAt: new Date().toISOString(),
+      }))!;
+    } catch {
+      throw e;
+    }
   }
 }

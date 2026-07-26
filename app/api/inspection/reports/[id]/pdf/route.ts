@@ -9,15 +9,26 @@ import {
   normalizePlanToGate,
   requirePlan,
 } from "@/lib/subscriptions/access-gate";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/** 못 읽은 세션을 404 "없음"으로 답하지 않기 위한 안내. */
+const REPORT_UNAVAILABLE = "지금은 리포트를 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.";
+
 type Ctx = { params: Promise<{ id: string }> };
 
 async function loadAuthorizedSession(id: string, email: string) {
-  const row = await getSession(id);
+  /* 조회 실패는 404(없음)도 409(아직 준비 안 됨)도 아니다 — 둘 다 사용자에게
+     "리포트가 그런 상태다"라고 말하는 것이라, 못 읽었을 뿐일 때는 거짓이 된다. */
+  let row: Awaited<ReturnType<typeof getSession>>;
+  try {
+    row = await getSession(id);
+  } catch (err) {
+    return { error: dbUnavailable(`임장 리포트 조회 실패 (id=${id})`, err, REPORT_UNAVAILABLE) };
+  }
   if (!row) return { error: NextResponse.json({ error: "not found" }, { status: 404 }) };
   if (row.authorEmail !== email) {
     return { error: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
