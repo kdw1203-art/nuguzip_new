@@ -232,36 +232,41 @@ function derivePerPyeong(rec: ComplexTransactionRecord): number | null {
   return null;
 }
 
-/** 구 단위 최근 거래 원본 조회 (최신순, 최대 sampleLimit 행) */
+/**
+ * 구 단위 최근 거래 원본 조회 (최신순, 최대 sampleLimit 행).
+ *
+ * 조회가 실패하면 던진다. 예전에는 빈 배열을 돌려줬는데, 그러면 화면이
+ * "이 지역의 단지별 실거래 데이터를 준비 중입니다"를 띄운다 — 데이터는 이미
+ * 수십만 건 있는데 잠깐 못 읽었을 뿐인 상황에서 방문자와 크롤러 모두에게
+ * 거짓을 말하는 문장이다. 빈 배열은 "정말로 거래가 없다"만 뜻하게 둔다.
+ *
+ * 서비스 키가 없는 경우(CI 프리렌더)는 장애가 아니므로 그대로 빈 배열이다.
+ */
 async function fetchDistrictTransactions(
   region: ComplexTxRegion,
   sampleLimit: number,
 ): Promise<ComplexTransactionRecord[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("market_transactions")
-      .select(TX_SELECT)
-      .in("region_name", transactionRegionCandidates(region))
-      .eq("transaction_type", "trade")
-      .eq("is_cancelled", false)
-      .eq("property_type", "apartment")
-      .not("deal_amount_krw", "is", null)
-      .order("contract_ym", { ascending: false })
-      .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(sampleLimit);
-    if (error || !data) {
-      if (error) logger.warn("[complex-transactions] fetchDistrictTransactions", error.message);
-      return [];
-    }
-    return (data as RawTxRow[])
-      .map(toRecord)
-      .filter((r): r is ComplexTransactionRecord => r !== null);
-  } catch (e) {
-    logger.warn("[complex-transactions] fetchDistrictTransactions", e);
-    return [];
+  const { data, error } = await sb
+    .from("market_transactions")
+    .select(TX_SELECT)
+    .in("region_name", transactionRegionCandidates(region))
+    .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
+    .eq("property_type", "apartment")
+    .not("deal_amount_krw", "is", null)
+    .order("contract_ym", { ascending: false })
+    .order("contract_day", { ascending: false, nullsFirst: false })
+    .limit(sampleLimit);
+  if (error || !data) {
+    throw new Error(
+      `[complex-transactions] ${region.id} 실거래 조회 실패${error?.message ? `: ${error.message}` : ""}`,
+    );
   }
+  return (data as RawTxRow[])
+    .map(toRecord)
+    .filter((r): r is ComplexTransactionRecord => r !== null);
 }
 
 /* ---------- 공개 로더 ---------- */

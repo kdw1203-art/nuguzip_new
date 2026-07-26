@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
+import { QaBlock } from "../../components/QaBlock";
 import {
   getRegionSnapshot,
   getRegionSeries,
+  getRegionMonthlyVolume,
   listRegionTransactions,
   type RegionTransactionRow,
+  type RegionMonthlyVolumeRow,
 } from "@/lib/market/store";
 import type { RegionMarketSnapshot } from "@/lib/market/types";
 import { listPublicNotes } from "@/lib/inspection/store-db";
@@ -21,21 +24,67 @@ import {
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
 import { findTxRegionForMarketRegion, type TxRegionSummary } from "@/lib/market/tx-bands";
 import { BAND_KIND_LABEL } from "@/lib/market/bands";
+import { listDbProjects } from "@/lib/redevelopment/store";
+import {
+  labelForType,
+  stageLabel,
+  stageOrder,
+  type RedevelopmentProject,
+} from "@/lib/redevelopment/types";
+import { findTemperatureRegion } from "@/lib/market/temperature";
 import { logger } from "@/lib/log";
 import {
   breadcrumbJsonLd,
   regionPlaceJsonLd,
   jsonLdScript,
+  type FaqItem,
 } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
-   지역 허브 SEO 페이지 — /region/[id]
-   market_region_price 61개 지역 스냅샷 기반. 비로그인 열람 허용(index 대상).
+   N9 — 지역 종합 가이드 (/region/[id])
+   "○○구에 산다는 것" 을 실데이터로만 조립한다.
+   시세 스냅샷(market_region_price) · 가격지수 추이 · 최근 실거래 ·
+   월별 거래량(market_region_monthly) · 단지별 현황 · 입주 예정 물량 ·
+   정비사업(DB 확정분만) · 공개 임장노트 · 면적대/가격대 구간.
+
+   ── 두 가지 규칙 ────────────────────────────────────────────
+   1) **조회 실패는 "데이터 없음"이 아니다.** 예전에는 스냅샷 조회를
+      .catch(() => null) 로 삼키고 그대로 notFound() 를 불렀다. DB 가 잠깐
+      느려진 것뿐인데 이 페이지가 404 를 냈고, 크롤러에게는 "이 지역 페이지는
+      없어졌다"는 확정 신고가 됐다. 이제 스냅샷 조회 실패는 던진다(→ 5xx =
+      "지금은 못 준다, 나중에 다시 와라"). notFound() 는 지역이 **정말로**
+      목록에 없을 때만 부른다.
+   2) 곁다리 섹션은 실패해도 페이지 전체를 죽이지 않지만, 실패를 "없음"이나
+      "준비 중"으로 표기하지 않는다. 세 가지 상태(정상 / 정말 없음 / 조회 실패)를
+      각각 다른 문장으로 적는다.
+
    ISR 1시간 재검증 · generateStaticParams 생략(동적+ISR).
    ============================================================ */
 
 export const revalidate = 3600;
+
+/* ---------- 세 갈래 상태 (정상 / 정말 없음 / 조회 실패) ---------- */
+
+type Settled<T> = { ok: true; data: T } | { ok: false };
+
+async function settle<T>(what: string, work: Promise<T>): Promise<Settled<T>> {
+  try {
+    return { ok: true, data: await work };
+  } catch (e) {
+    logger.error(`[/region] ${what} 조회 실패:`, e instanceof Error ? e.message : String(e));
+    return { ok: false };
+  }
+}
+
+function LoadFailed({ what }: { what: string }) {
+  return (
+    <p className="py-6 text-center text-[13px] leading-[1.7] text-text-3">
+      {what}을 지금 불러오지 못했습니다. 데이터가 없다는 뜻이 아니라 조회에 실패했다는
+      뜻입니다 — 잠시 후 새로고침해 주세요.
+    </p>
+  );
+}
 
 /* ---------- 포맷 헬퍼 ---------- */
 
@@ -57,6 +106,17 @@ function formatYm(ym: string): string {
 /** "2025-08-01" → "25.08" */
 function shortPeriod(period: string): string {
   return period.length >= 7 ? `${period.slice(2, 4)}.${period.slice(5, 7)}` : period;
+}
+
+/** "202606" → "26.06" */
+function shortYm(ym: string): string {
+  return ym.length === 6 ? `${ym.slice(2, 4)}.${ym.slice(4)}` : ym;
+}
+
+function sourceLabel(source: RegionMarketSnapshot["source"]): string {
+  if (source === "reb") return "한국부동산원(R-ONE)";
+  if (source === "kb") return "KB부동산";
+  return "자체 수집";
 }
 
 function deltaView(changePct: number | undefined): {
@@ -91,15 +151,18 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const snapshot = await getRegionSnapshot(id).catch(() => null);
+  /* 여기서도 실패를 삼키지 않는다. 삼키면 "존재하지 않는 지역"과 똑같이
+     noindex 메타를 내보내게 되고, 장애 중에 크롤링된 페이지가 색인에서
+     빠진다. 던지면 5xx 가 되고 크롤러는 다시 온다. */
+  const snapshot = await getRegionSnapshot(id);
   if (!snapshot) {
     return { title: "지역 시세 | 누구집", robots: { index: false, follow: false } };
   }
   const name = snapshot.regionName;
   const price =
     snapshot.avgSale !== undefined ? `평균 매매가 ${formatKrwShort(snapshot.avgSale)}` : "시세 준비 중";
-  const title = `${name} 아파트 시세·실거래 | 누구집`;
-  const description = `${name} 아파트 ${price} (${formatYm(snapshot.period)} 기준) — 매매·전세 시세 추이, 최근 실거래, 이웃 임장노트를 한 화면에서 확인하세요.`;
+  const title = `${name} 아파트 시세·실거래·정비사업 | 누구집`;
+  const description = `${name} 아파트 ${price} (${formatYm(snapshot.period)} 기준) — 시세 추이, 최근 실거래, 월별 거래량, 입주 예정 물량, 정비사업, 이웃 임장노트를 한 화면에서 확인하세요.`;
   const alternates = seoAlternates(`/region/${id}`);
   return {
     title,
@@ -127,9 +190,10 @@ export default async function RegionHubPage({
   searchParams: Promise<{ complexes?: string }>;
 }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const snapshot: RegionMarketSnapshot | null = await getRegionSnapshot(id).catch(
-    () => null,
-  );
+
+  /* 이 페이지의 뼈대. 실패하면 던진다 → 5xx.
+     null 은 이제 "이 지역은 목록에 없다"만 뜻한다 → 404 가 맞다. */
+  const snapshot: RegionMarketSnapshot | null = await getRegionSnapshot(id);
   if (!snapshot) notFound();
 
   const name = snapshot.regionName;
@@ -137,24 +201,44 @@ export default async function RegionHubPage({
   const complexLimit = sp.complexes === "30" ? 30 : 12;
   const txRegion: ComplexTxRegion =
     findComplexTxRegionById(id) ?? { id, name, city: id.startsWith("incheon-") ? "인천" : "서울" };
-  const [series, transactions, complexSummaries, allNotes] = await Promise.all([
-    getRegionSeries(id, "sale_index", "monthly", 12).catch(
-      () => [] as Array<{ period: string; value: number }>,
-    ),
-    listRegionTransactions(id, name, 5).catch(() => [] as RegionTransactionRow[]),
-    listDistrictComplexSummaries(txRegion, complexLimit).catch(
-      () => [] as ComplexSummary[],
-    ),
-    listPublicNotes(100).catch(() => [] as InspectionNote[]),
-  ]);
-  // 이 지역 자치구명으로 입주 예정 물량 매칭 (예: "강남구")
-  const supplyArea = name.trim().split(/\s+/).pop() ?? name;
-  const supply: SupplyItem[] = await getSupplyForArea(supplyArea, 6).catch(
-    () => [],
-  );
+  // 이 지역 자치구명 (예: "고양시 덕양구" → "덕양구") — 공급·정비사업 매칭 키
+  const shortName = name.trim().split(/\s+/).pop() ?? name;
+
+  const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR] =
+    await Promise.all([
+      settle(`${id} 매매가격지수`, getRegionSeries(id, "sale_index", "monthly", 12)),
+      settle(`${id} 최근 실거래`, listRegionTransactions(id, name, 5)),
+      settle(`${id} 단지별 현황`, listDistrictComplexSummaries(txRegion, complexLimit)),
+      settle("공개 임장노트", listPublicNotes(100)),
+      settle(`${id} 월별 거래량`, getRegionMonthlyVolume(id, name, 12)),
+      /* 정비사업은 DB 확정분만 쓴다(시드 폴백 없음). 이 화면은 "○○구에 산다는 것"을
+         사실로만 조립하는 곳이고, 시드는 수기 정리본이라 여기 섞으면 안 된다. */
+      settle(`${shortName} 정비사업`, listDbProjects({ sigungu: shortName, limit: 200 })),
+      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6)),
+    ]);
+
+  const series: Array<{ period: string; value: number }> = seriesR.ok ? seriesR.data : [];
+  const transactions: RegionTransactionRow[] = transactionsR.ok ? transactionsR.data : [];
+  const complexSummaries: ComplexSummary[] = complexR.ok ? complexR.data : [];
+  const volume: RegionMonthlyVolumeRow[] = volumeR.ok ? volumeR.data : [];
+  const supply: SupplyItem[] = supplyR.ok ? supplyR.data : [];
+  const allNotes: InspectionNote[] = notesR.ok ? notesR.data : [];
   const notes = allNotes
     .filter((n) => n.isPublic && noteMatchesRegion(n.region ?? "", name))
     .slice(0, 4);
+
+  /* 정비사업 — 진행단계가 앞선 순, 같으면 세대수 큰 순. 최대 8곳만. */
+  const projects: RedevelopmentProject[] = (projectsR.ok ? projectsR.data : [])
+    .filter((p) => !p.isSample)
+    .sort((a, b) => {
+      const s = stageOrder(b.stageKey) - stageOrder(a.stageKey);
+      if (s !== 0) return s;
+      return (b.households ?? 0) - (a.households ?? 0);
+    });
+  const projectsShown = projects.slice(0, 8);
+
+  // N11 — 이 지역의 시장 온도 기록이 있으면 교차 링크
+  const tempRegion = findTemperatureRegion(id);
 
   // A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
   // 없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
@@ -186,6 +270,13 @@ export default async function RegionHubPage({
   const barHeight = (v: number): number =>
     range > 0 ? 24 + Math.round(((v - min) / range) * 76) : 60;
 
+  // 거래량 막대 정규화 (0 을 바닥으로 — 건수는 절대량이 의미 있다)
+  const volMax = volume.length > 0 ? Math.max(...volume.map((v) => v.count)) : 0;
+  const volBarHeight = (n: number): number =>
+    volMax > 0 ? Math.max(4, Math.round((n / volMax) * 84)) : 4;
+  const latestVolume = volume.length > 0 ? volume[volume.length - 1] : null;
+  const volumeTotal = volume.reduce((acc, v) => acc + v.count, 0);
+
   const kpiCards: Array<{ label: string; value: string; sub?: string; subClass?: string }> = [
     { label: "평균 매매가", value: formatKrwShort(snapshot.avgSale) },
     { label: "중위 매매가", value: formatKrwShort(snapshot.medianSale) },
@@ -193,7 +284,110 @@ export default async function RegionHubPage({
     { label: "전세가율", value: jeonseRatio },
   ];
 
+  /* ---------- G12 — 발췌해도 완결되는 첫 문단 ----------
+     여기에 들어가는 문장은 전부 위에서 실제로 읽어 온 값에서 만든다.
+     값이 없으면 그 문장을 아예 넣지 않는다(빈칸을 "—" 로 채우지 않는다). */
+  const priceClauses: string[] = [];
+  if (snapshot.avgSale !== undefined && snapshot.avgSale > 0) {
+    priceClauses.push(`평균 매매가 ${formatKrwShort(snapshot.avgSale)}`);
+  }
+  if (snapshot.medianSale !== undefined && snapshot.medianSale > 0) {
+    priceClauses.push(`중위 매매가 ${formatKrwShort(snapshot.medianSale)}`);
+  }
+  if (jeonseRatio !== "—") priceClauses.push(`전세가율 ${jeonseRatio}`);
+
+  const leadSentences: string[] = [];
+  leadSentences.push(
+    priceClauses.length > 0
+      ? `${name}의 ${formatYm(snapshot.period)} 아파트 시세는 ${priceClauses.join(
+          " · ",
+        )}입니다(출처 ${sourceLabel(snapshot.source)}).`
+      : `${name}의 ${formatYm(snapshot.period)} 기준 아파트 시세 지표는 아직 수집된 항목이 없습니다.`,
+  );
+  if (snapshot.saleChangeMonthly !== undefined && Number.isFinite(snapshot.saleChangeMonthly)) {
+    const chg = snapshot.saleChangeMonthly;
+    leadSentences.push(
+      chg === 0
+        ? "전월 대비로는 보합입니다."
+        : `전월 대비로는 ${Math.abs(chg).toFixed(2)}% ${chg > 0 ? "올랐습니다" : "내렸습니다"}.`,
+    );
+  }
+  if (latestVolume !== null) {
+    leadSentences.push(
+      `국토교통부에 신고된 아파트 매매는 ${formatYm(latestVolume.month)}에 ${latestVolume.count.toLocaleString(
+        "ko-KR",
+      )}건이며, 최근 ${volume.length}개월 합계는 ${volumeTotal.toLocaleString("ko-KR")}건입니다.`,
+    );
+  }
+  if (projectsShown.length > 0) {
+    leadSentences.push(
+      `공개 자료로 확인된 ${shortName} 정비사업 구역은 ${projects.length.toLocaleString(
+        "ko-KR",
+      )}곳입니다.`,
+    );
+  }
+  if (supply.length > 0) {
+    leadSentences.push(`입주 예정 물량으로 잡힌 단지는 ${supply.length}곳입니다.`);
+  }
+  if (notes.length > 0) {
+    leadSentences.push(`이웃이 공개한 임장노트는 ${notes.length}편 있습니다.`);
+  }
+  leadSentences.push(
+    "모두 공공 실거래·공표 통계에서 계산한 값이며, 중개 매물의 호가는 포함하지 않습니다.",
+  );
+  const lead = leadSentences.join(" ");
+
+  /* ---------- Q&A — 이 페이지에 실제로 보이는 숫자로만 ---------- */
+  const faq: FaqItem[] = [];
+  if (priceClauses.length > 0) {
+    faq.push({
+      q: `${name} 아파트 시세는 얼마인가요?`,
+      a: `${formatYm(snapshot.period)} 기준 ${name} 아파트는 ${priceClauses.join(
+        " · ",
+      )}입니다. ${sourceLabel(snapshot.source)}가 공표한 지역 통계이며, 개별 단지·평형에 따라 실제 거래가는 크게 다릅니다.`,
+    });
+  }
+  if (latestVolume !== null) {
+    faq.push({
+      q: `${name}는 요즘 거래가 잘 되나요?`,
+      a: `국토교통부 실거래 신고 기준으로 ${formatYm(latestVolume.month)} ${name} 아파트 매매는 ${latestVolume.count.toLocaleString(
+        "ko-KR",
+      )}건, 최근 ${volume.length}개월 합계는 ${volumeTotal.toLocaleString(
+        "ko-KR",
+      )}건입니다. 다만 계약일로부터 30일의 신고 기한이 있어 가장 최근 1~2개월은 실제보다 적게 집계됩니다.`,
+    });
+  }
+  if (transactions.length > 0) {
+    const t = transactions[0];
+    faq.push({
+      q: `${name}에서 가장 최근에 신고된 아파트 거래는 무엇인가요?`,
+      a: `${formatYm(t.contractYm)}${
+        t.contractDay ? `.${String(t.contractDay).padStart(2, "0")}` : ""
+      } ${t.complexName}${t.areaM2 !== null ? ` ${t.areaM2.toFixed(1)}㎡` : ""}${
+        t.floor !== null ? ` ${t.floor}층` : ""
+      }이 ${formatKrwShort(t.dealAmountKrw)}에 거래된 건이 이 페이지에 수집된 가장 최근 신고분입니다.`,
+    });
+  }
+  if (projectsShown.length > 0) {
+    const top = projectsShown[0];
+    faq.push({
+      q: `${shortName}에 진행 중인 정비사업이 있나요?`,
+      a: `공개 자료로 확인된 ${shortName} 정비사업 구역은 ${projects.length.toLocaleString(
+        "ko-KR",
+      )}곳입니다. 진행 단계가 가장 앞선 곳은 ${top.name}(${labelForType(
+        top.typeKey,
+      )} · ${stageLabel(top.stageKey)})입니다. 단계는 공개 고시·언론 공개정보 기준 참고값이며, 확정 일정은 조합·지자체 공고를 확인해야 합니다.`,
+    });
+  }
+  faq.push({
+    q: "이 페이지의 숫자는 어디서 오나요?",
+    a: `시세 지표는 ${sourceLabel(
+      snapshot.source,
+    )} 공표 통계, 실거래와 거래량은 국토교통부 실거래가 공개시스템, 입주 예정 물량과 정비사업은 공공기관 공개 자료입니다. 매물 호가나 중개사 제공 가격은 쓰지 않으며, 값이 없는 항목은 추정치로 채우지 않고 비워 둡니다.`,
+  });
+
   // JSON-LD(BreadcrumbList + Place) — 실데이터 스냅샷, 존재 필드만
+  // (FAQPage 는 QaBlock 이 화면에 보이는 items 로 직접 생성한다)
   const regionJsonLd = [
     breadcrumbJsonLd([
       { name: "홈", url: "/" },
@@ -219,17 +413,18 @@ export default async function RegionHubPage({
   return (
     <PageShell
       breadcrumb={`홈 › 지역 시세 › ${name}`}
-      title={`${name} 아파트 시세`}
+      title={`${name}에 산다는 것`}
     >
       {/* JSON-LD(BreadcrumbList + Place) — 지역 SEO 구조화 데이터 */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(regionJsonLd) }}
       />
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
-        {formatYm(snapshot.period)} 기준 · 출처{" "}
-        {snapshot.source === "reb" ? "한국부동산원(R-ONE)" : snapshot.source === "kb" ? "KB부동산" : "자체 수집"}
+      <p className="rise-in mb-1 text-[12px] text-text-3">
+        {formatYm(snapshot.period)} 기준 · 출처 {sourceLabel(snapshot.source)}
       </p>
+      {/* G12 — 이 문단만 떼어 인용해도 뜻이 통해야 한다 */}
+      <p className="rise-in mb-5 text-[14px] leading-[1.75] text-text-1">{lead}</p>
 
       {/* 현재가 KPI 4카드 */}
       <section className="rise-in-1 mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -255,9 +450,11 @@ export default async function RegionHubPage({
             매매가격지수 · 월간
           </span>
         </h2>
-        {series.length === 0 ? (
+        {!seriesR.ok ? (
+          <LoadFailed what="시세 추이" />
+        ) : series.length === 0 ? (
           <p className="py-6 text-center text-[13px] text-text-3">
-            시세 추이 데이터를 준비 중입니다.
+            이 지역의 매매가격지수 시계열이 아직 수집되지 않았습니다.
           </p>
         ) : (
           <>
@@ -291,6 +488,72 @@ export default async function RegionHubPage({
             </div>
           </>
         )}
+        {tempRegion && (
+          <p className="mt-3 text-[12px] text-text-3">
+            <Link
+              href={`/analysis/temperature/${encodeURIComponent(id)}`}
+              className="font-bold text-primary underline"
+            >
+              {name} 시장 온도 주간 기록 보기 →
+            </Link>
+          </p>
+        )}
+      </section>
+
+      {/* 월별 거래량 — market_region_monthly (국토부 실거래 집계) */}
+      <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
+        <h2 className="text-[15px] font-extrabold text-ink">
+          월별 거래량{" "}
+          <span className="text-[11px] font-medium text-text-3">
+            아파트 매매 신고 건수
+          </span>
+        </h2>
+        {!volumeR.ok ? (
+          <LoadFailed what="월별 거래량" />
+        ) : volume.length === 0 ? (
+          <p className="py-6 text-center text-[13px] text-text-3">
+            이 지역의 월별 거래량 집계가 아직 없습니다.
+          </p>
+        ) : (
+          <>
+            <div className="mt-4 flex h-[96px] items-end gap-[6px]">
+              {volume.map((v, i) => (
+                <div
+                  key={v.month}
+                  className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                  title={`${formatYm(v.month)} · ${v.count.toLocaleString("ko-KR")}건`}
+                >
+                  <div
+                    className="w-full rounded-t-[4px]"
+                    style={{
+                      height: `${volBarHeight(v.count)}px`,
+                      background:
+                        i >= volume.length - 2 ? "var(--primary-soft)" : "var(--primary)",
+                      border:
+                        i >= volume.length - 2 ? "1px dashed var(--border)" : "none",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-1 flex justify-between text-[9px] text-text-3">
+              <span>{shortYm(volume[0].month)}</span>
+              <span>{shortYm(volume[volume.length - 1].month)}</span>
+            </div>
+            <p className="mt-3 text-[12px] leading-[1.7] text-text-2">
+              최근 {volume.length}개월 합계 {volumeTotal.toLocaleString("ko-KR")}건
+              {latestVolume
+                ? ` · ${formatYm(latestVolume.month)} ${latestVolume.count.toLocaleString("ko-KR")}건`
+                : ""}
+            </p>
+            {/* 신고 지연은 반드시 화면에 적는다 — 적지 않으면 마지막 두 칸을
+                "거래 급감" 으로 오해하게 된다. 그래서 그 두 칸은 점선으로 그린다. */}
+            <p className="mt-1 text-[11px] leading-[1.7] text-text-3">
+              실거래 신고 기한은 계약일로부터 30일입니다. 점선으로 표시한 최근 두 달은
+              아직 신고가 들어오는 중이라 실제보다 적게 잡혀 있습니다.
+            </p>
+          </>
+        )}
       </section>
 
       {/* 최근 실거래 5건 */}
@@ -301,9 +564,11 @@ export default async function RegionHubPage({
             아파트 매매 · 국토부 실거래가
           </span>
         </h2>
-        {transactions.length === 0 ? (
+        {!transactionsR.ok ? (
+          <LoadFailed what="최근 실거래" />
+        ) : transactions.length === 0 ? (
           <p className="py-6 text-center text-[13px] text-text-3">
-            이 지역의 실거래 데이터를 준비 중입니다.
+            이 지역에서 수집된 아파트 매매 실거래가 아직 없습니다.
           </p>
         ) : (
           <ul className="mt-2">
@@ -352,7 +617,11 @@ export default async function RegionHubPage({
             </Link>
           )}
         </div>
-        <ComplexSummaryTable summaries={complexSummaries} regionId={id} />
+        <ComplexSummaryTable
+          summaries={complexSummaries}
+          regionId={id}
+          failed={!complexR.ok}
+        />
         {complexSummaries.length > 0 && (
           <div className="mt-3 text-right">
             <Link
@@ -367,7 +636,8 @@ export default async function RegionHubPage({
         )}
       </section>
 
-      {/* 이 지역 입주 예정 물량 */}
+      {/* 이 지역 입주 예정 물량 — 조회 실패는 섹션 자체를 렌더하지 않는다
+          (없다고 말하지 않기 위해서다) */}
       {supply.length > 0 && (
         <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
           <h2 className="text-[15px] font-extrabold text-ink">
@@ -415,12 +685,56 @@ export default async function RegionHubPage({
         </section>
       )}
 
+      {/* 정비사업 — DB 확정분만. 0곳이거나 조회 실패면 섹션을 만들지 않는다.
+          "정비사업이 없는 동네" 는 우리가 확인할 수 없는 주장이다. */}
+      {projectsShown.length > 0 && (
+        <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            {shortName} 정비사업{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              공개 자료 확인분 {projects.length.toLocaleString("ko-KR")}곳
+            </span>
+          </h2>
+          <ul className="mt-2">
+            {projectsShown.map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-bold text-ink">{p.name}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-text-3">
+                    {labelForType(p.typeKey)} · {stageLabel(p.stageKey)}
+                    {p.address ? ` · ${p.address}` : ""}
+                  </div>
+                </div>
+                <div className="shrink-0 text-right text-[11px] text-text-3">
+                  {p.households ? `${p.households.toLocaleString("ko-KR")}세대` : "세대수 미공개"}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[11px] leading-[1.7] text-text-3">
+            진행 단계는 공개 고시·언론 공개정보 기준 참고값입니다. 확정 일정과 조건은
+            조합·지자체 공고를 확인해 주세요.
+          </p>
+          <Link
+            href="/redevelopment"
+            className="mt-2 inline-block text-[12px] font-bold text-primary"
+          >
+            정비사업 지도에서 보기 ›
+          </Link>
+        </section>
+      )}
+
       {/* 이 지역 공개 임장노트 */}
       <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">
           {name} 공개 임장노트
         </h2>
-        {notes.length === 0 ? (
+        {!notesR.ok ? (
+          <LoadFailed what="공개 임장노트" />
+        ) : notes.length === 0 ? (
           <p className="py-6 text-center text-[13px] text-text-3">
             아직 이 지역의 공개 임장노트가 없어요. 첫 노트를 남겨보세요.
           </p>
@@ -492,6 +806,9 @@ export default async function RegionHubPage({
           </p>
         </section>
       )}
+
+      {/* Q&A — 위 숫자로만 만든 항목. FAQPage JSON-LD 는 QaBlock 이 함께 낸다. */}
+      <QaBlock title={`${name} 자주 묻는 질문`} items={faq} />
 
       {/* CTA */}
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">

@@ -10,6 +10,7 @@ import {
 } from "@/lib/market/complex-transactions";
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { logger } from "@/lib/log";
 
 /* ============================================================
    서울 단지 브라우즈 — /complex/browse?district=서울+강남구
@@ -67,9 +68,19 @@ export default async function ComplexBrowsePage({
   const sp = await searchParams;
   const region = resolveRegion(sp.district);
   const label = regionDisplayName(region);
-  const summaries = await listDistrictComplexSummaries(region, 30).catch(
-    () => [] as ComplexSummary[],
-  );
+  /* 조회 실패와 "거래 0건"을 구분해서 넘긴다 — 예전에는 둘 다 "준비 중입니다"로
+     나갔는데, 장애 중에 그 문장은 거짓이다. */
+  let summaries: ComplexSummary[] = [];
+  let summariesFailed = false;
+  try {
+    summaries = await listDistrictComplexSummaries(region, 30);
+  } catch (e) {
+    summariesFailed = true;
+    logger.error(
+      `[/complex/browse] ${region.id} 단지 요약 조회 실패:`,
+      e instanceof Error ? e.message : String(e),
+    );
+  }
 
   return (
     <PageShell breadcrumb="홈 › 단지 실거래 › 서울 단지 브라우즈" title="서울 단지별 실거래 현황">
@@ -113,7 +124,11 @@ export default async function ComplexBrowsePage({
             최신 거래순 · 상위 {summaries.length}개
           </span>
         </h2>
-        <ComplexSummaryTable summaries={summaries} regionId={region.id} />
+        <ComplexSummaryTable
+          summaries={summaries}
+          regionId={region.id}
+          failed={summariesFailed}
+        />
       </section>
 
       {/* CTA */}
