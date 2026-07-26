@@ -100,24 +100,26 @@ function mapAnswer(r: Record<string, unknown>): QnaAnswer {
 export async function listQuestions(
   opts: { status?: string; limit?: number } = {},
 ): Promise<QnaQuestion[]> {
+  /* 2026-07-26: 실패해도 `[]` 를 돌려줬다. 그러면 /qna 는 "아직 등록된 질문이
+     없어요" 라고 말한다 — 질문이 쌓여 있는데도 아무도 안 쓰는 서비스처럼 보이고,
+     이웃이 남긴 질문이 지워진 것으로 오해할 수도 있다. 실패는 던진다.
+     (행이 0개인 것은 진짜 빈 상태이므로 그대로 `[]`.) */
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 100);
   const sb = getReadOnlySupabase();
-  if (sb) {
-    try {
-      let q = sb.from("complex_questions").select(QUESTION_COLUMNS);
-      if (opts.status) q = q.eq("status", opts.status);
-      const { data, error } = await q
-        .order("created_at", { ascending: false })
-        .limit(limit);
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data.map((r) => mapQuestion(r as Record<string, unknown>));
-      }
-    } catch (e) {
-      logger.warn("[qna] listQuestions", e);
-    }
+  if (!sb) throw new Error("Supabase 읽기 클라이언트를 만들 수 없습니다 (환경변수 누락)");
+  try {
+    let q = sb.from("complex_questions").select(QUESTION_COLUMNS);
+    if (opts.status) q = q.eq("status", opts.status);
+    const { data, error } = await q
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    if (!Array.isArray(data)) throw new Error("complex_questions 응답이 배열이 아닙니다");
+    return data.map((r) => mapQuestion(r as Record<string, unknown>));
+  } catch (e) {
+    logger.error("[qna] listQuestions 조회 실패", e);
+    throw e;
   }
-  // 실데이터 없음/미설정 → 빈 목록. 질문을 지어내지 않는다.
-  return [];
 }
 
 /**

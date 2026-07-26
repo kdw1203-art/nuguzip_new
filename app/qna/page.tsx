@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
-import { EmptyState } from "@/app/components/ui/EmptyState";
+import { EmptyState, ErrorState } from "@/app/components/ui/EmptyState";
 import { listQuestions } from "@/lib/qna/store";
+import { logger } from "@/lib/log";
 import type { QnaQuestion } from "@/lib/qna/types";
 import { AskForm } from "./AskForm";
 
@@ -93,7 +94,17 @@ function QuestionCard({ q }: { q: QnaQuestion }) {
 }
 
 export default async function QnaListPage() {
-  const items = await listQuestions();
+  /* 2026-07-26: store 가 실패 때 `[]` 를 돌려주던 걸 던지도록 고쳤다. 질문 등록
+     폼(AskForm)은 그대로 두고 — 목록이 안 보인다고 질문까지 못 하게 할 이유는
+     없다 — 목록 자리에만 "지금 불러오지 못했다"고 쓴다. */
+  const loaded = await listQuestions().then(
+    (items) => ({ ok: true as const, items }),
+    (err: unknown) => {
+      logger.error("[qna] 질문 목록 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+  const items = loaded.ok ? loaded.items : [];
 
   const body = (
     <>
@@ -118,9 +129,15 @@ export default async function QnaListPage() {
       <section className="rise-in-2 mt-5">
         <div className="mb-2.5 flex items-center justify-between">
           <h2 className="text-[14px] font-bold text-ink">최근 질문</h2>
-          <span className="text-[12px] text-text-3">{items.length}개</span>
+          <span className="text-[12px] text-text-3">{loaded.ok ? `${items.length}개` : "—"}</span>
         </div>
-        {items.length === 0 ? (
+        {!loaded.ok ? (
+          <ErrorState
+            title="질문 목록을 지금 불러오지 못했어요"
+            desc="등록된 질문이 0개인 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요. 질문 등록은 위에서 그대로 하실 수 있어요."
+            cause={loaded.cause}
+          />
+        ) : items.length === 0 ? (
           <EmptyState
             icon="messages-square"
             title="아직 등록된 질문이 없어요"
