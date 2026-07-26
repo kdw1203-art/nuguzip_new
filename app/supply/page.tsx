@@ -14,6 +14,7 @@ import {
 } from "@/lib/market/supply";
 import type { SupplyItem } from "@/lib/market/supply";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
   description:
     "전국·지역별 아파트 입주 예정 물량(공급) 캘린더 — 입주월·단지·세대수. 공급이 많은 시기와 지역을 한눈에.",
   robots: { index: true, follow: true },
+  // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
+  alternates: seoAlternates("/supply"),
 };
 
 /** 테마 구분: 입주 물량 = 초록 (공급·신축). 하위 클래스(text-primary·bg-primary-soft·

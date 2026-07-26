@@ -7,6 +7,7 @@ import { listExperts, type UserExpertProfile } from "@/lib/experts/store-db";
 import { EXPERT_SUBCATEGORIES, findSub, matchSubcategory } from "@/lib/subcategories";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 시안 6p(전문가 상담) 고도화 — expert_profiles 실데이터 연동.
    자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 인증 안내 + 필터 칩 + 라벨 섹션(인증 전문가 / 그 외).
@@ -14,6 +15,14 @@ import { TownCategoryNav } from "../TownCategoryNav";
    실데이터 0건이면 "예시" 라벨 목업(비활성) 폴백. 전문가 인증 신청 플로우 강화. */
 
 export const dynamic = "force-dynamic";
+
+/* N7 — ?sub=·?region=·?sort= 조합마다 색인되지 않도록 canonical 고정. */
+export const metadata = buildPageMetadata({
+  title: "전문가 상담 — 공인중개사·세무·법무",
+  description:
+    "부동산 관련 상담이 가능한 전문가를 분야·지역으로 찾습니다. 인증을 마친 전문가와 그 외를 구분해 표시합니다.",
+  path: "/town/experts",
+});
 
 type Params = Promise<{ sub?: string; region?: string; sort?: string }>;
 

@@ -14,6 +14,7 @@ import {
   AUCTION_USAGE_FILTERS,
   type AuctionItem,
 } from "@/lib/onbid/store";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
   description:
     "한국자산관리공사 온비드 공매 부동산 — 서울권 아파트·오피스텔·빌라 감정가·최저입찰가·입찰일정. 공공 데이터 기반.",
   robots: { index: true, follow: true },
+  // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
+  alternates: seoAlternates("/auctions"),
 };
 
 /** 테마 구분: 공매·경매 = 보라 (딜·긴급). subtree 안에서 text-primary·bg-primary-soft·

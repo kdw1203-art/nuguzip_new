@@ -4,6 +4,7 @@ import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
    자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 필터 칩 + 라벨 섹션.
@@ -14,6 +15,16 @@ import { TownCategoryNav } from "../TownCategoryNav";
    만들기 CTA 를 보여 주는 편이 정직하다. */
 
 export const dynamic = "force-dynamic";
+
+/* N7 — ?region=·?status=·?sort= 는 같은 목록을 자르는 값이라 조합마다 색인되면
+   안 된다. canonical 을 파라미터 없는 경로로 고정한다. (그 전까지 이 페이지에는
+   metadata 자체가 없어 title·description 이 루트 기본값으로 나가고 있었다.) */
+export const metadata = buildPageMetadata({
+  title: "임장 모임 — 같이 다녀올 사람 찾기",
+  description:
+    "지역·일정별 임장 모임을 찾고, 직접 모임을 만들어 함께 다녀올 사람을 모읍니다. 등록된 모임이 없으면 없다고 표시합니다.",
+  path: "/town/groups",
+});
 
 type Params = Promise<{ region?: string; status?: string; sort?: string }>;
 

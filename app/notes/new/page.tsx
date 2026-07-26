@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTemplate } from "@/lib/note-templates/store";
 import { NoteForm, type NoteFormTemplate } from "./NoteForm";
 
@@ -6,6 +7,14 @@ import { NoteForm, type NoteFormTemplate } from "./NoteForm";
    ?memo= 로 도착하면 메모 초안으로 프리필한다(/calculator "임장노트에 저장" 연결). */
 
 export const dynamic = "force-dynamic";
+
+/* N7 — 작성 폼은 색인 대상이 아니다. ?tpl=·?memo= 로 만들어지는 URL 은 특정
+   사용자의 일회용 진입 주소이고(메모 초안이 주소에 실리기도 한다), 검색에서
+   들어와도 로그인 벽을 만난다. follow 는 남겨 내부 링크는 그대로 타게 둔다. */
+export const metadata: Metadata = {
+  title: "임장노트 작성 | 누구집",
+  robots: { index: false, follow: true },
+};
 
 export default async function NoteNewPage({
   searchParams,

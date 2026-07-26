@@ -7,6 +7,7 @@ import {
   datasetLabel,
 } from "@/lib/market/public-records";
 import { CODEF_PRODUCTS } from "@/lib/codef/endpoints";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
   description:
     "KB 시세·공시가격·실거래·신고이력 등 공공·공개 부동산 자료의 연동 현황과 단지별 조회.",
   robots: { index: true, follow: true },
+  // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
+  alternates: seoAlternates("/data/records"),
 };
 
 function fmtKrw(won: number | null): string {

@@ -12,6 +12,7 @@ import { DISTRICTS } from "@/lib/regions";
 import { ListingCompareToggle } from "@/components/ListingCompareToggle";
 import { ListingCompareTray } from "@/components/ListingCompareTray";
 import type { CompareListing } from "@/components/listing-compare-store";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
    실매물 목록 — /listings
@@ -25,6 +26,8 @@ export const metadata: Metadata = {
   title: "실매물 — 집주인 직접·중개사 등록 매물 · 누구집",
   description:
     "집주인이 직접 등록하거나 제휴 중개사가 올린 매물을 검수 후 보여드려요. 실거래가와 비교하며 확인하세요.",
+  // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
+  alternates: seoAlternates("/listings"),
 };
 
 const TYPE_FILTERS = [

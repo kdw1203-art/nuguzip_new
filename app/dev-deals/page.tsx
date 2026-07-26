@@ -10,6 +10,7 @@ import {
   formatAreaM2,
   type DevDeal,
 } from "@/lib/dev-deals/types";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,8 @@ export const metadata: Metadata = {
   description:
     "시행사·부동산사업자가 개발물건(정비사업·신축·부지)을 등록하면 시공사·설계사·신탁·PF 등 협력업체가 참여 문의를 보내는 B2B 디벨로퍼 매칭. 누구집은 소개·중개(매칭)만 담당합니다.",
   robots: { index: true, follow: true },
+  // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
+  alternates: seoAlternates("/dev-deals"),
 };
 
 /** 테마 구분: 개발물건 중개 = 앰버(디벨로퍼 매칭). 하위 클래스(text-primary·

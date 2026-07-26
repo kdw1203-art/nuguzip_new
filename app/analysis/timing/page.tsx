@@ -8,8 +8,20 @@ import {
 } from "@/lib/map/seoul-districts";
 import { TimingRegionSelect } from "./region-select";
 import { TimingComplexPicker } from "./complex-picker";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 export const dynamic = "force-dynamic";
+
+/* N7 — ?region=·?complexId=·?apt= 조합마다 별개 URL 로 색인되지 않도록 canonical 을
+   파라미터 없는 경로로 고정한다. 지역을 바꿔도 페이지의 성격은 하나이고, 지역별
+   랜딩은 /region/[id] 가 따로 맡는다. (그 전까지 이 페이지에는 metadata 자체가
+   없어서 title·description 도 루트 기본값으로 나가고 있었다.) */
+export const metadata = buildPageMetadata({
+  title: "시세·타이밍 분석 — 시장 온도와 거래량 추세",
+  description:
+    "지역 매매가격지수 추세·모멘텀, 월별 실거래 거래량, 시장 온도를 함께 봅니다. 모든 수치는 실측 자료로만 그리고, 없는 구간은 없다고 표시합니다.",
+  path: "/analysis/timing",
+});
 
 /* ============================================================
    시세·타이밍 분석 — 전 구간 실데이터.

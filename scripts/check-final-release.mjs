@@ -6,6 +6,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -248,6 +249,36 @@ if (exists("app/api/health/route.ts")) {
 } else {
   warn("운영", "Health route");
 }
+
+// ── 하위 게이트 ────────────────────────────────────────
+/**
+ * N7·N8 — 별도 스크립트로 도는 게이트를 여기서 한 번에 같이 돌린다.
+ *
+ * 따로 두면 결국 아무도 안 돌린다. 릴리스 점검이 한 명령이어야 실제로 돌아간다.
+ *
+ * check-jsonld 는 빌드 산출물이 있어야 의미가 있는데, 없으면 스스로 exit 0 으로
+ * 건너뛴다(그 경우 여기서도 WARN 으로 남겨 "검사했다"고 오해하지 않게 한다).
+ */
+function runGate(area, item, script, { needsBuild = false } = {}) {
+  const r = spawnSync(process.execPath, [path.join(ROOT, "scripts", script)], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  const out = `${r.stdout ?? ""}${r.stderr ?? ""}`.trim();
+  if (r.status === 0) {
+    if (needsBuild && /건너뜁니다/.test(out)) {
+      warn(area, item, "빌드 산출물이 없어 검사하지 못함 — next build 후 재실행");
+      return;
+    }
+    pass(area, item, out.split("\n")[0]?.replace(/^✓\s*/, "") ?? "");
+  } else {
+    const first = out.split("\n").find((l) => l.trim().startsWith("-")) ?? out.split("\n")[0] ?? "";
+    fail(area, item, first.trim().slice(0, 160));
+  }
+}
+
+runGate("SEO", "파라미터 canonical 감사 (N7)", "check-param-canonical.mjs");
+runGate("SEO", "구조화 데이터 검증 (N8)", "check-jsonld.mjs", { needsBuild: true });
 
 // ── 출력 ───────────────────────────────────────────────
 console.log("\n=== 최종 릴리스 자동 점검 ===\n");

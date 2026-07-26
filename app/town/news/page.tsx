@@ -9,6 +9,7 @@ import { Icon } from "@/app/components/Icon";
 import { CoverImage } from "@/app/components/CoverImage";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 뉴스·다이제스트(#6·#7) — 부동산 뉴스 그리드 상단에 주간 다이제스트 요약을 합쳤다.
    · 주간 다이제스트: getWeeklyDigest() 요약 카드(실패·빈 데이터 시 섹션 생략, fail-soft).
@@ -17,6 +18,14 @@ import { TownCategoryNav } from "../TownCategoryNav";
    제목 · 출처 · 시간, 지역 필터 지원. */
 
 export const dynamic = "force-dynamic";
+
+/* N7 — ?region= 으로 목록만 좁히는 값이라 조합마다 색인되면 안 된다. canonical 고정. */
+export const metadata = buildPageMetadata({
+  title: "부동산 뉴스 · 주간 다이제스트",
+  description:
+    "부동산 뉴스와 이번 주 실거래 다이제스트를 한곳에서. 출처와 게시 시각을 함께 표시합니다.",
+  path: "/town/news",
+});
 
 const NEWS_SUB = COMMUNITY_SUBCATEGORIES.find((s) => s.id === "news");
 

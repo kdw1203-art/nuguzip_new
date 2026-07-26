@@ -33,6 +33,8 @@
     "check:responsive-qa": "node ./scripts/check-responsive-qa.mjs",
     "check:final-release": "node ./scripts/check-final-release.mjs",
     "check:cache-policy": "node ./scripts/check-cache-policy.mjs",
+    "check:jsonld": "node ./scripts/check-jsonld.mjs",
+    "check:param-canonical": "node ./scripts/check-param-canonical.mjs",
     "check:tx-filters": "node ./scripts/check-tx-filters.mjs",
     "seed:public-data-bundled": "node ./scripts/seed-public-data-bundled.mjs",
     "generate:vapid": "node ./scripts/generate-vapid-keys.mjs",

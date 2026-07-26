@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { listPartners } from "@/lib/dev-deals/store";
 import { PARTNER_TYPES, type DevPartner } from "@/lib/dev-deals/types";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
   description:
     "시공사·설계사·신탁·PF·마케팅·감리 등 개발사업 협력업체를 찾고, 우리 회사를 등록해 개발물건 매칭을 받아 보세요.",
   robots: { index: true, follow: true },
+  // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
+  alternates: seoAlternates("/dev-deals/partners"),
 };
 
 const DISCLAIMER =
