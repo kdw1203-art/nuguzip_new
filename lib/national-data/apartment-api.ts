@@ -1,7 +1,12 @@
 /**
  * 국토교통부 공동주택 정보 API 클라이언트
- * - 공동주택 단지 목록제공 서비스  (AptListService2)
- * - 공동주택 기본 정보제공 서비스  (AptBasisInfoService2)
+ * - 공동주택 단지 목록제공 서비스  (AptListService3)   ← 2024 개편: JSON, sigunguCode
+ * - 공동주택 기본 정보제공 서비스  (AptBasisInfoServiceV4) ← 개편: JSON, getAphusBassInfoV4
+ *
+ * 2026-07 확인: 구버전(AptListService2/AptBasisInfoService2, XML)은 폐기됐다.
+ * 폐기 엔드포인트는 빈 응답을 돌려줘 "상세 없음"으로 조용히 실패했고(실측 실패=200/200),
+ * 그래서 좌표·건설사·세대수가 한 건도 안 채워졌다. 개편 엔드포인트는 응답이 JSON 이며
+ * 필드명도 바뀌었다(건설사=kaptBcompany, 세대/호=hoCnt, 난방=codeHeatNm, 관리=codeMgrNm).
  *
  * 공통 인증키: MOLIT_SERVICE_KEY
  */
@@ -14,22 +19,13 @@ function serviceKey(): string | null {
   return encodingKeyForUrl();
 }
 
-function parseXmlItems(text: string): Record<string, string>[] {
-  return [...text.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => {
-    const row: Record<string, string> = {};
-    for (const tag of m[1].matchAll(/<([^/>]+)>([^<]*)<\//g)) {
-      row[tag[1].trim()] = tag[2].trim();
-    }
-    return row;
-  });
-}
-
-async function fetchAptXml(
+/** data.go.kr JSON 응답에서 item(s)·totalCount 를 뽑고, 인증·쿼터 오류는 던진다. */
+async function fetchAptJson(
   service: string,
   operation: string,
   params: Record<string, string | number>,
   numOfRows = 30,
-): Promise<{ items: Record<string, string>[]; totalCount: number; mode: "live" | "mock" }> {
+): Promise<{ items: Record<string, unknown>[]; totalCount: number; mode: "live" | "mock" }> {
   const key = serviceKey();
   if (!key) return { items: [], totalCount: 0, mode: "mock" };
 
@@ -37,43 +33,70 @@ async function fetchAptXml(
   url.searchParams.set("serviceKey", key);
   url.searchParams.set("pageNo", "1");
   url.searchParams.set("numOfRows", String(numOfRows));
+  url.searchParams.set("_type", "json"); // 개편 API 기본이 JSON 이지만 명시
   for (const [k, v] of Object.entries(params)) {
     if (v !== "" && v !== undefined) url.searchParams.set(k, String(v));
   }
 
+  let text: string;
   try {
     const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
     if (!res.ok) return { items: [], totalCount: 0, mode: "mock" };
-    const text = await res.text();
-    const items = parseXmlItems(text);
-    const totalMatch = text.match(/<totalCount>(\d+)<\/totalCount>/);
-    const totalCount = totalMatch ? Number(totalMatch[1]) : items.length;
-    if (items.length > 0) return { items, totalCount, mode: "live" };
+    text = await res.text();
+  } catch {
+    // 네트워크 오류는 조용히 mock 폴백(읽기 UI 라우트 회귀 방지).
+    return { items: [], totalCount: 0, mode: "mock" };
+  }
 
-    // 결과가 0건일 때: 정상적인 "데이터 없음"과 인증·쿼터 오류를 구분한다.
-    // data.go.kr 오류 응답은 200 으로 오면서 본문에 사유 코드를 담는다
-    // (예: returnReasonCode=30 SERVICE_KEY_IS_NOT_REGISTERED_ERROR, 22 LIMITED_NUMBER_OF_SERVICE_REQUESTS).
-    // 예전엔 이걸 통째로 삼켜 "상세 없음"으로 처리해, 키 문제가 로그에 전혀 안 남았다.
-    // 인증·쿼터 오류만 위로 던져 크론 로그·아침 브리핑에 실제 사유가 남게 한다.
-    // 네트워크·HTTP 오류는 기존대로 조용히 mock 폴백(읽기 UI 라우트 회귀 방지).
+  // 인증·쿼터 오류는 200 으로 오면서 XML 봉투(<returnAuthMsg>…)를 담는 경우가 있다.
+  // JSON 파싱 실패 시 그 봉투를 읽어 실제 사유를 던진다(크론 로그·아침 브리핑에 노출).
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch {
     const authMsg =
       text.match(/<returnAuthMsg>([^<]+)<\/returnAuthMsg>/)?.[1] ??
       text.match(/<errMsg>([^<]+)<\/errMsg>/)?.[1];
     const reasonCode =
       text.match(/<returnReasonCode>([^<]+)<\/returnReasonCode>/)?.[1] ??
       text.match(/<resultCode>([^<]+)<\/resultCode>/)?.[1];
-    const isErrEnvelope =
-      Boolean(authMsg) || (Boolean(reasonCode) && !["00", "0", "000"].includes(reasonCode ?? ""));
-    if (isErrEnvelope) {
+    if (authMsg || (reasonCode && !["00", "0", "000"].includes(reasonCode))) {
       throw new Error(
         `data.go.kr ${service} 거부 — ${[reasonCode, authMsg].filter(Boolean).join(" ")}`.trim(),
       );
     }
-  } catch (e) {
-    // 위에서 만든 "거부" 에러는 그대로 전파(진단용). 그 외(네트워크 등)는 mock 폴백.
-    if (e instanceof Error && e.message.includes("거부")) throw e;
+    return { items: [], totalCount: 0, mode: "mock" };
   }
-  return { items: [], totalCount: 0, mode: "mock" };
+
+  const resp = (json as { response?: Record<string, unknown> }).response ?? {};
+  const header = (resp.header ?? {}) as { resultCode?: string; resultMsg?: string };
+  if (header.resultCode && !["00", "000", "0"].includes(header.resultCode)) {
+    throw new Error(
+      `data.go.kr ${service} 거부 — ${header.resultCode} ${header.resultMsg ?? ""}`.trim(),
+    );
+  }
+  const body = (resp.body ?? {}) as {
+    item?: unknown;
+    items?: unknown;
+    totalCount?: number;
+  };
+  // 목록: body.items = 배열. 상세: body.item = 객체. 일부는 body.items.item 중첩.
+  const nested = (body.items as { item?: unknown } | undefined)?.item;
+  const node = body.item ?? nested ?? body.items ?? [];
+  const items = (Array.isArray(node) ? node : node ? [node] : []) as Record<string, unknown>[];
+  const totalCount = typeof body.totalCount === "number" ? body.totalCount : items.length;
+  return { items, totalCount, mode: items.length > 0 ? "live" : "mock" };
+}
+
+/** JSON 값(문자/숫자 혼재)을 문자열로 정규화 */
+function s(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
+function toStrRow(r: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(r)) out[k] = s(v);
+  return out;
 }
 
 // ── 단지 목록 ─────────────────────────────────────────────────────────
@@ -97,8 +120,9 @@ function normalizeComplex(r: Record<string, string>): AptComplex {
   return {
     kaptCode: r.kaptCode ?? "",
     kaptName: r.kaptName ?? "",
-    sigunguCd: r.sigunguCd ?? "",
-    bjdongCd: r.bjdongCd || undefined,
+    // V3 목록은 sigunguCd 를 직접 주지 않는다 — bjdCode(법정동코드) 앞 5자리로 대체.
+    sigunguCd: r.sigunguCd || (r.bjdCode ? r.bjdCode.slice(0, 5) : ""),
+    bjdongCd: r.bjdCode || r.bjdongCd || undefined,
     as1: r.as1 || undefined,
     as2: r.as2 || undefined,
     as3: r.as3 || undefined,
@@ -124,18 +148,19 @@ export async function fetchAptComplexList(params: {
     ? resolveSigunguCd(params.sigunguCd)
     : params.sigunguCd;
 
-  const query: Record<string, string | number> = { sigunguCd };
-  if (params.bjdongCd) query.bjdongCd = params.bjdongCd;
+  // V3: 파라미터는 sigunguCode(5자리). bjdongCd 는 법정동 단위 조회 시 사용.
+  const query: Record<string, string | number> = { sigunguCode: sigunguCd };
+  if (params.bjdongCd) query.bjdongCode = params.bjdongCd;
   if (params.pageNo && params.pageNo > 1) query.pageNo = params.pageNo;
 
-  const { items, totalCount, mode } = await fetchAptXml(
-    "AptListService2",
-    "getAptList",
+  const { items, totalCount, mode } = await fetchAptJson(
+    "AptListService3",
+    "getSigunguAptList3",
     query,
-    params.numOfRows ?? 30,
+    params.numOfRows ?? 100,
   );
 
-  return { complexes: items.map(normalizeComplex), totalCount, mode };
+  return { complexes: items.map((r) => normalizeComplex(toStrRow(r))), totalCount, mode };
 }
 
 // ── 단지 기본정보 ─────────────────────────────────────────────────────
@@ -162,6 +187,12 @@ export interface AptComplexDetail {
   raw: Record<string, string>;
 }
 
+/**
+ * V4 기본정보(getAphusBassInfoV4) 필드명 매핑.
+ * 건설사=kaptBcompany(시공)/kaptAcompany(시행), 세대·호=hoCnt/kaptdaCnt,
+ * 난방=codeHeatNm, 관리=codeMgrNm, 도로명=doroJuso, 지번=kaptAddr, 승인=kaptUsedate.
+ * 좌표는 이 API 에 없다(도로명주소를 지오코딩해 채운다).
+ */
 function normalizeComplexDetail(r: Record<string, string>): AptComplexDetail {
   return {
     kaptCode: r.kaptCode ?? "",
@@ -169,17 +200,17 @@ function normalizeComplexDetail(r: Record<string, string>): AptComplexDetail {
     kaptAddr: r.kaptAddr || undefined,
     doroJuso: r.doroJuso || undefined,
     kaptDongCnt: r.kaptDongCnt || undefined,
-    hhldCnt: r.hhldCnt || undefined,
+    hhldCnt: r.hoCnt || r.kaptdaCnt || r.hhldCnt || undefined,
     kaptUsedate: r.kaptUsedate || undefined,
     kaptdaCnt: r.kaptdaCnt || undefined,
-    kaptArea: r.kaptArea || undefined,
+    kaptArea: r.kaptTarea || r.kaptArea || undefined,
     kaptTarea: r.kaptTarea || undefined,
-    kaptMgrStle: r.kaptMgrStle || undefined,
-    heatSplyMthdCd: r.heatSplyMthdCd || undefined,
-    elevCnt: r.elevCnt || undefined,
-    parkingLotCnt: r.parkingLotCnt || undefined,
-    kaptdaCode: r.kaptdaCode || undefined,
-    kaptdaNm: r.kaptdaNm || undefined,
+    kaptMgrStle: r.codeMgrNm || r.kaptMgrStle || undefined,
+    heatSplyMthdCd: r.codeHeatNm || r.heatSplyMthdCd || undefined,
+    elevCnt: r.kaptdEcnt || r.elevCnt || undefined,
+    parkingLotCnt: r.parkingLotCnt || undefined, // 기본정보엔 없음(상세정보 getAphusDtlInfoV4)
+    kaptdaCode: r.kaptBcompany ? undefined : r.kaptdaCode || undefined,
+    kaptdaNm: r.kaptBcompany || r.kaptdaNm || undefined,
     lat: r.lat || r.latitude || undefined,
     lng: r.lng || r.longitude || undefined,
     raw: r,
@@ -187,20 +218,53 @@ function normalizeComplexDetail(r: Record<string, string>): AptComplexDetail {
 }
 
 /**
- * 공동주택 단지 기본정보 조회.
+ * V4 상세정보(getAphusDtlInfoV4) — 주차·승강기·편의시설을 기본정보 위에 덧댄다.
+ * 주차 = 지상(kaptdPcnt) + 지하(kaptdPcntu).
+ */
+function mergeDetailInfo(base: AptComplexDetail, r: Record<string, string>): AptComplexDetail {
+  const ground = Number(r.kaptdPcnt) || 0;
+  const under = Number(r.kaptdPcntu) || 0;
+  const parking = ground + under;
+  return {
+    ...base,
+    parkingLotCnt: parking > 0 ? String(parking) : base.parkingLotCnt,
+    elevCnt: r.kaptdEcnt || base.elevCnt,
+    raw: { ...base.raw, ...r },
+  };
+}
+
+/**
+ * 공동주택 단지 기본정보 조회 (V4). 기본정보 + 상세정보(주차·편의시설)를 합쳐 반환.
  * @param kaptCode 단지코드 (fetchAptComplexList 결과의 kaptCode)
+ * @param withDetail 상세정보(주차 등)까지 받을지 — 쿼터를 아끼려면 false (기본 true)
  */
 export async function fetchAptComplexDetail(
   kaptCode: string,
+  withDetail = true,
 ): Promise<{ detail: AptComplexDetail | null; mode: "live" | "mock" }> {
-  const { items, mode } = await fetchAptXml(
-    "AptBasisInfoService2",
-    "getAptsaleInfo",
+  const { items, mode } = await fetchAptJson(
+    "AptBasisInfoServiceV4",
+    "getAphusBassInfoV4",
     { kaptCode },
     1,
   );
   if (items.length === 0) return { detail: null, mode };
-  return { detail: normalizeComplexDetail(items[0]), mode };
+  let detail = normalizeComplexDetail(toStrRow(items[0]));
+
+  if (withDetail) {
+    try {
+      const dtl = await fetchAptJson(
+        "AptBasisInfoServiceV4",
+        "getAphusDtlInfoV4",
+        { kaptCode },
+        1,
+      );
+      if (dtl.items[0]) detail = mergeDetailInfo(detail, toStrRow(dtl.items[0]));
+    } catch {
+      // 상세정보 실패는 치명적이지 않다 — 기본정보만으로 진행.
+    }
+  }
+  return { detail, mode };
 }
 
 /**
