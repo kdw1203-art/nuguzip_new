@@ -12,6 +12,8 @@ export type ReportMonthSummary = {
   ym: string;
   regionCount: number;
   txCount: number;
+  /** 그 달 집계가 마지막으로 갱신된 시각(ISO) — RSS pubDate 등에 쓰는 실측 날짜 */
+  updatedAt: string | null;
 };
 
 export type ReportRegionRow = {
@@ -65,7 +67,7 @@ export async function listReportMonths(): Promise<ReportMonthSummary[]> {
   if (!sb) return [];
   const { data, error } = await sb
     .from("market_region_monthly")
-    .select("month, transaction_count")
+    .select("month, transaction_count, updated_at")
     .eq("deal_type", "trade")
     .eq("property_type", "apartment")
     .limit(5000);
@@ -74,9 +76,12 @@ export async function listReportMonths(): Promise<ReportMonthSummary[]> {
   for (const r of data) {
     const ym = String(r.month ?? "");
     if (!isValidYm(ym)) continue;
-    const cur = byYm.get(ym) ?? { ym, regionCount: 0, txCount: 0 };
+    const cur = byYm.get(ym) ?? { ym, regionCount: 0, txCount: 0, updatedAt: null };
     cur.regionCount += 1;
     cur.txCount += Number(r.transaction_count ?? 0);
+    // 그 달 행들 중 가장 나중 갱신 시각 — 없으면 null 로 둔다(날짜를 지어내지 않는다).
+    const u = r.updated_at ? String(r.updated_at) : null;
+    if (u && (!cur.updatedAt || u > cur.updatedAt)) cur.updatedAt = u;
     byYm.set(ym, cur);
   }
   return [...byYm.values()].sort((a, b) => b.ym.localeCompare(a.ym));

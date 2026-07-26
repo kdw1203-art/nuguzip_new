@@ -59,6 +59,16 @@ export default function RootLayout({
             crossOrigin 은 필수 — 폰트는 CORS 로 받으므로 이게 없으면 연결이
             재사용되지 않고 따로 하나 더 열린다. */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        {/* N3 — RSS 자동 발견. 리더·크롤러는 이 태그로 피드를 찾는다. 메타데이터
+            규약(alternates.types)에 두지 않은 이유는, 페이지가 canonical 을
+            지정하면 alternates 객체가 통째로 덮여 피드 링크가 사라지기 때문이다.
+            여기 두면 모든 페이지에 남는다. */}
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="누구집 — 실거래 리포트·임장노트"
+          href="https://nuguzip.com/feed.xml"
+        />
         {/* 비애플 기기 폰트 폴백 — Pretendard Variable (dynamic subset) */}
         <link
           rel="stylesheet"

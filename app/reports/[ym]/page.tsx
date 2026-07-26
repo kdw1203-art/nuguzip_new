@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { QaBlock } from "../../components/QaBlock";
 import { CitationBlock } from "../../components/CitationBlock";
+import { PressSummaryBlock } from "../../components/PressSummaryBlock";
 import { getMonthlyReport, formatYmKo, isValidYm } from "@/lib/reports/monthly";
 import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -69,11 +70,13 @@ export default async function MonthlyReportPage({
   if (!report) notFound();
 
   const label = formatYmKo(report.ym);
-  const momText =
+  const momPct =
     report.prevTxCount && report.prevTxCount > 0
-      ? `${report.prevTxCount.toLocaleString("ko-KR")}건이었던 전월(${formatYmKo(report.prevYm!)}) 대비 ${(
-          ((report.txCount - report.prevTxCount) / report.prevTxCount) * 100
-        ).toFixed(1)}%`
+      ? ((report.txCount - report.prevTxCount) / report.prevTxCount) * 100
+      : null;
+  const momText =
+    report.prevTxCount && momPct !== null
+      ? `${report.prevTxCount.toLocaleString("ko-KR")}건이었던 전월(${formatYmKo(report.prevYm!)}) 대비 ${momPct.toFixed(1)}%`
       : null;
 
   /* G12 — 첫 문단: 발췌해도 완결되는 정의형 문장 */
@@ -104,6 +107,34 @@ export default async function MonthlyReportPage({
       q: `${label} 평균가가 가장 많이 오른 지역은?`,
       a: `집계 지역(거래 10건 이상) 중 ${r.regionName}의 평균 매매가가 전월 대비 ${deltaText(r.deltaPct)} 변동으로 상승 폭이 가장 컸습니다. 평균가는 면적 구성에 따라 달라질 수 있는 단순 평균입니다.`,
     });
+  }
+
+  /* N18 — 기사 리드로 그대로 옮길 수 있는 3문장. 전부 위에서 쓴 실측치 재사용이고,
+     여기서 새로 계산하거나 해석을 덧붙이지 않는다. 근거가 없으면 문장을 뺀다. */
+  const pressSentences: string[] = [
+    `누구집이 국토교통부 실거래 신고 자료를 집계한 결과, ${label} 전국 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건으로 나타났다${
+      momPct !== null ? ` (전월 ${formatYmKo(report.prevYm!)} 대비 ${momPct.toFixed(1)}%)` : ""
+    }.`,
+  ];
+  if (top) {
+    pressSentences.push(
+      `거래량이 가장 많았던 지역은 ${top.regionName}(${top.txCount.toLocaleString("ko-KR")}건)이었다${
+        top.avgKrw ? `, 이 지역의 ${label} 평균 매매가는 ${eok(top.avgKrw)}이다` : ""
+      }.`,
+    );
+  }
+  if (report.risers.length > 0 || report.fallers.length > 0) {
+    const upPart =
+      report.risers.length > 0
+        ? `상승 폭이 가장 컸던 지역은 ${report.risers[0].regionName}(전월 대비 ${(report.risers[0].deltaPct ?? 0).toFixed(1)}%)`
+        : "";
+    const downPart =
+      report.fallers.length > 0
+        ? `하락 폭이 가장 컸던 지역은 ${report.fallers[0].regionName}(전월 대비 ${(report.fallers[0].deltaPct ?? 0).toFixed(1)}%)`
+        : "";
+    pressSentences.push(
+      `그 달 거래 10건 이상인 지역만 놓고 보면 ${[upPart, downPart].filter(Boolean).join(", ")}였다 (면적을 가중하지 않은 단순 평균 기준).`,
+    );
   }
 
   const articleJsonLd = {
@@ -223,9 +254,14 @@ export default async function MonthlyReportPage({
           </p>
         </section>
 
-        {/* G8 인용 블록 + G5/G13 Q&A */}
+        {/* G8 인용 블록 + N18 언론 인용 요약 + G5/G13 Q&A */}
         <div className="rise-in-4 mt-5">
           <CitationBlock sentence={citation} />
+          <PressSummaryBlock
+            sentences={pressSentences}
+            asOfLabel={`${label} 실거래 신고 기준`}
+            provisional={report.isProvisional}
+          />
           <QaBlock title={`${label} 실거래 Q&A`} items={faq} />
         </div>
 
