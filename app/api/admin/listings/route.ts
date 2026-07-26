@@ -59,11 +59,20 @@ export async function PATCH(req: NextRequest) {
     try {
       const sb = getServiceSupabase();
       if (sb) {
-        const { data } = await sb
+        const { data, error } = await sb
           .from("listings")
           .select("author_email, complex_name")
           .eq("id", id)
           .maybeSingle();
+        /* 못 읽으면 authorEmail 이 비어 아래 인박스 알림이 조용히 건너뛰어진다 —
+           숨김/해제된 당사자는 이유를 통보받지 못한 채로 남는다. 숨김 처리 자체는
+           이미 끝났으니 되돌리지 않고, 통보를 못 보냈다는 사실만 남긴다. */
+        if (error) {
+          logger.warn(
+            `[admin/listings] 매물 조회 실패 (listing=${id}) — 작성자 통보를 보내지 못했습니다.`,
+            error,
+          );
+        }
         const row = (data ?? null) as {
           author_email?: string | null;
           complex_name?: string | null;
