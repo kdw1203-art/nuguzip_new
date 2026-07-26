@@ -127,6 +127,63 @@ function serializeSitemapIndex(paths: readonly string[]): string {
 }
 
 /**
+ * optional 유형 하나의 "비었는지" 판정에 주는 시간(ms).
+ *
+ * 2026-07-26 프로덕션 오류를 보면 사이트맵 경로들이 하루에 100건 가까이
+ * `Vercel Runtime Timeout Error: Task timed out after 300 seconds` 로 죽고 있었다
+ * (/sitemap.xml 48 · /sitemap-pairs.xml 36 · /sitemap-regions.xml 12 ·
+ * /sitemap-complexes.xml 4). 서치어드바이저에 사이트맵을 제출했을 때 나온
+ * "접근 실패 · Status 0 · HTTP 응답을 받지 못했습니다" 가 바로 이것이다.
+ *
+ * 인덱스는 **제출하는 그 주소**라서 늦게라도 정확한 답보다 제때 뜨는 답이 낫다.
+ * 그래서 판정에 예산을 주고, 예산을 넘기면 기다리지 않는다. 다만 넘겼다고
+ * "URL 이 없다"로 해석하지는 않는다 — 모르는 것은 모르는 것이라, 아래에서
+ * 조회 실패와 똑같이 "싣되 캐시하지 않는다"로 처리한다. 6초는 네 유형이
+ * 병렬로 도니 인덱스 전체 상한이기도 하다.
+ */
+const INDEX_PROBE_BUDGET_MS = 6_000;
+
+/**
+ * 자식 사이트맵 한 장을 만드는 데 주는 시간(ms).
+ *
+ * 인덱스보다 훨씬 넉넉하다 — 자식은 실제로 URL 을 다 만들어야 하고(단지 5,147개
+ * 같은 규모), 정상 상태에서는 십수 초 안에 끝난다. 여기서 상한을 두는 목적은
+ * 느린 생성을 잘라내는 게 아니라 **무응답을 응답으로 바꾸는 것**이다.
+ * 300초를 다 태우고 죽으면 크롤러는 아무것도 못 받지만, 45초 뒤 503 + Retry-After
+ * 는 "지금은 못 준다, 나중에 오라"는 분명한 말이다.
+ */
+const SECTION_LOAD_BUDGET_MS = 45_000;
+
+type BudgetResult<T> =
+  | { state: "ok"; value: T }
+  | { state: "timeout" }
+  | { state: "error"; error: unknown };
+
+/**
+ * 약속 하나에 시간 상한을 씌운다. 상한을 넘겨도 원본을 **취소하지는 않는다** —
+ * 취소할 방법이 없기도 하고, 뒤늦게 끝나면 그 결과는 그냥 버려질 뿐이다.
+ * 다만 뒤늦은 거절이 unhandled rejection 으로 프로세스에 올라가지 않도록
+ * 빈 catch 를 붙여 둔다.
+ */
+async function withBudget<T>(p: Promise<T>, ms: number): Promise<BudgetResult<T>> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const settled: Promise<BudgetResult<T>> = p.then(
+    (value) => ({ state: "ok" as const, value }),
+    (error: unknown) => ({ state: "error" as const, error }),
+  );
+  /* 늦게 도착한 거절을 삼킨다(위 settled 와 별개의 체인이라 따로 필요하다). */
+  void p.catch(() => undefined);
+  const timeout = new Promise<BudgetResult<T>>((resolve) => {
+    timer = setTimeout(() => resolve({ state: "timeout" as const }), ms);
+  });
+  try {
+    return await Promise.race([settled, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
  * 인덱스 응답 본문 + 캐시 가능 여부.
  *
  * ── 왜 required 유형은 읽지 않는가 (2026-07-26 실측으로 바꿈) ─────────────
@@ -160,17 +217,30 @@ export async function buildSitemapIndex(): Promise<{ xml: string; cacheable: boo
   let cacheable = true;
   const decided = await Promise.all(
     optional.map(async (section) => {
-      try {
-        return { slug: section.slug, include: (await section.load()).length > 0 };
-      } catch (err) {
-        cacheable = false;
+      /* 판정이 예산 안에 안 끝나면 기다리지 않는다. 이유는 INDEX_PROBE_BUDGET_MS
+         주석 참고 — 이 주소는 서치콘솔·서치어드바이저에 제출하는 바로 그 URL 이고,
+         제출 시점에 안 뜨면 등록 자체가 실패한다. */
+      const probe = await withBudget(
+        Promise.resolve().then(() => section.load()),
+        INDEX_PROBE_BUDGET_MS,
+      );
+      if (probe.state === "ok") return { slug: section.slug, include: probe.value.length > 0 };
+
+      cacheable = false;
+      if (probe.state === "timeout") {
+        logger.error(
+          `[sitemap] 인덱스: ${section.label}(${section.slug}) 판정이 ` +
+            `${INDEX_PROBE_BUDGET_MS}ms 안에 끝나지 않았습니다. ` +
+            `비었는지 알 수 없으므로 인덱스에 싣고, 응답을 캐시하지 않습니다.`,
+        );
+      } else {
         logger.error(
           `[sitemap] 인덱스: ${section.label}(${section.slug}) 조회에 실패했습니다 — ` +
-            `${err instanceof Error ? err.message : String(err)}. ` +
+            `${probe.error instanceof Error ? probe.error.message : String(probe.error)}. ` +
             `"URL 이 없다"와 구분되지 않으므로 인덱스에서 빼지 않고 싣고, 응답을 캐시하지 않습니다.`,
         );
-        return { slug: section.slug, include: true };
       }
+      return { slug: section.slug, include: true };
     }),
   );
   const includeOptional = new Map(decided.map((d) => [d.slug, d.include]));
@@ -195,13 +265,33 @@ export function sitemapSectionRoute(slug: SitemapSectionSlug) {
     const section = SECTION_BY_SLUG.get(slug);
     if (!section) return new Response("Not Found", { status: 404 });
 
-    let entries: MetadataRoute.Sitemap;
-    try {
-      entries = capSitemapUrls(await section.load());
-    } catch (err) {
+    const loaded = await withBudget(
+      Promise.resolve().then(() => section.load()),
+      SECTION_LOAD_BUDGET_MS,
+    );
+
+    if (loaded.state === "timeout") {
+      /* 상한을 넘겼다. 예전에는 여기서 그냥 계속 기다렸고, 그 끝은 응답이 아니라
+         `Vercel Runtime Timeout Error: Task timed out after 300 seconds` 였다.
+         크롤러 쪽에서는 그게 "Status 0 · HTTP 응답을 받지 못했습니다(네트워크
+         오류)" 로 보인다 — 서치어드바이저 사이트맵 제출이 실패한 이유가 이것이다.
+         같은 실패라도 503 + Retry-After 는 "나중에 다시 오라"는 말이 되고,
+         무응답은 아무 말도 아니다. 늦게라도 정확한 답보다 제때 뜨는 답이 낫다. */
+      logger.error(
+        `[sitemap] ${sitemapSectionPath(slug)} — ${section.label} 생성이 ` +
+          `${SECTION_LOAD_BUDGET_MS}ms 안에 끝나지 않았습니다(503 응답).`,
+      );
+      return new Response("Sitemap temporarily unavailable", {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "600" },
+      });
+    }
+
+    if (loaded.state === "error") {
       /* 조회 실패. 빈 <urlset> 을 200 으로 주면 크롤러에게 "이 유형의 URL 은
          전부 없어졌다"고 적극적으로 거짓말하는 셈이다. 못 준다고 말한다.
          (required 여부와 무관하다 — 실패는 어느 유형에서든 실패다.) */
+      const err = loaded.error;
       logger.error(
         `[sitemap] ${sitemapSectionPath(slug)} — ${section.label} 조회에 실패했습니다(503 응답). ` +
           `${err instanceof Error ? err.message : String(err)}`,
@@ -211,6 +301,8 @@ export function sitemapSectionRoute(slug: SitemapSectionSlug) {
         headers: { "Cache-Control": "no-store", "Retry-After": "600" },
       });
     }
+
+    const entries: MetadataRoute.Sitemap = capSitemapUrls(loaded.value);
 
     /* 예외 없이 0개인데 그러면 안 되는 유형 = 조용한 실패다(로더가 부분 결과를
        정상처럼 돌려주는 경로가 남아 있을 수 있다). 이때도 200 대신 503 을 낸다. */
