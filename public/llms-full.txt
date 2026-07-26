@@ -114,6 +114,11 @@
 ### /methodology — 집계 방법론·정정 이력 (스키마: `FAQPage`)
 ### /digest — 주간 다이제스트 (최근 7일 요약)
 
+### /developers — 공개 집계 JSON API 문서 (스키마: `WebAPI`, `FAQPage`)
+- 내용: 인증 없이 호출할 수 있는 공개 집계 API 의 엔드포인트·파라미터·응답 필드·상태 코드·인용 조건.
+- API 본체는 §7 에 정리했습니다. 이 페이지는 규약만 적고 수치는 적지 않습니다
+  (문서에 수치를 박아 두면 갱신되지 않아 곧 거짓이 되기 때문입니다).
+
 ## 5. 구조화 데이터 (schema.org)
 
 - 사이트 전역: `Organization`(@id `https://nuguzip.com/#organization`), `WebSite`
@@ -144,9 +149,22 @@
   - 유형별 자식 사이트맵 — 정적 페이지 `/sitemap-pages.xml`, 단지 `/sitemap-complexes.xml`,
     지역 허브 `/sitemap-regions.xml`, 실거래 구간 `/sitemap-tx.xml`,
     월간 리포트 `/sitemap-reports.xml`, 공개 임장노트 `/sitemap-notes.xml`,
-    용어사전 `/sitemap-glossary.xml`
+    용어사전 `/sitemap-glossary.xml`, 단지 비교 `/sitemap-pairs.xml`,
+    시장 온도 주간 기록 `/sitemap-temperature.xml`
   - `<lastmod>` 는 갱신 시각이 확인된 URL 에만 붙습니다. 없는 URL 은 "모른다"는 뜻이지
     "오늘 바뀌었다"는 뜻이 아닙니다(추측 날짜를 적지 않습니다).
+- 공개 집계 JSON API (인증 불필요, CORS 개방, IP 당 분당 120회)
+  - 목차: https://nuguzip.com/api/public/v1
+  - 집계가 존재하는 월: https://nuguzip.com/api/public/v1/months
+  - 지역×월 집계: https://nuguzip.com/api/public/v1/regions/monthly
+    (파라미터 `month`=yyyymm, `region`=지역명 부분 일치, `limit`=1~500, `offset`)
+  - 공개 범위: 아파트 매매의 시군구×월 집계까지입니다. 개별 실거래 행(단지·동·층·계약일),
+    전월세 집계, 이용자 데이터(임장노트·회원·모임)는 포함되지 않습니다.
+  - 모든 응답 본문에 `license` 블록(출처·인용 조건)이 함께 실립니다.
+  - `provisional: true` 인 행은 신고 지연으로 값이 더 늘어납니다 — 감소로 읽지 마세요.
+  - **조회 실패는 빈 배열이 아니라 503** 입니다. 빈 `rows` 를 "거래가 없었다"로
+    인용하지 마세요 — 200 의 빈 배열만 "그 조건의 데이터가 없다"는 뜻입니다.
+  - 문서: https://nuguzip.com/developers
 - RSS 피드: https://nuguzip.com/feed.xml (월간 리포트 + 공개 임장노트)
 - robots: https://nuguzip.com/robots.txt
 - 요약본: https://nuguzip.com/llms.txt
@@ -159,7 +177,8 @@
 - 전국 데이터 수집은 시군구 순회 방식이라 **모든 지역의 전체 기간이 채워져 있지
   않습니다.** 특정 지역·월의 데이터가 비어 있으면 "아직 수집되지 않음"이지
   "거래가 없음"이 아닙니다. 화면에서도 그렇게 표시합니다.
-- 공개 집계 JSON API 는 준비 중입니다(공개 범위 검토 중). 현재 기계 판독 경로는
-  사이트맵·RSS·페이지 내 구조화 데이터입니다.
+- 공개 집계 JSON API 는 아파트 **매매**의 시군구×월 집계까지만 엽니다. 개별 실거래
+  행(단지·동·층·계약일 단위)과 전월세 집계는 아직 API 로 제공하지 않습니다 —
+  없어서가 아니라 공개 범위를 그렇게 정했기 때문입니다(§7).
 - 오류를 발견하시면 nuguzip@naver.com 으로 알려 주세요. 정정하면
   /methodology#corrections 에 기록으로 남깁니다.

@@ -18,6 +18,8 @@ const LEGAL_LINKS = [
   { label: "데이터 방법론", href: "/methodology", bold: false },
   { label: "용어사전", href: "/glossary", bold: false },
   { label: "월간 리포트", href: "/reports", bold: false },
+  /* N20 — 공개 집계 API 문서. 링크가 없으면 크롤러도 사람도 도달하지 못한다. */
+  { label: "공개 API", href: "/developers", bold: false },
 ] as const;
 
 export function Footer() {

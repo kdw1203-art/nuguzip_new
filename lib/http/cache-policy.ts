@@ -66,6 +66,7 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/safety", ...STATIC_DOC },
   { path: "/methodology", ...STATIC_DOC },
   { path: "/glossary", ...STATIC_DOC },
+  { path: "/developers", ...STATIC_DOC },
   { path: "/reports", ...STATIC_DOC },
   { path: "/about", ...STATIC_DOC },
   { path: "/seller", ...STATIC_DOC },

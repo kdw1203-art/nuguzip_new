@@ -106,6 +106,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/safety", priority: 0.4 },
   { path: "/methodology", priority: 0.5 }, // G18 — 데이터 방법론 (EEAT·GEO 인용 근거)
   { path: "/glossary", priority: 0.5 }, // S14 — 정의형 용어사전
+  { path: "/developers", priority: 0.4 }, // N20 — 공개 집계 JSON API 문서
   { path: "/reports", priority: 0.6 }, // S11 — 월간 실거래 리포트 허브
   { path: "/about", priority: 0.4 }, // G22 — 소개·운영 원칙
   // 법적 고지 허브 + 하위 8종 (감사 P1-11)
