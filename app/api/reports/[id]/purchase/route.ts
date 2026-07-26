@@ -18,6 +18,10 @@ import {
   getPaymentByOrderId,
 } from "@/lib/payments/store";
 import { applyRateLimit, AUTH_RATE_LIMIT, READ_RATE_LIMIT } from "@/lib/rate-limit";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 구매 여부를 못 읽은 것을 "안 샀다"로 읽지 않기 위한 안내. */
+const PURCHASE_UNAVAILABLE = "지금은 구매 내역을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,8 +52,15 @@ export async function GET(
     return NextResponse.json({ access: true, reason: "owner" });
   }
 
-  // 이미 구매했는지 확인
-  const purchased = await hasPurchased(id, session.user.email);
+  /* 이미 구매했는지 확인.
+     조회 실패를 false 로 흘리면 아래에서 `requires_purchase` 를 돌려주게 되고,
+     화면은 이미 결제한 사람에게 결제창을 다시 띄운다. 그건 답하지 않는다. */
+  let purchased: boolean;
+  try {
+    purchased = await hasPurchased(id, session.user.email);
+  } catch (err) {
+    return dbUnavailable(`구매 기록 조회 실패 (report=${id})`, err, PURCHASE_UNAVAILABLE);
+  }
   if (purchased) {
     return NextResponse.json({ access: true, reason: "purchased" });
   }
@@ -85,8 +96,13 @@ export async function POST(
   const report = await getReport(id);
   if (!report) return NextResponse.json({ error: "리포트를 찾을 수 없습니다." }, { status: 404 });
 
-  // 이미 구매한 경우
-  const alreadyPurchased = await hasPurchased(id, session.user.email);
+  /* 이미 구매한 경우. 여기서 못 읽은 채 진행하면 같은 리포트를 두 번 결제한다. */
+  let alreadyPurchased: boolean;
+  try {
+    alreadyPurchased = await hasPurchased(id, session.user.email);
+  } catch (err) {
+    return dbUnavailable(`구매 기록 조회 실패 (report=${id})`, err, PURCHASE_UNAVAILABLE);
+  }
   if (alreadyPurchased) {
     return NextResponse.json({ ok: true, alreadyPurchased: true });
   }

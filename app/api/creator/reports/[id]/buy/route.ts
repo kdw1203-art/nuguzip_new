@@ -21,6 +21,10 @@ import {
   rateLimit,
   tooManyRequests,
 } from "@/lib/rate-limit";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/** 구매 여부를 못 읽은 것을 "안 샀다"로 읽지 않기 위한 안내. */
+const PURCHASE_UNAVAILABLE = "지금은 구매 내역을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -61,8 +65,16 @@ export async function POST(
     return NextResponse.json({ ok: true, access: true, reason: "owner" });
   }
 
-  // 이미 구매
-  if (await hasPurchased(id, email)) {
+  /* 이미 구매했는지 확인.
+     못 읽었으면 "안 샀다"로 넘어가지 않는다 — 그대로 진행하면 이미 결제한
+     사람에게 포인트를 한 번 더 받게 된다. (바로 아래 잔액 확인과 같은 태도다.) */
+  let alreadyPurchased: boolean;
+  try {
+    alreadyPurchased = await hasPurchased(id, email);
+  } catch (err) {
+    return dbUnavailable(`구매 기록 조회 실패 (report=${id})`, err, PURCHASE_UNAVAILABLE);
+  }
+  if (alreadyPurchased) {
     return NextResponse.json({ ok: true, access: true, alreadyPurchased: true });
   }
 
