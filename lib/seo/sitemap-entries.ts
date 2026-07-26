@@ -1,6 +1,7 @@
 import "server-only";
 
 import { encodeComplexId } from "@/lib/complex/complex-store";
+import { logger } from "@/lib/log";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
 /**
@@ -15,6 +16,19 @@ import { getServiceSupabase } from "@/lib/supabase/service";
  *
  * PostgREST 는 GROUP BY 를 못 하므로 집계는 뷰(public.complex_sitemap_source)로
  * 내렸다. 뷰는 `security_invoker = on` 이라 원본 테이블의 RLS 가 그대로 적용된다.
+ *
+ * ── 2026-07-26: 그 뷰가 결국 사이트맵을 통째로 죽였다 ────────────
+ * 집계 뷰는 요청마다 다시 돈다. market_transactions 가 국토부 백필로 56만 행까지
+ * 커지자 아래 쿼리 한 페이지가 12,980ms 가 됐고(EXPLAIN ANALYZE 실측: Seq Scan →
+ * HashAggregate Planned Partitions 4 → top-N Sort, 디스크에서 398MB 읽음),
+ * PostgREST 의 8초 statement_timeout 에 걸려 취소됐다. 그러면 아래 루프가 첫
+ * 페이지에서 빠져나가 빈 배열을 돌려주고, /sitemap-complexes.xml 은 503 이 됐다.
+ * 단지 URL 25,171개가 크롤러에 아예 안 나가고 있었다.
+ *
+ * 그래서 집계를 market_agg.complex_sitemap_mv 로 미리 계산해 두고 뷰는 그것을
+ * 읽기만 한다(마이그레이션 20260726034500). 뷰 이름·컬럼이 그대로라 이 쿼리는
+ * 한 글자도 바뀌지 않았고, 같은 페이지가 248ms · Index Only Scan · Heap Fetches 0
+ * 으로 돌아온다. 정렬 순서와 똑같은 커버링 인덱스를 만들어 둔 덕이다.
  *
  * ── lastModified 를 사실로 ─────────────────────────────────────
  * 기존 코드는 모든 URL 에 `lastModified: new Date()` 를 찍었다. "방금 바뀌었다"를
@@ -56,13 +70,25 @@ type SourceRow = {
  * 정렬은 거래 건수 내림차순 + 이름 오름차순으로 **결정적**이어야 한다. 페이지네이션
  * 중 정렬이 흔들리면 같은 행이 두 번 나오거나 아예 빠진다.
  *
- * 조회 실패 시 빈 배열 — 사이트맵 전체를 죽이지 않는다.
+ * ── 조회가 실패하면 던진다 (예전엔 조용히 멈췄다) ──────────────
+ * 예전 코드는 `if (error) break` 였다. 페이지 3에서 실패하면 3,000개만 담긴
+ * 배열이 아무 소리 없이 정상 반환됐고, 호출부는 그것을 "단지가 3,000개"로 받았다.
+ * 잘린 사이트맵은 빈 사이트맵보다 나쁘다 — 크롤러에게 "나머지 22,000개는
+ * 존재하지 않는다"고 적극적으로 거짓말하는 것이기 때문이다.
+ *
+ * 그래서 실패는 예외로 올린다. 호출부(loadComplexEntries)가 로그를 남기고 빈
+ * 배열로 바꾸면, 사이트맵 인덱스가 그 섹션을 "필수인데 비었다"로 보고 503 +
+ * no-store 를 낸다. 틀린 상태를 한 시간 캐시에 굳히지 않는 쪽이 맞다.
  */
 export async function listComplexSitemapEntries(
   max = SITEMAP_URL_LIMIT,
 ): Promise<ComplexSitemapEntry[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    // env 미설정은 "데이터가 없다"가 아니라 "읽을 수단이 없다"다. 구분해서 남긴다.
+    logger.error("[sitemap] 단지 목록: 서비스 롤 키가 없어 조회 자체를 못 했습니다.");
+    return [];
+  }
 
   const out: ComplexSitemapEntry[] = [];
   let from = 0;
@@ -79,7 +105,12 @@ export async function listComplexSitemapEntries(
       .order("complex_name", { ascending: true })
       .range(from, to);
 
-    if (error) break;
+    if (error) {
+      throw new Error(
+        `complex_sitemap_source 조회 실패 (page ${page}, range ${from}-${to}, 지금까지 ${out.length}개) — ` +
+          `${error.message}${error.code ? ` [${error.code}]` : ""}`,
+      );
+    }
     const rows = (data ?? []) as SourceRow[];
     if (rows.length === 0) break;
 

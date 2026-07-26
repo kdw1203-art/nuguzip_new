@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { MetadataRoute } from "next";
+import { logger } from "@/lib/log";
 import { listPublicNotes } from "@/lib/inspection/store-db";
 import { glossaryPaths } from "@/lib/seo/glossary-terms";
 import {
@@ -129,6 +130,36 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
    lib/seo/sitemap-sections.ts 의 buildSitemapIndex() 로 옮겼다 — 실제로 매
    인덱스 요청마다 돌아가는 자리다. */
 
+/**
+ * 로더 공통 실패 처리 — **이유를 반드시 남긴다.**
+ *
+ * 원래 모든 로더가 `catch { return [] }` 였다. 그래서 "조회가 실패했다"와
+ * "그 유형의 URL 이 원래 없다"가 호출부에서 완전히 같은 값으로 보였다.
+ * 실제 사고: 단지 집계 쿼리가 PostgREST 8초 타임아웃에 걸려 취소되고 있었는데
+ * 로그가 한 줄도 안 남아서, /sitemap-complexes.xml 이 503 을 내는 것만 보고
+ * 원인을 역추적해야 했다. 25,171개 단지 URL 이 그동안 색인에서 빠져 있었다.
+ *
+ * 빈 배열을 돌려주는 동작 자체는 유지한다 — 한 유형이 실패해도 나머지 사이트맵은
+ * 나가야 하고, 필수 유형이 비면 sitemap-sections.ts 가 그 자식에 503 을 주고
+ * 인덱스를 no-store 로 돌린다(틀린 상태를 캐시에 굳히지 않는다). 바뀐 것은
+ * 하나뿐이다: 이제 왜 비었는지가 로그에 남는다.
+ */
+async function section(
+  name: string,
+  load: () => Promise<MetadataRoute.Sitemap>,
+): Promise<MetadataRoute.Sitemap> {
+  try {
+    return await load();
+  } catch (e) {
+    logger.error(
+      `[sitemap] "${name}" 유형을 만들지 못해 이 블록을 비웁니다 — ${
+        e instanceof Error ? e.message : String(e)
+      }`,
+    );
+    return [];
+  }
+}
+
 /** 정적 라우트는 배포할 때 바뀐다 — 언제였는지 런타임에 알 방법이 없으므로
     lastModified 를 적지 않는다(추측한 날짜보다 없는 편이 정확하다). */
 export function loadStaticEntries(): MetadataRoute.Sitemap {
@@ -139,7 +170,7 @@ export function loadStaticEntries(): MetadataRoute.Sitemap {
 }
 
 export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
-  try {
+  return section("공개 임장노트", async () => {
     const notes = await listPublicNotes(200);
     return notes
       .filter((n) => n.isPublic)
@@ -151,28 +182,24 @@ export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
           priority: 0.7,
         };
       });
-  } catch {
-    return []; // env 미설정·조회 실패 시 생략
-  }
+  });
 }
 
-/** 프로그래매틱 SEO 핵심 랜딩 — 실거래가 있는 단지 전체(현재 5,147개). */
+/** 프로그래매틱 SEO 핵심 랜딩 — 실거래가 있는 단지 전체(2026-07-26 기준 25,171개). */
 export async function loadComplexEntries(): Promise<MetadataRoute.Sitemap> {
-  try {
+  return section("단지", async () => {
     const complexes = await listComplexSitemapEntries();
     return complexes.map((c) => ({
       url: `${BASE_URL}/complex/${c.id}`,
       ...(c.lastModified ? { lastModified: c.lastModified } : {}),
       priority: 0.8,
     }));
-  } catch {
-    return [];
-  }
+  });
 }
 
 /** 지역 허브 SEO 페이지 — market_region_price 61개 지역 (/region/[id]) */
 export async function loadRegionEntries(): Promise<MetadataRoute.Sitemap> {
-  try {
+  return section("지역", async () => {
     const { getAllRegionSnapshots } = await import("@/lib/market/store");
     const snapshots = await getAllRegionSnapshots();
     return [...snapshots.values()].map((s) => {
@@ -183,38 +210,32 @@ export async function loadRegionEntries(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       };
     });
-  } catch {
-    return [];
-  }
+  });
 }
 
 /** A5 — 지역 × 면적대·가격대 실거래 랜딩. 거래 10건 이상인 셀만 페이지가 있으므로
     여기 실리는 URL 은 전부 실제 데이터가 있는 페이지다(사이트맵에 404 를 넣지 않는다). */
 export async function loadBandEntries(): Promise<MetadataRoute.Sitemap> {
-  try {
+  return section("실거래 구간", async () => {
     const bands = await listBandSitemapEntries();
     return bands.map((b) => ({
       url: `${BASE_URL}${b.path}`,
       ...(b.lastModified ? { lastModified: b.lastModified } : {}),
       priority: b.isHub ? 0.7 : 0.6,
     }));
-  } catch {
-    return [];
-  }
+  });
 }
 
 /** S11 — 월간 실거래 리포트 (데이터 있는 달만 — 빈 리포트 URL 을 넣지 않는다) */
 export async function loadReportEntries(): Promise<MetadataRoute.Sitemap> {
-  try {
+  return section("월간 실거래 리포트", async () => {
     const { listReportMonths } = await import("@/lib/reports/monthly");
     const months = await listReportMonths();
     return months.map((m) => ({
       url: `${BASE_URL}/reports/${m.ym}`,
       priority: 0.7,
     }));
-  } catch {
-    return [];
-  }
+  });
 }
 
 /** N14 — 용어 개별 페이지. 코드 상수에서 나오므로 DB 조회도, 실패 경로도 없다.

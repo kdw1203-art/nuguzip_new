@@ -26,6 +26,15 @@ import { logger } from "@/lib/log";
  * 뷰 이름·컬럼은 그대로 두고 본문만 `select * from <mv>` 로 바꿨기 때문에
  * 읽는 쪽 코드는 손대지 않았다.
  *
+ * ── 2026-07-26: 단지 사이트맵도 같은 이유로 합류 ────────────────────────────
+ * 국토부 백필로 `market_transactions` 가 56만 행이 되자 `complex_sitemap_source`
+ * 집계도 한 페이지에 12,980ms 가 걸리기 시작했고(EXPLAIN ANALYZE 실측),
+ * 같은 8초 타임아웃에 걸려 `/sitemap-complexes.xml` 이 503 을 냈다 —
+ * 단지 URL 25,171개가 색인에서 통째로 빠져 있었다.
+ * 그래서 `market_agg.complex_sitemap_mv` 를 만들어 이 함수의 갱신 목록에 넣었다.
+ * 새 크론을 만들지 않은 이유는, 이 함수가 이미 etl.yml 의 market-agg 단계로
+ * 하루 두 번 돌고 있어서다. 스케줄러는 하나로 유지한다.
+ *
  * ── 사실 우선 ──────────────────────────────────────────────────────────────
  * MV 는 "느려서 못 읽은 값"을 지어내지 않는다. 인제스트가 넣은 실거래만 다시
  * 집계할 뿐이라 화면에 뜨는 숫자는 DB 원본과 항상 일치한다. 갱신에 실패하면
@@ -33,12 +42,25 @@ import { logger } from "@/lib/log";
  * 없는 값이 만들어지지는 않는다. 신선도는 `latest_ym`/`last_data_at` 으로 드러난다.
  */
 
+export type RefreshedRowCounts = {
+  tx_band_landing: number;
+  tx_band_complex: number;
+  map_price_point: number;
+  /**
+   * 단지 사이트맵 URL 수 (2026-07-26 추가).
+   * optional 인 이유는 배포 직후 짧은 창 때문이다 — 앱이 먼저 뜨고 DB 함수가
+   * 아직 옛 버전이면 이 키가 없는 응답이 온다. 없는 값을 0 으로 적으면
+   * "단지 0개"라는 거짓이 되므로, 없으면 없는 채로 둔다.
+   */
+  complex_sitemap?: number;
+};
+
 export type RefreshAggregatesResult = {
   ok: boolean;
   /** 서비스 롤 키가 없어 시도조차 못 한 경우 false */
   attempted: boolean;
   durationMs?: number;
-  rows?: { tx_band_landing: number; tx_band_complex: number; map_price_point: number };
+  rows?: RefreshedRowCounts;
   error?: string;
 };
 
@@ -71,10 +93,7 @@ export async function refreshMarketAggregates(): Promise<RefreshAggregatesResult
       return { ok: false, attempted: true, durationMs: Date.now() - startedAt, error: error.message };
     }
 
-    const payload = (data ?? {}) as {
-      duration_ms?: number;
-      rows?: { tx_band_landing: number; tx_band_complex: number; map_price_point: number };
-    };
+    const payload = (data ?? {}) as { duration_ms?: number; rows?: RefreshedRowCounts };
     const durationMs = payload.duration_ms ?? Date.now() - startedAt;
     logger.info(
       "[market-agg] 갱신 완료",
@@ -82,6 +101,7 @@ export async function refreshMarketAggregates(): Promise<RefreshAggregatesResult
       `landing=${payload.rows?.tx_band_landing ?? "?"}`,
       `complex=${payload.rows?.tx_band_complex ?? "?"}`,
       `map=${payload.rows?.map_price_point ?? "?"}`,
+      `sitemap=${payload.rows?.complex_sitemap ?? "?"}`,
     );
     return { ok: true, attempted: true, durationMs, rows: payload.rows };
   } catch (e) {
