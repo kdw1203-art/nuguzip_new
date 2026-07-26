@@ -48,6 +48,15 @@ function fireInstallPrompt(page: Page, outcome: "accepted" | "dismissed" = "acce
  */
 async function open(page: Page, path: string) {
   await page.emulateMedia({ reducedMotion: "reduce" });
+  /* 쿠키 동의 배너(z-70 고정 오버레이)가 설치 배너 버튼 위를 덮어 클릭을 가로챈다
+     (2026-07-26 3케이스 연속 실패 원인). 이 스위트는 설치 프롬프트가 대상이므로
+     동의는 이미 결정된 상태로 시작한다 — 동의 배너 자체는 전용 스위트에서 검증. */
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "nz_cookie_consent",
+      JSON.stringify({ analytics: false, decidedAt: new Date().toISOString() }),
+    );
+  });
   await page.goto(path, { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("load");
   await page.waitForTimeout(1200);
@@ -171,6 +180,9 @@ test("설치 프롬프트: 브라우저 다이얼로그에서 취소하면 닫�
 });
 
 test("설치 프롬프트: 나중에 → 30일간 재노출 안 함, 만료되면 다시 노출", async ({ page }) => {
+  /* 이 케이스만 리로드를 2번 한다. 외부 스크립트(광고·분석)가 느린 환경에선
+     리로드 1번에 10초 이상 걸릴 수 있어 기본 30초 예산이 빠듯하다. */
+  test.slow();
   await open(page, "/");
   await fireInstallPrompt(page);
   await expect(page.locator(BANNER)).toBeVisible();
