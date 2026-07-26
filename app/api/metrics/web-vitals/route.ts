@@ -57,8 +57,13 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (isMissingTableError(error.message)) {
       return NextResponse.json({ ok: true, stored: false, reason: "table_missing" });
     }
-    logger.error("[web-vitals]", error.message);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    /* 게이트웨이가 밀리면 error.message 가 HTML 오류 페이지 한 장(<!DOCTYPE html>…)
+       통째로 들어온다. 그대로 흘리면 오류 대시보드가 그 본문으로 덮여 정작 봐야 할
+       오류가 안 보인다 — 앞부분만 남긴다. 상태 코드는 그대로 500 이다(수집이
+       실패한 건 사실이므로 성공으로 위장하지 않는다). */
+    const brief = error.message.replace(/\s+/g, " ").slice(0, 200);
+    logger.error("[web-vitals]", brief);
+    return NextResponse.json({ ok: false, error: brief }, { status: 500 });
   }
   return NextResponse.json({ ok: true, stored: true });
 }

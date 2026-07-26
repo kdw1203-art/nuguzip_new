@@ -157,26 +157,26 @@ export default async function MyPage() {
   }
 
   const email = session.user.email;
-  /* 포인트 내역은 이 화면의 곁가지라 실패해도 /my 전체를 죽이지 않는다. 다만
-     빈 배열로 눌러 버리면 "아직 포인트 내역이 없어요" 라는 거짓 안내가 되므로,
-     실패 여부를 따로 들고 가서 그 자리에만 다른 문구를 쓴다. */
-  const historyLoaded = await getHistory(email, 4).then(
-    (rows) => ({ ok: true as const, rows }),
+  /* 포인트(잔액·내역)는 이 화면의 곁가지라 실패해도 /my 전체를 죽이지 않는다.
+     다만 0 과 빈 배열로 눌러 버리면 "0 P · 아직 포인트 내역이 없어요" 라는
+     거짓 안내가 되므로, 실패 여부를 따로 들고 가서 그 자리에만 다른 문구를 쓴다.
+     둘 다 같은 원장을 읽으니 한 번에 묶어서 판정한다. */
+  const ledgerLoaded = await Promise.all([getBalance(email), getHistory(email, 4)]).then(
+    ([balance, rows]) => ({ ok: true as const, balance, rows }),
     (err: unknown) => {
-      logger.error("[my] 포인트 내역 조회 실패", err);
-      return { ok: false as const, rows: [] as LedgerRow[] };
+      logger.error("[my] 포인트 조회 실패", err);
+      return { ok: false as const, balance: 0, rows: [] as LedgerRow[] };
     },
   );
-  const history = historyLoaded.rows;
+  const history = ledgerLoaded.rows;
 
-  const [profile, balance, notes, savedNotes, alerts, expert, onboarding, planExpiresAt] =
+  const [profile, notes, savedNotes, alerts, expert, onboarding, planExpiresAt] =
     await Promise.all([
       loadMeProfile(email, {
         name: session.user.name,
         plan: (session.user as { plan?: string }).plan,
         role: (session.user as { role?: string }).role,
       }),
-      getBalance(email),
       listNotes(email),
       loadSavedNotes(email),
       listAlertSubscriptions(email),
@@ -234,12 +234,24 @@ export default async function MyPage() {
           <div className="flex flex-col gap-1 rounded-2xl bg-[rgba(255,255,255,.07)] p-4">
             <div className="text-[11px] text-ai-muted">사용 가능한 포인트</div>
             <div className="flex items-end justify-between">
-              <div className="flex items-end gap-1">
-                <span className="text-[34px] font-extrabold leading-none text-white">
-                  {balance.toLocaleString("ko-KR")}
-                </span>
-                <span className="mb-0.5 text-base font-extrabold text-[#7ea2ff]">P</span>
-              </div>
+              {/* 조회 실패에 "0 P" 를 찍으면 가진 사람에게 없다고 말하는 것이 된다 */}
+              {ledgerLoaded.ok ? (
+                <div className="flex items-end gap-1">
+                  <span className="text-[34px] font-extrabold leading-none text-white">
+                    {ledgerLoaded.balance.toLocaleString("ko-KR")}
+                  </span>
+                  <span className="mb-0.5 text-base font-extrabold text-[#7ea2ff]">P</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-lg font-extrabold leading-tight text-white">
+                    잔액을 불러오지 못했어요
+                  </span>
+                  <span className="text-[11px] text-ai-muted">
+                    0 P 라는 뜻이 아니라 조회가 실패했습니다
+                  </span>
+                </div>
+              )}
               <Link href="/my/points" className="text-xs font-bold text-[#7ea2ff] no-underline">
                 지갑 전체 보기 ›
               </Link>
@@ -413,7 +425,7 @@ export default async function MyPage() {
         <section className="flex flex-col gap-2.5">
           <SectionHead title="포인트" href="/my/points" hrefLabel="전체 내역" />
           <div className="card rounded-[16px] p-5">
-            {!historyLoaded.ok ? (
+            {!ledgerLoaded.ok ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
                 {/* 조회 실패는 "내역 없음" 이 아니다 */}
                 <div className="text-[13px] font-bold text-ink">

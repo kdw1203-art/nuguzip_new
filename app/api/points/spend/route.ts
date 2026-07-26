@@ -55,7 +55,23 @@ export async function POST(req: NextRequest) {
   const listingId = typeof body.listingId === "string" ? body.listingId : undefined;
 
   // 효과 적용 후 차감 실패로 인한 "무료 지급"을 막기 위한 사전 잔액 확인
-  const balance = await getBalance(email);
+  /* 잔액을 못 읽었을 때 0 으로 보고 "포인트가 부족해요" 라고 답하면 안 된다 —
+     넉넉히 가진 사람에게 없다고 말하는 것이다. 부족한 것과 확인하지 못한 것은
+     사용자가 취해야 할 행동부터 다르다(충전 vs 재시도). */
+  const read = await getBalance(email).then(
+    (balance) => ({ ok: true as const, balance }),
+    (err: unknown) => {
+      logger.error("[api/points/spend] 잔액 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+  if (!read.ok) {
+    return NextResponse.json(
+      { error: `보유 포인트를 확인하지 못했어요. 잠시 후 다시 시도해 주세요. (${read.cause})` },
+      { status: 503 },
+    );
+  }
+  const balance = read.balance;
   if (balance < item.cost) {
     return NextResponse.json({ error: "포인트가 부족해요.", balance }, { status: 400 });
   }

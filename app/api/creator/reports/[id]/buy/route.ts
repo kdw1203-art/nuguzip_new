@@ -14,6 +14,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { getReport } from "@/lib/reports/store-db";
 import { hasPurchased, createPurchase } from "@/lib/report-purchases/store-db";
 import { getBalance, spendPoints } from "@/lib/points/ledger";
+import { logger } from "@/lib/log";
 import {
   applyRateLimit,
   WRITE_RATE_LIMIT,
@@ -66,7 +67,22 @@ export async function POST(
   }
 
   // 잔액 확인 (친절한 사전 안내)
-  const balance = await getBalance(email);
+  /* 못 읽은 잔액을 0 으로 보면 "포인트가 부족합니다 (보유 0P)" 가 되는데,
+     실제로는 충분히 가진 사람일 수 있다. 부족 안내(402)와 확인 실패(503)를 나눈다. */
+  const read = await getBalance(email).then(
+    (b) => ({ ok: true as const, balance: b }),
+    (err: unknown) => {
+      logger.error("[creator/reports/buy] 잔액 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+  if (!read.ok) {
+    return NextResponse.json(
+      { error: `보유 포인트를 확인하지 못했어요. 잠시 후 다시 시도해 주세요. (${read.cause})` },
+      { status: 503 },
+    );
+  }
+  const balance = read.balance;
   if (balance < price) {
     return NextResponse.json(
       {

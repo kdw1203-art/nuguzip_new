@@ -3,6 +3,8 @@ import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import { getBalance } from "@/lib/points/ledger";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 import { SPEND_ITEMS } from "@/lib/points/catalog";
 import { ShopClient } from "./ShopClient";
 
@@ -60,11 +62,35 @@ export default async function PointsShopPage() {
     );
   }
 
-  const balance = await getBalance(email);
+  /* 잔액 조회가 실패하면 예전에는 0 이 내려와 상점 상단에 "0 P" 가 사실처럼
+     찍혔다. 가진 사람에게 없다고 말하는 셈이고, 그 상태로 구매를 누르면
+     "포인트가 부족해요" 까지 따라온다. 못 읽었으면 못 읽었다고 쓴다. */
+  const loaded = await getBalance(email).then(
+    (balance) => ({ ok: true as const, balance }),
+    (err: unknown) => {
+      logger.error("[points/shop] 잔액 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+
+  if (!loaded.ok) {
+    return (
+      <PageShell breadcrumb="포인트 상점">
+        <div className="mx-auto w-full max-w-[720px]">
+          <ErrorState
+            title="포인트 상점을 지금 열 수 없어요"
+            desc="보유 포인트를 확인하지 못했습니다. 잔액이 0이라는 뜻이 아니라 조회 자체가 실패했어요. 잠시 후 다시 시도해 주세요."
+            cause={loaded.cause}
+            action={{ label: "포인트 안내로 이동", href: "/points" }}
+          />
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell breadcrumb="포인트 상점">
-      <ShopClient initialBalance={balance} />
+      <ShopClient initialBalance={loaded.balance} />
     </PageShell>
   );
 }

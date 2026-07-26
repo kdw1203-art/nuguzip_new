@@ -56,8 +56,21 @@ export async function POST(req: NextRequest) {
 
   // 이미 출석한 날은 재지급하지 않는다 (조회만).
   if (result.alreadyChecked) {
-    const balance = await getBalance(session.user.email);
-    return NextResponse.json({ ok: true, awarded: 0, balance, ...result }, { status: 200 });
+    /* 이미 출석한 사실은 확실하다. 잔액만 못 읽었다면 그 항목을 빼고 내려보낸다 —
+       0 을 실어 보내면 클라이언트가 그것을 잔액으로 표시한다. */
+    const read = await getBalance(session.user.email).then(
+      (b) => ({ ok: true as const, balance: b }),
+      (err: unknown) => {
+        logger.error("[api/me/attendance] 잔액 조회 실패", err);
+        return { ok: false as const };
+      },
+    );
+    return NextResponse.json(
+      read.ok
+        ? { ok: true, awarded: 0, balance: read.balance, ...result }
+        : { ok: true, awarded: 0, balance: null, ...result },
+      { status: 200 },
+    );
   }
 
   // 출석 기본 10P — refId 로 KST 날짜를 넘겨 하루 1회 멱등을 원장에서도 보장

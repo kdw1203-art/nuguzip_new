@@ -23,7 +23,18 @@ export type LedgerRow = {
   expiresAt: string | null;
 };
 
-/** 현재 잔액 = 가장 최근 원장 행의 balance (없으면 0) */
+/**
+ * 현재 잔액 = 가장 최근 원장 행의 balance. 원장 행이 하나도 없으면 0 이다.
+ *
+ * 조회에 **실패하면 던진다.** 예전에는 `if (error || !data) return 0` 이라
+ * 실패와 "아직 적립한 적 없음"이 똑같이 0 이었는데, 그 0 이 가는 곳을 보면
+ * 왜 안 되는지 분명하다:
+ *   - /points/shop 과 /my 는 "0 P" 를 사실인 것처럼 그린다.
+ *   - 소비 경로(spend·boost·리포트 구매)는 사전 잔액 확인에서 걸려
+ *     "포인트가 부족해요" 라고 답한다 — 넉넉히 가진 사람에게 하는 거짓말이다.
+ *     차감이 일어나지 않으니 돈은 안전하지만, 안내는 틀렸다.
+ * 못 읽은 것과 없는 것은 다르므로 갈라 낸다. 행이 0개(`!data`)인 것만 0 이다.
+ */
 export async function getBalance(email: string): Promise<number> {
   const sb = getServiceSupabase();
   if (!sb || !email) return 0;
@@ -34,7 +45,11 @@ export async function getBalance(email: string): Promise<number> {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (error || !data) return 0;
+  if (error) {
+    logger.error("[points] 잔액 조회 실패", error.message);
+    throw new Error(`point_ledger 잔액 조회 실패: ${error.message}`);
+  }
+  if (!data) return 0;
   return Number(data.balance) || 0;
 }
 
@@ -108,6 +123,23 @@ export type AwardResult = {
   reason?: string;
 };
 
+/**
+ * **실패 결과에 곁들일** 잔액. awardPoints·spendPoints 는 던지지 않고 결과 객체를
+ * 돌려주는 계약이라, 이미 실패한 자리에서 잔액까지 못 읽었다고 예외를 올리면
+ * 계약이 깨진다(특히 catch 블록 안에서 던지면 그대로 밖으로 새어 나간다).
+ *
+ * 여기서 0 을 쓰는 것이 getBalance 를 고친 취지와 어긋나지 않는 이유: 이 값은
+ * 언제나 `ok: false` 와 함께 나가므로 "당신의 잔액은 0원" 이라는 단독 주장이
+ * 되지 않는다. 잔액을 사실로 보여 주는 화면들(/points/shop, /my, /my/points)은
+ * 이 함수를 거치지 않고 getBalance 를 직접 부르고, 실패하면 실패라고 쓴다.
+ */
+async function balanceForFailure(email: string): Promise<number> {
+  return getBalance(email).then(
+    (b) => b,
+    () => 0,
+  );
+}
+
 /** 규칙 기반 적립 — 상한·중복·once 방어 포함 */
 export async function awardPoints(
   email: string,
@@ -117,15 +149,17 @@ export async function awardPoints(
   const sb = getServiceSupabase();
   const rule = EARN_RULES[ruleKey];
   if (!sb || !email || !rule) {
-    return { ok: false, awarded: 0, balance: await getBalance(email), reason: "invalid" };
+    return { ok: false, awarded: 0, balance: await balanceForFailure(email), reason: "invalid" };
   }
   try {
     // once / ref 중복
     if (rule.once && (await alreadyAwarded(email, rule.key))) {
-      return { ok: false, awarded: 0, balance: await getBalance(email), reason: "already_once" };
+      const balance = await balanceForFailure(email);
+      return { ok: false, awarded: 0, balance, reason: "already_once" };
     }
     if (refId && (await alreadyAwarded(email, rule.key, refId))) {
-      return { ok: false, awarded: 0, balance: await getBalance(email), reason: "already_ref" };
+      const balance = await balanceForFailure(email);
+      return { ok: false, awarded: 0, balance, reason: "already_ref" };
     }
     // 일/월 상한
     const now = new Date();
@@ -136,7 +170,7 @@ export async function awardPoints(
       earnedSince(email, monthStart),
     ]);
     if (dayEarned >= DAILY_EARN_CAP || monthEarned >= MONTHLY_EARN_CAP) {
-      return { ok: false, awarded: 0, balance: await getBalance(email), reason: "cap" };
+      return { ok: false, awarded: 0, balance: await balanceForFailure(email), reason: "cap" };
     }
     // 룰 dailyCap (횟수)
     if (rule.dailyCap) {
@@ -147,14 +181,15 @@ export async function awardPoints(
         .eq("reason", rule.key)
         .gte("created_at", dayStart);
       if ((count ?? 0) >= rule.dailyCap) {
-        return { ok: false, awarded: 0, balance: await getBalance(email), reason: "rule_cap" };
+        const balance = await balanceForFailure(email);
+        return { ok: false, awarded: 0, balance, reason: "rule_cap" };
       }
     }
     // 상한 초과분 컷
     const room = Math.max(0, DAILY_EARN_CAP - dayEarned);
     const amount = Math.min(rule.points, room);
     if (amount <= 0) {
-      return { ok: false, awarded: 0, balance: await getBalance(email), reason: "cap" };
+      return { ok: false, awarded: 0, balance: await balanceForFailure(email), reason: "cap" };
     }
     const bal = await getBalance(email);
     const newBal = bal + amount;
@@ -175,7 +210,7 @@ export async function awardPoints(
     return { ok: true, awarded: amount, balance: newBal };
   } catch (e) {
     logger.error("[awardPoints]", e);
-    return { ok: false, awarded: 0, balance: await getBalance(email), reason: "error" };
+    return { ok: false, awarded: 0, balance: await balanceForFailure(email), reason: "error" };
   }
 }
 
@@ -207,7 +242,7 @@ export async function spendPoints(
 ): Promise<SpendResult> {
   const sb = getServiceSupabase();
   if (!sb || !email || cost <= 0) {
-    return { ok: false, spent: 0, balance: await getBalance(email), reason: "invalid" };
+    return { ok: false, spent: 0, balance: await balanceForFailure(email), reason: "invalid" };
   }
   try {
     const { data, error } = await sb.rpc("point_ledger_spend", {
@@ -232,7 +267,7 @@ export async function spendPoints(
     }
     if (!isMissingRpc(error)) {
       logger.error("[spendPoints] rpc", error);
-      return { ok: false, spent: 0, balance: await getBalance(email), reason: "db" };
+      return { ok: false, spent: 0, balance: await balanceForFailure(email), reason: "db" };
     }
     // ── 폴백(비원자): RPC 함수가 아직 없는 환경 전용 ──
     const bal = await getBalance(email);
@@ -254,6 +289,6 @@ export async function spendPoints(
     return { ok: true, spent: cost, balance: newBal };
   } catch (e) {
     logger.error("[spendPoints]", e);
-    return { ok: false, spent: 0, balance: await getBalance(email), reason: "error" };
+    return { ok: false, spent: 0, balance: await balanceForFailure(email), reason: "error" };
   }
 }

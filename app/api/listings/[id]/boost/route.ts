@@ -8,6 +8,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { getListingById, boostListing } from "@/lib/listings/store-db";
 import { getSpendItem } from "@/lib/points/catalog";
 import { getBalance, spendPoints } from "@/lib/points/ledger";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,21 @@ export async function POST(
   }
 
   // 잔액 선확인 → 부스트 적용 → 포인트 소비 순서(부스트 실패 시 미차감).
-  const balance = await getBalance(email);
+  /* 확인하지 못한 잔액을 0 으로 보고 "포인트가 부족해요" 라고 답하지 않는다. */
+  const read = await getBalance(email).then(
+    (b) => ({ ok: true as const, balance: b }),
+    (err: unknown) => {
+      logger.error("[listings/boost] 잔액 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+  if (!read.ok) {
+    return NextResponse.json(
+      { error: `보유 포인트를 확인하지 못했어요. 잠시 후 다시 시도해 주세요. (${read.cause})` },
+      { status: 503 },
+    );
+  }
+  const balance = read.balance;
   if (balance < item.cost) {
     return NextResponse.json(
       { error: `포인트가 부족해요. (필요 ${item.cost.toLocaleString("ko-KR")}P)`, balance },
