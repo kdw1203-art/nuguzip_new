@@ -1,0 +1,110 @@
+# SEO·GEO 반복 루틴 스케줄러 (N19 · N24)
+#
+# 이 워크플로는 아무것도 측정하지 않는다. **때가 됐다고 알려 주고 기록할 자리를 만들 뿐이다.**
+# AI 답변에 우리가 인용됐는지(N19)는 API 로 알 수 없고, 서치콘솔 쿼리 갭(N24)은 사람이
+# 의도를 읽어야 판단이 선다. 그래서 자동화한 것은 스케줄과 체크리스트뿐이고, 관측은 사람이 한다.
+# 이 경계를 코드가 넘으면 "자동으로 채워진 척하는 기록"이 남는데, 그건 없는 기록보다 나쁘다.
+#
+# 절차 원문: docs/seo-geo-routines.md
+name: SEO/GEO Routines
+
+on:
+  schedule:
+    # N19 AI 인용 모니터링 — 격주(매월 1일·15일) 00:00 UTC = 09:00 KST
+    - cron: "0 0 1,15 * *"
+    # N24 GSC 쿼리 갭 — 월간(매월 1일) 01:00 UTC = 10:00 KST
+    # N19 와 한 시간 띄운 이유: 1일에는 둘 다 도는데, 같은 분에 이슈 두 개가 열리면
+    # 알림이 겹쳐 하나를 놓친다.
+    - cron: "0 1 1 * *"
+  workflow_dispatch:
+    inputs:
+      routine:
+        description: "수동 실행할 루틴"
+        required: true
+        default: n19
+        type: choice
+        options: [n19, n24, both]
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  DOC: https://github.com/${{ github.repository }}/blob/main/docs/seo-geo-routines.md
+
+jobs:
+  # ── N19 · AI 인용 모니터링 (격주) ────────────────────────────────────────────
+  ai-citation:
+    if: >-
+      github.event.schedule == '0 0 1,15 * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.routine == 'n19' || inputs.routine == 'both'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open citation-check issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%F)
+          # 질의 10개는 docs/seo-geo-routines.md 와 같은 순서·같은 문장이어야 한다.
+          # 문장이 어긋나면 회차 간 비교가 깨진다.
+          {
+            echo "격주 AI 인용 모니터링 회차입니다. 절차: ${DOC}"
+            echo
+            echo "각 질의를 **ChatGPT(웹검색 ON) · Claude · Perplexity · 네이버 큐** 에 그대로 넣고,"
+            echo "누구집이 **인용(C) / 언급(M) / 없음(–)** 중 무엇이었는지만 적습니다. 15~20분."
+            echo
+            echo "- [ ] Q1 서울 강남구 아파트 시세 알려줘"
+            echo "- [ ] Q2 송파구 아파트 실거래가 최근 추이"
+            echo "- [ ] Q3 서울 아파트 매매 거래량 늘고 있어?"
+            echo "- [ ] Q4 전세가율이 뭐야"
+            echo "- [ ] Q5 임장 갈 때 뭘 봐야 해?"
+            echo "- [ ] Q6 서울 재개발 진행 단계 정리해줘"
+            echo "- [ ] Q7 이번 달 서울 부동산 시장 요약"
+            echo "- [ ] Q8 아파트 단지끼리 실거래가 비교할 수 있는 곳"
+            echo "- [ ] Q9 서울 아파트 입주 물량 얼마나 돼?"
+            echo "- [ ] Q10 부동산 실거래가 데이터 API 있어?"
+            echo
+            echo "결과는 \`docs/seo-geo-routines.md\` 의 \"N19 기록\" 절에 최신순으로 추가하고 이 이슈를 닫습니다."
+            echo
+            echo "> 관측하지 못한 항목은 비워 둡니다. \"–\"(없음)으로 채우면 하지 않은 관측이 기록으로 남습니다."
+          } > body.md
+          gh api "repos/${{ github.repository }}/issues" \
+            -f title="[N19] AI 인용 모니터링 ${TODAY}" \
+            -F body=@body.md || true
+
+  # ── N24 · GSC 쿼리 갭 (월간) ────────────────────────────────────────────────
+  gsc-query-gap:
+    if: >-
+      github.event.schedule == '0 1 1 * *' ||
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.routine == 'n24' || inputs.routine == 'both'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open query-gap issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          MONTH=$(date -u +%Y-%m)
+          {
+            echo "월간 서치콘솔 쿼리 갭 회차입니다. 절차: ${DOC}"
+            echo
+            echo "**선행 조건: 최근 28일 데이터가 실제로 쌓여 있어야 합니다.** 표본이 얇으면"
+            echo "\"데이터 부족\"으로 기록하고 이번 회차는 넘깁니다 — 노출 20짜리 질의로 제목을 고치면"
+            echo "노이즈를 쫓는 것입니다."
+            echo
+            echo "- [ ] 서치콘솔 → 실적 → 최근 28일 → 쿼리 탭 CSV 내보내기"
+            echo "- [ ] 필터: 노출 100+ · CTR 1% 미만 · 평균 게재순위 20위 이내"
+            echo "- [ ] 페이지 탭과 대조해 질의별 대상 URL 확정"
+            echo "- [ ] 원인 분류: 제목·설명 / 페이지에 답 없음 / 의도 불일치(손대지 않음)"
+            echo "- [ ] 제목·설명 수정 또는 QaBlock 항목 추가 (실데이터로만)"
+            echo "- [ ] \`docs/seo-geo-routines.md\` \"N24 기록\" 절에 회차 기록"
+            echo "- [ ] **지난달 회차에서 고친 질의의 CTR 변화 확인** (이게 없으면 루프가 아닙니다)"
+            echo
+            echo "> 클릭을 받으려고 페이지에 없는 내용을 제목에 쓰지 않습니다. 답할 데이터가 없는 질의는 넘깁니다."
+          } > body.md
+          gh api "repos/${{ github.repository }}/issues" \
+            -f title="[N24] GSC 쿼리 갭 ${MONTH}" \
+            -F body=@body.md || true

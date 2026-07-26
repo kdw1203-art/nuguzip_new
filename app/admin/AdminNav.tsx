@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/market", label: "마켓 · 정산" },
   { href: "/admin/banners", label: "배너 · 광고" },
   { href: "/admin/data", label: "데이터 · 지오코딩" },
+  { href: "/admin/seo", label: "SEO 측정" },
 ];
 
 export function AdminNav() {

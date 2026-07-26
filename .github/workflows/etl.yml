@@ -170,5 +170,17 @@ jobs:
           else
             echo "== weekly-digest skipped (월요일 아님: $(date -u +%A)) =="
           fi
+          # SEO 측정 2종도 월요일만. 둘 다 주 단위로 움직이는 값이라 더 자주 부르면
+          # 소음이고, 색인 검사는 할당량(2,000/일)을 쓰는 호출이라 더더욱 그렇다.
+          # 키(CRUX_API_KEY / GSC_SERVICE_ACCOUNT_*)가 없으면 라우트가 skipped:"no_key"
+          # 로 아무것도 기록하지 않는다 — 키 미설정과 "재 봤는데 없었다"는 다른 사실이다.
+          if [ "$(date -u +%u)" = "1" ]; then
+            # N5 실사용자 성능(CrUX origin, 기기 3종)
+            call crux-sync "https://nuguzip.com/api/cron/crux-sync"
+            # N25 색인률 표본 측정(서치콘솔 URL 검사 API)
+            call gsc-index "https://nuguzip.com/api/cron/gsc-index-sync"
+          else
+            echo "== crux-sync / gsc-index skipped (월요일 아님: $(date -u +%A)) =="
+          fi
           # 알림 러너는 fail-soft 라 여기서 워크플로를 실패시키지 않는다. 실패는
           # 각 라우트가 JSON 요약(ok:false)으로 드러내고 위 로그에 그대로 찍힌다.
