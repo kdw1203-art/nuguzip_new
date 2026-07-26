@@ -10,6 +10,8 @@ import { fetchNationalPlan } from "@/lib/national-data/fetch";
 import { parseDistrict } from "@/lib/inspection/public-data-context";
 import { listNotes } from "@/lib/inspection/store-db";
 
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -102,7 +104,14 @@ export async function POST(req: Request) {
     /* optional body */
   }
 
-  const [presets, runs] = await Promise.all([listPresets(email), listRuns(email, 30)]);
+  /* 이 요약의 존재 이유가 실행 기록이다 — 못 읽었으면 빈 요약을 내지 않는다. */
+  let presets: Awaited<ReturnType<typeof listPresets>>;
+  let runs: Awaited<ReturnType<typeof listRuns>>;
+  try {
+    [presets, runs] = await Promise.all([listPresets(email), listRuns(email, 30)]);
+  } catch (e) {
+    return dbUnavailable("ai-pattern-summary", e);
+  }
 
   const digest = buildMinimizedDigest(presets, runs);
 

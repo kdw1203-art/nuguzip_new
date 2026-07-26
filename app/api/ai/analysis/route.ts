@@ -19,6 +19,8 @@ import {
 } from "@/lib/subscriptions/usage-summary";
 import { logger } from "@/lib/log";
 
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -129,7 +131,14 @@ export async function POST(req: Request) {
 
   if (email && !skipExternalLlm) {
     const plan = await resolveQuotaPlan(email, sessionPlan);
-    const quota = await checkAiAnalysisQuota(email, plan);
+    /* 한도를 못 셌는데 통과시키면 무제한이 되고, 0 으로 세면 유료 사용자를
+       막는다. 둘 다 사실이 아니므로 "지금은 확인할 수 없다"고 답한다. */
+    let quota: Awaited<ReturnType<typeof checkAiAnalysisQuota>>;
+    try {
+      quota = await checkAiAnalysisQuota(email, plan);
+    } catch (e) {
+      return dbUnavailable("ai-analysis-quota", e);
+    }
     if (!quota.allowed) {
       return NextResponse.json(
         {
@@ -144,7 +153,12 @@ export async function POST(req: Request) {
   }
 
   if (presetId && email) {
-    const p = await getPreset(presetId, email);
+    let p: Awaited<ReturnType<typeof getPreset>>;
+    try {
+      p = await getPreset(presetId, email);
+    } catch (e) {
+      return dbUnavailable("ai-analysis-preset", e);
+    }
     if (!p) {
       return NextResponse.json({ error: "프리셋을 찾을 수 없습니다." }, { status: 400 });
     }

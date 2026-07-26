@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { deletePreset, getPreset, updatePreset } from "@/lib/ai/presets-store";
 
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,13 @@ export async function GET(
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
   const { id } = await params;
-  const preset = await getPreset(id, email);
+  /* "없습니다" 는 없다는 뜻이다 — 못 읽은 것에 쓰면 프리셋이 지워진 줄 안다. */
+  let preset: Awaited<ReturnType<typeof getPreset>>;
+  try {
+    preset = await getPreset(id, email);
+  } catch (e) {
+    return dbUnavailable("ai-preset", e);
+  }
   if (!preset) return NextResponse.json({ error: "없습니다." }, { status: 404 });
   return NextResponse.json({ preset });
 }

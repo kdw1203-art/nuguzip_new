@@ -147,7 +147,12 @@ export async function POST(req: Request) {
 
     // 월 사용량 한도(무료 3회/월) — 새 분석을 만들기 전에 강제
     const plan = await resolveQuotaPlan(email, sessionPlan);
-    const quota = await checkAiAnalysisQuota(email, plan);
+    let quota: Awaited<ReturnType<typeof checkAiAnalysisQuota>>;
+    try {
+      quota = await checkAiAnalysisQuota(email, plan);
+    } catch (e) {
+      return dbUnavailable("inspection-ai-quota", e);
+    }
     if (!quota.allowed) {
       return NextResponse.json(
         quotaDeniedJson(quota.message, quota.requiredTier, quota.used, quota.limit),
@@ -280,7 +285,12 @@ export async function POST(req: Request) {
 
   // noteId 없는 경로도 동일하게 월 사용량 한도를 강제
   const freePlan = await resolveQuotaPlan(email, sessionPlan);
-  const freeQuota = await checkAiAnalysisQuota(email, freePlan);
+  let freeQuota: Awaited<ReturnType<typeof checkAiAnalysisQuota>>;
+  try {
+    freeQuota = await checkAiAnalysisQuota(email, freePlan);
+  } catch (e) {
+    return dbUnavailable("inspection-ai-quota", e);
+  }
   if (!freeQuota.allowed) {
     return NextResponse.json(
       quotaDeniedJson(freeQuota.message, freeQuota.requiredTier, freeQuota.used, freeQuota.limit),

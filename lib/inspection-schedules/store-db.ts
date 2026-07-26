@@ -52,19 +52,30 @@ export async function listSchedules(
     .eq("author_email", authorEmail)
     .order("scheduled_at", { ascending: true });
   if (status) q = q.eq("status", status);
-  const { data } = await q;
+  const { data, error } = await q;
+  /* []는 "예정된 임장이 없어요"로 그려진다. 내가 잡아둔 일정이 사라진 것처럼
+     보이면 사용자는 약속을 놓친다. 못 읽었으면 던진다. */
+  if (error) throw scheduleQueryError("inspection_schedules (내 일정)", error);
   return (data ?? []).map(mapRow);
 }
 
 export async function getSchedule(id: string): Promise<InspectionSchedule | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_schedules")
     .select("*")
     .eq("id", id)
     .maybeSingle();
+  /* maybeSingle 은 행이 없으면 {data:null,error:null} 이다 — error 가 곧
+     "실패", !data 가 곧 "없음". null 을 그대로 주면 404 "없는 일정"이 된다. */
+  if (error) throw scheduleQueryError(`inspection_schedules (일정 ${id})`, error);
   return data ? mapRow(data as Record<string, unknown>) : null;
+}
+
+/** 조회 실패 전용 에러 — "행이 없음"과 절대 섞지 않는다. */
+function scheduleQueryError(where: string, err: { message?: string }): Error {
+  return new Error(`${where} 조회 실패: ${err.message ?? "알 수 없는 오류"}`);
 }
 
 export async function createSchedule(input: {

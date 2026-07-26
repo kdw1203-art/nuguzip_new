@@ -14,6 +14,8 @@ import {
   type ScheduleStatus,
 } from "@/lib/inspection-schedules/store-db";
 
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
@@ -24,7 +26,13 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status") as ScheduleStatus | null;
-  const items = await listSchedules(session.user.email, status ?? undefined);
+  /* []는 "예정된 임장이 없어요"로 그려진다 — 잡아둔 약속을 놓치게 만든다. */
+  let items: Awaited<ReturnType<typeof listSchedules>>;
+  try {
+    items = await listSchedules(session.user.email, status ?? undefined);
+  } catch (e) {
+    return dbUnavailable("inspection-schedules", e);
+  }
   return NextResponse.json({ items });
 }
 

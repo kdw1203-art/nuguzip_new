@@ -632,11 +632,18 @@ export async function markListingReport(
   const sb = getServiceSupabase();
   if (!sb || !listingId) return { ok: false, reportCount: 0, hidden: false };
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("listings")
       .select("report_count,is_hidden")
       .eq("id", listingId)
       .maybeSingle();
+    /* 읽기가 실패했는데 current=0 으로 이어가면 report_count 를 1 로 덮어써
+       그동안 쌓인 신고를 지운다 — best-effort 는 "실패해도 괜찮다"이지
+       "실패하면 남의 데이터를 지워도 된다"가 아니다. 못 읽었으면 쓰지 않는다. */
+    if (error) {
+      logger.warn("[listings] markListingReport 조회 실패 — 카운터를 건드리지 않음", error);
+      return { ok: false, reportCount: 0, hidden: false };
+    }
     const row = (data ?? {}) as Record<string, unknown>;
     const current = row.report_count != null ? Number(row.report_count) : 0;
     const next = current + 1;
@@ -834,11 +841,16 @@ export async function incrementView(id: string): Promise<void> {
   const sb = getServiceSupabase();
   if (!sb || !id) return;
   try {
-    const { data } = await sb
+    const { data, error } = await sb
       .from("listings")
       .select("view_count")
       .eq("id", id)
       .maybeSingle();
+    /* 같은 이유 — 못 읽은 채 0+1 로 쓰면 누적 조회수가 1 로 리셋된다. */
+    if (error) {
+      logger.warn("[listings] incrementView 조회 실패 — 조회수를 건드리지 않음", error);
+      return;
+    }
     const current =
       data && (data as Record<string, unknown>).view_count != null
         ? Number((data as Record<string, unknown>).view_count)

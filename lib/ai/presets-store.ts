@@ -198,12 +198,14 @@ export async function getPreset(
       ) ?? null
     );
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("ai_analysis_presets")
     .select("*")
     .eq("id", id)
     .eq("author_email", em)
     .maybeSingle();
+  /* null 은 "그런 프리셋이 없다"는 뜻이라 조회 실패에 쓸 수 없다. */
+  if (error) throw presetQueryError(`ai_analysis_presets (프리셋 ${id})`, error);
   return data ? mapPreset(data as Record<string, unknown>) : null;
 }
 
@@ -445,13 +447,20 @@ export async function listRuns(authorEmail: string, limit = 40): Promise<AiAnaly
       .filter((r) => r.authorEmail.toLowerCase() === em)
       .slice(0, limit);
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("ai_analysis_runs")
     .select("*")
     .eq("author_email", em)
     .order("created_at", { ascending: false })
     .limit(limit);
+  /* []는 "분석 기록이 없어요"로 그려진다 — 돈 내고 돌린 분석이 사라져 보인다. */
+  if (error) throw presetQueryError("ai_analysis_runs (내 분석 기록)", error);
   return (data ?? []).map((r) => mapRun(r as Record<string, unknown>));
+}
+
+/** 조회 실패 전용 에러 — "행이 없음"과 절대 섞지 않는다. */
+function presetQueryError(where: string, err: { message?: string }): Error {
+  return new Error(`${where} 조회 실패: ${err.message ?? "알 수 없는 오류"}`);
 }
 
 /** 이번 달 AI 분석 실행 횟수 (멤버십 한도용). */
@@ -467,11 +476,14 @@ export async function countRunsThisMonth(authorEmail: string): Promise<number> {
       (r) => r.authorEmail.toLowerCase() === em && r.createdAt >= since,
     ).length;
   }
-  const { count } = await sb
+  const { count, error } = await sb
     .from("ai_analysis_runs")
     .select("id", { count: "exact", head: true })
     .eq("author_email", em)
     .gte("created_at", since);
+  /* 0 을 돌려주면 "이번 달 한 번도 안 썼다"가 되어 한도가 통째로 풀린다.
+     못 센 것을 0 이라고 하지 않는다 — 부르는 쪽이 실패를 보고 판단하게 한다. */
+  if (error) throw presetQueryError("ai_analysis_runs (이번 달 실행 횟수)", error);
   return count ?? 0;
 }
 
