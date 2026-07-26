@@ -57,6 +57,21 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # ---- Next.js 빌드 캐시 (2026-07-26) ----
+      # 이 파이프라인은 Next 를 두 번 빌드한다(링크 점검용 next build + vercel build).
+      # 두 번째는 첫 번째가 남긴 .next/cache 를 그대로 쓰지만, 러너는 매번 새 머신이라
+      # **첫 번째 빌드는 항상 캐시가 빈 상태**에서 시작했다. 여기서 .next/cache 를
+      # 실행 간에 실어 나르면 그 첫 빌드가 이전 실행의 컴파일 결과를 재사용한다.
+      # 캐시가 없거나 깨져도 빌드는 그냥 처음부터 돌 뿐이라 실패로 이어지지 않는다.
+      # (npm ci 앞에 두는 이유: node_modules 가 아직 없어야 hashFiles 가 빠르다.)
+      - name: Cache Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+            ${{ runner.os }}-nextjs-
       # ---- 품질 게이트 (#27): 링크 무결성 검사 ----
       # vercel build 산출물(.vercel/output)로는 next start가 불가하므로
       # 검사용 next build를 1회 별도 수행 (빌드 2회 허용 — 안정성 우선)
@@ -74,6 +89,19 @@ jobs:
       # 재부여를 잊기 쉽다. 2026-07-25 에 이걸 빠뜨려 /tx 가 하루 죽었다.
       - name: Migration grant lint
         run: node scripts/check-migration-grants.mjs
+      # ---- 정적 린트: Icon name 이 실제로 존재하는가 ----
+      # Icon 은 name 을 string 으로 받고, 매핑에 없는 이름은 **그 글자를 그대로**
+      # 화면에 찍는다(이모지 무손실 폴백의 부작용). 타입 검사도 빌드도 통과한다.
+      # 2026-07-26 에 name="alert" 가 아이콘 대신 "alert" 라는 단어로 렌더됐다.
+      - name: Icon name lint
+        run: node scripts/check-icon-names.mjs
+      # ---- 정적 린트: href 가 실존하는 라우트를 가리키는가 ----
+      # 링크는 틀려도 타입 검사·빌드가 안 깨진다. 링크 크롤 게이트는 렌더된 <a>
+      # 만 따라가므로 API 응답 속 url·로그인 화면·죽은 모듈은 닿지 않는다.
+      # 2026-07-26 전수 점검에서 홈 퀵메뉴 "청약"(/presale), 지도 허브 "매물"
+      # (/map/listings), 내 활동 북마크, /admin/ops 지표 카드가 전부 404 였다.
+      - name: Route link lint
+        run: node scripts/check-route-links.mjs
       # ---- 실조회 게이트: public.*_source 뷰를 실제로 읽어 본다 ----
       # security_invoker 뷰라 래퍼 GRANT 로는 가려지지 않는다 — 타입 검사도
       # 빌드도 통과하지만 런타임에 42501 로 죽는 구멍을 여기서 막는다.

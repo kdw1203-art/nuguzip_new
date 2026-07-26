@@ -3,7 +3,7 @@ import { Header } from "./components/Header";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
-import { EmptyState } from "./components/ui/EmptyState";
+import { EmptyState, ErrorState } from "./components/ui/EmptyState";
 import { JourneyBanner } from "./components/JourneyBanner";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
@@ -50,6 +50,10 @@ export default async function Home() {
   const posts = data.posts;
   const meetings = data.meetings;
   const reports = data.reports;
+  /* 빈 배열이 "아직 없음"인지 "조회 실패"인지 구분하는 값.
+     이게 없던 시절에는 DB 가 잠깐 죽으면 홈이 "아직 올라온 글이 없어요"라고
+     말했다 — 글은 있는데. 조회 실패는 데이터 없음이 아니다. */
+  const failed = data.failed;
 
   // 사실 기반 원칙: 실데이터 없는 수치는 허위 값 대신 "—" 표기
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
@@ -123,12 +127,20 @@ export default async function Home() {
 
           <div className="rise-in-5 flex flex-col gap-3">
             {regions.length === 0 ? (
-              <EmptyState
-                icon="map"
-                title="지역 시세를 아직 불러오지 못했어요"
-                desc="실거래 스냅샷이 준비되면 여기에 표시됩니다."
-                action={{ label: "지도에서 찾아보기", href: "/map" }}
-              />
+              failed.regions ? (
+                <ErrorState
+                  title="지역 시세를 지금 불러오지 못했어요"
+                  desc="데이터가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              ) : (
+                <EmptyState
+                  icon="map"
+                  title="지역 시세를 아직 불러오지 못했어요"
+                  desc="실거래 스냅샷이 준비되면 여기에 표시됩니다."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              )
             ) : (
               regions.slice(0, 2).map((r) => (
                 <div key={r.id} className="card card-hover flex items-center justify-between rounded-2xl px-4 py-3.5">
@@ -247,13 +259,22 @@ export default async function Home() {
 
             {/* 지역 시세 카드 4열 — 라운드 확대 + 호버 리프트 */}
             {regions.length === 0 ? (
-              <EmptyState
-                className="rise-in-2"
-                icon="map"
-                title="지역 시세를 아직 불러오지 못했어요"
-                desc="국토교통부 실거래 스냅샷이 적재되면 이 자리에 지역별 평균가와 변동률이 표시됩니다."
-                action={{ label: "지도에서 찾아보기", href: "/map" }}
-              />
+              failed.regions ? (
+                <ErrorState
+                  className="rise-in-2"
+                  title="지역 시세를 지금 불러오지 못했어요"
+                  desc="데이터가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              ) : (
+                <EmptyState
+                  className="rise-in-2"
+                  icon="map"
+                  title="지역 시세를 아직 불러오지 못했어요"
+                  desc="국토교통부 실거래 스냅샷이 적재되면 이 자리에 지역별 평균가와 변동률이 표시됩니다."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              )
             ) : (
               <div className="rise-in-2 grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {regions.slice(0, 4).map((r) => (
@@ -287,12 +308,20 @@ export default async function Home() {
                   <Link href="/notes" className="text-[11px] text-text-3 transition-colors hover:text-primary">더보기</Link>
                 </div>
                 {notes.length === 0 ? (
-                  <EmptyState
-                    icon="notebook-pen"
-                    title="아직 공개된 임장노트가 없어요"
-                    desc="첫 노트를 남기면 여기에 소개됩니다."
-                    action={{ label: "임장노트 쓰기", href: "/notes/new" }}
-                  />
+                  failed.notes ? (
+                    <ErrorState
+                      title="공개 임장노트를 지금 불러오지 못했어요"
+                      desc="노트가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
+                      action={{ label: "임장노트 보기", href: "/notes" }}
+                    />
+                  ) : (
+                    <EmptyState
+                      icon="notebook-pen"
+                      title="아직 공개된 임장노트가 없어요"
+                      desc="첫 노트를 남기면 여기에 소개됩니다."
+                      action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+                    />
+                  )
                 ) : (
                   notes.map((n, i) => (
                     <div
@@ -315,12 +344,20 @@ export default async function Home() {
                   <Link href="/town" className="text-[11px] text-text-3 transition-colors hover:text-primary">더보기</Link>
                 </div>
                 {posts.length === 0 ? (
-                  <EmptyState
-                    icon="messages-square"
-                    title="아직 올라온 글이 없어요"
-                    desc="동네 이야기를 먼저 시작해 보세요."
-                    action={{ label: "글쓰기", href: "/town/write" }}
-                  />
+                  failed.posts ? (
+                    <ErrorState
+                      title="동네이야기를 지금 불러오지 못했어요"
+                      desc="글이 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
+                      action={{ label: "동네이야기 보기", href: "/town" }}
+                    />
+                  ) : (
+                    <EmptyState
+                      icon="messages-square"
+                      title="아직 올라온 글이 없어요"
+                      desc="동네 이야기를 먼저 시작해 보세요."
+                      action={{ label: "글쓰기", href: "/town/write" }}
+                    />
+                  )
                 ) : (
                   posts.map((p, i) => (
                     <div
@@ -359,7 +396,13 @@ export default async function Home() {
               {/* 없는 모임을 예시로라도 띄우면 실제로 그 장소에 나가는 사람이 생긴다. */}
               {meetings.length === 0 ? (
                 <p className="py-1.5 text-xs leading-[1.6] text-text-3">
-                  예정된 모임이 없어요.{" "}
+                  {failed.meetings ? (
+                    <>
+                      모임 목록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.{" "}
+                    </>
+                  ) : (
+                    <>예정된 모임이 없어요. </>
+                  )}
                   <Link href="/town/groups" className="font-bold text-primary">
                     임장 모임 보기 ›
                   </Link>
@@ -393,7 +436,13 @@ export default async function Home() {
               {/* 팔지 않는 리포트를 가격표까지 붙여 예시로 띄우지 않는다. */}
               {reports.length === 0 ? (
                 <p className="text-xs leading-[1.6] text-text-3">
-                  아직 발행된 리포트가 없어요.{" "}
+                  {failed.reports ? (
+                    <>
+                      리포트 목록을 지금 불러오지 못했어요. 잠시 후 다시 열어 주세요.{" "}
+                    </>
+                  ) : (
+                    <>아직 발행된 리포트가 없어요. </>
+                  )}
                   <Link href="/town/market" className="font-bold text-primary">
                     전문가 마켓 ›
                   </Link>

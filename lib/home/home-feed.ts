@@ -3,6 +3,7 @@
  */
 export const WELCOME_SAMPLE_LINKS = [
   { title: "샘플: 강남 재건축 인사이트", href: "/info/redevelopment" },
-  { title: "샘플: 임장노트 작성 가이드", href: "/inspection/create" },
+  /* `/inspection/create` 는 없는 경로였다 — 임장노트 작성은 /notes/new 다. */
+  { title: "샘플: 임장노트 작성 가이드", href: "/notes/new" },
   { title: "샘플: 시세 지도 둘러보기", href: "/explore" },
 ] as const;

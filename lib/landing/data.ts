@@ -86,6 +86,9 @@ export type HomeStats = {
   experts: number;
 };
 
+/** 홈 데이터 소스 식별자 — 어느 조회가 실패했는지 화면까지 전달하기 위한 값 */
+export type HomeSource = "posts" | "experts" | "reports" | "meetings" | "banners";
+
 export type HomeData = {
   posts: HomePost[];
   experts: HomeExpert[];
@@ -94,6 +97,14 @@ export type HomeData = {
   regions: HomeRegion[];
   stats: HomeStats;
   banners: Banner[];
+  /**
+   * 조회에 실패한 소스. 비어 있으면 전부 성공했다는 뜻이다.
+   *
+   * 이게 없던 시절에는 다섯 조회가 전부 `.catch(() => [])` 였다. 그래서 DB 가
+   * 잠깐 죽어도 홈은 "아직 올라온 글이 없어요"라고 말했다 — 글은 있는데.
+   * 조회 실패는 데이터 없음이 아니다. 화면이 둘을 구분할 수 있어야 한다.
+   */
+  failedSources: HomeSource[];
 };
 
 function initialOf(name: string): string {
@@ -102,24 +113,62 @@ function initialOf(name: string): string {
 }
 
 async function loadHomeDataInternal(): Promise<HomeData> {
-  const [posts, experts, reports, meetings, banners] = await Promise.all([
-    readPosts().catch(() => []),
-    listExperts().catch(() => []),
-    listReports().catch(() => []),
-    listMeetings().catch(() => []),
-    listBanners("home").catch(() => []),
+  /* 실패를 삼키지 않고 "어느 소스가 실패했는지"를 같이 들고 나간다.
+     allSettled 라 한 소스가 죽어도 나머지는 그대로 보여 준다. */
+  const failedSources: HomeSource[] = [];
+  const settled = await Promise.allSettled([
+    readPosts(),
+    listExperts(),
+    listReports(),
+    listMeetings(),
+    listBanners("home"),
   ]);
+  const SOURCE_ORDER: HomeSource[] = [
+    "posts",
+    "experts",
+    "reports",
+    "meetings",
+    "banners",
+  ];
+  settled.forEach((r, i) => {
+    if (r.status === "rejected") {
+      const key = SOURCE_ORDER[i]!;
+      failedSources.push(key);
+      logger.error(`[loadHomeData] ${key} 조회 실패`, r.reason);
+    }
+  });
+  const posts = settled[0]!.status === "fulfilled" ? settled[0]!.value : [];
+  const experts = settled[1]!.status === "fulfilled" ? settled[1]!.value : [];
+  const reports = settled[2]!.status === "fulfilled" ? settled[2]!.value : [];
+  const meetings = settled[3]!.status === "fulfilled" ? settled[3]!.value : [];
+  const banners = settled[4]!.status === "fulfilled" ? settled[4]!.value : [];
+
+  /* 다섯 개가 전부 실패했으면 DB 가 통째로 안 되는 상황이다. 이걸 값으로
+     돌려주면 unstable_cache 가 90초 동안 그 스냅샷을 붙들어서, DB 가 살아난
+     뒤에도 홈은 계속 고장난 상태로 보인다. 던지면 캐시에 남지 않고 다음
+     요청이 다시 시도한다(거부는 캐시되지 않는다). */
+  if (failedSources.length === SOURCE_ORDER.length) {
+    throw new Error("[loadHomeData] 홈 데이터 소스 전체 조회 실패");
+  }
 
   const sb = getServiceSupabase();
   let totalUsers = 0;
   let totalInspections = 0;
+  /* 홈에 찍히는 "총 게시글" 수.
+     기본값은 위에서 받아 온 목록의 길이지만, 그 목록에는 상한이 있다
+     (readPosts → POSTS_READ_LIMIT). 상한에 걸리면 length 는 총계가 아니라
+     "상한"이 된다 — 글이 800개여도 500 이라고 적히는 것이다. 그래서 Supabase
+     가 붙어 있으면 count 질의로 정확히 다시 구한다. */
+  let totalPosts = posts.length;
   if (sb) {
-    const [u, i] = await Promise.all([
+    const [u, i, p] = await Promise.all([
       sb.from("app_users").select("*", { count: "exact", head: true }),
       sb.from("inspection_notes").select("*", { count: "exact", head: true }),
+      sb.from("posts").select("*", { count: "exact", head: true }),
     ]);
     if (typeof u.count === "number") totalUsers = u.count;
     if (typeof i.count === "number") totalInspections = i.count;
+    if (typeof p.count === "number") totalPosts = p.count;
   }
 
   // 인기순: 조회·좋아요 기반 (HOT 판정 임계치 viewCount>=500 || likeCount>=30)
@@ -243,7 +292,9 @@ async function loadHomeDataInternal(): Promise<HomeData> {
       };
     });
 
-  // 지역별 카운트 (게시글 기반)
+  /* 지역별 카운트 — **읽어 온 목록(최신 상한 건) 기준**이다. 전체 글이
+     아니라 표본이므로, 아래 pct 도 "표본 안에서의 비율"이다. 총계
+     (stats.posts)는 count 질의로 따로 구한다 — 두 수를 나눠 쓰면 안 된다. */
   const regionMap = new Map<string, { city: string; district: string; count: number }>();
   for (const p of posts) {
     const city = p.city ?? "";
@@ -266,6 +317,9 @@ async function loadHomeDataInternal(): Promise<HomeData> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
+  /* 오늘 글 수 — 목록에서 센다. 목록은 최신순 상한 목록이므로, 하루에
+     상한(POSTS_READ_LIMIT)을 넘는 글이 올라오지 않는 한 정확하다. 넘어서는
+     날이 오면 여기도 count 질의로 바꿔야 한다. */
   const todayStr = new Date().toDateString();
   const postsToday = posts.filter((p) => {
     const t = new Date(p.createdAt ?? 0).getTime();
@@ -279,10 +333,11 @@ async function loadHomeDataInternal(): Promise<HomeData> {
     meetings: mappedMeetings,
     regions,
     banners,
+    failedSources,
     stats: {
       users: totalUsers,
       inspections: totalInspections,
-      posts: posts.length,
+      posts: totalPosts,
       postsToday,
       experts: experts.length,
     },
@@ -302,6 +357,9 @@ export const EMPTY_HOME_DATA: HomeData = {
   meetings: [],
   regions: [],
   banners: [],
+  /* 여기까지 왔다는 건 조회가 실패했다는 뜻이다. "데이터 없음"이 아니다 —
+     전 소스를 실패로 표시해서 화면이 그렇게 말할 수 있게 한다. */
+  failedSources: ["posts", "experts", "reports", "meetings", "banners"],
   stats: { users: 0, inspections: 0, posts: 0, postsToday: 0, experts: 0 },
 };
 

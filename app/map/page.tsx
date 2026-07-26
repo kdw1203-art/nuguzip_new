@@ -4,6 +4,7 @@ import { loadRegionMarketMarkers } from "@/lib/map/region-market";
 import { pctDelta, deltaLabel } from "@/lib/map/trade-stats";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { auth } from "@/auth";
+import { logger } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
@@ -98,19 +99,23 @@ function splitRegion(region: string): { city: string; district: string } {
 async function loadGeocodedComplexes(
   limit: number,
 ): Promise<{ region_name: string; complex_name: string; lat: number; lng: number }[]> {
+  /* 2026-07-26: 실패를 `[]` 로 삼켰다. 그러면 지도 좌측 패널이 "수도권 단지 0",
+     모바일 목록이 "이 지역 단지 목록을 준비 중이에요" 로 그려진다 — 좌표 캐시를
+     못 읽은 것뿐인데 아직 준비가 안 된 서비스처럼 보인다. 실패는 던진다.
+     (행이 0개인 것은 진짜 빈 상태이므로 그대로 `[]`.) */
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb
+  if (!sb) throw new Error("[map] Supabase 서비스 클라이언트를 만들 수 없습니다 (환경변수 누락)");
+  const { data, error } = await sb
     .from("complex_geocode")
     .select("region_name, complex_name, lat, lng")
     .eq("status", "ok")
     .not("lat", "is", null)
     .order("trade_count", { ascending: false, nullsFirst: false })
     .limit(limit);
+  if (error) throw new Error(`complex_geocode 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) throw new Error("complex_geocode 응답이 배열이 아닙니다");
   return (
-    (data as
-      | { region_name: string; complex_name: string; lat: number; lng: number }[]
-      | null) ?? []
+    data as { region_name: string; complex_name: string; lat: number; lng: number }[]
   ).filter((g) => g.complex_name && Number.isFinite(g.lat) && Number.isFinite(g.lng));
 }
 
@@ -273,62 +278,74 @@ async function fetchMyNoteCounts(): Promise<Map<string, number>> {
  * 좌표 캐시만 읽는다 — 백필은 cron(geocode-complexes)이 담당하고,
  * 요청 경로의 동기 지오코딩(예전 부트스트랩)은 응답 지연 요인이라 제거했다.
  */
-async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string } | null> {
-  try {
-    const geo = await loadGeocodedComplexes(30);
-    if (geo.length === 0) return null;
+async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }> {
+  /* 2026-07-26: 통째로 try/catch 해서 조회 실패도 `null`, 좌표가 0건인 것도 `null`
+     이었다. 호출부는 둘을 구분할 방법이 없어서 두 경우 모두 "단지 0" 으로 그렸다.
+     이제 실패는 던지고, 빈 결과만 빈 목록으로 돌려준다. */
+  const geo = await loadGeocodedComplexes(30);
+  if (geo.length === 0) return { items: [], region: "수도권" };
 
-    const [txByComplex, myNotes] = await Promise.all([
-      fetchTxBatch(geo),
-      fetchMyNoteCounts(),
-    ]);
+  const [txByComplex, myNotes] = await Promise.all([fetchTxBatch(geo), fetchMyNoteCounts()]);
 
-    const items = geo.map((g) => {
-      const id = encodeComplexId(g.region_name, g.complex_name);
-      const rows = txByComplex.get(pairKey(g.region_name, g.complex_name)) ?? [];
-      const { tx, facts } = aggregateComplex(id, rows);
-      const myNoteCount = myNotes.get(normalizeName(g.complex_name)) ?? 0;
-      return toDanjiItem(
-        g.region_name,
-        g.complex_name,
-        tx,
-        facts,
-        { lat: g.lat, lng: g.lng },
-        myNoteCount,
-      );
-    });
+  const items = geo.map((g) => {
+    const id = encodeComplexId(g.region_name, g.complex_name);
+    const rows = txByComplex.get(pairKey(g.region_name, g.complex_name)) ?? [];
+    const { tx, facts } = aggregateComplex(id, rows);
+    const myNoteCount = myNotes.get(normalizeName(g.complex_name)) ?? 0;
+    return toDanjiItem(
+      g.region_name,
+      g.complex_name,
+      tx,
+      facts,
+      { lat: g.lat, lng: g.lng },
+      myNoteCount,
+    );
+  });
 
-    // 패널 헤더 라벨 — 최빈 시/도
-    const counts = new Map<string, number>();
-    for (const g of geo) {
-      const { city } = splitRegion(g.region_name);
-      if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
-    }
-    let region = "수도권";
-    let best = 0;
-    for (const [k, n] of counts) {
-      if (n > best) {
-        best = n;
-        region = k;
-      }
-    }
-    return { items, region };
-  } catch {
-    return null;
+  // 패널 헤더 라벨 — 최빈 시/도
+  const counts = new Map<string, number>();
+  for (const g of geo) {
+    const { city } = splitRegion(g.region_name);
+    if (city) counts.set(city, (counts.get(city) ?? 0) + 1);
   }
+  let region = "수도권";
+  let best = 0;
+  for (const [k, n] of counts) {
+    if (n > best) {
+      best = n;
+      region = k;
+    }
+  }
+  return { items, region };
 }
 
 export default async function MapPage() {
-  // 사실 우선: DB 조회 실패/빈 결과 시 허위 단지(공작아파트 등) 대신 빈 목록 — 지도만 표시
-  const [db, regionMarkers] = await Promise.all([
-    loadDanjiFromDb(),
-    loadRegionMarketMarkers().catch(() => []),
+  /* 사실 우선: 허위 단지(공작아파트 등)를 채우지 않는다. 다만 "조회 실패" 와
+     "빈 결과" 는 갈라서 내려보낸다 — 예전에는 둘 다 빈 목록이라 화면이
+     "이 지역 단지 목록을 준비 중이에요" 라고 잘못 안내했다. */
+  const [dbLoaded, markersLoaded] = await Promise.all([
+    loadDanjiFromDb().then(
+      (value) => ({ ok: true as const, value }),
+      (err: unknown) => {
+        logger.error("[map] 단지 목록 조회 실패", err);
+        return { ok: false as const };
+      },
+    ),
+    loadRegionMarketMarkers().then(
+      (value) => ({ ok: true as const, value }),
+      (err: unknown) => {
+        logger.error("[map] 지역 시세 마커 조회 실패", err);
+        return { ok: false as const };
+      },
+    ),
   ]);
   return (
     <MapClient
-      danji={db?.items ?? []}
-      regionLabel={db?.region ?? "수도권"}
-      regionMarkers={regionMarkers}
+      danji={dbLoaded.ok ? dbLoaded.value.items : []}
+      regionLabel={dbLoaded.ok ? dbLoaded.value.region : "수도권"}
+      regionMarkers={markersLoaded.ok ? markersLoaded.value : []}
+      danjiLoadFailed={!dbLoaded.ok}
+      regionMarkersLoadFailed={!markersLoaded.ok}
     />
   );
 }

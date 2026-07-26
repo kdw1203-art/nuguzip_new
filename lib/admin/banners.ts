@@ -117,14 +117,22 @@ export function bannerLifecycle(b: Banner, now = new Date()): BannerLifecycle {
  * (H4 CMS 의 핵심 요구가 "노출기간 관리" 라 지난 배너를 봐야 한다.)
  */
 export async function listAllBanners(): Promise<Banner[]> {
+  /* 2026-07-26: error 를 버리고 `!data → []` 로 넘겼다. 그러면 어드민은
+     "등록 0건"으로 읽고, 이미 있는 배너를 다시 만들거나 "광고가 안 나간다"고
+     오판한다. 조회 실패는 등록 0건이 아니다 — 던져서 호출부가 구분하게 한다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  const { data } = await sb
+  if (!sb) {
+    throw new Error(
+      "[banners] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
+  const { data, error } = await sb
     .from("banners")
     .select("*")
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false });
-  if (!data) return [];
+  if (error) throw new Error(`banners 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) throw new Error("banners 응답이 배열이 아닙니다");
   return (data as Record<string, unknown>[]).map(mapRow);
 }
 

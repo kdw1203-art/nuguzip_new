@@ -258,27 +258,43 @@ export async function loadOperatingDashboard(
       ? Math.round((activeD7 / kpi.totalUsers) * 1000) / 10
       : 0;
 
+  /* ── 2026-07-26: 여기 href 를 실존하는 관리자 화면으로 맞춤 ─────────────────
+   * 적혀 있던 /admin/users·/admin/analytics·/admin/reports·/admin/finance·
+   * /admin/acquisition·/admin/posts·/admin/expert-ops·/admin/experts·
+   * /admin/meetings 는 app/admin 아래에 하나도 없다. 즉 /admin/ops 대시보드에서
+   * 지표 카드를 누르면 전부 404 였다. 실제로 있는 화면은 AdminNav 의 10개다:
+   *   /admin(대시보드) /revenue /moderation /quality /experiments /ops
+   *   /market /banners /data /seo  (+ 네비에 없는 /admin/listings)
+   * 그래서 지표별로 "그 숫자를 실제로 볼 수 있는 화면"에 연결한다.
+   *   가입·콘텐츠 집계 → /admin (가입 추이·최근 가입 회원·콘텐츠 집계가 여기)
+   *   신고             → /admin/moderation (신고 큐)
+   *   결제·구독·리포트 판매 → /admin/revenue (구독 플랜 분해)
+   *   전문가 인증 심사 → /admin/quality (VerificationQueue)
+   *   전문가 의뢰      → /admin/market (실 의뢰 집계)
+   * "모임 승인 대기"만 href 를 뺐다 — 모임 승인 화면이 아직 없다.
+   *   없는 화면을 그럴듯한 링크로 가리는 것보다 링크가 없는 게 사실에 맞다.
+   * ──────────────────────────────────────────────────────────────────────── */
   const hero: LayerMetric[] = [
     {
       key: "signup_today",
       label: "오늘 가입",
       value: kpi.newUsersToday.toLocaleString("ko-KR"),
       delta: `7일 ${kpi.newUsers7d.toLocaleString("ko-KR")}명`,
-      href: "/admin/users",
+      href: "/admin",
     },
     {
       key: "first_inspection",
       label: "첫 임장(7일)",
       value: firstInspection7d.toLocaleString("ko-KR"),
       delta: `노트 총 ${kpi.totalInspections.toLocaleString("ko-KR")}`,
-      href: "/admin/analytics",
+      href: "/admin",
     },
     {
       key: "reports_open",
       label: "신고 대기",
       value: kpi.openReports.toLocaleString("ko-KR"),
       delta: `전체 ${kpi.totalReports.toLocaleString("ko-KR")}건`,
-      href: "/admin/reports",
+      href: "/admin/moderation",
     },
     {
       key: "payments_today",
@@ -291,7 +307,7 @@ export async function loadOperatingDashboard(
         paymentsTodayCount > 0
           ? `${paymentsTodayCount}건`
           : `30일 ${kpi.paymentsCompleted30d}건`,
-      href: "/admin/finance",
+      href: "/admin/revenue",
     },
   ];
 
@@ -305,7 +321,7 @@ export async function loadOperatingDashboard(
           key: "signup_7d",
           label: "7일 가입",
           value: kpi.newUsers7d.toLocaleString("ko-KR"),
-          href: "/admin/acquisition",
+          href: "/admin",
         },
         {
           key: "first_save",
@@ -326,7 +342,7 @@ export async function loadOperatingDashboard(
           key: "first_post",
           label: "첫 글쓰기(7일)",
           value: firstPost7d.toLocaleString("ko-KR"),
-          href: "/admin/posts",
+          href: "/admin",
         },
       ],
     },
@@ -373,7 +389,7 @@ export async function loadOperatingDashboard(
           label: "결제(30일)",
           value: `${kpi.paymentsCompleted30d.toLocaleString("ko-KR")}건`,
           delta: formatKRW(kpi.paymentsRevenue30dKrw),
-          href: "/admin/finance",
+          href: "/admin/revenue",
         },
         {
           key: "refund_30d",
@@ -384,13 +400,13 @@ export async function loadOperatingDashboard(
           key: "consult",
           label: "전문가 상담 요청",
           value: consultSubmit30d.toLocaleString("ko-KR"),
-          href: "/admin/expert-ops",
+          href: "/admin/market",
         },
         {
           key: "report_sale",
           label: "리포트 구매",
           value: reportPurchase30d.toLocaleString("ko-KR"),
-          href: "/admin/reports",
+          href: "/admin/revenue",
         },
         {
           key: "paid_subs",
@@ -398,7 +414,7 @@ export async function loadOperatingDashboard(
           value: (
             (kpi.planCounts.pro ?? 0) + (kpi.planCounts.expert ?? 0)
           ).toLocaleString("ko-KR"),
-          href: "/admin/users",
+          href: "/admin/revenue",
         },
       ],
     },
@@ -411,19 +427,18 @@ export async function loadOperatingDashboard(
           key: "reports",
           label: "신고 대기",
           value: kpi.openReports.toLocaleString("ko-KR"),
-          href: "/admin/reports",
+          href: "/admin/moderation",
         },
         {
           key: "experts",
           label: "전문가 인증 대기",
           value: kpi.pendingExpertRequests.toLocaleString("ko-KR"),
-          href: "/admin/experts",
+          href: "/admin/quality",
         },
         {
           key: "meetings",
           label: "모임 승인 대기",
           value: kpi.pendingMeetingRequests.toLocaleString("ko-KR"),
-          href: "/admin/meetings",
         },
         {
           key: "approval",
@@ -435,7 +450,7 @@ export async function loadOperatingDashboard(
           label: "커뮤니티 글",
           value: kpi.totalPosts.toLocaleString("ko-KR"),
           delta: `+${kpi.postsToday} 오늘`,
-          href: "/admin/posts",
+          href: "/admin",
         },
       ],
     },

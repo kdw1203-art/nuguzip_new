@@ -92,6 +92,7 @@ export async function listMeetings(
   const sb = getServiceSupabase();
   let rows: UserMeeting[];
   if (!sb) {
+    /* 클라이언트가 아예 없는 경우 — "설정이 없다"이지 "조회에 실패했다"가 아니다. */
     rows = filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)));
   } else {
     const { data, error } = await sb
@@ -100,9 +101,17 @@ export async function listMeetings(
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(200);
-    rows = error
-      ? filterPublicContent((await readGroupsFile()).map((g) => mapRow(g as unknown as Record<string, unknown>)))
-      : filterPublicContent((data ?? []).map(mapRow));
+    /* 예전에는 error 를 파일 스토어 폴백으로 삼켰다. 그런데 파일 스토어
+       (data/groups.json)는 저장소에 없다 — 운영에서는 **항상 빈 배열**이다.
+       즉 이 폴백은 "조회 실패"를 "모임이 하나도 없음"으로 바꿔 놓는 장치였고,
+       화면에는 "지금 모집 중인 모임이 없어요"가 떴다. 못 읽은 것과 없는 것은
+       다른 사실이므로 던진다 — 부르는 쪽이 그 둘을 구분해 그리게. */
+    if (error) {
+      throw new Error(
+        `[meetings.listMeetings] 모임 목록 조회 실패: ${error.message ?? "unknown"}`,
+      );
+    }
+    rows = filterPublicContent((data ?? []).map(mapRow));
   }
   if (opts.includePast) return rows;
   const now = Date.now();
@@ -121,8 +130,18 @@ export async function getMeeting(id: string): Promise<UserMeeting | null> {
     .eq("id", id)
     .maybeSingle();
   if (error || !data) {
+    /* 파일 스토어에는 시드 모임이 들어 있으니 먼저 거기서 찾아본다. */
     const g = await getGroupFile(id);
-    return g ? mapRow(g as unknown as Record<string, unknown>) : null;
+    if (g) return mapRow(g as unknown as Record<string, unknown>);
+    /* 여기까지 왔는데 error 가 있었다면, 우리는 "이 모임이 없다"를 확인한 게
+       아니라 **확인에 실패한** 것이다. null 을 돌려주면 호출부가 삭제된 모임과
+       똑같은 화면을 200 으로 그린다. 둘은 다른 사실이므로 던진다(→ 5xx). */
+    if (error) {
+      throw new Error(
+        `[meetings.getMeeting] 모임 ${id} 조회 실패: ${error.message ?? "unknown"}`,
+      );
+    }
+    return null;
   }
   return mapRow(data as Record<string, unknown>);
 }

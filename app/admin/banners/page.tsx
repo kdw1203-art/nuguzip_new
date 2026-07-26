@@ -1,5 +1,7 @@
 import { listAllBanners, bannerLifecycle } from "@/lib/admin/banners";
 import { HOUSE_ADS } from "@/lib/ads/house-ads";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 import { BannersClient } from "./BannersClient";
 
 /**
@@ -14,7 +16,38 @@ import { BannersClient } from "./BannersClient";
 export const dynamic = "force-dynamic";
 
 export default async function AdminBannersPage() {
-  const banners = await listAllBanners().catch(() => []);
+  /* 2026-07-26: `.catch(() => [])` 였다. 조회가 실패하면 "등록 0건"으로 보이고,
+     관리자가 이미 있는 배너를 다시 만들거나 "광고가 안 나간다"고 오판한다.
+     실패는 실패라고 말한다 — 편집 UI 도 띄우지 않는다(빈 목록 위에서 저장하면
+     기존 배너를 덮어쓸 위험이 있다). */
+  const loaded = await listAllBanners().then(
+    (banners) => ({ ok: true as const, banners }),
+    (err: unknown) => {
+      logger.error("[admin/banners] 배너 목록 조회 실패", err);
+      return {
+        ok: false as const,
+        cause: err instanceof Error ? err.message : String(err),
+      };
+    },
+  );
+
+  if (!loaded.ok) {
+    return (
+      <div className="flex flex-col gap-5">
+        <header className="flex flex-col gap-1">
+          <h1 className="text-[19px] font-extrabold text-[#e8edf6]">배너 · 하우스광고</h1>
+        </header>
+        <ErrorState
+          tone="admin"
+          title="배너 목록을 지금 불러오지 못했어요"
+          desc="등록된 배너가 0건인 게 아니라 조회가 실패했습니다. 이 상태에서 새 배너를 만들면 기존 배너와 겹칠 수 있으니, 목록이 다시 보일 때 편집해 주세요."
+          cause={loaded.cause}
+        />
+      </div>
+    );
+  }
+
+  const banners = loaded.banners;
   const now = new Date();
   const withState = banners.map((b) => ({ ...b, lifecycle: bannerLifecycle(b, now) }));
   const liveCount = withState.filter((b) => b.lifecycle === "live").length;

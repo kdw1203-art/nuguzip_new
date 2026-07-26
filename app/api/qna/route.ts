@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { listQuestions, createQuestion } from "@/lib/qna/store";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,8 +11,19 @@ export const dynamic = "force-dynamic";
 /** 질문 목록 — ?status= 로 상태 필터. { items } 반환. */
 export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get("status")?.trim() || undefined;
-  const items = await listQuestions({ status });
-  return NextResponse.json({ items });
+  /* 2026-07-26: store 가 실패 때 `[]` 를 돌려주던 걸 던지도록 고쳤다. 여기서
+     삼켜서 `{ items: [] }` 를 주면 클라이언트는 "질문 없음"으로 그린다 —
+     조회 실패는 200 빈 목록이 아니라 503 이다. */
+  try {
+    const items = await listQuestions({ status });
+    return NextResponse.json({ items });
+  } catch (e) {
+    logger.error("[api/qna] 질문 목록 조회 실패", e);
+    return NextResponse.json(
+      { error: "질문 목록을 지금 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 503 },
+    );
+  }
 }
 
 /** 질문 등록 — 로그인 필요, 사용자당 시간당 20건. { ok, id } 반환. */

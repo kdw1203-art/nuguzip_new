@@ -11,6 +11,8 @@ import {
   type DevDeal,
 } from "@/lib/dev-deals/types";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
@@ -250,7 +252,32 @@ export default async function DevDealsHubPage({
     region: (sp.region ?? "").trim() || undefined,
   };
 
-  const [all, deals] = await Promise.all([listDeals({}), listDeals(filter)]);
+  /* 2026-07-26: store 가 실패 때 `[]` 를 돌려주던 걸 던지도록 고쳤다. 여기서
+     받아서 "지금 불러오지 못했다"고 말한다 — 등록된 개발물건이 0건인 것과
+     조회가 죽은 것은 다른 사실이다. */
+  const loaded = await Promise.all([listDeals({}), listDeals(filter)]).then(
+    ([all, deals]) => ({ ok: true as const, all, deals }),
+    (err: unknown) => {
+      logger.error("[dev-deals] 개발물건 목록 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+
+  if (!loaded.ok) {
+    return (
+      <PageShell breadcrumb="동네이야기 › 개발물건 중개" wide>
+        <div style={DEV_THEME}>
+          <ErrorState
+            title="개발물건 목록을 지금 불러오지 못했어요"
+            desc="등록된 개발물건이 0건인 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요."
+            cause={loaded.cause}
+          />
+        </div>
+      </PageShell>
+    );
+  }
+
+  const { all, deals } = loaded;
 
   // 지역 필터 옵션 — 전체 목록에서 유니크 추출
   const regions = Array.from(

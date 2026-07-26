@@ -1,4 +1,11 @@
-/** 4대 카테고리 — 동일 디자인 언어 + 임장 중심 decision workflow */
+/**
+ * 4대 카테고리 — 동일 디자인 언어 + 임장 중심 decision workflow
+ *
+ * ⚠️ 2026-07-26 확인: 이 모듈은 저장소 어디에서도 import 하지 않는다(지금은
+ * 화면에 안 나온다). 그래도 경로는 실존하는 것으로 맞춰 둔다 — 여기 있던
+ * `/inspection/*` `/ai-analysis/*` 는 없는 경로라, 나중에 연결하는 순간
+ * CTA 가 전부 404 로 떨어지기 때문이다.
+ */
 
 export type WorkflowCategoryId = "inspection" | "ai" | "map" | "community";
 
@@ -28,7 +35,7 @@ export const CATEGORY_HUB_COPY: Record<WorkflowCategoryId, CategoryHubCopy> = {
     title: "현장에서 바로 남기는 임장 기록",
     subtitle: "사진·체크·음성만 남겨도 AI가 보고서 형태로 정리해드려요",
     ctaLabel: "새 임장노트 시작",
-    ctaHref: "/inspection/create",
+    ctaHref: "/notes/new",
     metaDescription:
       "현장에서 사진·체크·음성으로 임장을 기록하고 AI가 보고서 형태로 정리해 드립니다.",
   },
@@ -37,7 +44,7 @@ export const CATEGORY_HUB_COPY: Record<WorkflowCategoryId, CategoryHubCopy> = {
     title: "조건을 넣으면 근거까지 정리되는 AI 분석",
     subtitle: "점수보다 중요한 건 왜 그런 판단이 나왔는지입니다",
     ctaLabel: "AI 분석 실행",
-    ctaHref: "/ai-analysis/ai-diagnosis",
+    ctaHref: "/analysis",
     metaDescription:
       "단지 조건을 입력하면 근거·리스크·다음 액션까지 정리되는 부동산 AI 분석.",
   },
@@ -70,7 +77,7 @@ export const CATEGORY_WORKFLOW: WorkflowCategory[] = [
     id: "inspection",
     label: "임장노트",
     shortLabel: "임장",
-    href: "/inspection/hub",
+    href: "/notes",
     role: "현장 기록",
     accent: "#3182F6",
   },
@@ -78,7 +85,7 @@ export const CATEGORY_WORKFLOW: WorkflowCategory[] = [
     id: "ai",
     label: "AI 분석",
     shortLabel: "AI",
-    href: "/ai-analysis",
+    href: "/analysis",
     role: "근거·판단",
     accent: "#6366F1",
   },

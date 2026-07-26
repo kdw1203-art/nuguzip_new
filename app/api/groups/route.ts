@@ -5,9 +5,26 @@ import { createMeeting, listMeetings } from "@/lib/meetings/store-db";
 
 export const runtime = "nodejs";
 
+/**
+ * 모임 목록.
+ *
+ * listMeetings 는 조회에 실패하면 던진다(예전에는 빈 배열을 돌려줬다 — 그러면
+ * 받는 쪽은 "모임이 하나도 없다"로 읽는다). 여기서 그 예외를 200 `{groups: []}`
+ * 로 바꿔 버리면 같은 거짓말이 되므로, **못 줬다는 사실**을 503 으로 준다.
+ */
 export async function GET() {
-  const groups = await listMeetings();
-  return NextResponse.json({ groups });
+  try {
+    const groups = await listMeetings();
+    return NextResponse.json({ groups });
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          "모임 목록을 지금 불러오지 못했어요. 모임이 없는 게 아니라 조회에 실패한 상태입니다.",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {

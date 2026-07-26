@@ -5,6 +5,8 @@ import {
   type ExperimentResult,
   type VariantResult,
 } from "@/lib/experiments/results";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 
 /* A7 — 실험(A/B) 결과.
    사실 우선: 표본이 기준을 못 넘기면 p 값·개선율을 아예 계산하지 않고 "표본 부족"만 말한다.
@@ -181,7 +183,19 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
 }
 
 export default async function AdminExperimentsPage() {
-  const results = await loadExperimentResults().catch(() => []);
+  /* 2026-07-26: `.catch(() => [])` 였다. 조회가 실패하면 "등록된 실험이 없습니다"
+     라고 단정해서, 돌아가고 있는 실험을 없는 것으로 읽게 만든다. */
+  const loaded = await loadExperimentResults().then(
+    (results) => ({ ok: true as const, results }),
+    (err: unknown) => {
+      logger.error("[admin/experiments] 실험 결과 조회 실패", err);
+      return {
+        ok: false as const,
+        cause: err instanceof Error ? err.message : String(err),
+      };
+    },
+  );
+  const results = loaded.ok ? loaded.results : [];
 
   return (
     <>
@@ -192,7 +206,15 @@ export default async function AdminExperimentsPage() {
         <b>노출 이벤트 수</b>입니다(같은 사람이 여러 번 볼 수 있음).
       </div>
 
-      {results.length === 0 ? (
+      {!loaded.ok ? (
+        <ErrorState
+          tone="admin"
+          className="rise-in-1"
+          title="실험 결과를 지금 불러오지 못했어요"
+          desc="실험이 0개인 게 아니라 집계 조회가 실패했습니다. 잠시 후 새로고침해 주세요."
+          cause={loaded.cause}
+        />
+      ) : results.length === 0 ? (
         <div className={`rise-in-1 ${lightCard}`}>
           <div className="text-sm font-extrabold text-ink">등록된 실험이 없습니다</div>
           <p className="text-[11px] leading-relaxed text-text-3">

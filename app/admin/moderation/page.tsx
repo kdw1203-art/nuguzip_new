@@ -1,5 +1,7 @@
 import { loadModerationQueue, summarizeQueue } from "@/lib/admin/moderation-queue";
 import { MODERATION_PIPELINE } from "@/lib/admin/moderation-policy";
+import { ErrorState } from "@/app/components/ui/EmptyState";
+import { logger } from "@/lib/log";
 import { ModerationQueue } from "./ModerationQueue";
 
 /*
@@ -24,7 +26,39 @@ function hoursLabel(h: number | null): string {
 }
 
 export default async function AdminModerationPage() {
-  const items = await loadModerationQueue().catch(() => []);
+  /* 2026-07-26: 여기가 `.catch(() => [])` 였다. 조회가 실패하면 신고 큐가 빈 배열이
+     되고, 화면은 "미처리 0건" 옆에 "표시되는 수치는 모두 DB 실집계입니다" 라고
+     적어 놨다. 즉 신고가 쌓여 있어도 관리자는 "처리할 게 없다"고 읽는다.
+     조회 실패는 데이터 없음이 아니다 — 실패는 실패라고 말해야 한다. */
+  const loaded = await loadModerationQueue().then(
+    (items) => ({ ok: true as const, items }),
+    (err: unknown) => {
+      logger.error("[admin/moderation] 신고 큐 조회 실패", err);
+      return {
+        ok: false as const,
+        cause: err instanceof Error ? err.message : String(err),
+      };
+    },
+  );
+
+  if (!loaded.ok) {
+    return (
+      <>
+        <div className="rise-in flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[19px] font-extrabold text-white">신고 · 모더레이션</span>
+        </div>
+        <ErrorState
+          tone="admin"
+          title="신고 큐를 지금 불러오지 못했어요"
+          desc="신고가 0건인 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요. 계속 실패하면 DB 상태를 확인해야 합니다."
+          cause={loaded.cause}
+          className="rise-in-1"
+        />
+      </>
+    );
+  }
+
+  const items = loaded.items;
   const stats = summarizeQueue(items);
 
   const cards = [
