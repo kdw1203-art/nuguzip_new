@@ -691,7 +691,10 @@ function buildDataSnapshot(tool: AiAnalysisToolId, input: Record<string, unknown
     case "ai-inspection": {
       const prof = input.profile;
       return {
-        links: ["/inspection/create", "/inspection/hub"],
+        /* 이 값은 LLM 프롬프트에 그대로 들어가고 답변에 링크로 다시 나온다.
+           `/inspection/*` 는 이 앱에 없는 경로다(app/inspection 디렉터리 없음).
+           임장노트 작성은 /notes/new, 목록은 /notes. */
+        links: ["/notes/new", "/notes"],
         goal: in_.goal,
         interestNotes: in_.interestNotes,
         budgetOverrideEok: {

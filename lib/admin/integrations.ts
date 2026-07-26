@@ -164,7 +164,7 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
       id: "naver-map",
       tier: "extra",
       label: "네이버 지도",
-      description: "지도 탐색·시세 지도 (`/map/*`, `/explore`, `/info/map`)",
+      description: "지도 탐색·시세 지도 (`/map/*`)",
       ok:
         Boolean(process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID?.trim()) &&
         Boolean(process.env.NAVER_MAP_CLIENT_SECRET?.trim()),

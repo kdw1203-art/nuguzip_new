@@ -182,6 +182,41 @@ const REDIRECT_GROUPS: readonly RedirectGroup[] = [
       ["/supabase-connect", "/"],
     ],
   },
+  {
+    /* 2026-07-26 — 소스에 리터럴로 박혀 있던 죽은 경로들을 전수 점검하다 나왔다.
+       이 표는 정확 일치만 하므로 `/experts` 는 있어도 `/inspection/create` 는
+       없었고, 앱 안의 링크들이 실제로 그리로 가고 있었다. 링크 쪽은 실존 경로로
+       고쳤지만(app/api/me/activity, lib/navigation/categories 등), 이미 색인·
+       북마크된 URL 이 남아 있으므로 표에도 넣는다.
+
+       `/presale` 은 리다이렉트조차 없어서 홈 퀵메뉴 "청약"이 404 였다. */
+    reason: "2026-07-26 죽은 내부 링크 점검 — 실존 라우트로 이관",
+    since: "2026-07-26",
+    rules: [
+      ["/presale", "/apply"],
+      ["/info/map", "/map"],
+      ["/groups", "/town/groups"],
+      ["/create-expert", "/town/experts"],
+      // 출석 체크 버튼은 /my/points 안에 있다(app/my/points/AttendanceButton.tsx)
+      ["/attendance", "/my/points"],
+      // 임장노트: 작성 = /notes/new, 그 외 임장 화면은 목록으로
+      ["/inspection", "/notes"],
+      ["/inspection/create", "/notes/new"],
+      ["/inspection/explore", "/notes"],
+      ["/inspection/session", "/notes"],
+      ["/inspection/create-schedule", "/notes"],
+      /* `ai-*` 는 분석 엔진(lib/ai/analysis-engine.ts)의 툴 식별자이지 라우트가
+         아니다. 툴별 페이지는 없고 실존하는 건 허브 /analysis 다. 다만
+         ai-compare 는 /analysis/compare 라는 같은 역할의 페이지가 실제로 있다. */
+      ["/ai-analysis/ai-compare", "/analysis/compare"],
+      ["/ai-analysis/ai-timing", "/analysis/timing"],
+      ["/ai-analysis/ai-diagnosis", "/analysis"],
+      ["/ai-analysis/ai-inspection", "/analysis"],
+      ["/ai-analysis/ai-risk", "/analysis"],
+      ["/ai-analysis/ai-simulator", "/analysis"],
+      ["/ai-analysis/ai-portfolio", "/analysis/portfolio"],
+    ],
+  },
 ];
 
 /* 규칙을 평탄화하면서 from 중복을 즉시 터뜨린다.

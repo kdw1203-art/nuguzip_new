@@ -1,3 +1,11 @@
+/**
+ * 매물·단지 화면에서 쓸 링크 묶음.
+ *
+ * ⚠️ 2026-07-26 확인: 이 모듈을 import 하는 곳이 저장소에 하나도 없다. 즉 지금은
+ * 화면에 나오지 않는다. 그래도 경로를 고쳐 둔다 — 여기 적혀 있던 `/inspection/*`
+ * `/ai-analysis/*` 는 이 앱에 없는 경로라서, 누가 나중에 이 모듈을 연결하는
+ * 순간 링크가 전부 404 가 되기 때문이다.
+ */
 import { workbenchDistrictIdFromLabel } from "@/lib/ai/region-map";
 
 export type PropertyActionInput = {
@@ -52,17 +60,22 @@ export function buildPropertyActions(input: PropertyActionInput): PropertyAction
   return {
     districtId,
     districtLabel,
+    /* `/explore` 는 리다이렉트로만 살아 있는 옛 경로(→ /map)라 직접 /map 을 가리킨다.
+       `/map/listings` 는 페이지가 아니라 API 라우트다 — 매물 목록은 /listings. */
     exploreHref: districtLabel
-      ? `/explore?district=${encodeURIComponent(districtLabel)}`
-      : "/explore",
-    listingsHref: `/map/listings${listings.toString() ? `?${listings.toString()}` : ""}`,
-    inspectionCreateHref: `/inspection/create${insp.toString() ? `?${insp.toString()}` : ""}`,
+      ? `/map?district=${encodeURIComponent(districtLabel)}`
+      : "/map",
+    listingsHref: `/listings${listings.toString() ? `?${listings.toString()}` : ""}`,
+    /* 임장노트 작성 = /notes/new, 목록 = /notes.
+       AI 는 툴별 페이지가 없다 — 실존하는 건 허브 /analysis 와 그 하위
+       비교/타이밍 등이다. 없는 툴 경로를 지어내지 않고 허브로 보낸다. */
+    inspectionCreateHref: `/notes/new${insp.toString() ? `?${insp.toString()}` : ""}`,
     inspectionExploreHref: districtLabel
-      ? `/inspection/explore?q=${encodeURIComponent(districtLabel)}`
-      : "/inspection/explore",
-    aiDiagnosisHref: aiBase ? `/ai-analysis/ai-diagnosis?${aiBase}` : "/ai-analysis/ai-diagnosis",
-    aiCompareHref: aiBase ? `/ai-analysis/ai-compare?${aiBase}` : "/ai-analysis/ai-compare",
-    aiInspectionHref: "/ai-analysis/ai-inspection",
+      ? `/notes?q=${encodeURIComponent(districtLabel)}`
+      : "/notes",
+    aiDiagnosisHref: aiBase ? `/analysis?${aiBase}` : "/analysis",
+    aiCompareHref: aiBase ? `/analysis/compare?${aiBase}` : "/analysis/compare",
+    aiInspectionHref: "/analysis",
     complexHref: input.complexId ? `/complex/${input.complexId}` : undefined,
   };
 }

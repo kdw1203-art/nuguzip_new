@@ -66,7 +66,9 @@ export async function findNearbyProviders(input: {
         phone: row.office_phone ? String(row.office_phone) : null,
         verified_status: row.is_verified ? "verified" : "pending",
         distance_m,
-        href: `/experts/${row.id}`,
+        /* `/experts/{id}` 는 이 앱에 없는 경로다(app/town/experts 에 [id] 없음).
+           전문가 상세가 생기기 전까지는 목록으로 보낸다. */
+        href: "/town/experts",
       });
     }
     items.sort((a, b) => a.distance_m - b.distance_m);

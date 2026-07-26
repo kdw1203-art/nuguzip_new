@@ -111,12 +111,20 @@ export async function GET() {
       const typeLabel: Record<string, string> = {
         post: "커뮤니티", report: "리포트", expert: "전문가", meeting: "모임", market: "마켓",
       };
+      /* 2026-07-26: 여기 있던 경로 중 셋이 이 앱에 없는 경로였다.
+         `/experts/*` `/groups/*` `/market/*` 는 app/ 아래에 디렉터리가 없고,
+         리다이렉트 표는 **정확 일치**만 하므로(`/experts` 는 걸리지만
+         `/experts/{id}` 는 안 걸린다) 내 활동에서 북마크를 누르면 404 였다.
+         - 전문가·마켓은 상세 라우트가 아예 없다(app/town/experts, app/town/market
+           둘 다 [id] 가 없음) → 목록으로 보낸다. 없는 상세를 가리키는 것보다
+           목록이 사실에 맞다.
+         - 모임은 상세가 있다: app/town/groups/[id]. */
       const hrefs: Record<string, string> = {
         post: `/community/${b.targetId}`,
         report: `/reports/${b.targetId}`,
-        expert: `/experts/${b.targetId}`,
-        meeting: `/groups/${b.targetId}`,
-        market: `/market/${b.targetId}`,
+        expert: "/town/experts",
+        meeting: `/town/groups/${b.targetId}`,
+        market: "/town/market",
       };
       items.push({
         id: `bookmark-${b.id}`,
@@ -140,7 +148,7 @@ export async function GET() {
         type: "meeting",
         title: m.title ?? "모임",
         description: m.region ?? "",
-        href: `/groups/${m.id}`,
+        href: `/town/groups/${m.id}`,
         createdAt: m.createdAt ?? new Date().toISOString(),
       });
     }
@@ -154,7 +162,8 @@ export async function GET() {
         type: "note",
         title: n.title,
         description: n.region,
-        href: `/inspection/${n.id}`,
+        /* 임장노트 상세는 app/notes/[id] 다. `/inspection/{id}` 라우트는 없다. */
+        href: `/notes/${n.id}`,
         createdAt: n.createdAt,
       });
     }
@@ -168,7 +177,7 @@ export async function GET() {
         type: "consultation",
         title: `전문가 상담 (${c.type})`,
         description: c.status === "replied" ? "✅ 답변 완료" : "⏳ 답변 대기",
-        href: `/experts/${c.expertId}`,
+        href: "/town/experts",
         createdAt: c.createdAt,
       });
     }
@@ -185,7 +194,10 @@ export async function GET() {
         type: "ai-run",
         title: `🤖 ${label}`,
         description: headline,
-        href: `/ai-analysis/${r.tool}`,
+        /* `ai-diagnosis` 같은 tool 값은 분석 엔진(lib/ai/analysis-engine.ts)의
+           식별자이지 라우트가 아니다. 툴별 페이지는 이 앱에 없다 — 있는 건
+           분석 허브 /analysis 뿐이라, 여기서 툴 id 를 경로로 쓰면 전부 404 다. */
+        href: "/analysis",
         createdAt: r.createdAt,
       });
     }

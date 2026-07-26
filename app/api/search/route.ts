@@ -143,7 +143,9 @@ export async function GET(req: Request) {
             type: "expert",
             title: pub.name,
             excerpt: (pub.introduction ?? "").slice(0, 200),
-            url: `/experts/${pub.id}`,
+            /* 모임과 같은 이유다. `/experts/{id}` 라우트는 없고
+               app/town/experts 에도 [id] 가 없다 — 상세가 없으니 목록으로. */
+            url: "/town/experts",
             tags: pub.specialties ?? [],
             createdAt: pub.createdAt ?? new Date().toISOString(),
           });
