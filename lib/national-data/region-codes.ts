@@ -325,6 +325,18 @@ export function resolveSigunguCd(label?: string): string {
   if (!label?.trim()) return "11680"; // 기본: 강남구
   const q = label.trim().replace(/특별시$|광역시$|특별자치시$|도$/, "").trim();
 
+  // "서울 중구"·"대전 동구"처럼 시·도 접두어가 붙은 경우 — 시·도로 후보를 좁혀
+  // 동명이구(전국의 중구·동구·서구·남구·북구·강서구) 오매칭을 막는다.
+  const spaceIdx = q.indexOf(" ");
+  if (spaceIdx > 0) {
+    const cityHint = q.slice(0, spaceIdx);
+    const rest = q.slice(spaceIdx + 1).trim();
+    for (const [, info] of BY_SIGUNGU_CD) {
+      if (!info.sido.startsWith(cityHint)) continue;
+      if (info.sigungu === rest || info.sigungu.endsWith(` ${rest}`)) return info.sigunguCd;
+    }
+  }
+
   // 정확 일치 (sigungu 필드)
   for (const [, info] of BY_SIGUNGU_CD) {
     if (info.sigungu === q || info.sigungu === label.trim()) return info.sigunguCd;

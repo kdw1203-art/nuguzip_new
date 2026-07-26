@@ -32,12 +32,15 @@ function parseMolitXmlItems(text: string): Record<string, unknown>[] {
 
 async function fetchMolitRtms(
   path: string,
-  params: { district?: string; yyyymm?: string; numOfRows?: number },
+  params: { district?: string; lawdCd?: string; yyyymm?: string; numOfRows?: number },
 ): Promise<{ rows: Record<string, unknown>[]; mode: "live" | "mock" }> {
   const key = molitKey();
   if (!key) return { rows: [], mode: "mock" };
 
-  const lawd = resolveLawdCode(params.district);
+  // lawdCd 가 명시되면 그대로 사용. district 이름 매칭은 동명이구(부산 동구/대전 동구,
+  // 서울 중구/대구 중구 등)에서 첫 번째 매칭으로 오해석돼 다른 도시 데이터를
+  // 가져오는 사고가 있었다 — 코드가 있으면 이름 해석을 건너뛴다.
+  const lawd = params.lawdCd?.trim() || resolveLawdCode(params.district);
   const dealYmd = defaultDealYmd(params.yyyymm);
 
   const url = new URL(`https://apis.data.go.kr/1613000/${path}`);
@@ -164,7 +167,7 @@ function normalizeDeal(cfg: RtmsTypeConfig, r: Record<string, unknown>): MolitDe
 /** 유형별 실거래가 조회 → 정규화된 거래 목록. */
 export async function fetchMolitDeals(
   type: MolitRtmsType,
-  params: { district?: string; yyyymm?: string; numOfRows?: number },
+  params: { district?: string; lawdCd?: string; yyyymm?: string; numOfRows?: number },
 ): Promise<{ deals: MolitDeal[]; mode: "live" | "mock" }> {
   const cfg = RTMS_TYPES[type];
   const { rows, mode } = await fetchMolitRtms(
