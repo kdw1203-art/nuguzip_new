@@ -182,8 +182,18 @@ export async function listNotes(authorEmail: string | null): Promise<InspectionN
     .order("created_at", { ascending: false })
     .limit(200);
   if (authorEmail) q = q.eq("author_email", authorEmail);
-  const { data } = await q;
+  const { data, error } = await q;
+  /* 실패를 []로 돌려주면 "내가 쓴 노트가 하나도 없다"가 된다. 내 기록이 사라진
+     것처럼 보이는 화면은 사용자를 가장 크게 놀라게 하는 거짓말이다.
+     이 값을 못 없어도 되는 곳(홈 개인화·인사이트·크리에이터 게이트)은 이미
+     자기 쪽에서 catch 한다. */
+  if (error) throw noteQueryError("inspection_notes (내 노트 목록)", error);
   return (data ?? []).map(mapRow);
+}
+
+/** 조회 실패 전용 에러 — "행이 없음"과 절대 섞지 않는다. */
+function noteQueryError(where: string, err: { message?: string; code?: string }): Error {
+  return new Error(`${where} 조회 실패: ${err.message ?? "알 수 없는 오류"}`);
 }
 
 /**
@@ -251,7 +261,7 @@ export async function listNotesByAuthorForApt(
       )
       .slice(0, limit);
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_notes")
     .select("*")
     .eq("author_email", authorEmail)
@@ -259,17 +269,25 @@ export async function listNotesByAuthorForApt(
     .order("visit_date", { ascending: true })
     .order("created_at", { ascending: true })
     .limit(limit);
+  /* 회차 비교 섹션은 실패하면 "이 단지는 1회차뿐"으로 보인다 — 2·3회차를 쓴
+     사람에게는 기록이 날아간 것처럼 보인다. */
+  if (error) throw noteQueryError("inspection_notes (같은 단지 회차)", error);
   return (data ?? []).map(mapRow);
 }
 
 export async function getNote(id: string): Promise<InspectionNote | null> {
   const sb = getServiceSupabase();
   if (!sb) return memory.find((n) => n.id === id) ?? null;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_notes")
     .select("*")
     .eq("id", id)
     .maybeSingle();
+  /* maybeSingle 은 행이 없으면 {data:null,error:null} 이다. 즉 error 가 곧
+     "실패", !data 가 곧 "없음" — 이 둘이 정확히 갈린다. null 을 그대로
+     돌려주면 /notes/[id] 가 notFound() 를 부르는데, 남의 노트를 공유받아
+     들어온 사람에게 "삭제된 노트"라고 단정하는 셈이다. */
+  if (error) throw noteQueryError(`inspection_notes (노트 ${id})`, error);
   return data ? mapRow(data) : null;
 }
 
@@ -387,12 +405,15 @@ export async function updateNote(
   if (patch.aiAnalysis !== undefined) body.ai_analysis = patch.aiAnalysis;
   if (patch.metadata !== undefined) body.metadata = patch.metadata;
   if (patch.isPublic !== undefined) body.is_public = patch.isPublic;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("inspection_notes")
     .update(body)
     .eq("id", id)
     .select()
     .maybeSingle();
+  /* 쓰기가 실패했는데 null 을 돌려주면 부르는 쪽은 "그런 노트가 없다"로 읽는다.
+     저장이 안 된 것을 "없는 노트"라고 답하면 사용자는 방금 쓴 내용을 잃는다. */
+  if (error) throw noteQueryError(`inspection_notes (노트 ${id} 수정)`, error);
   return data ? mapRow(data) : null;
 }
 

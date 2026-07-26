@@ -138,6 +138,7 @@ export default async function NotesFeedPage({
       redirect(`/login?callbackUrl=${encodeURIComponent("/notes?mine=1")}`);
     }
     let notes: FeedNote[] = [];
+    let mineError: string | null = null;
     try {
       const rows = await listNotes(email);
       notes = await Promise.all(
@@ -145,10 +146,13 @@ export default async function NotesFeedPage({
           toFeedNote(n, await resolveComplexHref(n.aptName, n.region), { mine: true }),
         ),
       );
-    } catch {
-      notes = [];
+    } catch (e) {
+      /* 빈 배열로 삼키면 "아직 쓴 노트가 없어요"가 뜬다 — 내가 쓴 기록이
+         사라진 것처럼 보이는 화면이다. 공개 피드와 같은 방식으로 실패를 적는다. */
+      mineError = e instanceof Error ? e.message : String(e);
+      console.error("[/notes?mine=1] 내 임장노트 조회 실패:", mineError);
     }
-    return <NotesFeedClient notes={notes} mine />;
+    return <NotesFeedClient notes={notes} loadError={mineError} mine />;
   }
 
   let notes: FeedNote[] = [];

@@ -6,6 +6,8 @@ import { awardPoints } from "@/lib/points/ledger";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
 export async function GET(req: Request) {
   const session = await auth();
   const url = new URL(req.url);
@@ -59,7 +61,14 @@ export async function GET(req: Request) {
   if (!email) {
     return NextResponse.json({ items: [] });
   }
-  let items = await listNotes(email);
+  /* 실패를 items: [] 로 내보내면 "작성한 노트가 없어요"가 그려진다.
+     내 기록이 사라진 화면만큼 사용자를 놀라게 하는 거짓말이 없다. */
+  let items: Awaited<ReturnType<typeof listNotes>>;
+  try {
+    items = await listNotes(email);
+  } catch (e) {
+    return dbUnavailable("inspection-notes-list", e);
+  }
   if (visibility === "public") items = items.filter((n) => n.isPublic);
   else if (visibility === "private") items = items.filter((n) => !n.isPublic);
   items = items.filter((n) => matchQ(n));

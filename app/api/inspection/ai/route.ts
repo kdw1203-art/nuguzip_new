@@ -85,6 +85,8 @@ function reportRunMarkdown(report: {
  * - noteId가 없으면 기존 점수/섹션 기반 분석으로 동작
  * - 성공 시 ai_analysis_runs 에 기록해 월 사용량(무료 3회/월)을 실제로 집계·강제한다.
  */
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.email) {
@@ -107,7 +109,14 @@ export async function POST(req: Request) {
     getModelOption(modelId) ?? getModelOption(LLM_MODEL_OPTIONS[0]?.id);
 
   if (noteId) {
-    const note = await getNote(noteId);
+    /* "찾을 수 없습니다"는 없다는 뜻이다. 못 읽은 것에 그 문장을 쓰면
+       사용자는 노트가 삭제된 줄 안다. */
+    let note: Awaited<ReturnType<typeof getNote>>;
+    try {
+      note = await getNote(noteId);
+    } catch (e) {
+      return dbUnavailable("inspection-ai-note", e);
+    }
     if (!note) {
       return NextResponse.json({ error: "임장노트를 찾을 수 없습니다." }, { status: 404 });
     }

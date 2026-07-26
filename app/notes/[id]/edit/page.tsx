@@ -22,12 +22,10 @@ export default async function NoteEditPage({
   const session = await safeAuth();
   const email = session?.user?.email?.trim().toLowerCase();
 
-  let note = null;
-  try {
-    note = await getNote(id);
-  } catch {
-    note = null;
-  }
+  /* 조회 실패를 notFound() 로 바꾸면 "삭제된 노트"라고 단정하는 셈이다.
+     자기 글을 고치러 온 사람에게 그 화면을 보여주면 안 된다 — 던져서 5xx 가
+     되게 두고, 사용자는 새로고침으로 되돌아올 수 있게 한다. */
+  const note = await getNote(id);
   if (!note) notFound();
   if (!email || note.authorEmail.toLowerCase() !== email) notFound();
 

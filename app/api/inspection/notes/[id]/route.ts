@@ -4,6 +4,18 @@ import { auth } from "@/auth";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { deleteNote, getNote, updateNote } from "@/lib/inspection/store-db";
 import { awardPoints } from "@/lib/points/ledger";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/* getNote/updateNote 는 조회에 실패하면 던진다(예전엔 null 을 돌려줬다).
+   null 을 그대로 받아 404 "없음"을 내보내면, 저장돼 있는 노트를 지워졌다고
+   답하는 셈이다. 실패는 503 + Retry-After 로만 말한다. */
+async function loadNote(id: string) {
+  try {
+    return { ok: true as const, note: await getNote(id) };
+  } catch (e) {
+    return { ok: false as const, res: dbUnavailable("inspection-note", e) };
+  }
+}
 
 export async function GET(
   _req: Request,
@@ -11,7 +23,9 @@ export async function GET(
 ) {
   const session = await auth();
   const { id } = await params;
-  const note = await getNote(id);
+  const loaded = await loadNote(id);
+  if (!loaded.ok) return loaded.res;
+  const note = loaded.note;
   if (!note) return NextResponse.json({ error: "없음" }, { status: 404 });
   const email = session?.user?.email?.trim().toLowerCase();
   const isOwner = Boolean(email && note.authorEmail.toLowerCase() === email);
@@ -40,7 +54,9 @@ export async function PATCH(
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
   const { id } = await params;
-  const exists = await getNote(id);
+  const loaded = await loadNote(id);
+  if (!loaded.ok) return loaded.res;
+  const exists = loaded.note;
   if (!exists) return NextResponse.json({ error: "없음" }, { status: 404 });
   if (exists.authorEmail.toLowerCase() !== session.user.email.trim().toLowerCase()) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
@@ -52,7 +68,12 @@ export async function PATCH(
       ...(body.metadata as Record<string, unknown>),
     };
   }
-  const updated = await updateNote(id, body);
+  let updated: Awaited<ReturnType<typeof updateNote>>;
+  try {
+    updated = await updateNote(id, body);
+  } catch (e) {
+    return dbUnavailable("inspection-note-update", e);
+  }
   if (!updated) return NextResponse.json({ error: "없음" }, { status: 404 });
   if (updated.isPublic) {
     void appendOnboardingStep(session.user.email, "share");
@@ -79,7 +100,9 @@ export async function DELETE(
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
   const { id } = await params;
-  const exists = await getNote(id);
+  const loaded = await loadNote(id);
+  if (!loaded.ok) return loaded.res;
+  const exists = loaded.note;
   if (!exists) return NextResponse.json({ error: "없음" }, { status: 404 });
   if (exists.authorEmail.toLowerCase() !== session.user.email.trim().toLowerCase()) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });

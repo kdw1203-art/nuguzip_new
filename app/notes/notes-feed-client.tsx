@@ -331,8 +331,9 @@ export function NotesFeedClient({
         {/* 조회 실패 — 이 경우 "노트가 없다" 고 읽히면 안 되므로 빈 상태와 분리한다 */}
         {loadError && (
           <div className="rounded-[12px] border border-line bg-surface px-3.5 py-3 text-[12px] leading-[1.6] text-text-2">
-            공개 임장노트를 <strong className="text-ink">불러오지 못했습니다</strong>. 노트가
-            없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해 주세요.
+            {mine ? "내 임장노트를" : "공개 임장노트를"}{" "}
+            <strong className="text-ink">불러오지 못했습니다</strong>. 노트가 없다는 뜻이 아니라
+            조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해 주세요.
           </div>
         )}
 

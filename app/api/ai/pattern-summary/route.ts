@@ -85,6 +85,8 @@ function buildHeatSummary(input: {
   };
 }
 
+import { logger } from "@/lib/log";
+
 export async function POST(req: Request) {
   const session = await auth();
   const email = session?.user?.email;
@@ -109,7 +111,12 @@ export async function POST(req: Request) {
   const districtSet = new Set<string>();
   const watchRegions: string[] = [];
 
-  const notes = await listNotes(email);
+  /* 지역 취향 추출용 보조 입력이다 — 못 읽었다고 요약 전체를 막을 것까진 없지만,
+     빈 배열을 "관심 지역 없음"으로 단정하지도 않도록 로그를 남긴다. */
+  const notes = await listNotes(email).catch((e: unknown) => {
+    logger.warn("[pattern-summary] 내 노트 조회 실패 — 지역 힌트 없이 계속", e);
+    return [] as Awaited<ReturnType<typeof listNotes>>;
+  });
   for (const n of notes.slice(0, 20)) {
     const d = parseDistrict(n.region ?? "");
     if (d) districtSet.add(d);
