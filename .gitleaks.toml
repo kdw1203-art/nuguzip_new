@@ -3,12 +3,17 @@
 useDefault = true
 
 [allowlist]
-description = "Supabase publishable 키·프로젝트 URL은 공개 값(RLS 보호) — 시크릿 아님"
+description = "공개 설계 값 — 시크릿 아님"
 regexes = [
+  # Supabase publishable 키·프로젝트 URL은 공개 값(RLS 보호)
   '''sb_publishable_[A-Za-z0-9_-]+''',
   '''pbhiskvwpwwhtkmnhkbm\.supabase\.co''',
+  # IndexNow 키 — 프로토콜상 사이트에 공개 게시해야 하는 값(public/<key>.txt 로 서빙).
+  # 비밀이 아니라 소유 증명용 공개 토큰이다. https://www.indexnow.org/documentation
+  '''4a720d8a3dc61704cf05d0fe9e92900b''',
 ]
 paths = [
   '''\.env\.production$''',
   '''\.env\.example$''',
+  '''lib/seo/indexnow\.ts$''',
 ]
