@@ -121,8 +121,18 @@ export async function getMeeting(id: string): Promise<UserMeeting | null> {
     .eq("id", id)
     .maybeSingle();
   if (error || !data) {
+    /* 파일 스토어에는 시드 모임이 들어 있으니 먼저 거기서 찾아본다. */
     const g = await getGroupFile(id);
-    return g ? mapRow(g as unknown as Record<string, unknown>) : null;
+    if (g) return mapRow(g as unknown as Record<string, unknown>);
+    /* 여기까지 왔는데 error 가 있었다면, 우리는 "이 모임이 없다"를 확인한 게
+       아니라 **확인에 실패한** 것이다. null 을 돌려주면 호출부가 삭제된 모임과
+       똑같은 화면을 200 으로 그린다. 둘은 다른 사실이므로 던진다(→ 5xx). */
+    if (error) {
+      throw new Error(
+        `[meetings.getMeeting] 모임 ${id} 조회 실패: ${error.message ?? "unknown"}`,
+      );
+    }
+    return null;
   }
   return mapRow(data as Record<string, unknown>);
 }

@@ -27,10 +27,12 @@ export default async function TownGroupChatPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [meeting, session] = await Promise.all([
-    getMeeting(id).catch(() => null),
-    safeAuth(),
-  ]);
+  /* 상세 페이지와 같은 이유로 `.catch(() => null)` 을 걷어냈다. 조회 실패를
+     삼키면 "모임을 찾을 수 없어요"(삭제된 모임과 똑같은 화면)를 200 으로
+     내보내게 된다 — 못 읽은 것과 없는 것은 다른 사실이다. 실패는 던져서
+     5xx("지금은 못 준다")가 되게 두고, 아래 안내는 정말로 없을 때만 그린다.
+     세션은 곁다리라 실패해도 비로그인으로 계속 그린다(safeAuth 가 흡수). */
+  const [meeting, session] = await Promise.all([getMeeting(id), safeAuth()]);
 
   if (!meeting) {
     return (
