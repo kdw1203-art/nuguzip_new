@@ -36,6 +36,7 @@
     "check:jsonld": "node ./scripts/check-jsonld.mjs",
     "check:param-canonical": "node ./scripts/check-param-canonical.mjs",
     "check:sitemap-index": "node ./scripts/check-sitemap-index.mjs",
+    "check:redirect-map": "node ./scripts/check-redirect-map.mjs",
     "check:tx-filters": "node ./scripts/check-tx-filters.mjs",
     "seed:public-data-bundled": "node ./scripts/seed-public-data-bundled.mjs",
     "generate:vapid": "node ./scripts/generate-vapid-keys.mjs",

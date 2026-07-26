@@ -1,4 +1,21 @@
 // 연동 매트릭스 검증: 전 라우트 크롤 → 내부 링크 전수 검사 (미연결 0 = v1 조건)
+/* N6 — 레거시 경로 시드는 lib/seo/redirect-map.ts 에서 직접 가져온다.
+   전에는 83개를 여기에 손으로 베껴 뒀는데, 표에서 한 줄이 빠져도 여기는 그대로라
+   이미 없는 규칙을 계속 찔러 보고 있었다(그리고 표에 새로 넣은 /billing/success 는
+   여기 없어서 한 번도 검사되지 않았다). 한 곳만 고치면 되게 바꾼다. */
+let EXACT_REDIRECTS;
+try {
+  // .ts 직접 import — Node 22.18+ 의 타입 스트리핑에 기댄다.
+  // redirect-map.ts 는 의존성이 하나도 없어서 이게 가능하다.
+  ({ EXACT_REDIRECTS } = await import("../lib/seo/redirect-map.ts"));
+} catch (err) {
+  console.error(
+    `리다이렉트 맵을 읽지 못했습니다 — ${err.message}\n` +
+      `  현재 Node: ${process.version} · 필요: v22.18 이상(.ts 타입 스트리핑 기본 활성)`,
+  );
+  process.exit(1);
+}
+
 const BASE = `http://localhost:${process.env.PORT || 3100}`;
 const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '/map', '/search', '/notifications', '/messages',
   '/analysis', '/analysis/compare', '/analysis/cycle', '/analysis/price', '/analysis/scenario', '/analysis/timing', '/analysis/portfolio', '/analysis/switch',
@@ -8,20 +25,10 @@ const seeds = ['/', '/notes', '/notes/new', '/notes/mock-1', '/notes/compare', '
   // 사실 우선(facts-first): 존재하지 않는 단지/글/핸들은 목업 대신 404가 정상.
   // /complex/mock-1, /town/news/mock-1, /u/[handle] 은 의도된 404이므로 시드에서 제외.
   '/seller', '/discover',
-  // 미들웨어 EXACT_REDIRECTS 키 전수 — 리다이렉트 타깃 404 회귀 방지 (감사 P0-4)
-  '/register', '/mypage', '/my-page', '/map-home', '/map-price', '/map-analysis', '/map/price', '/map/analysis', '/region-comparison',
-  '/terms', '/privacy', '/create-post', '/community/create', '/community/write', '/create-meeting', '/inspection/create-meeting', '/groups/create',
-  '/create-meeting-market', '/create-product', '/market', '/market/create', '/market/product/101', '/meeting-market', '/content-market',
-  '/report', '/reports', '/subscriptions', '/subscription-management', '/subscription-calendar', '/subscription-schedule', '/admin-dashboard',
-  '/inspection-hub', '/inspection/hub', '/my-inspection', '/my-inspections', '/my-inspection-reports',
-  '/inspection/create-report', '/inspection/my-reports', '/inspection/reports', '/inspection/my-schedule',
-  '/info/public-data', '/comprehensive-calculator', '/investment-tools', '/calculator/acquisition', '/calculator/rent-vs-buy', '/calculator/tax', '/calculator/investment',
-  '/compare-properties', '/property-comparison', '/apartment-comparison', '/properties', '/property-search', '/real-price',
-  '/point-shop', '/expert', '/expert-matching', '/expert-verification', '/development-info', '/info/redevelopment',
-  '/news', '/notice', '/events', '/price-prediction', '/ai-analysis/ai-prediction', '/supabase-guide', '/supabase-connect',
-  '/community', '/ai-analysis', '/ai', '/auth/login', '/auth/signup', '/auth/register', '/auth/forgot-password', '/auth/reset-password',
-  '/pricing', '/explore', '/experts', '/calculators', '/chat',
-  '/upgrade', '/my/dashboard', '/library', '/post/123', '/community/456'];
+  // 미들웨어 리다이렉트 키 전수 — 리다이렉트 타깃 404 회귀 방지 (감사 P0-4 · N6)
+  ...Object.keys(EXACT_REDIRECTS),
+  // 구 게시글 경로 패턴(/post/:id, /community/:id) — 표가 아니라 정규식으로 처리되는 분기
+  '/post/123', '/community/456'];
 const seen = new Map(); const broken = [];
 async function check(path, from) {
   if (seen.has(path)) return seen.get(path);
@@ -40,7 +47,8 @@ for (const s of seeds) {
 }
 for (const [h, from] of linkSources) {
   const code = await check(h, from);
-  if (code !== 200 && code !== 307 && code !== 308) broken.push([h, code, from]);
+  // 301: 레거시 경로 영구 이전(GET). 308: 메서드 보존 정규화. 307: 임시.
+  if (code !== 200 && code !== 301 && code !== 307 && code !== 308) broken.push([h, code, from]);
 }
 console.log('총 검사 링크:', linkSources.size);
 if (broken.length) {

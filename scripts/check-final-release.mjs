@@ -278,6 +278,7 @@ function runGate(area, item, script, { needsBuild = false } = {}) {
 }
 
 runGate("SEO", "사이트맵 인덱스 배선 (N4)", "check-sitemap-index.mjs");
+runGate("SEO", "리다이렉트 맵 검증 (N6)", "check-redirect-map.mjs");
 runGate("SEO", "파라미터 canonical 감사 (N7)", "check-param-canonical.mjs");
 runGate("SEO", "구조화 데이터 검증 (N8)", "check-jsonld.mjs", { needsBuild: true });
 

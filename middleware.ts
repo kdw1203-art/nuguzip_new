@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { applyPrivateSiteGate } from "@/lib/site-private-edge";
 import { DEFAULT_DESKTOP_ORIGIN, detectShellFromHost, normalizeHost } from "@/lib/platform-shell";
 import { WOODONG_PATHNAME_HEADER } from "@/lib/seo/request-pathname";
+import { EXACT_REDIRECTS, legacyRedirectStatus } from "@/lib/seo/redirect-map";
 import { updateSession } from "@/utils/supabase/middleware";
 import {
   applyMiniAppCors,
@@ -128,99 +129,17 @@ function requestWithPathnameHeader(request: NextRequest): NextRequest {
   return new NextRequest(request.nextUrl, { headers: requestHeaders });
 }
 
-/**
- * Vite export `src/utils/routes.tsx` 경로를 Next App Router에 맞춥니다.
- * (flat `map-price` ↔ `/map/price` 등)
- */
-export const EXACT_REDIRECTS: Record<string, string> = {
-  /** `/login` `/my` `/subscription` `/calculator` 는 새 앱의 실제 페이지 — 레거시 매핑 제거 */
-  /** 모든 타깃은 "실존 라우트로 1홉 직행" 원칙 (개편 감사 P0-4) — 죽은 타깃·2단 홉 금지 */
-  "/register": "/signup",
-  "/mypage": "/my",
-  "/my-page": "/my",
-  "/map-home": "/map",
-  "/map-price": "/map",
-  "/map-analysis": "/map",
-  "/map/price": "/map",
-  "/map/analysis": "/map",
-  "/region-comparison": "/map",
-  "/terms": "/legal/terms",
-  "/privacy": "/legal/privacy",
-  "/create-post": "/town/write",
-  "/community/create": "/town/write",
-  "/community/write": "/town/write",
-  "/create-meeting": "/town/groups",
-  "/inspection/create-meeting": "/town/groups",
-  "/groups/create": "/town/groups",
-  "/create-meeting-market": "/town/market",
-  "/create-product": "/town/market",
-  "/market": "/town/market",
-  "/market/create": "/town/market",
-  "/market/product/101": "/town/market",
-  "/meeting-market": "/town/market",
-  "/content-market": "/town/market",
-  "/report": "/analysis",
-  "/reports": "/analysis",
-  "/subscriptions": "/subscription",
-  "/subscription-management": "/my",
-  "/subscription-calendar": "/subscription",
-  "/subscription-schedule": "/subscription",
-  "/admin-dashboard": "/admin",
-  "/inspection-hub": "/notes",
-  "/inspection/hub": "/notes",
-  "/my-inspection": "/notes",
-  "/my-inspections": "/notes",
-  "/my-inspection-reports": "/notes",
-  "/inspection/create-report": "/notes",
-  "/inspection/my-reports": "/notes",
-  "/inspection/reports": "/notes",
-  "/inspection/my-schedule": "/notes",
-  "/info/public-data": "/",
-  "/comprehensive-calculator": "/calculator",
-  "/investment-tools": "/calculator",
-  "/calculator/acquisition": "/calculator",
-  "/calculator/rent-vs-buy": "/calculator",
-  "/calculator/tax": "/calculator",
-  "/calculator/investment": "/calculator",
-  "/compare-properties": "/search",
-  "/property-comparison": "/search",
-  "/apartment-comparison": "/search",
-  "/properties": "/search",
-  "/property-search": "/search",
-  "/real-price": "/search",
-  "/point-shop": "/subscription",
-  "/expert": "/town/experts",
-  "/expert-matching": "/town/experts",
-  "/expert-verification": "/town/experts",
-  "/development-info": "/town/news",
-  "/info/redevelopment": "/town/news",
-  "/news": "/town",
-  "/notice": "/town",
-  "/events": "/town",
-  "/price-prediction": "/analysis/timing",
-  "/ai-analysis/ai-prediction": "/analysis/timing",
-  "/supabase-guide": "/",
-  "/supabase-connect": "/",
-  /** 구 경로 → 새 앱 경로 매핑 */
-  "/community": "/town",
-  "/ai-analysis": "/analysis",
-  "/ai": "/analysis",
-  "/auth/login": "/login",
-  "/auth/signup": "/signup",
-  "/auth/register": "/signup",
-  "/auth/forgot-password": "/forgot-password",
-  "/auth/reset-password": "/reset-password",
-  "/pricing": "/subscription",
-  "/explore": "/map",
-  "/experts": "/town/experts",
-  "/calculators": "/calculator",
-  "/chat": "/town/groups",
-  /** 중복 페이지 정리 (감사 P1-1·P1-2·P1-4·정리표) — 페이지 삭제 후 canonical 로 흡수 */
-  "/upgrade": "/subscription",
-  "/my/dashboard": "/my",
-  "/library": "/my",
-  "/billing/success": "/payment/success?provider=stripe",
-};
+/* N6 — 레거시·죽은 경로 표(구 EXACT_REDIRECTS)는 lib/seo/redirect-map.ts 로 옮겼다.
+   표는 데이터고 이 파일은 보안 헤더·세션·게이트가 얽힌 실행 코드다. 분리해 두어야
+   (1) 표 한 줄 고치려고 보안 코드를 열지 않고 (2) 검사 스크립트가 next/server 를
+   끌어들이지 않고 표를 읽는다.
+
+   옮기면서 딱 한 줄이 바뀌었다 — "/reports": "/analysis" 를 삭제했다.
+   /reports 는 2026-07-25 부터 실제 월간 실거래 리포트 허브(app/reports/page.tsx)가
+   있는 살아 있는 경로인데, 미들웨어가 파일 시스템 라우트보다 먼저 도는 탓에 그
+   페이지가 통째로 가려져 있었다. 사이트맵·llms.txt 는 /reports 를 광고하는데 실제로는
+   /analysis 로 308 되고 있었다. 같은 사고를 막으려고 scripts/check-redirect-map.mjs
+   가 "from 이 아직 살아 있는 라우트인가"를 매 릴리스 검사한다. */
 
 function copyCookies(from: NextResponse, to: NextResponse) {
   from.cookies.getAll().forEach((c) => {
@@ -310,8 +229,9 @@ export async function middleware(request: NextRequest) {
         u.searchParams.set(k, v);
       }
     });
-    // 레거시 경로는 영구 이전 — 308 로 검색엔진 색인 이관
-    const redirect = NextResponse.redirect(u, 308);
+    /* 영구 이전. GET·HEAD 는 301, 나머지는 메서드 보존을 위해 308.
+       고른 근거는 lib/seo/redirect-map.ts 상단 주석 참고. */
+    const redirect = NextResponse.redirect(u, legacyRedirectStatus(request.method));
     copyCookies(sessionResponse, redirect);
     return applySecurityHeaders(redirect, request);
   }
@@ -322,7 +242,7 @@ export async function middleware(request: NextRequest) {
   if (postMatch) {
     const redirect = NextResponse.redirect(
       new URL(`/town?post=${encodeURIComponent(postMatch[1])}`, request.url),
-      308,
+      legacyRedirectStatus(request.method),
     );
     copyCookies(sessionResponse, redirect);
     return applySecurityHeaders(redirect, request);
