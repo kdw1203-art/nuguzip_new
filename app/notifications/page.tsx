@@ -399,7 +399,12 @@ function NotificationCard({
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"loading" | "live" | "guest">("loading");
+  /* 2026-07-26: 예전에는 401(비로그인)과 서버 오류를 똑같이 "guest" 로 떨어뜨렸다.
+     그러면 로그인한 사용자가 조회 실패를 만났을 때 "로그인하면 알림을 모아볼 수
+     있어요" 라는 엉뚱한 안내를 보고, 조회가 성공했지만 비어 있는 것처럼 보인다.
+     401 만 guest, 나머지 실패는 error 로 갈라서 사실대로 알린다. */
+  const [mode, setMode] = useState<"loading" | "live" | "guest" | "error">("loading");
+  const [errorCause, setErrorCause] = useState<string | null>(null);
   const [inbox, setInbox] = useState<InboxItem[]>([]);
   const [points, setPoints] = useState<PointNotification[]>([]);
   const [tab, setTab] = useState<TabKey>("전체");
@@ -409,7 +414,18 @@ export default function NotificationsPage() {
     (async () => {
       try {
         const res = await fetch("/api/notifications");
-        if (!res.ok) throw new Error(String(res.status));
+        if (res.status === 401) {
+          if (!cancelled) setMode("guest");
+          return;
+        }
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null;
+          if (!cancelled) {
+            setErrorCause(body?.error ?? `HTTP ${res.status}`);
+            setMode("error");
+          }
+          return;
+        }
         const data = (await res.json()) as {
           items?: InboxItem[];
           points?: PointNotification[];
@@ -418,8 +434,11 @@ export default function NotificationsPage() {
         setInbox(Array.isArray(data.items) ? data.items : []);
         setPoints(Array.isArray(data.points) ? data.points : []);
         setMode("live");
-      } catch {
-        if (!cancelled) setMode("guest");
+      } catch (e) {
+        if (!cancelled) {
+          setErrorCause(e instanceof Error ? e.message : String(e));
+          setMode("error");
+        }
       }
     })();
     return () => {
@@ -508,8 +527,8 @@ export default function NotificationsPage() {
           )}
         </div>
 
-        {/* 탭 */}
-        {mode !== "guest" && (
+        {/* 탭 — 조회 실패 상태에서는 탭을 그리지 않는다(빈 탭 = "알림 없음"으로 읽힌다) */}
+        {mode !== "guest" && mode !== "error" && (
         <div className="rise-in-1 mt-3 flex gap-1.5 overflow-x-auto pb-1">
           {TABS.map((t) => {
             const active = tab === t.key;
@@ -552,6 +571,28 @@ export default function NotificationsPage() {
           </div>
         )}
 
+        {/* 조회 실패 — "알림이 없다" 가 아니라 "못 읽었다" 고 쓴다 */}
+        {mode === "error" && (
+          <div className="rise-in-1 card mt-3 flex flex-col items-center gap-2.5 rounded-[14px] px-[15px] py-10 text-center">
+            <div className="text-sm font-extrabold text-ink">알림을 지금 불러오지 못했어요</div>
+            <p className="max-w-[320px] text-xs leading-[1.6] text-text-3">
+              알림이 없는 게 아니라 조회 자체가 실패했습니다. 잠시 후 다시 시도해 주세요.
+            </p>
+            {errorCause && (
+              <code className="max-w-[320px] break-all rounded-lg border border-line bg-surface px-2.5 py-1.5 font-mono text-[10px] text-text-3">
+                {errorCause}
+              </code>
+            )}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="btn-soft mt-1 rounded-xl px-5 py-2.5 text-xs"
+            >
+              다시 시도
+            </button>
+          </div>
+        )}
+
         {/* 알림 구독 (#47) — 로그인 상태의 전체·관심지역 탭 */}
         {showSubs && <AlertSubscriptionSection />}
 
@@ -572,7 +613,7 @@ export default function NotificationsPage() {
               />
             ))}
 
-          {mode !== "loading" && mode !== "guest" && visible.length === 0 && (
+          {mode === "live" && visible.length === 0 && (
             <div className="card rounded-[14px] px-[15px] py-8 text-center text-xs text-text-3">
               {EMPTY[tab]}
             </div>
