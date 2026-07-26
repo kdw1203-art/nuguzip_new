@@ -20,6 +20,7 @@ import {
 import type { PricePoint } from "./PriceTrendChart";
 import { decodeComplexId } from "@/lib/complex/complex-store";
 import { geocodeAndCache } from "@/lib/map/complex-geocode";
+import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
 import { QaBlock } from "../../components/QaBlock";
@@ -97,6 +98,14 @@ interface HubView {
   /** 지도 좌표 — 거리뷰·JSON-LD geo 용 (목업 폴백은 없음 → 거리뷰 자동 숨김) */
   lat?: number | null;
   lng?: number | null;
+  /**
+   * 이번 렌더에서 **조회에 실패한** 곁다리 섹션 이름들.
+   *
+   * 왜 필요한가: 이 화면은 실패를 전부 `.catch(() => [])` 로 삼키고 있었다.
+   * 그러면 UI 가 "실매물 준비 중" · "시세 준비 중" 을 그린다 — 우리가 확인한
+   * 사실이 아니다. 우리는 *못 읽었을* 뿐이다. 조회 실패는 데이터 없음이 아니다.
+   */
+  loadFailures: string[];
 }
 
 /* ===== 실데이터 변환 (map/page.tsx 방식) ===== */
@@ -223,7 +232,12 @@ function toView(
   nearby: HubView["nearby"],
   txHref: string | null,
   listingRows: PublicListing[] = [],
+  /** 조회에 실패한 섹션 이름 — "없음"과 "못 읽음"을 다른 문장으로 그리기 위해 */
+  loadFailures: string[] = [],
 ): HubView {
+  const txFailed = loadFailures.includes("실거래");
+  const listingsFailed = loadFailures.includes("매물");
+  const postsFailed = loadFailures.includes("단지 이야기");
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   const { delta, tone } = deltaLabel(latest ? pctDelta(latest.avg_manwon, prev?.avg_manwon) : null);
@@ -265,25 +279,48 @@ function toView(
     households: row.households,
     followerLabel: "+ 단지 팔로우",
     metric: {
-      price: latest ? formatManwon(latest.avg_manwon) : "시세 준비 중",
-      priceSub: latest ? `${delta} 전월비` : "실거래 수집 중",
-      priceSubClass:
-        tone === "down" ? "delta-down" : tone === "up" ? "delta-up" : "text-text-3",
-      // D8: 실 매물 연동 — 등록 건수 반영(없으면 "—")
-      listings: hubListings.length > 0 ? `매물 ${hubListings.length}` : "매물 —",
-      listingsSub: hubListings.length > 0 ? "등록된 실매물" : "등록 대기",
-      notes: `노트 ${posts.length.toLocaleString("ko-KR")}`,
-      notesSub: posts.length > 0 ? "단지 이야기 포함" : "첫 노트를 남겨보세요",
+      /* 실패와 없음을 절대 같은 문장으로 그리지 않는다.
+         "시세 준비 중" 은 "아직 쌓이지 않았다"는 뜻이고, 조회 실패에 그 문장을
+         쓰면 방문자에게 거짓말이 된다. */
+      price: txFailed ? "조회 실패" : latest ? formatManwon(latest.avg_manwon) : "시세 준비 중",
+      priceSub: txFailed
+        ? "실거래를 불러오지 못했습니다"
+        : latest
+          ? `${delta} 전월비`
+          : "실거래 수집 중",
+      priceSubClass: txFailed
+        ? "text-text-3"
+        : tone === "down"
+          ? "delta-down"
+          : tone === "up"
+            ? "delta-up"
+            : "text-text-3",
+      // D8: 실 매물 연동 — 등록 건수 반영(없으면 "—", 못 읽었으면 그렇다고 적는다)
+      listings: listingsFailed ? "매물 ?" : hubListings.length > 0 ? `매물 ${hubListings.length}` : "매물 —",
+      listingsSub: listingsFailed
+        ? "조회 실패"
+        : hubListings.length > 0
+          ? "등록된 실매물"
+          : "등록 대기",
+      notes: postsFailed ? "노트 ?" : `노트 ${posts.length.toLocaleString("ko-KR")}`,
+      notesSub: postsFailed
+        ? "조회 실패"
+        : posts.length > 0
+          ? "단지 이야기 포함"
+          : "첫 노트를 남겨보세요",
       // 안전등급 산정 미연동 — 허위 등급 금지
       safety: "—",
     },
     aiTitle: `AI 요약 · ${row.name}`,
-    aiBody: latest
-      ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) — 국토교통부 실거래가 기준. 현장 확인 후 판단하세요.`
-      : "실거래·후기가 쌓이면 AI 요약을 제공합니다.",
+    aiBody: txFailed
+      ? "실거래를 지금 불러오지 못했습니다. 데이터가 없다는 뜻이 아니라 조회에 실패했다는 뜻입니다 — 잠시 후 새로고침해 주세요."
+      : latest
+        ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) — 국토교통부 실거래가 기준. 현장 확인 후 판단하세요.`
+        : "실거래·후기가 쌓이면 AI 요약을 제공합니다.",
     myRecord: "로그인하면 이 단지에 남긴 임장노트를 볼 수 있어요",
-    listingsLabel:
-      hubListings.length > 0
+    listingsLabel: listingsFailed
+      ? "매물 정보를 지금 불러오지 못했습니다 — 등록된 매물이 없다는 뜻이 아닙니다."
+      : hubListings.length > 0
         ? `등록된 실매물 ${hubListings.length}건 · 국토부 실거래가와 비교하세요`
         : "실매물 준비 중",
     infoRows,
@@ -296,6 +333,7 @@ function toView(
     txHref,
     lat: row.lat,
     lng: row.lng,
+    loadFailures,
   };
 }
 
@@ -304,23 +342,52 @@ async function loadView(id: string): Promise<HubView | null> {
   const row = await getComplexById(id);
   if (!row) return null;
   const dec = decodeComplexId(id);
-  const [tx, posts, sameDong, txHref, coord, listingRows] = await Promise.all([
-    getTransactionHistory(row.id, 6).catch(() => [] as ComplexTransactionRow[]),
-    getComplexPosts(row.id, 6).catch(() => []) as Promise<ComplexPostRow[]>,
+
+  /* 곁다리 6개가 **함께** 쓰는 8초 예산.
+     예전에는 각 조회가 `.catch(() => [])` 로 실패를 빈 배열로 바꿔서
+     "없다"고 그렸고, 느릴 때는 각자 읽기 타임아웃(25초)을 꽉 채워 페이지가
+     통째로 매달렸다. 이제 늦거나 실패한 섹션만 접고 페이지는 제때 그린다. */
+  const budget = startDeadline();
+  const [txR, postsR, sameDongR, txHrefR, coordR, listingsR] = await Promise.all([
+    settle(`${row.name} 실거래 이력`, getTransactionHistory(row.id, 6), budget.expired),
+    settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 6), budget.expired),
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
     row.district
-      ? searchComplexes("", row.district, 5).catch(() => [] as ComplexRow[])
-      : Promise.resolve([] as ComplexRow[]),
-    resolveTxHref(row),
+      ? settle(`${row.district} 인근 단지`, searchComplexes("", row.district, 5), budget.expired)
+      : Promise.resolve({ ok: true as const, data: [] as ComplexRow[] }),
+    settle(`${row.name} 실거래 상세 링크`, resolveTxHref(row), budget.expired),
     // 좌표 지연 지오코딩(캐시) — 거리뷰·JSON-LD geo 용. 실패 시 좌표 없이 진행.
     dec
-      ? geocodeAndCache(dec.region, dec.name, row.address ?? undefined).catch(() => null)
-      : Promise.resolve(null),
+      ? settle(
+          `${row.name} 좌표`,
+          geocodeAndCache(dec.region, dec.name, row.address ?? undefined),
+          budget.expired,
+        )
+      : Promise.resolve({ ok: true as const, data: null }),
     // D8: 이 단지명으로 등록된 승인 매물 (정확 일치)
-    listApprovedListings({ complexName: row.name }).catch(() => [] as PublicListing[]),
+    settle(`${row.name} 등록 매물`, listApprovedListings({ complexName: row.name }), budget.expired),
   ]);
+  budget.done();
+
+  /* 실패한 섹션 이름을 뷰까지 들고 간다 — toView 가 "없음"과 "못 읽음"을
+     다른 문장으로 그릴 수 있도록. 좌표·링크는 없어도 화면이 조용히 줄어들
+     뿐이라(거리뷰 숨김 등) 문구로 알릴 것이 없어 목록에 넣지 않는다. */
+  const loadFailures: string[] = [];
+  if (!txR.ok) loadFailures.push("실거래");
+  if (!postsR.ok) loadFailures.push("단지 이야기");
+  if (!listingsR.ok) loadFailures.push("매물");
+
+  const coord = coordR.ok ? coordR.data : null;
   const located: ComplexRow = coord ? { ...row, lat: coord.lat, lng: coord.lng } : row;
-  return toView(located, tx, posts, toNearby(sameDong, located.id), txHref, listingRows);
+  return toView(
+    located,
+    txR.ok ? txR.data : [],
+    postsR.ok ? postsR.data : [],
+    toNearby(sameDongR.ok ? sameDongR.data : [], located.id),
+    txHrefR.ok ? txHrefR.data : null,
+    listingsR.ok ? listingsR.data : [],
+    loadFailures,
+  );
 }
 
 /* ===== SEO — 단지명 title/description, 비로그인 열람 허용 (index 대상) ===== */
@@ -413,8 +480,10 @@ export default async function ComplexHubPage({
      Residence 쪽에만 있던 좌표·읍면동을 ApartmentComplex 로 옮겼다.
      값은 전부 페이지가 이미 가진 실데이터 — 없으면 필드 자체를 넣지 않는다. */
   const complexAddress = v.infoRows.find((r) => r.label === "주소")?.value ?? null;
+  /* JSON-LD 에는 확인된 값만 넣는다. "시세 준비 중"·"조회 실패" 같은 상태
+     문구가 priceRange 로 새 나가면 구조화 데이터가 곧 거짓말이 된다. */
   const complexPriceRange =
-    v.metric.price && !/준비|수집/.test(v.metric.price) ? v.metric.price : null;
+    v.metric.price && !/준비|수집|실패|\?/.test(v.metric.price) ? v.metric.price : null;
   const complexJsonLd = [
     complexResidenceJsonLd({
       id: complexId,
