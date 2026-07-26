@@ -176,7 +176,7 @@ export async function geocodeAndCache(
  */
 export async function backfillGeocode(
   limit = 150,
-): Promise<{ processed: number; ok: number; errors?: number; skipped?: boolean }> {
+): Promise<{ processed: number; ok: number; errors?: number; errorSample?: string; skipped?: boolean }> {
   const sb = getServiceSupabase();
   if (!sb) return { processed: 0, ok: 0, skipped: true };
   if (!isNaverMapsRestConfigured()) return { processed: 0, ok: 0, skipped: true };
@@ -189,6 +189,7 @@ export async function backfillGeocode(
 
   let ok = 0;
   let errors = 0;
+  let errorSample: string | undefined;
   for (const r of rows) {
     // 주소형 쿼리 우선(네이버 지오코더는 주소 전용) → 지역+단지명 → 단지명 단독
     const attempt = await geocodeWithFallback([
@@ -199,6 +200,7 @@ export async function backfillGeocode(
     if (attempt.kind === "error") {
       // 오류는 notfound 로 저장하지 않는다 — 다음 배치가 다시 시도한다
       errors += 1;
+      if (!errorSample) errorSample = attempt.message; // 크론 로그·브리핑용 첫 사유
       logger.warn(
         `[geocode] ${r.region_name} ${r.complex_name} 오류(캐시 저장 안 함): ${attempt.message}`,
       );
@@ -225,5 +227,5 @@ export async function backfillGeocode(
     if (coord) ok += 1;
     await new Promise((res) => setTimeout(res, 40));
   }
-  return { processed: rows.length, ok, errors };
+  return { processed: rows.length, ok, errors, errorSample };
 }

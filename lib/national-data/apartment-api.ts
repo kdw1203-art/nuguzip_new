@@ -49,8 +49,29 @@ async function fetchAptXml(
     const totalMatch = text.match(/<totalCount>(\d+)<\/totalCount>/);
     const totalCount = totalMatch ? Number(totalMatch[1]) : items.length;
     if (items.length > 0) return { items, totalCount, mode: "live" };
-  } catch {
-    // fall through
+
+    // 결과가 0건일 때: 정상적인 "데이터 없음"과 인증·쿼터 오류를 구분한다.
+    // data.go.kr 오류 응답은 200 으로 오면서 본문에 사유 코드를 담는다
+    // (예: returnReasonCode=30 SERVICE_KEY_IS_NOT_REGISTERED_ERROR, 22 LIMITED_NUMBER_OF_SERVICE_REQUESTS).
+    // 예전엔 이걸 통째로 삼켜 "상세 없음"으로 처리해, 키 문제가 로그에 전혀 안 남았다.
+    // 인증·쿼터 오류만 위로 던져 크론 로그·아침 브리핑에 실제 사유가 남게 한다.
+    // 네트워크·HTTP 오류는 기존대로 조용히 mock 폴백(읽기 UI 라우트 회귀 방지).
+    const authMsg =
+      text.match(/<returnAuthMsg>([^<]+)<\/returnAuthMsg>/)?.[1] ??
+      text.match(/<errMsg>([^<]+)<\/errMsg>/)?.[1];
+    const reasonCode =
+      text.match(/<returnReasonCode>([^<]+)<\/returnReasonCode>/)?.[1] ??
+      text.match(/<resultCode>([^<]+)<\/resultCode>/)?.[1];
+    const isErrEnvelope =
+      Boolean(authMsg) || (Boolean(reasonCode) && !["00", "0", "000"].includes(reasonCode ?? ""));
+    if (isErrEnvelope) {
+      throw new Error(
+        `data.go.kr ${service} 거부 — ${[reasonCode, authMsg].filter(Boolean).join(" ")}`.trim(),
+      );
+    }
+  } catch (e) {
+    // 위에서 만든 "거부" 에러는 그대로 전파(진단용). 그 외(네트워크 등)는 mock 폴백.
+    if (e instanceof Error && e.message.includes("거부")) throw e;
   }
   return { items: [], totalCount: 0, mode: "mock" };
 }

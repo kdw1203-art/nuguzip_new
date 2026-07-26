@@ -192,6 +192,7 @@ type GeocodeAddress = {
 
 type GeocodeResponse = {
   status?: string;
+  errorMessage?: string;
   addresses?: GeocodeAddress[];
 };
 
@@ -258,6 +259,13 @@ export async function naverGeocode(
   }
 
   const json = (await res.json()) as GeocodeResponse;
+  // NAVER 지오코딩은 인증·요청 오류 시 status="INVALID_REQUEST"/"SYSTEM_ERROR" + errorMessage 를
+  // 200 응답에 담아 보낸다. 예전엔 status 를 무시하고 빈 배열로 처리해, 지오코딩 API 미활성·
+  // 키 오류가 전부 "주소 못 찾음(notfound)"으로 굳어 로그에 원인이 안 남았다.
+  // status="OK" 이면서 결과 없음만 정상적인 notfound 로 취급한다.
+  if (json.status && json.status !== "OK") {
+    throw new Error(`NAVER geocode ${json.status}${json.errorMessage ? `: ${json.errorMessage}` : ""}`);
+  }
   const items: NaverGeocodeItem[] = [];
   for (const row of json.addresses ?? []) {
     const lat = Number.parseFloat(String(row.y ?? ""));

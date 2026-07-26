@@ -43,18 +43,24 @@ export async function GET(req: Request) {
     );
   }
 
-  const limit = Math.min(400, Math.max(1, Number(url.searchParams.get("limit") ?? 150)));
+  const limit = Math.min(1000, Math.max(1, Number(url.searchParams.get("limit") ?? 150)));
   try {
     const result = await backfillGeocode(limit);
-    // result: { processed, ok(성공 좌표수), skipped? } — 응답 성공 플래그는 success 로 분리
-    // F3 — 적재 로그
+    const processed = result.processed ?? 0;
+    const okCount = result.ok ?? 0;
+    const errCount = result.errors ?? 0;
+    // status: 좌표 성공이 있으면 ok. 성공 0 + 오류가 있으면 error(원인 표기) — 예전엔
+    // 전부 "skipped" 로 뭉개져 NAVER 키·API 오류가 조용히 묻혔다.
+    const status = okCount > 0 ? "ok" : errCount > 0 ? "error" : "skipped";
     await logIngest({
       source: "geocode",
       dataset: "단지 좌표 지오코딩",
       origin: "cron-fetch",
-      rows: result.ok ?? 0,
-      status: (result.ok ?? 0) > 0 ? "ok" : "skipped",
-      message: `처리=${result.processed ?? 0} 성공=${result.ok ?? 0}`,
+      rows: okCount,
+      status,
+      message: `처리=${processed} 성공=${okCount} 오류=${errCount}${
+        result.errorSample ? ` · ${result.errorSample}` : ""
+      }`,
     });
     return NextResponse.json({ success: true, ...result });
   } catch (err) {
