@@ -33,18 +33,19 @@ function isSignatureMode(): boolean {
 }
 
 /**
- * REST API 베이스 URL.
- * - IAM 시그니처 모드(신규 NCP Maps): `maps.apigw.ntruss.com`
- * - 단순 키 헤더 모드(AI·NAVER API classic, `asc1mlqmra` 등): `naveropenapi.apigw.ntruss.com`
- * `NAVER_MAP_REST_BASE_URL` 로 재정의 가능.
+ * REST API 베이스 URL — 신규 NCP Maps 엔드포인트 `maps.apigw.ntruss.com`.
+ *
+ * 2026-07 확인: 구 `naveropenapi.apigw.ntruss.com` 는 현재 콘솔(VPC Maps)에서 발급한
+ * Client ID/Secret 로 호출하면 `210 Permission Denied — A subscription to the API is
+ * required` 를 돌려준다. 같은 키가 `maps.apigw.ntruss.com` 에서는 status:OK 로 좌표를
+ * 정상 반환한다. 그래서 IAM 시그니처 모드든 단순 키 헤더 모드든 신규 베이스를 기본으로 쓴다.
+ * (구 엔드포인트가 필요하면 NAVER_MAP_REST_BASE_URL 로 재정의)
  * @see https://api.ncloud-docs.com/docs/application-maps-overview (API URL)
  */
 function resolveRestBaseUrl(): string {
   const override = process.env.NAVER_MAP_REST_BASE_URL?.trim().replace(/\/$/, "");
   if (override) return override;
-  return isSignatureMode()
-    ? "https://maps.apigw.ntruss.com"
-    : "https://naveropenapi.apigw.ntruss.com";
+  return "https://maps.apigw.ntruss.com";
 }
 
 const GEOCODE_PATH = "/map-geocode/v2/geocode";
