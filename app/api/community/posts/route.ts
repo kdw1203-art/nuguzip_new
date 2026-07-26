@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { findBlockedWord } from "@/lib/community/moderation";
-import { prependPost, readPosts } from "@/lib/posts-store";
+import { POSTS_READ_LIMIT, prependPost, readPosts } from "@/lib/posts-store";
 import type { Post } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 
 export const runtime = "nodejs";
 
+/**
+ * 커뮤니티 글 목록.
+ *
+ * 최신 {@link POSTS_READ_LIMIT} 건까지만 준다 — 예전에는 상한 없이 전량을
+ * 실어 보냈다. 받는 쪽이 "이게 전부"라고 오해하지 않도록 상한과 실제 건수를
+ * 함께 적어 보낸다(필드 추가라 기존 소비처는 그대로 동작한다).
+ */
 export async function GET() {
   const posts = await readPosts();
-  return NextResponse.json({ posts });
+  return NextResponse.json({
+    posts,
+    limit: POSTS_READ_LIMIT,
+    truncated: posts.length >= POSTS_READ_LIMIT,
+  });
 }
 
 export async function POST(req: Request) {
