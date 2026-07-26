@@ -143,11 +143,33 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
  * 로그가 한 줄도 안 남아서, /sitemap-complexes.xml 이 503 을 내는 것만 보고
  * 원인을 역추적해야 했다. 25,171개 단지 URL 이 그동안 색인에서 빠져 있었다.
  *
- * 빈 배열을 돌려주는 동작 자체는 유지한다 — 한 유형이 실패해도 나머지 사이트맵은
- * 나가야 하고, 필수 유형이 비면 sitemap-sections.ts 가 그 자식에 503 을 주고
- * 인덱스를 no-store 로 돌린다(틀린 상태를 캐시에 굳히지 않는다). 바뀐 것은
- * 하나뿐이다: 이제 왜 비었는지가 로그에 남는다.
+ * ── 2026-07-26: 빈 배열로 바꾸는 것까지 그만둔다 ────────────────────────
+ * 로그를 남기게 한 뒤에도 **반환값**은 여전히 `[]` 였다. 필수 유형은 그래도
+ * 괜찮았다(0개 = 실패로 보고 503 을 낸다). 문제는 선택 유형이다 —
+ * 리포트·공개노트·시장온도·주간 아카이브는 0개가 정상일 수 있어서, 조회 실패로
+ * 생긴 `[]` 와 "원래 없음"이 호출부에서 **완전히 같은 값**이 된다. 그러면
+ * 사이트맵 인덱스가 그 유형을 조용히 빼 버리고, 크롤러는 그것을
+ * "이 URL 들은 이제 없다"로 읽는다. 못 읽은 것을 없어졌다고 광고하는 셈이다.
+ *
+ * 그래서 이제 실패를 **위로 던진다**. 두 호출부가 각자 맞게 처리한다:
+ *   - 자식 라우트(sitemapSectionRoute): 503 + no-store — "지금은 못 준다"
+ *   - 인덱스(buildSitemapIndex): 그 유형을 빼지 않고 싣고, 응답을 캐시하지 않음
+ * 어느 쪽도 실패를 200 이나 "없음"으로 바꾸지 않는다.
  */
+export class SitemapSectionError extends Error {
+  readonly sectionName: string;
+  constructor(sectionName: string, cause: unknown) {
+    super(
+      `[sitemap] "${sectionName}" 유형을 만들지 못했습니다 — ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      { cause },
+    );
+    this.name = "SitemapSectionError";
+    this.sectionName = sectionName;
+  }
+}
+
 async function section(
   name: string,
   load: () => Promise<MetadataRoute.Sitemap>,
@@ -155,12 +177,12 @@ async function section(
   try {
     return await load();
   } catch (e) {
+    /* 로그는 여기서 남긴다 — 원인(cause)이 살아 있는 가장 가까운 자리다.
+       호출부는 "무엇을 응답할지"만 정하면 된다. */
     logger.error(
-      `[sitemap] "${name}" 유형을 만들지 못해 이 블록을 비웁니다 — ${
-        e instanceof Error ? e.message : String(e)
-      }`,
+      `[sitemap] "${name}" 유형을 만들지 못했습니다 — ${e instanceof Error ? e.message : String(e)}`,
     );
-    return [];
+    throw new SitemapSectionError(name, e);
   }
 }
 

@@ -129,31 +129,58 @@ function serializeSitemapIndex(paths: readonly string[]): string {
 /**
  * 인덱스 응답 본문 + 캐시 가능 여부.
  *
- * 유형별 개수를 세려면 결국 전부 읽어야 한다. 인덱스는 크롤러가 자주 가져가는
- * 문서가 아니고 한 시간 캐시되므로 이 비용은 받아들인다 — 대신 "실제로 URL 이
- * 있는 자식만 싣는다"는 정확성을 얻는다.
+ * ── 왜 required 유형은 읽지 않는가 (2026-07-26 실측으로 바꿈) ─────────────
+ * 원래는 열 유형을 **전부 읽어서** 개수를 셌다. 인덱스는 자주 안 가져가고 한 시간
+ * 캐시되니 그 비용을 받아들인다고 적어 두었는데, 실제로 재 보니 받아들일 수 있는
+ * 값이 아니었다. 운영 `/sitemap.xml` 을 연달아 두 번 재니:
+ *
+ *     1회차  90초 안에 응답 없음(타임아웃)
+ *     2회차  200, 14.4초
+ *
+ * 사이트맵 인덱스는 서치콘솔·서치어드바이저에 **제출하는 바로 그 주소**다.
+ * 제출 시점에 안 뜨면 등록 자체가 실패한다. 개수를 세느라 5,147개 단지와
+ * 실거래 구간 전체를 매 요청 다시 만들고 있었던 것이 원인이다.
+ *
+ * 그런데 그 개수는 required 유형에서는 **아무 결정에도 쓰이지 않는다.**
+ * required 는 비어도 인덱스에 싣기 때문이다(자식이 503 으로 "지금 없음"을 말한다).
+ * 개수가 유일하게 바꾸던 것은 캐시 여부인데, 인덱스 **본문은 어차피 똑같다** —
+ * 한 시간 캐시해도 크롤러가 보는 내용이 달라지지 않는다. 그리고 "조회가 실패했다"는
+ * 사실은 자식 응답(503 + no-store)에 그대로 남아 있으니 신호를 잃지도 않는다.
+ * 그래서 required 유형은 읽지 않고 바로 싣는다.
+ *
+ * optional 은 여전히 읽어야 한다 — 0개면 인덱스에서 빼야 하는데(URL 0개
+ * 사이트맵은 서치콘솔에서 오류로 잡힌다) 그 판단에 개수가 실제로 쓰인다.
+ * 다만 **조회가 실패해서 0인 것과 원래 없어서 0인 것을 섞지 않는다.** 실패는
+ * 예외로 올라오므로 잡아서 "뺄지 말지 모른다"로 다루고, 빼지 않고 싣되 캐시하지
+ * 않는다. 못 읽은 것을 "이제 없다"로 광고하는 쪽이 훨씬 나쁜 거짓말이다.
  */
 export async function buildSitemapIndex(): Promise<{ xml: string; cacheable: boolean }> {
-  const counted = await Promise.all(
-    SITEMAP_SECTIONS.map(async (s) => ({ section: s, count: (await s.load()).length })),
+  const optional = SITEMAP_SECTIONS.filter((s) => !s.required);
+
+  let cacheable = true;
+  const decided = await Promise.all(
+    optional.map(async (section) => {
+      try {
+        return { slug: section.slug, include: (await section.load()).length > 0 };
+      } catch (err) {
+        cacheable = false;
+        logger.error(
+          `[sitemap] 인덱스: ${section.label}(${section.slug}) 조회에 실패했습니다 — ` +
+            `${err instanceof Error ? err.message : String(err)}. ` +
+            `"URL 이 없다"와 구분되지 않으므로 인덱스에서 빼지 않고 싣고, 응답을 캐시하지 않습니다.`,
+        );
+        return { slug: section.slug, include: true };
+      }
+    }),
+  );
+  const includeOptional = new Map(decided.map((d) => [d.slug, d.include]));
+
+  // 선언 순서를 그대로 유지한다 — 인덱스 순서가 흔들리면 diff 를 읽기 어렵다.
+  const paths = SITEMAP_SECTIONS.filter((s) => s.required || includeOptional.get(s.slug)).map((s) =>
+    sitemapSectionPath(s.slug),
   );
 
-  const missing = counted.filter((c) => c.section.required && c.count === 0);
-  if (missing.length > 0) {
-    logger.warn(
-      `[sitemap] 인덱스: 비어 있으면 안 되는 유형이 비었습니다 — ` +
-        `${missing.map((m) => `${m.section.label}(${m.section.slug})`).join(", ")}. ` +
-        `조회 실패일 가능성이 높아 인덱스를 캐시하지 않습니다.`,
-    );
-  }
-
-  // required 는 비어도 싣는다(자식이 503 으로 "지금 없음"을 말한다).
-  // optional 은 비면 뺀다(URL 0개 사이트맵은 서치콘솔에서 오류로 잡힌다).
-  const paths = counted
-    .filter((c) => c.section.required || c.count > 0)
-    .map((c) => sitemapSectionPath(c.section.slug));
-
-  return { xml: serializeSitemapIndex(paths), cacheable: missing.length === 0 };
+  return { xml: serializeSitemapIndex(paths), cacheable };
 }
 
 /**
@@ -168,11 +195,25 @@ export function sitemapSectionRoute(slug: SitemapSectionSlug) {
     const section = SECTION_BY_SLUG.get(slug);
     if (!section) return new Response("Not Found", { status: 404 });
 
-    const entries = capSitemapUrls(await section.load());
+    let entries: MetadataRoute.Sitemap;
+    try {
+      entries = capSitemapUrls(await section.load());
+    } catch (err) {
+      /* 조회 실패. 빈 <urlset> 을 200 으로 주면 크롤러에게 "이 유형의 URL 은
+         전부 없어졌다"고 적극적으로 거짓말하는 셈이다. 못 준다고 말한다.
+         (required 여부와 무관하다 — 실패는 어느 유형에서든 실패다.) */
+      logger.error(
+        `[sitemap] ${sitemapSectionPath(slug)} — ${section.label} 조회에 실패했습니다(503 응답). ` +
+          `${err instanceof Error ? err.message : String(err)}`,
+      );
+      return new Response("Sitemap temporarily unavailable", {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "600" },
+      });
+    }
 
-    /* required 인데 0개 = 조회 실패다. 빈 <urlset> 을 200 으로 주면 크롤러에게
-       "이 유형의 URL 은 전부 없어졌다"고 말하는 셈이라, 사실이 아닌 신호를
-       보내느니 "지금은 못 준다"(503)고 하는 편이 정확하다. */
+    /* 예외 없이 0개인데 그러면 안 되는 유형 = 조용한 실패다(로더가 부분 결과를
+       정상처럼 돌려주는 경로가 남아 있을 수 있다). 이때도 200 대신 503 을 낸다. */
     if (section.required && entries.length === 0) {
       logger.error(
         `[sitemap] ${sitemapSectionPath(slug)} — ${section.label} 조회 결과가 0개입니다(503 응답).`,
