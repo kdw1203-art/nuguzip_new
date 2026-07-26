@@ -82,8 +82,11 @@ export interface FreshnessRow {
   /** 원천 표기 */
   source: string;
   table: string;
-  /** 총 행 수 */
-  rows: number;
+  /**
+   * 총 행 수. `null` 은 **행이 0개라는 뜻이 아니라 집계 자체가 실패했다**는 뜻이다.
+   * 화면은 이 값을 0 으로 그리면 안 된다 — "테이블이 비었다" 로 읽히기 때문이다.
+   */
+  rows: number | null;
   /** 예시(is_sample) 행 수 — 해당 테이블만 */
   sampleRows?: number;
   /** 데이터 자체의 기준 시점 (계약월·기준월 등) */
@@ -312,14 +315,27 @@ function toRunInfo(r: RawLogRow, now: number): IngestRunInfo {
 
 /** market_ingest_log 최신 N건을 한 번만 읽는다 — 신선도 표와 로그 패널이 같이 쓴다. */
 async function loadRecentLog(limit: number): Promise<RawLogRow[]> {
+  /* 2026-07-26: 여기가 실패를 `[]` 로 삼켰다. 적재 로그가 비면 /admin/data 는
+     "최근 적재 기록이 없어요" 라고 쓰고, 신선도 표의 "마지막 수집" 칸도 통째로
+     비운다 — 수집이 멎은 것과 로그를 못 읽은 것이 화면에서 똑같이 보였다.
+     이 화면은 파이프라인이 죽었을 때 가장 먼저 여는 곳이라 그 구분이 전부다.
+     실패는 던지고, 행이 0개인 것만 `[]` 로 남긴다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "[data-freshness] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
   const { data, error } = await sb
     .from("market_ingest_log")
     .select("source,dataset,origin,rows,status,message,created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error || !data) return [];
+  if (error) {
+    logger.error("[data-freshness] market_ingest_log 조회 실패", error.message);
+    throw new Error(`market_ingest_log 조회 실패: ${error.message}`);
+  }
+  if (!Array.isArray(data)) throw new Error("market_ingest_log 응답이 배열이 아닙니다");
   return data as unknown as RawLogRow[];
 }
 
@@ -334,7 +350,9 @@ async function loadOne(
     label: spec.label,
     source: spec.source,
     table: spec.table,
-    rows: 0,
+    /* 실패했을 때 돌려주는 기본값이므로 0 이 아니라 null 이다 — 0 으로 두면
+       "이 테이블은 비어 있다" 는 사실 주장이 되고, status:"unknown" 과도 어긋난다. */
+    rows: null,
     dataAsOf: null,
     lastWriteAt: null,
     lastInsertAt: null,
@@ -369,7 +387,13 @@ async function loadOne(
         : Promise.resolve({ count: null }),
     ]);
 
-    const rows = countRes.count ?? 0;
+    /* count 가 null 이 되는 건 행이 0개일 때가 아니라 쿼리가 실패했을 때다.
+       `?? 0` 으로 눌러 버리면 읽지 못한 테이블이 "0행 · 비어 있음" 으로 그려진다. */
+    if (countRes.error) throw new Error(`${spec.table} 행 수 집계 실패: ${countRes.error.message}`);
+    if (typeof countRes.count !== "number") {
+      throw new Error(`${spec.table} 행 수 집계 결과가 숫자가 아닙니다`);
+    }
+    const rows = countRes.count;
     const lastWriteAt = writeAt;
     const lastInsertAt = spec.insertCol
       ? spec.insertCol === spec.writeCol
@@ -396,18 +420,30 @@ async function loadOne(
       status: statusOf(rows, lagDays, spec.expectedDays),
     };
   } catch (e) {
-    logger.warn("[data-freshness]", spec.table, e instanceof Error ? e.message : String(e));
+    /* 테이블 1개가 안 읽힌다고 화면 전체를 죽이지는 않는다 — 나머지 12개 데이터셋의
+       신선도는 여전히 볼 가치가 있다. 대신 이 행은 rows:null · status:"unknown"
+       ("확인불가")로 남아서, 0행/최신 어느 쪽으로도 읽히지 않는다. */
+    logger.error("[data-freshness]", spec.table, e instanceof Error ? e.message : String(e));
     return base;
   }
 }
 
 /**
- * 전체 데이터셋 신선도 — 실집계. Supabase 미설정 시 빈 배열.
+ * 전체 데이터셋 신선도 — 실집계.
  * 적재 로그는 한 번만 읽어서 각 행에 붙인다(테이블당 재조회 없음).
+ *
+ * 조회에 실패하면 **던진다**. 예전에는 빈 배열이었는데, 그러면 화면이
+ * "총 적재 행 0 · 최신 0개 데이터셋 · 지연 0개" 라는 전면 0 화면을 그리고
+ * 운영자는 그걸 "이상 없음" 으로 읽는다. 개별 테이블 하나가 안 읽히는 것은
+ * loadOne 안에서 rows:null·status:"unknown" 으로 흡수한다(전체는 살린다).
  */
 export async function loadDataFreshness(): Promise<FreshnessRow[]> {
   const sb = getServiceSupabase();
-  if (!sb) return [];
+  if (!sb) {
+    throw new Error(
+      "[data-freshness] Supabase 서비스 클라이언트를 만들 수 없습니다 (SUPABASE_SERVICE_ROLE_KEY 누락)",
+    );
+  }
   const now = Date.now();
 
   const [rows, log] = await Promise.all([
