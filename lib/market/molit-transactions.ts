@@ -247,6 +247,7 @@ export async function ingestMolitTransactions(opts: {
       let mode: "live" | "mock" = "mock";
       for (const t of TARGET_TYPES) {
         const res = await fetchMolitDeals(t.type, {
+          lawdCd: info.sigunguCd, // 이름 매칭 금지 — 동명이구 오적재 방지 (아래 커밋 메시지 참고)
           district: info.sigungu,
           yyyymm,
           numOfRows: 1000,
