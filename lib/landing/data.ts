@@ -113,13 +113,21 @@ async function loadHomeDataInternal(): Promise<HomeData> {
   const sb = getServiceSupabase();
   let totalUsers = 0;
   let totalInspections = 0;
+  /* 홈에 찍히는 "총 게시글" 수.
+     기본값은 위에서 받아 온 목록의 길이지만, 그 목록에는 상한이 있다
+     (readPosts → POSTS_READ_LIMIT). 상한에 걸리면 length 는 총계가 아니라
+     "상한"이 된다 — 글이 800개여도 500 이라고 적히는 것이다. 그래서 Supabase
+     가 붙어 있으면 count 질의로 정확히 다시 구한다. */
+  let totalPosts = posts.length;
   if (sb) {
-    const [u, i] = await Promise.all([
+    const [u, i, p] = await Promise.all([
       sb.from("app_users").select("*", { count: "exact", head: true }),
       sb.from("inspection_notes").select("*", { count: "exact", head: true }),
+      sb.from("posts").select("*", { count: "exact", head: true }),
     ]);
     if (typeof u.count === "number") totalUsers = u.count;
     if (typeof i.count === "number") totalInspections = i.count;
+    if (typeof p.count === "number") totalPosts = p.count;
   }
 
   // 인기순: 조회·좋아요 기반 (HOT 판정 임계치 viewCount>=500 || likeCount>=30)
@@ -243,7 +251,9 @@ async function loadHomeDataInternal(): Promise<HomeData> {
       };
     });
 
-  // 지역별 카운트 (게시글 기반)
+  /* 지역별 카운트 — **읽어 온 목록(최신 상한 건) 기준**이다. 전체 글이
+     아니라 표본이므로, 아래 pct 도 "표본 안에서의 비율"이다. 총계
+     (stats.posts)는 count 질의로 따로 구한다 — 두 수를 나눠 쓰면 안 된다. */
   const regionMap = new Map<string, { city: string; district: string; count: number }>();
   for (const p of posts) {
     const city = p.city ?? "";
@@ -266,6 +276,9 @@ async function loadHomeDataInternal(): Promise<HomeData> {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
+  /* 오늘 글 수 — 목록에서 센다. 목록은 최신순 상한 목록이므로, 하루에
+     상한(POSTS_READ_LIMIT)을 넘는 글이 올라오지 않는 한 정확하다. 넘어서는
+     날이 오면 여기도 count 질의로 바꿔야 한다. */
   const todayStr = new Date().toDateString();
   const postsToday = posts.filter((p) => {
     const t = new Date(p.createdAt ?? 0).getTime();
@@ -282,7 +295,7 @@ async function loadHomeDataInternal(): Promise<HomeData> {
     stats: {
       users: totalUsers,
       inspections: totalInspections,
-      posts: posts.length,
+      posts: totalPosts,
       postsToday,
       experts: experts.length,
     },
