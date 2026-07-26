@@ -1,4 +1,16 @@
+/**
+ * 채팅 저장소.
+ *
+ * 조회·갱신이 **실패하면 던진다**(lib/chat/errors 의 ChatUnavailableError).
+ * 빈 배열·false·null 로 답하면 화면이 "없다"·"권한 없다"로 그리는데, 그건
+ * 일어나지 않은 사실이다. 부르는 쪽(app/api/chat/**)은 이 예외를 503 +
+ * Retry-After 로 옮긴다 — 404·403 으로 옮기면 안 된다.
+ *
+ * `!sb` 분기는 예외가 아니다. 저장소가 아예 없는 개발 환경에서 in-memory 로
+ * 동작하라고 의도적으로 둔 폴백이라 그대로 둔다.
+ */
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { chatDbError } from "@/lib/chat/errors";
 import type {
   ChatAttachment,
   ChatBlock,
@@ -75,13 +87,16 @@ async function isRoomMember(roomId: string, userEmail: string): Promise<boolean>
         m.leftAt == null,
     );
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_room_members")
     .select("id")
     .eq("room_id", roomId)
     .eq("user_email", email)
     .is("left_at", null)
     .maybeSingle();
+  /* 못 읽은 것을 false 로 답하면 "당신은 이 방 멤버가 아니다"가 된다 — 자기
+     대화방을 열어 둔 사용자에게 403 과 빈 목록이 동시에 뜬다. */
+  if (error) throw chatDbError("chat_room_members 조회 실패", error);
   return Boolean(data);
 }
 
@@ -94,7 +109,7 @@ export async function findGroupRoomIdByMeeting(meetingId: string): Promise<strin
     );
     return room?.id ?? null;
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_rooms")
     .select("id")
     .eq("room_type", "group")
@@ -102,6 +117,10 @@ export async function findGroupRoomIdByMeeting(meetingId: string): Promise<strin
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+  /* null 을 돌려주면 부르는 쪽(getOrCreateGroupRoomByPolicy)이 "방이 아직 없다"로
+     읽고 같은 모임에 채팅방을 하나 더 만든다. 게다가 joinMeeting 이 다시 불려
+     current_members 까지 부푼다 — 되돌리기 어려운 쓰기다. */
+  if (error) throw chatDbError("chat_rooms 조회 실패", error);
   return data ? String(data.id) : null;
 }
 
@@ -132,21 +151,31 @@ export async function ensureRoomMembership(
     });
     return;
   }
-  const { data: existing } = await sb
+  const { data: existing, error } = await sb
     .from("chat_room_members")
     .select("id, left_at")
     .eq("room_id", roomId)
     .eq("user_email", email)
     .maybeSingle();
+  /* 못 읽은 것을 "멤버 행이 없다"로 읽으면 아래에서 같은 사람을 한 번 더
+     insert 한다 — 멤버 수가 중복 집계되고 목록에 같은 이름이 둘 뜬다. */
+  if (error) throw chatDbError("chat_room_members 조회 실패", error);
   if (existing) {
     if (existing.left_at) {
-      await sb.from("chat_room_members").update({ left_at: null }).eq("id", existing.id);
+      const { error: reErr } = await sb
+        .from("chat_room_members")
+        .update({ left_at: null })
+        .eq("id", existing.id);
+      /* 재참여가 안 됐는데 조용히 끝내면, 화면은 입장했다고 그리고 실제로는
+         나간 상태라 메시지가 하나도 안 보인다. */
+      if (reErr) throw chatDbError("chat_room_members 재참여 실패", reErr);
     }
     return;
   }
-  await sb
+  const { error: insErr } = await sb
     .from("chat_room_members")
     .insert({ room_id: roomId, user_email: email, role: "member" });
+  if (insErr) throw chatDbError("chat_room_members 추가 실패", insErr);
 }
 
 /**
@@ -165,12 +194,16 @@ export async function hasRoomMembershipRecord(
       (m) => m.roomId === roomId && normalizeEmail(m.userEmail) === email,
     );
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_room_members")
     .select("id")
     .eq("room_id", roomId)
     .eq("user_email", email)
     .maybeSingle();
+  /* 이 값은 정원 집계의 멱등 판정에 쓰인다. false 로 답하면 이미 정원에
+     들어가 있는 사람을 "처음 온 사람"으로 보고 current_members 를 한 번 더
+     올리거나, 정원이 찼다며 자기 모임 채팅에서 막아 버린다. */
+  if (error) throw chatDbError("chat_room_members 조회 실패", error);
   return Boolean(data);
 }
 
@@ -189,13 +222,16 @@ export async function leaveChatRoom(roomId: string, userEmail: string): Promise<
     member.leftAt = nowIso();
     return true;
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_room_members")
     .update({ left_at: nowIso() })
     .eq("room_id", roomId)
     .eq("user_email", email)
     .is("left_at", null)
     .select("id");
+  /* false 는 부르는 쪽에서 403 "채팅방 접근 권한이 없습니다"가 된다 — 방금까지
+     대화하던 방에서 나가려던 사용자에게 가장 이상한 답이다. */
+  if (error) throw chatDbError("chat_room_members 나가기 실패", error);
   return (data ?? []).length > 0;
 }
 
@@ -241,12 +277,16 @@ export async function listChatRoomsForUser(
       });
   }
 
-  const { data: members } = await sb
+  /* 아래 다섯 조회 중 하나라도 실패하면 목록 전체를 던진다. 일부만 읽고 그리면
+     "대화방이 없어요"(멤버 조회 실패)나 안 읽은 수가 0 인 방 목록이 나오는데,
+     둘 다 사용자가 사실로 믿고 넘어가는 화면이다. */
+  const { data: members, error: memberError } = await sb
     .from("chat_room_members")
     .select("room_id,last_read_message_id")
     .eq("user_email", email)
     .is("left_at", null)
     .limit(300);
+  if (memberError) throw chatDbError("chat_room_members 조회 실패", memberError);
   const roomIds = (members ?? []).map((m) => String(m.room_id));
   if (roomIds.length === 0) return [];
   const memberByRoom = new Map<string, string | null>();
@@ -264,31 +304,37 @@ export async function listChatRoomsForUser(
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(200);
   if (q) query = query.ilike("title", `%${q}%`);
-  const { data: rooms } = await query;
+  const { data: rooms, error: roomError } = await query;
+  if (roomError) throw chatDbError("chat_rooms 조회 실패", roomError);
   if (!rooms) return [];
 
   const counts = new Map<string, number>();
-  const { data: roomMembers } = await sb
+  const { data: roomMembers, error: countError } = await sb
     .from("chat_room_members")
     .select("room_id")
     .in("room_id", roomIds);
+  if (countError) throw chatDbError("chat_room_members 집계 실패", countError);
   for (const row of roomMembers ?? []) {
     const id = String(row.room_id);
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
-  const { data: allMessages } = await sb
+  const { data: allMessages, error: messageError } = await sb
     .from("chat_messages")
     .select("id,room_id,sender_email,body,created_at")
     .in("room_id", roomIds)
     .order("created_at", { ascending: true })
     .limit(5000);
+  if (messageError) throw chatDbError("chat_messages 조회 실패", messageError);
   const readIds = [...new Set([...memberByRoom.values()].filter(Boolean))] as string[];
   const readTimeById = new Map<string, string>();
   if (readIds.length > 0) {
-    const { data: readMessages } = await sb
+    const { data: readMessages, error: readError } = await sb
       .from("chat_messages")
       .select("id,created_at")
       .in("id", readIds);
+    /* 읽은 시각을 못 읽으면 안 읽은 메시지가 전부 "안 읽음"으로 부풀거나
+       반대로 0 이 된다. 배지 숫자는 사용자가 그대로 믿는 값이다. */
+    if (readError) throw chatDbError("chat_messages 읽음 시각 조회 실패", readError);
     for (const row of readMessages ?? []) {
       readTimeById.set(String(row.id), String(row.created_at ?? ""));
     }
@@ -361,12 +407,15 @@ export async function searchChatMessagesForUser(
         createdAt: m.createdAt,
       }));
   }
-  const { data: memberRows } = await sb
+  /* 검색은 "없다"가 정상 결과라서 실패를 감추기 가장 쉬운 자리다. 못 읽었는데
+     빈 결과를 보여주면 사용자는 그 대화가 정말 없다고 믿고 검색을 그만둔다. */
+  const { data: memberRows, error: memberError } = await sb
     .from("chat_room_members")
     .select("room_id")
     .eq("user_email", email)
     .is("left_at", null)
     .limit(500);
+  if (memberError) throw chatDbError("chat_room_members 조회 실패", memberError);
   const roomIds = (memberRows ?? []).map((r) => String(r.room_id));
   if (roomIds.length === 0) return [];
 
@@ -377,14 +426,16 @@ export async function searchChatMessagesForUser(
     .ilike("body", `%${keyword}%`)
     .order("created_at", { ascending: false })
     .limit(limit);
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) throw chatDbError("chat_messages 검색 실패", error);
   if (!data) return [];
 
   const hitRoomIds = [...new Set(data.map((r) => String(r.room_id)))];
-  const { data: rooms } = await sb
+  const { data: rooms, error: roomError } = await sb
     .from("chat_rooms")
     .select("id,title")
     .in("id", hitRoomIds);
+  if (roomError) throw chatDbError("chat_rooms 조회 실패", roomError);
   const roomTitleById = new Map<string, string | null>();
   for (const room of rooms ?? []) {
     roomTitleById.set(String(room.id), (room.title as string | null) ?? null);
@@ -421,12 +472,15 @@ export async function listChatRoomMembers(
   if (!sb) {
     return memory.members.filter((m) => m.roomId === roomId && m.leftAt == null);
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_room_members")
     .select("*")
     .eq("room_id", roomId)
     .is("left_at", null)
     .order("joined_at", { ascending: true });
+  /* 이 목록은 sendChatMessage 의 차단 검사에도 쓰인다. 빈 배열로 답하면
+     "이 방에 차단한 상대가 없다"가 되어 차단이 조용히 풀린다. */
+  if (error) throw chatDbError("chat_room_members 조회 실패", error);
   return (data ?? []).map((m) => ({
     id: String(m.id),
     roomId: String(m.room_id),
@@ -558,7 +612,10 @@ export async function listChatMessagesForRoom(
   if (options?.before) query = query.lt("created_at", options.before);
   if (options?.q?.trim()) query = query.ilike("body", `%${options.q.trim()}%`);
 
-  const { data } = await query;
+  const { data, error } = await query;
+  /* 빈 목록은 "아직 아무 말도 없는 방"으로 보인다. 대화가 사라진 것처럼 보이는
+     화면은 사용자가 같은 말을 다시 쓰게 만든다. */
+  if (error) throw chatDbError("chat_messages 조회 실패", error);
   const messages = (data ?? []).map((m) => ({
     id: String(m.id),
     roomId: String(m.room_id),
@@ -572,11 +629,14 @@ export async function listChatMessagesForRoom(
 
   const messageIds = messages.map((m) => m.id);
   if (messageIds.length > 0) {
-    const { data: attachments } = await sb
+    const { data: attachments, error: attachError } = await sb
       .from("chat_attachments")
       .select("*")
       .in("message_id", messageIds)
       .order("created_at", { ascending: true });
+    /* 첨부만 빠진 메시지는 "글만 보낸 메시지"로 보인다 — 보낸 사람은 사진을
+       보냈다고 알고 있고, 받는 사람은 없다고 안다. */
+    if (attachError) throw chatDbError("chat_attachments 조회 실패", attachError);
     const grouped = new Map<string, ChatAttachment[]>();
     for (const a of attachments ?? []) {
       const item: ChatAttachment = {
@@ -666,7 +726,13 @@ export async function sendChatMessage(input: SendMessageInput): Promise<ChatMess
       mime: a.mime ?? null,
       size_bytes: a.sizeBytes ?? 0,
     }));
-    const { data: atts } = await sb.from("chat_attachments").insert(payload).select("*");
+    const { data: atts, error: attachError } = await sb
+      .from("chat_attachments")
+      .insert(payload)
+      .select("*");
+    /* 메시지는 이미 저장됐지만 첨부가 안 붙었다. 조용히 넘기면 사용자는 사진을
+       보냈다고 믿고 대화를 이어 간다. */
+    if (attachError) throw chatDbError("chat_attachments 저장 실패", attachError);
     attachments = (atts ?? []).map((a) => ({
       id: String(a.id),
       messageId: String(a.message_id),
@@ -740,11 +806,14 @@ export async function reportChatMessage(input: {
     memory.reports.unshift(report);
     return report;
   }
-  const { data: msg } = await sb
+  const { data: msg, error: msgError } = await sb
     .from("chat_messages")
     .select("id, room_id, sender_email")
     .eq("id", input.messageId)
     .maybeSingle();
+  /* 404 "메시지를 찾을 수 없습니다"는 신고하려는 사람에게 "그런 말은 없었다"로
+     읽힌다 — 신고를 포기하게 만드는 답이다. */
+  if (msgError) throw chatDbError("chat_messages 조회 실패", msgError);
   if (!msg) throw new Error("CHAT_MESSAGE_NOT_FOUND");
   const ok = await isRoomMember(String(msg.room_id), reporter);
   if (!ok) throw new Error("CHAT_ROOM_FORBIDDEN");
@@ -792,11 +861,14 @@ export async function softDeleteChatMessage(
     return true;
   }
 
-  const { data: msg } = await sb
+  const { data: msg, error: msgError } = await sb
     .from("chat_messages")
     .select("id, sender_email")
     .eq("id", messageId)
     .maybeSingle();
+  /* false 는 "삭제 권한이 없습니다"로 표시된다. 자기 메시지를 지우려는 사람에게
+     권한 문제라고 답하면, 실패한 삭제를 성공으로 오해하거나 포기한다. */
+  if (msgError) throw chatDbError("chat_messages 조회 실패", msgError);
   if (!msg) return false;
   if (!isAdmin && normalizeEmail(String(msg.sender_email)) !== email) return false;
 
@@ -878,11 +950,14 @@ export async function listBlocksForUser(userEmail: string): Promise<ChatBlock[]>
   if (!sb) {
     return memory.blocks.filter((b) => normalizeEmail(b.blockerEmail) === email);
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_blocks")
     .select("*")
     .eq("blocker_email", email)
     .order("created_at", { ascending: false });
+  /* 이 목록이 비면 sendChatMessage 의 차단 검사가 통과한다 — 차단이 조용히
+     풀린 채 메시지가 오간다. 차단은 실패했을 때 열어 두면 안 되는 기능이다. */
+  if (error) throw chatDbError("chat_blocks 조회 실패", error);
   return (data ?? []).map((row) => ({
     id: String(row.id),
     blockerEmail: String(row.blocker_email ?? ""),
@@ -927,7 +1002,10 @@ export async function listChatReportsForAdmin(
     .order("created_at", { ascending: false })
     .limit(200);
   if (status !== "all") query = query.eq("status", status);
-  const { data } = await query;
+  const { data, error } = await query;
+  /* 운영자 화면에서 "미처리 신고 0건"은 볼 일이 없다는 뜻이다. 못 읽은 것을
+     그렇게 그리면 아무도 그 신고를 다시 열어 보지 않는다. */
+  if (error) throw chatDbError("chat_reports 조회 실패", error);
   return (data ?? []).map((row) => ({
     id: String(row.id),
     roomId: (row.room_id as string | null) ?? null,
@@ -955,11 +1033,14 @@ export async function countUnreadChatRooms(userEmail: string): Promise<number> {
       .map((m) => m.roomId);
     return myRooms.length;
   }
-  const { data } = await sb
+  const { data, error } = await sb
     .from("chat_room_members")
     .select("room_id, last_read_message_id, chat_rooms!inner(last_message_at)")
     .eq("user_email", email)
     .is("left_at", null);
+  /* 0 은 화면에서 배지가 사라지는 값이다 — 안 읽은 메시지가 있는데도 없는 것처럼
+     보이면 사용자는 그 대화를 영영 안 연다. */
+  if (error) throw chatDbError("chat_room_members 조회 실패", error);
   if (!data) return 0;
   let count = 0;
   for (const row of data) {
@@ -977,12 +1058,13 @@ export async function countUnreadChatRooms(userEmail: string): Promise<number> {
       count += 1;
       continue;
     }
-    const { data: latestMsgs } = await sb
+    const { data: latestMsgs, error: latestError } = await sb
       .from("chat_messages")
       .select("id, created_at")
       .eq("room_id", rawRow.room_id)
       .order("created_at", { ascending: false })
       .limit(1);
+    if (latestError) throw chatDbError("chat_messages 조회 실패", latestError);
     const latest = latestMsgs?.[0];
     if (latest && latest.id !== lastRead) count += 1;
   }

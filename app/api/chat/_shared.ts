@@ -1,5 +1,11 @@
+import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { apiError } from "@/lib/api/response";
+import { ChatUnavailableError } from "@/lib/chat/errors";
+import { logger } from "@/lib/log";
+
+/** 재시도까지 권하는 간격(초). lib/api/db-unavailable 과 같은 값. */
+const RETRY_AFTER_SECONDS = 30;
 
 export type ChatApiActor = {
   email: string;
@@ -24,6 +30,22 @@ export async function requireChatActor() {
 }
 
 export function toErrorResponse(e: unknown) {
+  /* DB 를 못 읽은 것은 요청이 잘못된 게 아니다. 아래 기본 경로인 400 으로 가면
+     "네 요청이 잘못됐다"가 되어 클라이언트가 재시도하지 않고, 원인 메시지가
+     그대로 사용자 화면에 노출된다. 503 + Retry-After 만 실제 사실을 말한다. */
+  if (e instanceof ChatUnavailableError) {
+    logger.error("[db-unavailable] 채팅 저장소", e);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: {
+          code: "DB_UNAVAILABLE",
+          message: "지금은 채팅을 불러올 수 없습니다. 잠시 후 다시 시도해 주세요.",
+        },
+      },
+      { status: 503, headers: { "Retry-After": String(RETRY_AFTER_SECONDS) } },
+    );
+  }
   const msg = e instanceof Error ? e.message : "요청 처리 중 오류가 발생했습니다.";
   const map: Record<string, { status: number; code: string; message: string }> = {
     CHAT_ROOM_FORBIDDEN: { status: 403, code: "FORBIDDEN", message: "채팅방 접근 권한이 없습니다." },
