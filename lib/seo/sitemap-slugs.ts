@@ -21,6 +21,7 @@ export const SITEMAP_SECTION_SLUGS = [
   "notes",
   "glossary",
   "temperature",
+  "digest",
 ] as const;
 
 export type SitemapSectionSlug = (typeof SITEMAP_SECTION_SLUGS)[number];

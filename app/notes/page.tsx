@@ -152,6 +152,7 @@ export default async function NotesFeedPage({
   }
 
   let notes: FeedNote[] = [];
+  let loadError: string | null = null;
   try {
     const rows = await listPublicNotes(50);
     // 아파트명(+지역)으로 complexes 실 id 조회 — 요청당 React cache로 중복 방지
@@ -160,14 +161,18 @@ export default async function NotesFeedPage({
         toFeedNote(n, await resolveComplexHref(n.aptName, n.region)),
       ),
     );
-  } catch {
-    notes = [];
+  } catch (e) {
+    /* 조회 실패를 빈 배열로 삼키면 아래 목업 보강이 작동해 "아직 공개된 노트가
+       없어 샘플을 보여드려요" 가 뜬다 — DB 장애를 "노트가 없음" 으로 바꿔
+       말하는 셈이다. 실패는 실패라고 화면에 적고, 목업도 붙이지 않는다. */
+    loadError = e instanceof Error ? e.message : String(e);
+    console.error("[/notes] 공개 임장노트 조회 실패:", loadError);
   }
   // 더미데이터 정책: 실데이터가 1건이라도 있으면 목업 보강 없이 실데이터만 노출.
-  // 실데이터 0건일 때만 "예시" 표기가 붙은 목업 노출.
-  if (notes.length === 0) {
+  // 실데이터 0건일 때만 "예시" 표기가 붙은 목업 노출. (조회 실패 시에는 붙이지 않음)
+  if (!loadError && notes.length === 0) {
     notes = MOCK_NOTES;
   }
 
-  return <NotesFeedClient notes={notes} />;
+  return <NotesFeedClient notes={notes} loadError={loadError} />;
 }

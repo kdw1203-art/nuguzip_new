@@ -5,6 +5,7 @@ import { logger } from "@/lib/log";
 import {
   loadBandEntries,
   loadComplexEntries,
+  loadDigestEntries,
   loadGlossaryEntries,
   loadNoteEntries,
   loadPairEntries,
@@ -89,6 +90,10 @@ export const SITEMAP_SECTIONS: readonly SitemapSection[] = [
      "지금은 못 준다"는 거짓말이 된다. 크론이 도는 순간부터는 62개 언저리로 채워지고,
      그 뒤에 0 이 되면 required 여부와 무관하게 인덱스에서 빠지면서 드러난다. */
   { slug: "temperature", label: "시장 온도 주간 기록", required: false, load: loadTemperatureEntries },
+  /* N23 주간 아카이브도 required 가 아니다. 아카이브는 **완결된** 주만 싣고
+     항목이 기준 미만인 주는 아예 만들지 않으므로, 수집이 막 시작된 시기에는
+     0개가 사실이다. 그때 503 을 내면 "지금은 못 준다"는 거짓이 된다. */
+  { slug: "digest", label: "주간 다이제스트 아카이브", required: false, load: loadDigestEntries },
 ];
 
 const SECTION_BY_SLUG = new Map(SITEMAP_SECTIONS.map((s) => [s.slug, s]));

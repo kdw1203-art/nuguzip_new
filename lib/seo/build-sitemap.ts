@@ -176,7 +176,7 @@ export function loadStaticEntries(): MetadataRoute.Sitemap {
 export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
   return section("공개 임장노트", async () => {
     const notes = await listPublicNotes(200);
-    return notes
+    const noteEntries: MetadataRoute.Sitemap = notes
       .filter((n) => n.isPublic)
       .map((n) => {
         const at = n.updatedAt ? new Date(n.updatedAt) : null;
@@ -186,6 +186,19 @@ export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
           priority: 0.7,
         };
       });
+
+    /* N13 — 이달의 공개 임장노트. 위에서 읽은 노트로 그대로 계산한다(같은
+       질의를 두 번 던지지 않는다). 기준 미달로 만들어지지 않는 달은
+       bestNoteMonthsFrom 이 애초에 내보내지 않으므로, 사이트맵에 404 가
+       될 URL 이 실리지 않는다. */
+    const { bestNoteMonthsFrom } = await import("@/lib/inspection/best-notes");
+    const bestMonths = bestNoteMonthsFrom(notes);
+    if (bestMonths.length === 0) return noteEntries;
+    return [
+      ...noteEntries,
+      { url: `${BASE_URL}/notes/best`, priority: 0.6 },
+      ...bestMonths.map((m) => ({ url: `${BASE_URL}/notes/best/${m.ym}`, priority: 0.6 })),
+    ];
   });
 }
 
@@ -275,15 +288,45 @@ export async function loadTemperatureEntries(): Promise<MetadataRoute.Sitemap> {
   });
 }
 
+/**
+ * N23 — 주간 다이제스트 아카이브.
+ *
+ * 완결된 주 중 수집 항목이 기준을 넘긴 주만 나온다(lib/digest/archive.ts).
+ * 페이지가 404 로 답할 URL 을 사이트맵에 넣지 않는다는 원칙은 여기서도 같다.
+ * lastmod 는 적지 않는다 — 주 페이지의 내용은 그 주가 끝난 뒤에는 사실상
+ * 바뀌지 않고, 주소의 날짜가 이미 관측 구간을 말해 주기 때문이다.
+ */
+export async function loadDigestEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("주간 다이제스트 아카이브", async () => {
+    const { listDigestWeeks } = await import("@/lib/digest/archive");
+    const weeks = await listDigestWeeks();
+    if (weeks.length === 0) return [];
+    return [
+      { url: `${BASE_URL}/digest/archive`, priority: 0.6 },
+      ...weeks.map((w) => ({ url: `${BASE_URL}/digest/${w.slug}`, priority: 0.5 })),
+    ];
+  });
+}
+
 /** S11 — 월간 실거래 리포트 (데이터 있는 달만 — 빈 리포트 URL 을 넣지 않는다) */
 export async function loadReportEntries(): Promise<MetadataRoute.Sitemap> {
   return section("월간 실거래 리포트", async () => {
     const { listReportMonths } = await import("@/lib/reports/monthly");
+    const { listSeasonAvailability } = await import("@/lib/reports/seasonal");
     const months = await listReportMonths();
-    return months.map((m) => ({
-      url: `${BASE_URL}/reports/${m.ym}`,
-      priority: 0.7,
-    }));
+    /* N12 — 계절 리포트는 같은 월 요약에서 순수 계산으로 나오므로 조회가 늘지
+       않는다. 관측된 계절(모든 달이 확정 집계된 해가 1개 이상)만 싣는다 —
+       페이지가 404 로 답할 URL 을 사이트맵에 넣지 않는다. */
+    return [
+      ...months.map((m) => ({
+        url: `${BASE_URL}/reports/${m.ym}`,
+        priority: 0.7,
+      })),
+      ...listSeasonAvailability(months).map((s) => ({
+        url: `${BASE_URL}/reports/season/${s.def.slug}`,
+        priority: 0.6,
+      })),
+    ];
   });
 }
 

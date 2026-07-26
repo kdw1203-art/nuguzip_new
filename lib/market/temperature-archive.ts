@@ -188,6 +188,28 @@ export async function listLatestTemperatures(): Promise<{
   return { weekStart: latestWeek, rows };
 }
 
+/**
+ * 특정 주(week_start)의 전 지역 스냅샷 — 점수 높은 순. 그 주 기록이 없으면 빈 배열.
+ *
+ * N23 주간 아카이브가 "그 주에 시장이 어땠는지"를 붙일 때 쓴다. 없는 주를
+ * 최근 주로 대체하지 않는다 — 다른 주의 숫자를 그 주 것처럼 싣는 순간
+ * 아카이브 전체를 믿을 수 없게 된다.
+ */
+export async function listTemperaturesForWeek(
+  weekStart: string,
+): Promise<TemperatureSnapshot[]> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return [];
+  const { data, error } = await requireClient()
+    .from(T)
+    .select(SELECT)
+    .eq("week_start", weekStart)
+    .order("score", { ascending: false });
+  if (error) {
+    throw new Error(`시장 온도 아카이브 조회 실패 (${weekStart}): ${error.message}`);
+  }
+  return asRows(data).map(toSnapshot);
+}
+
 /** 아카이브에 한 주라도 값이 있는 지역 id 목록 (사이트맵용). 실패 시 throw. */
 export async function listArchivedRegionIds(): Promise<string[]> {
   const { data, error } = await requireClient().from(T).select("region_id").limit(20_000);

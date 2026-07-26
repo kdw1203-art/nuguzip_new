@@ -30,7 +30,20 @@ export async function GET(req: Request) {
   };
 
   if (all) {
-    let items = await listPublicNotes(200);
+    /* 조회 실패를 `{items: []}` 로 돌려주면 받아 간 쪽이 "공개 노트가 없다" 고
+       읽는다. API 는 사람이 눈으로 걸러 주지도 않으므로 503 으로 명시한다. */
+    let items;
+    try {
+      items = await listPublicNotes(200);
+    } catch (e) {
+      return NextResponse.json(
+        {
+          error: "공개 임장노트를 조회하지 못했습니다. 노트가 없는 것이 아니라 조회가 실패했습니다.",
+          detail: e instanceof Error ? e.message : String(e),
+        },
+        { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "300" } },
+      );
+    }
     items = items.filter((n) => matchQ(n));
     if (minScore != null) items = items.filter((n) => scoreOf(n) >= minScore);
     // 개인정보 보호: 공개 목록 응답에서 작성자 이메일 제거 — 표시는 authorLabel 사용
