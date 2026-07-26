@@ -32,6 +32,23 @@ export type Settled<T> = { ok: true; data: T } | { ok: false };
 /** 곁다리 섹션들이 공유하는 기본 예산. 개별 읽기 타임아웃(25초)보다 훨씬 짧다. */
 export const SIDE_SECTION_BUDGET_MS = 8_000;
 
+/**
+ * 공유 예산을 넘겨서 접힌 경우에 던지는 에러 — "조회가 깨졌다"와는 다른 사건이다.
+ *
+ * 왜 굳이 나누는가: 예산 초과는 설계대로 동작한 것이다(느린 곁다리를 접고 페이지를
+ * 제때 그렸다). 그런데 이걸 logger.error 로 남기면 Vercel 런타임 에러 목록에
+ * 그대로 쌓여, 정작 고쳐야 할 진짜 실패가 그 잡음에 묻힌다. 초과는 warn 으로
+ * 남겨 "느리다"는 신호로 읽히게 하고, error 는 진짜 실패에만 쓴다.
+ * 화면 동작은 그대로다 — 어느 쪽이든 `{ ok: false }` 이고, 호출부는 "없음"이
+ * 아니라 "지금 못 읽었다"를 그린다.
+ */
+export class SectionBudgetExpiredError extends Error {
+  constructor(ms: number) {
+    super(`곁다리 섹션 공유 예산 ${ms}ms 초과`);
+    this.name = "SectionBudgetExpiredError";
+  }
+}
+
 export type Deadline = {
   /** 예산을 넘기면 거절되는 프로미스. settle() 에 그대로 넘긴다. */
   readonly expired: Promise<never>;
@@ -49,10 +66,7 @@ export type Deadline = {
 export function startDeadline(ms: number = SIDE_SECTION_BUDGET_MS): Deadline {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const expired = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`곁다리 섹션 공유 예산 ${ms}ms 초과`)),
-      ms,
-    );
+    timer = setTimeout(() => reject(new SectionBudgetExpiredError(ms)), ms);
   });
   expired.catch(() => {});
   return {
@@ -81,6 +95,13 @@ export async function settle<T>(
       data: expired ? await Promise.race([work, expired]) : await work,
     };
   } catch (e) {
+    /* 예산 초과와 조회 실패를 같은 심각도로 남기지 않는다. 앞의 것은 설계대로
+       접힌 것(느리다는 신호), 뒤의 것은 고쳐야 할 사건이다. 섹션 이름을 앞에
+       붙여 어느 곁다리가 예산을 잡아먹는지 로그만 보고 알 수 있게 한다. */
+    if (e instanceof SectionBudgetExpiredError) {
+      logger.warn(`[section] ${what} 예산 초과로 접음: ${e.message}`);
+      return { ok: false };
+    }
     logger.error(
       `[section] ${what} 조회 실패: ${e instanceof Error ? e.message : String(e)}`,
     );
