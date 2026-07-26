@@ -40,20 +40,47 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const follows = await listFollowing(session.user.email).catch(() => []);
+  /* 팔로우 목록을 못 읽었을 때 빈 배열로 바꾸면 `follows: 0` 이 되고, 화면에서는
+     "아직 팔로우한 이웃이 없어요" 가 된다 — 실제로는 스무 명을 팔로우한 사람일 수
+     있다. 조회 실패는 "없음"이 아니므로 못 준다고 답한다(503). */
+  const followed = await listFollowing(session.user.email).then(
+    (rows) => ({ ok: true as const, rows }),
+    (err: unknown) => ({
+      ok: false as const,
+      cause: err instanceof Error ? err.message : String(err),
+    }),
+  );
+  if (!followed.ok) {
+    return NextResponse.json(
+      { error: `팔로잉 목록을 불러오지 못했습니다: ${followed.cause}` },
+      { status: 503 },
+    );
+  }
+  const follows = followed.rows;
   if (follows.length === 0) {
     return NextResponse.json({ follows: 0, items: [] });
   }
 
   const followedSet = new Set(follows.map((f) => f.followedEmail));
 
-  let notes: InspectionNote[] = [];
-  try {
-    const rows = await listPublicNotes(100);
-    notes = rows.filter((n) => followedSet.has(n.authorEmail)).slice(0, 30);
-  } catch {
-    notes = [];
+  /* 같은 이유로 노트 조회 실패도 빈 피드로 눌러 버리지 않는다. 여기서 [] 를 주면
+     "팔로우한 이웃이 아직 글을 안 썼어요" 로 읽히는데, 그건 사실이 아니다. */
+  const loaded = await listPublicNotes(100).then(
+    (rows) => ({ ok: true as const, rows }),
+    (err: unknown) => ({
+      ok: false as const,
+      cause: err instanceof Error ? err.message : String(err),
+    }),
+  );
+  if (!loaded.ok) {
+    return NextResponse.json(
+      { error: `팔로잉 피드를 불러오지 못했습니다: ${loaded.cause}` },
+      { status: 503 },
+    );
   }
+  const notes: InspectionNote[] = loaded.rows
+    .filter((n) => followedSet.has(n.authorEmail))
+    .slice(0, 30);
 
   const items = await Promise.all(
     notes.map(async (n, i) => {

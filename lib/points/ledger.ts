@@ -88,13 +88,18 @@ export async function getHistory(email: string, limit = 50): Promise<LedgerRow[]
 async function earnedSince(email: string, sinceIso: string): Promise<number> {
   const sb = getServiceSupabase();
   if (!sb) return 0;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("point_ledger")
     .select("delta")
     .eq("user_email", email)
     .gt("delta", 0)
     .gte("created_at", sinceIso);
-  if (!Array.isArray(data)) return 0;
+  /* 못 읽은 것을 0 으로 보면 "오늘 하나도 안 벌었다"가 되어 일·월 상한 검사를
+     그대로 통과한다 — 상한을 이미 채운 사람에게 계속 지급하는 길이 열린다.
+     상한은 지키라고 있는 것이므로, 확인이 안 되면 지급하지 않는다(호출부
+     awardPoints 의 try/catch 가 받아 reason:"error" 로 돌려준다). */
+  if (error) throw new Error(`point_ledger 적립합계 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) throw new Error("point_ledger 적립합계 응답이 배열이 아닙니다");
   return data.reduce((s, r) => s + (Number(r.delta) || 0), 0);
 }
 
@@ -112,8 +117,13 @@ async function alreadyAwarded(
     .eq("user_email", email)
     .eq("reason", reason);
   if (refId) q = q.eq("ref_id", refId);
-  const { count } = await q;
-  return (count ?? 0) > 0;
+  const { count, error } = await q;
+  /* count 가 null 인 것은 "0건"이 아니라 **세지 못했다**는 뜻이다. 그걸 false 로
+     바꾸면 "아직 지급 안 했다"가 되어 once·refId 중복 방어가 통째로 열린다
+     (같은 사유로 두 번 적립). 확인 못 했으면 지급하지 않는다. */
+  if (error) throw new Error(`point_ledger 중복지급 확인 실패: ${error.message}`);
+  if (typeof count !== "number") throw new Error("point_ledger 중복지급 확인 결과가 없습니다");
+  return count > 0;
 }
 
 export type AwardResult = {
@@ -174,13 +184,17 @@ export async function awardPoints(
     }
     // 룰 dailyCap (횟수)
     if (rule.dailyCap) {
-      const { count } = await sb
+      const { count, error: countErr } = await sb
         .from("point_ledger")
         .select("id", { count: "exact", head: true })
         .eq("user_email", email)
         .eq("reason", rule.key)
         .gte("created_at", dayStart);
-      if ((count ?? 0) >= rule.dailyCap) {
+      /* 위 alreadyAwarded 와 같은 이유 — 세지 못한 것을 0 으로 보면 하루 상한이
+         있으나 마나가 된다. 아래 catch 로 넘겨 지급을 건너뛴다. */
+      if (countErr) throw new Error(`point_ledger 일일횟수 조회 실패: ${countErr.message}`);
+      if (typeof count !== "number") throw new Error("point_ledger 일일횟수 결과가 없습니다");
+      if (count >= rule.dailyCap) {
         const balance = await balanceForFailure(email);
         return { ok: false, awarded: 0, balance, reason: "rule_cap" };
       }

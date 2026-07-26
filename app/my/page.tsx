@@ -187,7 +187,16 @@ export default async function MyPage() {
     ]);
 
   // A10 — 무료 가치 카운터(AI 분석 월 사용량) — 결제 전 가치 증명·자연 유도
-  const usage = await getUsageSummary(email, profile.plan as ProfilePlanTier).catch(() => null);
+  /* 실패하면 null → 아래 사용량 카드가 통째로 빠진다. 없는 값을 "0회 사용"으로
+     그리는 것보다는 낫지만, 조용히 사라지면 왜 안 보이는지 아무도 모른다.
+     최소한 기록은 남긴다(카드 하나 때문에 /my 전체를 죽이지는 않는다). */
+  const usage = await getUsageSummary(email, profile.plan as ProfilePlanTier).then(
+    (u) => u,
+    (err: unknown) => {
+      logger.error("[my] 사용량 요약 조회 실패", err);
+      return null;
+    },
+  );
   const aiUsage = usage?.items.find((i) => i.key === "ai_analysis") ?? null;
 
   const name = profile.name?.trim() || email.split("@")[0] || "회원";
