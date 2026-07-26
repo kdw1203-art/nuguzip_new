@@ -11,6 +11,7 @@ import { ReferralRedeem } from "@/components/ReferralRedeem";
 import { SiteJsonLd } from "./components/SiteJsonLd";
 import { CookieConsentBanner } from "@/components/consent/cookie-consent-banner";
 import { Ga4GtagLoader } from "@/components/ga4-gtag-loader";
+import { ViewportGroupTracker } from "./components/ViewportGroupTracker";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
@@ -97,6 +98,8 @@ export default function RootLayout({
                   로드 자체가 없다). NEXT_PUBLIC_GA4_ID 미설정 시 GA4는 무동작. */}
               <CookieConsentBanner />
               <Ga4GtagLoader />
+              {/* 반응형 QA — viewport_group_change 계측 (그룹 경계 통과 시에만) */}
+              <ViewportGroupTracker />
               {/* Vercel Web Analytics — 프로덕션(Vercel 배포)에서만 수집,
                   로컬에서는 아무것도 전송하지 않는다. */}
               <Analytics />
