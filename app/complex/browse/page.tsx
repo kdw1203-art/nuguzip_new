@@ -128,6 +128,12 @@ export default async function ComplexBrowsePage({
           지도에서 보기
         </Link>
         <Link
+          href="/complex/compare"
+          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+        >
+          단지끼리 비교하기
+        </Link>
+        <Link
           href="/notes/new"
           className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
         >

@@ -62,6 +62,11 @@ const VIEWS = [
   { name: "tx_band_complex_source", roles: ["anon", "service"], note: "/tx/[region]/[kind]/[band]" },
   { name: "map_price_point_source", roles: ["service"], note: "/api/map/clusters" },
   { name: "complex_sitemap_source", roles: ["service"], note: "/sitemap-complexes.xml" },
+  {
+    name: "complex_pair_source",
+    roles: ["service"],
+    note: "/complex/compare · /complex/compare/[slug] · /sitemap-pairs.xml",
+  },
 ];
 
 const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim().replace(/\/+$/, "");

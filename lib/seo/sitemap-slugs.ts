@@ -16,6 +16,7 @@ export const SITEMAP_SECTION_SLUGS = [
   "complexes",
   "regions",
   "tx",
+  "pairs",
   "reports",
   "notes",
   "glossary",

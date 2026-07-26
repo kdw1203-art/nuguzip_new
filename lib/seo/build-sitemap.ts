@@ -69,6 +69,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/qna", priority: 0.6 },
   // 서울 단지별 실거래 브라우즈 (국토부 실거래가 기반)
   { path: "/complex/browse", priority: 0.8 },
+  // N10 — 단지 vs 단지 비교 허브 (하위 조합은 아래 pairEntries 로 개별 등록)
+  { path: "/complex/compare", priority: 0.7 },
   // 지역 × 면적대·가격대 실거래 랜딩 인덱스 (A5) — 하위는 아래 bandEntries 로 개별 등록
   { path: "/tx", priority: 0.8 },
   // 실매물 (집주인 직접·중개사 등록) + 중개사 제휴 안내
@@ -222,6 +224,26 @@ export async function loadBandEntries(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE_URL}${b.path}`,
       ...(b.lastModified ? { lastModified: b.lastModified } : {}),
       priority: b.isHub ? 0.7 : 0.6,
+    }));
+  });
+}
+
+/**
+ * N10 — 단지 vs 단지 비교. MV(market_agg.complex_pair_mv)에 있는 조합만 페이지가
+ * 존재하므로, 여기 실리는 URL 은 전부 200 이 나오는 페이지다.
+ *
+ * lastModified 는 `last_data_at`(그 단지 거래를 마지막으로 수집한 시각)을 쓴다.
+ * 계약월(last_contract_ym)은 월 단위라 "언제 바뀌었나"를 말하기엔 너무 거칠고,
+ * 수집 시각은 실제로 이 페이지의 내용이 갱신될 수 있었던 시점이다.
+ */
+export async function loadPairEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("단지 비교", async () => {
+    const { listComplexPairs, complexPairPath } = await import("@/lib/market/complex-pairs");
+    const pairs = await listComplexPairs();
+    return pairs.map((p) => ({
+      url: `${BASE_URL}${complexPairPath(p)}`,
+      ...(p.lastDataAt ? { lastModified: p.lastDataAt } : {}),
+      priority: 0.6,
     }));
   });
 }
