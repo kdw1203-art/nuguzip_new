@@ -5,6 +5,7 @@ import { pctDelta, deltaLabel } from "@/lib/map/trade-stats";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { auth } from "@/auth";
 import { logger } from "@/lib/log";
+import { withBudget } from "@/lib/async/with-budget";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,20 @@ function ymMonthsAgo(months: number): string {
 const MAX_TX_ROWS = 12_000;
 /** 실거래 조회 기간(개월) — 단지별 전량 조회 대신 최근 24개월만 */
 const TX_LOOKBACK_MONTHS = 24;
+
+/**
+ * 지도 데이터 한 블록에 주는 시간(ms).
+ *
+ * 이 라우트는 maxDuration=300 이고, DB 가 밀리는 날 실제로 그 300초를 다 태우고
+ * `Vercel Runtime Timeout Error` 로 죽은 기록이 있다. 그렇게 죽으면 화면이 아예
+ * 안 뜬다 — 아래 danjiLoadFailed 안내조차 못 보여 준다. 45초에 접으면 적어도
+ * "지금은 못 불러왔다"는 화면은 뜬다.
+ *
+ * 45초로 잡은 이유: 사이트맵 섹션 로더와 같은 값이다(SECTION_LOAD_BUDGET_MS).
+ * 정상일 때 이 두 조회는 수 초 안에 끝나므로, 45초를 넘겼다는 건 이미
+ * "느린 날"이 아니라 "안 되는 날"이라는 뜻이다.
+ */
+const MAP_SECTION_BUDGET_MS = 45_000;
 
 interface TxRow {
   region_name: string;
@@ -323,22 +338,39 @@ export default async function MapPage() {
   /* 사실 우선: 허위 단지(공작아파트 등)를 채우지 않는다. 다만 "조회 실패" 와
      "빈 결과" 는 갈라서 내려보낸다 — 예전에는 둘 다 빈 목록이라 화면이
      "이 지역 단지 목록을 준비 중이에요" 라고 잘못 안내했다. */
-  const [dbLoaded, markersLoaded] = await Promise.all([
-    loadDanjiFromDb().then(
-      (value) => ({ ok: true as const, value }),
-      (err: unknown) => {
-        logger.error("[map] 단지 목록 조회 실패", err);
-        return { ok: false as const };
-      },
+  /* 상한을 두는 이유: DB 가 밀리는 날 이 페이지가 300초를 다 태우고
+     `Vercel Runtime Timeout Error` 로 죽은 기록이 있다. 그러면 화면이 아예 안 뜬다 —
+     아래 danjiLoadFailed 안내조차 못 보여 준다. 45초에 접으면 적어도 "지금은 못
+     불러왔다"는 화면은 뜬다. 늦게라도 정확한 답보다 제때 뜨는 답이 낫다. */
+  const [dbRun, markersRun] = await Promise.all([
+    withBudget(
+      Promise.resolve().then(() => loadDanjiFromDb()),
+      MAP_SECTION_BUDGET_MS,
     ),
-    loadRegionMarketMarkers().then(
-      (value) => ({ ok: true as const, value }),
-      (err: unknown) => {
-        logger.error("[map] 지역 시세 마커 조회 실패", err);
-        return { ok: false as const };
-      },
+    withBudget(
+      Promise.resolve().then(() => loadRegionMarketMarkers()),
+      MAP_SECTION_BUDGET_MS,
     ),
   ]);
+
+  if (dbRun.state === "timeout") {
+    logger.error(`[map] 단지 목록 조회가 ${MAP_SECTION_BUDGET_MS}ms 안에 끝나지 않았습니다`);
+  } else if (dbRun.state === "error") {
+    logger.error("[map] 단지 목록 조회 실패", dbRun.error);
+  }
+  if (markersRun.state === "timeout") {
+    logger.error(`[map] 지역 시세 마커 조회가 ${MAP_SECTION_BUDGET_MS}ms 안에 끝나지 않았습니다`);
+  } else if (markersRun.state === "error") {
+    logger.error("[map] 지역 시세 마커 조회 실패", markersRun.error);
+  }
+
+  const dbLoaded =
+    dbRun.state === "ok" ? { ok: true as const, value: dbRun.value } : { ok: false as const };
+  const markersLoaded =
+    markersRun.state === "ok"
+      ? { ok: true as const, value: markersRun.value }
+      : { ok: false as const };
+
   return (
     <MapClient
       danji={dbLoaded.ok ? dbLoaded.value.items : []}
