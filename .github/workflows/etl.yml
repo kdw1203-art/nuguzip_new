@@ -62,25 +62,29 @@ jobs:
           echo "== apt-master (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-master-ingest" | head -c 500 || true
           echo
-          # apt-detail: 단지 기본정보(좌표·주차·건설사) 백필 — 회당 50단지 (소프트)
-          # 예산이 50/일이라 잡이 하루 2회 돌아도 18:00 KST(09:00 UTC) 실행에서만 호출한다.
-          # 시도한 행에 metadata.detailFetchedAt 스탬프가 남아 재실행해도 같은 행을 다시 긁지 않는다.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event.schedule }}" = "0 9 * * *" ]; then
-            echo "== apt-detail (soft) =="
-            curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=50" | head -c 500 || true
-            echo
-          else
-            echo "== apt-detail skipped (하루 1회 — 09:00 UTC 실행에서만)"
-          fi
+          # apt-detail: 단지 기본정보(좌표·주차·건설사) 백필 — 회당 300단지, 매 실행 (소프트)
+          # 50/일(18개월 소요)로는 "데이터가 비어 있다"는 체감을 못 바꾼다 — 300×2회/일이면
+          # k-apt 21,658단지 전량이 ~36일. 시도한 행에 metadata.detailFetchedAt 스탬프가
+          # 남아 재실행해도 같은 행을 다시 긁지 않고, 호출 간 60ms 지연으로 API를 존중한다.
+          echo "== apt-detail (soft) =="
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=300" | head -c 500 || true
+          echo
           call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
-          # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용 (회당 상위 거래량 250건)
-          call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=250"
+          # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용.
+          # 주소 우선 다단 쿼리로 성공률을 고친 뒤에는 처리량이 병목: 500×2회/일이면
+          # 거래 단지 5,379곳 전량 시도가 ~5일, notfound 재시도(7일 주기)까지 흡수된다.
+          call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=500"
           # 출석 리마인드는 아래 alerts 잡으로 옮겼다 — 하루 두 번 "출석하세요"는 알림이 아니라 소음이다.
           # molit 전국 실거래: 매 실행마다 시군구 슬라이스 1구간씩 회전(12시간 창 기준 자동).
           # 이미 채워진 (구, 계약월) 조합은 라우트에서 건너뛰므로 이중 계상 없음. 소프트 처리 —
           # 일부 구가 실패해도 ETL 전체를 실패시키지 않는다.
           echo "== molit (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?size=16" | head -c 800 || true
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?size=24" | head -c 800 || true
+          echo
+          # molit 직전월 보강: 신고 지연(계약 후 30일)으로 뒤늦게 등록되는 거래를 다시 줍는다.
+          PREV_YM=$(date -u -d "-1 month" +%Y%m)
+          echo "== molit prev-month top-up (soft) =="
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$PREV_YM&size=24" | head -c 500 || true
           echo
           # 집계 MV 재계산 — 반드시 적재 뒤에. molit 라우트 안에서도 한 번 부르지만
           # (lib/market/molit-transactions.ts) 그 호출은 molit 이 끝까지 갔을 때만
