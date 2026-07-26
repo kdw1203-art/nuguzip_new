@@ -20,6 +20,7 @@ export const SITEMAP_SECTION_SLUGS = [
   "reports",
   "notes",
   "glossary",
+  "temperature",
 ] as const;
 
 export type SitemapSectionSlug = (typeof SITEMAP_SECTION_SLUGS)[number];

@@ -11,6 +11,7 @@ import {
   loadRegionEntries,
   loadReportEntries,
   loadStaticEntries,
+  loadTemperatureEntries,
   serializeSitemap,
 } from "@/lib/seo/build-sitemap";
 import { capSitemapUrls } from "@/lib/seo/sitemap-entries";
@@ -83,6 +84,11 @@ export const SITEMAP_SECTIONS: readonly SitemapSection[] = [
   { slug: "reports", label: "월간 리포트", required: false, load: loadReportEntries },
   { slug: "notes", label: "공개 임장노트", required: false, load: loadNoteEntries },
   { slug: "glossary", label: "용어사전", required: true, load: loadGlossaryEntries },
+  /* N11 시장 온도를 required 로 두지 않는 이유: 이 유형은 주간 스냅샷 크론이 한 번
+     이라도 돌아야 행이 생긴다. 첫 실행 전에는 0개가 **사실**이고, 그때 503 을 내면
+     "지금은 못 준다"는 거짓말이 된다. 크론이 도는 순간부터는 62개 언저리로 채워지고,
+     그 뒤에 0 이 되면 required 여부와 무관하게 인덱스에서 빠지면서 드러난다. */
+  { slug: "temperature", label: "시장 온도 주간 기록", required: false, load: loadTemperatureEntries },
 ];
 
 const SECTION_BY_SLUG = new Map(SITEMAP_SECTIONS.map((s) => [s.slug, s]));

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
-import { getRegionSeries, getRegionMonthlyVolume, type RegionMonthlyVolumeRow } from "@/lib/market/store";
 import {
-  SEOUL_DISTRICTS,
-  METRO_EXPLORE_DISTRICTS,
-} from "@/lib/map/seoul-districts";
+  TEMPERATURE_REGIONS,
+  computeRegionTemperature,
+  currentYyyymm,
+} from "@/lib/market/temperature";
 import { TimingRegionSelect } from "./region-select";
 import { TimingComplexPicker } from "./complex-picker";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -33,196 +33,17 @@ export const metadata = buildPageMetadata({
    숫자는 실측처럼 읽히므로, 실측이 아니면 그리지 않는다.
    ============================================================ */
 
-const REGION_OPTIONS = [
-  ...SEOUL_DISTRICTS.map((d) => ({ id: d.id, label: `서울 ${d.name}`, name: d.name })),
-  ...METRO_EXPLORE_DISTRICTS.map((d) => ({
-    id: d.id,
-    label: `${d.city ?? "서울"} ${d.name}`,
-    name: d.name,
-  })),
-];
-
-type SeriesPoint = { period: string; value: number };
-
-type TrendResult = {
-  verdict: string;
-  detail: string;
-  points: SeriesPoint[];
-  changes: number[];
-  periodType: "monthly" | "weekly";
-  latestChangePct: number;
-  cumulativePct: number;
-};
-
-function pctChanges(points: SeriesPoint[]): number[] {
-  const out: number[] = [];
-  for (let i = 1; i < points.length; i += 1) {
-    const prev = points[i - 1].value;
-    out.push(prev ? ((points[i].value - prev) / prev) * 100 : 0);
-  }
-  return out;
-}
-
-function mean(values: number[]): number {
-  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-}
-
-/** 추세/모멘텀 규칙 판정 — 최근 3구간 평균 변동 vs 직전 3구간 비교 */
-function judgeTrend(points: SeriesPoint[], periodType: "monthly" | "weekly"): TrendResult | null {
-  if (points.length < 4) return null;
-  const changes = pctChanges(points);
-  const recent = mean(changes.slice(-3));
-  const prior = mean(changes.slice(-6, -3));
-  const latest = changes[changes.length - 1] ?? 0;
-  const cumulative = points[0].value
-    ? ((points[points.length - 1].value - points[0].value) / points[0].value) * 100
-    : 0;
-  const unit = periodType === "monthly" ? "월" : "주";
-  const th = periodType === "monthly" ? 0.15 : 0.05;
-
-  let verdict: string;
-  let detail: string;
-  if (recent > th && recent >= prior) {
-    verdict = "상승 지속";
-    detail = `최근 3개${unit} 평균 +${recent.toFixed(2)}%로 직전(${prior >= 0 ? "+" : ""}${prior.toFixed(2)}%)보다 강한 상승 흐름이에요.`;
-  } else if (recent > th && recent < prior) {
-    verdict = "상승 둔화";
-    detail = `상승세가 이어지지만 폭이 ${prior.toFixed(2)}% → ${recent.toFixed(2)}%로 줄었어요. 고점 추격은 신중히.`;
-  } else if (recent < -th && recent <= prior) {
-    verdict = "하락 지속";
-    detail = `최근 3개${unit} 평균 ${recent.toFixed(2)}%로 조정이 이어지고 있어요. 급매 중심으로 관찰할 시기예요.`;
-  } else if (recent < -th && recent > prior) {
-    verdict = "하락 둔화";
-    detail = `하락 폭이 ${prior.toFixed(2)}% → ${recent.toFixed(2)}%로 줄었어요. 바닥 다지기 가능성을 지켜보세요.`;
-  } else if (prior < -th && recent >= -th) {
-    verdict = "반등 조짐";
-    detail = `직전 조정(${prior.toFixed(2)}%) 이후 최근 흐름이 보합권(${recent >= 0 ? "+" : ""}${recent.toFixed(2)}%)으로 돌아섰어요.`;
-  } else {
-    verdict = "보합권";
-    detail = `최근 3개${unit} 평균 변동이 ${recent >= 0 ? "+" : ""}${recent.toFixed(2)}%로 뚜렷한 방향성이 없어요.`;
-  }
-  return {
-    verdict,
-    detail,
-    points,
-    changes,
-    periodType,
-    latestChangePct: latest,
-    cumulativePct: cumulative,
-  };
-}
-
-async function loadTrend(regionId: string): Promise<TrendResult | null> {
-  try {
-    // 12개월 지수 (13개 값 → 12개 변동) 우선, 없으면 주간 시리즈로 대체
-    const monthly = await getRegionSeries(regionId, "sale_index", "monthly", 13);
-    if (monthly.length >= 4) return judgeTrend(monthly, "monthly");
-    const weekly = await getRegionSeries(regionId, "sale_index", "weekly", 27);
-    if (weekly.length >= 4) return judgeTrend(weekly, "weekly");
-    return null;
-  } catch {
-    return null;
-  }
-}
+/* 지역 목록·추세 판정·시장 온도 계산은 모두 lib/market/temperature.ts 로 옮겼다.
+   N11(주간 아카이브)이 같은 점수를 매주 저장해야 하는데, 저장하는 쪽이 계산을
+   다시 구현하면 두 숫자가 언젠가 갈라진다. 그 순간 아카이브는 "과거의 시장
+   온도"가 아니라 "과거에 다른 공식으로 계산한 무언가"가 된다. 계산은 한 곳에만
+   둔다 — 이 화면도 스냅샷 작성기도 computeRegionTemperature() 만 부른다. */
+const REGION_OPTIONS = TEMPERATURE_REGIONS;
 
 function periodLabel(period: string): string {
   // "2025-07-01" → "25.07"
   const m = /^(\d{4})-(\d{2})/.exec(period);
   return m ? `${m[1].slice(2)}.${m[2]}` : period;
-}
-
-/* ============================================================
-   시장 온도 신호 — 실측치 2개(지수 모멘텀 · 거래량 추이)의 합성.
-   예전 이 자리에는 하드코딩된 "매수 신호 62/100"과 지어낸 근거 3줄
-   ("거래량 회복 초기", "하락 폭 -4.1→-2.1%", "금리 동결 전망")이 있었다.
-   숫자가 구체적일수록 실측처럼 읽히므로, 실측이 아니면 아예 그리지 않는다.
-   금리는 우리가 관측하는 데이터가 아니라서 입력에서 뺐다.
-   ============================================================ */
-
-type MarketTemp = {
-  score: number;
-  headline: string;
-  inputs: { label: string; value: string; accent: boolean }[];
-  volumeNote: string | null;
-};
-
-function currentYyyymm(): string {
-  const d = new Date();
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, v));
-}
-
-/**
- * 시장 온도(0~100) — 50이 중립. 지수 모멘텀 ±25점 + 거래량 추이 ±25점.
- * 거래량은 신고 지연이 있는 이번 달을 제외하고, 완결월 4개 이상일 때만 반영한다.
- */
-function computeMarketTemp(
-  trend: TrendResult | null,
-  volume: RegionMonthlyVolumeRow[],
-): MarketTemp | null {
-  if (!trend) return null;
-  const unit = trend.periodType === "monthly" ? "월" : "주";
-  const recent = mean(trend.changes.slice(-3));
-  const prior = mean(trend.changes.slice(-6, -3));
-  // 월 ±1% 변동을 ±25점 만점으로 환산 (주간이면 ±0.3%)
-  const momScale = trend.periodType === "monthly" ? 25 : 83;
-  const momPts = clamp(recent * momScale, -25, 25);
-
-  const inputs: MarketTemp["inputs"] = [
-    {
-      label: `지수 최근 3개${unit} 평균`,
-      value: `${recent >= 0 ? "+" : ""}${recent.toFixed(2)}%`,
-      accent: recent > 0,
-    },
-    {
-      label: `직전 3개${unit} 평균`,
-      value: `${prior >= 0 ? "+" : ""}${prior.toFixed(2)}%`,
-      accent: false,
-    },
-  ];
-
-  // 거래량: 이번 달(신고 지연) 제외한 완결월만
-  const nowYm = currentYyyymm();
-  const complete = volume.filter((v) => v.month < nowYm);
-  let volPts = 0;
-  let volumeNote: string | null = null;
-  if (complete.length >= 4) {
-    const half = Math.min(3, Math.floor(complete.length / 2));
-    const recentMonths = complete.slice(-half);
-    const priorMonths = complete.slice(-half * 2, -half);
-    const recentSum = recentMonths.reduce((s, v) => s + v.count, 0);
-    const priorSum = priorMonths.reduce((s, v) => s + v.count, 0);
-    if (priorSum > 0) {
-      const deltaPct = ((recentSum - priorSum) / priorSum) * 100;
-      volPts = clamp(deltaPct * 0.5, -25, 25); // ±50% 변화를 ±25점으로
-      inputs.push({
-        label: `거래량 최근 ${half}개월 합`,
-        value: `${recentSum.toLocaleString("ko-KR")}건 (직전 ${priorSum.toLocaleString("ko-KR")}건, ${deltaPct >= 0 ? "+" : ""}${deltaPct.toFixed(0)}%)`,
-        accent: deltaPct > 0,
-      });
-    }
-  } else {
-    volumeNote =
-      complete.length > 0
-        ? `거래량 완결월이 ${complete.length}개뿐이라 신호에는 지수 모멘텀만 반영했어요.`
-        : "이 지역의 월별 거래량 집계가 아직 없어 신호에는 지수 모멘텀만 반영했어요.";
-  }
-
-  const score = Math.round(clamp(50 + momPts + volPts, 5, 95));
-  const headline =
-    score >= 65
-      ? "가격·거래 모두 달아오르는 구간"
-      : score >= 55
-        ? "완만한 회복 흐름"
-        : score >= 45
-          ? "방향성 탐색 구간"
-          : score >= 35
-            ? "조정 흐름 지속"
-            : "가격·거래 모두 식은 구간";
-  return { score, headline, inputs, volumeNote };
 }
 
 export default async function TimingPage({
@@ -233,11 +54,7 @@ export default async function TimingPage({
   const { region, complexId, apt } = await searchParams;
   const selected =
     REGION_OPTIONS.find((r) => r.id === region) ?? REGION_OPTIONS[0];
-  const [trend, volume] = await Promise.all([
-    loadTrend(selected.id),
-    getRegionMonthlyVolume(selected.id, selected.name, 12),
-  ]);
-  const temp = computeMarketTemp(trend, volume);
+  const { trend, volume, temp } = await computeRegionTemperature(selected);
   const nowYm = currentYyyymm();
   const maxVolCount = Math.max(1, ...volume.map((v) => v.count));
 
@@ -428,6 +245,12 @@ export default async function TimingPage({
                 이용자에게 있습니다.{" "}
                 <Link href="/methodology#temperature" className="font-bold text-ai-accent no-underline">
                   계산 공식 보기 ›
+                </Link>{" "}
+                <Link
+                  href={`/analysis/temperature/${selected.id}`}
+                  className="font-bold text-ai-accent no-underline"
+                >
+                  주간 기록 보기 ›
                 </Link>
               </div>
             </div>

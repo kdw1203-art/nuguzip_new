@@ -58,6 +58,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/analysis/price", priority: 0.6 },
   { path: "/analysis/scenario", priority: 0.6 },
   { path: "/analysis/timing", priority: 0.6 },
+  { path: "/analysis/temperature", priority: 0.6 },
   { path: "/analysis/portfolio", priority: 0.6 },
   { path: "/analysis/switch", priority: 0.6 },
   { path: "/town", priority: 0.8 },
@@ -243,6 +244,31 @@ export async function loadPairEntries(): Promise<MetadataRoute.Sitemap> {
     return pairs.map((p) => ({
       url: `${BASE_URL}${complexPairPath(p)}`,
       ...(p.lastDataAt ? { lastModified: p.lastDataAt } : {}),
+      priority: 0.6,
+    }));
+  });
+}
+
+/**
+ * N11 — 시장 온도 주간 기록의 지역별 페이지.
+ *
+ * 아카이브에 **한 주라도 값이 있는 지역만** 싣는다. 대상 지역 목록
+ * (TEMPERATURE_REGIONS)을 그대로 쓰면 지수 시계열이 부족해 아직 점수를 만들지
+ * 못한 지역까지 광고하게 되는데, 그 페이지는 "아직 기록이 없습니다"만 적고
+ * noindex 로 나간다 — 크롤러를 빈 페이지로 부르는 셈이다.
+ *
+ * lastModified 를 적지 않는 이유: 이 페이지의 내용은 "그 지역의 주간 기록 전체"라
+ * 마지막 주의 날짜(week_start)는 내용이 바뀐 시각이 아니라 관측 구간의 이름이다.
+ * 정확한 갱신 시각을 알려면 지역마다 observed_at 최댓값을 따로 읽어야 하는데,
+ * 사이트맵 한 번에 62번의 추가 조회를 붙일 만한 값어치가 없다. 추측한 날짜를
+ * 적느니 생략한다(정적 라우트와 같은 원칙).
+ */
+export async function loadTemperatureEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("시장 온도 주간 기록", async () => {
+    const { listArchivedRegionIds } = await import("@/lib/market/temperature-archive");
+    const ids = await listArchivedRegionIds();
+    return ids.map((id) => ({
+      url: `${BASE_URL}/analysis/temperature/${encodeURIComponent(id)}`,
       priority: 0.6,
     }));
   });
