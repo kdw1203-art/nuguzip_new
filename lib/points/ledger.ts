@@ -38,6 +38,14 @@ export async function getBalance(email: string): Promise<number> {
   return Number(data.balance) || 0;
 }
 
+/**
+ * 포인트 내역 — 최신순.
+ *
+ * 조회에 실패하면 **던진다**. 예전에는 빈 배열이었는데, 그러면 /my 와 /my/points 가
+ * "아직 포인트 내역이 없어요 · 활동하면 적립·사용 기록이 모여요" 라고 쓴다 —
+ * 적립한 적이 없는 사람과 원장을 못 읽은 사람이 화면에서 똑같아진다.
+ * 행이 0개인 것은 진짜 빈 내역이므로 그대로 빈 배열이다.
+ */
 export async function getHistory(email: string, limit = 50): Promise<LedgerRow[]> {
   const sb = getServiceSupabase();
   if (!sb || !email) return [];
@@ -47,7 +55,11 @@ export async function getHistory(email: string, limit = 50): Promise<LedgerRow[]
     .eq("user_email", email)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error || !Array.isArray(data)) return [];
+  if (error) {
+    logger.error("[points] point_ledger 조회 실패", error.message);
+    throw new Error(`point_ledger 조회 실패: ${error.message}`);
+  }
+  if (!Array.isArray(data)) throw new Error("point_ledger 응답이 배열이 아닙니다");
   return data.map((r) => ({
     delta: Number(r.delta),
     reason: String(r.reason),

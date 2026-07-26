@@ -4,6 +4,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { checkIn, getAttendanceHistory, kstDateString } from "@/lib/points/store-db";
 import { awardPoints, getBalance, getHistory } from "@/lib/points/ledger";
 import { applyRateLimit } from "@/lib/rate-limit";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 
@@ -11,11 +12,28 @@ export async function GET() {
   const session = await safeAuth();
   if (!session?.user?.email) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   // B2: 잔액·내역은 원장(point_ledger) 단일 소스로 통일 (구 user_points 이중집계 제거)
-  const [totalPoints, attendance, ledgerHistory] = await Promise.all([
+  /* 조회 실패는 503 이다. 200 + 빈 값으로 돌려주면 화면이 "연속 출석 0일" 을
+     사실인 것처럼 그린다 — 소비자(AttendanceButton)는 non-ok 를 무시하도록
+     이미 되어 있어서, 실패하면 스트릭 표시가 조용히 빠질 뿐이다. */
+  const loaded = await Promise.all([
     getBalance(session.user.email),
     getAttendanceHistory(session.user.email, 7),
     getHistory(session.user.email, 10),
-  ]);
+  ]).then(
+    ([totalPoints, attendance, ledgerHistory]) =>
+      ({ ok: true as const, totalPoints, attendance, ledgerHistory }),
+    (err: unknown) => {
+      logger.error("[api/me/attendance] 출석·포인트 조회 실패", err);
+      return { ok: false as const, cause: err instanceof Error ? err.message : String(err) };
+    },
+  );
+  if (!loaded.ok) {
+    return NextResponse.json(
+      { error: `출석 정보를 불러오지 못했습니다: ${loaded.cause}` },
+      { status: 503 },
+    );
+  }
+  const { totalPoints, attendance, ledgerHistory } = loaded;
   const pointsHistory = ledgerHistory.map((r, i) => ({
     id: `${r.createdAt}-${i}`,
     delta: r.delta,

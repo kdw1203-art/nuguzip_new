@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { ErrorState } from "@/app/components/ui/EmptyState";
 import { safeAuth } from "@/lib/safe-auth";
+import { logger } from "@/lib/log";
 import { getBalance, getHistory, type LedgerRow } from "@/lib/points/ledger";
 import { EARN_RULES, getSpendItem } from "@/lib/points/catalog";
 import { AttendanceButton } from "./AttendanceButton";
@@ -248,14 +250,38 @@ export default async function PointsWalletPage() {
     );
   }
 
-  const [balance, history] = await Promise.all([
-    getBalance(email),
-    getHistory(email, 50),
-  ]);
+  /* 2026-07-26: 내역 조회가 실패하면 예전에는 빈 배열이 내려와서 "아직 포인트
+     내역이 없어요" 라고 썼다 — 적립한 적 없는 사람과 원장을 못 읽은 사람이
+     구분되지 않았다. 실패는 실패라고 쓴다. */
+  const loaded = await Promise.all([getBalance(email), getHistory(email, 50)]).then(
+    ([balance, history]) => ({ ok: true as const, balance, history }),
+    (err: unknown) => {
+      logger.error("[my/points] 포인트 조회 실패", err);
+      return {
+        ok: false as const,
+        cause: err instanceof Error ? err.message : String(err),
+      };
+    },
+  );
+
+  if (!loaded.ok) {
+    return (
+      <PageShell breadcrumb="포인트 지갑">
+        <div className="mx-auto w-full max-w-[640px]">
+          <ErrorState
+            title="포인트 지갑을 지금 불러올 수 없어요"
+            desc="포인트 내역이 없는 게 아니라 조회 자체가 실패했습니다. 잠시 후 다시 시도해 주세요."
+            cause={loaded.cause}
+            action={{ label: "마이로 이동", href: "/my" }}
+          />
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell breadcrumb="포인트 지갑">
-      <WalletView balance={balance} history={history} />
+      <WalletView balance={loaded.balance} history={loaded.history} />
     </PageShell>
   );
 }

@@ -16,6 +16,7 @@ import { listBookmarks } from "@/lib/bookmarks/store";
 import { listAlertSubscriptions, type AlertSubscription } from "@/lib/alerts/subscriptions";
 import { getVerifiedOnboarding } from "@/app/api/me/onboarding/verify";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { logger } from "@/lib/log";
 import { getUsageSummary } from "@/lib/subscriptions/usage-summary";
 import type { ProfilePlanTier } from "@/lib/subscriptions/labels";
 import { AttendanceButton } from "./points/AttendanceButton";
@@ -156,7 +157,19 @@ export default async function MyPage() {
   }
 
   const email = session.user.email;
-  const [profile, balance, history, notes, savedNotes, alerts, expert, onboarding, planExpiresAt] =
+  /* 포인트 내역은 이 화면의 곁가지라 실패해도 /my 전체를 죽이지 않는다. 다만
+     빈 배열로 눌러 버리면 "아직 포인트 내역이 없어요" 라는 거짓 안내가 되므로,
+     실패 여부를 따로 들고 가서 그 자리에만 다른 문구를 쓴다. */
+  const historyLoaded = await getHistory(email, 4).then(
+    (rows) => ({ ok: true as const, rows }),
+    (err: unknown) => {
+      logger.error("[my] 포인트 내역 조회 실패", err);
+      return { ok: false as const, rows: [] as LedgerRow[] };
+    },
+  );
+  const history = historyLoaded.rows;
+
+  const [profile, balance, notes, savedNotes, alerts, expert, onboarding, planExpiresAt] =
     await Promise.all([
       loadMeProfile(email, {
         name: session.user.name,
@@ -164,7 +177,6 @@ export default async function MyPage() {
         role: (session.user as { role?: string }).role,
       }),
       getBalance(email),
-      getHistory(email, 4),
       listNotes(email),
       loadSavedNotes(email),
       listAlertSubscriptions(email),
@@ -401,7 +413,17 @@ export default async function MyPage() {
         <section className="flex flex-col gap-2.5">
           <SectionHead title="포인트" href="/my/points" hrefLabel="전체 내역" />
           <div className="card rounded-[16px] p-5">
-            {history.length === 0 ? (
+            {!historyLoaded.ok ? (
+              <div className="flex flex-col items-center gap-1.5 py-6 text-center">
+                {/* 조회 실패는 "내역 없음" 이 아니다 */}
+                <div className="text-[13px] font-bold text-ink">
+                  포인트 내역을 지금 불러오지 못했어요
+                </div>
+                <div className="text-[11px] text-text-3">
+                  내역이 없는 게 아니라 조회가 실패했습니다
+                </div>
+              </div>
+            ) : history.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
                 <div className="text-[13px] font-bold text-ink">아직 포인트 내역이 없어요</div>
                 <div className="text-[11px] text-text-3">활동하면 적립·사용 기록이 모여요</div>
