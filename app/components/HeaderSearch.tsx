@@ -41,6 +41,8 @@ export function HeaderSearch() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [items, setItems] = useState<FlatItem[]>([]);
+  /** 조회에 실패한 그룹 — 비어 있지 않으면 "결과 없음" 문구를 쓰지 않는다. */
+  const [failed, setFailed] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -50,6 +52,7 @@ export function HeaderSearch() {
     const query = q.trim();
     if (!query) {
       setItems([]);
+      setFailed([]);
       setOpen(false);
       return;
     }
@@ -62,7 +65,7 @@ export function HeaderSearch() {
           signal: ac.signal,
         });
         if (!res.ok) throw new Error("unified failed");
-        const json = (await res.json()) as Partial<UnifiedResults>;
+        const json = (await res.json()) as Partial<UnifiedResults> & { failed?: string[] };
         const flat = flatten({
           complexes: json.complexes ?? [],
           listings: json.listings ?? [],
@@ -70,10 +73,14 @@ export function HeaderSearch() {
           news: json.news ?? [],
         });
         setItems(flat);
+        /* 조회가 실패한 그룹이 있으면 "일치하는 결과가 없어요"를 쓰지 않는다.
+           드롭다운은 짧아야 하니 문장 하나로만 사실을 바꿔 적는다. */
+        setFailed(Array.isArray(json.failed) ? json.failed : []);
         setOpen(true);
       } catch {
         if (!ac.signal.aborted) {
           setItems([]);
+          setFailed(["단지", "매물", "임장노트", "뉴스"]);
           setOpen(false);
         }
       }
@@ -160,6 +167,10 @@ export function HeaderSearch() {
                   )}
                 </button>
               ))
+            ) : failed.length > 0 ? (
+              <div className="px-3 py-3 text-center text-[12px] text-text-3">
+                지금은 검색이 되지 않아요 (결과 없음이 아니에요)
+              </div>
             ) : (
               <div className="px-3 py-3 text-center text-[12px] text-text-3">
                 일치하는 결과가 없어요

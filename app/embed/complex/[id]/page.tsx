@@ -57,7 +57,11 @@ interface EmbedView {
 }
 
 /** 실데이터 → 뷰 */
-function buildView(row: ComplexRow, tx: ComplexTransactionRow[]): EmbedView {
+function buildView(
+  row: ComplexRow,
+  tx: ComplexTransactionRow[],
+  txFailed = false,
+): EmbedView {
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   const { delta, tone } = deltaLabel(latest ? pctDelta(latest.avg_manwon, prev?.avg_manwon) : null);
@@ -71,8 +75,15 @@ function buildView(row: ComplexRow, tx: ComplexTransactionRow[]): EmbedView {
     complexId: row.id,
     name: row.name,
     dong: row.district || row.city || "지역",
-    price: latest ? formatManwon(latest.avg_manwon) : "시세 준비 중",
-    priceSub: latest ? `${delta} 전월비` : "실거래 수집 중",
+    /* "시세 준비 중 · 실거래 수집 중"은 신고된 거래가 아직 없다는 뜻이다.
+       조회에 실패했을 뿐인데 그렇게 적으면, 거래가 활발한 단지가 남의 블로그에
+       박힌 iframe 안에서 데이터 없는 단지로 보인다. 실패는 실패라고 쓴다. */
+    price: latest ? formatManwon(latest.avg_manwon) : txFailed ? "시세 조회 실패" : "시세 준비 중",
+    priceSub: latest
+      ? `${delta} 전월비`
+      : txFailed
+        ? "잠시 후 다시 시도해 주세요"
+        : "실거래 수집 중",
     priceSubClass: tone === "down" ? "delta-down" : tone === "up" ? "delta-up" : "text-text-3",
     stats,
   };
@@ -207,13 +218,16 @@ export default async function EmbedComplexPage({
   }
   if (!row) return <UnavailableCard reason="notfound" />;
 
-  // 단지는 찾았고 거래 이력만 실패한 경우 — 단지 카드는 그리되 시세는 "준비 중".
+  // 단지는 찾았고 거래 이력만 실패한 경우 — 단지 카드는 그리되 시세 자리는
+  // "준비 중"이 아니라 "조회 실패"로 적는다(없음과 실패는 다른 사실).
   let tx: ComplexTransactionRow[] = [];
+  let txFailed = false;
   try {
     tx = await getTransactionHistory(id);
   } catch {
     tx = [];
+    txFailed = true;
   }
 
-  return <EmbedCard view={buildView(row, tx)} />;
+  return <EmbedCard view={buildView(row, tx, txFailed)} />;
 }

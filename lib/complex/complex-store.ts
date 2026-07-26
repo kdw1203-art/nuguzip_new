@@ -12,6 +12,28 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { AREA_BANDS } from "@/lib/market/bands";
 import { APT_MASTER_SOURCE_KEY } from "@/lib/complex/apartment-master";
+import { logger } from "@/lib/log";
+
+/**
+ * 조회 실패는 던진다 — "없음"으로 답하지 않는다.
+ *
+ * 이 파일의 함수들은 예전에 `const { data } = await …` 로 error 를 버렸다.
+ * 그러면 조회가 실패했을 때 data 가 null 이라 빈 배열·null 이 나가고, 화면은
+ * 그것을 "실거래가 없는 단지", "면적대별 시세 없음", "검색 결과 없음"으로
+ * 그린다. 특히 getComplexById 는 null 이 곧 notFound() 인데
+ * app/complex/[id]/page.tsx 는 `export const revalidate = 120` 인 ISR 이라,
+ * 한 번의 조회 실패가 "그런 단지는 없습니다" 404 를 2분간 캐시에 얼려 넣는다.
+ * 5xx 는 캐시되지 않으므로, 못 읽었으면 던지는 편이 사실에 가깝고 안전하다.
+ *
+ * 부르는 쪽 규칙:
+ *   - 페이지(app/complex/[id], app/embed/complex/[id]) — 핵심은 그대로 던져
+ *     5xx, 곁가지 섹션은 settle()/try 로 받아 "못 불러왔어요"를 따로 그린다.
+ *   - API 라우트 — dbUnavailable() 로 503 + Retry-After. 404·빈 배열 금지.
+ * `!sb`(env 미설정) 는 여기 해당하지 않는다 — 그건 실패가 아니라 미설정이다.
+ */
+function dbError(where: string, err: { message?: string } | null): Error {
+  return new Error(`${where} 조회 실패: ${err?.message ?? "알 수 없는 오류"}`);
+}
 
 export interface ComplexRow {
   id: string;
@@ -154,7 +176,12 @@ async function enrichFromApartmentComplex(
     .ilike("name", `%${core}%`)
     .limit(25);
   if (district) q = q.ilike("address", `%${district}%`);
-  const { data } = await q;
+  const { data, error } = await q;
+  /* 대장 마스터는 부가정보(좌표·난방·도로명)라 없어도 허브는 실거래만으로 그린다.
+     그래도 "못 읽음"과 "매칭 없음"은 다른 사실이라 실패는 던진다 — 조용히 null 이
+     되면 지도 마커가 사라진 이유가 무매칭인지 장애인지 구분할 방법이 없다.
+     부르는 쪽(getComplexById)이 받아서 로그로 남기고 실거래만으로 계속한다. */
+  if (error) throw dbError("apartment_complexes", error);
   const rows =
     (data as { name: string; metadata: Record<string, unknown> | null }[] | null) ?? [];
   if (rows.length === 0) return null;
@@ -196,7 +223,7 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
   // 이 단지의 매매 실거래가 1건이라도 있으면 실재하는 단지로 간주 (대표 정보 도출)
-  const { data } = await sb
+  const { data, error } = await sb
     .from("market_transactions")
     .select("address, build_year")
     .eq("complex_name", dec.name)
@@ -205,12 +232,20 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
     .eq("is_cancelled", false)
     .order("build_year", { ascending: false, nullsFirst: false })
     .limit(1);
+  /* 여기서 null 을 돌려주면 허브 페이지가 notFound() 를 부른다. 그 페이지는
+     revalidate = 120 인 ISR 이라 "그런 단지는 없습니다" 404 가 2분간 얼어붙는다.
+     실재하는 단지가 장애 몇 초 때문에 검색엔진에 없는 단지로 보이면 안 된다. */
+  if (error) throw dbError(`market_transactions (단지 ${dec.name})`, error);
   const row = (data as { address: string | null; build_year: number | null }[] | null)?.[0];
   if (!row) return null;
 
   const base = toComplexRow(dec.region, dec.name, row);
   // D7 — 대장 마스터(apartment_complexes) 매칭 enrich (세대수·준공·난방·도로명·kapt).
-  const apt = await enrichFromApartmentComplex(dec.region, dec.name).catch(() => null);
+  // 실패해도 허브는 실거래만으로 그린다. 다만 조용히 넘기지 않고 로그는 남긴다.
+  const apt = await enrichFromApartmentComplex(dec.region, dec.name).catch((e) => {
+    logger.warn("[complex] 대장 마스터 enrich 실패 — 실거래만으로 계속", e);
+    return null;
+  });
   if (apt) {
     base.kapt_code = apt.kaptCode ?? base.kapt_code;
     base.build_year = base.build_year ?? apt.buildYear; // 실거래 build_year 우선
@@ -251,7 +286,11 @@ export async function searchComplexes(
 
   // 넉넉히 가져와 (region_name, complex_name) 기준 중복 제거
   // (ilike 는 complex_name trigram GIN 인덱스를 탄다)
-  const { data } = await q.order("contract_ym", { ascending: false }).limit(800);
+  const { data, error } = await q.order("contract_ym", { ascending: false }).limit(800);
+  /* 빈 배열은 "그런 단지는 없다"는 뜻이다. 못 읽었을 때 그렇게 답하면 사용자는
+     검색어를 의심하며 같은 검색을 반복하고, 링크 해석(complex-link)은 실재하는
+     단지의 허브 링크를 숨긴다. 부르는 쪽이 "지금 검색이 안 된다"를 말하게 한다. */
+  if (error) throw dbError("market_transactions (단지 검색)", error);
   const rows =
     (data as
       | {
@@ -313,7 +352,7 @@ export async function suggestComplexes(query: string, limit = 6): Promise<Comple
   const ors = tokens
     .flatMap((t) => [`complex_name.ilike.%${t}%`, `region_name.ilike.%${t}%`])
     .join(",");
-  const { data } = await sb
+  const { data, error } = await sb
     .from("market_transactions")
     .select("complex_name, region_name, address, build_year")
     .eq("transaction_type", "trade")
@@ -322,6 +361,9 @@ export async function suggestComplexes(query: string, limit = 6): Promise<Comple
     .or(ors)
     .order("contract_ym", { ascending: false })
     .limit(400);
+  /* 이 함수는 "결과가 하나도 없을 때" 부르는 대안 제안이다. 여기서 또 빈 배열을
+     돌려주면 화면은 "제안할 만한 단지도 없다"까지 단정하게 된다. */
+  if (error) throw dbError("market_transactions (대안 제안)", error);
 
   const rows =
     (data as
@@ -367,17 +409,21 @@ export async function getRegionRelative(complexId: string): Promise<RegionRelati
   const { district } = splitRegion(dec.region);
   if (!district) return null;
 
-  const { data: reg } = await sb
+  const { data: reg, error: regError } = await sb
     .from("market_region_price")
     .select("per_m2_sale, sale_change, jeonse_ratio, period")
     .eq("region_name", district)
     .order("period", { ascending: false })
     .limit(1)
     .maybeSingle();
+  /* maybeSingle 은 0행이면 {data:null, error:null} 이다 — 그래서 error 만 실패다.
+     실패를 null 로 삼키면 "이 동네 대비" 섹션이 통째로 사라지고, 사용자는 이 구에
+     기준 시세가 없다고 이해한다. 없는 것과 못 읽은 것은 다른 사실이다. */
+  if (regError) throw dbError("market_region_price", regError);
   const districtPerM2 = reg?.per_m2_sale != null ? Number(reg.per_m2_sale) : 0;
   if (!Number.isFinite(districtPerM2) || districtPerM2 <= 0) return null;
 
-  const { data: tx } = await sb
+  const { data: tx, error: txError } = await sb
     .from("market_transactions")
     .select("deal_amount_krw, area_m2")
     .eq("complex_name", dec.name)
@@ -388,6 +434,7 @@ export async function getRegionRelative(complexId: string): Promise<RegionRelati
     .not("area_m2", "is", null)
     .order("contract_ym", { ascending: false })
     .limit(60);
+  if (txError) throw dbError("market_transactions (지역 대비)", txError);
   const rows = (tx as { deal_amount_krw: number; area_m2: number }[] | null) ?? [];
   const perM2s = rows
     .map((r) => Number(r.deal_amount_krw) / Number(r.area_m2))
@@ -428,7 +475,7 @@ export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
   if (!dec) return [];
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data } = await sb
+  const { data, error } = await sb
     .from("market_transactions")
     .select("area_m2, deal_amount_krw, contract_ym")
     .eq("complex_name", dec.name)
@@ -439,6 +486,9 @@ export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
     .not("area_m2", "is", null)
     .order("contract_ym", { ascending: false })
     .limit(400);
+  /* 빈 배열이면 "면적대별 시세" 섹션이 통째로 안 그려진다 — 실거래가 없는 단지라는
+     뜻이다. 못 읽은 것을 그렇게 그리면 안 된다. */
+  if (error) throw dbError("market_transactions (면적대별)", error);
   const rows =
     (data as { area_m2: number | null; deal_amount_krw: number; contract_ym: string }[] | null) ??
     [];
@@ -481,7 +531,7 @@ export async function getTransactionHistory(
   if (!dec) return [];
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data } = await sb
+  const { data, error } = await sb
     .from("market_transactions")
     .select("contract_ym, deal_amount_krw")
     .eq("complex_name", dec.name)
@@ -489,6 +539,10 @@ export async function getTransactionHistory(
     .eq("transaction_type", "trade")
     .eq("is_cancelled", false)
     .gt("deal_amount_krw", 0);
+  /* 이 값은 시세 화면의 근거다. 빈 배열은 "신고된 거래가 없다"는 강한 주장이고,
+     price-analysis 는 그때 실거래 대신 추정 경로로 넘어간다 — 못 읽었을 뿐인데
+     추정치가 실거래인 척 자리를 채우면 안 된다. */
+  if (error) throw dbError(`market_transactions (실거래 이력 ${dec.name})`, error);
 
   const rows = (data as { contract_ym: string; deal_amount_krw: number }[] | null) ?? [];
   const byYm = new Map<string, { sum: number; n: number; min: number; max: number }>();
@@ -530,12 +584,15 @@ export async function upsertTransactions(_rows: ComplexTransactionRow[]): Promis
 export async function getComplexPosts(complexId: string, limit = 10) {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data } = await sb
+  const { data, error } = await sb
     .from("posts")
     .select("id,title,created_at,district,city,like_count,comment_count,view_count")
     .eq("complex_id", complexId)
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
     .limit(limit);
+  /* "아직 이 단지 이야기가 없어요"와 "지금 못 불러왔어요"는 다른 문장이다.
+     앞의 문장은 글을 쓴 사람에게 자기 글이 사라진 것처럼 보인다. */
+  if (error) throw dbError("posts (단지 이야기)", error);
   return data ?? [];
 }

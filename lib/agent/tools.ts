@@ -179,7 +179,7 @@ async function runGetComplexStats(complexId: string): Promise<ToolResult> {
     d.setMonth(d.getMonth() - m);
     return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-  const { data } = await sb
+  const { data, error } = await sb
     .from("market_transactions")
     .select("area_m2, deal_amount_krw, contract_ym, floor")
     .eq("complex_name", dec.name)
@@ -190,6 +190,17 @@ async function runGetComplexStats(complexId: string): Promise<ToolResult> {
     .gte("contract_ym", ago(12))
     .order("contract_ym", { ascending: false })
     .limit(300);
+  /* 조회가 실패했는데 아래로 흘려보내면 rows 가 [] 이 되어, 에이전트에게
+     "최근 12개월 실거래가 없습니다"라고 단정해 알려주게 된다. 모델은 그걸 사실로
+     받아 사용자에게 그대로 말한다 — 거래가 활발한 단지인데도. 실패는 실패로 준다. */
+  if (error) {
+    return {
+      label: `단지 「${dec.name}」 실거래 조회 실패`,
+      data: {
+        error: "실거래 조회에 실패했습니다. 거래가 없다는 뜻이 아니니 그렇게 말하지 마세요.",
+      },
+    };
+  }
   const rows =
     (data as { area_m2: number | null; deal_amount_krw: number; contract_ym: string; floor: number | null }[] | null) ?? [];
 

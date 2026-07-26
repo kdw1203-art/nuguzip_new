@@ -3,6 +3,8 @@ import { searchComplexes, suggestComplexes } from "@/lib/complex/complex-store";
 import { LISTING_TYPE_LABEL, type ListingType } from "@/lib/listings/store-db";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { formatPriceKrw, formatRentLabel } from "@/lib/listings/format";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
+import { logger } from "@/lib/log";
 
 /* 통합 검색 API — 단지 + 매물 + 임장노트 + 뉴스를 한 번에.
    그룹별 상위 ~5건, 각 소스 실패 시 해당 그룹만 [] (부분 실패 허용).
@@ -56,12 +58,21 @@ function listingPrice(row: {
   return won != null ? formatPriceKrw(won) : "—";
 }
 
-/** 그룹별 조회 — 실패 시 빈 배열로 우아하게 폴백. */
-async function safe<T>(fn: () => Promise<T[]>): Promise<T[]> {
+/**
+ * 그룹별 조회 — 실패해도 다른 그룹은 살린다. 다만 빈 배열로 뭉개지 않는다.
+ *
+ * 예전엔 `catch { return [] }` 였다. 그러면 DB 가 흔들린 순간 화면은
+ * "‘{검색어}’ 검색 결과가 없어요"라고 단정했다 — 매물도 노트도 그대로 있는데.
+ * 사용자는 검색어를 의심하며 같은 검색을 반복하게 된다. 그래서 실패한 그룹의
+ * 이름을 응답에 실어 보내고(failed[]), 클라이언트가 "없음"과 다른 문장을 쓴다.
+ */
+type GroupResult<T> = { rows: T[]; failed: boolean };
+async function safe<T>(label: string, fn: () => Promise<T[]>): Promise<GroupResult<T>> {
   try {
-    return await fn();
-  } catch {
-    return [];
+    return { rows: await fn(), failed: false };
+  } catch (e) {
+    logger.error(`[db-unavailable] 통합 검색 — ${label}`, e);
+    return { rows: [], failed: true };
   }
 }
 
@@ -83,7 +94,7 @@ export async function GET(req: Request) {
   const [complexes, listings, notes, news] = await Promise.all([
     // 단지 — market_transactions 기반 searchComplexes(ilike는 complex_name trigram
     // GIN 인덱스를 탄다), 정확일치 > 접두 > 포함 + 거래량 가중 랭킹은 스토어에서.
-    safe<UnifiedComplex>(async () => {
+    safe<UnifiedComplex>("단지", async () => {
       const rows = await searchComplexes(q, undefined, GROUP_CAP);
       return rows.slice(0, GROUP_CAP).map((c) => ({
         id: c.id,
@@ -92,7 +103,7 @@ export async function GET(req: Request) {
       }));
     }),
     // 매물 — 승인 매물에서 단지명·지역·설명을 DB단 ilike 매칭
-    safe<UnifiedListing>(async () => {
+    safe<UnifiedListing>("매물", async () => {
       if (!sb) return [];
       const { data, error } = await sb
         .from("listings")
@@ -105,7 +116,9 @@ export async function GET(req: Request) {
         )
         .order("created_at", { ascending: false })
         .limit(GROUP_CAP);
-      if (error || !data) return [];
+      /* error 와 !data 를 같이 묶으면 "못 읽음"이 "없음"이 된다 — 나눠서 던진다. */
+      if (error) throw new Error(`listings 조회 실패: ${error.message}`);
+      if (!data) return [];
       return (data as Array<Record<string, unknown>>).map((l) => ({
         id: String(l.id),
         title: `${String(l.complex_name ?? "")} · ${
@@ -120,7 +133,7 @@ export async function GET(req: Request) {
       }));
     }),
     // 임장노트 — 공개 노트에서 제목·지역·단지명·요약을 DB단 ilike 매칭
-    safe<UnifiedNote>(async () => {
+    safe<UnifiedNote>("임장노트", async () => {
       if (!sb) return [];
       const { data, error } = await sb
         .from("inspection_notes")
@@ -131,14 +144,15 @@ export async function GET(req: Request) {
         )
         .order("created_at", { ascending: false })
         .limit(GROUP_CAP);
-      if (error || !data) return [];
+      if (error) throw new Error(`inspection_notes 조회 실패: ${error.message}`);
+      if (!data) return [];
       return (data as Array<Record<string, unknown>>).map((n) => ({
         id: String(n.id),
         title: String(n.title ?? "임장노트"),
       }));
     }),
     // 뉴스 — board_posts(자동수집 뉴스 포함)에서 제목·분류를 DB단 ilike 매칭
-    safe<UnifiedNews>(async () => {
+    safe<UnifiedNews>("뉴스", async () => {
       if (!sb) return [];
       const { data, error } = await sb
         .from("board_posts")
@@ -148,7 +162,8 @@ export async function GET(req: Request) {
         .or(`title.ilike.${pattern},category.ilike.${pattern}`)
         .order("created_at", { ascending: false })
         .limit(GROUP_CAP);
-      if (error || !data) return [];
+      if (error) throw new Error(`board_posts 조회 실패: ${error.message}`);
+      if (!data) return [];
       return (data as Array<Record<string, unknown>>).map((p) => ({
         id: String(p.id),
         title: String(p.title ?? ""),
@@ -157,14 +172,29 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  // A8 — 전 그룹 무결과일 때만 대안 단지 제안(토큰 완화 매칭). 결과 있으면 빈 배열.
+  /* 네 그룹이 전부 실패했으면 그건 부분 실패가 아니라 조회 자체가 안 되는 상태다.
+     200 에 빈 결과를 실어 보내면 클라이언트는 그것을 "검색 결과 없음"으로 그린다. */
+  const failed = [
+    complexes.failed ? "단지" : null,
+    listings.failed ? "매물" : null,
+    notes.failed ? "임장노트" : null,
+    news.failed ? "뉴스" : null,
+  ].filter((v): v is string => v !== null);
+  if (failed.length === 4) {
+    return dbUnavailable("search-unified", new Error("통합 검색 네 그룹이 모두 실패"));
+  }
+
+  /* A8 — 전 그룹 무결과일 때만 대안 단지 제안(토큰 완화 매칭).
+     "실패해서 비었다"는 무결과가 아니므로, 실패한 그룹이 하나라도 있으면 제안하지
+     않는다 — 있는 결과를 못 본 채 엉뚱한 대안을 미는 꼴이 된다. */
   const allEmpty =
-    complexes.length === 0 &&
-    listings.length === 0 &&
-    notes.length === 0 &&
-    news.length === 0;
-  const suggestions: UnifiedComplex[] = allEmpty
-    ? await safe<UnifiedComplex>(async () => {
+    failed.length === 0 &&
+    complexes.rows.length === 0 &&
+    listings.rows.length === 0 &&
+    notes.rows.length === 0 &&
+    news.rows.length === 0;
+  const suggested = allEmpty
+    ? await safe<UnifiedComplex>("대안 제안", async () => {
         const rows = await suggestComplexes(q, 6);
         return rows.map((c) => ({
           id: c.id,
@@ -172,10 +202,26 @@ export async function GET(req: Request) {
           region: `${c.city} ${c.district}`.trim(),
         }));
       })
-    : [];
+    : { rows: [] as UnifiedComplex[], failed: false };
 
   return NextResponse.json(
-    { complexes, listings, notes, news, suggestions, query: q },
-    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
+    {
+      complexes: complexes.rows,
+      listings: listings.rows,
+      notes: notes.rows,
+      news: news.rows,
+      suggestions: suggested.rows,
+      /* 클라이언트는 이 목록을 "없음"이 아니라 "지금 못 불러왔음"으로 그린다. */
+      failed,
+      query: q,
+    },
+    {
+      headers: {
+        // 부분 실패 응답을 CDN 이 재사용하면 장애가 끝난 뒤에도 계속 나간다.
+        "Cache-Control": failed.length
+          ? "no-store"
+          : "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    },
   );
 }

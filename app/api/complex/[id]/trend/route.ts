@@ -8,6 +8,7 @@ import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { fetchMolitDeals } from "@/lib/national-data/molit-api";
 import { getComplexById, upsertTransactions } from "@/lib/complex/complex-store";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,10 +28,15 @@ export async function GET(
 
   // 1. DB RPC로 집계 데이터 조회
   if (sb) {
-    const { data: trend } = await sb.rpc("get_complex_monthly_trend", {
+    const { data: trend, error } = await sb.rpc("get_complex_monthly_trend", {
       p_complex_id: id,
       p_limit: months,
     });
+
+    /* RPC 가 실패했는데 아래로 흘려보내면, 마지막에 trend: [] · source: "empty" 가
+       나가서 "이 단지는 실거래 추이가 없다"가 된다. 못 읽은 것은 없는 것이 아니다.
+       MOLIT 폴백도 이때는 의미가 없다 — DB 가 안 되면 캐시 적재도 안 된다. */
+    if (error) return dbUnavailable("complex-trend-rpc", error);
 
     if (trend && Array.isArray(trend) && trend.length >= 3) {
       return NextResponse.json(
@@ -41,7 +47,12 @@ export async function GET(
   }
 
   // 2. DB 데이터 없으면 MOLIT API에서 가져와 캐시
-  const complex = await getComplexById(id);
+  let complex: Awaited<ReturnType<typeof getComplexById>>;
+  try {
+    complex = await getComplexById(id);
+  } catch (e) {
+    return dbUnavailable("complex-trend", e);
+  }
   if (complex?.district) {
     const now = new Date();
     const fetched: Array<{

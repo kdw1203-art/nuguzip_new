@@ -12,6 +12,7 @@ import {
   getComplexPosts,
 } from "@/lib/complex/complex-store";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,13 +29,25 @@ export async function GET(
     return NextResponse.json({ error: "complex id가 필요합니다." }, { status: 400 });
   }
 
-  // 병렬 조회
-  const [complex, transactions, posts, reviews] = await Promise.all([
-    getComplexById(id),
-    getTransactionHistory(id, 12),
-    getComplexPosts(id, 10),
-    getReviewSummary(id),
-  ]);
+  /* 병렬 조회 — 하나라도 실패하면 503 이다.
+     예전엔 스토어가 실패해도 빈 배열·null 을 돌려줬고, 그러면 이 응답은
+     transactions: [] · mode: "not_found" 가 되어 "실거래가 없는, 존재하지 않는
+     단지"라고 단정했다. 못 읽은 것을 그렇게 말하면 안 된다. 404 도 아니고
+     200-빈값도 아닌 503 + Retry-After 만 사실이다. */
+  let complex: Awaited<ReturnType<typeof getComplexById>>;
+  let transactions: Awaited<ReturnType<typeof getTransactionHistory>>;
+  let posts: Awaited<ReturnType<typeof getComplexPosts>>;
+  let reviews: Awaited<ReturnType<typeof getReviewSummary>>;
+  try {
+    [complex, transactions, posts, reviews] = await Promise.all([
+      getComplexById(id),
+      getTransactionHistory(id, 12),
+      getComplexPosts(id, 10),
+      getReviewSummary(id),
+    ]);
+  } catch (e) {
+    return dbUnavailable("complex-detail", e);
+  }
 
   return NextResponse.json(
     {
@@ -54,10 +67,12 @@ export async function GET(
 async function getReviewSummary(complexId: string) {
   const sb = getServiceSupabase();
   if (!sb) return null;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("complex_reviews")
     .select("noise_score,parking_score,mgmt_score,neighbor_score,transport_score")
     .eq("complex_id", complexId);
+  // null 은 "아직 후기가 없다"는 뜻이라 조회 실패에는 쓸 수 없다.
+  if (error) throw new Error(`complex_reviews 조회 실패: ${error.message}`);
   if (!data || data.length === 0) return null;
 
   const avg = (key: string) => {

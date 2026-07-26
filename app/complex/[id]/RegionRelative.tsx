@@ -1,7 +1,10 @@
 import { getRegionRelative } from "@/lib/complex/complex-store";
+import { logger } from "@/lib/log";
 
 /* D6 — 지역 대비 상대 위치. 단지 ㎡당 시세를 소재 구 평균(REB 실집계)과 비교.
-   데이터 없으면 렌더 생략(사실 우선). */
+   데이터 없으면 렌더 생략(사실 우선).
+
+   조회 실패는 "데이터 없음"이 아니다. 예전엔 .catch(() => null) 로 둘을 같게 그렸다. */
 
 function ymLabel(s: string | null): string {
   if (!s || s.length < 6) return "";
@@ -9,7 +12,25 @@ function ymLabel(s: string | null): string {
 }
 
 export async function RegionRelative({ complexId }: { complexId: string }) {
-  const r = await getRegionRelative(complexId).catch(() => null);
+  const res = await getRegionRelative(complexId).then(
+    (data) => ({ ok: true as const, data }),
+    (e: unknown) => {
+      logger.error("[complex] 지역 대비 시세 조회 실패", e);
+      return { ok: false as const };
+    },
+  );
+  if (!res.ok) {
+    return (
+      <section className="rise-in-5 mt-6">
+        <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">이 동네 대비</h2>
+        <p className="card rounded-2xl p-5 text-[13px] text-text-3">
+          지금은 동네 평균과 비교하지 못했어요. 비교할 자료가 없는 게 아니라 조회에
+          실패한 것이라, 잠시 후 다시 보면 나올 수 있어요.
+        </p>
+      </section>
+    );
+  }
+  const r = res.data;
   if (!r) return null;
 
   const higher = r.deltaPct >= 0;

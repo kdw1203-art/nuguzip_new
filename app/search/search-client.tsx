@@ -76,6 +76,10 @@ export function SearchClient() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<UnifiedResults>(EMPTY);
   const [suggestions, setSuggestions] = useState<UnifiedResults["complexes"]>([]);
+  /* 못 불러온 그룹 이름. "결과가 없어요"와 "지금 못 불러왔어요"는 다른 문장이라
+     따로 들고 있는다 — 예전엔 조회가 실패해도 빈 결과가 되어 검색어를 의심하게
+     만들었다. failed 가 비어 있지 않으면 아래 빈 결과 문구를 쓰지 않는다. */
+  const [failed, setFailed] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
@@ -97,6 +101,7 @@ export function SearchClient() {
     if (!query) {
       setResults(EMPTY);
       setSuggestions([]);
+      setFailed([]);
       setLoading(false);
       abortRef.current?.abort();
       return;
@@ -113,6 +118,7 @@ export function SearchClient() {
         if (!res.ok) throw new Error("unified failed");
         const json = (await res.json()) as Partial<UnifiedResults> & {
           suggestions?: UnifiedResults["complexes"];
+          failed?: string[];
         };
         setResults({
           complexes: json.complexes ?? [],
@@ -121,10 +127,13 @@ export function SearchClient() {
           news: json.news ?? [],
         });
         setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
+        setFailed(Array.isArray(json.failed) ? json.failed : []);
       } catch {
         if (!ac.signal.aborted) {
           setResults(EMPTY);
           setSuggestions([]);
+          /* 503(전 그룹 실패)·네트워크 오류 — 결과가 없는 게 아니라 못 물어본 것이다. */
+          setFailed(["단지", "매물", "임장노트", "뉴스"]);
         }
       } finally {
         if (!ac.signal.aborted) setLoading(false);
@@ -296,8 +305,20 @@ export function SearchClient() {
         <div className="mt-6 text-center text-sm text-text-3">검색 중…</div>
       )}
 
+      {/* 조회 실패 — "없음"이 아니라 "못 불러왔음"으로 적는다 */}
+      {hasQuery && !loading && failed.length > 0 && (
+        <div className="mt-8 flex flex-col items-center gap-2 text-center">
+          <div className="text-[15px] font-extrabold text-ink">
+            지금은 {failed.join("·")} 검색이 되지 않아요
+          </div>
+          <div className="text-[12px] text-text-3">
+            결과가 없는 게 아니라 조회에 실패한 거예요. 잠시 후 다시 시도해 주세요.
+          </div>
+        </div>
+      )}
+
       {/* 빈 결과 + A8 대안 단지 제안 */}
-      {hasQuery && !loading && total === 0 && (
+      {hasQuery && !loading && failed.length === 0 && total === 0 && (
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
           <div className="text-[15px] font-extrabold text-ink">
             ‘{q.trim()}’ 검색 결과가 없어요
