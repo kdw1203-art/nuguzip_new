@@ -5,6 +5,12 @@ import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
+import {
+  isMissingColumnError,
+  isMissingTableError,
+  isTransientSchemaCacheError,
+  type PgErrorLike,
+} from "@/lib/supabase/pg-error";
 
 export const runtime = "nodejs";
 
@@ -28,39 +34,34 @@ function canonicalOrigin(req: NextRequest): string {
   return DEFAULT_DESKTOP_ORIGIN;
 }
 
-function isMissingColumnError(message: string | undefined): boolean {
-  if (!message) return false;
-  const m = message.toLowerCase();
-  return m.includes("column") && m.includes("does not exist");
+function isMissingColumn(err: PgErrorLike): boolean {
+  return isMissingColumnError(err);
 }
 
-function isMissingColumnCode(code: string | undefined): boolean {
-  // Postgres undefined_column
-  return code === "42703";
+function isMissingAppUsersTable(err: PgErrorLike): boolean {
+  if (isMissingTableError(err)) return true;
+  return (err.message ?? "").toLowerCase().includes("public.app_users");
 }
 
-function isMissingAppUsersTable(
-  code: string | undefined,
-  message: string | undefined,
-): boolean {
-  const m = (message ?? "").toLowerCase();
+/**
+ * app_users 경로를 포기하고 Supabase Auth 로 우회할 것인가.
+ *
+ * **일시적 장애는 여기에 들어오면 안 된다.** 예전 판정은 메시지에 "schema cache"
+ * 가 있으면 곧장 우회했는데, 프로덕션에서 가장 흔한 오류인 PGRST002
+ * ("Could not query the database for the schema cache. Retrying.") 가 정확히 그
+ * 문자열을 달고 온다. 그 결과 DB 가 몇 초 밀린 사이에 가입한 사람만 app_users 가
+ * 아니라 Supabase Auth 쪽에 만들어져, 계정 저장소가 조용히 갈라진다.
+ *
+ * 우회는 **구조적 편차**(테이블·컬럼이 없다, 권한이 막혔다)일 때만 하는 판단이다.
+ * 일시적인 밀림이면 우회 대신 "지금은 못 받는다"고 답해야 한다(503).
+ */
+function shouldFallbackToSupabaseAuth(err: PgErrorLike): boolean {
+  if (isTransientSchemaCacheError(err)) return false;
+  const m = (err.message ?? "").toLowerCase();
   return (
-    code === "42P01" ||
-    m.includes("public.app_users") ||
-    m.includes("schema cache")
-  );
-}
-
-function shouldFallbackToSupabaseAuth(
-  code: string | undefined,
-  message: string | undefined,
-): boolean {
-  const m = (message ?? "").toLowerCase();
-  return (
-    isMissingAppUsersTable(code, message) ||
-    isMissingColumnCode(code) ||
-    isMissingColumnError(message) ||
-    code === "42501" ||
+    isMissingAppUsersTable(err) ||
+    isMissingColumn(err) ||
+    err.code === "42501" ||
     m.includes("permission denied") ||
     m.includes("rls") ||
     m.includes("violates row-level security policy")
@@ -305,11 +306,7 @@ export async function POST(req: NextRequest) {
   let finalError = error;
 
   // 운영 DB 마이그레이션이 덜 반영된 경우(추가 컬럼 미존재) 기본 컬럼만으로 재시도
-  if (
-    finalError &&
-    (isMissingColumnCode(finalError.code) ||
-      isMissingColumnError(finalError.message))
-  ) {
+  if (finalError && isMissingColumn(finalError)) {
     const fallback = await sb!
       .from("app_users")
       .insert({
@@ -325,7 +322,15 @@ export async function POST(req: NextRequest) {
   }
 
   if (finalError) {
-    if (supabaseUrl && supabasePublicKey && shouldFallbackToSupabaseAuth(finalError.code, finalError.message)) {
+    /* DB 가 지금 밀리는 것뿐이라면 우회하지 않는다 — 우회하면 이 사람만 다른
+       저장소에 계정이 생긴다. 잠시 뒤 다시 시도하면 정상 경로로 가입된다. */
+    if (isTransientSchemaCacheError(finalError)) {
+      return NextResponse.json(
+        { error: "지금은 가입 처리를 할 수 없습니다. 잠시 후 다시 시도해 주세요." },
+        { status: 503, headers: { "Retry-After": "30" } },
+      );
+    }
+    if (supabaseUrl && supabasePublicKey && shouldFallbackToSupabaseAuth(finalError)) {
       // 운영 DB 스키마/권한 편차가 있으면 Supabase Auth 기본 경로로 자동 우회
       await recordConsent(sb, email, consent, ip, ua);
       const verifyRedirect = emailConfirmationEnabled()
