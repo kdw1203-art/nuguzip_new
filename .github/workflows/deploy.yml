@@ -74,6 +74,12 @@ jobs:
       # 재부여를 잊기 쉽다. 2026-07-25 에 이걸 빠뜨려 /tx 가 하루 죽었다.
       - name: Migration grant lint
         run: node scripts/check-migration-grants.mjs
+      # ---- 정적 린트: Icon name 이 실제로 존재하는가 ----
+      # Icon 은 name 을 string 으로 받고, 매핑에 없는 이름은 **그 글자를 그대로**
+      # 화면에 찍는다(이모지 무손실 폴백의 부작용). 타입 검사도 빌드도 통과한다.
+      # 2026-07-26 에 name="alert" 가 아이콘 대신 "alert" 라는 단어로 렌더됐다.
+      - name: Icon name lint
+        run: node scripts/check-icon-names.mjs
       # ---- 실조회 게이트: public.*_source 뷰를 실제로 읽어 본다 ----
       # security_invoker 뷰라 래퍼 GRANT 로는 가려지지 않는다 — 타입 검사도
       # 빌드도 통과하지만 런타임에 42501 로 죽는 구멍을 여기서 막는다.
