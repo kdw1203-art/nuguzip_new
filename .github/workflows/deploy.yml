@@ -83,6 +83,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/check-source-views.mjs
       - name: Build for link check
+        # prerender 는 DB 를 읽는다. DB 가 느려지면 빌드가 조용히 길어지는데,
+        # 잡 상한(35분)만 있으면 "빌드가 먹었다"는 사실이 로그 끝까지 가야 보인다.
+        # 정상 빌드는 5분 안쪽이다 — 15분을 넘으면 그건 고장이다.
+        # (조회 자체의 상한은 lib/newui/supabase-read.ts 에 요청당 25초로 있다.)
+        timeout-minutes: 15
         shell: bash
         run: |
           set -o pipefail
