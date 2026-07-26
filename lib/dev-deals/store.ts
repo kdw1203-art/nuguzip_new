@@ -116,9 +116,13 @@ export interface DealFilter {
 }
 
 /** 개발물건 목록 — 최신순, 최대 120건. */
+/* 2026-07-26: 실패할 때 `[]` 를 돌려줬다. 그러면 개발물건 허브는 "등록된
+   개발물건이 없어요" 로 그려진다 — 시행사가 올려 둔 물건이 있어도 사라진 것처럼
+   보이고, 반대로 "아직 아무도 안 쓰는 서비스" 라는 잘못된 인상을 준다.
+   실패는 던져서 호출부가 "지금 불러오지 못했다"고 말하게 한다. */
 export async function listDeals(filter: DealFilter = {}): Promise<DevDeal[]> {
   const sb = getReadOnlySupabase();
-  if (!sb) return [];
+  if (!sb) throw new Error("Supabase 읽기 클라이언트를 만들 수 없습니다 (환경변수 누락)");
   try {
     let q = sb.from("dev_deals").select(DEAL_COLUMNS).eq("is_sample", false);
     if (filter.type) q = q.eq("deal_type", filter.type);
@@ -128,11 +132,12 @@ export async function listDeals(filter: DealFilter = {}): Promise<DevDeal[]> {
     const { data, error } = await q
       .order("created_at", { ascending: false })
       .limit(120);
-    if (error || !data) return [];
+    if (error) throw new Error(error.message);
+    if (!Array.isArray(data)) throw new Error("dev_deals 응답이 배열이 아닙니다");
     return data.map((r) => mapDeal(r as Record<string, unknown>));
   } catch (e) {
-    logger.warn("[dev-deals] listDeals", e);
-    return [];
+    logger.error("[dev-deals] listDeals 조회 실패", e);
+    throw e;
   }
 }
 
