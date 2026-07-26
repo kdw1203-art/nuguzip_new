@@ -17,7 +17,16 @@ import { createSign } from "node:crypto";
  * 문자열로 들어가는 경우가 많다 — 아래에서 둘 다 받아들인다.
  *
  *   GSC_SERVICE_ACCOUNT_EMAIL=...@....iam.gserviceaccount.com
- *   GSC_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMII...\n-----END PRIVATE KEY-----\n"
+ *   GSC_SERVICE_ACCOUNT_PRIVATE_KEY=<서비스 계정 JSON 의 private_key 값 통째로>
+ *
+ * private_key 값은 PEM 머리글 줄(BEGIN 으로 시작하는 줄)부터 꼬리글 줄까지
+ * 한 줄도 빼지 말고 통째로 넣어야 한다. 가운데 본문만 붙이면 서명이
+ * "키가 틀렸다"가 아니라 "PEM 파싱 실패"로 죽어 원인이 안 보인다.
+ * 줄바꿈은 실제 개행이든 \n 문자열이든 아래에서 둘 다 받는다.
+ *
+ * ※ 여기에 PEM 머리글을 예시로 그대로 적어 두면 시크릿 스캐너(gitleaks)의
+ *   private-key 규칙이 **본문이 없어도 머리글만으로** 걸어 버린다. 실제로
+ *   2026-07-26 배포가 이 한 줄 때문에 막혔다. 예시는 말로만 적는다.
  *
  * 그리고 **서치콘솔 속성에 이 서비스 계정 이메일을 사용자로 추가**해야 한다
  * (권한: 전체 또는 제한). 이 단계를 빼먹으면 호출은 되는데 403 이 온다.

@@ -62,6 +62,13 @@ jobs:
       # 검사용 next build를 1회 별도 수행 (빌드 2회 허용 — 안정성 우선)
       - name: Install dependencies
         run: npm ci
+      # ---- 시크릿 스캐너 표식 재확인 (로컬에서도 같은 검사를 돌릴 수 있게) ----
+      # 위 gitleaks 스텝은 CI 에서만 돈다. 그래서 2026-07-26 에 주석 속 PEM 머리글
+      # 한 줄이 배포를 51초 만에 죽였는데, 로그를 열기 전에는 원인이 안 보였다.
+      # 같은 규칙을 npm run check:secret-markers 로 로컬에서 돌릴 수 있게 해 두고,
+      # 여기서도 한 번 더 확인한다 — 두 검사가 어긋나면 그 자체가 신호다.
+      - name: Secret marker lint (local-runnable mirror)
+        run: node scripts/check-secret-markers.mjs
       # ---- 정적 린트: drop 한 뷰/MV 에 GRANT 를 다시 줬는가 ----
       # DROP MATERIALIZED VIEW 는 GRANT 를 같이 지우는데 CREATE OR REPLACE 가 없어
       # 재부여를 잊기 쉽다. 2026-07-25 에 이걸 빠뜨려 /tx 가 하루 죽었다.
