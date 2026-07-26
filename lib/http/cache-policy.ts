@@ -53,6 +53,7 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
 
   // 도구·안내 — 빌드 시 고정
   { path: "/calculator", ...STATIC_DOC },
+  { path: "/widget", ...STATIC_DOC },
   { path: "/redevelopment", ...STATIC_DOC },
   { path: "/safety", ...STATIC_DOC },
   { path: "/methodology", ...STATIC_DOC },

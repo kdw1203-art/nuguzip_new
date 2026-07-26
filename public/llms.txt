@@ -32,6 +32,7 @@
 - 월간 실거래 리포트: https://nuguzip.com/reports
 - 용어사전: https://nuguzip.com/glossary (용어별 개별 페이지: /glossary/{용어})
 - 서비스 FAQ: https://nuguzip.com/support/faq
+- 시세 위젯 배포 안내: https://nuguzip.com/widget
 - 사이트맵: https://nuguzip.com/sitemap.xml
 - RSS 피드: https://nuguzip.com/feed.xml
 - 상세 안내(페이지별 스키마·갱신 주기·인용 예문): https://nuguzip.com/llms-full.txt

@@ -76,6 +76,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/listings", priority: 0.8 },
   { path: "/partners", priority: 0.5 },
   { path: "/calculator", priority: 0.6 },
+  { path: "/widget", priority: 0.5 }, // N17 — 시세 위젯 배포 안내
   // 가이드 (규제·세금 안내 · 계약 체크리스트)
   { path: "/guides/regulations", priority: 0.5 },
   { path: "/guides/contract", priority: 0.5 },

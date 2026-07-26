@@ -640,6 +640,23 @@ export default async function ComplexHubPage({
         return <div className="mt-6"><QaBlock title={`${v.name} Q&A`} items={faq} /></div>;
       })()}
 
+      {/* N17 — 위젯 배포 진입점. 위젯에는 출처 링크가 박혀 있으므로 퍼가기가 곧 백링크다. */}
+      <div className="rise-in-5 mt-6 flex flex-col gap-1 rounded-[14px] border border-line bg-surface p-4">
+        <span className="text-[13px] font-extrabold text-ink">
+          이 단지 시세를 블로그에 붙이기
+        </span>
+        <span className="text-[12px] leading-[1.7] text-text-2">
+          최근 실거래 시세 카드를 iframe 한 줄로 퍼갈 수 있습니다. 시세가 갱신되면 붙여넣은
+          위젯도 함께 갱신됩니다.
+        </span>
+        <Link
+          href={`/widget?complex=${encodeURIComponent(complexId)}`}
+          className="mt-2 w-fit rounded-[10px] bg-primary px-4 py-2 text-[12px] font-bold text-white"
+        >
+          위젯 코드 만들기 ›
+        </Link>
+      </div>
+
       {/* 모바일 CTA 2개 (시안 하단) */}
       <div className="rise-in-4 mt-4 lg:hidden">{cta}</div>
     </PageShell>
