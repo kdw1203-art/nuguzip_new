@@ -80,6 +80,13 @@ jobs:
       # 2026-07-26 에 name="alert" 가 아이콘 대신 "alert" 라는 단어로 렌더됐다.
       - name: Icon name lint
         run: node scripts/check-icon-names.mjs
+      # ---- 정적 린트: href 가 실존하는 라우트를 가리키는가 ----
+      # 링크는 틀려도 타입 검사·빌드가 안 깨진다. 링크 크롤 게이트는 렌더된 <a>
+      # 만 따라가므로 API 응답 속 url·로그인 화면·죽은 모듈은 닿지 않는다.
+      # 2026-07-26 전수 점검에서 홈 퀵메뉴 "청약"(/presale), 지도 허브 "매물"
+      # (/map/listings), 내 활동 북마크, /admin/ops 지표 카드가 전부 404 였다.
+      - name: Route link lint
+        run: node scripts/check-route-links.mjs
       # ---- 실조회 게이트: public.*_source 뷰를 실제로 읽어 본다 ----
       # security_invoker 뷰라 래퍼 GRANT 로는 가려지지 않는다 — 타입 검사도
       # 빌드도 통과하지만 런타임에 42501 로 죽는 구멍을 여기서 막는다.
