@@ -152,6 +152,14 @@ export interface MolitIngestResult {
   /** API 가 0건을 반환한 시군구 수 */
   empty: number;
   errors: number;
+  /**
+   * DB 연속 오류로 남은 시군구를 처리하지 못하고 중단했는가.
+   *
+   * true 면 이 실행은 "슬라이스를 다 돌았는데 데이터가 없었다" 가 아니라
+   * "확인하지 못한 채 멈췄다" 는 뜻이다. 두 상태를 섞으면 다음 실행이
+   * "이미 봤다" 고 착각한다.
+   */
+  aborted: boolean;
   regions: { code: string; name: string; rows: number; status: "inserted" | "covered" | "empty" | "error" }[];
   reason?: string;
   /**
@@ -198,6 +206,7 @@ export async function ingestMolitTransactions(opts: {
     inserted: 0,
     empty: 0,
     errors: 0,
+    aborted: false,
     regions: [],
   };
 
@@ -227,15 +236,53 @@ export async function ingestMolitTransactions(opts: {
      아니라 "왜 실패"까지 남아야 다음 사람이 같은 삽질을 반복하지 않는다. */
   let firstError: string | null = null;
 
+  /* 연속 DB 오류 차단기 ───────────────────────────────────────────────────
+     2026-07-26, 무료 플랜 DB 가 디스크 I/O 로 막혀 PostgREST 가 사실상 모든
+     요청에 503 을 내는 동안, 이 루프는 두 시간 넘게 시군구를 끝까지 돌며
+     HEAD·POST 를 계속 쐈다. 적재된 행은 0이었고, 그 부하 자체가 DB 회복을
+     막았다(= 배포까지 같이 멈췄다).
+
+     DB 가 연속으로 죽어 있으면 남은 시군구도 같은 답을 받는다. 계속 두드려서
+     얻는 것은 없고 잃는 것만 있다 — 조기에 멈추고 "중단했다" 고 보고하는 편이
+     사실에 가깝고 DB 에도 숨통을 준다. 성공하면 카운터는 0으로 돌아가므로
+     간헐적 오류로는 멈추지 않는다. */
+  const DB_ERROR_ABORT_THRESHOLD = 5;
+  let consecutiveDbErrors = 0;
+  let aborted = false;
+
+  /** DB 오류 1건 기록. 차단 임계에 닿으면 true(= 루프를 끊어라)를 돌려준다. */
+  async function noteDbFailure(info: SigunguInfo, regionName: string, msg: string): Promise<boolean> {
+    consecutiveDbErrors += 1;
+    result.errors += 1;
+    result.regions.push({ code: info.sigunguCd, name: regionName, rows: 0, status: "error" });
+    firstError ??= `${info.sigunguCd}: ${msg}`;
+    logger.warn("[molit-tx]", info.sigunguCd, msg);
+    if (consecutiveDbErrors >= DB_ERROR_ABORT_THRESHOLD) return true;
+    /* 흔들리는 DB 에 곧바로 다음 요청을 얹지 않는다 — 연속 실패마다 물러선다. */
+    await new Promise((r) => setTimeout(r, 1_000 * consecutiveDbErrors));
+    return false;
+  }
+
   for (const info of targets) {
     const regionName = molitRegionLabel(info);
     try {
       // 이미 플랫폼 ETL 이 채운 구·월이면 건너뜀 (이중 계상 방지)
-      const { count } = await sb
+      const { count, error: coverageError } = await sb
         .from("market_transactions")
         .select("id", { count: "exact", head: true })
         .eq("region_code", info.sigunguCd)
         .eq("contract_ym", yyyymm);
+      /* 조회 실패를 "아직 안 채워졌다" 로 바꾸지 않는다. 여기서 그냥 진행하면
+         이미 채운 달을 MOLIT 에서 다시 받아 다시 upsert 한다 — 실패한 DB 를
+         더 두드리면서, 확인도 못 한 채. 못 읽었으면 못 읽었다고 센다. */
+      if (coverageError) {
+        if (await noteDbFailure(info, regionName, `기존 적재 여부 확인 실패 — ${coverageError.message}`)) {
+          aborted = true;
+          break;
+        }
+        continue;
+      }
+      consecutiveDbErrors = 0;
       if ((count ?? 0) > 0) {
         result.alreadyCovered += 1;
         result.regions.push({ code: info.sigunguCd, name: regionName, rows: count ?? 0, status: "covered" });
@@ -280,12 +327,13 @@ export async function ingestMolitTransactions(opts: {
         .from("market_transactions")
         .upsert(payload, { onConflict: "external_key" });
       if (error) {
-        result.errors += 1;
-        result.regions.push({ code: info.sigunguCd, name: regionName, rows: 0, status: "error" });
-        firstError ??= `${info.sigunguCd}: ${error.message}`;
-        logger.warn("[molit-tx]", info.sigunguCd, error.message);
+        if (await noteDbFailure(info, regionName, error.message)) {
+          aborted = true;
+          break;
+        }
         continue;
       }
+      consecutiveDbErrors = 0;
       result.inserted += payload.length;
       result.regions.push({ code: info.sigunguCd, name: regionName, rows: payload.length, status: "inserted" });
     } catch (e) {
@@ -300,14 +348,25 @@ export async function ingestMolitTransactions(opts: {
     await new Promise((r) => setTimeout(r, 150));
   }
 
+  result.aborted = aborted;
   result.ok = result.errors === 0;
+  if (aborted) {
+    /* "슬라이스를 다 봤다" 와 구분되게 이유를 남긴다 — 남은 시군구는 미확인이다. */
+    result.reason =
+      `데이터베이스 오류가 ${DB_ERROR_ABORT_THRESHOLD}회 연속이라 중단했습니다. ` +
+      `남은 시군구(${Math.max(0, targets.length - result.regions.length)}곳)는 확인하지 못했습니다 — ` +
+      `적재 완료가 아니라 중단입니다.` +
+      (firstError ? ` 첫오류=${firstError.slice(0, 200)}` : "");
+  }
 
   // 새 실거래가 들어왔을 때만 집계 MV 를 다시 계산한다.
   // (`/tx` 랜딩과 지도 시세 색상이 이 집계를 읽는다. 갱신하지 않으면 새로 적재한
   //  거래가 화면에 영영 반영되지 않는다.)
   // 적재 0건이면 집계 결과가 바뀔 수 없으므로 8초짜리 재계산을 건너뛴다.
   // 갱신이 실패해도 적재 자체는 이미 성공했으므로 result.ok 를 뒤집지 않는다.
-  if (result.inserted > 0) {
+  /* 중단했으면 재계산도 하지 않는다. DB 가 죽어 있는 판에 8초짜리 MV 재계산을
+     얹으면 회복만 늦추고, 어차피 실패한다. */
+  if (result.inserted > 0 && !aborted) {
     result.aggregates = await refreshMarketAggregates();
   }
 
@@ -319,6 +378,7 @@ export async function ingestMolitTransactions(opts: {
     status: result.errors > 0 ? "error" : result.inserted > 0 ? "ok" : "skipped",
     message:
       `slice=${result.slice} 시도=${result.attempted} 기존커버=${result.alreadyCovered} 빈응답=${result.empty} 오류=${result.errors}` +
+      (aborted ? ` 중단=DB오류${DB_ERROR_ABORT_THRESHOLD}회연속(남은 시군구 미확인)` : "") +
       (firstError ? ` 첫오류=${firstError.slice(0, 300)}` : ""),
   });
 
