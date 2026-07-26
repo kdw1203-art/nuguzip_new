@@ -1,6 +1,7 @@
 import { CRAWLER_ENDPOINT_CACHE_CONTROL } from "@/lib/http/cache-policy";
 import { listReportMonths, formatYmKo } from "@/lib/reports/monthly";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import { logger } from "@/lib/log";
 
 /**
  * N3 — RSS 2.0 피드 (/feed.xml).
@@ -51,8 +52,19 @@ function rfc822(iso: string): string | null {
   return d.toUTCString();
 }
 
-async function collectItems(): Promise<FeedItem[]> {
+/* 피드를 만들면서 무엇이 실패했는지 함께 들고 나온다.
+ *
+ * 2026-07-26: 여기도 사이트맵과 같은 거짓말을 하고 있었다. 두 블록 다
+ * `catch {}` 로 조용히 넘겨서, 조회가 실패해도 **정상적인 200 피드**가 나갔다.
+ * 리더와 네이버 입장에서 "항목이 없는 피드"와 "질의가 실패한 피드"는 구분되지
+ * 않는다. 앞의 것은 "새 글이 없구나"로 읽히고, 그 오해가 그대로 색인에 남는다.
+ * 조회 실패는 데이터 없음이 아니다. */
+type Collected = { items: FeedItem[]; failed: string[]; attempted: number };
+
+async function collectItems(): Promise<Collected> {
   const items: FeedItem[] = [];
+  const failed: string[] = [];
+  const attempted = 2; // 월간 리포트 + 공개 임장노트
 
   try {
     const months = await listReportMonths();
@@ -66,8 +78,13 @@ async function collectItems(): Promise<FeedItem[]> {
         category: "월간 리포트",
       });
     }
-  } catch {
-    // 조회 실패 시 그 블록만 비운다 — 피드 자체는 낸다.
+  } catch (err) {
+    failed.push("월간 리포트");
+    logger.error(
+      `[feed.xml] 월간 리포트 조회에 실패했습니다 — ${
+        err instanceof Error ? err.message : String(err)
+      }. "새 글이 없다"와 구분되지 않으므로 이 응답은 캐시하지 않습니다.`,
+    );
   }
 
   try {
@@ -86,8 +103,13 @@ async function collectItems(): Promise<FeedItem[]> {
         category: "임장노트",
       });
     }
-  } catch {
-    // 생략
+  } catch (err) {
+    failed.push("공개 임장노트");
+    logger.error(
+      `[feed.xml] 공개 임장노트 조회에 실패했습니다 — ${
+        err instanceof Error ? err.message : String(err)
+      }. "새 글이 없다"와 구분되지 않으므로 이 응답은 캐시하지 않습니다.`,
+    );
   }
 
   // 날짜가 있는 항목을 최신순으로, 날짜 없는 항목은 뒤로.
@@ -97,7 +119,7 @@ async function collectItems(): Promise<FeedItem[]> {
     if (b.date) return 1;
     return 0;
   });
-  return items;
+  return { items, failed, attempted };
 }
 
 function serializeFeed(items: FeedItem[]): string {
@@ -134,11 +156,27 @@ ${body}
 }
 
 export async function GET(): Promise<Response> {
-  const items = await collectItems();
+  const { items, failed, attempted } = await collectItems();
+
+  /* 전부 실패했으면 피드를 내지 않는다. 항목 0개짜리 200 은 리더에게
+     "발행이 멈춘 사이트"로 읽히고, 그건 우리가 확인한 사실이 아니다.
+     503 은 "지금은 못 준다, 다시 와라"라서 정직하다. */
+  if (failed.length === attempted) {
+    return new Response("Feed temporarily unavailable", {
+      status: 503,
+      headers: { "Cache-Control": "no-store", "Retry-After": "600" },
+    });
+  }
+
+  /* 일부만 실패했으면 피드는 낸다(진짜 항목이 들어 있으니까). 다만
+     **캐시하지 않는다** — 반쪽짜리 피드가 CDN 에 한 시간 눌러앉으면
+     그동안 리더는 빠진 쪽을 "삭제된 글"로 본다. */
+  const partial = failed.length > 0;
+
   return new Response(serializeFeed(items), {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
-      "Cache-Control": CRAWLER_ENDPOINT_CACHE_CONTROL,
+      "Cache-Control": partial ? "no-store" : CRAWLER_ENDPOINT_CACHE_CONTROL,
       "X-Robots-Tag": "noindex",
     },
   });

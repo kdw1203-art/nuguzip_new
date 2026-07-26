@@ -76,6 +76,54 @@ I/O 문제도 인덱스 문제도 아니다 — **백엔드가 CPU 에서 밀려
 사실만 적어 두고 나는 아무것도 사지 않는다. 올리지 않기로 해도 서비스는 돌아가지만,
 백필·ANALYZE 가 겹치는 시간대에 오늘 같은 정체가 재발할 수 있다.
 
+### 11:50Z 추가 — "재발할 수 있다"가 아니라 지금 재발 중입니다
+
+위 문단을 쓴 직후에 그 일이 실제로 일어났습니다. 추정이 아니라 로그입니다.
+
+Vercel 런타임 로그(11:51–11:54Z, 배포 `dpl_JUgRwv…`):
+
+```
+GET /region/11110  500
+  Error: [market.store] market_region_price 조회 실패:
+         Could not query the database for the schema cache. Retrying.
+GET /town  200 (cache=STALE)
+  { code: 'PGRST002', message: 'Could not query the database for the schema cache. Retrying.' }
+```
+
+Postgres 로그(10:39–11:53Z, 100줄 중):
+
+| 메시지 | 건수 |
+|---|---|
+| `canceling statement due to statement timeout` | 48 |
+| `could not receive data from client: Connection reset by peer` | 17 |
+| `still waiting for ShareUpdateExclusiveLock on relation …` | 2 |
+| `archive command failed` | 3 |
+
+**PGRST002 가 특히 나쁜 신호인 이유**를 짚어 둡니다. 이건 "질의가 느리다"가 아닙니다.
+PostgREST 가 자기 **스키마 캐시**를 못 읽었다는 뜻이고, 그러면 아무리 가벼운 질의라도
+전부 즉시 실패합니다. 그래서 `/region` 도 `/town` 도 한꺼번에 무너진 겁니다.
+스키마 캐시를 읽는 질의조차 statement timeout 에 걸릴 만큼 CPU 가 말라 있다는 뜻입니다.
+
+저도 지금 DB 에 붙지 못합니다. `select 1` 조차 연결 타임아웃입니다
+(11:55Z, 90초 간격으로 3회 시도). 프로젝트 상태는 여전히 `ACTIVE_HEALTHY` 로 표시됩니다 —
+**대시보드가 초록불이어도 실제로는 질의를 못 받는 상태입니다.**
+
+지금 사이트가 어떻게 보이는지도 적어 둡니다(11:56Z 실측):
+
+| 경로 | 결과 | 왜 |
+|---|---|---|
+| `/` | 200 · 0.83s | CDN 캐시에서 나감 |
+| `/town` | 200 · 0.89s | 캐시(STALE)로 버팀 |
+| `/region/11110` | 60초 무응답 | 캐시에 없어서 DB 를 봐야 함 |
+| `/sitemap.xml` | 60초 무응답 | 〃 |
+
+**즉, 이미 렌더된 적 있는 화면은 멀쩡하고, 처음 열리는 화면만 죽습니다.**
+신규 방문자와 크롤러가 정확히 그 "처음 열리는 화면" 쪽입니다.
+
+이건 제가 코드로 더 줄일 수 있는 문제가 아닙니다. 오늘 코드로 할 수 있는 건 다 했습니다
+(사이트맵 인덱스 10개 → 선택 4개만 확인, `raw` 통계 0, 집계 뷰 MV 화, 요청당 25초 상한).
+남은 건 인스턴스 크기이고, 그건 돈이 드는 판단이라 제가 누르지 않습니다.
+
 ### 내가 지금 할 수 있는 만큼은 했다
 
 `market_transactions.raw`(jsonb, 평균 570바이트)가 ANALYZE 비용을 지배하고 있었다.
