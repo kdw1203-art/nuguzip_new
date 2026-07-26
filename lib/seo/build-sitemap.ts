@@ -3,6 +3,7 @@ import "server-only";
 import type { MetadataRoute } from "next";
 import { listPublicNotes } from "@/lib/inspection/store-db";
 import { logger } from "@/lib/log";
+import { glossaryPaths } from "@/lib/seo/glossary-terms";
 import {
   capSitemapUrls,
   listBandSitemapEntries,
@@ -98,6 +99,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   // 발견 피드 — 탭바 2번 슬롯·비로그인 랜딩 (감사 P1-11)
   { path: "/subscription", priority: 0.5 },
   { path: "/support", priority: 0.4 },
+  { path: "/support/faq", priority: 0.5 }, // N15 — 답이 본문에 실린 FAQ 허브
   { path: "/safety", priority: 0.4 },
   { path: "/methodology", priority: 0.5 }, // G18 — 데이터 방법론 (EEAT·GEO 인용 근거)
   { path: "/glossary", priority: 0.5 }, // S14 — 정의형 용어사전
@@ -124,6 +126,7 @@ export type SitemapBlockCounts = {
   complexes: number;
   regions: number;
   bands: number;
+  glossary: number;
   total: number;
 };
 
@@ -214,6 +217,14 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
     // 조회 실패 시 생략
   }
 
+  /* N14 — 용어 개별 페이지. 코드 상수에서 나오므로 DB 조회도, 실패 경로도 없다.
+     lastModified 는 적지 않는다 — 정적 라우트와 같은 이유로, 배포 시각을 런타임에
+     알 수 없으니 추측한 날짜를 적느니 생략하는 편이 정확하다. */
+  const glossaryEntries: MetadataRoute.Sitemap = glossaryPaths().map((p) => ({
+    url: `${BASE_URL}${p}`,
+    priority: 0.4,
+  }));
+
   // 1파일 50,000 URL 상한 — 넘치면 잘라내되 경고 로그를 남긴다(인덱스 분할 신호).
   const entries = capSitemapUrls([
     ...staticEntries,
@@ -222,6 +233,7 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
     ...regionEntries,
     ...bandEntries,
     ...reportEntries,
+    ...glossaryEntries,
   ]);
 
   const counts: SitemapBlockCounts = {
@@ -230,6 +242,7 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
     complexes: complexEntries.length,
     regions: regionEntries.length,
     bands: bandEntries.length,
+    glossary: glossaryEntries.length,
     total: entries.length,
   };
 

@@ -404,8 +404,9 @@ function PrivacyTab() {
       <div className="card flex flex-col gap-2 rounded-2xl p-4">
         <div className="text-[13px] font-extrabold text-ink">노트 공개 범위</div>
         <p className="text-xs leading-[1.6] text-text-2">
-          공개 여부는 노트 작성·수정 화면에서 노트별로 설정할 수 있어요. 공개 노트의 동·호수는 항상
-          가려져요.
+          공개 여부는 노트 작성·수정 화면에서 노트별로 설정할 수 있어요. 사진은 업로드할 때 위치정보(EXIF)를
+          지우지만, 본문 글자나 사진 속 인물·차량번호를 자동으로 가려 주지는 않아요. 공개로 올리기 전에
+          직접 확인해 주세요.
         </p>
         <Link
           href="/notes"

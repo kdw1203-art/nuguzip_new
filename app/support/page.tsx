@@ -5,6 +5,7 @@ import { SupportContactForm } from "./SupportContactForm";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { supportFaqItems, type SupportFaqItem } from "@/lib/support/faq";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
 
@@ -66,8 +67,24 @@ const TICKETS = [
   },
 ] as const;
 
+/** /support 요약 카드에 띄울 FAQ — 전체 답은 /support/faq 에 있다. */
+const SUPPORT_FAQ_PREVIEW_IDS = [
+  "note-masking",
+  "cancel",
+  "data-source",
+  "free-limit",
+  "ai-basis",
+] as const;
+
 export default async function SupportPage() {
   const notices = await loadNotices();
+  const byId = new Map(supportFaqItems().map((i) => [i.id, i]));
+  const faqAll = supportFaqItems();
+  const faqPreview = SUPPORT_FAQ_PREVIEW_IDS.map((id) => byId.get(id)).filter(
+    (x): x is SupportFaqItem => x !== undefined,
+  );
+  const faqLead = faqPreview[0];
+  const faqRest = faqPreview.slice(1);
   return (
     <PageShell breadcrumb="고객지원" title="고객지원 허브" wide>
       {/* 검색 (9n / 7g) */}
@@ -267,42 +284,37 @@ export default async function SupportPage() {
             </div>
           </div>
 
-          {/* FAQ (10b + 7g) */}
+          {/* FAQ (10b + 7g) — 답은 lib/support/faq.ts 한 곳에서 온다.
+              여기 답을 따로 적어 두었더니 실제로 없는 기능(사진·텍스트 자동 마스킹)을
+              있다고 약속하는 문장이 남아 있었다. 화면마다 답을 복제하지 않는다. */}
           <div id="faq" className="rise-in-4 card flex flex-col gap-1 scroll-mt-24 rounded-[20px] px-6 py-[22px]">
             <div className="mb-2 flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
               <span className="text-[15px] font-extrabold text-ink">자주 묻는 질문</span>
-              <div className="flex gap-1.5 text-[11px]">
-                <span className="rounded-full bg-ink px-3 py-[5px] font-bold text-white">전체</span>
-                <span className="rounded-full bg-[#f2f4f8] px-3 py-[5px] text-text-2">노트</span>
-                <span className="rounded-full bg-[#f2f4f8] px-3 py-[5px] text-text-2">구독·결제</span>
-                <span className="rounded-full bg-[#f2f4f8] px-3 py-[5px] text-text-2">전문가</span>
-              </div>
+              <Link href="/support/faq" className="text-[11px] font-bold text-primary">
+                전체 {faqAll.length}개 보기 ›
+              </Link>
             </div>
-            <div className="flex flex-col gap-2 rounded-xl border border-line bg-[rgba(29,79,216,.03)] px-4 py-[13px]">
-              <div className="flex justify-between text-[13px] font-bold text-ink">
-                <span>Q. 공개 노트에서 동·호수는 어떻게 가려지나요?</span>
-                <span className="text-primary">▴</span>
-              </div>
-              <div className="text-xs leading-[1.65] text-text-2">
-                AI가 텍스트·사진에서 동·호수, 차량번호, 얼굴을 자동 감지해 가립니다. 가림 실패 신고 시
-                24시간 내 검수 후 조치되며, 이 기능은 해제할 수 없습니다.
-              </div>
-            </div>
-            {[
-              "Q. 구독 해지하면 남은 기간은 어떻게 되나요?",
-              "Q. 전문가 인증에는 어떤 서류가 필요한가요?",
-              "Q. 노트가 저장되지 않았어요",
-              "Q. AI 요약 횟수는 어떻게 계산되나요?",
-            ].map((q, i, arr) => (
-              <div
-                key={q}
-                className={`flex justify-between px-4 py-[13px] text-[13px] font-bold text-text-1 ${
+            <Link
+              href={`/support/faq#${faqLead.id}`}
+              className="flex flex-col gap-2 rounded-xl border border-line bg-[rgba(29,79,216,.03)] px-4 py-[13px] no-underline"
+            >
+              <span className="flex justify-between text-[13px] font-bold text-ink">
+                <span>Q. {faqLead.q}</span>
+                <span className="text-primary">›</span>
+              </span>
+              <span className="text-xs leading-[1.65] text-text-2">{faqLead.a}</span>
+            </Link>
+            {faqRest.map((it, i, arr) => (
+              <Link
+                key={it.id}
+                href={`/support/faq#${it.id}`}
+                className={`flex justify-between px-4 py-[13px] text-[13px] font-bold text-text-1 no-underline ${
                   i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
                 }`}
               >
-                <span>{q}</span>
-                <span className="text-[#c3cad6]">▾</span>
-              </div>
+                <span>Q. {it.q}</span>
+                <span className="text-[#c3cad6]">›</span>
+              </Link>
             ))}
           </div>
 
