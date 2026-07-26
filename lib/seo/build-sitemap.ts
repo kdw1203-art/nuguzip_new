@@ -2,10 +2,8 @@ import "server-only";
 
 import type { MetadataRoute } from "next";
 import { listPublicNotes } from "@/lib/inspection/store-db";
-import { logger } from "@/lib/log";
 import { glossaryPaths } from "@/lib/seo/glossary-terms";
 import {
-  capSitemapUrls,
   listBandSitemapEntries,
   listComplexSitemapEntries,
   periodToDate,
@@ -120,34 +118,30 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/signup", priority: 0.3 },
 ];
 
-/** 블록별 URL 수 — 조용한 누락을 잡기 위한 계측값 */
-export type SitemapBlockCounts = {
-  static: number;
-  notes: number;
-  complexes: number;
-  regions: number;
-  bands: number;
-  glossary: number;
-  total: number;
-};
+/* ══ N4 — 유형별 로더 ═══════════════════════════════════════════════════
+   사이트맵 인덱스 분할(/sitemap.xml → /sitemap-{유형}.xml)을 하려면 블록을
+   따로 부를 수 있어야 한다. 그래서 buildSitemap() 안에 인라인으로 있던 블록을
+   그대로 함수로 뗐다(로직·우선순위·lastModified 규칙 모두 동일).
 
-export type BuiltSitemap = {
-  entries: MetadataRoute.Sitemap;
-  counts: SitemapBlockCounts;
-};
+   합치는 buildSitemap() 은 없앴다. 인덱스로 바뀐 뒤로 부르는 곳이 없어졌는데,
+   "언젠가 쓸지도 모르니 남긴다"는 이유로 두면 다음 사람이 살아 있는 경로로 읽고
+   여기만 고친다. 유형별 개수 계측과 "비면 안 되는 블록이 비었다" 경고는
+   lib/seo/sitemap-sections.ts 의 buildSitemapIndex() 로 옮겼다 — 실제로 매
+   인덱스 요청마다 돌아가는 자리다. */
 
-export async function buildSitemap(): Promise<BuiltSitemap> {
-  // 정적 라우트는 배포할 때 바뀐다 — 언제였는지 런타임에서 알 방법이 없으므로
-  // lastModified 를 적지 않는다(추측한 날짜보다 없는 편이 정확하다).
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
+/** 정적 라우트는 배포할 때 바뀐다 — 언제였는지 런타임에 알 방법이 없으므로
+    lastModified 를 적지 않는다(추측한 날짜보다 없는 편이 정확하다). */
+export function loadStaticEntries(): MetadataRoute.Sitemap {
+  return STATIC_ROUTES.map((r) => ({
     url: `${BASE_URL}${r.path}`,
     priority: r.priority,
   }));
+}
 
-  let noteEntries: MetadataRoute.Sitemap = [];
+export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
   try {
     const notes = await listPublicNotes(200);
-    noteEntries = notes
+    return notes
       .filter((n) => n.isPublic)
       .map((n) => {
         const at = n.updatedAt ? new Date(n.updatedAt) : null;
@@ -158,28 +152,30 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
         };
       });
   } catch {
-    // env 미설정·조회 실패 시 생략
+    return []; // env 미설정·조회 실패 시 생략
   }
+}
 
-  // 프로그래매틱 SEO 핵심 랜딩 — 실거래가 있는 단지 전체(현재 5,147개).
-  let complexEntries: MetadataRoute.Sitemap = [];
+/** 프로그래매틱 SEO 핵심 랜딩 — 실거래가 있는 단지 전체(현재 5,147개). */
+export async function loadComplexEntries(): Promise<MetadataRoute.Sitemap> {
   try {
     const complexes = await listComplexSitemapEntries();
-    complexEntries = complexes.map((c) => ({
+    return complexes.map((c) => ({
       url: `${BASE_URL}/complex/${c.id}`,
       ...(c.lastModified ? { lastModified: c.lastModified } : {}),
       priority: 0.8,
     }));
   } catch {
-    // 조회 실패 시 생략
+    return [];
   }
+}
 
-  // 지역 허브 SEO 페이지 — market_region_price 61개 지역 (/region/[id])
-  let regionEntries: MetadataRoute.Sitemap = [];
+/** 지역 허브 SEO 페이지 — market_region_price 61개 지역 (/region/[id]) */
+export async function loadRegionEntries(): Promise<MetadataRoute.Sitemap> {
   try {
     const { getAllRegionSnapshots } = await import("@/lib/market/store");
     const snapshots = await getAllRegionSnapshots();
-    regionEntries = [...snapshots.values()].map((s) => {
+    return [...snapshots.values()].map((s) => {
       const at = periodToDate(s.period);
       return {
         url: `${BASE_URL}/region/${s.regionId}`,
@@ -188,80 +184,47 @@ export async function buildSitemap(): Promise<BuiltSitemap> {
       };
     });
   } catch {
-    // 조회 실패 시 생략
+    return [];
   }
+}
 
-  // A5 — 지역 × 면적대·가격대 실거래 랜딩. 거래 10건 이상인 셀만 페이지가 있으므로
-  // 여기 실리는 URL 은 전부 실제 데이터가 있는 페이지다(사이트맵에 404 를 넣지 않는다).
-  let bandEntries: MetadataRoute.Sitemap = [];
+/** A5 — 지역 × 면적대·가격대 실거래 랜딩. 거래 10건 이상인 셀만 페이지가 있으므로
+    여기 실리는 URL 은 전부 실제 데이터가 있는 페이지다(사이트맵에 404 를 넣지 않는다). */
+export async function loadBandEntries(): Promise<MetadataRoute.Sitemap> {
   try {
     const bands = await listBandSitemapEntries();
-    bandEntries = bands.map((b) => ({
+    return bands.map((b) => ({
       url: `${BASE_URL}${b.path}`,
       ...(b.lastModified ? { lastModified: b.lastModified } : {}),
       priority: b.isHub ? 0.7 : 0.6,
     }));
   } catch {
-    // 조회 실패 시 생략
+    return [];
   }
+}
 
-  // S11 — 월간 실거래 리포트 (데이터 있는 달만 — 빈 리포트 URL 을 넣지 않는다)
-  let reportEntries: MetadataRoute.Sitemap = [];
+/** S11 — 월간 실거래 리포트 (데이터 있는 달만 — 빈 리포트 URL 을 넣지 않는다) */
+export async function loadReportEntries(): Promise<MetadataRoute.Sitemap> {
   try {
     const { listReportMonths } = await import("@/lib/reports/monthly");
     const months = await listReportMonths();
-    reportEntries = months.map((m) => ({
+    return months.map((m) => ({
       url: `${BASE_URL}/reports/${m.ym}`,
       priority: 0.7,
     }));
   } catch {
-    // 조회 실패 시 생략
+    return [];
   }
+}
 
-  /* N14 — 용어 개별 페이지. 코드 상수에서 나오므로 DB 조회도, 실패 경로도 없다.
-     lastModified 는 적지 않는다 — 정적 라우트와 같은 이유로, 배포 시각을 런타임에
-     알 수 없으니 추측한 날짜를 적느니 생략하는 편이 정확하다. */
-  const glossaryEntries: MetadataRoute.Sitemap = glossaryPaths().map((p) => ({
+/** N14 — 용어 개별 페이지. 코드 상수에서 나오므로 DB 조회도, 실패 경로도 없다.
+    lastModified 는 적지 않는다 — 정적 라우트와 같은 이유로, 배포 시각을 런타임에
+    알 수 없으니 추측한 날짜를 적느니 생략하는 편이 정확하다. */
+export function loadGlossaryEntries(): MetadataRoute.Sitemap {
+  return glossaryPaths().map((p) => ({
     url: `${BASE_URL}${p}`,
     priority: 0.4,
   }));
-
-  // 1파일 50,000 URL 상한 — 넘치면 잘라내되 경고 로그를 남긴다(인덱스 분할 신호).
-  const entries = capSitemapUrls([
-    ...staticEntries,
-    ...noteEntries,
-    ...complexEntries,
-    ...regionEntries,
-    ...bandEntries,
-    ...reportEntries,
-    ...glossaryEntries,
-  ]);
-
-  const counts: SitemapBlockCounts = {
-    static: staticEntries.length,
-    notes: noteEntries.length,
-    complexes: complexEntries.length,
-    regions: regionEntries.length,
-    bands: bandEntries.length,
-    glossary: glossaryEntries.length,
-    total: entries.length,
-  };
-
-  /* 조용한 누락 금지 — 블록이 통째로 비면 경고를 남긴다.
-     실제로 이 경고가 있었다면 사이트맵이 5,615 → 403 으로 줄어든 걸 배포 직후
-     알 수 있었다. 비는 것 자체는 방어 동작이지 예외가 아니라서 try/catch 로는
-     드러나지 않는다. */
-  const empty = (Object.keys(counts) as Array<keyof SitemapBlockCounts>).filter(
-    (k) => k !== "total" && k !== "notes" && counts[k] === 0,
-  );
-  if (empty.length > 0) {
-    logger.warn(
-      `[sitemap] 블록이 비어 있습니다: ${empty.join(", ")} — DB 조회 실패이거나 키가 없습니다. ` +
-        `(total=${counts.total}, complexes=${counts.complexes}, regions=${counts.regions}, bands=${counts.bands})`,
-    );
-  }
-
-  return { entries, counts };
 }
 
 /** XML 텍스트 노드 이스케이프 — URL 에 `&` 가 섞여도 파싱이 깨지지 않게 한다. */

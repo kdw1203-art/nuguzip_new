@@ -1,5 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { SITEMAP_PATHS } from "@/lib/seo/sitemap-slugs";
+
+const SITEMAP_PATH_SET = new Set(SITEMAP_PATHS);
 
 /** Edge 미들웨어에서만 사용 (Node 전용 API 호출 금지) */
 export function isPrivateSiteEnabled(): boolean {
@@ -18,8 +21,11 @@ export function isPublicPathForPrivateGate(pathname: string): boolean {
       : pathname;
 
   if (p === "/api/health") return true;
-  if (p === "/favicon.ico" || p === "/robots.txt" || p === "/sitemap.xml")
-    return true;
+  if (p === "/favicon.ico" || p === "/robots.txt") return true;
+  /* N4 — 사이트맵 인덱스 + 유형별 자식(/sitemap-complexes.xml 등), 그리고 RSS 피드.
+     인덱스만 열어 두면 크롤러가 인덱스는 읽고 자식은 로그인 벽을 만나 사이트맵이
+     통째로 무의미해진다. 실을 내용은 인덱스와 같은 공개 데이터뿐이다. */
+  if (SITEMAP_PATH_SET.has(p) || p === "/feed.xml") return true;
   if (
     p === "/manifest.webmanifest" ||
     p === "/icon" ||

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SITEMAP_PATHS } from "@/lib/seo/sitemap-slugs";
 
 /**
  * 색인 정책 — 공개 라우트 allow, 개인 영역 disallow.
@@ -45,7 +46,11 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`,
+    /* N4 — 인덱스 + 자식 전부를 적는다.
+       인덱스 하나만 적어도 규격상 충분하지만, 실제로는 사이트맵 인덱스 처리가
+       크롤러마다 고르지 않다. 여러 줄로 적는 건 표준이 허용하는 형태이고 비용이
+       0 이라, 인덱스를 못 펴는 크롤러도 자식을 직접 집어 가게 둔다. */
+    sitemap: SITEMAP_PATHS.map((p) => `${BASE_URL}${p}`),
     host: BASE_URL,
   };
 }

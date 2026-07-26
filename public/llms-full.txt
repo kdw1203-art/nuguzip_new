@@ -140,7 +140,13 @@
 
 ## 7. 기계 판독용 진입점
 
-- 사이트맵: https://nuguzip.com/sitemap.xml
+- 사이트맵 인덱스: https://nuguzip.com/sitemap.xml
+  - 유형별 자식 사이트맵 — 정적 페이지 `/sitemap-pages.xml`, 단지 `/sitemap-complexes.xml`,
+    지역 허브 `/sitemap-regions.xml`, 실거래 구간 `/sitemap-tx.xml`,
+    월간 리포트 `/sitemap-reports.xml`, 공개 임장노트 `/sitemap-notes.xml`,
+    용어사전 `/sitemap-glossary.xml`
+  - `<lastmod>` 는 갱신 시각이 확인된 URL 에만 붙습니다. 없는 URL 은 "모른다"는 뜻이지
+    "오늘 바뀌었다"는 뜻이 아닙니다(추측 날짜를 적지 않습니다).
 - RSS 피드: https://nuguzip.com/feed.xml (월간 리포트 + 공개 임장노트)
 - robots: https://nuguzip.com/robots.txt
 - 요약본: https://nuguzip.com/llms.txt

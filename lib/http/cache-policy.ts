@@ -1,3 +1,5 @@
+import { SITEMAP_PATHS } from "@/lib/seo/sitemap-slugs";
+
 /**
  * G5 — 공개 라우트 캐시 정책.
  *
@@ -91,7 +93,7 @@ const RULE_BY_PATH = new Map(PUBLIC_CACHE_RULES.map((r) => [r.path, r]));
 /**
  * 크롤러용 기계 판독 엔드포인트 — 사람이 로그인해서 보는 문서가 아니다.
  *
- * 이 둘은 Accept 헤더에 text/html 이 섞여 오는 탓에 위 `isDocument` 분기를 타서
+ * 이들은 Accept 헤더에 text/html 이 섞여 오는 탓에 위 `isDocument` 분기를 타서
  * 매 요청 no-store + 세션·CSP 쿠키 + Clear-Site-Data 까지 받고 있었다. 크롤러는
  * 쿠키를 들고 오지 않으니 쿠키가 매번 새로 실렸고, 그래서 영영 캐시되지 않았다.
  *
@@ -99,10 +101,20 @@ const RULE_BY_PATH = new Map(PUBLIC_CACHE_RULES.map((r) => [r.path, r]));
  * 실거래·공개노트, robots.ts 는 상수). 게다가 sitemap 은 5,000행짜리 집계 조회라
  * 크롤 때마다 오리진을 때릴 이유가 전혀 없다. 그래서 공유 캐시를 허용한다.
  *
+ * feed.xml(N3 RSS)이 뒤늦게 합류한 이유: 라우트 자체는 Cache-Control 을 싣고
+ * 있었지만 여기 없어서 미들웨어의 문서 분기가 그 값을 no-store 로 덮고 있었다.
+ * 성격은 sitemap 과 같다(공개 데이터만, 요청자 무관, 매번 DB 조회).
+ *
  * 단, 응답에 쿠키가 실렸다면(로그인한 사람이 브라우저로 열어 세션이 갱신된 경우)
  * 미들웨어가 공개 캐시를 포기하고 no-store 로 되돌린다 — 공개 문서와 같은 규칙이다.
  */
-const CRAWLER_ENDPOINTS = new Set(["/robots.txt", "/sitemap.xml"]);
+const CRAWLER_ENDPOINTS = new Set([
+  "/robots.txt",
+  "/feed.xml",
+  // N4 — 사이트맵 인덱스 + 유형별 자식 전부. 목록은 sitemap-slugs.ts 한 곳에만 둔다
+  // (그 모듈은 상수뿐이라 Edge 미들웨어가 DB 로더를 딸려 들고 가지 않는다).
+  ...SITEMAP_PATHS,
+]);
 
 export function isCrawlerEndpoint(pathname: string): boolean {
   return CRAWLER_ENDPOINTS.has(pathname);
