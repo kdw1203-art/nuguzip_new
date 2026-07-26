@@ -25,6 +25,7 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { isSupabaseConfigured } from "@/lib/supabase/flags";
+import { makeResilientFetch } from "@/lib/supabase/resilient-fetch";
 
 /** 조회 한 건의 상한(ms). SUPABASE_READ_TIMEOUT_MS 로 조정 가능. */
 function readTimeoutMs(): number {
@@ -33,19 +34,18 @@ function readTimeoutMs(): number {
   return 25_000;
 }
 
-/** 상한이 걸린 fetch. AbortSignal.timeout 은 TimeoutError 로 거부한다. */
-function timedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const ms = readTimeoutMs();
-  /* 호출자가 이미 signal 을 넘겼으면 둘 다 살린다 — 우리 상한이 남의 취소를
-     덮어써 버리면 요청 취소가 조용히 안 먹는다. */
-  const ours = AbortSignal.timeout(ms);
-  const signal = init?.signal ? AbortSignal.any([init.signal, ours]) : ours;
-  return fetch(input, { ...init, signal });
-}
-
+/**
+ * 상한 + 503 재시도가 걸린 fetch.
+ *
+ * 2026-07-26: 상한만으로는 부족했다. 프로덕션 오류의 최다 항목이
+ * `PGRST002 — Could not query the database for the schema cache. Retrying.`
+ * (하루 106건)인데, 이건 PostgREST 가 스스로 "다시 시도하라" 고 말하는 일시적
+ * 상태(HTTP 503)다. 한 번 실패했다고 사용자에게 오류를 보여줄 이유가 없다.
+ * 자세한 근거는 lib/supabase/resilient-fetch.ts 주석 참고.
+ */
 const READ_OPTS = {
   auth: { persistSession: false, autoRefreshToken: false },
-  global: { fetch: timedFetch },
+  global: { fetch: makeResilientFetch({ timeoutMs: readTimeoutMs() }) },
 } as const;
 
 let _service: SupabaseClient | null | undefined;
