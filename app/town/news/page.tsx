@@ -9,6 +9,8 @@ import { Icon } from "@/app/components/Icon";
 import { CoverImage } from "@/app/components/CoverImage";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { ErrorState } from "@/app/components/ui";
+import { logger } from "@/lib/log";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 뉴스·다이제스트(#6·#7) — 부동산 뉴스 그리드 상단에 주간 다이제스트 요약을 합쳤다.
@@ -167,7 +169,15 @@ export default async function TownNewsPage({
   } catch {
     digest = null;
   }
+  /* 섹션이 하나라도 조회 실패면 요약 카드를 아예 접는다 — 실패한 섹션을 뺀
+     숫자를 "이번 주 요약"이라고 내걸면 축소된 사실을 사실처럼 말하는 셈이다. */
+  const digestReadOk =
+    digest !== null &&
+    !digest.failed.news &&
+    !digest.failed.market &&
+    !digest.failed.community;
   const digestHasContent =
+    digestReadOk &&
     digest !== null &&
     (digest.news.length > 0 ||
       digest.market.length > 0 ||
@@ -175,7 +185,12 @@ export default async function TownNewsPage({
   const digestTeaser =
     digest && digestHasContent ? digestTeaserOf(digest) : null;
 
+  /* 이 페이지는 revalidate 가 있어 프리렌더 대상이다 — 던지면 배포가 깨지므로
+     잡는다. 다만 실패를 빈 목록으로 뭉개지 않는다: newsFailed 로 들고 가서
+     "아직 수집된 뉴스가 없어요"(예시 카드)와 다르게 말한다. 예시 카드를 깔면
+     못 읽은 상태가 "뉴스가 없는 상태"로 둔갑한다. */
   let news: Post[] = [];
+  let newsFailed = false;
   try {
     const all = await readTownPosts();
     news = all
@@ -184,8 +199,10 @@ export default async function TownNewsPage({
         (a, b) =>
           new Date(displayIso(b)).getTime() - new Date(displayIso(a)).getTime(),
       );
-  } catch {
+  } catch (e) {
+    logger.error("[TownNewsPage] 뉴스 조회 실패", e);
     news = [];
+    newsFailed = true;
   }
 
   /* 지역 필터 — 실데이터 기반(뉴스 city 상위 목록) */
@@ -195,7 +212,7 @@ export default async function TownNewsPage({
 
   const featured = list[0];
   const rest = list.slice(1);
-  const isMock = list.length === 0 && !active;
+  const isMock = list.length === 0 && !active && !newsFailed;
 
   return (
     <PageShell breadcrumb="동네이야기 › 뉴스">
@@ -320,6 +337,14 @@ export default async function TownNewsPage({
               자동으로 교체됩니다.
             </p>
           </div>
+        </div>
+      ) : newsFailed ? (
+        <div className="rise-in mb-5">
+          <ErrorState
+            title="뉴스를 불러오지 못했어요"
+            desc="데이터 조회가 실패했습니다. 수집된 뉴스가 없다는 뜻은 아니에요. 잠시 후 다시 열어봐 주세요."
+            action={{ label: "동네 이야기 보기", href: "/town" }}
+          />
         </div>
       ) : null}
 

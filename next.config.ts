@@ -12,6 +12,21 @@ import { buildContentSecurityPolicy } from "./lib/security/content-security-poli
  */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /**
+   * 페이지 하나를 prerender 하는 데 허용하는 시간(초). 기본값은 60이다.
+   *
+   * 2026-07-27 배포 실패: 조회 한 건의 최악 소요(25s × 3시도 + 백오프 1.2s =
+   * 76.2s)가 이 60초보다 **컸다.** 그래서 DB 가 느려졌을 때 로더가 "조회 실패"를
+   * 정직하게 렌더할 기회조차 없이 페이지가 시간 초과 났고, 3회 재시도 끝에
+   * `next build` 가 죽었다 — 느린 DB 가 곧 배포 장애였다.
+   *
+   * 지켜야 하는 부등식은 하나다:
+   *   한 페이지의 직렬 조회 수 × 조회 총 예산  <  이 값
+   * 조회 총 예산은 lib/newui/supabase-read.ts 에서 빌드 중 20초로 묶어 두었다.
+   * 120초면 직렬 6건까지 여유가 있다. 이 값을 줄이거나 그쪽 예산을 늘릴 때는
+   * 반드시 둘을 같이 본다.
+   */
+  staticPageGenerationTimeout: 120,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
   compress: true,

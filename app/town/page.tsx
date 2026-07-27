@@ -13,6 +13,7 @@ import { AdSlot } from "../components/ads/AdSlot";
 import type { Post } from "@/lib/types/post";
 import { TownCategoryNav } from "./TownCategoryNav";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { logger } from "@/lib/log";
 
 export const metadata = buildPageMetadata({
   title: "동네 이야기",
@@ -85,11 +86,19 @@ function postToCard(p: Post): FeedCard {
 }
 
 export default async function TownPage() {
-  /* 실데이터: 공개 임장노트(사진 우선) + 커뮤니티 글(비자동 posts). 뉴스(자동수집)는 /town/news로 분리. */
-  const [notes, posts] = await Promise.all([
-    listPublicNotes(40).catch((): InspectionNote[] => []),
-    readTownPosts().catch((): Post[] => []),
+  /* 실데이터: 공개 임장노트(사진 우선) + 커뮤니티 글(비자동 posts). 뉴스(자동수집)는 /town/news로 분리.
+     이 페이지는 revalidate 가 있어 `next build` 가 프리렌더한다 — 여기서 던지면
+     DB 가 잠깐 흔들린 것만으로 배포가 깨진다. 그래서 잡되, **삼키지는 않는다**:
+     실패는 loadFailed 로 화면까지 들고 가서 "글이 없어요"와 다르게 말한다. */
+  const [notesR, postsR] = await Promise.allSettled([
+    listPublicNotes(40),
+    readTownPosts(),
   ]);
+  if (notesR.status === "rejected") logger.error("[TownPage] 임장노트 조회 실패", notesR.reason);
+  if (postsR.status === "rejected") logger.error("[TownPage] 이웃 글 조회 실패", postsR.reason);
+  const notes: InspectionNote[] = notesR.status === "fulfilled" ? notesR.value : [];
+  const posts: Post[] = postsR.status === "fulfilled" ? postsR.value : [];
+  const loadFailed = notesR.status === "rejected" || postsR.status === "rejected";
 
   const noteCards = notes.map(noteToCard);
   // 신고 누적/처리로 숨김된 글(posts.visibility="hidden")은 피드에서 제외(#7)
@@ -104,7 +113,9 @@ export default async function TownPage() {
     (a, b) => b.createdAt - a.createdAt,
   );
 
-  const exampleOnly = cards.length === 0;
+  /* 조회가 실패했을 때는 예시 카드를 깔지 않는다. "아직 공개된 글이 없어 샘플을
+     보여드려요"는 못 읽었을 때 하면 거짓말이 된다 — 글은 있는데 못 읽은 것이다. */
+  const exampleOnly = cards.length === 0 && !loadFailed;
   if (exampleOnly) cards = [EXAMPLE_CARD];
 
   return (
@@ -130,6 +141,7 @@ export default async function TownPage() {
       <TownFeed
         cards={cards}
         exampleOnly={exampleOnly}
+        loadFailed={loadFailed}
         ad={<AdSlot placement="community_feed" seed={0} plan={null} />}
       />
 

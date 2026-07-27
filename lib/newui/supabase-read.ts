@@ -27,11 +27,42 @@ import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { isSupabaseConfigured } from "@/lib/supabase/flags";
 import { makeResilientFetch } from "@/lib/supabase/resilient-fetch";
 
-/** 조회 한 건의 상한(ms). SUPABASE_READ_TIMEOUT_MS 로 조정 가능. */
+/**
+ * 지금이 `next build` 의 prerender 단계인가.
+ * Next 는 프로덕션 빌드 워커 프로세스에 NEXT_PHASE=phase-production-build 를 넣는다.
+ */
+const IS_BUILD_PHASE = process.env.NEXT_PHASE === "phase-production-build";
+
+/** 조회 **한 시도**의 상한(ms). SUPABASE_READ_TIMEOUT_MS 로 조정 가능. */
 function readTimeoutMs(): number {
   const raw = Number(process.env.SUPABASE_READ_TIMEOUT_MS);
   if (Number.isFinite(raw) && raw >= 1000 && raw <= 120_000) return raw;
-  return 25_000;
+  /* 빌드 중에는 짧게 잡는다 — 아래 총 예산 주석 참고. */
+  return IS_BUILD_PHASE ? 8_000 : 25_000;
+}
+
+/**
+ * 재시도까지 합친 조회 한 건의 **총** 상한(ms).
+ *
+ * ── 지켜야 하는 부등식 (2026-07-27 배포 실패의 교훈) ─────────────────────────
+ *     한 페이지의 직렬 조회 수 × 총 예산  <  next.config 의 staticPageGenerationTimeout
+ *
+ * 이 부등식이 깨지면 DB 지연이 "조회 실패" 화면이 아니라 **하드 빌드 실패**로
+ * 번진다. 실제로 그랬다: 시도별 25s × 3 + 백오프 1.2s = 76.2s 인데 페이지
+ * 예산은 기본 60s 였고, /digest·/digest/archive·/analysis/temperature·
+ * /complex/compare 네 페이지가 3회 재시도 끝에 `next build` 를 죽였다.
+ *
+ * 그래서 빌드 중에는 20초로 조인다. 페이지 예산은 120초(next.config)라
+ * 직렬 조회 6건까지 여유가 있고, 그 안에서 실패는 **화면에** 정직하게 뜬다.
+ * 런타임(사용자 요청)은 45초 — 사람이 기다리는 시간이고 서버리스 상한도
+ * 따로 있으니 빌드보다 넉넉해도 된다.
+ */
+function readTotalBudgetMs(): number {
+  const perAttempt = readTimeoutMs();
+  const base = IS_BUILD_PHASE ? 20_000 : 45_000;
+  /* 최소한 한 시도는 온전히 돌 수 있어야 한다 — SUPABASE_READ_TIMEOUT_MS 를
+     크게 준 경우 총 예산이 그보다 작으면 첫 시도가 잘려 버린다. */
+  return Math.max(base, perAttempt + 1_000);
 }
 
 /**
@@ -45,7 +76,12 @@ function readTimeoutMs(): number {
  */
 const READ_OPTS = {
   auth: { persistSession: false, autoRefreshToken: false },
-  global: { fetch: makeResilientFetch({ timeoutMs: readTimeoutMs() }) },
+  global: {
+    fetch: makeResilientFetch({
+      timeoutMs: readTimeoutMs(),
+      totalBudgetMs: readTotalBudgetMs(),
+    }),
+  },
 } as const;
 
 let _service: SupabaseClient | null | undefined;

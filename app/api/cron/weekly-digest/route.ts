@@ -129,13 +129,25 @@ async function run(dryRun: boolean): Promise<RunSummary> {
   const optedIn = emails.length;
   if (optedIn === 0) return { ...base, optedIn, skipped: "no-subscribers" };
 
-  /* 보낼 내용이 실제로 있는지 먼저 확인. 빈 주는 발송하지 않는다. */
-  const digest = await getWeeklyDigest();
+  /* 보낼 내용이 실제로 있는지 먼저 확인. 빈 주는 발송하지 않는다.
+     단, "빈 주"와 "조회 실패"를 같은 이유로 적지 않는다 — 조회가 실패한 걸
+     empty 로 기록하면 나중에 로그만 보고 "그 주엔 소식이 없었다"고 오독한다. */
+  let digest: Awaited<ReturnType<typeof getWeeklyDigest>>;
+  try {
+    digest = await getWeeklyDigest();
+  } catch (e) {
+    captureException(e, { where: "cron/weekly-digest" });
+    return { ...base, optedIn, skipped: "digest-read-failed" };
+  }
   const parts: string[] = [];
   if (digest.news.length > 0) parts.push(`뉴스 ${digest.news.length}건`);
   if (digest.market.length > 0) parts.push(`주요 지역 시세 ${digest.market.length}곳`);
   if (digest.community.count > 0) parts.push(`이웃 글 ${digest.community.count}건`);
-  if (parts.length === 0) return { ...base, optedIn, skipped: "empty" };
+  if (parts.length === 0) {
+    const anyFailed =
+      digest.failed.news || digest.failed.market || digest.failed.community;
+    return { ...base, optedIn, skipped: anyFailed ? "digest-read-failed" : "empty" };
+  }
 
   const title = `${digest.weekLabel} 주간 다이제스트`;
   const body = `이번 주 ${parts.join(" · ")}`;

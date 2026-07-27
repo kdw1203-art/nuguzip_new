@@ -6,6 +6,7 @@ import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { supportFaqItems, type SupportFaqItem } from "@/lib/support/faq";
+import { logger } from "@/lib/log";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
 
@@ -28,22 +29,38 @@ const SIDE_MENU: { label: string; href: string }[] = [
 
 type NoticeItem = { id: string; title: string; date: string };
 
-/** board_posts 공지 카테고리 최신 3건 — 실패·미존재 시 빈 배열(정직한 빈 상태) */
-async function loadNotices(): Promise<NoticeItem[]> {
+type NoticesData = {
+  notices: NoticeItem[];
+  /** 조회 자체가 실패했는가. false 면 "읽었고 공지가 이만큼"이라는 뜻이다. */
+  failed: boolean;
+};
+
+/**
+ * board_posts 공지 카테고리 최신 3건.
+ *
+ * 실패를 빈 배열로 바꾸지 않는다 — 고객지원 화면에서 "등록된 공지사항이 아직
+ * 없습니다"는 꽤 강한 단언이라, 장애 공지가 실제로 떠 있는 순간에 그 문구가
+ * 나가면 정확히 반대로 안내하는 셈이 된다.
+ */
+async function loadNotices(): Promise<NoticesData> {
   try {
     const posts = await readBoardPosts(300);
-    return posts
-      .filter((p) => p.category.trim() === "공지")
-      .slice(0, 3)
-      .map((p) => {
-        const t = new Date(p.createdAt);
-        const date = Number.isFinite(t.getTime())
-          ? `${String(t.getMonth() + 1).padStart(2, "0")}.${String(t.getDate()).padStart(2, "0")}`
-          : "";
-        return { id: p.id, title: p.title, date };
-      });
-  } catch {
-    return [];
+    return {
+      notices: posts
+        .filter((p) => p.category.trim() === "공지")
+        .slice(0, 3)
+        .map((p) => {
+          const t = new Date(p.createdAt);
+          const date = Number.isFinite(t.getTime())
+            ? `${String(t.getMonth() + 1).padStart(2, "0")}.${String(t.getDate()).padStart(2, "0")}`
+            : "";
+          return { id: p.id, title: p.title, date };
+        }),
+      failed: false,
+    };
+  } catch (e) {
+    logger.error("[/support] 공지사항 조회 실패", e);
+    return { notices: [], failed: true };
   }
 }
 
@@ -77,7 +94,7 @@ const SUPPORT_FAQ_PREVIEW_IDS = [
 ] as const;
 
 export default async function SupportPage() {
-  const notices = await loadNotices();
+  const { notices, failed: noticesFailed } = await loadNotices();
   const byId = new Map(supportFaqItems().map((i) => [i.id, i]));
   const faqAll = supportFaqItems();
   const faqPreview = SUPPORT_FAQ_PREVIEW_IDS.map((id) => byId.get(id)).filter(
@@ -182,9 +199,17 @@ export default async function SupportPage() {
               </Link>
             </div>
             {notices.length === 0 ? (
-              <div className="py-4 text-center text-xs text-text-3">
-                등록된 공지사항이 아직 없습니다
-              </div>
+              noticesFailed ? (
+                /* 배경으로 신호를 준다 — 빨강 글씨는 작은 본문에서 대비가 모자란다. */
+                <div className="rounded-[10px] bg-danger-soft px-3 py-3 text-center text-xs leading-[1.6] text-ink">
+                  공지사항을 불러오지 못했습니다 (조회 실패). 공지가 없다는 뜻은
+                  아닙니다.
+                </div>
+              ) : (
+                <div className="py-4 text-center text-xs text-text-3">
+                  등록된 공지사항이 아직 없습니다
+                </div>
+              )
             ) : (
               notices.map((n, i, arr) => (
                 <Link

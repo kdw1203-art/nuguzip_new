@@ -132,10 +132,16 @@ function recommendScore(c: FeedCard): number {
 export function TownFeed({
   cards,
   exampleOnly,
+  loadFailed = false,
   ad = null,
 }: {
   cards: FeedCard[];
   exampleOnly: boolean;
+  /**
+   * 피드 소스 조회가 **실패**했는가. 빈 목록이 "아직 없음"인지 "못 불러옴"인지는
+   * 목록만 봐서는 구분이 안 된다 — 둘을 다르게 말하려면 이 플래그가 필요하다.
+   */
+  loadFailed?: boolean;
   /** 서버에서 렌더한 광고 슬롯(없으면 null) */
   ad?: ReactNode;
 }) {
@@ -164,6 +170,15 @@ export function TownFeed({
         ))}
       </div>
 
+      {loadFailed && (
+        // 빨강 글씨 대신 배경으로 신호를 준다 — text-danger(#d64545)를
+        // bg-danger-soft(#fbeaea) 위에 올리면 대비가 3.76:1 이라 WCAG AA 미달이다.
+        <div className="rise-in-2 mb-3 rounded-[12px] border border-line bg-danger-soft px-3.5 py-2.5 text-[11px] leading-[1.6] text-ink">
+          일부 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요 — 잠시 후
+          새로고침해 주세요.
+        </div>
+      )}
+
       {exampleOnly && (
         <div className="rise-in-2 mb-3 flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
           <ExampleBadge />
@@ -177,11 +192,14 @@ export function TownFeed({
       {visible.length === 0 ? (
         <div className="rise-in-3 card flex flex-col items-center gap-2 px-5 py-12 text-center">
           <div className="text-[26px]"><Icon name="📍" size={26} /></div>
+          {/* 조회 실패로 목록이 비었을 때 "글이 없어요"라고 하면 사실이 아니다. */}
           <div className="text-[15px] font-extrabold text-ink">
-            아직 이 필터에 보여줄 글이 없어요
+            {loadFailed ? "글을 불러오지 못했어요" : "아직 이 필터에 보여줄 글이 없어요"}
           </div>
           <div className="text-[12px] text-text-3">
-            첫 임장노트나 동네 이야기를 남기면 가장 먼저 노출돼요
+            {loadFailed
+              ? "데이터 조회가 실패했습니다. 잠시 후 다시 시도해 주세요."
+              : "첫 임장노트나 동네 이야기를 남기면 가장 먼저 노출돼요"}
           </div>
           <Link href="/town/write" className="btn-primary btn-md mt-2">
             글쓰기

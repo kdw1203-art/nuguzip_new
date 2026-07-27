@@ -12,6 +12,7 @@ import { loadNewHomeData } from "@/lib/newui/home-data";
 import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getWeeklyDigest } from "@/lib/newui/digest";
+import { logger } from "@/lib/log";
 import type { DeltaTone } from "@/lib/newui/home-data";
 
 // 스케일 지침 #21: 비로그인 홈은 정적 캐시 (5분 재검증) — 접속마다 재계산 금지
@@ -36,11 +37,19 @@ export default async function Home() {
   const data = await loadNewHomeData();
   // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
   const freshness = await getMarketFreshnessDateLabel();
-  // P1-9: 주간 다이제스트 진입 카드 티저 (1h 캐시, 실패 시 빈 섹션 폴백)
-  const digest = await getWeeklyDigest();
+  /* P1-9: 주간 다이제스트 진입 카드 티저 (1h 캐시).
+     조회가 전부 실패하면 getWeeklyDigest() 는 던진다 — 홈까지 같이 죽일 이유는
+     없으니 여기서는 티저만 포기하고, 대신 "0건" 같은 사실 아닌 문구는 쓰지
+     않는다(카드 설명으로만 남긴다). */
+  const digest = await getWeeklyDigest().catch((e): null => {
+    logger.error("[Home] 주간 다이제스트 조회 실패", e);
+    return null;
+  });
+  /* 주차 라벨도 다이제스트에서 온다 — 못 읽었으면 없는 채로 둔다. */
+  const digestWeekLabel = digest?.weekLabel ?? null;
   const digestTeaser =
-    digest.news[0]?.title ??
-    (digest.market.length > 0
+    digest?.news[0]?.title ??
+    (digest && digest.market.length > 0
       ? `${digest.market[0].name} 등 주요 지역 시세 요약`
       : "최근 7일 뉴스·시세·커뮤니티 요약");
 
@@ -179,7 +188,7 @@ export default async function Home() {
           >
             <span className="min-w-0">
               <span className="block text-[13px] font-extrabold text-ink">
-                주간 다이제스트 · {digest.weekLabel}
+                주간 다이제스트{digestWeekLabel ? ` · ${digestWeekLabel}` : ""}
               </span>
               <span className="mt-0.5 block truncate text-[11px] text-text-3">
                 {digestTeaser}
@@ -463,7 +472,7 @@ export default async function Home() {
             >
               <span className="flex items-center justify-between">
                 <span className="text-[13px] font-extrabold text-ink">
-                  주간 다이제스트 · {digest.weekLabel}
+                  주간 다이제스트{digestWeekLabel ? ` · ${digestWeekLabel}` : ""}
                 </span>
                 <span className="shrink-0 text-sm font-extrabold text-primary">›</span>
               </span>

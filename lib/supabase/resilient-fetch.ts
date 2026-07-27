@@ -30,10 +30,24 @@
 import "server-only";
 
 export type ResilientFetchOptions = {
-  /** 읽기 한 건의 상한(ms). 0 이하면 상한 없음. */
+  /** 읽기 **한 시도**의 상한(ms). 0 이하면 시도별 상한 없음. */
   timeoutMs: number;
   /** 읽기 재시도 횟수(최초 시도 제외). */
   retries?: number;
+  /**
+   * 재시도·백오프를 **전부 합친** 읽기 한 건의 총 상한(ms). 0 이하면 총 상한 없음.
+   *
+   * ── 왜 시도별 상한만으로는 모자랐나 (2026-07-27 배포 실패) ──────────────
+   * 시도별 25초 + 재시도 2회 + 백오프(0.3s·0.9s) = 최악 76.2초였다. 그런데
+   * Next 의 페이지별 prerender 예산은 기본 60초다. 즉 **읽기 예산이 페이지
+   * 예산보다 컸다.** 그 결과 DB 가 느려지면 로더가 "조회 실패"를 정직하게
+   * 렌더할 기회조차 없이 페이지가 통째로 시간 초과 나고, 세 번 재시도 끝에
+   * `next build` 가 죽었다 — 느린 DB 가 배포 장애로 번진 것이다.
+   *
+   * 총 상한이 있으면 읽기는 정해진 시간 안에 반드시 끝난다(성공이든 실패든).
+   * 그러면 페이지 예산 안에서 실패가 **화면으로** 드러난다. 그게 맞다.
+   */
+  totalBudgetMs?: number;
 };
 
 /** 일시적이라고 보고 다시 시도할 상태 코드 — PostgREST 스키마 캐시(503)·게이트웨이(502/504) */
@@ -58,6 +72,7 @@ export function makeResilientFetch(
   opts: ResilientFetchOptions,
 ): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
   const retries = Math.max(0, Math.min(opts.retries ?? BACKOFF_MS.length, BACKOFF_MS.length));
+  const totalBudgetMs = Math.max(0, opts.totalBudgetMs ?? 0);
 
   return async function resilientFetch(input, init) {
     const method = methodOf(input, init);
@@ -66,13 +81,30 @@ export function makeResilientFetch(
     /* 쓰기는 원본 그대로 — 상한도 재시도도 걸지 않는다. */
     if (!isRead) return fetch(input, init);
 
+    const startedAt = Date.now();
+    /** 남은 총 예산(ms). 총 상한이 없으면 Infinity. */
+    const budgetLeft = () =>
+      totalBudgetMs > 0
+        ? totalBudgetMs - (Date.now() - startedAt)
+        : Number.POSITIVE_INFINITY;
+
     let lastError: unknown;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
+      /* 총 예산이 남아 있지 않으면 새 시도를 시작하지 않는다. 시작해 봐야
+         페이지 예산만 더 태우고, 결과는 어차피 실패다. */
+      const left = budgetLeft();
+      if (left <= 0) break;
+
       /* 시도마다 새 상한을 만든다. 하나를 재사용하면 첫 시도에서 만료된 신호가
-         남은 시도를 즉시 죽인다. */
+         남은 시도를 즉시 죽인다. 시도별 상한과 남은 총 예산 중 **짧은 쪽**을
+         쓴다 — 마지막 시도가 총 예산을 넘겨 버리면 총 상한이 무의미해진다. */
       let signal = init?.signal ?? undefined;
-      if (opts.timeoutMs > 0) {
-        const ours = AbortSignal.timeout(opts.timeoutMs);
+      const attemptMs = Math.min(
+        opts.timeoutMs > 0 ? opts.timeoutMs : Number.POSITIVE_INFINITY,
+        left,
+      );
+      if (Number.isFinite(attemptMs)) {
+        const ours = AbortSignal.timeout(attemptMs);
         /* 호출자가 이미 signal 을 넘겼으면 둘 다 살린다 — 우리 상한이 남의
            취소를 덮어써 버리면 요청 취소가 조용히 안 먹는다. */
         signal = init?.signal ? AbortSignal.any([init.signal, ours]) : ours;
@@ -89,9 +121,16 @@ export function makeResilientFetch(
         if (init?.signal?.aborted) throw e;
         if (attempt === retries) throw e;
       }
-      await sleep(BACKOFF_MS[attempt] ?? 900);
+      /* 백오프도 총 예산 안에서만 잔다 — 예산이 다 됐으면 자지 않고 끝낸다. */
+      const pause = Math.min(BACKOFF_MS[attempt] ?? 900, Math.max(0, budgetLeft()));
+      if (pause <= 0) break;
+      await sleep(pause);
     }
-    /* 위 루프는 반드시 return 하거나 throw 한다. 방어적으로만 남긴다. */
-    throw lastError instanceof Error ? lastError : new Error("Supabase 요청 실패");
+    /* 여기까지 왔다면 총 예산이 소진된 것이다(그 외 경로는 return/throw 한다).
+       실패는 실패로 올려보낸다 — 호출부가 "조회 실패"로 표시할 수 있게. */
+    if (lastError !== undefined) {
+      throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    }
+    throw new Error(`Supabase 조회 시간 초과 (총 상한 ${totalBudgetMs}ms)`);
   };
 }

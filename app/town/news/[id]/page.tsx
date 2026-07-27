@@ -7,6 +7,7 @@ import { ReportButton } from "../../../components/ReportButton";
 import { getTownPost, readRelatedTownPosts } from "@/lib/newui/board-posts";
 import { isPostHidden } from "@/lib/moderation/reports-store";
 import type { Post } from "@/lib/types/post";
+import { logger } from "@/lib/log";
 
 /* 뉴스 상세 — posts 실데이터(id 조회) 연동. 없는 글은 notFound() (사실 우선: 목업 기사 금지). */
 
@@ -144,7 +145,12 @@ export default async function TownNewsDetailPage({
       title: p.title,
       meta: `${p.sourceName || p.authorLabel} · ${shortDate(p.sourcePublishedAt || p.createdAt)}`,
     }));
-  } catch {
+  } catch (e) {
+    /* 여기서만 실패를 삼킨다. 관련글은 부가 섹션이고, 아래 렌더는 목록이 비면
+       섹션 자체를 안 그린다(similarPosts.length > 0). 즉 실패해도 화면이
+       "관련 글이 없다"고 **말하지 않는다** — 사라질 뿐이다. 본문은 이미 위에서
+       읽었고, 그쪽 실패는 던져서 5xx 로 나간다(404 로 위장하지 않는다). */
+    logger.error("[/town/news/[id]] 관련글 조회 실패", e);
     similarPosts = [];
   }
 

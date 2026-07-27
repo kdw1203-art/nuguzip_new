@@ -47,13 +47,33 @@ function shortDate(iso: string | undefined): string {
   return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())}`;
 }
 
-/** board_posts에서 정비사업 키워드 매칭 최신 기사 — 실패·빈 데이터 시 빈 배열 */
-async function loadRedevelopmentNews(): Promise<Post[]> {
-  const posts = await readBoardPosts();
-  return posts
-    .filter((p) => NEWS_KEYWORD_RE.test(p.title) || NEWS_KEYWORD_RE.test(p.body))
-    .sort((a, b) => displayTime(b) - displayTime(a))
-    .slice(0, NEWS_LIMIT);
+type NewsData = {
+  news: Post[];
+  /** 조회 자체가 실패했는가. false 면 "읽었고 매칭이 이만큼"이라는 뜻이다. */
+  failed: boolean;
+};
+
+/**
+ * board_posts에서 정비사업 키워드 매칭 최신 기사.
+ *
+ * readBoardPosts 는 이제 못 읽으면 던진다 — 아래 loadProjects 와 같은 이유로
+ * 여기서 잡는다(프리렌더 중 던지면 배포가 깨진다). 다만 빈 배열로 뭉개지 않고
+ * failed 를 들고 간다: "관련 기사가 아직 없어요"와 "못 불러왔어요"는 다른 사실이다.
+ */
+async function loadRedevelopmentNews(): Promise<NewsData> {
+  try {
+    const posts = await readBoardPosts();
+    return {
+      news: posts
+        .filter((p) => NEWS_KEYWORD_RE.test(p.title) || NEWS_KEYWORD_RE.test(p.body))
+        .sort((a, b) => displayTime(b) - displayTime(a))
+        .slice(0, NEWS_LIMIT),
+      failed: false,
+    };
+  } catch (e) {
+    logger.error("[/redevelopment] 정비사업 뉴스 조회 실패", e);
+    return { news: [], failed: true };
+  }
 }
 
 type ProjectsData = {
@@ -84,7 +104,7 @@ async function loadProjects(): Promise<ProjectsData> {
 }
 
 export default async function RedevelopmentPage() {
-  const [news, { projects, loadError }] = await Promise.all([
+  const [{ news, failed: newsFailed }, { projects, loadError }] = await Promise.all([
     loadRedevelopmentNews(),
     loadProjects(),
   ]);
@@ -279,11 +299,17 @@ export default async function RedevelopmentPage() {
               전체 뉴스 ›
             </Link>
           </div>
-          {news.length === 0 && (
-            <div className="py-3 text-center text-[11px] text-text-3">
-              최근 수집된 재건축·재개발 관련 기사가 아직 없어요.
-            </div>
-          )}
+          {news.length === 0 &&
+            (newsFailed ? (
+              /* 빨강 글씨(#d64545)는 11px 본문에서 대비가 모자란다 — 배경으로 신호를 준다. */
+              <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-center text-[11px] leading-[1.6] text-ink">
+                뉴스를 불러오지 못했어요 (조회 실패). 관련 기사가 없다는 뜻은 아니에요.
+              </div>
+            ) : (
+              <div className="py-3 text-center text-[11px] text-text-3">
+                최근 수집된 재건축·재개발 관련 기사가 아직 없어요.
+              </div>
+            ))}
           {news.map((n) => (
             <Link key={n.id} href={`/town/news/${n.id}`} className="group no-underline">
               <div className="text-[12px] font-bold leading-[1.5] text-ink group-hover:text-primary">

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { HouseMark } from "@/app/components/Logo";
-import { getWeeklyDigest, type DigestDeltaTone } from "@/lib/newui/digest";
+import { ErrorState } from "@/app/components/ui";
+import { getWeeklyDigest, type DigestDeltaTone, type WeeklyDigest } from "@/lib/newui/digest";
+import { logger } from "@/lib/log";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 export const metadata = buildPageMetadata({
@@ -46,17 +48,47 @@ function asOfLabel(iso: string): string {
 }
 
 export default async function DigestPage() {
-  const digest = await getWeeklyDigest();
-  const { news, market, community } = digest;
+  /* 전체 조회 실패는 던져서 온다(lib/newui/digest.ts). 여기서 "데이터 없음"으로
+     바꿔 말하지 않고, 실패는 실패로 화면에 적는다. */
+  let digest: WeeklyDigest | null = null;
+  let cause: string | null = null;
+  try {
+    digest = await getWeeklyDigest();
+  } catch (e) {
+    logger.error("[DigestPage]", e);
+    cause = e instanceof Error ? e.message : String(e);
+  }
+
+  if (!digest) {
+    return (
+      <PageShell breadcrumb="주간 다이제스트">
+        <div className="mx-auto flex w-full max-w-[480px] flex-col gap-2.5">
+          <h1 className="mt-2 text-[17px] font-extrabold text-ink">주간 다이제스트</h1>
+          <ErrorState
+            title="주간 요약을 불러오지 못했어요"
+            desc="데이터 조회가 실패했습니다. 이번 주에 소식이 없다는 뜻은 아니에요. 잠시 후 다시 열어봐 주세요."
+            cause={cause ?? undefined}
+            action={{ label: "동네 이야기 보기", href: "/town" }}
+          />
+        </div>
+      </PageShell>
+    );
+  }
+
+  const { news, market, community, failed } = digest;
+  const anyFailed = failed.news || failed.market || failed.community;
 
   const previewParts: string[] = [];
   if (news.length > 0) previewParts.push(`뉴스 ${news.length}건`);
   if (market.length > 0) previewParts.push(`주요 지역 시세 ${market.length}곳`);
   if (community.count > 0) previewParts.push(`이웃 글 ${community.count}건`);
+  /* 일부가 조회 실패면 "0건"이라고 말하지 않는다 — 그건 사실이 아니다. */
   const previewLine =
     previewParts.length > 0
-      ? `이번 주 ${previewParts.join(" · ")}`
-      : "이번 주 요약을 준비 중이에요";
+      ? `이번 주 ${previewParts.join(" · ")}${anyFailed ? " (일부 조회 실패)" : ""}`
+      : anyFailed
+        ? "이번 주 요약을 일부 불러오지 못했어요"
+        : "이번 주 새로 모인 소식이 아직 없어요";
 
   return (
     <PageShell breadcrumb="주간 다이제스트">
@@ -110,11 +142,16 @@ export default async function DigestPage() {
               전체 ›
             </Link>
           </div>
-          {news.length === 0 && (
-            <div className="text-[11px] text-text-3">
-              최근 7일 수집된 뉴스가 없어요.
-            </div>
-          )}
+          {news.length === 0 &&
+            (failed.news ? (
+              <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-[11px] leading-[1.6] text-ink">
+                뉴스를 불러오지 못했어요 (조회 실패). 수집된 뉴스가 없다는 뜻은 아니에요.
+              </div>
+            ) : (
+              <div className="text-[11px] text-text-3">
+                최근 7일 수집된 뉴스가 없어요.
+              </div>
+            ))}
           {news.map((n) => (
             <Link key={n.id} href={`/town/news/${n.id}`} className="group">
               <div className="text-[12px] font-bold leading-[1.45] text-ink group-hover:text-primary">
@@ -138,11 +175,16 @@ export default async function DigestPage() {
               {market[0]?.periodLabel ? ` · ${market[0].periodLabel} 기준` : ""}
             </span>
           </div>
-          {market.length === 0 && (
-            <div className="text-[11px] text-text-3">
-              시세 데이터를 준비 중이에요.
-            </div>
-          )}
+          {market.length === 0 &&
+            (failed.market ? (
+              <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-[11px] leading-[1.6] text-ink">
+                시세를 불러오지 못했어요 (조회 실패).
+              </div>
+            ) : (
+              <div className="text-[11px] text-text-3">
+                주요 지역 시세로 표시할 최신 스냅샷이 아직 없어요.
+              </div>
+            ))}
           {market.map((m) => (
             <div key={m.regionId} className="flex items-center justify-between text-[11px]">
               <span className="text-text-2">
@@ -165,7 +207,11 @@ export default async function DigestPage() {
               동네 이야기 ›
             </Link>
           </div>
-          {community.count === 0 ? (
+          {failed.community ? (
+            <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-[11px] leading-[1.6] text-ink">
+              이웃 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요.
+            </div>
+          ) : community.count === 0 ? (
             <div className="text-[11px] text-text-3">
               이번 주 새 이웃 글이 아직 없어요. 첫 글을 남겨보세요.
             </div>

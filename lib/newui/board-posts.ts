@@ -141,57 +141,76 @@ const BOARD_SELECT_LIGHT =
 
 type BoardQueryKind = "full" | "light";
 
-/** 실제 조회 — 요청당 한 번만 나가도록 아래 read* 래퍼가 감싼다. */
+/**
+ * 실제 조회 — 요청당 한 번만 나가도록 아래 read* 래퍼가 감싼다.
+ *
+ * **0건이면 빈 배열, 못 읽으면 던진다.**
+ *
+ * 2026-07-27: 예전에는 세 단계 재시도가 전부 실패해도 `return []` 이었다.
+ * 그래서 DB 가 흔들리면 /town 이 "아직 올라온 글이 없어요", /digest 가
+ * "이번 주 새로 모인 소식이 아직 없어요", 주간 다이제스트 크론이 skipped:"empty"
+ * 라고 **단언**했다 — 글도 뉴스도 있는데. 조회 실패를 데이터 없음으로 위장한
+ * 것이고, 그 위장은 화면·API·로그 세 군데에 동시에 남는다.
+ *
+ * 실패를 던지면 호출부가 "없음"과 "못 읽음"을 갈라서 말할 수 있다. 다만 던지는
+ * 쪽은 프리렌더 중인 페이지를 통째로 깨뜨릴 수 있으므로, 호출부는 각자
+ * `loadError` 같은 플래그로 받아서 **화면에** 실패를 적는다(던져서 배포를
+ * 깨뜨리지 않는다). 예: app/redevelopment/page.tsx 의 ProjectsData 패턴.
+ */
 async function fetchBoardPosts(limit: number, kind: BoardQueryKind): Promise<Post[]> {
   const sb = getReadOnlySupabase();
+  /* 미구성은 "고장"이 아니라 "이 환경엔 DB 가 없음"이다 — 던지지 않는다.
+     (getBoardPost 도 같은 자리에서 null 을 준다.) */
   if (!sb) return [];
   const plain = kind === "light" ? BOARD_SELECT_LIGHT : "*";
   const primary = kind === "light" ? BOARD_SELECT_LIGHT : BOARD_SELECT_WITH_COMMENTS;
-  try {
-    let { data, error } = await sb
+  let { data, error } = await sb
+    .from("board_posts")
+    .select(primary)
+    .eq("board_type", "community")
+    .eq("is_published", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error && primary !== plain) {
+    logger.error("[readBoardPosts] with-comments query failed", error);
+    // board_comments 중첩 카운트가 권한 등으로 막히면 카운트 없이 재시도
+    ({ data, error } = await sb
       .from("board_posts")
-      .select(primary)
+      .select(plain)
       .eq("board_type", "community")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
-      .limit(limit);
-    if (error && primary !== plain) {
-      logger.error("[readBoardPosts] with-comments query failed", error);
-      // board_comments 중첩 카운트가 권한 등으로 막히면 카운트 없이 재시도
-      ({ data, error } = await sb
+      .limit(limit));
+  }
+  if (error) {
+    logger.error("[readBoardPosts] plain query failed", error);
+    // Service Role 키 무효 등 클라이언트 자체 문제 대비 — anon으로 마지막 재시도
+    const anon = getAnonReadOnlySupabase();
+    if (anon && anon !== sb) {
+      ({ data, error } = await anon
         .from("board_posts")
         .select(plain)
         .eq("board_type", "community")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(limit));
+      if (error) logger.error("[readBoardPosts] anon query failed", error);
     }
-    if (error) {
-      logger.error("[readBoardPosts] plain query failed", error);
-      // Service Role 키 무효 등 클라이언트 자체 문제 대비 — anon으로 마지막 재시도
-      const anon = getAnonReadOnlySupabase();
-      if (anon && anon !== sb) {
-        ({ data, error } = await anon
-          .from("board_posts")
-          .select(plain)
-          .eq("board_type", "community")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false })
-          .limit(limit));
-        if (error) logger.error("[readBoardPosts] anon query failed", error);
-      }
-    }
-    if (error || !Array.isArray(data)) return [];
-    /* select() 인자가 리터럴이 아니라 변수라서 supabase-js 의 타입 수준 파서가
-       행 모양을 못 풀고 GenericStringError 로 떨어진다. 런타임 모양은 그대로
-       행 객체이므로 unknown 을 한 번 거쳐 넘긴다. */
-    return applyNewsQualityGate(
-      data.map((r) => boardRowToPost(r as unknown as Record<string, unknown>)),
-    );
-  } catch (e) {
-    logger.error("[readBoardPosts]", e);
-    return [];
   }
+  if (error) {
+    throw new Error(`board_posts 조회 실패: ${error.message ?? "알 수 없는 오류"}`);
+  }
+  /* error 가 없는데 배열이 아니면 응답 모양 자체가 이상한 것이다. 이것도 실패다 —
+     빈 배열로 바꾸면 다시 "글 없음"으로 둔갑한다. */
+  if (!Array.isArray(data)) {
+    throw new Error("board_posts 조회 실패: 응답이 배열이 아닙니다.");
+  }
+  /* select() 인자가 리터럴이 아니라 변수라서 supabase-js 의 타입 수준 파서가
+     행 모양을 못 풀고 GenericStringError 로 떨어진다. 런타임 모양은 그대로
+     행 객체이므로 unknown 을 한 번 거쳐 넘긴다. */
+  return applyNewsQualityGate(
+    data.map((r) => boardRowToPost(r as unknown as Record<string, unknown>)),
+  );
 }
 
 /**
@@ -211,7 +230,7 @@ async function fetchBoardPosts(limit: number, kind: BoardQueryKind): Promise<Pos
  */
 const loadBoardPosts = cache(fetchBoardPosts);
 
-/** board_posts 공개(community) 글 최신순 — 실패 시 빈 배열. 요청당 1회로 접힌다. */
+/** board_posts 공개(community) 글 최신순 — **0건이면 빈 배열, 실패하면 던진다.** 요청당 1회. */
 export function readBoardPosts(limit: number = BOARD_POSTS_LIMIT): Promise<Post[]> {
   return loadBoardPosts(limit, "full");
 }
@@ -278,7 +297,12 @@ function displayTime(p: Post): number {
 
 /**
  * town 화면용 병합 피드 — posts 스토어 + board_posts 둘 다 시도해 합치고
- * (id·external_key 로 중복 제거) 최신순 정렬. 실패 시 빈 배열.
+ * (id·external_key 로 중복 제거) 최신순 정렬.
+ *
+ * **board_posts 조회가 실패하면 던진다.** posts 스토어 쪽 실패만 삼키는데,
+ * 그건 board_posts 가 이 피드의 주 소스라 한쪽만 빠져도 목록이 성립하기
+ * 때문이다(그리고 그 삼킴은 로그에 남는다). 양쪽이 다 실패인 상황을 빈
+ * 배열로 돌려주면 화면이 "글이 없다"고 단언하게 된다 — 그건 사실이 아니다.
  *
  * readBoardPosts 와 같은 이유로 요청당 1회로 접는다 — /town/news 는 본문과
  * getWeeklyDigest 양쪽에서 이걸 부른다. 인자가 없어 캐시 키 문제도 없다.
