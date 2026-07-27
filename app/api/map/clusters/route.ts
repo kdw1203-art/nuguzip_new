@@ -86,7 +86,16 @@ export interface MapPointItem {
   households?: number;
 }
 
-/** complex_tx_stats 에서 뷰포트 단지들의 필터 속성을 한 번에 읽는다. */
+/**
+ * 뷰포트 안 단지들의 상세 필터 속성 — map_complex_attrs RPC 한 번.
+ *
+ * PostgREST 로 직접 읽던 초기 구현은 두 번 막혔다.
+ *  · 단지명 300개를 IN 에 넣으면 한글 URL 인코딩으로 쿼리스트링이 10KB 를 넘어
+ *    요청 자체가 실패했다("TypeError: fetch failed").
+ *  · 지역 이름으로만 좁히면 서울 한복판에서 3만 행이 넘어와 25초 읽기 상한에 걸렸다.
+ * 좌표로 잘라야 하는데 complex_tx_stats 에는 좌표가 없어, complex_geocode 와의
+ * 조인을 DB 쪽 함수로 옮겼다.
+ */
 type FilterAttrs = {
   avgPriceManwon?: number;
   avgAreaM2?: number;
@@ -95,25 +104,21 @@ type FilterAttrs = {
 };
 
 async function fetchFilterAttrs(
-  sb: NonNullable<ReturnType<typeof getReadOnlySupabase>>,
-  pairs: { region: string; name: string }[],
+  sb: ReadOnlySb,
+  bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number },
 ): Promise<Map<string, FilterAttrs>> {
   const out = new Map<string, FilterAttrs>();
-  if (pairs.length === 0) return out;
-  const regions = [...new Set(pairs.map((p) => p.region))];
-  const names = [...new Set(pairs.map((p) => p.name))];
-  const want = new Set(pairs.map((p) => complexKey(p.region, p.name)));
-  const { data, error } = await sb
-    .from("complex_tx_stats")
-    .select("region_name,complex_name,avg_price_manwon,avg_area_m2,build_year,households")
-    .in("region_name", regions)
-    .in("complex_name", names)
-    .limit(5_000);
-  /* 이 조회가 실패해도 포인트 자체는 그린다 — 필터 속성이 없으면 필터를 켰을 때
-     그 마커가 빠질 뿐이고, 마커를 통째로 못 그리는 것보다 낫다. 다만 조용히
-     넘기지는 않는다. */
+  const { data, error } = await sb.rpc("map_complex_attrs", {
+    p_min_lat: bounds.minLat,
+    p_max_lat: bounds.maxLat,
+    p_min_lng: bounds.minLng,
+    p_max_lng: bounds.maxLng,
+    p_limit: MAX_POINTS,
+  });
+  /* 이 조회가 실패해도 포인트 자체는 그린다 — 속성이 없으면 필터를 켰을 때 그
+     마커가 빠질 뿐이고, 마커를 통째로 못 그리는 것보다 낫다. 조용히 넘기지는 않는다. */
   if (error) {
-    logger.warn("[map/clusters] complex_tx_stats 속성 조회 실패", { message: error.message });
+    logger.warn("[map/clusters] map_complex_attrs 실패", { message: error.message });
     return out;
   }
   const num = (v: unknown): number | undefined => {
@@ -122,7 +127,7 @@ async function fetchFilterAttrs(
   };
   for (const r of (data ?? []) as Array<Record<string, unknown>>) {
     const key = complexKey(String(r.region_name ?? ""), String(r.complex_name ?? ""));
-    if (!want.has(key) || out.has(key)) continue;
+    if (out.has(key)) continue;
     out.set(key, {
       avgPriceManwon: num(r.avg_price_manwon),
       avgAreaM2: num(r.avg_area_m2),
@@ -466,7 +471,7 @@ export async function GET(req: NextRequest) {
         txType === "rent"
           ? fetchJeonseByComplex(sb, pairs)
           : Promise.resolve(new Map<string, RentBucket>()),
-        fetchFilterAttrs(sb, pairs),
+        fetchFilterAttrs(sb, bounds),
       ]);
 
       const points: MapPointItem[] = geoRows.map((r) => {

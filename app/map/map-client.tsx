@@ -833,8 +833,9 @@ export function MapClient({
             보였지만 onClick 이 없는 <span> 이었다. 고를 것이 하나뿐이면 그건
             컨트롤이 아니라 설명이다 — 칩 껍데기를 벗겼다. */}
         <p className="text-[11px] leading-[1.5] text-text-2">
-          국토부 아파트 실거래만 수집하고 있어 <b className="text-ink">아파트</b>만 표시됩니다.
-          오피스텔·빌라는 준비 중이에요.
+          지금 수집하는 국토부 실거래가 <b className="text-ink">아파트</b>뿐이라 아파트만
+          표시됩니다. 오피스텔·연립다세대는 수집 준비가 끝났고, 화면에 유형 선택이 붙는 대로
+          함께 보여드릴게요.
         </p>
       </div>
       <FilterChipGroup

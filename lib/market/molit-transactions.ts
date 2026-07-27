@@ -23,11 +23,84 @@ import { logger } from "@/lib/log";
 /** 1평 = 3.305785㎡ */
 const M2_PER_PYEONG = 3.305785;
 
-/** 적재 대상 유형 — 아파트 매매/전월세 (기존 market_transactions 구성과 동일) */
-const TARGET_TYPES: { type: MolitRtmsType; transactionType: "trade" | "rent" }[] = [
-  { type: "apt-sale", transactionType: "trade" },
-  { type: "apt-rent", transactionType: "rent" },
-];
+/**
+ * 적재 대상 유형.
+ *
+ * ── 왜 아파트만 켜져 있나 (2026-07-27) ──────────────────────────────────────
+ * 국토부 API 는 오피스텔·연립다세대도 준다(lib/national-data/molit-api.ts 의
+ * RTMS_TYPES 에 이미 있다). 그런데 켜기 전에 두 가지가 먼저 필요했다.
+ *
+ *  1) 집계가 유형을 구분해야 한다. 어제까지 map_price_point_mv·complex_tx_stats·
+ *     tx_band_* 는 property_type 조건이 **없었다**. 그 상태로 오피스텔을 넣으면
+ *     지도 색상·평단가·"평균 매매가"가 아파트와 오피스텔을 섞어 평균 낸다.
+ *     화면 어디에도 안 드러나고 숫자만 그럴듯하게 틀린다.
+ *     → 마이그레이션 20260727150000 에서 다섯 집계에 조건을 명시했다.
+ *  2) 화면에 유형 선택이 있어야 한다. 없으면 데이터를 넣어도 아무도 못 본다.
+ *     지도 필터의 "유형"은 아직 아파트 단일이다.
+ *
+ *  (1)은 끝났고 (2)는 남았다. 그래서 수집만 먼저 켤 수 있게 스위치를 둔다 —
+ *  국토부 API 는 과거 월을 되짚어 주긴 하지만 지금부터 쌓아 두면 나중에 화면이
+ *  붙는 날 바로 보여 줄 수 있다.
+ *
+ * ── 켜는 법 ─────────────────────────────────────────────────────────────────
+ * 환경변수 `MOLIT_PROPERTY_TYPES` (쉼표 구분, 기본 "apartment"):
+ *   apartment            아파트 매매·전월세      (기본)
+ *   officetel            오피스텔 매매·전월세
+ *   rowhouse             연립다세대 매매
+ * 예) MOLIT_PROPERTY_TYPES=apartment,officetel
+ *
+ * 켜기 전에 알아 둘 것: 유형 하나당 시군구 253개 × 월 1회 왕복이 그대로 늘고,
+ * market_transactions 행 수도 함께 늘어난다. DB 용량·ETL 시간에 직접 영향이 있다
+ * (2026-07-27 에 Nano 티어가 데이터 증가로 응답 불능이 된 전례가 있다).
+ */
+type TargetType = {
+  type: MolitRtmsType;
+  transactionType: "trade" | "rent";
+  /** market_transactions.property_type 에 그대로 들어간다 — 집계가 이 값으로 유형을 가른다 */
+  propertyType: string;
+};
+
+const ALL_TARGET_TYPES: Record<string, TargetType[]> = {
+  apartment: [
+    { type: "apt-sale", transactionType: "trade", propertyType: "apartment" },
+    { type: "apt-rent", transactionType: "rent", propertyType: "apartment" },
+  ],
+  officetel: [
+    { type: "offi-sale", transactionType: "trade", propertyType: "officetel" },
+    { type: "offi-rent", transactionType: "rent", propertyType: "officetel" },
+  ],
+  rowhouse: [{ type: "rh-sale", transactionType: "trade", propertyType: "rowhouse" }],
+};
+
+/**
+ * 이번 실행에서 수집할 유형 목록.
+ *
+ * 알 수 없는 값은 조용히 무시하지 않고 경고로 남긴다 — 오타 하나로 오피스텔이
+ * 안 쌓이고 있는데 아무도 모르는 상황을 만들지 않기 위해서다.
+ */
+export function resolveTargetTypes(): TargetType[] {
+  const raw = (process.env.MOLIT_PROPERTY_TYPES ?? "apartment").trim();
+  const keys = raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const out: TargetType[] = [];
+  const seen = new Set<string>();
+  for (const k of keys) {
+    const group = ALL_TARGET_TYPES[k];
+    if (!group) {
+      logger.warn(
+        `[molit] MOLIT_PROPERTY_TYPES 에 모르는 값이 있어 건너뜁니다: "${k}" (가능: ${Object.keys(ALL_TARGET_TYPES).join(", ")})`,
+      );
+      continue;
+    }
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(...group);
+  }
+  // 전부 알 수 없는 값이면 아무것도 안 쌓이는 것보다 기본값이 낫다.
+  return out.length > 0 ? out : ALL_TARGET_TYPES.apartment;
+}
 
 /**
  * 시군구 정보 → market_transactions.region_name 표기.
@@ -122,7 +195,14 @@ export function isCancelledDeal(raw: Record<string, unknown> | null | undefined)
 /** 거래 1건 → market_transactions row. 필수값(계약일·단지명) 없으면 null. */
 function toRow(
   deal: MolitDeal,
-  ctx: { info: SigunguInfo; regionName: string; yyyymm: string; kind: "trade" | "rent"; type: MolitRtmsType },
+  ctx: {
+    info: SigunguInfo;
+    regionName: string;
+    yyyymm: string;
+    kind: "trade" | "rent";
+    type: MolitRtmsType;
+    propertyType: string;
+  },
 ): Record<string, unknown> | null {
   const day = Number(deal.dealDate.slice(8, 10));
   if (!deal.dealDate || !Number.isFinite(day) || day <= 0) return null;
@@ -151,7 +231,9 @@ function toRow(
     external_key: `molit-cron:${digest}`,
     source: "MOLIT",
     transaction_type: ctx.kind,
-    property_type: "apartment",
+    /* 예전엔 "apartment" 로 고정돼 있었다. 오피스텔·연립다세대를 켜면 그 거래까지
+       아파트로 적재돼, 유형을 구분하는 집계가 있어도 소용이 없었다. */
+    property_type: ctx.propertyType,
     region_code: ctx.info.sigunguCd,
     region_name: ctx.regionName,
     complex_name: name,
@@ -232,6 +314,12 @@ export async function ingestMolitTransactions(opts: {
   const yyyymm = (opts.yyyymm ?? defaultTargetMonth(now)).replace(/[^0-9]/g, "").slice(0, 6);
   const all = listMolitSigungu();
   const sliceSize = Math.max(1, Math.min(60, opts.sliceSize ?? 16));
+  /* 수집 유형은 실행마다 환경변수로 정해진다(기본 아파트). 왜 스위치로 뒀는지는
+     ALL_TARGET_TYPES 위 주석 참고. */
+  const targetTypes = resolveTargetTypes();
+  logger.info(
+    `[molit] ${yyyymm} 수집 유형: ${targetTypes.map((t) => t.type).join(", ")}`,
+  );
 
   const base: Omit<MolitIngestResult, "ok" | "reason"> = {
     configured: true,
@@ -330,7 +418,7 @@ export async function ingestMolitTransactions(opts: {
       result.attempted += 1;
       const rows: Record<string, unknown>[] = [];
       let mode: "live" | "mock" = "mock";
-      for (const t of TARGET_TYPES) {
+      for (const t of targetTypes) {
         const res = await fetchMolitDeals(t.type, {
           lawdCd: info.sigunguCd, // 이름 매칭 금지 — 동명이구 오적재 방지 (아래 커밋 메시지 참고)
           district: info.sigungu,
@@ -339,7 +427,14 @@ export async function ingestMolitTransactions(opts: {
         });
         if (res.mode === "live") mode = "live";
         for (const deal of res.deals) {
-          const row = toRow(deal, { info, regionName, yyyymm, kind: t.transactionType, type: t.type });
+          const row = toRow(deal, {
+            info,
+            regionName,
+            yyyymm,
+            kind: t.transactionType,
+            type: t.type,
+            propertyType: t.propertyType,
+          });
           if (row) rows.push(row);
         }
       }

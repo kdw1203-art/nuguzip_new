@@ -66,12 +66,20 @@ as $$
         when lower(r.sigungu) = q.nq then 95
         -- 앞글자 일치: "마포" → 마포구, "분당" → 성남 분당구
         when lower(r.sigungu) like q.nq || '%' then 90
+        /* 시도 이름만 친 경우("경기")는 display_name 접두 일치(85)보다 **먼저**
+           본다. 뒤에 두면 "경기 의왕시"처럼 표기에 시도가 붙은 곳만 85 로 올라와
+           목록 앞을 차지하고, 정작 유명한 곳(화성시·성남 분당구)은 밀린다. */
+        when lower(r.sido) = q.nq then 80
         when lower(regexp_replace(r.display_name, '\s+', '', 'g')) like q.nq || '%' then 85
-        -- 시도 이름만 친 경우: "경기" → 경기 전체 (부천시처럼 접두어가 없는 곳까지)
-        when lower(r.sido) = q.nq then 60
         when lower(regexp_replace(r.display_name, '\s+', '', 'g')) like '%' || q.nq || '%' then 70
-        -- 표기 흔들림·오타: "해운데" → 부산 해운대구
-        else 30 + 40 * similarity(lower(regexp_replace(r.display_name, '\s+', '', 'g')), q.nq)
+        /* 표기 흔들림·오타: "해운데" → 부산 해운대구.
+           display_name 과 sigungu 중 더 닮은 쪽을 본다 — 앞에 시도가 붙은 이름은
+           질의가 짧을수록 유사도가 깎여서, sigungu 를 같이 안 보면 못 찾는다
+           (similarity('부산해운대구','해운데')=0 · similarity('해운대구','해운데')=0.286). */
+        else 30 + 40 * greatest(
+               similarity(lower(regexp_replace(r.display_name, '\s+', '', 'g')), q.nq),
+               similarity(lower(r.sigungu), q.nq)
+             )
       end as score
     from public.legal_regions r
     cross join q
@@ -81,8 +89,8 @@ as $$
     s.lawd_cd, s.display_name, s.sido, s.sigungu, s.lat, s.lng, s.score
   from scored s
   cross join q
-  -- 빈 질의는 "인기 지역" 기본 목록, 질의가 있으면 유사도 하한(=trgm 0.3) 아래는 버린다.
-  where (q.nq = '' or s.score >= 42)
+  -- 빈 질의는 "인기 지역" 기본 목록, 질의가 있으면 유사도 하한(trgm 0.25) 아래는 버린다.
+  where (q.nq = '' or s.score >= 40)
   order by
     s.score desc,
     s.priority desc nulls last,
