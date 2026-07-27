@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSession, addSessionMedia } from "@/lib/inspection/session-store";
 import { uploadFile, recordUpload } from "@/lib/storage/upload";
+import { isAllowedSupabaseUrl } from "@/lib/storage/assert-supabase-url";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
@@ -60,6 +61,15 @@ export async function POST(req: Request, ctx: Ctx) {
 
   const publicUrl = String(form.get("publicUrl") ?? "").trim();
   if (publicUrl) {
+    /* 파일 없이 URL 만 받는 길이다. 이 값은 나중에 STT 잡이 **서버에서** 그대로
+       fetch 하므로, 아무 URL 이나 받으면 그 자리가 SSRF 창구가 된다. 우리 스토리지
+       오리진만 허용한다(lib/storage/assert-supabase-url.ts 의 근거 참고). */
+    if (!isAllowedSupabaseUrl(publicUrl)) {
+      return NextResponse.json(
+        { error: "허용되지 않은 URL 입니다. 파일 업로드 URL만 사용할 수 있습니다." },
+        { status: 400 },
+      );
+    }
     const media = await addSessionMedia({
       sessionId,
       mediaType,

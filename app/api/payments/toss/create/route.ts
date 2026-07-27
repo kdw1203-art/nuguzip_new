@@ -12,7 +12,12 @@ type Body = {
   billing?: "monthly" | "annual";
   source?: string;
   campaign?: string;
+  /** 유료 리포트 결제일 때의 대상 리포트. metadata 에 박아 결제를 그 리포트에 묶는다. */
+  reportId?: string;
 };
+
+/** report_purchases 검증에서 쓰는 결속 값이라 형식(uuid)을 여기서 확정해 둔다. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req: NextRequest) {
   const limited = await applyRateLimit(req, AUTH_RATE_LIMIT);
@@ -32,6 +37,14 @@ export async function POST(req: NextRequest) {
   const campaign = body.campaign?.trim().slice(0, 80) || "toss";
   if (!tier || !["basic", "pro", "expert", "enterprise"].includes(tier)) {
     return NextResponse.json({ error: "invalid tier" }, { status: 400 });
+  }
+
+  /* 리포트 결제는 "어느 리포트를 위한 돈인가"를 생성 시점에 못 박는다.
+     이게 없으면 결제 1건이 리포트 전부를 여는 열쇠가 된다
+     (app/api/reports/[id]/purchase 가 이 값을 대조한다). */
+  const reportId = body.reportId?.trim() || null;
+  if (reportId && !UUID_RE.test(reportId)) {
+    return NextResponse.json({ error: "invalid reportId" }, { status: 400 });
   }
 
   const session = await safeAuth();
@@ -55,6 +68,7 @@ export async function POST(req: NextRequest) {
     billing,
     amount,
     withinMinutes: 15,
+    reportId,
   });
   if (recent) {
     return NextResponse.json({
@@ -74,7 +88,7 @@ export async function POST(req: NextRequest) {
       plan: tier,
       billing,
       amount,
-      metadata: { source, campaign },
+      metadata: { source, campaign, ...(reportId ? { reportId } : {}) },
     });
     return NextResponse.json({
       orderId: rec.orderId,

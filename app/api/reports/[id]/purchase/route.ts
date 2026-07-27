@@ -129,7 +129,9 @@ export async function POST(
         reportId: id,
         userEmail: session.user.email,
         amount: 0,
-        paymentId: `plan-benefit-${plan}`,
+        /* payment_id 에 유니크 인덱스가 붙었다(20260727090500). 결제가 아닌
+           출처는 리포트·구매자까지 넣어야 서로 다른 사람의 기록이 충돌하지 않는다. */
+        paymentId: `plan-benefit:${plan}:${id}:${session.user.email.toLowerCase()}`,
       });
       return NextResponse.json({ ok: true, purchase, reason: "plan_benefit" });
     } catch {
@@ -167,6 +169,20 @@ export async function POST(
   }
   if (Number(paidByOrder.amount) < Number(report.price)) {
     return NextResponse.json({ error: "결제 금액이 부족합니다." }, { status: 400 });
+  }
+  /* 이 결제가 **이 리포트를 위해** 만들어진 것인가.
+     위 검사들은 "결제가 있고, 승인됐고, 본인 것"까지만 말한다. 대상이 빠져 있어서
+     리포트 하나를 결제한 뒤 같은 paymentId·orderId 로 다른 리포트를 계속 열 수
+     있었다(hasPurchased 는 (reportId, userEmail) 로만 보므로 다른 리포트에서는
+     걸리지 않는다). 결속은 결제 생성 시점에 metadata.reportId 로 박아 둔다
+     (app/api/payments/toss/create). 값이 없는 결제는 대상이 없는 결제이므로 거절한다. */
+  const boundReportId =
+    typeof paidByOrder.metadata.reportId === "string" ? paidByOrder.metadata.reportId : null;
+  if (boundReportId !== id) {
+    return NextResponse.json(
+      { error: "이 결제는 다른 리포트의 결제입니다. 결제를 다시 진행해 주세요." },
+      { status: 400 },
+    );
   }
 
   try {

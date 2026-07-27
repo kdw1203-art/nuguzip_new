@@ -698,6 +698,16 @@ DB를 재구성해야 한다면 `supabase/migrations/README.md` 의 복원 절�
   message text
   updated_at timestamptz
 
+### iap_receipts (8 cols, RLS)
+  id uuid NOT NULL PK
+  platform text NOT NULL
+  transaction_key text NOT NULL
+  product_id text NOT NULL
+  user_email text NOT NULL
+  expires_at timestamptz
+  raw jsonb
+  created_at timestamptz NOT NULL
+
 ### inspection_ai_jobs (12 cols, RLS)
   id uuid NOT NULL PK
   session_id uuid ->inspection_sessions
@@ -1633,7 +1643,7 @@ DB를 재구성해야 한다면 `supabase/migrations/README.md` 의 복원 절�
   report_id uuid NOT NULL ->reports
   user_email text NOT NULL
   amount integer NOT NULL
-  payment_id uuid ->payments
+  payment_id text
   purchased_at timestamptz NOT NULL
 
 ### reports (21 cols, RLS)

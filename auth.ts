@@ -13,6 +13,7 @@ import { isTossLoginEnabled } from "@/lib/auth/toss-login";
 import { recordAuthLoginOutcome } from "@/lib/auth/login-telemetry";
 import { logger } from "@/lib/log";
 import { isAllowlistedAdmin, resolveProjectAdminEmail } from "@/lib/auth/admin-emails";
+import { keyRateLimit, getClientIp, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 
 /** 프로덕션에서는 반드시 `AUTH_SECRET` 환경변수를 두세요. 비우면 세션 API가 500 → ClientFetchError 납니다. */
 const DEV_AUTH_SECRET_FALLBACK =
@@ -92,6 +93,47 @@ function secretEquals(provided: string, expected: string): boolean {
 }
 
 /**
+ * 자격증명 로그인 시도 제한 — **authorize() 안에서** 건다.
+ *
+ * 왜 여기인가: 속도 제한과 Turnstile 은 /api/auth/login-guard 라는 별도 라우트에
+ * 있었고, 그건 로그인 화면이 스스로 부르는 것이었다. 즉 화면을 거치지 않고
+ * `/api/auth/callback/password` 로 바로 POST 하면 두 방어가 통째로 없다 —
+ * 비밀번호 대입에 아무 제한이 없는 상태다. 프로바이더 안쪽은 우회할 방법이 없다.
+ *
+ * 키는 제출된 이메일 + (닿으면) IP 다. 이메일만 쓰면 한 공격자가 계정을 갈아 가며
+ * 무제한으로 시도할 수 있고, IP 만 쓰면 공유 IP 뒤의 정상 사용자가 같이 막힌다.
+ * 막혔을 때는 null(= 인증 실패)을 돌려준다 — NextAuth 의 authorize 계약이 그렇고,
+ * "제한에 걸렸다"와 "비밀번호가 틀렸다"를 밖에서 구분하지 못하게 하는 편이 낫다.
+ */
+async function credentialThrottleBlocked(
+  scope: string,
+  identity: string,
+  request?: unknown,
+): Promise<boolean> {
+  const max = AUTH_RATE_LIMIT.max ?? 10;
+  const windowMs = AUTH_RATE_LIMIT.windowMs ?? 5 * 60_000;
+  const headers =
+    request && typeof request === "object" && "headers" in request
+      ? (request as { headers: Headers }).headers
+      : null;
+  const ip = headers ? getClientIp({ headers }) : "unknown";
+  const keys = [
+    `auth:${scope}:id:${identity.toLowerCase()}`,
+    ...(ip !== "unknown" ? [`auth:${scope}:ip:${ip}`] : []),
+  ];
+  for (const key of keys) {
+    const rl = await keyRateLimit(key, { max, windowMs });
+    /* degraded = 카운터를 못 셌다. 인증 경로에서 그걸 통과로 읽으면
+       "백엔드를 죽이면 무제한 대입" 이 되므로 막는다(lib/rate-limit.ts 참고). */
+    if (!rl.ok || rl.degraded) {
+      logger.warn(`[auth] 로그인 시도 제한 — ${scope}`);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * 테스트 계정 로그인 — `TEST_ACCOUNT_ENABLED=1` 일 때만 (운영 기본 off).
  */
 const testAccountEnabled = process.env.TEST_ACCOUNT_ENABLED?.trim() === "1";
@@ -123,7 +165,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: { label: "이메일", type: "email" },
               password: { label: "비밀번호", type: "password" },
             },
-            async authorize(credentials) {
+            async authorize(credentials, request) {
+              const email = String(credentials?.email ?? "").trim();
+              if (!email) return null;
+              if (await credentialThrottleBlocked("password", email, request)) {
+                return null;
+              }
               const { authorizeWithPassword } = await import(
                 "@/lib/auth/password-login"
               );
@@ -218,10 +265,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             credentials: {
               token: { label: "액세스 토큰", type: "password" },
             },
-            async authorize(credentials) {
+            async authorize(credentials, request) {
               const token = String(credentials?.token ?? "").trim();
               const expected = process.env.EMERGENCY_ACCESS_TOKEN?.trim();
-              if (!token || !expected || !secretEquals(token, expected)) return null;
+              if (!token) return null;
+              /* 문자열 하나로 관리자 권한을 내주는 경로다. 여기서는 이메일 같은
+                 계정 식별자가 없으므로 IP 와 **전역 카운터** 로 묶는다 — 제출된
+                 토큰을 키로 쓰면 값을 매번 바꾸는 대입에 카운터가 따라붙지 못하고,
+                 비밀값을 키·로그로 흘리게 된다. 계정이 하나뿐인 경로라 전역 상한이
+                 오히려 맞다. */
+              if (await credentialThrottleBlocked("emergency-token", "global", request)) {
+                return null;
+              }
+              if (!expected || !secretEquals(token, expected)) return null;
               const adminEmail = resolveProjectAdminEmail();
               if (!adminEmail) return null;
               return {

@@ -12,8 +12,16 @@ regexes = [
   # 비밀이 아니라 소유 증명용 공개 토큰이다. https://www.indexnow.org/documentation
   '''4a720d8a3dc61704cf05d0fe9e92900b''',
 ]
-paths = [
-  '''\.env\.production$''',
-  '''\.env\.example$''',
-  '''lib/seo/indexnow\.ts$''',
-]
+# paths(경로 통째 제외)는 두지 않는다.
+#
+# 2026-07-27 감사에서 발견: 여기 `\.env\.production$` · `\.env\.example$` 가
+# **파일 전체**를 스캔에서 뺐다. 그런데 .gitignore 는 `.env*` 를 무시해 놓고 바로
+# 다음 줄에서 `!.env.production` 으로 되살린다. 두 설정이 겹친 결과는
+# "`.env.production` 에 진짜 시크릿을 쓰면 기본으로 커밋되고, CI 스캐너는 그 파일을
+# 쳐다보지도 않는다" — 유출을 잡으라고 둔 게이트가 하필 그 파일에서만 눈을 감는다.
+#
+# 지금 그 파일들에 든 값(Supabase 프로젝트 URL·publishable 키)과 IndexNow 키는
+# 위 regexes 가 **값 단위로** 이미 허용한다. 그러니 파일은 스캔하되 알려진 공개
+# 값만 조용히 넘긴다 — 새 시크릿이 들어오면 그때는 걸린다.
+#
+# 경로 단위 제외가 정말 필요한 것(예: 락파일)이 생기면 그때 여기에 paths 를 다시 만든다.

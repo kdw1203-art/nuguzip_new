@@ -205,11 +205,43 @@ export async function awardPoints(
     if (amount <= 0) {
       return { ok: false, awarded: 0, balance: await balanceForFailure(email), reason: "cap" };
     }
-    const bal = await getBalance(email);
-    const newBal = bal + amount;
     const expires = new Date(now);
     expires.setMonth(expires.getMonth() + POINT_EXPIRY_MONTHS);
-    const { error } = await sb.from("point_ledger").insert({
+
+    /* 적립도 차감과 같은 자물쇠 안에서 한다(point_ledger_award).
+       예전에는 "잔액 조회 → insert" 두 왕복이라, 같은 사용자의 적립과 차감이
+       겹치면 나중에 쓰는 쪽이 앞선 쪽의 러닝 잔액을 통째로 덮었다 —
+       적립 한 번으로 동시에 일어난 차감을 지워 포인트를 되돌릴 수 있었다. */
+    const { data, error } = await sb.rpc("point_ledger_award", {
+      p_user_email: email,
+      p_amount: amount,
+      p_reason: rule.key,
+      p_ref_id: refId ?? null,
+      p_expires_at: expires.toISOString(),
+    });
+    if (!error) {
+      const r = (data ?? {}) as {
+        ok?: boolean;
+        awarded?: number;
+        balance?: number;
+        reason?: string;
+      };
+      return {
+        ok: Boolean(r.ok),
+        awarded: Number(r.awarded) || 0,
+        balance: Number(r.balance) || 0,
+        reason: r.ok ? undefined : (r.reason ?? "error"),
+      };
+    }
+    if (!isMissingRpc(error, "point_ledger_award")) {
+      logger.error("[awardPoints] rpc", error);
+      return { ok: false, awarded: 0, balance: await balanceForFailure(email), reason: "db" };
+    }
+
+    // ── 폴백(비원자): RPC 함수가 아직 없는 환경 전용 ──
+    const bal = await getBalance(email);
+    const newBal = bal + amount;
+    const { error: insertError } = await sb.from("point_ledger").insert({
       user_email: email,
       delta: amount,
       reason: rule.key,
@@ -217,8 +249,8 @@ export async function awardPoints(
       balance: newBal,
       expires_at: expires.toISOString(),
     });
-    if (error) {
-      logger.error("[awardPoints] insert", error);
+    if (insertError) {
+      logger.error("[awardPoints] insert", insertError);
       return { ok: false, awarded: 0, balance: bal, reason: "db" };
     }
     return { ok: true, awarded: amount, balance: newBal };
@@ -236,11 +268,14 @@ export type SpendResult = {
 };
 
 /** RPC 미배포(마이그레이션 전) 감지 — PostgREST 는 함수를 못 찾으면 PGRST202 를 준다 */
-function isMissingRpc(error: { code?: string; message?: string } | null): boolean {
+function isMissingRpc(
+  error: { code?: string; message?: string } | null,
+  fnName = "point_ledger_spend",
+): boolean {
   if (!error) return false;
   if (error.code === "PGRST202" || error.code === "42883") return true;
   const msg = error.message ?? "";
-  return /point_ledger_spend/.test(msg) && /(not find|not exist|does not exist)/i.test(msg);
+  return msg.includes(fnName) && /(not find|not exist|does not exist)/i.test(msg);
 }
 
 /**

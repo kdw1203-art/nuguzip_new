@@ -17,6 +17,7 @@
  * 다른 사실이다.
  */
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { assertSupabaseUrl } from "@/lib/storage/assert-supabase-url";
 import type { StructuredReport } from "@/lib/inspection/ontology";
 
 export type SessionStatus =
@@ -292,6 +293,11 @@ export async function addSessionMedia(input: {
   sizeBytes?: number;
   exif?: Record<string, unknown>;
 }): Promise<SessionMedia> {
+  /* public_url 은 STT 잡이 서버에서 그대로 fetch 하는 값이다. 여기까지 검증 없이
+     들어오면 라우트 한 곳만 뚫려도 SSRF 가 된다 — 저장 직전에 한 번 더 막는다
+     (근거: lib/storage/assert-supabase-url.ts). */
+  if (input.publicUrl) assertSupabaseUrl(input.publicUrl);
+
   const sb = getServiceSupabase();
   const now = new Date().toISOString();
   const rec: SessionMedia = {

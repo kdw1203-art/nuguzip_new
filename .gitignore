@@ -10,6 +10,10 @@ npm-debug.log*
 # env files
 .env*
 !.env.example
+# .env.production 은 의도적으로 추적한다 — 안에 든 값은 Supabase 프로젝트 URL 과
+# publishable 키뿐이고 둘 다 설계상 공개 값이다(RLS 로 보호). 다만 "무시 해제"는
+# 이 파일에 시크릿을 적어도 그냥 커밋된다는 뜻이기도 해서, .gitleaks.toml 의
+# 경로 제외를 걷어내 이 파일도 스캔 대상이 되게 했다(2026-07-27).
 !.env.production
 # vercel
 .vercel

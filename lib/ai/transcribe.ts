@@ -1,4 +1,5 @@
 import { getOpenAiApiKey } from "@/lib/ai/env-keys";
+import { isAllowedSupabaseUrl } from "@/lib/storage/assert-supabase-url";
 
 export type TranscribeResult = {
   text: string;
@@ -56,7 +57,12 @@ export async function transcribeAudioUrl(
   if (opts?.clientText?.trim()) {
     return { text: opts.clientText.trim(), source: "client_stt" };
   }
-  if (!url.startsWith("http")) return { text: "", source: "invalid_url" };
+  /* 사용자가 준 URL 을 서버가 그대로 가져가면 SSRF 다. 예전 검사는
+     `startsWith("http")` 뿐이라 http://169.254.169.254/latest/meta-data/ (클라우드
+     인스턴스 메타데이터)·127.0.0.1·사설망이 전부 통과했고, 본문 일부가 transcript
+     로 돌아왔다. 우리가 실제로 읽어야 하는 것은 우리 Supabase 스토리지 파일
+     하나뿐이므로, 그 오리진만 허용한다. */
+  if (!isAllowedSupabaseUrl(url)) return { text: "", source: "invalid_url" };
   try {
     const audioRes = await fetch(url);
     if (!audioRes.ok) return { text: "", source: "fetch_failed" };

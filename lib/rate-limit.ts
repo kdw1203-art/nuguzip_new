@@ -19,6 +19,16 @@ export interface RateLimitOptions {
   windowMs?: number;
   /** 요청자 식별 키. 기본은 X-Forwarded-For → 연결 IP */
   keyFn?: (req: NextRequest) => string;
+  /**
+   * 백엔드(Upstash) 장애로 카운트를 못 셌을 때 **막을지**(true) 통과시킬지(false).
+   *
+   * 기본은 통과(fail-open)다. 지도·목록 같은 읽기 경로에서 Redis 가 잠깐 흔들렸다고
+   * 사이트 전체를 429 로 닫는 것은 남용 완화보다 비싼 대가다.
+   * 인증 경로만 반대로 잡는다 — 거기서 fail-open 은 "카운터를 죽이면 무제한
+   * 비밀번호 대입이 가능하다"는 뜻이고, 공격자가 만들 수 있는 상태다.
+   * 잘못 막았을 때의 대가(잠시 로그인 지연)가 잘못 열었을 때의 대가(계정 탈취)보다 싸다.
+   */
+  failClosed?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -144,7 +154,7 @@ async function upstashRateLimit(
   windowMs: number,
   url: string,
   token: string,
-): Promise<{ ok: boolean; remaining: number; resetAt: number }> {
+): Promise<{ ok: boolean; remaining: number; resetAt: number; degraded: boolean }> {
   const windowSec = Math.ceil(windowMs / 1000);
   try {
     const pipeline = [
@@ -159,21 +169,26 @@ async function upstashRateLimit(
       },
       body: JSON.stringify(pipeline),
     });
+    if (!res.ok) throw new Error(`upstash ${res.status}`);
     const json = (await res.json()) as Array<{ result: number }>;
-    const count = json[0]?.result ?? 1;
+    const count = Number(json?.[0]?.result);
+    if (!Number.isFinite(count)) throw new Error("upstash bad response");
     const remaining = Math.max(0, max - count);
     const resetAt = Date.now() + windowMs;
-    return { ok: count <= max, remaining, resetAt };
+    return { ok: count <= max, remaining, resetAt, degraded: false };
   } catch {
-    return { ok: true, remaining: max, resetAt: Date.now() + windowMs };
+    /* 세지 못했다. 판단은 호출자(= failClosed 여부)에게 맡긴다 —
+       예전에는 여기서 무조건 ok:true 라, Redis 만 죽이면 로그인 시도 제한이
+       통째로 사라졌다는 사실이 호출자에게 아예 보이지 않았다. */
+    return { ok: true, remaining: max, resetAt: Date.now() + windowMs, degraded: true };
   }
 }
 
 export async function requestRateLimit(
   req: NextRequest,
   opts: RateLimitOptions = {},
-): Promise<{ ok: boolean; remaining: number; resetAt: number }> {
-  const { max = 60, windowMs = 60_000, keyFn } = opts;
+): Promise<{ ok: boolean; remaining: number; resetAt: number; degraded: boolean }> {
+  const { max = 60, windowMs = 60_000, keyFn, failClosed = false } = opts;
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     req.headers.get("x-real-ip") ??
@@ -184,9 +199,14 @@ export async function requestRateLimit(
   const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 
   if (upstashUrl && upstashToken) {
-    return upstashRateLimit(key, max, windowMs, upstashUrl, upstashToken);
+    const result = await upstashRateLimit(key, max, windowMs, upstashUrl, upstashToken);
+    // 인증 프리셋만 fail-closed. 비인증 경로는 종전대로 통과시킨다(가용성 우선).
+    if (result.degraded && failClosed) {
+      return { ...result, ok: false };
+    }
+    return result;
   }
-  return memoryRateLimit(key, max, windowMs);
+  return { ...memoryRateLimit(key, max, windowMs), degraded: false };
 }
 
 /**
@@ -284,8 +304,15 @@ export async function keyRateLimit(
   return { ...memoryRateLimit(key, max, windowMs), degraded: false };
 }
 
-/** 5분에 10회 — 로그인·회원가입 등 민감 엔드포인트용 */
-export const AUTH_RATE_LIMIT: RateLimitOptions = { max: 10, windowMs: 5 * 60_000 };
+/**
+ * 5분에 10회 — 로그인·회원가입 등 민감 엔드포인트용.
+ * `failClosed: true` — 위 RateLimitOptions.failClosed 주석의 비대칭이 여기에 걸린다.
+ */
+export const AUTH_RATE_LIMIT: RateLimitOptions = {
+  max: 10,
+  windowMs: 5 * 60_000,
+  failClosed: true,
+};
 /** 1분에 30회 — 일반 POST 엔드포인트 */
 export const WRITE_RATE_LIMIT: RateLimitOptions = { max: 30, windowMs: 60_000 };
 /** 1분에 60회 — GET 엔드포인트 */
