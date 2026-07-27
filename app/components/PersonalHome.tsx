@@ -202,7 +202,10 @@ export function PersonalHome() {
     (data.regions && data.regions.length > 0 ? data.regions[0] : null);
   const extraRegions =
     data.regions && data.regions.length > 1 ? data.regions.length - 1 : 0;
-  /* #43 관심지역 칩 — 클릭 시 지도 탐색으로 이동 (/map 은 아직 ?region= 쿼리 미지원) */
+  /* #43 관심지역 칩 — 클릭 시 그 지역 지도로 이동.
+     2026-07-27 이전에는 세 칩이 모두 그냥 "/map" 이었다. 칩마다 다른 지역
+     이름이 적혀 있는데 눌러 보면 항상 같은 수도권 지도가 떠서, 눌러도 아무
+     일도 일어나지 않은 것처럼 보였다. MapPage 가 ?region= 을 받도록 고쳤다. */
   const regionChips = (
     data.regions && data.regions.length > 0 ? data.regions : region ? [region] : []
   ).slice(0, 3);
@@ -343,7 +346,7 @@ export function PersonalHome() {
               {regionChips.map((r) => (
                 <Link
                   key={r}
-                  href="/map"
+                  href={`/map?region=${encodeURIComponent(r)}`}
                   className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#c9d2e0]"
                 >
                   {r} ›

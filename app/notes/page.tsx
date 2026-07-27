@@ -6,6 +6,7 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { safeAuth } from "@/lib/safe-auth";
+import { listAlertSubscriptions } from "@/lib/alerts/subscriptions";
 import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -40,8 +41,8 @@ const MOCK_NOTES: FeedNote[] = [
       { label: "이중주차", tone: "neg" },
     ],
     footer: [],
-    popularity: 0,
-    interested: true,
+    // 예시 노트는 어떤 사용자의 구독 지역과도 실제로 맞지 않는다 — 관심 지역인 척하지 않는다
+    interested: false,
     // 사실 우선: 예시 카드는 존재하지 않는 단지(mock-1)로 링크하지 않음 (404 방지)
     isExample: true,
   },
@@ -82,10 +83,22 @@ function deriveTags(n: InspectionNote): FeedNote["tags"] {
   return tags.slice(0, 3);
 }
 
+/* 노트 지역 ↔ 구독 지역 매칭.
+   구독값은 "서울" 처럼 넓게도, "안양시 동안구" 처럼 좁게도 들어오고 노트의 region 은
+   "경기 안양시 동안구 관양동" 같은 전체 주소라, 공백을 지운 뒤 양방향 부분 포함으로 본다. */
+function matchesInterest(region: string | null | undefined, interests: string[]): boolean {
+  const r = (region ?? "").replace(/\s+/g, "");
+  if (!r || interests.length === 0) return false;
+  return interests.some((raw) => {
+    const v = raw.replace(/\s+/g, "");
+    return v.length > 0 && (r.includes(v) || v.includes(r));
+  });
+}
+
 function toFeedNote(
   n: InspectionNote,
   complexHref: string | null,
-  opts?: { mine?: boolean },
+  opts?: { mine?: boolean; interestRegions?: string[] },
 ): FeedNote {
   const avg = inspectionAverageScore(n.scores);
   const score = Math.round(avg * 20);
@@ -112,8 +125,10 @@ function toFeedNote(
       `방문 ${n.visitDate}`,
       `체크 ${n.checklist.filter((c) => c.done).length}/${n.checklist.length}`,
     ],
-    popularity: score,
-    interested: false,
+    /* 전에는 모든 실노트에 interested:false 를 박아 넣어서 "내 관심 지역" 칩이
+       구조적으로 0건만 돌려주고 "해당 필터에 맞는 노트가 아직 없어요"라고 말했다.
+       이제 사용자의 실제 지역 알림 구독(listAlertSubscriptions)과 대조해 판정한다. */
+    interested: matchesInterest(n.region, opts?.interestRegions ?? []),
     region: n.region,
     // 인스타 피드형 커버 — 첫 사진(있으면). 없으면 클라이언트에서 그라디언트 타일 폴백.
     coverUrl: n.photos?.[0] ?? null,
@@ -130,10 +145,26 @@ export default async function NotesFeedPage({
   const sp = await searchParams;
   const mine = sp.mine === "1";
 
+  /* "내 관심 지역" 필터의 판정 근거 — 지역 알림 구독(user_watchlist 의 alert:region 행).
+     구독 지역이 하나도 없으면(비로그인 포함) 그 칩은 무엇을 눌러도 0건이므로
+     아예 렌더하지 않는다. 항상 빈 결과인 필터를 남겨 두면 "노트가 없다"는 거짓말이 된다. */
+  const session = await safeAuth();
+  const email = session?.user?.email ?? null;
+  let interestRegions: string[] = [];
+  if (email) {
+    try {
+      interestRegions = (await listAlertSubscriptions(email))
+        .filter((s) => s.type === "region")
+        .map((s) => s.value);
+    } catch (e) {
+      // 구독 조회 실패 — 칩을 숨겨 "관심 지역에 노트가 없다"고 단정하지 않는다
+      console.error("[/notes] 관심 지역 구독 조회 실패:", e);
+      interestRegions = [];
+    }
+  }
+
   // 내 노트 뷰 — 세션 사용자의 노트(비공개 포함)를 동적 조회. 목업 보강 없음.
   if (mine) {
-    const session = await safeAuth();
-    const email = session?.user?.email ?? null;
     if (!email) {
       redirect(`/login?callbackUrl=${encodeURIComponent("/notes?mine=1")}`);
     }
@@ -143,7 +174,10 @@ export default async function NotesFeedPage({
       const rows = await listNotes(email);
       notes = await Promise.all(
         rows.map(async (n) =>
-          toFeedNote(n, await resolveComplexHref(n.aptName, n.region), { mine: true }),
+          toFeedNote(n, await resolveComplexHref(n.aptName, n.region), {
+            mine: true,
+            interestRegions,
+          }),
         ),
       );
     } catch (e) {
@@ -152,7 +186,14 @@ export default async function NotesFeedPage({
       mineError = e instanceof Error ? e.message : String(e);
       console.error("[/notes?mine=1] 내 임장노트 조회 실패:", mineError);
     }
-    return <NotesFeedClient notes={notes} loadError={mineError} mine />;
+    return (
+      <NotesFeedClient
+        notes={notes}
+        loadError={mineError}
+        mine
+        showInterestFilter={interestRegions.length > 0}
+      />
+    );
   }
 
   let notes: FeedNote[] = [];
@@ -162,7 +203,9 @@ export default async function NotesFeedPage({
     // 아파트명(+지역)으로 complexes 실 id 조회 — 요청당 React cache로 중복 방지
     notes = await Promise.all(
       rows.map(async (n) =>
-        toFeedNote(n, await resolveComplexHref(n.aptName, n.region)),
+        toFeedNote(n, await resolveComplexHref(n.aptName, n.region), {
+          interestRegions,
+        }),
       ),
     );
   } catch (e) {
@@ -178,5 +221,11 @@ export default async function NotesFeedPage({
     notes = MOCK_NOTES;
   }
 
-  return <NotesFeedClient notes={notes} loadError={loadError} />;
+  return (
+    <NotesFeedClient
+      notes={notes}
+      loadError={loadError}
+      showInterestFilter={interestRegions.length > 0}
+    />
+  );
 }

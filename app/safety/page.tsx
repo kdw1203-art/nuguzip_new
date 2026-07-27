@@ -11,7 +11,14 @@ import { JeonseSelfCheck, SELF_CHECK_ANCHOR_ID } from "./JeonseSelfCheck";
    "안전 진단" 버튼은 실제로 동작하는 자가진단(JeonseSelfCheck)으로
    스크롤·프리필 연결한다 + 직접 확인용 체크리스트 안내를 제공한다. */
 
-type Mode = "매매" | "전세" | "월세";
+/* 매매/전세/월세 세그먼트 탭을 제거했다.
+   탭의 mode 값은 제목 한 줄에 끼워 넣는 것 말고는 아무 데도 쓰이지 않았고,
+   체크리스트(깡통전세·선순위 근저당·HUG 보증)도 AI 패널도 아래 자가진단
+   (JeonseSelfCheck: 전세가율·부채비율 계산)도 전부 보증금 있는 임차 계약 전용이다.
+   그래서 "매매"를 고르면 제목만 매매로 바뀐 채 내용은 그대로 전세 이야기가 나왔다 —
+   고를 수 있다는 것 자체가 매매 진단이 있다는 거짓 약속이었다.
+   보증금을 지키는 확인 절차라는 이 화면의 실제 성격(전세·월세 공통)을 제목에 고정하고,
+   매매는 준비 중이라고 문장으로 밝힌다. */
 
 /* 실제 진단 시 대조하는 항목 안내 — 판정값 없이 항목만 (지어낸 결과 금지) */
 const CHECK_ITEMS = [
@@ -42,7 +49,6 @@ const CHECK_ITEMS = [
 ] as const;
 
 export default function SafetyPage() {
-  const [mode, setMode] = useState<Mode>("전세");
   const [address, setAddress] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
 
@@ -62,20 +68,7 @@ export default function SafetyPage() {
     <PageShell breadcrumb="전세·월세 모드 › 세입자 안전 분석" wide>
       {/* 상단 모드 전환 + 대상 입력 */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-full border border-line bg-surface p-[3px] text-xs">
-          {(["매매", "전세", "월세"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`rounded-full px-3.5 py-1.5 ${
-                mode === m ? "bg-ink font-bold text-white" : "text-text-3"
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
+        <span className="text-[13px] font-extrabold text-ink">전세·월세 보증금 안전 확인</span>
         <input
           value={address}
           onChange={(e) => setAddress(e.target.value)}
@@ -101,7 +94,7 @@ export default function SafetyPage() {
           {submitted ? (
             <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
               <div className="text-[15px] font-extrabold text-ink">
-                “{submitted}” {mode} 안전 진단
+                “{submitted}” 전세·월세 안전 진단
               </div>
               <p className="text-[13px] leading-[1.7] text-text-2">
                 아래 <b className="text-ink">전세 안심 진단(자가진단)</b>에 이 대상이
@@ -162,9 +155,10 @@ export default function SafetyPage() {
                 <span className="text-[11px] text-text-3">{c.how}</span>
               </div>
             ))}
-            <div className="text-[10px] text-text-3">
+            <div className="text-[10px] leading-[1.6] text-text-3">
               등기부등본은 인터넷등기소(iros.go.kr), 건축물대장은
-              정부24(gov.kr)에서 열람할 수 있어요
+              정부24(gov.kr)에서 열람할 수 있어요. 이 화면은 보증금을 지키는
+              임차(전세·월세) 계약 기준이며, 매매 계약 위험 진단은 준비 중이에요.
             </div>
           </div>
         </div>

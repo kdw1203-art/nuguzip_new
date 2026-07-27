@@ -32,11 +32,15 @@ export default function MessagesPage() {
           >
             임장 모임 채팅 이용하기
           </Link>
+          {/* 2026-07-27: "쪽지 오픈 알림 받기 ›" 였다. 눌러서 도착하는 /notifications 는
+              지역·키워드 구독만 제공하고 기능 오픈 알림 구독 종류가 없어서, 약속대로
+              신청하러 간 사람이 신청할 것을 못 찾았다. 없는 구독을 만들 수 없으니
+              링크가 실제로 하는 일(알림 센터 이동)로 문구를 맞춘다. */}
           <Link
             href="/notifications"
             className="text-xs font-semibold text-primary no-underline"
           >
-            쪽지 오픈 알림 받기 ›
+            알림 센터 보기 ›
           </Link>
         </div>
 

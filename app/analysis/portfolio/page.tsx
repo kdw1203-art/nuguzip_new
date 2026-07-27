@@ -1,19 +1,31 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import { SimulationNotice } from "../../components/ExampleBadge";
-import { Icon } from "@/app/components/Icon";
+import { NextActions } from "../../components/NextActions";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 
-const SIM_ROWS = [
-  { label: "추가 필요 자금", value: "2.4억 (취득세 포함)", tone: "white" },
-  { label: "양도세 (1주택 비과세)", value: "0원 예상", tone: "accent" },
-  { label: "월 부담 변화", value: "98만 → 164만", tone: "white" },
-] as const;
+/* ============================================================
+   포트폴리오 분석 — 등록된 자산이 있어야 성립하는 화면인데, 자산을 저장하는
+   경로 자체가 아직 없다(/my/assets 도 "준비 중" 예시 화면이다).
 
-const REBAL_ROWS = [
-  { label: "검단 매도 시 실현손익", value: "-1,600만 (세전)", tone: "pink" },
-  { label: "보유 유지 시 연 순수익", value: "+490만 (공실 1개월 가정)", tone: "white" },
-] as const;
+   그런데도 이전 화면은 "총 자산 14.2억 / 순자산 9.4억 / 3개월 ▼3,200만",
+   "평촌 초원마을 59㎡ 2019 취득 · 대출 잔액 2.1억", "인천 검단 오피스텔"처럼
+   특정인의 대차대조표를 그려놓고 있었다. 자산을 하나도 등록하지 않은 사람이
+   들어와도 똑같은 화면이 나왔다 — 보는 사람의 재산을 지어낸 셈이라
+   "예시" 배지를 달아 넘길 수 있는 종류가 아니다.
 
+   함께 있던 것들도 같은 이유로 걷어냈다.
+   - "1년 / 3년 / 전체" 알약 탭: 서버 컴포넌트의 <span> 이라 눌러도 아무 일이
+     없는데 "3년"만 활성 색으로 칠해져 있었다. 게다가 아래 순자산 추이 SVG 의
+     d= 는 고정 문자열이어서 기간을 바꿀 것도 없었다.
+   - 순자산 추이 곡선·자산 구성 막대·리밸런싱 제안(실현손익 -1,600만 등):
+     전부 위 가짜 자산에서 파생된 숫자였다.
+
+   지금은 "등록된 자산 0건"이라는 사실만 말하고, 무엇을 하면 채워지는지 안내한다.
+   자산 저장이 열리면 이 자리에 실제 등록분 기준 집계가 들어간다.
+   ============================================================ */
+
+/* 자산 알림은 알림 설정(/notifications)에 실제로 존재하는 항목 안내라 남긴다 —
+   숫자를 주장하지 않고 "무엇을 받을 수 있는지"만 말한다. */
 const ALERTS = [
   "월 순자산 리포트 (매월 1일)",
   "보유 단지 시세 ±3% 변동",
@@ -23,255 +35,48 @@ const ALERTS = [
 export default function PortfolioPage() {
   return (
     <PageShell breadcrumb="AI 분석 › 포트폴리오">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">포트폴리오 분석</h1>
-        <Link href="/my/assets" className="btn-soft rounded-[10px] px-3.5 py-2 text-[13px] no-underline">
-          ＋ 자산 등록
-        </Link>
-      </div>
-      <div className="rise-in mb-3">
-        <SimulationNotice text="아래 자산·수치는 예시 데이터예요. 자산 등록 기능이 열리면 내 자산 기준으로 계산됩니다." />
       </div>
 
       <div className="flex flex-col gap-4">
-        {/* 요약 카드 4열 */}
-        <div className="rise-in-1 grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-          <div className="card rounded-2xl p-[18px]">
-            <div className="text-xs text-text-3">총 자산 가치</div>
-            <div className="mt-1 text-[22px] font-extrabold text-ink">14.2억</div>
-          </div>
-          <div className="card rounded-2xl p-[18px]">
-            <div className="text-xs text-text-3">총 부채</div>
-            <div className="mt-1 text-[22px] font-extrabold text-ink">
-              4.8억 <span className="text-xs font-medium text-text-3">LTV 34%</span>
-            </div>
-          </div>
-          <div className="card rounded-2xl p-[18px]">
-            <div className="text-xs text-text-3">순자산</div>
-            <div className="mt-1 text-[22px] font-extrabold text-primary">9.4억</div>
-          </div>
-          <div className="card rounded-2xl p-[18px]">
-            <div className="text-xs text-text-3">3개월 변동</div>
-            <div className="mt-1 text-[22px] font-extrabold text-danger">▼ 3,200만</div>
-          </div>
+        <div className="rise-in-1">
+          <EmptyState
+            icon="wallet"
+            title="아직 등록된 자산이 없어요"
+            desc="총자산·순자산·부동산 비중은 내가 등록한 보유 자산에서 계산돼요. 자산 등록(저장·자동 시세 연동)이 아직 열리지 않아서, 예시 자산으로 대신 채우지 않고 비워둡니다."
+            action={{ label: "자산 등록 화면 보기", href: "/my/assets" }}
+          />
         </div>
 
-        {/* 보유 자산 + 갈아타기 시뮬레이션 */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_460px]">
-          <div className="rise-in-2 card flex flex-col gap-3 rounded-[20px] p-[22px]">
-            <div className="text-[15px] font-extrabold text-ink">보유 자산</div>
-            <div className="flex items-center justify-between border-b border-[#f0f3f8] py-3">
-              <div>
-                <div className="text-sm font-bold text-ink">
-                  평촌 초원마을 59㎡{" "}
-                  <span className="rounded-[5px] bg-primary-soft px-[7px] py-0.5 text-[10px] font-extrabold text-primary">
-                    실거주
-                  </span>
-                </div>
-                <div className="mt-[3px] text-[11px] text-text-3">2019 취득 · 대출 잔액 2.1억</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[15px] font-extrabold text-ink">6.8억</div>
-                <div className="text-[11px] font-bold text-primary">▼ 1.8% (3M)</div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <div>
-                <div className="text-sm font-bold text-ink">
-                  인천 검단 오피스텔{" "}
-                  <span className="rounded-[5px] bg-[#fdf3e7] px-[7px] py-0.5 text-[10px] font-extrabold text-warning">
-                    임대
-                  </span>
-                </div>
-                <div className="mt-[3px] text-[11px] text-text-3">2021 취득 · 보증금 5천/월세 65</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[15px] font-extrabold text-ink">2.4억</div>
-                <div className="text-[11px] font-bold text-danger">▼ 6.2% (3M)</div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between rounded-xl bg-bg px-3.5 py-3">
-              <span className="text-xs text-text-2">후보: 공작아파트 84㎡ (8.4억)</span>
-              <Link href="/analysis/switch" className="text-xs font-bold text-primary no-underline">
-                갈아타기 시뮬레이션 ›
-              </Link>
-            </div>
-          </div>
-
-          <div className="rise-in-3 ai-panel flex flex-col gap-3 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
-            <div className="flex items-center gap-2">
-              <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
-              <span className="text-sm font-extrabold text-white">갈아타기 시뮬레이션</span>
-            </div>
-            <div className="text-xs leading-[1.65] text-ai-text">
-              초원마을 매도(6.8억) + 공작 매수(8.4억) 시:
-            </div>
-            <div className="flex flex-col gap-1.5">
-              {SIM_ROWS.map((r) => (
-                <div
-                  key={r.label}
-                  className="flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-[9px] text-xs"
-                >
-                  <span className="text-ai-muted">{r.label}</span>
-                  <span
-                    className={`font-extrabold ${r.tone === "accent" ? "text-ai-accent" : "text-white"}`}
-                  >
-                    {r.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="text-xs leading-[1.6] text-ai-text">
-              <Icon name="⚠" size={14} className="mr-1 inline align-middle" />
-              오피스텔 보유로 취득세 중과 여부는 <b className="text-ai-accent">세무사 확인</b>이
-              필요합니다.
-            </div>
-            <div className="text-[9px] leading-[1.5] text-ai-muted">
-                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
-              </div>
-            <Link href="/town/experts" className="btn-primary rounded-xl p-[11px] text-center text-[13px] no-underline">
-              세무사 상담 연결
-            </Link>
-          </div>
+        {/* 준비 중이라고만 하고 끝내면 막다른 화면이 된다 — 지금 동작하는 계산으로 잇는다 */}
+        <div className="rise-in-2">
+          <NextActions
+            actions={[
+              { label: "대출·비용 계산기", href: "/calculator", primary: true },
+              { label: "매도 vs 보유 시나리오", href: "/analysis/scenario" },
+              { label: "시세·타이밍 보기", href: "/analysis/timing" },
+            ]}
+          />
         </div>
 
-        {/* ---------- 포트폴리오+ (10e) — 추이 · 구성 · 리밸런싱 ---------- */}
-        <div className="mt-1 flex items-center justify-between">
-          <div className="text-[15px] font-extrabold text-ink">순자산 추이 · 리밸런싱</div>
-          <div className="card flex gap-1 rounded-full p-[3px] text-xs">
-            <span className="px-3 py-1.5 text-text-3">1년</span>
-            <span className="chip-active rounded-full px-3 py-1.5">3년</span>
-            <span className="px-3 py-1.5 text-text-3">전체</span>
+        <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
+          <div className="text-[13px] font-extrabold text-ink">자산 알림</div>
+          <div className="text-[11px] leading-[1.6] text-text-3">
+            자산 등록이 열리면 아래 알림을 받을 수 있어요.
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
-          <div className="flex flex-col gap-3.5">
-            {/* 순자산 추이 */}
-            <div className="rise-in-4 card flex flex-col gap-2.5 rounded-[20px] px-6 py-[22px]">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[15px] font-extrabold text-ink">순자산 추이</span>
-                <span className="text-xs text-text-2">
-                  현재 <b className="text-primary">9.4억</b> · 3년 +2.1억
-                </span>
-              </div>
-              <div className="relative h-[170px]">
-                <svg
-                  width="100%"
-                  height="100%"
-                  viewBox="0 0 1000 170"
-                  preserveAspectRatio="none"
-                  className="absolute left-0 top-0"
-                >
-                  <defs>
-                    <linearGradient id="pfTrend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#1d4fd8" stopOpacity="0.14" />
-                      <stop offset="100%" stopColor="#1d4fd8" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M0,130 C120,124 220,110 340,96 C460,82 560,88 680,80 C800,72 900,58 990,48 L990,170 L0,170 Z"
-                    fill="url(#pfTrend)"
-                  />
-                  <path
-                    d="M0,130 C120,124 220,110 340,96 C460,82 560,88 680,80 C800,72 900,58 990,48"
-                    fill="none"
-                    stroke="#1d4fd8"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="990" cy="48" r="5" fill="#1d4fd8" stroke="#fff" strokeWidth="2.5" />
-                </svg>
-                <div className="absolute left-[33%] top-[64%] text-[10px] text-text-3">검단 취득</div>
-                <div className="absolute right-0 top-[12%] rounded-[5px] bg-[rgba(255,255,255,.9)] px-[5px] py-0.5 text-[11px] font-extrabold text-primary">
-                  9.4억
-                </div>
-              </div>
-              <div className="flex justify-between text-[10px] text-text-3">
-                <span>2023</span>
-                <span>2024</span>
-                <span>2025</span>
-                <span>2026</span>
-              </div>
+          {/* 장식용 가짜 토글 제거 — 실제 알림 설정으로 연결 */}
+          {ALERTS.map((a) => (
+            <div key={a} className="text-xs text-text-1">
+              · {a}
             </div>
-
-            {/* 자산 구성 */}
-            <div className="rise-in-5 card flex flex-col gap-3 rounded-[20px] px-6 py-[22px]">
-              <div className="text-[15px] font-extrabold text-ink">자산 구성</div>
-              <div className="flex h-[26px] overflow-hidden rounded-lg">
-                <div className="flex w-[48%] items-center justify-center bg-primary text-[10px] font-bold text-white">
-                  실거주 6.8억
-                </div>
-                <div className="flex w-[17%] items-center justify-center bg-[#7ea2ff] text-[10px] font-bold text-white">
-                  임대 2.4억
-                </div>
-                <div className="flex w-[35%] items-center justify-center bg-[#c9d4e5] text-[10px] font-bold text-[#33415e]">
-                  현금·금융 5.0억
-                </div>
-              </div>
-              <div className="flex flex-wrap justify-between gap-1 text-xs text-text-2">
-                <span>
-                  부동산 비중 65% <span className="font-bold text-danger">(권장 55~60% 초과)</span>
-                </span>
-                <span>레버리지(LTV) 34% · 안전</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3.5">
-            {/* AI 리밸런싱 제안 */}
-            <div className="rise-in-4 ai-panel flex flex-col gap-2.5 rounded-[18px] p-5">
-              <div className="flex items-center gap-2">
-                <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
-                <span className="text-sm font-extrabold text-white">리밸런싱 제안</span>
-              </div>
-              <div className="text-xs leading-[1.65] text-ai-text">
-                ① 검단 오피스텔(-6.2%, 월세수익률 3.1%)은{" "}
-                <b className="text-ai-accent">매도 후 갈아타기 자금 편입</b> 검토 — 취득세 중과 해소
-                효과 겸함. ② 갈아타기 실행 시 부동산 비중 72%로 상승 —{" "}
-                <b className="text-white">예비비 1,000만 + 6개월 생활비</b>는 반드시 현금 유지.
-              </div>
-              {REBAL_ROWS.map((r) => (
-                <div
-                  key={r.label}
-                  className="flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-[9px] text-xs"
-                >
-                  <span className="text-ai-muted">{r.label}</span>
-                  <span
-                    className={`font-extrabold ${r.tone === "pink" ? "text-[#d6708b]" : "text-white"}`}
-                  >
-                    {r.value}
-                  </span>
-                </div>
-              ))}
-              <div className="text-[9px] leading-[1.5] text-ai-muted">
-                본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
-              </div>
-              <Link
-                href="/analysis/scenario"
-                className="btn-primary rounded-[10px] p-[11px] text-center text-xs no-underline"
-              >
-                매도 vs 보유 시나리오 비교
-              </Link>
-            </div>
-
-            {/* 자산 알림 */}
-            <div className="rise-in-5 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-              <div className="text-[13px] font-extrabold text-ink">자산 알림</div>
-              {/* 장식용 가짜 토글 제거 — 실제 알림 설정으로 연결 */}
-              {ALERTS.map((a) => (
-                <div key={a} className="text-xs text-text-1">
-                  · {a}
-                </div>
-              ))}
-              <Link
-                href="/notifications"
-                className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
-              >
-                알림 설정 열기
-              </Link>
-            </div>
-          </div>
+          ))}
+          <Link
+            href="/notifications"
+            className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
+          >
+            알림 설정 열기
+          </Link>
         </div>
       </div>
     </PageShell>

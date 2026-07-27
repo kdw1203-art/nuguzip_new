@@ -192,10 +192,14 @@ export default function NotesComparePage() {
               예요. 내 노트 자동 비교는 준비 중이에요.
             </p>
           </div>
+          {/* 회차 라벨 — 예전엔 `chip chip-soft` 에 ✓ 까지 붙어 "이 회차를 포함/제외"
+              토글처럼 보였지만, 서버 컴포넌트의 <span> 이라 눌러도 아무 일도 없었다.
+              예시 밴드는 '데이터가 예시'라고만 알릴 뿐 '컨트롤이 가짜'라는 말은 아니다.
+              비인터랙티브용 chip-tag 로 바꾸고 ✓ 를 떼어 아래 표의 열 목록으로만 읽히게 한다. */}
           <div className="flex flex-wrap gap-1.5 text-xs">
             {["1차", "2차", "3차", "4차", "5차"].map((c) => (
-              <span key={c} className="chip chip-soft px-3 py-1.5">
-                {c} ✓
+              <span key={c} className="chip-tag px-2.5 py-1.5">
+                {c}
               </span>
             ))}
           </div>

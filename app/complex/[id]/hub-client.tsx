@@ -84,6 +84,92 @@ export function CompareTrayButton({
   );
 }
 
+/* ===== 관심 단지(팔로우) 버튼 =====
+   2026-07-27 이전 단지 홈 제목 옆의 "+ 단지 팔로우" 는 onClick 이 없는
+   <button> 이었다. 파란 글씨로 눌러 보라고 말해 놓고 아무 일도 안 했다.
+   지도 패널(ComplexInfoPanel)은 같은 기능을 /api/me/watchlist 로 이미
+   제대로 쓰고 있었다 — 같은 API 를 붙인다.
+   그쪽 토글은 Toast·SoftSignup 프로바이더에 묶여 있어 그대로 못 옮기므로,
+   여기서는 버튼 안에서 상태를 그대로 말하는 자립형으로 만든다. */
+export function WatchlistButton({
+  complexId,
+  complexName,
+}: {
+  complexId: string;
+  complexName: string;
+}) {
+  const [watching, setWatching] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/me/watchlist?complexId=${encodeURIComponent(complexId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { watching?: boolean } | null) => {
+        // 비로그인(401)이면 j 가 null — "관심 없음"이 아니라 "모름"이므로 false 로 시작한다.
+        if (!cancelled) setWatching(j ? Boolean(j.watching) : false);
+      })
+      .catch(() => {
+        if (!cancelled) setWatching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [complexId]);
+
+  async function toggle() {
+    if (busy) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = watching
+        ? await fetch(`/api/me/watchlist?complexId=${encodeURIComponent(complexId)}`, {
+            method: "DELETE",
+          })
+        : await fetch("/api/me/watchlist", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ complexId, complexName }),
+          });
+      if (res.status === 401) {
+        // 로그인 후 이 단지로 돌아온다 — 눌렀던 맥락을 잃지 않게.
+        window.location.href = `/login?callbackUrl=${encodeURIComponent(
+          `/complex/${complexId}`,
+        )}`;
+        return;
+      }
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setMessage(j.error ?? "저장하지 못했어요");
+        return;
+      }
+      setWatching(!watching);
+    } catch {
+      setMessage("네트워크 오류가 발생했어요");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <span className="flex flex-col items-end">
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={busy}
+        aria-pressed={watching === true}
+        className={`text-xs font-bold disabled:opacity-50 ${
+          watching ? "text-ink" : "text-primary"
+        }`}
+      >
+        {busy ? "저장 중…" : watching ? "✓ 관심 단지" : "+ 단지 팔로우"}
+      </button>
+      {message && <span className="mt-0.5 text-[10px] text-danger">{message}</span>}
+    </span>
+  );
+}
+
 const TABS = ["요약", "노트", "매물", "시세", "내 기록"] as const;
 type Tab = (typeof TABS)[number];
 

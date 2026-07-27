@@ -98,10 +98,12 @@ export function HomeResumePanel({
       {chips.length > 0 && (
         <div className="mt-auto flex flex-wrap items-center gap-1.5 border-t border-line pt-3">
           <span className="text-[11px] font-extrabold text-text-3">관심지역</span>
+          {/* 예전엔 모든 칩이 "/map" 이었다 — 지역별로 달라 보이는데 결과가 같아서
+              눌러도 반응이 없는 것처럼 느껴졌다. ?region= 으로 그 지역을 비춘다. */}
           {chips.map((name) => (
             <Link
               key={name}
-              href="/map"
+              href={`/map?region=${encodeURIComponent(name)}`}
               className="chip border border-line px-2.5 py-1 text-[11px] text-text-2"
             >
               {name}

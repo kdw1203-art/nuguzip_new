@@ -36,11 +36,15 @@ const COSTS = [
   { label: "이사 + 입주청소 (84㎡ 평균)", value: "약 180만" },
 ] as const;
 
+/* 전문가 목록은 예시다(실제 등록 전문가 연동 전). 각 줄에 "문의 ›" / "견적 ›" 를
+   primary 색 굵은 글씨로 달아뒀었는데 href 도 onClick 도 없는 <span> 이었다.
+   존재하지 않는 예시 전문가에게 보낼 곳도 없으므로 줄별 액션은 지우고,
+   실제로 열리는 전문가 목록(/town/experts) 링크 하나만 카드 아래에 둔다. */
 const EXPERTS = [
-  { name: "김OO 중개사", verified: true, meta: "★4.9 · 협상 상담 3만원", action: "문의 ›" },
-  { name: "최OO 법무사", verified: true, meta: "소유권이전 등기 대행 35만~", action: "견적 ›" },
-  { name: "OO익스프레스 이사", verified: false, meta: "★4.7 · 84㎡ 포장이사 130만~", action: "견적 ›" },
-  { name: "OO디자인 인테리어", verified: false, meta: "★4.8 · 부분 수리 견적 무료", action: "견적 ›" },
+  { name: "김OO 중개사", verified: true, meta: "★4.9 · 협상 상담 3만원" },
+  { name: "최OO 법무사", verified: true, meta: "소유권이전 등기 대행 35만~" },
+  { name: "OO익스프레스 이사", verified: false, meta: "★4.7 · 84㎡ 포장이사 130만~" },
+  { name: "OO디자인 인테리어", verified: false, meta: "★4.8 · 부분 수리 견적 무료" },
 ] as const;
 
 export default function PricePage() {
@@ -144,9 +148,12 @@ export default function PricePage() {
                   <span className="text-ai-muted">이탈 상한 (적정가)</span>
                   <span className="font-extrabold text-[#d6708b]">8.20억</span>
                 </div>
+                {/* "내 노트 3회 확인"은 보는 사람의 임장노트 개수를 지어낸 문구였다
+                    (노트를 한 건도 안 쓴 사람에게도 3회라고 말했다). 예시 화면에서도
+                    이용자 본인의 데이터를 주장하면 안 되므로 항목 설명으로 바꾼다. */}
                 <div className="leading-[1.65]">
-                  근거 카드: ① 도로변 동 소음 (내 노트 3회 확인) ② 저녁 이중주차 사진 ③ 최근 5층
-                  실거래 8.15억 → 매도인 급한 사정 확인 시 7.75억 제시가 유효합니다.
+                  근거 카드 예시: ① 도로변 동 소음(임장 시 직접 확인) ② 저녁 이중주차 사진 ③
+                  동일 층 최근 실거래 → 매도인 사정까지 확인되면 하한선 제시가 유효합니다.
                 </div>
               </div>
             </AIPanel>
@@ -172,9 +179,13 @@ export default function PricePage() {
 
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
             <div className="flex items-baseline justify-between">
+              {/* "7.9억 기준 자동 계산"이라고 적혀 있었지만 아래 COSTS 는 손으로 적은
+                  고정값이고 계산하는 코드가 없다. 계산했다는 주장을 지우고 예시로 표기한다. */}
               <span className="text-[13px] font-extrabold text-ink">
                 거래 부대비용{" "}
-                <span className="text-[10px] font-bold text-primary">7.9억 기준 자동 계산</span>
+                <span className="text-[10px] font-medium text-text-3">
+                  예시 7.9억 기준 · 직접 계산은 계산기에서
+                </span>
               </span>
               <span className="text-[10px] text-text-3">생애최초 감면 반영</span>
             </div>
@@ -191,9 +202,15 @@ export default function PricePage() {
               <span className="text-ink">부대비용 합계</span>
               <span className="text-danger">약 1,285만</span>
             </div>
-            <div className="text-[10px] text-text-3">
-              올수리 매물로 인테리어 비용 0원 가정 · 항목별 조정 가능 ›
-            </div>
+            {/* "· 항목별 조정 가능 ›" 문구가 있었지만 조정할 수 있는 입력이 하나도 없었다.
+                실제로 금액을 바꿔가며 계산할 수 있는 곳(계산기)으로만 안내한다. */}
+            <div className="text-[10px] text-text-3">올수리 매물로 인테리어 비용 0원 가정</div>
+            <Link
+              href="/calculator"
+              className="text-[11px] font-bold text-primary no-underline"
+            >
+              내 조건으로 부대비용 계산하기 ›
+            </Link>
           </div>
 
           <div className="rise-in-4 card flex flex-col gap-2 rounded-[18px] p-[18px]">
@@ -220,9 +237,14 @@ export default function PricePage() {
                   </div>
                   <div className="text-[10px] text-text-3">{e.meta}</div>
                 </div>
-                <span className="text-[11px] font-bold text-primary">{e.action}</span>
               </div>
             ))}
+            <Link
+              href="/town/experts"
+              className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
+            >
+              전문가 목록에서 문의·견적 요청하기
+            </Link>
             <div className="text-[10px] text-text-3">
               추천은 평점·응답속도 기준이며 광고비 영향을 받지 않습니다
             </div>

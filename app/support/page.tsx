@@ -104,10 +104,16 @@ export default async function SupportPage() {
   const faqRest = faqPreview.slice(1);
   return (
     <PageShell breadcrumb="고객지원" title="고객지원 허브" wide>
-      {/* 검색 (9n / 7g) */}
-      <div className="rise-in mb-4 flex items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5 py-3 text-[13px] text-text-3 md:w-[280px]">
-        ⌕ 무엇을 도와드릴까요?
-      </div>
+      {/* 예전엔 검색창 모양의 <div> 에 "⌕ 무엇을 도와드릴까요?" 만 적혀 있었다.
+          입력칸도, 핸들러도, 검색 대상도 없어서 눌러도 아무 일이 없었다.
+          이 화면에서 실제로 답이 있는 곳은 FAQ 전체 목록이므로 그리로 보낸다. */}
+      <Link
+        href="/support/faq"
+        className="rise-in card-hover mb-4 flex items-center justify-between gap-2 rounded-[14px] border border-line bg-surface px-3.5 py-3 text-[13px] text-text-2 md:w-[280px]"
+      >
+        <span>자주 묻는 질문에서 답 찾기</span>
+        <span className="text-xs font-extrabold text-primary">›</span>
+      </Link>
 
       {/* 모바일 FAQ 카테고리 (7g) */}
       <div className="rise-in-1 mb-4 grid grid-cols-2 gap-2 md:hidden">

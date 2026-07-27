@@ -11,6 +11,7 @@ import {
   type MapSearchSelectComplex,
 } from "./MapSearchBox";
 import { ComplexInfoPanel } from "./ComplexInfoPanel";
+import { CompareTrayButton } from "@/app/complex/[id]/hub-client";
 import { HistogramRangeSlider } from "./HistogramRangeSlider";
 import { ListingPreviewPanel } from "./ListingPreviewPanel";
 import {
@@ -132,48 +133,6 @@ function deltaClass(tone: "up" | "down" | "flat"): string {
    서버 클러스터(지역 집계 버블)는 셀 단위 합계라 적용 불가 —
    단지 목록·단지 마커(포인트 모드)에만 클라이언트 필터링. */
 
-interface RangeOption {
-  key: string;
-  label: string;
-  /** 이상 (포함) */
-  min?: number;
-  /** 이하 (포함) */
-  max?: number;
-}
-
-/** 가격대 — 억 단위 (avgPriceWon / 1e8) */
-const PRICE_OPTIONS: RangeOption[] = [
-  { key: "all", label: "전체" },
-  { key: "u5", label: "5억 이하", max: 5 },
-  { key: "5-10", label: "5~10억", min: 5, max: 10 },
-  { key: "10-15", label: "10~15억", min: 10, max: 15 },
-  { key: "o15", label: "15억 초과", min: 15 },
-];
-
-/** 면적대 — 전용면적 ㎡ (59·84 국민평형 기준 구간) */
-const AREA_OPTIONS: RangeOption[] = [
-  { key: "all", label: "전체" },
-  { key: "u60", label: "~59㎡", max: 60 },
-  { key: "60-85", label: "60~84㎡", min: 60, max: 85 },
-  { key: "85-135", label: "85~134㎡", min: 85, max: 135 },
-  { key: "o135", label: "135㎡~", min: 135 },
-];
-
-/** 준공연도 */
-const YEAR_OPTIONS: RangeOption[] = [
-  { key: "all", label: "전체" },
-  { key: "2020s", label: "2020년 이후", min: 2020 },
-  { key: "2010s", label: "2010년대", min: 2010, max: 2019 },
-  { key: "2000s", label: "2000년대", min: 2000, max: 2009 },
-  { key: "u2000", label: "2000년 이전", max: 1999 },
-];
-
-/* 세대수 필터는 실데이터 소스가 아직 없다(실거래엔 세대수가 없고, 대장 마스터
-   householdCount 는 품질 문제로 미사용). 예전엔 칩을 눌러도 전 단지가 제외돼
-   항상 0건이 되는 "동작하는 척"이었다 — 지금은 "데이터 준비 중" 비활성으로
-   정직하게 보여주고 필터 적용에서 뺀다. 유형도 국토부 아파트 실거래만 수집하므로
-   아파트 단일로 표시한다. */
-
 /** 거래유형(매물 레이어) — 매매/전세/월세 → /api/map/listings?type= */
 const LISTING_TRADE_OPTIONS: { key: string; label: string; type?: string }[] = [
   { key: "all", label: "전체" },
@@ -182,14 +141,11 @@ const LISTING_TRADE_OPTIONS: { key: string; label: string; type?: string }[] = [
   { key: "monthly", label: "월세", type: "monthly" },
 ];
 
-/** 범위 판정 — 필터가 걸려 있는데 값이 없으면 제외 (불확실한 항목을 결과에 섞지 않음) */
-function inRange(value: number | null, opt: RangeOption): boolean {
-  if (opt.min === undefined && opt.max === undefined) return true;
-  if (value === null || !Number.isFinite(value)) return false;
-  if (opt.min !== undefined && value < opt.min) return false;
-  if (opt.max !== undefined && value > opt.max) return false;
-  return true;
-}
+/* 가격대·면적대·준공연도 고정 칩(PRICE_OPTIONS/AREA_OPTIONS/YEAR_OPTIONS)과
+   그 판정 함수 inRange 는 2026-07-27 삭제했다. 막대그래프 범위 슬라이더로
+   교체하면서 화면에서는 이미 사라졌는데 상수와 상태만 남아, 필터 활성 판정
+   (danjiFilterActive)이 그 죽은 키를 보는 바람에 슬라이더가 지도에 전혀
+   반영되지 않았다. 판정은 withinSel(RangeSel) 하나로 일원화. */
 
 /** 필터 패널 내 라벨 + 칩 그룹 (모바일 친화 — 줄바꿈 칩) */
 function FilterChipGroup({
@@ -256,6 +212,16 @@ interface MapClientProps {
   danjiLoadFailed?: boolean;
   /** 지역 시세 마커 조회가 실패했는지 — 실패면 가격 말풍선이 통째로 빠진다 */
   regionMarkersLoadFailed?: boolean;
+  /**
+   * `/map?region=서울 마포구` 로 들어왔을 때 처음 비출 지역.
+   *
+   * 2026-07-27 이전에는 MapPage 가 인자를 하나도 받지 않았다. 그래서 홈·개인화
+   * 화면의 "관심지역" 칩(PersonalHome.tsx, HomeResumePanel.tsx)이 무엇을
+   * 가리키든 /map 은 늘 같은 수도권 화면을 띄웠다 — 칩이 지역별로 다르게
+   * 생겼는데 결과가 같으니, 눌러도 아무 일도 안 일어난 것처럼 보였다.
+   * 이름을 legal_regions 좌표로 풀어 서버에서 넘긴다.
+   */
+  initialFocus?: { name: string; lat: number; lng: number } | null;
 }
 
 /* ===== 서버 클러스터링 (/api/map/clusters) ===== */
@@ -293,6 +259,12 @@ interface ClusterPointItem {
   jeonseManwon?: number;
   /** 그 평균을 만든 전세 실거래 건수 */
   jeonseCount?: number;
+  /* 상세 필터(범위 슬라이더)용 속성 — /api/map/clusters 가 complex_tx_stats 에서
+     실어 보낸다. 모르는 축은 필드가 아예 없다(undefined). */
+  avgPriceManwon?: number;
+  avgAreaM2?: number;
+  buildYear?: number;
+  households?: number;
 }
 
 /** item9 — 노트 탭에 싣는 그 단지 임장노트 (GET /api/map/complex-notes) */
@@ -302,6 +274,44 @@ interface ComplexNoteItem {
   visitDate: string | null;
   region: string | null;
   mine: boolean;
+}
+
+/** 매물 탭 — /api/listings?complex= 응답에서 실제로 쓰는 필드만 (PublicListing 부분집합) */
+interface ComplexListingItem {
+  id: string;
+  listingType: "sale" | "jeonse" | "monthly";
+  priceKrw: number | null;
+  depositKrw: number | null;
+  monthlyKrw: number | null;
+  areaM2: number | null;
+  floor: number | null;
+  ownerVerified: boolean;
+}
+
+const LISTING_TYPE_LABEL: Record<ComplexListingItem["listingType"], string> = {
+  sale: "매매",
+  jeonse: "전세",
+  monthly: "월세",
+};
+
+/** 원(₩) → "12.3억" / "8,200만". 값이 없으면 null — 0 으로 적으면 "0원 매물"이 된다. */
+function wonShort(krw: number | null): string | null {
+  if (krw == null || !Number.isFinite(krw) || krw <= 0) return null;
+  if (krw >= 100_000_000) {
+    const eok = krw / 100_000_000;
+    return `${eok >= 10 ? Math.round(eok) : eok.toFixed(1)}억`;
+  }
+  return `${Math.round(krw / 10_000).toLocaleString("ko-KR")}만`;
+}
+
+/** 매물 가격 라벨 — 유형별로 읽는 컬럼이 다르다 */
+function listingPriceLabel(l: ComplexListingItem): string {
+  if (l.listingType === "monthly") {
+    const dep = wonShort(l.depositKrw) ?? "-";
+    const rent = l.monthlyKrw ? Math.round(l.monthlyKrw / 10_000).toLocaleString("ko-KR") : "-";
+    return `${dep} / ${rent}만`;
+  }
+  return wonShort(l.listingType === "sale" ? l.priceKrw : l.depositKrw) ?? "가격 미기재";
 }
 
 /** 범례가 "언제 신고된 거래인지"를 말하게 하는 근거 — 서버가 뷰포트 기준으로 계산 */
@@ -399,6 +409,23 @@ const EMPTY_RANGES: RangeFilters = {
   households: [null, null],
 };
 
+/**
+ * 값이 선택 범위 안인가.
+ *
+ * 값을 모르는 단지(null)는 **제외**한다. 슬라이더를 "2010년 이후"로 좁혔는데
+ * 준공연도를 모르는 단지가 결과에 남아 있으면, 사용자는 그걸 조건을 만족한
+ * 단지로 읽는다. 우리는 그걸 확인한 적이 없다. 다만 축 자체에 손을 안 댔으면
+ * (양끝 모두 null) 아무것도 거르지 않는다 — 그때는 모르는 값도 그대로 둔다.
+ */
+function withinSel(value: number | null, sel: RangeSel): boolean {
+  const [min, max] = sel;
+  if (min === null && max === null) return true;
+  if (value === null || !Number.isFinite(value)) return false;
+  if (min !== null && value < min) return false;
+  if (max !== null && value > max) return false;
+  return true;
+}
+
 /** 만원 → "12.3억" / "8,200만" */
 function manwonShort(manwon: number): string {
   if (manwon >= 10_000) {
@@ -480,11 +507,15 @@ export function MapClient({
   regionMarkers,
   danjiLoadFailed = false,
   regionMarkersLoadFailed = false,
+  initialFocus = null,
 }: MapClientProps) {
   const router = useRouter();
-  const [zoom, setZoom] = useState<Zoom>(danji.length > 0 ? "danji" : "city");
+  const focusedRegion = initialFocus?.name ?? null;
+  const [zoom, setZoom] = useState<Zoom>(
+    initialFocus || danji.length > 0 ? "danji" : "city",
+  );
   const [level, setLevel] = useState<number>(
-    danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
+    initialFocus || danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
   );
   const [panelOpen, setPanelOpen] = useState(true);
   /* 모바일 지도↔목록 전환 — 데스크탑은 좌측 목록 패널이 항상 있지만 모바일은
@@ -494,6 +525,8 @@ export function MapClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("요약");
   const [center, setCenter] = useState(() => {
+    // ?region= 으로 지목된 지역이 있으면 그 좌표가 최우선이다.
+    if (initialFocus) return { lat: initialFocus.lat, lng: initialFocus.lng };
     if (danji.length > 0) {
       const lat = danji.reduce((s, d) => s + d.lat, 0) / danji.length;
       const lng = danji.reduce((s, d) => s + d.lng, 0) / danji.length;
@@ -522,9 +555,6 @@ export function MapClient({
 
   /* ===== 가격대·면적대·준공연도 필터 상태 (확대 · item3) =====
      세대수·유형은 실데이터 소스가 없어 필터에서 제외 — 패널에 "데이터 준비 중"으로 표시 */
-  const [priceKey, setPriceKey] = useState("all");
-  const [areaKey, setAreaKey] = useState("all");
-  const [yearKey, setYearKey] = useState("all");
   /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
   const [listingTradeKey, setListingTradeKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -576,42 +606,44 @@ export function MapClient({
   const commuteActive =
     commuteThreshold !== null && commuteOfficeResolved && commuteMinutes !== null;
 
-  const danjiFilterActive =
-    priceKey !== "all" || areaKey !== "all" || yearKey !== "all";
-  /* 범위 슬라이더(rangeActive)도 필터다 — 배지·초기화 버튼이 이걸 세지 않으면
-     사용자는 목록이 줄어든 이유를 화면에서 찾을 수 없다. */
-  const filterActive =
-    danjiFilterActive || rangeActive || listingTradeKey !== "all" || commuteKey !== "off";
+  const filterActive = rangeActive || listingTradeKey !== "all" || commuteKey !== "off";
   const activeCount =
-    [priceKey, areaKey, yearKey, listingTradeKey, commuteKey].filter(
-      (k) => k !== "all" && k !== "off",
-    ).length +
+    [listingTradeKey, commuteKey].filter((k) => k !== "all" && k !== "off").length +
     (["price", "area", "year", "households"] as const).filter(
       (k) => ranges[k][0] !== null || ranges[k][1] !== null,
     ).length;
 
   const resetFilters = useCallback(() => {
-    setPriceKey("all");
-    setAreaKey("all");
-    setYearKey("all");
     setRanges(EMPTY_RANGES);
     setListingTradeKey("all");
     setCommuteKey("off");
   }, []);
 
-  // 범위 필터만 적용한 단지 (출퇴근 추정 요청·비교의 기준 집합)
+  /* 범위 슬라이더를 적용한 단지 (출퇴근 추정 요청·비교의 기준 집합).
+     ── 2026-07-27: 여기가 통째로 죽어 있었다 ────────────────────────────────
+     예전 코드는 `if (!danjiFilterActive) return danji;` 로 시작했고,
+     danjiFilterActive 는 priceKey/areaKey/yearKey 로 계산했다. 그런데 그 세
+     키를 쓰던 고정 칩(FilterChipGroup + PRICE_OPTIONS…)은 막대그래프 슬라이더로
+     교체하면서 화면에서 사라졌다. 남은 setter 는 resetFilters 뿐이라 세 키는
+     영원히 "all" 이었고, 따라서 danjiFilterActive 는 영원히 false,
+     rangeFilteredDanji === danji 였다.
+     결과: 슬라이더를 아무리 끌어도 지도 마커도, 모바일 목록도, "단지 N 적용"
+     숫자도 하나도 안 변했다. 좌측 인기 단지 패널만 서버(/api/map/popular)로
+     범위를 보내고 있어서 그쪽만 반응하는 바람에 더 헷갈렸다.
+     이제 ranges 를 직접 본다.
+
+     단위: 슬라이더 값은 facets 와 같은 만원 단위(map_filter_facets 가 만원으로
+     준다). DanjiItem.avgPriceWon 은 원이라 10,000 으로 나눠 맞춘다. */
   const rangeFilteredDanji = useMemo(() => {
-    if (!danjiFilterActive) return danji;
-    const priceOpt = PRICE_OPTIONS.find((o) => o.key === priceKey) ?? PRICE_OPTIONS[0];
-    const areaOpt = AREA_OPTIONS.find((o) => o.key === areaKey) ?? AREA_OPTIONS[0];
-    const yearOpt = YEAR_OPTIONS.find((o) => o.key === yearKey) ?? YEAR_OPTIONS[0];
+    if (!rangeActive) return danji;
     return danji.filter(
       (d) =>
-        inRange(d.avgPriceWon !== null ? d.avgPriceWon / 100_000_000 : null, priceOpt) &&
-        inRange(d.areaM2, areaOpt) &&
-        inRange(d.buildYear, yearOpt),
+        withinSel(d.avgPriceWon !== null ? d.avgPriceWon / 10_000 : null, ranges.price) &&
+        withinSel(d.areaM2, ranges.area) &&
+        withinSel(d.buildYear, ranges.year) &&
+        withinSel(d.households, ranges.households),
     );
-  }, [danji, danjiFilterActive, priceKey, areaKey, yearKey]);
+  }, [danji, rangeActive, ranges]);
 
   // 출퇴근(#10) 필터를 범위 필터 위에 덧입힘 — 임계 초과 단지는 숨김.
   const filteredDanji = useMemo(() => {
@@ -796,14 +828,14 @@ export function MapClient({
       {/* 유형 — 국토부 아파트 실거래만 수집 중이라 아파트 단일 (선택할 것이 없음) */}
       <div className="flex flex-col gap-1.5">
         <div className="text-[11px] font-bold text-text-3">유형</div>
-        <div className="flex flex-wrap gap-1.5">
-          <span className="chip whitespace-nowrap bg-primary-soft px-2.5 py-1.5 text-xs font-bold text-primary">
-            아파트
-          </span>
-          <span className="self-center text-[10px] text-text-3">
-            오피스텔·빌라는 준비 중
-          </span>
-        </div>
+        {/* 예전엔 "아파트"가 선택된 필터 칩 모양(chip + bg-primary-soft)이었다.
+            바로 아래 거래유형 칩들과 생김새가 같아서 눌러 바꿀 수 있는 것처럼
+            보였지만 onClick 이 없는 <span> 이었다. 고를 것이 하나뿐이면 그건
+            컨트롤이 아니라 설명이다 — 칩 껍데기를 벗겼다. */}
+        <p className="text-[11px] leading-[1.5] text-text-2">
+          국토부 아파트 실거래만 수집하고 있어 <b className="text-ink">아파트</b>만 표시됩니다.
+          오피스텔·빌라는 준비 중이에요.
+        </p>
       </div>
       <FilterChipGroup
         label={`거래유형 (매물 레이어${showListings ? "" : " · 켜면 적용"})`}
@@ -1413,12 +1445,27 @@ export function MapClient({
             selected: d.id === selectedId || d.id === infoId,
             infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
           }));
-    // API 추가 포인트에는 가격·면적·연식 정보가 없어 (매매)필터 적용 시 제외.
-    // 전세 모드는 매매 기준 필터와 무관하므로 항상 표시.
-    if (!danjiFilterActive || txType === "rent") {
+    /* 지도에 실제로 찍히는 마커는 대부분 이 extraPoints 다(서버 렌더 목록은 30개).
+       예전에는 여기에 필터로 쓸 값이 없어서 필터가 걸리면 통째로 숨겼는데,
+       그러면 화면이 거의 비어 버렸다. 이제 clusters API 가 네 축을 함께 주므로
+       같은 기준(withinSel)으로 걸러서 그린다.
+       전세 모드는 매매 기준 범위 필터와 무관하므로 필터를 적용하지 않는다. */
+    {
+      const applyRange = rangeActive && txType !== "rent";
       const known = new Set(base.map((m) => m.id));
       for (const p of extraPoints) {
         if (known.has(p.id)) continue;
+        if (
+          applyRange &&
+          !(
+            withinSel(p.avgPriceManwon ?? null, ranges.price) &&
+            withinSel(p.avgAreaM2 ?? null, ranges.area) &&
+            withinSel(p.buildYear ?? null, ranges.year) &&
+            withinSel(p.households ?? null, ranges.households)
+          )
+        ) {
+          continue;
+        }
         const marker: MapMarkerData = {
           id: p.id,
           lat: p.lat,
@@ -1464,7 +1511,8 @@ export function MapClient({
     extraPoints,
     showPriceOverlay,
     filteredDanji,
-    danjiFilterActive,
+    rangeActive,
+    ranges,
     selectedId,
     infoComplex,
     searchMarker,
@@ -1726,6 +1774,44 @@ export function MapClient({
     return () => controller.abort();
   }, [detailTab, selectedName]);
 
+  /* ===== 매물 탭 — 그 단지의 승인 매물 실제 조회 =====
+     2026-07-27 이전에는 이 탭이 어떤 단지를 골라도 "이 단지의 실매물은 준비
+     중이에요" 카드 하나를 고정으로 그렸다. 조회를 한 적이 없으니 매물이 있는지
+     없는지 확인한 적도 없었다 — 실제로는 같은 단지의 승인 매물을 단지 홈
+     (app/complex/[id]/page.tsx)이 listApprovedListings({ complexName }) 로
+     이미 보여주고 있었다. 같은 데이터를 /api/listings?complex= 로 읽는다.
+     조회 실패는 "0건"이 아니라 실패로 말한다. */
+  const [complexListings, setComplexListings] = useState<ComplexListingItem[]>([]);
+  const [complexListingsStatus, setComplexListingsStatus] = useState<
+    "idle" | "loading" | "ok" | "error"
+  >("idle");
+  useEffect(() => {
+    if (detailTab !== "매물" || !selectedName) {
+      setComplexListings([]);
+      setComplexListingsStatus("idle");
+      return;
+    }
+    const controller = new AbortController();
+    setComplexListingsStatus("loading");
+    fetch(`/api/listings?complex=${encodeURIComponent(selectedName)}`, {
+      signal: controller.signal,
+    })
+      .then((r) => (r.ok ? (r.json() as Promise<{ items?: ComplexListingItem[] }>) : null))
+      .then((j) => {
+        if (controller.signal.aborted) return;
+        if (!j) {
+          setComplexListingsStatus("error");
+          return;
+        }
+        setComplexListings(Array.isArray(j.items) ? j.items.slice(0, 12) : []);
+        setComplexListingsStatus("ok");
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setComplexListingsStatus("error");
+      });
+    return () => controller.abort();
+  }, [detailTab, selectedName]);
+
   /* ===== SDK 로드 실패/미설정 시 폴백 — 허위 시세 대신 정직한 안내 =====
      기존엔 가짜 지역 시세 버블(동안구 7.1억 등)을 그렸으나, 사실 우선 원칙에 따라
      실데이터가 아닌 수치는 표시하지 않고 "지도를 불러올 수 없어요" 상태로 대체. */
@@ -1881,6 +1967,16 @@ export function MapClient({
             </div>
             <div className="text-[11px] text-text-3">최근 거래순</div>
           </div>
+          {/* ?region= 으로 들어왔음을 화면에서도 확인할 수 있게 — 관심지역 칩을
+              눌렀는데 늘 같은 화면이 뜨던 예전과 달라졌다는 신호. */}
+          {focusedRegion && (
+            <div className="px-5 pb-1">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary">
+                <Icon name="📍" size={11} />
+                {focusedRegion}에서 시작
+              </span>
+            </div>
+          )}
           <div className="px-5 pb-2.5 text-[11px] leading-[1.5] text-text-3">
             {popularScope === "viewport"
               ? "지도를 움직이면 보이는 지역 기준으로 바뀝니다"
@@ -1922,7 +2018,7 @@ export function MapClient({
               목록 가격은 매매 실거래 평균이에요 — 전세 보증금은 지도 마커에서 확인
             </div>
           )}
-          {!danjiLoadFailed && (danjiFilterActive || commuteActive) && filteredDanji.length === 0 && (
+          {!danjiLoadFailed && (rangeActive || commuteActive) && filteredDanji.length === 0 && (
             <div className="flex flex-col items-center gap-2 px-5 py-6 text-center">
               <div className="text-xs text-text-2">조건에 맞는 단지가 없어요.</div>
               <button
@@ -1985,7 +2081,7 @@ export function MapClient({
           <div className="flex items-baseline justify-between px-5 pb-2 pt-3">
             <div className="text-[15px] font-extrabold text-ink">
               {regionLabel} 단지 {danjiLoadFailed ? "—" : filteredDanji.length}
-              {!danjiLoadFailed && (danjiFilterActive || commuteActive) && (
+              {!danjiLoadFailed && (rangeActive || commuteActive) && (
                 <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
               )}
             </div>
@@ -1998,11 +2094,11 @@ export function MapClient({
               <div className="text-xs text-text-2">
                 {danjiLoadFailed
                   ? "단지 목록을 지금 불러오지 못했어요. 단지가 0개인 게 아니라 조회가 실패했습니다."
-                  : danjiFilterActive || commuteActive
+                  : rangeActive || commuteActive
                     ? "조건에 맞는 단지가 없어요."
                     : "이 지역 단지 목록을 준비 중이에요."}
               </div>
-              {!danjiLoadFailed && (danjiFilterActive || commuteActive) && (
+              {!danjiLoadFailed && (rangeActive || commuteActive) && (
                 <button
                   type="button"
                   onClick={resetFilters}
@@ -2170,27 +2266,74 @@ export function MapClient({
                   >
                     AI 분석
                   </Link>
-                  <Link
-                    href="/notes/compare"
-                    className="btn-secondary flex-1 rounded-xl p-[11px] text-center text-xs"
-                  >
-                    비교에 담기
-                  </Link>
+                  {/* 예전엔 <Link href="/notes/compare"> 였다. 단지 식별자가 URL 에
+                      없어서 아무것도 담기지 않았고, 도착지는 하드코딩된 예시 표였다.
+                      단지 홈이 쓰는 진짜 컨트롤(CompareTrayButton)로 교체. */}
+                  <CompareTrayButton
+                    complexId={selected.id}
+                    name={selected.name}
+                    region={selected.note ?? undefined}
+                  />
                 </div>
               </>
             )}
 
             {detailTab === "매물" && (
               <div className="flex flex-col gap-3">
-                {/* 사실 우선: 단지별 실매물 피드 미연동 — 허위 매물 목록 대신 지도 매물 레이어로 안내 */}
-                <div className="card rounded-[14px] px-[15px] py-6 text-center">
-                  <div className="text-[13px] font-bold text-ink">
-                    이 단지의 실매물은 준비 중이에요
+                {complexListingsStatus === "loading" && (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[12px] text-text-3">
+                    매물을 불러오는 중…
                   </div>
-                  <div className="mt-1 text-[11px] leading-relaxed text-text-3">
-                    지도 상단의 “매물” 레이어를 켜면 주변에 등록된 실매물을 지도에서 볼 수 있어요.
+                )}
+                {/* 못 읽은 것을 "매물 없음"으로 적지 않는다 — 멀쩡히 올라와 있는
+                    남의 매물을 없다고 말하는 셈이 된다. */}
+                {complexListingsStatus === "error" && (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center">
+                    <div className="text-[13px] font-bold text-ink">매물을 불러오지 못했어요</div>
+                    <div className="mt-1 text-[11px] text-text-3">
+                      잠시 후 다시 시도해 주세요.
+                    </div>
                   </div>
-                </div>
+                )}
+                {complexListingsStatus === "ok" && complexListings.length > 0 && (
+                  <div className="card flex flex-col rounded-[14px] px-[15px] py-1">
+                    {complexListings.map((l, i) => (
+                      <Link
+                        key={l.id}
+                        href={`/listings/${encodeURIComponent(l.id)}`}
+                        className={`flex items-center justify-between gap-2 py-2.5 ${
+                          i < complexListings.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        }`}
+                      >
+                        <span className="flex min-w-0 flex-col">
+                          <span className="text-[13px] font-bold text-ink">
+                            {LISTING_TYPE_LABEL[l.listingType]} {listingPriceLabel(l)}
+                          </span>
+                          <span className="truncate text-[11px] text-text-3">
+                            {[
+                              l.areaM2 ? `${Math.round(l.areaM2)}㎡` : null,
+                              l.floor != null ? `${l.floor}층` : null,
+                              l.ownerVerified ? "소유 확인" : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "상세 보기"}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs font-extrabold text-primary">›</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {complexListingsStatus === "ok" && complexListings.length === 0 && (
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center">
+                    <div className="text-[13px] font-bold text-ink">
+                      이 단지에 등록된 매물이 아직 없어요
+                    </div>
+                    <div className="mt-1 text-[11px] leading-relaxed text-text-3">
+                      지도 상단의 “매물” 레이어를 켜면 주변 단지의 등록 매물을 볼 수 있어요.
+                    </div>
+                  </div>
+                )}
                 <Link href="/listings/new" className="btn-soft rounded-xl p-3 text-center text-[13px]">
                   내 매물 등록하기
                 </Link>
@@ -2562,7 +2705,12 @@ export function MapClient({
         >
           임장노트
         </Link>
-        <span className="rounded-full bg-[rgba(29,79,216,.12)] px-4 py-[9px] text-[13px] font-bold text-primary">
+        {/* 현재 페이지 표시 — 옆의 <Link> 들과 생김새가 비슷해 눌러 보게 되므로
+            aria-current 로 "여기가 지금 보고 있는 화면"임을 스크린리더에도 알린다. */}
+        <span
+          aria-current="page"
+          className="rounded-full bg-[rgba(29,79,216,.12)] px-4 py-[9px] text-[13px] font-bold text-primary"
+        >
           지도
         </span>
         <Link

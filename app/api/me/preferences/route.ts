@@ -60,6 +60,10 @@ export async function POST(req: Request) {
     regions: body.regions,
     budget: body.budget,
     purpose: body.purpose,
+    /* 가입 화면 기본 정보(나이대·성별·가구·직업·생애최초·보유 주택).
+       예전엔 /signup 이 물어만 보고 아무 데도 보내지 않아 통째로 버려졌다.
+       허용 항목·값은 sanitizeProfile 이 화이트리스트로 거른다. */
+    profile: body.profile,
   });
   return NextResponse.json({
     personalization,
