@@ -630,7 +630,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   border-radius: 12px;
   color: #fff;
   box-shadow: var(--shadow-lg);
-  animation: toastIn var(--dur-sm) var(--ease-out) both;
+  animation: toastIn var(--dur-sm) var(--ease-out) backwards;
 }
 .toast-action {
   color: var(--ai-accent);
@@ -816,40 +816,51 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   }
 }
 
-/* 19a #4 목록 스태거: 40ms 간격 · 최대 8개 · 스크롤 유입분은 즉시 */
+/* 19a #4 목록 스태거: 40ms 간격 · 최대 8개 · 스크롤 유입분은 즉시
+   fill-mode 는 `both` 가 아니라 `backwards` 다 (#227). `both` 면 애니메이션이
+   끝난 뒤에도 마지막 키프레임의 `transform: translateY(0)` 이 계속 남고,
+   transform 이 none 이 아닌 요소는 자손 `position: fixed` 의 컨테이닝 블록이
+   되면서 새 쌓임 맥락까지 만든다. 그 탓에 rise-in 섹션 안에서 연 모달이
+   뷰포트가 아니라 섹션 박스에 갇히고 헤더 밑으로 깔리는 버그가 있었다.
+   `backwards` 는 지연 구간에서만 시작 상태를 적용하고 끝나면 원래 스타일로
+   돌아가므로(= transform 없음) 보이는 결과는 같고 함정만 사라진다.
+   같은 이유로 transform 을 쓰는 진입 애니메이션(.modal-in/.sheet-in/.alert-in/
+   .toast/.dropdown-panel)도 전부 `backwards` 로 맞췄다. 모든 키프레임의 끝
+   상태가 기본값(opacity:1 · transform 없음)과 같아서 보이는 결과는 동일하다.
+   `.pulse-once` 는 배경색만 바꾸고 끝 상태가 기본값과 달라 `both` 를 유지한다. */
 .rise-in {
-  animation: riseIn var(--dur-md) var(--ease-out) both;
+  animation: riseIn var(--dur-md) var(--ease-out) backwards;
 }
 .rise-in-1 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 1) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 1) backwards;
 }
 .rise-in-2 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 2) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 2) backwards;
 }
 .rise-in-3 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 3) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 3) backwards;
 }
 .rise-in-4 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 4) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 4) backwards;
 }
 .rise-in-5 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 5) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 5) backwards;
 }
 .rise-in-6 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 6) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 6) backwards;
 }
 .rise-in-7 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 7) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 7) backwards;
 }
 .rise-in-8 {
-  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 8) both;
+  animation: riseIn var(--dur-md) var(--ease-out) calc(var(--stagger) * 8) backwards;
 }
 
 .modal-in {
-  animation: scaleIn var(--dur-sm) var(--ease-out) both;
+  animation: scaleIn var(--dur-sm) var(--ease-out) backwards;
 }
 .sheet-in {
-  animation: sheetUp var(--dur-md) var(--ease-out) both;
+  animation: sheetUp var(--dur-md) var(--ease-out) backwards;
 }
 .pulse-once {
   animation: pulseBg var(--dur-lg) var(--ease-inout) 1 both;
@@ -858,7 +869,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   animation: shakeX 240ms var(--ease-inout) 1;
 }
 .alert-in {
-  animation: slideDownIn var(--dur-sm) var(--ease-out) both;
+  animation: slideDownIn var(--dur-sm) var(--ease-out) backwards;
 }
 .fade-in {
   animation: fadeIn var(--dur-xs) var(--ease-out) both;
@@ -1075,7 +1086,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 /* 드롭다운 스프링감 — translateY + scale 동반 (모션토큰만 사용) */
 .dropdown-panel {
   transform-origin: top left;
-  animation: dropIn var(--dur-sm) var(--ease-out) both;
+  animation: dropIn var(--dur-sm) var(--ease-out) backwards;
 }
 @keyframes dropIn {
   from {

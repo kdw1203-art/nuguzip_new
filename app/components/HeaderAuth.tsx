@@ -122,7 +122,7 @@ export function HeaderAuth() {
       {open && (
         <div className="absolute right-0 top-full z-50 pt-2">
           <div
-            className="glass-strong min-w-[168px] rounded-2xl p-1.5 [animation:riseIn_180ms_var(--ease-out)_both]"
+            className="glass-strong min-w-[168px] rounded-2xl p-1.5 [animation:riseIn_180ms_var(--ease-out)_backwards]"
             style={{ background: "rgba(255,255,255,.94)" }}
             role="menu"
           >

@@ -113,7 +113,7 @@ export function MobileMenu() {
           />
 
           <div
-            className="glass-strong absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl [animation:riseIn_220ms_var(--ease-out)_both]"
+            className="glass-strong absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl [animation:riseIn_220ms_var(--ease-out)_backwards]"
             style={{
               background: "var(--surface)",
               paddingTop: "max(16px, env(safe-area-inset-top, 0px))",

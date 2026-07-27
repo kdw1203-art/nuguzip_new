@@ -53,7 +53,7 @@ export function ListingPreviewPanel({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[55] flex justify-center px-3 pb-[max(12px,env(safe-area-inset-bottom))]">
-      <div className="glass-strong pointer-events-auto w-full max-w-[440px] rounded-2xl border border-line p-3 shadow-xl [animation:riseIn_200ms_var(--ease-out)_both]">
+      <div className="glass-strong pointer-events-auto w-full max-w-[440px] rounded-2xl border border-line p-3 shadow-xl [animation:riseIn_200ms_var(--ease-out)_backwards]">
         <div className="flex items-start gap-3">
           {/* 썸네일 */}
           <div className="h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl bg-[rgba(127,140,158,.12)]">

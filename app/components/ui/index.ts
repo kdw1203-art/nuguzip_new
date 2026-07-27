@@ -21,5 +21,8 @@ export type {
 export { SectionHeader } from "./SectionHeader";
 export type { SectionHeaderProps, SectionHeaderAction } from "./SectionHeader";
 
+export { Modal, ModalHeader } from "./Modal";
+export type { ModalProps } from "./Modal";
+
 export { SourceNote } from "./SourceNote";
 export type { SourceNoteProps, SourceNoteTone } from "./SourceNote";

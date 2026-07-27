@@ -67,11 +67,27 @@ let audited = 0;
 let viaCanonical = 0;
 let viaNoIndex = 0;
 
+/**
+ * `"use client"` 페이지는 metadata 를 내보낼 수 없다 — Next.js 규칙이다.
+ * 그런 페이지의 canonical 은 같은 폴더의 layout.tsx 가 대신 선언하며, 그렇게
+ * 붙은 canonical 도 실제로 HTML 에 들어간다. 그러니 page.tsx 만 읽고 없다고
+ * 판정하면 멀쩡히 처리된 페이지를 오탐으로 잡는다 — 형제 layout 도 함께 본다.
+ */
+function siblingLayoutSource(file) {
+  for (const name of ["layout.tsx", "layout.ts"]) {
+    const p = join(dirname(file), name);
+    if (existsSync(p)) return readFileSync(p, "utf8");
+  }
+  return "";
+}
+
 for (const file of files) {
-  const src = readFileSync(file, "utf8");
+  const pageSrc = readFileSync(file, "utf8");
 
   // searchParams 를 읽지 않으면 파라미터 중복 색인 위험 자체가 없다.
-  if (!/\bsearchParams\b/.test(src)) continue;
+  if (!/\bsearchParams\b/.test(pageSrc)) continue;
+
+  const src = pageSrc + "\n" + siblingLayoutSource(file);
 
   const routePath = routePathOf(file);
   const rel = relative(root, file);

@@ -143,7 +143,7 @@ export function HeaderSearch() {
       {open && (q.trim().length > 0) && (
         <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[300px]">
           <div
-            className="glass-strong overflow-hidden rounded-2xl p-1.5 [animation:riseIn_180ms_var(--ease-out)_both]"
+            className="glass-strong overflow-hidden rounded-2xl p-1.5 [animation:riseIn_180ms_var(--ease-out)_backwards]"
             style={{ background: "rgba(255,255,255,.9)" }}
           >
             {items.length > 0 ? (
