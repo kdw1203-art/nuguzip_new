@@ -36,6 +36,16 @@ function resolveAuthSecret(): string | undefined {
       );
       warnedMissingAuthSecret = true;
     }
+    /* 단, `next build` 의 "Collecting page data" 단계는 NODE_ENV=production 으로 라우트
+       모듈을 그냥 import 한다. 여기서 던지면 시크릿 유무와 무관하게 빌드가 깨지는데,
+       빌드는 요청을 처리하지 않으므로 위조될 세션 자체가 없다. 막아야 하는 것은
+       **런타임에 위조 가능한 시크릿으로 세션을 발급하는 것**이지 빌드가 아니다.
+       그래서 빌드 단계에서만 서명에 쓰이지 않는 자리표시자를 돌려주고, 실제 요청
+       경로에서는 그대로 던진다. (환경변수 누락 자체는 vercel.json 의 STRICT_ENV_CHECK=1
+       → scripts/validate-env.mjs 가 빌드 앞단에서 이미 막는다. 이건 그 뒤의 2차 방어다.) */
+    if (process.env.NEXT_PHASE === "phase-production-build") {
+      return "build-phase-placeholder-never-signs-a-real-session-token";
+    }
     throw new Error(
       "[auth] AUTH_SECRET(또는 NEXTAUTH_SECRET)이 프로덕션에 설정되어 있지 않습니다.",
     );
