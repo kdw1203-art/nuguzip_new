@@ -53,6 +53,11 @@ export type RefreshedRowCounts = {
    * "단지 0개"라는 거짓이 되므로, 없으면 없는 채로 둔다.
    */
   complex_sitemap?: number;
+  /**
+   * 지오코딩 우선순위 산정용 단지별 거래 건수 (2026-07-26 추가).
+   * 위와 같은 이유로 optional — 옛 DB 함수는 이 키를 안 보낸다.
+   */
+  complex_tx_stats?: number;
 };
 
 export type RefreshAggregatesResult = {
