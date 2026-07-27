@@ -128,7 +128,7 @@ export const MEETING_SUBCATEGORIES: SubCategory[] = [
   },
 ];
 
-/** `/groups` 모임 목록 전용: 중고·도구 거래 탭은 `/market`에서만 사용 */
+/** `/town/groups` 모임 목록 전용: 중고·도구 거래 탭은 `/market`에서만 사용 */
 export const GROUP_LIST_SUBCATEGORIES: SubCategory[] = MEETING_SUBCATEGORIES.filter(
   (s) => s.id !== "market",
 );
