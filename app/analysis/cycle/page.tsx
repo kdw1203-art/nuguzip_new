@@ -96,7 +96,7 @@ const targetTone = {
 
 const LEGEND = [
   { label: "실거래", color: "#191f28" },
-  { label: "적극적", color: "#d64545" },
+  { label: "적극적", color: "#c62828" },
   { label: "기준", color: "#1d4fd8" },
   { label: "보수적", color: "#8b95a1" },
 ];
@@ -162,7 +162,7 @@ export default function CyclePage() {
               >
                 <defs>
                   <linearGradient id="cycleFan" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#d64545" stopOpacity="0.10" />
+                    <stop offset="0%" stopColor="#c62828" stopOpacity="0.10" />
                     <stop offset="50%" stopColor="#1d4fd8" stopOpacity="0.07" />
                     <stop offset="100%" stopColor="#8b95a1" stopOpacity="0.10" />
                   </linearGradient>
@@ -177,7 +177,7 @@ export default function CyclePage() {
                 <path
                   d={d.aggressive}
                   fill="none"
-                  stroke="#d64545"
+                  stroke="#c62828"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   opacity="0.9"

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 const STATUS_META: Record<InquiryStatus, { label: string; cls: string }> = {
   new: { label: "새 문의", cls: "bg-[rgba(29,79,216,.1)] text-primary" },
   read: { label: "확인함", cls: "bg-[rgba(0,0,0,.06)] text-text-2" },
-  replied: { label: "회신함", cls: "bg-[rgba(26,127,78,.1)] text-[#1a7f4e]" },
+  replied: { label: "회신함", cls: "bg-success-soft text-success" },
   archived: { label: "보관", cls: "bg-[rgba(0,0,0,.05)] text-text-3" },
 };
 

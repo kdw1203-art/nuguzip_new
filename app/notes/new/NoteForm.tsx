@@ -972,7 +972,7 @@ export function NoteForm({
           </div>
         )}
         {saveError && (
-          <div className="rounded-[14px] border border-[rgba(214,69,69,.2)] bg-danger-soft px-4 py-3 text-center text-[13px] font-semibold text-danger">
+          <div className="rounded-[14px] border border-[color:var(--danger-border)] bg-danger-soft px-4 py-3 text-center text-[13px] font-semibold text-danger">
             {saveError}
           </div>
         )}

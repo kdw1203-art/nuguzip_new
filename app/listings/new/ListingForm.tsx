@@ -254,7 +254,7 @@ export function ListingForm() {
       {/* 지도 위치 지정 */}
       <div>
         <span className={label}>
-          위치 지정 <span className="text-[#d64545]">*</span>
+          위치 지정 <span className="text-danger">*</span>
         </span>
         <p className="mb-2 text-[12px] leading-[1.6] text-text-3">
           지도를 움직여 중앙 핀을 매물 위치에 맞춘 뒤 <b>‘이 위치로 주소 찾기’</b>를 누르거나,
@@ -316,7 +316,7 @@ export function ListingForm() {
         </div>
 
         {geoMsg && (
-          <p className="mt-2 text-[12px] font-bold text-[#d64545]">{geoMsg}</p>
+          <p className="mt-2 text-[12px] font-bold text-danger">{geoMsg}</p>
         )}
         {picked && (
           <div className="mt-2 rounded-xl bg-[rgba(29,79,216,.06)] px-3 py-2.5 text-[13px] leading-[1.6] text-[#3b56a8]">
@@ -402,7 +402,7 @@ export function ListingForm() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="complexName">
-            단지명(건물명) <span className="text-[#d64545]">*</span>
+            단지명(건물명) <span className="text-danger">*</span>
           </label>
           <input
             id="complexName"
@@ -439,7 +439,7 @@ export function ListingForm() {
         {listingType === "sale" && (
           <div>
             <label className={label} htmlFor="priceManwon">
-              매매가 (만원) <span className="text-[#d64545]">*</span>
+              매매가 (만원) <span className="text-danger">*</span>
             </label>
             <input
               id="priceManwon"
@@ -457,7 +457,7 @@ export function ListingForm() {
         {listingType !== "sale" && (
           <div>
             <label className={label} htmlFor="depositManwon">
-              보증금 (만원) <span className="text-[#d64545]">*</span>
+              보증금 (만원) <span className="text-danger">*</span>
             </label>
             <input
               id="depositManwon"
@@ -475,7 +475,7 @@ export function ListingForm() {
         {listingType === "monthly" && (
           <div>
             <label className={label} htmlFor="monthlyManwon">
-              월세 (만원) <span className="text-[#d64545]">*</span>
+              월세 (만원) <span className="text-danger">*</span>
             </label>
             <input
               id="monthlyManwon"
@@ -600,7 +600,7 @@ export function ListingForm() {
           )}
         </div>
         {photoError && (
-          <p className="mt-2 text-[12px] font-bold text-[#d64545]">{photoError}</p>
+          <p className="mt-2 text-[12px] font-bold text-danger">{photoError}</p>
         )}
       </div>
 
@@ -650,7 +650,7 @@ export function ListingForm() {
       </label>
 
       {error && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] font-bold text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger">
           {error}
         </div>
       )}

@@ -38,7 +38,7 @@ export function InquiryForm({
 
   if (phase === "done") {
     return (
-      <div className="rounded-xl bg-[rgba(26,127,78,.08)] px-4 py-3 text-[13px] font-bold text-[#1a7f4e]">
+      <div className="rounded-xl bg-success-soft px-4 py-3 text-[13px] font-bold text-success">
         문의를 남겼어요. 등록자가 확인하면 남겨 주신 연락처로 회신할 수 있어요.
       </div>
     );

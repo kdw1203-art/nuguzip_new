@@ -75,14 +75,14 @@ function ExpertRow({ item }: { item: QueueItem }) {
             <button
               type="button"
               onClick={() => setPhase("approve")}
-              className="rounded-[7px] bg-[#1a7f4e] px-2 py-1 text-[10px] font-extrabold text-white"
+              className="rounded-[7px] bg-success-fill px-2 py-1 text-[10px] font-extrabold text-white"
             >
               승인
             </button>
             <button
               type="button"
               onClick={() => setPhase("reject")}
-              className="rounded-[7px] bg-[#fdecec] px-2 py-1 text-[10px] font-extrabold text-[#d64545]"
+              className="rounded-[7px] bg-danger-soft px-2 py-1 text-[10px] font-extrabold text-danger"
             >
               반려
             </button>
@@ -98,7 +98,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
           <button
             type="button"
             onClick={() => void submit("approve")}
-            className="rounded-[7px] bg-[#1a7f4e] px-2.5 py-1 text-[10px] font-extrabold text-white"
+            className="rounded-[7px] bg-success-fill px-2.5 py-1 text-[10px] font-extrabold text-white"
           >
             승인 확정
           </button>
@@ -124,7 +124,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
             type="button"
             disabled={!reason.trim()}
             onClick={() => void submit("reject")}
-            className="rounded-[7px] bg-[#d64545] px-2.5 py-1 text-[10px] font-extrabold text-white disabled:opacity-40"
+            className="rounded-[7px] bg-danger-fill px-2.5 py-1 text-[10px] font-extrabold text-white disabled:opacity-40"
           >
             반려 확정
           </button>

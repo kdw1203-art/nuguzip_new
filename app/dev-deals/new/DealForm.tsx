@@ -107,7 +107,7 @@ export function DealForm() {
       {/* 제목 */}
       <div>
         <label className={label} htmlFor="title">
-          제목 <span className="text-[#d64545]">*</span>
+          제목 <span className="text-danger">*</span>
         </label>
         <input
           id="title"
@@ -124,7 +124,7 @@ export function DealForm() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="dealType">
-            개발물건 유형 <span className="text-[#d64545]">*</span>
+            개발물건 유형 <span className="text-danger">*</span>
           </label>
           <select
             id="dealType"
@@ -341,7 +341,7 @@ export function DealForm() {
       </div>
 
       {needLogin && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] leading-[1.7] text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] leading-[1.7] text-danger">
           등록은 로그인 후 이용할 수 있어요.{" "}
           <Link
             href="/login?callbackUrl=/dev-deals/new"
@@ -353,7 +353,7 @@ export function DealForm() {
       )}
 
       {error && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] font-bold text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger">
           {error}
         </div>
       )}

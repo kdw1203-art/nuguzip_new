@@ -49,7 +49,7 @@ const RBAC = [
 
 function rbacCell(v: string) {
   if (v === "✓")
-    return <span className="flex-1 text-center font-extrabold text-[#1a7f4e]">✓</span>;
+    return <span className="flex-1 text-center font-extrabold text-[#4ade80]">✓</span>;
   if (v === "승인제")
     return (
       <span className="flex-1 text-center font-extrabold text-[#e8a13a]">
@@ -127,7 +127,7 @@ export default async function AdminOpsPage() {
                     <span
                       className={`rounded-md px-2 py-[3px] text-[9px] font-extrabold ${
                         b.isActive
-                          ? "bg-[#e7f5ee] text-[#1a7f4e]"
+                          ? "bg-success-soft text-success"
                           : "bg-[rgba(0,0,0,.06)] text-text-3"
                       }`}
                     >
@@ -266,7 +266,7 @@ export default async function AdminOpsPage() {
                 className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-[9px] no-underline"
               >
                 <span className="text-text-1">이용약관 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-[#e7f5ee] px-2 py-[3px] text-[9px] font-extrabold text-[#1a7f4e]">
+                <span className="flex-shrink-0 rounded-md bg-success-soft px-2 py-[3px] text-[9px] font-extrabold text-success">
                   보기
                 </span>
               </a>

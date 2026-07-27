@@ -57,8 +57,8 @@ export const VERDICT_MARK: Record<QualityVerdict, string> = {
 };
 
 export const VERDICT_COLOR: Record<QualityVerdict, string> = {
-  pass: "#1a7f4e",
-  normal: "#1a7f4e",
+  pass: "#177a4a",
+  normal: "#177a4a",
   note: "#b45309",
   defect: "#c2410c",
 };

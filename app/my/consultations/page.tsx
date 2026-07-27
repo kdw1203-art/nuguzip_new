@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 const STATUS_META: Record<ConsultStatus, { label: string; cls: string }> = {
   pending: { label: "답변 대기", cls: "bg-[rgba(29,79,216,.1)] text-primary" },
-  replied: { label: "답변함", cls: "bg-[rgba(26,127,78,.1)] text-[#1a7f4e]" },
+  replied: { label: "답변함", cls: "bg-success-soft text-success" },
   closed: { label: "마감", cls: "bg-[rgba(0,0,0,.06)] text-text-3" },
 };
 
@@ -110,7 +110,7 @@ export default async function MyConsultationsPage() {
             {expert.category}
           </span>
           {expert.isVerified ? (
-            <span className="rounded-[6px] bg-[rgba(26,127,78,.1)] px-2 py-[3px] text-[11px] font-extrabold text-[#1a7f4e]">
+            <span className="rounded-[6px] bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
               인증 완료
             </span>
           ) : (
@@ -197,8 +197,8 @@ export default async function MyConsultationsPage() {
                 </div>
 
                 {c.reply && (
-                  <div className="rounded-xl border border-[rgba(26,127,78,.2)] bg-[rgba(26,127,78,.05)] px-3.5 py-2.5">
-                    <div className="mb-1 text-[11px] font-bold text-[#1a7f4e]">내 답변</div>
+                  <div className="rounded-xl border border-[color:var(--success-border)] bg-success-soft px-3.5 py-2.5">
+                    <div className="mb-1 text-[11px] font-bold text-success">내 답변</div>
                     <p className="whitespace-pre-wrap text-[13px] leading-[1.7] text-text-2">
                       {c.reply}
                     </p>

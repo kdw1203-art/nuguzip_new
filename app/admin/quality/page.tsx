@@ -79,7 +79,7 @@ export default async function AdminQualityPage() {
   const fraudSeverityMeta: Record<string, { label: string; cls: string }> = {
     warn: { label: "주의", cls: "bg-[#fdf3e7] text-warning" },
     review_queue: { label: "검토", cls: "bg-primary-soft text-primary" },
-    block: { label: "차단", cls: "bg-[#fdecec] text-[#d64545]" },
+    block: { label: "차단", cls: "bg-danger-soft text-danger" },
   };
 
   // 사실 기반 세그먼트 — 정의 가능한 실측치만 (휴면/이탈 코호트는 행동 정의 필요 → 준비 중)
@@ -90,7 +90,7 @@ export default async function AdminQualityPage() {
     : 0;
 
   const segments = [
-    { dot: "#1a7f4e", label: "전체 가입", sub: "profiles", value: kpi ? fmt(kpi.totalUsers) : "—" },
+    { dot: "#177a4a", label: "전체 가입", sub: "profiles", value: kpi ? fmt(kpi.totalUsers) : "—" },
     {
       dot: "#3182f6",
       label: "최근 7일 활동 작성자",
@@ -199,7 +199,7 @@ export default async function AdminQualityPage() {
 
                   {g.guards.length > 0 && (
                     <div className="text-[10px] leading-[1.7] text-text-3">
-                      <b className="text-[#1a7f4e]">● 회귀 감시 {g.guards.length}개 통과</b> —{" "}
+                      <b className="text-[#4ade80]">● 회귀 감시 {g.guards.length}개 통과</b> —{" "}
                       {g.guards.join(" · ")}. 전부 0건이라 접어 뒀어요. 값이 잡히면 위 목록으로
                       올라옵니다.
                     </div>
@@ -318,7 +318,7 @@ export default async function AdminQualityPage() {
                   </span>
                   <span className="shrink-0 text-[11px] text-text-2">
                     상담 <b className="text-ink">{fmt(p.total)}</b> · 답변율{" "}
-                    <b className={p.replyRate >= 70 ? "text-[#1a7f4e]" : "text-text-2"}>
+                    <b className={p.replyRate >= 70 ? "text-[#4ade80]" : "text-text-2"}>
                       {p.replyRate}%
                     </b>
                   </span>

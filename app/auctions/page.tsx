@@ -563,7 +563,7 @@ export default async function AuctionsPage({
                     className="rise-in-3 card flex items-center justify-between rounded-2xl px-[18px] py-3.5"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="rounded-md bg-danger px-2 py-1 text-[11px] font-extrabold text-white">
+                      <span className="rounded-md bg-danger-fill px-2 py-1 text-[11px] font-extrabold text-white">
                         {c.dday?.label}
                       </span>
                       <div>

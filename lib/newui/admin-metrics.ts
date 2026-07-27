@@ -198,7 +198,7 @@ async function loadPendingReports(): Promise<AdminPendingItem[]> {
       return {
         text: `신고: ${category} — “${short}” · ${relativeLabel(r.created_at)}`,
         status: urgent ? "긴급" : open ? "대기" : "처리됨",
-        color: urgent ? "#d64545" : open ? "#f2c94c" : "#9aa6b8",
+        color: urgent ? "#c62828" : open ? "#f2c94c" : "#9aa6b8",
       };
     });
   } catch (e) {

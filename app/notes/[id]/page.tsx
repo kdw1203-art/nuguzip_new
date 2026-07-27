@@ -84,7 +84,7 @@ async function loadNote(id: string): Promise<LoadResult> {
 /* ---------- 실데이터 → 표준 뷰 변환 ---------- */
 
 function axisToneClass(level: AxisLevel): string {
-  if (level === "상") return "text-[#1a7f4e]";
+  if (level === "상") return "text-success";
   if (level === "하") return "text-danger";
   return "text-text-1";
 }
@@ -533,7 +533,7 @@ export default async function NoteDetailPage({
             {/* ③ 직접 방문 배지 + 방문일·작성자 */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {v.directVisit ? (
-                <span className="rounded-md bg-[#e7f5ee] px-2 py-[3px] text-[11px] font-extrabold text-[#1a7f4e]">
+                <span className="rounded-md bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
                   ✓ 직접 방문
                 </span>
               ) : (
@@ -589,7 +589,7 @@ export default async function NoteDetailPage({
             {/* ⑤⑥ 좋았던 점 · 주의할 점 */}
             <div className="rounded-[14px] border border-line bg-surface p-3.5 text-xs leading-[1.7] text-text-1">
               <div>
-                <b className="text-[#1a7f4e]">좋았던 점</b> —{" "}
+                <b className="text-success">좋았던 점</b> —{" "}
                 {v.goodPoints.join(" · ")}
               </div>
               <div className="mt-1">
@@ -608,7 +608,7 @@ export default async function NoteDetailPage({
 
             {/* ⑦⑧⑩ 출처·데이터 기준일 각주 + 지역·단지 실 내부 링크 */}
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-line pt-3 text-[11px] text-text-3">
-              <span className="h-[5px] w-[5px] rounded-full bg-[#1a7f4e]" />
+              <span className="h-[5px] w-[5px] rounded-full bg-success" />
               <span>
                 {v.sourceLabel} · 기준일 {v.baseDate}
               </span>
@@ -695,8 +695,8 @@ export default async function NoteDetailPage({
               </span>
             </div>
             <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-              <div className="flex flex-col gap-1.5 rounded-xl bg-[#e7f5ee] px-4 py-3">
-                <div className="text-xs font-extrabold text-[#1a7f4e]">좋았던 점</div>
+              <div className="flex flex-col gap-1.5 rounded-xl bg-success-soft px-4 py-3">
+                <div className="text-xs font-extrabold text-success">좋았던 점</div>
                 <div className="text-xs leading-[1.6] text-text-1">
                   {v.goodPoints.map((s, i) => (
                     <span key={s}>

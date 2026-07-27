@@ -43,7 +43,7 @@ export function ListingReviewActions({ id }: { id: string }) {
     return (
       <div
         className={`text-[12px] font-extrabold ${
-          result === "approved" ? "text-[#4ade80]" : "text-[#d64545]"
+          result === "approved" ? "text-[#4ade80]" : "text-[#ff8a8a]"
         }`}
       >
         {result === "approved" ? "승인 완료 — 목록에 노출됩니다." : "반려 완료"}
@@ -72,7 +72,7 @@ export function ListingReviewActions({ id }: { id: string }) {
         type="button"
         onClick={() => act("reject")}
         disabled={busy}
-        className="rounded-lg bg-[rgba(214,69,69,.85)] px-3.5 py-1.5 text-[12px] font-extrabold text-white disabled:opacity-50"
+        className="rounded-lg bg-danger-fill px-3.5 py-1.5 text-[12px] font-extrabold text-white disabled:opacity-50"
       >
         반려
       </button>

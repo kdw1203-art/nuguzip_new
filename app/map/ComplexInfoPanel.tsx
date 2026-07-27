@@ -102,7 +102,7 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
   const lastVal = series[series.length - 1].avg;
   const deltaPct = first > 0 ? Math.round(((lastVal - first) / first) * 1000) / 10 : 0;
   const up = lastVal >= first;
-  const stroke = up ? "#1d4fd8" : "#d64545";
+  const stroke = up ? "#1d4fd8" : "#c62828";
 
   return (
     <div className="card rounded-[14px] px-[15px] py-3">
@@ -114,7 +114,7 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
-        <path d={area} fill={up ? "rgba(29,79,216,.08)" : "rgba(214,69,69,.08)"} />
+        <path d={area} fill={up ? "rgba(29,79,216,.08)" : "rgba(198,40,40,.08)"} />
         <path d={line} fill="none" stroke={stroke} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
         <circle cx={last.x} cy={last.y} r={2.6} fill={stroke} />
       </svg>
@@ -227,7 +227,7 @@ function WatchlistToggle({
           : "border-line bg-surface text-text-2"
       }`}
     >
-      <span className={watching ? "text-primary" : "text-[#d64545]"}>
+      <span className={watching ? "text-primary" : "text-danger"}>
         {watching ? "♥" : "♡"}
       </span>
       {watching ? "관심 단지 담김 · 알림 받는 중" : "관심 단지 담고 시세 알림 받기"}

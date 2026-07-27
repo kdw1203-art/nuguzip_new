@@ -61,7 +61,7 @@ export function PartnerForm() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="company">
-            상호(중개사무소명) <span className="text-[#d64545]">*</span>
+            상호(중개사무소명) <span className="text-danger">*</span>
           </label>
           <input
             id="company"
@@ -75,7 +75,7 @@ export function PartnerForm() {
         </div>
         <div>
           <label className={label} htmlFor="name">
-            대표자명 <span className="text-[#d64545]">*</span>
+            대표자명 <span className="text-danger">*</span>
           </label>
           <input
             id="name"
@@ -90,7 +90,7 @@ export function PartnerForm() {
 
       <div>
         <label className={label} htmlFor="licenseNo">
-          중개사무소 등록번호 <span className="text-[#d64545]">*</span>
+          중개사무소 등록번호 <span className="text-danger">*</span>
         </label>
         <input
           id="licenseNo"
@@ -119,7 +119,7 @@ export function PartnerForm() {
         </div>
         <div>
           <label className={label} htmlFor="email">
-            이메일 <span className="text-[#d64545]">*</span>
+            이메일 <span className="text-danger">*</span>
           </label>
           <input
             id="email"
@@ -169,7 +169,7 @@ export function PartnerForm() {
       </div>
 
       {error && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] font-bold text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger">
           {error}
         </div>
       )}

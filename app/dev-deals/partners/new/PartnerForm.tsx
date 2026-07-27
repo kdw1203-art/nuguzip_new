@@ -92,7 +92,7 @@ export function PartnerForm() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={label} htmlFor="companyName">
-            회사명 <span className="text-[#d64545]">*</span>
+            회사명 <span className="text-danger">*</span>
           </label>
           <input
             id="companyName"
@@ -106,7 +106,7 @@ export function PartnerForm() {
         </div>
         <div>
           <label className={label} htmlFor="partnerType">
-            협력업체 유형 <span className="text-[#d64545]">*</span>
+            협력업체 유형 <span className="text-danger">*</span>
           </label>
           <select
             id="partnerType"
@@ -210,7 +210,7 @@ export function PartnerForm() {
       </div>
 
       {needLogin && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] leading-[1.7] text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] leading-[1.7] text-danger">
           등록은 로그인 후 이용할 수 있어요.{" "}
           <Link
             href="/login?callbackUrl=/dev-deals/partners/new"
@@ -222,7 +222,7 @@ export function PartnerForm() {
       )}
 
       {error && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] font-bold text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger">
           {error}
         </div>
       )}

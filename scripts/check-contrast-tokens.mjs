@@ -105,6 +105,18 @@ function readBlock(src, selector) {
 
 const TONES = ["danger", "success", "warning", "primary"];
 const RAMP = ["ink", "text-1", "text-2", "text-3"];
+/** 본문이 얹힐 수 있는 배경 — 상태 카드 안에 캡션을 쓰는 건 자연스러운 일이라
+    상태 soft 3종도 약속 대상에 넣는다. 2026-07-27 에 넣고 재 보니 --text-3 만
+    danger-soft 위 4.39(라이트) / 3.87~4.27(다크) 로 걸렸다. */
+const TEXT_BACKGROUNDS = [
+  "surface",
+  "bg",
+  "disabled-bg",
+  "danger-soft",
+  "success-soft",
+  "warning-soft",
+  "primary-soft",
+];
 
 /** [전경 토큰, 배경 토큰] — 디자인 시스템이 스스로 약속한 조합만. */
 function pairs() {
@@ -112,9 +124,18 @@ function pairs() {
   for (const t of TONES) {
     list.push([t, "surface"], [t, "bg"], [t, `${t}-soft`]);
   }
-  for (const r of RAMP) list.push([r, "surface"], [r, "bg"]);
+  for (const r of RAMP) for (const b of TEXT_BACKGROUNDS) list.push([r, b]);
   return list;
 }
+
+/**
+ * 채움 토큰 — 전경이 항상 흰 글씨인 자리(솔리드 배지·버튼).
+ * 본문용 --danger/--success 는 다크에서 밝은 색으로 뒤집히므로 채움에 쓰면
+ * 흰 글씨가 2.4:1 까지 무너진다. 그래서 채움값은 테마 고정이고, 여기서는
+ * (1) 흰 글씨가 AA 를 넘는가 (2) 배지 자체가 표면과 3:1 로 구분되는가 를 본다.
+ */
+const FILLS = ["danger-fill", "success-fill"];
+const NON_TEXT_MIN = 3; // WCAG 1.4.11 비텍스트 최소
 
 function check(themeName, tokens) {
   const surface = resolve(tokens.surface, null);
@@ -140,7 +161,59 @@ function check(themeName, tokens) {
     const ratio = contrast(fg, bg);
     rows.push({ fgKey, bgKey, ratio, ok: ratio >= AA, fg, bg });
   }
+  for (const fillKey of FILLS) {
+    const fill = resolve(tokens[fillKey], surface);
+    if (!fill) {
+      rows.push({ fgKey: "#fff", bgKey: fillKey, ratio: null, ok: false, note: "색을 해석하지 못함" });
+      continue;
+    }
+    const white = contrast([255, 255, 255], fill);
+    rows.push({ fgKey: "#fff", bgKey: fillKey, ratio: white, ok: white >= AA });
+    const vsSurface = contrast(fill, surface);
+    rows.push({
+      fgKey: fillKey,
+      bgKey: "surface(비텍스트)",
+      ratio: vsSurface,
+      ok: vsSurface >= NON_TEXT_MIN,
+      min: NON_TEXT_MIN,
+    });
+  }
   return rows;
+}
+
+/**
+ * 폐기된 팔레트 값이 하드코딩으로 되살아나는 걸 막는다.
+ * 2026-07-27 토큰 정정 뒤에도 #d64545 / #1a7f4e 가 소스 40여 파일에 hex 로
+ * 남아 있었다. 토큰이 아니니 정정이 상속되지 않아, 공개 화면에서 3.77~4.46 이
+ * 그대로 살아 있었다. 값 하나를 고치는 것보다 "다시 못 들어오게" 하는 게 싸다.
+ */
+const DEAD_HEX = ["#d64545", "#1a7f4e"];
+
+function scanDeadHex() {
+  const hits = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === "node_modules" || e.name.startsWith(".")) continue;
+        walk(p);
+      } else if (/\.tsx?$/.test(e.name)) {
+        const text = fs.readFileSync(p, "utf8");
+        text.split("\n").forEach((line, i) => {
+          for (const hex of DEAD_HEX) {
+            if (line.toLowerCase().includes(hex)) {
+              hits.push(`  ${path.relative(ROOT, p)}:${i + 1}  ${hex}`);
+            }
+          }
+        });
+      }
+    }
+  };
+  for (const d of ["app", "lib"]) {
+    const abs = path.join(ROOT, d);
+    if (fs.existsSync(abs)) walk(abs);
+  }
+  return hits;
 }
 
 /* ---------- 실행 ---------- */
@@ -160,15 +233,16 @@ for (const [name, tokens] of themes) {
   console.log(`[check-contrast-tokens] ${name} — ${rows.length}조합`);
   for (const r of rows) {
     if (r.ok) continue;
+    const label = (k) => (k.startsWith("#") || k.includes("(") ? k : `--${k}`);
     failed.push(
-      `  ${name}  --${r.fgKey} on --${r.bgKey}  ` +
-        (r.ratio === null ? r.note : `${r.ratio.toFixed(2)}:1 (최소 ${AA}:1)`),
+      `  ${name}  ${label(r.fgKey)} on ${label(r.bgKey)}  ` +
+        (r.ratio === null ? r.note : `${r.ratio.toFixed(2)}:1 (최소 ${r.min ?? AA}:1)`),
     );
   }
 }
 
 if (failed.length) {
-  console.error("[check-contrast-tokens] 본문 대비 미달 조합:");
+  console.error("[check-contrast-tokens] 대비 미달 조합:");
   for (const f of failed) console.error(f);
   console.error(
     "\napp/globals.css 의 토큰 값을 조정하세요. 화면 한 곳만 우회하면 같은 토큰을 " +
@@ -177,4 +251,16 @@ if (failed.length) {
   process.exit(1);
 }
 
-console.log(`[check-contrast-tokens] OK — 라이트·다크 전 조합 ${AA}:1 이상.`);
+const dead = scanDeadHex();
+if (dead.length) {
+  console.error(`[check-contrast-tokens] 폐기된 팔레트 값이 하드코딩돼 있습니다 (${dead.length}곳):`);
+  for (const d of dead) console.error(d);
+  console.error(
+    `\n${DEAD_HEX.join(" / ")} 는 2026-07-27 대비 정정으로 팔레트에서 내려간 값입니다.\n` +
+      "클래스라면 text-danger / bg-success-soft 같은 토큰으로, 차트·마커처럼 토큰을 " +
+      "쓸 수 없는 자리라면 현재 값(#c62828 / #177a4a)으로 바꾸세요.",
+  );
+  process.exit(1);
+}
+
+console.log(`[check-contrast-tokens] OK — 라이트·다크 전 조합 통과 · 폐기 팔레트 hex 0곳.`);

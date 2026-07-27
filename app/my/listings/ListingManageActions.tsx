@@ -315,7 +315,7 @@ export function ListingManageActions(props: {
         <button
           type="button"
           onClick={() => void remove()}
-          className="rounded-[8px] bg-danger px-2.5 py-1 text-[12px] font-extrabold text-white"
+          className="rounded-[8px] bg-danger-fill px-2.5 py-1 text-[12px] font-extrabold text-white"
         >
           삭제
         </button>

@@ -61,7 +61,7 @@ export function ReportButton({
 
   if (state === "done") {
     return (
-      <span className={`text-[11px] font-bold text-[#1a7f4e] ${className ?? ""}`}>
+      <span className={`text-[11px] font-bold text-success ${className ?? ""}`}>
         접수됨
       </span>
     );

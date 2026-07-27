@@ -148,7 +148,7 @@ export default function CommunityPolicyPage() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <a
             href="mailto:report@nuguzip.com?subject=%5B%EC%8B%A0%EA%B3%A0%5D%20%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%20%EC%9A%B4%EC%98%81"
-            className="inline-flex items-center justify-center rounded-[12px] bg-danger px-4 py-2.5 text-center text-sm font-bold text-white hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-[12px] bg-danger-fill px-4 py-2.5 text-center text-sm font-bold text-white hover:opacity-90"
           >
             신고 메일 보내기 (report@nuguzip.com)
           </a>

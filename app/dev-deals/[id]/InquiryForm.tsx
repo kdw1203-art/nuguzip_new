@@ -122,7 +122,7 @@ export function InquiryForm({
 
       <div>
         <label className={label} htmlFor="message">
-          문의 내용 <span className="text-[#d64545]">*</span>
+          문의 내용 <span className="text-danger">*</span>
         </label>
         <textarea
           id="message"
@@ -150,7 +150,7 @@ export function InquiryForm({
       </div>
 
       {needLogin && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] leading-[1.7] text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] leading-[1.7] text-danger">
           문의는 로그인 후 이용할 수 있어요.{" "}
           <Link
             href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
@@ -162,7 +162,7 @@ export function InquiryForm({
       )}
 
       {error && (
-        <div className="rounded-xl bg-[rgba(214,69,69,.08)] px-4 py-3 text-[13px] font-bold text-[#d64545]">
+        <div className="rounded-xl bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger">
           {error}
         </div>
       )}

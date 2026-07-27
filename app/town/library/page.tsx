@@ -138,7 +138,7 @@ export default async function TownLibraryPage() {
                         className="h-full w-full object-cover"
                       />
                     )}
-                    <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 px-2 py-[2px] text-[10px] font-extrabold text-[#1a7f4e]">
+                    <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 px-2 py-[2px] text-[10px] font-extrabold text-success">
                       {n.visitDate ? "✓ 직접 방문" : "임장노트"}
                     </span>
                   </div>

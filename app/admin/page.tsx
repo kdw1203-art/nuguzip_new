@@ -484,7 +484,7 @@ export default async function AdminDashboardPage() {
             <span className="text-[15px] font-extrabold text-white">
               신고 처리
               {openReportCount !== null ? (
-                <span className="ml-1 rounded-full bg-danger px-[7px] py-px text-[10px] font-extrabold text-white">
+                <span className="ml-1 rounded-full bg-danger-fill px-[7px] py-px text-[10px] font-extrabold text-white">
                   {openReportCount.toLocaleString("ko-KR")}
                 </span>
               ) : null}
@@ -558,7 +558,7 @@ export default async function AdminDashboardPage() {
             <span className="text-[15px] font-extrabold text-white">
               전문가 승인
               {expertOps && !expertOps.isDemo && expertOps.pendingVerifications > 0 ? (
-                <span className="ml-1 rounded-full bg-danger px-[7px] py-px text-[10px] font-extrabold text-white">
+                <span className="ml-1 rounded-full bg-danger-fill px-[7px] py-px text-[10px] font-extrabold text-white">
                   {expertOps.pendingVerifications.toLocaleString("ko-KR")}
                 </span>
               ) : null}

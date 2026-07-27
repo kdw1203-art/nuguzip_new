@@ -658,7 +658,7 @@ export default async function ComplexHubPage({
           <div className="mt-0.5 text-[11px] text-text-3">{v.metric.notesSub}</div>
         </div>
         <div className="card rounded-xl px-3 py-[11px] text-center">
-          <div className="text-base font-extrabold text-[#1a7f4e]">{v.metric.safety}</div>
+          <div className="text-base font-extrabold text-success">{v.metric.safety}</div>
           <div className="mt-0.5 text-[11px] text-text-3">안전 진단</div>
         </div>
       </div>

@@ -65,7 +65,7 @@ export function ReportedListingActions({
           type="button"
           onClick={() => act("hide")}
           disabled={busy}
-          className="rounded-lg bg-[rgba(214,69,69,.85)] px-3.5 py-1.5 text-[12px] font-extrabold text-white disabled:opacity-50"
+          className="rounded-lg bg-danger-fill px-3.5 py-1.5 text-[12px] font-extrabold text-white disabled:opacity-50"
         >
           숨김 처리
         </button>

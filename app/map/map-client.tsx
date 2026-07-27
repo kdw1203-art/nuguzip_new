@@ -429,7 +429,7 @@ const LISTING_TYPE_LABEL_MAP: Record<MapListingItem["listingType"], string> = {
 /** 매물 마커 전용 색 — 회색 단지 시세 마커와 시각적으로 구분 */
 const LISTING_MARKER_COLOR = "#1d4fd8";
 /** 전세(평균 보증금) 마커 색 — 매매 평단가 색상 티어와 구분되는 단일 색 */
-const JEONSE_MARKER_COLOR = "#1a7f4e";
+const JEONSE_MARKER_COLOR = "#177a4a";
 /** 매물 bounds fetch 디바운스(ms) */
 const LISTING_FETCH_DEBOUNCE_MS = 350;
 
@@ -2463,7 +2463,7 @@ export function MapClient({
             <span>매물 = 호가(등록가)</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#1a7f4e]" />
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#177a4a]" />
             <span>실거래 = 국토부 확정가</span>
           </div>
         </div>

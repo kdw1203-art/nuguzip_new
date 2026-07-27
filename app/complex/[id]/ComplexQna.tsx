@@ -96,7 +96,7 @@ export async function ComplexQna({ complexName }: { complexName: string }) {
                 <span
                   className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${
                     q.status === "answered"
-                      ? "bg-[rgba(26,127,78,.1)] text-[#1a7f4e]"
+                      ? "bg-success-soft text-success"
                       : "bg-primary-soft text-primary"
                   }`}
                 >

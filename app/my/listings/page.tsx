@@ -239,7 +239,7 @@ export default async function MyListingsPage() {
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-[rgba(26,127,78,.1)] px-2 py-[3px] text-[11px] font-extrabold text-[#1a7f4e]">
+                    <span className="rounded-[6px] bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
                       소유확인
                     </span>
                   )}

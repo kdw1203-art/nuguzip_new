@@ -245,7 +245,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
               <button
                 type="button"
                 onClick={() => void send(lastFailed)}
-                className="rounded-md border border-danger px-2 py-0.5 text-[11px] font-bold text-danger hover:bg-danger hover:text-white"
+                className="rounded-md border border-danger px-2 py-0.5 text-[11px] font-bold text-danger hover:bg-danger-fill hover:text-white"
               >
                 다시 시도
               </button>

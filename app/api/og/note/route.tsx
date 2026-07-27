@@ -21,8 +21,8 @@ function q(req: NextRequest, key: string, fallback: string): string {
 
 /** 뱃지 톤 — 상=green, 하=red, 그 외=ink (노트 상세 axisToneClass 관례) */
 function badgeColor(label: string): { fg: string; bg: string } {
-  if (label.endsWith("상")) return { fg: "#1a7f4e", bg: "#e7f5ee" };
-  if (label.endsWith("하")) return { fg: "#d64545", bg: "#fbecec" };
+  if (label.endsWith("상")) return { fg: "#177a4a", bg: "#e7f5ee" };
+  if (label.endsWith("하")) return { fg: "#c62828", bg: "#fbecec" };
   return { fg: "#3a4150", bg: "#f2f4f8" };
 }
 
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
                 padding: "10px 20px",
                 borderRadius: "12px",
                 background: "#e7f5ee",
-                color: "#1a7f4e",
+                color: "#177a4a",
                 fontSize: "22px",
                 fontWeight: 800,
               }}

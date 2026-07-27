@@ -310,7 +310,7 @@ export default async function MyPage() {
                         <span
                           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${
                             isDone
-                              ? "bg-[rgba(26,127,78,.12)] text-[#1a7f4e]"
+                              ? "bg-success-soft text-success"
                               : "bg-[rgba(0,0,0,.06)] text-text-3"
                           }`}
                         >

@@ -21,7 +21,7 @@ function q(req: NextRequest, key: string, fallback: string): string {
 /** 시세 관례: 하락=blue, 상승=red (globals.css delta-down/delta-up 동일) */
 function deltaColor(delta: string): string {
   if (/[▼↓-]|하락/.test(delta)) return "#1d4fd8"; // down → blue
-  if (/[▲↑+]|상승/.test(delta)) return "#d64545"; // up → red
+  if (/[▲↑+]|상승/.test(delta)) return "#c62828"; // up → red
   return "#7b8494"; // flat
 }
 

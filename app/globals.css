@@ -35,12 +35,15 @@
      각 단에 목표 대비를 따로 두고(2단 6.5:1 · 3단 4.5:1) 계산했다.
      흰 배경 기준 11 / 7.4 / 5.1 로 눈에 보이는 간격이 남는다.
 
-     검증 배경 4종(#ffffff surface · #f7f9fc bg · #eef1f6 disabled-bg ·
-     #edf2fe primary-soft) 전부에서 4.5:1 이상. 다크 모드 값은 이미 4.85~9.02 라
-     그대로 둔다(고칠 것이 없는데 건드리면 회귀만 만든다). */
-  --text-1: #333d4b; /* on #fff 11.0 · #f7f9fc 10.4 */
-  --text-2: #4e5661; /* on #fff 7.43 · #f7f9fc 7.04 · #eef1f6 6.56 */
-  --text-3: #656f7c; /* on #fff 5.10 · #f7f9fc 4.83 · #eef1f6 4.50 */
+     2026-07-27 재검증: 그때 검증 배경은 4종(surface · bg · disabled-bg ·
+     primary-soft)뿐이었는데, 상태 카드 안에 캡션을 쓰는 건 자연스러운 일이라
+     상태 soft 배경 3종(danger/success/warning)도 약속 대상에 넣었다. 넣고 재니
+     3단만 걸렸다 — 구 #656f7c 는 --danger-soft 위에서 4.39 로 미달.
+     #606a77 로 한 칸 내려 최악(danger-soft) 4.72 를 확보한다. 1·2단과 흰 배경
+     기준 11.0 / 7.4 / 5.5 로 위계 간격은 그대로 남는다. */
+  --text-1: #333d4b; /* worst 9.46 (danger-soft) · on #fff 11.0 */
+  --text-2: #4e5661; /* worst 6.39 (danger-soft) · on #fff 7.43 */
+  --text-3: #606a77; /* worst 4.72 (danger-soft) · on #fff 5.49 · #eef1f6 4.85 */
   --bg: #f7f9fc;
   --surface: #ffffff;
   --border: #e9edf3;
@@ -57,6 +60,16 @@
   --warning-soft: #fdf3dd;
   --warning-border: rgba(148, 98, 0, 0.35);
   --danger-border: rgba(198, 40, 40, 0.35);
+
+  /* 15b 채움(배지·솔리드 버튼)용 — 전경이 항상 흰 글씨인 자리.
+     본문용 --danger/--success 를 그대로 채움에 쓰면 안 된다: 다크 모드에서
+     그 둘은 밝은 색(#ff6b6b · #4ecb8a)으로 뒤집히는데 글자는 흰색 그대로라
+     흰 글씨 대비가 2.4:1 까지 무너진다. 그래서 채움값은 테마와 무관하게 고정한다
+     — 전경이 고정이면 배경도 고정이어야 앞뒤가 맞는다.
+     흰 글씨 5.62 / 5.36, 배지 자체도 라이트 surface 5.62·5.36, 다크 surface
+     3.07·3.22 로 비텍스트 최소 3:1 을 넘는다. */
+  --danger-fill: #c62828;
+  --success-fill: #177a4a;
 
   /* 15b 인터랙션 상태 */
   --disabled-bg: #eef1f6;
@@ -159,8 +172,10 @@
   --color-ink: var(--ink);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-danger-fill: var(--danger-fill);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
+  --color-success-fill: var(--success-fill);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-text-1: var(--text-1);
@@ -1139,7 +1154,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   --danger-border: rgba(255, 107, 107, 0.4);
   --text-1: #e2e8f2;
   --text-2: #aab4c2;
-  --text-3: #7d8998;
+  --text-3: #8d99a6; /* worst 4.74 (warning-soft) · surface 5.95 — 구 #7d8998 은 3.87 */
   --bg: #0e1116;
   --surface: #171b22;
   --border: #262c36;

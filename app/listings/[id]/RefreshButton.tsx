@@ -46,7 +46,7 @@ export function RefreshButton({
 
   if (phase === "done") {
     return (
-      <span className="text-[12px] font-bold text-[#1a7f4e]">끌어올렸어요 ✓</span>
+      <span className="text-[12px] font-bold text-success">끌어올렸어요 ✓</span>
     );
   }
 

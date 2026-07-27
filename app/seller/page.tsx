@@ -67,7 +67,7 @@ function StepDots({ current }: { current: number }) {
             <span
               className={`flex items-center gap-1 ${
                 done
-                  ? "font-bold text-[#1a7f4e]"
+                  ? "font-bold text-success"
                   : active
                     ? "font-extrabold text-primary"
                     : "text-text-3"
@@ -76,7 +76,7 @@ function StepDots({ current }: { current: number }) {
               <span
                 className={`flex h-[18px] w-[18px] items-center justify-center rounded-full text-[10px] ${
                   done
-                    ? "bg-[#1a7f4e] text-white"
+                    ? "bg-success-fill text-white"
                     : active
                       ? "bg-primary text-white"
                       : "bg-line-strong text-text-2"
@@ -171,9 +171,9 @@ function StepVerify({
           <div className="rounded-[10px] border-[1.5px] border-primary px-3.5 py-2.5 font-bold tabular-nums text-ink shadow-[0_0_0_3px_rgba(29,79,216,0.12)]">
             110-•••-455102
           </div>
-          <div className="flex justify-between rounded-[10px] border border-[#1a7f4e]/40 px-3.5 py-2.5 text-ink">
+          <div className="flex justify-between rounded-[10px] border border-[color:var(--success-border)] px-3.5 py-2.5 text-ink">
             <span>예금주 김OO</span>
-            <span className="font-extrabold text-[#1a7f4e]">실명 일치 ✓</span>
+            <span className="font-extrabold text-success">실명 일치 ✓</span>
           </div>
         </div>
 
@@ -257,7 +257,7 @@ function StepProduct() {
               key={g.label}
               className={`rounded-[5px] px-1.5 py-[3px] font-bold ${
                 g.ok
-                  ? "bg-[#e7f5ee] text-[#1a7f4e]"
+                  ? "bg-success-soft text-success"
                   : "bg-danger-soft text-danger"
               }`}
             >
@@ -351,7 +351,7 @@ function StepPrice({
           </div>
           <div className="flex justify-between rounded-lg bg-bg px-3 py-2 text-[11px] text-text-1">
             <span>수수료 5% (입점 프로모션 D-62)</span>
-            <b className="tabular-nums text-[#1a7f4e]">-495원</b>
+            <b className="tabular-nums text-success">-495원</b>
           </div>
           <div className="flex justify-between px-3 pt-1 text-xs font-extrabold text-ink">
             <span>내 정산액</span>
@@ -382,7 +382,7 @@ function StepPrice({
                 key={t.type}
                 className={`flex px-3 py-2 text-text-1 ${
                   "promo" in t && t.promo
-                    ? "rounded-b-lg bg-[#e7f5ee]"
+                    ? "rounded-b-lg bg-success-soft"
                     : "border-b border-line"
                 }`}
               >
@@ -402,7 +402,7 @@ function StepPrice({
                 <span
                   className={`flex-1 text-right font-extrabold ${
                     "promo" in t && t.promo
-                      ? "text-[#1a7f4e]"
+                      ? "text-success"
                       : t.accent
                         ? "text-primary"
                         : "text-ink"
