@@ -629,6 +629,20 @@ export default async function NoteDetailPage({
                   </Link>
                 </>
               )}
+              {/* 연동(#224): 노트 → 단지 Q&A. 단지명을 q 로 넘겨 그 단지 관련
+                  질문만 좁혀 보여준다. 결과가 0이어도 /qna 가 "없다"고 단정하지
+                  않고 "최근 100건 안에서 못 찾았다"고 쓴다. */}
+              {realNote.aptName?.trim() && (
+                <>
+                  <span>·</span>
+                  <Link
+                    href={`/qna?q=${encodeURIComponent(realNote.aptName.trim())}`}
+                    className="font-bold text-primary"
+                  >
+                    이 단지 Q&amp;A
+                  </Link>
+                </>
+              )}
               {/* 신고 연결(#81) — 타인의 노트만, POST /api/moderation/content-report */}
               {!isOwner && (
                 <>
@@ -831,6 +845,14 @@ export default async function NoteDetailPage({
             },
             ...(complexHref
               ? [{ label: "단지 허브 보기", href: complexHref }]
+              : []),
+            ...(realNote.aptName?.trim()
+              ? [
+                  {
+                    label: "이 단지 Q&A",
+                    href: `/qna?q=${encodeURIComponent(realNote.aptName.trim())}`,
+                  },
+                ]
               : []),
           ]}
         />

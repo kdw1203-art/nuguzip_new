@@ -33,12 +33,17 @@ export async function ComplexQna({ complexName }: { complexName: string }) {
   );
   const questions = loaded.ok ? loaded.items : [];
 
+  /* 연동(#224): "전체 보기" 를 /qna 전체가 아니라 이 단지로 좁힌 목록으로 보낸다.
+     /qna 는 결과가 0이어도 "질문이 없다"가 아니라 "최근 100건 안에서 못 찾았다"
+     고 쓰므로, 여기서 좁혀 보내도 없는 것을 단정하지 않는다. */
+  const listHref = `/qna?q=${encodeURIComponent(name)}`;
+
   if (!loaded.ok) {
     return (
       <section className="rise-in-5 mt-6">
         <div className="mb-2 flex items-center justify-between gap-2 px-1">
           <h2 className="text-[15px] font-extrabold text-ink">이 단지 Q&amp;A</h2>
-          <Link href="/qna" className="text-[12px] font-bold text-primary">
+          <Link href={listHref} className="text-[12px] font-bold text-primary">
             전체 보기 →
           </Link>
         </div>
@@ -49,7 +54,7 @@ export async function ComplexQna({ complexName }: { complexName: string }) {
           <p className="text-[12px] leading-[1.6] text-text-3">
             질문이 없는 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요.
           </p>
-          <Link href="/qna" className="btn-primary btn-sm mt-1 no-underline">
+          <Link href={listHref} className="btn-primary btn-sm mt-1 no-underline">
             Q&amp;A 전체 보기
           </Link>
         </div>
@@ -61,14 +66,14 @@ export async function ComplexQna({ complexName }: { complexName: string }) {
     <section className="rise-in-5 mt-6">
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
         <h2 className="text-[15px] font-extrabold text-ink">이 단지 Q&amp;A</h2>
-        <Link href="/qna" className="text-[12px] font-bold text-primary">
+        <Link href={listHref} className="text-[12px] font-bold text-primary">
           전체 보기 →
         </Link>
       </div>
 
       {questions.length === 0 ? (
         <Link
-          href="/qna"
+          href={listHref}
           className="card card-hover flex flex-col items-center gap-1.5 rounded-2xl px-4 py-8 text-center no-underline"
         >
           <div className="text-[14px] font-extrabold text-ink">

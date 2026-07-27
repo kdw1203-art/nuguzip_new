@@ -24,6 +24,9 @@ const QUESTION_COLUMNS =
 const ANSWER_COLUMNS =
   "id,question_id,author_email,body,is_accepted,helpful_count,is_sample,created_at";
 
+/** complex_questions.id / complex_answers.id 는 uuid — 형식 가드용 */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /* ---------- 좌표 변환 헬퍼 ---------- */
 
 function toStringArray(v: unknown): string[] {
@@ -190,34 +193,53 @@ export async function getQuestion(
 ): Promise<{ question: QnaQuestion; answers: QnaAnswer[] } | null> {
   if (!id) return null;
 
+  /* complex_questions.id 는 uuid 다. 형식이 안 맞는 id 를 그대로 넘기면 Postgres
+     가 22P02(invalid input syntax for type uuid)를 낸다 — 그건 장애가 아니라
+     "그런 id 는 존재할 수 없다"는 뜻이다. 아래에서 실패를 던지도록 바꿨으니
+     여기서 갈라 두지 않으면 잘못된 URL 이 404 가 아니라 500 으로 나간다. */
+  if (!UUID_RE.test(id)) return null;
+
   const sb = getReadOnlySupabase();
   if (!sb) return null;
-  try {
-    const { data: qRow, error: qErr } = await sb
-      .from("complex_questions")
-      .select(QUESTION_COLUMNS)
-      .eq("id", id)
-      .maybeSingle();
-    if (qErr || !qRow) return null;
-    const question = mapQuestion(qRow as Record<string, unknown>);
 
-    const { data: aRows } = await sb
-      .from("complex_answers")
-      .select(ANSWER_COLUMNS)
-      .eq("question_id", id)
-      .order("created_at", { ascending: true });
-    const answers = Array.isArray(aRows)
-      ? aRows.map((r) => mapAnswer(r as Record<string, unknown>))
-      : [];
-
-    // 실데이터에 한해 조회수 +1 (best-effort, 오류 무시)
-    await incrementViewCount(id);
-
-    return { question, answers };
-  } catch (e) {
-    logger.warn("[qna] getQuestion", e);
-    return null;
+  const { data: qRow, error: qErr } = await sb
+    .from("complex_questions")
+    .select(QUESTION_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+  /* 2026-07-27: `if (qErr || !qRow) return null` + 바깥 catch → null 이었다.
+     호출부(/qna/[id])는 그 null 을 "질문을 찾을 수 없어요" 로 그린다. 즉 DB 가
+     몇 초 흔들리면 멀쩡히 살아 있는 질문이 삭제된 것처럼 보이고, 답변을
+     기다리던 질문자는 자기 글이 지워진 줄 안다. 못 읽은 것과 없는 것은 다르다.
+     maybeSingle() 은 행이 0개면 { data: null, error: null } 을 주므로
+     qErr = 실패, !qRow = 없음 으로 정확히 갈린다. */
+  if (qErr) {
+    logger.error(`[qna] 질문 조회 실패 (${id})`, qErr);
+    throw new Error(`complex_questions (${id}) 조회 실패: ${qErr.message ?? "알 수 없는 오류"}`);
   }
+  if (!qRow) return null;
+  const question = mapQuestion(qRow as Record<string, unknown>);
+
+  const { data: aRows, error: aErr } = await sb
+    .from("complex_answers")
+    .select(ANSWER_COLUMNS)
+    .eq("question_id", id)
+    .order("created_at", { ascending: true });
+  /* 답변 조회 오류를 통째로 무시하고 있었다(`const { data: aRows }`). 그러면
+     답변이 달려 있는 질문에 "답변 0 / 아직 답변이 없어요" 가 뜬다 — 답변을 쓴
+     사람에게는 자기 답변이 지워진 화면이다. 여기서도 실패는 던진다. */
+  if (aErr) {
+    logger.error(`[qna] 답변 조회 실패 (${id})`, aErr);
+    throw new Error(`complex_answers (${id}) 조회 실패: ${aErr.message ?? "알 수 없는 오류"}`);
+  }
+  const answers = Array.isArray(aRows)
+    ? aRows.map((r) => mapAnswer(r as Record<string, unknown>))
+    : [];
+
+  // 실데이터에 한해 조회수 +1 (best-effort, 오류 무시)
+  await incrementViewCount(id);
+
+  return { question, answers };
 }
 
 /* ---------- 쓰기 ---------- */
