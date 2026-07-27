@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { isCodefConfigured } from "@/lib/codef/client";
 import { syncKbPriceQuote } from "@/lib/codef/sync";
 
@@ -16,15 +16,8 @@ export const maxDuration = 300;
  *  - 기본: 아직 대상 목록이 코드에 없으므로 { skipped:true } (설정 후 확장)
  */
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
-  const provided =
-    url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

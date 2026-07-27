@@ -11,11 +11,11 @@
  *   ?size=16            1회 처리 시군구 수 (1~60)
  *   ?codes=11680,11710  특정 시군구 코드만 처리
  *
- * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션.
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * MOLIT 인증키 미설정 시 적재 0건으로 정상 반환(가짜 데이터 생성 없음).
  */
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestMolitTransactions } from "@/lib/market/molit-transactions";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 import { withBudget, CRON_WORK_BUDGET_MS } from "@/lib/async/with-budget";
@@ -25,12 +25,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 async function handle(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron || (expected ? provided === expected : true) || (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

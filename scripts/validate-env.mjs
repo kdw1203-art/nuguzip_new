@@ -27,6 +27,9 @@ const isProduction = process.env.NODE_ENV === "production";
 const required = [
   "AUTH_SECRET",
   "NEXT_PUBLIC_SUPABASE_URL",
+  // 크론/ETL 인가(lib/cron/authorize.ts)가 fail-closed 라 이 값이 비면 스케줄러
+  // (.github/workflows/etl.yml)가 전부 거부당한다 — 배포 후가 아니라 빌드 전에 걸러야 한다.
+  "CRON_SECRET",
 ];
 
 const alternatives = [

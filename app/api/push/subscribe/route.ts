@@ -72,7 +72,20 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, stored: true });
 }
 
+/**
+ * 구독 해제. 예전에는 세션 확인 없이 요청 본문의 endpoint 만으로 service-role
+ * 클라이언트가 행을 지웠다 — endpoint 는 남의 것을 알아낼 수 있는 값이라(같은 기기·
+ * 로그 유출 등) 아무나 남의 푸시 구독을 끊을 수 있었다. POST 와 같은 규칙으로
+ * 로그인을 요구하고, 삭제 대상도 **자기 이메일의 행** 으로 좁힌다.
+ */
 export async function DELETE(req: Request) {
+  const session = await safeAuth();
+  if (!session?.user?.email) {
+    return NextResponse.json(
+      { error: "푸시 알림은 로그인 후 사용할 수 있습니다.", requiresLogin: true },
+      { status: 401 },
+    );
+  }
   const sb = getServiceSupabase();
   const body = (await req.json().catch(() => ({}))) as { endpoint?: string };
 
@@ -82,6 +95,10 @@ export async function DELETE(req: Request) {
 
   if (!sb) return NextResponse.json({ ok: true });
 
-  await sb.from("push_subscriptions").delete().eq("endpoint", body.endpoint);
+  await sb
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", body.endpoint)
+    .eq("user_email", session.user.email);
   return NextResponse.json({ ok: true });
 }

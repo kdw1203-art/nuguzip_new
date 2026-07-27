@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  *   조회 측 normalize 가 둘 다 무료로 취급하지만 쓰기는 'free' 로 통일한다).
  * - 실행 기록은 다른 크론과 같은 ingest-log(market_ingest_log)에 남긴다.
  *
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * (attendance-reminders 와 같은 규칙).
  */
 
@@ -89,14 +89,7 @@ async function sendPreExpiryReminders(
 }
 
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

@@ -1,5 +1,10 @@
 import { promises as fs } from "fs";
 import path from "path";
+import {
+  canDeleteComment,
+  softDeleteCommentBody,
+  type CommentDeleteActor,
+} from "@/lib/moderation/comment-soft-delete";
 import type { Post, PostComment } from "@/lib/types/post";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -185,18 +190,25 @@ export async function appendCommentFile(
   return next;
 }
 
+/** 권한이 없으면 아무것도 하지 않고 `"forbidden"` — Supabase 백엔드와 같은 규칙. */
 export async function softDeleteCommentFile(
   postId: string,
   commentId: string,
-): Promise<Post | null> {
+  actor: CommentDeleteActor,
+): Promise<Post | "forbidden" | null> {
   const posts = await readPostsFile();
   const idx = posts.findIndex((p) => p.id === postId);
   if (idx === -1) return null;
   const post = posts[idx];
+  const target = post.comments.find((c) => c.id === commentId);
+  if (!target) return null;
+  if (!canDeleteComment(target, { ...actor, postOwnerEmail: post.notifyEmail })) {
+    return "forbidden";
+  }
   const now = new Date().toISOString();
   const comments = post.comments.map((c) =>
     c.id === commentId
-      ? { ...c, body: "[삭제된 댓글입니다]", deletedAt: now }
+      ? { ...c, body: softDeleteCommentBody(), deletedAt: now }
       : c,
   );
   const next: Post = { ...post, comments, updatedAt: now };

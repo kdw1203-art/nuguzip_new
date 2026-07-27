@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import NextAuth from "next-auth";
 import type { JWT } from "@auth/core/jwt";
 import Credentials from "next-auth/providers/credentials";
@@ -24,12 +25,19 @@ function resolveAuthSecret(): string | undefined {
   const fromLegacy = process.env.NEXTAUTH_SECRET?.trim();
   if (fromLegacy) return fromLegacy;
   if (process.env.NODE_ENV === "production") {
+    /* 예전에는 여기서 에러만 찍고 개발용 상수를 그대로 돌려줬다. 그 상수는 이 저장소에
+       공개돼 있으므로, 그렇게 뜬 프로덕션은 "세션이 되는" 게 아니라 **누구나 관리자
+       세션 토큰을 위조할 수 있는** 상태다. 로그 한 줄로 넘길 문제가 아니라 뜨면 안 되는
+       상태라서 던진다 — 부팅 실패가 조용한 인증 우회보다 낫다. 개발 동작은 그대로. */
     if (!warnedMissingAuthSecret) {
       logger.error(
-        "[auth] AUTH_SECRET is missing in production. Falling back to dev secret; set AUTH_SECRET immediately.",
+        "[auth] AUTH_SECRET is missing in production. Refusing to boot with the public dev fallback.",
       );
       warnedMissingAuthSecret = true;
     }
+    throw new Error(
+      "[auth] AUTH_SECRET(또는 NEXTAUTH_SECRET)이 프로덕션에 설정되어 있지 않습니다.",
+    );
   }
   return DEV_AUTH_SECRET_FALLBACK;
 }
@@ -57,11 +65,31 @@ const devEmailFallback =
 /**
  * 비상 토큰 로그인 — EMERGENCY_ACCESS_TOKEN 환경변수에 임의의 긴 토큰을 넣으면
  * 로그인 페이지에 토큰 입력창이 표시됩니다. 토큰이 일치하면 관리자 이메일로 로그인됩니다.
- * Vercel 대시보드에서 EMERGENCY_ACCESS_TOKEN=<임의의 긴 문자열> 만 추가하면 즉시 로그인 가능.
+ *
+ * 이 프로바이더는 문자열 하나로 **관리자 권한**을 내주는 경로다. 프로덕션 배포에
+ * 그냥 켜져 있으면 관리자 계정 전체가 그 환경변수 값 하나의 강도에 달린다. 그래서
+ * 프로덕션(VERCEL_ENV=production)에서는 `EMERGENCY_ACCESS_ENABLED=1` 로 명시적으로
+ * 켤 때만 등록한다 — 토큰만 남아 있다고 자동으로 살아나지 않는다.
+ * (프리뷰/로컬은 종전대로 토큰만 있으면 동작한다.)
  */
-const emergencyTokenConfigured = Boolean(
-  process.env.EMERGENCY_ACCESS_TOKEN?.trim(),
-);
+const emergencyAccessAllowed =
+  process.env.VERCEL_ENV !== "production" ||
+  process.env.EMERGENCY_ACCESS_ENABLED?.trim() === "1";
+
+const emergencyTokenConfigured =
+  emergencyAccessAllowed && Boolean(process.env.EMERGENCY_ACCESS_TOKEN?.trim());
+
+/**
+ * 비밀값 비교는 상수 시간으로 한다. `!==` 는 첫 불일치 바이트에서 즉시 끝나므로
+ * 응답 시간 차이로 토큰을 앞에서부터 한 글자씩 맞춰 갈 수 있다. 길이가 다르면
+ * timingSafeEqual 이 던지므로 길이를 먼저 본다(길이 노출은 토큰 자체에 비하면 무해하다).
+ */
+function secretEquals(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 /**
  * 테스트 계정 로그인 — `TEST_ACCOUNT_ENABLED=1` 일 때만 (운영 기본 off).
@@ -193,7 +221,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             async authorize(credentials) {
               const token = String(credentials?.token ?? "").trim();
               const expected = process.env.EMERGENCY_ACCESS_TOKEN?.trim();
-              if (!token || !expected || token !== expected) return null;
+              if (!token || !expected || !secretEquals(token, expected)) return null;
               const adminEmail = resolveProjectAdminEmail();
               if (!adminEmail) return null;
               return {

@@ -1,4 +1,9 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
+import {
+  canDeleteComment,
+  softDeleteCommentBody,
+  type CommentDeleteActor,
+} from "@/lib/moderation/comment-soft-delete";
 import type { Post, PostAutomationMeta, PostComment } from "@/lib/types/post";
 
 const UUID_RE =
@@ -6,6 +11,9 @@ const UUID_RE =
 
 function rowToPost(row: Record<string, unknown>): Post {
   const rawComments = row.comments;
+  /* authorEmail 은 의도적으로 옮겨 담지 않는다 — 이 Post 는 그대로 API 응답으로 나가고,
+     댓글 작성자 이메일은 공개할 값이 아니다. 삭제 권한 판정은 저장된 원본 JSON 을
+     직접 읽는 softDeleteCommentSb 가 한다. */
   const comments: PostComment[] = Array.isArray(rawComments)
     ? rawComments.map((c) => ({
         id: String((c as PostComment).id),
@@ -325,18 +333,42 @@ export async function appendCommentSb(
   return rowToPost(data as Record<string, unknown>);
 }
 
+/**
+ * 댓글 soft-delete. 권한이 없으면 아무것도 하지 않고 `"forbidden"` 을 돌려준다.
+ *
+ * 저장된 comments JSON 을 **직접** 읽는다 — rowToPost 는 authorEmail 을 응답에 싣지
+ * 않으려고 일부러 버리기 때문에, getPostSb 를 거치면 작성자를 판정할 근거가 사라진다.
+ */
 export async function softDeleteCommentSb(
   postId: string,
   commentId: string,
-): Promise<Post | null> {
+  actor: CommentDeleteActor,
+): Promise<Post | "forbidden" | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
-  const cur = await getPostSb(postId);
-  if (!cur) return null;
+  const { data: row, error: readError } = await sb
+    .from("posts")
+    .select("comments, notify_email")
+    .eq("id", postId)
+    .maybeSingle();
+  if (readError || !row) return null;
+
+  const raw = Array.isArray(row.comments) ? (row.comments as PostComment[]) : [];
+  const target = raw.find((c) => String(c.id) === commentId);
+  if (!target) return null;
+  if (
+    !canDeleteComment(target, {
+      ...actor,
+      postOwnerEmail: row.notify_email ? String(row.notify_email) : null,
+    })
+  ) {
+    return "forbidden";
+  }
+
   const now = new Date().toISOString();
-  const comments = cur.comments.map((c) =>
-    c.id === commentId
-      ? { ...c, body: "[삭제된 댓글입니다]", deletedAt: now }
+  const comments = raw.map((c) =>
+    String(c.id) === commentId
+      ? { ...c, body: softDeleteCommentBody(), deletedAt: now }
       : c,
   );
   const { data, error } = await sb

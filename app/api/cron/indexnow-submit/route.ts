@@ -9,11 +9,11 @@
  * 왜 전체를 안 보내는가: 안 바뀐 URL 을 매일 밀어 넣는 건 프로토콜 남용이고,
  * 스팸으로 분류되면 도메인 단위로 무시당한다. 사이트 전체 색인은 사이트맵의 일이다.
  *
- * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션 (다른 크론과 동일한 규칙).
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * 스케줄러는 .github/workflows/etl.yml — 이 서비스의 유일한 스케줄러다.
  */
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { submitIndexNow } from "@/lib/seo/indexnow";
 import { listReportMonths } from "@/lib/reports/monthly";
 import { listPublicNotes } from "@/lib/inspection/store-db";
@@ -90,12 +90,8 @@ async function collectUrls(): Promise<Collected> {
 }
 
 async function handle(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron || (expected ? provided === expected : true) || (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

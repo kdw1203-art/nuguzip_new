@@ -110,16 +110,32 @@ export async function createMarketRequest(input: {
   return mapRow(data as Record<string, unknown>);
 }
 
+/**
+ * 의뢰 마감. 소유자(requester_email) 또는 관리자만.
+ *
+ * 예전에는 id 만 받아 service-role 로 상태를 바꿨다. 같은 라우트의 PATCH·DELETE 는
+ * requester_email 로 좁히는데 마감 분기만 그 조건이 빠져 있어서, 로그인한 아무나
+ * `{"status":"closed"}` 하나로 남의 의뢰를 닫을 수 있었다.
+ * `email` 은 호출자의 이메일, `isAdmin` 이면 소유자 조건을 걸지 않는다.
+ */
 export async function closeMarketRequest(
   id: string,
-): Promise<{ ok: boolean; message?: string }> {
+  actor: { email: string; isAdmin?: boolean },
+): Promise<{ ok: boolean; forbidden?: boolean; message?: string }> {
   const sb = getServiceSupabase();
   if (!sb) return { ok: false, message: "Supabase 미설정" };
-  const { error } = await sb
+  const query = sb
     .from("market_requests")
     .update({ status: "closed", updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (!actor.isAdmin) query.eq("requester_email", actor.email);
+  /* select 로 실제 갱신된 행을 확인한다 — 소유자 조건에 걸려 0행이 바뀌어도 update 는
+     error 를 내지 않으므로, 그냥 ok:true 를 돌려주면 "닫혔다"고 거짓 보고를 하게 된다. */
+  const { data, error } = await query.select("id");
   if (error) return { ok: false, message: error.message };
+  if (!data || data.length === 0) {
+    return { ok: false, forbidden: true, message: "권한이 없습니다." };
+  }
   return { ok: true };
 }
 

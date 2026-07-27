@@ -22,15 +22,29 @@ import {
 export const runtime = "nodejs";
 
 type Body = {
-  tier?: PlanTier;
+  tier?: string;
   billing?: "monthly" | "annual";
   itemName?: string;
   quantity?: number;
-  /** 단건 금액(원). tier 없이 커스텀 상품 결제 시 사용. */
-  totalAmount?: number;
   source?: string;
   campaign?: string;
 };
+
+const PLAN_TIERS = ["basic", "pro", "expert", "enterprise"] as const;
+
+/**
+ * 클라이언트가 보낸 tier 를 **먼저** 정규화하고, 아는 플랜이 아니면 거절한다.
+ *
+ * 예전에는 `["basic",...].includes(body.tier)` 라는 대소문자 구분 검사를 통과하지
+ * 못하면 그냥 건너뛰고 `body.totalAmount` 를 그대로 청구했다. 그래서 `"Expert"` 처럼
+ * 케이스만 바꿔 보내면 금액 계산 분기를 피해 1원을 결제할 수 있었고, 승인 이후
+ * 플랜 반영은 normalizePlan(lib/billing/plan.ts)이 소문자로 접어 EXPERT 를 줬다.
+ * 지금은 정규화가 먼저이므로 검사와 청구가 같은 값을 본다.
+ */
+function normalizeTier(raw: unknown): PlanTier | null {
+  const s = String(raw ?? "").trim().toLowerCase();
+  return (PLAN_TIERS as readonly string[]).includes(s) ? (s as PlanTier) : null;
+}
 
 function appOrigin(req: NextRequest): string {
   try {
@@ -79,28 +93,27 @@ export async function POST(req: NextRequest) {
       ? Math.floor(body.quantity)
       : 1;
 
-  let tier: PlanTier = body.tier ?? "pro";
-  let itemName = body.itemName?.trim();
-  let totalAmount = body.totalAmount;
-
-  if (body.tier && ["basic", "pro", "expert", "enterprise"].includes(body.tier)) {
-    tier = body.tier;
-    const planDef = getPlan(tier);
-    totalAmount =
-      billing === "annual" && planDef.priceAnnualMonthly
-        ? planDef.priceAnnualMonthly * 12
-        : planDef.priceMonthly;
-    if (!itemName) {
-      itemName = `누구집 ${planDef.name} (${billing === "annual" ? "연간" : "월간"})`;
-    }
+  const tier = normalizeTier(body.tier);
+  if (!tier) {
+    return NextResponse.json({ error: "invalid tier" }, { status: 400 });
   }
 
-  if (!itemName || !Number.isFinite(totalAmount) || !totalAmount || totalAmount <= 0) {
-    return NextResponse.json(
-      { error: "itemName 과 totalAmount(또는 tier) 가 필요합니다." },
-      { status: 400 },
-    );
+  /* 금액은 **서버의 플랜 정의에서만** 나온다. 예전에는 body.totalAmount 를 받아
+     그대로 청구했는데, 결제 금액을 결정하는 값을 결제하는 쪽에서 받는 구조라
+     "1원 결제 후 EXPERT 승격" 이 성립했다. 그 경로는 통째로 삭제했다. */
+  const planDef = getPlan(tier);
+  const totalAmount =
+    billing === "annual" && planDef.priceAnnualMonthly
+      ? planDef.priceAnnualMonthly * 12
+      : planDef.priceMonthly;
+  if (!Number.isInteger(totalAmount) || totalAmount <= 0) {
+    return NextResponse.json({ error: "결제 가능한 플랜이 아닙니다." }, { status: 400 });
   }
+
+  /* itemName 은 화면 표기용이라 클라이언트 값을 받아도 되지만, 길이는 잘라 둔다. */
+  const itemName =
+    body.itemName?.trim().slice(0, 100) ||
+    `누구집 ${planDef.name} (${billing === "annual" ? "연간" : "월간"})`;
 
   const recent = await findRecentRequestedPayment({
     userEmail,

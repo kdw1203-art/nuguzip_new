@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import { SITEMAP_PATHS } from "@/lib/seo/sitemap-slugs";
 
 const SITEMAP_PATH_SET = new Set(SITEMAP_PATHS);
@@ -71,32 +72,48 @@ function copyCookies(from: NextResponse, to: NextResponse) {
   });
 }
 
-function readAuthSessionToken(req: NextRequest): string | null {
-  const candidates = [
-    "__Secure-authjs.session-token",
-    "authjs.session-token",
-    "__Secure-next-auth.session-token",
-    "next-auth.session-token",
-  ];
-  for (const name of candidates) {
-    const v = req.cookies.get(name)?.value;
-    if (v) return v;
-  }
-  return null;
-}
+/** authjs(v5)와 레거시 next-auth 쿠키 이름 — 배포 시점에 따라 둘 다 나올 수 있다. */
+const SESSION_COOKIE_NAMES = [
+  "__Secure-authjs.session-token",
+  "authjs.session-token",
+  "__Secure-next-auth.session-token",
+  "next-auth.session-token",
+] as const;
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  const payload = parts[1];
-  try {
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    const json = atob(padded);
-    const parsed = JSON.parse(json);
-    if (parsed && typeof parsed === "object") return parsed as Record<string, unknown>;
-  } catch {
-    return null;
+/**
+ * 세션 쿠키에서 **검증된** 이메일을 읽는다.
+ *
+ * 예전에는 쿠키의 JWT 를 base64 디코드해 payload.email 을 그대로 믿었다. 서명도
+ * 복호화도 확인하지 않으므로, `{"email":"invited@example.com"}` 를 base64 로 인코딩해
+ * 쿠키에 넣기만 하면 비공개 사이트 게이트와 초대 이메일 허용목록이 통째로 뚫렸다.
+ *
+ * getToken 은 AUTH_SECRET 으로 세션 토큰을 복호화·검증한다(내부적으로 jose 사용 —
+ * WebCrypto 기반이라 Edge 런타임에서 동작한다). salt 는 쿠키 이름에서 파생되므로
+ * 후보 이름별로 secureCookie 를 맞춰 시도한다.
+ *
+ * fail-closed: 시크릿이 없거나 복호화에 실패하면 null(=비로그인)로 취급한다.
+ * "열어 볼 수 없다" 는 "통과" 가 아니다.
+ */
+async function readVerifiedSessionEmail(req: NextRequest): Promise<string | null> {
+  const secret =
+    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+  if (!secret) return null;
+
+  for (const cookieName of SESSION_COOKIE_NAMES) {
+    if (!req.cookies.get(cookieName)?.value) continue;
+    try {
+      const token = await getToken({
+        req,
+        secret,
+        cookieName,
+        secureCookie: cookieName.startsWith("__Secure-"),
+      });
+      const email =
+        typeof token?.email === "string" ? token.email.trim().toLowerCase() : null;
+      if (email) return email;
+    } catch {
+      // 위조되었거나 시크릿이 바뀐 토큰 — 다음 후보 쿠키를 본다.
+    }
   }
   return null;
 }
@@ -114,9 +131,7 @@ export async function applyPrivateSiteGate(
   const path = req.nextUrl.pathname;
   if (isPublicPathForPrivateGate(path)) return base;
 
-  const token = readAuthSessionToken(req);
-  const payload = token ? decodeJwtPayload(token) : null;
-  const email = typeof payload?.email === "string" ? payload.email.toLowerCase() : null;
+  const email = await readVerifiedSessionEmail(req);
   if (!email) {
     const login = new URL("/login", req.url);
     login.searchParams.set(

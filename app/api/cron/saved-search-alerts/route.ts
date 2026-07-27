@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import {
@@ -29,23 +29,11 @@ export const maxDuration = 120;
  * ▸ 이후 매치 수가 이전보다 늘면(신규 결과) 인앱 수신함에 알림.
  * ▸ 항상 last_checked_at·last_match_count 를 최신값으로 갱신(bookkeeping).
  *
- * 보호: CRON_SECRET(?secret=/x-cron-secret) · x-vercel-cron · 관리자 세션 — price-alerts 와 동일.
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * fail-soft: hard-throw 하지 않고 JSON 요약 반환.
  */
 
 const BATCH = 500;
-
-async function authorize(req: Request): Promise<boolean> {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  return (
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest())
-  );
-}
 
 interface RunSummary {
   ok: boolean;
@@ -105,7 +93,7 @@ async function runSavedSearchAlerts(): Promise<RunSummary> {
 }
 
 async function handle(req: Request): Promise<Response> {
-  if (!(await authorize(req))) {
+  if (!(await authorizeCron(req))) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   try {

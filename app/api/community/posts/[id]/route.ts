@@ -7,13 +7,17 @@ import type { Post } from "@/lib/types/post";
 
 export const runtime = "nodejs";
 
-function isAuthor(post: Post, session: { user?: { email?: string | null; name?: string | null } } | null) {
+/**
+ * 작성자 판정은 **이메일로만** 한다.
+ *
+ * 예전에는 `post.authorLabel === session.user.name` 도 작성자로 쳤다. 표시 이름은
+ * 사용자가 직접 고르는 값이고 유일하지도 않아서, 남의 글에 적힌 이름으로 프로필을
+ * 바꾸기만 하면 그 글의 수정·삭제 권한을 그대로 가져올 수 있었다. 이름은 신원이 아니다.
+ */
+function isAuthor(post: Post, session: { user?: { email?: string | null } } | null) {
   const email = session?.user?.email?.trim().toLowerCase();
   if (!email) return false;
-  if (post.notifyEmail && post.notifyEmail.trim().toLowerCase() === email) return true;
-  const name = session?.user?.name?.trim();
-  if (name && post.authorLabel === name) return true;
-  return false;
+  return Boolean(post.notifyEmail && post.notifyEmail.trim().toLowerCase() === email);
 }
 
 export async function GET(

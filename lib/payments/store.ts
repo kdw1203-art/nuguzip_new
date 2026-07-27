@@ -208,12 +208,20 @@ export async function markRefunded(input: {
   return mapRow(data);
 }
 
+/**
+ * 결제 실패 기록 — **아직 승인 전(requested)인 건만** 실패로 넘긴다.
+ *
+ * 예전에는 상태를 보지 않고 덮어써서 이미 승인된 `paid` 행도 failed 로 뒤집을 수
+ * 있었다. 돈은 받았는데 장부에는 실패로 남는 상태라 환불·정산이 통째로 어긋난다.
+ * 되돌리면 안 되는 상태(paid/cancelled/refunded)는 그대로 둔다 — 여기서 할 수 있는
+ * 가장 안전한 실패는 "아무것도 하지 않기" 다.
+ */
 export async function markFailed(orderId: string): Promise<void> {
   const sb = getServiceSupabase();
   const now = new Date().toISOString();
   if (!sb) {
     const r = memory.find((x) => x.orderId === orderId);
-    if (r) {
+    if (r && r.status === "requested") {
       r.status = "failed";
       r.failedAt = now;
     }
@@ -222,7 +230,8 @@ export async function markFailed(orderId: string): Promise<void> {
   await sb
     .from("payments")
     .update({ status: "failed", failed_at: now })
-    .eq("order_id", orderId);
+    .eq("order_id", orderId)
+    .eq("status", "requested");
 }
 
 export async function getPaymentByOrderId(

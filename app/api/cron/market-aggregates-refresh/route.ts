@@ -7,10 +7,10 @@
  * 지도 시세 색상에 영영 반영되지 않는다. 하루 한 번(실측 8.75초) 재계산해
  * "어떤 경로로 들어왔든 하루 안에는 화면에 반영된다"를 보장한다.
  *
- * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션. (다른 크론과 동일한 규칙)
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  */
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { refreshMarketAggregates } from "@/lib/market/refresh-aggregates";
 
 export const runtime = "nodejs";
@@ -18,12 +18,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 async function handle(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron || (expected ? provided === expected : true) || (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

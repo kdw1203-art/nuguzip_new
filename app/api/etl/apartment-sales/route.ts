@@ -4,7 +4,7 @@
  * 보호: CRON_SECRET 또는 관리자 세션
  */
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { fetchMolitAptTrade } from "@/lib/national-data/molit-api";
 import { resolveSigunguCd } from "@/lib/national-data/region-codes";
 
@@ -19,14 +19,8 @@ function defaultDealYm(): string {
 }
 
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : false) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

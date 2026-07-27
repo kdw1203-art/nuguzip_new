@@ -1,12 +1,12 @@
 /**
  * 정비사업장 공공 API 적재 크론 (서울 열린데이터광장).
- * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션 (apt-master-ingest 패턴).
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * SEOUL_OPENAPI_KEY 미설정 시 no-op(mode:"mock", reason:"no-key"),
  * 키는 있어도 실 데이터셋 서비스명(SEOUL_OPENAPI_SERVICE) 미지정 시
  * no-op(reason:"source-not-configured") — 둘 다 시드/DB 유지.
  */
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestSeoulRedevelopment, isRedevIngestConfigured } from "@/lib/redevelopment/ingest";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
@@ -15,14 +15,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 async function handle(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

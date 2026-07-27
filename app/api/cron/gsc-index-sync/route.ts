@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { kstWeekStart } from "@/lib/market/temperature";
 import { DEFAULT_SAMPLE_SIZE, isGscConfigured, measureIndexCoverage } from "@/lib/seo/gsc-index";
@@ -24,25 +24,13 @@ export const maxDuration = 300;
  *
  * 주기: `.github/workflows/etl.yml` 의 alerts 잡이 **월요일 09:00 UTC(=18:00 KST)**
  *       에만 호출한다. 색인 상태는 주 단위로 움직이는 값이라 그 이상은 소음이다.
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션.
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * ?sample=N 으로 표본 수 조절(기본 60, 상한 300).
  * fail-soft: 던지지 않고 JSON 요약을 돌려준다.
  */
 
-async function authorize(req: Request): Promise<boolean> {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  return (
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest())
-  );
-}
-
 export async function GET(req: Request) {
-  if (!(await authorize(req))) {
+  if (!(await authorizeCron(req))) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 

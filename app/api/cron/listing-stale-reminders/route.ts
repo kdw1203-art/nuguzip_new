@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
@@ -34,7 +34,7 @@ export const maxDuration = 120;
  * **자동 마감은 하지 않는다.** 2단계도 status 를 건드리지 않고 제안만 한다.
  * 갱신이 없다는 사실이 거래가 끝났다는 뜻은 아니다.
  *
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션 —
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  *       reengage-reminders 와 동일.
  * fail-soft: hard-throw 하지 않고 JSON 요약을 반환한다.
  * dryRun: ?dry=1 이면 명단만 세고 아무것도 보내지 않으며 단계도 올리지 않는다.
@@ -43,18 +43,6 @@ export const maxDuration = 120;
  *       호출한다. 매일 돌아도 매물당 단계가 올라갈 때만 나가므로 최대 2번이다.
  *       (Vercel 크론은 이 플랜에서 실행되지 않는다. 스케줄러는 etl.yml 하나뿐이다.)
  */
-
-async function authorize(req: Request): Promise<boolean> {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  return (
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest())
-  );
-}
 
 interface RunSummary {
   ok: boolean;
@@ -210,7 +198,7 @@ async function runStaleReminders(dryRun: boolean): Promise<RunSummary> {
 }
 
 async function handle(req: Request): Promise<Response> {
-  if (!(await authorize(req))) {
+  if (!(await authorizeCron(req))) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   const dryRun = new URL(req.url).searchParams.get("dry") === "1";

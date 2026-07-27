@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { jsonLdScript } from "@/lib/seo/jsonld";
 
 export const metadata = buildPageMetadata({
   title: "데이터 방법론 — 누구집 시세는 이렇게 계산합니다",
@@ -85,7 +86,7 @@ export default function MethodologyPage() {
     <PageShell breadcrumb="데이터 방법론">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd()) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd()) }}
       />
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">

@@ -371,9 +371,14 @@ export async function generateMetadata({
 
 /* ---------- JSON-LD (Article) — 공개 노트만 ---------- */
 
-function articleJsonLd(note: InspectionNote): string {
+/* 문자열이 아니라 **객체**를 돌려준다. 예전에는 여기서 JSON.stringify 한 결과를 그대로
+   dangerouslySetInnerHTML 에 넣었는데, note.title·authorLabel 은 사용자가 적는 값이라
+   `</script><script>…` 를 넣으면 문서에 실행 가능한 스크립트가 그대로 박혔다(저장형 XSS).
+   직렬화와 `<` 이스케이프는 공용 <JsonLd>(lib/seo/jsonld.ts jsonLdScript 와 같은 규칙)에
+   맡긴다 — 이 파일의 다른 JSON-LD(noteJsonLd)도 이미 그 경로를 쓴다. */
+function articleJsonLd(note: InspectionNote): Record<string, unknown> {
   const displayTitle = note.aptName?.trim() || note.title;
-  return JSON.stringify({
+  return {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: note.title,
@@ -401,7 +406,7 @@ function articleJsonLd(note: InspectionNote): string {
       name: displayTitle,
       address: note.region,
     },
-  });
+  };
 }
 
 /* ---------- JSON-LD (항목 H37) — 공유 JsonLd 헬퍼용 오브젝트 빌더 ----------
@@ -553,11 +558,8 @@ export default async function NoteDetailPage({
 
   return (
     <PageShell breadcrumb={v.breadcrumb}>
-      {/* JSON-LD(Article) — 공개 실데이터 노트만 삽입 (20b) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: articleJsonLd(realNote) }}
-      />
+      {/* JSON-LD(Article) — 공개 실데이터 노트만 삽입 (20b). 이스케이프는 <JsonLd> 가 한다. */}
+      <JsonLd data={articleJsonLd(realNote)} />
       {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
       <JsonLd data={noteJsonLd(realNote, v)} />
 

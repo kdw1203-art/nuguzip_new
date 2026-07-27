@@ -10,6 +10,33 @@ import { buildContentSecurityPolicy } from "./lib/security/content-security-poli
  * - 정적 자산(`/_next/static`, `/icons`, `/fonts`) immutable 캐시
  * - PWA manifest/service worker 헤더 유지
  */
+/**
+ * NEXT_PUBLIC_SUPABASE_URL 에서 이 프로젝트의 스토리지 호스트만 뽑아 remotePatterns 로.
+ * 값이 없거나 파싱이 안 되면 개발에서만 종전 와일드카드로 되돌리고, 프로덕션에서는
+ * 아무 호스트도 허용하지 않는다 — 이미지가 안 뜨는 쪽이 오픈 프록시보다 낫다.
+ */
+function supabaseImagePatterns() {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  /* `/object/public/**` 만 열면 비공개 버킷의 서명 URL(`/object/sign/**`)이 막힌다.
+     이 프로젝트의 버킷은 전부 비공개라 서명 URL 쪽이 정상 경로다. 그래서 경로는
+     `/object/**` 로 넓히되, **호스트는 우리 프로젝트 하나로 묶어 둔다** — 경로만
+     넓히고 호스트가 `**.supabase.co` 로 남으면 오픈 프록시는 그대로다. */
+  const storageObjects = "/storage/v1/object/**";
+  if (raw) {
+    try {
+      const { hostname } = new URL(raw);
+      return [{ protocol: "https" as const, hostname, pathname: storageObjects }];
+    } catch {
+      // 아래 폴백으로.
+    }
+  }
+  if (process.env.NODE_ENV === "production") return [];
+  return [
+    { protocol: "https" as const, hostname: "**.supabase.co", pathname: storageObjects },
+    { protocol: "https" as const, hostname: "**.supabase.io", pathname: storageObjects },
+  ];
+}
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   /**
@@ -60,35 +87,46 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      /* Supabase Storage (`**` — 중첩 서브도메인 포함).
-         `/object/public/**` 만 열어 두면 비공개 버킷의 서명 URL
-         (`/object/sign/**`)이 막힌다. 이 프로젝트의 버킷은 전부 비공개라
-         서명 URL 쪽이 정상 경로다. 그래서 `/object/**` 로 넓힌다 —
-         호스트는 여전히 우리 Supabase 도메인으로 묶여 있다. */
-      {
-        protocol: "https",
-        hostname: "**.supabase.co",
-        pathname: "/storage/v1/object/**",
-      },
-      {
-        protocol: "https",
-        hostname: "**.supabase.io",
-        pathname: "/storage/v1/object/**",
-      },
+      /* Supabase Storage — **우리 프로젝트 호스트 하나**로 고정한다.
+         `**.supabase.co` 는 세상의 모든 Supabase 프로젝트를 뜻해서, /_next/image 가
+         아무 버킷의 파일이나 우리 도메인 이름으로 대신 받아 주는 오픈 프록시가 된다
+         (대역폭도 우리가 낸다). 호스트는 NEXT_PUBLIC_SUPABASE_URL 에서 뽑는다. */
+      ...supabaseImagePatterns(),
       // Naver 정적 리소스/프로필 (phinf·ssl·map 등 모든 pstatic 서브도메인)
-      { protocol: "https", hostname: "**.pstatic.net" },
+      { protocol: "https" as const, hostname: "**.pstatic.net", pathname: "/**" },
       // Google (프로필 이미지)
-      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      {
+        protocol: "https" as const,
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
       // 일반 CDN / 공공 이미지 허용
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "*.githubusercontent.com" },
-      // 로컬 개발
-      { protocol: "http", hostname: "localhost" },
+      {
+        protocol: "https" as const,
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+      /* 아바타만 쓴다 — githubusercontent 는 사용자가 올린 임의 파일도 서빙하는
+         호스트라 경로를 열어 두면 그쪽 전체가 우리 이미지 프록시 뒤에 붙는다. */
+      {
+        protocol: "https" as const,
+        hostname: "avatars.githubusercontent.com",
+        pathname: "/u/**",
+      },
+      // 로컬 개발 — 프로덕션 설정에 실어 보내지 않는다.
+      ...(process.env.NODE_ENV === "production"
+        ? []
+        : [{ protocol: "http" as const, hostname: "localhost" }]),
     ],
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 7, // 7일 — 외부 이미지 재요청 비용 절감
+    /* SVG 는 최적화기가 그대로 흘려보내는 포맷이고 <script> 를 품을 수 있다.
+       기본값이 이미 false 지만, 나중에 누가 켤 때 이 주석을 먼저 읽게 명시해 둔다.
+       attachment 는 혹시 새는 파일이 브라우저에서 문서로 렌더되지 않게 하는 안전망. */
+    dangerouslyAllowSVG: false,
+    contentDispositionType: "attachment",
   },
   /** Cloudflare Quick Tunnel / localtunnel 등으로 모바일에서 `next dev` 접속 시 RSC 차단 완화 */
   allowedDevOrigins: [
@@ -122,6 +160,15 @@ const nextConfig: NextConfig = {
           "camera=(), microphone=(), geolocation=(self), payment=(), usb=(), interest-cohort=()",
       },
       { key: "X-DNS-Prefetch-Control", value: "on" },
+      /* 크로스오리진 격리. `same-origin` 이 아니라 `same-origin-allow-popups` 인 이유는
+         구글·네이버·카카오 OAuth 가 팝업으로 뜨고 opener 로 결과를 돌려주기 때문 —
+         `same-origin` 이면 그 연결이 끊겨 소셜 로그인이 통째로 깨진다. */
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+      /* 우리 응답을 남의 문서가 <img>/<script> 로 끌어다 쓰지 못하게 한다.
+         same-site 로 둬야 서브도메인(og 이미지 등) 사용이 유지된다. */
+      { key: "Cross-Origin-Resource-Policy", value: "same-site" },
+      // 이 origin 을 별도 프로세스로 — 같은 사이트의 다른 origin 과 힙을 나눈다.
+      { key: "Origin-Agent-Cluster", value: "?1" },
     ];
     const httpsDeploy =
       process.env.AUTH_URL?.trim().startsWith("https://") ||

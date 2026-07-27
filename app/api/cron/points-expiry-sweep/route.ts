@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
@@ -24,7 +24,7 @@ const MAX_USERS = 500;
  *  2) 만료 6~7일 전 구간에 들어온 잔여 적립분이 있으면 인앱 알림을 1회 보낸다
  *     (매일 도는 크론이 하루짜리 창을 스캔하므로 자연히 1회만 나간다).
  *
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * (plan-expiry-sweep 과 같은 규칙).
  */
 
@@ -49,14 +49,7 @@ function lotRemainders(rows: LedgerLite[]): Array<{ expiresAt: string | null; re
 }
 
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
