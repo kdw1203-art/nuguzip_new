@@ -221,7 +221,24 @@ function readLightBoardPosts(): Promise<Post[]> {
   return loadBoardPosts(BOARD_POSTS_LIMIT, "light");
 }
 
-/** board_posts 단건 조회 — 없거나 실패 시 null */
+/**
+ * board_posts 단건 조회 — **없으면 null, 못 읽으면 던진다.**
+ *
+ * 2026-07-27: 여기가 /town/news/[id] 453장을 통째로 거짓말하게 만들던 자리다.
+ * 예전 코드는 `if (error || !data) return null` 에 바깥 `catch → null` 까지
+ * 겹쳐서, 조회 실패를 전부 null 로 뭉갰다. 호출부(app/town/news/[id]/page.tsx)
+ * 는 그 null 을 notFound() 로 바꾸므로 최종 결과는 **404** 였다 — DB 가 잠깐
+ * 느려지면 실재하는 기사 페이지가 "이 글은 없습니다"로 나가고, 그 순간 크롤링한
+ * 검색엔진은 그걸 삭제된 URL 로 기록한다. 못 읽은 것과 없는 것은 다르다.
+ *
+ * maybeSingle() 은 행이 0개면 { data: null, error: null } 을 돌려주므로
+ * error = 실패, !data = 없음 으로 정확히 갈린다. 실패는 던져서 페이지가
+ * 5xx 로 나가게 둔다 — 크롤러에게는 "나중에 다시 오라"는 뜻이라 정직하다.
+ * (같은 판단을 이미 app/complex/[id]/page.tsx 에서 했다.)
+ *
+ * 첫 질의의 board_comments(count) 중첩은 권한 때문에 막힐 수 있어 재시도가
+ * 남아 있다. 재시도까지 실패했을 때만 던진다.
+ */
 export async function getBoardPost(id: string): Promise<Post | null> {
   // board_posts id 는 uuid — 형식이 다르면 쿼리 자체를 생략
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
@@ -229,27 +246,29 @@ export async function getBoardPost(id: string): Promise<Post | null> {
   }
   const sb = getReadOnlySupabase();
   if (!sb) return null;
-  try {
-    let { data, error } = await sb
+  let { data, error } = await sb
+    .from("board_posts")
+    .select(BOARD_SELECT_WITH_COMMENTS)
+    .eq("id", id)
+    .eq("is_published", true)
+    .maybeSingle();
+  if (error) {
+    logger.error("[getBoardPost] with-comments query failed", error);
+    ({ data, error } = await sb
       .from("board_posts")
-      .select(BOARD_SELECT_WITH_COMMENTS)
+      .select("*")
       .eq("id", id)
       .eq("is_published", true)
-      .maybeSingle();
-    if (error) {
-      ({ data, error } = await sb
-        .from("board_posts")
-        .select("*")
-        .eq("id", id)
-        .eq("is_published", true)
-        .maybeSingle());
-    }
-    if (error || !data) return null;
-    return boardRowToPost(data as Record<string, unknown>);
-  } catch (e) {
-    logger.error("[getBoardPost]", e);
-    return null;
+      .maybeSingle());
   }
+  if (error) {
+    logger.error("[getBoardPost] plain query failed", error);
+    throw new Error(
+      `board_posts (${id}) 조회 실패: ${error.message ?? "알 수 없는 오류"}`,
+    );
+  }
+  if (!data) return null;
+  return boardRowToPost(data as Record<string, unknown>);
 }
 
 function displayTime(p: Post): number {
@@ -298,9 +317,18 @@ async function mergeTownPosts(boardPromise: Promise<Post[]>): Promise<Post[]> {
   return merged.sort((a, b) => displayTime(b) - displayTime(a));
 }
 
-/** town 상세용 단건 — posts 스토어 우선, 없으면 board_posts */
-export async function getTownPost(id: string): Promise<Post | null> {
-  const fromStore = await getPost(id).catch((): Post | null => null);
+/**
+ * town 상세용 단건 — posts 스토어 우선, 없으면 board_posts.
+ *
+ * `.catch(() => null)` 을 걷어냈다. 그 catch 가 있으면 posts 조회가 실패했을 때
+ * 조용히 board_posts 로 넘어가고, 거기서도 못 찾으면 null → 404 가 된다. 즉
+ * **한쪽 장애가 "그런 글 없음"으로 둔갑**한다. 두 스토어 모두 이제 없을 때만
+ * null 을 주고 실패는 던지므로, 여기서는 그대로 흘려보낸다.
+ *
+ * 요청당 1회로 접는다 — 같은 요청에서 generateMetadata 와 본문이 각각 부른다.
+ */
+export const getTownPost = cache(async (id: string): Promise<Post | null> => {
+  const fromStore = await getPost(id);
   if (fromStore) return fromStore;
   return getBoardPost(id);
-}
+});

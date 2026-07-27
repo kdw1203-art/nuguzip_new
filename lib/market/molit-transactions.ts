@@ -43,11 +43,49 @@ export function molitRegionLabel(info: SigunguInfo): string {
   return sigungu;
 }
 
+/**
+ * 구(區)를 가진 시의 **상위 코드** — RTMS 가 한 번도 응답한 적이 없다.
+ *
+ * 실측(2026-07-27): 이 12개 코드로 적재된 market_transactions 는 전부 0건인데,
+ * 각 시의 하위 구 코드에는 거래가 다 들어와 있다 — 수원 22,866건(41111·41113·
+ * 41115·41117), 용인 20,029건, 고양 18,115건, 청주 14,446건, 창원 14,320건,
+ * 천안 12,883건, 성남 12,691건, 안양 10,311건, 부천 10,246건, 전주 9,051건,
+ * 안산 6,837건, 포항 6,670건. 국토교통부 실거래가 API 는 자치구가 있는 시에
+ * 대해서는 구 단위 코드로만 답한다.
+ *
+ * 그래서 이 12개를 대상에서 빼도 **빠지는 거래는 0건**이고, 매 실행 왕복만
+ * 12번(유형 2종이므로 호출 24번) 줄어든다. 하위 구 코드는 그대로 남는다 —
+ * 위 목록이 그 근거다. 코드를 지우는 게 아니라 수집 대상에서만 빼므로,
+ * 나중에 상위 코드가 응답하기 시작하면 이 상수만 비우면 된다.
+ *
+ * (legal_regions.enabled 로도 같은 13개를 꺼 뒀지만 그 컬럼은 어느 코드도
+ *  읽지 않는다 — 기록용이다. 실제로 호출을 줄이는 건 이 목록이다.)
+ */
+const MOLIT_PARENT_ONLY_CODES = new Set([
+  "41110", // 경기 수원시
+  "41130", // 경기 성남시
+  "41170", // 경기 안양시
+  "41190", // 경기 부천시
+  "41270", // 경기 안산시
+  "41280", // 경기 고양시
+  "41460", // 경기 용인시
+  "43110", // 충북 청주시
+  "44130", // 충남 천안시
+  "47110", // 경북 포항시
+  "48120", // 경남 창원시
+  "52110", // 전북 전주시
+]);
+
 /** 전국 시군구 코드(자치구 단위) — 앞자리 코드순 */
 export function listMolitSigungu(): SigunguInfo[] {
   return getAllSido()
     .flatMap(getSigunguBySido)
-    .filter((i) => i.sigungu !== i.sido && !i.sigunguCd.endsWith("000"))
+    .filter(
+      (i) =>
+        i.sigungu !== i.sido &&
+        !i.sigunguCd.endsWith("000") &&
+        !MOLIT_PARENT_ONLY_CODES.has(i.sigunguCd),
+    )
     .sort((a, b) => a.sigunguCd.localeCompare(b.sigunguCd));
 }
 
