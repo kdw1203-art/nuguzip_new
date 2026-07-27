@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { isAdmin } from "@/lib/auth/is-admin";
-import { deletePost, getPost, updatePost } from "@/lib/posts-store";
+import { deletePost, updatePost } from "@/lib/posts-store";
+import { lookupPost, postLookupErrorResponse } from "@/lib/community/post-lookup";
 import type { Post } from "@/lib/types/post";
 
 export const runtime = "nodejs";
@@ -20,10 +21,9 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id } = await ctx.params;
-  const post = await getPost(id);
-  if (!post) {
-    return NextResponse.json({ error: "게시글을 찾을 수 없습니다." }, { status: 404 });
-  }
+  const found = await lookupPost(id);
+  if (found.state !== "ok") return postLookupErrorResponse(found);
+  const post = found.post;
   return NextResponse.json({ post });
 }
 
@@ -36,10 +36,9 @@ export async function PATCH(
   if (!session?.user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
-  const post = await getPost(id);
-  if (!post) {
-    return NextResponse.json({ error: "게시글을 찾을 수 없습니다." }, { status: 404 });
-  }
+  const found = await lookupPost(id);
+  if (found.state !== "ok") return postLookupErrorResponse(found);
+  const post = found.post;
   if (!isAuthor(post, session) && !isAdmin(session)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
@@ -79,10 +78,9 @@ export async function DELETE(
   if (!session?.user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
-  const post = await getPost(id);
-  if (!post) {
-    return NextResponse.json({ error: "게시글을 찾을 수 없습니다." }, { status: 404 });
-  }
+  const found = await lookupPost(id);
+  if (found.state !== "ok") return postLookupErrorResponse(found);
+  const post = found.post;
   if (!isAuthor(post, session) && !isAdmin(session)) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }

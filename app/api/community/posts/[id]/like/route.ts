@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
-import { getPost, togglePostLike } from "@/lib/posts-store";
+import { togglePostLike } from "@/lib/posts-store";
+import { lookupPost, postLookupErrorResponse } from "@/lib/community/post-lookup";
 
 export const runtime = "nodejs";
 
@@ -9,9 +10,9 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> },
 ) {
   const { id: postId } = await ctx.params;
-  const post = await getPost(postId);
-  if (!post) {
-    return NextResponse.json({ error: "글을 찾을 수 없습니다." }, { status: 404 });
+  const found = await lookupPost(postId);
+  if (found.state !== "ok") {
+    return postLookupErrorResponse(found, "글을 찾을 수 없습니다.");
   }
 
   let guestId = "";

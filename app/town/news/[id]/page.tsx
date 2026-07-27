@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../../components/PageShell";
@@ -55,6 +56,59 @@ function paragraphs(body: string): string[] {
   return out.length > 0 ? out : [body];
 }
 
+/* ---------- SEO ----------
+ *
+ * 이 페이지에는 generateMetadata 가 아예 없었다. 453장이 전부 레이아웃 기본
+ * 제목으로 나가고 있었다는 뜻이다 — 검색 결과에서 서로 구분되지 않는다.
+ *
+ * robots 를 noindex, follow 로 두는 이유(실측 2026-07-27):
+ *   board_posts 의 공개 글 453건은 **전부** is_automated = true 이고 453건
+ *   모두 source_url 을 갖고 있다. 118개 외부 매체에서 모아 온 기사 요약본이고
+ *   본문 평균 길이는 533자다. 우리가 쓴 글이 한 건도 없다. 이걸 색인시키면
+ *   원문과 중복되는 얇은 페이지 453장을 사이트에 붙이는 셈이라, 사이트 전체
+ *   품질 신호에 마이너스다. 이미 같은 판단으로 사이트맵에도 넣지 않았다
+ *   (lib/seo/build-sitemap.ts 에는 허브 /town/news 만 있다) — 그 결정을
+ *   메타에도 똑같이 적어 두는 것뿐이다.
+ *
+ *   follow 는 남긴다. 링크는 따라가되 이 URL 자체를 색인하지 말라는 뜻이라,
+ *   허브·지역 링크로 가는 신호는 그대로 흐른다.
+ *
+ *   나중에 이웃이 직접 쓴 글이 쌓이면 is_automated 로 갈라서 사람이 쓴 글만
+ *   index: true 로 돌리면 된다. 지금은 그 글이 0건이라 가를 것이 없다.
+ *
+ * 조회 실패는 여기서도 던진다 — 본문과 같은 이유다. 못 읽은 것을 "없는 글"로
+ * 바꿔 적지 않는다. */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getTownPost(id);
+  if (!post) {
+    return {
+      title: "글을 찾을 수 없습니다 | 누구집",
+      description: "요청하신 글을 찾을 수 없습니다.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const where = [post.city, post.district].filter(Boolean).join(" ").trim();
+  const source = post.sourceName?.trim();
+  const descParts = [
+    where || "전국",
+    post.category,
+    source ? `출처 ${source}` : null,
+  ].filter(Boolean);
+  const body = post.body.replace(/\s+/g, " ").trim();
+
+  return {
+    title: `${post.title} | 누구집`,
+    description: body ? body.slice(0, 150) : `${descParts.join(" · ")} 부동산 소식.`,
+    robots: { index: false, follow: true },
+  };
+}
+
 /* ---------- 페이지 ---------- */
 
 export default async function TownNewsDetailPage({
@@ -64,14 +118,12 @@ export default async function TownNewsDetailPage({
 }) {
   const { id } = await params;
 
-  let post: Post | null = null;
   let similarPosts: { id: string | null; title: string; meta: string }[] = [];
-  try {
-    /* posts 스토어 + board_posts(운영 DB) 병합 실데이터 */
-    post = await getTownPost(id);
-  } catch {
-    post = null;
-  }
+  /* posts 스토어 + board_posts(운영 DB) 병합 실데이터.
+     try/catch 로 실패를 null 로 바꾸던 자리다 — 아래 notFound() 와 만나서
+     조회 실패가 404 로 나갔다. 이제 실패는 던지고 5xx 가 된다(사유는
+     lib/newui/board-posts.ts 의 getBoardPost 주석). */
+  const post: Post | null = await getTownPost(id);
   // 사실 우선: 존재하지 않는 글은 목업 기사 대신 404
   if (!post) notFound();
   // 신고 누적/처리로 숨김된 글(posts.visibility="hidden")도 상세 노출 차단(#7)

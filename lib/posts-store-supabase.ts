@@ -1,6 +1,9 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import type { Post, PostAutomationMeta, PostComment } from "@/lib/types/post";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function rowToPost(row: Record<string, unknown>): Post {
   const rawComments = row.comments;
   const comments: PostComment[] = Array.isArray(rawComments)
@@ -96,7 +99,23 @@ export async function readPostsSb(
   return data.map((r) => rowToPost(r as Record<string, unknown>));
 }
 
+/* 조회 실패는 "그런 글이 없다"가 아니다.
+ *
+ * 예전에는 `if (error || !data) return null` 이었다. 호출부는 그 null 을 전부
+ * 404("게시글을 찾을 수 없습니다")로 바꿔 내보냈고, 그래서 DB 가 몇 초 흔들리는
+ * 동안 **멀쩡히 존재하는 글**이 삭제된 것처럼 보였다. 자기 글을 수정하려던
+ * 사람에게는 글이 사라진 것으로 읽힌다.
+ *
+ * maybeSingle() 은 행이 0개면 { data: null, error: null } 을 준다. 그래서
+ * error 는 오직 진짜 실패고, !data 는 오직 진짜 없음이다 — 둘을 갈라 놓는다. */
 export async function getPostSb(id: string): Promise<Post | null> {
+  /* posts.id 는 uuid 다. 형식이 안 맞는 id 를 그대로 넘기면 Postgres 가
+     22P02(invalid input syntax for type uuid)를 내는데, 그건 장애가 아니라
+     "그런 id 는 존재할 수 없다"는 뜻이다. 아래에서 error 를 던지도록 바꿨으니
+     이 구분을 안 해 두면 /town/news/mock-1 같은 잘못된 URL 이 404 가 아니라
+     500 으로 나간다 — 실제로 scripts/check-links.mjs 가 404 를 기대하는
+     경로다. board_posts 쪽(getBoardPost)에 이미 있던 가드와 같은 것이다. */
+  if (!UUID_RE.test(id)) return null;
   const sb = getServiceSupabase();
   if (!sb) return null;
   const { data, error } = await sb
@@ -104,7 +123,10 @@ export async function getPostSb(id: string): Promise<Post | null> {
     .select("*")
     .eq("id", id)
     .maybeSingle();
-  if (error || !data) return null;
+  if (error) {
+    throw new Error(`posts (${id}) 조회 실패: ${error.message ?? "알 수 없는 오류"}`);
+  }
+  if (!data) return null;
   return rowToPost(data as Record<string, unknown>);
 }
 
