@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -67,6 +68,23 @@ export const revalidate = 120;
  * 자세한 이유는 loadView() 안의 주석과 /region/[id] 의 같은 이름 상수 참고.
  */
 const SIDE_FAILURE_ABORT_THRESHOLD = 5;
+
+/**
+ * generateMetadata 와 본문은 같은 요청 안에서 각자 이 둘을 불렀다 — 즉 렌더
+ * 한 번에 똑같은 쿼리가 두 번씩, 합쳐서 두 왕복이 통째로 낭비였다.
+ * React cache() 로 묶으면 요청당 한 번만 실제로 나간다
+ * (/complex/tx/[slug] 의 loadPageData 와 같은 방식).
+ *
+ * 인자가 같아야 합쳐진다는 점이 중요하다. 그래서 메타데이터도 본문과 똑같이
+ * 6을 넘긴다 — getTransactionHistory 는 limit 과 무관하게 이 단지의 실거래를
+ * 전부 읽어서 월별로 접은 뒤 마지막 limit개만 남기므로(그 함수 끝부분 참고),
+ * 2를 주든 6을 주든 DB 에 나가는 쿼리는 완전히 같고 최신·직전 두 달도 그대로다.
+ */
+const loadComplexRow = cache(getComplexById);
+const loadTxHistory = cache(getTransactionHistory);
+
+/** 위 두 loader 가 쓰는 실거래 이력 개월 수 — 메타데이터·본문이 반드시 같아야 한다. */
+const TX_HISTORY_MONTHS = 6;
 
 interface HubView {
   id: string;
@@ -352,7 +370,7 @@ function toView(
 
 async function loadView(id: string): Promise<HubView | null> {
   // 사실 우선: 존재하지 않는 단지는 목업 대신 null → notFound()
-  const row = await getComplexById(id);
+  const row = await loadComplexRow(id);
   if (!row) return null;
   const dec = decodeComplexId(id);
 
@@ -362,7 +380,7 @@ async function loadView(id: string): Promise<HubView | null> {
      통째로 매달렸다. 이제 늦거나 실패한 섹션만 접고 페이지는 제때 그린다. */
   const budget = startDeadline();
   const [txR, postsR, sameDongR, txHrefR, coordR, listingsR] = await Promise.all([
-    settle(`${row.name} 실거래 이력`, getTransactionHistory(row.id, 6), budget.expired),
+    settle(`${row.name} 실거래 이력`, loadTxHistory(row.id, TX_HISTORY_MONTHS), budget.expired),
     settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 6), budget.expired),
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
     row.district
@@ -433,7 +451,7 @@ export async function generateMetadata({
      장애 몇 초 때문에 "찾을 수 없습니다" + noindex,nofollow 로 나갔다.
      이제 던지게 둔다: 본문과 똑같이 5xx 가 되고, 크롤러는 "나중에 다시 오라"로
      읽는다. 404·noindex 는 정말 없는 단지에만 남는다. */
-  const row: ComplexRow | null = await getComplexById(id);
+  const row: ComplexRow | null = await loadComplexRow(id);
   if (!row) {
     return {
       title: "단지를 찾을 수 없습니다 | 누구집",
@@ -450,7 +468,7 @@ export async function generateMetadata({
      남고 그 문자열이 OG 이미지 쿼리에 그대로 실려, 공유 카드가 "아직 시세를
      안 만들었다"고 단정했다 — 사실은 못 읽은 것뿐이다. 본문도 실패하면 던지므로
      메타데이터도 똑같이 던진다. */
-  const tx: ComplexTransactionRow[] = await getTransactionHistory(row.id, 2);
+  const tx: ComplexTransactionRow[] = await loadTxHistory(row.id, TX_HISTORY_MONTHS);
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   if (latest) {
