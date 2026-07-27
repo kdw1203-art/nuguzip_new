@@ -480,22 +480,33 @@ export async function loadRegionDistribution(): Promise<RegionShare[]> {
 
 export type SignupTrendPoint = { date: string; count: number };
 
+/**
+ * 최근 30일 가입 추이.
+ *
+ * 여기서 0 을 만들어 내지 않는다. 이 함수가 돌려주는 30개의 점은 관리자
+ * 화면에서 "요즘 가입이 없다"로 읽히고, 그건 사업 판단이 걸리는 주장이다.
+ * 못 읽었을 뿐인데 0 이 30일치 그려지면 있지도 않은 침체를 보고하는 셈이다.
+ * 그래서 읽을 수단이 없거나 조회가 실패하면 던진다 — 부르는 쪽이 "가입이
+ * 없다"와 "못 읽었다"를 구분해서 화면에 다르게 그려야 한다.
+ */
 export async function loadSignupTrend30d(): Promise<SignupTrendPoint[]> {
   const sb = getServiceSupabase();
   if (!sb) {
-    // 파일 폴백: 더미 0 으로 최근 30일 채움
-    const now = new Date();
-    return Array.from({ length: 30 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(d.getDate() - (29 - i));
-      return { date: d.toISOString().slice(0, 10), count: 0 };
-    });
+    throw new Error(
+      "app_users 를 읽을 수단이 없습니다 — SUPABASE_SERVICE_ROLE_KEY 가 설정되지 않았습니다.",
+    );
   }
   const since = daysAgo(29).toISOString();
-  const { data } = await sb
+  const { data, error } = await sb
     .from("app_users")
     .select("created_at")
     .gte("created_at", since);
+  if (error) {
+    throw new Error(
+      `app_users 조회 실패 (최근 30일 가입 추이) — ${error.message}` +
+        `${error.code ? ` [${error.code}]` : ""}`,
+    );
+  }
   const daily = new Map<string, number>();
   for (let i = 0; i < 30; i += 1) {
     const d = daysAgo(29 - i);

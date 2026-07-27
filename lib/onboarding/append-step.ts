@@ -32,26 +32,28 @@ export async function getOnboardingProgress(email: string): Promise<OnboardingPr
   const sb = getServiceSupabase();
   const em = email.trim().toLowerCase();
   if (!sb || !em) return { completedSteps: [], isComplete: false, total };
-  try {
-    const { data } = await sb
-      .from("app_users")
-      .select("onboarding_progress, onboarding_completed_at")
-      .eq("email", em)
-      .maybeSingle();
-    const norm = normalizeProgress(
-      data?.onboarding_progress,
-      data?.onboarding_completed_at ?? null,
+  /* 예전에는 이 전체를 try/catch 로 감싸고 실패하면 빈 배열을 돌려줬다. 두 가지가
+     틀렸다. 하나, Supabase 쿼리 빌더는 던지지 않고 { data, error } 를 돌려주므로
+     그 catch 는 애초에 죽은 코드였다. 둘, 빈 배열은 진행바를 0% 로 되돌리는
+     값이라 사용자에게는 "내가 해 둔 게 사라졌다"로 보인다 — 못 읽었을 뿐인데. */
+  const { data, error } = await sb
+    .from("app_users")
+    .select("onboarding_progress, onboarding_completed_at")
+    .eq("email", em)
+    .maybeSingle();
+  if (error) {
+    throw new Error(
+      `app_users 조회 실패 (온보딩 진행 상황) — ${error.message}` +
+        `${error.code ? ` [${error.code}]` : ""}`,
     );
-    const completedSteps = norm.completedSteps.filter(isStep);
-    return {
-      completedSteps,
-      isComplete: Boolean(norm.completedAt) || completedSteps.length >= total,
-      total,
-    };
-  } catch (e) {
-    logger.warn("[onboarding] getOnboardingProgress", e);
-    return { completedSteps: [], isComplete: false, total };
   }
+  const norm = normalizeProgress(data?.onboarding_progress, data?.onboarding_completed_at ?? null);
+  const completedSteps = norm.completedSteps.filter(isStep);
+  return {
+    completedSteps,
+    isComplete: Boolean(norm.completedAt) || completedSteps.length >= total,
+    total,
+  };
 }
 
 /**

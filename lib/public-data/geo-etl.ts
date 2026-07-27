@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { logger } from "@/lib/log";
 
 export type GeoEtlKind = "parking" | "park" | "childcare";
 
@@ -116,20 +117,27 @@ export async function readGeoEtlCache(
 
   const sb = getServiceSupabase();
   if (sb) {
-    try {
-      const { data } = await sb
-        .from("public_data_cache")
-        .select("payload")
-        .eq("cache_key", key)
-        .gt("expires_at", new Date().toISOString())
-        .maybeSingle();
-      const payload = data?.payload;
-      if (Array.isArray(payload) && payload.length) {
-        memGeo.set(key, { rows: payload as GeoEtlRow[], expiresAt: Date.now() + 3_600_000 });
-        return payload as GeoEtlRow[];
-      }
-    } catch {
-      /* fall through */
+    /* 여기서 실패를 삼키는 것 자체는 맞다 — 이건 캐시 조회고, 못 읽었으면 아래
+       파일 캐시로, 그것도 없으면 원본으로 내려간다. 틀린 값이 나갈 자리가 없다.
+       다만 **조용히** 삼키지는 않는다. 캐시가 계속 안 읽히면 매 요청이 원본까지
+       내려가는데, 로그가 없으면 그게 느려진 이유라는 걸 아무도 모른다.
+       (try/catch 는 걷어냈다. 쿼리 빌더는 던지지 않고 { data, error } 를
+       돌려주므로 그 catch 는 한 번도 실행된 적이 없는 죽은 코드였다.) */
+    const { data, error } = await sb
+      .from("public_data_cache")
+      .select("payload")
+      .eq("cache_key", key)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (error) {
+      logger.warn(
+        `[geo-etl] public_data_cache 조회 실패 (${key}) — 파일 캐시로 내려갑니다: ${error.message}`,
+      );
+    }
+    const payload = data?.payload;
+    if (Array.isArray(payload) && payload.length) {
+      memGeo.set(key, { rows: payload as GeoEtlRow[], expiresAt: Date.now() + 3_600_000 });
+      return payload as GeoEtlRow[];
     }
   }
 
