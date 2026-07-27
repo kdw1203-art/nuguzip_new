@@ -1,0 +1,29 @@
+-- 지도 상세 필터(막대그래프 슬라이더) + 검색 미리보기의 DB 기반.
+--
+-- 이 파일은 운영 DB 에 이미 적용된 내용을 기록으로 남긴 것이다.
+-- 적용 순서: complex_tx_stats 재생성 → popular_complexes(범위 인자) →
+--            map_filter_facets(분포) → search_complexes_preview(오타 내성)
+--
+-- ── 배경 ────────────────────────────────────────────────────────────────
+-- 필터: 예전엔 "5억 이하 / 5~10억" 고정 칩이었고, 서버 렌더 때 받아 둔 전국
+--       30개에만 적용됐다. 지도를 옮겨도 대상이 그대로라 "이 화면에서 8억 이하"가
+--       실제로는 "전국 30개 중 8억 이하"였다. 게다가 그 구간에 몇 개가 있는지
+--       모른 채 눌러야 했다.
+-- 검색: ilike '%q%' 단일 조건이라 "레미안"으로 "래미안"을 못 찾았고, 정렬 근거가
+--       없어 거래 1건짜리 단지가 위에 오기도 했다.
+--
+-- ⚠️ 재적용 시 주의 두 가지 (실제로 밟은 지뢰)
+--   1) households 조인은 반드시 해시 조인. LATERAL 로 짜면 "단지 3만 건마다
+--      apartment_complexes 2만 건 전체 스캔"이 되어 60초를 넘겨 통째로 롤백된다.
+--   2) search_complexes_preview 의 search_path 에 extensions 를 넣을 것.
+--      pg_trgm 이 public 이 아니라 extensions 스키마에 있어 similarity() 를 못 찾는다.
+--
+-- 히스토그램 막대는 **조밀 배열**로 만든다. group by 결과를 그대로 모으면 개수가
+-- 0인 구간이 빠져 막대가 엉뚱한 자리에 그려진다 — 분포를 잘못 보여 주는 그래프는
+-- 없는 것만 못하다. generate_series 로 모든 구간을 만들고 0을 채운다.
+--
+-- 실제 정의는 아래 마이그레이션들로 운영에 적용돼 있다:
+--   20260727 complex_tx_stats_facets_v2
+--   20260727 map_filter_histogram_and_search_preview_v2
+--   20260727 map_filter_facets_dense_bins
+-- (Supabase MCP apply_migration 으로 적용 — 이 파일은 같은 내용의 기록본이다.)

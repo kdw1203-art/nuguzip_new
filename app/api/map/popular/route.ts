@@ -43,6 +43,11 @@ export interface PopularComplexItem {
   /** 누적 매매 실거래 건수 */
   tradeCount: number;
   viewCount: number;
+  /** 평균 매매 실거래가(만원) — 값이 없으면 null(모르는 것을 0으로 쓰지 않는다) */
+  avgPriceManwon: number | null;
+  avgAreaM2: number | null;
+  buildYear: number | null;
+  households: number | null;
 }
 
 type Row = {
@@ -54,6 +59,10 @@ type Row = {
   trade_count: number;
   recent_trade_count: number;
   view_count: number;
+  avg_price_manwon: number | null;
+  avg_area_m2: number | null;
+  build_year: number | null;
+  households: number | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -94,6 +103,16 @@ export async function GET(req: NextRequest) {
     p_min_lng: hasBounds ? minLng : null,
     p_max_lng: hasBounds ? maxLng : null,
     p_limit: limit,
+    /* 범위 필터 — 안 보낸 축은 null 이고, null 은 "조건 없음"이다.
+       값이 없는 단지를 조건 불만족으로 떨어뜨리지 않는 규칙은 RPC 안에 있다. */
+    p_price_min: num("priceMin"),
+    p_price_max: num("priceMax"),
+    p_area_min: num("areaMin"),
+    p_area_max: num("areaMax"),
+    p_year_min: num("yearMin"),
+    p_year_max: num("yearMax"),
+    p_hh_min: num("hhMin"),
+    p_hh_max: num("hhMax"),
   });
 
   /* 조회 실패를 빈 목록으로 흘리지 않는다. 그러면 패널이 "이 지역에 단지가
@@ -115,6 +134,10 @@ export async function GET(req: NextRequest) {
     recentTradeCount: Number(r.recent_trade_count ?? 0),
     tradeCount: Number(r.trade_count ?? 0),
     viewCount: Number(r.view_count ?? 0),
+    avgPriceManwon: r.avg_price_manwon == null ? null : Number(r.avg_price_manwon),
+    avgAreaM2: r.avg_area_m2 == null ? null : Number(r.avg_area_m2),
+    buildYear: r.build_year == null ? null : Number(r.build_year),
+    households: r.households == null ? null : Number(r.households),
   }));
 
   return NextResponse.json(

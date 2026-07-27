@@ -19,6 +19,25 @@ interface SuggestItem {
   region: string;
   dong: string;
   address?: string;
+  /* 미리보기 값 — 고르기 전에 판단할 근거. 같은 브랜드 단지가 전국에 깔려
+     있어서 이름·지역만으로는 어느 것인지 못 고른다.
+     모르는 값은 null 로 온다. 0 으로 그리면 "거래 0건"이라는 거짓이 된다. */
+  avgPriceManwon?: number | null;
+  recentTradeCount?: number | null;
+  buildYear?: number | null;
+  households?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+}
+
+/** 만원 → "12.3억" / "8,200만". 없으면 null (호출부가 자리를 비운다) */
+function priceLabel(manwon: number | null | undefined): string | null {
+  if (manwon == null || !Number.isFinite(manwon) || manwon <= 0) return null;
+  if (manwon >= 10_000) {
+    const eok = manwon / 10_000;
+    return `${eok >= 10 ? Math.round(eok) : eok.toFixed(1)}억`;
+  }
+  return `${Math.round(manwon).toLocaleString("ko-KR")}만`;
 }
 
 interface GeocodeItem {
@@ -270,6 +289,22 @@ export function MapSearchBox({
                 {c.region && (
                   <span className="block truncate text-[11px] text-text-3">{c.region}</span>
                 )}
+                {/* 미리보기 — 있는 값만 점으로 잇는다. 없는 항목은 자리를
+                    비우고 "0"이나 "—"로 채우지 않는다. */}
+                {(() => {
+                  const bits = [
+                    priceLabel(c.avgPriceManwon),
+                    c.recentTradeCount ? `최근 ${c.recentTradeCount}건` : null,
+                    c.buildYear ? `${c.buildYear}년` : null,
+                    c.households ? `${c.households.toLocaleString("ko-KR")}세대` : null,
+                  ].filter(Boolean) as string[];
+                  if (bits.length === 0) return null;
+                  return (
+                    <span className="mt-0.5 block truncate text-[11px] text-text-2">
+                      {bits.join(" · ")}
+                    </span>
+                  );
+                })()}
               </span>
               <span className="shrink-0 text-[11px] font-bold text-primary">선택 ›</span>
             </button>

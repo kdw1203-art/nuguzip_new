@@ -11,6 +11,7 @@ import {
   type MapSearchSelectComplex,
 } from "./MapSearchBox";
 import { ComplexInfoPanel } from "./ComplexInfoPanel";
+import { HistogramRangeSlider } from "./HistogramRangeSlider";
 import { ListingPreviewPanel } from "./ListingPreviewPanel";
 import {
   colorForType,
@@ -354,6 +355,57 @@ interface PopularItem {
   recentTradeCount: number;
   tradeCount: number;
   viewCount: number;
+  avgPriceManwon: number | null;
+  avgAreaM2: number | null;
+  buildYear: number | null;
+  households: number | null;
+}
+
+/* ===== 상세 필터 (막대그래프 슬라이더) =====
+   예전 필터는 "5억 이하 / 5~10억" 같은 고정 칩이었고, 무엇보다 서버 렌더 때
+   받아 둔 전국 30개에만 적용됐다. 지도를 옮겨도 대상이 그대로라 "이 화면에서
+   8억 이하"가 실제로는 "전국 30개 중 8억 이하"였다.
+   이제 뷰포트 분포(/api/map/facets)를 막대로 그리고, 손잡이 값을 그대로
+   서버 조건으로 넘긴다. */
+
+/** 한 축의 분포 (서버 map_filter_facets 응답) */
+interface FacetAxis {
+  lo: number | null;
+  hi: number | null;
+  n: number;
+  bins: number[];
+}
+interface MapFacets {
+  total: number;
+  buckets: number;
+  price: FacetAxis;
+  area: FacetAxis;
+  year: FacetAxis;
+  households: FacetAxis;
+}
+
+/** 네 축의 선택 범위. null = 그 끝은 제한 없음 */
+type RangeSel = [number | null, number | null];
+interface RangeFilters {
+  price: RangeSel;
+  area: RangeSel;
+  year: RangeSel;
+  households: RangeSel;
+}
+const EMPTY_RANGES: RangeFilters = {
+  price: [null, null],
+  area: [null, null],
+  year: [null, null],
+  households: [null, null],
+};
+
+/** 만원 → "12.3억" / "8,200만" */
+function manwonShort(manwon: number): string {
+  if (manwon >= 10_000) {
+    const eok = manwon / 10_000;
+    return `${eok >= 10 ? Math.round(eok) : eok.toFixed(1)}억`;
+  }
+  return `${Math.round(manwon).toLocaleString("ko-KR")}만`;
 }
 
 /* ===== 매물 레이어 (/api/map/listings) — 유저 등록 매물을 지도 마커로 ===== */
@@ -476,6 +528,21 @@ export function MapClient({
   /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
   const [listingTradeKey, setListingTradeKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
+
+  /* 상세 필터 — 뷰포트 분포(막대그래프)와 선택 범위 */
+  const [facets, setFacets] = useState<MapFacets | null>(null);
+  const [ranges, setRanges] = useState<RangeFilters>(EMPTY_RANGES);
+  const facetsAbortRef = useRef<AbortController | null>(null);
+  /* 최신 범위를 콜백 재생성 없이 참조 — 지도 idle 때마다 콜백을 다시 만들면
+     디바운스 타이머가 매번 초기화돼 조회가 밀린다. */
+  const rangesRef = useRef(ranges);
+  rangesRef.current = ranges;
+
+  const rangeActive =
+    ranges.price[0] !== null || ranges.price[1] !== null ||
+    ranges.area[0] !== null || ranges.area[1] !== null ||
+    ranges.year[0] !== null || ranges.year[1] !== null ||
+    ranges.households[0] !== null || ranges.households[1] !== null;
   /** 실거래 거래유형 토글 — 매매(trade) / 전세(rent, 평균 보증금). /api/map/clusters?type= */
   const [txType, setTxType] = useState<"trade" | "rent">("trade");
   /** 모바일 접이식 범례 (item7) — 기본 접힘 */
@@ -511,16 +578,23 @@ export function MapClient({
 
   const danjiFilterActive =
     priceKey !== "all" || areaKey !== "all" || yearKey !== "all";
+  /* 범위 슬라이더(rangeActive)도 필터다 — 배지·초기화 버튼이 이걸 세지 않으면
+     사용자는 목록이 줄어든 이유를 화면에서 찾을 수 없다. */
   const filterActive =
-    danjiFilterActive || listingTradeKey !== "all" || commuteKey !== "off";
-  const activeCount = [priceKey, areaKey, yearKey, listingTradeKey, commuteKey].filter(
-    (k) => k !== "all" && k !== "off",
-  ).length;
+    danjiFilterActive || rangeActive || listingTradeKey !== "all" || commuteKey !== "off";
+  const activeCount =
+    [priceKey, areaKey, yearKey, listingTradeKey, commuteKey].filter(
+      (k) => k !== "all" && k !== "off",
+    ).length +
+    (["price", "area", "year", "households"] as const).filter(
+      (k) => ranges[k][0] !== null || ranges[k][1] !== null,
+    ).length;
 
   const resetFilters = useCallback(() => {
     setPriceKey("all");
     setAreaKey("all");
     setYearKey("all");
+    setRanges(EMPTY_RANGES);
     setListingTradeKey("all");
     setCommuteKey("off");
   }, []);
@@ -658,23 +732,67 @@ export function MapClient({
           ✕
         </button>
       </div>
-      <FilterChipGroup label="가격대(매매)" options={PRICE_OPTIONS} valueKey={priceKey} onSelect={setPriceKey} />
-      <FilterChipGroup label="평형대(전용면적)" options={AREA_OPTIONS} valueKey={areaKey} onSelect={setAreaKey} />
-      <FilterChipGroup label="준공연도" options={YEAR_OPTIONS} valueKey={yearKey} onSelect={setYearKey} />
-      {/* 세대수 — 실데이터 소스 미연동. 동작하지 않는 칩을 살려두는 대신 정직하게 비활성 */}
-      <div className="flex flex-col gap-1.5">
-        <div className="text-[11px] font-bold text-text-3">
-          세대수 규모 <span className="font-normal">· 데이터 준비 중</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <span
-            aria-disabled="true"
-            className="chip cursor-not-allowed whitespace-nowrap bg-[rgba(255,255,255,.55)] px-2.5 py-1.5 text-xs text-[#c3cad6]"
-          >
-            데이터 연동 후 제공돼요
-          </span>
-        </div>
-      </div>
+      {/* ── 범위 슬라이더 (막대그래프) ──────────────────────────────────
+          고정 칩("5억 이하 / 5~10억")을 걷어냈다. 남의 기준이라 "이 동네에서
+          6~9억"을 고를 수 없었고, 무엇보다 그 구간에 몇 개가 있는지 모른 채
+          눌러야 했다. 막대는 지금 보이는 지역의 실측 분포다. */}
+      {facets ? (
+        <>
+          <HistogramRangeSlider
+            label="가격대(매매 평균)"
+            lo={facets.price.lo ?? 0}
+            hi={facets.price.hi ?? 0}
+            bins={facets.price.bins}
+            value={ranges.price}
+            onChange={(v) => setRanges((p) => ({ ...p, price: v }))}
+            format={manwonShort}
+            available={facets.price.n}
+            total={facets.total}
+            step={500}
+          />
+          <HistogramRangeSlider
+            label="전용면적"
+            lo={facets.area.lo ?? 0}
+            hi={facets.area.hi ?? 0}
+            bins={facets.area.bins}
+            value={ranges.area}
+            onChange={(v) => setRanges((p) => ({ ...p, area: v }))}
+            format={(v) => `${Math.round(v)}㎡`}
+            available={facets.area.n}
+            total={facets.total}
+            step={1}
+          />
+          <HistogramRangeSlider
+            label="준공연도"
+            lo={facets.year.lo ?? 0}
+            hi={facets.year.hi ?? 0}
+            bins={facets.year.bins}
+            value={ranges.year}
+            onChange={(v) => setRanges((p) => ({ ...p, year: v }))}
+            format={(v) => `${Math.round(v)}년`}
+            available={facets.year.n}
+            total={facets.total}
+            step={1}
+          />
+          {/* 세대수 — 예전엔 "데이터 준비 중" 비활성이었다. 국토부 상세(V4)
+              백필이 돌면서 값이 들어오기 시작해 이제 실제로 동작한다.
+              아직 값이 없는 단지가 많다는 사실은 슬라이더 아래에 그대로 적힌다. */}
+          <HistogramRangeSlider
+            label="세대수 규모"
+            lo={facets.households.lo ?? 0}
+            hi={facets.households.hi ?? 0}
+            bins={facets.households.bins}
+            value={ranges.households}
+            onChange={(v) => setRanges((p) => ({ ...p, households: v }))}
+            format={(v) => `${Math.round(v).toLocaleString("ko-KR")}세대`}
+            available={facets.households.n}
+            total={facets.total}
+            step={10}
+          />
+        </>
+      ) : (
+        <div className="py-2 text-[11px] text-text-3">이 지역 분포를 불러오는 중…</div>
+      )}
       {/* 유형 — 국토부 아파트 실거래만 수집 중이라 아파트 단일 (선택할 것이 없음) */}
       <div className="flex flex-col gap-1.5">
         <div className="text-[11px] font-bold text-text-3">유형</div>
@@ -949,6 +1067,16 @@ export function MapClient({
           qs.set("minLng", String(bounds.swLng));
           qs.set("maxLng", String(bounds.neLng));
         }
+        // 상세 필터 범위를 그대로 서버 조건으로 — 클라이언트에서 자르지 않는다
+        // (화면에 안 온 단지는 클라이언트가 걸러 봐야 알 수 없다).
+        const r = rangesRef.current;
+        const put = (k: string, v: number | null) => {
+          if (v !== null) qs.set(k, String(v));
+        };
+        put("priceMin", r.price[0]); put("priceMax", r.price[1]);
+        put("areaMin", r.area[0]);   put("areaMax", r.area[1]);
+        put("yearMin", r.year[0]);   put("yearMax", r.year[1]);
+        put("hhMin", r.households[0]); put("hhMax", r.households[1]);
         setPopularLoading(true);
         fetch(`/api/map/popular?${qs.toString()}`, { signal: controller.signal })
           .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
@@ -971,10 +1099,48 @@ export function MapClient({
     [],
   );
 
+  /**
+   * 뷰포트 분포(막대그래프) 재조회.
+   * 필터를 **걸기 전** 분포를 받는다 — 필터 후 분포를 그리면 손잡이를 좁힐수록
+   * 막대가 사라져 되돌릴 기준을 잃는다.
+   */
+  const fetchFacets = useCallback(
+    (bounds: NonNullable<MapIdleInfo["bounds"]> | null, mapZoom: number) => {
+      facetsAbortRef.current?.abort();
+      const controller = new AbortController();
+      facetsAbortRef.current = controller;
+      const useBounds = bounds !== null && mapZoom > POPULAR_NATIONWIDE_MAX_ZOOM;
+      const qs = new URLSearchParams({ buckets: "24" });
+      if (useBounds && bounds) {
+        qs.set("minLat", String(bounds.swLat));
+        qs.set("maxLat", String(bounds.neLat));
+        qs.set("minLng", String(bounds.swLng));
+        qs.set("maxLng", String(bounds.neLng));
+      }
+      fetch(`/api/map/facets?${qs.toString()}`, { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((j: MapFacets) => {
+          if (!controller.signal.aborted) setFacets(j);
+        })
+        .catch(() => {
+          /* 분포를 못 받으면 슬라이더를 그리지 않는다(HistogramRangeSlider 가
+             축이 성립하지 않으면 안내 문구로 대체). 직전 분포는 지우지 않는다. */
+        });
+    },
+    [],
+  );
+
   /* 첫 진입 — 지도 idle 이 오기 전에도 패널이 비어 있지 않도록 전국 기준으로 먼저 채운다. */
   useEffect(() => {
     schedulePopularFetch(null, 0);
-  }, [schedulePopularFetch]);
+    fetchFacets(null, 0);
+  }, [schedulePopularFetch, fetchFacets]);
+
+  /* 손잡이를 놓으면 목록을 다시 받는다(분포는 그대로 — 위 주석 참고). */
+  useEffect(() => {
+    const last = lastIdleRef.current;
+    schedulePopularFetch(last?.bounds ?? null, last?.zoom ?? 0);
+  }, [ranges, schedulePopularFetch]);
 
   const handleMapIdle = useCallback(
     (info: MapIdleInfo) => {
@@ -986,8 +1152,9 @@ export function MapClient({
       if (showListingsRef.current) fetchListings(bounds);
       scheduleClusterFetch(bounds, info.zoom);
       schedulePopularFetch(bounds, info.zoom);
+      fetchFacets(bounds, info.zoom);
     },
-    [fetchListings, scheduleClusterFetch, schedulePopularFetch],
+    [fetchListings, scheduleClusterFetch, schedulePopularFetch, fetchFacets],
   );
 
   // 매매/전세 토글 변경 → 마지막 뷰포트로 즉시 재조회
