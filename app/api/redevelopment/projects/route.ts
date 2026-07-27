@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { listProjects } from "@/lib/redevelopment/store";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 import { isProjectTypeKey, isStageKey } from "@/lib/redevelopment/types";
 import type { ProjectFilter, ProjectTypeKey, StageKey } from "@/lib/redevelopment/types";
 
@@ -45,9 +46,15 @@ export async function GET(req: NextRequest) {
     limit,
   };
 
-  const items = await listProjects(filter);
-  return NextResponse.json(
-    { items },
-    { headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" } },
-  );
+  /* 조회 실패는 503 으로 돌려준다 — items: [] 로 답하면 지도가 "이 영역에
+     정비사업이 없다"고 그리게 되고, 그건 장애를 사실로 바꿔 말하는 것이다. */
+  try {
+    const items = await listProjects(filter);
+    return NextResponse.json(
+      { items },
+      { headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" } },
+    );
+  } catch (err) {
+    return dbUnavailable("api/redevelopment/projects", err, "정비사업장을 불러오지 못했습니다.");
+  }
 }
