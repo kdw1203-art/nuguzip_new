@@ -11,6 +11,7 @@
  * automation_meta(jsonb)·is_published·created_at·updated_at
  */
 import "server-only";
+import { cache } from "react";
 import {
   getAnonReadOnlySupabase,
   getReadOnlySupabase,
@@ -122,10 +123,8 @@ function applyNewsQualityGate(posts: Post[]): Post[] {
   return passed;
 }
 
-/** board_posts 공개(community) 글 최신순 — 실패 시 빈 배열 */
-export async function readBoardPosts(
-  limit: number = BOARD_POSTS_LIMIT,
-): Promise<Post[]> {
+/** 실제 조회 — 요청당 한 번만 나가도록 아래 readBoardPosts 가 감싼다. */
+async function fetchBoardPosts(limit: number): Promise<Post[]> {
   const sb = getReadOnlySupabase();
   if (!sb) return [];
   try {
@@ -172,6 +171,28 @@ export async function readBoardPosts(
   }
 }
 
+/**
+ * 요청 단위 dedup — 같은 렌더 안에서 board_posts 를 한 번만 읽는다.
+ *
+ * 실측: /town/news 한 번 그릴 때 이 조회가 **세 번** 나갔다 — 본문의
+ * readTownPosts(), getWeeklyDigest→computeNews, getWeeklyDigest→readTownPosts.
+ * 홈(app/page.tsx)도 digest 경유로 두 번. 한 번에 300행(행당 ~2.5KB, 약 750KB)
+ * 이라 이게 pg_stat_statements 상 DB 시간 1위였다.
+ *
+ * 배열 인스턴스를 공유해도 안전하다 — 모든 소비처가 정렬·가공 전에 .filter()
+ * (새 배열 할당)를 먼저 거친다. 공유 배열을 그 자리에서 뒤집는 곳은 없다.
+ *
+ * 기본값은 cache() **바깥**에서 채운다. React cache() 는 실제로 넘어온 인자로
+ * 키를 잡아서, readBoardPosts() 와 readBoardPosts(300)(app/support/page.tsx:34)
+ * 이 서로 다른 항목이 되어 버리기 때문이다.
+ */
+const loadBoardPosts = cache(fetchBoardPosts);
+
+/** board_posts 공개(community) 글 최신순 — 실패 시 빈 배열. 요청당 1회로 접힌다. */
+export function readBoardPosts(limit: number = BOARD_POSTS_LIMIT): Promise<Post[]> {
+  return loadBoardPosts(limit);
+}
+
 /** board_posts 단건 조회 — 없거나 실패 시 null */
 export async function getBoardPost(id: string): Promise<Post | null> {
   // board_posts id 는 uuid — 형식이 다르면 쿼리 자체를 생략
@@ -211,8 +232,11 @@ function displayTime(p: Post): number {
 /**
  * town 화면용 병합 피드 — posts 스토어 + board_posts 둘 다 시도해 합치고
  * (id·external_key 로 중복 제거) 최신순 정렬. 실패 시 빈 배열.
+ *
+ * readBoardPosts 와 같은 이유로 요청당 1회로 접는다 — /town/news 는 본문과
+ * getWeeklyDigest 양쪽에서 이걸 부른다. 인자가 없어 캐시 키 문제도 없다.
  */
-export async function readTownPosts(): Promise<Post[]> {
+export const readTownPosts = cache(async (): Promise<Post[]> => {
   const [storePosts, boardPosts] = await Promise.all([
     readPosts().catch((e): Post[] => {
       logger.error("[readTownPosts:store]", e);
@@ -229,7 +253,7 @@ export async function readTownPosts(): Promise<Post[]> {
     merged.push(p);
   }
   return merged.sort((a, b) => displayTime(b) - displayTime(a));
-}
+});
 
 /** town 상세용 단건 — posts 스토어 우선, 없으면 board_posts */
 export async function getTownPost(id: string): Promise<Post | null> {
