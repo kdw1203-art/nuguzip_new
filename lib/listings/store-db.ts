@@ -224,11 +224,18 @@ export async function listApprovedListings(
       .order("boost_until", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(200);
-    if (error || !data) return [];
-    return data.map((r) => mapPublic(r as Record<string, unknown>));
+    /* 못 읽은 것을 [] 로 돌려주면 /listings 는 "조건에 맞는 매물이 없어요",
+       /complex/[id] 는 "등록된 매물 없음"이라고 단정한다 — 멀쩡히 올라와 있는
+       남의 매물을 없다고 말하는 셈이다. 조회 실패는 던지고, 부르는 쪽이
+       "지금 못 읽었다"를 그리게 한다(곁다리인 /complex/[id] 는 settle() 이 받는다). */
+    if (error) {
+      throw new Error(`listings 조회 실패: ${error.message ?? "알 수 없는 오류"}`);
+    }
+    return (data ?? []).map((r) => mapPublic(r as Record<string, unknown>));
   } catch (e) {
-    logger.warn("[listings] listApprovedListings", e);
-    return [];
+    /* 여기서 삼키지 않는다. 로그는 부르는 쪽(dbUnavailable·settle·ErrorState)이
+       남기므로 중복으로 찍지 않고 그대로 올려 보낸다. */
+    throw e;
   }
 }
 

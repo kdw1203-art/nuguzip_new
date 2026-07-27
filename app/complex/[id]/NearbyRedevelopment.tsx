@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { listProjects } from "@/lib/redevelopment/store";
 import { PROJECT_TYPES, stageLabel } from "@/lib/redevelopment/types";
+import { logger } from "@/lib/log";
 
 /* D3 — 인근 정비사업 섹션. 단지 소재 시군구의 정비사업을 보여준다.
    예전에는 listDbProjects(시드 폴백 없음)를 써서 DB가 비어 있는 동안 항상 숨겨졌다.
-   listProjects(시드 폴백 포함)로 교체하되, 시드(공개자료 취합본) 기반일 때는
+   listProjects 로 교체했다. 시드 폴백은 2026-07-27 부터 표 자체가 없을 때만
+   쓰이지만(조회 실패는 던진다), 그 경우에도 시드(공개자료 취합본) 기반이면
    취합 시점 캡션을 함께 표기해 사실 라벨을 유지한다. */
 
 function typeLabel(key: string): string {
@@ -15,8 +17,14 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
   const gu = sigungu.trim();
   if (!gu) return null;
 
+  /* 곁다리 섹션이라 실패해도 단지 페이지 전체를 죽이지는 않는다. 다만 조용히
+     삼키지는 않는다 — 이 섹션이 계속 안 보이는데 로그가 없으면 "그 구에 정비사업이
+     없다"와 "조회가 실패했다"를 아무도 구분할 수 없다. */
   const projects = await listProjects({ sigungu: gu, limit: 6 }).catch(
-    () => [] as Awaited<ReturnType<typeof listProjects>>,
+    (e: unknown) => {
+      logger.error(`[NearbyRedevelopment] ${gu} 정비사업 조회 실패 — 섹션을 접습니다: ${String(e)}`);
+      return [] as Awaited<ReturnType<typeof listProjects>>;
+    },
   );
   if (projects.length === 0) return null;
 

@@ -5,7 +5,9 @@
  * - 신규 임장노트: `inspection_notes` 최근 24h 건수
  * - 가입: `profiles` 최근 24h 건수 (테이블 없으면 `app_users` 폴백)
  * - 전환율: 신규 노트 ÷ DAU (계산 불가 시 null → "—")
- * - 구독 매출: `payment_orders` 합 (테이블 없으면 `payments` paid 합, 둘 다 없으면 null)
+ * - 구독 매출: 승인된(`approved_at` 있는) `payment_orders.amount_krw` 합.
+ *   못 읽으면 구 `payments` paid 합으로 한 번 폴백하고, 그마저 실패하면
+ *   null 을 돌려 "—"가 뜨게 한다 — 조회 실패를 "0원"이라고 말하지 않는다.
  * - 처리 대기: `content_reports` 최근 5건 (open 우선)
  *
  * 모든 조회는 읽기 전용(lib/newui/supabase-read)이며 실패 시 null/빈 배열을
@@ -101,46 +103,49 @@ async function loadSignups24h(): Promise<number | null> {
   return count24h("app_users").catch(() => null);
 }
 
-/** 구독 매출: payment_orders 합 → 없으면 payments(paid, 최근 30일) 합 — 실패 시 null */
+/** 구독 매출: 승인된 payment_orders 합 — 못 읽었으면 null(0 이 아니다) */
 async function loadSubscriptionRevenue(): Promise<number | null> {
   const sb = getReadOnlySupabase();
   if (!sb) return null;
-  const sum = (rows: unknown): number | null => {
-    if (!Array.isArray(rows)) return null;
+  const sum = (rows: Array<{ amount_krw?: unknown }> | null): number => {
     let total = 0;
-    for (const r of rows as Array<{ amount?: unknown }>) {
-      const v = Number(r.amount);
+    for (const r of rows ?? []) {
+      const v = Number(r.amount_krw);
       if (Number.isFinite(v)) total += v;
     }
     return total;
   };
-  // 1순위: payment_orders (스펙 기준) — 테이블 없으면 error
-  try {
-    const { data, error } = await sb
-      .from("payment_orders")
-      .select("amount")
-      .limit(5000);
-    if (!error) {
-      const total = sum(data);
-      if (total !== null) return total;
-    }
-  } catch (e) {
-    logger.info("[admin-metrics] payment_orders 조회 불가 — payments 폴백", e);
+
+  /* 예전 코드는 payment_orders 에 없는 컬럼(amount)을 골라 매번 error 를 냈고,
+     그러면 0행짜리 구 payments 로 흘러가 합계 0 을 돌려줬다. 화면에는 "0원"이
+     사실처럼 찍힌다 — 조회 실패를 매출 0 으로 바꿔 말한 셈이다.
+     실제 컬럼은 amount_krw 이고, 못 읽었으면 null 로 답해 "—"가 뜨게 한다. */
+  const { data, error } = await sb
+    .from("payment_orders")
+    .select("amount_krw")
+    .not("approved_at", "is", null)
+    .limit(5000);
+
+  if (!error) return sum(data);
+  logger.warn("[admin-metrics] payment_orders 조회 실패 — payments 폴백", error.message);
+
+  /* 폴백: 구 payments 테이블 (paid, 최근 30일 — lib/admin/stats.ts 방식).
+     여기서도 실패하면 null 이다. 폴백이 "행이 없어서 0"인지 구분할 수 없으므로
+     폴백 성공은 값이 있을 때만 인정한다. */
+  const legacy = await sb
+    .from("payments")
+    .select("amount")
+    .eq("status", "paid")
+    .gte("paid_at", new Date(Date.now() - 30 * DAY_MS).toISOString())
+    .not("paid_at", "is", null)
+    .limit(5000);
+  if (legacy.error || !legacy.data?.length) return null;
+  let total = 0;
+  for (const r of legacy.data as Array<{ amount?: unknown }>) {
+    const v = Number(r.amount);
+    if (Number.isFinite(v)) total += v;
   }
-  // 폴백: 구 payments 테이블 (paid, 최근 30일 — lib/admin/stats.ts 방식)
-  try {
-    const { data, error } = await sb
-      .from("payments")
-      .select("amount")
-      .eq("status", "paid")
-      .gte("paid_at", new Date(Date.now() - 30 * DAY_MS).toISOString())
-      .not("paid_at", "is", null)
-      .limit(5000);
-    if (error) return null;
-    return sum(data);
-  } catch {
-    return null;
-  }
+  return total;
 }
 
 /* ---------- 처리 대기 (content_reports 최근 5건) ---------- */

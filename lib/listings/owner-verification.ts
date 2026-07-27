@@ -93,12 +93,23 @@ function toItem(r: Record<string, unknown>, now: number): OwnerVerificationItem 
 async function profileIdByEmail(email: string): Promise<string | null> {
   const sb = getServiceSupabase();
   if (!sb || !email) return null;
-  const { data } = await sb
+  /* null 을 돌려줘도 신청 자체는 접수된다(user_id 는 선택값). 그래서 여기서
+     던지지는 않는다 — 프로필을 못 찾았다고 소유확인 신청을 막으면 그게 더 나쁘다.
+     다만 "그 이메일의 프로필이 없다"와 "조회가 실패했다"는 전혀 다른 일이고,
+     후자는 신청서가 계정에 안 붙는 이유가 된다. 로그가 없으면 나중에 왜 안
+     붙었는지 알아낼 방법이 없으므로, 실패는 반드시 남긴다. */
+  const { data, error } = await sb
     .from("profiles")
     .select("id")
     .ilike("email", email.trim())
     .limit(1)
     .maybeSingle();
+  if (error) {
+    logger.warn(
+      `[owner-verification] profiles 조회 실패 — 신청서에 user_id 를 붙이지 못합니다: ${error.message}`,
+    );
+    return null;
+  }
   const id = (data as { id?: string } | null)?.id;
   return id ? String(id) : null;
 }

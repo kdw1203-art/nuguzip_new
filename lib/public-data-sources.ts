@@ -73,7 +73,7 @@ export const SEOUL_DATASET_CATALOG: SeoulDatasetMeta[] = [
     envKey: "SEOUL_DATA_API_KEY",
     ttlHours: 168,
     license: "공공누리 1유형",
-    usage: "/info/apt/[id] 단지 프로필",
+    usage: "/complex/[id] 단지 프로필",
     knownIssues: "API ERROR-500 — 키 설정 시 재시도",
   },
   {

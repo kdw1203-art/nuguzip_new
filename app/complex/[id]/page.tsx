@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,11 +33,7 @@ import { RegionRelative } from "./RegionRelative";
 import { NearbyRedevelopment } from "./NearbyRedevelopment";
 import { UpcomingSupply } from "./UpcomingSupply";
 import { ComplexQna } from "./ComplexQna";
-import {
-  SEOUL_BROWSE_REGIONS,
-  buildComplexTxSlug,
-  listComplexTransactions,
-} from "@/lib/market/complex-transactions";
+import { SEOUL_BROWSE_REGIONS, buildComplexTxSlug } from "@/lib/market/complex-transactions";
 import {
   complexResidenceJsonLd,
   breadcrumbJsonLd,
@@ -61,6 +58,31 @@ import {
 
 // ISR(운영 P0): searchParams 미사용 — 경로별 2분 재검증 캐시 (SEO 랜딩 성능)
 export const revalidate = 120;
+
+/**
+ * 곁다리 5개 중 몇 개가 실패하면 화면을 그리지 않고 던지는가.
+ * 자세한 이유는 loadView() 안의 주석과 /region/[id] 의 같은 이름 상수 참고.
+ * (실거래 상세 링크가 질의를 그만두면서 6개 → 5개가 됐다. "거의 다 실패했다"는
+ *  뜻을 유지하려고 5/6 이던 기준을 4/5 로 함께 낮춘다.)
+ */
+const SIDE_FAILURE_ABORT_THRESHOLD = 4;
+
+/**
+ * generateMetadata 와 본문은 같은 요청 안에서 각자 이 둘을 불렀다 — 즉 렌더
+ * 한 번에 똑같은 쿼리가 두 번씩, 합쳐서 두 왕복이 통째로 낭비였다.
+ * React cache() 로 묶으면 요청당 한 번만 실제로 나간다
+ * (/complex/tx/[slug] 의 loadPageData 와 같은 방식).
+ *
+ * 인자가 같아야 합쳐진다는 점이 중요하다. 그래서 메타데이터도 본문과 똑같이
+ * 6을 넘긴다 — getTransactionHistory 는 limit 과 무관하게 이 단지의 실거래를
+ * 전부 읽어서 월별로 접은 뒤 마지막 limit개만 남기므로(그 함수 끝부분 참고),
+ * 2를 주든 6을 주든 DB 에 나가는 쿼리는 완전히 같고 최신·직전 두 달도 그대로다.
+ */
+const loadComplexRow = cache(getComplexById);
+const loadTxHistory = cache(getTransactionHistory);
+
+/** 위 두 loader 가 쓰는 실거래 이력 개월 수 — 메타데이터·본문이 반드시 같아야 한다. */
+const TX_HISTORY_MONTHS = 6;
 
 interface HubView {
   id: string;
@@ -88,6 +110,10 @@ interface HubView {
   infoRows: { label: string; value: string }[];
   trades: HubTrade[];
   notes: HubNote[];
+  /** 노트 조회가 실패했는지 — 빈 목록을 "없음"으로 단정하지 않기 위해 */
+  notesFailed: boolean;
+  /** 이 단지에 연결된 글 쓰기 (/town/write?complex=…) */
+  notesWriteHref: string;
   listings: HubListing[];
   /** 실거래 월별 평균 시계열 (차트용 · 실데이터만) */
   priceSeries: PricePoint[];
@@ -211,18 +237,35 @@ function toNearby(rows: ComplexRow[], selfId: string): HubView["nearby"] {
     });
 }
 
-/** 서울 단지 — 동일 단지명 국토부 실거래 이력이 있으면 /complex/tx 링크 생성 */
-async function resolveTxHref(row: ComplexRow): Promise<string | null> {
+/**
+ * 서울 단지 — /complex/tx 상세 링크. **DB 를 다시 읽지 않는다.**
+ *
+ * 예전에는 여기서 listComplexTransactions(row.name, region, 1) 을 한 번 더 던져
+ * "이 단지 실거래가 있나"를 확인했다. 같은 렌더에서 loadTxHistory 가 이미 같은
+ * 단지의 market_transactions 를 읽고 있는데도 왕복이 하나 더 나갔고, 서울 단지는
+ * 트래픽의 대부분이라 그 왕복이 매 렌더마다 붙었다.
+ *
+ * 대신 이미 읽은 실거래(txRows)로 판정한다. 두 질의의 조건이 포함관계라서
+ * 성립한다 — getTransactionHistory 쪽이 /complex/tx 쪽의 **부분집합**이다:
+ *   - complex_name  : 양쪽 같은 등치
+ *   - region_name   : 이쪽은 dec.region("서울 OO구") 등치, 저쪽은
+ *                     transactionRegionCandidates → ["OO구", "서울 OO구"] 중 하나.
+ *                     city/district 는 splitRegion(dec.region) 에서 나오므로
+ *                     `${city} ${district}` === dec.region 이 항상 참이다.
+ *   - transaction_type='trade' · is_cancelled=false : 양쪽 같음
+ *   - property_type='apartment' : 저쪽에만 있지만, market_transactions 에
+ *                     행을 넣는 유일한 경로(lib/market/molit-transactions.ts)가
+ *                     이 값을 상수로 박아 넣는다(실측 654,815행 전부 apartment).
+ *   - deal_amount   : 이쪽 > 0 ⊂ 저쪽 not null
+ * 즉 실거래가 1건이라도 잡혔으면 /complex/tx 페이지도 반드시 1건 이상을 본다 —
+ * 죽은 링크(그 페이지는 0건이면 notFound)를 내보낼 일이 없다.
+ */
+function txDetailHref(row: ComplexRow, txRows: ComplexTransactionRow[]): string | null {
+  if (txRows.length === 0) return null;
   if (!row.city?.startsWith("서울")) return null;
   const region = SEOUL_BROWSE_REGIONS.find((r) => r.name === row.district?.trim());
   if (!region) return null;
-  try {
-    const tx = await listComplexTransactions(row.name, region, 1);
-    if (tx.length === 0) return null;
-    return `/complex/tx/${buildComplexTxSlug(row.name, region.id)}`;
-  } catch {
-    return null;
-  }
+  return `/complex/tx/${buildComplexTxSlug(row.name, region.id)}`;
 }
 
 function toView(
@@ -326,6 +369,10 @@ function toView(
     infoRows,
     trades,
     notes,
+    notesFailed: postsFailed,
+    notesWriteHref: `/town/write?complex=${encodeURIComponent(row.id)}&complexName=${encodeURIComponent(
+      row.name,
+    )}`,
     priceSeries,
     // D8: 이 단지 실 매물(승인) 연결
     listings: hubListings,
@@ -339,7 +386,7 @@ function toView(
 
 async function loadView(id: string): Promise<HubView | null> {
   // 사실 우선: 존재하지 않는 단지는 목업 대신 null → notFound()
-  const row = await getComplexById(id);
+  const row = await loadComplexRow(id);
   if (!row) return null;
   const dec = decodeComplexId(id);
 
@@ -348,14 +395,13 @@ async function loadView(id: string): Promise<HubView | null> {
      "없다"고 그렸고, 느릴 때는 각자 읽기 타임아웃(25초)을 꽉 채워 페이지가
      통째로 매달렸다. 이제 늦거나 실패한 섹션만 접고 페이지는 제때 그린다. */
   const budget = startDeadline();
-  const [txR, postsR, sameDongR, txHrefR, coordR, listingsR] = await Promise.all([
-    settle(`${row.name} 실거래 이력`, getTransactionHistory(row.id, 6), budget.expired),
+  const [txR, postsR, sameDongR, coordR, listingsR] = await Promise.all([
+    settle(`${row.name} 실거래 이력`, loadTxHistory(row.id, TX_HISTORY_MONTHS), budget.expired),
     settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 6), budget.expired),
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
     row.district
       ? settle(`${row.district} 인근 단지`, searchComplexes("", row.district, 5), budget.expired)
       : Promise.resolve({ ok: true as const, data: [] as ComplexRow[] }),
-    settle(`${row.name} 실거래 상세 링크`, resolveTxHref(row), budget.expired),
     // 좌표 지연 지오코딩(캐시) — 거리뷰·JSON-LD geo 용. 실패 시 좌표 없이 진행.
     dec
       ? settle(
@@ -368,6 +414,22 @@ async function loadView(id: string): Promise<HubView | null> {
     settle(`${row.name} 등록 매물`, listApprovedListings({ complexName: row.name }), budget.expired),
   ]);
   budget.done();
+
+  /* 껍데기를 캐시에 얼리지 않는다 (/region/[id] 의 SIDE_FAILURE_ABORT_THRESHOLD
+     와 같은 판단). 한두 섹션이 늦는 것은 평상시에도 있는 일이고 그때는 아래
+     문구들이 "조회 실패"라고 정직하게 말해 준다. 하지만 5개 중 4개가 한꺼번에
+     실패했다면 그건 섹션 문제가 아니라 DB 가 내려간 것이고, 그렇게 만들어진
+     빈 화면이 revalidate=120 으로 2분간 고정된다. 5xx 는 캐시되지 않으므로
+     던지는 쪽이 정확하다 — "지금은 못 준다"가 "이 단지는 원래 비어 있다"보다
+     참이다. */
+  const sideResults = [txR, postsR, sameDongR, coordR, listingsR];
+  const sideFailures = sideResults.filter((r) => !r.ok).length;
+  if (sideFailures >= SIDE_FAILURE_ABORT_THRESHOLD) {
+    throw new Error(
+      `[/complex/${id}] 곁다리 섹션 ${sideResults.length}개 중 ${sideFailures}개 조회 실패 — ` +
+        "빈 껍데기를 캐시에 남기지 않기 위해 렌더를 중단합니다",
+    );
+  }
 
   /* 실패한 섹션 이름을 뷰까지 들고 간다 — toView 가 "없음"과 "못 읽음"을
      다른 문장으로 그릴 수 있도록. 좌표·링크는 없어도 화면이 조용히 줄어들
@@ -384,7 +446,7 @@ async function loadView(id: string): Promise<HubView | null> {
     txR.ok ? txR.data : [],
     postsR.ok ? postsR.data : [],
     toNearby(sameDongR.ok ? sameDongR.data : [], located.id),
-    txHrefR.ok ? txHrefR.data : null,
+    txDetailHref(located, txR.ok ? txR.data : []),
     listingsR.ok ? listingsR.data : [],
     loadFailures,
   );
@@ -397,13 +459,14 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  // 사실 우선: 존재하지 않는 단지는 목업 메타 대신 noindex 안내
-  let row: ComplexRow | null = null;
-  try {
-    row = await getComplexById(id);
-  } catch {
-    row = null;
-  }
+  /* 사실 우선: 존재하지 않는 단지는 목업 메타 대신 noindex 안내.
+     여기 try/catch 로 실패를 null 로 바꾸던 자리다. getComplexById 는 없는
+     단지에만 null 을 주고 조회 실패는 던지도록 일부러 만들어졌는데(그 함수
+     주석 참고), 그 설계를 이 catch 가 되돌리고 있었다 — 실재하는 단지가
+     장애 몇 초 때문에 "찾을 수 없습니다" + noindex,nofollow 로 나갔다.
+     이제 던지게 둔다: 본문과 똑같이 5xx 가 되고, 크롤러는 "나중에 다시 오라"로
+     읽는다. 404·noindex 는 정말 없는 단지에만 남는다. */
+  const row: ComplexRow | null = await loadComplexRow(id);
   if (!row) {
     return {
       title: "단지를 찾을 수 없습니다 | 누구집",
@@ -416,9 +479,11 @@ export async function generateMetadata({
   const region = `${row.city} ${row.district}`.trim() || "지역";
   let price = "시세 준비 중";
   let delta = "";
-  const tx = await getTransactionHistory(row.id, 2).catch(
-    () => [] as ComplexTransactionRow[],
-  );
+  /* .catch(() => []) 로 삼키던 자리다. 실패하면 price 가 "시세 준비 중"으로
+     남고 그 문자열이 OG 이미지 쿼리에 그대로 실려, 공유 카드가 "아직 시세를
+     안 만들었다"고 단정했다 — 사실은 못 읽은 것뿐이다. 본문도 실패하면 던지므로
+     메타데이터도 똑같이 던진다. */
+  const tx: ComplexTransactionRow[] = await loadTxHistory(row.id, TX_HISTORY_MONTHS);
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   if (latest) {
@@ -632,6 +697,8 @@ export default async function ComplexHubPage({
           listingsLabel={v.listingsLabel}
           trades={v.trades}
           notes={v.notes}
+          notesFailed={v.notesFailed}
+          notesWriteHref={v.notesWriteHref}
           listings={v.listings}
           priceSeries={v.priceSeries}
         />

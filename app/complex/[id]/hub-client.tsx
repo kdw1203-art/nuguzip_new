@@ -98,6 +98,8 @@ export function ComplexHubTabs({
   listingsLabel,
   trades,
   notes,
+  notesFailed = false,
+  notesWriteHref,
   listings,
   priceSeries,
 }: {
@@ -107,6 +109,10 @@ export function ComplexHubTabs({
   listingsLabel: string;
   trades: HubTrade[];
   notes: HubNote[];
+  /** 조회 자체가 실패했는지 — "아직 없어요"와 "지금 못 불러왔어요"는 다른 말이다. */
+  notesFailed?: boolean;
+  /** 이 단지에 연결된 글을 쓰러 가는 주소 (/town/write?complex=…) */
+  notesWriteHref?: string;
   listings: HubListing[];
   priceSeries: PricePoint[];
 }) {
@@ -182,7 +188,17 @@ export function ComplexHubTabs({
         <div className="rise-in-3 flex flex-col gap-2.5">
           {notes.length === 0 && (
             <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
-              아직 이 단지에 공개된 임장노트가 없어요
+              {notesFailed ? (
+                <>
+                  <b className="text-ink">지금은 불러올 수 없어요</b>
+                  <div className="mt-1">
+                    노트가 없는 게 아니라 목록을 읽어 오지 못했어요. 잠시 후 다시 열어
+                    주세요.
+                  </div>
+                </>
+              ) : (
+                "아직 이 단지에 공개된 임장노트가 없어요"
+              )}
             </div>
           )}
           {notes.map((n) => (
@@ -197,6 +213,14 @@ export function ComplexHubTabs({
               <span className="shrink-0 text-xs font-extrabold text-primary">{n.score}</span>
             </div>
           ))}
+          {notesWriteHref && !notesFailed && (
+            <Link
+              href={notesWriteHref}
+              className="btn-primary rounded-xl p-3 text-center text-[13px]"
+            >
+              이 단지 이야기 쓰기
+            </Link>
+          )}
           <Link href="/notes" className="btn-soft rounded-xl p-3 text-center text-[13px]">
             공개 노트 모두 보기
           </Link>

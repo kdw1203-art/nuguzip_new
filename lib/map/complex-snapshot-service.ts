@@ -1,5 +1,6 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getTransactionHistory } from "@/lib/complex/complex-store";
+import { mapCategoryToProviderType } from "@/lib/map/nearby-providers-store";
 
 export type ComplexSnapshotResponse = {
   complexId: string;
@@ -36,6 +37,11 @@ export type ComplexSnapshotResponse = {
   }>;
 };
 
+/** 조회 실패 전용 — "이 단지엔 매물/전문가가 없다"와 절대 섞지 않는다. */
+function snapshotQueryError(where: string, err: { message?: string }): Error {
+  return new Error(`${where} 조회 실패: ${err.message ?? "알 수 없는 오류"}`);
+}
+
 export async function getComplexSnapshot(complexId: string): Promise<ComplexSnapshotResponse> {
   const sb = getServiceSupabase();
 
@@ -51,17 +57,22 @@ export async function getComplexSnapshot(complexId: string): Promise<ComplexSnap
           .eq("status", "active")
           .order("last_seen_at", { ascending: false })
           .limit(30)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
     sb
       ? sb
+          /* expert_profiles 에는 provider_type·organization_name·office_phone 이
+             없다. 예전 embed 는 그 셋을 골라 매번 error 를 냈고, 아래 `?? []` 가
+             그 error 를 "주변 전문가 없음"으로 바꿔 답했다. 실재하는 컬럼만
+             고르고, 업종은 category 로 유추한다. */
           .from("nearby_provider_links")
-          .select(
-            "link_type,distance_m,expert:expert_id(name,provider_type,organization_name,title,office_phone)",
-          )
+          .select("link_type,distance_m,expert:expert_id(name,category,title)")
           .eq("complex_id", complexId)
           .limit(20)
-      : Promise.resolve({ data: [] }),
+      : Promise.resolve({ data: [], error: null }),
   ]);
+
+  if (listingsRes.error) throw snapshotQueryError("partner_listings", listingsRes.error);
+  if (providersRes.error) throw snapshotQueryError("nearby_provider_links", providersRes.error);
 
   const transactions = txRows.map((t) => ({
     complex_id: t.complex_id,
@@ -90,24 +101,19 @@ export async function getComplexSnapshot(complexId: string): Promise<ComplexSnap
 
   type ExpertJoin = {
     name?: string;
-    provider_type?: string | null;
-    organization_name?: string | null;
+    category?: string | null;
     title?: string | null;
-    office_phone?: string | null;
   };
 
+  /* expert_profiles 에 전화번호 컬럼이 없다 — 지어내지 않고 null 로 둔다. */
   const providers = (providersRes.data ?? []).map((row) => {
     const expert = row.expert as ExpertJoin | ExpertJoin[] | null;
     const e = Array.isArray(expert) ? expert[0] : expert;
     return {
       display_name: e?.name ? String(e.name) : "전문가",
-      provider_type: e?.provider_type ? String(e.provider_type) : null,
-      office_name: e?.organization_name
-        ? String(e.organization_name)
-        : e?.title
-          ? String(e.title)
-          : null,
-      phone: e?.office_phone ? String(e.office_phone) : null,
+      provider_type: e?.category ? mapCategoryToProviderType(String(e.category)) : null,
+      office_name: e?.title ? String(e.title) : null,
+      phone: null,
       distance_m: row.distance_m != null ? Number(row.distance_m) : null,
       link_type: String(row.link_type),
     };

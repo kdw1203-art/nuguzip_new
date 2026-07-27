@@ -12,10 +12,10 @@ import {
   type RegionMonthlyVolumeRow,
 } from "@/lib/market/store";
 import type { RegionMarketSnapshot } from "@/lib/market/types";
-import { listPublicNotes } from "@/lib/inspection/store-db";
+import { listPublicNoteCards } from "@/lib/inspection/store-db";
 import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getSupplyForArea, type SupplyItem } from "@/lib/market/supply";
-import type { InspectionNote } from "@/lib/inspection/store-db";
+import type { PublicNoteCard } from "@/lib/inspection/store-db";
 import {
   findComplexTxRegionById,
   listDistrictComplexSummaries,
@@ -225,19 +225,41 @@ export default async function RegionHubPage({
   const shortName = name.trim().split(/\s+/).pop() ?? name;
 
   /* 곁다리 7개는 공유 마감시계 하나를 함께 본다. 하나가 늦어도 나머지가
-     끝났으면 페이지는 8초 안에 그려진다. */
+     끝났으면 페이지는 8초 안에 그려진다.
+
+     여덟 번째로 실거래 구간 매칭(txBandRegion)도 여기 같이 태운다. 예전에는
+     이 Promise.all 이 끝난 **뒤에** 따로 await 했다 — 곁다리 7개가 모두 끝날
+     때까지 기다렸다가 그제서야 아홉 번째 왕복을 시작했다는 뜻이고, 그 한 번이
+     통째로 직렬 지연이었다. 같이 출발시키면 총 대기는 가장 느린 하나로 줄어든다.
+     다만 이 값은 sideResults 에 넣지 않는다 — 아래 중단 판단은 "화면이 비었나"를
+     세는 것이고, 이건 실패해도 내부 링크 하나가 빠질 뿐이라 성격이 다르다. */
   const budget = startDeadline();
-  const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR] =
+  const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR, txBandRegion] =
     await Promise.all([
       settle(`${id} 매매가격지수`, getRegionSeries(id, "sale_index", "monthly", 12), budget.expired),
       settle(`${id} 최근 실거래`, listRegionTransactions(id, name, 5), budget.expired),
       settle(`${id} 단지별 현황`, listDistrictComplexSummaries(txRegion, complexLimit), budget.expired),
-      settle("공개 임장노트", listPublicNotes(100), budget.expired),
+      /* 카드 6칸만 그리는데 select("*") 로 100행을 통째로 받던 자리다. 그 행에는
+         checklist·sections·photos·ai_analysis·metadata 다섯 jsonb 가 들어 있고
+         전부 버려졌다. 카드 전용 컬럼만 읽는다(listPublicNoteCards 주석 참고). */
+      settle("공개 임장노트", listPublicNoteCards(100), budget.expired),
       settle(`${id} 월별 거래량`, getRegionMonthlyVolume(id, name, 12), budget.expired),
       /* 정비사업은 DB 확정분만 쓴다(시드 폴백 없음). 이 화면은 "○○구에 산다는 것"을
          사실로만 조립하는 곳이고, 시드는 수기 정리본이라 여기 섞으면 안 된다. */
       settle(`${shortName} 정비사업`, listDbProjects({ sigungu: shortName, limit: 200 }), budget.expired),
       settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6), budget.expired),
+      /* A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
+         없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
+         여기서는 실패를 삼켜도 된다 — 이 페이지의 본문은 지역 시세 스냅샷이고 이건
+         곁다리 내부 링크라, 못 읽었으면 링크 하나가 빠질 뿐 틀린 내용이 나가지 않는다.
+         다만 **조용히** 삼키지는 않는다. 2026-07-25 사고의 교훈이 정확히 그것이다. */
+      findTxRegionForMarketRegion(id, name).catch((e: unknown): TxRegionSummary | null => {
+        logger.error(
+          `[/region/${id}] 실거래 구간 지역 매칭 실패 — 링크 섹션을 생략합니다:`,
+          e instanceof Error ? e.message : String(e),
+        );
+        return null;
+      }),
     ]);
   budget.done();
 
@@ -258,10 +280,10 @@ export default async function RegionHubPage({
   const complexSummaries: ComplexSummary[] = complexR.ok ? complexR.data : [];
   const volume: RegionMonthlyVolumeRow[] = volumeR.ok ? volumeR.data : [];
   const supply: SupplyItem[] = supplyR.ok ? supplyR.data : [];
-  const allNotes: InspectionNote[] = notesR.ok ? notesR.data : [];
-  const notes = allNotes
-    .filter((n) => n.isPublic && noteMatchesRegion(n.region ?? "", name))
-    .slice(0, 4);
+  /* 쿼리가 이미 is_public 으로 걸러 오므로 여기서 다시 보지 않는다
+     (예전 select("*") 시절에는 매핑된 isPublic 을 한 번 더 확인했었다). */
+  const allNotes: PublicNoteCard[] = notesR.ok ? notesR.data : [];
+  const notes = allNotes.filter((n) => noteMatchesRegion(n.region, name)).slice(0, 4);
 
   /* 정비사업 — 진행단계가 앞선 순, 같으면 세대수 큰 순. 최대 8곳만. */
   const projects: RedevelopmentProject[] = (projectsR.ok ? projectsR.data : [])
@@ -275,22 +297,6 @@ export default async function RegionHubPage({
 
   // N11 — 이 지역의 시장 온도 기록이 있으면 교차 링크
   const tempRegion = findTemperatureRegion(id);
-
-  // A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
-  // 없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
-  //
-  // 여기서는 실패를 삼켜도 된다 — 이 페이지의 본문은 지역 시세 스냅샷이고 이건
-  // 곁다리 내부 링크라, 못 읽었으면 링크 하나가 빠질 뿐 틀린 내용이 나가지 않는다.
-  // 다만 **조용히** 삼키지는 않는다. 2026-07-25 사고의 교훈이 정확히 그것이다.
-  const txBandRegion: TxRegionSummary | null = await findTxRegionForMarketRegion(id, name).catch(
-    (e: unknown) => {
-      logger.error(
-        `[/region/${id}] 실거래 구간 지역 매칭 실패 — 링크 섹션을 생략합니다:`,
-        e instanceof Error ? e.message : String(e),
-      );
-      return null;
-    },
-  );
 
   const delta = deltaView(snapshot.saleChangeMonthly);
   const jeonseRatio =

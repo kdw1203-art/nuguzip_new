@@ -92,7 +92,15 @@ export async function listAuditLogs(opts: {
   if (opts.action) query = query.eq("action", opts.action);
   if (opts.offset) query = query.range(opts.offset, opts.offset + (opts.limit ?? 50) - 1);
 
-  const { data } = await query;
+  /* 빈 배열은 감사 화면에서 "그런 관리자 행위는 없었다"로 읽힌다. 감사 로그에서
+     그건 가장 위험한 거짓말이다 — 못 읽었을 뿐인데 아무 일도 없었던 것처럼
+     보이면, 실제로 있었던 행위를 아무도 다시 찾지 않는다. 그래서 던진다. */
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(
+      `audit_logs 조회 실패 — ${error.message}${error.code ? ` [${error.code}]` : ""}`,
+    );
+  }
   return (data ?? []).map((r) => ({
     id: String(r.id),
     actorEmail: String(r.actor_email),

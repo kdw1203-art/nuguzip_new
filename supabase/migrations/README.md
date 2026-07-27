@@ -34,6 +34,24 @@ supabase/migrations/<version>_<name>.sql
    제약조건은 `do $$ ... if not exists (select 1 from pg_constraint where conname = ...) ... $$`.
 3. **RLS를 켠 채로 둡니다** — 새 테이블은 `enable row level security` 와 정책을 같은 파일에서 함께.
 4. 왜 바꾸는지 한국어 주석을 맨 위에 남깁니다.
+5. **넓은 감사용 jsonb 컬럼은 `set statistics 0` 으로 시작합니다.** 원본 응답을
+   통째로 담아 두기만 하고 `where` 절에서 쓰지 않는 컬럼(예:
+   `market_transactions.raw`, avg_width 570) 이야기입니다. 이런 컬럼을 기본값인
+   `statistics -1` 로 두면 autovacuum ANALYZE 가 표본을 뜨느라 CPU 를 통째로
+   태웁니다 — 2026-07-26 에 실제로 `computing statistics` 한 단계에서 8,600초를
+   썼고, 그동안 모든 조회가 밀렸습니다(원인·복구는
+   `20260726160000_market_transactions_raw_statistics_off.sql` 참고).
+   통계가 필요 없는 컬럼이니 처음부터 0 으로 만들고, 나중에 그 컬럼으로
+   필터링할 일이 생기면 그때 `set statistics -1` 로 되돌립니다.
+
+   ```sql
+   alter table public.<t> alter column <wide_jsonb> set statistics 0;
+   ```
+
+   기준: 행 수가 10만 이상이고, `pg_stats.avg_width` 가 300 이상이며, 코드
+   어디에서도 그 컬럼을 조건으로 쓰지 않는 경우. 세 가지가 모두 맞을 때만
+   해당합니다 — `apartment_complexes.metadata` 처럼 `metadata->detailFetchedAt`
+   를 조건으로 쓰는 컬럼은 대상이 아닙니다.
 
 ## 전체 이력을 파일로 펼치기
 

@@ -242,6 +242,61 @@ export async function listPublicNotes(limit = 50): Promise<InspectionNote[]> {
   return (data ?? []).map(mapRow);
 }
 
+/** 목록 카드 한 장에 실제로 그려지는 것만. 본문·점수·사진은 여기 없다. */
+export type PublicNoteCard = {
+  id: string;
+  title: string;
+  region: string;
+  aptName: string | null;
+  visitDate: string;
+  summary: string | null;
+  createdAt: string;
+};
+
+/**
+ * 공개 임장노트 **카드용** 목록 (최신순).
+ *
+ * listPublicNotes() 와 같은 조건·같은 정렬이지만 `select("*")` 가 아니다.
+ * 그 차이가 왜 중요한지: inspection_notes 한 행에는 checklist·sections·
+ * photos·ai_analysis·metadata 다섯 개의 jsonb 가 들어 있고, 그게 행 무게의
+ * 대부분이다. /region/[id] 는 그렇게 100행을 통째로 받아 놓고 지역이 맞는
+ * 4장만 그렸다 — 나머지 96행과 다섯 jsonb 는 전부 버려지는 전송이었다.
+ * 지역 페이지는 265개고 Postgres 는 Micro 급이라, 버려지는 쪽이 훨씬 크다.
+ *
+ * 실패를 삼키지 않는 규칙은 listPublicNotes() 와 동일하다 — 위 주석 참고.
+ * 못 읽으면 던지고, 부르는 쪽이 "아직 없다" 와 "못 읽었다" 를 구분한다.
+ */
+export async function listPublicNoteCards(limit = 50): Promise<PublicNoteCard[]> {
+  const sb = getReadOnlySupabase();
+  if (!sb) {
+    throw new Error(
+      "inspection_notes 를 읽을 수단이 없습니다 — SUPABASE_SERVICE_ROLE_KEY 도 " +
+        "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY 도 설정되지 않았습니다.",
+    );
+  }
+  const { data, error } = await sb
+    .from("inspection_notes")
+    .select("id,title,region,apt_name,visit_date,summary,created_at")
+    .eq("is_public", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    throw new Error(
+      `inspection_notes 조회 실패 (공개 노트 카드) — ${error.message}` +
+        `${error.code ? ` [${error.code}]` : ""}${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
+    );
+  }
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    title: String(r.title ?? ""),
+    region: String(r.region ?? ""),
+    aptName: (r.apt_name as string | null) ?? null,
+    visitDate: String(r.visit_date ?? "").slice(0, 10),
+    summary: (r.summary as string | null) ?? null,
+    createdAt: String(r.created_at ?? ""),
+  }));
+}
+
 /**
  * 같은 작성자의 같은 단지(aptName) 노트 묶음 — 회차(방문 기록) 비교용.
  * 방문일 오름차순(같으면 생성일 오름차순)으로 반환한다.

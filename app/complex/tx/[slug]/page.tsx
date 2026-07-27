@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -52,21 +53,35 @@ function shortYm(ym: string): string {
   return ym.length === 6 ? `${ym.slice(2, 4)}.${ym.slice(4)}` : ym;
 }
 
-async function loadPageData(slug: string): Promise<{
-  complexName: string;
-  region: NonNullable<ReturnType<typeof findComplexTxRegionById>>;
-  transactions: ComplexTransactionRecord[];
-} | null> {
-  const parsed = parseComplexTxSlug(slug);
-  if (!parsed) return null;
-  const region = findComplexTxRegionById(parsed.regionId);
-  if (!region) return null;
-  const transactions = await listComplexTransactions(parsed.complexName, region, 30).catch(
-    () => [] as ComplexTransactionRecord[],
-  );
-  if (transactions.length === 0) return null;
-  return { complexName: parsed.complexName, region, transactions };
-}
+/**
+ * generateMetadata 와 본문이 같은 렌더에서 한 번만 조회하도록 묶는다
+ * (/complex/compare/[slug] 와 같은 방식).
+ *
+ * null 은 오직 **없다**는 뜻이다 — 슬러그가 깨졌거나, 모르는 지역이거나,
+ * 이 단지의 신고된 거래가 정말 0건일 때. 못 읽은 경우는 여기서 던지고
+ * 5xx 가 된다.
+ */
+const loadPageData = cache(
+  async (
+    slug: string,
+  ): Promise<{
+    complexName: string;
+    region: NonNullable<ReturnType<typeof findComplexTxRegionById>>;
+    transactions: ComplexTransactionRecord[];
+  } | null> => {
+    const parsed = parseComplexTxSlug(slug);
+    if (!parsed) return null;
+    const region = findComplexTxRegionById(parsed.regionId);
+    if (!region) return null;
+    /* 예전에는 여기 .catch(() => []) 가 있었다. 그러면 조회 실패가 아래 0건
+       가드로 흘러 notFound() + robots:noindex,nofollow 가 됐다 — 잠깐 못 읽은
+       것을 크롤러에게 "이 페이지는 없어졌다"고 확정 신고한 셈이다. 이제 실패는
+       그대로 던져 5xx("나중에 다시 오라")가 되고, 404 는 진짜 0건일 때만 난다. */
+    const transactions = await listComplexTransactions(parsed.complexName, region, 30);
+    if (transactions.length === 0) return null;
+    return { complexName: parsed.complexName, region, transactions };
+  },
+);
 
 /* ---------- 메타데이터 ---------- */
 

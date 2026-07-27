@@ -3,8 +3,10 @@ import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { readBoardPosts } from "@/lib/newui/board-posts";
 import type { Post } from "@/lib/types/post";
-import { listProjects, countBySigungu } from "@/lib/redevelopment/store";
+import { listProjects, countBySigunguFrom } from "@/lib/redevelopment/store";
+import type { RedevelopmentProject } from "@/lib/redevelopment/types";
 import { SEED_SOURCES } from "@/lib/redevelopment/seed";
+import { logger } from "@/lib/log";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { RedevelopmentMap } from "./RedevelopmentMap";
 
@@ -190,12 +192,39 @@ async function loadRedevelopmentNews(): Promise<Post[]> {
     .slice(0, NEWS_LIMIT);
 }
 
+type ProjectsData = {
+  projects: RedevelopmentProject[];
+  /** 조회 자체가 실패한 사유. null 이면 "읽었고 결과가 이만큼"이라는 뜻이다. */
+  loadError: string | null;
+};
+
+/* 이 페이지는 revalidate 가 있고 동적 파라미터가 없어 `next build` 가
+   빌드 타임에 프리렌더한다. 여기서 던지면 DB 가 잠깐 흔들린 것만으로 배포
+   전체가 깨진다(/complex/compare 와 같은 사정). 그래서 store 는 실패를
+   던지고, 페이지는 그 실패를 **실패라고 그린다** — 조용히 빈 지도로
+   바꿔 그리지 않는다. 빈 지도는 "이 지역에 정비사업이 없다"는 다른 사실이다.
+
+   noindex 까지 걸지는 않는다. 이 페이지는 8단계 가이드·용어·뉴스가 본문의
+   대부분이고 지도는 그중 한 섹션이라, 조회가 실패해도 색인할 값이 남는다. */
+async function loadProjects(): Promise<ProjectsData> {
+  try {
+    return { projects: await listProjects({ limit: 3000 }), loadError: null };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger.error(
+      "[/redevelopment] 정비사업 구역을 읽지 못했습니다 — 구역이 없는 것이 아니라 조회가 실패했습니다:",
+      message,
+    );
+    return { projects: [], loadError: message };
+  }
+}
+
 export default async function RedevelopmentPage() {
-  const [news, projects, sigunguCounts] = await Promise.all([
+  const [news, { projects, loadError }] = await Promise.all([
     loadRedevelopmentNews(),
-    listProjects({ limit: 3000 }),
-    countBySigungu(),
+    loadProjects(),
   ]);
+  const sigunguCounts = countBySigunguFrom(projects);
 
   return (
     <PageShell breadcrumb="홈 › 동네이야기 › 정비사업 지도" title="정비사업 지도">
@@ -209,11 +238,22 @@ export default async function RedevelopmentPage() {
             사업종류·진행단계로 걸러 원하는 구역만 골라보세요. 마커·목록을 누르면 해당 구역으로
             지도가 이동해요.
           </p>
-          <RedevelopmentMap
-            initialProjects={projects}
-            sigunguCounts={sigunguCounts}
-            sources={SEED_SOURCES}
-          />
+          {loadError ? (
+            <div className="card rounded-2xl px-5 py-4">
+              <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+                정비사업 구역을 <strong className="text-ink">불러오지 못했습니다</strong>.
+                <br />
+                구역이 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻이에요. 잠시 후 다시
+                확인해 주세요.
+              </p>
+            </div>
+          ) : (
+            <RedevelopmentMap
+              initialProjects={projects}
+              sigunguCounts={sigunguCounts}
+              sources={SEED_SOURCES}
+            />
+          )}
         </section>
 
         {/* ===== 아래: 진행단계 가이드 + 뉴스(기존 콘텐츠 보존) ===== */}

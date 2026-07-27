@@ -381,34 +381,41 @@ export async function listComplexTransactions(
     return hit.data.slice(0, limit);
   }
 
+  /* 조회 실패는 "거래 없음"이 아니다. 예전에는 error 도 없는 키도 전부 [] 로
+     삼켰다. 그러면 /complex/tx/[slug] 가 `transactions.length === 0` 가드에서
+     notFound() 를 부르고, 메타데이터는 robots:{index:false,follow:false} 를
+     붙였다 — DB 가 몇 초 밀린 것뿐인데 크롤러에게 "이 단지 페이지는 없어졌다"고
+     확정 신고한 셈이다. 이제 못 읽으면 던진다. 호출부는 5xx 로 답하거나
+     ("나중에 다시 오라") 자기 책임으로 catch 한다. 0건은 진짜 0건일 때만 나온다. */
   const sb = getServiceSupabase();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb
-      .from("market_transactions")
-      .select(TX_SELECT)
-      .eq("complex_name", complexName)
-      .in("region_name", transactionRegionCandidates(region))
-      .eq("transaction_type", "trade")
-      .eq("is_cancelled", false)
-      .eq("property_type", "apartment")
-      .not("deal_amount_krw", "is", null)
-      .order("contract_ym", { ascending: false })
-      .order("contract_day", { ascending: false, nullsFirst: false })
-      .limit(want);
-    if (error || !data) {
-      if (error) logger.warn("[complex-transactions] listComplexTransactions", error.message);
-      return [];
-    }
-    const rows = (data as RawTxRow[])
-      .map(toRecord)
-      .filter((r): r is ComplexTransactionRecord => r !== null);
-    txCache.set(cacheKey, { at: Date.now(), fetched: want, data: rows });
-    return rows.slice(0, limit);
-  } catch (e) {
-    logger.warn("[complex-transactions] listComplexTransactions", e);
-    return [];
+  if (!sb) {
+    throw new Error(
+      "market_transactions: Supabase 서비스 키가 없어 단지 실거래를 조회할 수 없습니다.",
+    );
   }
+  const { data, error } = await sb
+    .from("market_transactions")
+    .select(TX_SELECT)
+    .eq("complex_name", complexName)
+    .in("region_name", transactionRegionCandidates(region))
+    .eq("transaction_type", "trade")
+    .eq("is_cancelled", false)
+    .eq("property_type", "apartment")
+    .not("deal_amount_krw", "is", null)
+    .order("contract_ym", { ascending: false })
+    .order("contract_day", { ascending: false, nullsFirst: false })
+    .limit(want);
+  if (error) {
+    logger.error("[complex-transactions] listComplexTransactions 조회 실패", error.message);
+    throw new Error(
+      `market_transactions 조회 실패 (${complexName}): ${error.message ?? "알 수 없는 오류"}`,
+    );
+  }
+  const rows = ((data ?? []) as RawTxRow[])
+    .map(toRecord)
+    .filter((r): r is ComplexTransactionRecord => r !== null);
+  txCache.set(cacheKey, { at: Date.now(), fetched: want, data: rows });
+  return rows.slice(0, limit);
 }
 
 /* ---------- 단지 상세 파생 집계 ---------- */

@@ -11,6 +11,7 @@
  * automation_meta(jsonb)·is_published·created_at·updated_at
  */
 import "server-only";
+import { cache } from "react";
 import {
   getAnonReadOnlySupabase,
   getReadOnlySupabase,
@@ -122,26 +123,44 @@ function applyNewsQualityGate(posts: Post[]): Post[] {
   return passed;
 }
 
-/** board_posts 공개(community) 글 최신순 — 실패 시 빈 배열 */
-export async function readBoardPosts(
-  limit: number = BOARD_POSTS_LIMIT,
-): Promise<Post[]> {
+/**
+ * 관련글 카드에 실제로 그려지는 컬럼만 — 본문(content)과 automation_meta 를 뺀다.
+ *
+ * 행 평균 2,495B 중 content 795B · automation_meta 868B 로 둘이 3분의 2다.
+ * 관련글은 제목·분류·출처·시각만 쓰므로 그 둘을 안 읽으면 전송량이 1/5 이 된다.
+ * 품질 게이트(제목·is_automated·external_key)와 정렬·중복 제거(id·external_key·
+ * created_at·source_published_at)에 필요한 컬럼은 전부 남겨 뒀다 — 그래서
+ * 고르는 글 자체는 전체 컬럼을 읽을 때와 **같다**.
+ *
+ * board_comments 카운트도 뺐다. 관련글 카드는 댓글 수를 그리지 않고,
+ * 그 중첩 집계가 anon 3초 statement_timeout 을 때리는 원인이기도 하다.
+ */
+const BOARD_SELECT_LIGHT =
+  "id,board_type,category,region,title,source_url,source_name," +
+  "source_published_at,external_key,is_automated,created_at,updated_at";
+
+type BoardQueryKind = "full" | "light";
+
+/** 실제 조회 — 요청당 한 번만 나가도록 아래 read* 래퍼가 감싼다. */
+async function fetchBoardPosts(limit: number, kind: BoardQueryKind): Promise<Post[]> {
   const sb = getReadOnlySupabase();
   if (!sb) return [];
+  const plain = kind === "light" ? BOARD_SELECT_LIGHT : "*";
+  const primary = kind === "light" ? BOARD_SELECT_LIGHT : BOARD_SELECT_WITH_COMMENTS;
   try {
     let { data, error } = await sb
       .from("board_posts")
-      .select(BOARD_SELECT_WITH_COMMENTS)
+      .select(primary)
       .eq("board_type", "community")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(limit);
-    if (error) {
+    if (error && primary !== plain) {
       logger.error("[readBoardPosts] with-comments query failed", error);
       // board_comments 중첩 카운트가 권한 등으로 막히면 카운트 없이 재시도
       ({ data, error } = await sb
         .from("board_posts")
-        .select("*")
+        .select(plain)
         .eq("board_type", "community")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
@@ -154,7 +173,7 @@ export async function readBoardPosts(
       if (anon && anon !== sb) {
         ({ data, error } = await anon
           .from("board_posts")
-          .select("*")
+          .select(plain)
           .eq("board_type", "community")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
@@ -163,13 +182,43 @@ export async function readBoardPosts(
       }
     }
     if (error || !Array.isArray(data)) return [];
+    /* select() 인자가 리터럴이 아니라 변수라서 supabase-js 의 타입 수준 파서가
+       행 모양을 못 풀고 GenericStringError 로 떨어진다. 런타임 모양은 그대로
+       행 객체이므로 unknown 을 한 번 거쳐 넘긴다. */
     return applyNewsQualityGate(
-      data.map((r) => boardRowToPost(r as Record<string, unknown>)),
+      data.map((r) => boardRowToPost(r as unknown as Record<string, unknown>)),
     );
   } catch (e) {
     logger.error("[readBoardPosts]", e);
     return [];
   }
+}
+
+/**
+ * 요청 단위 dedup — 같은 렌더 안에서 board_posts 를 한 번만 읽는다.
+ *
+ * 실측: /town/news 한 번 그릴 때 이 조회가 **세 번** 나갔다 — 본문의
+ * readTownPosts(), getWeeklyDigest→computeNews, getWeeklyDigest→readTownPosts.
+ * 홈(app/page.tsx)도 digest 경유로 두 번. 한 번에 300행(행당 ~2.5KB, 약 750KB)
+ * 이라 이게 pg_stat_statements 상 DB 시간 1위였다.
+ *
+ * 배열 인스턴스를 공유해도 안전하다 — 모든 소비처가 정렬·가공 전에 .filter()
+ * (새 배열 할당)를 먼저 거친다. 공유 배열을 그 자리에서 뒤집는 곳은 없다.
+ *
+ * 기본값은 cache() **바깥**에서 채운다. React cache() 는 실제로 넘어온 인자로
+ * 키를 잡아서, readBoardPosts() 와 readBoardPosts(300)(app/support/page.tsx:34)
+ * 이 서로 다른 항목이 되어 버리기 때문이다.
+ */
+const loadBoardPosts = cache(fetchBoardPosts);
+
+/** board_posts 공개(community) 글 최신순 — 실패 시 빈 배열. 요청당 1회로 접힌다. */
+export function readBoardPosts(limit: number = BOARD_POSTS_LIMIT): Promise<Post[]> {
+  return loadBoardPosts(limit, "full");
+}
+
+/** 관련글용 경량 조회 — 본문·automation_meta 없이. 요청당 1회로 접힌다. */
+function readLightBoardPosts(): Promise<Post[]> {
+  return loadBoardPosts(BOARD_POSTS_LIMIT, "light");
 }
 
 /** board_posts 단건 조회 — 없거나 실패 시 null */
@@ -211,14 +260,32 @@ function displayTime(p: Post): number {
 /**
  * town 화면용 병합 피드 — posts 스토어 + board_posts 둘 다 시도해 합치고
  * (id·external_key 로 중복 제거) 최신순 정렬. 실패 시 빈 배열.
+ *
+ * readBoardPosts 와 같은 이유로 요청당 1회로 접는다 — /town/news 는 본문과
+ * getWeeklyDigest 양쪽에서 이걸 부른다. 인자가 없어 캐시 키 문제도 없다.
  */
-export async function readTownPosts(): Promise<Post[]> {
+export const readTownPosts = cache((): Promise<Post[]> => mergeTownPosts(readBoardPosts()));
+
+/**
+ * 관련글 전용 병합 피드 — readTownPosts 와 **고르는 글이 같다**.
+ *
+ * 다른 점은 board_posts 쪽에서 본문·automation_meta 를 안 읽는다는 것뿐이다.
+ * 정렬·중복 제거·품질 게이트가 쓰는 컬럼은 그대로 읽으므로 순서도 결과도
+ * 같고, 관련글 카드가 그리는 건 제목·출처·시각뿐이라 빠진 컬럼은 화면에
+ * 닿지 않는다. /town/news/[id] 는 뉴스 453건마다 한 장씩 있어서, 한 장을
+ * 그리려고 300행 × 2.5KB 를 읽던 게 이 경로에서 제일 큰 낭비였다.
+ */
+export const readRelatedTownPosts = cache(
+  (): Promise<Post[]> => mergeTownPosts(readLightBoardPosts()),
+);
+
+async function mergeTownPosts(boardPromise: Promise<Post[]>): Promise<Post[]> {
   const [storePosts, boardPosts] = await Promise.all([
     readPosts().catch((e): Post[] => {
       logger.error("[readTownPosts:store]", e);
       return [];
     }),
-    readBoardPosts(),
+    boardPromise,
   ]);
   const seen = new Set<string>();
   const merged: Post[] = [];

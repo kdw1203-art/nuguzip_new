@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageShell } from "../../../components/PageShell";
 import { AIPanel } from "../../../components/AIPanel";
 import { ReportButton } from "../../../components/ReportButton";
-import { getTownPost, readTownPosts } from "@/lib/newui/board-posts";
+import { getTownPost, readRelatedTownPosts } from "@/lib/newui/board-posts";
 import { isPostHidden } from "@/lib/moderation/reports-store";
 import type { Post } from "@/lib/types/post";
 
@@ -78,7 +78,9 @@ export default async function TownNewsDetailPage({
   if (await isPostHidden(id).catch(() => false)) notFound();
 
   try {
-    const all = await readTownPosts();
+    /* 관련글은 제목·분류·출처·시각만 쓴다 — 본문·automation_meta 는 안 읽는다.
+       고르는 글은 readTownPosts 와 같다(정렬·중복 제거·품질 게이트 컬럼 동일). */
+    const all = await readRelatedTownPosts();
     const sameCat = all.filter(
       (p) => p.id !== post!.id && p.category === post!.category,
     );

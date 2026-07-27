@@ -82,7 +82,7 @@ AI 에게 잘 보이기 위한 통계 가공 — 사실 우선 원칙은 2차에
 | N3 RSS | 반영 | `/feed.xml` |
 | N4 사이트맵 분할 | 반영 | 10종 · `check:sitemap-index` 가 3곳 배선을 양방향 검증 |
 | N5 CrUX | 반영(키 필요) | `lib/seo/crux.ts` · `/api/cron/crux-sync` · `/admin/seo`. `CRUX_API_KEY` 미설정이면 **기록하지 않고** 그렇다고 말한다 |
-| N6 리다이렉트 맵 | 반영 | 규칙 82개 · `check:redirect-map` |
+| N6 리다이렉트 맵 | 반영 | 규칙 99개 · `check:redirect-map` |
 | N7 파라미터 canonical | 반영 | 20개 페이지(고정 16 · 색인 제외 4) · `check:param-canonical` |
 | N8 JSON-LD 게이트 | 반영 | 110페이지 / 345블록 · `check:jsonld` |
 | N9 지역 종합 가이드 | 반영 | `/region/[id]` 재작성 + 조회 실패를 404 로 바꾸던 결함 제거 |

@@ -12,6 +12,7 @@ import {
   type DistrictSnapshotDocument,
 } from "@/lib/map/district-snapshot-document";
 import { getDistrictSnapshotDocument } from "@/lib/map/district-snapshot-store";
+import { logger } from "@/lib/log";
 
 export type WorkspaceMetricChip = {
   id: string;
@@ -55,15 +56,21 @@ function currentYyyymm(): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-async function countPartnerListings(district: string): Promise<number> {
+/* 못 센 것을 0 으로 돌려주면 화면에 "준비 중"이 찍힌다 — 제휴 매물이 아직 없다는
+   단정이다. 못 셌으면 null 로 답하고, 화면은 "지금은 알 수 없음"이라고 말한다. */
+async function countPartnerListings(district: string): Promise<number | null> {
   const sb = getServiceSupabase();
-  if (!sb) return 0;
-  const { count } = await sb
+  if (!sb) return null;
+  const { count, error } = await sb
     .from("partner_listings")
     .select("id", { count: "exact", head: true })
-    .eq("status", "active");
-  if (count != null) return count;
-  return 0;
+    .eq("status", "active")
+    .eq("district", district);
+  if (error) {
+    logger.warn("[district-workspace] partner_listings 집계 실패", error.message);
+    return null;
+  }
+  return count ?? null;
 }
 
 function snapshotMetricsFromDocument(
@@ -128,20 +135,39 @@ async function loadDistrictSnapshots(
   const yyyymm = currentYyyymm();
 
   if (sb) {
-    const { data: districtRow } = await sb
+    /* maybeSingle() 은 행이 2개 이상이어도 error 를 낸다 — districts 에는
+       법정동코드 재편으로 남은 중복 시군구가 실제로 있다. lawd_cd 오름차순 첫
+       행으로 고르면(district-snapshot-store 의 resolveDistrictId 와 같은 규칙)
+       읽기·쓰기가 같은 행을 가리킨다. error 는 삼키지 않고 던진다 —
+       못 읽은 것을 "스냅샷 없음"으로 바꿔 아래 공개데이터 폴백으로 흘려보내면,
+       장애가 "아직 집계 전"처럼 보인다. */
+    const { data: districtRows, error: districtError } = await sb
       .from("districts")
       .select("id")
       .eq("sido", city)
       .eq("sigungu", district)
-      .maybeSingle();
+      .order("lawd_cd", { ascending: true })
+      .limit(1);
+    if (districtError) {
+      throw new Error(
+        `districts 조회 실패 (${city} ${district}): ${districtError.message ?? "알 수 없는 오류"}`,
+      );
+    }
 
+    const districtRow = districtRows?.[0];
     if (districtRow?.id) {
-      const { data: snaps } = await sb
+      const { data: snaps, error: snapsError } = await sb
         .from("district_snapshots")
         .select("metric_group, payload, source_authority")
         .eq("district_id", districtRow.id)
         .eq("snapshot_ym", yyyymm)
         .limit(8);
+      if (snapsError) {
+        throw new Error(
+          `district_snapshots 조회 실패 (${city} ${district}): ` +
+            `${snapsError.message ?? "알 수 없는 오류"}`,
+        );
+      }
 
       for (const s of snaps ?? []) {
         const reg = DATA_SOURCE_REGISTRY.find((r) =>
@@ -303,15 +329,21 @@ export async function buildDistrictWorkspace(input: {
       axes.conversion = {
         title: meta.label,
         description: meta.description,
-        listingCount,
+        ...(listingCount != null ? { listingCount } : {}),
         consultHref: `/experts?region=${encodeURIComponent(district)}`,
         metrics: [
           {
             id: "listings",
             label: "파트너 매물",
-            value: listingCount > 0 ? `${listingCount}건` : "준비 중",
+            /* 0건과 "못 셌음"은 다른 말이다. 못 셌으면 그렇게 적는다. */
+            value:
+              listingCount == null
+                ? "지금은 알 수 없어요"
+                : listingCount > 0
+                  ? `${listingCount}건`
+                  : "0건",
             sourceId: "partner-listings",
-            live: listingCount > 0,
+            live: listingCount != null,
           },
         ],
       };
