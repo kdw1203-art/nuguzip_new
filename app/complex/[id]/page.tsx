@@ -62,6 +62,12 @@ import {
 // ISR(운영 P0): searchParams 미사용 — 경로별 2분 재검증 캐시 (SEO 랜딩 성능)
 export const revalidate = 120;
 
+/**
+ * 곁다리 6개 중 몇 개가 실패하면 화면을 그리지 않고 던지는가.
+ * 자세한 이유는 loadView() 안의 주석과 /region/[id] 의 같은 이름 상수 참고.
+ */
+const SIDE_FAILURE_ABORT_THRESHOLD = 5;
+
 interface HubView {
   id: string;
   name: string;
@@ -220,13 +226,12 @@ async function resolveTxHref(row: ComplexRow): Promise<string | null> {
   if (!row.city?.startsWith("서울")) return null;
   const region = SEOUL_BROWSE_REGIONS.find((r) => r.name === row.district?.trim());
   if (!region) return null;
-  try {
-    const tx = await listComplexTransactions(row.name, region, 1);
-    if (tx.length === 0) return null;
-    return `/complex/tx/${buildComplexTxSlug(row.name, region.id)}`;
-  } catch {
-    return null;
-  }
+  /* 실패를 여기서 catch 하면 settle() 이 "성공했고 링크가 없다"로 보고,
+     위의 실패 개수 집계에서도 빠진다. 던져서 settle() 이 판단하게 둔다 —
+     이 링크는 없어도 화면이 조용히 줄어들 뿐이라 문구로 알리지는 않는다. */
+  const tx = await listComplexTransactions(row.name, region, 1);
+  if (tx.length === 0) return null;
+  return `/complex/tx/${buildComplexTxSlug(row.name, region.id)}`;
 }
 
 function toView(
@@ -377,6 +382,22 @@ async function loadView(id: string): Promise<HubView | null> {
   ]);
   budget.done();
 
+  /* 껍데기를 캐시에 얼리지 않는다 (/region/[id] 의 SIDE_FAILURE_ABORT_THRESHOLD
+     와 같은 판단). 한두 섹션이 늦는 것은 평상시에도 있는 일이고 그때는 아래
+     문구들이 "조회 실패"라고 정직하게 말해 준다. 하지만 6개 중 5개가 한꺼번에
+     실패했다면 그건 섹션 문제가 아니라 DB 가 내려간 것이고, 그렇게 만들어진
+     빈 화면이 revalidate=120 으로 2분간 고정된다. 5xx 는 캐시되지 않으므로
+     던지는 쪽이 정확하다 — "지금은 못 준다"가 "이 단지는 원래 비어 있다"보다
+     참이다. */
+  const sideResults = [txR, postsR, sameDongR, txHrefR, coordR, listingsR];
+  const sideFailures = sideResults.filter((r) => !r.ok).length;
+  if (sideFailures >= SIDE_FAILURE_ABORT_THRESHOLD) {
+    throw new Error(
+      `[/complex/${id}] 곁다리 섹션 ${sideResults.length}개 중 ${sideFailures}개 조회 실패 — ` +
+        "빈 껍데기를 캐시에 남기지 않기 위해 렌더를 중단합니다",
+    );
+  }
+
   /* 실패한 섹션 이름을 뷰까지 들고 간다 — toView 가 "없음"과 "못 읽음"을
      다른 문장으로 그릴 수 있도록. 좌표·링크는 없어도 화면이 조용히 줄어들
      뿐이라(거리뷰 숨김 등) 문구로 알릴 것이 없어 목록에 넣지 않는다. */
@@ -405,13 +426,14 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  // 사실 우선: 존재하지 않는 단지는 목업 메타 대신 noindex 안내
-  let row: ComplexRow | null = null;
-  try {
-    row = await getComplexById(id);
-  } catch {
-    row = null;
-  }
+  /* 사실 우선: 존재하지 않는 단지는 목업 메타 대신 noindex 안내.
+     여기 try/catch 로 실패를 null 로 바꾸던 자리다. getComplexById 는 없는
+     단지에만 null 을 주고 조회 실패는 던지도록 일부러 만들어졌는데(그 함수
+     주석 참고), 그 설계를 이 catch 가 되돌리고 있었다 — 실재하는 단지가
+     장애 몇 초 때문에 "찾을 수 없습니다" + noindex,nofollow 로 나갔다.
+     이제 던지게 둔다: 본문과 똑같이 5xx 가 되고, 크롤러는 "나중에 다시 오라"로
+     읽는다. 404·noindex 는 정말 없는 단지에만 남는다. */
+  const row: ComplexRow | null = await getComplexById(id);
   if (!row) {
     return {
       title: "단지를 찾을 수 없습니다 | 누구집",
@@ -424,9 +446,11 @@ export async function generateMetadata({
   const region = `${row.city} ${row.district}`.trim() || "지역";
   let price = "시세 준비 중";
   let delta = "";
-  const tx = await getTransactionHistory(row.id, 2).catch(
-    () => [] as ComplexTransactionRow[],
-  );
+  /* .catch(() => []) 로 삼키던 자리다. 실패하면 price 가 "시세 준비 중"으로
+     남고 그 문자열이 OG 이미지 쿼리에 그대로 실려, 공유 카드가 "아직 시세를
+     안 만들었다"고 단정했다 — 사실은 못 읽은 것뿐이다. 본문도 실패하면 던지므로
+     메타데이터도 똑같이 던진다. */
+  const tx: ComplexTransactionRow[] = await getTransactionHistory(row.id, 2);
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   if (latest) {
