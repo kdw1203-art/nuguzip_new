@@ -154,3 +154,31 @@ export type ProjectFilter = {
   bbox?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   limit?: number;
 };
+
+/**
+ * 소재지 한 줄 — 시도·시군구·주소를 이어 붙이되 같은 말을 두 번 적지 않는다.
+ * address 가 "강남구 압구정동" 처럼 시군구를 이미 품고 있는 경우가 흔해서,
+ * 그대로 이으면 "서울 강남구 강남구 압구정동" 이 된다.
+ */
+export function locationLabel(p: {
+  sido?: string | null;
+  sigungu?: string | null;
+  address?: string | null;
+}): string {
+  const out: string[] = [];
+  for (const raw of [p.sido, p.sigungu, p.address]) {
+    const toks = (raw ?? "").trim().split(/\s+/).filter(Boolean);
+    if (toks.length === 0) continue;
+    // 앞 토큰이 이미 쌓인 꼬리와 겹치면 겹치는 만큼만 건너뛴다.
+    // ("성남시 분당구" + "분당구 정자동" → "성남시 분당구 정자동")
+    let skip = 0;
+    for (let k = Math.min(toks.length, out.length); k >= 1; k--) {
+      if (out.slice(out.length - k).join(" ") === toks.slice(0, k).join(" ")) {
+        skip = k;
+        break;
+      }
+    }
+    out.push(...toks.slice(skip));
+  }
+  return out.join(" ");
+}
