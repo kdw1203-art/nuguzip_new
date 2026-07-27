@@ -95,6 +95,13 @@ jobs:
       # 2026-07-26 에 name="alert" 가 아이콘 대신 "alert" 라는 단어로 렌더됐다.
       - name: Icon name lint
         run: node scripts/check-icon-names.mjs
+      # ---- 정적 린트: 색 토큰이 본문 대비 4.5:1 을 넘는가 ----
+      # globals.css 의 15b 주석은 "bg 위 text 대비 4.5:1"을 규칙으로 적어 두었는데
+      # 2026-07-27 확인 결과 --danger 만 어느 배경에서도 그걸 못 넘고 있었다
+      # (흰 배경 4.38 · danger-soft 3.77). text-danger 는 소스 91곳에 쓰인다.
+      # a11y e2e 는 "렌더된 화면"만 보므로 아직 안 쓰인 조합은 못 잡는다.
+      - name: Color token contrast lint
+        run: node scripts/check-contrast-tokens.mjs
       # ---- 정적 린트: href 가 실존하는 라우트를 가리키는가 ----
       # 링크는 틀려도 타입 검사·빌드가 안 깨진다. 링크 크롤 게이트는 렌더된 <a>
       # 만 따라가므로 API 응답 속 url·로그인 화면·죽은 모듈은 닿지 않는다.

@@ -43,8 +43,8 @@ export const metadata: Metadata = {
 
 const STATUS_META: Record<ListingStatus, { label: string; cls: string }> = {
   pending: { label: "검수중", cls: "bg-[rgba(29,79,216,.1)] text-primary" },
-  approved: { label: "노출중", cls: "bg-[rgba(26,127,78,.1)] text-[#1a7f4e]" },
-  rejected: { label: "반려", cls: "bg-[rgba(214,69,69,.1)] text-[#d64545]" },
+  approved: { label: "노출중", cls: "bg-success-soft text-success" },
+  rejected: { label: "반려", cls: "bg-danger-soft text-danger" },
   closed: { label: "마감", cls: "bg-[rgba(0,0,0,.06)] text-text-3" },
 };
 
@@ -81,8 +81,8 @@ const STALE_META: Record<
   },
   2: {
     label: "마감 검토",
-    cls: "bg-[rgba(214,69,69,.1)] text-[#d64545]",
-    noticeCls: "bg-[rgba(214,69,69,.06)] text-[#d64545]",
+    cls: "bg-danger-soft text-danger",
+    noticeCls: "bg-danger-soft text-danger",
   },
 };
 
@@ -276,7 +276,7 @@ export default async function MyListingsPage() {
                 </div>
 
                 {l.status === "rejected" && l.rejectReason && (
-                  <div className="rounded-lg bg-[rgba(214,69,69,.06)] px-3 py-2 text-[12px] leading-[1.6] text-[#d64545]">
+                  <div className="rounded-lg bg-danger-soft px-3 py-2 text-[12px] leading-[1.6] text-danger">
                     반려 사유 · {l.rejectReason}
                   </div>
                 )}

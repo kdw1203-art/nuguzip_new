@@ -40,7 +40,7 @@ type FilterId = (typeof FILTERS)[number]["id"];
 
 function Cover({ card }: { card: FeedCard }) {
   const label = card.kind === "note" ? (card.visited ? "✓ 직접 방문" : "임장노트") : "이야기";
-  const labelColor = card.kind === "note" ? "text-[#1a7f4e]" : "text-primary";
+  const labelColor = card.kind === "note" ? "text-success" : "text-primary";
   return (
     <div
       className="relative w-full overflow-hidden"
@@ -171,8 +171,9 @@ export function TownFeed({
       </div>
 
       {loadFailed && (
-        // 빨강 글씨 대신 배경으로 신호를 준다 — text-danger(#d64545)를
-        // bg-danger-soft(#fbeaea) 위에 올리면 대비가 3.76:1 이라 WCAG AA 미달이다.
+        // 빨강 글씨 대신 배경으로 신호를 준다. --danger 토큰 자체는 이제 AA 를
+        // 넘지만(#c62828, soft 위 4.83), 11px 안내문은 text-ink(14.24:1)가 확실히
+        // 읽힌다 — 색은 "실패"라는 신호만 지고, 문장은 검정으로 읽는다.
         <div className="rise-in-2 mb-3 rounded-[12px] border border-line bg-danger-soft px-3.5 py-2.5 text-[11px] leading-[1.6] text-ink">
           일부 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요 — 잠시 후
           새로고침해 주세요.

@@ -301,7 +301,7 @@ export default async function RedevelopmentPage() {
           </div>
           {news.length === 0 &&
             (newsFailed ? (
-              /* 빨강 글씨(#d64545)는 11px 본문에서 대비가 모자란다 — 배경으로 신호를 준다. */
+              /* 색은 배경이 지고, 문장은 text-ink 로 읽는다 — 11px 본문에서 가장 확실하다. */
               <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-center text-[11px] leading-[1.6] text-ink">
                 뉴스를 불러오지 못했어요 (조회 실패). 관련 기사가 없다는 뜻은 아니에요.
               </div>

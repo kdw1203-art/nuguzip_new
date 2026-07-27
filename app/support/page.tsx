@@ -200,7 +200,7 @@ export default async function SupportPage() {
             </div>
             {notices.length === 0 ? (
               noticesFailed ? (
-                /* 배경으로 신호를 준다 — 빨강 글씨는 작은 본문에서 대비가 모자란다. */
+                /* 색은 배경이 지고, 문장은 text-ink 로 읽는다 — 작은 본문에서 가장 확실하다. */
                 <div className="rounded-[10px] bg-danger-soft px-3 py-3 text-center text-xs leading-[1.6] text-ink">
                   공지사항을 불러오지 못했습니다 (조회 실패). 공지가 없다는 뜻은
                   아닙니다.

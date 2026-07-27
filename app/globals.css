@@ -11,7 +11,16 @@
   --primary-strong: #16389c;
   --primary-soft: #edf2fe;
   --ink: #191f28;
-  --danger: #d64545;
+  /* 2026-07-27 대비 정정: 구 --danger #d64545 는 라이트 모드 어느 배경에서도
+     본문 최소 4.5:1 을 넘지 못했다.
+       흰 배경 4.38 · --bg #f7f9fc 4.15 · --danger-soft #fbeaea 3.77 · --disabled-bg 3.87
+     아래 15b 주석은 "bg 위 text 대비 4.5:1"을 규칙으로 적어 두었는데, 정작 위험
+     상태만 그 규칙을 어기고 있었다(성공·주의·주요는 통과). axe 가 /town 에서
+     3.77 을 잡아낸 게 계기였지만, 그건 91곳에 쓰이는 text-danger 중 한 곳이
+     걸린 것뿐이라 화면별로 고치면 나머지 90곳은 그대로 남는다 — 토큰에서 고친다.
+     #c62828 은 같은 빨강 계열을 유지하면서 최악 배경(#fbeaea)에서 4.83,
+     흰 배경 5.62. bg-danger 위 흰 글씨(배지·버튼)도 4.38 → 5.62 로 같이 오른다. */
+  --danger: #c62828;
   --danger-soft: #fbeaea; /* 15b 상태색 스케일: 위험 bg */
   /* 텍스트 3단 램프 — 색상은 유지하고 명도만 낮춘 값.
      G4 접근성 스윕(2026-07)에서 axe 가 라이트 모드 6개 라우트 전부에서
@@ -39,13 +48,15 @@
 
   /* 15b 상태색 파생 스케일 — 각 상태 bg/border/text 3토큰 고정
      (bg 위 text 대비 4.5:1 · 텍스트에 bg색 직접 사용 금지) */
-  --success: #1a7f4e;
+  /* 구 --success #1a7f4e 는 흰 배경 5.01 로 통과였지만 제 짝인 --success-soft
+     위에서 4.46 이라 아슬하게 미달이었다. #177a4a 로 내려 4.77 확보. */
+  --success: #177a4a;
   --success-soft: #e7f5ee;
-  --success-border: rgba(26, 127, 78, 0.35);
-  --warning: #946200;
+  --success-border: rgba(23, 122, 74, 0.35);
+  --warning: #946200; /* soft 위 4.75 · 흰 배경 5.24 — 통과, 그대로 둔다 */
   --warning-soft: #fdf3dd;
   --warning-border: rgba(148, 98, 0, 0.35);
-  --danger-border: rgba(214, 69, 69, 0.35);
+  --danger-border: rgba(198, 40, 40, 0.35);
 
   /* 15b 인터랙션 상태 */
   --disabled-bg: #eef1f6;
@@ -580,7 +591,9 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   border: 1.5px solid var(--danger);
 }
 .input-success {
-  border: 1px solid rgba(26, 127, 78, 0.4);
+  /* 예전엔 rgba(26,127,78,.4) 를 직접 적어 뒀는데, 그 26,127,78 은 구 --success 라
+     팔레트에서 사라진 값이다. 토큰으로 단일화한다(alpha .4 → .35, 육안 차이 없음). */
+  border: 1px solid var(--success-border);
 }
 .input:disabled {
   background: var(--disabled-bg);

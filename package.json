@@ -42,6 +42,7 @@
     "check:migration-grants": "node ./scripts/check-migration-grants.mjs",
     "check:secret-markers": "node ./scripts/check-secret-markers.mjs",
     "check:icon-names": "node ./scripts/check-icon-names.mjs",
+    "check:contrast-tokens": "node ./scripts/check-contrast-tokens.mjs",
     "check:route-links": "node ./scripts/check-route-links.mjs",
     "seed:public-data-bundled": "node ./scripts/seed-public-data-bundled.mjs",
     "generate:vapid": "node ./scripts/generate-vapid-keys.mjs",
