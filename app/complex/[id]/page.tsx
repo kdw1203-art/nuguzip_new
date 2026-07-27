@@ -88,6 +88,10 @@ interface HubView {
   infoRows: { label: string; value: string }[];
   trades: HubTrade[];
   notes: HubNote[];
+  /** 노트 조회가 실패했는지 — 빈 목록을 "없음"으로 단정하지 않기 위해 */
+  notesFailed: boolean;
+  /** 이 단지에 연결된 글 쓰기 (/town/write?complex=…) */
+  notesWriteHref: string;
   listings: HubListing[];
   /** 실거래 월별 평균 시계열 (차트용 · 실데이터만) */
   priceSeries: PricePoint[];
@@ -326,6 +330,10 @@ function toView(
     infoRows,
     trades,
     notes,
+    notesFailed: postsFailed,
+    notesWriteHref: `/town/write?complex=${encodeURIComponent(row.id)}&complexName=${encodeURIComponent(
+      row.name,
+    )}`,
     priceSeries,
     // D8: 이 단지 실 매물(승인) 연결
     listings: hubListings,
@@ -629,6 +637,8 @@ export default async function ComplexHubPage({
           listingsLabel={v.listingsLabel}
           trades={v.trades}
           notes={v.notes}
+          notesFailed={v.notesFailed}
+          notesWriteHref={v.notesWriteHref}
           listings={v.listings}
           priceSeries={v.priceSeries}
         />

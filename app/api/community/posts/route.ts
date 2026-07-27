@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { findBlockedWord } from "@/lib/community/moderation";
 import { POSTS_READ_LIMIT, prependPost, readPosts } from "@/lib/posts-store";
+import { decodeComplexId } from "@/lib/complex/complex-store";
 import type { Post } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 
@@ -57,6 +58,14 @@ export async function POST(req: Request) {
         : [];
 
   const relatedSite = String(b.relatedSite ?? "").trim() || undefined;
+
+  /* 단지 연결 — /complex/[id] 에서 "이 단지 이야기 쓰기"로 넘어온 경우에만 붙는다.
+     클라이언트가 보낸 문자열을 그대로 저장하면 존재하지 않는 단지 페이지에 글이
+     매달릴 수 있어, decodeComplexId 로 해독되는 값만 받는다(해독 실패 = 버린다).
+     지역·단지명까지 복원되므로 이 값은 /complex/<id> 로 반드시 되돌아간다. */
+  const complexIdRaw = String(b.complexId ?? "").trim();
+  const complexId =
+    complexIdRaw && decodeComplexId(complexIdRaw) ? complexIdRaw : undefined;
   const imageUrlsRaw = b.imageUrls;
   const imageUrls = Array.isArray(imageUrlsRaw)
     ? imageUrlsRaw.map((u) => String(u).trim()).filter(Boolean).slice(0, 6)
@@ -125,6 +134,7 @@ export async function POST(req: Request) {
     viewCount: 0,
     comments: [],
     relatedSite,
+    complexId,
     visibility,
     notifyComments,
     notifyEmail,

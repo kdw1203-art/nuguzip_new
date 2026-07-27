@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { COMMUNITY_SUBCATEGORIES } from "@/lib/subcategories";
 import { CITY_OPTIONS, DISTRICTS } from "@/lib/regions";
@@ -20,8 +20,32 @@ const CATEGORIES = COMMUNITY_SUBCATEGORIES.filter((c) => c.id !== "all");
 const inputClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none placeholder:text-text-3 focus:border-primary";
 
+/* useSearchParams 는 렌더 시점에 URL 을 읽어 이 페이지를 CSR 경계로 만든다.
+   Suspense 로 감싸지 않으면 정적 프리렌더가 통째로 깨지므로, 껍데기만 서버에서
+   미리 그리고 폼은 경계 안에서 붙인다. */
 export default function TownWritePage() {
+  return (
+    <Suspense
+      fallback={
+        <PageShell breadcrumb="동네이야기 › 글쓰기">
+          <div className="mx-auto w-full max-w-[640px] px-1 py-10 text-[13px] text-text-3">
+            글쓰기 화면을 준비하고 있어요…
+          </div>
+        </PageShell>
+      }
+    >
+      <TownWriteForm />
+    </Suspense>
+  );
+}
+
+function TownWriteForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  /* /complex/[id] 의 "이 단지 이야기 쓰기"에서 넘어온 값. 이름은 화면 표시용일
+     뿐이고, 저장되는 연결 키는 complexId 하나다(서버가 다시 검증한다). */
+  const complexId = (searchParams.get("complex") ?? "").trim();
+  const complexName = (searchParams.get("complexName") ?? "").trim();
 
   const [category, setCategory] = useState(CATEGORIES[0]?.label ?? "정보/소식");
   const [city, setCity] = useState<CityOption>("서울특별시");
@@ -68,6 +92,7 @@ export default function TownWritePage() {
           category,
           city,
           district,
+          ...(complexId ? { complexId } : {}),
         }),
       });
       if (res.status === 401) {
@@ -87,7 +112,8 @@ export default function TownWritePage() {
         );
         return;
       }
-      router.push("/town");
+      // 단지에서 넘어왔으면 그 단지로 돌려보낸다 — 방금 쓴 글이 붙은 자리다.
+      router.push(complexId ? `/complex/${encodeURIComponent(complexId)}` : "/town");
       router.refresh();
     } catch {
       setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
@@ -105,6 +131,21 @@ export default function TownWritePage() {
             우리 동네 이야기·질문을 이웃과 나눠보세요
           </p>
         </div>
+
+        {complexId && (
+          <div className="rise-in flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+            <span className="font-extrabold text-primary">
+              {complexName || "선택한 단지"}
+            </span>
+            <span>이야기로 등록돼요 — 이 단지 페이지의 노트 탭에 함께 보여요.</span>
+            <Link
+              href={`/complex/${encodeURIComponent(complexId)}`}
+              className="font-bold text-primary underline"
+            >
+              단지 보기
+            </Link>
+          </div>
+        )}
 
         {/* 카테고리 선택 */}
         <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-5">

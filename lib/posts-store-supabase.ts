@@ -36,6 +36,7 @@ function rowToPost(row: Record<string, unknown>): Post {
     relatedSite: row.related_site
       ? String(row.related_site)
       : undefined,
+    complexId: row.complex_id ? String(row.complex_id) : undefined,
     sourceUrl: row.source_url ? String(row.source_url) : undefined,
     sourceName: row.source_name ? String(row.source_name) : undefined,
     sourcePublishedAt: row.source_published_at
@@ -127,6 +128,9 @@ export async function prependPostSb(post: Post): Promise<void> {
     comments: post.comments,
   };
   if (post.relatedSite) row.related_site = post.relatedSite;
+  /* 값이 있을 때만 실어 보낸다 — null 을 명시하면 단지 연결이 없다는 뜻이
+     행마다 반복되기만 하고, 컬럼 기본값(null)과 결과가 같다. */
+  if (post.complexId) row.complex_id = post.complexId;
   if (post.sourceUrl) row.source_url = post.sourceUrl;
   if (post.sourceName) row.source_name = post.sourceName;
   if (post.sourcePublishedAt) row.source_published_at = post.sourcePublishedAt;

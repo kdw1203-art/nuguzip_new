@@ -37,6 +37,11 @@ export type Post = {
   comments: PostComment[];
   /** 관련 단지·사업장명 (Info Hub 연계용) */
   relatedSite?: string;
+  /**
+   * 연결된 단지 id — encodeComplexId(region, name) 의 base64url 값.
+   * /complex/[id] 의 "노트" 탭이 이 값으로 글을 찾는다. 없으면 단지에 연결되지 않은 글.
+   */
+  complexId?: string;
   sourceUrl?: string;
   sourceName?: string;
   sourcePublishedAt?: string;
