@@ -265,6 +265,49 @@ export async function getComplexByKaptCode(_kaptCode: string): Promise<ComplexRo
   return null;
 }
 
+/* ------------------------------------------------------------------
+   region_name 해석표 — 앞% ILIKE 를 등치(.in)로 바꾸기 위한 것.
+
+   측정(2026-07-27, 654,815행):
+     region_name ILIKE '%노원구%'  →  2,958 ms (부분 인덱스 스캔 + 필터)
+     region_name ILIKE '%울릉군%'  → 18,047 ms (전체 병렬 seq scan)
+     region_name IN ('경북 울릉군') →     8.3 ms (mt_trade_complex_geo_idx)
+
+   service_role 의 statement timeout 은 8초라, 거래가 적은 지역일수록 확실히
+   잘린다 — /complex/[id] "인근 단지" 가 계속 실패로 접히던 원인이다.
+   실제 존재하는 region_name 은 218개뿐이므로 한 번 받아 두고 JS 에서 고른다.
+   판정은 `.includes()` — ILIKE '%x%' 와 의미가 같아 결과가 달라지지 않는다.
+   ------------------------------------------------------------------ */
+const REGION_NAMES_TTL_MS = 6 * 60 * 60_000;
+let regionNamesCache: { at: number; names: string[] } | null = null;
+
+/**
+ * market_region_names() RPC 결과. 실패하면 **null** 을 돌려준다 —
+ * 빈 배열로 답하면 "그런 지역은 없다"가 되어 부르는 쪽이 조용히 0건을 그린다.
+ */
+async function loadRegionNames(
+  sb: NonNullable<ReturnType<typeof getServiceSupabase>>,
+): Promise<string[] | null> {
+  const now = Date.now();
+  if (regionNamesCache && now - regionNamesCache.at < REGION_NAMES_TTL_MS) {
+    return regionNamesCache.names;
+  }
+  const { data, error } = await sb.rpc("market_region_names");
+  if (error) {
+    logger.warn("[complex] market_region_names 조회 실패 — ILIKE 로 물러섭니다.", error);
+    return null;
+  }
+  const names = ((data as { region_name: string }[] | null) ?? [])
+    .map((r) => String(r.region_name ?? ""))
+    .filter(Boolean);
+  if (names.length === 0) return null; // 218개가 정상 — 0개면 못 받은 것으로 본다
+  regionNamesCache = { at: now, names };
+  return names;
+}
+
+/** `.in()` 이 URL 길이를 위협하지 않는 상한. 실제 구 이름은 1~3개만 맞는다. */
+const REGION_IN_MAX = 60;
+
 export async function searchComplexes(
   query: string,
   district?: string,
@@ -282,7 +325,21 @@ export async function searchComplexes(
   const term = (query ?? "").trim();
   if (term) q = q.ilike("complex_name", `%${term}%`);
   const dist = (district ?? "").trim();
-  if (dist) q = q.ilike("region_name", `%${dist}%`);
+  if (dist) {
+    const names = await loadRegionNames(sb);
+    if (names === null) {
+      // 해석표를 못 받았을 때만 예전 방식으로 물러선다(느리지만 결과는 같다).
+      q = q.ilike("region_name", `%${dist}%`);
+    } else {
+      const needle = dist.toLowerCase();
+      const hit = names.filter((n) => n.toLowerCase().includes(needle));
+      /* hit 가 비면 그건 실패가 아니라 사실이다 — 해석표에 없는 지역명은
+         ILIKE 로 훑어도 0건이다. 그러니 굳이 18초를 태우지 않는다. */
+      if (hit.length === 0) return [];
+      if (hit.length > REGION_IN_MAX) q = q.ilike("region_name", `%${dist}%`);
+      else q = q.in("region_name", hit);
+    }
+  }
 
   // 넉넉히 가져와 (region_name, complex_name) 기준 중복 제거
   // (ilike 는 complex_name trigram GIN 인덱스를 탄다)
