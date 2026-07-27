@@ -198,11 +198,15 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
             견적 요청
           </button>
         </div>
+        {/* 예전엔 `/town/market` 으로 보내는 "발행 리포트 전체 보기" 였다. 두 가지가
+            어긋나 있었다 — (1) /town/market 은 리다이렉트 경유지일 뿐이고,
+            (2) 리포트 열람은 아직 오픈 전이라 "발행 리포트"는 한 건도 없다.
+            실제로 닿는 곳(자료 허브)을 직접 가리키고, 라벨도 거기서 볼 수 있는 것에 맞춘다. */}
         <Link
-          href="/town/market"
+          href="/town/library"
           className="mt-2 block text-center text-[11px] text-text-3 no-underline"
         >
-          발행 리포트 전체 보기
+          자료 · 리포트 보기
         </Link>
       </Modal>
 

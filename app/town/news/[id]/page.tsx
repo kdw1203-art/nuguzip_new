@@ -8,6 +8,12 @@ import { getTownPost, readRelatedTownPosts } from "@/lib/newui/board-posts";
 import { isPostHidden } from "@/lib/moderation/reports-store";
 import type { Post } from "@/lib/types/post";
 import { logger } from "@/lib/log";
+import { newsImageUrl } from "../../shared";
+import { LocationMap } from "../../LocationMap";
+import { CoverImage } from "@/app/components/CoverImage";
+import { AdSlot } from "@/app/components/ads/AdSlot";
+import { getAdViewer } from "@/lib/ads/viewer";
+import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
 
 /* 뉴스 상세 — posts 실데이터(id 조회) 연동. 없는 글은 notFound() (사실 우선: 목업 기사 금지). */
 
@@ -169,17 +175,16 @@ export default async function TownNewsDetailPage({
   const commentCount = post.commentCount;
   const likeCount = post.likeCount;
   const saveCount = post.bookmarkCount ?? 0;
+  const heroImage = newsImageUrl(post);
+  // 광고 자리표시자를 실제 슬롯으로 바꾸면서 필요해진 값. 이 라우트는 force-dynamic 이라
+  // 세션을 읽어도 캐시가 깨지지 않는다.
+  const viewer = await getAdViewer();
 
   return (
     <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
-      <div className="mb-4 flex items-center justify-end gap-2 text-[13px]">
-        <span className="btn-soft rounded-[10px] px-3.5 py-2">
-          저장 {saveCount}
-        </span>
-        <span className="rounded-[10px] bg-[rgba(255,255,255,.7)] px-3.5 py-2 font-semibold text-text-2">
-          공유
-        </span>
-      </div>
+      {/* 저장·공유는 실제로 동작하는 버튼이다(POST /api/bookmarks · Web Share).
+          자세한 경위는 PostInteractions.tsx 주석 참고. */}
+      <PostActions postId={post.id} title={title} saveCount={saveCount} />
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-4">
@@ -204,13 +209,24 @@ export default async function TownNewsDetailPage({
               ))}
             </AIPanel>
 
-            {/* 원문 사진 플레이스홀더 (자동 수집 기사) */}
-            {isAutomated ? (
-              <div className="relative flex h-[280px] items-end overflow-hidden rounded-[14px] bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]">
-                <span className="rounded-tr-[10px] bg-[rgba(255,255,255,.85)] px-3 py-[5px] font-mono text-[11px] text-text-3">
-                  원문 기사 사진 — {region}
-                  {post.sourceName ? ` (출처: ${post.sourceName})` : ""}
-                </span>
+            {/* 원문 사진 — 자동수집 automation_meta 의 og:image 를 그대로 쓴다.
+                예전에는 사진이 있든 없든 "원문 기사 사진 — 지역 (출처: …)" 이라고
+                고정폭 글꼴로 적힌 회색 상자를 280px 높이로 깔았다. 목록 화면은
+                같은 데이터로 실사진을 이미 보여 주고 있었으므로, 없는 사진을
+                설명하는 상자 대신 있는 사진을 보여 준다. 없으면 아무것도 그리지
+                않는다 — 빈 상자는 자리만 밀고 정보가 없다. */}
+            {heroImage ? (
+              <div className="relative overflow-hidden rounded-[14px]">
+                <CoverImage
+                  src={heroImage}
+                  alt=""
+                  imgClassName="block max-h-[380px] w-full object-cover"
+                />
+                {post.sourceName && (
+                  <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[rgba(255,255,255,.85)] px-3 py-[5px] text-[11px] text-text-3">
+                    출처: {post.sourceName}
+                  </span>
+                )}
               </div>
             ) : null}
 
@@ -244,10 +260,11 @@ export default async function TownNewsDetailPage({
                 {/* 신고 연결(#81) — POST /api/moderation/content-report */}
                 <ReportButton postId={post.id} />
               </div>
+              {/* "도움돼요 12" 는 파란 굵은 글씨라 눌리는 것처럼 보였는데 <span> 이었다.
+                  POST /api/community/posts/[id]/like 는 이미 있었고 화면에서 쓰는 곳이
+                  한 군데도 없었다 — 만들어 두고 연결을 안 한 상태였다. 연결한다. */}
               <div className="flex gap-3.5 text-xs text-text-2">
-                <span className="font-bold text-primary">
-                  도움돼요 {likeCount}
-                </span>
+                <LikeButton postId={post.id} initialCount={likeCount} />
               </div>
             </div>
           </article>
@@ -281,12 +298,9 @@ export default async function TownNewsDetailPage({
                 아직 댓글이 없어요. 첫 댓글을 남겨보세요.
               </p>
             )}
-            <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2.5">
-              <span className="flex-1 text-[13px] text-text-3">
-                댓글 남기기…
-              </span>
-              <span className="text-xs font-bold text-primary">등록</span>
-            </div>
+            {/* 입력칸처럼 생긴 <div> + "등록" 글자였다 — 타이핑도 전송도 불가능했다.
+                POST /api/community/posts/[id]/comments 는 이미 있었으므로 연결했다. */}
+            <CommentForm postId={post.id} />
           </section>
         </div>
 
@@ -297,13 +311,17 @@ export default async function TownNewsDetailPage({
             <div className="text-[13px] font-extrabold text-ink">
               기사 속 위치
             </div>
-            <div className="relative h-[150px] overflow-hidden rounded-xl bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
-              <span className="absolute left-2 top-2 font-mono text-[10px] text-text-3">
-                네이버/카카오 지도 SDK 영역
-              </span>
-              <div className="absolute left-10 top-[38px] rounded-lg bg-warning px-2 py-1 text-[10px] font-extrabold text-white">
-                {region}
-              </div>
+            {/* 예전엔 "네이버/카카오 지도 SDK 영역" 이라고 적힌 그라디언트 상자에
+                지역명 배지를 절대 좌표로 얹어 둔 그림이었다. 실지도 컴포넌트가
+                모임 상세에 이미 있었으므로(LocationMap) 같은 것을 쓴다. */}
+            <div className="relative">
+              <LocationMap
+                region={post.city}
+                city={post.city}
+                district={post.district}
+                label={region}
+                className="h-[150px]"
+              />
               <Link
                 href="/map"
                 className="absolute bottom-2.5 right-2.5 rounded-lg bg-[rgba(255,255,255,.85)] px-2.5 py-[5px] text-[10px] font-bold text-primary"
@@ -367,14 +385,19 @@ export default async function TownNewsDetailPage({
             </div>
           )}
 
-          {/* AD 슬롯 */}
-          <div className="rise-in-5 flex h-20 flex-col items-center justify-center gap-[3px] rounded-[14px] border border-dashed border-[#d8dfea] bg-surface">
-            <span className="rounded border border-[#e2e7ee] px-1.5 py-px text-[9px] font-bold tracking-widest text-text-3">
-              AD
-            </span>
-            <span className="font-mono text-[11px] text-text-3">
-              AdSense 320×80
-            </span>
+          {/* AD 슬롯 — 여기에는 "AD / AdSense 320×80" 이라고 적힌 점선 상자가 있었다.
+              개발용 자리표시자가 그대로 나가 있던 것으로, 사용자에게는 광고가 실릴
+              자리가 아니라 깨진 광고로 보인다. 실제 슬롯으로 교체한다 — 등록 배너도
+              하우스 광고도 없으면 AdSlot 이 null 을 반환해 빈 상자를 남기지 않는다.
+              (/supply 에서 같은 이유로 이미 고친 것과 같은 처리) */}
+          <div className="rise-in-5">
+            <AdSlot
+              placement="community_feed"
+              seed={0}
+              adFree={viewer.adFree}
+              signedIn={viewer.signedIn}
+              plan={viewer.plan}
+            />
           </div>
         </aside>
       </div>

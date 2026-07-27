@@ -144,7 +144,11 @@ export const SITE_CATEGORIES: SiteCategory[] = [
   {
     key: "gwangjang",
     label: "모임",
-    href: "/town/market",
+    /* 2026-07-27: href 가 `/town/market` 이었다. 그 경로는 리다이렉트 스텁이라
+       헤더의 "모임"을 누르면 한 번 튕겨서 도착했고, 예전 목적지가
+       `/town/library`(동네이야기 카테고리)였을 때는 아예 다른 섹션으로
+       빠져서 모임 탭줄이 통째로 사라졌다. 대표 화면을 직접 가리킨다. */
+    href: "/town/groups",
     match: (p) =>
       startsWithAny(p, [
         "/reports",
@@ -159,19 +163,27 @@ export const SITE_CATEGORIES: SiteCategory[] = [
       ]),
     tabs: [
       {
-        href: "/town/market",
+        href: "/town/groups",
         label: "모임",
-        match: (p, s) =>
-          startsWithAny(p, ["/town/groups", "/town/experts", "/groups", "/experts"]) ||
-          (startsWithAny(p, ["/town/market", "/market", "/meeting-market"]) &&
-            s?.get("tab") !== "market"),
+        match: (p) =>
+          startsWithAny(p, [
+            "/town/groups",
+            "/groups",
+            // 레거시 경유지 — 여기 도착하면 곧바로 /town/groups 로 넘어간다
+            "/town/market",
+            "/market",
+            "/meeting-market",
+          ]),
       },
+      /* "마켓" 탭은 삭제했다. href 가 `/town/market?tab=market` 인데 그 경로는
+         이제 쿼리를 달고 `/town/groups` 로 리다이렉트되므로, match 조건
+         (경로가 여전히 /town/market 이고 tab=market)이 **성립할 수 없었다** —
+         눌러서 이동은 되지만 어떤 탭도 강조되지 않는 상태로 남았다.
+         마켓 화면 자체도 자료(#8)로 통합돼 별도 화면이 없다. */
       {
-        href: "/town/market?tab=market",
-        label: "마켓",
-        match: (p, s) =>
-          startsWithAny(p, ["/town/market", "/market", "/meeting-market"]) &&
-          s?.get("tab") === "market",
+        href: "/town/experts",
+        label: "전문가",
+        match: (p) => startsWithAny(p, ["/town/experts", "/experts"]),
       },
       {
         href: "/reports",
@@ -228,7 +240,7 @@ export const HOME_QUICK_LINKS = [
      홈 퀵메뉴에서 누르면 404 였다. 청약 화면은 app/apply 다. */
   { key: "presale", label: "청약", href: "/apply", desc: "분양·경쟁률" },
   { key: "community", label: "동네이야기", href: "/town", desc: "임장 후기·Q&A" },
-  { key: "market", label: "모임/마켓", href: "/town/market", desc: "함께 임장" },
+  { key: "market", label: "모임", href: "/town/groups", desc: "함께 임장" },
 ] as const;
 
 /** 홈을 제외하고 현재 경로가 속한 통합 카테고리를 찾는다(허브 탭바용). */

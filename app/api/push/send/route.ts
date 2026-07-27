@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     eventType === "comment"
       ? "/notifications?filter=comments"
       : eventType === "meeting"
-        ? "/town/market?source=push&campaign=meeting"
+        ? "/town/groups?source=push&campaign=meeting"
         : eventType === "expert"
           ? "/town/experts?source=push"
           : eventType === "attendance"

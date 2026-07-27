@@ -10,7 +10,11 @@ import {
 import { regionDisplayName } from "@/lib/market/complex-transactions";
 import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
-import { logger } from "@/lib/log";
+import {
+  LOAD_FAILED_LINE,
+  loadWithinPrerenderBudget,
+} from "@/lib/data/prerender-budget";
+import { cache } from "react";
 
 /* ============================================================
    N10 — 단지 vs 단지 비교 허브 (/complex/compare)
@@ -31,8 +35,19 @@ import { logger } from "@/lib/log";
 
    그래서 세 상태를 나눠 렌더한다 — /tx 와 같은 규칙이다:
      1) 정상 — 지역별 조합 목록
-     2) 조회 실패 — 그렇게 말하고 noindex (깨진 껍데기를 색인시키지 않는다)
+     2) 조회 실패·시간 초과 — 그렇게 말하고 noindex (깨진 껍데기를 색인시키지 않는다)
      3) 정말로 0건 — "아직 기준을 넘은 조합이 없다"는 별개의 문장
+
+   ── 예외를 삼키는 것만으로는 빌드를 못 지킨다 (배포 #263) ──────
+   던지지 않아도 **느리면** 빌드가 죽는다. Next 는 프리렌더 한 페이지에 60초
+   상한을 두고 넘기면 빌드를 실패시키는데, 배포 #263 이 정확히 그렇게 죽었다 —
+   이 페이지를 포함한 다섯 페이지가 각자 60초를 다 태워 릴리스가 통째로 막혔다.
+   느린 DB 는 페이지 내용을 떨어뜨릴 수는 있어도 배포를 막아서는 안 된다.
+   그래서 조회에 20초 상한을 씌우고, 넘기면 위 2)번 화면으로 접는다.
+
+   조회를 react cache() 로 감싸는 이유도 같은 사건에서 나왔다. 예전엔
+   generateMetadata 와 본문이 같은 목록을 **각각** 읽어서 프리렌더 한 장에
+   조회가 두 번 들어갔다 — 60초 예산을 두 배로 태우던 자리다.
    ============================================================ */
 
 export const revalidate = 3600;
@@ -46,22 +61,18 @@ const TOP_PER_DONG = 3;
 
 type PairIndexData = {
   pairs: ComplexPair[];
-  /** 조회 자체가 실패한 사유. null 이면 "읽었고 결과가 이만큼"이라는 뜻. */
-  loadError: string | null;
+  /** 조회가 실패했거나 상한 안에 끝나지 않았다. false 라야 "읽었고 결과가 이만큼"이다. */
+  loadFailed: boolean;
 };
 
-async function loadPairIndex(): Promise<PairIndexData> {
-  try {
-    return { pairs: await listComplexPairs(), loadError: null };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error(
-      "[/complex/compare] 비교 조합 목록을 읽지 못했습니다 — 조합이 없는 것이 아니라 조회가 실패했습니다:",
-      message,
-    );
-    return { pairs: [], loadError: message };
-  }
-}
+const loadPairIndex = cache(async (): Promise<PairIndexData> => {
+  const run = await loadWithinPrerenderBudget("[/complex/compare] 비교 조합 목록", () =>
+    listComplexPairs(),
+  );
+  /* 실패를 빈 목록으로 흘려보내면 "아직 기준을 넘은 조합이 없습니다" 가 뜬다 —
+     조합이 수천 개 쌓여 있어도 없다고 단정하는 셈이라 반드시 갈라 놓는다. */
+  return run.ok ? { pairs: run.data, loadFailed: false } : { pairs: [], loadFailed: true };
+});
 
 type RegionGroup = {
   regionId: string;
@@ -110,7 +121,7 @@ function formatYm(ym: string | null): string | null {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { pairs, loadError } = await loadPairIndex();
+  const { pairs, loadFailed } = await loadPairIndex();
   const regionCount = new Set(pairs.map((p) => p.region.id)).size;
   const description =
     pairs.length > 0
@@ -121,7 +132,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: seoAlternates(PATH),
     // 조회가 실패한 상태의 껍데기를 색인시키지 않는다. 다음 재검증에서 성공하면 사라진다.
-    ...(loadError ? { robots: { index: false, follow: true } } : {}),
+    ...(loadFailed ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       title: "단지 vs 단지 실거래 비교 | 누구집",
       description,
@@ -132,7 +143,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ComplexComparePage() {
-  const { pairs, loadError } = await loadPairIndex();
+  const { pairs, loadFailed } = await loadPairIndex();
   const groups = groupByRegion(pairs);
   const dongCount = new Set(pairs.map((p) => `${p.region.id}|${p.dong}`)).size;
   const complexCount = new Set(
@@ -182,13 +193,13 @@ export default async function ComplexComparePage() {
         국토교통부 신고 자료이며 매물 호가가 아닙니다.
       </p>
 
-      {loadError ? (
+      {loadFailed ? (
         <section className="rise-in-1 card p-[var(--pad-card)]">
           <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
-            비교 조합 목록을 <strong className="text-ink">불러오지 못했습니다</strong>.
+            <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
-            비교할 단지가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시
-            확인해 주세요.
+            비교할 단지가 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는
+            뜻입니다.
           </p>
         </section>
       ) : pairs.length === 0 ? (

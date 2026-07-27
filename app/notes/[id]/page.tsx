@@ -613,7 +613,13 @@ export default async function NoteDetailPage({
                 {v.sourceLabel} · 기준일 {v.baseDate}
               </span>
               <span>·</span>
-              <Link href="/town/market" className="font-bold text-primary">
+              {/* 예전엔 "OO 시세"가 `/town/market` 으로 갔다. 그 경로는 모임
+                  리다이렉트 경유지라 시세와 아무 상관이 없었고, 어느 지역인지도
+                  전해지지 않았다. 지도가 ?region= 을 받게 됐으니 그리로 보낸다. */}
+              <Link
+                href={`/map?region=${encodeURIComponent(v.regionLabel)}`}
+                className="font-bold text-primary"
+              >
                 {v.regionLabel} 시세
               </Link>
               {/* 단지 링크 — 실 단지 id를 찾은 경우에만 (mock-1로 보내지 않음) */}

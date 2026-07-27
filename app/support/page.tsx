@@ -5,7 +5,11 @@ import { SupportContactForm } from "./SupportContactForm";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
-import { supportFaqItems, type SupportFaqItem } from "@/lib/support/faq";
+import {
+  supportFaqByCategory,
+  supportFaqItems,
+  type SupportFaqItem,
+} from "@/lib/support/faq";
 import { logger } from "@/lib/log";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
@@ -64,12 +68,18 @@ async function loadNotices(): Promise<NoticesData> {
   }
 }
 
-const FAQ_CATEGORIES = [
-  { icon: "📝", label: "노트 · 기록" },
-  { icon: "💳", label: "구독 · 결제" },
-  { icon: "🤖", label: "AI 분석" },
-  { icon: "🔒", label: "계정 · 보안" },
-] as const;
+/* 모바일 FAQ 카테고리 카드의 아이콘 — 라벨·개수는 lib/support/faq.ts 에서 온다.
+   예전에는 이 배열에 라벨까지 직접 적혀 있었고("노트 · 기록", "계정 · 보안")
+   카드는 링크가 아닌 <div> 였다. 카드 모양이라 눌릴 것처럼 보이는데 아무 데도
+   가지 않았고, 라벨도 실제 FAQ 분류와 이름이 달라서 어디로 갈지조차 알 수 없었다.
+   실제 분류를 그대로 쓰고 /support/faq 의 해당 섹션 앵커로 보낸다. */
+const FAQ_CATEGORY_ICON: Record<string, string> = {
+  "데이터·시세": "bar",
+  "임장노트·공개": "clipboard",
+  "구독·결제": "wallet",
+  "AI 분석": "bot",
+  "계정·문의": "lock",
+};
 
 /* 더미 1개 원칙: 예시 티켓은 단 1건 — 우측 답변 상세와 동일 건 */
 const TICKETS = [
@@ -97,6 +107,7 @@ export default async function SupportPage() {
   const { notices, failed: noticesFailed } = await loadNotices();
   const byId = new Map(supportFaqItems().map((i) => [i.id, i]));
   const faqAll = supportFaqItems();
+  const faqGroups = supportFaqByCategory();
   const faqPreview = SUPPORT_FAQ_PREVIEW_IDS.map((id) => byId.get(id)).filter(
     (x): x is SupportFaqItem => x !== undefined,
   );
@@ -115,15 +126,24 @@ export default async function SupportPage() {
         <span className="text-xs font-extrabold text-primary">›</span>
       </Link>
 
-      {/* 모바일 FAQ 카테고리 (7g) */}
+      {/* 모바일 FAQ 카테고리 (7g) — 실제 FAQ 분류로 /support/faq 섹션 앵커 이동 */}
       <div className="rise-in-1 mb-4 grid grid-cols-2 gap-2 md:hidden">
-        {FAQ_CATEGORIES.map((c) => (
-          <div key={c.label} className="card rounded-[14px] p-3.5 text-center">
+        {faqGroups.map((g) => (
+          <Link
+            key={g.category}
+            href={`/support/faq#${encodeURIComponent(g.category)}`}
+            className="card card-hover rounded-[14px] p-3.5 text-center no-underline"
+          >
             <div className="text-lg">
-              <Icon name={c.icon} size={22} className="inline align-middle" />
+              <Icon
+                name={FAQ_CATEGORY_ICON[g.category] ?? "book"}
+                size={22}
+                className="inline align-middle"
+              />
             </div>
-            <div className="mt-1 text-xs font-bold text-text-1">{c.label}</div>
-          </div>
+            <div className="mt-1 text-xs font-bold text-text-1">{g.category}</div>
+            <div className="text-[10px] text-text-3">{g.items.length}개</div>
+          </Link>
         ))}
       </div>
 
@@ -301,16 +321,21 @@ export default async function SupportPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3">
-                <span className="text-xs text-text-3">이 답변이 도움이 되었나요?</span>
-                <div className="flex gap-2">
-                  <span className="rounded-full bg-primary-soft px-4 py-[7px] text-xs font-bold text-primary">
-                    도움됐어요
-                  </span>
-                  <span className="rounded-full bg-[#f2f4f8] px-4 py-[7px] text-xs font-semibold text-text-2">
-                    추가 문의
-                  </span>
-                </div>
+              {/* 예전엔 "이 답변이 도움이 되었나요?" 아래에 알약 모양 <span> 두 개
+                  ("도움됐어요" · "추가 문의")가 있었다. 답변 평가를 받는 API 자체가
+                  없어서 "도움됐어요"는 눌러도 아무 데도 기록되지 않았고, 애초에
+                  onClick 이 없어 눌리지도 않았다. 평가는 지우고, 실제로 갈 곳이 있는
+                  "추가 문의"만 위 1:1 문의 폼으로 이어지는 진짜 링크로 남긴다. */}
+              <div className="flex items-center justify-between gap-2 border-t border-[#f0f3f8] pt-3">
+                <span className="text-xs text-text-3">
+                  실제 문의도 같은 화면에서 이어서 주고받아요
+                </span>
+                <a
+                  href="#contact"
+                  className="shrink-0 rounded-full bg-primary-soft px-4 py-[7px] text-xs font-bold text-primary no-underline"
+                >
+                  추가 문의
+                </a>
               </div>
             </div>
           </div>
@@ -377,8 +402,10 @@ export default async function SupportPage() {
                 지면 소개서(AD 슬롯 위치·단가)를 보내드립니다. 커뮤니티 어뷰징성 광고는 게재하지
                 않습니다.
               </div>
+              {/* mailto 링크에 "미디어킷 다운로드"라고 적혀 있었지만 눌러도 받아지는
+                  파일이 없다(내려줄 파일 자체가 없다). 실제 동작인 "메일로 요청"에 맞춘다. */}
               <a href="mailto:ad@nuguzip.com" className="text-xs font-bold text-primary">
-                ad@nuguzip.com · 미디어킷 다운로드
+                ad@nuguzip.com · 메일로 미디어킷 요청
               </a>
             </div>
           </div>
@@ -399,7 +426,9 @@ export default async function SupportPage() {
                 청소년보호정책
               </Link>
             </div>
-            <span className="text-[11px] text-text-3">시행 2026.07.15 · 이전 버전 보기</span>
+            {/* "이전 버전 보기"를 붙여 뒀지만 약관 개정 이력 페이지가 없다 —
+                링크처럼 읽히는 글자만 남아 있었다. 있는 사실(시행일)만 적는다. */}
+            <span className="text-[11px] text-text-3">시행 2026.07.15</span>
           </div>
           <p className="px-1 text-[11px] leading-[1.6] text-text-3">
             우리동네이야기 · 대표 고대웅 · 사업자 378-06-02465 · 통신판매업 제2026-안양동안-0000호 ·

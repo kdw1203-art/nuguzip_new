@@ -3,7 +3,6 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
-import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { getAdViewer } from "@/lib/ads/viewer";
 import {
@@ -88,37 +87,18 @@ function quarterKey(d: Date): string {
   return `${d.getFullYear()}-${Math.ceil((d.getMonth() + 1) / 3)}`;
 }
 
-type CalCell = { day: number; muted: boolean; mark: boolean };
+/* ── 입주 캘린더(월 그리드)를 지운 이유 ──────────────────────────────────────
+   이 자리에는 날짜 셀 42칸짜리 월 캘린더가 있었고, 매달 8·15·22·29일에 파란
+   막대가 찍혀 있었다. 그 네 날짜는 데이터가 아니라 코드에 박아 둔 상수였다 —
+   apartment_supply 는 `move_in_ym`(입주 **월**)까지만 가진 자료라 특정 일자를
+   알 방법이 아예 없다. 옆에 "예시" 배지를 붙여 뒀지만, 캘린더는 날짜를
+   말하려고 존재하는 물건이라 예시 배지 하나로 없는 일정이 있는 것처럼 보이는
+   걸 막을 수 없었다.
 
-/** 월 캘린더 그리드 생성 — 청약 센터의 월별 캘린더와 동일한 셀 구조(월요일 시작).
- *  입주는 월 단위 데이터라 특정 일자 매핑이 불가 → 대표 셀(markDays)에 예시 표시. */
-function buildMonthCalendar(ym: string | null, markDays: number[]): CalCell[] {
-  let year = 2026;
-  let month0 = 0;
-  if (ym && /^\d{6}$/.test(ym)) {
-    year = Number(ym.slice(0, 4));
-    month0 = Number(ym.slice(4, 6)) - 1;
-  }
-  const daysInMonth = new Date(year, month0 + 1, 0).getDate();
-  const prevDays = new Date(year, month0, 0).getDate();
-  const lead = (new Date(year, month0, 1).getDay() + 6) % 7; // 월요일 시작 오프셋
-  const marks = new Set(markDays);
-  const cells: CalCell[] = [];
-  for (let i = lead - 1; i >= 0; i--) {
-    cells.push({ day: prevDays - i, muted: true, mark: false });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, muted: false, mark: marks.has(d) });
-  }
-  let next = 1;
-  while (cells.length % 7 !== 0) {
-    cells.push({ day: next++, muted: true, mark: false });
-  }
-  return cells;
-}
+   대신 실제로 가진 축(월별 세대수)을 그대로 그린다 — getSupplyMonthly 가
+   `{ ym, count, households }` 를 돌려주므로 지어낼 값이 하나도 없다. */
 
-/** 청약 센터와 동일한 AD 슬롯 자리표시자 (AdSense 320×64) */
-/* H1 — 이 자리에는 "AD / AdSense 320×64" 라고 적힌 점선 상자가 있었다.
+/* H1 — 우측 사이드 광고 자리에는 "AD / AdSense 320×64" 라고 적힌 점선 상자가 있었다.
    개발용 자리표시자가 그대로 프로덕션에 나가 있던 것으로, 사용자에게는
    광고가 실릴 자리가 아니라 **깨진 광고**로 보인다. 실제 슬롯
    (`app/components/ads/AdSlot.tsx`)으로 교체한다 — 등록 배너가 있으면 배너를,
@@ -174,12 +154,9 @@ export default async function SupplyPage({
   const upcomingShown = upcomingItems.slice(0, 6);
   const upcomingMore = Math.max(0, upcomingItems.length - upcomingShown.length);
 
-  // 캘린더: 최다 입주 월(피크)을 대표 월로, 입주 표시일은 예시(주 1회 대표 셀)
-  const calTitle = peak ? monthLabel(peak.ym) : "이번 분기";
-  const calCells =
-    monthly.length > 0
-      ? buildMonthCalendar(peak ? peak.ym : null, [8, 15, 22, 29])
-      : [];
+  // 월별 물량 막대 — 앞으로 24개월치까지만(그 이후는 표본이 얇아 막대가 의미를 잃는다)
+  const monthlyShown = monthly.slice(-24);
+  const monthlyMax = monthlyShown.reduce((m, b) => Math.max(m, b.households), 0);
 
   return (
     <PageShell breadcrumb="동네이야기 › 입주 물량" wide>
@@ -188,6 +165,10 @@ export default async function SupplyPage({
       <div style={SUPPLY_THEME}>
         {/* 상단 CTA — 예전의 정적 탭 4개(전체·이번 분기·예정·지난 입주)는 클릭해도
             아무 동작이 없는 장식이라 제거했다. 섹션 구분은 아래 본문 제목으로 충분하다. */}
+        {/* "입주 물량 알림" 칩은 뺐다 — /notifications 로 보내고 있었는데 그 화면은
+            받은 알림을 읽는 알림함일 뿐, 입주 알림을 켜는 설정이 없다(알림 설정
+            항목에도 입주 계열이 없다). 신청할 수 없는 알림을 신청 버튼처럼 걸어 두는
+            것은 눌러도 아무 일이 없는 것보다 나쁘다 — 신청했다고 오해하게 만든다. */}
         <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
           <div className="flex-1" />
           <div className="flex flex-wrap gap-1.5 text-xs">
@@ -200,12 +181,6 @@ export default async function SupplyPage({
               공공데이터 출처 ↗
             </a>
             <Link
-              href="/notifications"
-              className="press rounded-full bg-primary-soft px-3.5 py-2 font-bold text-primary no-underline"
-            >
-              입주 물량 알림
-            </Link>
-            <Link
               href="/map"
               className="glass press rounded-full px-3.5 py-2 font-bold text-text-1 no-underline"
             >
@@ -214,16 +189,15 @@ export default async function SupplyPage({
           </div>
         </div>
 
-        {/* 정직 안내 배너 (초록 틴트) — 캘린더·카드는 예시 구성, 표는 실데이터 */}
+        {/* 정직 안내 배너 (초록 틴트) — 화면의 모든 수치가 실데이터가 된 뒤로는
+            "예시 구성" 이라고 적을 것이 없다. 남은 사실(수동 적재·자동 갱신 없음)만 적는다. */}
         <div
           className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6]"
           style={{ color: "var(--primary-strong)" }}
         >
-          <ExampleBadge />
           <span>
-            입주 캘린더는 서비스 <b>예시 구성</b>이에요 (입주는 월 단위
-            자료라 대표 일자로 표시). 공개 입주예정물량 자료를 수동으로
-            적재한 데이터
+            입주는 <b>월 단위</b>로 공개되는 자료라 일자는 알 수 없어요. 공개
+            입주예정물량 자료를 수동으로 적재한 데이터
             {asOfLabel ? `(최근 적재 ${asOfLabel})` : ""}로 자동 갱신되지
             않으며, 사업 진행·일정 변경에 따라 실제와 다를 수 있어요. 아래
             “지난·전체 입주 예정 단지” 표는{" "}
@@ -243,47 +217,51 @@ export default async function SupplyPage({
         <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           {/* ── 본문 ── */}
           <div className="flex flex-col gap-3">
-            {/* 입주 캘린더 (청약 센터 월별 캘린더와 동일 스타일) */}
+            {/* 월별 입주 물량 — apartment_supply 실집계(월·세대수) */}
             <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
-                  {calTitle} 입주 캘린더 <ExampleBadge />
+                <span className="text-sm font-extrabold text-ink">
+                  월별 입주 물량
                 </span>
-                <div className="flex gap-2.5 text-[11px]">
-                  <span className="flex items-center gap-1 text-text-2">
-                    <span className="h-2 w-2 rounded-[2px] bg-primary" />
-                    입주 (예시)
-                  </span>
-                </div>
+                <span className="text-[11px] text-text-3">
+                  {scope}· 세대수 기준
+                </span>
               </div>
-              {calCells.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-text-3">
-                    {["월", "화", "수", "목", "금", "토", "일"].map((d) => (
-                      <span key={d}>{d}</span>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {calCells.map((c, i) => (
+              {monthlyShown.length > 0 ? (
+                <div className="flex flex-col gap-1.5">
+                  {monthlyShown.map((b) => {
+                    const pct =
+                      monthlyMax > 0
+                        ? Math.max(2, Math.round((b.households / monthlyMax) * 100))
+                        : 0;
+                    const isPeak = peak !== null && b.ym === peak.ym;
+                    return (
                       <div
-                        key={i}
-                        className={`h-11 rounded-lg px-1.5 py-1 text-[10px] ${
-                          c.mark
-                            ? "border border-line bg-primary-soft text-text-1"
-                            : "bg-bg text-text-3"
-                        } ${c.muted ? "opacity-40" : ""}`}
+                        key={b.ym}
+                        className="grid grid-cols-[52px_1fr_92px] items-center gap-2 text-[11px]"
                       >
-                        {c.day}
-                        {c.mark && (
-                          <div className="mt-0.5 h-1.5 rounded-[2px] bg-primary" />
-                        )}
+                        <span
+                          className={`shrink-0 ${isPeak ? "font-extrabold text-primary" : "text-text-3"}`}
+                        >
+                          {fmtYm(b.ym)}
+                        </span>
+                        <span className="h-2 w-full overflow-hidden rounded-full bg-bg">
+                          <span
+                            className={`block h-full rounded-full ${isPeak ? "bg-primary" : "bg-primary-soft"}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </span>
+                        <span className="shrink-0 text-right text-text-2">
+                          {b.households.toLocaleString()}세대
+                          <span className="ml-1 text-text-3">· {b.count}곳</span>
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                </>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="rounded-[12px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-3">
-                  입주 캘린더에 표시할 데이터가 없어요.
+                  표시할 월별 입주 물량 데이터가 없어요.
                 </div>
               )}
             </div>
@@ -327,6 +305,8 @@ export default async function SupplyPage({
                         </div>
                       </div>
                     </div>
+                    {/* "입주 알림 ›" 버튼이 있었지만 /notifications(알림함)로 갈 뿐
+                        단지별 입주 알림을 켜는 기능은 없다. 상단 칩과 같은 이유로 뺐다. */}
                     <div className="flex shrink-0 items-center gap-3.5">
                       <div className="text-right">
                         <div className="text-[11px] text-text-3">입주 예정</div>
@@ -334,13 +314,6 @@ export default async function SupplyPage({
                           {fmtYm(s.moveInYm)}
                         </div>
                       </div>
-                      <Link
-                        href="/notifications"
-                        className="btn-primary press rounded-[10px] px-4 py-[9px] text-xs no-underline"
-                        style={{ color: "#fff" }}
-                      >
-                        입주 알림 ›
-                      </Link>
                     </div>
                   </div>
                 ))}
@@ -385,12 +358,11 @@ export default async function SupplyPage({
                         </div>
                       </div>
                     </div>
-                    <Link
-                      href="/notifications"
-                      className="shrink-0 rounded-[10px] bg-primary-soft px-4 py-[9px] text-xs font-bold text-primary no-underline"
-                    >
-                      입주 알림 받기 ›
-                    </Link>
+                    {/* "입주 알림 받기 ›" — 같은 이유로 제거(받을 수 있는 알림이 아니다).
+                        카드가 이미 입주월을 적고 있어 잃는 정보는 없다. */}
+                    <span className="shrink-0 text-[11px] font-bold text-primary">
+                      입주 {fmtYm(s.moveInYm)}
+                    </span>
                   </div>
                 ))}
                 <p className="rise-in-3 px-1 text-[11px] leading-[1.6] text-text-3">
@@ -460,7 +432,10 @@ export default async function SupplyPage({
           <aside className="flex flex-col gap-3.5">
             {/* AI 인사이트 패널 (실 수치 — 최다 입주 시기·총 세대수) */}
             <div className="rise-in-2">
-              <AIPanel title="입주 물량 인사이트 (예시)" className="rounded-[18px]">
+              {/* 제목이 "입주 물량 인사이트 (예시)" 였는데 이 안의 수치는 전부
+                  apartment_supply 실집계다. 진짜 숫자에 "예시" 를 붙이면 반대 방향의
+                  거짓말이 된다 — 믿어도 되는 값을 못 믿게 만든다. */}
+              <AIPanel title="입주 물량 인사이트" className="rounded-[18px]">
                 {monthly.length === 0 ? (
                   <>
                     표시할 입주 물량 데이터가 없어요. 지역을 바꾸거나 전국을

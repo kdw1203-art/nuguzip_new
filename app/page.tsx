@@ -459,8 +459,10 @@ export default async function Home() {
                   ) : (
                     <>아직 발행된 리포트가 없어요. </>
                   )}
-                  <Link href="/town/market" className="font-bold text-primary">
-                    전문가 마켓 ›
+                  {/* "전문가 마켓"은 `/town/market` 을 가리켰는데 그 경로는 모임
+                      리다이렉트 경유지다. 전문가 목록은 /town/experts 다. */}
+                  <Link href="/town/experts" className="font-bold text-primary">
+                    전문가 찾아보기 ›
                   </Link>
                 </p>
               ) : (
