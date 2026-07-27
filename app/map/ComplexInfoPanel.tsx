@@ -310,13 +310,13 @@ export function ComplexInfoPanel({
   ].filter((v): v is string => Boolean(v));
 
   return (
+    /* 데스크톱에서는 좌측 목록이 있던 그 자리를 그대로 차지한다(소유자 요청:
+       "단지를 선택하면 왼쪽에는 단지 정보만"). 예전에는 하단에 떠서 목록과 지도를
+       동시에 가렸다. top 92px 은 목록 패널과 같은 값이라 전환이 제자리에서 일어난다.
+       모바일은 화면이 좁아 기존대로 하단 시트를 유지한다.
+       (inline style 로 maxHeight 를 주면 md: 클래스가 못 덮으므로 전부 클래스로 쓴다) */
     <aside
-      className="glass-strong rise-in fixed left-4 right-4 z-[45] flex flex-col overflow-hidden rounded-[22px] md:left-5 md:right-auto md:w-[420px]"
-      style={{
-        bottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
-        maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - 200px)",
-        top: "auto",
-      }}
+      className="glass-strong rise-in fixed bottom-5 left-4 right-4 z-[45] flex max-h-[calc(100dvh-200px)] flex-col overflow-hidden rounded-[22px] md:absolute md:bottom-5 md:left-5 md:right-auto md:top-[92px] md:max-h-none md:w-[380px]"
       role="dialog"
       aria-label={`${name} 단지 정보`}
     >

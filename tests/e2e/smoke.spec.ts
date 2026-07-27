@@ -199,6 +199,11 @@ test("24. /support and /safety render", async ({ page }) => {
 });
 
 test("25. /calculator, /apply, /digest render", async ({ page }) => {
+  /* 한 케이스가 페이지를 셋이나 연다. goto 는 기본적으로 "load"(광고·분석 스크립트
+     포함 전부)를 기다리므로, 외부 스크립트가 느린 환경에서는 세 번의 합이 기본
+     예산 30초를 넘긴다 — 실제로 /digest 진입에서 타임아웃이 재현됐다(서버 응답
+     자체는 7ms). 설치 프롬프트 스위트와 같은 원인이라 같은 처방을 쓴다. */
+  test.slow();
   await page.goto("/calculator");
   await expect(
     page.getByRole("heading", { level: 1, name: /대출·수익률 계산기/ }),

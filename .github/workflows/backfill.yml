@@ -23,8 +23,11 @@ on:
         default: "30"
         required: true
       detail_rounds:
-        description: "단지 상세 배치 횟수 (회당 300단지)"
-        default: "4"
+        description: "단지 상세 배치 횟수 (회당 600단지)"
+        # 2026-07-27: 상세가 39,392개 중 3,404개(8.6%)뿐이라 지도에서 세대수가
+        # "—" 로 비어 보였다. 동시 호출로 라운드당 처리량을 올린 김에 횟수도 함께
+        # 올린다 — 25회 × 600 = 15,000개/실행.
+        default: "25"
         required: true
 
 permissions:
@@ -53,9 +56,10 @@ jobs:
             hit "geocode round $i" "https://nuguzip.com/api/cron/geocode-complexes?limit=500"
           done
 
-          # 2) 단지 상세(좌표·주차·건설사) 몰아치기 — 회당 300단지, detailFetchedAt 스탬프로 이어달리기.
+          # 2) 단지 상세(세대수·주차·건설사·좌표) 몰아치기 — 회당 600단지,
+          #    detailFetchedAt 스탬프로 이어달리기(중간에 끊겨도 재실행하면 이어서).
           for i in $(seq 1 ${{ github.event.inputs.detail_rounds }}); do
-            hit "apt-detail round $i" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=300"
+            hit "apt-detail round $i" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=600"
           done
 
           # 3) 과거 실거래 백필 — 직전월부터 N개월, 월마다 시군구 슬라이스 0..4 (size=60 → 최대 300곳).

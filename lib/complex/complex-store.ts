@@ -139,6 +139,12 @@ type AptEnrich = {
   /** 좌표 — apt-detail-enrich 크론이 백필한 metadata.lat/lng. 둘 다 있을 때만 채운다. */
   lat: number | null;
   lng: number | null;
+  /** 세대수 — 국토부 상세(V4)에서 온 값일 때만. 아래 households 주석 참조. */
+  households: number | null;
+  /** 동 수 — 세대수와 같은 출처 조건 */
+  buildingCount: number | null;
+  /** 총 주차대수 — 같은 출처 조건 */
+  parkingCount: number | null;
 };
 
 /**
@@ -205,7 +211,27 @@ async function enrichFromApartmentComplex(
   const lat = typeof m.lat === "number" && Number.isFinite(m.lat) ? m.lat : null;
   const lng = typeof m.lng === "number" && Number.isFinite(m.lng) ? m.lng : null;
   const hasCoord = lat != null && lng != null;
-  // 주의: metadata.householdCount 는 소스 품질 문제로 상당수 과대(중앙값 4천대)라 사용하지 않는다.
+  /* 세대수 — **출처를 가려서** 쓴다.
+   *
+   * 예전 주석은 "householdCount 는 상당수 과대(중앙값 4천대)라 사용하지 않는다"
+   * 였고, 그래서 지도 상세의 세대수가 늘 "—" 였다. 2026-07-27 실제로 재보니
+   * 그 진단은 **출처 하나에만** 맞았다:
+   *   · 대장 마스터 ETL 이 채운 값 (18,270행): 중앙값 4,640 · 최대 147,000 → 세대수가 아니다
+   *   · 상세 API V4 가 채운 값 (3,401행):     중앙값   225 · 최대  12,330 → 맞는 값
+   * V4 표본 검증: 올림픽파크포레온 12,032세대·85동, 디에이치퍼스티어아이파크
+   * 6,702세대, 평촌어바인퍼스트 3,850세대 — 모두 실제와 일치한다.
+   *
+   * 즉 값이 나쁜 게 아니라 **두 출처가 같은 키에 섞여 있었다**. 그래서 전부
+   * 버리는 대신 detailFetchedAt(=V4 상세를 실제로 받아온 표식)이 있을 때만 쓴다.
+   * 표식이 없으면 null 을 돌려주고 화면은 "—" 로 남는다 — 틀린 숫자를 보여 주는
+   * 것보다 모른다고 두는 편이 낫다.
+   */
+  const fromV4Detail = typeof m.detailFetchedAt === "string" && m.detailFetchedAt.length > 0;
+  const posInt = (v: unknown): number | null => {
+    const n = typeof v === "number" ? v : typeof v === "string" ? Number(v) : NaN;
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+  };
+
   return {
     kaptCode: typeof m.kaptCode === "string" ? m.kaptCode : null,
     buildYear,
@@ -214,6 +240,9 @@ async function enrichFromApartmentComplex(
     builder: typeof m.builder === "string" ? m.builder : null,
     lat: hasCoord ? lat : null,
     lng: hasCoord ? lng : null,
+    households: fromV4Detail ? posInt(m.householdCount) : null,
+    buildingCount: fromV4Detail ? posInt(m.buildingCount) : null,
+    parkingCount: fromV4Detail ? posInt(m.parkingCount) : null,
   };
 }
 
@@ -255,6 +284,13 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
     if (apt.lat != null && apt.lng != null) {
       base.lat = apt.lat;
       base.lng = apt.lng;
+    }
+    // 세대수 — V4 상세에서 온 값만 온다(enrichFromApartmentComplex 주석 참조).
+    base.households = apt.households ?? base.households;
+    /* 세대당 주차대수는 여기서 계산한다. 두 값 다 같은 상세 응답에서 왔고,
+       세대수가 0이면 나눗셈이 무한대가 되므로 households > 0 일 때만. */
+    if (apt.parkingCount != null && apt.households != null && apt.households > 0) {
+      base.parking_per_hh = Math.round((apt.parkingCount / apt.households) * 100) / 100;
     }
   }
   return base;

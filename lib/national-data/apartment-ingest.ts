@@ -278,8 +278,46 @@ export async function ingestAptMasterBatch(
      geocode-complexes 크론(네이버 지오코딩)이 계속 담당한다.
    ══════════════════════════════════════════════════════════════════════ */
 
-/** 상세 API 호출 간 지연(ms) — 공공 API 를 정중하게 순차 호출한다. */
+/** 상세 API 호출 간 지연(ms) — 공공 API 를 정중하게 호출한다. */
 const DETAIL_DELAY_MS = 60;
+
+/**
+ * 상세 조회 동시 실행 수.
+ *
+ * 2026-07-27: 예전엔 `for … await` 로 완전 순차였다. fetchAptComplexDetail 은
+ * 단지 하나당 API 를 두 번(기본정보 V4 + 상세 V4) 부르므로 200개 배치면
+ * **왕복 400회가 한 줄로** 늘어섰고, 회당 0.5초만 잡아도 200초 — 예산(270초)에
+ * 거의 다 쓰여 한 라운드가 200개를 못 채우고 잘렸다. 그 결과 3만 9천 단지 중
+ * 3,404개(8.6%)만 상세가 채워진 채 몇 달이 지났고, 지도 상세의 세대수가 "—" 로
+ * 비어 보였다.
+ *
+ * 6으로 잡은 이유: data.go.kr 은 초당 수십 건을 견디지만 우리가 그 한계를
+ * 시험할 이유가 없다. 6이면 순차 대비 약 6배(200개 ≈ 35초)로, 예산 안에서
+ * 한 라운드가 상한을 다 채우고도 남는다. 429/5xx 가 보이면 이 값을 먼저 낮춘다.
+ */
+const DETAIL_CONCURRENCY = 6;
+
+/**
+ * 동시 실행 수를 제한한 map. 입력 순서대로 결과를 돌려준다.
+ * (외부 의존성을 새로 들이지 않으려고 직접 둔다 — 하는 일이 이게 전부다.)
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
 
 /**
  * 위경도 검증 — 한반도 밖 좌표는 버린다. 좌표는 지도에 바로 찍히는 값이라
@@ -378,27 +416,39 @@ export async function enrichAptDetailBatch(limit: number): Promise<AptDetailEnri
 
   const okRows: Record<string, unknown>[] = [];
   const missRows: Record<string, unknown>[] = [];
-  for (const r of rows) {
+  /* DETAIL_CONCURRENCY 만큼 동시에 부른다(위 상수 주석에 이유). 각 워커는 자기
+     호출 사이에만 짧게 쉬므로, 전체 호출률은 순차일 때의 약 6배로 유지된다. */
+  const outcomes = await mapWithConcurrency(rows, DETAIL_CONCURRENCY, async (r) => {
     try {
       const { detail } = await fetchAptComplexDetail(r.external_id);
+      await new Promise((res) => setTimeout(res, DETAIL_DELAY_MS));
       if (detail && detail.kaptCode) {
-        okRows.push(
-          toWriteRow(r, {
+        return {
+          kind: "ok" as const,
+          row: toWriteRow(r, {
             ...toDetailPatch(detail),
             detailStatus: "ok",
             detailFetchedAt: fetchedAt,
           }),
-        );
-      } else {
-        missRows.push(toWriteRow(r, { detailStatus: "miss", detailFetchedAt: fetchedAt }));
+        };
       }
+      return {
+        kind: "miss" as const,
+        row: toWriteRow(r, { detailStatus: "miss", detailFetchedAt: fetchedAt }),
+      };
     } catch (err) {
-      missRows.push(toWriteRow(r, { detailStatus: "miss", detailFetchedAt: fetchedAt }));
-      if (errors.length < 3) {
-        errors.push(err instanceof Error ? err.message : String(err));
-      }
+      await new Promise((res) => setTimeout(res, DETAIL_DELAY_MS));
+      return {
+        kind: "miss" as const,
+        row: toWriteRow(r, { detailStatus: "miss", detailFetchedAt: fetchedAt }),
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
-    await new Promise((res) => setTimeout(res, DETAIL_DELAY_MS));
+  });
+  for (const o of outcomes) {
+    if (o.kind === "ok") okRows.push(o.row);
+    else missRows.push(o.row);
+    if ("error" in o && o.error && errors.length < 3) errors.push(o.error);
   }
 
   // 성공이 0건이면 키 미설정 또는 API 장애다 — miss 스탬프를 찍지 않고 그대로

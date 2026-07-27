@@ -332,6 +332,30 @@ const CLUSTER_MODE_MAX_ZOOM = 14;
 /** bounds 변경 → fetch 디바운스(ms) */
 const CLUSTER_FETCH_DEBOUNCE_MS = 350;
 
+/* ===== 인기 단지 패널 (/api/map/popular) =====
+   예전 좌측 패널은 서버 렌더 때 전국 거래량순 30개를 받아 놓고 그중 한 지역
+   이름을 붙여 "수원 단지 30" 이라고 적었다. 목록에 안양·창원·수원이 섞여 있었고
+   지도를 움직여도 그대로였다 — 지역 필터가 없었기 때문이다. 이제 지도가 멈출
+   때마다 보이는 영역의 인기 단지를 다시 받아 온다. */
+
+/** 이 줌 미만이면 화면이 너무 넓어 "이 지역"이라 부를 수 없다 → 전국 기준으로 조회 */
+const POPULAR_NATIONWIDE_MAX_ZOOM = 10;
+/** 패널에 표시할 인기 단지 수 (소유자 요청) */
+const POPULAR_LIMIT = 10;
+/** 지도 idle → 인기 단지 재조회 디바운스(ms) */
+const POPULAR_FETCH_DEBOUNCE_MS = 400;
+
+interface PopularItem {
+  id: string;
+  name: string;
+  regionName: string;
+  lat: number;
+  lng: number;
+  recentTradeCount: number;
+  tradeCount: number;
+  viewCount: number;
+}
+
 /* ===== 매물 레이어 (/api/map/listings) — 유저 등록 매물을 지도 마커로 ===== */
 
 interface MapListingItem {
@@ -804,6 +828,17 @@ export function MapClient({
     null,
   );
 
+  /* ===== 인기 단지 패널 상태 ===== */
+  const [popular, setPopular] = useState<PopularItem[]>([]);
+  /** "viewport" = 보이는 영역 기준, "nationwide" = 줌아웃(전국) */
+  const [popularScope, setPopularScope] = useState<"viewport" | "nationwide">("nationwide");
+  /* 조회 실패를 빈 목록으로 그리지 않기 위한 상태. 빈 목록과 실패는 다른 사실이다 —
+     전자는 "이 지역엔 단지가 없다", 후자는 "우리가 못 읽었다". */
+  const [popularFailed, setPopularFailed] = useState(false);
+  const [popularLoading, setPopularLoading] = useState(true);
+  const popularTimerRef = useRef<number | null>(null);
+  const popularAbortRef = useRef<AbortController | null>(null);
+
   /* ===== 매물 레이어 fetch/refs (상태 선언은 상단) ===== */
   const showListingsRef = useRef(showListings);
   showListingsRef.current = showListings;
@@ -894,6 +929,53 @@ export function MapClient({
     [],
   );
 
+  /**
+   * 보이는 영역의 인기 단지 재조회.
+   * 줌이 POPULAR_NATIONWIDE_MAX_ZOOM 이하면 화면이 너무 넓어 "이 지역"이라 부를 수
+   * 없으므로 범위를 빼고 전국 기준으로 받는다(소유자 요청: 줌아웃 시 전국 인기).
+   */
+  const schedulePopularFetch = useCallback(
+    (bounds: NonNullable<MapIdleInfo["bounds"]> | null, mapZoom: number) => {
+      if (popularTimerRef.current !== null) window.clearTimeout(popularTimerRef.current);
+      popularTimerRef.current = window.setTimeout(() => {
+        popularAbortRef.current?.abort();
+        const controller = new AbortController();
+        popularAbortRef.current = controller;
+        const useBounds = bounds !== null && mapZoom > POPULAR_NATIONWIDE_MAX_ZOOM;
+        const qs = new URLSearchParams({ limit: String(POPULAR_LIMIT) });
+        if (useBounds && bounds) {
+          qs.set("minLat", String(bounds.swLat));
+          qs.set("maxLat", String(bounds.neLat));
+          qs.set("minLng", String(bounds.swLng));
+          qs.set("maxLng", String(bounds.neLng));
+        }
+        setPopularLoading(true);
+        fetch(`/api/map/popular?${qs.toString()}`, { signal: controller.signal })
+          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+          .then((j: { scope: "viewport" | "nationwide"; items: PopularItem[] }) => {
+            if (controller.signal.aborted) return;
+            setPopular(Array.isArray(j.items) ? j.items : []);
+            setPopularScope(j.scope === "viewport" ? "viewport" : "nationwide");
+            setPopularFailed(false);
+            setPopularLoading(false);
+          })
+          .catch((e) => {
+            if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+            /* 직전 목록을 지우지 않는다 — 한 번 실패했다고 화면이 비어 버리면
+               사용자는 "이 지역엔 단지가 없다"로 읽는다. 실패 표시만 켠다. */
+            setPopularFailed(true);
+            setPopularLoading(false);
+          });
+      }, POPULAR_FETCH_DEBOUNCE_MS);
+    },
+    [],
+  );
+
+  /* 첫 진입 — 지도 idle 이 오기 전에도 패널이 비어 있지 않도록 전국 기준으로 먼저 채운다. */
+  useEffect(() => {
+    schedulePopularFetch(null, 0);
+  }, [schedulePopularFetch]);
+
   const handleMapIdle = useCallback(
     (info: MapIdleInfo) => {
       const bounds = info.bounds;
@@ -903,8 +985,9 @@ export function MapClient({
       setViewBounds(bounds);
       if (showListingsRef.current) fetchListings(bounds);
       scheduleClusterFetch(bounds, info.zoom);
+      schedulePopularFetch(bounds, info.zoom);
     },
-    [fetchListings, scheduleClusterFetch],
+    [fetchListings, scheduleClusterFetch, schedulePopularFetch],
   );
 
   // 매매/전세 토글 변경 → 마지막 뷰포트로 즉시 재조회
@@ -921,6 +1004,8 @@ export function MapClient({
       if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
       listingAbortRef.current?.abort();
       commuteAbortRef.current?.abort();
+      if (popularTimerRef.current !== null) window.clearTimeout(popularTimerRef.current);
+      popularAbortRef.current?.abort();
     },
     [],
   );
@@ -1315,6 +1400,24 @@ export function MapClient({
     setSearchMarker(null);
   }, []);
 
+  /**
+   * 인기 단지 목록에서 단지 선택 → 좌측 패널을 상세로 바꾸고 지도를 그 단지로 옮긴다.
+   * 좌표를 이미 알고 있으므로(popular API 가 함께 준다) 상세 로드를 기다리지 않고
+   * 바로 지도를 이동한다 — 클릭했는데 아무 반응이 없는 순간을 없애기 위해서다.
+   */
+  const openInfoPanel = useCallback(
+    (id: string, name: string, lat: number, lng: number) => {
+      setSelectedId(null);
+      setInfoComplex({ id, name });
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        setSearchMarker({ id, name, lat, lng });
+        setCenter({ lat, lng });
+        setLevel(LEVEL_BY_ZOOM.danji);
+      }
+    },
+    [],
+  );
+
   /* ===== 검색↔지도 연동 (#9a) — 마운트 시 ?q= 를 기존 선택 로직으로 재현 ===== */
   const seededRef = useRef(false);
   useEffect(() => {
@@ -1594,23 +1697,38 @@ export function MapClient({
       {/* 줌별 하단 정보 오버레이(보는 사람 수·전문가 수·조회수·급매 등)는
           집계 소스가 없어 허위 수치였으므로 사실 우선 원칙에 따라 제거함. */}
 
-      {/* ===== 좌측 사이드 패널 (320px, 접기 핸들) ===== */}
-      {!selected && panelOpen && (
+      {/* ===== 좌측 사이드 패널 (320px, 접기 핸들) =====
+          단지를 고르면(selected = 목록 클릭, infoComplex = 마커·검색·인기목록 클릭)
+          이 목록은 사라지고 같은 자리에 단지 상세가 들어선다. 예전에는 infoComplex
+          를 조건에서 빠뜨려, 마커를 눌러도 목록이 그대로 남고 상세가 지도 하단을
+          가리는 채로 둘 다 떠 있었다(소유자 지적). */}
+      {!selected && !infoComplex && panelOpen && (
         <aside
           data-tour="map-price-panel"
           className="glass-strong absolute bottom-5 left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
         >
-          <div className="flex items-baseline justify-between px-5 pb-2.5 pt-4">
+          <div className="flex items-baseline justify-between px-5 pb-1 pt-4">
             <div className="text-[15px] font-extrabold text-ink">
-              {/* 조회 실패는 0 이 아니다 — 숫자 자리에 "—" 를 쓴다 */}
-              {regionLabel} 단지 {danjiLoadFailed ? "—" : filteredDanji.length}
-              {!danjiLoadFailed && (danjiFilterActive || commuteActive) && (
-                <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
-              )}
+              {popularScope === "viewport" ? "이 지역 인기 단지" : "전국 인기 단지"}
             </div>
-            <div className="text-xs text-text-3">시세순 ▾</div>
+            <div className="text-[11px] text-text-3">최근 거래순</div>
           </div>
+          <div className="px-5 pb-2.5 text-[11px] leading-[1.5] text-text-3">
+            {popularScope === "viewport"
+              ? "지도를 움직이면 보이는 지역 기준으로 바뀝니다"
+              : "지도를 확대하면 그 지역 기준으로 바뀝니다"}
+          </div>
+          {popularFailed && (
+            <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+              <div className="text-[12px] font-extrabold text-ink">
+                인기 단지를 지금 불러오지 못했어요
+              </div>
+              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+                이 지역에 단지가 없는 게 아니라 조회가 실패했습니다. 지도는 그대로 쓸 수 있어요.
+              </p>
+            </div>
+          )}
           {danjiLoadFailed && (
             <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
               <div className="text-[12px] font-extrabold text-ink">
@@ -1650,41 +1768,43 @@ export function MapClient({
             </div>
           )}
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3">
-            {filteredDanji.map((d, i) => (
+            {!popularFailed && !popularLoading && popular.length === 0 && (
+              <div className="px-2 py-6 text-center text-[12px] leading-[1.7] text-text-3">
+                이 영역에는 실거래가 기록된 단지가 없어요.
+                <br />
+                지도를 넓히거나 다른 지역으로 옮겨 보세요.
+              </div>
+            )}
+            {popular.map((p, i) => (
               <button
-                key={d.id}
+                key={p.id}
                 type="button"
-                onClick={() => selectDanji(d.id)}
-                className={`rise-in-${Math.min(i + 1, 6)} card-hover flex flex-col gap-1.5 rounded-[14px] bg-surface px-4 py-3.5 text-left ${
-                  d.id === selectedId ? "border-[1.5px] border-primary" : "border border-line"
-                }`}
+                onClick={() => openInfoPanel(p.id, p.name, p.lat, p.lng)}
+                /* 선택 상태 테두리는 두지 않는다 — 이 목록은 아무것도 선택되지
+                   않았을 때만 그려지므로(위 조건) 선택된 항목이 있을 수 없다. */
+                className={`rise-in-${Math.min(i + 1, 6)} card-hover flex items-center gap-3 rounded-[14px] border border-line bg-surface px-4 py-3 text-left`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="text-[15px] font-bold text-ink">{d.name}</div>
-                  {d.note ? (
-                    <span className="rounded-[5px] bg-primary-soft px-2 py-[3px] text-[11px] font-bold text-primary">
-                      {d.note}
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-[#c3cad6]">노트 없음</span>
-                  )}
-                </div>
-                <div className="text-xs text-text-3">{d.meta}</div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[17px] font-extrabold text-ink">{d.price}</span>
-                  <span className={`text-xs ${deltaClass(d.deltaTone)}`}>{d.delta}</span>
-                  <span className="text-xs text-text-3">{d.size}</span>
-                </div>
+                {/* 순위를 눈에 보이게 — "왜 이 순서인가"가 목록의 뜻이다 */}
+                <span
+                  className={`shrink-0 text-[13px] font-extrabold ${
+                    i < 3 ? "text-primary" : "text-text-3"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-bold text-ink">{p.name}</span>
+                  <span className="mt-0.5 block text-[11px] text-text-3">{p.regionName}</span>
+                </span>
+                <span className="shrink-0 text-right">
+                  {/* 순위 근거를 그대로 적는다 — 숨은 점수로 줄 세우지 않는다 */}
+                  <span className="block text-[13px] font-extrabold text-ink">
+                    {p.recentTradeCount.toLocaleString("ko-KR")}건
+                  </span>
+                  <span className="block text-[10px] text-text-3">최근 6개월</span>
+                </span>
               </button>
             ))}
-          </div>
-          <div className="p-3.5">
-            <Link
-              href="/notes/compare"
-              className="btn-soft block rounded-xl p-3 text-center text-[13px]"
-            >
-              선택 단지 비교
-            </Link>
           </div>
         </aside>
       )}
