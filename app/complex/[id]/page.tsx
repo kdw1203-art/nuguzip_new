@@ -497,9 +497,12 @@ export default async function ComplexHubPage({
       households: v.households,
       priceRange: complexPriceRange,
     }),
+    /* 예전엔 여기에 { name: v.dong } 이 끼어 있었다. 동 이름만 있고 갈 수 있는
+       페이지가 없어 item(URL)이 빠졌고, 구글은 이걸 심각 오류로 보고 이 페이지의
+       탐색경로를 통째로 무시했다(2026-07-27 Search Console). 링크 없는 라벨은
+       탐색경로의 단계가 아니다 — 지역 상세 페이지가 생기면 그때 URL과 함께 넣는다. */
     breadcrumbJsonLd([
       { name: "홈", url: "/" },
-      { name: v.dong },
       { name: v.name, url: `/complex/${encodeURIComponent(complexId)}` },
     ]),
   ];

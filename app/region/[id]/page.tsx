@@ -425,9 +425,11 @@ export default async function RegionHubPage({
   // JSON-LD(BreadcrumbList + Place) — 실데이터 스냅샷, 존재 필드만
   // (FAQPage 는 QaBlock 이 화면에 보이는 items 로 직접 생성한다)
   const regionJsonLd = [
+    /* "지역 시세"는 목적지가 없는 라벨이라 뺐다 — item(URL) 없는 중간 항목은
+       구글이 심각 오류로 처리해 탐색경로 전체를 버린다(2026-07-27 Search Console).
+       화면 상단 breadcrumb 텍스트에는 그대로 남는다(그건 시각 라벨이다). */
     breadcrumbJsonLd([
       { name: "홈", url: "/" },
-      { name: "지역 시세" },
       { name, url: `/region/${id}` },
     ]),
     /* G6: 예전엔 여기 Place 와 별개로 @id 없는 Place 를 하나 더 내보내

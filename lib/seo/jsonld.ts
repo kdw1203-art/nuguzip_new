@@ -198,13 +198,36 @@ export function regionPlaceJsonLd(input: {
 
 /* ---------- BreadcrumbList ---------- */
 
+/**
+ * BreadcrumbList JSON-LD.
+ *
+ * ⚠️ url 없는 중간 항목은 **버린다**. 구글은 마지막 요소를 뺀 모든 ListItem 에
+ * item(URL)을 요구하고, 없으면 심각 오류로 그 페이지의 탐색경로를 통째로
+ * 무시한다. 2026-07-27 Search Console 경고가 정확히 이것이었다 —
+ * "'item' 입력란이 누락되었습니다(경로: 'itemListElement')".
+ *
+ * 원인은 호출부에서 목적지 없는 라벨을 크럼으로 넣은 것이었다:
+ *   /complex/[id] → { name: v.dong }        (동 이름, 해당 페이지 없음)
+ *   /region/[id]  → { name: "지역 시세" }   (지역 목록 페이지 없음)
+ * 둘 다 2만 5천여 개 단지 페이지와 지역 페이지에 깔려 있었다.
+ *
+ * 왜 호출부만 고치지 않고 여기서 막는가: 이 두 라우트는 ISR 동적 페이지라
+ * 빌드 산출물에 HTML 이 없고, 그래서 check-jsonld 게이트가 볼 수 없다
+ * (스크립트 상단에 명시된 사각지대). 게이트가 못 잡는 자리는 자료구조가
+ * 대신 막아야 한다 — 링크 없는 단계는 애초에 탐색경로의 단계가 아니다.
+ *
+ * position 은 걸러낸 뒤 1부터 다시 매긴다(구글은 연속된 번호를 요구한다).
+ */
 export function breadcrumbJsonLd(
   items: Array<{ name: string; url?: string }>,
 ): Record<string, unknown> {
+  const navigable = items.filter(
+    (it, i) => i === items.length - 1 || Boolean(it.url?.trim()),
+  );
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: items.map((it, i) =>
+    itemListElement: navigable.map((it, i) =>
       compact({
         "@type": "ListItem",
         position: i + 1,

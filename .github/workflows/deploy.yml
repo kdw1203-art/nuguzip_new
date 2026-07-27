@@ -149,6 +149,13 @@ jobs:
       # 배포 전에 실패시킨다. (lib/http/cache-policy.ts)
       - name: Cache policy check
         run: node scripts/check-cache-policy.mjs
+      # ---- N8: 구조화 데이터(JSON-LD) 검증 ----
+      # 이 스크립트는 예전부터 있었지만 package.json 에만 있고 어떤 워크플로에도
+      # 연결돼 있지 않았다 — 즉 한 번도 실행된 적이 없다. 그 사이 탐색경로 스키마의
+      # item(URL) 누락이 배포돼 Search Console 이 잡아냈다(2026-07-27). 게이트는
+      # 돌아야 게이트다.
+      - name: Structured data (JSON-LD) check
+        run: node scripts/check-jsonld.mjs
       - name: Link integrity check
         # 스텝 단위 상한도 따로 둔다. 잡 상한(35분)만 있으면 어느 스텝이 잡아먹었는지
         # 로그를 끝까지 뒤져야 알 수 있는데, 여기서 끊기면 원인이 바로 드러난다.
