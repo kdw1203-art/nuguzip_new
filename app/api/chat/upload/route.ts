@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { ok, apiError } from "@/lib/api/response";
 import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
@@ -10,6 +11,11 @@ import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/* 서명 URL 유효기간. 채팅 첨부는 대화 스크롤을 되짚으며 나중에 다시 열리므로 짧게 두면
+   과거 첨부가 죽는다. 그렇다고 공개 URL 로 돌아가면 추측 가능한 키가 되므로,
+   "무작위 토큰이 붙은 장기 URL"로 절충한다. 재발급 API 가 생기면 짧게 줄이는 게 맞다. */
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
 
 /**
  * 허용 MIME 은 **정확히 일치하는 목록**이다.
@@ -85,7 +91,10 @@ export async function POST(req: NextRequest) {
   }
 
   const fallbackUrl = `${getSupabaseUrl() ?? ""}/storage/v1/object/public/chat-uploads`;
-  const key = `${actor.email}/${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
+  /* 키에 난수를 섞는다. 예전 키는 `이메일/타임스탬프-원본파일명` 이라 상대방 이메일과
+     대략의 시각만 알면 맞혀 볼 수 있었다. 부동산 채팅 첨부는 계약서·신분증이 오간다. */
+  const safeName = file.name.replace(/[^\w.-]/g, "_").slice(-80);
+  const key = `${actor.email}/${Date.now()}-${randomUUID().slice(0, 12)}-${safeName}`;
 
   const sb = getServiceSupabase();
   if (sb) {
@@ -97,7 +106,14 @@ export async function POST(req: NextRequest) {
         contentType,
       });
     if (!uploadError) {
-      const { data } = sb.storage.from("chat-uploads").getPublicUrl(key);
+      /* chat-uploads 는 **비공개** 버킷이다. 공개 버킷 + 추측 가능한 키 조합이면
+         채팅방 밖의 누구나 첨부를 열 수 있다. 서명 URL(만료 있는 무작위 토큰)로 준다. */
+      const { data } = await sb.storage
+        .from("chat-uploads")
+        .createSignedUrl(key, SIGNED_URL_TTL_SECONDS);
+      if (!data?.signedUrl) {
+        return apiError("UPLOAD_FAILED", "첨부 URL 발급에 실패했습니다.", 500);
+      }
       const platform = detectShellFromUserAgent(req.headers.get("user-agent"));
       void recordPlatformEvent({
         platform,
@@ -117,7 +133,7 @@ export async function POST(req: NextRequest) {
       return ok({
         ok: true,
         upload: {
-          fileUrl: data.publicUrl,
+          fileUrl: data.signedUrl,
           filePath: key,
           mime: contentType,
           sizeBytes: file.size,
