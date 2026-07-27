@@ -323,7 +323,9 @@ export async function loadAdminKpi(): Promise<AdminKpi> {
       .select("*", { count: "exact", head: true })
       .gte("created_at", weekAgo),
     sb.from("reports").select("*", { count: "exact", head: true }),
-    sb.from("reports").select("*", { count: "exact", head: true }).gte("created_at", today),
+    /* reports 에는 created_at 이 없다(published_at·updated_at 뿐). 없는 컬럼으로
+       거르면 이 count 는 매번 error 라 "오늘 0건"이 사실처럼 남았다. */
+    sb.from("reports").select("*", { count: "exact", head: true }).gte("published_at", today),
     sb.from("bookmarks").select("*", { count: "exact", head: true }),
     sb
       .from("payments")

@@ -37,7 +37,11 @@ export function buildDistrictKey(parts: {
   sigungu: string;
   eupmyeondong?: string;
 }): string {
-  const sido = parts.sido.replace(/특별시|광역시|특별자치시|도/g, "").trim() || parts.sido;
+  /* 접미사는 긴 것부터 지운다. "특별자치도"를 넣지 않으면 "강원특별자치도"에서
+     끝의 "도"만 떨어져 "강원특별자치"가 되고, districts.sido_short("강원")와
+     영영 만나지 못한다. 전북·제주도 같은 경우다. */
+  const sido =
+    parts.sido.replace(/특별자치도|특별자치시|특별시|광역시|도$/g, "").trim() || parts.sido;
   const segs = [sido, parts.sigungu, parts.eupmyeondong].filter(Boolean);
   return segs.join("-");
 }

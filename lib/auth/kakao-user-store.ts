@@ -47,20 +47,34 @@ export async function linkKakaoUser(
   let isNew = false;
 
   try {
-    const { data: byKakao } = await sb
+    /* error 를 삼키면 "이 카카오 계정은 처음 본다"가 되고, 아래 insert 가
+       기존 계정과 충돌하거나 새 행을 또 만든다. 못 읽었으면 그렇게 말한다. */
+    const { data: byKakao, error: byKakaoError } = await sb
       .from("app_users")
       .select("id, email, role, plan, name, avatar_url")
       .eq("kakao_user_id", kakaoUserId)
       .maybeSingle();
+    if (byKakaoError) {
+      logger.error("[kakao-login] app_users(kakao_user_id) 조회 실패", byKakaoError.message);
+      throw new Error(
+        `app_users 조회 실패 (kakao_user_id): ${byKakaoError.message ?? "알 수 없는 오류"}`,
+      );
+    }
 
     let row = byKakao;
 
     if (!row && input.email) {
-      const { data: byEmail } = await sb
+      const { data: byEmail, error: byEmailError } = await sb
         .from("app_users")
         .select("id, email, role, plan, name, avatar_url")
         .eq("email", email)
         .maybeSingle();
+      if (byEmailError) {
+        logger.error("[kakao-login] app_users(email) 조회 실패", byEmailError.message);
+        throw new Error(
+          `app_users 조회 실패 (email): ${byEmailError.message ?? "알 수 없는 오류"}`,
+        );
+      }
       row = byEmail;
     }
 
@@ -75,7 +89,9 @@ export async function linkKakaoUser(
           ...(input.image && !row.avatar_url ? { avatar_url: input.image } : {}),
         })
         .eq("id", row.id);
-      if (error) logger.warn("[kakao-login] link update failed", error);
+      /* 갱신 실패는 "카카오 연동이 안 붙었다"는 뜻이라 다음 로그인 때 이 사람을
+         또 신규로 본다. 조용히 넘기지 않고 error 로 남긴다. */
+      if (error) logger.error("[kakao-login] 연동 갱신 실패", error.message);
       return {
         email: String(row.email),
         role: normalizeRole(row.role),
@@ -96,12 +112,14 @@ export async function linkKakaoUser(
       kakao_linked_at: now,
       updated_at: now,
     });
+    /* 여기서 실패하면 로그인은 됐는데 계정 행이 없는 상태가 된다 —
+       가장 조용한 고장이다. error 로 남겨 눈에 띄게 한다. */
     if (insertError) {
-      logger.warn("[kakao-login] insert failed", insertError);
+      logger.error("[kakao-login] 계정 생성 실패", insertError.message);
       isNew = false;
     }
   } catch (e) {
-    logger.warn("[kakao-login] linkKakaoUser", e);
+    logger.error("[kakao-login] linkKakaoUser", e);
   }
 
   return { email, role: "user", plan: "free", isNew };
