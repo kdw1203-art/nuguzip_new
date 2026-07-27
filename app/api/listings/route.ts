@@ -14,6 +14,7 @@ import {
   isListingSource,
   type ListingType,
 } from "@/lib/listings/store-db";
+import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,12 +53,19 @@ function toUrl(v: unknown): string | null {
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const typeRaw = (sp.get("type") ?? "").trim();
-  const items = await listApprovedListings({
-    listingType: isListingType(typeRaw) ? typeRaw : undefined,
-    regionName: (sp.get("gu") ?? "").trim() || undefined,
-    complexName: (sp.get("complex") ?? "").trim() || undefined,
-  });
-  return NextResponse.json({ items });
+  /* 조회 실패를 `{ items: [] }` 로 내보내면 호출부(지도·목록·위젯)는 그것을
+     "매물 0건"으로 읽는다. 못 읽었으면 503 으로 답한다 — 200 + 빈 배열은
+     캐시·재시도 판단까지 함께 망친다. */
+  try {
+    const items = await listApprovedListings({
+      listingType: isListingType(typeRaw) ? typeRaw : undefined,
+      regionName: (sp.get("gu") ?? "").trim() || undefined,
+      complexName: (sp.get("complex") ?? "").trim() || undefined,
+    });
+    return NextResponse.json({ items });
+  } catch (e) {
+    return dbUnavailable("listings", e);
+  }
 }
 
 export async function POST(req: NextRequest) {

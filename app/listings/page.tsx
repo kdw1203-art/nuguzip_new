@@ -13,6 +13,7 @@ import { ListingCompareToggle } from "@/components/ListingCompareToggle";
 import { ListingCompareTray } from "@/components/ListingCompareTray";
 import type { CompareListing } from "@/components/listing-compare-store";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { ErrorState } from "@/app/components/ui/EmptyState";
 
 /* ============================================================
    실매물 목록 — /listings
@@ -97,11 +98,21 @@ export default async function ListingsPage({
   const gu = (sp.gu ?? "").trim();
   const complex = (sp.complex ?? "").trim();
 
-  const items = await listApprovedListings({
-    listingType: type ? (type as "sale" | "jeonse" | "monthly") : undefined,
-    regionName: gu || undefined,
-    complexName: complex || undefined,
-  });
+  /* listApprovedListings 는 조회 실패를 던진다. 여기서 잡아 ErrorState 를 그리는
+     이유는, 그냥 올려 보내면 Next 의 일반 오류 화면이 떠서 필터·등록 버튼까지
+     사라지기 때문이다. "매물이 없어요"라고 말하지 않는 것이 핵심이고, 화면은
+     남겨 둔 채 "지금 못 읽었다"만 정확히 알린다. */
+  let items: Awaited<ReturnType<typeof listApprovedListings>> | null = null;
+  let loadError: string | null = null;
+  try {
+    items = await listApprovedListings({
+      listingType: type ? (type as "sale" | "jeonse" | "monthly") : undefined,
+      regionName: gu || undefined,
+      complexName: complex || undefined,
+    });
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : String(e);
+  }
 
   const seoulGus = DISTRICTS["서울특별시"];
 
@@ -168,7 +179,15 @@ export default async function ListingsPage({
         ))}
       </div>
 
-      {items.length === 0 ? (
+      {items === null ? (
+        <ErrorState
+          className="rise-in-1"
+          title="매물 목록을 지금 불러올 수 없어요"
+          desc="매물이 없는 게 아니라, 목록을 읽어 오지 못했어요. 잠시 후 새로고침해 주세요."
+          cause={loadError ?? undefined}
+          action={{ href: "/listings/new", label: "매물 등록하기" }}
+        />
+      ) : items.length === 0 ? (
         <div className="rise-in-1 card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
           <div className="text-[15px] font-extrabold text-ink">
             아직 등록된 매물이 없어요 — 첫 매물을 등록해 보세요
