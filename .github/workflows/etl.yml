@@ -10,9 +10,22 @@ name: Market ETL
 
 on:
   schedule:
-    # 하루 2회 — 09:00 KST(00:00 UTC), 18:00 KST(09:00 UTC)
-    - cron: "0 0 * * *"
-    - cron: "0 9 * * *"
+    # 하루 2회 — 02:00 KST(17:00 UTC), 15:00 KST(06:00 UTC)
+    #
+    # 왜 옮겼나 (2026-07-27):
+    #  1) 부하. 이 잡의 market-aggregates-refresh 는 실측 평균 64초 동안 DB 를
+    #     붙잡고, 지역별 delete/count 도 건당 ~6.2초다. 예전 슬롯인 09:00·18:00
+    #     KST 는 둘 다 한국 사용자가 실제로 사이트를 보는 시간대여서, 무거운
+    #     집계가 조회와 정면으로 겹쳤다. 02:00 KST 는 완전한 비수기고,
+    #     15:00 KST 는 점심(12~13)과 저녁(18~23) 두 피크 사이의 골이다.
+    #  2) 슬라이스가 실제로 돌게 된다. molit 수집의 자동 회전은
+    #     floor(now / 12h) % windows (lib/market/molit-transactions.ts:227) 인데,
+    #     옛 슬롯 00:00 UTC 와 09:00 UTC 는 **같은 12시간 버킷**이라 하루 두 번
+    #     돌면서 같은 시군구 슬라이스를 두 번 긁고 있었다. 17:00 UTC 와
+    #     06:00 UTC 는 버킷이 갈려서 실행마다 슬라이스가 한 칸씩 전진한다 —
+    #     전국 한 바퀴 도는 속도가 그대로 두 배가 된다.
+    - cron: "0 17 * * *"
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -123,12 +136,12 @@ jobs:
   #  market_ingest_log 에 무조건 기록하는데 그 시각 로그가 없다. 같은 날 02:57 의
   #  GitHub Actions 실행 기록만 있다.) 그래서 여기로 옮긴다.
   #
-  # 하루 2회가 아니라 1회(18:00 KST)만 도는 이유: 알림은 적재와 성격이 다르다.
+  # 하루 2회가 아니라 1회(15:00 KST)만 도는 이유: 알림은 적재와 성격이 다르다.
   # 같은 변동을 하루 두 번 알리면 정보가 두 배가 되는 게 아니라 신뢰가 반이 된다.
   # 이탈 리마인드는 원래 설계가 주 1회(화)라 요일로 한 번 더 거른다.
   alerts:
     needs: etl
-    if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 9 * * *')
+    if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *')
     runs-on: ubuntu-latest
     steps:
       - name: Run alert runners
