@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { EmptyState, ErrorState } from "@/app/components/ui/EmptyState";
 import { APPLYHOME_REGIONS } from "@/lib/applyhome/regions";
 import type {
   ApplyhomeListingItem,
@@ -13,11 +14,24 @@ import type {
  * 경쟁률/특별공급 탭 + 지역·단지명 필터 + 더보기(페이지네이션).
  * 서버에서 만든 초기 페이로드(initial)로 첫 화면을 그리고, 이후 상호작용은
  * 클라이언트에서 API 를 호출한다. 실패·미설정 시에도 지어내지 않고 상태를 말한다.
+ *
+ * 2026-07-27 고도화(#225) — /supply·/auctions 와 같은 수준으로 올린다.
+ *   - 지역 필터를 <select> → 칩 줄로 (한 번에 어떤 지역이 있는지 보인다)
+ *   - 요약 타일 추가. 단, **세는 대상을 라벨에 그대로 쓴다** — "총 공고"는 서버가 준
+ *     totalCount, "표시 중"은 지금 화면에 그려진 행 수다. 평균 경쟁률처럼 일부 페이지만
+ *     보고 계산하면 틀리는 값은 만들지 않는다.
+ *   - 손으로 만든 에러/빈 카드 → 공용 ErrorState/EmptyState. 세 상태(키 미설정 mock /
+ *     조회 실패 / 진짜 0건)를 절대 한 문장으로 합치지 않는다.
  */
 
 const PER_PAGE = 15;
 
-type Props = { initial: ApplyhomeSearchPayload | null };
+/** 서버(page.tsx)에서 넘어오는 초기 조회 결과 — 성공/실패를 구분해 받는다. */
+export type ApplyInitialResult =
+  | { ok: true; payload: ApplyhomeSearchPayload }
+  | { ok: false; cause: string };
+
+type Props = { initial: ApplyInitialResult };
 
 type ViewState = {
   tab: ApplyhomeSearchTab;
@@ -30,6 +44,9 @@ type ViewState = {
   detailNotice?: string;
   fetchedAt?: string;
 };
+
+/** 조회 실패 — 원인 원문을 같이 들고 다닌다(화면에 그대로 노출한다). */
+type ErrState = { message: string; cause?: string } | null;
 
 function fromPayload(p: ApplyhomeSearchPayload, prevItems?: ApplyhomeListingItem[]): ViewState {
   const merged = prevItems ? [...prevItems, ...p.items] : p.items;
@@ -63,15 +80,34 @@ const EMPTY_STATE: ViewState = {
   mode: "error",
 };
 
+/** "2026-07-27T09:12:33Z" → "07-27 09:12". 파싱 실패 시 앞부분만 그대로 보여준다. */
+function fetchedLabel(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(iso);
+  if (!m) return iso.slice(0, 16);
+  return `${m[2]}-${m[3]} ${m[4]}:${m[5]}`;
+}
+
+function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="card flex min-w-0 flex-col gap-0.5 rounded-2xl px-3.5 py-3">
+      <span className="text-[10.5px] font-bold text-text-3">{label}</span>
+      <span className="truncate text-[17px] font-extrabold text-ink">{value}</span>
+      {hint && <span className="truncate text-[10.5px] text-text-3">{hint}</span>}
+    </div>
+  );
+}
+
 export function ApplySearchClient({ initial }: Props) {
   const [state, setState] = useState<ViewState>(
-    initial ? fromPayload(initial) : EMPTY_STATE,
+    initial.ok ? fromPayload(initial.payload) : EMPTY_STATE,
   );
-  const [qInput, setQInput] = useState(initial?.filters.q ?? "");
+  const [qInput, setQInput] = useState(initial.ok ? initial.payload.filters.q : "");
   const [loading, setLoading] = useState(false);
   const [appending, setAppending] = useState(false);
-  const [error, setError] = useState<string | null>(
-    initial ? null : "청약홈 데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
+  const [error, setError] = useState<ErrState>(
+    initial.ok
+      ? null
+      : { message: "청약홈 데이터를 지금 불러오지 못했어요.", cause: initial.cause },
   );
 
   async function load(opts: {
@@ -100,16 +136,17 @@ export function ApplySearchClient({ initial }: Props) {
       const res = await fetch(`/api/applyhome/search?${params.toString()}`, {
         cache: "no-store",
       });
-      if (!res.ok) throw new Error("청약홈 데이터를 불러오지 못했어요.");
+      if (!res.ok) throw new Error(`청약홈 조회 응답 ${res.status}`);
       const data = (await res.json()) as ApplyhomeSearchPayload;
       setState((prev) => ({
         ...fromPayload(data, append ? prev.items : undefined),
         page,
       }));
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "청약홈 데이터를 불러오지 못했어요.",
-      );
+      setError({
+        message: "청약홈 데이터를 지금 불러오지 못했어요.",
+        cause: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setLoading(false);
       setAppending(false);
@@ -117,16 +154,27 @@ export function ApplySearchClient({ initial }: Props) {
   }
 
   const canLoadMore =
-    state.mode === "live" && state.items.length > 0 && state.items.length < state.totalCount;
+    !error &&
+    state.mode === "live" &&
+    state.items.length > 0 &&
+    state.items.length < state.totalCount;
 
   const tabPill = (on: boolean) =>
     on
       ? "press rounded-full bg-primary px-4 py-2 text-[13px] font-bold text-white"
       : "press glass rounded-full px-4 py-2 text-[13px] font-semibold text-text-2";
 
+  const regionPill = (on: boolean) =>
+    on
+      ? "press chip-active shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold"
+      : "press chip shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold";
+
+  const tabLabel = state.tab === "competition" ? "청약 경쟁률" : "특별공급 접수현황";
+  const showTiles = !error && state.mode === "live" && state.items.length > 0;
+
   return (
     <div className="flex flex-col gap-3">
-      {/* 탭 + 필터 행 */}
+      {/* 탭 + 검색 행 */}
       <div className="rise-in-1 flex flex-wrap items-center gap-2">
         <div className="flex gap-1.5">
           <button
@@ -155,18 +203,6 @@ export function ApplySearchClient({ initial }: Props) {
             void load({ q: qInput.trim(), page: 1 });
           }}
         >
-          <select
-            value={state.region}
-            onChange={(e) => void load({ region: e.target.value, page: 1 })}
-            aria-label="지역"
-            className="rounded-xl border border-line bg-surface px-3 py-2 text-[13px] text-ink"
-          >
-            {APPLYHOME_REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
           <input
             type="search"
             value={qInput}
@@ -186,45 +222,85 @@ export function ApplySearchClient({ initial }: Props) {
         </form>
       </div>
 
+      {/* 지역 칩 — <select> 였다. 어떤 지역이 있는지 한눈에 보이고 한 번에 눌린다. */}
+      <div
+        role="group"
+        aria-label="지역 필터"
+        className="rise-in-1 -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1"
+      >
+        {APPLYHOME_REGIONS.map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => void load({ region: r, page: 1 })}
+            aria-pressed={state.region === r}
+            className={regionPill(state.region === r)}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
+      {/* 요약 타일 — 라벨이 곧 세는 대상이다(추정치 아님). */}
+      {showTiles && (
+        <div className="rise-in-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <Tile
+            label={`${tabLabel} 총 공고`}
+            value={`${state.totalCount.toLocaleString()}건`}
+            hint={state.region === "전체" ? "전국" : state.region}
+          />
+          <Tile
+            label="지금 화면에 표시 중"
+            value={`${state.items.length.toLocaleString()}건`}
+            hint={canLoadMore ? "더보기로 이어서" : "전부 표시됨"}
+          />
+          <Tile
+            label="조회 시각"
+            value={state.fetchedAt ? fetchedLabel(state.fetchedAt) : "—"}
+            hint="청약홈 공공데이터"
+          />
+        </div>
+      )}
+
       {/* 상세 API 미승인 등 데이터 한계 안내 — 서버가 준 사실 그대로 */}
       {state.detailNotice && (
-        <p className="rise-in-1 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-2.5 text-[11px] leading-[1.6] text-[#5b74b8]">
+        <p className="rise-in-2 rounded-xl bg-primary-soft px-4 py-2.5 text-[11px] leading-[1.6] text-primary">
           {state.detailNotice}
         </p>
       )}
 
-      {error && (
-        <div
-          role="alert"
-          className="rise-in-1 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-[12px] text-danger"
-        >
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void load({ page: 1 })}
-            className="press rounded-full bg-primary-soft px-3 py-1.5 text-[12px] font-bold text-primary"
-          >
-            다시 시도
-          </button>
+      {/* 결과 — 실패 / 미설정 / 0건 / 목록을 절대 섞지 않는다 */}
+      {error ? (
+        <div role="alert" className="rise-in-2">
+          <ErrorState
+            title={error.message}
+            desc="공고가 없는 게 아니라 조회 자체가 실패했습니다. 잠시 후 다시 시도해 주세요."
+            cause={error.cause}
+            onRetry={() => void load({ page: 1 })}
+          />
         </div>
-      )}
-
-      {/* 결과 표 */}
-      <div className="rise-in-2 px-1 text-xs font-extrabold text-text-3">
-        {state.mode === "live"
-          ? `${state.tab === "competition" ? "청약 경쟁률" : "특별공급 접수현황"} · 청약홈 실데이터 ${state.totalCount.toLocaleString()}건`
-          : "청약홈 실데이터"}
-      </div>
-
-      {loading ? (
+      ) : loading ? (
         <div className="rise-in-2 card rounded-2xl px-4 py-12 text-center text-[13px] text-text-3">
           청약홈 데이터를 불러오는 중…
         </div>
       ) : state.items.length === 0 ? (
-        <div className="rise-in-2 card rounded-2xl px-4 py-12 text-center text-[13px] text-text-3">
-          {state.mode === "mock"
-            ? "청약홈 공공데이터 연동(DATA_GO_KR_SERVICE_KEY)이 설정되지 않아 표시할 데이터가 없어요. 지어낸 수치는 보여드리지 않아요."
-            : "현재 조건에 표시할 청약 데이터가 없어요. 지역·검색어를 바꿔 보세요."}
+        <div className="rise-in-2">
+          {state.mode === "mock" ? (
+            <EmptyState
+              icon="lock"
+              title="청약홈 공공데이터 연동이 아직 설정되지 않았어요"
+              desc="DATA_GO_KR_SERVICE_KEY 가 없어 실데이터를 부를 수 없습니다. 지어낸 수치로 표를 채우지는 않아요."
+              action={{ href: "https://www.applyhome.co.kr", label: "청약홈에서 직접 보기 ↗" }}
+            />
+          ) : (
+            <EmptyState
+              icon="search"
+              title="이 조건에 맞는 공고가 없어요"
+              desc={`${state.region === "전체" ? "전국" : state.region}${
+                state.q ? ` · ‘${state.q}’` : ""
+              } 조건으로는 조회 결과가 0건이었어요. 지역이나 검색어를 바꿔 보세요.`}
+            />
+          )}
         </div>
       ) : (
         <div className="rise-in-2 card overflow-x-auto rounded-2xl px-[18px] py-1">
