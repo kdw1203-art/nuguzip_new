@@ -16,6 +16,7 @@
 import "server-only";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
+import { DEFAULT_ADMIN_EMAIL } from "@/lib/brand/business-info";
 
 export interface AdminKpiCard {
   label: string;
@@ -388,7 +389,7 @@ async function loadReportStatusCounts(): Promise<AdminStatusCount[]> {
 async function loadRecentInquiries(limit = 5): Promise<AdminInquiryRow[]> {
   const sb = getReadOnlySupabase();
   if (!sb) return [];
-  const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@nuguzip.com")
+  const adminEmail = (process.env.ADMIN_EMAIL ?? DEFAULT_ADMIN_EMAIL)
     .trim()
     .toLowerCase();
   try {

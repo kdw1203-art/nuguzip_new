@@ -11,6 +11,7 @@ import {
   type SupportFaqItem,
 } from "@/lib/support/faq";
 import { logger } from "@/lib/log";
+import { getBusinessInfo } from "@/lib/brand/business-info";
 
 /* P2-2: 사이드메뉴 실링크 · 문의 폼(/api/support) 연동 · 공지 board_posts(공지 카테고리) 실연동 */
 
@@ -105,6 +106,10 @@ const SUPPORT_FAQ_PREVIEW_IDS = [
 
 export default async function SupportPage() {
   const { notices, failed: noticesFailed } = await loadNotices();
+  /* 문의 주소는 lib/brand/business-info.ts 한 곳에서 온다 — 화면마다 따로 적으면
+     바꿀 때 어딘가는 반드시 남는다(실제로 partner@·ad@ 가 그렇게 남아 있었다). */
+  const biz = getBusinessInfo();
+  const { supportEmail } = biz;
   const byId = new Map(supportFaqItems().map((i) => [i.id, i]));
   const faqAll = supportFaqItems();
   const faqGroups = supportFaqByCategory();
@@ -392,8 +397,15 @@ export default async function SupportPage() {
               <div className="text-xs leading-[1.6] text-ai-text">
                 IR 자료 요청, 데이터 제휴, 금융사 연동 제안은 별도 채널로 받고 있습니다.
               </div>
-              <a href="mailto:partner@nuguzip.com" className="text-xs font-bold text-[#7ea2ff]">
-                partner@nuguzip.com
+              {/* partner@ · ad@ 는 받는 사람이 없는 주소였다. 문의 창구로 적어 두고
+                  아무도 안 읽으면, 보낸 사람은 답을 기다리며 다른 곳을 찾지 않는다.
+                  실제로 운영진이 읽는 주소 한 곳(business-info)으로 모은다.
+                  용건 구분은 제목 프리필로 한다. */}
+              <a
+                href={`mailto:${supportEmail}?subject=${encodeURIComponent("[제휴] 투자·데이터 제휴 문의")}`}
+                className="text-xs font-bold text-[#7ea2ff]"
+              >
+                {supportEmail}
               </a>
             </div>
             <div id="ads" className="card flex scroll-mt-24 flex-col gap-2 rounded-2xl p-5">
@@ -404,8 +416,11 @@ export default async function SupportPage() {
               </div>
               {/* mailto 링크에 "미디어킷 다운로드"라고 적혀 있었지만 눌러도 받아지는
                   파일이 없다(내려줄 파일 자체가 없다). 실제 동작인 "메일로 요청"에 맞춘다. */}
-              <a href="mailto:ad@nuguzip.com" className="text-xs font-bold text-primary">
-                ad@nuguzip.com · 메일로 미디어킷 요청
+              <a
+                href={`mailto:${supportEmail}?subject=${encodeURIComponent("[광고] 미디어킷 요청")}`}
+                className="text-xs font-bold text-primary"
+              >
+                {supportEmail} · 메일로 미디어킷 요청
               </a>
             </div>
           </div>
@@ -430,9 +445,17 @@ export default async function SupportPage() {
                 링크처럼 읽히는 글자만 남아 있었다. 있는 사실(시행일)만 적는다. */}
             <span className="text-[11px] text-text-3">시행 2026.07.15</span>
           </div>
+          {/* 2026-07-28: 이 줄은 사업자 정보를 손으로 적어 두고 있었고, 그중
+              "통신판매업 제2026-안양동안-0000호" 는 **없는 번호**였다(0000).
+              business-info.ts 는 통신판매업 신고 전이라 이 값을 빈 문자열로 두고,
+              전역 Footer 는 값이 없으면 줄에서 아예 뺀다. 신고도 안 한 번호를
+              화면에 적어 두면 그건 표기 오류가 아니라 허위 표시다.
+              같은 소스를 쓰고, 없는 항목은 같은 규칙으로 뺀다. */}
           <p className="px-1 text-[11px] leading-[1.6] text-text-3">
-            우리동네이야기 · 대표 고대웅 · 사업자 378-06-02465 · 통신판매업 제2026-안양동안-0000호 ·
-            nuguzip@naver.com · 제공 정보는 참고용이며 투자 판단의 책임은 이용자에게 있습니다
+            {biz.legalName} · 대표 {biz.representative || "—"} · 사업자{" "}
+            {biz.registrationNumber || "—"}
+            {biz.mailOrderSalesNumber ? ` · 통신판매업 ${biz.mailOrderSalesNumber}` : ""} ·{" "}
+            {biz.supportEmail} · 제공 정보는 참고용이며 투자 판단의 책임은 이용자에게 있습니다
           </p>
         </div>
       </div>

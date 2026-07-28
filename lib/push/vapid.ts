@@ -10,6 +10,7 @@
  */
 import webpush from "web-push";
 import { logger } from "@/lib/log";
+import { DEFAULT_ADMIN_EMAIL } from "@/lib/brand/business-info";
 
 let initialized = false;
 
@@ -17,7 +18,10 @@ export function initWebPush() {
   if (initialized) return;
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT ?? "mailto:admin@woodong.kr";
+  /* VAPID subject 는 푸시 제공자(구글·애플 등)가 문제가 생겼을 때 연락하는
+     주소다. admin@woodong.kr 로 굳어 있었는데 이 서비스 도메인도 아니고 받는
+     사람도 없다 — 발송이 차단돼도 통지를 못 받는다. */
+  const subject = process.env.VAPID_SUBJECT ?? `mailto:${DEFAULT_ADMIN_EMAIL}`;
 
   if (!publicKey || !privateKey) {
     logger.warn("[push] VAPID 키 미설정. /api/push/* 비활성화.");

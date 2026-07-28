@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { getBusinessInfo } from "@/lib/brand/business-info";
 
 export const metadata: Metadata = {
   title: "커뮤니티 운영정책 | 우리동네이야기",
@@ -10,6 +11,14 @@ export const metadata: Metadata = {
 const LAST_UPDATED = "2026-04-30";
 
 export default function CommunityPolicyPage() {
+  /* 2026-07-28: 여기 적혀 있던 report@nuguzip.com · support@nuguzip.com 은
+     받는 사람이 없는 주소였다. 정책 문서에서 "여기로 신고하세요"라고 안내하는
+     주소가 실제로 아무도 안 읽는 곳이면, 신고 창구가 없는 것보다 나쁘다 —
+     사용자는 보냈다고 믿고 기다린다.
+     실제로 운영진이 읽는 주소는 lib/brand/business-info.ts 한 곳에서 온다
+     (env 로 덮어쓸 수 있고, 기본값이 nuguzip@naver.com). 문서마다 주소를
+     따로 적으면 바꿀 때 또 어딘가가 남는다. */
+  const { supportEmail } = getBusinessInfo();
   return (
     <main className="mx-auto w-full max-w-3xl">
       {/* 페이지 전환 모션 일관화 — globals.css riseIn(dur-md) 재사용 */}
@@ -81,10 +90,10 @@ export default function CommunityPolicyPage() {
             <li>
               <strong>신고:</strong> 게시물 우측 메뉴의 &quot;신고&quot; 버튼 또는{" "}
               <a
-                href="mailto:report@nuguzip.com"
+                href={`mailto:${supportEmail}`}
                 className="font-medium text-primary hover:underline"
               >
-                report@nuguzip.com
+                {supportEmail}
               </a>
               으로 접수할 수 있습니다.
             </li>
@@ -98,10 +107,10 @@ export default function CommunityPolicyPage() {
             <li>
               <strong>이의 신청:</strong> 조치에 이의가 있는 경우{" "}
               <a
-                href="mailto:support@nuguzip.com"
+                href={`mailto:${supportEmail}`}
                 className="font-medium text-primary hover:underline"
               >
-                support@nuguzip.com
+                {supportEmail}
               </a>
               으로 7일 이내 이의 신청이 가능합니다.
             </li>
@@ -147,10 +156,10 @@ export default function CommunityPolicyPage() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <a
-            href="mailto:report@nuguzip.com?subject=%5B%EC%8B%A0%EA%B3%A0%5D%20%EC%BB%A4%EB%AE%A4%EB%8B%88%ED%8B%B0%20%EC%9A%B4%EC%98%81"
+            href={`mailto:${supportEmail}?subject=${encodeURIComponent("[신고] 커뮤니티 운영")}`}
             className="inline-flex items-center justify-center rounded-[12px] bg-danger-fill px-4 py-2.5 text-center text-sm font-bold text-white hover:opacity-90"
           >
-            신고 메일 보내기 (report@nuguzip.com)
+            신고 메일 보내기 ({supportEmail})
           </a>
           <div className="flex flex-wrap gap-3">
             <Link href="/legal" className="btn-secondary">

@@ -89,8 +89,11 @@ export async function GET(req: NextRequest) {
             >
               우동
             </div>
+            {/* 공유 카드에 찍히는 도메인 — 서비스 주소는 nuguzip.com 이다.
+                woodong.kr 이 박혀 있어서 공유된 이미지마다 다른 도메인을 광고하고
+                있었다(그 주소로 들어오면 이 서비스가 없다). */}
             <div style={{ color: "rgba(255,255,255,0.9)", fontSize: "13px" }}>
-              woodong.kr
+              nuguzip.com
             </div>
           </div>
         </div>
