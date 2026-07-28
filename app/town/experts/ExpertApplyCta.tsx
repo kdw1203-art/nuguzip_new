@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/app/components/Icon";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { Modal, ModalHeader } from "@/app/components/ui/Modal";
+import { useMoment } from "@/app/components/motion/MomentProvider";
 
 /* 전문가 등록/인증 신청 — POST /api/experts/register → submitExpertApplication
    (expert_verification_requests 적재 · 1차 자동검증). 심사 후 인증되면
@@ -35,6 +36,7 @@ function isValidHttpUrl(raw: string): boolean {
 
 export function ExpertApplyCta() {
   const { promptSignup } = useSoftSignup();
+  const { showMoment } = useMoment();
   const [open, setOpen] = useState(false);
   const [expertType, setExpertType] = useState<(typeof TYPES)[number]>("공인중개사");
   const [name, setName] = useState("");
@@ -104,6 +106,11 @@ export function ExpertApplyCta() {
         return;
       }
       setPhase("done");
+      /* "접수"까지가 사실이다. 인증됐다고 쓰면 심사 전에 통과한 것으로 읽힌다. */
+      showMoment({
+        title: "인증 신청이 접수됐어요",
+        subtitle: "1차 자동 검증 결과를 알림으로 보내드릴게요",
+      });
     } catch {
       setError("접수에 실패했어요. 네트워크를 확인해 주세요.");
       setPhase("idle");

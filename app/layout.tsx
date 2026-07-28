@@ -12,6 +12,10 @@ import { SiteJsonLd } from "./components/SiteJsonLd";
 import { CookieConsentBanner } from "@/components/consent/cookie-consent-banner";
 import { Ga4GtagLoader } from "@/components/ga4-gtag-loader";
 import { ViewportGroupTracker } from "./components/ViewportGroupTracker";
+import { MomentProvider } from "./components/motion/MomentProvider";
+import { NavigationProgress } from "./components/motion/NavigationProgress";
+import { PageTransition } from "./components/motion/PageTransition";
+import { RevealOnScroll } from "./components/motion/RevealOnScroll";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
@@ -92,28 +96,38 @@ export default function RootLayout({
         </a>
         <ThemeProvider>
           <ToastProvider>
-            {/* A3 비로그인 액션 → 소프트 가입 프롬프트 (401 즉시 리다이렉트 대체) */}
-            <SoftSignupProvider>
-              {children}
-              {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
-              <ReferralRedeem />
-              <SwRegister />
-              {/* G9 — 설치 프롬프트. 브라우저가 beforeinstallprompt 를 보낼 때만 뜬다
-                  (안 오면 아무것도 렌더하지 않는다). SwRegister 바로 뒤에 둔 건
-                  순서 의존이 아니라 읽는 사람 편의 — 둘 다 PWA 관련이다. */}
-              <InstallPrompt />
-              <AdSenseLoader />
-              <WebVitalsReporter />
-              {/* S22 — 쿠키 동의 배너 + 동의 게이트 GA4 (동의 전에는 스크립트
-                  로드 자체가 없다). NEXT_PUBLIC_GA4_ID 미설정 시 GA4는 무동작. */}
-              <CookieConsentBanner />
-              <Ga4GtagLoader />
-              {/* 반응형 QA — viewport_group_change 계측 (그룹 경계 통과 시에만) */}
-              <ViewportGroupTracker />
-              {/* Vercel Web Analytics — 프로덕션(Vercel 배포)에서만 수집,
-                  로컬에서는 아무것도 전송하지 않는다. */}
-              <Analytics />
-            </SoftSignupProvider>
+            {/* 저장·로그인처럼 "성사"가 중요한 순간의 1.5초 장면. 루트에 두는
+                이유는 연출 도중 화면이 바뀌어도 끊기지 않게 하기 위해서다. */}
+            <MomentProvider>
+              {/* A3 비로그인 액션 → 소프트 가입 프롬프트 (401 즉시 리다이렉트 대체) */}
+              <SoftSignupProvider>
+                {children}
+                {/* 이동 중 상단 진행바 · 경로 전환 페이드 · 스크롤 리빌.
+                    셋 다 렌더하는 마크업이 없거나(null) 화면 위 얇은 한 줄이라
+                    본문 레이아웃에는 영향을 주지 않는다. */}
+                <NavigationProgress />
+                <PageTransition />
+                <RevealOnScroll />
+                {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
+                <ReferralRedeem />
+                <SwRegister />
+                {/* G9 — 설치 프롬프트. 브라우저가 beforeinstallprompt 를 보낼 때만 뜬다
+                    (안 오면 아무것도 렌더하지 않는다). SwRegister 바로 뒤에 둔 건
+                    순서 의존이 아니라 읽는 사람 편의 — 둘 다 PWA 관련이다. */}
+                <InstallPrompt />
+                <AdSenseLoader />
+                <WebVitalsReporter />
+                {/* S22 — 쿠키 동의 배너 + 동의 게이트 GA4 (동의 전에는 스크립트
+                    로드 자체가 없다). NEXT_PUBLIC_GA4_ID 미설정 시 GA4는 무동작. */}
+                <CookieConsentBanner />
+                <Ga4GtagLoader />
+                {/* 반응형 QA — viewport_group_change 계측 (그룹 경계 통과 시에만) */}
+                <ViewportGroupTracker />
+                {/* Vercel Web Analytics — 프로덕션(Vercel 배포)에서만 수집,
+                    로컬에서는 아무것도 전송하지 않는다. */}
+                <Analytics />
+              </SoftSignupProvider>
+            </MomentProvider>
           </ToastProvider>
         </ThemeProvider>
       </body>

@@ -8,6 +8,7 @@ import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import { getStripe } from "@/lib/billing/stripe";
 import { normalizePlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
+import { PaymentSuccessMoment } from "./PaymentSuccessMoment";
 import type { AppPlan } from "@/lib/billing/plan";
 
 export const metadata: Metadata = {
@@ -134,6 +135,7 @@ export default async function PaymentSuccessPage({
   const ok = status !== "error";
   return (
     <PageShell breadcrumb="구독 · 결제 결과">
+      <PaymentSuccessMoment status={status} />
       <section className="rise-in mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 pt-10 text-center">
         <span className="text-[44px]" aria-hidden>
           {ok ? <Icon name="🎉" size={40} /> : <Icon name="⚠" size={40} />}

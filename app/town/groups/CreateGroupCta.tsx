@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal, ModalHeader } from "@/app/components/ui/Modal";
+import { useMoment } from "@/app/components/motion/MomentProvider";
 
 /* "모임 만들기" — POST /api/groups(createMeeting) 실배선.
    성공 시 새 모임 상세로 이동. 엔드포인트가 게스트도 허용하므로 별도 로그인 강제는 안 함. */
@@ -25,6 +26,7 @@ function nowLocalMinute(): string {
 
 export function CreateGroupCta() {
   const router = useRouter();
+  const { showMoment } = useMoment();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [meetType, setMeetType] = useState<(typeof TYPES)[number]>("임장 모임");
@@ -86,6 +88,11 @@ export function CreateGroupCta() {
       }
       setOpen(false);
       reset();
+      showMoment({
+        title: "모임이 만들어졌어요",
+        subtitle: `${city} ${district.trim()} · ${meetType}`,
+        kind: "celebrate",
+      });
       if (data.group?.id) router.push(`/town/groups/${data.group.id}`);
       else router.refresh();
     } catch {

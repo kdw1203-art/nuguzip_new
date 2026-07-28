@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Logo } from "@/app/components/Logo";
 import { Icon } from "@/app/components/Icon";
+import { useMoment } from "@/app/components/motion/MomentProvider";
 
 type SocialProvider = "google" | "naver" | "kakao";
 
@@ -141,6 +142,7 @@ const ACCOUNT_BENEFITS: { icon: string; label: string; desc: string }[] = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showMoment } = useMoment();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -190,6 +192,12 @@ export default function LoginPage() {
         return;
       }
       if (res?.ok) {
+        /* 이동보다 먼저 부른다. Provider 가 루트에 있어서 화면이 바뀌어도
+           장면은 이어진다 — 오히려 그 편이 전환을 덮어 준다. */
+        showMoment({
+          title: "로그인됐어요",
+          subtitle: "기록해 둔 임장노트를 이어서 볼 수 있어요",
+        });
         router.push(resolveCallbackUrl());
         router.refresh();
         return;

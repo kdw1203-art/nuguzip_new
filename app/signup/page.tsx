@@ -8,6 +8,7 @@ import { trackPlatformEvent } from "@/lib/platform-events-client";
 import { Icon } from "@/app/components/Icon";
 import { RegionPicker } from "@/app/components/RegionPicker";
 import { stashSignupHandoff } from "@/lib/onboarding/signup-handoff";
+import { useMoment } from "@/app/components/motion/MomentProvider";
 
 /* 목표 카드. purpose 는 온보딩(/welcome)의 "목적" 과 같은 값이라 프리필에 쓴다.
    전문가·중개사는 대응되는 목적이 없어 null — 없는 값을 지어내지 않는다. */
@@ -38,6 +39,7 @@ type RegisterResponse = {
 
 export default function SignupPage() {
   const router = useRouter();
+  const { showMoment } = useMoment();
   const [goal, setGoal] = useState(0);
   const [segments, setSegments] = useState<Record<string, string>>(
     Object.fromEntries(SEGMENTS.map((s) => [s.name, s.initial]))
@@ -166,6 +168,11 @@ export default function SignupPage() {
       } catch {
         /* 로그인 실패는 /welcome 쪽 가드가 처리 */
       }
+      showMoment({
+        title: "가입이 끝났어요",
+        subtitle: "관심 지역에 맞춰 첫 화면을 준비할게요",
+        kind: "celebrate",
+      });
       router.replace("/welcome");
       router.refresh();
     } catch {

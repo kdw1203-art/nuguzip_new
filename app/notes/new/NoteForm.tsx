@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { NoteLocationSearch, type NoteLocation } from "./NoteLocationSearch";
 import { FieldCaptureConsentNotice } from "@/components/inspection/field-capture-consent";
+import { useMoment } from "@/app/components/motion/MomentProvider";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -263,6 +264,7 @@ export function NoteForm({
   presetMemo?: string | null;
 }) {
   const router = useRouter();
+  const { showMoment } = useMoment();
   const isEdit = Boolean(initialNote);
   const editId = initialNote?.id ?? null;
 
@@ -617,6 +619,13 @@ export function NoteForm({
         return;
       }
       if (!editId) clearDraft(); // 정식 저장 완료 — 임시저장본 제거
+      /* 저장이 확정된 지점에서 부른다. 바로 아래 AI 호출은 실패해도 저장은
+         성공이므로, 그 결과를 기다렸다가 부르면 "저장됐다"는 사실이 AI 성패에
+         따라 달라진다 — 사실과 연출을 묶으면 안 된다. */
+      showMoment({
+        title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
+        subtitle: "AI가 이어서 정리하는 중이에요",
+      });
       // AI 정리 실호출 — 실패해도 저장은 성공 처리(상세에서 규칙 기반 배지로 구분)
       setAiRunning(true);
       try {

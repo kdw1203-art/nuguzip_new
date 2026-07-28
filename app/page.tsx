@@ -173,7 +173,12 @@ export default async function Home() {
               ))
             )}
           </div>
-          <div className="rise-in-6">
+          {/* 여기부터는 첫 화면 아래다. rise-in-* 은 **로드 직후** 순서대로 올리는
+              연출이라, 스크롤해서 내려올 때쯤이면 이미 다 끝나 있어 아무도 못 본다.
+              그 자리를 data-reveal 로 바꾼다 — 화면에 들어오는 순간 한 번 올라온다.
+              (같은 요소에 rise-in-* 와 data-reveal 을 함께 걸지 않는다. 둘 다
+              animation 단축 속성을 써서 나중에 선언된 쪽이 앞의 것을 지운다.) */}
+          <div data-reveal="">
             <AIPanel title="오늘의 시장 브리핑">
               {data.briefing ? (
                 <>
@@ -192,7 +197,8 @@ export default async function Home() {
           {/* P1-9: 주간 다이제스트 진입 카드 (고아 라우트 해소) */}
           <Link
             href="/digest"
-            className="rise-in-6 glass press flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+            data-reveal=""
+            className="glass press flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
           >
             <span className="min-w-0">
               <span className="block text-[13px] font-extrabold text-ink">
@@ -318,7 +324,7 @@ export default async function Home() {
             )}
 
             {/* 공개 노트 · 동네이야기 */}
-            <div className="rise-in-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <div data-reveal="" className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="card card-hover flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
                   <span className="accent-underline text-sm font-extrabold text-ink">공개 임장노트</span>

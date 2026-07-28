@@ -18,6 +18,13 @@ type BaseProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
+  /**
+   * 처리 중 표시. 스피너를 앞에 붙이고 버튼을 잠근다.
+   * 누른 뒤 아무 반응이 없으면 사람은 한 번 더 누른다 — 그 두 번째 클릭이
+   * 중복 제출이 된다. 잠그는 것이 연출보다 먼저다.
+   * 링크(href) 에는 붙이지 않는다. 이동은 상단 진행바가 알려 준다.
+   */
+  loading?: boolean;
   className?: string;
   children: ReactNode;
 };
@@ -36,8 +43,11 @@ type ButtonAsLink = BaseProps &
 
 export type ButtonProps = ButtonAsButton | ButtonAsLink;
 
+/* `tap-ripple` 은 CSS 만으로 도는 눌림 파문이다(:active + ::after).
+   포인터 좌표를 따라가려면 클라이언트 컴포넌트로 내려야 하는데, 버튼 하나
+   때문에 서버 컴포넌트를 포기할 값어치는 없다 — 가운데서 퍼지게 둔다. */
 const BASE =
-  "press inline-flex items-center justify-center gap-1.5 rounded-xl font-bold no-underline text-center transition-colors disabled:opacity-60 disabled:pointer-events-none";
+  "press tap-ripple inline-flex items-center justify-center gap-1.5 rounded-xl font-bold no-underline text-center transition-colors disabled:opacity-60 disabled:pointer-events-none";
 
 const SIZES: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-[12px]",
@@ -58,11 +68,40 @@ const VARIANTS: Record<ButtonVariant, string> = {
 const cx = (...parts: Array<string | false | null | undefined>): string =>
   parts.filter(Boolean).join(" ");
 
+function Spinner() {
+  return (
+    <svg
+      className="pending-spin shrink-0"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="3"
+        opacity="0.28"
+      />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function Button(props: ButtonProps) {
   const {
     variant = "primary",
     size = "md",
     fullWidth = false,
+    loading = false,
     className = "",
   } = props;
   const filled = variant === "primary" || variant === "cta";
@@ -80,6 +119,7 @@ export function Button(props: ButtonProps) {
       variant: _v,
       size: _s,
       fullWidth: _fw,
+      loading: _ld,
       className: _cn,
       children,
       href,
@@ -101,17 +141,22 @@ export function Button(props: ButtonProps) {
     variant: _v2,
     size: _s2,
     fullWidth: _fw2,
+    loading: _ld2,
     className: _cn2,
     children,
     href: _h,
+    disabled,
     ...buttonRest
   } = props;
   return (
     <button
       type="button"
       className={filled ? cx(cls, "text-white") : cls}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...buttonRest}
     >
+      {loading && <Spinner />}
       {children}
     </button>
   );
