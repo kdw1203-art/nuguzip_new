@@ -146,11 +146,38 @@ test("17. clicking a plan button while logged out leads to /login", async ({ pag
 
 // ---------- 인증 ----------
 
-test("18. /login renders social login buttons and 비밀번호 찾기 link", async ({ page }) => {
+/**
+ * 소셜 버튼은 **설정된 provider 와 정확히 일치**해야 한다.
+ *
+ * 예전 이 테스트는 카카오·네이버·구글 버튼이 항상 보인다고 단정했다. 그래서
+ * 운영에서 `/api/auth/providers` 가 password 하나만 돌려주는데도 버튼 셋이 다
+ * 떠 있고, 누르면 `/api/auth/error?error=Configuration` 으로 가는 상태를
+ * 이 스위트가 초록으로 통과시켰다. 기준을 env 실제값(=providers 응답)으로 바꾼다.
+ */
+test("18. /login shows exactly the configured social buttons + 비밀번호 찾기 link", async ({
+  page,
+  request,
+}) => {
+  const providers = (await (await request.get("/api/auth/providers")).json()) as Record<
+    string,
+    { id?: string }
+  >;
+  const ids = new Set(Object.keys(providers ?? {}));
+  const LABELS: Record<string, string> = {
+    kakao: "카카오로 3초 만에 시작",
+    naver: "네이버로 시작",
+    google: "Google로 시작",
+  };
+
   await page.goto("/login");
-  await expect(page.getByText("카카오로 3초 만에 시작")).toBeVisible();
-  await expect(page.getByText("네이버로 시작")).toBeVisible();
-  await expect(page.getByText("Google로 시작")).toBeVisible();
+  for (const [id, label] of Object.entries(LABELS)) {
+    const button = page.getByRole("button", { name: label });
+    if (ids.has(id)) await expect(button).toBeVisible();
+    else await expect(button).toHaveCount(0);
+  }
+
+  // 이메일 로그인은 provider 구성과 무관하게 항상 있어야 하는 경로
+  await expect(page.getByRole("button", { name: /이메일로 로그인|로그인 중/ })).toBeVisible();
   const forgot = page.getByRole("link", { name: "비밀번호를 잊으셨나요?" });
   await expect(forgot).toBeVisible();
   await expect(forgot).toHaveAttribute("href", "/forgot-password");
