@@ -38,6 +38,15 @@ import { seoAlternates } from "@/lib/seo/alternates";
    ============================================================ */
 
 export const revalidate = 3600;
+/* 빈 배열 = "빌드 때 미리 만들 경로는 없다". 이 export 가 있어야 Next 가 이
+   라우트를 ISR 로 분류한다 — 없으면 `revalidate` 를 적어 둬도 요청마다 서버
+   렌더로 돌면서 Next 가 `private, no-cache, no-store` 를 실어 보내고, CDN 은
+   한 벌도 재사용하지 못한다(2026-07-28 함수 호출 소진 사고. 자세한 내용은
+   app/complex/[id]/page.tsx 의 같은 자리 주석). dynamicParams 기본값이 true 라
+   실제 요청이 오면 그때 만들어 캐시한다. */
+export function generateStaticParams(): { region: string }[] {
+  return [];
+}
 
 /** 표·차트에 쓰는 최대 주 수. 1년치면 계절성까지 눈에 들어온다. */
 const MAX_WEEKS = 52;

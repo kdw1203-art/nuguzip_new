@@ -29,12 +29,21 @@ import { seoAlternates } from "@/lib/seo/alternates";
    빠진 달을 조용히 무시하면 절반짜리 숫자가 계절 전체인 척하게 된다.
 
    관측된 계절-연도가 하나도 없으면 404 — 없는 리포트를 만들지 않는다.
-   조회 실패는 잡지 않고 던진다(→ 5xx). generateStaticParams 가 없어
+   조회 실패는 잡지 않고 던진다(→ 5xx). generateStaticParams 가 빈 배열이라
    빌드 프리렌더 대상이 아니므로 던져도 빌드가 깨지지 않는다. DB 장애를
    404 로 바꾸면 크롤러에게 "이 URL 은 없어졌다" 고 확정 신고하는 꼴이다.
    ============================================================ */
 
 export const revalidate = 3600;
+/* 빈 배열 = "빌드 때 미리 만들 경로는 없다". 이 export 가 있어야 Next 가 이
+   라우트를 ISR 로 분류한다 — 없으면 `revalidate` 를 적어 둬도 요청마다 서버
+   렌더로 돌면서 Next 가 `private, no-cache, no-store` 를 실어 보내고, CDN 은
+   한 벌도 재사용하지 못한다(2026-07-28 함수 호출 소진 사고. 자세한 내용은
+   app/complex/[id]/page.tsx 의 같은 자리 주석). dynamicParams 기본값이 true 라
+   실제 요청이 오면 그때 만들어 캐시한다. */
+export function generateStaticParams(): { slug: string }[] {
+  return [];
+}
 
 function eok(krw: number | null): string {
   if (krw === null || !Number.isFinite(krw) || krw <= 0) return "—";

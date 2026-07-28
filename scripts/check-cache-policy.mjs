@@ -150,17 +150,49 @@ for (const route of patternRoutes) {
   }
 }
 
+/* ── ISR 진입 확인 ────────────────────────────────────────────────────────
+   2026-07-28 사고에서 배운 것: 미들웨어가 공유 캐시 헤더를 붙여도, 그 라우트가
+   "요청마다 서버 렌더"로 분류돼 있으면 Next 가 응답에 직접 실어 보내는
+   `private, no-cache, no-store` 가 이겨서 CDN 이 한 벌도 재사용하지 못한다.
+   그러니 목록에 올렸다는 것만으로는 캐시된다고 말할 수 없다. 빌드 산출물에서
+   실제 분류를 확인한다 — 프리렌더(routes)든 ISR(dynamicRoutes)든 둘 중 하나에
+   이름이 있어야 한다. 동적 세그먼트 라우트를 ISR 로 만드는 건
+   generateStaticParams(빈 배열이어도 된다) 이다.
+
+   예외는 사유와 함께 여기 적는다. 조용히 빠져 있으면 다음 사람이 "캐시되고
+   있겠지" 하고 넘어가게 되므로, 예외도 목록에 남는 편이 낫다. */
+const ISR_EXEMPT = {
+  "/region/[id]": "?complexes=30 을 읽어 searchParams 의존 — ISR 불가(사이트맵 61개, 영향 작음)",
+  "/complex/browse": "필터가 전부 searchParams — ISR 불가(사이트맵 1개)",
+};
+
+if (prerendered) {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const isr = new Set(Object.keys(manifest.dynamicRoutes ?? {}));
+  for (const route of patternRoutes) {
+    if (route in ISR_EXEMPT) continue;
+    if (prerendered.has(route) || isr.has(route)) continue;
+    patternProblems.push(
+      `${route} — 빌드 산출물에서 프리렌더도 ISR 도 아닙니다(요청마다 서버 렌더). ` +
+        `CDN 이 재사용하지 못해 크롤 1회 = 함수 호출 1회가 됩니다.`,
+    );
+  }
+}
+
 if (patternProblems.length > 0) {
   fail(
     [
       "동적 공개 캐시 규칙(PUBLIC_CACHE_PATTERN_RULES)의 전제가 확인되지 않습니다.",
-      "이대로 두면 한 사람의 응답이 CDN 을 통해 다른 사람에게 재사용될 수 있습니다.",
+      "개인화 표식이 걸렸다면 한 사람의 응답이 CDN 을 통해 남에게 재사용될 수 있고,",
+      "프리렌더/ISR 분류가 걸렸다면 반대로 아무것도 캐시되지 않아 크롤이 곧 함수 호출입니다.",
       "",
       ...patternProblems.map((p) => `    - ${p}`),
       "",
       "해결: 개인화가 생겼다면 클라이언트로 옮기거나 그 라우트를 목록에서 빼세요.",
       "      패턴에 가려진 페이지라면 lib/http/cache-policy.ts 의 목록에 제 이름으로",
       "      올려(더 앞자리에) 검사 대상에 넣으세요.",
+      "      프리렌더도 ISR 도 아니라면 generateStaticParams(빈 배열)를 export 하거나,",
+      "      searchParams 때문에 불가능하다면 이 스크립트의 ISR_EXEMPT 에 사유를 적으세요.",
     ].join("\n"),
   );
 }

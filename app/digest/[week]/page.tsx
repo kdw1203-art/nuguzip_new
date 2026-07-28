@@ -25,12 +25,21 @@ import { seoAlternates } from "@/lib/seo/alternates";
    싣는 순간 아카이브 전체를 믿을 수 없게 된다.
 
    기준 미달·범위 밖은 404. 조회 실패는 잡지 않고 던진다(→ 5xx).
-   generateStaticParams 가 없어 빌드 프리렌더 대상이 아니므로 던져도 빌드가
+   generateStaticParams 가 빈 배열이라 빌드 프리렌더 대상이 아니므로 던져도 빌드가
    깨지지 않는다. DB 장애를 404 로 바꾸면 크롤러에게 "이 URL 은 없어졌다" 고
    확정 신고하는 꼴이다.
    ============================================================ */
 
 export const revalidate = 3600;
+/* 빈 배열 = "빌드 때 미리 만들 경로는 없다". 이 export 가 있어야 Next 가 이
+   라우트를 ISR 로 분류한다 — 없으면 `revalidate` 를 적어 둬도 요청마다 서버
+   렌더로 돌면서 Next 가 `private, no-cache, no-store` 를 실어 보내고, CDN 은
+   한 벌도 재사용하지 못한다(2026-07-28 함수 호출 소진 사고. 자세한 내용은
+   app/complex/[id]/page.tsx 의 같은 자리 주석). dynamicParams 기본값이 true 라
+   실제 요청이 오면 그때 만들어 캐시한다. */
+export function generateStaticParams(): { week: string }[] {
+  return [];
+}
 
 function shortDate(iso: string): string {
   const t = Date.parse(iso);

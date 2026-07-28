@@ -45,6 +45,21 @@ export type PublicCacheRule = {
  *   `/complex/{id}`    → cache-control: private, no-cache, no-store · x-vercel-cache: MISS · age: 0
  * Vercel 무료 티어 함수 호출 100만 회가 이렇게 소진됐다.
  *
+ * ── 정정 (같은 날, 배포 후 실측) ────────────────────────────────
+ * 위 진단은 절반만 맞았다. 이 목록만 채우고 배포한 뒤 운영에서 다시 재 보니
+ * `/complex/{id}` 는 여전히 `private, no-cache, no-store` · x-vercel-cache: MISS
+ * 였다. 진짜 이유는 따로 있었다: 그 라우트들은 동적 세그먼트에
+ * generateStaticParams 가 없어서 Next 가 "요청마다 서버 렌더"로 분류하고 있었고
+ * (.next/prerender-manifest.json 의 dynamicRoutes 에 `/glossary/[term]` 하나뿐),
+ * 그렇게 분류된 응답에는 Next 가 직접 `private, no-cache, no-store` 를 실어
+ * 보내기 때문에 미들웨어가 앞서 붙인 헤더가 그 값에 덮인다. 헤더를 고쳐도
+ * 라우트 분류를 안 바꾸면 아무 일도 일어나지 않는다는 뜻이다.
+ * 그래서 각 page.tsx 에 빈 배열을 돌려주는 generateStaticParams 를 넣어 ISR 로
+ * 옮겼고, 라우트가 실제로 프리렌더/ISR 중 하나로 잡혔는지를
+ * scripts/check-cache-policy.mjs 가 빌드 산출물에서 확인한다.
+ * 아래 목록은 그래도 남긴다 — 프리렌더/ISR 로 잡히지 않는 자리(정적 공개 문서,
+ * 예외 라우트)에서는 이 헤더가 실제로 응답에 남기 때문이다.
+ *
  * ── 안전 근거 ──────────────────────────────────────────────
  * 정확일치 목록의 근거는 "빌드 때 prerender 됐으니 모두에게 같은 HTML"이었다.
  * 동적 라우트에는 그 근거를 쓸 수 없으므로, 대신 더 직접적인 근거를 쓴다:

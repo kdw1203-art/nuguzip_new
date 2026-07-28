@@ -60,7 +60,15 @@ import { seoAlternates } from "@/lib/seo/alternates";
       "준비 중"으로 표기하지 않는다. 세 가지 상태(정상 / 정말 없음 / 조회 실패)를
       각각 다른 문장으로 적는다.
 
-   ISR 1시간 재검증 · generateStaticParams 생략(동적+ISR).
+   캐시: 이 페이지는 `?complexes=30` 을 읽는다. searchParams 를 읽는 순간 Next 는
+   요청마다 서버 렌더로 돌리고, 응답에 `private, no-cache, no-store` 를 실어
+   보낸다 — 즉 여기 적힌 revalidate 는 ISR 창이 아니라 내부 데이터 캐시 눈금일
+   뿐이고, CDN 은 이 페이지를 한 벌도 재사용하지 못한다. 형제 라우트들처럼
+   generateStaticParams 로 ISR 에 태우려면 그 파라미터부터 없애야 한다
+   (2026-07-28 함수 호출 소진 사고의 남은 자리. 경위는 app/complex/[id]/page.tsx
+   같은 자리 주석). 사이트맵 기준 이 라우트는 61개라 25,310개짜리 단지 라우트와
+   달리 급하지 않아 남겨 뒀고, 남겨 뒀다는 사실을
+   scripts/check-cache-policy.mjs 의 ISR_EXEMPT 에 사유와 함께 적어 뒀다.
    ============================================================ */
 
 export const revalidate = 3600;
