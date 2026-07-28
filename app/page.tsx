@@ -5,6 +5,7 @@ import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
 import { EmptyState, ErrorState } from "./components/ui/EmptyState";
 import { JourneyBanner } from "./components/JourneyBanner";
+import { BetaNoticeModal } from "./components/BetaNoticeModal";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
 import { Footer } from "./components/Footer";
@@ -492,6 +493,9 @@ export default async function Home() {
       <Footer />
 
       <TabBar />
+
+      {/* 클로즈 베타 안내 — 30일에 한 번, 쿠키 동의 배너가 걷힌 뒤에만 뜬다 */}
+      <BetaNoticeModal />
     </>
   );
 }

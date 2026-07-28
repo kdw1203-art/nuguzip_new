@@ -498,6 +498,14 @@ export default async function NoteDetailPage({
           isOwner={isOwner}
           initialIsPublic={realNote.isPublic}
         />
+        {/* 카드 덱 — 노트 원문과 저장된 AI 분석을 카드 레이아웃으로 다시 그린 화면.
+            공개·비공개 모두 열리며, 열람 권한은 이 페이지와 같은 관문을 쓴다. */}
+        <Link
+          href={`/notes/${id}/deck`}
+          className="btn-soft px-3.5 py-2 text-[13px] no-underline"
+        >
+          카드로 보기
+        </Link>
         {/* 회차 비교(예시 화면) 유도 링크는 '방문 기록 비교' 카드 1곳만 유지 — 상단·하단 중복 제거 */}
         <Link href="/map" className="btn-primary btn-cta px-3.5 py-2 text-[13px]">
           지도에서 비교
