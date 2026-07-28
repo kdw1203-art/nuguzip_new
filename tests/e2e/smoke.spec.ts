@@ -31,7 +31,14 @@ test("3. GNB hover dropdown shows child links (동네이야기 → 임장 모임
     .locator("header nav")
     .getByRole("link", { name: "동네이야기", exact: true });
   await parent.hover();
-  await expect(page.getByRole("link", { name: "임장 모임" })).toBeVisible();
+  /* GNB 드롭다운을 보는 테스트이므로 헤더 안으로 범위를 좁힌다.
+     예전에는 페이지 전체에서 "임장 모임" 링크를 찾았는데, 홈 본문에도
+     "임장 모임 보기 ›"(예정된 모임이 0건일 때만 렌더)가 있어서 이름이
+     부분 일치로 두 개 잡혔다 — strict mode 위반으로 실패했다.
+     즉 모임 데이터 유무에 따라 붙었다 떨어졌다 하는 테스트였다. */
+  await expect(
+    page.locator("header nav").getByRole("link", { name: "임장 모임", exact: true }),
+  ).toBeVisible();
 });
 
 test("4. home footer shows 사업자 정보 (사업자등록번호)", async ({ page }) => {

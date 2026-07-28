@@ -69,13 +69,22 @@ export function Modal({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, handleClose]);
 
-  // 배경 스크롤 잠금 — 모달 뒤 목록이 같이 스크롤되면 위치를 잃는다.
+  /* 배경 스크롤 잠금 — 모달 뒤 목록이 같이 스크롤되면 위치를 잃는다.
+     함께 `data-modal-open` 을 붙인다: 이 오버레이는 화면 전체를 덮으므로
+     그 아래 배너(앱 설치 안내 등)는 보이기만 하고 눌리지 않는다. 배너 쪽이
+     "지금 위에 모달이 있다"를 알 방법이 필요해서 body 에 표식을 남긴다.
+     여러 모달이 겹칠 수 있으니 열린 개수를 세서 마지막 하나가 닫힐 때 지운다. */
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const depth = Number(document.body.dataset.modalOpen ?? "0") + 1;
+    document.body.dataset.modalOpen = String(depth);
     return () => {
       document.body.style.overflow = prev;
+      const next = Number(document.body.dataset.modalOpen ?? "1") - 1;
+      if (next > 0) document.body.dataset.modalOpen = String(next);
+      else delete document.body.dataset.modalOpen;
     };
   }, [open]);
 

@@ -51,11 +51,17 @@ async function open(page: Page, path: string) {
   /* 쿠키 동의 배너(z-70 고정 오버레이)가 설치 배너 버튼 위를 덮어 클릭을 가로챈다
      (2026-07-26 3케이스 연속 실패 원인). 이 스위트는 설치 프롬프트가 대상이므로
      동의는 이미 결정된 상태로 시작한다 — 동의 배너 자체는 전용 스위트에서 검증. */
+  /* 2026-07-28: 홈에 클로즈 베타 안내 모달(BetaNoticeModal)이 추가되면서 같은 일이
+     한 번 더 일어났다 — 화면 전체를 덮는 오버레이라 설치 배너의 "추가하기"가
+     보이는데 눌리지 않았다. 위 쿠키 동의와 같은 이유로, 이미 닫은 상태로 시작한다
+     (모달 자체의 동작은 이 스위트의 대상이 아니다). 키·형식은
+     app/components/BetaNoticeModal.tsx 의 STORAGE_KEY 와 맞춰야 한다. */
   await page.addInitScript(() => {
     localStorage.setItem(
       "nz_cookie_consent",
       JSON.stringify({ analytics: false, decidedAt: new Date().toISOString() }),
     );
+    localStorage.setItem("nuguzip:beta-notice-v1", new Date().toISOString());
   });
   await page.goto(path, { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("load");

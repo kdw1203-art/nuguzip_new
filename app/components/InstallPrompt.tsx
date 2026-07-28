@@ -99,6 +99,19 @@ export function InstallPrompt() {
   const [visible, setVisible] = useState(false);
   const [bottom, setBottom] = useState(FALLBACK_BOTTOM);
   const deferredRef = useRef<BeforeInstallPromptEvent | null>(null);
+  /* 화면 전체를 덮는 모달이 열려 있는 동안에는 배너를 내린다.
+     2026-07-28: 홈의 클로즈 베타 안내 모달이 이 배너 위를 덮으면서 "추가하기"가
+     보이는데 눌리지 않는 상태가 됐다(E2E 가 pointer interception 으로 잡음).
+     보이지만 못 누르는 컨트롤은 없는 것보다 나쁘다 — 모달이 닫히면 다시 뜬다.
+     표식은 ui/Modal 이 body 에 남긴다(data-modal-open). */
+  const [modalOpen, setModalOpen] = useState(false);
+  useEffect(() => {
+    const read = () => setModalOpen(document.body.dataset.modalOpen != null);
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["data-modal-open"] });
+    return () => observer.disconnect();
+  }, []);
 
   /**
    * 탭바 높이를 상수로 박지 않고 실제로 잰다.
@@ -179,7 +192,7 @@ export function InstallPrompt() {
     }
   }, []);
 
-  if (!visible) return null;
+  if (!visible || modalOpen) return null;
 
   return (
     <div

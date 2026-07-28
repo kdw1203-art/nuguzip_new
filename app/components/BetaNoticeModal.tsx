@@ -19,6 +19,10 @@
  *   - 브라우저 기본 대화상자(confirm/alert)는 쓰지 않는다 — 공용 Modal 사용.
  *   - 쿠키 동의 배너가 아직 떠 있으면(결정 전) 띄우지 않는다. 오버레이 두 개가
  *     겹치면 둘 다 읽히지 않고 둘 다 닫힌다.
+ *   - 같은 이유로 **앱 설치 안내 배너**가 떠 있는 동안에도 띄우지 않는다.
+ *     2026-07-28 실측: 홈에서 설치 프롬프트가 뜬 상태로 900ms 가 지나면 이
+ *     모달이 그 위를 덮어 "추가하기" 버튼이 눌리지 않았다(E2E 3건 실패로 잡힘).
+ *     설치 배너는 사용자가 닫거나 설치를 끝내면 사라지므로, 사라진 뒤에 연다.
  *   - 닫으면 localStorage 에 시각을 남기고 DISMISS_DAYS 동안 다시 띄우지
  *     않는다. 서버에 저장하지 않으므로 이 브라우저에만 남는 값이다.
  *   - LCP 와 겹치지 않게 마운트 후 잠깐 뒤에 연다.
@@ -37,6 +41,16 @@ const DISMISS_DAYS = 30;
 
 /** 첫 화면이 그려진 다음에 연다(ms). */
 const OPEN_DELAY_MS = 900;
+
+/** 앱 설치 안내 배너 — InstallPrompt 가 보일 때만 이 노드를 그린다. */
+const INSTALL_BANNER_SELECTOR = '[role="region"][aria-label="앱 설치 안내"]';
+
+function installBannerShowing(): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.querySelector(INSTALL_BANNER_SELECTOR) !== null
+  );
+}
 
 function dismissedRecently(): boolean {
   try {
@@ -59,8 +73,31 @@ export function BetaNoticeModal() {
   useEffect(() => {
     if (!consentSettled) return;
     if (dismissedRecently()) return;
-    const t = window.setTimeout(() => setOpen(true), OPEN_DELAY_MS);
-    return () => window.clearTimeout(t);
+
+    let observer: MutationObserver | null = null;
+
+    /* 설치 배너가 떠 있으면 기다렸다가, 사라진 뒤에 연다. 폴링 대신
+       MutationObserver 를 쓰는 이유는 배너가 언제 닫힐지 알 수 없어서다 —
+       주기적으로 깨어나 확인하는 것보다 없어지는 순간에 반응하는 편이 정확하다. */
+    const openWhenClear = () => {
+      if (!installBannerShowing()) {
+        setOpen(true);
+        return;
+      }
+      observer = new MutationObserver(() => {
+        if (installBannerShowing()) return;
+        observer?.disconnect();
+        observer = null;
+        setOpen(true);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    };
+
+    const t = window.setTimeout(openWhenClear, OPEN_DELAY_MS);
+    return () => {
+      window.clearTimeout(t);
+      observer?.disconnect();
+    };
   }, [consentSettled]);
 
   function close() {
