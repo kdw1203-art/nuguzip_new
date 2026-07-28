@@ -482,6 +482,38 @@ export async function deleteNote(id: string): Promise<void> {
   await sb.from("inspection_notes").delete().eq("id", id);
 }
 
+/* inspection_notes.checklist 는 jsonb 라 스키마가 강제되지 않는다. 실제로 지금
+   테이블에는 세 가지 모양이 섞여 있다 —
+     {label, checked}        NoteForm 이전 세대
+     {no, item, detail, status}   AI Lab 시드
+     {no, item, why, how, when}   AI Lab 시드
+   여기서 그냥 InspectionChecklistItem[] 로 캐스팅하면 `label` 이 undefined 라
+   화면에는 빈 줄이 그려진다. 항목이 있는데 없는 것처럼 보이는 것도 사실 왜곡이다.
+   그래서 읽는 지점에서 한 번만 정규화한다.
+
+   완료 여부는 **불리언이 명시된 경우에만** true 로 본다. status 가
+   "현장 확인 필요" 같은 한국어 문장일 때 이를 해석해 완료로 추정하지 않는다 —
+   확인하지 않은 것을 확인했다고 적는 쪽이 훨씬 위험하다. */
+function normalizeChecklist(raw: unknown): InspectionChecklistItem[] {
+  if (!Array.isArray(raw)) return [];
+  const out: InspectionChecklistItem[] = [];
+  for (const entry of raw) {
+    if (typeof entry === "string") {
+      const label = entry.trim();
+      if (label) out.push({ label, done: false });
+      continue;
+    }
+    if (!entry || typeof entry !== "object") continue;
+    const o = entry as Record<string, unknown>;
+    const label = ["label", "item", "text", "title", "name", "detail"]
+      .map((k) => (typeof o[k] === "string" ? (o[k] as string).trim() : ""))
+      .find((v) => v.length > 0);
+    if (!label) continue;
+    out.push({ label, done: o.done === true || o.checked === true });
+  }
+  return out;
+}
+
 function mapRow(r: Record<string, unknown>): InspectionNote {
   return {
     id: r.id as string,
@@ -501,7 +533,7 @@ function mapRow(r: Record<string, unknown>): InspectionNote {
       facility: Number(r.score_facility ?? 0),
       future: Number(r.score_future ?? 0),
     },
-    checklist: (r.checklist as InspectionChecklistItem[]) ?? [],
+    checklist: normalizeChecklist(r.checklist),
     sections: (r.sections as InspectionSections) ?? {},
     photos: (r.photos as string[]) ?? [],
     aiAnalysis: (r.ai_analysis as Record<string, unknown> | null) ?? null,

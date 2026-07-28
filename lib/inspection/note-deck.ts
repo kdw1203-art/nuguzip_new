@@ -371,6 +371,11 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
   }
 
   if (check.total > 0) {
+    /* 카드 한 장에 12줄은 들어가지 않는다. 8개만 싣되 **나머지를 숨기지 않고**
+       몇 건이 더 있는지 적는다 — 잘린 것을 없는 것처럼 보이게 하지 않는다. */
+    const shown = note.checklist
+      .slice(0, 8)
+      .map((c) => ({ label: str(c.label, 46), done: c.done }));
     content.push(
       blankPage({
         id: "checklist",
@@ -378,7 +383,8 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
         theme: "light",
         eyebrow: "현장 체크",
         title: `${check.total}개 중 ${check.done}개 확인`,
-        checks: note.checklist.slice(0, 12),
+        body: check.total > shown.length ? [`이 카드에는 ${shown.length}개만 보여요 · 전체는 원문에서`] : [],
+        checks: shown,
         source: "체크리스트",
       }),
     );
