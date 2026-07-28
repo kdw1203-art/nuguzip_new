@@ -58,3 +58,19 @@ export async function sendPush(
 export function getVapidPublicKey(): string | undefined {
   return process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 }
+
+/**
+ * 이 서버가 **실제로 웹 푸시를 보낼 수 있는지**.
+ *
+ * 공개키만 보면 안 된다 — 공개키는 브라우저 구독을 만들 때 쓰고, 실제 발송에는
+ * 개인키가 필요하다. 둘 중 하나만 있으면 구독은 만들어지는데 발송은 안 되는,
+ * 사용자 입장에서 가장 알아채기 어려운 상태가 된다.
+ *
+ * 화면에서 "알림 받기" 류의 입구를 그릴지 판단할 때 이 함수를 쓸 것.
+ */
+export function isWebPushConfigured(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim() &&
+      process.env.VAPID_PRIVATE_KEY?.trim(),
+  );
+}

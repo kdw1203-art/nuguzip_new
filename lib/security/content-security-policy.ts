@@ -3,6 +3,14 @@
  * 한곳에서만 정의해 배포·엣지·브라우저 간 불일치를 줄인다.
  */
 export function buildContentSecurityPolicy(isDev: boolean): string {
+  /* 카카오 JS SDK 는 **JS 키가 설정된 배포에서만** 내려받는다. 키가 없으면 SDK 를
+     띄울 일 자체가 없으니 정책도 그만큼 좁게 유지한다(허용 도메인은 적을수록 좋다). */
+  const kakaoSdkEnabled = Boolean(process.env.NEXT_PUBLIC_KAKAO_JS_KEY?.trim());
+  const kakaoScript = kakaoSdkEnabled ? " https://t1.kakaocdn.net" : "";
+  const kakaoConnect = kakaoSdkEnabled
+    ? " https://kapi.kakao.com https://t1.kakaocdn.net"
+    : "";
+
   const naverMapScript =
     "https://oapi.map.naver.com https://*.pstatic.net blob:";
   const naverMapConnect =
@@ -18,12 +26,12 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
   return [
     "default-src 'self'",
     isDev
-      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${naverMapScript} https://cdn.toss.im https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive}`
-      : `script-src 'self' 'unsafe-inline' ${naverMapScript} https://cdn.toss.im https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive} ${googleAdsScript}`,
+      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${naverMapScript} https://cdn.toss.im https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive}${kakaoScript}`
+      : `script-src 'self' 'unsafe-inline' ${naverMapScript} https://cdn.toss.im https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive} ${googleAdsScript}${kakaoScript}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
     `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net ${vercelLive}`,
     "img-src 'self' data: blob: https: http:",
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com ${naverMapConnect} https://maps.apigw.ntruss.com https://naveropenapi.apigw.ntruss.com https://sens.apigw.ntruss.com https://nid.naver.com http://openapi.seoul.go.kr:8088 https://openapi.seoul.go.kr https://cdn.toss.im https://*.cert.toss.im https://*.vercel-insights.com https://vitals.vercel-insights.com ${vercelLive} https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://accounts.google.com ${googleAdsConnect}`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com ${naverMapConnect} https://maps.apigw.ntruss.com https://naveropenapi.apigw.ntruss.com https://sens.apigw.ntruss.com https://nid.naver.com http://openapi.seoul.go.kr:8088 https://openapi.seoul.go.kr https://cdn.toss.im https://*.cert.toss.im https://*.vercel-insights.com https://vitals.vercel-insights.com ${vercelLive} https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://accounts.google.com ${googleAdsConnect}${kakaoConnect}`,
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
     `frame-src 'self' https://www.openstreetmap.org https://*.openstreetmap.org ${vercelLive} ${googleAdsFrame}`,

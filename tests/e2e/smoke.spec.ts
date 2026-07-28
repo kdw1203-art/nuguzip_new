@@ -420,3 +420,36 @@ test("42. /notes/new prefills 단지 from query and shows location search", asyn
   await page.getByText(/눌러서 변경/).first().click();
   await expect(page.getByPlaceholder(/단지명 또는 주소/)).toBeVisible({ timeout: 10000 });
 });
+
+// ---------- 미설정 기능의 UI 입구 ----------
+
+/**
+ * 웹 푸시 입구는 **서버가 실제로 보낼 수 있을 때만** 그려져야 한다.
+ *
+ * 2026-07-28: /my/settings 에 푸시 토글이 8개 있었는데 운영에는 VAPID 키가 없었다.
+ * 토글은 저장까지 정상으로 되고 알림만 영영 오지 않는다 — 로그인 화면의 소셜 버튼과
+ * 같은 부류지만, 눌러도 에러가 안 나서 **사용자가 틀렸다는 걸 알 방법이 없었다.**
+ * 기준은 서버가 스스로 보고하는 값(GET /api/push/subscribe)이다.
+ */
+test("43. 웹 푸시 입구는 서버가 활성일 때만 노출된다", async ({ page, request }) => {
+  const res = await request.get("/api/push/subscribe");
+  expect(res.ok()).toBeTruthy();
+  const body = (await res.json()) as { enabled?: boolean; publicKey?: string | null };
+  const enabled = Boolean(body.enabled && body.publicKey);
+
+  await page.goto("/my/settings", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "알림" }).first().click();
+  /* 탭이 실제로 열렸는지부터 확인한다. 이게 없으면 아래 "없어야 한다" 단언들이
+     빈 화면에서도 통과해 버린다 — 아무것도 검사하지 않는 테스트가 된다. */
+  await expect(page.getByText("관심 지역 · 급매 알림 구독")).toBeVisible({ timeout: 15000 });
+
+  const entry = page.getByRole("button", { name: /알림 켜기/ });
+  if (enabled) {
+    // 켜져 있으면 입구가 있어야 한다(브라우저 권한 요청은 클릭 시에만 — 여기서 누르지 않는다)
+    await expect(entry).toBeVisible({ timeout: 15000 });
+  } else {
+    await expect(entry).toHaveCount(0);
+    // 보낼 수 없는 채널의 설정 줄도 그리지 않는다
+    await expect(page.getByText("푸시 알림", { exact: true })).toHaveCount(0);
+  }
+});
