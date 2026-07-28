@@ -110,11 +110,12 @@ export default async function AdminDashboardPage() {
           >
             매물 검수 {pendingListingsCount === null ? "—" : `${pendingListingsLabel}건`}
           </Link>
-          <span className="rounded-[10px] bg-[rgba(255,255,255,.07)] px-3.5 py-[7px] font-semibold text-[#c9d2e0]">
-            오늘
-          </span>
-          <span className="px-3.5 py-[7px] text-[#9aa6b8]">7일</span>
-          <span className="px-3.5 py-[7px] text-[#9aa6b8]">30일</span>
+          {/* 2026-07-27: 여기 "오늘 / 7일 / 30일" 기간 탭이 있었다. onClick 도 href 도
+              searchParams 도 없는 <span> 3개였고 "오늘"에만 활성 배경이 칠해져 있어서,
+              운영자는 기간을 바꿔 볼 수 있다고 읽고 눌렀지만 KPI 는 영원히 그대로였다.
+              loadAdminDashboardMetrics() 는 기간 인자를 받지 않고 24h 고정 윈도로만
+              집계하므로 Link 로 바꿔도 결과가 안 바뀐다 — 없는 기능을 흉내내느니 지운다.
+              실제 집계 구간은 아래 KPI 라벨("DAU (24h)" 등)에 그대로 적혀 있다. */}
         </div>
       </div>
 

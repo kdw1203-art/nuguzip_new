@@ -3,6 +3,7 @@ import { encodeComplexId, type ComplexTransactionRow } from "@/lib/complex/compl
 import { loadRegionMarketMarkers } from "@/lib/map/region-market";
 import { pctDelta, deltaLabel } from "@/lib/map/trade-stats";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { auth } from "@/auth";
 import { logger } from "@/lib/log";
 import { withBudget } from "@/lib/async/with-budget";
@@ -55,6 +56,7 @@ function toDanjiItem(
   facts: ComplexFacts,
   coord: { lat: number; lng: number },
   myNoteCount: number,
+  households: number | null,
 ): DanjiItem {
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
@@ -81,7 +83,11 @@ function toDanjiItem(
     momPct,
     areaM2: facts.avgAreaM2,
     buildYear: facts.buildYear,
-    households: null, // 세대수 실데이터 소스 미연동 — 필터 칩도 "데이터 준비 중"으로 비활성
+    /* 세대수 — 예전엔 무조건 null 이었다("실데이터 소스 미연동"). 국토부 상세(V4)
+       백필이 돌면서 complex_tx_stats 에 값이 들어왔고, 세대수 범위 슬라이더도
+       실제로 동작하게 됐다. 값이 아직 없는 단지는 그대로 null 로 둔다 —
+       0 으로 채우면 "0세대 단지"가 되고, 세대수 필터에서 잘못 걸린다. */
+    households,
     buildingType: "아파트", // 국토부 아파트 실거래만 수집 — 유형 칩도 아파트 단일
     trades: toTrades(tx),
     latestYm: latest ? `${latest.yyyymm.slice(0, 4)}.${latest.yyyymm.slice(4, 6)}` : null,
@@ -299,6 +305,40 @@ async function fetchMyNoteCounts(): Promise<Map<string, number>> {
 }
 
 /**
+ * 지도 목록 단지들의 세대수를 complex_tx_stats(집계 MV)에서 한 번에 읽는다.
+ *
+ * 실거래(market_transactions)에는 세대수가 없어서 예전엔 그냥 null 이었다.
+ * 국토부 단지 상세(V4) 백필이 채운 값이 MV 에 들어와 있으므로 그걸 읽는다.
+ * 조회 실패는 빈 맵 — 세대수만 안 보일 뿐 목록은 그대로 뜬다.
+ */
+async function fetchHouseholds(
+  geo: { region_name: string; complex_name: string }[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const sb = getServiceSupabase();
+  if (!sb || geo.length === 0) return out;
+  const want = new Set(geo.map((g) => pairKey(g.region_name, g.complex_name)));
+  const { data, error } = await sb
+    .from("complex_tx_stats")
+    .select("region_name,complex_name,households")
+    .in("region_name", [...new Set(geo.map((g) => g.region_name))])
+    .in("complex_name", [...new Set(geo.map((g) => g.complex_name))])
+    .not("households", "is", null)
+    .limit(2_000);
+  if (error) {
+    logger.warn("[map] 세대수 조회 실패 — 세대수 없이 진행", { message: error.message });
+    return out;
+  }
+  for (const r of (data as { region_name: string; complex_name: string; households: number }[] | null) ?? []) {
+    const key = pairKey(r.region_name, r.complex_name);
+    if (!want.has(key)) continue;
+    const n = Number(r.households);
+    if (Number.isFinite(n) && n > 0) out.set(key, n);
+  }
+  return out;
+}
+
+/**
  * 실거래·지오코딩 좌표 기반 지도 단지 로드.
  * 좌표 캐시만 읽는다 — 백필은 cron(geocode-complexes)이 담당하고,
  * 요청 경로의 동기 지오코딩(예전 부트스트랩)은 응답 지연 요인이라 제거했다.
@@ -310,7 +350,11 @@ async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }
   const geo = await loadGeocodedComplexes(30);
   if (geo.length === 0) return { items: [], region: "수도권" };
 
-  const [txByComplex, myNotes] = await Promise.all([fetchTxBatch(geo), fetchMyNoteCounts()]);
+  const [txByComplex, myNotes, householdsByComplex] = await Promise.all([
+    fetchTxBatch(geo),
+    fetchMyNoteCounts(),
+    fetchHouseholds(geo),
+  ]);
 
   const items = geo.map((g) => {
     const id = encodeComplexId(g.region_name, g.complex_name);
@@ -324,6 +368,7 @@ async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }
       facts,
       { lat: g.lat, lng: g.lng },
       myNoteCount,
+      householdsByComplex.get(pairKey(g.region_name, g.complex_name)) ?? null,
     );
   });
 
@@ -344,7 +389,50 @@ async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }
   return { items, region };
 }
 
-export default async function MapPage() {
+/**
+ * `?region=` 을 legal_regions 좌표로 푼다.
+ *
+ * 왜 필요한가: 홈·개인화 화면의 "관심지역" 칩은 지역마다 다르게 생겼는데,
+ * MapPage 가 인자를 하나도 받지 않아서 어느 칩을 눌러도 같은 수도권 지도가
+ * 떴다(PersonalHome.tsx 의 "/map 은 아직 ?region= 쿼리 미지원" 주석이 그 흔적).
+ * 눌러도 아무 일도 안 일어난 것처럼 보이던 이유다.
+ *
+ * search_regions RPC 를 쓰는 이유는 칩에 적힌 문자열이 정규화돼 있지 않기
+ * 때문이다("서울 마포구"·"마포구"·"성남 분당구"가 다 온다). 못 찾으면 null 을
+ * 돌려주고 지도는 기본 화면으로 뜬다 — 엉뚱한 좌표로 옮기는 것보다 낫다.
+ */
+async function resolveRegionFocus(
+  regionName: string | null,
+): Promise<{ name: string; lat: number; lng: number } | null> {
+  const q = regionName?.trim();
+  if (!q) return null;
+  /* 서비스 롤이 아니라 읽기 전용 클라이언트를 쓴다. 시군구 좌표는 공개 정보고,
+     search_regions 에 anon 실행 권한이 있다. 서비스 롤만 보면 그 키가 없는
+     환경(로컬·프리뷰)에서 ?region= 이 조용히 무시된다. */
+  const sb = getReadOnlySupabase();
+  if (!sb) return null;
+  try {
+    const { data, error } = await sb.rpc("search_regions", { p_q: q, p_limit: 1 });
+    if (error) {
+      logger.warn("[map] ?region= 좌표 해석 실패", { message: error.message, q });
+      return null;
+    }
+    const row = (data as { display_name: string; lat: number | null; lng: number | null }[] | null)?.[0];
+    if (!row || row.lat == null || row.lng == null) return null;
+    return { name: row.display_name, lat: Number(row.lat), lng: Number(row.lng) };
+  } catch (e) {
+    logger.warn("[map] ?region= 좌표 해석 예외", e);
+    return null;
+  }
+}
+
+export default async function MapPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const regionParam = Array.isArray(sp.region) ? sp.region[0] : sp.region;
   /* 사실 우선: 허위 단지(공작아파트 등)를 채우지 않는다. 다만 "조회 실패" 와
      "빈 결과" 는 갈라서 내려보낸다 — 예전에는 둘 다 빈 목록이라 화면이
      "이 지역 단지 목록을 준비 중이에요" 라고 잘못 안내했다. */
@@ -352,7 +440,7 @@ export default async function MapPage() {
      `Vercel Runtime Timeout Error` 로 죽은 기록이 있다. 그러면 화면이 아예 안 뜬다 —
      아래 danjiLoadFailed 안내조차 못 보여 준다. 45초에 접으면 적어도 "지금은 못
      불러왔다"는 화면은 뜬다. 늦게라도 정확한 답보다 제때 뜨는 답이 낫다. */
-  const [dbRun, markersRun] = await Promise.all([
+  const [dbRun, markersRun, focus] = await Promise.all([
     withBudget(
       Promise.resolve().then(() => loadDanjiFromDb()),
       MAP_SECTION_BUDGET_MS,
@@ -361,6 +449,7 @@ export default async function MapPage() {
       Promise.resolve().then(() => loadRegionMarketMarkers()),
       MAP_SECTION_BUDGET_MS,
     ),
+    resolveRegionFocus(regionParam ?? null),
   ]);
 
   if (dbRun.state === "timeout") {
@@ -388,6 +477,7 @@ export default async function MapPage() {
       regionMarkers={markersLoaded.ok ? markersLoaded.value : []}
       danjiLoadFailed={!dbLoaded.ok}
       regionMarkersLoadFailed={!markersLoaded.ok}
+      initialFocus={focus}
     />
   );
 }

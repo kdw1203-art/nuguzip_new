@@ -80,7 +80,14 @@ export default async function Home() {
     <>
       <Header />
 
-      <main className="mx-auto w-full max-w-[1240px] flex-1 px-5 pb-32 pt-5 md:pb-16">
+      {/* id 는 layout.tsx 의 "본문 바로가기" 스킵 링크(href="#main-content") 목적지다.
+          이 페이지만 PageShell 을 안 쓰고 <main> 을 직접 그리면서 id 를 빠뜨렸던 탓에,
+          globals.css 가 .sr-only:focus 를 노출시켜 키보드 사용자에게 링크가 보이는데
+          Enter 를 눌러도 아무 데도 안 가는 상태였다(홈이 첫 Tab 대상이라 제일 잘 걸린다). */}
+      <main
+        id="main-content"
+        className="mx-auto w-full max-w-[1240px] flex-1 px-5 pb-32 pt-5 md:pb-16"
+      >
         {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
         <PersonalHome />
 
@@ -453,8 +460,10 @@ export default async function Home() {
                   ) : (
                     <>아직 발행된 리포트가 없어요. </>
                   )}
-                  <Link href="/town/market" className="font-bold text-primary">
-                    전문가 마켓 ›
+                  {/* "전문가 마켓"은 `/town/market` 을 가리켰는데 그 경로는 모임
+                      리다이렉트 경유지다. 전문가 목록은 /town/experts 다. */}
+                  <Link href="/town/experts" className="font-bold text-primary">
+                    전문가 찾아보기 ›
                   </Link>
                 </p>
               ) : (

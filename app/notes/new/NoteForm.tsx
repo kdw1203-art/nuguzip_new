@@ -30,6 +30,24 @@ const VISIT_GROUPS: { label: string; options: string[] }[] = [
   { label: "목적", options: ["실거주", "투자", "갈아타기"] },
 ];
 
+/* 방문 정보 3칩 ↔ metadata 키.
+   예전엔 시간대만 transportation 으로 서버에 갔고, 유형·목적은 payload 의 어디에도
+   (scores·sections·metadata 어디에도) 없었다. 탭하면 강조까지 되는데 저장하는 순간
+   사라져 localStorage 초안에만 남았다 — 눌러도 아무 일이 없는 컨트롤이었던 셈이다.
+   metadata 는 jsonb 라 임의 키가 그대로 보존되고 POST/PATCH 라우트도 통과시키므로
+   satisfaction 과 같은 자리에 세 값을 모두 적고, 수정 모드에서 되읽는다. */
+const VISIT_META_KEYS: Record<string, string> = {
+  유형: "propertyType",
+  시간대: "visitTimeSlot",
+  목적: "visitPurpose",
+};
+
+const VISIT_DEFAULTS: Record<string, string> = {
+  유형: "아파트",
+  시간대: "오후",
+  목적: "실거주",
+};
+
 type TagTone = "pos" | "neg";
 type TagDef = { label: string; tone: TagTone };
 
@@ -221,6 +239,19 @@ function metaNumber(meta: Record<string, unknown> | null | undefined, key: strin
   return Number.isFinite(n) ? n : null;
 }
 
+/* 저장된 metadata 에서 방문 정보 3칩을 복원한다.
+   되읽지 않으면 수정 모드가 항상 아파트/오후/실거주로 시작해, 사용자가 예전에 고른
+   값을 화면에 보여주지도 않은 채 저장 때 기본값으로 덮어써 버린다. */
+function visitFromNote(n?: NoteFormInitialNote | null): Record<string, string> {
+  const out = { ...VISIT_DEFAULTS };
+  if (!n) return out;
+  for (const g of VISIT_GROUPS) {
+    const saved = n.metadata?.[VISIT_META_KEYS[g.label]];
+    if (typeof saved === "string" && g.options.includes(saved)) out[g.label] = saved;
+  }
+  return out;
+}
+
 export function NoteForm({
   template,
   initialNote,
@@ -276,11 +307,9 @@ export function NoteForm({
   const [checks, setChecks] = useState<Record<string, Level>>(() =>
     initialNote ? checksFromNote(initialNote) : CHECK_DEFAULTS,
   );
-  const [visit, setVisit] = useState<Record<string, string>>({
-    유형: "아파트",
-    시간대: "오후",
-    목적: "실거주",
-  });
+  const [visit, setVisit] = useState<Record<string, string>>(() =>
+    visitFromNote(initialNote),
+  );
   const [tagDefs, setTagDefs] = useState<TagDef[]>(() => tagDefsFromNote(initialNote));
   const [tags, setTags] = useState<string[]>(() =>
     initialNote
@@ -552,6 +581,18 @@ export function NoteForm({
           lng: loc.lng ?? undefined,
           satisfaction,
           templateId: template?.id ?? undefined,
+          /* 방문 정보 3칩 전부 보존. 전에는 시간대만 transportation 으로 나가고
+             유형·목적은 저장 순간 버려졌다 — 눌러서 강조된 선택이 서버에 닿지 않았다. */
+          propertyType: visit["유형"] || undefined,
+          visitTimeSlot: visit["시간대"] || undefined,
+          visitPurpose: visit["목적"] || undefined,
+          /* 목적이 AI 리포트의 intent 축(실거주·투자·전월세)과 겹칠 때만 intent 로도 적는다.
+             '갈아타기' 를 억지로 넣으면 리포트가 이를 실거주로 읽어 사용자가 고르지 않은
+             관점으로 요약해 버리므로, 매칭되는 값일 때만 넘긴다. */
+          intent:
+            visit["목적"] === "투자" || visit["목적"] === "실거주"
+              ? visit["목적"]
+              : undefined,
         },
         isPublic,
       };
@@ -596,6 +637,20 @@ export function NoteForm({
     }
   };
 
+  /* 입력 진행도 — 예전엔 "2/3 단계"와 w-[66%] 하드코딩이었다. 이 폼은 단계가 없는
+     단일 화면이고 1·3 단계로 갈 곳도 없었으며, 아무리 채워 넣어도 바가 움직이지 않았다.
+     이제 사용자가 실제로 넣은 것만 센다 — 현장 체크·만족도는 기본값이 미리 들어가 있어
+     '입력했다'고 말할 수 없으므로 세지 않는다(안 건드려도 채워진 것처럼 보이면 또 거짓말). */
+  const progressItems = [
+    { label: "위치", done: Boolean(loc.aptName.trim() && loc.region.trim()) },
+    { label: "메모", done: memo.trim().length > 0 },
+    { label: "태그", done: tags.length > 0 },
+    { label: "고려사항 체크", done: doneTodos.length > 0 },
+    { label: "사진", done: photos.length > 0 },
+  ];
+  const progressDone = progressItems.filter((i) => i.done).length;
+  const progressPct = Math.round((progressDone / progressItems.length) * 100);
+
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col px-5 pb-10">
       {/* 상단 바 */}
@@ -612,7 +667,8 @@ export function NoteForm({
             {isEdit ? "임장노트 수정" : "임장노트"}
           </div>
           <div className="text-[10px] text-text-3">
-            {isEdit ? "내 기록 수정" : "2/3 단계 · 현장 기록"}
+            {isEdit ? "내 기록 수정" : "현장 기록"} · {progressDone}/
+            {progressItems.length} 항목 입력
           </div>
         </div>
         {isEdit ? (
@@ -628,9 +684,22 @@ export function NoteForm({
         )}
       </div>
 
-      {/* 진행 바 66% */}
-      <div className="relative mt-2.5 h-1 rounded-sm bg-[#e9edf3]">
-        <div className="absolute left-0 top-0 h-1 w-[66%] rounded-sm bg-primary" />
+      {/* 입력 진행 바 — 위 progressItems 의 실제 충족 개수만 반영(하드코딩 66% 제거) */}
+      <div
+        className="relative mt-2.5 h-1 rounded-sm bg-[#e9edf3]"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={progressItems.length}
+        aria-valuenow={progressDone}
+        aria-label={`임장노트 입력 진행 — ${progressItems
+          .filter((i) => i.done)
+          .map((i) => i.label)
+          .join(", ") || "아직 입력한 항목 없음"}`}
+      >
+        <div
+          className="absolute left-0 top-0 h-1 rounded-sm bg-primary transition-[width] duration-300"
+          style={{ width: `${progressPct}%` }}
+        />
       </div>
 
       <div className="mt-3.5 flex flex-col gap-3">

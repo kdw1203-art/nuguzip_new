@@ -1,6 +1,14 @@
+import Link from "next/link";
+import type { Session } from "next-auth";
 import { getOperatingMetrics } from "@/lib/admin/operating-metrics";
 import { loadAdminKpi } from "@/lib/admin/stats";
 import { listBanners, type Banner } from "@/lib/admin/banners";
+import {
+  STAFF_ROLE_LABEL,
+  canAccessAdminSection,
+  type AdminSection,
+  type StaffRole,
+} from "@/lib/auth/staff-roles";
 
 export const dynamic = "force-dynamic";
 
@@ -40,23 +48,47 @@ const PLACEMENT_LABEL: Record<Banner["placement"], string> = {
   global: "전역",
 };
 
-const RBAC = [
-  { perm: "신고 판정·배지 회수", ops: "✓", cs: "—", fin: "—" },
-  { perm: "티켓 응대·환불 요청", ops: "✓", cs: "✓", fin: "—" },
-  { perm: "정산 실행·계좌 정보", ops: "—", cs: "—", fin: "✓" },
-  { perm: "개인정보 열람", ops: "승인제", cs: "승인제", fin: "—" },
-];
+/* 2026-07-27: 여기 있던 RBAC 표는 손으로 적은 상수(`신고 판정·배지 회수 / 운영 ✓` 등)였다.
+   실집계 지표 바로 옆에서 "콘솔의 현재 권한 설정"처럼 읽혔지만, 실제 접근 제어는
+   lib/auth/staff-roles.ts 의 canAccessAdminSection 이 하고 있었고 이 표는 그 함수를
+   한 번도 읽지 않았다 — 역할 권한을 고쳐도 표는 옛 값을 계속 보여주는(그래서 아무도
+   틀린 걸 모르는) 조용한 드리프트 구조였다. 표를 지우는 대신 실제 판정 함수에서
+   셀을 뽑아 오도록 바꿨다. 아래 라벨 맵을 Record<AdminSection|StaffRole, string> 로
+   잡아 둔 이유는, 섹션이나 역할이 새로 생기면 이 파일이 컴파일 에러로 먼저 터지게
+   해서 표가 조용히 낡지 않게 하려는 것이다. */
 
-function rbacCell(v: string) {
-  if (v === "✓")
-    return <span className="flex-1 text-center font-extrabold text-[#4ade80]">✓</span>;
-  if (v === "승인제")
-    return (
-      <span className="flex-1 text-center font-extrabold text-[#e8a13a]">
-        승인제
-      </span>
-    );
-  return <span className="flex-1 text-center text-[#c9d4e5]">—</span>;
+/** 콘솔 섹션 한글 라벨 — 키 누락 시 컴파일 에러(드리프트 방지) */
+const SECTION_LABEL: Record<AdminSection, string> = {
+  overview: "대시보드 개요",
+  billing: "결제·정산",
+  policy: "정책·금칙어",
+  moderation: "신고·블라인드",
+  verification: "전문가 인증 심사",
+  etl: "데이터 적재(ETL)",
+  support: "고객 문의(CS)",
+  users: "회원 관리",
+  analytics: "통계·유입",
+  invest: "투자 지표",
+};
+
+/** 표 헤더용 짧은 역할명 (원래 라벨은 title 속성으로 노출) */
+const ROLE_SHORT: Record<StaffRole, string> = {
+  super_admin: "Super",
+  ops_admin: "운영",
+  verification_admin: "인증",
+  data_admin: "데이터",
+  cs_manager: "CS",
+};
+
+const RBAC_SECTIONS = Object.keys(SECTION_LABEL) as AdminSection[];
+const RBAC_ROLES = Object.keys(ROLE_SHORT) as StaffRole[];
+
+/** 권한 규칙을 표용으로 복제하지 않으려고, 역할만 실은 최소 세션을 실제 판정 함수에
+ *  그대로 넣어 본다. resolveStaffRole 이 staffRole 클레임을 그 역할로 해석한다. */
+function probeSession(role: StaffRole): Session {
+  return {
+    user: { email: `rbac-probe+${role}@nuguzip.invalid`, staffRole: role },
+  } as unknown as Session;
 }
 
 export default async function AdminOpsPage() {
@@ -109,9 +141,15 @@ export default async function AdminOpsPage() {
               <span className="text-sm font-extrabold text-ink">
                 공지·배너 스케줄러
               </span>
-              <button className="rounded-[9px] bg-primary px-3.5 py-[7px] text-[11px] font-bold text-white">
+              {/* 2026-07-27: async 서버 컴포넌트 안의 <button> 이라 onClick 을 붙일 수
+                  없었고, 실제로 아무것도 안 하는 버튼이었다. 배너 등록·수정은 이미
+                  /admin/banners 의 BannersClient 가 담당하므로 그리로 보낸다. */}
+              <Link
+                href="/admin/banners"
+                className="rounded-[9px] bg-primary px-3.5 py-[7px] text-[11px] font-bold text-white no-underline"
+              >
                 + 새 게시
-              </button>
+              </Link>
             </div>
             <div className="flex flex-col gap-[5px] text-[11px]">
               {banners.length === 0 ? (
@@ -225,33 +263,65 @@ export default async function AdminOpsPage() {
         <div className="flex flex-col gap-4">
           {/* RBAC */}
           <div className={lightCard}>
-            <div className="text-sm font-extrabold text-ink">
-              역할별 권한 (RBAC)
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-sm font-extrabold text-ink">
+                역할별 권한 (RBAC)
+              </span>
+              <span className="shrink-0 text-[10px] text-text-3">
+                staff-roles 실제 판정
+              </span>
             </div>
-            <div className="flex flex-col text-[10px]">
-              <div className="flex rounded-t-lg bg-bg px-2.5 py-[7px] font-extrabold text-text-3">
-                <span className="flex-[1.4]">권한</span>
-                <span className="flex-1 text-center">운영</span>
-                <span className="flex-1 text-center">CS</span>
-                <span className="flex-1 text-center">재무</span>
-              </div>
-              {RBAC.map((r, i) => (
-                <div
-                  key={r.perm}
-                  className={`flex px-2.5 py-[7px] text-text-1 ${
-                    i < RBAC.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                  }`}
-                >
-                  <span className="flex-[1.4]">{r.perm}</span>
-                  {rbacCell(r.ops)}
-                  {rbacCell(r.cs)}
-                  {rbacCell(r.fin)}
+            <div className="overflow-x-auto">
+              <div className="flex min-w-[300px] flex-col text-[10px]">
+                <div className="flex rounded-t-lg bg-bg px-2.5 py-[7px] font-extrabold text-text-3">
+                  <span className="flex-[1.6]">콘솔 섹션</span>
+                  {RBAC_ROLES.map((role) => (
+                    <span
+                      key={role}
+                      className="flex-1 text-center"
+                      title={STAFF_ROLE_LABEL[role]}
+                    >
+                      {ROLE_SHORT[role]}
+                    </span>
+                  ))}
                 </div>
-              ))}
+                {RBAC_SECTIONS.map((section, i) => (
+                  <div
+                    key={section}
+                    className={`flex px-2.5 py-[7px] text-text-1 ${
+                      i < RBAC_SECTIONS.length - 1
+                        ? "border-b border-[#f0f3f8]"
+                        : ""
+                    }`}
+                  >
+                    <span className="flex-[1.6]">{SECTION_LABEL[section]}</span>
+                    {RBAC_ROLES.map((role) => {
+                      const allowed = canAccessAdminSection(
+                        probeSession(role),
+                        section,
+                      );
+                      return (
+                        <span
+                          key={role}
+                          className={`flex-1 text-center ${
+                            allowed ? "font-extrabold text-success" : "text-text-3"
+                          }`}
+                        >
+                          {allowed ? "✓" : "—"}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="text-[10px] text-text-3">
-              개인정보 열람은 건별 사유 입력 + 감사 로그 · 권한 변경은 관리자
-              2인 승인
+            <div className="text-[10px] leading-[1.6] text-text-3">
+              위 표는 <b className="text-text-1">lib/auth/staff-roles.ts</b> 의 접근
+              판정을 그대로 호출해 그립니다 — 콘솔이 실제로 막는 것과 어긋날 수
+              없어요. 아래 두 줄은 아직 코드로 강제되지 않는{" "}
+              <b className="text-text-1">운영 정책 문서</b>이며 적용된 설정이
+              아닙니다: 개인정보 열람은 건별 사유 입력 + 감사 로그 · 권한 변경은
+              관리자 2인 승인.
             </div>
           </div>
 

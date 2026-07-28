@@ -34,6 +34,7 @@
     "check:final-release": "node ./scripts/check-final-release.mjs",
     "check:cache-policy": "node ./scripts/check-cache-policy.mjs",
     "check:jsonld": "node ./scripts/check-jsonld.mjs",
+    "check:dead-controls": "node ./scripts/check-dead-controls.mjs",
     "check:param-canonical": "node ./scripts/check-param-canonical.mjs",
     "check:sitemap-index": "node ./scripts/check-sitemap-index.mjs",
     "check:redirect-map": "node ./scripts/check-redirect-map.mjs",

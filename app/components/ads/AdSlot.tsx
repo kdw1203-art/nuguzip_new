@@ -41,7 +41,11 @@ function BannerCard({ banner }: { banner: Banner }) {
       {banner.subtitle ? (
         <span className="text-[12px] leading-relaxed opacity-90">{banner.subtitle}</span>
       ) : null}
-      {banner.ctaLabel ? (
+      {/* ctaLabel 과 ctaUrl 은 서로 독립인 nullable 컬럼이고, 어드민 폼은 빈 URL 을
+          null 로 저장한다. 예전에는 라벨만 있으면 무조건 그렸기 때문에, URL 없는
+          배너에서 굵은 밑줄 텍스트가 링크처럼 보이는데 감싸는 <a> 가 없어 눌러도
+          아무 일도 없었다. 갈 곳이 있을 때만 CTA 를 그린다. */}
+      {banner.ctaLabel && href ? (
         <span className="mt-1.5 text-[12px] font-bold underline underline-offset-2">
           {banner.ctaLabel}
         </span>

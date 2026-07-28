@@ -11,7 +11,10 @@ import {
 import { formatWeekKorean } from "@/lib/market/temperature";
 import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
-import { logger } from "@/lib/log";
+import {
+  LOAD_FAILED_LINE,
+  loadWithinPrerenderBudget,
+} from "@/lib/data/prerender-budget";
 
 /* ============================================================
    N11 — 시장 온도 주간 기록 허브 (/analysis/temperature)
@@ -32,9 +35,16 @@ import { logger } from "@/lib/log";
    파라미터가 없어 `next build` 가 빌드 타임에 프리렌더하는데, CI 빌드 환경엔
    SUPABASE_SERVICE_ROLE_KEY 가 없다. 여기서 던지면 빌드가 깨진다.
      1) 정상 — 지역별 최신 주 점수 + 지난주 대비
-     2) 조회 실패 — 그렇게 말하고 noindex
+     2) 조회 실패·시간 초과 — 그렇게 말하고 noindex
      3) 정말로 0주 — "아직 쌓인 주가 없다" (첫 크론 실행 전에는 이게 사실이다)
    2와 3을 같은 문장으로 처리하면 실패를 "데이터 없음"으로 위장하게 된다.
+
+   ── 던지지 않는 것만으로는 부족했다 (배포 #263) ────────────────
+   예외를 잡는 것만으로는 **느린** DB 를 못 막는다. Next 는 프리렌더 한 페이지에
+   60초 상한을 두고 넘기면 빌드를 실패시키는데, 배포 #263 이 그렇게 죽었다 —
+   이 페이지를 포함한 다섯 페이지가 각자 60초를 다 태워 릴리스가 통째로 막혔다.
+   느린 DB 는 페이지 내용을 떨어뜨릴 수는 있어도 배포를 막아서는 안 된다.
+   그래서 조회에 20초 상한을 씌우고, 넘기면 위 2)번 화면으로 접는다.
    ============================================================ */
 
 export const revalidate = 3600;
@@ -44,22 +54,19 @@ const PATH = "/analysis/temperature";
 type HubData = {
   weekStart: string | null;
   rows: TemperatureLatest[];
-  /** 조회 자체가 실패한 사유. null 이면 "읽었고 결과가 이만큼"이라는 뜻. */
-  loadError: string | null;
+  /** 조회가 실패했거나 상한 안에 끝나지 않았다. false 라야 "읽었고 결과가 이만큼"이다. */
+  loadFailed: boolean;
 };
 
 const loadHub = cache(async (): Promise<HubData> => {
-  try {
-    const { weekStart, rows } = await listLatestTemperatures();
-    return { weekStart, rows, loadError: null };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error(
-      "[/analysis/temperature] 주간 기록을 읽지 못했습니다 — 기록이 없는 것이 아니라 조회가 실패했습니다:",
-      message,
-    );
-    return { weekStart: null, rows: [], loadError: message };
-  }
+  const run = await loadWithinPrerenderBudget("[/analysis/temperature] 주간 기록", () =>
+    listLatestTemperatures(),
+  );
+  /* 실패를 빈 목록으로 흘려보내면 "아직 쌓인 주가 없습니다" 가 뜬다 —
+     크론이 매주 쌓아 둔 기록을 없다고 단정하는 셈이다. 반드시 갈라 놓는다. */
+  return run.ok
+    ? { weekStart: run.data.weekStart, rows: run.data.rows, loadFailed: false }
+    : { weekStart: null, rows: [], loadFailed: true };
 });
 
 /** 점수 밴드 색 — /analysis/timing 의 온도 막대와 같은 눈금을 쓴다. */
@@ -72,7 +79,7 @@ function scoreTone(score: number): { bg: string; fg: string } {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { weekStart, rows, loadError } = await loadHub();
+  const { weekStart, rows, loadFailed } = await loadHub();
   const description =
     rows.length > 0 && weekStart
       ? `${formatWeekKorean(weekStart)} 주 기준 ${rows.length}개 지역의 시장 온도(0~100)를 지난주와 나란히 봅니다. 매매가격지수 모멘텀과 실거래 거래량 추이로 계산하며, 매주 기록을 남겨 추세를 확인할 수 있습니다.`
@@ -82,7 +89,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: seoAlternates(PATH),
     // 조회가 실패한 상태의 껍데기를 색인시키지 않는다. 다음 재검증에서 성공하면 사라진다.
-    ...(loadError ? { robots: { index: false, follow: true } } : {}),
+    ...(loadFailed ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       title: "지역별 시장 온도 주간 기록 | 누구집",
       description,
@@ -93,7 +100,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TemperatureHubPage() {
-  const { weekStart, rows, loadError } = await loadHub();
+  const { weekStart, rows, loadFailed } = await loadHub();
 
   const weekLabel = weekStart ? formatWeekKorean(weekStart) : null;
   const hottest = rows[0] ?? null;
@@ -154,13 +161,12 @@ export default async function TemperatureHubPage() {
         50점이 중립이고, 매수·매도 권유가 아닙니다.
       </p>
 
-      {loadError ? (
+      {loadFailed ? (
         <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
           <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
-            주간 기록을 <strong className="text-ink">불러오지 못했습니다</strong>.
+            <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
-            기록이 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해
-            주세요.
+            주간 기록이 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는 뜻입니다.
           </p>
         </section>
       ) : rows.length === 0 ? (

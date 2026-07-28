@@ -3,7 +3,7 @@ import { PageShell } from "../../components/PageShell";
 import { ExampleBadge } from "../../components/ExampleBadge";
 import { readTownPosts } from "@/lib/newui/board-posts";
 import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
-import { seedGradient, faviconUrl, hostOf, relativeTime } from "../shared";
+import { seedGradient, faviconUrl, hostOf, relativeTime, newsImageUrl } from "../shared";
 import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
 import { CoverImage } from "@/app/components/CoverImage";
@@ -49,33 +49,7 @@ function badgeStyle(category: string): string {
   return "bg-[#f2f4f8] text-text-2";
 }
 
-/* 뉴스 썸네일 후보 키 — 자동수집 automation_meta(jsonb)에 아래 키로 이미지 URL이
-   실려오면 실이미지 커버로 사용한다. Post 타입에는 전용 이미지 필드가 없어,
-   PostAutomationMeta 의 unknown 값을 string 으로 타입 안전하게 좁힌다(any·단언 없음). */
-const IMAGE_META_KEYS = [
-  "ogImage",
-  "og_image",
-  "image",
-  "imageUrl",
-  "image_url",
-  "thumbnail",
-  "thumbnailUrl",
-  "cover",
-  "coverImage",
-] as const;
-
-/** automation_meta 에서 유효한 http(s) 이미지 URL을 찾으면 반환, 없으면 null */
-function newsImageUrl(post: Post): string | null {
-  const meta = post.automationMeta;
-  if (!meta) return null;
-  for (const key of IMAGE_META_KEYS) {
-    const value = meta[key];
-    if (typeof value === "string" && /^https?:\/\//.test(value.trim())) {
-      return value.trim();
-    }
-  }
-  return null;
-}
+/* 썸네일 URL 추출(newsImageUrl)은 상세 페이지와 공유하려고 ../shared 로 올렸다. */
 
 function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
   const image = newsImageUrl(post);
@@ -375,7 +349,7 @@ export default async function TownNewsPage({
       )}
 
       {/* 지역 필터 결과 0건 — 빈 상태 */}
-      {list.length === 0 && active && (
+      {list.length === 0 && active && !newsFailed && (
         <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
           <div className="text-[26px]"><Icon name="🗞" size={26} /></div>
           <div className="text-sm font-bold text-text-1">

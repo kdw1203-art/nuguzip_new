@@ -22,7 +22,7 @@ export type FeedNote = {
   excerpt: string;
   tags: { label: string; tone: TagTone }[];
   footer: string[];
-  popularity: number;
+  /** 서버에서 사용자의 지역 알림 구독과 대조해 채운다 (전에는 전부 false 고정이었다) */
   interested: boolean;
   region?: string;
   /** 커버 이미지(첫 사진). 없으면 그라디언트 타일 폴백 */
@@ -33,7 +33,12 @@ export type FeedNote = {
   isExample?: boolean;
 };
 
-const FILTERS = ["최신", "인기", "내 관심 지역"] as const;
+/* 정렬·필터 칩.
+   "인기" 였던 칩은 "점수순" 으로 바꿨다 — 정렬 키가 작성자 본인이 매긴 임장 점수라
+   조회·좋아요·저장 같은 반응 신호가 하나도 섞여 있지 않았기 때문이다. 노트에는 저장
+   기능 자체가 없어(bookmarks 의 target_type 에 note 가 없다) 실참여 수치를 넣을 수도
+   없으므로, 없는 인기를 만들어 내는 대신 라벨을 실제 정렬 기준에 맞췄다. */
+const FILTERS = ["최신", "점수순", "내 관심 지역"] as const;
 type Filter = (typeof FILTERS)[number];
 type ViewMode = "grid" | "feed";
 
@@ -288,21 +293,29 @@ export function NotesFeedClient({
   notes,
   mine = false,
   loadError = null,
+  showInterestFilter = false,
 }: {
   notes: FeedNote[];
   /** 내 노트 뷰(?mine=1) — 세션 사용자의 노트(비공개 포함) */
   mine?: boolean;
   /** 조회 자체가 실패했을 때의 사유. "노트가 없다" 와 반드시 구분해 표시한다. */
   loadError?: string | null;
+  /** 지역 알림 구독이 1건 이상일 때만 true. false 면 "내 관심 지역" 칩을 아예 감춘다 */
+  showInterestFilter?: boolean;
 }) {
   const [filter, setFilter] = useState<Filter>("최신");
   const [view, setView] = useState<ViewMode>("grid");
   const exampleOnly = notes.length > 0 && notes.every((n) => n.isExample);
 
+  /* 구독 지역이 없으면 "내 관심 지역" 은 무엇을 눌러도 0건이라 칩 자체를 숨긴다.
+     비활성 상태로 남겨 두면 눌리는데 아무 일도 안 하는 컨트롤이 된다. */
+  const filters = FILTERS.filter((f) => f !== "내 관심 지역" || showInterestFilter);
+  const activeFilter = filters.includes(filter) ? filter : "최신";
+
   const visible =
-    filter === "인기"
-      ? [...notes].sort((a, b) => b.popularity - a.popularity)
-      : filter === "내 관심 지역"
+    activeFilter === "점수순"
+      ? [...notes].sort((a, b) => b.score - a.score)
+      : activeFilter === "내 관심 지역"
         ? notes.filter((n) => n.interested)
         : notes;
 
@@ -343,13 +356,13 @@ export function NotesFeedClient({
         {/* 필터 칩 + 뷰 전환 */}
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 text-[13px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {FILTERS.map((f) => (
+            {filters.map((f) => (
               <button
                 key={f}
                 type="button"
                 onClick={() => setFilter(f)}
                 className={`chip press shrink-0 px-4 py-2 ${
-                  filter === f
+                  activeFilter === f
                     ? "chip-active"
                     : "border border-[#e2e7ee] bg-surface text-text-2"
                 }`}
@@ -397,20 +410,39 @@ export function NotesFeedClient({
 
         {/* 본문: 그리드 / 피드 / 빈 상태 */}
         {visible.length === 0 ? (
-          <EmptyState
-            icon="file-text"
-            title={
-              mine
-                ? "아직 작성한 임장노트가 없어요"
-                : "해당 필터에 맞는 노트가 아직 없어요"
-            }
-            desc={
-              mine
-                ? "첫 임장노트를 작성하면 비공개 노트까지 여기에 모여요."
-                : "필터를 바꾸거나, 첫 임장노트를 직접 작성해 보세요."
-            }
-            action={{ label: "임장노트 쓰기", href: "/notes/new" }}
-          />
+          /* 빈 상태를 한 문장으로 뭉뚱그리면 "노트가 없다"와 "필터가 걸러 냈다"가
+             섞인다. 노트는 있는데 필터 결과만 0건인 경우를 따로 적는다. */
+          notes.length > 0 ? (
+            <EmptyState
+              icon="file-text"
+              title={
+                activeFilter === "내 관심 지역"
+                  ? "구독한 지역의 노트는 아직 없어요"
+                  : "해당 필터에 맞는 노트가 아직 없어요"
+              }
+              desc={
+                activeFilter === "내 관심 지역"
+                  ? `노트 ${notes.length}건 중 내가 구독한 지역과 겹치는 건 없었어요. 필터를 '최신'으로 바꾸면 전체를 볼 수 있어요.`
+                  : "필터를 바꾸면 다른 노트를 볼 수 있어요."
+              }
+              action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+            />
+          ) : (
+            <EmptyState
+              icon="file-text"
+              title={
+                mine
+                  ? "아직 작성한 임장노트가 없어요"
+                  : "아직 공개된 임장노트가 없어요"
+              }
+              desc={
+                mine
+                  ? "첫 임장노트를 작성하면 비공개 노트까지 여기에 모여요."
+                  : "첫 임장노트를 직접 작성해 보세요."
+              }
+              action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+            />
+          )
         ) : view === "grid" ? (
           // 모바일: 가장자리까지 붙는 촘촘한 3열(인스타 앱). 데스크탑: 넓은 4~5열 보드(둥근 카드·호버·여백)
           <div className="-mx-5 grid grid-cols-3 gap-0.5 md:mx-0 md:grid-cols-4 md:gap-3.5 xl:grid-cols-5">

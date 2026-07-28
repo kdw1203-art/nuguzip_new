@@ -167,14 +167,24 @@ function DealCard({ d }: { d: DevDeal }) {
         </span>
       </div>
 
-      {/* 제목 + 지역 */}
+      {/* 제목 + 지역
+          2026-07-27: 예시 카드도 제목·CTA 를 /dev-deals/{id} 로 걸고 있었는데,
+          getDeal() 이 `.eq("is_sample", false)` 로 예시를 걸러 내 항상 notFound() 였다.
+          이 카드는 목록이 0건일 때(= 지금의 기본 상태) 뜨는 카드라, 사실상 모든 방문자가
+          앰버 CTA 를 누르면 404 를 만났다. 예시일 때는 링크 자체를 만들지 않는다. */}
       <div>
-        <Link
-          href={`/dev-deals/${d.id}`}
-          className="line-clamp-2 text-[15px] font-extrabold leading-[1.4] text-ink no-underline"
-        >
-          {d.title}
-        </Link>
+        {d.isSample ? (
+          <span className="line-clamp-2 block text-[15px] font-extrabold leading-[1.4] text-ink">
+            {d.title}
+          </span>
+        ) : (
+          <Link
+            href={`/dev-deals/${d.id}`}
+            className="line-clamp-2 text-[15px] font-extrabold leading-[1.4] text-ink no-underline"
+          >
+            {d.title}
+          </Link>
+        )}
         <div className="mt-1 text-[11px] text-text-3">
           {[d.region, d.address].filter(Boolean).join(" · ") || "지역 미정"}
         </div>
@@ -229,12 +239,20 @@ function DealCard({ d }: { d: DevDeal }) {
             조회 {d.viewCount.toLocaleString()} · 문의 {d.inquiryCount.toLocaleString()}
           </div>
         </div>
-        <Link
-          href={`/dev-deals/${d.id}`}
-          className="btn-primary btn-sm shrink-0 no-underline press"
-        >
-          참여 문의 ›
-        </Link>
+        {/* 예시 카드에는 문의할 실제 물건이 없다 — 누를 수 있게 생긴 CTA 대신
+            왜 못 누르는지 적은 정적 배지를 둔다(등록 CTA 는 위 안내 카드에 이미 있다). */}
+        {d.isSample ? (
+          <span className="chip shrink-0 bg-bg px-3 py-2 text-[11px] font-bold text-text-3">
+            예시 카드 · 문의 불가
+          </span>
+        ) : (
+          <Link
+            href={`/dev-deals/${d.id}`}
+            className="btn-primary btn-sm shrink-0 no-underline press"
+          >
+            참여 문의 ›
+          </Link>
+        )}
       </div>
     </article>
   );

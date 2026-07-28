@@ -163,6 +163,13 @@ jobs:
       # 돌아야 게이트다.
       - name: Structured data (JSON-LD) check
         run: node scripts/check-jsonld.mjs
+      # ---- 장식용 컨트롤 게이트 ----
+      # 2026-07-27, 런칭 준비 중에 가입 화면의 "⌕ 검색"이 onClick 없는 <span> 인 게
+      # 발견됐다. 전수 조사에서 같은 종류가 40곳 넘게 나왔다 — 핸들러 없는 <button>,
+      # 탭인 척하는 <span>, `▾` 만 그린 가짜 드롭다운. 타입도 테스트도 통과하고
+      # 화면도 멀쩡해서 사람 리뷰로는 안 걸린다. 기계가 봐야 재발을 막는다.
+      - name: Dead control check
+        run: node scripts/check-dead-controls.mjs
       - name: Link integrity check
         # 스텝 단위 상한도 따로 둔다. 잡 상한(35분)만 있으면 어느 스텝이 잡아먹었는지
         # 로그를 끝까지 뒤져야 알 수 있는데, 여기서 끊기면 원인이 바로 드러난다.

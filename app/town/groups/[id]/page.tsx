@@ -3,7 +3,7 @@ import { getMeeting } from "@/lib/meetings/store-db";
 import { safeAuth } from "@/lib/safe-auth";
 import { PageShell } from "../../../components/PageShell";
 import { ShareButton } from "./ShareButton";
-import { GroupLocationMap } from "./GroupLocationMap";
+import { LocationMap } from "../../LocationMap";
 import { Icon } from "@/app/components/Icon";
 
 /* 시안 8o(모임 상세) 고도화 — 모임 정보 카드(일정·장소·정원·참여자) + 공유 +
@@ -24,8 +24,6 @@ function formatSchedule(iso: string | null): string {
     minute: "2-digit",
   });
 }
-
-const AVATAR_COLORS = ["#dfe5ef", "#cfd8e6", "#bfcbdd", "#d6deea", "#c8d3e4"];
 
 export default async function TownGroupDetailPage({
   params,
@@ -137,18 +135,10 @@ export default async function TownGroupDetailPage({
             <div className="h-2 w-full overflow-hidden rounded-full bg-bg">
               <div className="h-full rounded-full bg-primary" style={{ width: `${fillPct}%` }} />
             </div>
-            <div className="flex items-center">
-              {AVATAR_COLORS.slice(0, Math.min(Math.max(meeting.currentMembers, 1), 5)).map((c, j) => (
-                <div
-                  key={c}
-                  className={`h-8 w-8 rounded-full border-2 border-white ${j > 0 ? "-ml-2.5" : ""}`}
-                  style={{ background: c }}
-                />
-              ))}
-              {meeting.currentMembers > 5 && (
-                <span className="ml-2 text-[11px] text-text-3">+ {meeting.currentMembers - 5}명</span>
-              )}
-            </div>
+            {/* 목록(/town/groups)에서 같은 이유로 이미 걷어낸 가짜 아바타 원을 여기서도
+                지운다. 참여자 프로필을 읽지 않고 색만 다른 원을 currentMembers 수만큼
+                그리던 것이라, 정원이 0명일 때도 원이 하나 떠서 "누군가 있다"고 보였다.
+                실제로 아는 사실은 인원수뿐이므로 인원수만 남긴다. */}
             <p className="text-[11px] leading-[1.5] text-text-3">
               참여 확정 시 채팅방에서 멤버들과 일정·체크리스트를 나눌 수 있어요 · 연락처는 공개되지 않아요
             </p>
@@ -160,7 +150,7 @@ export default async function TownGroupDetailPage({
           <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-5">
             <div className="text-[13px] font-extrabold text-ink">모임 장소</div>
             {/* 지역명을 좌표로 해석해 네이버 지도로 표시(정확 집결지는 채팅방 안내) */}
-            <GroupLocationMap
+            <LocationMap
               region={meeting.region}
               city={meeting.city}
               district={meeting.district}

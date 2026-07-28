@@ -621,7 +621,13 @@ export default async function NoteDetailPage({
                 {v.sourceLabel} · 기준일 {v.baseDate}
               </span>
               <span>·</span>
-              <Link href="/town/market" className="font-bold text-primary">
+              {/* 예전엔 "OO 시세"가 `/town/market` 으로 갔다. 그 경로는 모임
+                  리다이렉트 경유지라 시세와 아무 상관이 없었고, 어느 지역인지도
+                  전해지지 않았다. 지도가 ?region= 을 받게 됐으니 그리로 보낸다. */}
+              <Link
+                href={`/map?region=${encodeURIComponent(v.regionLabel)}`}
+                className="font-bold text-primary"
+              >
                 {v.regionLabel} 시세
               </Link>
               {/* 단지 링크 — 실 단지 id를 찾은 경우에만 (mock-1로 보내지 않음) */}
@@ -724,11 +730,32 @@ export default async function NoteDetailPage({
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-xl bg-bg px-3.5 py-3">
-              <span className="text-xs text-text-2">다음 단계 제안</span>
-              <span className="text-xs font-extrabold text-primary">
-                관심 단지라면 시간대를 바꿔 재방문 ›
-              </span>
+            {/* 다음 단계 제안 — 예전엔 같은 카드의 진짜 링크들과 똑같이 primary·굵게·꺾쇠(›)로
+                꾸며 놓고 실제로는 href 도 onClick 도 없는 <span> 이었다. 눌러도 아무 일이
+                일어나지 않는 가짜 액션이라, 실제로 데려갈 곳(재방문 기록 작성, 단지·지역
+                프리필)이 있는 링크로 바꾼다. 프리필할 단지명이 없으면 꺾쇠와 primary 색을
+                떼고 그냥 조언 문장으로 읽히게 둔다. */}
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-bg px-3.5 py-3">
+              <span className="shrink-0 text-xs text-text-2">다음 단계 제안</span>
+              {realNote.aptName?.trim() || realNote.region.trim() ? (
+                <Link
+                  href={`/notes/new?${new URLSearchParams({
+                    ...(realNote.aptName?.trim()
+                      ? { apt: realNote.aptName.trim() }
+                      : {}),
+                    ...(realNote.region.trim()
+                      ? { region: realNote.region.trim() }
+                      : {}),
+                  }).toString()}`}
+                  className="text-right text-xs font-extrabold text-primary"
+                >
+                  시간대를 바꿔 재방문 기록하기 ›
+                </Link>
+              ) : (
+                <span className="text-right text-xs text-text-2">
+                  관심 단지라면 시간대를 바꿔 다시 방문해 보세요
+                </span>
+              )}
             </div>
           </div>
         </div>

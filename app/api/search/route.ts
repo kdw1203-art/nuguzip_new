@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { readPosts } from "@/lib/posts-store";
-import { listReports } from "@/lib/reports/store-db";
 import { listMeetings } from "@/lib/meetings/store-db";
 import { listExperts } from "@/lib/experts/store-db";
 import { logger } from "@/lib/log";
@@ -81,27 +80,14 @@ export async function GET(req: Request) {
     });
   }
 
-  // 리포트
-  if (type === "all" || type === "report") {
-    await fromSource("report", async () => {
-      const reports = await listReports();
-      for (const r of reports) {
-        const searchable =
-          `${r.title} ${r.subtitle ?? ""} ${r.previewContent ?? ""} ${r.tags.join(" ")}`.toLowerCase();
-        if (searchable.includes(lower)) {
-          results.push({
-            id: r.id,
-            type: "report",
-            title: r.title,
-            excerpt: excerptAroundQuery(r.subtitle ?? r.previewContent ?? "", q),
-            url: `/reports/${r.id}`,
-            tags: r.tags,
-            createdAt: r.publishedAt,
-          });
-        }
-      }
-    });
-  }
+  /* 리포트 — 2026-07-27 검색 결과에서 뺐다.
+     여기서 만들던 url 은 `/reports/<uuid>` 였는데, app/reports 아래에 있는
+     라우트는 `[ym]`(월간 자동 리포트)과 `season/[slug]` 둘뿐이다. uuid 는
+     `[ym]` 에 걸려 isValidYm 에서 걸러져 404 가 났다 — 즉 이 소스가 만든
+     검색 결과는 **하나도 열 수 없었다**.
+     열 수 없는 결과를 목록에 섞는 것은 결과가 없는 것보다 나쁘다. 사용자
+     리포트(reports 테이블) 상세 화면이 생기면 그 경로로 url 을 만들어
+     이 블록을 되살릴 것 — listReports 는 그대로 있다. */
 
   // 모임
   if (type === "all" || type === "meeting") {

@@ -6,11 +6,15 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { trackPlatformEvent } from "@/lib/platform-events-client";
 import { Icon } from "@/app/components/Icon";
+import { RegionPicker } from "@/app/components/RegionPicker";
+import { stashSignupHandoff } from "@/lib/onboarding/signup-handoff";
 
+/* 목표 카드. purpose 는 온보딩(/welcome)의 "목적" 과 같은 값이라 프리필에 쓴다.
+   전문가·중개사는 대응되는 목적이 없어 null — 없는 값을 지어내지 않는다. */
 const GOALS = [
-  { icon: "🏠", title: "첫 내집마련", desc: "실거주 관점 체크리스트 중심" },
-  { icon: "📈", title: "투자 · 갈아타기", desc: "수익률·시세 흐름 중심" },
-  { icon: "💼", title: "전문가 · 중개사", desc: "리포트 발행·상담 도구" },
+  { icon: "🏠", title: "첫 내집마련", desc: "실거주 관점 체크리스트 중심", purpose: "live" },
+  { icon: "📈", title: "투자 · 갈아타기", desc: "수익률·시세 흐름 중심", purpose: "invest" },
+  { icon: "💼", title: "전문가 · 중개사", desc: "리포트 발행·상담 도구", purpose: null },
 ] as const;
 
 const SEGMENTS: { name: string; options: string[]; initial: string }[] = [
@@ -22,7 +26,8 @@ const SEGMENTS: { name: string; options: string[]; initial: string }[] = [
   { name: "보유 주택", options: ["무주택", "1주택", "2주택+"], initial: "무주택" },
 ];
 
-const REGIONS = ["안양 관양동", "서울 마포구", "과천시"];
+/** 관심 지역 선택 상한 — /welcome 온보딩과 같은 값(라벨의 "최대 3곳") */
+const MAX_REGIONS = 3;
 
 type RegisterResponse = {
   error?: string;
@@ -37,7 +42,7 @@ export default function SignupPage() {
   const [segments, setSegments] = useState<Record<string, string>>(
     Object.fromEntries(SEGMENTS.map((s) => [s.name, s.initial]))
   );
-  const [regions, setRegions] = useState<string[]>(["안양 관양동"]);
+  const [regions, setRegions] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -70,12 +75,23 @@ export default function SignupPage() {
     trackStep("signup_step_1");
   }, [trackStep]);
 
-  const toggleRegion = (r: string) => {
-    trackStep("signup_step_3", { section: "region" });
-    setRegions((prev) =>
-      prev.includes(r) ? prev.filter((v) => v !== r) : prev.length < 3 ? [...prev, r] : prev
-    );
-  };
+  /* 이 화면이 물어본 것 중 가입 API 스펙에 없는 값들(관심 지역·기본 정보·목표)을
+     온보딩으로 넘긴다. 가입 API 는 email·password·name·consent 만 받는다.
+     예전에는 넘기지도 저장하지도 않아서, 세 가지 질문의 답이 제출 순간 통째로
+     사라지고 바로 다음 화면이 같은 질문을 다시 했다. */
+  useEffect(() => {
+    stashSignupHandoff({ regions, profile: segments, purpose: GOALS[goal].purpose });
+  }, [regions, segments, goal]);
+
+  /* 진행률 — 사용자가 실제로 채워야 하는 것만 센다. 목표·기본 정보는 기본값이
+     이미 들어 있어(GOALS[0], SEGMENTS.initial) 세면 열자마자 진행된 것처럼 보인다. */
+  const progressDone = [
+    regions.length > 0,
+    email.trim().includes("@"),
+    password.length >= 8 && password === password2,
+    agree,
+  ].filter(Boolean).length;
+  const progressPct = Math.round((progressDone / 4) * 100);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -206,8 +222,20 @@ export default function SignupPage() {
         <Link href="/login" className="text-base text-text-1" aria-label="뒤로">
           ‹
         </Link>
-        <div className="relative h-1 w-[120px] rounded-sm bg-[#e9edf3]">
-          <div className="absolute left-0 top-0 h-1 w-1/2 rounded-sm bg-primary" />
+        {/* 진행 막대 — 예전엔 w-1/2 하드코딩이라 페이지를 열자마자 50%,
+            제출 직전에도 50% 였다. 실제로 채운 항목 비율로 그린다. */}
+        <div
+          className="relative h-1 w-[120px] rounded-sm bg-[#e9edf3]"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progressPct}
+          aria-label="가입 진행률"
+        >
+          <div
+            className="absolute left-0 top-0 h-1 rounded-sm bg-primary transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
         <Link href="/" className="text-[13px] text-text-3">
           건너뛰기
@@ -287,32 +315,19 @@ export default function SignupPage() {
       </div>
 
       <div className="rise-in-4 flex flex-col gap-2">
-        <div className="text-[13px] font-extrabold text-ink">
-          관심 지역 <span className="text-[11px] font-medium text-text-3">최대 3곳</span>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {REGIONS.map((r) => {
-            const active = regions.includes(r);
-            return (
-              <button
-                key={r}
-                type="button"
-                onClick={() => toggleRegion(r)}
-                className={`rounded-full px-[13px] py-[7px] text-xs ${
-                  active
-                    ? "bg-primary-soft font-bold text-primary"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
-                }`}
-              >
-                {active ? "✓ " : ""}
-                {r}
-              </button>
-            );
-          })}
-          <span className="rounded-full bg-[#f2f4f8] px-[13px] py-[7px] text-xs text-text-3">
-            ⌕ 검색
+        <label htmlFor="signup-region-search" className="text-[13px] font-extrabold text-ink">
+          관심 지역{" "}
+          <span className="text-[11px] font-medium text-text-3">
+            전국 시·군·구 검색 · 최대 {MAX_REGIONS}곳
           </span>
-        </div>
+        </label>
+        <RegionPicker
+          inputId="signup-region-search"
+          value={regions}
+          onChange={setRegions}
+          max={MAX_REGIONS}
+          onFirstPick={() => trackStep("signup_step_3", { section: "region" })}
+        />
       </div>
 
       <form onSubmit={onSubmit} className="rise-in-5 flex flex-col gap-2">

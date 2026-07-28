@@ -9,7 +9,10 @@ import {
   type DigestWeekSummary,
 } from "@/lib/digest/archive";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
-import { logger } from "@/lib/log";
+import {
+  LOAD_FAILED_LINE,
+  loadWithinPrerenderBudget,
+} from "@/lib/data/prerender-budget";
 
 /* ============================================================
    N23 — 주간 다이제스트 웹 아카이브(목록).
@@ -19,38 +22,43 @@ import { logger } from "@/lib/log";
    색인 자산이 된다.
 
    조회 실패와 "아직 실을 주가 없다" 를 화면에서 구분한다.
+
+   ── 조회에 상한을 두는 이유 (배포 #263) ────────────────────────
+   이 라우트는 revalidate 만 있고 동적 파라미터가 없어 `next build` 가 빌드
+   타임에 프리렌더한다. Next 는 페이지 하나당 정적 생성 60초 상한을 두고,
+   넘기면 **빌드를 실패시킨다** — 배포 #263 이 그렇게 죽었다. DB 가 밀린 몇 분
+   동안 이 페이지를 포함한 다섯 페이지가 각자 60초를 다 태워 릴리스가 통째로
+   나가지 못했다. 느린 DB 는 페이지 내용을 떨어뜨릴 수는 있어도 배포를
+   막아서는 안 된다. 그래서 20초에 접고, 못 읽었으면 못 읽었다고 적는다.
    ============================================================ */
 
 export const revalidate = 3600;
 
-type IndexData = { weeks: DigestWeekSummary[]; loadError: string | null };
+/** loadFailed: 조회가 실패했거나 상한 안에 끝나지 않았다. "실을 주가 없다"와 다른 사건이다. */
+type IndexData = { weeks: DigestWeekSummary[]; loadFailed: boolean };
 
 const load = cache(async (): Promise<IndexData> => {
-  try {
-    return { weeks: await listDigestWeeks(), loadError: null };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error(
-      "[/digest/archive] 주간 아카이브를 읽지 못했습니다 — 주가 없는 것이 아니라 조회가 실패했습니다:",
-      message,
-    );
-    return { weeks: [], loadError: message };
-  }
+  const run = await loadWithinPrerenderBudget("[/digest/archive] 주간 아카이브", () =>
+    listDigestWeeks(),
+  );
+  /* 실패를 빈 목록으로 흘려보내면 "아직 아카이브에 실을 주가 없습니다" 가 뜬다 —
+     지난 주들이 멀쩡히 쌓여 있어도 없다고 단정하는 셈이라 반드시 갈라 놓는다. */
+  return run.ok ? { weeks: run.data, loadFailed: false } : { weeks: [], loadFailed: true };
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { loadError } = await load();
+  const { loadFailed } = await load();
   const base = buildPageMetadata({
     title: "주간 다이제스트 아카이브",
     description:
       "주 단위로 고정된 부동산 주간 요약 기록입니다. 그 주에 실제로 수집된 뉴스와 이웃 글, 시장 온도만 싣습니다.",
     path: "/digest/archive",
   });
-  return loadError ? { ...base, robots: { index: false, follow: true } } : base;
+  return loadFailed ? { ...base, robots: { index: false, follow: true } } : base;
 }
 
 export default async function DigestArchivePage() {
-  const { weeks, loadError } = await load();
+  const { weeks, loadFailed } = await load();
 
   return (
     <PageShell breadcrumb="주간 다이제스트 › 아카이브">
@@ -70,12 +78,11 @@ export default async function DigestArchivePage() {
           않기 위해서입니다. 최근 {ARCHIVE_WEEKS}주까지 보관합니다.
         </p>
 
-        {loadError ? (
+        {loadFailed ? (
           <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
-            아카이브를 <strong className="text-ink">불러오지 못했습니다</strong>.
+            <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
-            기록이 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해
-            주세요.
+            기록이 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는 뜻입니다.
           </div>
         ) : weeks.length > 0 ? (
           <div className="mt-6 flex flex-col gap-3">

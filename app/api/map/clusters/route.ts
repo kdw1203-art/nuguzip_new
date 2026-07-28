@@ -72,6 +72,70 @@ export interface MapPointItem {
   jeonseManwon?: number;
   /** 그 평균을 만든 전세 실거래 건수 */
   jeonseCount?: number;
+  /* ── 상세 필터용 속성 (2026-07-27 추가) ───────────────────────────────────
+     막대그래프 범위 슬라이더(가격·면적·준공·세대수)는 서버에서 렌더한 단지 30개
+     에만 걸렸다. 지도에 실제로 찍히는 마커는 이 points 배열인데 여기에 필터로
+     쓸 값이 하나도 없어서, 필터를 켜면 마커를 통째로 숨기는 수밖에 없었다.
+     complex_tx_stats(집계 MV)에서 네 축을 실어 보내 마커도 걸러지게 한다.
+     값이 없으면 필드를 붙이지 않는다 — 0 으로 채우면 "0세대 단지"가 된다. */
+  /** 평균 매매 실거래가(만원) */
+  avgPriceManwon?: number;
+  /** 평균 전용면적(㎡) */
+  avgAreaM2?: number;
+  buildYear?: number;
+  households?: number;
+}
+
+/**
+ * 뷰포트 안 단지들의 상세 필터 속성 — map_complex_attrs RPC 한 번.
+ *
+ * PostgREST 로 직접 읽던 초기 구현은 두 번 막혔다.
+ *  · 단지명 300개를 IN 에 넣으면 한글 URL 인코딩으로 쿼리스트링이 10KB 를 넘어
+ *    요청 자체가 실패했다("TypeError: fetch failed").
+ *  · 지역 이름으로만 좁히면 서울 한복판에서 3만 행이 넘어와 25초 읽기 상한에 걸렸다.
+ * 좌표로 잘라야 하는데 complex_tx_stats 에는 좌표가 없어, complex_geocode 와의
+ * 조인을 DB 쪽 함수로 옮겼다.
+ */
+type FilterAttrs = {
+  avgPriceManwon?: number;
+  avgAreaM2?: number;
+  buildYear?: number;
+  households?: number;
+};
+
+async function fetchFilterAttrs(
+  sb: ReadOnlySb,
+  bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number },
+): Promise<Map<string, FilterAttrs>> {
+  const out = new Map<string, FilterAttrs>();
+  const { data, error } = await sb.rpc("map_complex_attrs", {
+    p_min_lat: bounds.minLat,
+    p_max_lat: bounds.maxLat,
+    p_min_lng: bounds.minLng,
+    p_max_lng: bounds.maxLng,
+    p_limit: MAX_POINTS,
+  });
+  /* 이 조회가 실패해도 포인트 자체는 그린다 — 속성이 없으면 필터를 켰을 때 그
+     마커가 빠질 뿐이고, 마커를 통째로 못 그리는 것보다 낫다. 조용히 넘기지는 않는다. */
+  if (error) {
+    logger.warn("[map/clusters] map_complex_attrs 실패", { message: error.message });
+    return out;
+  }
+  const num = (v: unknown): number | undefined => {
+    const n = Number(v);
+    return v == null || !Number.isFinite(n) ? undefined : n;
+  };
+  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+    const key = complexKey(String(r.region_name ?? ""), String(r.complex_name ?? ""));
+    if (out.has(key)) continue;
+    out.set(key, {
+      avgPriceManwon: num(r.avg_price_manwon),
+      avgAreaM2: num(r.avg_area_m2),
+      buildYear: num(r.build_year),
+      households: num(r.households),
+    });
+  }
+  return out;
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -397,17 +461,18 @@ export async function GET(req: NextRequest) {
           Number.isFinite(Number(r.lng)),
       );
 
+      const pairs = geoRows.map((r) => ({
+        region: String(r.region_name),
+        name: String(r.complex_name),
+      }));
+
       // 전세 모드 — 뷰포트 단지들의 최근 전세 보증금 평균(단지별)
-      const jeonseByComplex =
+      const [jeonseByComplex, attrsByComplex] = await Promise.all([
         txType === "rent"
-          ? await fetchJeonseByComplex(
-              sb,
-              geoRows.map((r) => ({
-                region: String(r.region_name),
-                name: String(r.complex_name),
-              })),
-            )
-          : new Map<string, RentBucket>();
+          ? fetchJeonseByComplex(sb, pairs)
+          : Promise.resolve(new Map<string, RentBucket>()),
+        fetchFilterAttrs(sb, bounds),
+      ]);
 
       const points: MapPointItem[] = geoRows.map((r) => {
         const region = String(r.region_name);
@@ -428,6 +493,14 @@ export async function GET(req: NextRequest) {
         if (jeonse && jeonse.count > 0) {
           point.jeonseManwon = Math.round(jeonse.sumDepositKrw / jeonse.count / 10_000);
           point.jeonseCount = jeonse.count;
+        }
+        // 상세 필터용 속성 — 아는 값만 붙인다(모르는 축은 필드 자체가 없다)
+        const attrs = attrsByComplex.get(complexKey(region, name));
+        if (attrs) {
+          if (attrs.avgPriceManwon !== undefined) point.avgPriceManwon = attrs.avgPriceManwon;
+          if (attrs.avgAreaM2 !== undefined) point.avgAreaM2 = attrs.avgAreaM2;
+          if (attrs.buildYear !== undefined) point.buildYear = attrs.buildYear;
+          if (attrs.households !== undefined) point.households = attrs.households;
         }
         return point;
       });

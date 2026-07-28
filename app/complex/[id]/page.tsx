@@ -14,6 +14,7 @@ import {
 import {
   ComplexHubTabs,
   CompareTrayButton,
+  WatchlistButton,
   type HubTrade,
   type HubNote,
   type HubListing,
@@ -122,7 +123,6 @@ interface HubView {
   city: string;
   /** 총 세대수 — 대장 마스터에 매칭됐을 때만 값이 있다 */
   households: number | null;
-  followerLabel: string;
   metric: {
     price: string;
     priceSub: string;
@@ -131,7 +131,6 @@ interface HubView {
     listingsSub: string;
     notes: string;
     notesSub: string;
-    safety: string;
   };
   aiTitle: string;
   aiBody: string;
@@ -350,7 +349,6 @@ function toView(
     dong,
     city: row.city,
     households: row.households,
-    followerLabel: "+ 단지 팔로우",
     metric: {
       /* 실패와 없음을 절대 같은 문장으로 그리지 않는다.
          "시세 준비 중" 은 "아직 쌓이지 않았다"는 뜻이고, 조회 실패에 그 문장을
@@ -381,8 +379,6 @@ function toView(
         : posts.length > 0
           ? "단지 이야기 포함"
           : "첫 노트를 남겨보세요",
-      // 안전등급 산정 미연동 — 허위 등급 금지
-      safety: "—",
     },
     aiTitle: `AI 요약 · ${row.name}`,
     aiBody: txFailed
@@ -648,9 +644,14 @@ export default async function ComplexHubPage({
         >
           ‹ 지도
         </Link>
-        <span className="chip border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2">
+        {/* 동/구 칩 — 예전엔 옆의 "‹ 지도" Link 와 완전히 같은 생김새인데 href 가
+            없었다. 지역 지도로 실제로 이동하게 한다(?region= 지원 추가됨). */}
+        <Link
+          href={`/map?region=${encodeURIComponent(v.dong)}`}
+          className="chip border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+        >
           {v.dong}
-        </span>
+        </Link>
         <span className="chip bg-ink px-2.5 py-1 text-[11px] font-extrabold text-white">
           {v.name}
         </span>
@@ -659,9 +660,9 @@ export default async function ComplexHubPage({
       {/* 단지명 + 팔로우 */}
       <div className="rise-in mt-3 flex items-baseline justify-between">
         <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">{v.name}</h1>
-        <button type="button" className="text-xs font-bold text-primary">
-          {v.followerLabel}
-        </button>
+        {/* 예전엔 onClick 이 없는 <button> 이었다 (followerLabel 은 그냥 문자열).
+            /api/me/watchlist 를 쓰는 진짜 토글로 교체. */}
+        <WatchlistButton complexId={v.id} complexName={v.name} />
       </div>
 
       {/* 거리뷰(항목 A5) — 좌표가 유한할 때만 (목업 폴백은 좌표 없음 → 자동 숨김) */}
@@ -687,9 +688,17 @@ export default async function ComplexHubPage({
           <div className="text-base font-extrabold text-ink">{v.metric.notes}</div>
           <div className="mt-0.5 text-[11px] text-text-3">{v.metric.notesSub}</div>
         </div>
+        {/* 4번째 "안전 진단" 카드는 삭제했다. safety 는 "—" 상수였고(안전등급 산정
+            미연동), 실값이 들어오는 옆 세 카드와 같은 자리·같은 초록색으로 그려져
+            영원히 채워지지 않는 지표 칸을 차지하고 있었다.
+            세대수는 실제로 아는 값이므로 그 자리에 넣는다. */}
         <div className="card rounded-xl px-3 py-[11px] text-center">
-          <div className="text-base font-extrabold text-success">{v.metric.safety}</div>
-          <div className="mt-0.5 text-[11px] text-text-3">안전 진단</div>
+          <div className="text-base font-extrabold text-ink">
+            {v.households ? `${v.households.toLocaleString("ko-KR")}` : "—"}
+          </div>
+          <div className="mt-0.5 text-[11px] text-text-3">
+            {v.households ? "세대수" : "세대수 미확인"}
+          </div>
         </div>
       </div>
 

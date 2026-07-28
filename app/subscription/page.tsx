@@ -250,10 +250,12 @@ export default async function SubscriptionPage({
         </div>
       </section>
 
-      {/* 배지 노출 예시 (9k) */}
+      {/* 배지 노출 예시 (9k) — 카드 안의 닉네임·지역·점수는 배지 위치를 보여 주려고
+          꾸민 그림이다. 라벨에 "예시"가 없어서 실제 이웃의 글·노트로 읽힐 수 있었다.
+          제목마다 예시임을 적는다(내용 자체는 그대로 두되, 사실 주장이 되지 않게). */}
       <section className="rise-in-6 mx-auto mt-4 grid w-full max-w-[1080px] gap-3.5 md:grid-cols-3">
         <div className="card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-          <div className="text-xs font-extrabold text-text-3">배지 노출 — 커뮤니티 글</div>
+          <div className="text-xs font-extrabold text-text-3">배지 노출 예시 — 커뮤니티 글</div>
           <div className="flex items-center gap-2">
             <div className="h-[30px] w-[30px] rounded-full bg-[repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2_5px,#eef2f8_5px,#eef2f8_10px)]" />
             <div>
@@ -267,7 +269,7 @@ export default async function SubscriptionPage({
           <div className="text-xs text-text-1">공작아파트 3번째 임장 다녀왔어요…</div>
         </div>
         <div className="card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-          <div className="text-xs font-extrabold text-text-3">배지 노출 — 공개 노트</div>
+          <div className="text-xs font-extrabold text-text-3">배지 노출 예시 — 공개 노트</div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[13px] font-extrabold text-ink">동편3 702동 노트</span>
@@ -278,7 +280,7 @@ export default async function SubscriptionPage({
           <div className="text-[11px] text-text-3">프로(전문가) 노트는 검색·피드에서 상단 정렬</div>
         </div>
         <div className="card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-          <div className="text-xs font-extrabold text-text-3">배지 노출 — 홈 헤더</div>
+          <div className="text-xs font-extrabold text-text-3">배지 노출 예시 — 홈 헤더</div>
           <div className="flex items-center gap-1.5">
             <div className="h-[30px] w-[30px] rounded-full bg-[repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2_5px,#eef2f8_5px,#eef2f8_10px)]" />
             <PlanBadge tier="plus" />

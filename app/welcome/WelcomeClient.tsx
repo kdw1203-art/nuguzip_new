@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { RegionPicker } from "@/app/components/RegionPicker";
+import { takeSignupHandoff } from "@/lib/onboarding/signup-handoff";
 
 /** 위저드 화면 진행 기록용 id — 퍼널 관측 전용.
     진짜 온보딩 스텝(explore·inspection·share)은 서버가 실데이터로 판정하므로
@@ -11,37 +13,8 @@ import { Icon } from "@/app/components/Icon";
     "관심 담기·첫 노트·공개 공유"가 완료된 것처럼 기록되던 문제의 재발 방지. */
 const STEP_IDS = ["profile_region", "profile_budget", "profile_purpose"] as const;
 
-/** 서울·경기·인천 주요 지역 (알림 구독 value 로 그대로 전송, ≤30자) */
-const REGION_GROUPS: { label: string; regions: string[] }[] = [
-  {
-    label: "서울",
-    regions: [
-      "서울 강남구",
-      "서울 서초구",
-      "서울 송파구",
-      "서울 마포구",
-      "서울 성동구",
-      "서울 영등포구",
-      "서울 노원구",
-    ],
-  },
-  {
-    label: "경기",
-    regions: [
-      "성남 분당구",
-      "수원 영통구",
-      "용인 수지구",
-      "고양 일산",
-      "안양 동안구",
-      "화성 동탄",
-      "과천시",
-    ],
-  },
-  {
-    label: "인천",
-    regions: ["인천 연수구 송도", "인천 서구 청라", "인천 부평구"],
-  },
-];
+/** 관심 지역 선택 상한 — 가입 화면(/signup)과 같은 값 */
+const MAX_REGIONS = 3;
 
 type BudgetType = "sale" | "jeonse";
 type BudgetBand = { id: string; label: string; min: number | null; max: number | null };
@@ -111,10 +84,15 @@ export function WelcomeClient() {
     }).catch(() => {});
   }, []);
 
-  const toggleRegion = (r: string) =>
-    setRegions((prev) =>
-      prev.includes(r) ? prev.filter((v) => v !== r) : prev.length < 3 ? [...prev, r] : prev,
-    );
+  /* 가입 화면에서 이미 고른 값을 그대로 이어받는다 — 예전에는 전부 버려져서
+     같은 질문을 두 번 받았고, 기본 정보 6줄은 어디에도 저장되지 않았다. */
+  const [profile, setProfile] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const carried = takeSignupHandoff();
+    if (carried.regions.length > 0) setRegions(carried.regions.slice(0, MAX_REGIONS));
+    if (Object.keys(carried.profile).length > 0) setProfile(carried.profile);
+    if (carried.purpose) setPurpose(carried.purpose);
+  }, []);
 
   const pickBudgetType = (t: BudgetType) => {
     setBudgetType(t);
@@ -155,7 +133,7 @@ export function WelcomeClient() {
       fetch("/api/me/preferences", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ regions, budget, purpose }),
+        body: JSON.stringify({ regions, budget, purpose, profile }),
       }),
     ]).catch(() => {});
 
@@ -167,7 +145,7 @@ export function WelcomeClient() {
         ? `/notes/new?region=${encodeURIComponent(firstRegion)}&from=welcome`
         : "/notes/new?from=welcome",
     );
-  }, [busy, purpose, recordStep, budgetType, budgetBandId, regions, router]);
+  }, [busy, purpose, recordStep, budgetType, budgetBandId, regions, profile, router]);
 
   if (!ready) {
     return (
@@ -207,35 +185,15 @@ export function WelcomeClient() {
             궁금하세요?
           </h1>
           <p className="rise-in-1 -mt-2 text-[13px] text-text-2">
-            관심 지역을 1~3곳 고르면 맞춤 시세·소식을 준비해 드려요
+            전국 시·군·구에서 1~{MAX_REGIONS}곳 고르면 맞춤 시세·소식을 준비해 드려요
           </p>
-          <div className="rise-in-2 flex flex-col gap-3">
-            {REGION_GROUPS.map((g) => (
-              <div key={g.label} className="flex flex-col gap-1.5">
-                <span className="text-[12px] font-extrabold text-text-2">{g.label}</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.regions.map((r) => {
-                    const active = regions.includes(r);
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => toggleRegion(r)}
-                        aria-pressed={active}
-                        className={`rounded-full px-[13px] py-[7px] text-xs transition ${
-                          active
-                            ? "bg-primary-soft font-bold text-primary"
-                            : "border border-[#e2e7ee] bg-surface text-text-2"
-                        }`}
-                      >
-                        {active ? "✓ " : ""}
-                        {r}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="rise-in-2">
+            <RegionPicker
+              inputId="welcome-region-search"
+              value={regions}
+              onChange={setRegions}
+              max={MAX_REGIONS}
+            />
           </div>
           <div className="flex-1" />
           <button

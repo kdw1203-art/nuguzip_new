@@ -12,7 +12,8 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 /* 시안 6p(전문가 상담) 고도화 — expert_profiles 실데이터 연동.
    자료(#8) 섹션 포맷에 맞춰 재구성: 페이지 헤더 + 인증 안내 + 필터 칩 + 라벨 섹션(인증 전문가 / 그 외).
    인증(is_verified) 전문가만 실제 상담 가능 · 지역·분야 필터 + 평점/상담수 정렬.
-   실데이터 0건이면 "예시" 라벨 목업(비활성) 폴백. 전문가 인증 신청 플로우 강화. */
+   실데이터 0건이면 0건이라고 말한다(목업 폴백 없음 — 아래 주석 참고).
+   조회 실패는 "없음"과 구분해 따로 그린다. 전문가 인증 신청 플로우 강화. */
 
 export const dynamic = "force-dynamic";
 
@@ -26,29 +27,12 @@ export const metadata = buildPageMetadata({
 
 type Params = Promise<{ sub?: string; region?: string; sort?: string }>;
 
-/* ---------- 목업 폴백 (실데이터 0건일 때만, 예시·비활성) ---------- */
-
-const FALLBACK_EXPERTS: ExpertCardData[] = [
-  {
-    id: null,
-    name: "김OO",
-    title: "공인중개사",
-    initial: "김",
-    regionLine: "안양 관양동 · 경력 12년",
-    regions: ["안양 관양동"],
-    tags: ["재건축", "1기 신도시"],
-    ratingLabel: "★ 4.9",
-    reviews: 128,
-    consultations: 342,
-    responseLabel: "2h",
-    introduction: "관양동 일대 재건축·갈아타기 상담을 12년간 진행했습니다.",
-    consultFeeLabel: "30,000원",
-    reportFeeLabel: "9,900원",
-    verified: false,
-    actionable: false,
-    pendingLabel: "예시",
-  },
-];
+/* 예시 목업 폴백은 제거했다 — 임장 모임 목록(/town/groups)에서 같은 이유로 이미
+   걷어낸 것과 같다. "김OO 공인중개사 · ★ 4.9 · 후기 128건 · 상담 342건 · 상담료
+   30,000원" 처럼 구체적인 숫자가 박힌 카드는 구석에 "예시" 배지가 붙어 있어도
+   진짜 전문가로 읽힌다. 그 네 숫자는 전부 지어낸 값이었고(전문가 후기 테이블은
+   아직 없다), 요금은 특히 돈 문제라 예시로도 띄우면 안 된다.
+   0명이면 0명이라고 말하고 인증 신청 CTA 를 보여 주는 편이 정직하다. */
 
 /* ---------- 헬퍼 ---------- */
 
@@ -109,10 +93,15 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
      생기면 그때 다시 넣는다. 기본값은 최근 등록순. 옛 링크(?sort=rating)도 여기로 온다. */
   const sort = sp.sort === "consult" ? "consult" : "recent";
 
+  /* 목록을 **못 읽은 것**과 전문가가 **없는 것**은 다른 사실이다. 예전에는 실패를
+     빈 배열로 삼킨 뒤 목업 카드로 덮어서, 조회가 죽었을 때 화면에는 존재하지 않는
+     전문가가 실적까지 달고 떠 있었다. 실패는 실패라고 그린다. */
   let realExperts: UserExpertProfile[] = [];
+  let loadFailed = false;
   try {
     realExperts = await listExperts();
   } catch {
+    loadFailed = true;
     realExperts = [];
   }
   const usingReal = realExperts.length > 0;
@@ -122,7 +111,7 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
     ...new Set(realExperts.flatMap((e) => e.regions).map(regionKeyOf).filter(Boolean)),
   ].slice(0, 6);
 
-  let cards: ExpertCardData[];
+  let cards: ExpertCardData[] = [];
   if (usingReal) {
     let list = realExperts;
     if (sub.id !== "all") {
@@ -138,8 +127,6 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
       return b.createdAt.localeCompare(a.createdAt);
     });
     cards = list.map(toCard);
-  } else {
-    cards = FALLBACK_EXPERTS;
   }
 
   /* 자료 섹션 분류 — 인증 전문가 / 그 외 */
@@ -249,18 +236,40 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
       </div>
 
       {/* ---------- 섹션 ---------- */}
-      {cards.length === 0 ? (
+      {loadFailed ? (
+        <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
+            <Icon name="warning" size={22} />
+          </div>
+          <p className="text-sm font-bold text-ink">전문가 목록을 불러오지 못했어요</p>
+          <p className="max-w-xs text-xs leading-[1.6] text-text-3">
+            등록된 전문가가 없는 게 아니라, 지금 목록을 읽지 못한 상태예요. 잠시 뒤
+            새로고침해 주세요.
+          </p>
+          <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+            다시 불러오기
+          </Link>
+        </div>
+      ) : cards.length === 0 ? (
         <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
             <Icon name="search" size={22} />
           </div>
-          <p className="text-sm font-bold text-ink">{sub.label} 분야 전문가가 아직 없어요</p>
-          <p className="max-w-xs text-xs leading-[1.6] text-text-3">
-            다른 분야나 지역으로 바꿔보세요.
+          <p className="text-sm font-bold text-ink">
+            {sub.id === "all" && region === "all"
+              ? "아직 등록된 전문가가 없어요"
+              : `${sub.label} 분야 전문가가 아직 없어요`}
           </p>
-          <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
-            필터 초기화
-          </Link>
+          <p className="max-w-xs text-xs leading-[1.6] text-text-3">
+            {sub.id === "all" && region === "all"
+              ? "전문가 인증이 완료되면 여기에서 바로 상담할 수 있어요."
+              : "다른 분야나 지역으로 바꿔보세요."}
+          </p>
+          {filtersActive && (
+            <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+              필터 초기화
+            </Link>
+          )}
         </div>
       ) : (
         <>

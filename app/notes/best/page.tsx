@@ -13,7 +13,10 @@ import {
   type BestNotesMonth,
 } from "@/lib/inspection/best-notes";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
-import { logger } from "@/lib/log";
+import {
+  LOAD_FAILED_LINE,
+  loadWithinPrerenderBudget,
+} from "@/lib/data/prerender-budget";
 import { cache } from "react";
 
 /* ============================================================
@@ -25,38 +28,45 @@ import { cache } from "react";
    높다고 가산점을 주면 후하게 쓸 유인이 생기므로 그건 보지 않는다.
 
    조회 실패와 "아직 뽑힌 달이 없다" 를 화면에서 구분한다.
+
+   ── 조회에 상한을 두는 이유 (배포 #263) ────────────────────────
+   이 라우트는 revalidate 만 있고 동적 파라미터가 없어 `next build` 가 빌드
+   타임에 프리렌더한다. 그런데 Next 는 페이지 하나당 정적 생성 60초 상한을 두고,
+   넘기면 **빌드를 실패시킨다**. 배포 #263 이 실제로 그렇게 죽었다 — DB 가 밀린
+   몇 분 동안 이 페이지가 60초를 다 태워 릴리스가 통째로 나가지 못했다.
+   느린 DB 는 페이지 내용을 떨어뜨릴 수는 있어도 배포를 막아서는 안 된다.
+   그래서 조회를 20초에 접고, 못 읽었으면 못 읽었다고 적은 채로 페이지를 낸다.
    ============================================================ */
 
 export const revalidate = 1800;
 
-type IndexData = { months: BestNotesMonth[]; loadError: string | null };
+/** loadFailed: 조회가 실패했거나 상한 안에 끝나지 않았다. "노트가 없다"와 다른 사건이다. */
+type IndexData = { months: BestNotesMonth[]; loadFailed: boolean };
 
 const load = cache(async (): Promise<IndexData> => {
-  try {
-    return { months: await listBestNoteMonths(), loadError: null };
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    logger.error(
-      "[/notes/best] 공개 임장노트를 읽지 못했습니다 — 노트가 없는 것이 아니라 조회가 실패했습니다:",
-      message,
-    );
-    return { months: [], loadError: message };
-  }
+  const run = await loadWithinPrerenderBudget("[/notes/best] 공개 임장노트", () =>
+    listBestNoteMonths(),
+  );
+  /* 실패를 `months: []` 로만 흘려보내면 아래 빈 상태 문구("아직 기준을 채운 달이
+     없습니다")가 뜬다 — 못 읽은 것을 없다고 단정하는 셈이라 반드시 갈라 놓는다. */
+  return run.ok
+    ? { months: run.data, loadFailed: false }
+    : { months: [], loadFailed: true };
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { loadError } = await load();
+  const { loadFailed } = await load();
   const base = buildPageMetadata({
     title: "이달의 공개 임장노트",
     description:
       "직접 다녀와 기록한 공개 임장노트 중 기록이 충실한 노트를 매달 정리합니다. 사람이 고르지 않고 공개된 계산식으로 뽑습니다.",
     path: "/notes/best",
   });
-  return loadError ? { ...base, robots: { index: false, follow: true } } : base;
+  return loadFailed ? { ...base, robots: { index: false, follow: true } } : base;
 }
 
 export default async function BestNotesIndexPage() {
-  const { months, loadError } = await load();
+  const { months, loadFailed } = await load();
 
   return (
     <PageShell breadcrumb="이달의 공개 임장노트">
@@ -98,12 +108,12 @@ export default async function BestNotesIndexPage() {
           </ul>
         </section>
 
-        {loadError ? (
+        {loadFailed ? (
           <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
-            공개 임장노트를 <strong className="text-ink">불러오지 못했습니다</strong>.
+            <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
-            노트가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해
-            주세요.
+            공개 임장노트가 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는
+            뜻입니다.
           </div>
         ) : months.length > 0 ? (
           <div className="mt-6 flex flex-col gap-3">

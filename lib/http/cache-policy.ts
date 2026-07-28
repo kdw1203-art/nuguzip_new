@@ -98,7 +98,10 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/", ...FEED_DOC },
   { path: "/town", ...FEED_DOC },
   { path: "/town/library", ...FEED_DOC },
-  { path: "/town/market", ...FEED_DOC },
+  /* `/town/market` 은 공개 캐시 목록에서 뺐다(2026-07-27). 화면이 아니라
+     `/town/groups` 로 넘기는 리다이렉트 스텁이고, searchParams 를 읽어 쿼리를
+     그대로 넘기느라 동적 라우트다 — prerender 산출물이 없어 이 목록에 남아
+     있으면 check-cache-policy 가 실패한다. 캐시할 응답 자체가 없다. */
   /* /notes 는 ?mine=1(내 노트, 비공개 포함)로 세션별 응답이 갈리는 동적 라우트가 되어
      공개 캐시 목록에서 제외 — 사용자별 응답이 CDN 공유 캐시에 섞이면 안 된다. */
   { path: "/discover", ...FEED_DOC },

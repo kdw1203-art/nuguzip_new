@@ -13,17 +13,20 @@ const REPAY_STATS = [
   { label: "월 상환액 (잔여 23년)", value: "98만원", tone: "text-ink" },
 ] as const;
 
-function Chip({ label, active }: { label: string; active?: boolean }) {
+/* 2026-07-27: 여기 로컬 Chip 컴포넌트가 있었다. 앱의 진짜 필터 칩과 똑같은 모양에
+   파란 선택 상태(active)까지 칠했지만, 이 페이지는 상태가 없는 서버 컴포넌트라
+   active 는 하드코딩된 값이었고 눌러도 영원히 아무 일도 일어나지 않았다.
+   상단 "예시 화면" 배너는 숫자가 가상이라는 것만 알려 줄 뿐, 고를 수 있는 것처럼
+   생긴 칩까지 변명해 주지는 않는다. 그래서 칩을 걷어내고, 이 카드가 이미 쓰고 있는
+   "라벨 / 값" 행으로 통일했다 — 고를 수 없는 값은 고를 수 있게 생기면 안 된다. */
+
+/** 예시 값 한 줄 (라벨 / 값) — 카드 내 다른 행과 동일한 정적 표기 */
+function ExampleRow({ label, value }: { label: string; value: string }) {
   return (
-    <span
-      className={`rounded-full px-3 py-1.5 text-xs ${
-        active
-          ? "border-[1.5px] border-primary bg-primary-soft font-bold text-primary"
-          : "border border-[#e2e7ee] bg-surface text-text-2"
-      }`}
-    >
-      {label}
-    </span>
+    <div className="flex justify-between text-[13px]">
+      <span className="text-text-2">{label}</span>
+      <span className="font-extrabold text-ink">{value}</span>
+    </div>
   );
 }
 
@@ -45,32 +48,30 @@ export default function AssetsPage() {
         <div className="rise-in flex items-start gap-1.5 rounded-xl bg-[rgba(29,79,216,.06)] px-3.5 py-2.5 text-[11px] leading-[1.6] text-[#5b74b8]">
           <span>
             아래는 자산 등록 기능의 <b>예시 화면</b>이에요. 단지·금액은 가상의
-            데이터이며 저장·자동 시세 연동은 준비 중입니다. 오픈 소식은{" "}
+            데이터이며 저장·자동 시세 연동은 준비 중입니다.{" "}
+            {/* "오픈 소식은 알림으로 받아보세요" 였다 — /notifications 에는 기능 오픈
+                알림 구독이 없어서 지키지 못할 약속이었다. 그 화면이 실제로 해 주는
+                일(관심 지역·키워드 구독)로 문구를 맞춘다. */}
             <Link href="/notifications" className="font-bold text-primary underline">
-              알림
+              알림 센터
             </Link>
-            으로 받아보세요.
+            에서 관심 지역·키워드 알림을 먼저 설정해 둘 수 있어요.
           </span>
         </div>
 
+        {/* 끝의 `›` 를 뺐다 — 앱 전체에서 `›` 로 끝나는 카드 행은 눌러서 이동하는
+            패턴인데 이건 Link 도 onClick 도 없는 <div> 였다. 이동할 곳이 없으면
+            이동한다는 표시도 없어야 한다. */}
         <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">
           <Icon name="🏠" size={16} className="shrink-0" />
           <div className="flex-1">
             <div className="text-sm font-bold text-ink">평촌 초원마을 6단지 512동</div>
             <div className="text-[11px] text-text-3">주소 검색 자동 인식 · 59㎡</div>
           </div>
-          <span className="text-[#c3cad6]">›</span>
         </div>
 
         <div className="rise-in-2 card flex flex-col gap-2.5 rounded-2xl p-4">
-          <div className="flex items-center gap-2">
-            <span className="w-14 text-xs text-text-2">형태</span>
-            <div className="flex gap-1.5">
-              <Chip label="실거주" active />
-              <Chip label="임대 중" />
-              <Chip label="분양권" />
-            </div>
-          </div>
+          <ExampleRow label="형태" value="실거주" />
           <div className="flex justify-between border-t border-[#f0f3f8] pt-2 text-[13px]">
             <span className="text-text-2">취득 시기 / 취득가</span>
             <span className="font-extrabold text-ink">2019.05 · 4.9억</span>
@@ -85,7 +86,8 @@ export default function AssetsPage() {
           </div>
           <div className="flex justify-between text-[13px]">
             <span className="text-text-2">대출 은행 / 상품</span>
-            <span className="font-extrabold text-ink">K은행 주담대 (변동) ▾</span>
+            {/* `▾` 를 뗐다 — 펼쳐지는 선택기처럼 읽혔지만 select 도 버튼도 아닌 그냥 글자였다. */}
+            <span className="font-extrabold text-ink">K은행 주담대 (변동)</span>
           </div>
           <div className="flex justify-between text-[13px]">
             <span className="text-text-2">최초 대출금 / 금리</span>
@@ -129,29 +131,17 @@ export default function AssetsPage() {
               <span className="text-[#5b74b8]">S은행 대환 고정 3.42%</span>
               <span className="font-extrabold text-primary">월 -9.8만 · 총 -2,700만</span>
             </div>
+            {/* "자세히 ›" 는 상세 화면 링크처럼 보였지만 갈 곳이 없는 평문이었다 — 뺀다. */}
             <div className="text-[10px] text-text-3">
-              중도상환수수료(잔여 0.4%) 반영한 실익 기준 · 자세히 ›
+              중도상환수수료(잔여 0.4%) 반영한 실익 기준
             </div>
           </div>
         </div>
 
         <div className="rise-in-4 card flex flex-col gap-2.5 rounded-2xl p-4">
           <div className="text-[13px] font-extrabold text-ink">세금·대출 판정 정보</div>
-          <div className="flex items-center gap-2">
-            <span className="w-[76px] text-xs text-text-2">보유 주택</span>
-            <div className="flex gap-1.5">
-              <Chip label="1주택" />
-              <Chip label="2주택" active />
-              <Chip label="3+" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-[76px] text-xs text-text-2">생애최초</span>
-            <div className="flex gap-1.5">
-              <Chip label="해당" />
-              <Chip label="비해당" active />
-            </div>
-          </div>
+          <ExampleRow label="보유 주택" value="2주택" />
+          <ExampleRow label="생애최초" value="비해당" />
           <div className="flex justify-between text-[13px]">
             <span className="text-text-2">거주 기간</span>
             <span className="font-extrabold text-ink">

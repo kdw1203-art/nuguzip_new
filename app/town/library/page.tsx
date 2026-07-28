@@ -9,6 +9,7 @@ import {
 import { seedGradient, maskNoteAuthor } from "../shared";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { ErrorState } from "../../components/ui/EmptyState";
 
 /* 자료(#8) — 리포트 + 공개 임장노트 공유.
    깔끔한 라벨 섹션(리포트 · 공개 임장노트)으로 정리한 자료 허브.
@@ -27,7 +28,15 @@ const EXAMPLE_REPORTS = [
 ];
 
 export default async function TownLibraryPage() {
-  const notes = await listPublicNotes(24).catch((): InspectionNote[] => []);
+  /* 조회 실패를 빈 배열로 삼키면 아래 "공개된 임장노트가 아직 없어요" 가 뜬다 —
+     노트가 있는데도 없다고 말하는 화면이다. 못 읽은 것은 못 읽었다고 말한다. */
+  let notes: InspectionNote[] = [];
+  let loadFailed = false;
+  try {
+    notes = await listPublicNotes(24);
+  } catch {
+    loadFailed = true;
+  }
 
   return (
     <PageShell breadcrumb="동네이야기 › 자료">
@@ -73,8 +82,11 @@ export default async function TownLibraryPage() {
                 {r.title}
               </div>
               <div className="text-xs text-text-3">{r.meta}</div>
-              <span className="mt-1 cursor-default rounded-[10px] border border-line bg-bg px-3 py-2 text-center text-xs font-bold text-text-3">
-                열람 오픈 준비 중
+              {/* 예전엔 테두리·패딩·가운데 정렬을 준 <span> 이라 비활성 버튼처럼 보였다.
+                  누를 수 있는 것이 아니라 "아직 없다"는 안내이므로 버튼 껍데기를 걷어내고
+                  평범한 안내 문구로 둔다. */}
+              <span className="mt-1 text-xs text-text-3">
+                열람은 오픈 준비 중이에요
               </span>
             </div>
           ))}
@@ -96,7 +108,13 @@ export default async function TownLibraryPage() {
           </Link>
         </div>
 
-        {notes.length === 0 ? (
+        {loadFailed ? (
+          <ErrorState
+            title="공개 임장노트를 지금 불러오지 못했어요"
+            desc="공개된 노트가 없다는 뜻이 아니라, 목록 조회 자체가 실패했다는 뜻이에요."
+            cause="잠시 후 새로고침해 주세요."
+          />
+        ) : notes.length === 0 ? (
           <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-12 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
               <Icon name="folder" size={22} />
