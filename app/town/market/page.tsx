@@ -25,6 +25,12 @@ import { redirect } from "next/navigation";
    자료·리포트를 가리키던 링크는 이 경유지를 쓰지 말고 `/town/library` 를 직접
    가리킨다(app/town/experts/ExpertCard.tsx 에서 그렇게 고쳤다).
    ============================================================ */
+/* 이 경로는 화면을 그리지 않고 곧바로 /town/groups 로 보낸다. 색인될 본문이
+   없으므로 canonical 을 붙일 대상도 없다 — 색인에서 빼되 링크는 따라가게 둔다. */
+export const metadata = {
+  robots: { index: false, follow: true },
+};
+
 export default async function TownMarketRedirect({
   searchParams,
 }: {

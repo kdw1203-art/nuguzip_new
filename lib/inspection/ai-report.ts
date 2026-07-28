@@ -18,6 +18,14 @@ export type InspectionAiReport = {
     investment: number;
     infra: number;
   };
+  /**
+   * 심화 분석 8축에 대한 **해석 한 줄**씩. 숫자는 여기에 오지 않는다.
+   * 축의 숫자·사실은 전부 lib/inspection/deep-dive.ts 가 조회 데이터로 만들고,
+   * LLM 은 그 위에 "그래서 무슨 뜻인지"만 얹는다. LLM 이 새 수치를 넣으면
+   * 그 순간 출처 없는 숫자가 화면에 붙으므로, 프롬프트에서 금지하고
+   * 파서에서도 짧게 잘라 둔다.
+   */
+  deepDiveInsights: { id: string; insight: string }[];
   source: "fallback" | "openai" | "anthropic" | "live";
   generatedAt: string;
 };
@@ -275,10 +283,46 @@ export function buildFallbackInspectionAiReport(
       investment: clampScore(investment, 50),
       infra: clampScore(infra, 50),
     },
+    /* 폴백에는 해석을 붙이지 않는다. 규칙 기반 축 본문은 이미 만들어져 있고,
+       LLM 없이 지어낸 "해석"은 근거 없는 문장이 하나 더 늘어나는 것뿐이다. */
+    deepDiveInsights: [],
     source: options.source ?? "fallback",
     generatedAt,
   };
 }
+
+/** LLM 이 돌려준 축 해석을 정규화한다. 알 수 없는 축 id 는 버린다. */
+function normalizeDeepDiveInsights(value: unknown, allowedIds: string[]): {
+  id: string;
+  insight: string;
+}[] {
+  if (!Array.isArray(value)) return [];
+  const allowed = new Set(allowedIds);
+  const seen = new Set<string>();
+  const out: { id: string; insight: string }[] = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const rec = raw as Record<string, unknown>;
+    const id = toText(rec.id ?? rec.axis ?? rec.axisId, 24);
+    const insight = toText(rec.insight ?? rec.text ?? rec.comment, 160);
+    if (!id || !insight || !allowed.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    out.push({ id, insight });
+  }
+  return out.slice(0, allowedIds.length);
+}
+
+/** 심화 분석 축 id — deep-dive.ts 의 DeepDiveAxisId 와 같은 집합. */
+export const DEEP_DIVE_AXIS_IDS = [
+  "issues",
+  "checks",
+  "surroundings",
+  "location",
+  "investment",
+  "trade",
+  "trend",
+  "finance",
+];
 
 export function parseInspectionAiReport(
   raw: string,
@@ -315,6 +359,10 @@ export function parseInspectionAiReport(
       investment: clampScore(scores?.investment ?? scores?.investmentScore, fallback.scores.investment),
       infra: clampScore(scores?.infra ?? scores?.infraScore, fallback.scores.infra),
     },
+    deepDiveInsights: normalizeDeepDiveInsights(
+      parsed.deepDiveInsights ?? parsed.deep_dive_insights,
+      DEEP_DIVE_AXIS_IDS,
+    ),
     source: options.source ?? "live",
     generatedAt: new Date().toISOString(),
   };
@@ -351,6 +399,7 @@ export function mergeInspectionReportIntoAnalysis(
     mapFocusRegion: report.mapFocusRegion,
     mapFocusReason: report.mapFocusReason,
     reportScores: report.scores,
+    deepDiveInsights: report.deepDiveInsights,
     generatedAt: report.generatedAt,
   };
 }
@@ -363,5 +412,11 @@ export function inspectionAiReportJsonInstruction(): string {
     "scores는 residence, investment, infra 숫자 점수(0~100)를 포함합니다.",
     "입력에 없는 가격, 수익률, 규제, 호재, 입지 정보를 지어내지 마세요.",
     "모든 문장은 한국어로, 사용자가 바로 실행할 수 있게 짧고 구체적으로 작성하세요.",
+    "",
+    "입력에 deepDive 가 있으면 deepDiveInsights 키도 반환하세요.",
+    `deepDiveInsights 는 {id, insight} 객체 배열이고, id 는 ${DEEP_DIVE_AXIS_IDS.join("/")} 중 하나입니다.`,
+    "insight 는 그 축의 facts·bullets 가 '무슨 뜻인지' 해석하는 한 문장(80자 내외)입니다.",
+    "insight 안에 새로운 숫자·금액·비율·연도를 쓰지 마세요. 숫자가 필요하면 입력에 있는 값만 그대로 인용하세요.",
+    "status 가 unavailable 인 축에는 insight 를 만들지 마세요. 확인하지 못한 것을 해석할 수는 없습니다.",
   ].join("\n");
 }

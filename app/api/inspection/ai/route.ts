@@ -35,8 +35,13 @@ import {
   AI_DISCLAIMER,
   describeSnapshot,
   marketBulletsFromSnapshot,
-  resolveRegionSnapshotByName,
 } from "@/lib/ai/market-insight";
+import { collectNoteGrounding } from "@/lib/inspection/note-grounding";
+import {
+  DEEP_DIVE_VERSION,
+  buildNoteDeepDive,
+  filledAxisCount,
+} from "@/lib/inspection/deep-dive";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 /** 임장노트 metadata 확장 필드 — AI 재분석 캐시·직전 결과 1개 보관 */
@@ -45,12 +50,22 @@ type InspectionAiCacheMeta = InspectionNoteMetadata & {
   aiContentHash?: string;
   /** 덮어쓰기 직전 분석 결과 1개 보관 */
   previousAiAnalysis?: Record<string, unknown> | null;
+  /** 심화 분석 8축 (lib/inspection/deep-dive.ts) */
+  deepDive?: Record<string, unknown> | null;
 };
 
-/** 노트 내용 기반 해시 — 내용이 그대로면 재분석 대신 기존 결과를 반환한다. */
+/**
+ * 노트 내용 기반 해시 — 내용이 그대로면 재분석 대신 기존 결과를 반환한다.
+ *
+ * `deepDiveVersion` 을 같이 섞는다. 노트 내용이 안 바뀌어도 심화 분석의 축
+ * 구성이 바뀌면 예전 캐시는 지금 화면이 기대하는 모양이 아니다. 버전을 빼면
+ * 사용자는 "심화 분석이 안 나온다"를 보게 되고, 그건 실패를 미보유처럼
+ * 보여 주는 것과 같다.
+ */
 function noteContentHash(note: InspectionNote, intent: InspectionAiIntent): string {
   return objectiveHash({
     intent,
+    deepDiveVersion: DEEP_DIVE_VERSION,
     title: note.title,
     region: note.region,
     visitDate: (note as { visitDate?: unknown }).visitDate ?? null,
@@ -59,6 +74,25 @@ function noteContentHash(note: InspectionNote, intent: InspectionAiIntent): stri
     checklist: note.checklist,
     photos: note.photos,
   });
+}
+
+/**
+ * 심화 분석을 프롬프트에 넣을 만큼만 줄인다. 해석에 필요한 것은 축 id·상태·
+ * 사실 목록이고, 출처 문자열까지 넣으면 토큰만 늘어난다(출처는 화면에서 이미
+ * 사실 옆에 붙어 나간다). unavailable 축은 아예 빼서 LLM 이 "확인 못 한 것"을
+ * 해석하려 드는 여지를 없앤다.
+ */
+function deepDivePromptSlice(deepDive: ReturnType<typeof buildNoteDeepDive>) {
+  return deepDive.sections
+    .filter((s) => s.status !== "unavailable")
+    .map((s) => ({
+      id: s.id,
+      label: s.label,
+      status: s.status,
+      headline: s.headline,
+      bullets: s.bullets.slice(0, 5),
+      facts: s.facts.slice(0, 6).map((f) => `${f.label}: ${f.value}`),
+    }));
 }
 
 function reportRunMarkdown(report: {
@@ -138,6 +172,7 @@ export async function POST(req: Request) {
       return NextResponse.json({
         analysis: note.aiAnalysis,
         report: meta.inspectionReport,
+        deepDive: meta.deepDive ?? null,
         cached: true,
         mode: cachedReport.source === "fallback" ? "rule" : "llm",
         marketContext: null,
@@ -169,8 +204,24 @@ export async function POST(req: Request) {
       riskTolerance: normalizeNumber(body.riskTolerance, 3),
     });
 
-    // 지역 실시세 스냅샷(읽기 전용) — 실패 시 null로 안전 강등
-    const marketSnapshot = await resolveRegionSnapshotByName(note.region);
+    /* 근거 수집 → 심화 분석 8축.
+       예전에는 여기서 지역 스냅샷 하나만 붙였다. 그래서 "문제점·투자·실거래·
+       금융"을 물어보면 LLM 이 알아서 지어내는 수밖에 없었다. 지금은 조회한
+       데이터로 축 본문을 먼저 만들고, LLM 에는 그 결과를 넘겨 해석만 시킨다.
+       수집이 통째로 실패해도 분석 자체는 계속 간다 — 축은 "확인하지 못함"으로
+       남는다(빈 값이 아니라 사유가 붙는다). */
+    let grounding: Awaited<ReturnType<typeof collectNoteGrounding>> | null = null;
+    try {
+      grounding = await collectNoteGrounding({
+        region: note.region,
+        aptName: note.aptName ?? null,
+        intent,
+      });
+    } catch (e) {
+      logger.error("[inspection/ai] grounding failed", e);
+    }
+    const marketSnapshot = grounding?.regionSnapshot.value ?? null;
+    const deepDive = grounding ? buildNoteDeepDive(note, grounding) : null;
 
     let report = buildFallbackInspectionAiReport(note, { intent });
     if (modelOption) {
@@ -182,13 +233,18 @@ export async function POST(req: Request) {
             content: [
               "당신은 nuguzip.com의 한국어 임장노트 분석 보조 AI입니다.",
               "제공되는 marketSnapshot(지역 실시세: 평균 매매가·전월 대비 변동률·전세가율)이 있으면 강점/리스크/확인 항목·총평에 반드시 반영하세요.",
+              "deepDive 는 이미 확정된 사실입니다. 그 안의 숫자를 고치거나 새 숫자를 더하지 말고, 해석만 붙이세요.",
               inspectionAiReportJsonInstruction(),
             ].join("\n\n"),
           },
           {
             role: "user",
             content: JSON.stringify(
-              { ...promptInput, marketSnapshot: marketSnapshot ?? undefined },
+              {
+                ...promptInput,
+                marketSnapshot: marketSnapshot ?? undefined,
+                deepDive: deepDive ? deepDivePromptSlice(deepDive) : undefined,
+              },
               null,
               2,
             ),
@@ -223,6 +279,9 @@ export async function POST(req: Request) {
     }
 
     const analysis = mergeInspectionReportIntoAnalysis(baseAnalysis, report);
+    /* 읽는 쪽(노트 상세·카드 덱)이 metadata 와 ai_analysis 두 군데를 뒤지지
+       않도록 분석 객체에도 같이 싣는다. metadata 쪽은 캐시 적중 응답용이다. */
+    if (deepDive) analysis.deepDive = deepDive as unknown as Record<string, unknown>;
 
     // 사용량 계측 — /my "AI 분석 월 사용량" 카운터가 실제로 오르도록 기록
     try {
@@ -253,6 +312,12 @@ export async function POST(req: Request) {
         intent,
         inspectionReport: report as unknown as Record<string, unknown>,
         inspectionReportGeneratedAt: report.generatedAt,
+        /* 수집이 실패해 심화 분석을 못 만든 경우, 예전 결과를 지우지 않고
+           그대로 둔다. 한 번의 조회 실패로 이미 만들어 둔 축이 사라지면
+           사용자에게는 "기능이 없어진 것"으로 보인다. */
+        deepDive: deepDive
+          ? (deepDive as unknown as Record<string, unknown>)
+          : (meta.deepDive ?? null),
         aiContentHash: contentHash,
         // 덮어쓰기 직전 결과 1개 보관
         previousAiAnalysis: note.aiAnalysis
@@ -272,6 +337,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       analysis,
       report,
+      deepDive,
+      deepDiveFilled: deepDive ? filledAxisCount(deepDive) : 0,
       cached: false,
       // "AI 생성" vs "규칙 기반 요약" 라벨용 — fallback 이 아니면 LLM 생성
       mode: report.source === "fallback" ? "rule" : "llm",

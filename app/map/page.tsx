@@ -7,12 +7,16 @@ import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { auth } from "@/auth";
 import { logger } from "@/lib/log";
 import { withBudget } from "@/lib/async/with-budget";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
+/* `?region=` 같은 필터가 붙어도 색인되는 주소는 `/map` 하나여야 한다.
+   필터 조합마다 별도 URL 이 색인되면 같은 화면이 수십 개로 쪼개진다. */
 export const metadata = {
   title: "지도 탐색 | 누구집",
   description: "지도에서 단지 시세·실거래·임장노트를 한 번에 탐색하세요.",
+  alternates: seoAlternates("/map"),
 };
 
 /** 만원 단위 → "8.4억" / "8,200만" 라벨 */

@@ -18,6 +18,7 @@
  * (`shortOf`, `growthHints`).
  */
 
+import { readStoredDeepDive } from "@/lib/inspection/deep-dive-view";
 import type {
   InspectionChecklistItem,
   InspectionNote,
@@ -42,13 +43,20 @@ export type DeckPageKind =
   | "risks"
   | "followups"
   | "keywords"
+  | "deepdive"
   | "section"
   | "memo"
   | "photo"
   | "closing";
 
 /** 본문 한 줄의 출처 — 카드 하단 각주로 그대로 노출한다. */
-export type DeckSource = "노트 원문" | "AI 분석" | "체크리스트" | "사진" | "방문 기록";
+export type DeckSource =
+  | "노트 원문"
+  | "AI 분석"
+  | "심화 분석"
+  | "체크리스트"
+  | "사진"
+  | "방문 기록";
 
 export type DeckPage = {
   /** React key 및 앵커용 안정 id */
@@ -207,6 +215,72 @@ export function readDeckAiReport(analysis: Record<string, unknown> | null): Deck
   return hasAnything ? report : null;
 }
 
+/* ─────────────────────── 심화 분석(8축) 읽기 ───────────────────────
+   `lib/inspection/deep-dive.ts` 가 **조회한 데이터로** 만들어
+   `ai_analysis.deepDive` 에 저장해 둔 결과를 그대로 읽는다. 여기서 축을 새로
+   만들거나 문장을 보태지 않는다 — 이 파일이 하는 일은 저장된 것을 카드로
+   나누는 것뿐이다.
+
+   status 가 `unavailable` 인 축(= 자료를 확인하지 못한 축)은 카드로 만들지
+   않는다. "확인하지 못했습니다" 한 줄로 장수를 채우는 것은 내용 없이 장수를
+   불리는 것과 같기 때문이다. 다만 **그 사유를 지우지는 않는다** — 노트 상세
+   화면은 8축을 전부, 못 읽은 이유까지 그대로 보여준다. */
+
+export type DeckDeepDiveAxis = {
+  id: string;
+  label: string;
+  eyebrow: string;
+  headline: string;
+  bullets: string[];
+  /** "라벨 값" 한 줄로 합친 근거 수치 — 카드에서는 칩으로 그린다. */
+  facts: string[];
+  /** LLM 이 붙인 해석 한 줄(없을 수 있다). 숫자는 여기 들어오지 않는다. */
+  insight: string;
+  /** 일부만 확인된 축이면 무엇을 못 읽었는지 */
+  note: string;
+};
+
+/** `ai_analysis.deepDive` → 덱 카드로 만들 수 있는 축만. 없으면 빈 배열. */
+export function readDeckDeepDive(analysis: Record<string, unknown> | null): DeckDeepDiveAxis[] {
+  const stored = readStoredDeepDive(analysis);
+  if (!stored) return [];
+  const out: DeckDeepDiveAxis[] = [];
+
+  for (const sec of stored.sections) {
+    if (sec.status === "unavailable") continue;
+    const bullets = sec.bullets;
+    const facts = sec.facts.map((f) => `${f.label} ${f.value}`);
+    /* 본문도 수치도 없는 축은 카드가 되지 못한다. */
+    if (bullets.length === 0 && facts.length === 0) continue;
+    out.push({
+      id: sec.id,
+      label: sec.label,
+      eyebrow: sec.eyebrow,
+      headline: sec.headline,
+      bullets,
+      facts,
+      insight: sec.insight,
+      note: sec.status === "partial" ? sec.note : "",
+    });
+  }
+  return out;
+}
+
+/**
+ * 플랜별로 **덱에 실을** 심화 분석 축 수.
+ * 8축을 전부 앞에 밀어 넣으면 FREE 덱은 상한(7장)에 걸려 사용자가 직접 쓴
+ * 글이 통째로 잘려 나간다 — 내 노트를 보러 왔는데 AI 분석만 남는 덱이 된다.
+ * 그래서 낮은 플랜일수록 적게 싣는다. 축 자체는 플랜과 무관하게 전부
+ * 만들어지고 노트 상세 화면에서는 8축이 그대로 보인다. 여기서 정하는 것은
+ * "덱 카드로 몇 장을 뽑을지"뿐이다.
+ */
+const DEEP_DIVE_CARD_LIMIT: Record<DeckPlan, number> = {
+  free: 1,
+  pro: 4,
+  expert: 8,
+  enterprise: 8,
+};
+
 /* ───────────────────────────── 구성 ───────────────────────────── */
 
 const SCORE_AXES: { key: keyof InspectionScores; label: string }[] = [
@@ -311,6 +385,33 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
   /* ── 본문 후보 (앞에 올수록 먼저 살아남는다) ───────────────────── */
   const content: DeckPage[] = [];
 
+  /* 심화 분석 카드 — 저장된 8축 중 실제로 내용이 있는 축만 카드가 된다.
+     한 장은 총평 바로 뒤에 두고(어느 플랜이든 최소 한 축은 보이도록),
+     나머지는 사용자가 쓴 글 뒤에 붙인다. AI 축이 앞을 다 차지해 정작
+     본인이 쓴 문장이 잘려 나가면 그건 "내 노트"가 아니다. */
+  const deepDiveCards = readDeckDeepDive(note.aiAnalysis)
+    .slice(0, DEEP_DIVE_CARD_LIMIT[plan])
+    .map((axis, i) => {
+      /* 카드 한 장에 들어가는 양은 정해져 있다. 넘치는 만큼은 **잘렸다고
+         적는다** — 카드가 잘린 것을 사용자는 "그게 전부"로 읽는다. */
+      const bullets = axis.bullets.slice(0, 3);
+      const facts = axis.facts.slice(0, 3);
+      const over = axis.bullets.length - bullets.length + (axis.facts.length - facts.length);
+      const body = [axis.headline, axis.insight, axis.note].filter(Boolean);
+      if (over > 0) body.push(`이 축의 나머지 근거 ${over}개는 노트 상세에서 볼 수 있어요`);
+      return blankPage({
+        id: `deepdive-${axis.id}`,
+        kind: "deepdive",
+        theme: i % 2 === 0 ? "light" : "tint",
+        eyebrow: `심화 분석 · ${axis.eyebrow}`,
+        title: axis.label,
+        body,
+        bullets,
+        chips: facts,
+        source: "심화 분석",
+      });
+    });
+
   if (ai && (ai.headline || ai.summary || ai.verdict)) {
     content.push(
       blankPage({
@@ -324,6 +425,8 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
       }),
     );
   }
+
+  content.push(...deepDiveCards.slice(0, 1));
 
   if (axes.length >= 2) {
     const avg = axes.reduce((a, x) => a + x.value, 0) / axes.length;
@@ -403,6 +506,8 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
       }),
     );
   }
+
+  content.push(...deepDiveCards.slice(1));
 
   if (ai && ai.risks.length > 0 && !note.sections.cons?.trim()) {
     // 원문 단점 카드가 없을 때만 — 같은 내용을 두 장으로 만들지 않는다.

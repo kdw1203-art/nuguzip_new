@@ -16,6 +16,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { NoteDetailActions } from "./note-actions";
+import DeepDivePanel from "./DeepDivePanel";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -666,6 +667,12 @@ export default async function NoteDetailPage({
               )}
             </div>
           </div>
+
+          {/* AI 심화 분석 8축 — 저장된 것이 없으면 아무것도 그리지 않는다.
+              (분석 실행 전 노트에 "분석 없음" 껍데기를 띄우지 않기 위해서다.) */}
+          <DeepDivePanel
+            analysis={(realNote.aiAnalysis ?? null) as Record<string, unknown> | null}
+          />
 
           {/* 방문 기록 비교 */}
           <div className="rise-in-1 card flex flex-col gap-3 rounded-[20px] p-6">

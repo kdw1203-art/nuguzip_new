@@ -188,7 +188,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
                     dark ? "bg-white/15 text-white" : "bg-white text-primary"
                   }`}
                 >
-                  #{c}
+                  {page.kind === "keywords" ? `#${c}` : c}
                 </span>
               ))}
             </div>
