@@ -1,9 +1,16 @@
 /**
  * 파일 업로드 스토리지 어댑터.
- * - Supabase Storage 설정 시: bucket 에 직접 업로드 → public URL 반환
+ * - Supabase Storage 설정 시: bucket 에 직접 업로드 → 재생 가능한 URL 반환
+ *   (공개 버킷이면 public URL, 비공개 버킷이면 서명 URL)
  * - 미설정 시: base64 data URL 반환 (개발/테스트용, 크기 제한)
  * - 이미지(jpeg/png/webp)는 저장 전에 EXIF 등 메타데이터를 제거한다 (U-P5).
+ *
+ * 저장소는 별도 CDN 을 두지 않는다. Supabase Storage 는 모든 플랜에서
+ * Cloudflare CDN 뒤에 있고, 이 프로젝트는 Pro 라 Smart CDN(수정·삭제 시
+ * 엣지 자동 무효화)까지 켜져 있다. 앞단에 CDN 을 하나 더 얹으면 무효화
+ * 경로만 둘로 늘어난다.
  */
+import type { SupabaseClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
@@ -46,6 +53,65 @@ async function stripImageMetadata(raw: ArrayBuffer, mime: string): Promise<Buffe
   if (mime === "image/jpeg") return img.jpeg({ quality: 88 }).toBuffer();
   if (mime === "image/png") return img.png().toBuffer();
   return img.webp({ quality: 90 }).toBuffer();
+}
+
+/* ---------- 재생 가능한 URL 만들기 ----------
+   2026-07-28: 여기는 버킷 공개 여부를 확인하지 않고 무조건 getPublicUrl() 을
+   불렀다. getPublicUrl 은 권한을 확인하지 않고 문자열만 조립한다 — 그래서
+   이 프로젝트의 버킷 6개가 전부 public:false 인 지금, 업로드는 "성공"하고
+   반환된 URL 은 열리지 않는 상태였다. 올라간 사진이 깨진 이미지로 보이는
+   것은 사용자 입장에서 "업로드가 안 된 것"과 구분되지 않는다. 실패를
+   성공처럼 돌려주지 않는다는 원칙에 정면으로 어긋난다.
+
+   지금은 버킷 공개 여부를 실제로 조회해서 갈라 준다.
+     - 공개 버킷: public URL (CDN 캐시 적중률이 가장 좋다)
+     - 비공개 버킷 / 조회 실패: 서명 URL
+   확인이 안 되면 비공개로 간주한다 — 서명 URL 은 공개 버킷에서도 열리므로
+   이 방향의 오판만 안전하다.
+
+   버킷을 공개로 바꿀지(= 임장 사진을 링크만 알면 누구나 열 수 있게 할지)는
+   개인정보 판단이라 코드가 정할 문제가 아니다. 그래서 여기서는 버킷 설정을
+   건드리지 않고, 지금 설정 그대로 열리는 URL 을 만든다. */
+
+/** 서명 URL 유효기간. 노트에 저장된 URL 이 조용히 만료되지 않도록 길게 잡는다. */
+export const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365; // 1년
+
+/** undefined = 아직 안 봄, null = 조회 실패(=비공개로 간주) */
+let bucketPublicCache: boolean | null | undefined;
+
+async function isBucketPublic(sb: SupabaseClient): Promise<boolean> {
+  if (bucketPublicCache !== undefined) return bucketPublicCache === true;
+  try {
+    const { data, error } = await sb.storage.getBucket(BUCKET);
+    bucketPublicCache = error || !data ? null : data.public === true;
+  } catch {
+    bucketPublicCache = null;
+  }
+  return bucketPublicCache === true;
+}
+
+/**
+ * 저장 경로 하나를 지금 설정에서 실제로 열리는 URL 로 바꾼다.
+ * 만들지 못하면 던진다 — 열리지 않는 URL 을 조용히 돌려주지 않는다.
+ */
+export async function resolveStorageUrl(
+  path: string,
+  expiresIn = SIGNED_URL_TTL_SECONDS,
+): Promise<string> {
+  const sb = getServiceSupabase();
+  if (!sb) throw new Error("스토리지가 설정되지 않아 파일 주소를 만들 수 없습니다.");
+
+  if (await isBucketPublic(sb)) {
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+    if (data?.publicUrl) return data.publicUrl;
+    throw new Error("파일 주소를 만들지 못했습니다.");
+  }
+
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, expiresIn);
+  if (error || !data?.signedUrl) {
+    throw new Error(`파일 주소를 만들지 못했습니다: ${error?.message ?? "원인 불명"}`);
+  }
+  return data.signedUrl;
 }
 
 function sanitizeFileName(original: string): string {
@@ -100,9 +166,21 @@ export async function uploadFile(
 
   if (error) throw new Error(`업로드 실패: ${error.message}`);
 
-  const { data: urlData } = sb.storage.from(BUCKET).getPublicUrl(path);
+  /* 주소를 못 만들면 올라간 객체를 지우고 실패로 답한다. 파일만 남고
+     주소는 없는 상태를 "업로드 성공"이라고 부를 수는 없다. */
+  let url: string;
+  try {
+    url = await resolveStorageUrl(path);
+  } catch (err) {
+    await sb.storage
+      .from(BUCKET)
+      .remove([path])
+      .catch(() => undefined);
+    throw err instanceof Error ? err : new Error("업로드한 파일의 주소를 만들지 못했습니다.");
+  }
+
   return {
-    url: urlData.publicUrl,
+    url,
     path,
     size: body.length,
     mime: file.type,
