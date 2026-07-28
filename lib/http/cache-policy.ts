@@ -32,6 +32,45 @@ export type PublicCacheRule = {
   swr: number;
 };
 
+/**
+ * 동적 공개 라우트용 규칙 — 위 정확일치 목록으로는 닿지 않는 자리를 덮는다.
+ *
+ * ── 왜 필요했나 (2026-07-28, 운영 사고) ─────────────────────────
+ * 사이트맵에 실린 URL 27,427개 중 25,310개가 `/complex/[id]` 다. 그런데 이 라우트는
+ * 값이 주소에서 오는 동적 라우트라 정확일치 목록에 올릴 수가 없었고, 목록에 없으니
+ * publicDocumentCacheControl 이 null 을 돌려주고, 미들웨어가 `no-store` 로 덮었다.
+ * 결과: 구글·네이버가 그 27,427개를 크롤할 때마다 CDN 을 건너뛰고 오리진 함수를
+ * 호출했다. 운영 응답 헤더로 실측 확인 —
+ *   `/`                → x-nextjs-prerender: 1 · x-vercel-cache: STALE
+ *   `/complex/{id}`    → cache-control: private, no-cache, no-store · x-vercel-cache: MISS · age: 0
+ * Vercel 무료 티어 함수 호출 100만 회가 이렇게 소진됐다.
+ *
+ * ── 안전 근거 ──────────────────────────────────────────────
+ * 정확일치 목록의 근거는 "빌드 때 prerender 됐으니 모두에게 같은 HTML"이었다.
+ * 동적 라우트에는 그 근거를 쓸 수 없으므로, 대신 더 직접적인 근거를 쓴다:
+ * **이 라우트들의 서버 렌더에는 사용자별 상태가 전혀 들어가지 않는다.**
+ * page.tsx 와 같은 폴더의 서버 컴포넌트 어디에도 getUser·getSession·cookies()·
+ * createServerClient 가 없다(개인화는 전부 클라이언트에서 붙는다). 공유 캐시가
+ * 한 벌을 여러 사람에게 줘도 남의 정보가 섞일 자리가 없다.
+ *
+ * 이 전제도 사람 말로만 두면 썩는다. 그래서 scripts/check-cache-policy.mjs 가
+ * 아래 목록의 route 마다 실제 소스를 열어 그 표식들을 찾고, 하나라도 있으면 CI 를
+ * 실패시킨다. 정확일치 목록을 prerender 매니페스트와 대조하는 것과 같은 급의 검사다.
+ * 미들웨어의 쿠키 안전장치(응답에 Set-Cookie 가 있으면 no-store)도 그대로 걸려 있다.
+ *
+ * `/notes/[id]` 는 일부러 뺐다 — force-dynamic 이고 작성자에게만 보이는 부분이 있다.
+ */
+export type PublicCachePatternRule = {
+  /** Next 라우트 표기. 게이트가 이 값으로 app/<route>/page.tsx 를 찾아 검사한다 */
+  route: string;
+  /** 요청 경로 매칭 — 반드시 앵커(^…$)를 걸 것 */
+  test: RegExp;
+  /** CDN 보관 시간(초) */
+  sMaxAge: number;
+  /** 만료 후에도 이 시간(초) 동안은 옛 응답을 주면서 뒤에서 갱신 */
+  swr: number;
+};
+
 /** 빌드 시 고정되는 문서 — 내용이 거의 안 바뀐다 */
 const STATIC_DOC = { sMaxAge: 3600, swr: 86400 };
 /** 사용자 글·시세가 흘러가는 피드 — 라우트 자체 revalidate 와 비슷한 눈금 */
@@ -95,6 +134,62 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
 ];
 /* PUBLIC_CACHE_RULES:end */
 
+/* check-cache-policy.mjs 가 이 두 마커 사이도 읽는다 — 형식을 바꾸면 스크립트도 같이 고칠 것 */
+/* PUBLIC_CACHE_PATTERNS:start */
+export const PUBLIC_CACHE_PATTERN_RULES: readonly PublicCachePatternRule[] = [
+  /* `/complex/browse` 는 `[id]` 패턴에 가려지는 실제 페이지다(정적 경로지만 이번
+     빌드에서 prerender 되지 않아 정확일치 목록에는 올릴 수 없다). 가려진 채로 두면
+     게이트가 그 페이지의 개인화 여부를 한 번도 확인하지 않게 되므로, 앞자리에
+     제 이름으로 올려 검사 대상에 넣는다. 아래 `/digest/archive` 도 같은 이유다. */
+  { route: "/complex/browse", test: /^\/complex\/browse$/, sMaxAge: 3600, swr: 86400 },
+  /* 프로그래매틱 SEO 의 몸통 — 사이트맵 27,427개 중 25,310개가 여기다.
+     라우트 자체는 revalidate 120 이지만 CDN 눈금은 일부러 더 길게 잡는다.
+     둘은 재는 대상이 다르다: revalidate 는 "오리진이 들고 있는 사본이 얼마나
+     신선한가"이고, s-maxage 는 "같은 주소 하나에 오리진 렌더를 얼마나 자주
+     치를 것인가"다. 호출 수를 줄이는 건 뒤쪽 눈금이다 — swr 을 아무리 늘려도
+     재검증은 s-maxage 창마다 한 번씩 돌기 때문이다.
+     1시간으로 잡은 이유: 시세 원본은 국토부 실거래라 하루 단위로 들어오지만
+     이 화면에는 임장노트·Q&A·매물처럼 사람이 실시간으로 쓰는 것도 같이 있다.
+     하루를 통째로 묵히면 방금 달린 답이 하루 동안 안 보인다. 1시간이면 그
+     손해는 감당할 만하면서, 크롤러가 같은 주소를 하루에 몇 번씩 긁어도 오리진
+     호출은 시간당 한 번으로 접힌다. */
+  { route: "/complex/[id]", test: /^\/complex\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  /* 아래는 전부 라우트 revalidate 3600 과 눈금을 맞춘다. */
+  {
+    route: "/complex/compare/[slug]",
+    test: /^\/complex\/compare\/[^/]+$/,
+    sMaxAge: 3600,
+    swr: 86400,
+  },
+  { route: "/complex/tx/[slug]", test: /^\/complex\/tx\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  { route: "/region/[id]", test: /^\/region\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  { route: "/tx/[region]", test: /^\/tx\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  {
+    route: "/tx/[region]/[kind]/[band]",
+    test: /^\/tx\/[^/]+\/[^/]+\/[^/]+$/,
+    sMaxAge: 3600,
+    swr: 86400,
+  },
+  { route: "/reports/[ym]", test: /^\/reports\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  {
+    route: "/reports/season/[slug]",
+    test: /^\/reports\/season\/[^/]+$/,
+    sMaxAge: 3600,
+    swr: 86400,
+  },
+  {
+    route: "/analysis/temperature/[region]",
+    test: /^\/analysis\/temperature\/[^/]+$/,
+    sMaxAge: 3600,
+    swr: 86400,
+  },
+  { route: "/digest/archive", test: /^\/digest\/archive$/, sMaxAge: 3600, swr: 86400 },
+  { route: "/digest/[week]", test: /^\/digest\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  /* 용어 개별 페이지는 코드 상수라 조회조차 없다 — 가장 오래 캐시해도 되는 축. */
+  { route: "/glossary/[term]", test: /^\/glossary\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+];
+/* PUBLIC_CACHE_PATTERNS:end */
+
 const RULE_BY_PATH = new Map(PUBLIC_CACHE_RULES.map((r) => [r.path, r]));
 
 /**
@@ -138,8 +233,10 @@ export const CRAWLER_ENDPOINT_CACHE_CONTROL =
  * 우리가 얻으려는 건 CDN 공유 캐시(s-maxage)이기 때문이다.
  */
 export function publicDocumentCacheControl(pathname: string): string | null {
-  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  const rule = RULE_BY_PATH.get(path || "/");
+  const path = (pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname) || "/";
+  /* 정확일치가 먼저다 — `/complex/compare` 처럼 패턴과 겹치는 자리는 목록에 적힌
+     값이 이긴다. 뒤에 붙는 패턴은 목록이 닿지 못하는 동적 라우트만 줍는다. */
+  const rule = RULE_BY_PATH.get(path) ?? PUBLIC_CACHE_PATTERN_RULES.find((r) => r.test.test(path));
   if (!rule) return null;
   return `public, max-age=0, s-maxage=${rule.sMaxAge}, stale-while-revalidate=${rule.swr}`;
 }

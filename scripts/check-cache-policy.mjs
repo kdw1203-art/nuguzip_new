@@ -9,7 +9,7 @@
  *
  * 사용: node scripts/check-cache-policy.mjs   (next build 이후 실행)
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -22,9 +22,11 @@ function fail(msg) {
   process.exit(1);
 }
 
-if (!existsSync(manifestPath)) {
-  console.log("· .next/prerender-manifest.json 없음 — 빌드 전이므로 검사를 건너뜁니다.");
-  process.exit(0);
+/* 매니페스트 대조는 빌드 산출물이 있어야 할 수 있다. 하지만 아래 개인화 표식 검사는
+   소스만 읽으므로 빌드 전에도 돈다 — 안전 근거를 확인하는 쪽을 빌드 유무에 맡기지 않는다. */
+const hasManifest = existsSync(manifestPath);
+if (!hasManifest) {
+  console.log("· .next/prerender-manifest.json 없음 — prerender 대조는 건너뜁니다(소스 검사는 진행).");
 }
 
 const src = readFileSync(policyPath, "utf8");
@@ -36,10 +38,11 @@ if (!block) {
 const listed = [...block.matchAll(/path:\s*"([^"]+)"/g)].map((m) => m[1]);
 if (listed.length === 0) fail("PUBLIC_CACHE_RULES 에서 경로를 하나도 읽지 못했습니다.");
 
-const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-const prerendered = new Set(Object.keys(manifest.routes ?? {}));
+const prerendered = hasManifest
+  ? new Set(Object.keys(JSON.parse(readFileSync(manifestPath, "utf8")).routes ?? {}))
+  : null;
 
-const missing = listed.filter((p) => !prerendered.has(p));
+const missing = prerendered ? listed.filter((p) => !prerendered.has(p)) : [];
 if (missing.length > 0) {
   fail(
     [
@@ -67,4 +70,103 @@ if (privateLeaks.length > 0) {
   );
 }
 
-console.log(`✓ 캐시 정책 검사 통과 — 공개 캐시 대상 ${listed.length}건 모두 prerender 확인`);
+/* ── 동적 라우트 패턴 규칙 ────────────────────────────────────────────────
+   PUBLIC_CACHE_PATTERN_RULES 는 prerender 되지 않는 라우트를 공유 캐시에 올린다.
+   그래서 "빌드 때 prerender 됐다"는 근거를 쓸 수 없고, 대신 더 직접적인 근거를 쓴다 —
+   그 라우트의 서버 렌더에 사용자별 상태가 아예 들어가지 않는다는 것.
+   여기서는 그 말이 아직 참인지를 소스에서 직접 확인한다. 표식이 하나라도 새로
+   들어오면 CI 가 막는다(정확일치 목록을 매니페스트와 대조하는 것과 같은 급의 검사다). */
+const patternBlock = src
+  .split("/* PUBLIC_CACHE_PATTERNS:start */")[1]
+  ?.split("/* PUBLIC_CACHE_PATTERNS:end */")[0];
+if (!patternBlock) {
+  fail("lib/http/cache-policy.ts 에서 PUBLIC_CACHE_PATTERNS 마커를 찾지 못했습니다.");
+}
+
+const patternRoutes = [...patternBlock.matchAll(/route:\s*"([^"]+)"/g)].map((m) => m[1]);
+if (patternRoutes.length === 0) {
+  fail("PUBLIC_CACHE_PATTERNS 에서 route 를 하나도 읽지 못했습니다.");
+}
+
+/** 서버 렌더에 사용자별 상태를 끌어들이는 표식 */
+const PERSONALIZATION_MARKERS = [
+  "getUser(",
+  "getSession(",
+  "cookies()",
+  "createServerClient",
+  "utils/supabase/server",
+  "@/lib/supabase/server",
+];
+
+const patternProblems = [];
+for (const route of patternRoutes) {
+  const dir = join(root, "app", route);
+  const page = join(dir, "page.tsx");
+  if (!existsSync(page)) {
+    patternProblems.push(`${route} — app${route}/page.tsx 가 없습니다(라우트가 사라졌거나 오타).`);
+    continue;
+  }
+  if (PRIVATE_PREFIXES.some((p) => route === p || route.startsWith(`${p}/`))) {
+    patternProblems.push(`${route} — 개인·관리자 영역 경로입니다.`);
+    continue;
+  }
+  /* page.tsx 와 같은 폴더의 서버 컴포넌트까지 본다. "use client" 파일은 브라우저에서
+     도는 코드라 서버 HTML 을 개인화하지 않으므로 제외한다. */
+  const siblings = readdirSync(dir)
+    .filter((f) => f.endsWith(".tsx"))
+    .map((f) => join(dir, f));
+  for (const file of siblings) {
+    const text = readFileSync(file, "utf8");
+    if (/^\s*["']use client["']/m.test(text.slice(0, 200))) continue;
+    const hits = PERSONALIZATION_MARKERS.filter((m) => text.includes(m));
+    if (hits.length > 0) {
+      patternProblems.push(
+        `${route} — ${file.slice(root.length + 1)} 에 ${hits.join(", ")} 가 있습니다.`,
+      );
+    }
+  }
+}
+
+/* 가려진 형제 라우트 — `[id]` 패턴은 같은 깊이의 **정적** 형제 경로(`/complex/browse`)까지
+   함께 잡는다. 그런데 게이트는 목록에 적힌 route 만 열어 보므로, 가려진 쪽은 개인화가
+   생겨도 아무도 확인하지 않는 사각지대가 된다. 그래서 "패턴이 덮는 자리에 있는 실제
+   페이지는 전부 제 이름으로 목록에 올라와 있어야 한다"를 여기서 강제한다. */
+const patternRouteSet = new Set(patternRoutes);
+const listedSet = new Set(listed);
+for (const route of patternRoutes) {
+  const segments = route.split("/").filter(Boolean);
+  if (!segments.at(-1)?.startsWith("[")) continue; // 정적 경로는 형제를 가리지 않는다
+  const parentSegments = segments.slice(0, -1);
+  const parentDir = join(root, "app", ...parentSegments);
+  if (!existsSync(parentDir)) continue;
+  for (const entry of readdirSync(parentDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith("[") || entry.name.startsWith("(")) continue;
+    if (!existsSync(join(parentDir, entry.name, "page.tsx"))) continue;
+    const sibling = `/${[...parentSegments, entry.name].join("/")}`;
+    if (patternRouteSet.has(sibling) || listedSet.has(sibling)) continue;
+    patternProblems.push(
+      `${sibling} — ${route} 패턴에 가려진 실제 페이지인데 목록에 제 이름으로 없습니다.`,
+    );
+  }
+}
+
+if (patternProblems.length > 0) {
+  fail(
+    [
+      "동적 공개 캐시 규칙(PUBLIC_CACHE_PATTERN_RULES)의 전제가 확인되지 않습니다.",
+      "이대로 두면 한 사람의 응답이 CDN 을 통해 다른 사람에게 재사용될 수 있습니다.",
+      "",
+      ...patternProblems.map((p) => `    - ${p}`),
+      "",
+      "해결: 개인화가 생겼다면 클라이언트로 옮기거나 그 라우트를 목록에서 빼세요.",
+      "      패턴에 가려진 페이지라면 lib/http/cache-policy.ts 의 목록에 제 이름으로",
+      "      올려(더 앞자리에) 검사 대상에 넣으세요.",
+    ].join("\n"),
+  );
+}
+
+console.log(
+  `✓ 캐시 정책 검사 통과 — 정확일치 ${listed.length}건 ` +
+    `${prerendered ? "prerender 확인" : "(prerender 대조 생략)"} · ` +
+    `동적 패턴 ${patternRoutes.length}건 개인화 표식 0`,
+);
