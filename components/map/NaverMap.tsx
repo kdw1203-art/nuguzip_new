@@ -111,6 +111,18 @@ interface NaverMapProps {
   fallback?: React.ReactNode;
   /** 반경 원 오버레이(C3) — 지정 시 중심·반경(m)으로 원을 그린다. null/미지정 시 없음. */
   circle?: { lat: number; lng: number; radiusM: number } | null;
+  /**
+   * 지도 빈 곳 클릭 좌표. 반경 중심을 찍거나 거리 재기 지점을 찍는 데 쓴다.
+   * 마커 클릭은 마커 자신의 핸들러가 먼저 받으므로 여기로 오지 않는다.
+   */
+  onMapClick?: (point: { lat: number; lng: number }) => void;
+  /**
+   * 거리 재기 오버레이 — 찍은 지점들을 잇는 선과 지점 표시.
+   * 구간 길이는 화면 쪽(map-client)에서 계산해 라벨로 넘긴다.
+   */
+  measurePath?: { lat: number; lng: number; label?: string }[] | null;
+  /** 클릭으로 지점을 찍는 모드일 때 커서를 십자로 바꾼다. */
+  crosshair?: boolean;
 }
 
 /** naver.maps.Circle 최소 인터페이스 */
@@ -136,6 +148,9 @@ export function NaverMap({
   rounded = true,
   fallback,
   circle = null,
+  onMapClick,
+  measurePath = null,
+  crosshair = false,
 }: NaverMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -153,6 +168,10 @@ export function NaverMap({
   const cadastralLayerRef = useRef<NaverLayer | null>(null);
   const circleRef = useRef<NaverCircle | null>(null);
   const bicycleLayerRef = useRef<NaverLayer | null>(null);
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
+  const measureLineRef = useRef<(NaverLayer & { setPath?: (p: unknown[]) => void }) | null>(null);
+  const measureMarkersRef = useRef<NaverMarker[]>([]);
 
   useEffect(() => {
     if (!NAVER_MAP_CLIENT_ID) {
@@ -381,6 +400,81 @@ export function NaverMap({
     }
   }, [loaded, circle]);
 
+  /*
+   * 지도 클릭 → 좌표 전달.
+   *
+   * 리스너는 지도가 살아 있는 동안 한 번만 붙이고, 실제로 쓸지 말지는
+   * onMapClickRef 가 판단한다. 모드가 바뀔 때마다 붙였다 떼면 그 사이 클릭이
+   * 새는 데다, SDK 의 removeListener 유무가 버전마다 달라 신뢰하기 어렵다.
+   */
+  useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const maps = getNaverMapsWindow().naver?.maps;
+    if (!maps) return;
+    maps.Event.addListener(mapRef.current, "click", (...args: unknown[]) => {
+      const cb = onMapClickRef.current;
+      if (!cb) return;
+      const ev = args[0] as { coord?: { lat: () => number; lng: () => number } } | undefined;
+      const coord = ev?.coord;
+      if (!coord) return;
+      cb({ lat: coord.lat(), lng: coord.lng() });
+    });
+  }, [loaded]);
+
+  /*
+   * 거리 재기 오버레이 — 지점 사이를 잇는 선 + 각 지점의 번호/누적거리 뱃지.
+   *
+   * 선은 하나를 만들어 setPath 로 갈아 끼우고, 지점 마커는 매번 지웠다 다시
+   * 그린다. 지점은 많아야 열 몇 개라 증분 갱신의 이득보다 코드가 단순한 쪽이 낫다.
+   */
+  useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const maps = getNaverMapsWindow().naver?.maps;
+    if (!maps) return;
+    const map = mapRef.current;
+
+    for (const m of measureMarkersRef.current) m.setMap(null);
+    measureMarkersRef.current = [];
+
+    const pts = measurePath ?? [];
+    if (pts.length === 0) {
+      measureLineRef.current?.setMap(null);
+      measureLineRef.current = null;
+      return;
+    }
+
+    const path = pts.map((p) => new maps.LatLng(p.lat, p.lng));
+    // SDK 구성에 따라 Polyline 이 없을 수 있다. 없으면 선만 포기하고 지점은 그린다 —
+    // 여기서 던지면 지도 전체가 죽는다.
+    if (pts.length >= 2 && typeof maps.Polyline === "function") {
+      if (measureLineRef.current?.setPath) {
+        measureLineRef.current.setPath(path);
+        measureLineRef.current.setMap(map);
+      } else {
+        measureLineRef.current = new maps.Polyline({
+          map,
+          path,
+          strokeColor: "#1d4fd8",
+          strokeOpacity: 0.9,
+          strokeWeight: 3,
+        });
+      }
+    } else {
+      measureLineRef.current?.setMap(null);
+    }
+
+    pts.forEach((p, i) => {
+      const marker = new maps.Marker({
+        position: new maps.LatLng(p.lat, p.lng),
+        map,
+        title: p.label ?? `지점 ${i + 1}`,
+        icon: { content: buildMeasurePointHtml(i + 1, p.label), anchor: new maps.Point(0, 0) },
+        zIndex: 400,
+      });
+      measureMarkersRef.current.push(marker);
+    });
+  }, [loaded, measurePath]);
+
   // 마커 증분 업데이트: id로 diff 하여 추가/갱신/제거만 반영(destroy-all 제거).
   useEffect(() => {
     if (!loaded || !mapRef.current) return;
@@ -410,7 +504,8 @@ export function NaverMap({
       if (isPriceMarker) {
         return { content: buildPriceMarkerHtml(data), anchor: new maps.Point(0, 0) };
       }
-      return { content: buildMarkerHtml(data.label, color), anchor: new maps.Point(14, 14) };
+      // 이름 알약은 가운데 정렬(transform)로 위치를 맞추므로 앵커는 0,0.
+      return { content: buildMarkerHtml(data.label, color), anchor: new maps.Point(0, 0) };
     };
 
     for (const data of markers) {
@@ -578,14 +673,61 @@ export function NaverMap({
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1d4fd8] border-t-transparent" />
         </div>
       ) : null}
-      <div ref={containerRef} className="h-full w-full min-h-[200px]" />
+      {/* 지점을 찍는 모드에서는 커서로 "지금 클릭하면 찍힌다"를 알린다.
+          [&_*]로 내부 타일까지 내려야 실제로 바뀐다 — SDK 가 그린 자식 요소가
+          자기 커서를 따로 갖고 있어서 컨테이너에만 주면 되돌아간다. */}
+      <div
+        ref={containerRef}
+        className={cn("h-full w-full min-h-[200px]", crosshair && "cursor-crosshair [&_*]:cursor-crosshair")}
+      />
     </div>
   );
 }
 
+/** HTML 문자열로 조립하므로 라벨은 반드시 이스케이프한다(단지명에 & < > 가 들어온다). */
+function escapeHtml(v: string): string {
+  return v
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * 시세를 모르는 단지 마커.
+ *
+ * ── 2026-07-28: 첫 글자 한 자만 보여 주고 있었다 ──────────────────────────
+ * 예전에는 28px 원 안에 `label.charAt(0)` 만 찍었다. 그래서 지도를 확대하면
+ * "덕", "수", "강", "삼", "포" 같은 파란 동그라미가 시세 말풍선 사이에 흩어졌다.
+ * 그 한 글자로는 어느 단지인지 알 수 없고, 눌러 보기 전에는 알 방법도 없다 —
+ * 화면에 자리는 차지하면서 아무것도 알려 주지 않는 표시였다.
+ *
+ * 이름은 우리가 아는 값이다. 모르는 건 시세뿐이다. 그러니 아는 것(이름)을
+ * 보여 주고, 모르는 것(시세)은 색과 문구로 구분한다. 시세 말풍선과 헷갈리지
+ * 않도록 회색 계열 · 작은 글씨로 낮춰 그린다.
+ *
+ * 이름이 길면 잘라서 말줄임한다 — 마커가 길어지면 지도가 이름으로 덮인다.
+ */
+/** 거리 재기 지점 — 번호 원 + (있으면) 누적거리 라벨. */
+function buildMeasurePointHtml(index: number, label?: string): string {
+  const dot = `<span style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:#1d4fd8;color:#fff;font:700 11px sans-serif;border:2px solid #fff;box-shadow:0 2px 6px rgba(16,28,54,.3);flex:none">${index}</span>`;
+  const text = label
+    ? `<span style="border-radius:9999px;background:rgba(29,79,216,.95);color:#fff;font:700 11px sans-serif;padding:3px 8px;white-space:nowrap;box-shadow:0 2px 6px rgba(16,28,54,.25)">${escapeHtml(label)}</span>`
+    : "";
+  return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:5px">${dot}${text}</div>`;
+}
+
+const NO_PRICE_LABEL_MAX = 9;
+
 function buildMarkerHtml(label: string, color: string): string {
-  const initial = label.trim().charAt(0) || "·";
-  return `<div style="width:28px;height:28px;border-radius:9999px;background:${color};color:#fff;font:bold 12px/28px sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid #fff">${initial}</div>`;
+  const name = label.trim();
+  if (!name) {
+    // 이름조차 없으면 예전처럼 작은 점 하나. 지어낼 이름이 없다.
+    return `<div style="width:10px;height:10px;border-radius:9999px;background:${color};box-shadow:0 1px 4px rgba(0,0,0,.25);border:2px solid #fff"></div>`;
+  }
+  const shown =
+    name.length > NO_PRICE_LABEL_MAX ? `${name.slice(0, NO_PRICE_LABEL_MAX)}…` : name;
+  return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border-radius:9999px;background:rgba(255,255,255,.95);color:#3f4b5b;font:600 11px sans-serif;padding:4px 9px;box-shadow:0 1px 5px rgba(16,28,54,.18);border:1px solid rgba(16,28,54,.12)"><span style="width:5px;height:5px;border-radius:9999px;background:${color};flex:none"></span>${escapeHtml(shown)}</div>`;
 }
 
 /**

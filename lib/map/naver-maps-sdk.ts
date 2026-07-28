@@ -231,8 +231,26 @@ type NaverMapsApi = {
     el: HTMLElement,
     opts: { position: unknown; pov?: { pan: number; tilt: number; fov: number }; visible?: boolean },
   ) => NaverPanorama;
+  Polyline: new (opts: {
+    map?: NaverMapInstance | null;
+    path: unknown[];
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+    strokeStyle?: string;
+  }) => NaverOverlay & { setPath?: (path: unknown[]) => void };
   Event: {
-    addListener: (target: unknown, type: string, handler: (...args: unknown[]) => void) => void;
+    /**
+     * 네이버 SDK 는 등록한 리스너 핸들을 돌려준다. 예전에는 반환값을 타입에서
+     * 지워 두어 해제할 방법이 없었다 — 지도 클릭처럼 모드에 따라 붙였다 떼는
+     * 리스너가 생기면서 필요해졌다.
+     */
+    addListener: (
+      target: unknown,
+      type: string,
+      handler: (...args: unknown[]) => void,
+    ) => unknown;
+    removeListener?: (listener: unknown) => void;
   };
   Position?: { TOP_RIGHT: unknown; RIGHT_CENTER: unknown };
   MapTypeControlStyle?: { DROPDOWN: unknown };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "../components/Logo";
@@ -499,7 +499,14 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): num
 }
 
 /** C3 반경 프리셋(m) */
-const RADIUS_PRESETS = [500, 1000, 2000] as const;
+const RADIUS_PRESETS = [300, 500, 1000, 2000, 3000] as const;
+
+/** 거리 표기 — 1km 미만은 m, 그 이상은 소수 둘째 자리 km. */
+function formatDistanceM(m: number): string {
+  if (!Number.isFinite(m) || m < 0) return "—";
+  if (m < 1000) return `${Math.round(m).toLocaleString("ko-KR")}m`;
+  return `${(m / 1000).toFixed(2)}km`;
+}
 
 export function MapClient({
   danji,
@@ -536,6 +543,45 @@ export function MapClient({
     return { lat: 37.5665, lng: 126.978 };
   });
 
+  /* ===== 지도 진입 시 현재 위치로 맞추기 =====
+     예전에는 늘 단지 좌표 평균(사실상 수도권 어딘가)에서 시작했다. 처음 들어온
+     사람은 자기 동네를 직접 찾아 들어가야 했다.
+
+     세 가지를 지킨다.
+       · ?region= 으로 지목된 지역이 있으면 그쪽이 우선이다 — 사용자가 명시한 목적지.
+       · 한 번만 시도한다. 지도를 옮긴 뒤 다시 끌려가면 안 된다.
+       · 국내 대략 범위 밖 좌표는 버린다. VPN·기기 오차로 태평양 한복판을 잡으면
+         단지가 하나도 없는 빈 지도가 되어 "고장" 처럼 보인다.
+     거부하거나 실패하면 조용히 기존 시작 위치를 쓴다. */
+  const [geoApplied, setGeoApplied] = useState(false);
+  const geoTriedRef = useRef(false);
+  useEffect(() => {
+    if (initialFocus) return;
+    if (geoTriedRef.current) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    geoTriedRef.current = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+        if (latitude < 32.5 || latitude > 39.5 || longitude < 124 || longitude > 132.5) return;
+        setCenter({ lat: latitude, lng: longitude });
+        setZoom("danji");
+        setLevel(LEVEL_BY_ZOOM.danji);
+        setGeoApplied(true);
+      },
+      () => undefined,
+      { enableHighAccuracy: false, timeout: 8_000, maximumAge: 300_000 },
+    );
+  }, [initialFocus]);
+
+  // 위치로 맞췄다는 안내는 잠깐만 — 지도 위에 계속 떠 있을 이유가 없다.
+  useEffect(() => {
+    if (!geoApplied) return;
+    const t = setTimeout(() => setGeoApplied(false), 4_000);
+    return () => clearTimeout(t);
+  }, [geoApplied]);
+
   const selected = danji.find((d) => d.id === selectedId) ?? null;
 
   /* ===== 검색 선택 · 단지 정보 패널 (item1·item2) =====
@@ -548,9 +594,20 @@ export function MapClient({
 
   /* ===== 매물 레이어 상태 — 토글 ON일 때만 현재 뷰포트 매물을 마커로 ===== */
   const [showListings, setShowListings] = useState(false);
-  // C3 반경 그리기 필터 — 중심(지도 중심) 기준 반경 내 단지만 표시
+  /* ===== C3 반경 그리기 =====
+     예전에는 중심이 늘 "지도 중심"이었다. 그래서 어떤 단지 주변 500m를 보려면
+     그 단지가 화면 정중앙에 오도록 지도를 밀어야 했고, 필터를 만지는 동안 지도가
+     계속 움직여 원도 같이 따라다녔다. 이제 지도를 클릭한 지점이 중심이 된다.
+     radiusCenter 가 null 이면 아직 안 찍은 것 — 그때만 지도 중심으로 대신한다. */
   const [radiusMode, setRadiusMode] = useState(false);
   const [radiusM, setRadiusM] = useState<number>(1000);
+  const [radiusCenter, setRadiusCenter] = useState<{ lat: number; lng: number } | null>(null);
+
+  /* ===== 거리 재기 =====
+     지점을 차례로 찍으면 직선으로 잇고 구간·누적 거리를 보여 준다.
+     (예: 단지 → 역, 단지 → 학교) */
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState<{ lat: number; lng: number }[]>([]);
   const [listingItems, setListingItems] = useState<MapListingItem[]>([]);
 
   /* ===== 가격대·면적대·준공연도 필터 상태 (확대 · item3) =====
@@ -656,6 +713,76 @@ export function MapClient({
     });
   }, [rangeFilteredDanji, commuteActive, commuteMinutes, commuteThreshold]);
 
+  /* 반경 원의 실제 중심 — 찍은 지점이 있으면 그것, 없으면 지도 중심. */
+  const radiusOrigin = radiusCenter ?? center;
+
+  /* ===== 필터 패널 가로 위치 =====
+     필터 패널은 좌측 상단에 고정돼 있었다. 그런데 같은 자리에 단지 정보(380px)·
+     단지 상세(460px)·인기 단지(320px) 패널이 뜬다. 그래서 단지를 열어 둔 채
+     "필터"를 누르면 두 카드가 포개져 글자가 서로 비쳐 보였다(소유자 지적).
+
+     좌측 패널의 오른쪽 끝을 계산해 필터 패널을 그 옆으로 민다. 좁은 화면에서
+     밀린 만큼 폭이 모자라지 않도록 max-width 도 같은 값으로 함께 줄인다. */
+  const leftPanelEdgePx = selected ? 492 : infoComplex ? 412 : panelOpen ? 352 : 0;
+  const filterLeftMdPx = Math.max(356, leftPanelEdgePx);
+  const filterLeftLgPx = Math.max(200, leftPanelEdgePx);
+
+  /* 거리 재기 — 각 지점의 누적 거리 라벨과 구간 목록. */
+  const measureLegs = useMemo(() => {
+    const legs: { from: number; to: number; meters: number }[] = [];
+    for (let i = 1; i < measurePoints.length; i += 1) {
+      const a = measurePoints[i - 1];
+      const b = measurePoints[i];
+      legs.push({ from: i, to: i + 1, meters: haversineM(a.lat, a.lng, b.lat, b.lng) });
+    }
+    return legs;
+  }, [measurePoints]);
+
+  const measureTotalM = useMemo(
+    () => measureLegs.reduce((s, l) => s + l.meters, 0),
+    [measureLegs],
+  );
+
+  /* 첫 지점과 마지막 지점을 바로 잇는 직선거리 — 꺾어 잰 합계와 다르다.
+     "역까지 실제로 몇 m냐"를 물을 때 필요한 건 이쪽인 경우가 많다. */
+  const measureStraightM = useMemo(() => {
+    if (measurePoints.length < 2) return 0;
+    const a = measurePoints[0];
+    const b = measurePoints[measurePoints.length - 1];
+    return haversineM(a.lat, a.lng, b.lat, b.lng);
+  }, [measurePoints]);
+
+  const measurePath = useMemo(() => {
+    if (!measureMode || measurePoints.length === 0) return null;
+    let acc = 0;
+    return measurePoints.map((p, i) => {
+      if (i > 0) {
+        const prev = measurePoints[i - 1];
+        acc += haversineM(prev.lat, prev.lng, p.lat, p.lng);
+      }
+      return { ...p, label: i === 0 ? "시작" : formatDistanceM(acc) };
+    });
+  }, [measureMode, measurePoints]);
+
+  /* 지도 클릭 — 거리 재기가 켜져 있으면 지점 추가, 반경 모드면 중심 이동.
+     둘 다 꺼져 있으면 아무 일도 하지 않는다(기존 동작 유지). */
+  const mapClickMode: "measure" | "radius" | null = measureMode
+    ? "measure"
+    : radiusMode
+      ? "radius"
+      : null;
+
+  const handleMapClick = useCallback(
+    (p: { lat: number; lng: number }) => {
+      if (measureMode) {
+        setMeasurePoints((prev) => [...prev, p]);
+        return;
+      }
+      if (radiusMode) setRadiusCenter(p);
+    },
+    [measureMode, radiusMode],
+  );
+
   // 컴팩트 칩 행: 매매/전세 토글 + 매물 토글 + "필터" 확장 버튼 (+활성 배지) + 초기화
   const filterBar = (
     <>
@@ -723,7 +850,15 @@ export function MapClient({
       <button
         type="button"
         aria-pressed={radiusMode}
-        onClick={() => setRadiusMode((v) => !v)}
+        onClick={() =>
+          setRadiusMode((v) => {
+            const next = !v;
+            // 켤 때는 거리 재기를 끈다 — 클릭 한 번이 두 뜻을 가질 수 없다.
+            if (next) setMeasureMode(false);
+            else setRadiusCenter(null);
+            return next;
+          })
+        }
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           radiusMode
             ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
@@ -747,12 +882,41 @@ export function MapClient({
             {r >= 1000 ? `${r / 1000}km` : `${r}m`}
           </button>
         ))}
+      {radiusMode && radiusCenter && (
+        <button
+          type="button"
+          onClick={() => setRadiusCenter(null)}
+          className="whitespace-nowrap text-[11px] font-bold text-text-3 underline"
+        >
+          중심 해제
+        </button>
+      )}
+      {/* 거리 재기 — 지점을 찍어 직선거리를 잰다 */}
+      <button
+        type="button"
+        aria-pressed={measureMode}
+        onClick={() =>
+          setMeasureMode((v) => {
+            const next = !v;
+            if (next) setRadiusMode(false);
+            else setMeasurePoints([]);
+            return next;
+          })
+        }
+        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
+          measureMode
+            ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
+            : "bg-[rgba(255,255,255,.75)] text-text-2"
+        }`}
+      >
+        ↔ 거리
+      </button>
     </>
   );
 
   // 확장 패널: 모든 범위/유형 필터 (칩 그룹) — 모바일 친화 접이식
   const filterPanel = filtersExpanded ? (
-    <div className="glass-strong flex max-h-[calc(100dvh-210px)] w-[300px] max-w-[calc(100vw-32px)] flex-col gap-3 overflow-y-auto rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
+    <div className="glass-strong flex max-h-[calc(100dvh-210px)] w-full flex-col gap-3 overflow-y-auto rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
       <div className="flex items-center justify-between">
         <span className="text-sm font-extrabold text-ink">상세 필터</span>
         <button
@@ -1496,9 +1660,11 @@ export function MapClient({
         base.push(marker);
       }
     }
-    // C3 반경 필터 — 반경 모드일 때 중심에서 radiusM 내 단지 마커만 표시
+    // C3 반경 필터 — 찍은 중심(없으면 지도 중심)에서 radiusM 내 단지 마커만 표시
     const shownBase = radiusMode
-      ? base.filter((m) => haversineM(center.lat, center.lng, m.lat, m.lng) <= radiusM)
+      ? base.filter(
+          (m) => haversineM(radiusOrigin.lat, radiusOrigin.lng, m.lat, m.lng) <= radiusM,
+        )
       : base;
     return withSearch([
       ...regionLayer,
@@ -1524,6 +1690,8 @@ export function MapClient({
     txType,
     radiusMode,
     radiusM,
+    radiusOrigin.lat,
+    radiusOrigin.lng,
     center.lat,
     center.lng,
   ]);
@@ -1842,7 +2010,12 @@ export function MapClient({
         onMarkerClick={handleMarkerClick}
         onIdle={handleMapIdle}
         fallback={gradientFallback}
-        circle={radiusMode ? { lat: center.lat, lng: center.lng, radiusM } : null}
+        circle={
+          radiusMode ? { lat: radiusOrigin.lat, lng: radiusOrigin.lng, radiusM } : null
+        }
+        onMapClick={mapClickMode ? handleMapClick : undefined}
+        measurePath={measurePath}
+        crosshair={mapClickMode !== null}
       />
 
       {/* ===== item5 — 빈 뷰포트/조회 실패 안내. 실패와 빈 결과를 구분한다 ===== */}
@@ -1913,10 +2086,125 @@ export function MapClient({
       {/* ===== 상세 필터 확장 패널 (item3) — 접이식·모바일 친화 ===== */}
       {filtersExpanded && (
         <div
-          className="absolute left-4 z-[41] md:left-[356px] lg:left-[200px]"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 184px)" }}
+          className="absolute left-4 z-[41] w-[300px] max-w-[calc(100vw_-_32px)] md:left-[var(--nz-filter-left)] md:max-w-[calc(100vw_-_var(--nz-filter-left)_-_16px)] lg:left-[var(--nz-filter-left-lg)] lg:max-w-[calc(100vw_-_var(--nz-filter-left-lg)_-_16px)]"
+          style={
+            {
+              top: "calc(env(safe-area-inset-top, 0px) + 184px)",
+              "--nz-filter-left": `${filterLeftMdPx}px`,
+              "--nz-filter-left-lg": `${filterLeftLgPx}px`,
+            } as CSSProperties
+          }
         >
           {filterPanel}
+        </div>
+      )}
+
+      {/* 현재 위치로 맞췄음을 알리는 짧은 안내 */}
+      {geoApplied && (
+        <div
+          role="status"
+          className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
+        >
+          현재 위치 기준으로 지도를 맞췄어요
+        </div>
+      )}
+
+      {/* ===== 반경 · 거리 재기 안내/결과 =====
+           클릭이 평소와 다른 뜻을 갖는 모드라, 무엇을 누르면 되는지와 잰 결과를
+           같은 자리에서 보여 준다. 좌측 패널과 겹치지 않게 우측에 세운다. */}
+      {mapClickMode && (
+        <div
+          className="glass-strong absolute right-5 z-[42] flex w-[228px] flex-col gap-2 rounded-[16px] px-3.5 py-3 shadow-[0_12px_32px_rgba(16,28,54,.18)]"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 212px)" }}
+        >
+          {mapClickMode === "radius" ? (
+            <>
+              <div className="text-[12px] font-extrabold text-ink">반경 보기</div>
+              <p className="text-[11px] leading-[1.6] text-text-3">
+                {radiusCenter
+                  ? "지도를 다시 클릭하면 중심이 옮겨집니다."
+                  : "지도를 클릭해 중심을 찍어 보세요. 아직 안 찍었으면 화면 중앙이 기준입니다."}
+              </p>
+              <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2 text-[11px] font-bold text-primary">
+                반경 {radiusM >= 1000 ? `${radiusM / 1000}km` : `${radiusM}m`} 안의 단지만 표시
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] font-extrabold text-ink">거리 재기</span>
+                <span className="text-[10px] text-text-3">{measurePoints.length}개 지점</span>
+              </div>
+              {measurePoints.length < 2 ? (
+                <p className="text-[11px] leading-[1.6] text-text-3">
+                  지도에서 두 지점을 차례로 클릭하면 직선거리를 보여 드려요.
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2">
+                    <div className="text-[10px] text-text-3">처음 ↔ 마지막 직선거리</div>
+                    <div className="text-[15px] font-extrabold text-primary">
+                      {formatDistanceM(measureStraightM)}
+                    </div>
+                  </div>
+                  {measureLegs.length > 1 && (
+                    <div className="flex flex-col gap-0.5">
+                      {measureLegs.map((l) => (
+                        <div
+                          key={`${l.from}-${l.to}`}
+                          className="flex items-center justify-between text-[11px] text-text-2"
+                        >
+                          <span>
+                            {l.from} → {l.to}
+                          </span>
+                          <span className="font-bold text-text-1">
+                            {formatDistanceM(l.meters)}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="mt-0.5 flex items-center justify-between border-t border-[rgba(16,28,54,.08)] pt-1 text-[11px]">
+                        <span className="text-text-3">이어 잰 합계</span>
+                        <span className="font-extrabold text-ink">
+                          {formatDistanceM(measureTotalM)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMeasurePoints((p) => p.slice(0, -1))}
+                  disabled={measurePoints.length === 0}
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2 disabled:opacity-40"
+                >
+                  되돌리기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMeasurePoints([])}
+                  disabled={measurePoints.length === 0}
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2 disabled:opacity-40"
+                >
+                  전체 지우기
+                </button>
+              </div>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setRadiusMode(false);
+              setRadiusCenter(null);
+              setMeasureMode(false);
+              setMeasurePoints([]);
+            }}
+            className="rounded-[9px] bg-[rgba(16,28,54,.06)] px-2 py-1.5 text-[11px] font-bold text-text-2"
+          >
+            끝내기
+          </button>
         </div>
       )}
 
