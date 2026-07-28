@@ -60,16 +60,20 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      // Supabase Storage (`**` — 중첩 서브도메인 포함)
+      /* Supabase Storage (`**` — 중첩 서브도메인 포함).
+         `/object/public/**` 만 열어 두면 비공개 버킷의 서명 URL
+         (`/object/sign/**`)이 막힌다. 이 프로젝트의 버킷은 전부 비공개라
+         서명 URL 쪽이 정상 경로다. 그래서 `/object/**` 로 넓힌다 —
+         호스트는 여전히 우리 Supabase 도메인으로 묶여 있다. */
       {
         protocol: "https",
         hostname: "**.supabase.co",
-        pathname: "/storage/v1/object/public/**",
+        pathname: "/storage/v1/object/**",
       },
       {
         protocol: "https",
         hostname: "**.supabase.io",
-        pathname: "/storage/v1/object/public/**",
+        pathname: "/storage/v1/object/**",
       },
       // Naver 정적 리소스/프로필 (phinf·ssl·map 등 모든 pstatic 서브도메인)
       { protocol: "https", hostname: "**.pstatic.net" },
