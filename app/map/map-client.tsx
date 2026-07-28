@@ -713,6 +713,32 @@ export function MapClient({
     });
   }, [rangeFilteredDanji, commuteActive, commuteMinutes, commuteThreshold]);
 
+  /* ===== 마커 호버 요약 =====
+     누르기 전에는 지도에서 값 하나(또는 이름 하나)밖에 알 수 없었다. 그래서 여러
+     단지를 견주려면 하나씩 눌러 패널을 열었다 닫기를 반복해야 했다. 커서를 올리면
+     세대수·준공연도·평균 전용면적까지 같이 보여, 그 비교가 지도 위에서 끝나게 한다.
+     위치는 포인터를 그대로 따라간다 — 지도 투영 좌표 변환을 거치지 않아 어긋나지 않는다. */
+  const [hoverMarker, setHoverMarker] = useState<MapMarkerData | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null);
+  const mapWrapRef = useRef<HTMLDivElement>(null);
+
+  const handleMarkerHover = useCallback((m: MapMarkerData | null) => {
+    setHoverMarker(m);
+    if (!m) setHoverPos(null);
+  }, []);
+
+  useEffect(() => {
+    if (!hoverMarker) return;
+    const el = mapWrapRef.current;
+    if (!el) return;
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      setHoverPos({ x: e.clientX - r.left, y: e.clientY - r.top });
+    };
+    el.addEventListener("mousemove", onMove);
+    return () => el.removeEventListener("mousemove", onMove);
+  }, [hoverMarker]);
+
   /* 반경 원의 실제 중심 — 찍은 지점이 있으면 그것, 없으면 지도 중심. */
   const radiusOrigin = radiusCenter ?? center;
 
@@ -721,9 +747,10 @@ export function MapClient({
      단지 상세(460px)·인기 단지(320px) 패널이 뜬다. 그래서 단지를 열어 둔 채
      "필터"를 누르면 두 카드가 포개져 글자가 서로 비쳐 보였다(소유자 지적).
 
-     좌측 패널의 오른쪽 끝을 계산해 필터 패널을 그 옆으로 민다. 좁은 화면에서
-     밀린 만큼 폭이 모자라지 않도록 max-width 도 같은 값으로 함께 줄인다. */
-  const leftPanelEdgePx = selected ? 492 : infoComplex ? 412 : panelOpen ? 352 : 0;
+     좌측 패널(인기 단지, 320px)의 오른쪽 끝을 계산해 그 옆으로 민다. 좁은 화면에서
+     밀린 만큼 폭이 모자라지 않도록 max-width 도 같은 값으로 함께 줄인다.
+     단지 상세·단지 정보는 이제 가운데 팝업이라 애초에 이 자리를 다투지 않는다. */
+  const leftPanelEdgePx = !selected && !infoComplex && panelOpen ? 352 : 0;
   const filterLeftMdPx = Math.max(356, leftPanelEdgePx);
   const filterLeftLgPx = Math.max(200, leftPanelEdgePx);
 
@@ -1609,6 +1636,11 @@ export function MapClient({
             momPct: d.momPct ?? undefined,
             selected: d.id === selectedId || d.id === infoId,
             infoHtml: "", // 인포윈도우 대신 글래스 상세 패널 사용
+            // 단지 줌에서만 이름을 값과 함께 — 넓은 줌에선 이름끼리 겹친다.
+            showName: zoom === "danji",
+            households: d.households ?? undefined,
+            buildYear: d.buildYear ?? undefined,
+            avgAreaM2: d.areaM2 ?? undefined,
           }));
     /* 지도에 실제로 찍히는 마커는 대부분 이 extraPoints 다(서버 렌더 목록은 30개).
        예전에는 여기에 필터로 쓸 값이 없어서 필터가 걸리면 통째로 숨겼는데,
@@ -1638,6 +1670,10 @@ export function MapClient({
           label: p.name,
           selected: p.id === infoId,
           infoHtml: "",
+          showName: zoom === "danji",
+          households: p.households ?? undefined,
+          buildYear: p.buildYear ?? undefined,
+          avgAreaM2: p.avgAreaM2 ?? undefined,
         };
         if (txType === "rent") {
           // 전세 — 평균 보증금 말풍선(전용 색). 전세 실거래 없는 단지는 기본 마커.
@@ -1998,7 +2034,10 @@ export function MapClient({
   return (
     // fixed inset-0 + 100dvh: 문서 흐름에서 분리해 지도 아래 빈 공간(높이 계산 오차)을 제거.
     // dvh 미지원 브라우저는 inset-0(bottom:0)이 폴백으로 풀스크린 유지.
-    <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
+    <div
+      ref={mapWrapRef}
+      className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]"
+    >
       {/* ===== 실제 네이버 지도 (실패 시 그라데이션 폴백) ===== */}
       <NaverMap
         markers={markers}
@@ -2016,7 +2055,58 @@ export function MapClient({
         onMapClick={mapClickMode ? handleMapClick : undefined}
         measurePath={measurePath}
         crosshair={mapClickMode !== null}
+        onMarkerHover={mapClickMode ? undefined : handleMarkerHover}
       />
+
+      {/* ===== 마커 호버 요약 — 누르기 전에 보이는 단지 정보 ===== */}
+      {hoverMarker && hoverPos && (
+        <div
+          className="pointer-events-none absolute z-[46] w-[212px] rounded-[14px] bg-[rgba(255,255,255,.97)] px-3.5 py-3 shadow-[0_12px_30px_rgba(16,28,54,.22)] ring-1 ring-[rgba(16,28,54,.08)]"
+          style={{
+            // 커서 오른쪽 아래가 기본. 화면 끝에 닿으면 반대편으로 접는다.
+            left: Math.min(hoverPos.x + 16, Math.max(8, (mapWrapRef.current?.clientWidth ?? 0) - 220)),
+            top: Math.min(hoverPos.y + 16, Math.max(8, (mapWrapRef.current?.clientHeight ?? 0) - 180)),
+          }}
+        >
+          <div className="truncate text-[13px] font-extrabold text-ink">{hoverMarker.label}</div>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-[17px] font-extrabold text-primary">
+              {hoverMarker.priceLabel ?? "시세 준비 중"}
+            </span>
+            {hoverMarker.momPct !== undefined && Number.isFinite(hoverMarker.momPct) && (
+              <span
+                className={`text-[11px] font-extrabold ${
+                  hoverMarker.momPct >= 0 ? "text-danger" : "text-primary"
+                }`}
+              >
+                {hoverMarker.momPct >= 0 ? "▲" : "▼"}
+                {Math.abs(hoverMarker.momPct).toFixed(2)}%
+              </span>
+            )}
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-1.5 border-t border-[rgba(16,28,54,.07)] pt-2">
+            <div>
+              <div className="text-[9px] text-text-3">세대수</div>
+              <div className="text-[12px] font-bold text-ink">
+                {hoverMarker.households ? hoverMarker.households.toLocaleString("ko-KR") : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] text-text-3">준공</div>
+              <div className="text-[12px] font-bold text-ink">
+                {hoverMarker.buildYear ?? "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] text-text-3">평균 전용</div>
+              <div className="text-[12px] font-bold text-ink">
+                {hoverMarker.avgAreaM2 ? `${Math.round(hoverMarker.avgAreaM2)}㎡` : "—"}
+              </div>
+            </div>
+          </div>
+          <div className="mt-2 text-[10px] text-text-3">클릭하면 자세히 봅니다</div>
+        </div>
+      )}
 
       {/* ===== item5 — 빈 뷰포트/조회 실패 안내. 실패와 빈 결과를 구분한다 ===== */}
       {(viewportEmpty || clusterFetchStatus === "error") && (
@@ -2454,19 +2544,29 @@ export function MapClient({
         </button>
       )}
 
-      {/* ===== 단지 클릭 → 상세 패널 (9q, 460px) ===== */}
+      {/* ===== 단지 클릭 → 상세 팝업 =====
+           예전에는 좌측에 460px 세로 패널로 붙였다. 폭이 좁아 표·그래프가 다
+           눌렸고, 같은 자리를 쓰는 필터·인기 단지 패널과 계속 부딪혔다(소유자 지적).
+           화면 가운데 큰 팝업으로 띄우면 두 문제가 같이 사라진다. 더 깊이 보고
+           싶으면 아래 "전체 화면으로 자세히 보기"로 단지 홈 페이지로 넘어간다. */}
       {selected && (
-        <aside
-          className="glass-strong rise-in absolute left-4 right-4 z-30 flex flex-col overflow-hidden rounded-[22px] md:left-5 md:right-auto md:w-[460px]"
-          style={{
-            top: "calc(env(safe-area-inset-top, 0px) + 92px)",
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)",
-          }}
+        <div
+          className="absolute inset-0 z-[48] flex items-center justify-center px-4 py-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${selected.name} 단지 상세`}
         >
+          <button
+            type="button"
+            aria-label="상세 닫기"
+            onClick={() => setSelectedId(null)}
+            className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.45)]"
+          />
+          <aside className="glass-strong rise-in relative z-10 flex max-h-[min(88dvh,860px)] w-full max-w-[860px] flex-col overflow-hidden rounded-[24px] shadow-[0_28px_70px_rgba(16,28,54,.32)]">
           <div className="flex items-start justify-between border-b border-[rgba(16,28,54,.06)] px-[22px] pb-3.5 pt-5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[19px] font-extrabold text-ink">{selected.name}</span>
+                <span className="text-[22px] font-extrabold text-ink">{selected.name}</span>
                 {selected.note && (
                   <span className="rounded-[5px] bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary">
                     내 {selected.note}
@@ -2474,21 +2574,23 @@ export function MapClient({
                 )}
               </div>
               <div className="mt-1 text-xs text-text-2">{selected.meta}</div>
+            </div>
+            <div className="flex items-center gap-2">
               <Link
                 href={`/complex/${encodeURIComponent(selected.id)}`}
-                className="mt-1.5 inline-block text-xs font-extrabold text-primary"
+                className="btn-primary btn-cta hidden rounded-xl px-3.5 py-2 text-xs font-extrabold text-white md:inline-flex"
               >
-                단지 홈 ›
+                전체 화면으로 자세히 보기 ›
               </Link>
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                aria-label="패널 닫기"
+                className="text-[15px] text-text-3"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedId(null)}
-              aria-label="패널 닫기"
-              className="text-[15px] text-text-3"
-            >
-              ✕
-            </button>
           </div>
           <div className="flex border-b border-[rgba(16,28,54,.06)] px-[22px]">
             {DETAIL_TABS.map((t) => (
@@ -2507,7 +2609,13 @@ export function MapClient({
             ))}
           </div>
 
-          <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-[22px] py-4">
+          {/* 요약은 카드가 많아 넓은 화면에서 두 단으로 흘린다 — 460px 시절에는
+              한 줄로 세울 수밖에 없어 스크롤이 길었다. */}
+          <div
+            className={`flex flex-1 flex-col gap-3 overflow-y-auto px-[22px] py-4 ${
+              detailTab === "요약" ? "md:grid md:grid-cols-2 md:content-start md:gap-4" : ""
+            }`}
+          >
             {detailTab === "요약" && (
               <>
                 {/* 사실 우선: 서버 실데이터(시세·전월비)만 표시. 조회수·전문가수·급매·판정은
@@ -2733,7 +2841,17 @@ export function MapClient({
               </>
             )}
           </div>
-        </aside>
+          {/* 모바일에서는 헤더에 넣을 자리가 없어 아래에 고정 CTA 로 둔다. */}
+          <div className="border-t border-[rgba(16,28,54,.06)] px-[22px] py-3 md:hidden">
+            <Link
+              href={`/complex/${encodeURIComponent(selected.id)}`}
+              className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
+            >
+              전체 화면으로 자세히 보기 ›
+            </Link>
+          </div>
+          </aside>
+        </div>
       )}
 
       {/* ===== 단지 정보 패널 (item2) — 검색/포인트 선택 시 실데이터 하단 시트 ===== */}

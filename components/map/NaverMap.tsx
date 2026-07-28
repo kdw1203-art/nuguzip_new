@@ -46,6 +46,16 @@ export interface MapMarkerData {
   favorite?: boolean;
   /** 선택 상태(목록에서 클릭 등) */
   selected?: boolean;
+  /**
+   * 시세 말풍선에 단지명을 함께 적을지. 단지 줌에서만 켠다 —
+   * 넓은 줌에서 켜면 이름이 서로 겹쳐 지도가 글자로 덮인다.
+   */
+  showName?: boolean;
+  /* ── 아래는 마커를 누르기 전 호버 카드에 쓰는 값들 ────────────────── */
+  households?: number;
+  buildYear?: number;
+  avgAreaM2?: number;
+  regionName?: string;
 }
 
 type MarkerEntry = {
@@ -69,6 +79,7 @@ function markerSignature(d: MapMarkerData): string {
     d.momPct ?? "",
     d.favorite ? 1 : 0,
     d.selected ? 1 : 0,
+    d.showName ? 1 : 0,
   ].join(":");
 }
 
@@ -123,6 +134,11 @@ interface NaverMapProps {
   measurePath?: { lat: number; lng: number; label?: string }[] | null;
   /** 클릭으로 지점을 찍는 모드일 때 커서를 십자로 바꾼다. */
   crosshair?: boolean;
+  /**
+   * 마커에 커서를 올렸을 때(벗어나면 null). 누르기 전에 단지 요약을 띄우는 데 쓴다.
+   * 위치는 화면 쪽에서 포인터를 따라 잡는다 — 지도 투영 좌표 변환을 거치지 않는다.
+   */
+  onMarkerHover?: (marker: MapMarkerData | null) => void;
 }
 
 /** naver.maps.Circle 최소 인터페이스 */
@@ -151,6 +167,7 @@ export function NaverMap({
   onMapClick,
   measurePath = null,
   crosshair = false,
+  onMarkerHover,
 }: NaverMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -170,6 +187,8 @@ export function NaverMap({
   const bicycleLayerRef = useRef<NaverLayer | null>(null);
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
+  const onMarkerHoverRef = useRef(onMarkerHover);
+  onMarkerHoverRef.current = onMarkerHover;
   const measureLineRef = useRef<(NaverLayer & { setPath?: (p: unknown[]) => void }) | null>(null);
   const measureMarkersRef = useRef<NaverMarker[]>([]);
 
@@ -534,6 +553,16 @@ export function NaverMap({
       const entry: MarkerEntry = { marker, data, signature };
       store.set(data.id, entry);
 
+      /* 누르기 전에 요약을 보여 준다 — 클러스터는 단지가 아니므로 제외. */
+      if (!data.id.startsWith("cluster:")) {
+        maps.Event.addListener(marker, "mouseover", () => {
+          onMarkerHoverRef.current?.(store.get(data.id)?.data ?? data);
+        });
+        maps.Event.addListener(marker, "mouseout", () => {
+          onMarkerHoverRef.current?.(null);
+        });
+      }
+
       maps.Event.addListener(marker, "click", () => {
         if (infoWindowRef.current) infoWindowRef.current.close();
         const current = store.get(data.id)?.data ?? data;
@@ -788,10 +817,26 @@ function buildPriceMarkerHtml(data: MapMarkerData): string {
     ? `<span style="font-size:11px;color:#f59e0b;margin-left:1px">★</span>`
     : "";
   const tip = selected ? "#3182f6" : "#fff";
+  /*
+   * 단지 줌에서는 이름을 값과 함께 적는다.
+   *
+   * 예전에는 "전세 2.5억" 같은 값만 떠 있었다. 지도를 확대해 봐도 어느 단지의
+   * 2.5억인지는 눌러 봐야 알 수 있었다 — 여러 단지를 견주려면 하나씩 눌렀다
+   * 닫기를 반복해야 했다는 뜻이다. 값 옆에 이름이 있으면 그 비교가 지도 위에서
+   * 끝난다. 대신 넓은 줌에서는 이름이 서로 겹치므로 showName 이 켜졌을 때만 적고,
+   * 길면 잘라 낸다.
+   */
+  const rawName = data.label?.trim() ?? "";
+  const nameHtml =
+    data.showName && rawName
+      ? `<span style="font-size:11px;font-weight:700;color:#5b6675;max-width:96px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(
+          rawName.length > 8 ? `${rawName.slice(0, 8)}…` : rawName,
+        )}</span><span style="width:1px;height:10px;background:rgba(16,28,54,.16)"></span>`
+      : "";
   return `
   <div style="display:inline-block;transform:translate(-50%,-100%);white-space:nowrap;font-family:sans-serif">
     <div style="display:inline-flex;align-items:center;gap:4px;background:${bg};border:${borderWidth}px solid ${borderColor};border-radius:9999px;padding:3px 9px;box-shadow:0 2px 6px rgba(0,0,0,.18)">
-      <span style="font-size:12px;font-weight:800;color:${priceColor}">${price}</span>
+      ${nameHtml}<span style="font-size:12px;font-weight:800;color:${priceColor}">${price}</span>
       ${pctHtml}${star}
     </div>
     <div style="width:0;height:0;margin:-1px auto 0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${tip}"></div>
