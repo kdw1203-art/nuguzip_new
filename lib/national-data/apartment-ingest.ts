@@ -103,9 +103,21 @@ function compact(o: Record<string, unknown>): Record<string, unknown> {
  * kaptCode/kapt_code 두 이름으로 섞이면 매칭하는 쪽(complex-store 의 D7 enrich)이
  * 어느 쪽을 봐야 하는지 알 수 없게 된다.
  *
- * householdCount 는 소스의 세대수(hhldCnt)를 그대로 싣는다. 기존 값이 상당수
- * 과대하다는 것이 알려져 있어 complex-store 는 이 값을 쓰지 않는데(거기 주석 참조),
- * 그렇다고 안 쓰면 영원히 낡은 값이 남는다 — 원본으로 계속 덮어 두는 편이 낫다.
+ * ── householdCount 를 여기서 쓰지 않는 이유 (2026-07-28) ────────────────────
+ * 예전에는 목록 API 의 hhldCnt 를 그대로 실었다. 이 값이 "상당수 과대하다"는 건
+ * 이 주석에도 이미 적혀 있었고, 그래서 화면 쪽(complex-store)은 안 쓰고 있었다.
+ * 그런데 그 뒤 complex_tx_stats 집계가 이 키를 읽기 시작하면서 결국 지도 단지
+ * 패널·단지 홈의 "세대수"와 지도 세대수 필터로 흘러갔다.
+ *
+ * 실측(2026-07-28): 상세 조회가 성공한 행은 중앙값 437세대·최댓값 12,330세대로
+ * 실제와 맞는다(최댓값이 올림픽파크포레온 12,032와 일치). 반면 상세를 못 받아
+ * 목록 값이 그대로 남은 569행은 중앙값 4,840·최댓값 41,680이었다 —
+ * "16개 동에 41,680세대" 같은 값이 화면에 나가고 필터에도 걸렸다.
+ *
+ * 믿을 수 있는 건 상세(fetchAptComplexDetail)가 준 값뿐이다. 목록 단계에서는
+ * 아예 쓰지 않는다. 상세를 못 받은 단지는 세대수를 "모르는" 상태로 두는 게
+ * 맞다 — 틀린 수를 적어 두면 사용자는 그걸 확인된 값으로 읽는다.
+ * (이미 저장된 잘못된 값은 마이그레이션 20260728120000 에서 격리했다.)
  */
 function toRpcRow(c: AptComplex, fallbackLawdCd: string): Record<string, unknown> | null {
   const kaptCode = clean(c.kaptCode);
@@ -138,7 +150,7 @@ function toRpcRow(c: AptComplex, fallbackLawdCd: string): Record<string, unknown
       jibunAddress: jibun,
       approvalDate: toApprovalDate(c.kaptUsedate),
       buildingCount: toPositiveInt(c.kaptDongCnt),
-      householdCount: toPositiveInt(c.hhldCnt),
+      // householdCount 는 상세(toDetailPatch)에서만 채운다 — 위 주석 참고.
     }),
   };
 }
