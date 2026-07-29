@@ -852,7 +852,16 @@ export function MapClient({
         type="button"
         aria-expanded={filtersExpanded}
         data-tour="map-filter"
-        onClick={() => setFiltersExpanded((v) => !v)}
+        onClick={() =>
+          setFiltersExpanded((v) => {
+            const next = !v;
+            if (next) {
+              setSelectedId(null);
+              setInfoComplex(null);
+            }
+            return next;
+          })
+        }
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           filterActive || filtersExpanded
             ? "bg-[rgba(29,79,216,.12)] text-primary"
@@ -1766,6 +1775,7 @@ export function MapClient({
   }, [clusterFetchStatus, clusters.length, extraPoints.length, viewBounds, filteredDanji, txType]);
 
   const selectDanji = (id: string) => {
+    setFiltersExpanded(false);
     setInfoComplex(null);
     setSearchMarker(null);
     setSelectedId(id);

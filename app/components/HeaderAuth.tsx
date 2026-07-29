@@ -81,12 +81,20 @@ export function HeaderAuth() {
 
   if (state.status === "guest") {
     return (
-      <Link
-        href="/login"
-        className="whitespace-nowrap text-[13px] font-bold text-text-1 transition-colors hover:text-primary"
-      >
-        로그인
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/login"
+          className="whitespace-nowrap text-[13px] font-bold text-text-1 transition-colors hover:text-primary"
+        >
+          로그인
+        </Link>
+        <Link
+          href="/signup"
+          className="hidden whitespace-nowrap rounded-full border border-[#d7dee8] bg-white px-3 py-[6px] text-[12px] font-extrabold text-ink transition-colors hover:border-primary hover:text-primary md:inline-flex"
+        >
+          회원가입
+        </Link>
+      </div>
     );
   }
 

@@ -217,6 +217,19 @@ const REDIRECT_GROUPS: readonly RedirectGroup[] = [
       ["/ai-analysis/ai-portfolio", "/analysis/portfolio"],
     ],
   },
+  {
+    reason: "오픈베타 — 구 프로토타입/허브 경로를 현 IA 로 흡수",
+    since: "2026-07-29",
+    rules: [
+      ["/note/new", "/notes/new"],
+      ["/note", "/notes"],
+      ["/membership", "/subscription"],
+      ["/pro", "/town/experts"],
+      ["/meetup", "/town/groups"],
+      ["/faq", "/support"],
+      ["/partnership", "/support"],
+    ],
+  },
 ];
 
 /* 규칙을 평탄화하면서 from 중복을 즉시 터뜨린다.
