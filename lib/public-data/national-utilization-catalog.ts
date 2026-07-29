@@ -20,7 +20,7 @@ export type NationalUtilizationPlan = {
     | "SEOUL_DATA_API_KEY"
     | "DATA_GO_KR_SERVICE_KEY"
     | "EX_DATA_API_KEY"
-    | "KOSIS_SERVICE_KEY"
+    | "KOSIS_API_KEY"
     | "NONE";
   matchTitles: string[];
   utilization: string;

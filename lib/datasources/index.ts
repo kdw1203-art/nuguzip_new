@@ -33,7 +33,7 @@ export const DATA_SOURCES = [
     id: "kostat-population",
     label: "통계청 인구통계",
     description: "시·군·구 인구, 세대수, 연령별 분포",
-    envKey: "KOSIS_SERVICE_KEY",
+    envKey: "KOSIS_API_KEY",
     docsUrl: "https://kosis.kr/openapi/",
   },
   {
@@ -61,7 +61,7 @@ export const DATA_SOURCES = [
     id: "reb-weekly-prices",
     label: "한국부동산원 주간동향",
     description: "주간 시세 변동률, 거래량",
-    envKey: "REB_SERVICE_KEY",
+    envKey: "REB_OPENAPI_KEY",
     docsUrl: "https://www.reb.or.kr/",
   },
   {

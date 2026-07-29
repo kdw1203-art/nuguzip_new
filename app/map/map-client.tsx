@@ -645,6 +645,9 @@ export function MapClient({
   /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
   const [showRedevelopment, setShowRedevelopment] = useState(false);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
+  /* 조회 실패와 "정말 0건"은 지도에서 똑같이 보인다 — 둘 다 마커가 없다.
+     그래서 실패는 따로 들고 있다가 말로 알린다. */
+  const [redevFailed, setRedevFailed] = useState(false);
 
   /* ===== 매물 미리보기 패널 — 매물 마커 클릭 시 하단 시트로 미리보기(이탈 없이) ===== */
   const [listingPreviewId, setListingPreviewId] = useState<string | null>(null);
@@ -1447,17 +1450,28 @@ export function MapClient({
     });
   }, [showListings, listingItems]);
 
-  /* ===== 정비사업 레이어 — 토글 ON 시 1회 로드(전국 소량 · bbox 불필요) ===== */
+  /* ===== 정비사업 레이어 — 토글 ON 시 1회 로드(전국 소량 · bbox 불필요) =====
+     서버(app/api/redevelopment/projects)는 조회 실패를 일부러 503 으로 돌려준다.
+     주석까지 달려 있다 — "items: [] 로 답하면 지도가 '이 영역에 정비사업이
+     없다'고 그리게 되고, 그건 장애를 사실로 바꿔 말하는 것이다."
+
+     그런데 여기서 `r.ok ? r.json() : { items: [] }` 로 그 503 을 정확히 빈
+     배열로 되돌려 놓고 있었다. 서버가 막으려던 오해를 화면에서 되살린 셈이다.
+     이제 실패는 실패로 들고 와서 마커 대신 안내를 띄운다. */
   useEffect(() => {
     if (!showRedevelopment || redevItems.length > 0) return;
     const controller = new AbortController();
+    setRedevFailed(false);
     fetch("/api/redevelopment/projects?limit=3000", { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((json: { items?: RedevelopmentProject[] }) => {
+        if (controller.signal.aborted) return;
         setRedevItems(Array.isArray(json.items) ? json.items : []);
+        setRedevFailed(false);
       })
-      .catch(() => {
-        /* abort/네트워크 오류 무시 */
+      .catch((e) => {
+        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+        setRedevFailed(true);
       });
     return () => controller.abort();
   }, [showRedevelopment, redevItems.length]);
@@ -2879,6 +2893,24 @@ export function MapClient({
                 <span className="truncate">{it.label}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 정비사업 조회가 실패했을 때 — 마커가 없는 것과 구분해서 말한다.
+          이걸 안 그리면 사용자는 빈 지도를 보고 "여긴 정비사업이 없구나"로
+          읽는다. 서버가 503 을 돌려주면서까지 막으려던 오해다. */}
+      {showRedevelopment && redevFailed && (
+        <div
+          className="glass absolute right-5 z-30 flex w-[200px] flex-col gap-1 rounded-xl px-3 py-2.5"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
+        >
+          <div className="text-[11px] font-extrabold text-ink">
+            정비사업을 불러오지 못했어요
+          </div>
+          <div className="text-[10px] leading-[1.6] text-text-3">
+            지금은 표시할 수 없어요 · 잠시 후 다시 시도해 주세요. 사업장이 없다는
+            뜻은 아니에요.
           </div>
         </div>
       )}

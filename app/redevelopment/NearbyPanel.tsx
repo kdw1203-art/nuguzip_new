@@ -48,26 +48,44 @@ export function NearbyPanel({
 }) {
   const [data, setData] = useState<NearbyResp | null>(null);
   const [loading, setLoading] = useState(true);
+  /* 조회 실패와 "정말 0건"은 화면에서 똑같이 보인다 — 둘 다 목록이 비어 있다.
+     예전에는 `r.ok ? r.json() : null` 로 실패를 data=null 에 합쳐 버려서,
+     서버가 죽어 있어도 사용자는 "최근 실거래 정보가 없어요 / 등록된 인근
+     매물이 없어요" 를 읽었다. 장애가 사실로 둔갑하는 자리다. */
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setData(null);
+    setFailed(false);
     fetch(`/api/redevelopment/nearby?id=${encodeURIComponent(projectId)}`, {
       signal: controller.signal,
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((json: NearbyResp | null) => {
+        if (controller.signal.aborted) return;
         if (json) setData(json);
+        else setFailed(true);
       })
-      .catch(() => {
-        /* abort/네트워크 오류 무시 */
+      .catch((e) => {
+        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+        setFailed(true);
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, [projectId]);
+
+  /* 실패했을 때 두 칸에 공통으로 쓰는 문구. "없어요" 라고 말하지 않는다. */
+  const failureNote = (
+    <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center text-[12px] leading-[1.7] text-text-3">
+      지금은 불러오지 못했어요 · 잠시 후 다시 시도해 주세요.
+      <br />
+      <span className="text-[11px]">없다는 뜻은 아니에요.</span>
+    </div>
+  );
 
   return (
     <div className="card rounded-2xl p-[var(--pad-card)]">
@@ -107,6 +125,8 @@ export function NearbyPanel({
                   </li>
                 ))}
               </ul>
+            ) : failed ? (
+              failureNote
             ) : (
               <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center text-[12px] text-text-3">
                 최근 실거래 정보가 없어요.
@@ -145,6 +165,8 @@ export function NearbyPanel({
                   </li>
                 ))}
               </ul>
+            ) : failed ? (
+              failureNote
             ) : (
               <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center text-[12px] text-text-3">
                 등록된 인근 매물이 없어요.

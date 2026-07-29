@@ -30,12 +30,32 @@ function parseMolitXmlItems(text: string): Record<string, unknown>[] {
   });
 }
 
+/**
+ * 실데이터를 못 받은 **이유**. `mode: "mock"` 하나로는 세 상태가 구분되지 않았다.
+ *
+ * 키가 없어서 못 부른 것과, 불렀는데 상대 서버가 죽어서 실패한 것과, 정상
+ * 응답인데 그 달 그 지역에 거래가 없던 것은 사용자에게 해 줄 말이 전부 다르다.
+ * 앞의 둘을 뭉개면 장애가 "키를 설정하세요"로 안내되고(설정해도 안 고쳐진다),
+ * 뒤의 둘을 뭉개면 장애가 "거래 없음"이라는 사실로 둔갑한다.
+ */
+export type MolitUnavailableReason =
+  /** 인코딩 키가 없다 — 소유자가 넣으면 해결된다 */
+  | "not-configured"
+  /** 불렀는데 실패했다(네트워크·5xx·파싱). 일시적일 수 있다 */
+  | "fetch-failed"
+  /** 정상 응답인데 항목이 0건이었다 — 이건 진짜 "없음"이다 */
+  | "empty";
+
 async function fetchMolitRtms(
   path: string,
   params: { district?: string; lawdCd?: string; yyyymm?: string; numOfRows?: number },
-): Promise<{ rows: Record<string, unknown>[]; mode: "live" | "mock" }> {
+): Promise<{
+  rows: Record<string, unknown>[];
+  mode: "live" | "mock";
+  reason?: MolitUnavailableReason;
+}> {
   const key = molitKey();
-  if (!key) return { rows: [], mode: "mock" };
+  if (!key) return { rows: [], mode: "mock", reason: "not-configured" };
 
   // lawdCd 가 명시되면 그대로 사용. district 이름 매칭은 동명이구(부산 동구/대전 동구,
   // 서울 중구/대구 중구 등)에서 첫 번째 매칭으로 오해석돼 다른 도시 데이터를
@@ -52,26 +72,39 @@ async function fetchMolitRtms(
 
   try {
     const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
+    if (!res.ok) return { rows: [], mode: "mock", reason: "fetch-failed" };
     const text = await res.text();
     const items = parseMolitXmlItems(text);
     if (items.length > 0) return { rows: items, mode: "live" };
+    /* 200 인데 item 이 하나도 없다 — 그 달 그 지역에 신고된 거래가 없거나,
+       응답이 오류 XML 이다. 후자를 구분해 둔다: 국토부는 실패도 200 으로
+       돌려주면서 resultCode 를 00 이 아닌 값으로 준다. */
+    const okCode = /<resultCode>\s*0*0\s*<\/resultCode>/.test(text);
+    return { rows: [], mode: "mock", reason: okCode ? "empty" : "fetch-failed" };
   } catch {
-    // fall through
+    return { rows: [], mode: "mock", reason: "fetch-failed" };
   }
-  return { rows: [], mode: "mock" };
 }
 
 export async function fetchMolitAptTrade(params: {
   district?: string;
   yyyymm?: string;
-}): Promise<{ rows: Record<string, unknown>[]; mode: "live" | "mock" }> {
+}): Promise<{
+  rows: Record<string, unknown>[];
+  mode: "live" | "mock";
+  reason?: MolitUnavailableReason;
+}> {
   return fetchMolitRtms("RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade", params);
 }
 
 export async function fetchMolitAptRent(params: {
   district?: string;
   yyyymm?: string;
-}): Promise<{ rows: Record<string, unknown>[]; mode: "live" | "mock" }> {
+}): Promise<{
+  rows: Record<string, unknown>[];
+  mode: "live" | "mock";
+  reason?: MolitUnavailableReason;
+}> {
   return fetchMolitRtms("RTMSDataSvcAptRent/getRTMSDataSvcAptRent", params);
 }
 
@@ -168,13 +201,13 @@ function normalizeDeal(cfg: RtmsTypeConfig, r: Record<string, unknown>): MolitDe
 export async function fetchMolitDeals(
   type: MolitRtmsType,
   params: { district?: string; lawdCd?: string; yyyymm?: string; numOfRows?: number },
-): Promise<{ deals: MolitDeal[]; mode: "live" | "mock" }> {
+): Promise<{ deals: MolitDeal[]; mode: "live" | "mock"; reason?: MolitUnavailableReason }> {
   const cfg = RTMS_TYPES[type];
-  const { rows, mode } = await fetchMolitRtms(
+  const { rows, mode, reason } = await fetchMolitRtms(
     `${cfg.service}/get${cfg.service}`,
     params,
   );
-  return { deals: rows.map((r) => normalizeDeal(cfg, r)), mode };
+  return { deals: rows.map((r) => normalizeDeal(cfg, r)), mode, reason };
 }
 
 /** 거래 목록 요약(건수·평균 매매가/㎡·평균 보증금). */

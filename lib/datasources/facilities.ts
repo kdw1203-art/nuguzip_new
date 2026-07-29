@@ -37,7 +37,12 @@ export type FacilityPoint = {
 
 export type FacilitySummary = {
   location: LocationRef;
-  counts: Record<FacilityCategory, number>;
+  /**
+   * 항목별 개수. **null 은 "세지 못했다"**, 0 은 "없다" 다 — 다른 말이다.
+   * 지하철(subway)은 구 단위로 물으면 항상 null 이다. 서울 열린데이터의
+   * 지하철역 서비스에 주소 필드가 없어 구별 집계가 불가능하기 때문이다.
+   */
+  counts: Record<FacilityCategory, number | null>;
   nearest: FacilityPoint[];
 };
 
@@ -76,7 +81,7 @@ export async function getFacilitySummary(
         lat: location.lat,
         lng: location.lng,
       });
-      const counts: Record<FacilityCategory, number> = {
+      const counts: Record<FacilityCategory, number | null> = {
         hospital: live.counts.hospitals,
         pharmacy: live.counts.pharmacies,
         mart: 0,

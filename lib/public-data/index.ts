@@ -24,8 +24,20 @@ import type { DataSourceId, DataEnvelope, LocationRef } from "./types";
 export type { DataSourceId, DataEnvelope, LocationRef } from "./types";
 export { publicDataCacheKey } from "./cache-key";
 
+/**
+ * 이 소스가 **지금 실데이터를 내놓을 수 있는지**.
+ *
+ * 2026-07-28 이전에는 두 가지가 틀려 있었다.
+ *  - `ex-congestion` 은 무조건 true 였다. 실제로는 EX_DATA_API_KEY 와 무관하게
+ *    번들된 샘플 행을 돌려주고 있어서, "라이브"라고 답할 근거가 없었다.
+ *  - 어댑터가 아직 없는 소스(kosis-population · schools)도 키만 있으면 true 였다.
+ *    키를 넣으면 상태 배지가 "연동됨"으로 바뀌는데 값은 전부 null 로 나온다 —
+ *    소유자가 키를 제대로 넣고도 "왜 데이터가 없지" 하고 헤매게 되는 자리다.
+ *
+ * 키의 존재가 아니라 **호출할 어댑터가 있는지**까지 봐야 한다.
+ */
 export function isPublicDataLive(source: DataSourceId): boolean {
-  if (source === "ex-congestion") return true;
+  if (!ADAPTER_READY[source]) return false;
   if (source === "mot-transactions") {
     return isDataGoKrEncodingConfigured() || isSeoulApiConfigured();
   }
@@ -33,14 +45,37 @@ export function isPublicDataLive(source: DataSourceId): boolean {
   return Boolean(process.env[meta.envKey]?.trim());
 }
 
+/**
+ * 이 소스를 실제로 호출하는 어댑터가 저장소에 구현돼 있는가.
+ *
+ * false 면 키를 아무리 넣어도 값은 비어 있다. 그 사실을 상태 배지가 그대로
+ * 말하게 하려고 따로 둔다 — 키 유무와 어댑터 유무는 다른 이야기다.
+ */
+const ADAPTER_READY: Record<DataSourceId, boolean> = {
+  "mot-transactions": true,
+  facilities: true,
+  redevelopment: true,
+  /* 샘플 행을 돌려준다. 실 API 연동 전까지는 라이브가 아니다. */
+  "ex-congestion": false,
+  /* fetchFromApi 가 "adapter pending" 을 찍고 빈 값을 돌려주는 두 소스. */
+  "kosis-population": false,
+  schools: false,
+};
+
 // ── 데이터 소스 메타 ──────────────────────────────────────────────
+/* envKey 는 **실제로 코드가 읽는 변수 이름과 같아야 한다.** 여기 이름이 어긋나면
+   소유자가 Vercel 에 키를 넣어도 상태 배지는 영원히 "미연동"이고, 반대로 아무
+   코드도 읽지 않는 이름이 "연동됨"으로 켜지기도 한다. 둘 다 거짓말이다.
+   scripts/check-env-key-names.mjs 가 이 표를 실제 process.env 참조와 대조한다. */
 const DATA_SOURCES: Record<DataSourceId, { envKey: string; label: string; ttlMs: number }> = {
   "mot-transactions": {
     envKey: "MOLIT_SERVICE_KEY",
     label: "국토부·서울 실거래가",
     ttlMs: 86_400_000,
   },
-  "kosis-population": { envKey: "KOSIS_SERVICE_KEY", label: "통계청 인구통계", ttlMs: 3_600_000 },
+  /* lib/kosis/client.ts 가 읽는 이름은 KOSIS_API_KEY 다. 예전엔 여기만
+     KOSIS_SERVICE_KEY 로 적혀 있어서 아무도 읽지 않는 변수를 가리키고 있었다. */
+  "kosis-population": { envKey: "KOSIS_API_KEY", label: "통계청 인구통계", ttlMs: 3_600_000 },
   facilities: { envKey: "SEOUL_DATA_API_KEY", label: "서울 생활편의시설", ttlMs: 604_800_000 },
   schools: { envKey: "SCHOOLINFO_API_KEY", label: "학교알리미", ttlMs: 604_800_000 },
   redevelopment: { envKey: "SEOUL_DATA_API_KEY", label: "정비사업(upisRebuild)", ttlMs: 604_800_000 },
@@ -119,6 +154,30 @@ function unavailable<T extends Record<string, unknown>>(params: LocationRef, ext
   };
 }
 
+/**
+ * 실데이터가 없는 **이유**. `mode: "mock"` 하나로는 세 상태가 구분되지 않았다.
+ *
+ * 키가 없어서 못 부른 것과, 불렀는데 상대 서버가 죽어서 실패한 것은 사용자에게
+ * 해 줄 말이 다르다. 앞은 "아직 연동 전", 뒤는 "지금 불러오지 못했어요 · 잠시
+ * 후 다시" 다. 이걸 뭉개면 장애가 "데이터 없음"으로 둔갑한다 — 이 저장소가
+ * lib/inspection/note-grounding.ts 에서 이미 ok/none/unknown/failed 로 지키고
+ * 있는 규칙인데 여기만 빠져 있었다.
+ *
+ * `mode: "mock"` 은 기존 호출측(app/api/map/regions 등)이 그대로 쓰도록 유지한다.
+ */
+export type PublicDataUnavailableReason =
+  /** 환경변수 키가 없다 — 소유자가 넣으면 해결된다 */
+  | "not-configured"
+  /** 키는 있는데 호출할 어댑터가 아직 구현되지 않았다 */
+  | "adapter-pending"
+  /** 불렀는데 실패했다(네트워크·5xx·파싱). 일시적일 수 있다 */
+  | "fetch-failed";
+
+function withReason(payload: unknown, reason: PublicDataUnavailableReason): unknown {
+  if (!payload || typeof payload !== "object") return payload;
+  return { ...(payload as Record<string, unknown>), unavailableReason: reason };
+}
+
 const MOCK_BUILDERS: Record<DataSourceId, (p: LocationRef) => unknown> = {
   "mot-transactions": (p) => unavailable(p, { months: [] }),
   "kosis-population": (p) =>
@@ -158,18 +217,29 @@ const MOCK_BUILDERS: Record<DataSourceId, (p: LocationRef) => unknown> = {
 };
 
 // ── 실제 API 호출 ──────────────────────────────────────────────────
+/**
+ * `cacheable: false` 는 **캐시에 넣지 말라**는 뜻이다.
+ *
+ * 예전에는 결과를 무조건 writeCache 했다. facilities·schools·redevelopment 의
+ * TTL 이 7일이라, 상대 서버가 30초 잠깐 흔들린 것만으로 "이 지역은 데이터가
+ * 없다"가 일주일 동안 굳어 fromCache: true 로 재공급됐다. 실패는 캐시하지
+ * 않는다 — 다음 요청이 다시 시도할 수 있어야 한다.
+ */
+type FetchOutcome = { payload: unknown; cacheable: boolean };
+
 async function fetchFromApi(
   source: DataSourceId,
   params: LocationRef & Record<string, string>,
-): Promise<unknown> {
+): Promise<FetchOutcome> {
   if (source === "ex-congestion") {
     const routeNo = params.routeNo ? Number.parseInt(params.routeNo, 10) : undefined;
-    return fetchExCongestionFrequency({
+    const payload = await fetchExCongestionFrequency({
       routeNo: Number.isFinite(routeNo) ? routeNo : undefined,
       yyyymm: params.yyyymm,
       zoneQuery: params.zone ?? params.district,
       limit: params.limit ? Number.parseInt(params.limit, 10) : 15,
     });
+    return { payload, cacheable: true };
   }
 
   const meta = DATA_SOURCES[source];
@@ -180,7 +250,11 @@ async function fetchFromApi(
         : undefined
       : process.env[meta.envKey]?.trim();
   if (!apiKey) {
-    return MOCK_BUILDERS[source](params);
+    /* 키가 없는 건 지금 당장 바뀔 일이 아니다 — 캐시해도 거짓이 되지 않는다. */
+    return {
+      payload: withReason(MOCK_BUILDERS[source](params), "not-configured"),
+      cacheable: true,
+    };
   }
 
   if (
@@ -188,7 +262,10 @@ async function fetchFromApi(
     !isSeoulApiConfigured() &&
     meta.envKey === "SEOUL_DATA_API_KEY"
   ) {
-    return MOCK_BUILDERS[source](params);
+    return {
+      payload: withReason(MOCK_BUILDERS[source](params), "not-configured"),
+      cacheable: true,
+    };
   }
 
   try {
@@ -212,7 +289,7 @@ async function fetchFromApi(
               prices.length > 0
                 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
                 : 0;
-            return {
+            const payload = {
               district: params.district,
               city: params.city,
               months: [],
@@ -222,6 +299,7 @@ async function fetchFromApi(
               sourceService: "RTMSDataSvcAptTrade",
               mode: "live" as const,
             };
+            return { payload, cacheable: true };
           }
         }
         if (isSeoulApiConfigured()) {
@@ -229,7 +307,7 @@ async function fetchFromApi(
             city: params.city,
             district: params.district,
           });
-          return {
+          const payload = {
             district: sale.district,
             city: sale.city,
             months: sale.months,
@@ -239,15 +317,19 @@ async function fetchFromApi(
             sourceService: sale.sourceService,
             mode: "live" as const,
           };
+          return { payload, cacheable: true };
         }
-        return MOCK_BUILDERS[source](params);
+        return {
+          payload: withReason(MOCK_BUILDERS[source](params), "not-configured"),
+          cacheable: true,
+        };
       }
       case "facilities": {
         const f = await fetchFacilitiesAggregate({
           city: params.city,
           district: params.district,
         });
-        return {
+        const payload = {
           district: f.district,
           schools: f.counts.schools,
           hospitals: f.counts.hospitals,
@@ -262,13 +344,14 @@ async function fetchFromApi(
           nearest: f.nearest,
           mode: "live" as const,
         };
+        return { payload, cacheable: true };
       }
       case "redevelopment": {
         const r = await fetchUpisRebuild({
           city: params.city,
           district: params.district,
         });
-        return {
+        const payload = {
           district: r.district,
           activeProjects: r.activeProjects,
           plannedProjects: r.plannedProjects,
@@ -277,15 +360,24 @@ async function fetchFromApi(
           projects: r.projects,
           mode: "live" as const,
         };
+        return { payload, cacheable: true };
       }
       case "kosis-population":
       case "schools":
         logger.info(`[public-data] ${source} — key set; national API adapter pending`);
-        return MOCK_BUILDERS[source](params);
+        return {
+          payload: withReason(MOCK_BUILDERS[source](params), "adapter-pending"),
+          cacheable: true,
+        };
     }
   } catch (err) {
-    logger.warn(`[public-data] ${source} live fetch failed, falling back to mock`, err);
-    return MOCK_BUILDERS[source](params);
+    /* 여기까지 왔다는 건 **키는 있는데 호출이 실패했다**는 뜻이다. 캐시하지
+       않는다 — 7일 TTL 에 실패를 굳혀 두면 장애가 "데이터 없음"이 된다. */
+    logger.warn(`[public-data] ${source} live fetch failed (not cached)`, err);
+    return {
+      payload: withReason(MOCK_BUILDERS[source](params), "fetch-failed"),
+      cacheable: false,
+    };
   }
 }
 
@@ -308,13 +400,14 @@ export async function fetchPublicData<T = unknown>(
     };
   }
 
-  const data = await fetchFromApi(source, params);
-  await writeCache(key, data, effectiveTtl);
+  const { payload, cacheable } = await fetchFromApi(source, params);
+  /* 실패는 캐시하지 않는다. 다음 요청이 다시 시도할 수 있어야 한다. */
+  if (cacheable) await writeCache(key, payload, effectiveTtl);
   return {
     source,
     fromCache: false,
     fetchedAt: new Date().toISOString(),
-    data: data as T,
+    data: payload as T,
   };
 }
 

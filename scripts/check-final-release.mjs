@@ -292,6 +292,9 @@ runGate("데이터", "마이그레이션 GRANT 린트", "check-migration-grants.
 runGate("데이터", "public.*_source 뷰 실조회 권한", "check-source-views.mjs", {
   skipRe: /\bSKIP\b/,
 });
+/* 카탈로그의 envKey 가 실제 process.env 참조와 어긋나면 상태 배지와 소유자
+   안내 문서가 동시에 거짓이 된다 — 2026-07-28 에 세 개가 그랬다. */
+runGate("데이터", "envKey 이름 ↔ 실제 참조 일치", "check-env-key-names.mjs");
 
 // ── 출력 ───────────────────────────────────────────────
 console.log("\n=== 최종 릴리스 자동 점검 ===\n");

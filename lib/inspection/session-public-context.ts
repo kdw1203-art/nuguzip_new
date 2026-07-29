@@ -11,7 +11,19 @@ type RedevPayload = {
   nearestCompletionYear?: number;
   projects?: Array<{ name?: string; stage?: string; type?: string }>;
   mode?: string;
+  unavailableReason?: string;
 };
+
+/** 왜 못 가져왔는지를 사용자가 읽을 문장으로. 모르면 뭉뚱그리지 않고 그렇게 적는다. */
+function redevUnavailableLine(reason: string | undefined): string {
+  if (reason === "fetch-failed") {
+    return "[정비사업] 조회 실패 — 지금은 확인하지 못했습니다(사업장이 없다는 뜻이 아닙니다). 관할 구청 고시로 확인하세요";
+  }
+  if (reason === "not-configured" || reason === "adapter-pending") {
+    return "[정비사업] 외부 데이터 미연동 — 사업 단계는 관할 구청 고시로 확인하세요";
+  }
+  return "[정비사업] 외부 데이터 미확인 — 사업 단계는 공식 문서로 검증 필요";
+}
 
 export async function fetchSessionPublicSummary(session: InspectionSession): Promise<{
   summary: string;
@@ -52,7 +64,17 @@ export async function fetchSessionPublicSummary(session: InspectionSession): Pro
         district,
       });
       const d = env.data;
-      if (d) {
+
+      /* fetchPublicData 는 키가 없어도, 조회에 실패해도 예외를 던지지 않는다.
+         전 필드가 null 인 봉투를 mode:"mock" 으로 돌려줄 뿐이다. 그래서 아래
+         catch 는 사실상 도달하지 않는 죽은 길이었고, 실제로 실행되던 코드는
+         `?? 0` 이 붙은 이 줄이었다 — **모른다를 "진행 0건"이라는 확정 사실로
+         바꿔서** 임장 리포트의 근거 항목에 실어 보내고 있었다.
+         이제 라이브가 아니면 숫자를 쓰지 않는다. */
+      if (!d || d.mode !== "live") {
+        parts.push(redevUnavailableLine(d?.unavailableReason));
+        checklistHints.push("정비사업 단계·고시 문서 미확인");
+      } else {
         parts.push(
           `[정비사업] ${district} 진행 ${d.activeProjects ?? 0}건 · 계획 ${d.plannedProjects ?? 0}건 · 추정 세대 ${d.estimatedUnits ?? "?"} · 최근 준공 ${d.nearestCompletionYear ?? "?"}`,
         );
@@ -72,7 +94,8 @@ export async function fetchSessionPublicSummary(session: InspectionSession): Pro
             stage: p.stage,
             type: p.type,
           })),
-          mode: d.mode ?? "live",
+          /* 예전엔 `d.mode ?? "live"` 였다 — mode 가 빠진 봉투를 라이브로 단정했다. */
+          mode: d.mode,
           fetchedAt: env.fetchedAt,
         };
         for (const p of projects) {
@@ -80,7 +103,7 @@ export async function fetchSessionPublicSummary(session: InspectionSession): Pro
         }
       }
     } catch {
-      parts.push("[정비사업] 외부 데이터 미확인 — 사업 단계는 공식 문서로 검증 필요");
+      parts.push(redevUnavailableLine("fetch-failed"));
       checklistHints.push("정비사업 단계·고시 문서 미확인");
     }
   }

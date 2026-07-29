@@ -26,6 +26,7 @@ import {
   summarizeDeals,
   type MolitDeal,
   type MolitRtmsType,
+  type MolitUnavailableReason,
 } from "@/lib/national-data/molit-api";
 import {
   fetchBuildingBasisInfo,
@@ -77,6 +78,46 @@ function unavailable(
   return base(planId, { title, mode: "planned", summary, items: [], notice });
 }
 
+/**
+ * 국토부 실거래 조회가 빈손일 때의 안내 — **이유에 따라 다른 말을 한다.**
+ *
+ * 예전에는 세 경우가 전부 "…미연동 / SEOUL_DATA_API_KEY 또는 MOLIT_SERVICE_KEY를
+ * 설정하세요." 였다. 그래서 키가 멀쩡히 들어 있는 배포에서 국토부 서버가 잠깐
+ * 흔들리면, 사용자에게는 "키를 설정하세요" 라고 안내가 나갔다 — 이미 설정돼
+ * 있으니 그 말대로 해도 아무것도 달라지지 않는다. 반대로 그 달 그 지역에 신고된
+ * 거래가 정말 0건인 경우도 "미연동"으로 보였다.
+ */
+function molitUnavailable(
+  planId: string,
+  title: string,
+  district: string,
+  what: string,
+  reason: MolitUnavailableReason | undefined,
+): NationalPlanFetchResult {
+  if (reason === "fetch-failed") {
+    return unavailable(
+      planId,
+      title,
+      `${district} ${what} 조회 실패`,
+      "국토부 실거래가 API 응답을 받지 못했습니다 · 잠시 후 다시 시도해 주세요. 거래가 없다는 뜻이 아닙니다.",
+    );
+  }
+  if (reason === "empty") {
+    return unavailable(
+      planId,
+      title,
+      `${district} ${what} 신고 0건`,
+      "해당 기간에 신고된 거래가 없습니다. 조회 기간을 넓혀 보세요.",
+    );
+  }
+  return unavailable(
+    planId,
+    title,
+    `${district} ${what} 미연동`,
+    "SEOUL_DATA_API_KEY 또는 MOLIT_SERVICE_KEY를 설정하세요.",
+  );
+}
+
 // ── Phase 1 ────────────────────────────────────────────────────────
 
 async function molitAptSale(q: NationalPlanQuery): Promise<NationalPlanFetchResult> {
@@ -116,11 +157,12 @@ async function molitAptSale(q: NationalPlanQuery): Promise<NationalPlanFetchResu
   // 사실 우선: 여기서 `avgPricePerM2: 12_500_000, count: 48` 을 "샘플 시세"로
   // 내보냈다. 실제 구 이름이 붙은 ㎡당 단가라 화면에서는 실측과 구분되지 않는다.
   // 키가 없으면 시세를 모르는 것이다 — 빈 목록으로 알린다.
-  return unavailable(
+  return molitUnavailable(
     "molit-apt-sale",
     "아파트 매매 실거래가",
-    `${district} 실거래 데이터 미연동`,
-    "SEOUL_DATA_API_KEY 또는 MOLIT_SERVICE_KEY를 설정하세요.",
+    district,
+    "실거래 데이터",
+    molit.reason,
   );
 }
 
@@ -160,17 +202,18 @@ async function molitAptRent(q: NationalPlanQuery): Promise<NationalPlanFetchResu
     });
   }
   // 매매(molitAptSale)와 같은 기준 — 보증금 5억/월 150만원 같은 값을 지어내지 않는다.
-  return unavailable(
+  return molitUnavailable(
     "molit-apt-rent",
     "아파트 전월세 실거래가",
-    `${district} 전월세 실거래 데이터 미연동`,
-    "SEOUL_DATA_API_KEY 또는 MOLIT_SERVICE_KEY를 설정하세요.",
+    district,
+    "전월세 실거래 데이터",
+    molit.reason,
   );
 }
 
 async function molitAptSaleDetail(q: NationalPlanQuery): Promise<NationalPlanFetchResult> {
   const district = districtOf(q);
-  const { deals, mode } = await fetchMolitDeals("apt-sale-detail", {
+  const { deals, mode, reason } = await fetchMolitDeals("apt-sale-detail", {
     district: q.district,
     yyyymm: q.yyyymm,
     numOfRows: 50,
@@ -199,11 +242,12 @@ async function molitAptSaleDetail(q: NationalPlanQuery): Promise<NationalPlanFet
   // 사실 우선: 매매(molitAptSale) 폴백을 그대로 재사용하면서 planId 까지 덮어써
   // 내보냈다. 원본이 비면 상세도 비는 게 맞다 — 없는 거래에 "층·전용면적" 같은
   // 필드 이름만 얹으면 상세 자료가 있는 것처럼 보인다.
-  return unavailable(
+  return molitUnavailable(
     "molit-apt-sale-detail",
     "아파트 매매 실거래 상세",
-    `${district} 실거래 상세 데이터 미연동`,
-    "SEOUL_DATA_API_KEY 또는 MOLIT_SERVICE_KEY를 설정하세요.",
+    district,
+    "실거래 상세 데이터",
+    reason,
   );
 }
 
@@ -229,7 +273,7 @@ function makeMolitTypeFetcher(
 ) {
   return async function (q: NationalPlanQuery): Promise<NationalPlanFetchResult> {
     const district = districtOf(q);
-    const { deals, mode } = await fetchMolitDeals(type, {
+    const { deals, mode, reason } = await fetchMolitDeals(type, {
       district: q.district,
       yyyymm: q.yyyymm,
       numOfRows: 50,
@@ -251,12 +295,7 @@ function makeMolitTypeFetcher(
     }
     // 사실 우선: 유형별로 "샘플오피스텔 2억9500만원 27.88㎡" 같은 거래 한 줄을
     // 지어내 붙였다. 실제 구 이름이 함께 나가서 그 동네 시세로 읽힌다.
-    return unavailable(
-      planId,
-      title,
-      `${district} 실거래 데이터 미연동`,
-      "MOLIT_SERVICE_KEY 설정 시 LIVE 전환",
-    );
+    return molitUnavailable(planId, title, district, "실거래 데이터", reason);
   };
 }
 

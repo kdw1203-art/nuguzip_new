@@ -16,7 +16,7 @@ export type SeoulDatasetMeta = {
     | "SEOUL_DATA_API_KEY"
     | "VWORLD_API_KEY"
     | "MOLIT_SERVICE_KEY"
-    | "REB_SERVICE_KEY"
+    | "REB_OPENAPI_KEY"
     | "SCHOOLINFO_API_KEY"
     | "EX_DATA_API_KEY";
   ttlHours: number;
@@ -369,7 +369,7 @@ export const SEOUL_DATASET_CATALOG: SeoulDatasetMeta[] = [
     serviceName: "rebWeeklyTrend",
     provider: "한국부동산원",
     phase: 3,
-    envKey: "REB_SERVICE_KEY",
+    envKey: "REB_OPENAPI_KEY",
     ttlHours: 168,
     license: "REB Open API",
     usage: "주간 시세 변동, 홈 위젯",

@@ -9,14 +9,26 @@ import {
 export type FacilityCounts = {
   hospitals: number;
   pharmacies: number;
-  subwayStations: number;
+  /**
+   * 지하철역 수. **구 단위로는 셀 수 없어서 null 이다.**
+   *
+   * 서울 열린데이터 SearchSTNBySubwayLineInfo 는 STATION_NM · LINE_NUM · FR_CODE
+   * 만 준다 — 주소 필드가 아예 없다. 그래서 "이 구에 몇 개"를 이 응답에서
+   * 뽑아낼 방법이 없다. 예전 코드는 `Math.max(1, Math.round(전체/25))` 였는데,
+   * 서울 전체 역 수를 25개 구로 나눈 **평균**을 그 구의 사실인 것처럼 내놓고
+   * 있었고, 조회가 실패해 0행이 와도 `Math.max(1, …)` 가 역 하나를 만들어 냈다.
+   * 모르는 건 null 로 말한다.
+   */
+  subwayStations: number | null;
   parks: number;
   childcare: number;
   busStops: number;
   parkingLots: number;
   libraries: number;
-  schools: number;
-  convenienceStores: number;
+  /** 이 어댑터에는 학교 소스가 없다 — 항상 null(모름). 0(없음)이 아니다. */
+  schools: number | null;
+  /** 편의점 소스도 없다 — 항상 null. */
+  convenienceStores: number | null;
 };
 
 export type FacilityPoint = {
@@ -104,7 +116,10 @@ export async function fetchFacilitiesAggregate(params: {
       const rgn = String(r.RGN ?? "");
       return rgn ? `${rgn}구` : extractDistrictFromAddress(String(r.PARK_ADDR ?? ""));
     }),
-    subwayStations: district ? Math.max(1, Math.round(subwayRows.length / 25)) : subwayRows.length,
+    /* 구를 지정하면 null — 이 응답에는 주소가 없어 구별 집계가 불가능하다.
+       도시 전체를 물었을 때만 실제 행 수를 준다. 조회가 실패해 0행이면
+       그것도 사실이 아니므로 null 이다. */
+    subwayStations: district ? null : subwayRows.length > 0 ? subwayRows.length : null,
     busStops: countByDistrict(busRows, district, (r) =>
       extractDistrictFromAddress(String(r.ADDR ?? r.STTN_ADDR ?? "")),
     ),
@@ -114,8 +129,10 @@ export async function fetchFacilitiesAggregate(params: {
     libraries: countByDistrict(libraryRows, district, (r) =>
       extractDistrictFromAddress(String(r.LBRRY_ADDR ?? r.ADDR ?? "")),
     ),
-    schools: 0,
-    convenienceStores: 0,
+    /* 예전엔 0 이었다. 이 어댑터는 학교·편의점을 조회하지도 않는데 "0곳"이라고
+       단정하고 있었다 — 조회하지 않은 것과 없는 것은 다르다. */
+    schools: null,
+    convenienceStores: null,
   };
 
   const nearest: FacilityPoint[] = [];
@@ -181,16 +198,22 @@ export async function fetchNearbyFacilitiesForInspection(params: {
   const c = payload.counts;
   const checks: Array<{ id: string; label: string }> = [];
 
-  if (c.subwayStations > 0) checks.push({ id: "c1", label: "지하철역 도보 10분 이내" });
+  /* null(=모름)일 때는 체크를 세우지 않는다. 모르는 걸 근거로 "도보 10분 이내"를
+     체크해 두면 임장 리포트가 확인되지 않은 사실을 실어 나른다. */
+  if ((c.subwayStations ?? 0) > 0) checks.push({ id: "c1", label: "지하철역 도보 10분 이내" });
   if (c.busStops >= 3) checks.push({ id: "c2", label: "버스 정류장 3개 이상" });
   if (c.hospitals > 0 && c.pharmacies > 0) checks.push({ id: "c15", label: "병원·약국 도보권" });
   if (c.parks > 0) checks.push({ id: "c16", label: "공원·녹지 500m 이내" });
   if (c.childcare > 0) checks.push({ id: "c_cx3", label: "조경·녹지 단지 내 충분" });
   if (c.parkingLots > 0) checks.push({ id: "c7", label: "주차공간 세대당 1.2대 이상" });
 
+  /* 숫자를 모르면 "0" 이 아니라 "확인 필요" 라고 적는다. 0 은 "없다"는 사실이고
+     여기서 하려는 말은 "세지 못했다" 이다. */
+  const subwayText = c.subwayStations === null ? "확인 필요" : String(c.subwayStations);
+
   const summary = [
     `병원 ${c.hospitals} · 약국 ${c.pharmacies}`,
-    `지하철 ${c.subwayStations} · 버스 ${c.busStops}`,
+    `지하철 ${subwayText} · 버스 ${c.busStops}`,
     `공원 ${c.parks} · 어린이집 ${c.childcare}`,
     `주차장 ${c.parkingLots} · 도서관 ${c.libraries}`,
   ].join(" / ");

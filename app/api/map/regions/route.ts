@@ -34,11 +34,15 @@ export interface RegionSummary {
   avgDeposit: number | null;
   /** 편의시설 — 공공데이터 미연동이면 null (0 으로 위장하지 않는다) */
   facilities: {
-    schools: number;
-    hospitals: number;
-    subways: number;
-    parks: number;
-    convenience: number;
+    /* 항목별로도 null 이 가능하다. 편의시설 블록 전체가 있어도 개별 항목은
+       조회 대상이 아니거나 집계가 불가능할 수 있다 — 지하철은 구 단위 집계
+       자체가 불가능하고(주소 없는 응답), 학교·편의점은 소스가 아예 없다.
+       그런 자리에 0 을 넣으면 "그 구에는 학교가 없다"가 된다. */
+    schools: number | null;
+    hospitals: number | null;
+    subways: number | null;
+    parks: number | null;
+    convenience: number | null;
   } | null;
   /** 재개발/재건축 — 공공데이터 미연동이면 null */
   redevelopment: {
@@ -204,22 +208,31 @@ async function loadFacilities(
   const env = await fetchPublicData("facilities", { city, district }).catch(() => null);
   const fac = env?.data as
     | {
-        hospitals?: number;
-        subwayStations?: number;
-        parks?: number;
-        schools?: number;
-        convenienceStores?: number;
-        pharmacies?: number;
+        hospitals?: number | null;
+        subwayStations?: number | null;
+        parks?: number | null;
+        schools?: number | null;
+        convenienceStores?: number | null;
+        pharmacies?: number | null;
         mode?: string;
       }
     | undefined;
   if (!fac || fac.mode === "mock") return null;
+
+  /* 예전엔 전부 `?? 0` 이었다. 어댑터가 애써 null 로 "모른다"고 말해도 여기서
+     0 으로 바꿔 버리면 그 뜻이 사라진다 — 이 파일 맨 위 주석이 "0 으로
+     위장하지 않는다"고 적어 둔 바로 그 일이다. null 은 null 로 통과시킨다. */
+  const convenience =
+    fac.convenienceStores == null && fac.pharmacies == null
+      ? null
+      : (fac.convenienceStores ?? 0) + (fac.pharmacies ?? 0);
+
   return {
-    schools: fac.schools ?? 0,
-    hospitals: fac.hospitals ?? 0,
-    subways: fac.subwayStations ?? 0,
-    parks: fac.parks ?? 0,
-    convenience: (fac.convenienceStores ?? 0) + (fac.pharmacies ?? 0),
+    schools: fac.schools ?? null,
+    hospitals: fac.hospitals ?? null,
+    subways: fac.subwayStations ?? null,
+    parks: fac.parks ?? null,
+    convenience,
   };
 }
 
