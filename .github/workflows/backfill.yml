@@ -53,13 +53,15 @@ jobs:
           # 1) 지오코딩 몰아치기 — 주소 우선 다단 쿼리, 회당 500단지.
           #    대상이 소진되면 라우트가 빠르게 0건으로 돌아오므로 라운드 낭비가 작다.
           for i in $(seq 1 ${{ github.event.inputs.geocode_rounds }}); do
-            hit "geocode round $i" "https://nuguzip.com/api/cron/geocode-complexes?limit=500"
+            hit "geocode round $i" "https://nuguzip.com/api/cron/geocode-complexes?limit=200"
+            sleep 5
           done
 
-          # 2) 단지 상세(세대수·주차·건설사·좌표) 몰아치기 — 회당 600단지,
-          #    detailFetchedAt 스탬프로 이어달리기(중간에 끊겨도 재실행하면 이어서).
+          # 2) 단지 상세 몰아치기 — 회당 200단지 + 라운드 간 휴식.
+          #    2026-07-29: 600×연속 호출이 Postgres statement timeout 을 유발했다.
           for i in $(seq 1 ${{ github.event.inputs.detail_rounds }}); do
-            hit "apt-detail round $i" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=600"
+            hit "apt-detail round $i" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=200"
+            sleep 8
           done
 
           # 3) 과거 실거래 백필 — 직전월부터 N개월, 월마다 시군구 슬라이스 0..4 (size=60 → 최대 300곳).

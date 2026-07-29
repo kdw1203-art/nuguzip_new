@@ -54,10 +54,9 @@ async function handle(req: Request) {
     });
   }
 
-  /* 상한을 200 → 800 으로 올렸다. 상세 조회가 순차에서 동시 6으로 바뀌어
-     (DETAIL_CONCURRENCY) 같은 시간에 약 6배를 처리하기 때문이다. 3만 9천 단지 중
-     3,404개만 채워져 있던 상태라, 라운드당 처리량이 백필 완료 시점을 그대로 결정한다. */
-  const limit = Math.min(800, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50));
+  /* 상한 메모(2026-07-29): 800·동시 6 은 Micro DB 에서 Postgres ERROR 를 키웠다.
+     기본/상한을 낮춰 조회 안정성을 우선한다. 인스턴스 업그레이드 후 다시 올려도 된다. */
+  const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit") ?? 50) || 50));
   /* limit 건(기본 50, 최대 200)을 상세 API 로 하나씩 받는 배치라, 공공 API 가
      느린 날에는 maxDuration=300 을 넘긴다. 그렇게 죽으면 아래 logIngest 가 아예
      실행되지 않아 "돌다가 잘렸다"는 사실이 어디에도 안 남는다. 270초에 접고

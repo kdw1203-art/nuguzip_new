@@ -303,11 +303,12 @@ const DETAIL_DELAY_MS = 60;
  * 3,404개(8.6%)만 상세가 채워진 채 몇 달이 지났고, 지도 상세의 세대수가 "—" 로
  * 비어 보였다.
  *
- * 6으로 잡은 이유: data.go.kr 은 초당 수십 건을 견디지만 우리가 그 한계를
- * 시험할 이유가 없다. 6이면 순차 대비 약 6배(200개 ≈ 35초)로, 예산 안에서
- * 한 라운드가 상한을 다 채우고도 남는다. 429/5xx 가 보이면 이 값을 먼저 낮춘다.
+ * 동시성 메모(2026-07-29): 6으로 두면 data.go.kr 은 버티지만 Supabase Micro 의
+ * statement_timeout / Postgres ERROR 비율이 치솟았다(Reports Postgres 477/585).
+ * 2로 낮춰 DB 쓰기·PostgREST 부하를 먼저 줄인다. 백필이 느려지더라도
+ * 사이트 조회(API Gateway)가 깨지는 편이 더 비싸다. 인스턴스를 키운 뒤 다시 올려도 된다.
  */
-const DETAIL_CONCURRENCY = 6;
+const DETAIL_CONCURRENCY = 2;
 
 /**
  * 동시 실행 수를 제한한 map. 입력 순서대로 결과를 돌려준다.
