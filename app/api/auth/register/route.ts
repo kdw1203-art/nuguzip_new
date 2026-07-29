@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
   // Supabase Auth 가입(인증 메일 발송) 경로를 우선 사용합니다.
   if (emailConfirmationEnabled() && supabaseUrl && supabasePublicKey) {
     await recordConsent(sb, email, consent, ip, ua);
-    const verifyRedirect = `${canonicalOrigin(req)}/auth/login?verified=1&email=${encodeURIComponent(email)}`;
+    const verifyRedirect = `${canonicalOrigin(req)}/auth/callback?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`;
     return signUpWithSupabaseAuth(
       supabaseUrl,
       supabasePublicKey,
@@ -261,6 +261,9 @@ export async function POST(req: NextRequest) {
   // Service Role이 없는 배포에서도 Supabase Auth 회원가입은 허용
   if (!sb && supabaseUrl && supabasePublicKey) {
     await recordConsent(sb, email, consent, ip, ua);
+    const verifyRedirect = emailConfirmationEnabled()
+      ? `${canonicalOrigin(req)}/auth/callback?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`
+      : undefined;
     return signUpWithSupabaseAuth(
       supabaseUrl,
       supabasePublicKey,
@@ -269,7 +272,7 @@ export async function POST(req: NextRequest) {
       name,
       source,
       campaign,
-      undefined,
+      verifyRedirect,
       identity,
     );
   }
@@ -334,7 +337,7 @@ export async function POST(req: NextRequest) {
       // 운영 DB 스키마/권한 편차가 있으면 Supabase Auth 기본 경로로 자동 우회
       await recordConsent(sb, email, consent, ip, ua);
       const verifyRedirect = emailConfirmationEnabled()
-        ? `${canonicalOrigin(req)}/auth/login?verified=1&email=${encodeURIComponent(email)}`
+        ? `${canonicalOrigin(req)}/auth/callback?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`
         : undefined;
       return signUpWithSupabaseAuth(
         supabaseUrl,

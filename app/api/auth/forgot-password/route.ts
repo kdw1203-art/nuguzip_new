@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const redirectTo = `${baseUrl}/auth/reset-password`;
+  const redirectTo = `${baseUrl}/auth/callback?next=${encodeURIComponent("/reset-password")}`;
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
   });

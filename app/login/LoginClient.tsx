@@ -188,6 +188,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [verifiedNotice, setVerifiedNotice] = useState(false);
 
   /* callbackUrl 은 window 에만 있다. 서버 렌더 결과와 첫 클라이언트 렌더가
      달라지면 하이드레이션이 깨지므로, 일반 문구로 시작해서 마운트 후에만
@@ -196,6 +197,13 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
   const [ctx, setCtx] = useState<LoginContext>(generic);
   useEffect(() => {
     setCtx(contextForCallback(resolveCallbackUrl(), generic));
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") setVerifiedNotice(true);
+    const prefill = params.get("email");
+    if (prefill?.includes("@")) setEmail(prefill);
+    if (params.get("error") === "verify_failed") {
+      setError("이메일 인증에 실패했습니다. 메일의 링크를 다시 눌러 주세요.");
+    }
   }, [generic]);
 
   async function socialSignIn(provider: SocialProvider) {
@@ -272,6 +280,15 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
           {ctx.line2}
         </h1>
         <p className="rise-in-2 text-sm text-text-2">{ctx.sub}</p>
+
+        {verifiedNotice && (
+          <div
+            role="status"
+            className="rise-in rounded-[12px] bg-primary-soft px-4 py-3 text-[13px] font-bold text-primary"
+          >
+            이메일 인증이 완료됐어요. 이제 로그인해 주세요.
+          </div>
+        )}
 
         {error && (
           <div
