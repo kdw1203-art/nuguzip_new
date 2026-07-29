@@ -49,7 +49,7 @@ export function TownCategoryNav({
 
   return (
     <div
-      className={`rise-in mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+      className={`rise-in mb-5 flex w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
         stick
           ? /* 헤더는 sticky top-0 이고 스크롤 시 높이가 56px(패딩 8 + h-12)로 줄어든다.
                그 아래에 붙이고 z-40(헤더 z-50 미만)으로 두어 헤더가 항상 위에 오게 한다.
@@ -68,8 +68,8 @@ export function TownCategoryNav({
             aria-current={pinned ? "page" : undefined}
             aria-label={`${l.label} — ${l.desc}`}
             title={`${l.label} — ${l.desc}`}
-            /* 라벨 길이와 무관하게 동일 비율 — 고정 w/h + 중앙 정렬 + 1줄 말줄임 */
-            className={`press relative flex w-[104px] shrink-0 flex-col items-center justify-center rounded-[16px] border px-2.5 text-center transition-all duration-300 ease-out ${
+            /* 동일 비율: 좁은 화면은 104px 고정 스크롤, md+ 는 가로를 均等 분배 */
+            className={`press relative flex w-[104px] shrink-0 flex-col items-center justify-center rounded-[16px] border px-2 text-center transition-all duration-300 ease-out md:w-auto md:min-w-0 md:flex-1 md:basis-0 ${
               pinned
                 ? "h-[72px] border-primary bg-primary-soft shadow-[0_6px_18px_rgba(29,79,216,.18)]"
                 : "card card-hover h-[92px] border-transparent"
