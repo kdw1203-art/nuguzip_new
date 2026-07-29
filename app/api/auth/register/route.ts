@@ -100,6 +100,18 @@ async function signUpWithSupabaseAuth(
       ...(emailRedirectTo ? { emailRedirectTo } : {}),
     },
   });
+  if (!error && data.user?.email) {
+    try {
+      const { ensureAppUserRow } = await import("@/lib/auth/ensure-app-user");
+      await ensureAppUserRow({
+        email: data.user.email,
+        name,
+        authUserId: data.user.id,
+      });
+    } catch {
+      /* best-effort */
+    }
+  }
   if (error) {
     // 네트워크 단절·게이트웨이 오류 등 업스트림(Supabase Auth) 장애는
     // 클라이언트 잘못(400)이 아니라 일시적 사용 불가(503)로 구분한다.
@@ -244,7 +256,9 @@ export async function POST(req: NextRequest) {
   // Supabase Auth 가입(인증 메일 발송) 경로를 우선 사용합니다.
   if (emailConfirmationEnabled() && supabaseUrl && supabasePublicKey) {
     await recordConsent(sb, email, consent, ip, ua);
-    const verifyRedirect = `${canonicalOrigin(req)}/auth/callback?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`;
+    /* /auth/confirm 은 PKCE·token_hash·해시 토큰을 모두 처리한다.
+       Site URL 이 옛 my-project 호스트여도 브릿지가 여기로 모은다. */
+    const verifyRedirect = `${canonicalOrigin(req)}/auth/confirm?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`;
     return signUpWithSupabaseAuth(
       supabaseUrl,
       supabasePublicKey,
@@ -262,7 +276,7 @@ export async function POST(req: NextRequest) {
   if (!sb && supabaseUrl && supabasePublicKey) {
     await recordConsent(sb, email, consent, ip, ua);
     const verifyRedirect = emailConfirmationEnabled()
-      ? `${canonicalOrigin(req)}/auth/callback?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`
+      ? `${canonicalOrigin(req)}/auth/confirm?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`
       : undefined;
     return signUpWithSupabaseAuth(
       supabaseUrl,
@@ -337,7 +351,7 @@ export async function POST(req: NextRequest) {
       // 운영 DB 스키마/권한 편차가 있으면 Supabase Auth 기본 경로로 자동 우회
       await recordConsent(sb, email, consent, ip, ua);
       const verifyRedirect = emailConfirmationEnabled()
-        ? `${canonicalOrigin(req)}/auth/callback?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`
+        ? `${canonicalOrigin(req)}/auth/confirm?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`
         : undefined;
       return signUpWithSupabaseAuth(
         supabaseUrl,

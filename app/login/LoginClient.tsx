@@ -238,7 +238,14 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         callbackUrl: resolveCallbackUrl(),
       });
       if (res?.error) {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        const detail = `${res.error} ${res.code ?? ""}`.toLowerCase();
+        if (detail.includes("email_not_confirmed")) {
+          setError("이메일 인증이 아직 안 됐어요. 받은 인증 메일의 링크를 눌러 주세요.");
+        } else {
+          setError(
+            "이메일 또는 비밀번호가 올바르지 않습니다. 가입 직후라면 인증 메일도 확인해 주세요.",
+          );
+        }
         return;
       }
       if (res?.ok) {

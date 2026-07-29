@@ -133,11 +133,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               const { authorizeWithPassword } = await import(
                 "@/lib/auth/password-login"
               );
-              return authorizeWithPassword(
-                credentials as
-                  | Record<"email" | "password", string>
-                  | undefined,
-              );
+              try {
+                return await authorizeWithPassword(
+                  credentials as
+                    | Record<"email" | "password", string>
+                    | undefined,
+                );
+              } catch (e) {
+                if (
+                  e instanceof Error &&
+                  e.message === "EMAIL_NOT_CONFIRMED"
+                ) {
+                  throw new Error("EMAIL_NOT_CONFIRMED");
+                }
+                throw e;
+              }
             },
           }),
         ]

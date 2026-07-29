@@ -48,7 +48,7 @@ export default async function AgentPage() {
           <div className="max-w-sm text-xs leading-[1.6] text-text-3">
             에이전트는 회원님의 임장노트를 읽어 답하기 때문에 로그인이 필요해요.
           </div>
-          <Link href="/login?next=/agent" className="btn-primary rounded-xl px-5 py-2.5 text-[13px] no-underline">
+          <Link href="/login?callbackUrl=/agent" className="btn-primary rounded-xl px-5 py-2.5 text-[13px] no-underline">
             로그인하고 시작하기
           </Link>
         </div>

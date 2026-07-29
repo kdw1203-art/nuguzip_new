@@ -38,6 +38,17 @@ export function isPublicPathForPrivateGate(pathname: string): boolean {
   if (p.startsWith("/auth")) return true;
   if (p.startsWith("/_next")) return true;
 
+  /* 실제 로그인·가입 화면은 /login · /signup ( /auth/login 은 redirect-map 으로만 존재).
+     여기 없으면 PRIVATE_SITE 켜진 환경에서 /auth/login ↔ /login 루프가 난다. */
+  if (
+    p === "/login" ||
+    p === "/signup" ||
+    p === "/forgot-password" ||
+    p === "/reset-password" ||
+    p === "/welcome"
+  )
+    return true;
+
   if (p.includes("/opengraph-image")) return true;
 
   return false;
@@ -107,7 +118,7 @@ export async function applyPrivateSiteGate(
   const payload = token ? decodeJwtPayload(token) : null;
   const email = typeof payload?.email === "string" ? payload.email.toLowerCase() : null;
   if (!email) {
-    const login = new URL("/auth/login", req.url);
+    const login = new URL("/login", req.url);
     login.searchParams.set(
       "callbackUrl",
       `${path}${req.nextUrl.search ?? ""}`,

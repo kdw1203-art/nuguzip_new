@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   const shell = detectShellFromHost(
     req.headers.get("x-forwarded-host") ?? req.headers.get("host"),
   );
-  const redirectTo = `${baseUrlForShell(shell)}/auth/callback?next=${encodeURIComponent("/login?verified=1")}`;
+  const redirectTo = `${baseUrlForShell(shell)}/auth/confirm?next=${encodeURIComponent("/login?verified=1")}`;
 
   const { error } = await supabase.auth.signInWithOtp({
     email,

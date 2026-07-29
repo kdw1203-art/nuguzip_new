@@ -61,7 +61,18 @@ async function trySupabaseAuthPassword(
     email,
     password,
   });
-  if (error || !data.user?.email) return null;
+  if (error || !data.user?.email) {
+    const msg = (error?.message ?? "").toLowerCase();
+    const code = (error as { code?: string } | null)?.code ?? "";
+    if (
+      code === "email_not_confirmed" ||
+      msg.includes("email not confirmed") ||
+      msg.includes("email_not_confirmed")
+    ) {
+      throw new Error("EMAIL_NOT_CONFIRMED");
+    }
+    return null;
+  }
 
   const meta = data.user.user_metadata as Record<string, unknown> | undefined;
   const nameFromMeta =
@@ -70,6 +81,17 @@ async function trySupabaseAuthPassword(
       : typeof meta?.name === "string"
         ? meta.name
         : undefined;
+
+  try {
+    const { ensureAppUserRow } = await import("@/lib/auth/ensure-app-user");
+    await ensureAppUserRow({
+      email: data.user.email,
+      name: nameFromMeta,
+      authUserId: data.user.id,
+    });
+  } catch {
+    /* best-effort — 로그인 자체는 막지 않는다 */
+  }
 
   return {
     id: data.user.id,
@@ -96,5 +118,10 @@ export async function authorizeWithPassword(
   const fromDb = await tryAppUsersBcrypt(email, password);
   if (fromDb) return fromDb;
 
-  return trySupabaseAuthPassword(email, password);
+  try {
+    return await trySupabaseAuthPassword(email, password);
+  } catch (e) {
+    if (e instanceof Error && e.message === "EMAIL_NOT_CONFIRMED") throw e;
+    return null;
+  }
 }
