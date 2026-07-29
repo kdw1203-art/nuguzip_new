@@ -46,7 +46,10 @@ const MAX_REGIONS = 3;
 type RegisterResponse = {
   error?: string;
   detail?: string;
+  code?: string;
+  message?: string;
   emailConfirmationRequired?: boolean;
+  resent?: boolean;
   user?: { id: string | number; email: string; name: string };
 };
 
@@ -66,8 +69,10 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
   const [password2, setPassword2] = useState("");
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<"done" | "confirm" | null>(null);
+  const [confirmHint, setConfirmHint] = useState<string | null>(null);
 
   /* #44 가입 퍼널 계측 — /api/platform/event 로 fire-and-forget POST (실패해도 UI 무영향).
      step_1: 페이지 진입 · step_2: 목표 선택 · step_3: 기본정보/관심지역 첫 선택 ·
@@ -176,6 +181,12 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         data = {};
       }
       if (!res.ok) {
+        if (res.status === 409 || data.code === "already_registered") {
+          setError(
+            "이미 가입된 이메일입니다. 로그인하거나, 인증 전이라면 같은 정보로 다시 가입하면 인증 메일을 다시 받을 수 있어요.",
+          );
+          return;
+        }
         const detail = data.detail ? ` (${data.detail})` : "";
         setError(`${data.error ?? "가입에 실패했습니다."}${detail}`);
         return;
@@ -185,6 +196,12 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         emailConfirmationRequired: Boolean(data.emailConfirmationRequired),
       });
       if (data.emailConfirmationRequired) {
+        setConfirmHint(
+          data.message ??
+            (data.resent
+              ? "인증 메일을 다시 보냈습니다. 메일함의 새 링크를 확인해 주세요."
+              : null),
+        );
         setDone("confirm");
         return;
       }
@@ -232,17 +249,71 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
                 <b className="text-ink">{email.trim().toLowerCase()}</b>로 인증 메일을 보냈습니다.
                 <br />
                 메일의 링크를 확인한 뒤 로그인해 주세요.
+                {confirmHint ? (
+                  <>
+                    <br />
+                    <span className="mt-1 block font-bold text-primary">{confirmHint}</span>
+                  </>
+                ) : null}
               </>
             ) : (
               <>이제 방금 만든 계정으로 로그인하면 맞춤 지표와 체크리스트가 준비됩니다.</>
             )}
           </p>
+          {done === "confirm" ? (
+            <button
+              type="button"
+              disabled={resendBusy}
+              onClick={async () => {
+                setResendBusy(true);
+                setConfirmHint(null);
+                try {
+                  const res = await fetch("/api/auth/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      email: email.trim().toLowerCase(),
+                      password,
+                      name: name.trim(),
+                      resendConfirmation: true,
+                    }),
+                  });
+                  const data = (await res.json().catch(() => ({}))) as RegisterResponse;
+                  if (!res.ok) {
+                    setConfirmHint(data.error ?? "재발송에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+                    return;
+                  }
+                  setConfirmHint(
+                    data.message ?? "인증 메일을 다시 보냈습니다. 메일함의 새 링크를 확인해 주세요.",
+                  );
+                } catch {
+                  setConfirmHint("네트워크 오류가 발생했습니다.");
+                } finally {
+                  setResendBusy(false);
+                }
+              }}
+              className="w-full rounded-2xl border border-[#d7dee8] bg-white p-[15px] text-center text-base font-extrabold text-ink disabled:opacity-60"
+            >
+              {resendBusy ? "보내는 중…" : "인증 메일 다시 보내기"}
+            </button>
+          ) : null}
           <Link
             href="/login?callbackUrl=/welcome"
             className="btn-primary btn-cta mt-1 w-full rounded-2xl p-[15px] text-center text-base"
           >
             로그인하러 가기
           </Link>
+          <button
+            type="button"
+            className="text-xs font-bold text-primary"
+            onClick={() => {
+              setDone(null);
+              setConfirmHint(null);
+              setError(null);
+            }}
+          >
+            다른 이메일로 다시 가입
+          </button>
           <Link href="/" className="text-xs text-text-3">
             나중에 할게요 · 홈으로
           </Link>

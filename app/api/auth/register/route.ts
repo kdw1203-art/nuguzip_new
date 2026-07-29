@@ -68,6 +68,128 @@ function shouldFallbackToSupabaseAuth(err: PgErrorLike): boolean {
   );
 }
 
+function isAlreadyRegisteredError(message: string | undefined): boolean {
+  const m = (message ?? "").toLowerCase();
+  return (
+    m.includes("already registered") ||
+    m.includes("already been registered") ||
+    m.includes("user already exists") ||
+    m.includes("email address has already been registered")
+  );
+}
+
+/** Auth Admin 으로 이메일 사용자 조회 (페이지네이션, 상한 5페이지). */
+async function findAuthUserByEmail(email: string) {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const target = email.trim().toLowerCase();
+  for (let page = 1; page <= 5; page++) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) return null;
+    const hit = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
+    if (hit) return hit;
+    if (data.users.length < 200) break;
+  }
+  return null;
+}
+
+/**
+ * 미인증 계정에 다시 가입을 시도한 경우:
+ * 1) 방금 입력한 비밀번호로 갱신 (다음에 로그인할 수 있게)
+ * 2) 인증 메일 재발송
+ */
+async function recoverUnconfirmedSignup(opts: {
+  supabaseUrl: string;
+  supabasePublicKey: string;
+  email: string;
+  password: string;
+  name: string;
+  emailRedirectTo?: string;
+}): Promise<NextResponse | null> {
+  const existing = await findAuthUserByEmail(opts.email);
+  if (!existing) return null;
+
+  if (existing.email_confirmed_at) {
+    return NextResponse.json(
+      {
+        error: "이미 가입된 이메일입니다. 로그인해 주세요.",
+        code: "already_registered",
+      },
+      { status: 409 },
+    );
+  }
+
+  const sb = getServiceSupabase();
+  let passwordUpdated = false;
+  if (sb) {
+    const { error: updErr } = await sb.auth.admin.updateUserById(existing.id, {
+      password: opts.password,
+      email: opts.email,
+      user_metadata: {
+        ...(existing.user_metadata ?? {}),
+        name: opts.name,
+      },
+    });
+    if (updErr) {
+      return NextResponse.json(
+        {
+          error: "기존 미인증 계정을 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          detail: updErr.message,
+        },
+        { status: 500 },
+      );
+    }
+    passwordUpdated = true;
+  }
+
+  const authClient = createClient(opts.supabaseUrl, opts.supabasePublicKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: resendErr } = await authClient.auth.resend({
+    type: "signup",
+    email: opts.email,
+    options: opts.emailRedirectTo
+      ? { emailRedirectTo: opts.emailRedirectTo }
+      : undefined,
+  });
+  if (resendErr) {
+    /* 재발송 한도 등 — 비밀번호는 이미 갱신됐을 수 있으므로 안내만 */
+    return NextResponse.json(
+      {
+        user: { id: existing.id, email: opts.email, name: opts.name },
+        emailConfirmationRequired: true,
+        resent: false,
+        message: passwordUpdated
+          ? "비밀번호는 갱신했습니다. 인증 메일 재발송에 실패했다면 잠시 후 ‘인증 메일 다시 보내기’를 눌러 주세요."
+          : "인증 메일 재발송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        detail: resendErr.message,
+      },
+      { status: 201 },
+    );
+  }
+
+  try {
+    const { ensureAppUserRow } = await import("@/lib/auth/ensure-app-user");
+    await ensureAppUserRow({
+      email: opts.email,
+      name: opts.name,
+      authUserId: existing.id,
+    });
+  } catch {
+    /* best-effort */
+  }
+
+  return NextResponse.json(
+    {
+      user: { id: existing.id, email: opts.email, name: opts.name },
+      emailConfirmationRequired: true,
+      resent: true,
+      message: "인증 메일을 다시 보냈습니다. 메일함의 새 링크를 확인해 주세요.",
+    },
+    { status: 201 },
+  );
+}
+
 async function signUpWithSupabaseAuth(
   supabaseUrl: string,
   supabasePublicKey: string,
@@ -78,7 +200,25 @@ async function signUpWithSupabaseAuth(
   campaign: string,
   emailRedirectTo?: string,
   identity?: { verified: boolean; provider?: string },
+  /** true 면 신규 signUp 없이 미인증 재발송만 시도 */
+  resendOnly?: boolean,
 ) {
+  if (resendOnly) {
+    const recovered = await recoverUnconfirmedSignup({
+      supabaseUrl,
+      supabasePublicKey,
+      email,
+      password,
+      name,
+      emailRedirectTo,
+    });
+    if (recovered) return recovered;
+    return NextResponse.json(
+      { error: "재발송할 미인증 계정을 찾지 못했습니다. 처음부터 다시 가입해 주세요." },
+      { status: 404 },
+    );
+  }
+
   const authClient = createClient(supabaseUrl, supabasePublicKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -100,6 +240,44 @@ async function signUpWithSupabaseAuth(
       ...(emailRedirectTo ? { emailRedirectTo } : {}),
     },
   });
+
+  /* 이미 가입된 이메일 / 미인증 재시도 → 복구 경로 */
+  if (error && isAlreadyRegisteredError(error.message)) {
+    const recovered = await recoverUnconfirmedSignup({
+      supabaseUrl,
+      supabasePublicKey,
+      email,
+      password,
+      name,
+      emailRedirectTo,
+    });
+    if (recovered) return recovered;
+    return NextResponse.json(
+      {
+        error: "이미 가입된 이메일입니다. 로그인해 주세요.",
+        code: "already_registered",
+      },
+      { status: 409 },
+    );
+  }
+
+  /*
+   * Supabase 는 미인증 기존 계정에 대해 오류 대신 user 를 돌려주며
+   * identities 가 비어 있는 경우가 있다. 이 때도 재발송·비밀번호 갱신으로 이어간다.
+   */
+  const identities = data.user?.identities;
+  if (!error && data.user && Array.isArray(identities) && identities.length === 0) {
+    const recovered = await recoverUnconfirmedSignup({
+      supabaseUrl,
+      supabasePublicKey,
+      email,
+      password,
+      name,
+      emailRedirectTo,
+    });
+    if (recovered) return recovered;
+  }
+
   if (!error && data.user?.email) {
     try {
       const { ensureAppUserRow } = await import("@/lib/auth/ensure-app-user");
@@ -212,6 +390,7 @@ export async function POST(req: NextRequest) {
   const name = String(b.name ?? "").trim() || email.split("@")[0] || "회원";
   const source = String(b.source ?? "auth_signup").trim().slice(0, 80) || "auth_signup";
   const campaign = String(b.campaign ?? "default").trim().slice(0, 80) || "default";
+  const resendOnly = Boolean(b.resendConfirmation);
 
   const consentRaw = (b.consent ?? {}) as Record<string, unknown>;
   const consent = {
@@ -239,7 +418,7 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (!consent.terms || !consent.privacy || !consent.age) {
+  if (!resendOnly && (!consent.terms || !consent.privacy || !consent.age)) {
     return NextResponse.json(
       { error: "필수 약관(이용약관·개인정보처리방침·만 14세 이상)에 동의해 주세요." },
       { status: 400 },
@@ -255,7 +434,7 @@ export async function POST(req: NextRequest) {
   // 본인 이메일 확인을 강제(기본 ON)하고 공개 키가 있으면
   // Supabase Auth 가입(인증 메일 발송) 경로를 우선 사용합니다.
   if (emailConfirmationEnabled() && supabaseUrl && supabasePublicKey) {
-    await recordConsent(sb, email, consent, ip, ua);
+    if (!resendOnly) await recordConsent(sb, email, consent, ip, ua);
     /* /auth/confirm 은 PKCE·token_hash·해시 토큰을 모두 처리한다.
        Site URL 이 옛 my-project 호스트여도 브릿지가 여기로 모은다. */
     const verifyRedirect = `${canonicalOrigin(req)}/auth/confirm?next=${encodeURIComponent(`/login?verified=1&email=${encodeURIComponent(email)}`)}`;
@@ -269,6 +448,7 @@ export async function POST(req: NextRequest) {
       campaign,
       verifyRedirect,
       identity,
+      resendOnly,
     );
   }
 
