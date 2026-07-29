@@ -310,20 +310,28 @@ export function ComplexInfoPanel({
   ].filter((v): v is string => Boolean(v));
 
   return (
-    /* 데스크톱에서는 좌측 목록이 있던 그 자리를 그대로 차지한다(소유자 요청:
-       "단지를 선택하면 왼쪽에는 단지 정보만"). 예전에는 하단에 떠서 목록과 지도를
-       동시에 가렸다. top 92px 은 목록 패널과 같은 값이라 전환이 제자리에서 일어난다.
-       모바일은 화면이 좁아 기존대로 하단 시트를 유지한다.
-       (inline style 로 maxHeight 를 주면 md: 클래스가 못 덮으므로 전부 클래스로 쓴다) */
-    <aside
-      className="glass-strong rise-in fixed bottom-5 left-4 right-4 z-[45] flex max-h-[calc(100dvh-200px)] flex-col overflow-hidden rounded-[22px] md:absolute md:bottom-5 md:left-5 md:right-auto md:top-[92px] md:max-h-none md:w-[380px]"
+    /* 화면 가운데 큰 팝업으로 띄운다.
+       예전에는 데스크톱에서 좌측 380px 카드였다. 폭이 좁아 표와 그래프가 눌렸고,
+       같은 자리를 쓰는 필터·인기 단지 패널과 계속 부딪혔다(소유자 지적). 가운데
+       팝업이면 그 충돌이 구조적으로 사라지고, 넓어진 만큼 수치를 두 단으로 편다.
+       더 깊이 보고 싶으면 아래 CTA 로 단지 홈 페이지로 넘어간다. */
+    <div
+      className="fixed inset-0 z-[48] flex items-center justify-center px-4 py-6"
       role="dialog"
+      aria-modal="true"
       aria-label={`${name} 단지 정보`}
     >
+      <button
+        type="button"
+        aria-label="단지 정보 닫기"
+        onClick={onClose}
+        className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.45)]"
+      />
+      <aside className="glass-strong rise-in relative z-10 flex max-h-[min(88dvh,820px)] w-full max-w-[720px] flex-col overflow-hidden rounded-[24px] shadow-[0_28px_70px_rgba(16,28,54,.32)]">
       <div className="flex items-start justify-between border-b border-[rgba(16,28,54,.06)] px-5 pb-3 pt-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="truncate text-[18px] font-extrabold text-ink">{name}</span>
+            <span className="truncate text-[21px] font-extrabold text-ink">{name}</span>
             {loading && (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             )}
@@ -411,21 +419,26 @@ export function ComplexInfoPanel({
 
         <WatchlistToggle complexId={complexId} complexName={name} />
 
-        <div className="grid grid-cols-3 gap-2">
-          <Link
-            href={detailHref}
-            className="btn-primary btn-cta rounded-xl p-[11px] text-center text-xs"
-          >
-            단지 상세
-          </Link>
+        <div className="grid grid-cols-2 gap-2">
           <Link href={noteHref} className="btn-secondary rounded-xl p-[11px] text-center text-xs">
-            임장노트
+            임장노트 쓰기
           </Link>
           <Link href={analysisHref} className="btn-secondary rounded-xl p-[11px] text-center text-xs">
             AI 분석
           </Link>
         </div>
       </div>
-    </aside>
+
+      {/* 더 깊이 보고 싶을 때의 다음 걸음 — 팝업에서 전체 페이지로. */}
+      <div className="border-t border-[rgba(16,28,54,.06)] px-5 py-3">
+        <Link
+          href={detailHref}
+          className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
+        >
+          전체 화면으로 자세히 보기 ›
+        </Link>
+      </div>
+      </aside>
+    </div>
   );
 }
