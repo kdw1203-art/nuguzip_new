@@ -19,8 +19,8 @@ export type TownCategoryLink = {
 
 export const TOWN_CATEGORY_LINKS: TownCategoryLink[] = [
   { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
-  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·임장노트" },
-  { href: "/town/news", label: "뉴스·다이제스트", icon: "📰", desc: "부동산 뉴스·주간 요약" },
+  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·노트" },
+  { href: "/town/news", label: "뉴스·다이제스트", icon: "📰", desc: "주간 요약" },
   { href: "/town/experts", label: "전문가", icon: "🎓", desc: "전문가 상담" },
   { href: "/qna", label: "단지 Q&A", icon: "💬", desc: "묻고 답하기" },
   { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },

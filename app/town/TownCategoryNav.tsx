@@ -49,7 +49,7 @@ export function TownCategoryNav({
 
   return (
     <div
-      className={`rise-in mb-5 flex gap-2.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+      className={`rise-in mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
         stick
           ? /* 헤더는 sticky top-0 이고 스크롤 시 높이가 56px(패딩 8 + h-12)로 줄어든다.
                그 아래에 붙이고 z-40(헤더 z-50 미만)으로 두어 헤더가 항상 위에 오게 한다.
@@ -67,19 +67,23 @@ export function TownCategoryNav({
             onClick={() => go(l.href)}
             aria-current={pinned ? "page" : undefined}
             aria-label={`${l.label} — ${l.desc}`}
-            className={`press relative flex min-w-[118px] shrink-0 flex-col rounded-[16px] border text-left transition-all duration-300 ease-out ${
+            title={`${l.label} — ${l.desc}`}
+            /* 라벨 길이와 무관하게 동일 비율 — 고정 w/h + 중앙 정렬 + 1줄 말줄임 */
+            className={`press relative flex w-[104px] shrink-0 flex-col items-center justify-center rounded-[16px] border px-2.5 text-center transition-all duration-300 ease-out ${
               pinned
-                ? "border-primary bg-primary-soft px-4 py-2.5 shadow-[0_6px_18px_rgba(29,79,216,.18)]"
-                : "card card-hover border-transparent px-4 py-3.5"
+                ? "h-[72px] border-primary bg-primary-soft shadow-[0_6px_18px_rgba(29,79,216,.18)]"
+                : "card card-hover h-[92px] border-transparent"
             }`}
           >
             <span
-              className={`leading-none transition-colors ${pinned ? "text-primary" : "text-ink"}`}
+              className={`flex h-6 w-6 items-center justify-center leading-none transition-colors ${
+                pinned ? "text-primary" : "text-ink"
+              }`}
             >
               <Icon name={l.icon} size={pinned ? 18 : 20} />
             </span>
             <span
-              className={`mt-1 text-[13px] font-extrabold transition-colors ${
+              className={`mt-1.5 w-full truncate text-[12px] font-extrabold leading-tight transition-colors ${
                 pinned ? "text-primary" : "text-ink"
               }`}
             >
@@ -87,14 +91,14 @@ export function TownCategoryNav({
             </span>
             {/* 고정 시 설명이 접히며 카드가 세로로 살짝 줄어든다 */}
             <span
-              className={`overflow-hidden text-[11px] leading-[1.4] text-text-3 transition-all duration-300 ease-out ${
-                pinned ? "max-h-0 opacity-0" : "mt-px max-h-6 opacity-100"
+              className={`w-full truncate text-[10px] leading-[1.35] text-text-3 transition-all duration-300 ease-out ${
+                pinned ? "mt-0 max-h-0 opacity-0" : "mt-0.5 max-h-4 opacity-100"
               }`}
             >
               {l.desc}
             </span>
             {pinned ? (
-              <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-primary" />
+              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
             ) : null}
           </button>
         );
