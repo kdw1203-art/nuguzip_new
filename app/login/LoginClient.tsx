@@ -8,7 +8,9 @@ import { Logo } from "@/app/components/Logo";
 import { Icon } from "@/app/components/Icon";
 import { useMoment } from "@/app/components/motion/MomentProvider";
 
-export type SocialProvider = "google" | "naver" | "kakao";
+import type { SocialProvider } from "@/lib/auth/configured-social";
+
+export type { SocialProvider };
 
 /** `?callbackUrl=` 이 있으면 로그인 후 그 경로로 복귀 (내부 경로만 허용) */
 function resolveCallbackUrl(): string {
@@ -271,28 +273,35 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         </h1>
         <p className="rise-in-2 text-sm text-text-2">{ctx.sub}</p>
 
-        {/* 비어 보이던 자리 — 지어낸 노트 카드 대신 계정으로 실제 할 수 있는 것 */}
-        <ul className="rise-in-3 grid grid-cols-2 gap-2">
-          {ACCOUNT_BENEFITS.map((b) => (
-            <li
-              key={b.label}
-              className="card flex flex-col gap-1 rounded-[14px] px-3.5 py-3"
-            >
-              <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
-                <Icon name={b.icon} size={15} />
-                {b.label}
-              </span>
-              <span className="text-[11px] leading-[1.5] text-text-3">{b.desc}</span>
-            </li>
-          ))}
-        </ul>
-
         {error && (
           <div
             role="alert"
             className="rise-in rounded-[12px] bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger"
           >
             {error}
+          </div>
+        )}
+
+        {/* 소셜을 이메일 폼·혜택 카드보다 위에 둔다 — 모바일 첫 화면에서
+            스크롤 없이 Google 버튼을 바로 보이게 한다. */}
+        {social.length > 0 && (
+          <div className="rise-in-3 flex flex-col gap-2.5">
+            {social.map((provider) => (
+              <button
+                key={provider}
+                type="button"
+                onClick={() => socialSignIn(provider)}
+                disabled={busy !== null}
+                className={`rounded-[14px] p-3.5 text-center text-[15px] font-bold disabled:opacity-60 ${SOCIAL_BUTTON[provider].className}`}
+              >
+                {SOCIAL_BUTTON[provider].label}
+              </button>
+            ))}
+            <div className="flex items-center gap-3 text-[11px] text-text-3">
+              <span className="h-px flex-1 bg-[#e9edf3]" />
+              또는 이메일로
+              <span className="h-px flex-1 bg-[#e9edf3]" />
+            </div>
           </div>
         )}
 
@@ -327,31 +336,21 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
           </div>
         </form>
 
-        {/* 켜진 소셜 수단이 하나도 없으면 구분선("또는")도 그리지 않는다 —
-            아래에 아무것도 없는데 "또는" 만 남으면 뭔가 빠진 화면처럼 보인다. */}
-        {social.length > 0 && (
-          <>
-            <div className="rise-in-4 flex items-center gap-3 text-[11px] text-text-3">
-              <span className="h-px flex-1 bg-[#e9edf3]" />
-              또는
-              <span className="h-px flex-1 bg-[#e9edf3]" />
-            </div>
+        <ul className="rise-in-4 grid grid-cols-2 gap-2">
+          {ACCOUNT_BENEFITS.map((b) => (
+            <li
+              key={b.label}
+              className="card flex flex-col gap-1 rounded-[14px] px-3.5 py-3"
+            >
+              <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
+                <Icon name={b.icon} size={15} />
+                {b.label}
+              </span>
+              <span className="text-[11px] leading-[1.5] text-text-3">{b.desc}</span>
+            </li>
+          ))}
+        </ul>
 
-            <div className="rise-in-4 flex flex-col gap-2.5">
-              {social.map((provider) => (
-                <button
-                  key={provider}
-                  type="button"
-                  onClick={() => socialSignIn(provider)}
-                  disabled={busy !== null}
-                  className={`rounded-[14px] p-3.5 text-center text-[15px] font-bold disabled:opacity-60 ${SOCIAL_BUTTON[provider].className}`}
-                >
-                  {SOCIAL_BUTTON[provider].label}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
         <div className="rise-in-5 text-center text-xs text-text-3">
           처음이신가요?{" "}
           <Link href="/signup" className="font-bold text-primary">
