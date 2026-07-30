@@ -9,9 +9,11 @@ import { FieldCaptureConsentNotice } from "@/components/inspection/field-capture
 import { useMoment } from "@/app/components/motion/MomentProvider";
 import {
   allKnownChecklistItems,
+  CHECKLIST_GROUPS,
   getChecklistForIntent,
   type InspectionChecklistIntent,
 } from "@/lib/inspection/checklist";
+import { checklistHintsFromVoice } from "@/lib/inspection/voice-checklist-keywords";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -59,6 +61,35 @@ const VISIT_DEFAULTS: Record<string, string> = {
   목적: "실거주",
 };
 
+const WEATHER_CHIPS = ["맑음", "흐림", "비", "눈", "더움", "추움"] as const;
+
+type InvestorRole = "live" | "invest" | "rent" | "balanced";
+
+function intentFromVisitPurpose(purpose: string | undefined): InspectionChecklistIntent {
+  if (purpose === "투자") return "투자";
+  if (purpose === "전월세") return "전월세";
+  return "실거주";
+}
+
+function investorRoleFromPurpose(purpose: string | undefined): InvestorRole {
+  if (purpose === "투자") return "invest";
+  if (purpose === "전월세") return "rent";
+  if (purpose === "갈아타기") return "balanced";
+  return "live";
+}
+
+/** 로컬 시각 → 방문 시간대 기본값 */
+function timeSlotFromClock(date = new Date()): string {
+  const h = date.getHours();
+  if (h < 12) return "오전";
+  if (h < 17) return "오후";
+  return "저녁";
+}
+
+function normalizeLoose(s: string): string {
+  return s.replace(/\s+/g, "").toLowerCase();
+}
+
 type TagTone = "pos" | "neg";
 type TagDef = { label: string; tone: TagTone };
 
@@ -92,12 +123,6 @@ const TODO_DEFAULTS: TodoItem[] = [
   { text: "단지 내 소음원(놀이터·도로) 체감", level: "보통" },
 ];
 
-function intentFromVisitPurpose(purpose: string | undefined): InspectionChecklistIntent {
-  if (purpose === "투자") return "투자";
-  if (purpose === "전월세") return "전월세";
-  return "실거주";
-}
-
 const LEVEL_SCORE: Record<Level, number> = { 좋음: 5, 보통: 3, 아쉬움: 1 };
 
 const MAX_PHOTOS = 10;
@@ -107,6 +132,39 @@ export type NoteFormTemplate = {
   title: string;
   sections: { title: string; items: string[] }[];
 };
+
+/** 템플릿 문구 ↔ 의도 체크리스트 느슨 매칭 — 강제 완료가 아니라 추천 체크 */
+function checklistSuggestionsFromTemplate(t: NoteFormTemplate): {
+  checked: Record<string, boolean>;
+  openGroupIds: string[];
+} {
+  const texts = t.sections
+    .flatMap((s) => [s.title, ...s.items])
+    .map(normalizeLoose)
+    .filter((x) => x.length >= 2);
+  const checked: Record<string, boolean> = {};
+  const open = new Set<string>();
+  for (const g of CHECKLIST_GROUPS) {
+    for (const it of g.items) {
+      const labelN = normalizeLoose(it.label);
+      const tokens = it.label
+        .split(/[\s·・\/\-]+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length >= 2);
+      const hit = texts.some(
+        (tx) =>
+          (tx.length >= 2 && labelN.includes(tx)) ||
+          (labelN.length >= 4 && tx.includes(labelN.slice(0, 4))) ||
+          tokens.some((tok) => tx.includes(normalizeLoose(tok))),
+      );
+      if (hit) {
+        checked[it.id] = true;
+        open.add(g.id);
+      }
+    }
+  }
+  return { checked, openGroupIds: [...open] };
+}
 
 export type NoteFormInitialNote = {
   id: string;
@@ -310,7 +368,11 @@ function metaNumber(meta: Record<string, unknown> | null | undefined, key: strin
    되읽지 않으면 수정 모드가 항상 아파트/오후/실거주로 시작해, 사용자가 예전에 고른
    값을 화면에 보여주지도 않은 채 저장 때 기본값으로 덮어써 버린다. */
 function visitFromNote(n?: NoteFormInitialNote | null): Record<string, string> {
-  const out = { ...VISIT_DEFAULTS };
+  /* 신규 작성: 지금 시각으로 시간대 기본값. 수정: 저장값 복원 */
+  const out: Record<string, string> = {
+    ...VISIT_DEFAULTS,
+    시간대: timeSlotFromClock(),
+  };
   if (!n) return out;
   for (const g of VISIT_GROUPS) {
     const saved = n.metadata?.[VISIT_META_KEYS[g.label]];
@@ -422,11 +484,73 @@ export function NoteForm({
     facility: false,
     future: false,
   });
+  const [weather, setWeather] = useState(() =>
+    typeof initialNote?.metadata?.weather === "string"
+      ? String(initialNote.metadata.weather)
+      : "",
+  );
+  const [weatherHint, setWeatherHint] = useState<string | null>(null);
+  const [templateSuggestedIds, setTemplateSuggestedIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [memoHints, setMemoHints] = useState<Array<{ id: string; label: string }>>(
+    [],
+  );
+  const timeSlotTouchedRef = useRef(Boolean(isEdit));
 
   const checklistGroups = useMemo(
     () => getChecklistForIntent(intentFromVisitPurpose(visit["목적"])),
     [visit],
   );
+
+  /* 템플릿 → 의도 체크리스트 추천 (고려사항과 별도) */
+  useEffect(() => {
+    if (isEdit || !template?.sections?.length) return;
+    const { checked, openGroupIds } = checklistSuggestionsFromTemplate(template);
+    const ids = Object.keys(checked);
+    if (ids.length === 0) return;
+    setTemplateSuggestedIds(new Set(ids));
+    setGroupChecked((prev) => ({ ...checked, ...prev }));
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      for (const id of openGroupIds) next[id] = true;
+      return next;
+    });
+  }, [isEdit, template]);
+
+  /* 위치 확정 시 날씨 힌트 (public-data-context — 카카오 아님) */
+  useEffect(() => {
+    const region = loc.region.trim();
+    if (!region) {
+      setWeatherHint(null);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = window.setTimeout(() => {
+      const intent = intentFromVisitPurpose(visit["목적"]);
+      const qs = new URLSearchParams({
+        region,
+        intent,
+      });
+      if (loc.aptName.trim()) qs.set("aptName", loc.aptName.trim());
+      fetch(`/api/inspection/public-data-context?${qs.toString()}`, {
+        signal: ctrl.signal,
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: { weatherHint?: string } | null) => {
+          const hint =
+            typeof j?.weatherHint === "string" ? j.weatherHint.trim() : "";
+          setWeatherHint(hint || null);
+        })
+        .catch(() => {
+          /* 조회 실패 — 날씨 제안만 숨김 */
+        });
+    }, 450);
+    return () => {
+      window.clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [loc.region, loc.aptName, visit]);
   const [satisfaction, setSatisfaction] = useState(() => {
     const v = metaNumber(initialNote?.metadata, "satisfaction");
     return v == null ? 7.5 : Math.max(0, Math.min(10, v));
@@ -675,6 +799,7 @@ export function NoteForm({
         aptName,
         visitDate: initialNote?.visitDate ?? new Date().toISOString().slice(0, 10),
         transportation: visit["시간대"] ?? null,
+        weather: weather.trim() || null,
         summary: memo.trim() || null,
         scores: {
           location: Math.round((lv("경사") + lv("교통")) / 2),
@@ -707,6 +832,8 @@ export function NoteForm({
             visit["목적"] === "전월세"
               ? visit["목적"]
               : undefined,
+          investorRole: investorRoleFromPurpose(visit["목적"]),
+          weather: weather.trim() || undefined,
           fieldRatings: checks,
           todoLevels: Object.fromEntries(todoItems.map((t) => [t.text, t.level])),
           checklistGroupCounts: {
@@ -747,7 +874,11 @@ export function NoteForm({
         const aiRes = await fetch("/api/inspection/ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ noteId }),
+          body: JSON.stringify({
+            noteId,
+            intent,
+            investorRole: investorRoleFromPurpose(visit["목적"]),
+          }),
         });
         const aiJson = aiRes.ok
           ? ((await aiRes.json().catch(() => null)) as { mode?: string } | null)
@@ -899,7 +1030,22 @@ export function NoteForm({
 
         {/* 방문 정보 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 p-4">
-          <div className="text-[13px] font-extrabold text-ink">방문 정보</div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[13px] font-extrabold text-ink">방문 정보</div>
+            <button
+              type="button"
+              onClick={() => {
+                timeSlotTouchedRef.current = true;
+                setVisit((prev) => ({
+                  ...prev,
+                  시간대: timeSlotFromClock(),
+                }));
+              }}
+              className="shrink-0 text-[11px] font-bold text-primary"
+            >
+              지금 시간대
+            </button>
+          </div>
           {VISIT_GROUPS.map((g) => (
             <div key={g.label} className="flex items-center gap-2">
               <span className="w-14 shrink-0 text-xs text-text-2">{g.label}</span>
@@ -910,9 +1056,10 @@ export function NoteForm({
                     <button
                       key={opt}
                       type="button"
-                      onClick={() =>
-                        setVisit((prev) => ({ ...prev, [g.label]: opt }))
-                      }
+                      onClick={() => {
+                        if (g.label === "시간대") timeSlotTouchedRef.current = true;
+                        setVisit((prev) => ({ ...prev, [g.label]: opt }));
+                      }}
                       className={`rounded-full px-3 py-1.5 text-xs ${
                         active
                           ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
@@ -926,6 +1073,48 @@ export function NoteForm({
               </div>
             </div>
           ))}
+          <div className="flex items-start gap-2">
+            <span className="w-14 shrink-0 pt-1.5 text-xs text-text-2">날씨</span>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
+                {WEATHER_CHIPS.map((opt) => {
+                  const active = weather === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setWeather(active ? "" : opt)}
+                      className={`rounded-full px-3 py-1.5 text-xs ${
+                        active
+                          ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
+                          : "border border-[#e2e7ee] bg-surface text-text-2"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+              {weatherHint && (
+                <button
+                  type="button"
+                  onClick={() => setWeather(weatherHint.slice(0, 40))}
+                  className="self-start rounded-lg border border-[#e2e7ee] bg-bg px-2.5 py-1.5 text-left text-[11px] text-text-2"
+                >
+                  제안 · {weatherHint.slice(0, 48)}
+                  {weatherHint.length > 48 ? "…" : ""} (탭하여 적용)
+                </button>
+              )}
+              <input
+                type="text"
+                value={weather}
+                onChange={(e) => setWeather(e.target.value.slice(0, 40))}
+                placeholder="직접 입력 (선택)"
+                className="w-full rounded-lg border border-[#e2e7ee] bg-surface px-2.5 py-1.5 text-xs text-text-1 outline-none"
+                aria-label="방문 날씨"
+              />
+            </div>
+          </div>
         </div>
 
         {/* 현장 체크 — 세그먼트 평가 (9항목 → 5축 점수) */}
@@ -997,8 +1186,39 @@ export function NoteForm({
                 0,
               )}
               개 체크
+              {templateSuggestedIds.size > 0
+                ? ` · 템플릿 추천 ${templateSuggestedIds.size}`
+                : ""}
             </span>
           </div>
+          {memoHints.length > 0 && (
+            <div className="flex flex-col gap-1.5 rounded-xl border border-primary/20 bg-primary-soft/40 px-3 py-2.5">
+              <div className="text-[11px] font-bold text-primary">
+                메모에서 찾은 점검 제안
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {memoHints.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    onClick={() => {
+                      setGroupChecked((prev) => ({ ...prev, [h.id]: true }));
+                      setMemoHints((prev) => prev.filter((x) => x.id !== h.id));
+                      const group = checklistGroups.find((g) =>
+                        g.items.some((it) => it.id === h.id),
+                      );
+                      if (group) {
+                        setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+                      }
+                    }}
+                    className="rounded-full border border-primary/30 bg-surface px-2.5 py-1 text-[11px] font-bold text-primary"
+                  >
+                    ＋ {h.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {checklistGroups.map((g) => {
             const open = openGroups[g.id] ?? false;
             const doneCount = g.items.filter((it) => groupChecked[it.id]).length;
@@ -1020,6 +1240,7 @@ export function NoteForm({
                   <div className="flex flex-col gap-1 border-t border-[#e8edf5] px-2 py-2">
                     {g.items.map((it) => {
                       const checked = Boolean(groupChecked[it.id]);
+                      const suggested = templateSuggestedIds.has(it.id);
                       return (
                         <button
                           key={it.id}
@@ -1047,6 +1268,11 @@ export function NoteForm({
                             }`}
                           >
                             {it.label}
+                            {suggested && !checked && (
+                              <span className="ml-1.5 text-[10px] font-bold text-primary">
+                                템플릿 추천
+                              </span>
+                            )}
                           </span>
                         </button>
                       );
@@ -1162,6 +1388,12 @@ export function NoteForm({
           <textarea
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
+            onBlur={() => {
+              const hints = checklistHintsFromVoice(memo).filter(
+                (h) => !groupChecked[h.id],
+              );
+              setMemoHints(hints);
+            }}
             rows={3}
             className="min-h-16 w-full resize-none rounded-xl bg-bg p-3.5 text-sm leading-[1.55] text-text-1 outline-none placeholder:text-text-3"
             placeholder="예: 남향이라 오후 채광 좋음. 단지 뒤 도로 소음 약간 있음"

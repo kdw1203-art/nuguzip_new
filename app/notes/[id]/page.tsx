@@ -110,6 +110,15 @@ function detectAxisLevel(
   return levelFromScore(fallbackScore);
 }
 
+function retryDefaultIntent(
+  note: InspectionNote,
+): "실거주" | "투자" | "전월세" {
+  const m = (note.metadata ?? {}) as Record<string, unknown>;
+  const p = m.visitPurpose ?? m.intent;
+  if (p === "투자" || p === "전월세" || p === "실거주") return p;
+  return "실거주";
+}
+
 function splitLines(text?: string | null): string[] {
   if (!text) return [];
   return text
@@ -677,7 +686,12 @@ export default async function NoteDetailPage({
                 {v.aiBadge}
               </span>
               <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
-              {isOwner && !hasLlmAi && <AiRetryButton noteId={id} />}
+              {isOwner && !hasLlmAi && (
+                <AiRetryButton
+                  noteId={id}
+                  defaultIntent={retryDefaultIntent(realNote)}
+                />
+              )}
             </AIPanel>
             {isOwner && (
               <div className="mt-2">
