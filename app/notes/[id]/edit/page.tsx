@@ -35,6 +35,7 @@ export default async function NoteEditPage({
     region: note.region,
     aptName: note.aptName ?? null,
     visitDate: note.visitDate,
+    weather: note.weather ?? null,
     summary: note.summary ?? null,
     scores: note.scores,
     checklist: note.checklist,

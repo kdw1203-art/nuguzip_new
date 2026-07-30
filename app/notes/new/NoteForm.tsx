@@ -172,6 +172,7 @@ export type NoteFormInitialNote = {
   region: string;
   aptName: string | null;
   visitDate: string;
+  weather?: string | null;
   summary: string | null;
   scores: {
     location: number;
@@ -206,6 +207,7 @@ type NoteDraft = {
   isPublic?: boolean;
   /** 카테고리 체크리스트 항목 id → 체크 여부 */
   groupChecked?: Record<string, boolean>;
+  weather?: string;
 };
 
 function isStringArray(v: unknown): v is string[] {
@@ -272,6 +274,7 @@ function parseDraft(raw: string | null): NoteDraft | null {
       photos: isStringArray(o.photos) ? o.photos : undefined,
       isPublic: typeof o.isPublic === "boolean" ? o.isPublic : undefined,
       groupChecked: Object.keys(groupChecked).length ? groupChecked : undefined,
+      weather: typeof o.weather === "string" ? o.weather : undefined,
     };
   } catch {
     return null;
@@ -484,11 +487,15 @@ export function NoteForm({
     facility: false,
     future: false,
   });
-  const [weather, setWeather] = useState(() =>
-    typeof initialNote?.metadata?.weather === "string"
-      ? String(initialNote.metadata.weather)
-      : "",
-  );
+  const [weather, setWeather] = useState(() => {
+    if (typeof initialNote?.weather === "string" && initialNote.weather.trim()) {
+      return initialNote.weather.trim();
+    }
+    if (typeof initialNote?.metadata?.weather === "string") {
+      return String(initialNote.metadata.weather);
+    }
+    return "";
+  });
   const [weatherHint, setWeatherHint] = useState<string | null>(null);
   const [templateSuggestedIds, setTemplateSuggestedIds] = useState<Set<string>>(
     () => new Set(),
@@ -602,6 +609,7 @@ export function NoteForm({
     photos,
     isPublic,
     groupChecked,
+    weather,
   });
 
   const writeDraft = () => {
@@ -645,6 +653,7 @@ export function NoteForm({
             photos,
             isPublic,
             groupChecked,
+            weather,
           } satisfies NoteDraft),
         );
         setSavedDraft(true);
@@ -653,7 +662,20 @@ export function NoteForm({
       }
     }, 1000);
     return () => clearTimeout(t);
-  }, [isEdit, checks, visit, tags, doneTodos, satisfaction, memo, loc, photos, isPublic, groupChecked]);
+  }, [
+    isEdit,
+    checks,
+    visit,
+    tags,
+    doneTodos,
+    satisfaction,
+    memo,
+    loc,
+    photos,
+    isPublic,
+    groupChecked,
+    weather,
+  ]);
 
   const restoreDraft = () => {
     if (!pendingDraft) return;
@@ -674,6 +696,7 @@ export function NoteForm({
     if (pendingDraft.photos) setPhotos(pendingDraft.photos.slice(0, MAX_PHOTOS));
     if (typeof pendingDraft.isPublic === "boolean") setIsPublic(pendingDraft.isPublic);
     if (pendingDraft.groupChecked) setGroupChecked(pendingDraft.groupChecked);
+    if (typeof pendingDraft.weather === "string") setWeather(pendingDraft.weather);
     setPendingDraft(null);
   };
 
