@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
 import { HomeResumePanel } from "./HomeResumePanel";
+import {
+  HOME_CTA_AI,
+  HOME_CTA_MAP,
+  HOME_CTA_NOTE,
+  HOME_HERO_SUBLINE,
+} from "@/lib/brand/home-copy";
 
 /* S13-13a 홈 이원화 — 정적 CDN 셸 위에 로그인 개인화 지연 주입 (시안 9m 데스크탑 · 10g 모바일)
    마운트 후 /api/auth/session → 로그인일 때만 /api/home/personal 로드.
@@ -96,16 +102,17 @@ const DELTA_CLASS: Record<PersonalRegionMarket["tone"], string> = {
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
-/** 내집찾기 여정 5단계 — 노트 수 기반 (허위 수치 없이 실데이터로만 산정) */
+/** 내집찾기 여정 4단계 — 노트 수 기반 (허위 수치 없이 실데이터로만 산정) */
+const JOURNEY_TOTAL = 4;
 function journeyOf(noteCount: number | null) {
   if (noteCount === null) return null;
   if (noteCount === 0)
     return { step: 1, label: "시작", next: "첫 노트 작성" };
   if (noteCount <= 2)
-    return { step: 2, label: "후보 탐색", next: "후보 단지 노트 늘리기" };
+    return { step: 2, label: "후보 탐색", next: "지도에서 후보 비교" };
   if (noteCount <= 5)
-    return { step: 3, label: "후보 좁히기", next: "회차 비교로 좁히기" };
-  return { step: 4, label: "판단 임박", next: "AI 분석으로 판단 정리" };
+    return { step: 3, label: "후보 좁히기", next: "AI로 판단 정리" };
+  return { step: 4, label: "판단 임박", next: "심화 AI 분석" };
 }
 
 export function PersonalHome() {
@@ -239,51 +246,53 @@ export function PersonalHome() {
         cta: "노트 시작하기 ›",
       };
 
+  const mapHref = region
+    ? `/map?region=${encodeURIComponent(region)}`
+    : HOME_CTA_MAP.href;
+
   const regionCard = {
     title: region
-      ? `${region} 후보 단지를 비교해 보세요`
-      : "관심지역 후보를 나란히 비교해 보세요",
+      ? `${region} 후보를 지도에서 비교해 보세요`
+      : "관심지역 후보를 지도에서 비교해 보세요",
     desc:
       data.compareCount !== null && data.compareCount > 0
-        ? `비교 중인 후보가 ${data.compareCount}곳 있어요. 학군·연식·예산 조건별로 살펴보세요.`
-        : "관심 단지를 비교함에 담으면 학군·연식·예산 조건별로 나란히 볼 수 있어요.",
-    cta: "후보 비교 열기 ›",
+        ? `비교 중인 후보가 ${data.compareCount}곳 있어요. 지도에서 시세·노트 맥락을 나란히 보세요.`
+        : "단지를 고르고 임장노트·AI 정리 후 지도에서 후보를 비교해요.",
+    cta: `${HOME_CTA_MAP.label} ›`,
   };
 
-  const marketCard = {
-    title: "매수 타이밍 신호 확인하기",
-    desc: regionMarket
-      ? `${regionMarket.name} 평균 ${regionMarket.price} (${regionMarket.delta}) — 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.`
-      : region
-        ? `${region} 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.`
-        : "관심 지역의 거래량·시세 흐름을 타이밍 분석에서 확인해 보세요.",
-    cta: "타이밍 분석 보기 ›",
+  const aiCard = {
+    title: "기록을 AI로 정리해 보세요",
+    desc: data.recentNote
+      ? `「${data.recentNote.title}」기준으로 장단점·시세 맥락을 정리할 수 있어요.`
+      : "임장노트를 남기면 AI가 판단 근거로 정리해 드려요.",
+    cta: `${HOME_CTA_AI.label} ›`,
   };
 
   const suggestions = [
     {
-      badge: "맞춤 제안 · 노트 기반",
+      badge: "맞춤 제안 · 노트",
       badgeClass: "bg-primary-soft text-primary",
       emoji: "📝",
-      /* A2 — 노트가 0건인 사람에게는 목록이 아니라 작성 화면으로 보낸다.
-         버튼에는 "노트 시작하기"라고 적어 놓고 빈 목록으로 떨구면, 시작하려던
-         사람이 거기서 한 번 더 길을 찾아야 한다(첫 노트 전환의 가장 큰 누수). */
-      href: data.recentNote ? "/notes" : "/notes/new",
+      /* A2 — 노트가 0건인 사람에게는 목록이 아니라 작성 화면으로 보낸다. */
+      href: data.recentNote ? `/notes/${data.recentNote.id}` : HOME_CTA_NOTE.href,
       ...noteCard,
     },
     {
-      badge: "맞춤 제안 · 지역 기반",
+      badge: "맞춤 제안 · 지도",
       badgeClass: "bg-[#fdf3e7] text-warning",
       emoji: "🗺",
-      href: "/analysis/compare",
+      href: mapHref,
       ...regionCard,
     },
     {
-      badge: "맞춤 제안 · 시장",
+      badge: "맞춤 제안 · AI",
       badgeClass: "bg-[#f2f4f8] text-text-2",
-      emoji: "⏱",
-      href: "/analysis/timing",
-      ...marketCard,
+      emoji: "✨",
+      href: data.recentNote
+        ? `/analysis?noteId=${encodeURIComponent(data.recentNote.id)}`
+        : HOME_CTA_AI.href,
+      ...aiCard,
     },
   ];
 
@@ -322,19 +331,30 @@ export function PersonalHome() {
               <span className="text-[#7ea2ff]">첫 노트를 시작해 볼까요?</span>
             )}
           </div>
+          <p className="text-[11px] leading-[1.5] text-[#9aa6b8]">{HOME_HERO_SUBLINE}</p>
           <div className="flex gap-2">
             <Link
-              href={data.recentNote ? `/notes/${data.recentNote.id}` : "/notes/new"}
+              href={data.recentNote ? `/notes/${data.recentNote.id}` : HOME_CTA_NOTE.href}
               className="flex-1 rounded-xl bg-primary p-3 text-center text-[13px] font-bold text-white"
               style={{ boxShadow: "0 8px 20px rgba(29,79,216,.4)" }}
             >
-              {data.recentNote ? "이어서 하기" : "노트 쓰기"}
+              {data.recentNote ? "이어서 하기" : HOME_CTA_NOTE.label}
             </Link>
             <Link
-              href="/map"
-              className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-[13px] font-bold text-[#c9d2e0]"
+              href={mapHref}
+              className="rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold text-[#c9d2e0]"
             >
               지도
+            </Link>
+            <Link
+              href={
+                data.recentNote
+                  ? `/analysis?noteId=${encodeURIComponent(data.recentNote.id)}`
+                  : HOME_CTA_AI.href
+              }
+              className="rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold text-[#c9d2e0]"
+            >
+              AI
             </Link>
           </div>
           {regionChips.length > 0 && (
@@ -358,12 +378,14 @@ export function PersonalHome() {
             <div className="flex items-center gap-2 rounded-xl bg-white/[.06] px-3 py-2.5">
               <div className="flex-1">
                 <div className="text-[9px] text-[#9aa6b8]">
-                  내집찾기 여정 · {journey.step}/5 단계 — {journey.label}
+                  내집찾기 여정 · {journey.step}/{JOURNEY_TOTAL} 단계 — {journey.label}
                 </div>
                 <div className="relative mt-1 h-[5px] rounded-[3px] bg-white/10">
                   <div
                     className="absolute left-0 h-[5px] rounded-[3px] bg-primary"
-                    style={{ width: `${(journey.step / 5) * 100}%` }}
+                    style={{
+                      width: `${(journey.step / JOURNEY_TOTAL) * 100}%`,
+                    }}
                   />
                 </div>
               </div>
@@ -437,6 +459,12 @@ export function PersonalHome() {
                     </Link>
                   )}
                   <Link
+                    href={`/map?region=${encodeURIComponent(r.name)}`}
+                    className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[10px] font-bold text-text-2"
+                  >
+                    지도에서 비교 ›
+                  </Link>
+                  <Link
                     href={`/listings?gu=${encodeURIComponent(r.gu)}`}
                     className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[10px] font-bold text-text-2"
                   >
@@ -498,20 +526,32 @@ export function PersonalHome() {
               <br />
               <span className="text-[#7ea2ff]">{heroSub}</span>
             </div>
-            <div className="flex gap-2.5">
+            <p className="text-[12px] text-[#9aa6b8]">{HOME_HERO_SUBLINE}</p>
+            <div className="flex flex-wrap gap-2.5">
               <Link
-                href={data.recentNote ? `/notes/${data.recentNote.id}` : "/notes/new"}
+                href={data.recentNote ? `/notes/${data.recentNote.id}` : HOME_CTA_NOTE.href}
                 className="rounded-xl bg-primary px-[22px] py-3 text-[13px] font-bold"
                 style={{ boxShadow: "0 8px 22px rgba(29,79,216,.45)", color: "#fff" }}
               >
-                {data.recentNote ? "최근 노트 이어서 완성하기" : "임장노트 쓰기"}
+                {data.recentNote ? "최근 노트 이어서 완성하기" : HOME_CTA_NOTE.label}
               </Link>
               <Link
-                href="/analysis"
-                className="rounded-xl border border-white/10 bg-white/10 px-[22px] py-3 text-[13px] font-bold"
+                href={mapHref}
+                className="rounded-xl border border-white/10 bg-white/10 px-[18px] py-3 text-[13px] font-bold"
                 style={{ color: "#fff" }}
               >
-                AI 분석 열기
+                {HOME_CTA_MAP.label}
+              </Link>
+              <Link
+                href={
+                  data.recentNote
+                    ? `/analysis?noteId=${encodeURIComponent(data.recentNote.id)}`
+                    : HOME_CTA_AI.href
+                }
+                className="rounded-xl border border-white/10 bg-white/10 px-[18px] py-3 text-[13px] font-bold"
+                style={{ color: "#fff" }}
+              >
+                {HOME_CTA_AI.label}
               </Link>
             </div>
             {/* 여정 트래커 + 통계 칩 3개 (실데이터, 없으면 —) */}
@@ -524,11 +564,13 @@ export function PersonalHome() {
                       <div className="relative h-1.5 flex-1 rounded-[3px] bg-white/10">
                         <div
                           className="absolute left-0 h-1.5 rounded-[3px] bg-primary"
-                          style={{ width: `${(journey.step / 5) * 100}%` }}
+                          style={{
+                            width: `${(journey.step / JOURNEY_TOTAL) * 100}%`,
+                          }}
                         />
                       </div>
                       <span className="text-[11px] font-extrabold text-[#7ea2ff]">
-                        {journey.step}/5 단계
+                        {journey.step}/{JOURNEY_TOTAL} 단계
                       </span>
                     </div>
                     <div className="mt-1 text-[10px] text-[#9aa6b8]">

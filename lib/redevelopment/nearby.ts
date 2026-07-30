@@ -121,7 +121,7 @@ async function fetchNearbyTransactions(p: RedevelopmentProject): Promise<NearbyT
 async function fetchNearbyListings(p: RedevelopmentProject): Promise<NearbyListing[]> {
   try {
     const d = 0.02; // ≈ 2km
-    const items = await listListingsInBounds({
+    const { items } = await listListingsInBounds({
       swLat: p.lat - d,
       swLng: p.lng - d,
       neLat: p.lat + d,

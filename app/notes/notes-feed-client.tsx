@@ -42,6 +42,11 @@ const FILTERS = ["최신", "점수순", "내 관심 지역"] as const;
 type Filter = (typeof FILTERS)[number];
 type ViewMode = "grid" | "feed";
 
+/** 예시 카드는 존재하지 않는 id로 상세를 열지 않는다 — 작성 CTA로 보낸다 */
+function noteHref(n: FeedNote): string {
+  return n.isExample ? "/notes/new" : `/notes/${n.id}`;
+}
+
 /** 시드 문자열 → 결정적 그라디언트(사진 없는 노트 커버/아바타용) */
 function seedGradient(seed: string): string {
   let h = 0;
@@ -83,7 +88,7 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
         {notes.slice(0, 14).map((n) => (
           <Link
             key={n.id}
-            href={`/notes/${n.id}`}
+            href={noteHref(n)}
             className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
           >
             <span
@@ -119,8 +124,8 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
 function GridTile({ n }: { n: FeedNote }) {
   return (
     <Link
-      href={`/notes/${n.id}`}
-      aria-label={`${n.title} 노트 보기`}
+      href={noteHref(n)}
+      aria-label={n.isExample ? "예시 — 임장노트 쓰기" : `${n.title} 노트 보기`}
       className="group relative block aspect-[3/4] overflow-hidden bg-bg md:rounded-2xl md:shadow-[0_1px_2px_rgba(16,28,54,.05),0_8px_20px_rgba(16,28,54,.06)] md:transition-transform md:duration-200 md:hover:-translate-y-1"
     >
       <CoverImage
@@ -159,7 +164,7 @@ function GridTile({ n }: { n: FeedNote }) {
 
 /* ── 피드 포스트 카드 (홈 피드) ── */
 function PostCard({ n }: { n: FeedNote }) {
-  const detailHref = `/notes/${n.id}`;
+  const detailHref = noteHref(n);
   return (
     <article className="mx-auto w-full max-w-[468px] overflow-hidden rounded-[16px] border border-line bg-surface shadow-[0_1px_2px_rgba(16,28,54,.04),0_10px_26px_rgba(16,28,54,.05)]">
       <div className="flex items-center gap-2.5 px-3.5 py-2.5">

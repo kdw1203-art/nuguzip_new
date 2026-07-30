@@ -49,6 +49,10 @@ export interface ComplexRow {
   build_year: number | null;
   total_floors: number | null;
   households: number | null;
+  /** 동 수 — V4 상세(detailFetchedAt) 있을 때만 */
+  building_count: number | null;
+  /** 총 주차 대수 — V4 상세 있을 때만 */
+  parking_count: number | null;
   parking_per_hh: number | null;
   builder_name: string | null;
   heating: string | null;
@@ -117,6 +121,8 @@ function toComplexRow(
     build_year: sample.build_year ?? null,
     total_floors: null,
     households: null,
+    building_count: null,
+    parking_count: null,
     parking_per_hh: null,
     builder_name: null,
     heating: null,
@@ -287,6 +293,8 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
     }
     // 세대수 — V4 상세에서 온 값만 온다(enrichFromApartmentComplex 주석 참조).
     base.households = apt.households ?? base.households;
+    base.building_count = apt.buildingCount ?? base.building_count;
+    base.parking_count = apt.parkingCount ?? base.parking_count;
     /* 세대당 주차대수는 여기서 계산한다. 두 값 다 같은 상세 응답에서 왔고,
        세대수가 0이면 나눗셈이 무한대가 되므로 households > 0 일 때만. */
     if (apt.parkingCount != null && apt.households != null && apt.households > 0) {

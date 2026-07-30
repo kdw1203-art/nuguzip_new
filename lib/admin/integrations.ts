@@ -116,10 +116,11 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
       id: "google-oauth",
       tier: "oauth",
       label: "Google 로그인",
-      description: "NextAuth OAuth 2.0 (GIS 권장 · 구 GSI JS deprecated)",
+      description:
+        "NextAuth OAuth 2.0 · Console 리디렉션 URI에 `https://nuguzip.com/api/auth/callback/google` 필수 (mismatch 시 docs/ops/google-oauth-redirect.md)",
       ok: google,
-      envKeys: "AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET",
-      docsUrl: "https://developers.google.com/identity/gsi/web/guides/overview",
+      envKeys: "AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET (+ AUTH_URL)",
+      docsUrl: "https://console.cloud.google.com/apis/credentials",
     },
     {
       id: "naver-oauth",

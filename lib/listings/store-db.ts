@@ -28,6 +28,17 @@ export type ListingType = (typeof LISTING_TYPES)[number];
 export const LISTING_SOURCES = ["owner", "agent"] as const;
 export type ListingSource = (typeof LISTING_SOURCES)[number];
 
+/** 매물 건물 유형 — 지도 필터·등록 폼 공용 */
+export const PROPERTY_KINDS = [
+  "apartment",
+  "villa",
+  "detached",
+  "officetel",
+  "commercial",
+  "other",
+] as const;
+export type PropertyKind = (typeof PROPERTY_KINDS)[number];
+
 export type ListingStatus = "pending" | "approved" | "rejected" | "closed";
 
 export const LISTING_TYPE_LABEL: Record<ListingType, string> = {
@@ -35,6 +46,30 @@ export const LISTING_TYPE_LABEL: Record<ListingType, string> = {
   jeonse: "전세",
   monthly: "월세",
 };
+
+export const PROPERTY_KIND_LABEL: Record<PropertyKind, string> = {
+  apartment: "아파트",
+  villa: "빌라",
+  detached: "단독주택",
+  officetel: "오피스텔",
+  commercial: "상가",
+  other: "기타",
+};
+
+export function isPropertyKind(v: string): v is PropertyKind {
+  return (PROPERTY_KINDS as readonly string[]).includes(v);
+}
+
+/** 설명 앞 `[아파트]` 등 구형 표기 → property_kind (컬럼 없을 때 폴백) */
+export function propertyKindFromLabel(label: string | null | undefined): PropertyKind | null {
+  const t = (label ?? "").trim();
+  if (!t) return null;
+  for (const [kind, lab] of Object.entries(PROPERTY_KIND_LABEL) as [PropertyKind, string][]) {
+    if (lab === t || t.includes(lab)) return kind;
+  }
+  if (t === "원룸") return "villa";
+  return null;
+}
 
 export const LISTING_SOURCE_LABEL: Record<ListingSource, string> = {
   owner: "집주인 직접",
@@ -62,6 +97,10 @@ export interface PublicListing {
   monthlyKrw: number | null;
   areaM2: number | null;
   floor: number | null;
+  propertyKind: PropertyKind | null;
+  rooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
   description: string | null;
   createdAt: string;
   /** 지도 핀 좌표 (등록 시 역지오코딩) */
@@ -102,6 +141,13 @@ export interface ListingDetail extends AdminListing {
 }
 
 function mapPublic(r: Record<string, unknown>): PublicListing {
+  const desc = r.description != null ? String(r.description) : null;
+  const kindRaw = r.property_kind != null ? String(r.property_kind) : "";
+  const kindFromCol = isPropertyKind(kindRaw) ? kindRaw : null;
+  const kindFromDesc = (() => {
+    const m = desc?.match(/^\[([^\]]+)\]/);
+    return m ? propertyKindFromLabel(m[1]) : null;
+  })();
   return {
     id: String(r.id ?? ""),
     authorLabel: String(r.author_label ?? "등록자"),
@@ -116,7 +162,17 @@ function mapPublic(r: Record<string, unknown>): PublicListing {
     monthlyKrw: r.monthly_krw != null ? Number(r.monthly_krw) : null,
     areaM2: r.area_m2 != null ? Number(r.area_m2) : null,
     floor: r.floor != null ? Number(r.floor) : null,
-    description: r.description != null ? String(r.description) : null,
+    propertyKind: kindFromCol ?? kindFromDesc,
+    rooms: r.rooms != null && Number.isFinite(Number(r.rooms)) ? Number(r.rooms) : null,
+    bathrooms:
+      r.bathrooms != null && Number.isFinite(Number(r.bathrooms))
+        ? Number(r.bathrooms)
+        : null,
+    parkingSpaces:
+      r.parking_spaces != null && Number.isFinite(Number(r.parking_spaces))
+        ? Number(r.parking_spaces)
+        : null,
+    description: desc,
     createdAt: String(r.created_at ?? new Date().toISOString()),
     lat: r.lat != null && Number.isFinite(Number(r.lat)) ? Number(r.lat) : null,
     lng: r.lng != null && Number.isFinite(Number(r.lng)) ? Number(r.lng) : null,
@@ -250,36 +306,60 @@ export interface BoundsListing {
   depositKrw: number | null;
   monthlyKrw: number | null;
   boostUntil: string | null;
+  propertyKind: PropertyKind | null;
+  rooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
 }
 
-/**
- * 뷰포트(bounds) 안의 승인 매물 — 지도 매물 레이어 마커용.
- * 좌표(lat/lng) 필수, 부스트 우선 → 최신순, 최대 limit건(기본 200).
- * getReadOnlySupabase 경유 — env 미설정/조회 실패 시 빈 배열.
- */
-export async function listListingsInBounds(bounds: {
+export type BoundsListingFilter = {
   swLat: number;
   swLng: number;
   neLat: number;
   neLng: number;
   limit?: number;
   listingType?: ListingType;
-}): Promise<BoundsListing[]> {
+  propertyKind?: PropertyKind;
+  /** 방 N개 이상 */
+  roomsMin?: number;
+  /** 화장실 N개 이상 */
+  bathroomsMin?: number;
+  /** 주차 N대 이상 */
+  parkingMin?: number;
+};
+
+/**
+ * 뷰포트(bounds) 안의 승인 매물 — 지도 매물 레이어 마커용.
+ * 좌표(lat/lng) 필수, 부스트 우선 → 최신순, 최대 limit건(기본 200).
+ * getReadOnlySupabase 경유 — env 미설정/조회 실패 시 빈 배열.
+ */
+export type BoundsListingResult = {
+  items: BoundsListing[];
+  /** false 면 DB에 상세 컬럼이 없어 유형·방·화장실·주차 필터가 신뢰할 수 없음 */
+  detailFiltersSupported: boolean;
+};
+
+export async function listListingsInBounds(
+  bounds: BoundsListingFilter,
+): Promise<BoundsListingResult> {
   const sb = getReadOnlySupabase();
-  if (!sb) return [];
+  if (!sb) return { items: [], detailFiltersSupported: false };
   // min/max 뒤집힘 정규화
   const swLat = Math.min(bounds.swLat, bounds.neLat);
   const neLat = Math.max(bounds.swLat, bounds.neLat);
   const swLng = Math.min(bounds.swLng, bounds.neLng);
   const neLng = Math.max(bounds.swLng, bounds.neLng);
-  if (![swLat, neLat, swLng, neLng].every((n) => Number.isFinite(n))) return [];
+  if (![swLat, neLat, swLng, neLng].every((n) => Number.isFinite(n))) {
+    return { items: [], detailFiltersSupported: true };
+  }
   const limit = Math.min(Math.max(Math.round(bounds.limit ?? 200), 1), 500);
+  const selectCols =
+    "id,lat,lng,listing_type,complex_name,price_krw,deposit_krw,monthly_krw,boost_until,created_at,property_kind,rooms,bathrooms,parking_spaces,description";
   try {
+    let detailFiltersSupported = true;
     let q = sb
       .from("listings")
-      .select(
-        "id,lat,lng,listing_type,complex_name,price_krw,deposit_krw,monthly_krw,boost_until,created_at",
-      )
+      .select(selectCols)
       .eq("status", "approved")
       .eq("is_hidden", false)
       .is("deleted_at", null)
@@ -290,29 +370,86 @@ export async function listListingsInBounds(bounds: {
       .gte("lng", swLng)
       .lte("lng", neLng);
     if (bounds.listingType) q = q.eq("listing_type", bounds.listingType);
-    const { data, error } = await q
+    if (bounds.propertyKind) q = q.eq("property_kind", bounds.propertyKind);
+    if (bounds.roomsMin != null) q = q.gte("rooms", bounds.roomsMin);
+    if (bounds.bathroomsMin != null) q = q.gte("bathrooms", bounds.bathroomsMin);
+    if (bounds.parkingMin != null) q = q.gte("parking_spaces", bounds.parkingMin);
+    let { data, error } = await q
       .order("boost_until", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(limit);
-    if (error || !data) return [];
-    return (data as Array<Record<string, unknown>>)
+
+    /* 마이그레이션 전(컬럼 없음)이면 기본 컬럼만으로 재시도 — 상세 필터는 클라이언트 폴백 */
+    if (error && /property_kind|rooms|bathrooms|parking_spaces/i.test(error.message)) {
+      detailFiltersSupported = false;
+      let q2 = sb
+        .from("listings")
+        .select(
+          "id,lat,lng,listing_type,complex_name,price_krw,deposit_krw,monthly_krw,boost_until,created_at,description",
+        )
+        .eq("status", "approved")
+        .eq("is_hidden", false)
+        .is("deleted_at", null)
+        .not("lat", "is", null)
+        .not("lng", "is", null)
+        .gte("lat", swLat)
+        .lte("lat", neLat)
+        .gte("lng", swLng)
+        .lte("lng", neLng);
+      if (bounds.listingType) q2 = q2.eq("listing_type", bounds.listingType);
+      const retry = await q2
+        .order("boost_until", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      /* 폴백 select 는 상세 컬럼이 없음 — mapPublic/클라 필터에서 null·추정 처리 */
+      data = (retry.data ?? null) as typeof data;
+      error = retry.error;
+    }
+
+    if (error || !data) return { items: [], detailFiltersSupported };
+    const items = (data as Array<Record<string, unknown>>)
       .filter((r) => Number.isFinite(Number(r.lat)) && Number.isFinite(Number(r.lng)))
-      .map((r) => ({
-        id: String(r.id ?? ""),
-        lat: Number(r.lat),
-        lng: Number(r.lng),
-        listingType: isListingType(String(r.listing_type))
-          ? (String(r.listing_type) as ListingType)
-          : "sale",
-        complexName: String(r.complex_name ?? ""),
-        priceKrw: r.price_krw != null ? Number(r.price_krw) : null,
-        depositKrw: r.deposit_krw != null ? Number(r.deposit_krw) : null,
-        monthlyKrw: r.monthly_krw != null ? Number(r.monthly_krw) : null,
-        boostUntil: r.boost_until != null ? String(r.boost_until) : null,
-      }));
+      .map((r) => {
+        const pub = mapPublic(r);
+        return {
+          id: String(r.id ?? ""),
+          lat: Number(r.lat),
+          lng: Number(r.lng),
+          listingType: isListingType(String(r.listing_type))
+            ? (String(r.listing_type) as ListingType)
+            : "sale",
+          complexName: String(r.complex_name ?? ""),
+          priceKrw: r.price_krw != null ? Number(r.price_krw) : null,
+          depositKrw: r.deposit_krw != null ? Number(r.deposit_krw) : null,
+          monthlyKrw: r.monthly_krw != null ? Number(r.monthly_krw) : null,
+          boostUntil: r.boost_until != null ? String(r.boost_until) : null,
+          propertyKind: pub.propertyKind,
+          rooms: pub.rooms,
+          bathrooms: pub.bathrooms,
+          parkingSpaces: pub.parkingSpaces,
+        };
+      })
+      .filter((row) => {
+        /* 컬럼 폴백 경로에서 서버 eq 를 못 걸었을 때 클라이언트 재필터 */
+        if (bounds.propertyKind && row.propertyKind !== bounds.propertyKind) return false;
+        if (bounds.roomsMin != null && (row.rooms == null || row.rooms < bounds.roomsMin))
+          return false;
+        if (
+          bounds.bathroomsMin != null &&
+          (row.bathrooms == null || row.bathrooms < bounds.bathroomsMin)
+        )
+          return false;
+        if (
+          bounds.parkingMin != null &&
+          (row.parkingSpaces == null || row.parkingSpaces < bounds.parkingMin)
+        )
+          return false;
+        return true;
+      });
+    return { items, detailFiltersSupported };
   } catch (e) {
     logger.warn("[listings] listListingsInBounds", e);
-    return [];
+    return { items: [], detailFiltersSupported: false };
   }
 }
 
@@ -441,13 +578,17 @@ export async function createListing(input: {
   monthlyKrw?: number | null;
   areaM2?: number | null;
   floor?: number | null;
+  propertyKind?: PropertyKind | null;
+  rooms?: number | null;
+  bathrooms?: number | null;
+  parkingSpaces?: number | null;
   description?: string | null;
   contact?: string | null;
   lat?: number | null;
   lng?: number | null;
   thumbnailUrl?: string | null;
   photos?: string[] | null;
-}): Promise<{ id: string }> {
+}): Promise<{ id: string; detailFieldsSaved: boolean }> {
   const sb = getServiceSupabase();
   if (!sb) throw new Error("저장소가 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
 
@@ -463,33 +604,46 @@ export async function createListing(input: {
     logger.warn("[listings] createListing:duplicate", e);
   }
 
-  const { data, error } = await sb
-    .from("listings")
-    .insert({
-      author_email: input.authorEmail,
-      author_label: input.authorLabel,
-      source: input.source,
-      listing_type: input.listingType,
-      complex_name: input.complexName,
-      region_name: input.regionName,
-      address: input.address ?? null,
-      price_krw: input.priceKrw ?? null,
-      deposit_krw: input.depositKrw ?? null,
-      monthly_krw: input.monthlyKrw ?? null,
-      area_m2: input.areaM2 ?? null,
-      floor: input.floor ?? null,
-      description: input.description ?? null,
-      contact: input.contact ?? null,
-      lat: input.lat ?? null,
-      lng: input.lng ?? null,
-      thumbnail_url: input.thumbnailUrl ?? null,
-      photos: input.photos && input.photos.length > 0 ? input.photos : null,
-      status: "pending",
-      is_duplicate: isDuplicate,
-      flag_reason: flagReason,
-    })
-    .select("id")
-    .single();
+  const baseRow = {
+    author_email: input.authorEmail,
+    author_label: input.authorLabel,
+    source: input.source,
+    listing_type: input.listingType,
+    complex_name: input.complexName,
+    region_name: input.regionName,
+    address: input.address ?? null,
+    price_krw: input.priceKrw ?? null,
+    deposit_krw: input.depositKrw ?? null,
+    monthly_krw: input.monthlyKrw ?? null,
+    area_m2: input.areaM2 ?? null,
+    floor: input.floor ?? null,
+    description: input.description ?? null,
+    contact: input.contact ?? null,
+    lat: input.lat ?? null,
+    lng: input.lng ?? null,
+    thumbnail_url: input.thumbnailUrl ?? null,
+    photos: input.photos && input.photos.length > 0 ? input.photos : null,
+    status: "pending" as const,
+    is_duplicate: isDuplicate,
+    flag_reason: flagReason,
+  };
+  const enriched = {
+    ...baseRow,
+    property_kind: input.propertyKind ?? null,
+    rooms: input.rooms ?? null,
+    bathrooms: input.bathrooms ?? null,
+    parking_spaces: input.parkingSpaces ?? null,
+  };
+
+  let detailFieldsSaved = true;
+  let { data, error } = await sb.from("listings").insert(enriched).select("id").single();
+  /* 마이그레이션 전이면 상세 컬럼 없이 재시도 */
+  if (error && /property_kind|rooms|bathrooms|parking_spaces/i.test(error.message ?? "")) {
+    detailFieldsSaved = false;
+    const retry = await sb.from("listings").insert(baseRow).select("id").single();
+    data = retry.data;
+    error = retry.error;
+  }
   if (error || !data) {
     logger.warn("[listings] createListing", error);
     throw new Error("매물 등록에 실패했어요. 잠시 후 다시 시도해 주세요.");
@@ -517,7 +671,7 @@ export async function createListing(input: {
     }
   }
 
-  return { id };
+  return { id, detailFieldsSaved };
 }
 
 /** 주소 정규화 — 공백 제거 + 소문자 (중복 판정 비교용). */

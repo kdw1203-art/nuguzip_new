@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* ============================================================
-   단지 정보 패널 (6a·item2) — 검색 결과/포인트 마커 선택 시.
-   GET /api/complex/[id]/detail 로 실데이터(이름·주소·최근 실거래가·세대수·
-   준공연도)를 가져와 하단 시트(모바일)/사이드 패널(데스크톱)로 표시한다.
-   CTA: 단지 상세 / 이 단지 임장노트(?apt=) / AI 분석(?complexId=).
-   데이터 없거나 실패해도 이름·닫기만으로 graceful. 서버 모듈 import 없이 로컬 타입. */
+   단지 정보 패널 — 검색/마커/목록 선택 시.
+   GET /api/complex/[id]/detail 로 실데이터·지역대비·면적대·후기·인근을
+   한 화면에 밀도 있게 표시 (허브의 축약판, 2~3배 정보량).
+   ============================================================ */
 
 interface ComplexDetail {
   id: string;
@@ -24,33 +23,87 @@ interface ComplexDetail {
   build_year: number | null;
   total_floors: number | null;
   households: number | null;
+  building_count: number | null;
+  parking_count: number | null;
   parking_per_hh: number | null;
   building_type: string | null;
+  builder_name: string | null;
+  heating: string | null;
+  kapt_code: string | null;
 }
 
 interface TxRow {
   yyyymm: string;
   area_m2: number | null;
   avg_manwon: number;
+  min_manwon: number | null;
+  max_manwon: number | null;
   deal_count: number;
+}
+
+interface ReviewSummary {
+  count: number;
+  noise: number | null;
+  parking: number | null;
+  mgmt: number | null;
+  neighbor: number | null;
+  transport: number | null;
+}
+
+interface PostRow {
+  id?: string;
+  title: string;
+  district?: string | null;
+  like_count?: number | null;
+  comment_count?: number | null;
+  view_count?: number | null;
+  created_at?: string;
+}
+
+interface AreaBandRow {
+  label: string;
+  count: number;
+  latestManwon: number;
+  latestYm: string;
+  avgManwon: number;
+}
+
+interface RegionRelativeRow {
+  district: string;
+  complexPerM2Manwon: number;
+  districtPerM2Manwon: number;
+  deltaPct: number;
+  saleChangePct: number | null;
+  jeonseRatio: number | null;
+  period: string | null;
+}
+
+interface NearbyRow {
+  id: string;
+  name: string;
+  meta: string;
 }
 
 interface DetailResponse {
   complex: ComplexDetail | null;
   transactions: TxRow[];
+  posts?: PostRow[];
+  reviews?: ReviewSummary | null;
+  areaBands?: AreaBandRow[];
+  regionRelative?: RegionRelativeRow | null;
+  nearby?: NearbyRow[];
+  listingCount?: number | null;
+  fetchedAt?: string;
   mode: string;
 }
 
 export interface ComplexInfoPanelProps {
   complexId: string;
-  /** 로딩 중 즉시 표시할 이름(검색 결과에서 전달) */
   initialName?: string;
   onClose: () => void;
-  /** 상세 로드 완료 시 좌표 통지 → 지도 recenter·마커 하이라이트 */
   onLoaded?: (info: { id: string; name: string; lat: number; lng: number }) => void;
 }
 
-/** 만원 → "12.3억" / "8,200만" (없으면 null) */
 function manwonLabel(manwon: number | null | undefined): string | null {
   if (manwon == null || !Number.isFinite(manwon) || manwon <= 0) return null;
   if (manwon >= 10_000) {
@@ -65,10 +118,12 @@ function ymLabel(yyyymm: string): string {
   return `${yyyymm.slice(0, 4)}.${yyyymm.slice(4, 6)}`;
 }
 
-/* C4 — 마커 패널 실거래 스파크라인. tx(면적대 혼재)를 월별 평균으로 집계해
-   컴팩트 추이 곡선으로 표시. 포인트 3개 미만이면 렌더하지 않는다. */
+function postDateLabel(iso?: string): string | null {
+  if (!iso || iso.length < 10) return null;
+  return `${iso.slice(5, 7)}.${iso.slice(8, 10)}`;
+}
+
 function Sparkline({ tx }: { tx: TxRow[] }) {
-  // 월별 평균가(만원) 집계 — 같은 달 여러 면적대 평균.
   const byYm = new Map<string, { sum: number; n: number }>();
   for (const t of tx) {
     if (!t.yyyymm || !Number.isFinite(t.avg_manwon) || t.avg_manwon <= 0) continue;
@@ -82,8 +137,8 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
     .sort((a, b) => a.ym.localeCompare(b.ym));
   if (series.length < 3) return null;
 
-  const W = 300;
-  const H = 46;
+  const W = 320;
+  const H = 52;
   const PAD = 4;
   const vals = series.map((s) => s.avg);
   const min = Math.min(...vals);
@@ -103,30 +158,38 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
   const deltaPct = first > 0 ? Math.round(((lastVal - first) / first) * 1000) / 10 : 0;
   const up = lastVal >= first;
   const stroke = up ? "#1d4fd8" : "#c62828";
+  const dealSum = tx.reduce((s, t) => s + (t.deal_count || 0), 0);
 
   return (
-    <div className="card rounded-[14px] px-[15px] py-3">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-[11px] font-bold text-text-2">실거래가 추이</span>
-        <span className={`text-[11px] font-extrabold ${up ? "text-primary" : "text-danger"}`}>
-          {ymLabel(series[0].ym)} → {ymLabel(series[series.length - 1].ym)} · {deltaPct > 0 ? "+" : ""}
+    <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-gradient-to-b from-[#f7f9fd] to-surface px-4 py-3">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <div>
+          <div className="text-[12px] font-extrabold text-ink">실거래가 추이</div>
+          <div className="text-[10px] text-text-3">
+            {series.length}개월 · 거래 {dealSum.toLocaleString("ko-KR")}건 · 국토부
+          </div>
+        </div>
+        <span className={`shrink-0 text-[12px] font-extrabold ${up ? "text-primary" : "text-danger"}`}>
+          {deltaPct > 0 ? "+" : ""}
           {deltaPct}%
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
-        <path d={area} fill={up ? "rgba(29,79,216,.08)" : "rgba(198,40,40,.08)"} />
+        <path d={area} fill={up ? "rgba(29,79,216,.10)" : "rgba(198,40,40,.08)"} />
         <path d={line} fill="none" stroke={stroke} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx={last.x} cy={last.y} r={2.6} fill={stroke} />
+        <circle cx={last.x} cy={last.y} r={2.8} fill={stroke} />
       </svg>
+      <div className="mt-1 flex justify-between text-[10px] text-text-3">
+        <span>{ymLabel(series[0].ym)}</span>
+        <span>
+          {manwonLabel(Math.round(min))} ~ {manwonLabel(Math.round(max))}
+        </span>
+        <span>{ymLabel(series[series.length - 1].ym)}</span>
+      </div>
     </div>
   );
 }
 
-/* C10 — 마커 패널에서 관심 단지 원클릭 토글(로그인 유도 포함).
-   GET/POST/DELETE /api/me/watchlist. 한도 403 → 토스트.
-   A3: 비로그인 401 은 /login 즉시 이동 대신 소프트 가입 프롬프트로 받는다 —
-   지도 보던 맥락을 끊지 않고, 어떤 액션이 가입으로 이어지는지도 집계된다.
-   mock 좌표(mock-)는 관심 대상이 아니라 렌더하지 않는다. */
 function WatchlistToggle({
   complexId,
   complexName,
@@ -235,6 +298,34 @@ function WatchlistToggle({
   );
 }
 
+const REVIEW_LABELS: { key: keyof Omit<ReviewSummary, "count">; label: string }[] = [
+  { key: "noise", label: "소음" },
+  { key: "parking", label: "주차" },
+  { key: "mgmt", label: "관리" },
+  { key: "neighbor", label: "이웃" },
+  { key: "transport", label: "교통" },
+];
+
+function SectionHead({
+  title,
+  sub,
+  right,
+}: {
+  title: string;
+  sub?: string;
+  right?: ReactNode;
+}) {
+  return (
+    <div className="mb-2 flex items-end justify-between gap-2">
+      <div>
+        <div className="text-[12px] font-extrabold text-ink">{title}</div>
+        {sub ? <div className="text-[10px] text-text-3">{sub}</div> : null}
+      </div>
+      {right}
+    </div>
+  );
+}
+
 export function ComplexInfoPanel({
   complexId,
   initialName,
@@ -280,8 +371,15 @@ export function ComplexInfoPanel({
   const complex = data?.complex ?? null;
   const name = complex?.name ?? initialName ?? "단지";
   const tx = data?.transactions ?? [];
+  const posts = data?.posts ?? [];
+  const reviews = data?.reviews ?? null;
+  const bands = data?.areaBands ?? [];
+  const region = data?.regionRelative ?? null;
+  const nearby = data?.nearby ?? [];
+  const listingCount = data?.listingCount;
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
-  const recent = [...tx].reverse().slice(0, 3);
+  const prev = tx.length > 1 ? tx[tx.length - 2] : null;
+  const recent = useMemo(() => [...tx].reverse().slice(0, 14), [tx]);
   const cityDistrict = [complex?.city, complex?.district].filter(Boolean).join(" ");
   const address =
     complex?.road_address ??
@@ -289,8 +387,14 @@ export function ComplexInfoPanel({
     (cityDistrict || (initialName ? "" : "주소 준비 중"));
 
   const priceLabel = manwonLabel(latest?.avg_manwon);
+  const momPct =
+    latest && prev && prev.avg_manwon > 0
+      ? Math.round(((latest.avg_manwon - prev.avg_manwon) / prev.avg_manwon) * 1000) / 10
+      : null;
+  const dealSum = recent.reduce((s, t) => s + (t.deal_count || 0), 0);
+  const dealAll = tx.reduce((s, t) => s + (t.deal_count || 0), 0);
+
   const detailHref = `/complex/${encodeURIComponent(complexId)}`;
-  // 임장노트 연결 — 단지명·지역·단지ID·좌표까지 프리필해 노트가 위치와 완전히 연동되게 한다.
   const noteHref = (() => {
     const params = new URLSearchParams({ apt: name });
     if (cityDistrict) params.set("region", cityDistrict);
@@ -303,20 +407,59 @@ export function ComplexInfoPanel({
   })();
   const analysisHref = `/analysis?complexId=${encodeURIComponent(complexId)}`;
 
-  const metaParts = [
-    complex?.build_year ? `${complex.build_year}년 준공` : null,
+  const chips = [
+    complex?.build_year
+      ? `${complex.build_year}년 · ${new Date().getFullYear() - complex.build_year}년차`
+      : null,
     complex?.households ? `${complex.households.toLocaleString("ko-KR")}세대` : null,
+    complex?.building_count ? `${complex.building_count}동` : null,
     complex?.building_type || null,
+    complex?.parking_per_hh ? `주차 ${complex.parking_per_hh}대/세대` : null,
+    complex?.heating || null,
+    complex?.builder_name || null,
+    listingCount != null && listingCount > 0 ? `매물 ${listingCount}건` : null,
+    posts.length > 0 ? `이야기 ${posts.length}건` : null,
   ].filter((v): v is string => Boolean(v));
 
+  const specRows = [
+    complex?.builder_name ? { label: "시공사", value: complex.builder_name } : null,
+    complex?.heating ? { label: "난방", value: complex.heating } : null,
+    complex?.parking_count
+      ? { label: "총 주차", value: `${complex.parking_count.toLocaleString("ko-KR")}대` }
+      : null,
+    complex?.parking_per_hh
+      ? { label: "세대당 주차", value: `${complex.parking_per_hh}대` }
+      : null,
+    complex?.households
+      ? { label: "세대수", value: `${complex.households.toLocaleString("ko-KR")}세대` }
+      : null,
+    complex?.building_count
+      ? { label: "동 수", value: `${complex.building_count}동` }
+      : null,
+    complex?.build_year
+      ? {
+          label: "준공",
+          value: `${complex.build_year}년 (${new Date().getFullYear() - complex.build_year}년차)`,
+        }
+      : null,
+    complex?.total_floors ? { label: "층수", value: `${complex.total_floors}층` } : null,
+    complex?.building_type ? { label: "유형", value: complex.building_type } : null,
+    complex?.kapt_code ? { label: "단지코드", value: complex.kapt_code } : null,
+    cityDistrict ? { label: "지역", value: cityDistrict } : null,
+  ].filter((v): v is { label: string; value: string } => Boolean(v));
+
+  const fetchedLabel = data?.fetchedAt
+    ? (() => {
+        const t = Date.parse(data.fetchedAt);
+        if (!Number.isFinite(t)) return null;
+        const d = new Date(t);
+        return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} 갱신`;
+      })()
+    : null;
+
   return (
-    /* 화면 가운데 큰 팝업으로 띄운다.
-       예전에는 데스크톱에서 좌측 380px 카드였다. 폭이 좁아 표와 그래프가 눌렸고,
-       같은 자리를 쓰는 필터·인기 단지 패널과 계속 부딪혔다(소유자 지적). 가운데
-       팝업이면 그 충돌이 구조적으로 사라지고, 넓어진 만큼 수치를 두 단으로 편다.
-       더 깊이 보고 싶으면 아래 CTA 로 단지 홈 페이지로 넘어간다. */
     <div
-      className="fixed inset-0 z-[48] flex items-center justify-center px-4 py-6"
+      className="fixed inset-0 z-[48] flex items-end justify-center px-0 py-0 sm:items-center sm:px-4 sm:py-6"
       role="dialog"
       aria-modal="true"
       aria-label={`${name} 단지 정보`}
@@ -325,119 +468,384 @@ export function ComplexInfoPanel({
         type="button"
         aria-label="단지 정보 닫기"
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.45)]"
+        className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.48)]"
       />
-      <aside className="glass-strong rise-in relative z-10 flex max-h-[min(88dvh,820px)] w-full max-w-[720px] flex-col overflow-hidden rounded-[24px] shadow-[0_28px_70px_rgba(16,28,54,.32)]">
-      <div className="flex items-start justify-between border-b border-[rgba(16,28,54,.06)] px-5 pb-3 pt-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-[21px] font-extrabold text-ink">{name}</span>
-            {loading && (
-              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            )}
+      <aside className="glass-strong rise-in relative z-10 flex max-h-[min(94dvh,960px)] w-full max-w-[820px] flex-col overflow-hidden rounded-t-[22px] shadow-[0_28px_70px_rgba(16,28,54,.34)] sm:rounded-[24px]">
+        {/* 히어로 — 가격 중심 + 칩 */}
+        <div className="relative border-b border-[rgba(16,28,54,.06)] bg-gradient-to-br from-[#eef3ff] via-surface to-[#f7f9fd] px-5 pb-3.5 pt-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="truncate text-[20px] font-extrabold tracking-tight text-ink sm:text-[22px]">
+                  {name}
+                </h2>
+                {loading && (
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                )}
+              </div>
+              {address ? (
+                <div className="mt-0.5 truncate text-[11px] text-text-2">{address}</div>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="패널 닫기"
+              className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-[14px] text-text-3"
+            >
+              ✕
+            </button>
           </div>
-          {address && <div className="mt-1 truncate text-xs text-text-2">{address}</div>}
-          {metaParts.length > 0 && (
-            <div className="mt-0.5 text-[11px] text-text-3">{metaParts.join(" · ")}</div>
+
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-text-3">
+                최근 실거래 평균
+              </div>
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <span className="text-[28px] font-extrabold leading-none text-ink tabular-nums sm:text-[32px]">
+                  {priceLabel ?? (loading ? "…" : "—")}
+                </span>
+                {momPct != null && (
+                  <span
+                    className={`text-[13px] font-extrabold ${
+                      momPct > 0 ? "text-primary" : momPct < 0 ? "text-danger" : "text-text-3"
+                    }`}
+                  >
+                    {momPct > 0 ? "+" : ""}
+                    {momPct}%
+                    <span className="ml-1 text-[10px] font-semibold text-text-3">전월</span>
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 text-[11px] text-text-3">
+                {latest
+                  ? `${ymLabel(latest.yyyymm)} · ${latest.deal_count}건${
+                      latest.min_manwon && latest.max_manwon
+                        ? ` · ${manwonLabel(latest.min_manwon)}~${manwonLabel(latest.max_manwon)}`
+                        : ""
+                    }`
+                  : failed
+                    ? "불러오지 못함"
+                    : "실거래 없음"}
+                {dealAll > 0 ? ` · ${tx.length}개월 ${dealAll}건` : ""}
+              </div>
+            </div>
+            <div className="grid shrink-0 grid-cols-2 gap-1.5 text-center">
+              <div className="min-w-[68px] rounded-xl bg-white/80 px-2 py-1.5 shadow-sm">
+                <div className="text-[10px] text-text-3">거래</div>
+                <div className="text-[13px] font-extrabold text-ink">
+                  {dealSum > 0 ? `${dealSum}` : "—"}
+                </div>
+              </div>
+              <div className="min-w-[68px] rounded-xl bg-white/80 px-2 py-1.5 shadow-sm">
+                <div className="text-[10px] text-text-3">세대</div>
+                <div className="text-[13px] font-extrabold text-ink">
+                  {complex?.households
+                    ? complex.households >= 1000
+                      ? `${(complex.households / 1000).toFixed(1)}천`
+                      : complex.households.toLocaleString("ko-KR")
+                    : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {chips.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1">
+              {chips.map((c) => (
+                <span
+                  key={c}
+                  className="chip-soft rounded-full px-2 py-[3px] text-[10px] font-bold text-text-2"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="패널 닫기"
-          className="ml-2 shrink-0 text-[15px] text-text-3"
-        >
-          ✕
-        </button>
-      </div>
 
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-        {failed && (
-          <div className="card rounded-[14px] px-4 py-3 text-xs text-text-2">
-            단지 상세 정보를 불러오지 못했어요. 아래 버튼으로 단지 홈에서 확인해 주세요.
-          </div>
-        )}
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5 sm:px-5">
+          {failed && (
+            <div className="rounded-xl border border-[#f0d0d0] bg-[#fff7f7] px-3.5 py-2.5 text-xs text-text-2">
+              단지 상세를 불러오지 못했어요. 전체 화면에서 다시 확인해 주세요.
+            </div>
+          )}
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="card rounded-xl px-3 py-[11px]">
-            <div className="text-[10px] text-text-3">최근 실거래가</div>
-            <div className="mt-0.5 text-base font-extrabold text-ink">
-              {priceLabel ?? (loading ? "…" : "준비 중")}
+          {data?.mode === "not_found" && !failed && (
+            <div className="rounded-xl bg-[#f5f7fb] px-3.5 py-2.5 text-xs text-text-2">
+              단지 마스터와 아직 연결되지 않았어요. 실거래·이야기는 아래를 참고해 주세요.
             </div>
-            <div className="text-[10px] text-text-3">
-              {latest ? ymLabel(latest.yyyymm) : "실거래 없음"}
-            </div>
-          </div>
-          <div className="card rounded-xl px-3 py-[11px]">
-            <div className="text-[10px] text-text-3">세대수</div>
-            <div className="mt-0.5 text-base font-extrabold text-ink">
-              {complex?.households ? complex.households.toLocaleString("ko-KR") : "—"}
-            </div>
-            <div className="text-[10px] text-text-3">
-              {complex?.parking_per_hh ? `주차 ${complex.parking_per_hh}대/세대` : "세대"}
-            </div>
-          </div>
-          <div className="card rounded-xl px-3 py-[11px]">
-            <div className="text-[10px] text-text-3">준공연도</div>
-            <div className="mt-0.5 text-base font-extrabold text-ink">
-              {complex?.build_year ?? "—"}
-            </div>
-            <div className="text-[10px] text-text-3">
-              {complex?.total_floors ? `${complex.total_floors}층` : "년"}
-            </div>
-          </div>
-        </div>
+          )}
 
-        {/* C4 실거래가 추이 스파크라인 (월 3개 이상일 때만) */}
-        <Sparkline tx={tx} />
-
-        {recent.length > 0 && (
-          <div className="card flex flex-col rounded-[14px] px-[15px] py-1">
-            <div className="py-2 text-[11px] font-bold text-text-2">최근 실거래</div>
-            {recent.map((t, i) => (
-              <div
-                key={`${t.yyyymm}-${i}`}
-                className={`flex items-center justify-between py-2 text-[13px] ${
-                  i < recent.length - 1 ? "border-t border-[#f0f3f8]" : "border-t border-[#f0f3f8]"
-                }`}
-              >
-                <span className="text-text-2">
-                  {ymLabel(t.yyyymm)} · {t.deal_count}건
-                  {t.area_m2 ? ` · ${Math.round(t.area_m2)}㎡` : ""}
-                </span>
-                <span className="font-extrabold text-ink">{manwonLabel(t.avg_manwon) ?? "—"}</span>
+          {/* 지역 대비 */}
+          {region && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-3">
+              <SectionHead
+                title="이 동네 대비"
+                sub={`${region.district} · ㎡당 · ${region.period ? ymLabel(region.period) : "최근"} 기준`}
+                right={
+                  <span
+                    className={`text-[18px] font-extrabold tabular-nums ${
+                      region.deltaPct >= 0 ? "text-primary" : "text-danger"
+                    }`}
+                  >
+                    {region.deltaPct >= 0 ? "+" : ""}
+                    {region.deltaPct}%
+                  </span>
+                }
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-[#f5f7fb] px-3 py-2">
+                  <div className="text-[10px] text-text-3">이 단지</div>
+                  <div className="text-[14px] font-extrabold text-ink tabular-nums">
+                    {region.complexPerM2Manwon.toLocaleString("ko-KR")}
+                    <span className="text-[10px] font-bold text-text-3">만/㎡</span>
+                  </div>
+                </div>
+                <div className="rounded-xl bg-[#f5f7fb] px-3 py-2">
+                  <div className="text-[10px] text-text-3">{region.district} 평균</div>
+                  <div className="text-[14px] font-extrabold text-ink tabular-nums">
+                    {region.districtPerM2Manwon.toLocaleString("ko-KR")}
+                    <span className="text-[10px] font-bold text-text-3">만/㎡</span>
+                  </div>
+                </div>
               </div>
-            ))}
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-text-3">
+                {region.saleChangePct != null && (
+                  <span>
+                    구 변동{" "}
+                    <b className={region.saleChangePct >= 0 ? "text-primary" : "text-danger"}>
+                      {region.saleChangePct >= 0 ? "+" : ""}
+                      {region.saleChangePct}%
+                    </b>
+                  </span>
+                )}
+                {region.jeonseRatio != null && (
+                  <span>
+                    전세가율 <b className="text-text-2">{region.jeonseRatio}%</b>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Sparkline tx={tx} />
+
+          {/* 스펙 그리드 */}
+          {specRows.length > 0 && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+              <SectionHead title="단지 스펙" sub="공공·단지 마스터 기준" />
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0 sm:grid-cols-3">
+                {specRows.map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-baseline justify-between gap-2 border-b border-[#f0f3f8] py-[7px] text-[12px] last:border-b-0"
+                  >
+                    <span className="shrink-0 text-text-3">{row.label}</span>
+                    <span className="truncate text-right font-bold text-ink">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 면적대 — 전체 */}
+          {bands.length > 0 && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+              <SectionHead title="면적대별 시세" sub={`${bands.length}개 구간 · 국토부`} />
+              <div className="overflow-hidden rounded-xl bg-[#f7f9fd]">
+                {bands.map((b, i) => (
+                  <div
+                    key={b.label}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 text-[12px] ${
+                      i > 0 ? "border-t border-[#e8edf5]" : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-bold text-ink">{b.label}</div>
+                      <div className="text-[10px] text-text-3">
+                        {b.count}건 · {ymLabel(b.latestYm)}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="font-extrabold text-ink">
+                        {manwonLabel(b.latestManwon) ?? "—"}
+                      </div>
+                      <div className="text-[10px] text-text-3">
+                        평균 {manwonLabel(b.avgManwon) ?? "—"}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 최근 실거래 14개월 */}
+          {recent.length > 0 && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+              <SectionHead
+                title="월별 실거래"
+                sub={`최근 ${recent.length}개월 · 합 ${dealSum}건`}
+              />
+              <div className="max-h-[220px] overflow-y-auto rounded-xl bg-[#f7f9fd]">
+                {recent.map((t, i) => {
+                  const p = recent[i + 1];
+                  const d =
+                    p && p.avg_manwon > 0
+                      ? Math.round(((t.avg_manwon - p.avg_manwon) / p.avg_manwon) * 1000) / 10
+                      : null;
+                  return (
+                    <div
+                      key={`${t.yyyymm}-${i}`}
+                      className={`flex items-center justify-between gap-2 px-3 py-[7px] text-[12px] ${
+                        i > 0 ? "border-t border-[#e8edf5]" : ""
+                      }`}
+                    >
+                      <span className="text-text-2">
+                        {ymLabel(t.yyyymm)}
+                        <span className="ml-1.5 text-text-3">{t.deal_count}건</span>
+                        {t.min_manwon && t.max_manwon && t.min_manwon !== t.max_manwon ? (
+                          <span className="ml-1 hidden text-[10px] text-text-3 sm:inline">
+                            {manwonLabel(t.min_manwon)}~{manwonLabel(t.max_manwon)}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="font-extrabold text-ink">
+                          {manwonLabel(t.avg_manwon) ?? "—"}
+                        </span>
+                        {d != null && (
+                          <span
+                            className={`text-[10px] font-bold ${
+                              d > 0 ? "text-primary" : d < 0 ? "text-danger" : "text-text-3"
+                            }`}
+                          >
+                            {d > 0 ? "+" : ""}
+                            {d}%
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!loading && recent.length === 0 && !failed && (
+            <div className="rounded-xl bg-[#f5f7fb] px-3.5 py-2.5 text-xs text-text-3">
+              최근 실거래 데이터가 아직 없어요.
+            </div>
+          )}
+
+          {/* 후기 */}
+          {reviews && reviews.count > 0 && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-3">
+              <SectionHead title="거주민 후기" sub={`${reviews.count}건 평균`} />
+              <div className="grid grid-cols-5 gap-1.5">
+                {REVIEW_LABELS.map(({ key, label }) => {
+                  const v = reviews[key];
+                  const pct = v != null ? Math.min(100, Math.round((v / 5) * 100)) : 0;
+                  return (
+                    <div key={key} className="rounded-xl bg-[#f5f7fb] px-1 py-2 text-center">
+                      <div className="text-[10px] text-text-3">{label}</div>
+                      <div className="text-[14px] font-extrabold text-ink">
+                        {v != null ? v : "—"}
+                      </div>
+                      <div className="mx-auto mt-1 h-1 w-[80%] overflow-hidden rounded-full bg-[#e2e7ee]">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 이야기 6건 */}
+          {posts.length > 0 && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+              <SectionHead title="단지 이야기" sub={`${posts.length}건 · 공개 글`} />
+              <div className="flex flex-col gap-1">
+                {posts.slice(0, 6).map((p, i) => (
+                  <div
+                    key={p.id || `${p.title}-${i}`}
+                    className="rounded-xl bg-[#f7f9fd] px-3 py-2"
+                  >
+                    <div className="truncate text-[12px] font-bold text-ink">{p.title}</div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-text-3">
+                      {postDateLabel(p.created_at) && <span>{postDateLabel(p.created_at)}</span>}
+                      {p.district && <span>{p.district}</span>}
+                      {p.like_count != null && <span>공감 {p.like_count}</span>}
+                      {p.comment_count != null && p.comment_count > 0 && (
+                        <span>댓글 {p.comment_count}</span>
+                      )}
+                      {p.view_count != null && p.view_count > 0 && (
+                        <span>조회 {p.view_count}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 인근 단지 */}
+          {nearby.length > 0 && (
+            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+              <SectionHead
+                title={`${complex?.district || "근처"} 다른 단지`}
+                sub="같은 지역 비교"
+              />
+              <div className="grid grid-cols-2 gap-1.5">
+                {nearby.map((n) => (
+                  <Link
+                    key={n.id}
+                    href={`/complex/${encodeURIComponent(n.id)}`}
+                    className="rounded-xl border border-[#e8edf5] bg-[#f7f9fd] px-3 py-2 transition-colors hover:border-primary/40"
+                  >
+                    <div className="truncate text-[12px] font-extrabold text-ink">{n.name}</div>
+                    <div className="mt-0.5 truncate text-[10px] text-text-3">
+                      {n.meta || "단지 정보"}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <WatchlistToggle complexId={complexId} complexName={name} />
+
+          <div className="grid grid-cols-2 gap-2">
+            <Link href={noteHref} className="btn-secondary rounded-xl p-[11px] text-center text-xs">
+              임장노트 쓰기
+            </Link>
+            <Link
+              href={analysisHref}
+              className="btn-secondary rounded-xl p-[11px] text-center text-xs"
+            >
+              AI 분석
+            </Link>
           </div>
-        )}
 
-        {!loading && recent.length === 0 && !failed && (
-          <div className="card rounded-[14px] px-4 py-3 text-xs text-text-3">
-            최근 실거래 데이터가 아직 없어요.
-          </div>
-        )}
+          {fetchedLabel && (
+            <p className="text-center text-[10px] text-text-3">{fetchedLabel} · 실거래·공공데이터</p>
+          )}
+        </div>
 
-        <WatchlistToggle complexId={complexId} complexName={name} />
-
-        <div className="grid grid-cols-2 gap-2">
-          <Link href={noteHref} className="btn-secondary rounded-xl p-[11px] text-center text-xs">
-            임장노트 쓰기
-          </Link>
-          <Link href={analysisHref} className="btn-secondary rounded-xl p-[11px] text-center text-xs">
-            AI 분석
+        <div className="border-t border-[rgba(16,28,54,.06)] bg-surface px-5 py-3">
+          <Link
+            href={detailHref}
+            className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
+          >
+            전체 화면으로 더 자세히 보기 ›
           </Link>
         </div>
-      </div>
-
-      {/* 더 깊이 보고 싶을 때의 다음 걸음 — 팝업에서 전체 페이지로. */}
-      <div className="border-t border-[rgba(16,28,54,.06)] px-5 py-3">
-        <Link
-          href={detailHref}
-          className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
-        >
-          전체 화면으로 자세히 보기 ›
-        </Link>
-      </div>
       </aside>
     </div>
   );

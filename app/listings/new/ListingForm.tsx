@@ -16,9 +16,16 @@ const TYPES = [
 
 type TypeKey = (typeof TYPES)[number]["key"];
 
-/** 건물 유형(라벨) — 별도 컬럼이 없어 설명 앞에 [유형]으로 함께 저장 */
-const CATEGORIES = ["아파트", "오피스텔", "빌라", "원룸", "상가"] as const;
-type Category = (typeof CATEGORIES)[number];
+/** 건물 유형 — listings.property_kind 와 매핑 */
+const CATEGORIES = [
+  { key: "apartment", label: "아파트" },
+  { key: "officetel", label: "오피스텔" },
+  { key: "villa", label: "빌라" },
+  { key: "detached", label: "단독주택" },
+  { key: "commercial", label: "상가" },
+  { key: "other", label: "기타" },
+] as const;
+type CategoryKey = (typeof CATEGORIES)[number]["key"];
 
 const SEOUL_GUS = DISTRICTS["서울특별시"];
 const DEFAULT_CENTER = { lat: 37.5665, lng: 126.978 };
@@ -49,7 +56,7 @@ export function ListingForm() {
   // 폼
   const [listingType, setListingType] = useState<TypeKey>("sale");
   const [source, setSource] = useState<"owner" | "agent">("owner");
-  const [category, setCategory] = useState<Category>("아파트");
+  const [category, setCategory] = useState<CategoryKey>("apartment");
   const [complexName, setComplexName] = useState("");
   const [regionName, setRegionName] = useState("");
   const [priceManwon, setPriceManwon] = useState("");
@@ -57,6 +64,9 @@ export function ListingForm() {
   const [monthlyManwon, setMonthlyManwon] = useState("");
   const [areaM2, setAreaM2] = useState("");
   const [floor, setFloor] = useState("");
+  const [rooms, setRooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
+  const [parkingSpaces, setParkingSpaces] = useState("");
   const [description, setDescription] = useState("");
   const [contact, setContact] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
@@ -67,6 +77,7 @@ export function ListingForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [detailFieldsSaved, setDetailFieldsSaved] = useState(true);
 
   const onIdle = useCallback((info: MapIdleInfo) => {
     mapCenterRef.current = info.center;
@@ -183,7 +194,6 @@ export function ListingForm() {
     setSubmitting(true);
     try {
       const desc = description.trim();
-      const fullDescription = category ? `[${category}] ${desc}`.trim() : desc;
       const manualThumb = thumbnailUrl.trim();
       // 업로드한 사진 + (있으면) 수기 입력한 대표 URL 을 합쳐 중복 제거 (첫 장이 대표)
       const allPhotos = Array.from(
@@ -196,6 +206,7 @@ export function ListingForm() {
         body: JSON.stringify({
           listingType,
           source,
+          propertyKind: category,
           complexName,
           regionName,
           priceManwon: priceManwon || null,
@@ -203,7 +214,10 @@ export function ListingForm() {
           monthlyManwon: monthlyManwon || null,
           areaM2: areaM2 || null,
           floor: floor || null,
-          description: fullDescription,
+          rooms: rooms || null,
+          bathrooms: bathrooms || null,
+          parkingSpaces: parkingSpaces || null,
+          description: desc,
           contact,
           lat: picked.lat,
           lng: picked.lng,
@@ -214,11 +228,15 @@ export function ListingForm() {
           agreeResponsibility: agree,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        detailFieldsSaved?: boolean;
+      };
       if (!res.ok) {
         setError(data.error ?? "등록에 실패했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }
+      setDetailFieldsSaved(data.detailFieldsSaved !== false);
       setDone(true);
     } catch {
       setError("네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
@@ -235,6 +253,13 @@ export function ListingForm() {
           <b>검수 후 노출됩니다 (1~2일)</b>. 형식 요건 확인이 끝나면 실매물 목록에 공개돼요.{" "}
           <b>승인되면 포인트가 지급돼요.</b> 반려 시 사유를 안내드립니다.
         </p>
+        {!detailFieldsSaved && (
+          <p className="rounded-xl bg-bg px-3 py-2.5 text-[12px] leading-[1.6] text-text-2">
+            거래유형·가격·위치는 저장됐어요. 다만 방·화장실·주차·건물유형 필드는 아직
+            DB에 반영되지 않아 이번에는 저장되지 않았습니다. 검수·필터에는 기본 정보만
+            쓰입니다.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Link href="/my/listings" className="btn-primary btn-md">
             내 매물 보기
@@ -385,16 +410,76 @@ export function ListingForm() {
         <div className="flex flex-wrap gap-1.5">
           {CATEGORIES.map((c) => (
             <button
-              key={c}
+              key={c.key}
               type="button"
-              onClick={() => setCategory(c)}
+              onClick={() => setCategory(c.key)}
               className={`chip px-4 py-2 text-[13px] ${
-                category === c ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
+                category === c.key
+                  ? "chip-active"
+                  : "bg-[rgba(255,255,255,.7)] text-text-2"
               }`}
             >
-              {c}
+              {c.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* 방 · 화장실 · 주차 */}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <label className={label} htmlFor="rooms">
+            방
+          </label>
+          <select
+            id="rooms"
+            className="input w-full"
+            value={rooms}
+            onChange={(e) => setRooms(e.target.value)}
+          >
+            <option value="">선택</option>
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+              <option key={n} value={n}>
+                {n}개
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={label} htmlFor="bathrooms">
+            화장실
+          </label>
+          <select
+            id="bathrooms"
+            className="input w-full"
+            value={bathrooms}
+            onChange={(e) => setBathrooms(e.target.value)}
+          >
+            <option value="">선택</option>
+            {[0, 1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>
+                {n}개
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={label} htmlFor="parkingSpaces">
+            주차
+          </label>
+          <select
+            id="parkingSpaces"
+            className="input w-full"
+            value={parkingSpaces}
+            onChange={(e) => setParkingSpaces(e.target.value)}
+          >
+            <option value="">선택</option>
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+              <option key={n} value={n}>
+                {n}대
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

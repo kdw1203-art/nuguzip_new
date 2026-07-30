@@ -367,14 +367,14 @@ export default async function MyPage() {
 
           {/* ── 관심 임장노트 (저장) ── */}
           <section className="flex flex-col gap-2.5">
-            <SectionHead title="관심 임장노트" href="/discover" hrefLabel="발견 피드" />
+            <SectionHead title="관심 임장노트" href="/notes" hrefLabel="공개 노트" />
             {savedNotes.length === 0 ? (
               <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
                 <div className="text-[13px] font-bold text-ink">저장한 노트가 없어요</div>
                 <div className="text-[11px] text-text-3">
                   마음에 드는 공개 노트를 저장하면 여기에 모여요
                 </div>
-                <Link href="/discover" className="btn-soft btn-md mt-1 no-underline">
+                <Link href="/notes" className="btn-soft btn-md mt-1 no-underline">
                   공개 노트 둘러보기
                 </Link>
               </div>

@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { NoteLocationSearch, type NoteLocation } from "./NoteLocationSearch";
 import { FieldCaptureConsentNotice } from "@/components/inspection/field-capture-consent";
 import { useMoment } from "@/app/components/motion/MomentProvider";
+import {
+  allKnownChecklistItems,
+  getChecklistForIntent,
+  type InspectionChecklistIntent,
+} from "@/lib/inspection/checklist";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -17,18 +22,23 @@ import { useMoment } from "@/app/components/motion/MomentProvider";
 const LEVELS = ["좋음", "보통", "아쉬움"] as const;
 type Level = (typeof LEVELS)[number];
 
+/** 현장 감각 평가 — 5축(scores)로 매핑되는 항목 */
 const CHECK_DEFAULTS: Record<string, Level> = {
   채광: "좋음",
   소음: "보통",
   주차: "아쉬움",
   교통: "좋음",
   경사: "보통",
+  보안: "보통",
+  학군: "보통",
+  관리: "보통",
+  호재: "보통",
 };
 
 const VISIT_GROUPS: { label: string; options: string[] }[] = [
   { label: "유형", options: ["아파트", "빌라", "오피스텔"] },
   { label: "시간대", options: ["오전", "오후", "저녁", "주말"] },
-  { label: "목적", options: ["실거주", "투자", "갈아타기"] },
+  { label: "목적", options: ["실거주", "투자", "전월세", "갈아타기"] },
 ];
 
 /* 방문 정보 3칩 ↔ metadata 키.
@@ -58,8 +68,18 @@ const TAG_CANDIDATES: TagDef[] = [
   { label: "남향 위주", tone: "pos" },
   { label: "역세권", tone: "pos" },
   { label: "커뮤니티 시설", tone: "pos" },
+  { label: "대단지", tone: "pos" },
+  { label: "공원 인접", tone: "pos" },
+  { label: "학원가", tone: "pos" },
+  { label: "관리 잘됨", tone: "pos" },
   { label: "이중주차", tone: "neg" },
   { label: "노후 배관", tone: "neg" },
+  { label: "층간소음", tone: "neg" },
+  { label: "엘리베이터 대기", tone: "neg" },
+  { label: "관리비 부담", tone: "neg" },
+  { label: "일조권 우려", tone: "neg" },
+  { label: "도로 소음", tone: "neg" },
+  { label: "냄새·환기", tone: "neg" },
 ];
 
 type TodoItem = { text: string; level: "중요" | "보통" };
@@ -67,7 +87,16 @@ type TodoItem = { text: string; level: "중요" | "보통" };
 const TODO_DEFAULTS: TodoItem[] = [
   { text: "겨울철 저층 채광 재확인", level: "중요" },
   { text: "관리비 내역·배관 교체 이력 문의", level: "보통" },
+  { text: "주차 만차 시간대 재확인", level: "중요" },
+  { text: "엘리베이터·택배 동선 확인", level: "보통" },
+  { text: "단지 내 소음원(놀이터·도로) 체감", level: "보통" },
 ];
+
+function intentFromVisitPurpose(purpose: string | undefined): InspectionChecklistIntent {
+  if (purpose === "투자") return "투자";
+  if (purpose === "전월세") return "전월세";
+  return "실거주";
+}
 
 const LEVEL_SCORE: Record<Level, number> = { 좋음: 5, 보통: 3, 아쉬움: 1 };
 
@@ -117,6 +146,8 @@ type NoteDraft = {
   loc?: NoteLocation;
   photos?: string[];
   isPublic?: boolean;
+  /** 카테고리 체크리스트 항목 id → 체크 여부 */
+  groupChecked?: Record<string, boolean>;
 };
 
 function isStringArray(v: unknown): v is string[] {
@@ -164,6 +195,12 @@ function parseDraft(raw: string | null): NoteDraft | null {
         };
       }
     }
+    const groupChecked: Record<string, boolean> = {};
+    if (o.groupChecked && typeof o.groupChecked === "object") {
+      for (const [k, val] of Object.entries(o.groupChecked as Record<string, unknown>)) {
+        if (typeof val === "boolean") groupChecked[k] = val;
+      }
+    }
     return {
       v: 1,
       savedAt: o.savedAt,
@@ -176,6 +213,7 @@ function parseDraft(raw: string | null): NoteDraft | null {
       loc,
       photos: isStringArray(o.photos) ? o.photos : undefined,
       isPublic: typeof o.isPublic === "boolean" ? o.isPublic : undefined,
+      groupChecked: Object.keys(groupChecked).length ? groupChecked : undefined,
     };
   } catch {
     return null;
@@ -190,15 +228,43 @@ function levelFromScore(v: number): Level {
   return "보통";
 }
 
-/* 저장 시 점수 매핑(경사→입지, 교통→교통, 채광·소음·주차→시설)의 근사 역변환 */
+/* 저장 시 점수 매핑의 근사 역변환 — 세분 항목은 같은 축 점수로 복원 */
 function checksFromNote(n: NoteFormInitialNote): Record<string, Level> {
+  const fromMeta = n.metadata?.fieldRatings;
+  if (fromMeta && typeof fromMeta === "object") {
+    const out = { ...CHECK_DEFAULTS };
+    for (const [k, val] of Object.entries(fromMeta as Record<string, unknown>)) {
+      if (typeof val === "string" && (LEVELS as readonly string[]).includes(val)) {
+        out[k] = val as Level;
+      }
+    }
+    return out;
+  }
+  const facility = levelFromScore(n.scores.facility);
   return {
-    채광: levelFromScore(n.scores.facility),
-    소음: levelFromScore(n.scores.facility),
-    주차: levelFromScore(n.scores.facility),
+    채광: facility,
+    소음: facility,
+    주차: facility,
+    보안: facility,
+    관리: facility,
     교통: levelFromScore(n.scores.transport),
     경사: levelFromScore(n.scores.location),
+    학군: levelFromScore(n.scores.school),
+    호재: levelFromScore(n.scores.future),
   };
+}
+
+function groupCheckedFromNote(n: NoteFormInitialNote | null | undefined): Record<string, boolean> {
+  if (!n?.checklist?.length) return {};
+  const known = allKnownChecklistItems();
+  const byLabel = new Map(known.map((it) => [it.label, it.id]));
+  const out: Record<string, boolean> = {};
+  for (const c of n.checklist) {
+    if (!c.done) continue;
+    const id = byLabel.get(c.label);
+    if (id) out[id] = true;
+  }
+  return out;
 }
 
 function splitTagText(s?: string): string[] {
@@ -320,13 +386,46 @@ export function NoteForm({
   );
   const [todoItems, setTodoItems] = useState<TodoItem[]>(() => {
     if (initialNote && initialNote.checklist.length > 0) {
-      return initialNote.checklist.map((c) => ({ text: c.label, level: "보통" as const }));
+      /* 카테고리 체크리스트 라벨은 그룹 UI로 복원 — 커스텀/기본 고려사항만 남긴다 */
+      const knownLabels = new Set(allKnownChecklistItems().map((it) => it.label));
+      const levels =
+        initialNote.metadata?.todoLevels &&
+        typeof initialNote.metadata.todoLevels === "object"
+          ? (initialNote.metadata.todoLevels as Record<string, unknown>)
+          : {};
+      const custom = initialNote.checklist
+        .filter((c) => !knownLabels.has(c.label))
+        .map((c) => ({
+          text: c.label,
+          level: levels[c.label] === "중요" ? ("중요" as const) : ("보통" as const),
+        }));
+      return custom.length ? custom : TODO_DEFAULTS;
     }
     if (template && template.sections.length > 0) return todosFromTemplate(template);
     return TODO_DEFAULTS;
   });
-  const [doneTodos, setDoneTodos] = useState<string[]>(() =>
-    initialNote ? initialNote.checklist.filter((c) => c.done).map((c) => c.label) : [],
+  const [doneTodos, setDoneTodos] = useState<string[]>(() => {
+    if (!initialNote) return [];
+    const knownLabels = new Set(allKnownChecklistItems().map((it) => it.label));
+    return initialNote.checklist
+      .filter((c) => c.done && !knownLabels.has(c.label))
+      .map((c) => c.label);
+  });
+  const [groupChecked, setGroupChecked] = useState<Record<string, boolean>>(() =>
+    groupCheckedFromNote(initialNote),
+  );
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    location: true,
+    complex: true,
+    interior: false,
+    school: false,
+    facility: false,
+    future: false,
+  });
+
+  const checklistGroups = useMemo(
+    () => getChecklistForIntent(intentFromVisitPurpose(visit["목적"])),
+    [visit],
   );
   const [satisfaction, setSatisfaction] = useState(() => {
     const v = metaNumber(initialNote?.metadata, "satisfaction");
@@ -378,6 +477,7 @@ export function NoteForm({
     loc,
     photos,
     isPublic,
+    groupChecked,
   });
 
   const writeDraft = () => {
@@ -420,6 +520,7 @@ export function NoteForm({
             loc,
             photos,
             isPublic,
+            groupChecked,
           } satisfies NoteDraft),
         );
         setSavedDraft(true);
@@ -428,7 +529,7 @@ export function NoteForm({
       }
     }, 1000);
     return () => clearTimeout(t);
-  }, [isEdit, checks, visit, tags, doneTodos, satisfaction, memo, loc, photos, isPublic]);
+  }, [isEdit, checks, visit, tags, doneTodos, satisfaction, memo, loc, photos, isPublic, groupChecked]);
 
   const restoreDraft = () => {
     if (!pendingDraft) return;
@@ -448,6 +549,7 @@ export function NoteForm({
     if (pendingDraft.loc) setLoc(pendingDraft.loc);
     if (pendingDraft.photos) setPhotos(pendingDraft.photos.slice(0, MAX_PHOTOS));
     if (typeof pendingDraft.isPublic === "boolean") setIsPublic(pendingDraft.isPublic);
+    if (pendingDraft.groupChecked) setGroupChecked(pendingDraft.groupChecked);
     setPendingDraft(null);
   };
 
@@ -550,6 +652,22 @@ export function NoteForm({
     const lv = (k: string): number => LEVEL_SCORE[checks[k] ?? "보통"];
     const posTags = tagDefs.filter((t) => t.tone === "pos" && tags.includes(t.label));
     const negTags = tagDefs.filter((t) => t.tone === "neg" && tags.includes(t.label));
+    const intent = intentFromVisitPurpose(visit["목적"]);
+    const groups = getChecklistForIntent(intent);
+    const categoryChecklist = groups.flatMap((g) =>
+      g.items
+        .filter((it) => groupChecked[it.id])
+        .map((it) => ({
+          label: it.label,
+          done: true,
+          groupId: g.id,
+        })),
+    );
+    const todoChecklist = todoItems.map((t) => ({
+      label: t.text,
+      done: doneTodos.includes(t.text),
+      level: t.level,
+    }));
     try {
       const payload = {
         title: `${aptName} 임장 기록`,
@@ -558,43 +676,43 @@ export function NoteForm({
         visitDate: initialNote?.visitDate ?? new Date().toISOString().slice(0, 10),
         transportation: visit["시간대"] ?? null,
         summary: memo.trim() || null,
-        /* 학군·미래가치는 이 폼에서 수집하지 않는다 — 만족도 슬라이더로 파생시키지 않고 0(미기록) 저장 */
         scores: {
-          location: lv("경사"),
-          school: 0,
+          location: Math.round((lv("경사") + lv("교통")) / 2),
+          school: lv("학군"),
           transport: lv("교통"),
-          facility: Math.round((lv("채광") + lv("소음") + lv("주차")) / 3),
-          future: 0,
+          facility: Math.round(
+            (lv("채광") + lv("소음") + lv("주차") + lv("보안") + lv("관리")) / 5,
+          ),
+          future: lv("호재"),
         },
-        checklist: todoItems.map((t) => ({
-          label: t.text,
-          done: doneTodos.includes(t.text),
-        })),
+        checklist: [...categoryChecklist, ...todoChecklist],
         sections: {
           memo: memo.trim() || undefined,
           pros: posTags.map((t) => t.label).join(" · ") || undefined,
           cons: negTags.map((t) => t.label).join(" · ") || undefined,
         },
         photos,
-        // 위치 연동 — 단지ID·좌표 + 종합 만족도·템플릿 출처를 메타데이터로 보존
         metadata: {
           complexId: loc.complexId ?? undefined,
           lat: loc.lat ?? undefined,
           lng: loc.lng ?? undefined,
           satisfaction,
           templateId: template?.id ?? undefined,
-          /* 방문 정보 3칩 전부 보존. 전에는 시간대만 transportation 으로 나가고
-             유형·목적은 저장 순간 버려졌다 — 눌러서 강조된 선택이 서버에 닿지 않았다. */
           propertyType: visit["유형"] || undefined,
           visitTimeSlot: visit["시간대"] || undefined,
           visitPurpose: visit["목적"] || undefined,
-          /* 목적이 AI 리포트의 intent 축(실거주·투자·전월세)과 겹칠 때만 intent 로도 적는다.
-             '갈아타기' 를 억지로 넣으면 리포트가 이를 실거주로 읽어 사용자가 고르지 않은
-             관점으로 요약해 버리므로, 매칭되는 값일 때만 넘긴다. */
           intent:
-            visit["목적"] === "투자" || visit["목적"] === "실거주"
+            visit["목적"] === "투자" ||
+            visit["목적"] === "실거주" ||
+            visit["목적"] === "전월세"
               ? visit["목적"]
               : undefined,
+          fieldRatings: checks,
+          todoLevels: Object.fromEntries(todoItems.map((t) => [t.text, t.level])),
+          checklistGroupCounts: {
+            checked: categoryChecklist.length,
+            groups: groups.length,
+          },
         },
         isPublic,
       };
@@ -626,18 +744,20 @@ export function NoteForm({
         title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
         subtitle: "AI가 이어서 정리하는 중이에요",
       });
-      // AI 정리 실호출 — 실패해도 저장은 성공 처리(상세에서 규칙 기반 배지로 구분)
+      // AI 정리 실호출 — 실패해도 저장은 성공. 상세에서 ?ai= 로 재시도 CTA 노출
       setAiRunning(true);
+      let aiOk = false;
       try {
-        await fetch("/api/inspection/ai", {
+        const aiRes = await fetch("/api/inspection/ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ noteId }),
         });
+        aiOk = aiRes.ok;
       } catch {
         /* AI 실패 무시 — 노트 저장은 완료됨 */
       }
-      router.push(`/notes/${noteId}`);
+      router.push(`/notes/${noteId}?ai=${aiOk ? "ok" : "fail"}`);
     } catch {
       setSaveError("네트워크 오류로 저장하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
     } finally {
@@ -654,7 +774,12 @@ export function NoteForm({
     { label: "위치", done: Boolean(loc.aptName.trim() && loc.region.trim()) },
     { label: "메모", done: memo.trim().length > 0 },
     { label: "태그", done: tags.length > 0 },
-    { label: "고려사항 체크", done: doneTodos.length > 0 },
+    {
+      label: "체크리스트",
+      done:
+        checklistGroups.some((g) => g.items.some((it) => groupChecked[it.id])) ||
+        doneTodos.length > 0,
+    },
     { label: "사진", done: photos.length > 0 },
   ];
   const progressDone = progressItems.filter((i) => i.done).length;
@@ -793,12 +918,12 @@ export function NoteForm({
           ))}
         </div>
 
-        {/* 현장 체크 — 세그먼트 평가 */}
+        {/* 현장 체크 — 세그먼트 평가 (9항목 → 5축 점수) */}
         <div className="rise-in-3 card flex flex-col gap-2.5 p-4">
           <div className="text-sm font-extrabold text-ink">
             현장 체크{" "}
             <span className="text-xs font-medium text-text-3">
-              탭 한 번으로 기록
+              좋음·보통·아쉬움으로 빠르게 기록
             </span>
           </div>
           {Object.keys(CHECK_DEFAULTS).map((item) => (
@@ -806,7 +931,7 @@ export function NoteForm({
               <span className="w-12 shrink-0 text-[13px] font-semibold text-text-1">
                 {item}
               </span>
-              <div className="flex gap-1.5">
+              <div className="flex flex-1 gap-1.5">
                 {LEVELS.map((lv) => {
                   const active = checks[item] === lv;
                   return (
@@ -816,7 +941,7 @@ export function NoteForm({
                       onClick={() =>
                         setChecks((prev) => ({ ...prev, [item]: lv }))
                       }
-                      className={`flex h-9 items-center justify-center rounded-[10px] px-3 text-xs ${
+                      className={`flex h-9 flex-1 items-center justify-center rounded-[10px] px-2 text-xs ${
                         active
                           ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
                           : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
@@ -849,6 +974,78 @@ export function NoteForm({
               aria-label="종합 만족도"
             />
           </div>
+        </div>
+
+        {/* 카테고리별 현장 체크리스트 (입지·단지·내부·학군·생활·호재) */}
+        <div className="rise-in-3 card flex flex-col gap-2 p-4">
+          <div className="text-[13px] font-extrabold text-ink">
+            체크리스트{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              목적({visit["목적"] || "실거주"})에 맞춰 항목이 바뀝니다 ·{" "}
+              {checklistGroups.reduce(
+                (n, g) => n + g.items.filter((it) => groupChecked[it.id]).length,
+                0,
+              )}
+              개 체크
+            </span>
+          </div>
+          {checklistGroups.map((g) => {
+            const open = openGroups[g.id] ?? false;
+            const doneCount = g.items.filter((it) => groupChecked[it.id]).length;
+            return (
+              <div key={g.id} className="rounded-xl border border-[#e8edf5] bg-bg/60">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenGroups((prev) => ({ ...prev, [g.id]: !open }))
+                  }
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                >
+                  <span className="text-[13px] font-bold text-ink">{g.title}</span>
+                  <span className="text-[11px] font-semibold text-text-3">
+                    {doneCount}/{g.items.length} {open ? "▴" : "▾"}
+                  </span>
+                </button>
+                {open && (
+                  <div className="flex flex-col gap-1 border-t border-[#e8edf5] px-2 py-2">
+                    {g.items.map((it) => {
+                      const checked = Boolean(groupChecked[it.id]);
+                      return (
+                        <button
+                          key={it.id}
+                          type="button"
+                          onClick={() =>
+                            setGroupChecked((prev) => ({
+                              ...prev,
+                              [it.id]: !prev[it.id],
+                            }))
+                          }
+                          className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-surface"
+                        >
+                          <span
+                            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] text-[11px] ${
+                              checked
+                                ? "bg-primary text-white"
+                                : "border-[1.5px] border-[#c9d4e5] bg-surface"
+                            }`}
+                          >
+                            {checked ? "✓" : ""}
+                          </span>
+                          <span
+                            className={`flex-1 text-[13px] ${
+                              checked ? "font-semibold text-ink" : "text-text-1"
+                            }`}
+                          >
+                            {it.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* 눈에 띈 점 태그 */}
@@ -890,12 +1087,12 @@ export function NoteForm({
           </div>
         </div>
 
-        {/* 고려사항 체크리스트 */}
+        {/* 고려사항 — 추가 확인 항목 (중요/보통) */}
         <div className="rise-in-5 card flex flex-col gap-2.5 p-4">
           <div className="text-[13px] font-extrabold text-ink">
             고려사항{" "}
             <span className="text-[11px] font-medium text-text-3">
-              결정 전 꼭 확인할 것
+              결정 전 꼭 확인할 것 · 중요도 표시
             </span>
           </div>
           {todoItems.map((todo) => {

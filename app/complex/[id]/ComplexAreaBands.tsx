@@ -18,7 +18,14 @@ function ymLabel(s: string): string {
   return s.length === 6 ? `${s.slice(0, 4)}.${s.slice(4)}` : s;
 }
 
-export async function ComplexAreaBands({ complexId }: { complexId: string }) {
+export async function ComplexAreaBands({
+  complexId,
+  compact = false,
+}: {
+  complexId: string;
+  /** 상단 배치 시 여백·패딩을 줄여 밀도 확보 */
+  compact?: boolean;
+}) {
   const bands = await getAreaBands(complexId).then(
     (data) => ({ ok: true as const, data }),
     (e: unknown) => {
@@ -26,11 +33,12 @@ export async function ComplexAreaBands({ complexId }: { complexId: string }) {
       return { ok: false as const };
     },
   );
+  const wrap = compact ? "rise-in-1" : "rise-in-5 mt-6";
   if (!bands.ok) {
     return (
-      <section className="rise-in-5 mt-6">
-        <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">면적대별 시세</h2>
-        <p className="card rounded-2xl p-5 text-[13px] text-text-3">
+      <section className={wrap}>
+        <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">면적대별 시세</h2>
+        <p className="card rounded-2xl px-4 py-3.5 text-[13px] text-text-3">
           지금은 면적대별 시세를 불러오지 못했어요. 거래가 없는 게 아니라 조회에 실패한
           것이라, 잠시 후 새로고침하면 보일 수 있어요.
         </p>
@@ -40,24 +48,27 @@ export async function ComplexAreaBands({ complexId }: { complexId: string }) {
   if (bands.data.length === 0) return null;
 
   return (
-    <section className="rise-in-5 mt-6">
-      <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
-        면적대별 시세 <span className="text-[12px] font-medium text-text-3">국토부 실거래 기준</span>
+    <section className={wrap}>
+      <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">
+        면적대별 시세{" "}
+        <span className="text-[11px] font-medium text-text-3">
+          {bands.data.length}구간 · 국토부
+        </span>
       </h2>
       <div className="card overflow-hidden rounded-2xl">
-        <table className="w-full text-left text-[13px]">
+        <table className="w-full text-left text-[12px] sm:text-[13px]">
           <thead>
-            <tr className="border-b border-line text-[11px] text-text-3">
-              <th className="px-4 py-2.5 font-semibold">면적</th>
-              <th className="px-4 py-2.5 text-right font-semibold">최근 실거래</th>
-              <th className="px-4 py-2.5 text-right font-semibold">평균</th>
-              <th className="px-4 py-2.5 text-right font-semibold">건수</th>
+            <tr className="border-b border-line bg-[#f7f9fd] text-[10px] text-text-3 sm:text-[11px]">
+              <th className="px-3 py-2 font-semibold sm:px-4 sm:py-2.5">면적</th>
+              <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">최근</th>
+              <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">평균</th>
+              <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">건수</th>
             </tr>
           </thead>
           <tbody>
             {bands.data.map((b) => (
               <tr key={b.label} className="border-b border-line last:border-0">
-                <td className="px-4 py-2.5 font-bold text-ink">{b.label}</td>
+                <td className="px-3 py-2 font-bold text-ink sm:px-4 sm:py-2.5">{b.label}</td>
                 <td className="px-4 py-2.5 text-right">
                   <span className="font-extrabold text-primary">{manwon(b.latestManwon)}</span>{" "}
                   <span className="text-[10px] text-text-3">{ymLabel(b.latestYm)}</span>

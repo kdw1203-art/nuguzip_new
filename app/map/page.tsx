@@ -14,8 +14,9 @@ export const dynamic = "force-dynamic";
 /* `?region=` 같은 필터가 붙어도 색인되는 주소는 `/map` 하나여야 한다.
    필터 조합마다 별도 URL 이 색인되면 같은 화면이 수십 개로 쪼개진다. */
 export const metadata = {
-  title: "지도 탐색 | 누구집",
-  description: "지도에서 단지 시세·실거래·임장노트를 한 번에 탐색하세요.",
+  title: "지도에서 비교 | 누구집",
+  description:
+    "임장노트에 남긴 단지를 실거래 시세와 함께 지도에서 비교하세요. 기록 → AI 정리 → 지도 비교 흐름의 비교 단계입니다.",
   alternates: seoAlternates("/map"),
 };
 

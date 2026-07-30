@@ -212,6 +212,7 @@ type NaverMapsApi = {
     title?: string;
     icon?: { content?: string; anchor?: unknown };
     zIndex?: number;
+    draggable?: boolean;
   }) => NaverMarker;
   InfoWindow: new (opts: { content: string }) => NaverInfoWindow;
   TrafficLayer: new () => NaverLayer;
@@ -238,6 +239,7 @@ type NaverMapsApi = {
     strokeOpacity?: number;
     strokeWeight?: number;
     strokeStyle?: string;
+    zIndex?: number;
   }) => NaverOverlay & { setPath?: (path: unknown[]) => void };
   Event: {
     /**
@@ -297,6 +299,8 @@ export type NaverMarker = {
   setPosition?: (position: unknown) => void;
   setIcon?: (icon: { content?: string; anchor?: unknown }) => void;
   setZIndex?: (zIndex: number) => void;
+  getPosition?: () => { lat: () => number; lng: () => number };
+  setDraggable?: (draggable: boolean) => void;
 };
 
 export type NaverInfoWindow = {

@@ -16,6 +16,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { NoteDetailActions } from "./note-actions";
+import { AiRetryButton } from "./ai-retry-button";
 import DeepDivePanel from "./DeepDivePanel";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
@@ -416,10 +417,13 @@ function noteJsonLd(
 
 export default async function NoteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ ai?: string }>;
 }) {
   const { id } = await params;
+  const { ai: aiStatus } = await searchParams;
 
   // 뷰어 세션 — 소유자면 비공개 노트도 열람 + 공개/비공개 토글 제공
   const session = await safeAuth();
@@ -481,6 +485,11 @@ export default async function NoteDetailPage({
   }
 
   const v = toView(realNote, visits);
+  const hasLlmAi =
+    v.aiBadge === "AI 생성";
+  const mapCompareHref = realNote.region.trim()
+    ? `/map?region=${encodeURIComponent(realNote.region.trim())}`
+    : "/map";
 
   return (
     <PageShell breadcrumb={v.breadcrumb}>
@@ -491,6 +500,22 @@ export default async function NoteDetailPage({
       />
       {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
       <JsonLd data={noteJsonLd(realNote, v)} />
+
+      {/* 저장 직후 루프 안내 — AI 성패에 따라 다음 행동 노출 */}
+      {isOwner && aiStatus === "ok" && hasLlmAi && (
+        <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+          AI 정리가 반영됐어요.{" "}
+          <Link href={mapCompareHref} className="font-extrabold text-primary">
+            지도에서 같은 지역 후보와 비교 ›
+          </Link>
+        </div>
+      )}
+      {isOwner && (aiStatus === "fail" || (aiStatus === "ok" && !hasLlmAi)) && (
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
+          노트는 저장됐어요. AI 정리는 아직 반영되지 않았거나 규칙 기반 요약만
+          있어요 — 아래에서 다시 정리할 수 있어요.
+        </div>
+      )}
 
       {/* 상단 액션 — 공유(클립보드)·공개 토글(소유자) 실동작 */}
       <div className="rise-in mb-4 flex flex-wrap items-center justify-end gap-2">
@@ -507,8 +532,19 @@ export default async function NoteDetailPage({
         >
           카드로 보기
         </Link>
-        {/* 회차 비교(예시 화면) 유도 링크는 '방문 기록 비교' 카드 1곳만 유지 — 상단·하단 중복 제거 */}
-        <Link href="/map" className="btn-primary btn-cta px-3.5 py-2 text-[13px]">
+        {isOwner && !hasLlmAi && (
+          <Link
+            href={`/analysis?noteId=${encodeURIComponent(id)}`}
+            className="btn-soft px-3.5 py-2 text-[13px] no-underline"
+          >
+            AI 분석 허브
+          </Link>
+        )}
+        {/* 지역 컨텍스트를 넘겨 지도 비교 루프가 끊기지 않게 한다 */}
+        <Link
+          href={mapCompareHref}
+          className="btn-primary btn-cta px-3.5 py-2 text-[13px]"
+        >
           지도에서 비교
         </Link>
       </div>
@@ -608,11 +644,19 @@ export default async function NoteDetailPage({
             </div>
 
             {/* ⑨ AI 작성부 구분 표시 — 저장된 aiAnalysis 우선, 없으면 규칙 기반 문구 + 배지 구분 */}
-            <AIPanel title="AI 요약">
+            <AIPanel
+              title="AI 요약"
+              cta={
+                hasLlmAi
+                  ? { href: mapCompareHref, label: "지도에서 비교" }
+                  : undefined
+              }
+            >
               <span className="mb-1.5 inline-flex items-center rounded border border-white/20 px-1.5 py-px text-[9px] font-semibold text-ai-muted">
                 {v.aiBadge}
               </span>
               <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
+              {isOwner && !hasLlmAi && <AiRetryButton noteId={id} />}
             </AIPanel>
 
             {/* ⑦⑧⑩ 출처·데이터 기준일 각주 + 지역·단지 실 내부 링크 */}
@@ -875,16 +919,30 @@ export default async function NoteDetailPage({
         </aside>
       </div>
 
-      {/* 15h-43 노트→분석 상시 연결: 상세 하단 고정 다음 행동
-          — 실노트는 노트 컨텍스트(?noteId=)를 /analysis 허브로 전달 */}
+      {/* 15h-43 노트→AI→지도 루프: 다음 행동을 퍼널 순서로 */}
       <div className="mt-5">
         <NextActions
           actions={[
-            {
-              label: "AI 분석 실행",
-              href: `/analysis?noteId=${encodeURIComponent(id)}`,
-              primary: true,
-            },
+            ...(hasLlmAi
+              ? [
+                  {
+                    label: "지도에서 비교",
+                    href: mapCompareHref,
+                    primary: true as const,
+                  },
+                  {
+                    label: "심화 AI 분석",
+                    href: `/analysis?noteId=${encodeURIComponent(id)}`,
+                  },
+                ]
+              : [
+                  {
+                    label: "AI 분석 실행",
+                    href: `/analysis?noteId=${encodeURIComponent(id)}`,
+                    primary: true as const,
+                  },
+                  { label: "지도에서 비교", href: mapCompareHref },
+                ]),
             ...(complexHref
               ? [{ label: "단지 허브 보기", href: complexHref }]
               : []),

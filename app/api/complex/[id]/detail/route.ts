@@ -10,7 +10,11 @@ import {
   getComplexById,
   getTransactionHistory,
   getComplexPosts,
+  getAreaBands,
+  getRegionRelative,
+  searchComplexes,
 } from "@/lib/complex/complex-store";
+import { listApprovedListings } from "@/lib/listings/store-db";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 
@@ -29,25 +33,54 @@ export async function GET(
     return NextResponse.json({ error: "complex id가 필요합니다." }, { status: 400 });
   }
 
-  /* 병렬 조회 — 하나라도 실패하면 503 이다.
-     예전엔 스토어가 실패해도 빈 배열·null 을 돌려줬고, 그러면 이 응답은
-     transactions: [] · mode: "not_found" 가 되어 "실거래가 없는, 존재하지 않는
-     단지"라고 단정했다. 못 읽은 것을 그렇게 말하면 안 된다. 404 도 아니고
-     200-빈값도 아닌 503 + Retry-After 만 사실이다. */
+  /* 병렬 조회 — 핵심(단지·실거래) 실패 시 503.
+     지역대비·인근·매물 건수는 패널 보조라 실패해도 핵심 응답은 유지한다. */
   let complex: Awaited<ReturnType<typeof getComplexById>>;
   let transactions: Awaited<ReturnType<typeof getTransactionHistory>>;
   let posts: Awaited<ReturnType<typeof getComplexPosts>>;
   let reviews: Awaited<ReturnType<typeof getReviewSummary>>;
+  let areaBands: Awaited<ReturnType<typeof getAreaBands>>;
   try {
-    [complex, transactions, posts, reviews] = await Promise.all([
+    [complex, transactions, posts, reviews, areaBands] = await Promise.all([
       getComplexById(id),
-      getTransactionHistory(id, 12),
-      getComplexPosts(id, 10),
+      getTransactionHistory(id, 24),
+      getComplexPosts(id, 12),
       getReviewSummary(id),
+      getAreaBands(id),
     ]);
   } catch (e) {
     return dbUnavailable("complex-detail", e);
   }
+
+  const [regionRelative, nearby, listingCount] = await Promise.all([
+    getRegionRelative(id).catch(() => null),
+    complex?.district
+      ? searchComplexes("", complex.district, 6)
+          .then((rows) =>
+            rows
+              .filter((c) => c.id !== id)
+              .slice(0, 4)
+              .map((c) => ({
+                id: c.id,
+                name: c.name,
+                meta: [
+                  c.build_year ? `${c.build_year}년` : null,
+                  c.households
+                    ? `${c.households.toLocaleString("ko-KR")}세대`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
+              })),
+          )
+          .catch(() => [])
+      : Promise.resolve([] as { id: string; name: string; meta: string }[]),
+    complex?.name
+      ? listApprovedListings({ complexName: complex.name })
+          .then((rows) => rows.length)
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   return NextResponse.json(
     {
@@ -55,6 +88,10 @@ export async function GET(
       transactions,
       posts,
       reviews,
+      areaBands,
+      regionRelative,
+      nearby,
+      listingCount,
       fetchedAt: new Date().toISOString(),
       mode: complex ? "db" : "not_found",
     },

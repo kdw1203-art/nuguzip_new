@@ -1,31 +1,28 @@
 /**
- * GET /api/map/listings?swLat=&swLng=&neLat=&neLng=&type=
+ * GET /api/map/listings?swLat=&swLng=&neLat=&neLng=&type=&kind=&roomsMin=&bathroomsMin=&parkingMin=
  *
  * 지도 "매물 레이어" — 뷰포트(bounds) 안의 승인(approved) 유저 등록 매물을
- * 지도 마커용 최소 정보로 반환한다. 핵심 약속("매물이 지도에 뜬다")의 데이터 소스.
+ * 지도 마커용 최소 정보로 반환한다.
  *
- * - 좌표(lat/lng)를 가진 승인 매물만 (비승인·좌표 없음은 제외).
- * - author_email 등 개인정보 비노출 — priceLabel/좌표/유형만.
- * - type(선택): sale|jeonse|monthly 필터.
- * - env 미설정·조회 실패 시 { items: [] } (지도는 계속 동작 · graceful).
- *
- * priceLabel: 매매=매매가(억/만), 전세=보증금(억/만), 월세=`보증/월세`(만원 단위).
- * 응답: { items: [{ id, lat, lng, priceLabel, listingType, boosted }] }
+ * - type: sale|jeonse|monthly
+ * - kind: apartment|villa|detached|officetel|commercial|other
+ * - roomsMin / bathroomsMin / parkingMin: 이상(값 있는 매물만)
  */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
 import {
   isListingType,
+  isPropertyKind,
   listListingsInBounds,
   type BoundsListing,
   type ListingType,
+  type PropertyKind,
 } from "@/lib/listings/store-db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 마커 하드캡 */
 const MAX_ITEMS = 200;
 
 const CACHE_HEADERS = {
@@ -39,13 +36,16 @@ export interface MapListingItem {
   priceLabel: string;
   listingType: ListingType;
   boosted: boolean;
+  propertyKind: PropertyKind | null;
+  rooms: number | null;
+  bathrooms: number | null;
+  parkingSpaces: number | null;
 }
 
 function clamp(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
 }
 
-/** 원(₩) → "12.3억" / "8,200만" 라벨 (없거나 0이면 "-") */
 function eokManLabel(krw: number | null): string {
   if (krw == null || !Number.isFinite(krw) || krw <= 0) return "-";
   if (krw >= 100_000_000) {
@@ -55,7 +55,6 @@ function eokManLabel(krw: number | null): string {
   return `${Math.round(krw / 10_000).toLocaleString("ko-KR")}만`;
 }
 
-/** 원(₩) → 만원 단위 정수 라벨 (월세 보증/월세용) */
 function manwonLabel(krw: number | null): string {
   if (krw == null || !Number.isFinite(krw) || krw <= 0) return "0";
   return Math.round(krw / 10_000).toLocaleString("ko-KR");
@@ -67,6 +66,13 @@ function priceLabelFor(l: BoundsListing): string {
     return `${manwonLabel(l.depositKrw)}/${manwonLabel(l.monthlyKrw)}`;
   }
   return eokManLabel(l.priceKrw);
+}
+
+function parseMinInt(raw: string | null, lo: number, hi: number): number | undefined {
+  if (raw == null || raw === "") return undefined;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n)) return undefined;
+  return Math.min(hi, Math.max(lo, n));
 }
 
 export async function GET(req: NextRequest) {
@@ -94,15 +100,25 @@ export async function GET(req: NextRequest) {
   const typeParam = url.searchParams.get("type");
   const listingType: ListingType | undefined =
     typeParam && isListingType(typeParam) ? typeParam : undefined;
+  const kindParam = url.searchParams.get("kind");
+  const propertyKind: PropertyKind | undefined =
+    kindParam && isPropertyKind(kindParam) ? kindParam : undefined;
+  const roomsMin = parseMinInt(url.searchParams.get("roomsMin"), 1, 7);
+  const bathroomsMin = parseMinInt(url.searchParams.get("bathroomsMin"), 0, 5);
+  const parkingMin = parseMinInt(url.searchParams.get("parkingMin"), 0, 10);
 
   try {
-    const rows = await listListingsInBounds({
+    const { items: rows, detailFiltersSupported } = await listListingsInBounds({
       swLat,
       swLng,
       neLat,
       neLng,
       limit: MAX_ITEMS,
       listingType,
+      propertyKind,
+      roomsMin,
+      bathroomsMin,
+      parkingMin,
     });
     const now = Date.now();
     const items: MapListingItem[] = rows.map((l) => ({
@@ -112,10 +128,19 @@ export async function GET(req: NextRequest) {
       priceLabel: priceLabelFor(l),
       listingType: l.listingType,
       boosted: l.boostUntil != null && Date.parse(l.boostUntil) > now,
+      propertyKind: l.propertyKind,
+      rooms: l.rooms,
+      bathrooms: l.bathrooms,
+      parkingSpaces: l.parkingSpaces,
     }));
-    return NextResponse.json({ items }, { headers: CACHE_HEADERS });
+    return NextResponse.json(
+      { items, detailFiltersSupported },
+      { headers: CACHE_HEADERS },
+    );
   } catch {
-    // 테이블 미구축·조회 실패 시에도 지도는 기존 마커로 계속 동작
-    return NextResponse.json({ items: [] }, { headers: CACHE_HEADERS });
+    return NextResponse.json(
+      { items: [], detailFiltersSupported: false },
+      { headers: CACHE_HEADERS },
+    );
   }
 }

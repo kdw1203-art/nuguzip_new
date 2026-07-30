@@ -6,7 +6,13 @@
  *   Authorization Code 흐름을 사용하세요.
  *
  * **본 앱**: NextAuth Google Provider = 서버 OAuth 2.0 (GIS와 동일 백엔드, 별도 GSI JS 불필요).
- * Redirect URI: `{AUTH_URL}/api/auth/callback/google`
+ * Redirect URI (Google Cloud Console → 승인된 리디렉션 URI에 정확히 등록):
+ * - `https://nuguzip.com/api/auth/callback/google`
+ * - `https://www.nuguzip.com/api/auth/callback/google` (www 사용 시)
+ * - `http://localhost:3000/api/auth/callback/google` (로컬)
+ *
+ * `redirect_uri_mismatch` 는 앱 코드가 아니라 Console 미등록이 원인입니다.
+ * 운영 절차: `docs/ops/google-oauth-redirect.md`
  *
  * @see https://developers.google.com/identity/gsi/web/guides/overview
  * @see https://developers.google.com/identity/sign-in/web/discontinued

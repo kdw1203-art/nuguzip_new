@@ -131,7 +131,32 @@ interface NaverMapProps {
    * 거리 재기 오버레이 — 찍은 지점들을 잇는 선과 지점 표시.
    * 구간 길이는 화면 쪽(map-client)에서 계산해 라벨로 넘긴다.
    */
-  measurePath?: { lat: number; lng: number; label?: string }[] | null;
+  measurePath?: {
+    lat: number;
+    lng: number;
+    label?: string;
+    selected?: boolean;
+  }[] | null;
+  /** 지점 드래그 종료 — 거리/반경 편집용 */
+  onMeasurePointDragEnd?: (index: number, point: { lat: number; lng: number }) => void;
+  /** 지점 클릭(선택) */
+  onMeasurePointClick?: (index: number) => void;
+  /**
+   * 추가 경로 오버레이 — 차량·도보 등 점선 경로.
+   * dashed 면 strokeStyle shortdash.
+   */
+  routeOverlays?: {
+    id: string;
+    path: { lat: number; lng: number }[];
+    color: string;
+    dashed?: boolean;
+    strokeWeight?: number;
+    strokeOpacity?: number;
+  }[] | null;
+  /** 반경 중심 드래그 */
+  onRadiusCenterDragEnd?: (point: { lat: number; lng: number }) => void;
+  /** 반경 가장자리 핸들 드래그 → 새 반경(m) */
+  onRadiusEdgeDragEnd?: (radiusM: number) => void;
   /** 클릭으로 지점을 찍는 모드일 때 커서를 십자로 바꾼다. */
   crosshair?: boolean;
   /**
@@ -166,6 +191,11 @@ export function NaverMap({
   circle = null,
   onMapClick,
   measurePath = null,
+  onMeasurePointDragEnd,
+  onMeasurePointClick,
+  routeOverlays = null,
+  onRadiusCenterDragEnd,
+  onRadiusEdgeDragEnd,
   crosshair = false,
   onMarkerHover,
 }: NaverMapProps) {
@@ -184,13 +214,28 @@ export function NaverMap({
   const trafficLayerRef = useRef<NaverLayer | null>(null);
   const cadastralLayerRef = useRef<NaverLayer | null>(null);
   const circleRef = useRef<NaverCircle | null>(null);
+  const circlePropRef = useRef(circle);
+  circlePropRef.current = circle;
   const bicycleLayerRef = useRef<NaverLayer | null>(null);
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const onMarkerHoverRef = useRef(onMarkerHover);
   onMarkerHoverRef.current = onMarkerHover;
+  const onMeasurePointDragEndRef = useRef(onMeasurePointDragEnd);
+  onMeasurePointDragEndRef.current = onMeasurePointDragEnd;
+  const onMeasurePointClickRef = useRef(onMeasurePointClick);
+  onMeasurePointClickRef.current = onMeasurePointClick;
+  const onRadiusCenterDragEndRef = useRef(onRadiusCenterDragEnd);
+  onRadiusCenterDragEndRef.current = onRadiusCenterDragEnd;
+  const onRadiusEdgeDragEndRef = useRef(onRadiusEdgeDragEnd);
+  onRadiusEdgeDragEndRef.current = onRadiusEdgeDragEnd;
   const measureLineRef = useRef<(NaverLayer & { setPath?: (p: unknown[]) => void }) | null>(null);
   const measureMarkersRef = useRef<NaverMarker[]>([]);
+  const routeLinesRef = useRef<NaverLayer[]>([]);
+  const radiusCenterMarkerRef = useRef<NaverMarker | null>(null);
+  const radiusEdgeMarkerRef = useRef<NaverMarker | null>(null);
+  /** 드래그 직후 click 이 한 번 더 오는 경우 지점 추가를 막는다 */
+  const suppressMapClickUntilRef = useRef(0);
 
   useEffect(() => {
     if (!NAVER_MAP_CLIENT_ID) {
@@ -431,6 +476,7 @@ export function NaverMap({
     const maps = getNaverMapsWindow().naver?.maps;
     if (!maps) return;
     maps.Event.addListener(mapRef.current, "click", (...args: unknown[]) => {
+      if (Date.now() < suppressMapClickUntilRef.current) return;
       const cb = onMapClickRef.current;
       if (!cb) return;
       const ev = args[0] as { coord?: { lat: () => number; lng: () => number } } | undefined;
@@ -442,9 +488,7 @@ export function NaverMap({
 
   /*
    * 거리 재기 오버레이 — 지점 사이를 잇는 선 + 각 지점의 번호/누적거리 뱃지.
-   *
-   * 선은 하나를 만들어 setPath 로 갈아 끼우고, 지점 마커는 매번 지웠다 다시
-   * 그린다. 지점은 많아야 열 몇 개라 증분 갱신의 이득보다 코드가 단순한 쪽이 낫다.
+   * 지점은 드래그 가능(편집). 드래그 직후 map click 은 suppress 한다.
    */
   useEffect(() => {
     if (!loaded || !mapRef.current) return;
@@ -463,8 +507,6 @@ export function NaverMap({
     }
 
     const path = pts.map((p) => new maps.LatLng(p.lat, p.lng));
-    // SDK 구성에 따라 Polyline 이 없을 수 있다. 없으면 선만 포기하고 지점은 그린다 —
-    // 여기서 던지면 지도 전체가 죽는다.
     if (pts.length >= 2 && typeof maps.Polyline === "function") {
       if (measureLineRef.current?.setPath) {
         measureLineRef.current.setPath(path);
@@ -474,8 +516,10 @@ export function NaverMap({
           map,
           path,
           strokeColor: "#1d4fd8",
-          strokeOpacity: 0.9,
-          strokeWeight: 3,
+          strokeOpacity: 0.95,
+          strokeWeight: 3.5,
+          strokeStyle: "solid",
+          zIndex: 350,
         });
       }
     } else {
@@ -487,12 +531,132 @@ export function NaverMap({
         position: new maps.LatLng(p.lat, p.lng),
         map,
         title: p.label ?? `지점 ${i + 1}`,
-        icon: { content: buildMeasurePointHtml(i + 1, p.label), anchor: new maps.Point(0, 0) },
-        zIndex: 400,
+        icon: {
+          content: buildMeasurePointHtml(i + 1, p.label, p.selected),
+          anchor: new maps.Point(0, 0),
+        },
+        zIndex: p.selected ? 460 : 400,
+        draggable: true,
+      });
+      maps.Event.addListener(marker, "click", () => {
+        onMeasurePointClickRef.current?.(i);
+      });
+      maps.Event.addListener(marker, "dragend", () => {
+        suppressMapClickUntilRef.current = Date.now() + 400;
+        const pos = marker.getPosition?.();
+        if (!pos) return;
+        onMeasurePointDragEndRef.current?.(i, { lat: pos.lat(), lng: pos.lng() });
       });
       measureMarkersRef.current.push(marker);
     });
   }, [loaded, measurePath]);
+
+  /* 차량·도보 등 추가 경로 점선 */
+  useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const maps = getNaverMapsWindow().naver?.maps;
+    if (!maps || typeof maps.Polyline !== "function") return;
+    const map = mapRef.current;
+
+    for (const line of routeLinesRef.current) line.setMap(null);
+    routeLinesRef.current = [];
+
+    const overlays = routeOverlays ?? [];
+    for (const ov of overlays) {
+      if (!ov.path || ov.path.length < 2) continue;
+      const line = new maps.Polyline({
+        map,
+        path: ov.path.map((p) => new maps.LatLng(p.lat, p.lng)),
+        strokeColor: ov.color,
+        strokeOpacity: ov.strokeOpacity ?? 0.85,
+        strokeWeight: ov.strokeWeight ?? 3,
+        strokeStyle: ov.dashed ? "shortdash" : "solid",
+        zIndex: 340,
+      });
+      routeLinesRef.current.push(line);
+    }
+  }, [loaded, routeOverlays]);
+
+  /* 반경 중심·가장자리 드래그 핸들 */
+  useEffect(() => {
+    if (!loaded || !mapRef.current) return;
+    const maps = getNaverMapsWindow().naver?.maps;
+    if (!maps) return;
+    const map = mapRef.current;
+
+    const clearHandles = () => {
+      radiusCenterMarkerRef.current?.setMap(null);
+      radiusCenterMarkerRef.current = null;
+      radiusEdgeMarkerRef.current?.setMap(null);
+      radiusEdgeMarkerRef.current = null;
+    };
+
+    if (!circle) {
+      clearHandles();
+      return;
+    }
+
+    const centerLL = new maps.LatLng(circle.lat, circle.lng);
+    /* 북쪽 가장자리 — 대략 111_320 m/도 */
+    const edgeLat = circle.lat + circle.radiusM / 111_320;
+    const edgeLL = new maps.LatLng(edgeLat, circle.lng);
+
+    if (radiusCenterMarkerRef.current) {
+      radiusCenterMarkerRef.current.setPosition?.(centerLL);
+      radiusCenterMarkerRef.current.setMap?.(map);
+    } else {
+      const centerMarker = new maps.Marker({
+        position: centerLL,
+        map,
+        title: "반경 중심 · 드래그해서 이동",
+        icon: {
+          content: buildRadiusHandleHtml("중심"),
+          anchor: new maps.Point(0, 0),
+        },
+        zIndex: 420,
+        draggable: true,
+      });
+      maps.Event.addListener(centerMarker, "dragend", () => {
+        suppressMapClickUntilRef.current = Date.now() + 400;
+        const pos = centerMarker.getPosition?.();
+        if (!pos) return;
+        onRadiusCenterDragEndRef.current?.({ lat: pos.lat(), lng: pos.lng() });
+      });
+      radiusCenterMarkerRef.current = centerMarker;
+    }
+
+    if (radiusEdgeMarkerRef.current) {
+      radiusEdgeMarkerRef.current.setPosition?.(edgeLL);
+      radiusEdgeMarkerRef.current.setMap?.(map);
+    } else {
+      const edgeMarker = new maps.Marker({
+        position: edgeLL,
+        map,
+        title: "반경 조절 · 드래그해서 크기 변경",
+        icon: {
+          content: buildRadiusHandleHtml("크기"),
+          anchor: new maps.Point(0, 0),
+        },
+        zIndex: 421,
+        draggable: true,
+      });
+      maps.Event.addListener(edgeMarker, "dragend", () => {
+        suppressMapClickUntilRef.current = Date.now() + 400;
+        const pos = edgeMarker.getPosition?.();
+        const c = circlePropRef.current;
+        if (!pos || !c) return;
+        const dLat = pos.lat() - c.lat;
+        const dLng = pos.lng() - c.lng;
+        const meters = Math.sqrt(
+          (dLat * 111_320) ** 2 +
+            (dLng * 111_320 * Math.cos((c.lat * Math.PI) / 180)) ** 2,
+        );
+        const next = Math.min(5000, Math.max(100, Math.round(meters / 50) * 50));
+        onRadiusEdgeDragEndRef.current?.(next);
+      });
+      radiusEdgeMarkerRef.current = edgeMarker;
+    }
+  }, [loaded, circle]);
 
   // 마커 증분 업데이트: id로 diff 하여 추가/갱신/제거만 반영(destroy-all 제거).
   useEffect(() => {
@@ -737,13 +901,19 @@ function escapeHtml(v: string): string {
  *
  * 이름이 길면 잘라서 말줄임한다 — 마커가 길어지면 지도가 이름으로 덮인다.
  */
-/** 거리 재기 지점 — 번호 원 + (있으면) 누적거리 라벨. */
-function buildMeasurePointHtml(index: number, label?: string): string {
-  const dot = `<span style="display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:9999px;background:#1d4fd8;color:#fff;font:700 11px sans-serif;border:2px solid #fff;box-shadow:0 2px 6px rgba(16,28,54,.3);flex:none">${index}</span>`;
+/** 거리 재기 지점 — 번호 원 + (있으면) 누적거리 라벨. selected 면 링 강조. */
+function buildMeasurePointHtml(index: number, label?: string, selected?: boolean): string {
+  const ring = selected ? "0 0 0 3px rgba(29,79,216,.35)" : "0 2px 6px rgba(16,28,54,.3)";
+  const bg = selected ? "#0b3db8" : "#1d4fd8";
+  const dot = `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:9999px;background:${bg};color:#fff;font:700 11px sans-serif;border:2px solid #fff;box-shadow:${ring};flex:none;cursor:grab">${index}</span>`;
   const text = label
     ? `<span style="border-radius:9999px;background:rgba(29,79,216,.95);color:#fff;font:700 11px sans-serif;padding:3px 8px;white-space:nowrap;box-shadow:0 2px 6px rgba(16,28,54,.25)">${escapeHtml(label)}</span>`
     : "";
   return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:5px">${dot}${text}</div>`;
+}
+
+function buildRadiusHandleHtml(label: string): string {
+  return `<div style="transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:4px;cursor:grab"><span style="width:14px;height:14px;border-radius:9999px;background:#fff;border:2.5px solid #1d4fd8;box-shadow:0 2px 8px rgba(16,28,54,.28)"></span><span style="border-radius:9999px;background:rgba(16,28,54,.82);color:#fff;font:700 10px sans-serif;padding:2px 7px;white-space:nowrap">${escapeHtml(label)}</span></div>`;
 }
 
 const NO_PRICE_LABEL_MAX = 9;

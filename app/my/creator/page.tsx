@@ -50,11 +50,8 @@ export default async function CreatorDashboardPage() {
             <Link href="/login" className="btn-primary btn-md mt-2">
               로그인하고 시작하기
             </Link>
-            <Link
-              href="/discover"
-              className="text-[12px] font-bold text-text-3"
-            >
-              발견 피드 둘러보기 ›
+            <Link href="/notes" className="text-[12px] font-bold text-text-3">
+              공개 임장노트 둘러보기 ›
             </Link>
           </div>
         </div>

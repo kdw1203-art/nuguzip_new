@@ -42,12 +42,12 @@ const MAP_TOUR_STEPS: CoachmarkStep[] = [
   {
     target: "map-filter",
     title: "조건으로 후보 좁히기",
-    body: "면적·준공연도·세대수·통근시간으로 임장 후보를 걸러낼 수 있어요. 반경 그리기도 여기 있습니다.",
+    body: "면적·준공연도·거래유형·매물 조건으로 임장 후보를 걸러낼 수 있어요. 반경 그리기도 여기 있습니다.",
   },
   {
     target: "map-note-cta",
     title: "본 곳은 바로 임장노트로",
-    body: "관심 단지를 찾았다면 노트를 남겨두세요. 다음 방문 때 체크리스트와 사진이 그대로 이어집니다.",
+    body: "관심 단지를 찾았다면 노트를 남기세요. 저장 후 AI 정리 → 지도에서 후보를 나란히 비교하는 흐름으로 이어집니다.",
   },
 ];
 
@@ -139,6 +139,41 @@ const LISTING_TRADE_OPTIONS: { key: string; label: string; type?: string }[] = [
   { key: "sale", label: "매매", type: "sale" },
   { key: "jeonse", label: "전세", type: "jeonse" },
   { key: "monthly", label: "월세", type: "monthly" },
+];
+
+/** 건물 유형 — 매물 레이어 필터 (/api/map/listings?kind=) */
+const PROPERTY_KIND_OPTIONS: { key: string; label: string; kind?: string }[] = [
+  { key: "all", label: "전체" },
+  { key: "apartment", label: "아파트", kind: "apartment" },
+  { key: "villa", label: "빌라", kind: "villa" },
+  { key: "detached", label: "단독주택", kind: "detached" },
+  { key: "officetel", label: "오피스텔", kind: "officetel" },
+  { key: "commercial", label: "상가", kind: "commercial" },
+];
+
+const ROOM_OPTIONS: { key: string; label: string; min?: number }[] = [
+  { key: "all", label: "전체" },
+  ...[1, 2, 3, 4, 5, 6, 7].map((n) => ({
+    key: String(n),
+    label: `${n}개+`,
+    min: n,
+  })),
+];
+
+const BATH_OPTIONS: { key: string; label: string; min?: number }[] = [
+  { key: "all", label: "전체" },
+  ...[1, 2, 3, 4].map((n) => ({
+    key: String(n),
+    label: `${n}개+`,
+    min: n,
+  })),
+];
+
+const PARKING_OPTIONS: { key: string; label: string; min?: number }[] = [
+  { key: "all", label: "전체" },
+  { key: "1", label: "1대+", min: 1 },
+  { key: "2", label: "2대+", min: 2 },
+  { key: "3", label: "3대+", min: 3 },
 ];
 
 /* 가격대·면적대·준공연도 고정 칩(PRICE_OPTIONS/AREA_OPTIONS/YEAR_OPTIONS)과
@@ -444,6 +479,10 @@ interface MapListingItem {
   priceLabel: string;
   listingType: "sale" | "jeonse" | "monthly";
   boosted: boolean;
+  propertyKind?: string | null;
+  rooms?: number | null;
+  bathrooms?: number | null;
+  parkingSpaces?: number | null;
 }
 
 /** listing_type → 한글 라벨 (서버 모듈 import 없이 클라이언트 로컬) */
@@ -605,15 +644,44 @@ export function MapClient({
 
   /* ===== 거리 재기 =====
      지점을 차례로 찍으면 직선으로 잇고 구간·누적 거리를 보여 준다.
-     (예: 단지 → 역, 단지 → 학교) */
+     드래그·선택 삭제·수정, 차량/도보 점선 경로까지 지원. */
   const [measureMode, setMeasureMode] = useState(false);
   const [measurePoints, setMeasurePoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [selectedMeasureIdx, setSelectedMeasureIdx] = useState<number | null>(null);
+  /** 수정 모드 — 다음 지도 클릭이 선택 지점을 이동 */
+  const [measureRelocate, setMeasureRelocate] = useState(false);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeResult, setRouteResult] = useState<{
+    straightM: number;
+    driving: {
+      distanceM: number;
+      durationMin: number;
+      path: { lat: number; lng: number }[];
+      basis: string;
+    } | null;
+    walking: {
+      distanceM: number;
+      durationMin: number;
+      path: { lat: number; lng: number }[];
+      basis: string;
+    } | null;
+  } | null>(null);
+  const [showDrivingRoute, setShowDrivingRoute] = useState(true);
+  const [showWalkingRoute, setShowWalkingRoute] = useState(true);
   const [listingItems, setListingItems] = useState<MapListingItem[]>([]);
 
   /* ===== 가격대·면적대·준공연도 필터 상태 (확대 · item3) =====
      세대수·유형은 실데이터 소스가 없어 필터에서 제외 — 패널에 "데이터 준비 중"으로 표시 */
   /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
   const [listingTradeKey, setListingTradeKey] = useState("all");
+  /** 매물 상세 필터 — 유형·방·화장실·주차 (등록 매물 기준) */
+  const [propertyKindKey, setPropertyKindKey] = useState("all");
+  /** API가 상세 컬럼 폴백이면 false — 칩은 유지하되 안내 문구로 정직하게 */
+  const [detailFiltersSupported, setDetailFiltersSupported] = useState(true);
+  const [roomsKey, setRoomsKey] = useState("all");
+  const [bathroomsKey, setBathroomsKey] = useState("all");
+  const [parkingKey, setParkingKey] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   /* 상세 필터 — 뷰포트 분포(막대그래프)와 선택 범위 */
@@ -666,9 +734,20 @@ export function MapClient({
   const commuteActive =
     commuteThreshold !== null && commuteOfficeResolved && commuteMinutes !== null;
 
-  const filterActive = rangeActive || listingTradeKey !== "all" || commuteKey !== "off";
+  const listingDetailFilterActive =
+    propertyKindKey !== "all" ||
+    roomsKey !== "all" ||
+    bathroomsKey !== "all" ||
+    parkingKey !== "all";
+  const filterActive =
+    rangeActive ||
+    listingTradeKey !== "all" ||
+    listingDetailFilterActive ||
+    commuteKey !== "off";
   const activeCount =
-    [listingTradeKey, commuteKey].filter((k) => k !== "all" && k !== "off").length +
+    [listingTradeKey, propertyKindKey, roomsKey, bathroomsKey, parkingKey, commuteKey].filter(
+      (k) => k !== "all" && k !== "off",
+    ).length +
     (["price", "area", "year", "households"] as const).filter(
       (k) => ranges[k][0] !== null || ranges[k][1] !== null,
     ).length;
@@ -676,6 +755,10 @@ export function MapClient({
   const resetFilters = useCallback(() => {
     setRanges(EMPTY_RANGES);
     setListingTradeKey("all");
+    setPropertyKindKey("all");
+    setRoomsKey("all");
+    setBathroomsKey("all");
+    setParkingKey("all");
     setCommuteKey("off");
   }, []);
 
@@ -790,12 +873,107 @@ export function MapClient({
         const prev = measurePoints[i - 1];
         acc += haversineM(prev.lat, prev.lng, p.lat, p.lng);
       }
-      return { ...p, label: i === 0 ? "시작" : formatDistanceM(acc) };
+      return {
+        ...p,
+        label: i === 0 ? "시작" : formatDistanceM(acc),
+        selected: selectedMeasureIdx === i,
+      };
     });
+  }, [measureMode, measurePoints, selectedMeasureIdx]);
+
+  const routeOverlays = useMemo(() => {
+    if (!measureMode || !routeResult) return null;
+    const out: {
+      id: string;
+      path: { lat: number; lng: number }[];
+      color: string;
+      dashed?: boolean;
+      strokeWeight?: number;
+      strokeOpacity?: number;
+    }[] = [];
+    if (showDrivingRoute && routeResult.driving?.path?.length) {
+      out.push({
+        id: "driving",
+        path: routeResult.driving.path,
+        color: "#e67e22",
+        dashed: true,
+        strokeWeight: 3.5,
+        strokeOpacity: 0.9,
+      });
+    }
+    if (showWalkingRoute && routeResult.walking?.path?.length) {
+      out.push({
+        id: "walking",
+        path: routeResult.walking.path,
+        color: "#0d9488",
+        dashed: true,
+        strokeWeight: 3,
+        strokeOpacity: 0.85,
+      });
+    }
+    return out.length ? out : null;
+  }, [measureMode, routeResult, showDrivingRoute, showWalkingRoute]);
+
+  /* 시작·끝 바뀌면 차량/도보 경로 재조회 */
+  useEffect(() => {
+    if (!measureMode || measurePoints.length < 2) {
+      setRouteResult(null);
+      setRouteError(null);
+      setRouteLoading(false);
+      return;
+    }
+    const start = measurePoints[0];
+    const goal = measurePoints[measurePoints.length - 1];
+    const controller = new AbortController();
+    setRouteLoading(true);
+    setRouteError(null);
+    const t = window.setTimeout(() => {
+      fetch("/api/map/route-measure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ start, goal }),
+        signal: controller.signal,
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          if (!j) {
+            setRouteError("경로를 불러오지 못했어요");
+            setRouteResult(null);
+            return;
+          }
+          setRouteResult({
+            straightM: Number(j.straight?.distanceM) || 0,
+            driving: j.driving
+              ? {
+                  distanceM: Number(j.driving.distanceM),
+                  durationMin: Number(j.driving.durationMin),
+                  path: Array.isArray(j.driving.path) ? j.driving.path : [],
+                  basis: String(j.driving.basis ?? "directions"),
+                }
+              : null,
+            walking: j.walking
+              ? {
+                  distanceM: Number(j.walking.distanceM),
+                  durationMin: Number(j.walking.durationMin),
+                  path: Array.isArray(j.walking.path) ? j.walking.path : [],
+                  basis: String(j.walking.basis ?? "estimate"),
+                }
+              : null,
+          });
+        })
+        .catch((e: unknown) => {
+          if (e instanceof DOMException && e.name === "AbortError") return;
+          setRouteError("경로 조회에 실패했어요");
+        })
+        .finally(() => setRouteLoading(false));
+    }, 280);
+    return () => {
+      controller.abort();
+      window.clearTimeout(t);
+    };
   }, [measureMode, measurePoints]);
 
-  /* 지도 클릭 — 거리 재기가 켜져 있으면 지점 추가, 반경 모드면 중심 이동.
-     둘 다 꺼져 있으면 아무 일도 하지 않는다(기존 동작 유지). */
+  /* 지도 클릭 — 거리 재기가 켜져 있으면 지점 추가/수정, 반경 모드면 중심 이동. */
   const mapClickMode: "measure" | "radius" | null = measureMode
     ? "measure"
     : radiusMode
@@ -805,30 +983,92 @@ export function MapClient({
   const handleMapClick = useCallback(
     (p: { lat: number; lng: number }) => {
       if (measureMode) {
+        if (measureRelocate && selectedMeasureIdx != null) {
+          setMeasurePoints((prev) =>
+            prev.map((pt, i) => (i === selectedMeasureIdx ? p : pt)),
+          );
+          setMeasureRelocate(false);
+          return;
+        }
         setMeasurePoints((prev) => [...prev, p]);
+        setSelectedMeasureIdx(null);
         return;
       }
       if (radiusMode) setRadiusCenter(p);
     },
-    [measureMode, radiusMode],
+    [measureMode, radiusMode, measureRelocate, selectedMeasureIdx],
   );
 
-  // 컴팩트 칩 행: 매매/전세 토글 + 매물 토글 + "필터" 확장 버튼 (+활성 배지) + 초기화
+  const deleteSelectedMeasurePoint = useCallback(() => {
+    if (selectedMeasureIdx == null) return;
+    setMeasurePoints((prev) => prev.filter((_, i) => i !== selectedMeasureIdx));
+    setSelectedMeasureIdx(null);
+    setMeasureRelocate(false);
+  }, [selectedMeasureIdx]);
+
+  const openExternalDirections = useCallback(
+    (mode: "car" | "walk") => {
+      if (measurePoints.length < 2) return;
+      const a = measurePoints[0];
+      const b = measurePoints[measurePoints.length - 1];
+      /* 네이버지도 길찾기 URL — 앱/웹이 처리 */
+      const url = `https://map.naver.com/v5/directions/${a.lng},${a.lat},출발지,,,,/${b.lng},${b.lat},도착지,,,,/-/${mode === "walk" ? "walk" : "car"}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    },
+    [measurePoints],
+  );
+
+  const copyMeasureSummary = useCallback(async () => {
+    if (measurePoints.length < 2) return;
+    const lines = [
+      `직선 ${formatDistanceM(measureStraightM)}`,
+      routeResult?.driving
+        ? `차량 ${formatDistanceM(routeResult.driving.distanceM)} · 약 ${routeResult.driving.durationMin}분`
+        : null,
+      routeResult?.walking
+        ? `도보 추정 ${formatDistanceM(routeResult.walking.distanceM)} · 약 ${routeResult.walking.durationMin}분`
+        : null,
+    ].filter(Boolean);
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+    } catch {
+      /* 클립보드 불가 — 조용히 무시 */
+    }
+  }, [measurePoints.length, measureStraightM, routeResult]);
+
+  /** 상단 매매/전세/월세 강조 — 월세는 매물 레이어, 매매·전세는 실거래+매물 유형 */
+  const topTradeKey =
+    listingTradeKey === "monthly"
+      ? "monthly"
+      : txType === "rent"
+        ? "jeonse"
+        : "sale";
+
+  // 컴팩트 칩 행: 매매/전세/월세 + 매물 + 필터 …
   const filterBar = (
     <>
       {(
         [
-          { key: "trade", label: "매매" },
-          { key: "rent", label: "전세" },
+          { key: "sale", label: "매매" },
+          { key: "jeonse", label: "전세" },
+          { key: "monthly", label: "월세" },
         ] as const
       ).map((t) => (
         <button
           key={t.key}
           type="button"
-          aria-pressed={txType === t.key}
-          onClick={() => setTxType(t.key)}
+          aria-pressed={topTradeKey === t.key}
+          onClick={() => {
+            if (t.key === "monthly") {
+              setListingTradeKey("monthly");
+              setShowListings(true);
+              return;
+            }
+            setTxType(t.key === "jeonse" ? "rent" : "trade");
+            setListingTradeKey(t.key);
+          }}
           className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
-            txType === t.key
+            topTradeKey === t.key
               ? "chip-active"
               : "bg-[rgba(255,255,255,.75)] text-text-2"
           }`}
@@ -893,8 +1133,12 @@ export function MapClient({
           setRadiusMode((v) => {
             const next = !v;
             // 켤 때는 거리 재기를 끈다 — 클릭 한 번이 두 뜻을 가질 수 없다.
-            if (next) setMeasureMode(false);
-            else setRadiusCenter(null);
+            if (next) {
+              setMeasureMode(false);
+              setMeasurePoints([]);
+              setSelectedMeasureIdx(null);
+              setMeasureRelocate(false);
+            } else setRadiusCenter(null);
             return next;
           })
         }
@@ -937,8 +1181,15 @@ export function MapClient({
         onClick={() =>
           setMeasureMode((v) => {
             const next = !v;
-            if (next) setRadiusMode(false);
-            else setMeasurePoints([]);
+            if (next) {
+              setRadiusMode(false);
+              setRadiusCenter(null);
+            } else {
+              setMeasurePoints([]);
+              setSelectedMeasureIdx(null);
+              setMeasureRelocate(false);
+              setRouteResult(null);
+            }
             return next;
           })
         }
@@ -1028,25 +1279,68 @@ export function MapClient({
       ) : (
         <div className="py-2 text-[11px] text-text-3">이 지역 분포를 불러오는 중…</div>
       )}
-      {/* 유형 — 국토부 아파트 실거래만 수집 중이라 아파트 단일 (선택할 것이 없음) */}
-      <div className="flex flex-col gap-1.5">
-        <div className="text-[11px] font-bold text-text-3">유형</div>
-        {/* 예전엔 "아파트"가 선택된 필터 칩 모양(chip + bg-primary-soft)이었다.
-            바로 아래 거래유형 칩들과 생김새가 같아서 눌러 바꿀 수 있는 것처럼
-            보였지만 onClick 이 없는 <span> 이었다. 고를 것이 하나뿐이면 그건
-            컨트롤이 아니라 설명이다 — 칩 껍데기를 벗겼다. */}
-        <p className="text-[11px] leading-[1.5] text-text-2">
-          지금 수집하는 국토부 실거래가 <b className="text-ink">아파트</b>뿐이라 아파트만
-          표시됩니다. 오피스텔·연립다세대는 수집 준비가 끝났고, 화면에 유형 선택이 붙는 대로
-          함께 보여드릴게요.
-        </p>
-      </div>
       <FilterChipGroup
-        label={`거래유형 (매물 레이어${showListings ? "" : " · 켜면 적용"})`}
+        label={`거래유형 (매물${showListings ? "" : " · 선택 시 매물 레이어 권장"})`}
         options={LISTING_TRADE_OPTIONS}
         valueKey={listingTradeKey}
-        onSelect={setListingTradeKey}
+        onSelect={(key) => {
+          setListingTradeKey(key);
+          if (key === "monthly" || key === "sale" || key === "jeonse") {
+            setShowListings(true);
+          }
+          if (key === "sale") setTxType("trade");
+          if (key === "jeonse") setTxType("rent");
+        }}
       />
+      <FilterChipGroup
+        label="건물 유형 (등록 매물)"
+        options={PROPERTY_KIND_OPTIONS}
+        valueKey={propertyKindKey}
+        onSelect={(key) => {
+          setPropertyKindKey(key);
+          if (key !== "all") setShowListings(true);
+        }}
+      />
+      <FilterChipGroup
+        label="방 개수"
+        options={ROOM_OPTIONS}
+        valueKey={roomsKey}
+        onSelect={(key) => {
+          setRoomsKey(key);
+          if (key !== "all") setShowListings(true);
+        }}
+      />
+      <FilterChipGroup
+        label="화장실"
+        options={BATH_OPTIONS}
+        valueKey={bathroomsKey}
+        onSelect={(key) => {
+          setBathroomsKey(key);
+          if (key !== "all") setShowListings(true);
+        }}
+      />
+      <FilterChipGroup
+        label="주차"
+        options={PARKING_OPTIONS}
+        valueKey={parkingKey}
+        onSelect={(key) => {
+          setParkingKey(key);
+          if (key !== "all") setShowListings(true);
+        }}
+      />
+      <p className="text-[10px] leading-[1.5] text-text-3">
+        방·화장실·주차·건물유형은 <b className="text-text-2">등록 매물</b> 기준입니다. 값이
+        없는 매물은 해당 필터에서 제외돼요. 국토부 실거래(단지 마커)는 아파트 시세입니다.
+        {!detailFiltersSupported && (
+          <>
+            {" "}
+            <b className="text-warning">
+              지금 서버는 상세 필터 컬럼이 없어 유형·방·화장실·주차 조건이 정확하지 않을 수
+              있어요.
+            </b>
+          </>
+        )}
+      </p>
 
       {/* ===== 지도 레이어 — 정비사업(실적재 공개 자료) ===== */}
       <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
@@ -1202,6 +1496,14 @@ export function MapClient({
   // 거래유형 필터를 최신값으로 참조 (콜백 재생성 없이 type 파라미터 반영)
   const listingTradeRef = useRef(listingTradeKey);
   listingTradeRef.current = listingTradeKey;
+  const propertyKindRef = useRef(propertyKindKey);
+  propertyKindRef.current = propertyKindKey;
+  const roomsKeyRef = useRef(roomsKey);
+  roomsKeyRef.current = roomsKey;
+  const bathroomsKeyRef = useRef(bathroomsKey);
+  bathroomsKeyRef.current = bathroomsKey;
+  const parkingKeyRef = useRef(parkingKey);
+  parkingKeyRef.current = parkingKey;
 
   const fetchListings = useCallback((bounds: NonNullable<MapIdleInfo["bounds"]>) => {
     if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
@@ -1217,11 +1519,30 @@ export function MapClient({
       });
       const tradeType = LISTING_TRADE_OPTIONS.find((o) => o.key === listingTradeRef.current)?.type;
       if (tradeType) params.set("type", tradeType);
+      const kind = PROPERTY_KIND_OPTIONS.find((o) => o.key === propertyKindRef.current)?.kind;
+      if (kind) params.set("kind", kind);
+      const roomsMin = ROOM_OPTIONS.find((o) => o.key === roomsKeyRef.current)?.min;
+      if (roomsMin != null) params.set("roomsMin", String(roomsMin));
+      const bathroomsMin = BATH_OPTIONS.find((o) => o.key === bathroomsKeyRef.current)?.min;
+      if (bathroomsMin != null) params.set("bathroomsMin", String(bathroomsMin));
+      const parkingMin = PARKING_OPTIONS.find((o) => o.key === parkingKeyRef.current)?.min;
+      if (parkingMin != null) params.set("parkingMin", String(parkingMin));
       fetch(`/api/map/listings?${params.toString()}`, { signal: controller.signal })
-        .then((res) => (res.ok ? (res.json() as Promise<{ items: MapListingItem[] }>) : null))
+        .then(
+          (res) =>
+            res.ok
+              ? (res.json() as Promise<{
+                  items: MapListingItem[];
+                  detailFiltersSupported?: boolean;
+                }>)
+              : null,
+        )
         .then((json) => {
           if (!json || controller.signal.aborted) return;
           setListingItems(Array.isArray(json.items) ? json.items : []);
+          if (typeof json.detailFiltersSupported === "boolean") {
+            setDetailFiltersSupported(json.detailFiltersSupported);
+          }
         })
         .catch(() => undefined); // 실패 시 기존 마커 유지
     }, LISTING_FETCH_DEBOUNCE_MS);
@@ -1238,10 +1559,18 @@ export function MapClient({
     }
   }, [showListings, fetchListings]);
 
-  // 거래유형(매매/전세/월세) 변경 → 매물 레이어가 켜져 있으면 서버 재조회
+  // 매물 필터 변경 → 레이어가 켜져 있으면 서버 재조회
   useEffect(() => {
     if (showListings && lastBoundsRef.current) fetchListings(lastBoundsRef.current);
-  }, [listingTradeKey, showListings, fetchListings]);
+  }, [
+    listingTradeKey,
+    propertyKindKey,
+    roomsKey,
+    bathroomsKey,
+    parkingKey,
+    showListings,
+    fetchListings,
+  ]);
 
   /** 클러스터/포인트 조회 예약 — 디바운스 후 현재 거래유형(매매/전세)으로 요청 */
   const scheduleClusterFetch = useCallback(
@@ -1776,12 +2105,17 @@ export function MapClient({
 
   const selectDanji = (id: string) => {
     setFiltersExpanded(false);
-    setInfoComplex(null);
-    setSearchMarker(null);
-    setSelectedId(id);
+    setSelectedId(null);
     setDetailTab("요약");
     const d = danji.find((x) => x.id === id);
-    if (d) setCenter({ lat: d.lat, lng: d.lng });
+    // 목록·마커 모두 밀도 높은 ComplexInfoPanel 경로로 통일 (얇은 selected 모달 대체).
+    setInfoComplex({ id, name: d?.name ?? id });
+    if (d && Number.isFinite(d.lat) && Number.isFinite(d.lng)) {
+      setSearchMarker({ id: d.id, name: d.name, lat: d.lat, lng: d.lng });
+      setCenter({ lat: d.lat, lng: d.lng });
+    } else {
+      setSearchMarker(null);
+    }
   };
 
   /* ===== 검색 선택 · 정보 패널 핸들러 (item1·item2) ===== */
@@ -2078,6 +2412,25 @@ export function MapClient({
         }
         onMapClick={mapClickMode ? handleMapClick : undefined}
         measurePath={measurePath}
+        onMeasurePointDragEnd={(index, point) => {
+          setMeasurePoints((prev) =>
+            prev.map((pt, i) => (i === index ? point : pt)),
+          );
+          setSelectedMeasureIdx(index);
+          setMeasureRelocate(false);
+        }}
+        onMeasurePointClick={(index) => {
+          setSelectedMeasureIdx(index);
+          setMeasureRelocate(false);
+        }}
+        routeOverlays={routeOverlays}
+        onRadiusCenterDragEnd={(point) => {
+          setRadiusCenter(point);
+        }}
+        onRadiusEdgeDragEnd={(nextM) => {
+          setRadiusM(nextM);
+          setRadiusCenter((c) => c ?? radiusOrigin);
+        }}
         crosshair={mapClickMode !== null}
         onMarkerHover={mapClickMode ? undefined : handleMarkerHover}
       />
@@ -2141,7 +2494,7 @@ export function MapClient({
         >
           {clusterFetchStatus === "error"
             ? "일시적 오류로 단지 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요"
-            : "이 지역 단지 좌표를 준비 중이에요 — 곳곳에서 순차 확충 중"}
+            : "관심 단지를 고르면 임장노트·AI 정리·지도 비교로 이어져요 — 이 지역 좌표는 순차 확충 중"}
         </div>
       )}
 
@@ -2165,13 +2518,22 @@ export function MapClient({
         {/* 매매/전세는 filterBar 안의 실제 토글 — 장식용 칩이었던 것을 배선(item2) */}
         <div className="hidden items-center gap-1.5 lg:flex">{filterBar}</div>
         <div className="flex-1" />
-        <Link
-          href="/notes/new"
-          data-tour="map-note-cta"
-          className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] text-[13px]"
-        >
-          이 지역 노트 쓰기
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <Link
+            href={
+              regionLabel.trim()
+                ? `/notes/new?region=${encodeURIComponent(regionLabel.trim())}`
+                : "/notes/new"
+            }
+            data-tour="map-note-cta"
+            className="btn-primary btn-cta rounded-xl px-4 py-[9px] text-[13px]"
+          >
+            이 지역 노트 쓰기
+          </Link>
+          <span className="hidden text-[10px] font-semibold text-text-3 lg:inline">
+            기록 → AI → 비교
+          </span>
+        </div>
       </div>
 
       {/* ===== 모바일 검색 (md 미만) — 패널 열려 있으면 숨김 ===== */}
@@ -2224,24 +2586,58 @@ export function MapClient({
         </div>
       )}
 
-      {/* ===== 반경 · 거리 재기 안내/결과 =====
-           클릭이 평소와 다른 뜻을 갖는 모드라, 무엇을 누르면 되는지와 잰 결과를
-           같은 자리에서 보여 준다. 좌측 패널과 겹치지 않게 우측에 세운다. */}
+      {/* ===== 반경 · 거리 재기 안내/결과 ===== */}
       {mapClickMode && (
         <div
-          className="glass-strong absolute right-5 z-[42] flex w-[228px] flex-col gap-2 rounded-[16px] px-3.5 py-3 shadow-[0_12px_32px_rgba(16,28,54,.18)]"
+          className="glass-strong absolute right-3 z-[42] flex max-h-[min(70dvh,520px)] w-[min(280px,calc(100vw-24px))] flex-col gap-2 overflow-y-auto rounded-[16px] px-3.5 py-3 shadow-[0_12px_32px_rgba(16,28,54,.18)] sm:right-5"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 212px)" }}
         >
           {mapClickMode === "radius" ? (
             <>
               <div className="text-[12px] font-extrabold text-ink">반경 보기</div>
-              <p className="text-[11px] leading-[1.6] text-text-3">
+              <p className="text-[11px] leading-[1.55] text-text-3">
                 {radiusCenter
-                  ? "지도를 다시 클릭하면 중심이 옮겨집니다."
-                  : "지도를 클릭해 중심을 찍어 보세요. 아직 안 찍었으면 화면 중앙이 기준입니다."}
+                  ? "중심·크기 핸들을 드래그하거나, 지도를 클릭해 중심을 옮겨요."
+                  : "지도를 클릭해 중심을 찍으세요. 안 찍으면 화면 중앙 기준입니다."}
               </p>
               <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2 text-[11px] font-bold text-primary">
-                반경 {radiusM >= 1000 ? `${radiusM / 1000}km` : `${radiusM}m`} 안의 단지만 표시
+                반경 {radiusM >= 1000 ? `${radiusM / 1000}km` : `${radiusM}m`} 안 단지 표시
+              </div>
+              <label className="flex items-center gap-2 text-[11px] text-text-2">
+                <span className="shrink-0 font-bold">직접 입력</span>
+                <input
+                  type="number"
+                  min={100}
+                  max={5000}
+                  step={50}
+                  value={radiusM}
+                  onChange={(e) => {
+                    const n = Number(e.target.value);
+                    if (!Number.isFinite(n)) return;
+                    setRadiusM(Math.min(5000, Math.max(100, Math.round(n))));
+                  }}
+                  className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-[12px] font-bold text-ink"
+                  aria-label="반경 미터"
+                />
+                <span className="text-text-3">m</span>
+              </label>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setRadiusCenter(null)}
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                >
+                  중심 삭제
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRadiusCenter(center);
+                  }}
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                >
+                  화면 중앙으로
+                </button>
               </div>
             </>
           ) : (
@@ -2250,18 +2646,78 @@ export function MapClient({
                 <span className="text-[12px] font-extrabold text-ink">거리 재기</span>
                 <span className="text-[10px] text-text-3">{measurePoints.length}개 지점</span>
               </div>
+              <p className="text-[11px] leading-[1.55] text-text-3">
+                {measureRelocate
+                  ? "지도를 클릭하면 선택한 지점이 그곳으로 옮겨져요."
+                  : "클릭으로 지점 추가 · 번호 드래그로 이동 · 탭해서 선택 후 수정/삭제"}
+              </p>
               {measurePoints.length < 2 ? (
-                <p className="text-[11px] leading-[1.6] text-text-3">
-                  지도에서 두 지점을 차례로 클릭하면 직선거리를 보여 드려요.
+                <p className="text-[11px] leading-[1.55] text-text-3">
+                  두 지점 이상이면 직선·차량·도보 거리를 보여 드려요.
                 </p>
               ) : (
                 <>
                   <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2">
-                    <div className="text-[10px] text-text-3">처음 ↔ 마지막 직선거리</div>
+                    <div className="text-[10px] text-text-3">직선 (실선)</div>
                     <div className="text-[15px] font-extrabold text-primary">
                       {formatDistanceM(measureStraightM)}
                     </div>
                   </div>
+                  {routeLoading && (
+                    <div className="text-[10px] text-text-3">차량·도보 경로 찾는 중…</div>
+                  )}
+                  {routeError && (
+                    <div className="text-[10px] text-danger">{routeError}</div>
+                  )}
+                  {routeResult?.driving && (
+                    <button
+                      type="button"
+                      onClick={() => setShowDrivingRoute((v) => !v)}
+                      className={`rounded-[10px] px-2.5 py-2 text-left ${
+                        showDrivingRoute
+                          ? "bg-[rgba(230,126,34,.12)]"
+                          : "bg-[#f5f7fb]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-text-3">
+                        <span>차량 (주황 점선)</span>
+                        <span>{showDrivingRoute ? "표시" : "숨김"}</span>
+                      </div>
+                      <div className="text-[13px] font-extrabold text-[#c8640a]">
+                        {formatDistanceM(routeResult.driving.distanceM)} · 약{" "}
+                        {routeResult.driving.durationMin}분
+                      </div>
+                    </button>
+                  )}
+                  {!routeLoading && !routeResult?.driving && measurePoints.length >= 2 && (
+                    <div className="rounded-[10px] bg-[#f5f7fb] px-2.5 py-2 text-[10px] text-text-3">
+                      차량 경로 API 미연동 또는 조회 불가 — 직선만 표시
+                    </div>
+                  )}
+                  {routeResult?.walking && (
+                    <button
+                      type="button"
+                      onClick={() => setShowWalkingRoute((v) => !v)}
+                      className={`rounded-[10px] px-2.5 py-2 text-left ${
+                        showWalkingRoute
+                          ? "bg-[rgba(13,148,136,.12)]"
+                          : "bg-[#f5f7fb]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-text-3">
+                        <span>
+                          도보{" "}
+                          {routeResult.walking.basis === "estimate" ? "추정" : ""}{" "}
+                          (청록 점선)
+                        </span>
+                        <span>{showWalkingRoute ? "표시" : "숨김"}</span>
+                      </div>
+                      <div className="text-[13px] font-extrabold text-[#0f766e]">
+                        {formatDistanceM(routeResult.walking.distanceM)} · 약{" "}
+                        {routeResult.walking.durationMin}분
+                      </div>
+                    </button>
+                  )}
                   {measureLegs.length > 1 && (
                     <div className="flex flex-col gap-0.5">
                       {measureLegs.map((l) => (
@@ -2287,10 +2743,39 @@ export function MapClient({
                   )}
                 </>
               )}
+
+              {selectedMeasureIdx != null && (
+                <div className="rounded-[10px] border border-primary/30 bg-[rgba(29,79,216,.06)] px-2.5 py-2">
+                  <div className="text-[11px] font-bold text-ink">
+                    지점 {selectedMeasureIdx + 1} 선택됨
+                  </div>
+                  <div className="mt-1.5 flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setMeasureRelocate(true)}
+                      className="flex-1 rounded-[8px] bg-primary px-2 py-1.5 text-[11px] font-extrabold text-white"
+                    >
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deleteSelectedMeasurePoint}
+                      className="flex-1 rounded-[8px] border border-danger/40 bg-danger-soft px-2 py-1.5 text-[11px] font-extrabold text-danger"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setMeasurePoints((p) => p.slice(0, -1))}
+                  onClick={() => {
+                    setMeasurePoints((p) => p.slice(0, -1));
+                    setSelectedMeasureIdx(null);
+                    setMeasureRelocate(false);
+                  }}
                   disabled={measurePoints.length === 0}
                   className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2 disabled:opacity-40"
                 >
@@ -2298,13 +2783,57 @@ export function MapClient({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMeasurePoints([])}
+                  onClick={() => {
+                    setMeasurePoints([]);
+                    setSelectedMeasureIdx(null);
+                    setMeasureRelocate(false);
+                    setRouteResult(null);
+                  }}
                   disabled={measurePoints.length === 0}
                   className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2 disabled:opacity-40"
                 >
-                  전체 지우기
+                  전체 삭제
                 </button>
               </div>
+
+              {measurePoints.length >= 2 && (
+                <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2">
+                  <div className="text-[10px] font-bold text-text-3">액션</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => void copyMeasureSummary()}
+                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                    >
+                      거리 복사
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openExternalDirections("car")}
+                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                    >
+                      차량 길찾기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openExternalDirections("walk")}
+                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                    >
+                      도보 길찾기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedMeasureIdx(0);
+                        setMeasureRelocate(true);
+                      }}
+                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                    >
+                      시작점 수정
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
           <button
@@ -2314,6 +2843,9 @@ export function MapClient({
               setRadiusCenter(null);
               setMeasureMode(false);
               setMeasurePoints([]);
+              setSelectedMeasureIdx(null);
+              setMeasureRelocate(false);
+              setRouteResult(null);
             }}
             className="rounded-[9px] bg-[rgba(16,28,54,.06)] px-2 py-1.5 text-[11px] font-bold text-text-2"
           >
@@ -2833,7 +3365,8 @@ export function MapClient({
                 )}
                 {complexNotesStatus === "ok" && complexNotes.length === 0 && (
                   <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
-                    아직 이 단지의 임장노트가 없어요 — 첫 노트를 남겨보세요
+                    아직 이 단지의 임장노트가 없어요 — 첫 노트 → AI 요약 → 지도
+                    비교로 이어져요
                   </div>
                 )}
                 <div className="flex gap-2">

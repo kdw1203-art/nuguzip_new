@@ -12,6 +12,8 @@ import {
   listApprovedListings,
   isListingType,
   isListingSource,
+  isPropertyKind,
+  propertyKindFromLabel,
   type ListingType,
 } from "@/lib/listings/store-db";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
@@ -148,6 +150,25 @@ export async function POST(req: NextRequest) {
       ? floorNum
       : null;
 
+  const propertyKindRaw = String(body.propertyKind ?? body.category ?? "").trim();
+  const propertyKind = isPropertyKind(propertyKindRaw)
+    ? propertyKindRaw
+    : propertyKindFromLabel(propertyKindRaw);
+
+  const roomsRaw = Number(body.rooms);
+  const rooms =
+    Number.isInteger(roomsRaw) && roomsRaw >= 1 && roomsRaw <= 7 ? roomsRaw : null;
+  const bathroomsRaw = Number(body.bathrooms);
+  const bathrooms =
+    Number.isInteger(bathroomsRaw) && bathroomsRaw >= 0 && bathroomsRaw <= 5
+      ? bathroomsRaw
+      : null;
+  const parkingRaw = Number(body.parkingSpaces ?? body.parking);
+  const parkingSpaces =
+    Number.isInteger(parkingRaw) && parkingRaw >= 0 && parkingRaw <= 10
+      ? parkingRaw
+      : null;
+
   const description = String(body.description ?? "").trim().slice(0, 2000) || null;
   const contact = String(body.contact ?? "").trim().slice(0, 120) || null;
 
@@ -176,7 +197,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { id } = await createListing({
+    const { id, detailFieldsSaved } = await createListing({
       authorEmail: session.user.email,
       authorLabel: authorLabel(session.user.name, session.user.email),
       source,
@@ -188,6 +209,10 @@ export async function POST(req: NextRequest) {
       monthlyKrw: monthlyKrw !== null ? Math.round(monthlyKrw * 1e4) : null,
       areaM2,
       floor,
+      propertyKind,
+      rooms,
+      bathrooms,
+      parkingSpaces,
       description,
       contact,
       lat,
@@ -196,7 +221,10 @@ export async function POST(req: NextRequest) {
       thumbnailUrl,
       photos,
     });
-    return NextResponse.json({ ok: true, id, status: "pending" }, { status: 201 });
+    return NextResponse.json(
+      { ok: true, id, status: "pending", detailFieldsSaved },
+      { status: 201 },
+    );
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "매물 등록 실패" },

@@ -3,9 +3,43 @@ import { PageShell } from "../components/PageShell";
 import { ExampleBadge } from "../components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
-import { listNotes } from "@/lib/inspection/store-db";
+import {
+  listNotes,
+  listPublicNotes,
+  type InspectionNote,
+} from "@/lib/inspection/store-db";
 import { HubComplexPicker } from "./hub-picker";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+/** 공개 노트에서 AI(또는 규칙) 요약 문구가 있는 첫 건 — 게스트 미리보기용 */
+function pickPublicAiPreview(notes: InspectionNote[]): {
+  id: string;
+  title: string;
+  teaser: string;
+  badge: string;
+} | null {
+  for (const n of notes) {
+    const ai = n.aiAnalysis;
+    if (!ai) continue;
+    const teaser = [ai.narrativeSummary, ai.summary, ai.detailedConclusion].find(
+      (x): x is string => typeof x === "string" && x.trim().length > 0,
+    );
+    if (!teaser) continue;
+    const engine = typeof ai.engine === "string" ? ai.engine : "";
+    const badge = engine.startsWith("rule-based") ? "규칙 기반 분석" : "AI 생성";
+    const title =
+      n.aptName && !n.title.includes(n.aptName)
+        ? `${n.aptName} — ${n.title}`
+        : n.title;
+    return {
+      id: n.id,
+      title,
+      teaser: teaser.trim().slice(0, 160),
+      badge,
+    };
+  }
+  return null;
+}
 
 /* 설명문은 이 화면이 실제로 하는 일만 적는다. 아래 TOOLS 의 sim:true 항목은
    아직 실연동이 아니므로 "시뮬레이션" 이라는 사실을 description 에도 남긴다 —
@@ -97,6 +131,16 @@ export default async function AnalysisHubPage({
     }
   }
 
+  // 게스트: 공개 노트의 실제 AI 요약을 우선 — 없으면 예시 배지 샘플만
+  let publicPreview: ReturnType<typeof pickPublicAiPreview> = null;
+  if (!email) {
+    try {
+      publicPreview = pickPublicAiPreview(await listPublicNotes(24));
+    } catch {
+      publicPreview = null;
+    }
+  }
+
   return (
     <PageShell>
       <div className="flex flex-col gap-4">
@@ -134,9 +178,49 @@ export default async function AnalysisHubPage({
               </a>
             )}
           </div>
+        ) : publicPreview ? (
+          <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-5">
+            <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+              공개 노트 AI 정리 미리보기
+            </div>
+            <div className="ai-panel flex flex-col gap-1.5 rounded-[14px] p-3.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center rounded border border-white/20 px-1.5 py-px text-[9px] font-semibold text-ai-muted">
+                  {publicPreview.badge}
+                </span>
+                <span className="text-xs font-extrabold text-white">
+                  {publicPreview.title}
+                </span>
+              </div>
+              <div className="text-[11px] leading-[1.55] text-ai-text">
+                {publicPreview.teaser}
+                {publicPreview.teaser.length >= 160 ? "…" : ""}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <span className="text-[12px] text-text-3">
+                실제 공개 임장노트의 정리 결과예요. 로그인하면 내 노트도 같은 방식으로
+                정리해요
+              </span>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link
+                  href={`/notes/${publicPreview.id}`}
+                  className="btn-primary btn-md no-underline"
+                >
+                  전체 AI 요약 보기
+                </Link>
+                <Link
+                  href="/notes/new"
+                  className="btn-soft btn-md no-underline"
+                >
+                  내 노트 쓰기
+                </Link>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-5">
-            {/* 더미 1개 원칙: 비로그인 샘플 분석 카드는 1건 — 예시 배지 명시 */}
+            {/* 공개 AI 요약이 없을 때만 예시 1건 — 예시 배지 명시, 상세 404 링크 없음 */}
             <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
               샘플 분석 리포트 <ExampleBadge />
             </div>
@@ -153,11 +237,16 @@ export default async function AnalysisHubPage({
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <span className="text-[12px] text-text-3">
-                로그인하면 내 임장노트 기준으로 똑같이 분석해 드려요
+                예시 문장입니다. 로그인 후 내 임장노트로 같은 정리를 받을 수 있어요
               </span>
-              <Link href="/login" className="btn-primary btn-md shrink-0">
-                로그인하고 분석 시작
-              </Link>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link href="/notes/new" className="btn-primary btn-md no-underline">
+                  임장노트 쓰고 AI 받기
+                </Link>
+                <Link href="/login" className="btn-soft btn-md no-underline">
+                  로그인
+                </Link>
+              </div>
             </div>
           </div>
         )}

@@ -239,31 +239,58 @@ export function ComplexHubTabs({
       {tab === "요약" && (
         <div className="rise-in-3 flex flex-col gap-3">
           <AIPanel title={aiTitle}>{aiBody}</AIPanel>
-          {/* 실거래 가격 추이 차트 (실데이터 2개월 이상일 때만) */}
           {priceSeries.length >= 2 && <PriceTrendChart points={priceSeries} />}
           {myRecordCard}
           {trades.length > 0 ? (
-            <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
-              {trades.slice(0, 3).map((t, i) => (
-                <div
-                  key={`${t.date}-${i}`}
-                  className={`flex items-center justify-between py-2.5 text-[13px] ${
-                    i < Math.min(trades.length, 3) - 1 ? "border-b border-[#f0f3f8]" : ""
-                  }`}
-                >
-                  <span className="text-text-2">
-                    {t.date} · {t.sub}
-                  </span>
-                  <span className="flex items-baseline gap-2">
-                    <span className="font-extrabold text-ink">{t.price}</span>
-                    <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
-                  </span>
-                </div>
-              ))}
+            <div className="card flex flex-col rounded-[14px] px-3.5 py-2">
+              <div className="flex items-baseline justify-between px-0.5 py-1.5">
+                <span className="text-[11px] font-bold text-text-2">
+                  최근 실거래 · {Math.min(trades.length, 18)}개월
+                </span>
+                <span className="text-[10px] text-text-3">시세 탭에서 전체</span>
+              </div>
+              <div className="overflow-hidden rounded-xl bg-[#f7f9fd]">
+                {trades.slice(0, 18).map((t, i) => (
+                  <div
+                    key={`${t.date}-${i}`}
+                    className={`flex items-center justify-between px-3 py-[7px] text-[12px] ${
+                      i > 0 ? "border-t border-[#e8edf5]" : ""
+                    }`}
+                  >
+                    <span className="text-text-2">
+                      {t.date}
+                      <span className="ml-1.5 text-text-3">{t.sub}</span>
+                    </span>
+                    <span className="flex shrink-0 items-baseline gap-1.5">
+                      <span className="font-extrabold text-ink">{t.price}</span>
+                      <span className={`text-[10px] ${deltaClass(t.tone)}`}>{t.delta}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
               아직 수집된 국토교통부 실거래가 없어요
+            </div>
+          )}
+          {notes.length > 0 && (
+            <div className="card flex flex-col gap-1.5 rounded-[14px] px-3.5 py-2.5">
+              <div className="px-0.5 text-[11px] font-bold text-text-2">
+                단지 이야기 미리보기 · {notes.length}건
+              </div>
+              {notes.slice(0, 4).map((n) => (
+                <div
+                  key={n.title}
+                  className="rounded-xl bg-[#f7f9fd] px-3 py-2"
+                >
+                  <div className="truncate text-[12px] font-bold text-ink">{n.title}</div>
+                  <div className="mt-0.5 flex justify-between gap-2 text-[10px] text-text-3">
+                    <span className="truncate">{n.author}</span>
+                    <span className="shrink-0 font-bold text-primary">{n.score}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -290,13 +317,13 @@ export function ComplexHubTabs({
           {notes.map((n) => (
             <div
               key={n.title}
-              className="card card-hover flex items-center justify-between rounded-[14px] px-[15px] py-3.5"
+              className="card card-hover flex flex-col gap-0.5 rounded-[14px] px-3.5 py-3"
             >
-              <div>
-                <div className="text-[13px] font-bold text-ink">{n.title}</div>
-                <div className="mt-0.5 text-[11px] text-text-3">{n.author}</div>
+              <div className="text-[13px] font-bold text-ink">{n.title}</div>
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+                <span className="text-[11px] text-text-3">{n.author}</span>
+                <span className="text-[11px] font-extrabold text-primary">{n.score}</span>
               </div>
-              <span className="shrink-0 text-xs font-extrabold text-primary">{n.score}</span>
             </div>
           ))}
           {notesWriteHref && !notesFailed && (
@@ -361,20 +388,24 @@ export function ComplexHubTabs({
           {/* 실거래 가격 추이 차트 (실데이터 2개월 이상일 때만) */}
           {priceSeries.length >= 2 && <PriceTrendChart points={priceSeries} />}
           {trades.length > 0 ? (
-            <div className="card flex flex-col rounded-[14px] px-[15px] py-2">
+            <div className="card flex flex-col overflow-hidden rounded-[14px] px-0 py-0">
+              <div className="border-b border-[#e8edf5] bg-[#f7f9fd] px-3.5 py-2 text-[11px] font-bold text-text-2">
+                전체 {trades.length}개월 · 국토교통부
+              </div>
               {trades.map((t, i) => (
                 <div
                   key={`${t.date}-${i}`}
-                  className={`flex items-center justify-between py-2.5 text-[13px] ${
+                  className={`flex items-center justify-between px-3.5 py-[7px] text-[12px] ${
                     i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
                   }`}
                 >
                   <span className="text-text-2">
-                    {t.date} · {t.sub}
+                    {t.date}
+                    <span className="ml-1.5 text-text-3">{t.sub}</span>
                   </span>
-                  <span className="flex items-baseline gap-2">
+                  <span className="flex shrink-0 items-baseline gap-1.5">
                     <span className="font-extrabold text-ink">{t.price}</span>
-                    <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
+                    <span className={`text-[10px] ${deltaClass(t.tone)}`}>{t.delta}</span>
                   </span>
                 </div>
               ))}

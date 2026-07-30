@@ -18,16 +18,16 @@ const STAGE_LABEL: Record<Stage, string> = {
 
 const STAGE_RECS: Record<Stage, { label: string; href: string }[]> = {
   browsing: [
-    { label: "발견 피드", href: "/discover" },
-    { label: "샘플 노트", href: "/notes" },
+    { label: "공개 임장노트", href: "/notes" },
+    { label: "AI 정리 미리보기", href: "/analysis" },
   ],
   field: [
+    { label: "지도에서 비교", href: "/map" },
     { label: "다자 비교", href: "/analysis/compare" },
-    { label: "대출 계산기", href: "/calculator" },
   ],
   closing: [
     { label: "전세 안전 진단", href: "/safety" },
-    { label: "계약 타임라인", href: "/analysis" },
+    { label: "AI 분석", href: "/analysis" },
   ],
 };
 

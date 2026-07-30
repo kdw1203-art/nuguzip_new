@@ -122,12 +122,42 @@ function buildRequest(
   };
 }
 
-type DirectionsSummary = { duration?: number };
-type DirectionsRoutePath = { summary?: DirectionsSummary };
+type DirectionsSummary = { duration?: number; distance?: number };
+type DirectionsRoutePath = {
+  summary?: DirectionsSummary;
+  path?: [number, number][];
+};
 type DirectionsResponse = {
   code?: number;
   route?: Record<string, DirectionsRoutePath[] | undefined>;
 };
+
+export type RoutePathResult = {
+  path: LatLng[];
+  distanceM: number;
+  durationMin: number;
+  basis: "directions" | "estimate";
+};
+
+function pickRoute(json: DirectionsResponse): DirectionsRoutePath | null {
+  const route = json.route ?? {};
+  const paths =
+    route.trafast ?? route.traoptimal ?? route.tracomfort ?? Object.values(route)[0];
+  return paths?.[0] ?? null;
+}
+
+function pathFromRoute(entry: DirectionsRoutePath): LatLng[] {
+  const raw = entry.path ?? [];
+  const out: LatLng[] = [];
+  for (const pt of raw) {
+    if (!Array.isArray(pt) || pt.length < 2) continue;
+    const lng = Number(pt[0]);
+    const lat = Number(pt[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    out.push({ lat, lng });
+  }
+  return out;
+}
 
 /** 직선거리(haversine) → 도심 평균속도 기반 분 추정 (최소 1분) */
 function haversineMinutes(from: LatLng, to: LatLng): number {
@@ -139,25 +169,72 @@ function haversineMinutes(from: LatLng, to: LatLng): number {
 
 /** 실제 Directions API 호출 → 분(성공 시). 실패/파싱불가 시 null. */
 async function callDirections(from: LatLng, to: LatLng): Promise<number | null> {
-  const params = new URLSearchParams();
-  params.set("start", `${from.lng},${from.lat}`);
-  params.set("goal", `${to.lng},${to.lat}`);
-  params.set("option", "trafast");
+  const full = await fetchDrivingRoute(from, to);
+  return full?.basis === "directions" ? full.durationMin : null;
+}
 
-  const { url, headers } = buildRequest(DIRECTIONS_PATH, params);
-  const res = await fetch(url, { headers, next: { revalidate: 1800 } });
-  if (!res.ok) return null;
+/**
+ * 자동차 경로(좌표열·거리·시간). Directions 연동 시 도로 경로, 아니면 null.
+ * 지도 거리 재기 점선 오버레이용 — commute 추정과는 별도로 path 가 필요하다.
+ */
+export async function fetchDrivingRoute(
+  from: LatLng,
+  to: LatLng,
+  option: "trafast" | "traoptimal" | "traavoidcaronly" = "traoptimal",
+): Promise<RoutePathResult | null> {
+  if (!isDirectionsConfigured()) return null;
+  try {
+    const params = new URLSearchParams();
+    params.set("start", `${from.lng},${from.lat}`);
+    params.set("goal", `${to.lng},${to.lat}`);
+    params.set("option", option);
 
-  const json = (await res.json()) as DirectionsResponse;
-  const route = json.route ?? {};
-  // 요청 옵션에 따라 traoptimal/trafast/tracomfort 중 하나로 반환됨 — 존재하는 첫 배열 사용.
-  const paths =
-    route.trafast ?? route.traoptimal ?? route.tracomfort ?? Object.values(route)[0];
-  const durationMs = paths?.[0]?.summary?.duration;
-  if (durationMs === undefined || !Number.isFinite(durationMs) || durationMs <= 0) {
+    const { url, headers } = buildRequest(DIRECTIONS_PATH, params);
+    const res = await fetch(url, { headers, next: { revalidate: 900 } });
+    if (!res.ok) return null;
+
+    const json = (await res.json()) as DirectionsResponse;
+    if (json.code != null && json.code !== 0) return null;
+    const entry = pickRoute(json);
+    if (!entry) return null;
+
+    const path = pathFromRoute(entry);
+    const distanceM = Number(entry.summary?.distance);
+    const durationMs = Number(entry.summary?.duration);
+    if (!Number.isFinite(distanceM) || distanceM <= 0) return null;
+    if (path.length < 2) {
+      return {
+        path: [from, to],
+        distanceM: Math.round(distanceM),
+        durationMin: Math.max(1, Math.round((durationMs || 0) / 60_000)),
+        basis: "directions",
+      };
+    }
+    return {
+      path,
+      distanceM: Math.round(distanceM),
+      durationMin: Math.max(1, Math.round((durationMs || 0) / 60_000)),
+      basis: "directions",
+    };
+  } catch (e) {
+    logger.warn("[map/directions] 경로 path 조회 실패", e);
     return null;
   }
-  return Math.max(1, Math.round(durationMs / 60_000));
+}
+
+/** 도보 추정 — NCP Directions 5 는 자동차 전용이라, 직선×우회계수 + 보행 속도로 표시. */
+export function estimateWalkingRoute(from: LatLng, to: LatLng): RoutePathResult {
+  const straight = haversineDistanceM(from.lat, from.lng, to.lat, to.lng);
+  /* 도로·횡단 우회를 감안해 직선×1.25. 가짜 도로 경로를 그리지 않고 점선 직선으로 표시. */
+  const distanceM = Math.round(straight * 1.25);
+  const WALK_KMH = 4.5;
+  const durationMin = Math.max(1, Math.round((distanceM / 1000 / WALK_KMH) * 60));
+  return {
+    path: [from, to],
+    distanceM,
+    durationMin,
+    basis: "estimate",
+  };
 }
 
 /**

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { RegionPicker } from "@/app/components/RegionPicker";
 import { takeSignupHandoff } from "@/lib/onboarding/signup-handoff";
+import { HOME_CTA_NOTE, HOME_HERO_SUBLINE } from "@/lib/brand/home-copy";
 
 /** 위저드 화면 진행 기록용 id — 퍼널 관측 전용.
     진짜 온보딩 스텝(explore·inspection·share)은 서버가 실데이터로 판정하므로
@@ -172,8 +173,11 @@ export function WelcomeClient() {
             />
           ))}
         </div>
-        <Link href="/" className="text-[13px] text-text-3">
-          건너뛰기
+        <Link
+          href={`${HOME_CTA_NOTE.href}?from=welcome`}
+          className="text-[13px] text-text-3"
+        >
+          건너뛰고 노트 쓰기
         </Link>
       </div>
 
@@ -333,12 +337,8 @@ export function WelcomeClient() {
 
           {/* 다음 행동 예고 — 완료하면 첫 임장노트 작성으로 이어진다 */}
           <div className="rise-in-2 rounded-2xl bg-[#f2f4f8] px-4 py-3 text-[12px] leading-[1.6] text-text-2">
-            <span className="font-extrabold text-ink">다음은 첫 임장노트예요.</span> 임장노트는
-            직접 가 본 단지의 느낌·장단점을 체크리스트로 남기는 기록이에요. 완료하면 고른
-            지역으로 바로 이어 드릴게요.
-            <Link href="/digest" className="ml-1 font-bold text-primary no-underline">
-              먼저 주요 지역 다이제스트 보기 ›
-            </Link>
+            <span className="font-extrabold text-ink">다음은 첫 임장노트예요.</span>{" "}
+            {HOME_HERO_SUBLINE} 완료하면 고른 지역으로 바로 이어 드릴게요.
           </div>
 
           <div className="flex-1" />

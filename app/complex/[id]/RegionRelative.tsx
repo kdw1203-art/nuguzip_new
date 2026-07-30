@@ -11,7 +11,13 @@ function ymLabel(s: string | null): string {
   return `${s.slice(0, 4)}.${s.slice(4)}`;
 }
 
-export async function RegionRelative({ complexId }: { complexId: string }) {
+export async function RegionRelative({
+  complexId,
+  compact = false,
+}: {
+  complexId: string;
+  compact?: boolean;
+}) {
   const res = await getRegionRelative(complexId).then(
     (data) => ({ ok: true as const, data }),
     (e: unknown) => {
@@ -19,11 +25,12 @@ export async function RegionRelative({ complexId }: { complexId: string }) {
       return { ok: false as const };
     },
   );
+  const wrap = compact ? "rise-in-1" : "rise-in-5 mt-6";
   if (!res.ok) {
     return (
-      <section className="rise-in-5 mt-6">
-        <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">이 동네 대비</h2>
-        <p className="card rounded-2xl p-5 text-[13px] text-text-3">
+      <section className={wrap}>
+        <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">이 동네 대비</h2>
+        <p className="card rounded-2xl px-4 py-3.5 text-[13px] text-text-3">
           지금은 동네 평균과 비교하지 못했어요. 비교할 자료가 없는 게 아니라 조회에
           실패한 것이라, 잠시 후 다시 보면 나올 수 있어요.
         </p>
@@ -39,20 +46,24 @@ export async function RegionRelative({ complexId }: { complexId: string }) {
   const districtW = Math.min(100, Math.round((r.districtPerM2Manwon / maxV) * 100));
 
   return (
-    <section className="rise-in-5 mt-6">
-      <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+    <section className={wrap}>
+      <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">
         이 동네 대비{" "}
-        <span className="text-[12px] font-medium text-text-3">{r.district} · ㎡당 기준</span>
+        <span className="text-[11px] font-medium text-text-3">{r.district} · ㎡당</span>
       </h2>
-      <div className="card flex flex-col gap-3 rounded-2xl p-5">
+      <div
+        className={`card flex flex-col gap-2.5 rounded-2xl ${compact ? "px-4 py-3.5" : "p-5"}`}
+      >
         <div className="flex items-baseline gap-2">
           <span
-            className={`text-[22px] font-extrabold ${higher ? "text-primary" : "text-text-2"}`}
+            className={`font-extrabold tabular-nums ${higher ? "text-primary" : "text-text-2"} ${
+              compact ? "text-[20px]" : "text-[22px]"
+            }`}
           >
             {higher ? "+" : ""}
             {r.deltaPct}%
           </span>
-          <span className="text-[13px] text-text-2">
+          <span className="text-[12px] text-text-2">
             {r.district} 평균 대비 {higher ? "높아요" : "낮아요"}
           </span>
         </div>

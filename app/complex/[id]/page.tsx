@@ -105,15 +105,15 @@ const SIDE_FAILURE_ABORT_THRESHOLD = 4;
  * (/complex/tx/[slug] 의 loadPageData 와 같은 방식).
  *
  * 인자가 같아야 합쳐진다는 점이 중요하다. 그래서 메타데이터도 본문과 똑같이
- * 6을 넘긴다 — getTransactionHistory 는 limit 과 무관하게 이 단지의 실거래를
- * 전부 읽어서 월별로 접은 뒤 마지막 limit개만 남기므로(그 함수 끝부분 참고),
- * 2를 주든 6을 주든 DB 에 나가는 쿼리는 완전히 같고 최신·직전 두 달도 그대로다.
+ * TX_HISTORY_MONTHS 를 넘긴다 — getTransactionHistory 는 limit 과 무관하게
+ * 이 단지의 실거래를 전부 읽어서 월별로 접은 뒤 마지막 limit개만 남긴다.
  */
 const loadComplexRow = cache(getComplexById);
 const loadTxHistory = cache(getTransactionHistory);
 
-/** 위 두 loader 가 쓰는 실거래 이력 개월 수 — 메타데이터·본문이 반드시 같아야 한다. */
-const TX_HISTORY_MONTHS = 6;
+/** 위 두 loader 가 쓰는 실거래 이력 개월 수 — 메타데이터·본문이 반드시 같아야 한다.
+ *  허브 밀도: 18→24개월 (패널 detail API 와 맞춤). */
+const TX_HISTORY_MONTHS = 24;
 
 interface HubView {
   id: string;
@@ -131,7 +131,15 @@ interface HubView {
     listingsSub: string;
     notes: string;
     notesSub: string;
+    /** 최근 집계 기간 거래 건수 라벨 */
+    deals: string;
+    dealsSub: string;
+    /** 준공/경과 라벨 */
+    age: string;
+    ageSub: string;
   };
+  /** 상단 칩용 요약 스펙 */
+  chips: string[];
   aiTitle: string;
   aiBody: string;
   myRecord: string;
@@ -227,10 +235,17 @@ function toTrades(tx: ComplexTransactionRow[]): HubTrade[] {
     const row = tx[i];
     const prev = i > 0 ? tx[i - 1].avg_manwon : undefined;
     const { delta, tone } = deltaLabel(pctDelta(row.avg_manwon, prev));
+    const range =
+      row.min_manwon != null &&
+      row.max_manwon != null &&
+      row.min_manwon !== row.max_manwon
+        ? ` · ${formatManwon(row.min_manwon)}~${formatManwon(row.max_manwon)}`
+        : "";
+    const area = row.area_m2 != null ? ` · ${Math.round(row.area_m2)}㎡` : "";
     items.push({
       date: `${row.yyyymm.slice(0, 4)}.${row.yyyymm.slice(4, 6)}`,
       price: formatManwon(row.avg_manwon),
-      sub: `${row.deal_count}건`,
+      sub: `${row.deal_count}건${area}${range}`,
       delta,
       tone,
     });
@@ -253,11 +268,12 @@ interface ComplexPostRow {
 function toNearby(rows: ComplexRow[], selfId: string): HubView["nearby"] {
   return rows
     .filter((c) => c.id !== selfId)
-    .slice(0, 4)
+    .slice(0, 8)
     .map((c) => {
       const parts: string[] = [];
       if (c.build_year) parts.push(`${c.build_year}년`);
       if (c.households) parts.push(`${c.households.toLocaleString("ko-KR")}세대`);
+      if (c.parking_per_hh) parts.push(`주차 ${c.parking_per_hh}`);
       return {
         id: c.id,
         name: c.name,
@@ -326,18 +342,59 @@ function toView(
   }));
   const notes: HubNote[] =
     posts.length > 0
-      ? posts.slice(0, 6).map((p) => ({
-          title: p.title,
-          author: `${p.district ?? dong} · ${p.created_at.slice(5, 10).replace("-", ".")}`,
-          score: `공감 ${p.like_count ?? 0}`,
-        }))
+      ? posts.slice(0, 12).map((p) => {
+          const eng = [
+            `공감 ${p.like_count ?? 0}`,
+            p.comment_count != null && p.comment_count > 0
+              ? `댓글 ${p.comment_count}`
+              : null,
+            p.view_count != null && p.view_count > 0 ? `조회 ${p.view_count}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ");
+          return {
+            title: p.title,
+            author: `${p.district ?? dong} · ${p.created_at.slice(5, 10).replace("-", ".")}`,
+            score: eng || `공감 ${p.like_count ?? 0}`,
+          };
+        })
       : [];
 
+  const dealSum = tx.reduce((s, r) => s + (r.deal_count || 0), 0);
+  const chips: string[] = [];
+  if (row.build_year) {
+    chips.push(
+      `${row.build_year}년 · ${new Date().getFullYear() - row.build_year}년차`,
+    );
+  }
+  if (row.households) chips.push(`${row.households.toLocaleString("ko-KR")}세대`);
+  if (row.building_count) chips.push(`${row.building_count}동`);
+  if (row.parking_per_hh) chips.push(`주차 ${row.parking_per_hh}대/세대`);
+  if (row.builder_name) chips.push(row.builder_name);
+  if (row.heating) chips.push(row.heating);
+  if (row.building_type) chips.push(row.building_type);
+  if (hubListings.length > 0) chips.push(`매물 ${hubListings.length}`);
+  if (posts.length > 0) chips.push(`이야기 ${posts.length}`);
+  if (dealSum > 0) chips.push(`${tx.length}개월 ${dealSum}건`);
+
   const infoRows: { label: string; value: string }[] = [];
-  if (row.build_year) infoRows.push({ label: "준공", value: `${row.build_year}년` });
+  if (row.build_year) {
+    const age = new Date().getFullYear() - row.build_year;
+    infoRows.push({ label: "준공", value: `${row.build_year}년 (경과 ${age}년)` });
+  }
   if (row.households)
     infoRows.push({ label: "세대수", value: `${row.households.toLocaleString("ko-KR")}세대` });
+  if (row.building_count)
+    infoRows.push({ label: "동 수", value: `${row.building_count.toLocaleString("ko-KR")}동` });
+  if (row.parking_count)
+    infoRows.push({ label: "주차", value: `${row.parking_count.toLocaleString("ko-KR")}대` });
+  if (row.parking_per_hh)
+    infoRows.push({ label: "세대당 주차", value: `${row.parking_per_hh}대` });
   if (row.builder_name) infoRows.push({ label: "시공사", value: row.builder_name });
+  if (row.heating) infoRows.push({ label: "난방", value: row.heating });
+  if (row.building_type) infoRows.push({ label: "유형", value: row.building_type });
+  if (row.total_floors) infoRows.push({ label: "층수", value: `${row.total_floors}층` });
+  if (row.kapt_code) infoRows.push({ label: "단지코드", value: row.kapt_code });
   infoRows.push({
     label: "주소",
     value: row.road_address || row.address || `${row.city} ${row.district}`.trim(),
@@ -379,12 +436,32 @@ function toView(
         : posts.length > 0
           ? "단지 이야기 포함"
           : "첫 노트를 남겨보세요",
+      deals: txFailed ? "거래 ?" : dealSum > 0 ? `${dealSum}건` : "—",
+      dealsSub: txFailed
+        ? "조회 실패"
+        : dealSum > 0
+          ? `최근 ${tx.length}개월`
+          : "실거래 없음",
+      age: row.build_year
+        ? `${new Date().getFullYear() - row.build_year}년`
+        : "—",
+      ageSub: row.build_year ? `${row.build_year}년 준공` : "준공 미확인",
     },
+    chips,
     aiTitle: `AI 요약 · ${row.name}`,
     aiBody: txFailed
       ? "실거래를 지금 불러오지 못했습니다. 데이터가 없다는 뜻이 아니라 조회에 실패했다는 뜻입니다 — 잠시 후 새로고침해 주세요."
       : latest
-        ? `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비) — 국토교통부 실거래가 기준. 현장 확인 후 판단하세요.`
+        ? [
+            `최근 실거래 평균 ${formatManwon(latest.avg_manwon)} (${delta} 전월비)`,
+            latest.deal_count ? `해당 월 ${latest.deal_count}건` : null,
+            row.households ? `총 ${row.households.toLocaleString("ko-KR")}세대` : null,
+            row.build_year ? `${row.build_year}년 준공` : null,
+            row.builder_name ? `시공사 ${row.builder_name}` : null,
+            "국토교통부 실거래·공공데이터 기준. 투자 권유가 아니며 현장 확인 후 판단하세요.",
+          ]
+            .filter(Boolean)
+            .join(" · ")
         : "실거래·후기가 쌓이면 AI 요약을 제공합니다.",
     myRecord: "로그인하면 이 단지에 남긴 임장노트를 볼 수 있어요",
     listingsLabel: listingsFailed
@@ -423,10 +500,10 @@ async function loadView(id: string): Promise<HubView | null> {
   const budget = startDeadline();
   const [txR, postsR, sameDongR, coordR, listingsR] = await Promise.all([
     settle(`${row.name} 실거래 이력`, loadTxHistory(row.id, TX_HISTORY_MONTHS), budget.expired),
-    settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 6), budget.expired),
-    // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 5건 조회
+    settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 12), budget.expired),
+    // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 더 넓게
     row.district
-      ? settle(`${row.district} 인근 단지`, searchComplexes("", row.district, 5), budget.expired)
+      ? settle(`${row.district} 인근 단지`, searchComplexes("", row.district, 9), budget.expired)
       : Promise.resolve({ ok: true as const, data: [] as ComplexRow[] }),
     // 좌표 지연 지오코딩(캐시) — 거리뷰·JSON-LD geo 용. 실패 시 좌표 없이 진행.
     dec
@@ -657,49 +734,129 @@ export default async function ComplexHubPage({
         </span>
       </div>
 
-      {/* 단지명 + 팔로우 */}
-      <div className="rise-in mt-3 flex items-baseline justify-between">
-        <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">{v.name}</h1>
-        {/* 예전엔 onClick 이 없는 <button> 이었다 (followerLabel 은 그냥 문자열).
-            /api/me/watchlist 를 쓰는 진짜 토글로 교체. */}
-        <WatchlistButton complexId={v.id} complexName={v.name} />
+      {/* 단지명 + 팔로우 — 가격 히어로와 한 덩어리 */}
+      <div className="rise-in mt-3 overflow-hidden rounded-[20px] border border-[#e8edf5] bg-gradient-to-br from-[#eef3ff] via-surface to-[#f7f9fd] px-4 py-4 sm:px-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[22px] font-extrabold tracking-tight text-ink md:text-[26px]">
+              {v.name}
+            </h1>
+            <p className="mt-0.5 text-[12px] text-text-2">
+              {v.dong}
+              {v.city && v.city !== v.dong ? ` · ${v.city}` : ""}
+            </p>
+          </div>
+          <WatchlistButton complexId={v.id} complexName={v.name} />
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-text-3">
+              최근 실거래 평균
+            </div>
+            <div className="mt-0.5 flex items-baseline gap-2">
+              <span className="text-[30px] font-extrabold leading-none text-ink tabular-nums md:text-[34px]">
+                {v.metric.price}
+              </span>
+              <span className={`text-[13px] font-extrabold ${v.metric.priceSubClass}`}>
+                {v.metric.priceSub}
+              </span>
+            </div>
+          </div>
+          {typeof v.lat === "number" && typeof v.lng === "number" && (
+            <RoadviewButton lat={v.lat} lng={v.lng} label={v.name} />
+          )}
+        </div>
+
+        {v.chips.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {v.chips.map((c) => (
+              <span
+                key={c}
+                className="chip-soft rounded-full px-2.5 py-[4px] text-[11px] font-bold text-text-2"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 거리뷰(항목 A5) — 좌표가 유한할 때만 (목업 폴백은 좌표 없음 → 자동 숨김) */}
-      {typeof v.lat === "number" && typeof v.lng === "number" && (
-        <div className="rise-in mt-2">
-          <RoadviewButton lat={v.lat} lng={v.lng} label={v.name} />
-        </div>
-      )}
-
-      {/* 지표 4카드 — 시세·매물·노트 수·안전 등급 */}
-      <div className="rise-in-1 mt-3 grid grid-cols-2 gap-1.5 md:grid-cols-4">
-        <div className="card rounded-xl px-3 py-[11px] text-center">
-          <div className="text-base font-extrabold text-ink">{v.metric.price}</div>
-          <div className={`mt-0.5 text-[11px] font-bold ${v.metric.priceSubClass}`}>
+      {/* 지표 6칸 — 시세·거래·매물·노트·세대·연차 */}
+      <div className="rise-in-1 mt-3 grid grid-cols-3 gap-1.5 md:grid-cols-6">
+        <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
+          <div className="text-[10px] text-text-3">시세</div>
+          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+            {v.metric.price}
+          </div>
+          <div className={`mt-0.5 truncate text-[10px] font-bold ${v.metric.priceSubClass}`}>
             {v.metric.priceSub}
           </div>
         </div>
-        <div className="card rounded-xl px-3 py-[11px] text-center">
-          <div className="text-base font-extrabold text-ink">{v.metric.listings}</div>
-          <div className="mt-0.5 text-[11px] text-text-3">{v.metric.listingsSub}</div>
+        <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
+          <div className="text-[10px] text-text-3">거래</div>
+          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+            {v.metric.deals}
+          </div>
+          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.dealsSub}</div>
         </div>
-        <div className="card rounded-xl px-3 py-[11px] text-center">
-          <div className="text-base font-extrabold text-ink">{v.metric.notes}</div>
-          <div className="mt-0.5 text-[11px] text-text-3">{v.metric.notesSub}</div>
+        <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
+          <div className="text-[10px] text-text-3">매물</div>
+          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+            {v.metric.listings}
+          </div>
+          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.listingsSub}</div>
         </div>
-        {/* 4번째 "안전 진단" 카드는 삭제했다. safety 는 "—" 상수였고(안전등급 산정
-            미연동), 실값이 들어오는 옆 세 카드와 같은 자리·같은 초록색으로 그려져
-            영원히 채워지지 않는 지표 칸을 차지하고 있었다.
-            세대수는 실제로 아는 값이므로 그 자리에 넣는다. */}
-        <div className="card rounded-xl px-3 py-[11px] text-center">
-          <div className="text-base font-extrabold text-ink">
+        <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
+          <div className="text-[10px] text-text-3">노트</div>
+          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+            {v.metric.notes}
+          </div>
+          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.notesSub}</div>
+        </div>
+        <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
+          <div className="text-[10px] text-text-3">세대</div>
+          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
             {v.households ? `${v.households.toLocaleString("ko-KR")}` : "—"}
           </div>
-          <div className="mt-0.5 text-[11px] text-text-3">
-            {v.households ? "세대수" : "세대수 미확인"}
+          <div className="mt-0.5 truncate text-[10px] text-text-3">
+            {v.households ? "공공데이터" : "미확인"}
           </div>
         </div>
+        <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
+          <div className="text-[10px] text-text-3">연차</div>
+          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+            {v.metric.age}
+          </div>
+          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.ageSub}</div>
+        </div>
+      </div>
+
+      {/* 스펙 시트 — 3열 밀도 */}
+      {v.infoRows.length > 0 && (
+        <div className="rise-in-1 card mt-3 rounded-[16px] px-4 py-3">
+          <div className="mb-1 flex items-baseline justify-between">
+            <div className="text-[13px] font-extrabold text-ink">단지 스펙</div>
+            <div className="text-[10px] text-text-3">{v.infoRows.length}항목</div>
+          </div>
+          <div className="grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
+            {v.infoRows.map((r) => (
+              <div
+                key={r.label}
+                className="flex items-baseline justify-between gap-3 border-b border-[#f0f3f8] py-[6px] text-xs last:border-b-0"
+              >
+                <span className="shrink-0 text-text-3">{r.label}</span>
+                <span className="truncate text-right font-bold text-ink">{r.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 면적대·지역 대비 — 상단 밀도 블록 */}
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <ComplexAreaBands complexId={complexId} compact />
+        <RegionRelative complexId={complexId} compact />
       </div>
 
       {/* 국토부 실거래 이력 상세 — 동일 단지명 매칭 시에만 노출 */}
@@ -742,39 +899,76 @@ export default async function ComplexHubPage({
           priceSeries={v.priceSeries}
         />
 
-        {/* 데스크탑 우측 컬럼 */}
-        <aside className="hidden flex-col gap-3.5 lg:flex">
-          <div className="rise-in-2 card flex flex-col gap-1 rounded-[18px] px-[18px] py-4">
-            <div className="mb-1 text-[13px] font-extrabold text-ink">단지 정보</div>
-            {v.infoRows.map((r) => (
-              <div
-                key={r.label}
-                className="flex items-baseline justify-between gap-3 py-[5px] text-xs"
-              >
-                <span className="shrink-0 text-text-3">{r.label}</span>
-                <span className="text-right font-bold text-ink">{r.value}</span>
+        {/* 데스크탑 우측 — 중복 스펙 대신 한눈에 + 인근 + CTA */}
+        <aside className="hidden flex-col gap-3 lg:flex">
+          <div className="rise-in-2 card flex flex-col gap-2 rounded-[18px] px-4 py-4">
+            <div className="text-[13px] font-extrabold text-ink">한눈에 보기</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+                <div className="text-[10px] text-text-3">시세</div>
+                <div className="text-[14px] font-extrabold text-ink">{v.metric.price}</div>
               </div>
-            ))}
+              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+                <div className="text-[10px] text-text-3">거래</div>
+                <div className="text-[14px] font-extrabold text-ink">{v.metric.deals}</div>
+              </div>
+              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+                <div className="text-[10px] text-text-3">매물</div>
+                <div className="text-[14px] font-extrabold text-ink">{v.metric.listings}</div>
+              </div>
+              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+                <div className="text-[10px] text-text-3">노트</div>
+                <div className="text-[14px] font-extrabold text-ink">{v.metric.notes}</div>
+              </div>
+            </div>
+            {v.chips.slice(0, 8).length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {v.chips.slice(0, 8).map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full bg-[#f2f4f8] px-2 py-[3px] text-[10px] font-bold text-text-2"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
+          {v.nearby.length > 0 && (
+            <div className="rise-in-2 card flex flex-col gap-1.5 rounded-[18px] px-4 py-3.5">
+              <div className="mb-0.5 text-[13px] font-extrabold text-ink">
+                {v.dong} 다른 단지
+              </div>
+              {v.nearby.slice(0, 5).map((n) => (
+                <Link
+                  key={n.id}
+                  href={`/complex/${encodeURIComponent(n.id)}`}
+                  className="rounded-xl px-2 py-2 transition-colors hover:bg-[#f5f7fb]"
+                >
+                  <div className="truncate text-[12px] font-bold text-ink">{n.name}</div>
+                  <div className="truncate text-[10px] text-text-3">{n.meta}</div>
+                </Link>
+              ))}
+            </div>
+          )}
           <div className="rise-in-3">{cta}</div>
-          {/* H1 — "AD / 이 지역 추천 서비스" 가짜 광고 상자였던 자리.
-              실제 슬롯으로 교체 — 보여 줄 광고가 없으면 빈 상자를 남기지 않는다. */}
           <AdSlot placement="community_feed" seed={0} plan={null} />
         </aside>
       </div>
 
-      {/* 내부 링크 그물(#34) — 같은 동 다른 단지 (0건이면 미표시) */}
+      {/* 내부 링크 그물(#34) — 모바일·전체 그리드 */}
       {v.nearby.length > 0 && (
         <section className="rise-in-5 mt-6">
           <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
-            {v.dong} 다른 단지
+            {v.dong} 다른 단지{" "}
+            <span className="text-[12px] font-medium text-text-3">{v.nearby.length}곳</span>
           </h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {v.nearby.map((n) => (
               <Link
                 key={n.id}
                 href={`/complex/${encodeURIComponent(n.id)}`}
-                className="card card-hover rounded-2xl px-4 py-3.5"
+                className="card card-hover rounded-2xl px-3.5 py-3"
               >
                 <div className="truncate text-[13px] font-extrabold text-ink">
                   {n.name}
@@ -793,9 +987,7 @@ export default async function ComplexHubPage({
         </section>
       )}
 
-      {/* D5 면적대별 시세 · D6 지역 대비 · D3 정비사업 · D4 입주물량 · D2 Q&A (실데이터, 없으면 자동 생략) */}
-      <ComplexAreaBands complexId={complexId} />
-      <RegionRelative complexId={complexId} />
+      {/* D3 정비사업 · D4 입주물량 · D2 Q&A (면적대·지역대비는 상단으로 이동) */}
       <NearbyRedevelopment sigungu={v.dong} />
       <UpcomingSupply area={v.dong} />
       <ComplexQna complexName={v.name} />
