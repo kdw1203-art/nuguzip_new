@@ -7,11 +7,18 @@ import { useToast } from "../../components/toast/ToastProvider";
 type Intent = "실거주" | "투자" | "전월세";
 type InvestorRole = "live" | "invest" | "rent" | "balanced";
 
-const INTENT_OPTIONS: { intent: Intent; role: InvestorRole; label: string }[] = [
+const ROLE_OPTIONS: { intent: Intent; role: InvestorRole; label: string }[] = [
   { intent: "실거주", role: "live", label: "실거주" },
   { intent: "투자", role: "invest", label: "투자" },
   { intent: "전월세", role: "rent", label: "전월세" },
+  { intent: "실거주", role: "balanced", label: "균형" },
 ];
+
+function defaultRole(intent: Intent): InvestorRole {
+  if (intent === "투자") return "invest";
+  if (intent === "전월세") return "rent";
+  return "live";
+}
 
 /** 소유자용 — 저장 직후 AI 실패·규칙 폴백만 있을 때 재분석 */
 export function AiRetryButton({
@@ -24,13 +31,13 @@ export function AiRetryButton({
   const router = useRouter();
   const { showToast } = useToast();
   const [busy, setBusy] = useState(false);
-  const [intent, setIntent] = useState<Intent>(defaultIntent);
+  const [role, setRole] = useState<InvestorRole>(() => defaultRole(defaultIntent));
 
   const run = async () => {
     if (busy) return;
     setBusy(true);
     const selected =
-      INTENT_OPTIONS.find((o) => o.intent === intent) ?? INTENT_OPTIONS[0];
+      ROLE_OPTIONS.find((o) => o.role === role) ?? ROLE_OPTIONS[0];
     try {
       const res = await fetch("/api/inspection/ai", {
         method: "POST",
@@ -62,14 +69,14 @@ export function AiRetryButton({
   return (
     <div className="mt-2 flex flex-col gap-2">
       <div className="flex flex-wrap gap-1.5">
-        {INTENT_OPTIONS.map((o) => {
-          const active = intent === o.intent;
+        {ROLE_OPTIONS.map((o) => {
+          const active = role === o.role;
           return (
             <button
-              key={o.intent}
+              key={o.role}
               type="button"
               disabled={busy}
-              onClick={() => setIntent(o.intent)}
+              onClick={() => setRole(o.role)}
               className={`rounded-full px-2.5 py-1 text-[11px] font-bold disabled:opacity-60 ${
                 active
                   ? "bg-white/20 text-ai-accent"

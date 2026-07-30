@@ -63,5 +63,3 @@ node scripts/probe-google-oauth-redirect.mjs
 - [ ] `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` 이 위 OAuth 클라이언트와 동일
 - [ ] `node scripts/probe-google-oauth-redirect.mjs` 결과가 Console URI와 동일
 - [ ] `/login` Google → 콜백 → 세션 유지 (preview 도메인은 별도 URI 등록 필요)
-
-Kakao OAuth는 본 Wave에서 제외(별도 Console·키 작업).
