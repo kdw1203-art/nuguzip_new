@@ -15,6 +15,7 @@ import {
   type VisitCompareModel,
 } from "@/lib/inspection/visit-compare";
 import { AiFeedbackButtons } from "@/app/components/AiFeedbackButtons";
+import { CompareFunnelPing } from "./CompareFunnelPing";
 
 /* 시안 9e — 노트 다회차 비교.
    실데이터: listNotesByAuthorForApt. 예시 목업 제거 — 회차 부족 시 empty+CTA. */
@@ -164,6 +165,10 @@ export default async function NotesComparePage({
     const { model } = result;
     return (
       <PageShell breadcrumb={`임장노트 › 회차 비교 › ${model.aptName}`}>
+        <CompareFunnelPing
+          noteId={noteId ?? model.headers[model.headers.length - 1]?.noteId ?? ""}
+          aptName={model.aptName}
+        />
         <div className="flex flex-col gap-3.5">
           <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
             <div>
@@ -175,7 +180,7 @@ export default async function NotesComparePage({
                 {model.aptName} — 내 방문 기록 {model.colCount}회
               </p>
             </div>
-            <div className="flex flex-wrap gap-1.5 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
               {model.headers.map((h) => (
                 <Link
                   key={h.noteId}
@@ -185,6 +190,20 @@ export default async function NotesComparePage({
                   {h.n}
                 </Link>
               ))}
+              <Link
+                href={`/map?apt=${encodeURIComponent(model.aptName)}${
+                  model.region ? `&region=${encodeURIComponent(model.region)}` : ""
+                }`}
+                className="rounded-full border border-primary/30 bg-primary-soft px-2.5 py-1.5 font-bold text-primary no-underline"
+              >
+                지도에서 비교
+              </Link>
+              <Link
+                href="/complex/compare"
+                className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1.5 font-bold text-text-2 no-underline"
+              >
+                단지 A/B 비교
+              </Link>
             </div>
           </div>
 

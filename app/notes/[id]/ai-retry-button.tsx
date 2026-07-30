@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "../../components/toast/ToastProvider";
 
@@ -31,6 +32,7 @@ export function AiRetryButton({
   const router = useRouter();
   const { showToast } = useToast();
   const [busy, setBusy] = useState(false);
+  const [quotaBlocked, setQuotaBlocked] = useState(false);
   const [role, setRole] = useState<InvestorRole>(() => defaultRole(defaultIntent));
 
   const run = async () => {
@@ -53,10 +55,20 @@ export function AiRetryButton({
         router.push(`/login?callbackUrl=${encodeURIComponent(`/notes/${noteId}`)}`);
         return;
       }
+      const json = (await res.json().catch(() => null)) as {
+        code?: string;
+        error?: string;
+      } | null;
+      if (res.status === 403 && (json?.code === "QUOTA_EXCEEDED" || json?.code === "TIER")) {
+        setQuotaBlocked(true);
+        showToast("이번 달 AI 한도를 모두 사용했어요. 구독에서 이어서 정리할 수 있어요");
+        return;
+      }
       if (!res.ok) {
         showToast("AI 정리를 다시 시도하지 못했어요. 잠시 후 다시 시도해 주세요");
         return;
       }
+      setQuotaBlocked(false);
       showToast("AI 정리를 다시 실행했어요");
       router.refresh();
     } catch {
@@ -96,6 +108,14 @@ export function AiRetryButton({
       >
         {busy ? "AI 정리 중…" : "AI 다시 정리하기"}
       </button>
+      {quotaBlocked && (
+        <Link
+          href="/subscription"
+          className="inline-flex w-fit items-center rounded-lg bg-primary px-3 py-2 text-[12px] font-extrabold text-white"
+        >
+          구독하고 AI 이어서 쓰기
+        </Link>
+      )}
     </div>
   );
 }

@@ -17,4 +17,7 @@ export interface DataEnvelope<T> {
   fromCache: boolean;
   fetchedAt: string;
   data: T;
+  /** 응답 최상위 라벨 — data.mode 와 동기 (클라이언트가 envelope만 봐도 구분) */
+  mode?: "live" | "mock" | "unavailable";
+  unavailableReason?: string;
 }

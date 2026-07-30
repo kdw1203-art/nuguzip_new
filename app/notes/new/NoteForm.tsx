@@ -903,11 +903,30 @@ export function NoteForm({
             investorRole: investorRoleFromPurpose(visit["목적"]),
           }),
         });
-        const aiJson = aiRes.ok
-          ? ((await aiRes.json().catch(() => null)) as { mode?: string } | null)
-          : null;
+        const aiJson = (await aiRes.json().catch(() => null)) as {
+          mode?: string;
+          quotaExceeded?: boolean;
+          code?: string;
+        } | null;
+        if (aiRes.status === 403 && (aiJson?.code === "QUOTA_EXCEEDED" || aiJson?.code === "TIER")) {
+          aiFlag = "fail";
+          showMoment({
+            title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
+            subtitle: "이번 달 AI 한도를 썼어요 · 구독에서 이어서 정리할 수 있어요",
+          });
+          router.push(`/notes/${noteId}?ai=fail&quota=1`);
+          return;
+        }
         if (aiRes.ok && aiJson) {
           aiFlag = aiJson.mode === "llm" ? "ok" : "rule";
+          if (aiJson.quotaExceeded && aiFlag === "rule") {
+            showMoment({
+              title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
+              subtitle: "규칙 요약이에요 · AI 한도 소진 시 /subscription 에서 업그레이드",
+            });
+            router.push(`/notes/${noteId}?ai=rule&quota=1`);
+            return;
+          }
         }
       } catch {
         /* AI 실패 무시 — 노트 저장은 완료됨 */

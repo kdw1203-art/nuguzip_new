@@ -122,17 +122,17 @@ const DELTA_CLASS: Record<PersonalRegionMarket["tone"], string> = {
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
-/** 내집찾기 여정 4단계 — 노트 수 기반 (허위 수치 없이 실데이터로만 산정) */
+/** 내집찾기 여정 4단계 — 노트→AI→지도 루프 (허위 수치 없이 실데이터로만 산정) */
 const JOURNEY_TOTAL = 4;
 function journeyOf(noteCount: number | null) {
   if (noteCount === null) return null;
   if (noteCount === 0)
     return { step: 1, label: "시작", next: "첫 노트 작성" };
   if (noteCount <= 2)
-    return { step: 2, label: "후보 탐색", next: "지도에서 후보 비교" };
+    return { step: 2, label: "기록 쌓기", next: "AI로 판단 정리" };
   if (noteCount <= 5)
-    return { step: 3, label: "후보 좁히기", next: "AI로 판단 정리" };
-  return { step: 4, label: "판단 임박", next: "심화 AI 분석" };
+    return { step: 3, label: "AI 정리", next: "지도에서 후보 비교" };
+  return { step: 4, label: "비교·판단", next: "지도에서 후보 좁히기" };
 }
 
 export function PersonalHome() {
@@ -291,6 +291,7 @@ export function PersonalHome() {
     cta: `${HOME_CTA_AI.label} ›`,
   };
 
+  /* 루프 순서: 노트 → AI → 지도 */
   const suggestions = [
     {
       badge: "맞춤 제안 · 노트",
@@ -301,13 +302,6 @@ export function PersonalHome() {
       ...noteCard,
     },
     {
-      badge: "맞춤 제안 · 지도",
-      badgeClass: "bg-[#fdf3e7] text-warning",
-      emoji: "🗺",
-      href: mapHref,
-      ...regionCard,
-    },
-    {
       badge: "맞춤 제안 · AI",
       badgeClass: "bg-[#f2f4f8] text-text-2",
       emoji: "✨",
@@ -315,6 +309,13 @@ export function PersonalHome() {
         ? `/analysis?noteId=${encodeURIComponent(data.recentNote.id)}`
         : HOME_CTA_AI.href,
       ...aiCard,
+    },
+    {
+      badge: "맞춤 제안 · 지도",
+      badgeClass: "bg-[#fdf3e7] text-warning",
+      emoji: "🗺",
+      href: mapHref,
+      ...regionCard,
     },
   ];
 
@@ -363,12 +364,6 @@ export function PersonalHome() {
               {data.recentNote ? "이어서 하기" : HOME_CTA_NOTE.label}
             </Link>
             <Link
-              href={mapHref}
-              className="rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold text-[#c9d2e0]"
-            >
-              지도
-            </Link>
-            <Link
               href={
                 data.recentNote
                   ? `/analysis?noteId=${encodeURIComponent(data.recentNote.id)}`
@@ -377,6 +372,12 @@ export function PersonalHome() {
               className="rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold text-[#c9d2e0]"
             >
               AI
+            </Link>
+            <Link
+              href={mapHref}
+              className="rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-[13px] font-bold text-[#c9d2e0]"
+            >
+              지도
             </Link>
           </div>
           {regionChips.length > 0 && (

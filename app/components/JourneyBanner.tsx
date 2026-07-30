@@ -22,8 +22,8 @@ const STAGE_RECS: Record<Stage, { label: string; href: string }[]> = {
     { label: "AI 정리 미리보기", href: "/analysis" },
   ],
   field: [
+    { label: "임장노트 작성", href: "/notes/new" },
     { label: "지도에서 비교", href: "/map" },
-    { label: "다자 비교", href: "/analysis/compare" },
   ],
   closing: [
     { label: "전세 안전 진단", href: "/safety" },

@@ -48,8 +48,8 @@ export interface UploadResult {
    파일은 애초에 정상 이미지가 아닐 가능성이 높다. */
 const EXIF_STRIP_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-async function stripImageMetadata(raw: ArrayBuffer, mime: string): Promise<Buffer> {
-  const img = sharp(Buffer.from(raw)).rotate();
+async function stripImageMetadata(raw: ArrayBuffer | Buffer, mime: string): Promise<Buffer> {
+  const img = sharp(Buffer.isBuffer(raw) ? raw : Buffer.from(raw)).rotate();
   if (mime === "image/jpeg") return img.jpeg({ quality: 88 }).toBuffer();
   if (mime === "image/png") return img.png().toBuffer();
   return img.webp({ quality: 90 }).toBuffer();
@@ -121,16 +121,70 @@ function sanitizeFileName(original: string): string {
   return `${ts}-${rand}.${ext}`;
 }
 
+/** declared MIME vs magic bytes — 위조 Content-Type 완화 */
+export function sniffMimeFromBytes(buf: Buffer): string | null {
+  if (buf.length < 4) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+  if (
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47
+  ) {
+    return "image/png";
+  }
+  if (
+    buf.length >= 12 &&
+    buf.toString("ascii", 0, 4) === "RIFF" &&
+    buf.toString("ascii", 8, 12) === "WEBP"
+  ) {
+    return "image/webp";
+  }
+  if (
+    buf[0] === 0x47 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x38
+  ) {
+    return "image/gif";
+  }
+  if (buf.toString("ascii", 0, 4) === "%PDF") return "application/pdf";
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) {
+    return "audio/webm";
+  }
+  if (buf.length >= 3 && buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0) {
+    return "audio/mpeg";
+  }
+  return null;
+}
+
 export async function uploadFile(
   file: File,
   uploaderEmail: string,
   folder = "general",
 ): Promise<UploadResult> {
+  if (file.size <= 0) {
+    throw new Error("빈 파일은 업로드할 수 없습니다.");
+  }
   if (file.size > UPLOAD_MAX_BYTES) {
     throw new Error(`파일 크기는 ${UPLOAD_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`);
   }
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
     throw new Error(`허용되지 않는 파일 형식입니다: ${file.type}`);
+  }
+
+  const raw = Buffer.from(await file.arrayBuffer());
+  const sniffed = sniffMimeFromBytes(raw);
+  /* 이미지는 magic 필수. PDF도 필수. 오디오는 포맷이 다양해 declared MIME만 허용. */
+  if (
+    file.type.startsWith("image/") ||
+    file.type === "application/pdf"
+  ) {
+    if (!sniffed || sniffed !== file.type) {
+      throw new Error(
+        "파일 내용과 형식이 일치하지 않습니다. 다른 파일로 다시 시도해 주세요.",
+      );
+    }
   }
 
   const sb = getServiceSupabase();
@@ -141,12 +195,12 @@ export async function uploadFile(
   let body: Buffer;
   if (EXIF_STRIP_TYPES.has(file.type)) {
     try {
-      body = await stripImageMetadata(await file.arrayBuffer(), file.type);
+      body = await stripImageMetadata(raw, file.type);
     } catch {
       throw new Error("이미지를 처리할 수 없습니다. 파일이 손상되지 않았는지 확인해 주세요.");
     }
   } else {
-    body = Buffer.from(await file.arrayBuffer());
+    body = raw;
   }
 
   if (!sb) {

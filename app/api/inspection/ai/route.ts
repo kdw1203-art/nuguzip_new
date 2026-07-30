@@ -118,7 +118,8 @@ function reportRunMarkdown(report: {
  * - noteId가 있으면 저장된 임장노트 기준으로 구조화 리포트를 생성하고 ai_analysis에 저장
  *   (노트 내용 미변경 시 캐시 반환 — body.force=true 또는 ?force=1 로 강제 재분석)
  * - noteId가 없으면 기존 점수/섹션 기반 분석으로 동작
- * - 성공 시 ai_analysis_runs 에 기록해 월 사용량(무료 3회/월)을 실제로 집계·강제한다.
+ * - LLM 성공 시에만 ai_analysis_runs 에 기록해 월 사용량(무료 2회/월)을 집계·강제한다.
+ *   규칙 폴백·evidence-guard 강등은 한도를 소모하지 않는다.
  */
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 
@@ -181,7 +182,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // 월 사용량 한도(무료 3회/월) — 새 분석을 만들기 전에 강제
+    // 월 사용량 한도(무료 2회/월) — LLM 시도 전에만 강제. 규칙 폴백은 차감하지 않음.
     const plan = await resolveQuotaPlan(email, sessionPlan);
     let quota: Awaited<ReturnType<typeof checkAiAnalysisQuota>>;
     try {
@@ -189,7 +190,9 @@ export async function POST(req: Request) {
     } catch (e) {
       return dbUnavailable("inspection-ai-quota", e);
     }
-    if (!quota.allowed) {
+    const llmAllowed = quota.allowed;
+    /* 강제 재분석은 LLM이 목적 — 한도 소진 시 페이월(403). 일반 저장은 규칙 폴백 허용. */
+    if (!llmAllowed && force) {
       return NextResponse.json(
         quotaDeniedJson(quota.message, quota.requiredTier, quota.used, quota.limit),
         { status: 403 },
@@ -225,7 +228,9 @@ export async function POST(req: Request) {
     const deepDive = grounding ? buildNoteDeepDive(note, grounding) : null;
 
     let report = buildFallbackInspectionAiReport(note, { intent });
-    if (modelOption) {
+    if (!llmAllowed) {
+      baseAnalysis.engine = `rule-based-v1 (quota)`;
+    } else if (modelOption) {
       try {
         const promptInput = buildInspectionAiPromptInput(note, { intent });
         const llm = await callLlmChat(modelOption, [
@@ -296,27 +301,30 @@ export async function POST(req: Request) {
        않도록 분석 객체에도 같이 싣는다. metadata 쪽은 캐시 적중 응답용이다. */
     if (deepDive) analysis.deepDive = deepDive as unknown as Record<string, unknown>;
 
-    // 사용량 계측 — /my "AI 분석 월 사용량" 카운터가 실제로 오르도록 기록
-    try {
-      const score = (analysis as { score?: unknown }).score;
-      await appendRun({
-        authorEmail: email,
-        tool: "ai-inspection",
-        inputSnapshot: { noteId: note.id, region: note.region, intent },
-        modelId: (analysis as { modelId?: string | null }).modelId ?? null,
-        source: report.source === "fallback" ? "internal" : report.source,
-        platform: detectShellFromUserAgent(req.headers.get("user-agent")),
-        structuredSummary: {
-          headline: report.headline,
-          bullets: [...report.strengths, ...report.risks].slice(0, 5),
-          score: typeof score === "number" && Number.isFinite(score) ? Math.round(score) : null,
-          tags: [note.region, intent].filter(Boolean),
-        },
-        markdown: reportRunMarkdown(report),
-      });
-    } catch (e) {
-      // 기록 실패가 분석 결과 자체를 막지는 않는다 (best-effort 계측)
-      logger.error("[inspection/ai] run append failed", e);
+    const mode = report.source === "fallback" ? "rule" : "llm";
+
+    // LLM 성공만 월 한도 차감 — 규칙/evidence-guard 는 기록하지 않음
+    if (mode === "llm") {
+      try {
+        const score = (analysis as { score?: unknown }).score;
+        await appendRun({
+          authorEmail: email,
+          tool: "ai-inspection",
+          inputSnapshot: { noteId: note.id, region: note.region, intent },
+          modelId: (analysis as { modelId?: string | null }).modelId ?? null,
+          source: report.source,
+          platform: detectShellFromUserAgent(req.headers.get("user-agent")),
+          structuredSummary: {
+            headline: report.headline,
+            bullets: [...report.strengths, ...report.risks].slice(0, 5),
+            score: typeof score === "number" && Number.isFinite(score) ? Math.round(score) : null,
+            tags: [note.region, intent].filter(Boolean),
+          },
+          markdown: reportRunMarkdown(report),
+        });
+      } catch (e) {
+        logger.error("[inspection/ai] run append failed", e);
+      }
     }
 
     if (body.persistAnalysis !== false) {
@@ -347,7 +355,6 @@ export async function POST(req: Request) {
       });
     }
 
-    const mode = report.source === "fallback" ? "rule" : "llm";
     try {
       await recordFunnelEvent(req, {
         eventName: FUNNEL_EVENT.AI_TOOL_RUN,
@@ -374,10 +381,14 @@ export async function POST(req: Request) {
       cached: false,
       // "AI 생성" vs "규칙 기반 요약" 라벨용 — fallback 이 아니면 LLM 생성
       mode,
+      quotaExceeded: !llmAllowed,
       marketContext: marketSnapshot
         ? { snapshot: marketSnapshot, summary: describeSnapshot(marketSnapshot) }
         : null,
-      usage: { used: quota.used + 1, limit: quota.limit },
+      usage: {
+        used: mode === "llm" ? quota.used + 1 : quota.used,
+        limit: quota.limit,
+      },
       disclaimer: AI_DISCLAIMER,
     });
   }
@@ -390,7 +401,8 @@ export async function POST(req: Request) {
   } catch (e) {
     return dbUnavailable("inspection-ai-quota", e);
   }
-  if (!freeQuota.allowed) {
+  const freeLlmAllowed = freeQuota.allowed;
+  if (!freeLlmAllowed && (body.force === true || body.force === "1")) {
     return NextResponse.json(
       quotaDeniedJson(freeQuota.message, freeQuota.requiredTier, freeQuota.used, freeQuota.limit),
       { status: 403 },
@@ -411,7 +423,10 @@ export async function POST(req: Request) {
     riskTolerance: normalizeNumber(body.riskTolerance, 3),
   });
 
-  if (modelOption) {
+  if (!freeLlmAllowed) {
+    (analysis as Record<string, unknown>).engine = `rule-based-v1 (quota)`;
+    (analysis as Record<string, unknown>).source = "internal";
+  } else if (modelOption) {
     try {
       const llm = await callLlmChat(modelOption, [
         {
@@ -455,32 +470,39 @@ export async function POST(req: Request) {
   }
 
   const engine = String((analysis as Record<string, unknown>).engine ?? "");
+  const freeMode = engine.startsWith("rule-based") || !engine ? "rule" : "llm";
 
-  // 사용량 계측 (noteId 없는 경로) — best-effort
-  try {
-    const summaryText = String(
-      (analysis as Record<string, unknown>).llmDetailedConclusion ??
-        (analysis as Record<string, unknown>).summary ??
-        "임장 분석 실행",
-    );
-    await appendRun({
-      authorEmail: email,
-      tool: "ai-inspection",
-      inputSnapshot: { region: String(body.region ?? ""), scores },
-      modelId: (analysis as { modelId?: string | null }).modelId ?? null,
-      source: String((analysis as Record<string, unknown>).source ?? "internal"),
-      platform: detectShellFromUserAgent(req.headers.get("user-agent")),
-      structuredSummary: null,
-      markdown: summaryText.slice(0, 4000),
-    });
-  } catch (e) {
-    logger.error("[inspection/ai] run append failed", e);
+  // LLM 성공만 월 한도 차감
+  if (freeMode === "llm") {
+    try {
+      const summaryText = String(
+        (analysis as Record<string, unknown>).llmDetailedConclusion ??
+          (analysis as Record<string, unknown>).summary ??
+          "임장 분석 실행",
+      );
+      await appendRun({
+        authorEmail: email,
+        tool: "ai-inspection",
+        inputSnapshot: { region: String(body.region ?? ""), scores },
+        modelId: (analysis as { modelId?: string | null }).modelId ?? null,
+        source: String((analysis as Record<string, unknown>).source ?? "internal"),
+        platform: detectShellFromUserAgent(req.headers.get("user-agent")),
+        structuredSummary: null,
+        markdown: summaryText.slice(0, 4000),
+      });
+    } catch (e) {
+      logger.error("[inspection/ai] run append failed", e);
+    }
   }
 
   return NextResponse.json({
     analysis,
-    mode: engine.startsWith("rule-based") || !engine ? "rule" : "llm",
-    usage: { used: freeQuota.used + 1, limit: freeQuota.limit },
+    mode: freeMode,
+    quotaExceeded: !freeLlmAllowed,
+    usage: {
+      used: freeMode === "llm" ? freeQuota.used + 1 : freeQuota.used,
+      limit: freeQuota.limit,
+    },
     disclaimer: AI_DISCLAIMER,
   });
 }

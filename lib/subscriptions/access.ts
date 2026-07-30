@@ -89,7 +89,8 @@ export const FEATURE_RULES: Record<FeatureKey, FeatureRule> = {
   },
   ai_analysis: {
     minTier: "basic",
-    monthlyLimit: { basic: 3, pro: 50, expert: null, enterprise: null },
+    /* Free = 월 2회 — plans.ts「AI 임장노트 자동정리」카피와 단일화 */
+    monthlyLimit: { basic: 2, pro: 50, expert: null, enterprise: null },
   },
   report_paid:          { minTier: "pro" },
   group_join_pass: { minTier: "pro" },

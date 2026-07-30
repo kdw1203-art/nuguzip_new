@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { createReport, listReports } from "@/lib/reports/store-db";
+import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
 
 export async function GET() {
   const items = await listReports();
   return NextResponse.json({ items });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const limited = await applyRateLimit(req, WRITE_RATE_LIMIT);
+  if (limited) return limited;
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

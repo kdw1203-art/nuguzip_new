@@ -923,14 +923,11 @@ export function MapClient({
   /* C7 densify — SSR 전국 top-N 시드에 뷰포트 인기 단지를 합쳐 좌측 목록이
      지도를 따라가게 한다. 마커(/api/map/clusters)는 이미 뷰포트 기준이다. */
   const [viewportDanji, setViewportDanji] = useState<DanjiItem[]>([]);
+  /* 뷰포트 인기 목록이 채워진 동안은 전국 SSR 시드를 쓰지 않는다.
+     (nationwide 로 돌아갈 때 viewportDanji 를 비워 시드로 복귀) */
   const densifiedDanji = useMemo(() => {
-    if (viewportDanji.length === 0) return danji;
-    const map = new Map<string, DanjiItem>();
-    for (const d of danji) map.set(d.id, d);
-    for (const d of viewportDanji) {
-      if (!map.has(d.id)) map.set(d.id, d);
-    }
-    return [...map.values()];
+    if (viewportDanji.length > 0) return viewportDanji;
+    return danji;
   }, [danji, viewportDanji]);
 
   const rangeFilteredDanji = useMemo(() => {
@@ -1839,7 +1836,7 @@ export function MapClient({
             setPopularScope(j.scope === "viewport" ? "viewport" : "nationwide");
             setPopularFailed(false);
             setPopularLoading(false);
-            /* 뷰포트일 때만 좌측 단지 목록에 합친다 — 전국 시드를 덮어쓰지 않음 */
+            /* 뷰포트: 좌측 목록을 뷰포트 단지로 교체. 전국: 뷰포트 목록 비워 SSR 시드 복귀 */
             if (j.scope === "viewport") {
               setViewportDanji(
                 items
@@ -1887,6 +1884,8 @@ export function MapClient({
                     };
                   }),
               );
+            } else {
+              setViewportDanji([]);
             }
           })
           .catch((e) => {

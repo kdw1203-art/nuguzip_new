@@ -30,6 +30,7 @@
     "sync:public-data-env": "node ./scripts/sync-public-data-env-vercel.mjs",
     "ingest:national-geo": "node ./scripts/ingest-national-geo.mjs",
     "smoke:public-data": "node ./scripts/smoke-public-data.mjs",
+    "smoke:plan-gate": "node ./scripts/smoke-plan-gate.mjs",
     "check:responsive-qa": "node ./scripts/check-responsive-qa.mjs",
     "check:final-release": "node ./scripts/check-final-release.mjs",
     "check:cache-policy": "node ./scripts/check-cache-policy.mjs",

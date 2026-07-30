@@ -61,5 +61,7 @@ node scripts/probe-google-oauth-redirect.mjs
 - [ ] Console 승인된 리디렉션 URI에 apex·www·localhost 3종이 **문자 단위** 일치
 - [ ] Vercel Production `AUTH_URL=https://nuguzip.com` (끝 `/` 없음)
 - [ ] `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` 이 위 OAuth 클라이언트와 동일
-- [ ] `node scripts/probe-google-oauth-redirect.mjs` 결과가 Console URI와 동일
-- [ ] `/login` Google → 콜백 → 세션 유지 (preview 도메인은 별도 URI 등록 필요)
+- [x] `node scripts/probe-google-oauth-redirect.mjs` → `match: true`  
+      (`redirectUri` = `https://nuguzip.com/api/auth/callback/google`, 검증 2026-07-30)
+- [ ] `/login` Google → 콜백 → 세션 유지 (preview 도메인은 별도 URI 등록 필요)  
+      ※ 앱이 보내는 redirect_uri 는 probe로 확인됨. Console URI·실로그인만 오너 확인.

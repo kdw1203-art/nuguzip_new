@@ -140,13 +140,13 @@ export async function BillingPanel({
         <p className="text-[11px] leading-[1.7] text-text-2">
           현재 화면에서 바로 해지하는 버튼은 없습니다. 해지·환불 요청은{" "}
           <Link
-            href="/support"
+            href="/support?category=payment"
             className="font-bold text-primary underline underline-offset-2"
           >
             고객센터 1:1 문의
           </Link>
-          의 <b>결제·환불</b> 카테고리로 접수해 주세요. 접수 내용은 담당자에게 바로
-          전달되며, 처리 기준은{" "}
+          의 <b>결제·환불</b> 카테고리로 접수해 주세요. 접수 후{" "}
+          <b>영업일 기준 1일 이내</b>에 접수 확인을 안내하며, 처리 기준은{" "}
           <Link
             href="/legal/terms#refund"
             className="font-bold text-primary underline underline-offset-2"

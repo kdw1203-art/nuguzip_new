@@ -57,9 +57,25 @@ export async function GET(
     { city, district, yyyymm, routeNo, zone },
   );
 
-  return NextResponse.json(result, {
-    headers: {
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+  const inner = result.data as { mode?: string; unavailableReason?: string } | null;
+  const mode =
+    inner?.mode === "live" || inner?.mode === "mock" || inner?.mode === "unavailable"
+      ? inner.mode
+      : undefined;
+
+  return NextResponse.json(
+    {
+      ...result,
+      mode,
+      unavailableReason:
+        typeof inner?.unavailableReason === "string"
+          ? inner.unavailableReason
+          : undefined,
     },
-  });
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=600",
+      },
+    },
+  );
 }

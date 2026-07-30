@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { UserRole } from "@/lib/auth/types";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { rateLimit } from "@/lib/rate-limit";
 
 type Creds = Record<"email" | "password", string> | undefined;
 
@@ -114,6 +115,13 @@ export async function authorizeWithPassword(
     .toLowerCase();
   const password = String(credentials?.password ?? "");
   if (!email.includes("@") || password.length < 8) return null;
+
+  /* 이메일별 비밀번호 시도 제한 — NextAuth POST IP 한도와 이중으로 */
+  const rl = rateLimit(`password-login:${email}`, {
+    limit: 12,
+    windowMs: 15 * 60_000,
+  });
+  if (!rl.ok) return null;
 
   const fromDb = await tryAppUsersBcrypt(email, password);
   if (fromDb) return fromDb;

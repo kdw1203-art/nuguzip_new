@@ -217,15 +217,21 @@ export async function loadOperatingDashboard(
   let aiLlm7d = 0;
   let aiRule7d = 0;
   let mapFocus7d = 0;
+  let aiFeedback7d = 0;
+  let fieldCompare7d = 0;
   if (sb) {
-    const [llmEv, ruleEv, mapEv] = await Promise.all([
+    const [llmEv, ruleEv, mapEv, fbEv, cmpEv] = await Promise.all([
       countEvents(sb, [FUNNEL_EVENT.AI_LLM_COMPLETE], d7),
       countEvents(sb, [FUNNEL_EVENT.AI_RULE_FALLBACK], d7),
       countEvents(sb, [FUNNEL_EVENT.MAP_FOCUS_OPEN], d7),
+      countEvents(sb, [FUNNEL_EVENT.AI_FEEDBACK], d7),
+      countEvents(sb, [FUNNEL_EVENT.FIELD_COMPARE_ADD], d7),
     ]);
     aiLlm7d = llmEv;
     aiRule7d = ruleEv;
     mapFocus7d = mapEv;
+    aiFeedback7d = fbEv;
+    fieldCompare7d = cmpEv;
   }
 
   const signup30d = Math.max(1, kpi.newUsers30d);
@@ -254,6 +260,16 @@ export async function loadOperatingDashboard(
       label: "지도 핸드오프(7일)",
       count: mapFocus7d,
       pctOfSignup: Math.round((mapFocus7d / signup30d) * 1000) / 10,
+    },
+    {
+      label: "AI 피드백(7일)",
+      count: aiFeedback7d,
+      pctOfSignup: Math.round((aiFeedback7d / signup30d) * 1000) / 10,
+    },
+    {
+      label: "회차 비교(7일)",
+      count: fieldCompare7d,
+      pctOfSignup: Math.round((fieldCompare7d / signup30d) * 1000) / 10,
     },
     {
       label: "결제(30일)",
