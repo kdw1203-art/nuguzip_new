@@ -74,6 +74,7 @@ export const SAMPLE_DAECHI_SNAPSHOT: DistrictSnapshotDocument = {
     source: "MOIS",
   },
   safety: {
+    /** 행정구역 단위 데모 집계 — 주소·사건 단위 아님 (SAFETY_UI_POLICY) */
     crimeRiskIndex: 62,
     trafficAccidentIndex: 48,
     cctvCount: 312,

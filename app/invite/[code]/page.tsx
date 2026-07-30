@@ -190,7 +190,7 @@ export default async function InvitePage({
             href="/signup"
             className="btn-primary btn-cta press rounded-[12px] py-3.5 text-center text-[15px] font-bold no-underline"
           >
-            카카오 · 구글로 3초 가입하고 300P 받기
+            Google로 3초 가입하고 300P 받기
           </Link>
           <Link
             href="/login"

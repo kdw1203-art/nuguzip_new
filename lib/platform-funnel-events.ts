@@ -39,6 +39,9 @@ export const FUNNEL_EVENT = {
   REPORT_PURCHASE: "report_purchase",
   PWA_INSTALL_PROMPT: "pwa_install_prompt",
   PUSH_SUBSCRIBE: "push_subscribe",
+  /** 로그인 성공/실패율 (provider·reason 메타 — 비밀번호 미포함) */
+  AUTH_LOGIN_OK: "auth_login_ok",
+  AUTH_LOGIN_FAIL: "auth_login_fail",
 } as const;
 
 const FUNNEL_VERSION = "2026q2";

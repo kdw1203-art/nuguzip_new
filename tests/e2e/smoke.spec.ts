@@ -163,17 +163,20 @@ test("18. /login shows exactly the configured social buttons + 비밀번호 찾�
     { id?: string }
   >;
   const ids = new Set(Object.keys(providers ?? {}));
+  /* 제품 정책: 소셜 로그인은 Google만. 카카오/네이버 로그인 버튼은 없어야 한다. */
   const LABELS: Record<string, string> = {
-    kakao: "카카오로 3초 만에 시작",
-    naver: "네이버로 시작",
     google: "Google로 시작",
   };
+  const RETIRED_LABELS = ["카카오로 3초 만에 시작", "네이버로 시작"];
 
   await page.goto("/login");
   for (const [id, label] of Object.entries(LABELS)) {
     const button = page.getByRole("button", { name: label });
     if (ids.has(id)) await expect(button).toBeVisible();
     else await expect(button).toHaveCount(0);
+  }
+  for (const label of RETIRED_LABELS) {
+    await expect(page.getByRole("button", { name: label })).toHaveCount(0);
   }
 
   // 이메일 로그인은 provider 구성과 무관하게 항상 있어야 하는 경로

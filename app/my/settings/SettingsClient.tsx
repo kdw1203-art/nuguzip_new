@@ -404,46 +404,128 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
 /* ---------------- 개인정보 탭 — 마케팅 수신 동의(실배선) + 처리방침 ----------------
    여기 마케팅 토글은 **발송 스위치가 아니라 동의 기록**이다. 그래서 위 알림 탭과 달리
    메일 발송이 꺼져 있어도 감추지 않는다 — 동의·철회는 언제든 할 수 있어야 한다. */
+function usePrivacyConsents() {
+  const [phase, setPhase] = useState<"guest" | "loading" | "ready" | "error">("loading");
+  const [marketing, setMarketing] = useState(false);
+  const [location, setLocation] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me/consents", { cache: "no-store" });
+        if (res.status === 401) {
+          if (!cancelled) setPhase("guest");
+          return;
+        }
+        if (!res.ok) {
+          if (!cancelled) setPhase("error");
+          return;
+        }
+        const data = (await res.json()) as {
+          consents?: { marketing?: boolean; location?: boolean };
+        };
+        if (!cancelled) {
+          setMarketing(Boolean(data.consents?.marketing));
+          setLocation(Boolean(data.consents?.location));
+          setPhase("ready");
+        }
+      } catch {
+        if (!cancelled) setPhase("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function patch(partial: { marketing?: boolean; location?: boolean }) {
+    setSaveError(null);
+    const res = await fetch("/api/me/consents", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(partial),
+    });
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setSaveError(data.error ?? "저장에 실패했습니다.");
+      return;
+    }
+    const data = (await res.json()) as {
+      consents?: { marketing?: boolean; location?: boolean };
+    };
+    if (typeof data.consents?.marketing === "boolean") setMarketing(data.consents.marketing);
+    if (typeof data.consents?.location === "boolean") setLocation(data.consents.location);
+  }
+
+  return { phase, marketing, location, saveError, patch };
+}
+
 function PrivacyTab() {
   const { prefs, phase, saveError, toggle } = usePrefs();
+  const consents = usePrivacyConsents();
 
   return (
     <div className="flex flex-col gap-3">
       <div className="card flex flex-col rounded-2xl px-4 py-1">
-        <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">마케팅 수신 동의</div>
-        {phase === "guest" ? (
+        <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">선택 동의 · 철회</div>
+        {phase === "guest" || consents.phase === "guest" ? (
           <div className="py-4">
             <GuestCard />
           </div>
-        ) : phase === "loading" ? (
+        ) : phase === "loading" || consents.phase === "loading" ? (
           <div className="py-6 text-center text-[13px] text-text-3">불러오는 중…</div>
-        ) : phase === "error" || !prefs ? (
+        ) : phase === "error" || !prefs || consents.phase === "error" ? (
           <div className="py-6 text-center text-[13px] text-text-3">
             불러오지 못했어요. 새로고침 후 다시 시도해 주세요.
           </div>
         ) : (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={prefs.emailMarketing}
-            onClick={() => void toggle("emailMarketing")}
-            className="flex w-full items-center justify-between py-[13px] text-left"
-          >
-            <span>
-              <span className="block text-[13px] font-semibold text-text-1">
-                혜택 · 소식 이메일 받기
+          <>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={prefs.emailMarketing || consents.marketing}
+              onClick={() => {
+                const next = !(prefs.emailMarketing || consents.marketing);
+                void toggle("emailMarketing");
+                void consents.patch({ marketing: next });
+              }}
+              className="flex w-full items-center justify-between border-b border-[#f0f3f8] py-[13px] text-left"
+            >
+              <span>
+                <span className="block text-[13px] font-semibold text-text-1">
+                  혜택 · 소식 이메일 받기
+                </span>
+                <span className="block text-[10px] text-text-3">
+                  새 기능 · 이벤트 · 할인 안내 (선택 · 언제든 해제)
+                </span>
               </span>
-              <span className="block text-[10px] text-text-3">
-                새 기능 · 이벤트 · 할인 안내 (선택 · 언제든 해제)
+              <Toggle on={prefs.emailMarketing || consents.marketing} />
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={consents.location}
+              onClick={() => void consents.patch({ location: !consents.location })}
+              className="flex w-full items-center justify-between py-[13px] text-left"
+            >
+              <span>
+                <span className="block text-[13px] font-semibold text-text-1">
+                  위치정보 이용 동의
+                </span>
+                <span className="block text-[10px] text-text-3">
+                  주변 단지·지도 편의 (선택 · 언제든 철회)
+                </span>
               </span>
-            </span>
-            <Toggle on={prefs.emailMarketing} />
-          </button>
+              <Toggle on={consents.location} />
+            </button>
+          </>
         )}
       </div>
-      {saveError && (
+      {(saveError || consents.saveError) && (
         <div className="rounded-xl bg-danger-soft px-4 py-2.5 text-xs font-semibold text-danger">
-          {saveError}
+          {saveError || consents.saveError}
         </div>
       )}
 

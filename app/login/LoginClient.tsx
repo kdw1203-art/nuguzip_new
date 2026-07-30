@@ -9,6 +9,7 @@ import { Icon } from "@/app/components/Icon";
 import { useMoment } from "@/app/components/motion/MomentProvider";
 
 import type { SocialProvider } from "@/lib/auth/configured-social";
+import { trackPlatformEvent } from "@/lib/platform-events-client";
 
 export type { SocialProvider };
 
@@ -40,19 +41,10 @@ type LoginContext = { line1: string; line2: string; sub: string };
    "카카오·네이버·구글" 을 고정 문자열로 박아 두면, 그 셋 중 하나도 설정돼
    있지 않은 상태에서도 화면은 세 가지로 시작할 수 있다고 말하게 된다. */
 const SOCIAL_LABEL: Record<SocialProvider, string> = {
-  kakao: "카카오",
-  naver: "네이버",
   google: "구글",
 };
 
-/* 버튼 색은 각 사업자의 브랜드 규격 그대로 둔다(네이버 #03c75a 대비 예외는
-   tests/e2e/a11y.spec.ts 에 조합 단위로 기록돼 있다). */
 const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }> = {
-  kakao: {
-    label: "카카오로 3초 만에 시작",
-    className: "bg-[#fee500] text-[#191919]",
-  },
-  naver: { label: "네이버로 시작", className: "bg-[#03c75a] text-white" },
   google: {
     label: "Google로 시작",
     className: "border border-[#e2e7ee] bg-surface text-text-1",
@@ -203,6 +195,23 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
     if (prefill?.includes("@")) setEmail(prefill);
     if (params.get("error") === "verify_failed") {
       setError("이메일 인증에 실패했습니다. 메일의 링크를 다시 눌러 주세요.");
+    }
+    /* Auth.js OAuth 실패 시 ?error=… — 실패율 계측(비밀번호·이메일 미포함) */
+    const oauthErr = params.get("error");
+    if (
+      oauthErr &&
+      oauthErr !== "verify_failed" &&
+      ["OAuthSignin", "OAuthCallback", "OAuthCreateAccount", "Callback", "AccessDenied", "Configuration"].some(
+        (c) => oauthErr === c || oauthErr.toLowerCase().includes(c.toLowerCase()),
+      )
+    ) {
+      trackPlatformEvent({
+        eventName: "auth_login_fail",
+        source: "auth",
+        campaign: "login_monitor",
+        path: "/login",
+        metadata: { provider: "google", reason: "oauth_error", code: oauthErr.slice(0, 40) },
+      });
     }
   }, [generic]);
 

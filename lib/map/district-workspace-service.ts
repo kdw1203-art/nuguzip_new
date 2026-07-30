@@ -90,7 +90,7 @@ function snapshotMetricsFromDocument(
     chips.push({
       id: "safety",
       label: "치안·교통",
-      value: `위험 ${doc.safety.crimeRiskIndex} · CCTV ${doc.safety.cctvCount}`,
+      value: `치안지수 ${doc.safety.crimeRiskIndex}(행정구역 집계) · CCTV ${doc.safety.cctvCount}`,
       sourceId: "safety",
       live: true,
     });

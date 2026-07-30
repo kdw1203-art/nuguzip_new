@@ -1,9 +1,7 @@
 import { getKakaoRestApiKey } from "@/lib/kakao/rest-client";
 import {
   getKakaoRolloutPhases,
-  isKakaoOAuthConfigured,
   isKakaoShareConfigured,
-  KAKAO_OAUTH_CALLBACK_PATH,
 } from "@/lib/kakao/oauth-config";
 import {
   isSupabaseAuthConfigured,
@@ -44,9 +42,6 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
   const google =
     Boolean(process.env.AUTH_GOOGLE_ID?.trim()) &&
     Boolean(process.env.AUTH_GOOGLE_SECRET?.trim());
-  const naver =
-    Boolean(process.env.AUTH_NAVER_ID?.trim()) &&
-    Boolean(process.env.AUTH_NAVER_SECRET?.trim());
   const github =
     Boolean(process.env.GITHUB_TOKEN?.trim()) ||
     Boolean(process.env.GH_TOKEN?.trim());
@@ -123,28 +118,10 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
       docsUrl: "https://console.cloud.google.com/apis/credentials",
     },
     {
-      id: "naver-oauth",
-      tier: "oauth",
-      label: "네이버 로그인",
-      description: "NextAuth Naver Provider",
-      ok: naver,
-      envKeys: "AUTH_NAVER_ID + AUTH_NAVER_SECRET",
-      docsUrl: "https://developers.naver.com/docs/login/overview/",
-    },
-    {
-      id: "kakao-oauth",
-      tier: "oauth",
-      label: "카카오 로그인",
-      description: `NextAuth Kakao · Redirect URI \`${KAKAO_OAUTH_CALLBACK_PATH}\``,
-      ok: isKakaoOAuthConfigured(),
-      envKeys: "AUTH_KAKAO_ID + AUTH_KAKAO_SECRET (+ AUTH_URL)",
-      docsUrl: "https://developers.kakao.com/docs/latest/ko/kakaologin/common",
-    },
-    {
       id: "kakao-share",
-      tier: "oauth",
+      tier: "extra",
       label: "카카오톡 공유 (JS SDK)",
-      description: "마이·초대 링크 카카오톡 공유",
+      description: "마이·초대 링크 카카오톡 공유 (로그인 연동 아님)",
       ok: isKakaoShareConfigured(),
       envKeys: "NEXT_PUBLIC_KAKAO_JS_KEY",
       docsUrl: "https://developers.kakao.com/docs/latest/ko/kakaotalk-share/js-link",

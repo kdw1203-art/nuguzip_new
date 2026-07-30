@@ -4,6 +4,7 @@ import type { UserRole } from "@/lib/auth/types";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { rateLimit } from "@/lib/rate-limit";
+import { recordAuthLoginOutcome } from "@/lib/auth/login-telemetry";
 
 type Creds = Record<"email" | "password", string> | undefined;
 
@@ -114,22 +115,69 @@ export async function authorizeWithPassword(
     .trim()
     .toLowerCase();
   const password = String(credentials?.password ?? "");
-  if (!email.includes("@") || password.length < 8) return null;
+  if (!email.includes("@") || password.length < 8) {
+    void recordAuthLoginOutcome({
+      ok: false,
+      provider: "password",
+      reason: "invalid_input",
+    });
+    return null;
+  }
 
   /* 이메일별 비밀번호 시도 제한 — NextAuth POST IP 한도와 이중으로 */
   const rl = rateLimit(`password-login:${email}`, {
     limit: 12,
     windowMs: 15 * 60_000,
   });
-  if (!rl.ok) return null;
+  if (!rl.ok) {
+    void recordAuthLoginOutcome({
+      ok: false,
+      provider: "password",
+      reason: "rate_limited",
+    });
+    return null;
+  }
 
   const fromDb = await tryAppUsersBcrypt(email, password);
-  if (fromDb) return fromDb;
+  if (fromDb) {
+    void recordAuthLoginOutcome({
+      ok: true,
+      provider: "password",
+      userEmail: fromDb.email,
+    });
+    return fromDb;
+  }
 
   try {
-    return await trySupabaseAuthPassword(email, password);
+    const fromSb = await trySupabaseAuthPassword(email, password);
+    if (fromSb) {
+      void recordAuthLoginOutcome({
+        ok: true,
+        provider: "password",
+        userEmail: fromSb.email,
+      });
+      return fromSb;
+    }
+    void recordAuthLoginOutcome({
+      ok: false,
+      provider: "password",
+      reason: "bad_credentials",
+    });
+    return null;
   } catch (e) {
-    if (e instanceof Error && e.message === "EMAIL_NOT_CONFIRMED") throw e;
+    if (e instanceof Error && e.message === "EMAIL_NOT_CONFIRMED") {
+      void recordAuthLoginOutcome({
+        ok: false,
+        provider: "password",
+        reason: "email_not_confirmed",
+      });
+      throw e;
+    }
+    void recordAuthLoginOutcome({
+      ok: false,
+      provider: "password",
+      reason: "unknown",
+    });
     return null;
   }
 }

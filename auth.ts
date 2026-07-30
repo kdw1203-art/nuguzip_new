@@ -2,8 +2,6 @@ import NextAuth from "next-auth";
 import type { JWT } from "@auth/core/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
-import Naver from "next-auth/providers/naver";
-import Kakao from "next-auth/providers/kakao";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
 import type { UserRole } from "@/lib/auth/types";
 import {
@@ -11,11 +9,7 @@ import {
   isSupabasePasswordLoginConfigured,
 } from "@/lib/supabase/flags";
 import { isTossLoginEnabled } from "@/lib/auth/toss-login";
-import {
-  linkKakaoUser,
-  parseKakaoSignInPayload,
-} from "@/lib/auth/kakao-user-store";
-import { KAKAO_LOGIN_SCOPES } from "@/lib/kakao/oauth-config";
+import { recordAuthLoginOutcome } from "@/lib/auth/login-telemetry";
 import { logger } from "@/lib/log";
 import { isAllowlistedAdmin, resolveProjectAdminEmail } from "@/lib/auth/admin-emails";
 
@@ -43,12 +37,6 @@ function resolveAuthSecret(): string | undefined {
 const googleConfigured =
   Boolean(process.env.AUTH_GOOGLE_ID) &&
   Boolean(process.env.AUTH_GOOGLE_SECRET);
-const naverConfigured =
-  Boolean(process.env.AUTH_NAVER_ID) &&
-  Boolean(process.env.AUTH_NAVER_SECRET);
-const kakaoConfigured =
-  Boolean(process.env.AUTH_KAKAO_ID) &&
-  Boolean(process.env.AUTH_KAKAO_SECRET);
 
 const supabasePassword = isSupabasePasswordLoginConfigured();
 const tossLoginEnabled = isTossLoginEnabled();
@@ -64,7 +52,6 @@ const devEmailFallback =
   process.env.NODE_ENV !== "production" &&
   !privateSiteLocked &&
   !googleConfigured &&
-  !naverConfigured &&
   !supabasePassword;
 
 /**
@@ -96,27 +83,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           Google({
             clientId: process.env.AUTH_GOOGLE_ID,
             clientSecret: process.env.AUTH_GOOGLE_SECRET,
-          }),
-        ]
-      : []),
-    ...(naverConfigured
-      ? [
-          Naver({
-            clientId: process.env.AUTH_NAVER_ID,
-            clientSecret: process.env.AUTH_NAVER_SECRET,
-          }),
-        ]
-      : []),
-    ...(kakaoConfigured
-      ? [
-          Kakao({
-            clientId: process.env.AUTH_KAKAO_ID,
-            clientSecret: process.env.AUTH_KAKAO_SECRET,
-            authorization: {
-              params: {
-                scope: KAKAO_LOGIN_SCOPES.join(" "),
-              },
-            },
           }),
         ]
       : []),
@@ -328,21 +294,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   events: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider !== "kakao") return;
-      const payload = parseKakaoSignInPayload({
-        accountProviderAccountId: account.providerAccountId,
-        userEmail: user.email,
-        userName: user.name,
-        userImage: user.image,
-        profile,
+    async signIn({ user, account }) {
+      const provider =
+        account?.provider === "google"
+          ? "google"
+          : account?.provider === "password" || account?.provider === "credentials"
+            ? "password"
+            : "unknown";
+      /* password 경로는 authorizeWithPassword 에서 이미 기록 — OAuth만 여기서 */
+      if (provider !== "google") return;
+      await recordAuthLoginOutcome({
+        ok: true,
+        provider: "google",
+        userEmail: typeof user.email === "string" ? user.email : null,
+        path: "/api/auth/callback/google",
       });
-      if (!payload) return;
-      try {
-        await linkKakaoUser(payload);
-      } catch (e) {
-        logger.warn("[auth] kakao link failed", e);
-      }
     },
   },
 });

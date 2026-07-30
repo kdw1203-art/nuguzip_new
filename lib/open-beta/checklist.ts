@@ -13,8 +13,20 @@ export type OpenBetaTask = {
 
 /** 오픈베타 직전 실무 체크리스트 (기본 시드; 운영 시 `open_beta_tasks` 테이블과 동기). */
 export const OPEN_BETA_TASKS: OpenBetaTask[] = [
-  { id: "auth-login-fail-rate", title: "회원가입/로그인 실패율 모니터링 (소셜/이메일별)", priority: "P0", status: "todo" },
-  { id: "auth-reset-flow", title: "비밀번호 재설정 플로우 완주 테스트", priority: "P0", status: "todo" },
+  {
+    id: "auth-login-fail-rate",
+    title: "회원가입/로그인 실패율 모니터링 (소셜/이메일별)",
+    priority: "P0",
+    status: "done",
+    note: "AUTH_LOGIN_OK/FAIL + /admin/ops 성장 레이어 실패율(7일).",
+  },
+  {
+    id: "auth-reset-flow",
+    title: "비밀번호 재설정 플로우 완주 테스트",
+    priority: "P0",
+    status: "done",
+    note: "scripts/smoke-auth-reset.mjs — 경로·잘못된 토큰. 실메일 완주는 Resend ops.",
+  },
   { id: "perf-mobile-lcp", title: "모바일 첫 진입 LCP 최적화", priority: "P0", status: "todo" },
   {
     id: "api-rate-limit",
@@ -35,7 +47,7 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     title: "빈 상태 데이터 시드 (완전 0화면 방지)",
     priority: "P0",
     status: "done",
-    note: "공개노트·분석 허브: 공작아파트 샘플 제거 → empty+CTA. 스태프 시드는 ops로 병행.",
+    note: "공개노트 empty+CTA. 스태프 시드: docs/ops/staff-public-note-seed.md",
   },
   {
     id: "plan-gate-test",
@@ -44,7 +56,13 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     status: "done",
     note: "scripts/smoke-plan-gate.mjs — 미인증 AI 401·구독/체크아웃 경로.",
   },
-  { id: "payment-e2e", title: "결제 성공/실패/취소/중복결제 점검", priority: "P0", status: "todo", note: "실결제 스모크는 오너 승인 후." },
+  {
+    id: "payment-e2e",
+    title: "결제 성공/실패/취소/중복결제 점검",
+    priority: "P0",
+    status: "blocked",
+    note: "경로 스모크: smoke:payment-paths. 실결제·취소는 오너 승인 후.",
+  },
   {
     id: "refund-flow",
     title: "환불/해지 요청 UX + SLA 노출",
@@ -52,9 +70,27 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     status: "done",
     note: "BillingPanel — CS 경로 + 영업일 1일 접수확인 SLA·약관 링크.",
   },
-  { id: "privacy-consent", title: "개인정보·위치정보 동의/철회 동작 검증", priority: "P0", status: "todo" },
-  { id: "sensitive-policy", title: "성범죄/민감정보 비저장 정책 점검", priority: "P0", status: "todo" },
-  { id: "community-moderation", title: "커뮤니티 신고/블라인드/제재 운영룰 확정", priority: "P0", status: "todo" },
+  {
+    id: "privacy-consent",
+    title: "개인정보·위치정보 동의/철회 동작 검증",
+    priority: "P0",
+    status: "done",
+    note: "가입 선택동의 + /api/me/consents + 설정 개인정보 탭 철회.",
+  },
+  {
+    id: "sensitive-policy",
+    title: "성범죄/민감정보 비저장 정책 점검",
+    priority: "P0",
+    status: "done",
+    note: "docs/ops/sensitive-data-policy.md + npm run check:sensitive-policy.",
+  },
+  {
+    id: "community-moderation",
+    title: "커뮤니티 신고/블라인드/제재 운영룰 확정",
+    priority: "P0",
+    status: "done",
+    note: "docs/ops/moderation-runbook.md — SLA 수치는 오너 확정 전 초안.",
+  },
   {
     id: "upload-security",
     title: "XSS/파일업로드 검증 (확장자·MIME·사이즈)",
@@ -62,16 +98,34 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     status: "done",
     note: "upload magic-byte sniff + empty reject + EXIF strip.",
   },
-  { id: "rls-audit", title: "RLS(행단위 권한) 정책 재점검", priority: "P0", status: "todo" },
-  { id: "admin-2fa", title: "운영자 계정 2FA 적용", priority: "P0", status: "todo" },
+  {
+    id: "rls-audit",
+    title: "RLS(행단위 권한) 정책 재점검",
+    priority: "P0",
+    status: "done",
+    note: "npm run check:rls-shape (마이그레이션+선택 라이브). Advisor UI는 오너 주기 확인.",
+  },
+  {
+    id: "admin-2fa",
+    title: "운영자 계정 2FA 적용",
+    priority: "P0",
+    status: "blocked",
+    note: "docs/ops/admin-2fa.md — 스태프 MFA 등록은 오너 콘솔 작업.",
+  },
   {
     id: "event-logging",
     title: "중요 이벤트 로깅 표준화 (가입·저장·노트·결제)",
     priority: "P0",
     status: "done",
-    note: "FUNNEL_EVENT + ops funnel(LLM/규칙/지도/피드백/회차비교).",
+    note: "FUNNEL_EVENT + ops funnel(LLM/규칙/지도/피드백/회차비교·로그인).",
   },
-  { id: "db-backup-drill", title: "DB 백업/복구 리허설 1회", priority: "P0", status: "todo" },
+  {
+    id: "db-backup-drill",
+    title: "DB 백업/복구 리허설 1회",
+    priority: "P0",
+    status: "blocked",
+    note: "docs/ops/db-backup-drill.md — 실복구는 오너 Supabase Console.",
+  },
   {
     id: "incident-template",
     title: "장애 공지 템플릿/운영 핫라인 준비",
@@ -128,7 +182,7 @@ export type GateSummary = {
   releaseReady: boolean;
 };
 
-/** 권장 출시 게이트: P0 18개 중 16개 이상 완료, blocked 0. */
+/** 권장 출시 게이트: P0 중 done≥16, blocked 0. (blocked 있으면 미충족) */
 export function summarizeGate(tasks: OpenBetaTask[]): GateSummary {
   const p0 = tasks.filter((t) => t.priority === "P0");
   const p0Done = p0.filter((t) => t.status === "done").length;

@@ -219,20 +219,31 @@ export async function loadOperatingDashboard(
   let mapFocus7d = 0;
   let aiFeedback7d = 0;
   let fieldCompare7d = 0;
+  let authOk7d = 0;
+  let authFail7d = 0;
   if (sb) {
-    const [llmEv, ruleEv, mapEv, fbEv, cmpEv] = await Promise.all([
+    const [llmEv, ruleEv, mapEv, fbEv, cmpEv, loginOk, loginFail] = await Promise.all([
       countEvents(sb, [FUNNEL_EVENT.AI_LLM_COMPLETE], d7),
       countEvents(sb, [FUNNEL_EVENT.AI_RULE_FALLBACK], d7),
       countEvents(sb, [FUNNEL_EVENT.MAP_FOCUS_OPEN], d7),
       countEvents(sb, [FUNNEL_EVENT.AI_FEEDBACK], d7),
       countEvents(sb, [FUNNEL_EVENT.FIELD_COMPARE_ADD], d7),
+      countEvents(sb, [FUNNEL_EVENT.AUTH_LOGIN_OK], d7),
+      countEvents(sb, [FUNNEL_EVENT.AUTH_LOGIN_FAIL], d7),
     ]);
     aiLlm7d = llmEv;
     aiRule7d = ruleEv;
     mapFocus7d = mapEv;
     aiFeedback7d = fbEv;
     fieldCompare7d = cmpEv;
+    authOk7d = loginOk;
+    authFail7d = loginFail;
   }
+  const authAttempts7d = authOk7d + authFail7d;
+  const authFailRatePct =
+    authAttempts7d > 0
+      ? Math.round((authFail7d / authAttempts7d) * 1000) / 10
+      : null;
 
   const signup30d = Math.max(1, kpi.newUsers30d);
   const funnel: FunnelStep[] = [
@@ -373,6 +384,12 @@ export async function loadOperatingDashboard(
           label: "첫 글쓰기(7일)",
           value: firstPost7d.toLocaleString("ko-KR"),
           href: "/admin",
+        },
+        {
+          key: "login_fail_rate",
+          label: "로그인 실패율(7일)",
+          value: authFailRatePct != null ? `${authFailRatePct}%` : "—",
+          delta: `실패 ${authFail7d} / 시도 ${authAttempts7d}`,
         },
       ],
     },

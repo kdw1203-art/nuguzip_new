@@ -12,11 +12,6 @@ import { useMoment } from "@/app/components/motion/MomentProvider";
 import type { SocialProvider } from "@/lib/auth/configured-social";
 
 const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }> = {
-  kakao: {
-    label: "카카오로 3초 만에 시작",
-    className: "bg-[#fee500] text-[#191919]",
-  },
-  naver: { label: "네이버로 시작", className: "bg-[#03c75a] text-white" },
   google: {
     label: "Google로 시작",
     className: "border border-[#e2e7ee] bg-surface text-text-1",
@@ -68,6 +63,8 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [agree, setAgree] = useState(false);
+  const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [agreeLocation, setAgreeLocation] = useState(false);
   const [busy, setBusy] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -168,8 +165,8 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
             terms: true,
             privacy: true,
             age: true,
-            marketing: false,
-            location: false,
+            marketing: agreeMarketing,
+            location: agreeLocation,
           },
         }),
       });
@@ -507,6 +504,28 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           <span>
             <b className="text-ink">(필수)</b> 이용약관·개인정보처리방침에 동의하며 만 14세
             이상입니다
+          </span>
+        </label>
+        <label className="flex items-center gap-2 py-1 text-xs text-text-2">
+          <input
+            type="checkbox"
+            checked={agreeMarketing}
+            onChange={(e) => setAgreeMarketing(e.target.checked)}
+            className="h-4 w-4 accent-[#1d4fd8]"
+          />
+          <span>
+            (선택) 혜택·소식 이메일 수신 — 언제든 설정에서 철회할 수 있어요
+          </span>
+        </label>
+        <label className="flex items-center gap-2 py-1 text-xs text-text-2">
+          <input
+            type="checkbox"
+            checked={agreeLocation}
+            onChange={(e) => setAgreeLocation(e.target.checked)}
+            className="h-4 w-4 accent-[#1d4fd8]"
+          />
+          <span>
+            (선택) 위치정보 이용(주변 단지·지도 편의) — 설정에서 언제든 철회
           </span>
         </label>
 
