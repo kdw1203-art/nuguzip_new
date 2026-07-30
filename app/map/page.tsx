@@ -1,5 +1,9 @@
 import { MapClient, type DanjiItem, type TradeItem } from "./map-client";
-import { encodeComplexId, type ComplexTransactionRow } from "@/lib/complex/complex-store";
+import {
+  encodeComplexId,
+  getComplexById,
+  type ComplexTransactionRow,
+} from "@/lib/complex/complex-store";
 import { loadRegionMarketMarkers } from "@/lib/map/region-market";
 import { pctDelta, deltaLabel } from "@/lib/map/trade-stats";
 import { getServiceSupabase } from "@/lib/supabase/service";
@@ -8,6 +12,9 @@ import { auth } from "@/auth";
 import { logger } from "@/lib/log";
 import { withBudget } from "@/lib/async/with-budget";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { getNote } from "@/lib/inspection/store-db";
+import { resolveComplexHref } from "@/lib/newui/complex-link";
+import { getOnboardingPersonalization } from "@/lib/onboarding/personalization";
 
 export const dynamic = "force-dynamic";
 
@@ -431,13 +438,138 @@ async function resolveRegionFocus(
   }
 }
 
+function firstParam(
+  v: string | string[] | undefined,
+): string | null {
+  if (Array.isArray(v)) return v[0] ?? null;
+  return typeof v === "string" && v.trim() ? v.trim() : null;
+}
+
+function parseEokParam(raw: string | null): number | null {
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0 || n > 200) return null;
+  return n;
+}
+
 export default async function MapPage({
   searchParams,
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
-  const regionParam = Array.isArray(sp.region) ? sp.region[0] : sp.region;
+  const regionParam = firstParam(sp.region);
+  const complexIdParam = firstParam(sp.complexId);
+  const noteIdParam = firstParam(sp.noteId);
+  const aptParam = firstParam(sp.apt);
+  const typeParam = firstParam(sp.type);
+  const priceMinParam = parseEokParam(firstParam(sp.priceMin));
+  const priceMaxParam = parseEokParam(firstParam(sp.priceMax));
+
+  /* 노트→지도 핸드오프: complexId 우선, 없으면 noteId/apt 로 단지 해석 */
+  let initialComplexFocus: {
+    id: string;
+    name: string;
+    noteId?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  } | null = null;
+  let regionFromNote: string | null = null;
+  if (complexIdParam) {
+    try {
+      const row = await getComplexById(complexIdParam);
+      if (row) {
+        initialComplexFocus = {
+          id: row.id,
+          name: row.name,
+          noteId: noteIdParam,
+          lat: row.lat,
+          lng: row.lng,
+        };
+      }
+    } catch (e) {
+      logger.warn("[map] ?complexId= 해석 실패", e);
+    }
+  }
+  if (!initialComplexFocus && noteIdParam) {
+    try {
+      const note = await getNote(noteIdParam);
+      if (note) {
+        regionFromNote = note.region?.trim() || null;
+        const href = await resolveComplexHref(note.aptName, note.region);
+        if (href?.startsWith("/complex/")) {
+          const cid = href.slice("/complex/".length);
+          const row = await getComplexById(cid);
+          initialComplexFocus = {
+            id: cid,
+            name: row?.name ?? note.aptName?.trim() ?? cid,
+            noteId: noteIdParam,
+            lat: row?.lat ?? null,
+            lng: row?.lng ?? null,
+          };
+        }
+      }
+    } catch (e) {
+      logger.warn("[map] ?noteId= 해석 실패", e);
+    }
+  }
+  if (!initialComplexFocus && aptParam) {
+    try {
+      const href = await resolveComplexHref(aptParam, regionParam);
+      if (href?.startsWith("/complex/")) {
+        const cid = href.slice("/complex/".length);
+        const row = await getComplexById(cid);
+        initialComplexFocus = {
+          id: cid,
+          name: row?.name ?? aptParam,
+          noteId: noteIdParam,
+          lat: row?.lat ?? null,
+          lng: row?.lng ?? null,
+        };
+      }
+    } catch (e) {
+      logger.warn("[map] ?apt= 해석 실패", e);
+    }
+  }
+
+  /* 웰컴 예산 — URL에 가격이 없으면 로그인 사용자 preferences 로 프리필 */
+  let initialBudget: {
+    type: "sale" | "jeonse";
+    minEok: number | null;
+    maxEok: number | null;
+    label: string | null;
+  } | null = null;
+  const urlBudgetType =
+    typeParam === "sale" || typeParam === "jeonse" || typeParam === "monthly"
+      ? typeParam
+      : null;
+  if (priceMinParam != null || priceMaxParam != null || urlBudgetType) {
+    initialBudget = {
+      type: urlBudgetType === "jeonse" ? "jeonse" : "sale",
+      minEok: priceMinParam,
+      maxEok: priceMaxParam,
+      label: null,
+    };
+  } else {
+    try {
+      const session = await auth();
+      const email = session?.user?.email?.trim().toLowerCase() ?? null;
+      if (email) {
+        const perso = await getOnboardingPersonalization(email);
+        if (perso?.budget) {
+          initialBudget = {
+            type: perso.budget.type === "jeonse" ? "jeonse" : "sale",
+            minEok: perso.budget.min,
+            maxEok: perso.budget.max,
+            label: perso.budget.label,
+          };
+        }
+      }
+    } catch (e) {
+      logger.warn("[map] preferences 예산 프리필 실패", e);
+    }
+  }
+
   /* 사실 우선: 허위 단지(공작아파트 등)를 채우지 않는다. 다만 "조회 실패" 와
      "빈 결과" 는 갈라서 내려보낸다 — 예전에는 둘 다 빈 목록이라 화면이
      "이 지역 단지 목록을 준비 중이에요" 라고 잘못 안내했다. */
@@ -445,6 +577,7 @@ export default async function MapPage({
      `Vercel Runtime Timeout Error` 로 죽은 기록이 있다. 그러면 화면이 아예 안 뜬다 —
      아래 danjiLoadFailed 안내조차 못 보여 준다. 45초에 접으면 적어도 "지금은 못
      불러왔다"는 화면은 뜬다. 늦게라도 정확한 답보다 제때 뜨는 답이 낫다. */
+  const regionForFocus = regionParam || regionFromNote;
   const [dbRun, markersRun, focus] = await Promise.all([
     withBudget(
       Promise.resolve().then(() => loadDanjiFromDb()),
@@ -454,7 +587,7 @@ export default async function MapPage({
       Promise.resolve().then(() => loadRegionMarketMarkers()),
       MAP_SECTION_BUDGET_MS,
     ),
-    resolveRegionFocus(regionParam ?? null),
+    resolveRegionFocus(regionForFocus ?? null),
   ]);
 
   if (dbRun.state === "timeout") {
@@ -483,6 +616,14 @@ export default async function MapPage({
       danjiLoadFailed={!dbLoaded.ok}
       regionMarkersLoadFailed={!markersLoaded.ok}
       initialFocus={focus}
+      initialComplexFocus={initialComplexFocus}
+      initialBudget={initialBudget}
+      initialListingType={
+        urlBudgetType ??
+        (priceMinParam != null || priceMaxParam != null
+          ? initialBudget?.type ?? null
+          : null)
+      }
     />
   );
 }

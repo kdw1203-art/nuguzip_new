@@ -257,6 +257,23 @@ interface MapClientProps {
    * 이름을 legal_regions 좌표로 풀어 서버에서 넘긴다.
    */
   initialFocus?: { name: string; lat: number; lng: number } | null;
+  /** 노트→지도 핸드오프 — 단지 패널을 바로 연다 */
+  initialComplexFocus?: {
+    id: string;
+    name: string;
+    noteId?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+  } | null;
+  /** 웰컴/URL 예산 — 가격 슬라이더·거래유형 프리필 (억 단위) */
+  initialBudget?: {
+    type: "sale" | "jeonse";
+    minEok: number | null;
+    maxEok: number | null;
+    label: string | null;
+  } | null;
+  /** URL `?type=sale|jeonse|monthly` — 매물 레이어 거래유형 */
+  initialListingType?: string | null;
 }
 
 /* ===== 서버 클러스터링 (/api/map/clusters) ===== */
@@ -444,6 +461,32 @@ const EMPTY_RANGES: RangeFilters = {
   households: [null, null],
 };
 
+/** 억 → 만원 (지도 가격 슬라이더 단위) */
+function eokToManwon(eok: number | null | undefined): number | null {
+  if (eok == null || !Number.isFinite(eok) || eok < 0) return null;
+  return Math.round(eok * 10_000);
+}
+
+function tradeKeyFromEntry(
+  listingType: string | null | undefined,
+  budget: MapClientProps["initialBudget"],
+): string {
+  if (listingType === "sale" || listingType === "jeonse" || listingType === "monthly") {
+    return listingType;
+  }
+  if (budget?.type === "jeonse") return "jeonse";
+  if (budget?.type === "sale") return "sale";
+  return "all";
+}
+
+function rangesFromBudget(budget: MapClientProps["initialBudget"]): RangeFilters {
+  if (!budget) return EMPTY_RANGES;
+  const min = eokToManwon(budget.minEok);
+  const max = eokToManwon(budget.maxEok);
+  if (min == null && max == null) return EMPTY_RANGES;
+  return { ...EMPTY_RANGES, price: [min, max] };
+}
+
 /**
  * 값이 선택 범위 안인가.
  *
@@ -554,14 +597,18 @@ export function MapClient({
   danjiLoadFailed = false,
   regionMarkersLoadFailed = false,
   initialFocus = null,
+  initialComplexFocus = null,
+  initialBudget = null,
+  initialListingType = null,
 }: MapClientProps) {
   const router = useRouter();
   const focusedRegion = initialFocus?.name ?? null;
+  const hasEntryFocus = Boolean(initialFocus || initialComplexFocus);
   const [zoom, setZoom] = useState<Zoom>(
-    initialFocus || danji.length > 0 ? "danji" : "city",
+    hasEntryFocus || danji.length > 0 ? "danji" : "city",
   );
   const [level, setLevel] = useState<number>(
-    initialFocus || danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
+    hasEntryFocus || danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
   );
   const [panelOpen, setPanelOpen] = useState(true);
   /* 모바일 지도↔목록 전환 — 데스크탑은 좌측 목록 패널이 항상 있지만 모바일은
@@ -573,6 +620,18 @@ export function MapClient({
   const [center, setCenter] = useState(() => {
     // ?region= 으로 지목된 지역이 있으면 그 좌표가 최우선이다.
     if (initialFocus) return { lat: initialFocus.lat, lng: initialFocus.lng };
+    if (
+      initialComplexFocus?.lat != null &&
+      initialComplexFocus?.lng != null &&
+      Number.isFinite(initialComplexFocus.lat) &&
+      Number.isFinite(initialComplexFocus.lng)
+    ) {
+      return { lat: initialComplexFocus.lat, lng: initialComplexFocus.lng };
+    }
+    const focusDanji = initialComplexFocus
+      ? danji.find((d) => d.id === initialComplexFocus.id)
+      : null;
+    if (focusDanji) return { lat: focusDanji.lat, lng: focusDanji.lng };
     if (danji.length > 0) {
       const lat = danji.reduce((s, d) => s + d.lat, 0) / danji.length;
       const lng = danji.reduce((s, d) => s + d.lng, 0) / danji.length;
@@ -587,7 +646,7 @@ export function MapClient({
      사람은 자기 동네를 직접 찾아 들어가야 했다.
 
      세 가지를 지킨다.
-       · ?region= 으로 지목된 지역이 있으면 그쪽이 우선이다 — 사용자가 명시한 목적지.
+       · ?region=·complexId·noteId 로 지목된 목적지가 있으면 그쪽이 우선이다.
        · 한 번만 시도한다. 지도를 옮긴 뒤 다시 끌려가면 안 된다.
        · 국내 대략 범위 밖 좌표는 버린다. VPN·기기 오차로 태평양 한복판을 잡으면
          단지가 하나도 없는 빈 지도가 되어 "고장" 처럼 보인다.
@@ -595,7 +654,7 @@ export function MapClient({
   const [geoApplied, setGeoApplied] = useState(false);
   const geoTriedRef = useRef(false);
   useEffect(() => {
-    if (initialFocus) return;
+    if (hasEntryFocus) return;
     if (geoTriedRef.current) return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
     geoTriedRef.current = true;
@@ -612,7 +671,7 @@ export function MapClient({
       () => undefined,
       { enableHighAccuracy: false, timeout: 8_000, maximumAge: 300_000 },
     );
-  }, [initialFocus]);
+  }, [hasEntryFocus]);
 
   // 위치로 맞췄다는 안내는 잠깐만 — 지도 위에 계속 떠 있을 이유가 없다.
   useEffect(() => {
@@ -626,13 +685,90 @@ export function MapClient({
   /* ===== 검색 선택 · 단지 정보 패널 (item1·item2) =====
      infoComplex: 목록 밖 단지(검색/포인트)용 정보 패널 대상.
      searchMarker: 목록 밖 단지를 지도에 하이라이트하기 위한 임시 마커. */
-  const [infoComplex, setInfoComplex] = useState<{ id: string; name: string } | null>(null);
+  const [infoComplex, setInfoComplex] = useState<{ id: string; name: string } | null>(
+    () =>
+      initialComplexFocus
+        ? { id: initialComplexFocus.id, name: initialComplexFocus.name }
+        : null,
+  );
   const [searchMarker, setSearchMarker] = useState<
     { id: string; name: string; lat: number; lng: number } | null
-  >(null);
+  >(() => {
+    if (!initialComplexFocus) return null;
+    if (
+      initialComplexFocus.lat != null &&
+      initialComplexFocus.lng != null &&
+      Number.isFinite(initialComplexFocus.lat) &&
+      Number.isFinite(initialComplexFocus.lng)
+    ) {
+      return {
+        id: initialComplexFocus.id,
+        name: initialComplexFocus.name,
+        lat: initialComplexFocus.lat,
+        lng: initialComplexFocus.lng,
+      };
+    }
+    const d = danji.find((x) => x.id === initialComplexFocus.id);
+    return d
+      ? { id: d.id, name: d.name, lat: d.lat, lng: d.lng }
+      : null;
+  });
+  const [focusNoteId] = useState<string | null>(
+    () => initialComplexFocus?.noteId ?? null,
+  );
+  const complexFocusAppliedRef = useRef(false);
+
+  /* 노트→지도: 단지 패널·줌을 한 번만 맞춘다 (ComplexInfoPanel onLoaded 가 좌표를 보강) */
+  useEffect(() => {
+    if (!initialComplexFocus || complexFocusAppliedRef.current) return;
+    complexFocusAppliedRef.current = true;
+    setZoom("danji");
+    setLevel(LEVEL_BY_ZOOM.danji);
+    setInfoComplex({
+      id: initialComplexFocus.id,
+      name: initialComplexFocus.name,
+    });
+    const d = danji.find((x) => x.id === initialComplexFocus.id);
+    if (d && Number.isFinite(d.lat) && Number.isFinite(d.lng)) {
+      setSearchMarker({ id: d.id, name: d.name, lat: d.lat, lng: d.lng });
+      setCenter({ lat: d.lat, lng: d.lng });
+    } else if (
+      initialComplexFocus.lat != null &&
+      initialComplexFocus.lng != null &&
+      Number.isFinite(initialComplexFocus.lat) &&
+      Number.isFinite(initialComplexFocus.lng)
+    ) {
+      setSearchMarker({
+        id: initialComplexFocus.id,
+        name: initialComplexFocus.name,
+        lat: initialComplexFocus.lat,
+        lng: initialComplexFocus.lng,
+      });
+      setCenter({
+        lat: initialComplexFocus.lat,
+        lng: initialComplexFocus.lng,
+      });
+    }
+    void fetch("/api/map/focus-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        complexId: initialComplexFocus.id,
+        noteId: initialComplexFocus.noteId ?? null,
+      }),
+    }).catch(() => undefined);
+  }, [initialComplexFocus, danji]);
 
   /* ===== 매물 레이어 상태 — 토글 ON일 때만 현재 뷰포트 매물을 마커로 ===== */
-  const [showListings, setShowListings] = useState(false);
+  const [showListings, setShowListings] = useState(
+    () =>
+      initialListingType === "sale" ||
+      initialListingType === "jeonse" ||
+      initialListingType === "monthly",
+  );
+  const [listingFetchStatus, setListingFetchStatus] = useState<
+    "idle" | "ok" | "error"
+  >("idle");
   /* ===== C3 반경 그리기 =====
      예전에는 중심이 늘 "지도 중심"이었다. 그래서 어떤 단지 주변 500m를 보려면
      그 단지가 화면 정중앙에 오도록 지도를 밀어야 했고, 필터를 만지는 동안 지도가
@@ -674,7 +810,9 @@ export function MapClient({
   /* ===== 가격대·면적대·준공연도 필터 상태 (확대 · item3) =====
      세대수·유형은 실데이터 소스가 없어 필터에서 제외 — 패널에 "데이터 준비 중"으로 표시 */
   /** 거래유형(매물 레이어) — /api/map/listings?type= 로 서버 재조회 */
-  const [listingTradeKey, setListingTradeKey] = useState("all");
+  const [listingTradeKey, setListingTradeKey] = useState(() =>
+    tradeKeyFromEntry(initialListingType, initialBudget),
+  );
   /** 매물 상세 필터 — 유형·방·화장실·주차 (등록 매물 기준) */
   const [propertyKindKey, setPropertyKindKey] = useState("all");
   /** API가 상세 컬럼 폴백이면 false — 칩은 유지하되 안내 문구로 정직하게 */
@@ -682,11 +820,14 @@ export function MapClient({
   const [roomsKey, setRoomsKey] = useState("all");
   const [bathroomsKey, setBathroomsKey] = useState("all");
   const [parkingKey, setParkingKey] = useState("all");
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  /* URL로 type/가격이 온 경우만 필터 패널을 연다 — 로그인 preferences 조용 프리필은 패널을 강제하지 않음 */
+  const [filtersExpanded, setFiltersExpanded] = useState(() =>
+    Boolean(initialListingType),
+  );
 
   /* 상세 필터 — 뷰포트 분포(막대그래프)와 선택 범위 */
   const [facets, setFacets] = useState<MapFacets | null>(null);
-  const [ranges, setRanges] = useState<RangeFilters>(EMPTY_RANGES);
+  const [ranges, setRanges] = useState<RangeFilters>(() => rangesFromBudget(initialBudget));
   const facetsAbortRef = useRef<AbortController | null>(null);
   /* 최신 범위를 콜백 재생성 없이 참조 — 지도 idle 때마다 콜백을 다시 만들면
      디바운스 타이머가 매번 초기화돼 조회가 밀린다. */
@@ -699,7 +840,9 @@ export function MapClient({
     ranges.year[0] !== null || ranges.year[1] !== null ||
     ranges.households[0] !== null || ranges.households[1] !== null;
   /** 실거래 거래유형 토글 — 매매(trade) / 전세(rent, 평균 보증금). /api/map/clusters?type= */
-  const [txType, setTxType] = useState<"trade" | "rent">("trade");
+  const [txType, setTxType] = useState<"trade" | "rent">(() =>
+    tradeKeyFromEntry(initialListingType, initialBudget) === "jeonse" ? "rent" : "trade",
+  );
   /** 모바일 접이식 범례 (item7) — 기본 접힘 */
   const [mobileLegendOpen, setMobileLegendOpen] = useState(false);
 
@@ -777,16 +920,29 @@ export function MapClient({
 
      단위: 슬라이더 값은 facets 와 같은 만원 단위(map_filter_facets 가 만원으로
      준다). DanjiItem.avgPriceWon 은 원이라 10,000 으로 나눠 맞춘다. */
+  /* C7 densify — SSR 전국 top-N 시드에 뷰포트 인기 단지를 합쳐 좌측 목록이
+     지도를 따라가게 한다. 마커(/api/map/clusters)는 이미 뷰포트 기준이다. */
+  const [viewportDanji, setViewportDanji] = useState<DanjiItem[]>([]);
+  const densifiedDanji = useMemo(() => {
+    if (viewportDanji.length === 0) return danji;
+    const map = new Map<string, DanjiItem>();
+    for (const d of danji) map.set(d.id, d);
+    for (const d of viewportDanji) {
+      if (!map.has(d.id)) map.set(d.id, d);
+    }
+    return [...map.values()];
+  }, [danji, viewportDanji]);
+
   const rangeFilteredDanji = useMemo(() => {
-    if (!rangeActive) return danji;
-    return danji.filter(
+    if (!rangeActive) return densifiedDanji;
+    return densifiedDanji.filter(
       (d) =>
         withinSel(d.avgPriceWon !== null ? d.avgPriceWon / 10_000 : null, ranges.price) &&
         withinSel(d.areaM2, ranges.area) &&
         withinSel(d.buildYear, ranges.year) &&
         withinSel(d.households, ranges.households),
     );
-  }, [danji, rangeActive, ranges]);
+  }, [densifiedDanji, rangeActive, ranges]);
 
   // 출퇴근(#10) 필터를 범위 필터 위에 덧입힘 — 임계 초과 단지는 숨김.
   const filteredDanji = useMemo(() => {
@@ -1331,6 +1487,28 @@ export function MapClient({
       <p className="text-[10px] leading-[1.5] text-text-3">
         방·화장실·주차·건물유형은 <b className="text-text-2">등록 매물</b> 기준입니다. 값이
         없는 매물은 해당 필터에서 제외돼요. 국토부 실거래(단지 마커)는 아파트 시세입니다.
+        {showListings &&
+          listingFetchStatus === "ok" &&
+          listingItems.length === 0 &&
+          !listingDetailFilterActive && (
+            <>
+              {" "}
+              <b className="text-text-2">
+                이 화면에는 아직 승인된 등록 매물이 없어요 — 필터가 고장 난 것이 아닙니다.
+              </b>
+            </>
+          )}
+        {showListings &&
+          listingFetchStatus === "ok" &&
+          listingItems.length === 0 &&
+          listingDetailFilterActive && (
+            <>
+              {" "}
+              <b className="text-text-2">
+                조건을 모두 만족하는 등록 매물이 이 화면에 없어요. 필터를 완화해 보세요.
+              </b>
+            </>
+          )}
         {!detailFiltersSupported && (
           <>
             {" "}
@@ -1538,13 +1716,21 @@ export function MapClient({
               : null,
         )
         .then((json) => {
-          if (!json || controller.signal.aborted) return;
+          if (controller.signal.aborted) return;
+          if (!json) {
+            setListingFetchStatus("error");
+            return;
+          }
           setListingItems(Array.isArray(json.items) ? json.items : []);
+          setListingFetchStatus("ok");
           if (typeof json.detailFiltersSupported === "boolean") {
             setDetailFiltersSupported(json.detailFiltersSupported);
           }
         })
-        .catch(() => undefined); // 실패 시 기존 마커 유지
+        .catch((err: unknown) => {
+          if (err instanceof DOMException && err.name === "AbortError") return;
+          setListingFetchStatus("error");
+        });
     }, LISTING_FETCH_DEBOUNCE_MS);
   }, []);
 
@@ -1556,6 +1742,7 @@ export function MapClient({
       if (listingTimerRef.current !== null) window.clearTimeout(listingTimerRef.current);
       listingAbortRef.current?.abort();
       setListingItems([]);
+      setListingFetchStatus("idle");
     }
   }, [showListings, fetchListings]);
 
@@ -1647,10 +1834,60 @@ export function MapClient({
           .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
           .then((j: { scope: "viewport" | "nationwide"; items: PopularItem[] }) => {
             if (controller.signal.aborted) return;
-            setPopular(Array.isArray(j.items) ? j.items : []);
+            const items = Array.isArray(j.items) ? j.items : [];
+            setPopular(items);
             setPopularScope(j.scope === "viewport" ? "viewport" : "nationwide");
             setPopularFailed(false);
             setPopularLoading(false);
+            /* 뷰포트일 때만 좌측 단지 목록에 합친다 — 전국 시드를 덮어쓰지 않음 */
+            if (j.scope === "viewport") {
+              setViewportDanji(
+                items
+                  .filter(
+                    (it) =>
+                      Number.isFinite(it.lat) &&
+                      Number.isFinite(it.lng) &&
+                      it.id &&
+                      it.name,
+                  )
+                  .map((it): DanjiItem => {
+                    const avgWon =
+                      it.avgPriceManwon != null && Number.isFinite(it.avgPriceManwon)
+                        ? Math.round(it.avgPriceManwon * 10_000)
+                        : null;
+                    const priceLabel =
+                      it.avgPriceManwon != null && it.avgPriceManwon >= 10_000
+                        ? `${(it.avgPriceManwon / 10_000).toFixed(1)}억`
+                        : it.avgPriceManwon != null
+                          ? `${Math.round(it.avgPriceManwon).toLocaleString("ko-KR")}만`
+                          : "—";
+                    return {
+                      id: it.id,
+                      name: it.name,
+                      note: null,
+                      meta: it.regionName || "",
+                      price: priceLabel,
+                      delta: "",
+                      deltaTone: "flat",
+                      size:
+                        it.avgAreaM2 != null
+                          ? `${Math.round(it.avgAreaM2)}㎡`
+                          : "",
+                      lat: it.lat,
+                      lng: it.lng,
+                      avgPriceWon: avgWon,
+                      momPct: null,
+                      areaM2: it.avgAreaM2,
+                      buildYear: it.buildYear,
+                      households: it.households,
+                      buildingType: null,
+                      trades: [],
+                      latestYm: null,
+                      latestDealCount: it.recentTradeCount || null,
+                    };
+                  }),
+              );
+            }
           })
           .catch((e) => {
             if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
@@ -3416,6 +3653,7 @@ export function MapClient({
         <ComplexInfoPanel
           complexId={infoComplex.id}
           initialName={infoComplex.name}
+          focusNoteId={focusNoteId}
           onClose={closeInfoPanel}
           onLoaded={handleInfoLoaded}
         />
@@ -3575,6 +3813,57 @@ export function MapClient({
           </div>
         </div>
       )}
+
+      {/* 매물 레이어 — 조회 실패 / 빈 인벤토리 / 필터 과다 구분 (필터 버그 오해 방지) */}
+      {showListings && listingFetchStatus === "error" && (
+        <div
+          className="glass absolute left-1/2 z-40 w-[min(320px,calc(100%-2rem))] -translate-x-1/2 rounded-xl px-3.5 py-2.5"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 88px)" }}
+        >
+          <div className="text-[12px] font-extrabold text-ink">매물을 불러오지 못했어요</div>
+          <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
+            일시적 오류예요. 매물이 없다는 뜻은 아닙니다. 잠시 후 지도를 조금 옮기거나 다시
+            시도해 주세요.
+          </div>
+        </div>
+      )}
+      {showListings &&
+        listingFetchStatus === "ok" &&
+        listingItems.length === 0 &&
+        !listingPreviewId && (
+          <div
+            className="glass absolute left-1/2 z-40 w-[min(340px,calc(100%-2rem))] -translate-x-1/2 rounded-xl px-3.5 py-2.5"
+            style={{ top: "calc(env(safe-area-inset-top, 0px) + 88px)" }}
+          >
+            <div className="text-[12px] font-extrabold text-ink">
+              {listingDetailFilterActive || listingTradeKey !== "all" || rangeActive
+                ? "조건에 맞는 등록 매물이 없어요"
+                : "이 화면에 등록 매물이 아직 없어요"}
+            </div>
+            <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
+              {listingDetailFilterActive || listingTradeKey !== "all" || rangeActive
+                ? "필터·예산 조건을 완화하거나, 지도를 넓혀 보세요. 포털처럼 매물이 많은 상태가 아니라 승인된 등록분만 보여요."
+                : "필터 문제가 아니라 아직 쌓인 재고가 적어요. 단지 실거래 마커는 그대로 볼 수 있고, 매물을 올리면 여기 표시돼요."}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(listingDetailFilterActive || listingTradeKey !== "all" || rangeActive) && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+                >
+                  필터 초기화
+                </button>
+              )}
+              <Link
+                href="/listings/new"
+                className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-extrabold text-white"
+              >
+                매물 등록하기
+              </Link>
+            </div>
+          </div>
+        )}
 
       {/* C8 가격 표기 범례 — 매물(호가) vs 실거래(국토부 확정가) 구분 명시 (매물 레이어 ON) */}
       {showListings && (

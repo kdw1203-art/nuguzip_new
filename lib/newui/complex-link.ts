@@ -6,7 +6,19 @@
  * 애매하거나(지역 불일치) 못 찾으면 null → 호출부는 링크를 숨긴다 (mock-1로 보내지 않음).
  */
 import { cache } from "react";
-import { searchComplexes, type ComplexRow } from "@/lib/complex/complex-store";
+import {
+  encodeKaptComplexId,
+  searchComplexes,
+  type ComplexRow,
+} from "@/lib/complex/complex-store";
+
+function hrefForRow(r: ComplexRow): string {
+  /* kapt 가 있으면 동명 충돌을 피한 안정 id 를 쓴다. 없으면 기존 name id. */
+  if (r.kapt_code?.trim()) {
+    return `/complex/${encodeKaptComplexId(r.kapt_code)}`;
+  }
+  return `/complex/${r.id}`;
+}
 
 function normalize(s: string): string {
   return s.replace(/\s+/g, "");
@@ -55,14 +67,12 @@ export const resolveComplexHref = cache(
           const hay = rowHaystack(r);
           return tokens.some((t) => hay.includes(t));
         });
-        if (regionHit) return `/complex/${regionHit.id}`;
+        if (regionHit) return hrefForRow(regionHit);
         // 동명 타지역 단지로의 오연결 방지 — 유일 후보가 아니면 숨김
-        return nameMatches.length === 1
-          ? `/complex/${nameMatches[0].id}`
-          : null;
+        return nameMatches.length === 1 ? hrefForRow(nameMatches[0]) : null;
       }
 
-      return `/complex/${nameMatches[0].id}`;
+      return hrefForRow(nameMatches[0]);
     } catch {
       return null;
     }

@@ -94,6 +94,26 @@ function budgetRangeLabel(
   return "예산 미설정";
 }
 
+/** 웰컴 예산·지역 → 지도 필터 프리필 (`/map?type=&priceMin=&priceMax=&region=`) */
+function budgetMapHref(
+  region: string | null | undefined,
+  budget: PersonalPreferences["budget"] | null | undefined,
+): string {
+  const params = new URLSearchParams();
+  if (region?.trim()) params.set("region", region.trim());
+  if (budget) {
+    params.set("type", budget.type === "jeonse" ? "jeonse" : "sale");
+    if (budget.min != null && Number.isFinite(budget.min)) {
+      params.set("priceMin", String(budget.min));
+    }
+    if (budget.max != null && Number.isFinite(budget.max)) {
+      params.set("priceMax", String(budget.max));
+    }
+  }
+  const q = params.toString();
+  return q ? `/map?${q}` : "/map";
+}
+
 const DELTA_CLASS: Record<PersonalRegionMarket["tone"], string> = {
   up: "delta-up",
   down: "delta-down",
@@ -246,9 +266,11 @@ export function PersonalHome() {
         cta: "노트 시작하기 ›",
       };
 
-  const mapHref = region
-    ? `/map?region=${encodeURIComponent(region)}`
-    : HOME_CTA_MAP.href;
+  const mapHref = data.preferences?.budget
+    ? budgetMapHref(region, data.preferences.budget)
+    : region
+      ? `/map?region=${encodeURIComponent(region)}`
+      : HOME_CTA_MAP.href;
 
   const regionCard = {
     title: region
@@ -366,7 +388,7 @@ export function PersonalHome() {
               {regionChips.map((r) => (
                 <Link
                   key={r}
-                  href={`/map?region=${encodeURIComponent(r)}`}
+                  href={budgetMapHref(r, data.preferences?.budget)}
                   className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#c9d2e0]"
                 >
                   {r} ›
@@ -442,6 +464,15 @@ export function PersonalHome() {
                 : ""}
             </p>
 
+            {data.preferences.budget && (
+              <Link
+                href={budgetMapHref(region, data.preferences.budget)}
+                className="btn-primary btn-cta inline-flex w-fit items-center rounded-full px-3.5 py-2 text-[12px] font-extrabold text-white"
+              >
+                내 예산으로 보기 ›
+              </Link>
+            )}
+
             {/* 관심 지역별 퀵링크 — 지역 허브(/region) · 매물(/listings?gu=) */}
             <div className="flex flex-col gap-2">
               {data.preferences.regions.map((r) => (
@@ -459,7 +490,7 @@ export function PersonalHome() {
                     </Link>
                   )}
                   <Link
-                    href={`/map?region=${encodeURIComponent(r.name)}`}
+                    href={budgetMapHref(r.name, data.preferences?.budget)}
                     className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[10px] font-bold text-text-2"
                   >
                     지도에서 비교 ›

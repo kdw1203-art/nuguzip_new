@@ -92,7 +92,7 @@ function probeSession(role: StaffRole): Session {
 }
 
 export default async function AdminOpsPage() {
-  // #15 실집계 전환 퍼널 (가입 → 관심 저장 → 첫 임장·노트 → AI 실행 → 글 작성 → 결제).
+  // 실집계 전환 퍼널 (활성방문 → 임장노트 → AI·LLM / AI·규칙 → 지도 핸드오프 → 결제).
   // 조회 실패·빈 데이터 시 빈 배열 → 아래에서 "데이터 없음" 빈 상태 렌더.
   const [funnel, kpi, banners] = await Promise.all([
     getOperatingMetrics(),

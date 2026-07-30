@@ -740,24 +740,34 @@ export function NoteForm({
       /* 저장이 확정된 지점에서 부른다. 바로 아래 AI 호출은 실패해도 저장은
          성공이므로, 그 결과를 기다렸다가 부르면 "저장됐다"는 사실이 AI 성패에
          따라 달라진다 — 사실과 연출을 묶으면 안 된다. */
-      showMoment({
-        title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
-        subtitle: "AI가 이어서 정리하는 중이에요",
-      });
-      // AI 정리 실호출 — 실패해도 저장은 성공. 상세에서 ?ai= 로 재시도 CTA 노출
+      // AI 정리 실호출 — HTTP 200 + rule 폴백 가능. mode 로만 LLM/규칙 구분.
       setAiRunning(true);
-      let aiOk = false;
+      let aiFlag: "ok" | "rule" | "fail" = "fail";
       try {
         const aiRes = await fetch("/api/inspection/ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ noteId }),
         });
-        aiOk = aiRes.ok;
+        const aiJson = aiRes.ok
+          ? ((await aiRes.json().catch(() => null)) as { mode?: string } | null)
+          : null;
+        if (aiRes.ok && aiJson) {
+          aiFlag = aiJson.mode === "llm" ? "ok" : "rule";
+        }
       } catch {
         /* AI 실패 무시 — 노트 저장은 완료됨 */
       }
-      router.push(`/notes/${noteId}?ai=${aiOk ? "ok" : "fail"}`);
+      showMoment({
+        title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
+        subtitle:
+          aiFlag === "ok"
+            ? "AI 정리가 반영됐어요"
+            : aiFlag === "rule"
+              ? "규칙 기반 요약으로 정리됐어요"
+              : "노트는 저장됐어요 · AI는 아래에서 다시 시도할 수 있어요",
+      });
+      router.push(`/notes/${noteId}?ai=${aiFlag}`);
     } catch {
       setSaveError("네트워크 오류로 저장하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
     } finally {

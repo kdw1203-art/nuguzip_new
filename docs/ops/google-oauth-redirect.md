@@ -52,3 +52,16 @@ node scripts/probe-google-oauth-redirect.mjs
 기대: `"redirectUri": "https://nuguzip.com/api/auth/callback/google"`
 
 그다음 브라우저에서 Google 로그인 → 계정 선택 → `/login` 또는 콜백 후 세션 유지.
+
+## 오너 체크리스트 (코드 변경 없음)
+
+앱 쪽 Google 버튼·콜백 경로·`AUTH_GOOGLE_*` 게이팅은 이미 구현되어 있습니다.
+아래는 **Console/환경**에서만 확인하면 됩니다.
+
+- [ ] Console 승인된 리디렉션 URI에 apex·www·localhost 3종이 **문자 단위** 일치
+- [ ] Vercel Production `AUTH_URL=https://nuguzip.com` (끝 `/` 없음)
+- [ ] `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` 이 위 OAuth 클라이언트와 동일
+- [ ] `node scripts/probe-google-oauth-redirect.mjs` 결과가 Console URI와 동일
+- [ ] `/login` Google → 콜백 → 세션 유지 (preview 도메인은 별도 URI 등록 필요)
+
+Kakao OAuth는 본 Wave에서 제외(별도 Console·키 작업).

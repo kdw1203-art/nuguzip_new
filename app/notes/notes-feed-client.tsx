@@ -443,7 +443,7 @@ export function NotesFeedClient({
               desc={
                 mine
                   ? "첫 임장노트를 작성하면 비공개 노트까지 여기에 모여요."
-                  : "첫 임장노트를 직접 작성해 보세요."
+                  : "아직 공개된 기록이 없어요. 샘플로 채우지 않아요 — 첫 노트를 쓰거나 지도에서 단지를 먼저 둘러보세요."
               }
               action={{ label: "임장노트 쓰기", href: "/notes/new" }}
             />

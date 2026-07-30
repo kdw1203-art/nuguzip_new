@@ -100,6 +100,8 @@ interface DetailResponse {
 export interface ComplexInfoPanelProps {
   complexId: string;
   initialName?: string;
+  /** 노트→지도 핸드오프 — 해당 임장노트·AI로 바로 이어가기 */
+  focusNoteId?: string | null;
   onClose: () => void;
   onLoaded?: (info: { id: string; name: string; lat: number; lng: number }) => void;
 }
@@ -329,6 +331,7 @@ function SectionHead({
 export function ComplexInfoPanel({
   complexId,
   initialName,
+  focusNoteId = null,
   onClose,
   onLoaded,
 }: ComplexInfoPanelProps) {
@@ -405,7 +408,12 @@ export function ComplexInfoPanel({
     }
     return `/notes/new?${params.toString()}`;
   })();
-  const analysisHref = `/analysis?complexId=${encodeURIComponent(complexId)}`;
+  const analysisHref = focusNoteId
+    ? `/analysis?noteId=${encodeURIComponent(focusNoteId)}`
+    : `/analysis?complexId=${encodeURIComponent(complexId)}`;
+  const focusNoteHref = focusNoteId
+    ? `/notes/${encodeURIComponent(focusNoteId)}`
+    : null;
 
   const chips = [
     complex?.build_year
@@ -575,6 +583,29 @@ export function ComplexInfoPanel({
           {data?.mode === "not_found" && !failed && (
             <div className="rounded-xl bg-[#f5f7fb] px-3.5 py-2.5 text-xs text-text-2">
               단지 마스터와 아직 연결되지 않았어요. 실거래·이야기는 아래를 참고해 주세요.
+            </div>
+          )}
+
+          {focusNoteHref && (
+            <div className="rounded-2xl border border-primary/25 bg-primary-soft/60 px-3.5 py-3">
+              <div className="text-[12px] font-extrabold text-ink">임장노트에서 이어보기</div>
+              <p className="mt-0.5 text-[11px] leading-[1.55] text-text-2">
+                이 단지를 노트·AI와 함께 지도에서 비교하고 있어요.
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Link
+                  href={focusNoteHref}
+                  className="rounded-xl bg-surface px-2.5 py-2 text-center text-[11px] font-extrabold text-primary shadow-sm"
+                >
+                  노트 보기
+                </Link>
+                <Link
+                  href={analysisHref}
+                  className="rounded-xl bg-primary px-2.5 py-2 text-center text-[11px] font-extrabold text-white"
+                >
+                  AI 정리 보기
+                </Link>
+              </div>
             </div>
           )}
 

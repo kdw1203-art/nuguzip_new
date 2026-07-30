@@ -37,6 +37,7 @@ import {
   marketBulletsFromSnapshot,
 } from "@/lib/ai/market-insight";
 import { collectNoteGrounding } from "@/lib/inspection/note-grounding";
+import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import {
   DEEP_DIVE_VERSION,
   buildNoteDeepDive,
@@ -267,6 +268,18 @@ export async function POST(req: Request) {
       }
     }
 
+    /* AI evidence guard — LLM 응답에 강점·리스크·요약이 비면 completed LLM으로
+       위장하지 않고 규칙 폴백으로 강등한다. */
+    if (report.source !== "fallback") {
+      const emptyClaims = report.strengths.length === 0 && report.risks.length === 0;
+      const emptySummary = !report.summary.trim() && !report.headline.trim();
+      if (emptyClaims || emptySummary) {
+        report = buildFallbackInspectionAiReport(note, { intent, source: "fallback" });
+        baseAnalysis.engine = `rule-based-v1 (evidence-guard)`;
+        baseAnalysis.modelId = modelOption?.id ?? baseAnalysis.modelId;
+      }
+    }
+
     // 규칙 기반(폴백) 결과에는 실시세 델타 규칙 불릿을 병합 (LLM 결과는 프롬프트에서 반영)
     if (marketSnapshot && report.source === "fallback") {
       const bullets = marketBulletsFromSnapshot(marketSnapshot);
@@ -334,6 +347,25 @@ export async function POST(req: Request) {
       });
     }
 
+    const mode = report.source === "fallback" ? "rule" : "llm";
+    try {
+      await recordFunnelEvent(req, {
+        eventName: FUNNEL_EVENT.AI_TOOL_RUN,
+        userEmail: email,
+        path: "/api/inspection/ai",
+        metadata: { noteId: note.id, mode },
+      });
+      await recordFunnelEvent(req, {
+        eventName:
+          mode === "llm" ? FUNNEL_EVENT.AI_LLM_COMPLETE : FUNNEL_EVENT.AI_RULE_FALLBACK,
+        userEmail: email,
+        path: "/api/inspection/ai",
+        metadata: { noteId: note.id, mode, engine: String(baseAnalysis.engine ?? "") },
+      });
+    } catch (e) {
+      logger.warn("[inspection/ai] funnel event 기록 실패", e);
+    }
+
     return NextResponse.json({
       analysis,
       report,
@@ -341,7 +373,7 @@ export async function POST(req: Request) {
       deepDiveFilled: deepDive ? filledAxisCount(deepDive) : 0,
       cached: false,
       // "AI 생성" vs "규칙 기반 요약" 라벨용 — fallback 이 아니면 LLM 생성
-      mode: report.source === "fallback" ? "rule" : "llm",
+      mode,
       marketContext: marketSnapshot
         ? { snapshot: marketSnapshot, summary: describeSnapshot(marketSnapshot) }
         : null,

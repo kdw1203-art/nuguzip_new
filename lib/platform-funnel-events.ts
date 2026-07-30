@@ -20,6 +20,13 @@ export const FUNNEL_EVENT = {
   ONBOARDING_ALL_COMPLETE: "onboarding_all_complete",
   SHARE_LINK_COPY: "share_link_copy",
   AI_TOOL_RUN: "ai_tool_run",
+  /** LLM 성패 정직 집계 — rule 폴백과 분리 */
+  AI_LLM_COMPLETE: "ai_llm_complete",
+  AI_RULE_FALLBACK: "ai_rule_fallback",
+  /** 도움됨/부족함 — 실행 KPI와 분리 */
+  AI_FEEDBACK: "ai_feedback",
+  /** 노트→지도 단지 포커스 핸드오프 */
+  MAP_FOCUS_OPEN: "map_focus_open",
   HOME_AI_CTA_CLICK: "home_ai_cta_click",
   HUB_TO_AI_ANALYSIS: "hub_to_ai_analysis",
   /** 현장 임장 세션 퍼널 (2026 모바일 원탭) */

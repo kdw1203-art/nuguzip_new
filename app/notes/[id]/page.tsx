@@ -17,6 +17,7 @@ import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { NoteDetailActions } from "./note-actions";
 import { AiRetryButton } from "./ai-retry-button";
+import { AiFeedbackButtons } from "@/app/components/AiFeedbackButtons";
 import DeepDivePanel from "./DeepDivePanel";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
@@ -423,7 +424,11 @@ export default async function NoteDetailPage({
   searchParams: Promise<{ ai?: string }>;
 }) {
   const { id } = await params;
-  const { ai: aiStatus } = await searchParams;
+  const { ai: aiStatusRaw } = await searchParams;
+  const aiStatus =
+    aiStatusRaw === "ok" || aiStatusRaw === "rule" || aiStatusRaw === "fail"
+      ? aiStatusRaw
+      : undefined;
 
   // 뷰어 세션 — 소유자면 비공개 노트도 열람 + 공개/비공개 토글 제공
   const session = await safeAuth();
@@ -485,11 +490,21 @@ export default async function NoteDetailPage({
   }
 
   const v = toView(realNote, visits);
-  const hasLlmAi =
-    v.aiBadge === "AI 생성";
-  const mapCompareHref = realNote.region.trim()
-    ? `/map?region=${encodeURIComponent(realNote.region.trim())}`
-    : "/map";
+  const hasLlmAi = v.aiBadge === "AI 생성";
+  const complexIdFromHref =
+    complexHref && complexHref.startsWith("/complex/")
+      ? complexHref.slice("/complex/".length)
+      : null;
+  const mapCompareParams = new URLSearchParams();
+  if (realNote.region.trim()) {
+    mapCompareParams.set("region", realNote.region.trim());
+  }
+  if (complexIdFromHref) mapCompareParams.set("complexId", complexIdFromHref);
+  mapCompareParams.set("noteId", id);
+  if (realNote.aptName?.trim()) {
+    mapCompareParams.set("apt", realNote.aptName.trim());
+  }
+  const mapCompareHref = `/map?${mapCompareParams.toString()}`;
 
   return (
     <PageShell breadcrumb={v.breadcrumb}>
@@ -501,19 +516,25 @@ export default async function NoteDetailPage({
       {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
       <JsonLd data={noteJsonLd(realNote, v)} />
 
-      {/* 저장 직후 루프 안내 — AI 성패에 따라 다음 행동 노출 */}
+      {/* 저장 직후 루프 안내 — LLM / 규칙 폴백 / 실패를 구분 */}
       {isOwner && aiStatus === "ok" && hasLlmAi && (
         <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
           AI 정리가 반영됐어요.{" "}
           <Link href={mapCompareHref} className="font-extrabold text-primary">
-            지도에서 같은 지역 후보와 비교 ›
+            지도에서 이 단지와 비교 ›
           </Link>
         </div>
       )}
-      {isOwner && (aiStatus === "fail" || (aiStatus === "ok" && !hasLlmAi)) && (
+      {isOwner && (aiStatus === "rule" || (aiStatus === "ok" && !hasLlmAi)) && (
         <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
-          노트는 저장됐어요. AI 정리는 아직 반영되지 않았거나 규칙 기반 요약만
-          있어요 — 아래에서 다시 정리할 수 있어요.
+          노트는 저장됐고 규칙 기반 요약만 있어요 — AI 정리는 아래에서 다시 시도할 수
+          있어요.
+        </div>
+      )}
+      {isOwner && aiStatus === "fail" && (
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
+          노트는 저장됐어요. AI 정리는 반영되지 않았어요 — 아래에서 다시 시도할 수
+          있어요.
         </div>
       )}
 
@@ -658,6 +679,18 @@ export default async function NoteDetailPage({
               <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
               {isOwner && !hasLlmAi && <AiRetryButton noteId={id} />}
             </AIPanel>
+            {isOwner && (
+              <div className="mt-2">
+                <AiFeedbackButtons
+                  targetType="note_ai"
+                  targetId={id}
+                  context={{
+                    mode: hasLlmAi ? "llm" : "rule",
+                    badge: v.aiBadge,
+                  }}
+                />
+              </div>
+            )}
 
             {/* ⑦⑧⑩ 출처·데이터 기준일 각주 + 지역·단지 실 내부 링크 */}
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-line pt-3 text-[11px] text-text-3">
@@ -722,7 +755,10 @@ export default async function NoteDetailPage({
           <div className="rise-in-1 card flex flex-col gap-3 rounded-[20px] p-6">
             <div className="flex items-center justify-between">
               <div className="text-base font-extrabold text-ink">방문 기록 비교</div>
-              <Link href="/notes/compare" className="text-xs font-bold text-primary">
+              <Link
+                href={`/notes/compare?noteId=${encodeURIComponent(id)}`}
+                className="text-xs font-bold text-primary"
+              >
                 회차 전체 비교 ›
               </Link>
             </div>

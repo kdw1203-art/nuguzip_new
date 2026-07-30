@@ -73,13 +73,42 @@ export interface ComplexTransactionRow {
 /** region_name / complex_name 구분자 — 이름·지역에 나타나지 않는 제어문자(U+0001) */
 const SEP = String.fromCharCode(1);
 
+/**
+ * K-apt 코드 기반 id — 동명 단지 병합 리스크를 줄이기 위한 v2.
+ * 기존 name id(`/complex/{base64}`)는 그대로 유효하고, kapt 가 있으면 이 형태를 우선한다.
+ */
+export const KAPT_COMPLEX_ID_PREFIX = "kapt.";
+
 /** region_name + complex_name → URL-safe id */
 export function encodeComplexId(region: string, name: string): string {
   return Buffer.from(`${region}${SEP}${name}`, "utf8").toString("base64url");
 }
 
-/** id → { region, name } (실패 시 null) */
+/** K-apt 코드 → 안정적 URL id (동명 충돌 회피) */
+export function encodeKaptComplexId(kaptCode: string): string {
+  const code = kaptCode.trim().toUpperCase();
+  return `${KAPT_COMPLEX_ID_PREFIX}${code}`;
+}
+
+export type ParsedComplexId =
+  | { kind: "kapt"; kaptCode: string }
+  | { kind: "name"; region: string; name: string };
+
+/** id → kapt 또는 name 해석 (실패 시 null) */
+export function parseComplexId(id: string): ParsedComplexId | null {
+  const raw = id.trim();
+  if (!raw) return null;
+  if (raw.startsWith(KAPT_COMPLEX_ID_PREFIX)) {
+    const kaptCode = raw.slice(KAPT_COMPLEX_ID_PREFIX.length).trim().toUpperCase();
+    return kaptCode ? { kind: "kapt", kaptCode } : null;
+  }
+  const dec = decodeComplexId(raw);
+  return dec ? { kind: "name", region: dec.region, name: dec.name } : null;
+}
+
+/** id → { region, name } (실패 시 null). kapt id 는 null — getComplexById 가 분기한다. */
 export function decodeComplexId(id: string): { region: string; name: string } | null {
+  if (id.startsWith(KAPT_COMPLEX_ID_PREFIX)) return null;
   try {
     const raw = Buffer.from(id, "base64url").toString("utf8");
     const idx = raw.indexOf(SEP);
@@ -253,8 +282,12 @@ async function enrichFromApartmentComplex(
 }
 
 export async function getComplexById(id: string): Promise<ComplexRow | null> {
-  const dec = decodeComplexId(id);
-  if (!dec) return null;
+  const parsed = parseComplexId(id);
+  if (!parsed) return null;
+  if (parsed.kind === "kapt") {
+    return getComplexByKaptCode(parsed.kaptCode);
+  }
+  const dec = parsed;
   const sb = getServiceSupabase();
   if (!sb) return null;
   // 이 단지의 매매 실거래가 1건이라도 있으면 실재하는 단지로 간주 (대표 정보 도출)
@@ -283,6 +316,9 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
   });
   if (apt) {
     base.kapt_code = apt.kaptCode ?? base.kapt_code;
+    /* kapt 가 있으면 URL id 도 kapt 형태로 노출 — 동명 충돌 시 링크가 갈라진다.
+       기존 name-id 북마크는 위 decode 경로로 계속 동작한다. */
+    if (apt.kaptCode) base.id = encodeKaptComplexId(apt.kaptCode);
     base.build_year = base.build_year ?? apt.buildYear; // 실거래 build_year 우선
     base.heating = apt.heating ?? base.heating;
     base.road_address = apt.roadAddress ?? base.road_address;
@@ -304,9 +340,60 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
   return base;
 }
 
-export async function getComplexByKaptCode(_kaptCode: string): Promise<ComplexRow | null> {
-  // K-apt 코드↔실거래 매핑은 별도 파이프라인 필요 — 현재 미지원 (허위 반환 금지)
-  return null;
+/**
+ * K-apt 코드로 단지 허브 로드.
+ * apartment_complexes.metadata.kaptCode 로 찾고, 이름·지역이 있으면 실거래로 보강.
+ */
+export async function getComplexByKaptCode(kaptCode: string): Promise<ComplexRow | null> {
+  const code = kaptCode.trim().toUpperCase();
+  if (!code) return null;
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+
+  const { data, error } = await sb
+    .from("apartment_complexes")
+    .select("name, address, metadata")
+    .eq("source_key", APT_MASTER_SOURCE_KEY)
+    .filter("metadata->>kaptCode", "eq", code)
+    .limit(5);
+  if (error) throw dbError(`apartment_complexes (kapt ${code})`, error);
+  const rows =
+    (data as
+      | { name: string; address: string | null; metadata: Record<string, unknown> | null }[]
+      | null) ?? [];
+  if (rows.length === 0) return null;
+
+  const row = rows[0];
+  const m = row.metadata ?? {};
+  const regionGuess =
+    typeof m.regionName === "string" && m.regionName.trim()
+      ? m.regionName.trim()
+      : (row.address ?? "").split(/\s+/).slice(0, 2).join(" ") || "전국";
+  const name = row.name?.trim() || code;
+
+  /* 실거래가 있으면 name-id 경로로 풍부한 허브를 만들고 id 만 kapt 로 고정 */
+  try {
+    const byName = await getComplexById(encodeComplexId(regionGuess, name));
+    if (byName) {
+      byName.id = encodeKaptComplexId(code);
+      byName.kapt_code = code;
+      return byName;
+    }
+  } catch (e) {
+    logger.warn("[complex] kapt→실거래 보강 실패 — 마스터만으로 계속", e);
+  }
+
+  const base = toComplexRow(regionGuess, name, {
+    address: row.address,
+    build_year: typeof m.approvalDate === "string" ? Number(m.approvalDate.slice(0, 4)) || null : null,
+  });
+  base.id = encodeKaptComplexId(code);
+  base.kapt_code = code;
+  if (typeof m.lat === "number" && typeof m.lng === "number") {
+    base.lat = m.lat;
+    base.lng = m.lng;
+  }
+  return base;
 }
 
 /* ------------------------------------------------------------------

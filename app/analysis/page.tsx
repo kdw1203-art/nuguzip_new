@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
-import { ExampleBadge } from "../components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
 import {
@@ -220,33 +219,26 @@ export default async function AnalysisHubPage({
           </div>
         ) : (
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-5">
-            {/* 공개 AI 요약이 없을 때만 예시 1건 — 예시 배지 명시, 상세 404 링크 없음 */}
-            <div className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
-              샘플 분석 리포트 <ExampleBadge />
+            {/* 공개 AI 미리보기 0건 — 공작아파트 샘플 대신 empty+CTA */}
+            <div className="text-[15px] font-extrabold text-ink">
+              아직 공개된 AI 정리가 없어요
             </div>
-            <div className="ai-panel flex flex-col gap-1.5 rounded-[14px] p-3.5">
-              <div className="text-xs font-extrabold text-white">
-                공작아파트 3차 방문 — 채광·학군 강점, 주차는 구조적 약점
-              </div>
-              <div className="text-[11px] leading-[1.55] text-ai-text">
-                · 채광·학군은 방문 기록에서 일관되게 강점으로 나타났어요
-              </div>
-              <div className="text-[11px] leading-[1.55] text-ai-text">
-                · 주차는 시간대와 무관한 감점 요인 — 저녁 재방문을 제안해요
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <span className="text-[12px] text-text-3">
-                예시 문장입니다. 로그인 후 내 임장노트로 같은 정리를 받을 수 있어요
-              </span>
-              <div className="flex shrink-0 flex-wrap gap-2">
-                <Link href="/notes/new" className="btn-primary btn-md no-underline">
-                  임장노트 쓰고 AI 받기
-                </Link>
+            <p className="text-[13px] leading-[1.55] text-text-2">
+              샘플 리포트로 채우지 않아요. 임장노트를 남기면 같은 방식으로 장단점·시세
+              맥락을 정리해 드려요.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/notes/new" className="btn-primary btn-md no-underline">
+                임장노트 쓰고 AI 받기
+              </Link>
+              <Link href="/notes" className="btn-soft btn-md no-underline">
+                공개 노트 보기
+              </Link>
+              {!email && (
                 <Link href="/login" className="btn-soft btn-md no-underline">
                   로그인
                 </Link>
-              </div>
+              )}
             </div>
           </div>
         )}

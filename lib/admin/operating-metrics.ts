@@ -212,34 +212,48 @@ export async function loadOperatingDashboard(
     }
   }
 
+  /* 퍼널: 활성방문 → 노트 → AI(LLM/규칙 분리) → 지도 핸드오프 → 결제
+     분모는 가입(30일) — 방문 단계는 활성 사용자(7일)로 선행 표시 */
+  let aiLlm7d = 0;
+  let aiRule7d = 0;
+  let mapFocus7d = 0;
+  if (sb) {
+    const [llmEv, ruleEv, mapEv] = await Promise.all([
+      countEvents(sb, [FUNNEL_EVENT.AI_LLM_COMPLETE], d7),
+      countEvents(sb, [FUNNEL_EVENT.AI_RULE_FALLBACK], d7),
+      countEvents(sb, [FUNNEL_EVENT.MAP_FOCUS_OPEN], d7),
+    ]);
+    aiLlm7d = llmEv;
+    aiRule7d = ruleEv;
+    mapFocus7d = mapEv;
+  }
+
   const signup30d = Math.max(1, kpi.newUsers30d);
   const funnel: FunnelStep[] = [
     {
-      label: "가입(30일)",
-      count: kpi.newUsers30d,
-      pctOfSignup: 100,
+      label: "활성 방문(7일)",
+      count: activeD7,
+      pctOfSignup: Math.round((activeD7 / signup30d) * 1000) / 10,
     },
     {
-      label: "관심 저장",
-      count: firstSave7d,
-      pctOfSignup: Math.round((firstSave7d / signup30d) * 1000) / 10,
-    },
-    {
-      label: "첫 임장·노트",
+      label: "임장노트(7일)",
       count: firstInspection7d,
       pctOfSignup: Math.round((firstInspection7d / signup30d) * 1000) / 10,
     },
     {
-      label: "AI 실행",
-      count: firstAi7d || kpi.aiAnalysisRuns7d || 0,
-      pctOfSignup: Math.round(
-        (((firstAi7d || kpi.aiAnalysisRuns7d || 0) as number) / signup30d) * 1000,
-      ) / 10,
+      label: "AI·LLM(7일)",
+      count: aiLlm7d,
+      pctOfSignup: Math.round((aiLlm7d / signup30d) * 1000) / 10,
     },
     {
-      label: "글 작성",
-      count: firstPost7d,
-      pctOfSignup: Math.round((firstPost7d / signup30d) * 1000) / 10,
+      label: "AI·규칙(7일)",
+      count: aiRule7d,
+      pctOfSignup: Math.round((aiRule7d / signup30d) * 1000) / 10,
+    },
+    {
+      label: "지도 핸드오프(7일)",
+      count: mapFocus7d,
+      pctOfSignup: Math.round((mapFocus7d / signup30d) * 1000) / 10,
     },
     {
       label: "결제(30일)",
@@ -472,7 +486,7 @@ export async function loadOperatingDashboard(
 /**
  * /admin/ops 전환 퍼널 위젯 전용 경량 헬퍼.
  * loadAdminKpi → loadOperatingDashboard 를 묶어 실집계 FunnelStep[] 만 반환한다.
- * (가입 → 관심 저장 → 첫 임장·노트 → AI 실행 → 글 작성 → 결제, pctOfSignup 포함)
+ * (활성방문 → 노트 → AI·LLM/규칙 → 지도 핸드오프 → 결제, pctOfSignup 포함)
  * 조회 실패 시 빈 배열([]) — 페이지 쪽에서 "데이터 없음" 빈 상태로 렌더한다.
  */
 export async function getOperatingMetrics(): Promise<FunnelStep[]> {

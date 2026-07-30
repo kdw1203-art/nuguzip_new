@@ -24,30 +24,6 @@ export const metadata = buildPageMetadata({
 
 export const dynamic = "force-dynamic";
 
-/* 더미데이터 정책(더미 1개 원칙): 테스트용 샘플은 단 1건 —
-   실데이터 0건일 때만 "예시" 배지와 함께 노출. 허수 지표(공감·댓글·저장 수) 없음. */
-const MOCK_NOTES: FeedNote[] = [
-  {
-    id: "1",
-    author: "관양동 이웃",
-    meta: "예시",
-    score: 78,
-    scoreTone: "primary",
-    title: "공작아파트 302동 84A",
-    excerpt: "“오후 채광 좋음, 단지 뒤 도로 소음 약간. 주차는 저녁 이중주차…”",
-    tags: [
-      { label: "채광 좋음", tone: "pos" },
-      { label: "초품아", tone: "pos" },
-      { label: "이중주차", tone: "neg" },
-    ],
-    footer: [],
-    // 예시 노트는 어떤 사용자의 구독 지역과도 실제로 맞지 않는다 — 관심 지역인 척하지 않는다
-    interested: false,
-    // 사실 우선: 예시 카드는 존재하지 않는 단지(mock-1)로 링크하지 않음 (404 방지)
-    isExample: true,
-  },
-];
-
 function relativeTime(iso: string): string {
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return "";
@@ -215,11 +191,8 @@ export default async function NotesFeedPage({
     loadError = e instanceof Error ? e.message : String(e);
     console.error("[/notes] 공개 임장노트 조회 실패:", loadError);
   }
-  // 더미데이터 정책: 실데이터가 1건이라도 있으면 목업 보강 없이 실데이터만 노출.
-  // 실데이터 0건일 때만 "예시" 표기가 붙은 목업 노출. (조회 실패 시에는 붙이지 않음)
-  if (!loadError && notes.length === 0) {
-    notes = MOCK_NOTES;
-  }
+  /* 콜드스타트: 공작아파트 예시 카드를 넣지 않는다.
+     0건이면 NotesFeedClient 의 empty+CTA(노트 쓰기 / 지도)로 정직하게 안내한다. */
 
   return (
     <NotesFeedClient

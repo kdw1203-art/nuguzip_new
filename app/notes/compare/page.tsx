@@ -1,15 +1,25 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
-import { ExampleBadge } from "../../components/ExampleBadge";
 import { CompareView } from "./CompareView";
-import { Timeline, type AxisChangeKind, type TimelineStep } from "./Timeline";
+import { Timeline } from "./Timeline";
+import { safeAuth } from "@/lib/safe-auth";
+import {
+  getNote,
+  listNotesByAuthorForApt,
+  type InspectionNote,
+} from "@/lib/inspection/store-db";
+import {
+  buildVisitCompareModel,
+  type CellTone,
+  type VisitCompareModel,
+} from "@/lib/inspection/visit-compare";
+import { AiFeedbackButtons } from "@/app/components/AiFeedbackButtons";
 
-/* 시안 9e — 노트 다회차 비교 (1~5차 + 추이)
-   P0-5 목업 정직화: 아래 표·추이는 예시 데이터 — 내 노트 자동 비교는 준비 중.
-   (tests/e2e/smoke.spec.ts 7번: h1 "노트 다회차 비교" + AI 면책 문구 유지) */
+/* 시안 9e — 노트 다회차 비교.
+   실데이터: listNotesByAuthorForApt. 예시 목업 제거 — 회차 부족 시 empty+CTA. */
 
-type CellTone = "good" | "avg" | "bad" | "none";
+export const dynamic = "force-dynamic";
 
 const TONE_CLASS: Record<CellTone, string> = {
   good: "font-extrabold text-primary",
@@ -18,342 +28,280 @@ const TONE_CLASS: Record<CellTone, string> = {
   none: "text-text-3",
 };
 
-const HEADERS = [
-  { n: "1차", meta: "05.02 · 평일 오전", latest: false },
-  { n: "2차", meta: "06.14 · 평일 저녁", latest: false },
-  { n: "3차", meta: "07.12 · 주말 오후", latest: false },
-  { n: "4차", meta: "07.15 · 평일 오후", latest: false },
-  { n: "5차 (최신)", meta: "07.18 · 비 오는 날", latest: true },
-];
+function firstParam(
+  v: string | string[] | undefined,
+): string | null {
+  if (typeof v === "string") return v.trim() || null;
+  if (Array.isArray(v) && typeof v[0] === "string") return v[0].trim() || null;
+  return null;
+}
 
-const ROWS: { label: string; cells: { text: string; tone: CellTone }[] }[] = [
-  {
-    label: "채광",
-    cells: [
-      { text: "보통", tone: "avg" },
-      { text: "—", tone: "none" },
-      { text: "좋음", tone: "good" },
-      { text: "좋음", tone: "good" },
-      { text: "보통", tone: "avg" },
-    ],
-  },
-  {
-    label: "소음",
-    cells: [
-      { text: "좋음", tone: "good" },
-      { text: "보통", tone: "avg" },
-      { text: "보통", tone: "avg" },
-      { text: "보통", tone: "avg" },
-      { text: "좋음", tone: "good" },
-    ],
-  },
-  {
-    label: "주차",
-    cells: [
-      { text: "—", tone: "none" },
-      { text: "아쉬움", tone: "bad" },
-      { text: "아쉬움", tone: "bad" },
-      { text: "보통", tone: "avg" },
-      { text: "아쉬움", tone: "bad" },
-    ],
-  },
-  {
-    label: "배수/침수",
-    cells: [
-      { text: "—", tone: "none" },
-      { text: "—", tone: "none" },
-      { text: "—", tone: "none" },
-      { text: "—", tone: "none" },
-      { text: "양호", tone: "good" },
-    ],
-  },
-  {
-    label: "교통 체감",
-    cells: [
-      { text: "보통", tone: "avg" },
-      { text: "혼잡", tone: "bad" },
-      { text: "좋음", tone: "good" },
-      { text: "보통", tone: "avg" },
-      { text: "보통", tone: "avg" },
-    ],
-  },
-  {
-    label: "환기·냄새",
-    cells: [
-      { text: "—", tone: "none" },
-      { text: "—", tone: "none" },
-      { text: "보통", tone: "avg" },
-      { text: "보통", tone: "avg" },
-      { text: "좋음", tone: "good" },
-    ],
-  },
-  {
-    label: "관리 상태",
-    cells: [
-      { text: "보통", tone: "avg" },
-      { text: "—", tone: "none" },
-      { text: "보통", tone: "avg" },
-      { text: "좋음", tone: "good" },
-      { text: "좋음", tone: "good" },
-    ],
-  },
-  {
-    label: "주민 분위기",
-    cells: [
-      { text: "—", tone: "none" },
-      { text: "좋음", tone: "good" },
-      { text: "좋음", tone: "good" },
-      { text: "—", tone: "none" },
-      { text: "좋음", tone: "good" },
-    ],
-  },
-];
+async function loadCompareNotes(
+  noteId: string | null,
+  email: string | null,
+): Promise<
+  | { kind: "ok"; notes: InspectionNote[]; model: VisitCompareModel }
+  | { kind: "need_login" }
+  | { kind: "need_note" }
+  | { kind: "need_more"; aptName: string; count: number; noteId: string }
+  | { kind: "forbidden" }
+  | { kind: "error"; message: string }
+> {
+  if (!email) return { kind: "need_login" };
+  if (!noteId) return { kind: "need_note" };
 
-const SCORES = [
-  { value: 68, cls: "text-text-2" },
-  { value: 70, cls: "text-text-2" },
-  { value: 78, cls: "text-text-1" },
-  { value: 80, cls: "text-text-1" },
-  { value: 81, cls: "text-primary" },
-];
+  try {
+    const note = await getNote(noteId);
+    if (!note) return { kind: "need_note" };
+    if (note.authorEmail.trim().toLowerCase() !== email.trim().toLowerCase()) {
+      return { kind: "forbidden" };
+    }
+    const apt = note.aptName?.trim();
+    if (!apt) {
+      return { kind: "need_more", aptName: "단지명 없음", count: 1, noteId };
+    }
+    const notes = await listNotesByAuthorForApt(email, apt, 20);
+    if (notes.length < 2) {
+      return {
+        kind: "need_more",
+        aptName: apt,
+        count: notes.length,
+        noteId,
+      };
+    }
+    const model = buildVisitCompareModel(notes);
+    if (!model) return { kind: "need_more", aptName: apt, count: notes.length, noteId };
+    return { kind: "ok", notes, model };
+  } catch (e) {
+    return {
+      kind: "error",
+      message: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
 
-const TREND_LABELS = [
-  { left: "10%", top: 36, value: "68", cls: "text-[10px] font-bold text-text-3" },
-  { left: "30%", top: 29, value: "70", cls: "text-[10px] font-bold text-text-3" },
-  { left: "50%", top: 10, value: "78", cls: "text-[10px] font-bold text-text-2" },
-  { left: "70%", top: 5, value: "80", cls: "text-[10px] font-bold text-text-2" },
-  { left: "90%", top: 0, value: "81", cls: "text-[11px] font-extrabold text-primary" },
-];
+function CompareTable({ model }: { model: VisitCompareModel }) {
+  const n = model.colCount;
+  const gridStyle = {
+    gridTemplateColumns: `90px repeat(${n}, minmax(72px, 1fr))`,
+  } as const;
+  const first = model.scores[0]?.value ?? 0;
+  const last = model.scores[model.scores.length - 1]?.value ?? 0;
 
-/* 타임라인 뷰용 파생 데이터 — 위 표(HEADERS·ROWS·SCORES)에서만 계산.
-   회차별로 이전 회차 대비 종합 점수 델타와 바뀐 항목을 산출한다. */
-const TONE_RANK: Record<CellTone, number> = { none: 0, bad: 1, avg: 2, good: 3 };
-
-const TIMELINE_STEPS: TimelineStep[] = HEADERS.map((h, i) => {
-  const score = SCORES[i].value;
-  const prevScore = i > 0 ? SCORES[i - 1].value : null;
-  const changes =
-    i === 0
-      ? []
-      : ROWS.flatMap((row) => {
-          const cur = row.cells[i];
-          const prev = row.cells[i - 1];
-          if (cur.text === prev.text) return [];
-          let kind: AxisChangeKind;
-          if (prev.tone === "none") kind = "new";
-          else if (cur.tone === "none") kind = "drop";
-          else if (TONE_RANK[cur.tone] > TONE_RANK[prev.tone]) kind = "improve";
-          else if (TONE_RANK[cur.tone] < TONE_RANK[prev.tone]) kind = "decline";
-          else kind = "lateral";
-          return [
-            {
-              axis: row.label,
-              from: prev.text,
-              to: cur.text,
-              toTone: cur.tone,
-              kind,
-            },
-          ];
-        });
-  return {
-    n: h.n,
-    meta: h.meta,
-    latest: h.latest,
-    score,
-    scoreDelta: prevScore === null ? null : score - prevScore,
-    changes,
-  };
-});
-
-export default function NotesComparePage() {
   return (
-    <PageShell breadcrumb="임장노트 › 회차 비교 (예시)">
-      <div className="flex flex-col gap-3.5">
-        {/* 예시 화면 밴드 — 이 화면 전체가 예시 데이터임을 명확히 고지 */}
-        <div className="rise-in flex items-start gap-2 rounded-[14px] border border-[#f0d48a] bg-[#fff8e6] px-4 py-3 text-[13px] leading-[1.6] text-[#7a5c12]">
-          <span className="mt-px shrink-0 rounded bg-[#7a5c12] px-1.5 py-px text-[10px] font-extrabold text-white">
-            예시 화면
-          </span>
-          <span>
-            아래 표·추이는 <b>실제 데이터가 아닌 예시</b>입니다. 같은 단지를 2회
-            이상 기록하면 노트 상세의 &lsquo;방문 기록 비교&rsquo;에서 실제
-            회차가 자동으로 묶여요.
-          </span>
+    <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
+      <div className="min-w-[520px]">
+        <div
+          className="grid items-end gap-2 border-b border-[#f0f3f8] pb-2.5 pt-2 text-[11px] text-text-3"
+          style={gridStyle}
+        >
+          <span />
+          {model.headers.map((h) => (
+            <div
+              key={h.noteId}
+              className={`text-center ${
+                h.latest ? "rounded-lg bg-[rgba(29,79,216,.05)] p-0.5" : ""
+              }`}
+            >
+              <Link
+                href={`/notes/${encodeURIComponent(h.noteId)}`}
+                className={`font-extrabold no-underline ${
+                  h.latest ? "text-primary" : "text-text-1"
+                }`}
+              >
+                {h.n}
+              </Link>
+              <br />
+              {h.meta}
+            </div>
+          ))}
         </div>
-
-        {/* 헤더 + 회차 칩 */}
-        <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="flex items-center gap-2 text-[22px] font-extrabold text-ink">
-              노트 다회차 비교 <ExampleBadge />
-            </h1>
-            <p className="mt-1.5 text-sm text-text-2">
-              1~5차 방문 기록과 점수 추이를 한눈에 — 아래는 <b>예시 데이터</b>
-              예요. 내 노트 자동 비교는 준비 중이에요.
-            </p>
-          </div>
-          {/* 회차 라벨 — 예전엔 `chip chip-soft` 에 ✓ 까지 붙어 "이 회차를 포함/제외"
-              토글처럼 보였지만, 서버 컴포넌트의 <span> 이라 눌러도 아무 일도 없었다.
-              예시 밴드는 '데이터가 예시'라고만 알릴 뿐 '컨트롤이 가짜'라는 말은 아니다.
-              비인터랙티브용 chip-tag 로 바꾸고 ✓ 를 떼어 아래 표의 열 목록으로만 읽히게 한다. */}
-          <div className="flex flex-wrap gap-1.5 text-xs">
-            {["1차", "2차", "3차", "4차", "5차"].map((c) => (
-              <span key={c} className="chip-tag px-2.5 py-1.5">
-                {c}
+        {model.rows.map((row) => (
+          <div
+            key={row.label}
+            className="grid items-center gap-2 border-b border-[#f0f3f8] py-[9px] text-xs"
+            style={gridStyle}
+          >
+            <span className="text-text-2">{row.label}</span>
+            {row.cells.map((c, i) => (
+              <span key={i} className={`text-center ${TONE_CLASS[c.tone]}`}>
+                {c.text}
               </span>
             ))}
           </div>
-        </div>
-
-        {/* 회차 비교 — 표 / 타임라인 토글 (두 뷰 모두 같은 예시 데이터 공유) */}
-        <CompareView
-          timeline={<Timeline steps={TIMELINE_STEPS} />}
-          table={
-            <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
-          <div className="min-w-[720px]">
-            {/* 헤더 행 */}
-            <div className="grid grid-cols-[90px_repeat(5,1fr)] items-end gap-2 border-b border-[#f0f3f8] pb-2.5 pt-2 text-[11px] text-text-3">
-              <span />
-              {HEADERS.map((h) => (
-                <div
-                  key={h.n}
-                  className={`text-center ${
-                    h.latest ? "rounded-lg bg-[rgba(29,79,216,.05)] p-0.5" : ""
-                  }`}
-                >
-                  <b className={h.latest ? "text-primary" : "text-text-1"}>{h.n}</b>
-                  <br />
-                  {h.meta}
-                </div>
-              ))}
-            </div>
-            {/* 항목 행 */}
-            {ROWS.map((row) => (
-              <div
-                key={row.label}
-                className="grid grid-cols-[90px_repeat(5,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-[9px] text-xs"
-              >
-                <span className="text-text-2">{row.label}</span>
-                {row.cells.map((c, i) => (
-                  <span key={i} className={`text-center ${TONE_CLASS[c.tone]}`}>
-                    {c.text}
-                  </span>
-                ))}
-              </div>
-            ))}
-            {/* 종합 점수 행 */}
-            <div className="grid grid-cols-[90px_repeat(5,1fr)] items-center gap-2 py-[9px] text-xs">
-              <span className="text-text-2">종합 점수</span>
-              {SCORES.map((s) => (
-                <span key={s.value} className={`text-center font-extrabold ${s.cls}`}>
-                  {s.value}
-                </span>
-              ))}
-            </div>
-
-            {/* 점수 추이 차트 */}
-            <div className="relative mt-3.5">
-              <svg
-                width="100%"
-                height="88"
-                viewBox="0 0 1000 88"
-                preserveAspectRatio="none"
-                className="block"
-                role="img"
-                aria-label="점수 추이 68에서 81"
-              >
-                <defs>
-                  <linearGradient id="noteTrend" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1d4fd8" stopOpacity="0.18" />
-                    <stop offset="100%" stopColor="#1d4fd8" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d="M100,54 C170,53 230,50 300,47 C380,43 430,32 500,28 C570,24 640,23.5 700,23 C770,22.4 840,21.4 900,21 L900,88 L100,88 Z"
-                  fill="url(#noteTrend)"
-                />
-                <path
-                  d="M100,54 C170,53 230,50 300,47 C380,43 430,32 500,28 C570,24 640,23.5 700,23 C770,22.4 840,21.4 900,21"
-                  fill="none"
-                  stroke="#1d4fd8"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                />
-                <circle cx="100" cy="54" r="4" fill="#fff" stroke="#a9bde8" strokeWidth="2.5" />
-                <circle cx="300" cy="47" r="4" fill="#fff" stroke="#a9bde8" strokeWidth="2.5" />
-                <circle cx="500" cy="28" r="4" fill="#fff" stroke="#7ea2ff" strokeWidth="2.5" />
-                <circle cx="700" cy="23" r="4" fill="#fff" stroke="#7ea2ff" strokeWidth="2.5" />
-                <circle cx="900" cy="21" r="5.5" fill="#1d4fd8" stroke="#fff" strokeWidth="2.5" />
-              </svg>
-              {TREND_LABELS.map((l) => (
-                <div
-                  key={l.left}
-                  className={`absolute -translate-x-1/2 ${l.cls}`}
-                  style={{ left: l.left, top: l.top }}
-                >
-                  {l.value}
-                </div>
-              ))}
-              <div className="relative mt-0.5 h-3.5">
-                {["1차", "2차", "3차", "4차", "5차"].map((c, i) => (
-                  <span
-                    key={c}
-                    className="absolute -translate-x-1/2 text-[10px] text-text-3"
-                    style={{ left: `${10 + i * 20}%` }}
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-1 text-[10px] text-text-3">
-                점수 추이 68 → 81 · 방문할수록 확신 상승
-              </div>
-            </div>
-          </div>
-            </div>
-          }
-        />
-
-        {/* AI 종합 판단 (예시) */}
-        <div className="rise-in-2">
-          <AIPanel title="다회차 종합 판단 (예시)">
-            <span className="mr-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
-              예시
+        ))}
+        <div
+          className="grid items-center gap-2 py-[9px] text-xs"
+          style={gridStyle}
+        >
+          <span className="text-text-2">종합 점수</span>
+          {model.scores.map((s, i) => (
+            <span key={i} className={`text-center font-extrabold ${s.cls}`}>
+              {s.value}
             </span>
-            5회 방문으로 시간대·날씨 변수가 모두 확인됐습니다.{" "}
-            <b className="text-ai-accent">
-              확정 강점: 학군·배수 / 확정 약점: 주차
-            </b>
-            . 채광은 &apos;오후 좋음, 오전·흐린 날 보통&apos;으로 결론 —
-            재택근무자라면 감점 요인입니다. 추가 방문보다{" "}
-            <b className="text-white">가격 협상 단계로 진행</b>을 권장합니다.
-          </AIPanel>
+          ))}
         </div>
+        <div className="mt-3 text-[11px] text-text-3">
+          점수 추이 {first} → {last} · 작성자 5축 평균×20 (0~100)
+        </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* 내 노트로 시작하기 — 예시가 아닌 실제 기록으로 */}
-        <div className="rise-in-3 card flex flex-col items-start gap-2.5 rounded-[20px] px-[22px] py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-extrabold text-ink">
-              내 노트로 회차 비교를 만들어 보세요
+export default async function NotesComparePage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const noteId = firstParam(sp.noteId);
+  const session = await safeAuth();
+  const email = session?.user?.email?.trim() ?? null;
+  const result = await loadCompareNotes(noteId, email);
+
+  if (result.kind === "ok") {
+    const { model } = result;
+    return (
+      <PageShell breadcrumb={`임장노트 › 회차 비교 › ${model.aptName}`}>
+        <div className="flex flex-col gap-3.5">
+          <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-[22px] font-extrabold text-ink">
+                노트 다회차 비교
+              </h1>
+              <p className="mt-1.5 text-sm text-text-2">
+                {model.region ? `${model.region} · ` : ""}
+                {model.aptName} — 내 방문 기록 {model.colCount}회
+              </p>
             </div>
-            <p className="mt-0.5 text-xs text-text-2">
-              같은 단지를 2회 이상 기록하면 이런 비교 화면이 자동으로 채워질
-              예정이에요.
-            </p>
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {model.headers.map((h) => (
+                <Link
+                  key={h.noteId}
+                  href={`/notes/${encodeURIComponent(h.noteId)}`}
+                  className="chip-tag px-2.5 py-1.5 no-underline"
+                >
+                  {h.n}
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="flex shrink-0 gap-2">
+
+          <CompareView
+            timeline={<Timeline steps={model.timeline} />}
+            table={<CompareTable model={model} />}
+          />
+
+          <div className="rise-in-2">
+            <AIPanel title="다회차 종합 (규칙 요약)">
+              {model.summaryText}
+            </AIPanel>
+            <div className="mt-2">
+              <AiFeedbackButtons
+                targetType="visit_compare"
+                targetId={noteId ?? model.headers[model.headers.length - 1]?.noteId}
+                context={{ aptName: model.aptName, visits: model.colCount }}
+              />
+            </div>
+          </div>
+
+          <div className="rise-in-3 card flex flex-col items-start gap-2.5 rounded-[20px] px-[22px] py-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-sm font-extrabold text-ink">다음 방문 기록 남기기</div>
+              <p className="mt-0.5 text-xs text-text-2">
+                같은 단지를 한 번 더 기록하면 표에 새 열이 붙어요.
+              </p>
+            </div>
             <Link
-              href="/notes/new"
+              href={`/notes/new?apt=${encodeURIComponent(model.aptName)}${
+                model.region ? `&region=${encodeURIComponent(model.region)}` : ""
+              }`}
               className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
             >
-              임장노트 쓰기
+              이 단지 노트 쓰기
             </Link>
-            <Link
-              href="/notes?mine=1"
-              className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
-            >
-              내 노트 보기
-            </Link>
+          </div>
+        </div>
+      </PageShell>
+    );
+  }
+
+  const emptyTitle =
+    result.kind === "need_login"
+      ? "로그인이 필요해요"
+      : result.kind === "forbidden"
+        ? "내 노트만 비교할 수 있어요"
+        : result.kind === "error"
+          ? "회차 비교를 불러오지 못했어요"
+          : result.kind === "need_more"
+            ? `${result.aptName} 방문이 ${result.count}회예요`
+            : "비교할 노트를 골라 주세요";
+
+  const emptyDesc =
+    result.kind === "need_login"
+      ? "같은 단지를 2회 이상 기록한 뒤 회차 비교를 볼 수 있어요."
+      : result.kind === "forbidden"
+        ? "다른 사람의 임장노트 회차는 비교 화면에서 열 수 없어요."
+        : result.kind === "error"
+          ? result.message
+          : result.kind === "need_more"
+            ? "같은 단지 노트가 2회 이상이어야 표·타임라인이 채워져요. 예시 데이터로 채우지 않아요."
+            : "노트 상세의 ‘회차 전체 비교’로 들어오거나, 내 노트에서 단지를 고른 뒤 비교해 주세요.";
+
+  return (
+    <PageShell breadcrumb="임장노트 › 회차 비교">
+      <div className="flex flex-col gap-3.5">
+        <div className="rise-in px-1">
+          <h1 className="text-[22px] font-extrabold text-ink">노트 다회차 비교</h1>
+          <p className="mt-1.5 text-sm text-text-2">
+            같은 단지를 여러 번 기록하면 점수 축 변화를 표로 비교해요.
+          </p>
+        </div>
+        <div className="card flex flex-col gap-3 rounded-[20px] px-[22px] py-8 text-center">
+          <div className="text-[15px] font-extrabold text-ink">{emptyTitle}</div>
+          <p className="mx-auto max-w-[420px] text-[13px] leading-[1.6] text-text-2">
+            {emptyDesc}
+          </p>
+          <div className="mt-1 flex flex-wrap justify-center gap-2">
+            {result.kind === "need_login" ? (
+              <Link
+                href="/login?callbackUrl=/notes/compare"
+                className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+              >
+                로그인
+              </Link>
+            ) : result.kind === "need_more" ? (
+              <>
+                <Link
+                  href={`/notes/new?apt=${encodeURIComponent(result.aptName)}`}
+                  className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                >
+                  같은 단지 한 번 더 기록
+                </Link>
+                <Link
+                  href={`/notes/${encodeURIComponent(result.noteId)}`}
+                  className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                >
+                  노트 상세로
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/notes?mine=1"
+                  className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                >
+                  내 노트 보기
+                </Link>
+                <Link
+                  href="/notes/new"
+                  className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                >
+                  임장노트 쓰기
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
