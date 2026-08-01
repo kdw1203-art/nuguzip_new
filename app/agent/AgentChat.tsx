@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
 /* 누구집 AI 에이전트 채팅.
    차별점(사실 우선)을 UI로 드러낸다: 답변마다 에이전트가 실제로 조회한
@@ -29,6 +30,7 @@ function formatRetryAfter(sec: number): string {
 }
 
 export function AgentChat({ models }: { models: AgentModelChoice[] }) {
+  const { handleUpgradeResponse } = useUpgradePaywall();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,8 +107,12 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
         return;
       }
       if (!res.ok || !data?.reply) {
-        /* 402(월 한도)는 재시도해도 같으니 재시도 버튼을 빼고 안내만 남긴다 */
+        /* 402(월 한도)는 재시도해도 같으니 재시도 버튼을 빼고 페이월로 안내 */
         rollback(res.status !== 402);
+        if (handleUpgradeResponse(res.status, data)) {
+          setError(data?.error ?? "이번 달 에이전트 한도를 모두 썼어요.");
+          return;
+        }
         setError(data?.error ?? "에이전트 응답에 실패했어요. 잠시 후 다시 시도해 주세요.");
         return;
       }

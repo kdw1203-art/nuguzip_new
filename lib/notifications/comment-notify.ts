@@ -23,7 +23,7 @@ export async function notifyPostAuthorOfNewComment(input: {
     return;
   }
 
-  const subject = `[우리동네이야기] 새 댓글: ${post.title.slice(0, 60)}`;
+  const subject = `[누구집] 새 댓글: ${post.title.slice(0, 60)}`;
   const preview = comment.body.slice(0, 280);
   const base = process.env.AUTH_URL ?? "http://localhost:3000";
   const html = `

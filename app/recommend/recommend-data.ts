@@ -56,6 +56,8 @@ export interface PersonalizationSummary {
   regions: string[];
   budget: OnboardingBudget | null;
   purpose: PurposeId | null;
+  /** 온보딩 기본정보(나이대·가구 등) — 칩 표시용. 랭킹에는 쓰지 않음(허수 가점 금지) */
+  profileChips: string[];
 }
 
 export interface RecommendResult {
@@ -218,11 +220,19 @@ export async function loadRecommendations(email: string): Promise<RecommendResul
       getAllRegionSnapshots().catch(() => new Map<string, RegionMarketSnapshot>()),
     ]);
 
+    const profile = personalization?.profile ?? null;
+    const profileChips = profile
+      ? Object.entries(profile)
+          .filter(([, v]) => typeof v === "string" && v.trim())
+          .slice(0, 4)
+          .map(([k, v]) => `${k} ${v}`)
+      : [];
     const summary: PersonalizationSummary | null = personalization
       ? {
           regions: personalization.regions,
           budget: personalization.budget,
           purpose: personalization.purpose,
+          profileChips,
         }
       : null;
 

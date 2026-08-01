@@ -7,6 +7,8 @@ import { Icon } from "@/app/components/Icon";
 import { NoteLocationSearch, type NoteLocation } from "./NoteLocationSearch";
 import { FieldCaptureConsentNotice } from "@/components/inspection/field-capture-consent";
 import { useMoment } from "@/app/components/motion/MomentProvider";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import {
   allKnownChecklistItems,
   CHECKLIST_GROUPS,
@@ -389,6 +391,7 @@ export function NoteForm({
   initialNote,
   presetMemo,
   preferAi = false,
+  fromWelcome = false,
 }: {
   template?: NoteFormTemplate | null;
   initialNote?: NoteFormInitialNote | null;
@@ -396,11 +399,38 @@ export function NoteForm({
   presetMemo?: string | null;
   /** 홈 AI CTA — 저장 후 AI 정리 유도 (?intent=ai) */
   preferAi?: boolean;
+  /** /welcome 온보딩 — 저장·AI 후 지도로 루프 완료 */
+  fromWelcome?: boolean;
 }) {
   const router = useRouter();
   const { showMoment } = useMoment();
+  const { handleUpgradeResponse, promptUpgrade } = useUpgradePaywall();
+  const { promptSignup } = useSoftSignup();
   const isEdit = Boolean(initialNote);
   const editId = initialNote?.id ?? null;
+
+  /** welcome 루프면 지도로, 아니면 노트 상세로 */
+  const afterSaveHref = (noteId: string, aiFlag: string, quota: boolean) => {
+    if (fromWelcome && !isEdit) {
+      try {
+        window.localStorage.setItem("nz_onboarding_loop", "done");
+        window.localStorage.setItem("nz_journey_loop", "map");
+      } catch {
+        /* ignore */
+      }
+      const mapQs = new URLSearchParams({
+        noteId,
+        from: "welcome",
+        ai: aiFlag,
+      });
+      if (loc.region.trim()) mapQs.set("region", loc.region.trim());
+      if (loc.complexId) mapQs.set("complexId", loc.complexId);
+      if (loc.aptName.trim()) mapQs.set("apt", loc.aptName.trim());
+      if (quota) mapQs.set("quota", "1");
+      return `/map?${mapQs.toString()}`;
+    }
+    return `/notes/${noteId}?ai=${aiFlag}${quota ? "&quota=1" : ""}`;
+  };
 
   /* 위치(단지·주소) — 기본은 빈 값(placeholder). 프리필: ?apt=&region=&complexId=&lat=&lng= */
   const [loc, setLoc] = useState<NoteLocation>(() =>
@@ -879,6 +909,14 @@ export function NoteForm({
       );
       if (res.status === 401) {
         setNeedLogin(true);
+        promptSignup({
+          action: "note_save",
+          title: "임장노트를 저장하려면 로그인",
+          benefit: "가입하면 방금 작성한 기록을 저장하고 AI 정리·지도 비교로 이어갈 수 있어요.",
+          callbackUrl: typeof window !== "undefined"
+            ? window.location.pathname + window.location.search
+            : "/notes/new",
+        });
         return;
       }
       const json: { note?: { id: string }; error?: string } = await res
@@ -911,23 +949,29 @@ export function NoteForm({
           quotaExceeded?: boolean;
           code?: string;
         } | null;
-        if (aiRes.status === 403 && (aiJson?.code === "QUOTA_EXCEEDED" || aiJson?.code === "TIER")) {
+        if (handleUpgradeResponse(aiRes.status, aiJson)) {
           aiFlag = "fail";
           showMoment({
             title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
             subtitle: "이번 달 AI 한도를 썼어요 · 구독에서 이어서 정리할 수 있어요",
           });
-          router.push(`/notes/${noteId}?ai=fail&quota=1`);
+          router.push(afterSaveHref(noteId, "fail", true));
           return;
         }
         if (aiRes.ok && aiJson) {
           aiFlag = aiJson.mode === "llm" ? "ok" : "rule";
           if (aiJson.quotaExceeded && aiFlag === "rule") {
+            promptUpgrade({
+              title: "AI 월간 한도 도달",
+              message:
+                "규칙 기반 요약으로 저장됐어요. PRO 이상으로 올리면 LLM 정리를 이어서 쓸 수 있어요.",
+              ctaLabel: "구독하고 AI 이어서 쓰기",
+            });
             showMoment({
               title: isEdit ? "수정한 내용을 저장했어요" : "임장노트를 저장했어요",
-              subtitle: "규칙 요약이에요 · AI 한도 소진 시 /subscription 에서 업그레이드",
+              subtitle: "규칙 요약이에요 · AI 한도 소진 시 구독에서 업그레이드",
             });
-            router.push(`/notes/${noteId}?ai=rule&quota=1`);
+            router.push(afterSaveHref(noteId, "rule", true));
             return;
           }
         }
@@ -943,7 +987,7 @@ export function NoteForm({
               ? "규칙 기반 요약으로 정리됐어요"
               : "노트는 저장됐어요 · AI는 아래에서 다시 시도할 수 있어요",
       });
-      router.push(`/notes/${noteId}?ai=${aiFlag}`);
+      router.push(afterSaveHref(noteId, aiFlag, false));
     } catch {
       setSaveError("네트워크 오류로 저장하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
     } finally {
@@ -1004,13 +1048,22 @@ export function NoteForm({
         )}
       </div>
 
-      {preferAi && !isEdit && (
+      {(preferAi || fromWelcome) && !isEdit && (
         <div
           role="status"
           className="mt-2.5 rounded-[12px] border border-primary/25 bg-primary-soft px-3.5 py-2.5 text-[12px] leading-[1.6] text-text-1"
         >
-          <b className="text-primary">AI 정리 경로</b> — 노트를 저장하면 AI(또는 규칙 초안)로
-          장단점을 정리해요. LLM이 아닐 때는 &quot;규칙 기반&quot; 배지로 표시됩니다.
+          {fromWelcome ? (
+            <>
+              <b className="text-primary">온보딩 루프</b> — 저장 후 AI 정리를 시도하고, 이어서
+              지도에서 후보를 비교해요. LLM이 아니면 &quot;규칙 기반&quot;으로 표시됩니다.
+            </>
+          ) : (
+            <>
+              <b className="text-primary">AI 정리 경로</b> — 노트를 저장하면 AI(또는 규칙 초안)로
+              장단점을 정리해요. LLM이 아닐 때는 &quot;규칙 기반&quot; 배지로 표시됩니다.
+            </>
+          )}
         </div>
       )}
 

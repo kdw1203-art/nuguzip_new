@@ -62,7 +62,8 @@ function postToCard(p: Post): FeedCard {
     title: p.title,
     author: p.authorLabel || "이웃",
     region,
-    saves: p.bookmarkCount ?? p.likeCount ?? 0,
+    /* 저장(북마크)만 — 좋아요로 채워 저장 지표를 부풀리지 않는다 */
+    saves: typeof p.bookmarkCount === "number" ? p.bookmarkCount : undefined,
     tags: p.tags ?? [],
     visited: false,
     createdAt: Date.parse(p.createdAt) || 0,
@@ -132,8 +133,11 @@ export default async function TownPage() {
       <Link
         href="/town/write"
         aria-label="글쓰기"
-        className="btn-primary fixed bottom-28 right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full text-[22px] md:hidden"
-        style={{ boxShadow: "0 10px 24px rgba(29,79,216,.45)" }}
+        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full text-[22px] md:hidden"
+        style={{
+          bottom: "calc(var(--nz-tabbar-offset) + 12px)",
+          boxShadow: "0 10px 24px rgba(29,79,216,.45)",
+        }}
       >
         ✎
       </Link>

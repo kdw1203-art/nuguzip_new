@@ -155,9 +155,17 @@ export async function processInspectionJob(job: AiJob): Promise<AiJob> {
 
     if (job.jobType === "scenario") {
       const report = session.structuredReport;
+      const overall = report?.scores?.overall;
+      if (overall == null || !Number.isFinite(Number(overall))) {
+        return (await updateJob(job.id, {
+          status: "failed",
+          error: "insufficient_data: structured report overall score missing",
+          completedAt: new Date().toISOString(),
+        }))!;
+      }
       const scenarios = buildScenarios({
         currentPriceManwon: Number(job.input.currentPriceManwon ?? 0) || undefined,
-        overallScore: report?.scores.overall ?? 60,
+        overallScore: Number(overall),
         weaknesses: report?.weaknesses ?? [],
         holdingYears: Number(job.input.holdingYears ?? 3),
       });

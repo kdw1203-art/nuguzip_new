@@ -1,5 +1,5 @@
 /**
- * 우리동네이야기 카테고리·하위 카테고리 정의
+ * 누구집 카테고리·하위 카테고리 정의
  * 참조: Vite export(platform-src) + 네이버카페/당근/크몽 디자인 패턴
  *
  * 각 페이지는 query string `?sub=xxx` 형태로 하위 카테고리 필터링
@@ -140,7 +140,7 @@ export const EXPERT_SUBCATEGORIES: SubCategory[] = [
     label: "전체",
     emoji: "👥",
     match: [],
-    description: "모든 전문가를 평점·응답률 순으로 정렬합니다.",
+    description: "등록된 전문가를 최근 등록·상담 완료 순으로 봅니다. (평점·응답률 집계는 후기 연동 후 제공)",
   },
   {
     id: "trade",

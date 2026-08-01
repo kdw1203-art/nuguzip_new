@@ -24,6 +24,8 @@ export type CreatorClientProps = CreatorStats & {
   sales: CreatorSalesSummary;
   /** 유료 리포트로 승격 가능한 내 공개 노트 (제목 프리필용) */
   noteOptions: { id: string; title: string }[];
+  /** 현금 출금 인프라 준비 여부 — false면 "미지원"으로 고지 */
+  payoutReady?: boolean;
 };
 
 const fmt = (n: number) => n.toLocaleString("ko-KR");
@@ -201,16 +203,21 @@ function SellReportForm({
 function MonetizationTab({
   sales,
   noteOptions,
+  payoutReady = false,
 }: {
   sales: CreatorSalesSummary;
   noteOptions: { id: string; title: string }[];
+  payoutReady?: boolean;
 }) {
   const dash = sales.available ? null : "—";
   const tiles = [
     { label: "등록 리포트", value: dash ?? fmt(sales.totalReports) },
     { label: "총 판매", value: dash ?? `${fmt(sales.totalSales)}건` },
     { label: "누적 판매(P)", value: dash ?? fmt(sales.grossPoints) },
-    { label: "정산 예정(P)", value: dash ?? fmt(sales.netPoints) },
+    {
+      label: payoutReady ? "정산 예정(P)" : "판매 포인트(출금 불가)",
+      value: dash ?? fmt(sales.netPoints),
+    },
   ];
 
   return (
@@ -227,12 +234,12 @@ function MonetizationTab({
         ))}
       </div>
 
-      {/* 정산 안내 — 정직하게 "현금 정산 준비 중" */}
+      {/* 정산 안내 — payoutReady=false 면 출금 미지원을 분명히 */}
       <div className="rise-in-2 rounded-[14px] bg-ink/[0.96] px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-extrabold text-white">정산 안내</span>
           <span className="rounded-full bg-[#f2c94c]/20 px-[8px] py-[2px] text-[10px] font-extrabold text-[#f2c94c]">
-            현금 정산 준비 중
+            {payoutReady ? "출금 가능" : "현금 출금 미지원"}
           </span>
         </div>
         <div className="mt-2 text-[11px] leading-[1.7] text-[#c7d0e0]">
@@ -248,8 +255,9 @@ function MonetizationTab({
             </>
           )}
           <br />
-          현금 전환(출금)은 관리자 승인 · 최소 정산액 30,000원 기준으로 준비 중이며,
-          오픈 전까지는 판매 실적만 적립됩니다.
+          {payoutReady
+            ? "현금 전환은 관리자 승인 · 최소 정산액 30,000원 기준으로 신청할 수 있어요."
+            : "현금 출금(계좌 이체)은 아직 지원하지 않아요. 오픈 전까지는 판매 실적·포인트만 적립됩니다."}
         </div>
       </div>
 
@@ -320,7 +328,11 @@ export function CreatorClient(props: CreatorClientProps) {
       {tab === "콘텐츠 성과" ? (
         <PerformanceTab stats={props} />
       ) : (
-        <MonetizationTab sales={props.sales} noteOptions={props.noteOptions} />
+        <MonetizationTab
+          sales={props.sales}
+          noteOptions={props.noteOptions}
+          payoutReady={props.payoutReady}
+        />
       )}
     </div>
   );

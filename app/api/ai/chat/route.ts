@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getOpenAiApiKey, getOpenAiModel } from "@/lib/ai/env-keys";
 import { buildAiPublicContext } from "@/lib/ai/public-data-context";
-import { WOODONG_AI_SYSTEM } from "@/lib/ai/system-prompt";
+import { NUGUZIP_AI_SYSTEM } from "@/lib/ai/system-prompt";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { logger } from "@/lib/log";
 
@@ -121,7 +121,7 @@ export async function POST(req: Request) {
         temperature: 0.45,
         max_tokens: 1400,
         messages: [
-          { role: "system", content: WOODONG_AI_SYSTEM + contextBlock },
+          { role: "system", content: NUGUZIP_AI_SYSTEM + contextBlock },
           ...messages.map((m) => ({ role: m.role, content: m.content })),
         ],
       }),

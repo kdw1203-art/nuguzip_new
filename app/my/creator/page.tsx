@@ -5,7 +5,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
 import { isVerifiedExpert } from "@/lib/experts/is-verified";
 import { getServiceSupabase } from "@/lib/supabase/service";
-import { getCreatorSales } from "@/lib/creator/sales";
+import { getCreatorSales, SETTLEMENT } from "@/lib/creator/sales";
 
 /* 시안 22e — 크리에이터 대시보드 · 성장 보상 + 23c "탑 임장러 현황" 탭
    실데이터: 세션(safeAuth) 기준 내 공개 노트 수 + 총 저장 수(bookmarks · 내 공개 노트 대상)
@@ -128,6 +128,7 @@ export default async function CreatorDashboardPage() {
         }
         sales={sales}
         noteOptions={noteOptions}
+        payoutReady={SETTLEMENT.payoutReady}
       />
     </PageShell>
   );

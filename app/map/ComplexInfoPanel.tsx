@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
 /* ============================================================
    단지 정보 패널 — 검색/마커/목록 선택 시.
@@ -201,6 +202,7 @@ function WatchlistToggle({
 }) {
   const { showToast } = useToast();
   const { promptSignup } = useSoftSignup();
+  const { handleUpgradeResponse } = useUpgradePaywall();
   const [watching, setWatching] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -261,7 +263,14 @@ function WatchlistToggle({
           askSignup();
           return;
         }
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        const j = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          code?: string;
+        };
+        if (handleUpgradeResponse(res.status, j)) {
+          showToast(j.error ?? "관심 단지 한도를 초과했어요");
+          return;
+        }
         if (res.status === 403) {
           showToast(j.error ?? "관심 단지 한도를 초과했어요");
           return;

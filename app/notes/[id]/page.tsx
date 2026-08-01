@@ -7,8 +7,10 @@ import { ReportButton } from "../../components/ReportButton";
 import { NextActions } from "../../components/NextActions";
 import {
   getNote,
+  hasInspectionScores,
   inspectionAverageScore,
   listNotesByAuthorForApt,
+  listNotesByAuthorForComplex,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { CoverImage } from "@/app/components/CoverImage";
@@ -53,8 +55,10 @@ type NoteView = {
   aiInline: string; // 본문 내 AI 요약 (20a ⑨ — AIPanel로 구분)
   aiBadge: string; // 저장된 AI 분석 vs 규칙 기반 문구 구분 배지
   aiSummary: string;
-  totalScore: number; // 0~100
+  /** 입력 축이 없으면 null — 0점을 "종합 점수"로 보여 주지 않는다 */
+  totalScore: number | null;
   scoreBars: ScoreBar[];
+  scoredAxisCount: number;
   checklistDone: number;
   checklistTotal: number;
   sourceLabel: string; // 출처 각주 (20a ⑦)
@@ -137,10 +141,14 @@ function formatDate(iso?: string | null): string {
 }
 
 function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
-  const avg = inspectionAverageScore(n.scores);
-  const total = Math.round(avg * 20);
-  const displayTitle = n.aptName?.trim() || n.title;
   const s = n.scores;
+  const scored = hasInspectionScores(s);
+  const avg = inspectionAverageScore(s);
+  const total = scored ? Math.round(avg * 20) : null;
+  const scoredAxisCount = [s.location, s.school, s.transport, s.facility, s.future].filter(
+    (v) => v > 0,
+  ).length;
+  const displayTitle = n.aptName?.trim() || n.title;
   const pros = n.sections.pros ?? "";
   const cons = n.sections.cons ?? "";
 
@@ -204,9 +212,13 @@ function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
     (x): x is string => typeof x === "string" && x.trim().length > 0,
   );
   const aiEngine = typeof ai?.engine === "string" ? ai.engine : "";
-  const ruleInline = `5개 축 평균 ${avg.toFixed(1)}/5점 — ${
-    weakest ? `${weakest[0]} 축(${weakest[1]}/5)이 감점 요인입니다.` : "축별 점수를 참고하세요."
-  }`;
+  const ruleInline = scored
+    ? `입력 ${scoredAxisCount}개 축 평균 ${avg.toFixed(1)}/5점 — ${
+        weakest
+          ? `${weakest[0]} 축(${weakest[1]}/5)이 감점 요인입니다.`
+          : "축별 점수를 참고하세요."
+      }`
+    : "현장 축 점수가 아직 없어 종합 점수를 내지 않았어요. 노트에서 평가를 채우면 표시됩니다.";
   const aiBadge = storedAiText
     ? aiEngine.startsWith("rule-based")
       ? "규칙 기반 분석"
@@ -231,27 +243,32 @@ function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
         : [
             {
               label: `1차 · ${n.visitDate}`,
-              summary: `평점 ${avg.toFixed(1)}/5 · 체크 ${doneCount}/${n.checklist.length}`,
+              summary: scored
+                ? `평점 ${avg.toFixed(1)}/5 · 체크 ${doneCount}/${n.checklist.length}`
+                : `점수 미입력 · 체크 ${doneCount}/${n.checklist.length}`,
               latest: true,
             },
           ],
     goodPoints: goodPoints.slice(0, 4),
     cautionPoints: cautionPoints.slice(0, 4),
-    evidenceNote: `점수 5개 축 + 체크 ${n.checklist.length}건 기준`,
+    evidenceNote: scored
+      ? `입력 ${scoredAxisCount}개 축 + 체크 ${n.checklist.length}건 기준`
+      : `점수 미입력 · 체크 ${n.checklist.length}건`,
     aiInline: storedAiText ?? ruleInline,
     aiBadge,
-    aiSummary: `${n.region} ${displayTitle} 방문 기록 기준 — 5개 축 평균 ${avg.toFixed(
-      1,
-    )}점입니다. ${
-      goodPoints[0] && !goodPoints[0].includes("아직")
-        ? `강점은 ${goodPoints[0]}, `
-        : ""
-    }${
-      cautionPoints[0] && !cautionPoints[0].includes("아직")
-        ? `약점은 ${cautionPoints[0]} 입니다.`
-        : "축별 점수를 참고해 다음 방문 계획을 세워보세요."
-    }`,
+    aiSummary: scored
+      ? `${n.region} ${displayTitle} 방문 기록 기준 — 입력 축 평균 ${avg.toFixed(1)}점입니다. ${
+          goodPoints[0] && !goodPoints[0].includes("아직")
+            ? `강점은 ${goodPoints[0]}, `
+            : ""
+        }${
+          cautionPoints[0] && !cautionPoints[0].includes("아직")
+            ? `약점은 ${cautionPoints[0]} 입니다.`
+            : "축별 점수를 참고해 다음 방문 계획을 세워보세요."
+        }`
+      : `${n.region} ${displayTitle} 방문 기록 — 축 점수가 없어 종합 점수는 표시하지 않아요. 체크·메모를 보강하면 판단 근거가 쌓입니다.`,
     totalScore: total,
+    scoredAxisCount,
     // 값이 기록되지 않은 축(0점)은 막대에서 생략 — 없는 기록을 있는 것처럼 그리지 않는다
     scoreBars: scoreEntries
       .filter(([, v]) => v > 0)
@@ -311,7 +328,7 @@ export async function generateMetadata({
   const view = toView(note);
   const ogQuery = new URLSearchParams({
     title: note.title,
-    score: String(view.totalScore),
+    score: view.totalScore != null ? String(view.totalScore) : "",
     badges: view.axes.map((a) => `${a.label} ${a.level}`).join(","),
   });
   // 좌표가 있으면 OG 카드에 네이버 Static Map 썸네일 노출(키 있을 때). 없으면 지도 없이 폴백.
@@ -397,7 +414,7 @@ function noteJsonLd(
   const datePublished = note.createdAt || undefined;
   const score = view.totalScore;
 
-  if (score > 0) {
+  if (score != null && score > 0) {
     return {
       "@context": "https://schema.org",
       "@type": "Review",
@@ -475,24 +492,30 @@ export default async function NoteDetailPage({
     complexHref = null;
   }
 
-  // 방문 기록 비교 — 같은 작성자·같은 단지의 노트를 실제로 묶어 회차 표시.
-  // 비소유자에게는 공개 노트 회차만 보여 비공개 기록의 존재를 드러내지 않는다.
+  // 방문 기록 비교 — complexId 우선, 없으면 aptName. 비소유자는 공개 회차만.
   let visits: Visit[] | undefined;
-  if (realNote.aptName?.trim()) {
+  const visitComplexId =
+    typeof realNote.metadata?.complexId === "string"
+      ? realNote.metadata.complexId.trim()
+      : "";
+  const visitApt = realNote.aptName?.trim() ?? "";
+  if (visitComplexId || visitApt) {
     try {
-      const grouped = await listNotesByAuthorForApt(
-        realNote.authorEmail,
-        realNote.aptName.trim(),
-      );
+      const grouped = visitComplexId
+        ? await listNotesByAuthorForComplex(realNote.authorEmail, visitComplexId)
+        : await listNotesByAuthorForApt(realNote.authorEmail, visitApt);
       let visible = isOwner ? grouped : grouped.filter((x) => x.isPublic);
       if (!visible.some((x) => x.id === realNote.id)) visible = [...visible, realNote];
-      visits = visible.map((x, i) => ({
-        label: `${i + 1}차 · ${x.visitDate}`,
-        summary: `평점 ${inspectionAverageScore(x.scores).toFixed(1)}/5 · 체크 ${
-          x.checklist.filter((c) => c.done).length
-        }/${x.checklist.length}`,
-        latest: x.id === realNote.id,
-      }));
+      visits = visible.map((x, i) => {
+        const scored = hasInspectionScores(x.scores);
+        const avg = inspectionAverageScore(x.scores);
+        const checks = `${x.checklist.filter((c) => c.done).length}/${x.checklist.length}`;
+        return {
+          label: `${i + 1}차 · ${x.visitDate}`,
+          summary: scored ? `평점 ${avg.toFixed(1)}/5 · 체크 ${checks}` : `점수 미입력 · 체크 ${checks}`,
+          latest: x.id === realNote.id,
+        };
+      });
     } catch {
       visits = undefined;
     }
@@ -878,7 +901,7 @@ export default async function NoteDetailPage({
                 <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
                   <span className="text-xs">기록 종합 점수</span>
                   <span className="text-sm font-extrabold text-white">
-                    {v.totalScore} / 100
+                    {v.totalScore != null ? `${v.totalScore} / 100` : "미입력"}
                   </span>
                 </div>
                 {/* 실기록 기반 수치만 노출 (허위 수치 금지) */}
@@ -899,24 +922,37 @@ export default async function NoteDetailPage({
             </AIPanel>
           </div>
 
-          {/* AI 점수 산출 (10f) */}
+          {/* 기록 축 점수 — 입력된 축만 평균. 미입력이면 링을 그리지 않는다 */}
           <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[20px] p-6">
-            <div
-              className="relative h-[110px] w-[110px] rounded-full"
-              style={{
-                background: `conic-gradient(#1d4fd8 0% ${v.totalScore}%, rgba(29,79,216,.12) ${v.totalScore}% 100%)`,
-              }}
-            >
-              <div className="absolute inset-[9px] flex flex-col items-center justify-center rounded-full bg-surface">
-                <span className="text-[30px] font-extrabold leading-none text-primary">
-                  {v.totalScore}
-                </span>
-                <span className="text-[10px] text-text-3">/ 100</span>
+            {v.totalScore != null ? (
+              <div
+                className="relative h-[110px] w-[110px] rounded-full"
+                style={{
+                  background: `conic-gradient(#1d4fd8 0% ${v.totalScore}%, rgba(29,79,216,.12) ${v.totalScore}% 100%)`,
+                }}
+              >
+                <div className="absolute inset-[9px] flex flex-col items-center justify-center rounded-full bg-surface">
+                  <span className="text-[30px] font-extrabold leading-none text-primary">
+                    {v.totalScore}
+                  </span>
+                  <span className="text-[10px] text-text-3">/ 100</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[#eef1f6]">
+                <span className="text-[18px] font-extrabold text-text-3">—</span>
+                <span className="mt-0.5 text-[10px] text-text-3">미입력</span>
+              </div>
+            )}
             <div className="text-center text-xs text-text-2">
-              5개 축 평균 <b className="text-primary">{v.totalScore}점</b> · 이 노트
-              기록 기준
+              {v.totalScore != null ? (
+                <>
+                  입력 {v.scoredAxisCount}개 축 평균{" "}
+                  <b className="text-primary">{v.totalScore}점</b> · 이 노트 기록 기준
+                </>
+              ) : (
+                <>축 점수가 없어 종합 점수를 표시하지 않아요</>
+              )}
             </div>
             <div className="flex w-full flex-col gap-[7px]">
               {v.scoreBars.map((b) => (
@@ -943,8 +979,8 @@ export default async function NoteDetailPage({
               ))}
             </div>
             <div className="text-[10px] text-text-3">
-              점수 = 5개 축(입지·학군·교통·시설·미래가치) 단순 평균 × 20 · 기록하지
-              않은 축은 0점 처리, 막대에는 표시하지 않아요
+              점수 = 입력된 축(입지·학군·교통·시설·미래가치)만 평균 × 20 · 미입력
+              축은 평균·막대에서 제외합니다
             </div>
           </div>
 

@@ -1,21 +1,49 @@
 "use client";
 
 /* I5 매물 부스트 셀프서비스(포인트 500P·7일) — POST /api/listings/[id]/boost.
-   오클릭 방지 2단계 확인. 성공 시 페이지 새로고침으로 부스트 배지 갱신. */
+   오클릭 방지 2단계 확인. 401→SoftSignup, 402→포인트 상점 페이월. */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/components/toast/ToastProvider";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
 export function BoostButton({ listingId, active }: { listingId: string; active: boolean }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const { promptSignup } = useSoftSignup();
+  const { promptUpgrade } = useUpgradePaywall();
   const [phase, setPhase] = useState<"idle" | "confirm" | "busy">("idle");
 
   async function run() {
     setPhase("busy");
     try {
       const res = await fetch(`/api/listings/${listingId}/boost`, { method: "POST" });
-      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        code?: string;
+      };
+      if (res.status === 401) {
+        promptSignup({
+          action: "listing_boost",
+          title: "부스트하려면 로그인",
+          benefit: "가입하면 포인트로 매물 상단 노출을 신청할 수 있어요.",
+          callbackUrl: "/my/listings",
+        });
+        setPhase("idle");
+        return;
+      }
+      if (res.status === 402) {
+        promptUpgrade({
+          title: "포인트가 부족해요",
+          message: json.error ?? "부스트에는 500P가 필요해요. 포인트 상점에서 충전할 수 있어요.",
+          href: "/points/shop",
+          ctaLabel: "포인트 상점 가기",
+        });
+        setPhase("idle");
+        return;
+      }
       if (!res.ok || !json.ok) {
         showToast(json.error ?? "부스트에 실패했어요");
         setPhase("idle");

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "../../components/toast/ToastProvider";
-import { UpgradePaywall } from "@/app/components/UpgradePaywall";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 type Intent = "실거주" | "투자" | "전월세";
 type InvestorRole = "live" | "invest" | "rent" | "balanced";
@@ -31,8 +32,9 @@ export function AiRetryButton({
 }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const { handleUpgradeResponse } = useUpgradePaywall();
+  const { promptSignup } = useSoftSignup();
   const [busy, setBusy] = useState(false);
-  const [quotaBlocked, setQuotaBlocked] = useState(false);
   const [role, setRole] = useState<InvestorRole>(() => defaultRole(defaultIntent));
 
   const run = async () => {
@@ -52,23 +54,26 @@ export function AiRetryButton({
         }),
       });
       if (res.status === 401) {
-        router.push(`/login?callbackUrl=${encodeURIComponent(`/notes/${noteId}`)}`);
+        promptSignup({
+          action: "ai_retry",
+          title: "AI 정리를 이어가려면 로그인",
+          benefit: "저장한 임장노트를 AI로 다시 정리할 수 있어요.",
+          callbackUrl: `/notes/${noteId}`,
+        });
         return;
       }
       const json = (await res.json().catch(() => null)) as {
         code?: string;
         error?: string;
       } | null;
-      if (res.status === 403 && (json?.code === "QUOTA_EXCEEDED" || json?.code === "TIER")) {
-        setQuotaBlocked(true);
-        showToast("이번 달 AI 한도를 모두 사용했어요. 구독에서 이어서 정리할 수 있어요");
+      if (handleUpgradeResponse(res.status, json)) {
+        showToast("이번 달 AI 한도를 모두 사용했어요");
         return;
       }
       if (!res.ok) {
         showToast("AI 정리를 다시 시도하지 못했어요. 잠시 후 다시 시도해 주세요");
         return;
       }
-      setQuotaBlocked(false);
       showToast("AI 정리를 다시 실행했어요");
       router.refresh();
     } catch {
@@ -108,13 +113,6 @@ export function AiRetryButton({
       >
         {busy ? "AI 정리 중…" : "AI 다시 정리하기"}
       </button>
-      <UpgradePaywall
-        open={quotaBlocked}
-        onClose={() => setQuotaBlocked(false)}
-        title="AI 월간 한도 도달"
-        message="이번 달 Free AI 정리 횟수를 모두 썼어요. PRO 이상으로 올리면 이어서 정리할 수 있어요. (규칙 기반 초안은 한도를 쓰지 않습니다.)"
-        ctaLabel="구독하고 AI 이어서 쓰기"
-      />
     </div>
   );
 }

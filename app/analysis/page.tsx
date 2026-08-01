@@ -73,9 +73,9 @@ const TOOLS = [
     href: "/analysis/scenario",
     icon: "📊",
     title: "시장·대출 시나리오",
-    desc: "지역 실시세 기준가로 금리·시세 변동 원리금 스트레스 테스트",
-    foot: "내 지역 실시세로 계산하기 ›",
-    sim: false,
+    desc: "지역 시세가 있을 때 금리·시세 스트레스 테스트 · 기준가 없으면 예시 계산",
+    foot: "시나리오 열어보기 ›",
+    sim: true,
   },
   {
     href: "/analysis/timing",
@@ -105,7 +105,7 @@ const TOOLS = [
 
 const QUICK = [
   { href: "/analysis/cycle", label: "시세 사이클 (시뮬레이션)" },
-  { href: "/analysis/price", label: "AI 제안가 근거 (시뮬레이션)" },
+  /* /analysis/price 는 데모 수치 중심 — 빠른 링크에서 내려 오인 유입을 줄인다 */
   { href: "/analysis/switch", label: "갈아타기 추천 (시뮬레이션)" },
 ] as const;
 

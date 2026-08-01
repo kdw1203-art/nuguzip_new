@@ -27,6 +27,8 @@ export default async function NoteNewPage({
     typeof sp.memo === "string" && sp.memo.trim() ? sp.memo.trim().slice(0, 2000) : null;
   const preferAi =
     typeof sp.intent === "string" && sp.intent.trim().toLowerCase() === "ai";
+  const fromWelcome =
+    typeof sp.from === "string" && sp.from.trim().toLowerCase() === "welcome";
   let template: NoteFormTemplate | null = null;
   if (tplId) {
     try {
@@ -36,5 +38,12 @@ export default async function NoteNewPage({
       /* 템플릿 조회 실패 — 템플릿 없이 일반 작성으로 진행 */
     }
   }
-  return <NoteForm template={template} presetMemo={presetMemo} preferAi={preferAi} />;
+  return (
+    <NoteForm
+      template={template}
+      presetMemo={presetMemo}
+      preferAi={preferAi || fromWelcome}
+      fromWelcome={fromWelcome}
+    />
+  );
 }

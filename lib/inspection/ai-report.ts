@@ -14,9 +14,10 @@ export type InspectionAiReport = {
   mapFocusRegion: string;
   mapFocusReason: string;
   scores: {
-    residence: number;
-    investment: number;
-    infra: number;
+    /** 입력 축이 없으면 null — 중간값(50)을 지어내지 않는다 */
+    residence: number | null;
+    investment: number | null;
+    infra: number | null;
   };
   /**
    * 심화 분석 8축에 대한 **해석 한 줄**씩. 숫자는 여기에 오지 않는다.
@@ -79,24 +80,34 @@ function normalizeTextList(value: unknown, maxItems = 5, maxLength = 96): string
   return [];
 }
 
-function clampScore(value: unknown, fallback = 50): number {
+function clampScore(value: unknown, fallback = 0): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(100, Math.max(0, Math.round(parsed)));
 }
 
-function scoreTo100(score: unknown): number {
-  return clampScore(Number(score ?? 0) * 20, 0);
+/** 0·미입력 축은 평균에서 제외 — "안 적은 축 = 50점" 조작을 막는다 */
+function scoreTo100IfSet(score: unknown): number | null {
+  const n = Number(score);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return clampScore(n * 20, 0);
 }
 
 function includesAnyText(source: string, needles: string[]): boolean {
   return needles.some((needle) => source.includes(needle));
 }
 
-function average(values: number[], fallback = 50): number {
-  const clean = values.filter((value) => Number.isFinite(value));
-  if (!clean.length) return fallback;
-  return clampScore(clean.reduce((sum, value) => sum + value, 0) / clean.length, fallback);
+function averageOrNull(values: Array<number | null | undefined>): number | null {
+  const clean = values.filter((value): value is number => value != null && Number.isFinite(value));
+  if (!clean.length) return null;
+  return clampScore(clean.reduce((sum, value) => sum + value, 0) / clean.length, 0);
+}
+
+function clampScoreOrNull(value: unknown, fallback: number | null): number | null {
+  if (value == null || value === "") return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(parsed)));
 }
 
 function noteIntent(note: InspectionNote, fallback?: InspectionAiIntent): InspectionAiIntent {
@@ -181,6 +192,7 @@ export function buildFallbackInspectionAiReport(
   if (completedChecks.includes("상권") || includesAnyText(allText, ["상권", "편의", "마트", "카페"])) {
     strengths.push("상권과 편의시설 관련 단서가 있어 생활 인프라 비교에 유리합니다.");
   }
+  /* 미입력(0) 축은 높음/낮음 판단에 쓰지 않는다 — 가짜 리스크·강점 방지 */
   if (note.scores.transport >= 4) strengths.push("교통 점수가 높아 이동 편의성 측면의 우선순위가 분명합니다.");
   if (note.scores.future >= 4) strengths.push("미래가치 점수가 높아 중장기 변화 요인을 계속 추적할 만합니다.");
 
@@ -193,11 +205,13 @@ export function buildFallbackInspectionAiReport(
   if (completedChecks.length === 0) {
     risks.push("체크리스트가 비어 있어 우선순위를 잡을 기준이 부족합니다.");
   }
-  if (note.scores.transport <= 2) risks.push("교통 점수가 낮아 출퇴근 동선과 대체 교통수단 재확인이 필요합니다.");
-  if (note.scores.school <= 2 && intent === "실거주") {
+  if (note.scores.transport > 0 && note.scores.transport <= 2) {
+    risks.push("교통 점수가 낮아 출퇴근 동선과 대체 교통수단 재확인이 필요합니다.");
+  }
+  if (note.scores.school > 0 && note.scores.school <= 2 && intent === "실거주") {
     risks.push("학군 점수가 낮아 실거주 수요와 향후 환금성 판단을 보수적으로 봐야 합니다.");
   }
-  if (note.scores.future <= 2 && intent === "투자") {
+  if (note.scores.future > 0 && note.scores.future <= 2 && intent === "투자") {
     risks.push("미래가치 점수가 낮아 개발호재나 공급 리스크를 추가로 검증해야 합니다.");
   }
   if (!note.sections.cons && !includesAnyText(allText, ["리스크", "주의", "불편", "소음", "혼잡"])) {
@@ -223,11 +237,11 @@ export function buildFallbackInspectionAiReport(
   ];
 
   const score100 = {
-    location: scoreTo100(note.scores.location),
-    school: scoreTo100(note.scores.school),
-    transport: scoreTo100(note.scores.transport),
-    facility: scoreTo100(note.scores.facility),
-    future: scoreTo100(note.scores.future),
+    location: scoreTo100IfSet(note.scores.location),
+    school: scoreTo100IfSet(note.scores.school),
+    transport: scoreTo100IfSet(note.scores.transport),
+    facility: scoreTo100IfSet(note.scores.facility),
+    future: scoreTo100IfSet(note.scores.future),
   };
   const completeness = Math.min(
     1,
@@ -242,13 +256,19 @@ export function buildFallbackInspectionAiReport(
       ...note.photos,
     ].filter(Boolean).length / 12,
   );
+  /* 입력된 축이 있을 때만 완성도 보너스 — 빈 노트에 점수만 쌓이지 않게 */
   const completenessBoost = Math.round(completeness * 10);
-  const residence = average(
-    [score100.location, score100.school, score100.transport, score100.facility],
-    50,
-  ) + completenessBoost;
-  const investment = average([score100.location, score100.transport, score100.future], 50) + completenessBoost;
-  const infra = average([score100.transport, score100.facility, score100.school], 50) + completenessBoost;
+  const withBoost = (base: number | null): number | null =>
+    base == null ? null : clampScore(base + completenessBoost, 0);
+  const residence = withBoost(
+    averageOrNull([score100.location, score100.school, score100.transport, score100.facility]),
+  );
+  const investment = withBoost(
+    averageOrNull([score100.location, score100.transport, score100.future]),
+  );
+  const infra = withBoost(
+    averageOrNull([score100.transport, score100.facility, score100.school]),
+  );
   const keywords = [
     region,
     aptName,
@@ -279,9 +299,9 @@ export function buildFallbackInspectionAiReport(
         ? `${aptName}를 기준으로 유사 후보를 찾되, 지역명이 있으면 비교 정확도가 올라갑니다.`
         : "지역명이나 단지명이 있으면 지도 추천 정확도가 더 높아집니다.",
     scores: {
-      residence: clampScore(residence, 50),
-      investment: clampScore(investment, 50),
-      infra: clampScore(infra, 50),
+      residence,
+      investment,
+      infra,
     },
     /* 폴백에는 해석을 붙이지 않는다. 규칙 기반 축 본문은 이미 만들어져 있고,
        LLM 없이 지어낸 "해석"은 근거 없는 문장이 하나 더 늘어나는 것뿐이다. */
@@ -355,9 +375,15 @@ export function parseInspectionAiReport(
     mapFocusRegion: toText(parsed.mapFocusRegion ?? parsed.map_focus_region, 100) || fallback.mapFocusRegion,
     mapFocusReason: toText(parsed.mapFocusReason ?? parsed.map_focus_reason, 220) || fallback.mapFocusReason,
     scores: {
-      residence: clampScore(scores?.residence ?? scores?.residenceScore, fallback.scores.residence),
-      investment: clampScore(scores?.investment ?? scores?.investmentScore, fallback.scores.investment),
-      infra: clampScore(scores?.infra ?? scores?.infraScore, fallback.scores.infra),
+      residence: clampScoreOrNull(
+        scores?.residence ?? scores?.residenceScore,
+        fallback.scores.residence,
+      ),
+      investment: clampScoreOrNull(
+        scores?.investment ?? scores?.investmentScore,
+        fallback.scores.investment,
+      ),
+      infra: clampScoreOrNull(scores?.infra ?? scores?.infraScore, fallback.scores.infra),
     },
     deepDiveInsights: normalizeDeepDiveInsights(
       parsed.deepDiveInsights ?? parsed.deep_dive_insights,
@@ -409,7 +435,7 @@ export function inspectionAiReportJsonInstruction(): string {
     "JSON만 반환하세요. 마크다운 코드블록을 쓰지 마세요.",
     "필수 키: headline, summary, strengths, risks, followUps, keywords, verdict, recommendedAction, mapFocusRegion, mapFocusReason, scores.",
     "strengths, risks, followUps, keywords는 문자열 배열입니다.",
-    "scores는 residence, investment, infra 숫자 점수(0~100)를 포함합니다.",
+    "scores는 residence, investment, infra(0~100)입니다. 근거가 없으면 해당 축에 null을 넣고 50 같은 중간값을 지어내지 마세요.",
     "입력에 없는 가격, 수익률, 규제, 호재, 입지 정보를 지어내지 마세요.",
     "모든 문장은 한국어로, 사용자가 바로 실행할 수 있게 짧고 구체적으로 작성하세요.",
     "",

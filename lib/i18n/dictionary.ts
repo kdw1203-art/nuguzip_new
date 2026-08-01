@@ -52,8 +52,8 @@ type Dict = {
 };
 
 const KO: Dict = {
-  brand: "우리동네이야기",
-  tagline: "부동산 커뮤니티 플랫폼",
+  brand: "누구집",
+  tagline: "AI 임장·부동산 커뮤니티",
   nav: {
     home: "홈",
     region: "지역",
@@ -90,8 +90,8 @@ const KO: Dict = {
 };
 
 const EN: Dict = {
-  brand: "Woodong",
-  tagline: "Real Estate Community Platform",
+  brand: "Nuguzip",
+  tagline: "AI field-note real estate community",
   nav: {
     home: "Home",
     region: "Region",

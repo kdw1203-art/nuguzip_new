@@ -43,17 +43,38 @@ function isLoopStep(v: string | null): v is LoopStep {
 export function JourneyBanner() {
   const [step, setStep] = useState<LoopStep | null>(null);
   const [ready, setReady] = useState(false);
+  /** 로그인 PersonalHome 이 켜지면 이중 여정 배너를 숨긴다 */
+  const [personalActive, setPersonalActive] = useState(false);
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
       if (isLoopStep(saved)) setStep(saved);
-      /* 구 키 정리 */
+      /* welcome 루프 키 → 배너 단계로 흡수 후 제거 (쓰기만 하던 dead key 해소) */
+      const onboarding = window.localStorage.getItem("nz_onboarding_loop");
+      if (!isLoopStep(saved) && onboarding === "note") {
+        setStep("note");
+        window.localStorage.setItem(STORAGE_KEY, "note");
+      } else if (!isLoopStep(saved) && onboarding === "done") {
+        setStep("map");
+        window.localStorage.setItem(STORAGE_KEY, "map");
+      }
+      if (onboarding) window.localStorage.removeItem("nz_onboarding_loop");
       window.localStorage.removeItem("nz_journey");
     } catch {
       /* ignore */
     }
+    const readPersonal = () => {
+      setPersonalActive(document.body.getAttribute("data-personal-active") === "1");
+    };
+    readPersonal();
+    const obs = new MutationObserver(readPersonal);
+    obs.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-personal-active"],
+    });
     setReady(true);
+    return () => obs.disconnect();
   }, []);
 
   const select = (s: LoopStep) => {
@@ -74,7 +95,7 @@ export function JourneyBanner() {
     }
   };
 
-  if (!ready) return null;
+  if (!ready || personalActive) return null;
 
   if (step === null) {
     return (

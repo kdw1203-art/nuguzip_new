@@ -72,6 +72,8 @@ function PersonalizationChips({ p }: { p: PersonalizationSummary | null }) {
   for (const r of p?.regions ?? []) chips.push(r);
   if (p?.budget) chips.push(p.budget.label ? `${p.budget.label}` : p.budget.type === "jeonse" ? "전세" : "매매");
   if (p?.purpose) chips.push(PURPOSE_LABEL[p.purpose]);
+  /* 인구통계는 저장만 하고 버리던 값 — 맞춤 조건 칩으로만 노출(랭킹 조작 없음) */
+  for (const c of p?.profileChips ?? []) chips.push(c);
   if (chips.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5">

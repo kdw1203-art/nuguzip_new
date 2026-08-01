@@ -68,10 +68,10 @@ function toCard(e: UserExpertProfile): ExpertCardData {
     ratingLabel: e.reviews > 0 ? `★ ${e.rating.toFixed(1)}` : "평가 없음",
     reviews: e.reviews,
     consultations: e.consultations,
-    responseLabel: e.responseTime
-      ? e.responseTime
-      : e.responseRate > 0
-        ? `${e.responseRate}%`
+    /* "대기"·빈 값은 미집계 — 실측 responseTime 만 노출 */
+    responseLabel:
+      e.responseTime?.trim() && e.responseTime.trim() !== "대기"
+        ? e.responseTime.trim()
         : "—",
     introduction: e.introduction,
     consultFeeLabel: fee(e.consultationFee),

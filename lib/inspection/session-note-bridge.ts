@@ -64,6 +64,8 @@ function buildNotePayload(
     metadata: {
       structuredNote: report as unknown as Record<string, unknown>,
       evidenceRefs: report.evidence.map((e) => ({ ...e })),
+      /* complexId 를 빠뜨리면 회차 비교·지도 노트 탭이 aptName 오타로 갈라진다 */
+      ...(session.complexId ? { complexId: session.complexId } : {}),
       intent:
         session.mode === "investment_note"
           ? "투자"

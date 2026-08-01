@@ -42,6 +42,10 @@ export type InspectionNoteMetadata = {
   satisfaction?: number;
   /** 작성 시 적용한 노트 템플릿 id (출처 표시용) */
   templateId?: string;
+  /** 단지 허브 id — 회차 비교·지도 핸드오프의 정규 키(aptName 보다 우선) */
+  complexId?: string;
+  lat?: number;
+  lng?: number;
 };
 
 export type InspectionNote = {
@@ -66,9 +70,31 @@ export type InspectionNote = {
   updatedAt: string;
 };
 
+/**
+ * 입력된 축(>0)만 평균한다. 미입력 0을 분모에 넣으면 미완성 노트가
+ * 낮은 "종합 점수"로 보여 판단 점수처럼 오해된다.
+ * 축이 하나도 없으면 0 — 호출측에서 `> 0` / null 표시로 구분한다.
+ */
 export function inspectionAverageScore(scores: InspectionScores): number {
+  const axes = [
+    scores.location,
+    scores.school,
+    scores.transport,
+    scores.facility,
+    scores.future,
+  ].filter((v) => Number.isFinite(v) && v > 0);
+  if (!axes.length) return 0;
+  return axes.reduce((sum, v) => sum + v, 0) / axes.length;
+}
+
+/** 점수 축이 하나라도 입력됐는지 */
+export function hasInspectionScores(scores: InspectionScores): boolean {
   return (
-    (scores.location + scores.school + scores.transport + scores.facility + scores.future) / 5
+    scores.location > 0 ||
+    scores.school > 0 ||
+    scores.transport > 0 ||
+    scores.facility > 0 ||
+    scores.future > 0
   );
 }
 
@@ -327,6 +353,43 @@ export async function listNotesByAuthorForApt(
   /* 회차 비교 섹션은 실패하면 "이 단지는 1회차뿐"으로 보인다 — 2·3회차를 쓴
      사람에게는 기록이 날아간 것처럼 보인다. */
   if (error) throw noteQueryError("inspection_notes (같은 단지 회차)", error);
+  return (data ?? []).map(mapRow);
+}
+
+/**
+ * 같은 작성자·같은 complexId(metadata) 노트 묶음.
+ * aptName 오타·표기 차이로 회차가 갈라지는 문제를 줄인다.
+ */
+export async function listNotesByAuthorForComplex(
+  authorEmail: string,
+  complexId: string,
+  limit = 20,
+): Promise<InspectionNote[]> {
+  const id = complexId.trim();
+  if (!id) return [];
+  const sb = getServiceSupabase();
+  if (!sb) {
+    return memory
+      .filter(
+        (n) =>
+          n.authorEmail === authorEmail &&
+          (n.metadata?.complexId ?? "").trim() === id,
+      )
+      .sort(
+        (a, b) =>
+          a.visitDate.localeCompare(b.visitDate) || a.createdAt.localeCompare(b.createdAt),
+      )
+      .slice(0, limit);
+  }
+  const { data, error } = await sb
+    .from("inspection_notes")
+    .select("*")
+    .eq("author_email", authorEmail)
+    .filter("metadata->>complexId", "eq", id)
+    .order("visit_date", { ascending: true })
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  if (error) throw noteQueryError("inspection_notes (같은 complexId 회차)", error);
   return (data ?? []).map(mapRow);
 }
 

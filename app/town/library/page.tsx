@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import { ExampleBadge } from "../../components/ExampleBadge";
 import {
   listPublicNotes,
   inspectionAverageScore,
@@ -16,16 +15,6 @@ import { ErrorState } from "../../components/ui/EmptyState";
    주간 다이제스트는 뉴스로 이동(제거). 공개 임장노트(listPublicNotes)를 열람 카드로 노출. */
 
 export const revalidate = 600;
-
-/* 더미데이터 정책: 리포트 상품은 오픈 준비 중 — 예시 배지로 정직 표기 */
-// 예시 폴백: 실데이터 0건일 때만 1개만
-const EXAMPLE_REPORTS = [
-  {
-    badge: "단지 리포트",
-    title: "관양동 재건축 흐름 분석 (2026 상반기판)",
-    meta: "PDF 34p · 김OO 중개사",
-  },
-];
 
 export default async function TownLibraryPage() {
   /* 조회 실패를 빈 배열로 삼키면 아래 "공개된 임장노트가 아직 없어요" 가 뜬다 —
@@ -58,42 +47,27 @@ export default async function TownLibraryPage() {
         </p>
       </div>
 
-      {/* ---------- 리포트 (단지·지역 리포트 등) — 오픈 준비 중 예시 ---------- */}
+      {/* ---------- 리포트 — 상품 선반 없이 빈 상태만 (가짜 카드 금지) ---------- */}
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[15px] font-extrabold text-ink">리포트</h2>
           <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
-            오픈 준비 중
+            오픈 전
           </span>
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {EXAMPLE_REPORTS.map((r, i) => (
-            <div
-              key={r.title}
-              className={`card rise-in-${i + 1} flex flex-col gap-2 rounded-[16px] p-[18px]`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
-                  {r.badge}
-                </span>
-                <ExampleBadge />
-              </div>
-              <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
-                {r.title}
-              </div>
-              <div className="text-xs text-text-3">{r.meta}</div>
-              {/* 예전엔 테두리·패딩·가운데 정렬을 준 <span> 이라 비활성 버튼처럼 보였다.
-                  누를 수 있는 것이 아니라 "아직 없다"는 안내이므로 버튼 껍데기를 걷어내고
-                  평범한 안내 문구로 둔다. */}
-              <span className="mt-1 text-xs text-text-3">
-                열람은 오픈 준비 중이에요
-              </span>
-            </div>
-          ))}
+        <div className="card rise-in-1 rounded-[16px] px-4 py-5">
+          <p className="text-[13px] font-bold text-ink">유료·단지 리포트는 아직 없어요</p>
+          <p className="mt-1 text-[12px] leading-[1.65] text-text-2">
+            지금은 아래 공개 임장노트만 열람할 수 있어요. 리포트 상품이 열리면 이
+            자리에 실제 목록이 올라갑니다.
+          </p>
+          <Link
+            href="/notes"
+            className="mt-3 inline-block text-[12px] font-extrabold text-primary no-underline"
+          >
+            공개 임장노트 보기 ›
+          </Link>
         </div>
-        <p className="mt-2 px-1 text-[11px] leading-[1.6] text-text-3">
-          리포트는 오픈 준비 중인 예시예요 — 준비되면 실제 자료로 교체됩니다.
-        </p>
       </section>
 
       {/* ---------- 공개 임장노트 공유 — listPublicNotes 실데이터 ---------- */}

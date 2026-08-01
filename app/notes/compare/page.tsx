@@ -7,6 +7,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import {
   getNote,
   listNotesByAuthorForApt,
+  listNotesByAuthorForComplex,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import {
@@ -58,20 +59,27 @@ async function loadCompareNotes(
       return { kind: "forbidden" };
     }
     const apt = note.aptName?.trim();
-    if (!apt) {
-      return { kind: "need_more", aptName: "단지명 없음", count: 1, noteId };
+    const complexId =
+      typeof note.metadata?.complexId === "string" ? note.metadata.complexId.trim() : "";
+    /* complexId 가 있으면 표기 다른 aptName 끼리도 같은 단지로 묶는다.
+       둘 다 없으면 비교 자체가 성립하지 않으므로 soft-empty. */
+    if (!complexId && !apt) {
+      return { kind: "need_more", aptName: "단지 미지정", count: 1, noteId };
     }
-    const notes = await listNotesByAuthorForApt(email, apt, 20);
+    const notes = complexId
+      ? await listNotesByAuthorForComplex(email, complexId, 20)
+      : await listNotesByAuthorForApt(email, apt!, 20);
+    const label = apt || complexId || "단지";
     if (notes.length < 2) {
       return {
         kind: "need_more",
-        aptName: apt,
+        aptName: label,
         count: notes.length,
         noteId,
       };
     }
     const model = buildVisitCompareModel(notes);
-    if (!model) return { kind: "need_more", aptName: apt, count: notes.length, noteId };
+    if (!model) return { kind: "need_more", aptName: label, count: notes.length, noteId };
     return { kind: "ok", notes, model };
   } catch (e) {
     return {

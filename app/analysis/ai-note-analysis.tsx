@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* ============================================================
    임장노트 AI 분석 카드 — 내 노트 선택 → POST /api/inspection/ai (noteId)
@@ -58,6 +60,8 @@ export function AiNoteAnalysisCard({
   /** 고른 단지 지역 라벨 — 매칭 노트 자동 선택 */
   seedRegionLabel?: string | null;
 }) {
+  const { handleUpgradeResponse } = useUpgradePaywall();
+  const { promptSignup } = useSoftSignup();
   const [state, setState] = useState<CardState>({ kind: "idle" });
   const [notes, setNotes] = useState<NoteOption[]>([]);
   const [notesLoaded, setNotesLoaded] = useState(false);
@@ -154,6 +158,12 @@ export function AiNoteAnalysisCard({
       });
       if (res.status === 401) {
         setState({ kind: "login" });
+        promptSignup({
+          action: "ai_note_analysis",
+          title: "AI 분석을 이어가려면 로그인",
+          benefit: "가입하면 내 임장노트를 AI(또는 규칙 초안)로 정리할 수 있어요.",
+          callbackUrl: "/analysis",
+        });
         return;
       }
       const data = (await res.json().catch(() => null)) as {
@@ -173,14 +183,18 @@ export function AiNoteAnalysisCard({
         marketContext?: { summary?: string } | null;
         disclaimer?: string;
       } | null;
-      if (res.status === 429 || res.status === 403) {
+      if (res.status === 429 || res.status === 403 || res.status === 402) {
+        const upgrade =
+          res.status === 402 ||
+          (res.status === 403 &&
+            (data?.code === "QUOTA_EXCEEDED" || data?.code === "TIER"));
+        if (upgrade) handleUpgradeResponse(res.status, data);
         setState({
           kind: "quota",
           message:
             data?.error ??
             "AI 분석 사용량을 모두 썼어요. 잠시 후 다시 시도해 주세요.",
-          // 월 한도 초과·플랜 부족이면 업그레이드 안내 노출
-          upgrade: res.status === 403 || data?.code === "QUOTA_EXCEEDED",
+          upgrade,
         });
         return;
       }

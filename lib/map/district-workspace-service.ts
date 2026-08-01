@@ -322,7 +322,8 @@ export async function buildDistrictWorkspace(input: {
             label: s.label,
             value: input.lat != null ? "주변 검색" : "좌표 필요",
             sourceId: s.id,
-            live: Boolean(process.env.KAKAO_REST_API_KEY?.trim()),
+            /* 제품 지도/검색은 Naver — 키만 있다고 Kakao POI 를 live 로 치면 공급 거짓말 */
+            live: false,
           })),
       };
     } else {

@@ -6,13 +6,19 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { RegionPicker } from "@/app/components/RegionPicker";
 import { takeSignupHandoff } from "@/lib/onboarding/signup-handoff";
+import { PROFILE_OPTIONS } from "@/lib/onboarding/profile-options";
 import { HOME_CTA_NOTE, HOME_HERO_SUBLINE } from "@/lib/brand/home-copy";
 
 /** 위저드 화면 진행 기록용 id — 퍼널 관측 전용.
     진짜 온보딩 스텝(explore·inspection·share)은 서버가 실데이터로 판정하므로
     (app/api/me/onboarding/verify.ts) 여기서 그 id 를 보내면 안 된다. 화면만 넘기고
     "관심 담기·첫 노트·공개 공유"가 완료된 것처럼 기록되던 문제의 재발 방지. */
-const STEP_IDS = ["profile_region", "profile_budget", "profile_purpose"] as const;
+const STEP_IDS = [
+  "profile_region",
+  "profile_budget",
+  "profile_purpose",
+  "profile_demo",
+] as const;
 
 /** 관심 지역 선택 상한 — 가입 화면(/signup)과 같은 값 */
 const MAX_REGIONS = 3;
@@ -110,11 +116,27 @@ export function WelcomeClient() {
     setStep(2);
   };
 
+  const nextFromStep3 = () => {
+    recordStep(2);
+    setStep(3);
+  };
+
+  const setProfileField = (key: string, value: string) => {
+    setProfile((prev) => {
+      if (prev[key] === value) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: value };
+    });
+  };
+
   /* step3 완료: 관심지역 알림 구독 + 개인화 저장 → 첫 행동(임장노트 쓰기)으로 (실패 무시, graceful) */
   const finish = useCallback(async () => {
     if (busy || !purpose) return;
     setBusy(true);
-    recordStep(2); // 위저드 마지막 화면 통과 기록 (완료 판정·보너스와 무관)
+    recordStep(3); // 위저드 마지막 화면 통과 기록 (완료 판정·보너스와 무관)
 
     const band = BUDGET_BANDS[budgetType].find((b) => b.id === budgetBandId) ?? null;
     const budget = band
@@ -138,14 +160,16 @@ export function WelcomeClient() {
       }),
     ]).catch(() => {});
 
-    // 종착지는 홈이 아니라 "첫 행동" — 고른 관심 지역을 프리필해 첫 임장노트 작성으로 보낸다.
-    // (/notes/new 는 ?region= 프리필을 지원한다. NoteForm 참조)
+    // 종착지: 첫 임장노트(+ AI 의도) — NoteForm 이 from=welcome 이면 저장 후 지도로 이어간다.
     const firstRegion = regions[0];
-    router.push(
-      firstRegion
-        ? `/notes/new?region=${encodeURIComponent(firstRegion)}&from=welcome`
-        : "/notes/new?from=welcome",
-    );
+    const qs = new URLSearchParams({ from: "welcome", intent: "ai" });
+    if (firstRegion) qs.set("region", firstRegion);
+    try {
+      window.localStorage.setItem("nz_onboarding_loop", "note");
+    } catch {
+      /* ignore */
+    }
+    router.push(`/notes/new?${qs.toString()}`);
   }, [busy, purpose, recordStep, budgetType, budgetBandId, regions, profile, router]);
 
   if (!ready) {
@@ -163,7 +187,10 @@ export function WelcomeClient() {
     >
       {/* 헤더 — progress dots + 건너뛰기 (항상 노출) */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5" aria-label={`온보딩 ${step + 1} / 3 단계`}>
+        <div
+          className="flex items-center gap-1.5"
+          aria-label={`온보딩 ${step + 1} / ${STEP_IDS.length} 단계`}
+        >
           {STEP_IDS.map((id, i) => (
             <span
               key={id}
@@ -174,7 +201,7 @@ export function WelcomeClient() {
           ))}
         </div>
         <Link
-          href={`${HOME_CTA_NOTE.href}?from=welcome`}
+          href={`${HOME_CTA_NOTE.href}?from=welcome&intent=ai`}
           className="text-[13px] text-text-3"
         >
           건너뛰고 노트 쓰기
@@ -335,10 +362,60 @@ export function WelcomeClient() {
             </div>
           )}
 
-          {/* 다음 행동 예고 — 완료하면 첫 임장노트 작성으로 이어진다 */}
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={nextFromStep3}
+            disabled={!purpose}
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+          >
+            {purpose ? "다음" : "목적을 선택해 주세요"}
+          </button>
+        </>
+      )}
+
+      {step === 3 && (
+        <>
+          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+            맞춤에 쓸
+            <br />
+            기본 정보예요
+          </h1>
+          <p className="rise-in-1 -mt-2 text-[13px] text-text-2">
+            선택 사항이에요. 건너뛰어도 되고, 고른 값만 저장합니다.
+          </p>
+
+          <div className="rise-in-2 flex flex-col gap-4">
+            {Object.entries(PROFILE_OPTIONS).map(([key, options]) => (
+              <div key={key}>
+                <div className="mb-1.5 text-[12px] font-bold text-text-2">{key}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {options.map((opt) => {
+                    const active = profile[key] === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => setProfileField(key, opt)}
+                        aria-pressed={active}
+                        className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition ${
+                          active
+                            ? "bg-primary-soft text-primary"
+                            : "border border-[#e2e7ee] bg-surface text-text-2"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div className="rise-in-2 rounded-2xl bg-[#f2f4f8] px-4 py-3 text-[12px] leading-[1.6] text-text-2">
-            <span className="font-extrabold text-ink">다음은 첫 임장노트예요.</span>{" "}
-            {HOME_HERO_SUBLINE} 완료하면 고른 지역으로 바로 이어 드릴게요.
+            <span className="font-extrabold text-ink">다음은 첫 임장노트 → AI → 지도예요.</span>{" "}
+            {HOME_HERO_SUBLINE}
           </div>
 
           <div className="flex-1" />

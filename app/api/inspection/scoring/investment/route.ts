@@ -43,14 +43,30 @@ export async function POST(req: Request) {
     }
   }
 
+  /* 세션 리포트가 없을 때 body 축이 비면 60으로 채우지 않는다 — 가짜 투자점수 금지 */
+  const required = ["transport", "school", "livability", "condition", "future_value"] as const;
+  const missing = required.filter((k) => {
+    const n = Number(body[k]);
+    return !Number.isFinite(n);
+  });
+  if (missing.length > 0) {
+    return NextResponse.json(
+      {
+        error: "점수 축이 부족합니다. 임장 세션 리포트 또는 transport·school·livability·condition·future_value 가 필요합니다.",
+        code: "INSUFFICIENT_SCORE_INPUT",
+        missing: [...missing],
+      },
+      { status: 400 },
+    );
+  }
   const features = {
-    transport: Number(body.transport ?? 60),
-    school: Number(body.school ?? 60),
-    livability: Number(body.livability ?? 60),
-    condition: Number(body.condition ?? 60),
-    future_value: Number(body.future_value ?? 60),
-    observationCount: Number(body.observationCount ?? 5),
-    negativeRatio: Number(body.negativeRatio ?? 0.2),
+    transport: Number(body.transport),
+    school: Number(body.school),
+    livability: Number(body.livability),
+    condition: Number(body.condition),
+    future_value: Number(body.future_value),
+    observationCount: Number(body.observationCount ?? 0),
+    negativeRatio: Number(body.negativeRatio ?? 0),
     holdingYears: Number(body.holdingYears ?? 3),
   };
   return NextResponse.json({ score: computeInvestmentScore(features) });

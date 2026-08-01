@@ -144,7 +144,7 @@ export async function createExpert(input: {
     consultations: 0,
     experience: input.experience ?? "",
     responseRate: 0,
-    responseTime: "대기",
+    responseTime: "",
     isVerified: false,
     isPremium: false,
     badge: null,

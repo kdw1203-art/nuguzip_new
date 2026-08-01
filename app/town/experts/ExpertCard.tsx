@@ -76,7 +76,8 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
       <div className="flex justify-between text-xs text-text-3">
         <span>{e.ratingLabel}</span>
         <span>상담 {e.consultations}건</span>
-        <span>{e.responseLabel}</span>
+        {/* 미집계 "—" 는 지표처럼 보이지 않게 숨긴다 */}
+        {e.responseLabel !== "—" && <span>{e.responseLabel}</span>}
       </div>
 
       <div className="flex gap-2">
@@ -134,7 +135,11 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
           </button>
         </div>
 
-        <div className="mb-3 grid grid-cols-3 gap-2">
+        <div
+          className={`mb-3 grid gap-2 ${
+            e.responseLabel !== "—" ? "grid-cols-3" : "grid-cols-2"
+          }`}
+        >
           {/* 후기 0건이면 숫자를 만들어 내지 않는다 — "0.0점"과 "아직 평가 없음"은 다르다. */}
           <div className="rounded-xl bg-bg p-2.5 text-center">
             <div className="text-[15px] font-extrabold text-ink">
@@ -148,10 +153,12 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
             <div className="text-[15px] font-extrabold text-ink">{e.consultations}</div>
             <div className="text-[10px] text-text-3">상담 완료</div>
           </div>
-          <div className="rounded-xl bg-bg p-2.5 text-center">
-            <div className="text-[15px] font-extrabold text-primary">{e.responseLabel}</div>
-            <div className="text-[10px] text-text-3">응답</div>
-          </div>
+          {e.responseLabel !== "—" && (
+            <div className="rounded-xl bg-bg p-2.5 text-center">
+              <div className="text-[15px] font-extrabold text-primary">{e.responseLabel}</div>
+              <div className="text-[10px] text-text-3">응답 안내</div>
+            </div>
+          )}
         </div>
 
         {e.introduction && (

@@ -11,6 +11,8 @@ import {
   subscribeCompareTray,
   toggleCompareTray,
 } from "@/lib/newui/compare-tray";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
 /* 시안 23b — 단지 허브 탭 5개(요약·노트·매물·시세·내 기록) 전환 서브컴포넌트 */
 
@@ -98,6 +100,8 @@ export function WatchlistButton({
   complexId: string;
   complexName: string;
 }) {
+  const { promptSignup } = useSoftSignup();
+  const { handleUpgradeResponse } = useUpgradePaywall();
   const [watching, setWatching] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -133,13 +137,22 @@ export function WatchlistButton({
             body: JSON.stringify({ complexId, complexName }),
           });
       if (res.status === 401) {
-        // 로그인 후 이 단지로 돌아온다 — 눌렀던 맥락을 잃지 않게.
-        window.location.href = `/login?callbackUrl=${encodeURIComponent(
-          `/complex/${complexId}`,
-        )}`;
+        promptSignup({
+          action: "watchlist_add",
+          title: "관심 단지로 저장할까요?",
+          benefit: "가입하면 이 단지의 실거래·임장 기록을 모아볼 수 있어요.",
+          callbackUrl: `/complex/${complexId}`,
+        });
         return;
       }
-      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+      };
+      if (handleUpgradeResponse(res.status, j)) {
+        setMessage(j.error ?? "관심 단지 한도에 도달했어요");
+        return;
+      }
       if (!res.ok) {
         setMessage(j.error ?? "저장하지 못했어요");
         return;

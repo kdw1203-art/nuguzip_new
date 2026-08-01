@@ -6,6 +6,9 @@
    ============================================================ */
 
 :root {
+  /* 하단 크롬(탭바·토스트·PWA 배너) 공통 오프셋 — 겹침 방지 */
+  --nz-tabbar-offset: calc(64px + env(safe-area-inset-bottom, 0px));
+  --nz-toast-bottom: calc(var(--nz-tabbar-offset) + 20px);
   /* 컬러 토큰 */
   --primary: #1d4fd8;
   --primary-strong: #16389c;

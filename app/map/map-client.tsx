@@ -1,9 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "../components/Logo";
+import { WelcomeHandoff } from "./WelcomeHandoff";
 import { NaverMap, type MapIdleInfo, type MapMarkerData } from "@/components/map/NaverMap";
 import {
   MapSearchBox,
@@ -2546,15 +2555,19 @@ export function MapClient({
     "idle" | "loading" | "ok" | "error"
   >("idle");
   const selectedName = selected?.name ?? null;
+  const selectedComplexId = selected?.id ?? null;
   useEffect(() => {
-    if (detailTab !== "노트" || !selectedName) {
+    if (detailTab !== "노트" || (!selectedName && !selectedComplexId)) {
       setComplexNotes([]);
       setComplexNotesStatus("idle");
       return;
     }
     const controller = new AbortController();
     setComplexNotesStatus("loading");
-    fetch(`/api/map/complex-notes?name=${encodeURIComponent(selectedName)}`, {
+    const qs = new URLSearchParams();
+    if (selectedComplexId) qs.set("complexId", selectedComplexId);
+    if (selectedName) qs.set("name", selectedName);
+    fetch(`/api/map/complex-notes?${qs.toString()}`, {
       signal: controller.signal,
     })
       .then((r) => (r.ok ? (r.json() as Promise<{ notes?: ComplexNoteItem[] }>) : null))
@@ -2571,7 +2584,7 @@ export function MapClient({
         if (!controller.signal.aborted) setComplexNotesStatus("error");
       });
     return () => controller.abort();
-  }, [detailTab, selectedName]);
+  }, [detailTab, selectedName, selectedComplexId]);
 
   /* ===== 매물 탭 — 그 단지의 승인 매물 실제 조회 =====
      2026-07-27 이전에는 이 탭이 어떤 단지를 골라도 "이 단지의 실매물은 준비
@@ -2632,6 +2645,9 @@ export function MapClient({
       ref={mapWrapRef}
       className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]"
     >
+      <Suspense fallback={null}>
+        <WelcomeHandoff />
+      </Suspense>
       {/* ===== 실제 네이버 지도 (실패 시 그라데이션 폴백) ===== */}
       <NaverMap
         markers={markers}

@@ -175,11 +175,11 @@ export const DATA_SOURCE_REGISTRY: DataSourceRegistryEntry[] = [
   {
     id: "kakao-poi",
     category: "poi",
-    label: "주변 POI",
-    authority: "Kakao Local API",
+    label: "주변 POI (레거시·비활성)",
+    authority: "Kakao Local API — 제품 지도/검색은 Naver 우선. Kakao는 미연동·키 없으면 unavailable",
     channel: "kakao_map",
     envKey: "KAKAO_REST_API_KEY",
-    usage: "keywordSearch · categorySearch · coord2Address",
+    usage: "레거시 카탈로그 항목 · 신규 기능은 Naver Local/Places 경로 사용",
     axis: "nearby_behavior",
   },
   {
