@@ -95,7 +95,7 @@ export default async function TownPage() {
   const postCards = communityPosts.filter((p) => !hiddenIds.has(p.id)).map(postToCard);
 
   /* 노트·글을 섞어 최신순 기본 정렬 (클라이언트에서 추천/최신/유형별 재정렬) */
-  let cards: FeedCard[] = [...noteCards, ...postCards].sort(
+  const cards: FeedCard[] = [...noteCards, ...postCards].sort(
     (a, b) => b.createdAt - a.createdAt,
   );
 
