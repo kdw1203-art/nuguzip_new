@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { safeInternalPath } from "@/lib/safe-path";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Logo } from "@/app/components/Logo";
@@ -19,7 +20,7 @@ function resolveCallbackUrl(): string {
   const cb = new URLSearchParams(window.location.search).get("callbackUrl");
   /* `//evil.com` 뿐 아니라 `/\evil.com` 도 막아야 한다 — 브라우저는 URL 파싱에서
      백슬래시를 슬래시로 정규화하므로 `/\evil.com` 은 `//evil.com` 과 같게 취급된다. */
-  return cb && /^\/[^/\\]/.test(cb) ? cb : "/";
+  return safeInternalPath(cb, "/");
 }
 
 /* ---------- 진입 맥락 ----------

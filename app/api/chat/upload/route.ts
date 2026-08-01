@@ -3,7 +3,6 @@ import { NextRequest } from "next/server";
 import { ok, apiError } from "@/lib/api/response";
 import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
 import { requireChatActor } from "@/app/api/chat/_shared";
-import { getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { detectShellFromUserAgent } from "@/lib/platform-shell";
@@ -90,7 +89,6 @@ export async function POST(req: NextRequest) {
     return apiError("MIME_NOT_ALLOWED", "허용되지 않은 파일 형식입니다.", 400);
   }
 
-  const fallbackUrl = `${getSupabaseUrl() ?? ""}/storage/v1/object/public/chat-uploads`;
   /* 키에 난수를 섞는다. 예전 키는 `이메일/타임스탬프-원본파일명` 이라 상대방 이메일과
      대략의 시각만 알면 맞혀 볼 수 있었다. 부동산 채팅 첨부는 계약서·신분증이 오간다. */
   const safeName = file.name.replace(/[^\w.-]/g, "_").slice(-80);
@@ -142,14 +140,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return ok({
-    ok: true,
-    upload: {
-      fileUrl: `${fallbackUrl}/${key}`,
-      filePath: key,
-      mime: contentType,
-      sizeBytes: file.size,
-    },
-    warning: "STORAGE_FALLBACK_URL",
-  });
+  /* 예전에는 여기서 `/object/public/chat-uploads/...` 를 조립해 `ok: true` 로 돌려줬다.
+     그런데 이 프로젝트의 버킷은 전부 비공개라 그 주소는 **열리지 않는다** — 즉 업로드가
+     실패했는데 화면에는 성공으로 뜨고, 사용자는 깨진 첨부를 보게 된다.
+     lib/storage/upload.ts 가 같은 이유로 취한 자세를 여기서도 지킨다: 열리지 않는 URL 을
+     성공이라고 부르지 않는다. */
+  return apiError(
+    "STORAGE_UNAVAILABLE",
+    "첨부 저장소에 연결할 수 없어 업로드하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    503,
+  );
 }

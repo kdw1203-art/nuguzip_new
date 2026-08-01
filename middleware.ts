@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { applyPrivateSiteGate } from "@/lib/site-private-edge";
 import { DEFAULT_DESKTOP_ORIGIN, detectShellFromHost, normalizeHost } from "@/lib/platform-shell";
 import { WOODONG_PATHNAME_HEADER } from "@/lib/seo/request-pathname";
+import { safeInternalPath } from "@/lib/safe-path";
 import { EXACT_REDIRECTS, legacyRedirectStatus } from "@/lib/seo/redirect-map";
 import { updateSession } from "@/utils/supabase/middleware";
 import {
@@ -216,7 +217,7 @@ export async function middleware(request: NextRequest) {
        프로토콜 상대 URL 이라 **다른 호스트**로 해석된다 — 그대로 두면 우리 도메인이
        오픈 리다이렉터가 된다. `/` 하나로 시작하고 다음 글자가 `/`·`\` 가 아닌 경로만
        인정하고(백슬래시는 브라우저가 `/` 로 정규화한다), 나머지는 루트로 보낸다. */
-    const normalizedMobilePath = /^\/[^/\\]/.test(stripped) ? stripped : "/";
+    const normalizedMobilePath = safeInternalPath(stripped, "/");
     const target = new URL(normalizedMobilePath, request.url);
     request.nextUrl.searchParams.forEach((v, k) => target.searchParams.set(k, v));
     const redirect = NextResponse.redirect(target);

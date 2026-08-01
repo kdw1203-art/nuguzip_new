@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageShell } from "../components/PageShell";
 import { useToast } from "@/app/components/toast/ToastProvider";
+import { isInternalPath } from "@/lib/safe-path";
 
 /* ============================================================
    통합 알림 센터 — 탭/필터 + 실데이터 병합
@@ -496,7 +497,10 @@ export default function NotificationsPage() {
         // 읽음 처리 실패해도 이동은 진행
       }
     }
-    if (item.actionUrl && item.actionUrl.startsWith("/")) {
+    /* actionUrl 은 서버(알림 생성 경로)에서 오는 값이라 화면이 그대로 믿으면 안 된다.
+       `startsWith("/")` 만 보면 `//evil.com`·`/\evil.com` 이 통과해 알림 한 번 눌렀다가
+       외부로 나간다 — lib/safe-path.ts 참고. */
+    if (isInternalPath(item.actionUrl)) {
       router.push(item.actionUrl);
     }
   };
