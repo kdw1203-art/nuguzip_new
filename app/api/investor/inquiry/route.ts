@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createB2bInquiry } from "@/lib/admin/business-dashboards";
 import { resolveProjectAdminEmail } from "@/lib/auth/admin-emails";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,9 @@ function resolveAdminReceiver(): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  /* 무인증 공개 폼 — 스팸 한 개가 관리자 인박스를 채우지 않게 IP 상한. */
+  const rl = rateLimit(`investor-inquiry:${getClientIp(req)}`, { limit: 5, windowMs: 10 * 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
   let body: Record<string, unknown>;
   try {
     body = (await req.json()) as Record<string, unknown>;

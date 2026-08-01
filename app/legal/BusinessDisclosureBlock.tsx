@@ -37,6 +37,14 @@ export function BusinessDisclosureBlock({ className = "", showHours = true }: Pr
       <p>
         <strong className="text-text-1">고객센터 이메일</strong>: {info.supportEmail}
       </p>
+      {/* 사업용 수취 계좌 — 토스뱅크 계좌개설 확인증(소유자 제공)의 실값.
+          환불·무통장 입금 안내용이며, 세 값이 모두 있을 때만 표기한다. */}
+      {info.depositBank && info.depositAccountNumber && info.depositAccountHolder ? (
+        <p>
+          <strong className="text-text-1">입금 계좌</strong>: {info.depositBank}{" "}
+          {info.depositAccountNumber} (예금주: {info.depositAccountHolder})
+        </p>
+      ) : null}
       {showHours ? (
         <p>
           <strong className="text-text-1">운영 시간</strong>: 평일 10:00 ~ 18:00 (공휴일

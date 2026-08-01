@@ -18,6 +18,8 @@ import { callLlmChat, type LlmMessage } from "@/lib/ai/llm-provider";
 
 import { isOpenAiConfigured } from "@/lib/ai/env-keys";
 
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
+
 
 
 export const runtime = "nodejs";
@@ -355,6 +357,20 @@ async function maybePolishWithLlm(base: NoteOut, memo: string, intent: Inspectio
 
 
 export async function POST(req: NextRequest) {
+
+  /* 2026-08-01: 인증 없이 LLM 유료 호출로 이어지는 라우트 — IP 기준 상한.
+
+     임장노트 작성 흐름에서 사람은 분당 몇 번을 넘지 않는다. */
+
+  const rl = rateLimit(`ai-inspection-note:${getClientIp(req)}`, {
+
+    limit: 6,
+
+    windowMs: 60_000,
+
+  });
+
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
 
   let body: In;
 

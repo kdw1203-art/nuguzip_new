@@ -10,6 +10,12 @@ export type BusinessInfo = {
   mailOrderSalesNumber: string;
   supportEmail: string;
   privacyEmail: string;
+  /** 사업용 수취 계좌 — 은행명. 무통장 입금·환불 안내에 쓴다. */
+  depositBank: string;
+  /** 사업용 수취 계좌 — 계좌번호 */
+  depositAccountNumber: string;
+  /** 사업용 수취 계좌 — 예금주 */
+  depositAccountHolder: string;
 };
 
 const ENV = {
@@ -26,6 +32,9 @@ const ENV = {
   ],
   supportEmail: ["NEXT_PUBLIC_SUPPORT_EMAIL", "SUPPORT_EMAIL"],
   privacyEmail: ["NEXT_PUBLIC_PRIVACY_EMAIL", "PRIVACY_EMAIL"],
+  depositBank: ["NEXT_PUBLIC_DEPOSIT_BANK", "DEPOSIT_BANK"],
+  depositAccountNumber: ["NEXT_PUBLIC_DEPOSIT_ACCOUNT_NUMBER", "DEPOSIT_ACCOUNT_NUMBER"],
+  depositAccountHolder: ["NEXT_PUBLIC_DEPOSIT_ACCOUNT_HOLDER", "DEPOSIT_ACCOUNT_HOLDER"],
 } as const;
 
 /**
@@ -55,6 +64,11 @@ const DEFAULTS = {
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
   supportEmail: "nuguzip@naver.com",
   privacyEmail: "nuguzip@naver.com",
+  /* 토스뱅크 계좌개설 확인증(2026-06-15 개설, 소유자 제공)에서 옮긴 실값.
+     상품명: 토스뱅크 개인사업자 통장 · 예금주: 고대웅(우리동네이야기). */
+  depositBank: "토스뱅크",
+  depositAccountNumber: "1002-6298-2050",
+  depositAccountHolder: "고대웅(우리동네이야기)",
 } as const;
 
 /**
@@ -75,6 +89,9 @@ export function getBusinessInfo(): BusinessInfo {
     mailOrderSalesNumber: readEnv(ENV.mailOrderSalesNumber, DEFAULTS.mailOrderSalesNumber),
     supportEmail: readEnv(ENV.supportEmail, DEFAULTS.supportEmail),
     privacyEmail: readEnv(ENV.privacyEmail, DEFAULTS.privacyEmail),
+    depositBank: readEnv(ENV.depositBank, DEFAULTS.depositBank),
+    depositAccountNumber: readEnv(ENV.depositAccountNumber, DEFAULTS.depositAccountNumber),
+    depositAccountHolder: readEnv(ENV.depositAccountHolder, DEFAULTS.depositAccountHolder),
   };
 }
 

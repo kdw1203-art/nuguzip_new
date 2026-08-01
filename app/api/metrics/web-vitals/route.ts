@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { isMissingTableError, isTransientSchemaCacheError } from "@/lib/supabase/pg-error";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ type VitalsPayload = {
 };
 
 export async function POST(req: NextRequest): Promise<Response> {
+  /* 무인증 텔레메트리 — 페이지뷰당 지표 6종 안팎이다. 도배만 막는다. */
+  const rl = rateLimit(`web-vitals:${getClientIp(req)}`, { limit: 60, windowMs: 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
   let body: VitalsPayload;
   try {
     body = (await req.json()) as VitalsPayload;

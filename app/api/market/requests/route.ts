@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { createMarketRequest, listMarketRequests } from "@/lib/market/store-db";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  /* 비회원도 의뢰를 남길 수 있는 공개 쓰기 라우트 — 도배 방지 IP 상한. */
+  const rl = rateLimit(`market-requests:${getClientIp(req)}`, { limit: 5, windowMs: 10 * 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
   const session = await safeAuth();
   let body: Record<string, unknown>;
   try {

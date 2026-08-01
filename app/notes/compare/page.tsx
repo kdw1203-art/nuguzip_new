@@ -23,6 +23,14 @@ import { CompareFunnelPing } from "./CompareFunnelPing";
 
 export const dynamic = "force-dynamic";
 
+/* note= 쿼리로 본인 노트를 비교하는 개인 화면 — URL 마다 내용이 다르고
+   로그인한 작성자에게만 의미가 있다. 검색엔진에 들어갈 페이지가 아니므로
+   noindex (N7 파라미터 canonical 감사 기준). */
+export const metadata = {
+  title: "임장노트 회차 비교 | 누구집",
+  robots: { index: false, follow: false },
+};
+
 const TONE_CLASS: Record<CellTone, string> = {
   good: "font-extrabold text-primary",
   avg: "font-bold text-text-2",

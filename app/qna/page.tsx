@@ -257,18 +257,54 @@ export default async function QnaListPage({
   /* 연동(1): 질문이 가리키는 단지의 허브 주소를 실제로 조회해서 붙인다.
      resolveComplexHref 는 요청당 cache() 라 같은 단지는 한 번만 찾는다.
      못 찾으면 링크를 안 걸 뿐 질문 자체는 그대로 보인다 — 없는 단지 페이지로
-     보내는 죽은 링크를 만드는 것보다 낫다. (app/notes/[id] 와 같은 판단) */
-  const rows: QuestionRow[] = await Promise.all(
-    items.map(async (q) => {
-      if (q.complexId) return { q, complexHref: `/complex/${encodeURIComponent(q.complexId)}` };
-      if (!q.complexName) return { q, complexHref: null };
-      try {
-        return { q, complexHref: await resolveComplexHref(q.complexName, q.region) };
-      } catch {
-        return { q, complexHref: null };
+     보내는 죽은 링크를 만드는 것보다 낫다. (app/notes/[id] 와 같은 판단)
+
+     2026-08-01: Promise.all 로 전부 동시에 쏘던 것을 고쳤다. 질문 100건의
+     단지명이 서로 다르면 렌더 한 번에 DB 왕복이 최대 100회 — Auth 서버 연결
+     10개짜리 프로젝트에 이 페이지 하나가 Cloudflare 525 와 57014(statement
+     timeout)를 만들고 있었다. 이제 (단지명, 지역) 중복을 먼저 접고, 동시 4개
+     제한 + 전체 3초 마감으로 돈다. 마감을 넘긴 나머지는 링크만 생략된다 —
+     링크는 부가 정보라 "조회 실패"를 위장하는 것이 아니라 조회 자체를 하지
+     않은 것이고, 질문 데이터는 온전히 보인다. */
+  const RESOLVE_CONCURRENCY = 4;
+  const RESOLVE_DEADLINE_MS = 3_000;
+  const lookupKeys: string[] = [];
+  const lookups = new Map<string, { name: string; region: string | null }>();
+  for (const q of items) {
+    if (q.complexId || !q.complexName) continue;
+    const key = `${q.complexName} ${q.region ?? ""}`;
+    if (!lookups.has(key)) {
+      lookups.set(key, { name: q.complexName, region: q.region ?? null });
+      lookupKeys.push(key);
+    }
+  }
+  const resolved = new Map<string, string | null>();
+  {
+    const startedAt = Date.now();
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < lookupKeys.length) {
+        if (Date.now() - startedAt > RESOLVE_DEADLINE_MS) return;
+        const key = lookupKeys[cursor];
+        cursor += 1;
+        if (key === undefined) return;
+        const target = lookups.get(key)!;
+        try {
+          resolved.set(key, await resolveComplexHref(target.name, target.region));
+        } catch {
+          resolved.set(key, null);
+        }
       }
-    }),
-  );
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(RESOLVE_CONCURRENCY, lookupKeys.length) }, worker),
+    );
+  }
+  const rows: QuestionRow[] = items.map((q) => {
+    if (q.complexId) return { q, complexHref: `/complex/${encodeURIComponent(q.complexId)}` };
+    if (!q.complexName) return { q, complexHref: null };
+    return { q, complexHref: resolved.get(`${q.complexName} ${q.region ?? ""}`) ?? null };
+  });
 
   const viewer = await getAdViewer();
   const activeTopic = topic ? QNA_TOPIC_BY_KEY[topic] : null;

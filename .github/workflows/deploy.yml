@@ -10,16 +10,17 @@ on:
     # 중복 배포·실패 이슈 노이즈만 생겨 제외 — 프리뷰가 필요한 브랜치만 추가.
     branches: ["main"]
 
+# 워크플로 레벨 env 에는 **비밀이 아닌 값만** 둔다.
+#
+# 2026-08-01 감사: SUPABASE_SERVICE_ROLE_KEY·CRON_SECRET·CODEF·ECOS·ONBID
+# 시크릿이 전부 여기 있었다. 워크플로 레벨 env 는 모든 스텝의 프로세스 환경에
+# 들어가므로, 서드파티 액션(gitleaks 등)도 서비스 롤 키를 읽을 수 있는 상태였다.
+# 액션이 오염되면(태그 재지정 공격) DB 전체 권한이 통째로 새는 구조라, 시크릿은
+# 각각 실제로 쓰는 스텝의 step-level env 로 내렸다. 스텝 조건은 env 대신
+# secrets 컨텍스트로 판정한다.
 env:
   VERCEL_ORG_ID: team_HEspqLpVXaHn1GHTEjqbSZ2E
   VERCEL_PROJECT_ID: prj_hsE8uEG7QyxefafQpVnKx6diCVqO
-  SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-  CRS: ${{ secrets.CRON_SECRET }}
-  CODEF_ID: ${{ secrets.CODEF_CLIENT_ID }}
-  CODEF_SECRET: ${{ secrets.CODEF_CLIENT_SECRET }}
-  CODEF_PUB: ${{ secrets.CODEF_PUBLIC_KEY }}
-  ECOS_KEY: ${{ secrets.ECOS_API_KEY }}
-  ONBID_KEY: ${{ secrets.ONBID_SERVICE_KEY }}
 
 permissions:
   contents: read
@@ -49,8 +50,13 @@ jobs:
           # gitleaks 이력 스캔을 위해 전체 히스토리 필요
           fetch-depth: 0
       # ---- 시크릿 스캔 (#94): 유출 감지 시 빌드 중단 ----
+      # 커밋 SHA 로 핀한다(= v2.3.9, `git ls-remote` 로 2026-08-01 확인).
+      # @v2 같은 움직이는 태그는 저장소가 오염되면 다음 실행부터 임의 코드가
+      # 우리 러너에서 돈다. SHA 는 재지정이 불가능하다. 버전을 올릴 때는
+      # `git ls-remote https://github.com/gitleaks/gitleaks-action.git "refs/tags/v2*"`
+      # 로 새 태그의 SHA 를 확인해 바꾼다.
       - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
@@ -200,20 +206,28 @@ jobs:
       # Service Role 키 동기화 — GitHub Secret(SUPABASE_SERVICE_ROLE_KEY)이
       # 설정돼 있을 때만 Vercel env의 마스킹 값("[SENSITIVE]")을 실값으로 교체
       - name: Sync service role env
-        if: ${{ env.SRK != '' }}
+        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           npx vercel env rm SUPABASE_SERVICE_ROLE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$SRK" | npx vercel env add SUPABASE_SERVICE_ROLE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       # CRON_SECRET 동기화 — ETL 스케줄러(etl.yml)가 같은 값으로 크론 엔드포인트 호출
       - name: Sync cron secret env
-        if: ${{ env.CRS != '' }}
+        if: ${{ secrets.CRON_SECRET != '' }}
+        env:
+          CRS: ${{ secrets.CRON_SECRET }}
         run: |
           npx vercel env rm CRON_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$CRS" | npx vercel env add CRON_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
       # CODEF 자격 증명 동기화 — GitHub Secret 설정 시에만 Vercel env로 반영
       # (KB 시세·공시가격 등 CODEF 연동 활성화. 미설정이면 스킵)
       - name: Sync CODEF credentials
-        if: ${{ env.CODEF_ID != '' }}
+        if: ${{ secrets.CODEF_CLIENT_ID != '' }}
+        env:
+          CODEF_ID: ${{ secrets.CODEF_CLIENT_ID }}
+          CODEF_SECRET: ${{ secrets.CODEF_CLIENT_SECRET }}
+          CODEF_PUB: ${{ secrets.CODEF_PUBLIC_KEY }}
         run: |
           for KEY in CODEF_CLIENT_ID CODEF_CLIENT_SECRET CODEF_PUBLIC_KEY; do
             npx vercel env rm $KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
@@ -223,13 +237,17 @@ jobs:
           printf '%s' "$CODEF_PUB"    | npx vercel env add CODEF_PUBLIC_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       # ECOS(한국은행) 인증키 동기화 — 설정 시 기준금리 등 지표 자동 연동
       - name: Sync ECOS key
-        if: ${{ env.ECOS_KEY != '' }}
+        if: ${{ secrets.ECOS_API_KEY != '' }}
+        env:
+          ECOS_KEY: ${{ secrets.ECOS_API_KEY }}
         run: |
           npx vercel env rm ECOS_API_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$ECOS_KEY" | npx vercel env add ECOS_API_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
       # 온비드(공공데이터포털) 인증키 동기화 — 서울 공매 물건 연동
       - name: Sync ONBID key
-        if: ${{ env.ONBID_KEY != '' }}
+        if: ${{ secrets.ONBID_SERVICE_KEY != '' }}
+        env:
+          ONBID_KEY: ${{ secrets.ONBID_SERVICE_KEY }}
         run: |
           npx vercel env rm ONBID_SERVICE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
           printf '%s' "$ONBID_KEY" | npx vercel env add ONBID_SERVICE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true

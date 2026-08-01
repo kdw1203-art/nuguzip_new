@@ -49,6 +49,19 @@ export const viewport: Viewport = {
   viewportFit: "cover", // 세이프에어리어(env safe-area-inset-*) 활성화
 };
 
+/**
+ * 페이지 함수 실행 상한(초) — 이 레이아웃 아래 **모든 페이지**에 적용된다.
+ * (app/api 의 Route Handler 는 각자 route.ts 에서 따로 지정한다 — 35곳.)
+ *
+ * 2026-08-01 감사: app/api 밖에는 maxDuration 이 한 곳도 없어 모든 페이지가
+ * Vercel 기본 300초를 상속했고, 최근 6주 런타임 오류 1,624건 중 802건이
+ * "Task timed out after 300 seconds" 였다 — 페이지 하나가 5분씩 컴퓨트를
+ * 태우고 사용자는 빈 화면을 봤다. 조회 한 건의 총 예산이 45초(supabase-read·
+ * service.ts)이므로, 120초면 직렬 실패 2건 + 렌더까지 "조회 실패" 화면을
+ * 정직하게 그릴 시간이 되고, 그 밖의 것은 장애다 — 5분을 태울 이유가 없다.
+ */
+export const maxDuration = 120;
+
 export default function RootLayout({
   children,
 }: Readonly<{

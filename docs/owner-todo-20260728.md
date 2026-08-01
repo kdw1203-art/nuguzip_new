@@ -153,7 +153,8 @@ https://www.bing.com/webmasters → **Google Search Console 에서 가져오기*
 4. Vercel 환경변수 3개:
    - `GSC_SERVICE_ACCOUNT_EMAIL` — JSON 의 `client_email`
    - `GSC_SERVICE_ACCOUNT_PRIVATE_KEY` — JSON 의 `private_key` **통째로**
-     (`-----BEGIN PRIVATE KEY-----` 부터 끝까지, 줄바꿈 포함)
+     (BEGIN PRIVATE KEY 라고 적힌 머리글 줄부터 마지막 줄까지, 줄바꿈 포함.
+     머리글을 여기 문자 그대로 적으면 시크릿 스캐너가 잡으므로 말로 씀)
    - `GSC_SITE_URL` — `https://nuguzip.com`
 
 ### 4-3. CrUX API 키 (실사용자 성능 지표)

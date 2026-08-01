@@ -8,10 +8,14 @@ import {
   sanitizeExperimentTag,
 } from "@/lib/experiments/server";
 import { getExperiment } from "@/lib/experiments/registry";
+import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  /* 무인증 텔레메트리 — 정상 사용은 페이지 이동당 몇 건이다. 도배만 막는다. */
+  const rl = rateLimit(`platform-event:${getClientIp(req)}`, { limit: 120, windowMs: 60_000 });
+  if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
   const session = await safeAuth();
   const platform = detectShellFromUserAgent(req.headers.get("user-agent"));
   const body = (await req.json().catch(() => ({}))) as {

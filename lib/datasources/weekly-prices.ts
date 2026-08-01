@@ -1,4 +1,4 @@
-import { getBackendMode, type DataEnvelope, type LocationRef } from "./types";
+import type { DataEnvelope, LocationRef } from "./types";
 import { getRegionSeries } from "@/lib/market/store";
 import { matchRegionByName } from "@/lib/market/region-code";
 
@@ -15,36 +15,25 @@ export type WeeklyPricePoint = {
 
 export type WeeklyPriceSummary = {
   location: LocationRef;
+  /** 빈 배열 + null 지표는 "받지 못했다"는 뜻이다 — 0%("변동 없음")와 다르다. */
   series: WeeklyPricePoint[];
-  latestChangePct: number;
-  threeMonthChangePct: number;
-  trend: "up" | "flat" | "down";
+  latestChangePct: number | null;
+  threeMonthChangePct: number | null;
+  trend: "up" | "flat" | "down" | null;
 };
 
-function mockWeeklyPrices(location: LocationRef): WeeklyPriceSummary {
-  const seed = `${location.city}${location.district ?? ""}`.length;
-  const weeks = 12;
-  const series: WeeklyPricePoint[] = [];
-  let cumulative = 0;
-  const today = new Date();
-  for (let i = weeks - 1; i >= 0; i -= 1) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i * 7);
-    const delta = Math.round(((seed + i) % 7) - 3) / 10; // -0.3 ~ +0.3
-    cumulative += delta;
-    series.push({
-      weekStart: d.toISOString().slice(0, 10),
-      changePct: Math.round(delta * 100) / 100,
-      transactions: 140 + ((seed + i) % 40),
-    });
-  }
-  const latest = series[series.length - 1].changePct;
+/* 사실 우선: 여기 있던 mockWeeklyPrices() 를 삭제했다.
+   지역명 길이를 시드로 12주치 주간 변동률(-0.3~+0.3%)과 거래량 140~180건을
+   만들어 냈고, attribution 은 "한국부동산원 주간아파트가격동향"이었다 —
+   집계된 적 없는 시세 흐름을 정부 통계 이름표로 보여주는 값이다.
+   REB 실데이터(rebWeeklyPrices)를 받지 못하면 "모른다"로 답한다. */
+function unavailableWeeklyPrices(location: LocationRef): WeeklyPriceSummary {
   return {
     location,
-    series,
-    latestChangePct: latest,
-    threeMonthChangePct: Math.round(cumulative * 100) / 100,
-    trend: latest > 0.05 ? "up" : latest < -0.05 ? "down" : "flat",
+    series: [],
+    latestChangePct: null,
+    threeMonthChangePct: null,
+    trend: null,
   };
 }
 
@@ -79,17 +68,31 @@ async function rebWeeklyPrices(location: LocationRef): Promise<WeeklyPriceSummar
 export async function getWeeklyPriceSummary(
   location: LocationRef,
 ): Promise<DataEnvelope<WeeklyPriceSummary>> {
-  const mode = getBackendMode();
   const reb = await rebWeeklyPrices(location).catch(() => null);
+  if (reb) {
+    return {
+      source: "reb-weekly-prices",
+      sourceLabel: "한국부동산원 주간동향",
+      unit: "PERCENT",
+      viz: "line_chart",
+      updatedAt: new Date().toISOString().slice(0, 10),
+      mode: "live",
+      attribution: "한국부동산원 주간아파트가격동향",
+      isLocationBased: true,
+      data: reb,
+    };
+  }
+  /* 실데이터를 못 받았다 — 정부 출처 표기를 달지 않는다(그 데이터가 아니므로).
+     지역 매칭 실패·시계열 부족·조회 실패가 모두 이 경로로 온다. */
   return {
     source: "reb-weekly-prices",
-    sourceLabel: "한국부동산원 주간동향",
+    sourceLabel: "주간동향 (미수신)",
     unit: "PERCENT",
     viz: "line_chart",
     updatedAt: new Date().toISOString().slice(0, 10),
-    mode: reb ? "live" : mode,
-    attribution: "한국부동산원 주간아파트가격동향",
+    mode: "mock",
+    attribution: "주간 시세 데이터를 불러오지 못했습니다",
     isLocationBased: true,
-    data: reb ?? mockWeeklyPrices(location),
+    data: unavailableWeeklyPrices(location),
   };
 }
