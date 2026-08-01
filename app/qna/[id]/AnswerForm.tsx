@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 const INPUT =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink placeholder:text-text-3";
@@ -16,15 +16,14 @@ export function AnswerForm({
   isSample: boolean;
 }) {
   const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needLogin, setNeedLogin] = useState(false);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setNeedLogin(false);
 
     if (body.trim().length < 5) {
       setError("답변은 5글자 이상 입력해 주세요.");
@@ -40,7 +39,11 @@ export function AnswerForm({
       });
 
       if (res.status === 401) {
-        setNeedLogin(true);
+        promptSignup({
+          action: "qna_answer",
+          title: "답변하려면 로그인이 필요해요",
+          benefit: "로그인하면 답변이 계정에 남아 신뢰·신고 대응이 가능해요.",
+        });
         return;
       }
       if (!res.ok) {
@@ -77,14 +80,6 @@ export function AnswerForm({
         maxLength={4000}
       />
 
-      {needLogin && (
-        <div className="rounded-xl bg-primary-soft px-3.5 py-2.5 text-[13px] text-primary">
-          로그인 후 답변할 수 있어요.{" "}
-          <Link href="/login" className="font-bold underline underline-offset-2">
-            로그인하기
-          </Link>
-        </div>
-      )}
       {error && <p className="text-[12px] text-danger">{error}</p>}
 
       <div className="flex justify-end">

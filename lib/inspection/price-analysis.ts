@@ -36,43 +36,9 @@ function matchAptName(row: Record<string, unknown>, aptName?: string): boolean {
   return name.includes(q) || q.includes(name);
 }
 
-function workbenchFallback(district?: string, aptName?: string): PriceAnalysisResult | null {
-  const q = aptName?.trim();
-  const d = district?.trim();
-  let c = WORKBENCH_COMPLEXES.find((x) => q && x.name.includes(q));
-  if (!c && d) {
-    c = WORKBENCH_COMPLEXES.find((x) => x.districtLabel.includes(d) || d.includes(x.districtLabel));
-  }
-  if (!c) c = WORKBENCH_COMPLEXES[0];
-  if (!c) return null;
-
-  const base = c.priceSaleMan;
-  const spread = Math.round(base * 0.04);
-  const ratio = c.priceJeonMan / base;
-
-  let status: PriceViewStatus = "fair";
-  let reason = "워크벤치 시세 기준 적정 구간으로 추정됩니다.";
-  if (ratio < 0.55) {
-    status = "overheated";
-    reason = "전세가율이 낮아 갭투자 부담이 큰 구간일 수 있습니다.";
-  } else if (c.liquidityIdx >= 80 && c.devScore >= 85) {
-    status = "undervalued";
-    reason = "거래 유동성·개발 호재 대비 상대적 저평가 가능성이 있습니다.";
-  }
-
-  return {
-    status,
-    reason,
-    estimateRange: { min: base - spread, max: base + spread },
-    recentDeals: [
-      { date: "최근", priceMan: base, areaSqm: c.areaSqm, floor: "중층" },
-    ],
-    avgRecentMan: base,
-    jeonseRatio: Math.round(ratio * 1000) / 10,
-    dealCount: 1,
-    source: "workbench",
-    disclaimer: "워크벤치 샘플 시세 기반 AI 추정입니다. 실거래·호가를 반드시 확인하세요.",
-  };
+/** 워크벤치 가짜 시세/저평가 판정은 오픈 정책상 금지 — 호출해도 항상 null */
+function workbenchFallback(_district?: string, _aptName?: string): PriceAnalysisResult | null {
+  return null;
 }
 
 export async function analyzePrice(input: {
@@ -132,18 +98,17 @@ export async function analyzePrice(input: {
     .slice(0, 8);
 
   if (matched.length === 0) {
-    const fb = workbenchFallback(district, aptName);
-    if (fb) return fb;
+    void workbenchFallback(district, aptName);
     return {
       status: "insufficient_data",
-      reason: "최근 실거래·시세 데이터가 부족합니다.",
+      reason: "최근 실거래·시세 데이터가 부족합니다. 샘플 시세로 저평가·고평가를 지어내지 않습니다.",
       estimateRange: { min: 0, max: 0 },
       recentDeals: [],
       avgRecentMan: null,
       jeonseRatio: null,
       dealCount: 0,
       source: mode === "live" ? "live" : "mock",
-      disclaimer: "AI 추정 · 투자 판단 참고용",
+      disclaimer: "실거래 부족 · 추정 점수 미제공",
     };
   }
 

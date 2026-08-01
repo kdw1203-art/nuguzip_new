@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* 누구집 AI 에이전트 채팅.
    차별점(사실 우선)을 UI로 드러낸다: 답변마다 에이전트가 실제로 조회한
@@ -31,6 +32,7 @@ function formatRetryAfter(sec: number): string {
 
 export function AgentChat({ models }: { models: AgentModelChoice[] }) {
   const { handleUpgradeResponse } = useUpgradePaywall();
+  const { promptSignup } = useSoftSignup();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -108,7 +110,16 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
       }
       if (!res.ok || !data?.reply) {
         /* 402(월 한도)는 재시도해도 같으니 재시도 버튼을 빼고 페이월로 안내 */
-        rollback(res.status !== 402);
+        rollback(res.status !== 402 && res.status !== 401);
+        if (res.status === 401) {
+          promptSignup({
+            action: "agent_chat",
+            title: "AI 에이전트는 로그인 후 이용해요",
+            benefit: "로그인하면 내 임장노트·관심 단지를 바탕으로 답할 수 있어요.",
+          });
+          setError("로그인이 필요해요.");
+          return;
+        }
         if (handleUpgradeResponse(res.status, data)) {
           setError(data?.error ?? "이번 달 에이전트 한도를 모두 썼어요.");
           return;

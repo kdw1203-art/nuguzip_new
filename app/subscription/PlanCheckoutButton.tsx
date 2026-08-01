@@ -76,7 +76,7 @@ export function PlanCheckoutButton({
         }
         stripeFailure =
           res.status === 503
-            ? { kind: "unavailable", message: j.error } // 서버가 사용자용 문구를 준다 (연간 미등록 안내 등)
+            ? { kind: "unavailable", message: j.error } // 고지 미완·연간 미등록 등 서버 문구
             : { kind: "error" };
       } catch {
         stripeFailure = { kind: "network" };

@@ -2,8 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 const INPUT =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink placeholder:text-text-3";
@@ -11,6 +11,7 @@ const INPUT =
 /** 질문 작성 폼 — 접힘/펼침. 제출 성공 시 router.refresh + 폼 초기화. localStorage 미사용. */
 export function AskForm() {
   const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -19,7 +20,6 @@ export function AskForm() {
   const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needLogin, setNeedLogin] = useState(false);
 
   function reset() {
     setTitle("");
@@ -32,7 +32,6 @@ export function AskForm() {
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setNeedLogin(false);
 
     if (title.trim().length < 4) {
       setError("제목은 4글자 이상 입력해 주세요.");
@@ -54,7 +53,11 @@ export function AskForm() {
       });
 
       if (res.status === 401) {
-        setNeedLogin(true);
+        promptSignup({
+          action: "qna_ask",
+          title: "질문을 올리려면 로그인이 필요해요",
+          benefit: "로그인하면 질문이 계정에 남아 답변 알림을 받을 수 있어요.",
+        });
         return;
       }
       if (!res.ok) {
@@ -145,14 +148,6 @@ export function AskForm() {
         maxLength={120}
       />
 
-      {needLogin && (
-        <div className="rounded-xl bg-primary-soft px-3.5 py-2.5 text-[13px] text-primary">
-          로그인 후 질문할 수 있어요.{" "}
-          <Link href="/login" className="font-bold underline underline-offset-2">
-            로그인하기
-          </Link>
-        </div>
-      )}
       {error && <p className="text-[12px] text-danger">{error}</p>}
 
       <div className="flex items-center justify-end gap-2">

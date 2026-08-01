@@ -86,12 +86,6 @@ export function buildStubMarkdown(tool: AiAnalysisToolId, input: unknown): strin
   ].join("\n");
 }
 
-function cohortPercentile(score: number, scores: number[]): number {
-  if (!scores.length) return 50;
-  const below = scores.filter((s) => s < score).length;
-  return Math.round((below / scores.length) * 100);
-}
-
 /** 외부 LLM 없이 워크벤치·규칙만으로 생성하는 서술용 마크다운 */
 export function buildInternalAnalysisMarkdown(
   tool: AiAnalysisToolId,
@@ -120,45 +114,27 @@ export function buildInternalAnalysisMarkdown(
           note: string;
         };
       };
-      const allScores = WORKBENCH_COMPLEXES.map((x) => compositeScore(x));
-      const pctBelow = cohortPercentile(s.compositeScore, allScores);
-      const topBandPct = Math.max(1, Math.min(99, 100 - pctBelow));
-      const avgScore = Math.round(
-        allScores.reduce((a, b) => a + b, 0) / allScores.length,
-      );
-      const diff = s.compositeScore - avgScore;
       const userPriceMan = Number(s.customerDeclared.currentPriceMan ?? 0);
       const benchMan = s.complex.priceSaleMan;
-      const priceGapPct =
-        userPriceMan > 0 && benchMan > 0
-          ? Math.round(((userPriceMan - benchMan) / benchMan) * 1000) / 10
-          : null;
       const lines: string[] = [
-        "## 요약 (자체 엔진·워크벤치 샘플)",
-        `${s.complex.districtLabel} **${s.complex.name}** 기준으로, 앱 내 샘플 데이터에서 계산한 **종합점수 ${s.compositeScore}점**, **전세가율 약 ${s.jeonseRatioPct}%** 입니다. 5년 추세지표(샘플)는 약 **${s.complex.trendPct5y}%** 수준으로 잡혀 있습니다.`,
+        "## 요약 (자체 엔진·참고용)",
+        `${s.complex.districtLabel} **${s.complex.name}** 기준으로 앱 내 참고 데이터와 입력값을 정리했습니다.`,
+        `전세가율(참고) 약 **${s.jeonseRatioPct}%**, 5년 추세지표(샘플) 약 **${s.complex.trendPct5y}%** — 실제 시장·실거래와 다를 수 있습니다.`,
         "",
         "## 입력값에서 본 핵심",
         `- 구·동 맥락: ${String(s.customerDeclared.regionLabel ?? s.customerDeclared.regionFreeText ?? "—")}`,
         `- 입력하신 시세(만원): ${userPriceMan > 0 ? userPriceMan.toLocaleString() : "—"}`,
-        `- 같은 샘플 단지의 매매 호가(만원): ${benchMan.toLocaleString()}`,
-      ];
-      if (priceGapPct != null) {
-        lines.push(
-          `- 입력 시세는 샘플 호가 대비 약 **${priceGapPct > 0 ? "+" : ""}${priceGapPct}%** (실제 시세·실거래와 다를 수 있음)`,
-        );
-      }
-      lines.push(
+        `- 참고 단지 매매 호가(만원, 샘플): ${benchMan > 0 ? benchMan.toLocaleString() : "—"}`,
         "",
-        "## 워크벤치 샘플 단지군 대비 위치 (참고)",
-        `- 샘플 ${WORKBENCH_COMPLEXES.length}개 단지 중 종합점수는 **상위 약 ${topBandPct}%** 구간으로 볼 수 있습니다(내부 샘플·추정).`,
-        `- 샘플 평균 점수 **${avgScore}점** 대비 **${diff >= 0 ? "+" : ""}${diff}점**입니다.`,
-        "- **타 이용자·실제 집단**과의 비교는 통계 수집 후 확장 예정이며, 현재는 동일 샘플 풀 대비 상대 위치만 제시합니다.",
+        "## 순위·점수 표기 제한",
+        "- 샘플 단지군 대비 **상위 N%·종합점수 순위**는 실사용자 통계가 아니므로 오픈 화면에서는 제공하지 않습니다.",
+        "- 투자 판단용 점수·저평가 판정이 필요하면 실거래·공식 시세를 직접 확인하세요.",
         "",
         "## 온라인·공개 자료와의 비교 안내",
         "- KB시세, 국토부 실거래, 네이버·호갱노노 등 **외부 온라인 시세와의 자동 대조**는 API 연동 전까지 제공되지 않습니다.",
         "- 투자 판단 전에는 반드시 **실거래 공개시스템** 등에서 최근 거래를 직접 확인하세요.",
         "",
-      );
+      ];
       if (s.mortgageRateSensitivity) {
         lines.push(
           "## 금리 민감도(설명용 근사)",

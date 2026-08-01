@@ -63,6 +63,13 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     note: "scripts/smoke-plan-gate.mjs — 미인증 AI 401·구독/체크아웃 경로.",
   },
   {
+    id: "business-disclosure",
+    title: "사업자 주소·통신판매업 고지 완료 (유료 결제 전제)",
+    priority: "P0",
+    status: "blocked",
+    note: "코드: 고지 미완 시 Stripe/카카오페이 503. env NEXT_PUBLIC_COMPANY_ADDRESS·MAIL_ORDER 채우면 done.",
+  },
+  {
     id: "payment-e2e",
     title: "결제 성공/실패/취소/중복결제 점검",
     priority: "P0",
@@ -171,7 +178,13 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     note: "/notes/compare — 지도·단지 A/B 링크 + FIELD_COMPARE_ADD 퍼널.",
   },
   { id: "notification-fatigue", title: "푸시/이메일 알림 피로도 제어 (주기·묶음)", priority: "P1", status: "todo" },
-  { id: "expert-sla", title: "전문가 응답 SLA 공개 (평균 응답시간)", priority: "P1", status: "todo" },
+  {
+    id: "expert-sla",
+    title: "전문가 응답 SLA 공개 (평균 응답시간)",
+    priority: "P1",
+    status: "done",
+    note: "실측 SLA 없을 때 허수 숨김(빈 상태·고지). 실측 연동 후 수치 공개.",
+  },
 
   { id: "seo-audit", title: "SEO 기술점검 (canonical, sitemap, robots, 구조화데이터)", priority: "P2", status: "todo" },
   { id: "mobile-compat", title: "앱웹뷰/모바일 브라우저 호환성 테스트 확대", priority: "P2", status: "todo" },
@@ -179,13 +192,25 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
   { id: "exp-framework", title: "실험체계 정착 (기능 플래그·A/B·롤백)", priority: "P2", status: "todo" },
 ];
 
+/** 하드 오픈(유료·운영 완료) 전 오너 전용 — 코드만으로 done 처리 금지 */
+export const OWNER_ONLY_GATE_IDS = [
+  "business-disclosure",
+  "payment-e2e",
+  "admin-2fa",
+  "db-backup-drill",
+] as const;
+
 export type GateSummary = {
   total: number;
   totalDone: number;
   blocked: number;
   p0Total: number;
   p0Done: number;
+  /** 유료·운영 완료 포함 — blocked 0 && P0 done≥16 */
   releaseReady: boolean;
+  /** 무료 소프트 오픈: 오너 전용 블로커만 남고 코드 P0는 완료 */
+  softOpenReady: boolean;
+  ownerBlocked: number;
 };
 
 /** 권장 출시 게이트: P0 중 done≥16, blocked 0. (blocked 있으면 미충족) */
@@ -195,6 +220,15 @@ export function summarizeGate(tasks: OpenBetaTask[]): GateSummary {
   const blocked = tasks.filter((t) => t.status === "blocked").length;
   const totalDone = tasks.filter((t) => t.status === "done").length;
   const total = tasks.length;
+  const ownerSet = new Set<string>(OWNER_ONLY_GATE_IDS);
+  const ownerBlocked = tasks.filter(
+    (t) => t.status === "blocked" && ownerSet.has(t.id),
+  ).length;
+  const nonOwnerBlocked = tasks.filter(
+    (t) => t.status === "blocked" && !ownerSet.has(t.id),
+  ).length;
+  const codeP0 = p0.filter((t) => !ownerSet.has(t.id));
+  const codeP0Done = codeP0.filter((t) => t.status === "done").length;
 
   return {
     total,
@@ -203,5 +237,7 @@ export function summarizeGate(tasks: OpenBetaTask[]): GateSummary {
     p0Total: p0.length,
     p0Done,
     releaseReady: blocked === 0 && p0Done >= 16,
+    softOpenReady: nonOwnerBlocked === 0 && codeP0Done === codeP0.length,
+    ownerBlocked,
   };
 }

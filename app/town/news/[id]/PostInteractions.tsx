@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 /* ============================================================
    뉴스·글 상세의 실제 동작하는 컨트롤 모음.
@@ -33,9 +33,9 @@ export function PostActions({
   saveCount: number;
 }) {
   const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [needLogin, setNeedLogin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -75,7 +75,11 @@ export function PostActions({
             { method: "DELETE" },
           );
       if (res.status === 401) {
-        setNeedLogin(true);
+        promptSignup({
+          action: "bookmark_post",
+          title: "저장하려면 로그인이 필요해요",
+          benefit: "로그인한 계정에만 저장 목록이 남아요. 나중에 마이페이지에서 다시 볼 수 있어요.",
+        });
         return;
       }
       if (!res.ok) {
@@ -117,27 +121,18 @@ export function PostActions({
       {error && (
         <span className="text-[11px] font-bold text-danger">{error}</span>
       )}
-      {needLogin ? (
-        <Link
-          href={`/login?callbackUrl=${encodeURIComponent(`/town/news/${postId}`)}`}
-          className="btn-soft rounded-[10px] px-3.5 py-2 no-underline"
-        >
-          로그인하고 저장
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={() => void toggleSave()}
-          disabled={busy}
-          aria-pressed={saved}
-          className={`press inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 font-semibold transition-colors disabled:opacity-50 ${
-            saved ? "bg-primary-soft text-primary" : "btn-soft"
-          }`}
-        >
-          <Icon name="bookmark" size={14} />
-          {saved ? "저장됨" : "저장"} {saveCount}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => void toggleSave()}
+        disabled={busy}
+        aria-pressed={saved}
+        className={`press inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 font-semibold transition-colors disabled:opacity-50 ${
+          saved ? "bg-primary-soft text-primary" : "btn-soft"
+        }`}
+      >
+        <Icon name="bookmark" size={14} />
+        {saved ? "저장됨" : "저장"} {saveCount}
+      </button>
       <button
         type="button"
         onClick={() => void share()}
@@ -156,10 +151,10 @@ export function LikeButton({
   postId: string;
   initialCount: number;
 }) {
+  const { promptSignup } = useSoftSignup();
   const [count, setCount] = useState(initialCount);
   const [liked, setLiked] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
-  const [needLogin, setNeedLogin] = useState(false);
 
   async function toggle() {
     if (busy) return;
@@ -171,7 +166,11 @@ export function LikeButton({
         body: "{}",
       });
       if (res.status === 401) {
-        setNeedLogin(true);
+        promptSignup({
+          action: "post_like",
+          title: "공감하려면 로그인이 필요해요",
+          benefit: "로그인하면 공감이 계정에 남아 중복·어뷰징을 줄일 수 있어요.",
+        });
         return;
       }
       if (!res.ok) return;
@@ -183,17 +182,6 @@ export function LikeButton({
     } finally {
       setBusy(false);
     }
-  }
-
-  if (needLogin) {
-    return (
-      <Link
-        href={`/login?callbackUrl=${encodeURIComponent(`/town/news/${postId}`)}`}
-        className="text-xs font-bold text-primary no-underline"
-      >
-        로그인하고 공감 {count}
-      </Link>
-    );
   }
 
   return (
@@ -213,6 +201,7 @@ export function LikeButton({
 
 export function CommentForm({ postId }: { postId: string }) {
   const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -232,6 +221,14 @@ export function CommentForm({ postId }: { postId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: text }),
       });
+      if (res.status === 401) {
+        promptSignup({
+          action: "community_comment",
+          title: "댓글을 남기려면 로그인이 필요해요",
+          benefit: "로그인하면 댓글이 계정에 남아 신고·차단 대응이 가능해요.",
+        });
+        return;
+      }
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as {
           error?: string;
@@ -273,7 +270,7 @@ export function CommentForm({ postId }: { postId: string }) {
         </p>
       )}
       <p className="px-1 text-[10px] leading-[1.5] text-text-3">
-        로그인하지 않으면 익명으로 등록돼요 · 개인정보(전화번호·계좌)는 적지 마세요
+        로그인 후 등록돼요 · 개인정보(전화번호·계좌)는 적지 마세요
       </p>
     </form>
   );

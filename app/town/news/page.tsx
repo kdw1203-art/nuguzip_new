@@ -123,9 +123,9 @@ function digestTeaserOf(d: WeeklyDigest): string | null {
 
 /* 더미데이터 정책(더미 1개 원칙): 실 뉴스 0건일 때만 예시 카드 1건 노출 */
 const EXAMPLE_NEWS = {
-  category: "정책",
-  title: "월세 세액공제 최대 30% 상향 개정안 발의 — 무주택 세입자 주거안정",
-  sourceName: "국토교통부",
+  category: "안내",
+  title: "예시 카드 — 실제 정책·공지 뉴스가 아직 없을 때 레이아웃만 보여 줍니다",
+  sourceName: "누구집 예시(공식 출처 아님)",
   time: "예시",
 };
 

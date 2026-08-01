@@ -43,9 +43,11 @@ export function BusinessDisclosureBlock({ className = "", showHours = true }: Pr
           제외)
         </p>
       ) : null}
-      {!complete && process.env.NODE_ENV === "development" ? (
+      {!complete ? (
         <p className="pt-1 text-[10px] text-danger">
-          개발 환경: NEXT_PUBLIC_COMPANY_* 환경변수에 사업자·통신판매업 정보를 설정하세요.
+          사업자 주소·통신판매업 신고번호가 아직 등록되지 않았습니다. 유료 결제는
+          고지 완료 후 열립니다. (NEXT_PUBLIC_COMPANY_ADDRESS /
+          NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)
         </p>
       ) : null}
     </div>

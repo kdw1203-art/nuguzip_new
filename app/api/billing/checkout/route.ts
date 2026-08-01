@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createSubscriptionCheckout } from "@/lib/billing/stripe-checkout";
 import { getStripe } from "@/lib/billing/stripe";
+import {
+  getBusinessInfo,
+  isBusinessDisclosureComplete,
+} from "@/lib/brand/business-info";
 import { desktopBaseUrl, resolvePublicOriginFromHeaders } from "@/lib/platform-shell";
 import { safeAuth } from "@/lib/safe-auth";
 import { logger } from "@/lib/log";
@@ -19,6 +23,19 @@ export async function POST(req: Request) {
   const session = await safeAuth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  /* 전자상거래법: 주소·통신판매업 고지 미완이면 유료 결제창을 열지 않는다 */
+  if (!isBusinessDisclosureComplete(getBusinessInfo())) {
+    logger.warn("[billing:checkout] 사업자 고지 미완 — 결제 차단");
+    return NextResponse.json(
+      {
+        error:
+          "사업자·통신판매업 고지가 완료되기 전에는 결제를 시작할 수 없어요. 고객센터로 문의해 주세요.",
+        code: "business_disclosure_incomplete",
+      },
+      { status: 503 },
+    );
   }
 
   const stripe = getStripe();

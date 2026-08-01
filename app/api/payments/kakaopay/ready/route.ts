@@ -14,6 +14,10 @@ import { getPlan } from "@/lib/subscriptions/plans";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 import { desktopBaseUrl, resolvePublicOriginFromHeaders } from "@/lib/platform-shell";
 import { logger } from "@/lib/log";
+import {
+  getBusinessInfo,
+  isBusinessDisclosureComplete,
+} from "@/lib/brand/business-info";
 
 export const runtime = "nodejs";
 
@@ -43,6 +47,18 @@ export async function POST(req: NextRequest) {
   if (!isKakaoPayConfigured()) {
     return NextResponse.json(
       { error: "카카오페이 설정(KAKAOPAY_CID, KAKAOPAY_SECRET_KEY)이 없습니다." },
+      { status: 503 },
+    );
+  }
+
+  if (!isBusinessDisclosureComplete(getBusinessInfo())) {
+    logger.warn("[kakaopay:ready] 사업자 고지 미완 — 결제 차단");
+    return NextResponse.json(
+      {
+        error:
+          "사업자·통신판매업 고지가 완료되기 전에는 결제를 시작할 수 없어요. 고객센터로 문의해 주세요.",
+        code: "business_disclosure_incomplete",
+      },
       { status: 503 },
     );
   }

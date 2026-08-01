@@ -26,6 +26,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const session = await safeAuth();
+  /* 오픈 정책: 익명 글쓰기는 스팸·책임 소재가 불명확 — 로그인 필수 */
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
 
   let body: unknown;
   try {
@@ -40,12 +44,10 @@ export async function POST(req: Request) {
   const city = String(b.city ?? "").trim();
   const district = String(b.district ?? "").trim();
   const category = String(b.category ?? "").trim();
-  const fromClient = String(b.authorLabel ?? "").trim();
-  const authorLabel = session?.user
-    ? (session.user.name?.trim() ||
-        session.user.email?.split("@")[0]?.trim() ||
-        "회원")
-    : fromClient || "익명";
+  const authorLabel =
+    session.user.name?.trim() ||
+    session.user.email?.split("@")[0]?.trim() ||
+    "회원";
   const tagsRaw = b.tags;
   const tags =
     typeof tagsRaw === "string"

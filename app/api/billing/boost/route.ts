@@ -12,6 +12,10 @@ import { desktopBaseUrl, resolvePublicOriginFromHeaders } from "@/lib/platform-s
 import { safeAuth } from "@/lib/safe-auth";
 import { getListingById } from "@/lib/listings/store-db";
 import { logger } from "@/lib/log";
+import {
+  getBusinessInfo,
+  isBusinessDisclosureComplete,
+} from "@/lib/brand/business-info";
 
 export const runtime = "nodejs";
 
@@ -28,6 +32,17 @@ export async function POST(req: Request) {
   const email = session?.user?.email ?? null;
   if (!email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+
+  if (!isBusinessDisclosureComplete(getBusinessInfo())) {
+    return NextResponse.json(
+      {
+        error: "business_disclosure_incomplete",
+        message:
+          "사업자·통신판매업 고지가 완료되기 전에는 결제를 시작할 수 없어요.",
+      },
+      { status: 503 },
+    );
   }
 
   // 키/Price 미설정 시 결제 미구성 — DB 접근 전에 먼저 503 (graceful no-op)

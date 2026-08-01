@@ -14,6 +14,9 @@ export async function POST(
 ) {
   const { id } = await ctx.params;
   const session = await safeAuth();
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
 
   let body: unknown;
   try {
@@ -24,12 +27,10 @@ export async function POST(
 
   const b = body as Record<string, unknown>;
   const text = String(b.body ?? "").trim();
-  const fromClient = String(b.authorLabel ?? "").trim();
-  const authorLabel = session?.user
-    ? (session.user.name?.trim() ||
-        session.user.email?.split("@")[0]?.trim() ||
-        "회원")
-    : fromClient || "익명";
+  const authorLabel =
+    session.user.name?.trim() ||
+    session.user.email.split("@")[0]?.trim() ||
+    "회원";
 
   if (text.length < 1) {
     return NextResponse.json({ error: "댓글 내용을 입력해 주세요." }, { status: 400 });

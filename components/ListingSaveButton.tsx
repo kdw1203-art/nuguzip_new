@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 export function ListingSaveButton({
   listingId,
@@ -21,9 +22,9 @@ export function ListingSaveButton({
   className?: string;
 }) {
   const router = useRouter();
+  const { promptSignup } = useSoftSignup();
   const [saved, setSaved] = useState(initialSaved);
   const [busy, setBusy] = useState(false);
-  const [needLogin, setNeedLogin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function toggle() {
@@ -43,7 +44,12 @@ export function ListingSaveButton({
             { method: "DELETE" },
           );
       if (res.status === 401) {
-        setNeedLogin(true);
+        promptSignup({
+          action: "bookmark_listing",
+          title: "관심 매물을 저장하려면 로그인이 필요해요",
+          benefit: "로그인하면 마이페이지 위시리스트에서 다시 볼 수 있어요.",
+          callbackUrl: `/listings/${listingId}`,
+        });
         return;
       }
       if (!res.ok) {
@@ -58,17 +64,6 @@ export function ListingSaveButton({
     } finally {
       setBusy(false);
     }
-  }
-
-  if (needLogin) {
-    return (
-      <a
-        href={`/login?callbackUrl=/listings/${listingId}`}
-        className={`chip inline-flex items-center gap-1.5 border border-line bg-surface px-3 py-1.5 text-[13px] font-bold text-text-2 no-underline ${className ?? ""}`}
-      >
-        로그인 후 관심 저장
-      </a>
-    );
   }
 
   return (

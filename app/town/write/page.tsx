@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
+import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { COMMUNITY_SUBCATEGORIES } from "@/lib/subcategories";
 import { CITY_OPTIONS, DISTRICTS } from "@/lib/regions";
 
@@ -42,6 +43,7 @@ export default function TownWritePage() {
 function TownWriteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { promptSignup } = useSoftSignup();
   /* /complex/[id] 의 "이 단지 이야기 쓰기"에서 넘어온 값. 이름은 화면 표시용일
      뿐이고, 저장되는 연결 키는 complexId 하나다(서버가 다시 검증한다). */
   const complexId = (searchParams.get("complex") ?? "").trim();
@@ -56,7 +58,6 @@ function TownWriteForm() {
   const [error, setError] = useState<string | null>(null);
   /** 모더레이션(금칙어) 위반으로 반려된 경우 — 안내 문구 강화 (#84) */
   const [blockedWord, setBlockedWord] = useState<string | null>(null);
-  const [needLogin, setNeedLogin] = useState(false);
 
   const districts = DISTRICTS[city] ?? [];
 
@@ -68,7 +69,6 @@ function TownWriteForm() {
   const onSubmit = async () => {
     setError(null);
     setBlockedWord(null);
-    setNeedLogin(false);
     if (title.trim().length < 2) {
       setError("제목은 2글자 이상 입력해 주세요.");
       return;
@@ -96,7 +96,11 @@ function TownWriteForm() {
         }),
       });
       if (res.status === 401) {
-        setNeedLogin(true);
+        promptSignup({
+          action: "community_post",
+          title: "글을 올리려면 로그인이 필요해요",
+          benefit: "로그인하면 동네 이야기가 내 계정에 남고, 나중에 수정·신고 대응이 가능해요.",
+        });
         return;
       }
       if (!res.ok) {
@@ -219,21 +223,6 @@ function TownWriteForm() {
             {content.trim().length}자
           </div>
         </div>
-
-        {/* 로그인 필요 인라인 안내 */}
-        {needLogin && (
-          <div className="card flex items-center justify-between rounded-[14px] border-l-[3px] border-l-primary px-[15px] py-3.5">
-            <span className="text-[13px] font-bold text-ink">
-              로그인이 필요해요
-            </span>
-            <Link
-              href="/login"
-              className="btn-primary rounded-[10px] px-3.5 py-2 text-xs"
-            >
-              로그인 하러 가기 ›
-            </Link>
-          </div>
-        )}
 
         {/* 오류 안내 */}
         {error && (
