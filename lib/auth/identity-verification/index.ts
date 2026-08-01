@@ -18,8 +18,21 @@ export function getIdentityProvider(): IdentityProvider {
     // case "nice":
     //   return niceIdentityProvider;
     case "mock":
-    default:
+      /* mock 은 무조건 verified:true 를 돌려주는 데모 제공자다 — 프로덕션에서
+         이걸 본인인증이라고 부르면 인증 절차 전체가 장식이 된다. */
+      if (process.env.NODE_ENV === "production") {
+        throw new Error(
+          "IDENTITY_VERIFICATION_PROVIDER=mock 은 프로덕션에서 쓸 수 없습니다 — 전원 통과 데모 제공자입니다.",
+        );
+      }
       return mockIdentityProvider;
+    default:
+      /* 오타·미지원 값이 조용히 mock(전원 통과)으로 떨어지던 것을 막는다.
+         "toss" 를 "tosss" 로 잘못 적으면 인증이 꺼진 게 아니라 **전원
+         통과로 켜져** 있었다 — 설정 실수는 소리 내며 실패해야 한다. */
+      throw new Error(
+        `IDENTITY_VERIFICATION_PROVIDER 값 "${id ?? ""}" 을 인식하지 못했습니다 (지원: toss, mock[개발 전용]).`,
+      );
   }
 }
 

@@ -41,6 +41,64 @@ function rowHaystack(r: ComplexRow): string {
  * React cache로 같은 렌더 요청 내 중복 조회를 방지한다.
  * env 미설정·검색 실패·미발견·지역 불일치 시 null.
  */
+/**
+ * 여러 (단지명, 지역) 쌍을 한꺼번에 해석 — 동시 상한 + 전체 마감 포함.
+ *
+ * 목록 페이지(/qna·/notes)가 항목마다 resolveComplexHref 를 Promise.all 로
+ * 동시에 쏘면 렌더 한 번에 DB 왕복이 목록 크기만큼 난다(최대 50~100회) —
+ * 연결 10개짜리 Auth 서버 프로젝트에서 525/57014 를 만든 패턴이다.
+ * 여기서는 중복을 먼저 접고, 동시 4개 제한 + 전체 마감(기본 3초)으로 돈다.
+ * 마감을 넘긴 나머지 키는 맵에 없다 → 호출부는 링크만 생략한다. 링크는 부가
+ * 정보라 "조회 실패" 위장이 아니라 조회 자체를 하지 않은 것이다.
+ */
+export async function resolveComplexHrefs(
+  targets: Iterable<{ name: string | null | undefined; region?: string | null }>,
+  opts?: { concurrency?: number; deadlineMs?: number },
+): Promise<Map<string, string | null>> {
+  const concurrency = opts?.concurrency ?? 4;
+  const deadlineMs = opts?.deadlineMs ?? 3_000;
+  const keys: string[] = [];
+  const byKey = new Map<string, { name: string; region: string | null }>();
+  for (const t of targets) {
+    const name = (t.name ?? "").trim();
+    if (!name) continue;
+    const key = complexHrefKey(name, t.region);
+    if (!byKey.has(key)) {
+      byKey.set(key, { name, region: t.region ?? null });
+      keys.push(key);
+    }
+  }
+  const resolved = new Map<string, string | null>();
+  const startedAt = Date.now();
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < keys.length) {
+      if (Date.now() - startedAt > deadlineMs) return;
+      const key = keys[cursor];
+      cursor += 1;
+      if (key === undefined) return;
+      const target = byKey.get(key)!;
+      try {
+        resolved.set(key, await resolveComplexHref(target.name, target.region));
+      } catch {
+        resolved.set(key, null);
+      }
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, keys.length) }, worker),
+  );
+  return resolved;
+}
+
+/** resolveComplexHrefs 결과 맵을 조회할 때 쓰는 키. */
+export function complexHrefKey(
+  name: string | null | undefined,
+  region?: string | null,
+): string {
+  return `${(name ?? "").trim()}|${region ?? ""}`;
+}
+
 export const resolveComplexHref = cache(
   async (
     name: string | null | undefined,

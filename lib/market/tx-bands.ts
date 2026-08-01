@@ -156,7 +156,22 @@ let cellCache: { at: number; data: BandCell[] } | null = null;
 async function loadAllCells(): Promise<BandCell[]> {
   const now = Date.now();
   if (cellCache && now - cellCache.at < CELL_TTL_MS) return cellCache.data;
+  /* single-flight: generateMetadata 와 본문이 같은 요청 안에서 이 함수를 연달아
+     부른다. DB 가 느릴 때 각자 45초 예산을 따로 태우면 한 페이지가 90초를
+     지불한다(/tx/[region] digest 3295104896 의 정체). 진행 중인 조회가 있으면
+     그 약속을 같이 기다린다 — 실패를 캐시하는 게 아니라(그건 복구를 늦춘다)
+     "동시에 두 번 묻지 않는" 것뿐이다. */
+  if (cellInflight) return cellInflight;
+  cellInflight = loadAllCellsUncached().finally(() => {
+    cellInflight = null;
+  });
+  return cellInflight;
+}
 
+let cellInflight: Promise<BandCell[]> | null = null;
+
+async function loadAllCellsUncached(): Promise<BandCell[]> {
+  const now = Date.now();
   const sb = getReadOnlySupabase();
   if (!sb) {
     throw new Error(

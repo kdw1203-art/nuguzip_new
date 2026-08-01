@@ -71,7 +71,9 @@ export const SAMPLE_DAECHI_SNAPSHOT: DistrictSnapshotDocument = {
   population: {
     total: 35210,
     households: 14120,
-    source: "MOIS",
+    /* 데모 문서다 — 행정안전부(MOIS)에서 받은 값이 아니므로 기관명을 달지
+       않는다. 기관 출처는 실제 ETL 이 실값과 함께 적을 때만 붙는다. */
+    source: "sample",
   },
   safety: {
     /** 행정구역 단위 데모 집계 — 주소·사건 단위 아님 (SAFETY_UI_POLICY) */

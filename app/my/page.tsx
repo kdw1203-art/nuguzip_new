@@ -77,17 +77,25 @@ function fmtExpiry(iso: string): string {
   return `${d.getFullYear()}.${mm}.${dd}`;
 }
 
-/** 북마크 target_id 를 임장노트로 해석 (노트가 아니면 null → 자연 필터). 최대 10개만 조회. */
-async function loadSavedNotes(email: string): Promise<InspectionNote[]> {
+/** 북마크 target_id 를 임장노트로 해석 (노트가 아니면 null → 자연 필터). 최대 10개만 조회.
+    조회 실패를 빈 배열로 누르면 "저장한 노트가 없어요"가 된다 — ok:false 로
+    구분해 화면이 "지금 불러오지 못했다"를 말할 수 있게 한다. */
+async function loadSavedNotes(
+  email: string,
+): Promise<{ ok: true; notes: InspectionNote[] } | { ok: false }> {
   try {
     const bms = await listBookmarks(email);
     const ids = Array.from(new Set(bms.map((b) => b.targetId))).slice(0, 10);
     const resolved = await Promise.all(ids.map((id) => getNote(id).catch(() => null)));
-    return resolved.filter(
-      (n): n is InspectionNote => n !== null && n.authorEmail !== email,
-    );
-  } catch {
-    return [];
+    return {
+      ok: true,
+      notes: resolved.filter(
+        (n): n is InspectionNote => n !== null && n.authorEmail !== email,
+      ),
+    };
+  } catch (e) {
+    logger.error("[my] 관심 임장노트 조회 실패", e);
+    return { ok: false };
   }
 }
 
@@ -170,7 +178,7 @@ export default async function MyPage() {
   );
   const history = ledgerLoaded.rows;
 
-  const [profile, notes, savedNotes, alerts, expert, onboarding, planExpiresAt] =
+  const [profile, notes, savedNotesLoaded, alerts, expert, onboarding, planExpiresAt] =
     await Promise.all([
       loadMeProfile(email, {
         name: session.user.name,
@@ -185,6 +193,8 @@ export default async function MyPage() {
       getVerifiedOnboarding(email),
       loadPlanExpiresAt(email),
     ]);
+
+  const savedNotes = savedNotesLoaded.ok ? savedNotesLoaded.notes : [];
 
   // A10 — 무료 가치 카운터(AI 분석 월 사용량) — 결제 전 가치 증명·자연 유도
   /* 실패하면 null → 아래 사용량 카드가 통째로 빠진다. 없는 값을 "0회 사용"으로
@@ -368,7 +378,17 @@ export default async function MyPage() {
           {/* ── 관심 임장노트 (저장) ── */}
           <section className="flex flex-col gap-2.5">
             <SectionHead title="관심 임장노트" href="/notes" hrefLabel="공개 노트" />
-            {savedNotes.length === 0 ? (
+            {!savedNotesLoaded.ok ? (
+              /* 조회 실패 ≠ 저장한 노트 없음 — 실패는 실패로 말한다. */
+              <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
+                <div className="text-[13px] font-bold text-ink">
+                  관심 노트를 지금 불러오지 못했어요
+                </div>
+                <div className="text-[11px] text-text-3">
+                  저장한 노트가 없는 게 아니라 조회가 실패했어요. 잠시 후 새로고침해 주세요.
+                </div>
+              </div>
+            ) : savedNotes.length === 0 ? (
               <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
                 <div className="text-[13px] font-bold text-ink">저장한 노트가 없어요</div>
                 <div className="text-[11px] text-text-3">

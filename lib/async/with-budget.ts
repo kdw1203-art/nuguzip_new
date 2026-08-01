@@ -59,4 +59,8 @@ export async function withBudget<T>(p: Promise<T>, ms: number): Promise<BudgetRe
  * 커서**다(이미 채운 (시군구, 계약월) 조합은 건너뛰고, 상세 백필은 스탬프 없는 행만
  * 고른다). 그래서 배치를 중간에 버려도 이중 계상이나 건너뜀이 생기지 않는다.
  */
-export const CRON_WORK_BUDGET_MS = 270_000;
+/* 2026-08-01: 270초 → 240초. 결과 기록(logIngest)이 무제한이던 시절 "남는
+   30초"가 실제로는 모자랐다 — 기록 경로가 밀리면 30초를 넘겨 함수째 죽었다.
+   기록에 10초 상한을 넣었지만(logIngest), 마무리 구간(요약 계산 + 기록 +
+   응답 직렬화)에 60초를 주는 편이 300초 상한 아래에서 확실히 안전하다. */
+export const CRON_WORK_BUDGET_MS = 240_000;

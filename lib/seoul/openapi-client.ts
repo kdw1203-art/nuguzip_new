@@ -118,13 +118,20 @@ export async function fetchSeoulOpenApi(
   end = 1000,
   extraSegments: string[] = [],
   format: "json" | "xml" = "json",
+  opts?: { timeoutMs?: number },
 ): Promise<SeoulFetchResult> {
   const url = buildSeoulOpenApiUrl(serviceName, start, end, extraSegments, format);
   if (!url) {
     throw new SeoulApiError("NO_KEY", "SEOUL_DATA_API_KEY is not configured");
   }
 
-  const res = await fetch(url, { cache: "no-store" });
+  /* 정부 API 에 상한 없이 매달리면 호출부(헬스체크·ETL)가 함수 예산을 통째로
+     태운다. 기본 20초 — 헬스 프로브처럼 빨리 포기해야 하는 곳은 짧게 넘긴다. */
+  const timeoutMs = opts?.timeoutMs ?? 20_000;
+  const res = await fetch(url, {
+    cache: "no-store",
+    signal: timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
+  });
   if (!res.ok) {
     throw new SeoulApiError("HTTP_ERROR", `HTTP ${res.status} for ${serviceName}`);
   }

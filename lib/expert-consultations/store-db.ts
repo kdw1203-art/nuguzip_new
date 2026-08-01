@@ -152,11 +152,17 @@ export async function countConsultationsThisMonth(userEmail: string): Promise<nu
       (c) => c.userEmail.trim().toLowerCase() === em && c.createdAt >= since,
     ).length;
   }
-  const { count } = await sb
+  const { count, error } = await sb
     .from("expert_consultations")
     .select("id", { count: "exact", head: true })
     .eq("requester_email", em)
     .gte("created_at", since);
+  /* 조회 실패를 0으로 누르면 상담 한도 게이트가 통째로 열리고, 사용량 화면은
+     이미 다 쓴 사용자에게 0/N 을 보여준다 — 실패는 실패로 던진다.
+     (lib/bookmarks/store.ts:118 과 동일한 판단) */
+  if (error) {
+    throw new Error(`expert_consultations 사용량 조회 실패: ${error.message}`);
+  }
   return count ?? 0;
 }
 

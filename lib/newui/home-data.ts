@@ -193,21 +193,18 @@ async function loadSaleIndexSeoul(): Promise<string | null> {
   } catch (e) {
     logger.error("[loadSaleIndexSeoul:indices]", e);
   }
-  // 폴백: 시도 단위 적재가 없으면 서울 대표 지역(강남·마포·송파) 최신 주간 지수 평균으로 근사.
+  // 폴백: 시도 단위 적재가 없으면 "서울" 지역 주간 시계열에서 최신값을 쓴다.
   for (const candidate of ["seoul", "서울"]) {
     const rows = await getRegionSeries(candidate, "sale_index", "weekly", 1).catch(() => []);
     const latest = rows[rows.length - 1];
     if (latest && Number.isFinite(latest.value)) return latest.value.toFixed(2);
   }
-  const seoulIds = ["gangnam", "mapo", "songpa"];
-  const values: number[] = [];
-  for (const id of seoulIds) {
-    const rows = await getRegionSeries(id, "sale_index", "weekly", 1).catch(() => []);
-    const latest = rows[rows.length - 1];
-    if (latest && Number.isFinite(latest.value)) values.push(latest.value);
-  }
-  if (values.length === 0) return null;
-  return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+  /* 여기까지 왔으면 서울 지수는 없는 것이다 — null("—") 로 둔다.
+     예전엔 강남·마포·송파 3개 구 주간 지수를 평균해 돌려줬는데, 홈 KPI 는
+     이 값을 "매매지수 서울" 라벨로 띄운다. 3개 구 평균은 서울 지수가 아니고,
+     라벨에는 아무 단서도 없었다 — 평균을 지역 지표로 위장하는 것도
+     지어낸 값이다 (facilities "전체/25" 제거와 같은 판단). */
+  return null;
 }
 
 /* ---------- AI 시장 브리핑 (market_region_monthly, 1시간 캐시) ---------- */

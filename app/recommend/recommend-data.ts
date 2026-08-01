@@ -67,12 +67,15 @@ export interface RecommendResult {
   personalization: PersonalizationSummary | null;
   /** 후보 지역 시세 스냅샷이 1건이라도 있었는지 (안내 문구 분기용) */
   hasMarketData: boolean;
+  /** 시세 스냅샷 **조회 자체가 실패**했는지 — "데이터가 아직 없다"와 다른 사실이다. */
+  marketFetchFailed: boolean;
 }
 
 export const EMPTY_RESULT: RecommendResult = {
   items: [],
   personalization: null,
   hasMarketData: false,
+  marketFetchFailed: false,
 };
 
 /* ── 표시 헬퍼 ───────────────────────────────────────────── */
@@ -215,9 +218,16 @@ function scoreCandidate({
 
 export async function loadRecommendations(email: string): Promise<RecommendResult> {
   try {
+    /* 스냅샷 조회 실패를 빈 Map 으로 누르지 않는다 — 그러면 아래에서
+       "시세 데이터가 쌓이면"이라는, 사실이 아닌 안내가 나간다. */
+    let marketFetchFailed = false;
     const [personalization, snapshots] = await Promise.all([
       getOnboardingPersonalization(email).catch(() => null),
-      getAllRegionSnapshots().catch(() => new Map<string, RegionMarketSnapshot>()),
+      getAllRegionSnapshots().catch((e: unknown) => {
+        logger.error("[recommend] 지역 시세 스냅샷 조회 실패", e);
+        marketFetchFailed = true;
+        return new Map<string, RegionMarketSnapshot>();
+      }),
     ]);
 
     const profile = personalization?.profile ?? null;
@@ -272,10 +282,10 @@ export async function loadRecommendations(email: string): Promise<RecommendResul
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_ITEMS);
 
-    return { items, personalization: summary, hasMarketData };
+    return { items, personalization: summary, hasMarketData, marketFetchFailed };
   } catch (e) {
     logger.error("[recommend] loadRecommendations", e);
-    return EMPTY_RESULT;
+    return { ...EMPTY_RESULT, marketFetchFailed: true };
   }
 }
 

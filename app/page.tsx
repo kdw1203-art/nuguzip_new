@@ -174,17 +174,24 @@ function MarketStrip({
 }
 
 export default async function Home() {
-  const data = await loadNewHomeData();
-  // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
-  const freshness = await getMarketFreshnessDateLabel();
-  /* P1-9: 주간 다이제스트 진입 카드 티저 (1h 캐시).
-     조회가 전부 실패하면 getWeeklyDigest() 는 던진다 — 홈까지 같이 죽일 이유는
-     없으니 여기서는 티저만 포기하고, 대신 "0건" 같은 사실 아닌 문구는 쓰지
-     않는다(카드 설명으로만 남긴다). */
-  const digest = await getWeeklyDigest().catch((e): null => {
-    logger.error("[Home] 주간 다이제스트 조회 실패", e);
-    return null;
-  });
+  /* 4개 조회는 서로 의존이 없다 — 직렬로 기다리면 콜드/만료 렌더가 네 조회의
+     시간을 전부 합산해 지불한다(`/` 는 300초 타임아웃 목록의 최상단이었다).
+     한 Promise.all 로 임계 경로를 가장 느린 하나로 줄인다. */
+  const [data, freshness, digest, baseRateData] = await Promise.all([
+    loadNewHomeData(),
+    // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
+    getMarketFreshnessDateLabel(),
+    /* P1-9: 주간 다이제스트 진입 카드 티저 (1h 캐시).
+       조회가 전부 실패하면 getWeeklyDigest() 는 던진다 — 홈까지 같이 죽일 이유는
+       없으니 여기서는 티저만 포기하고, 대신 "0건" 같은 사실 아닌 문구는 쓰지
+       않는다(카드 설명으로만 남긴다). */
+    getWeeklyDigest().catch((e): null => {
+      logger.error("[Home] 주간 다이제스트 조회 실패", e);
+      return null;
+    }),
+    // 기준금리: ECOS(한국은행) 연동 시 실값, 미연동 시 "—" (허위 수치 금지)
+    getBaseRate(),
+  ]);
   /* 주차 라벨도 다이제스트에서 온다 — 못 읽었으면 없는 채로 둔다. */
   const digestWeekLabel = digest?.weekLabel ?? null;
   const digestTeaser =
@@ -208,8 +215,6 @@ export default async function Home() {
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
   const loanRate = data.loanRate ?? "—";
   const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
-  // 기준금리: ECOS(한국은행) 연동 시 실값, 미연동 시 "—" (허위 수치 금지)
-  const baseRateData = await getBaseRate();
   const baseRate = baseRateData?.label ?? "—";
   const activeNow =
     data.activeNow !== null ? `${data.activeNow}명` : "—";

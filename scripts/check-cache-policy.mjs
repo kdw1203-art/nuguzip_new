@@ -162,7 +162,7 @@ for (const route of patternRoutes) {
    예외는 사유와 함께 여기 적는다. 조용히 빠져 있으면 다음 사람이 "캐시되고
    있겠지" 하고 넘어가게 되므로, 예외도 목록에 남는 편이 낫다. */
 const ISR_EXEMPT = {
-  "/region/[id]": "?complexes=30 을 읽어 searchParams 의존 — ISR 불가(사이트맵 61개, 영향 작음)",
+  // /region/[id] 는 2026-08-01 에 searchParams 를 제거하고 ISR 로 복귀 — 면제 해제.
   "/complex/browse": "필터가 전부 searchParams — ISR 불가(사이트맵 1개)",
 };
 

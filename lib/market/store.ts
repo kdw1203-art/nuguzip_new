@@ -219,14 +219,22 @@ export async function logIngest(entry: {
   const sb = getServiceSupabase();
   if (!sb) return;
   try {
-    await sb.from("market_ingest_log").insert({
-      source: entry.source,
-      dataset: entry.dataset,
-      origin: entry.origin,
-      rows: entry.rows,
-      status: entry.status ?? "ok",
-      message: entry.message ?? null,
-    });
+    /* 10초 상한. 이 기록은 크론이 작업 예산(CRON_WORK_BUDGET_MS)을 다 쓴 뒤
+       남는 시간에 실행 결과를 남기는 용도인데, 쓰기는 resilient-fetch 의 상한
+       대상이 아니라서 DB 가 밀리면 여기 매달려 함수 전체가 타임아웃으로 죽고
+       — 정작 "시간 초과로 중단됨" 기록조차 못 남겼다. 기록은 10초 안에 되거나
+       포기한다(non-critical). */
+    await sb
+      .from("market_ingest_log")
+      .insert({
+        source: entry.source,
+        dataset: entry.dataset,
+        origin: entry.origin,
+        rows: entry.rows,
+        status: entry.status ?? "ok",
+        message: entry.message ?? null,
+      })
+      .abortSignal(AbortSignal.timeout(10_000));
   } catch {
     // non-critical
   }
@@ -322,8 +330,48 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
 }
 
 export async function getRegionSnapshot(regionId: string): Promise<RegionMarketSnapshot | null> {
-  const map = await getAllRegionSnapshots();
-  return map.get(regionId) ?? null;
+  /* 따뜻한 캐시가 있으면 그걸 쓴다 — 없다고 전량 스캔을 내지는 않는다.
+     예전엔 단일 지역 조회도 getAllRegionSnapshots() 를 불러 12개 컬럼 전량
+     테이블 스캔을 냈다(콜드 람다마다). 단일 지역은 region_id 등치 + limit 로
+     인덱스를 태우고, 벌크 로드는 지도/추천 같은 전지역 소비자만 낸다. */
+  if (snapshotCache && Date.now() - snapshotCache.at < SNAPSHOT_TTL_MS) {
+    return snapshotCache.map.get(regionId) ?? null;
+  }
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("market_region_price")
+    .select(
+      "source,region_id,region_name,period,per_m2_sale,avg_sale,median_sale,jeonse_ratio,sale_change,trade_count,buy_superiority,jeonse_supply",
+    )
+    .eq("property_type", "apt")
+    .eq("region_id", regionId)
+    .limit(10);
+  if (error || !data) throwQueryFailure("market_region_price", error);
+  const priority: Record<string, number> = { reb: 2, kb: 1, crawl: 0 };
+  let best: RegionMarketSnapshot | null = null;
+  let bestPriority = -1;
+  for (const row of data) {
+    const src = String(row.source);
+    const p = priority[src] ?? 0;
+    if (p <= bestPriority) continue;
+    bestPriority = p;
+    best = {
+      regionId: String(row.region_id),
+      regionName: String(row.region_name),
+      source: src as MarketSource,
+      period: String(row.period),
+      perM2Sale: row.per_m2_sale ?? undefined,
+      avgSale: row.avg_sale ?? undefined,
+      medianSale: row.median_sale ?? undefined,
+      jeonseRatio: row.jeonse_ratio ?? undefined,
+      saleChangeMonthly: row.sale_change ?? undefined,
+      tradeCount: row.trade_count ?? undefined,
+      buySuperiority: row.buy_superiority ?? undefined,
+      jeonseSupply: row.jeonse_supply ?? undefined,
+    };
+  }
+  return best;
 }
 
 /** KOSIS 보조지표(인구·세대·미분양·보급률) 최신값 맵. 1h 캐시. */

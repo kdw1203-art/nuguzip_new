@@ -98,8 +98,19 @@ export async function POST(req: NextRequest) {
     maxRounds = DEGRADED_MAX_ROUNDS;
   }
 
-  /* 3) 플랜 게이트 — 무료 플랜 월 10회 */
-  const quota = await checkAgentQuota(email);
+  /* 3) 플랜 게이트 — 무료 플랜 월 10회.
+     사용량 조회가 실패하면 한도를 "0회 사용"으로 열지 않고 503 으로 멈춘다 —
+     조회 실패가 비용 통제를 해제하면 안 된다. */
+  let quota: Awaited<ReturnType<typeof checkAgentQuota>>;
+  try {
+    quota = await checkAgentQuota(email);
+  } catch (e) {
+    logger.error("[api/agent] 사용량 조회 실패 — 한도 판정 불가로 차단", e);
+    return NextResponse.json(
+      { error: "사용량을 지금 확인할 수 없어 요청을 진행하지 않았어요. 잠시 후 다시 시도해 주세요." },
+      { status: 503 },
+    );
+  }
   if (!quota.allowed) {
     return NextResponse.json(
       {

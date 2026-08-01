@@ -108,7 +108,27 @@ const SIDE_FAILURE_ABORT_THRESHOLD = 4;
  * TX_HISTORY_MONTHS 를 넘긴다 — getTransactionHistory 는 limit 과 무관하게
  * 이 단지의 실거래를 전부 읽어서 월별로 접은 뒤 마지막 limit개만 남긴다.
  */
-const loadComplexRow = cache(getComplexById);
+/* 10초 상한. 이 조회는 페이지의 1단(이게 끝나야 곁다리 8초 예산이 시작된다)
+   이라 여기 상한이 없으면 3단 직렬(row → 곁다리 → 신선도)의 최악이 함수
+   상한을 넘본다. 주의: 시간 초과는 **throw** 다 — null 로 바꾸면 notFound()
+   가 "조회 실패"를 "없는 단지(404)"로 위장한다. */
+const COMPLEX_ROW_TIMEOUT_MS = 10_000;
+const loadComplexRow = cache(async (id: string) => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      getComplexById(id),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`단지 정보 조회 시간 초과 (${COMPLEX_ROW_TIMEOUT_MS}ms)`)),
+          COMPLEX_ROW_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+});
 const loadTxHistory = cache(getTransactionHistory);
 
 /** 위 두 loader 가 쓰는 실거래 이력 개월 수 — 메타데이터·본문이 반드시 같아야 한다.
@@ -636,11 +656,15 @@ export default async function ComplexHubPage({
 }) {
   const { id } = await params;
   const complexId = decodeURIComponent(id);
-  const v = await loadView(complexId);
+  /* 신선도 라벨은 row 에 의존하지 않는다 — 본문 로드와 병렬로 받는다.
+     (직렬이면 이 페이지의 3단 직렬 최악이 그만큼 더 길어진다.) */
+  const [v, freshness] = await Promise.all([
+    loadView(complexId),
+    // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
+    getMarketFreshnessDateLabel(),
+  ]);
   // 사실 우선: 존재하지 않는 단지는 목업 대신 404
   if (!v) notFound();
-  // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
-  const freshness = await getMarketFreshnessDateLabel();
 
   /* JSON-LD — 이 페이지가 설명하는 실체는 "단지 하나"다.
      G6 이전엔 ApartmentComplex(@id 있음)와 별도의 Residence(@id 없음) 두 노드를

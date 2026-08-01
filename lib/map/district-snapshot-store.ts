@@ -112,8 +112,12 @@ export async function getDistrictSnapshotDocument(input: {
     input.fallbackSample !== false &&
     input.districtKey === SAMPLE_DAECHI_SNAPSHOT.districtKey
   ) {
+    /* 샘플은 샘플의 달(2026-06)을 그대로 단다. 예전엔 요청한 달로 덮어써서
+       고정 데모 수치가 "이번 달 데이터"로 다시 태어났다 — 기준월을 바꿔 다는
+       것 자체가 사실 왜곡이다. source:"sample" 과 문서의 자체 기준월이 함께
+       가야 호출부가 "데모 문서다 + 언제 것이다"를 둘 다 안다. */
     return {
-      document: { ...SAMPLE_DAECHI_SNAPSHOT, snapshotMonth },
+      document: SAMPLE_DAECHI_SNAPSHOT,
       source: "sample",
     };
   }

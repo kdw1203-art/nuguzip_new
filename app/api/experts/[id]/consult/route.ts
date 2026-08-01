@@ -96,7 +96,16 @@ export async function POST(
 
   return withUserQuotaLock(`consult:${userEmail}`, async () => {
     const plan = await resolveQuotaPlan(userEmail, session.user.plan);
-    const quota = await checkExpertConsultQuota(userEmail, plan);
+    /* 사용량 조회 실패는 한도 통과가 아니다 — 503 으로 멈춘다. */
+    let quota: Awaited<ReturnType<typeof checkExpertConsultQuota>>;
+    try {
+      quota = await checkExpertConsultQuota(userEmail, plan);
+    } catch {
+      return NextResponse.json(
+        { error: "사용량을 지금 확인할 수 없어 상담 요청을 진행하지 않았어요. 잠시 후 다시 시도해 주세요." },
+        { status: 503 },
+      );
+    }
     if (!quota.allowed) {
       return NextResponse.json(
         {

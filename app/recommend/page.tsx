@@ -150,23 +150,32 @@ function RecCard({ item }: { item: RecItem }) {
 function EmptyState({
   personalization,
   hasMarketData,
+  marketFetchFailed,
 }: {
   personalization: PersonalizationSummary | null;
   hasMarketData: boolean;
+  marketFetchFailed: boolean;
 }) {
   const hasInterest = (personalization?.regions.length ?? 0) > 0;
   const hasBudget = !!personalization?.budget;
   const configured = hasInterest || hasBudget;
 
-  const headline = !configured
-    ? "관심지역·예산을 설정하면 맞춤 추천이 시작돼요"
-    : !hasMarketData
-      ? "시세 데이터가 쌓이면 맞춤 추천을 보여드려요"
-      : "조건에 맞는 추천을 준비하고 있어요";
+  /* 조회 실패와 "데이터가 아직 없음"은 다른 사실이다 — 실패면 실패라고 쓴다.
+     데이터는 있는데 DB 가 잠깐 못 읽은 것을 "쌓이면 보여드려요"로 말하면
+     사용자는 영영 안 쌓이는 줄 안다. */
+  const headline = marketFetchFailed
+    ? "지금은 시세를 불러오지 못했어요"
+    : !configured
+      ? "관심지역·예산을 설정하면 맞춤 추천이 시작돼요"
+      : !hasMarketData
+        ? "시세 데이터가 쌓이면 맞춤 추천을 보여드려요"
+        : "조건에 맞는 추천을 준비하고 있어요";
 
-  const body = !configured
-    ? "관심지역과 예산·목적을 알려주시면, 예산에 맞고 시세 흐름이 좋은 지역을 추천 이유와 함께 골라드려요."
-    : "관심지역이 설정되어 있어요. 해당 지역의 시세·거래 데이터가 충분히 모이면 자동으로 맞춤 추천이 채워집니다.";
+  const body = marketFetchFailed
+    ? "추천에 쓰는 지역 시세 조회가 실패했어요. 데이터가 없는 게 아니라 지금 못 읽은 것이니, 잠시 후 새로고침해 주세요."
+    : !configured
+      ? "관심지역과 예산·목적을 알려주시면, 예산에 맞고 시세 흐름이 좋은 지역을 추천 이유와 함께 골라드려요."
+      : "관심지역이 설정되어 있어요. 해당 지역의 시세·거래 데이터가 충분히 모이면 자동으로 맞춤 추천이 채워집니다.";
 
   return (
     <div className="flex flex-col gap-4">
@@ -210,7 +219,8 @@ export default async function RecommendPage() {
     );
   }
 
-  const { items, personalization, hasMarketData } = await loadRecommendations(email);
+  const { items, personalization, hasMarketData, marketFetchFailed } =
+    await loadRecommendations(email);
 
   return (
     <PageShell breadcrumb="맞춤 추천" title="맞춤 단지·지역 추천">
@@ -229,7 +239,11 @@ export default async function RecommendPage() {
             ))}
           </div>
         ) : (
-          <EmptyState personalization={personalization} hasMarketData={hasMarketData} />
+          <EmptyState
+            personalization={personalization}
+            hasMarketData={hasMarketData}
+            marketFetchFailed={marketFetchFailed}
+          />
         )}
 
         <p className="mt-1 text-[11px] leading-[1.6] text-text-3">

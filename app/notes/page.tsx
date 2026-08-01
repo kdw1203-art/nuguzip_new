@@ -8,7 +8,7 @@ import {
 import { safeAuth } from "@/lib/safe-auth";
 import { listAlertSubscriptions } from "@/lib/alerts/subscriptions";
 import { NotesFeedClient, type FeedNote } from "./notes-feed-client";
-import { resolveComplexHref } from "@/lib/newui/complex-link";
+import { complexHrefKey, resolveComplexHrefs } from "@/lib/newui/complex-link";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 시안 7a — 공개 임장노트 피드. 실데이터: inspection_notes(is_public) → listPublicNotes
@@ -148,13 +148,16 @@ export default async function NotesFeedPage({
     let mineError: string | null = null;
     try {
       const rows = await listNotes(email);
-      notes = await Promise.all(
-        rows.map(async (n) =>
-          toFeedNote(n, await resolveComplexHref(n.aptName, n.region), {
-            mine: true,
-            interestRegions,
-          }),
-        ),
+      /* 동시 상한 + 마감이 있는 일괄 해석 — 항목마다 동시 DB 왕복을 내던
+         N+1 을 접는다(/qna 와 같은 판단, resolveComplexHrefs 주석 참고). */
+      const hrefs = await resolveComplexHrefs(
+        rows.map((n) => ({ name: n.aptName, region: n.region })),
+      );
+      notes = rows.map((n) =>
+        toFeedNote(n, hrefs.get(complexHrefKey(n.aptName, n.region)) ?? null, {
+          mine: true,
+          interestRegions,
+        }),
       );
     } catch (e) {
       /* 빈 배열로 삼키면 "아직 쓴 노트가 없어요"가 뜬다 — 내가 쓴 기록이
@@ -176,13 +179,14 @@ export default async function NotesFeedPage({
   let loadError: string | null = null;
   try {
     const rows = await listPublicNotes(50);
-    // 아파트명(+지역)으로 complexes 실 id 조회 — 요청당 React cache로 중복 방지
-    notes = await Promise.all(
-      rows.map(async (n) =>
-        toFeedNote(n, await resolveComplexHref(n.aptName, n.region), {
-          interestRegions,
-        }),
-      ),
+    // 아파트명(+지역)으로 complexes 실 id 조회 — 중복 접기 + 동시 4개 + 3초 마감
+    const hrefs = await resolveComplexHrefs(
+      rows.map((n) => ({ name: n.aptName, region: n.region })),
+    );
+    notes = rows.map((n) =>
+      toFeedNote(n, hrefs.get(complexHrefKey(n.aptName, n.region)) ?? null, {
+        interestRegions,
+      }),
     );
   } catch (e) {
     /* 조회 실패를 빈 배열로 삼키면 아래 목업 보강이 작동해 "아직 공개된 노트가

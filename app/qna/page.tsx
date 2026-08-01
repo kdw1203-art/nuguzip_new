@@ -8,7 +8,7 @@ import { AdSlot } from "@/app/components/ads/AdSlot";
 import { getAdViewer } from "@/lib/ads/viewer";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { listQuestions } from "@/lib/qna/store";
-import { resolveComplexHref } from "@/lib/newui/complex-link";
+import { complexHrefKey, resolveComplexHrefs } from "@/lib/newui/complex-link";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { logger } from "@/lib/log";
 import type { QnaQuestion } from "@/lib/qna/types";
@@ -266,44 +266,15 @@ export default async function QnaListPage({
      제한 + 전체 3초 마감으로 돈다. 마감을 넘긴 나머지는 링크만 생략된다 —
      링크는 부가 정보라 "조회 실패"를 위장하는 것이 아니라 조회 자체를 하지
      않은 것이고, 질문 데이터는 온전히 보인다. */
-  const RESOLVE_CONCURRENCY = 4;
-  const RESOLVE_DEADLINE_MS = 3_000;
-  const lookupKeys: string[] = [];
-  const lookups = new Map<string, { name: string; region: string | null }>();
-  for (const q of items) {
-    if (q.complexId || !q.complexName) continue;
-    const key = `${q.complexName} ${q.region ?? ""}`;
-    if (!lookups.has(key)) {
-      lookups.set(key, { name: q.complexName, region: q.region ?? null });
-      lookupKeys.push(key);
-    }
-  }
-  const resolved = new Map<string, string | null>();
-  {
-    const startedAt = Date.now();
-    let cursor = 0;
-    const worker = async () => {
-      while (cursor < lookupKeys.length) {
-        if (Date.now() - startedAt > RESOLVE_DEADLINE_MS) return;
-        const key = lookupKeys[cursor];
-        cursor += 1;
-        if (key === undefined) return;
-        const target = lookups.get(key)!;
-        try {
-          resolved.set(key, await resolveComplexHref(target.name, target.region));
-        } catch {
-          resolved.set(key, null);
-        }
-      }
-    };
-    await Promise.all(
-      Array.from({ length: Math.min(RESOLVE_CONCURRENCY, lookupKeys.length) }, worker),
-    );
-  }
+  const resolved = await resolveComplexHrefs(
+    items
+      .filter((q) => !q.complexId && q.complexName)
+      .map((q) => ({ name: q.complexName, region: q.region })),
+  );
   const rows: QuestionRow[] = items.map((q) => {
     if (q.complexId) return { q, complexHref: `/complex/${encodeURIComponent(q.complexId)}` };
     if (!q.complexName) return { q, complexHref: null };
-    return { q, complexHref: resolved.get(`${q.complexName} ${q.region ?? ""}`) ?? null };
+    return { q, complexHref: resolved.get(complexHrefKey(q.complexName, q.region)) ?? null };
   });
 
   const viewer = await getAdViewer();

@@ -64,6 +64,8 @@ export async function fetchVworldGetFeature(options: {
   attrFilter?: string;
   geomFilter?: string;
   geometry?: boolean;
+  /** 요청 상한(ms). 기본 20초 — 프로브처럼 빨리 포기할 곳은 짧게. */
+  timeoutMs?: number;
 }): Promise<VworldGetFeatureResult> {
   const key = getVworldApiKey();
   if (!key) {
@@ -90,6 +92,7 @@ export async function fetchVworldGetFeature(options: {
 
   const res = await fetch(`${VWORLD_DATA_BASE}?${params.toString()}`, {
     next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(options.timeoutMs ?? 20_000),
   });
 
   if (!res.ok) {
@@ -115,7 +118,15 @@ export async function fetchVworldGetFeature(options: {
 export async function probeVworldDataset(dataLayer: string): Promise<boolean> {
   if (!isVworldConfigured()) return false;
   try {
-    await fetchVworldGetFeature({ data: dataLayer, page: 1, size: 1, geometry: false });
+    /* 프로브는 "지금 살아 있나"만 본다 — 3초 안에 답이 없으면 그건 살아
+       있는 게 아니다. 여기 상한이 없으면 헬스체크가 정부 API 에 매달린다. */
+    await fetchVworldGetFeature({
+      data: dataLayer,
+      page: 1,
+      size: 1,
+      geometry: false,
+      timeoutMs: 3_000,
+    });
     return true;
   } catch {
     return false;

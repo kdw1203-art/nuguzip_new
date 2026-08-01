@@ -22,6 +22,7 @@ import {
   type ComplexSummary,
   type ComplexTxRegion,
 } from "@/lib/market/complex-transactions";
+import { ExpandableComplexRows } from "./ExpandableComplexRows";
 import { ComplexSummaryTable } from "../../components/ComplexSummaryTable";
 import { findTxRegionForMarketRegion, type TxRegionSummary } from "@/lib/market/tx-bands";
 import { BAND_KIND_LABEL } from "@/lib/market/bands";
@@ -60,18 +61,23 @@ import { seoAlternates } from "@/lib/seo/alternates";
       "준비 중"으로 표기하지 않는다. 세 가지 상태(정상 / 정말 없음 / 조회 실패)를
       각각 다른 문장으로 적는다.
 
-   캐시: 이 페이지는 `?complexes=30` 을 읽는다. searchParams 를 읽는 순간 Next 는
-   요청마다 서버 렌더로 돌리고, 응답에 `private, no-cache, no-store` 를 실어
-   보낸다 — 즉 여기 적힌 revalidate 는 ISR 창이 아니라 내부 데이터 캐시 눈금일
-   뿐이고, CDN 은 이 페이지를 한 벌도 재사용하지 못한다. 형제 라우트들처럼
-   generateStaticParams 로 ISR 에 태우려면 그 파라미터부터 없애야 한다
-   (2026-07-28 함수 호출 소진 사고의 남은 자리. 경위는 app/complex/[id]/page.tsx
-   같은 자리 주석). 사이트맵 기준 이 라우트는 61개라 25,310개짜리 단지 라우트와
-   달리 급하지 않아 남겨 뒀고, 남겨 뒀다는 사실을
-   scripts/check-cache-policy.mjs 의 ISR_EXEMPT 에 사유와 함께 적어 뒀다.
+   캐시: 2026-08-01 부터 ISR 이다. 예전엔 `?complexes=30` 을 읽어서 —
+   searchParams 를 읽는 순간 Next 는 요청마다 서버 렌더로 돌리고 `private,
+   no-cache, no-store` 를 실어 보낸다 — CDN 이 이 페이지를 한 벌도 재사용하지
+   못했다(2026-07-28 함수 호출 소진 사고의 남은 자리였다). 12↔30 확장을
+   ExpandableComplexRows(클라이언트 토글)로 옮기고 generateStaticParams(빈
+   배열)를 export 해 형제 라우트(/complex/[id] · /tx/[region])와 같은 ISR 로
+   복귀시켰다. scripts/check-cache-policy.mjs 의 ISR_EXEMPT 면제도 해제됐다.
    ============================================================ */
 
 export const revalidate = 3600;
+
+/* 빈 generateStaticParams — 빌드 때는 아무 지역도 미리 만들지 않고, 첫 요청이
+   ISR 로 채운다. ?complexes=30(searchParams)을 클라이언트 토글로 옮겼으므로
+   이제 CDN 이 한 시간 창 안에서 응답을 재사용한다 (/complex/[id] 와 같은 판단). */
+export async function generateStaticParams(): Promise<Array<{ id: string }>> {
+  return [];
+}
 
 /* ---------- 세 갈래 상태 (정상 / 정말 없음 / 조회 실패) ---------- */
 
@@ -212,12 +218,10 @@ export async function generateMetadata({
 
 export default async function RegionHubPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ complexes?: string }>;
 }) {
-  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const { id } = await params;
 
   /* 이 페이지의 뼈대. 실패하면 던진다 → 5xx.
      null 은 이제 "이 지역은 목록에 없다"만 뜻한다 → 404 가 맞다. */
@@ -225,8 +229,10 @@ export default async function RegionHubPage({
   if (!snapshot) notFound();
 
   const name = snapshot.regionName;
-  // 단지별 현황 — 기본 12개, ?complexes=30 으로 확장
-  const complexLimit = sp.complexes === "30" ? 30 : 12;
+  /* 단지별 현황 — 30개를 한 번에 받아 클라이언트 토글로 12↔30 을 오간다.
+     예전의 ?complexes=30 방식은 searchParams 를 읽는 순간 페이지 전체가
+     요청마다 서버 렌더가 되어 ISR 을 무력화했다(ExpandableComplexRows 주석). */
+  const complexLimit = 30;
   const txRegion: ComplexTxRegion =
     findComplexTxRegionById(id) ?? { id, name, city: id.startsWith("incheon-") ? "인천" : "서울" };
   // 이 지역 자치구명 (예: "고양시 덕양구" → "덕양구") — 공급·정비사업 매칭 키
@@ -660,19 +666,23 @@ export default async function RegionHubPage({
               국토부 실거래가 기반 · 매물 호가 아님
             </span>
           </h2>
-          {complexSummaries.length > 0 && complexLimit === 12 && (
-            <Link
-              href={`/region/${id}?complexes=30`}
-              className="shrink-0 text-[12px] font-bold text-primary"
-            >
-              더 보기
-            </Link>
-          )}
         </div>
-        <ComplexSummaryTable
-          summaries={complexSummaries}
-          regionId={id}
-          failed={!complexR.ok}
+        <ExpandableComplexRows
+          canExpand={complexSummaries.length > 12}
+          collapsed={
+            <ComplexSummaryTable
+              summaries={complexSummaries.slice(0, 12)}
+              regionId={id}
+              failed={!complexR.ok}
+            />
+          }
+          expanded={
+            <ComplexSummaryTable
+              summaries={complexSummaries}
+              regionId={id}
+              failed={!complexR.ok}
+            />
+          }
         />
         {complexSummaries.length > 0 && (
           <div className="mt-3 text-right">

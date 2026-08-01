@@ -28,7 +28,9 @@ async function probeLiveServices(): Promise<Set<string>> {
   await Promise.all(
     PROBE_SERVICES.map(async (service) => {
       try {
-        await fetchSeoulOpenApi(service, 1, 1);
+        /* 프로브는 3초 상한 — 상한 없이 매달리는 헬스체크는 자기 목적을
+           뒤집는다(모니터가 "다운"으로 읽는다). */
+        await fetchSeoulOpenApi(service, 1, 1, [], "json", { timeoutMs: 3_000 });
         live.add(service);
       } catch {
         // not live
@@ -62,10 +64,14 @@ export type PublicDataProbeSummary = {
 };
 
 export async function getPublicDataProbeSummary(): Promise<PublicDataProbeSummary> {
-  const liveServices = await probeLiveServices();
   const seoulKeyOk = isSeoulApiConfigured();
   const vworldKeyOk = isVworldConfigured();
-  const vworldBrokerLive = vworldKeyOk ? await isVworldRebBrokerAvailable() : false;
+  /* 서울 프로브 묶음과 vworld 프로브는 서로 무관하다 — 직렬로 기다릴 이유가
+     없다. 각 프로브에 3초 상한이 있으므로 전체도 수 초 안에 끝난다. */
+  const [liveServices, vworldBrokerLive] = await Promise.all([
+    probeLiveServices(),
+    vworldKeyOk ? isVworldRebBrokerAvailable() : Promise.resolve(false),
+  ]);
   const publicDataSources: DataSourceId[] = [
     "mot-transactions",
     "kosis-population",

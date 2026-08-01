@@ -31,12 +31,18 @@ function monthStartIso(): string {
 export async function getMonthlyAgentUsage(email: string): Promise<number> {
   const sb = getServiceSupabase();
   if (!sb) return 0; // 로컬/미설정 환경: 한도 미적용 (inspection quota 와 동일한 폴백)
-  const { count } = await sb
+  const { count, error } = await sb
     .from("ai_analysis_runs")
     .select("id", { count: "exact", head: true })
     .eq("author_email", email.trim().toLowerCase())
     .eq("tool", AGENT_USAGE_TOOL_KEY)
     .gte("created_at", monthStartIso());
+  /* 조회 실패를 0으로 누르면 "이번 달 0회 사용"이 되어 유료 한도가 통째로
+     열린다 — 조회 실패는 실패로 던진다(호출자가 503). lib/inspection/quota.ts
+     · lib/ai/presets-store.ts 가 같은 이유로 이미 throw 한다. */
+  if (error) {
+    throw new Error(`ai_analysis_runs 사용량 조회 실패: ${error.message}`);
+  }
   return Number(count ?? 0);
 }
 
