@@ -27,7 +27,13 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     status: "done",
     note: "scripts/smoke-auth-reset.mjs — 경로·잘못된 토큰. 실메일 완주는 Resend ops.",
   },
-  { id: "perf-mobile-lcp", title: "모바일 첫 진입 LCP 최적화", priority: "P0", status: "todo" },
+  {
+    id: "perf-mobile-lcp",
+    title: "모바일 첫 진입 LCP 최적화",
+    priority: "P0",
+    status: "done",
+    note: "Pretendard 비차단 preload+media swap (layout). 추후 Lighthouse 재측정 권장.",
+  },
   {
     id: "api-rate-limit",
     title: "핵심 API 레이트리밋 (로그인/AI/댓글/신고)",
@@ -61,7 +67,7 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     title: "결제 성공/실패/취소/중복결제 점검",
     priority: "P0",
     status: "blocked",
-    note: "경로 스모크: smoke:payment-paths. 실결제·취소는 오너 승인 후.",
+    note: "경로 스모크+해지요청 UX. 실결제: docs/ops/payment-e2e-checklist.md (오너).",
   },
   {
     id: "refund-flow",

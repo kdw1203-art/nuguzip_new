@@ -97,7 +97,7 @@ function toFeedNote(
     excerpt,
     tags: deriveTags(n),
     footer: [
-      `평점 ${avg.toFixed(1)}/5`,
+      `자가체크 ${avg.toFixed(1)}/5`,
       `방문 ${n.visitDate}`,
       `체크 ${n.checklist.filter((c) => c.done).length}/${n.checklist.length}`,
     ],

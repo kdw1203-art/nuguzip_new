@@ -2,89 +2,94 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { HOME_CTA_AI, HOME_CTA_MAP, HOME_CTA_NOTE } from "@/lib/brand/home-copy";
 
-/* 제언-기획 #19 여정 단계 분기 배너 — 첫 방문 시 단계 선택, 이후 단계별 추천 행 1줄로 축소.
-   선택값은 localStorage("nz_journey")에 보존. */
+/**
+ * 여정 배너 — PersonalHome과 같은 노트→AI→지도 루프만 안내.
+ * (옛 browsing/field/closing localStorage 단계는 제거 — 이중 퍼널 해소)
+ */
 
-type Stage = "browsing" | "field" | "closing";
+type LoopStep = "note" | "ai" | "map";
 
-const STORAGE_KEY = "nz_journey";
+const STORAGE_KEY = "nz_journey_loop";
 
-const STAGE_LABEL: Record<Stage, string> = {
-  browsing: "구경 중",
-  field: "실전 임장",
-  closing: "계약 직전",
+const STEP_LABEL: Record<LoopStep, string> = {
+  note: "1. 기록",
+  ai: "2. AI",
+  map: "3. 지도",
 };
 
-const STAGE_RECS: Record<Stage, { label: string; href: string }[]> = {
-  browsing: [
+const STEP_RECS: Record<LoopStep, { label: string; href: string }[]> = {
+  note: [
+    { label: HOME_CTA_NOTE.label, href: HOME_CTA_NOTE.href },
     { label: "공개 임장노트", href: "/notes" },
-    { label: "AI 정리 미리보기", href: "/analysis" },
   ],
-  field: [
-    { label: "임장노트 작성", href: "/notes/new" },
-    { label: "지도에서 비교", href: "/map" },
+  ai: [
+    { label: HOME_CTA_AI.label, href: HOME_CTA_AI.href },
+    { label: HOME_CTA_NOTE.label, href: HOME_CTA_NOTE.href },
   ],
-  closing: [
-    { label: "전세 안전 진단", href: "/safety" },
-    { label: "AI 분석", href: "/analysis" },
+  map: [
+    { label: HOME_CTA_MAP.label, href: HOME_CTA_MAP.href },
+    { label: HOME_CTA_NOTE.label, href: HOME_CTA_NOTE.href },
   ],
 };
 
-const STAGE_KEYS: Stage[] = ["browsing", "field", "closing"];
+const STEP_KEYS: LoopStep[] = ["note", "ai", "map"];
 
-function isStage(v: string | null): v is Stage {
-  return v === "browsing" || v === "field" || v === "closing";
+function isLoopStep(v: string | null): v is LoopStep {
+  return v === "note" || v === "ai" || v === "map";
 }
 
 export function JourneyBanner() {
-  const [stage, setStage] = useState<Stage | null>(null);
+  const [step, setStep] = useState<LoopStep | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (isStage(saved)) setStage(saved);
+      if (isLoopStep(saved)) setStep(saved);
+      /* 구 키 정리 */
+      window.localStorage.removeItem("nz_journey");
     } catch {
-      // localStorage 접근 불가 시 무시 (매 방문 질문 상태 유지)
+      /* ignore */
     }
     setReady(true);
   }, []);
 
-  const select = (s: Stage) => {
-    setStage(s);
+  const select = (s: LoopStep) => {
+    setStep(s);
     try {
       window.localStorage.setItem(STORAGE_KEY, s);
     } catch {
-      // 저장 실패는 무시
+      /* ignore */
     }
   };
 
   const reset = () => {
-    setStage(null);
+    setStep(null);
     try {
       window.localStorage.removeItem(STORAGE_KEY);
     } catch {
-      // 삭제 실패는 무시
+      /* ignore */
     }
   };
 
-  // SSR·하이드레이션 동안은 렌더하지 않음 (localStorage 값과 불일치 방지)
   if (!ready) return null;
 
-  if (stage === null) {
+  if (step === null) {
     return (
       <div className="card flex flex-col gap-2.5 rounded-2xl px-[18px] py-4">
-        <div className="text-[13px] font-extrabold text-ink">지금 어느 단계세요?</div>
+        <div className="text-[13px] font-extrabold text-ink">지금 어디부터 할까요?</div>
+        <p className="text-[11px] text-text-3">임장노트 → AI 정리 → 지도 비교 순서가 기본이에요</p>
         <div className="flex gap-1.5">
-          {STAGE_KEYS.map((s) => (
+          {STEP_KEYS.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => select(s)}
-              className="chip flex-1 border border-line bg-surface px-3 py-2 text-xs text-text-1 transition-colors hover:bg-bg"
+              className="chip flex-1 border border-line bg-surface py-2 text-[12px] font-bold text-text-1"
             >
-              {STAGE_LABEL[s]}
+              {STEP_LABEL[s]}
             </button>
           ))}
         </div>
@@ -92,28 +97,26 @@ export function JourneyBanner() {
     );
   }
 
+  const recs = STEP_RECS[step];
   return (
-    <div className="card flex items-center gap-2 rounded-2xl px-[18px] py-3">
-      <span className="chip chip-soft shrink-0 px-2.5 py-1 text-[11px]">
-        {STAGE_LABEL[stage]}
-      </span>
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
-        {STAGE_RECS[stage].map((r) => (
-          <Link
-            key={r.href}
-            href={r.href}
-            className="chip shrink-0 border border-line bg-surface px-3 py-1.5 text-xs font-bold text-text-1"
-          >
-            {r.label} ›
-          </Link>
-        ))}
-      </div>
+    <div className="card flex flex-wrap items-center gap-2 rounded-2xl px-[18px] py-3">
+      <span className="text-[12px] font-extrabold text-ink">{STEP_LABEL[step]}</span>
+      <span className="text-[11px] text-text-3">추천</span>
+      {recs.map((r) => (
+        <Link
+          key={r.href + r.label}
+          href={r.href}
+          className="chip border border-primary/30 bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+        >
+          {r.label}
+        </Link>
+      ))}
       <button
         type="button"
         onClick={reset}
-        className="shrink-0 text-[11px] text-text-3"
+        className="ml-auto text-[11px] font-semibold text-text-3 underline"
       >
-        변경
+        단계 다시 고르기
       </button>
     </div>
   );

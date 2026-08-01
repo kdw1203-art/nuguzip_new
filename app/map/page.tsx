@@ -16,6 +16,8 @@ import { getNote } from "@/lib/inspection/store-db";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { getOnboardingPersonalization } from "@/lib/onboarding/personalization";
 
+/* auth·searchParams 때문에 요청마다 렌더. 지역 시세 마커는
+   lib/map/region-market.ts 의 unstable_cache(10분)로 DB 부하를 줄인다. */
 export const dynamic = "force-dynamic";
 
 /* `?region=` 같은 필터가 붙어도 색인되는 주소는 `/map` 하나여야 한다.

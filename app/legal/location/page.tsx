@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "위치기반서비스 이용약관 | 우리동네이야기",
+export const metadata = buildPageMetadata({
+  title: "위치기반서비스 이용약관",
   description: "위치정보 이용 목적, 수집 항목, 보유 기간, 권리 행사 방법 안내",
-};
+  path: "/legal/location",
+});
 
 export default function LocationLegalPage() {
   const info = getBusinessInfo();

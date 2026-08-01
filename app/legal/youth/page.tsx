@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "청소년 보호정책 | 우리동네이야기",
+export const metadata = buildPageMetadata({
+  title: "청소년 보호정책",
   description: "청소년 유해정보 차단 및 신고 처리 기준 안내",
-};
+  path: "/legal/youth",
+});
 
 export default function YouthPolicyPage() {
   const info = getBusinessInfo();

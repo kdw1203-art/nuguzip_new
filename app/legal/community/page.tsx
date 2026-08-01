@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "커뮤니티 운영정책 | 우리동네이야기",
-  description: "우리동네이야기 커뮤니티 이용 규칙, 금지 행위, 신고·제재 절차를 안내합니다.",
-};
+export const metadata = buildPageMetadata({
+  title: "커뮤니티 운영정책",
+  description: "누구집 커뮤니티 이용 규칙, 금지 행위, 신고·제재 절차를 안내합니다.",
+  path: "/legal/community",
+});
 
 const LAST_UPDATED = "2026-04-30";
 

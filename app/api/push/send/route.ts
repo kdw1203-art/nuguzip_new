@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     title: body.title,
     body: body.body,
     url: body.url ?? fallbackUrl,
-    tag: body.tag ?? `woodong-${eventType}`,
+    tag: body.tag ?? `nuguzip-${eventType}`,
     eventType,
   };
 

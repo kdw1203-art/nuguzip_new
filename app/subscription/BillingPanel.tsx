@@ -4,6 +4,7 @@ import {
   PAYMENT_STATUS_LABEL,
   PAYMENT_PLAN_LABEL,
 } from "@/lib/subscriptions/billing-history";
+import { CancelRequestButton } from "./CancelRequestButton";
 
 /**
  * 구독 관리 · 결제 내역 (E1)
@@ -133,28 +134,28 @@ export async function BillingPanel({
         )}
       </div>
 
-      {/* 해지·플랜 변경 — 셀프서비스 버튼이 없다는 사실을 감추지 않는다.
-          "해지하기" 버튼을 두고 문의 폼으로 보내면 그건 버튼이 아니라 미끼다. */}
-      <div className="mt-4 flex flex-col gap-1.5 rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3">
+      {/* 해지 요청 — 즉시 해지/다음 결제일 자동 표시는 DB에 기간이 없어 제공하지 않음.
+          구조화된 해지 요청 버튼 + CS 경로를 함께 둔다. */}
+      <div className="mt-4 flex flex-col gap-2 rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3">
         <div className="text-[12px] font-extrabold text-ink">플랜 변경 · 해지 · 환불</div>
         <p className="text-[11px] leading-[1.7] text-text-2">
-          현재 화면에서 바로 해지하는 버튼은 없습니다. 해지·환불 요청은{" "}
+          유료 플랜 해지는 아래 <b>해지 요청하기</b>로 접수하거나{" "}
           <Link
             href="/support?category=payment"
             className="font-bold text-primary underline underline-offset-2"
           >
-            고객센터 1:1 문의
+            고객센터
           </Link>
-          의 <b>결제·환불</b> 카테고리로 접수해 주세요. 접수 후{" "}
-          <b>영업일 기준 1일 이내</b>에 접수 확인을 안내하며, 처리 기준은{" "}
+          로 남겨 주세요. 접수 후 <b>영업일 1일 이내</b> 확인 안내. 처리 기준은{" "}
           <Link
             href="/legal/terms#refund"
             className="font-bold text-primary underline underline-offset-2"
           >
-            약관 제8조(청약철회·환불)
+            약관 제8조
           </Link>
-          를 따릅니다.
+          . <b>다음 결제 예정일은 시스템에 저장되어 있지 않아 표시하지 않습니다.</b>
         </p>
+        {currentPlan !== "free" && <CancelRequestButton currentPlan={currentPlan} />}
         <p className="text-[11px] leading-[1.7] text-text-3">
           상위 플랜으로 올리는 것은 위 요금제 카드에서 바로 결제하면 적용됩니다.
         </p>

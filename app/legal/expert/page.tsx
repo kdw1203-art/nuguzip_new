@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import {
   EXPERT_FRAUD_RULES,
@@ -7,12 +6,14 @@ import {
   EXPERT_VERIFICATION_PIPELINE,
 } from "@/lib/experts/verification-policy";
 import { EXPERT_VERIFICATION_SOURCES } from "@/lib/experts/verification-sources";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "전문가 운영정책 | 우리동네이야기",
+export const metadata = buildPageMetadata({
+  title: "전문가 운영정책",
   description:
     "전문가 인증 절차, 사기 방지, 환불·오프플랫폼 결제 금지, 플랫폼 책임 범위를 안내합니다.",
-};
+  path: "/legal/expert",
+});
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
   <h2 className="mt-8 text-lg font-bold text-ink">{children}</h2>

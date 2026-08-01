@@ -49,7 +49,7 @@ const EXPERTS = [
 
 export default function PricePage() {
   return (
-    <PageShell breadcrumb="매물 A (공작 84A 급매 7.9억) › AI 제안가 근거">
+    <PageShell breadcrumb="예시 매물 A › AI 제안가 근거 (데모)">
       {/* 화면 최상단 예시 밴드 — 아래 모든 수치는 실데이터가 아닌 데모용 예시 */}
       <div
         role="note"

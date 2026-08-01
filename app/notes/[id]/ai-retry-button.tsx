@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "../../components/toast/ToastProvider";
+import { UpgradePaywall } from "@/app/components/UpgradePaywall";
 
 type Intent = "실거주" | "투자" | "전월세";
 type InvestorRole = "live" | "invest" | "rent" | "balanced";
@@ -108,14 +108,13 @@ export function AiRetryButton({
       >
         {busy ? "AI 정리 중…" : "AI 다시 정리하기"}
       </button>
-      {quotaBlocked && (
-        <Link
-          href="/subscription"
-          className="inline-flex w-fit items-center rounded-lg bg-primary px-3 py-2 text-[12px] font-extrabold text-white"
-        >
-          구독하고 AI 이어서 쓰기
-        </Link>
-      )}
+      <UpgradePaywall
+        open={quotaBlocked}
+        onClose={() => setQuotaBlocked(false)}
+        title="AI 월간 한도 도달"
+        message="이번 달 Free AI 정리 횟수를 모두 썼어요. PRO 이상으로 올리면 이어서 정리할 수 있어요. (규칙 기반 초안은 한도를 쓰지 않습니다.)"
+        ctaLabel="구독하고 AI 이어서 쓰기"
+      />
     </div>
   );
 }

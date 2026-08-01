@@ -63,6 +63,7 @@ export default function RootLayout({
             crossOrigin 은 필수 — 폰트는 CORS 로 받으므로 이게 없으면 연결이
             재사용되지 않고 따로 하나 더 열린다. */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         {/* N3 — RSS 자동 발견. 리더·크롤러는 이 태그로 피드를 찾는다. 메타데이터
             규약(alternates.types)에 두지 않은 이유는, 페이지가 canonical 을
             지정하면 alternates 객체가 통째로 덮여 피드 링크가 사라지기 때문이다.
@@ -73,11 +74,31 @@ export default function RootLayout({
           title="누구집 — 실거래 리포트·임장노트"
           href="https://nuguzip.com/feed.xml"
         />
-        {/* 비애플 기기 폰트 폴백 — Pretendard Variable (dynamic subset) */}
+        {/* LCP: Pretendard 비차단 — preload 후 media=print→all 스왑.
+            첫 페인트는 시스템 폰트, 로드 후 Pretendard. */}
         <link
-          rel="stylesheet"
+          rel="preload"
+          as="style"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
+        <link
+          id="pretendard-font"
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+          media="print"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){var l=document.getElementById('pretendard-font');if(!l)return;function a(){l.media='all'}l.addEventListener('load',a);if(l.sheet)a();})();",
+          }}
+        />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+          />
+        </noscript>
         {/* #19 PWA — iOS 홈 화면 아이콘 · 웹앱 메타
             G9: .svg → .png 로 교체했다. Safari 는 apple-touch-icon 으로 SVG 를
             받지 않는다 — 지금까지 iOS 에서 홈 화면에 추가하면 아이콘이 아니라

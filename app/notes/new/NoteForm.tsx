@@ -388,11 +388,14 @@ export function NoteForm({
   template,
   initialNote,
   presetMemo,
+  preferAi = false,
 }: {
   template?: NoteFormTemplate | null;
   initialNote?: NoteFormInitialNote | null;
   /** 작성 모드 메모 초안 프리필 (?memo= — /calculator 조건 전달용) */
   presetMemo?: string | null;
+  /** 홈 AI CTA — 저장 후 AI 정리 유도 (?intent=ai) */
+  preferAi?: boolean;
 }) {
   const router = useRouter();
   const { showMoment } = useMoment();
@@ -1000,6 +1003,16 @@ export function NoteForm({
           </button>
         )}
       </div>
+
+      {preferAi && !isEdit && (
+        <div
+          role="status"
+          className="mt-2.5 rounded-[12px] border border-primary/25 bg-primary-soft px-3.5 py-2.5 text-[12px] leading-[1.6] text-text-1"
+        >
+          <b className="text-primary">AI 정리 경로</b> — 노트를 저장하면 AI(또는 규칙 초안)로
+          장단점을 정리해요. LLM이 아닐 때는 &quot;규칙 기반&quot; 배지로 표시됩니다.
+        </div>
+      )}
 
       {/* 입력 진행 바 — 위 progressItems 의 실제 충족 개수만 반영(하드코딩 66% 제거) */}
       <div

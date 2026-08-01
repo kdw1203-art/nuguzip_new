@@ -140,7 +140,7 @@ function GridTile({ n }: { n: FeedNote }) {
       />
       {/* 점수 배지 (인스타 조회수/캐러셀 인디케이터 위치) */}
       <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:text-[11px]">
-        {n.score}점
+        체크 {n.score}
       </span>
       {n.isExample && (
         <span className="absolute left-1.5 top-1.5 rounded bg-black/45 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
@@ -187,7 +187,7 @@ function PostCard({ n }: { n: FeedNote }) {
               : "bg-[rgba(127,140,158,.12)] text-text-3"
           }`}
         >
-          {n.score}점
+          체크 {n.score}
         </span>
       </div>
       <Link
@@ -210,7 +210,7 @@ function PostCard({ n }: { n: FeedNote }) {
                 {n.title}
               </span>
               <span className="mt-1 rounded-full bg-white/22 px-3.5 py-1 text-[12px] font-extrabold backdrop-blur-sm">
-                임장 점수 {n.score}
+                자가 체크 요약 {n.score}
               </span>
             </div>
           }

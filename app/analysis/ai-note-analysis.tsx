@@ -275,14 +275,18 @@ export function AiNoteAnalysisCard({
               {state.result.headline}
             </span>
             <span
-              className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted"
+              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${
+                state.result.mode === "llm"
+                  ? "border border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                  : "border border-amber-400/50 bg-amber-500/15 text-amber-100"
+              }`}
               title={
                 state.result.mode === "llm"
                   ? "AI 모델이 노트 내용과 지역 실시세를 바탕으로 생성한 결과예요."
                   : "AI 모델 응답을 받지 못해 점수·기록 기반 규칙으로 요약했어요. 다시 시도하면 AI 생성 결과를 받을 수 있어요."
               }
             >
-              {state.result.mode === "llm" ? "AI 생성" : "규칙 기반 요약"}
+              {state.result.mode === "llm" ? "AI 생성 · LLM" : "규칙 기반 요약 · LLM 아님"}
             </span>
           </div>
           {state.result.cached && (

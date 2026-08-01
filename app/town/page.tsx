@@ -28,21 +28,6 @@ export const metadata = buildPageMetadata({
 
 export const revalidate = 120;
 
-/* 더미데이터 정책(더미 1개 원칙): 실데이터 0건일 때만 예시 카드 1건 노출 */
-const EXAMPLE_CARD: FeedCard = {
-  id: "mock-feed-1",
-  href: "/town/write",
-  kind: "note",
-  cover: null,
-  title: "채광은 확실, 주차가 관건 — 공작 302동 임장 후기",
-  author: "임장러버",
-  region: "안양 관양동",
-  tags: ["임장", "후기"],
-  visited: true,
-  createdAt: Date.now(),
-  isExample: true,
-};
-
 function noteToCard(n: InspectionNote): FeedCard {
   const oneLiner = n.summary?.trim() || n.sections.pros?.trim() || n.title;
   const tags: string[] = [];
@@ -113,10 +98,8 @@ export default async function TownPage() {
     (a, b) => b.createdAt - a.createdAt,
   );
 
-  /* 조회가 실패했을 때는 예시 카드를 깔지 않는다. "아직 공개된 글이 없어 샘플을
-     보여드려요"는 못 읽었을 때 하면 거짓말이 된다 — 글은 있는데 못 읽은 것이다. */
-  const exampleOnly = cards.length === 0 && !loadFailed;
-  if (exampleOnly) cards = [EXAMPLE_CARD];
+  /* 공작 등 가짜 예시 카드는 쓰지 않는다 — 0건이면 정직한 empty+CTA (스태프 시드 ops). */
+  const exampleOnly = false;
 
   return (
     <PageShell wide>

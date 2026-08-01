@@ -392,7 +392,7 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
             </div>
           ) : (
             <div className="text-[10px] text-text-3">
-              변경 즉시 저장돼요 · 방해 금지 시간 등 세부 옵션은 준비 중이에요
+              변경 즉시 저장돼요
             </div>
           )}
         </>

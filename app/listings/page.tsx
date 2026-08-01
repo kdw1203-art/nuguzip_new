@@ -122,11 +122,12 @@ export default async function ListingsPage({
         <div>
           <h1 className="rise-in text-[22px] font-extrabold text-ink">실매물</h1>
           <p className="mt-1 text-[13px] text-text-3">
-            집주인 직접 등록·제휴 중개사 매물 — 검수를 통과한 매물만 보여드려요.
+            검수 통과 매물만 노출 · 현재 필터는 서울 구 단위(전국 등록은 가능, 목록 필터는 서울
+            중심).
           </p>
         </div>
         <Link href="/listings/new" className="btn-primary btn-md">
-          지도에서 등록
+          매물 등록하기
         </Link>
       </div>
 
@@ -190,11 +191,15 @@ export default async function ListingsPage({
       ) : items.length === 0 ? (
         <div className="rise-in-1 card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
           <div className="text-[15px] font-extrabold text-ink">
-            아직 등록된 매물이 없어요 — 첫 매물을 등록해 보세요
+            이 조건에 검수된 매물이 아직 없어요
           </div>
           <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
-            집주인이라면 소유 확인 후 직접 등록할 수 있고, 중개사무소는 제휴를 통해
-            매물을 노출할 수 있어요.
+            베타 기간에는 매물 공급이 적을 수 있어요. 집주인은 소유 확인 후 직접 등록하고,
+            중개사무소는 제휴로 노출할 수 있어요. 임장 기록은{" "}
+            <Link href="/notes/new" className="font-bold text-primary underline">
+              임장노트
+            </Link>
+            로 이어가세요.
           </p>
           <div className="flex gap-2">
             <Link href="/listings/new" className="btn-primary btn-md">

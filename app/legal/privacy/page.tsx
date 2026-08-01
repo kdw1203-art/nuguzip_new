@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "개인정보처리방침 — 우리동네이야기",
-  description: "우리동네이야기 개인정보처리방침 전문",
-};
+export const metadata = buildPageMetadata({
+  title: "개인정보처리방침",
+  description: "누구집(서비스 운영: 우리동네이야기) 개인정보처리방침 전문",
+  path: "/legal/privacy",
+});
 
 const UPDATED = "2026년 6월 24일";
 

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         ? planDef.priceAnnualMonthly * 12
         : planDef.priceMonthly;
     if (!itemName) {
-      itemName = `우리동네이야기 ${planDef.name} (${billing === "annual" ? "연간" : "월간"})`;
+      itemName = `누구집 ${planDef.name} (${billing === "annual" ? "연간" : "월간"})`;
     }
   }
 

@@ -44,7 +44,7 @@ const PRICE_CHIPS: { label: string; pct: number }[] = [
 ];
 const PERIOD_CHIPS = ["3년", "5년", "10년"];
 
-/** 예시 기본값: 공작아파트 84㎡ · 8.4억 */
+/** 예시 기본값(데모) — 특정 단지명 없음 · 8.4억 */
 const EXAMPLE_PRICE_WON = 840_000_000;
 const LOAN_MONTHS = 360; // 30년 원리금균등
 
@@ -288,7 +288,7 @@ export default function ScenarioPage() {
               <span className="text-right font-bold text-ink">
                 {isReal
                   ? `${pickedName ? `${pickedName} · ` : ""}${baseline.regionName} 평균 · ${baseline.avgSaleLabel}`
-                  : `${pickedName ? `${pickedName} · ` : "공작아파트 84㎡ · "}8.4억`}
+                  : `${pickedName ? `${pickedName} · ` : "예시 시세 · "}8.4억`}
                 {isReal && (
                   <span className="ml-1 rounded border border-line px-1 py-px text-[9px] font-semibold text-text-3 align-middle">
                     실데이터 기준

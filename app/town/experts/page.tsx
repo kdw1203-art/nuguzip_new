@@ -257,13 +257,13 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
           </div>
           <p className="text-sm font-bold text-ink">
             {sub.id === "all" && region === "all"
-              ? "아직 등록된 전문가가 없어요"
+              ? "인증 전문가가 아직 없어요"
               : `${sub.label} 분야 전문가가 아직 없어요`}
           </p>
           <p className="max-w-xs text-xs leading-[1.6] text-text-3">
             {sub.id === "all" && region === "all"
-              ? "전문가 인증이 완료되면 여기에서 바로 상담할 수 있어요."
-              : "다른 분야나 지역으로 바꿔보세요."}
+              ? "베타 기간에는 공급이 적을 수 있어요. 전문가 인증이 끝나면 상담이 열려요. 그동안은 임장노트·지도로 판단을 이어가세요."
+              : "다른 분야·지역을 보거나, 임장노트로 기록을 이어가세요."}
           </p>
           {filtersActive && (
             <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">

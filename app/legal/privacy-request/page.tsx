@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
 import { getBusinessInfo } from "@/lib/brand/business-info";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "개인정보 열람·정정·삭제 요청 | 우리동네이야기",
+export const metadata = buildPageMetadata({
+  title: "개인정보 열람·정정·삭제 요청",
   description: "개인정보 처리 요청 절차 및 처리 기한 안내",
-};
+  path: "/legal/privacy-request",
+});
 
 const REQUEST_TYPES = [
   "개인정보 열람 요청",

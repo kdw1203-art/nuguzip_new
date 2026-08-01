@@ -57,8 +57,15 @@ const DEFAULTS = {
   privacyEmail: "nuguzip@naver.com",
 } as const;
 
+/**
+ * 제품 UI 브랜드(누구집) vs 사업자 상호(우리동네이야기).
+ * SEO·화면은 SITE_NAME/누구집, 약관 본문·고시는 legalName/serviceName.
+ */
+export const PRODUCT_BRAND = "누구집";
+
 export function getBusinessInfo(): BusinessInfo {
   return {
+    /** 전자상거래·약관상 서비스 운영 상호 */
     serviceName: "우리동네이야기",
     domain: "nuguzip.com",
     legalName: readEnv(ENV.legalName, DEFAULTS.legalName),

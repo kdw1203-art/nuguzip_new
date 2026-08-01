@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
 
@@ -47,11 +48,8 @@ interface RegionPriceRow {
   period: string;
 }
 
-export async function loadRegionMarketMarkers(): Promise<RegionMarketMarker[]> {
-  /* 2026-07-26: 클라이언트 생성 실패와 쿼리 실패를 모두 `[]` 로 삼켰다. 그러면
-     지도에서 지역 시세 말풍선이 통째로 사라지는데, 보는 쪽에서는 "이 지역은
-     거래가 없다" 로 읽힌다 — 실제로는 집계 테이블을 못 읽은 것뿐이다.
-     실패는 던지고 호출부(app/map/page.tsx)가 안내 문구로 구분한다. */
+async function loadRegionMarketMarkersUncached(): Promise<RegionMarketMarker[]> {
+  /* 실패는 던지고 호출부(app/map/page.tsx)가 안내 문구로 구분한다. */
   const sb = getServiceSupabase();
   if (!sb) {
     throw new Error("[region-market] Supabase 서비스 클라이언트를 만들 수 없습니다 (환경변수 누락)");
@@ -96,3 +94,10 @@ export async function loadRegionMarketMarkers(): Promise<RegionMarketMarker[]> {
   }
   return out;
 }
+
+/** 지도 SSR이 force-dynamic 이어도 시세 마커는 10분 캐시 */
+export const loadRegionMarketMarkers = unstable_cache(
+  loadRegionMarketMarkersUncached,
+  ["map-region-market-markers-v1"],
+  { revalidate: 600, tags: ["map-region-markers"] },
+);

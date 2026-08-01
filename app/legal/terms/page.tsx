@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { BusinessDisclosureBlock } from "../BusinessDisclosureBlock";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
-export const metadata: Metadata = {
-  title: "이용약관 — 우리동네이야기",
-  description: "우리동네이야기 서비스 이용약관 전문",
-};
+export const metadata = buildPageMetadata({
+  title: "이용약관",
+  description: "누구집(서비스 운영: 우리동네이야기) 이용약관 전문",
+  path: "/legal/terms",
+});
 
 const UPDATED = "2025년 6월 1일";
 

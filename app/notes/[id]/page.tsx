@@ -682,8 +682,15 @@ export default async function NoteDetailPage({
                   : undefined
               }
             >
-              <span className="mb-1.5 inline-flex items-center rounded border border-white/20 px-1.5 py-px text-[9px] font-semibold text-ai-muted">
+              <span
+                className={`mb-1.5 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-extrabold ${
+                  v.aiBadge.startsWith("규칙")
+                    ? "border border-amber-400/50 bg-amber-500/15 text-amber-100"
+                    : "border border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
+                }`}
+              >
                 {v.aiBadge}
+                {v.aiBadge.startsWith("규칙") ? " · LLM 아님" : " · LLM"}
               </span>
               <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
               {isOwner && !hasLlmAi && (

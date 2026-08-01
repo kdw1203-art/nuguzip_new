@@ -22,7 +22,8 @@ const EMPTY: UnifiedResults = { complexes: [], listings: [], notes: [], news: []
 
 const RECENT_KEY = "nuguzip.recentSearches";
 const RECENT_MAX = 5;
-const POPULAR = ["관양동", "동편마을", "과천 S7 청약", "인덕원선"] as const;
+/** 측정된 인기가 아님 — 전국 주요 권역 추천 검색어 (가짜 KPI 금지) */
+const SUGGESTED_REGIONS = ["강남구", "분당", "마포구", "해운대구"] as const;
 
 function readRecent(): string[] {
   try {
@@ -283,9 +284,12 @@ export function SearchClient() {
             </div>
           )}
           <div>
-            <div className="mb-2 px-1 text-xs font-extrabold text-text-3">인기 검색</div>
+            <div className="mb-2 px-1 text-xs font-extrabold text-text-3">
+              추천 지역{" "}
+              <span className="font-medium text-text-3">(인기 순위 아님)</span>
+            </div>
             <div className="flex flex-wrap gap-[6px]">
-              {POPULAR.map((k) => (
+              {SUGGESTED_REGIONS.map((k) => (
                 <button
                   key={k}
                   type="button"

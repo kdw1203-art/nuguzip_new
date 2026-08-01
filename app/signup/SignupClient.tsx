@@ -26,16 +26,8 @@ const GOALS = [
   { icon: "💼", title: "전문가 · 중개사", desc: "리포트 발행·상담 도구", purpose: null },
 ] as const;
 
-const SEGMENTS: { name: string; options: string[]; initial: string }[] = [
-  { name: "나이대", options: ["20대", "30대", "40대", "50대+"], initial: "30대" },
-  { name: "성별", options: ["남", "여"], initial: "남" },
-  { name: "가구", options: ["1인 거주", "2인 거주", "3인 이상"], initial: "2인 거주" },
-  { name: "직업", options: ["직장인", "사업자", "법인"], initial: "직장인" },
-  { name: "생애최초", options: ["해당", "비해당"], initial: "해당" },
-  { name: "보유 주택", options: ["무주택", "1주택", "2주택+"], initial: "무주택" },
-];
-
-/** 관심 지역 선택 상한 — /welcome 온보딩과 같은 값(라벨의 "최대 3곳") */
+/** 관심 지역 선택 상한 — /welcome 온보딩과 같은 값(라벨의 "최대 3곳")
+ *  인구통계(나이·성별 등)는 가입에서 빼고 /welcome 온보딩으로 미룬다. */
 const MAX_REGIONS = 3;
 
 type RegisterResponse = {
@@ -53,9 +45,6 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
   const { showMoment } = useMoment();
   const [goal, setGoal] = useState(0);
   const [socialBusy, setSocialBusy] = useState<SocialProvider | null>(null);
-  const [segments, setSegments] = useState<Record<string, string>>(
-    Object.fromEntries(SEGMENTS.map((s) => [s.name, s.initial]))
-  );
   const [regions, setRegions] = useState<string[]>([]);
 
   const [name, setName] = useState("");
@@ -93,16 +82,11 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
     trackStep("signup_step_1");
   }, [trackStep]);
 
-  /* 이 화면이 물어본 것 중 가입 API 스펙에 없는 값들(관심 지역·기본 정보·목표)을
-     온보딩으로 넘긴다. 가입 API 는 email·password·name·consent 만 받는다.
-     예전에는 넘기지도 저장하지도 않아서, 세 가지 질문의 답이 제출 순간 통째로
-     사라지고 바로 다음 화면이 같은 질문을 다시 했다. */
+  /* 관심 지역·목표는 온보딩(/welcome)으로 넘긴다. 인구통계는 welcome에서 수집. */
   useEffect(() => {
-    stashSignupHandoff({ regions, profile: segments, purpose: GOALS[goal].purpose });
-  }, [regions, segments, goal]);
+    stashSignupHandoff({ regions, profile: {}, purpose: GOALS[goal].purpose });
+  }, [regions, goal]);
 
-  /* 진행률 — 사용자가 실제로 채워야 하는 것만 센다. 목표·기본 정보는 기본값이
-     이미 들어 있어(GOALS[0], SEGMENTS.initial) 세면 열자마자 진행된 것처럼 보인다. */
   const progressDone = [
     regions.length > 0,
     email.trim().includes("@"),
@@ -116,7 +100,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
     setSocialBusy(provider);
     stashSignupHandoff({
       regions,
-      profile: segments,
+      profile: {},
       purpose: GOALS[goal].purpose,
     });
     trackStep("signup_step_4", { method: provider });
@@ -408,40 +392,6 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
       </div>
 
       <div className="rise-in-3 flex flex-col gap-2">
-        <div className="text-[13px] font-extrabold text-ink">
-          기본 정보{" "}
-          <span className="text-[11px] font-medium text-text-3">맞춤 추천에 사용 · 나중에 수정 가능</span>
-        </div>
-        {SEGMENTS.map((seg) => (
-          <div key={seg.name} className="flex items-center gap-2">
-            <span className="w-[60px] shrink-0 text-xs text-text-2">{seg.name}</span>
-            <div className="flex flex-wrap gap-[5px]">
-              {seg.options.map((opt) => {
-                const active = segments[seg.name] === opt;
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      trackStep("signup_step_3", { section: "segment" });
-                      setSegments((prev) => ({ ...prev, [seg.name]: opt }));
-                    }}
-                    className={`rounded-full px-3 py-1.5 text-xs ${
-                      active
-                        ? "border-[1.5px] border-primary bg-primary-soft font-bold text-primary"
-                        : "border border-[#e2e7ee] bg-surface text-text-2"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="rise-in-4 flex flex-col gap-2">
         <label htmlFor="signup-region-search" className="text-[13px] font-extrabold text-ink">
           관심 지역{" "}
           <span className="text-[11px] font-medium text-text-3">
