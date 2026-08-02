@@ -217,6 +217,7 @@ export function PlanCards({
                       tier={p.checkoutTier}
                       billing={billing}
                       className={p.ctaClass}
+                      dark={p.dark}
                     />
                   )}
                   <Link

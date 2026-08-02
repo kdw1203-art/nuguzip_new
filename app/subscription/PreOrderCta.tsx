@@ -14,10 +14,15 @@ export function PreOrderCta({
   tier,
   billing,
   className,
+  dark = false,
 }: {
   tier: "pro" | "expert";
   billing: "monthly" | "annual";
   className: string;
+  /** 어두운 플랜 카드(PRO, bg #222830) 위 렌더 여부 — 안내 문구 색을 바꾼다.
+      text-3(#606a77)는 어두운 배경에서 2.7:1 로 WCAG AA 미달이라 a11y 게이트가
+      잡았다. 다크에서는 ai-muted(#9aa6b8, 6.0:1)를 쓴다. */
+  dark?: boolean;
 }) {
   const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
 
@@ -55,7 +60,9 @@ export function PreOrderCta({
       <button type="button" onClick={register} disabled={state === "busy"} className={className}>
         {state === "busy" ? "등록 중…" : "오픈 알림 받기"}
       </button>
-      <p className="text-center text-[11px] leading-[1.6] text-text-3">
+      <p
+        className={`text-center text-[11px] leading-[1.6] ${dark ? "text-ai-muted" : "text-text-3"}`}
+      >
         결제 수단을 준비하고 있어요 — 아직 결제가 열리지 않았습니다.
         {state === "error" && " 등록에 실패했어요. 잠시 후 다시 눌러 주세요."}
       </p>
