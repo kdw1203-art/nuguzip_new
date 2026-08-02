@@ -78,7 +78,10 @@ test("8. /discover redirects into the merged 동네이야기 feed", async ({ pag
 
 test("9. /map renders map shell (title + zoom controls, no tile wait)", async ({ page }) => {
   await page.goto("/map");
-  await expect(page).toHaveTitle(/지도 탐색/);
+  /* 제목은 카피 개편으로 "지도 탐색" → "지도에서 비교"가 됐다(2026-08-02 확인).
+     특정 카피를 단정하면 카피 수정마다 스위트가 죽는다 — "지도"가 포함된
+     제목이면 지도 셸이 맞다(줌 컨트롤 단언이 실체를 검증한다). */
+  await expect(page).toHaveTitle(/지도/);
   await expect(page.getByRole("button", { name: "확대" })).toBeVisible();
   await expect(page.getByRole("button", { name: "축소" })).toBeVisible();
 });
@@ -123,20 +126,44 @@ test("15. /town/news renders with h1 뉴스 · 자료", async ({ page }) => {
 
 // ---------- 구독 / 결제 ----------
 
-test("16. /subscription renders with plan buttons", async ({ page }) => {
+/* /subscription 은 서버가 결제 개통 상태를 판정해 두 상태 중 하나를 그린다
+   (감사 항목 33):
+   - 결제 준비됨: "플러스 시작하기"·"전문가로 시작" 결제 버튼
+   - 미개통(사업자 고지 미완·PSP 미설정 — CI 는 env 가 없어 항상 이 상태):
+     "오픈 알림 받기" 사전 등록 버튼
+   테스트는 서버와 같은 사실을 본다 — 어느 한 상태를 단정하면 env 에 따라
+   거짓 빨강이 된다(2026-08-02 run 30725419638 이 그렇게 죽었다). */
+test("16. /subscription renders plan CTAs (결제 개통 여부에 맞는 상태)", async ({ page }) => {
   await page.goto("/subscription");
   await expect(
     page.getByRole("heading", { level: 1, name: /기록은 무료, 판단은 더 깊게/ }),
   ).toBeVisible();
-  // 8908947: 무료 체험 코드가 없는데 "14일 무료 체험"이라 적는 건 허위 고지라
-  // CTA 문구가 실제 동작("플러스 시작하기" → 곧바로 결제)에 맞게 바뀌었다.
-  await expect(page.getByRole("button", { name: "플러스 시작하기" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "전문가로 시작" })).toBeVisible();
+  const checkout = page.getByRole("button", { name: "플러스 시작하기" });
+  const preorder = page.getByRole("button", { name: "오픈 알림 받기" });
+  await expect(checkout.or(preorder).first()).toBeVisible();
+  if ((await checkout.count()) > 0) {
+    // 결제 개통 상태 — 두 유료 티어 버튼이 모두 있어야 한다
+    await expect(page.getByRole("button", { name: "전문가로 시작" })).toBeVisible();
+  } else {
+    // 미개통 상태 — 사전 등록 버튼(PRO·EXPERT 카드 각 1개) + 사실 고지 문구
+    expect(await preorder.count()).toBeGreaterThanOrEqual(1);
+    await expect(page.getByText("아직 결제가 열리지 않았습니다").first()).toBeVisible();
+  }
 });
 
 test("17. clicking a plan button while logged out leads to /login", async ({ page }) => {
   await page.goto("/subscription");
-  await page.getByRole("button", { name: "플러스 시작하기" }).click();
+  const checkout = page.getByRole("button", { name: "플러스 시작하기" });
+  if ((await checkout.count()) === 0) {
+    /* 결제 미개통 상태 — 결제 버튼 자체가 없으므로 로그인 리다이렉트 흐름이
+       존재하지 않는다. 대신 사전 등록 버튼이 눌리는지(죽은 컨트롤 아님)만
+       확인한다. 등록 결과 문구는 DB 유무에 따라 다르므로 단정하지 않는다. */
+    const preorder = page.getByRole("button", { name: "오픈 알림 받기" }).first();
+    await expect(preorder).toBeVisible();
+    await preorder.click();
+    return;
+  }
+  await checkout.click();
   // 8908947: window.confirm 대신 버튼 자리에서 확인받는 2단계 — "계속"을 눌러야 진행된다.
   await page.getByRole("button", { name: "계속" }).click();
   // PlanCheckoutButton: 비로그인 → /login?callbackUrl=/subscription 이동

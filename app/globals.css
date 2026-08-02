@@ -152,7 +152,10 @@
 
   /* AI 패널 · 다크 패널 내 텍스트 (15b: 본문 #e2e8f2 · 보조 #9aa6b8 · 강조 #7ea2ff) */
   --ai-panel: rgba(25, 31, 40, 0.96);
-  --ai-accent: #7ea2ff; /* 다크 위 파랑 #1d4fd8 금지 — 대비 부족 */
+  /* 2026-08-02: #7ea2ff → #88aaff. AI 패널 안 bg-white/10 칩의 합성 배경
+     (#383d45)에서 4.42:1 로 AA(4.5:1)에 못 미쳤다(axe serious). #88aaff 는
+     같은 배경에서 4.81:1, 패널 원 배경에서 6.26:1. 다크 위 파랑 #1d4fd8 금지. */
+  --ai-accent: #88aaff;
   --ai-text: #e2e8f2;
   --ai-muted: #9aa6b8;
 
