@@ -4,8 +4,24 @@ import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
+import { createHash } from "node:crypto";
 
 export const runtime = "nodejs";
+
+/**
+ * 주문 하나에 늘 같은 멱등키를 만든다 (UUID v5 형태, 네임스페이스는 고정 문자열).
+ *
+ * 난수를 쓰면 재시도마다 키가 달라져 멱등성이 성립하지 않는다. orderId 로부터
+ * 결정적으로 뽑아야 "같은 주문의 두 번째 승인 요청"이 첫 응답을 그대로 받는다.
+ */
+function idempotencyKeyForOrder(orderId: string): string {
+  const h = createHash("sha1").update(`nuguzip:toss:confirm:${orderId}`).digest();
+  const b = Buffer.from(h.subarray(0, 16));
+  b[6] = (b[6] & 0x0f) | 0x50; // version 5
+  b[8] = (b[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = b.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 /**
  * 토스페이먼츠 결제 승인(confirm).
@@ -93,11 +109,29 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+    /* 테스트 키로 운영 결제를 승인하려는 상황을 막는다.
+       토스 시크릿 키는 test_sk_… / live_sk_… 로 환경이 갈린다. 운영에 테스트 키가
+       꽂혀 있으면 결제창은 정상으로 보이고 승인도 성공하는데 돈은 오지 않는다 —
+       화면상으로는 아무 문제가 없어서 한참 뒤에야 발견된다. 여기서 끊는다. */
+    if (process.env.NODE_ENV === "production" && secret.startsWith("test_")) {
+      await markFailed(orderId);
+      return NextResponse.json(
+        { error: "운영 환경에 토스 테스트 시크릿 키가 설정되어 결제를 중단했습니다." },
+        { status: 500 },
+      );
+    }
+
     const res = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
       method: "POST",
       headers: {
         Authorization: `Basic ${Buffer.from(secret + ":").toString("base64")}`,
         "Content-Type": "application/json",
+        /* 멱등키 — 같은 주문의 승인 요청이 두 번 나가도 첫 응답을 돌려받는다.
+           successUrl 로 돌아온 화면에서 사용자가 새로고침하거나 네트워크가
+           끊겼다 재시도되면 승인이 두 번 나갈 수 있다. 주문 하나당 같은 키를
+           쓰도록 orderId 로 UUID v5 를 만든다(재시도해도 같은 키가 나온다).
+           토스 기준 멱등키는 첫 요청 후 15일간 유효하다. */
+        "Idempotency-Key": idempotencyKeyForOrder(orderId),
       },
       body: JSON.stringify({
         paymentKey: body.paymentKey,

@@ -8,6 +8,18 @@ export type BusinessInfo = {
   registrationNumber: string;
   address: string;
   mailOrderSalesNumber: string;
+  /**
+   * 고객 문의 유선번호.
+   *
+   * 토스페이먼츠 상점 심사가 홈페이지 하단에 "사업자등록증 상의 상호명·사업자
+   * 등록번호·대표자명·사업장 주소·**유선번호**"를 모두 요구한다. 우리 푸터에는
+   * 이 항목 자체가 없었다 — 이메일만 적혀 있어서 심사에서 바로 걸린다.
+   *
+   * 허용 번호체계: 지역번호 · 070 · 0505 · 전국대표번호 · 080 · 휴대폰.
+   * 단, 080 은 가운데 첫 자리가 0이면 등록 불가(예: 080-012-3456).
+   * 지어낼 수 없는 값이라 기본값을 두지 않는다 — env 로만 채운다.
+   */
+  phone: string;
   supportEmail: string;
   privacyEmail: string;
   /** 사업용 수취 계좌 — 은행명. 무통장 입금·환불 안내에 쓴다. */
@@ -30,6 +42,7 @@ const ENV = {
     "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
     "MAIL_ORDER_SALES_NUMBER",
   ],
+  phone: ["NEXT_PUBLIC_COMPANY_PHONE", "COMPANY_PHONE"],
   supportEmail: ["NEXT_PUBLIC_SUPPORT_EMAIL", "SUPPORT_EMAIL"],
   privacyEmail: ["NEXT_PUBLIC_PRIVACY_EMAIL", "PRIVACY_EMAIL"],
   depositBank: ["NEXT_PUBLIC_DEPOSIT_BANK", "DEPOSIT_BANK"],
@@ -62,6 +75,7 @@ const DEFAULTS = {
   registrationNumber: "378-06-02465",
   address: "", // 구 코드에서 미확인 — env(NEXT_PUBLIC_COMPANY_ADDRESS)로 설정
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
+  phone: "", // 지어낼 수 없는 값 — env(NEXT_PUBLIC_COMPANY_PHONE)로 설정
   supportEmail: "nuguzip@naver.com",
   privacyEmail: "nuguzip@naver.com",
   /* 토스뱅크 계좌개설 확인증(2026-06-15 개설, 소유자 제공)에서 옮긴 실값.
@@ -87,6 +101,7 @@ export function getBusinessInfo(): BusinessInfo {
     registrationNumber: readEnv(ENV.registrationNumber, DEFAULTS.registrationNumber),
     address: readEnv(ENV.address, DEFAULTS.address),
     mailOrderSalesNumber: readEnv(ENV.mailOrderSalesNumber, DEFAULTS.mailOrderSalesNumber),
+    phone: readEnv(ENV.phone, DEFAULTS.phone),
     supportEmail: readEnv(ENV.supportEmail, DEFAULTS.supportEmail),
     privacyEmail: readEnv(ENV.privacyEmail, DEFAULTS.privacyEmail),
     depositBank: readEnv(ENV.depositBank, DEFAULTS.depositBank),
@@ -96,11 +111,16 @@ export function getBusinessInfo(): BusinessInfo {
 }
 
 export function isBusinessDisclosureComplete(info: BusinessInfo): boolean {
+  /* 유선번호를 여기 넣은 이유: 이 함수가 곧 유료 결제 개방 스위치다
+     (app/api/billing/checkout·boost 가 이 값으로 결제를 막는다). 토스 심사가
+     유선번호를 필수로 요구하므로, 번호 없이 결제가 열리면 심사에서 반려된다.
+     즉 "고지가 끝났는가"의 기준에 유선번호가 빠져 있으면 안 된다. */
   return Boolean(
     info.representative &&
       info.registrationNumber &&
       info.address &&
-      info.mailOrderSalesNumber,
+      info.mailOrderSalesNumber &&
+      info.phone,
   );
 }
 
@@ -115,7 +135,7 @@ export function formatBusinessFooterPrimary(info: BusinessInfo): string {
 
 /** 푸터 2행: 주소·통신판매업 */
 export function formatBusinessFooterSecondary(info: BusinessInfo): string {
-  return `주소: ${display(info.address)} · 통신판매업 신고번호: ${display(info.mailOrderSalesNumber)}`;
+  return `주소: ${display(info.address)} · 통신판매업 신고번호: ${display(info.mailOrderSalesNumber)} · 대표전화: ${display(info.phone)}`;
 }
 
 export function formatBusinessFooterService(info: BusinessInfo): string {

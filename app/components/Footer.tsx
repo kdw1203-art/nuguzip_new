@@ -42,7 +42,20 @@ export function Footer() {
           주소: {biz.address || "—"}
           {biz.mailOrderSalesNumber
             ? ` · 통신판매업 신고번호: ${biz.mailOrderSalesNumber}`
-            : " · 통신판매업 신고번호: —"}{" "}
+            : " · 통신판매업 신고번호: —"}
+          {" · 대표전화: "}
+          {/* 유선번호는 토스페이먼츠 상점 심사 필수 항목이다. 번호가 있으면
+              바로 걸 수 있게 tel: 로 건다 — 적어만 두면 모바일에서 쓸모가 적다. */}
+          {biz.phone ? (
+            <a
+              href={`tel:${biz.phone.replace(/[^0-9+]/g, "")}`}
+              className="text-text-3 underline-offset-2 hover:underline"
+            >
+              {biz.phone}
+            </a>
+          ) : (
+            "—"
+          )}{" "}
           ·{" "}
           <a
             href={`mailto:${biz.supportEmail}`}
@@ -53,7 +66,8 @@ export function Footer() {
         </div>
         {!disclosureOk ? (
           <div className="text-[11px] text-danger">
-            주소·통신판매업 고지 미완 — 유료 결제·유료 구독은 아직 열리지 않습니다.
+            주소·통신판매업 신고번호·대표전화 고지 미완 — 유료 결제·유료 구독은 아직 열리지
+            않습니다.
           </div>
         ) : null}
 
