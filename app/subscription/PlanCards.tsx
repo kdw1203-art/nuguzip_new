@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PlanCheckoutButton, type CheckoutTier } from "./PlanCheckoutButton";
+import { PreOrderCta } from "./PreOrderCta";
 
 /* 구독 플랜 카드 3종 + 월간/연간 토글 (item 13, 클라이언트 상호작용)
    가격은 서버(page.tsx)에서 billing-periods 단일 출처로 주입 — 하드코딩 없음. */
@@ -94,12 +95,17 @@ export function PlanCards({
   pro,
   expert,
   initialBilling = "monthly",
+  paymentsReady = true,
 }: {
   currentPlan: PlanKind;
   pro: TierPricing;
   expert: TierPricing;
   /** 결제 실패 후 재시도 등 — 서버가 쿼리로 넘긴 초기 결제 주기 */
   initialBilling?: Billing;
+  /** 서버 판정(항목 33): 사업자 고지 완료 + PSP 설정 여부. false 면 결제
+      버튼 대신 사전 등록(오픈 알림)을 그린다 — 눌러 보기 전엔 알 수 없는
+      실패 문구보다 사실을 먼저 말하는 쪽이 맞다. */
+  paymentsReady?: boolean;
 }) {
   const [billing, setBilling] = useState<Billing>(initialBilling);
   const pricing: Record<"pro" | "expert", TierPricing> = { pro, expert };
@@ -199,12 +205,20 @@ export function PlanCards({
                 </button>
               ) : p.checkoutTier ? (
                 <>
-                  <PlanCheckoutButton
-                    tier={p.checkoutTier}
-                    billing={billing}
-                    label={p.cta}
-                    className={p.ctaClass}
-                  />
+                  {paymentsReady ? (
+                    <PlanCheckoutButton
+                      tier={p.checkoutTier}
+                      billing={billing}
+                      label={p.cta}
+                      className={p.ctaClass}
+                    />
+                  ) : (
+                    <PreOrderCta
+                      tier={p.checkoutTier}
+                      billing={billing}
+                      className={p.ctaClass}
+                    />
+                  )}
                   <Link
                     href="/points/shop"
                     className={`text-center text-[11px] font-bold no-underline ${

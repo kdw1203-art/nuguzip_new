@@ -6,6 +6,7 @@ import {
   checkAccess,
   FEATURE_RULES,
   normalizeAccessPlan,
+  upgradeMessage,
   type FeatureKey,
   type PlanTier as AccessTier,
 } from "@/lib/subscriptions/access";
@@ -141,10 +142,18 @@ export function quotaDeniedJson(
   limit: number,
   code: "QUOTA_EXCEEDED" | "TIER" = "QUOTA_EXCEEDED",
 ): QuotaDeniedPayload {
+  const tier: "pro" | "expert" =
+    requiredTier === "basic" || requiredTier === "enterprise" ? "pro" : requiredTier;
+  /* 한도 문구 뒤에 가격이 붙은 업그레이드 안내를 덧붙인다(항목 37).
+     2,900원에서는 가격 자체가 설득이다 — 숨기면 벽이 징벌로 읽힌다.
+     가격은 upgradeMessage → billing-periods.ts 단일 출처에서 온다. */
+  const withUpgrade = message.includes("업그레이드")
+    ? message
+    : `${message} ${upgradeMessage(tier)}`;
   return {
-    error: message,
+    error: withUpgrade,
     code,
-    requiredTier: requiredTier === "basic" || requiredTier === "enterprise" ? "pro" : requiredTier,
+    requiredTier: tier,
     usage: { used, limit },
   };
 }

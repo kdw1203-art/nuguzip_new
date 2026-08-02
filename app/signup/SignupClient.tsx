@@ -412,7 +412,12 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           계정 만들기{" "}
           <span className="text-[11px] font-medium text-text-3">이메일로 가입</span>
         </div>
+        {/* 항목 47 — sr-only 라벨 + id (placeholder 는 접근 가능한 이름이 아니다) */}
+        <label htmlFor="signup-name" className="sr-only">
+          이름 (선택)
+        </label>
         <input
+          id="signup-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -420,7 +425,11 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           autoComplete="name"
           className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
+        <label htmlFor="signup-email" className="sr-only">
+          이메일
+        </label>
         <input
+          id="signup-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -428,7 +437,11 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           autoComplete="email"
           className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
+        <label htmlFor="signup-password" className="sr-only">
+          비밀번호 (8자 이상)
+        </label>
         <input
+          id="signup-password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -436,7 +449,11 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           autoComplete="new-password"
           className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
+        <label htmlFor="signup-password2" className="sr-only">
+          비밀번호 확인
+        </label>
         <input
+          id="signup-password2"
           type="password"
           value={password2}
           onChange={(e) => setPassword2(e.target.value)}

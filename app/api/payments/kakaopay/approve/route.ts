@@ -11,6 +11,8 @@ import {
 import { safeAuth } from "@/lib/safe-auth";
 import { desktopBaseUrl, resolvePublicOriginFromHeaders } from "@/lib/platform-shell";
 import { logger } from "@/lib/log";
+import { getServiceSupabase } from "@/lib/supabase/service";
+import { recordPlatformEvent } from "@/lib/platform-events";
 
 export const runtime = "nodejs";
 
@@ -98,7 +100,13 @@ export async function GET(req: NextRequest) {
       method: approved.payment_method_type ?? "kakaopay",
     });
 
-    if (paid) await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
+    if (paid) {
+      await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
+      /* 항목 39 — ready 단계가 payments.metadata 에 저장한 source/campaign 을
+         이행 시점의 plan_granted 이벤트로 옮겨 적는다. 결제 행과 요금제 부여가
+         조인되지 않으면 "어떤 벽이 전환시켰는지"를 셀 수 없다. fail-soft. */
+      await recordPlanGrantedSource(orderId, paid.userEmail, paid.plan);
+    }
 
     return NextResponse.redirect(
       `${base}/payment/success?orderId=${encodeURIComponent(orderId)}&provider=kakaopay`,
@@ -125,4 +133,39 @@ async function maybeApplyPlan(
   await applyPlanToUserByEmail(userEmail, appPlan, {
     durationDays: billing === "annual" ? 365 : 30,
   });
+}
+
+/**
+ * 항목 39 — ready 단계가 payments.metadata 에 저장한 source/campaign 을
+ * 요금제 부여 시점의 plan_granted 이벤트로 영속화. 실패해도 결제 흐름에는
+ * 영향을 주지 않는다.
+ */
+async function recordPlanGrantedSource(
+  orderId: string,
+  userEmail: string | null,
+  plan: string,
+): Promise<void> {
+  if (!userEmail) return;
+  try {
+    const sb = getServiceSupabase();
+    if (!sb) return;
+    const { data } = await sb
+      .from("payments")
+      .select("metadata")
+      .eq("order_id", orderId)
+      .maybeSingle();
+    const meta = (data?.metadata ?? {}) as Record<string, unknown>;
+    await recordPlatformEvent({
+      /* 결제 승인 리다이렉트에는 단말 판별 근거가 없다 — desktop 기본값.
+         출처 분석의 축은 source/campaign 이다. */
+      platform: "desktop",
+      eventName: "plan_granted",
+      userEmail,
+      source: String(meta.source ?? "") || null,
+      campaign: String(meta.campaign ?? "") || null,
+      metadata: { plan, rail: "kakaopay", orderId },
+    });
+  } catch (e) {
+    logger.warn("[kakaopay:approve] plan_granted 이벤트 기록 실패", e);
+  }
 }

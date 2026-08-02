@@ -1,14 +1,15 @@
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
+import { monthlyLimitsAsPlanTiers } from "@/lib/subscriptions/access";
 import { normalizePlanToGate, type PlanTier } from "@/lib/subscriptions/access-gate";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 
-export const AI_REPORT_LIMITS: Record<PlanTier, number | null> = {
-  free: 3,
-  pro: 20,
-  expert: null,
-  enterprise: null,
-};
+/* FEATURE_RULES.ai_inspection_note 에서 유도 — 한도 숫자의 단일 출처.
+   예전엔 여기(free 3 · pro 20)와 access.ts(basic 2 · pro 30)가 서로 다른
+   숫자를 말했다. 요금제 안내가 말한 숫자와 실제로 부딪히는 숫자가 다르면
+   벽이 가격 신호가 아니라 버그로 읽힌다(항목 35). */
+export const AI_REPORT_LIMITS: Record<PlanTier, number | null> =
+  monthlyLimitsAsPlanTiers("ai_inspection_note");
 
 export async function getUserPlanTier(email: string): Promise<PlanTier> {
   const profile = await fetchAppUserByEmail(email);
@@ -32,8 +33,17 @@ function currentYyyymm(): string {
  */
 export async function getMonthlyReportUsage(email: string): Promise<number> {
   const sb = getServiceSupabase();
-  /* 서비스 키가 없는 개발 환경 — 한도를 세지 않는다(기존 동작). */
-  if (!sb) return 0;
+  /* 서비스 키가 없으면: 로컬에서만 관대하게(한도를 세지 않음), 프로덕션에서는
+     fail-closed. 키가 미설정/회전된 채로 0("한 번도 안 씀")을 돌려주면 과금
+     대상 AI 기능이 조용히 무제한 무료가 된다 — 설정 사고가 비용 사고가 된다. */
+  if (!sb) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "SUPABASE_SERVICE_ROLE_KEY 미설정 — 사용량을 셀 수 없어 AI 한도 판정을 중단합니다.",
+      );
+    }
+    return 0;
+  }
   const { data, error } = await sb
     .from("inspection_ai_usage")
     .select("report_count")

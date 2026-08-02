@@ -15,6 +15,7 @@ import {
 } from "@/lib/inspection/store-db";
 import { CoverImage } from "@/app/components/CoverImage";
 import { safeAuth } from "@/lib/safe-auth";
+import { monthlyPrice } from "@/lib/subscriptions/billing-periods";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { NoteDetailActions } from "./note-actions";
@@ -447,10 +448,15 @@ export default async function NoteDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ ai?: string }>;
+  searchParams: Promise<{ ai?: string; quota?: string }>;
 }) {
   const { id } = await params;
-  const { ai: aiStatusRaw } = await searchParams;
+  const { ai: aiStatusRaw, quota: quotaRaw } = await searchParams;
+  /* NoteForm 이 저장 리다이렉트에 quota=1 을 실어 보낸다 — AI 월간 한도에
+     걸린 채 저장된 경우다. 예전엔 이 값을 버려서, 가치가 전달된 바로 그
+     화면(정리된 노트)에서 업그레이드 안내가 나갈 기회가 사라졌다(항목 38).
+     /map 의 WelcomeHandoff 는 같은 값을 이미 읽고 있다. */
+  const quotaHit = quotaRaw === "1";
   const aiStatus =
     aiStatusRaw === "ok" || aiStatusRaw === "rule" || aiStatusRaw === "fail"
       ? aiStatusRaw
@@ -482,6 +488,13 @@ export default async function NoteDetailPage({
   const isOwner = Boolean(
     viewerEmail && realNote.authorEmail.toLowerCase() === viewerEmail,
   );
+  /* 무료 소유자 판정 — 인라인 업그레이드 카드용(항목 38). 세션 plan 클레임만
+     본다: 여기서 DB 를 또 읽을 만큼 중요한 판정이 아니고, 유료인데 무료로
+     보이는 최악의 경우에도 카드 한 장이 더 보일 뿐이다. */
+  const viewerPlanRaw = ((session?.user as { plan?: string } | undefined)?.plan ?? "free")
+    .toLowerCase()
+    .trim();
+  const isFreeViewer = viewerPlanRaw === "free" || viewerPlanRaw === "basic" || viewerPlanRaw === "";
   if (!realNote.isPublic && !isOwner) notFound();
 
   // 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김
@@ -548,6 +561,17 @@ export default async function NoteDetailPage({
       {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
       <JsonLd data={noteJsonLd(realNote, v)} />
 
+      {/* AI 한도 도달 안내 — 노트는 저장됐다는 사실을 먼저, 다음 행동(구독)을
+          가격과 함께. 가격은 billing-periods 단일 출처. */}
+      {isOwner && quotaHit && (
+        <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+          노트는 저장됐어요. 이번 달 AI 정리 한도에 도달해 이번 건은 AI 없이
+          저장됐어요 —{" "}
+          <Link href="/subscription" className="font-extrabold text-primary">
+            PRO(월 {monthlyPrice("pro").toLocaleString("ko-KR")}원)로 이어서 쓰기 ›
+          </Link>
+        </div>
+      )}
       {/* 저장 직후 루프 안내 — LLM / 규칙 폴백 / 실패를 구분 */}
       {isOwner && aiStatus === "ok" && hasLlmAi && (
         <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
@@ -1011,6 +1035,21 @@ export default async function NoteDetailPage({
               허구 패널이라 제거했다. 편향 분석이 실제로 붙으면 그때 되살린다. */}
         </aside>
       </div>
+
+      {/* 항목 38 — 가치를 받은 화면의 상주 안내. AI 정리가 실제로 반영된
+          노트를 보는 무료 소유자에게만 보인다(한도 문구가 아니라 가치 문구). */}
+      {isOwner && isFreeViewer && hasLlmAi && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3">
+          <p className="text-[13px] leading-[1.6] text-text-1">
+            이 AI 정리가 도움이 됐다면 — PRO(월{" "}
+            {monthlyPrice("pro").toLocaleString("ko-KR")}원)에서는 매 노트마다
+            제한 없이 받을 수 있어요.
+          </p>
+          <Link href="/subscription" className="btn-primary btn-sm no-underline">
+            요금제 보기
+          </Link>
+        </div>
+      )}
 
       {/* 15h-43 노트→AI→지도 루프: 다음 행동을 퍼널 순서로 */}
       <div className="mt-5">

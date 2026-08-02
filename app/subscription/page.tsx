@@ -4,6 +4,12 @@ import { safeAuth } from "@/lib/safe-auth";
 import { loadMeProfile } from "@/lib/me/profile";
 import { BILLING_PERIOD_PRICES, periodPrice } from "@/lib/subscriptions/billing-periods";
 import { PlanCards, type TierPricing } from "./PlanCards";
+import {
+  getBusinessInfo,
+  isBusinessDisclosureComplete,
+} from "@/lib/brand/business-info";
+import { getStripe } from "@/lib/billing/stripe";
+import { isKakaoPayConfigured } from "@/lib/payments/kakaopay";
 import { BillingPanel } from "./BillingPanel";
 import { SETTLEMENT } from "@/lib/creator/sales";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -79,6 +85,14 @@ export default async function SubscriptionPage({
   // 결제 실패 페이지의 "다시 시도하기"가 plan/billing 쿼리를 들고 돌아온다 —
   // 고른 주기를 다시 고르게 하지 않도록 토글 초기값으로 반영한다.
   const sp = (await searchParams) ?? {};
+  /* 항목 33 — 결제가 실제로 열릴 수 있는 상태인지 서버에서 판정한다.
+     사업자 고지(주소·통신판매업 번호)가 비어 있으면 checkout 라우트들이 전부
+     503 을 내고, PSP(Stripe·카카오페이) 키가 없어도 마찬가지다. 그 상태에서
+     결제 버튼을 그리는 건 눌러야만 알 수 있는 거짓 입구다 — 대신 "결제 준비
+     중 + 오픈 알림 받기"로 구매 의사를 기록한다. */
+  const paymentsReady =
+    isBusinessDisclosureComplete(getBusinessInfo()) &&
+    (getStripe() !== null || isKakaoPayConfigured());
   const initialBilling = sp.billing === "annual" ? ("annual" as const) : ("monthly" as const);
   const session = await safeAuth();
   const email = session?.user?.email ?? null;
@@ -116,6 +130,7 @@ export default async function SubscriptionPage({
           pro={tierPricing("pro")}
           expert={tierPricing("expert")}
           initialBilling={initialBilling}
+          paymentsReady={paymentsReady}
         />
       </section>
 

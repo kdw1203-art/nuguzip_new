@@ -56,7 +56,8 @@ export type FeatureKey =
   | "notification_realtime" // 실시간 알림
   | "ad_free"             // 광고 제거
   | "report_sell"         // 리포트 판매
-  | "compare_tray";       // 비교 트레이
+  | "compare_tray"        // 비교 트레이
+  | "ai_agent";           // AI 에이전트(질의 라운드)
 
 type FeatureRule = {
   minTier: PlanTier;
@@ -106,6 +107,13 @@ export const FEATURE_RULES: Record<FeatureKey, FeatureRule> = {
     minTier: "pro",
     monthlyLimit: { pro: 2, expert: 10, enterprise: null },
   },
+  ai_agent: {
+    minTier: "basic",
+    /* lib/agent/quota.ts 의 AGENT_MONTHLY_LIMITS 가 여기서 유도된다 —
+       한도 숫자의 단일 출처는 이 표다(항목 35: 세 곳이 서로 다른 숫자를
+       말하면 벽이 가격 신호가 아니라 버그로 읽힌다). */
+    monthlyLimit: { basic: 10, pro: null, expert: null, enterprise: null },
+  },
   ai_inspection_note: {
     minTier: "basic",
     monthlyLimit: { basic: 2, pro: 30, expert: null, enterprise: null },
@@ -126,6 +134,23 @@ export type AccessResult =
  * @param userTier 현재 사용자 플랜 (basic / pro / expert)
  * @param feature 체크할 기능 키
  */
+/**
+ * 게이트 모듈(free/pro/expert/enterprise 표기)용 월 한도 표를 FEATURE_RULES
+ * 에서 유도한다. basic ↔ free 만 이름이 다르다. 한도 숫자를 여기 말고 다른
+ * 파일에 다시 적으면 세 곳이 서로 다른 답을 주는 상태(항목 35)로 돌아간다.
+ */
+export function monthlyLimitsAsPlanTiers(
+  feature: FeatureKey,
+): Record<"free" | "pro" | "expert" | "enterprise", number | null> {
+  const rule = FEATURE_RULES[feature].monthlyLimit;
+  return {
+    free: rule?.basic ?? null,
+    pro: rule?.pro ?? null,
+    expert: rule?.expert ?? null,
+    enterprise: rule?.enterprise ?? null,
+  };
+}
+
 export function checkAccess(
   userTier: string | null | undefined,
   feature: FeatureKey,

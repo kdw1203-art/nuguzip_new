@@ -339,7 +339,13 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         )}
 
         <form onSubmit={passwordSignIn} className="rise-in-3 flex flex-col gap-2">
+          {/* 항목 47 — placeholder 는 접근 가능한 이름이 아니다(첫 타이핑에
+              사라지고, 음성 제어로 지목할 수 없다). sr-only 라벨 + id. */}
+          <label htmlFor="login-email" className="sr-only">
+            이메일
+          </label>
           <input
+            id="login-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -347,7 +353,11 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             autoComplete="email"
             className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
           />
+          <label htmlFor="login-password" className="sr-only">
+            비밀번호
+          </label>
           <input
+            id="login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

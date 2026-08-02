@@ -222,6 +222,15 @@ export default async function TemperatureRegionPage({
     isBasedOn: ["https://www.reb.or.kr", "https://rt.molit.go.kr"],
     license: "https://nuguzip.com/methodology",
     keywords: [region.name, "시장 온도", "매매가격지수", "실거래", "주간"],
+    /* 항목 45 — 최신 관측 주 = 기계 판독용 갱신일. 인용 가능한 공개 API 연결. */
+    dateModified: latest.weekStart,
+    distribution: [
+      {
+        "@type": "DataDownload",
+        contentUrl: "https://nuguzip.com/api/public/v1/regions/monthly",
+        encodingFormat: "application/json",
+      },
+    ],
   };
 
   const qa: FaqItem[] = [

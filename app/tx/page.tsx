@@ -218,8 +218,10 @@ export default async function TxIndexPage() {
           단지 vs 단지 비교
         </Link>
         , 지역 시세 흐름은{" "}
-        <Link href="/analysis/price" className="font-bold text-primary underline">
-          가격 분석
+        {/* /analysis/price 는 robots Disallow(데모 수치) — 색인 허브에서
+            차단 경로로 링크하지 않는다(항목 46c). timing 은 색인 허용이다. */}
+        <Link href="/analysis/timing" className="font-bold text-primary underline">
+          타이밍 분석
         </Link>
         에서 확인하세요.
       </p>

@@ -57,7 +57,10 @@ const DEFAULT_PREFS: Omit<NotificationPrefs, "userEmail" | "updatedAt"> = {
   pushReengagement: true,
   pushListingStale: true,
   pushAttendance: true,
-  pushWeeklyDigest: false,
+  /* 2026-08-01(항목 40): 옵트인(false) → 옵트아웃(true). 주간 다이제스트는
+     주 1회·요약형이라 소음 축이 아니고, 기본 false 면 VAPID 키를 넣어도 도달
+     범위가 0에 가깝다. 설정 화면에서 언제든 끌 수 있다. */
+  pushWeeklyDigest: true,
   alertPhone: null,
   smsPriceAlerts: false,
   smsConsentAt: null,

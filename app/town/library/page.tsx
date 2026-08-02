@@ -9,6 +9,16 @@ import { seedGradient, maskNoteAuthor } from "../shared";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
 import { ErrorState } from "../../components/ui/EmptyState";
+import type { Metadata } from "next";
+import { seoAlternates } from "@/lib/seo/alternates";
+
+/* 항목 46b — 루트 레이아웃 제목을 그대로 상속하던 페이지에 개별 메타데이터. */
+export const metadata: Metadata = {
+  title: "베스트 임장노트 라이브러리 | 누구집",
+  description:
+    "평점·조회 기준으로 고른 공개 임장노트 모음. 실제 다녀온 사람들의 현장 기록에서 단지의 실체를 확인하세요.",
+  alternates: seoAlternates("/town/library"),
+};
 
 /* 자료(#8) — 리포트 + 공개 임장노트 공유.
    깔끔한 라벨 섹션(리포트 · 공개 임장노트)으로 정리한 자료 허브.

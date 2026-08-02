@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -62,6 +62,7 @@ const SUPPORT_LINKS: LinkItem[] = [
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -81,6 +82,28 @@ export function MobileMenu() {
     };
   }, [open]);
 
+  /* 항목 48 — 모바일 주 내비게이션인데 ESC·포커스 이동·복원이 전부 없었다.
+     열리면 패널로 포커스를 옮기고, ESC 로 닫으며, 닫히면 연 버튼으로 되돌린다.
+     (Tab 순환까지 필요한 다른 다이얼로그는 ui/Modal 이 담당 — 이 메뉴는 링크
+     목록이라 순환보다 ESC·복원이 실질이다.) */
+  useEffect(() => {
+    if (!open) return;
+    const restoreTo =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    panelRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      restoreTo?.focus?.();
+    };
+  }, [open]);
+
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -96,7 +119,7 @@ export function MobileMenu() {
         aria-label="전체 메뉴 열기"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="flex h-8 w-8 items-center justify-center rounded-xl text-text-1 transition-colors active:bg-[rgba(29,79,216,.08)] md:hidden"
+        className="relative flex h-8 w-8 items-center justify-center rounded-xl text-text-1 transition-colors after:absolute after:-inset-1.5 after:content-[''] active:bg-[rgba(29,79,216,.08)] md:hidden"
       >
         <Icon name="menu" size={20} />
       </button>
@@ -113,7 +136,9 @@ export function MobileMenu() {
           />
 
           <div
-            className="glass-strong absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl [animation:riseIn_220ms_var(--ease-out)_backwards]"
+            ref={panelRef}
+            tabIndex={-1}
+            className="glass-strong absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl outline-none [animation:riseIn_220ms_var(--ease-out)_backwards]"
             style={{
               background: "var(--surface)",
               paddingTop: "max(16px, env(safe-area-inset-top, 0px))",
@@ -126,7 +151,7 @@ export function MobileMenu() {
                 type="button"
                 aria-label="메뉴 닫기"
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-xl text-text-2 transition-colors active:bg-[rgba(29,79,216,.08)]"
+                className="relative flex h-8 w-8 items-center justify-center rounded-xl text-text-2 transition-colors after:absolute after:-inset-1.5 after:content-[''] active:bg-[rgba(29,79,216,.08)]"
               >
                 <Icon name="x" size={18} />
               </button>

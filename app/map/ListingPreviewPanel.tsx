@@ -115,7 +115,7 @@ export function ListingPreviewPanel({
             type="button"
             aria-label="닫기"
             onClick={onClose}
-            className="press -mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-text-3 active:bg-[rgba(29,79,216,.08)]"
+            className="press relative -mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-text-3 after:absolute after:-inset-2 after:content-[''] active:bg-[rgba(29,79,216,.08)]"
           >
             <Icon name="x" size={16} />
           </button>

@@ -24,6 +24,9 @@
 ## 주요 페이지
 
 - 실거래 시세 (지역별): https://nuguzip.com/tx
+- 지역 랜딩 (구·시 단위 시세·거래·정비사업 요약, 61개): https://nuguzip.com/region/{지역id} — 예: https://nuguzip.com/region/gangnam
+- 단지 허브 (단지별 실거래 이력·면적대 시세·임장노트·Q&A, 약 25,000개): https://nuguzip.com/complex/{단지id} — 목록은 사이트맵 /sitemap-complexes.xml 참조
+- 시장 온도 지역별 시계열: https://nuguzip.com/analysis/temperature/{지역} — 예: https://nuguzip.com/analysis/temperature/gangnam
 - 지도 (실거래·매물): https://nuguzip.com/map
 - 시세·타이밍 분석 (시장 온도): https://nuguzip.com/analysis/timing
 - 임장노트 (공개): https://nuguzip.com/notes

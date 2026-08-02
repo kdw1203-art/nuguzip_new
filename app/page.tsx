@@ -14,6 +14,7 @@ import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getWeeklyDigest } from "@/lib/newui/digest";
 import { logger } from "@/lib/log";
+import type { Metadata } from "next";
 import type { DeltaTone, HomeBriefing } from "@/lib/newui/home-data";
 import {
   HOME_AI_BRIEFING_LABEL,
@@ -32,9 +33,17 @@ import {
   HOME_HERO_MOBILE_TAIL,
   HOME_HERO_SUBLINE,
 } from "@/lib/brand/home-copy";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 // 스케일 지침 #21: 비로그인 홈은 정적 캐시 (5분 재검증) — 접속마다 재계산 금지
 export const revalidate = 300;
+
+/* 항목 43 — 홈 canonical. ReferralRedeem 이 ?ref_code= 트래픽을 홈으로
+   보내므로, canonical 이 없으면 가장 권위 높은 URL 이 파라미터 변형으로
+   쪼개진다. 제목·설명은 루트 레이아웃 것을 그대로 상속한다. */
+export const metadata: Metadata = {
+  alternates: seoAlternates("/"),
+};
 
 /* G10 / 사실 우선: 여기 있던 5개 예시 폴백을 삭제했다.
    - MOCK_REGIONS: "강남구 32.5억 ▼4.2%" — 실존 자치구에 지어낸 시세·변동률

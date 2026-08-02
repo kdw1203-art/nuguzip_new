@@ -9,18 +9,16 @@ import { appendRun } from "@/lib/ai/presets-store";
 import type { AiAnalysisToolId } from "@/lib/ai/ai-tools";
 import { getUserPlanTier } from "@/lib/inspection/quota";
 import type { PlanTier } from "@/lib/subscriptions/access-gate";
+import { monthlyLimitsAsPlanTiers } from "@/lib/subscriptions/access";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
 /** ai_analysis_runs.tool 에 기록하는 에이전트 전용 키 */
 export const AGENT_USAGE_TOOL_KEY = "agent";
 
-/** 플랜별 월 한도 — null 은 무제한 */
-export const AGENT_MONTHLY_LIMITS: Record<PlanTier, number | null> = {
-  free: 10,
-  pro: null,
-  expert: null,
-  enterprise: null,
-};
+/** 플랜별 월 한도 — null 은 무제한. FEATURE_RULES.ai_agent 에서 유도
+    (한도 숫자의 단일 출처 — 항목 35). */
+export const AGENT_MONTHLY_LIMITS: Record<PlanTier, number | null> =
+  monthlyLimitsAsPlanTiers("ai_agent");
 
 function monthStartIso(): string {
   const d = new Date();
@@ -30,7 +28,17 @@ function monthStartIso(): string {
 /** 이번 달 에이전트 사용 횟수 — ai_analysis_runs(tool='agent') 카운트 */
 export async function getMonthlyAgentUsage(email: string): Promise<number> {
   const sb = getServiceSupabase();
-  if (!sb) return 0; // 로컬/미설정 환경: 한도 미적용 (inspection quota 와 동일한 폴백)
+  /* 로컬에서만 관대한 폴백. 프로덕션에서 키가 없으면 fail-closed —
+     0("한 번도 안 씀")을 돌려주면 유료 한도가 조용히 무제한이 된다.
+     (lib/inspection/quota.ts 와 동일한 판단) */
+  if (!sb) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "SUPABASE_SERVICE_ROLE_KEY 미설정 — 사용량을 셀 수 없어 에이전트 한도 판정을 중단합니다.",
+      );
+    }
+    return 0;
+  }
   const { count, error } = await sb
     .from("ai_analysis_runs")
     .select("id", { count: "exact", head: true })

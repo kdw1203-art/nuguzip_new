@@ -170,6 +170,23 @@ export default async function TxRegionPage({
     isBasedOn: "https://rt.molit.go.kr",
     license: "https://nuguzip.com/methodology",
     keywords: [region.name, "아파트", "실거래가", "매매"],
+    /* 항목 45 — 기계 판독용 신선도·기간·인용 가능한 API. 값은 전부 페이지가
+       이미 가진 실데이터에서만 온다 — 없으면 필드 자체를 넣지 않는다. */
+    ...(region.lastDataAt
+      ? { dateModified: region.lastDataAt.toISOString().slice(0, 10) }
+      : {}),
+    ...(region.firstYm && region.latestYm
+      ? {
+          temporalCoverage: `${region.firstYm.slice(0, 4)}-${region.firstYm.slice(4, 6)}/${region.latestYm.slice(0, 4)}-${region.latestYm.slice(4, 6)}`,
+        }
+      : {}),
+    distribution: [
+      {
+        "@type": "DataDownload",
+        contentUrl: "https://nuguzip.com/api/public/v1/regions/monthly",
+        encodingFormat: "application/json",
+      },
+    ],
   };
   const crumbs = breadcrumbJsonLd([
     { name: "홈", url: "/" },

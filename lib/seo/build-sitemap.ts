@@ -48,9 +48,9 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "", priority: 1 },
   { path: "/notes", priority: 0.9 },
   { path: "/notes/templates", priority: 0.6 },
-  { path: "/notes/compare", priority: 0.6 },
+  /* /notes/compare 는 개인 비교 화면(noindex) — 사이트맵에서 제외 (항목 46) */
   { path: "/map", priority: 0.9 },
-  { path: "/search", priority: 0.7 },
+  /* /search 는 noindex(쿼리 화면) — 사이트맵에서 제외 (항목 46a) */
   { path: "/recommend", priority: 0.6 },
   { path: "/analysis", priority: 0.8 },
   { path: "/analysis/compare", priority: 0.6 },
@@ -115,8 +115,7 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/legal/expert", priority: 0.3 },
   { path: "/legal/fees", priority: 0.3 },
   { path: "/legal/privacy-request", priority: 0.3 },
-  { path: "/login", priority: 0.3 },
-  { path: "/signup", priority: 0.3 },
+  /* /login·/signup 은 noindex 계정 흐름 — 사이트맵에서 제외 (항목 46b) */
 ];
 
 /* ══ N4 — 유형별 로더 ═══════════════════════════════════════════════════

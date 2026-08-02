@@ -111,7 +111,7 @@ export function Header() {
 
         {/* 모바일 아이콘 + 전체 메뉴(☰) */}
         <div className="flex items-center gap-3 text-text-1 md:hidden">
-          <Link href="/search" aria-label="검색" className="press flex h-8 w-8 items-center justify-center">
+          <Link href="/search" aria-label="검색" className="press relative flex h-8 w-8 items-center justify-center after:absolute after:-inset-1.5 after:content-['']">
             <Icon name="search" size={19} />
           </Link>
           <NotificationBell variant="mobile" />

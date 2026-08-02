@@ -60,9 +60,8 @@ export function PlanCheckoutButton({
 
     type Failure = { kind: "unavailable" | "error" | "network"; message?: string };
 
-    try {
-      // 1순위: Stripe Checkout (구 /api/billing/checkout — { url } 반환)
-      let stripeFailure: Failure;
+    /* 카드(Stripe) 레일 — { url } 반환. 503 은 고지 미완·연간 미등록 등 서버 문구. */
+    const tryStripe = async (): Promise<Failure | null> => {
       try {
         const res = await fetch("/api/billing/checkout", {
           method: "POST",
@@ -72,18 +71,18 @@ export function PlanCheckoutButton({
         const j = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
         if (res.ok && j.url) {
           window.location.href = j.url;
-          return;
+          return null;
         }
-        stripeFailure =
-          res.status === 503
-            ? { kind: "unavailable", message: j.error } // 고지 미완·연간 미등록 등 서버 문구
-            : { kind: "error" };
+        return res.status === 503
+          ? { kind: "unavailable", message: j.error }
+          : { kind: "error" };
       } catch {
-        stripeFailure = { kind: "network" };
+        return { kind: "network" };
       }
+    };
 
-      // 2순위: 카카오페이 (구 /api/payments/kakaopay/ready — 결제창 redirect URL 반환)
-      let kakaoFailure: Failure;
+    /* 카카오페이 레일 — 결제창 redirect URL 반환. */
+    const tryKakao = async (): Promise<Failure | null> => {
       try {
         const kp = await fetch("/api/payments/kakaopay/ready", {
           method: "POST",
@@ -109,12 +108,31 @@ export function PlanCheckoutButton({
           kj.nextRedirectMobileUrl;
         if (kp.ok && payUrl) {
           window.location.href = payUrl;
-          return;
+          return null;
         }
-        kakaoFailure = kp.status === 503 ? { kind: "unavailable" } : { kind: "error" };
+        return kp.status === 503 ? { kind: "unavailable" } : { kind: "error" };
       } catch {
-        kakaoFailure = { kind: "network" };
+        return { kind: "network" };
       }
+    };
+
+    try {
+      /* 레일 순서(항목 32): 연간은 카카오페이 먼저. 연간 카드 상품
+         (STRIPE_PRICE_*_ANNUAL)이 등록되지 않은 동안 Stripe 는 연간 요청을
+         503 으로 거절하는데, 카카오페이는 연간 금액(약 20% 할인)을 정상
+         계산한다 — LTV 가 가장 높은 코호트가 동작하는 경로를 시도하기도 전에
+         거절 문구부터 보게 둘 이유가 없다. 월간은 기존대로 카드 먼저. */
+      const kakaoFirst = billing === "annual";
+      const first = kakaoFirst ? tryKakao : tryStripe;
+      const second = kakaoFirst ? tryStripe : tryKakao;
+
+      const firstFailure = await first();
+      if (firstFailure === null) return; // 결제창으로 이동함
+      const secondFailure = await second();
+      if (secondFailure === null) return;
+
+      const stripeFailure = kakaoFirst ? secondFailure : firstFailure;
+      const kakaoFailure = kakaoFirst ? firstFailure : secondFailure;
 
       // 두 수단 모두 실패 — 원인별로 다른 안내
       if (stripeFailure.kind === "network" && kakaoFailure.kind === "network") {

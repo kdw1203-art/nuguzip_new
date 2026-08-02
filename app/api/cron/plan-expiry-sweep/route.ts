@@ -23,6 +23,71 @@ export const dynamic = "force-dynamic";
  * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션
  * (attendance-reminders 와 같은 규칙).
  */
+
+/**
+ * 만료 사전 알림 (항목 31). 카카오페이·포인트 이용권은 일회성이라 자동 갱신이
+ * 없다 — 사후("끝났어요")만 알리면 코호트 전원이 30일차에 기본값으로 이탈한다.
+ * T-7 · T-1 에 미리 알리고 재구매 경로(/subscription)를 같이 준다.
+ * 하루 1회 크론 × 하루 폭 창이라 사용자마다 창당 한 번 걸린다(중복 발송 없음).
+ * 실패해도 강등 스윕에는 영향을 주지 않는다(fail-soft).
+ */
+async function sendPreExpiryReminders(
+  sb: NonNullable<ReturnType<typeof getServiceSupabase>>,
+  nowIso: string,
+): Promise<number> {
+  let reminded = 0;
+  try {
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const windows = [
+      {
+        from: new Date(now + 6 * day).toISOString(),
+        to: new Date(now + 7 * day).toISOString(),
+        title: "이용권이 7일 뒤 만료돼요",
+        body: "지금 쓰시는 이용권이 일주일 뒤 끝나요. 만료 전에 연장하면 이용이 끊기지 않아요.",
+      },
+      {
+        from: nowIso,
+        to: new Date(now + 1 * day).toISOString(),
+        title: "이용권이 내일 만료돼요",
+        body: "이용권이 24시간 안에 끝나요. 지금 연장하면 그대로 이어서 쓸 수 있어요.",
+      },
+    ];
+    for (const w of windows) {
+      const { data: upcoming, error: upcomingError } = await sb
+        .from("app_users")
+        .select("email")
+        .not("plan", "in", '("free","basic")')
+        .not("plan_expires_at", "is", null)
+        .gte("plan_expires_at", w.from)
+        .lt("plan_expires_at", w.to)
+        .limit(500);
+      if (upcomingError) {
+        logger.warn("[plan-expiry-sweep] 사전 알림 대상 조회 실패", upcomingError.message);
+        continue;
+      }
+      for (const row of upcoming ?? []) {
+        const email = String(row.email ?? "").trim();
+        if (!email) continue;
+        try {
+          await appendInboxNotification({
+            userEmail: email,
+            title: w.title,
+            body: w.body,
+            actionUrl: "/subscription",
+          });
+          reminded += 1;
+        } catch (notifyErr) {
+          logger.warn("[plan-expiry-sweep] 사전 알림 실패", notifyErr);
+        }
+      }
+    }
+  } catch (remindErr) {
+    logger.warn("[plan-expiry-sweep] 사전 알림 단계 실패", remindErr);
+  }
+  return reminded;
+}
+
 export async function GET(req: Request) {
   const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
@@ -52,15 +117,17 @@ export async function GET(req: Request) {
 
     const targets = expired ?? [];
     if (targets.length === 0) {
+      /* 오늘 강등 대상이 없어도 사전 알림(T-7·T-1)은 돌아야 한다. */
+      const reminded = await sendPreExpiryReminders(sb, nowIso);
       await logIngest({
         source: "plan-expiry",
         dataset: "app_users",
         origin: "cron-fetch",
         rows: 0,
         status: "ok",
-        message: "만료된 유료 플랜 없음",
+        message: `만료된 유료 플랜 없음 · 사전 알림 ${reminded}명`,
       });
-      return NextResponse.json({ ok: true, demoted: 0 });
+      return NextResponse.json({ ok: true, demoted: 0, reminded });
     }
 
     const ids = targets.map((r) => String(r.id));
@@ -92,16 +159,20 @@ export async function GET(req: Request) {
       }
     }
 
-    logger.info(`[plan-expiry-sweep] ${demoted}명 강등 (후보 ${targets.length}명)`);
+    const reminded = await sendPreExpiryReminders(sb, nowIso);
+
+    logger.info(
+      `[plan-expiry-sweep] ${demoted}명 강등 (후보 ${targets.length}명) · 사전 알림 ${reminded}명`,
+    );
     await logIngest({
       source: "plan-expiry",
       dataset: "app_users",
       origin: "cron-fetch",
       rows: demoted,
       status: "ok",
-      message: `만료 강등 ${demoted}명 (후보 ${targets.length}명)`,
+      message: `만료 강등 ${demoted}명 (후보 ${targets.length}명) · 사전 알림 ${reminded}명`,
     });
-    return NextResponse.json({ ok: true, demoted, candidates: targets.length });
+    return NextResponse.json({ ok: true, demoted, candidates: targets.length, reminded });
   } catch (e) {
     logger.error("[plan-expiry-sweep]", e);
     await logIngest({

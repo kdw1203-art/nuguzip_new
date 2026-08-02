@@ -508,7 +508,7 @@ export function ComplexInfoPanel({
               type="button"
               onClick={onClose}
               aria-label="패널 닫기"
-              className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-[14px] text-text-3"
+              className="relative ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-[14px] text-text-3 after:absolute after:-inset-1.5 after:content-['']"
             >
               ✕
             </button>

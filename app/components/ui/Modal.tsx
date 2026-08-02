@@ -56,13 +56,42 @@ export function Modal({
 
   const handleClose = useCallback(() => onClose(), [onClose]);
 
-  // ESC 로 닫기
+  // ESC 로 닫기 + Tab 순환(포커스 트랩, 항목 48)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
         handleClose();
+        return;
+      }
+      /* 포커스 트랩 — aria-modal 은 보조기술에 "밖은 없는 셈 치라"고 말하지만
+         키보드 Tab 은 막지 않는다. 트랩이 없으면 Tab 이 모달 뒤 페이지로
+         새 나가고, 스크린리더 밖 키보드 사용자는 어디에 있는지 알 수 없다. */
+      if (e.key !== "Tab") return;
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        panel.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || active === panel || !panel.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panel.contains(active)) {
+        e.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener("keydown", onKey);

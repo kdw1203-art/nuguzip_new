@@ -437,7 +437,7 @@ export function ChatRoom({
           aria-label="전송"
           onClick={() => void send()}
           disabled={phase !== "ready" || sending || !draft.trim()}
-          className="btn-primary flex h-8 w-8 items-center justify-center rounded-full text-sm disabled:opacity-50"
+          className="btn-primary relative flex h-8 w-8 items-center justify-center rounded-full text-sm after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-50"
         >
           ↑
         </button>
