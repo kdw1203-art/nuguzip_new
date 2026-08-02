@@ -34,6 +34,7 @@ import { RegionRelative } from "./RegionRelative";
 import { NearbyRedevelopment } from "./NearbyRedevelopment";
 import { UpcomingSupply } from "./UpcomingSupply";
 import { ComplexQna } from "./ComplexQna";
+import { ComplexNotesNewsAi } from "./ComplexNotesNewsAi";
 import { SEOUL_BROWSE_REGIONS, buildComplexTxSlug } from "@/lib/market/complex-transactions";
 import {
   complexResidenceJsonLd,
@@ -1015,6 +1016,17 @@ export default async function ComplexHubPage({
       <NearbyRedevelopment sigungu={v.dong} />
       <UpcomingSupply area={v.dong} />
       <ComplexQna complexName={v.name} />
+
+      {/* 이 단지 임장노트 · AI 분석 재료 · 관련 기사 —
+          지도 팝업에서 "전체 화면으로 자세히 보기"로 넘어온 사람이 더 알고 싶은 것들.
+          위쪽 "단지 이야기"는 커뮤니티 글이고, 이쪽은 직접 다녀와 쓴 임장노트다. */}
+      <ComplexNotesNewsAi
+        complexId={complexId}
+        name={v.name}
+        region={v.dong}
+        hasPrice={v.priceSeries.length > 0}
+        tradeCount={v.trades.length}
+      />
 
       {/* G5+G13 — 실데이터 Q&A + FAQPage 스키마. 시세가 "준비 중"이면 그 질문은 뺀다. */}
       {(() => {
