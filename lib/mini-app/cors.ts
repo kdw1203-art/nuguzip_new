@@ -2,6 +2,7 @@
  * 앱인토스 미니앱(Webview) CORS 허용 — Edge 미들웨어 전용.
  *
  * 미니앱 번들은 다음 origin에서 서비스되며, 이 origin이 우리 API를 호출할 때만 CORS를 허용합니다.
+ * appName 은 **우리 앱 슬러그 하나**로 고정합니다(TOSS_MINI_APP_SLUG, 기본 `nuguzip`).
  *  - 실제 서비스: https://<appName>.apps.tossmini.com
  *  - QR 테스트:   https://<appName>.private-apps.tossmini.com
  * @see https://developers-apps-in-toss.toss.im/development/deploy.md (CORS)
@@ -11,8 +12,27 @@
  * 동일 출처 구성에서는 동작에 영향이 없습니다.
  */
 
-const TOSSMINI_ORIGIN_RE =
-  /^https:\/\/[a-z0-9-]+\.(?:apps|private-apps)\.tossmini\.com$/i;
+/**
+ * 미니앱 슬러그(= 서브도메인). 기본값은 이 서비스의 앱 이름.
+ *
+ * 예전 정규식은 서브도메인을 `[a-z0-9-]+` 로 열어 뒀다. 그러면 **다른 개발자의**
+ * 토스 미니앱(evil.apps.tossmini.com) 도 전부 통과하고, 아래에서 함께 세우는
+ * `Access-Control-Allow-Credentials: true` 때문에 그 앱이 방문자의 세션 쿠키를
+ * 실어 우리 API 를 호출할 수 있다(= CSRF 를 브라우저가 대신 해 주는 셈).
+ * 우리 슬러그 하나로 좁힌다. 다른 origin 이 필요하면 종전대로
+ * MINI_APP_ALLOWED_ORIGINS 에 **정확한 origin** 으로 등록한다.
+ */
+function tossMiniAppSlug(): string {
+  return process.env.TOSS_MINI_APP_SLUG?.trim().toLowerCase() || "nuguzip";
+}
+
+function tossMiniOriginRe(): RegExp {
+  const slug = tossMiniAppSlug().replace(/[^a-z0-9-]/g, "");
+  return new RegExp(
+    `^https://${slug}\\.(?:apps|private-apps)\\.tossmini\\.com$`,
+    "i",
+  );
+}
 
 function envAllowlist(): Set<string> {
   const raw = process.env.MINI_APP_ALLOWED_ORIGINS?.trim();
@@ -28,7 +48,7 @@ function envAllowlist(): Set<string> {
 /** 요청 origin이 미니앱 허용 대상인지. */
 export function isAllowedMiniAppOrigin(origin: string | null): boolean {
   if (!origin) return false;
-  if (TOSSMINI_ORIGIN_RE.test(origin)) return true;
+  if (tossMiniOriginRe().test(origin)) return true;
   return envAllowlist().has(origin.replace(/\/$/, ""));
 }
 

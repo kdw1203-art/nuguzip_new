@@ -2,11 +2,11 @@
  * GET /api/cron/kb-ingest
  * KB 데이터는 공개 자동 다운로드 URL이 불안정하므로 기본은 "수동 업로드" 정책.
  * KB_CRAWL_ENABLED=1 + KB_TIMESERIES_URL 가 설정된 경우에만 best-effort 자동 수집.
- * 보호: CRON_SECRET / x-vercel-cron / 관리자.
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  */
 import { NextResponse } from "next/server";
 import { ingestKbWorkbook } from "@/lib/kb/ingest";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
@@ -14,12 +14,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron || (expected ? provided === expected : true) || (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

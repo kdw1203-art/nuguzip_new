@@ -43,11 +43,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const isAdmin = (session.user as { role?: string }).role === "admin";
 
-  // status=closed 는 closeMarketRequest 사용
+  // status=closed 는 closeMarketRequest 사용 — 아래 일반 필드 수정과 동일하게
+  // requester_email 로 대상을 좁힌다(예전에는 이 분기만 소유자 확인이 없었다).
   if (body.status === "closed") {
-    const result = await closeMarketRequest(id);
+    const result = await closeMarketRequest(id, {
+      email: session.user.email,
+      isAdmin,
+    });
     if (!result.ok) {
-      return NextResponse.json({ error: result.message ?? "상태 변경 실패" }, { status: 500 });
+      return NextResponse.json(
+        { error: result.message ?? "상태 변경 실패" },
+        { status: result.forbidden ? 403 : 500 },
+      );
     }
     return NextResponse.json({ request: { ...existing, status: "closed" } });
   }

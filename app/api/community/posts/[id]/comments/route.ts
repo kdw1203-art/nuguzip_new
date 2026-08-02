@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { isAdmin } from "@/lib/auth/is-admin";
 import { notifyPostAuthorOfNewComment } from "@/lib/notifications/comment-notify";
 import { appendComment } from "@/lib/posts-store";
 import type { PostComment } from "@/lib/types/post";
@@ -39,6 +40,11 @@ export async function POST(
   const comment: PostComment = {
     id: crypto.randomUUID(),
     authorLabel,
+    // 삭제 권한 판정의 근거. 표시 이름은 사용자가 바꿀 수 있어 신원이 될 수 없다.
+    // 서버 전용 필드로, API 응답에는 실리지 않는다(lib/types/post.ts 주석 참고).
+    ...(session?.user?.email
+      ? { authorEmail: session.user.email.trim().toLowerCase() }
+      : {}),
     body: text,
     createdAt: new Date().toISOString(),
   };
@@ -89,7 +95,15 @@ export async function DELETE(
   }
 
   const { softDeleteComment } = await import("@/lib/posts-store");
-  const post = await softDeleteComment(postId, commentId);
+  // 작성자 본인·글쓴이·관리자만 지울 수 있다. 예전에는 로그인만 되어 있으면
+  // commentId 만으로 남의 댓글이 지워졌다(commentId 는 공개 응답에 그대로 실린다).
+  const post = await softDeleteComment(postId, commentId, {
+    email: session.user.email,
+    isAdmin: isAdmin(session),
+  });
+  if (post === "forbidden") {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
   if (!post) {
     return NextResponse.json({ error: "게시글 또는 댓글을 찾을 수 없습니다." }, { status: 404 });
   }

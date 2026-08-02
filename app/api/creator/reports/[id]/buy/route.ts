@@ -130,7 +130,11 @@ export async function POST(
       reportId: id,
       userEmail: email,
       amount: price,
-      paymentId: `points:${id}`,
+      /* payment_id 는 uuid 가 아니라 text 다(20260727090500) — 예전엔 uuid 컬럼에
+         이 문자열을 넣어 insert 가 22P02 로 항상 실패했고, 바로 위에서 포인트를
+         이미 차감한 뒤라 사용자는 포인트만 잃었다. 유니크 인덱스가 붙었으므로
+         구매자까지 넣어 사람마다 다른 값이 되게 한다. */
+      paymentId: `points:${id}:${email.toLowerCase()}`,
     });
     return NextResponse.json(
       { ok: true, access: true, purchase, balance: spent.balance },

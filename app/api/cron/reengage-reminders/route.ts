@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
@@ -27,7 +27,7 @@ export const maxDuration = 120;
  * 로그 기록이 실패하면 그 사람은 다음 회차에 또 받게 되므로, 기록 실패는
  * 요약에 logFailed 로 그대로 드러낸다(조용히 넘기지 않는다).
  *
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션 —
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  *       price-alerts·saved-search-alerts 와 동일.
  * fail-soft: hard-throw 하지 않고 JSON 요약을 반환한다.
  *
@@ -42,18 +42,6 @@ export const maxDuration = 120;
  */
 
 const BATCH = 200;
-
-async function authorize(req: Request): Promise<boolean> {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  return (
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest())
-  );
-}
 
 interface RunSummary {
   ok: boolean;
@@ -192,7 +180,7 @@ async function runReengagement(dryRun: boolean): Promise<RunSummary> {
 }
 
 async function handle(req: Request): Promise<Response> {
-  if (!(await authorize(req))) {
+  if (!(await authorizeCron(req))) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   const dryRun = new URL(req.url).searchParams.get("dry") === "1";

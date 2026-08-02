@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { DEFAULT_LIMIT, MAX_LIMIT, PUBLIC_API_LICENSE } from "@/lib/api/public-aggregates";
+import { jsonLdScript } from "@/lib/seo/jsonld";
 
 export const metadata = buildPageMetadata({
   title: "공개 집계 API — 누구집 실거래 집계를 JSON 으로",
@@ -133,7 +134,7 @@ export default function DevelopersPage() {
     <PageShell breadcrumb="공개 집계 API">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd()) }}
       />
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">공개 집계 API</h1>

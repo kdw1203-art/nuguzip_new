@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { safeInternalPath } from "@/lib/safe-path";
 
 function safeNext(raw: string | null): string {
-  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
-  return "/login?verified=1";
+  /* `!startsWith("//")` 만으로는 `/\evil.com` 이 통과한다 — lib/safe-path.ts 참고. */
+  return safeInternalPath(raw, "/login?verified=1");
 }
 
 export function AuthConfirmClient() {

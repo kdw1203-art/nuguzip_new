@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { isDataGoKrEncodingConfigured } from "@/lib/public-data/data-go-kr-keys";
 import { enrichAptDetailBatch } from "@/lib/national-data/apartment-ingest";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
@@ -18,20 +18,13 @@ export const maxDuration = 300;
  * 없이 스탬프 자체가 커서다 — 상세 로직은 lib/national-data/apartment-ingest.ts
  * 의 enrichAptDetailBatch 주석 참조.
  *
- * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션 (apt-master-ingest 패턴).
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * 인증키 미설정 시 상세 API 가 mock/empty 를 반환하므로 시도 자체를 건너뛰고
  * skipped 로 기록한다(스탬프 없음 — 키가 생기면 같은 행부터 다시 시작).
  */
 async function handle(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
   const url = new URL(req.url);
-  const provided =
-    url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * 출석 리마인드 — 오늘 아직 출석하지 않은 웹푸시 구독자에게 1회 발송.
  *
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션.
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * 다른 크론과 같은 규칙으로 맞춘 것은 어드민 "수집 작업 실행" 패널에서
  * 이 라우트만 403 이 나던 문제 때문이다(관리자 세션 인가가 빠져 있었다).
  *
@@ -21,14 +21,7 @@ export const dynamic = "force-dynamic";
  *    이 변경과 분리했다.
  */
 export async function GET(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided = url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

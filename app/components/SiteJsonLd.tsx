@@ -10,6 +10,9 @@
  */
 import { getBusinessInfo } from "@/lib/brand/business-info";
 import { SITE_NAME, SITE_DEFAULT } from "@/lib/seo/page-metadata";
+/* 직렬화는 jsonLdScript 로 통일한다 — `<` 를 이스케이프하지 않으면 값 하나만 사용자/환경변수
+   기원이 되는 날 </script> 로 문서를 빠져나간다. 전역 컴포넌트라 모든 페이지가 같이 뚫린다. */
+import { jsonLdScript } from "@/lib/seo/jsonld";
 
 const BASE_URL = "https://nuguzip.com";
 
@@ -47,11 +50,11 @@ export function SiteJsonLd() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(organization) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(website) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(website) }}
       />
     </>
   );

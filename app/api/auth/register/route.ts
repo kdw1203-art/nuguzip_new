@@ -199,7 +199,7 @@ async function signUpWithSupabaseAuth(
   source: string,
   campaign: string,
   emailRedirectTo?: string,
-  identity?: { verified: boolean; provider?: string },
+  /* 본인확인(identity) 인자는 일부러 받지 않는다 — 아래 POST 안의 주석 참조. */
   /** true 면 신규 signUp 없이 미인증 재발송만 시도 */
   resendOnly?: boolean,
 ) {
@@ -230,12 +230,6 @@ async function signUpWithSupabaseAuth(
         name,
         source,
         campaign,
-        ...(identity?.verified
-          ? {
-              identity_verified: true,
-              identity_provider: identity.provider ?? null,
-            }
-          : {}),
       },
       ...(emailRedirectTo ? { emailRedirectTo } : {}),
     },
@@ -401,13 +395,12 @@ export async function POST(req: NextRequest) {
     location: Boolean(consentRaw.location),
   };
 
-  const identity = {
-    verified: Boolean(b.identityVerified),
-    provider:
-      typeof b.identityProvider === "string"
-        ? b.identityProvider.trim().slice(0, 40)
-        : undefined,
-  };
+  /* 본인확인(identity_verified/identity_provider)은 여기서 **절대** 쓰지 않는다.
+     예전에는 요청 본문의 identityVerified 를 그대로 믿어서, 인증 없는 POST 하나로
+     `{"identityVerified": true}` 를 보내면 본인확인 완료 계정이 만들어졌다.
+     즉 본인확인이라는 표시가 "사용자가 그렇다고 말했다" 는 뜻이었다.
+     이 컬럼을 쓸 수 있는 유일한 곳은 PASS/NICE 결과를 서버에서 검증하는
+     /api/auth/identity/verify 다 (lib/auth/identity-verification/). */
 
   if (!email.includes("@")) {
     return NextResponse.json({ error: "올바른 이메일을 입력해 주세요." }, { status: 400 });
@@ -447,7 +440,6 @@ export async function POST(req: NextRequest) {
       source,
       campaign,
       verifyRedirect,
-      identity,
       resendOnly,
     );
   }
@@ -467,7 +459,6 @@ export async function POST(req: NextRequest) {
       source,
       campaign,
       verifyRedirect,
-      identity,
     );
   }
 
@@ -484,13 +475,8 @@ export async function POST(req: NextRequest) {
     consent_updated_at: new Date().toISOString(),
     signup_source: source,
     signup_campaign: campaign,
-    ...(identity.verified
-      ? {
-          identity_verified: true,
-          identity_verified_at: new Date().toISOString(),
-          identity_provider: identity.provider ?? null,
-        }
-      : {}),
+    /* identity_verified 계열은 여기서 세우지 않는다 — 위 주석 참조.
+       본인확인 결과를 서버가 검증하는 /api/auth/identity/verify 만 이 컬럼을 쓴다. */
   };
 
   const { data, error } = await sb!
@@ -542,7 +528,6 @@ export async function POST(req: NextRequest) {
         source,
         campaign,
         verifyRedirect,
-        identity,
       );
     }
     const duplicated =

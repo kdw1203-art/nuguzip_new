@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { isDataGoKrEncodingConfigured } from "@/lib/public-data/data-go-kr-keys";
 import {
   listAllSigunguCodes,
@@ -17,19 +17,11 @@ export const maxDuration = 120;
  * 커서 테이블 없이 STATELESS 하게 전국을 순회한다. 매 실행마다 현재 시각으로
  * 시군구 슬라이스(12개)를 선택하므로, 여러 번의 실행에 걸쳐 전국을 커버한다.
  *
- * 보호: x-vercel-cron / CRON_SECRET / 관리자 세션 (onbid-sync 패턴).
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * 인증키 미설정 시 하위 API가 mock/empty 를 반환 → upserted:0, reason:"no-key".
  */
 async function handle(req: Request) {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided =
-    url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  const authorized =
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest());
+  const authorized = await authorizeCron(req);
   if (!authorized) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }

@@ -21,6 +21,8 @@ export type PaymentRecord = {
   providerPaymentKey?: string | null;
   method?: string | null;
   receiptUrl?: string | null;
+  /** 생성 시 붙인 부가 정보. 유료 리포트 결제는 여기에 reportId 가 들어간다. */
+  metadata: Record<string, unknown>;
   requestedAt: string;
   paidAt?: string | null;
   failedAt?: string | null;
@@ -59,6 +61,7 @@ export async function createPayment(input: {
     status: "requested",
     provider,
     providerPaymentKey: input.providerPaymentKey ?? null,
+    metadata: input.metadata ?? {},
     requestedAt: now,
   };
   if (!sb) {
@@ -91,7 +94,13 @@ export async function findRecentRequestedPayment(input: {
   billing: "monthly" | "annual";
   amount: number;
   withinMinutes?: number;
+  /** 유료 리포트 결제 재사용 판정용 — 다른 리포트의 결제를 물려주지 않는다. */
+  reportId?: string | null;
 }): Promise<PaymentRecord | null> {
+  const wantReportId = input.reportId ?? null;
+  const sameReport = (rec: PaymentRecord) =>
+    (typeof rec.metadata.reportId === "string" ? rec.metadata.reportId : null) ===
+    wantReportId;
   const withinMinutes = Math.max(1, input.withinMinutes ?? 10);
   const cutoffMs = Date.now() - withinMinutes * 60_000;
   const sb = getServiceSupabase();
@@ -102,6 +111,7 @@ export async function findRecentRequestedPayment(input: {
         if ((x.userEmail ?? null) !== (input.userEmail ?? null)) return false;
         if (x.plan !== input.plan || x.billing !== input.billing) return false;
         if (Number(x.amount) !== Number(input.amount)) return false;
+        if (!sameReport(x)) return false;
         const ts = new Date(x.requestedAt).getTime();
         return Number.isFinite(ts) && ts >= cutoffMs;
       }) ?? null
@@ -126,6 +136,7 @@ export async function findRecentRequestedPayment(input: {
   const rec = mapRow(data);
   const ts = new Date(rec.requestedAt).getTime();
   if (!Number.isFinite(ts) || ts < cutoffMs) return null;
+  if (!sameReport(rec)) return null;
   return rec;
 }
 
@@ -208,12 +219,20 @@ export async function markRefunded(input: {
   return mapRow(data);
 }
 
+/**
+ * 결제 실패 기록 — **아직 승인 전(requested)인 건만** 실패로 넘긴다.
+ *
+ * 예전에는 상태를 보지 않고 덮어써서 이미 승인된 `paid` 행도 failed 로 뒤집을 수
+ * 있었다. 돈은 받았는데 장부에는 실패로 남는 상태라 환불·정산이 통째로 어긋난다.
+ * 되돌리면 안 되는 상태(paid/cancelled/refunded)는 그대로 둔다 — 여기서 할 수 있는
+ * 가장 안전한 실패는 "아무것도 하지 않기" 다.
+ */
 export async function markFailed(orderId: string): Promise<void> {
   const sb = getServiceSupabase();
   const now = new Date().toISOString();
   if (!sb) {
     const r = memory.find((x) => x.orderId === orderId);
-    if (r) {
+    if (r && r.status === "requested") {
       r.status = "failed";
       r.failedAt = now;
     }
@@ -222,7 +241,8 @@ export async function markFailed(orderId: string): Promise<void> {
   await sb
     .from("payments")
     .update({ status: "failed", failed_at: now })
-    .eq("order_id", orderId);
+    .eq("order_id", orderId)
+    .eq("status", "requested");
 }
 
 export async function getPaymentByOrderId(
@@ -294,6 +314,10 @@ function mapRow(r: Record<string, unknown>): PaymentRecord {
     providerPaymentKey: (r.provider_payment_key as string | null) ?? null,
     method: (r.method as string | null) ?? null,
     receiptUrl: (r.receipt_url as string | null) ?? null,
+    metadata:
+      r.metadata && typeof r.metadata === "object"
+        ? (r.metadata as Record<string, unknown>)
+        : {},
     requestedAt: r.requested_at as string,
     paidAt: (r.paid_at as string | null) ?? null,
     failedAt: (r.failed_at as string | null) ?? null,

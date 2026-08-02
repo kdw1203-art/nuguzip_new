@@ -1,5 +1,62 @@
 # RLS 전수 감사 리포트 (#72)
 
+## ⚠️ 2026-07-27 정정 — 아래 2026-07-19 리포트는 **부정확하다(superseded)**
+
+출시 전 재감사(2026-07-27) 결과, 이 문서의 다음 주장이 사실이 아님을 확인했다.
+원문은 기록으로 남겨 두되(삭제하지 않는다), 판단의 근거로는 쓰지 말 것.
+
+### 정정 1 — "치명(ERROR) 등급 발견 0건" (§요약, 7행)
+
+사실이 아니다. 2026-07-27 감사에서 치명 등급이 여러 건 나왔다. 그중 하나는 데이터가
+아니라 **사람에 대한 것**이었다: `profiles` 의 정책이 anon 에게 전체 행 SELECT 를
+허용하고 있어, 로그인조차 하지 않은 누구든 publishable 키 하나로 **전 회원의 이메일·
+전화번호·주소**를 내려받을 수 있었다. 공개 키는 설계상 공개돼 있으므로(웹 번들에 들어
+있다) 이건 이론이 아니라 그냥 열려 있는 상태였다.
+
+### 정정 2 — "EXECUTE 회수 완료" (§2, 21–22행 / §적용된 변경, 38행)
+
+`rls_auto_enable` · `sync_meeting_member_count` · `notify_post_comment` 의 실행 권한이
+회수됐다고 적혀 있지만, **회수되지 않았다.** 해당 마이그레이션이 이렇게 썼기 때문이다:
+
+```sql
+revoke execute on function public.rls_auto_enable() from anon, authenticated;
+```
+
+PostgreSQL 은 함수를 만들 때 기본으로 `GRANT EXECUTE ... TO PUBLIC` 을 준다. `anon` 과
+`authenticated` 는 그 권한을 개별로 받은 적이 없고 **PUBLIC 의 구성원으로서** 갖고
+있었다. 없는 권한을 회수하는 문장은 아무 일도 하지 않고 조용히 성공한다 — 에러도
+경고도 없다. 그래서 "적용됨" 이라고 적힌 채 실제로는 그대로 열려 있었다.
+고치려면 `from public` 이 반드시 함께 있어야 한다:
+
+```sql
+revoke all on function public.rls_auto_enable() from public, anon, authenticated;
+```
+
+이 실수가 다시 나지 않도록 `scripts/check-migration-grants.mjs` 에 정적 검사를 넣었다
+(`revoke ... on function` 의 대상 목록에 `public` 이 없으면 CI 실패). 배포 워크플로의
+`Migration grant lint` 단계에서 돈다.
+
+### 2026-07-27 적용 마이그레이션
+
+| 마이그레이션 | 내용 |
+|---|---|
+| `sec_revoke_public_execute_on_security_definer_fns` | SECURITY DEFINER 함수들의 기본 PUBLIC EXECUTE 회수 (`from public` 포함) |
+| `sec_profiles_pii_lockdown` | `profiles` 의 anon 전체 읽기 정책 제거 — 이메일·전화번호·주소 노출 차단 |
+| `sec_policy_and_privilege_hardening` | 남은 과다 정책·권한 정리 |
+| `sec_consume_feature_quota_advisory_lock` | `consume_feature_quota` 경합(할당량 초과 사용) 차단 — advisory lock |
+
+### 미해결로 남긴 것 — `xlsx`
+
+`xlsx@0.18.5` (devDependencies) 에는 프로토타입 오염·ReDoS 권고가 있고 **패치된 릴리스가
+없다**(배포처가 npm 레지스트리를 떠났다). 지금은 개발 의존성이고 사용자 입력 스프레드시트를
+파싱하지 않아 노출면이 없어 그대로 둔다.
+TODO: 런타임 경로에서 스프레드시트를 다루게 되는 순간 `exceljs`(이미 dependencies 에 있다)로
+옮기거나 `xlsx` 를 제거할 것. 이 조건이 바뀌면 그건 더 이상 "미해결로 둘 수 있는" 상태가 아니다.
+
+---
+
+_(이하 원문 — 2026-07-19 시점의 기록. 위 정정을 먼저 읽을 것.)_
+
 감사일: 2026-07-19 · 대상: Supabase 프로젝트 `pbhiskvwpwwhtkmnhkbm` (프로덕션) · 도구: Supabase Security Advisor + pg_policy 직접 조회
 
 ## 요약

@@ -1,7 +1,8 @@
 # 시장 데이터 ETL · 알림 스케줄러
 # Vercel 크론이 플랜 제약으로 실행되지 않아 GitHub Actions 스케줄로 이관.
 # 각 잡은 프로덕션 크론 엔드포인트를 CRON_SECRET 으로 호출한다.
-# (엔드포인트는 x-vercel-cron 헤더 또는 x-cron-secret 일치 시 허용)
+# (엔드포인트는 x-cron-secret 또는 Authorization: Bearer 일치 시 허용 — lib/cron/authorize.ts.
+#  x-vercel-cron 헤더는 아무나 붙일 수 있어 더 이상 인정하지 않고, ?secret= 도 로그에 남아 폐기했다)
 #
 # ⚠️ 이 파일이 이 서비스의 유일한 스케줄러다. vercel.json 에는 crons 를 두지 않는다.
 #    양쪽에 두면 플랜이 바뀌는 순간 같은 작업이 두 번 돌고, 알림은 두 번 나간다.

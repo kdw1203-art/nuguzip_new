@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { logger } from "@/lib/log";
+import { isInternalPath } from "@/lib/safe-path";
 import {
   listAllBanners,
   createBanner,
@@ -31,7 +32,12 @@ function invalidCtaUrl(v: unknown): string | null {
   if (v === undefined || v === null || v === "") return null;
   const s = String(v).trim();
   if (s.startsWith("/")) {
-    if (s.startsWith("//")) return "CTA 링크가 올바르지 않습니다. (// 로 시작할 수 없습니다)";
+    /* `//` 만 막으면 `/\evil.com` 이 통과한다. 배너 CTA 는 모든 방문자에게 노출되는
+       링크라, 여기가 뚫리면 우리 도메인 배너가 외부로 보내는 발판이 된다.
+       (lib/safe-path.ts — 브라우저가 경로의 역슬래시를 슬래시로 정규화한다) */
+    if (!isInternalPath(s)) {
+      return "CTA 링크가 올바르지 않습니다. (// 또는 /\\ 로 시작할 수 없습니다)";
+    }
     return null;
   }
   if (/^https:\/\//i.test(s)) return null;

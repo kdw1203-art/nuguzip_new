@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { safeInternalPath } from "@/lib/safe-path";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Logo } from "@/app/components/Logo";
@@ -17,7 +18,9 @@ export type { SocialProvider };
 function resolveCallbackUrl(): string {
   if (typeof window === "undefined") return "/";
   const cb = new URLSearchParams(window.location.search).get("callbackUrl");
-  return cb && cb.startsWith("/") && !cb.startsWith("//") ? cb : "/";
+  /* `//evil.com` 뿐 아니라 `/\evil.com` 도 막아야 한다 — 브라우저는 URL 파싱에서
+     백슬래시를 슬래시로 정규화하므로 `/\evil.com` 은 `//evil.com` 과 같게 취급된다. */
+  return safeInternalPath(cb, "/");
 }
 
 /* ---------- 진입 맥락 ----------

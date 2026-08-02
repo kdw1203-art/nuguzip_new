@@ -24,6 +24,7 @@ import {
   updatePostSb,
   userHasLikedSb,
 } from "@/lib/posts-store-supabase";
+import type { CommentDeleteActor } from "@/lib/moderation/comment-soft-delete";
 import type { Post, PostComment } from "@/lib/types/post";
 
 export { POSTS_READ_LIMIT };
@@ -74,13 +75,18 @@ export async function appendComment(
     : appendCommentFile(id, comment);
 }
 
+/**
+ * 댓글 soft-delete. 권한 판정은 백엔드 구현이 한다(lib/moderation/comment-soft-delete.ts).
+ * `"forbidden"` = 대상은 있으나 지울 권한이 없음, `null` = 글/댓글 없음.
+ */
 export async function softDeleteComment(
   postId: string,
   commentId: string,
-): Promise<Post | null> {
+  actor: CommentDeleteActor,
+): Promise<Post | "forbidden" | null> {
   return storageBackendIsSupabase()
-    ? softDeleteCommentSb(postId, commentId)
-    : softDeleteCommentFile(postId, commentId);
+    ? softDeleteCommentSb(postId, commentId, actor)
+    : softDeleteCommentFile(postId, commentId, actor);
 }
 
 export async function togglePostLike(

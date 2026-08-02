@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isAdminApiRequest } from "@/lib/admin/api-auth";
+import { authorizeCron } from "@/lib/cron/authorize";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
@@ -41,7 +41,7 @@ export const maxDuration = 120;
  *    실단지 관심 행이 0건이라 알림 발송까지의 종단 검증은 실데이터로 하지 못했다.
  *    가격 산출부(complex-price)는 운영 DB 실거래로 직접 검증했다.
  *
- * 보호: CRON_SECRET(?secret= / x-cron-secret) · x-vercel-cron · 관리자 세션
+ * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  *       — onbid-sync 와 동일. 키 없으면 통과(개발/폴백).
  * fail-soft: 절대 hard-throw 하지 않고 JSON 요약을 반환한다.
  */
@@ -50,19 +50,6 @@ export const maxDuration = 120;
 const BATCH = 500;
 /** 의미 있는 변동으로 간주할 최소 변화율(1%). */
 const CHANGE_THRESHOLD = 0.01;
-
-async function authorize(req: Request): Promise<boolean> {
-  const expected = process.env.CRON_SECRET?.trim();
-  const url = new URL(req.url);
-  const provided =
-    url.searchParams.get("secret") ?? req.headers.get("x-cron-secret");
-  const fromVercelCron = req.headers.get("x-vercel-cron") === "1";
-  return (
-    fromVercelCron ||
-    (expected ? provided === expected : true) ||
-    (await isAdminApiRequest())
-  );
-}
 
 /**
  * 원(KRW) → "12.3억" / "8,400만원".
@@ -374,7 +361,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
 }
 
 async function handle(req: Request): Promise<Response> {
-  if (!(await authorize(req))) {
+  if (!(await authorizeCron(req))) {
     return NextResponse.json({ error: "권한이 필요합니다." }, { status: 403 });
   }
   try {

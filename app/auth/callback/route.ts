@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
+import { safeInternalPath } from "@/lib/safe-path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,11 +20,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const nextRaw = searchParams.get("next") ?? "/login?verified=1";
-  const next =
-    nextRaw.startsWith("/") && !nextRaw.startsWith("//")
-      ? nextRaw
-      : "/login?verified=1";
+  /* `!startsWith("//")` 만으로는 `/\evil.com` 이 통과한다 — lib/safe-path.ts 참고.
+     인증 메일 링크가 출발점이라, 여기가 뚫리면 "우리 도메인에서 시작하는" 피싱이 된다. */
+  const next = safeInternalPath(
+    searchParams.get("next"),
+    "/login?verified=1",
+  );
 
   const url = getSupabaseUrl();
   const key = getSupabasePublicKey();
