@@ -281,21 +281,14 @@ export default async function DevDealsHubPage({
     },
   );
 
-  if (!loaded.ok) {
-    return (
-      <PageShell breadcrumb="동네이야기 › 개발물건 중개" wide>
-        <div style={DEV_THEME}>
-          <ErrorState
-            title="개발물건 목록을 지금 불러오지 못했어요"
-            desc="등록된 개발물건이 0건인 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요."
-            cause={loaded.cause}
-          />
-        </div>
-      </PageShell>
-    );
-  }
-
-  const { all, deals } = loaded;
+  /* 조회 실패가 페이지 전체를 삼키지 않게 한다 (2026-08-02).
+     예전에는 여기서 ErrorState 만 그리고 일찍 반환했는데, 그러면 목록과 무관한
+     정적 허브(역할 안내·매칭 3단계·수수료 링크·"개발물건 등록" CTA)까지 통째로
+     사라졌다 — 등록하러 온 시행사가 DB 장애 화면만 보고 돌아간다. 실패는
+     **목록 섹션에만** 표시하고, 건수 요약도 "0건"이 아니라 "조회 실패"로 적는다. */
+  const loadFailed = !loaded.ok;
+  const all = loaded.ok ? loaded.all : [];
+  const deals = loaded.ok ? loaded.deals : [];
 
   // 지역 필터 옵션 — 전체 목록에서 유니크 추출
   const regions = Array.from(
@@ -386,20 +379,28 @@ export default async function DevDealsHubPage({
             </div>
           </div>
           <div className="text-[12px] text-text-3">
-            등록 물건 <strong className="text-ink">{all.length.toLocaleString()}건</strong>
-            {openCount > 0 && (
+            {loadFailed ? (
+              /* "0건"이라고 적으면 조회 실패가 사실처럼 굳는다 — 못 읽었다고 말한다. */
+              <>등록 물건 수를 지금 불러오지 못했어요</>
+            ) : (
               <>
-                {" · "}
-                모집중{" "}
-                <strong style={{ color: "var(--primary-strong)" }}>
-                  {openCount.toLocaleString()}건
-                </strong>
-              </>
-            )}
-            {filterActive && (
-              <>
-                {" · "}
-                현재 조건 <strong className="text-ink">{deals.length.toLocaleString()}건</strong>
+                등록 물건 <strong className="text-ink">{all.length.toLocaleString()}건</strong>
+                {openCount > 0 && (
+                  <>
+                    {" · "}
+                    모집중{" "}
+                    <strong style={{ color: "var(--primary-strong)" }}>
+                      {openCount.toLocaleString()}건
+                    </strong>
+                  </>
+                )}
+                {filterActive && (
+                  <>
+                    {" · "}
+                    현재 조건{" "}
+                    <strong className="text-ink">{deals.length.toLocaleString()}건</strong>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -460,7 +461,18 @@ export default async function DevDealsHubPage({
               <span className="text-[11px] text-text-3">{deals.length.toLocaleString()}건</span>
             </div>
 
-            {deals.length === 0 ? (
+            {loadFailed ? (
+              /* 실패는 목록 자리에서만 말한다 — "아직 없어요"(빈 결과)와 절대
+                 같은 문장을 쓰지 않는다. 예시 카드도 그리지 않는다(실패를 예시로
+                 덮으면 장애가 화면에서 사라진다). */
+              /* cause(원본 DB 오류 문자열)는 화면에 싣지 않는다 — 스키마·권한
+                 내부 사정이 공개 페이지에 노출된다(에러 노출 마감 정책). 원문은
+                 위 logger.error 가 이미 서버 로그에 남겼다. */
+              <ErrorState
+                title="개발물건 목록을 지금 불러오지 못했어요"
+                desc="등록된 개발물건이 0건인 게 아니라 조회 자체가 실패했습니다. 잠시 후 새로고침해 주세요."
+              />
+            ) : deals.length === 0 ? (
               <div className="flex flex-col gap-3">
                 <div className="card rounded-2xl p-[var(--pad-card)] text-center">
                   <div className="text-[14px] font-extrabold text-ink">

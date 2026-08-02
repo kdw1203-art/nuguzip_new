@@ -59,12 +59,18 @@ test("6. /notes/new renders note composer (임시저장 control)", async ({ page
   await expect(page.getByText("임시저장", { exact: true }).first()).toBeVisible();
 });
 
-test("7. /notes/compare renders with AI disclaimer", async ({ page }) => {
+test("7. /notes/compare renders honestly in both states", async ({ page }) => {
+  /* 2026-07-30 목업 제거 이후 이 페이지는 비로그인에게 예시 표를 그리지 않는다
+     (없는 데이터를 보여주지 않는 것이 맞다). 그래서 상태가 둘로 갈린다:
+       · 비로그인(E2E 기본) — "로그인이 필요해요" 안내
+       · 로그인 + 2회 이상 기록 — 비교 표 + AI 면책 문구
+     예전 단언(면책 문구 무조건)은 첫 상태에서 항상 깨졌다. 두 상태 모두
+     정직한 화면인지 확인한다. */
   await page.goto("/notes/compare");
   await expect(page.getByRole("heading", { level: 1, name: /노트 다회차 비교/ })).toBeVisible();
-  await expect(
-    page.getByText("참고용이며 투자 판단의 책임은 이용자에게").first(),
-  ).toBeVisible();
+  const loginGate = page.getByText("로그인이 필요해요").first();
+  const disclaimer = page.getByText("참고용이며 투자 판단의 책임은 이용자에게").first();
+  await expect(loginGate.or(disclaimer)).toBeVisible();
 });
 
 test("8. /discover redirects into the merged 동네이야기 feed", async ({ page }) => {
