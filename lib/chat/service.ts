@@ -192,6 +192,140 @@ export async function getRoomThreadByPolicy(
   return { room, members, messages };
 }
 
+/* ---------- 클라이언트 전송용 가명 변환 (lib/chat/pseudonym.ts 주석 참고) ----------
+   원본 이메일은 서버 안(저장·알림·차단 집행)에서만 쓰고, 브라우저로 나가는
+   응답에는 가명 ID·표시명만 싣는다. F12 네트워크 탭에 같은 방 참여자 전원의
+   이메일이 보이던 유출 경로를 전송 경계에서 끊는다. */
+
+export type ClientRoomMember = {
+  /** 가명 ID — 차단 등 지목 요청에 쓴다 (이메일 아님) */
+  id: string;
+  label: string;
+  role: "owner" | "member" | "moderator";
+  isSelf: boolean;
+};
+
+export type ClientChatMessage = {
+  id: string;
+  senderId: string;
+  senderLabel: string;
+  isMine: boolean;
+  body: string | null;
+  messageType: "text" | "file" | "system";
+  createdAt: string;
+  attachments: Array<{ id: string; fileUrl: string; mime: string | null; sizeBytes: number }>;
+};
+
+/** 스레드를 가명으로 변환해 돌려준다 — GET /api/chat/rooms/[id]/messages 전용. */
+export async function getRoomThreadForClientByPolicy(
+  actor: SessionActor,
+  roomId: string,
+  options?: { limit?: number; before?: string; q?: string },
+): Promise<{
+  room: {
+    id: string;
+    roomType: ChatRoomType;
+    title: string | null;
+    status: string;
+    meetingId: string | null;
+  };
+  members: ClientRoomMember[];
+  messages: ClientChatMessage[];
+}> {
+  const { chatAliasId, chatAliasLabel } = await import("@/lib/chat/pseudonym");
+  const { room, members, messages } = await getRoomThreadByPolicy(actor, roomId, options);
+  const me = toEmail(actor.email);
+  return {
+    /* room 도 통째로 내보내지 않는다 — createdByEmail·lastSenderEmail 이 들어 있다. */
+    room: {
+      id: room.id,
+      roomType: room.roomType,
+      title: room.title,
+      status: room.status,
+      meetingId: room.meetingId,
+    },
+    members: members
+      /* 합성 멤버(@chat.local — expert-·group- 자리표시)는 사람이 아니다. 서버에서 거른다. */
+      .filter((m) => !toEmail(m.userEmail).endsWith("@chat.local"))
+      .map((m) => {
+        const aliasId = chatAliasId(m.userEmail);
+        return {
+          id: aliasId,
+          label: chatAliasLabel(aliasId),
+          role: m.role,
+          isSelf: toEmail(m.userEmail) === me,
+        };
+      }),
+    messages: messages.map((msg) => {
+      const aliasId = chatAliasId(msg.senderEmail);
+      return {
+        id: msg.id,
+        senderId: aliasId,
+        senderLabel: chatAliasLabel(aliasId),
+        isMine: toEmail(msg.senderEmail) === me,
+        body: msg.body,
+        messageType: msg.messageType,
+        createdAt: msg.createdAt,
+        attachments: msg.attachments.map((a) => ({
+          id: a.id,
+          fileUrl: a.fileUrl,
+          mime: a.mime,
+          sizeBytes: a.sizeBytes,
+        })),
+      };
+    }),
+  };
+}
+
+/**
+ * (roomId, 가명 ID) 로 차단/해제 — 지목 가능 범위가 자기 방 멤버로 제한된다.
+ * listChatRoomMembers 는 actor 가 그 방 멤버가 아니면 빈 배열을 주므로,
+ * 방 밖 사람이 이 경로로 남을 차단하는 일은 성립하지 않는다.
+ */
+async function resolveRoomAliasOrThrow(
+  actor: SessionActor,
+  roomId: string,
+  blockedId: string,
+): Promise<string> {
+  const { resolveChatAlias } = await import("@/lib/chat/pseudonym");
+  const members = await listChatRoomMembers(roomId, actor.email);
+  if (members.length === 0) throw new Error("CHAT_ROOM_FORBIDDEN");
+  const email = resolveChatAlias(
+    blockedId,
+    members.map((m) => m.userEmail).filter((e) => !toEmail(e).endsWith("@chat.local")),
+  );
+  if (!email) throw new Error("CHAT_BLOCK_TARGET_NOT_FOUND");
+  return email;
+}
+
+export async function blockUserByAliasPolicy(
+  actor: SessionActor,
+  input: { roomId: string; blockedId: string; reason?: string | null },
+) {
+  const email = await resolveRoomAliasOrThrow(actor, input.roomId, input.blockedId);
+  return blockUserByPolicy(actor, email, input.reason ?? null);
+}
+
+export async function unblockUserByAliasPolicy(
+  actor: SessionActor,
+  input: { roomId: string; blockedId: string },
+) {
+  const email = await resolveRoomAliasOrThrow(actor, input.roomId, input.blockedId);
+  return unblockUserByPolicy(actor, email);
+}
+
+/** 내 차단 목록 — 가명 ID 만 (상대 이메일을 응답에 싣지 않는다). */
+export async function listBlockIdsByPolicy(
+  actor: SessionActor,
+): Promise<Array<{ blockedId: string; createdAt: string }>> {
+  const { chatAliasId } = await import("@/lib/chat/pseudonym");
+  const blocks = await listBlocksForUser(actor.email);
+  return blocks.map((b) => ({
+    blockedId: chatAliasId(b.blockedEmail),
+    createdAt: b.createdAt,
+  }));
+}
+
 export async function sendMessageByPolicy(
   actor: SessionActor,
   input: {

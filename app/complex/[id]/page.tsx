@@ -519,12 +519,20 @@ async function loadView(id: string): Promise<HubView | null> {
      "없다"고 그렸고, 느릴 때는 각자 읽기 타임아웃(25초)을 꽉 채워 페이지가
      통째로 매달렸다. 이제 늦거나 실패한 섹션만 접고 페이지는 제때 그린다. */
   const budget = startDeadline();
+  /* 항목 25: budget.signal 을 로더에 넘겨, 예산 초과로 접힌 섹션의 PostgREST
+     요청이 실제로 끊기게 한다(안 끊으면 최대 45초 더 살아 연결을 붙잡는다).
+     loadTxHistory 는 React cache() 로 렌더 내 재사용(아래 tx 재호출)되므로
+     signal 을 받지 않는다 — 인자에 신호를 섞으면 dedupe 키가 깨진다. */
   const [txR, postsR, sameDongR, coordR, listingsR] = await Promise.all([
     settle(`${row.name} 실거래 이력`, loadTxHistory(row.id, TX_HISTORY_MONTHS), budget.expired),
-    settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 12), budget.expired),
+    settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 12, budget.signal), budget.expired),
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 더 넓게
     row.district
-      ? settle(`${row.district} 인근 단지`, searchComplexes("", row.district, 9), budget.expired)
+      ? settle(
+          `${row.district} 인근 단지`,
+          searchComplexes("", row.district, 9, budget.signal),
+          budget.expired,
+        )
       : Promise.resolve({ ok: true as const, data: [] as ComplexRow[] }),
     // 좌표 지연 지오코딩(캐시) — 거리뷰·JSON-LD geo 용. 실패 시 좌표 없이 진행.
     dec
@@ -535,7 +543,11 @@ async function loadView(id: string): Promise<HubView | null> {
         )
       : Promise.resolve({ ok: true as const, data: null }),
     // D8: 이 단지명으로 등록된 승인 매물 (정확 일치)
-    settle(`${row.name} 등록 매물`, listApprovedListings({ complexName: row.name }), budget.expired),
+    settle(
+      `${row.name} 등록 매물`,
+      listApprovedListings({ complexName: row.name, signal: budget.signal }),
+      budget.expired,
+    ),
   ]);
   budget.done();
 

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { MapClient, type DanjiItem, type TradeItem } from "./map-client";
 import {
   encodeComplexId,
@@ -357,31 +358,33 @@ async function fetchHouseholds(
  * 좌표 캐시만 읽는다 — 백필은 cron(geocode-complexes)이 담당하고,
  * 요청 경로의 동기 지오코딩(예전 부트스트랩)은 응답 지연 요인이라 제거했다.
  */
-async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }> {
+async function loadSharedDanjiUncached(): Promise<{ items: DanjiItem[]; region: string }> {
   /* 2026-07-26: 통째로 try/catch 해서 조회 실패도 `null`, 좌표가 0건인 것도 `null`
      이었다. 호출부는 둘을 구분할 방법이 없어서 두 경우 모두 "단지 0" 으로 그렸다.
      이제 실패는 던지고, 빈 결과만 빈 목록으로 돌려준다. */
   const geo = await loadGeocodedComplexes(30);
   if (geo.length === 0) return { items: [], region: "수도권" };
 
-  const [txByComplex, myNotes, householdsByComplex] = await Promise.all([
+  const [txByComplex, householdsByComplex] = await Promise.all([
     fetchTxBatch(geo),
-    fetchMyNoteCounts(),
     fetchHouseholds(geo),
   ]);
 
+  /* myNoteCount 는 여기서 항상 0 — 이 함수는 **모든 방문자가 공유하는** 캐시에
+     들어가므로 사용자별 데이터를 한 조각도 섞으면 안 된다(A 의 노트 수가 B 의
+     화면에 캐시로 새는 사고). 내 노트 표시는 아래 loadDanjiFromDb 가 요청마다
+     따로 읽어 덧입힌다. */
   const items = geo.map((g) => {
     const id = encodeComplexId(g.region_name, g.complex_name);
     const rows = txByComplex.get(pairKey(g.region_name, g.complex_name)) ?? [];
     const { tx, facts } = aggregateComplex(id, rows);
-    const myNoteCount = myNotes.get(normalizeName(g.complex_name)) ?? 0;
     return toDanjiItem(
       g.region_name,
       g.complex_name,
       tx,
       facts,
       { lat: g.lat, lng: g.lng },
-      myNoteCount,
+      0,
       householdsByComplex.get(pairKey(g.region_name, g.complex_name)) ?? null,
     );
   });
@@ -401,6 +404,31 @@ async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }
     }
   }
   return { items, region };
+}
+
+/**
+ * 공유분(좌표·시세·세대수) 10분 캐시. 이 페이지는 auth·searchParams 때문에
+ * force-dynamic 이라 요청마다 위 3개 배치 조회를 다시 쳤다 — 내용은 모든
+ * 방문자에게 동일한데도. 실패는 캐시되지 않고 그대로 던져진다(withBudget 이 받아
+ * danjiLoadFailed 로 정직하게 그린다) — 빈 결과를 실패 대신 얼리는 일은 없다.
+ */
+const loadSharedDanji = unstable_cache(loadSharedDanjiUncached, ["map-shared-danji-v1"], {
+  revalidate: 600,
+  tags: ["map-danji"],
+});
+
+async function loadDanjiFromDb(): Promise<{ items: DanjiItem[]; region: string }> {
+  /* 공유분(캐시)과 개인분(요청마다)을 분리해 나란히 읽는다. 개인분(내 노트 수)은
+     세션 사용자 것만 읽어 이름 기준으로 덧입힌다 — 캐시에는 절대 넣지 않는다. */
+  const [shared, myNotes] = await Promise.all([loadSharedDanji(), fetchMyNoteCounts()]);
+  if (myNotes.size === 0) return shared;
+  return {
+    region: shared.region,
+    items: shared.items.map((it) => {
+      const n = myNotes.get(normalizeName(it.name)) ?? 0;
+      return n > 0 ? { ...it, note: `노트 ${n}건` } : it;
+    }),
+  };
 }
 
 /**

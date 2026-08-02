@@ -432,10 +432,12 @@ export async function getRegionSeries(
   metric: MarketMetric,
   periodType: PeriodType,
   limit = 24,
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal,
 ): Promise<Array<{ period: string; value: number }>> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
+  let q = sb
     .from("market_region_series")
     .select("period,value,source")
     .eq("region_id", regionId)
@@ -444,6 +446,8 @@ export async function getRegionSeries(
     .eq("period_type", periodType)
     .order("period", { ascending: false })
     .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
   if (error || !data) throwQueryFailure(`market_region_series(${regionId}/${metric})`, error);
   return data
     .map((r) => ({ period: String(r.period), value: Number(r.value) }))
@@ -489,10 +493,12 @@ export async function listRegionTransactions(
   regionId: string,
   regionName: string,
   limit = 5,
+  /** 곁다리 예산 신호 (항목 25) */
+  signal?: AbortSignal,
 ): Promise<RegionTransactionRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
+  let q = sb
     .from("market_transactions")
     .select("complex_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor")
     .in("region_name", transactionNameCandidates(regionId, regionName))
@@ -503,6 +509,8 @@ export async function listRegionTransactions(
     .order("contract_ym", { ascending: false })
     .order("contract_day", { ascending: false, nullsFirst: false })
     .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
   if (error || !data) throwQueryFailure(`market_transactions(${regionId})`, error);
   return data.map((r) => ({
     complexName: String(r.complex_name ?? "단지명 미상"),
@@ -534,10 +542,12 @@ export async function getRegionMonthlyVolume(
   regionId: string,
   regionName: string,
   limit = 8,
+  /** 곁다리 예산 신호 (항목 25) */
+  signal?: AbortSignal,
 ): Promise<RegionMonthlyVolumeRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
+  let q = sb
     .from("market_region_monthly")
     .select("month, transaction_count, avg_deal_amount_krw, region_name")
     .in("region_name", transactionNameCandidates(regionId, regionName))
@@ -545,6 +555,8 @@ export async function getRegionMonthlyVolume(
     .eq("property_type", "apartment")
     .order("month", { ascending: false })
     .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
   if (error || !data) throwQueryFailure(`market_region_monthly(${regionId})`, error);
   // 같은 월에 표기 다른 후보명이 겹치면 건수 합산
   const byMonth = new Map<string, RegionMonthlyVolumeRow>();

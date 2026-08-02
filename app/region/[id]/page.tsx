@@ -250,18 +250,31 @@ export default async function RegionHubPage({
   const budget = startDeadline();
   const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR, txBandRegion] =
     await Promise.all([
-      settle(`${id} 매매가격지수`, getRegionSeries(id, "sale_index", "monthly", 12), budget.expired),
-      settle(`${id} 최근 실거래`, listRegionTransactions(id, name, 5), budget.expired),
-      settle(`${id} 단지별 현황`, listDistrictComplexSummaries(txRegion, complexLimit), budget.expired),
+      /* 항목 25: budget.signal 로 예산 초과 시 PostgREST 요청 자체를 끊는다. */
+      settle(
+        `${id} 매매가격지수`,
+        getRegionSeries(id, "sale_index", "monthly", 12, budget.signal),
+        budget.expired,
+      ),
+      settle(`${id} 최근 실거래`, listRegionTransactions(id, name, 5, budget.signal), budget.expired),
+      settle(
+        `${id} 단지별 현황`,
+        listDistrictComplexSummaries(txRegion, complexLimit, budget.signal),
+        budget.expired,
+      ),
       /* 카드 6칸만 그리는데 select("*") 로 100행을 통째로 받던 자리다. 그 행에는
          checklist·sections·photos·ai_analysis·metadata 다섯 jsonb 가 들어 있고
          전부 버려졌다. 카드 전용 컬럼만 읽는다(listPublicNoteCards 주석 참고). */
-      settle("공개 임장노트", listPublicNoteCards(100), budget.expired),
-      settle(`${id} 월별 거래량`, getRegionMonthlyVolume(id, name, 12), budget.expired),
+      settle("공개 임장노트", listPublicNoteCards(100, budget.signal), budget.expired),
+      settle(`${id} 월별 거래량`, getRegionMonthlyVolume(id, name, 12, budget.signal), budget.expired),
       /* 정비사업은 DB 확정분만 쓴다(시드 폴백 없음). 이 화면은 "○○구에 산다는 것"을
          사실로만 조립하는 곳이고, 시드는 수기 정리본이라 여기 섞으면 안 된다. */
-      settle(`${shortName} 정비사업`, listDbProjects({ sigungu: shortName, limit: 200 }), budget.expired),
-      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6), budget.expired),
+      settle(
+        `${shortName} 정비사업`,
+        listDbProjects({ sigungu: shortName, limit: 200, signal: budget.signal }),
+        budget.expired,
+      ),
+      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6, budget.signal), budget.expired),
       /* A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
          없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
          여기서는 실패를 삼켜도 된다 — 이 페이지의 본문은 지역 시세 스냅샷이고 이건

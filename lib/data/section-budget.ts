@@ -29,6 +29,28 @@ import { logger } from "@/lib/log";
 
 export type Settled<T> = { ok: true; data: T } | { ok: false };
 
+function errText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+/**
+ * 예산 초과로 **우리가** 끊은 요청의 오류인가. supabase-js 는 abort 를 예외로
+ * 던지기도 하고(fetch 단계) `error.message` 에 "AbortError: ..." 를 담아
+ * 돌려주기도 한다 — 로더가 그 메시지로 throw 하면 여기서 잡힌다.
+ * 어느 쪽이든 "조회가 깨졌다"가 아니라 "설계대로 접혔다"로 기록해야 한다.
+ */
+function isAbortError(e: unknown): boolean {
+  if (e instanceof DOMException && e.name === "AbortError") return true;
+  if (e instanceof Error) {
+    /* TimeoutError(읽기 자체 상한)는 여기 넣지 않는다 — 그건 DB 가 느리다는
+       진짜 사건이라 error 로 남아야 한다. abort 는 우리가 끊은 것만 해당한다. */
+    if (e.name === "AbortError") return true;
+    if (/abort/i.test(e.message)) return true;
+    if (e.cause instanceof SectionBudgetExpiredError) return true;
+  }
+  return false;
+}
+
 /** 곁다리 섹션들이 공유하는 기본 예산. 개별 읽기 타임아웃(25초)보다 훨씬 짧다. */
 export const SIDE_SECTION_BUDGET_MS = 8_000;
 
@@ -52,6 +74,16 @@ export class SectionBudgetExpiredError extends Error {
 export type Deadline = {
   /** 예산을 넘기면 거절되는 프로미스. settle() 에 그대로 넘긴다. */
   readonly expired: Promise<never>;
+  /**
+   * 예산이 다하면 중단되는 신호 (항목 25). 로더의 Supabase 쿼리에
+   * `.abortSignal(deadline.signal)` 로 넘기면, 예산 초과로 접힌 섹션의
+   * PostgREST 요청이 **실제로 끊긴다**. 이게 없으면 페이지는 제때 반환돼도
+   * 버려진 요청이 읽기 총 상한(최대 45초)까지 살아서 DB 연결을 붙잡는다 —
+   * 느린 DB 에서 연결 고갈 연쇄가 나는 이유였다.
+   * (resilient-fetch 가 이 신호를 자체 상한과 병합하고, 호출자 취소는
+   * 재시도하지 않는다 — 배관은 이미 있다.)
+   */
+  readonly signal: AbortSignal;
   /** 타이머 해제. **반드시** 호출해야 응답이 늦게 끝나지 않는다. */
   done(): void;
 };
@@ -65,14 +97,22 @@ export type Deadline = {
  */
 export function startDeadline(ms: number = SIDE_SECTION_BUDGET_MS): Deadline {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const controller = new AbortController();
   const expired = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new SectionBudgetExpiredError(ms)), ms);
+    timer = setTimeout(() => {
+      /* 거절보다 먼저 중단시킨다 — settle 의 race 는 어느 쪽이 이기든
+         SectionBudgetExpiredError/AbortError 를 모두 "예산 초과"로 읽는다. */
+      controller.abort(new SectionBudgetExpiredError(ms));
+      reject(new SectionBudgetExpiredError(ms));
+    }, ms);
   });
   expired.catch(() => {});
   return {
     expired,
+    signal: controller.signal,
     done() {
       clearTimeout(timer);
+      /* 중단시키지 않는다 — done() 은 "다 끝났다"는 뜻이지 취소가 아니다. */
     },
   };
 }
@@ -98,8 +138,8 @@ export async function settle<T>(
     /* 예산 초과와 조회 실패를 같은 심각도로 남기지 않는다. 앞의 것은 설계대로
        접힌 것(느리다는 신호), 뒤의 것은 고쳐야 할 사건이다. 섹션 이름을 앞에
        붙여 어느 곁다리가 예산을 잡아먹는지 로그만 보고 알 수 있게 한다. */
-    if (e instanceof SectionBudgetExpiredError) {
-      logger.warn(`[section] ${what} 예산 초과로 접음: ${e.message}`);
+    if (e instanceof SectionBudgetExpiredError || isAbortError(e)) {
+      logger.warn(`[section] ${what} 예산 초과로 접음: ${errText(e)}`);
       return { ok: false };
     }
     logger.error(

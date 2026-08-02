@@ -4,7 +4,27 @@ import { applyRateLimit, READ_RATE_LIMIT, WRITE_RATE_LIMIT } from "@/lib/rate-li
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import { createRoomByPolicy, listRoomsByPolicy } from "@/lib/chat/service";
 import { requireChatActor, toErrorResponse } from "@/app/api/chat/_shared";
-import type { ChatRoomType } from "@/lib/chat/types";
+import { chatAliasId } from "@/lib/chat/pseudonym";
+import type { ChatRoomSummary, ChatRoomType } from "@/lib/chat/types";
+
+/** 이메일 필드를 가명으로 바꾼 방 요약 — 응답 전용 (lib/chat/pseudonym.ts 참고) */
+function sanitizeRoom(room: ChatRoomSummary) {
+  return {
+    id: room.id,
+    roomType: room.roomType,
+    title: room.title,
+    status: room.status,
+    expertId: room.expertId,
+    meetingId: room.meetingId,
+    lastMessageAt: room.lastMessageAt,
+    lastMessagePreview: room.lastMessagePreview,
+    lastSenderId: room.lastSenderEmail ? chatAliasId(room.lastSenderEmail) : null,
+    createdAt: room.createdAt,
+    updatedAt: room.updatedAt,
+    memberCount: room.memberCount,
+    unreadCount: room.unreadCount,
+  };
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +36,8 @@ export async function GET(req: NextRequest) {
   if (error || !actor) return error;
   const q = req.nextUrl.searchParams.get("q") ?? undefined;
   const rooms = await listRoomsByPolicy(actor, q);
-  return ok({ ok: true, rooms });
+  /* createdByEmail·lastSenderEmail 을 브라우저로 보내지 않는다. */
+  return ok({ ok: true, rooms: rooms.map(sanitizeRoom) });
 }
 
 export async function POST(req: NextRequest) {
@@ -58,7 +79,7 @@ export async function POST(req: NextRequest) {
       path: "/api/chat/rooms",
       metadata: { chatEvent: "chat_room_open", roomType, roomId: room.id },
     });
-    return ok({ ok: true, room }, 201);
+    return ok({ ok: true, room: sanitizeRoom(room) }, 201);
   } catch (e) {
     return toErrorResponse(e);
   }

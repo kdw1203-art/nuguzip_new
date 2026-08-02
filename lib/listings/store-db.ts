@@ -255,6 +255,8 @@ export interface ListingFilter {
   listingType?: ListingType;
   regionName?: string;
   complexName?: string;
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal;
 }
 
 /** 승인(approved)된 매물만 — 공개 목록. 최신순, 최대 200건. */
@@ -275,6 +277,7 @@ export async function listApprovedListings(
     if (filter.listingType) q = q.eq("listing_type", filter.listingType);
     if (filter.regionName) q = q.eq("region_name", filter.regionName);
     if (filter.complexName) q = q.eq("complex_name", filter.complexName);
+    if (filter.signal) q = q.abortSignal(filter.signal);
     // 부스트 우선(만료·null은 뒤) → 최신순
     const { data, error } = await q
       .order("boost_until", { ascending: false, nullsFirst: false })

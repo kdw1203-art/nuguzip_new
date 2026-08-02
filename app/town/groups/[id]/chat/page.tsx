@@ -94,9 +94,11 @@ export default async function TownGroupChatPage({
   }
 
   return (
+    /* myEmail 을 더는 내리지 않는다 — "내 메시지" 판별은 서버가 isMine/isSelf 로
+       해서 내려준다(가명 계약). 클라이언트 번들에 이메일 비교 로직이 없어야
+       원본 이메일을 내려보낼 이유도 다시 생기지 않는다. */
     <ChatRoom
       groupId={id}
-      myEmail={myEmail}
       title={meeting.title}
       metaLine={metaLine}
       memberCount={meeting.currentMembers}

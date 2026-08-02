@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { ok, apiError } from "@/lib/api/response";
 import { applyRateLimit, READ_RATE_LIMIT, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
-import { getRoomThreadByPolicy, sendMessageByPolicy } from "@/lib/chat/service";
+import { getRoomThreadForClientByPolicy, sendMessageByPolicy } from "@/lib/chat/service";
 import { requireChatActor, toErrorResponse } from "@/app/api/chat/_shared";
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { detectShellFromUserAgent } from "@/lib/platform-shell";
@@ -24,7 +24,9 @@ export async function GET(
   const before = req.nextUrl.searchParams.get("before") ?? undefined;
   const limit = Number(req.nextUrl.searchParams.get("limit") ?? "50");
   try {
-    const thread = await getRoomThreadByPolicy(actor, id, { q, before, limit });
+    /* 가명 변환본만 내보낸다 — 원본 스레드(getRoomThreadByPolicy)에는 방 전원의
+       이메일이 들어 있어 브라우저 네트워크 탭에 그대로 노출됐었다. */
+    const thread = await getRoomThreadForClientByPolicy(actor, id, { q, before, limit });
     return ok({ ok: true, ...thread });
   } catch (e) {
     return toErrorResponse(e);
@@ -83,7 +85,8 @@ export async function POST(
       path: `/api/chat/rooms/${id}/messages`,
       metadata: { roomId: id, messageId: message.id, attachmentCount: attachments.length },
     });
-    return ok({ ok: true, message }, 201);
+    /* 응답에도 이메일을 싣지 않는다 — 클라이언트는 성공 후 스레드를 다시 읽는다. */
+    return ok({ ok: true, message: { id: message.id, createdAt: message.createdAt } }, 201);
   } catch (e) {
     return toErrorResponse(e);
   }

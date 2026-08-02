@@ -292,7 +292,11 @@ export type PublicNoteCard = {
  * 실패를 삼키지 않는 규칙은 listPublicNotes() 와 동일하다 — 위 주석 참고.
  * 못 읽으면 던지고, 부르는 쪽이 "아직 없다" 와 "못 읽었다" 를 구분한다.
  */
-export async function listPublicNoteCards(limit = 50): Promise<PublicNoteCard[]> {
+export async function listPublicNoteCards(
+  limit = 50,
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal,
+): Promise<PublicNoteCard[]> {
   const sb = getReadOnlySupabase();
   if (!sb) {
     throw new Error(
@@ -300,12 +304,14 @@ export async function listPublicNoteCards(limit = 50): Promise<PublicNoteCard[]>
         "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY 도 설정되지 않았습니다.",
     );
   }
-  const { data, error } = await sb
+  let q = sb
     .from("inspection_notes")
     .select("id,title,region,apt_name,visit_date,summary,created_at")
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
   if (error) {
     throw new Error(
       `inspection_notes 조회 실패 (공개 노트 카드) — ${error.message}` +

@@ -153,6 +153,8 @@ export type ProjectFilter = {
   sigungu?: string;
   bbox?: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   limit?: number;
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal;
 };
 
 /**

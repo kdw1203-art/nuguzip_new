@@ -3,6 +3,7 @@ import { ok, apiError } from "@/lib/api/response";
 import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
 import { requireChatActor, toErrorResponse } from "@/app/api/chat/_shared";
 import { searchMessagesByPolicy } from "@/lib/chat/service";
+import { chatAliasId, chatAliasLabel } from "@/lib/chat/pseudonym";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,22 @@ export async function GET(req: NextRequest) {
   }
   try {
     const hits = await searchMessagesByPolicy(actor, q, roomId);
-    return ok({ ok: true, hits });
+    /* senderEmail 을 브라우저로 보내지 않는다 — 가명 ID·표시명으로 변환. */
+    return ok({
+      ok: true,
+      hits: hits.map((h) => {
+        const senderId = chatAliasId(h.senderEmail);
+        return {
+          roomId: h.roomId,
+          roomTitle: h.roomTitle,
+          messageId: h.messageId,
+          senderId,
+          senderLabel: chatAliasLabel(senderId),
+          body: h.body,
+          createdAt: h.createdAt,
+        };
+      }),
+    });
   } catch (e) {
     return toErrorResponse(e);
   }

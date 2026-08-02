@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { joinMeetingMember, leaveMeeting, listMembers } from "@/lib/group-members/store-db";
+import { chatAliasId, chatAliasLabel } from "@/lib/chat/pseudonym";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 
 export const runtime = "nodejs";
@@ -19,7 +20,18 @@ export async function GET(
   const { id } = await params;
   try {
     const members = await listMembers(id);
-    return NextResponse.json({ members, count: members.length });
+    /* 비인증 GET 이다 — 원본 GroupMember(userEmail 포함)를 그대로 내보내면
+       누구나 모임 하나의 참여자 이메일 전체를 긁을 수 있다. 가명 ID + 표시명만
+       내보낸다(채팅 스레드 API 와 같은 규칙, lib/chat/pseudonym.ts 참고). */
+    const sanitized = members.map((m) => {
+      const aliasId = chatAliasId(m.userEmail);
+      return {
+        id: aliasId,
+        label: m.userLabel?.trim() || chatAliasLabel(aliasId),
+        joinedAt: m.joinedAt,
+      };
+    });
+    return NextResponse.json({ members: sanitized, count: sanitized.length });
   } catch (err) {
     return dbUnavailable(`참여자 목록 조회 실패 (meeting=${id})`, err, MEMBERS_UNAVAILABLE);
   }

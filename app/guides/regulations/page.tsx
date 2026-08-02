@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
    항목 F28 — 부동산 규제·의무 안내 (정보성 콘텐츠)
@@ -10,10 +12,13 @@ import { Icon } from "@/app/components/Icon";
    자동 판정·수치를 지어내지 않으며 투자 판단 면책을 포함한다.
    ============================================================ */
 
+const PATH = "/guides/regulations";
+
 export const metadata: Metadata = {
   title: "부동산 규제·의무 안내 | 누구집",
   description:
     "규제지역, 실거주 의무·전매제한, 대출 규제(LTV·DSR), 취득세·양도세·종부세, 청약 자격까지 부동산 규제와 의무의 핵심 개념을 쉽게 정리했습니다.",
+  alternates: seoAlternates(PATH),
 };
 
 type Point = { term: string; desc: string };
@@ -159,11 +164,22 @@ const SectionCard = ({ s }: { s: Section }) => (
 );
 
 export default function RegulationsGuidePage() {
+  /* 개념 설명 페이지라 HowTo(절차)·FAQ(문답) 어느 쪽도 아니다 —
+     구조를 속이지 않고 BreadcrumbList 만 넣는다. */
+  const crumbs = breadcrumbJsonLd([
+    { name: "홈", url: "/" },
+    { name: "부동산 규제·의무 안내", url: PATH },
+  ]);
+
   return (
     <PageShell
       breadcrumb="가이드 › 부동산 규제·의무 안내"
       title="부동산 규제·의무 안내"
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
+      />
       <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
         {/* 최신 수치 확인 안내 — 수치를 지어내지 않는다 */}
         <div className="rise-in flex items-start gap-3 rounded-2xl bg-primary-soft p-4">

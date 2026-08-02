@@ -115,6 +115,7 @@ async function fetchFromDb(f?: ProjectFilter): Promise<RedevelopmentProject[] | 
         .lte("lng", f.bbox.maxLng);
     }
     q = q.limit(f?.limit && f.limit > 0 ? f.limit : 2000);
+    if (f?.signal) q = q.abortSignal(f.signal);
     const { data, error } = await q;
     if (error) {
       if (isMissingTable(error)) {

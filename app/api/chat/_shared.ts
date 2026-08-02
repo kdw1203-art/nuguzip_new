@@ -55,6 +55,7 @@ export function toErrorResponse(e: unknown) {
     CHAT_SYSTEM_MESSAGE_FORBIDDEN: { status: 403, code: "FORBIDDEN", message: "시스템 메시지 전송 권한이 없습니다." },
     CHAT_EXPERT_PLAN_REQUIRED: { status: 403, code: "PLAN_REQUIRED", message: "전문가 채팅은 PRO 이상에서 사용할 수 있습니다." },
     CHAT_BLOCK_SELF_NOT_ALLOWED: { status: 400, code: "INVALID_BLOCK", message: "자기 자신은 차단할 수 없습니다." },
+    CHAT_BLOCK_TARGET_NOT_FOUND: { status: 404, code: "NOT_FOUND", message: "차단할 대상을 이 방에서 찾을 수 없습니다." },
     CHAT_MESSAGE_EMPTY: { status: 400, code: "INVALID_MESSAGE", message: "메시지 내용 또는 첨부가 필요합니다." },
     CHAT_BLOCKED_USER: { status: 400, code: "BLOCKED_USER", message: "차단 사용자와는 메시지를 보낼 수 없습니다." },
     CHAT_OFF_PLATFORM_BLOCKED: {
@@ -76,5 +77,8 @@ export function toErrorResponse(e: unknown) {
   };
   const mapped = map[msg];
   if (mapped) return apiError(mapped.code, mapped.message, mapped.status);
-  return apiError("CHAT_ERROR", msg, 400);
+  /* 매핑에 없는 오류는 내부 사정(DB 메시지·스택 조각)일 수 있다 — 원문은 서버
+     로그로만 남기고 클라이언트에는 일반 문구만 준다(에러 노출 마감 정책). */
+  logger.error("[chat] 매핑되지 않은 오류", e);
+  return apiError("CHAT_ERROR", "요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", 400);
 }

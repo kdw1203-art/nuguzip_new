@@ -11,28 +11,30 @@ import { useRouter } from "next/navigation";
    사용자 차단(POST/DELETE /api/chat/blocks) ·
    방 나가기(POST /api/chat/rooms/[roomId]/leave) */
 
+/* 서버가 가명 계약으로 내려준다 — 이메일은 응답 어디에도 없다.
+   (lib/chat/pseudonym.ts: F12 네트워크 탭 이메일 노출을 전송 경계에서 차단) */
 type ThreadMessage = {
   id: string;
-  senderEmail: string;
+  /** 가명 ID — 차단 요청에 쓴다 */
+  senderId: string;
+  senderLabel: string;
+  isMine: boolean;
   body: string | null;
   messageType: "text" | "file" | "system";
   createdAt: string;
 };
 
 type ThreadMember = {
-  userEmail: string;
+  /** 가명 ID */
+  id: string;
+  label: string;
   role: "owner" | "member" | "moderator";
+  isSelf: boolean;
 };
 
 type Phase = "joining" | "ready" | "error";
 
 const REPORT_REASONS = ["스팸·광고", "욕설·비방", "허위 정보", "기타"] as const;
-
-function displayName(email: string, myEmail: string): string {
-  if (email === myEmail) return "나";
-  const local = email.split("@")[0] ?? email;
-  return local.length > 4 ? `${local.slice(0, 4)}***` : `${local}***`;
-}
 
 function timeLabel(iso: string): string {
   const d = new Date(iso);
@@ -42,13 +44,11 @@ function timeLabel(iso: string): string {
 
 export function ChatRoom({
   groupId,
-  myEmail,
   title,
   metaLine,
   memberCount,
 }: {
   groupId: string;
-  myEmail: string;
   title: string;
   metaLine: string;
   memberCount: number;
@@ -99,9 +99,8 @@ export function ChatRoom({
       a.createdAt.localeCompare(b.createdAt),
     );
     setMessages(sorted);
-    setMembers(
-      (data.members ?? []).filter((m) => !m.userEmail.endsWith("@chat.local")),
-    );
+    /* 합성 멤버(@chat.local)는 서버가 이미 걸러서 내려준다. */
+    setMembers(data.members ?? []);
   }, []);
 
   /* 입장(멱등) → 스레드 로드 */
@@ -192,10 +191,10 @@ export function ChatRoom({
         const res = await fetch("/api/chat/blocks", { cache: "no-store" });
         if (!res.ok) return;
         const data = (await res.json()) as {
-          blocks?: Array<{ blockedEmail: string }>;
+          blocks?: Array<{ blockedId: string }>;
         };
         if (!cancelled) {
-          setBlocked((data.blocks ?? []).map((b) => b.blockedEmail));
+          setBlocked((data.blocks ?? []).map((b) => b.blockedId));
         }
       } catch {
         // 차단 목록 로드 실패는 치명적이지 않음
@@ -231,19 +230,21 @@ export function ChatRoom({
     }
   };
 
-  const toggleBlock = async (email: string) => {
-    if (actionBusy) return;
-    const isBlocked = blocked.includes(email);
+  const toggleBlock = async (blockedId: string) => {
+    if (actionBusy || !roomId) return;
+    const isBlocked = blocked.includes(blockedId);
     setActionBusy(true);
     try {
+      /* 이메일이 아니라 (roomId, 가명 ID) 로 지목한다 — 서버가 방 멤버 안에서
+         대상을 되찾는다. 클라이언트는 상대 이메일을 아예 모른다. */
       const res = await fetch("/api/chat/blocks", {
         method: isBlocked ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blockedEmail: email }),
+        body: JSON.stringify({ roomId, blockedId }),
       });
       if (res.ok) {
         setBlocked((prev) =>
-          isBlocked ? prev.filter((e) => e !== email) : [...prev, email],
+          isBlocked ? prev.filter((e) => e !== blockedId) : [...prev, blockedId],
         );
         showNotice(isBlocked ? "차단을 해제했어요." : "사용자를 차단했어요.");
         setActionMsg(null);
@@ -367,7 +368,7 @@ export function ChatRoom({
               </div>
             );
           }
-          if (m.senderEmail === myEmail) {
+          if (m.isMine) {
             return (
               <div key={m.id} className="flex flex-col items-end gap-[3px]">
                 <div className="btn-primary max-w-[240px] self-end whitespace-pre-wrap break-words rounded-[14px] rounded-br-[4px] px-[13px] py-2.5 text-[13px] font-normal leading-[1.5]">
@@ -379,13 +380,13 @@ export function ChatRoom({
               </div>
             );
           }
-          const isBlocked = blocked.includes(m.senderEmail);
+          const isBlocked = blocked.includes(m.senderId);
           return (
             <div key={m.id} className="group flex items-end gap-2">
               <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
               <div>
                 <div className="mb-[3px] text-[10px] text-text-3">
-                  {displayName(m.senderEmail, myEmail)}
+                  {m.senderLabel}
                 </div>
                 <div
                   className={`max-w-[240px] whitespace-pre-wrap break-words rounded-[14px] rounded-bl-[4px] border border-line bg-surface px-[13px] py-2.5 text-[13px] leading-[1.5] ${
@@ -484,7 +485,7 @@ export function ChatRoom({
               </div>
               {members.map((m, i) => (
                 <div
-                  key={m.userEmail}
+                  key={m.id}
                   className={`flex items-center gap-2.5 py-[9px] ${
                     i < members.length - 1 ? "border-b border-[#f0f3f8]" : ""
                   }`}
@@ -492,7 +493,7 @@ export function ChatRoom({
                   <div className="h-[30px] w-[30px] rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
                   <div className="flex-1">
                     <div className="text-xs font-bold text-ink">
-                      {displayName(m.userEmail, myEmail)}{" "}
+                      {m.isSelf ? "나" : m.label}{" "}
                       {m.role === "owner" && (
                         <span className="rounded bg-[#fdf3e7] px-[5px] py-px text-[9px] font-extrabold text-warning">
                           모임장
@@ -500,18 +501,18 @@ export function ChatRoom({
                       )}
                     </div>
                   </div>
-                  {m.userEmail !== myEmail && (
+                  {!m.isSelf && (
                     <button
                       type="button"
                       disabled={actionBusy}
-                      onClick={() => void toggleBlock(m.userEmail)}
+                      onClick={() => void toggleBlock(m.id)}
                       className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold disabled:opacity-40 ${
-                        blocked.includes(m.userEmail)
+                        blocked.includes(m.id)
                           ? "border-line bg-bg text-text-2"
                           : "border-line bg-surface text-text-3 hover:text-danger"
                       }`}
                     >
-                      {blocked.includes(m.userEmail) ? "차단 해제" : "차단"}
+                      {blocked.includes(m.id) ? "차단 해제" : "차단"}
                     </button>
                   )}
                 </div>
@@ -570,7 +571,7 @@ export function ChatRoom({
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-extrabold text-ink">
-                {displayName(actionMsg.senderEmail, myEmail)} 님의 메시지
+                {actionMsg.senderLabel} 님의 메시지
               </span>
               <button
                 type="button"
@@ -607,10 +608,10 @@ export function ChatRoom({
             <button
               type="button"
               disabled={actionBusy}
-              onClick={() => void toggleBlock(actionMsg.senderEmail)}
+              onClick={() => void toggleBlock(actionMsg.senderId)}
               className="rounded-xl border border-line bg-bg p-2.5 text-xs font-bold text-danger disabled:opacity-40"
             >
-              {blocked.includes(actionMsg.senderEmail)
+              {blocked.includes(actionMsg.senderId)
                 ? "이 사용자 차단 해제"
                 : "이 사용자 차단하기"}
             </button>

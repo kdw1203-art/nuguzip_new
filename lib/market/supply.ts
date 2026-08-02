@@ -144,18 +144,22 @@ export async function getSupplyList(
 export async function getSupplyForArea(
   areaName: string,
   limit = 12,
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal,
 ): Promise<SupplyItem[]> {
   const name = areaName.trim();
   if (!name) return [];
   const sb = getReadOnlySupabase();
   if (!sb) return [];
   try {
-    const { data, error } = await sb
+    let q = sb
       .from("apartment_supply")
       .select("move_in_ym, region, biz_type, address, apt_name, households")
       .ilike("address", `%${name}%`)
       .order("move_in_ym", { ascending: true })
       .limit(limit);
+    if (signal) q = q.abortSignal(signal);
+    const { data, error } = await q;
     if (error || !Array.isArray(data)) return [];
     return (data as Record<string, unknown>[]).map((r) => ({
       moveInYm: String(r.move_in_ym ?? ""),

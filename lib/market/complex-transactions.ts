@@ -256,10 +256,12 @@ function derivePerPyeong(rec: ComplexTransactionRecord): number | null {
 async function fetchDistrictTransactions(
   region: ComplexTxRegion,
   sampleLimit: number,
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal,
 ): Promise<ComplexTransactionRecord[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
+  let q = sb
     .from("market_transactions")
     .select(TX_SELECT)
     .in("region_name", transactionRegionCandidates(region))
@@ -270,6 +272,8 @@ async function fetchDistrictTransactions(
     .order("contract_ym", { ascending: false })
     .order("contract_day", { ascending: false, nullsFirst: false })
     .limit(sampleLimit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
   if (error || !data) {
     throw new Error(
       `[complex-transactions] ${region.id} 실거래 조회 실패${error?.message ? `: ${error.message}` : ""}`,
@@ -289,12 +293,15 @@ async function fetchDistrictTransactions(
 export async function listDistrictComplexSummaries(
   region: ComplexTxRegion,
   limit = 12,
+  /** 곁다리 예산 신호 (항목 25). 캐시 미스의 조회에만 적용된다 —
+      중단되면 이번 호출만 실패하고 캐시는 오염되지 않는다. */
+  signal?: AbortSignal,
 ): Promise<ComplexSummary[]> {
   const cacheKey = region.id;
   const cached = cacheGet(summaryCache, cacheKey);
   if (cached) return cached.slice(0, limit);
 
-  const rows = await fetchDistrictTransactions(region, 1000);
+  const rows = await fetchDistrictTransactions(region, 1000, signal);
   const cutoffYm = twelveMonthsAgoYm();
 
   interface Agg {

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { breadcrumbJsonLd, howToJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
+import { seoAlternates } from "@/lib/seo/alternates";
 
 /* ============================================================
    항목 F30 — 계약 전 체크리스트 & 표준계약·특약 가이드 (정보성 콘텐츠)
@@ -9,10 +11,13 @@ import { Icon } from "@/app/components/Icon";
    등기부·건축물대장 확인 포인트. 실제 계약은 공인중개사·법무사 검토 권고.
    ============================================================ */
 
+const PATH = "/guides/contract";
+
 export const metadata: Metadata = {
   title: "계약 전 체크리스트 & 표준계약·특약 가이드 | 누구집",
   description:
     "가계약부터 잔금·입주까지 단계별 확인사항, 임대차·매매 표준계약서 핵심 조항, 자주 쓰는 특약 예시, 등기부·건축물대장 확인 포인트를 정리한 계약 가이드입니다.",
+  alternates: seoAlternates(PATH),
 };
 
 /* ── 계약 단계 (가계약 → 계약 → 중도금 → 잔금 → 입주) ── */
@@ -187,11 +192,29 @@ const ClauseColumn = ({
 );
 
 export default function ContractGuidePage() {
+  /* 항목 46 잔여 — HowTo 구조화 데이터. 화면에 실제 렌더되는 STAGES 배열
+     그대로에서 생성한다(스키마 전용 단계 추가 금지 — faqJsonLd 와 같은 규칙). */
+  const howTo = howToJsonLd({
+    name: "부동산 계약 단계별 확인사항 — 가계약부터 입주까지",
+    description:
+      "가계약·본계약·중도금·잔금·입주 다섯 단계에서 각각 확인할 사항을 정리한 절차 안내입니다. 실제 계약은 공인중개사·법무사 검토를 권합니다.",
+    path: PATH,
+    steps: STAGES.map((s) => ({ name: s.name, text: s.desc })),
+  });
+  const crumbs = breadcrumbJsonLd([
+    { name: "홈", url: "/" },
+    { name: "계약 전 체크리스트 & 특약 가이드", url: PATH },
+  ]);
+
   return (
     <PageShell
       breadcrumb="가이드 › 계약 전 체크리스트 & 특약 가이드"
       title="계약 전 체크리스트 & 표준계약·특약 가이드"
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript([crumbs, howTo]) }}
+      />
       <div className="mx-auto flex w-full max-w-[760px] flex-col gap-4">
         {/* 전문가 확인 권고 안내 */}
         <div className="rise-in flex items-start gap-3 rounded-2xl bg-primary-soft p-4">

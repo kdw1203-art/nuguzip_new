@@ -74,10 +74,23 @@ const KNOWN_TYPES = new Set([
   /* N20 — /developers 의 공개 집계 API. schema.org 정식 타입이다
      (https://schema.org/WebAPI, Service 하위). */
   "WebAPI",
+  /* /guides/contract — 계약 단계 절차 안내. 화면에 렌더되는 STAGES 배열
+     그대로에서 생성한다(lib/seo/jsonld.ts howToJsonLd 주석 참고). */
+  "HowTo",
+  "HowToStep",
 ]);
 
 /** 타입별 필수 필드 검사 — 통과 못 하면 검색엔진이 그 블록을 통째로 버린다. */
 const REQUIRED = {
+  HowTo: (o, err) => {
+    const steps = asArray(o.step);
+    if (steps.length === 0) return err("step 이 비어 있습니다 (단계 0개)");
+    steps.forEach((s, i) => {
+      if (s["@type"] !== "HowToStep") err(`step[${i}].@type 이 HowToStep 이 아닙니다`);
+      if (!nonEmpty(s.name)) err(`step[${i}].name(단계명)이 비어 있습니다`);
+      if (!nonEmpty(s.text)) err(`step[${i}].text(설명)가 비어 있습니다`);
+    });
+  },
   FAQPage: (o, err) => {
     const list = asArray(o.mainEntity);
     if (list.length === 0) return err("mainEntity 가 비어 있습니다 (질문 0개)");

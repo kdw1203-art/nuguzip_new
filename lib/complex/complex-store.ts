@@ -443,6 +443,8 @@ export async function searchComplexes(
   query: string,
   district?: string,
   limit = 20,
+  /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
+  signal?: AbortSignal,
 ): Promise<ComplexRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
@@ -474,6 +476,7 @@ export async function searchComplexes(
 
   // 넉넉히 가져와 (region_name, complex_name) 기준 중복 제거
   // (ilike 는 complex_name trigram GIN 인덱스를 탄다)
+  if (signal) q = q.abortSignal(signal);
   const { data, error } = await q.order("contract_ym", { ascending: false }).limit(800);
   /* 빈 배열은 "그런 단지는 없다"는 뜻이다. 못 읽었을 때 그렇게 답하면 사용자는
      검색어를 의심하며 같은 검색을 반복하고, 링크 해석(complex-link)은 실재하는
@@ -769,16 +772,23 @@ export async function upsertTransactions(_rows: ComplexTransactionRow[]): Promis
 
 // ── 단지별 커뮤니티 글 ─────────────────────────────────────────────────
 
-export async function getComplexPosts(complexId: string, limit = 10) {
+export async function getComplexPosts(
+  complexId: string,
+  limit = 10,
+  /** 곁다리 예산 신호 (항목 25) */
+  signal?: AbortSignal,
+) {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
+  let q = sb
     .from("posts")
     .select("id,title,created_at,district,city,like_count,comment_count,view_count")
     .eq("complex_id", complexId)
     .eq("visibility", "public")
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
   /* "아직 이 단지 이야기가 없어요"와 "지금 못 불러왔어요"는 다른 문장이다.
      앞의 문장은 글을 쓴 사람에게 자기 글이 사라진 것처럼 보인다. */
   if (error) throw dbError("posts (단지 이야기)", error);

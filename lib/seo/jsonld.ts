@@ -258,6 +258,37 @@ export function faqJsonLd(items: FaqItem[]): Record<string, unknown> {
   };
 }
 
+/* ---------- HowTo (/guides — 화면에 실제 렌더되는 단계 배열로만 생성) ---------- */
+
+export type HowToStep = { name: string; text: string };
+
+/**
+ * HowTo JSON-LD. FAQPage 와 같은 규칙: 화면에 보이는 단계 배열(STAGES 등)을
+ * 그대로 받아 만든다 — 화면에 없는 단계를 스키마에만 넣는 것은 허위 표기다.
+ * position 은 배열 순서 그대로 1부터.
+ */
+export function howToJsonLd(input: {
+  name: string;
+  description?: string | null;
+  /** 이 HowTo 가 실리는 페이지 경로 (예: "/guides/contract") */
+  path: string;
+  steps: HowToStep[];
+}): Record<string, unknown> {
+  return compact({
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "@id": `${absoluteUrl(input.path)}#howto`,
+    name: input.name,
+    description: input.description?.trim() || undefined,
+    step: input.steps.map((s, i) => ({
+      "@type": "HowToStep",
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+    })),
+  });
+}
+
 /** JSON-LD 객체 → 안전한 <script> 문자열 (XSS 차단: < 이스케이프) */
 export function jsonLdScript(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
