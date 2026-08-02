@@ -524,7 +524,16 @@ export async function GET(req: NextRequest) {
           : summarizePriceMeta(priceRows);
 
       return NextResponse.json(
-        { mode, clusters: [], points, priceMeta },
+        {
+          mode,
+          clusters: [],
+          points,
+          priceMeta,
+          /* 상한(MAX_POINTS)에 걸려 거래량 하위 단지가 잘렸는지 — 조용히 상위
+             300개만 그리면 "이 동네 단지는 이게 전부"로 읽힌다. 잘렸으면
+             잘렸다고 실어 보내 클라이언트가 "더 확대해 보세요"를 말하게 한다. */
+          truncated: (geoRes.data?.length ?? 0) >= MAX_POINTS,
+        },
         { headers: CACHE_HEADERS },
       );
     }

@@ -397,6 +397,8 @@ interface ClustersResponse {
   clusters: ClusterItem[];
   points: ClusterPointItem[];
   priceMeta?: PriceMeta;
+  /** 포인트 상한(거래량 상위 300)에 걸려 일부 단지가 잘렸는가 */
+  truncated?: boolean;
 }
 
 /** 이 네이버 줌 미만이면 서버 클러스터 마커를 표시 (API의 POINT_MODE_MIN_ZOOM과 동일) */
@@ -1649,6 +1651,8 @@ export function MapClient({
   const [clusterFetchStatus, setClusterFetchStatus] = useState<"idle" | "ok" | "error">(
     "idle",
   );
+  /* 포인트 300개 상한 절단 여부 — 조용한 절단은 "이게 전부"라는 거짓이 된다 */
+  const [pointsTruncated, setPointsTruncated] = useState(false);
   /** item5 — 현재 뷰포트(빈 지도 판정에 사용). idle 마다 갱신 */
   const [viewBounds, setViewBounds] = useState<MapIdleInfo["bounds"]>(null);
   const fetchTimerRef = useRef<number | null>(null);
@@ -1773,11 +1777,19 @@ export function MapClient({
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
+        /* 뷰포트를 줌별 격자에 스냅(밖으로 확장)해 URL 을 정규화한다.
+           원시 bounds 는 픽셀 단위로 연속 변동해 팬 한 번마다 URL 이 달라지고,
+           s-maxage=300 CDN 캐시가 사실상 한 번도 재사용되지 못했다 — 같은
+           동네를 보는 사용자들이 전부 오리진 DB 를 때렸다. 스냅 격자는 항상
+           원래 뷰포트를 포함하므로(밖으로 내림/올림) 화면에 빠지는 마커는 없다. */
+        const snapStep = mapZoom >= 15 ? 0.01 : mapZoom >= 12 ? 0.05 : 0.2;
+        const snapDown = (v: number) => (Math.floor(v / snapStep) * snapStep).toFixed(4);
+        const snapUp = (v: number) => (Math.ceil(v / snapStep) * snapStep).toFixed(4);
         const params = new URLSearchParams({
-          minLat: String(bounds.swLat),
-          maxLat: String(bounds.neLat),
-          minLng: String(bounds.swLng),
-          maxLng: String(bounds.neLng),
+          minLat: snapDown(bounds.swLat),
+          maxLat: snapUp(bounds.neLat),
+          minLng: snapDown(bounds.swLng),
+          maxLng: snapUp(bounds.neLng),
           zoom: String(mapZoom),
         });
         if (txTypeRef.current === "rent") params.set("type", "rent");
@@ -1794,6 +1806,7 @@ export function MapClient({
             setClusters(Array.isArray(json.clusters) ? json.clusters : []);
             setExtraPoints(Array.isArray(json.points) ? json.points : []);
             setPriceMeta(json.priceMeta ?? EMPTY_PRICE_META);
+            setPointsTruncated(Boolean(json.truncated));
             setClusterFetchStatus("ok");
           })
           .catch(() => {
@@ -2747,6 +2760,18 @@ export function MapClient({
           {clusterFetchStatus === "error"
             ? "일시적 오류로 단지 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요"
             : "관심 단지를 고르면 임장노트·AI 정리·지도 비교로 이어져요 — 이 지역 좌표는 순차 확충 중"}
+        </div>
+      )}
+
+      {/* 포인트 상한 절단 안내 — 거래량 상위 300개만 보이는 상태를 조용히
+          두면 "이 동네 단지는 이게 전부"라는 거짓 화면이 된다. */}
+      {pointsTruncated && !viewportEmpty && clusterFetchStatus === "ok" && (
+        <div
+          role="status"
+          className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-center text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
+        >
+          거래량 상위 300개 단지만 표시 중 — 더 확대하면 나머지 단지도 보여요
         </div>
       )}
 
