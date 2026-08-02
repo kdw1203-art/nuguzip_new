@@ -123,7 +123,15 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/check-source-views.mjs
+      # (2026-08-02) auth.ts 가 프로덕션 런타임에서 AUTH_SECRET 미설정이면
+      # 부팅을 거부하도록 강화됐다(security/launch-hardening — 옳은 변경).
+      # 그런데 이 링크 점검용 next start 는 NODE_ENV=production 인 채 시크릿 없이
+      # 떠서 auth 를 import 하는 모든 페이지가 500 → 링크 점검이 죽고 배포가
+      # 전부 실패했다. 점검용 서버는 실사용자·실세션이 없는 일회용 로컬 서버라,
+      # CI 전용 더미 시크릿을 명시해 부팅시킨다(운영 강제는 그대로 유효).
       - name: Build for link check
+        env:
+          AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
         # prerender 는 DB 를 읽는다. DB 가 느려지면 빌드가 조용히 길어지는데,
         # 잡 상한(35분)만 있으면 "빌드가 먹었다"는 사실이 로그 끝까지 가야 보인다.
         # 정상 빌드는 5분 안쪽이다 — 15분을 넘으면 그건 고장이다.
@@ -177,6 +185,8 @@ jobs:
       - name: Dead control check
         run: node scripts/check-dead-controls.mjs
       - name: Link integrity check
+        env:
+          AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
         # 스텝 단위 상한도 따로 둔다. 잡 상한(35분)만 있으면 어느 스텝이 잡아먹었는지
         # 로그를 끝까지 뒤져야 알 수 있는데, 여기서 끊기면 원인이 바로 드러난다.
         timeout-minutes: 12

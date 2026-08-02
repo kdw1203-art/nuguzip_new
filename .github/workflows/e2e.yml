@@ -26,10 +26,15 @@ jobs:
         run: npm ci
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+      # 링크 점검과 같은 이유(deploy.yml 참고) — CI 일회용 서버 부팅을 위한 더미.
       - name: Build
+        env:
+          AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
         run: npx next build
       - name: Start server and run E2E smoke
         shell: bash
+        env:
+          AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
         run: |
           # ⚠️ pipefail 을 지우지 말 것. 아래 playwright 호출은 tee 로 파이프되므로
           #    pipefail 이 없으면 $? 가 항상 tee 의 0 이 되고, 이 게이트는 무슨 일이
