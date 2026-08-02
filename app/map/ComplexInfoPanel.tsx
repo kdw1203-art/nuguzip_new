@@ -94,6 +94,8 @@ interface DetailResponse {
   regionRelative?: RegionRelativeRow | null;
   nearby?: NearbyRow[];
   listingCount?: number | null;
+  /** 조회에 실패한 부가 섹션 이름들 — 빈 값("없음")과 실패를 구분한다 */
+  sideFailures?: string[];
   fetchedAt?: string;
   mode: string;
 }
@@ -388,6 +390,7 @@ export function ComplexInfoPanel({
   const bands = data?.areaBands ?? [];
   const region = data?.regionRelative ?? null;
   const nearby = data?.nearby ?? [];
+  const sideFailed = new Set(data?.sideFailures ?? []);
   const listingCount = data?.listingCount;
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
@@ -832,6 +835,20 @@ export function ComplexInfoPanel({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* 부가 섹션 조회 실패 고지 — 섹션이 안 보이는 이유가 "없어서"가
+              아니라 "지금 못 읽어서"일 때, 그 사실을 말한다. */}
+          {(sideFailed.has("regionRelative") || sideFailed.has("nearby")) && (
+            <div className="rounded-2xl border border-[#f3d9a4] bg-[#fdf7ea] px-3.5 py-2.5 text-[11px] leading-[1.6] text-[#8a6d1f]">
+              {[
+                sideFailed.has("regionRelative") ? "이 동네 대비" : null,
+                sideFailed.has("nearby") ? "인근 단지" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}{" "}
+              정보를 지금 불러오지 못했어요 — 없는 게 아니라 조회가 실패했습니다.
             </div>
           )}
 

@@ -108,8 +108,59 @@ export default async function SubscriptionPage({
     currentPlan = profile.plan;
   }
 
+  /* 항목 46d — 요금제를 Product/Offer 로 기술. 가격은 billing-periods 단일
+     출처에서만 오고, availability 는 결제 개통 여부 사실을 그대로 싣는다
+     (미개통인데 InStock 이라 적으면 구조화 데이터가 거짓이 된다). */
+  const availability = paymentsReady
+    ? "https://schema.org/InStock"
+    : "https://schema.org/PreOrder";
+  const plansJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "누구집 멤버십 요금제",
+    itemListElement: (["pro", "expert"] as const).map((tier, i) => {
+      const p = tierPricing(tier);
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        item: {
+          "@type": "Product",
+          name: tier === "pro" ? "누구집 PRO 멤버십" : "누구집 EXPERT 멤버십",
+          description:
+            tier === "pro"
+              ? "AI 임장노트 정리·분석 확장, 광고 제거 등 개인 이용자용 멤버십"
+              : "전문가 등록·상담 기능을 포함한 전문가용 멤버십",
+          offers: [
+            {
+              "@type": "Offer",
+              price: p.monthly,
+              priceCurrency: "KRW",
+              availability,
+              url: "https://nuguzip.com/subscription",
+            },
+            ...(p.annualTotal > 0
+              ? [
+                  {
+                    "@type": "Offer",
+                    price: p.annualTotal,
+                    priceCurrency: "KRW",
+                    availability,
+                    url: "https://nuguzip.com/subscription?billing=annual",
+                  },
+                ]
+              : []),
+          ],
+        },
+      };
+    }),
+  };
+
   return (
     <PageShell breadcrumb="멤버십 상세" wide>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(plansJsonLd) }}
+      />
       {/* 히어로 (6l) */}
       <section className="rise-in flex flex-col items-center gap-2 pt-4 text-center">
         <h1 className="text-[26px] font-extrabold tracking-[-0.5px] text-ink md:text-[30px]">

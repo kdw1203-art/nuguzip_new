@@ -107,6 +107,25 @@ export default async function TxIndexPage() {
   );
   const range = formatYmRange(firstYm, latestYm);
 
+  /* 항목 46d — 허브의 실제 지역 목록을 ItemList 로 기술한다. 값은 전부
+     페이지가 이미 렌더하는 실데이터(listTxRegions)에서만 온다 — 조회 실패
+     (regions=[])면 노드 자체를 내보내지 않는다(빈 목록을 사실처럼 광고 금지). */
+  const itemListJsonLd =
+    regions.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "지역별 아파트 매매 실거래 구간",
+          numberOfItems: regions.length,
+          itemListElement: regions.slice(0, 100).map((r, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: `${r.name} 실거래 구간`,
+            url: `https://nuguzip.com/tx/${encodeURIComponent(r.slug)}`,
+          })),
+        }
+      : null;
+
   const crumbs = breadcrumbJsonLd([
     { name: "홈", url: "/" },
     { name: "지역별 실거래 구간", url: PATH },
@@ -116,7 +135,9 @@ export default async function TxIndexPage() {
     <PageShell breadcrumb="홈 › 지역별 실거래 구간" title="지역별 면적대·가격대 실거래">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript(itemListJsonLd ? [crumbs, itemListJsonLd] : crumbs),
+        }}
       />
 
       <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">

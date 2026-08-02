@@ -52,8 +52,16 @@ export async function GET(
     return dbUnavailable("complex-detail", e);
   }
 
+  /* 부가 섹션 3종 — 실패를 null/[]로 조용히 누르면 패널이 "이 동네 대비 없음"
+     "인근 단지 없음"을 그린다. 조회 실패는 데이터 없음이 아니다 — 어떤 섹션이
+     실패했는지 sideFailures 로 함께 실어, 소비자가 구분해 말할 수 있게 한다.
+     (섹션 하나 때문에 패널 전체를 죽이지는 않는다 — 값 폴백은 유지) */
+  const sideFailures: string[] = [];
   const [regionRelative, nearby, listingCount] = await Promise.all([
-    getRegionRelative(id).catch(() => null),
+    getRegionRelative(id).catch(() => {
+      sideFailures.push("regionRelative");
+      return null;
+    }),
     complex?.district
       ? searchComplexes("", complex.district, 6)
           .then((rows) =>
@@ -73,12 +81,18 @@ export async function GET(
                   .join(" · "),
               })),
           )
-          .catch(() => [])
+          .catch(() => {
+            sideFailures.push("nearby");
+            return [] as { id: string; name: string; meta: string }[];
+          })
       : Promise.resolve([] as { id: string; name: string; meta: string }[]),
     complex?.name
       ? listApprovedListings({ complexName: complex.name })
           .then((rows) => rows.length)
-          .catch(() => null)
+          .catch(() => {
+            sideFailures.push("listingCount");
+            return null;
+          })
       : Promise.resolve(null),
   ]);
 
@@ -92,6 +106,8 @@ export async function GET(
       regionRelative,
       nearby,
       listingCount,
+      /* 조회에 실패한 부가 섹션 이름들 — 빈 값과 실패를 소비자가 구분하게 */
+      sideFailures,
       fetchedAt: new Date().toISOString(),
       mode: complex ? "db" : "not_found",
     },

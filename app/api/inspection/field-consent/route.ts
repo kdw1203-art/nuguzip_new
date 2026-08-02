@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/log";
 import { auth } from "@/auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
   );
 
   if (error && !/field_capture|column/i.test(error.message)) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error("[api] DB 오류", error.message);
+    return NextResponse.json({ error: "서버 오류 — 잠시 후 다시 시도해 주세요." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, stored: !error });

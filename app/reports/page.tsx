@@ -69,8 +69,32 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ReportsIndexPage() {
   const { months, seasons, loadError } = await loadReportsIndex();
 
+  /* 항목 46d — 실재하는 월간 리포트 목록을 ItemList 로 기술. 값은 페이지가
+     이미 렌더하는 실데이터에서만 오고, 조회 실패면 노드를 내보내지 않는다. */
+  const itemListJsonLd =
+    months.length > 0
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "월간 아파트 실거래 리포트",
+          numberOfItems: months.length,
+          itemListElement: months.slice(0, 60).map((m, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: `${formatYmKo(m.ym)} 실거래 리포트`,
+            url: `https://nuguzip.com/reports/${m.ym}`,
+          })),
+        }
+      : null;
+
   return (
     <PageShell breadcrumb="월간 실거래 리포트">
+      {itemListJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        />
+      )}
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">월간 아파트 실거래 리포트</h1>
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">

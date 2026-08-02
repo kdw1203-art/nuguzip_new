@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/log";
 import { safeAuth } from "@/lib/safe-auth";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { loadMeProfile, normalizePersona } from "@/lib/me/profile";
@@ -111,7 +112,8 @@ export async function PATCH(req: Request) {
     .eq("email", email.trim().toLowerCase());
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    logger.error("[api] DB 오류", error.message);
+    return NextResponse.json({ error: "서버 오류 — 잠시 후 다시 시도해 주세요." }, { status: 500 });
   }
 
   if (regionSaved) {

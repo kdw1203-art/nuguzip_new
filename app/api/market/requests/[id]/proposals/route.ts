@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/log";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
@@ -25,7 +26,10 @@ export async function POST(
     message: message || "전문가 제안 요청",
     status: "pending",
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logger.error("[api] DB 오류", error.message);
+    return NextResponse.json({ error: "서버 오류 — 잠시 후 다시 시도해 주세요." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true }, { status: 201 });
 }
 

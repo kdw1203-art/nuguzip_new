@@ -4,6 +4,7 @@
  * GET /api/push/subscribe    — VAPID 공개키 반환
  */
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/log";
 import { safeAuth } from "@/lib/safe-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getVapidPublicKey } from "@/lib/push/vapid";
@@ -68,7 +69,10 @@ export async function POST(req: Request) {
     { onConflict: "endpoint" },
   );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    logger.error("[api] DB 오류", error.message);
+    return NextResponse.json({ error: "서버 오류 — 잠시 후 다시 시도해 주세요." }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, stored: true });
 }
 
