@@ -14,6 +14,7 @@ import {
   findApartmentComplexByName,
   type ComplexTransactionRecord,
 } from "@/lib/market/complex-transactions";
+import { encodeComplexId } from "@/lib/complex/complex-store";
 import { getPublicRecordsForComplex } from "@/lib/market/public-records";
 import { seoAlternates } from "@/lib/seo/alternates";
 
@@ -112,13 +113,18 @@ export async function generateMetadata({
   const description = `${regionLabel} ${complexName} 아파트 실거래 — 최근 거래 ${formatKrwShort(
     latest.dealAmountKrw,
   )} (${formatYmd(latest.contractYm, latest.contractDay)}). 국토교통부 실거래가 기반 거래 이력·면적대별 시세·월별 거래량을 확인하세요. 매물 호가가 아닙니다.`;
+  /* 항목 42 — 같은 단지를 렌더하는 색인 가능 URL 이 둘(/complex/{id} 와 이
+     페이지)이라 서로 잠식했다. 사이트맵이 내는 /complex/{id} 를 정본으로
+     선언한다. id 는 최근 거래 행의 실제 region_name 으로 조립 — 추측 없음.
+     region_name 이 비어 있는 예외에는 기존 자기 canonical 을 유지한다. */
+  const canonicalPath = latest.regionName
+    ? `/complex/${encodeComplexId(latest.regionName, complexName)}`
+    : `/complex/tx/${encodeURIComponent(complexName)}--${region.id}`;
   return {
     title,
     description,
     robots: { index: true, follow: true },
-    alternates: seoAlternates(
-      `/complex/tx/${encodeURIComponent(complexName)}--${region.id}`,
-    ),
+    alternates: seoAlternates(canonicalPath),
     openGraph: {
       title,
       description,

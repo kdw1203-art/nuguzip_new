@@ -30,6 +30,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
     logger.error("[api/public/v1/months] 월 목록 조회 실패:", detail);
-    return publicApiUnavailable(detail);
+    /* 원문 에러(테이블명·제약조건 등 내부 정보)는 서버 로그로만 — 익명 응답에는
+       일반 문구만 낸다(2026-08-02 감사). 실패를 빈 배열로 위장하지 않는 정책은
+       그대로다(503). */
+    return publicApiUnavailable("집계 조회가 잠시 실패했습니다. 잠시 후 다시 시도해 주세요.");
   }
 }

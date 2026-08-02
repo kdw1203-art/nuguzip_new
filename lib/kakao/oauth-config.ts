@@ -11,6 +11,7 @@
  * @see https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api
  */
 
+import "server-only";
 export type KakaoRolloutPhase = {
   step: number;
   id: string;

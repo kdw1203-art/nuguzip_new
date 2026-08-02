@@ -285,7 +285,23 @@ export async function GET(req: Request) {
 
 
 
-  // 운영 상세 진단은 토큰 필수 (민감 설정 노출 방지)
+  // 운영 상세 진단은 토큰 필수 (민감 설정 노출 방지).
+  //
+  // 2026-08-02: `expectedToken &&` 조건이라 HEALTHCHECK_TOKEN 이 미설정이면
+  // ?detail=1 만으로 전체 env 구성 유무(서비스롤·Stripe·Resend boolean)와
+  // AUTH_URL 이 무인증 공개였다. 토큰이 없으면 상세를 아예 거부한다 —
+  // "잠금 장치를 안 달았으니 다 보여준다"는 기본값이 거꾸로였다.
+
+  if (isProduction && !expectedToken && wantsDetail) {
+    return NextResponse.json(
+      {
+        status: "protected",
+        timestamp: new Date().toISOString(),
+        hint: "상세 진단은 HEALTHCHECK_TOKEN 설정 후 토큰 인증으로만 제공됩니다.",
+      },
+      { status: 401 },
+    );
+  }
 
   if (isProduction && expectedToken && !hasValidToken) {
 

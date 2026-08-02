@@ -3,6 +3,7 @@ import {
   buildComplexTxSlug,
   type ComplexSummary,
 } from "@/lib/market/complex-transactions";
+import { encodeComplexId } from "@/lib/complex/complex-store";
 
 /* 단지별 실거래 요약 테이블 — /region/[id] · /complex/browse 공용 (서버 컴포넌트).
    국토부 실거래가 기반, 매물 호가 아님. */
@@ -68,8 +69,16 @@ export function ComplexSummaryTable({
           {summaries.map((s) => (
             <tr key={s.complexName} className="border-b border-border last:border-b-0">
               <td className="max-w-[240px] py-2.5 pr-3">
+                {/* 항목 41 — 사이트맵이 내는 정본 URL(/complex/{id})로 링크한다.
+                    id 는 이 요약의 실제 행이 가진 region_name 으로 조립하므로
+                    추측이 없다. region_name 이 비어 있는 예외에서만 기존
+                    실거래 상세(/complex/tx)로 물러선다 — 죽는 링크 금지. */}
                 <Link
-                  href={`/complex/tx/${buildComplexTxSlug(s.complexName, regionId)}`}
+                  href={
+                    s.regionName
+                      ? `/complex/${encodeComplexId(s.regionName, s.complexName)}`
+                      : `/complex/tx/${buildComplexTxSlug(s.complexName, regionId)}`
+                  }
                   className="block"
                 >
                   <span className="block truncate font-bold text-ink underline-offset-2 hover:underline">

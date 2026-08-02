@@ -96,6 +96,8 @@ export default async function SubscriptionPage({
   const initialBilling = sp.billing === "annual" ? ("annual" as const) : ("monthly" as const);
   const session = await safeAuth();
   const email = session?.user?.email ?? null;
+  /* 관리자 배지 — 운영 계정은 플랜 대신 "관리자"로 표기한다. */
+  const isAdminViewer = (session?.user as { role?: string } | undefined)?.role === "admin";
   let currentPlan: "free" | "pro" | "expert" = "free";
   if (email) {
     const profile = await loadMeProfile(email, {
@@ -118,7 +120,7 @@ export default async function SubscriptionPage({
         </p>
         {email && (
           <span className="mt-1 rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
-            현재 플랜 · {PLAN_LABEL[currentPlan]}
+            현재 플랜 · {isAdminViewer ? "관리자 (모든 기능 무제한)" : PLAN_LABEL[currentPlan]}
           </span>
         )}
       </section>

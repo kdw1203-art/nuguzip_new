@@ -104,7 +104,9 @@ export function HeaderAuth() {
   const initial = (user.name?.trim() || user.email || "누")
     .charAt(0)
     .toUpperCase();
-  const planBadge = user.plan ? PLAN_BADGE[user.plan] : undefined;
+  /* 관리자는 플랜 대신 "관리자"로 표기 — 운영 계정임이 배지에서 바로 보이게. */
+  const planBadge =
+    user.role === "admin" ? "✦ 관리자" : user.plan ? PLAN_BADGE[user.plan] : undefined;
 
   return (
     <div ref={rootRef} className="relative flex items-center gap-1.5">

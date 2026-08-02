@@ -16,11 +16,14 @@ export async function canManageExpertProfile(
   return false;
 }
 
-/** API/공개 응답에서 소유자 이메일을 제외합니다. */
+/** API/공개 응답에서 소유자 이메일·내부 user UUID 를 제외합니다.
+    userId 는 내부 식별자다 — 공개 목록에 실리면 다른 API 와 조합해
+    계정을 역추적하는 재료가 된다(2026-08-02 감사). */
 export function sanitizeExpertForPublic(
   e: UserExpertProfile,
-): Omit<UserExpertProfile, "ownerEmail"> {
-  const { ownerEmail, ...rest } = e;
+): Omit<UserExpertProfile, "ownerEmail" | "userId"> {
+  const { ownerEmail, userId, ...rest } = e;
   void ownerEmail;
+  void userId;
   return rest;
 }

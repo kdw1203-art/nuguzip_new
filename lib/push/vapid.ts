@@ -8,6 +8,7 @@
  *   VAPID_PRIVATE_KEY=<privateKey>
  *   VAPID_SUBJECT=mailto:admin@yourdomain.com
  */
+import "server-only";
 import webpush from "web-push";
 import { logger } from "@/lib/log";
 import { DEFAULT_ADMIN_EMAIL } from "@/lib/brand/business-info";

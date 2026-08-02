@@ -285,8 +285,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           "";
         session.user.role =
           token.role === "admin" ? "admin" : "user";
+        /* enterprise 를 free 로 눌러 버리던 매핑을 고친다(2026-08-02) —
+           관리자 계정을 enterprise 로 올렸는데 세션에서는 free 로 보여
+           클라이언트 게이트가 전부 잠긴 채였다. */
         session.user.plan =
-          token.plan === "pro" || token.plan === "expert"
+          token.plan === "pro" || token.plan === "expert" || token.plan === "enterprise"
             ? token.plan
             : "free";
       }

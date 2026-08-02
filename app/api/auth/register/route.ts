@@ -134,7 +134,7 @@ async function recoverUnconfirmedSignup(opts: {
       return NextResponse.json(
         {
           error: "기존 미인증 계정을 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          detail: updErr.message,
+          detail: "서버 오류 — 잠시 후 다시 시도해 주세요.",
         },
         { status: 500 },
       );
@@ -162,7 +162,7 @@ async function recoverUnconfirmedSignup(opts: {
         message: passwordUpdated
           ? "비밀번호는 갱신했습니다. 인증 메일 재발송에 실패했다면 잠시 후 ‘인증 메일 다시 보내기’를 눌러 주세요."
           : "인증 메일 재발송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-        detail: resendErr.message,
+        detail: "서버 오류 — 잠시 후 다시 시도해 주세요.",
       },
       { status: 201 },
     );
@@ -303,7 +303,7 @@ async function signUpWithSupabaseAuth(
       );
     }
     return NextResponse.json(
-      { error: "가입 처리 중 오류가 발생했습니다.", detail: error.message },
+      { error: "가입 처리 중 오류가 발생했습니다.", detail: "서버 오류 — 잠시 후 다시 시도해 주세요." },
       { status: 400 },
     );
   }

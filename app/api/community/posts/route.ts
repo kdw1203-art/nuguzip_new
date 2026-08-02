@@ -17,8 +17,12 @@ export const runtime = "nodejs";
  */
 export async function GET() {
   const posts = await readPosts();
+  /* notifyEmail 은 작성자 알림용 서버 전용 값이다(lib/types/post.ts 주석).
+     저장소 매핑이 무조건 실어 오는 바람에 익명 GET 응답에 작성자 실이메일이
+     전량 노출되고 있었다(2026-08-02 감사) — 응답 직전에 벗긴다. */
+  const publicPosts = posts.map(({ notifyEmail: _drop, ...rest }) => rest);
   return NextResponse.json({
-    posts,
+    posts: publicPosts,
     limit: POSTS_READ_LIMIT,
     truncated: posts.length >= POSTS_READ_LIMIT,
   });

@@ -238,9 +238,11 @@ export default async function MyPage() {
                   <span className="text-base font-extrabold text-white">{name}님</span>
                   <Link
                     href="/subscription"
-                    className={`rounded-full bg-[rgba(255,255,255,.1)] px-2 py-0.5 text-[10px] font-extrabold no-underline ${planBadgeTone(profile.plan)}`}
+                    className={`rounded-full bg-[rgba(255,255,255,.1)] px-2 py-0.5 text-[10px] font-extrabold no-underline ${
+                      isAdminViewer ? "text-[#7ee2a8]" : planBadgeTone(profile.plan)
+                    }`}
                   >
-                    ✦ {planLabel(profile.plan)}
+                    ✦ {isAdminViewer ? "관리자" : planLabel(profile.plan)}
                   </Link>
                 </div>
                 <div className="mt-0.5 text-xs text-ai-muted">

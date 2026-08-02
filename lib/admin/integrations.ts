@@ -1,3 +1,4 @@
+import "server-only";
 import { getKakaoRestApiKey } from "@/lib/kakao/rest-client";
 import {
   getKakaoRolloutPhases,

@@ -1,4 +1,5 @@
 /** OpenAI 키 — Vercel 등에서 오타 방지용 별칭 허용 */
+import "server-only";
 export function getOpenAiApiKey(): string | undefined {
   const a = process.env.OPENAI_API_KEY?.trim();
   if (a) return a;

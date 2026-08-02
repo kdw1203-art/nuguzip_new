@@ -123,6 +123,8 @@ export function parseComplexTxSlug(
 
 export interface ComplexTransactionRecord {
   complexName: string;
+  /** 이 거래 행의 market_transactions.region_name 원문 — 단지 허브 id 조립용 */
+  regionName: string;
   address: string | null;
   /** yyyymm */
   contractYm: string;
@@ -136,6 +138,8 @@ export interface ComplexTransactionRecord {
 
 export interface ComplexSummary {
   complexName: string;
+  /** 최근 거래 행의 region_name 원문 — /complex/{id} 링크 조립용(항목 41) */
+  regionName: string;
   address: string | null;
   buildYear: number | null;
   /** 최근 거래월 yyyymm */
@@ -178,11 +182,17 @@ function cacheGet<T>(map: Map<string, { at: number; data: T }>, key: string): T 
 
 /* ---------- 내부 헬퍼 ---------- */
 
+/* region_name 을 함께 읽는 이유(항목 41·42): 단지 허브 URL(/complex/{id})의
+   name-id 는 encodeComplexId(region_name, complex_name) 인데, region_name 은
+   같은 지역도 표기가 여럿이다("서울 강남구"·"강남구"…). 링크·canonical 을 만들
+   때 후보 중 하나를 추측하면 죽는 링크가 된다 — 실제 행이 가진 표기를 그대로
+   실어 나른다. */
 const TX_SELECT =
-  "complex_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor,build_year,price_per_pyeong_krw";
+  "complex_name,region_name,address,contract_ym,contract_day,deal_amount_krw,area_m2,floor,build_year,price_per_pyeong_krw";
 
 interface RawTxRow {
   complex_name: unknown;
+  region_name: unknown;
   address: unknown;
   contract_ym: unknown;
   contract_day: unknown;
@@ -205,6 +215,7 @@ function toRecord(r: RawTxRow): ComplexTransactionRecord | null {
   };
   return {
     complexName: name,
+    regionName: r.region_name ? String(r.region_name).trim() : "",
     address: r.address ? String(r.address) : null,
     contractYm: String(r.contract_ym ?? ""),
     contractDay: num(r.contract_day),
@@ -337,6 +348,7 @@ export async function listDistrictComplexSummaries(
     }
     return {
       complexName: agg.latest.complexName,
+      regionName: agg.latest.regionName,
       address: agg.address,
       buildYear: agg.buildYear,
       latestYm: agg.latest.contractYm,

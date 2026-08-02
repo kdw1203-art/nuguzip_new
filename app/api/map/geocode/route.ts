@@ -1,3 +1,4 @@
+import { logger } from "@/lib/log";
 import { NextResponse } from "next/server";
 import {
   isNaverMapsRestConfigured,
@@ -53,7 +54,12 @@ export async function GET(req: Request) {
     const items = await naverGeocode(q, limit);
     return NextResponse.json({ source: "naver-maps-rest", items });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Geocoding failed";
-    return NextResponse.json({ error: message }, { status: 502 });
+    /* 업스트림(네이버) 원문 에러는 서버 로그로만 — 익명 응답에는 일반 문구.
+       (원문에는 요청 URL·쿼터 정보가 실릴 수 있다) */
+    logger.warn("[api/map/geocode] 지오코딩 실패", e);
+    return NextResponse.json(
+      { error: "지오코딩이 잠시 실패했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 502 },
+    );
   }
 }

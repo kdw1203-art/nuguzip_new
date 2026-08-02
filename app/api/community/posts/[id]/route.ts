@@ -24,7 +24,9 @@ export async function GET(
   const found = await lookupPost(id);
   if (found.state !== "ok") return postLookupErrorResponse(found);
   const post = found.post;
-  return NextResponse.json({ post });
+  /* notifyEmail 은 서버 전용 — 익명 응답에서 벗긴다(목록 GET 과 동일 판단). */
+  const { notifyEmail: _drop, ...publicPost } = post;
+  return NextResponse.json({ post: publicPost });
 }
 
 export async function PATCH(
