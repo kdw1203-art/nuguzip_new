@@ -209,6 +209,9 @@ export default async function MyPage() {
   );
   const aiUsage = usage?.items.find((i) => i.key === "ai_analysis") ?? null;
 
+  /* 세션 role 기준 — auth.ts 의 jwt 콜백이 app_users.role 을 매 요청 동기화한다 */
+  const isAdminViewer = (session.user as { role?: string }).role === "admin";
+
   const name = profile.name?.trim() || email.split("@")[0] || "회원";
   const total = notes.length;
   const recentNotes = notes.slice(0, 4);
@@ -631,9 +634,16 @@ export default async function MyPage() {
             })()}
         </section>
 
-        {/* ── 기타 메뉴 ── */}
+        {/* ── 기타 메뉴 ──
+            관리자 콘솔 링크는 role=admin 세션에만 그린다. 지금까지는 /admin 으로
+            들어가는 링크가 화면 어디에도 없어서, 관리자 본인이 대시보드가 있는
+            줄도 모르는 상태였다(2026-08-02 실제 문의). 링크는 발견 경로일 뿐이고
+            접근 제어는 서버(app/admin/layout.tsx의 canAccessAdminConsole)가 한다. */}
         <section className="card mb-2 flex flex-col rounded-[14px] px-4 py-0.5">
           {[
+            ...(isAdminViewer
+              ? [{ label: "관리자 콘솔", href: "/admin" }]
+              : []),
             { label: "설정", href: "/my/settings" },
             { label: "크리에이터 대시보드", href: "/my/creator" },
             { label: "자산 등록 · 대출 상환", href: "/my/assets" },

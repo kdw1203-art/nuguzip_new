@@ -11,6 +11,8 @@ type SessionUser = {
   name?: string | null;
   email?: string | null;
   plan?: string | null;
+  /* 세션 콜백(auth.ts)이 role 을 싣는다 — 관리자에게만 콘솔 링크를 그린다 */
+  role?: string | null;
 };
 
 type AuthState =
@@ -137,6 +139,18 @@ export function HeaderAuth() {
             <div className="truncate px-3 pb-1 pt-2 text-[11px] text-text-3">
               {user.name?.trim() || user.email}
             </div>
+            {/* 관리자 콘솔 진입점 — 이 링크가 없어 관리자가 /admin 존재를
+                모르는 상태였다(2026-08-02). 접근 제어는 서버 레이아웃이 한다. */}
+            {user.role === "admin" && (
+              <Link
+                href="/admin"
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block rounded-[10px] px-3 py-2 text-[13px] font-extrabold text-primary transition-colors hover:bg-[rgba(29,79,216,.08)]"
+              >
+                관리자 콘솔
+              </Link>
+            )}
             {MENU.map((m) => (
               <Link
                 key={m.href}
