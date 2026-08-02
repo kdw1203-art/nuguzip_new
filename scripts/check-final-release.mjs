@@ -158,7 +158,10 @@ if (exists("app/og-image/route.tsx") || exists("app/og-image/page.tsx")) {
   }
 }
 // G2 — llms.txt / G16 — 전역 JSON-LD
-if (exists("public/llms.txt")) {
+// 항목 44: 정적 public/llms.txt → 라우트(app/llms.txt/route.ts) 전환.
+// 실커버리지(지역·단지 수)를 실데이터에서 찍기 위해서다. 라우트가 있으면 통과,
+// 라우트도 정적 파일도 없으면 경고.
+if (exists("app/llms.txt/route.ts") || exists("public/llms.txt")) {
   pass("SEO", "llms.txt (GEO)");
 } else {
   warn("SEO", "llms.txt (GEO)");

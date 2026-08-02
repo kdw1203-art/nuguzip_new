@@ -593,14 +593,31 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { mode, clusters, points: [], priceMeta: summarizePriceMeta(priceRows) },
+      {
+        mode,
+        clusters,
+        points: [],
+        priceMeta: summarizePriceMeta(priceRows),
+        /* #72 잔여 — 클러스터 모드에도 절단 신호. 소스 좌표가 하드캡(5,000)에
+           걸리면 셀의 count 는 **과소집계**다(전국 뷰에서 2만여 단지가 잘린다).
+           조용히 두면 "이 지역 단지 수"가 사실처럼 보인다 — 클라이언트가
+           "확대하면 정확해져요"를 말하게 한다. */
+        truncated: (geoRes.data?.length ?? 0) >= MAX_CLUSTER_SOURCE_ROWS,
+      },
       { headers: CACHE_HEADERS },
     );
-  } catch {
-    // 테이블 미구축·조회 실패 시에도 지도는 기존 마커로 계속 동작
+  } catch (e) {
+    /* 조회 실패를 200 + 빈 배열로 돌려주지 않는다 — 그건 "이 동네에 단지가
+       없다"는 거짓이고, s-maxage 로 CDN 에 5분간 굳기까지 했다. 503 + no-store 로
+       "지금 못 읽었다"를 말한다. 클라이언트는 res.ok 가 아니면 기존 마커를
+       유지하고 오류 상태만 표시한다(map-client.tsx clusterFetchStatus). */
+    logger.error(
+      "[map/clusters] 조회 실패 — 빈 지도 대신 503 으로 응답:",
+      e instanceof Error ? e.message : String(e),
+    );
     return NextResponse.json(
-      { mode, clusters: [], points: [], priceMeta: EMPTY_PRICE_META },
-      { headers: CACHE_HEADERS },
+      { error: "지도 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "30" } },
     );
   }
 }

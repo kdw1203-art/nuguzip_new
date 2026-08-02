@@ -126,3 +126,16 @@ export function getReadOnlySupabase(): SupabaseClient | null {
 export function getAnonReadOnlySupabase(): SupabaseClient | null {
   return getAnonSupabase();
 }
+
+/**
+ * 지금 getReadOnlySupabase() 가 Service Role 로 읽는가.
+ *
+ * 왜 필요한가: 결제 원장(payment_orders)처럼 anon 에 GRANT 자체가 없는 표는
+ * anon 폴백 클라이언트로 조회하면 무조건 "permission denied" 다. CI 링크 점검의
+ * 일회용 서버(공개 키만 있음)가 /admin 을 긁을 때마다 이 오류가 프로덕션 DB
+ * 로그에 쌓였다 — 실패할 것을 알면서 던지는 조회는 조회가 아니라 소음이다.
+ * 민감 표를 읽는 로더는 이 값을 보고 시도 자체를 건너뛴다(null = "못 읽음").
+ */
+export function readOnlyClientHasServiceRole(): boolean {
+  return getServiceReadSupabase() !== null;
+}

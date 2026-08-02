@@ -2763,15 +2763,19 @@ export function MapClient({
         </div>
       )}
 
-      {/* 포인트 상한 절단 안내 — 거래량 상위 300개만 보이는 상태를 조용히
-          두면 "이 동네 단지는 이게 전부"라는 거짓 화면이 된다. */}
+      {/* 절단 안내 — 조용히 두면 거짓 화면이 된다.
+          · 포인트 모드: 거래량 상위 300개만 그려진 상태 ("이게 전부" 아님)
+          · 클러스터 모드(#72 잔여): 소스 좌표 5,000개 하드캡에 걸려 셀 숫자가
+            과소집계된 상태 ("이 지역 단지 수"가 실제보다 작게 보임) */}
       {pointsTruncated && !viewportEmpty && clusterFetchStatus === "ok" && (
         <div
           role="status"
           className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-center text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
         >
-          거래량 상위 300개 단지만 표시 중 — 더 확대하면 나머지 단지도 보여요
+          {clusterMode === "points"
+            ? "거래량 상위 300개 단지만 표시 중 — 더 확대하면 나머지 단지도 보여요"
+            : "화면이 넓어 단지 수가 일부만 집계됐어요 — 확대하면 정확해져요"}
         </div>
       )}
 

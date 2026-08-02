@@ -14,7 +14,7 @@
  * 반환하고, 페이지 쪽에서 "—" 또는 기존 목업으로 폴백한다.
  */
 import "server-only";
-import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import { getReadOnlySupabase, readOnlyClientHasServiceRole } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
 import { DEFAULT_ADMIN_EMAIL } from "@/lib/brand/business-info";
 
@@ -108,6 +108,11 @@ async function loadSignups24h(): Promise<number | null> {
 async function loadSubscriptionRevenue(): Promise<number | null> {
   const sb = getReadOnlySupabase();
   if (!sb) return null;
+  /* 결제 원장은 anon 에 GRANT 자체가 없다(맞는 설계). anon 폴백 상태에서
+     던지는 조회는 100% permission denied 라 프로덕션 DB 로그에 소음만 쌓는다 —
+     CI 링크 점검 서버가 /admin 을 긁을 때마다 정확히 그랬다. 시도하지 않고
+     "못 읽음"(null → 화면 "—")으로 답한다. */
+  if (!readOnlyClientHasServiceRole()) return null;
   const sum = (rows: Array<{ amount_krw?: unknown }> | null): number => {
     let total = 0;
     for (const r of rows ?? []) {
