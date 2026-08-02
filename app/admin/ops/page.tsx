@@ -12,8 +12,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const lightCard =
-  "flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-5";
+/* 다크 셸(#12161f) 위에 라이트 토큰 카드가 떠 있던 것을 다크 카드로 통일
+   (2026-08-02 감사 — 관리자 콘솔 다크 테마 규칙). */
+const darkCard =
+  "flex flex-col gap-2.5 rounded-[20px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-5";
 
 /** 전환 퍼널 바 색상 (진함 → 옅음) — 기존 정적 퍼널 팔레트 계승 */
 const FUNNEL_BAR_COLORS = [
@@ -136,9 +138,9 @@ export default async function AdminOpsPage() {
         {/* 좌측 */}
         <div className="flex flex-col gap-4">
           {/* 공지·배너 스케줄러 */}
-          <div className={lightCard}>
+          <div className={darkCard}>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-ink">
+              <span className="text-sm font-extrabold text-white">
                 공지·배너 스케줄러
               </span>
               {/* 2026-07-27: async 서버 컴포넌트 안의 <button> 이라 onClick 을 붙일 수
@@ -153,49 +155,49 @@ export default async function AdminOpsPage() {
             </div>
             <div className="flex flex-col gap-[5px] text-[11px]">
               {banners.length === 0 ? (
-                <div className="rounded-[10px] bg-bg px-3 py-4 text-center text-[10px] text-text-3">
+                <div className="rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-4 text-center text-[10px] text-[#9aa6b8]">
                   설정된 공지·배너가 없어요 — 추가하면 지정 지면에 노출됩니다
                 </div>
               ) : (
                 banners.slice(0, 5).map((b) => (
                   <div
                     key={b.id}
-                    className="flex items-center gap-2.5 rounded-[10px] bg-bg px-3 py-2.5"
+                    className="flex items-center gap-2.5 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
                   >
                     <span
                       className={`rounded-md px-2 py-[3px] text-[9px] font-extrabold ${
                         b.isActive
                           ? "bg-success-soft text-success"
-                          : "bg-[rgba(0,0,0,.06)] text-text-3"
+                          : "bg-[rgba(0,0,0,.06)] text-[#9aa6b8]"
                       }`}
                     >
                       {b.isActive ? "게시 중" : "숨김"}
                     </span>
-                    <span className="flex-1 truncate font-bold text-ink">{b.title}</span>
-                    <span className="hidden text-text-3 sm:block">
+                    <span className="flex-1 truncate font-bold text-white">{b.title}</span>
+                    <span className="hidden text-[#9aa6b8] sm:block">
                       {PLACEMENT_LABEL[b.placement]} · 우선 {b.priority}
                     </span>
                   </div>
                 ))
               )}
             </div>
-            <div className="text-[10px] text-text-3">
+            <div className="text-[10px] text-[#9aa6b8]">
               활성 {activeBanners.length} / 전체 {banners.length} · 지면별 우선순위로 노출.
               노출/클릭 실적은 집계 연동 후 표기합니다.
             </div>
           </div>
 
           {/* 운영 지표 */}
-          <div className={lightCard}>
+          <div className={darkCard}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-extrabold text-ink">운영 지표</span>
-              <span className="text-[10px] text-text-3">실집계</span>
+              <span className="text-sm font-extrabold text-white">운영 지표</span>
+              <span className="text-[10px] text-[#9aa6b8]">실집계</span>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {weekly.map((m) => (
-                <div key={m.label} className="rounded-xl bg-bg p-3">
-                  <div className="text-[9px] text-text-3">{m.label}</div>
-                  <div className="text-[17px] font-extrabold tabular-nums text-ink">
+                <div key={m.label} className="rounded-xl bg-[rgba(255,255,255,.05)] p-3">
+                  <div className="text-[9px] text-[#9aa6b8]">{m.label}</div>
+                  <div className="text-[17px] font-extrabold tabular-nums text-white">
                     {m.value}
                   </div>
                 </div>
@@ -203,10 +205,10 @@ export default async function AdminOpsPage() {
             </div>
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline justify-between gap-2">
-                <div className="min-w-0 text-[10px] font-extrabold text-text-3">
+                <div className="min-w-0 text-[10px] font-extrabold text-[#9aa6b8]">
                   전환 퍼널: {funnelHeader}
                 </div>
-                <span className="shrink-0 text-[9px] text-text-3">
+                <span className="shrink-0 text-[9px] text-[#9aa6b8]">
                   가입 30일 기준
                 </span>
               </div>
@@ -234,24 +236,24 @@ export default async function AdminOpsPage() {
                       );
                     })}
                   </div>
-                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-text-3">
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-[#9aa6b8]">
                     {funnel.map((step) => (
                       <span key={step.label} className="tabular-nums">
                         {stripParen(step.label)}{" "}
-                        <b className="text-text-1">
+                        <b className="text-[#c9d2e0]">
                           {step.count.toLocaleString("ko-KR")}
                         </b>
                       </span>
                     ))}
                   </div>
                   {maxDrop ? (
-                    <div className="text-[9px] text-text-3">
+                    <div className="text-[9px] text-[#9aa6b8]">
                       최대 이탈: {maxDrop.from} → {maxDrop.to} (−{maxDrop.pp}%p)
                     </div>
                   ) : null}
                 </>
               ) : (
-                <div className="rounded-md bg-bg px-3 py-4 text-center text-[10px] text-text-3">
+                <div className="rounded-md bg-[rgba(255,255,255,.05)] px-3 py-4 text-center text-[10px] text-[#9aa6b8]">
                   퍼널 데이터 없음 — 집계 이벤트가 쌓이면 표시됩니다
                 </div>
               )}
@@ -262,18 +264,18 @@ export default async function AdminOpsPage() {
         {/* 우측 */}
         <div className="flex flex-col gap-4">
           {/* RBAC */}
-          <div className={lightCard}>
+          <div className={darkCard}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-sm font-extrabold text-ink">
+              <span className="text-sm font-extrabold text-white">
                 역할별 권한 (RBAC)
               </span>
-              <span className="shrink-0 text-[10px] text-text-3">
+              <span className="shrink-0 text-[10px] text-[#9aa6b8]">
                 staff-roles 실제 판정
               </span>
             </div>
             <div className="overflow-x-auto">
               <div className="flex min-w-[300px] flex-col text-[10px]">
-                <div className="flex rounded-t-lg bg-bg px-2.5 py-[7px] font-extrabold text-text-3">
+                <div className="flex rounded-t-lg bg-[rgba(255,255,255,.05)] px-2.5 py-[7px] font-extrabold text-[#9aa6b8]">
                   <span className="flex-[1.6]">콘솔 섹션</span>
                   {RBAC_ROLES.map((role) => (
                     <span
@@ -288,7 +290,7 @@ export default async function AdminOpsPage() {
                 {RBAC_SECTIONS.map((section, i) => (
                   <div
                     key={section}
-                    className={`flex px-2.5 py-[7px] text-text-1 ${
+                    className={`flex px-2.5 py-[7px] text-[#c9d2e0] ${
                       i < RBAC_SECTIONS.length - 1
                         ? "border-b border-[#f0f3f8]"
                         : ""
@@ -304,7 +306,7 @@ export default async function AdminOpsPage() {
                         <span
                           key={role}
                           className={`flex-1 text-center ${
-                            allowed ? "font-extrabold text-success" : "text-text-3"
+                            allowed ? "font-extrabold text-success" : "text-[#9aa6b8]"
                           }`}
                         >
                           {allowed ? "✓" : "—"}
@@ -315,42 +317,42 @@ export default async function AdminOpsPage() {
                 ))}
               </div>
             </div>
-            <div className="text-[10px] leading-[1.6] text-text-3">
-              위 표는 <b className="text-text-1">lib/auth/staff-roles.ts</b> 의 접근
+            <div className="text-[10px] leading-[1.6] text-[#9aa6b8]">
+              위 표는 <b className="text-[#c9d2e0]">lib/auth/staff-roles.ts</b> 의 접근
               판정을 그대로 호출해 그립니다 — 콘솔이 실제로 막는 것과 어긋날 수
               없어요. 아래 두 줄은 아직 코드로 강제되지 않는{" "}
-              <b className="text-text-1">운영 정책 문서</b>이며 적용된 설정이
+              <b className="text-[#c9d2e0]">운영 정책 문서</b>이며 적용된 설정이
               아닙니다: 개인정보 열람은 건별 사유 입력 + 감사 로그 · 권한 변경은
               관리자 2인 승인.
             </div>
           </div>
 
           {/* 약관 · 개인정보 버전 관리 */}
-          <div className={lightCard}>
-            <div className="text-sm font-extrabold text-ink">
+          <div className={darkCard}>
+            <div className="text-sm font-extrabold text-white">
               약관 · 개인정보 버전 관리
             </div>
             <div className="flex flex-col gap-[5px] text-[11px]">
               <a
                 href="/legal/terms"
-                className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-[9px] no-underline"
+                className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
-                <span className="text-text-1">이용약관 (현행)</span>
+                <span className="text-[#c9d2e0]">이용약관 (현행)</span>
                 <span className="flex-shrink-0 rounded-md bg-success-soft px-2 py-[3px] text-[9px] font-extrabold text-success">
                   보기
                 </span>
               </a>
               <a
                 href="/legal/privacy"
-                className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-[9px] no-underline"
+                className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
-                <span className="text-text-1">개인정보처리방침 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-[rgba(29,79,216,.1)] px-2 py-[3px] text-[9px] font-extrabold text-primary">
+                <span className="text-[#c9d2e0]">개인정보처리방침 (현행)</span>
+                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] px-2 py-[3px] text-[9px] font-extrabold text-[#7ea2ff]">
                   보기
                 </span>
               </a>
             </div>
-            <div className="rounded-[10px] bg-bg px-3 py-2.5 text-[10px] leading-[1.6] text-text-1">
+            <div className="rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5 text-[10px] leading-[1.6] text-[#c9d2e0]">
               현행 약관·방침은 각 페이지에 버전·시행일 이력으로 관리됩니다. 개정 시 재동의
               모달·동의 이력 기능은 연동 후 이 자리에서 관리해요.
             </div>

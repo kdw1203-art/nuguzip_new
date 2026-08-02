@@ -99,9 +99,8 @@ export default async function TownPage() {
     (a, b) => b.createdAt - a.createdAt,
   );
 
-  /* 공작 등 가짜 예시 카드는 쓰지 않는다 — 0건이면 정직한 empty+CTA (스태프 시드 ops). */
-  const exampleOnly = false;
-
+  /* 공작 등 가짜 예시 카드는 쓰지 않는다 — 0건이면 정직한 empty+CTA.
+     (예시 배너 분기(exampleOnly)는 상수 false 로 영구 죽은 코드였다 — 제거) */
   return (
     <PageShell wide>
       <div className="mb-4 flex items-center justify-between">
@@ -124,7 +123,6 @@ export default async function TownPage() {
           등록 배너도 하우스 광고도 없으면 AdSlot 이 null 을 반환해 자리를 안 만든다. */}
       <TownFeed
         cards={cards}
-        exampleOnly={exampleOnly}
         loadFailed={loadFailed}
         ad={<AdSlot placement="community_feed" seed={0} plan={null} />}
       />

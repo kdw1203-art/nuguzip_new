@@ -131,12 +131,10 @@ function recommendScore(c: FeedCard): number {
 
 export function TownFeed({
   cards,
-  exampleOnly,
   loadFailed = false,
   ad = null,
 }: {
   cards: FeedCard[];
-  exampleOnly: boolean;
   /**
    * 피드 소스 조회가 **실패**했는가. 빈 목록이 "아직 없음"인지 "못 불러옴"인지는
    * 목록만 봐서는 구분이 안 된다 — 둘을 다르게 말하려면 이 플래그가 필요하다.
@@ -177,16 +175,6 @@ export function TownFeed({
         <div className="rise-in-2 mb-3 rounded-[12px] border border-line bg-danger-soft px-3.5 py-2.5 text-[11px] leading-[1.6] text-ink">
           일부 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요 — 잠시 후
           새로고침해 주세요.
-        </div>
-      )}
-
-      {exampleOnly && (
-        <div className="rise-in-2 mb-3 flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
-          <ExampleBadge />
-          <span>
-            아직 공개된 임장노트·이야기가 없어 샘플 1건을 보여드려요 — 실데이터가
-            쌓이면 자동으로 교체됩니다.
-          </span>
         </div>
       )}
 

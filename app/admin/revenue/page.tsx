@@ -2,6 +2,8 @@
    구독 MRR(실 플랜 카운트)·유료 전환·30일 결제(payments)·전문가 수 등 실데이터만 노출.
    결제 실패/환불 분쟁은 정산 연동 전까지 '준비 중'으로 정직하게 표기. */
 
+import { listIngestLog } from "@/lib/market/store";
+import Link from "next/link";
 import { loadAdminKpi } from "@/lib/admin/stats";
 import {
   estimateSubscriptionMrrKrw,
@@ -31,18 +33,30 @@ function pct(part: number, whole: number): string {
 }
 
 export default async function AdminRevenuePage() {
-  const kpi = await loadAdminKpi();
+  /* plan-expiry 스윕의 최근 실행 기록 — 일회성 결제 강등(churn)을 수익 화면에서
+     바로 본다. 실패는 null(칸 미표시)로 두고 0건과 구분한다. */
+  const [kpi, expiryLog] = await Promise.all([
+    loadAdminKpi(),
+    listIngestLog(60).then(
+      (rows) => rows.find((r) => r.source === "plan-expiry") ?? null,
+      () => null,
+    ),
+  ]);
   const mrr = estimateSubscriptionMrrKrw(kpi.planCounts);
   const paid = paidSubscriptionCount(kpi.planCounts);
   const rows = buildSubscriptionAdminRows(kpi.planCounts);
 
+  /* DB 미연결이면 0 이 아니라 "—" — 0건은 사실, 미연결은 모름 (대시보드 kpiReady 와 동일). */
+  const kpiReady = kpi.supabaseConfigured;
+  const num = (v: number) => (kpiReady ? v.toLocaleString("ko-KR") : "—");
+  const money = (v: number) => (kpiReady ? won(v) : "—");
   const kpis: { label: string; value: string; sub?: string }[] = [
-    { label: "MRR (구독 추정)", value: won(mrr), sub: "유료 플랜 × 요금" },
-    { label: "유료 구독", value: paid.toLocaleString("ko-KR"), sub: `전환율 ${pct(paid, kpi.totalUsers)}` },
-    { label: "전체 사용자", value: kpi.totalUsers.toLocaleString("ko-KR"), sub: `활성(7일) ${kpi.activeUsers7d.toLocaleString("ko-KR")}` },
-    { label: "전문가 수", value: kpi.totalExperts.toLocaleString("ko-KR"), sub: "인증 완료" },
-    { label: "30일 결제 건수", value: kpi.paymentsCompleted30d.toLocaleString("ko-KR"), sub: "payments 완료" },
-    { label: "30일 결제 매출", value: won(kpi.paymentsRevenue30dKrw), sub: "실 결제 합계" },
+    { label: "MRR (구독 추정)", value: money(mrr), sub: "유료 플랜 × 요금" },
+    { label: "유료 구독", value: num(paid), sub: kpiReady ? `전환율 ${pct(paid, kpi.totalUsers)}` : "DB 미연결" },
+    { label: "전체 사용자", value: num(kpi.totalUsers), sub: kpiReady ? `활성(7일) ${num(kpi.activeUsers7d)}` : "DB 미연결" },
+    { label: "전문가 수", value: num(kpi.totalExperts), sub: "인증 완료" },
+    { label: "30일 결제 건수", value: num(kpi.paymentsCompleted30d), sub: "payments 완료" },
+    { label: "30일 결제 매출", value: money(kpi.paymentsRevenue30dKrw), sub: "실 결제 합계" },
   ];
 
   return (
@@ -101,6 +115,23 @@ export default async function AdminRevenuePage() {
           </table>
         </div>
       </div>
+
+      {/* 최근 플랜 만료 강등 — plan-expiry 스윕이 ingest-log 에 남긴 실기록 */}
+      {expiryLog && (
+        <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-[13px] font-extrabold text-white">최근 플랜 만료 스윕</div>
+            <Link href="/admin/data" className="text-[11px] font-bold text-[#7ea2ff] no-underline">
+              전체 실행 기록 →
+            </Link>
+          </div>
+          <p className="mt-1 text-[12px] leading-relaxed text-[#9aa6b8]">
+            {expiryLog.message ?? `강등 ${expiryLog.rows}명`} ·{" "}
+            {new Date(expiryLog.createdAt).toLocaleString("ko-KR")} ·{" "}
+            {expiryLog.status === "ok" ? "정상" : `상태 ${expiryLog.status}`}
+          </p>
+        </div>
+      )}
 
       {/* 정직한 준비 중 — 실 데이터 소스 없는 항목 */}
       <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">

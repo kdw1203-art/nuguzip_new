@@ -28,15 +28,25 @@ function ymd(iso: string | null | undefined): string {
 }
 
 export default async function AdminMarketPage() {
-  const [kpi, banners] = await Promise.all([
+  /* 배너 조회 실패를 빈 배열로 누르면 아래에서 "설정된 배너가 없어요"가 뜬다 —
+     조회 실패는 실패로 표시한다(banners/page.tsx 와 같은 판단). */
+  const [kpi, bannersLoaded] = await Promise.all([
     loadAdminKpi(),
-    listBanners().catch(() => [] as Banner[]),
+    listBanners().then(
+      (rows) => ({ ok: true as const, rows }),
+      () => ({ ok: false as const, rows: [] as Banner[] }),
+    ),
   ]);
+  const banners = bannersLoaded.rows;
 
+  /* DB 미연결이면 0 이 아니라 "—" — 0건은 사실이고 미연결은 모름이다.
+     (대시보드 kpiReady 게이트와 동일) */
+  const kpiReady = kpi.supabaseConfigured;
+  const num = (v: number) => (kpiReady ? v.toLocaleString("ko-KR") : "—");
   const stats = [
-    { label: "진행 중 의뢰", value: kpi.marketOpen.toLocaleString("ko-KR"), color: "#fff" },
-    { label: "누적 의뢰", value: kpi.marketTotal.toLocaleString("ko-KR"), color: "#7ea2ff" },
-    { label: "인증 전문가", value: kpi.totalExperts.toLocaleString("ko-KR"), color: "#4ade80" },
+    { label: "진행 중 의뢰", value: num(kpi.marketOpen), color: "#fff" },
+    { label: "누적 의뢰", value: num(kpi.marketTotal), color: "#7ea2ff" },
+    { label: "인증 전문가", value: num(kpi.totalExperts), color: "#4ade80" },
   ];
 
   return (
@@ -88,7 +98,12 @@ export default async function AdminMarketPage() {
               활성 {banners.filter((b) => b.isActive).length} / 전체 {banners.length}
             </span>
           </div>
-          {banners.length === 0 ? (
+          {!bannersLoaded.ok ? (
+            <div className="rounded-xl border border-[rgba(255,120,120,.25)] bg-[rgba(255,120,120,.06)] p-4 text-[11px] text-[#f3b3b3]">
+              배너 목록을 지금 불러오지 못했습니다 — 없는 게 아니라 조회가 실패했습니다.
+              잠시 후 새로고침해 주세요.
+            </div>
+          ) : banners.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4 text-[11px] text-[#9aa6b8]">
               설정된 배너가 없어요. 배너를 추가하면 홈·커뮤니티 등 지정 위치에 노출됩니다.
             </div>

@@ -35,8 +35,10 @@ const VERDICT_ORDER: Record<QualityVerdict, number> = {
   pass: 3,
 };
 
-const lightCard =
-  "flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-5";
+/* 다크 셸(#12161f) 위에 라이트 토큰 카드가 떠 있던 것을 다크 카드로 통일
+   (2026-08-02 감사 — 관리자 콘솔 다크 테마 규칙). */
+const darkCard =
+  "flex flex-col gap-3 rounded-[20px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-5";
 
 function fmt(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -111,10 +113,10 @@ export default async function AdminQualityPage() {
       </div>
 
       {/* F4 — 데이터 품질 검사 (public.data_quality_report 실집계) */}
-      <div className={`rise-in-1 ${lightCard}`}>
+      <div className={`rise-in-1 ${darkCard}`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-sm font-extrabold text-ink">데이터 품질 검사</span>
-          <span className="text-[10px] text-text-3">
+          <span className="text-sm font-extrabold text-white">데이터 품질 검사</span>
+          <span className="text-[10px] text-[#9aa6b8]">
             {quality
               ? `${quality.generatedAt} 기준 · 검사 시점에 DB 전량을 다시 셉니다`
               : "집계 실패"}
@@ -122,7 +124,7 @@ export default async function AdminQualityPage() {
         </div>
 
         {!quality ? (
-          <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+          <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[11px] text-[#9aa6b8]">
             품질 집계를 불러오지 못했어요. 수치를 지어내지 않고 비워 둡니다.
           </div>
         ) : (
@@ -131,7 +133,7 @@ export default async function AdminQualityPage() {
               {(["defect", "note", "normal", "pass"] as QualityVerdict[]).map((v) => (
                 <span
                   key={v}
-                  className="rounded-[8px] bg-bg px-2.5 py-1.5 tabular-nums"
+                  className="rounded-[8px] bg-[rgba(255,255,255,.05)] px-2.5 py-1.5 tabular-nums"
                   style={{ color: VERDICT_COLOR[v] }}
                 >
                   {VERDICT_MARK[v]} {v === "pass" ? "회귀 감시 통과" : VERDICT_LABEL[v]}{" "}
@@ -142,19 +144,19 @@ export default async function AdminQualityPage() {
 
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {quality.groups.map((g) => (
-                <div key={g.key} className="flex flex-col gap-2 rounded-[14px] bg-bg p-3.5">
+                <div key={g.key} className="flex flex-col gap-2 rounded-[14px] bg-[rgba(255,255,255,.05)] p-3.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-xs font-extrabold text-ink">
+                    <span className="text-xs font-extrabold text-white">
                       {g.label}{" "}
-                      <span className="font-bold text-text-3">{g.table}</span>
+                      <span className="font-bold text-[#9aa6b8]">{g.table}</span>
                     </span>
-                    <span className="shrink-0 text-[10px] tabular-nums text-text-3">
+                    <span className="shrink-0 text-[10px] tabular-nums text-[#9aa6b8]">
                       {fmt(g.rows)}행
                     </span>
                   </div>
 
                   {g.checks.length === 0 ? (
-                    <div className="py-3 text-center text-[11px] text-text-3">
+                    <div className="py-3 text-center text-[11px] text-[#9aa6b8]">
                       따로 볼 항목이 없어요.
                     </div>
                   ) : (
@@ -166,26 +168,26 @@ export default async function AdminQualityPage() {
                           return (
                             <div
                               key={c.key}
-                              className="rounded-[10px] border border-line bg-surface px-3 py-2.5"
+                              className="rounded-[10px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-3 py-2.5"
                             >
                               <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-[11px] font-extrabold text-ink">
+                                <span className="text-[11px] font-extrabold text-white">
                                   <span style={{ color: VERDICT_COLOR[c.verdict] }}>
                                     {VERDICT_MARK[c.verdict]}
                                   </span>{" "}
                                   {c.label}
                                 </span>
-                                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-ink">
+                                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-white">
                                   {fmt(c.count)}
                                   {ratio && (
-                                    <span className="ml-1 font-bold text-text-3">({ratio})</span>
+                                    <span className="ml-1 font-bold text-[#9aa6b8]">({ratio})</span>
                                   )}
                                 </span>
                               </div>
-                              <div className="mt-1 text-[10px] leading-[1.7] text-text-2">
+                              <div className="mt-1 text-[10px] leading-[1.7] text-[#c9d2e0]">
                                 {c.detail}
                               </div>
-                              <div className="mt-0.5 text-[10px] leading-[1.7] text-text-3">
+                              <div className="mt-0.5 text-[10px] leading-[1.7] text-[#9aa6b8]">
                                 <b style={{ color: VERDICT_COLOR[c.verdict] }}>
                                   {VERDICT_LABEL[c.verdict]}
                                 </b>{" "}
@@ -198,7 +200,7 @@ export default async function AdminQualityPage() {
                   )}
 
                   {g.guards.length > 0 && (
-                    <div className="text-[10px] leading-[1.7] text-text-3">
+                    <div className="text-[10px] leading-[1.7] text-[#9aa6b8]">
                       <b className="text-[#4ade80]">● 회귀 감시 {g.guards.length}개 통과</b> —{" "}
                       {g.guards.join(" · ")}. 전부 0건이라 접어 뒀어요. 값이 잡히면 위 목록으로
                       올라옵니다.
@@ -208,7 +210,7 @@ export default async function AdminQualityPage() {
               ))}
             </div>
 
-            <div className="text-[10px] leading-[1.7] text-text-3">
+            <div className="text-[10px] leading-[1.7] text-[#9aa6b8]">
               &quot;정상&quot;은 0건이 아닌데도 실측으로 문제 없음을 확인한 항목입니다 — 근거를 각
               줄에 함께 적어 두었어요. 판정 기준은 lib/admin/data-quality.ts 한 곳에만 있습니다.
             </div>
@@ -218,58 +220,58 @@ export default async function AdminQualityPage() {
 
       <div className="rise-in-2 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* 사용자 세그먼트 (실데이터) */}
-        <div className={lightCard}>
-          <div className="text-sm font-extrabold text-ink">사용자 세그먼트</div>
+        <div className={darkCard}>
+          <div className="text-sm font-extrabold text-white">사용자 세그먼트</div>
           <div className="flex flex-col gap-1.5 text-[11px]">
             {segments.map((s) => (
               <div
                 key={s.label}
-                className="flex items-center justify-between rounded-[10px] bg-bg px-3 py-2.5"
+                className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
               >
                 <span>
-                  <b style={{ color: s.dot }}>●</b> <b className="text-ink">{s.label}</b>{" "}
-                  <span className="text-text-3">({s.sub})</span>
+                  <b style={{ color: s.dot }}>●</b> <b className="text-white">{s.label}</b>{" "}
+                  <span className="text-[#9aa6b8]">({s.sub})</span>
                 </span>
-                <span className="font-extrabold tabular-nums text-ink">{s.value}</span>
+                <span className="font-extrabold tabular-nums text-white">{s.value}</span>
               </div>
             ))}
           </div>
-          <div className="text-[10px] text-text-3">
+          <div className="text-[10px] text-[#9aa6b8]">
             휴면·이탈 위험 코호트는 행동 이벤트 정의가 확정되면 추가됩니다 (허위 수치 미표기).
           </div>
         </div>
 
         {/* AI 품질 모니터링 (실데이터 + 정직한 준비중) */}
-        <div className={lightCard}>
+        <div className={darkCard}>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-ink">AI 품질 모니터링</span>
-            <span className="text-[10px] text-text-3">최근 7일</span>
+            <span className="text-sm font-extrabold text-white">AI 품질 모니터링</span>
+            <span className="text-[10px] text-[#9aa6b8]">최근 7일</span>
           </div>
           <div className="flex gap-2">
-            <div className="flex-1 rounded-xl bg-bg p-3 text-center">
-              <div className="text-xl font-extrabold tabular-nums text-ink">
+            <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.05)] p-3 text-center">
+              <div className="text-xl font-extrabold tabular-nums text-white">
                 {kpi?.aiAnalysisRuns7d != null ? fmt(kpi.aiAnalysisRuns7d) : "—"}
               </div>
-              <div className="text-[9px] text-text-3">AI 분석 실행</div>
+              <div className="text-[9px] text-[#9aa6b8]">AI 분석 실행</div>
             </div>
-            <div className="flex-1 rounded-xl bg-bg p-3 text-center">
-              <div className="text-xl font-extrabold tabular-nums text-ink">
+            <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.05)] p-3 text-center">
+              <div className="text-xl font-extrabold tabular-nums text-white">
                 {kpi?.platformActivityEvents7d != null ? fmt(kpi.platformActivityEvents7d) : "—"}
               </div>
-              <div className="text-[9px] text-text-3">플랫폼 활동 이벤트</div>
+              <div className="text-[9px] text-[#9aa6b8]">플랫폼 활동 이벤트</div>
             </div>
           </div>
-          <div className="rounded-[9px] bg-bg px-[11px] py-2 text-[10px] text-text-1">
+          <div className="rounded-[9px] bg-[rgba(255,255,255,.05)] px-[11px] py-2 text-[10px] text-[#c9d2e0]">
             👍/👎 만족도 비율과 오답 리뷰 집계는 피드백 적재 파이프라인 연동 후 제공됩니다. 지금은
             실행량만 실측으로 표시해요.
           </div>
         </div>
 
         {/* 인증 심사 (실 대기열) */}
-        <div className={lightCard}>
+        <div className={darkCard}>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-ink">전문가·중개사 인증 심사</span>
-            <span className="text-[10px] text-text-3">
+            <span className="text-sm font-extrabold text-white">전문가·중개사 인증 심사</span>
+            <span className="text-[10px] text-[#9aa6b8]">
               대기 {ops ? fmt(ops.pendingVerifications) : "—"}건
             </span>
           </div>
@@ -278,13 +280,14 @@ export default async function AdminQualityPage() {
             <VerificationQueue queue={queue} />
           ) : (
             <ErrorState
+              tone="admin"
               title="인증 심사 큐를 지금 불러오지 못했어요"
               desc="대기 중인 신청이 0건인 게 아니라 조회가 실패했습니다."
               cause={queueLoaded.cause}
             />
           )}
 
-          <div className="text-[10px] text-text-3">
+          <div className="text-[10px] text-[#9aa6b8]">
             전문가 신청은 이 자리에서 바로 승인·반려하며 결과는 신청자 알림·감사로그(audit_logs)에
             기록됩니다. 소유확인 건은 매물 심사에서 처리해요.
           </div>
@@ -293,16 +296,17 @@ export default async function AdminQualityPage() {
 
       {/* J7 전문가 성과 랭킹 · J8 이상행위 로그 (실집계, 없으면 안내) */}
       <div className="rise-in-3 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className={lightCard}>
-          <div className="text-sm font-extrabold text-ink">전문가 성과 랭킹</div>
+        <div className={darkCard}>
+          <div className="text-sm font-extrabold text-white">전문가 성과 랭킹</div>
           {!perfLoaded.ok ? (
             <ErrorState
+              tone="admin"
               title="전문가 성과를 지금 불러오지 못했어요"
               desc="데이터가 없는 게 아니라 집계 조회가 실패했습니다."
               cause={perfLoaded.cause}
             />
           ) : perf.length === 0 ? (
-            <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+            <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[11px] text-[#9aa6b8]">
               집계할 상담 데이터가 아직 없어요.
             </div>
           ) : (
@@ -310,15 +314,15 @@ export default async function AdminQualityPage() {
               {perf.map((p, i) => (
                 <div
                   key={p.expertId}
-                  className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-2.5"
+                  className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
                 >
                   <span className="flex items-center gap-2 truncate">
-                    <b className="text-text-3">{i + 1}</b>
-                    <b className="truncate text-xs text-ink">{p.name}</b>
+                    <b className="text-[#9aa6b8]">{i + 1}</b>
+                    <b className="truncate text-xs text-white">{p.name}</b>
                   </span>
-                  <span className="shrink-0 text-[11px] text-text-2">
-                    상담 <b className="text-ink">{fmt(p.total)}</b> · 답변율{" "}
-                    <b className={p.replyRate >= 70 ? "text-[#4ade80]" : "text-text-2"}>
+                  <span className="shrink-0 text-[11px] text-[#c9d2e0]">
+                    상담 <b className="text-white">{fmt(p.total)}</b> · 답변율{" "}
+                    <b className={p.replyRate >= 70 ? "text-[#4ade80]" : "text-[#c9d2e0]"}>
                       {p.replyRate}%
                     </b>
                   </span>
@@ -326,21 +330,22 @@ export default async function AdminQualityPage() {
               ))}
             </div>
           )}
-          <div className="text-[10px] text-text-3">
+          <div className="text-[10px] text-[#9aa6b8]">
             상담 수·답변율 기준(expert_consultations). 데이터가 쌓이면 자동 갱신돼요.
           </div>
         </div>
 
-        <div className={lightCard}>
-          <div className="text-sm font-extrabold text-ink">전문가 이상행위 로그</div>
+        <div className={darkCard}>
+          <div className="text-sm font-extrabold text-white">전문가 이상행위 로그</div>
           {!fraudLoaded.ok ? (
             <ErrorState
+              tone="admin"
               title="이상행위 로그를 지금 불러오지 못했어요"
               desc="감지된 게 0건인 게 아니라 조회가 실패했습니다."
               cause={fraudLoaded.cause}
             />
           ) : fraud.length === 0 ? (
-            <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+            <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[11px] text-[#9aa6b8]">
               최근 감지된 이상행위가 없어요.
             </div>
           ) : (
@@ -350,7 +355,7 @@ export default async function AdminQualityPage() {
                 return (
                   <div
                     key={f.id}
-                    className="flex items-center justify-between gap-2 rounded-[10px] bg-bg px-3 py-2.5"
+                    className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -359,17 +364,17 @@ export default async function AdminQualityPage() {
                         >
                           {meta.label}
                         </span>
-                        <span className="truncate text-xs font-bold text-ink">{f.eventType}</span>
+                        <span className="truncate text-xs font-bold text-white">{f.eventType}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-[9px] text-text-3">{f.userEmail}</div>
+                      <div className="mt-0.5 truncate text-[9px] text-[#9aa6b8]">{f.userEmail}</div>
                     </div>
-                    <span className="shrink-0 text-[9px] text-text-3">{relDate(f.createdAt)}</span>
+                    <span className="shrink-0 text-[9px] text-[#9aa6b8]">{relDate(f.createdAt)}</span>
                   </div>
                 );
               })}
             </div>
           )}
-          <div className="text-[10px] text-text-3">
+          <div className="text-[10px] text-[#9aa6b8]">
             자동 감지(중복·이상 패턴)가 expert_fraud_events에 적재되면 여기서 모니터링합니다.
           </div>
         </div>

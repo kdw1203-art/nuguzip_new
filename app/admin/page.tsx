@@ -244,6 +244,45 @@ export default async function AdminDashboardPage() {
             ))
           )}
         </div>
+        {/* 알림 발송 큐(notification_outbox) — 이메일·알림이 조용히 무덤에
+            쌓이는지 매일 확인하는 자리. 실행 기록 원문은 데이터 콘솔의
+            source=notification-outbox 로 남는다(outbox 드레인 크론). */}
+        <div className={`${darkCard} flex flex-col gap-2.5 p-[18px]`}>
+          <div className="text-sm font-extrabold text-white">
+            알림 발송 큐{" "}
+            <span className="text-[10px] font-medium text-[#9aa6b8]">
+              notification_outbox
+            </span>
+          </div>
+          {!kpiReady ? (
+            <p className="text-xs text-[#9aa6b8]">
+              DB 미연결 — 대기 건수를 확인하지 못했습니다(0건이라는 뜻이 아닙니다).
+            </p>
+          ) : (
+            <>
+              <div className="flex items-baseline gap-2">
+                <span
+                  className="text-[22px] font-extrabold"
+                  style={{ color: (kpi?.pendingOutbox ?? 0) > 0 ? "#f2c94c" : "#4ade80" }}
+                >
+                  {num(kpi?.pendingOutbox)}
+                </span>
+                <span className="text-xs text-[#9aa6b8]">건 발송 대기</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#9aa6b8]">
+                {(kpi?.pendingOutbox ?? 0) > 0
+                  ? "드레인 크론(매일 1회)이 재시도합니다. 계속 쌓이면 RESEND 설정을 확인하세요."
+                  : "대기 중인 발송 실패 건이 없습니다."}
+              </p>
+              <Link
+                href="/admin/data"
+                className="text-[11px] font-bold text-[#7ea2ff] no-underline"
+              >
+                드레인 실행 기록 보기 →
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {/* 최근 문의 · 가입 추이 (실집계 — 실패 시 정직한 빈 상태) */}

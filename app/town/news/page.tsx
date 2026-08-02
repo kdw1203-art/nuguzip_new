@@ -322,6 +322,25 @@ export default async function TownNewsPage({
         </div>
       ) : null}
 
+      {/* 뉴스에서 자주 다뤄지는 두 표면으로의 상설 진입 — 재건축·분양 기사를
+          읽다가 실데이터(정비사업 지도·입주 예정 물량)로 바로 건너가게 한다. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Link
+          href="/redevelopment"
+          className="press chip inline-flex items-center gap-1 border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline"
+        >
+          <Icon name="building2" size={13} />
+          정비사업 지도에서 확인
+        </Link>
+        <Link
+          href="/supply"
+          className="press chip inline-flex items-center gap-1 border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline"
+        >
+          <Icon name="calendar" size={13} />
+          입주 예정 물량 보기
+        </Link>
+      </div>
+
       {/* 뉴스 그리드 */}
       {rest.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">

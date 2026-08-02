@@ -84,12 +84,21 @@ export default async function TownLibraryPage() {
       <section>
         <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="text-[15px] font-extrabold text-ink">공개 임장노트</h2>
-          <Link
-            href="/notes"
-            className="text-[12px] font-bold text-primary no-underline"
-          >
-            모두 보기 ›
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* 노트를 읽다 생긴 궁금증의 다음 행동 — 단지 Q&A (키워드 필터 지원) */}
+            <Link
+              href="/qna"
+              className="text-[12px] font-bold text-primary no-underline"
+            >
+              단지 Q&A ›
+            </Link>
+            <Link
+              href="/notes"
+              className="text-[12px] font-bold text-primary no-underline"
+            >
+              모두 보기 ›
+            </Link>
+          </div>
         </div>
 
         {loadFailed ? (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { regionIdForName } from "@/lib/region/catalog";
 import { PageShell } from "../../components/PageShell";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
@@ -149,10 +150,22 @@ function MeetingCard({ g, i }: { g: GroupView; i: number }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
-        <span className="inline-flex items-center gap-1">
-          <Icon name="pin" size={12} />
-          {g.region}
-        </span>
+        {/* 지역명이 카탈로그에서 유일하게 해석될 때만 지역 랜딩으로 링크한다 —
+            해석 실패·모호는 링크 없이 텍스트(죽은 링크 금지). */}
+        {regionIdForName(g.region) ? (
+          <Link
+            href={`/region/${regionIdForName(g.region)}`}
+            className="inline-flex items-center gap-1 font-semibold text-primary no-underline"
+          >
+            <Icon name="pin" size={12} />
+            {g.region} 시세 보기
+          </Link>
+        ) : (
+          <span className="inline-flex items-center gap-1">
+            <Icon name="pin" size={12} />
+            {g.region}
+          </span>
+        )}
         <span className="inline-flex items-center gap-1">
           <Icon name="user" size={12} />
           {g.host}

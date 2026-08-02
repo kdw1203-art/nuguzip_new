@@ -149,6 +149,8 @@ export default async function AdminDataPage() {
     settle(loadIngestSourceSummary(), "적재 로그"),
   ]);
   const freshness: FreshnessRow[] = freshnessLoaded.ok ? freshnessLoaded.value : [];
+  /* 데이터 수집이 아닌 운영 크론 소스 — 적재 로그 화면에서 별도 묶음으로 그린다 */
+  const OPS_CRON_SOURCES = new Set(["notification-outbox", "plan-expiry", "points-expiry"]);
   const ingest: IngestSourceSummary[] = ingestLoaded.ok ? ingestLoaded.value : [];
   const summaryReady = freshnessLoaded.ok && ingestLoaded.ok;
 
@@ -419,8 +421,45 @@ export default async function AdminDataPage() {
               적재 로그가 아직 없습니다.
             </div>
           ) : (
+            <>
+            {/* 데이터 수집과 운영 크론(알림 드레인·만료 스윕)이 한 목록에 섞이면
+                "수집이 돌았나"를 읽을 때 운영 로그가 소음이 된다 — 두 묶음으로
+                나눠 그린다(렌더만 분리, 쿼리는 그대로). */}
+            {ingest.some((r) => OPS_CRON_SOURCES.has(r.source)) && (
+              <div className="rounded-xl border border-[rgba(255,255,255,.07)]">
+                <div className="border-b border-[rgba(255,255,255,.05)] px-3 py-1.5 text-[10px] font-extrabold text-[#9aa6b8]">
+                  운영 크론 (알림 드레인 · 만료 스윕)
+                </div>
+                {ingest
+                  .filter((r) => OPS_CRON_SOURCES.has(r.source))
+                  .slice(0, 6)
+                  .map((r) => (
+                    <div
+                      key={`ops-${r.source}|${r.dataset}`}
+                      className="flex items-start justify-between gap-3 border-b border-[rgba(255,255,255,.05)] px-3 py-2 last:border-0"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <code className="text-[10px] text-[#f2c94c]">{r.source}</code>
+                          <span className="truncate text-[11.5px] text-white">{r.dataset}</span>
+                        </div>
+                        <div className="truncate text-[10px] text-[#9aa6b8]">
+                          {r.message ?? `${fmt(r.rows)}행`} ·{" "}
+                          {r.lagDays === 0 ? "오늘" : `${fmt(r.lagDays)}일 전`}
+                        </div>
+                      </div>
+                      <span className="shrink-0">
+                        <OutcomeChip outcome={r.outcome} />
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
             <div className="max-h-[300px] overflow-y-auto rounded-xl border border-[rgba(255,255,255,.07)]">
-              {ingest.slice(0, 40).map((r) => (
+              {ingest
+                .filter((r) => !OPS_CRON_SOURCES.has(r.source))
+                .slice(0, 40)
+                .map((r) => (
                 <div
                   key={`${r.source}|${r.dataset}`}
                   className="flex items-start justify-between gap-3 border-b border-[rgba(255,255,255,.05)] px-3 py-2 last:border-0"
@@ -446,6 +485,7 @@ export default async function AdminDataPage() {
                 </div>
               ))}
             </div>
+            </>
           )}
           <div className="text-[10px] leading-relaxed text-[#9aa6b8]">
             소스·데이터셋별 가장 최근 1건입니다. &ldquo;건너뜀&rdquo; 은 대개 해당 공공 API

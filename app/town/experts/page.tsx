@@ -265,11 +265,24 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
               ? "베타 기간에는 공급이 적을 수 있어요. 전문가 인증이 끝나면 상담이 열려요. 그동안은 임장노트·지도로 판단을 이어가세요."
               : "다른 분야·지역을 보거나, 임장노트로 기록을 이어가세요."}
           </p>
-          {filtersActive && (
-            <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
-              필터 초기화
+          {/* "임장노트·지도로 판단을 이어가세요"를 글로만 말하지 않는다 —
+              실제 표면으로 가는 버튼을 준다(빈 상태의 다음 행동). */}
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-2">
+            {filtersActive && (
+              <Link href="/town/experts" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+                필터 초기화
+              </Link>
+            )}
+            <Link href="/notes" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+              공개 임장노트 보기
             </Link>
-          )}
+            <Link href="/map" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+              지도에서 단지 찾기
+            </Link>
+            <Link href="/qna" className="btn-soft rounded-lg px-4 py-2 text-xs no-underline">
+              단지 Q&A에 질문하기
+            </Link>
+          </div>
         </div>
       ) : (
         <>
@@ -335,6 +348,17 @@ export default async function TownExpertsPage({ searchParams }: { searchParams: 
           </Link>
           에서 신청할 수 있어요.
         </p>
+      </div>
+
+      {/* 베타 공급 부족의 실제 대안 — 전문가가 없어도 판단은 이어져야 한다 */}
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+        <span className="text-[11px] text-text-3">원하는 전문가가 없다면:</span>
+        <Link href="/qna" className="press chip border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline">
+          이웃에게 묻기 (단지 Q&A)
+        </Link>
+        <Link href="/notes" className="press chip border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline">
+          실거주 기록 읽기 (임장노트)
+        </Link>
       </div>
 
       <p className="mt-4 text-center text-[11px] leading-[1.6] text-text-3">

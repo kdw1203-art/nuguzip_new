@@ -1,4 +1,5 @@
 import { loadModerationQueue, summarizeQueue } from "@/lib/admin/moderation-queue";
+import Link from "next/link";
 import { MODERATION_PIPELINE } from "@/lib/admin/moderation-policy";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { logger } from "@/lib/log";
@@ -153,6 +154,14 @@ export default async function AdminModerationPage() {
             <div className="text-[10px] leading-relaxed text-[#9aa6b8]">
               이 목록은 처리 순서를 정한 정책이며, 실행 지표가 아닙니다.
             </div>
+            {/* 매물 신고는 별도 큐(신고 3건 누적 시 자동 숨김)에 쌓인다 —
+                여기서만 보면 숨겨진 매물이 방치되므로 상호 링크를 둔다. */}
+            <Link
+              href="/admin/listings"
+              className="text-[11px] font-bold text-[#7ea2ff] no-underline"
+            >
+              매물 신고·자동 숨김 큐 보기 (/admin/listings) →
+            </Link>
           </div>
         </div>
       </div>

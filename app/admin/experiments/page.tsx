@@ -15,8 +15,10 @@ import { logger } from "@/lib/log";
 
 export const dynamic = "force-dynamic";
 
-const lightCard =
-  "flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-5";
+/* 다크 셸(#12161f) 위에 라이트 토큰 카드가 떠 있던 것을 다크 카드로 통일
+   (2026-08-02 감사 — 관리자 콘솔 다크 테마 규칙). */
+const darkCard =
+  "flex flex-col gap-3 rounded-[20px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-5";
 
 function fmt(n: number): string {
   return n.toLocaleString("ko-KR");
@@ -58,26 +60,26 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
   const conflicts = r.variants.reduce((s, v) => s + v.variantConflicts, 0);
 
   return (
-    <div className={lightCard}>
+    <div className={darkCard}>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="text-sm font-extrabold text-ink">{r.def.key}</div>
+        <div className="text-sm font-extrabold text-white">{r.def.key}</div>
         <span
           className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
             r.def.enabled
               ? "bg-primary-soft text-primary"
-              : "bg-[#eef1f5] text-text-3"
+              : "bg-[#eef1f5] text-[#9aa6b8]"
           }`}
         >
           {r.def.enabled ? "진행 중" : "중지됨 (전원 대조군)"}
         </span>
       </div>
 
-      <p className="text-[12px] leading-relaxed text-text-2">{r.def.hypothesis}</p>
+      <p className="text-[12px] leading-relaxed text-[#c9d2e0]">{r.def.hypothesis}</p>
 
-      <div className="flex flex-col gap-1 rounded-[10px] bg-bg px-3 py-2.5 text-[11px] text-text-3">
+      <div className="flex flex-col gap-1 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5 text-[11px] text-[#9aa6b8]">
         <div>
-          노출 이벤트 <span className="font-semibold text-text-2">{r.def.exposureEvent}</span> · 전환
-          이벤트 <span className="font-semibold text-text-2">{r.def.primaryMetricEvent}</span>
+          노출 이벤트 <span className="font-semibold text-[#c9d2e0]">{r.def.exposureEvent}</span> · 전환
+          이벤트 <span className="font-semibold text-[#c9d2e0]">{r.def.primaryMetricEvent}</span>
         </div>
         <div>
           집계 구간 {stamp(r.firstAt)} ~ {stamp(r.lastAt)} · 총 노출 {fmt(r.totalExposures)} · 총 전환{" "}
@@ -88,43 +90,43 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-[11px]">
           <thead>
-            <tr className="text-left text-text-3">
-              <th className="border-b border-line py-2 pr-3 font-semibold">변형</th>
-              <th className="border-b border-line py-2 pr-3 text-right font-semibold">노출</th>
-              <th className="border-b border-line py-2 pr-3 text-right font-semibold">전환</th>
-              <th className="border-b border-line py-2 pr-3 text-right font-semibold">
+            <tr className="text-left text-[#9aa6b8]">
+              <th className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 font-semibold">변형</th>
+              <th className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right font-semibold">노출</th>
+              <th className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right font-semibold">전환</th>
+              <th className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right font-semibold">
                 전환율 (노출당)
               </th>
-              <th className="border-b border-line py-2 pr-3 text-right font-semibold">배정 대상</th>
-              <th className="border-b border-line py-2 text-right font-semibold">표본</th>
+              <th className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right font-semibold">배정 대상</th>
+              <th className="border-b border-[rgba(255,255,255,.08)] py-2 text-right font-semibold">표본</th>
             </tr>
           </thead>
           <tbody>
             {r.variants.map((v) => (
               <tr key={v.key} className="align-top">
-                <td className="border-b border-line py-2 pr-3">
-                  <div className="font-bold text-ink">
+                <td className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3">
+                  <div className="font-bold text-white">
                     {v.label}
                     {v.isControl && (
-                      <span className="ml-1 text-[10px] font-semibold text-text-3">대조군</span>
+                      <span className="ml-1 text-[10px] font-semibold text-[#9aa6b8]">대조군</span>
                     )}
                   </div>
-                  <div className="text-[10px] text-text-3">{v.key}</div>
+                  <div className="text-[10px] text-[#9aa6b8]">{v.key}</div>
                 </td>
-                <td className="border-b border-line py-2 pr-3 text-right tabular-nums text-text-2">
+                <td className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right tabular-nums text-[#c9d2e0]">
                   {fmt(v.exposures)}
                 </td>
-                <td className="border-b border-line py-2 pr-3 text-right tabular-nums text-text-2">
+                <td className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right tabular-nums text-[#c9d2e0]">
                   {fmt(v.conversions)}
                 </td>
-                <td className="border-b border-line py-2 pr-3 text-right tabular-nums font-bold text-ink">
+                <td className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right tabular-nums font-bold text-white">
                   {pct(v.rate)}
                 </td>
-                <td className="border-b border-line py-2 pr-3 text-right tabular-nums text-text-2">
+                <td className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 text-right tabular-nums text-[#c9d2e0]">
                   {fmt(v.subjects)}
-                  <div className="text-[10px] text-text-3">로그인 {fmt(v.userSubjects)}</div>
+                  <div className="text-[10px] text-[#9aa6b8]">로그인 {fmt(v.userSubjects)}</div>
                 </td>
-                <td className="border-b border-line py-2 text-right text-[10px] text-text-3">
+                <td className="border-b border-[rgba(255,255,255,.08)] py-2 text-right text-[10px] text-[#9aa6b8]">
                   {shortfall(v)}
                 </td>
               </tr>
@@ -134,15 +136,15 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
       </div>
 
       {r.hasEnoughSample && r.comparison ? (
-        <div className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-bg px-3 py-2.5">
+        <div className="flex flex-col gap-1.5 rounded-[10px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.05)] px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
-            <span className="text-text-3">
+            <span className="text-[#9aa6b8]">
               대조군 대비{" "}
-              <span className="font-extrabold text-ink">{signedPct(r.comparison.lift)}</span>
+              <span className="font-extrabold text-white">{signedPct(r.comparison.lift)}</span>
             </span>
-            <span className="text-text-3">
+            <span className="text-[#9aa6b8]">
               양측 p{" "}
-              <span className="font-extrabold text-ink">
+              <span className="font-extrabold text-white">
                 {r.comparison.pValue === null ? "—" : r.comparison.pValue.toFixed(3)}
               </span>
             </span>
@@ -150,7 +152,7 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
               className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                 r.comparison.pValue !== null && r.comparison.pValue < 0.05
                   ? "bg-primary-soft text-primary"
-                  : "bg-[#eef1f5] text-text-3"
+                  : "bg-[#eef1f5] text-[#9aa6b8]"
               }`}
             >
               {r.comparison.pValue !== null && r.comparison.pValue < 0.05
@@ -158,12 +160,12 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
                 : "유의하지 않음"}
             </span>
           </div>
-          <p className="text-[10px] leading-relaxed text-text-3">{r.comparison.caveat}</p>
+          <p className="text-[10px] leading-relaxed text-[#9aa6b8]">{r.comparison.caveat}</p>
         </div>
       ) : (
-        <div className="rounded-[10px] border border-line bg-bg px-3 py-2.5">
-          <div className="text-[12px] font-bold text-ink">표본 부족 — 아직 비교하지 않습니다</div>
-          <p className="mt-1 text-[10px] leading-relaxed text-text-3">
+        <div className="rounded-[10px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.05)] px-3 py-2.5">
+          <div className="text-[12px] font-bold text-white">표본 부족 — 아직 비교하지 않습니다</div>
+          <p className="mt-1 text-[10px] leading-relaxed text-[#9aa6b8]">
             변형당 노출 {fmt(MIN_EXPOSURES_PER_VARIANT)}회 · 전환 {fmt(MIN_CONVERSIONS_PER_VARIANT)}회를
             모두 넘겨야 개선율과 p 값을 계산합니다. 그 전에 나온 차이는 대부분 우연이라, 숫자를
             띄우지 않는 편이 정확합니다.
@@ -215,10 +217,10 @@ export default async function AdminExperimentsPage() {
           cause={loaded.cause}
         />
       ) : results.length === 0 ? (
-        <div className={`rise-in-1 ${lightCard}`}>
-          <div className="text-sm font-extrabold text-ink">등록된 실험이 없습니다</div>
-          <p className="text-[11px] leading-relaxed text-text-3">
-            실험은 <code className="text-text-2">lib/experiments/registry.ts</code> 에 선언된 것만
+        <div className={`rise-in-1 ${darkCard}`}>
+          <div className="text-sm font-extrabold text-white">등록된 실험이 없습니다</div>
+          <p className="text-[11px] leading-relaxed text-[#9aa6b8]">
+            실험은 <code className="text-[#c9d2e0]">lib/experiments/registry.ts</code> 에 선언된 것만
             존재합니다. 코드 아무 데서나 만든 키는 서버에서 버려집니다.
           </p>
         </div>
