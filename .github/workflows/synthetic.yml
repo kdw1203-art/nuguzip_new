@@ -78,3 +78,18 @@ jobs:
           Runbook: docs/runbook.md"
           gh api repos/${{ github.repository }}/issues \
             -f title="$TITLE" -f body="$BODY" || true
+
+      # 정상으로 돌아오면 열려 있던 모니터링 이슈를 자동으로 닫는다(e2e.yml 패턴).
+      # 닫는 걸 사람 기억에 맡기면, 복구된 지 오래된 이슈가 열려 있어서
+      # 다음 실제 장애가 "이미 열린 이슈가 있음 — 스킵"에 걸려 조용히 묻힌다.
+      - name: Close monitoring issue on recovery
+        if: steps.probe.outputs.problem == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Synthetic monitoring failure: nuguzip.com"
+          for N in $(gh api "repos/${{ github.repository }}/issues?state=open&per_page=100" \
+            --jq "[.[] | select(.title == \"$TITLE\")] | .[].number" 2>/dev/null); do
+            gh issue close "$N" --repo ${{ github.repository }} \
+              --comment "run ${{ github.run_id }} 정상 확인 — 자동 종료" || true
+          done

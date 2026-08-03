@@ -36,19 +36,36 @@ permissions:
 jobs:
   etl:
     runs-on: ubuntu-latest
+    # 크론 호출 ~15개 × 최대 290초 = 이론상 72분. 기본 상한(360분)이면 하나가
+    # 멈췄을 때 러너를 6시간 붙잡는다(deploy.yml 이 35분으로 줄인 것과 같은 이유).
+    timeout-minutes: 120
     steps:
       - name: Run daily ingests
         env:
           CRS: ${{ secrets.CRON_SECRET }}
         run: |
           set -o pipefail
+          # 시크릿 없이 호출을 강행하면 전부 401 로 실패해 원인 불명의 이슈만
+          # 쌓인다. 미설정은 설정 문제라고 한 문장으로 말하고 바로 끝낸다.
+          if [ -z "$CRS" ]; then
+            echo "CRON_SECRET 미설정 — 모든 크론 호출이 401 이 되므로 실행하지 않음" | tee etl-failed.txt
+            exit 1
+          fi
           FAILED=""
+          # 실패 판정은 HTTP 상태 코드가 1차다. 예전엔 본문에서 "error" 문자열을
+          # 찾았는데, `"errors":0` 같은 무해한 필드에 오탐하고, 정작 "error" 단어가
+          # 없는 5xx HTML 에러 페이지는 놓쳤다. 본문 검사는 라우트가 200 으로
+          # 소프트 실패를 알리는 두 형태('"ok":false'·'"error":' 키)만 남긴다.
           call() {
             NAME="$1"; URL="$2"
             echo "== $NAME =="
-            BODY=$(curl -sS --max-time 290 -H "x-cron-secret: $CRS" "$URL" || echo '{"error":"curl failed"}')
-            echo "$BODY" | head -c 1000; echo
-            echo "$BODY" | grep -qi '"error"\|"ok":false' && FAILED="$FAILED $NAME" || true
+            RES=$(curl -sS --max-time 290 -w '\n%{http_code}' -H "x-cron-secret: $CRS" "$URL" || printf '\n000')
+            CODE=${RES##*$'\n'}
+            BODY=${RES%$'\n'*}
+            echo "$BODY" | head -c 1000; echo " [HTTP $CODE]"
+            if [ "$CODE" != "200" ] || echo "$BODY" | grep -q '"ok":false\|"error":'; then
+              FAILED="$FAILED $NAME($CODE)"
+            fi
           }
           call reb "https://nuguzip.com/api/cron/reb-ingest"
           call kb "https://nuguzip.com/api/cron/kb-ingest"
@@ -118,13 +135,39 @@ jobs:
             echo "failed:$FAILED" | tee etl-failed.txt
             exit 1
           fi
+      # 실패 리포트는 이슈 하나를 재사용한다(e2e.yml 패턴). 예전엔 실패마다 새
+      # 이슈를 팠는데, 같은 원인이 매일 2회 반복되면 이슈가 쌓여 새 원인이 묻힌다.
       - name: Report ETL failure
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           DETAIL=$(cat etl-failed.txt 2>/dev/null || echo "unknown")
-          gh api repos/${{ github.repository }}/issues -f title="Market ETL failure $(date -u +%FT%TZ)" -f body="run: ${{ github.run_id }} — $DETAIL" || true
+          BODY="run: ${{ github.run_id }} ($(date -u +%FT%TZ)) — $DETAIL"
+          EXISTING=$(gh issue list --repo ${{ github.repository }} \
+            --label etl-failure --state open --limit 1 --json number \
+            --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo ${{ github.repository }} --body "$BODY" || true
+          else
+            gh label create etl-failure --repo ${{ github.repository }} \
+              --color B60205 --description "Market ETL 실패 리포트" 2>/dev/null || true
+            gh issue create --repo ${{ github.repository }} \
+              --title "Market ETL failure" --label etl-failure --body "$BODY" || true
+          fi
+      # 초록으로 돌아오면 열린 리포트를 자동으로 닫는다 — 사람이 기억해서 닫아야
+      # 하는 상태를 남기지 않는다.
+      - name: Close ETL failure report on success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for N in $(gh issue list --repo ${{ github.repository }} \
+            --label etl-failure --state open --limit 20 --json number \
+            --jq '.[].number' 2>/dev/null); do
+            gh issue close "$N" --repo ${{ github.repository }} \
+              --comment "run ${{ github.run_id }} 통과 — 자동 종료" || true
+          done
 
   # ── 알림 러너 ────────────────────────────────────────────────────────────────
   # price-alerts · saved-search-alerts · attendance-reminders · listing-stale-reminders ·
@@ -142,12 +185,18 @@ jobs:
     needs: etl
     if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *')
     runs-on: ubuntu-latest
+    # 알림 러너 ~12개 × 최대 290초 = 이론상 58분. etl 잡과 같은 이유의 상한.
+    timeout-minutes: 90
     steps:
       - name: Run alert runners
         env:
           CRS: ${{ secrets.CRON_SECRET }}
         run: |
           set -o pipefail
+          if [ -z "$CRS" ]; then
+            echo "CRON_SECRET 미설정 — 모든 크론 호출이 401 이 되므로 실행하지 않음"
+            exit 1
+          fi
           call() {
             NAME="$1"; URL="$2"
             echo "== $NAME =="
