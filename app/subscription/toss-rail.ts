@@ -41,15 +41,37 @@ declare global {
   }
 }
 
-/** 빌드 시 인라인되는 공개 클라이언트 키. 미설정이면 이 레일 자체가 비활성. */
+/** 빌드 시 인라인되는 공개 클라이언트 키. 미설정이면 이 레일 자체가 비활성.
+ *  결제위젯 연동 키(gck)와 API 개별 연동 키(ck)를 모두 받는다 — 어느 쪽이냐에
+ *  따라 쓸 수 있는 SDK 제품이 다르다(isWidgetKey 참고). */
 export function tossClientKey(): string | null {
   const k = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim();
-  return k && (k.startsWith("test_ck_") || k.startsWith("live_ck_")) ? k : null;
+  return k &&
+    (k.startsWith("test_ck_") ||
+      k.startsWith("live_ck_") ||
+      k.startsWith("test_gck_") ||
+      k.startsWith("live_gck_"))
+    ? k
+    : null;
 }
 
-/** 테스트 키 여부 — 화면에 "실제 청구 없음"을 밝히는 근거 */
+/**
+ * 결제위젯 연동 키인가.
+ *
+ * API 키 문서: 클라이언트 키와 시크릿 키는 세트고, **결제위젯 SDK(widgets)는
+ * 위젯 연동 키(gck), 결제창 SDK(payment)는 API 개별 키(ck)**를 써야 한다.
+ * ck 키로 widgets() 를 부르면 INVALID_CLIENT_KEY 로 위젯이 그려지지 않는다 —
+ * 키 종류를 보고 주문서형(위젯)과 결제창형 중 맞는 흐름을 고른다.
+ */
+export function isWidgetKey(): boolean {
+  const k = tossClientKey();
+  return Boolean(k && (k.startsWith("test_gck_") || k.startsWith("live_gck_")));
+}
+
+/** 테스트 키 여부 — 화면에 "실제 청구 없음"을 밝히는 근거.
+ *  ck/gck 어느 종류든 test_ 접두사면 테스트 환경이다. */
 export function isTossTestEnv(): boolean {
-  return tossClientKey()?.startsWith("test_ck_") ?? false;
+  return tossClientKey()?.startsWith("test_") ?? false;
 }
 
 let sdkPromise: Promise<TossPaymentsFn> | null = null;

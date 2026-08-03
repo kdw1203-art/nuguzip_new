@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   isTossTestEnv,
+  isWidgetKey,
   loadTossSdk,
   tossClientKey,
   type TossWidgets,
@@ -19,6 +20,10 @@ import {
      3) 결제하기 → requestPayment → successUrl 리다이렉트(paymentKey·orderId·amount)
      4) /payment/success 가 서버 confirm(금액 대조·멱등키) 호출
 
+   세금(세금 처리 문서): 구독은 전부 과세 상품이므로 taxFreeAmount 를 보내지
+   않는다 — 과세 상점은 면세 금액이 항상 0 이라 파라미터 설정이 필요 없다.
+   면세·복합 과세 상품을 팔게 되면 requestPayment 에 taxFreeAmount 를 추가할 것.
+
    사실 우선:
    - 테스트 키(test_ck_)면 "실제 청구 없음"을 화면에 명시한다.
    - 위젯 렌더 실패는 실패라고 말하고(구독 페이지로 되돌아가는 길 제공),
@@ -28,6 +33,10 @@ import {
 type Phase =
   | { kind: "loading"; msg: string }
   | { kind: "ready"; orderId: string; amount: number }
+  /* API 개별 연동 키(ck)용 결제창형 — 위젯 없이 버튼 한 번으로 카드 결제창을
+     연다. API 키 문서: widgets() 는 위젯 연동 키(gck) 전용이라 ck 키로 부르면
+     INVALID_CLIENT_KEY 가 난다. 키 종류에 맞는 흐름을 자동으로 고른다. */
+  | { kind: "window-ready"; orderId: string; amount: number }
   | { kind: "login" }
   | { kind: "error"; msg: string };
 
@@ -130,7 +139,14 @@ export function CheckoutClient() {
         return;
       }
 
-      // 3) 위젯 렌더
+      // 3) 키 종류 분기 — ck(API 개별 연동 키)면 위젯을 그릴 수 없다(gck 전용).
+      //    결제창형(payment().requestPayment)으로 바로 간다.
+      if (!isWidgetKey()) {
+        setPhase({ kind: "window-ready", orderId, amount });
+        return;
+      }
+
+      // 4) 위젯 렌더 (gck 키)
       setPhase({ kind: "loading", msg: "결제 수단 불러오는 중…" });
       try {
         const TossPayments = await loadTossSdk();
@@ -148,14 +164,11 @@ export function CheckoutClient() {
         ]);
         widgetsRef.current = widgets;
         setPhase({ kind: "ready", orderId, amount });
-      } catch (e) {
-        setPhase({
-          kind: "error",
-          msg:
-            e instanceof Error && e.message
-              ? `결제 화면을 불러오지 못했어요 (${e.message.slice(0, 80)})`
-              : "결제 화면을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.",
-        });
+      } catch {
+        /* 위젯 렌더 실패 → 결제창형으로 후퇴. 주문은 이미 만들어져 있으므로
+           빈 화면 대신 "카드 결제창 열기" 경로를 준다 — 실패를 숨기는 게
+           아니라 같은 주문의 대체 결제 경로다(결제창도 실패하면 그때 오류 표시). */
+        setPhase({ kind: "window-ready", orderId, amount });
       }
     })();
   }, []);
@@ -179,6 +192,44 @@ export function CheckoutClient() {
         setPhase({
           kind: "error",
           msg: "결제 요청에 실패했어요. 잠시 후 다시 시도해 주세요.",
+        });
+      }
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  /* 결제창형(ck 키) — LLM Quick Reference §5.B: payment({customerKey})
+     .requestPayment({ method, amount: {value, currency}, ... }). V2 는 amount 가
+     객체다(정수 value + "KRW"). customerKey 는 예측 가능한 값(이메일 등) 금지 —
+     일회성 결제라 비회원 상수 ANONYMOUS 를 쓴다(위젯 흐름과 동일한 이유). */
+  async function payWindow() {
+    if (paying || phase.kind !== "window-ready" || !params) return;
+    setPaying(true);
+    try {
+      const TossPayments = await loadTossSdk();
+      const payment = TossPayments(tossClientKey() as string).payment({
+        customerKey: TossPayments.ANONYMOUS,
+      });
+      const origin = window.location.origin;
+      await payment.requestPayment({
+        method: "CARD",
+        amount: { currency: "KRW", value: phase.amount },
+        orderId: phase.orderId,
+        orderName: `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+        successUrl: `${origin}/payment/success`,
+        failUrl: `${origin}/payment/fail`,
+        /* 결제 결과 안내 문서: customerEmail 을 주면 승인·취소 때 토스가
+           구매자에게 안내 메일을 보낸다. 세션 이메일이 있으면 붙인다. */
+        ...(email ? { customerEmail: email } : {}),
+      });
+    } catch (e) {
+      const code =
+        e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : "";
+      if (code !== "USER_CANCEL" && code !== "PAY_PROCESS_CANCELED") {
+        setPhase({
+          kind: "error",
+          msg: "결제창을 열지 못했어요. 잠시 후 다시 시도해 주세요.",
         });
       }
     } finally {
@@ -254,6 +305,43 @@ export function CheckoutClient() {
             </button>
             <p className="text-center text-[11px] text-text-3">
               결제 완료 후 자동으로 구독이 활성화돼요 · 주문번호 {phase.orderId}
+            </p>
+          </>
+        )}
+
+        {/* 결제창형(ck 키) — 위젯 대신 요약 카드 + 결제창 버튼 */}
+        {phase.kind === "window-ready" && (
+          <>
+            <div className="card flex flex-col gap-2 rounded-2xl px-4 py-5">
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-text-3">플랜</span>
+                <span className="font-bold text-ink">
+                  {label} · {billingLabel}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-text-3">결제 금액</span>
+                <span className="font-extrabold text-ink">
+                  {phase.amount.toLocaleString("ko-KR")}원
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+                버튼을 누르면 토스페이먼츠 카드 결제창이 열려요. 결제 완료 후
+                자동으로 구독이 활성화돼요.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void payWindow()}
+              disabled={paying}
+              className="btn-primary btn-cta rounded-[14px] p-[14px] text-center text-[15px] font-bold disabled:opacity-60"
+            >
+              {paying
+                ? "결제창 여는 중…"
+                : `${phase.amount.toLocaleString("ko-KR")}원 카드로 결제하기`}
+            </button>
+            <p className="text-center text-[11px] text-text-3">
+              주문번호 {phase.orderId}
             </p>
           </>
         )}
