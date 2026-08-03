@@ -2,6 +2,11 @@ import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
+import { loadCoverage } from "@/lib/stats/coverage";
+
+/* 고도화 50 — 실적 숫자는 llms.txt 와 같은 로더에서 온다(1시간 재검증).
+   손으로 적은 숫자는 낡는다 — 로더가 실패하면 숫자 문장을 통째로 생략한다. */
+export const revalidate = 3600;
 
 export const metadata = buildPageMetadata({
   title: "누구집 소개 — 운영 원칙",
@@ -33,11 +38,12 @@ const PRINCIPLES: { title: string; body: string }[] = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
   const crumbs = breadcrumbJsonLd([
     { name: "홈", url: "/" },
     { name: "소개", url: "/about" },
   ]);
+  const coverage = await loadCoverage();
   return (
     <PageShell breadcrumb="소개">
       <script
@@ -52,6 +58,29 @@ export default function AboutPage() {
           누구집(nuguzip.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래
           데이터와 나란히 놓고, 부동산 판단의 근거를 쌓도록 돕는 서비스입니다.
         </p>
+
+        {/* 고도화 50 — 실적 숫자(실측·1시간 재검증). 로더 실패면 이 블록 자체가
+            사라진다 — 낡은 숫자를 소개 페이지에 굳히지 않는다. */}
+        {coverage.complexes !== null && coverage.regions !== null && (
+          <div className="rise-in-1 mt-4 grid grid-cols-2 gap-3">
+            <div className="card rounded-2xl px-5 py-4">
+              <div className="t-num text-[22px] font-extrabold text-ink">
+                {coverage.complexes.toLocaleString("ko-KR")}
+              </div>
+              <div className="mt-0.5 text-[12px] text-text-3">
+                실거래 집계 단지 · 국토부 신고 기준
+              </div>
+            </div>
+            <div className="card rounded-2xl px-5 py-4">
+              <div className="t-num text-[22px] font-extrabold text-ink">
+                {coverage.regions.toLocaleString("ko-KR")}
+              </div>
+              <div className="mt-0.5 text-[12px] text-text-3">
+                시세 랜딩 지역 · 매시간 갱신 집계
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-col gap-4">
           {PRINCIPLES.map((p, i) => (

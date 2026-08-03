@@ -2,6 +2,7 @@ import Link from "next/link";
 import { regionIdForName } from "@/lib/region/catalog";
 import { PageShell } from "../../components/PageShell";
 import { listMeetings, type UserMeeting } from "@/lib/meetings/store-db";
+import { countRecentGroupMessages } from "@/lib/chat/store-db";
 import { CreateGroupCta } from "./CreateGroupCta";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
@@ -115,7 +116,16 @@ function qs(base: Record<string, string | undefined>, patch: Record<string, stri
 
 /* ---------- 모임 카드 (지역·일정·모집인원·상태) ---------- */
 
-function MeetingCard({ g, i }: { g: GroupView; i: number }) {
+function MeetingCard({
+  g,
+  i,
+  chat24h = 0,
+}: {
+  g: GroupView;
+  i: number;
+  /** 최근 24h 채팅 메시지 수 — 실측일 때만 양수, 0/미확인은 배지 미표시 */
+  chat24h?: number;
+}) {
   const meta = STATUS_META[g.statusKey];
   const remaining = Math.max(g.max - g.members, 0);
   const pct = Math.min(100, Math.round((g.members / Math.max(g.max, 1)) * 100));
@@ -135,6 +145,13 @@ function MeetingCard({ g, i }: { g: GroupView; i: number }) {
           {g.fee > 0 && (
             <span className="inline-flex items-center rounded-md bg-bg px-2 py-1 text-[11px] font-bold text-text-2">
               참가비 {g.fee.toLocaleString("ko-KR")}원
+            </span>
+          )}
+          {/* 고도화 29 — 채팅 활성도(실측 24h). 0·미확인이면 그리지 않는다 */}
+          {chat24h > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-1 text-[11px] font-bold text-success">
+              <Icon name="messages-square" size={11} />
+              24시간 메시지 {chat24h.toLocaleString("ko-KR")}개
             </span>
           )}
         </span>
@@ -251,6 +268,15 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
 
   const now = Date.now();
   const all = meetings.map((m) => toView(m, now));
+
+  /* 고도화 29 — 모임별 최근 24h 채팅 메시지 수(실측). 조회 실패면 배지 전체를
+     접는다 — 0으로 그리면 "조용한 모임"이라는 거짓 주장이 된다. */
+  let chatActivity = new Map<string, number>();
+  try {
+    chatActivity = await countRecentGroupMessages(all.map((g) => g.id));
+  } catch {
+    chatActivity = new Map();
+  }
 
   /* 지역 칩 — 실데이터에서 도출 */
   const regionKeys = [...new Set(all.map((g) => g.regionKey))].slice(0, 6);
@@ -390,7 +416,7 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
             {recruiting.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {recruiting.map((g, i) => (
-                  <MeetingCard key={g.id} g={g} i={i} />
+                  <MeetingCard key={g.id} g={g} i={i} chat24h={chatActivity.get(g.id) ?? 0} />
                 ))}
               </div>
             ) : (
@@ -418,7 +444,7 @@ export default async function TownGroupsPage({ searchParams }: { searchParams: P
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {closed.map((g, i) => (
-                  <MeetingCard key={g.id} g={g} i={i} />
+                  <MeetingCard key={g.id} g={g} i={i} chat24h={chatActivity.get(g.id) ?? 0} />
                 ))}
               </div>
             </section>

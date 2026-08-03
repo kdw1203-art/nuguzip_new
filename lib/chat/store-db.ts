@@ -1095,3 +1095,59 @@ export async function updateChatReportStatus(input: {
     .eq("id", input.reportId);
   return !error;
 }
+
+/**
+ * 모임별 최근 24시간 메시지 수 (고도화 29 — 모임 카드 활성도 배지).
+ *
+ * 반환: meetingId → 24h 메시지 수. 방이 없거나 메시지가 없는 모임은 키 자체가
+ * 없다 — 호출부는 0/부재를 "배지 미표시"로 같게 다루면 된다(실측만 표기).
+ * 조회 실패는 던진다 — 호출부가 배지 전체를 접는다(0으로 위장하지 않는다).
+ */
+export async function countRecentGroupMessages(
+  meetingIds: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (meetingIds.length === 0) return out;
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+
+  const sb = getServiceSupabase();
+  if (!sb) {
+    for (const room of memory.rooms) {
+      if (room.roomType !== "group" || !room.meetingId) continue;
+      if (!meetingIds.includes(room.meetingId)) continue;
+      const n = memory.messages.filter(
+        (m) => m.roomId === room.id && m.createdAt >= since,
+      ).length;
+      if (n > 0) out.set(room.meetingId, (out.get(room.meetingId) ?? 0) + n);
+    }
+    return out;
+  }
+
+  const { data: rooms, error: roomError } = await sb
+    .from("chat_rooms")
+    .select("id, meeting_id")
+    .eq("room_type", "group")
+    .in("meeting_id", meetingIds);
+  if (roomError) throw chatDbError("chat_rooms 조회 실패 (활성도)", roomError);
+  const meetingByRoom = new Map<string, string>();
+  for (const r of rooms ?? []) {
+    if (r.meeting_id) meetingByRoom.set(String(r.id), String(r.meeting_id));
+  }
+  if (meetingByRoom.size === 0) return out;
+
+  /* PostgREST 는 GROUP BY 가 없으므로 24h 분량을 받아 세는데, 상한(2000)을
+     둔다. 상한에 걸리면 그 이상은 "매우 활발"이라는 뜻이라 배지 목적(활성도
+     표시)에는 이미 충분하다 — 정확한 총계가 필요한 화면이 아니다. */
+  const { data: msgs, error: msgError } = await sb
+    .from("chat_messages")
+    .select("room_id")
+    .in("room_id", [...meetingByRoom.keys()])
+    .gte("created_at", since)
+    .limit(2000);
+  if (msgError) throw chatDbError("chat_messages 집계 실패 (활성도)", msgError);
+  for (const m of msgs ?? []) {
+    const meetingId = meetingByRoom.get(String(m.room_id));
+    if (meetingId) out.set(meetingId, (out.get(meetingId) ?? 0) + 1);
+  }
+  return out;
+}
