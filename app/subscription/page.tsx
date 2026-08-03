@@ -10,6 +10,7 @@ import {
 } from "@/lib/brand/business-info";
 import { getStripe } from "@/lib/billing/stripe";
 import { isKakaoPayConfigured } from "@/lib/payments/kakaopay";
+import { isTossPaymentsConfigured } from "@/lib/payments/toss-config";
 import { BillingPanel } from "./BillingPanel";
 import { SETTLEMENT } from "@/lib/creator/sales";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -117,9 +118,12 @@ export default async function SubscriptionPage({
      503 을 내고, PSP(Stripe·카카오페이) 키가 없어도 마찬가지다. 그 상태에서
      결제 버튼을 그리는 건 눌러야만 알 수 있는 거짓 입구다 — 대신 "결제 준비
      중 + 오픈 알림 받기"로 구매 의사를 기록한다. */
+  /* 토스도 준비 판정에 넣는다 — 토스 키만 설정된 상태(심사 기간이 정확히 이
+     상태다)에서 Stripe·카카오만 보면 결제창을 붙여 놓고도 "오픈 알림 받기"만
+     남는다. 사업자 고지 요건은 그대로다. */
   const paymentsReady =
     isBusinessDisclosureComplete(getBusinessInfo()) &&
-    (getStripe() !== null || isKakaoPayConfigured());
+    (getStripe() !== null || isKakaoPayConfigured() || isTossPaymentsConfigured());
   const initialBilling = sp.billing === "annual" ? ("annual" as const) : ("monthly" as const);
   const session = await safeAuth();
   const email = session?.user?.email ?? null;

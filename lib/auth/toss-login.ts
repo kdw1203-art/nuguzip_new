@@ -75,6 +75,29 @@ export function getTossLoginRedirectUri(): string | undefined {
 }
 
 /**
+ * 토스 로그인 인가(authorize) 페이지 주소.
+ *
+ * 문서마다(웹/앱인토스) 진입 주소가 다르고 파트너 계약에 따라 달라질 수 있어
+ * 코드에 고정하지 않는다 — 지어낸 주소로 사용자를 보내는 것이 최악이다.
+ * 콘솔/계약 안내에 적힌 주소를 환경변수로 넣으면 로그인 버튼이 열린다.
+ * client_id·redirect_uri 쿼리가 이미 들어 있으면 그대로 쓰고, 없으면 붙인다.
+ */
+export function getTossLoginAuthorizeUrl(): string | undefined {
+  return process.env.TOSS_LOGIN_AUTHORIZE_URL?.trim() || undefined;
+}
+
+/**
+ * 웹 화면에서 "토스로 시작" 버튼을 그릴 수 있는 상태인가.
+ * 인가 주소·클라이언트 ID·복호화 키가 모두 있어야 끝까지 갈 수 있다 —
+ * 중간까지만 되는 버튼을 화면에 두면 누른 사람만 실패를 본다.
+ */
+export function isTossLoginStartable(): boolean {
+  return Boolean(
+    getTossLoginClientId() && getTossLoginAuthorizeUrl() && getTossLoginDecryptKey(),
+  );
+}
+
+/**
  * 연결 끊기 콜백 Basic Auth 검증값.
  * 콘솔에 입력한 값과 동일한 평문을 환경변수에 넣으면, 콜백 헤더(base64)를 디코딩해 일치 검증합니다.
  * 형식은 콘솔 입력값 그대로(예: "user:pass" 또는 단일 토큰).

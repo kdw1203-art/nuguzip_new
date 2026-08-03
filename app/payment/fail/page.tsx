@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
-import { Icon } from "@/app/components/Icon";
 import { getPaymentByOrderId, markFailed } from "@/lib/payments/store";
 
 export const metadata: Metadata = {
@@ -149,8 +148,16 @@ export default async function PaymentFailPage({
   return (
     <PageShell breadcrumb="구독 · 결제 결과">
       <section className="rise-in mx-auto flex w-full max-w-[480px] flex-col items-center gap-3 pt-10 text-center">
-        <span className="text-[44px]" aria-hidden>
-          <Icon name="😵" size={40} />
+        {/* 이모지 대신 상태 배지 — 성공 화면과 짝을 이루는 시각 언어.
+            취소는 중립(회색), 실패는 경고색으로 구분한다. 취소한 사람에게
+            경고색을 보여줄 이유가 없다 — 잘못한 게 아니다. */}
+        <span
+          aria-hidden
+          className={`flex h-16 w-16 items-center justify-center rounded-full text-[30px] text-white shadow-[0_10px_28px_rgba(16,28,54,.18)] ${
+            category === "user_cancel" ? "bg-[#8a94a6]" : "bg-danger"
+          }`}
+        >
+          {category === "user_cancel" ? "−" : "!"}
         </span>
         <h1 className="text-[22px] font-extrabold tracking-[-0.4px] text-ink">
           {category === "user_cancel" ? "결제를 취소했습니다" : "결제가 완료되지 않았습니다"}
