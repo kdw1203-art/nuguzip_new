@@ -241,7 +241,7 @@ export default async function Home() {
           Enter 를 눌러도 아무 데도 안 가는 상태였다(홈이 첫 Tab 대상이라 제일 잘 걸린다). */}
       <main
         id="main-content"
-        className="mx-auto w-full max-w-[1240px] flex-1 px-5 pb-32 pt-5 md:pb-16"
+        className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-32 pt-4 md:px-5 md:pb-16 md:pt-5"
       >
         {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
         <PersonalHome />
@@ -260,13 +260,20 @@ export default async function Home() {
           <p data-static-hero className="rise-in-1 text-sm text-text-2">
             {HOME_HERO_SUBLINE}
           </p>
+          {/* 고도화 7 — 첫 화면에 오늘의 실데이터 한 줄. 값이 있을 때만 그린다
+              (조회 실패 시 이 줄 자체가 없다 — 낡은 날짜를 지어내지 않는다). */}
+          {freshness && (
+            <p data-static-hero className="rise-in-1 text-[11px] text-text-3">
+              실거래 데이터 {freshness} 기준 · 국토교통부 신고분
+            </p>
+          )}
           {/* 모바일 실측 14 — 히어로 부제("3분 기록 → AI 정리 → 지도 비교")와
               같은 3단계를 칩으로 한 번 더 그려 첫 화면이 같은 말을 두 번 했다.
               모바일에서는 칩 행을 내리고 부제와 아래 여정 배너가 역할을 나눈다. */}
           <Link
             href={HOME_CTA_NOTE.href}
             data-static-hero
-            className="btn-primary glow press rise-in-2 rounded-2xl p-[15px] text-center text-base"
+            className="btn-primary glow press rise-in-2 rounded-2xl p-3.5 text-center text-[15px] md:p-[15px] md:text-base"
           >
             {HOME_CTA_NOTE.label}
           </Link>

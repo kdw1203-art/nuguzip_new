@@ -13,6 +13,33 @@ import { isKakaoPayConfigured } from "@/lib/payments/kakaopay";
 import { BillingPanel } from "./BillingPanel";
 import { SETTLEMENT } from "@/lib/creator/sales";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { faqJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
+
+/* 고도화 32 — 구독 FAQ. 사실만 적는다: 결제 개통 여부와 무관하게 참인 문장으로
+   쓰고(조건부 서술), 수치·규정은 약관·구현과 대조했다. 화면과 JSON-LD 가 같은
+   배열을 쓴다. */
+const SUBSCRIPTION_FAQ: FaqItem[] = [
+  {
+    q: "무료로 쓸 수 있는 기능은 무엇인가요?",
+    a: "임장노트 작성·저장, 지도 비교, 실거래 조회는 계속 무료입니다. 유료 플랜은 AI 분석의 깊이와 월 사용 한도를 넓혀 줍니다.",
+  },
+  {
+    q: "결제는 어떻게 하나요?",
+    a: "월간 또는 연간 이용권 방식입니다. 결제가 아직 열려 있지 않은 기간에는 '오픈 알림 받기'로 등록해 두면 열리는 즉시 알림을 드립니다. 포인트 상점에서 포인트로 PRO 이용권을 교환할 수도 있습니다.",
+  },
+  {
+    q: "이용권은 자동으로 갱신되나요?",
+    a: "카카오페이·포인트 교환 이용권은 기간제라 자동으로 갱신·재청구되지 않으며, 만료 7일 전과 1일 전에 알림을 드립니다. 카드 정기결제는 해지 전까지 자동 갱신됩니다.",
+  },
+  {
+    q: "해지·환불은 어떻게 하나요?",
+    a: "결제 후 7일 이내에는 청약철회로 전액 환불됩니다(이용약관 제8조). 해지·환불 접수는 고객센터 1:1 문의로 받고 있습니다.",
+  },
+  {
+    q: "플랜 배지는 어디에 표시되나요?",
+    a: "커뮤니티 글·공개 노트·채팅 등 닉네임이 노출되는 모든 지점에 동일하게 표시되며, 설정에서 숨길 수 있습니다.",
+  },
+];
 
 export const metadata = buildPageMetadata({
   title: "요금제",
@@ -356,6 +383,25 @@ export default async function SubscriptionPage({
           <div className="text-[11px] text-text-3">프로필 아바타 옆 상시 표시 · 설정에서 숨김 가능</div>
         </div>
       </section>
+
+      {/* 고도화 32 — 구독 FAQ. 결제 수단·환불·해지가 화면 곳곳에 흩어져 있던
+          것을 한 자리에 모은다. 아래 JSON-LD 는 이 배열 그대로에서 생성한다
+          (화면에 없는 질문을 스키마에만 넣지 않는다 — faqJsonLd 규칙). */}
+      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
+        <h2 className="text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
+        <div className="mt-3 flex flex-col gap-3">
+          {SUBSCRIPTION_FAQ.map((f) => (
+            <div key={f.q} className="border-l-2 border-line pl-3">
+              <div className="text-[13px] font-bold text-text-1">{f.q}</div>
+              <p className="mt-0.5 text-[12px] leading-[1.7] text-text-3">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(SUBSCRIPTION_FAQ)) }}
+      />
 
       <p className="mx-auto mt-5 w-full max-w-[1080px] text-xs text-text-3">
         {/* "언제든 해지 가능"만 적어 두면 화면 어딘가에 해지 버튼이 있다는 뜻으로 읽힌다.

@@ -138,13 +138,23 @@ export function ChatRoom({
     };
   }, [groupId, loadThread]);
 
-  /* 5초 폴링 */
+  /* 5초 폴링 — 백그라운드 탭에서는 쉰다 (모바일 실측 23).
+     탭을 내려놓은 동안에도 5초마다 서버를 때리면 배터리·데이터·서버 모두
+     낭비다. 다시 보이는 순간 즉시 한 번 당겨 공백을 메운다. */
   useEffect(() => {
     if (phase !== "ready" || !roomId) return;
     const t = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
       void loadThread(roomId);
     }, 5000);
-    return () => clearInterval(t);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadThread(roomId);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [phase, roomId, loadThread]);
 
   /* 새 메시지 도착 시 맨 아래로 */

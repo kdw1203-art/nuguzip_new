@@ -17,9 +17,10 @@ export function PageShell({
   return (
     <>
       <Header />
+      {/* 모바일 화면 패딩 20→16px — 타이포 축소와 비례(글자만 줄이면 성겨 보인다) */}
       <main
         id="main-content"
-        className={`mx-auto w-full flex-1 px-5 pb-32 pt-5 md:pb-16 ${
+        className={`mx-auto w-full flex-1 px-4 pb-32 pt-4 md:px-5 md:pb-16 md:pt-5 ${
           wide ? "max-w-[1400px]" : "max-w-[1240px]"
         }`}
       >
