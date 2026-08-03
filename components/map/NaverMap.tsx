@@ -120,6 +120,9 @@ interface NaverMapProps {
   rounded?: boolean;
   /** SDK 로드 실패·Client ID 미설정 시 대신 렌더할 노드 (미지정 시 OSM 폴백) */
   fallback?: React.ReactNode;
+  /** 폴백 상태 통지(모바일4) — 부모가 폴백일 때 컨테이너를 줄이는 용도.
+      실패가 확정된 시점(error 세팅)에 true 로 한 번 불린다. */
+  onFallbackChange?: (active: boolean) => void;
   /** 반경 원 오버레이(C3) — 지정 시 중심·반경(m)으로 원을 그린다. null/미지정 시 없음. */
   circle?: { lat: number; lng: number; radiusM: number } | null;
   /**
@@ -188,6 +191,7 @@ export function NaverMap({
   onIdle,
   rounded = true,
   fallback,
+  onFallbackChange,
   circle = null,
   onMapClick,
   measurePath = null,
@@ -202,6 +206,12 @@ export function NaverMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
+
+  /* 모바일4 — 폴백 확정을 부모에게 알린다(성공 로드로 회복되면 false).
+     render 중 부모 setState 금지라 effect 로 미룬다. */
+  useEffect(() => {
+    onFallbackChange?.(error !== "");
+  }, [error, onFallbackChange]);
   const [geoLoading, setGeoLoading] = useState(false);
   const mapRef = useRef<NaverMapInstance | null>(null);
   const onIdleRef = useRef(onIdle);

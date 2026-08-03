@@ -42,7 +42,10 @@ export function Header() {
     >
       <div
         className={`header-shell mx-auto flex max-w-[1240px] items-center gap-3 rounded-2xl px-4 md:gap-6 md:px-5 ${
-          scrolled ? "glass-strong header-scrolled h-12" : "glass h-14"
+          /* 모바일3 — 본문 밀도를 줄인 뒤(2026-08-03 토큰 축소) 헤더가 상대적으로
+             커 보였다. 모바일만 한 단계 축소: 56→48px(비스크롤), 48→44px(스크롤).
+             44px 는 터치 타깃 하한선이라 그 밑으로는 내리지 않는다. md+ 원복. */
+          scrolled ? "glass-strong header-scrolled h-11 md:h-12" : "glass h-12 md:h-14"
         }`}
       >
         <Link href="/" aria-label="누구집 홈" className="press shrink-0">

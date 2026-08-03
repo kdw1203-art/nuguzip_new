@@ -11,6 +11,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 const KEY = "nz_cookie_consent";
+/* 같은 문서 안 훅 인스턴스 동기화용(모바일6 실측에서 발견). `storage` 이벤트는
+   다른 탭에서만 발화해서, 배너에서 "모두 허용"을 눌러도 같은 화면의 다른
+   구독자(탭바 복원·GA4 로더·방문 기록)는 리로드 전까지 결정 전 상태로 남아
+   있었다 — 동의 직후부터 분석이 시작되지 않는 실질 버그이기도 했다. */
+const LOCAL_EVENT = "nz-cookie-consent-change";
 
 export type CookieConsent = {
   analytics: boolean;
@@ -49,8 +54,17 @@ export function useCookieConsent(): {
       const v = readStored();
       setState(v ? { status: "decided", consent: v } : { status: "undecided" });
     };
+    // 같은 문서의 다른 인스턴스(배너→탭바·GA4 로더)가 결정하면 즉시 따라간다
+    const onLocal = () => {
+      const v = readStored();
+      setState(v ? { status: "decided", consent: v } : { status: "undecided" });
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(LOCAL_EVENT, onLocal);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(LOCAL_EVENT, onLocal);
+    };
   }, []);
 
   const decide = useCallback((analytics: boolean) => {
@@ -61,6 +75,11 @@ export function useCookieConsent(): {
       /* 저장 실패해도 이번 세션 동안은 상태 유지 */
     }
     setState({ status: "decided", consent });
+    try {
+      window.dispatchEvent(new Event(LOCAL_EVENT));
+    } catch {
+      /* 이벤트 미지원 환경 — 리로드 시 localStorage 로 수렴 */
+    }
   }, []);
 
   return { state, decide };

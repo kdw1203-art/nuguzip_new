@@ -116,20 +116,33 @@ export function HeaderAuth() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="내 계정 메뉴"
-        className="flex items-center gap-1.5"
+        className="flex items-center"
       >
         <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] text-[13px] font-extrabold text-primary">
           {initial}
         </span>
-        {planBadge && (
-          <span
-            className="hidden rounded-full px-2 py-[3px] text-[10px] font-extrabold text-[#7ea2ff] md:inline-block"
-            style={{ background: "rgba(25,31,40,.94)" }}
-          >
-            {planBadge}
-          </span>
-        )}
       </button>
+      {/* 웹2 — 플랜 배지를 드롭다운 토글에서 분리해 링크로. 유료·관리자 배지는
+          이미 있었지만 무료 사용자에게는 아무것도 없어 업그레이드 진입점이
+          드롭다운 두 단계 아래(구독 관리)에만 있었다. 무료는 "무료" 배지가
+          /subscription 으로 바로 간다. 모바일 헤더는 폭이 좁아 종전대로 md+ 만. */}
+      {planBadge ? (
+        <Link
+          href={user.role === "admin" ? "/admin" : "/subscription"}
+          className="hidden rounded-full px-2 py-[3px] text-[10px] font-extrabold text-[#7ea2ff] no-underline md:inline-block"
+          style={{ background: "rgba(25,31,40,.94)" }}
+        >
+          {planBadge}
+        </Link>
+      ) : (
+        <Link
+          href="/subscription"
+          title="플랜 비교·업그레이드"
+          className="hidden rounded-full border border-[#d7dee8] px-2 py-[3px] text-[10px] font-extrabold text-text-3 no-underline transition-colors hover:border-primary hover:text-primary md:inline-block"
+        >
+          무료
+        </Link>
+      )}
 
       {open && (
         <div className="absolute right-0 top-full z-50 pt-2">

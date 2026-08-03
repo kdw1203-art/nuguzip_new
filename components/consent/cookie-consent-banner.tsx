@@ -21,8 +21,11 @@ export function CookieConsentBanner() {
       /* 제안 웹1(2026-08-03): 데스크탑에서 중앙 하단 배치가 모든 화면의 본문·CTA
          를 가렸다(캡처 6장 전부). md+ 는 우하단 코너 카드로 내리고, 모바일은
          탭바 위 중앙 유지. */
+      /* 모바일6 — 결정 전에는 탭바가 접히므로(TabBar 조기 반환) 88px 띄울
+         이유가 없다. 탭바 자리(bottom 16px)로 내려 하단이 한 층이 된다.
+         md+ 는 탭바가 없어 원래도 무관 — 코너 카드 유지. */
       className="fixed inset-x-0 z-[70] px-4 md:inset-x-auto md:right-5 md:px-0"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+      style={{ bottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}
     >
       {/* 모바일 실측(2026-08-02): 글래스 60% 불투명이라 밑 본문 글자가 배너 문구와
           겹쳐 읽혔고, 패딩까지 더해 화면 하단 1/3 을 차지했다. 동의는 법적 행위의

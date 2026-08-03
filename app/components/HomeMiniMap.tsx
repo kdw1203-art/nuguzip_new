@@ -133,22 +133,33 @@ export function HomeMiniMap({
   // 관심지역 포커스가 없으면 마커 전체를 프레이밍
   const fitToMarkers = focus.selectedId === null && markers.length > 1;
 
+  /* 모바일4 — 폴백 카드가 화면 1/4 을 차지하는 빈 공간이었다(캡처).
+     폴백이 확정되면 컨테이너를 절반 높이로 줄이고, "준비 중" 안내 대신
+     실제로 할 수 있는 행동 두 개(관심지역 설정 /welcome · 지도 열기)를 준다.
+     md+ 는 사이드바 폭이라 원래 높이 유지. */
+  const [fallbackActive, setFallbackActive] = useState(false);
+
   const staticFallback = (
-    <div className="relative flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#e6ecf9] to-[#cdd9f0]">
-      <Icon name="🗺" size={28} />
-      <p className="text-[12px] font-bold text-text-1">지도를 준비 중이에요</p>
-      <p className="px-6 text-center text-[10px] leading-snug text-text-3">
-        관심지역 시세를 지도에서 바로 확인하세요
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-[#e6ecf9] to-[#cdd9f0] px-4">
+      <p className="flex items-center gap-1.5 text-[12px] font-bold text-text-1">
+        <Icon name="🗺" size={16} /> 지도를 불러오지 못했어요
       </p>
-      <Link href="/map" className="btn-soft mt-1 px-3 py-1.5 text-[11px]">
-        전체 지도 열기 ›
-      </Link>
+      <div className="mt-0.5 flex items-center gap-2">
+        <Link href="/welcome" className="btn-soft px-3 py-1.5 text-[11px]">
+          {focus.regionLabel ? "관심지역 수정" : "관심지역 설정"}
+        </Link>
+        <Link href="/map" className="btn-soft px-3 py-1.5 text-[11px]">
+          지도 다시 열기 ›
+        </Link>
+      </div>
     </div>
   );
 
   return (
     <div
-      className={`bento hover-rise relative [box-shadow:var(--shadow-sm)] ${className}`}
+      className={`bento hover-rise relative [box-shadow:var(--shadow-sm)] ${
+        fallbackActive ? "h-[112px] md:h-[200px]" : className
+      }`}
     >
       {/* 지도 (풀블리드) */}
       <div className="absolute inset-0">
@@ -162,10 +173,14 @@ export function HomeMiniMap({
           className="h-full w-full"
           onMarkerClick={() => router.push("/map")}
           fallback={staticFallback}
+          onFallbackChange={setFallbackActive}
         />
       </div>
 
+      {/* 폴백일 때는 오버레이(배지·하단 바)를 걷는다 — 축소된 카드 위에
+          겹치면 폴백 CTA 를 가린다. 아래 두 블록 공통. */}
       {/* 상단 좌: 관심지역 배지 */}
+      {!fallbackActive && (
       <div className="pointer-events-none absolute left-3.5 top-3.5 z-10">
         <span className="glass inline-flex items-center gap-1 rounded-full px-3 py-[6px] text-[11px] font-extrabold text-ink shadow-sm">
           <Icon name="📍" size={12} />
@@ -177,8 +192,10 @@ export function HomeMiniMap({
           )}
         </span>
       </div>
+      )}
 
       {/* 하단: 지도 열기 바 (글래스) */}
+      {!fallbackActive && (
       <Link
         href="/map"
         className="glass press absolute inset-x-3.5 bottom-3.5 z-10 flex items-center justify-between rounded-2xl px-4 py-2.5 transition-colors hover:text-primary"
@@ -192,6 +209,7 @@ export function HomeMiniMap({
           지도 열기 ›
         </span>
       </Link>
+      )}
     </div>
   );
 }
