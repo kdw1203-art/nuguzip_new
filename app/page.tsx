@@ -242,13 +242,13 @@ export default async function Home() {
           Enter 를 눌러도 아무 데도 안 가는 상태였다(홈이 첫 Tab 대상이라 제일 잘 걸린다). */}
       <main
         id="main-content"
-        className="mx-auto w-full max-w-[1240px] flex-1 px-4 pb-32 pt-4 md:px-5 md:pb-16 md:pt-5"
+        className="mx-auto w-full max-w-[1240px] flex-1 px-3.5 pb-32 pt-3.5 md:px-5 md:pb-16 md:pt-5"
       >
         {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
         <PersonalHome />
 
         {/* ================= 모바일 히어로 — 한 직업: 임장→AI→지도 ================= */}
-        <section className="flex flex-col gap-3 md:hidden">
+        <section className="flex flex-col gap-2.5 md:hidden">
           <h1
             data-static-hero
             className="rise-in mt-2 text-[24px] font-extrabold leading-[1.25] tracking-[-0.6px] text-ink"
@@ -274,7 +274,7 @@ export default async function Home() {
           <Link
             href={HOME_CTA_NOTE.href}
             data-static-hero
-            className="btn-primary glow press rise-in-2 rounded-2xl p-3.5 text-center text-[15px] md:p-[15px] md:text-base"
+            className="btn-primary glow press rise-in-2 rounded-xl p-3 text-center text-[15px] md:rounded-2xl md:p-[15px] md:text-base"
           >
             {HOME_CTA_NOTE.label}
           </Link>

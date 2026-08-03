@@ -75,7 +75,7 @@ export function TabBar() {
               >
                 <Icon name={tab.icon} size={26} strokeWidth={2.2} />
               </span>
-              <span className="text-[10px] font-extrabold text-primary">
+              <span className="text-[11px] font-extrabold text-primary">
                 {tab.label}
               </span>
             </Link>
@@ -101,7 +101,7 @@ export function TabBar() {
                 <Icon name={tab.icon} size={22} />
               </span>
               <span
-                className={`text-[10px] leading-none ${
+                className={`text-[11px] leading-none ${
                   isActive(tab.href) ? "font-bold" : "font-semibold"
                 }`}
               >

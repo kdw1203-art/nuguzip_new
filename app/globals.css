@@ -99,12 +99,15 @@
   --sp-card-gap: 24px; /* 카드 사이 */
   --sp-section: 32px; /* 섹션 사이 */
   /* 카드 패딩 3종 (11~24px 혼재 정리) */
-  --pad-compact: 14px;
-  /* 2026-08-02 타이포 축소(--fs-display/title 주석)와 비례를 맞춘 모바일 여백.
-     글자만 줄이고 여백을 두면 화면이 성겨 보인다 — 카드 패딩·화면 패딩을
-     한 단계씩 함께 내린다. md+ 는 아래 미디어쿼리가 원복. */
-  --pad-card: 15px;
-  --pad-hero: 22px;
+  /* 2026-08-03 모바일 2차 축소(소유자 요청: 디자인 요소를 ~90% 크기로,
+     글자 크기는 유지). 패딩·둥근 모서리 같은 "요소"만 줄이고 --fs-* 는
+     건드리지 않는다. md+ 는 아래 미디어쿼리가 데스크톱 값으로 원복. */
+  --pad-compact: 12px;
+  --pad-card: 13px;
+  --pad-hero: 19px;
+  /* 카드류 둥근 모서리 — 모바일은 한 단계 작게(16→14). 인라인 rounded-2xl
+     유틸에는 영향이 없고 .card 계열만 따른다(점진 적용). */
+  --radius-card: 14px;
 
   /* 글래스 토큰 */
   /* 모바일 실측(2026-08-02): 0.55 는 스크롤 시 헤더 뒤 본문 글자가 헤더
@@ -187,7 +190,10 @@
   :root {
     --fs-display: 28px;
     --fs-title: 21px;
+    --pad-compact: 14px;
     --pad-card: 18px;
+    --pad-hero: 22px;
+    --radius-card: 16px;
   }
 }
 
@@ -544,7 +550,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
 }
 .card-hover {
   transition: transform var(--dur-sm) var(--ease-out),
