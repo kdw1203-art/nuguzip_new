@@ -98,7 +98,8 @@ export default async function AdminPaymentsPage() {
         <h1 className="text-[20px] font-extrabold text-ink">결제 연동 (토스페이먼츠)</h1>
         <p className="mt-1 text-[13px] text-text-2">
           상호 우리동네이야기 · MID <b className="text-ink">nuguzibowg</b> · 전자결제
-          심사 접수됨(2026-08-03) — 심사 완료 전까지는 테스트 키로 전 구간을 검증한다.
+          심사 접수일 2026-08-03. 심사 결과는 이 시스템이 감지할 수 없다 — 승인
+          통보를 받으면 아래 체크리스트의 &ldquo;라이브 전환&rdquo;을 진행할 것.
         </p>
       </div>
 

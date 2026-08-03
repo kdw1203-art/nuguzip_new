@@ -3,6 +3,7 @@ import { PageShell } from "../components/PageShell";
 import { jsonLdScript } from "@/lib/seo/jsonld";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { GLOSSARY_TERMS, glossaryTermsByCategory } from "@/lib/seo/glossary-terms";
+import { GlossarySearch } from "./GlossarySearch";
 
 export const metadata = buildPageMetadata({
   title: "부동산 용어사전 — 실거래·시세·대출·경매 용어 풀이",
@@ -57,44 +58,14 @@ export default function GlossaryPage() {
           정리했습니다. 용어를 누르면 정의와 관련 용어를 함께 볼 수 있습니다.
         </p>
 
-        {/* 분류 바로가기 — 용어 수가 늘어 한 화면에 안 들어온다. */}
-        <nav className="rise-in-1 mt-4 flex flex-wrap gap-2">
-          {groups.map((g) => (
-            <a
-              key={g.category}
-              href={`#${encodeURIComponent(g.category)}`}
-              className="rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-1"
-            >
-              {g.category} {g.terms.length}
-            </a>
-          ))}
-        </nav>
-
-        <div className="mt-6 flex flex-col gap-6">
-          {groups.map((g, gi) => (
-            <section
-              key={g.category}
-              id={encodeURIComponent(g.category)}
-              className={`rise-in-${Math.min(gi + 2, 6)} scroll-mt-24`}
-            >
-              <h2 className="text-[16px] font-extrabold text-ink">{g.category}</h2>
-              <div className="mt-2 grid gap-2 md:grid-cols-2">
-                {g.terms.map((t) => (
-                  <Link
-                    key={t.slug}
-                    href={`/glossary/${t.slug}`}
-                    className="card rounded-[14px] p-4"
-                  >
-                    <div className="text-[14px] font-extrabold text-ink">{t.term}</div>
-                    <div className="mt-1 text-[12px] leading-[1.65] text-text-2">
-                      {t.short}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        {/* 제안 웹6 — 검색 + 분류 바로가기 + 목록 (클라이언트 필터, 데이터는
+            서버 단일 출처 그대로 직렬화해 넘긴다) */}
+        <GlossarySearch
+          groups={groups.map((g) => ({
+            category: g.category,
+            terms: g.terms.map((t) => ({ slug: t.slug, term: t.term, short: t.short })),
+          }))}
+        />
 
         <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
           용어 풀이는 일반적인 이해를 돕기 위한 것으로, 대출 한도·세율·규제 지역 지정 등

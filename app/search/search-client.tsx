@@ -69,13 +69,21 @@ export function SearchClient() {
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   /* 마운트: 최근 검색 로드 + URL(?q=) 프리필 */
   useEffect(() => {
     setRecent(readRecentSearches());
     try {
       const initial = new URLSearchParams(window.location.search).get("q")?.trim();
-      if (initial) setQ(initial);
+      if (initial) {
+        setQ(initial);
+      } else {
+        /* 제안 모바일7 — 빈 검색으로 새로 들어온 경우는 검색 의도가 명확하다:
+           바로 입력할 수 있게 포커스(모바일은 키보드가 올라온다). ?q= 가 있는
+           복귀·공유 진입은 결과를 읽는 상황이라 포커스하지 않는다. */
+        inputRef.current?.focus();
+      }
     } catch {
       // URL 파싱 실패 — 무시
     }
@@ -203,6 +211,7 @@ export function SearchClient() {
           ⌕
         </span>
         <input
+          ref={inputRef}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}

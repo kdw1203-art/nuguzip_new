@@ -18,13 +18,16 @@ export function CookieConsentBanner() {
     <div
       role="region"
       aria-label="쿠키 사용 동의"
-      className="fixed inset-x-0 z-[70] px-4"
+      /* 제안 웹1(2026-08-03): 데스크탑에서 중앙 하단 배치가 모든 화면의 본문·CTA
+         를 가렸다(캡처 6장 전부). md+ 는 우하단 코너 카드로 내리고, 모바일은
+         탭바 위 중앙 유지. */
+      className="fixed inset-x-0 z-[70] px-4 md:inset-x-auto md:right-5 md:px-0"
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
     >
       {/* 모바일 실측(2026-08-02): 글래스 60% 불투명이라 밑 본문 글자가 배너 문구와
           겹쳐 읽혔고, 패딩까지 더해 화면 하단 1/3 을 차지했다. 동의는 법적 행위의
           UI 다 — 배경을 사실상 불투명(94%)으로 올리고 여백을 줄인다. */}
-      <div className="mx-auto flex max-w-[560px] flex-col gap-2 rounded-2xl border border-line bg-[rgba(255,255,255,.94)] p-3.5 shadow-[0_12px_32px_rgba(15,23,42,.18)] backdrop-blur-md">
+      <div className="mx-auto flex max-w-[560px] flex-col gap-2 rounded-2xl border border-line bg-[rgba(255,255,255,.94)] p-3.5 shadow-[0_12px_32px_rgba(15,23,42,.18)] backdrop-blur-md md:max-w-[360px]">
         <p className="text-[12px] leading-[1.55] text-text-1">
           누구집은 서비스 운영에 필요한 필수 쿠키를 사용해요. 이용 통계 분석 쿠키는{" "}
           <b>동의하신 경우에만</b> 사용합니다.{" "}

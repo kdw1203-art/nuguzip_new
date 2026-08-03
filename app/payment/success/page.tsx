@@ -96,12 +96,12 @@ export default async function PaymentSuccessPage({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ paymentKey, orderId, amount }),
       });
-      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (res.ok) {
         status = "ok";
         message = "결제가 완료되어 구독이 활성화됐습니다.";
       } else {
-        message = (data.error as string) ?? message;
+        message = data.error ?? message;
       }
     } catch (e) {
       message = e instanceof Error ? e.message : message;

@@ -74,7 +74,7 @@ export async function MarketTempWidget({ className }: { className?: string }) {
             <Link
               key={r.current.regionId}
               href={`/analysis/temperature/${encodeURIComponent(r.current.regionId)}`}
-              className="flex items-center justify-between gap-2 border-b border-[#f0f3f8] py-[7px] text-xs no-underline last:border-0"
+              className="press flex items-center justify-between gap-2 border-b border-[#f0f3f8] py-[7px] text-xs no-underline last:border-0"
             >
               <span className="truncate font-semibold text-text-1">
                 {r.current.regionLabel}
