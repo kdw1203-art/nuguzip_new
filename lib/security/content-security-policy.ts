@@ -23,18 +23,26 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
   const googleAdsFrame =
     "https://googleads.g.doubleclick.net https://*.googlesyndication.com https://tpc.googlesyndication.com";
 
+  /* 토스페이먼츠 결제위젯/결제창 v2 — SDK 는 js.tosspayments.com 에서 로드되고
+     (cdn.toss.im 은 구 SDK 도메인), 위젯 UI·본인인증은 iframe 과 API 호출을
+     쓴다. script 에 없으면 체크아웃 페이지에서 위젯 로드가 통째로 차단된다. */
+  const tossScript = "https://cdn.toss.im https://js.tosspayments.com";
+  const tossConnect =
+    "https://cdn.toss.im https://*.cert.toss.im https://api.tosspayments.com https://event.tosspayments.com https://js.tosspayments.com";
+  const tossFrame = "https://js.tosspayments.com https://*.tosspayments.com https://payment-gateway.tosspayments.com";
+
   return [
     "default-src 'self'",
     isDev
-      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${naverMapScript} https://cdn.toss.im https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive}${kakaoScript}`
-      : `script-src 'self' 'unsafe-inline' ${naverMapScript} https://cdn.toss.im https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive} ${googleAdsScript}${kakaoScript}`,
+      ? `script-src 'self' 'unsafe-eval' 'unsafe-inline' ${naverMapScript} ${tossScript} https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive}${kakaoScript}`
+      : `script-src 'self' 'unsafe-inline' ${naverMapScript} ${tossScript} https://*.vercel-scripts.com https://va.vercel-scripts.com ${vercelLive} ${googleAdsScript}${kakaoScript}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
     `font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net ${vercelLive}`,
     "img-src 'self' data: blob: https: http:",
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com ${naverMapConnect} https://maps.apigw.ntruss.com https://naveropenapi.apigw.ntruss.com https://sens.apigw.ntruss.com https://nid.naver.com http://openapi.seoul.go.kr:8088 https://openapi.seoul.go.kr https://cdn.toss.im https://*.cert.toss.im https://*.vercel-insights.com https://vitals.vercel-insights.com ${vercelLive} https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://accounts.google.com ${googleAdsConnect}${kakaoConnect}`,
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openai.com ${naverMapConnect} https://maps.apigw.ntruss.com https://naveropenapi.apigw.ntruss.com https://sens.apigw.ntruss.com https://nid.naver.com http://openapi.seoul.go.kr:8088 https://openapi.seoul.go.kr ${tossConnect} https://*.vercel-insights.com https://vitals.vercel-insights.com ${vercelLive} https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://accounts.google.com ${googleAdsConnect}${kakaoConnect}`,
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
-    `frame-src 'self' https://www.openstreetmap.org https://*.openstreetmap.org ${vercelLive} ${googleAdsFrame}`,
+    `frame-src 'self' https://www.openstreetmap.org https://*.openstreetmap.org ${tossFrame} ${vercelLive} ${googleAdsFrame}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

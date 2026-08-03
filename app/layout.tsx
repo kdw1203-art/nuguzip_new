@@ -4,6 +4,7 @@ import { SwRegister } from "./components/SwRegister";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { AdSenseLoader } from "./components/AdSenseLoader";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
+import { TrafficRecorder } from "./components/TrafficRecorder";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
@@ -158,6 +159,9 @@ export default function RootLayout({
                   <InstallPrompt />
                   <AdSenseLoader />
                   <WebVitalsReporter />
+                  {/* 어드민 트래픽 대시보드용 1st-party 페이지뷰·체류 기록 —
+                      GA4 와 같은 분석 동의 게이트 뒤에서만 동작한다. */}
+                  <TrafficRecorder />
                   {/* S22 — 쿠키 동의 배너 + 동의 게이트 GA4 (동의 전에는 스크립트
                       로드 자체가 없다). NEXT_PUBLIC_GA4_ID 미설정 시 GA4는 무동작. */}
                   <CookieConsentBanner />

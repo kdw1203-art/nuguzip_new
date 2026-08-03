@@ -12,6 +12,7 @@ type NavItem = {
 // 실시간 대기 건수는 각 페이지(대시보드/모더레이션 등)의 실데이터 패널에서 노출한다.
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "대시보드" },
+  { href: "/admin/traffic", label: "트래픽" },
   { href: "/admin/revenue", label: "수익" },
   { href: "/admin/payments", label: "결제 연동" },
   { href: "/admin/moderation", label: "신고 · 모더레이션" },
