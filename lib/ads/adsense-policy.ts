@@ -38,9 +38,16 @@ const PLACEMENT_ENV: Record<AdPlacement, string> = {
   report_free_body: "NEXT_PUBLIC_ADSENSE_SLOT_REPORT_BODY",
 };
 
+/* 게시자 ID — 소유자 제공(2026-08-03, 애드센스 코드 생성기 캡처). 광고 스크립트
+   URL·페이지 소스에 그대로 노출되는 공개 식별자라 코드 기본값으로 둔다
+   (deploy.yml 의 NEXT_PUBLIC_SUPABASE_URL 하드코딩과 같은 판단 — 비밀 아님).
+   env 가 설정돼 있으면 env 가 우선한다(교체 대비). */
+const DEFAULT_ADSENSE_CLIENT = "ca-pub-6291134577962996";
+
 export function getAdSenseClient(): string | null {
   const v = process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim();
-  return v?.startsWith("ca-pub-") ? v : null;
+  if (v?.startsWith("ca-pub-")) return v;
+  return DEFAULT_ADSENSE_CLIENT;
 }
 
 /** ads.txt 용 pub- ID (ca-pub- → pub-) */

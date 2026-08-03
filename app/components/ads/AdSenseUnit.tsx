@@ -30,7 +30,9 @@ declare global {
 
 export function AdSenseUnit({ className }: { className?: string }) {
   const client = getAdSenseClient();
-  const slot = process.env.NEXT_PUBLIC_ADSENSE_SLOT_WEB?.trim() || null;
+  /* 슬롯 ID — 소유자 제공(2026-08-03, "nuguzip" 디스플레이 광고 단위).
+     페이지 소스에 노출되는 공개 값이라 기본값으로 둔다. env 우선. */
+  const slot = process.env.NEXT_PUBLIC_ADSENSE_SLOT_WEB?.trim() || "9196083291";
   const pathname = usePathname() ?? "/";
   const excluded = isAdsExcludedPath(pathname);
   const enabled = Boolean(client && slot) && !excluded;
