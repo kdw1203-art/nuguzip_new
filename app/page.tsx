@@ -5,6 +5,7 @@ import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
 import { EmptyState, ErrorState } from "./components/ui/EmptyState";
 import { JourneyBanner } from "./components/JourneyBanner";
+import { MarketTempWidget } from "./components/MarketTempWidget";
 import { BetaNoticeModal } from "./components/BetaNoticeModal";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
@@ -311,6 +312,11 @@ export default async function Home() {
               notesToday={notesToday}
               activeNow={activeNow}
             />
+          </div>
+
+          {/* 고도화 9 — 주간 시장 온도 요약 (실측 스냅샷 · 실패/기록 없음이면 미렌더) */}
+          <div data-reveal="">
+            <MarketTempWidget />
           </div>
 
           <div data-reveal="" className="flex flex-col gap-3">
@@ -639,6 +645,11 @@ export default async function Home() {
           <aside className="flex flex-col gap-3">
             <div className="rise-in-1">
               <HomeAiGateway briefing={data.briefing} />
+            </div>
+
+            {/* 고도화 9 — 주간 시장 온도 요약 (실측 스냅샷 · 실패/기록 없음이면 미렌더) */}
+            <div className="rise-in-1">
+              <MarketTempWidget />
             </div>
 
             <div className="rise-in-2 card flex flex-col gap-2 rounded-2xl px-5 py-4">
