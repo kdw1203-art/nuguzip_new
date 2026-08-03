@@ -260,7 +260,14 @@ export async function POST(req: Request) {
       );
     }
 
-    await sb.from("app_users").update({ plan: product.plan }).eq("email", email);
+    /* 만료 시각을 반드시 기록한다 — 예전에는 plan 만 올리고 plan_expires_at 를
+       비워, 한 달치 인앱결제가 무기한 이용권이 되었다(만료 스윕 크론은
+       plan_expires_at 가 있어야 강등한다). periodEnd 는 스토어가 준 만료 시각이며,
+       없으면 상품 주기로 계산된 값이다. */
+    await sb
+      .from("app_users")
+      .update({ plan: product.plan, plan_expires_at: periodEnd.toISOString() })
+      .eq("email", email);
     await sb.from("payments").insert({
       order_id: `iap-${platform}-${email}-${Date.now()}`,
       user_email: email,

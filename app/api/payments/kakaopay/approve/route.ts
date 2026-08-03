@@ -84,10 +84,13 @@ export async function GET(req: NextRequest) {
       pgToken,
     });
 
+    /* 금액 검증은 fail-closed — 제공자가 승인 금액(amount.total)을 주지 않았거나
+       숫자가 아니면 "검증 불가"이므로 통과가 아니라 실패로 처리한다. (카카오페이는
+       실무상 항상 amount.total 을 주지만, 응답 변형 시 무검증 승인이 되면 안 된다.) */
     const approvedTotal = approved.amount?.total;
     if (
-      approvedTotal != null &&
-      Number.isFinite(approvedTotal) &&
+      approvedTotal == null ||
+      !Number.isFinite(approvedTotal) ||
       approvedTotal !== existing.amount
     ) {
       await markFailed(orderId);

@@ -75,7 +75,11 @@ const DEFAULTS = {
   registrationNumber: "378-06-02465",
   address: "안양시 동안구 관양동 1588",
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
-  phone: "010-9092-1203",
+  /* T안심콜 안심번호(2026-08-03 발급). 개인 휴대폰 번호를 푸터에 그대로 노출하면
+     스팸·사칭의 표적이 되므로 안심번호로 대체한다. 전자상거래 고지·토스 심사가
+     요구하는 "유선번호" 요건은 050 안심번호로도 충족된다.
+     env(NEXT_PUBLIC_COMPANY_PHONE) 가 설정돼 있으면 그 값이 우선. */
+  phone: "050-6460-1203",
   supportEmail: "nuguzip@naver.com",
   privacyEmail: "nuguzip@naver.com",
   /* 토스뱅크 계좌개설 확인증(2026-06-15 개설, 소유자 제공)에서 옮긴 실값.

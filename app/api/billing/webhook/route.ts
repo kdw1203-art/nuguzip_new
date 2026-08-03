@@ -4,6 +4,7 @@ import type Stripe from "stripe";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import { normalizePlan } from "@/lib/billing/plan";
 import { getStripe } from "@/lib/billing/stripe";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { recordPlatformEvent } from "@/lib/platform-events";
 
@@ -84,6 +85,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }
 
+  /* 멱등 처리(재생 방지) — 서명이 유효한 이벤트라도 Stripe 는 at-least-once 전송이라
+     같은 event.id 가 여러 번 들어올 수 있다. event.id 를 PK 로 하는
+     stripe_webhook_events 에 "선점(claim)" 을 넣어, 이미 있으면(23505) 재처리하지
+     않고 즉시 200 을 돌려준다. 처리 도중 실패하면 선점을 지워 Stripe 재시도가 다시
+     처리하도록 한다(recorded-but-unprocessed 함정 회피). */
+  const sb = getServiceSupabase();
+  if (sb) {
+    const { error: claimErr } = await sb
+      .from("stripe_webhook_events")
+      .insert({ event_id: event.id });
+    if (claimErr) {
+      if (claimErr.code === "23505") {
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      // 선점 기록 자체가 실패하면 처리를 막지 않는다(fail-soft). 핸들러가 멱등하다.
+      logger.warn("[billing:webhook] dedup claim failed", claimErr.message);
+    }
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -98,6 +118,14 @@ export async function POST(req: Request) {
     }
   } catch (e) {
     logger.error("[billing:webhook] handler", e);
+    // 처리 실패 시 선점 해제 → 다음 재시도가 다시 처리한다.
+    if (sb) {
+      await sb
+        .from("stripe_webhook_events")
+        .delete()
+        .eq("event_id", event.id)
+        .then(undefined, () => {});
+    }
     return NextResponse.json({ error: "handler failed" }, { status: 500 });
   }
 

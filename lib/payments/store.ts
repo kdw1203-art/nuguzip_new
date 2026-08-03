@@ -1,5 +1,8 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import type { PlanTier } from "@/components/ui-kit";
+import { normalizePlan } from "@/lib/billing/plan";
+import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
+import { logger } from "@/lib/log";
 
 export type PaymentStatus =
   | "requested"
@@ -171,7 +174,7 @@ export async function markPaid(input: {
   const now = new Date().toISOString();
   if (!sb) {
     const r = memory.find((x) => x.orderId === input.orderId);
-    if (!r) return null;
+    if (!r || r.status !== "requested") return null;
     r.status = "paid";
     r.providerPaymentKey = input.providerPaymentKey ?? null;
     r.method = input.method ?? null;
@@ -179,6 +182,10 @@ export async function markPaid(input: {
     r.paidAt = now;
     return r;
   }
+  /* 단일 처리 보장(TOCTOU) — 승인 대기(requested) 상태에서만 paid 로 넘긴다.
+     successUrl 새로고침·재시도로 confirm 이 동시에 두 번 들어와도, 상태 조건 덕에
+     둘 중 하나만 requested→paid 전이에 성공하고 나머지는 매칭 행이 없어 null 을
+     돌려받는다(= 요금제 이중 부여 방지). markFailed 가 쓰는 방식과 동일하다. */
   const { data, error } = await sb
     .from("payments")
     .update({
@@ -189,9 +196,10 @@ export async function markPaid(input: {
       paid_at: now,
     })
     .eq("order_id", input.orderId)
+    .eq("status", "requested")
     .select()
-    .single();
-  if (error) return null;
+    .maybeSingle();
+  if (error || !data) return null;
   return mapRow(data);
 }
 
@@ -216,7 +224,50 @@ export async function markRefunded(input: {
     .select()
     .single();
   if (error) return null;
-  return mapRow(data);
+  const rec = mapRow(data);
+  // 환불 시 부여했던 멤버십 권한을 회수한다(환불했는데 이용권은 유지되던 누수 차단).
+  await clawBackMembershipOnRefund(rec);
+  return rec;
+}
+
+/**
+ * 환불된 결제가 부여했던 멤버십 등급을 되돌린다.
+ *
+ * 보수적 규칙: **사용자의 현재 플랜이 환불된 결제의 플랜과 같을 때만** 무료로
+ * 강등한다. 사용자가 이후 다른 결제로 등급을 올려 둔 경우를 잘못 회수하지 않기
+ * 위함이다. (엄밀히는 남아있는 유효 결제로 권한을 재계산하는 것이 이상적이나,
+ * 우선 "환불=권한 유지" 누수를 안전하게 막는 데 초점을 둔다.)
+ * 실패해도 환불 자체는 이미 성공했으므로 예외를 삼키고 로깅만 한다.
+ */
+async function clawBackMembershipOnRefund(rec: PaymentRecord): Promise<void> {
+  try {
+    if (!rec.userEmail) return;
+    // 'basic' 은 무료/단품(Group Pass 등)이라 멤버십 강등 대상이 아니다.
+    if (!rec.plan || rec.plan === "basic") return;
+    const sb = getServiceSupabase();
+    if (!sb) return;
+    const em = rec.userEmail.trim().toLowerCase();
+    const { data: cur } = await sb
+      .from("app_users")
+      .select("plan")
+      .eq("email", em)
+      .maybeSingle();
+    if (!cur) return;
+    if (normalizePlan(String(cur.plan ?? "")) !== normalizePlan(String(rec.plan))) {
+      return; // 현재 플랜이 다르면(이미 다른 결제로 변경됨) 건드리지 않는다.
+    }
+    await applyPlanToUserByEmail(em, "free");
+    logger.warn("[payments:refund] membership clawed back to free", {
+      orderId: rec.orderId,
+      email: em,
+      refundedPlan: rec.plan,
+    });
+  } catch (e) {
+    logger.error(
+      "[payments:refund] clawback failed",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
 }
 
 /**

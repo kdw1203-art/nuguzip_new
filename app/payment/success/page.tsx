@@ -53,19 +53,28 @@ export default async function PaymentSuccessPage({
         try {
           const checkout = await stripe.checkout.sessions.retrieve(sessionId);
           if (checkout.payment_status === "paid" || checkout.status === "complete") {
+            /* 플랜은 **로그인된 본인 세션 이메일** 을 기준으로만 반영한다.
+               예전엔 checkout.metadata.email 을 먼저 신뢰해서, 남의 session_id 를
+               주소창에 넣고 열면 그 사람 플랜이 올라가는 그리핑이 가능했다.
+               결제 세션의 이메일과 로그인 세션 이메일이 다르면(또는 비로그인이면)
+               여기서는 반영하지 않고, 서명 검증된 웹훅이 권위 있게 처리하게 둔다. */
             const auth = await safeAuth();
-            const email = String(
+            const sessionEmail = (auth?.user?.email ?? "").trim().toLowerCase();
+            const checkoutEmail = String(
               checkout.metadata?.email ||
                 checkout.customer_details?.email ||
                 checkout.customer_email ||
-                auth?.user?.email ||
                 "",
             )
               .trim()
               .toLowerCase();
             const plan = normalizePlan(checkout.metadata?.plan);
-            if (email && plan !== "free") {
-              await applyPlanToUserByEmail(email, plan);
+            if (
+              sessionEmail &&
+              plan !== "free" &&
+              (!checkoutEmail || checkoutEmail === sessionEmail)
+            ) {
+              await applyPlanToUserByEmail(sessionEmail, plan);
             }
             status = "ok";
             message = "구독 결제가 완료되었습니다. 잠시 후 마이 페이지에서 플랜을 확인해 주세요.";

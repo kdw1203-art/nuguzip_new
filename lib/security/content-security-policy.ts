@@ -49,5 +49,10 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     // frame-ancestors는 X-Frame-Options보다 우선하며 더 정확하다
     "frame-ancestors 'self'",
     "upgrade-insecure-requests",
+    /* 위반 리포트 수집 — enforce 정책은 그대로 두고 위반만 /api/security/csp-report 로 보낸다.
+       report-uri 는 deprecated 지만 아직 가장 넓게 지원된다(report-to 는 Reporting-Endpoints
+       헤더까지 있어야 동작해 미들웨어를 건드려야 하므로 지금은 report-uri 만 쓴다).
+       목적: script-src 에서 'unsafe-inline' 을 빼기 전에 "무엇이 깨지는지"를 실측하는 것. */
+    "report-uri /api/security/csp-report",
   ].join("; ");
 }
