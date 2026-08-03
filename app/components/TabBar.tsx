@@ -61,10 +61,13 @@ export function TabBar() {
       className={`tabbar-autohide fixed left-1/2 z-50 w-[min(420px,calc(100%-28px))] -translate-x-1/2 transition-all duration-300 md:hidden ${
         compact ? "translate-y-[14px] opacity-85" : ""
       }`}
-      style={{ bottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}
+      /* 소유자 캡처(2026-08-04): 바가 콘텐츠 버튼을 가렸다 — 더 아래로,
+         더 얇게. 바닥 여백 16→6px(safe-area 는 그대로 존중 — 홈 인디케이터
+         아래로는 안 내린다). 글씨 11px 은 유지(이전 요청: 메뉴 글씨는 키움). */
+      style={{ bottom: "max(6px, env(safe-area-inset-bottom, 0px))" }}
       aria-label="하단 내비게이션"
     >
-      <div className="glass-strong grid grid-cols-5 items-end rounded-[26px] px-2 pb-2 pt-2 shadow-[0_12px_32px_rgba(15,23,42,.18)]">
+      <div className="glass-strong grid grid-cols-5 items-end rounded-[22px] px-2 pb-1 pt-1 shadow-[0_12px_32px_rgba(15,23,42,.18)]">
         {TABS.map((tab) =>
           tab.center ? (
             <Link
@@ -74,7 +77,9 @@ export function TabBar() {
               className="flex flex-col items-center"
             >
               <span
-                className={`press -mt-6 mb-[3px] flex h-[52px] w-[52px] items-center justify-center rounded-full leading-none text-white transition-transform duration-300 ${
+                /* 52→44px, 돌출 -mt-6→-mt-3.5 — 바 위로 솟는 높이를 줄인다.
+                   44px 는 터치 타깃 하한선. */
+                className={`press -mt-3.5 mb-[2px] flex h-[44px] w-[44px] items-center justify-center rounded-full leading-none text-white transition-transform duration-300 ${
                   compact ? "scale-[.82]" : ""
                 }`}
                 style={{
@@ -82,7 +87,7 @@ export function TabBar() {
                   boxShadow: "0 8px 22px rgba(29,79,216,.42)",
                 }}
               >
-                <Icon name={tab.icon} size={26} strokeWidth={2.2} />
+                <Icon name={tab.icon} size={22} strokeWidth={2.2} />
               </span>
               <span className="text-[11px] font-extrabold text-primary">
                 {tab.label}
@@ -93,7 +98,7 @@ export function TabBar() {
               key={tab.label}
               href={tab.href}
               aria-current={isActive(tab.href) ? "page" : undefined}
-              className={`relative flex flex-col items-center gap-[3px] py-1.5 transition-colors ${
+              className={`relative flex flex-col items-center gap-[2px] py-1 transition-colors ${
                 isActive(tab.href) ? "text-primary" : "text-text-3"
               }`}
             >
@@ -107,7 +112,7 @@ export function TabBar() {
                   isActive(tab.href) ? "scale-110" : ""
                 }`}
               >
-                <Icon name={tab.icon} size={22} />
+                <Icon name={tab.icon} size={20} />
               </span>
               <span
                 className={`text-[11px] leading-none ${
