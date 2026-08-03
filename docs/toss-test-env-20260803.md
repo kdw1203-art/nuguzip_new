@@ -87,3 +87,19 @@ webhook · learn/tax · learn/payment-results · get-started/llms-guide.
    세금 파라미터), 최근 결제 20건 실데이터(실패는 실패라고 표기).
 5. **세금** — 과세 상점 기준 vat 자동 계산으로 현행 파라미터 불필요.
    면세 상품 도입 시 taxFreeAmount 를 결제·취소·현금영수증에 전달해야 함(기록).
+
+## 3차 점검 (2026-08-03 저녁) — 빠진 조각 감사·보강
+
+전 구간 감사 결과 및 조치:
+- **[갭] 취소·환불 경로 부재** — 구독 FAQ 가 7일 청약철회를 약속하는데 처리
+  수단이 없었다(빈 약속). 신설: lib/payments/toss-cancel(전액 취소·orderId
+  결정적 멱등키) + POST /api/admin/payments/cancel(관리자 세션 필수, paid 건만,
+  토스 취소 성공 후에만 장부 refunded + 플랜 free 회수, ALREADY_CANCELED 는
+  장부 따라잡기) + /admin/payments 표에 취소 버튼(2단 확인).
+- **[갭] E2E 커버리지** — 스모크 47(체크아웃 정직 실패/로그인 게이트),
+  48(웹훅 미구독 이벤트 200), 49(취소 API 비관리자 403) 추가 — 49개.
+- **[갭] 릴리즈 게이트** — "Toss chain complete" 검사 신설: 경로 7개 존재 +
+  CSP js.tosspayments.com + confirm 멱등키·금액대조 계약 확인 (PASS 35).
+- **[정상 확인]** create(서버 금액 계산·로그인 401·15분 재사용), confirm
+  (금액 대조·멱등키·환경 가드 3종·중복 키 409), success/fail 랜딩(실패 코드
+  안전 매핑), 웹훅(재검증·멱등), CSP(전 배포에서 수복), 빌링 모듈(계약 대기).

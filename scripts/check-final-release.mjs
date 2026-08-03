@@ -259,6 +259,31 @@ if (read("app/layout.tsx").includes("#main-content")) {
   }
 }
 
+// ── 결제 — 토스 전 구간 배선 게이트 (2026-08-03) ──────────────
+// 결제는 "한 조각만 빠져도 전부 안 되는" 체인이다. 파일 존재+핵심 계약만 본다.
+{
+  const tossChain = [
+    ["app/subscription/checkout/CheckoutClient.tsx", "위젯 체크아웃"],
+    ["app/api/payments/toss/create/route.ts", "주문 생성"],
+    ["app/api/payments/toss/confirm/route.ts", "승인(confirm)"],
+    ["app/api/payments/toss/webhook/route.ts", "웹훅 수신"],
+    ["app/api/admin/payments/cancel/route.ts", "관리자 취소(청약철회)"],
+    ["app/payment/success/page.tsx", "성공 랜딩"],
+    ["app/payment/fail/page.tsx", "실패 랜딩"],
+  ];
+  const missing = tossChain.filter(([p]) => !exists(p)).map(([, label]) => label);
+  const csp = read("lib/security/content-security-policy.ts");
+  if (!csp.includes("js.tosspayments.com")) missing.push("CSP(js.tosspayments.com)");
+  const confirm = read("app/api/payments/toss/confirm/route.ts");
+  if (!confirm.includes("Idempotency-Key")) missing.push("confirm 멱등키");
+  if (!confirm.includes("existing.amount")) missing.push("confirm 금액 대조");
+  if (missing.length === 0) {
+    pass("결제", "Toss chain complete", `${tossChain.length}개 경로 + CSP + 멱등·금액검증`);
+  } else {
+    fail("결제", "Toss chain complete", `누락: ${missing.join(", ")}`);
+  }
+}
+
 // ── 운영 ───────────────────────────────────────────────
 if (exists("lib/admin/operating-metrics.ts")) {
   pass("운영", "Operating metrics loader");

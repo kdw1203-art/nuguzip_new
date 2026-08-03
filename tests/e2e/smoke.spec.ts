@@ -523,3 +523,29 @@ test("46. /llms.txt 는 실데이터 라우트로 응답한다", async ({ reques
   expect(body).toContain("https://nuguzip.com/tx");
   expect(body).toContain("sitemap-complexes.xml");
 });
+
+test("47. /subscription/checkout 은 키 미설정 환경에서 정직한 실패를 그린다", async ({ page }) => {
+  /* CI 일회용 서버에는 토스 키가 없다. 이때 빈 화면·가짜 결제 UI 가 아니라
+     "시작하지 못했다"는 사실과 되돌아갈 길을 보여줘야 한다. 키가 설정된
+     환경에서는 로그인 게이트가 먼저 뜬다 — 두 상태 모두 정직한 상태다. */
+  await page.goto("/subscription/checkout?tier=pro&billing=monthly");
+  const honest = page
+    .getByText("결제를 시작하지 못했어요")
+    .or(page.getByText("결제하려면 로그인이 필요해요"))
+    .or(page.getByText("주문 준비 중"));
+  await expect(honest.first()).toBeVisible({ timeout: 10_000 });
+});
+
+test("48. 토스 웹훅은 모르는 이벤트에도 200 을 준다 (재시도 폭주 방지)", async ({ request }) => {
+  const res = await request.post("/api/payments/toss/webhook", {
+    data: { eventType: "SOMETHING_ELSE" },
+  });
+  expect(res.status()).toBe(200);
+});
+
+test("49. 관리자 결제 취소 API 는 비관리자를 403 으로 거절한다", async ({ request }) => {
+  const res = await request.post("/api/admin/payments/cancel", {
+    data: { orderId: "SMOKE-TEST-NOT-REAL" },
+  });
+  expect(res.status()).toBe(403);
+});

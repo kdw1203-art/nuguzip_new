@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { listPayments, type PaymentRecord } from "@/lib/payments/store";
 import { logger } from "@/lib/log";
+import { CancelPaymentButton } from "./CancelPaymentButton";
 
 export const metadata: Metadata = {
   title: "결제 연동 | 누구집 관리자",
@@ -216,7 +217,7 @@ export default async function AdminPaymentsPage() {
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-[12px]">
+            <table className="w-full min-w-[640px] text-left text-[12px]">
               <thead>
                 <tr className="border-b border-line text-[11px] text-text-3">
                   <th className="py-2 pr-3 font-semibold">시각</th>
@@ -224,7 +225,8 @@ export default async function AdminPaymentsPage() {
                   <th className="py-2 pr-3 font-semibold">사용자</th>
                   <th className="py-2 pr-3 font-semibold">플랜</th>
                   <th className="py-2 pr-3 text-right font-semibold">금액</th>
-                  <th className="py-2 font-semibold">상태</th>
+                  <th className="py-2 pr-3 font-semibold">상태</th>
+                  <th className="py-2 text-right font-semibold">처리</th>
                 </tr>
               </thead>
               <tbody>
@@ -244,8 +246,18 @@ export default async function AdminPaymentsPage() {
                     <td className="py-2 pr-3 text-right t-num text-ink">
                       {p.amount.toLocaleString("ko-KR")}원
                     </td>
-                    <td className={`py-2 font-extrabold ${STATUS_LABEL[p.status].cls}`}>
+                    <td className={`py-2 pr-3 font-extrabold ${STATUS_LABEL[p.status].cls}`}>
                       {STATUS_LABEL[p.status].text}
+                    </td>
+                    <td className="py-2 text-right">
+                      {/* 청약철회(7일) 처리 — paid + 토스 결제키 실재 건만 */}
+                      {p.status === "paid" &&
+                      p.providerPaymentKey &&
+                      p.providerPaymentKey !== "MOCK-PAYMENT-KEY" ? (
+                        <CancelPaymentButton orderId={p.orderId} />
+                      ) : (
+                        <span className="text-[11px] text-text-3">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
