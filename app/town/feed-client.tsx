@@ -155,7 +155,8 @@ export function TownFeed({
 
   return (
     <>
-      <div className="rise-in mb-3 flex gap-[6px] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* 모바일 실측 11 — 우측 페이드로 가로 스크롤 가능함을 암시 (카테고리 카드와 동일 처리) */}
+      <div className="rise-in mb-3 flex gap-[6px] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] md:[mask-image:none]">
         {FILTERS.map((f) => (
           <button
             key={f.id}

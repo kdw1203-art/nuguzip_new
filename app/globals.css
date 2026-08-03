@@ -101,8 +101,11 @@
   --pad-hero: 22px;
 
   /* 글래스 토큰 */
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-bg-strong: rgba(255, 255, 255, 0.62);
+  /* 모바일 실측(2026-08-02): 0.55 는 스크롤 시 헤더 뒤 본문 글자가 헤더
+     텍스트와 겹쳐 읽혔다. 유리 느낌은 blur 가 담당한다 — 배경은 가독성이
+     허락하는 만큼만 투명하게. */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.8);
   --glass-blur: blur(22px) saturate(1.6);
   --glass-blur-strong: blur(26px) saturate(1.7);
   --glass-border: rgba(255, 255, 255, 0.78);
@@ -356,7 +359,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   box-shadow: var(--shadow-glass);
 }
 .glass-strong {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--glass-bg-strong);
   -webkit-backdrop-filter: var(--glass-blur-strong);
   backdrop-filter: var(--glass-blur-strong);
   border: 1px solid rgba(255, 255, 255, 0.8);

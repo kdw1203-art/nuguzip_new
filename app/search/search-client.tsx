@@ -230,7 +230,9 @@ export function SearchClient() {
           placeholder="단지·매물·임장노트·뉴스 통합 검색"
           aria-label="통합 검색"
           autoComplete="off"
-          className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-text-3"
+          // 16px 미만 입력은 iOS 가 포커스 시 화면을 강제 줌한다(모바일 실측 7).
+          // 모바일 16px, md+ 는 기존 15px 유지.
+          className="w-full bg-transparent text-[16px] text-ink outline-none placeholder:text-text-3 md:text-[15px]"
         />
         {hasQuery && (
           <button

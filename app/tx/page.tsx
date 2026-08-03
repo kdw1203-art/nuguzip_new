@@ -165,7 +165,9 @@ export default async function TxIndexPage() {
 
       {loadError ? (
         <section className="rise-in-1 card p-[var(--pad-card)]">
-          <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          {/* 모바일 실측 18 — py-8 은 세 줄 문구에 화면의 40% 를 차지했다. 문구는
+              그대로(정직성 유지), 여백만 줄인다. */}
+          <p className="py-4 text-center text-[13px] leading-[1.7] text-text-3 md:py-8">
             실거래 집계를 <strong className="text-ink">불러오지 못했습니다</strong>.
             <br />
             거래가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시
@@ -174,7 +176,7 @@ export default async function TxIndexPage() {
         </section>
       ) : regions.length === 0 ? (
         <section className="rise-in-1 card p-[var(--pad-card)]">
-          <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          <p className="py-4 text-center text-[13px] leading-[1.7] text-text-3 md:py-8">
             아직 구간으로 정리된 지역이 없습니다.
             <br />
             한 구간에 거래 {MIN_BAND_TX}건이 모이면 이곳에 지역이 나타납니다.
