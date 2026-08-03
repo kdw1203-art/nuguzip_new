@@ -1,8 +1,5 @@
 import Link from "next/link";
-import {
-  getBusinessInfo,
-  isBusinessDisclosureComplete,
-} from "@/lib/brand/business-info";
+import { getBusinessInfo } from "@/lib/brand/business-info";
 import { CookieSettingsLink } from "@/components/consent/cookie-settings-link";
 
 /* P0-3 공통 푸터 — 사업자·통신판매업 고지(전자상거래법) + 약관 링크를 모든 페이지·모바일에 노출.
@@ -27,7 +24,6 @@ const LEGAL_LINKS = [
 
 export function Footer() {
   const biz = getBusinessInfo();
-  const disclosureOk = isBusinessDisclosureComplete(biz);
 
   return (
     <footer className="mt-auto border-t border-line bg-surface px-5 pb-28 pt-6 md:pb-6">
@@ -40,9 +36,12 @@ export function Footer() {
         </div>
         <div>
           주소: {biz.address || "—"}
+          {/* 신고번호가 아직 없으면 "—" 대신 진행 상태를 적는다(소유자 확인:
+              정부24 신고 진행 중). 번호가 env 로 들어오면 자동으로 번호 표기로
+              바뀐다 — 문구가 낡은 채 남을 수 없는 구조다. */}
           {biz.mailOrderSalesNumber
             ? ` · 통신판매업 신고번호: ${biz.mailOrderSalesNumber}`
-            : " · 통신판매업 신고번호: —"}
+            : " · 통신판매업 신고번호: 신고 진행 중"}
           {" · 대표전화: "}
           {/* 유선번호는 토스페이먼츠 상점 심사 필수 항목이다. 번호가 있으면
               바로 걸 수 있게 tel: 로 건다 — 적어만 두면 모바일에서 쓸모가 적다. */}
@@ -64,12 +63,11 @@ export function Footer() {
             문의 {biz.supportEmail}
           </a>
         </div>
-        {!disclosureOk ? (
-          <div className="text-[11px] text-danger">
-            주소·통신판매업 신고번호·대표전화 고지 미완 — 유료 결제·유료 구독은 아직 열리지
-            않습니다.
-          </div>
-        ) : null}
+        {/* 예전에는 여기에 "고지 미완 — 유료 결제가 열리지 않습니다" 경고를
+            빨간 글씨로 띄웠다. 주소·전화가 채워지고 신고번호만 처리 대기인
+            지금은 방문자에게 불안만 주는 문구라 소유자 요청으로 내렸다.
+            결제 게이트(isBusinessDisclosureComplete) 자체는 그대로다 — 화면
+            문구만 내려갔지 신고번호 없이 결제가 열리지는 않는다. */}
 
         {/* 2행: 약관·고객센터 링크 */}
         <div className="flex flex-wrap gap-x-3 gap-y-1.5">
