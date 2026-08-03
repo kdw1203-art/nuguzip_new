@@ -49,6 +49,9 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
   const toss =
     Boolean(process.env.TOSS_SECRET_KEY?.trim()) &&
     Boolean(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim());
+  const tossTest = Boolean(
+    process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim().startsWith("test_"),
+  );
 
   return [
     {
@@ -94,10 +97,15 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
       id: "toss",
       tier: "payments",
       label: "Toss Payments",
-      description: "원화 결제·payments 테이블 연동",
+      /* 환경 가이드(docs.tosspayments.com/guides/environment) 요지:
+         test_ 키 승인은 가상(실청구 없음), 키는 test/live 짝을 맞춰야 하며
+         카카오페이 간편결제는 토스 테스트 환경 미지원(라이브 키 필요). */
+      description: tossTest
+        ? "원화 결제(테스트 키 — 승인은 가상, 실제 청구 없음)"
+        : "원화 결제·payments 테이블 연동 (카드+간편결제 통합결제창)",
       ok: toss,
-      envKeys: "TOSS_SECRET_KEY + NEXT_PUBLIC_TOSS_CLIENT_KEY",
-      docsUrl: "https://docs.tosspayments.com/",
+      envKeys: "TOSS_SECRET_KEY + NEXT_PUBLIC_TOSS_CLIENT_KEY (test/live 짝 일치)",
+      docsUrl: "https://docs.tosspayments.com/guides/environment",
     },
     {
       id: "openai",

@@ -120,6 +120,33 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
+    /* 역방향 가드 — 개발/프리뷰에 라이브 키가 꽂힌 경우. 테스트 키 승인은
+       가상이지만(청구 없음 — 토스 환경 가이드), 라이브 키 승인은 **실제로
+       돈이 나간다**. 개발 중 실카드로 테스트하다 실청구되는 사고를 여기서 끊는다. */
+    if (process.env.NODE_ENV !== "production" && secret.startsWith("live_")) {
+      await markFailed(orderId);
+      return NextResponse.json(
+        {
+          error:
+            "개발 환경에 토스 라이브 시크릿 키가 설정되어 결제를 중단했습니다. 테스트 키(test_sk_…)로 바꿔 주세요.",
+        },
+        { status: 500 },
+      );
+    }
+    /* 키 짝 검증 — 클라이언트 키(test_ck_)와 시크릿 키(live_sk_)의 환경이
+       어긋나면 결제창은 뜨는데 승인만 실패한다. 토스 오류로 헤매기 전에
+       원인을 문장으로 준다. */
+    const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim();
+    if (clientKey && clientKey.startsWith("test_") !== secret.startsWith("test_")) {
+      await markFailed(orderId);
+      return NextResponse.json(
+        {
+          error:
+            "토스 클라이언트 키와 시크릿 키의 환경(test/live)이 서로 다릅니다. 같은 환경의 키 짝으로 맞춰 주세요.",
+        },
+        { status: 500 },
+      );
+    }
 
     const res = await fetch("https://api.tosspayments.com/v1/payments/confirm", {
       method: "POST",

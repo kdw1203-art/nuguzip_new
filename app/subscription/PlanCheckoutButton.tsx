@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import {
+  isTossTestEnv,
+  startTossCheckout,
+  tossClientKey,
+} from "./toss-rail";
 
 /**
  * 구독 플랜 결제 시작 버튼.
@@ -38,12 +43,14 @@ export function PlanCheckoutButton({
 
     // 1) 로그인 확인 — 비로그인 시 로그인 페이지로 (callbackUrl 유지)
     let authed = false;
+    let sessionEmail: string | null = null;
     try {
       const res = await fetch("/api/auth/session", { cache: "no-store" });
       const j = (await res.json().catch(() => null)) as
         | { user?: { email?: string | null } }
         | null;
-      authed = Boolean(j?.user?.email);
+      sessionEmail = j?.user?.email ?? null;
+      authed = Boolean(sessionEmail);
     } catch {
       authed = false;
     }
@@ -117,6 +124,25 @@ export function PlanCheckoutButton({
     };
 
     try {
+      /* 토스 레일 — NEXT_PUBLIC_TOSS_CLIENT_KEY 가 설정돼 있으면 최우선.
+         카드+간편결제(토스페이)를 한 결제창에서 처리하고, 서버 confirm 이
+         금액 검증·멱등 승인을 맡는다. 테스트 키(test_ck_)면 가상 승인이라
+         실제 청구가 없다(토스 환경 가이드) — 취소는 오류로 취급하지 않는다. */
+      if (tossClientKey()) {
+        const tossFailure = await startTossCheckout({
+          tier,
+          billing,
+          orderName: `누구집 ${tier === "expert" ? "프로" : "플러스"} ${billingLabel} 구독`,
+          customerEmail: sessionEmail,
+        });
+        if (tossFailure === null) return; // 결제창으로 이동함
+        if (tossFailure.kind === "cancel") {
+          // 사용자가 결제창을 닫음 — 조용히 원상 복귀 (다른 레일로 강제 이동하지 않는다)
+          return;
+        }
+        // 토스 실패 시 아래 기존 레일(카드·카카오페이)로 폴백 — 사유는 이어서 판정
+      }
+
       /* 레일 순서(항목 32): 연간은 카카오페이 먼저. 연간 카드 상품
          (STRIPE_PRICE_*_ANNUAL)이 등록되지 않은 동안 Stripe 는 연간 요청을
          503 으로 거절하는데, 카카오페이는 연간 금액(약 20% 할인)을 정상
@@ -169,6 +195,13 @@ export function PlanCheckoutButton({
           <p className="text-center text-[11px] font-bold text-text-2">
             {billingLabel} 결제창으로 이동합니다
           </p>
+          {/* 사실 우선 — 테스트 키 환경에서는 승인이 가상으로 이루어져 실제
+              청구가 없다(토스 환경 가이드). 가짜 결제를 진짜처럼 보이게 두지 않는다. */}
+          {isTossTestEnv() && (
+            <p className="text-center text-[11px] font-bold text-[#b45309]">
+              테스트 결제 환경 — 실제 금액이 청구되지 않아요
+            </p>
+          )}
           <div className="flex gap-1.5">
             <button
               type="button"
