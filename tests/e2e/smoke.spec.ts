@@ -489,3 +489,37 @@ test("43. 웹 푸시 입구는 서버가 활성일 때만 노출된다", async (
     await expect(page.getByText("푸시 알림", { exact: true })).toHaveCount(0);
   }
 });
+
+// ---------- 고도화 41 — 신규 표면 회귀 방지 (가이드 2종 · llms.txt) ----------
+
+test("44. /guides/contract renders 5단계 + HowTo JSON-LD", async ({ page }) => {
+  await page.goto("/guides/contract");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /계약 전 체크리스트/ }),
+  ).toBeVisible();
+  await expect(page.getByText("계약 단계별 확인사항").first()).toBeVisible();
+  const jsonld = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  expect(jsonld.join(" ")).toContain('"HowTo"');
+});
+
+test("45. /guides/regulations renders 규제 개념 섹션", async ({ page }) => {
+  await page.goto("/guides/regulations");
+  await expect(
+    page.getByRole("heading", { level: 1, name: /부동산 규제·의무 안내/ }),
+  ).toBeVisible();
+  await expect(page.getByText("투기과열지구").first()).toBeVisible();
+});
+
+test("46. /llms.txt 는 실데이터 라우트로 응답한다", async ({ request }) => {
+  const res = await request.get("/llms.txt");
+  expect(res.ok()).toBeTruthy();
+  const body = await res.text();
+  expect(body).toContain("# 누구집 (nuguzip.com)");
+  /* 커버리지 숫자는 환경(DB 유무)에 따라 있거나 생략된다 — 어느 쪽이든
+     문서 골격과 핵심 링크는 있어야 한다. 숫자 유무를 단언하지 않는 이유:
+     CI 일회용 서버에는 DB 가 없어 정직하게 생략되는 것이 맞는 동작이다. */
+  expect(body).toContain("https://nuguzip.com/tx");
+  expect(body).toContain("sitemap-complexes.xml");
+});

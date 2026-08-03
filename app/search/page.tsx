@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageShell } from "../components/PageShell";
 import { SearchClient } from "./search-client";
+import { RecentComplexChips } from "../components/RecentComplexes";
 
 /* ============================================================
    통합 검색 — 단지 + 매물 + 임장노트 + 뉴스
@@ -18,6 +19,10 @@ export const metadata: Metadata = {
 export default function SearchPage() {
   return (
     <PageShell title="통합 검색" breadcrumb="검색">
+      {/* 고도화 6 잔여 — 최근 본 단지 칩. 기록(RecentComplexRecorder)은 단지
+          상세에 이미 있었는데 이 칩을 그리는 화면이 없어 읽기 경로가 끊겨
+          있었다. 검색 시작점이 가장 자연스러운 자리다(기록 없으면 미렌더). */}
+      <RecentComplexChips className="mb-4" />
       <SearchClient />
     </PageShell>
   );

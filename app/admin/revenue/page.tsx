@@ -4,7 +4,7 @@
 
 import { listIngestLog } from "@/lib/market/store";
 import Link from "next/link";
-import { loadAdminKpi } from "@/lib/admin/stats";
+import { loadAdminKpi, loadPreorderInterest } from "@/lib/admin/stats";
 import {
   estimateSubscriptionMrrKrw,
   paidSubscriptionCount,
@@ -35,12 +35,14 @@ function pct(part: number, whole: number): string {
 export default async function AdminRevenuePage() {
   /* plan-expiry 스윕의 최근 실행 기록 — 일회성 결제 강등(churn)을 수익 화면에서
      바로 본다. 실패는 null(칸 미표시)로 두고 0건과 구분한다. */
-  const [kpi, expiryLog] = await Promise.all([
+  const [kpi, expiryLog, preorder] = await Promise.all([
     loadAdminKpi(),
     listIngestLog(60).then(
       (rows) => rows.find((r) => r.source === "plan-expiry") ?? null,
       () => null,
     ),
+    /* 고도화 31 — 결제 오픈 전 수요(오픈 알림 신청). 실패는 null → "—". */
+    loadPreorderInterest().catch(() => null),
   ]);
   const mrr = estimateSubscriptionMrrKrw(kpi.planCounts);
   const paid = paidSubscriptionCount(kpi.planCounts);
@@ -57,6 +59,13 @@ export default async function AdminRevenuePage() {
     { label: "전문가 수", value: num(kpi.totalExperts), sub: "인증 완료" },
     { label: "30일 결제 건수", value: num(kpi.paymentsCompleted30d), sub: "payments 완료" },
     { label: "30일 결제 매출", value: money(kpi.paymentsRevenue30dKrw), sub: "실 결제 합계" },
+    {
+      label: "사전 등록 수요",
+      value: preorder ? preorder.total.toLocaleString("ko-KR") : "—",
+      sub: preorder
+        ? `식별 신청자 ${preorder.users.toLocaleString("ko-KR")}명 · 결제 오픈 판단 근거`
+        : "조회 실패 또는 DB 미연결",
+    },
   ];
 
   return (

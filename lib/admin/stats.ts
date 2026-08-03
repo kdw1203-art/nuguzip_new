@@ -578,3 +578,29 @@ export async function loadAdminRecent(): Promise<AdminRecent> {
 
   return out;
 }
+
+/* ── 고도화 31 — 사전 등록(결제 오픈 대기) 수요 집계 ─────────────────────────
+   /subscription 의 "오픈 알림 받기"가 platform_activity_events 에
+   plan_preorder_interest 로 쌓이는데, 이를 보여 주는 화면이 없어 결제를
+   언제 열지 판단할 근거가 어드민에 없었다. 실패는 null — 0건(사실)과
+   "못 읽음"을 섞지 않는다. */
+export async function loadPreorderInterest(): Promise<{
+  total: number;
+  /** 식별 가능한(로그인) 신청자 수 — 비로그인 신청은 total 에만 포함 */
+  users: number;
+} | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("platform_activity_events")
+    .select("user_email")
+    .eq("event_name", "plan_preorder_interest")
+    .limit(10000);
+  if (error || !Array.isArray(data)) return null;
+  const emails = new Set<string>();
+  for (const r of data as Array<{ user_email: string | null }>) {
+    const e = (r.user_email ?? "").trim().toLowerCase();
+    if (e) emails.add(e);
+  }
+  return { total: data.length, users: emails.size };
+}

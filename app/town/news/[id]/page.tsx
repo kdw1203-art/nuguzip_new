@@ -10,6 +10,7 @@ import type { Post } from "@/lib/types/post";
 import { logger } from "@/lib/log";
 import { newsImageUrl } from "../../shared";
 import { LocationMap } from "../../LocationMap";
+import { regionIdForName } from "@/lib/region/catalog";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { getAdViewer } from "@/lib/ads/viewer";
@@ -190,11 +191,28 @@ export default async function TownNewsDetailPage({
         <div className="flex flex-col gap-4">
           {/* ---------- 기사 본문 ---------- */}
           <article className="rise-in card flex flex-col gap-4 rounded-[20px] p-7">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
                 {category}
               </span>
               <span className="truncate text-xs text-text-3">{byline}</span>
+              {/* 고도화 11 — 기사 지역 → 지역 시세 랜딩. regionIdForName 으로
+                  해석되는 시군구만 링크한다 — "서울" 같은 광역명은 지역 id 가
+                  없어 해석 실패 시 링크를 만들지 않는다(죽은 링크 금지). */}
+              {(() => {
+                const rid =
+                  regionIdForName(
+                    [post.city, post.district].filter(Boolean).join(" "),
+                  ) ?? (post.district ? regionIdForName(post.district) : null);
+                return rid ? (
+                  <Link
+                    href={`/region/${rid}`}
+                    className="chip border border-line bg-bg px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+                  >
+                    {region} 시세 보기 ›
+                  </Link>
+                ) : null;
+              })()}
             </div>
             <h1 className="text-2xl font-extrabold leading-[1.4] text-ink">
               {title}
