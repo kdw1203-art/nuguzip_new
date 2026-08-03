@@ -173,6 +173,22 @@ export async function POST(req: NextRequest) {
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
+      /* LLM Quick Reference §8: confirm 실패를 곧바로 결제 실패로 단정하지
+         않는다 — 이전 승인이 성공했는데 응답만 유실된 경우 재시도 confirm 이
+         오류로 돌아올 수 있다(멱등키가 대부분 막지만 15일 만료·경계 사례가
+         있다). 조회 API 로 실제 상태를 확인해 DONE 이면 결제 완료로 처리한다.
+         과금이 이미 된 결제를 실패로 기록하는 것이 최악의 결과이기 때문이다. */
+      const recovered = await queryPaymentDone(secret, orderId);
+      if (recovered) {
+        const paid = await markPaid({
+          orderId,
+          providerPaymentKey: recovered.paymentKey,
+          method: recovered.method,
+          receiptUrl: recovered.receiptUrl,
+        });
+        if (paid) await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
+        return NextResponse.json({ ok: true, payment: paid, recovered: true });
+      }
       await markFailed(orderId);
       return NextResponse.json(
         { error: (data.message as string) ?? "toss confirm failed", toss: data },
@@ -196,6 +212,42 @@ export async function POST(req: NextRequest) {
       { error: e instanceof Error ? e.message : "unknown" },
       { status: 500 },
     );
+  }
+}
+
+/**
+ * confirm 실패 시 실제 결제 상태 조회 — GET /v1/payments/orders/{orderId}.
+ * status === "DONE" 이면 결제 정보를 돌려주고, 그 외(미결제·실패·조회 오류)는
+ * null. 조회 자체가 실패해도 confirm 실패 처리 흐름을 막지 않는다.
+ */
+async function queryPaymentDone(
+  secret: string,
+  orderId: string,
+): Promise<{ paymentKey: string; method?: string; receiptUrl?: string } | null> {
+  try {
+    const res = await fetch(
+      `https://api.tosspayments.com/v1/payments/orders/${encodeURIComponent(orderId)}`,
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(secret + ":").toString("base64")}`,
+        },
+      },
+    );
+    if (!res.ok) return null;
+    const d = (await res.json().catch(() => null)) as {
+      status?: string;
+      paymentKey?: string;
+      method?: string;
+      receipt?: { url?: string } | null;
+    } | null;
+    if (d?.status !== "DONE" || !d.paymentKey) return null;
+    return {
+      paymentKey: d.paymentKey,
+      method: typeof d.method === "string" ? d.method : undefined,
+      receiptUrl: d.receipt?.url ?? undefined,
+    };
+  } catch {
+    return null;
   }
 }
 
