@@ -1,7 +1,7 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { sendEmail } from "@/lib/notifications/resend-send";
 import { logger } from "@/lib/log";
-import { getBusinessInfo } from "@/lib/brand/business-info";
+import { emailLayout } from "@/lib/email/templates";
 
 /** 비밀번호 재설정 이메일 직접 발송 (outbox 큐 우회, 즉시 전송) */
 export async function sendPasswordResetEmail({
@@ -15,10 +15,10 @@ export async function sendPasswordResetEmail({
      있었다. woodong.kr 은 이 서비스 도메인이 아니고 그 주소는 아무도 안 읽는다 —
      비밀번호 재설정 메일을 받은 사람이 문제가 생겨 회신하면 사라진다.
      표기는 lib/brand/business-info.ts 에서 가져온다. */
-  const biz = getBusinessInfo();
-  const html = `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-      <h2 style="color:#1e293b;font-size:20px;margin-bottom:8px">비밀번호 재설정</h2>
+  /* 고도화 49 — 표준 레이아웃(브랜드 헤더 + 수신거부·사업자 푸터)으로 통일.
+     사업자 표기는 emailLayout 이 business-info 에서 직접 그린다. */
+  const html = emailLayout(`
+      <h2 style="color:#1e293b;font-size:20px;margin:0 0 8px">비밀번호 재설정</h2>
       <p style="color:#475569;font-size:14px;line-height:1.6">
         아래 버튼을 눌러 비밀번호를 재설정해 주세요.<br>
         이 링크는 <strong>1시간</strong> 동안 유효합니다.
@@ -30,10 +30,7 @@ export async function sendPasswordResetEmail({
       <p style="color:#94a3b8;font-size:12px">
         본 메일을 요청하지 않으셨다면 무시해 주세요.<br>
         링크를 직접 복사: ${resetUrl}
-      </p>
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0">
-      <p style="color:#94a3b8;font-size:11px">${biz.legalName} · ${biz.supportEmail}</p>
-    </div>`;
+      </p>`);
 
   const text = `비밀번호 재설정 링크 (1시간 유효):\n${resetUrl}\n\n본 메일을 요청하지 않으셨다면 무시해 주세요.`;
 

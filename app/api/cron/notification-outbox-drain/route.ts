@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { trySendViaResend } from "@/lib/notifications/resend-send";
+import { emailLayout, escapeHtml } from "@/lib/email/templates";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 import { logger } from "@/lib/log";
 
@@ -77,12 +78,17 @@ export async function GET(req: Request) {
         dead += 1;
         continue;
       }
+      /* 고도화 49 — 표준 레이아웃(수신거부·사업자 푸터) 적용.
+         body 는 사용자 입력(댓글 미리보기 등)이 올 수 있어 반드시 이스케이프한다
+         — 이전 코드는 원문을 그대로 HTML 에 끼워 넣고 있었다. */
       const result = await trySendViaResend({
         to,
         subject: String(row.subject ?? "[누구집] 알림"),
-        html: `<div style="font-family:sans-serif;line-height:1.7;white-space:pre-wrap">${String(
-          row.body ?? "",
-        )}</div>`,
+        html: emailLayout(
+          `<div style="font-size:14px;line-height:1.7;color:#3d4657;white-space:pre-wrap">${escapeHtml(
+            String(row.body ?? ""),
+          )}</div>`,
+        ),
         text: String(row.body ?? ""),
       });
       if (result.ok) {

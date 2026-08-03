@@ -3,6 +3,8 @@
  * 각 함수는 sendEmail 에 바로 펼쳐 넣을 수 있는 { subject, html, text } 를 반환합니다.
  */
 
+import { getBusinessInfo } from "@/lib/brand/business-info";
+
 const ACCENT = "#1d4fd8";
 
 export function escapeHtml(value: string): string {
@@ -14,8 +16,18 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-/** 공통 레이아웃: 브랜드 헤더 + 카드 + 푸터 */
-function layout(bodyHtml: string): string {
+/**
+ * 공통 레이아웃: 브랜드 헤더 + 카드 + 표준 푸터 (고도화 49).
+ *
+ * 푸터는 모든 발신 메일에서 동일해야 한다 — 발신 주체(사업자 표기), 문의 경로,
+ * 알림 수신 설정(수신거부) 링크. 알림성 메일 발송처(comment-notify·outbox)도
+ * 자체 <div> 대신 이 레이아웃을 쓰도록 export 한다.
+ *
+ * 수신거부 링크는 실재하는 화면(/my/settings 알림 탭 — notification-prefs 실배선)
+ * 만 가리킨다. 사업자 표기는 lib/brand/business-info 단일 출처에서 온다.
+ */
+export function emailLayout(bodyHtml: string): string {
+  const biz = getBusinessInfo();
   return `<!DOCTYPE html>
 <html lang="ko">
 <body style="margin:0;padding:0;background-color:#f4f6fb;">
@@ -27,12 +39,22 @@ function layout(bodyHtml: string): string {
       ${bodyHtml}
     </div>
     <p style="color:#8a94a6;font-size:12px;line-height:1.6;margin:16px 4px 0;">
-      본 메일은 누구집(nuguzip.com)에서 자동 발송되었습니다.
+      본 메일은 누구집(nuguzip.com)에서 자동 발송되었습니다. 문의는
+      <a href="https://nuguzip.com/support" style="color:#8a94a6;">고객센터</a>,
+      알림 메일 수신 설정(수신거부)은
+      <a href="https://nuguzip.com/my/settings" style="color:#8a94a6;">마이 › 설정 › 알림</a>
+      에서 할 수 있습니다.
+    </p>
+    <p style="color:#a8b0bf;font-size:11px;line-height:1.6;margin:8px 4px 0;">
+      ${escapeHtml(biz.legalName)} · 대표 ${escapeHtml(biz.representative)} · 사업자등록번호 ${escapeHtml(biz.registrationNumber)}
     </p>
   </div>
 </body>
 </html>`;
 }
+
+/** @deprecated 내부 호환용 별칭 — 새 코드는 emailLayout 을 쓸 것 */
+const layout = emailLayout;
 
 /** 비밀번호 재설정 안내 메일 */
 export function passwordResetEmail(params: { resetUrl: string; expiresMinutes?: number }) {

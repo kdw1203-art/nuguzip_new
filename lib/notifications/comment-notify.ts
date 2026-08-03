@@ -2,6 +2,7 @@ import type { Post, PostComment } from "@/lib/types/post";
 import { enqueueEmailNotification } from "@/lib/notifications/outbox";
 import { trySendViaResend } from "@/lib/notifications/resend-send";
 import { pushInboxNotification } from "@/lib/notifications/inbox";
+import { emailLayout } from "@/lib/email/templates";
 
 /**
  * 글 작성자에게 댓글 알림 (notifyComments + notifyEmail).
@@ -26,11 +27,12 @@ export async function notifyPostAuthorOfNewComment(input: {
   const subject = `[누구집] 새 댓글: ${post.title.slice(0, 60)}`;
   const preview = comment.body.slice(0, 280);
   const base = process.env.AUTH_URL ?? "http://localhost:3000";
-  const html = `
+  /* 고도화 49 — 알림 메일도 표준 레이아웃(브랜드 헤더 + 수신거부·사업자 푸터) */
+  const html = emailLayout(`
     <p><strong>${escapeHtml(comment.authorLabel)}</strong> 님이 댓글을 남겼습니다.</p>
     <blockquote style="border-left:3px solid #3182f6;padding-left:12px;color:#334155">${escapeHtml(preview)}</blockquote>
     <p><a href="${base}/town">글에서 보기</a></p>
-  `;
+  `);
 
   // 인앱 받은편지함 알림 (Supabase 연동 여부와 관계없이 시도)
   void pushInboxNotification({
