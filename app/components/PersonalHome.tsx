@@ -122,17 +122,18 @@ const DELTA_CLASS: Record<PersonalRegionMarket["tone"], string> = {
 
 const DAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
-/** 내집찾기 여정 4단계 — 노트→AI→지도 루프 (허위 수치 없이 실데이터로만 산정) */
+/** 내집찾기 여정 4단계 — 노트→AI→지도 루프 (허위 수치 없이 실데이터로만 산정).
+    고도화 23 — next 는 문구가 아니라 행동이다. 눌러서 그 단계로 가는 href 를 함께 든다. */
 const JOURNEY_TOTAL = 4;
 function journeyOf(noteCount: number | null) {
   if (noteCount === null) return null;
   if (noteCount === 0)
-    return { step: 1, label: "시작", next: "첫 노트 작성" };
+    return { step: 1, label: "시작", next: "첫 노트 작성", nextHref: "/notes/new" };
   if (noteCount <= 2)
-    return { step: 2, label: "기록 쌓기", next: "AI로 판단 정리" };
+    return { step: 2, label: "기록 쌓기", next: "AI로 판단 정리", nextHref: "/analysis" };
   if (noteCount <= 5)
-    return { step: 3, label: "AI 정리", next: "지도에서 후보 비교" };
-  return { step: 4, label: "비교·판단", next: "지도에서 후보 좁히기" };
+    return { step: 3, label: "AI 정리", next: "지도에서 후보 비교", nextHref: "/map" };
+  return { step: 4, label: "비교·판단", next: "지도에서 후보 좁히기", nextHref: "/map" };
 }
 
 export function PersonalHome() {
@@ -412,9 +413,13 @@ export function PersonalHome() {
                   />
                 </div>
               </div>
-              <span className="text-[10px] font-extrabold text-[#7ea2ff]">
-                다음: {journey.next}
-              </span>
+              {/* 고도화 23 — "다음 단계" 는 읽는 문구가 아니라 누르는 행동 */}
+              <Link
+                href={journey.nextHref}
+                className="text-[10px] font-extrabold text-[#7ea2ff] no-underline"
+              >
+                다음: {journey.next} ›
+              </Link>
             </div>
           )}
         </div>
@@ -607,7 +612,10 @@ export function PersonalHome() {
                     </div>
                     <div className="mt-1 text-[10px] text-[#9aa6b8]">
                       {journey.label} →{" "}
-                      <b className="text-white">다음: {journey.next}</b>
+                      {/* 고도화 23 — 다음 단계는 행동 링크 */}
+                      <Link href={journey.nextHref} className="font-bold text-white no-underline">
+                        다음: {journey.next} ›
+                      </Link>
                     </div>
                   </>
                 ) : (

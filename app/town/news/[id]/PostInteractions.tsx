@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
 /* ============================================================
    뉴스·글 상세의 실제 동작하는 컨트롤 모음.
@@ -34,6 +35,7 @@ export function PostActions({
 }) {
   const router = useRouter();
   const { promptSignup } = useSoftSignup();
+  const { handleUpgradeResponse } = useUpgradePaywall();
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +85,13 @@ export function PostActions({
         return;
       }
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          code?: string;
+        };
+        /* 고도화 33 — 한도 도달(quotaDeniedJson)은 다른 화면과 같은 공통
+           페이월 모달로. 문구는 그대로 곁들여 보인다(모달을 닫아도 사유가 남게). */
+        handleUpgradeResponse(res.status, data);
         setError(data.error ?? "잠시 후 다시 시도해 주세요.");
         return;
       }
