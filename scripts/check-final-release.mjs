@@ -241,6 +241,24 @@ if (read("app/layout.tsx").includes("#main-content")) {
   fail("접근성", "Skip link");
 }
 
+// ── 접근성/체감 — 무거운 동적 라우트 스켈레톤 회귀 게이트 (고도화 42) ──
+// 이 4개 라우트는 DB 곁다리 조회 예산(최대 8초) 동안 loading.tsx 가 없으면
+// 흰 화면이 된다. 한 번 지워지면 아무 테스트도 안 깨지는 종류의 회귀라 여기서 잡는다.
+{
+  const heavyRoutes = [
+    "app/complex/[id]/loading.tsx",
+    "app/region/[id]/loading.tsx",
+    "app/map/loading.tsx",
+    "app/tx/[region]/loading.tsx",
+  ];
+  const missing = heavyRoutes.filter((p) => !exists(p));
+  if (missing.length === 0) {
+    pass("접근성", "Heavy-route skeletons (loading.tsx)", `${heavyRoutes.length}개 확인`);
+  } else {
+    fail("접근성", "Heavy-route skeletons (loading.tsx)", `누락: ${missing.join(", ")}`);
+  }
+}
+
 // ── 운영 ───────────────────────────────────────────────
 if (exists("lib/admin/operating-metrics.ts")) {
   pass("운영", "Operating metrics loader");

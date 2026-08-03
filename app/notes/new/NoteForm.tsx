@@ -16,6 +16,7 @@ import {
   type InspectionChecklistIntent,
 } from "@/lib/inspection/checklist";
 import { checklistHintsFromVoice } from "@/lib/inspection/voice-checklist-keywords";
+import { NOTE_DRAFT_KEY as DRAFT_KEY } from "@/lib/notes/draft-summary";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -192,7 +193,7 @@ export type NoteFormInitialNote = {
 
 /* ===== #45 임시저장 (localStorage — 작성 모드 전용) ===== */
 
-const DRAFT_KEY = "nz_note_draft";
+/* 임시저장 키는 홈 "이어서 보기" 배너와 공유 — 상단 import 의 DRAFT_KEY (고도화 8·21) */
 
 type NoteDraft = {
   v: 1;

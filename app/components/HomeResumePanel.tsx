@@ -1,8 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
 import { useRecentComplexes } from "./RecentComplexes";
+import {
+  readNoteDraftSummary,
+  type NoteDraftSummary,
+} from "@/lib/notes/draft-summary";
+
+/** ISO → "N분 전/시간 전/일 전" (표시용 축약) */
+function savedAgo(iso: string): string | null {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  const diff = Date.now() - t;
+  if (diff < 0) return null;
+  if (diff < 3_600_000) return `${Math.max(1, Math.floor(diff / 60_000))}분 전`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}시간 전`;
+  return `${Math.floor(diff / 86_400_000)}일 전`;
+}
 
 /**
  * 홈 히어로 우측 "이어서 보기" 패널.
@@ -27,8 +43,18 @@ export function HomeResumePanel({
   className?: string;
 }) {
   const { items, loading } = useRecentComplexes();
-  const list = items.slice(0, 4);
+  /* 고도화 8·21 — 작성 중 임시저장 노트가 있으면 최상단에 복귀 카드.
+     NoteForm 의 자동 저장(localStorage)만 읽는다 — 없으면 카드도 없다. */
+  const [draft, setDraft] = useState<NoteDraftSummary | null>(null);
+  useEffect(() => {
+    setDraft(readNoteDraftSummary());
+  }, []);
+
+  // 드래프트 카드가 한 줄 차지하므로 목록을 한 개 줄여 높이를 지킨다
+  const list = items.slice(0, draft ? 3 : 4);
   const chips = (regions ?? []).slice(0, 3);
+  const draftAgo = draft ? savedAgo(draft.savedAt) : null;
+  const draftWhere = draft ? (draft.aptName ?? draft.region) : null;
 
   return (
     <div
@@ -46,6 +72,26 @@ export function HomeResumePanel({
           단지 찾기 ›
         </Link>
       </div>
+
+      {draft && (
+        <Link
+          href="/notes/new"
+          className="flex items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary-soft px-3.5 py-2.5 no-underline"
+        >
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-extrabold text-ink">
+              작성 중인 임장노트 이어서 쓰기
+            </span>
+            <span className="block truncate text-[11px] text-text-3">
+              {draftWhere ? `${draftWhere} · ` : ""}
+              {draftAgo ? `${draftAgo} 저장됨` : "자동 저장됨"}
+            </span>
+          </span>
+          <span aria-hidden className="shrink-0 text-[14px] font-extrabold text-primary">
+            ›
+          </span>
+        </Link>
+      )}
 
       {list.length > 0 ? (
         <ul className="flex flex-col gap-1.5">
