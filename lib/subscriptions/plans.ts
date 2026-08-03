@@ -84,7 +84,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       { label: "비교 트레이", included: true, note: "10개" },
       { label: "CSV 다운로드", included: true, note: "월 10회" },
       { label: "전문가 1:1 텍스트 상담", included: true, note: "월 2회" },
-      { label: "리포트 판매", included: true },
+      { label: "리포트 판매", included: true, note: "수수료 7%" },
       { label: "광고 제거", included: true },
       { label: "모임 개설 (Group Pass BASIC 포함)", included: true, note: "기본 1개" },
     ],
