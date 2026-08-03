@@ -11,6 +11,7 @@ import { logger } from "@/lib/log";
 import { newsImageUrl } from "../../shared";
 import { LocationMap } from "../../LocationMap";
 import { regionIdForName } from "@/lib/region/catalog";
+import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { getAdViewer } from "@/lib/ads/viewer";
@@ -181,6 +182,15 @@ export default async function TownNewsDetailPage({
   // 세션을 읽어도 캐시가 깨지지 않는다.
   const viewer = await getAdViewer();
 
+  /* 고도화 26 — 연관 단지가 실제 단지로 리졸브되면 시세 페이지로 잇는다.
+     리졸버는 동명 타지역 오연결을 막는 보수적 매칭이라, null 이면 지금처럼
+     텍스트로만 남긴다(죽은 링크 금지). */
+  const relatedSiteHref = post.relatedSite
+    ? await resolveComplexHref(post.relatedSite, post.district || post.city).catch(
+        () => null,
+      )
+    : null;
+
   return (
     <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
       {/* 저장·공유는 실제로 동작하는 버튼이다(POST /api/bookmarks · Web Share).
@@ -350,7 +360,14 @@ export default async function TownNewsDetailPage({
             {post.relatedSite && (
               <div className="flex justify-between text-xs">
                 <span className="text-text-2">연관 단지</span>
-                <span className="font-bold text-ink">{post.relatedSite}</span>
+                {/* 고도화 26 — 리졸브되면 단지 시세로 크로스링크, 아니면 텍스트 */}
+                {relatedSiteHref ? (
+                  <Link href={relatedSiteHref} className="font-bold text-primary">
+                    {post.relatedSite} 시세 ›
+                  </Link>
+                ) : (
+                  <span className="font-bold text-ink">{post.relatedSite}</span>
+                )}
               </div>
             )}
           </div>

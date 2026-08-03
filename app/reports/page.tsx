@@ -114,22 +114,62 @@ export default async function ReportsIndexPage() {
             확인해 주세요.
           </div>
         ) : months.length > 0 ? (
-          <div className="mt-6 flex flex-col gap-3">
-            {months.map((m, i) => (
-              <Link
-                key={m.ym}
-                href={`/reports/${m.ym}`}
-                className={`rise-in-${Math.min(i + 2, 6)} card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline`}
-              >
-                <span className="text-[15px] font-extrabold text-ink">
-                  {formatYmKo(m.ym)} 실거래 리포트
-                </span>
-                <span className="text-[12px] font-semibold text-text-3">
-                  {m.regionCount}개 지역 · {m.txCount.toLocaleString("ko-KR")}건 ›
-                </span>
-              </Link>
-            ))}
-          </div>
+          /* 고도화 38 — 연도별 구분·앵커. 지금은 몇 달이지만 매월 자동으로
+             늘어나는 목록이라, 해가 바뀌기 전에 구조를 넣어 둔다. 연도 칩은
+             실재하는 연도가 2개 이상일 때만 그린다(칩 1개는 장식이다). */
+          (() => {
+            const byYear = new Map<string, ReportMonthSummary[]>();
+            for (const m of months) {
+              const y = m.ym.slice(0, 4);
+              const bucket = byYear.get(y);
+              if (bucket) bucket.push(m);
+              else byYear.set(y, [m]);
+            }
+            const years = [...byYear.keys()].sort((a, b) => b.localeCompare(a));
+            return (
+              <div className="mt-6 flex flex-col gap-5">
+                {years.length > 1 && (
+                  <div className="flex flex-wrap gap-2">
+                    {years.map((y) => (
+                      <a
+                        key={y}
+                        href={`#y${y}`}
+                        className="chip border border-line bg-bg px-3 py-1.5 text-[12px] font-bold text-text-2"
+                      >
+                        {y}년
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {years.map((y) => (
+                  <section key={y} id={`y${y}`}>
+                    <h2 className="mb-2.5 text-[15px] font-extrabold text-text-2">
+                      {y}년{" "}
+                      <span className="text-[12px] font-medium text-text-3">
+                        {byYear.get(y)!.length}개월
+                      </span>
+                    </h2>
+                    <div className="flex flex-col gap-3">
+                      {byYear.get(y)!.map((m, i) => (
+                        <Link
+                          key={m.ym}
+                          href={`/reports/${m.ym}`}
+                          className={`rise-in-${Math.min(i + 2, 6)} card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline`}
+                        >
+                          <span className="text-[15px] font-extrabold text-ink">
+                            {formatYmKo(m.ym)} 실거래 리포트
+                          </span>
+                          <span className="text-[12px] font-semibold text-text-3">
+                            {m.regionCount}개 지역 · {m.txCount.toLocaleString("ko-KR")}건 ›
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            );
+          })()
         ) : (
           <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] text-text-3">
             아직 집계된 월이 없어요. 실거래 수집이 쌓이면 자동으로 생성됩니다.
