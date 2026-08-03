@@ -653,6 +653,12 @@ export interface AreaBandRow {
   latestManwon: number;
   latestYm: string;
   avgManwon: number;
+  /** 표본 내 최저가(만원) — 항목 17: 평균만 보이면 구간 안 분포를 숨긴다 */
+  minManwon: number;
+  /** 표본 내 최고가(만원) */
+  maxManwon: number;
+  /** 표본에서 가장 이른 계약월(YYYYMM) — 평균의 기준 기간을 명기하기 위함 */
+  firstYm: string;
 }
 
 /* 구간표는 lib/market/bands.ts 한 곳에만 둔다 (A5) — 여기 있던 사본은 제거했다. */
@@ -692,13 +698,25 @@ export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
     );
     if (inBand.length === 0) continue;
     const latest = inBand[0]; // 최신순 정렬됨
-    const avgKrw = inBand.reduce((s, r) => s + Number(r.deal_amount_krw), 0) / inBand.length;
+    let sumKrw = 0;
+    let minKrw = Number.POSITIVE_INFINITY;
+    let maxKrw = 0;
+    for (const r of inBand) {
+      const krw = Number(r.deal_amount_krw);
+      sumKrw += krw;
+      if (krw < minKrw) minKrw = krw;
+      if (krw > maxKrw) maxKrw = krw;
+    }
     out.push({
       label: band.label,
       count: inBand.length,
       latestManwon: Math.round(Number(latest.deal_amount_krw) / 10000),
       latestYm: String(latest.contract_ym),
-      avgManwon: Math.round(avgKrw / 10000),
+      avgManwon: Math.round(sumKrw / inBand.length / 10000),
+      minManwon: Math.round(minKrw / 10000),
+      maxManwon: Math.round(maxKrw / 10000),
+      // 최신순 정렬이므로 마지막 원소가 표본에서 가장 이른 계약월이다
+      firstYm: String(inBand[inBand.length - 1].contract_ym),
     });
   }
   return out;

@@ -333,6 +333,31 @@ export function SearchClient() {
             단지명·지역·매물·임장노트·뉴스를 검색할 수 있어요.
           </div>
 
+          {/* 항목 13 — 막다른 화면 금지: 결과가 없어도 다음 행동은 있어야 한다.
+              지도는 텍스트 매칭이 아니라 위치 탐색이라 같은 검색어로도 찾아질 수
+              있고, 둘러보기·실거래 허브는 검색어 없이 시작하는 대안 경로다. */}
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Link
+              href={`/map?q=${encodeURIComponent(q.trim())}`}
+              onClick={() => saveRecent(q)}
+              className="chip border border-line bg-bg px-3.5 py-2 text-[12px] font-bold text-primary"
+            >
+              🗺 지도에서 찾아보기
+            </Link>
+            <Link
+              href="/complex/browse"
+              className="chip border border-line bg-bg px-3.5 py-2 text-[12px] font-bold text-text-2"
+            >
+              단지 둘러보기
+            </Link>
+            <Link
+              href="/tx"
+              className="chip border border-line bg-bg px-3.5 py-2 text-[12px] font-bold text-text-2"
+            >
+              실거래가 허브
+            </Link>
+          </div>
+
           {suggestions.length > 0 && (
             <div className="mt-5 w-full max-w-[520px] text-left">
               <div className="mb-2 px-1 text-[13px] font-extrabold text-ink">

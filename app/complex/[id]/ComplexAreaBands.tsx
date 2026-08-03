@@ -47,6 +47,20 @@ export async function ComplexAreaBands({
   }
   if (bands.data.length === 0) return null;
 
+  /* 항목 17 — 평균은 표본 기간 전체 거래의 평균이다. 기간 없이 숫자만 적으면
+     석 달치 평균과 삼 년치 평균이 같은 얼굴을 한다. 기준 기간을 표 아래 명기한다. */
+  const firstYm = bands.data.reduce(
+    (min, b) => (b.firstYm < min ? b.firstYm : min),
+    bands.data[0].firstYm,
+  );
+  const latestYm = bands.data.reduce(
+    (max, b) => (b.latestYm > max ? b.latestYm : max),
+    bands.data[0].latestYm,
+  );
+  const totalCount = bands.data.reduce((s, b) => s + b.count, 0);
+  const period =
+    firstYm === latestYm ? ymLabel(latestYm) : `${ymLabel(firstYm)}~${ymLabel(latestYm)}`;
+
   return (
     <section className={wrap}>
       <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">
@@ -73,13 +87,25 @@ export async function ComplexAreaBands({
                   <span className="font-extrabold text-primary">{manwon(b.latestManwon)}</span>{" "}
                   <span className="text-[10px] text-text-3">{ymLabel(b.latestYm)}</span>
                 </td>
-                <td className="px-4 py-2.5 text-right text-text-2">{manwon(b.avgManwon)}</td>
+                <td className="px-4 py-2.5 text-right text-text-2">
+                  {manwon(b.avgManwon)}
+                  {/* 구간 안 분포 — 최저~최고가 같으면(거래 1건 등) 반복 표기 생략 */}
+                  {b.minManwon !== b.maxManwon && (
+                    <span className="block text-[10px] leading-tight text-text-3">
+                      {manwon(b.minManwon)}~{manwon(b.maxManwon)}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-2.5 text-right text-text-3">{b.count}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-text-3">
+        {period} 계약분 {totalCount}건 기준 · 해제 신고 제외 · 평균은 표본 기간 전체
+        거래의 산술평균
+      </p>
     </section>
   );
 }
