@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdSenseUnit } from "@/app/components/ads/AdSenseUnit";
 import { PageShell } from "../components/PageShell";
 import {
   getTxCoverage,
@@ -254,6 +255,9 @@ export default async function TxIndexPage() {
           에서 확인하세요.
         </p>
       </section>
+
+      {/* 애드센스 데스크탑 유닛 — 본문(읽는 법) 아래 빈공간. 모바일 미노출. */}
+      <AdSenseUnit className="mb-6" />
 
       <p className="mb-8 text-[12px] text-text-3">
         단지 단위로 보려면{" "}

@@ -9,6 +9,7 @@ import { MarketTempWidget } from "./components/MarketTempWidget";
 import { BetaNoticeModal } from "./components/BetaNoticeModal";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
+import { AdSenseUnit } from "./components/ads/AdSenseUnit";
 import { Footer } from "./components/Footer";
 import { loadNewHomeData } from "@/lib/newui/home-data";
 import { getBaseRate } from "@/lib/market/base-rate";
@@ -727,6 +728,9 @@ export default async function Home() {
                 역시 아무것도 그리지 않는다. seed 를 모바일(0)과 다르게 줘서 같은 방문에
                 같은 문구가 두 번 잡히지 않도록 한다. */}
             <AdSlot placement="home_feed" seed={1} plan={null} className="rise-in-4" />
+            {/* 애드센스 데스크탑 유닛 — 사이드바 말미(콘텐츠 아래 빈공간).
+                키·슬롯 미설정/광고 없는 플랜이면 아무것도 렌더하지 않는다. */}
+            <AdSenseUnit />
           </aside>
         </section>
       </main>

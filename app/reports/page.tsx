@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
+import { AdSenseUnit } from "@/app/components/ads/AdSenseUnit";
 import { listReportMonths, formatYmKo, type ReportMonthSummary } from "@/lib/reports/monthly";
 import { listSeasonAvailability, type SeasonAvailability } from "@/lib/reports/seasonal";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -207,6 +208,9 @@ export default async function ReportsIndexPage() {
             </div>
           </section>
         )}
+
+        {/* 애드센스 데스크탑 유닛 — 목록 하단 빈공간. 모바일 미노출. */}
+        <AdSenseUnit className="mt-8" />
       </div>
     </PageShell>
   );
