@@ -45,7 +45,10 @@ jobs:
     # 정상 배포는 10분 안쪽이므로 35분이면 넉넉하고, 넘으면 그건 고장이다.
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      # 액션은 전부 커밋 SHA 로 핀한다 — gitleaks 스텝 주석의 원칙(움직이는 태그는
+      # 저장소 오염 시 임의 코드 실행)을 나머지 액션에도 동일 적용. SHA 는
+      # `git ls-remote` 로 2026-08-03 확인. 갱신은 Dependabot 이 주 1회 PR 로 제안한다.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # gitleaks 이력 스캔을 위해 전체 히스토리 필요
           fetch-depth: 0
@@ -59,7 +62,7 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -71,7 +74,7 @@ jobs:
       # 캐시가 없거나 깨져도 빌드는 그냥 처음부터 돌 뿐이라 실패로 이어지지 않는다.
       # (npm ci 앞에 두는 이유: node_modules 가 아직 없어야 hashFiles 가 빠르다.)
       - name: Cache Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ github.workspace }}/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
@@ -205,13 +208,16 @@ jobs:
       # ---- 기존 Vercel 배포 단계 (그대로 유지) ----
       # 공개 Supabase 값 정정 — 프로젝트 env에 "[SENSITIVE]" 플레이스홀더가
       # 저장돼 있던 문제 수정 (URL·publishable 키는 공개 정보, RLS로 보호)
+      #
+      # ⚠️ env 동기화는 전부 `add --force`(덮어쓰기)로 한다. rm → add 순서를 쓰면
+      # 이 워크플로의 cancel-in-progress 가 rm 과 add **사이**에서 실행을 끊었을 때
+      # 운영 필수 변수가 지워진 채 남고, 그 뒤 모든 배포가 깨진다. --force 는
+      # 삭제 공백 자체가 없다 (Vercel CLI 58 에서 지원 확인, 2026-08-03).
       - name: Sync public Supabase env
         run: |
           for ENVTARGET in production preview; do
-            npx vercel env rm NEXT_PUBLIC_SUPABASE_URL $ENVTARGET --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-            printf 'https://pbhiskvwpwwhtkmnhkbm.supabase.co' | npx vercel env add NEXT_PUBLIC_SUPABASE_URL $ENVTARGET --token=${{ secrets.VERCEL_TOKEN }} || true
-            npx vercel env rm NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-            printf 'sb_publishable_UjkQXcYY6f9oBbjjfZvFAA_jYpui-OX' | npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --token=${{ secrets.VERCEL_TOKEN }} || true
+            printf 'https://pbhiskvwpwwhtkmnhkbm.supabase.co' | npx vercel env add NEXT_PUBLIC_SUPABASE_URL $ENVTARGET --force --token=${{ secrets.VERCEL_TOKEN }} || true
+            printf 'sb_publishable_UjkQXcYY6f9oBbjjfZvFAA_jYpui-OX' | npx vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY $ENVTARGET --force --token=${{ secrets.VERCEL_TOKEN }} || true
           done
       # Service Role 키 동기화 — GitHub Secret(SUPABASE_SERVICE_ROLE_KEY)이
       # 설정돼 있을 때만 Vercel env의 마스킹 값("[SENSITIVE]")을 실값으로 교체
@@ -224,16 +230,14 @@ jobs:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           if [ -z "$SRK" ]; then echo "SUPABASE_SERVICE_ROLE_KEY 미설정 — 건너뜀"; exit 0; fi
-          npx vercel env rm SUPABASE_SERVICE_ROLE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-          printf '%s' "$SRK" | npx vercel env add SUPABASE_SERVICE_ROLE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$SRK" | npx vercel env add SUPABASE_SERVICE_ROLE_KEY production --force --token=${{ secrets.VERCEL_TOKEN }} || true
       # CRON_SECRET 동기화 — ETL 스케줄러(etl.yml)가 같은 값으로 크론 엔드포인트 호출
       - name: Sync cron secret env
         env:
           CRS: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$CRS" ]; then echo "CRON_SECRET 미설정 — 건너뜀"; exit 0; fi
-          npx vercel env rm CRON_SECRET production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-          printf '%s' "$CRS" | npx vercel env add CRON_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$CRS" | npx vercel env add CRON_SECRET production --force --token=${{ secrets.VERCEL_TOKEN }} || true
       # CODEF 자격 증명 동기화 — GitHub Secret 설정 시에만 Vercel env로 반영
       # (KB 시세·공시가격 등 CODEF 연동 활성화. 미설정이면 스킵)
       - name: Sync CODEF credentials
@@ -243,28 +247,23 @@ jobs:
           CODEF_PUB: ${{ secrets.CODEF_PUBLIC_KEY }}
         run: |
           if [ -z "$CODEF_ID" ]; then echo "CODEF_CLIENT_ID 미설정 — 건너뜀"; exit 0; fi
-          for KEY in CODEF_CLIENT_ID CODEF_CLIENT_SECRET CODEF_PUBLIC_KEY; do
-            npx vercel env rm $KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-          done
-          printf '%s' "$CODEF_ID"     | npx vercel env add CODEF_CLIENT_ID production --token=${{ secrets.VERCEL_TOKEN }} || true
-          printf '%s' "$CODEF_SECRET" | npx vercel env add CODEF_CLIENT_SECRET production --token=${{ secrets.VERCEL_TOKEN }} || true
-          printf '%s' "$CODEF_PUB"    | npx vercel env add CODEF_PUBLIC_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$CODEF_ID"     | npx vercel env add CODEF_CLIENT_ID production --force --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$CODEF_SECRET" | npx vercel env add CODEF_CLIENT_SECRET production --force --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$CODEF_PUB"    | npx vercel env add CODEF_PUBLIC_KEY production --force --token=${{ secrets.VERCEL_TOKEN }} || true
       # ECOS(한국은행) 인증키 동기화 — 설정 시 기준금리 등 지표 자동 연동
       - name: Sync ECOS key
         env:
           ECOS_KEY: ${{ secrets.ECOS_API_KEY }}
         run: |
           if [ -z "$ECOS_KEY" ]; then echo "ECOS_API_KEY 미설정 — 건너뜀"; exit 0; fi
-          npx vercel env rm ECOS_API_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-          printf '%s' "$ECOS_KEY" | npx vercel env add ECOS_API_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$ECOS_KEY" | npx vercel env add ECOS_API_KEY production --force --token=${{ secrets.VERCEL_TOKEN }} || true
       # 온비드(공공데이터포털) 인증키 동기화 — 서울 공매 물건 연동
       - name: Sync ONBID key
         env:
           ONBID_KEY: ${{ secrets.ONBID_SERVICE_KEY }}
         run: |
           if [ -z "$ONBID_KEY" ]; then echo "ONBID_SERVICE_KEY 미설정 — 건너뜀"; exit 0; fi
-          npx vercel env rm ONBID_SERVICE_KEY production --yes --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null || true
-          printf '%s' "$ONBID_KEY" | npx vercel env add ONBID_SERVICE_KEY production --token=${{ secrets.VERCEL_TOKEN }} || true
+          printf '%s' "$ONBID_KEY" | npx vercel env add ONBID_SERVICE_KEY production --force --token=${{ secrets.VERCEL_TOKEN }} || true
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=${{ github.ref_name == 'main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
       - name: Build

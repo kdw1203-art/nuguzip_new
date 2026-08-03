@@ -17,7 +17,7 @@ on:
         default: "6"
         required: true
       geocode_rounds:
-        description: "지오코딩 배치 횟수 (회당 500단지)"
+        description: "지오코딩 배치 횟수 (회당 200단지)"
         # 2026-07-26 기준 미지오코딩 단지가 2만 곳대라 10라운드(5,000곳)로는 한참 모자랐다.
         # upsert 배치화로 라운드당 소요가 절반으로 줄어 30라운드도 1시간대에 끝난다.
         default: "30"
@@ -44,6 +44,11 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          # 시크릿 없이는 모든 호출이 401 — 몇 시간 헛돌기 전에 바로 끝낸다(etl.yml 패턴).
+          if [ -z "$CRS" ]; then
+            echo "CRON_SECRET 미설정 — 모든 크론 호출이 401 이 되므로 실행하지 않음"
+            exit 1
+          fi
           hit() { # name url — 소프트 호출, 본문 앞부분만 로그
             echo "== $1 =="
             curl -sS --max-time 290 -H "x-cron-secret: $CRS" "$2" | head -c 600 || true
