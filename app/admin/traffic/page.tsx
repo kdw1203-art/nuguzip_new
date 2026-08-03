@@ -41,6 +41,14 @@ type RouteRow = {
   avg_duration_ms: number | null;
 };
 type UsageRow = { event_name: string; events: number; users: number };
+type ReferrerRow = { source: string; landings: number; sessions: number };
+type UtmRow = {
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  landings: number;
+  sessions: number;
+};
 
 /** 이벤트명 → 한글 라벨 (등록부에 없는 값은 원문 그대로 — 지어내지 않는다) */
 const EVENT_LABEL: Record<string, string> = {
@@ -93,17 +101,30 @@ async function loadAll(): Promise<{
   daily: DailyRow[];
   routes: RouteRow[];
   usage: UsageRow[];
+  referrers: ReferrerRow[];
+  utms: UtmRow[];
   failed: string[];
 }> {
   const sb = getServiceSupabase();
   const failed: string[] = [];
-  if (!sb) return { summary: null, daily: [], routes: [], usage: [], failed: ["전체(DB 미설정)"] };
+  if (!sb)
+    return {
+      summary: null,
+      daily: [],
+      routes: [],
+      usage: [],
+      referrers: [],
+      utms: [],
+      failed: ["전체(DB 미설정)"],
+    };
 
-  const [summaryR, dailyR, routesR, usageR] = await Promise.all([
+  const [summaryR, dailyR, routesR, usageR, refR, utmR] = await Promise.all([
     sb.from("page_view_summary").select("*").maybeSingle(),
     sb.from("page_view_daily").select("*").order("day", { ascending: false }).limit(14),
     sb.from("page_view_route_30d").select("*").order("views", { ascending: false }).limit(15),
     sb.from("platform_event_usage_30d").select("*").order("events", { ascending: false }).limit(20),
+    sb.from("page_view_referrer_30d").select("*").order("sessions", { ascending: false }).limit(15),
+    sb.from("page_view_utm_30d").select("*").order("sessions", { ascending: false }).limit(15),
   ]);
 
   if (summaryR.error) {
@@ -113,18 +134,22 @@ async function loadAll(): Promise<{
   if (dailyR.error) failed.push("일별 추이");
   if (routesR.error) failed.push("페이지별 집계");
   if (usageR.error) failed.push("기능 사용");
+  if (refR.error) failed.push("유입 출처");
+  if (utmR.error) failed.push("UTM 캠페인");
 
   return {
     summary: (summaryR.data as Summary | null) ?? null,
     daily: ((dailyR.data as DailyRow[] | null) ?? []).slice().reverse(),
     routes: (routesR.data as RouteRow[] | null) ?? [],
     usage: (usageR.data as UsageRow[] | null) ?? [],
+    referrers: (refR.data as ReferrerRow[] | null) ?? [],
+    utms: (utmR.data as UtmRow[] | null) ?? [],
     failed,
   };
 }
 
 export default async function AdminTrafficPage() {
-  const { summary, daily, routes, usage, failed } = await loadAll();
+  const { summary, daily, routes, usage, referrers, utms, failed } = await loadAll();
   const collectedSince = summary?.first_event_at
     ? new Date(summary.first_event_at).toLocaleDateString("ko-KR")
     : null;
@@ -251,6 +276,91 @@ export default async function AdminTrafficPage() {
               평균 체류는 이탈 비콘이 도착한 조회(표본)만으로 계산 — 표본 0이면
               평균을 만들지 않는다. 탭 전환·닫기 시점까지의 노출 시간 기준, 1시간 상한.
             </p>
+          </div>
+        )}
+      </section>
+
+      {/* 유입 경로 — 어디서·어떤 링크로 왔는가 (랜딩 기준) */}
+      <section className="card rounded-2xl p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">
+          유입 출처{" "}
+          <span className="text-[11px] font-medium text-text-3">
+            최근 30일 · 세션 첫 방문(랜딩) 기준 · 리퍼러는 호스트만 저장(검색어 등
+            전체 URL 미저장)
+          </span>
+        </h2>
+        {referrers.length === 0 ? (
+          <p className="mt-3 text-[13px] text-text-3">
+            아직 유입 기록이 없어요. 유입 수집은 2026-08-03 저녁부터 시작됐어요 —
+            이전 방문의 출처는 소급되지 않습니다.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-1.5">
+            {(() => {
+              const max = Math.max(1, ...referrers.map((r) => r.sessions));
+              return referrers.map((r) => (
+                <div key={r.source} className="flex items-center gap-3 text-[12px]">
+                  <span className="w-[180px] shrink-0 truncate font-bold text-ink">
+                    {r.source}
+                  </span>
+                  <div className="h-[10px] flex-1 overflow-hidden rounded-md bg-[#f2f4f8]">
+                    <div
+                      className="h-full rounded-md bg-primary/70"
+                      style={{ width: `${Math.max(3, Math.round((r.sessions / max) * 100))}%` }}
+                    />
+                  </div>
+                  <span className="t-num w-[90px] shrink-0 text-right text-text-2">
+                    {r.sessions.toLocaleString("ko-KR")} 세션
+                  </span>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+        <p className="mt-3 text-[11px] text-text-3">
+          &ldquo;(직접/앱)&rdquo;은 주소창 입력·북마크·앱, 그리고 리퍼러를 보내지
+          않는 브라우저를 합친 값이다 — 이 셋은 기술적으로 구분할 수 없다.
+        </p>
+
+        {/* UTM 캠페인 — 우리가 발행한 링크 파라미터 기준 */}
+        <h3 className="mt-5 text-[13px] font-extrabold text-ink">
+          캠페인 링크(UTM){" "}
+          <span className="text-[11px] font-medium text-text-3">
+            utm_source·medium·campaign 이 붙은 랜딩만
+          </span>
+        </h3>
+        {utms.length === 0 ? (
+          <p className="mt-2 text-[12px] text-text-3">
+            UTM 파라미터가 붙은 유입이 아직 없어요. 홍보 링크에{" "}
+            <code className="rounded bg-[#f2f4f8] px-1 py-0.5 text-[11px]">
+              ?utm_source=instagram&amp;utm_campaign=open
+            </code>{" "}
+            형식을 붙이면 여기서 링크별 성과가 집계됩니다.
+          </p>
+        ) : (
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-[12px]">
+              <thead>
+                <tr className="border-b border-line text-[11px] text-text-3">
+                  <th className="py-2 pr-3 font-semibold">source</th>
+                  <th className="py-2 pr-3 font-semibold">medium</th>
+                  <th className="py-2 pr-3 font-semibold">campaign</th>
+                  <th className="py-2 text-right font-semibold">세션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {utms.map((u, i) => (
+                  <tr key={i} className="border-b border-line last:border-0">
+                    <td className="py-2 pr-3 font-bold text-ink">{u.utm_source}</td>
+                    <td className="py-2 pr-3 text-text-2">{u.utm_medium || "—"}</td>
+                    <td className="py-2 pr-3 text-text-2">{u.utm_campaign || "—"}</td>
+                    <td className="t-num py-2 text-right text-text-1">
+                      {u.sessions.toLocaleString("ko-KR")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

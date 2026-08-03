@@ -28,7 +28,22 @@ type Body = {
   path?: string;
   sessionKey?: string;
   durationMs?: number;
+  /* 유입 출처 — 랜딩(세션 첫 뷰)에만 온다. referrerHost 는 호스트 문자열만
+     허용(URL 금지 — 검색어 등 개인정보가 실릴 수 있다). */
+  landing?: boolean;
+  referrerHost?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
 };
+
+const HOST_RE = /^[a-z0-9.-]{1,120}$/i;
+/** UTM 값 정제 — 우리가 발행하는 값 형식만(영숫자·-_.) 80자 */
+function cleanUtm(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().slice(0, 80);
+  return /^[\w.-]{1,80}$/.test(s) ? s : null;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SESSION_RE = /^[a-f0-9]{16,64}$/i;
@@ -95,11 +110,21 @@ export async function POST(req: NextRequest): Promise<Response> {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
     const path = rawPath.split("?")[0].slice(0, 300);
+    const isLanding = body.landing === true;
+    const referrerHost =
+      isLanding && typeof body.referrerHost === "string" && HOST_RE.test(body.referrerHost.trim())
+        ? body.referrerHost.trim().toLowerCase()
+        : null;
     const { error } = await sb.from("page_view_events").insert({
       view_id: viewId,
       route: normalizeRoute(path),
       path,
       session_key: sessionKey.toLowerCase(),
+      is_landing: isLanding,
+      referrer_host: referrerHost,
+      utm_source: isLanding ? cleanUtm(body.utmSource) : null,
+      utm_medium: isLanding ? cleanUtm(body.utmMedium) : null,
+      utm_campaign: isLanding ? cleanUtm(body.utmCampaign) : null,
     });
     // unique(view_id) 충돌 = 중복 비콘 — 정상 무시
     if (error && !String(error.code) .startsWith("23")) {

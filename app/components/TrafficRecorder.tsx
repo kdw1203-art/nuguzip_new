@@ -75,9 +75,39 @@ export function TrafficRecorder() {
       send({ t: "leave", viewId: prev.viewId, durationMs: Date.now() - prev.startedAt }, false);
     }
 
+    /* 유입 출처 — 세션 첫 뷰(랜딩)에만 붙인다. 내부 이동의 same-origin
+       리퍼러는 유입이 아니고, 외부 리퍼러도 **호스트만** 보낸다(전체 URL 에는
+       검색어가 실릴 수 있다 — 개인정보 원칙). UTM 은 우리가 발행한 값이라
+       그대로. */
+    let landing: Record<string, unknown> = {};
+    try {
+      if (!window.sessionStorage.getItem("nz_traffic_landed")) {
+        window.sessionStorage.setItem("nz_traffic_landed", "1");
+        let referrerHost: string | null = null;
+        if (document.referrer) {
+          try {
+            const u = new URL(document.referrer);
+            if (u.host !== window.location.host) referrerHost = u.host;
+          } catch {
+            /* 리퍼러 파싱 실패 — 없는 것으로 */
+          }
+        }
+        const sp = new URLSearchParams(window.location.search);
+        landing = {
+          landing: true,
+          ...(referrerHost ? { referrerHost } : {}),
+          ...(sp.get("utm_source") ? { utmSource: sp.get("utm_source") } : {}),
+          ...(sp.get("utm_medium") ? { utmMedium: sp.get("utm_medium") } : {}),
+          ...(sp.get("utm_campaign") ? { utmCampaign: sp.get("utm_campaign") } : {}),
+        };
+      }
+    } catch {
+      /* sessionStorage 불가 — 랜딩 표기 없이 진행 */
+    }
+
     const viewId = crypto.randomUUID();
     current.current = { viewId, startedAt: Date.now(), closed: false };
-    send({ t: "view", viewId, path: pathname, sessionKey }, false);
+    send({ t: "view", viewId, path: pathname, sessionKey, ...landing }, false);
 
     const close = (useBeacon: boolean) => {
       const cur = current.current;
