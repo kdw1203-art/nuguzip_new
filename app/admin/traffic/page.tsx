@@ -49,6 +49,8 @@ type UtmRow = {
   landings: number;
   sessions: number;
 };
+/* 모바일29 — viewport_group_change(kind=initial, 세션 시작 그룹) 30일 집계 */
+type ViewportRow = { viewport_group: string; sessions: number };
 
 /** 이벤트명 → 한글 라벨 (등록부에 없는 값은 원문 그대로 — 지어내지 않는다) */
 const EVENT_LABEL: Record<string, string> = {
@@ -103,6 +105,7 @@ async function loadAll(): Promise<{
   usage: UsageRow[];
   referrers: ReferrerRow[];
   utms: UtmRow[];
+  viewports: ViewportRow[];
   failed: string[];
 }> {
   const sb = getServiceSupabase();
@@ -115,16 +118,18 @@ async function loadAll(): Promise<{
       usage: [],
       referrers: [],
       utms: [],
+      viewports: [],
       failed: ["전체(DB 미설정)"],
     };
 
-  const [summaryR, dailyR, routesR, usageR, refR, utmR] = await Promise.all([
+  const [summaryR, dailyR, routesR, usageR, refR, utmR, vpR] = await Promise.all([
     sb.from("page_view_summary").select("*").maybeSingle(),
     sb.from("page_view_daily").select("*").order("day", { ascending: false }).limit(14),
     sb.from("page_view_route_30d").select("*").order("views", { ascending: false }).limit(15),
     sb.from("platform_event_usage_30d").select("*").order("events", { ascending: false }).limit(20),
     sb.from("page_view_referrer_30d").select("*").order("sessions", { ascending: false }).limit(15),
     sb.from("page_view_utm_30d").select("*").order("sessions", { ascending: false }).limit(15),
+    sb.from("platform_viewport_group_30d").select("*").order("sessions", { ascending: false }),
   ]);
 
   if (summaryR.error) {
@@ -136,6 +141,7 @@ async function loadAll(): Promise<{
   if (usageR.error) failed.push("기능 사용");
   if (refR.error) failed.push("유입 출처");
   if (utmR.error) failed.push("UTM 캠페인");
+  if (vpR.error) failed.push("기기 비율");
 
   return {
     summary: (summaryR.data as Summary | null) ?? null,
@@ -144,12 +150,13 @@ async function loadAll(): Promise<{
     usage: (usageR.data as UsageRow[] | null) ?? [],
     referrers: (refR.data as ReferrerRow[] | null) ?? [],
     utms: (utmR.data as UtmRow[] | null) ?? [],
+    viewports: (vpR.data as ViewportRow[] | null) ?? [],
     failed,
   };
 }
 
 export default async function AdminTrafficPage() {
-  const { summary, daily, routes, usage, referrers, utms, failed } = await loadAll();
+  const { summary, daily, routes, usage, referrers, utms, viewports, failed } = await loadAll();
   const collectedSince = summary?.first_event_at
     ? new Date(summary.first_event_at).toLocaleDateString("ko-KR")
     : null;
@@ -279,6 +286,50 @@ export default async function AdminTrafficPage() {
           </div>
         )}
       </section>
+
+      {/* 모바일29 — 기기 비율. 세션 시작 시점 뷰포트 그룹(initial)만 센다.
+          페이지뷰(동의 표본)와 모집단이 달라 한 표에 섞지 않고 따로 둔다. */}
+      {viewports.length > 0 && (
+        <section className="card rounded-2xl p-5">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            기기 비율{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              최근 30일 · 세션 시작 시점 화면 폭 기준(viewport_group_change 계측)
+            </span>
+          </h2>
+          {(() => {
+            const total = viewports.reduce((s, v) => s + v.sessions, 0);
+            const LABEL: Record<string, string> = {
+              desktop: "데스크탑",
+              tablet: "태블릿",
+              mobile: "모바일",
+            };
+            return (
+              <div className="mt-3 flex flex-col gap-2">
+                {viewports.map((v) => {
+                  const pct = total > 0 ? (v.sessions / total) * 100 : 0;
+                  return (
+                    <div key={v.viewport_group} className="flex items-center gap-3 text-[13px]">
+                      <span className="w-[64px] shrink-0 font-bold text-ink">
+                        {LABEL[v.viewport_group] ?? v.viewport_group}
+                      </span>
+                      <span className="h-[8px] flex-1 overflow-hidden rounded-full bg-[#eef2f8]">
+                        <span
+                          className="block h-full rounded-full bg-primary/60"
+                          style={{ width: `${Math.max(1, Math.round(pct))}%` }}
+                        />
+                      </span>
+                      <span className="w-[110px] shrink-0 text-right text-[12px] text-text-2">
+                        {pct.toFixed(1)}% · {v.sessions.toLocaleString("ko-KR")}세션
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </section>
+      )}
 
       {/* 유입 경로 — 어디서·어떤 링크로 왔는가 (랜딩 기준) */}
       <section className="card rounded-2xl p-5">

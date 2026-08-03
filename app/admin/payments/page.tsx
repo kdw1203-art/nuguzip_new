@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listPayments, type PaymentRecord } from "@/lib/payments/store";
 import { logger } from "@/lib/log";
 import { CancelPaymentButton } from "./CancelPaymentButton";
+import { NotifyPreorderButton } from "./NotifyPreorderButton";
 
 export const metadata: Metadata = {
   title: "결제 연동 | 누구집 관리자",
@@ -199,6 +200,22 @@ export default async function AdminPaymentsPage() {
             보내야 한다.
           </li>
         </ol>
+      </section>
+
+      {/* 웹3 — 사전등록 오픈 알림. "결제가 열리면 알려드릴게요" 약속(PreOrderCta)의
+          이행 수단. 자동이 아니라 버튼인 이유: 지금 열린 건 테스트 결제라,
+          "열렸다"고 선언할 시점(라이브 전환)은 운영자가 안다. 멱등 — 발송된
+          사람은 다시 보내지 않는다. */}
+      <section className="card rounded-2xl p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">사전등록 오픈 알림</h2>
+        <p className="mt-1.5 text-[12px] leading-[1.7] text-text-2">
+          결제 미개통 기간에 &ldquo;오픈 알림 받기&rdquo;로 등록한 사용자에게 받은편지함
+          알림을 1회 발송합니다. <b className="text-ink">라이브 키 전환 후</b> 누르는 것을
+          권장합니다 — 테스트 결제 상태에서 보내면 실결제가 없는 화면으로 안내하게 됩니다.
+        </p>
+        <div className="mt-3">
+          <NotifyPreorderButton />
+        </div>
       </section>
 
       {/* 3) 최근 결제 기록 — 실데이터 */}

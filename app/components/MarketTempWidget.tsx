@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { listLatestTemperatures } from "@/lib/market/temperature-archive";
+import {
+  listLatestTemperatures,
+  listRegionTemperatureHistory,
+} from "@/lib/market/temperature-archive";
 import { logger } from "@/lib/log";
 
 /* ============================================================
@@ -30,6 +33,46 @@ function tone(score: number): string {
   return "text-text-1";
 }
 
+/* 웹14 — 4주 미니 스파크라인. 실측 주간 점수만 그린다(보간·외삽 없음 —
+   기록이 2주 미만이면 선을 그리지 않는다). y 축은 0~100 고정이 아니라
+   시계열 최소~최대 ±2 로 잡는다: 온도가 48→52 로 움직인 주는 0~100 축에서
+   평평한 직선이 되어 "변화 없음"으로 잘못 읽힌다. 축을 밝히는 대신 숫자
+   Δ가 옆에 이미 있으므로 막대는 방향 보조로만 쓴다. */
+function Sparkline({ scores }: { scores: number[] }) {
+  if (scores.length < 2) return null;
+  const w = 44;
+  const h = 14;
+  const min = Math.min(...scores) - 2;
+  const max = Math.max(...scores) + 2;
+  const span = max - min || 1;
+  const pts = scores
+    .map((s, i) => {
+      const x = (i / (scores.length - 1)) * (w - 2) + 1;
+      const y = h - 1 - ((s - min) / span) * (h - 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      aria-hidden
+      className="hidden shrink-0 lg:block"
+    >
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-text-3"
+      />
+    </svg>
+  );
+}
+
 export async function MarketTempWidget({ className }: { className?: string }) {
   let weekStart: string | null = null;
   let rows: Awaited<ReturnType<typeof listLatestTemperatures>>["rows"] = [];
@@ -50,6 +93,26 @@ export async function MarketTempWidget({ className }: { className?: string }) {
   const hottest = rows.slice(0, 2);
   const coldest = rows.length > 2 ? [rows[rows.length - 1]] : [];
   const picks = [...hottest, ...coldest];
+
+  /* 웹14 — 노출되는 지역(최대 3곳)만 4주 이력을 추가 조회한다. 실패해도
+     위젯 본체는 살린다 — 스파크라인은 보조 시각화라 없으면 없이 그린다. */
+  const historyByRegion = new Map<string, number[]>();
+  try {
+    const histories = await Promise.all(
+      picks.map((r) => listRegionTemperatureHistory(r.current.regionId, 4)),
+    );
+    picks.forEach((r, i) => {
+      historyByRegion.set(
+        r.current.regionId,
+        histories[i].map((s) => s.score),
+      );
+    });
+  } catch (e) {
+    logger.error(
+      "[home] 시장 온도 스파크라인 이력 조회 실패 — 선 없이 렌더:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
 
   return (
     <div className={`card flex flex-col gap-2 rounded-2xl px-5 py-4 ${className ?? ""}`}>
@@ -76,9 +139,10 @@ export async function MarketTempWidget({ className }: { className?: string }) {
               href={`/analysis/temperature/${encodeURIComponent(r.current.regionId)}`}
               className="press flex items-center justify-between gap-2 border-b border-[#f0f3f8] py-[7px] text-xs no-underline last:border-0"
             >
-              <span className="truncate font-semibold text-text-1">
+              <span className="flex-1 truncate font-semibold text-text-1">
                 {r.current.regionLabel}
               </span>
+              <Sparkline scores={historyByRegion.get(r.current.regionId) ?? []} />
               <span className="flex shrink-0 items-baseline gap-1.5">
                 <span className={`t-num text-[14px] font-extrabold ${tone(r.current.score)}`}>
                   {r.current.score}

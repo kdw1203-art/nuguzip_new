@@ -642,8 +642,12 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* 사이드바 — AI 시작 + 허브 묶음 */}
-          <aside className="flex flex-col gap-3">
+          {/* 사이드바 — AI 시작 + 허브 묶음.
+              웹4 — 긴 좌측 컬럼을 스크롤하는 동안 우측이 먼저 끝나 빈 벽이
+              됐다. sticky 로 따라오게 한다. top 76px = 헤더(48px 스크롤 시)
+              + 상단 여백. self-start 필수 — 그리드 기본 stretch 상태에서는
+              aside 높이가 행 전체라 sticky 가 작동하지 않는다. */}
+          <aside className="flex flex-col gap-3 lg:sticky lg:top-[76px] lg:self-start">
             <div className="rise-in-1">
               <HomeAiGateway briefing={data.briefing} />
             </div>

@@ -191,21 +191,42 @@ export default async function TxIndexPage() {
               거래 많은 순 · 구간별 페이지로 이동
             </span>
           </h2>
-          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {regions.map((r) => (
-              <Link
-                key={r.slug}
-                href={`/tx/${encodeURIComponent(r.slug)}`}
-                className="card-hover flex items-baseline justify-between gap-3 rounded-[10px] border border-border px-3 py-2.5 text-[13px]"
-              >
-                <span className="font-bold text-ink">{r.name}</span>
-                <span className="shrink-0 text-[12px] text-text-3">
-                  {r.txCount.toLocaleString("ko-KR")}건 · 구간{" "}
-                  {r.areaCells.length + r.priceCells.length}
-                </span>
-              </Link>
-            ))}
-          </div>
+          {/* 웹13 — 1440px 에서 3열이 성겨 보였다 → xl 4열. "거래 많은 순"
+              정렬 근거를 미니바로 시각화 — 최대 지역 대비 비율이라 축이
+              하나뿐이고, 수치는 이미 옆에 그대로 적혀 있다(막대는 보조). */}
+          {(() => {
+            const maxTx = regions.reduce((m, r) => Math.max(m, r.txCount), 0);
+            return (
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {regions.map((r) => (
+                  <Link
+                    key={r.slug}
+                    href={`/tx/${encodeURIComponent(r.slug)}`}
+                    className="card-hover flex flex-col gap-1.5 rounded-[10px] border border-border px-3 py-2.5 text-[13px]"
+                  >
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="font-bold text-ink">{r.name}</span>
+                      <span className="shrink-0 text-[12px] text-text-3">
+                        {r.txCount.toLocaleString("ko-KR")}건 · 구간{" "}
+                        {r.areaCells.length + r.priceCells.length}
+                      </span>
+                    </span>
+                    {maxTx > 0 && (
+                      <span
+                        aria-hidden
+                        className="block h-[3px] overflow-hidden rounded-full bg-[#eef2f8]"
+                      >
+                        <span
+                          className="block h-full rounded-full bg-primary/45"
+                          style={{ width: `${Math.max(3, Math.round((r.txCount / maxTx) * 100))}%` }}
+                        />
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            );
+          })()}
         </section>
       )}
 
