@@ -73,9 +73,9 @@ const DEFAULTS = {
   legalName: "우리동네이야기",
   representative: "고대웅",
   registrationNumber: "378-06-02465",
-  address: "", // 구 코드에서 미확인 — env(NEXT_PUBLIC_COMPANY_ADDRESS)로 설정
+  address: "안양시 동안구 관양동 1588",
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
-  phone: "", // 지어낼 수 없는 값 — env(NEXT_PUBLIC_COMPANY_PHONE)로 설정
+  phone: "010-9092-1203",
   supportEmail: "nuguzip@naver.com",
   privacyEmail: "nuguzip@naver.com",
   /* 토스뱅크 계좌개설 확인증(2026-06-15 개설, 소유자 제공)에서 옮긴 실값.
