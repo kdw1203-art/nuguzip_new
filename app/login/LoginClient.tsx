@@ -45,9 +45,14 @@ type LoginContext = { line1: string; line2: string; sub: string };
    있지 않은 상태에서도 화면은 세 가지로 시작할 수 있다고 말하게 된다. */
 const SOCIAL_LABEL: Record<SocialProvider, string> = {
   google: "구글",
+  toss: "토스",
 };
 
 const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }> = {
+  toss: {
+    label: "토스로 3초 만에 시작",
+    className: "bg-[#3182f6] text-white shadow-[0_6px_16px_rgba(49,130,246,.35)]",
+  },
   google: {
     label: "Google로 시작",
     className: "border border-[#e2e7ee] bg-surface text-text-1",
@@ -221,6 +226,12 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
   async function socialSignIn(provider: SocialProvider) {
     setError(null);
     setBusy(provider);
+    // 토스는 NextAuth OAuth 가 아니라 자체 리다이렉트 시작점을 쓴다 —
+    // 인가 후 /auth/toss/callback 에서 세션이 만들어진다.
+    if (provider === "toss") {
+      window.location.href = `/api/auth/toss/start?callbackUrl=${encodeURIComponent(resolveCallbackUrl())}`;
+      return;
+    }
     try {
       // OAuth는 리다이렉트 플로우 — 성공 시 callbackUrl(기본 /) 로 돌아옵니다.
       await signIn(provider, { callbackUrl: resolveCallbackUrl() });

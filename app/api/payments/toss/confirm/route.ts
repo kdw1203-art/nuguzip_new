@@ -5,6 +5,7 @@ import type { AppPlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 import { createHash } from "node:crypto";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 
@@ -109,15 +110,19 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    /* 테스트 키로 운영 결제를 승인하려는 상황을 막는다.
-       토스 시크릿 키는 test_sk_… / live_sk_… 로 환경이 갈린다. 운영에 테스트 키가
-       꽂혀 있으면 결제창은 정상으로 보이고 승인도 성공하는데 돈은 오지 않는다 —
-       화면상으로는 아무 문제가 없어서 한참 뒤에야 발견된다. 여기서 끊는다. */
+    /* 운영 + 테스트 키는 **경고만 남기고 통과**시킨다.
+       원래는 여기서 끊었다 — 운영에 테스트 키가 꽂혀 있으면 승인은 성공하는데
+       돈이 오지 않아, 화면상 멀쩡한 채로 매출만 새는 사고가 되기 때문이다.
+       그런데 토스 상점 심사가 정확히 이 상태를 요구한다: 심사 안내가 "테스트
+       API키를 발급받고 신용카드 결제창 연동을 완료하세요"라고 명시하고, 심사역이
+       운영 도메인에서 테스트 결제를 끝까지 돌려 본다. 여기서 끊으면 심사를
+       통과할 방법이 없다. 테스트 키 승인은 가상이라(청구 없음) 돈이 잘못
+       나가는 사고는 애초에 불가능하고, 진짜 위험(짝 불일치·개발에 라이브 키)은
+       아래 두 가드가 그대로 막는다. 라이브 전환 후 테스트 키가 남아 있는 실수는
+       이 경고 로그로 발견한다. */
     if (process.env.NODE_ENV === "production" && secret.startsWith("test_")) {
-      await markFailed(orderId);
-      return NextResponse.json(
-        { error: "운영 환경에 토스 테스트 시크릿 키가 설정되어 결제를 중단했습니다." },
-        { status: 500 },
+      logger.warn(
+        "[payments:toss] 운영 환경에서 테스트 키로 승인합니다 — 실제 출금 없음(심사용 설정). 라이브 전환 시 두 키를 함께 교체하세요.",
       );
     }
     /* 역방향 가드 — 개발/프리뷰에 라이브 키가 꽂힌 경우. 테스트 키 승인은

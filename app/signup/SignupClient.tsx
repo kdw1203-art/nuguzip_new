@@ -12,6 +12,10 @@ import { useMoment } from "@/app/components/motion/MomentProvider";
 import type { SocialProvider } from "@/lib/auth/configured-social";
 
 const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }> = {
+  toss: {
+    label: "토스로 3초 만에 시작",
+    className: "bg-[#3182f6] text-white shadow-[0_6px_16px_rgba(49,130,246,.35)]",
+  },
   google: {
     label: "Google로 시작",
     className: "border border-[#e2e7ee] bg-surface text-text-1",
@@ -104,6 +108,11 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
       purpose: GOALS[goal].purpose,
     });
     trackStep("signup_step_4", { method: provider });
+    // 토스는 자체 리다이렉트 시작점 — 인가 후 /auth/toss/callback 이 세션을 만든다.
+    if (provider === "toss") {
+      window.location.href = "/api/auth/toss/start?callbackUrl=%2Fwelcome";
+      return;
+    }
     try {
       await signIn(provider, { callbackUrl: "/welcome" });
     } catch {
