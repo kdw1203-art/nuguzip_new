@@ -263,11 +263,16 @@ export default async function ListingDetailPage({
           {photos.length > 0 ? (
             <div className="grid grid-cols-2 gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* 고도화 4 — 대표 사진은 이 페이지의 LCP 요소다. lazy 로 두면
+                  뷰포트 판정을 기다렸다 받기 시작해 LCP 가 늦어진다. 첫 장만
+                  eager+높은 우선순위, 나머지 갤러리는 lazy 유지. */}
               <img
                 src={photos[0]}
                 alt={`${listing.complexName} 대표 사진`}
                 className="col-span-2 h-[280px] w-full rounded-2xl object-cover"
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
               />
               {photos.slice(1, 5).map((p, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
