@@ -31,6 +31,19 @@ export function BusinessDisclosureBlock({ className = "", showHours = true }: Pr
         <strong className="text-text-1">주소</strong>: {info.address || "—"}
       </p>
       <p>
+        <strong className="text-text-1">대표전화</strong>:{" "}
+        {info.phone ? (
+          <a
+            href={`tel:${info.phone.replace(/[^0-9+]/g, "")}`}
+            className="text-text-2 underline-offset-2 hover:underline"
+          >
+            {info.phone}
+          </a>
+        ) : (
+          "—"
+        )}
+      </p>
+      <p>
         <strong className="text-text-1">통신판매업 신고</strong>:{" "}
         {info.mailOrderSalesNumber || "—"}
       </p>
@@ -53,9 +66,8 @@ export function BusinessDisclosureBlock({ className = "", showHours = true }: Pr
       ) : null}
       {!complete ? (
         <p className="pt-1 text-[10px] text-danger">
-          사업자 주소·통신판매업 신고번호가 아직 등록되지 않았습니다. 유료 결제는
-          고지 완료 후 열립니다. (NEXT_PUBLIC_COMPANY_ADDRESS /
-          NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)
+          통신판매업 신고번호가 아직 등록되지 않았습니다. 유료 결제는 고지 완료 후
+          열립니다. (NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)
         </p>
       ) : null}
     </div>
