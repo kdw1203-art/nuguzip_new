@@ -162,7 +162,7 @@ export function TownFeed({
             key={f.id}
             type="button"
             onClick={() => setFilter(f.id)}
-            className={filter === f.id ? "chip-active shrink-0" : "chip shrink-0"}
+            className={`min-h-[36px] px-3.5 py-2 shrink-0 ${filter === f.id ? "chip-active" : "chip"}`}
           >
             {f.label}
           </button>

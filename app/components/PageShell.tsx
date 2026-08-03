@@ -27,7 +27,7 @@ export function PageShell({
           <div className="mb-2 text-[13px] text-text-3">{breadcrumb}</div>
         )}
         {title && (
-          <h1 className="rise-in mb-4 text-[21px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="rise-in mb-4 text-[19px] font-extrabold leading-[1.35] text-ink md:text-[21px]">
             {title}
           </h1>
         )}

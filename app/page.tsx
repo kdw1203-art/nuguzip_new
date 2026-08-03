@@ -250,7 +250,7 @@ export default async function Home() {
         <section className="flex flex-col gap-3 md:hidden">
           <h1
             data-static-hero
-            className="rise-in mt-2 text-[27px] font-extrabold leading-[1.25] tracking-[-0.6px] text-ink"
+            className="rise-in mt-2 text-[24px] font-extrabold leading-[1.25] tracking-[-0.6px] text-ink"
           >
             {HOME_HERO_MOBILE_LINE1}
             <br />
@@ -260,9 +260,9 @@ export default async function Home() {
           <p data-static-hero className="rise-in-1 text-sm text-text-2">
             {HOME_HERO_SUBLINE}
           </p>
-          <div data-static-hero className="rise-in-1">
-            <FunnelSteps />
-          </div>
+          {/* 모바일 실측 14 — 히어로 부제("3분 기록 → AI 정리 → 지도 비교")와
+              같은 3단계를 칩으로 한 번 더 그려 첫 화면이 같은 말을 두 번 했다.
+              모바일에서는 칩 행을 내리고 부제와 아래 여정 배너가 역할을 나눈다. */}
           <Link
             href={HOME_CTA_NOTE.href}
             data-static-hero

@@ -303,7 +303,7 @@ export default async function DevDealsHubPage({
       <div style={DEV_THEME}>
         {/* 헤더 · 역할 요약(면책 취지 포함) */}
         <div className="rise-in mb-4">
-          <h1 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[21px] font-extrabold leading-[1.3] text-ink">
+          <h1 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[19px] font-extrabold leading-[1.3] text-ink md:text-[21px]">
             개발물건 중개
             <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-bold text-primary">
               B2B 디벨로퍼 매칭

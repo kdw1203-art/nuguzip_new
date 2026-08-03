@@ -650,7 +650,7 @@ export default async function NoteDetailPage({
             </div>
 
             {/* ② 한 줄 총평 (= 제목) */}
-            <h1 className="text-[21px] font-extrabold leading-[1.4] text-ink">
+            <h1 className="text-[19px] font-extrabold leading-[1.4] text-ink md:text-[21px]">
               {v.oneLiner}
             </h1>
 

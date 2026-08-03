@@ -138,6 +138,15 @@ export function InstallPrompt() {
       e.preventDefault();
       deferredRef.current = e as BeforeInstallPromptEvent;
       if (dismissedRecently()) return;
+      /* 모바일 실측 29 — 쿠키 동의가 미결정이면 띄우지 않는다. 첫 방문에
+         동의 배너 + 설치 배너가 겹치면 화면 하단이 배너로 덮인다. 동의를
+         끝낸 다음 방문(이벤트는 페이지마다 다시 발생)에 뜨면 충분하다. */
+      try {
+        if (!window.localStorage.getItem("nz_cookie_consent")) return;
+      } catch {
+        /* 저장소 접근 불가 — 겹침 판정 불가면 띄우지 않는 쪽이 안전 */
+        return;
+      }
       measure();
       setVisible(true);
       track("pwa_install_prompt_view");

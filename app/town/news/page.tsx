@@ -234,7 +234,7 @@ export default async function TownNewsPage({
         <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
           <Link
             href="/town/news"
-            className={`chip px-3.5 py-[7px] ${
+            className={`chip px-3.5 py-2 ${
               active ? "border border-[#e2e7ee] bg-surface text-text-2" : "chip-active"
             }`}
           >
@@ -244,7 +244,7 @@ export default async function TownNewsPage({
             <Link
               key={r}
               href={`/town/news?region=${encodeURIComponent(r)}`}
-              className={`chip px-3.5 py-[7px] ${
+              className={`chip px-3.5 py-2 ${
                 active === r
                   ? "chip-active"
                   : "border border-[#e2e7ee] bg-surface text-text-2"

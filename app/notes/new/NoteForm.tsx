@@ -1155,8 +1155,8 @@ export function NoteForm({
             </button>
           </div>
           {VISIT_GROUPS.map((g) => (
-            <div key={g.label} className="flex items-center gap-2">
-              <span className="w-14 shrink-0 text-xs text-text-2">{g.label}</span>
+            <div key={g.label} className="flex items-start gap-2">
+              <span className="w-14 shrink-0 pt-2 text-xs text-text-2">{g.label}</span>
               <div className="flex flex-wrap gap-1.5">
                 {g.options.map((opt) => {
                   const active = visit[g.label] === opt;
