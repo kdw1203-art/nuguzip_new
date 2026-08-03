@@ -96,6 +96,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     short: "거래 금액을 전용면적 평수로 나눈 값(3.3㎡당 가격).",
     def: "평당가는 거래 금액을 전용면적의 평수(1평 = 3.3058㎡)로 나눈 값입니다. 면적이 다른 아파트끼리 가격 수준을 비교할 때 씁니다. 같은 단지라도 소형 평형의 평당가가 대형보다 높게 나오는 것이 일반적입니다.",
     category: "거래·시세",
+    href: "/tx",
+    hrefLabel: "지역별 실거래 보기",
     related: ["jeonyongmyeonjeok", "silgeoraega"],
   },
   {
@@ -154,6 +156,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     short: "현관 안쪽, 세대가 독점 사용하는 면적.",
     def: "전용면적은 현관 안쪽에서 세대가 독점적으로 사용하는 면적입니다. 계단·복도 등을 포함한 공급면적과 다르며, 실거래 신고와 누구집의 면적대 구분은 모두 전용면적 기준입니다. 흔히 말하는 '84㎡(국민평형)'가 전용면적 표기입니다.",
     category: "면적·구조",
+    href: "/tx",
+    hrefLabel: "전용면적 기준 실거래 보기",
     related: ["gonggeupmyeonjeok", "gongyongmyeonjeok", "jeonyongryul"],
   },
   {
@@ -386,6 +390,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     short: "무주택 기간·부양가족·통장 가입 기간을 점수로 환산한 값.",
     def: "청약가점은 무주택 기간, 부양가족 수, 청약통장 가입 기간을 항목별 점수로 환산해 합산한 값으로, 가점제 물량의 당첨 순서를 정하는 기준입니다. 항목별 배점과 만점은 법령에 정해져 있습니다.",
     category: "청약·분양",
+    href: "/apply",
+    hrefLabel: "청약 정보 보기",
     related: ["cheongyak", "teukbyeol-gonggeup"],
   },
   {
@@ -394,6 +400,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     short: "정책 대상자에게 우선 배정되는 별도 공급 물량.",
     def: "특별공급은 신혼부부·생애최초·다자녀·노부모 부양 등 정책 대상자에게 일반공급과 별도로 배정하는 물량입니다. 유형별로 소득·자산·무주택 요건이 각각 다르고, 일반공급보다 경쟁률이 낮은 경우가 많습니다.",
     category: "청약·분양",
+    href: "/apply",
+    hrefLabel: "청약 정보 보기",
     related: ["cheongyak", "cheongyak-gajeom"],
   },
   {
@@ -440,6 +448,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     short: "기반시설이 열악한 노후 지역 전체를 정비하는 사업.",
     def: "재개발은 도로·상하수도 같은 기반시설이 열악하고 노후 건축물이 밀집한 지역을 대상으로, 구역 전체의 주거 환경을 새로 정비하는 사업입니다. 대상이 단지가 아니라 구역이라는 점에서 재건축과 구분됩니다.",
     category: "정비사업",
+    href: "/redevelopment",
+    hrefLabel: "정비사업 현황 보기",
     related: ["jaegeonchuk", "jeongbisaeop", "ipjugwon"],
   },
   {
@@ -448,6 +458,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     short: "기반시설은 양호하나 건물이 노후한 단지를 다시 짓는 사업.",
     def: "재건축은 기반시설은 양호하지만 건축물이 노후한 공동주택 단지를 헐고 다시 짓는 사업입니다. 안전진단 통과가 사업의 관문이 되며, 조합원 분담금 규모에 따라 사업성이 크게 달라집니다.",
     category: "정비사업",
+    href: "/redevelopment",
+    hrefLabel: "정비사업 현황 보기",
     related: ["jaegaebal", "anjeon-jindan", "ipjugwon"],
   },
   {

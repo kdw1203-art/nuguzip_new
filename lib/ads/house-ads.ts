@@ -31,7 +31,8 @@ export type HouseAd = {
  * 문구 근거
  *  - 임장노트: app/notes/new 존재. "3분 기록"은 홈 카피와 동일한 제품 약속.
  *  - 지도 실거래: 지도 금액은 국토부 실거래가 기준 (C8 가격 표기 범례와 같은 기준).
- *  - 구독: app/subscription 요금표의 "AI 요약·비교 리포트 생성 = 무료 월 3회" 행이 근거.
+ *  - 구독: FEATURE_RULES(access.ts) ai_chat 무료 월 3회가 근거 — 요금표(PLAN_FEATURE_MATRIX
+ *    "동네 분석 요약 = 무료 월 3회" 행)와 같은 단일 출처다.
  *  - 전문가: app/town/experts 존재, 상담 신청 → 답변 흐름 구현됨.
  */
 export const HOUSE_ADS: HouseAd[] = [
@@ -56,8 +57,8 @@ export const HOUSE_ADS: HouseAd[] = [
   {
     id: "house_subscription",
     eyebrow: "플랜",
-    title: "AI 요약이 월 3회로 부족하다면",
-    body: "무료 플랜은 AI 요약·비교 리포트를 월 3회 만들 수 있어요. 플랜별로 무엇이 달라지는지 표로 비교해 보세요.",
+    title: "AI 동네 분석이 월 3회로 부족하다면",
+    body: "무료 플랜은 AI 동네 분석 요약을 월 3회 만들 수 있어요. 플랜별로 무엇이 달라지는지 표로 비교해 보세요.",
     ctaLabel: "플랜 비교하기",
     href: "/subscription",
     showWhenSignedIn: true,

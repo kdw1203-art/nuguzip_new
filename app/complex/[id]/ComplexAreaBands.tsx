@@ -70,8 +70,12 @@ export async function ComplexAreaBands({
           {bands.data.length}구간 · 국토부
         </span>
       </h2>
-      <div className="card overflow-hidden rounded-2xl">
-        <table className="w-full text-left text-[12px] sm:text-[13px]">
+      {/* 모바일14 — 375px 폭에서는 네 열이 눌려 가격·건수가 겹쳐 보였다.
+          표에 최소 폭을 주고 카드 안에서 가로 스크롤로 풀되, 스크롤바는 숨기고
+          우측 페이드로 "더 있다"를 암시한다(TownCategoryNav 와 같은 패턴).
+          sm+ 는 표가 통째로 들어가므로 페이드를 해제한다. */}
+      <div className="card overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] sm:overflow-hidden sm:[mask-image:none]">
+        <table className="w-full min-w-[420px] text-left text-[12px] sm:min-w-0 sm:text-[13px]">
           <thead>
             <tr className="border-b border-line bg-[#f7f9fd] text-[10px] text-text-3 sm:text-[11px]">
               <th className="px-3 py-2 font-semibold sm:px-4 sm:py-2.5">면적</th>

@@ -68,6 +68,29 @@ const SECTIONS: { id: string; q: string; a: string[] }[] = [
   },
 ];
 
+/* 웹11 — 방법론 최근 변경 이력. "바뀌면 이 페이지를 갱신합니다"라는 하단 약속을
+   실제 목록으로 이행한다. 실제로 일어난 변경만, 커밋 날짜 그대로 적는다
+   (각 항목의 출처 커밋: #150 해제거래, 5ecb5d2 온도 아카이브, 208abe8 집계 복구,
+   a9f530e 면적대 표). 여기 새 항목을 추가할 때도 같은 규칙 — 배포된 변경만. */
+const CHANGELOG: { date: string; text: string }[] = [
+  {
+    date: "2026-08-03",
+    text: "면적대별 시세표에 기준 기간(첫 계약월~마지막 계약월)과 표본 건수를 명기 — 석 달치 평균과 삼 년치 평균이 같은 얼굴을 하지 않도록.",
+  },
+  {
+    date: "2026-08-02",
+    text: "시세 집계 자동 갱신 작업의 스키마 오류를 복구 — 중단됐던 지역·단지 집계 갱신이 재개됨.",
+  },
+  {
+    date: "2026-07-26",
+    text: "시장 온도를 매주 아카이브로 저장 시작 — 현재 값만이 아니라 시점별 추세를 확인할 수 있게 됨.",
+  },
+  {
+    date: "2026-07-25",
+    text: "해제(취소) 신고된 실거래 402건을 시세 집계에서 전면 제외 — 일부 단지 평균가가 20% 이상 왜곡되던 문제를 정정.",
+  },
+];
+
 /* FAQPage JSON-LD — 위 본문과 같은 내용(내용 불일치 금지: 같은 배열에서 생성) */
 function faqJsonLd() {
   return {
@@ -115,6 +138,22 @@ export default function MethodologyPage() {
             </section>
           ))}
         </div>
+
+        {/* 웹11 — 방법론 최근 변경. CHANGELOG 배열(실제 배포된 변경만) 렌더 */}
+        <section id="changelog" className="card mt-6 rounded-[18px] p-6">
+          <h2 className="text-[16px] font-extrabold text-ink">최근 변경</h2>
+          <p className="mt-2 text-[13px] leading-[1.75] text-text-2">
+            집계 방식이 바뀌면 이 목록에 날짜와 함께 남깁니다.
+          </p>
+          <ul className="mt-3 flex flex-col gap-2.5">
+            {CHANGELOG.map((c) => (
+              <li key={`${c.date}-${c.text.slice(0, 8)}`} className="flex gap-3 text-[13px] leading-[1.7]">
+                <span className="shrink-0 font-bold tabular-nums text-text-3">{c.date}</span>
+                <span className="text-text-1">{c.text}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {/* G21 — 정정 이력. 데이터·집계 오류를 고치면 여기 남긴다.
             아직 0건이라고 정직하게 적는 것부터가 이 제도의 시작이다. */}

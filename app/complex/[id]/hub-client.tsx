@@ -104,7 +104,10 @@ export function WatchlistButton({
   const { handleUpgradeResponse } = useUpgradePaywall();
   const [watching, setWatching] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  /* 모바일24 — 실패만 빨간 글씨로 말하고 성공은 침묵했다. 저장이 무엇을 의미하는지
+     (시세 변동 알림 — price-alerts 크론이 ±1% 변동 시 실제로 보낸다) 성공 시에도
+     한 줄로 말한다. tone 으로 색만 가른다. */
+  const [message, setMessage] = useState<{ text: string; tone: "error" | "ok" } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,16 +153,19 @@ export function WatchlistButton({
         code?: string;
       };
       if (handleUpgradeResponse(res.status, j)) {
-        setMessage(j.error ?? "관심 단지 한도에 도달했어요");
+        setMessage({ text: j.error ?? "관심 단지 한도에 도달했어요", tone: "error" });
         return;
       }
       if (!res.ok) {
-        setMessage(j.error ?? "저장하지 못했어요");
+        setMessage({ text: j.error ?? "저장하지 못했어요", tone: "error" });
         return;
+      }
+      if (!watching) {
+        setMessage({ text: "저장했어요 · 시세 변동 시 알림을 받아요", tone: "ok" });
       }
       setWatching(!watching);
     } catch {
-      setMessage("네트워크 오류가 발생했어요");
+      setMessage({ text: "네트워크 오류가 발생했어요", tone: "error" });
     } finally {
       setBusy(false);
     }
@@ -178,7 +184,13 @@ export function WatchlistButton({
       >
         {busy ? "저장 중…" : watching ? "✓ 관심 단지" : "+ 단지 팔로우"}
       </button>
-      {message && <span className="mt-0.5 text-[10px] text-danger">{message}</span>}
+      {message && (
+        <span
+          className={`mt-0.5 text-[10px] ${message.tone === "ok" ? "text-text-3" : "text-danger"}`}
+        >
+          {message.text}
+        </span>
+      )}
     </span>
   );
 }

@@ -342,6 +342,48 @@ runGate("데이터", "public.*_source 뷰 실조회 권한", "check-source-views
    안내 문서가 동시에 거짓이 된다 — 2026-07-28 에 세 개가 그랬다. */
 runGate("데이터", "envKey 이름 ↔ 실제 참조 일치", "check-env-key-names.mjs");
 
+/* ── 모바일28 — 모바일 압축 토큰 ↔ md+ 원복 짝 검사 ──────────────
+   2026-08-03 모바일 2차 축소는 :root 토큰(모바일 기본값)을 줄이고
+   @media (min-width: 768px) 블록이 데스크톱 값으로 "원복"하는 구조다.
+   토큰을 :root 에서 줄여 놓고 md+ 원복을 빠뜨리면 데스크톱까지 조용히
+   줄어든다 — 그 누락을 배포 전에 잡는다. 규칙:
+   1) 아래 압축 토큰은 :root 와 md+ :root 양쪽에 모두 있어야 하고
+   2) 두 값이 같으면 원복이 죽은 코드라는 뜻이므로 그것도 실패다. */
+{
+  const css = read("app/globals.css");
+  const mdBlockMatch = css.match(/@media \(min-width: 768px\)\s*\{\s*:root\s*\{([\s\S]*?)\}/);
+  const mdBlock = mdBlockMatch ? mdBlockMatch[1] : "";
+  const COMPACT_TOKENS = [
+    "--fs-display",
+    "--fs-title",
+    "--pad-compact",
+    "--pad-card",
+    "--pad-hero",
+    "--radius-card",
+  ];
+  const grab = (src, token) => {
+    const m = src.match(new RegExp(`${token}:\\s*([^;]+);`));
+    return m ? m[1].trim() : null;
+  };
+  const problems = [];
+  if (!mdBlock) {
+    problems.push("md+ :root 원복 블록 자체가 없음");
+  } else {
+    for (const t of COMPACT_TOKENS) {
+      const base = grab(css, t); // 첫 등장 = :root (md 블록은 파일 후반)
+      const md = grab(mdBlock, t);
+      if (!base) problems.push(`${t}: :root 정의 없음`);
+      else if (!md) problems.push(`${t}: md+ 원복 누락 — 데스크톱까지 축소됨`);
+      else if (base === md) problems.push(`${t}: 모바일·md+ 값 동일(${base}) — 원복이 무의미`);
+    }
+  }
+  if (problems.length === 0) {
+    pass("디자인", "모바일 토큰 md+ 원복 짝", `${COMPACT_TOKENS.length}종 확인`);
+  } else {
+    fail("디자인", "모바일 토큰 md+ 원복 짝", problems.join(" · "));
+  }
+}
+
 // ── 출력 ───────────────────────────────────────────────
 console.log("\n=== 최종 릴리스 자동 점검 ===\n");
 console.log("| 도메인 | 항목 | 상태 | 비고 |");

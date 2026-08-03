@@ -13,6 +13,7 @@ import { isKakaoPayConfigured } from "@/lib/payments/kakaopay";
 import { isTossPaymentsConfigured } from "@/lib/payments/toss-config";
 import { BillingPanel } from "./BillingPanel";
 import { SETTLEMENT } from "@/lib/creator/sales";
+import { PLAN_FEATURE_MATRIX } from "@/lib/subscriptions/plans";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { faqJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 
@@ -70,21 +71,24 @@ const PLUS_MONTHLY = fmtWon(tierPricing("pro").monthly);
 const PRO_MONTHLY = fmtWon(tierPricing("expert").monthly);
 const FEE_PCT = `${Math.round(SETTLEMENT.platformFeeRate * 100)}%`;
 
+/* 웹25 — 비교표는 PLAN_FEATURE_MATRIX(access.ts FEATURE_RULES 와 동일화된 단일
+   출처)에서 유도한다. 예전에는 이 파일에 손으로 적은 표가 따로 있었고, 코드
+   어디에도 집행 로직이 없는 한도를 광고하고 있었다 — "쪽지 일 5건/30건",
+   "노트 사진 노트당 50장"(실제 코드는 전 플랜 10장), "알림 지역 3곳·실시간",
+   "시나리오 저장 10개", "다자 비교 5개"(실제 비교 트레이 한도는 2/10/무제한),
+   "플러스 AI 무제한"(실제 월 30~50회). 기능 없는 약속은 버그다 — 코드가 실제로
+   집행하는 한도만 싣는다. 수수료도 SETTLEMENT.platformFeeRate 단일 출처다
+   (예전 20%/15% 표기는 실제 7%와 달라 허위 고지였다). */
 const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; proAccent?: boolean }[] = [
   { label: "임장노트 · 지도 · 실거래", free: "무제한", plus: "무제한", pro: "무제한" },
-  { label: "AI 요약 · 비교 리포트 생성", free: "월 3회", plus: "무제한", pro: "무제한" },
-  /* 수수료는 `lib/creator/sales.ts` 의 SETTLEMENT.platformFeeRate 단일 출처에서 읽는다.
-     여기엔 20%/15% 라고 적혀 있었지만 코드가 실제로 떼는 값은 7% 하나뿐이었다.
-     표시가 코드보다 높으면 그 자체로 허위 고지라, 플랜별로 다른 척하지 않고
-     실제 요율 하나를 그대로 적는다(PlanCards.tsx 도 같은 상수를 쓴다). */
-  { label: "마켓 리포트 발행 (판매)", free: "—", plus: `월 3회 · 수수료 ${FEE_PCT}`, pro: `무제한 · 수수료 ${FEE_PCT}`, proAccent: true },
+  ...PLAN_FEATURE_MATRIX.filter((r) => r.feature !== "리포트 판매").map((r) => ({
+    label: r.feature,
+    free: r.free === "불가" ? "—" : r.free,
+    plus: r.pro === "불가" ? "—" : r.pro,
+    pro: r.expert === "불가" ? "—" : r.expert,
+  })),
+  { label: "마켓 리포트 발행 (판매)", free: "—", plus: `가능 · 수수료 ${FEE_PCT}`, pro: `우선 노출 · 수수료 ${FEE_PCT}`, proAccent: true },
   { label: "유료 상담 수신 · 동행 임장", free: "—", plus: "—", pro: "포함 (전문가 인증 필수)", proAccent: true },
-  { label: "다자 비교 단지 수", free: "2개 (1:1)", plus: "5개", pro: "5개 + PDF 내보내기" },
-  { label: "시나리오 저장 개수", free: "1개", plus: "10개", pro: "무제한" },
-  { label: "급매·시세 알림 지역", free: "1곳 · 일 1회 요약", plus: "3곳 · 실시간", pro: "10곳 · 실시간" },
-  { label: "노트 사진 저장 용량", free: "노트당 10장", plus: "노트당 50장", pro: "무제한 + 원본 화질" },
-  { label: "쪽지 발신 (수신은 무제한)", free: "일 5건", plus: "일 30건", pro: "무제한" },
-  { label: "광고 노출", free: "표시", plus: "제거", pro: "제거" },
 ];
 
 const PLAN_LABEL: Record<"free" | "pro" | "expert", string> = {
