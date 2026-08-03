@@ -17,7 +17,20 @@ function timeAgo(iso: string): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export async function ComplexQna({ complexName }: { complexName: string }) {
+export async function ComplexQna({
+  complexName,
+  region,
+  noteCount,
+}: {
+  complexName: string;
+  /** 질문 폼 프리필용 지역 문자열 (예: "서울 송파구") */
+  region?: string;
+  /**
+   * 이 단지의 임장노트 수 — 첫 질문 유도에 실데이터 근거로 쓴다(항목 18).
+   * 조회 실패 시 null 을 넘겨라: "0개"라고 지어내지 않기 위한 구분값이다.
+   */
+  noteCount?: number | null;
+}) {
   const name = complexName.trim();
   if (!name) return null;
 
@@ -72,17 +85,23 @@ export async function ComplexQna({ complexName }: { complexName: string }) {
       </div>
 
       {questions.length === 0 ? (
+        /* 항목 18 — 첫 질문 유도. 목록 필터가 아니라 작성 폼(프리필)으로 바로
+           보낸다. 근거 문장은 실측 노트 수가 있을 때만(0·미확인은 지어내지 않음). */
         <Link
-          href={listHref}
+          href={`/qna?ask=1&complex=${encodeURIComponent(name)}${
+            region?.trim() ? `&region=${encodeURIComponent(region.trim())}` : ""
+          }`}
           className="card card-hover flex flex-col items-center gap-1.5 rounded-2xl px-4 py-8 text-center no-underline"
         >
           <div className="text-[14px] font-extrabold text-ink">
             이 단지에 대해 궁금한 점이 있나요?
           </div>
           <p className="text-[12px] leading-[1.6] text-text-3">
-            채광·주차·소음·학군 등 실제 거주·방문 경험이 있는 이웃에게 물어보세요.
+            {typeof noteCount === "number" && noteCount > 0
+              ? `이 단지를 직접 다녀온 임장노트가 ${noteCount.toLocaleString("ko-KR")}개 기록돼 있어요 — 채광·주차·소음 같은 궁금증을 경험자에게 물어보세요.`
+              : "채광·주차·소음·학군 등 실제 거주·방문 경험이 있는 이웃에게 물어보세요."}
           </p>
-          <span className="btn-primary btn-sm mt-1">질문 남기기</span>
+          <span className="btn-primary btn-sm mt-1">{name} 질문 남기기</span>
         </Link>
       ) : (
         <div className="flex flex-col gap-2">

@@ -1027,7 +1027,12 @@ export default async function ComplexHubPage({
       {/* D3 정비사업 · D4 입주물량 · D2 Q&A (면적대·지역대비는 상단으로 이동) */}
       <NearbyRedevelopment sigungu={v.dong} />
       <UpcomingSupply area={v.dong} />
-      <ComplexQna complexName={v.name} />
+      <ComplexQna
+        complexName={v.name}
+        region={`${v.city} ${v.dong}`.trim()}
+        /* 항목 18 — 노트 조회 실패면 null (0개라고 지어내지 않는다) */
+        noteCount={v.notesFailed ? null : v.notes.length}
+      />
 
       {/* 이 단지 임장노트 · AI 분석 재료 · 관련 기사 —
           지도 팝업에서 "전체 화면으로 자세히 보기"로 넘어온 사람이 더 알고 싶은 것들.

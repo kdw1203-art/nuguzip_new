@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAreaBands } from "@/lib/complex/complex-store";
 import { logger } from "@/lib/log";
 
@@ -103,8 +104,15 @@ export async function ComplexAreaBands({
         </table>
       </div>
       <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-text-3">
-        {period} 계약분 {totalCount}건 기준 · 해제 신고 제외 · 평균은 표본 기간 전체
-        거래의 산술평균
+        {/* 항목 14 — 용어 첫 등장에 용어사전 링크 */}
+        <Link href="/glossary/jeonyongmyeonjeok" className="underline underline-offset-2">
+          전용면적
+        </Link>{" "}
+        구간 · {period} 계약분 {totalCount}건 기준 ·{" "}
+        <Link href="/glossary/haejegeorae" className="underline underline-offset-2">
+          해제 신고
+        </Link>{" "}
+        제외 · 평균은 표본 기간 전체 거래의 산술평균
       </p>
     </section>
   );

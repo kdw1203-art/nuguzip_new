@@ -211,12 +211,29 @@ export default async function TxIndexPage() {
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">이 숫자를 읽는 법</h2>
         <ul className="mt-2 space-y-1.5 text-[13px] leading-[1.6] text-text-2">
+          {/* 항목 14 — 용어 첫 등장에 용어사전 링크(전 페이지 도배가 아니라
+              읽는 법 안내에서 한 번씩만). */}
           <li>
-            · <strong className="text-ink">실거래 신고가</strong>입니다. 매물 호가·중개사 제시가가
-            아니며, 계약 후 신고까지 시차가 있어 최근 달은 건수가 더 늘어날 수 있습니다.
+            ·{" "}
+            <Link href="/glossary/silgeoraega" className="font-bold text-ink underline decoration-line underline-offset-2">
+              실거래 신고가
+            </Link>
+            입니다. 매물{" "}
+            <Link href="/glossary/hoga" className="font-bold text-ink underline decoration-line underline-offset-2">
+              호가
+            </Link>
+            ·중개사 제시가가 아니며, 계약 후 신고까지 시차가 있어 최근 달은 건수가 더 늘어날 수
+            있습니다.
           </li>
           <li>
-            · 면적은 <strong className="text-ink">전용면적</strong> 기준입니다. 분양면적(공급면적)
+            · 면적은{" "}
+            <Link href="/glossary/jeonyongmyeonjeok" className="font-bold text-ink underline decoration-line underline-offset-2">
+              전용면적
+            </Link>{" "}
+            기준입니다.{" "}
+            <Link href="/glossary/gonggeupmyeonjeok" className="font-bold text-ink underline decoration-line underline-offset-2">
+              분양면적(공급면적)
+            </Link>
             으로 부르는 평수와 다릅니다.
           </li>
           <li>
@@ -229,6 +246,13 @@ export default async function TxIndexPage() {
             내기에 표본이 모자란 구간입니다.
           </li>
         </ul>
+        <p className="mt-2.5 text-[12px] text-text-3">
+          낯선 용어는{" "}
+          <Link href="/glossary" className="font-bold text-primary">
+            부동산 용어사전 ›
+          </Link>
+          에서 확인하세요.
+        </p>
       </section>
 
       <p className="mb-8 text-[12px] text-text-3">

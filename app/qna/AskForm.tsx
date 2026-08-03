@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
@@ -20,6 +20,31 @@ export function AskForm() {
   const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const rootRef = useRef<HTMLFormElement>(null);
+
+  /* 항목 18 — 단지 상세 "질문 남기기"에서 넘어온 프리필.
+     ?ask=1&complex=…&region=… 이면 폼을 펼치고 단지·지역을 채운 뒤 폼으로
+     스크롤한다. useSearchParams 대신 mount 1회 window 파싱 — 이 폼은 접힘
+     상태가 로컬 상태라 URL 과 동기화할 필요가 없고, Suspense 경계도 아낀다. */
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("ask") !== "1") return;
+      const cx = sp.get("complex")?.trim();
+      const rg = sp.get("region")?.trim();
+      if (cx) setComplexName((prev) => prev || cx);
+      if (rg) setRegion((prev) => prev || rg);
+      setOpen(true);
+      // 펼침이 커밋된 다음 프레임에 스크롤 (이중 rAF — 커밋 전 실행 방지)
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }),
+      );
+    } catch {
+      // URL 파싱 실패 — 프리필 없이 기본 동작
+    }
+  }, []);
 
   function reset() {
     setTitle("");
@@ -95,7 +120,7 @@ export function AskForm() {
   }
 
   return (
-    <form onSubmit={submit} className="card flex flex-col gap-3">
+    <form ref={rootRef} onSubmit={submit} className="card flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h2 className="text-[15px] font-bold text-ink">질문 작성</h2>
         <button
