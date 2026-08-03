@@ -341,6 +341,12 @@ test("30. mobile viewport shows bottom tab bar with 홈·지도 labels", async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   const tabBar = page.getByRole("navigation", { name: "하단 내비게이션" });
+  /* 모바일6(2026-08-03) — 쿠키 결정 전에는 탭바를 접어 하단을 배너 한 층으로
+     유지한다. 첫 방문 흐름 그대로 검증: 결정 전 미노출 → 결정 즉시 복원. */
+  const consent = page.getByRole("region", { name: "쿠키 사용 동의" });
+  await expect(consent).toBeVisible();
+  await expect(tabBar).toHaveCount(0);
+  await page.getByRole("button", { name: "필수만 허용" }).click();
   await expect(tabBar).toBeVisible();
   // 탭 레이블은 아이콘 문자와 같은 링크 요소 안에 있어 exact 텍스트 매칭 불가
   await expect(tabBar).toContainText("홈");

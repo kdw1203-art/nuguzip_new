@@ -198,6 +198,14 @@ test("a11y: 모바일 홈 (390x844) — 하단 탭바 포함 serious/critical �
   /* 하단 탭바는 md:hidden 이라 데스크톱 검사에선 아예 렌더되지 않는다.
      모바일 뷰포트로 한 번 더 봐야 탭바가 검사 대상에 들어온다. */
   await page.setViewportSize({ width: 390, height: 844 });
+  /* 모바일6 — 쿠키 결정 전에는 탭바가 접힌다. 이 검사의 대상은 탭바이므로
+     동의를 결정된 상태로 시작한다(install-prompt 스위트와 같은 방식). */
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "nz_cookie_consent",
+      JSON.stringify({ analytics: false, decidedAt: new Date().toISOString() }),
+    );
+  });
   await openWithoutMotion(page, "/");
   await expect(page.getByRole("navigation", { name: "하단 내비게이션" })).toBeVisible({
     timeout: 15000,
