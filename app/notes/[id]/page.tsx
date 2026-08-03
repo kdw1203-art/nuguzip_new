@@ -581,18 +581,50 @@ export default async function NoteDetailPage({
           <Link href={mapCompareHref} className="font-extrabold text-primary">
             지도에서 이 단지와 비교 ›
           </Link>
+          {/* 항목 22 — 완료 직후 두 번째 행동: 같은 단지 시세 (단지 매칭 시에만) */}
+          {complexHref && (
+            <>
+              {" · "}
+              <Link href={complexHref} className="font-extrabold text-primary">
+                이 단지 시세 보기 ›
+              </Link>
+            </>
+          )}
         </div>
       )}
       {isOwner && (aiStatus === "rule" || (aiStatus === "ok" && !hasLlmAi)) && (
         <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
           노트는 저장됐고 규칙 기반 요약만 있어요 — AI 정리는 아래에서 다시 시도할 수
-          있어요.
+          있어요.{" "}
+          {/* 항목 22 — AI 성패와 무관하게 저장 완료 후 다음 행동은 있어야 한다 */}
+          <Link href={mapCompareHref} className="font-bold text-primary">
+            지도에서 비교 ›
+          </Link>
+          {complexHref && (
+            <>
+              {" · "}
+              <Link href={complexHref} className="font-bold text-primary">
+                단지 시세 ›
+              </Link>
+            </>
+          )}
         </div>
       )}
       {isOwner && aiStatus === "fail" && (
         <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
           노트는 저장됐어요. AI 정리는 반영되지 않았어요 — 아래에서 다시 시도할 수
-          있어요.
+          있어요.{" "}
+          <Link href={mapCompareHref} className="font-bold text-primary">
+            지도에서 비교 ›
+          </Link>
+          {complexHref && (
+            <>
+              {" · "}
+              <Link href={complexHref} className="font-bold text-primary">
+                단지 시세 ›
+              </Link>
+            </>
+          )}
         </div>
       )}
 

@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import {
+  RECENT_SEARCH_MAX,
+  readRecentSearches,
+  writeRecentSearches,
+} from "@/lib/search/recent-searches";
 
 /* ============================================================
    통합 검색 경험 — 단지·매물·임장노트·뉴스 통합 결과
@@ -20,30 +25,10 @@ interface UnifiedResults {
 
 const EMPTY: UnifiedResults = { complexes: [], listings: [], notes: [], news: [] };
 
-const RECENT_KEY = "nuguzip.recentSearches";
-const RECENT_MAX = 5;
 /** 측정된 인기가 아님 — 전국 주요 권역 추천 검색어 (가짜 KPI 금지) */
 const SUGGESTED_REGIONS = ["강남구", "분당", "마포구", "해운대구"] as const;
 
-function readRecent(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    if (!raw) return [];
-    const arr: unknown = JSON.parse(raw);
-    if (!Array.isArray(arr)) return [];
-    return arr.filter((v): v is string => typeof v === "string").slice(0, RECENT_MAX);
-  } catch {
-    return [];
-  }
-}
-
-function writeRecent(list: string[]) {
-  try {
-    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
-  } catch {
-    // localStorage 불가(사파리 프라이빗 등) — 무시
-  }
-}
+/* 최근 검색어 읽기/쓰기는 헤더 검색과 공유한다(항목 12) — lib/search/recent-searches */
 
 type SectionKey = keyof UnifiedResults;
 
@@ -87,7 +72,7 @@ export function SearchClient() {
 
   /* 마운트: 최근 검색 로드 + URL(?q=) 프리필 */
   useEffect(() => {
-    setRecent(readRecent());
+    setRecent(readRecentSearches());
     try {
       const initial = new URLSearchParams(window.location.search).get("q")?.trim();
       if (initial) setQ(initial);
@@ -147,8 +132,8 @@ export function SearchClient() {
     const k = keyword.trim();
     if (!k) return;
     setRecent((prev) => {
-      const next = [k, ...prev.filter((v) => v !== k)].slice(0, RECENT_MAX);
-      writeRecent(next);
+      const next = [k, ...prev.filter((v) => v !== k)].slice(0, RECENT_SEARCH_MAX);
+      writeRecentSearches(next);
       return next;
     });
   }, []);
@@ -156,7 +141,7 @@ export function SearchClient() {
   const removeRecent = useCallback((keyword: string) => {
     setRecent((prev) => {
       const next = prev.filter((v) => v !== keyword);
-      writeRecent(next);
+      writeRecentSearches(next);
       return next;
     });
   }, []);

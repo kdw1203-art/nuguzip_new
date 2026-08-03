@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { pushRecentSearch, readRecentSearches } from "@/lib/search/recent-searches";
 
 /* P2-14: 데스크탑 GNB 검색 — input + 통합 자동완성.
    /api/search/unified?q= (디바운스 200ms) · 단지·매물·노트·뉴스 그룹 제안.
@@ -44,8 +45,35 @@ export function HeaderSearch() {
   /** 조회에 실패한 그룹 — 비어 있지 않으면 "결과 없음" 문구를 쓰지 않는다. */
   const [failed, setFailed] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
+  /* 항목 12 — 빈 입력 포커스 시 보여줄 최근 검색어 (/search 와 같은 저장소) */
+  const [recents, setRecents] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  /* 항목 12 — `/` 단축키로 검색 진입. 입력 중(폼 요소·contentEditable)에는
+     끼어들지 않는다. 헤더 인풋이 화면에 없는 뷰포트(lg 미만)에서는 /search 로. */
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable)
+      )
+        return;
+      e.preventDefault();
+      const el = inputRef.current;
+      // offsetParent === null ⇒ display:none (hidden lg:block 의 lg 미만)
+      if (el && el.offsetParent !== null) el.focus();
+      else router.push("/search");
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
 
   /* 디바운스 200ms 통합 서제스트 */
   useEffect(() => {
@@ -103,8 +131,16 @@ export function HeaderSearch() {
       router.push("/search");
       return;
     }
+    pushRecentSearch(query);
     setOpen(false);
     router.push(`/search?q=${encodeURIComponent(query)}`);
+  }
+
+  /** 최근 검색어 클릭 → 통합 검색 결과로 (맨 앞 재승격 저장 포함) */
+  function pickRecent(k: string) {
+    pushRecentSearch(k);
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(k)}`);
   }
 
   function pick(it: FlatItem) {
@@ -118,11 +154,21 @@ export function HeaderSearch() {
       <div className="flex w-[200px] items-center gap-2 rounded-xl bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-3">
         <span aria-hidden>⌕</span>
         <input
+          ref={inputRef}
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => {
-            if (q.trim() && items.length > 0) setOpen(true);
+            if (q.trim() && items.length > 0) {
+              setOpen(true);
+              return;
+            }
+            // 항목 12 — 빈 입력이면 최근 검색어를 보여준다 (없으면 열지 않음)
+            if (!q.trim()) {
+              const r = readRecentSearches();
+              setRecents(r);
+              if (r.length > 0) setOpen(true);
+            }
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -134,11 +180,47 @@ export function HeaderSearch() {
             }
           }}
           placeholder="단지·매물·노트·뉴스 검색"
-          aria-label="통합 검색"
+          aria-label="통합 검색 (단축키 /)"
           autoComplete="off"
           className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-text-3"
         />
+        {/* 항목 12 — 단축키 발견성. 장식이므로 스크린리더에서는 숨긴다(aria-label 에 명시). */}
+        <kbd
+          aria-hidden
+          className="shrink-0 rounded-md border border-line bg-[rgba(255,255,255,.8)] px-1.5 py-px font-sans text-[10px] font-bold text-text-3"
+        >
+          /
+        </kbd>
       </div>
+
+      {/* 항목 12 — 빈 입력 포커스: 최근 검색어 드롭다운 */}
+      {open && q.trim().length === 0 && recents.length > 0 && (
+        <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[300px]">
+          <div
+            className="glass-strong overflow-hidden rounded-2xl p-1.5 [animation:riseIn_180ms_var(--ease-out)_backwards]"
+            style={{ background: "rgba(255,255,255,.9)" }}
+          >
+            <div className="px-3 pb-1 pt-1.5 text-[10px] font-extrabold text-text-3">
+              최근 검색
+            </div>
+            {recents.map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => pickRecent(k)}
+                className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.08)]"
+              >
+                <span aria-hidden className="shrink-0 text-[11px] text-text-3">
+                  ⌕
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-1">
+                  {k}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {open && (q.trim().length > 0) && (
         <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-[300px]">
