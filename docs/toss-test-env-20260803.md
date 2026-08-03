@@ -58,3 +58,32 @@
 - 결제 시작은 로그인 필수: create 라우트 401 + 버튼이 `/login?callbackUrl=` 로
   유도(기존 동작 유지, 토스 레일도 동일 관문 통과).
 - confirm 은 주문 생성자 이메일과 현재 세션 대조(타인 주문 승인 차단 — 기존).
+
+## 2차 반영 (2026-08-03 오후) — 위젯·웹훅·빌링·어드민
+
+상점 심사 접수 확인: 상호 우리동네이야기 · MID nuguzibowg.
+추가 검토 문서: payment-flow · payment-widget/admin · payment-window · billing ·
+webhook · learn/tax · learn/payment-results · get-started/llms-guide.
+
+1. **결제위젯 주문서형 체크아웃** `/subscription/checkout?tier=&billing=`
+   — 결제창 직행을 위젯으로 승격. 이유: 계약 후 상점관리자 어드민에서
+   **코드 수정 없이** 결제수단 추가·UI 변경·프로모션 관리 가능(variantKey 로
+   특정 UI 지정, 미지정 시 기본 UI). 구독 버튼(토스 레일)은 이 페이지로 이동.
+   금액은 서버 계산(create), 승인은 서버 confirm(금액 대조·멱등키) — 불변.
+2. **웹훅 수신** `POST /api/payments/toss/webhook`
+   — PAYMENT_STATUS_CHANGED: 페이로드를 믿지 않고 결제 조회 API 로 재검증 후
+   DONE→paid(+플랜 적용), CANCELED→refunded, ABORTED/EXPIRED→failed(승인 전만).
+   10초 내 200 규칙 준수, 멱등(같은 이벤트 재수신 시 상태 재변경 없음),
+   모르는 주문은 무기록 200. DEPOSIT_CALLBACK(가상계좌)은 미사용 상점이라
+   기록만 남기고 승인하지 않음(발급 시작 시 secret 대조 로직을 붙일 것).
+   **등록(사람)**: 개발자센터 → 웹훅 → https://nuguzip.com/api/payments/toss/webhook
+   · PAYMENT_STATUS_CHANGED 구독.
+3. **자동결제(빌링) 기반 모듈** `lib/payments/toss-billing.ts`
+   — issueBillingKey(authKey 교환)·chargeBillingKey(멱등키 지원). 문서 명시대로
+   리스크 검토·추가 계약 후에만 화면·크론 배선(현재 미배선 — 일회성 결제 유지).
+   customerKey 는 서버 발급 무작위 키 원칙 명문화.
+4. **어드민** `/admin/payments` — 키 환경(test/live/미설정/짝 불일치) 판정,
+   사람 절차 체크리스트(웹훅 등록·테스트 시나리오·위젯 어드민·라이브 전환·
+   세금 파라미터), 최근 결제 20건 실데이터(실패는 실패라고 표기).
+5. **세금** — 과세 상점 기준 vat 자동 계산으로 현행 파라미터 불필요.
+   면세 상품 도입 시 taxFreeAmount 를 결제·취소·현금영수증에 전달해야 함(기록).

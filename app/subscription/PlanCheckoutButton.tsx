@@ -1,11 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  isTossTestEnv,
-  startTossCheckout,
-  tossClientKey,
-} from "./toss-rail";
+import { isTossTestEnv, tossClientKey } from "./toss-rail";
 
 /**
  * 구독 플랜 결제 시작 버튼.
@@ -125,22 +121,12 @@ export function PlanCheckoutButton({
 
     try {
       /* 토스 레일 — NEXT_PUBLIC_TOSS_CLIENT_KEY 가 설정돼 있으면 최우선.
-         카드+간편결제(토스페이)를 한 결제창에서 처리하고, 서버 confirm 이
-         금액 검증·멱등 승인을 맡는다. 테스트 키(test_ck_)면 가상 승인이라
-         실제 청구가 없다(토스 환경 가이드) — 취소는 오류로 취급하지 않는다. */
+         결제위젯 체크아웃 페이지로 보낸다(주문서형 — 계약 후 상점관리자
+         어드민에서 코드 수정 없이 결제수단·UI 관리 가능). 주문 생성·위젯 렌더·
+         실패 안내는 그 페이지가 담당하고, 승인은 서버 confirm 이 맡는다. */
       if (tossClientKey()) {
-        const tossFailure = await startTossCheckout({
-          tier,
-          billing,
-          orderName: `누구집 ${tier === "expert" ? "프로" : "플러스"} ${billingLabel} 구독`,
-          customerEmail: sessionEmail,
-        });
-        if (tossFailure === null) return; // 결제창으로 이동함
-        if (tossFailure.kind === "cancel") {
-          // 사용자가 결제창을 닫음 — 조용히 원상 복귀 (다른 레일로 강제 이동하지 않는다)
-          return;
-        }
-        // 토스 실패 시 아래 기존 레일(카드·카카오페이)로 폴백 — 사유는 이어서 판정
+        window.location.href = `/subscription/checkout?tier=${tier}&billing=${billing}`;
+        return;
       }
 
       /* 레일 순서(항목 32): 연간은 카카오페이 먼저. 연간 카드 상품

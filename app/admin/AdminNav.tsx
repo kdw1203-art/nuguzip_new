@@ -13,6 +13,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/revenue", label: "수익" },
+  { href: "/admin/payments", label: "결제 연동" },
   { href: "/admin/moderation", label: "신고 · 모더레이션" },
   { href: "/admin/quality", label: "품질 · 인증" },
   { href: "/admin/experiments", label: "실험 (A/B)" },
