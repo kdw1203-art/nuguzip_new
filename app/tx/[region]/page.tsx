@@ -257,6 +257,7 @@ export default async function TxRegionPage({
             {siblings.map((s) => (
               <Link
                 key={s.slug}
+                prefetch={false}
                 href={`/tx/${encodeURIComponent(s.slug)}`}
                 className="chip border border-line bg-bg px-3 py-1.5 text-[12px] font-bold text-text-2 no-underline transition-colors hover:border-primary hover:text-primary"
               >

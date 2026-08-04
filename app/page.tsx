@@ -133,9 +133,10 @@ function MarketStrip({
             { label: "기준금리", value: baseRate, accent: false },
             { label: "대출금리", value: loanRate, accent: true },
           ].map((s) => (
-            <div key={s.label} className="glass min-w-0 flex-1 rounded-2xl px-3 py-2.5">
+            /* 최적화 4 — 모바일 KPI 3장 밀도: 패딩·숫자 1단계 축소(라벨 유지) */
+            <div key={s.label} className="glass min-w-0 flex-1 rounded-[13px] px-2.5 py-2">
               <div className="whitespace-nowrap text-[11px] text-text-3">{s.label}</div>
-              <div className={`t-num text-base ${s.accent ? "text-primary" : "text-ink"}`}>
+              <div className={`t-num text-[15px] ${s.accent ? "text-primary" : "text-ink"}`}>
                 {s.value}
               </div>
             </div>

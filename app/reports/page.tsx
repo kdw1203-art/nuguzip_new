@@ -154,6 +154,7 @@ export default async function ReportsIndexPage() {
                       {byYear.get(y)!.map((m, i) => (
                         <Link
                           key={m.ym}
+                          prefetch={false}
                           href={`/reports/${m.ym}`}
                           className={`rise-in-${Math.min(i + 2, 6)} card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline`}
                         >

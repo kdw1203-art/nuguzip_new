@@ -641,7 +641,7 @@ export function ListingForm() {
               className="relative h-20 w-20 overflow-hidden rounded-xl border border-[rgba(0,0,0,.06)]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt={`매물 사진 ${i + 1}`} className="h-full w-full object-cover" />
+              <img loading="lazy" decoding="async" src={url} alt={`매물 사진 ${i + 1}`} className="h-full w-full object-cover" />
               {i === 0 && (
                 <span className="absolute left-1 top-1 rounded-md bg-[rgba(29,79,216,.85)] px-1.5 py-0.5 text-[10px] font-bold text-white">
                   대표

@@ -225,7 +225,7 @@ export default async function MyPage() {
             <div className="flex items-center gap-3">
               {profile.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <img loading="lazy" decoding="async"
                   src={profile.avatarUrl}
                   alt=""
                   className="h-12 w-12 rounded-full object-cover"

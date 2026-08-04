@@ -360,6 +360,9 @@ runGate("데이터", "envKey 이름 ↔ 실제 참조 일치", "check-env-key-na
     "--pad-card",
     "--pad-hero",
     "--radius-card",
+    /* 2026-08-04 3차 축소에서 간격 토큰도 압축 대상이 됐다 */
+    "--sp-card-gap",
+    "--sp-section",
   ];
   const grab = (src, token) => {
     const m = src.match(new RegExp(`${token}:\\s*([^;]+);`));

@@ -95,6 +95,7 @@ export function GlossarySearch({ groups }: { groups: GlossaryGroupData[] }) {
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 {g.terms.map((t) => (
                   <Link
+                    prefetch={false}
                     key={t.slug}
                     href={`/glossary/${t.slug}`}
                     className="card rounded-[14px] p-4"

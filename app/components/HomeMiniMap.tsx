@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
@@ -75,6 +75,31 @@ export function HomeMiniMap({
      남양주 포함)이라 서로 다른 얘기를 했다. 관심지역+시세가 해석되면 그걸로
      마커를 교체한다. 해석 실패·비로그인이면 종전(홈 카드) 유지. */
   const [personalRegions, setPersonalRegions] = useState<HomeMiniRegion[] | null>(null);
+  /* 최적화 11 — 지연 마운트. 네이버 지도 SDK(외부 스크립트)가 홈 첫 페인트에
+     같이 실렸다. 카드가 뷰포트 300px 안에 들어올 때만 지도를 마운트한다 —
+     그 전에는 같은 크기의 정적 자리(그라데이션)만. 관측 실패(구형 브라우저)
+     시 즉시 마운트로 폴백. */
+  const [near, setNear] = useState(false);
+  const rootElRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = rootElRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver !== "function") {
+      setNear(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // 로그인 시 관심지역으로 중심 이동 (세션/알림 기반) — 실패·비로그인 시 조용히 유지
   useEffect(() => {
@@ -192,24 +217,32 @@ export function HomeMiniMap({
 
   return (
     <div
+      ref={rootElRef}
       className={`bento hover-rise relative [box-shadow:var(--shadow-sm)] ${
         fallbackActive ? "h-[112px] md:h-[200px]" : className
       }`}
     >
-      {/* 지도 (풀블리드) */}
+      {/* 지도 (풀블리드) — near 전에는 SDK 를 싣지 않는다(최적화 11) */}
       <div className="absolute inset-0">
-        <NaverMap
-          markers={markers}
-          center={focus.center}
-          level={focus.level}
-          fitToMarkers={fitToMarkers}
-          showControls={false}
-          rounded={false}
-          className="h-full w-full"
-          onMarkerClick={() => router.push("/map")}
-          fallback={staticFallback}
-          onFallbackChange={setFallbackActive}
-        />
+        {near ? (
+          <NaverMap
+            markers={markers}
+            center={focus.center}
+            level={focus.level}
+            fitToMarkers={fitToMarkers}
+            showControls={false}
+            rounded={false}
+            className="h-full w-full"
+            onMarkerClick={() => router.push("/map")}
+            fallback={staticFallback}
+            onFallbackChange={setFallbackActive}
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="h-full w-full bg-gradient-to-br from-[#e6ecf9] to-[#cdd9f0]"
+          />
+        )}
       </div>
 
       {/* 폴백일 때는 오버레이(배지·하단 바)를 걷는다 — 축소된 카드 위에

@@ -5,11 +5,11 @@ import type { ReactNode } from "react";
 
 /* 이미지 폴백 (#18) — 커버/썸네일 이미지가 없거나(로드 실패 포함) 깨질 때
    브라우저 기본 "깨진 이미지" 아이콘 대신 지정한 폴백(그라디언트·아이콘)을 노출한다.
-   SSR 시엔 <img>를 그대로 렌더하고, onError가 발생하면 클라이언트에서 폴백으로 교체. */
+   SSR 시엔 <img loading="lazy" decoding="async">를 그대로 렌더하고, onError가 발생하면 클라이언트에서 폴백으로 교체. */
 type CoverImageProps = {
   src?: string | null;
   alt?: string;
-  /** <img>에 적용할 클래스 (absolute inset-0 / block w-full 등 레이아웃은 호출부가 결정) */
+  /** <img loading="lazy" decoding="async">에 적용할 클래스 (absolute inset-0 / block w-full 등 레이아웃은 호출부가 결정) */
   imgClassName?: string;
   /** src가 없거나 로드 실패 시 렌더할 폴백 노드 */
   fallback?: ReactNode;

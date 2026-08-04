@@ -1596,7 +1596,7 @@ export function NoteForm({
               {photos.map((p) => (
                 <div key={p} className="relative shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={p}
                     alt="현장 사진"
                     className="h-[62px] w-[84px] rounded-[10px] object-cover"
