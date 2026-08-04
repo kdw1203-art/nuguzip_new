@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pushRecentSearch, readRecentSearches } from "@/lib/search/recent-searches";
+import { useSettledSearchQuery } from "@/lib/search/settle";
 
 /* P2-14: 데스크탑 GNB 검색 — input + 통합 자동완성.
-   /api/search/unified?q= (디바운스 200ms) · 단지·매물·노트·뉴스 그룹 제안.
+   /api/search/unified?q= (대기 규칙은 lib/search/settle) · 단지·매물·노트·뉴스 그룹 제안.
    항목 클릭 → 각 상세 · Enter → /search?q=… · Esc 닫기. 스타일은 기존 글래스 인풋 유지. */
 
 interface UnifiedResults {
@@ -50,6 +51,7 @@ export function HeaderSearch() {
   const boxRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const { query: settledQuery, compositionProps } = useSettledSearchQuery(q);
 
   /* 항목 12 — `/` 단축키로 검색 진입. 입력 중(폼 요소·contentEditable)에는
      끼어들지 않는다. 헤더 인풋이 화면에 없는 뷰포트(lg 미만)에서는 /search 로. */
@@ -75,19 +77,22 @@ export function HeaderSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, [router]);
 
-  /* 디바운스 200ms 통합 서제스트 */
+  /* 통합 서제스트 — 대기 시간은 lib/search/settle 에 모아 뒀다(값이 화면마다
+     달랐던 이유가 어디에도 없었다). 한글 조합 중에는 더 길게 기다린다:
+     예전 200ms 로는 380ms 간격으로 치는 사람에게 "ㄹ","라","래","램"… 이
+     그대로 요청으로 나갔다(실측). */
   useEffect(() => {
-    const query = q.trim();
+    const query = settledQuery;
     if (!query) {
       setItems([]);
       setFailed([]);
       setOpen(false);
       return;
     }
-    const timer = setTimeout(async () => {
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    void (async () => {
       try {
         const res = await fetch(`/api/search/unified?q=${encodeURIComponent(query)}`, {
           signal: ac.signal,
@@ -112,9 +117,11 @@ export function HeaderSearch() {
           setOpen(false);
         }
       }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [q]);
+    })();
+    /* 검색어가 바뀌면 이전 요청을 취소한다 — 늦게 도착한 옛 응답이 새 검색어의
+       결과를 덮어쓰면, 화면은 사용자가 치지 않은 말에 답하게 된다. */
+    return () => ac.abort();
+  }, [settledQuery]);
 
   /* 바깥 클릭 시 드롭다운 닫기 */
   useEffect(() => {
@@ -158,6 +165,7 @@ export function HeaderSearch() {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          {...compositionProps}
           onFocus={() => {
             if (q.trim() && items.length > 0) {
               setOpen(true);

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/app/components/Icon";
+import { useSettledSearchQuery } from "@/lib/search/settle";
 
 /**
  * 임장노트 위치 검색 — 단지명·주소로 검색해 노트에 위치를 연결한다.
@@ -33,6 +34,12 @@ export function NoteLocationSearch({
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  /* 대기 규칙은 lib/search/settle 한 군데에서만 정한다. */
+  const { query: settled, compositionProps } = useSettledSearchQuery(q);
+  /* 아직 굳지 않은 입력 = "아직 안 물어본 상태"다. 이걸 로딩으로 안 치면
+     치는 도중에 "검색 결과가 없어요"가 떴다 사라진다 — 확인한 적 없는 사실을
+     화면에 쓰는 셈이다. */
+  const pending = q.trim().length >= 2 && q.trim() !== settled;
 
   // 바깥 클릭 시 닫기
   useEffect(() => {
@@ -44,9 +51,9 @@ export function NoteLocationSearch({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  // 디바운스 검색
+  // 입력이 굳은 뒤 검색 (대기 규칙: lib/search/settle)
   useEffect(() => {
-    const term = q.trim();
+    const term = settled;
     if (term.length < 2) {
       setSuggestions([]);
       setPlaces([]);
@@ -55,25 +62,20 @@ export function NoteLocationSearch({
     }
     const controller = new AbortController();
     setLoading(true);
-    const t = setTimeout(() => {
-      fetch(`/api/search/suggest?q=${encodeURIComponent(term)}`, { signal: controller.signal })
-        .then((r) => (r.ok ? r.json() : { suggestions: [], places: [] }))
-        .then((json: { suggestions?: Suggestion[]; places?: Place[] }) => {
-          setSuggestions(Array.isArray(json.suggestions) ? json.suggestions.slice(0, 8) : []);
-          setPlaces(Array.isArray(json.places) ? json.places.slice(0, 5) : []);
-        })
-        .catch(() => {
-          /* abort/오류 무시 */
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setLoading(false);
-        });
-    }, 250);
-    return () => {
-      clearTimeout(t);
-      controller.abort();
-    };
-  }, [q]);
+    fetch(`/api/search/suggest?q=${encodeURIComponent(term)}`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : { suggestions: [], places: [] }))
+      .then((json: { suggestions?: Suggestion[]; places?: Place[] }) => {
+        setSuggestions(Array.isArray(json.suggestions) ? json.suggestions.slice(0, 8) : []);
+        setPlaces(Array.isArray(json.places) ? json.places.slice(0, 5) : []);
+      })
+      .catch(() => {
+        /* abort/오류 무시 */
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [settled]);
 
   const pickComplex = (s: Suggestion) => {
     // 즉시 반영(반응성) 후, 주소 on-demand 지오코딩으로 좌표 보강(노트에 위치 저장)
@@ -129,6 +131,7 @@ export function NoteLocationSearch({
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              {...compositionProps}
               placeholder="단지명 또는 주소 (예: 은마아파트, 대치동)"
               className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-text-3"
             />
@@ -140,7 +143,7 @@ export function NoteLocationSearch({
           </div>
 
           <div className="mt-2 max-h-[280px] overflow-y-auto">
-            {loading ? (
+            {loading || pending ? (
               <div className="px-2 py-3 text-[12px] text-text-3">검색 중…</div>
             ) : q.trim().length < 2 ? (
               <div className="px-2 py-3 text-[12px] text-text-3">두 글자 이상 입력해 주세요.</div>

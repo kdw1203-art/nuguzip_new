@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveRegion } from "./region-map";
+import { useSettledSearchQuery } from "@/lib/search/settle";
 
 /* ============================================================
    단지 선택기 (분석 도구 공용) — 검색 → 서제스트 드롭다운 → 단지 선택.
-   - 입력: 디바운스(250ms) 후 GET /api/search/suggest?q=
+   - 입력: 굳은 뒤(대기 규칙은 lib/search/settle) GET /api/search/suggest?q=
    - 선택: GET /api/complex/[id]/detail 로 지역·최근 실거래가 보강
    - 딥링크: props(initialComplexId/initialApt)가 없으면 현재 URL의
      ?complexId= / ?apt= 를 읽어 초기 선택 (지도/검색 → 분석 seamless)
@@ -95,6 +96,10 @@ export function ComplexPicker({
   label?: string;
 }) {
   const [query, setQuery] = useState("");
+  /* 대기 규칙은 lib/search/settle 한 군데에서만 정한다(예전엔 여기 250ms 를
+     따로 적어 뒀다). 한글 조합 중에는 더 오래 기다린다 — 조합 중간 상태
+     ("ㄹ","라","래","램"…)로 단지 서제스트를 부르는 건 헛수고다. */
+  const { query: settledQuery, compositionProps } = useSettledSearchQuery(query);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -202,17 +207,16 @@ export function ComplexPicker({
     }
   }, [initialComplexId, initialApt, clearOnSelect, runSuggest]);
 
-  // 입력 디바운스 검색
+  // 입력이 굳은 뒤 검색 (대기 규칙: lib/search/settle)
   useEffect(() => {
-    if (!query.trim()) {
+    if (!settledQuery) {
       setItems([]);
       setOpen(false);
       return;
     }
-    if (selected && query === selected.name) return; // 방금 선택한 값은 재검색 안 함
-    const t = setTimeout(() => void runSuggest(query), 250);
-    return () => clearTimeout(t);
-  }, [query, selected, runSuggest]);
+    if (selected && settledQuery === selected.name) return; // 방금 선택한 값은 재검색 안 함
+    void runSuggest(settledQuery);
+  }, [settledQuery, selected, runSuggest]);
 
   // 바깥 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -229,6 +233,7 @@ export function ComplexPicker({
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        {...compositionProps}
         onFocus={() => {
           if (items.length) setOpen(true);
         }}

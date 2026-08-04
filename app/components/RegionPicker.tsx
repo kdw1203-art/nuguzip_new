@@ -26,6 +26,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSettledSearchQuery } from "@/lib/search/settle";
 
 export interface RegionSuggestItem {
   code: string;
@@ -49,7 +50,6 @@ type Props = {
   inputId?: string;
 };
 
-const DEBOUNCE_MS = 180;
 
 export function RegionPicker({
   value,
@@ -60,6 +60,9 @@ export function RegionPicker({
   inputId = "region-search",
 }: Props) {
   const [query, setQuery] = useState("");
+  /* 대기 규칙은 lib/search/settle 한 군데에서만 정한다. 예전에는 이 파일이
+     180ms 를 혼자 적어 뒀고, 왜 다른지는 아무 데도 없었다. */
+  const { query: settledQuery, compositionProps } = useSettledSearchQuery(query);
   const [popular, setPopular] = useState<RegionSuggestItem[]>([]);
   const [results, setResults] = useState<RegionSuggestItem[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,7 +101,7 @@ export function RegionPicker({
   /* 검색 — 입력이 멎고 나서 부른다. 이전 요청은 취소한다(늦게 온 옛 응답이
      새 응답을 덮어써 엉뚱한 목록이 뜨던 흔한 버그 방지). */
   useEffect(() => {
-    const q = query.trim();
+    const q = settledQuery;
     if (!q) {
       setResults(null);
       setLoading(false);
@@ -107,7 +110,7 @@ export function RegionPicker({
     }
     const ac = new AbortController();
     setLoading(true);
-    const timer = setTimeout(async () => {
+    void (async () => {
       try {
         const res = await fetch(`/api/regions/search?q=${encodeURIComponent(q)}&limit=12`, {
           signal: ac.signal,
@@ -128,12 +131,9 @@ export function RegionPicker({
       } finally {
         setLoading(false);
       }
-    }, DEBOUNCE_MS);
-    return () => {
-      clearTimeout(timer);
-      ac.abort();
-    };
-  }, [query]);
+    })();
+    return () => ac.abort();
+  }, [settledQuery]);
 
   // 바깥 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -170,6 +170,11 @@ export function RegionPicker({
   }, [popular, value]);
 
   const list = results ?? [];
+  /* 아직 굳지 않은 입력은 "아직 안 물어본 상태"다. 이걸 대기로 안 치면 치는
+     도중에 "일치하는 시·군·구가 없어요"가 떴다 사라진다 — 확인한 적 없는
+     사실을 화면에 쓰는 셈이다. */
+  const pending = query.trim() !== "" && query.trim() !== settledQuery;
+  const busy = loading || pending;
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open || list.length === 0) return;
@@ -204,6 +209,7 @@ export function RegionPicker({
             setQuery(e.target.value);
             setOpen(true);
           }}
+          {...compositionProps}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="지역 검색 (예: 마포, 분당, 해운대)"
@@ -220,15 +226,15 @@ export function RegionPicker({
             role="listbox"
             className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-[260px] overflow-y-auto rounded-[12px] border border-[#e2e7ee] bg-surface shadow-lg"
           >
-            {loading && list.length === 0 && (
+            {busy && list.length === 0 && (
               <div className="px-4 py-3 text-xs text-text-3">찾는 중…</div>
             )}
-            {!loading && failed && (
+            {!busy && failed && (
               <div className="px-4 py-3 text-xs text-text-3">
                 지역을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
               </div>
             )}
-            {!loading && !failed && list.length === 0 && (
+            {!busy && !failed && list.length === 0 && (
               <div className="px-4 py-3 text-xs text-text-3">
                 일치하는 시·군·구가 없어요. 구 이름으로 찾아보세요.
               </div>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "@/app/components/Icon";
+import { useSettledSearchQuery } from "@/lib/search/settle";
 
 /* ============================================================
    지도 단지 검색 박스 (6a·item1) — 아파트명·주소 자동완성.
@@ -78,7 +79,6 @@ interface MapSearchBoxProps {
   autoFocus?: boolean;
 }
 
-const DEBOUNCE_MS = 280;
 
 /** 주소성 질의 판정 — 숫자 포함 또는 행정구역/도로명 접미 */
 function looksLikeAddress(q: string): boolean {
@@ -101,12 +101,19 @@ export function MapSearchBox({
   const [address, setAddress] = useState<GeocodeItem | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const timerRef = useRef<number | null>(null);
+  const { query: settledQuery, compositionProps } = useSettledSearchQuery(query);
+  /* 아직 굳지 않은 입력은 "아직 안 물어본 상태"다. 이걸 대기로 안 치면 치는
+     도중에 "일치하는 단지가 없어요"가 떴다 사라진다 — 확인한 적 없는 사실을
+     화면에 쓰는 셈이다. */
+  const busy = loading || (query.trim() !== "" && query.trim() !== settledQuery);
 
-  // 디바운스 검색 — 단지 서제스트 + (주소성) 지오코딩 best-effort
+  /* 검색 — 단지 서제스트 + (주소성) 지오코딩 best-effort.
+     대기 규칙은 lib/search/settle 한 군데에서만 정한다. 예전에는 이 파일이
+     280ms, 헤더가 200ms, 통합검색이 250ms 를 각자 적어 뒀고 왜 다른지는
+     아무 데도 없었다. 한글 조합 중에는 더 길게 기다린다 — 조합 중간 상태는
+     검색어가 아니다. */
   useEffect(() => {
-    const q = query.trim();
-    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    const q = settledQuery;
     if (q.length < 1) {
       abortRef.current?.abort();
       setComplexes([]);
@@ -116,7 +123,7 @@ export function MapSearchBox({
       return;
     }
     setLoading(true);
-    timerRef.current = window.setTimeout(() => {
+    {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -151,11 +158,9 @@ export function MapSearchBox({
         setLoading(false);
         setOpen(true);
       });
-    }, DEBOUNCE_MS);
-    return () => {
-      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    };
-  }, [query]);
+      return () => controller.abort();
+    }
+  }, [settledQuery]);
 
   // 아웃사이드 클릭 → 드롭다운 닫기
   useEffect(() => {
@@ -235,6 +240,7 @@ export function MapSearchBox({
           value={query}
           autoFocus={autoFocus}
           onChange={(e) => setQuery(e.target.value)}
+          {...compositionProps}
           onFocus={() => hasResults && setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
@@ -255,10 +261,10 @@ export function MapSearchBox({
 
       {open && query.trim().length >= 1 && (
         <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[60vh] overflow-y-auto rounded-2xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.98)] p-1.5 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
-          {loading && !hasResults && (
+          {busy && !hasResults && (
             <div className="px-3 py-3 text-xs text-text-3">검색 중…</div>
           )}
-          {!loading && !hasResults && (
+          {!busy && !hasResults && (
             <div className="px-3 py-3 text-xs text-text-3">일치하는 단지가 없어요.</div>
           )}
           {address && (

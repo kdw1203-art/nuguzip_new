@@ -8,10 +8,11 @@ import {
   readRecentSearches,
   writeRecentSearches,
 } from "@/lib/search/recent-searches";
+import { useSettledSearchQuery } from "@/lib/search/settle";
 
 /* ============================================================
    통합 검색 경험 — 단지·매물·임장노트·뉴스 통합 결과
-   /api/search/unified?q= (디바운스 250ms) · 그룹별 섹션 + 더 보기
+   /api/search/unified?q= (대기 규칙은 lib/search/settle) · 그룹별 섹션 + 더 보기
    각 항목 → 상세(/complex·/listings·/notes·/town/news)
    최근 검색 5개 localStorage · 빈/로딩 상태 처리
    ============================================================ */
@@ -69,6 +70,11 @@ export function SearchClient() {
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const { query: settledQuery, compositionProps } = useSettledSearchQuery(q);
+  /* 아직 굳지 않은 입력은 "아직 안 물어본 상태"다. 이걸 대기로 안 치면 치는
+     도중에 "검색 결과가 없어요"가 떴다 사라진다 — 확인한 적 없는 사실을
+     화면에 쓰는 셈이다. */
+  const busy = loading || (q.trim() !== "" && q.trim() !== settledQuery);
   const inputRef = useRef<HTMLInputElement>(null);
 
   /* 마운트: 최근 검색 로드 + URL(?q=) 프리필 */
@@ -89,9 +95,11 @@ export function SearchClient() {
     }
   }, []);
 
-  /* 디바운스 250ms 통합 검색 */
+  /* 통합 검색 — 대기 규칙은 lib/search/settle 한 군데에서만 정한다.
+     한글 조합 중에는 더 길게 기다린다(조합 중간 상태 "ㄹ","래ㅁ" 로는 아무도
+     검색하지 않는데, 예전에는 그 상태가 그대로 요청으로 나갔다). */
   useEffect(() => {
-    const query = q.trim();
+    const query = settledQuery;
     if (!query) {
       setResults(EMPTY);
       setSuggestions([]);
@@ -101,10 +109,10 @@ export function SearchClient() {
       return;
     }
     setLoading(true);
-    const timer = setTimeout(async () => {
-      abortRef.current?.abort();
-      const ac = new AbortController();
-      abortRef.current = ac;
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    void (async () => {
       try {
         const res = await fetch(`/api/search/unified?q=${encodeURIComponent(query)}`, {
           signal: ac.signal,
@@ -132,9 +140,11 @@ export function SearchClient() {
       } finally {
         if (!ac.signal.aborted) setLoading(false);
       }
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [q]);
+    })();
+    /* 검색어가 바뀌면 직전 요청을 취소한다 — 늦게 온 옛 응답이 새 결과를
+       덮으면 화면이 사용자가 치지 않은 말에 답하게 된다. */
+    return () => ac.abort();
+  }, [settledQuery]);
 
   const saveRecent = useCallback((keyword: string) => {
     const k = keyword.trim();
@@ -215,6 +225,7 @@ export function SearchClient() {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          {...compositionProps}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -301,12 +312,12 @@ export function SearchClient() {
       )}
 
       {/* 로딩 */}
-      {hasQuery && loading && total === 0 && (
+      {hasQuery && busy && total === 0 && (
         <div className="mt-6 text-center text-sm text-text-3">검색 중…</div>
       )}
 
       {/* 조회 실패 — "없음"이 아니라 "못 불러왔음"으로 적는다 */}
-      {hasQuery && !loading && failed.length > 0 && (
+      {hasQuery && !busy && failed.length > 0 && (
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
           <div className="text-[15px] font-extrabold text-ink">
             지금은 {failed.join("·")} 검색이 되지 않아요
@@ -318,7 +329,7 @@ export function SearchClient() {
       )}
 
       {/* 빈 결과 + A8 대안 단지 제안 */}
-      {hasQuery && !loading && failed.length === 0 && total === 0 && (
+      {hasQuery && !busy && failed.length === 0 && total === 0 && (
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
           <div className="text-[15px] font-extrabold text-ink">
             ‘{q.trim()}’ 검색 결과가 없어요
