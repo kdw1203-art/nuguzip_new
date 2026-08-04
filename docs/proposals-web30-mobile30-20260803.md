@@ -243,3 +243,9 @@
   색) + LCP·CLS 주간 p75 추이 12주(web_vitals_weekly 뷰 신설 —
   percentile_cont DB 계산, 표본 20 미만 주는 옅게 표시). 적용 시점 실데이터:
   LCP p75 2.3~3.0s, CLS 0.4→0.002 개선 추이 시각 확인 가능).
+- W3 3차(이 커밋): 웹18(웹바이탈 어드민 시각화 — loadVitalsLast7d 는 이월
+  44 때 만들어졌지만 소비처가 없던 로더였다(화면 없는 로더 = 없는 기능).
+  트래픽 대시보드에 첫 배선: 7일 p75 칩(LCP·INP·CLS·FCP·TTFB, 웹 표준
+  임계값 색) + LCP·CLS 주간 p75 추이 12주(web_vitals_weekly 뷰 신설 —
+  percentile_cont DB 계산, 표본 20 미만 주는 옅게). 적용 시점 실데이터:
+  CLS p75 0.4(6월) → 0.002~0.011(최근) 개선 추이가 실제로 보임).
