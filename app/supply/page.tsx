@@ -285,7 +285,7 @@ export default async function SupplyPage({
                     className="rise-in-2 flex flex-col gap-3 rounded-2xl border-[1.5px] border-primary bg-surface px-[18px] py-3.5 md:flex-row md:items-center md:justify-between"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="shrink-0 rounded-md bg-primary px-2 py-1 text-[11px] font-extrabold text-white">
+                      <span className="shrink-0 rounded-md bg-primary chip-pad text-[11px] font-extrabold text-white">
                         {monthLabel(s.moveInYm)}
                       </span>
                       <div className="min-w-0">
@@ -338,7 +338,7 @@ export default async function SupplyPage({
                     className="rise-in-3 card flex items-center justify-between gap-3 rounded-2xl px-[18px] py-3.5"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="shrink-0 rounded-md bg-[#f2f4f8] px-2 py-1 text-[11px] font-extrabold text-text-2">
+                      <span className="shrink-0 rounded-md bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
                         {monthLabel(s.moveInYm)}
                       </span>
                       <div className="min-w-0">

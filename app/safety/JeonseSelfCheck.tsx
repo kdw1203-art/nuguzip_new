@@ -74,7 +74,7 @@ function LevelBadge({ level }: { level: Level }) {
   const s = LEVEL_STYLE[level];
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
+      className="inline-flex items-center gap-1 rounded-full chip-pad text-[11px] font-bold"
       style={{ background: s.soft, color: s.color }}
     >
       <Icon name={level === "안전" ? "check" : "warning"} size={12} />

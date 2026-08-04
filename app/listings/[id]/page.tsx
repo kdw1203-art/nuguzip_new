@@ -294,7 +294,7 @@ export default async function ListingDetailPage({
           {/* 배지 */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span
-              className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${
+              className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
                 listing.source === "owner"
                   ? "bg-[rgba(29,79,216,.08)] text-primary"
                   : "bg-[#fdf3e7] text-warning"
@@ -302,27 +302,27 @@ export default async function ListingDetailPage({
             >
               {LISTING_SOURCE_LABEL[listing.source]}
             </span>
-            <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
+            <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
               {LISTING_TYPE_LABEL[listing.listingType]}
             </span>
             {category && (
-              <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
+              <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
                 {category}
               </span>
             )}
             {listing.ownerVerified && (
-              <span className="rounded-[6px] bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
+              <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
                 소유확인
               </span>
             )}
             {boostOn && (
-              <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
+              <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
                 부스트
               </span>
             )}
             {stale && (
               <span
-                className="rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold"
+                className="rounded-[6px] chip-pad text-[11px] font-extrabold"
                 style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
               >
                 확인 필요
@@ -341,7 +341,7 @@ export default async function ListingDetailPage({
               </span>
               {compareBadge && (
                 <span
-                  className={`rounded-[7px] px-2 py-[3px] text-[12px] font-extrabold ${compareBadge.className}`}
+                  className={`rounded-[7px] chip-pad text-[12px] font-extrabold ${compareBadge.className}`}
                 >
                   {compareBadge.label}
                 </span>
@@ -415,7 +415,7 @@ export default async function ListingDetailPage({
                   </span>
                 </h2>
                 <span
-                  className={`shrink-0 rounded-[7px] px-2 py-[3px] text-[12px] font-extrabold ${compareBadge.className}`}
+                  className={`shrink-0 rounded-[7px] chip-pad text-[12px] font-extrabold ${compareBadge.className}`}
                 >
                   {compareBadge.label}
                 </span>

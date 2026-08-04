@@ -66,7 +66,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
     <div className="flex flex-col gap-2 rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.04)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className="rounded-[6px] px-2 py-[2px] text-[10px] font-extrabold"
+          className="rounded-[6px] chip-pad text-[10px] font-extrabold"
           style={{ color: meta.color, background: meta.bg }}
         >
           {meta.label}

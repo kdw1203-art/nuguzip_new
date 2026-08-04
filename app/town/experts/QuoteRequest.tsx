@@ -235,7 +235,7 @@ export function QuoteRequestModal({
                   {myRequests.slice(0, 5).map((r) => (
                     <li key={r.id} className="flex items-center gap-2 py-2">
                       <span
-                        className={`shrink-0 rounded-[5px] px-[7px] py-px text-[10px] font-extrabold ${
+                        className={`shrink-0 rounded-[5px] chip-pad-tight text-[10px] font-extrabold ${
                           r.status === "open"
                             ? "bg-primary-soft text-primary"
                             : "bg-[#f2f4f8] text-text-3"

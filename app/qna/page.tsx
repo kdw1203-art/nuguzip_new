@@ -122,19 +122,19 @@ function QuestionCard({ row }: { row: QuestionRow }) {
     <article className="card card-hover flex flex-col gap-2">
       <div className="flex items-center gap-1.5">
         <span
-          className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${
+          className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
             answered ? "bg-primary-soft text-primary" : "bg-[rgba(127,140,158,.14)] text-text-2"
           }`}
         >
           {answered ? "답변 완료" : "답변 대기"}
         </span>
         {q.bountyPoints > 0 && (
-          <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
+          <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
             현상금 {q.bountyPoints.toLocaleString()}P
           </span>
         )}
         {q.isSample && (
-          <span className="rounded-full bg-[rgba(127,140,158,.12)] px-2 py-0.5 text-[11px] font-semibold text-text-3">
+          <span className="rounded-full bg-[rgba(127,140,158,.12)] chip-pad text-[11px] font-semibold text-text-3">
             예시
           </span>
         )}
@@ -151,7 +151,7 @@ function QuestionCard({ row }: { row: QuestionRow }) {
       {q.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {q.tags.slice(0, 5).map((t) => (
-            <span key={t} className="chip-tag px-2 py-0.5 text-[10px]">
+            <span key={t} className="chip-tag chip-pad text-[10px]">
               #{t}
             </span>
           ))}

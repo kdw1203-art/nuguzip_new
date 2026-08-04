@@ -75,7 +75,7 @@ function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
         }
       />
       <span
-        className={`absolute left-2 top-2 rounded-[5px] px-2 py-[3px] text-[10px] font-extrabold ${badgeStyle(post.category)}`}
+        className={`absolute left-2 top-2 rounded-[5px] chip-pad text-[10px] font-extrabold ${badgeStyle(post.category)}`}
       >
         {post.category || "뉴스"}
       </span>
@@ -289,7 +289,7 @@ export default async function TownNewsPage({
             className="relative h-[200px] w-full"
             style={{ background: seedGradient("molit") }}
           >
-            <span className="absolute left-2 top-2 rounded-[5px] bg-[#edf2fe] px-2 py-[3px] text-[10px] font-extrabold text-primary">
+            <span className="absolute left-2 top-2 rounded-[5px] bg-[#edf2fe] chip-pad text-[10px] font-extrabold text-primary">
               {EXAMPLE_NEWS.category}
             </span>
             <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">

@@ -50,7 +50,7 @@ function ScoreDelta({ delta }: { delta: number }) {
   const sign = delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "0";
   return (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-md bg-[rgba(0,0,0,.035)] px-1.5 py-0.5 text-[11px] ${cls}`}
+      className={`inline-flex items-center gap-0.5 rounded-md bg-[rgba(0,0,0,.035)] chip-pad-tight text-[11px] ${cls}`}
       aria-label={`이전 회차 대비 ${delta > 0 ? "상승" : delta < 0 ? "하락" : "동일"} ${Math.abs(delta)}점`}
     >
       <span aria-hidden="true">{glyph}</span>

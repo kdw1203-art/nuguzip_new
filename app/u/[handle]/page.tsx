@@ -305,7 +305,7 @@ export default async function PublicProfilePage({
                     {g.title}
                   </span>
                   {i === grid.length - 1 && noteCount > grid.length && (
-                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-ink/85 px-[6px] py-[2px] text-[9px] font-extrabold text-white">
+                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-ink/85 chip-pad-tight text-[9px] font-extrabold text-white">
                       +{noteCount - grid.length}
                     </span>
                   )}

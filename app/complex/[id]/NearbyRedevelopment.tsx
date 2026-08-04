@@ -42,10 +42,10 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
         {projects.map((p) => (
           <div key={p.id} className="card flex flex-col gap-1.5 rounded-2xl px-4 py-3.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
+              <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
                 {typeLabel(p.typeKey)}
               </span>
-              <span className="rounded-[6px] bg-primary-soft px-2 py-[3px] text-[11px] font-extrabold text-primary">
+              <span className="rounded-[6px] bg-primary-soft chip-pad text-[11px] font-extrabold text-primary">
                 {stageLabel(p.stageKey)}
               </span>
             </div>

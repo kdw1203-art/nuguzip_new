@@ -39,7 +39,7 @@ export function HoloAvatar({
 export function TopScoutBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-[9px] py-[3px] text-[9px] font-extrabold ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full border chip-pad text-[9px] font-extrabold ${className}`}
       style={{
         color: "#7ea2ff",
         background: "rgba(126,162,255,.14)",

@@ -383,7 +383,7 @@ export function ComplexHubTabs({
             >
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${
+                  className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${
                     l.urgent ? "bg-danger-soft text-danger" : "bg-[#f2f4f8] font-bold text-text-2"
                   }`}
                 >

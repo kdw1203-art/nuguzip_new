@@ -200,7 +200,7 @@ export default async function RedevelopmentPage() {
                 <div className={i < STAGE_GUIDES.length - 1 ? "min-w-0 pb-6" : "min-w-0"}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[14px] font-extrabold text-ink">{s.longLabel}</span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(29,79,216,.06)] px-2 py-0.5 text-[10px] font-semibold text-[#5b74b8]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(29,79,216,.06)] chip-pad text-[10px] font-semibold text-[#5b74b8]">
                       <Icon name="clock" size={11} />
                       {s.period}
                     </span>

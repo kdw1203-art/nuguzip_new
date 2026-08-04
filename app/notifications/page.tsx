@@ -515,7 +515,7 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-[22px] font-extrabold text-ink">알림</h1>
             {mode === "live" && unreadCount > 0 && (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-extrabold text-white">
+              <span className="rounded-full bg-primary chip-pad text-[11px] font-extrabold text-white">
                 {unreadCount}
               </span>
             )}

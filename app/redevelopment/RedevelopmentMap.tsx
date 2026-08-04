@@ -309,7 +309,7 @@ export function RedevelopmentMap({
           </span>
           <span className="text-text-3">/ 전체 {total.toLocaleString("ko-KR")}곳</span>
           {sigungu ? (
-            <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-bold text-primary">
+            <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-bold text-primary">
               {sigungu}
             </span>
           ) : null}
@@ -447,12 +447,12 @@ export function RedevelopmentMap({
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span
-                      className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      className="rounded-full chip-pad text-[11px] font-semibold"
                       style={{ background: `${color}1a`, color }}
                     >
                       {labelForType(p.typeKey)}
                     </span>
-                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
                       {stageLabel(p.stageKey)}
                     </span>
                   </div>

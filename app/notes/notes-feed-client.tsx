@@ -139,7 +139,7 @@ function GridTile({ n }: { n: FeedNote }) {
         }
       />
       {/* 점수 배지 (인스타 조회수/캐러셀 인디케이터 위치) */}
-      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:text-[11px]">
+      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 chip-pad-tight text-[10px] font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:text-[11px]">
         체크 {n.score}
       </span>
       {n.isExample && (

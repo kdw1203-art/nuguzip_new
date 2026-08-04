@@ -180,7 +180,7 @@ export function VerificationQueue({ queue }: { queue: QueueItem[] }) {
             </div>
             <Link
               href="/admin/listings"
-              className="flex-shrink-0 rounded-[7px] bg-primary px-2 py-1 text-[10px] font-extrabold text-white no-underline"
+              className="flex-shrink-0 rounded-[7px] bg-primary chip-pad text-[10px] font-extrabold text-white no-underline"
             >
               증빙 심사 ›
             </Link>

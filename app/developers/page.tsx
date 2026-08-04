@@ -164,7 +164,7 @@ export default function DevelopersPage() {
             {ENDPOINTS.map((e) => (
               <div key={e.path} className="card rounded-[18px] p-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-[6px] bg-primary/10 px-2 py-0.5 text-[11px] font-extrabold text-primary">
+                  <span className="rounded-[6px] bg-primary/10 chip-pad text-[11px] font-extrabold text-primary">
                     GET
                   </span>
                   <code className="text-[13px] font-bold text-ink">{e.path}</code>

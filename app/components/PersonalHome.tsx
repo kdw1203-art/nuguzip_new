@@ -433,7 +433,7 @@ export function PersonalHome() {
         <section className="rise-in-1 mb-4">
           <div className="card flex flex-col gap-3 rounded-[20px] p-5">
             <div className="flex items-center justify-between">
-              <span className="rounded-md bg-primary-soft px-[9px] py-[3px] text-[11px] font-extrabold text-primary">
+              <span className="rounded-md bg-primary-soft chip-pad text-[11px] font-extrabold text-primary">
                 관심 맞춤
                 {data.preferences.purpose ? (
                   <>
@@ -534,7 +534,7 @@ export function PersonalHome() {
             className="card card-hover flex items-center justify-between gap-3 rounded-[20px] p-5"
           >
             <div className="flex flex-col gap-1">
-              <span className="w-fit rounded-md bg-primary-soft px-[9px] py-[3px] text-[11px] font-extrabold text-primary">
+              <span className="w-fit rounded-md bg-primary-soft chip-pad text-[11px] font-extrabold text-primary">
                 맞춤 설정
               </span>
               <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
@@ -682,7 +682,7 @@ export function PersonalHome() {
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`rounded-md px-[9px] py-[3px] text-[11px] font-extrabold ${c.badgeClass}`}
+                  className={`rounded-md chip-pad text-[11px] font-extrabold ${c.badgeClass}`}
                 >
                   {c.badge}
                 </span>

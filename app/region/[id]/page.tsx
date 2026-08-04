@@ -782,7 +782,7 @@ export default async function RegionHubPage({
                   <div className="truncate text-[13px] font-bold text-ink">
                     {s.aptName ?? "미정"}
                     {s.bizType ? (
-                      <span className="ml-1.5 rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                      <span className="ml-1.5 rounded-full bg-primary-soft chip-pad-tight text-[10px] font-semibold text-primary">
                         {s.bizType}
                       </span>
                     ) : null}

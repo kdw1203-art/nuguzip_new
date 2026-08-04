@@ -50,7 +50,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
               {e.title ? `${e.name} ${e.title}` : e.name}
             </span>
             {e.verified ? (
-              <span className="shrink-0 rounded-[5px] bg-[#edf2fe] px-[7px] py-px text-[10px] font-extrabold text-primary">
+              <span className="shrink-0 rounded-[5px] bg-[#edf2fe] chip-pad-tight text-[10px] font-extrabold text-primary">
                 인증
               </span>
             ) : (
@@ -114,7 +114,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
               <div className="flex items-center gap-1.5">
                 <span className="text-[16px] font-extrabold text-ink">{e.name}</span>
                 {e.verified && (
-                  <span className="rounded-[5px] bg-[#edf2fe] px-[7px] py-px text-[10px] font-extrabold text-primary">
+                  <span className="rounded-[5px] bg-[#edf2fe] chip-pad-tight text-[10px] font-extrabold text-primary">
                     인증
                   </span>
                 )}

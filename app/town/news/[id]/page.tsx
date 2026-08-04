@@ -214,7 +214,7 @@ export default async function TownNewsDetailPage({
           {/* ---------- 기사 본문 ---------- */}
           <article className="rise-in card flex flex-col gap-4 rounded-[20px] p-7">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
+              <span className="rounded-[5px] bg-[#fdf3e7] chip-pad text-[11px] font-extrabold text-warning">
                 {category}
               </span>
               <span className="truncate text-xs text-text-3">{byline}</span>

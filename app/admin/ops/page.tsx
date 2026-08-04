@@ -165,7 +165,7 @@ export default async function AdminOpsPage() {
                     className="flex items-center gap-2.5 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
                   >
                     <span
-                      className={`rounded-md px-2 py-[3px] text-[9px] font-extrabold ${
+                      className={`rounded-md chip-pad text-[9px] font-extrabold ${
                         b.isActive
                           ? "bg-success-soft text-success"
                           : "bg-[rgba(0,0,0,.06)] text-[#9aa6b8]"
@@ -338,7 +338,7 @@ export default async function AdminOpsPage() {
                 className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
                 <span className="text-[#c9d2e0]">이용약관 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-success-soft px-2 py-[3px] text-[9px] font-extrabold text-success">
+                <span className="flex-shrink-0 rounded-md bg-success-soft chip-pad text-[9px] font-extrabold text-success">
                   보기
                 </span>
               </a>
@@ -347,7 +347,7 @@ export default async function AdminOpsPage() {
                 className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
                 <span className="text-[#c9d2e0]">개인정보처리방침 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] px-2 py-[3px] text-[9px] font-extrabold text-[#7ea2ff]">
+                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] chip-pad text-[9px] font-extrabold text-[#7ea2ff]">
                   보기
                 </span>
               </a>

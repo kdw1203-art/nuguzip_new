@@ -73,11 +73,15 @@ export default function RootLayout({
     <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <head>
         {/* G7 — 폰트 CDN 사전 연결.
-            아래 Pretendard stylesheet 은 렌더 블로킹이라, 이 한 줄이 늦으면 첫
-            화면 전체가 늦는다. preconnect 없이는 DNS→TCP→TLS 세 왕복이 링크를
-            만난 뒤에야 시작된다. 미리 열어 두면 그 왕복이 HTML 파싱과 겹친다.
-            crossOrigin 은 필수 — 폰트는 CORS 로 받으므로 이게 없으면 연결이
-            재사용되지 않고 따로 하나 더 열린다. */}
+            preconnect 없이는 DNS→TCP→TLS 세 왕복이 링크를 만난 뒤에야 시작된다.
+            미리 열어 두면 그 왕복이 HTML 파싱과 겹친다. crossOrigin 은 필수 —
+            폰트는 CORS 로 받으므로 이게 없으면 연결이 재사용되지 않고 따로
+            하나 더 열린다.
+            (이 주석은 원래 "아래 stylesheet 은 렌더 블로킹"이라고 적혀 있었다.
+             아래에서 media=print→all 스왑으로 비차단으로 바꾼 뒤에도 문장이
+             남아 있었다. 낡은 설명은 낡은 코드보다 위험하다 — 다음 사람이
+             있지도 않은 차단을 없애려고 시간을 쓴다. 지금은 차단이 아니고,
+             preconnect 가 줄이는 건 '폰트가 늦게 뜨는 시간'이다.) */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         {/* N3 — RSS 자동 발견. 리더·크롤러는 이 태그로 피드를 찾는다. 메타데이터
@@ -91,7 +95,17 @@ export default function RootLayout({
           href="https://nuguzip.com/feed.xml"
         />
         {/* LCP: Pretendard 비차단 — preload 후 media=print→all 스왑.
-            첫 페인트는 시스템 폰트, 로드 후 Pretendard. */}
+            첫 페인트는 시스템 폰트, 로드 후 Pretendard.
+
+            서브셋도 이미 끝나 있다(2026-08-04 실측). 쓰는 파일은
+            pretendardvariable-**dynamic-subset**.min.css 로, @font-face 92개가
+            unicode-range 로 쪼개져 있어 브라우저가 **실제로 쓰인 글자 구간만**
+            내려받는다. 홈 HTML 의 본문 글자를 unicode-range 에 대입해 세어 보면
+            92조각 중 13조각(약 330KB)만 필요하고, /map 도 13조각(약 338KB)이다.
+            비서브셋 통짜 파일은 2,009KB — 즉 서브셋으로 이미 84% 를 안 받고 있다.
+            더 줄이려면 글자를 직접 골라 셀프호스팅해야 하는데, 사용자가 입력한
+            단지명·지역명이 본문에 그대로 나오는 사이트라 고정 글자 집합을 만들 수
+            없다. 없는 글자가 시스템 폰트로 튀는 쪽이 330KB 보다 나쁘다. */}
         <link
           rel="preload"
           as="style"

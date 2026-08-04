@@ -963,7 +963,7 @@ export default async function ComplexHubPage({
                 {v.chips.slice(0, 8).map((c) => (
                   <span
                     key={c}
-                    className="rounded-full bg-[#f2f4f8] px-2 py-[3px] text-[10px] font-bold text-text-2"
+                    className="rounded-full bg-[#f2f4f8] chip-pad text-[10px] font-bold text-text-2"
                   >
                     {c}
                   </span>

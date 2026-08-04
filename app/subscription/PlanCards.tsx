@@ -137,7 +137,7 @@ function FeatureRow({ f, dark }: { f: PlanFeature; dark: boolean }) {
       </span>
       {f.note && !off && (
         <span
-          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+          className={`shrink-0 rounded-md chip-pad-tight text-[10px] font-bold ${
             dark ? "bg-white/10 text-[#9db9ff]" : "bg-primary-soft text-primary"
           }`}
         >

@@ -77,7 +77,7 @@ export default async function DataRecordsPage({
                       {rows.toLocaleString()}건
                     </span>
                   ) : (
-                    <span className="rounded-full bg-[#f2f4f8] px-2 py-1 text-[10px] font-semibold text-text-3">
+                    <span className="rounded-full bg-[#f2f4f8] chip-pad text-[10px] font-semibold text-text-3">
                       연동 대기
                     </span>
                   )}

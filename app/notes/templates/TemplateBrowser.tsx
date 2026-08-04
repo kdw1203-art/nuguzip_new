@@ -21,12 +21,12 @@ function TemplateCard({ t, delay }: { t: NoteTemplate; delay: string }) {
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {t.isOfficial && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
             <Icon name="sparkles" size={12} />
             공식
           </span>
         )}
-        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2 py-0.5 text-[11px] font-semibold text-text-2">
+        <span className="rounded-full bg-[rgba(0,0,0,.05)] chip-pad text-[11px] font-semibold text-text-2">
           {t.category}
         </span>
       </div>

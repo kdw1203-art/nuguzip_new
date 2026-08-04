@@ -128,7 +128,7 @@ export async function ComplexQna({
             >
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${
+                  className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
                     q.status === "answered"
                       ? "bg-success-soft text-success"
                       : "bg-primary-soft text-primary"
@@ -137,7 +137,7 @@ export async function ComplexQna({
                   {q.status === "answered" ? "답변완료" : "답변대기"}
                 </span>
                 {q.bountyPoints > 0 && (
-                  <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
+                  <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
                     {q.bountyPoints}P
                   </span>
                 )}

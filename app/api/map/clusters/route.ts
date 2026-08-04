@@ -50,6 +50,16 @@ const CACHE_HEADERS = {
 } as const;
 
 export interface MapClusterItem {
+  /* 그리드 셀 식별자 — "cell:<셀크기>:<latIdx>:<lngIdx>" (2026-08-04 추가).
+     클라이언트는 지금까지 마커 id 를 `cluster:${lat}:${lng}` 로 만들었는데,
+     그 lat/lng 는 **뷰포트 안에 들어온 단지들의 무게중심**이다. 지도를 조금만
+     밀어도 셀 가장자리 단지가 들어오고 나가면서 무게중심이 흔들리고, 그러면
+     같은 셀인데 id 가 달라진다. NaverMap 의 마커 재사용은 id 로 판정하므로
+     결과적으로 **팬할 때마다 화면의 클러스터 마커가 전부 파괴되고 다시
+     만들어졌다**(DOM·이벤트 리스너까지 새로). 셀 자체는 안 움직이므로 셀 키를
+     내려보내 id 로 쓰게 한다. 위치가 바뀐 건 signature 로 잡혀 setPosition 만
+     돈다. */
+  key: string;
   lat: number;
   lng: number;
   count: number;
@@ -151,9 +161,11 @@ function cellSizeForZoom(zoom: number): number {
   return 0.025; // 13
 }
 
-/** 그리드 셀 키 — 클러스터·가격 집계가 동일한 키를 쓰도록 공용화 */
+/** 그리드 셀 키 — 클러스터·가격 집계가 동일한 키를 쓰도록 공용화.
+    셀 크기를 앞에 붙인다: 줌이 바뀌면 셀 크기가 바뀌므로 인덱스만으로는
+    다른 줌의 다른 셀과 우연히 같은 키가 될 수 있다. */
 function cellKey(lat: number, lng: number, cell: number): string {
-  return `${Math.floor(lat / cell)}:${Math.floor(lng / cell)}`;
+  return `${cell}:${Math.floor(lat / cell)}:${Math.floor(lng / cell)}`;
 }
 
 /** 가격 집계 소스 조회 하드캡 */
@@ -577,6 +589,7 @@ export async function GET(req: NextRequest) {
 
     const clusters: MapClusterItem[] = Array.from(buckets.entries(), ([key, b]) => {
       const item: MapClusterItem = {
+        key,
         lat: Math.round((b.sumLat / b.count) * 1e6) / 1e6,
         lng: Math.round((b.sumLng / b.count) * 1e6) / 1e6,
         count: b.count,

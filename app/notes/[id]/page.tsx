@@ -689,11 +689,11 @@ export default async function NoteDetailPage({
             {/* ③ 직접 방문 배지 + 방문일·작성자 */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {v.directVisit ? (
-                <span className="rounded-md bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
+                <span className="rounded-md bg-success-soft chip-pad text-[11px] font-extrabold text-success">
                   ✓ 직접 방문
                 </span>
               ) : (
-                <span className="rounded-md bg-bg px-2 py-[3px] text-[11px] font-extrabold text-text-3">
+                <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-3">
                   자료 조사
                 </span>
               )}

@@ -106,15 +106,15 @@ export default async function MyConsultationsPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-[15px] font-extrabold text-ink">{expert.name}</span>
-          <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-bold text-text-2">
+          <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-bold text-text-2">
             {expert.category}
           </span>
           {expert.isVerified ? (
-            <span className="rounded-[6px] bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
+            <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
               인증 완료
             </span>
           ) : (
-            <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
+            <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
               인증 검토 중
             </span>
           )}
@@ -166,11 +166,11 @@ export default async function MyConsultationsPage() {
               >
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${meta.cls}`}
+                    className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${meta.cls}`}
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-bold text-text-2">
+                  <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-bold text-text-2">
                     {TYPE_LABEL[c.type]}
                   </span>
                   <span className="text-[13px] font-bold text-ink">

@@ -137,19 +137,19 @@ function MeetingCard({
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-extrabold ${meta.style}`}
+            className={`inline-flex items-center gap-1.5 rounded-md chip-pad text-[11px] font-extrabold ${meta.style}`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
             {meta.label}
           </span>
           {g.fee > 0 && (
-            <span className="inline-flex items-center rounded-md bg-bg px-2 py-1 text-[11px] font-bold text-text-2">
+            <span className="inline-flex items-center rounded-md bg-bg chip-pad text-[11px] font-bold text-text-2">
               참가비 {g.fee.toLocaleString("ko-KR")}원
             </span>
           )}
           {/* 고도화 29 — 채팅 활성도(실측 24h). 0·미확인이면 그리지 않는다 */}
           {chat24h > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-1 text-[11px] font-bold text-success">
+            <span className="inline-flex items-center gap-1 rounded-md bg-success-soft chip-pad text-[11px] font-bold text-success">
               <Icon name="messages-square" size={11} />
               24시간 메시지 {chat24h.toLocaleString("ko-KR")}개
             </span>

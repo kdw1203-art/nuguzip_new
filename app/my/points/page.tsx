@@ -67,12 +67,12 @@ function EarnGuide() {
                 {rule.label}
               </span>
               {rule.once && (
-                <span className="chip-tag px-[6px] py-[2px] text-[10px]">
+                <span className="chip-tag chip-pad-tight text-[10px]">
                   최초 1회
                 </span>
               )}
               {rule.dailyCap && (
-                <span className="chip-tag px-[6px] py-[2px] text-[10px]">
+                <span className="chip-tag chip-pad-tight text-[10px]">
                   하루 {rule.dailyCap}회
                 </span>
               )}

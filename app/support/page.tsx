@@ -276,7 +276,7 @@ export default async function SupportPage() {
                   }`}
                 >
                   <div className="flex justify-between">
-                    <span className={`rounded-[5px] px-2 py-0.5 text-[11px] font-extrabold ${t.tagClass}`}>
+                    <span className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${t.tagClass}`}>
                       {t.tag}
                     </span>
                     <span className={`text-[10px] font-bold ${t.statusClass}`}>{t.status}</span>
@@ -295,7 +295,7 @@ export default async function SupportPage() {
             <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[20px] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="rounded-[5px] bg-[#fdf3e7] px-2 py-[3px] text-[11px] font-extrabold text-warning">
+                  <span className="rounded-[5px] bg-[#fdf3e7] chip-pad text-[11px] font-extrabold text-warning">
                     결제
                   </span>
                   <span className="ml-2 text-base font-extrabold text-ink">

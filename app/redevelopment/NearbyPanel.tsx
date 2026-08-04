@@ -154,7 +154,7 @@ export function NearbyPanel({
                         <div className="truncate text-[12.5px] font-semibold text-ink">
                           {l.complexName || "매물"}
                         </div>
-                        <span className="rounded-full bg-primary-soft px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                        <span className="rounded-full bg-primary-soft chip-pad-tight text-[10px] font-semibold text-primary">
                           {TYPE_LABEL[l.listingType] ?? "매물"}
                         </span>
                       </div>

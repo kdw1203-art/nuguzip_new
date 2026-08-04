@@ -53,7 +53,7 @@ function Cover({ card }: { card: FeedCard }) {
         fallback={<div style={{ height: seedCoverHeight(card.id) }} />}
       />
       <span
-        className={`absolute left-2 top-2 rounded-[6px] bg-white/90 px-2 py-[2px] text-[10px] font-extrabold ${labelColor}`}
+        className={`absolute left-2 top-2 rounded-[6px] bg-white/90 chip-pad text-[10px] font-extrabold ${labelColor}`}
       >
         {label}
       </span>
@@ -80,7 +80,7 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               {card.tags.slice(0, 3).map((t) => (
                 <span
                   key={t}
-                  className="rounded-full bg-[#f2f4f8] px-2 py-[1px] text-[10px] font-semibold text-text-2"
+                  className="rounded-full bg-[#f2f4f8] chip-pad text-[10px] font-semibold text-text-2"
                 >
                   #{t}
                 </span>

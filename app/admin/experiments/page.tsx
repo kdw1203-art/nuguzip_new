@@ -64,7 +64,7 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
       <div className="flex flex-wrap items-center gap-2">
         <div className="text-sm font-extrabold text-white">{r.def.key}</div>
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+          className={`rounded-full chip-pad text-[10px] font-bold ${
             r.def.enabled
               ? "bg-primary-soft text-primary"
               : "bg-[#eef1f5] text-[#9aa6b8]"
@@ -149,7 +149,7 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
               </span>
             </span>
             <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              className={`rounded-full chip-pad text-[10px] font-bold ${
                 r.comparison.pValue !== null && r.comparison.pValue < 0.05
                   ? "bg-primary-soft text-primary"
                   : "bg-[#eef1f5] text-[#9aa6b8]"

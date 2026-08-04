@@ -1542,7 +1542,7 @@ export function NoteForm({
                   {todo.text}
                 </span>
                 <span
-                  className={`rounded-full px-2 py-[3px] text-[10px] font-bold ${
+                  className={`rounded-full chip-pad text-[10px] font-bold ${
                     todo.level === "중요"
                       ? "bg-danger-soft text-danger"
                       : "bg-[#f2f4f8] text-text-2"

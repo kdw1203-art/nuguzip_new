@@ -66,19 +66,19 @@ export function ProjectDetailPanel({
             />
             <h3 className="text-[15px] font-extrabold text-ink">{project.name}</h3>
             {project.isSample ? (
-              <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[10px] font-bold text-warning">
+              <span className="rounded-full bg-warning-soft chip-pad text-[10px] font-bold text-warning">
                 예시 데이터
               </span>
             ) : null}
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span
-              className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              className="rounded-full chip-pad text-[11px] font-semibold"
               style={{ background: `${color}1a`, color }}
             >
               {labelForType(project.typeKey)}
             </span>
-            <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+            <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
               현재 {stageLabel(project.stageKey)}
             </span>
           </div>

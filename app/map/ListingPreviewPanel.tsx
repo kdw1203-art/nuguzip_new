@@ -81,16 +81,16 @@ export function ListingPreviewPanel({
             ) : (
               <>
                 <div className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-bold text-primary">
+                  <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-bold text-primary">
                     {data.listingTypeLabel}
                   </span>
                   {data.ownerVerified ? (
-                    <span className="rounded-full bg-[rgba(14,159,110,.12)] px-2 py-0.5 text-[10px] font-bold text-[#0b8058]">
+                    <span className="rounded-full bg-[rgba(14,159,110,.12)] chip-pad text-[10px] font-bold text-[#0b8058]">
                       소유확인
                     </span>
                   ) : null}
                   {data.boosted ? (
-                    <span className="rounded-full bg-[rgba(245,166,35,.14)] px-2 py-0.5 text-[10px] font-bold text-[#b26a00]">
+                    <span className="rounded-full bg-[rgba(245,166,35,.14)] chip-pad text-[10px] font-bold text-[#b26a00]">
                       부스트
                     </span>
                   ) : null}

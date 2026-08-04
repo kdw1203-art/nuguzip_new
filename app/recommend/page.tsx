@@ -122,7 +122,7 @@ function RecCard({ item }: { item: RecItem }) {
           <span className="text-[11px] font-bold text-primary">추천 이유</span>
           <div className="flex flex-wrap gap-1">
             {item.reasons.map((r, i) => (
-              <span key={`${r}-${i}`} className="chip chip-soft px-2 py-0.5 text-[11px]">
+              <span key={`${r}-${i}`} className="chip chip-soft chip-pad text-[11px]">
                 {r}
               </span>
             ))}

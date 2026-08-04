@@ -288,6 +288,11 @@ interface MapClientProps {
 /* ===== 서버 클러스터링 (/api/map/clusters) ===== */
 
 interface ClusterItem {
+  /** 그리드 셀 키 — 마커 id 의 재료. 없을 수도 있게 둔다(구버전 응답 캐시가
+      s-maxage=300 로 최대 5분 살아 있어서, 배포 직후 몇 분은 key 없는 응답이
+      온다. 그때 id 가 "cluster:undefined" 로 뭉치면 클러스터가 한 개로
+      보이므로, 없으면 예전처럼 좌표로 만든다). */
+  key?: string;
   lat: number;
   lng: number;
   count: number;
@@ -2233,7 +2238,11 @@ export function MapClient({
     if (clusterMode === "clusters" && clusters.length > 0) {
       const base: MapMarkerData[] = clusters.map((c) => {
         const common = {
-          id: `cluster:${c.lat}:${c.lng}`,
+          /* id 는 **셀 키**로 만든다. 예전에는 `cluster:${c.lat}:${c.lng}` 였는데
+             그 좌표는 뷰포트 안 단지들의 무게중심이라 팬할 때마다 흔들렸고,
+             NaverMap 은 id 로 마커 재사용을 판정하므로 화면의 클러스터 마커가
+             매번 전부 파괴·재생성됐다. 셀은 안 움직인다. */
+          id: `cluster:${c.key ?? `${c.lat}:${c.lng}`}`,
           lat: c.lat,
           lng: c.lng,
           label: c.count.toLocaleString("ko-KR"),
@@ -3569,7 +3578,7 @@ export function MapClient({
               <div className="flex items-center gap-2">
                 <span className="text-[22px] font-extrabold text-ink">{selected.name}</span>
                 {selected.note && (
-                  <span className="rounded-[5px] bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                  <span className="rounded-[5px] bg-primary-soft chip-pad text-[10px] font-extrabold text-primary">
                     내 {selected.note}
                   </span>
                 )}
@@ -3795,7 +3804,7 @@ export function MapClient({
                       >
                         <span className="min-w-0 truncate font-bold text-ink">
                           {n.mine && (
-                            <span className="mr-1.5 rounded-[4px] bg-primary-soft px-1.5 py-[1px] text-[10px] font-extrabold text-primary">
+                            <span className="mr-1.5 rounded-[4px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
                               내 노트
                             </span>
                           )}

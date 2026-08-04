@@ -24,7 +24,7 @@ function PartnerCard({ p }: { p: DevPartner }) {
     <div className="card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
             {p.partnerType}
           </span>
           {p.isVerified && (
@@ -60,7 +60,7 @@ function PartnerCard({ p }: { p: DevPartner }) {
           {p.specialties.map((s) => (
             <span
               key={s}
-              className="rounded-full bg-[rgba(0,0,0,.04)] px-2 py-0.5 text-[10px] font-medium text-text-2"
+              className="rounded-full bg-[rgba(0,0,0,.04)] chip-pad text-[10px] font-medium text-text-2"
             >
               {s}
             </span>

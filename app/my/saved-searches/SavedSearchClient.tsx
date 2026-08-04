@@ -210,7 +210,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
                     <span className="truncate text-[15px] font-extrabold text-ink">
                       {item.label}
                     </span>
-                    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
                       {SCOPE_LABELS[item.scope]}
                     </span>
                   </div>

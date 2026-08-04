@@ -418,14 +418,14 @@ export function ComplexReviews({
                 <div className="flex flex-wrap items-center gap-1.5">
                   {r.isResident && (
                     <span
-                      className="chip px-2 py-0.5 text-[10px]"
+                      className="chip chip-pad text-[10px]"
                       style={{ background: "var(--success-soft)", color: "var(--success)" }}
                     >
                       실거주
                     </span>
                   )}
                   {r.isVisitVerified && (
-                    <span className="chip bg-primary-soft px-2 py-0.5 text-[10px] text-primary">
+                    <span className="chip bg-primary-soft chip-pad text-[10px] text-primary">
                       방문
                     </span>
                   )}

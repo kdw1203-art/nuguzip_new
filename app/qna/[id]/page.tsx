@@ -90,7 +90,7 @@ function AnswerCard({ a }: { a: QnaAnswer }) {
           {a.authorLabel}
         </span>
         {a.isAccepted && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
             <Icon name="check" size={12} />
             채택된 답변
           </span>
@@ -173,23 +173,23 @@ export default async function QnaDetailPage({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {question.complexName && (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
                 {question.complexName}
               </span>
             )}
             {question.region && (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
                 {question.region}
               </span>
             )}
             {question.bountyPoints > 0 && (
-              <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
                 현상금 {question.bountyPoints.toLocaleString()}P
               </span>
             )}
           </div>
           {question.isSample && (
-            <span className="shrink-0 rounded-full bg-[rgba(127,140,158,.12)] px-2 py-0.5 text-[11px] font-semibold text-text-3">
+            <span className="shrink-0 rounded-full bg-[rgba(127,140,158,.12)] chip-pad text-[11px] font-semibold text-text-3">
               예시
             </span>
           )}

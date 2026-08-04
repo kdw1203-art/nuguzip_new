@@ -440,7 +440,7 @@ function StepPreview({ draft }: { draft: Draft }) {
           <span className="min-w-0 truncate text-sm font-extrabold text-ink">
             {draft.title.trim() || "제목 미입력"}
           </span>
-          <span className="shrink-0 rounded-md bg-primary px-2 py-[3px] text-[10px] font-extrabold text-white">
+          <span className="shrink-0 rounded-md bg-primary chip-pad text-[10px] font-extrabold text-white">
             유료 리포트
           </span>
         </div>
@@ -585,12 +585,12 @@ function StepPrice({
                 <span className="flex-[1.7] font-bold">
                   {t.type}{" "}
                   {t.badge === "인증" && (
-                    <span className="rounded-[5px] bg-primary-soft px-1.5 py-[2px] text-[10px] font-extrabold text-primary">
+                    <span className="rounded-[5px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
                       인증
                     </span>
                   )}
                   {t.badge === "✦ 전문가" && (
-                    <span className="rounded-[5px] bg-ink px-1.5 py-[2px] text-[10px] font-extrabold text-[#f2c94c]">
+                    <span className="rounded-[5px] bg-ink chip-pad-tight text-[10px] font-extrabold text-[#f2c94c]">
                       ✦ 전문가
                     </span>
                   )}

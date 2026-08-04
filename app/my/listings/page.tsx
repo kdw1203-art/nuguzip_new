@@ -176,7 +176,7 @@ export default async function MyListingsPage() {
             <span className="flex items-baseline gap-1.5">
               <span className="text-[20px] font-extrabold text-ink">{inquiry.total}</span>
               {inquiry.unread > 0 && (
-                <span className="rounded-full bg-primary px-1.5 py-[1px] text-[10px] font-extrabold text-white">
+                <span className="rounded-full bg-primary chip-pad-tight text-[10px] font-extrabold text-white">
                   새 {inquiry.unread}
                 </span>
               )}
@@ -231,26 +231,26 @@ export default async function MyListingsPage() {
               <div key={l.id} className="card card-pad-sm flex flex-col gap-2.5">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${meta.cls}`}
+                    className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${meta.cls}`}
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
+                  <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-success-soft px-2 py-[3px] text-[11px] font-extrabold text-success">
+                    <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
                       소유확인
                     </span>
                   )}
                   {boost && (
-                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] px-2 py-[3px] text-[11px] font-extrabold text-[#b45309]">
+                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
                       {boost}
                     </span>
                   )}
                   {staleMeta && (
                     <span
-                      className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${staleMeta.cls}`}
+                      className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${staleMeta.cls}`}
                     >
                       {staleMeta.label}
                     </span>

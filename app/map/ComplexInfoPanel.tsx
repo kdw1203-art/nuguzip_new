@@ -576,7 +576,7 @@ export function ComplexInfoPanel({
               {chips.map((c) => (
                 <span
                   key={c}
-                  className="chip-soft rounded-full px-2 py-[3px] text-[10px] font-bold text-text-2"
+                  className="chip-soft rounded-full chip-pad text-[10px] font-bold text-text-2"
                 >
                   {c}
                 </span>

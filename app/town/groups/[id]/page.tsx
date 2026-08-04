@@ -76,7 +76,7 @@ export default async function TownGroupDetailPage({
         <div className="flex flex-col gap-4">
           <div className="rise-in card flex flex-col gap-3 rounded-[20px] p-6">
             <div className="flex items-center justify-between">
-              <span className={`rounded-[5px] px-2 py-[3px] text-[11px] font-extrabold ${statusStyle}`}>
+              <span className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${statusStyle}`}>
                 {statusLabel} {meeting.currentMembers}/{meeting.maxMembers}
               </span>
               <span className="text-[11px] text-text-3">

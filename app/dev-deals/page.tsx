@@ -123,7 +123,7 @@ function statusStyle(status: string): CSSProperties {
 function SampleBadge() {
   return (
     <span
-      className="chip px-2 py-0.5 text-[10px]"
+      className="chip chip-pad text-[10px]"
       style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
     >
       예시
@@ -151,7 +151,7 @@ function DealCard({ d }: { d: DevDeal }) {
           </span>
           {d.isVerified && (
             <span
-              className="chip px-2 py-0.5 text-[10px]"
+              className="chip chip-pad text-[10px]"
               style={{ background: "var(--success-soft)", color: "var(--success)" }}
             >
               검증
@@ -218,7 +218,7 @@ function DealCard({ d }: { d: DevDeal }) {
           <div className="mb-1 text-[10px] font-bold text-text-3">필요 협력분야</div>
           <div className="flex flex-wrap gap-1">
             {d.neededPartners.map((p) => (
-              <span key={p} className="chip-tag px-2 py-0.5 text-[10px]">
+              <span key={p} className="chip-tag chip-pad text-[10px]">
                 {p}
               </span>
             ))}
@@ -325,7 +325,7 @@ export default async function DevDealsHubPage({
           className="rise-in mb-4 flex items-start gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6]"
           style={{ color: "var(--primary-strong)" }}
         >
-          <span className="mt-px shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-extrabold">
+          <span className="mt-px shrink-0 rounded-full bg-white/70 chip-pad text-[10px] font-extrabold">
             안내
           </span>
           <span>

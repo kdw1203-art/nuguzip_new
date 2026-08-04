@@ -238,7 +238,7 @@ export default async function MyPage() {
                   <span className="text-base font-extrabold text-white">{name}님</span>
                   <Link
                     href="/subscription"
-                    className={`rounded-full bg-[rgba(255,255,255,.1)] px-2 py-0.5 text-[10px] font-extrabold no-underline ${
+                    className={`rounded-full bg-[rgba(255,255,255,.1)] chip-pad text-[10px] font-extrabold no-underline ${
                       isAdminViewer ? "text-[#7ee2a8]" : planBadgeTone(profile.plan)
                     }`}
                   >
@@ -301,7 +301,7 @@ export default async function MyPage() {
                   <span className="text-[14px] font-extrabold text-ink">
                     시작하기 {done}/{onboarding.total}
                   </span>
-                  <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-bold text-primary">
+                  <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-bold text-primary">
                     완주 시 200P
                   </span>
                 </div>

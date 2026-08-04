@@ -48,6 +48,12 @@ export function ListingManageActions(props: {
   >("idle");
 
   const [soldBusy, setSoldBusy] = useState(false);
+  /* 삭제도 mode 를 쓰지 않는다 — markSold 와 같은 이유(아래 주석).
+     예전에는 remove() 가 setMode("busy") 를 했는데, mode==="busy" 는 수정 폼
+     렌더 분기라 "삭제할까요?" 를 누르는 순간 확인 문구 대신 **수정 폼이 통째로
+     튀어나왔다**. 중복 제출은 막혔지만(버튼이 사라지니까) 화면은 틀린 걸
+     보여 줬다. 같은 함정을 markSold 에서만 피하고 remove 에서는 밟고 있었다. */
+  const [removeBusy, setRemoveBusy] = useState(false);
 
   const [type, setType] = useState<ListingType>(props.listingType);
   const [price, setPrice] = useState(wonToManwon(props.priceKrw));
@@ -135,19 +141,23 @@ export function ListingManageActions(props: {
   }
 
   async function remove() {
-    setMode("busy");
+    if (removeBusy) return;
+    setRemoveBusy(true);
     try {
       const res = await fetch(`/api/listings/${props.listingId}`, { method: "DELETE" });
       const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !json.ok) {
         showToast(json.error ?? "삭제에 실패했어요");
+        setRemoveBusy(false);
         setMode("idle");
         return;
       }
       showToast("매물을 삭제했어요.");
+      setRemoveBusy(false);
       router.refresh();
     } catch {
       showToast("네트워크 오류가 발생했어요");
+      setRemoveBusy(false);
       setMode("idle");
     }
   }
@@ -314,13 +324,15 @@ export function ListingManageActions(props: {
         <span className="text-[12px] font-bold text-text-3">삭제할까요?</span>
         <button
           type="button"
+          disabled={removeBusy}
           onClick={() => void remove()}
-          className="rounded-[8px] bg-danger-fill px-2.5 py-1 text-[12px] font-extrabold text-white"
+          className="rounded-[8px] bg-danger-fill px-2.5 py-1 text-[12px] font-extrabold text-white disabled:opacity-60"
         >
-          삭제
+          {removeBusy ? "삭제 중…" : "삭제"}
         </button>
         <button
           type="button"
+          disabled={removeBusy}
           onClick={() => setMode("idle")}
           className="btn-ghost btn-sm"
         >

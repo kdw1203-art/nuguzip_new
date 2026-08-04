@@ -100,7 +100,7 @@ const PLAN_LABEL: Record<"free" | "pro" | "expert", string> = {
 function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
     <span
-      className={`rounded-full bg-ink px-2 py-0.5 text-[9px] font-extrabold ${
+      className={`rounded-full bg-ink chip-pad text-[9px] font-extrabold ${
         tier === "plus" ? "text-[#7ea2ff]" : "text-[#f2c94c]"
       }`}
     >

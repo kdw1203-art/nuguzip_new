@@ -238,7 +238,7 @@ function MonetizationTab({
       <div className="rise-in-2 rounded-[14px] bg-ink/[0.96] px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-extrabold text-white">정산 안내</span>
-          <span className="rounded-full bg-[#f2c94c]/20 px-[8px] py-[2px] text-[10px] font-extrabold text-[#f2c94c]">
+          <span className="rounded-full bg-[#f2c94c]/20 chip-pad text-[10px] font-extrabold text-[#f2c94c]">
             {payoutReady ? "출금 가능" : "현금 출금 미지원"}
           </span>
         </div>
@@ -288,7 +288,7 @@ function MonetizationTab({
                   </div>
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-[9px] py-[3px] text-[10px] font-extrabold ${
+                  className={`shrink-0 rounded-full chip-pad text-[10px] font-extrabold ${
                     r.isPremium
                       ? "bg-primary-soft text-primary"
                       : "bg-line text-text-3"

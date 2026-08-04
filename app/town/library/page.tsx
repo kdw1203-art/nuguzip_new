@@ -61,7 +61,7 @@ export default async function TownLibraryPage() {
       <section className="mb-8">
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[15px] font-extrabold text-ink">리포트</h2>
-          <span className="rounded-[6px] bg-[#f2f4f8] px-2 py-[3px] text-[11px] font-extrabold text-text-2">
+          <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
             오픈 전
           </span>
         </div>
@@ -149,7 +149,7 @@ export default async function TownLibraryPage() {
                         className="h-full w-full object-cover"
                       />
                     )}
-                    <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 px-2 py-[2px] text-[10px] font-extrabold text-success">
+                    <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 chip-pad text-[10px] font-extrabold text-success">
                       {n.visitDate ? "✓ 직접 방문" : "임장노트"}
                     </span>
                   </div>

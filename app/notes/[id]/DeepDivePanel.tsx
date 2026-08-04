@@ -71,7 +71,7 @@ function AxisBlock({
             {section.facts.map((fact) => (
               <li
                 key={`${fact.label}-${fact.value}`}
-                className="rounded-[8px] bg-bg px-2 py-1 text-[11px] text-text-2"
+                className="rounded-[8px] bg-bg chip-pad text-[11px] text-text-2"
               >
                 <b className="mr-1 font-bold text-text-1">{fact.label}</b>
                 {fact.value}

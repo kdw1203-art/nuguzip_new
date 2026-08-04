@@ -118,7 +118,7 @@ export default async function MyLeadsPage() {
               >
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`rounded-[6px] px-2 py-[3px] text-[11px] font-extrabold ${meta.cls}`}
+                    className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${meta.cls}`}
                   >
                     {meta.label}
                   </span>
