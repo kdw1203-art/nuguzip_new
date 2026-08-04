@@ -17,6 +17,7 @@ import {
 } from "@/lib/inspection/checklist";
 import { checklistHintsFromVoice } from "@/lib/inspection/voice-checklist-keywords";
 import { NOTE_DRAFT_KEY as DRAFT_KEY } from "@/lib/notes/draft-summary";
+import { resizeImageFiles } from "@/lib/client/image-resize";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -821,11 +822,14 @@ export function NoteForm({
       setSaveError(`사진은 최대 ${MAX_PHOTOS}장까지 첨부할 수 있어요.`);
       return;
     }
-    const list = Array.from(files).slice(0, remain);
+    const picked = Array.from(files).slice(0, remain);
     setUploading(true);
     setSaveError(null);
     setNeedLogin(false);
     try {
+      /* 업로드 전 클라 리사이즈(#23) — 폰 원본(4000px·수 MB)을 긴 변 1600px 로
+         줄여 올린다. 줄일 수 없으면 원본이 그대로 오므로 업로드는 막히지 않는다. */
+      const list = await resizeImageFiles(picked);
       const uploaded: string[] = [];
       for (const f of list) {
         const fd = new FormData();

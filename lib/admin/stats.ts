@@ -2,6 +2,9 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { readPosts } from "@/lib/posts-store";
 import { readMarketRequestsFile } from "@/lib/market-store-file";
 
+/** 30일 가입 추이 조회 상한(#32) — 닿으면 잘린 그래프 대신 실패로 알린다 */
+const SIGNUP_TREND_LIMIT = 50_000;
+
 /**
  * 관리자 대시보드용 집계.
  * - Supabase 가 설정돼 있으면 app_users / posts / content_reports / notification_outbox 로부터 카운트
@@ -497,14 +500,24 @@ export async function loadSignupTrend30d(): Promise<SignupTrendPoint[]> {
     );
   }
   const since = daysAgo(29).toISOString();
+  /* #32 — 상한을 명시한다. PostgREST 는 max-rows 에 걸리면 잘린 배열을 그냥
+     주므로, 상한을 안 적으면 "30일 가입이 딱 그만큼"으로 보인다. 닿으면
+     조용히 줄어든 그래프를 그리는 대신 던진다(위 주석의 원칙과 같다). */
   const { data, error } = await sb
     .from("app_users")
     .select("created_at")
-    .gte("created_at", since);
+    .gte("created_at", since)
+    .limit(SIGNUP_TREND_LIMIT);
   if (error) {
     throw new Error(
       `app_users 조회 실패 (최근 30일 가입 추이) — ${error.message}` +
         `${error.code ? ` [${error.code}]` : ""}`,
+    );
+  }
+  if ((data?.length ?? 0) >= SIGNUP_TREND_LIMIT) {
+    throw new Error(
+      `app_users 30일 가입 조회가 상한(${SIGNUP_TREND_LIMIT}행)에 도달했습니다 — ` +
+        "잘린 값으로 추이를 그리면 실제보다 적게 보입니다. 일자별 SQL 집계로 옮겨야 합니다.",
     );
   }
   const daily = new Map<string, number>();

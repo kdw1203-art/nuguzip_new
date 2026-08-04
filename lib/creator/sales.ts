@@ -1,6 +1,9 @@
 import "server-only";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
+/** 리포트 구매 집계 조회 상한(#32) */
+const REPORT_PURCHASES_LIMIT = 20_000;
+
 /**
  * 크리에이터 유료 리포트 판매 실적 · 정산 집계.
  *
@@ -86,7 +89,14 @@ export async function getCreatorSales(email: string | null | undefined): Promise
       const { data: purs } = await sb
         .from("report_purchases")
         .select("report_id, amount")
-        .in("report_id", ids.slice(0, 200));
+        .in("report_id", ids.slice(0, 200))
+        /* #32 — 상한 명시. 닿으면 판매 건수·포인트가 과소 집계되므로 경고를 남긴다. */
+        .limit(REPORT_PURCHASES_LIMIT);
+      if ((purs?.length ?? 0) >= REPORT_PURCHASES_LIMIT) {
+        console.warn(
+          `[creator/sales] report_purchases 조회가 상한(${REPORT_PURCHASES_LIMIT}행)에 도달 — 판매 집계가 과소입니다.`,
+        );
+      }
       for (const p of purs ?? []) {
         const rid = String(p.report_id);
         const cur = agg.get(rid) ?? { n: 0, pts: 0 };

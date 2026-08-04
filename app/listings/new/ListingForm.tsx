@@ -7,6 +7,7 @@ import Link from "next/link";
 import { NaverMap, type MapIdleInfo } from "@/components/map/NaverMap";
 import { Icon } from "@/app/components/Icon";
 import { DISTRICTS } from "@/lib/regions";
+import { resizeImageFiles } from "@/lib/client/image-resize";
 
 const TYPES = [
   { key: "sale", label: "매매" },
@@ -153,7 +154,9 @@ export function ListingForm() {
     const picked = files.slice(0, remaining);
     setPhotosUploading(true);
     try {
-      for (const file of picked) {
+      /* 업로드 전 클라 리사이즈(#23) — 실패 시 원본이 그대로 온다 */
+      const prepared = await resizeImageFiles(picked);
+      for (const file of prepared) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("folder", "listings");

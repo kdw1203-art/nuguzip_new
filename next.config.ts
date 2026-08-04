@@ -3,7 +3,7 @@ import { buildContentSecurityPolicy } from "./lib/security/content-security-poli
 
 /**
  * Next 설정 — 모바일·웹 최적화
- * - `optimizePackageImports`: lucide-react, recharts 등 큰 라이브러리 트리 셰이킹 강화
+ * - `optimizePackageImports`: lucide-react 트리 셰이킹 강화
  * - `productionBrowserSourceMaps: false`: 배포 산출물 크기·빌드 속도 ↑
  * - `poweredByHeader: false`: 노출 정보 최소화
  * - `images`: AVIF/WebP 우선, 캐시 1년, 모바일·데스크탑 적정 사이즈
@@ -71,18 +71,11 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     // 큰 패키지의 부분 임포트만 가져오도록 트리 셰이킹 강화 (LCP·INP 개선)
-    optimizePackageImports: [
-      "lucide-react",
-      "recharts",
-      "date-fns",
-      "embla-carousel-react",
-      "@radix-ui/react-accordion",
-      "@radix-ui/react-collapsible",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-dropdown-menu",
-      "@radix-ui/react-popover",
-      "@radix-ui/react-tooltip",
-    ],
+    /* 설치돼 있고 실제로 import 하는 패키지만 남긴다(#50, 2026-08-04).
+       recharts·date-fns·embla·radix 6종은 코드에서 단 한 번도 import 되지 않은
+       shadcn 스캐폴딩 잔재였고 의존성에서 제거했다 — 목록에 남겨 두면
+       "트리 셰이킹 중"이라는 없는 사실이 설정에 박힌다. */
+    optimizePackageImports: ["lucide-react"],
     scrollRestoration: true,
   },
   images: {

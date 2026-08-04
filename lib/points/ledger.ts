@@ -1,6 +1,9 @@
 import "server-only";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
+
+/** 적립합계 조회 상한(#32) — 닿으면 합계를 신뢰할 수 없으므로 던진다 */
+const EARNED_SINCE_LIMIT = 5_000;
 import {
   EARN_RULES,
   DAILY_EARN_CAP,
@@ -93,13 +96,21 @@ async function earnedSince(email: string, sinceIso: string): Promise<number> {
     .select("delta")
     .eq("user_email", email)
     .gt("delta", 0)
-    .gte("created_at", sinceIso);
+    .gte("created_at", sinceIso)
+    .limit(EARNED_SINCE_LIMIT);
   /* 못 읽은 것을 0 으로 보면 "오늘 하나도 안 벌었다"가 되어 일·월 상한 검사를
      그대로 통과한다 — 상한을 이미 채운 사람에게 계속 지급하는 길이 열린다.
      상한은 지키라고 있는 것이므로, 확인이 안 되면 지급하지 않는다(호출부
      awardPoints 의 try/catch 가 받아 reason:"error" 로 돌려준다). */
   if (error) throw new Error(`point_ledger 적립합계 조회 실패: ${error.message}`);
   if (!Array.isArray(data)) throw new Error("point_ledger 적립합계 응답이 배열이 아닙니다");
+  /* #32 — 잘린 배열을 합치면 적립액이 실제보다 작게 나오고, 그건 곧 상한을
+     넘겨 더 지급하는 결과가 된다. 위 원칙 그대로 "확인 못 하면 지급 안 함". */
+  if (data.length >= EARNED_SINCE_LIMIT) {
+    throw new Error(
+      `point_ledger 적립합계가 조회 상한(${EARNED_SINCE_LIMIT}행)에 도달 — 합계를 신뢰할 수 없습니다`,
+    );
+  }
   return data.reduce((s, r) => s + (Number(r.delta) || 0), 0);
 }
 

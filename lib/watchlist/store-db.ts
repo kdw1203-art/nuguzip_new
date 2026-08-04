@@ -10,6 +10,9 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { pushInboxNotification } from "@/lib/notifications/inbox";
 import { logger } from "@/lib/log";
 
+/** 단지별 알림 대상 조회 상한(#32) — 닿으면 알림 누락이므로 기록한다 */
+const WATCHERS_LIMIT = 10_000;
+
 export interface WatchlistItem {
   id: string;
   userEmail: string;
@@ -154,7 +157,9 @@ export async function notifyPriceChange(
     const { data, error } = await sb
       .from("user_watchlist")
       .select("user_email, alert_price_min, alert_price_max")
-      .eq("complex_id", complexId);
+      .eq("complex_id", complexId)
+      /* #32 — 상한 명시. 여기가 잘리면 뒤쪽 구독자에게만 알림이 조용히 안 간다. */
+      .limit(WATCHERS_LIMIT);
     /* 여기서는 던지지 않는다 — 이 함수를 부르는 쪽은 가격 갱신 파이프라인이라
        알림 하나 때문에 갱신 자체를 되돌릴 이유가 없다. 다만 예전처럼 `.data ?? []`
        로 삼키면 "이 단지를 관심 등록한 사람이 아무도 없다"가 되어 알림이 조용히
@@ -162,6 +167,11 @@ export async function notifyPriceChange(
     if (error) {
       logger.error(`[watchlist] 알림 대상 조회 실패 (complex=${complexId}):`, error.message);
       return;
+    }
+    if ((data?.length ?? 0) >= WATCHERS_LIMIT) {
+      logger.error(
+        `[watchlist] 알림 대상이 조회 상한(${WATCHERS_LIMIT}행)에 도달 (complex=${complexId}) — 일부에게 알림이 가지 않습니다.`,
+      );
     }
     watchers = data ?? [];
   } else {
