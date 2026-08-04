@@ -143,6 +143,12 @@ export function CheckoutClient() {
       //    결제창형(payment().requestPayment)으로 바로 간다.
       if (!isWidgetKey()) {
         setPhase({ kind: "window-ready", orderId, amount });
+        /* SDK 를 지금 미리 로드해 둔다(사파리 팝업 차단 대책 — 실측 2026-08-04).
+           버튼 탭 후에 SDK 를 네트워크에서 받기 시작하면, 받는 동안 사용자
+           제스처 맥락이 끊겨 iOS 사파리가 결제창 열기를 차단한다. 미리 받아
+           두면 탭 시점의 loadTossSdk() 는 캐시 즉답이라 제스처 안에서
+           결제창이 열린다. 프리로드 실패는 무시 — 탭 때 다시 시도된다. */
+        void loadTossSdk().catch(() => {});
         return;
       }
 
@@ -227,9 +233,15 @@ export function CheckoutClient() {
       const code =
         e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : "";
       if (code !== "USER_CANCEL" && code !== "PAY_PROCESS_CANCELED") {
+        /* 원인을 화면에 그대로 적는다 — "잠시 후 다시"만 보이면 사용자도
+           우리도 아무것도 알 수 없다. 실제 장애 때 스크린샷 한 장이 진단이 된다. */
+        const detail = [code, e instanceof Error ? e.message : ""]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 140);
         setPhase({
           kind: "error",
-          msg: "결제창을 열지 못했어요. 잠시 후 다시 시도해 주세요.",
+          msg: `결제창을 열지 못했어요${detail ? ` (${detail})` : ""}. 잠시 후 다시 시도해 주세요.`,
         });
       }
     } finally {
