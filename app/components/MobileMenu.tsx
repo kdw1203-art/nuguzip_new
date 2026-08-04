@@ -62,11 +62,28 @@ const SUPPORT_LINKS: LinkItem[] = [
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  /* 소유자 캡처(2026-08-04) — 로그인했는데 하단에 "로그인" 버튼이 그대로.
+     하단 버튼이 세션과 무관한 하드코딩이었다. HeaderAuth 와 같은 경량 세션
+     조회로 상태를 반영한다(판정 전 null 동안은 중립 렌더 — 틀린 버튼을
+     먼저 보여주지 않는다). */
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
+    let cancelled = false;
+    fetch("/api/auth/session")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s: { user?: { email?: string | null } } | null) => {
+        if (!cancelled) setLoggedIn(Boolean(s?.user?.email));
+      })
+      .catch(() => {
+        if (!cancelled) setLoggedIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -127,18 +144,26 @@ export function MobileMenu() {
       {open && mounted &&
         createPortal(
         <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label="전체 메뉴">
+          {/* 소유자 캡처(2026-08-04) — "닫기가 느리다". 두 가지가 겹쳐 있었다:
+              ① 전체 화면 backdrop blur — 아이폰 사파리에서 합성 해제가 무겁다.
+                 배경은 어둡기(dim)만으로 충분하다 → blur 제거.
+              ② click 은 터치를 뗀 뒤에야 발화 → pointerdown 에서 즉시 닫는다
+                 (배경은 스크롤 제스처가 없는 순수 딤이라 pointerdown 안전). */}
           <button
             type="button"
             aria-label="메뉴 닫기"
+            onPointerDown={() => setOpen(false)}
             onClick={() => setOpen(false)}
             className="absolute inset-0 h-full w-full cursor-default"
-            style={{ background: "rgba(20,26,38,.4)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
+            style={{ background: "rgba(20,26,38,.45)" }}
           />
 
           <div
             ref={panelRef}
             tabIndex={-1}
-            className="glass-strong absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl outline-none [animation:riseIn_220ms_var(--ease-out)_backwards]"
+            /* glass-strong(backdrop-filter) 제거 — 패널 배경이 불투명 surface 라
+               블러는 보이지 않으면서 비용만 냈다. 그림자로 대체. */
+            className="absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl outline-none shadow-[-16px_0_44px_rgba(15,23,42,.22)] [animation:riseIn_220ms_var(--ease-out)_backwards]"
             style={{
               background: "var(--surface)",
               paddingTop: "max(16px, env(safe-area-inset-top, 0px))",
@@ -150,6 +175,7 @@ export function MobileMenu() {
               <button
                 type="button"
                 aria-label="메뉴 닫기"
+                onPointerDown={() => setOpen(false)}
                 onClick={() => setOpen(false)}
                 className="relative flex h-8 w-8 items-center justify-center rounded-xl text-text-2 transition-colors after:absolute after:-inset-1.5 after:content-[''] active:bg-[rgba(29,79,216,.08)]"
               >
@@ -256,15 +282,26 @@ export function MobileMenu() {
               </div>
             </div>
 
-            {/* 하단 — 로그인/마이 + primary CTA */}
+            {/* 하단 — 세션 상태 반영 + primary CTA.
+                판정 전(null)에는 마이페이지만(중립) — 틀린 로그인 버튼을 먼저
+                보여주지 않는다. */}
             <div className="flex flex-col gap-2 border-t border-[#eef1f6] px-4 pt-3">
               <div className="flex gap-2">
-                <Link href="/login" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
-                  로그인
-                </Link>
+                {loggedIn === false && (
+                  <Link href="/login" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
+                    로그인
+                  </Link>
+                )}
                 <Link href="/my" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
                   마이페이지
                 </Link>
+                {loggedIn === true && (
+                  /* 라우트 핸들러 — 프리페치되면 안 되므로 <a> (HeaderAuth 와 동일 사유) */
+                  /* eslint-disable-next-line @next/next/no-html-link-for-pages */
+                  <a href="/api/auth/signout" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-2">
+                    로그아웃
+                  </a>
+                )}
               </div>
               <Link href="/notes/new" className="btn-primary rounded-xl py-3 text-center text-sm">
                 임장노트 쓰기
