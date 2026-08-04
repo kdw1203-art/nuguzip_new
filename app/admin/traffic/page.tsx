@@ -51,6 +51,8 @@ type UtmRow = {
 };
 /* 모바일29 — viewport_group_change(kind=initial, 세션 시작 그룹) 30일 집계 */
 type ViewportRow = { viewport_group: string; sessions: number };
+/* 웹30 — 30일 재방문(visitor_key 기준, 2일 이상 방문) */
+type RetentionRow = { visitors: number; returning_visitors: number };
 
 /** 이벤트명 → 한글 라벨 (등록부에 없는 값은 원문 그대로 — 지어내지 않는다) */
 const EVENT_LABEL: Record<string, string> = {
@@ -106,6 +108,7 @@ async function loadAll(): Promise<{
   referrers: ReferrerRow[];
   utms: UtmRow[];
   viewports: ViewportRow[];
+  retention: RetentionRow | null;
   failed: string[];
 }> {
   const sb = getServiceSupabase();
@@ -119,10 +122,11 @@ async function loadAll(): Promise<{
       referrers: [],
       utms: [],
       viewports: [],
+      retention: null,
       failed: ["전체(DB 미설정)"],
     };
 
-  const [summaryR, dailyR, routesR, usageR, refR, utmR, vpR] = await Promise.all([
+  const [summaryR, dailyR, routesR, usageR, refR, utmR, vpR, retR] = await Promise.all([
     sb.from("page_view_summary").select("*").maybeSingle(),
     sb.from("page_view_daily").select("*").order("day", { ascending: false }).limit(14),
     sb.from("page_view_route_30d").select("*").order("views", { ascending: false }).limit(15),
@@ -130,6 +134,7 @@ async function loadAll(): Promise<{
     sb.from("page_view_referrer_30d").select("*").order("sessions", { ascending: false }).limit(15),
     sb.from("page_view_utm_30d").select("*").order("sessions", { ascending: false }).limit(15),
     sb.from("platform_viewport_group_30d").select("*").order("sessions", { ascending: false }),
+    sb.from("page_view_retention_30d").select("*").maybeSingle(),
   ]);
 
   if (summaryR.error) {
@@ -142,6 +147,7 @@ async function loadAll(): Promise<{
   if (refR.error) failed.push("유입 출처");
   if (utmR.error) failed.push("UTM 캠페인");
   if (vpR.error) failed.push("기기 비율");
+  if (retR.error) failed.push("재방문");
 
   return {
     summary: (summaryR.data as Summary | null) ?? null,
@@ -151,12 +157,14 @@ async function loadAll(): Promise<{
     referrers: (refR.data as ReferrerRow[] | null) ?? [],
     utms: (utmR.data as UtmRow[] | null) ?? [],
     viewports: (vpR.data as ViewportRow[] | null) ?? [],
+    retention: (retR.data as RetentionRow | null) ?? null,
     failed,
   };
 }
 
 export default async function AdminTrafficPage() {
-  const { summary, daily, routes, usage, referrers, utms, viewports, failed } = await loadAll();
+  const { summary, daily, routes, usage, referrers, utms, viewports, retention, failed } =
+    await loadAll();
   const collectedSince = summary?.first_event_at
     ? new Date(summary.first_event_at).toLocaleDateString("ko-KR")
     : null;
@@ -328,6 +336,30 @@ export default async function AdminTrafficPage() {
               </div>
             );
           })()}
+        </section>
+      )}
+
+      {/* 웹30 — 재방문. visitor_key(2026-08-04 도입) 표본만 — 소급 불가. */}
+      {retention && retention.visitors > 0 && (
+        <section className="card rounded-2xl p-5">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            재방문{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              최근 30일 · 서로 다른 2일 이상 방문한 방문자 비율
+            </span>
+          </h2>
+          <p className="mt-2 text-[24px] font-extrabold text-ink">
+            {((retention.returning_visitors / retention.visitors) * 100).toFixed(1)}%
+            <span className="ml-2 text-[13px] font-semibold text-text-2">
+              {retention.returning_visitors.toLocaleString("ko-KR")} /{" "}
+              {retention.visitors.toLocaleString("ko-KR")}명
+            </span>
+          </p>
+          <p className="mt-1.5 text-[11px] leading-[1.6] text-text-3">
+            같은 브라우저 기준(방문자 키 — 기기·브라우저를 바꾸면 새 방문자로
+            셉니다). 키는 2026-08-04 도입 — 그 이전 방문은 소급되지 않고, 분석
+            동의 표본만 집계됩니다.
+          </p>
         </section>
       )}
 

@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
-import { findTxRegionBySlug, type BandCell, type TxRegionSummary } from "@/lib/market/tx-bands";
+import {
+  findTxRegionBySlug,
+  listTxRegions,
+  type BandCell,
+  type TxRegionSummary,
+} from "@/lib/market/tx-bands";
 import { BAND_KIND_LABEL, type BandKind } from "@/lib/market/bands";
 import { formatKrwShort, formatYmRange } from "@/lib/market/format";
 import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
@@ -157,6 +162,22 @@ export default async function TxRegionPage({
   const range = formatYmRange(region.firstYm, region.latestYm);
   const faq = buildRegionFaq(region, range);
 
+  /* 웹9 — 같은 시/도의 다른 지역 칩. region.name 은 "서울 강남구" 꼴이라 첫
+     토큰이 시/도다(좌표 인접 계산은 다음 단계 — 지금은 행정 그룹만). 실재하는
+     허브(listTxRegions 결과 = /tx 목록과 동일)만 링크한다 — 죽은 링크 금지.
+     조회 실패면 칩 없이 렌더한다(보조 내비게이션이라 페이지를 막지 않는다). */
+  const sido = region.name.split(" ")[0] ?? "";
+  let siblings: TxRegionSummary[] = [];
+  if (sido) {
+    try {
+      siblings = (await listTxRegions())
+        .filter((r) => r.slug !== region.slug && r.name.split(" ")[0] === sido)
+        .slice(0, 12);
+    } catch {
+      siblings = [];
+    }
+  }
+
   /* S18/G15 — Dataset 스키마: 이 페이지가 실제로 보여주는 집계를 데이터셋으로 기술.
      구글 데이터셋 검색 노출 + AI 의 출처 인식(원출처 국토교통부 명시). */
   const datasetJsonLd = {
@@ -223,6 +244,27 @@ export default async function TxRegionPage({
         <CitationBlock
           sentence={`누구집(nuguzip.com) 집계에 따르면, ${region.name} 아파트 매매 실거래는${range ? ` ${range}` : ""} ${region.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 해제분 제외).`}
         />
+      )}
+
+      {/* 웹9 — 같은 시/도 인접 지역 칩 (실재 허브만) */}
+      {siblings.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-2 text-[13px] font-extrabold text-ink">
+            {sido}의 다른 지역{" "}
+            <span className="text-[11px] font-medium text-text-3">거래 많은 순</span>
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {siblings.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/tx/${encodeURIComponent(s.slug)}`}
+                className="chip border border-line bg-bg px-3 py-1.5 text-[12px] font-bold text-text-2 no-underline transition-colors hover:border-primary hover:text-primary"
+              >
+                {s.name.slice(sido.length).trim() || s.name}
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       <p className="mb-8 text-[12px] leading-[1.7] text-text-3">

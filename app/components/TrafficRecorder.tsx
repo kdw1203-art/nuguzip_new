@@ -21,19 +21,41 @@ import { useCookieConsent } from "@/components/consent/use-cookie-consent";
    ============================================================ */
 
 const SESSION_STORAGE_KEY = "nz_traffic_session";
+/* 웹30 — 재방문 지표용 방문자 키(localStorage). 세션 키는 탭 세션 단위라
+   "다시 왔는가"를 이을 수 없다. 계정·PII 와 무관한 무작위 값이고, 세션 키와
+   똑같이 분석 동의 뒤에서만 만들어지고 전송된다. 동의를 거부로 바꾸면
+   지운다(아래 effect). */
+const VISITOR_STORAGE_KEY = "nz_traffic_visitor";
+
+function randomHex(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 function getSessionKey(): string | null {
   try {
     let k = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!k || !/^[a-f0-9]{16,64}$/.test(k)) {
-      const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
-      k = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+      k = randomHex();
       window.sessionStorage.setItem(SESSION_STORAGE_KEY, k);
     }
     return k;
   } catch {
     return null; // 프라이빗 모드 등 — 기록 없이 진행
+  }
+}
+
+function getVisitorKey(): string | null {
+  try {
+    let k = window.localStorage.getItem(VISITOR_STORAGE_KEY);
+    if (!k || !/^[a-f0-9]{16,64}$/.test(k)) {
+      k = randomHex();
+      window.localStorage.setItem(VISITOR_STORAGE_KEY, k);
+    }
+    return k;
+  } catch {
+    return null;
   }
 }
 
@@ -59,6 +81,18 @@ export function TrafficRecorder() {
   const pathname = usePathname();
   const { state } = useCookieConsent();
   const consented = state.status === "decided" && state.consent.analytics;
+
+  /* 동의를 거부로 결정하면 방문자 키를 지운다 — 수집이 멈추는 것에 더해
+     식별자 자체를 남기지 않는다. */
+  useEffect(() => {
+    if (state.status === "decided" && !state.consent.analytics) {
+      try {
+        window.localStorage.removeItem(VISITOR_STORAGE_KEY);
+      } catch {
+        /* 접근 불가 — 어차피 수집도 없다 */
+      }
+    }
+  }, [state]);
 
   /** 진행 중인 view — leave 1회 보장용 */
   const current = useRef<{ viewId: string; startedAt: number; closed: boolean } | null>(null);
@@ -107,7 +141,18 @@ export function TrafficRecorder() {
 
     const viewId = crypto.randomUUID();
     current.current = { viewId, startedAt: Date.now(), closed: false };
-    send({ t: "view", viewId, path: pathname, sessionKey, ...landing }, false);
+    const visitorKey = getVisitorKey();
+    send(
+      {
+        t: "view",
+        viewId,
+        path: pathname,
+        sessionKey,
+        ...(visitorKey ? { visitorKey } : {}),
+        ...landing,
+      },
+      false,
+    );
 
     const close = (useBeacon: boolean) => {
       const cur = current.current;

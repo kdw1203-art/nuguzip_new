@@ -27,6 +27,7 @@ type Body = {
   viewId?: string;
   path?: string;
   sessionKey?: string;
+  visitorKey?: string;
   durationMs?: number;
   /* 유입 출처 — 랜딩(세션 첫 뷰)에만 온다. referrerHost 는 호스트 문자열만
      허용(URL 금지 — 검색어 등 개인정보가 실릴 수 있다). */
@@ -111,6 +112,12 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
     const path = rawPath.split("?")[0].slice(0, 300);
     const isLanding = body.landing === true;
+    /* 웹30 — 방문자 키(localStorage 무작위 값). 형식이 어긋나면 버린다 —
+       세션 키와 달리 없어도 view 는 기록한다(재방문 지표만 표본에서 빠진다). */
+    const visitorKey =
+      typeof body.visitorKey === "string" && SESSION_RE.test(body.visitorKey)
+        ? body.visitorKey.toLowerCase()
+        : null;
     const referrerHost =
       isLanding && typeof body.referrerHost === "string" && HOST_RE.test(body.referrerHost.trim())
         ? body.referrerHost.trim().toLowerCase()
@@ -120,6 +127,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       route: normalizeRoute(path),
       path,
       session_key: sessionKey.toLowerCase(),
+      visitor_key: visitorKey,
       is_landing: isLanding,
       referrer_host: referrerHost,
       utm_source: isLanding ? cleanUtm(body.utmSource) : null,

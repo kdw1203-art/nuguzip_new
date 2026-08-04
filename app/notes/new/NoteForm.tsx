@@ -211,6 +211,9 @@ type NoteDraft = {
   /** 카테고리 체크리스트 항목 id → 체크 여부 */
   groupChecked?: Record<string, boolean>;
   weather?: string;
+  /** 모바일8 — 체크리스트 섹션 접기 상태(그룹 id → 열림). 긴 폼에서 접어 둔
+      구성을 복원해 스크롤 소모를 줄인다. */
+  openGroups?: Record<string, boolean>;
 };
 
 function isStringArray(v: unknown): v is string[] {
@@ -264,6 +267,12 @@ function parseDraft(raw: string | null): NoteDraft | null {
         if (typeof val === "boolean") groupChecked[k] = val;
       }
     }
+    const openGroups: Record<string, boolean> = {};
+    if (o.openGroups && typeof o.openGroups === "object") {
+      for (const [k, val] of Object.entries(o.openGroups as Record<string, unknown>)) {
+        if (typeof val === "boolean") openGroups[k] = val;
+      }
+    }
     return {
       v: 1,
       savedAt: o.savedAt,
@@ -278,6 +287,7 @@ function parseDraft(raw: string | null): NoteDraft | null {
       isPublic: typeof o.isPublic === "boolean" ? o.isPublic : undefined,
       groupChecked: Object.keys(groupChecked).length ? groupChecked : undefined,
       weather: typeof o.weather === "string" ? o.weather : undefined,
+      openGroups: Object.keys(openGroups).length ? openGroups : undefined,
     };
   } catch {
     return null;
@@ -644,6 +654,7 @@ export function NoteForm({
     isPublic,
     groupChecked,
     weather,
+    openGroups,
   });
 
   const writeDraft = () => {
@@ -688,6 +699,7 @@ export function NoteForm({
             isPublic,
             groupChecked,
             weather,
+            openGroups,
           } satisfies NoteDraft),
         );
         setSavedDraft(true);
@@ -709,6 +721,7 @@ export function NoteForm({
     isPublic,
     groupChecked,
     weather,
+    openGroups,
   ]);
 
   const restoreDraft = () => {
@@ -731,6 +744,11 @@ export function NoteForm({
     if (typeof pendingDraft.isPublic === "boolean") setIsPublic(pendingDraft.isPublic);
     if (pendingDraft.groupChecked) setGroupChecked(pendingDraft.groupChecked);
     if (typeof pendingDraft.weather === "string") setWeather(pendingDraft.weather);
+    // 모바일8 — 접기 상태 복원(기본값 위에 덮어쓰기, 저장 안 된 그룹은 기본 유지)
+    if (pendingDraft.openGroups) {
+      const saved = pendingDraft.openGroups;
+      setOpenGroups((prev) => ({ ...prev, ...saved }));
+    }
     setPendingDraft(null);
   };
 
