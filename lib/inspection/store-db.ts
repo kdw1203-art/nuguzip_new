@@ -432,9 +432,18 @@ export async function countRecentPublicNotesByComplex(
   return out;
 }
 
+/** id 컬럼이 uuid 라, 형식이 아닌 값을 그대로 넣으면 22P02 로 죽는다. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getNote(id: string): Promise<InspectionNote | null> {
   const sb = getServiceSupabase();
   if (!sb) return memory.find((n) => n.id === id) ?? null;
+  /* uuid 형식이 아니면 조회 자체를 하지 않는다 — 봇·오타 링크·CI 시드
+     (/notes/mock-1)가 들어오면 Postgres 가 22P02 "invalid input syntax for
+     type uuid" 에러를 남기는데, 결과는 어차피 "없음"(404)이다. 존재하지 않는
+     것을 확인하는 데 DB 왕복과 에러 로그를 쓸 이유가 없다.
+     (lib/posts-store-supabase.ts·lib/qna/store.ts 와 같은 처리) */
+  if (!UUID_RE.test(id)) return null;
   const { data, error } = await sb
     .from("inspection_notes")
     .select("*")
