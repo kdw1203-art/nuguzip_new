@@ -118,9 +118,20 @@ export async function listMeetings(
   return rows.filter((m) => !isPastMeeting(m, now));
 }
 
+/** meetings.id 는 uuid 다 — 형식이 아닌 값은 22P02 로 죽는다. */
+const MEETING_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getMeeting(id: string): Promise<UserMeeting | null> {
   const sb = getServiceSupabase();
   if (!sb) {
+    const g = await getGroupFile(id);
+    return g ? mapRow(g as unknown as Record<string, unknown>) : null;
+  }
+  /* uuid 가 아니면 DB 를 건너뛰고 파일 스토어(시드 모임)만 본다. 시드 id 는
+     "mock-1" 처럼 uuid 가 아니라서, 예전에는 매번 Postgres 에 22P02 에러를
+     남긴 뒤에야 파일 스토어로 넘어갔다 — 결과는 같은데 에러 로그만 쌓였다. */
+  if (!MEETING_UUID_RE.test(id)) {
     const g = await getGroupFile(id);
     return g ? mapRow(g as unknown as Record<string, unknown>) : null;
   }
