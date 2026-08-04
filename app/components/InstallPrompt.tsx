@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  FALLBACK_BOTTOM,
+  bottomAboveTabBar,
+  cookieConsentDecided,
+  dismissedRecently,
+  isInstalled,
+  rememberDismiss,
+  trackPwa,
+} from "@/lib/client/pwa-install";
 
 /**
  * G9 — PWA 설치 프롬프트
@@ -19,10 +28,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *   확장 API 다). 홈 화면 추가는 공유 시트를 직접 여는 수동 경로뿐이고, 웹에서
  *   프로그램적으로 띄울 방법이 없다. 그래서 iOS 에서는 이 배너가 절대 안 뜬다.
  *
- *   "공유 → 홈 화면에 추가" 안내 UI 를 UA 로 판별해 넣는 방법이 흔히 쓰이지만 여기선
- *   넣지 않았다. iOS 실기기가 없어 검증할 수 없고, 검증 못 한 안내는 사파리 버전에 따라
- *   메뉴 위치·명칭이 달라 틀린 설명이 된다. 없는 안내보다 틀린 안내가 나쁘다.
- *   → iOS 안내가 필요하면 실기기 확인 후 별도로 추가할 것. 지금은 미구현이 사실이다.
+ *   2026-08-04 해소: 소유자 실기기(iPhone·Safari) 확인을 전제로 IosInstallHint 를
+ *   따로 만들었다. 그쪽은 버튼이 아니라 "공유 → 홈 화면에 추가" **안내**만 하고,
+ *   메뉴가 없는 인앱 브라우저·다른 iOS 브라우저는 제외한다. 이 컴포넌트는 여전히
+ *   Chromium 의 판정만 따른다 — 두 경로가 서로의 조건을 넘보지 않는다.
  */
 
 /** Chromium 전용 이벤트라 lib.dom 타입에 없다. 필요한 두 멤버만 좁혀서 선언한다. */
@@ -34,66 +43,9 @@ type BeforeInstallPromptEvent = Event & {
 /**
  * 닫으면 30일간 다시 안 띄운다.
  * 이벤트는 페이지를 열 때마다 다시 발생하므로, 기억하지 않으면 닫아도 다음 방문에
- * 또 뜬다 — 그건 설치 유도가 아니라 그냥 방해다.
+ * 또 뜬다 — 그건 설치 유도가 아니라 그냥 방해다. (기간·저장 로직은 lib/client/pwa-install)
  */
 const DISMISS_KEY = "nuguzip:pwa-install-dismissed-at";
-const DISMISS_MS = 30 * 24 * 60 * 60 * 1000;
-
-/** 하단 탭바가 있는 화면에서는 그 위로 띄운다. 탭바가 없는 화면(로그인 등)은 기본 여백. */
-const FALLBACK_BOTTOM = "max(16px, env(safe-area-inset-bottom, 0px))";
-const GAP_ABOVE_TABBAR = 12;
-
-function track(eventName: string, metadata: Record<string, unknown> = {}) {
-  try {
-    void fetch("/api/platform/event", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        eventName,
-        source: "client",
-        campaign: "pwa",
-        path: typeof window !== "undefined" ? window.location.pathname : undefined,
-        metadata,
-      }),
-      keepalive: true,
-    }).catch(() => {});
-  } catch {
-    /* 계측 실패가 설치 흐름을 막지 않는다 */
-  }
-}
-
-/** 이미 앱으로 실행 중인가. 설치된 사람에게 설치를 권하지 않기 위한 확인. */
-function isInstalled(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    if (window.matchMedia("(display-mode: standalone)").matches) return true;
-    /* iOS 는 display-mode 대신 비표준 navigator.standalone 을 쓴다 */
-    return (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  } catch {
-    return false;
-  }
-}
-
-function dismissedRecently(): boolean {
-  try {
-    const raw = localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    const at = Number(raw);
-    if (!Number.isFinite(at)) return false;
-    return Date.now() - at < DISMISS_MS;
-  } catch {
-    /* 사파리 프라이빗 모드 등 localStorage 차단 환경 — 기억 못 할 뿐 동작은 한다 */
-    return false;
-  }
-}
-
-function rememberDismiss() {
-  try {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
-  } catch {
-    /* noop */
-  }
-}
 
 export function InstallPrompt() {
   const [visible, setVisible] = useState(false);
@@ -113,21 +65,9 @@ export function InstallPrompt() {
     return () => observer.disconnect();
   }, []);
 
-  /**
-   * 탭바 높이를 상수로 박지 않고 실제로 잰다.
-   * 탭바는 PageShell 을 쓰는 화면에만 있고(로그인 등은 없다), 안쪽 + 버튼이 위로
-   * 튀어나와 있어 높이가 눈대중과 다르다. 숫자를 박으면 탭바 디자인이 바뀔 때
-   * 배너만 조용히 겹친다.
-   */
-  const measure = useCallback(() => {
-    const tabbar = document.querySelector('nav[aria-label="하단 내비게이션"]');
-    const rect = tabbar?.getBoundingClientRect();
-    if (!rect || rect.height === 0) {
-      setBottom(FALLBACK_BOTTOM);
-      return;
-    }
-    setBottom(`${Math.round(window.innerHeight - rect.top + GAP_ABOVE_TABBAR)}px`);
-  }, []);
+  /* 위치는 탭바를 실제로 재서 정한다(lib/client/pwa-install) — 상수를 박으면
+     탭바 디자인이 바뀔 때 배너만 조용히 겹친다. */
+  const measure = useCallback(() => setBottom(bottomAboveTabBar()), []);
 
   useEffect(() => {
     if (isInstalled()) return;
@@ -137,26 +77,21 @@ export function InstallPrompt() {
          쥐고 있지 않으면 나중에 prompt() 를 호출할 방법이 없다. */
       e.preventDefault();
       deferredRef.current = e as BeforeInstallPromptEvent;
-      if (dismissedRecently()) return;
+      if (dismissedRecently(DISMISS_KEY)) return;
       /* 모바일 실측 29 — 쿠키 동의가 미결정이면 띄우지 않는다. 첫 방문에
          동의 배너 + 설치 배너가 겹치면 화면 하단이 배너로 덮인다. 동의를
          끝낸 다음 방문(이벤트는 페이지마다 다시 발생)에 뜨면 충분하다. */
-      try {
-        if (!window.localStorage.getItem("nz_cookie_consent")) return;
-      } catch {
-        /* 저장소 접근 불가 — 겹침 판정 불가면 띄우지 않는 쪽이 안전 */
-        return;
-      }
+      if (!cookieConsentDecided()) return;
       measure();
       setVisible(true);
-      track("pwa_install_prompt_view");
+      trackPwa("pwa_install_prompt_view");
     };
 
     const onInstalled = () => {
       /* 배너를 거치지 않고 브라우저 메뉴로 설치했을 수도 있다. 어느 쪽이든 즉시 치운다. */
       deferredRef.current = null;
       setVisible(false);
-      track("pwa_installed");
+      trackPwa("pwa_installed");
     };
 
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
@@ -175,8 +110,8 @@ export function InstallPrompt() {
 
   const dismiss = useCallback(() => {
     setVisible(false);
-    rememberDismiss();
-    track("pwa_install_prompt_dismiss");
+    rememberDismiss(DISMISS_KEY);
+    trackPwa("pwa_install_prompt_dismiss");
   }, []);
 
   const install = useCallback(async () => {
@@ -190,9 +125,9 @@ export function InstallPrompt() {
     try {
       await deferred.prompt();
       const choice = await deferred.userChoice;
-      track("pwa_install_prompt_result", { outcome: choice.outcome });
+      trackPwa("pwa_install_prompt_result", { outcome: choice.outcome });
       /* 여기서 취소했다는 건 "지금은 됐다" 는 뜻이므로 닫기와 같이 취급한다 */
-      if (choice.outcome === "dismissed") rememberDismiss();
+      if (choice.outcome === "dismissed") rememberDismiss(DISMISS_KEY);
     } catch {
       /* 이미 소비된 이벤트를 다시 prompt() 하면 예외가 난다. 조용히 넘긴다. */
     } finally {

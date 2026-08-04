@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SwRegister } from "./components/SwRegister";
 import { InstallPrompt } from "./components/InstallPrompt";
+import { IosInstallHint } from "./components/IosInstallHint";
 import { AdSenseLoader } from "./components/AdSenseLoader";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { TrafficRecorder } from "./components/TrafficRecorder";
@@ -157,6 +158,10 @@ export default function RootLayout({
                       (안 오면 아무것도 렌더하지 않는다). SwRegister 바로 뒤에 둔 건
                       순서 의존이 아니라 읽는 사람 편의 — 둘 다 PWA 관련이다. */}
                   <InstallPrompt />
+                  {/* iOS 사파리는 beforeinstallprompt 가 없어 위 배너가 절대 안 뜬다.
+                      주소창·도구막대를 없애는 유일한 경로("공유 → 홈 화면에 추가")를
+                      안내만 하는 컴포넌트를 따로 둔다. */}
+                  <IosInstallHint />
                   <AdSenseLoader />
                   <WebVitalsReporter />
                   {/* 어드민 트래픽 대시보드용 1st-party 페이지뷰·체류 기록 —
