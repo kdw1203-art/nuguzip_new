@@ -82,8 +82,12 @@ export function HeaderAuth() {
   }
 
   if (state.status === "guest") {
+    /* 웹5 — CTA 위계 정리. 회원가입이 아웃라인 필이라 헤더의 진짜 목표
+       행동("노트 쓰기" 파랑 버튼)과 경쟁했다. 이 제품의 첫 행동은 가입이
+       아니라 기록이다(로그인 없이 작성, 저장할 때 로그인) — 회원가입은
+       로그인과 같은 텍스트 링크로 내려 시선 경쟁을 없앤다. */
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <Link
           href="/login"
           className="whitespace-nowrap text-[13px] font-bold text-text-1 transition-colors hover:text-primary"
@@ -92,7 +96,7 @@ export function HeaderAuth() {
         </Link>
         <Link
           href="/signup"
-          className="hidden whitespace-nowrap rounded-full border border-[#d7dee8] bg-white px-3 py-[6px] text-[12px] font-extrabold text-ink transition-colors hover:border-primary hover:text-primary md:inline-flex"
+          className="hidden whitespace-nowrap text-[13px] font-bold text-text-2 transition-colors hover:text-primary md:inline"
         >
           회원가입
         </Link>

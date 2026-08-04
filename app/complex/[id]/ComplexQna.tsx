@@ -105,6 +105,21 @@ export async function ComplexQna({
         </Link>
       ) : (
         <div className="flex flex-col gap-2">
+          {/* 웹20 — 답변 유도. 답변대기 배지는 이미 있지만 "당신이 답할 수
+              있다"는 문장이 없었다. 대기 질문이 실재할 때만, 실측 수로 말한다. */}
+          {(() => {
+            const waiting = questions.filter((q) => q.status !== "answered");
+            if (waiting.length === 0) return null;
+            return (
+              <Link
+                href={`/qna/${waiting[0].id}`}
+                className="rounded-[12px] border border-[rgba(29,79,216,.18)] bg-[rgba(29,79,216,.05)] px-4 py-2.5 text-[12px] font-bold text-primary no-underline"
+              >
+                답변을 기다리는 질문 {waiting.length}개 — 이 단지를 다녀오셨다면
+                경험을 나눠 주세요 ›
+              </Link>
+            );
+          })()}
           {questions.map((q) => (
             <Link
               key={q.id}

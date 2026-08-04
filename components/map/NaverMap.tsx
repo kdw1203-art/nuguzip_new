@@ -111,7 +111,8 @@ interface NaverMapProps {
   /** HTML5 Geolocation — 내 위치 버튼 */
   enableGeolocation?: boolean;
   /** 내 위치 버튼 위치 */
-  geolocationButtonPosition?: "top-right" | "bottom-left";
+  /** bottom-right 는 /map 전용 — 모바일 탭바(하단 플로팅) 위로 띄운다 */
+  geolocationButtonPosition?: "top-right" | "bottom-left" | "bottom-right";
   /** 지도 유형 — 일반/위성 */
   mapType?: "normal" | "satellite";
   /** 지도 이동/줌이 멈추면 현재 영역·줌을 알린다 */
@@ -860,15 +861,19 @@ export function NaverMap({
           type="button"
           onClick={goToMyLocation}
           disabled={!loaded || geoLoading}
-          className={`absolute z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-base shadow-md ring-1 ring-black/10 hover:bg-slate-50 disabled:opacity-60 ${
+          /* 모바일22 — 36→44px(터치 하한). bottom-right 는 한 손 조작 반경
+             (우하단)이며 모바일 탭바(바닥 6px + 높이 ~59px) 위로 띄운다. */
+          className={`absolute z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-base shadow-md ring-1 ring-black/10 hover:bg-slate-50 disabled:opacity-60 ${
             geolocationButtonPosition === "bottom-left"
               ? "bottom-3 left-3"
-              : "right-2 top-2"
+              : geolocationButtonPosition === "bottom-right"
+                ? "right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+78px)] md:bottom-6"
+                : "right-2 top-2"
           }`}
           title="내 위치"
           aria-label="내 위치로 이동"
         >
-          {geoLoading ? "…" : <Icon name="📍" size={18} />}
+          {geoLoading ? "…" : <Icon name="📍" size={20} />}
         </button>
       ) : null}
       {!loaded ? (

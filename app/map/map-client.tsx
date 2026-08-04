@@ -2668,6 +2668,11 @@ export function MapClient({
         level={level}
         rounded={false}
         showControls={false}
+        /* 모바일22 — 지도 화면에 현재 위치 버튼이 아예 없었다(매물 등록 폼에만
+           있었음). 한 손 조작 반경(우하단)·44px·탭바 위. 위치 권한은 버튼을
+           누른 순간에만 요청된다(NaverMap 내부 — 자동 요청 없음). */
+        enableGeolocation
+        geolocationButtonPosition="bottom-right"
         className="absolute inset-0 z-0"
         onMarkerClick={handleMarkerClick}
         onIdle={handleMapIdle}
