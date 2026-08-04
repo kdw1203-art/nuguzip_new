@@ -16,10 +16,13 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
   const naverMapConnect =
     "https://oapi.map.naver.com https://openapi.map.naver.com https://*.map.naver.net wss://*.map.naver.net https://*.map.naver.com https://map.pstatic.net https://*.pstatic.net https://kr-col-ext.ncloudstorage.com https://ncp-maps.map.naver.com https://kr-col-ext.nelo.navercorp.com https://*.nelo.navercorp.com https://*.navercorp.com";
   const vercelLive = "https://vercel.live https://*.vercel.live wss://*.vercel.live";
+  /* googleadservices.com — 구글 광고(AW 태그) 전환 핑 도메인. 광고 전환
+     추적(ga4-gtag-loader)이 켜졌을 때 여기가 막혀 있으면 전환만 조용히
+     유실된다(화면 오류 없음 — 그래서 미리 열어 둔다). */
   const googleAdsScript =
-    "https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://www.gstatic.com https://www.google.com";
+    "https://www.googletagmanager.com https://pagead2.googlesyndication.com https://*.googlesyndication.com https://www.googleadservices.com https://www.gstatic.com https://www.google.com";
   const googleAdsConnect =
-    "https://*.googlesyndication.com https://*.doubleclick.net https://www.google.com https://www.gstatic.com";
+    "https://*.googlesyndication.com https://*.doubleclick.net https://www.googleadservices.com https://www.google.com https://www.gstatic.com";
   const googleAdsFrame =
     "https://googleads.g.doubleclick.net https://*.googlesyndication.com https://tpc.googlesyndication.com";
 
