@@ -151,15 +151,44 @@ async function assertStylesLoaded(page: import("@playwright/test").Page) {
  * 진행 중인 유한 애니메이션이 모두 끝날 때까지 기다린다.
  * 무한 반복(iterations: Infinity)은 영원히 안 끝나므로 제외한다 — reducedMotion
  * 에서 대부분 꺼지지만, 새로 추가되는 무한 애니메이션에 여기서 매달리지 않도록.
+ *
+ * **한 번만 기다리면 부족하다** — 실제로 겪은 실패 사례:
+ * 모바일 홈(390×844)에서 `color-contrast` 가 간헐적으로 잡혔는데, 걸린 색이
+ * `#767f8b on #fefeff (4.02:1)` 로 코드 어디에도 없는 값이었다. 계산해 보면
+ * `--text-3`(#606a77)를 흰 배경에 **불투명도 0.86** 으로 얹은 합성색이다.
+ * 범인은 `[data-reveal]` — 이건 진입 시 한꺼번에 도는 `.rise-in-*` 스태거와
+ * 달리 IntersectionObserver 가 뷰포트에 들어오는 **순간에** 켠다. 접힘선에
+ * 걸친 요소는 첫 정산이 끝난 **뒤에** 애니메이션을 시작하므로, 예전 구현처럼
+ * 그 시점의 목록만 기다리면 그 요소는 페이드 도중에 측정된다.
+ * (reduce 모드에서도 `animation: fadeIn 150ms` 로 짧아질 뿐 사라지지 않는다.)
+ *
+ * 그래서 "지금 도는 것들을 기다린다"를 **0이 될 때까지 반복**한다. 대비 기준은
+ * 정지 상태의 색에 대한 것이므로, 이렇게 기다려도 검사 능력은 줄지 않는다 —
+ * 줄어드는 건 시간에 따라 답이 바뀌던 부분뿐이다.
  */
 async function settleAnimations(page: import("@playwright/test").Page) {
-  await page.evaluate(async () => {
-    const running = document.getAnimations().filter((a) => {
-      const timing = a.effect?.getTiming();
-      return timing ? timing.iterations !== Infinity : false;
-    });
-    await Promise.all(running.map((a) => a.finished.catch(() => undefined)));
-  });
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          const runningFinite = () =>
+            document.getAnimations().filter((a) => {
+              const timing = a.effect?.getTiming();
+              if (!timing || timing.iterations === Infinity) return false;
+              return a.playState === "running" || a.playState === "paused";
+            });
+          await Promise.all(runningFinite().map((a) => a.finished.catch(() => undefined)));
+          /* 기다리는 사이에 새로 시작된 것이 있으면 0이 아니다 → 폴링이 한 번 더 돈다 */
+          return runningFinite().length;
+        }),
+      {
+        timeout: 10_000,
+        message:
+          "애니메이션이 멎지 않아 색을 정지 상태로 읽을 수 없습니다 — " +
+          "무한 반복 애니메이션이 새로 추가됐는지 확인하세요.",
+      },
+    )
+    .toBe(0);
 }
 
 async function scan(page: import("@playwright/test").Page) {

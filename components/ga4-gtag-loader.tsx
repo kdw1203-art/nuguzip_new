@@ -43,23 +43,54 @@ export function Ga4GtagLoader() {
 
   // 최초 로드 (동의 시 1회)
   useEffect(() => {
-    if (!enabled || window.gtag) return;
-    window.dataLayer = window.dataLayer ?? [];
-    window.gtag = function gtag(...args: unknown[]) {
-      window.dataLayer?.push(args);
+    if (!enabled) return;
+    /* 큐(dataLayer + gtag 껍데기)는 한 번만 만든다.
+       ※ "window.gtag 가 있으면 통째로 return" 하면 안 된다 — 아래 스크립트
+       주입을 idle 로 미루면서 effect 가 두 번 도는 경우(StrictMode·재마운트)
+       두 번째 실행이 여기서 빠져나가 스크립트가 영영 안 실린다. 큐 생성과
+       스크립트 주입은 각자 멱등하게 둔다. */
+    if (!window.gtag) {
+      window.dataLayer = window.dataLayer ?? [];
+      window.gtag = function gtag(...args: unknown[]) {
+        window.dataLayer?.push(args);
+      };
+      window.gtag("js", new Date());
+      // SPA 라우팅이라 page_view 는 아래 pathname effect 에서 수동 전송
+      window.gtag("config", GA4_ID, { send_page_view: false, anonymize_ip: true });
+      /* 구글 광고 태그 — 같은 gtag 에 config 만 얹는다(리마케팅 모수 수집).
+         NEXT_PUBLIC_GOOGLE_ADS_ID(AW-…) 미설정이면 무동작. 동의 게이트는 이
+         로더 전체에 이미 걸려 있다 — 동의 없이는 이 줄까지 오지 않는다. */
+      const awId = googleAdsId();
+      if (awId) window.gtag("config", awId);
+    }
+
+    /* 최적화 18 — gtag/js 는 **한가할 때** 내려받는다.
+       위까지가 계측의 본체다: dataLayer 와 window.gtag(=push 하는 껍데기)가
+       이미 있으므로, 아래 스크립트가 늦게 와도 그 사이 발생한 page_view·전환
+       이벤트는 큐에 쌓였다가 로드 직후 그대로 전송된다 — 유실이 없다.
+       그래서 이 요청만 뒤로 미룰 수 있다. 재방문자(동의 이미 완료)의 경우
+       예전에는 하이드레이션 직후 곧바로 나가서 첫 화면 자원과 대역폭·연결을
+       놓고 경쟁했다. requestIdleCallback 은 사파리 17.4 미만에 없으므로
+       setTimeout 으로 대체하고, 계속 바쁜 페이지에서 영영 안 실리지 않도록
+       3초 상한(timeout)을 둔다. */
+    const load = () => {
+      if (document.getElementById("ga4-gtag")) return;
+      const s = document.createElement("script");
+      s.id = "ga4-gtag";
+      s.async = true;
+      s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_ID)}`;
+      document.head.appendChild(s);
     };
-    window.gtag("js", new Date());
-    // SPA 라우팅이라 page_view 는 아래 pathname effect 에서 수동 전송
-    window.gtag("config", GA4_ID, { send_page_view: false, anonymize_ip: true });
-    /* 구글 광고 태그 — 같은 gtag 에 config 만 얹는다(리마케팅 모수 수집).
-       NEXT_PUBLIC_GOOGLE_ADS_ID(AW-…) 미설정이면 무동작. 동의 게이트는 이
-       로더 전체에 이미 걸려 있다 — 동의 없이는 이 줄까지 오지 않는다. */
-    const awId = googleAdsId();
-    if (awId) window.gtag("config", awId);
-    const s = document.createElement("script");
-    s.async = true;
-    s.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(GA4_ID)}`;
-    document.head.appendChild(s);
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof w.requestIdleCallback === "function") {
+      const id = w.requestIdleCallback(load, { timeout: 3000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(load, 1200);
+    return () => window.clearTimeout(id);
   }, [enabled]);
 
   // 라우트 변경마다 page_view

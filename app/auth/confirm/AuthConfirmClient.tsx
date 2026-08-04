@@ -2,8 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 import { safeInternalPath } from "@/lib/safe-path";
+
+/* 최적화 19 — supabase-js 는 실제로 쓰는 분기에서만 불러온다.
+   정적 import 이던 시절 이 페이지의 First Load JS 는 169kB 였고 그중 약 66kB가
+   @supabase/supabase-js 였다(auth 만 쓰는데 realtime·storage·functions 까지 온다).
+   아래 다섯 갈래 중 supabase 가 필요한 건 token_hash · 해시토큰 둘뿐이고,
+   PKCE(code)·오류·기타는 리다이렉트만 한다 — 그 경우엔 한 바이트도 안 받는다.
+   필요한 분기에서도 "확인하는 중…" 문구가 먼저 그려진 뒤 내려받는다. */
+const loadCreateClient = () =>
+  import("@/utils/supabase/client").then((m) => m.createClient);
 
 function safeNext(raw: string | null): string {
   /* `!startsWith("//")` 만으로는 `/\evil.com` 이 통과한다 — lib/safe-path.ts 참고. */
@@ -44,7 +52,7 @@ export function AuthConfirmClient() {
       /* token_hash 방식 (일부 메일 템플릿) */
       if (tokenHash && type) {
         try {
-          const supabase = createClient();
+          const supabase = (await loadCreateClient())();
           const { error } = await supabase.auth.verifyOtp({
             token_hash: tokenHash,
             type: type as "signup" | "email" | "recovery" | "invite" | "magiclink",
@@ -69,7 +77,7 @@ export function AuthConfirmClient() {
       /* 해시 토큰 (implicit) — 브릿지에서 넘어온 경우 */
       if (url.hash && url.hash.includes("access_token")) {
         try {
-          const supabase = createClient();
+          const supabase = (await loadCreateClient())();
           const { error } = await supabase.auth.getSession();
           if (cancelled) return;
           if (error) {

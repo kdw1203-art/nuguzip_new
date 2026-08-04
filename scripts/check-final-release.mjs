@@ -387,6 +387,77 @@ runGate("데이터", "envKey 이름 ↔ 실제 참조 일치", "check-env-key-na
   }
 }
 
+/* 최적화 40 — prefers-reduced-motion 전수 존중.
+   globals.css 의 모션 블록에는 "여기 빠뜨린 클래스는 그대로 움직인다. 새 모션을
+   더할 때는 반드시 이 목록에 같이 적는다"는 주석이 있었다. 지키는 사람이
+   기억뿐이면 그건 약속이지 규칙이 아니다 — 빠뜨려도 아무 일이 안 일어나므로
+   언젠가 조용히 빠진다. 여기서 기계가 대조한다.
+
+   방법: animation 을 **선언하는** 셀렉터를 전부 모으고, 그중
+   @media (prefers-reduced-motion: reduce) 블록 안에서 다시 다뤄지지 않는 것을
+   찾는다. 아래 예외 두 건은 "빠진 것"이 아니라 그럴 이유가 있는 것이라
+   근거와 함께 적어 둔다(근거 없이 늘어나면 이 검사는 무의미해진다). */
+{
+  const raw = read("app/globals.css");
+  const css = raw.replace(/\/\*[\s\S]*?\*\//g, " "); // 주석 안의 셀렉터 모양 문자열 제거
+  const rmRanges = [];
+  const rmRe = /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{/g;
+  let m;
+  while ((m = rmRe.exec(css))) {
+    let i = m.index + m[0].length;
+    let depth = 1;
+    while (i < css.length && depth > 0) {
+      if (css[i] === "{") depth++;
+      else if (css[i] === "}") depth--;
+      i++;
+    }
+    rmRanges.push([m.index, i]);
+  }
+  const inRm = (idx) => rmRanges.some(([a, b]) => idx >= a && idx < b);
+
+  const EXEMPT = new Map([
+    /* 이미 animation:none 이다 — 모션을 끄는 규칙을 "모션 목록"에 또 적을 이유가 없다 */
+    ['.nav-progress[data-done="true"] .nav-progress-bar', "animation: none 자체"],
+    /* opacity 만 0 으로 내리는 퇴장. 모션 최소화가 막으려는 건 이동·확대·시차이지
+       투명도 전환이 아니고, 이걸 끄면 성공 오버레이가 화면에 남아 다음 조작을
+       가린다 — 접근성을 위해 끈 것이 접근성을 해친다. */
+    ['.moment-layer[data-leaving="true"]', "opacity 만 내리는 퇴장(끄면 오버레이가 안 사라짐)"],
+  ]);
+
+  const declared = new Map();
+  const covered = new Set();
+  const ruleRe = /([^{}]+)\{([^{}]*)\}/g;
+  let r;
+  while ((r = ruleRe.exec(css))) {
+    const selRaw = r[1].trim().replace(/\s+/g, " ");
+    const body = r[2];
+    if (!selRaw || /^@/.test(selRaw)) continue;
+    if (!/(^|[\s;])animation(-name)?\s*:/.test(body)) continue;
+    const isRm = inRm(r.index);
+    for (const s of selRaw.split(",").map((x) => x.trim())) {
+      if (!s || /^(from|to|\d+%)$/.test(s)) continue; // 키프레임 단계
+      if (isRm) covered.add(s);
+      else if (!declared.has(s)) declared.set(s, true);
+    }
+  }
+  const missing = [...declared.keys()].filter((s) => !covered.has(s) && !EXEMPT.has(s));
+  if (rmRanges.length === 0) {
+    fail("접근성", "모션 최소화 전수 존중", "prefers-reduced-motion 블록이 하나도 없습니다");
+  } else if (missing.length === 0) {
+    pass(
+      "접근성",
+      "모션 최소화 전수 존중",
+      `animation 선언 ${declared.size}종 · reduce 대응 ${covered.size}종 · 근거 있는 예외 ${EXEMPT.size}종`,
+    );
+  } else {
+    fail(
+      "접근성",
+      "모션 최소화 전수 존중",
+      `reduce 블록에서 빠진 셀렉터 ${missing.length}개: ${missing.join(" · ")} — globals.css 의 "7. 접근성: 모션 최소화" 블록에 추가하거나, 뺄 이유가 있으면 check-final-release.mjs 의 EXEMPT 에 근거와 함께 적으세요`,
+    );
+  }
+}
+
 // ── 출력 ───────────────────────────────────────────────
 console.log("\n=== 최종 릴리스 자동 점검 ===\n");
 console.log("| 도메인 | 항목 | 상태 | 비고 |");

@@ -5,7 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/app/components/Logo";
 import { Icon } from "@/app/components/Icon";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+/* 최적화 19 — supabase-js 는 **필요할 때** 불러온다.
+   정적 import 이던 시절 이 페이지의 First Load JS 는 181kB 였고, 그중 약 66kB가
+   @supabase/supabase-js 였다(realtime·storage·functions 포함 — 여기서 쓰는 건
+   auth 하나뿐인데도 통째로 들어온다).
+   그런데 이 화면의 주 경로는 `?token=` 쿼리(자체 토큰)이고, 그 경로는 fetch 만
+   쓰고 supabase 를 **한 번도 부르지 않는다**. 비밀번호 재설정 링크는 메일에서
+   눌러 들어오는 자리라 첫 로드가 곧 체감이다 — 안 쓰는 66kB를 미리 받게 할
+   이유가 없다. 그래서 supabase 복구 링크(hash) 경로에서만 동적으로 가져온다. */
+const loadSupabase = () =>
+  import("@/lib/supabase/browser").then((m) => m.createSupabaseBrowserClient());
 
 /**
  * 새 비밀번호 설정 — 구 app/auth/reset-password 포트.
@@ -52,26 +61,38 @@ export default function ResetPasswordPage() {
     }
 
     // Supabase 복구 링크 — hash 의 access_token 처리 대기
-    const sb = createSupabaseBrowserClient();
     if (window.location.hash.includes("access_token")) {
       queueMicrotask(() => setMode("supabase"));
     }
-    if (!sb) {
-      if (!window.location.hash.includes("access_token")) {
-        queueMicrotask(() => setMode("invalid"));
-      }
-      return;
-    }
-    const { data: sub } = sb.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        queueMicrotask(() => setMode("supabase"));
-      }
-    });
+    /* 4초 안에 아무 신호도 없으면 잘못된 링크로 본다. 이 타이머는 supabase 로드
+       성공 여부와 무관하게 걸어 둔다 — 모듈을 못 받아 오면 "확인 중" 에서 영원히
+       멈추는 화면이 되기 때문이다. */
     const timer = window.setTimeout(() => {
       setMode((m) => (m === "checking" ? "invalid" : m));
     }, 4000);
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+    void (async () => {
+      const sb = await loadSupabase().catch(() => null);
+      if (cancelled) return;
+      if (!sb) {
+        if (!window.location.hash.includes("access_token")) {
+          setMode((m) => (m === "checking" ? "invalid" : m));
+        }
+        return;
+      }
+      const { data: sub } = sb.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          queueMicrotask(() => setMode("supabase"));
+        }
+      });
+      /* 로드가 끝나기 전에 화면을 떠났을 수 있다 — 그때는 바로 해지한다 */
+      if (cancelled) sub.subscription.unsubscribe();
+      else unsubscribe = () => sub.subscription.unsubscribe();
+    })();
     return () => {
-      sub.subscription.unsubscribe();
+      cancelled = true;
+      unsubscribe?.();
       window.clearTimeout(timer);
     };
   }, []);
@@ -101,7 +122,7 @@ export default function ResetPasswordPage() {
           return;
         }
       } else {
-        const sb = createSupabaseBrowserClient();
+        const sb = await loadSupabase().catch(() => null);
         if (!sb) {
           setError("클라이언트 설정을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.");
           return;
