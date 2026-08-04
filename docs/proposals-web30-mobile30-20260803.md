@@ -237,3 +237,9 @@
   (last_price_krw, 면적대 변경 시 비교 불가 명기)·최근 30일 공개 노트 수
   (단지 일괄 1쿼리 countRecentPublicNotesByComplex). 산출 불가 사유 표기·
   조회 실패≠0 구분. /my 에 진입 카드 추가 — 문 없는 페이지는 없는 기능).
+- W3 3차(이 커밋): 웹18(웹바이탈 어드민 시각화 — 발견: loadVitalsLast7d 가
+  이월 44 때 만들어졌지만 소비처가 한 곳도 없던 화면 없는 로더였음. 트래픽
+  대시보드에 첫 배선: 7일 p75 지표 칩(LCP·INP·CLS·FCP·TTFB, 웹 표준 임계값
+  색) + LCP·CLS 주간 p75 추이 12주(web_vitals_weekly 뷰 신설 —
+  percentile_cont DB 계산, 표본 20 미만 주는 옅게 표시). 적용 시점 실데이터:
+  LCP p75 2.3~3.0s, CLS 0.4→0.002 개선 추이 시각 확인 가능).

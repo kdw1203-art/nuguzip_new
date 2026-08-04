@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { FUNNEL_EVENT } from "@/lib/platform-funnel-events";
+import {
+  classifyVital,
+  formatVital,
+  loadVitalsLast7d,
+  type VitalStat,
+} from "@/lib/admin/stats";
 import { logger } from "@/lib/log";
 
 export const metadata: Metadata = {
@@ -53,6 +59,8 @@ type UtmRow = {
 type ViewportRow = { viewport_group: string; sessions: number };
 /* 웹30 — 30일 재방문(visitor_key 기준, 2일 이상 방문) */
 type RetentionRow = { visitors: number; returning_visitors: number };
+/* 웹18 — 주간 p75 (web_vitals_weekly 뷰, percentile_cont DB 계산) */
+type VitalsWeeklyRow = { week_start: string; metric: string; samples: number; p75: number };
 
 /** 이벤트명 → 한글 라벨 (등록부에 없는 값은 원문 그대로 — 지어내지 않는다) */
 const EVENT_LABEL: Record<string, string> = {
@@ -109,6 +117,8 @@ async function loadAll(): Promise<{
   utms: UtmRow[];
   viewports: ViewportRow[];
   retention: RetentionRow | null;
+  vitals7d: VitalStat[];
+  vitalsWeekly: VitalsWeeklyRow[];
   failed: string[];
 }> {
   const sb = getServiceSupabase();
@@ -123,10 +133,13 @@ async function loadAll(): Promise<{
       utms: [],
       viewports: [],
       retention: null,
+      vitals7d: [],
+      vitalsWeekly: [],
       failed: ["전체(DB 미설정)"],
     };
 
-  const [summaryR, dailyR, routesR, usageR, refR, utmR, vpR, retR] = await Promise.all([
+  const [summaryR, dailyR, routesR, usageR, refR, utmR, vpR, retR, vitals7d, vwR] =
+    await Promise.all([
     sb.from("page_view_summary").select("*").maybeSingle(),
     sb.from("page_view_daily").select("*").order("day", { ascending: false }).limit(14),
     sb.from("page_view_route_30d").select("*").order("views", { ascending: false }).limit(15),
@@ -135,6 +148,13 @@ async function loadAll(): Promise<{
     sb.from("page_view_utm_30d").select("*").order("sessions", { ascending: false }).limit(15),
     sb.from("platform_viewport_group_30d").select("*").order("sessions", { ascending: false }),
     sb.from("page_view_retention_30d").select("*").maybeSingle(),
+    /* 웹18 — loadVitalsLast7d 는 이월 44 때 만들어졌지만 소비처가 없던
+       로더였다(화면 없는 로더 = 없는 기능). 여기서 처음 배선한다. */
+    loadVitalsLast7d().catch((e: unknown) => {
+      logger.error("[admin/traffic] 웹바이탈 7일 조회 실패:", e);
+      return [] as VitalStat[];
+    }),
+    sb.from("web_vitals_weekly").select("*").order("week_start", { ascending: true }),
   ]);
 
   if (summaryR.error) {
@@ -148,6 +168,7 @@ async function loadAll(): Promise<{
   if (utmR.error) failed.push("UTM 캠페인");
   if (vpR.error) failed.push("기기 비율");
   if (retR.error) failed.push("재방문");
+  if (vwR.error) failed.push("웹바이탈 주간");
 
   return {
     summary: (summaryR.data as Summary | null) ?? null,
@@ -158,13 +179,26 @@ async function loadAll(): Promise<{
     utms: (utmR.data as UtmRow[] | null) ?? [],
     viewports: (vpR.data as ViewportRow[] | null) ?? [],
     retention: (retR.data as RetentionRow | null) ?? null,
+    vitals7d,
+    vitalsWeekly: (vwR.data as VitalsWeeklyRow[] | null) ?? [],
     failed,
   };
 }
 
 export default async function AdminTrafficPage() {
-  const { summary, daily, routes, usage, referrers, utms, viewports, retention, failed } =
-    await loadAll();
+  const {
+    summary,
+    daily,
+    routes,
+    usage,
+    referrers,
+    utms,
+    viewports,
+    retention,
+    vitals7d,
+    vitalsWeekly,
+    failed,
+  } = await loadAll();
   const collectedSince = summary?.first_event_at
     ? new Date(summary.first_event_at).toLocaleDateString("ko-KR")
     : null;
@@ -359,6 +393,90 @@ export default async function AdminTrafficPage() {
             같은 브라우저 기준(방문자 키 — 기기·브라우저를 바꾸면 새 방문자로
             셉니다). 키는 2026-08-04 도입 — 그 이전 방문은 소급되지 않고, 분석
             동의 표본만 집계됩니다.
+          </p>
+        </section>
+      )}
+
+      {/* 웹18 — 성능(웹바이탈). 7일 p75 스냅샷 + LCP·CLS 주간 추이. */}
+      {vitals7d.some((v) => v.samples > 0) && (
+        <section className="card rounded-2xl p-5">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            성능 (웹바이탈){" "}
+            <span className="text-[11px] font-medium text-text-3">
+              실사용자 측정(RUM) · p75 · 최근 7일
+            </span>
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-2.5">
+            {vitals7d
+              .filter((v) => v.samples > 0)
+              .map((v) => {
+                const cls =
+                  v.p75 == null
+                    ? "text-text-3"
+                    : classifyVital(v.metric, v.p75) === "good"
+                      ? "text-success"
+                      : classifyVital(v.metric, v.p75) === "ni"
+                        ? "text-warning"
+                        : "text-danger";
+                return (
+                  <div
+                    key={v.metric}
+                    className="rounded-[12px] border border-line bg-bg px-3.5 py-2.5"
+                  >
+                    <div className="text-[10px] font-bold text-text-3">{v.metric}</div>
+                    <div className={`text-[16px] font-extrabold ${cls}`}>
+                      {formatVital(v.metric, v.p75)}
+                    </div>
+                    <div className="text-[10px] text-text-3">{v.samples}표본</div>
+                  </div>
+                );
+              })}
+          </div>
+          {/* LCP·CLS 주간 추이 — 표본 20 미만인 주는 p75 신뢰도가 낮아 옅게 */}
+          {(["LCP", "CLS"] as const).map((metric) => {
+            const rows = vitalsWeekly.filter((r) => r.metric === metric && r.samples > 0);
+            if (rows.length < 2) return null;
+            const max = Math.max(...rows.map((r) => r.p75));
+            return (
+              <div key={metric} className="mt-4">
+                <div className="mb-1.5 text-[12px] font-extrabold text-text-2">
+                  {metric} p75 주간 추이{" "}
+                  <span className="font-medium text-text-3">최근 12주</span>
+                </div>
+                <div className="flex items-end gap-1.5">
+                  {rows.map((r) => {
+                    const c = classifyVital(metric, r.p75);
+                    const color =
+                      c === "good" ? "bg-success" : c === "ni" ? "bg-warning" : "bg-danger";
+                    const thin = r.samples < 20;
+                    return (
+                      <div key={r.week_start} className="flex flex-1 flex-col items-center gap-1">
+                        <span className="text-[9px] tabular-nums text-text-3">
+                          {formatVital(metric, r.p75)}
+                        </span>
+                        <div className="flex h-[52px] w-full items-end">
+                          <div
+                            className={`w-full rounded-t ${color} ${thin ? "opacity-40" : "opacity-80"}`}
+                            style={{
+                              height: `${Math.max(6, Math.round((r.p75 / max) * 100))}%`,
+                            }}
+                            title={`${r.week_start} 주 · ${formatVital(metric, r.p75)} · ${r.samples}표본`}
+                          />
+                        </div>
+                        <span className="text-[9px] text-text-3">
+                          {r.week_start.slice(5).replace("-", ".")}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          <p className="mt-2 text-[11px] leading-[1.6] text-text-3">
+            색: 웹 표준 임계값 기준(좋음 · 개선 필요 · 나쁨 — LCP 2.5s/4s ·
+            CLS 0.1/0.25). 옅은 막대는 표본 20개 미만이라 p75 신뢰도가 낮은
+            주입니다. 수집이 없던 주는 칸 자체가 없습니다.
           </p>
         </section>
       )}
