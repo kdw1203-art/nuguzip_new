@@ -135,6 +135,12 @@ jobs:
       - name: Build for link check
         env:
           AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
+          # 서비스 키 없이 빌드하면 getReadOnlySupabase 가 anon 으로 폴백해
+          # 서비스 전용 테이블(referral_codes·user_inbox_notifications 등)마다
+          # 42501 을 만든다 — 배포 때마다 Supabase 로그에 에러 수십 건이 찍혀
+          # 진짜 장애가 묻힌다(2026-08-04 소유자 대시보드 확인). 읽기 전용
+          # 자사 코드 실행 스텝이므로 step-level 로만 주입한다.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         # prerender 는 DB 를 읽는다. DB 가 느려지면 빌드가 조용히 길어지는데,
         # 잡 상한(35분)만 있으면 "빌드가 먹었다"는 사실이 로그 끝까지 가야 보인다.
         # 정상 빌드는 5분 안쪽이다 — 15분을 넘으면 그건 고장이다.
@@ -190,6 +196,9 @@ jobs:
       - name: Link integrity check
         env:
           AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
+          # 위 빌드 스텝과 같은 이유 — 링크 크롤 서버의 런타임 조회도 anon
+          # 폴백이면 페이지마다 42501 로그를 남긴다.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         # 스텝 단위 상한도 따로 둔다. 잡 상한(35분)만 있으면 어느 스텝이 잡아먹었는지
         # 로그를 끝까지 뒤져야 알 수 있는데, 여기서 끊기면 원인이 바로 드러난다.
         timeout-minutes: 12

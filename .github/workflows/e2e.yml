@@ -40,11 +40,15 @@ jobs:
       - name: Build
         env:
           AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
+          # 서비스 키 없이 돌면 anon 폴백이 서비스 전용 테이블마다 42501 을
+          # 만들어 Supabase 로그를 오염시킨다 (deploy.yml 링크 점검과 동일).
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx next build
       - name: Start server and run E2E smoke
         shell: bash
         env:
           AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           # ⚠️ pipefail 을 지우지 말 것. 아래 playwright 호출은 tee 로 파이프되므로
           #    pipefail 이 없으면 $? 가 항상 tee 의 0 이 되고, 이 게이트는 무슨 일이
