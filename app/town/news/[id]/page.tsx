@@ -207,9 +207,8 @@ export default async function TownNewsDetailPage({
   /* 우리 요약·핵심·FAQ·지역. Post 가 automationMeta 를 그대로 넘겨주므로
      추가 조회가 없다. 값이 없으면 hasOwnContent 가 false 가 되고, 아래는
      예전 그대로 원문 본문을 그리며 색인도 열지 않는다(옛 글 호환). */
-  const { seo, geo, summary, aiReason, hasOwnContent } = readNewsMeta(
-    post.automationMeta,
-  );
+  const { seo, geo, summary, context, implication, hasOwnContent } =
+    readNewsMeta(post.automationMeta);
   const renderOwnSummary = Boolean(post.isAutomated) && hasOwnContent;
 
   /* slug 주소 통합은 리다이렉트가 아니라 <link rel="canonical"> 로 한다.
@@ -388,14 +387,24 @@ export default async function TownNewsDetailPage({
                 <p key={`body-${i}`}>{t}</p>
               ))}
 
-              {/* 이 기사를 고른 이유 — 원문에는 없는 우리 판단이다. */}
-              {renderOwnSummary && aiReason ? (
-                <div className="rounded-[14px] border border-line bg-bg px-4 py-3">
-                  <div className="mb-1 text-[11px] font-extrabold text-text-3">
-                    누구집이 이 기사를 고른 이유
-                  </div>
-                  <p className="text-[13px] leading-[1.7] text-text-1">{aiReason}</p>
-                </div>
+              {/* 배경·맥락 — 원문에 없는 우리 정리. 이 기사가 어떤 흐름 위에
+                  있는지를 앞선 정책·통계와 이어 준다. */}
+              {renderOwnSummary && context ? (
+                <section className="rounded-[14px] border border-line bg-bg px-4 py-3">
+                  <h2 className="mb-1 text-[12px] font-extrabold text-text-3">배경</h2>
+                  <p className="text-[13px] leading-[1.75] text-text-1">{context}</p>
+                </section>
+              ) : null}
+
+              {/* 시장에 주는 의미 — 원문에 없는 우리 해석. 실수요자가 무엇을
+                  봐야 하는지까지 적는다. */}
+              {renderOwnSummary && implication ? (
+                <section className="rounded-[14px] border border-primary/25 bg-[#f7faff] px-4 py-3">
+                  <h2 className="mb-1 text-[12px] font-extrabold text-primary">
+                    시장에 주는 의미
+                  </h2>
+                  <p className="text-[13px] leading-[1.75] text-text-1">{implication}</p>
+                </section>
               ) : null}
               {/* 웹12 — 원문 링크 시인성 강화: 본문 끝 괄호 문장에서 카드형
                   CTA 로. 요약본 사이트의 예의는 원문으로 잘 보내는 것이다.

@@ -22,6 +22,10 @@ export type NewsSeo = {
   key_points?: string[];
   faq?: { q: string; a: string }[];
   summary?: string;
+  /** 배경·맥락 — 원문에 없는 우리 정리(이전 정책 흐름·통계 배경). */
+  context?: string;
+  /** 시장 의미 — 원문에 없는 우리 해석(실수요자가 무엇을 봐야 하는가). */
+  implication?: string;
   jsonld?: Record<string, unknown>;
 };
 
@@ -38,6 +42,8 @@ export type NewsMeta = {
   seo: NewsSeo;
   geo: NewsGeo;
   summary: string | null;
+  context: string | null;
+  implication: string | null;
   aiReason: string | null;
   /** 우리가 직접 쓴 글이 갖춰졌는가 — 색인·렌더 분기의 단일 기준. */
   hasOwnContent: boolean;
@@ -57,7 +63,11 @@ export function readNewsMeta(meta: PostAutomationMeta | undefined): NewsMeta {
   const seo = (m.seo ?? {}) as NewsSeo;
   const geo = (m.geo ?? {}) as NewsGeo;
   const summary = typeof seo.summary === "string" ? seo.summary : null;
+  const context = typeof seo.context === "string" ? seo.context : null;
   const aiReason = typeof m.ai_reason === "string" ? m.ai_reason : null;
+  /* 시장 의미는 확장본(seo.implication)을 쓰고, 없으면 종전 선정 사유로 내려간다. */
+  const implication =
+    typeof seo.implication === "string" ? seo.implication : aiReason;
 
   const hasOwnContent =
     Array.isArray(seo.key_points) &&
@@ -65,7 +75,7 @@ export function readNewsMeta(meta: PostAutomationMeta | undefined): NewsMeta {
     typeof summary === "string" &&
     summary.trim().length >= 120;
 
-  return { seo, geo, summary, aiReason, hasOwnContent };
+  return { seo, geo, summary, context, implication, aiReason, hasOwnContent };
 }
 
 const UUID_RE =
@@ -93,15 +103,35 @@ export function canonicalNewsUrl(slug: string | undefined, uuid: string): string
   return `${SITE_URL}${canonicalNewsPath(slug, uuid)}`;
 }
 
-/** 요약(5문장)을 화면용 2문단으로 나눈다. */
+/**
+ * 요약을 화면용 문단으로 나눈다.
+ *
+ * 요약이 400자대일 때는 2문단으로 충분했지만 800~1,300자로 길어지면서
+ * 문단 하나가 너무 길어졌다. 문장 3개 또는 260자 중 먼저 닿는 쪽에서 끊는다
+ * (수집기 clean_body 의 단락화 규칙과 같은 기준).
+ */
 export function splitSummary(summary: string): string[] {
   const sents = summary
     .split(/(?<=\.)\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  if (sents.length <= 2) return [summary];
-  const mid = Math.ceil(sents.length / 2);
-  return [sents.slice(0, mid).join(" "), sents.slice(mid).join(" ")];
+  if (sents.length <= 3) return [summary];
+
+  const paras: string[] = [];
+  let buf: string[] = [];
+  for (const sent of sents) {
+    buf.push(sent);
+    if (buf.length >= 3 || buf.join(" ").length > 260) {
+      paras.push(buf.join(" "));
+      buf = [];
+    }
+  }
+  if (buf.length) {
+    // 마지막 한 문장만 남으면 앞 문단에 붙인다(고아 문단 방지)
+    if (buf.length === 1 && paras.length) paras[paras.length - 1] += ` ${buf[0]}`;
+    else paras.push(buf.join(" "));
+  }
+  return paras;
 }
 
 /**
