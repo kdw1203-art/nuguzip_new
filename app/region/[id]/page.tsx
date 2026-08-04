@@ -274,7 +274,9 @@ export default async function RegionHubPage({
         listDbProjects({ sigungu: shortName, limit: 200, signal: budget.signal }),
         budget.expired,
       ),
-      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 6, budget.signal), budget.expired),
+      /* 웹16 — 목록은 6건만 보여주지만 연도별 미니 차트는 더 넓게 집계해야
+         왜곡이 없다. 같은 단일 쿼리의 limit 만 24 로 올린다(추가 요청 없음). */
+      settle(`${shortName} 입주 예정 물량`, getSupplyForArea(shortName, 24, budget.signal), budget.expired),
       /* A5 — 이 지역의 면적대·가격대 실거래 랜딩. 실제 존재하는 지역만 잡히고,
          없으면 null 이라 링크 섹션 자체가 렌더되지 않는다(죽은 링크를 만들지 않는다).
          여기서는 실패를 삼켜도 된다 — 이 페이지의 본문은 지역 시세 스냅샷이고 이건
@@ -396,7 +398,12 @@ export default async function RegionHubPage({
     );
   }
   if (supply.length > 0) {
-    leadSentences.push(`입주 예정 물량으로 잡힌 단지는 ${supply.length}곳입니다.`);
+    /* limit 24 조회라 24곳이면 "이상"일 수 있다 — 상한에 걸린 경우 표현을 바꾼다 */
+    leadSentences.push(
+      supply.length >= 24
+        ? `입주 예정 물량으로 잡힌 단지는 24곳 이상입니다.`
+        : `입주 예정 물량으로 잡힌 단지는 ${supply.length}곳입니다.`,
+    );
   }
   if (notes.length > 0) {
     leadSentences.push(`이웃이 공개한 임장노트는 ${notes.length}편 있습니다.`);
@@ -721,8 +728,52 @@ export default async function RegionHubPage({
               공급 · 2026~2027
             </span>
           </h2>
+          {/* 웹16 — 연도별 세대 합 미니 막대. 세대수가 실려 있는 조회분만
+              집계하고(미상 제외 건수 병기), 연도가 2개 이상일 때만 그린다
+              (막대 1개는 비교가 아니라 장식이다). */}
+          {(() => {
+            const byYear = new Map<string, number>();
+            let unknown = 0;
+            for (const s of supply) {
+              const y = s.moveInYm.slice(0, 4);
+              if (!/^\d{4}$/.test(y)) continue;
+              if (s.households == null || s.households <= 0) {
+                unknown += 1;
+                continue;
+              }
+              byYear.set(y, (byYear.get(y) ?? 0) + s.households);
+            }
+            const years = [...byYear.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+            if (years.length < 2) return null;
+            const max = Math.max(...years.map(([, v]) => v));
+            return (
+              <div className="mt-3 flex flex-col gap-1.5">
+                {years.map(([y, v]) => (
+                  <div key={y} className="flex items-center gap-2.5 text-[12px]">
+                    <span className="w-[38px] shrink-0 font-bold tabular-nums text-text-2">
+                      {y}
+                    </span>
+                    <span className="h-[8px] flex-1 overflow-hidden rounded-full bg-[#eef2f8]">
+                      <span
+                        className="block h-full rounded-full bg-primary/55"
+                        style={{ width: `${Math.max(2, Math.round((v / max) * 100))}%` }}
+                      />
+                    </span>
+                    <span className="w-[76px] shrink-0 text-right tabular-nums text-text-2">
+                      {v.toLocaleString("ko-KR")}세대
+                    </span>
+                  </div>
+                ))}
+                <p className="text-[10px] leading-[1.6] text-text-3">
+                  조회분 {supply.length}건 중 세대수 확인분 합계
+                  {unknown > 0 && ` (세대수 미상 ${unknown}건 제외)`} · 일정은 변동될 수
+                  있습니다
+                </p>
+              </div>
+            );
+          })()}
           <ul className="mt-2">
-            {supply.map((s, i) => (
+            {supply.slice(0, 6).map((s, i) => (
               <li
                 key={`${s.moveInYm}-${i}`}
                 className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"

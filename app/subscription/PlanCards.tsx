@@ -79,6 +79,41 @@ const CARDS: PlanCard[] = [
 ];
 
 /** 기능 한 줄 — ✓(제공) / ✓+한도(부분) / —(미포함·잠금) */
+/* 모바일18 — 모바일 상위 5줄 + 토글, md+ 전체. 접힌 항목은 md+ 에서 CSS 로
+   항상 보이므로 토글 상태는 모바일에만 영향을 준다. */
+function FeatureList({ features, dark }: { features: PlanFeature[]; dark: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const VISIBLE = 5;
+  const hidden = features.length - VISIBLE;
+  return (
+    <div
+      className={`flex flex-col divide-y text-[13px] leading-[1.5] ${
+        dark ? "divide-white/[.06] text-ai-text" : "divide-[#f0f3f8] text-text-1"
+      }`}
+    >
+      {features.map((f, i) => (
+        <div
+          key={f.label}
+          className={i >= VISIBLE && !expanded ? "hidden md:block" : undefined}
+        >
+          <FeatureRow f={f} dark={dark} />
+        </div>
+      ))}
+      {hidden > 0 && !expanded && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className={`py-2 text-left text-[12px] font-bold md:hidden ${
+            dark ? "text-ai-muted" : "text-primary"
+          }`}
+        >
+          전체 기능 {features.length}개 보기 ▾
+        </button>
+      )}
+    </div>
+  );
+}
+
 function FeatureRow({ f, dark }: { f: PlanFeature; dark: boolean }) {
   const off = f.included === false;
   return (
@@ -208,17 +243,11 @@ export function PlanCards({
                 )}
               </div>
 
-              <div
-                className={`flex flex-col divide-y text-[13px] leading-[1.5] ${
-                  p.dark
-                    ? "divide-white/[.06] text-ai-text"
-                    : "divide-[#f0f3f8] text-text-1"
-                }`}
-              >
-                {def.features.map((f) => (
-                  <FeatureRow key={f.label} f={f} dark={p.dark} />
-                ))}
-              </div>
+              {/* 모바일18 — 기능 7~11줄이 모바일에서 카드를 길게 만든다.
+                  모바일은 상위 5줄 + "전체 N개 보기" 토글, md+ 는 전체 노출.
+                  숨긴 개수를 버튼에 적는다(몇 개가 접혔는지 모르게 하지 않는다). */}
+              <FeatureList features={def.features} dark={p.dark} />
+
 
               <div className="flex-1" />
 

@@ -274,20 +274,39 @@ export default async function TownNewsDetailPage({
               {bodyParas.map((p, i) => (
                 <p key={i}>{p}</p>
               ))}
-              {post?.sourceUrl && (
-                <p>
-                  <span className="text-text-3">(원문 전체는 출처에서 — </span>
-                  <a
-                    href={post.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[13px] font-bold text-primary"
-                  >
-                    원문 보기 ↗
-                  </a>
-                  <span className="text-text-3">)</span>
-                </p>
-              )}
+              {/* 웹12 — 원문 링크 시인성 강화: 본문 끝 괄호 문장에서 카드형
+                  CTA 로. 요약본 사이트의 예의는 원문으로 잘 보내는 것이다.
+                  출처명·호스트를 함께 보여 어디로 가는지 누르기 전에 알 수
+                  있게 한다. */}
+              {post?.sourceUrl &&
+                (() => {
+                  let host: string | null = null;
+                  try {
+                    host = new URL(post.sourceUrl).host;
+                  } catch {
+                    host = null;
+                  }
+                  return (
+                    <a
+                      href={post.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="card-hover flex items-center justify-between gap-3 rounded-[14px] border border-line bg-bg px-4 py-3 no-underline"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[11px] font-semibold text-text-3">
+                          원문 출처{post.sourceName ? ` · ${post.sourceName}` : ""}
+                        </span>
+                        <span className="block text-[13px] font-extrabold text-primary">
+                          원문 전체 보기 ↗
+                        </span>
+                      </span>
+                      {host && (
+                        <span className="shrink-0 text-[11px] text-text-3">{host}</span>
+                      )}
+                    </a>
+                  );
+                })()}
             </div>
 
             <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3.5">

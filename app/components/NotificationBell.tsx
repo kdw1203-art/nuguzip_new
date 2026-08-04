@@ -21,6 +21,20 @@ export function NotificationBell({ variant }: { variant: "desktop" | "mobile" })
     };
   }, []);
 
+  /* 모바일25 — 홈 화면 아이콘 배지(App Badging API). PWA 설치 사용자의
+     앱 아이콘에 미읽음 수를 싣는다. 지원 브라우저(설치된 PWA 한정)에서만
+     동작하고 미지원이면 아무 일도 없다 — 폴리필·대체 UI 없음(벨 배지가 이미
+     그 역할이다). 값은 위에서 받은 실측 카운트 그대로. */
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      setAppBadge?: (n?: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+    if (typeof nav.setAppBadge !== "function") return;
+    if (count > 0) nav.setAppBadge(count).catch(() => {});
+    else nav.clearAppBadge?.().catch(() => {});
+  }, [count]);
+
   const cls =
     variant === "desktop"
       ? "press relative hidden h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,.7)] text-text-1 transition-colors hover:text-primary md:flex"
