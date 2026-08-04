@@ -629,6 +629,24 @@ export function NoteForm({
 
   /* #45 복구 배너용 드래프트 스냅샷 — 작성 모드에서만 */
   const [pendingDraft, setPendingDraft] = useState<NoteDraft | null>(null);
+
+  /* 모바일19 — 오프라인 안내. 지하주차장 등 무신호 현장에서 작성하다 저장이
+     실패하면 글이 날아간 걸로 오해한다. 사실을 말한다: 입력은 이 기기에
+     1초마다 임시저장되고 있고(작성 모드 한정 — 아래 autosave effect),
+     연결이 돌아오면 저장하면 된다. navigator.onLine 은 "확실히 끊김"만
+     신뢰할 수 있는 신호라 끊김 안내에만 쓴다. */
+  const [offline, setOffline] = useState(false);
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    setOffline(!navigator.onLine);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
   const hydratedRef = useRef(false);
 
   useEffect(() => {
@@ -1105,6 +1123,20 @@ export function NoteForm({
       </div>
 
       <div className="mt-3.5 flex flex-col gap-3">
+        {/* 모바일19 — 오프라인 안내(작성 모드 = 임시저장이 실제로 도는 조건) */}
+        {offline && !isEdit && (
+          <div
+            role="status"
+            className="rise-in flex items-center gap-2.5 rounded-[14px] border border-[#f0d9a8] bg-[#fdf6e3] px-4 py-3"
+          >
+            <Icon name="📴" size={16} className="shrink-0" />
+            <p className="text-xs leading-[1.6] text-[#7a5b1e]">
+              <b>오프라인이에요.</b> 입력 내용은 이 기기에 자동으로 임시저장되고
+              있어요. 연결이 돌아오면 그대로 이어서 저장하면 됩니다 (사진 업로드는
+              연결 후에 해주세요).
+            </p>
+          </div>
+        )}
         {/* #45 임시저장 복구 배너 */}
         {pendingDraft && (
           <div className="rise-in flex items-center gap-2.5 rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.06)] px-4 py-3">
@@ -1150,6 +1182,26 @@ export function NoteForm({
           <div className="rise-in rounded-[14px] border border-[rgba(29,79,216,.15)] bg-[rgba(29,79,216,.08)] px-4 py-3 text-center text-xs font-semibold text-primary">
             로그인 없이 작성할 수 있어요 — 저장할 때만 로그인이 필요해요
           </div>
+        )}
+
+        {/* 모바일9 — 사진 첨부 1탭. 현장에서는 사진→메모 순서가 많은데 사진
+            버튼이 폼 하단(메모 아래)에만 있었다. 상단에서 같은 input(fileRef)을
+            연다 — 업로드 로직·한도 전부 기존 그대로. 촬영 사진은 하단 사진
+            줄에 쌓인다. */}
+        {!isEdit && (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading || photos.length >= MAX_PHOTOS}
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-[#c9d4e5] bg-surface px-4 py-2.5 text-[13px] font-bold text-text-2 disabled:opacity-60"
+          >
+            <Icon name="📷" size={16} className="inline align-middle" />
+            {uploading
+              ? "업로드 중…"
+              : photos.length > 0
+                ? `사진 먼저 담기 (${photos.length}/${MAX_PHOTOS})`
+                : "사진 먼저 담기 — 현장이면 지금 찍어 두세요"}
+          </button>
         )}
 
         {/* 위치 카드 — 단지·주소 검색으로 연결 */}
@@ -1289,6 +1341,8 @@ export function NoteForm({
                 {satisfaction.toFixed(1)} / 10
               </span>
             </div>
+            {/* 모바일10 — 히트 영역 확대: 슬라이더 입력 높이를 36px 로 (트랙은
+                그대로, 터치 판정 영역만 넓어진다). */}
             <input
               type="range"
               min={0}
@@ -1296,7 +1350,7 @@ export function NoteForm({
               step={0.5}
               value={satisfaction}
               onChange={(e) => setSatisfaction(Number(e.target.value))}
-              className="w-full accent-[#1d4fd8]"
+              className="h-9 w-full cursor-pointer accent-[#1d4fd8]"
               aria-label="종합 만족도"
             />
           </div>

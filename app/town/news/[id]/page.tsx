@@ -128,6 +128,10 @@ export default async function TownNewsDetailPage({
   const { id } = await params;
 
   let similarPosts: { id: string | null; title: string; meta: string }[] = [];
+  /* 웹19 — 목록 정렬(readTownPosts 와 동일) 기준 이웃 글. 목록으로 돌아가지
+     않고 다음 기사로 넘어가는 동선. 현재 글이 목록에 없으면(숨김 등) 생략. */
+  let newerPost: { id: string | null; title: string } | null = null;
+  let olderPost: { id: string | null; title: string } | null = null;
   /* posts 스토어 + board_posts(운영 DB) 병합 실데이터.
      try/catch 로 실패를 null 로 바꾸던 자리다 — 아래 notFound() 와 만나서
      조회 실패가 404 로 나갔다. 이제 실패는 던지고 5xx 가 된다(사유는
@@ -153,6 +157,14 @@ export default async function TownNewsDetailPage({
       title: p.title,
       meta: `${p.sourceName || p.authorLabel} · ${shortDate(p.sourcePublishedAt || p.createdAt)}`,
     }));
+    // 웹19 — 이웃 글(목록과 같은 정렬: 앞쪽이 더 최신)
+    const idx = all.findIndex((p) => p.id === post!.id);
+    if (idx >= 0) {
+      const newer = idx > 0 ? all[idx - 1] : null;
+      const older = idx < all.length - 1 ? all[idx + 1] : null;
+      if (newer) newerPost = { id: newer.id, title: newer.title };
+      if (older) olderPost = { id: older.id, title: older.title };
+    }
   } catch (e) {
     /* 여기서만 실패를 삼킨다. 관련글은 부가 섹션이고, 아래 렌더는 목록이 비면
        섹션 자체를 안 그린다(similarPosts.length > 0). 즉 실패해도 화면이
@@ -296,6 +308,36 @@ export default async function TownNewsDetailPage({
               </div>
             </div>
           </article>
+
+          {/* 웹19 — 이웃 글 내비게이션(목록 정렬 기준). 있는 방향만 그린다. */}
+          {(newerPost?.id || olderPost?.id) && (
+            <nav aria-label="이웃 글" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {newerPost?.id ? (
+                <Link
+                  href={`/town/news/${encodeURIComponent(newerPost.id)}`}
+                  className="card card-hover flex flex-col gap-1 rounded-[14px] px-4 py-3 no-underline"
+                >
+                  <span className="text-[10px] font-bold text-text-3">‹ 더 최신 글</span>
+                  <span className="line-clamp-2 text-[13px] font-bold leading-snug text-ink">
+                    {newerPost.title}
+                  </span>
+                </Link>
+              ) : (
+                <span className="hidden sm:block" />
+              )}
+              {olderPost?.id && (
+                <Link
+                  href={`/town/news/${encodeURIComponent(olderPost.id)}`}
+                  className="card card-hover flex flex-col gap-1 rounded-[14px] px-4 py-3 no-underline sm:items-end sm:text-right"
+                >
+                  <span className="text-[10px] font-bold text-text-3">이전 글 ›</span>
+                  <span className="line-clamp-2 text-[13px] font-bold leading-snug text-ink">
+                    {olderPost.title}
+                  </span>
+                </Link>
+              )}
+            </nav>
+          )}
 
           {/* ---------- 댓글 ---------- */}
           <section className="rise-in-1 card flex flex-col gap-3 rounded-[20px] px-[26px] py-[22px]">

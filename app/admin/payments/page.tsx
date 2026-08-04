@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listPayments, type PaymentRecord } from "@/lib/payments/store";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { CancelPaymentButton } from "./CancelPaymentButton";
 import { NotifyPreorderButton } from "./NotifyPreorderButton";
@@ -78,6 +79,53 @@ export default async function AdminPaymentsPage() {
   } catch (e) {
     paymentsFailed = true;
     logger.error("[admin/payments] 결제 기록 조회 실패:", e);
+  }
+
+  /* 웹26 — 사전등록 → 결제 전환. 사전등록(plan_preorder_interest) 이메일 중
+     paid 결제 이메일과 겹치는 수를 센다. 조회 실패는 실패라고 표기(0 위장 금지). */
+  let preorderStats: {
+    registered: number;
+    uniqueEmails: number;
+    anonymous: number;
+    converted: number;
+  } | null = null;
+  let preorderFailed = false;
+  try {
+    const sb = getServiceSupabase();
+    if (sb) {
+      const [interestR, paidR] = await Promise.all([
+        sb
+          .from("platform_activity_events")
+          .select("user_email")
+          .eq("event_name", "plan_preorder_interest")
+          .limit(5000),
+        sb.from("payments").select("user_email").eq("status", "paid").limit(5000),
+      ]);
+      if (interestR.error || paidR.error) {
+        preorderFailed = true;
+      } else {
+        const rows = interestR.data ?? [];
+        const emails = new Set(
+          rows
+            .map((r) => (r.user_email ?? "").trim().toLowerCase())
+            .filter((v) => v.includes("@")),
+        );
+        const paidEmails = new Set(
+          (paidR.data ?? [])
+            .map((r) => (r.user_email ?? "").trim().toLowerCase())
+            .filter(Boolean),
+        );
+        preorderStats = {
+          registered: rows.length,
+          uniqueEmails: emails.size,
+          anonymous: rows.filter((r) => !r.user_email).length,
+          converted: [...emails].filter((e) => paidEmails.has(e)).length,
+        };
+      }
+    }
+  } catch (e) {
+    preorderFailed = true;
+    logger.error("[admin/payments] 사전등록 전환 조회 실패:", e);
   }
 
   const rows: { label: string; env: KeyEnv; note: string }[] = [
@@ -213,6 +261,27 @@ export default async function AdminPaymentsPage() {
           알림을 1회 발송합니다. <b className="text-ink">라이브 키 전환 후</b> 누르는 것을
           권장합니다 — 테스트 결제 상태에서 보내면 실결제가 없는 화면으로 안내하게 됩니다.
         </p>
+        {/* 웹26 — 등록·전환 실측. 전환 = 등록 이메일 ∩ paid 결제 이메일. */}
+        {preorderFailed ? (
+          <p className="mt-3 text-[12px] text-text-3">
+            사전등록·전환 수를 지금 불러오지 못했어요 — 0이 아니라 조회 실패입니다.
+          </p>
+        ) : preorderStats ? (
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-text-2">
+            <span>
+              등록 <b className="text-ink">{preorderStats.registered}</b>건
+            </span>
+            <span>
+              이메일 확인 <b className="text-ink">{preorderStats.uniqueEmails}</b>명
+              {preorderStats.anonymous > 0 && ` (비로그인 ${preorderStats.anonymous}건 제외)`}
+            </span>
+            <span>
+              결제 전환 <b className="text-ink">{preorderStats.converted}</b>명
+              {preorderStats.uniqueEmails > 0 &&
+                ` (${((preorderStats.converted / preorderStats.uniqueEmails) * 100).toFixed(0)}%)`}
+            </span>
+          </div>
+        ) : null}
         <div className="mt-3">
           <NotifyPreorderButton />
         </div>
