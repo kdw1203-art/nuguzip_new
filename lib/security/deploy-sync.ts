@@ -1,26 +1,35 @@
-/** middleware·클라이언트가 공유하는 배포 ID 쿠키 이름 */
+/** middleware 가 심는 배포 ID 쿠키 이름 (운영 점검·/api/health 대조용) */
 export const DEPLOY_COOKIE = "wd-deploy";
 
-/** CSP 정책 변경 시 숫자를 올리면 stale HTML 탭이 자동 새로고침됩니다 */
+/** CSP 정책을 바꾸면 이 숫자를 올린다 — middleware 가 낡은 브라우저 캐시를 비운다 */
 export const CSP_REVISION = "4";
 
 export const CSP_REV_COOKIE = "wd-csp-rev";
-
-export const DEPLOY_RELOAD_PREFIX = "wd-reloaded-";
 
 export function currentDeployId(): string | null {
   return process.env.VERCEL_DEPLOYMENT_ID?.trim() || null;
 }
 
-/**
- * SPA·SW·bfcache로 예전 HTML(CSP 포함)을 들고 있을 때 감지·한 번 새로고침.
- * data-deploy-id / data-csp-rev 가 없거나 쿠키·health 와 다르면 reload.
+/* ── 제거 기록: DEPLOY_SYNC_INLINE_SCRIPT / DEPLOY_RELOAD_PREFIX (2026-08-04) ──
  *
- * 폴링 주기(#51, 2026-08-04 실측): 3초 → 30초 + 숨은 탭 건너뛰기.
- * 이전 코드는 탭이 백그라운드여도 3초마다 돌았고, `wd-deploy` 쿠키가 아직
- * 없는 첫 방문(미들웨어가 아직 응답을 안 준 경로)에서는 그 주기마다
- * /api/health 를 찔렀다 — 열어 둔 탭 하나가 시간당 1200 요청이다.
- * 탭으로 돌아오는 순간은 visibilitychange·pageshow 가 이미 즉시 확인하므로
- * 감지 지연은 "보고 있는 탭에서 최대 30초"뿐이고, 그 사이 사용자가 하는
- * 이동(내비게이션)은 어차피 새 HTML 을 받는다. */
-export const DEPLOY_SYNC_INLINE_SCRIPT = `(function(){try{var COOKIE=${JSON.stringify(DEPLOY_COOKIE)};var CSP_COOKIE=${JSON.stringify(CSP_REV_COOKIE)};var CSP_REV=${JSON.stringify(CSP_REVISION)};var RELOAD_PREFIX=${JSON.stringify(DEPLOY_RELOAD_PREFIX)};function readCookie(n){var m=document.cookie.match(new RegExp("(?:^|; )"+n+"=([^;]*)"));return m?decodeURIComponent(m[1]):""}function reloadKey(live,cspRev){return(live||"x")+"-"+(cspRev||CSP_REV)}function alreadyReloaded(key){return sessionStorage.getItem(RELOAD_PREFIX+key)}function doReload(key){sessionStorage.setItem(RELOAD_PREFIX+key,"1");location.replace(location.href.split("#")[0])}function stale(live,cspRev){var htmlDeploy=document.documentElement.getAttribute("data-deploy-id");var htmlCsp=document.documentElement.getAttribute("data-csp-rev");if(!htmlDeploy||!htmlCsp)return true;if(htmlDeploy==="local")return false;if(live&&htmlDeploy!==live)return true;if(cspRev&&htmlCsp!==cspRev)return true;return false}function check(live,cspRev){var key=reloadKey(live,cspRev);if(!stale(live,cspRev)||alreadyReloaded(key))return;doReload(key)}function maybeReload(){var live=readCookie(COOKIE);var cspRev=readCookie(CSP_COOKIE)||CSP_REV;if(live){check(live,cspRev);return}fetch("/api/health",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(!d)return;check(d.deployId?String(d.deployId).trim():"",d.cspRevision?String(d.cspRevision):"")}).catch(function(){})}maybeReload();document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")maybeReload()});window.addEventListener("pageshow",function(e){if(e.persisted)maybeReload()});setInterval(function(){if(document.visibilityState==="visible")maybeReload()},30000)}catch(e){}})();`;
+ * 여기에는 "낡은 HTML 을 들고 있는 탭을 감지해 한 번 새로고침한다"는 인라인
+ * 스크립트가 있었다. 리스너 누수 전수 점검(#44) 중에 확인한 사실 두 가지:
+ *
+ *  1. 이 상수를 import 하는 곳이 저장소 어디에도 없었다(소비처 0).
+ *  2. 스크립트가 읽는 <html data-deploy-id> / <html data-csp-rev> 속성도
+ *     app/layout.tsx 에서 렌더한 적이 없다.
+ *
+ * 즉 그 동작은 한 번도 실행된 적이 없다. 구현 없이 약속만 있는 코드는 버그다 —
+ * 폴링 주기를 30초로 고쳐 봐야 없던 동작이 생기지 않으므로, 죽은 코드를 지우고
+ * 실제로 사는 경로만 남긴다.
+ *
+ * 살아 있는 stale 캐시 대응(서버 측 단독으로 완결):
+ *  - middleware 가 CSP_REV_COOKIE 를 비교해 다르면 새로 심고, **그 응답에만**
+ *    `Clear-Site-Data: "cache"` 를 실어 낡은 브라우저 캐시를 비운다.
+ *  - DEPLOY_COOKIE 와 /api/health 의 deployId·cspRevision 은 운영 점검용으로 유지.
+ *
+ * 다시 클라이언트 감지가 필요해지면 (a) layout 에서 data-* 속성을 실제로 렌더하고
+ * (b) 속성이 없을 때 stale=true 로 보지 않게 고친 뒤에 넣을 것 — 예전 스크립트는
+ * 속성이 없으면 stale 로 판정했으므로, 그대로 배선했다면 전 방문자를 한 번씩
+ * 새로고침시켰다.
+ */

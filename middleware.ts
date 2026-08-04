@@ -47,10 +47,15 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
      사용자 상태가 아니지만, Set-Cookie 가 붙은 응답은 공유 캐시가 저장하지 않으므로
      공유 가능한 응답에는 아예 심지 않는다.
 
-     안전 근거 — 쿠키를 건너뛰어도 배포 갱신 감지는 죽지 않는다:
-     deploy-sync 인라인 스크립트가 `wd-deploy` 쿠키가 없으면 /api/health 를 찔러
-     deployId·cspRevision 을 직접 확인한다(API 응답은 공유 캐시 대상이 아니라 항상
-     쿠키가 실린다). 즉 첫 요청 뒤 한 번의 폴링으로 스스로 복구된다. */
+     안전 근거 — 쿠키를 건너뛴 응답에서 낡은 캐시가 남지 않는 이유(2026-08-04 정정):
+     예전에는 여기에 "deploy-sync 인라인 스크립트가 /api/health 를 찔러 스스로
+     복구한다"고 적혀 있었다. 그 스크립트는 import 하는 곳도, 읽는 data-* 속성도
+     없어 **한 번도 실행된 적이 없다**(lib/security/deploy-sync.ts 제거 기록 참고).
+     실제 근거는 캐시 헤더 자체다: 공유 가능한 문서에 나가는 값은
+     `public, max-age=0, s-maxage=…`(lib/http/cache-policy.ts) 라 브라우저는
+     그 HTML 을 재검증 없이 재사용하지 않는다 — 즉 이 응답들에는 애초에 비울
+     "낡은 브라우저 캐시"가 생기지 않는다. 쿠키가 필요한 개인화 응답(로그인·API·
+     POST)은 shareable 이 아니므로 그 자리에서 정상적으로 심긴다. */
   const carriesUserState = response.cookies.getAll().length > 0;
   const publicCache =
     request && !isCrawlerDoc ? publicDocumentCacheControl(request.nextUrl.pathname) : null;
@@ -151,7 +156,7 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 /**
  * 구 `?_wd=<rev>` 캐시 우회 파라미터 제거 — URL 을 https://nuguzip.com/ 형태로
  * 유지해야 네이버 지도 등 도메인/URL 등록형 API 연동이 가능하다.
- * (stale 캐시 대응은 CSP_REV_COOKIE + Clear-Site-Data + deploy-sync 스크립트가 담당)
+ * (stale 캐시 대응은 CSP_REV_COOKIE 비교 + Clear-Site-Data 응답이 단독으로 담당)
  * 과거 공유·북마크된 `?_wd=` 링크는 파라미터를 벗겨 308 정규화한다.
  */
 function maybeStripLegacyWdParam(request: NextRequest): NextResponse | null {
