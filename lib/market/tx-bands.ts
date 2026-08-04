@@ -18,10 +18,16 @@ import {
  * 이라 원본 RLS 가 그대로 적용된다. 매물 호가가 아니라 **신고된 실거래**다.
  *
  * ── 왜 전부 한 번에 읽나 ─────────────────────────────────────────
- * 요약 뷰는 지역 40 × (면적 5 + 가격 5) = 최대 400행 규모다(현재 384행).
+ * 요약 뷰는 지역 × (면적 5 + 가격 5) 규모다 — **2026-08-04 실측 1,662행**
+ * (그중 MIN_BAND_TX 를 넘겨 페이지 자격이 있는 셀 1,403개 · 지역 214곳).
  * 한 번에 읽어 모듈 캐시에 올려두는 편이 페이지마다 조건 조회를 던지는 것보다
  * 싸고, 지역 허브/인덱스에서 "이 지역에 어떤 구간 페이지가 있나"를 계산하기도 쉽다.
- * 단지 목록(tx_band_complex_source)은 수천 행이라 페이지에서 필요한 셀만 조회한다.
+ * 단지 목록(tx_band_complex_source)은 2026-08-04 실측 71,114행이라 페이지에서
+ * 필요한 셀만 조회한다.
+ *
+ * 이 파일에 적힌 행 수는 **기준시점과 함께** 적는다. 예전엔 "최대 400행(현재
+ * 384행)" 이라고만 적혀 있었고, 그 숫자를 믿고 걸어 둔 `.limit(1000)` 이
+ * 뷰가 1,662행으로 자란 뒤 셀 403개를 조용히 잘라먹었다(최적화 31).
  *
  * ── 드리프트 방어 ───────────────────────────────────────────────
  * 구간 경계는 SQL(뷰)과 TS(lib/market/bands.ts) 양쪽에 있다. 뷰가 먼저 바뀌면
@@ -40,12 +46,14 @@ import {
  *   - market_transactions 에 `market_transactions_public_read`(SELECT, qual=true)
  *     정책이 있고 anon 에 SELECT 권한이 있다 — 국토교통부 공개 실거래 자료다.
  *   - 두 뷰 모두 security_invoker = on 이라 원본 RLS 가 그대로 적용된다.
- *     즉 anon 으로 읽어도 열람 범위가 넓어지지 않는다(실측: 384행 / 13,944행).
+ *     즉 anon 으로 읽어도 열람 범위가 넓어지지 않는다(anon·service_role 동일 —
+ *     2026-08-04 실측 1,662행 / 71,114행).
  * 새로 열어 주는 권한이 아니라, 이미 공개된 집계를 빌드가 읽게 하는 것뿐이다.
  *
  * ── 그런데 이 폴백만으로는 부족했다 (기록) ──────────────────────────
  * 위 조치를 배포한 뒤에도 /tx 는 계속 비어 있었다. 권한 문제가 아니라 **시간**
- * 문제였기 때문이다. 두 뷰는 원래 요청마다 market_transactions(68,126행) 전체를
+ * 문제였기 때문이다. 두 뷰는 원래 요청마다 market_transactions(당시 68,126행 —
+ * 2026-08-04 현재 708,720행, 힙 640MB) 전체를
  * seq scan 하며 GROUP BY / percentile_cont / count(DISTINCT) 를 다시 계산했고,
  * anon 롤의 statement_timeout 은 3초다. 실측하니 anon 으로는 단순 count 조차
  * 3초를 넘겨 취소됐다 — 폴백은 붙었지만 그 폴백이 매번 타임아웃으로 죽고 있었다.
@@ -180,27 +188,61 @@ async function loadAllCellsUncached(): Promise<BandCell[]> {
     );
   }
 
-  const { data, error } = await sb
-    .from("tx_band_landing_source")
-    .select(
-      "region_name, band_kind, band_key, tx_count, complex_count, avg_krw, min_krw, max_krw, median_krw, avg_area_m2, avg_per_pyeong_krw, first_ym, latest_ym, last_data_at",
-    )
-    .order("tx_count", { ascending: false })
-    .limit(1000);
+  /* 최적화 31 — `.limit(1000)` 이었다. 뷰가 400행이던 시절엔 넉넉한 상한이었지만
+     2026-08-04 실측은 1,662행이고, 그중 MIN_BAND_TX(10건) 를 넘겨 **페이지를 가질
+     자격이 있는 셀이 1,403개**다. 즉 403개 셀(면적 266 · 가격 137)과 지역 24곳이
+     조용히 잘려 나가고 있었다. tx_count 내림차순이라 잘린 쪽은 상한 이하가 아니라
+     "1,000등 밖"(실측 컷 56건)이었을 뿐, 자격 미달이 아니다.
 
-  if (error) {
-    // code·hint 를 반드시 함께 올린다. 이번 사고에서 필요했던 정보가 정확히 이 둘이다
-    // ("42501" · "GRANT SELECT ON market_agg.tx_band_landing_mv TO service_role").
-    throw new Error(
-      `tx_band_landing_source 조회 실패 — ${error.message}` +
-        `${error.code ? ` [${error.code}]` : ""}` +
-        `${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
-    );
+     이건 성능이 아니라 사실 문제다. 잘린 셀은 /tx 지역 허브 링크·구간 랜딩·
+     사이트맵에서 통째로 사라지고, `getTxCoverage().totalTx` 는 주석에 "면적이
+     확인된 매매 신고분 전량" 이라고 쓰여 있는데 실제로는 잘린 나머지의 합이라
+     화면에 **틀린 총계**가 나간다(면적대 기준 7,133건 누락).
+
+     그래서 상한을 올리는 대신 끝까지 읽는다. 정렬은 tx_count 만으론 동점이 많아
+     페이지 경계에서 행이 겹치거나 새기 때문에, (region_name, band_kind, band_key)
+     로 전순서를 만든다. 안전 상한(MAX_PAGES)에 닿으면 **조용히 자르지 않고**
+     error 로그를 남긴다 — 이 함수가 고치려는 병이 바로 "조용한 절단"이다. */
+  const PAGE_SIZE = 1000;
+  const MAX_PAGES = 40; // 40,000행 — 현재 1,662행 대비 24배 여유
+  const rows: CellRow[] = [];
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const from = page * PAGE_SIZE;
+    const { data, error } = await sb
+      .from("tx_band_landing_source")
+      .select(
+        "region_name, band_kind, band_key, tx_count, complex_count, avg_krw, min_krw, max_krw, median_krw, avg_area_m2, avg_per_pyeong_krw, first_ym, latest_ym, last_data_at",
+      )
+      .order("tx_count", { ascending: false })
+      .order("region_name", { ascending: true })
+      .order("band_kind", { ascending: true })
+      .order("band_key", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      // code·hint 를 반드시 함께 올린다. 이번 사고에서 필요했던 정보가 정확히 이 둘이다
+      // ("42501" · "GRANT SELECT ON market_agg.tx_band_landing_mv TO service_role").
+      throw new Error(
+        `tx_band_landing_source 조회 실패(페이지 ${page + 1}, offset ${from}) — ${error.message}` +
+          `${error.code ? ` [${error.code}]` : ""}` +
+          `${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
+      );
+    }
+
+    const batch = (data ?? []) as CellRow[];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+    if (page === MAX_PAGES - 1) {
+      logger.error(
+        `[tx-bands] tx_band_landing_source 가 ${MAX_PAGES * PAGE_SIZE}행 상한에 닿았습니다 — ` +
+          "이 뒤의 구간 셀은 페이지·사이트맵에서 빠집니다. MAX_PAGES 를 올리세요.",
+      );
+    }
   }
 
   const unknown = new Set<string>();
   const out: BandCell[] = [];
-  for (const row of (data ?? []) as CellRow[]) {
+  for (const row of rows) {
     const region = row.region_name?.trim();
     const kind = row.band_kind;
     const key = row.band_key;

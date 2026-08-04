@@ -1,9 +1,56 @@
 import Link from "next/link";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import {
   listLatestTemperatures,
   listRegionTemperatureHistory,
 } from "@/lib/market/temperature-archive";
 import { logger } from "@/lib/log";
+
+/* ------------------------------------------------------------------
+   최적화 27·33 — 이 위젯의 조회를 두 겹으로 접는다.
+
+   27) 홈은 이 위젯을 **한 번 그릴 때 두 번** 렌더한다(모바일 본문 블록과
+       데스크톱 사이드바 — CSS 로 한쪽만 보이지만 서버는 둘 다 실행한다).
+       그래서 같은 조회가 통째로 두 벌 나갔다: 최신 주 2회 + 지역 이력 3회씩
+       두 벌 = 10회. React `cache()` 로 **요청 범위** 1회로 접는다.
+
+   33) 값은 주간 크론이 쌓는 아카이브다 — 일주일에 한 번 바뀐다. 그런데 홈은
+       ISR 300초라 5분마다 재생성되면서 같은 주의 같은 행을 다시 읽었다.
+       `unstable_cache` 1시간으로 12분의 1이 된다. 기준 주(week_start)는 화면에
+       그대로 표기되므로 캐시가 기준시점을 흐리지 않는다.
+
+   단, **실패와 "기록 없음"은 캐시하지 않는다**. 값으로 돌려주면 unstable_cache
+   가 한 시간 붙들어서, 크론이 첫 스냅샷을 쌓은 뒤에도 위젯이 최대 1시간 접힌
+   채로 남는다(lib/newui/digest.ts 가 같은 이유로 쓰는 수법 — 던지면 캐시에
+   남지 않고 다음 요청이 다시 시도한다).
+   ------------------------------------------------------------------ */
+
+/** "기록이 아직 없음" 신호 — 조회 실패와 구분해야 로그가 거짓말을 하지 않는다. */
+const NO_ARCHIVE = "__nz_no_temperature_archive__";
+
+type LatestTemperatures = Awaited<ReturnType<typeof listLatestTemperatures>>;
+
+const loadLatestTemperatures = cache(
+  unstable_cache(
+    async (): Promise<LatestTemperatures> => {
+      const res = await listLatestTemperatures(); // 조회 실패 시 throw (캐시 안 됨)
+      if (!res.weekStart || res.rows.length === 0) throw new Error(NO_ARCHIVE);
+      return res;
+    },
+    ["home-market-temp-latest-v1"],
+    { revalidate: 3600 },
+  ),
+);
+
+/** 4주 스파크라인용 이력. 실패는 던져서 캐시에 남기지 않는다(선 없이 렌더). */
+const loadRegionHistory = cache(
+  unstable_cache(
+    (regionId: string) => listRegionTemperatureHistory(regionId, 4),
+    ["home-market-temp-history-v1"],
+    { revalidate: 3600 },
+  ),
+);
 
 /* ============================================================
    고도화 9 — 시장 온도 홈 위젯.
@@ -75,16 +122,20 @@ function Sparkline({ scores }: { scores: number[] }) {
 
 export async function MarketTempWidget({ className }: { className?: string }) {
   let weekStart: string | null = null;
-  let rows: Awaited<ReturnType<typeof listLatestTemperatures>>["rows"] = [];
+  let rows: LatestTemperatures["rows"] = [];
   try {
-    const res = await listLatestTemperatures();
+    const res = await loadLatestTemperatures();
     weekStart = res.weekStart;
     rows = res.rows;
   } catch (e) {
-    logger.error(
-      "[home] 시장 온도 위젯 조회 실패 — 위젯을 접습니다:",
-      e instanceof Error ? e.message : String(e),
-    );
+    /* 기록 없음(크론 미실행)과 조회 실패는 화면 결과가 같아도 원인이 다르다.
+       로그에서 섞이면 "위젯이 안 보인다"를 추적할 수 없어 갈라 적는다. */
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === NO_ARCHIVE) {
+      logger.warn("[home] 시장 온도 아카이브에 기록이 없어 위젯을 접습니다");
+    } else {
+      logger.error("[home] 시장 온도 위젯 조회 실패 — 위젯을 접습니다:", msg);
+    }
     return null;
   }
   if (!weekStart || rows.length === 0) return null;
@@ -99,7 +150,7 @@ export async function MarketTempWidget({ className }: { className?: string }) {
   const historyByRegion = new Map<string, number[]>();
   try {
     const histories = await Promise.all(
-      picks.map((r) => listRegionTemperatureHistory(r.current.regionId, 4)),
+      picks.map((r) => loadRegionHistory(r.current.regionId)),
     );
     picks.forEach((r, i) => {
       historyByRegion.set(

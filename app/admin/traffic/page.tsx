@@ -138,6 +138,20 @@ async function loadAll(): Promise<{
       failed: ["전체(DB 미설정)"],
     };
 
+  /* 최적화 29 — "조회 9개를 하나로 합칠까"를 재 보고 **합치지 않기로** 했다(확인).
+     2026-08-04 실측 근거:
+       · 9개 모두 집계 뷰이고, 바닥에 깔린 원본은 page_view_events(112 kB) 와
+         platform_activity_events(3,616 kB) 둘뿐이다. 전부 30일 창으로 자르고,
+         occurred_at DESC · (route, occurred_at DESC) · visitor_key 부분 인덱스가
+         이미 걸려 있다(page_view_retention_30d 실측 0.4ms).
+       · 9개는 이 Promise.all 안에서 동시에 나가므로 벽시계는 9개의 합이 아니라
+         가장 느린 하나다.
+       · 합치려면 뷰 9개를 감싸는 RPC 를 새로 만들어야 하는데, 그건 스키마
+         드리프트 지점을 하나 늘리고(뷰가 바뀌면 RPC 도 같이) 실패의 입자를
+         굵게 만든다 — 지금은 한 뷰가 죽어도 나머지 8개는 그려지고 `failed` 에만
+         이름이 남는다. 관리자 한 사람이 보는 화면에서 그 거래는 손해다.
+     다시 볼 조건: page_view_events 가 커져 30일 창이 수십만 행이 되거나,
+     이 페이지가 관리자 외에 노출될 때. */
   const [summaryR, dailyR, routesR, usageR, refR, utmR, vpR, retR, vitals7d, vwR] =
     await Promise.all([
     sb.from("page_view_summary").select("*").maybeSingle(),

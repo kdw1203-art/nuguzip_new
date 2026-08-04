@@ -7,7 +7,7 @@ import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
 import {
   deltaOfChangePct,
   formatRegionPriceEok,
-  loadNewHomeData,
+  loadHomeRegionCards,
   type HomeRegionCard,
 } from "@/lib/newui/home-data";
 import { getRegionSnapshot } from "@/lib/market/store";
@@ -69,7 +69,12 @@ async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
   }
 }
 
-/** #43 관심지역명(예: "서울 마포구")과 홈 시세 카드(예: "마포구")를 매칭해 1건 반환 */
+/** #43 관심지역명(예: "서울 마포구")과 홈 시세 카드(예: "마포구")를 매칭해 1건 반환
+ *
+ * 최적화 27 — 예전엔 `loadNewHomeData()` 를 불렀다. 카드 목록 한 줄을 얻으려고
+ * 홈 데이터 7갈래를 전부 돌린 셈이고, 그중 넷(공개노트 select * · 접속중 5,000행 ·
+ * 서울 매매지수 · 주담대 금리)은 캐시가 없어 **로그인 홈 방문마다** 실제 조회가
+ * 나갔다가 버려졌다. 필요한 건 지역 스냅샷 하나뿐이라 그것만 부른다. */
 async function loadRegionMarket(
   targets: Array<string | null | undefined>,
 ): Promise<HomeRegionCard | null> {
@@ -77,12 +82,10 @@ async function loadRegionMarket(
     .map((t) => (t ?? "").trim())
     .filter((t) => t.length > 0);
   if (wanted.length === 0) return null;
-  const home = await loadNewHomeData();
-  if (home.regions.length === 0) return null;
+  const cards = await loadHomeRegionCards();
+  if (!cards || cards.length === 0) return null;
   for (const t of wanted) {
-    const hit = home.regions.find(
-      (r) => t.includes(r.name) || r.name.includes(t),
-    );
+    const hit = cards.find((r) => t.includes(r.name) || r.name.includes(t));
     if (hit) return hit;
   }
   return null;

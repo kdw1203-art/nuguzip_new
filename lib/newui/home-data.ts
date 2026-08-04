@@ -20,6 +20,7 @@ import { loadHomeData, type HomeData, EMPTY_HOME_DATA } from "@/lib/landing/data
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getAllRegionSnapshots, getRegionSeries } from "@/lib/market/store";
+import type { RegionMarketSnapshot } from "@/lib/market/types";
 import {
   listPublicNotes,
   inspectionAverageScore,
@@ -313,6 +314,63 @@ async function loadActiveNow(): Promise<number | null> {
   return uniq.size;
 }
 
+/* ---------- 지역 시세 카드 (스냅샷 → 카드) ---------- */
+
+/** 스냅샷 맵에서 홈 지역 시세 카드를 만든다. DB 접근 없음(순수 변환). */
+function buildRegionCards(
+  snapshots: Map<string, RegionMarketSnapshot>,
+): HomeRegionCard[] {
+  const regions: HomeRegionCard[] = [];
+  for (const target of CARD_REGIONS) {
+    const snap = snapshots.get(target.id);
+    if (!snap) continue;
+    const priceWon = snap.avgSale ?? snap.medianSale;
+    if (typeof priceWon !== "number" || priceWon <= 0) continue;
+    const { delta, tone } = deltaOf(snap.saleChangeMonthly ?? snap.saleChangeWeekly);
+    const trade =
+      typeof snap.tradeCount === "number" && snap.tradeCount > 0
+        ? ` · ${Math.round(snap.tradeCount).toLocaleString("ko-KR")}건`
+        : "";
+    regions.push({
+      id: target.id,
+      name: target.name,
+      meta: `${target.city}${trade}`,
+      price: formatEok(priceWon),
+      delta,
+      tone,
+    });
+  }
+  return regions;
+}
+
+/**
+ * 최적화 27 — **지역 시세 카드만** 필요한 소비자를 위한 최소 로더.
+ *
+ * `/api/home/personal` 은 관심지역 1건을 매칭하려고 `loadNewHomeData()` 를
+ * 통째로 불렀다. 그 함수는 7갈래를 병렬로 돌리는데, 여기서 실제로 쓰이는 건
+ * `getAllRegionSnapshots()` 하나뿐이고 나머지는 전부 버려졌다. 그중 넷은
+ * 캐시가 없어 **로그인 홈 방문마다** 실제로 DB 를 때렸다:
+ *   · listPublicNotes(10)  — inspection_notes `select("*")` (본문·사진 포함)
+ *   · loadActiveNow()      — platform_activity_events 최대 5,000행(metadata 포함)
+ *   · loadSaleIndexSeoul() — market_price_indices 조회
+ *   · getMortgageRates()   — public_data_cache 조회
+ * 지역 카드는 스냅샷 맵의 순수 변환이므로 나머지를 부를 이유가 없다.
+ *
+ * 실패와 "카드 0장"을 구분해야 해서 `null` 을 실패로 쓴다 — 빈 배열로 뭉개면
+ * 호출부가 조회 실패를 "해당 지역 없음"으로 오인한다.
+ */
+export async function loadHomeRegionCards(): Promise<HomeRegionCard[] | null> {
+  try {
+    const snapshots = await getAllRegionSnapshots();
+    /* 0건은 준비 중이 아니라 조회 이상이다 — loadNewHomeDataInternal 과 동일 판정 */
+    if (snapshots.size === 0) return null;
+    return buildRegionCards(snapshots);
+  } catch (err) {
+    logger.error("[loadHomeRegionCards] 지역 스냅샷 조회 실패", err);
+    return null;
+  }
+}
+
 async function loadNewHomeDataInternal(): Promise<NewHomeData> {
   /* 실패를 삼키되 "삼켰다는 사실"은 남긴다. 아래 failed 로 화면까지 전달된다. */
   let regionsFailed = false;
@@ -347,26 +405,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
      ("준비되면 표시됩니다")로 나가 실패가 준비 중으로 위장됐다(2026-08-04
      소유자 캡처). 실패로 분류해 "지금 불러오지 못했어요"로 말한다. */
   if (!regionsFailed && snapshots.size === 0) regionsFailed = true;
-  const regions: HomeRegionCard[] = [];
-  for (const target of CARD_REGIONS) {
-    const snap = snapshots.get(target.id);
-    if (!snap) continue;
-    const priceWon = snap.avgSale ?? snap.medianSale;
-    if (typeof priceWon !== "number" || priceWon <= 0) continue;
-    const { delta, tone } = deltaOf(snap.saleChangeMonthly ?? snap.saleChangeWeekly);
-    const trade =
-      typeof snap.tradeCount === "number" && snap.tradeCount > 0
-        ? ` · ${Math.round(snap.tradeCount).toLocaleString("ko-KR")}건`
-        : "";
-    regions.push({
-      id: target.id,
-      name: target.name,
-      meta: `${target.city}${trade}`,
-      price: formatEok(priceWon),
-      delta,
-      tone,
-    });
-  }
+  const regions = buildRegionCards(snapshots);
 
   // ── 공개 임장노트 (inspection_notes) ──
   const notes: HomeNoteItem[] = publicNotes.slice(0, 3).map((n) => {

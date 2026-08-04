@@ -6,7 +6,7 @@
  */
 
 import { matchRegionByName } from "@/lib/market/region-code";
-import { getAllRegionSnapshots } from "@/lib/market/store";
+import { getRegionSnapshot } from "@/lib/market/store";
 import { callLlmChat, type LlmMessage } from "@/lib/ai/llm-provider";
 import { defaultModelIdFromEnv, getModelOption } from "@/lib/ai/llm-models";
 
@@ -48,8 +48,12 @@ export async function resolveRegionSnapshotByName(
   try {
     const match = matchRegionByName(trimmed, cityHint);
     if (!match) return null;
-    const map = await getAllRegionSnapshots();
-    const snap = map.get(match.id);
+    /* 최적화 28 — 한 지역을 보는데 전지역 스냅샷을 끌어오지 않는다.
+       `getAllRegionSnapshots()` 는 market_region_price 를 12개 컬럼 전량으로
+       읽는다. 캐시가 식은 람다에서 이 함수가 첫 호출이면 AI 분석 한 건 때문에
+       전 지역 스캔이 나갔다. `getRegionSnapshot()` 은 따뜻한 캐시가 있으면
+       그걸 쓰고, 없으면 region_id 등치 + limit 로 인덱스를 탄다(같은 1h 캐시). */
+    const snap = await getRegionSnapshot(match.id);
     if (!snap) return null;
     return {
       regionId: snap.regionId,
