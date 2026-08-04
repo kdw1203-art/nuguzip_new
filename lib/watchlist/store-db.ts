@@ -18,6 +18,11 @@ export interface WatchlistItem {
   alertPriceMin: number | null;
   alertPriceMax: number | null;
   createdAt: string;
+  /* 웹17 — 대시보드용. price-alerts 크론이 세운 기준가(마지막 관측가)와
+     그 기준가의 대표 면적대. 면적대가 바뀌면 가격 비교는 무효다(크론과 같은
+     판정). 크론이 아직 못 본 행은 null. */
+  lastPriceKrw: number | null;
+  lastPriceBand: string | null;
 }
 
 const inMemory: WatchlistItem[] = [];
@@ -31,6 +36,8 @@ function dbToItem(r: Record<string, unknown>): WatchlistItem {
     alertPriceMin: r.alert_price_min != null ? Number(r.alert_price_min) : null,
     alertPriceMax: r.alert_price_max != null ? Number(r.alert_price_max) : null,
     createdAt: String(r.created_at),
+    lastPriceKrw: r.last_price_krw != null ? Number(r.last_price_krw) : null,
+    lastPriceBand: r.last_price_band != null ? String(r.last_price_band) : null,
   };
 }
 
@@ -91,6 +98,8 @@ export async function addToWatchlist(
       alertPriceMin: alertPriceMin ?? null,
       alertPriceMax: alertPriceMax ?? null,
       createdAt: new Date().toISOString(),
+      lastPriceKrw: null,
+      lastPriceBand: null,
     };
     if (existing >= 0) inMemory[existing] = item;
     else inMemory.unshift(item);

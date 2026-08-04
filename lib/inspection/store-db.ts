@@ -399,6 +399,39 @@ export async function listNotesByAuthorForComplex(
   return (data ?? []).map(mapRow);
 }
 
+/**
+ * 웹17 — 관심 단지 대시보드용: 여러 단지의 최근 N일 **공개** 노트 수를 한
+ * 번의 조회로 센다(단지당 쿼리를 날리면 관심 30곳 = 30요청). PostgREST 는
+ * GROUP BY 가 없어 행을 받아 JS 에서 접는다 — 30일×전체 공개 노트 규모라
+ * 행 수가 작다(상한 2000 명시). 실패는 던진다 — 호출자가 "조회 실패"를
+ * "0건"과 구분해 말할 수 있어야 한다.
+ */
+export async function countRecentPublicNotesByComplex(
+  complexIds: string[],
+  days = 30,
+): Promise<Map<string, number>> {
+  const ids = [...new Set(complexIds.map((v) => v.trim()).filter(Boolean))];
+  const out = new Map<string, number>();
+  if (ids.length === 0) return out;
+  const sb = getReadOnlySupabase();
+  if (!sb) return out;
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data, error } = await sb
+    .from("inspection_notes")
+    .select("metadata->>complexId")
+    .eq("is_public", true)
+    .gte("created_at", since)
+    .in("metadata->>complexId", ids)
+    .limit(2000);
+  if (error) throw noteQueryError("inspection_notes (단지별 최근 공개 노트 수)", error);
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
+    const cid = String(r.complexId ?? "").trim();
+    if (!cid) continue;
+    out.set(cid, (out.get(cid) ?? 0) + 1);
+  }
+  return out;
+}
+
 export async function getNote(id: string): Promise<InspectionNote | null> {
   const sb = getServiceSupabase();
   if (!sb) return memory.find((n) => n.id === id) ?? null;

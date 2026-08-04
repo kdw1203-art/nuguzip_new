@@ -380,6 +380,21 @@ export default async function MyPage() {
             )}
           </section>
 
+          {/* 웹17 — 관심 단지 대시보드 진입. 페이지를 만들어 놓고 들어가는
+              문이 없으면 없는 기능이다. */}
+          <Link
+            href="/my/watchlist"
+            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+          >
+            <span>
+              <span className="block text-[13px] font-extrabold text-ink">관심 단지 대시보드</span>
+              <span className="mt-0.5 block text-[11px] text-text-3">
+                담아 둔 단지의 현재가 · 변동 · 새 임장노트를 한 표로
+              </span>
+            </span>
+            <span className="text-[13px] font-extrabold text-primary">›</span>
+          </Link>
+
           {/* ── 관심 임장노트 (저장) ── */}
           <section className="flex flex-col gap-2.5">
             <SectionHead title="관심 임장노트" href="/notes" hrefLabel="공개 노트" />
