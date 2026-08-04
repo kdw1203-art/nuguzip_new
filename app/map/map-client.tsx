@@ -836,6 +836,30 @@ export function MapClient({
     Boolean(initialListingType),
   );
 
+  /* 하단 카테고리 바가 실제로 차지하는 높이를 재서 --nz-map-nav-h 로 내보낸다.
+     예전에는 예약 레인이 "51px 이겠지"라는 손으로 적은 숫자였고, 폰트가 바뀌거나
+     글자가 한 줄 늘어나는 순간(768폭에서 실제로 71px 이었다) 그 숫자만 조용히
+     틀려서 좌우 범례가 전부 바에 깔렸다. 낡은 실측치는 낡은 코드보다 위험하다 —
+     그러니 짐작하지 말고 매번 잰다. */
+  const mapNavRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = mapNavRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const publish = () => {
+      const h = Math.round(el.getBoundingClientRect().height);
+      if (h > 0) document.documentElement.style.setProperty("--nz-map-nav-h", `${h}px`);
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      /* 지도를 떠나면 값을 지운다 — 다른 화면이 이 토큰을 참조하게 되면
+         지도에만 있는 바의 높이가 남의 레이아웃을 흔든다. */
+      document.documentElement.style.removeProperty("--nz-map-nav-h");
+    };
+  }, []);
+
   /* 상세 필터 — 뷰포트 분포(막대그래프)와 선택 범위 */
   const [facets, setFacets] = useState<MapFacets | null>(null);
   const [ranges, setRanges] = useState<RangeFilters>(() => rangesFromBudget(initialBudget));
@@ -999,9 +1023,13 @@ export function MapClient({
 
      좌측 패널(인기 단지, 320px)의 오른쪽 끝을 계산해 그 옆으로 민다. 좁은 화면에서
      밀린 만큼 폭이 모자라지 않도록 max-width 도 같은 값으로 함께 줄인다.
-     단지 상세·단지 정보는 이제 가운데 팝업이라 애초에 이 자리를 다투지 않는다. */
-  const leftPanelEdgePx = !selected && !infoComplex && panelOpen ? 352 : 0;
-  const filterLeftMdPx = Math.max(356, leftPanelEdgePx);
+     단지 상세·단지 정보는 이제 가운데 팝업이라 애초에 이 자리를 다투지 않는다.
+
+     좌측 패널의 오른쪽 끝은 340px 인데 접기 핸들 ‹ 이 340~356 에 반쯤 걸쳐 있다.
+     그래서 352 를 쓰면 패널이 핸들의 오른쪽 4px 을 덮어 핸들이 반만 눌린다
+     (1280폭 실측 4×64px). 364 = 356 + 8 로 핸들 바깥에 세운다. */
+  const leftPanelEdgePx = !selected && !infoComplex && panelOpen ? 364 : 0;
+  const filterLeftMdPx = Math.max(364, leftPanelEdgePx);
   const filterLeftLgPx = Math.max(200, leftPanelEdgePx);
 
   /* 거리 재기 — 각 지점의 누적 거리 라벨과 구간 목록. */
@@ -1370,7 +1398,11 @@ export function MapClient({
 
   // 확장 패널: 모든 범위/유형 필터 (칩 그룹) — 모바일 친화 접이식
   const filterPanel = filtersExpanded ? (
-    <div className="glass-strong flex max-h-[calc(100dvh-210px)] w-full flex-col gap-3 overflow-y-auto rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
+    /* 높이 상한은 바깥 래퍼가 화면 높이·상단 레인·하단 예약 레인으로 계산해
+       내려준다(--nz-filter-max-h). 예전에는 여기서 `calc(100dvh-210px)` 로 잡았는데,
+       모바일 상단이 218px 이라 패널 아래끝이 화면 밖으로 8px 밀려 있었다
+       (402×874 실측: 218~882). 화면 밖으로 나간 필터는 스크롤로도 못 본다. */
+    <div className="glass-strong flex max-h-[var(--nz-filter-max-h,calc(100dvh-210px))] w-full flex-col gap-3 overflow-y-auto rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
       <div className="flex items-center justify-between">
         <span className="text-sm font-extrabold text-ink">상세 필터</span>
         <button
@@ -2539,14 +2571,10 @@ export function MapClient({
     setInfoComplex({ id: m.id, name: m.label });
   };
 
-  const goToMyLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => undefined,
-      { enableHighAccuracy: true, timeout: 12_000 },
-    );
-  };
+  /* 현재 위치 이동은 NaverMap 의 내장 버튼(enableGeolocation)이 맡는다.
+     여기 있던 goToMyLocation 은 지웠다 — 같은 자리에 버튼이 두 개 겹쳐 그려져
+     있었고, 가려져서 눌리지도 않던 이쪽 구현은 확대를 하지 않고, 실패를 알리지도
+     않으며, center 상태가 같으면 두 번째 누름이 아무 일도 하지 않았다. */
 
   // 사실 우선: 실거래는 서버(market_transactions) 실데이터만 — 없으면 빈 배열(안내 문구)
   const trades = selected ? selected.trades : [];
@@ -2651,6 +2679,84 @@ export function MapClient({
     </div>
   );
 
+  /* ===== 상태 안내 — 한 자리에 모아 쌓는다 ===============================
+   *
+   * 예전에는 안내 토스트가 저마다 `top: safe + 96px` 에 절대배치돼 있었다.
+   * 그 자리는 모바일 검색창(safe + 82px, 높이 44)의 아래쪽 4px 뿐이라, 화면에는
+   * 문장의 끝 두 글자만 삐져나왔다(소유자 스크린샷: "보여요"). 하필 그렇게 가려진
+   * 게 "거래량 상위 300개 단지만 표시 중" 이라는 절단 안내였다 — 지금 보이는
+   * 지도가 전부가 아니라고 말하는 유일한 문장이 가려져 있었던 것이다.
+   * **가려진 안내는 없는 안내와 같다.** 게다가 서로 다른 안내 세 개가 같은
+   * 좌표를 써서, 둘이 동시에 뜨면 완전히 포개졌다.
+   *
+   * 그래서 자리를 하나로 합쳤다. 모바일은 하단(‘목록으로 보기’ 위), md 이상은
+   * 우측 열이다. 여러 개면 포개지 않고 세로로 쌓는다. 이 자리에 무엇이 오든
+   * 다른 오버레이와 겹치지 않는지만 지키면 되고, 안내를 추가할 때 좌표를 새로
+   * 고민할 일이 없다.
+   */
+  const mapNotices: { key: string; text: string }[] = [];
+  if (viewportEmpty || clusterFetchStatus === "error") {
+    mapNotices.push({
+      key: "cluster",
+      text:
+        clusterFetchStatus === "error"
+          ? "일시적 오류로 단지 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요"
+          : "관심 단지를 고르면 임장노트·AI 정리·지도 비교로 이어져요 — 이 지역 좌표는 순차 확충 중",
+    });
+  }
+  /* 절단 안내 — 조용히 두면 거짓 화면이 된다.
+     · 포인트 모드: 거래량 상위 300개만 그려진 상태 ("이게 전부" 아님)
+     · 클러스터 모드(#72 잔여): 소스 좌표 5,000개 하드캡에 걸려 셀 숫자가
+       과소집계된 상태 ("이 지역 단지 수"가 실제보다 작게 보임) */
+  if (pointsTruncated && !viewportEmpty && clusterFetchStatus === "ok") {
+    mapNotices.push({
+      key: "truncated",
+      text:
+        clusterMode === "points"
+          ? "거래량 상위 300개 단지만 표시 중 — 더 확대하면 나머지 단지도 보여요"
+          : "화면이 넓어 단지 수가 일부만 집계됐어요 — 확대하면 정확해져요",
+    });
+  }
+  /* 정비사업 조회 실패 — 마커가 없는 것과 구분해서 말한다. 이걸 안 그리면
+     사용자는 빈 지도를 보고 "여긴 정비사업이 없구나"로 읽는다. 예전에는 우하단
+     카드로 띄웠는데 그 자리가 현재 위치 버튼과 겹쳐서, 안내 카드가 버튼을 덮고
+     있었다. 안내는 안내 자리로 옮긴다. */
+  if (showRedevelopment && redevFailed) {
+    mapNotices.push({
+      key: "redev-failed",
+      text: "정비사업을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요. 사업장이 없다는 뜻은 아니에요",
+    });
+  }
+  if (geoApplied) {
+    mapNotices.push({ key: "geo", text: "현재 위치 기준으로 지도를 맞췄어요" });
+  }
+
+  /* 매물 레이어 안내(실패 / 빈 인벤토리)는 버튼이 달려 있어 같은 열에 카드로
+     쌓는다. 조회 실패와 "재고 없음"을 구분하는 게 이 카드들의 존재 이유다. */
+  const listingNoticeKind: "error" | "empty" | null =
+    !showListings
+      ? null
+      : listingFetchStatus === "error"
+        ? "error"
+        : listingFetchStatus === "ok" && listingItems.length === 0 && !listingPreviewId
+          ? "empty"
+          : null;
+  const listingFilterNarrowed =
+    listingDetailFilterActive || listingTradeKey !== "all" || rangeActive;
+
+  /* md 좌측 사이드바(320px)가 열려 있으면 좌하단 범례가 그 사각형 안으로
+     들어간다 — 사이드바는 top safe+92 부터 bottom 20 까지, 즉 왼쪽 기둥 전체를
+     쓰기 때문이다. 열려 있는 동안만 사이드바 오른쪽(356px)으로 비켜 준다. */
+  /* 왼쪽으로 비켜선 범례는 폭이 고정(216px)이라 오른쪽 범례 열까지 밀고
+     들어갔다(834폭 실측 8×36px, md 768폭이면 54px). 왼쪽 오프셋만 정하고
+     오른쪽 경계를 안 정한 게 원인이라, 최대폭을 우측 예약 열
+     (--nz-map-right-lane)에서 빼서 같이 정한다. 자리가 좁으면 줄바꿈으로
+     좁아질 뿐 사라지지는 않는다 — 겹침을 없애되 존재를 지우지 않는다. */
+  const mdSidebarOpen = !selected && !infoComplex && panelOpen;
+  const mdLeftLegendX = mdSidebarOpen
+    ? "md:left-[356px] md:max-w-[calc(100vw_-_356px_-_var(--nz-map-right-lane))]"
+    : "md:left-5 md:max-w-[calc(100vw_-_20px_-_var(--nz-map-right-lane))]";
+
   return (
     // fixed inset-0 + 100dvh: 문서 흐름에서 분리해 지도 아래 빈 공간(높이 계산 오차)을 제거.
     // dvh 미지원 브라우저는 inset-0(bottom:0)이 폴백으로 풀스크린 유지.
@@ -2673,6 +2779,11 @@ export function MapClient({
            누른 순간에만 요청된다(NaverMap 내부 — 자동 요청 없음). */
         enableGeolocation
         geolocationButtonPosition="bottom-right"
+        /* 말풍선 겹침 정리 — 단지가 몰린 곳에서 값이 서로를 반쯤 가려
+           "13.6억" 이 "13.0억" 으로 읽히던 문제. 진 쪽은 지우지 않고 점으로
+           접으므로 단지는 그대로 있고 계속 누를 수 있다. */
+        declutter
+        declutterMaxLabels={60}
         className="absolute inset-0 z-0"
         onMarkerClick={handleMarkerClick}
         onIdle={handleMapIdle}
@@ -2755,32 +2866,73 @@ export function MapClient({
         </div>
       )}
 
-      {/* ===== item5 — 빈 뷰포트/조회 실패 안내. 실패와 빈 결과를 구분한다 ===== */}
-      {(viewportEmpty || clusterFetchStatus === "error") && (
+      {/* ===== 상태 안내 열 (모바일 하단 · md 우측) =====
+           자리를 하나로 합친 이유는 return 위 mapNotices 주석에 적어 두었다.
+           모바일 bottom 은 접이식 범례가 펼쳐졌는지에 따라 달라져야 하는데,
+           inline style 은 md: 클래스를 덮어쓰므로 값만 CSS 변수로 넘기고
+           위치는 클래스로 지정한다. */}
+      {(mapNotices.length > 0 || listingNoticeKind) && (
         <div
-          role="status"
-          className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-center text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
+          className="pointer-events-none absolute bottom-[var(--nz-notice-bottom)] left-4 right-[68px] z-40 flex flex-col items-start gap-1.5 md:bottom-auto md:left-auto md:right-5 md:top-[calc(env(safe-area-inset-top,0px)+176px)] md:w-[320px] md:items-stretch"
+          style={
+            {
+              "--nz-notice-bottom": mobileLegendOpen
+                ? "calc(env(safe-area-inset-bottom, 0px) + 226px)"
+                : "calc(env(safe-area-inset-bottom, 0px) + 142px)",
+            } as CSSProperties
+          }
         >
-          {clusterFetchStatus === "error"
-            ? "일시적 오류로 단지 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요"
-            : "관심 단지를 고르면 임장노트·AI 정리·지도 비교로 이어져요 — 이 지역 좌표는 순차 확충 중"}
-        </div>
-      )}
+          {mapNotices.map((n) => (
+            <div
+              key={n.key}
+              role="status"
+              className="max-w-full rounded-[14px] bg-[rgba(16,28,54,.82)] px-3.5 py-2 text-[12px] font-semibold leading-[1.5] text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
+            >
+              {n.text}
+            </div>
+          ))}
 
-      {/* 절단 안내 — 조용히 두면 거짓 화면이 된다.
-          · 포인트 모드: 거래량 상위 300개만 그려진 상태 ("이게 전부" 아님)
-          · 클러스터 모드(#72 잔여): 소스 좌표 5,000개 하드캡에 걸려 셀 숫자가
-            과소집계된 상태 ("이 지역 단지 수"가 실제보다 작게 보임) */}
-      {pointsTruncated && !viewportEmpty && clusterFetchStatus === "ok" && (
-        <div
-          role="status"
-          className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-center text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
-        >
-          {clusterMode === "points"
-            ? "거래량 상위 300개 단지만 표시 중 — 더 확대하면 나머지 단지도 보여요"
-            : "화면이 넓어 단지 수가 일부만 집계됐어요 — 확대하면 정확해져요"}
+          {listingNoticeKind === "error" && (
+            <div className="glass pointer-events-auto max-w-full rounded-xl px-3.5 py-2.5">
+              <div className="text-[12px] font-extrabold text-ink">매물을 불러오지 못했어요</div>
+              <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
+                일시적 오류예요. 매물이 없다는 뜻은 아닙니다. 잠시 후 지도를 조금 옮기거나 다시
+                시도해 주세요.
+              </div>
+            </div>
+          )}
+
+          {listingNoticeKind === "empty" && (
+            <div className="glass pointer-events-auto max-w-full rounded-xl px-3.5 py-2.5">
+              <div className="text-[12px] font-extrabold text-ink">
+                {listingFilterNarrowed
+                  ? "조건에 맞는 등록 매물이 없어요"
+                  : "이 화면에 등록 매물이 아직 없어요"}
+              </div>
+              <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
+                {listingFilterNarrowed
+                  ? "필터·예산 조건을 완화하거나, 지도를 넓혀 보세요. 포털처럼 매물이 많은 상태가 아니라 승인된 등록분만 보여요."
+                  : "필터 문제가 아니라 아직 쌓인 재고가 적어요. 단지 실거래 마커는 그대로 볼 수 있고, 매물을 올리면 여기 표시돼요."}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {listingFilterNarrowed && (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+                  >
+                    필터 초기화
+                  </button>
+                )}
+                <Link
+                  href="/listings/new"
+                  className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-extrabold text-white"
+                >
+                  매물 등록하기
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2837,21 +2989,34 @@ export function MapClient({
       )}
 
       {/* ===== 필터 바 (lg 미만 — lg 이상은 헤더에 표시) =====
-           모바일은 검색바 아래(+140), md 이상은 헤더 우측 여백(+88). inline style는
-           반응형 top 클래스를 덮어쓰므로 top은 클래스로만 지정한다. */}
+           상단 오버레이는 서로 겹치지 않는 가로줄(레인)로 나눠 둔다. 값은
+           safe-area-inset-top 기준이다.
+             헤더   16 ~  74
+             검색바 82 ~ 126 (모바일)
+             줌 탭 128 ~ 166
+             필터 칩 176 ~ 206  ← 여기
+             필터 패널 218 ~
+           예전에는 칩 줄이 140 이라 줌 탭(128~166)과 세로로 겹쳤고, 오른쪽 끝이
+           막히지 않아 '매물'·'필터' 칩이 탭 아래로 들어가 눌리지 않았다.
+           (소유자 스크린샷: 시·군·구 알약이 매물 칩을 절반쯤 덮은 상태)
+           md 이상은 검색바가 헤더 안으로 들어가 그 레인이 비므로 88 을 쓴다.
+           inline style 은 반응형 top 클래스를 덮어쓰므로 top 은 클래스로만 준다. */}
       {!selected && (
-        <div className="absolute left-4 top-[calc(env(safe-area-inset-top,0px)+140px)] z-30 flex items-center gap-1.5 md:left-[356px] md:top-[calc(env(safe-area-inset-top,0px)+88px)] lg:hidden">
+        <div className="scroll-x-hidden-bar absolute left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+176px)] z-30 flex items-center gap-1.5 py-0.5 md:left-[356px] md:right-[240px] md:top-[calc(env(safe-area-inset-top,0px)+88px)] lg:hidden [&>*]:shrink-0">
           {filterBar}
         </div>
       )}
 
-      {/* ===== 상세 필터 확장 패널 (item3) — 접이식·모바일 친화 ===== */}
+      {/* ===== 상세 필터 확장 패널 (item3) — 접이식·모바일 친화 =====
+           md 상단이 184 였을 때 우상단 줌 캡션(top 168~195, right-5)의 왼쪽
+           64×11px 을 덮었다 — 768폭에서는 패널 오른쪽 끝이 664 까지 와서 캡션
+           시작점(600)을 지나기 때문이다. 캡션을 숨기는 대신 패널을 캡션 아래
+           204 로 내린다. 겹침을 없애되 존재를 지우지 않는다. */}
       {filtersExpanded && (
         <div
-          className="absolute left-4 z-[41] w-[300px] max-w-[calc(100vw_-_32px)] md:left-[var(--nz-filter-left)] md:max-w-[calc(100vw_-_var(--nz-filter-left)_-_16px)] lg:left-[var(--nz-filter-left-lg)] lg:max-w-[calc(100vw_-_var(--nz-filter-left-lg)_-_16px)]"
+          className="absolute left-4 top-[calc(env(safe-area-inset-top,0px)+218px)] z-[41] w-[300px] max-w-[calc(100vw_-_32px)] [--nz-filter-max-h:calc(100dvh_-_env(safe-area-inset-top,0px)_-_218px_-_var(--nz-map-bottom-lane)_-_8px)] md:left-[var(--nz-filter-left)] md:top-[calc(env(safe-area-inset-top,0px)+204px)] md:max-w-[calc(100vw_-_var(--nz-filter-left)_-_16px)] md:[--nz-filter-max-h:calc(100dvh_-_env(safe-area-inset-top,0px)_-_204px_-_var(--nz-map-bottom-lane)_-_8px)] lg:left-[var(--nz-filter-left-lg)] lg:max-w-[calc(100vw_-_var(--nz-filter-left-lg)_-_16px)]"
           style={
             {
-              top: "calc(env(safe-area-inset-top, 0px) + 184px)",
               "--nz-filter-left": `${filterLeftMdPx}px`,
               "--nz-filter-left-lg": `${filterLeftLgPx}px`,
             } as CSSProperties
@@ -2861,16 +3026,8 @@ export function MapClient({
         </div>
       )}
 
-      {/* 현재 위치로 맞췄음을 알리는 짧은 안내 */}
-      {geoApplied && (
-        <div
-          role="status"
-          className="pointer-events-none absolute left-1/2 z-20 w-max max-w-[calc(100vw-48px)] -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 96px)" }}
-        >
-          현재 위치 기준으로 지도를 맞췄어요
-        </div>
-      )}
+      {/* 현재 위치 안내는 위쪽 상태 안내 열(mapNotices)에서 함께 쌓는다 —
+          예전에는 절단 안내와 같은 좌표를 써서 둘이 동시에 뜨면 포개졌다. */}
 
       {/* ===== 반경 · 거리 재기 안내/결과 ===== */}
       {mapClickMode && (
@@ -3179,7 +3336,7 @@ export function MapClient({
       {!selected && !infoComplex && panelOpen && (
         <aside
           data-tour="map-price-panel"
-          className="glass-strong absolute bottom-5 left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex"
+          className="glass-strong absolute bottom-[var(--nz-map-bottom-lane)] left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
         >
           <div className="flex items-baseline justify-between px-5 pb-1 pt-4">
@@ -3361,7 +3518,9 @@ export function MapClient({
       )}
 
       {/* 모바일 지도↔목록 토글 (탭바 위 플로팅) */}
-      {!selected && (
+      {/* 상세 필터 패널이 열려 있으면 숨긴다 — 패널이 이 버튼(131~271 × 737~778)
+          위에 그대로 덮여(실측 140×41px) 눌리지 않는다. */}
+      {!selected && !filtersExpanded && (
         <button
           type="button"
           onClick={() => setMobileView((v) => (v === "map" ? "list" : "map"))}
@@ -3716,12 +3875,29 @@ export function MapClient({
         />
       )}
 
-      {/* ===== 매물 등록 플로팅 버튼 (우하단, 줌 컨트롤 위 · 탭바 위) ===== */}
+      {/* ===== 우하단 세로 스택 =====
+           safe-area-inset-bottom 기준으로 위로 쌓는다. 겹치지 않게 한 번에 적어 둔다.
+             현재 위치 ◎ (NaverMap 내장)  78 ~ 122
+             줌 컨트롤 ＋ －             134 ~ 208
+             매물 등록                   220 ~ 264
+           예전에는 여기 ◎ 가 두 개였다. NaverMap 의 44px 버튼(78~122)과 아래 줌
+           열의 34px ◎(88~122)가 같은 자리에 겹쳐 그려져, 실제로는 위에 있는 하나만
+           눌렸다. 그런데 가려진 쪽(줌 열)이 아니라 보이는 쪽이 더 나은 구현이라
+           다행이었을 뿐이다 — 줌 열 버튼은 확대도 하지 않고, 위치 실패를 알려 주지도
+           않으며, center 상태가 그대로면 두 번째 누름이 아무 일도 하지 않았다.
+           그래서 줌 열의 ◎ 를 지우고 NaverMap 것만 남긴다. */}
       <Link
         href="/listings/new"
         aria-label="매물 등록"
-        className="btn-primary btn-cta absolute right-5 z-30 flex items-center gap-1.5 rounded-full px-4 py-3 text-[13px] font-extrabold text-white shadow-[0_10px_28px_rgba(29,79,216,.42)]"
-        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 214px)" }}
+        /* 모바일(402폭)에서 상세 필터 패널은 16~316 을 차지하고 이 버튼은
+           272~382 이라 44×43px 이 겹친다. md 768폭에서도 패널(364~664)이 이
+           버튼(638~748)의 왼쪽 26px 을 덮었다(실측 26×43px). 패널이 떠 있는
+           동안은 lg 이상에서만 둔다 — 덮인 버튼은 눌리지 않으면서 눌릴 것처럼
+           보인다. lg 에서는 패널이 200~500 이라 겹치지 않는다. */
+        className={`btn-primary btn-cta absolute right-5 z-30 items-center gap-1.5 rounded-full px-4 py-3 text-[13px] font-extrabold text-white shadow-[0_10px_28px_rgba(29,79,216,.42)] ${
+          filtersExpanded ? "hidden lg:flex" : "flex"
+        }`}
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 220px)" }}
       >
         <span className="text-base leading-none">＋</span>
         매물 등록
@@ -3730,7 +3906,7 @@ export function MapClient({
       {/* ===== 우하단 줌 컨트롤 ===== */}
       <div
         className="absolute right-5 z-30 flex flex-col gap-1.5"
-        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 134px)" }}
       >
         <button
           type="button"
@@ -3748,29 +3924,58 @@ export function MapClient({
         >
           －
         </button>
-        <button
-          type="button"
-          aria-label="현재 위치"
-          onClick={goToMyLocation}
-          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-[13px] text-primary"
-        >
-          ◎
-        </button>
       </div>
 
-      {/* ===== 범례 (md+) ===== */}
-      <div className="glass absolute bottom-5 right-5 z-30 hidden gap-3.5 rounded-xl px-3.5 py-[9px] md:flex">
-        <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-          <span className="h-[9px] w-[9px] rounded-[3px] bg-primary" />
-          임장한 단지
-        </div>
-        <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-          <span className="h-[9px] w-[9px] rounded-[3px] border border-[#c3cad6] bg-surface" />
-          미방문
+      {/* ===== 우하단 범례 열 (md+) — 기본 범례 + 정비사업 종류 =====
+           예전에는 둘을 각각 bottom 오프셋(20 / 60)으로 따로 놓아, 정비사업
+           범례가 길어지면 줌 컨트롤 위로 올라타 서로 겹쳤다. 한 열 안에 쌓으면
+           오프셋을 손으로 맞출 일이 없다. right-[70px] 는 34px 줌 열(right-5)을
+           피한 값이고, 높이 상한은 매물 등록 버튼(220~) 아래에 머물게 잡았다.
+           bottom 은 --nz-map-bottom-lane — bottom-5 였을 때 가운데 카테고리 바가
+           이 열의 아래 36px 를 덮었다(834폭 실측 54×36px).
+           md 에서 상세 필터 패널(364~664)과 이 열(564~764)은 가로로 겹칠 수밖에
+           없어, 패널이 열려 있는 동안은 lg 에서만 보인다. 덮인 채로 두면 읽을 수
+           없고, 읽을 수 없는 범례는 없는 것과 같다. */}
+      <div
+        className={`absolute bottom-[var(--nz-map-bottom-lane)] right-[70px] z-30 hidden w-[200px] max-h-[180px] flex-col items-stretch gap-2 ${
+          filtersExpanded ? "lg:flex" : "md:flex"
+        }`}
+      >
+        {showRedevelopment && redevLegend.length > 0 && (
+          <div className="glass flex min-h-0 flex-col gap-1.5 overflow-y-auto rounded-xl px-3 py-2.5">
+            <div className="text-[11px] font-extrabold text-ink">정비사업 종류</div>
+            <div className="flex flex-col gap-1">
+              {redevLegend.map((it) => (
+                <div
+                  key={it.label}
+                  className="flex items-center gap-1.5 text-[11px] text-text-1"
+                >
+                  <span
+                    className="h-[9px] w-[9px] shrink-0 rounded-full"
+                    style={{ background: it.color }}
+                  />
+                  <span className="truncate">{it.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="glass flex shrink-0 gap-3.5 rounded-xl px-3.5 py-[9px]">
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span className="h-[9px] w-[9px] rounded-[3px] bg-primary" />
+            임장한 단지
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span className="h-[9px] w-[9px] rounded-[3px] border border-[#c3cad6] bg-surface" />
+            미방문
+          </div>
         </div>
       </div>
 
-      {/* ===== item7 — 모바일 접이식 범례 (기본 접힘). md 전용이던 범례·줌 캡션을 노출 ===== */}
+      {/* ===== item7 — 모바일 접이식 범례 (기본 접힘). md 전용이던 범례·줌 캡션을 노출 =====
+           상세 필터 패널이 열려 있으면 접는다. 패널(16~316 × 218~786)이 이 열을
+           통째로 덮어(실측 57×30px) 범례 토글이 보이지도 눌리지도 않는다. */}
+      {!filtersExpanded && (
       <div
         className="absolute left-4 z-30 flex flex-col items-start gap-1.5 md:hidden"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
@@ -3820,129 +4025,27 @@ export function MapClient({
           범례 {mobileLegendOpen ? "▾" : "▸"}
         </button>
       </div>
-
-      {/* ===== 정비사업 종류 범례 (#20) — 레이어 ON & 화면 내 사업종류만, 기본 범례 위에 스택 ===== */}
-      {showRedevelopment && redevLegend.length > 0 && (
-        <div
-          className="glass absolute right-5 z-30 hidden max-h-[42vh] w-[184px] flex-col gap-1.5 overflow-y-auto rounded-xl px-3 py-2.5 md:flex"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
-        >
-          <div className="text-[11px] font-extrabold text-ink">정비사업 종류</div>
-          <div className="flex flex-col gap-1">
-            {redevLegend.map((it) => (
-              <div
-                key={it.label}
-                className="flex items-center gap-1.5 text-[11px] text-text-1"
-              >
-                <span
-                  className="h-[9px] w-[9px] shrink-0 rounded-full"
-                  style={{ background: it.color }}
-                />
-                <span className="truncate">{it.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       )}
 
-      {/* 정비사업 조회가 실패했을 때 — 마커가 없는 것과 구분해서 말한다.
-          이걸 안 그리면 사용자는 빈 지도를 보고 "여긴 정비사업이 없구나"로
-          읽는다. 서버가 503 을 돌려주면서까지 막으려던 오해다. */}
-      {showRedevelopment && redevFailed && (
-        <div
-          className="glass absolute right-5 z-30 flex w-[200px] flex-col gap-1 rounded-xl px-3 py-2.5"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
-        >
-          <div className="text-[11px] font-extrabold text-ink">
-            정비사업을 불러오지 못했어요
-          </div>
-          <div className="text-[10px] leading-[1.6] text-text-3">
-            지금은 표시할 수 없어요 · 잠시 후 다시 시도해 주세요. 사업장이 없다는
-            뜻은 아니에요.
-          </div>
-        </div>
-      )}
+      {/* 정비사업 종류 범례(#20)는 위 우하단 범례 열 안으로 옮겼고, 조회 실패
+          안내는 상태 안내 열(mapNotices)로 옮겼다. 매물 레이어의 실패/빈 인벤토리
+          안내도 같은 열에 있다 — 상단 88px 자리는 모바일 검색창과 md 필터 칩이
+          쓰고 있어 카드가 그 아래로 깔렸기 때문이다. */}
 
-      {/* 매물 레이어 — 조회 실패 / 빈 인벤토리 / 필터 과다 구분 (필터 버그 오해 방지) */}
-      {showListings && listingFetchStatus === "error" && (
+      {/* 좌하단 범례 열 — C1 시세 색상 범례(위) + C8 가격 표기 범례(아래).
+          예전에는 둘이 각각 absolute 였고, 위 카드가 아래 카드의 높이를 손으로
+          적어(`bottom + 88px` = C8 실측 79 + 여백 9) 자리를 잡았다. 폭이 좁아져
+          C8 이 한 줄 늘어나는 순간 그 숫자만 조용히 틀려서 두 범례가 24px 겹쳤다
+          (768폭 실측 130×24px). 형제의 높이는 짐작하지 말고 레이아웃이 재게 둔다.
+          두 범례 모두 상세 필터 패널이 열리면 접는다. 패널은 md 364~664 를
+          차지해 이 자리를 통째로 덮는데(실측 216×128px 완전 포함), 덮인 범례는
+          읽을 수 없으면서 "지도에 안내가 있다"는 인상만 남긴다. */}
+      {!filtersExpanded && (showPriceOverlay || showListings) && (
         <div
-          className="glass absolute left-1/2 z-40 w-[min(320px,calc(100%-2rem))] -translate-x-1/2 rounded-xl px-3.5 py-2.5"
-          style={{ top: "calc(env(safe-area-inset-top, 0px) + 88px)" }}
+          className={`absolute bottom-[var(--nz-map-bottom-lane)] z-30 hidden w-[216px] flex-col gap-[9px] md:flex ${mdLeftLegendX}`}
         >
-          <div className="text-[12px] font-extrabold text-ink">매물을 불러오지 못했어요</div>
-          <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
-            일시적 오류예요. 매물이 없다는 뜻은 아닙니다. 잠시 후 지도를 조금 옮기거나 다시
-            시도해 주세요.
-          </div>
-        </div>
-      )}
-      {showListings &&
-        listingFetchStatus === "ok" &&
-        listingItems.length === 0 &&
-        !listingPreviewId && (
-          <div
-            className="glass absolute left-1/2 z-40 w-[min(340px,calc(100%-2rem))] -translate-x-1/2 rounded-xl px-3.5 py-2.5"
-            style={{ top: "calc(env(safe-area-inset-top, 0px) + 88px)" }}
-          >
-            <div className="text-[12px] font-extrabold text-ink">
-              {listingDetailFilterActive || listingTradeKey !== "all" || rangeActive
-                ? "조건에 맞는 등록 매물이 없어요"
-                : "이 화면에 등록 매물이 아직 없어요"}
-            </div>
-            <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
-              {listingDetailFilterActive || listingTradeKey !== "all" || rangeActive
-                ? "필터·예산 조건을 완화하거나, 지도를 넓혀 보세요. 포털처럼 매물이 많은 상태가 아니라 승인된 등록분만 보여요."
-                : "필터 문제가 아니라 아직 쌓인 재고가 적어요. 단지 실거래 마커는 그대로 볼 수 있고, 매물을 올리면 여기 표시돼요."}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(listingDetailFilterActive || listingTradeKey !== "all" || rangeActive) && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
-                >
-                  필터 초기화
-                </button>
-              )}
-              <Link
-                href="/listings/new"
-                className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-extrabold text-white"
-              >
-                매물 등록하기
-              </Link>
-            </div>
-          </div>
-        )}
-
-      {/* C8 가격 표기 범례 — 매물(호가) vs 실거래(국토부 확정가) 구분 명시 (매물 레이어 ON) */}
-      {showListings && (
-        <div
-          className="glass absolute left-5 z-30 hidden w-[196px] flex-col gap-1 rounded-xl px-3 py-2.5 md:flex"
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
-        >
-          <div className="text-[11px] font-extrabold text-ink">가격 표기 안내</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-primary" />
-            <span>매물 = 호가(등록가)</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#177a4a]" />
-            <span>실거래 = 국토부 확정가</span>
-          </div>
-        </div>
-      )}
-
-      {/* C1 시세 색상 범례 — 색이 무엇을 뜻하고 어디서 왔는지를 화면에서 바로 읽게 한다.
-          매물 안내 범례가 켜져 있으면 그 위로 쌓는다. */}
-      {showPriceOverlay && (
-        <div
-          className="glass absolute left-5 z-30 hidden w-[216px] flex-col gap-1.5 rounded-xl px-3 py-2.5 md:flex"
-          style={{
-            bottom: showListings
-              ? "calc(env(safe-area-inset-bottom, 0px) + 142px)"
-              : "calc(env(safe-area-inset-bottom, 0px) + 60px)",
-          }}
-        >
+        {showPriceOverlay && (
+        <div className="glass flex flex-col gap-1.5 rounded-xl px-3 py-2.5">
           {txType === "rent" ? (
             <>
               {/* item2 — 전세 모드 범례: 매매 평단가 색표를 보증금에 갖다 붙이지 않는다 */}
@@ -4006,11 +4109,34 @@ export function MapClient({
             </>
           )}
         </div>
+        )}
+        {/* C8 가격 표기 범례 — 매물(호가) vs 실거래(국토부 확정가) 구분 명시 */}
+        {showListings && (
+        <div className="glass flex flex-col gap-1 rounded-xl px-3 py-2.5">
+          <div className="text-[11px] font-extrabold text-ink">가격 표기 안내</div>
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-primary" />
+            <span>매물 = 호가(등록가)</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#177a4a]" />
+            <span>실거래 = 국토부 확정가</span>
+          </div>
+        </div>
+        )}
+        </div>
       )}
 
-      {/* ===== 중앙 하단 플로팅 카테고리 바 (홈 인디케이터 위로 세이프에어리어 오프셋) ===== */}
+      {/* ===== 중앙 하단 플로팅 카테고리 바 (홈 인디케이터 위로 세이프에어리어 오프셋) =====
+           `left-1/2 + -translate-x-1/2` 로 가운데를 잡으면 이 바가 쓸 수 있는 가로는
+           화면의 절반뿐이다(shrink-to-fit 의 포함 블록이 left 기준 오른쪽 남은 폭).
+           md 768폭에서 필요한 402px 를 384px 로 눌러 "동네이야기"가 줄바꿈했고,
+           바 높이가 51 → 71px 로 늘어 아래 예약 레인(51px 기준)을 20px 뚫고 올라와
+           좌우 범례 다섯 개를 11px 씩 덮었다(768폭 실측).
+           inset-x-0 + mx-auto 로 바꾸면 가운데 정렬은 그대로면서 가로 전체를 쓴다. */}
       <nav
-        className="glass-strong absolute left-1/2 z-40 flex -translate-x-1/2 items-center gap-0.5 rounded-full p-1.5"
+        ref={mapNavRef}
+        className="glass-strong absolute inset-x-0 z-40 mx-auto flex w-fit max-w-[calc(100vw_-_24px)] items-center gap-0.5 rounded-full p-1.5"
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" }}
       >
         <Link

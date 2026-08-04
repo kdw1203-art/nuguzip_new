@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  declutterMarkers,
+  type DeclutterBounds,
+  type DeclutterItem,
+} from "@/lib/map/declutter";
 import {
   NAVER_MAP_AUTH_FAILURE_MESSAGE,
   NAVER_MAP_CLIENT_ID,
@@ -64,8 +69,12 @@ type MarkerEntry = {
   signature: string;
 };
 
-/** 마커 외형/위치에 영향을 주는 필드만 직렬화해 증분 갱신 판단에 쓴다. */
-function markerSignature(d: MapMarkerData): string {
+/**
+ * 마커 외형/위치에 영향을 주는 필드만 직렬화해 증분 갱신 판단에 쓴다.
+ * collapsed(라벨 접힘)도 외형을 바꾸므로 여기에 포함해야 한다 — 빠뜨리면
+ * 겹침 정리 결과가 화면에 반영되지 않고 조용히 무시된다.
+ */
+function markerSignature(d: MapMarkerData, collapsed = false): string {
   return [
     d.lat,
     d.lng,
@@ -80,7 +89,29 @@ function markerSignature(d: MapMarkerData): string {
     d.favorite ? 1 : 0,
     d.selected ? 1 : 0,
     d.showName ? 1 : 0,
+    collapsed ? 1 : 0,
   ].join(":");
+}
+
+/* ── 라벨 실측 ────────────────────────────────────────────────────────────
+   말풍선 폭을 글자 수 × 상수로 어림하면 한글·숫자·기호가 섞인 라벨에서 크게
+   빗나간다(실제로 대조해 보니 17% 어긋났다). 겹침 판정의 입력이 17% 틀리면
+   판정 자체가 틀린 것이므로, 브라우저가 쓰는 것과 같은 폰트로 canvas 에
+   재서 쓴다. canvas 를 못 쓰는 환경에서만 어림값으로 내려간다. */
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+
+function textWidth(text: string, font: string, fallbackPerChar: number): number {
+  if (!text) return 0;
+  if (measureCtx === undefined) {
+    try {
+      measureCtx = document.createElement("canvas").getContext("2d");
+    } catch {
+      measureCtx = null;
+    }
+  }
+  if (!measureCtx) return text.length * fallbackPerChar;
+  measureCtx.font = font;
+  return measureCtx.measureText(text).width;
 }
 
 export interface MapIdleInfo {
@@ -168,6 +199,15 @@ interface NaverMapProps {
    * 위치는 화면 쪽에서 포인터를 따라 잡는다 — 지도 투영 좌표 변환을 거치지 않는다.
    */
   onMarkerHover?: (marker: MapMarkerData | null) => void;
+  /**
+   * 말풍선 겹침 정리. 켜면 서로 겹치는 시세 말풍선 중 우선순위가 낮은 쪽의
+   * 라벨을 점으로 접는다(마커는 남으므로 계속 누를 수 있다).
+   * 기본은 꺼짐 — 지금 이 동작이 필요한 화면은 /map 뿐이고, 다른 화면의
+   * 지도까지 조용히 바꾸지 않기 위해서다.
+   */
+  declutter?: boolean;
+  /** 라벨 최대 개수(0 이하면 상한 없음). 겹치지 않아도 100개를 읽지는 않는다. */
+  declutterMaxLabels?: number;
 }
 
 /** naver.maps.Circle 최소 인터페이스 */
@@ -203,6 +243,8 @@ export function NaverMap({
   onRadiusEdgeDragEnd,
   crosshair = false,
   onMarkerHover,
+  declutter = false,
+  declutterMaxLabels = 0,
 }: NaverMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -247,6 +289,15 @@ export function NaverMap({
   const radiusEdgeMarkerRef = useRef<NaverMarker | null>(null);
   /** 드래그 직후 click 이 한 번 더 오는 경우 지점 추가를 막는다 */
   const suppressMapClickUntilRef = useRef(0);
+  /* 겹침 정리 입력 — 실제 bounds 와 컨테이너 픽셀 크기. idle 때 갱신한다.
+     declutter 가 꺼져 있으면 갱신하지 않아 리렌더도 늘지 않는다. */
+  const [mapView, setMapView] = useState<{
+    bounds: DeclutterBounds | null;
+    width: number;
+    height: number;
+  }>({ bounds: null, width: 0, height: 0 });
+  const declutterRef = useRef(declutter);
+  declutterRef.current = declutter;
 
   useEffect(() => {
     if (!NAVER_MAP_CLIENT_ID) {
@@ -424,12 +475,35 @@ export function NaverMap({
 
     const emit = () => {
       const cb = onIdleRef.current;
-      if (!cb) return;
       const zoom = map.getZoom?.() ?? 0;
       const c = map.getCenter?.();
       const b = map.getBounds?.();
       const sw = b?.getSW?.();
       const ne = b?.getNE?.();
+
+      /* 겹침 정리용 화면 상태. 값이 실제로 달라졌을 때만 setState 한다 —
+         idle 이 같은 값으로 여러 번 와도 리렌더가 늘지 않게. */
+      if (declutterRef.current) {
+        const el = containerRef.current;
+        const width = el?.clientWidth ?? 0;
+        const height = el?.clientHeight ?? 0;
+        const bounds =
+          sw && ne
+            ? { swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng() }
+            : null;
+        setMapView((prev) => {
+          const same =
+            prev.width === width &&
+            prev.height === height &&
+            prev.bounds?.swLat === bounds?.swLat &&
+            prev.bounds?.swLng === bounds?.swLng &&
+            prev.bounds?.neLat === bounds?.neLat &&
+            prev.bounds?.neLng === bounds?.neLng;
+          return same ? prev : { bounds, width, height };
+        });
+      }
+
+      if (!cb) return;
       cb({
         zoom,
         center: c ? { lat: c.lat(), lng: c.lng() } : { lat: 0, lng: 0 },
@@ -669,6 +743,51 @@ export function NaverMap({
     }
   }, [loaded, circle]);
 
+  /**
+   * 겹침 정리 결과. bounds·컨테이너 크기·마커 목록이 모두 갖춰졌을 때만 계산하고,
+   * 하나라도 모르면 null(=아무것도 접지 않음)이다. 모를 때 접는 쪽이 아니라
+   * 두는 쪽으로 기울인 것은, 잘못 접으면 실제로 있는 단지가 점 하나로 보이기
+   * 때문이다.
+   *
+   * 우선순위: 선택 > 관심 > 세대수 큰 단지 > id. 세대수를 쓴 이유는 큰 단지가
+   * 그 동네의 기준점 역할을 해서다. 값(가격)으로 줄 세우지 않는다 — 비싼 곳만
+   * 라벨이 남으면 지도가 시세를 실제보다 높게 보이게 만든다.
+   */
+  const declutterState = useMemo(() => {
+    if (!declutter || !mapView.bounds) return null;
+    const items: DeclutterItem[] = [];
+    for (const d of markers) {
+      const isCluster = d.id.startsWith("cluster:");
+      const isPrice = d.avgPricePerM2 !== undefined && !isCluster;
+      if (isCluster) {
+        /* 클러스터는 접지 않는다(묶인 N개가 통째로 감춰진다). 대신 자리는
+           차지하므로 최우선으로 먼저 놓아 다른 라벨이 피해 가게 한다. */
+        const w = d.priceLabel ? 96 : 46;
+        items.push({ id: d.id, lat: d.lat, lng: d.lng, width: w, height: 40, priority: 1e12, anchor: "center" });
+        continue;
+      }
+      const box = isPrice ? priceMarkerBox(d) : namePillBox(d.label);
+      items.push({
+        id: d.id,
+        lat: d.lat,
+        lng: d.lng,
+        width: box.width,
+        height: box.height,
+        anchor: isPrice ? "bottom-center" : "center",
+        priority:
+          (d.selected ? 1e9 : 0) + (d.favorite ? 1e8 : 0) + Math.min(1e7, d.households ?? 0),
+      });
+    }
+    const res = declutterMarkers(
+      items,
+      mapView.bounds,
+      { width: mapView.width, height: mapView.height },
+      { padding: 3, maxLabels: declutterMaxLabels },
+    );
+    for (const id of res.collapsed) if (id.startsWith("cluster:")) res.collapsed.delete(id);
+    return res;
+  }, [declutter, declutterMaxLabels, markers, mapView]);
+
   // 마커 증분 업데이트: id로 diff 하여 추가/갱신/제거만 반영(destroy-all 제거).
   useEffect(() => {
     if (!loaded || !mapRef.current) return;
@@ -679,10 +798,30 @@ export function NaverMap({
     const store = markerMapRef.current;
     const nextIds = new Set<string>();
 
+    const collapsedIds = declutterState?.collapsed;
+    const zById = declutterState?.zIndexById;
+
+    /**
+     * 겹침 정리 뒤 쌓임 순서. 예전에는 선택/관심이 아닌 마커가 전부 zIndex 1
+     * 이라, 어느 말풍선이 위로 오는지를 DOM 순서(=쿼리 정렬)가 정했다. 화면과
+     * 상관없는 값이 화면을 정하고 있었던 셈이다. 이제는 겹침 정리와 같은
+     * 우선순위를 그대로 쓴다.
+     */
+    const zIndexOf = (data: MapMarkerData) => {
+      if (data.selected) return 200;
+      if (collapsedIds?.has(data.id)) return 0;
+      const base = data.favorite ? 120 : 1;
+      const rank = zById?.get(data.id);
+      return rank === undefined ? base : base + Math.min(60, Math.round(rank / 10));
+    };
+
     const buildIcon = (data: MapMarkerData) => {
       const color = data.pinColor ?? "#3182f6";
       const isCluster = data.id.startsWith("cluster:");
       const isPriceMarker = data.avgPricePerM2 !== undefined && !isCluster;
+      if (collapsedIds?.has(data.id) && !isCluster) {
+        return { content: buildCollapsedDotHtml(data), anchor: new maps.Point(0, 0) };
+      }
       if (isCluster) {
         // priceLabel이 있으면 "N개 · 12.3억" 알약형(호갱노노식), 없으면 기존 개수 원형
         return {
@@ -704,7 +843,7 @@ export function NaverMap({
 
     for (const data of markers) {
       nextIds.add(data.id);
-      const signature = markerSignature(data);
+      const signature = markerSignature(data, collapsedIds?.has(data.id) ?? false);
       const existing = store.get(data.id);
 
       if (existing) {
@@ -712,7 +851,7 @@ export function NaverMap({
         if (existing.signature !== signature) {
           existing.marker.setPosition?.(new maps.LatLng(data.lat, data.lng));
           existing.marker.setIcon?.(buildIcon(data));
-          existing.marker.setZIndex?.(data.selected ? 200 : data.favorite ? 120 : 1);
+          existing.marker.setZIndex?.(zIndexOf(data));
           existing.signature = signature;
         }
         continue;
@@ -723,7 +862,7 @@ export function NaverMap({
         map,
         title: data.label,
         icon: buildIcon(data),
-        zIndex: data.selected ? 200 : data.favorite ? 120 : 1,
+        zIndex: zIndexOf(data),
       });
       const entry: MarkerEntry = { marker, data, signature };
       store.set(data.id, entry);
@@ -783,7 +922,7 @@ export function NaverMap({
       );
       map.fitBounds(bounds, { top: 48, right: 48, bottom: 48, left: 48 });
     }
-  }, [loaded, markers, fitToMarkers]);
+  }, [loaded, markers, fitToMarkers, declutterState]);
 
   const goToMyLocation = useCallback(() => {
     if (!navigator.geolocation || !mapRef.current) return;
@@ -867,7 +1006,11 @@ export function NaverMap({
             geolocationButtonPosition === "bottom-left"
               ? "bottom-3 left-3"
               : geolocationButtonPosition === "bottom-right"
-                ? "right-3 bottom-[calc(env(safe-area-inset-bottom,0px)+78px)] md:bottom-6"
+                ? /* right-[15px]: 이 버튼(44px)의 중심을 그 위에 쌓이는 34px 줌
+                     컨트롤(right-5) 중심과 맞춘다 — 20+17 = 15+22 = 37.
+                     md 에서도 같은 자리를 쓴다. 예전의 md:bottom-6 은 우하단
+                     범례(bottom-5) 위로 올라타 있었다. */
+                  "right-[15px] bottom-[calc(env(safe-area-inset-bottom,0px)+78px)]"
                 : "right-2 top-2"
           }`}
           title="내 위치"
@@ -1026,6 +1169,60 @@ function buildPriceMarkerHtml(data: MapMarkerData): string {
     </div>
     <div style="width:0;height:0;margin:-1px auto 0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${tip}"></div>
   </div>`;
+}
+
+/**
+ * 겹침 정리로 라벨이 접힌 시세 마커. 지우지 않고 점으로 남긴다 —
+ * 마커가 사라지면 이용자는 "여기엔 단지가 없다" 로 읽고, 그건 겹침보다 나쁜
+ * 거짓말이다. 눌러야 알 수 있게 만든 대신 **누를 수는 있어야** 하므로
+ * 바깥에 투명 여백을 둬 손가락 표적을 24px 로 잡는다(점 자체는 12px).
+ */
+function buildCollapsedDotHtml(data: MapMarkerData): string {
+  const ring = data.selected ? "#3182f6" : (data.tierColor ?? "#8b95a1");
+  const fill = data.favorite ? "#f59e0b" : "#fff";
+  return `<div style="transform:translate(-50%,-50%);padding:6px;cursor:pointer"><div style="width:12px;height:12px;border-radius:9999px;background:${fill};border:2.5px solid ${ring};box-shadow:0 1px 4px rgba(16,28,54,.28)"></div></div>`;
+}
+
+/* ── 말풍선 상자 크기 ─────────────────────────────────────────────────────
+   아래 숫자들은 위 build*Html 의 style 문자열에서 그대로 따온 것이다(패딩·
+   테두리·gap·글자 크기). HTML 을 고치면 여기도 같이 고쳐야 한다. 둘이 어긋나면
+   겹침 판정이 조용히 틀어지므로, 값을 바꿀 땐 항상 짝으로 본다. */
+
+/** buildPriceMarkerHtml 의 바깥 상자 크기(꼬리 포함). */
+function priceMarkerBox(data: MapMarkerData): { width: number; height: number } {
+  const bw = data.selected ? 2 : data.tierColor ? 1.5 : 1;
+  const price = data.priceLabel ?? formatEokLabel(data.avgPriceWon ?? (data.avgPricePerM2 ?? 0) * 84);
+  const parts: number[] = [textWidth(price, "800 12px sans-serif", 7.5)];
+  const rawName = data.label?.trim() ?? "";
+  if (data.showName && rawName) {
+    const shown = rawName.length > 8 ? `${rawName.slice(0, 8)}…` : rawName;
+    parts.unshift(1); // 1px 세로 구분선
+    parts.unshift(Math.min(96, textWidth(shown, "700 11px sans-serif", 7)));
+  }
+  if (data.momPct !== undefined && Number.isFinite(data.momPct)) {
+    parts.push(
+      textWidth(`▲${Math.abs(data.momPct).toFixed(2)}%`, "700 11px sans-serif", 6.5),
+    );
+  }
+  if (data.favorite) parts.push(textWidth("★", "700 11px sans-serif", 7) + 1);
+
+  const content = parts.reduce((a, b) => a + b, 0) + 4 * Math.max(0, parts.length - 1);
+  return {
+    width: content + 18 /* padding 9+9 */ + bw * 2,
+    height: 15 /* 12px 글자 줄상자 */ + 6 /* padding 3+3 */ + bw * 2 + 5 /* 꼬리 6 - margin 1 */,
+  };
+}
+
+/** buildMarkerHtml(이름 알약) 의 상자 크기. */
+function namePillBox(label: string): { width: number; height: number } {
+  const name = label.trim();
+  if (!name) return { width: 10, height: 10 };
+  const shown =
+    name.length > NO_PRICE_LABEL_MAX ? `${name.slice(0, NO_PRICE_LABEL_MAX)}…` : name;
+  return {
+    width: textWidth(shown, "600 11px sans-serif", 7) + 5 /* 점 */ + 4 /* gap */ + 18 + 2,
+    height: 14 + 8 + 2,
+  };
 }
 
 function buildInfoHtml(data: MapMarkerData): string {
