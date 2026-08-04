@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getAdSenseClient, isAdsExcludedPath } from "@/lib/ads/adsense-policy";
+import { getSessionLite } from "@/lib/client/session-lite";
 
 /**
  * AdSense 수동 디스플레이 유닛 — **데스크탑 전용** (소유자 요청 2026-08-03:
@@ -45,21 +46,16 @@ export function AdSenseUnit({ className }: { className?: string }) {
     if (!enabled) return;
     let alive = true;
     (async () => {
-      try {
-        const res = await fetch("/api/auth/session", { cache: "no-store" });
-        if (!res.ok) {
-          if (alive) setAdFree(true);
-          return;
-        }
-        const data: unknown = await res.json();
-        const plan =
-          typeof data === "object" && data !== null
-            ? String((data as { user?: { plan?: unknown } }).user?.plan ?? "free").toLowerCase()
-            : "free";
-        if (alive) setAdFree(plan === "pro" || plan === "expert" || plan === "enterprise");
-      } catch {
-        if (alive) setAdFree(true);
+      // 최적화 26 — 공유 세션 조회로 수렴. null(조회 실패)이면 종전과 같이
+      // "모르면 안 띄운다"(adFree=true) — 결제자에게 광고가 나가는 쪽이 더 나쁘다.
+      const s = await getSessionLite();
+      if (!alive) return;
+      if (s === null) {
+        setAdFree(true);
+        return;
       }
+      const plan = String(s.user?.plan ?? "free").toLowerCase();
+      setAdFree(plan === "pro" || plan === "expert" || plan === "enterprise");
     })();
     return () => {
       alive = false;

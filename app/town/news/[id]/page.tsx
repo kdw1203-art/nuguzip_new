@@ -256,11 +256,13 @@ export default async function TownNewsDetailPage({
                 설명하는 상자 대신 있는 사진을 보여 준다. 없으면 아무것도 그리지
                 않는다 — 빈 상자는 자리만 밀고 정보가 없다. */}
             {heroImage ? (
-              <div className="relative overflow-hidden rounded-[14px]">
+              /* 최적화 22 — 로드 전 높이 0 → 로드 후 본문이 밀리는 CLS.
+                 16:9 비율 상자를 먼저 잡아 레이아웃을 고정한다(og:image 표준 비율). */
+              <div className="relative aspect-[16/9] max-h-[380px] w-full overflow-hidden rounded-[14px] bg-[#eef2f8]">
                 <CoverImage
                   src={heroImage}
                   alt=""
-                  imgClassName="block max-h-[380px] w-full object-cover"
+                  imgClassName="absolute inset-0 h-full w-full object-cover"
                 />
                 {post.sourceName && (
                   <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[rgba(255,255,255,.85)] px-3 py-[5px] text-[11px] text-text-3">

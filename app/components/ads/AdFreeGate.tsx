@@ -1,5 +1,6 @@
 "use client";
 
+import { getSessionLite } from "@/lib/client/session-lite";
 import { useEffect, useState, type ReactNode } from "react";
 import { isAdFreePlan } from "@/lib/ads/ad-free";
 
@@ -17,14 +18,10 @@ export function AdFreeGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/session", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((j: { user?: { plan?: string } } | null) => {
-        if (!cancelled && isAdFreePlan(j?.user?.plan)) setHidden(true);
-      })
-      .catch(() => {
-        /* 세션 확인 실패 시 광고 유지 (비로그인과 동일 취급) */
-      });
+    // 최적화 26 — 공유 세션 조회로 수렴
+    getSessionLite().then((j) => {
+      if (!cancelled && isAdFreePlan(j?.user?.plan ?? undefined)) setHidden(true);
+    });
     return () => {
       cancelled = true;
     };

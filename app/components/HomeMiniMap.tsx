@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { getSessionLite } from "@/lib/client/session-lite";
 import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
 import {
   SEOUL_DISTRICTS,
@@ -106,11 +107,8 @@ export function HomeMiniMap({
     let cancelled = false;
     (async () => {
       try {
-        const sRes = await fetch("/api/auth/session");
-        if (!sRes.ok) return;
-        const s = (await sRes.json().catch(() => null)) as {
-          user?: { email?: string | null };
-        } | null;
+        // 최적화 26 — 공유 세션 조회로 수렴
+        const s = await getSessionLite();
         if (!s?.user?.email) return;
         const pRes = await fetch("/api/home/personal");
         if (!pRes.ok) return;

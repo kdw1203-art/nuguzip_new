@@ -1,5 +1,6 @@
 "use client";
 
+import { getSessionLite } from "@/lib/client/session-lite";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
@@ -40,14 +41,14 @@ export function AdSenseLoader() {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/auth/session", { cache: "no-store" });
-        if (!res.ok) {
+        // 최적화 26 — 공유 세션 조회로 수렴
+        const data = await getSessionLite();
+        if (data === null) {
           // 세션 조회 실패는 "비로그인"과 구분되지 않는다. 광고를 띄우지 않는 쪽으로
           // 둔다 — 결제한 사람에게 광고가 나가는 것이 반대 실수보다 나쁘다.
           if (alive) setAdFree(true);
           return;
         }
-        const data: unknown = await res.json();
         const plan =
           typeof data === "object" && data !== null
             ? String(

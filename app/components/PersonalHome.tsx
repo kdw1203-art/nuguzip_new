@@ -1,5 +1,6 @@
 "use client";
 
+import { getSessionLite } from "@/lib/client/session-lite";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
@@ -164,11 +165,8 @@ export function PersonalHome() {
     let cancelled = false;
     (async () => {
       try {
-        const sRes = await fetch("/api/auth/session", { cache: "no-store" });
-        if (!sRes.ok) return;
-        const s = (await sRes.json().catch(() => null)) as {
-          user?: { email?: string | null };
-        } | null;
+        // 최적화 26 — 공유 세션 조회로 수렴
+        const s = await getSessionLite();
         if (!s?.user?.email) {
           // 비로그인 → 정적 홈 복귀 + 조기 숨김 해제
           if (!cancelled) {
@@ -211,7 +209,7 @@ export function PersonalHome() {
     // 로그인 확인된 재방문 → 정적 히어로 대신 로딩 스켈레톤(플래시 방지)
     if (primed) {
       return (
-        <div className="rise-in mt-2 overflow-hidden rounded-[22px] bg-[#141a26] p-5">
+        <div className="rise-in mt-2 overflow-hidden rounded-[18px] bg-[#141a26] p-[var(--pad-hero)] md:rounded-[22px] md:p-5">
           <div className="h-3 w-28 rounded bg-white/10" />
           <div className="mt-3 h-6 w-3/5 rounded bg-white/10" />
           <div className="mt-2 h-6 w-2/5 rounded bg-white/10" />

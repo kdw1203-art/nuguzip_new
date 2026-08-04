@@ -328,7 +328,9 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
         regionsFailed = true;
         return new Map<string, never>();
       }),
-      listPublicNotes(50).catch((err): InspectionNote[] => {
+      /* 최적화 30 — 홈은 최대 3건만 쓴다. 50행(전 컬럼)을 끌어오던 것을 10행으로.
+         (여유분은 비공개 전환 등 후처리 필터 대비) */
+      listPublicNotes(10).catch((err): InspectionNote[] => {
         logger.error("[loadNewHomeData] 공개 임장노트 조회 실패", err);
         notesFailed = true;
         return [];

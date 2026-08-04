@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { getSessionLite } from "@/lib/client/session-lite";
 
 /* S13-13a 헤더 세션 영역 — /api/auth/session 지연 조회 (정적 셸 ISR 유지)
    로그인: 이니셜 원형 아바타 + 플랜 배지(✦, 시안 9m 4373행) + 드롭다운
@@ -43,23 +44,12 @@ export function HeaderAuth() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/session");
-        if (!res.ok) {
-          if (!cancelled) setState({ status: "guest" });
-          return;
-        }
-        const s = (await res.json().catch(() => null)) as {
-          user?: SessionUser;
-        } | null;
-        if (cancelled) return;
-        if (s?.user?.email) setState({ status: "user", user: s.user });
-        else setState({ status: "guest" });
-      } catch {
-        if (!cancelled) setState({ status: "guest" });
-      }
-    })();
+    // 최적화 26 — 공유 세션 조회(페이지당 1회)로 수렴
+    getSessionLite().then((s) => {
+      if (cancelled) return;
+      if (s?.user?.email) setState({ status: "user", user: s.user });
+      else setState({ status: "guest" });
+    });
     return () => {
       cancelled = true;
     };

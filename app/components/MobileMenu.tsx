@@ -8,6 +8,7 @@ import { NAV } from "./nav-data";
 import { ThemeToggle } from "./ThemeToggle";
 import { PushSubscribe } from "@/components/PushSubscribe";
 import { Icon } from "./Icon";
+import { getSessionLite } from "@/lib/client/session-lite";
 
 /** 모바일 전체 메뉴 — ☰ 트리거 + 우측 슬라이드 글래스 시트 (md:hidden)
  *  GNB 4 대분류 + 서비스·내 계정·고객지원 섹션까지 노출하는 전체 사이트 디렉토리.
@@ -73,14 +74,10 @@ export function MobileMenu() {
   useEffect(() => {
     setMounted(true);
     let cancelled = false;
-    fetch("/api/auth/session")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((s: { user?: { email?: string | null } } | null) => {
-        if (!cancelled) setLoggedIn(Boolean(s?.user?.email));
-      })
-      .catch(() => {
-        if (!cancelled) setLoggedIn(false);
-      });
+    // 최적화 26 — 공유 세션 조회로 수렴(HeaderAuth 와 같은 요청 재사용)
+    getSessionLite().then((s) => {
+      if (!cancelled) setLoggedIn(Boolean(s?.user?.email));
+    });
     return () => {
       cancelled = true;
     };
@@ -186,6 +183,7 @@ export function MobileMenu() {
             <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-2 pt-1">
               {/* 통합 검색 진입 */}
               <Link
+                    prefetch={false}
                 href="/search"
                 className="mb-3 flex items-center gap-2 rounded-xl bg-[rgba(127,140,158,.08)] px-3.5 py-2.5 text-[13px] text-text-3 ring-1 ring-line"
               >
@@ -198,6 +196,7 @@ export function MobileMenu() {
                 {NAV.map((item) => (
                   <div key={item.label}>
                     <Link
+                    prefetch={false}
                       href={item.href}
                       className={
                         isActive(item.href)
@@ -212,6 +211,7 @@ export function MobileMenu() {
                       <div className="mt-0.5 grid grid-cols-2 gap-x-1">
                         {item.children.map((c) => (
                           <Link
+                    prefetch={false}
                             key={c.href + c.label}
                             href={c.href}
                             className="truncate rounded-[10px] px-3 py-[8px] text-[12.5px] font-semibold text-text-2 transition-colors active:bg-[rgba(29,79,216,.08)] active:text-primary"
@@ -232,7 +232,7 @@ export function MobileMenu() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-1">
                   {SERVICE_LINKS.map((l) => (
-                    <Link key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
+                    <Link prefetch={false} key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
                       <Icon name={l.icon} size={17} />
                       <span className="truncate">{l.label}</span>
                     </Link>
@@ -247,7 +247,7 @@ export function MobileMenu() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-1">
                   {ACCOUNT_LINKS.map((l) => (
-                    <Link key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
+                    <Link prefetch={false} key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
                       <Icon name={l.icon} size={17} />
                       <span className="truncate">{l.label}</span>
                     </Link>
@@ -262,7 +262,7 @@ export function MobileMenu() {
                 </div>
                 <div className="grid grid-cols-2 gap-x-1">
                   {SUPPORT_LINKS.map((l) => (
-                    <Link key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
+                    <Link prefetch={false} key={l.href + l.label} href={l.href} className={rowClass(l.href)}>
                       <Icon name={l.icon} size={17} />
                       <span className="truncate">{l.label}</span>
                     </Link>
@@ -288,11 +288,11 @@ export function MobileMenu() {
             <div className="flex flex-col gap-2 border-t border-[#eef1f6] px-4 pt-3">
               <div className="flex gap-2">
                 {loggedIn === false && (
-                  <Link href="/login" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
+                  <Link prefetch={false} href="/login" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
                     로그인
                   </Link>
                 )}
-                <Link href="/my" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
+                <Link prefetch={false} href="/my" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">
                   마이페이지
                 </Link>
                 {loggedIn === true && (
@@ -303,7 +303,7 @@ export function MobileMenu() {
                   </a>
                 )}
               </div>
-              <Link href="/notes/new" className="btn-primary rounded-xl py-3 text-center text-sm">
+              <Link prefetch={false} href="/notes/new" className="btn-primary rounded-xl py-3 text-center text-sm">
                 임장노트 쓰기
               </Link>
             </div>
