@@ -293,7 +293,9 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
   const map = new Map<string, RegionMarketSnapshot>();
   const sb = getServiceSupabase();
   if (!sb) {
-    snapshotCache = { at: Date.now(), map };
+    /* 키 부재도 캐시하지 않는다 — 2026-08-04 소유자 캡처: 홈 "지역 시세를
+       아직 불러오지 못했어요" + 미니지도 마커 전멸이 1시간 단위로 굳어
+       있었다. 빈 성공을 캐시하면 일시 결함이 1시간짜리 "시세 없음"이 된다. */
     return map;
   }
   const { data, error } = await sb
@@ -305,6 +307,15 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
   /* 실패는 캐시하지 않는다. 예전에는 여기서 빈 맵을 캐시했고, 그 결과
      getRegionSnapshot() 이 null → /region/[id] 가 404 를 한 시간 동안 냈다. */
   if (error || !data) throwQueryFailure("market_region_price", error);
+  /* 0행 "성공"도 캐시하지 않는다 — 운영에서 이 표가 정말로 비는 경우는
+     ETL 재적재 창뿐이다. 그 순간을 1시간 캐시하면 위 캡처 증상이 된다.
+     빈 맵은 이번 요청에만 쓰고 다음 요청이 다시 읽게 둔다. */
+  if (data.length === 0) {
+    logger.warn(
+      "[market/store] market_region_price 0행 — ETL 재적재 창일 수 있어 캐시하지 않음",
+    );
+    return map;
+  }
   // REB 우선: 같은 region_id 에 대해 reb 가 kb 를 덮어쓴다.
   const priority: Record<string, number> = { reb: 2, kb: 1, crawl: 0 };
   for (const row of data) {

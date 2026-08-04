@@ -145,6 +145,18 @@ function formatEok(won: number): string {
   return `${s.replace(/\.?0+$/, "")}억`;
 }
 
+/* 캡처 개선(2026-08-04) — 관심지역 행별 시세 칩이 이 포맷터를 재사용한다.
+   포맷 규칙을 /api/home/personal 에 복사하면 홈 카드와 다른 숫자 얼굴이 된다. */
+export function formatRegionPriceEok(won: number): string {
+  return formatEok(won);
+}
+export function deltaOfChangePct(changePct: number | undefined): {
+  delta: string;
+  tone: DeltaTone;
+} {
+  return deltaOf(changePct);
+}
+
 function deltaOf(changePct: number | undefined): { delta: string; tone: DeltaTone } {
   if (typeof changePct !== "number" || !Number.isFinite(changePct)) {
     return { delta: "— 0.0%", tone: "flat" };
@@ -328,6 +340,11 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     ]);
 
   // ── 지역 시세 카드 (market_region_price 스냅샷) ──
+  /* 스냅샷 0건은 "데이터 준비 중"이 아니라 조회 이상이다(키 부재·ETL 재적재
+     창 — 운영에서 이 표가 정말로 빈 적은 없다). 예전엔 이 경우 EmptyState
+     ("준비되면 표시됩니다")로 나가 실패가 준비 중으로 위장됐다(2026-08-04
+     소유자 캡처). 실패로 분류해 "지금 불러오지 못했어요"로 말한다. */
+  if (!regionsFailed && snapshots.size === 0) regionsFailed = true;
   const regions: HomeRegionCard[] = [];
   for (const target of CARD_REGIONS) {
     const snap = snapshots.get(target.id);

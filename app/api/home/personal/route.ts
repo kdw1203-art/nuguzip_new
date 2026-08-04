@@ -4,7 +4,13 @@ import { listNotes } from "@/lib/inspection/store-db";
 import { countWatchlist } from "@/lib/watchlist/store-db";
 import { loadMeProfile } from "@/lib/me/profile";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
-import { loadNewHomeData, type HomeRegionCard } from "@/lib/newui/home-data";
+import {
+  deltaOfChangePct,
+  formatRegionPriceEok,
+  loadNewHomeData,
+  type HomeRegionCard,
+} from "@/lib/newui/home-data";
+import { getRegionSnapshot } from "@/lib/market/store";
 import {
   getOnboardingPersonalization,
   resolveRegions,
@@ -50,6 +56,9 @@ export type PersonalHomeData = {
     budget: OnboardingBudget | null;
     purpose: PurposeId | null;
   } | null;
+  /** 캡처 개선(2026-08-04) — regionId → 지역 시세 칩(평균가·전월 대비).
+      스냅샷이 없는 지역은 키 자체가 없다(칩 미표시). 조회 실패 시 null. */
+  regionChips: Record<string, { price: string; delta: string; tone: "up" | "down" | "flat" }> | null;
 };
 
 async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
@@ -77,6 +86,31 @@ async function loadRegionMarket(
     if (hit) return hit;
   }
   return null;
+}
+
+/** 캡처 개선(2026-08-04) — 관심지역 행별 시세 칩. regionId 가 해석된 지역만,
+    스냅샷에 유효 평균가가 있을 때만 싣는다(없으면 칩 미표시 — 허위값 금지). */
+async function loadRegionChips(
+  resolved: ResolvedRegion[],
+): Promise<Record<string, { price: string; delta: string; tone: "up" | "down" | "flat" }>> {
+  const out: Record<string, { price: string; delta: string; tone: "up" | "down" | "flat" }> = {};
+  await Promise.all(
+    resolved
+      .filter((r) => r.regionId)
+      .slice(0, 5)
+      .map(async (r) => {
+        try {
+          const snap = await getRegionSnapshot(r.regionId!);
+          const won = snap?.avgSale ?? snap?.medianSale;
+          if (typeof won !== "number" || won <= 0) return;
+          const { delta, tone } = deltaOfChangePct(snap?.saleChangeMonthly);
+          out[r.regionId!] = { price: formatRegionPriceEok(won), delta, tone };
+        } catch {
+          /* 개별 실패 — 칩 없이 (행 자체는 그대로) */
+        }
+      }),
+  );
+  return out;
 }
 
 export async function GET() {
@@ -109,9 +143,13 @@ export async function GET() {
     loadRegionMarket([profile?.primaryRegion, ...(regions ?? [])]),
   );
 
+  const resolvedRegions = personalization ? resolveRegions(personalization.regions) : [];
+  const regionChips =
+    resolvedRegions.length > 0 ? await guarded(() => loadRegionChips(resolvedRegions)) : null;
+
   const preferences = personalization
     ? {
-        regions: resolveRegions(personalization.regions),
+        regions: resolvedRegions,
         budget: personalization.budget,
         purpose: personalization.purpose,
       }
@@ -143,6 +181,7 @@ export async function GET() {
       : null,
     regionMarket,
     preferences,
+    regionChips: regionChips ?? null,
   };
 
   return NextResponse.json(body, {

@@ -58,6 +58,11 @@ type PersonalHomeData = {
   primaryRegion: string | null;
   regions: string[] | null;
   todoCount: number | null;
+  /** 캡처 개선(2026-08-04) — regionId → 지역 시세 칩. 없는 지역은 키 없음 */
+  regionChips?: Record<
+    string,
+    { price: string; delta: string; tone: "up" | "down" | "flat" }
+  > | null;
   regionMarket: PersonalRegionMarket | null;
   preferences: PersonalPreferences | null;
 };
@@ -481,12 +486,22 @@ export function PersonalHome() {
 
             {/* 관심 지역별 퀵링크 — 지역 허브(/region) · 매물(/listings?gu=) */}
             <div className="flex flex-col gap-2">
-              {data.preferences.regions.map((r) => (
+              {data.preferences.regions.map((r) => {
+                /* 캡처 개선(2026-08-04) — 링크만 있고 시세가 없던 행에 평균가·
+                   전월 대비 칩. 스냅샷 없는 지역은 칩 없이(허위값 금지). */
+                const chip = r.regionId ? data.regionChips?.[r.regionId] : undefined;
+                return (
                 <div key={r.name} className="flex flex-wrap items-center gap-1.5">
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-2">
                     <Icon name="📍" size={12} />
                     {r.gu}
                   </span>
+                  {chip && (
+                    <span className="inline-flex items-baseline gap-1 text-[11px]">
+                      <b className="text-ink">{chip.price}</b>
+                      <span className={DELTA_CLASS[chip.tone]}>{chip.delta}</span>
+                    </span>
+                  )}
                   {r.regionId && (
                     <Link
                       href={`/region/${r.regionId}`}
@@ -508,7 +523,8 @@ export function PersonalHome() {
                     매물 보기 ›
                   </Link>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

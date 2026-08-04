@@ -70,6 +70,11 @@ export function HomeMiniMap({
     regionLabel: string | null;
     selectedId: string | null;
   }>({ center: SEOUL_CENTER, level: 8, regionLabel: null, selectedId: null });
+  /* 캡처 개선(2026-08-04) — 로그인 사용자의 관심지역 마커(시세 칩 실데이터).
+     예전엔 배지는 "내 관심지역 · 강남구"인데 마커는 홈 카드 고정 4곳(마포·
+     남양주 포함)이라 서로 다른 얘기를 했다. 관심지역+시세가 해석되면 그걸로
+     마커를 교체한다. 해석 실패·비로그인이면 종전(홈 카드) 유지. */
+  const [personalRegions, setPersonalRegions] = useState<HomeMiniRegion[] | null>(null);
 
   // 로그인 시 관심지역으로 중심 이동 (세션/알림 기반) — 실패·비로그인 시 조용히 유지
   useEffect(() => {
@@ -87,7 +92,33 @@ export function HomeMiniMap({
         const d = (await pRes.json().catch(() => null)) as {
           primaryRegion?: string | null;
           regions?: string[] | null;
+          preferences?: {
+            regions?: Array<{ name: string; regionId: string | null; gu: string }>;
+          } | null;
+          regionChips?: Record<
+            string,
+            { price: string; delta: string; tone: "up" | "down" | "flat" }
+          > | null;
         } | null;
+        if (cancelled) return;
+        // 관심지역 마커 — 시세 칩이 실재하는 지역만(가격 없는 말풍선 금지)
+        const resolved = d?.preferences?.regions ?? [];
+        const chips = d?.regionChips ?? null;
+        if (chips && resolved.length > 0) {
+          const mine: HomeMiniRegion[] = [];
+          for (const r of resolved) {
+            const chip = r.regionId ? chips[r.regionId] : undefined;
+            if (!chip) continue;
+            mine.push({
+              id: r.regionId!,
+              name: r.gu || r.name,
+              price: chip.price,
+              delta: chip.delta,
+              tone: chip.tone,
+            });
+          }
+          if (mine.length > 0) setPersonalRegions(mine);
+        }
         const label =
           d?.primaryRegion?.trim() ||
           (d?.regions && d.regions.length > 0 ? d.regions[0] : null);
@@ -109,9 +140,10 @@ export function HomeMiniMap({
     };
   }, []);
 
+  const shownRegions = personalRegions ?? regions;
   const markers = useMemo<MapMarkerData[]>(() => {
     const out: MapMarkerData[] = [];
-    for (const r of regions) {
+    for (const r of shownRegions) {
       const d = findDistrict(r.id) ?? findDistrict(r.name);
       if (!d) continue;
       out.push({
@@ -128,10 +160,13 @@ export function HomeMiniMap({
       });
     }
     return out;
-  }, [regions, focus.selectedId]);
+  }, [shownRegions, focus.selectedId]);
 
-  // 관심지역 포커스가 없으면 마커 전체를 프레이밍
-  const fitToMarkers = focus.selectedId === null && markers.length > 1;
+  /* 관심지역 마커로 교체된 경우: 한 곳만 확대(level 11)하면 나머지 관심지역
+     마커가 화면 밖이다 — 전체를 프레이밍한다(캡처의 "중앙 빈 지도" 완화). */
+  const fitToMarkers =
+    (personalRegions !== null && markers.length > 1) ||
+    (focus.selectedId === null && markers.length > 1);
 
   /* 모바일4 — 폴백 카드가 화면 1/4 을 차지하는 빈 공간이었다(캡처).
      폴백이 확정되면 컨테이너를 절반 높이로 줄이고, "준비 중" 안내 대신
