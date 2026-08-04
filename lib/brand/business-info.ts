@@ -42,7 +42,7 @@ const ENV = {
     "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
     "MAIL_ORDER_SALES_NUMBER",
   ],
-  phone: ["NEXT_PUBLIC_COMPANY_PHONE", "COMPANY_PHONE"],
+  /* phone 은 의도적으로 여기 없다 — 아래 PHONE 상수가 단일 출처다. 이유는 그 주석 참고. */
   supportEmail: ["NEXT_PUBLIC_SUPPORT_EMAIL", "SUPPORT_EMAIL"],
   privacyEmail: ["NEXT_PUBLIC_PRIVACY_EMAIL", "PRIVACY_EMAIL"],
   depositBank: ["NEXT_PUBLIC_DEPOSIT_BANK", "DEPOSIT_BANK"],
@@ -68,6 +68,22 @@ function readEnv(keys: readonly string[], fallback: string): string {
   return fallback;
 }
 
+/**
+ * 고객 문의 유선번호 — **env 오버라이드 없이 코드가 단일 출처다.**
+ *
+ * T안심콜 안심번호(2026-08-03 발급). 개인 휴대폰 번호를 푸터·약관에 그대로 노출하면
+ * 스팸·사칭의 표적이 되므로 안심번호로 대체한다. 전자상거래 고지·토스 심사가 요구하는
+ * "유선번호" 요건은 050 안심번호로도 충족된다.
+ *
+ * env(NEXT_PUBLIC_COMPANY_PHONE)를 일부러 읽지 않는 이유: 이 값은 환경별로 달라질 이유가
+ * 없는데(운영·프리뷰·로컬 모두 같은 사업자 번호다) env 를 우선하게 두면, 배포 환경에 남아
+ * 있던 옛 값이 코드를 조용히 덮어쓴다. 실제로 그 일이 있었다 — 코드는 안심번호로 바꿨는데
+ * Vercel 에 남아 있던 NEXT_PUBLIC_COMPANY_PHONE(개인 휴대폰)이 이겨서 개인번호가 계속
+ * 공개되고 있었고, 배포 로그만 봐서는 원인이 보이지 않았다. 개인정보가 걸린 값은
+ * "어디선가 덮어쓸 수 있는" 구조로 두지 않는다. 번호를 바꿀 일이 생기면 이 상수를 고친다.
+ */
+const PHONE = "050-6460-1203";
+
 /** Vercel env 미설정 시 기본값 — 구 사이트(nuguzip.com)가 공개 게시한 실값. env가 있으면 env 우선. */
 const DEFAULTS = {
   legalName: "우리동네이야기",
@@ -75,11 +91,7 @@ const DEFAULTS = {
   registrationNumber: "378-06-02465",
   address: "안양시 동안구 관양동 1588",
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
-  /* T안심콜 안심번호(2026-08-03 발급). 개인 휴대폰 번호를 푸터에 그대로 노출하면
-     스팸·사칭의 표적이 되므로 안심번호로 대체한다. 전자상거래 고지·토스 심사가
-     요구하는 "유선번호" 요건은 050 안심번호로도 충족된다.
-     env(NEXT_PUBLIC_COMPANY_PHONE) 가 설정돼 있으면 그 값이 우선. */
-  phone: "050-6460-1203",
+  phone: PHONE,
   supportEmail: "nuguzip@naver.com",
   privacyEmail: "nuguzip@naver.com",
   /* 토스뱅크 계좌개설 확인증(2026-06-15 개설, 소유자 제공)에서 옮긴 실값.
@@ -105,7 +117,8 @@ export function getBusinessInfo(): BusinessInfo {
     registrationNumber: readEnv(ENV.registrationNumber, DEFAULTS.registrationNumber),
     address: readEnv(ENV.address, DEFAULTS.address),
     mailOrderSalesNumber: readEnv(ENV.mailOrderSalesNumber, DEFAULTS.mailOrderSalesNumber),
-    phone: readEnv(ENV.phone, DEFAULTS.phone),
+    // env 를 읽지 않는다(위 PHONE 주석 참고) — 배포 환경의 옛 값이 덮어쓰지 못하게.
+    phone: PHONE,
     supportEmail: readEnv(ENV.supportEmail, DEFAULTS.supportEmail),
     privacyEmail: readEnv(ENV.privacyEmail, DEFAULTS.privacyEmail),
     depositBank: readEnv(ENV.depositBank, DEFAULTS.depositBank),

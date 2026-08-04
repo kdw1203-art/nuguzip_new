@@ -52,7 +52,9 @@ const businessDisclosureKeys = [
   "NEXT_PUBLIC_COMPANY_REPRESENTATIVE",
   "NEXT_PUBLIC_COMPANY_REGISTRATION_NUMBER",
   "NEXT_PUBLIC_COMPANY_ADDRESS",
-  "NEXT_PUBLIC_COMPANY_PHONE",
+  /* NEXT_PUBLIC_COMPANY_PHONE 은 일부러 뺐다 — 유선번호는 이제 코드
+     (lib/brand/business-info.ts 의 PHONE)가 단일 출처이고 env 를 읽지 않는다.
+     여기 남겨두면 "설정하라"고 권하는 셈이라, 설정해봐야 무시되는 값을 안내하게 된다. */
   "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
 ];
 
