@@ -22,6 +22,12 @@ export const SITEMAP_SECTION_SLUGS = [
   "glossary",
   "temperature",
   "digest",
+  /* 뉴스 요약 — 우리가 쓴 요약·핵심·FAQ 가 붙은 기사만 싣는다.
+     원문 본문을 그대로 싣던 시절에는 색인도 사이트맵도 막는 게 맞았지만,
+     상세 페이지가 우리 글로 바뀌면서(2026-08-04) 그 전제가 사라졌다.
+     싣는 기준은 상세 페이지의 색인 조건과 같다 — build-sitemap.ts 의
+     loadNewsEntries() 주석 참고. */
+  "news",
 ] as const;
 
 export type SitemapSectionSlug = (typeof SITEMAP_SECTION_SLUGS)[number];

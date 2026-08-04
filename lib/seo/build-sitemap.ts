@@ -347,6 +347,72 @@ export async function loadReportEntries(): Promise<MetadataRoute.Sitemap> {
   });
 }
 
+/**
+ * 뉴스 요약 페이지 — 우리가 쓴 요약이 붙은 기사만.
+ *
+ * ── 왜 이 유형이 이제야 생겼나 ────────────────────────────────────────
+ * 2026-07-27 판단은 옳았다. 그때 board_posts 공개 글은 전부 자동수집이었고
+ * 118개 매체 기사의 **본문을 그대로** 싣고 있었다. 원문과 중복되는 얇은 페이지를
+ * 사이트맵에 실을 이유가 없어서 허브(/town/news)만 STATIC_ROUTES 에 두었다.
+ *
+ * 2026-08-04 그 전제가 바뀌었다. 상세 페이지가 원문 본문 대신 우리가 새로 쓴
+ * 요약 5문장·핵심 4개·FAQ 2개를 싣고 원문은 링크로 보낸다(app/town/news/[id]).
+ * 중복도 전재도 아니게 됐으니 색인을 열었고, 사이트맵도 같이 연다.
+ *
+ * ── 싣는 기준 ─────────────────────────────────────────────────────────
+ * 상세 페이지의 색인 조건과 **같은 값**을 쓴다(요약 120자 이상 + 핵심 3개 이상).
+ * 조건이 갈리면 사이트맵이 noindex 페이지를 광고하게 된다 — 크롤러에게
+ * "보지 말라고 막아 둔 걸 봐 달라"고 보내는 셈이다. 기준을 바꿀 일이 생기면
+ * app/town/news/[id]/page.tsx 의 hasOwnNewsContent() 와 **함께** 고친다.
+ *
+ * lastModified 는 원문 발행 시각을 쓴다 — 추측이 아니라 확인된 시각이다.
+ *
+ * 조회 실패는 section() 이 던진다. 빈 배열로 바꾸지 않는다(이 파일 상단 주석).
+ */
+export async function loadNewsEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("뉴스 요약", async () => {
+    const { getReadOnlySupabase } = await import("@/lib/newui/supabase-read");
+    const supabase = getReadOnlySupabase();
+    /* 못 읽는 것과 없는 것을 섞지 않는다 — 클라이언트가 없으면 던져서
+       자식 라우트가 503 을 내게 한다(빈 <urlset> 200 은 거짓말이다). */
+    if (!supabase) {
+      throw new Error("Supabase 조회 클라이언트를 만들 수 없습니다");
+    }
+
+    const { data, error } = await supabase
+      .from("news_articles")
+      .select("board_post_id, summary, published_at, created_at, raw_meta")
+      .not("board_post_id", "is", null)
+      .order("collected_date", { ascending: false })
+      .limit(2000);
+    if (error) throw new Error(error.message);
+
+    return (data ?? [])
+      .filter((r) => {
+        const kp = (r.raw_meta as { seo?: { key_points?: unknown } } | null)?.seo
+          ?.key_points;
+        return (
+          Array.isArray(kp) &&
+          kp.length >= 3 &&
+          typeof r.summary === "string" &&
+          r.summary.trim().length >= 120
+        );
+      })
+      .map((r) => {
+        const slug = (r.raw_meta as { seo?: { slug?: string } } | null)?.seo?.slug;
+        const path = slug
+          ? `/town/news/${encodeURIComponent(slug)}-${r.board_post_id}`
+          : `/town/news/${r.board_post_id}`;
+        const at = new Date(String(r.published_at ?? r.created_at));
+        return {
+          url: `${BASE_URL}${path}`,
+          ...(Number.isNaN(at.getTime()) ? {} : { lastModified: at }),
+          priority: 0.6,
+        };
+      });
+  });
+}
+
 /** N14 — 용어 개별 페이지. 코드 상수에서 나오므로 DB 조회도, 실패 경로도 없다.
     lastModified 는 적지 않는다 — 정적 라우트와 같은 이유로, 배포 시각을 런타임에
     알 수 없으니 추측한 날짜를 적느니 생략하는 편이 정확하다. */

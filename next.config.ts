@@ -37,8 +37,29 @@ function supabaseImagePatterns() {
   ];
 }
 
+/**
+ * SEO/GEO — 메타데이터를 <head> 안에 넣어야 하는 크롤러 목록.
+ *
+ * Next 15.2+ 는 generateMetadata 결과를 스트리밍으로 내보내고 react-dom 이
+ * 클라이언트에서 <head> 로 끌어올린다. JS 를 실행하는 브라우저·구글봇은 문제없지만
+ * **JS 를 실행하지 않는 크롤러는 </head> 바깥의 메타를 그냥 놓친다.**
+ * 이 정규식에 걸린 UA 만 blocking 렌더로 전환돼 <head> 안에 메타가 들어간다.
+ *
+ * 실측(2026-08-04, Next 15.5.20 재현 앱에 같은 설정을 넣고 UA 별로 응답 비교):
+ *   미설정  GPTBot·ClaudeBot·PerplexityBot·CCBot → description·canonical 이 body 로 나감
+ *   설정 후 동일 UA → 전부 <head> 안. 일반 브라우저는 그대로 스트리밍(TTFB 유지).
+ *
+ * ⚠️ 이 값을 지정하면 Next 기본 목록을 **덮어쓴다.** 아래 앞부분은 Next 기본값
+ *    그대로이고(네이버 Yeti·Bingbot·카카오/페북 공유 스크래퍼 포함), 뒤에
+ *    AI 검색 크롤러와 Googlebot·Daumoa 를 더한 것이다. 기본값을 지우지 말 것.
+ */
+const HTML_LIMITED_BOTS =
+  /[\w-]+-Google|Google-[\w-]+|Googlebot|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|NaverBot|Daumoa|GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|CCBot|Amazonbot|Bytespider|meta-externalagent|cohere-ai|Diffbot|Timpibot|omgili/i;
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // 위 주석 참고 — AI 검색 크롤러에 <head> 메타데이터를 보장한다.
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   /**
    * 페이지 하나를 prerender 하는 데 허용하는 시간(초). 기본값은 60이다.
    *

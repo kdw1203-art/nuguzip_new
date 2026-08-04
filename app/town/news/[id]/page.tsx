@@ -16,6 +16,13 @@ import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { getAdViewer } from "@/lib/ads/viewer";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
+import {
+  readNewsMeta,
+  extractUuid,
+  canonicalNewsUrl,
+  splitSummary,
+  buildNewsJsonLd,
+} from "@/lib/news-seo";
 
 /* 뉴스 상세 — posts 실데이터(id 조회) 연동. 없는 글은 notFound() (사실 우선: 목업 기사 금지). */
 
@@ -67,23 +74,23 @@ function paragraphs(body: string): string[] {
 
 /* ---------- SEO ----------
  *
- * 이 페이지에는 generateMetadata 가 아예 없었다. 453장이 전부 레이아웃 기본
- * 제목으로 나가고 있었다는 뜻이다 — 검색 결과에서 서로 구분되지 않는다.
+ * 2026-07-27 에 이 페이지를 noindex 로 막았다. 사유는 정당했다: 공개 글 453건이
+ * 전부 자동수집이고 118개 매체 기사의 **본문을 그대로** 싣고 있었다. 원문과
+ * 중복되는 얇은 페이지 453장을 색인시키면 사이트 품질 신호가 깎인다.
  *
- * robots 를 noindex, follow 로 두는 이유(실측 2026-07-27):
- *   board_posts 의 공개 글 453건은 **전부** is_automated = true 이고 453건
- *   모두 source_url 을 갖고 있다. 118개 외부 매체에서 모아 온 기사 요약본이고
- *   본문 평균 길이는 533자다. 우리가 쓴 글이 한 건도 없다. 이걸 색인시키면
- *   원문과 중복되는 얇은 페이지 453장을 사이트에 붙이는 셈이라, 사이트 전체
- *   품질 신호에 마이너스다. 이미 같은 판단으로 사이트맵에도 넣지 않았다
- *   (lib/seo/build-sitemap.ts 에는 허브 /town/news 만 있다) — 그 결정을
- *   메타에도 똑같이 적어 두는 것뿐이다.
+ * 2026-08-04, 그 전제를 바꿨다. 이제 이 페이지는 원문 본문을 싣지 않는다:
+ *   - 우리가 새로 쓴 요약 5문장 (seo.summary)
+ *   - 핵심 문장 4개 (seo.key_points)
+ *   - 자주 묻는 질문 2개 (seo.faq)
+ *   - 선정 사유 한두 문장 (ai_reason)
+ * 원문은 링크로 보낸다. 즉 중복 콘텐츠도, 전재 저작권 문제도 성립하지 않는다.
  *
- *   follow 는 남긴다. 링크는 따라가되 이 URL 자체를 색인하지 말라는 뜻이라,
- *   허브·지역 링크로 가는 신호는 그대로 흐른다.
- *
- *   나중에 이웃이 직접 쓴 글이 쌓이면 is_automated 로 갈라서 사람이 쓴 글만
- *   index: true 로 돌리면 된다. 지금은 그 글이 0건이라 가를 것이 없다.
+ * 그래서 색인은 **우리 글이 실제로 있는 글에 한해서만** 연다.
+ *   isAutomated && 우리 요약 있음  → index (이 글은 우리가 쓴 요약본이다)
+ *   isAutomated && 우리 요약 없음  → noindex (원문 본문에 기대는 옛 글 — 종전 유지)
+ *   !isAutomated                   → index (이웃이 직접 쓴 글)
+ * 판정은 lib/news-seo.ts 의 readNewsMeta().hasOwnContent 한 곳에만 둔다.
+ * 사이트맵(lib/seo/build-sitemap.ts loadNewsEntries)도 같은 조건을 쓴다.
  *
  * 조회 실패는 여기서도 던진다 — 본문과 같은 이유다. 못 읽은 것을 "없는 글"로
  * 바꿔 적지 않는다. */
@@ -93,7 +100,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const post = await getTownPost(id);
+  const uuid = extractUuid(id) ?? id;
+  const post = await getTownPost(uuid);
   if (!post) {
     return {
       title: "글을 찾을 수 없습니다 | 누구집",
@@ -101,6 +109,10 @@ export async function generateMetadata({
       robots: { index: false, follow: false },
     };
   }
+
+  const { seo, geo, summary, hasOwnContent } = readNewsMeta(post.automationMeta);
+  const isAutomated = Boolean(post.isAutomated);
+  const indexable = !isAutomated || hasOwnContent;
 
   const where = [post.city, post.district].filter(Boolean).join(" ").trim();
   const source = post.sourceName?.trim();
@@ -111,11 +123,60 @@ export async function generateMetadata({
   ].filter(Boolean);
   const body = post.body.replace(/\s+/g, " ").trim();
 
+  const description =
+    seo.meta_description ??
+    summary?.slice(0, 155) ??
+    (body ? body.slice(0, 150) : `${descParts.join(" · ")} 부동산 소식.`);
+
+  const canonical = canonicalNewsUrl(seo.slug, uuid);
+  const ogImage = newsImageUrl(post);
+  /* 지역 엔티티까지 키워드에 합친다 — "반포동 보유세" 처럼 동 단위 질의는
+     region 컬럼(시도 1개)만으로는 잡히지 않는다(GEO). */
+  const keywords = [
+    ...(seo.keywords ?? []),
+    ...(geo.places ?? []),
+    ...(geo.landmarks ?? []),
+  ].filter(Boolean);
+
   return {
-    title: `${post.title} | 누구집`,
-    description: body ? body.slice(0, 150) : `${descParts.join(" · ")} 부동산 소식.`,
-    robots: { index: false, follow: true },
+    title: `${seo.seo_title ?? post.title} | 누구집`,
+    description,
+    ...(keywords.length ? { keywords } : {}),
+    alternates: { canonical },
+    robots: { index: indexable, follow: true },
+    openGraph: {
+      type: "article",
+      title: seo.seo_title ?? post.title,
+      description,
+      url: canonical,
+      siteName: "누구집",
+      locale: "ko_KR",
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
+      ...(post.sourcePublishedAt ? { publishedTime: post.sourcePublishedAt } : {}),
+      ...(post.category ? { section: post.category } : {}),
+      ...(keywords.length ? { tags: keywords } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo.seo_title ?? post.title,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   };
+}
+
+/* 구조화 데이터 — JSON.stringify 결과라 XSS 위험은 없고, '<' 만 이스케이프해
+   </script> 탈출을 막는다. 본문에 렌더하므로 스트리밍 메타데이터와 무관하게
+   HTML 소스에 그대로 남는다. */
+function JsonLd({ data }: { data: Record<string, unknown> }) {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(data).replace(/</g, "\\u003c"),
+      }}
+    />
+  );
 }
 
 /* ---------- 페이지 ---------- */
@@ -126,6 +187,7 @@ export default async function TownNewsDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const uuid = extractUuid(id) ?? id;
 
   let similarPosts: { id: string | null; title: string; meta: string }[] = [];
   /* 웹19 — 목록 정렬(readTownPosts 와 동일) 기준 이웃 글. 목록으로 돌아가지
@@ -136,11 +198,27 @@ export default async function TownNewsDetailPage({
      try/catch 로 실패를 null 로 바꾸던 자리다 — 아래 notFound() 와 만나서
      조회 실패가 404 로 나갔다. 이제 실패는 던지고 5xx 가 된다(사유는
      lib/newui/board-posts.ts 의 getBoardPost 주석). */
-  const post: Post | null = await getTownPost(id);
+  const post: Post | null = await getTownPost(uuid);
   // 사실 우선: 존재하지 않는 글은 목업 기사 대신 404
   if (!post) notFound();
   // 신고 누적/처리로 숨김된 글(posts.visibility="hidden")도 상세 노출 차단(#7)
-  if (await isPostHidden(id).catch(() => false)) notFound();
+  if (await isPostHidden(uuid).catch(() => false)) notFound();
+
+  /* 우리 요약·핵심·FAQ·지역. Post 가 automationMeta 를 그대로 넘겨주므로
+     추가 조회가 없다. 값이 없으면 hasOwnContent 가 false 가 되고, 아래는
+     예전 그대로 원문 본문을 그리며 색인도 열지 않는다(옛 글 호환). */
+  const { seo, geo, summary, aiReason, hasOwnContent } = readNewsMeta(
+    post.automationMeta,
+  );
+  const renderOwnSummary = Boolean(post.isAutomated) && hasOwnContent;
+
+  /* slug 주소 통합은 리다이렉트가 아니라 <link rel="canonical"> 로 한다.
+     처음에는 구 UUID 주소를 permanentRedirect(308) 로 보내려 했는데, 이 라우트는
+     force-dynamic 이라 레이아웃 셸이 먼저 흘러나간 뒤에 페이지가 resolve 된다.
+     그 시점의 redirect 는 HTTP 상태로 나가지 못하고 NEXT_REDIRECT 가 응답 **본문**에
+     실려 200 으로 나갔다(실측: 브라우저·GPTBot UA 모두 200, 기사 본문 없음).
+     canonical 은 같은 통합을 하면서 이 문제가 없다 — 두 주소 모두 정상 렌더되고
+     색인은 slug 주소로 모인다. 사이트맵도 slug 주소만 싣는다. */
 
   try {
     /* 관련글은 제목·분류·출처·시각만 쓴다 — 본문·automation_meta 는 안 읽는다.
@@ -176,15 +254,23 @@ export default async function TownNewsDetailPage({
 
   const isAutomated = Boolean(post.isAutomated);
   const byline = isAutomated
-    ? `자동 수집 · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
+    ? `${renderOwnSummary ? "누구집 요약" : "자동 수집"} · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
     : `${post.authorLabel} · ${fullDateTime(post.createdAt)}`;
   const title = post.title;
   const category = post.category;
   const region = [post.city, post.district].filter(Boolean).join(" ") || "전국";
-  const bodyParas = paragraphs(post.body);
-  const summary = bodyParas
-    .slice(0, 3)
-    .map((s, i) => `${["①", "②", "③"][i] ?? "·"} ${s.slice(0, 55)}`);
+  /* 우리 요약이 있으면 원문 본문을 싣지 않는다(이 파일 상단 SEO 주석 참고). */
+  const bodyParas = renderOwnSummary ? [] : paragraphs(post.body);
+  const summaryParas = summary ? splitSummary(summary) : [];
+  const keyPoints = seo.key_points ?? [];
+  const faq = seo.faq ?? [];
+  /* 예전 3줄 요약은 원문 앞 3문단을 55자로 자른 것이었다 — 문장이 중간에 끊겨
+     그 자체로는 뜻이 통하지 않았다. 우리 요약이 있으면 새로 쓴 핵심 문장을 쓴다. */
+  const legacySummary = renderOwnSummary
+    ? []
+    : paragraphs(post.body)
+        .slice(0, 3)
+        .map((t, i) => `${["①", "②", "③"][i] ?? "·"} ${t.slice(0, 55)}`);
   const activeComments = post.comments.filter((c) => !c.deletedAt).slice(0, 8);
   const commentCount = post.commentCount;
   const likeCount = post.likeCount;
@@ -193,6 +279,10 @@ export default async function TownNewsDetailPage({
   // 광고 자리표시자를 실제 슬롯으로 바꾸면서 필요해진 값. 이 라우트는 force-dynamic 이라
   // 세션을 읽어도 캐시가 깨지지 않는다.
   const viewer = await getAdViewer();
+
+  const jsonLd = renderOwnSummary
+    ? buildNewsJsonLd(seo, uuid, geo, post.sourceName, post.sourceUrl)
+    : null;
 
   /* 고도화 26 — 연관 단지가 실제 단지로 리졸브되면 시세 페이지로 잇는다.
      리졸버는 동명 타지역 오연결을 막는 보수적 매칭이라, null 이면 지금처럼
@@ -205,6 +295,9 @@ export default async function TownNewsDetailPage({
 
   return (
     <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
+      {/* 구조화 데이터 — 우리 글로 렌더할 때만. 화면에 없는 내용을 마크업하지 않는다. */}
+      {jsonLd && <JsonLd data={jsonLd} />}
+
       {/* 저장·공유는 실제로 동작하는 버튼이다(POST /api/bookmarks · Web Share).
           자세한 경위는 PostInteractions.tsx 주석 참고. */}
       <PostActions postId={post.id} title={title} saveCount={saveCount} />
@@ -240,14 +333,25 @@ export default async function TownNewsDetailPage({
               {title}
             </h1>
 
-            <AIPanel title="3줄 요약">
-              {summary.map((s, i) => (
-                <span key={i}>
-                  {i > 0 && <br />}
-                  {s}
-                </span>
-              ))}
-            </AIPanel>
+            {keyPoints.length > 0 ? (
+              <AIPanel title="핵심 요약">
+                {keyPoints.map((t, i) => (
+                  <span key={i}>
+                    {i > 0 && <br />}
+                    {`· ${t}`}
+                  </span>
+                ))}
+              </AIPanel>
+            ) : legacySummary.length > 0 ? (
+              <AIPanel title="3줄 요약">
+                {legacySummary.map((t, i) => (
+                  <span key={i}>
+                    {i > 0 && <br />}
+                    {t}
+                  </span>
+                ))}
+              </AIPanel>
+            ) : null}
 
             {/* 원문 사진 — 자동수집 automation_meta 의 og:image 를 그대로 쓴다.
                 예전에는 사진이 있든 없든 "원문 기사 사진 — 지역 (출처: …)" 이라고
@@ -266,16 +370,33 @@ export default async function TownNewsDetailPage({
                 />
                 {post.sourceName && (
                   <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[rgba(255,255,255,.85)] px-3 py-[5px] text-[11px] text-text-3">
-                    출처: {post.sourceName}
+                    사진: {post.sourceName}
                   </span>
                 )}
               </div>
             ) : null}
 
             <div className="flex flex-col gap-4 text-sm leading-[1.85] text-text-1">
-              {bodyParas.map((p, i) => (
-                <p key={i}>{p}</p>
+              {/* 우리가 쓴 요약 — 원문 문장을 옮기지 않고 핵심 사실(수치·기관·
+                  시점·영향)만 재구성한 글이다. */}
+              {summaryParas.map((t, i) => (
+                <p key={`sum-${i}`}>{t}</p>
               ))}
+
+              {/* 우리 요약이 없는 옛 글은 종전대로 원문 본문을 그린다(noindex 유지). */}
+              {bodyParas.map((t, i) => (
+                <p key={`body-${i}`}>{t}</p>
+              ))}
+
+              {/* 이 기사를 고른 이유 — 원문에는 없는 우리 판단이다. */}
+              {renderOwnSummary && aiReason ? (
+                <div className="rounded-[14px] border border-line bg-bg px-4 py-3">
+                  <div className="mb-1 text-[11px] font-extrabold text-text-3">
+                    누구집이 이 기사를 고른 이유
+                  </div>
+                  <p className="text-[13px] leading-[1.7] text-text-1">{aiReason}</p>
+                </div>
+              ) : null}
               {/* 웹12 — 원문 링크 시인성 강화: 본문 끝 괄호 문장에서 카드형
                   CTA 로. 요약본 사이트의 예의는 원문으로 잘 보내는 것이다.
                   출처명·호스트를 함께 보여 어디로 가는지 누르기 전에 알 수
@@ -300,7 +421,7 @@ export default async function TownNewsDetailPage({
                           원문 출처{post.sourceName ? ` · ${post.sourceName}` : ""}
                         </span>
                         <span className="block text-[13px] font-extrabold text-primary">
-                          원문 전체 보기 ↗
+                          기사 전문 읽기 ↗
                         </span>
                       </span>
                       {host && (
@@ -311,12 +432,70 @@ export default async function TownNewsDetailPage({
                 })()}
             </div>
 
+            {/* 자주 묻는 질문 — 사용자가 실제로 검색할 법한 자연어 질문.
+                FAQPage 구조화 데이터와 화면 내용이 같아야 유효하므로 함께 낸다. */}
+            {faq.length > 0 ? (
+              <section
+                aria-label="자주 묻는 질문"
+                className="flex flex-col gap-3 border-t border-[#f0f3f8] pt-4"
+              >
+                <h2 className="text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
+                <dl className="flex flex-col gap-3">
+                  {faq.map((f, i) => (
+                    <div key={i} className="flex flex-col gap-1">
+                      <dt className="text-[13px] font-extrabold text-ink">Q. {f.q}</dt>
+                      <dd className="text-[13px] leading-[1.7] text-text-1">{f.a}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
+
+            {/* 관련 지역 — geo.places 를 지역 시세 페이지로 잇는다. 해석되는
+                시군구만 링크하고 나머지는 텍스트 칩으로 남긴다(죽은 링크 금지). */}
+            {geo.places && geo.places.length > 0 ? (
+              <nav
+                aria-label="관련 지역"
+                className="flex flex-wrap items-center gap-1.5 border-t border-[#f0f3f8] pt-3.5"
+              >
+                <span className="text-[11px] font-bold text-text-3">관련 지역</span>
+                {geo.places.map((place) => {
+                  /* "서울 서초구 반포동" → 전체 → 앞 2단어 → 시군구 순으로 시도. */
+                  const words = place.split(/\s+/).filter(Boolean);
+                  const rid =
+                    regionIdForName(place) ??
+                    (words.length >= 2
+                      ? regionIdForName(words.slice(0, 2).join(" "))
+                      : null) ??
+                    (words.length >= 2 ? regionIdForName(words[1]) : null);
+                  return rid ? (
+                    <Link
+                      key={place}
+                      href={`/region/${rid}`}
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+                    >
+                      {place}
+                    </Link>
+                  ) : (
+                    <span
+                      key={place}
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] text-text-2"
+                    >
+                      {place}
+                    </span>
+                  );
+                })}
+              </nav>
+            ) : null}
+
             <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3.5">
               <div className="flex flex-wrap items-center gap-1 text-[11px] text-text-3">
                 <span>
-                  {isAutomated
-                    ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 ·"
-                    : `${region} 이웃이 남긴 글 ·`}
+                  {renderOwnSummary
+                    ? `누구집이 원문을 요약·정리한 글입니다 · 원문 저작권은 ${post.sourceName || "원 매체"}에 있음 ·`
+                    : isAutomated
+                      ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 ·"
+                      : `${region} 이웃이 남긴 글 ·`}
                 </span>
                 {/* 신고 연결(#81) — POST /api/moderation/content-report */}
                 <ReportButton postId={post.id} />
