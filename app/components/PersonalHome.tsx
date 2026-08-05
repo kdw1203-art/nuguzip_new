@@ -667,8 +667,18 @@ export function PersonalHome() {
           {/* 이어서 보기 — 최근 본 단지.
               예전엔 여기에도 지도(HomeMiniMap)가 있었는데 아래 벤토의 지도와 겹쳐
               한 화면에 지도가 두 개 보였다. 중복을 걷어내고 실데이터 패널로 교체. */}
+          {/* 높이를 손으로 박지 않는다 — 예전엔 `h-[240px]` 이었는데 내용이
+              그 안에 안 들어갔다. 실측(1280 폭, 420px 열): 드래프트 카드 + 목록
+              3줄 + 관심지역 칩까지 오면 331px 이 필요해서 마지막 줄이 카드
+              아래 테두리 **밖으로 72px** 삐져나왔다(.card 에 overflow 가 없어
+              잘리지 않고 그대로 넘친다). 칩이 없어도 280px 이라 21px 넘쳤고,
+              드래프트 없이 4줄이어도 칩이 붙으면 309px 로 넘쳤다. 즉 지금까지
+              안 넘친 경우는 "드래프트 없음 + 칩 없음" 한 가지뿐이었다.
+              `min-h-full` 이면 왼쪽 히어로와 같은 높이로 맞되(격자가 늘려 준다)
+              내용이 더 필요하면 행이 같이 늘어난다 — 높이를 짐작하지 않고
+              레이아웃이 재게 두는 쪽이다. */}
           <div className="rise-in-1">
-            <HomeResumePanel regions={regionChips} className="h-[240px]" />
+            <HomeResumePanel regions={regionChips} className="min-h-full" />
           </div>
         </div>
 

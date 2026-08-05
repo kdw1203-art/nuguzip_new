@@ -50,7 +50,12 @@ export function HomeResumePanel({
     setDraft(readNoteDraftSummary());
   }, []);
 
-  // 드래프트 카드가 한 줄 차지하므로 목록을 한 개 줄여 높이를 지킨다
+  /* 드래프트 카드가 한 줄 차지하므로 목록을 한 개 줄인다.
+     예전 주석은 이걸 "높이를 지킨다"고 적어 놨는데 사실이 아니었다 — 부르는
+     쪽이 높이를 240px 로 박아 놓은 상태에서 줄 수를 하나 줄여도 331px 이
+     필요했고 마지막 줄이 카드 밖으로 나갔다. 높이는 이제 격자가 재고(부르는
+     쪽 주석), 여기서 줄 수를 제한하는 이유는 다른 것이다: 왼쪽 히어로보다
+     패널이 훨씬 길어지면 오른쪽 열만 늘어나 줄이 어긋나 보인다. */
   const list = items.slice(0, draft ? 3 : 4);
   const chips = (regions ?? []).slice(0, 3);
   const draftAgo = draft ? savedAgo(draft.savedAt) : null;
