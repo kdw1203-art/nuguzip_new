@@ -146,7 +146,15 @@ export function Modal({
         aria-label={label}
         tabIndex={-1}
         style={{ maxWidth }}
-        className="modal-in max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-5 outline-none sm:rounded-3xl"
+        /* 아래 여백에 safe-area 를 더한다(standalone 점검 337). 모바일에서 이
+           패널은 `items-end` 라 화면 **바닥에 붙는 시트**다. 브라우저 탭 모드는
+           하단 툴바가 홈 인디케이터를 덮어 인셋이 0 이라 p-5 로도 멀쩡해 보이지만,
+           홈 화면에 추가해 열면 바닥 34px 이 인디케이터 자리가 된다. 실측:
+           베타 안내 모달의 버튼 두 개가 아래 여백 20px 로 끝나 14px 이 인디케이터
+           안에 들어가 있었다(390x844, inset-bottom 34).
+           sm 이상은 `items-center` 로 가운데 뜨므로 인셋을 더할 이유가 없다 —
+           더하면 안 붙은 쪽에 빈 띠만 생긴다. */
+        className="modal-in max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] outline-none sm:rounded-3xl sm:pb-5"
       >
         {children}
       </div>

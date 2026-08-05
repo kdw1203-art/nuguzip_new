@@ -7,6 +7,7 @@ import { AdSenseLoader } from "./components/AdSenseLoader";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { TrafficRecorder } from "./components/TrafficRecorder";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { ThemeColorMeta } from "./components/ThemeColorMeta";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { SoftSignupProvider } from "./components/soft-signup/SoftSignupProvider";
 import { UpgradePaywallProvider } from "./components/UpgradePaywallProvider";
@@ -150,6 +151,12 @@ export default function RootLayout({
           본문 바로가기
         </a>
         <ThemeProvider>
+          {/* 시스템 바 색을 지금 테마에 맞춘다 — 다크로 켜면 화면만 어두워지고
+              상태바는 밝은 회색으로 남아 있었다. useTheme 이 아니라 html 의
+              class 를 직접 보는 방식이라(이유는 컴포넌트 주석) ThemeProvider
+              안팎 어디에 둬도 동작한다. 굳이 여기 두는 건 테마와 같이 읽히게
+              하려는 것뿐이다. */}
+          <ThemeColorMeta />
           <ToastProvider>
             {/* 저장·로그인처럼 "성사"가 중요한 순간의 1.5초 장면. 루트에 두는
                 이유는 연출 도중 화면이 바뀌어도 끊기지 않게 하기 위해서다. */}

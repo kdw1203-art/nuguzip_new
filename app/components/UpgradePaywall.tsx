@@ -38,7 +38,10 @@ export function UpgradePaywall({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      /* 모바일에서는 바닥에 붙는 시트라 아래 여백이 홈 인디케이터와 겹칠 수
+         있다(standalone 점검 337) — 16px 과 인셋 중 큰 쪽을 쓴다. 가운데로
+         바뀌는 sm 이상은 원래대로. SoftSignupProvider 가 쓰는 방식과 같다. */
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-4 pb-[max(env(safe-area-inset-bottom,0px),16px)] sm:items-center sm:pb-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="upgrade-paywall-title"

@@ -895,7 +895,12 @@ export function ComplexInfoPanel({
           )}
         </div>
 
-        <div className="border-t border-[rgba(16,28,54,.06)] bg-surface px-5 py-3">
+        {/* 이 줄은 시트 맨 아래에 고정으로 붙는 CTA 바다. 모바일에서 시트가
+            화면 바닥에 닿으므로 아래 여백에 safe-area 를 더한다(점검 337).
+            안 더하면 standalone 에서 12px 만 남아 버튼 아래쪽이 홈 인디케이터
+            자리에 들어간다 — 탭 모드에서는 인셋이 0이라 아무 일도 안 일어나
+            조용히 지나가는 종류의 버그다. sm 이상은 시트가 가운데 뜬다. */}
+        <div className="border-t border-[rgba(16,28,54,.06)] bg-surface px-5 py-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] sm:pb-3">
           <Link
             href={detailHref}
             className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
