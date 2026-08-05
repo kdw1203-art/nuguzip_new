@@ -51,6 +51,9 @@ const PAGE_SIZE = 1000;
 export type ComplexSitemapEntry = {
   /** /complex/[id] 의 id — base64url(region_name + SEP + complex_name) */
   id: string;
+  /** URL 생성을 complex-store 의 canonical 함수에 위임하기 위한 원본 키 */
+  regionName: string;
+  complexName: string;
   /** 이 단지 데이터가 마지막으로 들어온 시각. 값이 없으면 undefined(주장하지 않음) */
   lastModified?: Date;
   /** 매매 실거래 건수 — 상한 초과 시 무엇을 남길지 정하는 기준 */
@@ -121,6 +124,8 @@ export async function listComplexSitemapEntries(
       const at = row.last_data_at ? new Date(row.last_data_at) : null;
       out.push({
         id: encodeComplexId(row.region_name, row.complex_name),
+        regionName: row.region_name,
+        complexName: row.complex_name,
         lastModified: at && !Number.isNaN(at.getTime()) ? at : undefined,
         tradeCount: Number(row.trade_count ?? 0),
       });

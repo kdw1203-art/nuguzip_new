@@ -37,6 +37,26 @@ function dbError(where: string, err: { message?: string } | null): Error {
 
 export interface ComplexRow {
   id: string;
+  /**
+   * SEO 표준(canonical) URL 에 쓸 id — **항상 name-id**(base64url(region+SEP+name)).
+   *
+   * `id` 와 왜 나누는가:
+   *   kapt 코드가 매칭되면 `id` 는 `kapt.A10027336` 으로 바뀐다(동명 충돌 회피).
+   *   그런데 사이트맵은 (region_name, complex_name) 만 가진 집계 MV
+   *   (market_agg.complex_sitemap_mv) 에서 만들어지므로 kapt 코드를 알 수 없고,
+   *   `encodeComplexId(region, name)` 형태만 낼 수 있다.
+   *   그래서 canonical 이 `id` 를 따라가면 사이트맵이 제출한 URL 과 페이지가
+   *   선언하는 표준 URL 이 갈라진다 → 구글은 제출 URL 을 "대체 페이지"로 처리하고
+   *   색인하지 않는다.
+   *
+   *   2026-08-05 실측(scripts/audit-sitemap-canonical.mjs, 표본 120):
+   *   36건(30%) 불일치 = 약 7,700개 URL 이 색인 경쟁에서 자동 탈락.
+   *
+   * 그래서 canonical 은 **사이트맵이 만들 수 있는 형태**로 고정한다.
+   * kapt 진입(`/complex/kapt.X`)도 이 값을 canonical 로 선언하므로 신호가 합쳐진다.
+   * `id` 는 내부 조회·링크용으로 그대로 두어 기존 동작을 바꾸지 않는다.
+   */
+  canonical_id: string;
   kapt_code: string | null;
   name: string;
   city: string;
@@ -90,6 +110,25 @@ export function encodeKaptComplexId(kaptCode: string): string {
   return `${KAPT_COMPLEX_ID_PREFIX}${code}`;
 }
 
+/**
+ * 단지 허브의 표준(canonical) 경로.
+ *
+ * ★ 사이트맵(lib/seo/build-sitemap.ts)과 canonical(generateMetadata)이 **반드시**
+ *   같은 문자열을 내야 한다. 그래서 양쪽 다 이 함수만 부른다.
+ *   여기서 갈라지면 색인이 통째로 막힌다(canonical_id 주석의 실측 참고).
+ *
+ * 사이트맵은 (region_name, complex_name) 만 아는 상태에서 URL 을 만들어야 하므로
+ * `complexCanonicalPathFromNames` 쪽을 쓴다. 두 함수의 출력은 정의상 동일하다.
+ */
+export function complexCanonicalPath(row: Pick<ComplexRow, "canonical_id">): string {
+  return `/complex/${encodeURIComponent(row.canonical_id)}`;
+}
+
+/** 사이트맵용 — 행(region_name, complex_name)만으로 같은 경로를 만든다. */
+export function complexCanonicalPathFromNames(region: string, name: string): string {
+  return `/complex/${encodeURIComponent(encodeComplexId(region, name))}`;
+}
+
 export type ParsedComplexId =
   | { kind: "kapt"; kaptCode: string }
   | { kind: "name"; region: string; name: string };
@@ -104,6 +143,33 @@ export function parseComplexId(id: string): ParsedComplexId | null {
   }
   const dec = decodeComplexId(raw);
   return dec ? { kind: "name", region: dec.region, name: dec.name } : null;
+}
+
+/**
+ * 조회 함수용 decode — kapt id 를 받으면 **로그를 남기고** null 을 준다.
+ *
+ * 왜 필요한가 (2026-08-05 실제 버그):
+ *   getComplexById 는 kapt 매칭이 되면 row.id 를 `kapt.A10027336` 으로 바꾼다.
+ *   그런데 getTransactionHistory·getAreaBands·getRegionRelative 는 전부
+ *   `decodeComplexId(id)` 로 시작하고, 그 함수는 kapt id 에 null 을 준다.
+ *   호출부는 그 null 을 "없음"으로 해석해 **빈 배열**을 돌려줬다.
+ *   결과: 실거래가 160~212건 있는 단지가 "실거래 없음 · 시세 준비 중"으로 렌더됐다
+ *   (표본 12개 중 6개). 아무 데도 오류가 남지 않아 반년 가까이 안 보였다.
+ *
+ *   "없다"와 "못 읽었다"를 구분하는 이 저장소의 원칙이 여기서만 새고 있었다.
+ *   호출자는 canonical_id(항상 name-id)를 넘겨야 한다.
+ */
+function decodeComplexIdForQuery(
+  id: string,
+  where: string,
+): { region: string; name: string } | null {
+  if (id.startsWith(KAPT_COMPLEX_ID_PREFIX)) {
+    logger.warn(
+      `[complex] ${where}: kapt id(${id})로는 조회할 수 없습니다 — 빈 결과는 "거래 없음"이 아니라 "잘못된 키"입니다. ComplexRow.canonical_id 를 넘기세요.`,
+    );
+    return null;
+  }
+  return decodeComplexId(id);
 }
 
 /** id → { region, name } (실패 시 null). kapt id 는 null — getComplexById 가 분기한다. */
@@ -138,6 +204,9 @@ function toComplexRow(
   const { city, district } = splitRegion(region);
   return {
     id: encodeComplexId(region, name),
+    /* canonical 은 여기서 한 번만 정해지고 이후 누구도 덮어쓰지 않는다.
+       (id 는 kapt 매칭 시 바뀐다 — 위 canonical_id 주석 참고) */
+    canonical_id: encodeComplexId(region, name),
     kapt_code: null,
     name,
     city,
@@ -593,7 +662,7 @@ export interface RegionRelative {
  * 면적 정규화(㎡당)로 프리미엄/디스카운트를 공정 비교. 데이터 없으면 null.
  */
 export async function getRegionRelative(complexId: string): Promise<RegionRelative | null> {
-  const dec = decodeComplexId(complexId);
+  const dec = decodeComplexIdForQuery(complexId, "getRegionRelative");
   if (!dec) return null;
   const sb = getServiceSupabase();
   if (!sb) return null;
@@ -668,7 +737,7 @@ export interface AreaBandRow {
  * market_transactions(디코드 name+region) 최근 400건에서 집계. 실거래 없으면 빈 배열.
  */
 export async function getAreaBands(complexId: string): Promise<AreaBandRow[]> {
-  const dec = decodeComplexId(complexId);
+  const dec = decodeComplexIdForQuery(complexId, "getAreaBands");
   if (!dec) return [];
   const sb = getServiceSupabase();
   if (!sb) return [];
@@ -736,7 +805,7 @@ export async function getTransactionHistory(
   complexId: string,
   limit = 12,
 ): Promise<ComplexTransactionRow[]> {
-  const dec = decodeComplexId(complexId);
+  const dec = decodeComplexIdForQuery(complexId, "getTransactionHistory");
   if (!dec) return [];
   const sb = getServiceSupabase();
   if (!sb) return [];
