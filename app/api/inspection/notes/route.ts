@@ -5,8 +5,29 @@ import { createNote, listNotes, listPublicNotes } from "@/lib/inspection/store-d
 import { awardPoints } from "@/lib/points/ledger";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
+import { looksLikeEmail } from "@/lib/privacy/mask-email";
 
 import { dbUnavailable } from "@/lib/api/db-unavailable";
+
+/**
+ * 공개 목록에 실을 작성자 표시명.
+ *
+ * 예전 코드는 `rest.authorLabel?.trim() || <마스킹>` 이었다. 바로 위 줄에서
+ * authorEmail 필드를 빼면서 "개인정보 보호: 작성자 이메일 제거"라고 적어 놨지만,
+ * **author_label 에 이메일이 들어 있으면 그대로 통과했다** — 아래 POST 가
+ * `session.user.name ?? session.user.email` 을 넣고 있었으니 이름 없는 계정은
+ * 매번 그랬다. 한쪽을 가려 놓고 옆 컬럼으로 같은 값이 나가면 아무것도 가린 게 아니다.
+ *
+ * POST 쪽은 이제 이메일을 아예 저장하지 않지만(저장 직전에 막는 게 화면에서
+ * 가리는 것보다 낫다), **그 전에 저장된 행은 여전히 남아 있다.** 여기서 한 번 더 건다.
+ * 이메일 모양이면 라벨이 없을 때와 똑같은 "○○** 이웃" 로 떨어뜨린다 — 다른 모양으로
+ * 마스킹하면 이 화면에서만 표기가 달라진다.
+ */
+function publicAuthorLabel(label: string | null | undefined, email: string): string {
+  const raw = (label ?? "").trim();
+  if (raw && !looksLikeEmail(raw)) return raw;
+  return `${email.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`;
+}
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -51,9 +72,7 @@ export async function GET(req: Request) {
     // 개인정보 보호: 공개 목록 응답에서 작성자 이메일 제거 — 표시는 authorLabel 사용
     const sanitized = items.map(({ authorEmail: _authorEmail, ...rest }) => ({
       ...rest,
-      authorLabel:
-        rest.authorLabel?.trim() ||
-        `${_authorEmail.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`,
+      authorLabel: publicAuthorLabel(rest.authorLabel, _authorEmail),
     }));
     return NextResponse.json({ items: sanitized });
   }
@@ -91,7 +110,11 @@ export async function POST(req: Request) {
   try {
     const note = await createNote({
       authorEmail: session.user.email,
-      authorLabel: session.user.name ?? session.user.email,
+      /* 이름이 없으면 이메일을 넣고 있었다. author_label 은 공개 목록에 그대로
+         실리는 값이라(위 publicAuthorLabel), 이름 없는 계정은 노트를 쓸 때마다
+         자기 이메일을 공개했다. 이름이 없으면 **아무것도 넣지 않는다** — 표시는
+         이미 있는 "○○** 이웃" 폴백이 맡는다. 안 들어가면 샐 값이 없다. */
+      authorLabel: session.user.name?.trim() || undefined,
       title,
       region,
       aptName: body.aptName ? String(body.aptName) : undefined,

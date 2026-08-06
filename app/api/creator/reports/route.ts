@@ -3,8 +3,14 @@
  *
  * POST /api/creator/reports — 내 노트/분석을 유료 리포트로 판매 등록 (인증 크리에이터 전용)
  *   · 제목·설명·가격(포인트)을 받아 reports 테이블에 저장 (author_id=이메일, is_premium=true).
- *   · 기존 컬럼만 사용 — 스키마 변경 없음.
  * GET  /api/creator/reports — 내 리포트 판매 실적 + 정산 예정 집계 (대시보드 새로고침용)
+ *
+ * ── 정정 (2026-08-06) ────────────────────────────────────────────────────
+ * 여기 "기존 컬럼만 사용 — 스키마 변경 없음"이라고 적혀 있었다. 사실이 아니었다.
+ * `reports.author_id` 는 **uuid**(FK→expert_profiles.id)였는데 이메일을 넣고 있어
+ * 이 POST 는 매번 22P02 로 500 이었다. 스키마를 안 바꾼 게 아니라 **바꿔야 하는데
+ * 안 바꾼** 것이었고, 그 사실이 주석 한 줄에 가려 오래 안 보였다.
+ * 20260806154632 에서 uuid → text 로 바꿨다. 낡은 설명은 낡은 코드보다 위험하다.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
@@ -56,7 +62,9 @@ export async function POST(req: NextRequest) {
     price?: unknown;
     category?: unknown;
     region?: unknown;
-    sourceNoteId?: unknown;
+    /* `sourceNoteId?: unknown` 이 여기 있었지만 **아무도 보내지 않고 아무도 읽지
+       않았다.** 타입만 남은 약속은 "노트를 골라 리포트로 만들 수 있다"고 읽힌다.
+       실제로 그 기능을 만들 때 다시 적는다. */
   };
 
   const title = String(body.title ?? "").trim();
@@ -83,7 +91,10 @@ export async function POST(req: NextRequest) {
       price,
       isPremium: true,
       authorEmail: email,
-      authorLabel: session?.user?.name ?? email,
+      /* 이름 없으면 안 넘긴다 — createReport 가 이메일로 마스킹한다("kdw***").
+         예전엔 이메일을 그대로 넘겼고, 저장소가 막아 주긴 했지만 공개 컬럼에
+         쓰는 값을 저장소가 알아서 가려 주길 기대하는 건 근거가 약하다. */
+      authorLabel: session?.user?.name?.trim() || undefined,
     });
     return NextResponse.json({ ok: true, report }, { status: 201 });
   } catch (e) {

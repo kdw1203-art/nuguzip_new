@@ -5,6 +5,7 @@ import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { deleteNote, getNote, updateNote } from "@/lib/inspection/store-db";
 import { awardPoints } from "@/lib/points/ledger";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
+import { looksLikeEmail } from "@/lib/privacy/mask-email";
 
 /* getNote/updateNote 는 조회에 실패하면 던진다(예전엔 null 을 돌려줬다).
    null 을 그대로 받아 404 "없음"을 내보내면, 저장돼 있는 노트를 지워졌다고
@@ -33,14 +34,19 @@ export async function GET(
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
   if (isOwner) return NextResponse.json({ note });
-  // 개인정보 보호: 타인 공개 노트 응답에서 작성자 이메일 제거
+  /* 개인정보 보호: 타인 공개 노트 응답에서 작성자 이메일 제거.
+     authorEmail 필드만 떼는 것으로는 부족했다 — authorLabel 에 이메일이 들어
+     있으면 그대로 나갔고, POST 가 이름 없는 계정에 이메일을 넣고 있었다.
+     쓰는 쪽은 막았지만 그 전에 저장된 행이 남아 있어 여기서도 한 번 더 건다. */
   const { authorEmail: _authorEmail, ...rest } = note;
+  const label = (rest.authorLabel ?? "").trim();
   return NextResponse.json({
     note: {
       ...rest,
       authorLabel:
-        rest.authorLabel?.trim() ||
-        `${_authorEmail.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`,
+        label && !looksLikeEmail(label)
+          ? label
+          : `${_authorEmail.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`,
     },
   });
 }

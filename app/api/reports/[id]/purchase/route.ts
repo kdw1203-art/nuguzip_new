@@ -47,8 +47,13 @@ export async function GET(
     return NextResponse.json({ access: true, reason: "free" });
   }
 
-  // 본인 리포트
-  if (report.authorId === session.user.email) {
+  /* 본인 리포트 — 소유자는 이메일로 판정한다(author_id). 저장은 소문자지만
+     세션 이메일은 대문자가 섞여 올 수 있어, 그대로 비교하면 자기 리포트인데
+     결제창을 보게 된다. */
+  if (
+    report.authorId &&
+    report.authorId.toLowerCase() === session.user.email.trim().toLowerCase()
+  ) {
     return NextResponse.json({ access: true, reason: "owner" });
   }
 

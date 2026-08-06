@@ -45,7 +45,9 @@ export async function POST(req: Request) {
           : {};
     const row = await createSession({
       authorEmail: session.user.email,
-      authorLabel: session.user.name ?? session.user.email,
+      /* inspection_sessions.author_label 도 공개 컬럼이다. 이름이 없다고
+         이메일을 넣으면 표시명 자리에 주소가 그대로 남는다 — 넣지 않는다. */
+      authorLabel: session.user.name?.trim() || undefined,
       region,
       aptName: body.aptName ? String(body.aptName) : undefined,
       complexId: body.complexId ? String(body.complexId) : undefined,

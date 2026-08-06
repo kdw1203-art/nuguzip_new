@@ -1,4 +1,5 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { normEmailOrNull, safePublicAuthorLabel } from "@/lib/privacy/mask-email";
 
 export type UserReport = {
   id: string;
@@ -26,6 +27,25 @@ export type UserReport = {
 };
 
 const memory: UserReport[] = [];
+
+/**
+ * 공개 응답용 형태 — 작성자 이메일을 뗀다.
+ *
+ * `author_id` 는 이제 **이메일**이다(20260806154632). mapRow 는 그 값을
+ * `authorId` 와 `authorEmail` 두 자리에 담으므로, UserReport 를 그대로
+ * `NextResponse.json` 에 실으면 크리에이터 이메일이 로그인도 안 한 사람에게
+ * 나간다. DB 쪽은 컬럼 GRANT 로 막았지만 이 앱은 service-role 로 읽으므로
+ * 그 방어가 여기까지 오지 않는다 — 응답 경계에서 한 번 더 뗀다.
+ *
+ * `authorLabel` 은 남긴다. 그건 공개하려고 만든 값이고, 저장 시점에
+ * safePublicAuthorLabel 로 이미 마스킹돼 들어간다.
+ */
+export type PublicReport = Omit<UserReport, "authorId" | "authorEmail">;
+
+export function toPublicReport(r: UserReport): PublicReport {
+  const { authorId: _authorId, authorEmail: _authorEmail, ...rest } = r;
+  return rest;
+}
 
 /** 리포트 목록. **조회 실패는 던진다** — 빈 배열로 접지 않는다.
  *
@@ -74,11 +94,18 @@ export async function createReport(input: {
 }): Promise<UserReport> {
   const sb = getServiceSupabase();
   const now = new Date().toISOString();
+  /* 소유자 판정을 이메일로 하는 표라 저장할 때 한 번 낮춰 둔다. 안 낮추면
+     "KDW1203@gmail.com" 으로 등록한 리포트를 "kdw1203@gmail.com" 세션이
+     못 고친다 — 소유자인데 404 를 본다. */
+  const ownerEmail = normEmailOrNull(input.authorEmail);
+  /* author_label 은 anon 이 읽는 공개 컬럼이다. 호출부가 이름 대신 이메일을
+     넘기는 경로가 실제로 있어서(session.user.name ?? email) 여기서 막는다. */
+  const label = safePublicAuthorLabel(input.authorLabel, ownerEmail);
   const rec: UserReport = {
     id: `mem-${Date.now().toString(36)}`,
-    authorId: input.authorEmail ?? null,
-    authorEmail: input.authorEmail ?? null,
-    authorLabel: input.authorLabel ?? null,
+    authorId: ownerEmail,
+    authorEmail: ownerEmail,
+    authorLabel: label,
     title: input.title,
     subtitle: input.subtitle ?? null,
     category: input.category,
@@ -116,7 +143,10 @@ export async function createReport(input: {
       preview_content: input.previewContent ?? null,
       pages: input.pages ?? 10,
       is_premium: input.isPremium ?? false,
-      author_id: input.authorEmail ?? null,
+      author_id: ownerEmail,
+      /* 예전엔 author_label 을 아예 안 넣었다. 호출부가 넘긴 값을 받아 놓고
+         버려서, 등록에 성공해도 공개 목록의 작성자 자리는 늘 비어 있었다. */
+      author_label: label,
     })
     .select()
     .single();
@@ -139,10 +169,11 @@ export async function updateReport(id: string, input: Partial<{
   isPremium: boolean;
 }>, ownerEmail?: string): Promise<UserReport | null> {
   const sb = getServiceSupabase();
+  const owner = normEmailOrNull(ownerEmail);
   if (!sb) {
     const r = memory.find((x) => x.id === id);
     if (!r) return null;
-    if (ownerEmail && r.authorId && r.authorId !== ownerEmail) return null;
+    if (owner && r.authorId !== owner) return null;
     Object.assign(r, input, { updatedAt: new Date().toISOString() });
     return r;
   }
@@ -158,7 +189,7 @@ export async function updateReport(id: string, input: Partial<{
   if (input.pages !== undefined) patch.pages = input.pages;
   if (input.isPremium !== undefined) patch.is_premium = input.isPremium;
   let q = sb.from("reports").update(patch).eq("id", id);
-  if (ownerEmail) q = q.eq("author_id", ownerEmail);
+  if (owner) q = q.eq("author_id", owner);
   const { data, error } = await q.select().maybeSingle();
   if (error || !data) return null;
   return mapRow(data);
@@ -166,13 +197,14 @@ export async function updateReport(id: string, input: Partial<{
 
 export async function deleteReport(id: string, ownerEmail?: string): Promise<void> {
   const sb = getServiceSupabase();
+  const owner = normEmailOrNull(ownerEmail);
   if (!sb) {
-    const i = memory.findIndex((x) => x.id === id && (!ownerEmail || x.authorId === ownerEmail));
+    const i = memory.findIndex((x) => x.id === id && (!owner || x.authorId === owner));
     if (i >= 0) memory.splice(i, 1);
     return;
   }
   let q = sb.from("reports").delete().eq("id", id);
-  if (ownerEmail) q = q.eq("author_id", ownerEmail);
+  if (owner) q = q.eq("author_id", owner);
   await q;
 }
 

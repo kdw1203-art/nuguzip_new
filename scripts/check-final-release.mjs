@@ -344,6 +344,12 @@ runGate("데이터", "public.*_source 뷰 실조회 권한", "check-source-views
 /* 카탈로그의 envKey 가 실제 process.env 참조와 어긋나면 상태 배지와 소유자
    안내 문서가 동시에 거짓이 된다 — 2026-07-28 에 세 개가 그랬다. */
 runGate("데이터", "envKey 이름 ↔ 실제 참조 일치", "check-env-key-names.mjs");
+/* 같은 결함이 세 번 났다: `authorLabel: session.user.name ?? session.user.email`.
+   author_label 은 anon 이 읽는 공개 컬럼이고 화면은 라벨이 있으면 그대로 찍는다.
+   이름을 설정한 적 없는 계정은 글을 쓸 때마다 자기 이메일을 공개했다.
+   이 게이트는 고치기 전 HEAD 소스에 대 봐서 4곳을 실제로 잡는 걸 확인하고 넣었다
+   (`--selftest` 로도 재현). 고쳐 놓고 0건이 나오는 건 아무것도 증명하지 않는다. */
+runGate("데이터", "공개 표시명에 원본 이메일 폴백 금지", "check-public-label-email.mjs");
 
 /* ── 모바일28 — 모바일 압축 토큰 ↔ md+ 원복 짝 검사 ──────────────
    2026-08-03 모바일 2차 축소는 :root 토큰(모바일 기본값)을 줄이고
