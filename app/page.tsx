@@ -115,14 +115,14 @@ function MarketStrip({
   baseRate,
   loanRate,
   notesToday,
-  activeNow,
+  activityToday,
   compact,
 }: {
   saleIndexSeoul: string;
   baseRate: string;
   loanRate: string;
   notesToday: string;
-  activeNow: string;
+  activityToday: string;
   compact?: boolean;
 }) {
   if (compact) {
@@ -169,8 +169,8 @@ function MarketStrip({
           accent: true,
         },
         {
-          label: "접속 중",
-          value: <>{activeNow}</>,
+          label: "오늘 활동",
+          value: <>{activityToday}</>,
           accent: true,
         },
       ].map((s, i) => (
@@ -229,8 +229,10 @@ export default async function Home() {
   const loanRate = data.loanRate ?? "—";
   const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
   const baseRate = baseRateData?.label ?? "—";
-  const activeNow =
-    data.activeNow !== null ? `${data.activeNow}명` : "—";
+  /* "명"이 아니라 "건". 이 숫자는 사람 수가 아니라 오늘 일어난 행위 이벤트
+     수다 — 사람으로 셀 수 없는 이유는 lib/newui/home-data.ts 의
+     loadActivityToday() 주석에 실측과 함께 적어 두었다. */
+  const activityToday = data.activityToday !== null ? `${data.activityToday}건` : "—";
 
   // 홈 미니지도 마커용 시세 지역 (좌표 매핑은 HomeMiniMap 내부) — 실데이터만 마커로 표시
   const mapRegions = regions.slice(0, 4);
@@ -313,7 +315,7 @@ export default async function Home() {
               baseRate={baseRate}
               loanRate={loanRate}
               notesToday={notesToday}
-              activeNow={activeNow}
+              activityToday={activityToday}
             />
           </div>
 
@@ -500,7 +502,7 @@ export default async function Home() {
                 baseRate={baseRate}
                 loanRate={loanRate}
                 notesToday={notesToday}
-                activeNow={activeNow}
+                activityToday={activityToday}
               />
             </div>
 

@@ -7,7 +7,7 @@
  * - `market_price_indices`      → 매매가격지수(REB 서울, 직접 select — 읽기 전용)
  * - `getRegionSeries()`         → 매매가격지수 폴백 (market_region_series, lib/market/store)
  * - `market_region_monthly`     → AI 시장 브리핑 (최근 월 등락 집계, 1시간 캐시)
- * - `platform_activity_events`  → 접속 중(최근 15분 distinct 세션/유저)
+ * - `platform_activity_events`  → 오늘 활동 건수(KST 오늘, 계측 이벤트 제외)
  * - `listPublicNotes()`         → 공개 임장노트 (inspection_notes, lib/inspection/store-db)
  * - `getMortgageRates()`        → 주담대 금리 (금융감독원 finlife, lib/finance/mortgage-rates)
  *
@@ -84,12 +84,15 @@ export interface NewHomeData {
   saleIndexSeoul: string | null;
   /** 은행권 변동금리 하단 (예: "3.62%") — 실공시 아닐 때 null */
   loanRate: string | null;
-  /** 오늘 등록된 공개 임장노트 수 — 공개 노트 데이터가 없으면 null */
+  /** KST 오늘 등록된 공개 임장노트 수(정확 카운트) — 조회 실패 시 null */
   notesToday: number | null;
   /** AI 시장 브리핑 — market_region_monthly 최근 등락 기반, 생성 불가 시 null */
   briefing: HomeBriefing | null;
-  /** 최근 15분 접속(활동) distinct 세션/유저 수 — 집계 실패 시 null */
-  activeNow: number | null;
+  /**
+   * KST 오늘의 행위 이벤트 수(계측 전용 이벤트 제외) — 조회 실패 시 null.
+   * **사람 수가 아니다.** 왜 사람으로 세지 않는지는 loadActivityToday() 주석 참고.
+   */
+  activityToday: number | null;
   regions: HomeRegionCard[];
   notes: HomeNoteItem[];
   posts: HomePostItem[];
@@ -115,7 +118,7 @@ export const EMPTY_NEW_HOME_DATA: NewHomeData = {
   loanRate: null,
   notesToday: null,
   briefing: null,
-  activeNow: null,
+  activityToday: null,
   regions: [],
   notes: [],
   posts: [],
@@ -177,9 +180,20 @@ function noteScoreOf(note: InspectionNote): number {
   return Math.round(inspectionAverageScore(note.scores) * 20);
 }
 
-function isToday(iso: string): boolean {
-  const t = Date.parse(iso);
-  return Number.isFinite(t) && new Date(t).toDateString() === new Date().toDateString();
+/* KST(UTC+9 고정·서머타임 없음) 오늘 0시의 UTC 시각.
+   서버는 UTC 로 돌기 때문에 "오늘"을 서버 로컬로 재면 한국 시간 0~9시 사이에
+   등록된 것이 전부 "어제"로 빠진다(lib/points/store-db.ts 의 kstDateString 과
+   같은 이유). 홈의 "오늘" 두 숫자는 이 경계를 쓴다. */
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+function kstStartOfTodayIso(now: Date = new Date()): string {
+  const kstNow = new Date(now.getTime() + KST_OFFSET_MS);
+  const kstMidnight = Date.UTC(
+    kstNow.getUTCFullYear(),
+    kstNow.getUTCMonth(),
+    kstNow.getUTCDate(),
+  );
+  return new Date(kstMidnight - KST_OFFSET_MS).toISOString();
 }
 
 /** "3.62~5.13%" → 3.62 */
@@ -290,33 +304,68 @@ const loadBriefingCached = unstable_cache(
   { revalidate: 3600 },
 );
 
-/* ---------- 접속 중 (platform_activity_events 최근 15분) ---------- */
+/* ---------- 오늘 활동 (platform_activity_events, KST 오늘) ---------- */
 
-async function loadActiveNow(): Promise<number | null> {
+/**
+ * 예전 이름은 `loadActiveNow` 였고 화면에는 **"접속 중 N명"** 으로 나갔다.
+ * 그 숫자는 사람 수가 아니었다.
+ *
+ * ── 무엇이 틀렸나 (2026-08-06 실측) ────────────────────────────────────
+ * 그 함수는 최근 15분 행을 최대 5,000건 끌어와 `metadata.session_id ?? user_email
+ * ?? row.id` 로 중복을 제거했다. 그런데 표 전체 8,261행 중 `session_id` 가 있는
+ * 행은 **4건**뿐이고, 이메일이 있는 행은 1,620건이다. 나머지는 전부 `row.id` 로
+ * 떨어진다 — **행 하나가 사람 한 명**이 된다는 뜻이다. 게다가 최근 14일 이벤트의
+ * 사실상 전량이 `viewport_group_change`(창 크기 그룹이 바뀔 때 쏘는 계측)이라,
+ * 15분 최대 버킷은 **이벤트 153건 / 전부 비로그인 / 로그인 이메일 최대 2개**였다.
+ * 즉 화면에는 "접속 중 153명"이 뜰 수 있었고, 실제 사람은 한두 명이었다.
+ *
+ * ── 왜 "사람 수"로 고치지 않았나 ──────────────────────────────────────
+ * 사람을 세려면 브라우저마다 붙는 방문자 키가 있어야 한다. 이 저장소는 그 키
+ * (`page_view_events.session_key`·`visitor_key`)를 **분석 동의 뒤에서만** 수집하기로
+ * 이미 정해 두었다(app/api/metrics/pageview/route.ts). 그리고 그 표는 오늘 기준
+ * 총 55행 — 최근 15분 0행이다. 동의 없이 새 식별자를 심으면 그 결정을 뒤집는 것이고,
+ * 동의된 표만 쓰면 이번엔 100배 과소집계가 된다. **정직하게 셀 수 없는 숫자는
+ * 세는 척하지 않는다** — 그래서 라벨을 데이터에 맞췄다.
+ *
+ * 지금 세는 것: KST 오늘 0시 이후의 **행위 이벤트 수**. 계측 전용 이벤트는 뺀다
+ * (창 크기 변화는 사용자가 한 일이 아니다). `head: true` 정확 카운트라 행을
+ * 한 건도 가져오지 않는다 — 5,000행 상한(최적화 6)도 함께 사라진다.
+ */
+
+/** 사람의 행위가 아니라 계측 자체인 이벤트 — "활동"에서 뺀다. */
+const INSTRUMENTATION_EVENTS = ["viewport_group_change"] as const;
+
+async function loadActivityToday(): Promise<number | null> {
   // 이벤트 테이블은 select 정책이 없어 Service Role 로만 조회 가능
   const sb = getServiceSupabase();
   if (!sb) return null;
-  const sinceIso = new Date(Date.now() - 15 * 60_000).toISOString();
-  const { data, error } = await sb
+  const { count, error } = await sb
     .from("platform_activity_events")
-    .select("id, user_email, metadata")
-    .gte("created_at", sinceIso)
-    .limit(5000);
-  if (error || !Array.isArray(data)) return null;
-  const uniq = new Set<string>();
-  for (const row of data as Array<{
-    id: string;
-    user_email?: string | null;
-    metadata?: Record<string, unknown> | null;
-  }>) {
-    const meta = row.metadata ?? {};
-    const session =
-      (typeof meta.session_id === "string" && meta.session_id) ||
-      (typeof meta.sessionId === "string" && meta.sessionId) ||
-      null;
-    uniq.add(session || row.user_email?.trim().toLowerCase() || row.id);
-  }
-  return uniq.size;
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", kstStartOfTodayIso())
+    .not("event_name", "in", `(${INSTRUMENTATION_EVENTS.join(",")})`);
+  /* 조회 실패는 0건이 아니다 — null 로 올려 화면이 "—"로 말하게 한다. */
+  if (error || typeof count !== "number") return null;
+  return count;
+}
+
+/* ---------- 오늘 새 노트 (inspection_notes, KST 오늘) ---------- */
+
+/**
+ * 예전에는 `listPublicNotes(10)` 가 돌려준 10건 중 오늘 것을 세었다. 홈 목록에
+ * 3건만 쓰려고 10건만 받아오는 조회였으므로, **오늘 11건이 올라와도 화면은 영원히
+ * 10건**이었다. 목록용 조회와 카운트용 조회는 다른 질문이다.
+ */
+async function countPublicNotesToday(): Promise<number | null> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return null;
+  const { count, error } = await sb
+    .from("inspection_notes")
+    .select("id", { count: "exact", head: true })
+    .eq("is_public", true)
+    .gte("created_at", kstStartOfTodayIso());
+  if (error || typeof count !== "number") return null;
+  return count;
 }
 
 /* ---------- 지역 시세 카드 (스냅샷 → 카드) ---------- */
@@ -380,8 +429,16 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
   /* 실패를 삼키되 "삼켰다는 사실"은 남긴다. 아래 failed 로 화면까지 전달된다. */
   let regionsFailed = false;
   let notesFailed = false;
-  const [home, snapshots, publicNotes, saleIndexSeoul, mortgage, briefing, activeNow] =
-    await Promise.all([
+  const [
+    home,
+    snapshots,
+    publicNotes,
+    saleIndexSeoul,
+    mortgage,
+    briefing,
+    activityToday,
+    notesToday,
+  ] = await Promise.all([
       loadHomeData().catch((err): HomeData => {
         logger.error("[loadNewHomeData] loadHomeData 실패", err);
         return EMPTY_HOME_DATA;
@@ -401,7 +458,8 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
       loadSaleIndexSeoul().catch(() => null),
       getMortgageRates().catch(() => null),
       loadBriefingCached().catch((): HomeBriefing | null => null),
-      loadActiveNow().catch((): number | null => null),
+      loadActivityToday().catch((): number | null => null),
+      countPublicNotesToday().catch((): number | null => null),
     ]);
 
   // ── 지역 시세 카드 (market_region_price 스냅샷) ──
@@ -422,9 +480,9 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
       hot: score >= 75,
     };
   });
-  const notesToday = publicNotes.length
-    ? publicNotes.filter((n) => isToday(n.createdAt)).length
-    : null;
+  /* notesToday 는 위 Promise.all 의 countPublicNotesToday() 결과다 — 목록(3건)과
+     같은 조회에서 세지 않는다. 목록은 10건만 받아오므로 오늘 11건째부터는
+     영원히 10건으로 굳었다. */
 
   // ── 동네이야기 인기글 (posts 테이블, loadHomeData 정렬 그대로) ──
   const posts: HomePostItem[] = home.posts.slice(0, 3).map((p, i) => ({
@@ -459,7 +517,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     loanRate,
     notesToday,
     briefing,
-    activeNow,
+    activityToday,
     regions,
     notes,
     posts,
