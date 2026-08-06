@@ -381,7 +381,10 @@ export function PersonalHome() {
           <div className="text-[11px] text-[#9aa6b8]">
             {dateLabel} · 오늘도 좋은 임장 되세요
           </div>
-          <div className="text-[19px] font-extrabold leading-[1.4] text-white">
+          {/* 로그인 홈의 첫 섹션 제목. 정적 히어로가 숨는 상태라 이 화면에는
+              보이는 제목이 여기밖에 없다 — h2 로 두어 문서에 층이 생기게 한다
+              (h1 은 page.tsx <main> 첫 자식의 sr-only 하나). */}
+          <h2 className="text-[19px] font-extrabold leading-[1.4] text-white">
             {name}님,{" "}
             {data.noteCount !== null && data.noteCount > 0 ? (
               <>
@@ -391,7 +394,7 @@ export function PersonalHome() {
             ) : (
               <span className="text-[#7ea2ff]">첫 노트를 시작해 볼까요?</span>
             )}
-          </div>
+          </h2>
           <p className="text-[11px] leading-[1.5] text-[#9aa6b8]">{HOME_HERO_SUBLINE}</p>
           <div className="flex gap-2">
             <Link
@@ -638,11 +641,12 @@ export function PersonalHome() {
             <div className="text-[13px] text-[#9aa6b8]">
               {dateLabel} · 오늘도 좋은 임장 되세요
             </div>
-            <div className="text-[26px] font-extrabold leading-[1.35] text-white">
+            {/* 데스크톱 로그인 홈의 첫 섹션 제목 (모바일 h2 와 같은 이유) */}
+            <h2 className="text-[26px] font-extrabold leading-[1.35] text-white">
               {name}님, {heroTitle}
               <br />
               <span className="text-[#7ea2ff]">{heroSub}</span>
-            </div>
+            </h2>
             <p className="text-[12px] text-[#9aa6b8]">{HOME_HERO_SUBLINE}</p>
             <div className="flex flex-wrap gap-2.5">
               <Link

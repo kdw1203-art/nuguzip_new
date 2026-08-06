@@ -84,6 +84,14 @@ export interface NewHomeData {
   saleIndexSeoul: string | null;
   /** 은행권 변동금리 하단 (예: "3.62%") — 실공시 아닐 때 null */
   loanRate: string | null;
+  /**
+   * 위 loanRate 의 **공시 기준시점**(금감원 finlife `dcls_month`, "YYYY-MM").
+   * loanRate 가 null 이면 같이 null 이다 — 값 없는 기준시점은 남기지 않는다.
+   * 화면에서 이 값이 필요한 이유: 옆 칸의 기준금리는 일 단위(예: 2026.08.04)로
+   * 갱신되는데 이 금리는 월 공시라, 둘을 나란히 놓으면 두 달 차이 나는 숫자가
+   * 같은 시점처럼 읽힌다.
+   */
+  loanRateAsOf: string | null;
   /** KST 오늘 등록된 공개 임장노트 수(정확 카운트) — 조회 실패 시 null */
   notesToday: number | null;
   /** AI 시장 브리핑 — market_region_monthly 최근 등락 기반, 생성 불가 시 null */
@@ -116,6 +124,7 @@ export interface NewHomeData {
 export const EMPTY_NEW_HOME_DATA: NewHomeData = {
   saleIndexSeoul: null,
   loanRate: null,
+  loanRateAsOf: null,
   notesToday: null,
   briefing: null,
   activityToday: null,
@@ -505,16 +514,23 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
 
   // ── 대출금리 (finlife 공시 — 실공시일 때만) ──
   let loanRate: string | null = null;
+  /* 기준시점은 값이 실제로 만들어졌을 때만 붙인다 — 금리는 못 구했는데
+     "2026.06 기준"만 남으면 없는 숫자에 날짜를 다는 꼴이 된다. */
+  let loanRateAsOf: string | null = null;
   if (mortgage && mortgage.live) {
     const mins = mortgage.rates
       .map((r) => parseRateMin(r.variable))
       .filter((v): v is number => v !== null);
-    if (mins.length > 0) loanRate = `${Math.min(...mins).toFixed(2)}%`;
+    if (mins.length > 0) {
+      loanRate = `${Math.min(...mins).toFixed(2)}%`;
+      loanRateAsOf = mortgage.asOf ?? null;
+    }
   }
 
   return {
     saleIndexSeoul,
     loanRate,
+    loanRateAsOf,
     notesToday,
     briefing,
     activityToday,

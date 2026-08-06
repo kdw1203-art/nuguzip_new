@@ -5,12 +5,27 @@
 
 export const HOME_HERO_BADGE = "AI 임장 기록 플랫폼";
 
-/** 모바일 H1 — emphasis 구간만 gradient */
+/**
+ * 문서에 단 하나뿐인 H1. 화면에는 안 보이지만 항상 존재한다.
+ *
+ * 아래 두 히어로 문구는 오랫동안 각각 `<h1>` 이었다. 그런데 홈은
+ * 모바일/데스크톱 두 벌을 **한 문서에 다** 그려 놓고 CSS 로 하나만
+ * 보여 준다(S13-13a). 그래서 비로그인 HTML 에는 h1 이 두 개였고,
+ * 로그인하면 두 히어로가 전부 `[data-static-hero]` 로 숨어 h1 이
+ * **0개**가 됐다. 문서의 제목이 뷰포트와 로그인 여부에 따라 두 개였다가
+ * 없어졌다가 한 셈이다.
+ *
+ * 그래서 제목은 한 군데로 모은다: `<main>` 첫 자식의 sr-only h1 하나.
+ * 히어로 문구는 뷰포트별 "시각 카피"로 강등해 `<p>` 로 그린다.
+ */
+export const HOME_PAGE_H1 = "누구집 — 임장 기록으로 판단 근거를 만드는 곳";
+
+/** 모바일 히어로 문구 — emphasis 구간만 gradient */
 export const HOME_HERO_MOBILE_LINE1 = "오늘 본 집,";
 export const HOME_HERO_MOBILE_EMPHASIS = "3분 만에 기록";
 export const HOME_HERO_MOBILE_TAIL = "하세요";
 
-/** 데스크톱 H1 */
+/** 데스크톱 히어로 문구 */
 export const HOME_HERO_DESKTOP_LEAD = "임장 기록이";
 export const HOME_HERO_DESKTOP_EMPHASIS = "판단 근거";
 export const HOME_HERO_DESKTOP_TAIL = "가 됩니다";

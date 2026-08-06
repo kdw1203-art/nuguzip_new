@@ -13,6 +13,7 @@ import { AdSenseUnit } from "./components/ads/AdSenseUnit";
 import { Footer } from "./components/Footer";
 import { loadNewHomeData } from "@/lib/newui/home-data";
 import { compactDelta } from "@/lib/newui/delta-label";
+import { formatAsOfLabel } from "@/lib/newui/as-of-label";
 import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getWeeklyDigest } from "@/lib/newui/digest";
@@ -35,6 +36,7 @@ import {
   HOME_HERO_MOBILE_LINE1,
   HOME_HERO_MOBILE_TAIL,
   HOME_HERO_SUBLINE,
+  HOME_PAGE_H1,
 } from "@/lib/brand/home-copy";
 import { seoAlternates } from "@/lib/seo/alternates";
 
@@ -116,6 +118,9 @@ function MarketStrip({
   loanRate,
   notesToday,
   activityToday,
+  marketAsOf,
+  baseRateAsOf,
+  loanRateAsOf,
   compact,
 }: {
   saleIndexSeoul: string;
@@ -123,11 +128,30 @@ function MarketStrip({
   loanRate: string;
   notesToday: string;
   activityToday: string;
+  /** 실거래 적재 기준일 "2026.08.05" — 없으면 그 조각을 빼고 쓴다 */
+  marketAsOf: string | null;
+  /** 한국은행 기준금리 기준시점 "2026.08.04" */
+  baseRateAsOf: string | null;
+  /** 금감원 대출금리 공시 기준시점 "2026.06" */
+  loanRateAsOf: string | null;
   compact?: boolean;
 }) {
+  /* 기준시점 캡션. 숫자마다 출처와 주기가 달라 하나의 날짜로 묶을 수 없다 —
+     그래서 있는 것만 각각 이름 붙여 나열하고, 못 구한 건 아예 안 쓴다.
+     (이 스트립은 [data-static-hero] 가 아니다. 히어로에 있던 기준시점 줄은
+      로그인하면 히어로째로 숨어서, 모바일 로그인 사용자에게는 기준시점 없는
+      숫자만 남아 있었다. 캡션이 숫자 옆에 붙어 있어야 하는 이유다.) */
+  const asOfParts = [
+    marketAsOf ? `매매지수 ${marketAsOf}` : null,
+    baseRateAsOf ? `기준금리 ${baseRateAsOf}` : null,
+    loanRateAsOf ? `대출금리 ${loanRateAsOf}` : null,
+  ].filter((s): s is string => s !== null);
+  const asOfCaption = asOfParts.length > 0 ? `${asOfParts.join(" · ")} 기준` : null;
+
   if (compact) {
     return (
       <div className="flex flex-col gap-1.5">
+        <h2 className="sr-only">주요 지표</h2>
         <div className="flex gap-2">
           {[
             { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
@@ -143,45 +167,51 @@ function MarketStrip({
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-text-3">
-          공시 데이터 기준 — 미조회 항목은 “—”로 표시됩니다
+        <p className="text-[10px] leading-[1.5] text-text-3">
+          {asOfCaption ? `${asOfCaption} · ` : ""}미조회 항목은 “—”로 표시됩니다
         </p>
       </div>
     );
   }
 
   return (
-    <div className="grid w-full grid-cols-2 gap-2.5 xl:grid-cols-4">
-      {[
-        { label: "매매지수 서울", value: <>{saleIndexSeoul}</>, accent: false },
-        {
-          label: "기준 / 대출금리",
-          value: (
-            <>
-              {baseRate} / <span className="text-primary">{loanRate}</span>
-            </>
-          ),
-          accent: false,
-        },
-        {
-          label: "오늘 새 노트",
-          value: <span className="text-primary">{notesToday}</span>,
-          accent: true,
-        },
-        {
-          label: "오늘 활동",
-          value: <>{activityToday}</>,
-          accent: true,
-        },
-      ].map((s, i) => (
-        <div
-          key={i}
-          className="rounded-2xl border border-[rgba(255,255,255,.7)] bg-white/70 px-4 py-3 backdrop-blur-sm"
-        >
-          <div className="text-[10px] text-text-3">{s.label}</div>
-          <div className="t-num mt-0.5 text-[15px] text-ink">{s.value}</div>
-        </div>
-      ))}
+    <div className="flex w-full flex-col gap-1.5">
+      <h2 className="sr-only">주요 지표</h2>
+      <div className="grid w-full grid-cols-2 gap-2.5 xl:grid-cols-4">
+        {[
+          { label: "매매지수 서울", value: <>{saleIndexSeoul}</>, accent: false },
+          {
+            label: "기준 / 대출금리",
+            value: (
+              <>
+                {baseRate} / <span className="text-primary">{loanRate}</span>
+              </>
+            ),
+            accent: false,
+          },
+          {
+            label: "오늘 새 노트",
+            value: <span className="text-primary">{notesToday}</span>,
+            accent: true,
+          },
+          {
+            label: "오늘 활동",
+            value: <>{activityToday}</>,
+            accent: true,
+          },
+        ].map((s, i) => (
+          <div
+            key={i}
+            className="rounded-2xl border border-[rgba(255,255,255,.7)] bg-white/70 px-4 py-3 backdrop-blur-sm"
+          >
+            <div className="text-[10px] text-text-3">{s.label}</div>
+            <div className="t-num mt-0.5 text-[15px] text-ink">{s.value}</div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] leading-[1.5] text-text-3">
+        {asOfCaption ? `${asOfCaption} · ` : ""}미조회 항목은 “—”로 표시됩니다
+      </p>
     </div>
   );
 }
@@ -233,6 +263,12 @@ export default async function Home() {
      수다 — 사람으로 셀 수 없는 이유는 lib/newui/home-data.ts 의
      loadActivityToday() 주석에 실측과 함께 적어 두었다. */
   const activityToday = data.activityToday !== null ? `${data.activityToday}건` : "—";
+  /* 지표 3종의 기준시점. 여태 화면에 한 번도 나온 적이 없었다 —
+     getBaseRate() 는 cycle 을 읽어 오고도 버렸고(오늘 실측: 2026-08-04),
+     대출금리는 월 공시(2026-06)라 두 값이 두 달 차이 나는데도 "기준 / 대출금리"
+     한 칸에 붙어 같은 시점처럼 읽혔다. */
+  const baseRateAsOf = formatAsOfLabel(baseRateData?.cycle ?? null);
+  const loanRateAsOf = formatAsOfLabel(data.loanRateAsOf);
 
   // 홈 미니지도 마커용 시세 지역 (좌표 매핑은 HomeMiniMap 내부) — 실데이터만 마커로 표시
   const mapRegions = regions.slice(0, 4);
@@ -249,12 +285,20 @@ export default async function Home() {
         id="main-content"
         className="mx-auto w-full max-w-[1240px] flex-1 px-3.5 pb-32 pt-3.5 md:px-5 md:pb-16 md:pt-5"
       >
+        {/* 이 문서의 유일한 H1. 시각 히어로는 뷰포트별로 두 벌이 다 그려지고
+            로그인하면 둘 다 숨는다 — 그래서 제목을 히어로에 맡기면 h1 이
+            2개였다가 0개가 된다. 여기 하나만 두고, 히어로는 <p> 로 그린다.
+            (sr-only 는 globals.css 에서 :focus 때만 드러나는데 h1 은 포커스
+             대상이 아니라 항상 숨은 채로 있는다.) */}
+        <h1 className="sr-only">{HOME_PAGE_H1}</h1>
+
         {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
         <PersonalHome />
 
         {/* ================= 모바일 히어로 — 한 직업: 임장→AI→지도 ================= */}
         <section className="flex flex-col gap-2.5 md:hidden">
-          <h1
+          {/* 시각 카피(문서 제목 아님 — 위 sr-only h1 참고) */}
+          <p
             data-static-hero
             className="rise-in mt-2 text-[24px] font-extrabold leading-[1.25] tracking-[-0.6px] text-ink"
           >
@@ -262,7 +306,7 @@ export default async function Home() {
             <br />
             <span className="text-gradient">{HOME_HERO_MOBILE_EMPHASIS}</span>
             {HOME_HERO_MOBILE_TAIL}
-          </h1>
+          </p>
           <p data-static-hero className="rise-in-1 text-sm text-text-2">
             {HOME_HERO_SUBLINE}
           </p>
@@ -316,6 +360,9 @@ export default async function Home() {
               loanRate={loanRate}
               notesToday={notesToday}
               activityToday={activityToday}
+              marketAsOf={freshness}
+              baseRateAsOf={baseRateAsOf}
+              loanRateAsOf={loanRateAsOf}
             />
           </div>
 
@@ -325,6 +372,7 @@ export default async function Home() {
           </div>
 
           <div data-reveal="" className="flex flex-col gap-3">
+            <h2 className="sr-only">지역 시세</h2>
             {regions.length === 0 ? (
               failed.regions ? (
                 <ErrorState
@@ -366,7 +414,7 @@ export default async function Home() {
           {/* 공개 노트 증거 (모바일) */}
           <div data-reveal="" className="card flex flex-col gap-2 rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-ink">공개 임장노트</span>
+              <h2 className="text-sm font-extrabold text-ink">공개 임장노트</h2>
               <Link
                 href="/notes"
                 className="text-[11px] text-text-3 transition-colors hover:text-primary"
@@ -407,7 +455,7 @@ export default async function Home() {
 
           {/* 허브 밀도 축소 — 다이제스트·모임·안전 등 한 카드로 */}
           <div data-reveal="" className="card flex flex-col gap-2 rounded-2xl px-4 py-4">
-            <div className="text-[13px] font-extrabold text-ink">더 알아보기</div>
+            <h2 className="text-[13px] font-extrabold text-ink">더 알아보기</h2>
             <Link
               href="/digest"
               className="flex items-center justify-between gap-2 py-1.5 text-xs no-underline"
@@ -463,11 +511,12 @@ export default async function Home() {
                   <span className="h-1.5 w-1.5 rounded-full bg-primary float-slow" />{" "}
                   {HOME_HERO_BADGE}
                 </span>
-                <h1 className="text-[30px] font-extrabold leading-[1.22] tracking-[-0.6px] text-ink">
+                {/* 시각 카피(문서 제목 아님 — 위 sr-only h1 참고) */}
+                <p className="text-[30px] font-extrabold leading-[1.22] tracking-[-0.6px] text-ink">
                   {HOME_HERO_DESKTOP_LEAD}{" "}
                   <span className="text-gradient">{HOME_HERO_DESKTOP_EMPHASIS}</span>
                   {HOME_HERO_DESKTOP_TAIL}
-                </h1>
+                </p>
                 <p className="text-sm text-text-2">{HOME_HERO_SUBLINE}</p>
                 <FunnelSteps />
                 <div className="mt-1 flex flex-wrap gap-2">
@@ -503,6 +552,9 @@ export default async function Home() {
                 loanRate={loanRate}
                 notesToday={notesToday}
                 activityToday={activityToday}
+                marketAsOf={freshness}
+                baseRateAsOf={baseRateAsOf}
+                loanRateAsOf={loanRateAsOf}
               />
             </div>
 
@@ -511,6 +563,7 @@ export default async function Home() {
             </div>
 
             {/* 지역 시세 카드 4열 — 라운드 확대 + 호버 리프트 */}
+            <h2 className="sr-only">지역 시세</h2>
             {regions.length === 0 ? (
               failed.regions ? (
                 <ErrorState
@@ -557,9 +610,9 @@ export default async function Home() {
             <div data-reveal="" className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="card card-hover flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
-                  <span className="accent-underline text-sm font-extrabold text-ink">
+                  <h2 className="accent-underline text-sm font-extrabold text-ink">
                     공개 임장노트
-                  </span>
+                  </h2>
                   <Link
                     href="/notes"
                     className="text-[11px] text-text-3 transition-colors hover:text-primary"
@@ -603,9 +656,9 @@ export default async function Home() {
               </div>
               <div className="card card-hover flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
-                  <span className="accent-underline text-sm font-extrabold text-ink">
+                  <h2 className="accent-underline text-sm font-extrabold text-ink">
                     동네이야기 · 자료
-                  </span>
+                  </h2>
                   <Link
                     href="/town"
                     className="text-[11px] text-text-3 transition-colors hover:text-primary"
@@ -662,9 +715,9 @@ export default async function Home() {
             </div>
 
             <div className="rise-in-2 card flex flex-col gap-2 rounded-2xl px-5 py-4">
-              <div className="accent-underline text-[13px] font-extrabold text-ink">
+              <h2 className="accent-underline text-[13px] font-extrabold text-ink">
                 더 알아보기
-              </div>
+              </h2>
               <Link
                 href="/digest"
                 className="flex flex-col gap-0.5 py-1.5 no-underline"
