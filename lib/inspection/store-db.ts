@@ -268,7 +268,7 @@ export async function listPublicNotes(limit = 50): Promise<InspectionNote[]> {
   return (data ?? []).map(mapRow);
 }
 
-/** 목록 카드 한 장에 실제로 그려지는 것만. 본문·점수·사진은 여기 없다. */
+/** 목록 카드 한 장에 실제로 그려지는 것만. 본문·사진·jsonb 는 여기 없다. */
 export type PublicNoteCard = {
   id: string;
   title: string;
@@ -277,6 +277,12 @@ export type PublicNoteCard = {
   visitDate: string;
   summary: string | null;
   createdAt: string;
+  /**
+   * 5개 항목 점수. **정수 컬럼 5개**(score_location…score_future)라 jsonb 가
+   * 아니고, 8건 합쳐 1.4KB 도 안 된다 — 카드에 점수 배지를 그리는 화면(홈)이
+   * 이것 때문에 `select("*")` 로 돌아가지 않게 여기 포함한다.
+   */
+  scores: InspectionScores;
 };
 
 /**
@@ -306,7 +312,9 @@ export async function listPublicNoteCards(
   }
   let q = sb
     .from("inspection_notes")
-    .select("id,title,region,apt_name,visit_date,summary,created_at")
+    /* 한 줄짜리 **리터럴**이어야 한다. `"a," + "b"` 로 쪼개면 supabase-js 가
+       컬럼 목록을 타입 수준에서 못 읽어 data 가 GenericStringError[] 로 떨어진다. */
+    .select("id,title,region,apt_name,visit_date,summary,created_at,score_location,score_school,score_transport,score_facility,score_future")
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -326,6 +334,13 @@ export async function listPublicNoteCards(
     visitDate: String(r.visit_date ?? "").slice(0, 10),
     summary: (r.summary as string | null) ?? null,
     createdAt: String(r.created_at ?? ""),
+    scores: {
+      location: Number(r.score_location ?? 0),
+      school: Number(r.score_school ?? 0),
+      transport: Number(r.score_transport ?? 0),
+      facility: Number(r.score_facility ?? 0),
+      future: Number(r.score_future ?? 0),
+    },
   }));
 }
 

@@ -3,6 +3,7 @@
  * Supabase `banners` 테이블을 사용합니다.
  * Supabase 미설정 시 정적 기본 배너를 반환합니다.
  */
+import { cache } from "react";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 
@@ -66,8 +67,27 @@ function isActive(b: Banner): boolean {
   return true;
 }
 
-/** 특정 위치의 활성 배너 목록 반환 */
-export async function listBanners(placement?: BannerPlacement): Promise<Banner[]> {
+/**
+ * 특정 위치의 활성 배너 목록 반환.
+ *
+ * 최적화 5 — 홈 한 장을 그릴 때 이 함수가 **세 번** 불린다:
+ *   · loadHomeData() 안의 listBanners("home")  (unstable_cache 90초 안쪽)
+ *   · <AdSlot placement="home_feed"> 모바일 (app/page.tsx:497)
+ *   · <AdSlot placement="home_feed"> 데스크톱 (app/page.tsx:797)
+ * 뒤 둘은 같은 placement 에 같은 조건이다. 한쪽은 CSS 로 안 보이지만
+ * 서버에서는 둘 다 실행된다(홈은 모바일·데스크톱 두 벌을 한 문서에 다 그린다).
+ *
+ * 그래서 React `cache()` 로 **요청 단위 중복 제거**를 건다. TTL 캐시가 아니라
+ * 렌더 한 번 안에서만 결과를 나누는 것이라, 어드민이 배너를 켠 순간이
+ * N초 지연되는 부작용이 없다 — 신선도를 내주지 않고 왕복만 줄인다.
+ *
+ * 규모에 대해 정직하게: 오늘 실측으로 `banners` 는 전체 3행, 활성 0행이다.
+ * 이건 바이트를 줄이는 수정이 아니라 같은 왕복을 3번에서 1번으로 줄이는
+ * 수정이고, 그 이상으로 포장하지 않는다.
+ */
+export const listBanners = cache(listBannersUncached);
+
+async function listBannersUncached(placement?: BannerPlacement): Promise<Banner[]> {
   const sb = getServiceSupabase();
   // DB 미연결이면 노출할 배너를 "모른다" — 지어낸 프로모션 대신 빈 목록.
   if (!sb) return [];

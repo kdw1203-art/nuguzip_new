@@ -116,12 +116,27 @@ async function loadHomeDataInternal(): Promise<HomeData> {
   /* 실패를 삼키지 않고 "어느 소스가 실패했는지"를 같이 들고 나간다.
      allSettled 라 한 소스가 죽어도 나머지는 그대로 보여 준다. */
   const failedSources: HomeSource[] = [];
+  /* 최적화 9 — 아래 세 개의 count 질의는 오랫동안 **두 번째 단계**였다.
+     목록 다섯 갈래를 다 기다린 뒤에야 시작했는데, 정작 이 셋은 목록 결과를
+     **하나도 안 본다**(app_users·inspection_notes·posts 의 전체 개수다).
+     기다릴 이유가 없는 대기였으므로 같은 층으로 내린다.
+     · head:true 라 행은 안 넘어온다 — 개수만 세는 질의다.
+     · 실패는 여기서도 삼키지 않는다: count 가 null 이면 아래에서 목록 길이로
+       떨어지되, 그 길이가 상한(POSTS_READ_LIMIT)일 수 있다는 사실은
+       totalPosts 주석에 그대로 남는다. */
+  const sb = getServiceSupabase();
+  const countQuery = (table: string) =>
+    sb ? sb.from(table).select("id", { count: "exact", head: true }) : Promise.resolve(null);
+
   const settled = await Promise.allSettled([
     readPosts(),
     listExperts(),
     listReports(),
     listMeetings(),
     listBanners("home"),
+    countQuery("app_users"),
+    countQuery("inspection_notes"),
+    countQuery("posts"),
   ]);
   const SOURCE_ORDER: HomeSource[] = [
     "posts",
@@ -130,7 +145,11 @@ async function loadHomeDataInternal(): Promise<HomeData> {
     "meetings",
     "banners",
   ];
-  settled.forEach((r, i) => {
+  /* SOURCE_ORDER 는 앞 5칸만 이름이 있다. 뒤 3칸(count)은 "소스 실패"가 아니라
+     "총계를 못 구함"이고, 그건 아래에서 목록 길이로 떨어지는 별개의 처리다 —
+     여기서 같이 세면 실패 소스 이름이 undefined 로 들어가고, 바로 아래
+     "전부 실패" 판정(=== SOURCE_ORDER.length)도 어긋난다. */
+  settled.slice(0, SOURCE_ORDER.length).forEach((r, i) => {
     if (r.status === "rejected") {
       const key = SOURCE_ORDER[i]!;
       failedSources.push(key);
@@ -151,7 +170,6 @@ async function loadHomeDataInternal(): Promise<HomeData> {
     throw new Error("[loadHomeData] 홈 데이터 소스 전체 조회 실패");
   }
 
-  const sb = getServiceSupabase();
   let totalUsers = 0;
   let totalInspections = 0;
   /* 홈에 찍히는 "총 게시글" 수.
@@ -160,16 +178,19 @@ async function loadHomeDataInternal(): Promise<HomeData> {
      "상한"이 된다 — 글이 800개여도 500 이라고 적히는 것이다. 그래서 Supabase
      가 붙어 있으면 count 질의로 정확히 다시 구한다. */
   let totalPosts = posts.length;
-  if (sb) {
-    const [u, i, p] = await Promise.all([
-      sb.from("app_users").select("*", { count: "exact", head: true }),
-      sb.from("inspection_notes").select("*", { count: "exact", head: true }),
-      sb.from("posts").select("*", { count: "exact", head: true }),
-    ]);
-    if (typeof u.count === "number") totalUsers = u.count;
-    if (typeof i.count === "number") totalInspections = i.count;
-    if (typeof p.count === "number") totalPosts = p.count;
-  }
+  /** allSettled 한 칸에서 PostgREST count 만 꺼낸다. 못 구했으면 null. */
+  const countOf = (i: number): number | null => {
+    const r = settled[i];
+    if (!r || r.status !== "fulfilled") return null;
+    const c = (r.value as { count?: number | null } | null)?.count;
+    return typeof c === "number" ? c : null;
+  };
+  const uCount = countOf(5);
+  const iCount = countOf(6);
+  const pCount = countOf(7);
+  if (uCount !== null) totalUsers = uCount;
+  if (iCount !== null) totalInspections = iCount;
+  if (pCount !== null) totalPosts = pCount;
 
   // 인기순: 조회·좋아요 기반 (HOT 판정 임계치 viewCount>=500 || likeCount>=30)
   const mappedPosts: HomePost[] = posts

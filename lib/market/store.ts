@@ -287,6 +287,22 @@ export async function hasMarketData(): Promise<boolean> {
   return value;
 }
 
+/**
+ * 최적화 4 — 이 조회의 **안전 상한**. 상한을 거는 목적이 보통과 반대다.
+ *
+ * 여긴 "전 지역 스냅샷 맵"이라, 흔히 하듯 `.limit(100)` 을 걸면 지역이 조용히
+ * 사라진다. 상한에 걸린 지역은 맵에 없고 → getRegionSnapshot() 이 null →
+ * /region/[id] 가 404 다. **행을 안 자르는 게 이 함수의 정의**이므로, 상한은
+ * 자르기 위한 게 아니라 폭주를 막기 위해 도메인 최대치보다 한참 위에 둔다.
+ *
+ * 도메인 최대치: 시군구 단위 265개 × 출처 3(reb/kb/crawl) ≈ 800행.
+ * 오늘 실측은 61행이다. 2,000 은 그 위이므로 정상 운영에서는 절대 안 닿고,
+ * 닿았다면 그건 적재 이상(중복 적재·period 누적)이라는 신호다 —
+ * 그래서 닿는 순간 **조용히 자르지 않고 경고를 남긴다**. 잘린 걸 모르는 게
+ * 안 자르는 것보다 나쁘다.
+ */
+const SNAPSHOT_HARD_LIMIT = 2000;
+
 /** 모든 지역의 최신 스냅샷 맵 (REB 우선, 없으면 KB). 1h 캐시. */
 export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketSnapshot>> {
   if (snapshotCache && Date.now() - snapshotCache.at < SNAPSHOT_TTL_MS) return snapshotCache.map;
@@ -303,7 +319,8 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
     .select(
       "source,region_id,region_name,period,per_m2_sale,avg_sale,median_sale,jeonse_ratio,sale_change,trade_count,buy_superiority,jeonse_supply",
     )
-    .eq("property_type", "apt");
+    .eq("property_type", "apt")
+    .limit(SNAPSHOT_HARD_LIMIT);
   /* 실패는 캐시하지 않는다. 예전에는 여기서 빈 맵을 캐시했고, 그 결과
      getRegionSnapshot() 이 null → /region/[id] 가 404 를 한 시간 동안 냈다. */
   if (error || !data) throwQueryFailure("market_region_price", error);
@@ -315,6 +332,17 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
       "[market/store] market_region_price 0행 — ETL 재적재 창일 수 있어 캐시하지 않음",
     );
     return map;
+  }
+  /* 상한에 닿았다 = 잘렸을 수 있다. 조용히 지나가면 "그 지역은 원래 없다"로
+     읽히고, 그게 404 로 나간다. 소리를 내고, 이번 결과는 캐시하지 않는다 —
+     잘린 맵을 1시간 붙들면 그 시간 내내 없는 지역이 된다.
+     (맵 자체는 아래에서 그대로 만든다. 있는 만큼은 보여 주는 게 낫다.) */
+  const maybeTruncated = data.length >= SNAPSHOT_HARD_LIMIT;
+  if (maybeTruncated) {
+    logger.error(
+      `[market/store] market_region_price 가 안전 상한(${SNAPSHOT_HARD_LIMIT}행)에 닿았습니다 — ` +
+        "지역이 잘렸을 수 있어 이번 결과를 캐시하지 않습니다. 적재 중복 여부를 확인하세요.",
+    );
   }
   // REB 우선: 같은 region_id 에 대해 reb 가 kb 를 덮어쓴다.
   const priority: Record<string, number> = { reb: 2, kb: 1, crawl: 0 };
@@ -338,7 +366,7 @@ export async function getAllRegionSnapshots(): Promise<Map<string, RegionMarketS
       jeonseSupply: row.jeonse_supply ?? undefined,
     });
   }
-  snapshotCache = { at: Date.now(), map };
+  if (!maybeTruncated) snapshotCache = { at: Date.now(), map };
   return map;
 }
 

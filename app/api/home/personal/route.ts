@@ -155,13 +155,18 @@ export async function GET() {
       ? personalization.regions
       : null;
 
-  const regionMarket = await guarded(() =>
-    loadRegionMarket([profile?.primaryRegion, ...(regions ?? [])]),
-  );
-
+  /* 최적화 3 — 여긴 오랫동안 3단 폭포였다: ① 위 Promise.all 5갈래 →
+     ② loadRegionMarket → ③ loadRegionChips. 그런데 ②와 ③은 **서로를 안 본다**.
+     둘 다 ①의 결과(profile·personalization)만 쓰고, resolveRegions() 는 동기
+     함수다. 즉 ③이 ②를 기다릴 이유가 없었는데 순서대로 줄을 서 있었고,
+     로그인 홈은 그 대기 시간을 매번 그대로 물었다. 같은 층으로 내린다. */
   const resolvedRegions = personalization ? resolveRegions(personalization.regions) : [];
-  const regionChips =
-    resolvedRegions.length > 0 ? await guarded(() => loadRegionChips(resolvedRegions)) : null;
+  const [regionMarket, regionChips] = await Promise.all([
+    guarded(() => loadRegionMarket([profile?.primaryRegion, ...(regions ?? [])])),
+    resolvedRegions.length > 0
+      ? guarded(() => loadRegionChips(resolvedRegions))
+      : Promise.resolve(null),
+  ]);
 
   const preferences = personalization
     ? {

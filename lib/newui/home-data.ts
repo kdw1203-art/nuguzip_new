@@ -8,7 +8,7 @@
  * - `getRegionSeries()`         → 매매가격지수 폴백 (market_region_series, lib/market/store)
  * - `market_region_monthly`     → AI 시장 브리핑 (최근 월 등락 집계, 1시간 캐시)
  * - `platform_activity_events`  → 오늘 활동 건수(KST 오늘, 계측 이벤트 제외)
- * - `listPublicNotes()`         → 공개 임장노트 (inspection_notes, lib/inspection/store-db)
+ * - `listPublicNoteCards()`     → 공개 임장노트 (inspection_notes, 카드 컬럼만 — 본문 제외)
  * - `getMortgageRates()`        → 주담대 금리 (금융감독원 finlife, lib/finance/mortgage-rates)
  *
  * 모든 조회는 실패/빈 데이터 시 null·빈 배열을 반환하고, 페이지 쪽에서
@@ -22,9 +22,9 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { getAllRegionSnapshots, getRegionSeries } from "@/lib/market/store";
 import type { RegionMarketSnapshot } from "@/lib/market/types";
 import {
-  listPublicNotes,
+  listPublicNoteCards,
   inspectionAverageScore,
-  type InspectionNote,
+  type PublicNoteCard,
 } from "@/lib/inspection/store-db";
 import { getMortgageRates } from "@/lib/finance/mortgage-rates";
 import { DELTA_UNKNOWN } from "@/lib/newui/delta-label";
@@ -185,7 +185,7 @@ function deltaOf(changePct: number | undefined): { delta: string; tone: DeltaTon
 }
 
 /** 0~5 평균 점수 → 100점 만점 라벨 */
-function noteScoreOf(note: InspectionNote): number {
+function noteScoreOf(note: PublicNoteCard): number {
   return Math.round(inspectionAverageScore(note.scores) * 20);
 }
 
@@ -413,7 +413,7 @@ function buildRegionCards(
  * 통째로 불렀다. 그 함수는 7갈래를 병렬로 돌리는데, 여기서 실제로 쓰이는 건
  * `getAllRegionSnapshots()` 하나뿐이고 나머지는 전부 버려졌다. 그중 넷은
  * 캐시가 없어 **로그인 홈 방문마다** 실제로 DB 를 때렸다:
- *   · listPublicNotes(10)  — inspection_notes `select("*")` (본문·사진 포함)
+ *   · listPublicNoteCards(10) — inspection_notes (당시엔 select("*") 였다 — 최적화 8)
  *   · loadActiveNow()      — platform_activity_events 최대 5,000행(metadata 포함)
  *   · loadSaleIndexSeoul() — market_price_indices 조회
  *   · getMortgageRates()   — public_data_cache 조회
@@ -458,8 +458,12 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
         return new Map<string, never>();
       }),
       /* 최적화 30 — 홈은 최대 3건만 쓴다. 50행(전 컬럼)을 끌어오던 것을 10행으로.
-         (여유분은 비공개 전환 등 후처리 필터 대비) */
-      listPublicNotes(10).catch((err): InspectionNote[] => {
+         (여유분은 비공개 전환 등 후처리 필터 대비)
+         최적화 8 — 그 10행이 `select("*")` 였다. 오늘 실측(공개노트 8건):
+         전 컬럼 143,707B 중 body_md 만 77,943B, metadata 15,524B, check_items
+         7,434B … 반면 홈이 실제로 쓰는 건 id·title·apt_name·점수 5개뿐이라
+         1,439B 다. 100배를 받아서 99%를 버리고 있었다. 카드용 조회로 바꾼다. */
+      listPublicNoteCards(10).catch((err): PublicNoteCard[] => {
         logger.error("[loadNewHomeData] 공개 임장노트 조회 실패", err);
         notesFailed = true;
         return [];
