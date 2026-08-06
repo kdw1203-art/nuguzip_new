@@ -46,6 +46,7 @@
     "check:tx-filters": "node ./scripts/check-tx-filters.mjs",
     "check:source-views": "node ./scripts/check-source-views.mjs",
     "check:migration-grants": "node ./scripts/check-migration-grants.mjs",
+    "check:migration-ledger": "node ./scripts/check-migration-ledger.mjs",
     "check:secret-markers": "node ./scripts/check-secret-markers.mjs",
     "check:icon-names": "node ./scripts/check-icon-names.mjs",
     "check:env-key-names": "node ./scripts/check-env-key-names.mjs",

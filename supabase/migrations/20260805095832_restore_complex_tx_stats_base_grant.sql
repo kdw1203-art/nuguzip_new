@@ -1,0 +1,37 @@
+-- [원장 복원] 적용은 됐지만 파일이 없던 마이그레이션을 되살린 것이다.
+--
+-- 원장(supabase_migrations.schema_migrations) version = 20260805095832,
+-- name = restore_complex_tx_stats_base_grant.
+-- 아래 본문은 그 원장의 statements 원문 그대로다. 내가 새로 쓴 문장은 이 머리말뿐이고
+-- SQL 은 한 글자도 손대지 않았다. 이 파일이 적용 시점에 쓰였다는 뜻이 아니다.
+--
+-- 왜 비어 있었나: 이전 세션이 MCP apply_migration 으로 적용하고 파일 미러링을 빠뜨렸다.
+-- 20260804234917 ~ 20260805225415 구간 11건을 2026-08-06 에 한꺼번에 복원했다.
+-- 이 11건이 전부라는 뜻은 아니다. 같은 날 원장을 전수로 세어 본 결과는 이렇다 —
+-- 기준선(20260724212021) 이후 원장 160행 대 파일 79개, 원장이 만들고 지금도 DB 에
+-- 남아 있는 객체 238개 중 78개는 저장소 어디에도 정의가 없다. "11건" 은 눈에 띈
+-- 최근 구간이었을 뿐이고, 센 결과가 아니었다.
+-- 남은 결손은 supabase/ledger-snapshot.json 의 known_unmirrored 에 근거(원장 version)와
+-- 함께 적어 두었고, scripts/check-migration-ledger.mjs 가 릴리스 게이트에서 다시 센다.
+--
+-- 이 파일이 없던 동안 저장소는 "회수했다"(20260805024341)까지만 말하고 "되돌렸다"는
+-- 말하지 않는 상태였다. 둘 중 하나만 없어지면 남는 건 틀린 안내다.
+
+-- 되돌림: 2026-08-05 harden_public_rpcs_tier1 에서 회수한 SELECT 를 복구한다.
+--
+-- 왜 회수가 틀렸는가:
+--   * public.complex_tx_stats 는 security_invoker 뷰이고, 하부 MV 인
+--     complex_tx_stats_base 에 명시적 GRANT 가 있어야 동작한다.
+--     (20260804100000_complex_tx_stats_security_invoker.sql 에 명시된 설계)
+--   * lib/newui/supabase-read.ts 의 getReadOnlySupabase 는 service_role 키가
+--     없으면 publishable/anon 키로 폴백한다. 그 경로에서 42501 이 난다.
+--     app/api/map/clusters/route.ts 가 이 클라이언트를 쓴다.
+--   * 저장소 주석이 같은 사고를 이미 기록해 두었다:
+--     "grant 없이 invoker 로만 바꾸면 /complex 페이지가 42501 로 죽는다
+--      — 2026-07-25 /tx 하루 장애와 같은 패턴"
+--   * 내용물은 단지 실거래 공개 집계라 anon 읽기가 의도된 동작이다.
+--
+--   나는 클라이언트 번들 정적 검사에서 참조가 0건인 것만 보고 "서버 전용"이라
+--   판단했다. 서버 경로가 anon 키로 폴백한다는 사실을 놓쳤다.
+
+GRANT SELECT ON public.complex_tx_stats_base TO anon, authenticated;

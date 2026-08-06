@@ -35,6 +35,14 @@
  * 그대로 열려 있었던 이유가 정확히 이것이다(docs/security-audit.md 정정 2).
  * 문법상 성공하지만 의미상 실패하는 문장이라 사람 눈으로는 걸러지지 않는다.
  *
+ * ── 이 린트가 안 보는 것 ───────────────────────────────────────────────
+ * supabase/migrations 의 **파일만** 읽는다. MCP apply_migration 으로 적용하고
+ * 파일을 안 남긴 마이그레이션은 여기서 아예 보이지 않는다 — 볼 파일이 없으니
+ * 조용히 통과한다. 2026-08-06 전수 대조에서 그렇게 적용된 객체가 78개였다.
+ * 그쪽은 check-migration-ledger.mjs 가 센다. 그래서 아래 PASS 줄에도
+ * "파일 N개를 봤다" 가 아니라 "파일 N개만 봤다" 로 적는다 — 본 범위를 밝히지 않은
+ * 통과는 안 본 곳까지 괜찮다는 말로 읽힌다.
+ *
  * 사용: node ./scripts/check-migration-grants.mjs · npm run check:migration-grants
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -193,6 +201,10 @@ const total = parsed.reduce(
   0,
 );
 console.info(
-  `${TAG} PASS — 마이그레이션 ${files.length}개 · 재생성 객체 ${total}건 GRANT 확인 · ` +
-    `함수 revoke ${revokeChecked}건 public 포함 확인`,
+  `${TAG} PASS — 저장소에 있는 마이그레이션 파일 ${files.length}개만 대상 · ` +
+    `재생성 객체 ${total}건 GRANT 확인 · 함수 revoke ${revokeChecked}건 public 포함 확인`,
+);
+console.info(
+  `  ※ 범위: 파일이 없는 채 적용된 마이그레이션은 여기서 안 보입니다` +
+    `(check-migration-ledger.mjs 가 셉니다).`,
 );

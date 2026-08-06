@@ -335,6 +335,9 @@ runGate("SEO", "파라미터 canonical 감사 (N7)", "check-param-canonical.mjs"
 runGate("SEO", "구조화 데이터 검증 (N8)", "check-jsonld.mjs", { needsBuild: true });
 // DROP 이 GRANT 를 지우는 함정 — 2026-07-25 /tx 장애의 정적/실측 재발 방지 게이트
 runGate("데이터", "마이그레이션 GRANT 린트", "check-migration-grants.mjs");
+/* 위 린트는 저장소에 있는 파일만 읽는다. MCP 로 적용하고 파일을 안 남기면 볼 것이
+   없으니 조용히 통과한다 — 2026-08-06 실측으로 그런 객체가 78개였다. 그 사각을 센다. */
+runGate("데이터", "원장 ↔ 마이그레이션 파일 대조", "check-migration-ledger.mjs");
 runGate("데이터", "public.*_source 뷰 실조회 권한", "check-source-views.mjs", {
   skipRe: /\bSKIP\b/,
 });
