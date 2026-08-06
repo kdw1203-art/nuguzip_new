@@ -71,7 +71,7 @@ export default async function TownGroupDetailPage({
 
   return (
     <PageShell breadcrumb="동네이야기 › 임장 모임">
-      <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
+      <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
         {/* ---------- 모임 정보 카드 ---------- */}
         <div className="flex flex-col gap-4">
           <div className="rise-in card flex flex-col gap-3 rounded-[20px] p-6">

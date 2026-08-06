@@ -73,7 +73,7 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
 
       <ol className="flex flex-col">
         {steps.map((step, i) => (
-          <li key={step.n} className="grid grid-cols-[22px_1fr] gap-3">
+          <li key={step.n} className="grid grid-cols-[22px_minmax(0,1fr)] gap-3">
             {/* 레일: 회차 점 + 연결선 */}
             <div className="flex flex-col items-center" aria-hidden="true">
               <span

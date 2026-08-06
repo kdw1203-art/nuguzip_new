@@ -922,7 +922,7 @@ export default async function ComplexHubPage({
       )}
 
       {/* 본문 — 모바일 1열(시안), 데스크탑 2열 확장 */}
-      <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_380px]">
+      <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
         <ComplexHubTabs
           aiTitle={v.aiTitle}
           aiBody={v.aiBody}

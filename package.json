@@ -52,6 +52,7 @@
     "check:env-key-names": "node ./scripts/check-env-key-names.mjs",
     "check:contrast-tokens": "node ./scripts/check-contrast-tokens.mjs",
     "check:route-links": "node ./scripts/check-route-links.mjs",
+    "check:sidebar-grid": "node ./scripts/check-sidebar-grid-minmax.mjs",
     "seed:public-data-bundled": "node ./scripts/seed-public-data-bundled.mjs",
     "generate:vapid": "node ./scripts/generate-vapid-keys.mjs",
     "generate:vapid:force": "node ./scripts/generate-vapid-keys.mjs --force",

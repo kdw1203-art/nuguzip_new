@@ -546,7 +546,7 @@ export default async function Home() {
         </section>
 
         {/* ================= 데스크탑 홈 ================= */}
-        <section className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-[1fr_340px]">
+        <section className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="flex flex-col gap-4">
             {/* 히어로 — KPI 제거, CTA 3종 + 루프 증명 */}
             <div

@@ -72,7 +72,7 @@ export default function PricePage() {
         <SimulationNotice />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* 좌: 산출 과정 + 분포 */}
         <div className="flex flex-col gap-3">
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] px-[22px] py-5">

@@ -142,7 +142,7 @@ export default async function TimingPage({
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_400px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* ── 월별 거래량 (실데이터) — 예전 이 자리의 "관양동 시세 사이클"은
               좌표를 손으로 찍은 그림이었다. 실측 거래량 막대로 교체. ── */}
         <div className="rise-in-1 card flex flex-col gap-4 rounded-[20px] p-6">

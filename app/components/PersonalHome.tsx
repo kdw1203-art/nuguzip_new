@@ -622,7 +622,7 @@ export function PersonalHome() {
 
       {/* ===== 데스크탑 (9m) ===== */}
       <section className="mb-4 hidden flex-col gap-4 md:flex">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_420px]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
           {/* 잉크 다크 개인화 히어로 */}
           <div
             className="rise-in relative flex flex-col gap-4 overflow-hidden rounded-[22px] px-7 py-[26px]"

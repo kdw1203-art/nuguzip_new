@@ -43,7 +43,7 @@ export function PressSummaryBlock({
         ))}
       </blockquote>
 
-      <dl className="mt-3 grid grid-cols-1 gap-1.5 text-[12px] leading-[1.6] sm:grid-cols-[88px_1fr]">
+      <dl className="mt-3 grid grid-cols-1 gap-1.5 text-[12px] leading-[1.6] sm:grid-cols-[88px_minmax(0,1fr)]">
         <dt className="font-bold text-text-2">출처 표기</dt>
         <dd className="text-text-1">누구집(nuguzip.com), 국토교통부 실거래 신고 기반 자체 집계</dd>
         <dt className="font-bold text-text-2">집계 방법</dt>

@@ -455,7 +455,7 @@ export default async function AuctionsPage({
         </div>
 
         {/* 2단 레이아웃 (청약 센터와 동일 구조) */}
-        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="flex flex-col gap-3">
             {/* a) 입찰 캘린더 카드 — 아래 진행·예정 목록에서 파생된 실데이터 마킹 */}
             <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">

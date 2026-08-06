@@ -381,7 +381,7 @@ export default async function QnaListPage({
           )}
         </p>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_340px]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* ── 본문 ───────────────────────────────── */}
           <div className="flex flex-col gap-4">
             <div className="rise-in-2">

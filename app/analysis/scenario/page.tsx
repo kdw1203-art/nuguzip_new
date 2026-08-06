@@ -246,7 +246,7 @@ export default function ScenarioPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_1fr]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
         {/* 조건 설정 */}
         <div className="rise-in-1 card flex flex-col gap-3.5 rounded-[20px] p-[22px]">
           <div className="text-[15px] font-extrabold text-ink">조건 설정</div>

@@ -209,7 +209,7 @@ export default async function TownNewsDetailPage({
           자세한 경위는 PostInteractions.tsx 주석 참고. */}
       <PostActions postId={post.id} title={title} saveCount={saveCount} />
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-4">
           {/* ---------- 기사 본문 ---------- */}
           <article className="rise-in card flex flex-col gap-4 rounded-[20px] p-7">

@@ -214,7 +214,7 @@ export default async function SupplyPage({
         </div>
 
         {/* 2단 레이아웃 (청약 센터: 본문 + 우측 사이드) */}
-        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* ── 본문 ── */}
           <div className="flex flex-col gap-3">
             {/* 월별 입주 물량 — apartment_supply 실집계(월·세대수) */}
