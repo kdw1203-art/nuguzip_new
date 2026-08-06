@@ -1,0 +1,140 @@
+-- etl_runs 익명 조회가 401 로 죽던 것을 고친다 — 정책이 부르는 함수의 EXECUTE 권한.
+-- 적용: 2026-08-06 17:47:41 UTC (원격 선적용 → 이 파일은 원장 미러)
+--
+-- ── 무엇이 새고 있었나 (실측) ───────────────────────────────────────────────
+-- 브라우저 번들에 실려 나가는 publishable 키로
+--   GET /rest/v1/etl_runs?select=id&limit=1
+-- 를 치면 HTTP **401** 에 다음 본문이 돌아왔다:
+--   {"code":"42501","details":null,"hint":null,
+--    "message":"permission denied for function is_admin"}
+-- DB 층에서도 같다: `set local role anon; select count(*) from public.etl_runs;`
+--   → ERROR: 42501: permission denied for function is_admin
+--
+-- 원인은 RLS 가 아니라 **정책이 부르는 함수의 EXECUTE 권한**이다.
+--   etl_runs_admin_read = FOR SELECT **TO public** USING (is_admin())
+-- 정책이 `public` 으로 걸려 있으니 anon 도 이 표현식을 평가한다. 그런데
+-- 스키마 없이 쓴 `is_admin()` 은 search_path 로 `public.is_admin` 에 붙고,
+-- 그 ACL 은 `{postgres=X/postgres, authenticated=X/postgres, service_role=X/postgres}`
+-- — **anon 에게 EXECUTE 가 없다**. 그래서 RLS 가 "행 0개"로 조용히 끝내야 할
+-- 자리에서, 쿼리 전체가 42501 로 죽으면서 내부 관리자 헬퍼의 **이름까지** 새어
+-- 나갔다. 23행짜리 내부 ETL 로그 표 하나 때문에.
+--   → 정책 표현식은 컬럼 권한은 요구하지 않지만, 함수 EXECUTE 권한은 요구한다.
+--
+-- 같은 부류의 선례가 이미 있다: 20260802113611 은 app_users GRANT 회수 뒤
+-- 그 표를 직접 참조하던 정책들이 42501 이 되는 것을 SECURITY DEFINER 헬퍼로
+-- 막았다. 이번 건은 그때 손대지 않은 표 하나가 남아 있던 것이다.
+--
+-- ── 범위: 정규식으로 세지 말고 pg_depend 로 전수로 센다 ─────────────────────
+-- 처음에 pg_policies.qual 정규식만으로 "15개 표가 잠재 42501" 이라고 적었다.
+-- **틀렸다.** roles 컬럼을 같이 읽으니 나머지는 전부 {authenticated} 였고,
+-- authenticated 는 public.is_admin 에 EXECUTE 가 있다. 즉 도달조차 안 한다.
+--   → 정책이 부르는 함수는 정규식이 아니라 pg_depend 로 센다.
+--     그리고 roles 를 안 보면 15개처럼 보인다.
+--
+-- 정확한 간선 집합 (정규식 없음, 카탈로그 의존관계 전수 249건):
+--   select ns.nspname||'.'||c.relname as tbl, p.polname, pn.nspname||'.'||pr.proname as fn,
+--          pg_policies.roles
+--     from pg_depend d
+--     join pg_policy   p  on p.oid = d.objid
+--     join pg_class    c  on c.oid = p.polrelid
+--     join pg_namespace ns on ns.oid = c.relnamespace
+--     join pg_proc     pr on pr.oid = d.refobjid
+--     join pg_namespace pn on pn.oid = pr.pronamespace
+--    where d.classid = 'pg_policy'::regclass
+--      and d.refclassid = 'pg_proc'::regclass
+--      and (p.polroles = '{0}'::oid[] or 'anon'::regrole = any(p.polroles))
+--      and not has_function_privilege('anon', pr.oid, 'execute');
+-- 적용 전 결과: **1행** (public.etl_runs / etl_runs_admin_read / public.is_admin(uuid))
+--   — 249개 간선 중 정확히 1건. 51개 정책이 polroles = PUBLIC 이지만 나머지
+--     50개가 부르는 함수는 anon 이 전부 실행할 수 있다.
+-- 훑기가 살아 있다는 증거: has_function_privilege 조건을 뒤집으면 **53행**.
+--   → 고쳐 놓고 0건이 나오는 건 아무것도 증명하지 않는다.
+--
+-- ── 왜 이 방법인가 (기각한 안을 남긴다) ─────────────────────────────────────
+-- (a) anon 의 etl_runs 표 SELECT 회수
+--     위생상 맞지만 이 결함은 안 고친다 — 42501 이 가리키는 **객체 이름만**
+--     is_admin → etl_runs 로 바뀔 뿐 여전히 401 이다. anon 읽기 GRANT 전수
+--     조사는 별건이고 아직 시작하지 않았다 (2026-08-06 작업은 **쓰기**만 닫았다).
+-- (b) anon 에게 public.is_admin EXECUTE 부여
+--     **기각.** public 이 곧 PostgREST 노출 스키마다. 부여하는 순간
+--     `POST /rest/v1/rpc/is_admin` 으로 임의 uuid 가 관리자인지 캐물을 수 있는
+--     오라클을 익명에게 열어 준다.
+-- (c) private.is_admin() 으로 갈아탄다  ← 채택
+--     · anon 에게 2026-06-21 부트스트랩(20260621121742)부터 명시적으로
+--       EXECUTE 가 부여돼 있고 PUBLIC 은 회수돼 있다.
+--     · 결과가 같다는 것을 짐작하지 않고 재 봤다: 관리자 uuid → 양쪽 true,
+--       비관리자 uuid → 양쪽 false.
+--     · private 스키마는 PostgREST 에 노출돼 있지 않다. 짐작이 아니라 실측:
+--       `Accept-Profile: private` → HTTP 406
+--       {"code":"PGRST106","message":"Invalid schema: private"}
+--       hint: "Only the following schemas are exposed: public, graphql_public"
+--       → (b) 가 열어 줄 오라클이 (c) 에서는 애초에 도달 불가다.
+-- (d) 정책 대상을 TO authenticated 로 좁힌다  ← 함께 채택
+--     관리자는 정의상 로그인 상태다. 이 DB 의 다른 모든 관리자 읽기 정책이
+--     이미 {authenticated} 다. (c) 만 해도 401 은 사라지지만, (d) 까지 해야
+--     anon 이 이 표현식을 평가할 일 자체가 없어진다.
+--
+-- ── 쓰기 경로가 안 깨지는지 먼저 확인했다 ───────────────────────────────────
+-- etl_runs 의 유일한 기록자는 public.refresh_market_aggregates (SECURITY DEFINER).
+--   · service_role / postgres / supabase_admin 은 rolbypassrls = true
+--   · etl_runs.relforcerowsecurity = false → 소유자(postgres)도 우회
+-- 즉 SELECT 정책을 좁혀도 적재 경로는 영향이 없다. (실측 후 적용)
+--
+-- ── 적용 후 실측 ────────────────────────────────────────────────────────────
+--   [REST, publishable 키] etl_runs?select=id&limit=1 → **HTTP 200**, 본문 `[]`
+--     (401 → 200. 행은 안 보이지만 이게 맞는 동작이다 — RLS 는 조용히 0행이다.)
+--   [정책 현재 상태] {"cmd":"SELECT","name":"etl_runs_admin_read",
+--                    "roles":"{authenticated}","qual":"private.is_admin()"}
+--   [관리자] role='admin' 프로필 1명의 jwt sub + set local role authenticated
+--            → **23행** (적용 전과 같다 — 기능이 안 죽었다는 증거)
+--   [비관리자] role≠'admin' 프로필 11명 → **0행**
+--   [전수 재훑기] 위 pg_depend 질의 → **0행**, 조건 반전 시 **53행** (기계 살아 있음)
+--   [양성 대조] board_posts?select=id (562행) → 200 + 실제 행 (키가 살아 있다)
+--   [음성 대조] inspection_notes?select=author_email → 401 permission denied
+--               (직전 커밋 20260806163853 이 막은 것 — 그건 그대로 막혀 있다)
+--   ※ 0행짜리 표를 대조로 쓰지 않았다. chat_rooms·map_related_experts 로 먼저
+--     재려다 둘 다 0행이라 qual 이 평가조차 되지 않는 것을 확인하고 버렸다.
+--     → 0행짜리 표는 대조가 아니다. 대조로 쓰기 전에 행 수를 먼저 센다.
+--
+-- ── 못 밝힌 것 (짐작해서 적지 않는다) ───────────────────────────────────────
+-- public.is_admin 의 현재 ACL 을 만든 grant/revoke 는 **원장 258행·662문
+-- 어디에도 없다.** 문 단위로 쪼개고, 줄바꿈을 접고, `on all functions in
+-- schema` 와일드카드까지 훑었다 (0건). 훑기가 죽은 게 아니라는 증거로 같은
+-- 기계를 `on all tables in schema` 로 바꿔 대 보니 4건이 나왔다
+-- (20260803223121 / 20260803224240 / 20260804103713 / 20260806171024).
+-- DO 루프로 권한을 조이는 3개 마이그레이션도 전문을 읽었다:
+--   20260719223337 (명시 목록, is_admin_request() 를 anon 에서 회수)
+--   20260725143944 / 20260727073106 (service_only·authed_ok 두 배열만 순회 —
+--     주석이 is_admin 을 안 건드린다고 적혀 있고, 본문도 실제로 안 건드린다.
+--     주석을 믿은 게 아니라 코드를 읽고 확인했다.)
+--   20260727073158 (popular_complexes 한정)
+-- 결론: 이 ACL 은 **원장 밖에서** (execute_sql 또는 대시보드로) 적용됐다.
+-- 어느 마이그레이션인지 지어내지 않는다. 원장에 없는 것은 원장 밖의 일이다.
+--
+-- ── 이 부류를 막는 자동 게이트는 아직 **없다** ──────────────────────────────
+-- "anon 에게 도달하는 정책이 anon 이 실행 못 하는 함수를 부른다" 는 파일이
+-- 아니라 **DB 의 현재 상태**로만 판정된다. scripts/check-migration-grants.mjs
+-- 는 마이그레이션 텍스트만 읽으므로 이 결함을 잡을 수 없고, 이 컨테이너의
+-- Node 는 Supabase 에 닿지 못한다(curl 은 닿는다). 그래서 지금 이 결함은
+-- **사람이 위 pg_depend 질의를 돌려야만** 재발을 안다. 가려 두지 않고 적어 둔다.
+--
+-- 남은 관련 사실 두 가지 (별건으로 처리):
+--   1) anon 은 여전히 public.etl_runs 에 표 SELECT 권한(anon=r)을 갖는다.
+--      Supabase 부트스트랩 기본권한에서 온 것이고, 지금은 정책이 {authenticated}
+--      라 행이 안 나간다. anon **읽기** GRANT 전수 조사는 미착수.
+--   2) public.is_admin_request() 는 아직 =X/postgres (PUBLIC EXECUTE) 를 달고
+--      있어, 20260719223337 의 `REVOKE … FROM anon` 이 무력하다 — anon 이
+--      실행할 수 있다. 20260727073106 이 고치려던 바로 그 부류인데 건너뛰었다.
+--
+-- ── 되돌리기 ────────────────────────────────────────────────────────────────
+--   drop policy if exists etl_runs_admin_read on public.etl_runs;
+--   create policy etl_runs_admin_read on public.etl_runs
+--     for select to public
+--     using (is_admin());
+--   -- 단, 되돌리면 익명 GET /rest/v1/etl_runs 가 다시 401 + 함수 이름 노출이 된다.
+
+drop policy if exists etl_runs_admin_read on public.etl_runs;
+
+create policy etl_runs_admin_read on public.etl_runs
+  for select to authenticated
+  using (private.is_admin());

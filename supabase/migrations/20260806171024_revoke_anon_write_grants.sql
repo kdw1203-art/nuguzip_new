@@ -1,0 +1,161 @@
+-- anon 의 쓰기 권한을 회수한다.
+-- 적용: 2026-08-06 17:10:24 UTC (원격 선적용 → 이 파일은 원장 미러)
+--
+-- ── 무엇이 열려 있었나 (실측) ───────────────────────────────────────────────
+-- 브라우저 번들에 실려 나가는 publishable 키의 역할 anon 이, public 스키마
+-- 176개 관계 중 76개에 INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER 를,
+-- 81개에 MAINTAIN 을 갖고 있었다. 시퀀스 15개 전부에 USAGE/UPDATE 도 있었다.
+-- (PG 17.6 의 MAINTAIN = VACUUM/ANALYZE/CLUSTER/REINDEX/REFRESH MV)
+--
+-- 전부 anon 에게 **직접** 부여된 것이다. PUBLIC 경유도, 역할 상속도 아니다:
+-- aclexplode 로 세어 보니 has_table_privilege 개수와 정확히 일치했고
+-- (76/74/81/76/76/76/76), anon·authenticated 둘 다 소속 역할이 (none) 이다.
+-- 그래서 `revoke … from anon` 이 실제로 먹는다.
+--
+-- ── "RLS 가 막아 준다"는 말이 틀린 지점 ──────────────────────────────────────
+-- 처음엔 죽은 권한이라고 생각했다. anon 에 걸리는 쓰기 정책 29개를 하나도
+-- 빠뜨리지 않고 분류했더니 17개가 auth.email(), 10개가 is_admin_request(),
+-- 1개가 auth.uid(), 1개가 auth.role()='service_role' 를 요구했고, anon 이 되어
+-- 재 보니 셋 다 NULL 에 is_admin_request() 는 false 였다. 즉 anon 의 INSERT/
+-- UPDATE/DELETE 는 행 내용과 무관하게 **절대** 통과할 수 없다.
+--
+-- 그런데 TRUNCATE 는 RLS 의 대상이 아니다. 일회용 표로 재 봤다:
+--   정책이 하나도 없는 RLS 표에서 anon 의 DELETE → 0행 (성공하되 안 지움)
+--   같은 표에서 anon 의 TRUNCATE          → **성공, 5행 전부 사라짐**
+-- 지금 안 터지는 유일한 이유는 PostgREST 에 TRUNCATE 동사가 없다는 것뿐이다.
+--   → 방어적으로 보이는 조건이 절대 안 걸리면, 그건 방어가 아니라 거짓 안전망이다.
+--
+-- ── 왜 REVOKE ALL 이 아닌가 ─────────────────────────────────────────────────
+-- ALL 을 쓰면 직전 커밋(412e9e5)이 만든 **컬럼 단위 SELECT 부여 54개**가 같이
+-- 날아간다. 그러면 이메일이 다시 새거나(표 단위 GRANT 로 되돌아가서) 공개 노트
+-- 목록이 통째로 42501 로 죽는다. 동사를 하나씩 적는 게 장황해 보여도 그게 맞다.
+--
+-- ── 이 구멍은 어디서 왔나 (짐작하지 않고 원장까지 뒤졌다) ───────────────────
+-- 처음엔 "옛 마이그레이션의 명시적 grant 가 냈고 그래서 정적 게이트로 잡힌다"
+-- 고 적었다. **틀렸다.** 세어 보니 그런 문장이 없다:
+--   · 저장소 마이그레이션 파일 82개: `grant <쓰기동사> … to anon` **0건**
+--     (파서가 죽어서 0건인 게 아니다 — 같은 파서가 grant 90 / revoke 79 문장을
+--      뽑아냈고, 맨 뒤에 한 줄 심으면 7가지 모양 전부 잡는다.)
+--   · 원장 258행: 딱 2건, 둘 다 INSERT (20260623013122 이 analytics_events 와
+--     map_events 에 준 것). 76개를 설명하지 못한다.
+--
+-- 진짜 원인은 **기본권한**이었다. Supabase 프로젝트 초기값이 public 에 새로
+-- 만드는 모든 표를 anon·authenticated 에게 전권으로 열어 줬고, 그래서
+-- 2026-08-02 이전에 만든 표는 전부 `anon=arwdDxtm` 를 갖고 태어났다.
+-- 원장의 20260802104327(sec_lock_default_privileges_public)이 그 기본값을 껐지만
+-- 그 파일 스스로 이렇게 적어 두었다 — "**앞으로 만들 객체**의 기본 grant 만 끈다.
+-- 기존 객체는 그대로다." 맞는 말이고, 그래서 그날 이전의 76개가 그대로 남았다.
+-- 그 잠금은 tables 와 functions 만 만졌다. **sequences 를 빠뜨렸다.**
+-- 그래서 시퀀스 기본값은 나흘 뒤에도 `anon=rwU` 였고, 이 파일이 그걸 닫는다.
+--   → 정적 게이트(Rule C)는 이 구멍을 잡을 수 없었다. 파일에 없던 것이기 때문이다.
+--     Rule C 는 "다음에 누가 파일로 다시 여는 것"만 막는다. 그 한계를 적어 둔다.
+--
+-- ── 미래 객체가 정말 닫혔는지 (카탈로그를 읽지 않고 만들어 봤다) ────────────
+-- postgres 로 public 에 표 하나를 만들고(bigserial 포함) 바로 지웠다:
+--   새 표  relacl = `postgres=arwdDxtm | service_role=arwdDxtm`
+--          anon 의 insert/truncate/select 전부 false
+--   새 시퀀스 relacl = `postgres=rwU | anon=r | authenticated=rwU | service_role=rwU`
+--          anon 의 usage false  (이 파일 적용 전이었다면 `anon=rwU`, usage true)
+-- pg_default_acl 을 읽는 것보다 이쪽이 낫다 — 기본권한은 객체 종류마다 다르고,
+-- "봤다"로 뭉뚱그리면 절반을 놓친다.
+--
+-- ── 못 고치는 것 (짐작이 아니라 시도해 보고 적는다) ─────────────────────────
+-- defaclrole=supabase_admin 의 public 표 기본값은 anon 에게 `arwdDxtm` 를 준다.
+-- 고치려 했더니 42501 permission denied to change default privileges 였다
+-- (current_user=postgres, is_member_of_supabase_admin=false).
+-- 지금은 무해하다 — public 의 176개 관계가 **전부 postgres 소유**라 이 규칙이
+-- 한 번도 적용된 적이 없다. 하지만 supabase_admin 이 public 에 표를 만들면
+-- 그때 다시 열린다. 이 파일은 그걸 막지 못한다. 막지 못하는 것은 막지 못한다고
+-- 적어 둔다.
+--
+-- ── authenticated 는 왜 I/U/D 를 남기나 ─────────────────────────────────────
+-- auth.users 에 실제 사용자가 12명 있다. NextAuth 가 앱 세션을 담당하지만
+-- Supabase Auth(GoTrue)도 비밀번호 재설정·이메일 확인에 살아 있어서
+-- authenticated 는 오늘 도달 가능한 역할이다. 정책 17개가 auth.email() 기준으로
+-- 설계돼 있으므로 I/U/D 를 지우면 기능이 죽는다.
+-- 반면 TRUNCATE/REFERENCES/TRIGGER/MAINTAIN 은 RLS 가 애초에 못 막는 데다
+-- 쓰는 곳이 없다(아래 실측). 그것만 회수한다.
+--   → 겹침을 없애되 존재를 지우지 않는다.
+--
+-- ── 회수해도 안전하다는 근거 (전부 실측) ────────────────────────────────────
+--   · 앱은 anon 키로 쓰지 않는다: Supabase 쓰기 체인 244곳/파일 1099개를 훑어
+--     전부 getServiceSupabase() 에 묶였다(243곳 확정, 1곳은 매개변수로 받은
+--     서비스 클라이언트라 손으로 확인). 브라우저 클라이언트는 .from() 을 한 번도
+--     쓰지 않고 GoTrue(verifyOtp/getSession/onAuthStateChange/updateUser)만 만진다.
+--   · MV 를 새로 고치는 함수 2개(refresh_market_aggregates,
+--     refresh_market_aggregates_impl)는 둘 다 SECURITY DEFINER 이고 anon·
+--     authenticated 어느 쪽도 EXECUTE 권한이 없다 → MAINTAIN 회수 무관.
+--   · REFERENCES/TRIGGER 는 스키마 CREATE 권한이 있어야 쓸 수 있는데
+--     has_schema_privilege(anon|authenticated,'public','CREATE') 가 둘 다 false 다.
+--   · 시퀀스를 만지는 SECURITY INVOKER 함수는 anon·authenticated 양쪽 다 0개.
+--     serial 기본값을 쓰는 표 3개(apartment_supply, court_auctions,
+--     onbid_auctions)는 authenticated 가 계속 INSERT 해야 하므로
+--     authenticated 의 시퀀스 권한은 **건드리지 않았다**.
+--   · public 의 176개 관계와 시퀀스 15개가 전부 postgres 소유이고 접속 역할도
+--     postgres 다 → REVOKE 가 경고만 내고 지나가는 일이 없다.
+--     (execute_sql 은 NOTICE 를 안 돌려주므로, 침묵을 믿지 않고 숫자로 확인했다.)
+--
+-- ── 적용 후 실측 ────────────────────────────────────────────────────────────
+-- 개수 (before → after):
+--   anon INSERT 74→0 · UPDATE 76→0 · DELETE 76→0 · TRUNCATE 76→0
+--        REFERENCES 76→0 · TRIGGER 76→0 · MAINTAIN 81→0
+--   anon 쓰기 가능한 관계 76→0, 남은 것 (none)
+--   anon 시퀀스 USAGE 15→0 · UPDATE 15→0
+--   기본권한(public/시퀀스/postgres): `anon=rwU` → `anon=r`
+--   authenticated TRUNCATE 76→0 · REFERENCES 76→0 · TRIGGER 76→0 · MAINTAIN 81→0
+-- 지켜져야 하는 것 (전부 그대로):
+--   authenticated INSERT 80 · UPDATE 80 · DELETE 79 · 시퀀스 USAGE 15
+--   anon 표 단위 SELECT 87 · inspection_notes 컬럼부여 54 ·
+--   inspection_notes.author_email anon 접근 false · reports 컬럼부여 20
+--
+-- 숫자만으로는 아무것도 증명되지 않아서(고쳐 놓고 0건이 나오는 건 아무것도
+-- 증명하지 않는다) 같은 실험을 다시 돌렸다:
+--   1) 회수 전 권한을 일회용 표에 재현 → anon TRUNCATE **성공**, 5행 중 0행 남음
+--      (= 이 측정기가 그 결함을 실제로 잡는다)
+--   2) 같은 표에 이 파일의 회수문을 그대로 적용 → 42501, 5행 중 5행 남음
+--      (회수문을 실행한 **뒤에** 만든 표까지 덮이는지도 같이 확인됨)
+--   3) 진짜 표(app_users)에서 anon TRUNCATE → 42501, 행수 2→2
+--      성공했으면 강제로 예외를 던져 되돌리도록 짰다. 어느 쪽이든 데이터는 남는다.
+--   4) 진짜 표에서 anon INSERT → 42501 (같은 방식으로 롤백 보장)
+--
+-- ── 읽기 회귀 (anon 이 되어 전수) ───────────────────────────────────────────
+-- anon 이 표 단위 SELECT 를 가진 87개를 전부 실제로 읽어 봤다: 86개 통과.
+-- 1개(etl_runs)가 42501 인데 **이 변경과 무관한 기존 결함**이다 — 이 파일은
+-- 함수 권한을 건드리지 않는다. 원인은 정책 etl_runs_admin_read 가 부르는
+-- public.is_admin() 에 anon 의 EXECUTE 가 없어서다(별도 마이그레이션에서 처리).
+-- 컬럼 단위로만 열어 둔 두 표도 따로 확인: inspection_notes 허용 컬럼 8행 통과,
+-- author_email 은 42501 로 계속 막힘, reports 통과.
+--
+-- ── 이 측정의 한계 ──────────────────────────────────────────────────────────
+-- 운영 REST 엔드포인트에 실제 POST/PATCH/DELETE 를 쏘는 확인은 하지 않았다
+-- (자동 승인 분류기가 막았고, 우회하지 않았다). 그래서 위 실측은 전부 DB 계층
+-- (set local role anon + has_table_privilege + 일회용 표)에서 이뤄졌다.
+-- PostgREST 가 권한 오류를 어떤 HTTP 코드로 바꾸는지는 이 파일이 재지 않았다.
+--
+-- ── 되돌리기 ────────────────────────────────────────────────────────────────
+--   grant insert, update, delete, truncate, references, trigger, maintain
+--     on all tables in schema public to anon;
+--   grant usage, update on all sequences in schema public to anon;
+--   alter default privileges in schema public grant usage, update on sequences to anon;
+--   grant truncate, references, trigger, maintain on all tables in schema public to authenticated;
+--   -- 되돌리면 anon 이 아무 표나 TRUNCATE 할 수 있는 상태로 돌아간다.
+
+-- ── anon: 쓰기 동사 전부 회수 ────────────────────────────────────────────────
+revoke insert, update, delete, truncate, references, trigger, maintain
+  on all tables in schema public from anon;
+
+-- ALL TABLES 가 매트뷰를 포함하는지 외우지 않는다. 명시로 한 번 더 건다(중복이면 무해).
+revoke insert, update, delete, truncate, references, trigger, maintain
+  on table public.complex_tx_stats_base from anon;
+
+-- 시퀀스: nextval/setval 능력만 뺀다. SELECT(currval 읽기)는 이 파일의 범위가 아니다.
+revoke usage, update on all sequences in schema public from anon;
+
+alter default privileges in schema public revoke usage, update on sequences from anon;
+
+-- ── authenticated: RLS 가 절대 못 막는 것만 회수 (I/U/D 는 남긴다) ───────────
+revoke truncate, references, trigger, maintain
+  on all tables in schema public from authenticated;
+
+revoke truncate, references, trigger, maintain
+  on table public.complex_tx_stats_base from authenticated;
