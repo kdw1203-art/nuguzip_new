@@ -13,7 +13,7 @@ import {
   listNotesByAuthorForComplex,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
-import { CoverImage } from "@/app/components/CoverImage";
+import { NotePhotoCarousel } from "./NotePhotoCarousel";
 import { safeAuth } from "@/lib/safe-auth";
 import { monthlyPrice } from "@/lib/subscriptions/billing-periods";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
@@ -660,9 +660,14 @@ export default async function NoteDetailPage({
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_400px]">
+      {/* `1fr` 은 `minmax(auto, 1fr)` 이라 왼쪽 트랙이 min-content 아래로 안 줄었다.
+          사진 썸네일 10장(가로 1172px)이 트랙을 밀어 올려, 400px 사이드바(판단
+          근거·점수 축)가 통째로 컨테이너 밖으로 나가 있었다 — 실측: 뷰포트 1296
+          에서 문서 scrollWidth 1690, 왼쪽 칼럼 1222px, aside 오른쪽 끝 1690.
+          minmax(0,1fr) + min-w-0 로 고치면 왼쪽 780 / aside 848~1248 로 붙는다. */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* ===== 좌측: 노트 본문 (20a 표준 구조) ===== */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {/* 노트 카드 — 20a 표준 11항목 */}
           <div className="rise-in card flex flex-col gap-3.5 rounded-[20px] p-6">
             {/* ① 지역·단지 칩 */}
@@ -720,27 +725,13 @@ export default async function NoteDetailPage({
               </div>
             </div>
 
-            <p className="text-sm leading-[1.7] text-text-1">{v.body}</p>
+            {/* 현장 사진 — 큰 무대 + 좌우 클릭 전환. 예전에는 110×78 썸네일을
+                가로로 늘어놓기만 해서 차트가 섞인 사진을 읽을 수 없었다.
+                본문 글은 사진 아래로 내린다(요청). slice(0,10) 로 조용히 잘라
+                내던 것도 없앴다 — 캐러셀은 장수에 상관없이 다 보여 준다. */}
+            {v.photos.length > 0 && <NotePhotoCarousel photos={v.photos} />}
 
-            {/* 현장 사진 — 업로드된 실제 사진 노출 */}
-            {v.photos.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto">
-                {v.photos.slice(0, 10).map((p, i) => (
-                  <div key={p} className="h-[78px] w-[110px] shrink-0 overflow-hidden rounded-[10px] bg-bg">
-                    <CoverImage
-                      src={p}
-                      alt={`현장 사진 ${i + 1}`}
-                      imgClassName="h-full w-full object-cover"
-                      fallback={
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] font-mono text-[10px] text-text-3">
-                          현장 사진
-                        </div>
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="text-sm leading-[1.7] text-text-1">{v.body}</p>
 
             {/* ⑤⑥ 좋았던 점 · 주의할 점 */}
             <div className="rounded-[14px] border border-line bg-surface p-3.5 text-xs leading-[1.7] text-text-1">
