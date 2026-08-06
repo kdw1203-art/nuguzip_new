@@ -1,6 +1,7 @@
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
 import { EmptyState } from "@/app/components/ui/EmptyState";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* ============================================================
    사이클 전망 — 전망 모델이 없으므로 전망 그림을 그리지 않는다.
@@ -31,6 +32,24 @@ const SCENARIO_ASSUMPTIONS = [
   { name: "기준", tone: "text-primary", cond: "금리 동결 · 과거 사이클 평균 회복" },
   { name: "보수적", tone: "text-text-3", cond: "금리 인상 · 입주 물량 증가" },
 ] as const;
+
+/* 최적화 10 — 이 화면의 <title> 이 홈과 **글자 하나까지 같았다**
+   ("누구집 — 임장 기록이 판단 근거가 됩니다"). 오늘 실측: 프리렌더된
+   108개 페이지 중 14개가 이 제목을 공유했고, 그중 홈만 맞는 제목이었다.
+   같은 제목이 여러 URL 에 걸리면 검색 결과에서 어느 게 뭔지 구분되지 않고,
+   브라우저 탭·북마크·방문 기록도 전부 "홈"으로 보인다.
+
+   noIndex 를 같이 거는 이유는 SEO 기교가 아니라 사실 우선이다. 이 화면의
+   본문은 전부 "가격 전망 그래프는 아직 없어요" 다. 색인되면 검색 결과에
+   "사이클 전망 | 누구집" 이라는 제목만 뜨고, 눌러서 들어온 사람은 없는
+   기능을 만난다 — 검색 결과 한 줄이 곧 빈 약속이 된다. 전망 모델이 실제로
+   붙는 날 noIndex 를 떼면 된다. */
+export const metadata = buildPageMetadata({
+  title: "사이클 전망",
+  description: "가격 사이클 전망 모델은 아직 준비 중입니다. 지금은 지역 시세와 임장노트로 판단 근거를 모을 수 있어요.",
+  path: "/analysis/cycle",
+  noIndex: true,
+});
 
 export default function CyclePage() {
   return (

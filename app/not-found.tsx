@@ -1,4 +1,21 @@
 import Link from "next/link";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+/* 최적화 10 — 404 화면의 <title> 이 홈과 글자 하나까지 같았다. 주소를 잘못
+   눌러 404 로 떨어져도 탭·방문 기록에는 "누구집 — 임장 기록이 판단 근거가
+   됩니다" 로 남아서, 나중에 기록을 되짚을 때 홈에 다녀온 것처럼 보였다.
+   (not-found.tsx 에서 metadata export 가 먹는지는 문서로 믿지 않고 빌드
+   산출물 _not-found.html 을 열어 확인했다 — 먹는다.)
+
+   noIndex 는 **일부러 빼 뒀다**. 넣었더니 같은 문서에 robots 메타가 두 개
+   나왔다(Next 가 404 에 자동으로 붙이는 `noindex` + 내 `noindex, nofollow`).
+   색인 차단은 어차피 Next 쪽이 이미 하고 있고, 겹쳐 봐야 서로 다른 값 두 개를
+   내보내는 것뿐이다. 게다가 남는 `noindex`(follow 허용) 쪽이 404 에는 더 맞다 —
+   크롤러가 이 화면의 "홈으로" 링크는 따라가는 편이 낫다. */
+export const metadata = buildPageMetadata({
+  title: "페이지를 찾을 수 없어요",
+  description: "주소가 바뀌었거나 삭제된 페이지입니다.",
+});
 
 export default function NotFound() {
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* P0-5 목업 정직화: 자산 등록은 예시 화면 — 저장·자동 시세 등 실기능 미연동을
    명시하고 죽은 버튼을 정직한 상태로 교체 */
@@ -29,6 +30,19 @@ function ExampleRow({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+/* 최적화 10 — 홈과 같은 제목을 달고 있던 화면(analysis/cycle/page.tsx 주석 참고).
+   여긴 noIndex 근거가 하나 더 있다: 이 화면은 <ExampleBadge/> 가 붙은 **예시
+   화면**이고, 화면의 숫자(남은 대출금 2.1억, 납부 이자 6,240만 …)는 누구의
+   것도 아니다. 색인되면 검색 결과에서 "자산 등록"으로 들어온 사람이 남의 것도
+   자기 것도 아닌 숫자를 만난다 — 배지는 화면 안에서만 보이지 검색 결과에는
+   안 따라간다. 실제 저장이 붙는 날 배지와 함께 noIndex 를 뗀다. */
+export const metadata = buildPageMetadata({
+  title: "자산 등록",
+  description: "보유 자산과 대출을 등록하는 화면입니다. 현재는 예시 화면이며 저장·자동 시세는 연동되지 않았습니다.",
+  path: "/my/assets",
+  noIndex: true,
+});
 
 export default function AssetsPage() {
   return (

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { NextActions } from "../../components/NextActions";
 import { EmptyState } from "@/app/components/ui/EmptyState";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* ============================================================
    갈아타기 추천 — 추천 엔진이 아직 없어 화면 전체를 빈 상태로 되돌렸다.
@@ -24,6 +25,16 @@ import { EmptyState } from "@/app/components/ui/EmptyState";
    추천은 등록 자산·프로필 조건과 실거래·지수 데이터가 붙어야 계산할 수 있다.
    그때까지는 없는 걸 없다고 말하고, 지금 실제로 되는 화면으로 보낸다.
    ============================================================ */
+
+/* 최적화 10 — 홈과 같은 제목을 달고 있던 화면(cycle/page.tsx 주석 참고).
+   본문이 "갈아타기 추천은 아직 준비 중이에요" 하나뿐이라 색인은 걸지 않는다.
+   제목은 h1 과 맞춘다 — 탭·북마크·방문 기록에서 홈과 구분되게. */
+export const metadata = buildPageMetadata({
+  title: "갈아타기 추천 지역",
+  description: "갈아타기 추천 엔진은 아직 준비 중입니다. 지금은 지역 시세와 공개 임장노트로 후보를 비교할 수 있어요.",
+  path: "/analysis/switch",
+  noIndex: true,
+});
 
 export default function SwitchPage() {
   return (
