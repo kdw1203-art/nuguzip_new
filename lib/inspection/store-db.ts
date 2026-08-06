@@ -1,5 +1,5 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
-import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import { getReadOnlySupabase, readOnlyClientHasServiceRole } from "@/lib/newui/supabase-read";
 import { WORKBENCH_COMPLEXES, compositeScore } from "@/lib/ai/workbench-constants";
 
 export type InspectionScores = {
@@ -253,9 +253,38 @@ export async function listPublicNotes(limit = 50): Promise<InspectionNote[]> {
         "NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_ANON_KEY 도 설정되지 않았습니다.",
     );
   }
-  const { data, error } = await sb
-    .from("inspection_notes")
-    .select("*")
+  /* ── 왜 `select("*")` 가 아닌가 (2026-08-06) ──────────────────────────────
+     `author_email` 은 anon 이 PostgREST 로 그대로 읽을 수 있었다. 브라우저
+     번들에 실려 나가는 publishable 키로 `inspection_notes?select=author_email`
+     을 치면 8행 전부가 주인 주소를 그대로 돌려줬다 — 실측했다. 지난번에 이
+     결함을 `/api/inspection/notes` 응답에서만 지웠는데, **앱의 문이 유일한
+     문이 아니었다.** 그래서 컬럼 GRANT 로 DB 쪽을 막았다(20260806…).
+
+     그러면 여기가 걸린다: 컬럼 GRANT 아래에서 anon 의 `select=*` 는 컬럼을
+     조용히 빼 주는 게 아니라 **통째로 42501** 이 된다. 이 함수는 서비스 롤이
+     없을 때 anon 으로 떨어지므로(getReadOnlySupabase), `*` 를 그대로 두면
+     그 경로에서 공개 노트 목록이 통째로 죽는다.
+
+     그래서 클라이언트가 실제로 무엇인지 보고 컬럼을 고른다.
+     · 서비스 롤 → 지금까지와 **한 글자도 다르지 않은** 결과(이메일 포함).
+       운영 런타임은 전부 이 쪽이다.
+     · anon 폴백 → 이메일만 빼고 나머지는 그대로. 목록은 산다.
+     조건을 안 걸고 이메일을 늘 빼면 반대편이 깨진다: /api/me/follows/feed 는
+     `followedSet.has(n.authorEmail)` 로 피드를 맞춘다. 그건 화면 장식이 아니라
+     기능이라, 조용히 0건이 되면 "팔로우한 이웃이 글을 안 썼다"는 없는 사실이
+     나간다.
+
+     ※ `.select()` 인자는 **한 줄 리터럴**이어야 한다. 삼항으로 고르더라도
+       각 가지가 리터럴이어야 supabase-js 가 타입 수준에서 컬럼을 읽는다
+       (문자열을 이어 붙이면 data 가 GenericStringError[] 로 떨어진다).
+     ※ `*` 를 버린 김에 mapRow 가 실제로 읽는 23개만 남겼다. 나머지 32개는
+       읽어 와서 버리던 컬럼이다(body_md·check_items·risk_notes·… 실측 아래
+       마이그레이션 헤더 참고). */
+  const table = sb.from("inspection_notes");
+  const q = readOnlyClientHasServiceRole()
+    ? table.select("id,author_email,author_label,title,region,apt_name,visit_date,weather,transportation,summary,score_location,score_school,score_transport,score_facility,score_future,checklist,sections,photos,ai_analysis,metadata,is_public,created_at,updated_at")
+    : table.select("id,author_label,title,region,apt_name,visit_date,weather,transportation,summary,score_location,score_school,score_transport,score_facility,score_future,checklist,sections,photos,ai_analysis,metadata,is_public,created_at,updated_at");
+  const { data, error } = await q
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -265,7 +294,7 @@ export async function listPublicNotes(limit = 50): Promise<InspectionNote[]> {
         `${error.code ? ` [${error.code}]` : ""}${error.hint ? ` · 힌트: ${error.hint}` : ""}`,
     );
   }
-  return (data ?? []).map(mapRow);
+  return (data ?? []).map((r) => mapRow(r as Record<string, unknown>));
 }
 
 /** 목록 카드 한 장에 실제로 그려지는 것만. 본문·사진·jsonb 는 여기 없다. */
@@ -643,7 +672,13 @@ function normalizeChecklist(raw: unknown): InspectionChecklistItem[] {
 function mapRow(r: Record<string, unknown>): InspectionNote {
   return {
     id: r.id as string,
-    authorEmail: r.author_email as string,
+    /* 컬럼이 아예 안 실려 오는 경로가 생겼다(listPublicNotes 의 anon 폴백).
+       `as string` 만 두면 타입은 string 인데 값은 undefined 라, 이걸 그대로
+       `.split("@")` 하는 화면 5곳이 런타임에 죽는다. 빈 문자열로 받는다 —
+       소유권 검사(`note.authorEmail.toLowerCase() !== email`)는 빈 문자열에서
+       **닫히는 쪽으로** 틀린다. 다만 이건 진짜 빈 값이 아니라 "못 읽었다"는
+       뜻이므로, 이 값으로 "이 사람 노트 0건" 같은 사실 주장을 하면 안 된다. */
+    authorEmail: (r.author_email as string | undefined) ?? "",
     authorLabel: (r.author_label as string | null) ?? null,
     title: r.title as string,
     region: r.region as string,
