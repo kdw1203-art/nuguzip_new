@@ -125,7 +125,14 @@ function MarketStrip({
 }: {
   saleIndexSeoul: string;
   baseRate: string;
-  loanRate: string;
+  /**
+   * 금감원 월 공시 주담대 최저금리. **null 이면 이 칸을 아예 그리지 않는다.**
+   *
+   * 다른 지표처럼 페이지 쪽에서 미리 "—" 로 바꿔 넘기면, 여기서는 "못 구한 값"과
+   * "정말 그렇게 생긴 값"을 구분할 수 없다. 자리를 뺄지 말지를 이 컴포넌트가
+   * 판단해야 하므로 null 을 null 그대로 받는다.
+   */
+  loanRate: string | null;
   notesToday: string;
   activityToday: string;
   /** 실거래 적재 기준일 "2026.08.05" — 없으면 그 조각을 빼고 쓴다 */
@@ -148,16 +155,40 @@ function MarketStrip({
   ].filter((s): s is string => s !== null);
   const asOfCaption = asOfParts.length > 0 ? `${asOfParts.join(" · ")} 기준` : null;
 
+  /* 대출금리는 금감원 월 공시(finlife)에 붙어야 나오는 값인데, 운영에 발급키가
+     아직 없어서 **여태 한 번도 값이 있었던 적이 없다**(오늘 실측: 모바일 카드
+     "대출금리 —", 데스크톱 "기준 / 대출금리 = 2.75% / —"). 게다가 모바일에서는
+     그 영구 빈칸이 세 장 중 **유일하게 강조색이 칠해진 카드**였다 — 화면에서
+     제일 눈에 띄는 자리가 계속 비어 있었던 셈이다.
+
+     배치 4에서 기준시점 캡션에 세운 규칙을 그대로 적용한다: **값이 없으면
+     자리를 남기지 않는다.** 없는 걸 "—" 로 계속 보여 주는 건 정직하긴 해도,
+     고칠 수 없는 빈칸을 매일 보여 주는 것과 같다. 공시키가 들어오면 값과 함께
+     자리도 저절로 돌아온다(이 분기는 데이터만 보고 갈린다). */
+  const loanRateLabel = loanRate;
+
+  /* "미조회 항목은 —로 표시됩니다" 는 **실제로 — 가 있을 때만** 쓴다.
+     항상 붙어 있으면 아무도 안 읽는 상용구가 되고, 정작 뭔가를 못 읽은 날에도
+     평소와 똑같아 보여서 신호 구실을 못 한다. */
+  const legend = "미조회 항목은 “—”로 표시됩니다";
+
   if (compact) {
+    const cards = [
+      { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
+      { label: "기준금리", value: baseRate, accent: false },
+      ...(loanRateLabel !== null
+        ? [{ label: "대출금리", value: loanRateLabel, accent: true }]
+        : []),
+    ];
+    const hasMissing = cards.some((c) => c.value === "—");
+    const caption = [asOfCaption, hasMissing ? legend : null]
+      .filter((s): s is string => s !== null)
+      .join(" · ");
     return (
       <div className="flex flex-col gap-1.5">
         <h2 className="sr-only">주요 지표</h2>
         <div className="flex gap-2">
-          {[
-            { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
-            { label: "기준금리", value: baseRate, accent: false },
-            { label: "대출금리", value: loanRate, accent: true },
-          ].map((s) => (
+          {cards.map((s) => (
             /* 최적화 4 — 모바일 KPI 3장 밀도: 패딩·숫자 1단계 축소(라벨 유지) */
             <div key={s.label} className="glass min-w-0 flex-1 rounded-[13px] px-2.5 py-2">
               <div className="whitespace-nowrap text-[11px] text-text-3">{s.label}</div>
@@ -167,12 +198,35 @@ function MarketStrip({
             </div>
           ))}
         </div>
-        <p className="text-[10px] leading-[1.5] text-text-3">
-          {asOfCaption ? `${asOfCaption} · ` : ""}미조회 항목은 “—”로 표시됩니다
-        </p>
+        {caption ? (
+          <p className="text-[10px] leading-[1.5] text-text-3">{caption}</p>
+        ) : null}
       </div>
     );
   }
+
+  /* 데스크톱은 칸 수(4)를 유지한다 — 대출금리를 못 구했을 때 칸을 지우는 게
+     아니라 **라벨과 값에서 그 조각만 뺀다**. "기준 / 대출금리 = 2.75% / —" 가
+     "기준금리 = 2.75%" 가 되는 것이고, 그리드가 3칸으로 무너지지 않는다. */
+  const rateCell = loanRateLabel !== null
+    ? {
+        label: "기준 / 대출금리",
+        value: (
+          <>
+            {baseRate} / <span className="text-primary">{loanRateLabel}</span>
+          </>
+        ),
+      }
+    : { label: "기준금리", value: <>{baseRate}</> };
+
+  /* loanRateLabel 은 이 목록에 넣지 않는다 — 방어적으로 보이지만 **절대 안 걸리는
+     조건**이다. home-data.ts:520-530 을 따라가 보면 이 값은 `null` 이거나
+     `"2.98%"` 꼴이지 "—" 가 되는 경로가 없다. 걸릴 리 없는 조건을 남겨 두면
+     다음에 읽는 사람이 "대출금리가 —일 때도 안내가 뜬다" 고 믿는다. */
+  const desktopMissing = [saleIndexSeoul, baseRate, notesToday, activityToday].includes("—");
+  const desktopCaption = [asOfCaption, desktopMissing ? legend : null]
+    .filter((s): s is string => s !== null)
+    .join(" · ");
 
   return (
     <div className="flex w-full flex-col gap-1.5">
@@ -180,15 +234,7 @@ function MarketStrip({
       <div className="grid w-full grid-cols-2 gap-2.5 xl:grid-cols-4">
         {[
           { label: "매매지수 서울", value: <>{saleIndexSeoul}</>, accent: false },
-          {
-            label: "기준 / 대출금리",
-            value: (
-              <>
-                {baseRate} / <span className="text-primary">{loanRate}</span>
-              </>
-            ),
-            accent: false,
-          },
+          { ...rateCell, accent: false },
           {
             label: "오늘 새 노트",
             value: <span className="text-primary">{notesToday}</span>,
@@ -209,9 +255,9 @@ function MarketStrip({
           </div>
         ))}
       </div>
-      <p className="text-[10px] leading-[1.5] text-text-3">
-        {asOfCaption ? `${asOfCaption} · ` : ""}미조회 항목은 “—”로 표시됩니다
-      </p>
+      {desktopCaption ? (
+        <p className="text-[10px] leading-[1.5] text-text-3">{desktopCaption}</p>
+      ) : null}
     </div>
   );
 }
@@ -256,7 +302,9 @@ export default async function Home() {
 
   // 사실 기반 원칙: 실데이터 없는 수치는 허위 값 대신 "—" 표기
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
-  const loanRate = data.loanRate ?? "—";
+  /* 여기서 "—" 로 바꾸지 않는다 — MarketStrip 이 "칸을 뺄지"를 정해야 해서
+     null 을 그대로 넘긴다. 사유는 MarketStrip 의 loanRate prop 주석. */
+  const loanRate = data.loanRate;
   const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
   const baseRate = baseRateData?.label ?? "—";
   /* "명"이 아니라 "건". 이 숫자는 사람 수가 아니라 오늘 일어난 행위 이벤트
