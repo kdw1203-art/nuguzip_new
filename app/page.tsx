@@ -715,8 +715,14 @@ export default async function Home() {
                 <ul className="mt-0.5 flex flex-col gap-1 border-t border-[#f0f3f8] pt-2">
                   {reports.map((r) => (
                     <li key={r.id}>
+                      {/* 리포트 1건을 여는 페이지는 아직 없다 — 그래서 목록이
+                          있는 자리(#reports 앵커)로 보낸다. 예전엔 맨
+                          `/town/library` 였고, 그 페이지는 표를 읽지도 않은 채
+                          "유료·단지 리포트는 아직 없어요"를 하드코딩으로 띄우고
+                          있었다. 홈은 제목·가격을 보여 주는데 눌러서 간 곳은
+                          없다고 말하는 상태였다(지금은 그 페이지도 읽는다). */}
                       <Link
-                        href="/town/library"
+                        href="/town/library#reports"
                         className="flex justify-between gap-2 text-[11px] no-underline hover:text-primary"
                       >
                         <span className="truncate font-semibold text-text-1">{r.title}</span>

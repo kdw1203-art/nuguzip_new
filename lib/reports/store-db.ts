@@ -27,6 +27,13 @@ export type UserReport = {
 
 const memory: UserReport[] = [];
 
+/** 리포트 목록. **조회 실패는 던진다** — 빈 배열로 접지 않는다.
+ *
+ *  예전엔 `if (error) return []` 이었다. 그래서 홈은 조회가 죽어도 실패한 줄
+ *  모르고(landing/data.ts 의 allSettled 가 "성공했는데 0건"으로 받는다)
+ *  `failedSources` 에 "reports" 가 실릴 수 있는 경로가 아예 없었다 —
+ *  실패 표시 코드는 있는데 켜지지 않는 스위치였다. 호출부는 셋 다 실패를
+ *  다룰 수 있다(둘은 allSettled, GET /api/reports 는 아래에서 500). */
 export async function listReports(): Promise<UserReport[]> {
   const sb = getServiceSupabase();
   if (!sb) return memory;
@@ -35,7 +42,7 @@ export async function listReports(): Promise<UserReport[]> {
     .select("*")
     .order("published_at", { ascending: false })
     .limit(200);
-  if (error) return [];
+  if (error) throw new Error(`[reports] 목록 조회 실패: ${error.message}`);
   return (data ?? []).map(mapRow);
 }
 

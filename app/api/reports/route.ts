@@ -5,8 +5,18 @@ import { createReport, listReports } from "@/lib/reports/store-db";
 import { applyRateLimit, WRITE_RATE_LIMIT } from "@/lib/rate-limit";
 
 export async function GET() {
-  const items = await listReports();
-  return NextResponse.json({ items });
+  /* listReports 가 실패를 던지게 바뀌었다. 여기서 다시 빈 배열로 접으면
+     "리포트가 없다"는 없는 사실이 API 밖으로 나간다 — 못 읽었으면 못 읽었다고
+     한다. */
+  try {
+    const items = await listReports();
+    return NextResponse.json({ items });
+  } catch {
+    return NextResponse.json(
+      { error: "리포트 목록을 불러오지 못했습니다." },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {

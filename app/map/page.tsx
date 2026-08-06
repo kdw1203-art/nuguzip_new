@@ -475,6 +475,35 @@ function firstParam(
   return typeof v === "string" && v.trim() ? v.trim() : null;
 }
 
+/* `?lat=&lng=` — `?region=` 이 안 풀릴 때의 폴백 좌표.
+ *
+ *  넣은 이유는 실측이다. 홈 미니지도가 쓰는 지역표 62개를 search_regions 에
+ *  그대로 넣어 보니 서울 25구는 전부 맞는데 수도권은 절반이 빗나갔다 —
+ *  `경기 부천시` 는 **경기 이천시**로, `경기 안양시 동안구` 는 **경기 안성시**로
+ *  풀리고(둘 다 lat/lng 이 null 이라 다행히 엉뚱한 좌표로 튀지는 않는다),
+ *  `경기 성남시 분당구`·`경기 수원시 영통구` 는 0건, `인천 연수구`·`인천 남동구`
+ *  는 행은 나오는데 좌표가 null 이다. 이름만 받는 한 이 지역 사용자는 지역을
+ *  들고 와도 기본 지도를 본다.
+ *
+ *  부르는 쪽(홈 미니지도)은 이미 그 좌표를 알고 있다 — 같은 표로 마커를 찍는
+ *  중이다. 아는 값을 텍스트로 바꿔 퍼지 검색에 되묻는 대신 그대로 받는다.
+ *  이름 해석이 성공하면 그쪽이 이긴다(정규화된 display_name 을 쓴다).
+ *
+ *  범위를 한반도로 제한하는 건 주소로 들어오는 값이라서다. 이 값은 화면
+ *  중심일 뿐이지만, 숫자가 아니거나 지구 반대편이면 조용히 무시하는 편이
+ *  빈 바다를 띄우는 것보다 낫다. */
+function parseCoordFocus(
+  latRaw: string | null,
+  lngRaw: string | null,
+): { lat: number; lng: number } | null {
+  if (latRaw == null || lngRaw == null) return null;
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < 33 || lat > 39 || lng < 124 || lng > 132) return null;
+  return { lat, lng };
+}
+
 function parseEokParam(raw: string | null): number | null {
   if (raw == null || raw === "") return null;
   const n = Number(raw);
@@ -495,6 +524,7 @@ export default async function MapPage({
   const typeParam = firstParam(sp.type);
   const priceMinParam = parseEokParam(firstParam(sp.priceMin));
   const priceMaxParam = parseEokParam(firstParam(sp.priceMax));
+  const coordFocusParam = parseCoordFocus(firstParam(sp.lat), firstParam(sp.lng));
 
   /* 노트→지도 핸드오프: complexId 우선, 없으면 noteId/apt 로 단지 해석 */
   let initialComplexFocus: {
@@ -608,7 +638,7 @@ export default async function MapPage({
      아래 danjiLoadFailed 안내조차 못 보여 준다. 45초에 접으면 적어도 "지금은 못
      불러왔다"는 화면은 뜬다. 늦게라도 정확한 답보다 제때 뜨는 답이 낫다. */
   const regionForFocus = regionParam || regionFromNote;
-  const [dbRun, markersRun, focus] = await Promise.all([
+  const [dbRun, markersRun, resolvedFocus] = await Promise.all([
     withBudget(
       Promise.resolve().then(() => loadDanjiFromDb()),
       MAP_SECTION_BUDGET_MS,
@@ -619,6 +649,15 @@ export default async function MapPage({
     ),
     resolveRegionFocus(regionForFocus ?? null),
   ]);
+
+  /* 이름 해석이 이긴다(정규화된 display_name). 못 풀렸을 때만 넘겨받은 좌표를
+     쓴다 — 이때 라벨은 부르는 쪽이 화면에 적어 둔 이름을 그대로 쓴다.
+     좌표도 이름도 없으면 종전대로 null(기본 지도). */
+  const focus =
+    resolvedFocus ??
+    (coordFocusParam && regionForFocus
+      ? { name: regionForFocus, lat: coordFocusParam.lat, lng: coordFocusParam.lng }
+      : null);
 
   if (dbRun.state === "timeout") {
     logger.error(`[map] 단지 목록 조회가 ${MAP_SECTION_BUDGET_MS}ms 안에 끝나지 않았습니다`);

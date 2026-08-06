@@ -48,6 +48,15 @@ function findDistrict(idOrName: string): SeoulDistrictInfo | undefined {
   );
 }
 
+/** 지도로 넘길 지역 문자열. 표의 `name` 은 "마포구"·"성남시 분당구"처럼 시/도가
+ *  빠져 있어서 그대로 넘기면 동명이지역으로 샌다 — search_regions('서구') 는
+ *  **인천 서구**를, ('북구') 는 좌표가 null 인 광주 북구를 먼저 돌려준다(실측).
+ *  city 가 이미 이름에 붙어 있는 행("인천 중구")도 있으니 중복은 피한다. */
+function districtQuery(d: SeoulDistrictInfo): string {
+  const city = d.city ?? "서울";
+  return d.name.startsWith(city) ? d.name : `${city} ${d.name}`;
+}
+
 /** "▼ 4.2%" + tone → momPct (상승=+ / 하락=- · 부동산 관례 색상 유지) */
 function toMomPct(delta: string, tone: HomeMiniRegion["tone"]): number | undefined {
   const m = /([0-9]+(?:\.[0-9]+)?)/.exec(delta);
@@ -70,8 +79,16 @@ export function HomeMiniMap({
     center: { lat: number; lng: number };
     level: number;
     regionLabel: string | null;
+    /** 지도로 넘길 때 쓰는 시/도 붙은 전체 이름 — 화면 라벨(regionLabel)과 다르다. */
+    regionQuery: string | null;
     selectedId: string | null;
-  }>({ center: SEOUL_CENTER, level: 8, regionLabel: null, selectedId: null });
+  }>({
+    center: SEOUL_CENTER,
+    level: 8,
+    regionLabel: null,
+    regionQuery: null,
+    selectedId: null,
+  });
   /* 캡처 개선(2026-08-04) — 로그인 사용자의 관심지역 마커(시세 칩 실데이터).
      예전엔 배지는 "내 관심지역 · 강남구"인데 마커는 홈 카드 고정 4곳(마포·
      남양주 포함)이라 서로 다른 얘기를 했다. 관심지역+시세가 해석되면 그걸로
@@ -157,6 +174,7 @@ export function HomeMiniMap({
           center: { lat: hit.lat, lng: hit.lng },
           level: 11,
           regionLabel: hit.name,
+          regionQuery: districtQuery(hit),
           selectedId: hit.id,
         });
       } catch {
@@ -169,6 +187,34 @@ export function HomeMiniMap({
   }, []);
 
   const shownRegions = personalRegions ?? regions;
+
+  /* 지도로 넘어갈 때 어느 지역인지 들고 간다.
+     예전엔 마커를 눌러도, 하단 바("마포구 주변 실거래·노트를 지도에서")를 눌러도
+     전부 맨 `/map` 이었다 — 화면은 특정 지역을 말해 놓고 결과는 늘 같은 수도권
+     기본 지도라, 누른 사람 입장에선 아무 일도 안 일어난 것과 같다.
+
+     이름만 넘기지 않고 좌표까지 같이 넘기는 이유는 실측 때문이다. `/map` 은
+     `?region=` 을 search_regions 로 푸는데(app/map/page.tsx:447), 이 표의 62개
+     지역명을 실제로 넣어 보니 서울 25구는 다 맞지만 경기·인천은 절반이
+     빗나갔다 — `경기 부천시` → **경기 이천시**, `경기 안양시 동안구` →
+     **경기 안성시**, `경기 성남시 분당구`·`경기 수원시 영통구` 는 아예 0건,
+     `인천 연수구`·`인천 남동구` 는 행은 나오는데 좌표가 null 이다. 즉 이름만
+     넘기면 수도권 사용자 상당수는 "지역을 들고 갔는데도" 기본 지도로 떨어진다.
+
+     그런데 이 컴포넌트는 이미 정확한 좌표를 들고 있다(같은 표로 마커를 찍는
+     중이다). 아는 값을 텍스트로 바꿔 퍼지 검색에 되물을 이유가 없다. 이름은
+     라벨·공유용으로 그대로 넘기고, 좌표를 폴백으로 붙인다 — `/map` 은
+     search_regions 가 풀리면 그 좌표를, 못 풀면 여기서 준 좌표를 쓴다. */
+  const mapHref = (name: string | null | undefined, coord?: { lat: number; lng: number } | null) => {
+    const q = (name ?? "").trim();
+    if (!q) return "/map";
+    const sp = new URLSearchParams({ region: q });
+    if (coord && Number.isFinite(coord.lat) && Number.isFinite(coord.lng)) {
+      sp.set("lat", coord.lat.toFixed(6));
+      sp.set("lng", coord.lng.toFixed(6));
+    }
+    return `/map?${sp.toString()}`;
+  };
   const markers = useMemo<MapMarkerData[]>(() => {
     const out: MapMarkerData[] = [];
     for (const r of shownRegions) {
@@ -211,7 +257,7 @@ export function HomeMiniMap({
         <Link href="/welcome" className="btn-soft px-3 py-1.5 text-[11px]">
           {focus.regionLabel ? "관심지역 수정" : "관심지역 설정"}
         </Link>
-        <Link href="/map" className="btn-soft px-3 py-1.5 text-[11px]">
+        <Link href={mapHref(focus.regionQuery ?? focus.regionLabel, focus.regionQuery ? focus.center : null)} className="btn-soft px-3 py-1.5 text-[11px]">
           지도 다시 열기 ›
         </Link>
       </div>
@@ -236,7 +282,17 @@ export function HomeMiniMap({
             showControls={false}
             rounded={false}
             className="h-full w-full"
-            onMarkerClick={() => router.push("/map")}
+            /* 누른 마커의 지역을 그대로 넘긴다 — 마커는 자기가 어느 구인지
+               알고 있는데(label) 예전엔 그걸 버리고 맨 지도를 열었다. */
+            onMarkerClick={(m) => {
+              /* 마커는 id 로 표를 되짚어 정확한 이름·좌표를 얻는다 — 말풍선에
+                 적힌 라벨(m.label)은 "분당구"처럼 잘려 있어 그대로 넘기면
+                 엉뚱한 지역으로 풀린다. */
+              const d = findDistrict(m.id) ?? findDistrict(m.label ?? "");
+              router.push(
+                d ? mapHref(districtQuery(d), { lat: d.lat, lng: d.lng }) : mapHref(m.label),
+              );
+            }}
             fallback={staticFallback}
             onFallbackChange={setFallbackActive}
           />
@@ -268,7 +324,7 @@ export function HomeMiniMap({
       {/* 하단: 지도 열기 바 (글래스) */}
       {!fallbackActive && (
       <Link
-        href="/map"
+        href={mapHref(focus.regionQuery ?? focus.regionLabel, focus.regionQuery ? focus.center : null)}
         className="glass press absolute inset-x-3.5 bottom-3.5 z-10 flex items-center justify-between rounded-2xl px-4 py-2.5 transition-colors hover:text-primary"
       >
         <span className="text-[12px] font-semibold text-text-2">
