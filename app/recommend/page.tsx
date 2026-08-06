@@ -5,6 +5,7 @@ import { Icon } from "@/app/components/Icon";
 import { ExampleBadge } from "@/app/components/ExampleBadge";
 import { safeAuth } from "@/lib/safe-auth";
 import type { PurposeId } from "@/lib/onboarding/personalization";
+import { isDeltaUnknown } from "@/lib/newui/delta-label";
 import {
   loadRecommendations,
   EXAMPLE_ITEM,
@@ -111,7 +112,11 @@ function RecCard({ item }: { item: RecItem }) {
           <div className="text-[15px] font-extrabold text-ink">
             {item.priceLabel ?? "시세 준비중"}
           </div>
-          <div className={`text-[12px] ${deltaClass[item.tone]}`}>전월비 {item.delta}</div>
+          {/* 변동률을 모르면 "전월비"를 붙이지 않는다 — "전월비 변동 미상"은
+              무엇에 대한 미상인지 되레 흐려진다. */}
+          <div className={`text-[12px] ${deltaClass[item.tone]}`}>
+            {isDeltaUnknown(item.delta) ? "전월 대비 변동 미상" : `전월비 ${item.delta}`}
+          </div>
         </div>
       </div>
 

@@ -20,6 +20,7 @@ import {
   type PurposeId,
 } from "@/lib/onboarding/personalization";
 import { getAllRegionSnapshots } from "@/lib/market/store";
+import { DELTA_UNKNOWN } from "@/lib/newui/delta-label";
 import { regionIdForName } from "@/lib/region/catalog";
 import { SEOUL_DISTRICTS } from "@/lib/map/seoul-districts";
 import type { RegionMarketSnapshot } from "@/lib/market/types";
@@ -91,7 +92,9 @@ function formatEok(won: number): string {
 
 function deltaOf(changePct: number | undefined): { delta: string; tone: DeltaTone } {
   if (typeof changePct !== "number" || !Number.isFinite(changePct)) {
-    return { delta: "— 0.0%", tone: "flat" };
+    /* 홈과 같은 결함이 여기에도 있었다 — 변동률을 못 구한 지역을 "— 0.0%"로
+       적으면 보합이라는 없는 사실이 된다(추천 카드는 "전월비"까지 붙는다). */
+    return { delta: DELTA_UNKNOWN, tone: "flat" };
   }
   const arrow = changePct > 0 ? "▲" : changePct < 0 ? "▼" : "—";
   const tone: DeltaTone = changePct > 0.1 ? "up" : changePct < -0.1 ? "down" : "flat";

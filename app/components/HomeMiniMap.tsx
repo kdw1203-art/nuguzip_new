@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { getSessionLite } from "@/lib/client/session-lite";
+import { getHomePersonal } from "@/lib/client/home-personal";
 import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
 import {
   SEOUL_DISTRICTS,
@@ -110,9 +111,13 @@ export function HomeMiniMap({
         // 최적화 26 — 공유 세션 조회로 수렴
         const s = await getSessionLite();
         if (!s?.user?.email) return;
-        const pRes = await fetch("/api/home/personal");
-        if (!pRes.ok) return;
-        const d = (await pRes.json().catch(() => null)) as {
+        /* 최적화 — 예전엔 여기서 직접 `fetch("/api/home/personal")` 했다. 문제가
+           둘이었다. (1) 이 컴포넌트는 모바일·데스크탑 두 벌로 렌더돼서 홈 한
+           번에 이 요청이 2회, PersonalHome 까지 합쳐 3회 나갔다(서버에선 매번
+           7갈래 조회). (2) 캐시 지정이 없어 `private, max-age=300` 응답을
+           브라우저가 5분간 재사용했다 — 공용 PC 에서 앞사람 관심지역·시세가
+           뒷사람 지도에 그대로 떴다. 공유 프라미스(no-store)로 둘 다 없앤다. */
+        const d = await getHomePersonal<{
           primaryRegion?: string | null;
           regions?: string[] | null;
           preferences?: {
@@ -122,7 +127,7 @@ export function HomeMiniMap({
             string,
             { price: string; delta: string; tone: "up" | "down" | "flat" }
           > | null;
-        } | null;
+        }>();
         if (cancelled) return;
         // 관심지역 마커 — 시세 칩이 실재하는 지역만(가격 없는 말풍선 금지)
         const resolved = d?.preferences?.regions ?? [];

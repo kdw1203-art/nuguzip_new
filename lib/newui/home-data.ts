@@ -27,6 +27,7 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { getMortgageRates } from "@/lib/finance/mortgage-rates";
+import { DELTA_UNKNOWN } from "@/lib/newui/delta-label";
 import { logger } from "@/lib/log";
 
 export type DeltaTone = "up" | "down" | "flat";
@@ -160,7 +161,11 @@ export function deltaOfChangePct(changePct: number | undefined): {
 
 function deltaOf(changePct: number | undefined): { delta: string; tone: DeltaTone } {
   if (typeof changePct !== "number" || !Number.isFinite(changePct)) {
-    return { delta: "— 0.0%", tone: "flat" };
+    /* 예전엔 "— 0.0%" 였다. 변동률을 못 구한 지역과 정말로 보합인 지역이
+       화면에서 **완전히 같은 모양**(회색 0.0%)이라, 모른다는 사실이 "변동
+       없음"이라는 없는 사실로 바뀌어 있었다. 지도 말풍선도 이 문자열에서
+       숫자를 뽑아 momPct=0 으로 썼다. 모르면 모른다고 적는다. */
+    return { delta: DELTA_UNKNOWN, tone: "flat" };
   }
   const arrow = changePct > 0 ? "▲" : changePct < 0 ? "▼" : "—";
   const tone: DeltaTone = changePct > 0.1 ? "up" : changePct < -0.1 ? "down" : "flat";

@@ -1,7 +1,9 @@
 "use client";
 
 import { getSessionLite } from "@/lib/client/session-lite";
-import { useEffect, useState } from "react";
+import { getHomePersonal } from "@/lib/client/home-personal";
+import { isDeltaUnknown } from "@/lib/newui/delta-label";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
 import { HomeResumePanel } from "./HomeResumePanel";
@@ -14,7 +16,9 @@ import {
 
 /* S13-13a 홈 이원화 — 정적 CDN 셸 위에 로그인 개인화 지연 주입 (시안 9m 데스크탑 · 10g 모바일)
    마운트 후 /api/auth/session → 로그인일 때만 /api/home/personal 로드.
-   비로그인·로딩·에러 시 null 반환 → 기존 정적 홈(ISR)이 그대로 보임.
+   비로그인·에러 시 정적 홈으로 되돌린다 — 조기 숨김 플래그(data-personal-active)를
+   같이 풀어야 한다(revertToStatic). 풀지 않으면 스켈레톤이 영구히 남고,
+   이 플래그를 보고 스스로를 감추는 다른 컴포넌트(JourneyBanner)도 계속 숨는다.
    렌더 시 body[data-personal-active] 세팅 → page.tsx의 [data-static-hero] 요소 숨김 */
 
 type PersonalRecentNote = {
@@ -66,6 +70,9 @@ type PersonalHomeData = {
   > | null;
   regionMarket: PersonalRegionMarket | null;
   preferences: PersonalPreferences | null;
+  /** preferences=null 이 "조회 실패"였는지. 서버가 아직 안 내려주는 배포가
+      섞여 있을 수 있어 optional 로 받는다(없으면 예전대로 미설정 취급). */
+  preferencesUnavailable?: boolean;
 };
 
 const PURPOSE_META: Record<
@@ -161,6 +168,14 @@ export function PersonalHome() {
     }
   }, []);
 
+  /* 개인화를 못 그리게 됐을 때 정적 홈으로 되돌리는 한 곳.
+     실측(로컬 프로덕션 빌드 + /api/home/personal 500): 이걸 안 하면
+     `data-personal-active=1` 이 걸린 채 스켈레톤이 계속 렌더된다. */
+  const revertToStatic = useCallback(() => {
+    setPrimed(false);
+    document.body.removeAttribute("data-personal-active");
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -168,21 +183,24 @@ export function PersonalHome() {
         // 최적화 26 — 공유 세션 조회로 수렴
         const s = await getSessionLite();
         if (!s?.user?.email) {
-          // 비로그인 → 정적 홈 복귀 + 조기 숨김 해제
+          // 비로그인 → 정적 홈 복귀 + 조기 숨김 해제 + 플래그 정리
           if (!cancelled) {
-            setPrimed(false);
             try {
               window.localStorage.removeItem("nz_home_personal");
             } catch {
               /* noop */
             }
-            document.body.removeAttribute("data-personal-active");
+            revertToStatic();
           }
           return;
         }
-        const pRes = await fetch("/api/home/personal", { cache: "no-store" });
-        if (!pRes.ok) return;
-        const d = (await pRes.json()) as PersonalHomeData;
+        /* 최적화 — 같은 라우트를 미니지도(모바일·데스크탑 2벌)도 부른다.
+           공유 프라미스로 한 번만 나가게 모은다. */
+        const d = await getHomePersonal<PersonalHomeData>();
+        if (!d) {
+          if (!cancelled) revertToStatic();
+          return;
+        }
         if (!cancelled) {
           setData(d);
           try {
@@ -192,13 +210,24 @@ export function PersonalHome() {
           }
         }
       } catch {
-        /* 에러 시 정적 홈 유지 */
+        /* 개인화를 못 가져왔으면 정적 홈으로 되돌린다.
+           예전 주석은 "에러 시 정적 홈 유지"였는데 사실이 아니었다. 재방문자는
+           위 effect 에서 이미 `data-personal-active=1` 이 걸린 상태라, 여기서
+           그냥 return 하면 **스켈레톤이 영구히 남는다**.
+           실측(로컬 프로덕션 빌드, /api/home/personal 을 500 으로 응답):
+           고치기 전에는 회색 스켈레톤이 정적 히어로 위에 그대로 얹혀 남았고
+           (히어로가 사라지진 않았다 — 숨김 <style> 은 로드 성공 분기에만 있다),
+           플래그를 보고 자기를 감추는 JourneyBanner 도 계속 숨은 채였다.
+           고친 뒤에는 같은 조건에서 `data-personal-active` 가 풀린다.
+           플래그(nz_home_personal)는 지우지 않는다 — 로그인 자체가 실패한 건
+           아니라서, 다음 방문에 다시 개인화를 시도하는 편이 맞다. */
+        if (!cancelled) revertToStatic();
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [revertToStatic]);
 
   useEffect(() => {
     if (!data) return;
@@ -209,7 +238,12 @@ export function PersonalHome() {
     // 로그인 확인된 재방문 → 정적 히어로 대신 로딩 스켈레톤(플래시 방지)
     if (primed) {
       return (
-        <div className="rise-in mt-2 overflow-hidden rounded-[18px] bg-[#141a26] p-[var(--pad-hero)] md:rounded-[22px] md:p-5">
+        <div
+          /* 스켈레톤이 남아 있는지 밖에서 잴 수 있게 표시해 둔다
+             (scripts/.probe-*: 개인화 실패 후 이 노드가 사라져야 한다) */
+          data-personal-skeleton=""
+          className="rise-in mt-2 overflow-hidden rounded-[18px] bg-[#141a26] p-[var(--pad-hero)] md:rounded-[22px] md:p-5"
+        >
           <div className="h-3 w-28 rounded bg-white/10" />
           <div className="mt-3 h-6 w-3/5 rounded bg-white/10" />
           <div className="mt-2 h-6 w-2/5 rounded bg-white/10" />
@@ -468,8 +502,12 @@ export function PersonalHome() {
               {data.preferences.purpose
                 ? PURPOSE_META[data.preferences.purpose].rec
                 : "관심 지역·예산에 맞는 후보를 모아 보여드려요."}
+              {/* 변동률을 모를 땐 괄호를 통째로 뺀다 — "(변동 미상)"까지 읽히면
+                  평균가 문장이 오히려 지저분해진다. 평균가는 그대로 사실이다. */}
               {regionMarket
-                ? ` — ${regionMarket.name} 평균 ${regionMarket.price} (${regionMarket.delta}) 흐름을 확인해 보세요.`
+                ? isDeltaUnknown(regionMarket.delta)
+                  ? ` — ${regionMarket.name} 평균 ${regionMarket.price} 흐름을 확인해 보세요.`
+                  : ` — ${regionMarket.name} 평균 ${regionMarket.price} (${regionMarket.delta}) 흐름을 확인해 보세요.`
                 : ""}
             </p>
 
@@ -524,6 +562,34 @@ export function PersonalHome() {
                 );
               })}
             </div>
+          </div>
+        </section>
+      ) : data.preferencesUnavailable ? (
+        /* 조회 실패 — "설정하세요"가 아니라 "못 읽었다"고 적는다.
+           예전엔 이 자리에서 실패도 미설정과 똑같이 "관심 지역·예산·목적을
+           알려주세요"가 떴다. 이미 설정을 마친 사람이 DB 장애 때 그 문구를
+           보면, 자기 설정이 날아간 줄 알고 다시 설정하러 간다 — 없는 안내보다
+           틀린 안내가 나쁘다. /welcome 으로 밀지 않는 것도 같은 이유다. */
+        <section className="rise-in-1 mb-4">
+          <div className="card flex flex-wrap items-center justify-between gap-3 rounded-[20px] p-5">
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="w-fit rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-3">
+                관심 맞춤
+              </span>
+              <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
+                관심 설정을 불러오지 못했어요
+              </div>
+              <p className="text-xs leading-[1.6] text-text-2">
+                설정이 지워진 건 아니에요. 잠시 후 다시 시도해 주세요.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="whitespace-nowrap rounded-full border border-line bg-surface px-3.5 py-2 text-[12px] font-extrabold text-text-1"
+            >
+              다시 시도
+            </button>
           </div>
         </section>
       ) : (

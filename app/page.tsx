@@ -12,6 +12,7 @@ import { AdSlot } from "./components/ads/AdSlot";
 import { AdSenseUnit } from "./components/ads/AdSenseUnit";
 import { Footer } from "./components/Footer";
 import { loadNewHomeData } from "@/lib/newui/home-data";
+import { compactDelta } from "@/lib/newui/delta-label";
 import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { getWeeklyDigest } from "@/lib/newui/digest";
@@ -535,7 +536,7 @@ export default async function Home() {
                     <div className="mt-1.5 flex items-baseline gap-1.5">
                       <span className="t-num text-[19px] text-ink">{r.price}</span>
                       <span className={`text-[11px] ${deltaClass[r.tone]}`}>
-                        {r.delta.replace(" ", "")}
+                        {compactDelta(r.delta)}
                       </span>
                     </div>
                   </div>

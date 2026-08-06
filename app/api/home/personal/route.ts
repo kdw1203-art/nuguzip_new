@@ -12,7 +12,7 @@ import {
 } from "@/lib/newui/home-data";
 import { getRegionSnapshot } from "@/lib/market/store";
 import {
-  getOnboardingPersonalization,
+  loadOnboardingPersonalization,
   resolveRegions,
   type OnboardingBudget,
   type PurposeId,
@@ -56,6 +56,10 @@ export type PersonalHomeData = {
     budget: OnboardingBudget | null;
     purpose: PurposeId | null;
   } | null;
+  /** preferences 가 null 인 이유가 "조회 실패"인지 "미설정"인지.
+      true 면 조회 실패 — 이미 설정한 사람일 수 있으니 설정 유도 문구를 띄우면
+      안 된다(사실 우선: 조회 실패를 "없음"으로 렌더하지 않는다). */
+  preferencesUnavailable: boolean;
   /** 캡처 개선(2026-08-04) — regionId → 지역 시세 칩(평균가·전월 대비).
       스냅샷이 없는 지역은 키 자체가 없다(칩 미표시). 조회 실패 시 null. */
   regionChips: Record<string, { price: string; delta: string; tone: "up" | "down" | "flat" }> | null;
@@ -123,7 +127,7 @@ export async function GET() {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const [profile, notes, compareCount, appUser, personalization] = await Promise.all([
+  const [profile, notes, compareCount, appUser, personalizationLoad] = await Promise.all([
     guarded(() =>
       loadMeProfile(email, {
         name: session.user?.name,
@@ -134,8 +138,17 @@ export async function GET() {
     guarded(() => listNotes(email)),
     guarded(() => countWatchlist(email)),
     guarded(() => fetchAppUserByEmail(email)),
-    guarded(() => getOnboardingPersonalization(email)),
+    guarded(() => loadOnboardingPersonalization(email)),
   ]);
+
+  /* 조회가 던졌으면(guarded → null) 그것도 실패다. 실패와 미설정을 여기서
+     갈라 두지 않으면 아래 preferences=null 한 값에 두 뜻이 섞인다. */
+  const personalizationFailed = personalizationLoad === null ||
+    personalizationLoad.status === "error";
+  const personalization =
+    personalizationLoad && personalizationLoad.status === "ok"
+      ? personalizationLoad.value
+      : null;
 
   const regions =
     personalization && personalization.regions.length > 0
@@ -184,10 +197,16 @@ export async function GET() {
       : null,
     regionMarket,
     preferences,
+    preferencesUnavailable: personalizationFailed,
     regionChips: regionChips ?? null,
   };
 
+  /* 예전엔 `private, max-age=300` 이었다. 이 응답에는 이름·관심지역·노트 수가
+     들어 있는데, 캐시를 지정하지 않고 부르는 호출부(홈 미니지도)가 있어서 공용
+     PC 에서 앞사람 데이터가 5분간 뒷사람 화면에 떴다. 호출부는 이제 전부
+     no-store 로 모였지만, 한쪽만 막는 건 막은 게 아니다 — 서버도 안 남긴다.
+     요청 수는 캐시가 아니라 클라이언트 공유 프라미스로 줄인다. */
   return NextResponse.json(body, {
-    headers: { "Cache-Control": "private, max-age=300" },
+    headers: { "Cache-Control": "private, no-store" },
   });
 }
