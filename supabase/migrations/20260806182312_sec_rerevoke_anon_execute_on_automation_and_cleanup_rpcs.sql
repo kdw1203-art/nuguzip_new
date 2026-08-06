@@ -1,0 +1,172 @@
+-- 자동화 RPC 3개의 anon EXECUTE 회수가 통째로 되돌려져 있었다 — 다시 회수한다.
+-- 적용: 2026-08-06 18:23:12 UTC (MCP apply_migration 선적용 → 이 파일은 원장 미러)
+--
+-- ── 무엇이 열려 있었나 (적용 직전 실측) ─────────────────────────────────────
+-- public 스키마의 SECURITY DEFINER 함수 3개가 전부 anon 에게 EXECUTE 를 갖고
+-- 있었다. pg_proc.proacl 원문:
+--   get_automation_script(text,text)        {postgres=X/postgres, service_role=X/postgres,
+--                                            anon=X/postgres, authenticated=X/postgres}
+--   ingest_daily_news(text,jsonb)           (동일)
+--   set_automation_script(text,text,text)   (동일)
+-- has_function_privilege('anon', …, 'execute') = **true** (3/3).
+-- 셋 다 security definer 이고 소유자는 postgres 다. 즉 브라우저 번들에 실려
+-- 나가는 publishable 키만으로 POST /rest/v1/rpc/ingest_daily_news 를 칠 수 있는
+-- 상태였다. p_secret 이 틀리면 'unauthorized' 로 막히긴 하지만, **비밀 하나만
+-- 뚫리면 postgres 권한으로 뉴스 적재·스크립트 교체가 되는 문**이 익명에게 열려
+-- 있었다는 뜻이다.
+--   · ACL 접미사가 `/postgres` 다 → supabase_admin 기본권한이 흘린 게 아니라
+--     **postgres 가 명시적으로 GRANT 한 것**이다. 원인을 부트스트랩 탓으로
+--     돌리면 틀린다.
+--
+-- ── 어떻게 열렸나 (원장 전수, 짐작 없음) ────────────────────────────────────
+--   20260727080008  automation_secrets + ingest_daily_news 생성, execute 부여
+--   20260727080142  get_automation_script 생성, execute 부여
+--   20260727081748  ingest_daily_news 교체, execute 부여
+--   20260727090313  automation_secrets/scripts **표** 권한 anon 회수
+--   20260803221147  ← **회수**: get_automation_script, ingest_daily_news 의
+--                     EXECUTE 를 anon, authenticated 에서 revoke
+--   20260804234917  ← **되돌림**: set_automation_script 를 새로 만들면서
+--                     끝에 GRANT 3줄을 같이 적었다. 그중 2줄이 전날 회수를
+--                     통째로 되돌린다.
+--   20260805024341  set_automation_script 만 다시 회수 (anon, authenticated)
+--   20260805024423  set_automation_script 만 PUBLIC 회수 + service_role 부여
+--
+-- 20260804234917 의 원장 원문 마지막 세 줄:
+--   grant execute on function public.set_automation_script(text, text, text) to anon, authenticated;
+--   grant execute on function public.get_automation_script(text, text) to anon, authenticated;
+--   grant execute on function public.ingest_daily_news(text, jsonb) to anon, authenticated;
+-- 첫 줄은 새 함수를 여는 줄이고, 나머지 **두 줄은 아무도 요청하지 않은
+-- 복붙**이다. 보안 회수를 되돌린 것은 공격이 아니라 다음 기능 마이그레이션의
+-- 복붙이었다.
+--
+-- ── 왜 4일 동안 아무도 못 봤나 ──────────────────────────────────────────────
+-- 회수한 20260803221147 은 **미러 파일이 없다**(supabase/migrations/ 에 없음).
+-- 되돌린 20260804234917 은 파일이 있다. 저장소만 읽는 사람에게는 "GRANT 는
+-- 보이고 REVOKE 는 안 보이는" 상태였다. 게다가 그 파일 17~19행에 내가 직접
+-- 이렇게 적어 두기까지 했다:
+--   "이 파일 끝의 anon/authenticated GRANT 는 바로 다음 두 마이그레이션에서
+--    회수된다(20260805024341, 20260805024423). 최종 상태는 service_role 전용이다."
+-- **틀린 안심 문구다.** 그 두 마이그레이션은 set_automation_script **하나만**
+-- 건드린다(원장 원문으로 확인). get_automation_script·ingest_daily_news 는
+-- 회수된 적이 없다. 이번 커밋에서 그 주석도 같이 고친다.
+--   → 낡은 설명은 낡은 코드보다 위험하다. 내가 적은 안심 문구도 실측해서 고친다.
+--
+-- ── set_automation_script 는 원장 밖에서 다시 열렸다 (지어내지 않는다) ──────
+-- 20260805024423 이후 원장에서 'automation' 을 언급하는 행: **0건**.
+-- `grant … on all functions in schema …` 형태도 원장 전체에서 **0건**.
+-- 훑기가 죽은 게 아니라는 증거로 같은 기계를 `on all tables/sequences/routines
+-- in schema` 로 바꿔 대 보니 **4건**이 나왔다(20260803223121 / 20260803224240 /
+-- 20260804103713 / 20260806171024).
+-- 회수 문장의 시그니처도 확인했다 — `public.set_automation_script(text, text, text)`
+-- 로 정확히 일치한다. 오버로드도 없다(pg_proc 에 이름당 1행).
+-- 그런데 지금 anon=X/postgres 가 붙어 있고 PUBLIC 항목은 없다. 즉 누군가
+-- **정확히 `grant execute … to anon, authenticated` 를 원장 밖에서** 실행했다.
+-- (execute_sql 이든 대시보드든) 어느 마이그레이션인지 지어내지 않는다.
+--   → execute_sql 로 고친 DDL 은 원장에 남지 않는다.
+--
+-- ── 회수해도 수집기가 안 죽는다는 것을 짐작이 아니라 시각으로 쟀다 ──────────
+-- 20260803221147 의 회수는 2026-08-03 22:11:47 UTC 에 걸렸고
+-- 20260804234917 이 2026-08-04 23:49:17 UTC 에 풀었다. 그 **26시간 창 안에서
+-- 일일 뉴스 적재가 두 번 정상 성공**했다:
+--   collected_date 2026-08-04 → 10건, 첫 행 2026-08-03 23:51:34 UTC
+--   collected_date 2026-08-05 → 10건, 첫 행 2026-08-04 23:32:30 UTC
+-- 즉 수집기는 anon 키를 쓰지 않는다. service_role 로 붙는다.
+-- 07-28 ~ 08-06 전 구간에 하루도 빠짐없이 8~10건이 들어와 있고, 가장 최근
+-- 적재는 2026-08-05 23:32:10 UTC 다(다음 적재는 오늘 23시대 예상).
+--
+-- ── automation_scripts 를 실제로 쓴 것도 RPC 가 아니었다 ────────────────────
+-- set_automation_script 는 key 와 body **두 컬럼만** 쓴다(원장 원문).
+-- 그런데 automation_scripts 의 'nuguzip-lab/index.json' 행은 version=10 이고
+-- note 가 채워져 있고 updated_at 이 2026-08-06 00:50:28+00 이다. 그 표에
+-- 트리거는 **0개**다(pg_trigger 조회 결과 []). RPC 가 못 쓰는 컬럼에 값이
+-- 들어 있으면 그 행은 그 RPC 가 쓴 게 아니다 → 직접 SQL 로 쓰였다.
+-- 그래서 anon EXECUTE 를 닫아도 이 운영 경로는 영향이 없다.
+--
+-- ── 표 권한은 애초에 안 열려 있었다 (같이 확인) ─────────────────────────────
+--   automation_secrets  {postgres=arwdDxtm/postgres, service_role=arwdDxtm/postgres}
+--   automation_scripts  (동일)  → anon SELECT/INSERT 둘 다 false
+-- 20260727090313 · 20260801233000 의 표 회수는 그대로 살아 있다. 이번에 되돌려진
+-- 것은 **함수 EXECUTE 뿐**이다. 확인한 것을 확인이라고 적는다.
+--
+-- ── 저장소에는 호출부가 없다 ────────────────────────────────────────────────
+-- get_automation_script|ingest_daily_news|set_automation_script|automation_scripts|
+-- automation_secrets 를 supabase/migrations/ 밖 전 저장소에서 훑은 결과:
+-- 애플리케이션 코드 **0건**. docs/priority-50-20260801.md 의 산문과
+-- supabase/ledger-snapshot.json 항목뿐이다. 수집기는 저장소 밖(외부 러너)이고
+-- 스크립트 본문 자체가 automation_scripts 에 들어 있다.
+--
+-- ── 덤으로 같이 닫은 것: cleanup_expired_reset_tokens() ─────────────────────
+-- 적용 전 ACL = {=X/postgres, postgres=X/postgres, service_role=X/postgres}
+-- 맨 앞 `=X/` 가 **PUBLIC EXECUTE** 다 → anon 이 실행할 수 있었다.
+-- 이 함수는 security definer 가 **아니고**(prosecdef=false) language sql 이며
+-- 본문은 `delete from public.password_reset_tokens where expires_at < now() - '1 day'`
+-- 하나다. 호출자 권한으로 도는데 anon 은 그 표에 DELETE 가 없다
+-- ({postgres=arwdDxtm/postgres, service_role=arwdDxtm/postgres}). 즉 익명이
+-- POST /rest/v1/rpc/cleanup_expired_reset_tokens 를 치면 토큰이 지워지는 게
+-- 아니라 **42501 과 함께 내부 표 이름이 새어 나간다** — 30분 전 커밋
+-- 20260806174741 이 etl_runs 에서 고친 것과 정확히 같은 부류다.
+--   실측(같은 경로를 회수 뒤에 재현): `set local role anon; select 1 from
+--   public.password_reset_tokens limit 1` →
+--   ERROR 42501 "permission denied for table password_reset_tokens"
+--   HINT "Grant the required privileges … GRANT SELECT ON public.password_reset_tokens TO anon;"
+--   ※ 범위를 좁혀 밝힌다: **회수를 먼저 걸었기 때문에 회수 전 RPC 호출 자체의
+--     응답 문구는 잡아 두지 못했다.** 위는 같은 표에 대한 등가 측정이다.
+-- 호출부도 없다: 저장소 0건, pg_cron 9개 작업 중 0건, 다른 함수 본문 0건.
+--
+-- ── PUBLIC 회수를 같이 넣은 이유 (오늘은 무동작임을 밝힌다) ─────────────────
+-- 자동화 RPC 3개에는 지금 PUBLIC 항목이 없다 → `from … public` 은 오늘 무동작이다.
+-- 그래도 넣는다: 20260805024341 이 anon·authenticated 만 회수했다가 PUBLIC 이
+-- 남아 20260805024423 이 뒤따라야 했던 전례가 이 DB 안에 있다. 세 갈래를 한
+-- 문장에 못박아 후속 정정 마이그레이션이 필요 없게 한다.
+-- (cleanup_expired_reset_tokens 쪽에서는 무동작이 아니라 **이게 본체**다.)
+--
+-- ── 적용 후 실측 ────────────────────────────────────────────────────────────
+--   [ACL] 4개 전부 {postgres=X/postgres, service_role=X/postgres}
+--         anon=false · authenticated=false · service_role=true · postgres=true
+--   [실제 호출 경로] set local role anon; select public.get_automation_script('wrong','…')
+--         → ERROR 42501 permission denied for function get_automation_script
+--         set local role anon; select public.cleanup_expired_reset_tokens()
+--         → ERROR 42501 permission denied for function cleanup_expired_reset_tokens
+--   [양성 대조 — 기계가 살아 있다는 증거] 같은 세션에서
+--         set local role anon; select count(*) from public.search_regions('강남', 3)
+--         → **1행** (anon 역할 전환이 진짜로 걸린다. 0건이 나온 게 아니다.)
+--         search_regions·popular_complexes 는 회수 후에도 anon EXECUTE = true
+--         (익명 대상 함수라 그대로 두는 게 맞다)
+--   ※ 범위: REST 층에서는 재지 않았다. 이 컨테이너는 프로덕션 REST 로 POST 를
+--     못 보낸다(자동 모드 분류기가 막는다). 우회하지 않고 DB 층에서 쟀고,
+--     그래서 "PostgREST 가 같은 42501 을 그대로 내보낸다"는 것은 **재지 않은
+--     구간**이다. 20260806174741 에서 GET 으로 확인된 동작과 같을 것으로 보지만
+--     여기서 확인했다고는 적지 않는다.
+--
+-- ── 같은 커밋에서 같이 고치는 것 ────────────────────────────────────────────
+--   1) 20260804234917 파일 17~19행의 틀린 안심 주석 (위 참조)
+--   2) 20260801233000 파일이 원장에 없는
+--      `grant execute … to anon, authenticated, service_role` 2줄을 들고 있다.
+--      그 파일을 재생하면 이번 회수가 바로 풀린다. 원장 행은 10문인데 파일은
+--      48문이다. 미러 파일이 원장보다 많이 주장하면, 그 파일을 재생하는 순간
+--      보안 회수가 풀린다.
+--
+-- ── 아직 자동 게이트가 없다 ─────────────────────────────────────────────────
+-- scripts/check-migration-grants.mjs 에 "앞선 마이그레이션이 회수한 함수에
+-- 다시 anon EXECUTE 를 부여" 규칙(Rule D)을 넣을 수 있다. 다만 **이번 건은
+-- 그 규칙으로도 못 잡았다** — 회수한 20260803221147 에 파일이 없어서 파일만
+-- 읽는 린트에는 회수가 존재하지 않기 때문이다. 미러 결손을 먼저 메우지 않으면
+-- 규칙이 있어도 조용히 통과한다. 가려 두지 않고 적어 둔다.
+--
+-- ── 되돌리기 ────────────────────────────────────────────────────────────────
+--   grant execute on function public.get_automation_script(text, text) to anon, authenticated;
+--   grant execute on function public.ingest_daily_news(text, jsonb) to anon, authenticated;
+--   grant execute on function public.set_automation_script(text, text, text) to anon, authenticated;
+--   grant execute on function public.cleanup_expired_reset_tokens() to public;
+--   -- 단, 되돌리면 publishable 키만으로 자동화 RPC 3개를 두드릴 수 있게 되고
+--   --     cleanup 쪽은 다시 password_reset_tokens 이름을 익명에게 흘린다.
+
+revoke execute on function public.get_automation_script(text, text) from anon, authenticated, public;
+revoke execute on function public.ingest_daily_news(text, jsonb) from anon, authenticated, public;
+revoke execute on function public.set_automation_script(text, text, text) from anon, authenticated, public;
+revoke execute on function public.cleanup_expired_reset_tokens() from anon, authenticated, public;
+
+grant execute on function public.get_automation_script(text, text) to service_role;
+grant execute on function public.ingest_daily_news(text, jsonb) to service_role;
+grant execute on function public.set_automation_script(text, text, text) to service_role;
+grant execute on function public.cleanup_expired_reset_tokens() to service_role;
