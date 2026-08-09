@@ -47,7 +47,10 @@ type RawLogRow = { source?: unknown; status?: unknown; rows?: unknown; created_a
 
 /**
  * 운영 P0 체크 — DB ping(가벼운 단건 조회) · ETL 최근 성공 시각 · env 유효성.
- * 코드베이스에 etl_runs 테이블은 없어 실제 수집 로그 테이블(market_ingest_log)을 사용.
+ * [2026-08-09 정정] 예전 주석은 "etl_runs 테이블은 없어"라고 적었는데 틀렸다 —
+ * public.etl_runs 는 존재한다(refresh_market_aggregates 가 기록, 실측 23행).
+ * 다만 그건 시세 집계 갱신 로그이고, 이 헬스체크가 보는 것은 외부 수집 파이프라인
+ * 로그(market_ingest_log)다. 표가 없어서가 아니라 용도가 달라서 이 표를 쓴다.
  * 민감정보(URL·키·에러 메시지)는 절대 반환하지 않는다 — boolean·시각·소스명만.
  *
  * ── #148 에서 고친 것 ────────────────────────────────────────────────────────

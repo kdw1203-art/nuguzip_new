@@ -5,12 +5,14 @@
   "원장을 직접 조회할 수 없고, 조회할 수 없으면 검사가 영구 SKIP→WARN 이 되어 아무도 안 본다.",
   "오프라인에서 대조하려면 원장을 파일로 들고 있는 수밖에 없다.",
   "",
-  "무엇이 들어 있나: baseline_version 이후의 원장 행 160개. 행마다 version, name,",
+  "무엇이 들어 있나: baseline_version 이후의 원장 행 전부 — 행 수는 ledger_rows 필드가 단일 출처다. 행마다 version, name,",
   "statements[1] 의 바이트 수와 md5, 그리고 그 SQL 에서 뽑은 객체 토큰이다.",
   "토큰은 \"<동사>:<이름>\" 이고 동사는 c(create) / a(alter table) / d(drop) 세 가지다.",
   "",
-  "md5 는 나중에 쓸 데가 있다. 원장 본문과 로컬 파일 본문이 같은지 확인할 때,",
-  "파일에서 머리말이 어디서 끝나는지 찾을 필요 없이 파일 끝 bytes 바이트의 md5 를 비교하면 된다.",
+  "md5 는 원장 본문과 로컬 파일 본문의 대조에 쓴다. [2026-08-09 정정] 예전에는 \"파일 끝",
+  "bytes 바이트의 md5 를 비교하면 된다\"고 적었는데 **틀렸다** — 원장 164행을 실측하니 127행이 자기",
+  "머리말 주석(`--`)을 본문 안에 갖고 있어, 미러 파일 끝을 자르는 대조는 대부분의 행에서 성립하지",
+  "않는다. 본문 대조는 주석 제거·공백 접기 정규화(대소문자 보존) 뒤 md5 로 해야 한다(작업 #352).",
   "(octet_length 기준이다. 한글은 UTF-8 에서 한 글자가 3바이트라 문자 수로 세면 어긋난다.)",
   "",
   "content_md5 는 이 스냅샷이 원장과 어긋나지 않았는지 확인하는 값이다. 각 행을",
@@ -24,13 +26,13 @@
   "  * 객체가 \"언급됐다\"와 \"정의됐다\"는 다르다. 같은 정규식을 양쪽에 똑같이 적용해서",
   "    비교할 뿐이고, 그 이상을 주장하지 않는다."
  ],
- "measured_at": "2026-08-06",
+ "measured_at": "2026-08-09",
  "source": "supabase_migrations.schema_migrations",
  "project_ref": "pbhiskvwpwwhtkmnhkbm",
  "baseline_version": "20260724212021",
  "baseline_note": "supabase/migrations 에 남아 있는 가장 오래된 파일의 version. 그 이전 원장 행은 파일로 미러링된 적이 없고, 대조 대상도 아니다.",
- "ledger_rows": 160,
- "content_md5": "147919b04be659d86d3f7b2f298bd11e",
+ "ledger_rows": 174,
+ "content_md5": "f763bfb025874d22926d59febdfdab1c",
  "extract": {
   "strip_comments_regex": "--[^\\n]*",
   "object_regex": "(create\\s+(?:or\\s+replace\\s+)?(?:unique\\s+)?(?:materialized\\s+view|view|function|table|index|policy|trigger|type|schema)(?:\\s+concurrently)?(?:\\s+if\\s+not\\s+exists)?|alter\\s+table(?:\\s+if\\s+exists)?|drop\\s+(?:materialized\\s+view|view|function|table|index|policy)(?:\\s+if\\s+exists)?)\\s+([a-zA-Z_\"][a-zA-Z0-9_.\"]*)",
@@ -1981,6 +1983,137 @@
    "objects": [
     "c:public.search_regions"
    ]
+  },
+  {
+   "version": "20260806154632",
+   "name": "reports_author_id_text_and_email_privacy",
+   "bytes": 3860,
+   "md5": "5d3ee9236b4f9bb56ddca5b3426ae65f",
+   "statements": 1,
+   "objects": [
+    "a:public.reports"
+   ]
+  },
+  {
+   "version": "20260806163853",
+   "name": "inspection_notes_author_email_privacy",
+   "bytes": 2627,
+   "md5": "94d5d2ecc6ac0cec43bf5b7488e1d64e",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806171024",
+   "name": "revoke_anon_write_grants",
+   "bytes": 2408,
+   "md5": "d4936203cff7d0f108f1fc7f91cb5342",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806174741",
+   "name": "fix_etl_runs_policy_use_private_is_admin",
+   "bytes": 175,
+   "md5": "6d308a3c8642d2148e0243610bbcee4c",
+   "statements": 1,
+   "objects": [
+    "c:etl_runs_admin_read",
+    "d:etl_runs_admin_read"
+   ]
+  },
+  {
+   "version": "20260806182312",
+   "name": "sec_rerevoke_anon_execute_on_automation_and_cleanup_rpcs",
+   "bytes": 744,
+   "md5": "770acb62321bceb5bf83cbbb54b838c7",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806223821",
+   "name": "data_quality_report_live_work_mem",
+   "bytes": 460,
+   "md5": "d7a74096aa35b7e58607391cb04080e4",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806224022",
+   "name": "etl_freshness_month_rollover_check",
+   "bytes": 5050,
+   "md5": "74238324376c556c62b4918d8513be89",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260806224132",
+   "name": "etl_freshness_signal_semantics_by_source_class",
+   "bytes": 5868,
+   "md5": "a39fc9e1723f8f07c965e730fe353be7",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260808224022",
+   "name": "backfill_lawd_cd_gangwon_chungbuk_with_rollback",
+   "bytes": 1374,
+   "md5": "99ea2a41842740fb245f95f2c3fb5a50",
+   "statements": 1,
+   "objects": [
+    "c:ops.lawd_cd_backfill_20260809"
+   ]
+  },
+  {
+   "version": "20260808224300",
+   "name": "apartment_complexes_trgm_gin_fastupdate_off",
+   "bytes": 813,
+   "md5": "a0808d0b48d9a033537aebad0ab78912",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260808224400",
+   "name": "ops_etl_freshness_ranked_streaks",
+   "bytes": 2712,
+   "md5": "aa90b3ec17660673e8a1ac0669e28e3f",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness_ranked"
+   ]
+  },
+  {
+   "version": "20260809224025",
+   "name": "ops_site_rum_and_pipeline_heartbeat_checks",
+   "bytes": 8546,
+   "md5": "023dd94f66291df94d9edce2d8fbd08c",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260809224057",
+   "name": "ops_perf_baseline_verdict_and_trgm_fastupdate_verified",
+   "bytes": 1670,
+   "md5": "ca8dee705d590799d482086c700d6f21",
+   "statements": 1,
+   "objects": [
+    "a:ops.perf_baseline"
+   ]
+  },
+  {
+   "version": "20260809230322",
+   "name": "ops_rent_ppp_distortion_diagnostic",
+   "bytes": 2794,
+   "md5": "efd344eb71e3c1a65c0cba6d85cbc27a",
+   "statements": 1,
+   "objects": [
+    "c:ops.rent_ppp_distortion"
+   ]
   }
  ],
  "absent_now": {
@@ -2732,6 +2865,42 @@
    ],
    "from": [
     "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "lawd_cd_backfill_20260809",
+   "full": [
+    "ops.lawd_cd_backfill_20260809"
+   ],
+   "from": [
+    "20260808224022 backfill_lawd_cd_gangwon_chungbuk_with_rollback"
+   ]
+  },
+  {
+   "object": "etl_freshness_ranked",
+   "full": [
+    "ops.etl_freshness_ranked"
+   ],
+   "from": [
+    "20260808224400 ops_etl_freshness_ranked_streaks"
+   ]
+  },
+  {
+   "object": "perf_baseline",
+   "full": [
+    "ops.perf_baseline"
+   ],
+   "from": [
+    "20260809224057 ops_perf_baseline_verdict_and_trgm_fastupdate_verified"
+   ]
+  },
+  {
+   "object": "rent_ppp_distortion",
+   "full": [
+    "ops.rent_ppp_distortion"
+   ],
+   "from": [
+    "20260809230322 ops_rent_ppp_distortion_diagnostic"
    ]
   }
  ]

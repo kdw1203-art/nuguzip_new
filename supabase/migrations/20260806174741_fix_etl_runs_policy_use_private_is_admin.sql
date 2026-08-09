@@ -122,9 +122,13 @@
 --   1) anon 은 여전히 public.etl_runs 에 표 SELECT 권한(anon=r)을 갖는다.
 --      Supabase 부트스트랩 기본권한에서 온 것이고, 지금은 정책이 {authenticated}
 --      라 행이 안 나간다. anon **읽기** GRANT 전수 조사는 미착수.
---   2) public.is_admin_request() 는 아직 =X/postgres (PUBLIC EXECUTE) 를 달고
---      있어, 20260719223337 의 `REVOKE … FROM anon` 이 무력하다 — anon 이
---      실행할 수 있다. 20260727073106 이 고치려던 바로 그 부류인데 건너뛰었다.
+--   2) public.is_admin_request() 는 =X/postgres (PUBLIC EXECUTE) 를 달고 있어
+--      anon 이 실행할 수 있다. [2026-08-09 정정] 예전 문장은 이걸 "건너뛴
+--      결함"처럼 적었는데, **회수하지 않는 것이 정답이다** — pg_depend 전수로
+--      세니 이 함수를 부르는 정책 간선이 53개이고 그중 20개가 polroles=PUBLIC
+--      이라 anon 도 표현식을 평가한다. 회수하면 그 20개가 "0행" 대신 42501 로
+--      죽는다 — 정확히 이 파일이 etl_runs 에서 고친 그 결함을 20곳에 새로
+--      만드는 셈이다. 20260805024341 머리말도 같은 결론을 적어 두었다.
 --
 -- ── 되돌리기 ────────────────────────────────────────────────────────────────
 --   drop policy if exists etl_runs_admin_read on public.etl_runs;

@@ -14,9 +14,14 @@
 -- 남은 결손은 supabase/ledger-snapshot.json 의 known_unmirrored 에 근거(원장 version)와
 -- 함께 적어 두었고, scripts/check-migration-ledger.mjs 가 릴리스 게이트에서 다시 센다.
 --
--- 읽는 사람 주의: 이 파일 끝의 anon/authenticated GRANT 는 **바로 다음 두 마이그레이션에서
--- 회수된다**(20260805024341, 20260805024423). 여기까지만 읽고 "익명이 스크립트를 쓸 수
--- 있다"고 결론내면 틀린다. 최종 상태는 service_role 전용이다.
+-- 읽는 사람 주의 [2026-08-09 정정]: 예전 이 자리에는 "끝의 GRANT 는 바로 다음 두
+-- 마이그레이션(20260805024341, 20260805024423)에서 회수된다"고 적혀 있었다.
+-- **틀린 안심 문구였다.** 그 둘은 set_automation_script **하나만** 회수한다
+-- (원장 원문으로 확인). 아래 마지막 두 GRANT 줄 — get_automation_script ·
+-- ingest_daily_news — 는 전날 20260803221147 이 회수한 것을 복붙으로 되돌린
+-- 것이고, 이틀간 아무도 못 본 채 열려 있다가 20260806182312 가 실측으로 발견해
+-- 재회수했다. 최종 상태가 service_role 전용인 것은 맞지만, 그건 이 파일의
+-- "바로 다음"이 아니라 나흘 뒤의 일이다. 낡은 안심 문구는 낡은 코드보다 위험하다.
 --
 -- 되돌리기: drop function public.set_automation_script(text, text, text);
 
