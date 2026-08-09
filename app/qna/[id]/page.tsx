@@ -335,7 +335,7 @@ export default async function QnaDetailPage({
   return (
     <PageShell breadcrumb="홈 › 동네이야기 › 단지 Q&A" title={question.title} wide>
       <TownCategoryNav stick />
-      <div style={QNA_THEME} className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div style={QNA_THEME} className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div>{body}</div>
         {aside}
       </div>

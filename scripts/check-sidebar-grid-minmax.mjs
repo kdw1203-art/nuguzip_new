@@ -121,12 +121,46 @@ function selftest() {
     bad++;
     console.log("fix 문자열 오류(좌측 고정):", JSON.stringify(g));
   }
+  // ── 규칙 B 자가검사 ──
+  const B_CATCH = [
+    'className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"',
+    'className="grid items-start gap-5 md:grid-cols-[280px_minmax(0,1fr)]"',
+    'className="rise-in grid gap-4 xl:grid-cols-[1.6fr_1fr]"',
+  ];
+  const B_PASS = [
+    'className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"',
+    'className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-[minmax(0,1fr)_340px]"',
+    'className="grid grid-cols-2 gap-2 md:grid-cols-[88px_minmax(0,1fr)]"',
+    'className="flex gap-2"',
+  ];
+  for (const c of B_CATCH)
+    if (findMissingBaseGridViolations(c).length === 0) { bad++; console.log("B MUST_CATCH 놓침:", c); }
+  for (const c of B_PASS)
+    if (findMissingBaseGridViolations(c).length > 0) { bad++; console.log("B MUST_PASS 오탐:", c); }
   console.log(
     bad === 0
-      ? "✔ 자가검사 통과 — 심은 결함 5종 전부 잡고, 통과해야 할 7종은 안 잡는다"
+      ? "✔ 자가검사 통과 — A: 결함 5종 잡고 7종 통과 · B: 결함 3종 잡고 4종 통과"
       : `✗ 자가검사 실패 ${bad}건`,
   );
   return bad === 0 ? 0 : 1;
+}
+
+/** 규칙 B (2026-08-09 /apply 실측) — 반응형 임의값 그리드에 base grid-cols 누락.
+ * `grid gap-4 lg:grid-cols-[…]` 처럼 base 트랙 정의가 없으면 모바일에서
+ * 암묵 단일 칼럼이 auto(min = min-content)로 잡힌다. 안쪽에 안 접히는 넓은
+ * 자식(칩 레일·표)이 있으면 페이지 전체가 그 폭으로 밀린다 — /apply 뷰포트
+ * 390 에서 scrollWidth 978(초과 588px), 데스크톱 1296 에서도 40px 넘쳤다.
+ * Tailwind 의 base `grid-cols-1` 은 repeat(1, minmax(0,1fr)) 라 이걸 막는다.
+ * 한 줄 안에서만 본다 — 여러 줄로 쪼갠 className 은 이 규칙이 못 본다(범위 명시). */
+export function findMissingBaseGridViolations(source) {
+  const out = [];
+  source.split("\n").forEach((line, i) => {
+    if (!/(?:sm|md|lg|xl|2xl):grid-cols-\[/.test(line)) return;
+    if (/(?<![:\w-])grid-cols-\d/.test(line)) return; // base 있음
+    if (!/\bgrid[ "]/.test(line)) return; // display grid 없는 줄은 판정 불가 — 건너뜀
+    out.push({ line: i + 1, match: line.trim().slice(0, 110) });
+  });
+  return out;
 }
 
 const invokedDirectly =
@@ -148,16 +182,21 @@ if (invokedDirectly) {
     .flatMap((d) => walk(d));
 
   let count = 0;
+  let countB = 0;
   for (const f of files) {
-    const hits = findSidebarGridViolations(readFileSync(f, "utf8"));
-    for (const h of hits) {
+    const src = readFileSync(f, "utf8");
+    for (const h of findSidebarGridViolations(src)) {
       count++;
-      console.log(`  ${relative(root, f)}:${h.line}  ${h.match}  →  ${h.fix}`);
+      console.log(`  [A] ${relative(root, f)}:${h.line}  ${h.match}  →  ${h.fix}`);
+    }
+    for (const h of findMissingBaseGridViolations(src)) {
+      countB++;
+      console.log(`  [B] ${relative(root, f)}:${h.line}  base grid-cols 없음 — ${h.match}`);
     }
   }
-  if (count === 0) {
+  if (count === 0 && countB === 0) {
     console.log(
-      `[check-sidebar-grid-minmax] PASS — .tsx ${files.length}개에서 2트랙(고정px + 1fr) 그리드의 bare 1fr 0건`,
+      `[check-sidebar-grid-minmax] PASS — .tsx ${files.length}개 · A(bare 1fr) 0건 · B(base grid-cols 누락) 0건`,
     );
     console.log(
       "  ※ 범위: 트랙 2개짜리만 봅니다. 3트랙 이상 표 그리드는 재 보지 않았고 규칙 대상이 아닙니다.",
@@ -168,7 +207,7 @@ if (invokedDirectly) {
     process.exit(0);
   }
   console.log(
-    `[check-sidebar-grid-minmax] FAIL — ${count}건. \`1fr\` 은 minmax(auto,1fr) 라서 안쪽 넓은 자식이 고정폭 사이드바를 컨테이너 밖으로 밀어냅니다.`,
+    `[check-sidebar-grid-minmax] FAIL — A ${count}건 · B ${countB}건. \`1fr\` 은 minmax(auto,1fr) 이고, base 없는 암묵 트랙도 min-content 아래로 안 줄어듭니다.`,
   );
   process.exit(1);
 }

@@ -152,7 +152,7 @@ export default async function SupportPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
         {/* 좌측 메뉴 (9n) */}
         <nav className="rise-in-1 card hidden h-fit flex-col rounded-[18px] py-2 md:flex">
           {SIDE_MENU.map((m, i) =>
@@ -263,7 +263,7 @@ export default async function SupportPage() {
           </div>
 
           {/* 내 문의 티켓 + 답변 상세 (10b) */}
-          <div className="grid gap-3.5 lg:grid-cols-[340px_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[340px_minmax(0,1fr)]">
             <div className="rise-in-3 flex flex-col gap-2.5">
               <div className="flex items-center gap-1.5 text-[10px] text-text-3">
                 문의 내역 미리보기 <ExampleBadge />

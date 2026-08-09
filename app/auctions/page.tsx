@@ -327,6 +327,7 @@ export default async function AuctionsPage({
       <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
         {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
         <TownCategoryNav stick />
+        <h1 className="sr-only">공매·경매 물건</h1>
         <div style={AUCTION_THEME}>
           <CourtAuctionPlaceholder />
         </div>
@@ -353,6 +354,7 @@ export default async function AuctionsPage({
     return (
       <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
         <TownCategoryNav stick />
+        <h1 className="sr-only">공매·경매 물건</h1>
         <div style={AUCTION_THEME}>
           <ErrorState
             title="공매 물건을 지금 불러오지 못했어요"
@@ -400,6 +402,7 @@ export default async function AuctionsPage({
     <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
+        <h1 className="sr-only">공매·경매 물건</h1>
       <div style={AUCTION_THEME}>
         {/* 상단 필 행: 소스 토글 + 용도 필터 + CTA 칩 (우측 정렬) */}
         <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
@@ -455,7 +458,7 @@ export default async function AuctionsPage({
         </div>
 
         {/* 2단 레이아웃 (청약 센터와 동일 구조) */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="flex flex-col gap-3">
             {/* a) 입찰 캘린더 카드 — 아래 진행·예정 목록에서 파생된 실데이터 마킹 */}
             <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">

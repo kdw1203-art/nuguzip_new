@@ -329,7 +329,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
       {section === "realestate" && <RealEstateTools />}
 
       {section === "loan" && (
-      <div className="grid gap-4 lg:grid-cols-[400px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[400px_minmax(0,1fr)]">
         {/* ---------- 입력 (9j 좌측 + 6h 슬라이더) ---------- */}
         <div className="flex flex-col gap-3">
           {/* 실거주/전세/월세 탭 제거 — 계산에 반영되지 않는 선택지를 두지 않는다 */}

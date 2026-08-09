@@ -144,7 +144,7 @@ export default async function AnalysisHubPage({
     <PageShell>
       <div className="flex flex-col gap-4">
         <div className="rise-in px-1">
-          <div className="text-[26px] font-extrabold text-ink">AI 분석 도구</div>
+          <h1 className="text-[26px] font-extrabold text-ink">AI 분석 도구</h1>
           <div className="mt-1.5 text-sm text-text-2">
             내 노트와 실거래 데이터가 연결된 5가지 분석
           </div>

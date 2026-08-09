@@ -182,7 +182,7 @@ function StepVerify({
   onSelectType: (k: string) => void;
 }) {
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[1fr_1.2fr]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_1.2fr]">
       <div className="flex flex-col gap-4">
         {/* 판매자 유형 선택 */}
         <div className="card flex flex-col gap-2 p-4">
@@ -433,7 +433,7 @@ function StepProduct({
 function StepPreview({ draft }: { draft: Draft }) {
   const previewPages = Number(draft.previewPages);
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,390px)_1fr]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,390px)_1fr]">
       {/* 구매자에게 보이는 상세 미리보기 */}
       <div className="card mx-auto flex w-full max-w-[390px] flex-col gap-2.5 rounded-3xl bg-bg p-5">
         <div className="flex items-center justify-between gap-2">
@@ -512,7 +512,7 @@ function StepPrice({
   const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.2fr_1fr]">
       <div className="flex flex-col gap-4">
         {/* 가격 미리 계산 */}
         <div className="card flex flex-col gap-1.5 p-4">

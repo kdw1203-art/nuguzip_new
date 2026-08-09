@@ -160,6 +160,7 @@ export default async function SupplyPage({
 
   return (
     <PageShell breadcrumb="동네이야기 › 입주 물량" wide>
+      <h1 className="sr-only">입주 물량 캘린더</h1>
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
       <div style={SUPPLY_THEME}>
@@ -214,7 +215,7 @@ export default async function SupplyPage({
         </div>
 
         {/* 2단 레이아웃 (청약 센터: 본문 + 우측 사이드) */}
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* ── 본문 ── */}
           <div className="flex flex-col gap-3">
             {/* 월별 입주 물량 — apartment_supply 실집계(월·세대수) */}

@@ -470,6 +470,7 @@ function RegionMarketSummary() {
 export default function ComparePage() {
   return (
     <PageShell breadcrumb="AI 분석 › 단지 비교">
+      <h1 className="sr-only">단지 비교</h1>
       <div className="flex flex-col gap-3.5">
         {/* 단지 선택기 → 비교 트레이 (검색·지도·?complexId=/?apt= 딥링크) */}
         <ComparePickerSection />

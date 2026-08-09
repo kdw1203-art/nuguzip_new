@@ -68,7 +68,7 @@ export default function SafetyPage() {
     <PageShell breadcrumb="전세·월세 모드 › 세입자 안전 분석" wide>
       {/* 상단 모드 전환 + 대상 입력 */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-3">
-        <span className="text-[13px] font-extrabold text-ink">전세·월세 보증금 안전 확인</span>
+        <h1 className="text-[13px] font-extrabold text-ink">전세·월세 보증금 안전 확인</h1>
         <input
           value={address}
           onChange={(e) => setAddress(e.target.value)}
@@ -88,7 +88,7 @@ export default function SafetyPage() {
         </button>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="flex flex-col gap-3.5">
           {/* 진단 상태 — 결과를 지어내지 않는다 */}
           {submitted ? (

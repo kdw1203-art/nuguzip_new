@@ -66,6 +66,16 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
     };
   }, [zoom, go]);
 
+  // 인접 사진 프리로드 — 넘길 때마다 원본을 그때 받기 시작하면 큰 차트
+  // 이미지에서 빈 무대가 눈에 띈다. 다음·이전 한 장씩만 미리 받는다.
+  useEffect(() => {
+    if (total < 2) return;
+    for (const i of [(idx + 1) % total, (idx - 1 + total) % total]) {
+      const img = new Image();
+      img.src = photos[i];
+    }
+  }, [idx, total, photos]);
+
   if (total === 0) return null;
 
   const src = photos[idx];
@@ -166,8 +176,12 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
           </>
         )}
 
-        {/* 매수 표시 — 몇 장 중 몇 번째인지 숨기지 않는다 */}
-        <span className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-extrabold text-white">
+        {/* 매수 표시 — 몇 장 중 몇 번째인지 숨기지 않는다.
+            aria-live: 스크린리더도 장 전환을 들을 수 있게 (조용한 상태 변경 금지) */}
+        <span
+          aria-live="polite"
+          className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-extrabold text-white"
+        >
           {idx + 1} / {total}
         </span>
 

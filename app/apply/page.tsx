@@ -103,10 +103,10 @@ export default async function ApplyPage() {
         {/* 상단 CTA — 예전의 정적 탭(전체·예정·접수 중·지난 청약)은 클릭해도 아무
             동작이 없는 장식이라 제거했다. 실동작 탭(경쟁률/특별공급)은 아래 검색 영역에 있다. */}
         <div className="rise-in mt-4 mb-4 flex flex-wrap items-center gap-2">
-          <h1 className="text-[17px] font-extrabold text-ink">
+          <h2 className="text-[17px] font-extrabold text-ink">
             청약 경쟁률 · 특별공급{" "}
             <span className="text-[12px] font-bold text-primary">청약홈 실데이터</span>
-          </h1>
+          </h2>
           <div className="flex-1" />
           <a
             href={APPLYHOME_URL}
@@ -133,7 +133,7 @@ export default async function ApplyPage() {
           에서 확인하세요. 당첨 가능성·안전마진 같은 <b>예측치는 이 화면에서 만들지 않습니다.</b>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           {/* 본문 — 청약홈 실데이터 검색 (경쟁률/특별공급 탭 + 지역·단지명 + 더보기) */}
           <ApplySearchClient initial={initial} />
 
