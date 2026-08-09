@@ -48,10 +48,12 @@ export async function POST(req: Request) {
   const city = String(b.city ?? "").trim();
   const district = String(b.district ?? "").trim();
   const category = String(b.category ?? "").trim();
+  // 이름 미설정 계정: 이메일 local part 전체를 공개 라벨로 저장하던 것을
+  // 마스킹으로 교체 (inspection/notes·complex-reviews 등과 같은 규칙).
+  // 이미 저장된 라벨은 이 코드로는 안 바뀐다 — 데이터 정정은 별건.
   const authorLabel =
     session.user.name?.trim() ||
-    session.user.email?.split("@")[0]?.trim() ||
-    "회원";
+    `${session.user.email?.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`;
   const tagsRaw = b.tags;
   const tags =
     typeof tagsRaw === "string"

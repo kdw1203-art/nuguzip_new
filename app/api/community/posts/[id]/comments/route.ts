@@ -28,10 +28,10 @@ export async function POST(
 
   const b = body as Record<string, unknown>;
   const text = String(b.body ?? "").trim();
+  // posts/route.ts 와 같은 정정 — local part 전체 저장 금지, 마스킹으로 통일
   const authorLabel =
     session.user.name?.trim() ||
-    session.user.email.split("@")[0]?.trim() ||
-    "회원";
+    `${session.user.email.split("@")[0]?.slice(0, 2) || "이웃"}** 이웃`;
 
   if (text.length < 1) {
     return NextResponse.json({ error: "댓글 내용을 입력해 주세요." }, { status: 400 });

@@ -188,9 +188,13 @@ export default async function PublicProfilePage({
   /* 팔로워 수 실데이터 (user_follows).
      조회에 실패하면 `0` 이 아니라 null 이다 — "팔로워 0명"은 사실 주장이고,
      못 셌다는 말과 바꿔 쓸 수 없다. 아래에서 null 은 "—"로 그린다.
-     팔로우할 대상 자체가 없는 경우(followEmail 없음)만 진짜 0 이다. */
+     [2026-08-09 정정] 예전 주석은 "followEmail 없음 = 진짜 0" 이라고 적었는데
+     틀렸다 — 익명 열람 경로에서는 author_email 이 가려져(20260806163853)
+     이메일을 **못 읽는 것**이지 대상이 없는 게 아니다. 그동안 익명에게는
+     팔로워가 있어도 0 으로 보였다. 못 읽으면 0 이 아니라 null(—) 이다. */
   const followEmail = profile?.email || authored[0]?.authorEmail || "";
-  let followerCount: number | null = 0;
+  const followHidden = !followEmail; // 이메일이 가려져 셀 수 없는 경우 (실패와 구분)
+  let followerCount: number | null = null;
   if (followEmail) {
     followerCount = await followCounts(followEmail).then(
       (c) => c.followers,
@@ -276,7 +280,11 @@ export default async function PublicProfilePage({
                 {followerCount === null ? "—" : followerCount.toLocaleString("ko-KR")}
               </div>
               <div className="text-[10px] text-text-3">
-                {followerCount === null ? "팔로워 (못 불러옴)" : "팔로워"}
+                {followerCount === null
+                  ? followHidden
+                    ? "팔로워 (비공개)"
+                    : "팔로워 (못 불러옴)"
+                  : "팔로워"}
               </div>
             </div>
           </div>

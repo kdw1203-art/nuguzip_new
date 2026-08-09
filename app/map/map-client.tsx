@@ -10,7 +10,6 @@ import {
   type CSSProperties,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Logo } from "../components/Logo";
 import { WelcomeHandoff } from "./WelcomeHandoff";
 import { NaverMap, type MapIdleInfo, type MapMarkerData } from "@/components/map/NaverMap";
@@ -406,8 +405,6 @@ interface ClustersResponse {
   truncated?: boolean;
 }
 
-/** 이 네이버 줌 미만이면 서버 클러스터 마커를 표시 (API의 POINT_MODE_MIN_ZOOM과 동일) */
-const CLUSTER_MODE_MAX_ZOOM = 14;
 /** bounds 변경 → fetch 디바운스(ms) */
 const CLUSTER_FETCH_DEBOUNCE_MS = 350;
 
@@ -617,7 +614,6 @@ export function MapClient({
   initialBudget = null,
   initialListingType = null,
 }: MapClientProps) {
-  const router = useRouter();
   const focusedRegion = initialFocus?.name ?? null;
   const hasEntryFocus = Boolean(initialFocus || initialComplexFocus);
   const [zoom, setZoom] = useState<Zoom>(
@@ -2379,8 +2375,6 @@ export function MapClient({
     radiusM,
     radiusOrigin.lat,
     radiusOrigin.lng,
-    center.lat,
-    center.lng,
   ]);
 
   /* ===== item5 — 빈 지도 안내. 조회 실패("일시적 오류")와 빈 결과를 구분한다. ===== */

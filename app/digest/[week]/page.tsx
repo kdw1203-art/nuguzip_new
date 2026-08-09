@@ -6,7 +6,6 @@ import { QaBlock } from "@/app/components/QaBlock";
 import {
   getDigestWeek,
   weekSlugToMs,
-  weekRangeLabel,
   weekOrdinalLabel,
   ARCHIVE_WEEKS,
   MIN_ITEMS,

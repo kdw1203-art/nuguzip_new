@@ -384,7 +384,8 @@ export function ComplexInfoPanel({
 
   const complex = data?.complex ?? null;
   const name = complex?.name ?? initialName ?? "단지";
-  const tx = data?.transactions ?? [];
+  // ?? [] 를 그대로 두면 렌더마다 새 배열이라 tx 를 의존하는 useMemo 가 매번 다시 돈다
+  const tx = useMemo(() => data?.transactions ?? [], [data?.transactions]);
   const posts = data?.posts ?? [];
   const reviews = data?.reviews ?? null;
   const bands = data?.areaBands ?? [];
