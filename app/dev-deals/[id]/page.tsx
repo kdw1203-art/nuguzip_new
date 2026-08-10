@@ -2,12 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
-import { getDeal, incrementDealView } from "@/lib/dev-deals/store";
+import { getDeal } from "@/lib/dev-deals/store";
+import { ViewPing } from "./ViewPing";
 import { estimateCommission, COMMISSION_BASIS_LABEL } from "@/lib/dev-deals/commission";
 import { formatKrwEok, formatAreaM2 } from "@/lib/dev-deals/types";
 import { InquiryForm } from "./InquiryForm";
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): 크롤 1회 = 함수 호출 1회이던 것을 ISR 로.
+   렌더 중 유일한 부작용(조회수 +1)은 ViewPing 클라이언트 핑으로 이전. */
+export const revalidate = 1800;
+export function generateStaticParams() {
+  return [];
+}
 
 const STATUS_LABEL: Record<string, string> = {
   open: "모집중",
@@ -55,13 +61,14 @@ export default async function DevDealDetailPage({
   const deal = await getDeal(id);
   if (!deal) notFound();
 
-  // 조회수 +1 (best-effort)
-  await incrementDealView(id);
+  /* 조회수는 렌더 밖으로 — ISR 캐시된 렌더에서는 이 자리의 쓰기가 실행되지
+     않아 조회수가 조용히 멎는다. ViewPing(클라이언트)이 대신 센다. */
 
   const commission = estimateCommission(deal.totalCostKrw);
 
   return (
     <PageShell breadcrumb="홈 › 개발물건 중개 › 상세" title={deal.title}>
+      <ViewPing dealId={id} />
       {/* 상단 배지 */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-1.5">
         <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-semibold text-primary">

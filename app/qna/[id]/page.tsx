@@ -13,7 +13,14 @@ import type { QnaAnswer } from "@/lib/qna/types";
 import { topicsOf, QNA_TOPIC_BY_KEY } from "@/lib/qna/topics";
 import { AnswerForm } from "./AnswerForm";
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 크롤 1회 = 함수 호출 1회였다.
+   렌더에 auth·cookies·searchParams·쓰기 부작용 0건(check-cache-policy 감시).
+   유일한 변이(답변 등록 API)가 revalidatePath 로 즉시 재생성한다. */
+export const revalidate = 600;
+// 동적 세그먼트는 이게 없으면 "요청마다 서버 렌더"로 분류된다
+export function generateStaticParams() {
+  return [];
+}
 
 /** 목록(/qna)과 같은 청록 테마 — 카테고리를 오가도 색이 바뀌지 않게. */
 const QNA_THEME = {

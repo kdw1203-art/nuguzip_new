@@ -229,6 +229,16 @@ export const PUBLIC_CACHE_PATTERN_RULES: readonly PublicCachePatternRule[] = [
     swr: 86400,
   },
   { route: "/town/news/[id]", test: /^\/town\/news\/[^/]+$/, sMaxAge: 600, swr: 86400 },
+  /* 2차(같은 날): 답변 등록 API 에 revalidatePath 배선 후 전환 */
+  { route: "/qna/[id]", test: /^\/qna\/[^/]+$/, sMaxAge: 600, swr: 86400 },
+  /* 2차(같은 날): 렌더 중 조회수 쓰기를 ViewPing 클라이언트 핑으로 옮긴 후 전환 */
+  {
+    route: "/dev-deals/[id]",
+    // fees·partners·new 는 별개 라우트(각각 자체 규칙/동적) — 이 패턴에서 제외
+    test: /^\/dev-deals\/(?!fees$|partners$|new$)[^/]+$/,
+    sMaxAge: 1800,
+    swr: 86400,
+  },
 ];
 /* PUBLIC_CACHE_PATTERNS:end */
 

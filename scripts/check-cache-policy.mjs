@@ -84,6 +84,30 @@ if (!patternBlock) {
 }
 
 const patternRoutes = [...patternBlock.matchAll(/route:\s*"([^"]+)"/g)].map((m) => m[1]);
+/* route → test 정규식 (형제 가림 판정용). 2026-08-10: /dev-deals/[id] 처럼
+   부정 전방탐색으로 형제(fees·partners·new)를 명시적으로 제외한 패턴은
+   그 형제를 "가리지" 않는다 — 디렉터리만 보고 목록 등재를 강요하면, 캐시하면
+   안 되는 동적·개인화 형제를 "공개 캐시 가능" 목록에 올리라는 요구가 된다. */
+const patternTests = (() => {
+  // 정규식 리터럴 안의 [^/] 처럼 문자클래스 속 슬래시 때문에 한 방 정규식으론 못 뽑는다.
+  // 줄 단위로: route 를 기억했다가 다음 test 줄의 첫 `/` ~ 마지막 `/` 사이를 취한다.
+  const map = new Map();
+  let pendingRoute = null;
+  for (const line of patternBlock.split("\n")) {
+    const r = line.match(/route:\s*"([^"]+)"/);
+    if (r) pendingRoute = r[1];
+    const t = line.match(/test:\s*\/(.+)\/[,\s]*$/);
+    if (t && pendingRoute) {
+      try {
+        map.set(pendingRoute, new RegExp(t[1]));
+      } catch {
+        /* 파싱 실패 시 해당 route 는 종전대로 디렉터리 기준으로 엄격 판정 */
+      }
+      pendingRoute = null;
+    }
+  }
+  return map;
+})();
 if (patternRoutes.length === 0) {
   fail("PUBLIC_CACHE_PATTERNS 에서 route 를 하나도 읽지 못했습니다.");
 }
@@ -144,6 +168,8 @@ for (const route of patternRoutes) {
     if (!existsSync(join(parentDir, entry.name, "page.tsx"))) continue;
     const sibling = `/${[...parentSegments, entry.name].join("/")}`;
     if (patternRouteSet.has(sibling) || listedSet.has(sibling)) continue;
+    const test = patternTests.get(route);
+    if (test && !test.test(sibling)) continue; // 패턴이 스스로 제외한 형제는 가려지지 않는다
     patternProblems.push(
       `${sibling} — ${route} 패턴에 가려진 실제 페이지인데 목록에 제 이름으로 없습니다.`,
     );

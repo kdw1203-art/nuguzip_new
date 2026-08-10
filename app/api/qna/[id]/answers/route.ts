@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -40,5 +41,9 @@ export async function POST(
       { status: 400 },
     );
   }
+  // /qna/[id] 는 ISR(600s)이다. 재생성 없이는 방금 단 답변이 최대 10분간
+  // 캐시에 가려 "등록이 안 된" 것처럼 보인다 — 성공 시 즉시 재생성.
+  revalidatePath(`/qna/${id}`);
+
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });
 }
