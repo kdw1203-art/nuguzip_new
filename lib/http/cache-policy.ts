@@ -100,6 +100,8 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/town/library", ...FEED_DOC },
   /* 2026-08-10 ISR 전환 — 지역 필터는 NewsListClient(클라이언트) */
   { path: "/town/news", sMaxAge: 600, swr: 86400 },
+  /* 2026-08-10 ISR — type/partner/region 필터는 DevDealsListClient(클라이언트) */
+  { path: "/dev-deals", sMaxAge: 300, swr: 86400 },
   /* `/town/market` 은 공개 캐시 목록에서 뺐다(2026-07-27). 화면이 아니라
      `/town/groups` 로 넘기는 리다이렉트 스텁이고, searchParams 를 읽어 쿼리를
      그대로 넘기느라 동적 라우트다 — prerender 산출물이 없어 이 목록에 남아
