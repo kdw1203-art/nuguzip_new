@@ -137,6 +137,54 @@ export async function getSupplyList(
   }
 }
 
+/** getSupplyAll 페치 상한 — 전량이 이 안에 들어와야 클라이언트 필터가 서버 필터와 동치다.
+ *  실측(2026-08-10): apartment_supply 전량 675행(17개 시도, 최다 지역 209행) — 약 3배 여유.
+ *  이 값에 도달하면 잘렸을 수 있다는 뜻이므로 truncated 로 알린다. */
+export const SUPPLY_FETCH_CAP = 2000;
+
+export type SupplyAllResult = {
+  /** false = 조회 실패 (빈 결과와 구별 — "0건"이 아니라 "조회 실패"로 그려야 한다) */
+  ok: boolean;
+  items: SupplyItem[];
+  /** 페치 상한 도달 — 전량 보장이 깨졌을 수 있음 (화면에 가리지 않고 알린다) */
+  truncated: boolean;
+};
+
+/**
+ * 전량 로더 (ISR /supply 용) — 한 쿼리로 전체를 가져와 지역·월별 집계와 목록을
+ * 클라이언트에서 파생시킨다. 기존 getSupplyRegions + getSupplyMonthly + getSupplyList
+ * 3쿼리를 1쿼리로 줄이고, 기존 로더들과 달리 실패([] 반환으로 삼키기)와 빈 결과를
+ * 구별한다 — ISR 이 실패 화면을 "데이터 없음"으로 캐시하지 않게 하기 위해서다.
+ * 정렬은 getSupplyList 와 동일(move_in_ym 오름차순).
+ */
+export async function getSupplyAll(): Promise<SupplyAllResult> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return { ok: false, items: [], truncated: false };
+  try {
+    const { data, error } = await sb
+      .from("apartment_supply")
+      .select("move_in_ym, region, biz_type, address, apt_name, households")
+      .order("move_in_ym", { ascending: true })
+      .limit(SUPPLY_FETCH_CAP);
+    if (error || !Array.isArray(data)) {
+      logger.error("[getSupplyAll]", error ?? "invalid data");
+      return { ok: false, items: [], truncated: false };
+    }
+    const items = (data as Record<string, unknown>[]).map((r) => ({
+      moveInYm: String(r.move_in_ym ?? ""),
+      region: String(r.region ?? ""),
+      bizType: r.biz_type ? String(r.biz_type) : null,
+      address: r.address ? String(r.address) : null,
+      aptName: r.apt_name ? String(r.apt_name) : null,
+      households: r.households != null ? Number(r.households) : null,
+    }));
+    return { ok: true, items, truncated: items.length >= SUPPLY_FETCH_CAP };
+  } catch (e) {
+    logger.error("[getSupplyAll]", e);
+    return { ok: false, items: [], truncated: false };
+  }
+}
+
 /**
  * 특정 시/군/구(자치구) 관련 입주물량 — 주소 부분 매칭.
  * 지역 허브(/region/[id])에서 해당 구 이름으로 조회.

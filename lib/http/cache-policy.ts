@@ -108,6 +108,9 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   { path: "/qna", sMaxAge: 300, swr: 86400 },
   /* 2026-08-10 ISR — usage/gu 필터는 /api/auctions(CDN 캐시) fetch, court 는 클라 분기 */
   { path: "/auctions", sMaxAge: 600, swr: 86400 },
+  /* 2026-08-10 ISR — 전량 675행이 페치 상한 안 → region 필터는 SupplyClient(클라이언트).
+     수동 적재 데이터(자동 갱신 없음)라 600초면 충분히 신선하다 */
+  { path: "/supply", sMaxAge: 600, swr: 86400 },
   /* `/town/market` 은 공개 캐시 목록에서 뺐다(2026-07-27). 화면이 아니라
      `/town/groups` 로 넘기는 리다이렉트 스텁이고, searchParams 를 읽어 쿼리를
      그대로 넘기느라 동적 라우트다 — prerender 산출물이 없어 이 목록에 남아
