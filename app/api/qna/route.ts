@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -74,6 +75,10 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  // /qna 목록은 ISR(5분)이다 — 재생성 없이는 방금 등록한 질문이 목록에서
+  // 최대 5분간 안 보인다. 성공 시 즉시 재생성.
+  revalidatePath("/qna");
+
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });
 }
 
