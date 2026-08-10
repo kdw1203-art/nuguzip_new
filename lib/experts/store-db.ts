@@ -78,6 +78,43 @@ export async function listExperts(): Promise<UserExpertProfile[]> {
   return rows.map((e) => ({ ...e, consultations: counts.get(e.id) ?? 0 }));
 }
 
+/** listExpertsAll 페치 상한 — 전량이 이 안이어야 클라이언트 필터가 서버 필터와 동치.
+ *  실측(2026-08-10): expert_profiles 0행. */
+export const EXPERTS_FETCH_CAP = 200;
+
+export type ExpertsAllResult = {
+  /** false = 조회 실패 — "전문가 없음"(빈 결과)과 구별해 그려야 한다.
+   *  기존 listExperts 는 error 를 [] 로 삼켜서 이 구별이 로더에서 죽어 있었다. */
+  ok: boolean;
+  items: UserExpertProfile[];
+  truncated: boolean;
+};
+
+/**
+ * 전량 로더 (ISR /town/experts 용). !sb(서비스키 미설정)는 실패가 아니라 미설정이라
+ * 기존 listExperts 와 같이 memory(빈 배열)를 ok 로 돌려준다.
+ * 주의: 호출부가 클라이언트에 넘길 때는 반드시 슬림 DTO 로 — ownerEmail·userId 가
+ * 프로필에 실려 있어 그대로 넘기면 공개 ISR 캐시에 개인정보가 들어간다.
+ */
+export async function listExpertsAll(): Promise<ExpertsAllResult> {
+  const sb = getServiceSupabase();
+  if (!sb) return { ok: true, items: memory, truncated: false };
+  try {
+    const { data, error } = await sb
+      .from("expert_profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(EXPERTS_FETCH_CAP);
+    if (error) return { ok: false, items: [], truncated: false };
+    const rows = (data ?? []).map(mapRow);
+    const counts = await countRepliedConsultations();
+    const items = rows.map((e) => ({ ...e, consultations: counts.get(e.id) ?? 0 }));
+    return { ok: true, items, truncated: items.length >= EXPERTS_FETCH_CAP };
+  } catch {
+    return { ok: false, items: [], truncated: false };
+  }
+}
+
 export async function getExpert(id: string): Promise<UserExpertProfile | null> {
   const sb = getServiceSupabase();
   if (!sb) return memory.find((x) => x.id === id) ?? null;
