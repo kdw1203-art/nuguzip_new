@@ -24,12 +24,12 @@
  *     실측 결과 정상"이라는 뜻이고, 근거를 화면에 같이 적는다.
  *
  * (3) "지금 틀린 값"과 "틀릴 수 있는 값"을 구분한다.
- *     월세 행의 price_per_pyeong_krw 는 보증금÷평이다(lib/market/molit-transactions.ts:129).
- *     보증금 3천/월 180 짜리 집이 평단가 11,732원으로 기록된다 — 22,674행. 다만 이 값은
- *     **지금 화면에 나오지 않는다.** lib/market/complex-transactions.ts 의 toRecord() 가
- *     deal_amount_krw 가 양수가 아닌 행을 먼저 버리기 때문이다. 그러니 이걸 "결함"으로
- *     적으면 거짓말이고, 안 적으면 다음 사람이 월세를 화면에 올리는 순간 밟는다.
- *     note(확인 필요)로 두고 조건까지 적어 둔다.
+ *     월세 행의 price_per_pyeong_krw 는 보증금÷평이었다 — 화면에는 안 나오지만
+ *     (complex-transactions.ts 의 toRecord() 가 deal_amount_krw 양수 아닌 행을
+ *     먼저 버린다) 월세를 화면에 올리는 순간 밟을 예정 결함이라 note 로 지켜봤다.
+ *     [2026-08-10 해소] 221,420행을 마이그레이션(20260810131211)이 null 로 비웠고
+ *     적재 경로 2곳도 월세 행은 계산하지 않게 고쳤다 — 환산율을 지어내지 않는다.
+ *     이 검사(rent_ppp_from_deposit)는 이제 재발 감시로 남는다.
  *
  * 판정·임계값·문구는 전부 여기에만 둔다. SQL(public.data_quality_report)은 "몇 건인가"
  * 만 답한다. 같은 규칙이 SQL 과 화면 양쪽에 흩어지면 둘이 서로 다른 말을 하기 시작한다.
@@ -134,6 +134,8 @@ type AcRaw = {
     excess: number;
     worst: number;
     same_address_groups: number;
+    /** 주소도 같고 kaptCode 도 겹치는 군 — 진짜 중복 적재 의심 (20260810131153 부터) */
+    same_address_kapt_dup_groups?: number;
   };
   address_collision: { groups: number; excess: number };
 };
@@ -219,8 +221,8 @@ function buildMarketTransactions(mt: MtRaw): QualityGroup {
       verdict: "defect",
       count: n(mt.duplicate?.excess),
       base: rows,
-      detail: `같은 (지역·단지·면적·층·계약연월일·거래유형·금액) 조합이 ${dupGroups.toLocaleString("ko-KR")}군, 최대 ${n(mt.duplicate?.worst).toLocaleString("ko-KR")}중복.`,
-      why: "external_key(sha1) 로 멱등 처리하므로 정상이면 0이다. 값이 잡혔다면 키 산식이 바뀌었거나 같은 계약이 다른 원천에서 다른 표기로 들어왔다는 뜻이다.",
+      detail: `같은 (지역·단지·주소·면적·층·계약연월일·거래유형·금액) 조합이 ${dupGroups.toLocaleString("ko-KR")}군, 최대 ${n(mt.duplicate?.worst).toLocaleString("ko-KR")}중복.`,
+      why: "external_key(sha1) 로 멱등 처리하므로 정상이면 0이다. 값이 잡혔다면 키 산식이 바뀌었거나 같은 계약이 다른 원천에서 다른 표기로 들어왔다는 뜻이다. (2026-08-10 부터 키에 주소 포함 — 시흥 장곡동의 동명이단지 '숲속마을' 두 곳의 우연히 같은 조건 계약이 중복으로 오탐됐던 것을 고쳤다.)",
     });
   }
 
@@ -334,17 +336,25 @@ function buildApartmentComplexes(ac: AcRaw): QualityGroup {
   if (nameGroups > 0) {
     const nameExcess = n(ac.name_collision?.excess);
     const sameAddr = n(ac.name_collision?.same_address_groups);
+    /* 20260810131153 부터 SQL 이 kaptCode 대조까지 직접 센다. 그 전 스냅샷에는
+       필드가 없으므로(undefined → 0) "대조 안 됨"과 "겹침 0"을 구분해 적는다. */
+    const kaptField = ac.name_collision?.same_address_kapt_dup_groups;
+    const kaptDup = n(kaptField);
     checks.push({
       key: "name_collision",
       label: "같은 구 안에 같은 이름 단지",
-      verdict: "note",
+      verdict: kaptDup > 0 ? "defect" : "note",
       count: nameGroups + nameExcess,
       base: master,
       detail: `${nameGroups.toLocaleString("ko-KR")}군 / 중복분 ${nameExcess.toLocaleString("ko-KR")}단지, 최대 ${n(ac.name_collision?.worst)}중복. 그중 주소까지 같은 군은 ${sameAddr}군.`,
       why:
-        sameAddr === 0
-          ? "주소가 같은 군이 0이므로 중복 행이 아니라 이름만 겹치는 별개 단지다. 다만 단지 신원이 encodeComplexId(지역, 이름) 이라 이들이 한 단지 페이지로 합쳐진다 — 시세와 후기가 섞인다."
-          : "주소까지 같은 군이 있다. 이쪽은 실제 중복 적재일 수 있으므로 kaptCode 로 대조해야 한다.",
+        kaptDup > 0
+          ? `주소도 같고 kaptCode 도 겹치는 군이 ${kaptDup}군 — 실제 중복 적재 의심이다. apt-master 적재의 external_id(kaptCode) 멱등 처리를 확인해야 한다.`
+          : kaptField === undefined
+            ? "주소까지 같은 군이 있다. 이쪽은 실제 중복 적재일 수 있으므로 kaptCode 로 대조해야 한다. (이 스냅샷은 kaptCode 대조 도입 전 계산분 — 다음 스냅샷부터 기계가 직접 센다.)"
+            : sameAddr === 0
+              ? "주소가 같은 군이 0이므로 중복 행이 아니라 이름만 겹치는 별개 단지다. 다만 단지 신원이 encodeComplexId(지역, 이름) 이라 이들이 한 단지 페이지로 합쳐진다 — 시세와 후기가 섞인다."
+              : "주소까지 같은 군도 kaptCode 는 전부 서로 다르다(기계 전수 대조) — 주소가 동 단위로 뭉뚱그려진 별개 단지다. 다만 단지 신원이 encodeComplexId(지역, 이름) 이라 이들이 한 단지 페이지로 합쳐진다 — 시세와 후기가 섞인다. (같은 주소 8군 중 3군은 K-apt 원천의 테스트 행: '테스트'·'test'·'한국감정원'.)",
     });
   }
 

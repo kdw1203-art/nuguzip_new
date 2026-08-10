@@ -125,12 +125,19 @@ function toRpcRow(c: AptComplex, fallbackLawdCd: string): Record<string, unknown
   if (!kaptCode || !name) return null;
 
   const sido = clean(c.as1);
-  const sigungu = clean(c.as2);
+  const sigunguRaw = clean(c.as2);
+  /* 세종특별자치시는 시군구 층위가 없어 K-apt as2 가 빈다(2026-08-10 실측:
+     대장 216행 전부 세종 — 목록에서 지역이 빈칸으로 보였다). 법정동코드 36110 의
+     시군구명 슬롯은 "세종특별자치시" 그 자체이므로 표시용 sigungu 는 시도명으로
+     채운다. regionLabel 은 원값(sigunguRaw)으로 만들어 "세종 세종 조치원읍"
+     같은 중복 표기를 피한다. 기존 216행은 마이그레이션이 같은 규칙으로 채웠다. */
+  const sigungu =
+    sigunguRaw ?? (sido && sido.endsWith("특별자치시") ? sido : undefined);
   const emd = clean(c.as3);
   const jibun = clean(c.as4);
   const lawdCd = clean(c.sigunguCd) ?? clean(fallbackLawdCd);
 
-  const regionLabel = [sido, sigungu, emd].filter(Boolean).join(" ") || null;
+  const regionLabel = [sido, sigunguRaw, emd].filter(Boolean).join(" ") || null;
   const address = jibun ?? regionLabel;
 
   return {

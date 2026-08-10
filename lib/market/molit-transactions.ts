@@ -242,11 +242,23 @@ function toRow(
     contract_day: day,
     deal_amount_krw: dealKrw,
     deposit_krw: depositKrw,
-    monthly_rent_krw: monthlyKrw,
+    /* 전세 표기는 0 하나로 통일한다 — NULL 과 0 이 섞이면 `is null` 로 골라도
+       `= 0` 으로 골라도 조용히 일부가 샌다 (데이터 품질 검사 jeonse_dual_encoding).
+       원천이 값을 아예 안 준 rent 행도 "월세 없음(전세)" 사실은 같으므로 0. */
+    monthly_rent_krw: ctx.kind === "rent" ? (monthlyKrw ?? 0) : monthlyKrw,
     area_m2: areaM2,
     floor: Number.isFinite(deal.floor) ? deal.floor : null,
     build_year: Number.isFinite(deal.buildYear) ? deal.buildYear : null,
-    price_per_pyeong_krw: pricePerPyeong(ctx.kind === "trade" ? dealKrw : depositKrw, areaM2),
+    /* 월세(월세액>0) 행의 평단가는 계산하지 않는다(null). 보증금÷평은 월세를
+       무시한 거짓 평단가고(보증금 3천/월 180 집이 "평당 1.2만원"), 월세를
+       반영하려면 전월세 환산율을 지어내야 한다 — 몰라서 비우는 것이 틀리게
+       채우는 것보다 낫다. 전세(월세 0)는 보증금이 곧 가격이므로 그대로 계산.
+       (2026-08-10 데이터 품질 검사 rent_ppp_from_deposit 221,420행의 재발 방지.
+        기존 행은 마이그레이션이 null 로 비웠다 — 복원식은 그 파일에.) */
+    price_per_pyeong_krw:
+      ctx.kind === "rent" && (monthlyKrw ?? 0) > 0
+        ? null
+        : pricePerPyeong(ctx.kind === "trade" ? dealKrw : depositKrw, areaM2),
     // 해제분도 행 자체는 남긴다(해제 이력도 사실이다). 다만 시세·집계·알림에서는
     // is_cancelled=true 로 걸러진다 — 판정은 적재 시 한 번만 한다.
     is_cancelled: isCancelledDeal(deal.raw),

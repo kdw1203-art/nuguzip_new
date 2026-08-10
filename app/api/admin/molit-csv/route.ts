@@ -269,14 +269,18 @@ export async function POST(req: Request) {
       contract_day: day,
       deal_amount_krw: dealKrw,
       deposit_krw: depositKrw,
-      monthly_rent_krw: monthlyKrw,
+      /* 전세 표기 0 통일 + 월세 행 평단가 미계산 — lib/market/molit-transactions.ts
+         toRow() 와 같은 규칙(그쪽 주석에 근거). 두 적재 경로가 다르게 쓰면
+         데이터 품질 검사(jeonse_dual_encoding·rent_ppp_from_deposit)가 이 경로로
+         들어온 행에서만 다시 살아난다. */
+      monthly_rent_krw: transactionType === "rent" ? (monthlyKrw ?? 0) : monthlyKrw,
       area_m2: areaM2,
       floor,
       build_year: buildYear,
-      price_per_pyeong_krw: pricePerPyeong(
-        transactionType === "trade" ? dealKrw : depositKrw,
-        areaM2,
-      ),
+      price_per_pyeong_krw:
+        transactionType === "rent" && (monthlyKrw ?? 0) > 0
+          ? null
+          : pricePerPyeong(transactionType === "trade" ? dealKrw : depositKrw, areaM2),
       is_cancelled: isCancelled,
       raw: {
         aptNm: name,
