@@ -692,6 +692,16 @@ export function MapClient({
     return () => clearTimeout(t);
   }, [geoApplied]);
 
+  /* 줌 단계 탭 선택 — 지도 위 플로팅 탭과 헤더 탭(xl+)이 같은 동작을 쓴다.
+     두 렌더 자리가 각자 onClick 을 들고 있으면 언젠가 한쪽만 고쳐진다. */
+  const handleZoomTab = (k: Zoom) => {
+    setZoom(k);
+    setLevel(LEVEL_BY_ZOOM[k]);
+    setSelectedId(null);
+    setInfoComplex(null);
+    setSearchMarker(null);
+  };
+
   const selected = danji.find((d) => d.id === selectedId) ?? null;
 
   /* ===== 검색 선택 · 단지 정보 패널 (item1·item2) =====
@@ -2959,6 +2969,28 @@ export function MapClient({
         {/* 매매/전세는 filterBar 안의 실제 토글 — 장식용 칩이었던 것을 배선(item2) */}
         <div className="hidden items-center gap-1.5 lg:flex">{filterBar}</div>
         <div className="flex-1" />
+        {/* 줌 단계 탭 (xl+) — 지도 위에 떠서 우측 마커 라벨(과천제이드자이류 가격
+            알약)을 덮던 것을, 이 폭에서는 비어 있던 헤더 가운데로 올린다.
+            1024~1279 는 filterBar 까지 넣으면 1180 폭이 모자라 플로팅 판을 유지.
+            줌 레벨 설명(ZOOM_CAPTION)은 title 로 남긴다 — 캡션 상자까지 올리면
+            헤더가 두 줄이 된다. */}
+        <div
+          className="hidden shrink-0 items-center gap-0.5 rounded-full bg-[rgba(16,28,54,.05)] p-1 xl:flex"
+          title={ZOOM_CAPTION[zoom]}
+        >
+          {ZOOM_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => handleZoomTab(t.key)}
+              className={`chip px-3 py-1.5 text-xs transition-colors ${
+                zoom === t.key ? "bg-[rgba(29,79,216,.12)] font-bold text-primary" : "text-text-1"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
         <div className="flex shrink-0 flex-col items-end gap-0.5">
           <Link
             href={
@@ -2971,8 +3003,13 @@ export function MapClient({
           >
             이 지역 노트 쓰기
           </Link>
-          <span className="hidden text-[10px] font-semibold text-text-3 lg:inline">
-            기록 → AI → 비교
+          {/* "기록 → AI → 비교" 는 무엇의 기록인지·어디서 비교하는지 안 읽혔다
+              (소유자 개선 요청 2026-08-10). 노트→AI 정리→지도 비교 흐름을 그대로 적는다. */}
+          <span
+            className="hidden text-[10px] font-semibold text-text-3 lg:inline"
+            title="임장노트에 남긴 기록을 AI가 정리하고, 이 지도에서 실거래 시세와 비교합니다"
+          >
+            기록 → AI 정리 → 지도 비교
           </span>
         </div>
       </div>
@@ -3300,22 +3337,18 @@ export function MapClient({
         </div>
       )}
 
-      {/* ===== 줌 레벨 탭 ===== */}
+      {/* ===== 줌 레벨 탭 (xl 미만 — xl 이상은 헤더에 표시) =====
+           지도 위 플로팅 판은 우측 마커 라벨 위에 뜬다. 넓은 화면은 헤더로
+           올렸고(위 헤더 블록), 이 판은 헤더에 자리가 없는 폭에서만 남는다. */}
       <div
-        className="glass absolute right-5 z-30 mt-9 flex items-center gap-0.5 rounded-full p-1 md:mt-0 md:translate-y-9"
+        className="glass absolute right-5 z-30 mt-9 flex items-center gap-0.5 rounded-full p-1 md:mt-0 md:translate-y-9 xl:hidden"
         style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
       >
         {ZOOM_TABS.map((t) => (
           <button
             key={t.key}
             type="button"
-            onClick={() => {
-              setZoom(t.key);
-              setLevel(LEVEL_BY_ZOOM[t.key]);
-              setSelectedId(null);
-              setInfoComplex(null);
-              setSearchMarker(null);
-            }}
+            onClick={() => handleZoomTab(t.key)}
             className={`chip px-3 py-1.5 text-xs transition-colors ${
               zoom === t.key ? "bg-[rgba(29,79,216,.12)] font-bold text-primary" : "text-text-1"
             }`}
@@ -3324,7 +3357,7 @@ export function MapClient({
           </button>
         ))}
       </div>
-      <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[rgba(255,255,255,.8)] px-2.5 py-[5px] text-[11px] text-text-3 md:block">
+      <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[rgba(255,255,255,.8)] px-2.5 py-[5px] text-[11px] text-text-3 md:block xl:hidden">
         {ZOOM_CAPTION[zoom]}
       </div>
 
