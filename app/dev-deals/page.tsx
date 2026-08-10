@@ -7,14 +7,13 @@ import { seoAlternates } from "@/lib/seo/alternates";
 import { logger } from "@/lib/log";
 import { DevDealsListClient } from "./DevDealsListClient";
 
-/* 비용 실측(2026-08-10): 서버가 ?type/partner/region 을 읽어 listDeals 를 두 번
-   질의했다 — 영구 동적 + DB 왕복 2회. 필터를 DevDealsListClient(클라이언트)로
-   옮기고 두 번째 질의를 없앤다. 목록 상한(120건)이 첫 질의에 다 들어온다.
-   개발물건 등록·상태는 수시로 바뀌므로 5분 재검증. */
-export const revalidate = 300;
-export function generateStaticParams() {
-  return [];
-}
+/* [2026-08-10] 필터를 DevDealsListClient(클라이언트)로 옮겨 DB 왕복을 2회→1회로
+   줄였다. ISR(revalidate) 로도 가려 했으나 되돌렸다: dev_deals 는 anon SELECT 가
+   없어(owner_email 보호) 서비스롤로만 읽히는데, 지금 프로덕션이 그 읽기에
+   실패한다(anon 폴백 → 42501, 실측). ISR 로 두면 그 실패가 5분간 캐시에 눌러
+   앉는다 — 부분 실패를 캐시에 눌러앉히지 않는다. 서비스롤 키가 프로덕션에
+   복구되면(오늘 Pro 재임포트로 유실 추정) revalidate 로 되돌린다. */
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "개발물건 중개 · 누구집",
