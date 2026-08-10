@@ -184,8 +184,15 @@ export default async function TownNewsPage({
   const active = region && regions.includes(region) ? region : null;
   const list = active ? news.filter((p) => p.city === active) : news;
 
-  const featured = list[0];
-  const rest = list.slice(1);
+  /* 비용 실측(2026-08-10): 이 페이지는 뉴스 전량(299장, HTML 1.29MB)을 요청마다
+     서버 렌더하고 있었다 — force-dynamic 이라 크롤 1회 = 1.3MB 렌더 1회.
+     최신 60장으로 자른다. 잘랐다는 사실은 목록 끝에 명시한다(가려진 한계는
+     없는 한계처럼 읽힌다). 이전 뉴스는 상세 URL·다이제스트로 계속 접근 가능. */
+  const LIST_CAP = 60;
+  const capped = list.slice(0, LIST_CAP);
+  const hiddenCount = Math.max(list.length - LIST_CAP, 0);
+  const featured = capped[0];
+  const rest = capped.slice(1);
   const isMock = list.length === 0 && !active && !newsFailed;
 
   return (
@@ -365,6 +372,14 @@ export default async function TownNewsPage({
             </Link>
           ))}
         </div>
+      )}
+
+      {/* 표시 상한 안내 — 자른 사실을 숨기지 않는다 */}
+      {hiddenCount > 0 && (
+        <p className="mt-3 text-center text-[12px] text-text-3">
+          최신 {LIST_CAP}건을 보여드리고 있어요 — 이전 뉴스 {hiddenCount}건은
+          주간 다이제스트와 검색으로 찾을 수 있어요.
+        </p>
       )}
 
       {/* 지역 필터 결과 0건 — 빈 상태 */}
