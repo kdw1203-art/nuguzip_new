@@ -212,6 +212,47 @@ export async function listPartners(filter: PartnerFilter = {}): Promise<DevPartn
   }
 }
 
+/** listPartnersAll 페치 상한 — 전량이 이 안에 들어와야 클라이언트 type 필터가
+ *  서버 .eq 필터와 동치다. 실측(2026-08-10): dev_partners 전체 1행(실등록 0). */
+export const PARTNERS_FETCH_CAP = 120;
+
+export type PartnersAllResult = {
+  /** false = 조회 실패 — "아직 없어요"(빈 결과)와 구별해 그려야 한다.
+   *  dev_partners 는 anon SELECT 가 없어 service-role 이 죽으면 여기로 온다
+   *  (그 부류는 health.privilegedRead 가 감시한다). */
+  ok: boolean;
+  items: DevPartner[];
+  /** 페치 상한 도달 — 전량 보장이 깨졌을 수 있음 */
+  truncated: boolean;
+};
+
+/**
+ * 전량 로더 (ISR /dev-deals/partners 용) — type 필터는 클라이언트가 메모리에서
+ * 건다. 기존 listPartners 와 달리 실패([] 삼키기)와 빈 결과를 구별한다 —
+ * ISR 이 실패 화면을 "아직 없어요"로 캐시하지 않게 하기 위해서다(dev-deals 교훈).
+ */
+export async function listPartnersAll(): Promise<PartnersAllResult> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return { ok: false, items: [], truncated: false };
+  try {
+    const { data, error } = await sb
+      .from("dev_partners")
+      .select(PARTNER_COLUMNS)
+      .eq("is_sample", false)
+      .order("created_at", { ascending: false })
+      .limit(PARTNERS_FETCH_CAP);
+    if (error || !data) {
+      logger.warn("[dev-deals] listPartnersAll", error ?? "no data");
+      return { ok: false, items: [], truncated: false };
+    }
+    const items = data.map((r) => mapPartner(r as Record<string, unknown>));
+    return { ok: true, items, truncated: items.length >= PARTNERS_FETCH_CAP };
+  } catch (e) {
+    logger.warn("[dev-deals] listPartnersAll", e);
+    return { ok: false, items: [], truncated: false };
+  }
+}
+
 /** 협력업체 단건 조회. 없으면 null. */
 export async function getPartner(id: string): Promise<DevPartner | null> {
   const sb = getReadOnlySupabase();

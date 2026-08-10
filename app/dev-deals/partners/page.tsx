@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import { listPartners } from "@/lib/dev-deals/store";
-import { PARTNER_TYPES, type DevPartner } from "@/lib/dev-deals/types";
+import { listPartnersAll } from "@/lib/dev-deals/store";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { PartnersClient } from "./PartnersClient";
 
-export const dynamic = "force-dynamic";
+/* ── ISR 전환 (사용량 절감 10차, 2026-08-10) ────────────────────────────────
+   예전에는 force-dynamic + ?type= 서버 필터(요청마다 함수 실행 + DB 쿼리)였다.
+   실측: dev_partners 전체 1행(실등록 0) — 페치 상한 120 안에 넉넉히 들어오므로
+   클라이언트 메모리 필터가 서버 .eq 필터와 동치다. 필터는 PartnersClient 가
+   마운트 후 location.search 로 처리하고, SSR 은 전량을 그대로 그린다.
+   dev_partners 는 anon SELECT 가 없어 service-role 의존이다 — 그 부류의 실패는
+   health.privilegedRead 가 감시하고, 이 페이지는 실패를 빈 상태("아직 없어요")로
+   캐시하지 않도록 ok 판별로 구별해 그린다(dev-deals 본판과 같은 교훈). */
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "협력업체 디렉터리 · 개발물건 중개 · 누구집",
@@ -19,80 +27,8 @@ export const metadata: Metadata = {
 const DISCLAIMER =
   "누구집은 개발물건의 소개·매칭 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
 
-function PartnerCard({ p }: { p: DevPartner }) {
-  return (
-    <div className="card p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
-            {p.partnerType}
-          </span>
-          {p.isVerified && (
-            <span
-              className="chip"
-              style={{ background: "var(--success-soft)", color: "var(--success)" }}
-            >
-              검증
-            </span>
-          )}
-          {p.isSample && (
-            <span
-              className="chip"
-              style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
-            >
-              예시
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-2 text-[14px] font-extrabold text-ink">{p.companyName}</div>
-      <div className="mt-0.5 text-[11px] text-text-3">{p.region ?? "지역 전국·협의"}</div>
-
-      {p.intro && (
-        <p className="mt-2 line-clamp-3 text-[12px] leading-[1.6] text-text-2">
-          {p.intro}
-        </p>
-      )}
-
-      {p.specialties.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {p.specialties.map((s) => (
-            <span
-              key={s}
-              className="rounded-full bg-[rgba(0,0,0,.04)] chip-pad text-[10px] font-medium text-text-2"
-            >
-              {s}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-3 flex items-center justify-between text-[11px] text-text-3">
-        <span>연락처 {p.contactMasked ?? "문의 시 공개"}</span>
-        {p.portfolioUrl && (
-          <a
-            href={p.portfolioUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-bold text-primary underline"
-          >
-            포트폴리오
-          </a>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default async function DevPartnersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string }>;
-}) {
-  const { type } = await searchParams;
-  const active = (type ?? "").trim() || undefined;
-  const partners = await listPartners({ type: active });
+export default async function DevPartnersPage() {
+  const loaded = await listPartnersAll();
 
   return (
     <PageShell breadcrumb="홈 › 개발물건 중개 › 협력업체" title="협력업체 디렉터리">
@@ -111,40 +47,15 @@ export default async function DevPartnersPage({
         </Link>
       </section>
 
-      {/* 유형 필터 */}
-      <section className="rise-in-1 mb-5 flex flex-wrap gap-1.5">
-        <Link href="/dev-deals/partners" className={!active ? "chip-active" : "chip"}>
-          전체
-        </Link>
-        {PARTNER_TYPES.map((t) => (
-          <Link
-            key={t}
-            href={`/dev-deals/partners?type=${encodeURIComponent(t)}`}
-            className={active === t ? "chip-active" : "chip"}
-          >
-            {t}
-          </Link>
-        ))}
-      </section>
-
-      {partners.length === 0 ? (
-        <section className="rise-in-2 card p-[var(--pad-card)]">
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-10 text-center text-[13px] text-text-3">
-            해당 유형의 협력업체가 아직 없어요.{" "}
-            <Link
-              href="/dev-deals/partners/new"
-              className="font-bold text-primary underline"
-            >
-              협력업체로 등록
-            </Link>
-            해 매칭을 받아 보세요.
-          </div>
-        </section>
+      {loaded.ok ? (
+        <PartnersClient partners={loaded.items} truncated={loaded.truncated} />
       ) : (
-        <section className="rise-in-2 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {partners.map((p) => (
-            <PartnerCard key={p.id} p={p} />
-          ))}
+        /* 조회 실패 — "아직 없어요"(빈 상태)와 구별한다. 0건인 게 아니라 조회 실패다. */
+        <section className="rise-in-2 card p-[var(--pad-card)]">
+          <div className="rounded-[12px] border border-line bg-surface px-4 py-10 text-center text-[13px] text-text-2">
+            협력업체 목록을 불러오지 못했어요. 등록이 없는 게 아니라 조회에
+            실패한 것이니, 잠시 뒤 새로고침해 주세요.
+          </div>
         </section>
       )}
 
