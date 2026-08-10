@@ -9,13 +9,13 @@
    automation_meta 같은 원본을 클라이언트에 싣지 않는다. */
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 /* 칩 전환은 서버 왕복 없는 얕은 URL 갱신으로 한다. Next 14.1+ 는
    window.history.pushState 를 라우터와 동기화해 useSearchParams 가 따라온다.
    Link(?region=) 를 쓰면 같은 ISR payload 를 다시 받아오는 RSC 왕복이 생기고,
    실제 조작 경로를 로컬 프로브에서 재볼 수도 없다(실측으로 확인). */
-function setRegionParam(region: string | null) {
+function pushRegionUrl(region: string | null) {
   const url = new URL(window.location.href);
   if (region) url.searchParams.set("region", region);
   else url.searchParams.delete("region");
@@ -100,9 +100,23 @@ export function NewsListClient({
   hiddenCount: number;
   listCap: number;
 }) {
-  const sp = useSearchParams();
-  const raw = sp.get("region");
-  const active = raw && regions.includes(raw) ? raw : null;
+  /* [2026-08-10 정정] 처음엔 useSearchParams 로 읽었다. 그런데 프리렌더 시점엔
+     쿼리를 알 수 없어 Suspense 폴백이 HTML 에 박히고, 배포 HTML 실측에서 뉴스
+     카드가 0건이었다 — JS 를 안 돌리는 크롤러에게 목록이 통째로 사라진다.
+     그래서 SSR 은 항상 전체 목록을 그리고(HTML 에 60건 전부), 필터는 마운트
+     후 location.search 에서 읽어 적용한다. 딥링크는 하이드레이션 직후 걸린다. */
+  const [active, setActive] = useState<string | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const raw = new URLSearchParams(window.location.search).get("region");
+      setActive(raw && regions.includes(raw) ? raw : null);
+    };
+    read();
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
+    // regions 는 서버가 내려준 고정 배열이라 join 값으로만 비교한다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regions.join("|")]);
 
   const list = active ? cards.filter((c) => c.city === active) : cards;
   const featured = list[0];
@@ -116,7 +130,7 @@ export function NewsListClient({
         <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
           <button
             type="button"
-            onClick={() => setRegionParam(null)}
+            onClick={() => { pushRegionUrl(null); setActive(null); }}
             aria-pressed={!active}
             className={`chip px-3.5 py-2 ${
               active ? "border border-[#e2e7ee] bg-surface text-text-2" : "chip-active"
@@ -128,7 +142,7 @@ export function NewsListClient({
             <button
               key={r}
               type="button"
-              onClick={() => setRegionParam(r)}
+              onClick={() => { pushRegionUrl(r); setActive(r); }}
               aria-pressed={active === r}
               className={`chip px-3.5 py-2 ${
                 active === r
@@ -230,7 +244,7 @@ export function NewsListClient({
           </div>
           <button
             type="button"
-            onClick={() => setRegionParam(null)}
+            onClick={() => { pushRegionUrl(null); setActive(null); }}
             className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs"
           >
             전체 뉴스 보기

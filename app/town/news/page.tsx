@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { PageShell } from "../../components/PageShell";
 import { ExampleBadge } from "../../components/ExampleBadge";
 import { readTownPosts } from "@/lib/newui/board-posts";
@@ -185,9 +184,10 @@ export default async function TownNewsPage() {
         </Link>
       )}
 
-      {/* 뉴스 목록 + 지역 필터 — 클라이언트(NewsListClient). useSearchParams 를
-          쓰므로 Suspense 경계가 필요하다(없으면 빌드가 거부한다). 카드·칩·상한
-          안내·지역 0건 상태 전부 client 로 이동 — 서버 렌더는 지역과 무관. */}
+      {/* 뉴스 목록 + 지역 필터 — 클라이언트(NewsListClient). SSR 은 항상 전체
+          60건을 HTML 에 그리고, 필터는 마운트 후 location.search 로 적용한다
+          (useSearchParams 는 프리렌더에서 Suspense 폴백을 박아 카드 0건 HTML 을
+          만들었다 — 배포 실측 후 교체). */}
       {isMock ? (
         <div className="rise-in card mb-5 overflow-hidden rounded-[20px]">
           <div
@@ -226,14 +226,12 @@ export default async function TownNewsPage() {
           />
         </div>
       ) : (
-        <Suspense fallback={null}>
-          <NewsListClient
-            cards={cards}
-            regions={regions}
-            hiddenCount={hiddenCount}
-            listCap={LIST_CAP}
-          />
-        </Suspense>
+        <NewsListClient
+          cards={cards}
+          regions={regions}
+          hiddenCount={hiddenCount}
+          listCap={LIST_CAP}
+        />
       )}
     </PageShell>
   );
