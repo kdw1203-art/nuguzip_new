@@ -3,7 +3,6 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { AdSlot } from "@/app/components/ads/AdSlot";
-import { getAdViewer } from "@/lib/ads/viewer";
 import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { THEME_APPLY } from "@/lib/theme/presets";
@@ -15,7 +14,11 @@ import type { ApplyInitialResult } from "./ApplySearchClient";
 const APPLYHOME_URL = "https://www.applyhome.co.kr";
 
 // 빌드 타임 외부 API 접근 회피 — 요청 시 서버에서 청약홈 데이터를 조회
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 익명·크롤러 요청마다 오리진 함수가
+   돌았다(x-vercel-cache: MISS, cache-control: private,no-store 실측). 이 화면의
+   서버 렌더에는 사용자별 상태가 없다(auth·cookies 0건 — check-cache-policy 가
+   회귀를 막는다). ISR 로 전환: 청약홈 공공데이터는 하루 단위 갱신 — 요청마다 SSR 할 이유가 없다. */
+export const revalidate = 1800;
 
 export const metadata: Metadata = {
   title: "청약 센터 — 청약홈 경쟁률·특별공급 | 누구집",
@@ -92,7 +95,8 @@ const CROSS_LINKS: { href: string; icon: string; label: string; desc: string }[]
 export default async function ApplyPage() {
   const initial = await getInitialPayload();
   // 유료 플랜 광고 제거(H4) — 이 페이지는 force-dynamic 이라 세션을 읽어도 비용이 없다
-  const viewer = await getAdViewer();
+  /* ISR 전환(2026-08-10): getAdViewer(세션 접근)는 페이지를 동적으로 되돌린다.
+     광고 숨김은 plan={null} 경로의 AdFreeGate(클라이언트)가 처리. */
 
   return (
     <PageShell breadcrumb="홈 › 동네이야기 › 청약 센터" title="청약 센터" wide>
@@ -183,9 +187,7 @@ export default async function ApplyPage() {
               <AdSlot
                 placement="community_feed"
                 seed={0}
-                adFree={viewer.adFree}
-                signedIn={viewer.signedIn}
-                plan={viewer.plan}
+                plan={null}
               />
             </div>
           </aside>

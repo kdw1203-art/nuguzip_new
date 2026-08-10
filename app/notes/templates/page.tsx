@@ -3,7 +3,11 @@ import { PageShell } from "@/app/components/PageShell";
 import { listTemplates } from "@/lib/note-templates/store";
 import { TemplateBrowser } from "./TemplateBrowser";
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 익명·크롤러 요청마다 오리진 함수가
+   돌았다(x-vercel-cache: MISS, cache-control: private,no-store 실측). 이 화면의
+   서버 렌더에는 사용자별 상태가 없다(auth·cookies 0건 — check-cache-policy 가
+   회귀를 막는다). ISR 로 전환: 템플릿 목록은 코드 배포로만 바뀐다. */
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "임장 노트 템플릿 | 누구집",

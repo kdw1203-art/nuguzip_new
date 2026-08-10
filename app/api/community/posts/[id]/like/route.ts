@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { safeAuth } from "@/lib/safe-auth";
 import { togglePostLike } from "@/lib/posts-store";
 import { lookupPost, postLookupErrorResponse } from "@/lib/community/post-lookup";
@@ -47,6 +48,8 @@ export async function POST(
       { status: 503 },
     );
   }
+
+  revalidatePath(`/town/news/${postId}`); // ISR(600s) 상세의 좋아요 수 즉시 재생성
 
   return NextResponse.json(result);
 }

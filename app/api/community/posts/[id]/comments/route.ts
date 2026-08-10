@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { safeAuth } from "@/lib/safe-auth";
 import { isAdmin } from "@/lib/auth/is-admin";
 import { notifyPostAuthorOfNewComment } from "@/lib/notifications/comment-notify";
@@ -69,6 +70,10 @@ export async function POST(
     });
   }
 
+  // /town/news/[id] 는 ISR(600s)이다. 재생성 없이는 방금 단 댓글이 최대 10분간
+  // 안 보여 "기능이 조용히 죽은" 것처럼 읽힌다 — 쓰기 성공 시 즉시 재생성.
+  revalidatePath(`/town/news/${id}`);
+
   return NextResponse.json({ post, comment }, { status: 201 });
 }
 
@@ -114,6 +119,8 @@ export async function DELETE(
     path: `/api/community/posts/${postId}/comments`,
     metadata: { postId, commentId, action: "soft_delete" },
   });
+
+  revalidatePath(`/town/news/${postId}`); // 댓글 등록과 같은 이유 (ISR 캐시 즉시 재생성)
 
   return NextResponse.json({ post });
 }

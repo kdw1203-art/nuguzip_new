@@ -6,7 +6,11 @@ import {
   COMMISSION_BASIS_LABEL,
 } from "@/lib/dev-deals/commission";
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 익명·크롤러 요청마다 오리진 함수가
+   돌았다(x-vercel-cache: MISS, cache-control: private,no-store 실측). 이 화면의
+   서버 렌더에는 사용자별 상태가 없다(auth·cookies 0건 — check-cache-policy 가
+   회귀를 막는다). ISR 로 전환: 수수료 안내는 정적 성격 — 배포·수동 갱신 단위. */
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "중개 수수료 안내 · 개발물건 중개 · 누구집",

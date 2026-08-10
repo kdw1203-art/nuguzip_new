@@ -16,7 +16,15 @@ import {
    사이트 크롬 없음(app/embed/layout.tsx), noindex.
    ============================================================ */
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 익명·크롤러 요청마다 오리진 함수가
+   돌았다(x-vercel-cache: MISS, cache-control: private,no-store 실측). 이 화면의
+   서버 렌더에는 사용자별 상태가 없다(auth·cookies 0건 — check-cache-policy 가
+   회귀를 막는다). ISR 로 전환: 외부 임베드 — 시세 위젯, complex/[id] 와 같은 주기. */
+export const revalidate = 3600;
+// 동적 세그먼트는 이게 없으면 "요청마다 서버 렌더"로 분류된다(2026-08 complex/[id] 실측)
+export function generateStaticParams() {
+  return [];
+}
 
 export const metadata: Metadata = {
   title: "단지 실거래 시세 · 누구집",

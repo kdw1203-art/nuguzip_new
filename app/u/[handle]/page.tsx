@@ -21,7 +21,15 @@ import { ErrorState } from "../../components/ui/EmptyState";
    프로필 매칭 시 해당 사용자의 공개 노트(inspection_notes · is_public)를 그리드에 표시.
    사실 우선: 등급·오차·배지·스토리·시리즈 등 산정 근거 없는 수치·라벨은 표시하지 않는다. */
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 익명·크롤러 요청마다 오리진 함수가
+   돌았다(x-vercel-cache: MISS, cache-control: private,no-store 실측). 이 화면의
+   서버 렌더에는 사용자별 상태가 없다(auth·cookies 0건 — check-cache-policy 가
+   회귀를 막는다). ISR 로 전환: 공개 프로필 — 사용자별 상태 없음(check-cache-policy 가 감시). 팔로워 수는 최대 15분 지연. */
+export const revalidate = 900;
+// 동적 세그먼트는 이게 없으면 "요청마다 서버 렌더"로 분류된다(2026-08 complex/[id] 실측)
+export function generateStaticParams() {
+  return [];
+}
 
 type PublicProfile = {
   email: string;

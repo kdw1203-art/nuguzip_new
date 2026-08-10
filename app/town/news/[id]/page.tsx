@@ -14,12 +14,19 @@ import { regionIdForName } from "@/lib/region/catalog";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
-import { getAdViewer } from "@/lib/ads/viewer";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
 
 /* 뉴스 상세 — posts 실데이터(id 조회) 연동. 없는 글은 notFound() (사실 우선: 목업 기사 금지). */
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): force-dynamic 이라 익명·크롤러 요청마다 오리진 함수가
+   돌았다(x-vercel-cache: MISS, cache-control: private,no-store 실측). 이 화면의
+   서버 렌더에는 사용자별 상태가 없다(auth·cookies 0건 — check-cache-policy 가
+   회귀를 막는다). ISR 로 전환: 뉴스 적재는 하루 1회. 댓글·좋아요는 API 가 revalidatePath 로 즉시 재생성. */
+export const revalidate = 600;
+// 동적 세그먼트는 이게 없으면 "요청마다 서버 렌더"로 분류된다(2026-08 complex/[id] 실측)
+export function generateStaticParams() {
+  return [];
+}
 
 /* ---------- 헬퍼 ---------- */
 
@@ -192,7 +199,9 @@ export default async function TownNewsDetailPage({
   const heroImage = newsImageUrl(post);
   // 광고 자리표시자를 실제 슬롯으로 바꾸면서 필요해진 값. 이 라우트는 force-dynamic 이라
   // 세션을 읽어도 캐시가 깨지지 않는다.
-  const viewer = await getAdViewer();
+  /* ISR 전환(2026-08-10): getAdViewer 는 세션(쿠키)을 읽어 페이지를 동적으로
+     되돌린다 — lib/ads/viewer.ts 의 경고 그대로. 유료 플랜 광고 숨김은
+     plan={null} 경로의 AdFreeGate(클라이언트)가 처리한다(complex/[id] 선례). */
 
   /* 고도화 26 — 연관 단지가 실제 단지로 리졸브되면 시세 페이지로 잇는다.
      리졸버는 동명 타지역 오연결을 막는 보수적 매칭이라, null 이면 지금처럼
@@ -492,9 +501,7 @@ export default async function TownNewsDetailPage({
             <AdSlot
               placement="community_feed"
               seed={0}
-              adFree={viewer.adFree}
-              signedIn={viewer.signedIn}
-              plan={viewer.plan}
+              plan={null}
             />
           </div>
         </aside>

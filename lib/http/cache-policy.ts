@@ -205,6 +205,30 @@ export const PUBLIC_CACHE_PATTERN_RULES: readonly PublicCachePatternRule[] = [
   { route: "/digest/[week]", test: /^\/digest\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
   /* 용어 개별 페이지는 코드 상수라 조회조차 없다 — 가장 오래 캐시해도 되는 축. */
   { route: "/glossary/[term]", test: /^\/glossary\/[^/]+$/, sMaxAge: 3600, swr: 86400 },
+  /* ── 2026-08-10 비용 실측 확장 ──────────────────────────────────────────
+     force-dynamic 이라 익명·크롤러 요청마다 MISS(오리진 함수)로 나가던 공개
+     화면 7종. 각 page.tsx 에 auth·cookies·searchParams·쓰기 부작용이 전부
+     0건임을 실측하고 ISR 로 전환했다(revalidate 는 각 파일 주석 참조).
+     댓글·좋아요가 서버 렌더에 실리는 /town/news/[id] 는 해당 쓰기 API 가
+     revalidatePath 로 즉시 재생성한다 — 캐시 때문에 방금 쓴 글이 사라져
+     보이면 안 된다. sMaxAge 는 revalidate 와 같은 값. */
+  { route: "/apply", test: /^\/apply$/, sMaxAge: 1800, swr: 86400 },
+  { route: "/dev-deals/fees", test: /^\/dev-deals\/fees$/, sMaxAge: 3600, swr: 86400 },
+  { route: "/notes/templates", test: /^\/notes\/templates$/, sMaxAge: 3600, swr: 86400 },
+  {
+    route: "/notes/templates/[id]",
+    test: /^\/notes\/templates\/[^/]+$/,
+    sMaxAge: 3600,
+    swr: 86400,
+  },
+  { route: "/u/[handle]", test: /^\/u\/[^/]+$/, sMaxAge: 900, swr: 86400 },
+  {
+    route: "/embed/complex/[id]",
+    test: /^\/embed\/complex\/[^/]+$/,
+    sMaxAge: 3600,
+    swr: 86400,
+  },
+  { route: "/town/news/[id]", test: /^\/town\/news\/[^/]+$/, sMaxAge: 600, swr: 86400 },
 ];
 /* PUBLIC_CACHE_PATTERNS:end */
 
