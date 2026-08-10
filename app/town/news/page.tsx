@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { PageShell } from "../../components/PageShell";
 import { ExampleBadge } from "../../components/ExampleBadge";
 import { readTownPosts } from "@/lib/newui/board-posts";
@@ -6,9 +7,9 @@ import { COMMUNITY_SUBCATEGORIES, matchSubcategory } from "@/lib/subcategories";
 import { seedGradient, faviconUrl, hostOf, relativeTime, newsImageUrl } from "../shared";
 import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
-import { CoverImage } from "@/app/components/CoverImage";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { NewsListClient } from "./NewsListClient";
 import { ErrorState } from "@/app/components/ui";
 import { logger } from "@/lib/log";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -19,7 +20,11 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
      없으면 출처 기반 그라디언트 + 파비콘 + 아이콘 플레이스홀더로 폴백.
    제목 · 출처 · 시간, 지역 필터 지원. */
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): 서버가 ?region= 을 읽는 동안 이 라우트는 영구 동적이라
+   크롤 1회 = 함수 호출 1회였다. 지역 필터를 NewsListClient(클라이언트)로 옮겨
+   서버 렌더를 지역과 무관하게 만들고 ISR 로 전환한다. 뉴스 적재는 하루 1회라
+   10분 재검증이면 충분하다. 상대 시각 라벨도 그만큼 낡을 수 있다. */
+export const revalidate = 600;
 
 /* N7 — ?region= 으로 목록만 좁히는 값이라 조합마다 색인되면 안 된다. canonical 고정. */
 export const metadata = buildPageMetadata({
@@ -41,67 +46,10 @@ function displayIso(p: Post): string {
   return p.sourcePublishedAt || p.createdAt;
 }
 
-function badgeStyle(category: string): string {
-  const c = category ?? "";
-  if (["개발", "재건축", "재개발", "분양"].some((k) => c.includes(k)))
-    return "bg-[#fdf3e7] text-warning";
-  if (["정책", "뉴스"].some((k) => c.includes(k))) return "bg-[#edf2fe] text-primary";
-  return "bg-[#f2f4f8] text-text-2";
-}
 
-/* 썸네일 URL 추출(newsImageUrl)은 상세 페이지와 공유하려고 ../shared 로 올렸다. */
+/* Thumb 는 NewsListClient 로 이동(2026-08-10 ISR 전환) — newsImageUrl 등
+   썸네일 URL 추출은 상세 페이지와 공유하는 ../shared 그대로. */
 
-function Thumb({ post, tall = false }: { post: Post; tall?: boolean }) {
-  const image = newsImageUrl(post);
-  const favicon = faviconUrl(post.sourceUrl);
-  return (
-    <div
-      className={`relative w-full overflow-hidden ${tall ? "h-[200px]" : "h-[128px]"}`}
-    >
-      {/* 이미지 없음/로드 실패 모두 그라디언트+아이콘 폴백으로 통일 (#18) */}
-      <CoverImage
-        src={image}
-        imgClassName="absolute inset-0 h-full w-full object-cover"
-        scrim
-        fallback={
-          <span
-            className="absolute inset-0 flex items-center justify-center text-white/70"
-            style={{
-              background: seedGradient(post.sourceName || post.city || post.id),
-            }}
-          >
-            <Icon name="file-text" size={tall ? 34 : 26} />
-          </span>
-        }
-      />
-      <span
-        className={`absolute left-2 top-2 rounded-[5px] chip-pad text-[10px] font-extrabold ${badgeStyle(post.category)}`}
-      >
-        {post.category || "뉴스"}
-      </span>
-      {favicon && (
-        <span className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/90 shadow-sm">
-          {/* G7 — next/image 를 쓰지 않는 이유: 언론사 도메인의 favicon 은
-              출처가 임의라 next.config 의 remotePatterns 로 허용 목록을 만들 수
-              없다(뉴스 소스가 늘 때마다 배포가 필요해진다). 대신 최적화가 필요한
-              이미지도 아니다 — 20px 아이콘이다.
-              width/height 는 CSS 가 적용되기 전 브라우저가 자리를 잡도록 명시.
-              alt="" 는 의도적: 옆의 언론사 이름이 이미 같은 정보를 준다. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={favicon}
-            alt=""
-            width={20}
-            height={20}
-            loading="lazy"
-            decoding="async"
-            className="h-5 w-5 rounded"
-          />
-        </span>
-      )}
-    </div>
-  );
-}
 
 /* 주간 다이제스트 요약 라인 — 뉴스·시세·커뮤니티 건수(있는 항목만) */
 function digestSummaryLine(d: WeeklyDigest): string {
@@ -129,12 +77,7 @@ const EXAMPLE_NEWS = {
   time: "예시",
 };
 
-export default async function TownNewsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ region?: string }>;
-}) {
-  const { region } = await searchParams;
+export default async function TownNewsPage() {
 
   /* 주간 다이제스트 요약 (#6: 뉴스·다이제스트 통합) — 실패·빈 데이터 시 섹션 생략(fail-soft) */
   let digest: WeeklyDigest | null = null;
@@ -179,21 +122,27 @@ export default async function TownNewsPage({
     newsFailed = true;
   }
 
-  /* 지역 필터 — 실데이터 기반(뉴스 city 상위 목록) */
+  /* 지역 필터 — 실데이터 기반(뉴스 city 상위 목록). 거르는 건 클라이언트. */
   const regions = [...new Set(news.map((p) => p.city).filter(Boolean))].slice(0, 8);
-  const active = region && regions.includes(region) ? region : null;
-  const list = active ? news.filter((p) => p.city === active) : news;
 
-  /* 비용 실측(2026-08-10): 이 페이지는 뉴스 전량(299장, HTML 1.29MB)을 요청마다
-     서버 렌더하고 있었다 — force-dynamic 이라 크롤 1회 = 1.3MB 렌더 1회.
-     최신 60장으로 자른다. 잘랐다는 사실은 목록 끝에 명시한다(가려진 한계는
-     없는 한계처럼 읽힌다). 이전 뉴스는 상세 URL·다이제스트로 계속 접근 가능. */
+  /* 최신 60장 상한(전량 299장·1.29MB 실측 후 도입) — 자른 사실은 목록 끝에 명시.
+     카드는 평탄화(DTO)해서 원본 메타를 클라이언트 payload 에 싣지 않는다. */
   const LIST_CAP = 60;
-  const capped = list.slice(0, LIST_CAP);
-  const hiddenCount = Math.max(list.length - LIST_CAP, 0);
-  const featured = capped[0];
-  const rest = capped.slice(1);
-  const isMock = list.length === 0 && !active && !newsFailed;
+  const capped = news.slice(0, LIST_CAP);
+  const hiddenCount = Math.max(news.length - LIST_CAP, 0);
+  const cards = capped.map((p, i) => ({
+    id: p.id,
+    title: p.title,
+    body: i === 0 ? (p.body ?? null) : null,
+    category: p.category ?? "",
+    city: p.city ?? "",
+    source: p.sourceName || p.authorLabel || "",
+    timeLabel: relativeTime(displayIso(p)),
+    host: hostOf(p.sourceUrl),
+    image: newsImageUrl(p),
+    favicon: faviconUrl(p.sourceUrl),
+  }));
+  const isMock = news.length === 0 && !newsFailed;
 
   return (
     <PageShell breadcrumb="동네이야기 › 뉴스">
@@ -236,61 +185,10 @@ export default async function TownNewsPage({
         </Link>
       )}
 
-      {/* 지역 필터 칩 (실데이터 기반) */}
-      {regions.length > 0 && (
-        <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
-          <Link
-            href="/town/news"
-            className={`chip px-3.5 py-2 ${
-              active ? "border border-[#e2e7ee] bg-surface text-text-2" : "chip-active"
-            }`}
-          >
-            전체
-          </Link>
-          {regions.map((r) => (
-            <Link
-              key={r}
-              href={`/town/news?region=${encodeURIComponent(r)}`}
-              className={`chip px-3.5 py-2 ${
-                active === r
-                  ? "chip-active"
-                  : "border border-[#e2e7ee] bg-surface text-text-2"
-              }`}
-            >
-              {r}
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* 대표 뉴스 */}
-      {featured ? (
-        <Link
-          href={`/town/news/${featured.id}`}
-          className="rise-in card card-hover mb-5 block overflow-hidden rounded-[20px]"
-        >
-          <Thumb post={featured} tall />
-          <div className="flex flex-col gap-2 p-5">
-            <h2 className="text-[19px] font-extrabold leading-[1.4] text-ink">
-              {featured.title}
-            </h2>
-            {featured.body && (
-              <p className="line-clamp-2 text-sm leading-[1.6] text-text-2">
-                {featured.body}
-              </p>
-            )}
-            <div className="flex items-center gap-2 text-xs text-text-3">
-              <span className="font-semibold text-text-2">
-                {featured.sourceName || featured.authorLabel}
-              </span>
-              <span>· {relativeTime(displayIso(featured))}</span>
-              {hostOf(featured.sourceUrl) && (
-                <span className="text-text-3">· {hostOf(featured.sourceUrl)}</span>
-              )}
-            </div>
-          </div>
-        </Link>
-      ) : isMock ? (
+      {/* 뉴스 목록 + 지역 필터 — 클라이언트(NewsListClient). useSearchParams 를
+          쓰므로 Suspense 경계가 필요하다(없으면 빌드가 거부한다). 카드·칩·상한
+          안내·지역 0건 상태 전부 client 로 이동 — 서버 렌더는 지역과 무관. */}
+      {isMock ? (
         <div className="rise-in card mb-5 overflow-hidden rounded-[20px]">
           <div
             className="relative h-[200px] w-full"
@@ -327,72 +225,15 @@ export default async function TownNewsPage({
             action={{ label: "동네 이야기 보기", href: "/town" }}
           />
         </div>
-      ) : null}
-
-      {/* 뉴스에서 자주 다뤄지는 두 표면으로의 상설 진입 — 재건축·분양 기사를
-          읽다가 실데이터(정비사업 지도·입주 예정 물량)로 바로 건너가게 한다. */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Link
-          href="/redevelopment"
-          className="press chip inline-flex items-center gap-1 border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline"
-        >
-          <Icon name="building2" size={13} />
-          정비사업 지도에서 확인
-        </Link>
-        <Link
-          href="/supply"
-          className="press chip inline-flex items-center gap-1 border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline"
-        >
-          <Icon name="calendar" size={13} />
-          입주 예정 물량 보기
-        </Link>
-      </div>
-
-      {/* 뉴스 그리드 */}
-      {rest.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {rest.map((p, i) => (
-            <Link
-              key={p.id}
-              href={`/town/news/${p.id}`}
-              className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-[16px]`}
-            >
-              <Thumb post={p} />
-              <div className="flex flex-1 flex-col gap-1.5 p-3">
-                <div className="line-clamp-3 text-[13px] font-bold leading-[1.4] text-ink">
-                  {p.title}
-                </div>
-                <div className="mt-auto flex items-center gap-1 text-[11px] text-text-3">
-                  <span className="min-w-0 truncate font-semibold text-text-2">
-                    {p.sourceName || p.authorLabel}
-                  </span>
-                  <span className="shrink-0">· {relativeTime(displayIso(p))}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* 표시 상한 안내 — 자른 사실을 숨기지 않는다 */}
-      {hiddenCount > 0 && (
-        <p className="mt-3 text-center text-[12px] text-text-3">
-          최신 {LIST_CAP}건을 보여드리고 있어요 — 이전 뉴스 {hiddenCount}건은
-          주간 다이제스트와 검색으로 찾을 수 있어요.
-        </p>
-      )}
-
-      {/* 지역 필터 결과 0건 — 빈 상태 */}
-      {list.length === 0 && active && !newsFailed && (
-        <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
-          <div className="text-[26px]"><Icon name="🗞" size={26} /></div>
-          <div className="text-sm font-bold text-text-1">
-            {active} 관련 뉴스가 아직 없어요
-          </div>
-          <Link href="/town/news" className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs">
-            전체 뉴스 보기
-          </Link>
-        </div>
+      ) : (
+        <Suspense fallback={null}>
+          <NewsListClient
+            cards={cards}
+            regions={regions}
+            hiddenCount={hiddenCount}
+            listCap={LIST_CAP}
+          />
+        </Suspense>
       )}
     </PageShell>
   );
