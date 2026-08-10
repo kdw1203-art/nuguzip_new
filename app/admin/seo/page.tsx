@@ -93,7 +93,7 @@ function MetricCell({
 function FieldPerfPanel({ loaded }: { loaded: Loaded<FieldPerfRow> }) {
   const gate = gateNotice(
     loaded,
-    "Vercel 환경변수에 CRUX_API_KEY 를 넣으면 매주 월요일 18시(KST)에 기록이 쌓입니다. Google Cloud 콘솔에서 Chrome UX Report API 를 켜고 만드는 무료 API 키입니다.",
+    "Vercel 환경변수에 CRUX_API_KEY 를 넣으면 매주 월요일 15시(KST) 무렵 ETL 실행 때 기록이 쌓입니다. Google Cloud 콘솔에서 Chrome UX Report API 를 켜고 만드는 무료 API 키입니다.",
   );
   if (gate) return gate;
   if (loaded.state !== "ok") return null;
@@ -101,7 +101,7 @@ function FieldPerfPanel({ loaded }: { loaded: Loaded<FieldPerfRow> }) {
   if (loaded.rows.length === 0) {
     return (
       <Empty>
-        키는 설정돼 있는데 아직 기록이 없습니다. 첫 수집은 다음 월요일 18시(KST)이며,
+        키는 설정돼 있는데 아직 기록이 없습니다. 첫 수집은 다음 월요일 15시(KST) 무렵(ETL 스케줄)이며,
         지금 바로 확인하려면 GitHub Actions 의 Market ETL 을 수동 실행하세요.
       </Empty>
     );
@@ -240,7 +240,7 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
   if (loaded.rows.length === 0) {
     return (
       <Empty>
-        키는 설정돼 있는데 아직 기록이 없습니다. 첫 수집은 다음 월요일 18시(KST)입니다.
+        키는 설정돼 있는데 아직 기록이 없습니다. 첫 수집은 다음 월요일 15시(KST) 무렵(ETL 스케줄)입니다.
       </Empty>
     );
   }
@@ -365,7 +365,7 @@ export default async function AdminSeoPage() {
         <h1 className="text-[18px] font-extrabold text-[#e8eef8]">SEO 측정</h1>
         <p className="mt-1 text-[12px] leading-[1.7] text-[#9aa6b8]">
           실사용자 성능(CrUX)과 색인률을 주 단위로 쌓아 둡니다. 둘 다 매주 월요일
-          18시(KST)에 한 번 수집합니다. 반복 관측 루틴(AI 인용·쿼리 갭)은 코드가 아니라
+          15시(KST) 무렵에 한 번 수집합니다. 반복 관측 루틴(AI 인용·쿼리 갭)은 코드가 아니라
           문서와 이슈로 돕니다 — <code className="text-[#c9d2e0]">docs/seo-geo-routines.md</code>.
         </p>
       </header>

@@ -22,7 +22,7 @@ export const maxDuration = 60;
  * 수 없다. 수치 칸은 전부 null 로 둔다 — 0 으로 채우면 대시보드가 세상에서 가장
  * 빠른 사이트를 그린다.
  *
- * 주기: `.github/workflows/etl.yml` 의 alerts 잡이 **월요일 09:00 UTC(=18:00 KST)**
+ * 주기: `.github/workflows/etl.yml` 의 alerts 잡이 **월요일 06:00 UTC(=15:00 KST) 무렵**
  *       에만 호출한다. CrUX 자체가 28일 롤링 집계라 더 자주 불러야 할 이유가 없다.
  * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * fail-soft: 던지지 않고 JSON 요약을 돌려준다(ETL 을 죽이지 않는다).

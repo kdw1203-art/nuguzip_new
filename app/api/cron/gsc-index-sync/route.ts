@@ -22,7 +22,7 @@ export const maxDuration = 300;
  * 분모(submitted)는 서치콘솔이 아니라 우리 사이트맵 생성기가 센 값이다. 우리 값이
  * 지금 이 순간 기준이고, 서치콘솔의 제출 수는 마지막 크롤 시점에 묶여 있다.
  *
- * 주기: `.github/workflows/etl.yml` 의 alerts 잡이 **월요일 09:00 UTC(=18:00 KST)**
+ * 주기: `.github/workflows/etl.yml` 의 alerts 잡이 **월요일 06:00 UTC(=15:00 KST) 무렵**
  *       에만 호출한다. 색인 상태는 주 단위로 움직이는 값이라 그 이상은 소음이다.
  * 보호: lib/cron/authorize.ts (CRON_SECRET 헤더 · 관리자 세션)
  * ?sample=N 으로 표본 수 조절(기본 60, 상한 300).
