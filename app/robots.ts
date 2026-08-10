@@ -49,8 +49,16 @@ export default function robots(): MetadataRoute.Robots {
           "/analysis/switch",
           // 기계용 엔드포인트 (OG 이미지는 위 allow 로 예외)
           "/api",
+          // bot-only waste paths (31.8% of RUM, no index value)
+          "/notes/new",
+          "/widget",
         ],
       },
+      // AI crawlers - meta-externalagent alone = 27% of RUM
+      { userAgent: "meta-externalagent", disallow: "/" },
+      { userAgent: "GPTBot", disallow: "/" },
+      { userAgent: "CCBot", disallow: "/" },
+      { userAgent: "ClaudeBot", disallow: "/" },
     ],
     /* N4 — 인덱스 + 자식 전부를 적는다.
        인덱스 하나만 적어도 규격상 충분하지만, 실제로는 사이트맵 인덱스 처리가
