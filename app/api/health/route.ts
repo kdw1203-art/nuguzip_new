@@ -7,7 +7,10 @@ import {
   isOdcloudConfigured,
 } from "@/lib/public-data/data-go-kr-keys";
 import { getPublicDataProbeSummaryCached } from "@/lib/public-data/cached-probe";
-import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
+import {
+  getReadOnlySupabase,
+  readOnlyClientHasServiceRole,
+} from "@/lib/newui/supabase-read";
 import { getSupabaseUrl } from "@/lib/supabase/env";
 import { classifyIngestRun, type IngestOutcome } from "@/lib/market/ingest-outcome";
 
@@ -22,6 +25,19 @@ type TroubledSource = { source: string; outcome: IngestOutcome; at: string };
 
 type OpsChecks = {
   db: { ok: boolean };
+  /**
+   * 서비스롤 읽기가 실제로 되는가 (2026-08-10 사각 봉합).
+   *
+   * db.ok 는 anon 도 읽을 수 있는 market_ingest_log 를 핑한다. 그래서
+   * SUPABASE_SERVICE_ROLE_KEY 가 통째로 빠져도 db.ok=true — 서비스롤로만 읽는
+   * 화면(dev-deals·결제 원장·관리자)이 전부 죽는데 헬스는 초록이었다
+   * (2026-08-10 Vercel 재임포트 때 실제로 그랬다. 실측으로 확인).
+   * configured = 키가 env 에 있는가. ok = 서비스롤 전용 표(automation_scripts,
+   * anon GRANT 없음 — 20260727090313)를 head 카운트로 실제로 읽었는가.
+   * 키가 없으면 조회를 시도하지 않는다 — 실패할 걸 알면서 던지는 조회는
+   * 조회가 아니라 소음이다(supabase-read.ts 의 같은 원칙).
+   */
+  privilegedRead: { configured: boolean; ok: boolean };
   etl: {
     /**
      * 수집이 **살아 있는가** — 48h 안에 성공한 실행이 하나라도 있었는가.
@@ -76,6 +92,23 @@ async function getOpsChecks(): Promise<OpsChecks> {
     }
   } catch {
     envOk = false;
+  }
+
+  let privConfigured = false;
+  let privOk = false;
+  try {
+    privConfigured = readOnlyClientHasServiceRole();
+    if (privConfigured) {
+      const sb = getReadOnlySupabase();
+      if (sb) {
+        const { error } = await sb
+          .from("automation_scripts")
+          .select("key", { count: "exact", head: true });
+        privOk = !error;
+      }
+    }
+  } catch {
+    privOk = false;
   }
 
   let dbOk = false;
@@ -145,6 +178,7 @@ async function getOpsChecks(): Promise<OpsChecks> {
 
   return {
     db: { ok: dbOk },
+    privilegedRead: { configured: privConfigured, ok: privOk },
     etl: { ok: etlOk, lastSuccessAt, lastRunAt, lastRunOutcome, troubled },
     env: { ok: envOk },
   };
@@ -230,7 +264,7 @@ export async function GET(req: Request) {
   // 운영 P0: DB ping · ETL 최근 성공 · env 유효성 (인증 불필요, 민감정보 없음)
   const ops = await getOpsChecks();
 
-  const opsOk = ops.db.ok && ops.etl.ok && ops.env.ok;
+  const opsOk = ops.db.ok && ops.privilegedRead.ok && ops.etl.ok && ops.env.ok;
 
   const status = loginReady ? (criticalOk && opsOk ? "ok" : "degraded") : "no-login";
 
@@ -255,6 +289,8 @@ export async function GET(req: Request) {
         checks: {
 
           db: ops.db,
+
+          privilegedRead: ops.privilegedRead,
 
           etl: ops.etl,
 
@@ -424,7 +460,7 @@ export async function GET(req: Request) {
 
       timestamp: new Date().toISOString(),
 
-      checks: { db: ops.db, etl: ops.etl, env: ops.env },
+      checks: { db: ops.db, privilegedRead: ops.privilegedRead, etl: ops.etl, env: ops.env },
 
       services,
 
