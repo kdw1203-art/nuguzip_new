@@ -119,6 +119,9 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
      전량(상한 200) 메모리 필터였고 실측 0행. 클라이언트에는 슬림 DTO 만
      (ownerEmail·userId 는 공개 캐시 금지) */
   { path: "/town/experts", sMaxAge: 300, swr: 86400 },
+  /* 2026-08-10 ISR — region/status/sort 필터는 GroupsClient(클라이언트).
+     statusKey(시각 파생)는 builtAtMs 로 하이드레이션 후 재계산. 실측 0행 */
+  { path: "/town/groups", sMaxAge: 300, swr: 86400 },
   /* `/town/market` 은 공개 캐시 목록에서 뺐다(2026-07-27). 화면이 아니라
      `/town/groups` 로 넘기는 리다이렉트 스텁이고, searchParams 를 읽어 쿼리를
      그대로 넘기느라 동적 라우트다 — prerender 산출물이 없어 이 목록에 남아
