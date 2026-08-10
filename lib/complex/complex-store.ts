@@ -12,6 +12,11 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { AREA_BANDS } from "@/lib/market/bands";
 import { APT_MASTER_SOURCE_KEY } from "@/lib/complex/apartment-master";
+import {
+  normalizeComplexName,
+  parseMtAddress,
+  pickBestMaster,
+} from "@/lib/complex/master-match";
 import { logger } from "@/lib/log";
 
 /**
@@ -230,9 +235,8 @@ function toComplexRow(
 // ── 단지 조회 ────────────────────────────────────────────────────────
 
 /** 단지명 정규화 — 공백 제거 + 후행 "아파트" 제거 (모델 간 name-매칭 기준). */
-function normalizeComplexName(s: string): string {
-  return s.replace(/\s+/g, "").replace(/아파트$/, "");
-}
+/* normalizeComplexName 은 master-match.ts 로 옮겼다 — 매칭 판정과 정규화가
+   다른 규칙을 쓰기 시작하면 둘이 서로 다른 말을 하게 된다. */
 
 type AptEnrich = {
   kaptCode: string | null;
@@ -272,6 +276,8 @@ type AptEnrich = {
 async function enrichFromApartmentComplex(
   region: string,
   name: string,
+  /** 대표 실거래 주소("{시군구} {법정동} {지번}") — 동명·유사명 후보를 지번으로 가른다 */
+  mtAddress?: string | null,
 ): Promise<AptEnrich | null> {
   const sb = getServiceSupabase();
   if (!sb) return null;
@@ -296,18 +302,22 @@ async function enrichFromApartmentComplex(
     (data as { name: string; metadata: Record<string, unknown> | null }[] | null) ?? [];
   if (rows.length === 0) return null;
 
-  // 최적 매칭: 정규화 완전일치 우선 → 이름 길이 근접(기본형에 가장 가까운 것).
-  const target = normalizeComplexName(name);
-  let best = rows[0];
-  let bestScore = Number.POSITIVE_INFINITY;
-  for (const r of rows) {
-    const rn = normalizeComplexName(r.name);
-    const score = (rn === target ? 0 : 1000) + Math.abs(rn.length - target.length);
-    if (score < bestScore) {
-      bestScore = score;
-      best = r;
+  /* 최적 매칭 — 판정은 lib/complex/master-match.ts (순수 함수, 실측 픽스처로
+     단위검증). 예전 "완전일치 없으면 최단 이름" 규칙은 후보가 여럿일 때 옆
+     단지를 임의로 골랐다 — 실사용자 신고(2026-08-10): "공작아파트"(관양동
+     1588 = 공작부영2차 1,710세대)에 공작럭키(1587, 766세대)의 스펙 전부가
+     붙어 있었다. 이제 지번 대조가 최우선이고, 판별 근거가 없으면 null 이다 —
+     스펙 없는 패널이 옆 단지 스펙이 붙은 패널보다 낫다. */
+  const picked = pickBestMaster(rows, name, parseMtAddress(mtAddress));
+  if (!picked.best) {
+    if (picked.reason === "ambiguous") {
+      logger.warn(
+        `[complex] 대장 매칭 보류(${picked.reason}) — 후보 ${rows.length}개를 지번·이름으로 못 갈랐다: ${region} ${name}`,
+      );
     }
+    return null;
   }
+  const best = picked.best;
 
   const m = best.metadata ?? {};
   const approval = typeof m.approvalDate === "string" ? m.approvalDate : "";
@@ -379,7 +389,7 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
   const base = toComplexRow(dec.region, dec.name, row);
   // D7 — 대장 마스터(apartment_complexes) 매칭 enrich (세대수·준공·난방·도로명·kapt).
   // 실패해도 허브는 실거래만으로 그린다. 다만 조용히 넘기지 않고 로그는 남긴다.
-  const apt = await enrichFromApartmentComplex(dec.region, dec.name).catch((e) => {
+  const apt = await enrichFromApartmentComplex(dec.region, dec.name, row.address).catch((e) => {
     logger.warn("[complex] 대장 마스터 enrich 실패 — 실거래만으로 계속", e);
     return null;
   });
