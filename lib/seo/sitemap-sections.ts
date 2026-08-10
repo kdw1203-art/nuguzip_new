@@ -7,6 +7,7 @@ import {
   loadComplexEntries,
   loadDigestEntries,
   loadGlossaryEntries,
+  loadNewsEntries,
   loadNoteEntries,
   loadPairEntries,
   loadRegionEntries,
@@ -95,6 +96,11 @@ export const SITEMAP_SECTIONS: readonly SitemapSection[] = [
      항목이 기준 미만인 주는 아예 만들지 않으므로, 수집이 막 시작된 시기에는
      0개가 사실이다. 그때 503 을 내면 "지금은 못 준다"는 거짓이 된다. */
   { slug: "digest", label: "주간 다이제스트 아카이브", required: false, load: loadDigestEntries },
+  /* 뉴스 요약을 required 로 두는 이유: 백필까지 끝나 우리 요약을 가진 기사가
+     88건 있고(2026-08-04), 매일 08:00 KST 수집이 10건씩 더한다. 이 숫자가 0 이
+     되는 현실적인 경로는 "기사가 전부 사라졌다"가 아니라 "조회가 실패했다" 또는
+     "요약 파이프라인이 멈췄다"뿐이다. 둘 다 조용히 넘어가면 안 되는 상태다. */
+  { slug: "news", label: "뉴스 요약", required: true, load: loadNewsEntries },
 ];
 
 const SECTION_BY_SLUG = new Map(SITEMAP_SECTIONS.map((s) => [s.slug, s]));
