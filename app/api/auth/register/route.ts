@@ -11,6 +11,9 @@ import {
   isTransientSchemaCacheError,
   type PgErrorLike,
 } from "@/lib/supabase/pg-error";
+import { logger } from "@/lib/log";
+import { maskEmailPublic } from "@/lib/privacy/mask-email";
+import { mapSignUpRejection } from "@/lib/auth/signup-error";
 
 export const runtime = "nodejs";
 
@@ -288,17 +291,33 @@ async function signUpWithSupabaseAuth(
     // 네트워크 단절·게이트웨이 오류 등 업스트림(Supabase Auth) 장애는
     // 클라이언트 잘못(400)이 아니라 일시적 사용 불가(503)로 구분한다.
     const status = (error as { status?: number }).status;
-    const upstreamUnavailable =
-      status === undefined || status === 0 || status >= 500;
-    if (upstreamUnavailable) {
-      return NextResponse.json(
-        { error: "일시적으로 가입 처리를 할 수 없습니다. 잠시 후 다시 시도해 주세요." },
-        { status: 503 },
-      );
+    const code = (error as { code?: string }).code ?? "";
+    const upstreamMsg = error.message ?? "";
+    /* 이 분기는 오랫동안 아무것도 로깅하지 않았다 — 2026-08-10 실사용자 가입
+       실패를 조사할 때 Vercel 런타임 로그에 흔적이 0건이라 Supabase Auth 로그를
+       뒤져서야 원인을 알았다. 실패는 원인 코드와 함께 남긴다(이메일은 마스킹). */
+    logger.warn("[auth/register] Supabase Auth signUp 거절", {
+      code,
+      status,
+      message: upstreamMsg,
+      email: maskEmailPublic(email),
+    });
+    /* ── 4xx 는 "서버 오류·재시도" 로 뭉개면 안 된다 ──────────────────────────
+       2026-08-10 실측: 유출 비밀번호 보호(HIBP)가 422
+       "Password is known to be weak and easy to guess" 로 거절했는데, 이
+       분기가 일괄 "(서버 오류 — 잠시 후 다시 시도해 주세요.)" 를 보여줬다.
+       재시도로는 절대 성공할 수 없는 오류를 재시도하라고 안내한 것이다.
+       매핑은 lib/auth/signup-error.ts (단위검증 가능하게 분리). */
+    const mapped = mapSignUpRejection({ status, code, message: upstreamMsg });
+    if (mapped) {
+      return NextResponse.json(mapped.body, {
+        status: mapped.status,
+        ...(mapped.headers ? { headers: mapped.headers } : {}),
+      });
     }
     return NextResponse.json(
-      { error: "가입 처리 중 오류가 발생했습니다.", detail: "서버 오류 — 잠시 후 다시 시도해 주세요." },
-      { status: 400 },
+      { error: "일시적으로 가입 처리를 할 수 없습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 503 },
     );
   }
   const emailConfirmationRequired = !data.session;
@@ -539,6 +558,11 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       );
     }
+    logger.error("[auth/register] app_users 삽입 실패", {
+      code: finalError.code,
+      message: finalError.message,
+      email: maskEmailPublic(email),
+    });
     return NextResponse.json(
       {
         error: "가입 처리 중 오류가 발생했습니다.",
