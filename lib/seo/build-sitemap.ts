@@ -9,6 +9,15 @@ import {
   listComplexSitemapEntries,
   periodToDate,
 } from "@/lib/seo/sitemap-entries";
+import { complexCanonicalPathFromNames } from "@/lib/complex/complex-store";
+
+/**
+ * 단지 사이트맵에 실을 최소 매매 실거래 건수.
+ *
+ * 1 = "거래가 한 건이라도 있는 단지만". 페이지의 noindex 조건(실거래 이력 0건)과
+ * 같은 선이다. 색인률이 안정되면 3~5 로 올려 더 좁힐 수 있다.
+ */
+const SITEMAP_MIN_TRADE_COUNT = Number(process.env.SITEMAP_MIN_TRADE_COUNT ?? 1);
 
 /* 사이트맵 본문 생성 — 정적 공개 라우트 + 공개 임장노트 + 단지 + 지역 + 실거래 구간.
    DB 조회 실패(env 미설정 등) 시 그 블록만 비우고 나머지는 그대로 낸다.
@@ -219,12 +228,41 @@ export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {
   });
 }
 
-/** 프로그래매틱 SEO 핵심 랜딩 — 실거래가 있는 단지 전체(2026-07-26 기준 25,171개). */
+/**
+ * 프로그래매틱 SEO 핵심 랜딩 — 단지 허브.
+ *
+ * ── 2026-08-05 두 가지를 고쳤다 ─────────────────────────────────────────────
+ *
+ * 1) **URL 을 complexCanonicalPathFromNames 로 만든다.**
+ *    예전엔 `${BASE_URL}/complex/${c.id}` 로 직접 조립했다. 값 자체는 같지만,
+ *    페이지의 canonical 과 "우연히" 같은 문자열일 뿐 강제되는 구조가 아니었다.
+ *    실제로 페이지가 kapt 매칭 시 canonical 을 `/complex/kapt.X` 로 바꾸면서
+ *    갈라졌고, 제출 URL 30%(약 7,700개)가 "대체 페이지"로 처리돼 색인되지 않았다.
+ *    이제 양쪽 다 lib/complex/complex-store.ts 의 같은 함수를 부른다.
+ *
+ * 2) **거래가 없는 단지는 싣지 않는다.**
+ *    상당수 단지 페이지가 "시세 준비 중 · 거래 없음 · 노트 0" 상태다. 이런 URL 을
+ *    수만 개 제출하면 크롤 예산을 태우고 사이트 전체 품질 평가를 끌어내린다
+ *    (구글 scaled content abuse). 페이지 쪽 generateMetadata 도 같은 조건으로
+ *    noindex 를 내므로 둘의 판단이 일치한다 — 사이트맵에 넣어 놓고 noindex 를
+ *    내보내는 모순이 생기지 않는다.
+ *
+ *    기준값은 SITEMAP_MIN_TRADE_COUNT(기본 1)로 조절한다. 거래가 들어오는 순간
+ *    자동으로 다시 실리므로 별도 배치가 필요 없다.
+ */
 export async function loadComplexEntries(): Promise<MetadataRoute.Sitemap> {
   return section("단지", async () => {
     const complexes = await listComplexSitemapEntries();
-    return complexes.map((c) => ({
-      url: `${BASE_URL}/complex/${c.id}`,
+    const eligible = complexes.filter((c) => c.tradeCount >= SITEMAP_MIN_TRADE_COUNT);
+    const dropped = complexes.length - eligible.length;
+    if (dropped > 0) {
+      /* 조용히 자르지 않는다. "전부 실었다"로 읽히면 색인률 해석이 틀어진다. */
+      logger.info(
+        `[sitemap] 단지 ${complexes.length}개 중 거래 ${SITEMAP_MIN_TRADE_COUNT}건 미만 ${dropped}개 제외 — ${eligible.length}개 제출`,
+      );
+    }
+    return eligible.map((c) => ({
+      url: `${BASE_URL}${complexCanonicalPathFromNames(c.regionName, c.complexName)}`,
       ...(c.lastModified ? { lastModified: c.lastModified } : {}),
       priority: 0.8,
     }));

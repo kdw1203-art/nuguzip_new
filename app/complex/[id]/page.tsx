@@ -20,7 +20,7 @@ import {
   type HubListing,
 } from "./hub-client";
 import type { PricePoint } from "./PriceTrendChart";
-import { decodeComplexId } from "@/lib/complex/complex-store";
+import { complexCanonicalPath, decodeComplexId } from "@/lib/complex/complex-store";
 import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
@@ -524,7 +524,12 @@ async function loadView(id: string): Promise<HubView | null> {
      loadTxHistory 는 React cache() 로 렌더 내 재사용(아래 tx 재호출)되므로
      signal 을 받지 않는다 — 인자에 신호를 섞으면 dedupe 키가 깨진다. */
   const [txR, postsR, sameDongR, coordR, listingsR] = await Promise.all([
-    settle(`${row.name} 실거래 이력`, loadTxHistory(row.id, TX_HISTORY_MONTHS), budget.expired),
+    /* canonical_id 를 쓴다 — row.id 는 kapt 매칭 시 `kapt.A10027336` 이 되는데
+       getTransactionHistory 는 decodeComplexId 로 시작하고 그 함수는 kapt id 에
+       null 을 준다. 그래서 실거래가 160~212건 있는 단지가 조용히 빈 배열을 받아
+       "실거래 없음 · 시세 준비 중"으로 그려지고 있었다(2026-08-05 표본 12개 중 6개).
+       canonical_id 는 항상 name-id 라 decode 가 반드시 성공한다. */
+    settle(`${row.name} 실거래 이력`, loadTxHistory(row.canonical_id, TX_HISTORY_MONTHS), budget.expired),
     settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 12, budget.signal), budget.expired),
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 더 넓게
     row.district
@@ -619,7 +624,10 @@ export async function generateMetadata({
      남고 그 문자열이 OG 이미지 쿼리에 그대로 실려, 공유 카드가 "아직 시세를
      안 만들었다"고 단정했다 — 사실은 못 읽은 것뿐이다. 본문도 실패하면 던지므로
      메타데이터도 똑같이 던진다. */
-  const tx: ComplexTransactionRow[] = await loadTxHistory(row.id, TX_HISTORY_MONTHS);
+  /* 본문(line ~527)과 **반드시 같은 인자**여야 한다 — loadTxHistory 는 cache() 라
+     인자가 다르면 렌더 안에서 두 번 조회하고, 메타데이터와 본문이 다른 값을 말한다.
+     canonical_id 를 쓰는 이유는 본문 쪽 주석 참고. */
+  const tx: ComplexTransactionRow[] = await loadTxHistory(row.canonical_id, TX_HISTORY_MONTHS);
   const latest = tx.length > 0 ? tx[tx.length - 1] : null;
   const prev = tx.length > 1 ? tx[tx.length - 2] : null;
   if (latest) {
@@ -634,14 +642,31 @@ export async function generateMetadata({
   const ogQuery = new URLSearchParams({ name, price, region });
   if (delta) ogQuery.set("delta", delta);
 
-  // G6: 단지 허브는 사이트맵 URL 의 대부분(2,000건)을 차지하는 롱테일 랜딩이다.
+  // G6: 단지 허브는 사이트맵 URL 의 대부분(2.5만 건)을 차지하는 롱테일 랜딩이다.
   // canonical 이 없으면 `?utm_...`·중복 진입 경로마다 별개 URL 로 색인돼 신호가 쪼개진다.
-  const alternates = seoAlternates(`/complex/${encodeURIComponent(row.id)}`);
+  //
+  // N-fix(2026-08-05): 여기서 `row.id` 를 쓰고 있었다. kapt 매칭이 되면 id 가
+  // `kapt.A10027336` 으로 바뀌는데, 사이트맵은 (region_name, complex_name) 만 가진
+  // 집계 MV 에서 만들어져 그 형태를 낼 수 없다. 그래서 제출 URL 과 canonical 이
+  // 갈라졌고, 구글은 제출 URL 을 "대체 페이지(적절한 표준 태그 있음)"로 처리해
+  // 색인하지 않았다. 실측 30%(약 7,700개 URL).
+  // canonical_id 는 kapt 매칭 여부와 무관하게 항상 name-id 라 사이트맵과 일치한다.
+  const alternates = seoAlternates(complexCanonicalPath(row));
+
+  /* 선별 색인 — 실거래가 한 건도 없는 단지는 "시세 준비 중 · 거래 없음 · 노트 0"
+     만 남는 템플릿 페이지다. 이런 URL 을 2만 개 색인 요청하면 크롤 예산을 태우고
+     사이트 전체 품질 평가를 끌어내린다(구글 scaled content abuse).
+     follow 는 유지해서 내부 링크는 계속 따라가게 둔다.
+     tx 는 위에서 이미 읽었으므로 추가 조회가 없다. 거래가 들어오는 순간
+     자동으로 색인 대상이 된다 — 별도 배치가 필요 없다. */
+  const hasSubstance = tx.length > 0;
 
   return {
     title,
     description,
-    robots: { index: true, follow: true },
+    robots: hasSubstance
+      ? { index: true, follow: true }
+      : { index: false, follow: true },
     alternates,
     openGraph: {
       title,
