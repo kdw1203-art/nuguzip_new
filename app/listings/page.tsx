@@ -1,19 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
-import {
-  listApprovedListings,
-  isListingType,
-  LISTING_TYPE_LABEL,
-  LISTING_SOURCE_LABEL,
-  type PublicListing,
-} from "@/lib/listings/store-db";
+import { listApprovedListings } from "@/lib/listings/store-db";
 import { DISTRICTS } from "@/lib/regions";
-import { ListingCompareToggle } from "@/components/ListingCompareToggle";
 import { ListingCompareTray } from "@/components/ListingCompareTray";
-import type { CompareListing } from "@/components/listing-compare-store";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { ErrorState } from "@/app/components/ui/EmptyState";
+import { ListingsListClient } from "./ListingsListClient";
 
 /* ============================================================
    실매물 목록 — /listings
@@ -21,7 +14,12 @@ import { ErrorState } from "@/app/components/ui/EmptyState";
    승인(approved)된 매물만 노출 · 유형/구 필터 · 최신순.
    ============================================================ */
 
-export const dynamic = "force-dynamic";
+/* 비용 실측(2026-08-10): 서버가 ?type/gu/complex 를 읽어 필터별 DB 질의 —
+   영구 동적이라 크롤 1회 = 함수 호출 1회. 승인 매물은 ≤200건이라 전체를 한 번
+   받고 ListingsListClient(클라이언트)에서 exact 일치로 거른다(서버 .eq 와 동의미).
+   매물 등록·승인 반영은 최대 5분 늦는다(재검증 주기). 부스트 배지는 클라이언트
+   에서 현재 시각으로 계산해 캐시와 무관하게 정확하다. */
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "실매물 — 집주인 직접·중개사 등록 매물 · 누구집",
@@ -31,73 +29,7 @@ export const metadata: Metadata = {
   alternates: seoAlternates("/listings"),
 };
 
-const TYPE_FILTERS = [
-  { key: "", label: "전체" },
-  { key: "sale", label: "매매" },
-  { key: "jeonse", label: "전세" },
-  { key: "monthly", label: "월세" },
-];
-
-/** 원(KRW) → "28.6억" / "9,800만" */
-function formatKrwShort(krw: number | null | undefined): string {
-  if (krw === null || krw === undefined || !Number.isFinite(krw) || krw <= 0) return "—";
-  if (krw >= 1e8) {
-    const eok = krw / 1e8;
-    return `${(eok >= 100 ? Math.round(eok) : Math.round(eok * 10) / 10).toLocaleString("ko-KR")}억`;
-  }
-  return `${Math.round(krw / 1e4).toLocaleString("ko-KR")}만`;
-}
-
-function priceLine(l: PublicListing): string {
-  if (l.listingType === "sale") return `매매 ${formatKrwShort(l.priceKrw)}`;
-  if (l.listingType === "jeonse") return `전세 ${formatKrwShort(l.depositKrw)}`;
-  return `월세 ${formatKrwShort(l.depositKrw)} / ${formatKrwShort(l.monthlyKrw)}`;
-}
-
-/** 부스트 활성 여부 — 만료 시각이 현재보다 미래일 때 */
-function isBoostActive(boostUntil: string | null): boolean {
-  if (!boostUntil) return false;
-  const t = Date.parse(boostUntil);
-  return Number.isFinite(t) && t > Date.now();
-}
-
-/** 비교함(클라이언트 스토어)에 담을 직렬화 요약으로 변환 */
-function toCompareListing(l: PublicListing): CompareListing {
-  return {
-    id: l.id,
-    complexName: l.complexName,
-    regionName: l.regionName,
-    listingType: l.listingType,
-    priceKrw: l.priceKrw,
-    depositKrw: l.depositKrw,
-    monthlyKrw: l.monthlyKrw,
-    areaM2: l.areaM2,
-    floor: l.floor,
-    createdAt: l.createdAt,
-    refreshedAt: l.refreshedAt,
-    source: l.source,
-    ownerVerified: l.ownerVerified,
-  };
-}
-
-function buildQuery(next: { type?: string; gu?: string }): string {
-  const p = new URLSearchParams();
-  if (next.type) p.set("type", next.type);
-  if (next.gu) p.set("gu", next.gu);
-  const qs = p.toString();
-  return qs ? `/listings?${qs}` : "/listings";
-}
-
-export default async function ListingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string; gu?: string; complex?: string }>;
-}) {
-  const sp = await searchParams;
-  const type = isListingType(sp.type ?? "") ? (sp.type as string) : "";
-  const gu = (sp.gu ?? "").trim();
-  const complex = (sp.complex ?? "").trim();
-
+export default async function ListingsPage() {
   /* listApprovedListings 는 조회 실패를 던진다. 여기서 잡아 ErrorState 를 그리는
      이유는, 그냥 올려 보내면 Next 의 일반 오류 화면이 떠서 필터·등록 버튼까지
      사라지기 때문이다. "매물이 없어요"라고 말하지 않는 것이 핵심이고, 화면은
@@ -105,11 +37,7 @@ export default async function ListingsPage({
   let items: Awaited<ReturnType<typeof listApprovedListings>> | null = null;
   let loadError: string | null = null;
   try {
-    items = await listApprovedListings({
-      listingType: type ? (type as "sale" | "jeonse" | "monthly") : undefined,
-      regionName: gu || undefined,
-      complexName: complex || undefined,
-    });
+    items = await listApprovedListings({});
   } catch (e) {
     loadError = e instanceof Error ? e.message : String(e);
   }
@@ -131,55 +59,6 @@ export default async function ListingsPage({
         </Link>
       </div>
 
-      {complex && (
-        <div className="rise-in mb-3 flex items-center gap-2 text-[13px] text-text-2">
-          <span>
-            단지 <b className="text-ink">{complex}</b> 매물만 보는 중
-          </span>
-          <Link href={buildQuery({ type, gu })} className="font-bold text-primary underline">
-            전체 보기
-          </Link>
-        </div>
-      )}
-
-      {/* 유형 필터 */}
-      <div className="rise-in mb-2 flex gap-1.5 overflow-x-auto text-[13px]">
-        {TYPE_FILTERS.map((f) => (
-          <Link
-            key={f.key || "all"}
-            href={buildQuery({ type: f.key, gu })}
-            className={`chip px-3.5 py-2 ${
-              type === f.key ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
-            }`}
-          >
-            {f.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* 서울 구 필터 */}
-      <div className="rise-in-1 mb-5 flex gap-1.5 overflow-x-auto pb-1 text-[12px]">
-        <Link
-          href={buildQuery({ type })}
-          className={`chip shrink-0 px-3 py-1.5 ${
-            !gu ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
-          }`}
-        >
-          서울 전체
-        </Link>
-        {seoulGus.map((g) => (
-          <Link
-            key={g}
-            href={buildQuery({ type, gu: g })}
-            className={`chip shrink-0 px-3 py-1.5 ${
-              gu === g ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
-            }`}
-          >
-            {g}
-          </Link>
-        ))}
-      </div>
-
       {items === null ? (
         <ErrorState
           className="rise-in-1"
@@ -188,105 +67,10 @@ export default async function ListingsPage({
           cause={loadError ?? undefined}
           action={{ href: "/listings/new", label: "매물 등록하기" }}
         />
-      ) : items.length === 0 ? (
-        <div className="rise-in-1 card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[15px] font-extrabold text-ink">
-            이 조건에 검수된 매물이 아직 없어요
-          </div>
-          <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
-            베타 기간에는 매물 공급이 적을 수 있어요. 집주인은 소유 확인 후 직접 등록하고,
-            중개사무소는 제휴로 노출할 수 있어요. 임장 기록은{" "}
-            <Link href="/notes/new" className="font-bold text-primary underline">
-              임장노트
-            </Link>
-            로 이어가세요.
-          </p>
-          <div className="flex gap-2">
-            <Link href="/listings/new" className="btn-primary btn-md">
-              매물 등록하기
-            </Link>
-            <Link href="/partners" className="btn-outline btn-md">
-              중개사 제휴 안내
-            </Link>
-          </div>
-        </div>
       ) : (
-        <div className="rise-in-1 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((l) => {
-            const boostOn = isBoostActive(l.boostUntil);
-            const desc = l.description?.replace(/^\[[^\]]{1,10}\]\s*/, "") ?? "";
-            return (
-              <Link
-                key={l.id}
-                href={`/listings/${l.id}`}
-                className="card card-hover card-pad-sm flex flex-col gap-2"
-              >
-                {l.thumbnailUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={l.thumbnailUrl}
-                    alt={`${l.complexName} 사진`}
-                    className="mb-1 h-[150px] w-full rounded-xl object-cover"
-                    loading="lazy"
-                  />
-                )}
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
-                      l.source === "owner"
-                        ? "bg-[rgba(29,79,216,.08)] text-primary"
-                        : "bg-[#fdf3e7] text-warning"
-                    }`}
-                  >
-                    {LISTING_SOURCE_LABEL[l.source]}
-                  </span>
-                  <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
-                    {LISTING_TYPE_LABEL[l.listingType]}
-                  </span>
-                  {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
-                      소유확인
-                    </span>
-                  )}
-                  {boostOn && (
-                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
-                      부스트
-                    </span>
-                  )}
-                  {l.regionName && (
-                    <span className="text-[11px] text-text-3">{l.regionName}</span>
-                  )}
-                </div>
-                <div className="text-[15px] font-extrabold leading-[1.4] text-ink">
-                  {l.complexName}
-                </div>
-                <div className="text-[15px] font-extrabold text-primary">
-                  {priceLine(l)}
-                </div>
-                <div className="text-[12px] text-text-3">
-                  {[
-                    l.areaM2 !== null ? `${l.areaM2}㎡` : null,
-                    l.floor !== null ? `${l.floor}층` : null,
-                    l.authorLabel,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </div>
-                {desc.trim() && (
-                  <p className="line-clamp-2 text-[13px] leading-[1.6] text-text-2">
-                    {desc.trim()}
-                  </p>
-                )}
-                <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-                  <span className="text-[12px] font-bold text-primary">
-                    상세 보기 →
-                  </span>
-                  <ListingCompareToggle item={toCompareListing(l)} />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        /* 필터 + 목록은 클라이언트(ListingsListClient) — SSR 은 전체를 HTML 에
+           그리고, 필터는 마운트 후 location.search 로 적용(딥링크·뒤로가기 포함) */
+        <ListingsListClient items={items} seoulGus={seoulGus} />
       )}
 
       {/* 매물 비교함 — 담긴 매물이 있을 때만 하단 고정 노출 */}
