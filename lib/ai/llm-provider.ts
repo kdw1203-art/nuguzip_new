@@ -1,5 +1,6 @@
 import type { LlmModelOption } from "@/lib/ai/llm-models";
 import { getOpenAiApiKey } from "@/lib/ai/env-keys";
+import { withComplianceClause } from "@/lib/ai/compliance";
 
 export type LlmMessage = { role: "system" | "user" | "assistant"; content: string };
 
@@ -16,6 +17,11 @@ export async function callLlmChat(
   const sys = messages.filter((m) => m.role === "system").map((m) => m.content);
   const rest = messages.filter((m) => m.role !== "system");
 
+  /* 모든 AI 호출의 단일 관문 — 수익 보장 문구 미기재 방침(소유자 2026-08-11)을
+     여기서 시스템 프롬프트에 강제한다. 프롬프트별로 적으면 새 프롬프트가 이걸
+     빠뜨릴 수 있어, 벤더 분기 직전 한 곳에서 이어 붙인다(중복이면 no-op). */
+  const systemContent = withComplianceClause(sys.join("\n\n")) || undefined;
+
   if (option.vendor === "openai") {
     const key = getOpenAiApiKey();
     if (!key) return { ok: false, error: "OPENAI_API_KEY(또는 OPENAI_KEY) 미설정", vendor: "stub" };
@@ -30,7 +36,7 @@ export async function callLlmChat(
         temperature: 0.4,
         max_tokens: MAX_OUT,
         messages: [
-          ...(sys.length ? [{ role: "system" as const, content: sys.join("\n\n") }] : []),
+          ...(systemContent ? [{ role: "system" as const, content: systemContent }] : []),
           ...rest.map((m) => ({ role: m.role, content: m.content })),
         ],
       }),
@@ -64,7 +70,7 @@ export async function callLlmChat(
     body: JSON.stringify({
       model: option.apiModel,
       max_tokens: MAX_OUT,
-      system: sys.join("\n\n") || undefined,
+      system: systemContent,
       messages: rest.map((m) => ({
         role: m.role === "assistant" ? "assistant" : "user",
         content: m.content,

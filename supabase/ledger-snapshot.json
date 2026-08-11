@@ -26,7 +26,7 @@
     "  * 객체가 \"언급됐다\"와 \"정의됐다\"는 다르다. 같은 정규식을 양쪽에 똑같이 적용해서",
     "    비교할 뿐이고, 그 이상을 주장하지 않는다."
   ],
-  "measured_at": "2026-08-11 (13건 증분 — 병렬 세션 10건은 본문 바이트 대조 완료(bytes=원장 octet), 데이터 품질 3건 1311xx 는 원장 md5·octet 를 그대로 적음: 저장소 파일이 원장 본문과 사소하게 어긋난다(적용 호출과 파일 작성이 별개였음, #352 코스메틱 편차))",
+  "measured_at": "2026-08-11",
   "source": "supabase_migrations.schema_migrations",
   "project_ref": "pbhiskvwpwwhtkmnhkbm",
   "baseline_version": "20260724212021",
@@ -3026,5 +3026,6 @@
         "20260809230322 ops_rent_ppp_distortion_diagnostic"
       ]
     }
-  ]
+  ],
+  "last_increment_note": "2026-08-11 (13건 증분 — 병렬 세션 10건은 본문 바이트 대조 완료(bytes=원장 octet), 데이터 품질 3건 1311xx 는 원장 md5·octet 를 그대로 적음: 저장소 파일이 원장 본문과 사소하게 어긋난다(적용 호출과 파일 작성이 별개였음, #352 코스메틱 편차))"
 }
