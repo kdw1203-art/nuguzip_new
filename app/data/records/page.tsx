@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import {
-  getPublicRecordDatasetStats,
-  getPublicRecordsForComplex,
-  datasetLabel,
-} from "@/lib/market/public-records";
+import { getPublicRecordDatasetStats } from "@/lib/market/public-records";
+import { RecordsSearchClient } from "./RecordsSearchClient";
 import { CODEF_PRODUCTS } from "@/lib/codef/endpoints";
 import { seoAlternates } from "@/lib/seo/alternates";
 
-export const dynamic = "force-dynamic";
+/* ── ISR 전환 (사용량 절감 14차, 2026-08-11) ────────────────────────────────
+   예전에는 force-dynamic + ?complex= 서버 재렌더였다. ?complex= 는 자유 텍스트
+   DB 검색이라 클라이언트 메모리 필터로 못 바꾼다 — 검색만 /api/public-records
+   (검색어별 CDN 캐시)로 분리하고, 이 페이지는 통계(적재 현황)만 ISR 로 품는다.
+   실측(2026-08-11): public_property_records 0행(CODEF 자격 증명 대기) —
+   현황은 전부 "연동 대기"가 사실이고, 통계 로더는 실패 시 base(0건)를
+   돌려주지만 그 표시는 "연동 대기"라 거짓 주장이 되지는 않는다. */
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "공공 부동산 자료 현황 | 누구집",
@@ -20,23 +23,9 @@ export const metadata: Metadata = {
   alternates: seoAlternates("/data/records"),
 };
 
-function fmtKrw(won: number | null): string {
-  if (!won || won <= 0) return "—";
-  const eok = won / 100_000_000;
-  if (eok >= 1) return `${eok >= 10 ? eok.toFixed(1) : eok.toFixed(2)}억`;
-  return `${Math.round(won / 10_000).toLocaleString()}만`;
-}
-
-export default async function DataRecordsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ complex?: string }>;
-}) {
-  const { complex } = await searchParams;
-  const query = (complex ?? "").trim();
+export default async function DataRecordsPage() {
   const stats = await getPublicRecordDatasetStats();
   const totalRows = stats.reduce((s, d) => s + d.rows, 0);
-  const records = query ? await getPublicRecordsForComplex(query, 60) : [];
 
   return (
     <PageShell
@@ -95,62 +84,7 @@ export default async function DataRecordsPage({
       {/* 단지 검색 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">단지 자료 조회</h2>
-        <form action="/data/records" method="get" className="mt-3 flex gap-2">
-          <input
-            type="search"
-            name="complex"
-            defaultValue={query}
-            placeholder="단지명으로 검색 (예: 은마아파트)"
-            className="flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13px] text-ink outline-none placeholder:text-text-3"
-          />
-          <button
-            type="submit"
-            className="btn-primary rounded-[10px] px-4 py-2 text-[13px]"
-          >
-            조회
-          </button>
-        </form>
-
-        {query && records.length === 0 && (
-          <div className="mt-4 rounded-[12px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-3">
-            &ldquo;{query}&rdquo; 관련 공개 자료가 아직 없어요. 실거래 데이터는{" "}
-            <Link
-              href={`/complex/browse`}
-              className="font-bold text-primary underline-offset-2 hover:underline"
-            >
-              단지 실거래
-            </Link>
-            에서 확인해 보세요.
-          </div>
-        )}
-
-        {records.length > 0 && (
-          <ul className="mt-4">
-            {records.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
-              >
-                <div className="min-w-0">
-                  <div className="text-[12px] font-bold text-ink">
-                    {datasetLabel(r.dataset)}
-                    {r.areaM2 ? ` · ${r.areaM2}㎡` : ""}
-                  </div>
-                  <div className="mt-0.5 text-[11px] text-text-3">
-                    {r.complexName ?? ""} {r.recordDate ?? r.period ?? ""}
-                  </div>
-                </div>
-                <div className="shrink-0 text-right text-[13px] font-extrabold text-ink">
-                  {r.priceLowKrw || r.priceHighKrw
-                    ? `${fmtKrw(r.priceLowKrw)} ~ ${fmtKrw(r.priceHighKrw)}`
-                    : r.depositKrw
-                      ? fmtKrw(r.depositKrw)
-                      : "—"}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <RecordsSearchClient />
       </section>
 
       <p className="mb-4 text-[11px] leading-[1.6] text-text-3">

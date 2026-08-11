@@ -80,6 +80,37 @@ export async function getPublicRecordsForComplex(
   }
 }
 
+/**
+ * 단지명 검색 — ok 판별판 (ISR /data/records 의 검색 API 용).
+ * getPublicRecordsForComplex 는 실패를 [] 로 삼켜 "자료 없음"과 구별이 안 된다 —
+ * 검색 API 는 실패면 503(no-store) 을 줘야 하므로 여기서 구별한다.
+ */
+export async function searchPublicRecords(
+  complexName: string,
+  limit = 60,
+): Promise<{ ok: boolean; items: PublicRecord[] }> {
+  const name = complexName.trim();
+  if (!name) return { ok: true, items: [] };
+  const sb = getReadOnlySupabase();
+  if (!sb) return { ok: true, items: [] }; // 미설정은 실패가 아니다
+  try {
+    const { data, error } = await sb
+      .from("public_property_records")
+      .select("*")
+      .ilike("complex_name", `%${name.replace(/[%_]/g, "")}%`)
+      .order("record_date", { ascending: false, nullsFirst: false })
+      .limit(limit);
+    if (error || !Array.isArray(data)) {
+      logger.error("[searchPublicRecords]", error ?? "invalid data");
+      return { ok: false, items: [] };
+    }
+    return { ok: true, items: data.map((r) => mapRow(r as Record<string, unknown>)) };
+  } catch (e) {
+    logger.error("[searchPublicRecords]", e);
+    return { ok: false, items: [] };
+  }
+}
+
 /** 데이터셋별 적재 현황(건수·대상 단지 수·최신 기준일) — /data/records 요약 */
 export async function getPublicRecordDatasetStats(): Promise<
   { dataset: string; label: string; rows: number; complexes: number; latest: string | null }[]
