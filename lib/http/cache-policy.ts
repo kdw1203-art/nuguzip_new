@@ -122,6 +122,9 @@ export const PUBLIC_CACHE_RULES: readonly PublicCacheRule[] = [
   /* 2026-08-10 ISR — region/status/sort 필터는 GroupsClient(클라이언트).
      statusKey(시각 파생)는 builtAtMs 로 하이드레이션 후 재계산. 실측 0행 */
   { path: "/town/groups", sMaxAge: 300, swr: 86400 },
+  /* 2026-08-11 ISR — 기본 지역만 프리렌더, 62개 지역 전환은 /api/timing
+     (CDN 1800초) fetch. auctions 삼분할 선례 */
+  { path: "/analysis/timing", sMaxAge: 600, swr: 86400 },
   /* `/town/market` 은 공개 캐시 목록에서 뺐다(2026-07-27). 화면이 아니라
      `/town/groups` 로 넘기는 리다이렉트 스텁이고, searchParams 를 읽어 쿼리를
      그대로 넘기느라 동적 라우트다 — prerender 산출물이 없어 이 목록에 남아
