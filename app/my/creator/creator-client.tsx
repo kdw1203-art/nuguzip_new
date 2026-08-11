@@ -248,7 +248,7 @@ function MonetizationTab({
             <>
               {" "}
               현재 정산 예정{" "}
-              <b className="text-[#7ea2ff]">
+              <b className="text-ai-accent">
                 {fmt(sales.netPoints)}P (약 {fmt(sales.netKrw)}원)
               </b>
               이에요.

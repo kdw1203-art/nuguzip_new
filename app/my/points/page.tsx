@@ -153,13 +153,13 @@ function WalletView({
             <span className="text-[40px] font-extrabold leading-none text-white">
               {balance.toLocaleString("ko-KR")}
             </span>
-            <span className="mb-1 text-lg font-extrabold text-[#7ea2ff]">P</span>
+            <span className="mb-1 text-lg font-extrabold text-ai-accent">P</span>
           </div>
         </div>
         <div className="flex gap-2">
           <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.07)] p-3 text-center">
             <div className="text-[11px] text-ai-muted">이번 달 적립</div>
-            <div className="mt-0.5 text-base font-extrabold text-[#7ea2ff]">
+            <div className="mt-0.5 text-base font-extrabold text-ai-accent">
               +{monthEarned.toLocaleString("ko-KR")}P
             </div>
           </div>

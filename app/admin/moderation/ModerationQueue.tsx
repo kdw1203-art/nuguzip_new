@@ -11,8 +11,8 @@ import type { QueueItem, QueueStatus } from "@/lib/admin/moderation-queue";
 
 const STATUS_META: Record<QueueStatus, { label: string; color: string; bg: string }> = {
   open: { label: "미처리", color: "#f2c94c", bg: "rgba(242,201,76,.14)" },
-  reviewed: { label: "처리완료", color: "#4ade80", bg: "rgba(74,222,128,.14)" },
-  actioned: { label: "제재", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+  reviewed: { label: "처리완료", color: "var(--ai-success)", bg: "rgba(74,222,128,.14)" },
+  actioned: { label: "제재", color: "var(--ai-danger)", bg: "rgba(248,113,113,.14)" },
   dismissed: { label: "기각", color: "#9aa6b8", bg: "rgba(154,166,184,.14)" },
 };
 
@@ -75,7 +75,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
             onClick={() => setFilter(f)}
             className={`rounded-lg px-3 py-1.5 text-[11.5px] font-bold ${
               filter === f
-                ? "bg-[#7ea2ff] text-[#0e1320]"
+                ? "bg-ai-accent text-[#0e1320]"
                 : "border border-[rgba(255,255,255,.12)] text-[#9aa6b8]"
             }`}
           >
@@ -84,7 +84,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
         ))}
       </div>
 
-      {error && <div className="text-[11px] text-[#f87171]">{error}</div>}
+      {error && <div className="text-[11px] text-ai-danger">{error}</div>}
 
       {shown.length === 0 ? (
         <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-8 text-center">
@@ -112,7 +112,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded bg-[rgba(126,162,255,.14)] px-1.5 py-px text-[9.5px] font-bold text-[#7ea2ff]">
+                  <span className="rounded bg-[rgba(126,162,255,.14)] px-1.5 py-px text-[9.5px] font-bold text-ai-accent">
                     {SOURCE_LABEL[item.source] ?? item.source}
                   </span>
                   {item.category && (
@@ -145,7 +145,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
                       type="button"
                       disabled={busy === key}
                       onClick={() => void act(item, "reviewed")}
-                      className="rounded-lg border border-[rgba(74,222,128,.4)] px-3 py-1.5 text-[11px] font-bold text-[#4ade80] disabled:opacity-50"
+                      className="rounded-lg border border-[rgba(74,222,128,.4)] px-3 py-1.5 text-[11px] font-bold text-ai-success disabled:opacity-50"
                     >
                       처리 완료
                     </button>
@@ -154,7 +154,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
                         type="button"
                         disabled={busy === key}
                         onClick={() => void act(item, "actioned")}
-                        className="rounded-lg border border-[rgba(248,113,113,.4)] px-3 py-1.5 text-[11px] font-bold text-[#f87171] disabled:opacity-50"
+                        className="rounded-lg border border-[rgba(248,113,113,.4)] px-3 py-1.5 text-[11px] font-bold text-ai-danger disabled:opacity-50"
                       >
                         제재 적용
                       </button>

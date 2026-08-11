@@ -64,7 +64,7 @@ export default async function AdminModerationPage() {
 
   const cards = [
     { label: "미처리", value: `${stats.open}건`, color: stats.open > 0 ? "#f2c94c" : "#ffffff" },
-    { label: "처리 완료", value: `${stats.resolved}건`, color: "#4ade80" },
+    { label: "처리 완료", value: `${stats.resolved}건`, color: "var(--ai-success)" },
     { label: "기각", value: `${stats.dismissed}건`, color: "#9aa6b8" },
     { label: "최근 30일 접수", value: `${stats.last30d}건`, color: "#ffffff" },
   ];
@@ -120,7 +120,7 @@ export default async function AdminModerationPage() {
                 <span className="text-[11.5px] text-[#9aa6b8]">가장 오래 대기</span>
                 <span
                   className="text-[13px] font-extrabold"
-                  style={{ color: (stats.oldestOpenHours ?? 0) > 72 ? "#f87171" : "#ffffff" }}
+                  style={{ color: (stats.oldestOpenHours ?? 0) > 72 ? "var(--ai-danger)" : "#ffffff" }}
                 >
                   {hoursLabel(stats.oldestOpenHours)}
                 </span>
@@ -141,7 +141,7 @@ export default async function AdminModerationPage() {
             <ol className="flex flex-col gap-1.5">
               {MODERATION_PIPELINE.map((s, i) => (
                 <li key={s.id} className="flex gap-2.5">
-                  <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[rgba(126,162,255,.16)] text-[9px] font-bold text-[#7ea2ff]">
+                  <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[rgba(126,162,255,.16)] text-[9px] font-bold text-ai-accent">
                     {i + 1}
                   </span>
                   <span className="min-w-0">
@@ -158,7 +158,7 @@ export default async function AdminModerationPage() {
                 여기서만 보면 숨겨진 매물이 방치되므로 상호 링크를 둔다. */}
             <Link
               href="/admin/listings"
-              className="text-[11px] font-bold text-[#7ea2ff] no-underline"
+              className="text-[11px] font-bold text-ai-accent no-underline"
             >
               매물 신고·자동 숨김 큐 보기 (/admin/listings) →
             </Link>

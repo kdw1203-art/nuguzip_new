@@ -11,8 +11,8 @@ import type { OwnerVerificationItem } from "@/lib/listings/owner-verification";
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: "심사 대기", color: "#f2c94c", bg: "rgba(242,201,76,.14)" },
-  approved: { label: "승인", color: "#4ade80", bg: "rgba(74,222,128,.14)" },
-  rejected: { label: "반려", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+  approved: { label: "승인", color: "var(--ai-success)", bg: "rgba(74,222,128,.14)" },
+  rejected: { label: "반려", color: "var(--ai-danger)", bg: "rgba(248,113,113,.14)" },
 };
 
 function ago(hours: number): string {
@@ -85,7 +85,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
           <Link
             href={`/listings/${item.listingId}`}
             target="_blank"
-            className="text-[#7ea2ff] no-underline"
+            className="text-ai-accent no-underline"
           >
             매물 보기 ›
           </Link>
@@ -97,7 +97,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
       {/* 증빙 — 관리자만 접근하는 화면에서 원본을 새 탭으로 연다 */}
       <div className="flex flex-wrap gap-2">
         {item.documents.length === 0 ? (
-          <span className="rounded-lg border border-[rgba(248,113,113,.35)] px-2.5 py-1 text-[10.5px] font-bold text-[#f87171]">
+          <span className="rounded-lg border border-[rgba(248,113,113,.35)] px-2.5 py-1 text-[10.5px] font-bold text-ai-danger">
             첨부된 증빙 없음
           </span>
         ) : (
@@ -107,7 +107,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
               href={d.url}
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg border border-[rgba(126,162,255,.4)] px-2.5 py-1 text-[10.5px] font-bold text-[#7ea2ff] no-underline"
+              className="rounded-lg border border-[rgba(126,162,255,.4)] px-2.5 py-1 text-[10.5px] font-bold text-ai-accent no-underline"
             >
               증빙 {i + 1} 열기{d.mime ? ` (${d.mime.split("/")[1] ?? d.mime})` : ""}
             </a>
@@ -122,21 +122,21 @@ function Row({ item }: { item: OwnerVerificationItem }) {
         </div>
       )}
 
-      {error && <div className="text-[11px] text-[#f87171]">{error}</div>}
+      {error && <div className="text-[11px] text-ai-danger">{error}</div>}
 
       {item.status === "pending" && phase === "idle" && (
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setPhase("approve")}
-            className="rounded-lg border border-[rgba(74,222,128,.4)] px-3 py-1.5 text-[11px] font-bold text-[#4ade80]"
+            className="rounded-lg border border-[rgba(74,222,128,.4)] px-3 py-1.5 text-[11px] font-bold text-ai-success"
           >
             승인
           </button>
           <button
             type="button"
             onClick={() => setPhase("reject")}
-            className="rounded-lg border border-[rgba(248,113,113,.4)] px-3 py-1.5 text-[11px] font-bold text-[#f87171]"
+            className="rounded-lg border border-[rgba(248,113,113,.4)] px-3 py-1.5 text-[11px] font-bold text-ai-danger"
           >
             반려
           </button>
@@ -151,7 +151,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
           <button
             type="button"
             onClick={() => void submit("approve")}
-            className="rounded-lg bg-[#4ade80] px-3 py-1.5 text-[11px] font-extrabold text-[#0e1320]"
+            className="rounded-lg bg-ai-success px-3 py-1.5 text-[11px] font-extrabold text-[#0e1320]"
           >
             승인 확정
           </button>
@@ -177,7 +177,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
             type="button"
             disabled={!reason.trim()}
             onClick={() => void submit("reject")}
-            className="rounded-lg bg-[#f87171] px-3 py-1.5 text-[11px] font-extrabold text-[#0e1320] disabled:opacity-40"
+            className="rounded-lg bg-ai-danger px-3 py-1.5 text-[11px] font-extrabold text-[#0e1320] disabled:opacity-40"
           >
             반려 확정
           </button>
@@ -212,7 +212,7 @@ export function OwnerVerificationQueue({ items }: { items: OwnerVerificationItem
           onClick={() => setShowAll(false)}
           className={`rounded-lg px-3 py-1.5 text-[11.5px] font-bold ${
             !showAll
-              ? "bg-[#7ea2ff] text-[#0e1320]"
+              ? "bg-ai-accent text-[#0e1320]"
               : "border border-[rgba(255,255,255,.12)] text-[#9aa6b8]"
           }`}
         >
@@ -223,7 +223,7 @@ export function OwnerVerificationQueue({ items }: { items: OwnerVerificationItem
           onClick={() => setShowAll(true)}
           className={`rounded-lg px-3 py-1.5 text-[11.5px] font-bold ${
             showAll
-              ? "bg-[#7ea2ff] text-[#0e1320]"
+              ? "bg-ai-accent text-[#0e1320]"
               : "border border-[rgba(255,255,255,.12)] text-[#9aa6b8]"
           }`}
         >

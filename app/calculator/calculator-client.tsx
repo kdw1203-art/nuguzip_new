@@ -524,7 +524,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                   소득 대비 부담 (연 {incomeManwon?.toLocaleString("ko-KR")}만
                   {existingDebtMonthly > 0 ? " · 기존 대출 포함" : ""})
                 </span>
-                <span className="font-bold text-[#7ea2ff]">
+                <span className="font-bold text-ai-accent">
                   {burden}% · {burdenLabel}
                 </span>
               </div>
@@ -560,7 +560,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           <div className="rise-in-1 grid gap-3 md:grid-cols-3">
             <div className="ai-panel rounded-2xl p-[18px]">
               <div className="text-[11px] text-ai-muted">최대 대출 (LTV {ltvCap}%)</div>
-              <div className="mt-1 text-[23px] font-extrabold text-[#7ea2ff]">
+              <div className="mt-1 text-[23px] font-extrabold text-ai-accent">
                 {formatEok(Math.round(price * (ltvCap / 100)))}
               </div>
               <div className="mt-[3px] text-[10px] text-ai-muted">

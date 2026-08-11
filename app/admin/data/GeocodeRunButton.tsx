@@ -50,7 +50,7 @@ export function GeocodeRunButton({ configured }: { configured: boolean }) {
           type="button"
           disabled={busy || !configured}
           onClick={() => run(100)}
-          className="rounded-lg bg-[#7ea2ff] px-3.5 py-2 text-[12px] font-bold text-[#0e1320] disabled:opacity-50"
+          className="rounded-lg bg-ai-accent px-3.5 py-2 text-[12px] font-bold text-[#0e1320] disabled:opacity-50"
         >
           {busy ? "실행 중…" : "100건 지오코딩"}
         </button>
@@ -58,7 +58,7 @@ export function GeocodeRunButton({ configured }: { configured: boolean }) {
           type="button"
           disabled={busy || !configured}
           onClick={() => run(300)}
-          className="rounded-lg border border-[rgba(126,162,255,.4)] px-3.5 py-2 text-[12px] font-bold text-[#7ea2ff] disabled:opacity-50"
+          className="rounded-lg border border-[rgba(126,162,255,.4)] px-3.5 py-2 text-[12px] font-bold text-ai-accent disabled:opacity-50"
         >
           300건 지오코딩
         </button>
@@ -69,7 +69,7 @@ export function GeocodeRunButton({ configured }: { configured: boolean }) {
         </div>
       )}
       {msg && (
-        <div className={`text-[11px] ${msg.ok ? "text-[#4ade80]" : "text-[#f87171]"}`}>
+        <div className={`text-[11px] ${msg.ok ? "text-ai-success" : "text-ai-danger"}`}>
           {msg.text}
         </div>
       )}

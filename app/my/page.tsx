@@ -50,7 +50,7 @@ function planLabel(plan: string): string {
   return plan === "expert" ? "프로 (전문가)" : plan === "pro" ? "플러스" : "무료 플랜";
 }
 function planBadgeTone(plan: string): string {
-  return plan === "expert" ? "text-[#f2c94c]" : plan === "pro" ? "text-[#7ea2ff]" : "text-ai-muted";
+  return plan === "expert" ? "text-[#f2c94c]" : plan === "pro" ? "text-ai-accent" : "text-ai-muted";
 }
 
 /** 일회성 결제·포인트 교환 플랜의 만료 시각 — 구독 카드 표기용 (Stripe 구독은 null) */
@@ -264,7 +264,7 @@ export default async function MyPage() {
                   <span className="text-[34px] font-extrabold leading-none text-white">
                     {ledgerLoaded.balance.toLocaleString("ko-KR")}
                   </span>
-                  <span className="mb-0.5 text-base font-extrabold text-[#7ea2ff]">P</span>
+                  <span className="mb-0.5 text-base font-extrabold text-ai-accent">P</span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-0.5">
@@ -276,7 +276,7 @@ export default async function MyPage() {
                   </span>
                 </div>
               )}
-              <Link href="/my/points" className="text-xs font-bold text-[#7ea2ff] no-underline">
+              <Link href="/my/points" className="text-xs font-bold text-ai-accent no-underline">
                 지갑 전체 보기 ›
               </Link>
             </div>

@@ -41,7 +41,7 @@ export function AdminNav() {
             href={item.href}
             className={`whitespace-nowrap px-5 py-[11px] text-[13px] transition-colors ${
               active
-                ? "border-b-[3px] border-[#7ea2ff] bg-[rgba(126,162,255,.1)] font-bold !text-[#7ea2ff] md:border-b-0 md:border-l-[3px]"
+                ? "border-b-[3px] border-ai-accent bg-[rgba(126,162,255,.1)] font-bold !text-ai-accent md:border-b-0 md:border-l-[3px]"
                 : "border-b-[3px] border-transparent font-semibold !text-[#9aa6b8] hover:!text-[#c9d2e0] md:border-b-0 md:border-l-[3px]"
             }`}
           >

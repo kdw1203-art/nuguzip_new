@@ -94,7 +94,7 @@ export function RebCatalogPanel() {
           type="button"
           onClick={() => void search()}
           disabled={busy}
-          className="shrink-0 rounded-lg bg-[#7ea2ff] px-3.5 py-2 text-[12px] font-bold text-[#0e1320] disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-ai-accent px-3.5 py-2 text-[12px] font-bold text-[#0e1320] disabled:opacity-50"
         >
           {busy ? "조회 중…" : "조회"}
         </button>
@@ -113,7 +113,7 @@ export function RebCatalogPanel() {
                 <span className="min-w-0 flex-1 truncate text-[11.5px] text-white">
                   {t.statblNm}
                 </span>
-                <code className="shrink-0 text-[10px] text-[#7ea2ff]">{t.statblId}</code>
+                <code className="shrink-0 text-[10px] text-ai-accent">{t.statblId}</code>
               </button>
               {openId === t.statblId && (
                 <div className="bg-[rgba(0,0,0,.2)] px-3 py-2">

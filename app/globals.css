@@ -191,6 +191,14 @@
   --ai-accent: #88aaff;
   --ai-text: #e2e8f2;
   --ai-muted: #9aa6b8;
+  /* 다크 패널 위 상태색 — 라이트 모드 --success/--danger(#177a4a/#c62828)는 어두워
+     다크 배경에서 대비 미달이라 별도 토큰을 둔다. 값은 기존 코드가 raw hex 로 쓰던
+     것을 정본화한 것이다(2026-08-11): 성공 #4ade80(그대로), 위험은 #ff8a8a·#f87171
+     둘로 갈려 있던 것을 #f87171(Tailwind red-400)로 통일. 둘 다 --ai-panel(≈#191f28)
+     위 7:1 이상으로 AA 통과. raw #7ea2ff 액센트는 --ai-accent(#88aaff)로 흡수 —
+     그 45곳이 2026-08-02 대비 상향(#7ea2ff→#88aaff)에서 빠져 AA 미달로 남아 있었다. */
+  --ai-success: #4ade80;
+  --ai-danger: #f87171;
 
   /* 15d 구분선 단일색 */
   --divider: #f0f3f8;
@@ -243,6 +251,8 @@
   --color-ai-accent: var(--ai-accent);
   --color-ai-text: var(--ai-text);
   --color-ai-muted: var(--ai-muted);
+  --color-ai-success: var(--ai-success);
+  --color-ai-danger: var(--ai-danger);
   /* 애플 기기 = 애플 시스템 폰트, 그 외(윈도우 등) = Pretendard 웹폰트 폴백 */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro KR",
     "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo",

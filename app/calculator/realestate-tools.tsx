@@ -232,7 +232,7 @@ function GapRatio() {
       >
         <div className="flex items-baseline justify-between text-xs">
           <span className="text-ai-muted">전세가율 (전세 ÷ 매매)</span>
-          <span className="text-base font-extrabold text-[#7ea2ff]">{pct(ratio, 1)}</span>
+          <span className="text-base font-extrabold text-ai-accent">{pct(ratio, 1)}</span>
         </div>
         <ResultRow label="매매가" value={formatEok(num(price))} />
         <ResultRow label="전세가" value={formatEok(num(jeonse))} />

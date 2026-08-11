@@ -189,6 +189,18 @@ function check(themeName, tokens) {
  */
 const DEAD_HEX = ["#d64545", "#1a7f4e"];
 
+/* 다크 패널용 상태색 — 2026-08-11 에 토큰(--ai-accent/--ai-success/--ai-danger)으로
+   정본화했다. 이 값들은 conic-gradient 스톱·차트 팔레트·SVG fill 처럼 토큰을 못 쓰는
+   자리에는 아직 정당하게 남아 있으므로, "어디서든 금지"인 DEAD_HEX 와 달리
+   **Tailwind 클래스 arbitrary(text-[…]/bg-[…]/border-[…]) 안에서만** 금지한다.
+   클래스라면 text-ai-accent/bg-ai-success/text-ai-danger 로 바꾸면 된다. */
+const DEAD_ONDARK_HEX = ["#7ea2ff", "#4ade80", "#ff8a8a", "#f87171"];
+/* 솔리드 상태색 유틸(text/bg/border/ring)만 본다. from/via/to(그라데이션 스톱)·
+   fill/stroke(벡터)는 브랜드 그라데이션·아이콘에서 raw hex 가 정당하므로 제외한다 —
+   실제로 tool-identity.ts 의 `to-[#f87171]`(위험 카드 그라데이션 끝색)이 그 경우다. */
+const CLASS_ARBITRARY_RE = (hex) =>
+  new RegExp(`(?:text|bg|border|ring)-\\[${hex}\\]`, "i");
+
 function scanDeadHex() {
   const hits = [];
   const walk = (dir) => {
@@ -200,9 +212,15 @@ function scanDeadHex() {
       } else if (/\.tsx?$/.test(e.name)) {
         const text = fs.readFileSync(p, "utf8");
         text.split("\n").forEach((line, i) => {
+          const lower = line.toLowerCase();
           for (const hex of DEAD_HEX) {
-            if (line.toLowerCase().includes(hex)) {
+            if (lower.includes(hex)) {
               hits.push(`  ${path.relative(ROOT, p)}:${i + 1}  ${hex}`);
+            }
+          }
+          for (const hex of DEAD_ONDARK_HEX) {
+            if (CLASS_ARBITRARY_RE(hex).test(line)) {
+              hits.push(`  ${path.relative(ROOT, p)}:${i + 1}  ${hex} (클래스 → ai 토큰)`);
             }
           }
         });

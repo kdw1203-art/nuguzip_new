@@ -106,7 +106,7 @@ export default async function AdminDashboardPage() {
           {/* 매물 검수 대기 링크 (집주인 직접·중개사 등록) */}
           <Link
             href="/admin/listings"
-            className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] font-extrabold text-[#7ea2ff]"
+            className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] font-extrabold text-ai-accent"
           >
             매물 검수 {pendingListingsCount === null ? "—" : `${pendingListingsLabel}건`}
           </Link>
@@ -126,14 +126,14 @@ export default async function AdminDashboardPage() {
             <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>
             <div
               className={`mt-1 text-[22px] font-extrabold ${
-                k.accent ? "text-[#7ea2ff]" : "text-white"
+                k.accent ? "text-ai-accent" : "text-white"
               }`}
             >
               {k.value}
               {k.delta ? (
                 <>
                   {" "}
-                  <span className="text-[11px] text-[#4ade80]">{k.delta}</span>
+                  <span className="text-[11px] text-ai-success">{k.delta}</span>
                 </>
               ) : null}
             </div>
@@ -263,7 +263,7 @@ export default async function AdminDashboardPage() {
               <div className="flex items-baseline gap-2">
                 <span
                   className="text-[22px] font-extrabold"
-                  style={{ color: (kpi?.pendingOutbox ?? 0) > 0 ? "#f2c94c" : "#4ade80" }}
+                  style={{ color: (kpi?.pendingOutbox ?? 0) > 0 ? "#f2c94c" : "var(--ai-success)" }}
                 >
                   {num(kpi?.pendingOutbox)}
                 </span>
@@ -276,7 +276,7 @@ export default async function AdminDashboardPage() {
               </p>
               <Link
                 href="/admin/data"
-                className="text-[11px] font-bold text-[#7ea2ff] no-underline"
+                className="text-[11px] font-bold text-ai-accent no-underline"
               >
                 드레인 실행 기록 보기 →
               </Link>
@@ -364,7 +364,7 @@ export default async function AdminDashboardPage() {
                       style={{
                         height: `${Math.max(3, Math.round((d.count / maxSignup) * 64))}px`,
                         background:
-                          d.count > 0 ? "#7ea2ff" : "rgba(255,255,255,.12)",
+                          d.count > 0 ? "var(--ai-accent)" : "rgba(255,255,255,.12)",
                       }}
                     />
                   </div>
@@ -497,7 +497,7 @@ export default async function AdminDashboardPage() {
               <div className="flex flex-wrap gap-1.5 text-[11px]">
                 <Link
                   href="/admin/listings"
-                  className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3 py-[6px] font-extrabold text-[#7ea2ff]"
+                  className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3 py-[6px] font-extrabold text-ai-accent"
                 >
                   매물 검수
                 </Link>
@@ -573,7 +573,7 @@ export default async function AdminDashboardPage() {
                       </div>
                       <div
                         className={`text-[15px] font-extrabold ${
-                          isOpen ? "text-[#f87171]" : "text-[#c9d2e0]"
+                          isOpen ? "text-ai-danger" : "text-[#c9d2e0]"
                         }`}
                       >
                         {c.count.toLocaleString("ko-KR")}건
@@ -584,7 +584,7 @@ export default async function AdminDashboardPage() {
               </div>
               <Link
                 href="/admin/moderation"
-                className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-center text-[11px] font-extrabold text-[#7ea2ff]"
+                className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-center text-[11px] font-extrabold text-ai-accent"
               >
                 신고 콘솔에서 처리하기
               </Link>
@@ -629,12 +629,12 @@ export default async function AdminDashboardPage() {
                   {
                     label: "승인 전문가",
                     value: expertOps.approvedExperts,
-                    color: "#4ade80",
+                    color: "var(--ai-success)",
                   },
                   {
                     label: "미답변 상담",
                     value: expertOps.consultationsOpen,
-                    color: expertOps.consultationsOpen > 0 ? "#f87171" : "#c9d2e0",
+                    color: expertOps.consultationsOpen > 0 ? "var(--ai-danger)" : "#c9d2e0",
                   },
                 ].map((s) => (
                   <div
@@ -672,7 +672,7 @@ export default async function AdminDashboardPage() {
               ) : (
                 <Link
                   href="/admin/quality"
-                  className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-center text-[11px] font-extrabold text-[#7ea2ff]"
+                  className="rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-center text-[11px] font-extrabold text-ai-accent"
                 >
                   심사 콘솔에서 서류 검토하기
                 </Link>

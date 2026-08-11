@@ -45,8 +45,8 @@ export default async function AdminMarketPage() {
   const num = (v: number) => (kpiReady ? v.toLocaleString("ko-KR") : "—");
   const stats = [
     { label: "진행 중 의뢰", value: num(kpi.marketOpen), color: "#fff" },
-    { label: "누적 의뢰", value: num(kpi.marketTotal), color: "#7ea2ff" },
-    { label: "인증 전문가", value: num(kpi.totalExperts), color: "#4ade80" },
+    { label: "누적 의뢰", value: num(kpi.marketTotal), color: "var(--ai-accent)" },
+    { label: "인증 전문가", value: num(kpi.totalExperts), color: "var(--ai-success)" },
   ];
 
   return (
@@ -120,7 +120,7 @@ export default async function AdminMarketPage() {
                       {b.title}{" "}
                       <span
                         className={`text-[9px] font-extrabold ${
-                          b.isActive ? "text-[#4ade80]" : "text-[#9aa6b8]"
+                          b.isActive ? "text-ai-success" : "text-[#9aa6b8]"
                         }`}
                       >
                         {b.isActive ? "게시 중" : "숨김"}

@@ -388,11 +388,11 @@ export function PersonalHome() {
             {name}님,{" "}
             {data.noteCount !== null && data.noteCount > 0 ? (
               <>
-                임장노트 <span className="text-[#7ea2ff]">{data.noteCount}개</span>를
+                임장노트 <span className="text-ai-accent">{data.noteCount}개</span>를
                 쌓았어요
               </>
             ) : (
-              <span className="text-[#7ea2ff]">첫 노트를 시작해 볼까요?</span>
+              <span className="text-ai-accent">첫 노트를 시작해 볼까요?</span>
             )}
           </h2>
           <p className="text-[11px] leading-[1.5] text-[#9aa6b8]">{HOME_HERO_SUBLINE}</p>
@@ -456,7 +456,7 @@ export function PersonalHome() {
               {/* 고도화 23 — "다음 단계" 는 읽는 문구가 아니라 누르는 행동 */}
               <Link
                 href={journey.nextHref}
-                className="text-[10px] font-extrabold text-[#7ea2ff] no-underline"
+                className="text-[10px] font-extrabold text-ai-accent no-underline"
               >
                 다음: {journey.next} ›
               </Link>
@@ -645,7 +645,7 @@ export function PersonalHome() {
             <h2 className="text-[26px] font-extrabold leading-[1.35] text-white">
               {name}님, {heroTitle}
               <br />
-              <span className="text-[#7ea2ff]">{heroSub}</span>
+              <span className="text-ai-accent">{heroSub}</span>
             </h2>
             <p className="text-[12px] text-[#9aa6b8]">{HOME_HERO_SUBLINE}</p>
             <div className="flex flex-wrap gap-2.5">
@@ -690,7 +690,7 @@ export function PersonalHome() {
                           }}
                         />
                       </div>
-                      <span className="text-[11px] font-extrabold text-[#7ea2ff]">
+                      <span className="text-[11px] font-extrabold text-ai-accent">
                         {journey.step}/{JOURNEY_TOTAL} 단계
                       </span>
                     </div>
@@ -713,7 +713,7 @@ export function PersonalHome() {
                 {
                   label: "비교 중",
                   value: chip(data.compareCount),
-                  color: "text-[#7ea2ff]",
+                  color: "text-ai-accent",
                 },
                 {
                   label: "할 일",

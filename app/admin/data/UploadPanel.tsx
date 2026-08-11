@@ -110,7 +110,7 @@ function UploadRow({ target }: { target: Target }) {
           <div className="truncate text-[10.5px] text-[#9aa6b8]">{target.hint}</div>
         </div>
         <label
-          className={`shrink-0 cursor-pointer rounded-lg border border-[rgba(126,162,255,.35)] px-3 py-1.5 text-[11.5px] font-bold text-[#7ea2ff] ${
+          className={`shrink-0 cursor-pointer rounded-lg border border-[rgba(126,162,255,.35)] px-3 py-1.5 text-[11.5px] font-bold text-ai-accent ${
             busy ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -127,7 +127,7 @@ function UploadRow({ target }: { target: Target }) {
       </div>
       {result && (
         <div
-          className={`mt-2 break-words text-[10.5px] ${result.ok ? "text-[#4ade80]" : "text-[#f87171]"}`}
+          className={`mt-2 break-words text-[10.5px] ${result.ok ? "text-ai-success" : "text-ai-danger"}`}
         >
           {result.text}
         </div>

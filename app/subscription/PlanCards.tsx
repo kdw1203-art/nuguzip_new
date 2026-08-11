@@ -58,7 +58,7 @@ const CARDS: PlanCard[] = [
     kind: "pro",
     defTier: "pro",
     name: "플러스",
-    nameTone: "text-[#7ea2ff]",
+    nameTone: "text-ai-accent",
     dark: true,
     badge: "가장 인기",
     checkoutTier: "pro",
@@ -128,7 +128,7 @@ function FeatureRow({ f, dark }: { f: PlanFeature; dark: boolean }) {
           className={
             off
               ? ""
-              : `font-extrabold ${dark ? "text-[#7ea2ff]" : "text-primary"}`
+              : `font-extrabold ${dark ? "text-ai-accent" : "text-primary"}`
           }
         >
           {off ? "—" : "✓"}
@@ -208,7 +208,7 @@ export function PlanCards({
               } ${isCurrent ? "ring-2 ring-primary" : ""}`}
             >
               {isCurrent ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-3.5 py-[5px] text-[11px] font-extrabold text-[#7ea2ff]">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-3.5 py-[5px] text-[11px] font-extrabold text-ai-accent">
                   현재 이용 중
                 </span>
               ) : (
@@ -279,7 +279,7 @@ export function PlanCards({
                   <Link
                     href="/points/shop"
                     className={`text-center text-[11px] font-bold no-underline ${
-                      p.dark ? "text-[#7ea2ff]" : "text-primary"
+                      p.dark ? "text-ai-accent" : "text-primary"
                     }`}
                   >
                     포인트로 교환하기 ›

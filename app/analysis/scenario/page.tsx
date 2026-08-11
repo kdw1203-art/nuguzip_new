@@ -187,7 +187,7 @@ export default function ScenarioPage() {
     const bars = [
       { label: `기준 ${rate.toFixed(2)}%`, pay, color: "#1d4fd8" },
       { label: "+1.0%p", pay: payStress, color: "#c62828" },
-      { label: "-0.5%p", pay: monthlyPayment(loanWon, Math.max(0.5, rate - 0.5)), color: "#7ea2ff" },
+      { label: "-0.5%p", pay: monthlyPayment(loanWon, Math.max(0.5, rate - 0.5)), color: "var(--ai-accent)" },
     ];
     const maxPay = Math.max(...bars.map((b) => b.pay));
 

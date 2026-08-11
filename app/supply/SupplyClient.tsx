@@ -450,12 +450,12 @@ export function SupplyClient({
                 </div>
                 <div className="mb-2 flex justify-between rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs">
                   <span className="text-ai-muted">총 예정 세대</span>
-                  <span className="font-extrabold text-[#7ea2ff]">
+                  <span className="font-extrabold text-ai-accent">
                     {totalHouseholds.toLocaleString()}세대
                   </span>
                 </div>
                 {scope}기준{" "}
-                <b className="text-[#7ea2ff]">{peak ? fmtYm(peak.ym) : "—"}</b>
+                <b className="text-ai-accent">{peak ? fmtYm(peak.ym) : "—"}</b>
                 에 입주가 가장 몰려 있어요
                 {peak ? ` (약 ${peak.households.toLocaleString()}세대)` : ""}.
                 입주장에는 인근 전·월세 매물이 늘어 임차 협상에 유리할 수

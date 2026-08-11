@@ -307,7 +307,7 @@ export function CronRunPanel() {
                         className={`rounded px-1.5 py-px text-[9px] font-bold ${
                           job.schedule === "수동 전용"
                             ? "bg-[rgba(154,166,184,.14)] text-[#9aa6b8]"
-                            : "bg-[rgba(126,162,255,.14)] text-[#7ea2ff]"
+                            : "bg-[rgba(126,162,255,.14)] text-ai-accent"
                         }`}
                       >
                         {job.schedule}
@@ -318,7 +318,7 @@ export function CronRunPanel() {
                         </span>
                       )}
                       {job.sends && (
-                        <span className="rounded bg-[rgba(248,113,113,.14)] px-1.5 py-px text-[9px] font-bold text-[#f87171]">
+                        <span className="rounded bg-[rgba(248,113,113,.14)] px-1.5 py-px text-[9px] font-bold text-ai-danger">
                           발송
                         </span>
                       )}
@@ -334,13 +334,13 @@ export function CronRunPanel() {
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold disabled:opacity-50 ${
                       armed
                         ? job.sends
-                          ? "bg-[#f87171] text-[#0e1320]"
+                          ? "bg-ai-danger text-[#0e1320]"
                           : "bg-[#f2c94c] text-[#0e1320]"
                         : st.status === "done"
-                          ? "border border-[rgba(74,222,128,.4)] text-[#4ade80]"
+                          ? "border border-[rgba(74,222,128,.4)] text-ai-success"
                           : st.status === "fail"
-                            ? "border border-[rgba(248,113,113,.4)] text-[#f87171]"
-                            : "border border-[rgba(126,162,255,.35)] text-[#7ea2ff]"
+                            ? "border border-[rgba(248,113,113,.4)] text-ai-danger"
+                            : "border border-[rgba(126,162,255,.35)] text-ai-accent"
                     }`}
                   >
                     {st.status === "busy" ? "실행 중…" : armed ? "확정 실행" : "실행"}

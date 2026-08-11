@@ -44,9 +44,9 @@ function fmt(n: number): string {
 }
 
 const STATUS_META: Record<FreshnessStatus, { label: string; color: string; bg: string }> = {
-  fresh: { label: "최신", color: "#4ade80", bg: "rgba(74,222,128,.14)" },
+  fresh: { label: "최신", color: "var(--ai-success)", bg: "rgba(74,222,128,.14)" },
   aging: { label: "지연", color: "#f2c94c", bg: "rgba(242,201,76,.14)" },
-  stale: { label: "정체", color: "#f87171", bg: "rgba(248,113,113,.14)" },
+  stale: { label: "정체", color: "var(--ai-danger)", bg: "rgba(248,113,113,.14)" },
   empty: { label: "비어있음", color: "#9aa6b8", bg: "rgba(154,166,184,.14)" },
   unknown: { label: "확인불가", color: "#9aa6b8", bg: "rgba(154,166,184,.14)" },
 };
@@ -205,7 +205,7 @@ export default async function AdminDataPage() {
           {
             label: "최신",
             value: freshnessLoaded.ok ? `${counts.fresh}개 데이터셋` : "—",
-            color: freshnessLoaded.ok ? "#4ade80" : "#9aa6b8",
+            color: freshnessLoaded.ok ? "var(--ai-success)" : "#9aa6b8",
           },
           {
             label: "지연·정체",
@@ -380,17 +380,17 @@ export default async function AdminDataPage() {
           </div>
 
           <div className="flex items-end gap-2">
-            <span className="text-[26px] font-extrabold text-[#7ea2ff]">{fmt(ok)}</span>
+            <span className="text-[26px] font-extrabold text-ai-accent">{fmt(ok)}</span>
             <span className="mb-1 text-[12px] text-[#9aa6b8]">
               / {fmt(total)} 단지 · {pct}%
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,.08)]">
-            <span className="block h-full rounded-full bg-[#7ea2ff]" style={{ width: `${pct}%` }} />
+            <span className="block h-full rounded-full bg-ai-accent" style={{ width: `${pct}%` }} />
           </div>
           <div className="flex gap-4 text-[11px] text-[#9aa6b8]">
             <span>
-              성공 <b className="text-[#4ade80]">{fmt(ok)}</b>
+              성공 <b className="text-ai-success">{fmt(ok)}</b>
             </span>
             <span>
               실패 <b className="text-[#f2c94c]">{fmt(geo?.notfound ?? 0)}</b>
@@ -466,7 +466,7 @@ export default async function AdminDataPage() {
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <code className="text-[10px] text-[#7ea2ff]">{r.source}</code>
+                      <code className="text-[10px] text-ai-accent">{r.source}</code>
                       <span className="truncate text-[11.5px] text-white">{r.dataset}</span>
                     </div>
                     <div className="text-[10px] text-[#9aa6b8]">

@@ -123,7 +123,7 @@ export function HeaderAuth() {
       {planBadge ? (
         <Link
           href={user.role === "admin" ? "/admin" : "/subscription"}
-          className="hidden rounded-full chip-pad text-[10px] font-extrabold text-[#7ea2ff] no-underline md:inline-block"
+          className="hidden rounded-full chip-pad text-[10px] font-extrabold text-ai-accent no-underline md:inline-block"
           style={{ background: "rgba(25,31,40,.94)" }}
         >
           {planBadge}

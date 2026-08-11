@@ -201,7 +201,7 @@ export default async function AdminQualityPage() {
 
                   {g.guards.length > 0 && (
                     <div className="text-[10px] leading-[1.7] text-[#9aa6b8]">
-                      <b className="text-[#4ade80]">● 회귀 감시 {g.guards.length}개 통과</b> —{" "}
+                      <b className="text-ai-success">● 회귀 감시 {g.guards.length}개 통과</b> —{" "}
                       {g.guards.join(" · ")}. 전부 0건이라 접어 뒀어요. 값이 잡히면 위 목록으로
                       올라옵니다.
                     </div>
@@ -322,7 +322,7 @@ export default async function AdminQualityPage() {
                   </span>
                   <span className="shrink-0 text-[11px] text-[#c9d2e0]">
                     상담 <b className="text-white">{fmt(p.total)}</b> · 답변율{" "}
-                    <b className={p.replyRate >= 70 ? "text-[#4ade80]" : "text-[#c9d2e0]"}>
+                    <b className={p.replyRate >= 70 ? "text-ai-success" : "text-[#c9d2e0]"}>
                       {p.replyRate}%
                     </b>
                   </span>

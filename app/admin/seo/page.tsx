@@ -27,9 +27,9 @@ const card =
   "flex flex-col gap-3 rounded-2xl border border-[rgba(255,255,255,.06)] bg-[#12161f] p-5";
 
 const VERDICT_COLOR: Record<CwvVerdict, string> = {
-  good: "#4ade80",
+  good: "var(--ai-success)",
   "needs-improvement": "#f2c94c",
-  poor: "#f87171",
+  poor: "var(--ai-danger)",
   unknown: "#9aa6b8",
 };
 
@@ -130,7 +130,7 @@ function FieldPerfPanel({ loaded }: { loaded: Loaded<FieldPerfRow> }) {
           return (
             <div key={row.formFactor} className="rounded-xl border border-[rgba(248,113,113,.25)] p-3">
               <span className="text-[12px] font-bold text-[#c9d2e0]">{row.formFactor}</span>
-              <p className="mt-1 text-[11px] leading-[1.7] text-[#f87171]">
+              <p className="mt-1 text-[11px] leading-[1.7] text-ai-danger">
                 조회 실패: {row.errorDetail ?? "원인 미기록"}
               </p>
             </div>
@@ -254,7 +254,7 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
       <div className="flex flex-wrap items-end gap-6">
         <div>
           <div className="text-[10px] font-semibold text-[#9aa6b8]">색인률(표본)</div>
-          <div className="text-[26px] font-extrabold text-[#7ea2ff]">
+          <div className="text-[26px] font-extrabold text-ai-accent">
             {rate === null ? "—" : `${rate.toFixed(1)}%`}
           </div>
           <div className="text-[10px] text-[#6b7688]">

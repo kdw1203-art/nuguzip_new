@@ -23,7 +23,7 @@ const FUNNEL_BAR_COLORS = [
   "#3a63de",
   "#4a72e2",
   "#6a8de9",
-  "#7ea2ff",
+  "var(--ai-accent)",
   "#b9cbf5",
 ];
 
@@ -347,7 +347,7 @@ export default async function AdminOpsPage() {
                 className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
                 <span className="text-[#c9d2e0]">개인정보처리방침 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] chip-pad text-[9px] font-extrabold text-[#7ea2ff]">
+                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] chip-pad text-[9px] font-extrabold text-ai-accent">
                   보기
                 </span>
               </a>

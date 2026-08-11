@@ -115,7 +115,7 @@ export default async function AdminRevenuePage() {
                     {r.count.toLocaleString("ko-KR")}
                   </td>
                   <td className="px-4 py-2.5 text-[#9aa6b8]">{r.priceLabel}</td>
-                  <td className="px-4 py-2.5 text-right tabular-nums text-[#7ea2ff]">
+                  <td className="px-4 py-2.5 text-right tabular-nums text-ai-accent">
                     {won(r.mrrPortion)}
                   </td>
                 </tr>
@@ -130,7 +130,7 @@ export default async function AdminRevenuePage() {
         <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">
           <div className="flex items-center justify-between">
             <div className="text-[13px] font-extrabold text-white">최근 플랜 만료 스윕</div>
-            <Link href="/admin/data" className="text-[11px] font-bold text-[#7ea2ff] no-underline">
+            <Link href="/admin/data" className="text-[11px] font-bold text-ai-accent no-underline">
               전체 실행 기록 →
             </Link>
           </div>

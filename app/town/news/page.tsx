@@ -161,7 +161,7 @@ export default async function TownNewsPage() {
           className="rise-in ai-panel mb-4 flex items-center justify-between gap-3 rounded-[18px] p-5 no-underline"
         >
           <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[#7ea2ff]">
+            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-ai-accent">
               <Icon name="file-text" size={14} />
               주간 다이제스트
               <span className="rounded bg-white/10 px-1.5 py-px text-[10px] text-ai-text">

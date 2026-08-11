@@ -27,7 +27,7 @@ const PLACEMENTS: { value: BannerPlacement; label: string }[] = [
 
 const LIFECYCLE_LABEL: Record<BannerLifecycle, { text: string; cls: string }> = {
   live: { text: "노출 중", cls: "bg-[#173a2a] text-[#5fd39a]" },
-  scheduled: { text: "예정", cls: "bg-[#1b2b47] text-[#7ea2ff]" },
+  scheduled: { text: "예정", cls: "bg-[#1b2b47] text-ai-accent" },
   expired: { text: "기간 종료", cls: "bg-[#3a2a17] text-[#e0a458]" },
   paused: { text: "중지", cls: "bg-[#2a2f3a] text-[#9aa6b8]" },
 };
@@ -426,7 +426,7 @@ export function BannersClient({ initial }: { initial: Row[] }) {
                   {b.targetPlan ? ` · 타겟 ${b.targetPlan}` : ""}
                 </p>
                 {b.ctaUrl && (
-                  <p className="flex flex-wrap items-center gap-2 text-[11px] text-[#7ea2ff]">
+                  <p className="flex flex-wrap items-center gap-2 text-[11px] text-ai-accent">
                     <span>{b.ctaUrl}</span>
                     <button
                       type="button"

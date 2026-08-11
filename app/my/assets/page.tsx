@@ -165,7 +165,7 @@ export default function AssetsPage() {
         </div>
 
         <div className="rise-in-5 ai-panel flex flex-col gap-1.5 rounded-2xl p-4">
-          <div className="text-xs font-extrabold text-[#7ea2ff]">등록하면 바로</div>
+          <div className="text-xs font-extrabold text-ai-accent">등록하면 바로</div>
           <div className="text-xs leading-[1.6] text-ai-text">
             순자산·LTV 자동 계산 · 갈아타기 시뮬레이션 · 양도세 예상 · 시세 변동 알림
           </div>

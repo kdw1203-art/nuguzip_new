@@ -102,7 +102,7 @@ function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
     <span
       className={`rounded-full bg-ink chip-pad text-[9px] font-extrabold ${
-        tier === "plus" ? "text-[#7ea2ff]" : "text-[#f2c94c]"
+        tier === "plus" ? "text-ai-accent" : "text-[#f2c94c]"
       }`}
     >
       ✦ {tier === "plus" ? "플러스" : "프로"}

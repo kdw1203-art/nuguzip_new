@@ -166,7 +166,7 @@ export default function SafetyPage() {
         <aside className="flex flex-col gap-3.5">
           <div className="rise-in-3">
             <AIPanel title="계약 전 필수 3가지" className="rounded-[18px]">
-              ① 잔금일에 <b className="text-[#7ea2ff]">근저당 말소 동시 진행</b>{" "}
+              ① 잔금일에 <b className="text-ai-accent">근저당 말소 동시 진행</b>{" "}
               특약 ② 전입신고+확정일자 즉시 (대항력) ③ 임대인 국세 완납증명 요청 —
               거부 시 계약 재고
             </AIPanel>

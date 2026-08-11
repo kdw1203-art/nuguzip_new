@@ -65,8 +65,8 @@ export function AttendanceButton() {
   return (
     <div className="flex flex-col gap-2">
       {streak > 0 && (
-        <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold text-[#7ea2ff]">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#7ea2ff]" />
+        <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold text-ai-accent">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-ai-accent" />
           연속 출석 {streak}일{checkedToday ? " · 오늘 완료" : " · 오늘 이어가기"}
         </div>
       )}
@@ -86,10 +86,10 @@ export function AttendanceButton() {
         <div
           className={`text-center text-[12px] font-bold ${
             msg.tone === "error"
-              ? "text-[#ff8a8a]"
+              ? "text-ai-danger"
               : msg.tone === "info"
                 ? "text-ai-muted"
-                : "text-[#7ea2ff]"
+                : "text-ai-accent"
           }`}
         >
           {msg.text}

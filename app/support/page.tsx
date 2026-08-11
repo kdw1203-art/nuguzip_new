@@ -403,7 +403,7 @@ export default async function SupportPage() {
                   용건 구분은 제목 프리필로 한다. */}
               <a
                 href={`mailto:${supportEmail}?subject=${encodeURIComponent("[제휴] 투자·데이터 제휴 문의")}`}
-                className="text-xs font-bold text-[#7ea2ff]"
+                className="text-xs font-bold text-ai-accent"
               >
                 {supportEmail}
               </a>

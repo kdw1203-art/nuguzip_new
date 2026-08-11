@@ -80,7 +80,7 @@ export default async function AdminBannersPage() {
             >
               <span className="text-[12.5px] font-bold text-[#dbe3f0]">{ad.title}</span>
               <span className="text-[11px] text-[#8d99ab]">{ad.body}</span>
-              <span className="text-[11px] font-semibold text-[#7ea2ff]">
+              <span className="text-[11px] font-semibold text-ai-accent">
                 {ad.ctaLabel} → {ad.href}
               </span>
             </li>
