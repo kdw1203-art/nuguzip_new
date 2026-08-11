@@ -8,6 +8,9 @@ import { ChatRoom } from "../ChatRoom";
 
 export const dynamic = "force-dynamic";
 
+/* 비공개 모임 채팅방 — 참여자만 접근하는 화면이라 색인 금지. */
+export const metadata = { robots: { index: false, follow: false } };
+
 function formatSchedule(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getMeeting } from "@/lib/meetings/store-db";
 import { safeAuth } from "@/lib/safe-auth";
@@ -10,6 +11,30 @@ import { Icon } from "@/app/components/Icon";
    참여 상태별 CTA. "채팅방 입장"은 /town/groups/[id]/chat 로 분리(실채팅 유지). */
 
 export const dynamic = "force-dynamic";
+
+/* 동적 metadata — 예전에는 제목·설명이 루트 기본값으로 나가 공유·검색에서 모든
+   모임이 똑같이 보였다. 실제 모임명·지역을 제목에 싣는다. 조회 실패/없음이면
+   기본값으로 두되 색인은 막지 않는다(존재하는 모임 페이지라 나머지 조각은 그린다). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const meeting = await getMeeting(id).catch(() => null);
+  if (!meeting) return { title: "임장 모임 | 누구집" };
+  const region = meeting.region || "";
+  const title = `${meeting.title}${region ? ` · ${region}` : ""} 임장 모임 | 누구집`;
+  const desc =
+    (meeting.description || "같은 단지를 함께 돌아볼 이웃을 찾는 임장 모임입니다.")
+      .replace(/\s+/g, " ")
+      .slice(0, 150);
+  return {
+    title,
+    description: desc,
+    openGraph: { title, description: desc },
+  };
+}
 
 function formatSchedule(iso: string | null): string {
   if (!iso) return "일정 미정";

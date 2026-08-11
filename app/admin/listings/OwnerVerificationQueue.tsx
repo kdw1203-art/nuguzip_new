@@ -85,6 +85,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
           <Link
             href={`/listings/${item.listingId}`}
             target="_blank"
+            rel="noopener noreferrer"
             className="text-ai-accent no-underline"
           >
             매물 보기 ›

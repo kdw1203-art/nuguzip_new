@@ -7,6 +7,9 @@ import { isVerifiedExpert } from "@/lib/experts/is-verified";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { getCreatorSales, SETTLEMENT } from "@/lib/creator/sales";
 
+/* 개인 크리에이터 대시보드 — 세션별 개인 데이터라 색인 대상이 아니다. */
+export const metadata = { robots: { index: false, follow: false } };
+
 /* 시안 22e — 크리에이터 대시보드 · 성장 보상 + 23c "탑 임장러 현황" 탭
    실데이터: 세션(safeAuth) 기준 내 공개 노트 수 + 총 저장 수(bookmarks · 내 공개 노트 대상)
    — 조회 불가 시 "—" 표기, 비로그인 시 로그인 유도 */

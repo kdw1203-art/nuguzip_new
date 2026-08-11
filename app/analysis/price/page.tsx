@@ -3,6 +3,20 @@ import { PageShell } from "../../components/PageShell";
 import { AIPanel } from "../../components/AIPanel";
 import { NextActions } from "../../components/NextActions";
 import { ExampleBadge, SimulationNotice } from "../../components/ExampleBadge";
+import { buildPageMetadata } from "@/lib/seo/page-metadata";
+
+/* 이 화면은 적정가 산정 **방법론 예시**다(수치는 ExampleBadge·SimulationNotice 로
+   시뮬레이션임). 사이트맵은 이미 이 경로를 noIndex 데모로 제외해 두었는데(항목 46,
+   lib/seo/build-sitemap.ts) 정작 페이지엔 noindex 선언이 없어 내부 링크로 도달하면
+   예시 수치가 색인될 수 있었다 — 형제 데모(cycle·scenario·portfolio·switch)와 같은
+   buildPageMetadata({noIndex}) 로 맞춘다. */
+export const metadata = buildPageMetadata({
+  title: "적정가 산정 방법론 (예시)",
+  description:
+    "실거래 회귀·층·수리·향·시장 모멘텀 보정으로 적정가를 추정하는 방법을 예시로 설명합니다. 수치는 시뮬레이션이며 실제 시세는 단지 상세에서 확인하세요.",
+  path: "/analysis/price",
+  noIndex: true,
+});
 
 const STEPS = [
   { label: "기준가 — 최근 6개월 동일평형 실거래 9건 회귀", value: "8.31억", tone: "ink" },
