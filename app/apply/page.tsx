@@ -10,6 +10,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 import { logger } from "@/lib/log";
 import { ApplySearchClient } from "./ApplySearchClient";
 import type { ApplyInitialResult } from "./ApplySearchClient";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 const APPLYHOME_URL = "https://www.applyhome.co.kr";
 
@@ -192,6 +193,8 @@ export default async function ApplyPage() {
             </div>
           </aside>
         </div>
+        {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 청약·분양 표면 고지 */}
+        <ComplianceNotice variant="market" className="mt-6" />
       </div>
     </PageShell>
   );

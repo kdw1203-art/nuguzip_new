@@ -4,6 +4,7 @@ import { PageShell } from "../../components/PageShell";
 import { listPartnersAll } from "@/lib/dev-deals/store";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { PartnersClient } from "./PartnersClient";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 /* ── ISR 전환 (사용량 절감 10차, 2026-08-10) ────────────────────────────────
    예전에는 force-dynamic + ?type= 서버 필터(요청마다 함수 실행 + DB 쿼리)였다.
@@ -62,6 +63,8 @@ export default async function DevPartnersPage() {
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
         {DISCLAIMER}
       </div>
+      {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 마켓 표면 공통 고지 */}
+      <ComplianceNotice variant="market" className="mt-2" />
     </PageShell>
   );
 }

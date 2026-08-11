@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { CheckoutClient } from "./CheckoutClient";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 export const metadata: Metadata = {
   title: "결제하기 | 누구집",
@@ -24,6 +25,8 @@ export default function CheckoutPage() {
   return (
     <PageShell breadcrumb="구독 · 결제" title="결제하기">
       <CheckoutClient />
+      {/* 수익 문구 미기재 방침 + 제공기간·환불 요약 — 결제 직전 화면에도 고지 */}
+      <div className="mt-4"><ComplianceNotice variant="payment" /></div>
     </PageShell>
   );
 }

@@ -9,6 +9,7 @@ import { ErrorState } from "@/app/components/ui/EmptyState";
 import { logger } from "@/lib/log";
 import { AuctionsClient } from "./AuctionsClient";
 import { slimAuctionItems } from "./slim";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 /* 비용 실측(2026-08-10, 사용량 절감 8차): 서버가 ?usage/gu/source 를 읽어
    요청마다 렌더 — 크롤 1회 = 함수 호출 1회였다. 다른 목록과 달리 전량
@@ -81,6 +82,8 @@ export default async function AuctionsPage() {
           builtAtMs={Date.now()}
           adSlot={<AdSlot placement="community_feed" seed={0} plan={null} />}
         />
+        {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 마켓(공매) 표면 고지 */}
+        <ComplianceNotice variant="market" className="mt-6" />
       </div>
     </PageShell>
   );

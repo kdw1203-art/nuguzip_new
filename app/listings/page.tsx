@@ -7,6 +7,7 @@ import { ListingCompareTray } from "@/components/ListingCompareTray";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { ListingsListClient } from "./ListingsListClient";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 /* ============================================================
    실매물 목록 — /listings
@@ -83,6 +84,8 @@ export default async function ListingsPage() {
         권리관계를 보증하지 않습니다. 중개 행위는 해당 매물을 등록한 개업공인중개사가
         수행하며, 누구집은 광고 매체로서 정보를 게재할 뿐 중개 당사자가 아닙니다.
       </div>
+      {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 마켓 표면 공통 고지 */}
+      <ComplianceNotice variant="market" className="mt-2" />
     </PageShell>
   );
 }

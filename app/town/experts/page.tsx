@@ -7,6 +7,7 @@ import { listExpertsAll, type UserExpertProfile } from "@/lib/experts/store-db";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 /* 시안 6p(전문가 상담) 고도화 — expert_profiles 실데이터 연동.
    인증(is_verified) 전문가만 실제 상담 가능 · 지역·분야 필터 + 상담수/등록순 정렬.
@@ -143,6 +144,8 @@ export default async function TownExpertsPage() {
         상담·견적 요청은 로그인 후 이용할 수 있어요 · 개인정보(전화번호·계좌)는 남기지 마세요 ·
         플랫폼 밖 결제 유도는 신고 대상입니다
       </p>
+      {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 유료 상담 표면 고지 */}
+      <ComplianceNotice className="mt-3" />
     </PageShell>
   );
 }

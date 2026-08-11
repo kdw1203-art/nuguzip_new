@@ -16,6 +16,7 @@ import { SETTLEMENT } from "@/lib/creator/sales";
 import { PLAN_FEATURE_MATRIX } from "@/lib/subscriptions/plans";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { faqJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 /* 고도화 32 — 구독 FAQ. 사실만 적는다: 결제 개통 여부와 무관하게 참인 문장으로
    쓰고(조건부 서술), 수치·규정은 약관·구현과 대조했다. 화면과 JSON-LD 가 같은
@@ -421,6 +422,11 @@ export default async function SubscriptionPage({
       <p className="mx-auto mt-5 w-full max-w-[1080px] text-xs text-text-3">
         {/* "언제든 해지 가능"만 적어 두면 화면 어딘가에 해지 버튼이 있다는 뜻으로 읽힌다.
             셀프서비스 해지는 아직 없으므로 실제 접수 경로를 함께 적는다(E1). */}
+      <div className="mx-auto mt-4 w-full max-w-[1080px]">
+        {/* 수익 문구 미기재 방침 + 서비스 제공기간(무형재화 판매정책 필수 표기) */}
+        <ComplianceNotice variant="payment" />
+      </div>
+
         해지·환불은 고객센터 1:1 문의로 접수 · 결제 7일 이내 전액 환불 · 부가세 포함 · 커뮤니티
         글·공개 노트·채팅 등 모든 닉네임 노출 지점에 동일 배지 적용
       </p>

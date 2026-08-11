@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 import { PageShell } from "../../components/PageShell";
 import {
   COMMISSION_TIERS,
@@ -111,6 +112,8 @@ export default function DevFeesPage() {
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
         {DISCLAIMER}
       </div>
+      {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 수수료·정산 표면 고지 */}
+      <ComplianceNotice variant="market" className="mt-2" />
     </PageShell>
   );
 }

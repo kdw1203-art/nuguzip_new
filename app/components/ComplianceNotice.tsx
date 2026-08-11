@@ -1,0 +1,42 @@
+/**
+ * 수익 보장·확정 수익 문구 영구 미기재 방침 고지 — 단일 출처.
+ *
+ * 소유자 방침(2026-08-11): "수익 보장·확정 수익 문구 기재 불가(사이트 내 영구
+ * 미기재 예정)"를 홈페이지 전반과 결제·구독·마켓 표면에 빠짐없이 남긴다.
+ * 문구를 한 곳(여기)에만 두는 이유: 표면마다 제각각 적으면 언젠가 한 곳만
+ * 고쳐지고, 방침 고지가 표면마다 다른 말을 하기 시작한다.
+ *
+ * "use client" 를 걸지 않는다 — 순수 표시 컴포넌트라 서버 페이지(ISR 프리렌더
+ * 포함)와 클라이언트 셸 어디서든 쓸 수 있어야 한다.
+ */
+
+export const NO_PROFIT_GUARANTEE_TEXT =
+  "누구집은 수익 보장·확정 수익 등 수익을 약속하는 표현을 일절 기재하지 않으며, 앞으로도 영구적으로 기재하지 않습니다. 사이트의 모든 시세·분석·매물·개발물건 정보는 참고용이며, 투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.";
+
+/** 구독·이용권의 서비스 제공기간 — 무형재화 판매정책 필수 표기(전자상거래·PG 심사 요건) */
+export const SUBSCRIPTION_SERVICE_PERIOD_TEXT =
+  "서비스 제공기간: 결제(이용권 등록) 즉시 적용되며, 선택한 기간(월간 1개월 ~ 최대 12개월) 동안 제공됩니다. 결제 후 7일 이내 청약철회(전액 환불) 가능, 이후 중도 해지 시 잔여기간 일할 환불(고객센터 접수) — 상세 규정은 이용약관 제8조.";
+
+export function ComplianceNotice({
+  variant = "default",
+  className = "",
+}: {
+  /** payment = 결제·구독 표면(제공기간·환불 요약 동반), market = 매물·개발물건·공매 표면 */
+  variant?: "default" | "payment" | "market";
+  className?: string;
+}) {
+  return (
+    <div
+      className={`rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3 ${className}`}
+    >
+      <p>{NO_PROFIT_GUARANTEE_TEXT}</p>
+      {variant === "payment" && <p className="mt-1.5">{SUBSCRIPTION_SERVICE_PERIOD_TEXT}</p>}
+      {variant === "market" && (
+        <p className="mt-1.5">
+          게시된 매물·물건 정보의 정확성 책임은 등록자에게 있으며, 누구집은 거래
+          당사자 간 계약·수익·자금 정산을 보장하거나 관여하지 않습니다.
+        </p>
+      )}
+    </div>
+  );
+}

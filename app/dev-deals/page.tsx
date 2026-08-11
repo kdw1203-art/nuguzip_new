@@ -6,6 +6,7 @@ import { type DevDeal } from "@/lib/dev-deals/types";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { logger } from "@/lib/log";
 import { DevDealsListClient } from "./DevDealsListClient";
+import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 /* [2026-08-10 저녁 재전환] 필터는 DevDealsListClient(클라이언트), DB 왕복 1회.
    낮에 ISR 로 갔다가 되돌렸었다 — 프로덕션 서비스롤 키가 유실돼(Pro 재임포트)
@@ -146,6 +147,8 @@ export default async function DevDealsHubPage() {
         >
           {DISCLAIMER}
         </div>
+        {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 마켓 표면 공통 고지 */}
+        <ComplianceNotice variant="market" className="mt-2" />
       </div>
     </PageShell>
   );
