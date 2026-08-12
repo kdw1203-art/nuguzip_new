@@ -42,12 +42,19 @@ type Phase =
 
 const TIER_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
 
-function parseParams(): { tier: "pro" | "expert"; billing: "monthly" | "annual" } | null {
+function parseParams(): {
+  tier: "pro" | "expert";
+  billing: "weekly" | "monthly" | "annual";
+} | null {
   try {
     const sp = new URLSearchParams(window.location.search);
     const tier = sp.get("tier");
-    const billing = sp.get("billing") === "annual" ? "annual" : "monthly";
+    const rawBilling = sp.get("billing");
+    const billing =
+      rawBilling === "annual" ? "annual" : rawBilling === "weekly" ? "weekly" : "monthly";
     if (tier !== "pro" && tier !== "expert") return null;
+    /* 주간권은 플러스 전용 — 서버(toss/create)도 거절하지만 여기서 먼저 막는다 */
+    if (billing === "weekly" && tier !== "pro") return null;
     return { tier, billing };
   } catch {
     return null;
@@ -58,7 +65,7 @@ export function CheckoutClient() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading", msg: "주문 준비 중…" });
   const [params, setParams] = useState<{
     tier: "pro" | "expert";
-    billing: "monthly" | "annual";
+    billing: "weekly" | "monthly" | "annual";
   } | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
@@ -186,7 +193,10 @@ export function CheckoutClient() {
       const origin = window.location.origin;
       await widgetsRef.current.requestPayment({
         orderId: phase.orderId,
-        orderName: `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+        orderName:
+          params.billing === "weekly"
+            ? `누구집 ${TIER_LABEL[params.tier]} 주간권 (7일 · 단건)`
+            : `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
         successUrl: `${origin}/payment/success`,
         failUrl: `${origin}/payment/fail`,
         ...(email ? { customerEmail: email } : {}),
@@ -222,7 +232,10 @@ export function CheckoutClient() {
         method: "CARD",
         amount: { currency: "KRW", value: phase.amount },
         orderId: phase.orderId,
-        orderName: `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+        orderName:
+          params.billing === "weekly"
+            ? `누구집 ${TIER_LABEL[params.tier]} 주간권 (7일 · 단건)`
+            : `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
         successUrl: `${origin}/payment/success`,
         failUrl: `${origin}/payment/fail`,
         /* 결제 결과 안내 문서: customerEmail 을 주면 승인·취소 때 토스가
@@ -250,7 +263,8 @@ export function CheckoutClient() {
   }
 
   const label = params ? (TIER_LABEL[params.tier] ?? params.tier) : "";
-  const billingLabel = params?.billing === "annual" ? "연간" : "월간";
+  const billingLabel =
+    params?.billing === "annual" ? "연간" : params?.billing === "weekly" ? "주간권(7일 단건)" : "월간";
 
   return (
     <div className="mx-auto flex w-full max-w-[520px] flex-col gap-3">

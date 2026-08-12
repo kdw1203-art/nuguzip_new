@@ -2,6 +2,24 @@ import type { PlanTier } from "@/components/ui-kit";
 
 export type BillingPeriodMonths = 1 | 3 | 6 | 12;
 
+/** 결제 주기 식별자 — 주간은 단건(자동갱신 없음) 전용이다. */
+export type PaymentBilling = "weekly" | "monthly" | "annual";
+
+/**
+ * 플러스 주간권 — 1회성 단건 결제(자동 반복청구 없음).
+ *
+ * 2026-08-12 운영자 확정: "단건결제는 일주일치로 해줘 금액은 1100원".
+ * 토스 심사 회신의 (a) 1회성 단건 결제 상품이 이것이다. 주간권은 플러스(pro)
+ * 등급만 판다 — 프로(expert) 주간은 운영자가 정한 바 없어 만들지 않는다.
+ * 만료는 기존 스윕 크론이 처리한다(durationDays=7 로 기록).
+ */
+export const WEEKLY_PASS = {
+  tier: "pro",
+  days: 7,
+  totalKrw: 1_100,
+  label: "플러스 주간권",
+} as const;
+
 export type PeriodPrice = {
   months: BillingPeriodMonths;
   totalKrw: number;

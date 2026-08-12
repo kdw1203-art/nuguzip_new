@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
 async function maybeApplyPlan(
   userEmail: string | null,
   tier: "basic" | "pro" | "expert" | "enterprise",
-  billing: "monthly" | "annual",
+  billing: "weekly" | "monthly" | "annual",
 ): Promise<void> {
   if (!userEmail) return;
   if (tier === "basic") return;
@@ -134,7 +134,7 @@ async function maybeApplyPlan(
   // 카카오페이는 일회성 결제 — 결제 주기만큼만 이용 기간을 기록한다.
   // 만료 후 강등은 plan-expiry-sweep 크론이 처리한다.
   await applyPlanToUserByEmail(userEmail, appPlan, {
-    durationDays: billing === "annual" ? 365 : 30,
+    durationDays: billing === "annual" ? 365 : billing === "weekly" ? 7 : 30,
   });
 }
 

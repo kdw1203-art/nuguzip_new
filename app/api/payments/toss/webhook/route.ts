@@ -61,12 +61,12 @@ async function fetchPaymentFromToss(paymentKey: string): Promise<TossPaymentObje
 async function applyPlanIfNeeded(
   userEmail: string | null,
   tier: "basic" | "pro" | "expert" | "enterprise",
-  billing: "monthly" | "annual",
+  billing: "weekly" | "monthly" | "annual",
 ): Promise<void> {
   if (!userEmail || tier === "basic") return;
   const plan: AppPlan = tier;
   await applyPlanToUserByEmail(userEmail, plan, {
-    durationDays: billing === "annual" ? 365 : 30,
+    durationDays: billing === "annual" ? 365 : billing === "weekly" ? 7 : 30,
   });
 }
 

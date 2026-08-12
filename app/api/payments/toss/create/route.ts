@@ -3,13 +3,14 @@ import { safeAuth } from "@/lib/safe-auth";
 import { createPayment, findRecentRequestedPayment } from "@/lib/payments/store";
 import type { PlanTier } from "@/components/ui-kit";
 import { getPlan } from "@/lib/subscriptions/plans";
+import { WEEKLY_PASS } from "@/lib/subscriptions/billing-periods";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 type Body = {
   tier?: PlanTier;
-  billing?: "monthly" | "annual";
+  billing?: "weekly" | "monthly" | "annual";
   source?: string;
   campaign?: string;
   /** 유료 리포트 결제일 때의 대상 리포트. metadata 에 박아 결제를 그 리포트에 묶는다. */
@@ -32,7 +33,10 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as Body;
   const tier = body.tier;
-  const billing = body.billing === "annual" ? "annual" : "monthly";
+  /* weekly 를 monthly 로 접어 넘기면 고른 것(1,100원 주간권)과 다른 상품
+     (2,900원 월간)을 조용히 파는 셈이다 — 명시된 세 값만 받고 나머지는 monthly. */
+  const billing: "weekly" | "monthly" | "annual" =
+    body.billing === "annual" ? "annual" : body.billing === "weekly" ? "weekly" : "monthly";
   const source = body.source?.trim().slice(0, 80) || "subscriptions-page";
   const campaign = body.campaign?.trim().slice(0, 80) || "toss";
   if (!tier || !["basic", "pro", "expert", "enterprise"].includes(tier)) {
@@ -53,11 +57,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
+  /* 주간권은 플러스(pro) 전용 단건 상품 — 다른 등급의 주간 요청은 없는 상품이다.
+     조용히 월간으로 바꾸지 않고 400 으로 거절한다. */
+  if (billing === "weekly" && tier !== WEEKLY_PASS.tier) {
+    return NextResponse.json(
+      { error: "주간권은 플러스 플랜에만 있습니다." },
+      { status: 400 },
+    );
+  }
+
   const planDef = getPlan(tier);
   const amount =
-    billing === "annual" && planDef.priceAnnualMonthly
-      ? planDef.priceAnnualMonthly * 12
-      : planDef.priceMonthly;
+    billing === "weekly"
+      ? WEEKLY_PASS.totalKrw
+      : billing === "annual" && planDef.priceAnnualMonthly
+        ? planDef.priceAnnualMonthly * 12
+        : planDef.priceMonthly;
   if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) {
     return NextResponse.json({ error: "결제 가능한 플랜이 아닙니다." }, { status: 400 });
   }

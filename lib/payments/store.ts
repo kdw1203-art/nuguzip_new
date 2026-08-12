@@ -16,7 +16,7 @@ export type PaymentRecord = {
   orderId: string;
   userEmail: string | null;
   plan: PlanTier;
-  billing: "monthly" | "annual";
+  billing: "weekly" | "monthly" | "annual";
   amount: number;
   currency: string;
   status: PaymentStatus;
@@ -42,7 +42,7 @@ export async function createPayment(input: {
   orderId: string;
   userEmail: string | null;
   plan: PlanTier;
-  billing: "monthly" | "annual";
+  billing: "weekly" | "monthly" | "annual";
   amount: number;
   metadata?: Record<string, unknown>;
   /** 결제 제공자(기본 'toss'). 토스페이(apps-in-toss)는 'tosspay'. */
@@ -94,7 +94,7 @@ export async function createPayment(input: {
 export async function findRecentRequestedPayment(input: {
   userEmail: string | null;
   plan: PlanTier;
-  billing: "monthly" | "annual";
+  billing: "weekly" | "monthly" | "annual";
   amount: number;
   withinMinutes?: number;
   /** 유료 리포트 결제 재사용 판정용 — 다른 리포트의 결제를 물려주지 않는다. */
@@ -357,7 +357,7 @@ function mapRow(r: Record<string, unknown>): PaymentRecord {
     orderId: r.order_id as string,
     userEmail: (r.user_email as string | null) ?? null,
     plan: r.plan as PlanTier,
-    billing: (r.billing as "monthly" | "annual") ?? "monthly",
+    billing: (r.billing as "weekly" | "monthly" | "annual") ?? "monthly",
     amount: Number(r.amount ?? 0),
     currency: (r.currency as string) ?? "KRW",
     status: (r.status as PaymentStatus) ?? "requested",

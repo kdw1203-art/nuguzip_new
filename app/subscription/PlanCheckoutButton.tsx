@@ -22,7 +22,7 @@ export function PlanCheckoutButton({
   tier: CheckoutTier;
   label: string;
   className: string;
-  billing?: "monthly" | "annual";
+  billing?: "weekly" | "monthly" | "annual";
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -129,6 +129,13 @@ export function PlanCheckoutButton({
         return;
       }
 
+      /* 주간권은 토스 단건 상품 — Stripe/카카오페이에는 없는 상품이라 폴백하면
+         조용히 월간(2,900원)이 청구된다. 토스 키가 없으면 여기서 멈춘다. */
+      if (billing === "weekly") {
+        setNotice("주간권은 토스 카드 결제로만 구매할 수 있어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+
       /* 레일 순서(항목 32): 연간은 카카오페이 먼저. 연간 카드 상품
          (STRIPE_PRICE_*_ANNUAL)이 등록되지 않은 동안 Stripe 는 연간 요청을
          503 으로 거절하는데, 카카오페이는 연간 금액(약 20% 할인)을 정상
@@ -172,7 +179,8 @@ export function PlanCheckoutButton({
     }
   }
 
-  const billingLabel = billing === "annual" ? "연간" : "월간";
+  const billingLabel =
+    billing === "annual" ? "연간" : billing === "weekly" ? "주간권(7일 단건)" : "월간";
 
   return (
     <div className="flex flex-col gap-1.5">

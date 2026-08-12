@@ -85,6 +85,14 @@ export async function POST(req: NextRequest) {
   const partnerUserId = (session.user.id || userEmail).slice(0, 100);
 
   const body = (await req.json().catch(() => ({}))) as Body;
+  /* 주간권(weekly)은 토스 단건 상품 — 카카오페이에는 없다. 조용히 월간으로
+     접으면 1,100원을 고른 사람에게 2,900원을 청구하게 되므로 거절한다. */
+  if ((body.billing as string) === "weekly") {
+    return NextResponse.json(
+      { error: "주간권은 토스 카드 결제로만 구매할 수 있어요." },
+      { status: 503 },
+    );
+  }
   const billing = body.billing === "annual" ? "annual" : "monthly";
   const source = body.source?.trim().slice(0, 80) || "pricing";
   const campaign = body.campaign?.trim().slice(0, 80) || "kakaopay";

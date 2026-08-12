@@ -2,8 +2,9 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { safeAuth } from "@/lib/safe-auth";
 import { loadMeProfile } from "@/lib/me/profile";
-import { BILLING_PERIOD_PRICES, periodPrice } from "@/lib/subscriptions/billing-periods";
+import { BILLING_PERIOD_PRICES, periodPrice, WEEKLY_PASS } from "@/lib/subscriptions/billing-periods";
 import { PlanCards, type TierPricing } from "./PlanCards";
+import { PlanCheckoutButton } from "./PlanCheckoutButton";
 import {
   getBusinessInfo,
   isBusinessDisclosureComplete,
@@ -181,6 +182,18 @@ export default async function SubscriptionPage({
               availability,
               url: "https://nuguzip.com/subscription",
             },
+            /* 주간권(단건) — 플러스 전용. 가격은 billing-periods 단일 출처. */
+            ...(tier === WEEKLY_PASS.tier
+              ? [
+                  {
+                    "@type": "Offer",
+                    price: WEEKLY_PASS.totalKrw,
+                    priceCurrency: "KRW",
+                    availability,
+                    url: "https://nuguzip.com/subscription?billing=weekly",
+                  },
+                ]
+              : []),
             ...(p.annualTotal > 0
               ? [
                   {
@@ -228,6 +241,33 @@ export default async function SubscriptionPage({
           initialBilling={initialBilling}
           paymentsReady={paymentsReady}
         />
+      </section>
+
+      {/* 플러스 주간권 — 1회성 단건 결제(자동갱신 없음). 운영자 확정 2026-08-12:
+          토스 심사 회신 A-1(a) 의 단건 상품. 가격·기간은 WEEKLY_PASS 단일 출처. */}
+      <section className="rise-in-4 mx-auto mt-5 w-full max-w-[1080px]">
+        <div className="card flex flex-col items-center gap-4 rounded-3xl p-6 md:flex-row md:justify-between">
+          <div className="flex flex-col gap-1 text-center md:text-left">
+            <div className="text-[15px] font-extrabold text-ink">
+              {WEEKLY_PASS.label} · {WEEKLY_PASS.totalKrw.toLocaleString("ko-KR")}원
+            </div>
+            <p className="text-[12px] leading-relaxed text-text-3">
+              {WEEKLY_PASS.days}일 동안 플러스 기능 전체 이용 · 1회성 단건 결제(자동
+              반복청구 없음) · 기간이 끝나면 자동으로 무료 플랜으로 돌아가며 추가
+              청구가 없습니다
+            </p>
+          </div>
+          {paymentsReady && (
+            <div className="w-full shrink-0 md:w-[180px]">
+              <PlanCheckoutButton
+                tier="pro"
+                billing="weekly"
+                label="주간권 구매"
+                className="w-full bg-ink text-white"
+              />
+            </div>
+          )}
+        </div>
       </section>
 
       {/* P2-8: 환불 규정 직링크 — 약관 제8조(청약철회) 앵커 */}

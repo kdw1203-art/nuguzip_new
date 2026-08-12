@@ -63,6 +63,15 @@ export async function POST(req: Request) {
     if (j?.plan === "expert") plan = "expert";
     else if (j?.plan === "enterprise") plan = "enterprise";
     if (j?.billing === "annual") billing = "annual";
+    /* 주간권(weekly)은 토스 단건 상품이다 — Stripe 에는 없는 상품이므로 조용히
+       월간으로 접지 않고 거절한다. 접으면 1,100원을 고른 사람에게 2,900원을
+       청구하게 된다. */
+    else if (j?.billing === "weekly") {
+      return NextResponse.json(
+        { error: "주간권은 토스 카드 결제로만 구매할 수 있어요." },
+        { status: 503 },
+      );
+    }
     if (typeof j.source === "string" && j.source.trim()) source = j.source.trim().slice(0, 80);
     if (typeof j.campaign === "string" && j.campaign.trim()) campaign = j.campaign.trim().slice(0, 80);
   } catch {
