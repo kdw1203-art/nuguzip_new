@@ -66,7 +66,10 @@ async function handle(req: Request) {
     CRON_WORK_BUDGET_MS,
   );
 
-  const dataset = `아파트 매매·전월세 실거래 ${yyyymm ?? "(전달)"}`;
+  /* yyyymm 미지정이면 ingestMolitTransactions 가 당월/전월을 날짜 홀짝으로 고른다.
+     성공 로그의 dataset 은 그 함수가 실제 고른 yyyymm 으로 남기므로(logIngest 내부),
+     여기 라벨은 오류/타임아웃 경로에서만 쓰인다 — "(자동: 당월/전월)"로 표기. */
+  const dataset = `아파트 매매·전월세 실거래 ${yyyymm ?? "(자동: 당월/전월)"}`;
 
   if (run.state === "timeout") {
     const message = `시간 초과로 중단 (${Math.round(CRON_WORK_BUDGET_MS / 1000)}초) — 다음 실행에서 이어서`;

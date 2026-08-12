@@ -301,10 +301,37 @@ export interface MolitIngestResult {
   aggregates?: RefreshAggregatesResult;
 }
 
-/** 기본 대상 월 — 전달(yyyymm) */
-export function defaultTargetMonth(now = new Date()): string {
-  const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+function ymOf(d: Date): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** 전달(yyyymm) — 신고지연이 대부분 반영된 완전한 달 */
+export function defaultTargetMonth(now = new Date()): string {
+  return ymOf(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+}
+
+/** 당월(yyyymm) — 이번 달 새 실거래 */
+export function currentTargetMonth(now = new Date()): string {
+  return ymOf(now);
+}
+
+/**
+ * yyyymm 미지정 시 자동 대상 월 — **당월과 전월을 날짜 홀짝으로 번갈아** 고른다.
+ *
+ * 왜 바꿨나 (2026-08-12 실측 결함): 예전엔 전달만 수집했다. 신고지연(계약 후 30일
+ * 내 신고)으로 전달이 더 완전하다는 이유였는데, 부작용이 컸다 — 전달이 한 번
+ * 완전 커버되면(‘기존커버=24 시도=0’) 그 뒤로는 매일 돌아도 새로 적재할 게 없어
+ * **당월 실거래가 사이트에 영영 안 올라온다.** 8월 12일에 사이트 최신 계약월이
+ * 여전히 202607(7월)에 멈춰 있었던 게 정확히 이 때문이다.
+ *   · 당월(짝수날): 이번 달 새 실거래를 들여와 신선도 확보(초반엔 표본이 얇지만
+ *     매일 늘어난다).
+ *   · 전월(홀수날): 뒤늦게 신고된 지난달 계약을 계속 흡수해 완전성 유지.
+ * 크론이 하루 1회라 창(12h) 홀짝은 매일 같은 값이 되므로, 창이 아니라 **일수**
+ * 홀짝으로 나눈다. 이미 채운 (시군구,계약월)은 건너뛰므로 재방문 비용은 낮다.
+ */
+export function autoTargetMonth(now = new Date()): string {
+  const dayNum = Math.floor(now.getTime() / (1000 * 60 * 60 * 24));
+  return dayNum % 2 === 0 ? currentTargetMonth(now) : defaultTargetMonth(now);
 }
 
 /**
@@ -323,7 +350,7 @@ export async function ingestMolitTransactions(opts: {
   now?: Date;
 } = {}): Promise<MolitIngestResult> {
   const now = opts.now ?? new Date();
-  const yyyymm = (opts.yyyymm ?? defaultTargetMonth(now)).replace(/[^0-9]/g, "").slice(0, 6);
+  const yyyymm = (opts.yyyymm ?? autoTargetMonth(now)).replace(/[^0-9]/g, "").slice(0, 6);
   const all = listMolitSigungu();
   const sliceSize = Math.max(1, Math.min(60, opts.sliceSize ?? 16));
   /* 수집 유형은 실행마다 환경변수로 정해진다(기본 아파트). 왜 스위치로 뒀는지는
