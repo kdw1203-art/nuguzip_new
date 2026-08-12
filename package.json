@@ -15,7 +15,7 @@
     "dev:clean": "npm run clean && next dev --turbopack",
     "dev:turbo": "next dev --turbopack",
     "check:env": "node ./scripts/validate-env.mjs",
-    "build": "npm run check:env && npm run check:tx-filters && next build",
+    "build": "npm run check:env && npm run check:tx-filters && npm run check:review-freeze && next build",
     "start": "next start",
     "lint": "eslint .",
     "test:e2e": "playwright test",
@@ -63,7 +63,8 @@
     "auto:daily-posts": "node ./scripts/auto-daily-real-estate-posts.mjs",
     "check:perf-budget": "node ./scripts/check-perf-budget.mjs",
     "test:a11y": "playwright test tests/e2e/a11y.spec.ts",
-    "icons:png": "node ./scripts/generate-png-icons.mjs"
+    "icons:png": "node ./scripts/generate-png-icons.mjs",
+    "check:review-freeze": "node ./scripts/check-toss-review-freeze.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
