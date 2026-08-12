@@ -89,7 +89,10 @@ const DEFAULTS = {
   legalName: "우리동네이야기",
   representative: "고대웅",
   registrationNumber: "378-06-02465",
-  address: "안양시 동안구 관양동 1588",
+  /* 토스 심사 요건: 사업장 주소를 층수·동호수까지, 사업자등록증과 동일하게.
+     소유자 확인(2026-08-12): 302동 1010호. env(NEXT_PUBLIC_COMPANY_ADDRESS)가
+     있으면 그쪽이 우선하므로, env 를 쓰는 경우 거기에도 동/호를 반드시 포함할 것. */
+  address: "안양시 동안구 관양동 1588 302동 1010호",
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
   phone: PHONE,
   supportEmail: "nuguzip@naver.com",
