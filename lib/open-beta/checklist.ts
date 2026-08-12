@@ -67,7 +67,7 @@ export const OPEN_BETA_TASKS: OpenBetaTask[] = [
     title: "사업자 주소·통신판매업 고지 완료 (유료 결제 전제)",
     priority: "P0",
     status: "blocked",
-    note: "코드: 고지 미완 시 Stripe/카카오페이 503. env NEXT_PUBLIC_COMPANY_ADDRESS·MAIL_ORDER 채우면 done.",
+    note: "코드: 고지 미완 시 Stripe/카카오페이 503. 주소·유선번호는 코드 상수(business-info.ts), 남은 env 는 MAIL_ORDER 신고번호뿐.",
   },
   {
     id: "payment-e2e",

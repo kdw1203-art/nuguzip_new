@@ -37,7 +37,7 @@ const ENV = {
     "NEXT_PUBLIC_COMPANY_REGISTRATION_NUMBER",
     "COMPANY_REGISTRATION_NUMBER",
   ],
-  address: ["NEXT_PUBLIC_COMPANY_ADDRESS", "COMPANY_ADDRESS"],
+  /* address 도 의도적으로 여기 없다 — 아래 ADDRESS 상수가 단일 출처다. 이유는 그 주석 참고. */
   mailOrderSalesNumber: [
     "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
     "MAIL_ORDER_SALES_NUMBER",
@@ -84,15 +84,26 @@ function readEnv(keys: readonly string[], fallback: string): string {
  */
 const PHONE = "050-6460-1203";
 
+/**
+ * 사업장 주소 — **env 오버라이드 없이 코드가 단일 출처다.** (PHONE 과 같은 이유)
+ *
+ * 토스페이먼츠 상점 심사는 홈페이지 하단 주소가 사업자등록증과 층수·동호수까지
+ * 완전히 동일할 것을 요구한다. 소유자 확인(2026-08-12): 302동 1010호.
+ *
+ * 원래 env(NEXT_PUBLIC_COMPANY_ADDRESS)가 우선이었는데, PHONE 때와 똑같은 사고가
+ * 재현됐다 — 코드 기본값에 동·호수를 추가해 배포했는데(f393568) Vercel 에 남아 있던
+ * 옛 env 값("...관양동 1588", 동·호 없음)이 이겨서 프로덕션 푸터가 계속 옛 주소를
+ * 보여줬고, 배포 로그만 봐서는 원인이 안 보였다(2026-08-12 실측). 주소는 환경별로
+ * 달라질 이유가 없는 값이므로 env 를 읽지 않는다. 이전할 일이 생기면 이 상수를 고친다.
+ */
+const ADDRESS = "안양시 동안구 관양동 1588 302동 1010호";
+
 /** Vercel env 미설정 시 기본값 — 구 사이트(nuguzip.com)가 공개 게시한 실값. env가 있으면 env 우선. */
 const DEFAULTS = {
   legalName: "우리동네이야기",
   representative: "고대웅",
   registrationNumber: "378-06-02465",
-  /* 토스 심사 요건: 사업장 주소를 층수·동호수까지, 사업자등록증과 동일하게.
-     소유자 확인(2026-08-12): 302동 1010호. env(NEXT_PUBLIC_COMPANY_ADDRESS)가
-     있으면 그쪽이 우선하므로, env 를 쓰는 경우 거기에도 동/호를 반드시 포함할 것. */
-  address: "안양시 동안구 관양동 1588 302동 1010호",
+  address: ADDRESS,
   mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
   phone: PHONE,
   supportEmail: "nuguzip@naver.com",
@@ -118,7 +129,8 @@ export function getBusinessInfo(): BusinessInfo {
     legalName: readEnv(ENV.legalName, DEFAULTS.legalName),
     representative: readEnv(ENV.representative, DEFAULTS.representative),
     registrationNumber: readEnv(ENV.registrationNumber, DEFAULTS.registrationNumber),
-    address: readEnv(ENV.address, DEFAULTS.address),
+    // env 를 읽지 않는다(위 ADDRESS 주석 참고) — 배포 환경의 옛 값이 덮어쓰지 못하게.
+    address: ADDRESS,
     mailOrderSalesNumber: readEnv(ENV.mailOrderSalesNumber, DEFAULTS.mailOrderSalesNumber),
     // env 를 읽지 않는다(위 PHONE 주석 참고) — 배포 환경의 옛 값이 덮어쓰지 못하게.
     phone: PHONE,
