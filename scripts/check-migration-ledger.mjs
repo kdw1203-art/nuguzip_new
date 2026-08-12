@@ -213,11 +213,54 @@ if (nowCovered.length > 0) {
   );
 }
 
+/* ── 규칙 D: version 단위 파일 존재 ───────────────────────────────────────
+   객체 커버리지(위)만으로는 create or replace / alter 형 마이그레이션의 파일
+   삭제·누락이 안 보인다 — 그 객체가 다른 파일에도 정의돼 있으면 커버리지가
+   유지되기 때문이다. 2026-08-12 실측: etl_freshness 미러 파일을 지웠는데
+   이 게이트가 통과했다. 가끔 틀리는 게이트는 아무도 안 보는 게이트다.
+   그래서 원장 행(version)마다 파일이 있는지를 따로 본다. 이미 알고 있는
+   결손 114건은 known_unmirrored_versions 에 적혀 있고, 거기 없는 새 결손만
+   FAIL 이다 — 늘 빨간 게이트를 만들지 않기 위해서다(위 known_unmirrored 와
+   같은 철학). */
+const fileVersions = new Set(files.map((f) => f.slice(0, 14)));
+const knownVerGaps = new Set(
+  (snap.known_unmirrored_versions ?? []).map((s) => s.split(" ")[0]),
+);
+const newVerGaps = snap.migrations.filter(
+  (m) => !fileVersions.has(m.version) && !knownVerGaps.has(m.version),
+);
+if (newVerGaps.length > 0) {
+  console.error(
+    `${TAG} FAIL — 원장에 있는데 파일도 없고 known_unmirrored_versions 에도 없는 행 ${newVerGaps.length}건:`,
+  );
+  for (const m of newVerGaps) {
+    console.error(`  ✗ ${m.version} ${m.name} (${m.bytes}바이트, md5 ${m.md5})`);
+  }
+  console.error(
+    `\n  둘 중 하나입니다:` +
+      `\n    * 그 version 의 미러 파일을 지웠거나 파일명 앞 14자리를 바꿨다 → 되돌리세요.` +
+      `\n    * 원장 행을 스냅샷에 추가하면서 파일을 안 만들었다 → 원장 statements 를` +
+      `\n      base64+md5 검증으로 내려받아 그대로 파일로 남기세요(한 글자도 고치지 않습니다).` +
+      `\n  지금 못 고치면 known_unmirrored_versions 에 "version name" 으로 적으세요.` +
+      `\n${limitLine}`,
+  );
+  process.exit(1);
+}
+const verGapsNowCovered = [...knownVerGaps].filter((v) => fileVersions.has(v)).sort();
+if (verGapsNowCovered.length > 0) {
+  console.info(
+    `${TAG} 참고 — known_unmirrored_versions 에 적혀 있지만 지금은 파일이 있는 version ${verGapsNowCovered.length}건:` +
+      `\n      ${verGapsNowCovered.join(", ")}` +
+      `\n  supabase/ledger-snapshot.json 의 known_unmirrored_versions 에서 빼 주세요.`,
+  );
+}
+
 console.info(
   `${TAG} PASS — 원장 ${snap.ledger_rows}행(${snap.baseline_version} 이후, ${snap.measured_at} 스냅샷) · ` +
     `파일 ${files.length}개 · 원장이 만들고 지금도 있는 객체 ${requiredNow.size}개` +
     `(만들었다 지운 ${absent.size}개 제외) 중 ` +
     `파일에 정의된 것 ${requiredNow.size - missing.length}개 · ` +
-    `미러링 안 된 것 ${missing.length}개(모두 known_unmirrored 에 기록됨)`,
+    `미러링 안 된 것 ${missing.length}개(모두 known_unmirrored 에 기록됨) · ` +
+    `파일 없는 원장 행 ${snap.migrations.filter((m) => !fileVersions.has(m.version)).length}건(모두 known_unmirrored_versions 에 기록됨)`,
 );
 console.info(limitLine);
