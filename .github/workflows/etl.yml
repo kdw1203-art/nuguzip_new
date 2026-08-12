@@ -104,10 +104,10 @@ jobs:
           # 이미 채워진 (구, 계약월) 조합은 라우트에서 건너뛰므로 이중 계상 없음. 소프트 처리 —
           # 일부 구가 실패해도 ETL 전체를 실패시키지 않는다.
           echo "== molit (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?size=24" | head -c 800 || true
+          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$(date -u +%Y%m)&size=24" | head -c 800 || true
           echo
           # molit 직전월 보강: 신고 지연(계약 후 30일)으로 뒤늦게 등록되는 거래를 다시 줍는다.
-          PREV_YM=$(date -u -d "-1 month" +%Y%m)
+          PREV_YM=$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y%m)
           echo "== molit prev-month top-up (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$PREV_YM&size=24" | head -c 500 || true
           echo
