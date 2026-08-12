@@ -54,9 +54,12 @@ const COSTS = [
    primary 색 굵은 글씨로 달아뒀었는데 href 도 onClick 도 없는 <span> 이었다.
    존재하지 않는 예시 전문가에게 보낼 곳도 없으므로 줄별 액션은 지우고,
    실제로 열리는 전문가 목록(/town/experts) 링크 하나만 카드 아래에 둔다. */
+/* [2026-08-12] "법무사(소유권이전 등기 대행)" 예시는 뺐다 — 토스 심사 정책상 법률
+   서비스(법무사·변호사) 유료 입점이 불가하므로, 데모 화면에서도 법률 상담을
+   구매 가능한 전문가처럼 보이게 하지 않는다. 허용 업종(세무·감정) 예시로 대체. */
 const EXPERTS = [
   { name: "김OO 중개사", verified: true, meta: "★4.9 · 협상 상담 3만원" },
-  { name: "최OO 법무사", verified: true, meta: "소유권이전 등기 대행 35만~" },
+  { name: "최OO 세무사", verified: true, meta: "양도세 시뮬레이션 상담 5만~" },
   { name: "OO익스프레스 이사", verified: false, meta: "★4.7 · 84㎡ 포장이사 130만~" },
   { name: "OO디자인 인테리어", verified: false, meta: "★4.8 · 부분 수리 견적 무료" },
 ] as const;

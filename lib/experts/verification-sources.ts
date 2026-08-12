@@ -19,20 +19,9 @@ export const EXPERT_VERIFICATION_SOURCES: ExpertVerificationSource[] = [
     verificationUrl: "https://www.kar.or.kr",
     searchHint: "개설 등록번호·중개사명으로 등록 상태 확인",
   },
-  {
-    expertTypes: ["법무사·변호사"],
-    label: "대한변호사협회",
-    authority: "대한변협",
-    verificationUrl: "https://www.koreanbar.or.kr",
-    searchHint: "변호사 등록번호·성명 검색",
-  },
-  {
-    expertTypes: ["법무사·변호사"],
-    label: "대한법무사협회",
-    authority: "대법무사협",
-    verificationUrl: "https://www.kscj.or.kr",
-    searchHint: "법무사 등록번호 검색",
-  },
+  /* [2026-08-12] 법무사·변호사 검증 소스(대한변협·대한법무사협)는 뺐다 — 토스 심사
+     정책상 법률 서비스 유료 입점이 불가해 이 유형의 전문가 신청 자체를 받지
+     않으므로, 대응하는 자격 검증 소스도 남길 이유가 없다. */
   {
     expertTypes: ["세무사"],
     label: "한국세무사회",
