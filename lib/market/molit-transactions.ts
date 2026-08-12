@@ -448,7 +448,14 @@ export async function ingestMolitTransactions(opts: {
         continue;
       }
       consecutiveDbErrors = 0;
-      if ((count ?? 0) > 0) {
+const RECENT_MONTHS = 3;
+    const ymNum = Number(yyyymm);
+    const nowYm = now.getUTCFullYear() * 100 + (now.getUTCMonth() + 1);
+    const monthsAgo =
+      (Math.floor(nowYm / 100) - Math.floor(ymNum / 100)) * 12 +
+      ((nowYm % 100) - (ymNum % 100));
+    const isRecent = Number.isFinite(ymNum) && monthsAgo < RECENT_MONTHS;
+     if (!isRecent && (count ?? 0) > 0) {
         result.alreadyCovered += 1;
         result.regions.push({ code: info.sigunguCd, name: regionName, rows: count ?? 0, status: "covered" });
         continue;
