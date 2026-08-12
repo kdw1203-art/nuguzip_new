@@ -18,5 +18,11 @@
       "destination": "https://nuguzip.com/:path*",
       "permanent": true
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/site-probe",
+      "schedule": "15 */6 * * *"
+    }
   ]
 }

@@ -1,0 +1,24 @@
+# 소유자 적용 필요 — 이 세션의 토큰에는 Workflows 쓰기 권한이 없어 직접 푸시할 수 없습니다.
+# 적용: git apply docs/patches/synthetic-record-site-probe.patch
+#
+# 목적: 합성 모니터링이 돌 때 /api/cron/site-probe 도 호출해 ops.site_probe 에
+# 프로브를 기록하게 한다. vercel.json 크론(6시간마다)과 중복이지만 의도된
+# 이중화다 — Vercel 크론 설정이 깨지는 장애 모드에서도 기록이 이어진다.
+# 한계(정직하게): 기록 자체는 앱 라우트가 하므로 앱이 완전히 죽으면 기록도
+# 실패한다. 그 경우 probed_at 신선도 초과(26h warn/50h critical)가 대신 잡고,
+# 즉시 알림은 이 워크플로의 기존 이슈 생성 스텝이 담당한다.
+--- a/.github/workflows/synthetic.yml
++++ b/.github/workflows/synthetic.yml
+@@ -29,6 +29,12 @@ jobs:
+             fi
+           done
+ 
++          # 프로브 기록 — etl_freshness 의 site.http_probe 검사가 이 기록을 판정한다.
++          curl -s --max-time 40 -X POST \
++            -H "authorization: Bearer ${{ secrets.CRON_SECRET }}" \
++            "$BASE/api/cron/site-probe" >/dev/null \
++            || echo "site-probe 기록 실패 — 앱이 죽었으면 위 URL 프로브 실패가 이미 이슈를 만든다"
++
+           # /api/health 상태 — "ok"가 아니면(degraded 포함) 문제로 간주
+           HEALTH_JSON=$(curl -s --max-time 30 "$BASE/api/health" || echo '{}')
+           HEALTH_STATUS=$(printf '%s' "$HEALTH_JSON" | jq -r '.status // "unreachable"' 2>/dev/null || echo "unparseable")
