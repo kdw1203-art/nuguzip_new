@@ -614,6 +614,12 @@ export function NoteForm({
   );
   /* 공개 여부 — 기본 비공개, 저장 직전 명시적으로 선택 */
   const [isPublic, setIsPublic] = useState(initialNote?.isPublic ?? false);
+  /* 공개 노트를 누구집 공식 소셜(릴스/쇼츠) 소재로 쓰는 데 대한 명시 동의.
+     기본 꺼짐 — 동의 없는 이용자 노트는 자동 소재 선정에서 제외된다
+     (lib/social/autopost.ts 가 이 값을 본다). */
+  const [socialShareConsent, setSocialShareConsent] = useState(
+    Boolean(initialNote?.metadata?.socialShareConsent),
+  );
   const [photos, setPhotos] = useState<string[]>(initialNote?.photos ?? []);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -915,6 +921,7 @@ export function NoteForm({
         },
         photos,
         metadata: {
+          socialShareConsent: isPublic ? socialShareConsent : undefined,
           complexId: loc.complexId ?? undefined,
           lat: loc.lat ?? undefined,
           lng: loc.lng ?? undefined,
@@ -1661,6 +1668,30 @@ export function NoteForm({
             />
           </span>
         </button>
+
+        {/* 소셜 소재 활용 동의 — 공개 노트일 때만 노출. 동의 없인 자동 소재로
+            쓰이지 않는다(저작권·동의 원칙). 문구에 활용 범위를 그대로 적는다. */}
+        {isPublic && (
+          <label className="card flex cursor-pointer items-start gap-3 p-4">
+            <input
+              type="checkbox"
+              checked={socialShareConsent}
+              onChange={(e) => setSocialShareConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-[#1d4fd8]"
+            />
+            <span className="min-w-0">
+              <span className="block text-[13px] font-extrabold text-ink">
+                누구집 공식 소셜 소재 활용 동의 (선택)
+              </span>
+              <span className="mt-0.5 block text-[11px] leading-relaxed text-text-3">
+                이 노트의 지역·단지명·요약·체감 점수를 누구집 공식 인스타그램
+                릴스·유튜브 쇼츠 영상으로 만들어 게시하는 데 동의해요. 동의는
+                노트 수정에서 언제든 철회할 수 있고, 철회하면 이후 소재로 쓰이지
+                않아요.
+              </span>
+            </span>
+          </label>
+        )}
       </div>
 
       {/* 하단 CTA */}

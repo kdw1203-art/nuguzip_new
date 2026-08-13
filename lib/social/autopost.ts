@@ -8,8 +8,10 @@ import { encodeSlideshow } from "@/lib/social/video/encode";
  * 소셜 자동 소재 — 임장노트 1건 또는 홈페이지 홍보 1건을 영상으로 만들어 큐에 넣는다.
  *
  * 소재 규칙(권리·사실 우선):
- *  - 노트는 **공개(is_public) + 운영자 본인 작성**만 쓴다. 다른 이용자의 노트를
- *    회사 채널에 올리는 것은 저작권·동의 문제라 자동화하지 않는다.
+ *  - 노트는 **공개(is_public) + (운영자 본인 작성 또는 작성자의 명시 동의)**만
+ *    쓴다. 동의는 노트 폼의 "소셜 소재 활용 동의" 체크(metadata.socialShareConsent)
+ *    — 동의 없는 이용자 노트를 회사 채널에 올리는 것은 저작권·동의 문제라
+ *    자동화하지 않는다.
  *  - 이미 발행/대기 중인 노트는 다시 만들지 않는다(source_ref 부분 유니크 인덱스가
  *    DB 레벨에서도 막는다 — 코드가 실수해도 중복 발행은 불가능).
  *  - 홍보 프레임의 수치는 DB 실측값 + 기준시점 표기. 수익 보장류 표현은 금지어
@@ -58,13 +60,17 @@ async function pickNote() {
   if (usedErr) throw new Error(`발행 이력 조회 실패: ${usedErr.message}`);
   const usedIds = new Set((used ?? []).map((r) => r.source_ref).filter(Boolean));
 
+  /* 소재 자격: 공개 + (운영자 본인 작성 OR 작성자의 명시 동의).
+     동의는 노트 폼의 "소셜 소재 활용 동의" 체크가 metadata 에 남긴 값이다 —
+     동의 없는 이용자 노트는 여기서 걸러진다(저작권·동의 원칙). */
+  const ownerList = OWNER_EMAILS.map((e) => `"${e}"`).join(",");
   const { data, error } = await sb
     .from("inspection_notes")
     .select(
       "id, title, region, apt_name, property_name, summary, public_summary, visit_date, created_at, score_location, score_school, score_transport, score_facility, score_future",
     )
     .eq("is_public", true)
-    .in("author_email", OWNER_EMAILS)
+    .or(`author_email.in.(${ownerList}),metadata->>socialShareConsent.eq.true`)
     .order("created_at", { ascending: false })
     .limit(30);
   if (error) throw new Error(`노트 조회 실패: ${error.message}`);
