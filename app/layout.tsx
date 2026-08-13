@@ -19,6 +19,7 @@ import { ViewportGroupTracker } from "./components/ViewportGroupTracker";
 import { MomentProvider } from "./components/motion/MomentProvider";
 import { NavigationProgress } from "./components/motion/NavigationProgress";
 import { PageTransition } from "./components/motion/PageTransition";
+import { DragScroll } from "./components/motion/DragScroll";
 import { RevealOnScroll } from "./components/motion/RevealOnScroll";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -172,6 +173,8 @@ export default function RootLayout({
                   <NavigationProgress />
                   <PageTransition />
                   <RevealOnScroll />
+                  {/* 가로 스크롤 레일 마우스 드래그(문서 위임·렌더 없음) */}
+                  <DragScroll />
                   {/* 친구 추천 리딤 트리거 (ref_code 쿠키 → 리딤, 렌더 없음) */}
                   <ReferralRedeem />
                   <SwRegister />

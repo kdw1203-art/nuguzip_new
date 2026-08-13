@@ -1628,3 +1628,104 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 .scroll-x-hidden-bar::-webkit-scrollbar {
   display: none;
 }
+
+/* ---------- 8. 인터랙션 폴리시 (2026-08-13) ---------- */
+/* 8a. 카드 호버 — 전 카드 공통 부드러움.
+   transform 은 일부러 쓰지 않는다: .card 안에 position:fixed 자손이 있으면
+   transform 이 컨테이닝 블록을 만들어 fixed 요소를 카드 기준으로 가둔다
+   (PageTransition 주석의 탭바 실측과 같은 함정). 그림자·테두리만 바꾼다 —
+   리플로우도, 컨테이닝 블록도 만들지 않는다.
+   hover 미디어 조건: 터치 기기에서 첫 탭이 호버로 먹혀 두 번 눌러야 하는
+   문제를 피한다(포인터가 정교한 기기에서만 호버를 켠다). */
+.card {
+  transition:
+    box-shadow var(--dur-sm) var(--ease-out),
+    border-color var(--dur-sm) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    box-shadow: var(--shadow-sm);
+    border-color: rgba(29, 79, 216, 0.16);
+  }
+}
+
+/* 8b. 인터랙티브 요소 전역 부드러움 + 누름 피드백.
+   transition 은 값을 바꾸지 않고 바뀌는 순간만 부드럽게 하므로 기존 스타일과
+   충돌하지 않는다. 누름 피드백은 scale 이라 리플로우가 없다. */
+a,
+button,
+summary,
+[role="button"] {
+  transition:
+    color var(--dur-xs) var(--ease-out),
+    background-color var(--dur-xs) var(--ease-out),
+    border-color var(--dur-xs) var(--ease-out),
+    opacity var(--dur-xs) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out),
+    transform var(--dur-xs) var(--ease-out);
+}
+button:active:not(:disabled),
+[role="button"]:active,
+summary:active {
+  transform: scale(0.98);
+}
+
+/* 8c. 아코디언(details) 레이아웃 전환 — 지원 브라우저(Chromium 131+) 점진 적용.
+   미지원 브라우저는 이 선택자 자체를 무시하므로 기존과 동일하게 동작한다.
+   심화분석 8축·FAQ 등 details 가 많은 화면에서 열림/닫힘이 높이 보간으로
+   부드러워진다. */
+:root {
+  interpolate-size: allow-keywords;
+}
+details::details-content {
+  block-size: 0;
+  overflow-y: clip;
+  transition:
+    content-visibility var(--dur-sm) allow-discrete,
+    block-size var(--dur-sm) var(--ease-out);
+}
+details[open]::details-content {
+  block-size: auto;
+}
+
+/* 8d. 문서 간 뷰 전환 — 전체 로드(첫 방문·외부 유입·새로고침)에 크로스페이드.
+   App Router 의 클라이언트 내비게이션은 PageTransition(body 페이드)이 맡고,
+   문서가 통째로 바뀌는 항해는 브라우저 뷰 전환이 맡는다. 미지원 브라우저 무시. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-sm);
+}
+
+/* 8e. 가로 스크롤 드래그 상태 (components/motion/DragScroll.tsx 가 부여) */
+html[data-drag-scrolling] {
+  cursor: grabbing;
+}
+html[data-drag-scrolling] * {
+  user-select: none !important;
+}
+
+/* 8f. 접근성 — 위 7절 규칙: 새 모션은 반드시 여기 같이 적는다 */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  a,
+  button,
+  summary,
+  [role="button"] {
+    transition: none;
+  }
+  button:active:not(:disabled),
+  [role="button"]:active,
+  summary:active {
+    transform: none;
+  }
+  details::details-content {
+    transition: none;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
