@@ -85,6 +85,8 @@ const nextConfig: NextConfig = {
     "/api/og/listing": ["./lib/og/fonts/**"],
     "/api/screenshot": ["./lib/og/fonts/**"],
     "/og-image": ["./lib/og/fonts/**"],
+    // 소셜 자동 영상: 프레임 렌더(한글 폰트) + ffmpeg 바이너리(~76MB, 이 라우트만)
+    "/api/cron/social-autopost": ["./lib/og/fonts/**", "./node_modules/ffmpeg-static/ffmpeg"],
   },
   eslint: {
     // 빌드는 통과시키고 lint는 별도 `npm run lint` / CI에서 강제합니다.

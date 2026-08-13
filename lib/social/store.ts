@@ -60,6 +60,9 @@ export async function enqueueUpload(input: {
   scheduledAt?: string;
   targets: { instagram: boolean; youtube: boolean };
   createdBy: string;
+  /** 자동 생성 소재 추적 — ('note', 노트 id) 같은 쌍. 부분 유니크 인덱스가 중복 발행을 막는다. */
+  sourceKind?: string;
+  sourceRef?: string;
 }): Promise<SocialUpload> {
   const sb = getServiceSupabase();
   if (!sb) throw new Error("서비스 클라이언트 미구성");
@@ -74,6 +77,8 @@ export async function enqueueUpload(input: {
       ig_status: input.targets.instagram ? "queued" : "off",
       yt_status: input.targets.youtube ? "queued" : "off",
       created_by: input.createdBy,
+      source_kind: input.sourceKind ?? "manual",
+      source_ref: input.sourceRef ?? null,
     })
     .select("*")
     .single();
