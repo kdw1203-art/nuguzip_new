@@ -24,7 +24,11 @@ import { groundingFailures } from "@/lib/inspection/note-grounding";
  * `/api/inspection/ai` 의 콘텐츠 해시에 섞어서, 모양이 바뀐 뒤에도 옛 캐시가
  * 그대로 나가는 일을 막는다.
  */
-export const DEEP_DIVE_VERSION = 1;
+/* v2 (2026-08-13): complexId 인코딩 버그 수정(note-grounding — district 만 넣어
+   "수원 팔달구"가 "팔달구"로 조회되던 것). 축 구성은 그대로지만 실거래·면적대·
+   상대가 근거의 가용성이 실질적으로 바뀌므로, 옛 캐시가 "자료 없음"을 계속
+   내보내지 않도록 버전을 올려 해시를 무효화한다. */
+export const DEEP_DIVE_VERSION = 2;
 
 export type DeepDiveAxisId =
   | "issues"

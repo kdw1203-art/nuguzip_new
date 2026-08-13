@@ -173,10 +173,18 @@ export async function collectNoteGrounding(input: CollectGroundingInput): Promis
       : Promise.resolve(NONE<ComplexRow>()),
   ]);
 
+  /* 검색이 맞힌 단지는 행에 이미 들어 있는 canonical_id 를 그대로 쓴다.
+     예전엔 district 로 재인코딩했는데, toComplexRow 가 region_name("수원 팔달구")을
+     city/district 로 쪼개 district 는 "팔달구"만 남는다 — 실거래·면적대·상대가
+     조회는 region_name 전체 일치를 요구하므로, 292건이 실재하는 단지가
+     "조회했지만 자료 없음"으로 떨어졌다(2026-08-13 프로덕션 첫 심화분석 실측:
+     수원성중흥S-클래스). canonical_id 는 region_name 전체로 인코딩돼 있다.
+     검색 실패 폴백은 노트의 region 원문("수원 팔달구" 형태가 DB region_name 과
+     같은 꼴)을 먼저 쓰고, 없을 때만 district 로 물러선다. */
   const complexId = complexHit.value
-    ? encodeComplexId(complexHit.value.district || district, complexHit.value.name)
-    : aptName && district
-      ? encodeComplexId(district, aptName)
+    ? complexHit.value.canonical_id
+    : aptName
+      ? encodeComplexId((input.region ?? "").trim() || district, aptName)
       : null;
 
   const tempRegion = regionSnapshot.value
