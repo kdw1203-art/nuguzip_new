@@ -56,7 +56,9 @@ const businessDisclosureKeys = [
      단일 출처이고 env 를 읽지 않는다. 여기 남겨두면 "설정하라"고 권하는 셈이라,
      설정해봐야 무시되는 값을 안내하게 된다. (주소 env 는 실제로 옛 값이 코드
      기본값을 덮어써 토스 심사 요건 위반을 만들었다 — 2026-08-12) */
-  "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
+  /* NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER 도 뺐다 — 신고번호(2026-안양동안-1095)가
+     코드 상수가 되면서 env 를 읽지 않는다. Vercel 에 남은 자리표시("신고 진행 중")가
+     실번호를 덮는 사고를 구조적으로 차단(PHONE·ADDRESS 와 동일 원칙, 2026-08-13). */
 ];
 
 function isMissing(key) {

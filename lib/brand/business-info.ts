@@ -38,10 +38,10 @@ const ENV = {
     "COMPANY_REGISTRATION_NUMBER",
   ],
   /* address 도 의도적으로 여기 없다 — 아래 ADDRESS 상수가 단일 출처다. 이유는 그 주석 참고. */
-  mailOrderSalesNumber: [
-    "NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER",
-    "MAIL_ORDER_SALES_NUMBER",
-  ],
+  /* mailOrderSalesNumber 도 의도적으로 여기 없다 — 아래 MAIL_ORDER_SALES_NUMBER
+     상수가 단일 출처다. PHONE·ADDRESS 와 같은 이유: 환경별로 달라질 이유가 없는
+     사업자 사실인데 env 를 우선하면 낡은 자리표시 값("신고 진행 중")이 실번호를
+     조용히 덮어쓴다 — 실제로 Vercel 에 그 자리표시가 남아 있었다(2026-08-13). */
   /* phone 은 의도적으로 여기 없다 — 아래 PHONE 상수가 단일 출처다. 이유는 그 주석 참고. */
   supportEmail: ["NEXT_PUBLIC_SUPPORT_EMAIL", "SUPPORT_EMAIL"],
   privacyEmail: ["NEXT_PUBLIC_PRIVACY_EMAIL", "PRIVACY_EMAIL"],
@@ -85,6 +85,13 @@ function readEnv(keys: readonly string[], fallback: string): string {
 const PHONE = "050-6460-1203";
 
 /**
+ * 통신판매업 신고번호 — **env 오버라이드 없이 코드가 단일 출처다.** (PHONE 과 같은 이유)
+ * 정부24 발급(2026-08-13, 소유자 제공 스크린샷): 2026-안양동안-1095.
+ * 신고증(증서)은 등록면허세 납부 후 정부24에서 수령 — 홈페이지 표기는 이 번호면 된다.
+ */
+const MAIL_ORDER_SALES_NUMBER = "2026-안양동안-1095";
+
+/**
  * 사업장 주소 — **env 오버라이드 없이 코드가 단일 출처다.** (PHONE 과 같은 이유)
  *
  * 토스페이먼츠 상점 심사는 홈페이지 하단 주소가 사업자등록증과 층수·동호수까지
@@ -104,7 +111,7 @@ const DEFAULTS = {
   representative: "고대웅",
   registrationNumber: "378-06-02465",
   address: ADDRESS,
-  mailOrderSalesNumber: "", // 통신판매업 신고 후 env(NEXT_PUBLIC_MAIL_ORDER_SALES_NUMBER)로 설정
+  mailOrderSalesNumber: MAIL_ORDER_SALES_NUMBER,
   phone: PHONE,
   supportEmail: "nuguzip@naver.com",
   privacyEmail: "nuguzip@naver.com",
@@ -131,7 +138,8 @@ export function getBusinessInfo(): BusinessInfo {
     registrationNumber: readEnv(ENV.registrationNumber, DEFAULTS.registrationNumber),
     // env 를 읽지 않는다(위 ADDRESS 주석 참고) — 배포 환경의 옛 값이 덮어쓰지 못하게.
     address: ADDRESS,
-    mailOrderSalesNumber: readEnv(ENV.mailOrderSalesNumber, DEFAULTS.mailOrderSalesNumber),
+    // env 를 읽지 않는다(위 MAIL_ORDER_SALES_NUMBER 주석 참고) — 자리표시 env 가 실번호를 덮지 못하게.
+    mailOrderSalesNumber: MAIL_ORDER_SALES_NUMBER,
     // env 를 읽지 않는다(위 PHONE 주석 참고) — 배포 환경의 옛 값이 덮어쓰지 못하게.
     phone: PHONE,
     supportEmail: readEnv(ENV.supportEmail, DEFAULTS.supportEmail),
