@@ -3,6 +3,7 @@ import type { Session } from "next-auth";
 import { getOperatingMetrics } from "@/lib/admin/operating-metrics";
 import { loadAdminKpi } from "@/lib/admin/stats";
 import { listBanners, type Banner } from "@/lib/admin/banners";
+import { loadRecentErrors } from "@/lib/admin/error-log";
 import {
   STAFF_ROLE_LABEL,
   canAccessAdminSection,
@@ -96,10 +97,11 @@ function probeSession(role: StaffRole): Session {
 export default async function AdminOpsPage() {
   // 실집계 전환 퍼널 (활성방문 → 임장노트 → AI·LLM / AI·규칙 → 지도 핸드오프 → 결제).
   // 조회 실패·빈 데이터 시 빈 배열 → 아래에서 "데이터 없음" 빈 상태 렌더.
-  const [funnel, kpi, banners] = await Promise.all([
+  const [funnel, kpi, banners, errors] = await Promise.all([
     getOperatingMetrics(),
     loadAdminKpi(),
     listBanners().catch(() => [] as Banner[]),
+    loadRecentErrors(12),
   ]);
   const hasFunnel = funnel.length > 0 && funnel.some((s) => s.count > 0);
 
@@ -184,6 +186,52 @@ export default async function AdminOpsPage() {
             <div className="text-[10px] text-[#9aa6b8]">
               활성 {activeBanners.length} / 전체 {banners.length} · 지면별 우선순위로 노출.
               노출/클릭 실적은 집계 연동 후 표기합니다.
+            </div>
+          </div>
+
+          {/* 최근 에러 — 프로덕션 런타임 에러 가시화(제품 리뷰 최우선 결함 대응).
+              lib/monitoring/capture 가 ops.error_log 에 fingerprint 로 묶어 쌓는다.
+              조회 실패는 "에러 없음"으로 위장하지 않는다(ok=false 를 구분 표기). */}
+          <div className={darkCard}>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-extrabold text-white">최근 에러</span>
+              <span className="text-[10px] text-[#9aa6b8]">
+                {errors.ok ? `24시간 ${errors.total24h.toLocaleString("ko-KR")}건` : "조회 실패"}
+              </span>
+            </div>
+            <div className="flex flex-col gap-[5px] text-[11px]">
+              {!errors.ok ? (
+                <div className="rounded-[10px] bg-[rgba(242,201,76,.10)] px-3 py-3 text-[10px] text-[#e3b23c]">
+                  에러 로그를 불러오지 못했어요 — 에러가 없는 것과 다릅니다. 서비스 역할 키 설정을 확인하세요.
+                </div>
+              ) : errors.rows.length === 0 ? (
+                <div className="rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-4 text-center text-[10px] text-[#9aa6b8]">
+                  최근 30일 기록된 런타임 에러가 없어요.
+                </div>
+              ) : (
+                errors.rows.map((e) => (
+                  <div
+                    key={e.fingerprint}
+                    className="flex items-start gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
+                  >
+                    <span
+                      className={`mt-[1px] shrink-0 rounded-md chip-pad text-[9px] font-extrabold ${
+                        e.count >= 10 ? "bg-[rgba(192,54,44,.18)] text-[#ff6f61]" : "bg-[rgba(255,255,255,.08)] text-[#9aa6b8]"
+                      }`}
+                    >
+                      ×{e.count.toLocaleString("ko-KR")}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-bold text-white" title={e.message}>
+                        {e.message}
+                      </div>
+                      <div className="truncate text-[9px] text-[#9aa6b8]">
+                        {[e.source, e.path].filter(Boolean).join(" · ") || "—"} · {e.lastSeen.slice(5, 16).replace("T", " ")}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

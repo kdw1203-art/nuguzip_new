@@ -13,7 +13,9 @@
  * 사용: `import { captureException } from "@/lib/monitoring/capture";`
  */
 import "server-only";
+import { createHash } from "node:crypto";
 import { logger } from "@/lib/log";
+import { getServiceSupabase } from "@/lib/supabase/service";
 
 type Context = Record<string, unknown>;
 
@@ -31,6 +33,47 @@ export function isMonitoringConfigured(): boolean {
   return Boolean(
     process.env.SENTRY_DSN?.trim() || process.env.ALERT_WEBHOOK_URL?.trim(),
   );
+}
+
+/**
+ * DB 영속화 — 외부 APM(웹훅/Sentry) 자격증명이 없어도 에러가 "보이게" 한다.
+ *
+ * 제품 리뷰 최우선 결함이 "capture-only 라 프로덕션 에러가 사실상 안 보임"
+ * 이었다. 여기서 ops.error_log 에 upsert 하면 관리자 화면(/admin/ops)에서
+ * 최근 에러를 실제로 볼 수 있다. fingerprint 로 같은 에러를 묶어 폭주해도
+ * 1행이다. 서비스롤 미구성 시 조용히 건너뛴다(로그는 이미 남았다). never throw.
+ */
+function persistToDb(payload: CapturePayload): void {
+  try {
+    const sb = getServiceSupabase();
+    if (!sb) return;
+    const scope =
+      typeof payload.context?.scope === "string" ? payload.context.scope : payload.level;
+    const source =
+      typeof payload.context?.source === "string" ? payload.context.source : null;
+    const path = typeof payload.context?.path === "string" ? payload.context.path : null;
+    // 같은 메시지+scope 는 같은 지문 — 숫자(주문번호 등)는 지문에서 지워 뭉치지 않게 한다
+    const normalized = payload.message.replace(/\d+/g, "#").slice(0, 300);
+    const fingerprint = createHash("sha1")
+      .update(`${payload.level}|${scope}|${normalized}`)
+      .digest("hex");
+    void (sb
+      .rpc("record_error", {
+        p_fingerprint: fingerprint,
+        p_level: payload.level,
+        p_source: source ?? scope,
+        p_message: payload.message,
+        p_stack: payload.stack ?? null,
+        p_path: path,
+        p_context: (payload.context ?? {}) as Record<string, unknown>,
+      }) as unknown as Promise<unknown>)
+      .then(() => {})
+      .then(undefined, () => {
+        /* 영속화 실패는 무시 — 모니터링은 앱을 막지 않는다 */
+      });
+  } catch {
+    /* never throw */
+  }
 }
 
 /**
@@ -62,17 +105,19 @@ function sendToSink(payload: CapturePayload): void {
 export function captureException(error: unknown, context?: Context): void {
   try {
     logger.error("[monitoring] exception", error, context ?? {});
-    if (!isMonitoringConfigured()) return;
     const err = error instanceof Error ? error : undefined;
     const message =
       err?.message ?? (typeof error === "string" ? error : String(error));
-    sendToSink({
+    const payload: CapturePayload = {
       level: "error",
       message,
       stack: err?.stack,
       context,
       timestamp: new Date().toISOString(),
-    });
+    };
+    // DB 영속화는 외부 모니터링 설정과 무관하게 항상 시도한다(에러 가시화).
+    persistToDb(payload);
+    if (isMonitoringConfigured()) sendToSink(payload);
   } catch {
     /* never throw */
   }
@@ -82,13 +127,14 @@ export function captureException(error: unknown, context?: Context): void {
 export function captureMessage(msg: string, context?: Context): void {
   try {
     logger.error("[monitoring] message", msg, context ?? {});
-    if (!isMonitoringConfigured()) return;
-    sendToSink({
+    const payload: CapturePayload = {
       level: "message",
       message: msg,
       context,
       timestamp: new Date().toISOString(),
-    });
+    };
+    persistToDb(payload);
+    if (isMonitoringConfigured()) sendToSink(payload);
   } catch {
     /* never throw */
   }

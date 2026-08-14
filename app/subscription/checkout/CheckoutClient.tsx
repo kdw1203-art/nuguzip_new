@@ -169,10 +169,17 @@ export function CheckoutClient() {
           customerKey: TossPayments.ANONYMOUS,
         });
         await widgets.setAmount({ currency: "KRW", value: amount });
+        /* 결제위젯 소개서(소유자 전달본 2026-08-14) 반영: 상점관리자 어드민에서
+           만든 결제 UI(프로모션 배지·특정 카드사 강조·무이자 안내·A/B 등)는
+           variantKey 로 지정한다. 계약 후 어드민에서 UI 를 만들면 Vercel 에
+           NEXT_PUBLIC_TOSS_WIDGET_VARIANT_KEY 만 넣으면 된다 — 코드 수정 없이
+           운영(소개서의 "유지보수 5분" 경로). 미설정이면 기본 UI. */
+        const variantKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_VARIANT_KEY?.trim();
         await Promise.all([
-          /* variantKey 미지정 → 기본 UI. 계약 완료 후 상점관리자 결제위젯
-             어드민에서 만든 UI 는 variantKey 로 지정한다(코드 수정 없이 관리). */
-          widgets.renderPaymentMethods({ selector: "#toss-payment-methods" }),
+          widgets.renderPaymentMethods({
+            selector: "#toss-payment-methods",
+            ...(variantKey ? { variantKey } : {}),
+          }),
           widgets.renderAgreement({ selector: "#toss-agreement" }),
         ]);
         widgetsRef.current = widgets;

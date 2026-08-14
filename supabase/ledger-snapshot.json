@@ -31,8 +31,8 @@
  "project_ref": "pbhiskvwpwwhtkmnhkbm",
  "baseline_version": "20260724212021",
  "baseline_note": "supabase/migrations 에 남아 있는 가장 오래된 파일의 version. 그 이전 원장 행은 파일로 미러링된 적이 없고, 대조 대상도 아니다.",
- "ledger_rows": 203,
- "content_md5": "7abde8aedc86efe54e6967881d4b0975",
+ "ledger_rows": 206,
+ "content_md5": "d5e1927dba71e515c287d4fe5117b982",
  "extract": {
   "strip_comments_regex": "--[^\\n]*",
   "object_regex": "(create\\s+(?:or\\s+replace\\s+)?(?:unique\\s+)?(?:materialized\\s+view|view|function|table|index|policy|trigger|type|schema)(?:\\s+concurrently)?(?:\\s+if\\s+not\\s+exists)?|alter\\s+table(?:\\s+if\\s+exists)?|drop\\s+(?:materialized\\s+view|view|function|table|index|policy)(?:\\s+if\\s+exists)?)\\s+([a-zA-Z_\"][a-zA-Z0-9_.\"]*)",
@@ -2421,6 +2421,44 @@
    "objects": [
     "c:ops.etl_freshness"
    ]
+  },
+  {
+   "version": "20260814214554",
+   "name": "search_complexes_preview_chosung_support",
+   "bytes": 5584,
+   "md5": "939236a618ab43535dd22719e957035e",
+   "statements": 1,
+   "objects": [
+    "c:public.hangul_chosung",
+    "c:public.search_complexes_preview"
+   ]
+  },
+  {
+   "version": "20260814215632",
+   "name": "ops_error_log_persist_runtime_errors",
+   "bytes": 3476,
+   "md5": "e2837776260785e7185c5d5ef8cbafe4",
+   "statements": 1,
+   "objects": [
+    "c:ops",
+    "c:ops.error_log",
+    "c:error_log_last_seen_idx",
+    "a:ops.error_log",
+    "c:ops.record_error",
+    "c:ops.prune_error_log"
+   ]
+  },
+  {
+   "version": "20260814220104",
+   "name": "public_error_log_rpc_wrappers",
+   "bytes": 2275,
+   "md5": "c2dd0f9e44712303dc8eff0ad0229356",
+   "statements": 1,
+   "objects": [
+    "c:public.record_error",
+    "c:public.admin_recent_errors",
+    "c:public.admin_error_count_24h"
+   ]
   }
  ],
  "absent_now": {
@@ -3184,7 +3222,7 @@
    ]
   }
  ],
- "last_increment_note": "2026-08-11 (13건 증분 — 병렬 세션 10건은 본문 바이트 대조 완료(bytes=원장 octet), 데이터 품질 3건 1311xx 는 원장 md5·octet 를 그대로 적음: 저장소 파일이 원장 본문과 사소하게 어긋난다(적용 호출과 파일 작성이 별개였음, #352 코스메틱 편차)) [2026-08-12] 병렬 세션(08-11 22시대)이 MCP 로 적용한 3건(ops.site_probe 프로브 이력, etl_freshness HTTP 프로브 판정, web_vitals_reject_bots search_path 고정)을 base64+md5 검증으로 미러링하며 188→191행 증분 갱신. [2026-08-14] 병렬 세션이 MCP 로 적용한 3건(ops 결제 이행/실패 검사, DB 부하 감시 스냅샷, etl_freshness db.query_load 추가)과 이 세션의 토스 빌링 구독 원장(billing_subscriptions+갱신 크론) 1건을 base64+md5 검증으로 미러링하며 198→202행 증분 갱신. [2026-08-14 v2] billing.fulfillment 판정 교정(유령 user_subscriptions → 실제 app_users 이행 기록) 1건 추가, 202→203행.",
+ "last_increment_note": "2026-08-11 (13건 증분 — 병렬 세션 10건은 본문 바이트 대조 완료(bytes=원장 octet), 데이터 품질 3건 1311xx 는 원장 md5·octet 를 그대로 적음: 저장소 파일이 원장 본문과 사소하게 어긋난다(적용 호출과 파일 작성이 별개였음, #352 코스메틱 편차)) [2026-08-12] 병렬 세션(08-11 22시대)이 MCP 로 적용한 3건(ops.site_probe 프로브 이력, etl_freshness HTTP 프로브 판정, web_vitals_reject_bots search_path 고정)을 base64+md5 검증으로 미러링하며 188→191행 증분 갱신. [2026-08-14] 병렬 세션이 MCP 로 적용한 3건(ops 결제 이행/실패 검사, DB 부하 감시 스냅샷, etl_freshness db.query_load 추가)과 이 세션의 토스 빌링 구독 원장(billing_subscriptions+갱신 크론) 1건을 base64+md5 검증으로 미러링하며 198→202행 증분 갱신. [2026-08-14 v2] billing.fulfillment 판정 교정(유령 user_subscriptions → 실제 app_users 이행 기록) 1건 추가, 202→203행. [2026-08-14 v3] 초성 검색(hangul_chosung+RPC 자모 브랜치) 1건 추가, 203→204행. [2026-08-14 v4] ops.error_log(에러 영속화)+record_error+prune 크론 1건 추가, 204→205행. [2026-08-14 v5] public.record_error/admin_recent_errors/admin_error_count_24h 래퍼 1건 추가, 205→206행.",
  "known_unmirrored_versions_note": [
   "파일이 아예 없는 원장 행(version) 목록 — known_unmirrored(객체 단위)와 별개의 장부다.",
   "객체 단위 대조만으로는 create or replace / alter 형 마이그레이션의 파일 삭제·누락이 안 보인다:",
