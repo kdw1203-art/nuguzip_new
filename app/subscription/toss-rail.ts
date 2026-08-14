@@ -31,6 +31,15 @@ export type TossWidgets = {
 export type TossPaymentsFn = ((clientKey: string) => {
   payment: (opts: { customerKey: string }) => {
     requestPayment: (opts: Record<string, unknown>) => Promise<void>;
+    /** 자동결제(빌링) 카드 등록창 — successUrl 로 customerKey+authKey 리다이렉트.
+     *  빌링 문서: customerKey 는 서버 발급 무작위 고유값(이메일 등 유추 가능 값 금지). */
+    requestBillingAuth: (opts: {
+      method: "CARD";
+      successUrl: string;
+      failUrl: string;
+      customerEmail?: string;
+      customerName?: string;
+    }) => Promise<void>;
   };
   widgets: (opts: { customerKey: string }) => TossWidgets;
 }) & { ANONYMOUS: string };

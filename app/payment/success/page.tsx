@@ -90,6 +90,17 @@ export default async function PaymentSuccessPage({
         message = "Stripe 가 설정되지 않았습니다. 관리자에게 문의해 주세요.";
       }
     }
+  } else if (sp.provider === "toss-billing" && orderId) {
+    /* 자동결제 등록 — 발급·첫 결제·활성화는 /api/payments/toss/billing/register 가
+       서버에서 이미 끝냈다. 화면은 원장 기록으로만 사실을 확인한다(쿼리스트링을
+       믿지 않는 기존 원칙 그대로). */
+    const rec = await getPaymentByOrderId(orderId).catch(() => null);
+    if (rec?.status === "paid") {
+      status = "ok";
+      message = "자동결제 등록과 첫 결제가 완료됐어요. 다음 결제부터는 등록한 카드로 자동으로 진행돼요.";
+    } else {
+      message = "자동결제 등록 결과를 확인할 수 없어요. 구독 페이지에서 상태를 확인해 주세요.";
+    }
   } else if (sp.provider === "kakaopay" && orderId) {
     // 카카오페이는 /api/payments/kakaopay/approve 에서 승인·기록을 마치고 리다이렉트됩니다.
     status = "ok";
@@ -157,13 +168,16 @@ export default async function PaymentSuccessPage({
   };
   const METHOD_LABEL: Record<string, string> = {
     "카드": "카드 (토스페이먼츠)",
+    "카드(자동결제)": "카드 자동결제 (토스페이먼츠)",
     "mock-card": "테스트 결제",
   };
   const receiptRows: { label: string; value: string }[] = record
     ? [
         {
           label: "플랜",
-          value: `${PLAN_LABEL[record.plan] ?? record.plan} · ${record.billing === "annual" ? "연간" : "월간"}`,
+          value: `${PLAN_LABEL[record.plan] ?? record.plan} · ${
+            record.billing === "annual" ? "연간" : record.billing === "weekly" ? "주간권(7일)" : "월간"
+          }`,
         },
         {
           label: "결제 금액",

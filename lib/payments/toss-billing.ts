@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 
 /**
  * 토스페이먼츠 자동결제(빌링) 서버 클라이언트 — 기반 모듈.
@@ -28,6 +29,20 @@ import "server-only";
 
 const API_BASE = "https://api.tosspayments.com";
 
+/**
+ * 문자열에서 결정적으로 UUID v5 형태를 만든다 — confirm 라우트의 멱등키와 같은
+ * 방식. 빌링 승인은 "구독 id + 청구 주기" 로 키를 만들어, 같은 주기의 재시도가
+ * (크론이 두 번 돌아도) 토스 쪽에서 첫 응답을 그대로 받게 한다 = 이중 청구 불가.
+ */
+export function deterministicIdempotencyKey(seed: string): string {
+  const h = createHash("sha1").update(seed).digest();
+  const b = Buffer.from(h.subarray(0, 16));
+  b[6] = (b[6] & 0x0f) | 0x50;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const hex = b.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function authHeader(): string | null {
   const secret = process.env.TOSS_SECRET_KEY?.trim();
   if (!secret) return null;
@@ -36,6 +51,44 @@ function authHeader(): string | null {
 
 export function isTossBillingConfigured(): boolean {
   return authHeader() !== null;
+}
+
+/**
+ * 빌링 기능 개방 스위치 — **전자계약 승인 후 소유자가 명시적으로 켠다.**
+ *
+ * 자동결제는 리스크 검토·추가 계약 후에만 쓸 수 있다(빌링 문서 명시). 계약 전에
+ * 카드 등록 화면을 열어 두면 등록은 되는데 승인이 전부 거절되는, "되는 척하는"
+ * 화면이 된다 — 사실 우선 원칙 위반. 그래서 키가 있어도 이 env 가 "1" 이 아니면
+ * 화면·API 모두 정직한 대기 상태를 보여 준다.
+ *
+ * 켜는 절차(소유자): 토스 빌링 전자계약 승인 확인 → Vercel 환경변수
+ * NEXT_PUBLIC_TOSS_BILLING_ENABLED=1 추가 → 재배포. (공개 플래그인 이유:
+ * 카드 등록 UI 는 클라이언트 컴포넌트라 서버 전용 env 를 읽을 수 없다.
+ * 이 값은 기능 개방 여부일 뿐 비밀이 아니다.)
+ */
+export function isTossBillingEnabled(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_TOSS_BILLING_ENABLED?.trim() === "1" && isTossBillingConfigured()
+  );
+}
+
+/**
+ * 갱신 승인 실패를 "다음 크론에서 재시도할 것"과 "재시도해도 소용없는 것"으로
+ * 가른다. 빌링키가 삭제·무효인 경우는 몇 번을 다시 불러도 같은 답이다 —
+ * 즉시 suspended 로 접고 사용자에게 카드 재등록을 안내해야 한다(빌링 문서의
+ * "승인 실패 시 새 카드 등록 유도" 흐름).
+ */
+export function isNonRetryableBillingCode(code: string | null): boolean {
+  if (!code) return false;
+  return [
+    "NOT_FOUND_BILLING_KEY",
+    "INVALID_BILL_KEY_REQUEST",
+    "INVALID_STOPPED_CARD",
+    "INVALID_CARD_EXPIRATION",
+    "INVALID_CARD_NUMBER",
+    "NOT_SUPPORTED_CARD_TYPE",
+    "REJECT_ACCOUNT_PAYMENT",
+  ].includes(code);
 }
 
 export type TossBillingKey = {
@@ -141,4 +194,41 @@ export async function chargeBillingKey(input: {
     },
     input.idempotencyKey,
   );
+}
+
+/**
+ * 빌링키 삭제 — DELETE /v1/billing/{billingKey} (코어 API 문서).
+ * 사용자가 자동결제를 해지할 때 카드 등록도 함께 지우는 용도. 삭제 후 토스가
+ * BILLING_DELETED 웹훅을 보낼 수 있으나, 우리는 삭제 요청 시점에 이미 로컬
+ * 상태를 접으므로 웹훅은 멱등하게 흡수된다.
+ */
+export async function deleteBillingKey(
+  billingKey: string,
+): Promise<TossBillingResult<Record<string, unknown>>> {
+  const auth = authHeader();
+  if (!auth) return { ok: false, status: 0, code: "NOT_CONFIGURED", message: "TOSS_SECRET_KEY 미설정" };
+  try {
+    const res = await fetch(`${API_BASE}/v1/billing/${encodeURIComponent(billingKey)}`, {
+      method: "DELETE",
+      headers: { Authorization: auth },
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        code: typeof json.code === "string" ? json.code : null,
+        message: typeof json.message === "string" ? json.message : `HTTP ${res.status}`,
+      };
+    }
+    return { ok: true, data: json };
+  } catch (e) {
+    return {
+      ok: false,
+      status: 0,
+      code: "NETWORK",
+      message: e instanceof Error ? e.message : "네트워크 오류",
+    };
+  }
 }

@@ -7,6 +7,8 @@ import {
 } from "@/lib/payments/store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
+import { markDeletedByBillingKey } from "@/lib/payments/billing-store";
+import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -17,6 +19,7 @@ export const runtime = "nodejs";
  * 등록: developers.tosspayments.com → 내 개발정보 → 웹훅 → URL 에
  *   https://nuguzip.com/api/payments/toss/webhook
  * 구독 이벤트: PAYMENT_STATUS_CHANGED (전 결제수단) · DEPOSIT_CALLBACK (가상계좌)
+ *   · BILLING_DELETED (자동결제 빌링키 삭제 — 빌링 운영 시 필수)
  *
  * 문서 근거 (docs.tosspayments.com/guides/v2/webhook · reference/using-api/webhook-events):
  *  - 10초 안에 200 을 돌려줘야 한다. 못 주면 최대 7회(약 3일 19시간) 재시도된다 —
@@ -76,12 +79,14 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as {
     eventType?: string;
     createdAt?: string;
-    data?: TossPaymentObject;
+    data?: TossPaymentObject & { billingKey?: string };
     // DEPOSIT_CALLBACK 은 평평한 구조로 온다
     secret?: string;
     status?: string;
     orderId?: string;
     transactionKey?: string;
+    // BILLING_DELETED 는 billingKey 가 최상위에 온다(웹훅 이벤트 문서)
+    billingKey?: string;
   } | null;
   if (!body) return NextResponse.json({ ok: true, ignored: "unparsable" });
 
@@ -96,6 +101,37 @@ export async function POST(req: NextRequest) {
       orderId: body.orderId ?? null,
       status: body.status ?? null,
     });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (eventType === "BILLING_DELETED") {
+    /* 자동결제 빌링키가 토스 쪽에서 삭제됨(웹훅 이벤트 문서: eventType·createdAt·
+       billingKey·reason). 페이로드에 서명이 없지만, billingKey 는 서버 저장소에만
+       있는 값이라 **저장된 행과 일치하는 것 자체가 진위 확인**이다 — 일치하는 행이
+       없으면 아무것도 바꾸지 않고 200 만 준다(탐색 시도에 정보를 주지 않는다).
+       일치하면 구독을 deleted 로 접어 크론 청구를 멈추고, 카드 재등록을 안내한다. */
+    const billingKey =
+      (typeof body.billingKey === "string" ? body.billingKey : null) ??
+      (typeof body.data?.billingKey === "string" ? (body.data.billingKey as string) : null);
+    if (billingKey) {
+      try {
+        const sub = await markDeletedByBillingKey({ billingKey });
+        if (sub) {
+          logger.warn("[toss-webhook] BILLING_DELETED — 자동결제 중단", {
+            subscription: sub.id,
+          });
+          await appendInboxNotification({
+            userEmail: sub.userEmail,
+            title: "자동결제 카드 등록이 해제됐어요",
+            body: "등록된 카드가 삭제되어 자동결제가 멈췄어요. 계속 이용하려면 카드를 다시 등록해 주세요.",
+            actionUrl: "/subscription/billing",
+          }).catch(() => {});
+        }
+      } catch (e) {
+        logger.error("[toss-webhook] BILLING_DELETED 반영 실패", e);
+        return NextResponse.json({ error: "apply failed" }, { status: 500 });
+      }
+    }
     return NextResponse.json({ ok: true });
   }
 

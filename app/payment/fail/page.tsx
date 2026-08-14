@@ -29,6 +29,8 @@ type FailCategory =
   | "not_configured"
   | "forbidden"
   | "amount_mismatch"
+  | "session_expired"
+  | "billing_card"
   | "unknown";
 
 const CATEGORY_MESSAGE: Record<FailCategory, string> = {
@@ -46,6 +48,12 @@ const CATEGORY_MESSAGE: Record<FailCategory, string> = {
   forbidden: "본인 계정에서 시작한 결제만 완료할 수 있어요. 로그인 상태를 확인해 주세요.",
   amount_mismatch:
     "결제 금액 확인 과정에서 문제가 발견되어 안전을 위해 결제를 중단했어요. 처음부터 다시 시도해 주세요.",
+  /* 토스 결제창 승인 대기는 10분이다(NOT_FOUND_PAYMENT_SESSION — 코어 API 문서).
+     10분을 넘기면 세션이 사라져 승인할 수 없다 — 왜 안 됐는지 정확히 말해 준다. */
+  session_expired:
+    "결제 진행 시간이 10분을 넘어 결제 세션이 만료됐어요. 처음부터 다시 시도해 주세요 — 카드에서 금액이 빠져나가지 않았어요.",
+  billing_card:
+    "자동결제 카드 등록에 실패했어요. 카드 정보를 확인하거나 다른 카드로 다시 등록해 주세요.",
   unknown: "결제가 완료되지 않았어요. 잠시 후 다시 시도해 주세요. 반복되면 고객센터로 문의해 주세요.",
 };
 
@@ -75,6 +83,21 @@ const KNOWN_CODES: Record<string, FailCategory> = {
   PROVIDER_ERROR: "network",
   FAILED_INTERNAL_SYSTEM_PROCESSING: "network",
   UNKNOWN_PAYMENT_ERROR: "network",
+  // 승인 세션 만료 — 결제창 승인 대기는 10분(코어 API 문서)
+  NOT_FOUND_PAYMENT_SESSION: "session_expired",
+  NOT_FOUND_PAYMENT: "session_expired",
+  // 키·요청 구성 오류 — 사용자 잘못이 아니라 상점 설정 문제다
+  UNAUTHORIZED_KEY: "not_configured",
+  INVALID_API_KEY: "not_configured",
+  INVALID_CLIENT_KEY: "not_configured",
+  FORBIDDEN_REQUEST: "not_configured",
+  INVALID_REQUEST: "not_configured",
+  NOT_SUPPORTED_METHOD: "not_configured",
+  // 인증 횟수 초과(카드 인증 반복 실패)
+  EXCEED_MAX_AUTH_COUNT: "limit_exceeded",
+  // 자동결제(빌링) 카드 등록·승인 관련
+  NOT_FOUND_BILLING_KEY: "billing_card",
+  INVALID_BILL_KEY_REQUEST: "billing_card",
   // 내부 reason (kakaopay 콜백 라우트 등)
   MISSING_PARAMS: "not_configured",
   NOT_CONFIGURED: "not_configured",
@@ -119,7 +142,9 @@ export default async function PaymentFailPage({
   // 없으면 주문 기록(orderId)에서 복원한다 (카카오페이 콜백은 orderId 만 넘긴다).
   let retryPlan = sp.plan === "pro" || sp.plan === "expert" ? sp.plan : null;
   let retryBilling =
-    sp.billing === "annual" || sp.billing === "monthly" ? sp.billing : null;
+    sp.billing === "annual" || sp.billing === "monthly" || sp.billing === "weekly"
+      ? sp.billing
+      : null;
 
   if (sp.orderId) {
     try {

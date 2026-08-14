@@ -190,8 +190,18 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, payment: paid, recovered: true });
       }
       await markFailed(orderId);
+      /* 코어 API 문서의 대표 실패를 사용자 문장으로 바꾼다. 특히
+         NOT_FOUND_PAYMENT_SESSION 은 "승인 대기 10분 초과" 라는 명확한 원인이
+         있는데 토스 원문만 보여 주면 사용자가 카드 문제로 오해한다. */
+      const code = typeof data.code === "string" ? (data.code as string) : null;
+      const friendly =
+        code === "NOT_FOUND_PAYMENT_SESSION"
+          ? "결제 진행 시간이 10분을 넘어 세션이 만료됐어요. 청구는 되지 않았으니 처음부터 다시 시도해 주세요."
+          : code === "ALREADY_PROCESSED_PAYMENT"
+            ? "이미 처리된 결제예요. 마이 페이지에서 플랜 상태를 확인해 주세요."
+            : null;
       return NextResponse.json(
-        { error: (data.message as string) ?? "toss confirm failed", toss: data },
+        { error: friendly ?? ((data.message as string) ?? "toss confirm failed"), code, toss: data },
         { status: res.status },
       );
     }

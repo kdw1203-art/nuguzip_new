@@ -5,6 +5,9 @@ import {
   PAYMENT_PLAN_LABEL,
 } from "@/lib/subscriptions/billing-history";
 import { CancelRequestButton } from "./CancelRequestButton";
+import { BillingAutopayCard } from "./BillingAutopayCard";
+import { isTossBillingEnabled } from "@/lib/payments/toss-billing";
+import { getLiveSubscriptionByEmail, toPublic } from "@/lib/payments/billing-store";
 
 /**
  * 구독 관리 · 결제 내역 (E1)
@@ -53,6 +56,7 @@ function fmtBilling(billing: string | null): string {
   if (!billing) return "—";
   const n = Number(billing);
   if (Number.isFinite(n) && n > 0) return n === 1 ? "월간" : `${n}개월`;
+  if (billing === "weekly") return "주간권(7일)";
   if (billing === "monthly") return "월간";
   if (billing === "annual" || billing === "yearly") return "연간";
   return billing;
@@ -66,6 +70,16 @@ export async function BillingPanel({
   currentPlan: "free" | "pro" | "expert";
 }) {
   const { ok, payments } = await loadBillingHistory(email, 10);
+
+  /* 자동결제(토스 빌링) 구독 — 있으면 상태·다음 결제일·해지 버튼을 보여 준다.
+     next_charge_at 은 billing_subscriptions 에 실제로 저장되는 값이라 "근거 없는
+     날짜" 문제가 없다(단건 결제의 갱신일 미표시 원칙은 그대로 — 아래 안내 참고).
+     빌링 미개방(전자계약 전) 상태에서는 조회 자체가 빈손이라 아무것도 안 그린다. */
+  const liveAutopay = await getLiveSubscriptionByEmail(email.trim().toLowerCase()).catch(
+    () => null,
+  );
+  const autopay = liveAutopay ? toPublic(liveAutopay) : null;
+  const billingOpen = isTossBillingEnabled();
 
   return (
     <section className="rise-in-3 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
@@ -134,8 +148,23 @@ export async function BillingPanel({
         )}
       </div>
 
-      {/* 해지 요청 — 즉시 해지/다음 결제일 자동 표시는 DB에 기간이 없어 제공하지 않음.
-          구조화된 해지 요청 버튼 + CS 경로를 함께 둔다. */}
+      {/* 자동결제 이용 중이면 상태 카드(다음 결제일·해지)를 먼저 보여 준다 */}
+      {autopay && (
+        <div className="mt-4">
+          <BillingAutopayCard
+            plan={autopay.plan}
+            billing={autopay.billing}
+            amount={autopay.amount}
+            status={autopay.status}
+            cardCompany={autopay.cardCompany}
+            cardNumberMasked={autopay.cardNumberMasked}
+            nextChargeAt={autopay.nextChargeAt}
+          />
+        </div>
+      )}
+
+      {/* 해지 요청 — 단건 결제는 자동 갱신이 없어 "다음 결제 예정일" 자체가 없다.
+          자동결제 이용자는 위 카드에 실제 저장값(next_charge_at)이 표시된다. */}
       <div className="mt-4 flex flex-col gap-2 rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3">
         <div className="text-[12px] font-extrabold text-ink">플랜 변경 · 해지 · 환불</div>
         <p className="text-[11px] leading-[1.7] text-text-2">
@@ -153,8 +182,24 @@ export async function BillingPanel({
           >
             약관 제8조
           </Link>
-          . <b>다음 결제 예정일은 시스템에 저장되어 있지 않아 표시하지 않습니다.</b>
+          .{" "}
+          <b>
+            단건 결제는 자동 반복청구가 없어 다음 결제 예정일이 없습니다
+            {autopay ? " — 자동결제는 위 카드에 다음 결제일이 표시됩니다" : ""}.
+          </b>
         </p>
+        {billingOpen && !autopay && currentPlan !== "free" && (
+          <p className="text-[11px] leading-[1.7] text-text-2">
+            매번 결제하기 번거롭다면{" "}
+            <Link
+              href={`/subscription/billing?tier=${currentPlan}&billing=monthly`}
+              className="font-bold text-primary underline underline-offset-2"
+            >
+              자동결제 등록
+            </Link>
+            으로 전환할 수 있어요.
+          </p>
+        )}
         {currentPlan !== "free" && <CancelRequestButton currentPlan={currentPlan} />}
         <p className="text-[11px] leading-[1.7] text-text-3">
           상위 플랜으로 올리는 것은 위 요금제 카드에서 바로 결제하면 적용됩니다.

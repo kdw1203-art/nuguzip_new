@@ -192,7 +192,9 @@ export type IngestSource =
   /** 포인트 만료 스윕(app/api/cron/points-expiry-sweep) — 위와 같은 이유로 같은 로그를 쓴다 */
   | "points-expiry"
   /** 이메일 outbox 드레인(app/api/cron/notification-outbox-drain) — 위와 같은 이유 */
-  | "notification-outbox";
+  | "notification-outbox"
+  /** 토스 자동결제 갱신 크론(app/api/cron/billing-renewals) — 위와 같은 이유 */
+  | "billing-renewals";
 
 /**
  * F3(#147) — 크론이 던진 예외를 적재 로그에 남길 수 있는 한 줄짜리 사유로 만든다.

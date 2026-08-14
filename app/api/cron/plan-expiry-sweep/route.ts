@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
+import { listLiveBillingEmails } from "@/lib/payments/billing-store";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 import { logger } from "@/lib/log";
 
@@ -37,6 +38,10 @@ async function sendPreExpiryReminders(
 ): Promise<number> {
   let reminded = 0;
   try {
+    /* 자동결제(토스 빌링) 이용자는 제외 — 만료 전에 카드로 자동 갱신되므로
+       "만료돼요, 연장하세요" 알림은 그 사람에게 거짓 안내다(갱신이 실패하면
+       billing-renewals 크론이 별도의 실패 알림을 보낸다). */
+    const autopayEmails = await listLiveBillingEmails().catch(() => new Set<string>());
     const now = Date.now();
     const day = 24 * 60 * 60 * 1000;
     const windows = [
@@ -69,6 +74,7 @@ async function sendPreExpiryReminders(
       for (const row of upcoming ?? []) {
         const email = String(row.email ?? "").trim();
         if (!email) continue;
+        if (autopayEmails.has(email.toLowerCase())) continue; // 자동 갱신 예정 — 알림 부적절
         try {
           await appendInboxNotification({
             userEmail: email,

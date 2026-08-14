@@ -1,3253 +1,3302 @@
 {
-  "readme": [
-    "적용된 마이그레이션 원장(supabase_migrations.schema_migrations)을 2026-08-06 에 그대로 떠 놓은 것이다.",
-    "이 파일이 있는 이유: 이 컨테이너의 Node 는 Supabase 에 닿지 못한다. 그래서 릴리스 게이트가",
-    "원장을 직접 조회할 수 없고, 조회할 수 없으면 검사가 영구 SKIP→WARN 이 되어 아무도 안 본다.",
-    "오프라인에서 대조하려면 원장을 파일로 들고 있는 수밖에 없다.",
-    "",
-    "무엇이 들어 있나: baseline_version 이후의 원장 행 전부 — 행 수는 ledger_rows 필드가 단일 출처다. 행마다 version, name,",
-    "statements[1] 의 바이트 수와 md5, 그리고 그 SQL 에서 뽑은 객체 토큰이다.",
-    "토큰은 \"<동사>:<이름>\" 이고 동사는 c(create) / a(alter table) / d(drop) 세 가지다.",
-    "",
-    "md5 는 원장 본문과 로컬 파일 본문의 대조에 쓴다. [2026-08-09 정정] 예전에는 \"파일 끝",
-    "bytes 바이트의 md5 를 비교하면 된다\"고 적었는데 **틀렸다** — 원장 164행을 실측하니 127행이 자기",
-    "머리말 주석(`--`)을 본문 안에 갖고 있어, 미러 파일 끝을 자르는 대조는 대부분의 행에서 성립하지",
-    "않는다. 본문 대조는 주석 제거·공백 접기 정규화(대소문자 보존) 뒤 md5 로 해야 한다(작업 #352).",
-    "(octet_length 기준이다. 한글은 UTF-8 에서 한 글자가 3바이트라 문자 수로 세면 어긋난다.)",
-    "",
-    "content_md5 는 이 스냅샷이 원장과 어긋나지 않았는지 확인하는 값이다. 각 행을",
-    "\"version|name|bytes|md5|statements|objects(콤마, 사전순)\" 로 적고 개행으로 이어 붙인 문자열의 md5 다.",
-    "끝에 개행은 붙이지 않는다. DB 쪽에서 같은 식으로 만든 값과 2026-08-06 에 일치를 확인했다.",
-    "",
-    "경고 — 이 스냅샷이 증명하지 못하는 것:",
-    "  * measured_at 이후에 MCP 로 적용된 마이그레이션은 여기 없다. 파일도 없고 스냅샷에도 없으면",
-    "    어떤 오프라인 검사도 그것을 찾아내지 못한다. 이건 고칠 수 있는 한계가 아니라 방식의 한계다.",
-    "  * 객체 추출은 정규식이다. 아래 blind_spots 에 적힌 구문은 애초에 잡히지 않는다.",
-    "  * 객체가 \"언급됐다\"와 \"정의됐다\"는 다르다. 같은 정규식을 양쪽에 똑같이 적용해서",
-    "    비교할 뿐이고, 그 이상을 주장하지 않는다."
-  ],
-  "measured_at": "2026-08-13",
-  "source": "supabase_migrations.schema_migrations",
-  "project_ref": "pbhiskvwpwwhtkmnhkbm",
-  "baseline_version": "20260724212021",
-  "baseline_note": "supabase/migrations 에 남아 있는 가장 오래된 파일의 version. 그 이전 원장 행은 파일로 미러링된 적이 없고, 대조 대상도 아니다.",
-  "ledger_rows": 198,
-  "content_md5": "dc1cc713700b773387ab79b6126563a7",
-  "extract": {
-    "strip_comments_regex": "--[^\\n]*",
-    "object_regex": "(create\\s+(?:or\\s+replace\\s+)?(?:unique\\s+)?(?:materialized\\s+view|view|function|table|index|policy|trigger|type|schema)(?:\\s+concurrently)?(?:\\s+if\\s+not\\s+exists)?|alter\\s+table(?:\\s+if\\s+exists)?|drop\\s+(?:materialized\\s+view|view|function|table|index|policy)(?:\\s+if\\s+exists)?)\\s+([a-zA-Z_\"][a-zA-Z0-9_.\"]*)",
-    "flags": "gi",
-    "note": "원장 쪽과 로컬 파일 쪽에 이 두 정규식을 글자 하나까지 똑같이 적용해야 한다. 한쪽만 넓히거나 한쪽만 주석을 지우면 없는 결손이 만들어진다. 실제로 그런 적이 두 번 있다 — create unique index 를 한쪽만 잡아서 로컬 객체가 157 로 적게 세어졌고(고친 뒤 224), 주석을 로컬에서만 지워서 원장 객체가 347 로 많게 세어졌다(고친 뒤 331)."
+ "readme": [
+  "적용된 마이그레이션 원장(supabase_migrations.schema_migrations)을 2026-08-06 에 그대로 떠 놓은 것이다.",
+  "이 파일이 있는 이유: 이 컨테이너의 Node 는 Supabase 에 닿지 못한다. 그래서 릴리스 게이트가",
+  "원장을 직접 조회할 수 없고, 조회할 수 없으면 검사가 영구 SKIP→WARN 이 되어 아무도 안 본다.",
+  "오프라인에서 대조하려면 원장을 파일로 들고 있는 수밖에 없다.",
+  "",
+  "무엇이 들어 있나: baseline_version 이후의 원장 행 전부 — 행 수는 ledger_rows 필드가 단일 출처다. 행마다 version, name,",
+  "statements[1] 의 바이트 수와 md5, 그리고 그 SQL 에서 뽑은 객체 토큰이다.",
+  "토큰은 \"<동사>:<이름>\" 이고 동사는 c(create) / a(alter table) / d(drop) 세 가지다.",
+  "",
+  "md5 는 원장 본문과 로컬 파일 본문의 대조에 쓴다. [2026-08-09 정정] 예전에는 \"파일 끝",
+  "bytes 바이트의 md5 를 비교하면 된다\"고 적었는데 **틀렸다** — 원장 164행을 실측하니 127행이 자기",
+  "머리말 주석(`--`)을 본문 안에 갖고 있어, 미러 파일 끝을 자르는 대조는 대부분의 행에서 성립하지",
+  "않는다. 본문 대조는 주석 제거·공백 접기 정규화(대소문자 보존) 뒤 md5 로 해야 한다(작업 #352).",
+  "(octet_length 기준이다. 한글은 UTF-8 에서 한 글자가 3바이트라 문자 수로 세면 어긋난다.)",
+  "",
+  "content_md5 는 이 스냅샷이 원장과 어긋나지 않았는지 확인하는 값이다. 각 행을",
+  "\"version|name|bytes|md5|statements|objects(콤마, 사전순)\" 로 적고 개행으로 이어 붙인 문자열의 md5 다.",
+  "끝에 개행은 붙이지 않는다. DB 쪽에서 같은 식으로 만든 값과 2026-08-06 에 일치를 확인했다.",
+  "",
+  "경고 — 이 스냅샷이 증명하지 못하는 것:",
+  "  * measured_at 이후에 MCP 로 적용된 마이그레이션은 여기 없다. 파일도 없고 스냅샷에도 없으면",
+  "    어떤 오프라인 검사도 그것을 찾아내지 못한다. 이건 고칠 수 있는 한계가 아니라 방식의 한계다.",
+  "  * 객체 추출은 정규식이다. 아래 blind_spots 에 적힌 구문은 애초에 잡히지 않는다.",
+  "  * 객체가 \"언급됐다\"와 \"정의됐다\"는 다르다. 같은 정규식을 양쪽에 똑같이 적용해서",
+  "    비교할 뿐이고, 그 이상을 주장하지 않는다."
+ ],
+ "measured_at": "2026-08-14",
+ "source": "supabase_migrations.schema_migrations",
+ "project_ref": "pbhiskvwpwwhtkmnhkbm",
+ "baseline_version": "20260724212021",
+ "baseline_note": "supabase/migrations 에 남아 있는 가장 오래된 파일의 version. 그 이전 원장 행은 파일로 미러링된 적이 없고, 대조 대상도 아니다.",
+ "ledger_rows": 202,
+ "content_md5": "94e141bb10a60114eb845618d67b2cfe",
+ "extract": {
+  "strip_comments_regex": "--[^\\n]*",
+  "object_regex": "(create\\s+(?:or\\s+replace\\s+)?(?:unique\\s+)?(?:materialized\\s+view|view|function|table|index|policy|trigger|type|schema)(?:\\s+concurrently)?(?:\\s+if\\s+not\\s+exists)?|alter\\s+table(?:\\s+if\\s+exists)?|drop\\s+(?:materialized\\s+view|view|function|table|index|policy)(?:\\s+if\\s+exists)?)\\s+([a-zA-Z_\"][a-zA-Z0-9_.\"]*)",
+  "flags": "gi",
+  "note": "원장 쪽과 로컬 파일 쪽에 이 두 정규식을 글자 하나까지 똑같이 적용해야 한다. 한쪽만 넓히거나 한쪽만 주석을 지우면 없는 결손이 만들어진다. 실제로 그런 적이 두 번 있다 — create unique index 를 한쪽만 잡아서 로컬 객체가 157 로 적게 세어졌고(고친 뒤 224), 주석을 로컬에서만 지워서 원장 객체가 347 로 많게 세어졌다(고친 뒤 331)."
+ },
+ "blind_spots": [
+  "create sequence / create extension — 정규식에 없다",
+  "alter view / alter materialized view — 정규식에 없다(로컬 파일 기준 5건)",
+  "grant / revoke / comment / cron.schedule / insert·update 만 있는 행은 객체가 하나도 안 나온다",
+  "함수 인자 시그니처는 무시한다. 오버로드는 한 이름으로 합쳐진다",
+  "measured_at 이후 적용분은 이 파일에 없다"
+ ],
+ "migrations": [
+  {
+   "version": "20260724212021",
+   "name": "owner_verifications_listing_link",
+   "bytes": 1568,
+   "md5": "3ab96ee23a62a5d082447523e4ab8864",
+   "statements": 1,
+   "objects": [
+    "a:public.owner_verifications",
+    "c:owner_verifications_applicant_idx",
+    "c:owner_verifications_listing_idx",
+    "c:owner_verifications_pending_listing_uniq",
+    "c:owner_verifications_status_created_idx"
+   ]
   },
-  "blind_spots": [
-    "create sequence / create extension — 정규식에 없다",
-    "alter view / alter materialized view — 정규식에 없다(로컬 파일 기준 5건)",
-    "grant / revoke / comment / cron.schedule / insert·update 만 있는 행은 객체가 하나도 안 나온다",
-    "함수 인자 시그니처는 무시한다. 오버로드는 한 이름으로 합쳐진다",
-    "measured_at 이후 적용분은 이 파일에 없다"
-  ],
-  "migrations": [
-    {
-      "version": "20260724212021",
-      "name": "owner_verifications_listing_link",
-      "bytes": 1568,
-      "md5": "3ab96ee23a62a5d082447523e4ab8864",
-      "statements": 1,
-      "objects": [
-        "a:public.owner_verifications",
-        "c:owner_verifications_applicant_idx",
-        "c:owner_verifications_listing_idx",
-        "c:owner_verifications_pending_listing_uniq",
-        "c:owner_verifications_status_created_idx"
-      ]
-    },
-    {
-      "version": "20260724225522",
-      "name": "add_contact_masked_to_dev_partners",
-      "bytes": 676,
-      "md5": "dfa440762839dbad96ceeca8de3ab3ab",
-      "statements": 1,
-      "objects": [
-        "a:public.dev_partners"
-      ]
-    },
-    {
-      "version": "20260724235826",
-      "name": "complex_sitemap_source_view",
-      "bytes": 1454,
-      "md5": "bab0dacb8cc2e8f8bb72ca17ff6c85aa",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_trade_complex_idx",
-        "c:public.complex_sitemap_source"
-      ]
-    },
-    {
-      "version": "20260724235924",
-      "name": "drop_unused_sitemap_index",
-      "bytes": 359,
-      "md5": "e2c7088285b4e8d3842dfd1b469860a0",
-      "statements": 1,
-      "objects": [
-        "d:public.market_transactions_trade_complex_idx"
-      ]
-    },
-    {
-      "version": "20260725000313",
-      "name": "complex_sitemap_source_add_last_data_at",
-      "bytes": 1348,
-      "md5": "6f6d43691dd415ae6c936957d9cf314c",
-      "statements": 1,
-      "objects": [
-        "c:public.complex_sitemap_source",
-        "d:public.complex_sitemap_source"
-      ]
-    },
-    {
-      "version": "20260725002812",
-      "name": "tx_band_landing_source_view",
-      "bytes": 2900,
-      "md5": "1b5a7c2ea06152a2b882074578499106",
-      "statements": 1,
-      "objects": [
-        "c:public.tx_band_landing_source",
-        "d:public.tx_band_landing_source"
-      ]
-    },
-    {
-      "version": "20260725002829",
-      "name": "tx_band_complex_source_view",
-      "bytes": 1929,
-      "md5": "5d6774124e6e1375bee06f87fd6ae0ac",
-      "statements": 1,
-      "objects": [
-        "c:public.tx_band_complex_source",
-        "d:public.tx_band_complex_source"
-      ]
-    },
-    {
-      "version": "20260725005122",
-      "name": "c1_map_price_point_source_view",
-      "bytes": 2381,
-      "md5": "80aa06c19fe46a79de6f59efb5bc9ba6",
-      "statements": 1,
-      "objects": [
-        "c:public.map_price_point_source"
-      ]
-    },
-    {
-      "version": "20260725013228",
-      "name": "materialize_market_aggregates",
-      "bytes": 7713,
-      "md5": "5e55b290041e03da027cb49a77462c2f",
-      "statements": 1,
-      "objects": [
-        "c:map_price_point_mv_key",
-        "c:map_price_point_mv_latlng",
-        "c:map_price_point_mv_txcount",
-        "c:public.map_price_point_mv",
-        "c:public.tx_band_complex_mv",
-        "c:public.tx_band_landing_mv",
-        "c:tx_band_complex_mv_band",
-        "c:tx_band_complex_mv_key",
-        "c:tx_band_landing_mv_key"
-      ]
-    },
-    {
-      "version": "20260725013320",
-      "name": "swap_market_aggregate_views_to_mv",
-      "bytes": 3374,
-      "md5": "11d31724e3f2029ba562baaf3aa01f58",
-      "statements": 1,
-      "objects": [
-        "c:public.map_price_point_source",
-        "c:public.refresh_market_aggregates",
-        "c:public.tx_band_complex_source",
-        "c:public.tx_band_landing_source"
-      ]
-    },
-    {
-      "version": "20260725013421",
-      "name": "refresh_market_aggregates_timeout",
-      "bytes": 1553,
-      "md5": "66fee30bd1e7557934613502cb5a3c83",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260725014038",
-      "name": "move_market_aggregate_mvs_to_private_schema",
-      "bytes": 3314,
-      "md5": "162801920a8b2ddffb1a3ed61703ff9c",
-      "statements": 1,
-      "objects": [
-        "c:market_agg",
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260725020445",
-      "name": "experiment_framework_and_reengagement",
-      "bytes": 5477,
-      "md5": "4bca6154d588ec639ebedf728fbfce23",
-      "statements": 1,
-      "objects": [
-        "a:public.experiment_assignments",
-        "a:public.notification_preferences",
-        "a:public.platform_activity_events",
-        "a:public.reengagement_log",
-        "c:experiment_assignments_key_variant_idx",
-        "c:platform_activity_events_experiment_idx",
-        "c:public.experiment_assignments",
-        "c:public.experiment_results_source",
-        "c:public.reengagement_log",
-        "c:public.user_last_activity_source",
-        "c:reengagement_log_email_sent_idx"
-      ]
-    },
-    {
-      "version": "20260725021717",
-      "name": "experiment_exposure_rpc",
-      "bytes": 2595,
-      "md5": "3846024b9b687a9b2811aa2e254c5c5e",
-      "statements": 1,
-      "objects": [
-        "a:public.experiment_assignments",
-        "c:public.experiment_assignment_stats",
-        "c:public.record_experiment_exposure"
-      ]
-    },
-    {
-      "version": "20260725040926",
-      "name": "watchlist_last_price_band",
-      "bytes": 1126,
-      "md5": "9b8f3f235a787f237c1d6016d25c96a2",
-      "statements": 1,
-      "objects": [
-        "a:public.user_watchlist"
-      ]
-    },
-    {
-      "version": "20260725041607",
-      "name": "upsert_apartment_complexes_merge",
-      "bytes": 4208,
-      "md5": "13f10b9942ec9c9976dd91105ed5db30",
-      "statements": 1,
-      "objects": [
-        "c:public.upsert_apartment_complexes"
-      ]
-    },
-    {
-      "version": "20260725042611",
-      "name": "market_transactions_is_cancelled",
-      "bytes": 1811,
-      "md5": "47c54c9600ad51a2e52d83fedbaaa31a",
-      "statements": 1,
-      "objects": [
-        "a:public.market_transactions",
-        "c:market_transactions_active_trade_idx"
-      ]
-    },
-    {
-      "version": "20260725042708",
-      "name": "exclude_cancelled_from_market_aggregates",
-      "bytes": 9356,
-      "md5": "3bc3a8f9e8d18b68628080cde317980b",
-      "statements": 1,
-      "objects": [
-        "c:map_price_point_mv_key",
-        "c:map_price_point_mv_latlng",
-        "c:map_price_point_mv_txcount",
-        "c:market_agg.map_price_point_mv",
-        "c:market_agg.tx_band_complex_mv",
-        "c:market_agg.tx_band_landing_mv",
-        "c:public.complex_sitemap_source",
-        "c:public.map_price_point_source",
-        "c:public.tx_band_complex_source",
-        "c:public.tx_band_landing_source",
-        "c:tx_band_complex_mv_band",
-        "c:tx_band_complex_mv_key",
-        "c:tx_band_landing_mv_key",
-        "d:market_agg.map_price_point_mv",
-        "d:market_agg.tx_band_complex_mv",
-        "d:market_agg.tx_band_landing_mv",
-        "d:public.map_price_point_source",
-        "d:public.tx_band_complex_source",
-        "d:public.tx_band_landing_source"
-      ]
-    },
-    {
-      "version": "20260725060721",
-      "name": "search_complexes_scope_to_apt_master",
-      "bytes": 3201,
-      "md5": "de214ea65ac630a6fb46ea20a0572442",
-      "statements": 1,
-      "objects": [
-        "c:public.search_complexes"
-      ]
-    },
-    {
-      "version": "20260725062134",
-      "name": "listing_stale_notice_state",
-      "bytes": 3134,
-      "md5": "8813297041cb06da2747a52f7b2b20b0",
-      "statements": 1,
-      "objects": [
-        "a:public.listings",
-        "a:public.notification_preferences",
-        "c:listings_stale_scan_idx"
-      ]
-    },
-    {
-      "version": "20260725064948",
-      "name": "data_quality_report_rpc",
-      "bytes": 5865,
-      "md5": "beb458a1d305688ad1e07c2d0efc7fa6",
-      "statements": 1,
-      "objects": [
-        "c:public.data_quality_report"
-      ]
-    },
-    {
-      "version": "20260725092854",
-      "name": "add_push_weekly_digest_pref",
-      "bytes": 814,
-      "md5": "b1d1069f7a0fdaa44ee65fd7e7e713e4",
-      "statements": 1,
-      "objects": [
-        "a:public.notification_preferences"
-      ]
-    },
-    {
-      "version": "20260725132940",
-      "name": "seed_legal_regions_nationwide",
-      "bytes": 17983,
-      "md5": "b24d6ec118b3abf608e999f7801900df",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260725143928",
-      "name": "drop_duplicate_indexes_advisor_0009",
-      "bytes": 1373,
-      "md5": "720f5ce7939ab4be6dbe79a6fc4fd955",
-      "statements": 1,
-      "objects": [
-        "d:public.app_users_email_unique_idx",
-        "d:public.idx_evr_status_created",
-        "d:public.idx_group_members_meeting",
-        "d:public.idx_pdc_expires_at",
-        "d:public.owner_verifications_status_idx",
-        "d:public.ppr_complex_idx",
-        "d:public.ppr_dataset_idx",
-        "d:public.report_purchases_unique_idx"
-      ]
-    },
-    {
-      "version": "20260725143944",
-      "name": "harden_security_definer_grants_and_search_path",
-      "bytes": 1703,
-      "md5": "62914391cee90f0cfa330de172685c5d",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260725151428",
-      "name": "plan_expiry_and_search_trgm",
-      "bytes": 605,
-      "md5": "8ce8047a8df1fb7096550e12c7f6cf62",
-      "statements": 1,
-      "objects": [
-        "a:public.app_users",
-        "c:app_users_plan_expiry_idx",
-        "c:market_transactions_complex_name_trgm"
-      ]
-    },
-    {
-      "version": "20260725153531",
-      "name": "add_push_attendance_pref",
-      "bytes": 282,
-      "md5": "58da18a77c3a2824c67032f342af659c",
-      "statements": 1,
-      "objects": [
-        "a:public.notification_preferences"
-      ]
-    },
-    {
-      "version": "20260725153536",
-      "name": "complexes_needing_geocode_retry_notfound",
-      "bytes": 1027,
-      "md5": "f01cdbaa512eb425bab3841bd9f97f55",
-      "statements": 1,
-      "objects": [
-        "c:public.complexes_needing_geocode"
-      ]
-    },
-    {
-      "version": "20260725232135",
-      "name": "point_ledger_spend_rpc",
-      "bytes": 1580,
-      "md5": "cc140a597c0ac86ad22ccc07506c430b",
-      "statements": 1,
-      "objects": [
-        "c:public.point_ledger_spend"
-      ]
-    },
-    {
-      "version": "20260726015509",
-      "name": "geocode_rpc_harden_under_load",
-      "bytes": 612,
-      "md5": "85f60ea7fb1701f7676dfb72cbc47fff",
-      "statements": 1,
-      "objects": [
-        "c:mt_trade_complex_geo_idx"
-      ]
-    },
-    {
-      "version": "20260726024852",
-      "name": "geocode_rpc_early_exit",
-      "bytes": 1552,
-      "md5": "e0b57088cc4309f643190b8521567b5c",
-      "statements": 1,
-      "objects": [
-        "c:public.complexes_needing_geocode"
-      ]
-    },
-    {
-      "version": "20260726033311",
-      "name": "materialize_complex_sitemap_source",
-      "bytes": 3160,
-      "md5": "a17c34e0d083d7bd8f2ac3b607a2b533",
-      "statements": 1,
-      "objects": [
-        "c:complex_sitemap_mv_key",
-        "c:complex_sitemap_mv_rank",
-        "c:market_agg.complex_sitemap_mv",
-        "c:public.complex_sitemap_source",
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260726035902",
-      "name": "restore_market_agg_mv_grants",
-      "bytes": 798,
-      "md5": "c69f4bd1db21bf36ba3305c288794233",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260726045247",
-      "name": "complex_pair_source",
-      "bytes": 7720,
-      "md5": "3f3aa07e4247863974facd991cc77529",
-      "statements": 1,
-      "objects": [
-        "c:complex_pair_mv_key",
-        "c:complex_pair_mv_rank",
-        "c:market_agg.complex_pair_mv",
-        "c:public.complex_pair_source",
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260726052727",
-      "name": "20260726130000_market_temperature_snapshot",
-      "bytes": 1537,
-      "md5": "a8a9f4640fe8a6eca6ce2a0d1f8944d1",
-      "statements": 1,
-      "objects": [
-        "a:public.market_temperature_snapshot",
-        "c:market_temperature_snapshot_week_idx",
-        "c:public.market_temperature_snapshot"
-      ]
-    },
-    {
-      "version": "20260726055809",
-      "name": "public_read_for_build_prerender",
-      "bytes": 449,
-      "md5": "08202a0ff0278f033d800854ebdc7a89",
-      "statements": 1,
-      "objects": [
-        "c:market_temperature_snapshot_public_read",
-        "d:market_temperature_snapshot_public_read"
-      ]
-    },
-    {
-      "version": "20260726084003",
-      "name": "seo_measurement",
-      "bytes": 2216,
-      "md5": "598e5c515ffc45a432e54803ebf5416c",
-      "statements": 1,
-      "objects": [
-        "a:public.seo_field_perf",
-        "a:public.seo_index_coverage",
-        "c:public.seo_field_perf",
-        "c:public.seo_index_coverage",
-        "c:seo_field_perf_week_idx"
-      ]
-    },
-    {
-      "version": "20260726104532",
-      "name": "market_transactions_raw_statistics_off",
-      "bytes": 317,
-      "md5": "9aff688a3aa7fce936f7a2cc356fbe26",
-      "statements": 1,
-      "objects": [
-        "a:public.market_transactions"
-      ]
-    },
-    {
-      "version": "20260726231929",
-      "name": "market_transactions_region_recent_idx",
-      "bytes": 889,
-      "md5": "4aa3de687b34bd0ec71dda8de750dadb",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_region_recent_idx"
-      ]
-    },
-    {
-      "version": "20260726232115",
-      "name": "market_transactions_region_name_trgm_idx",
-      "bytes": 416,
-      "md5": "5e07ff2ceac11a78bc863a59d6972536",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_region_name_trgm"
-      ]
-    },
-    {
-      "version": "20260726232246",
-      "name": "drop_market_transactions_region_name_trgm_idx",
-      "bytes": 724,
-      "md5": "e7779584757e13d972b11831530ff6df",
-      "statements": 1,
-      "objects": [
-        "d:public.market_transactions_region_name_trgm"
-      ]
-    },
-    {
-      "version": "20260726232333",
-      "name": "market_transactions_trade_region_ym_idx",
-      "bytes": 811,
-      "md5": "2491194fedae628971ceb733d4eb00d4",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_trade_region_ym_idx"
-      ]
-    },
-    {
-      "version": "20260726234356",
-      "name": "geocode_priority_by_trade_volume",
-      "bytes": 3431,
-      "md5": "34d3881a4ba41adb7d6198da5bc19a35",
-      "statements": 1,
-      "objects": [
-        "c:complex_tx_stats_pk",
-        "c:complex_tx_stats_priority_idx",
-        "c:public.complex_tx_stats",
-        "c:public.complexes_needing_geocode"
-      ]
-    },
-    {
-      "version": "20260726234514",
-      "name": "refresh_complex_tx_stats_with_aggregates",
-      "bytes": 2723,
-      "md5": "535dcc16b2e0f1a07c22caffe8892e87",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260726234814",
-      "name": "apartment_complexes_name_address_trgm",
-      "bytes": 796,
-      "md5": "4cb467fead953b9b441c7cc40a7379fd",
-      "statements": 1,
-      "objects": [
-        "c:apartment_complexes_address_trgm",
-        "c:apartment_complexes_name_trgm"
-      ]
-    },
-    {
-      "version": "20260727001128",
-      "name": "market_region_names_rpc",
-      "bytes": 2582,
-      "md5": "a9f3ab4a89476145994bbe3de6ff2193",
-      "statements": 1,
-      "objects": [
-        "c:public.market_region_names"
-      ]
-    },
-    {
-      "version": "20260727002346",
-      "name": "posts_complex_id",
-      "bytes": 1674,
-      "md5": "d7fb431c394331c1e740a24bb3fa501d",
-      "statements": 1,
-      "objects": [
-        "a:public.posts",
-        "c:posts_complex_id_created_idx"
-      ]
-    },
-    {
-      "version": "20260727005535",
-      "name": "phantom_schema_districts_partners_oauth_links",
-      "bytes": 10510,
-      "md5": "e8e09ab754a48129b919b985c59bf161",
-      "statements": 1,
-      "objects": [
-        "a:public.app_users",
-        "a:public.district_snapshots",
-        "a:public.districts",
-        "a:public.nearby_provider_links",
-        "a:public.partner_listings",
-        "a:public.toss_login_tokens",
-        "c:app_users_kakao_user_id_key",
-        "c:app_users_toss_user_key_key",
-        "c:district_snapshots_key",
-        "c:district_snapshots_public_read",
-        "c:districts_lawd_cd_key",
-        "c:districts_public_read",
-        "c:districts_sido_short_sigungu_idx",
-        "c:districts_sido_sigungu_idx",
-        "c:nearby_provider_links_complex_idx",
-        "c:nearby_provider_links_key",
-        "c:nearby_provider_links_public_read",
-        "c:partner_listings_complex_status_idx",
-        "c:partner_listings_external_key_key",
-        "c:partner_listings_public_read_active",
-        "c:public.district_snapshots",
-        "c:public.districts",
-        "c:public.nearby_provider_links",
-        "c:public.partner_listings",
-        "c:public.toss_login_tokens"
-      ]
-    },
-    {
-      "version": "20260727005906",
-      "name": "partner_listings_district",
-      "bytes": 703,
-      "md5": "aff67dc2ce016339709cfb17b0e9723c",
-      "statements": 1,
-      "objects": [
-        "a:public.partner_listings",
-        "c:partner_listings_district_status_idx"
-      ]
-    },
-    {
-      "version": "20260727025459",
-      "name": "public_read_redevelopment_projects",
-      "bytes": 3124,
-      "md5": "491864ff1e4b217982f7d69b8ca80618",
-      "statements": 1,
-      "objects": [
-        "c:redevelopment_projects_public_read",
-        "d:redevelopment_projects_public_read"
-      ]
-    },
-    {
-      "version": "20260727070541",
-      "name": "fix_region_label_41430_and_disable_dead_codes",
-      "bytes": 2115,
-      "md5": "2b60fef45a86bf6034b87b5cd5ac28ef",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727070752",
-      "name": "fix_districts_label_41430_uiwang",
-      "bytes": 1005,
-      "md5": "692c9c04dcea811fbb23ba6263bc63dd",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727071124",
-      "name": "move_siheung_coords_to_41390_and_set_uiwang_center",
-      "bytes": 1555,
-      "md5": "b5d291d47760c8f25d7a39a494d51c00",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727071451",
-      "name": "popular_complexes_viewport",
-      "bytes": 5018,
-      "md5": "80a7dc39955c0f17c1b85e7fa1cf5980",
-      "statements": 1,
-      "objects": [
-        "c:complex_geocode_latlng_idx",
-        "c:complex_tx_stats_pk",
-        "c:complex_tx_stats_priority_idx",
-        "c:complex_tx_stats_recent_idx",
-        "c:public.complex_tx_stats",
-        "c:public.popular_complexes",
-        "d:public.complex_tx_stats"
-      ]
-    },
-    {
-      "version": "20260727071605",
-      "name": "complex_id_helper_and_popular_fix_v2",
-      "bytes": 3062,
-      "md5": "763e62f501f18a45366fec6c08453d9b",
-      "statements": 1,
-      "objects": [
-        "c:public.complex_id",
-        "c:public.popular_complexes",
-        "d:public.popular_complexes"
-      ]
-    },
-    {
-      "version": "20260727071621",
-      "name": "drop_duplicate_indexes",
-      "bytes": 778,
-      "md5": "18b725bc691a003ef9f8103f93c1a4f0",
-      "statements": 1,
-      "objects": [
-        "d:public.banned_words_word_idx",
-        "d:public.idx_pdc_cache_key",
-        "d:public.inspection_share_links_token_idx",
-        "d:public.kv_store_99a854cb_key_idx1",
-        "d:public.kv_store_99a854cb_key_idx2",
-        "d:public.kv_store_99a854cb_key_idx3",
-        "d:public.push_sub_endpoint_idx"
-      ]
-    },
-    {
-      "version": "20260727071637",
-      "name": "add_covering_indexes_for_foreign_keys",
-      "bytes": 2330,
-      "md5": "e0060f351e203ebf7429908d7c42fbf6",
-      "statements": 1,
-      "objects": [
-        "c:idx_admin_audit_logs_actor_id",
-        "c:idx_ai_analysis_jobs_report_id",
-        "c:idx_ai_analysis_runs_preset_id",
-        "c:idx_b2b_inquiries_partner_id",
-        "c:idx_chat_reports_message_id",
-        "c:idx_chat_reports_room_id",
-        "c:idx_content_reports_handled_by",
-        "c:idx_content_reports_target_comment_id",
-        "c:idx_content_reports_target_post_id",
-        "c:idx_expert_profiles_user_id",
-        "c:idx_expert_verification_requests_user_id",
-        "c:idx_inspection_schedules_note_id",
-        "c:idx_inspection_sessions_note_id",
-        "c:idx_inspection_share_links_note_id",
-        "c:idx_inspection_share_links_session_id",
-        "c:idx_map_events_user_id",
-        "c:idx_nearby_provider_links_expert_id",
-        "c:idx_owner_verifications_reviewed_by",
-        "c:idx_report_purchases_payment_id",
-        "c:idx_reports_author_id",
-        "c:idx_user_subscriptions_payment_order_id",
-        "c:idx_user_subscriptions_plan_id"
-      ]
-    },
-    {
-      "version": "20260727071657",
-      "name": "wrap_auth_calls_in_rls_policies_initplan",
-      "bytes": 1960,
-      "md5": "30cc43a4fee582c27e96b70d06f60802",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727073106",
-      "name": "sec_revoke_public_execute_on_security_definer_fns",
-      "bytes": 1804,
-      "md5": "a6654d6cedda0f37f8c3b5376aeadb3a",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727073140",
-      "name": "sec_profiles_pii_lockdown",
-      "bytes": 1395,
-      "md5": "4db6c8c09b4ed388fdf50a2cf13be042",
-      "statements": 1,
-      "objects": [
-        "c:profiles_select_self_or_admin",
-        "c:public.profiles_public",
-        "d:profiles_select_public"
-      ]
-    },
-    {
-      "version": "20260727073158",
-      "name": "sec_policy_and_privilege_hardening",
-      "bytes": 2424,
-      "md5": "de72a00e688a2b1abd4fbd1e3841bf04",
-      "statements": 1,
-      "objects": [
-        "c:chat_reports_admin_read",
-        "c:chat_reports_admin_update",
-        "c:open_beta_tasks_select_admin",
-        "d:chat_reports_admin_read",
-        "d:chat_reports_admin_update",
-        "d:open_beta_tasks_select_auth"
-      ]
-    },
-    {
-      "version": "20260727073220",
-      "name": "sec_consume_feature_quota_advisory_lock",
-      "bytes": 3660,
-      "md5": "7360874e0f762a48e30182ac6ebd2eb2",
-      "statements": 1,
-      "objects": [
-        "c:public.consume_feature_quota"
-      ]
-    },
-    {
-      "version": "20260727073253",
-      "name": "grant_popular_complexes_execute",
-      "bytes": 1348,
-      "md5": "6d0ca88cd33eccf2fd3e0ca0f85c9698",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727073918",
-      "name": "create_news_articles",
-      "bytes": 1895,
-      "md5": "1f83cb31d3971d19c4b1e06e15a5654d",
-      "statements": 1,
-      "objects": [
-        "a:public.news_articles",
-        "c:board_posts_external_key_key",
-        "c:news_articles_collected_date_rank_idx",
-        "c:news_articles_external_key_key",
-        "c:news_articles_public_read",
-        "c:news_articles_published_at_idx",
-        "c:news_articles_region_idx",
-        "c:public.news_articles",
-        "d:news_articles_public_read"
-      ]
-    },
-    {
-      "version": "20260727074510",
-      "name": "add_explicit_public_read_policies_for_reference_tables",
-      "bytes": 1688,
-      "md5": "48c6900ce0eee3d90aef3083f2040830",
-      "statements": 1,
-      "objects": [
-        "c:apartment_complexes_select_public",
-        "c:apartment_supply_select_public",
-        "c:banners_select_active",
-        "c:complex_geocode_select_public",
-        "c:court_auctions_select_public",
-        "c:onbid_auctions_select_public",
-        "c:policy_versions_select_public",
-        "c:public_property_records_select_public"
-      ]
-    },
-    {
-      "version": "20260727074952",
-      "name": "create_automation_scripts",
-      "bytes": 560,
-      "md5": "457c852379c950897341497c76d1d9a1",
-      "statements": 1,
-      "objects": [
-        "a:public.automation_scripts",
-        "c:public.automation_scripts"
-      ]
-    },
-    {
-      "version": "20260727075537",
-      "name": "complex_tx_stats_service_role_grant",
-      "bytes": 733,
-      "md5": "55bf947c460ed708c6c038323f9fc16b",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727080008",
-      "name": "create_ingest_daily_news",
-      "bytes": 4530,
-      "md5": "36a01b645a9055cc0232640e3a145f47",
-      "statements": 1,
-      "objects": [
-        "a:public.automation_secrets",
-        "c:public.automation_secrets",
-        "c:public.ingest_daily_news"
-      ]
-    },
-    {
-      "version": "20260727080050",
-      "name": "fix_board_posts_external_key_index",
-      "bytes": 147,
-      "md5": "ec211bd52573a3af4beed0bbffbffdf5",
-      "statements": 1,
-      "objects": [
-        "c:board_posts_external_key_key",
-        "d:public.board_posts_external_key_key"
-      ]
-    },
-    {
-      "version": "20260727080142",
-      "name": "create_get_automation_script",
-      "bytes": 680,
-      "md5": "052ac86112b8a219db2cfacbfdd8ca82",
-      "statements": 1,
-      "objects": [
-        "c:public.get_automation_script"
-      ]
-    },
-    {
-      "version": "20260727081748",
-      "name": "ingest_news_source_kind_breaking",
-      "bytes": 4377,
-      "md5": "e8c9728d560cdd0ef65c379f80d71090",
-      "statements": 1,
-      "objects": [
-        "c:public.ingest_daily_news"
-      ]
-    },
-    {
-      "version": "20260727084430",
-      "name": "iap_receipts",
-      "bytes": 958,
-      "md5": "ee078d3edebb6124f85d8bcb163b3553",
-      "statements": 1,
-      "objects": [
-        "a:public.iap_receipts",
-        "c:iap_receipts_user_email_idx",
-        "c:public.iap_receipts"
-      ]
-    },
-    {
-      "version": "20260727084441",
-      "name": "report_purchases_payment_binding",
-      "bytes": 828,
-      "md5": "ea3e95601add03ffb65349d23569512b",
-      "statements": 1,
-      "objects": [
-        "a:public.report_purchases",
-        "c:report_purchases_payment_id_key"
-      ]
-    },
-    {
-      "version": "20260727084456",
-      "name": "point_ledger_award_rpc",
-      "bytes": 2126,
-      "md5": "08feef6a78db665c18db48c533f9b418",
-      "statements": 1,
-      "objects": [
-        "c:public.point_ledger_award"
-      ]
-    },
-    {
-      "version": "20260727085616",
-      "name": "storage_buckets_hardening",
-      "bytes": 1892,
-      "md5": "868b01d805f350e84cfd3ca774705f71",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727090313",
-      "name": "sec_automation_tables_revoke",
-      "bytes": 372,
-      "md5": "1d8a1fc6baee62a53f1e95ad56fa0e73",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260727104613",
-      "name": "apt_detail_pending_partial_index",
-      "bytes": 1544,
-      "md5": "758778a34594d83aaa7ee52a61cb4ba8",
-      "statements": 1,
-      "objects": [
-        "c:apartment_complexes_detail_pending_idx"
-      ]
-    },
-    {
-      "version": "20260727111248",
-      "name": "complex_tx_stats_facets_v2",
-      "bytes": 4003,
-      "md5": "22e9fe79defe614912d98c46e555dbb6",
-      "statements": 1,
-      "objects": [
-        "c:complex_tx_stats_name_trgm",
-        "c:complex_tx_stats_pk",
-        "c:complex_tx_stats_priority_idx",
-        "c:complex_tx_stats_recent_idx",
-        "c:public.complex_tx_stats",
-        "d:public.complex_tx_stats"
-      ]
-    },
-    {
-      "version": "20260727111525",
-      "name": "map_filter_histogram_and_search_preview_v2",
-      "bytes": 9070,
-      "md5": "537d764307a34287bf9ddc2e8e9d5dff",
-      "statements": 1,
-      "objects": [
-        "c:public.map_filter_facets",
-        "c:public.popular_complexes",
-        "c:public.search_complexes_preview",
-        "d:public.popular_complexes"
-      ]
-    },
-    {
-      "version": "20260727111638",
-      "name": "map_filter_facets_dense_bins",
-      "bytes": 4689,
-      "md5": "c334a8d16d1dc0da7911bb6eb73dfeaa",
-      "statements": 1,
-      "objects": [
-        "c:public.map_filter_facets"
-      ]
-    },
-    {
-      "version": "20260727133228",
-      "name": "search_regions",
-      "bytes": 1890,
-      "md5": "c47ff7fa66cc501ec556985fd9a91a37",
-      "statements": 1,
-      "objects": [
-        "c:public.search_regions"
-      ]
-    },
-    {
-      "version": "20260727133313",
-      "name": "search_regions_v2",
-      "bytes": 1981,
-      "md5": "edfe9e723005a1d889de9ac6488950b4",
-      "statements": 1,
-      "objects": [
-        "c:public.search_regions"
-      ]
-    },
-    {
-      "version": "20260727152725",
-      "name": "aggregates_filter_property_type_apartment_part1",
-      "bytes": 3275,
-      "md5": "f46dd72ec7ff7a5da92643a1a2c72114",
-      "statements": 1,
-      "objects": [
-        "c:map_price_point_mv_key",
-        "c:map_price_point_mv_latlng",
-        "c:map_price_point_mv_txcount",
-        "c:market_agg.map_price_point_mv",
-        "c:public.map_price_point_source",
-        "d:market_agg.map_price_point_mv"
-      ]
-    },
-    {
-      "version": "20260727152754",
-      "name": "aggregates_filter_property_type_apartment_part2",
-      "bytes": 1227,
-      "md5": "980f866ab6c8fb93cccc8d9a3f4f2c9e",
-      "statements": 1,
-      "objects": [
-        "c:complex_sitemap_mv_key",
-        "c:complex_sitemap_mv_rank",
-        "c:market_agg.complex_sitemap_mv",
-        "c:public.complex_sitemap_source",
-        "d:market_agg.complex_sitemap_mv"
-      ]
-    },
-    {
-      "version": "20260727152818",
-      "name": "aggregates_filter_property_type_apartment_part3",
-      "bytes": 2621,
-      "md5": "727c60c4739299e4f329c2068f59e33a",
-      "statements": 1,
-      "objects": [
-        "c:market_agg.tx_band_landing_mv",
-        "c:public.tx_band_landing_source",
-        "c:tx_band_landing_mv_key",
-        "d:market_agg.tx_band_landing_mv"
-      ]
-    },
-    {
-      "version": "20260727152841",
-      "name": "aggregates_filter_property_type_apartment_part4",
-      "bytes": 2340,
-      "md5": "93191efd0c28923327a302081728263b",
-      "statements": 1,
-      "objects": [
-        "c:market_agg.tx_band_complex_mv",
-        "c:public.tx_band_complex_source",
-        "c:tx_band_complex_mv_band",
-        "c:tx_band_complex_mv_key",
-        "d:market_agg.tx_band_complex_mv"
-      ]
-    },
-    {
-      "version": "20260727152907",
-      "name": "aggregates_filter_property_type_apartment_part5",
-      "bytes": 2892,
-      "md5": "e8b40fd57d7ea15f606d418402359251",
-      "statements": 1,
-      "objects": [
-        "c:complex_tx_stats_name_trgm",
-        "c:complex_tx_stats_pk",
-        "c:complex_tx_stats_priority_idx",
-        "c:complex_tx_stats_recent_idx",
-        "c:public.complex_tx_stats",
-        "d:public.complex_tx_stats"
-      ]
-    },
-    {
-      "version": "20260727154809",
-      "name": "map_complex_attrs",
-      "bytes": 2495,
-      "md5": "0f9a25e8532e512268e7f71d973871d4",
-      "statements": 1,
-      "objects": [
-        "c:public.map_complex_attrs"
-      ]
-    },
-    {
-      "version": "20260801233000",
-      "name": "export_automation_drift_and_revoke_anon_writes",
-      "bytes": 1215,
-      "md5": "dad867e2ce443dc0881acf8a8aeb70cc",
-      "statements": 1,
-      "objects": [
-        "a:public.automation_scripts",
-        "a:public.automation_secrets",
-        "c:public.automation_scripts",
-        "c:public.automation_secrets"
-      ]
-    },
-    {
-      "version": "20260801234401",
-      "name": "add_news_articles_board_post_id_index",
-      "bytes": 300,
-      "md5": "b4aa828d6e34dcd9006356f86b8f0235",
-      "statements": 1,
-      "objects": [
-        "c:news_articles_board_post_id_idx"
-      ]
-    },
-    {
-      "version": "20260801235741",
-      "name": "notification_outbox_retry_columns",
-      "bytes": 219,
-      "md5": "8ed8ee7ada4bcacb603e40246ccc545d",
-      "statements": 1,
-      "objects": [
-        "a:public.notification_outbox"
-      ]
-    },
-    {
-      "version": "20260801235958",
-      "name": "security_definer_views_step1_tx_band_invoker",
-      "bytes": 334,
-      "md5": "43be1b8d14b13e41e67de71974a63abd",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802000022",
-      "name": "security_definer_views_step2_grant_then_invoker",
-      "bytes": 818,
-      "md5": "c8cced804c9e29a6419b56bea6d59bc4",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802000142",
-      "name": "perf_scope_permissive_policies_to_roles",
-      "bytes": 1467,
-      "md5": "9a566ee677c35d22cf66f065a42136bb",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802000313",
-      "name": "move_household_mvs_out_of_api_schema",
-      "bytes": 477,
-      "md5": "4708d6786f9435090d8d1318b77c8786",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802015600",
-      "name": "drop_unused_profiles_public_view",
-      "bytes": 1430,
-      "md5": "0a26bdf9d4ecbc6b41ce804309c4d56d",
-      "statements": 1,
-      "objects": [
-        "d:public.profiles_public"
-      ]
-    },
-    {
-      "version": "20260802082133",
-      "name": "consolidate_inspection_notes_select_and_drop_unused_indexes_wave1",
-      "bytes": 3895,
-      "md5": "ae01a25140cafdfb3c11507297c841a5",
-      "statements": 1,
-      "objects": [
-        "c:inspection_notes_select_public",
-        "d:inspection_notes_public_read",
-        "d:inspection_notes_select_public_published",
-        "d:public.ai_analysis_runs_author_created_idx",
-        "d:public.ai_analysis_runs_author_district_idx",
-        "d:public.ai_analysis_runs_platform_created_idx",
-        "d:public.chat_messages_author_idx",
-        "d:public.chat_messages_room_idx",
-        "d:public.chat_messages_sender_idx",
-        "d:public.chat_rooms_created_by_idx",
-        "d:public.chat_rooms_owner_idx",
-        "d:public.chat_rooms_topic_idx"
-      ]
-    },
-    {
-      "version": "20260802094924",
-      "name": "sec_revoke_anon_grants_on_deny_all_tables",
-      "bytes": 1617,
-      "md5": "2d0af2eda6ac8000e79bafc3a99a0a25",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802095822",
-      "name": "fix_refresh_market_aggregates_household_mv_schema",
-      "bytes": 4101,
-      "md5": "bf127d54d33b2a89753e76d8abc6484d",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260802104327",
-      "name": "sec_lock_default_privileges_public",
-      "bytes": 2162,
-      "md5": "1dc99593c6f5a2f906058056ab7b1152",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802110942",
-      "name": "sec_complex_reviews_hide_author_email_from_anon",
-      "bytes": 1190,
-      "md5": "10c1c646d65f177e20fb5196a50a2206",
-      "statements": 1,
-      "objects": [
-        "d:cr_anon_read"
-      ]
-    },
-    {
-      "version": "20260802113317",
-      "name": "perf_merge_duplicate_permissive_policies_wave2",
-      "bytes": 11554,
-      "md5": "d755ae0eff2b640917df77b295c365fc",
-      "statements": 1,
-      "objects": [
-        "c:chat_reports_select",
-        "c:inspection_ai_reports_select_anon",
-        "c:inspection_ai_reports_select_authed",
-        "c:map_related_experts_admin_delete",
-        "c:map_related_experts_admin_insert",
-        "c:map_related_experts_admin_update",
-        "c:map_related_experts_select",
-        "c:membership_plans_admin_delete",
-        "c:membership_plans_admin_insert",
-        "c:membership_plans_admin_update",
-        "c:payments_select",
-        "c:posts_delete",
-        "c:posts_insert",
-        "c:posts_select",
-        "c:posts_update",
-        "c:report_purchases_admin_delete",
-        "c:report_purchases_admin_insert",
-        "c:report_purchases_admin_update",
-        "c:report_purchases_select",
-        "c:reports_admin_delete",
-        "c:reports_admin_insert",
-        "c:reports_admin_update",
-        "c:uploads_admin_delete",
-        "c:uploads_admin_update",
-        "c:uploads_insert",
-        "c:uploads_select",
-        "c:user_subscriptions_select",
-        "d:admins",
-        "d:chat_reports_admin_read",
-        "d:chat_reports_self_read",
-        "d:inspection_ai_reports_select_owner_or_admin",
-        "d:inspection_ai_reports_select_public_note",
-        "d:map_related_experts_admin_write",
-        "d:map_related_experts_select_active",
-        "d:membership_plans_admin_write",
-        "d:note_embeddings_select_own",
-        "d:payments_admin_read",
-        "d:payments_self_read",
-        "d:posts_admin_all",
-        "d:posts_author_delete",
-        "d:posts_author_update",
-        "d:posts_author_write",
-        "d:posts_public_select",
-        "d:report_purchases_admin_all",
-        "d:report_purchases_self_read",
-        "d:reports_admin_write",
-        "d:uploads_admin_all",
-        "d:uploads_self_insert",
-        "d:uploads_self_read",
-        "d:users"
-      ]
-    },
-    {
-      "version": "20260802113441",
-      "name": "fix_wave2_split_roles_avoid_anon_app_users_reference",
-      "bytes": 5399,
-      "md5": "03bcdb9d59a54cc7cec0fa3ef15b8442",
-      "statements": 1,
-      "objects": [
-        "c:chat_reports_select",
-        "c:map_related_experts_select_anon",
-        "c:map_related_experts_select_authed",
-        "c:payments_select",
-        "c:posts_delete_authed",
-        "c:posts_insert_authed",
-        "c:posts_select_anon",
-        "c:posts_select_authed",
-        "c:posts_update_authed",
-        "c:report_purchases_select",
-        "c:uploads_insert",
-        "c:uploads_select",
-        "d:chat_reports_select",
-        "d:map_related_experts_select",
-        "d:payments_select",
-        "d:posts_delete",
-        "d:posts_insert",
-        "d:posts_select",
-        "d:posts_update",
-        "d:report_purchases_select",
-        "d:uploads_insert",
-        "d:uploads_select"
-      ]
-    },
-    {
-      "version": "20260802113611",
-      "name": "fix_admin_policy_branches_use_definer_helper",
-      "bytes": 6142,
-      "md5": "c957a32b11eb2d3f56bc2f44016802cd",
-      "statements": 1,
-      "objects": [
-        "c:audit_admin_read",
-        "c:inspection_notes_admin_all",
-        "c:open_beta_tasks_insert_admin",
-        "c:open_beta_tasks_update_admin",
-        "c:payments_select",
-        "c:posts_delete_authed",
-        "c:posts_insert_authed",
-        "c:posts_select_authed",
-        "c:posts_update_authed",
-        "c:report_purchases_admin_delete",
-        "c:report_purchases_admin_insert",
-        "c:report_purchases_admin_update",
-        "c:report_purchases_select",
-        "c:reports_admin_delete",
-        "c:reports_admin_insert",
-        "c:reports_admin_update",
-        "c:uploads_admin_delete",
-        "c:uploads_admin_update",
-        "c:uploads_insert",
-        "c:uploads_select",
-        "d:audit_admin_read",
-        "d:inspection_notes_admin_all",
-        "d:open_beta_tasks_insert_admin",
-        "d:open_beta_tasks_update_admin",
-        "d:payments_select",
-        "d:posts_delete_authed",
-        "d:posts_insert_authed",
-        "d:posts_select_authed",
-        "d:posts_update_authed",
-        "d:report_purchases_admin_delete",
-        "d:report_purchases_admin_insert",
-        "d:report_purchases_admin_update",
-        "d:report_purchases_select",
-        "d:reports_admin_delete",
-        "d:reports_admin_insert",
-        "d:reports_admin_update",
-        "d:uploads_admin_delete",
-        "d:uploads_admin_update",
-        "d:uploads_insert",
-        "d:uploads_select"
-      ]
-    },
-    {
-      "version": "20260802122721",
-      "name": "perf_inspection_notes_merge_dual_identity_policies",
-      "bytes": 3426,
-      "md5": "daebd45326f9e902d4a38edc596439df",
-      "statements": 1,
-      "objects": [
-        "c:inspection_notes_delete_authed",
-        "c:inspection_notes_insert_authed",
-        "c:inspection_notes_select_anon",
-        "c:inspection_notes_select_authed",
-        "c:inspection_notes_update_authed",
-        "d:inspection_notes_admin_all",
-        "d:inspection_notes_author_all",
-        "d:inspection_notes_delete_owner_or_admin",
-        "d:inspection_notes_insert_self",
-        "d:inspection_notes_select_own_or_admin",
-        "d:inspection_notes_select_public",
-        "d:inspection_notes_update_owner_or_admin"
-      ]
-    },
-    {
-      "version": "20260802123021",
-      "name": "perf_drop_unused_indexes_wave3",
-      "bytes": 2816,
-      "md5": "2cc9aa0fa08e0d2b957f4ce451cdbe7d",
-      "statements": 1,
-      "objects": [
-        "d:public.board_posts_automation_idx",
-        "d:public.board_posts_external_key_uidx",
-        "d:public.board_posts_feed_updated_idx",
-        "d:public.board_posts_geo_idx",
-        "d:public.board_posts_source_published_at_idx",
-        "d:public.complex_geocode_ok_idx",
-        "d:public.news_articles_published_at_idx",
-        "d:public.news_articles_region_idx",
-        "d:public.onbid_sido_idx"
-      ]
-    },
-    {
-      "version": "20260802130346",
-      "name": "perf_index_unindexed_foreign_keys",
-      "bytes": 452,
-      "md5": "81e5374b92693c56eadbd728f63635bc",
-      "statements": 1,
-      "objects": [
-        "c:chat_messages_author_id_idx",
-        "c:chat_rooms_owner_id_idx"
-      ]
-    },
-    {
-      "version": "20260802221656",
-      "name": "add_trade_region_first_recent_idx",
-      "bytes": 534,
-      "md5": "2474074f8ae0e418c7e2196b3dfe2849",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_region_first_ym_idx"
-      ]
-    },
-    {
-      "version": "20260802221750",
-      "name": "covering_idx_for_trade_region_ym_hot_query",
-      "bytes": 990,
-      "md5": "3c877b8df4ea08bc590ecec6d9ac8d1b",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_trade_region_ym_cov_idx",
-        "d:public.market_transactions_region_first_ym_idx",
-        "d:public.market_transactions_trade_region_ym_idx"
-      ]
-    },
-    {
-      "version": "20260802221819",
-      "name": "telemetry_retention_pg_cron",
-      "bytes": 652,
-      "md5": "23b524c3fe3f2e7e5539427e3245c3af",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260802223432",
-      "name": "daily_kpi_snapshot_infra",
-      "bytes": 2100,
-      "md5": "f3014a38357919370f3d61b1a9506457",
-      "statements": 1,
-      "objects": [
-        "a:public.daily_kpi_snapshot",
-        "c:public.capture_daily_kpi",
-        "c:public.daily_kpi_snapshot"
-      ]
-    },
-    {
-      "version": "20260802223508",
-      "name": "fix_map_refresh_search_path_pgcrypto",
-      "bytes": 360,
-      "md5": "de268a9e9bfa6140d3ad980a9301947e",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260803084012",
-      "name": "page_view_events_and_traffic_views",
-      "bytes": 3817,
-      "md5": "7701405ef3e87b2a8c6e007d566e71b3",
-      "statements": 1,
-      "objects": [
-        "a:public.page_view_events",
-        "c:page_view_events_occurred_idx",
-        "c:page_view_events_route_idx",
-        "c:page_view_events_session_idx",
-        "c:public.page_view_daily",
-        "c:public.page_view_events",
-        "c:public.page_view_route_30d",
-        "c:public.platform_event_usage_30d"
-      ]
-    },
-    {
-      "version": "20260803084231",
-      "name": "page_view_summary_windows",
-      "bytes": 1133,
-      "md5": "7c87ef69f3ee1080b94804b8420eaf7b",
-      "statements": 1,
-      "objects": [
-        "c:public.page_view_summary"
-      ]
-    },
-    {
-      "version": "20260803085247",
-      "name": "sec_payment_tables_revoke_client_writes",
-      "bytes": 1894,
-      "md5": "b21351df5c599dad83d2d1f5491b519d",
-      "statements": 1,
-      "objects": [
-        "d:payment_orders_insert_self"
-      ]
-    },
-    {
-      "version": "20260803130946",
-      "name": "page_view_referrer_utm",
-      "bytes": 2266,
-      "md5": "d7520a66260cb77851fef081afb3007c",
-      "statements": 1,
-      "objects": [
-        "a:public.page_view_events",
-        "c:public.page_view_referrer_30d",
-        "c:public.page_view_utm_30d"
-      ]
-    },
-    {
-      "version": "20260803221147",
-      "name": "sec_revoke_anon_execute_on_automation_rpcs",
-      "bytes": 688,
-      "md5": "8baa4fefc92d7e6a68c023df7596eb97",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260803222358",
-      "name": "perf_complex_tx_stats_norm_once_and_parallel_safe",
-      "bytes": 1271,
-      "md5": "8960caa052ec1b90283dc3ae76af11ff",
-      "statements": 1,
-      "objects": [
-        "c:public.complex_tx_stats"
-      ]
-    },
-    {
-      "version": "20260803222419",
-      "name": "perf_complex_tx_stats_norm_once_offset0_barrier",
-      "bytes": 837,
-      "md5": "f9175bd0477a1eda290394f504abaa11",
-      "statements": 1,
-      "objects": [
-        "c:public.complex_tx_stats"
-      ]
-    },
-    {
-      "version": "20260803222514",
-      "name": "extend_telemetry_retention_page_views_and_ingest_log",
-      "bytes": 703,
-      "md5": "4d9820109840237b20f272ac87c800c0",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260803223121",
-      "name": "reporting_schema_for_morning_brief",
-      "bytes": 7255,
-      "md5": "afdca9320c402f1878414f68e14b7832",
-      "statements": 1,
-      "objects": [
-        "c:market_transactions_created_at_idx",
-        "c:reporting",
-        "c:reporting.daily_series",
-        "c:reporting.date_spine",
-        "c:reporting.pipeline_health",
-        "c:reporting.web_vitals_p75",
-        "c:reporting.zombie_runs"
-      ]
-    },
-    {
-      "version": "20260803224240",
-      "name": "optimize_market_aggregates_cron_and_autovacuum",
-      "bytes": 5075,
-      "md5": "fb13f70c34e5891e30b446fe2fac4b3c",
-      "statements": 1,
-      "objects": [
-        "a:public.apartment_complexes",
-        "a:public.market_transactions",
-        "c:public.refresh_market_aggregates_cron",
-        "c:reporting.index_drop_candidates",
-        "c:reporting.index_usage_baseline"
-      ]
-    },
-    {
-      "version": "20260803224320",
-      "name": "harden_refresh_market_aggregates_cron_null_guard",
-      "bytes": 1627,
-      "md5": "5c0a52d03830141647fdfd7aafdbed87",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates_cron"
-      ]
-    },
-    {
-      "version": "20260803225006",
-      "name": "etl_zombie_reaper_cron",
-      "bytes": 1786,
-      "md5": "40d2b1d615c5955221f34283220af714",
-      "statements": 1,
-      "objects": [
-        "c:public.reap_stale_etl_runs"
-      ]
-    },
-    {
-      "version": "20260803225657",
-      "name": "refresh_market_aggregates_cron_statement_timeout",
-      "bytes": 2169,
-      "md5": "10dba06bd2d8d62f195cf77982fd933a",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates_cron"
-      ]
-    },
-    {
-      "version": "20260803225725",
-      "name": "platform_viewport_group_30d_view",
-      "bytes": 841,
-      "md5": "5c81f3aa9c89e56c4812e179d0ee09ad",
-      "statements": 1,
-      "objects": [
-        "c:public.platform_viewport_group_30d"
-      ]
-    },
-    {
-      "version": "20260803231016",
-      "name": "fix_etl_runs_finished_at_uses_clock_timestamp",
-      "bytes": 2094,
-      "md5": "1aba90a88d2128ba8523444d6d3f9123",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates_cron"
-      ]
-    },
-    {
-      "version": "20260804000834",
-      "name": "page_view_visitor_key_retention",
-      "bytes": 1307,
-      "md5": "6e34c9b56f0fcdaef0fc7040ac76e5d0",
-      "statements": 1,
-      "objects": [
-        "a:public.page_view_events",
-        "c:page_view_events_visitor_idx",
-        "c:public.page_view_retention_30d"
-      ]
-    },
-    {
-      "version": "20260804030022",
-      "name": "web_vitals_weekly_view",
-      "bytes": 731,
-      "md5": "beda40dae05b72d9cc11f5c42afbb50a",
-      "statements": 1,
-      "objects": [
-        "c:public.web_vitals_weekly"
-      ]
-    },
-    {
-      "version": "20260804074312",
-      "name": "precompute_complex_households_resolved",
-      "bytes": 3648,
-      "md5": "764fd26c2cf9a59b98208f45143b16e4",
-      "statements": 1,
-      "objects": [
-        "c:complex_households_resolved_pk",
-        "c:market_agg.complex_households_resolved",
-        "c:public.complex_tx_stats",
-        "c:public.map_complex_attrs"
-      ]
-    },
-    {
-      "version": "20260804074344",
-      "name": "complex_geocode_trade_count_index_for_map",
-      "bytes": 594,
-      "md5": "74d45ff903be58677d98f5e89f0930ea",
-      "statements": 1,
-      "objects": [
-        "c:complex_geocode_trade_rank_idx"
-      ]
-    },
-    {
-      "version": "20260804074431",
-      "name": "complex_geocode_bbox_covering_index",
-      "bytes": 743,
-      "md5": "eb791c7eada9f93c65d52ac7fc44e066",
-      "statements": 1,
-      "objects": [
-        "c:complex_geocode_latlng_cov_idx",
-        "d:public.complex_geocode_latlng_idx",
-        "d:public.complex_geocode_trade_rank_idx"
-      ]
-    },
-    {
-      "version": "20260804074542",
-      "name": "map_rpc_bbox_predicate_index_usable",
-      "bytes": 4506,
-      "md5": "d6356b1ca988c15f1caed2985b58e18e",
-      "statements": 1,
-      "objects": [
-        "c:public.map_complex_attrs",
-        "c:public.popular_complexes"
-      ]
-    },
-    {
-      "version": "20260804074619",
-      "name": "map_complex_attrs_dynamic_plan",
-      "bytes": 1932,
-      "md5": "210c2c890778512959cbe2136d1f44f6",
-      "statements": 1,
-      "objects": [
-        "c:public.map_complex_attrs"
-      ]
-    },
-    {
-      "version": "20260804074703",
-      "name": "popular_complexes_and_facets_dynamic_plan",
-      "bytes": 6655,
-      "md5": "f7afb728960428d1d0a41f8136f3c01b",
-      "statements": 1,
-      "objects": [
-        "c:public.map_filter_facets",
-        "c:public.popular_complexes"
-      ]
-    },
-    {
-      "version": "20260804074755",
-      "name": "refresh_households_resolved_in_cron",
-      "bytes": 2061,
-      "md5": "2cb623eb1427ab90c53a53b126bd4ab7",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates_cron"
-      ]
-    },
-    {
-      "version": "20260804074853",
-      "name": "extended_stats_for_complex_join_estimates",
-      "bytes": 608,
-      "md5": "264a2ce36246cff2e0972d2b77ab8d96",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260804102400",
-      "name": "complex_tx_stats_security_invoker",
-      "bytes": 1023,
-      "md5": "bd3b0b4654cb7710d89932560b0cfb34",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260804103713",
-      "name": "watch_duplicate_market_aggregate_refresh",
-      "bytes": 1376,
-      "md5": "9230a6dc10972045b49e20fbde98920f",
-      "statements": 1,
-      "objects": [
-        "c:reporting.duplicate_refresh_watch"
-      ]
-    },
-    {
-      "version": "20260804104718",
-      "name": "page_view_summary_snapshot_scaling",
-      "bytes": 3067,
-      "md5": "d707781a254f1bbe3ca0fdf168943f74",
-      "statements": 1,
-      "objects": [
-        "c:public.page_view_daily_snapshot",
-        "c:public.page_view_summary"
-      ]
-    },
-    {
-      "version": "20260804104747",
-      "name": "page_view_summary_first_event_precision_fix",
-      "bytes": 1588,
-      "md5": "eafa19f8cea37b688cdcd1bc8f2d9acb",
-      "statements": 1,
-      "objects": [
-        "c:public.page_view_summary"
-      ]
-    },
-    {
-      "version": "20260804105921",
-      "name": "move_admin_functions_out_of_api_schema",
-      "bytes": 1308,
-      "md5": "3f851af0653fd0e58c320ddcde82a580",
-      "statements": 1,
-      "objects": [
-        "c:ops"
-      ]
-    },
-    {
-      "version": "20260804110712",
-      "name": "map_facet_source_mv",
-      "bytes": 1741,
-      "md5": "dbd2d05b2a87818efdf524ccfa6ee086",
-      "statements": 1,
-      "objects": [
-        "c:map_facet_source_latlng",
-        "c:map_facet_source_pk",
-        "c:market_agg.map_facet_source"
-      ]
-    },
-    {
-      "version": "20260804110743",
-      "name": "map_filter_facets_use_facet_source",
-      "bytes": 5852,
-      "md5": "ab1ab3e75e75d87632032185ba19fbb5",
-      "statements": 1,
-      "objects": [
-        "c:ops.refresh_market_aggregates_cron",
-        "c:public.map_filter_facets"
-      ]
-    },
-    {
-      "version": "20260804113934",
-      "name": "market_region_monthly_auto_refresh",
-      "bytes": 6242,
-      "md5": "28323f737dc296efddf64d939097aef3",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_region_monthly"
-      ]
-    },
-    {
-      "version": "20260804114141",
-      "name": "market_region_monthly_min_sample_guard",
-      "bytes": 5758,
-      "md5": "a82b4732a87df00de18530ba4cca8150",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_region_monthly",
-        "d:public.refresh_market_region_monthly"
-      ]
-    },
-    {
-      "version": "20260804114244",
-      "name": "wire_market_region_monthly_into_daily_refresh",
-      "bytes": 4661,
-      "md5": "d8765fa2b6d90434e669f4d2d01d8f9f",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260804115844",
-      "name": "refresh_market_aggregates_freshness_guard",
-      "bytes": 4784,
-      "md5": "ca53bb92b023ac1831c52a09c135c77f",
-      "statements": 1,
-      "objects": [
-        "c:ops.refresh_market_aggregates_cron",
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260804234917",
-      "name": "add_set_automation_script_rpc",
-      "bytes": 1069,
-      "md5": "1daa6ec2f53ed77aca6df0085a14e501",
-      "statements": 1,
-      "objects": [
-        "c:public.set_automation_script"
-      ]
-    },
-    {
-      "version": "20260805015908",
-      "name": "market_aggregates_budget_guard_and_health",
-      "bytes": 5720,
-      "md5": "af74fde72e2e7b0c8587fbfcdabf4318",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates",
-        "c:reporting.market_aggregates_health"
-      ]
-    },
-    {
-      "version": "20260805024341",
-      "name": "harden_public_rpcs_tier1",
-      "bytes": 1468,
-      "md5": "d0ce8697c7342bbcfb57d2291d682dfa",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260805024423",
-      "name": "harden_public_rpcs_tier1_fix_public_grant",
-      "bytes": 527,
-      "md5": "1d055fb56a06d94a5873d00592a01054",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260805095832",
-      "name": "restore_complex_tx_stats_base_grant",
-      "bytes": 1185,
-      "md5": "65a02755c92fa3cecc225e96ee3e8db6",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260805224458",
-      "name": "ops_etl_freshness_watchdog",
-      "bytes": 4265,
-      "md5": "86e4a0a707329522120b348c1838fa34",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness"
-      ]
-    },
-    {
-      "version": "20260805224554",
-      "name": "data_quality_report_snapshot",
-      "bytes": 8079,
-      "md5": "99526a379a18414bea651c994f11d791",
-      "statements": 1,
-      "objects": [
-        "a:public.data_quality_snapshot",
-        "c:data_quality_snapshot_computed_at_idx",
-        "c:public.capture_data_quality_snapshot",
-        "c:public.data_quality_report",
-        "c:public.data_quality_report_live",
-        "c:public.data_quality_snapshot"
-      ]
-    },
-    {
-      "version": "20260805224608",
-      "name": "fix_data_quality_snapshot_duration",
-      "bytes": 707,
-      "md5": "f17936fd85185e79841a8bbad8f59732",
-      "statements": 1,
-      "objects": [
-        "c:public.capture_data_quality_snapshot"
-      ]
-    },
-    {
-      "version": "20260805225137",
-      "name": "seo_field_perf_from_own_rum",
-      "bytes": 4235,
-      "md5": "770c33703ddd1ed81f64ccd098c8a25d",
-      "statements": 1,
-      "objects": [
-        "c:public.capture_seo_field_perf_rum"
-      ]
-    },
-    {
-      "version": "20260805225303",
-      "name": "ops_health_alert_log_and_watchdog",
-      "bytes": 1369,
-      "md5": "5247a7ad736436cb247ed756015eff64",
-      "statements": 1,
-      "objects": [
-        "c:health_alert_log_checked_at_idx",
-        "c:ops.health_alert_log",
-        "c:ops.record_health_alerts"
-      ]
-    },
-    {
-      "version": "20260805225415",
-      "name": "etl_freshness_cron_cadence_aware",
-      "bytes": 4798,
-      "md5": "514f680441a577505370a45078294960",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness",
-        "c:ops.record_health_alerts"
-      ]
-    },
-    {
-      "version": "20260806141330",
-      "name": "search_regions_official_name_match",
-      "bytes": 4905,
-      "md5": "c2f2411c6a0b7a838498bda3704b3bb7",
-      "statements": 1,
-      "objects": [
-        "c:public.search_regions"
-      ]
-    },
-    {
-      "version": "20260806154632",
-      "name": "reports_author_id_text_and_email_privacy",
-      "bytes": 3860,
-      "md5": "5d3ee9236b4f9bb56ddca5b3426ae65f",
-      "statements": 1,
-      "objects": [
-        "a:public.reports"
-      ]
-    },
-    {
-      "version": "20260806163853",
-      "name": "inspection_notes_author_email_privacy",
-      "bytes": 2627,
-      "md5": "94d5d2ecc6ac0cec43bf5b7488e1d64e",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260806171024",
-      "name": "revoke_anon_write_grants",
-      "bytes": 2408,
-      "md5": "d4936203cff7d0f108f1fc7f91cb5342",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260806174741",
-      "name": "fix_etl_runs_policy_use_private_is_admin",
-      "bytes": 175,
-      "md5": "6d308a3c8642d2148e0243610bbcee4c",
-      "statements": 1,
-      "objects": [
-        "c:etl_runs_admin_read",
-        "d:etl_runs_admin_read"
-      ]
-    },
-    {
-      "version": "20260806182312",
-      "name": "sec_rerevoke_anon_execute_on_automation_and_cleanup_rpcs",
-      "bytes": 744,
-      "md5": "770acb62321bceb5bf83cbbb54b838c7",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260806223821",
-      "name": "data_quality_report_live_work_mem",
-      "bytes": 460,
-      "md5": "d7a74096aa35b7e58607391cb04080e4",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260806224022",
-      "name": "etl_freshness_month_rollover_check",
-      "bytes": 5050,
-      "md5": "74238324376c556c62b4918d8513be89",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness"
-      ]
-    },
-    {
-      "version": "20260806224132",
-      "name": "etl_freshness_signal_semantics_by_source_class",
-      "bytes": 5868,
-      "md5": "a39fc9e1723f8f07c965e730fe353be7",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness"
-      ]
-    },
-    {
-      "version": "20260808224022",
-      "name": "backfill_lawd_cd_gangwon_chungbuk_with_rollback",
-      "bytes": 1374,
-      "md5": "99ea2a41842740fb245f95f2c3fb5a50",
-      "statements": 1,
-      "objects": [
-        "c:ops.lawd_cd_backfill_20260809"
-      ]
-    },
-    {
-      "version": "20260808224300",
-      "name": "apartment_complexes_trgm_gin_fastupdate_off",
-      "bytes": 813,
-      "md5": "a0808d0b48d9a033537aebad0ab78912",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260808224400",
-      "name": "ops_etl_freshness_ranked_streaks",
-      "bytes": 2712,
-      "md5": "aa90b3ec17660673e8a1ac0669e28e3f",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness_ranked"
-      ]
-    },
-    {
-      "version": "20260809224025",
-      "name": "ops_site_rum_and_pipeline_heartbeat_checks",
-      "bytes": 8546,
-      "md5": "023dd94f66291df94d9edce2d8fbd08c",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness"
-      ]
-    },
-    {
-      "version": "20260809224057",
-      "name": "ops_perf_baseline_verdict_and_trgm_fastupdate_verified",
-      "bytes": 1670,
-      "md5": "ca8dee705d590799d482086c700d6f21",
-      "statements": 1,
-      "objects": [
-        "a:ops.perf_baseline"
-      ]
-    },
-    {
-      "version": "20260809230322",
-      "name": "ops_rent_ppp_distortion_diagnostic",
-      "bytes": 2794,
-      "md5": "efd344eb71e3c1a65c0cba6d85cbc27a",
-      "statements": 1,
-      "objects": [
-        "c:ops.rent_ppp_distortion"
-      ]
-    },
-    {
-      "version": "20260809233410",
-      "name": "sec_hide_ai_editorial_rationale_from_anon",
-      "bytes": 4319,
-      "md5": "5cbbc4007e21951238e6d08b2a36847b",
-      "statements": 1,
-      "objects": [
-        "c:public.ingest_daily_news",
-        "d:news_articles_public_read"
-      ]
-    },
-    {
-      "version": "20260810001136",
-      "name": "wo_f_jeonse_monthly_rent_null_to_zero_with_rollback",
-      "bytes": 1127,
-      "md5": "25913ae0af67881d030660850b74188c",
-      "statements": 1,
-      "objects": [
-        "c:jeonse_null_to_zero_20260810_id_idx",
-        "c:ops.jeonse_null_to_zero_20260810"
-      ]
-    },
-    {
-      "version": "20260810002436",
-      "name": "ops_traffic_bot_share_and_index_hygiene",
-      "bytes": 1968,
-      "md5": "a30f5360131a6b5302cfc29ddbc99e98",
-      "statements": 1,
-      "objects": [
-        "c:ops.traffic_bot_share",
-        "d:ops.jeonse_null_to_zero_20260810_id_idx"
-      ]
-    },
-    {
-      "version": "20260810002633",
-      "name": "market_aggregates_source_watermark_guard",
-      "bytes": 5397,
-      "md5": "e7a3dd74272f27aa6c77a5a26c4a09a0",
-      "statements": 1,
-      "objects": [
-        "c:public.refresh_market_aggregates"
-      ]
-    },
-    {
-      "version": "20260810002714",
-      "name": "market_aggregates_health_source_aware_v2",
-      "bytes": 2636,
-      "md5": "7e3f444299e68a82b64be07592d72531",
-      "statements": 1,
-      "objects": [
-        "c:reporting.market_aggregates_health",
-        "d:reporting.market_aggregates_health"
-      ]
-    },
-    {
-      "version": "20260810004033",
-      "name": "reporting_health_alerts_and_traffic_composition",
-      "bytes": 2153,
-      "md5": "d8477dbaf2e459870f7e6f18d49840d0",
-      "statements": 1,
-      "objects": [
-        "c:reporting.health_alerts",
-        "c:reporting.traffic_composition"
-      ]
-    },
-    {
-      "version": "20260810004552",
-      "name": "cleanup_dedupe_traffic_view_and_rename_watchdog_job",
-      "bytes": 598,
-      "md5": "6eac4b6567e6b7e6b4fbc8b075c33725",
-      "statements": 1,
-      "objects": [
-        "d:reporting.traffic_composition"
-      ]
-    },
-    {
-      "version": "20260810131153",
-      "name": "dq_dup_key_add_address_and_kapt_collation",
-      "bytes": 6964,
-      "md5": "3793cbd0b364d47337eb8dba11b2efb1",
-      "statements": 1,
-      "objects": [
-        "c:public.data_quality_report_live"
-      ]
-    },
-    {
-      "version": "20260810131211",
-      "name": "null_wolse_price_per_pyeong_deposit_based",
-      "bytes": 1451,
-      "md5": "3b910bcd646dd41ffd06ce83a3664bed",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260810131343",
-      "name": "fill_sejong_sigungu_in_apt_master",
-      "bytes": 1438,
-      "md5": "f4a73a58ff7457ed99b42f4e861183b7",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260811064459",
-      "name": "search_preview_use_trgm_operator",
-      "bytes": 3073,
-      "md5": "cafb440a2c45acd7feec383be9754dc9",
-      "statements": 1,
-      "objects": [
-        "c:public.search_complexes_preview"
-      ]
-    },
-    {
-      "version": "20260811064922",
-      "name": "search_preview_trgm_length_branch",
-      "bytes": 4146,
-      "md5": "608798190cc8f3f7ee255328ce165e48",
-      "statements": 1,
-      "objects": [
-        "c:public.search_complexes_preview"
-      ]
-    },
-    {
-      "version": "20260811065248",
-      "name": "tmp_bench_search_preview_v0",
-      "bytes": 1747,
-      "md5": "c693f4d88c22dcb6ba129986b439aa71",
-      "statements": 1,
-      "objects": [
-        "c:public.zz_bench_search_preview_v0"
-      ]
-    },
-    {
-      "version": "20260811065433",
-      "name": "tmp_bench_search_preview_v0_cleanup",
-      "bytes": 116,
-      "md5": "6fea4af336d7da099830a6b8bbd8db9d",
-      "statements": 1,
-      "objects": [
-        "d:public.zz_bench_search_preview_v0"
-      ]
-    },
-    {
-      "version": "20260811223856",
-      "name": "ops_site_http_probe_and_honest_rum_check",
-      "bytes": 1492,
-      "md5": "2fc480a1c7394a4f44a4d016004d7f8d",
-      "statements": 1,
-      "objects": [
-        "c:ops.record_site_probe",
-        "c:ops.site_probe",
-        "c:site_probe_probed_at_idx"
-      ]
-    },
-    {
-      "version": "20260811223945",
-      "name": "etl_freshness_http_probe_check_and_honest_rum",
-      "bytes": 8595,
-      "md5": "dab3ceaa29ce0db41fd1781a2573eefd",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness"
-      ]
-    },
-    {
-      "version": "20260811223959",
-      "name": "sec_web_vitals_reject_bots_fixed_search_path",
-      "bytes": 278,
-      "md5": "65e3a6c723578c5b6916124b5192429e",
-      "statements": 1,
-      "objects": []
-    },
-    {
-      "version": "20260812121249",
-      "name": "public_record_site_probe_service_wrapper",
-      "bytes": 1246,
-      "md5": "a8956b9b6307cad8222deff98356dbc2",
-      "statements": 1,
-      "objects": [
-        "c:public.record_site_probe_service"
-      ]
-    },
-    {
-      "version": "20260812183421",
-      "name": "site_probe_via_pg_net_hourly",
-      "bytes": 3614,
-      "md5": "8591a92c4ff1ac56d63e2736611af5e6",
-      "statements": 1,
-      "objects": [
-        "c:ops.run_site_probe",
-        "c:ops.site_probe_pending"
-      ]
-    },
-    {
-      "version": "20260812192340",
-      "name": "payments_billing_allow_weekly",
-      "bytes": 754,
-      "md5": "5535f515c5b362d0d5d93e2891fc2114",
-      "statements": 1,
-      "objects": [
-        "a:public.payments"
-      ]
-    },
-    {
-      "version": "20260813000256",
-      "name": "etl_freshness_rollover_window_not_last_row",
-      "bytes": 10200,
-      "md5": "ec0e367c518929d7b631502777118304",
-      "statements": 1,
-      "objects": [
-        "c:ops.etl_freshness"
-      ]
-    },
-    {
-      "version": "20260813010523",
-      "name": "reporting_retired_sources",
-      "bytes": 2594,
-      "md5": "173deee46271ebfae53b4e81e18b2146",
-      "statements": 1,
-      "objects": [
-        "c:reporting.pipeline_health",
-        "c:reporting.retired_sources"
-      ]
-    },
-    {
-      "version": "20260813010603",
-      "name": "social_uploads_queue_and_drain",
-      "bytes": 3702,
-      "md5": "d799d22764d10629c928e61492b967be",
-      "statements": 1,
-      "objects": [
-        "a:public.social_uploads",
-        "c:ops.run_social_upload_drain",
-        "c:public.social_uploads",
-        "c:social_uploads_due_idx"
-      ]
-    },
-    {
-      "version": "20260813012942",
-      "name": "social_uploads_source_and_autopost_cron",
-      "bytes": 1927,
-      "md5": "45401bd1730550b14b952b5d709b98c2",
-      "statements": 1,
-      "objects": [
-        "a:public.social_uploads",
-        "c:ops.run_social_autopost",
-        "c:social_uploads_source_uniq"
-      ]
-    }
-  ],
-  "absent_now": {
-    "note": [
-      "원장이 만들었다고 기록했지만 2026-08-06 실측 시점에 DB 에 존재하지 않는 객체다.",
-      "없는 객체는 저장소에 정의가 없는 게 맞으므로 대조 대상에서 뺀다. 빼지 않으면 이미 지운 것까지",
-      "결손으로 세어져 목록이 부풀고, 부푼 목록은 진짜 결손을 덮는다.",
-      "판정 근거는 '마지막 동사가 drop 인가' 가 아니라 '지금 있는가' 다. 둘은 다르다 —",
-      "public.refresh_market_region_monthly 은 20260804114141 에서 마지막 매칭이 drop 이지만",
-      "그건 오버로드 시그니처 하나를 지운 것이고 함수 자체는 살아 있다. 동사 순서로 판정했다면",
-      "실재하는 결손 하나를 조용히 숨길 뻔했다.",
-      "반대 방향도 있다 — complex_geocode_latlng_idx · inspection_notes_admin_all ·",
-      "inspection_notes_select_public 셋은 로컬 파일에는 정의가 있는데 DB 에는 없다.",
-      "그건 이 검사가 보는 방향(원장→파일)의 반대라 여기서는 안 잡는다."
-    ],
-    "how": "pg_class ∪ pg_proc ∪ pg_policy ∪ pg_trigger ∪ pg_type ∪ pg_namespace 의 이름을 소문자 마지막 마디로 비교. 같은 이름이 하나도 없으면 '지금 없다'. 스키마까지 맞추지 않고 이름만 보는 쪽이 보수적이다 — 있다고 볼 확률이 높아지고, 그러면 대조 대상에 남는다.",
-    "measured_at": "2026-08-06",
-    "objects": [
-      "chat_reports_admin_read",
-      "complex_geocode_latlng_idx",
-      "inspection_notes_admin_all",
-      "inspection_notes_select_public",
-      "map_related_experts_select",
-      "market_transactions_region_first_ym_idx",
-      "market_transactions_region_name_trgm",
-      "market_transactions_trade_complex_idx",
-      "market_transactions_trade_region_ym_idx",
-      "news_articles_published_at_idx",
-      "news_articles_region_idx",
-      "posts_delete",
-      "posts_insert",
-      "posts_select",
-      "posts_update",
-      "public.profiles_public"
-    ]
+  {
+   "version": "20260724225522",
+   "name": "add_contact_masked_to_dev_partners",
+   "bytes": 676,
+   "md5": "dfa440762839dbad96ceeca8de3ab3ab",
+   "statements": 1,
+   "objects": [
+    "a:public.dev_partners"
+   ]
   },
-  "known_unmirrored_note": [
-    "적용은 됐는데 저장소에 정의가 없는 객체 목록이다. 지금 당장 못 고치는 빚을 적어 둔 것이지,",
-    "괜찮다고 판정한 목록이 아니다. 여기 적힌 것은 FAIL 시키지 않고 PASS 줄에 개수로만 나온다.",
-    "늘 빨간 게이트는 아무도 안 보기 때문이다.",
-    "각 항목의 from 은 원장 version 과 name 이다. 그 행의 statements 를 그대로 파일로 남기면 빚이 준다.",
-    "선례: supabase/migrations/20260805225415_etl_freshness_cron_cadence_aware.sql",
-    "목록에서 빠진 결손은 FAIL 이다. 즉 이 목록이 실제보다 크면 그만큼 못 보는 범위가 넓어진다 —",
-    "파일을 복원했으면 여기서도 지워야 한다(검사가 '지금은 파일이 있다'고 알려 준다)."
+  {
+   "version": "20260724235826",
+   "name": "complex_sitemap_source_view",
+   "bytes": 1454,
+   "md5": "bab0dacb8cc2e8f8bb72ca17ff6c85aa",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_trade_complex_idx",
+    "c:public.complex_sitemap_source"
+   ]
+  },
+  {
+   "version": "20260724235924",
+   "name": "drop_unused_sitemap_index",
+   "bytes": 359,
+   "md5": "e2c7088285b4e8d3842dfd1b469860a0",
+   "statements": 1,
+   "objects": [
+    "d:public.market_transactions_trade_complex_idx"
+   ]
+  },
+  {
+   "version": "20260725000313",
+   "name": "complex_sitemap_source_add_last_data_at",
+   "bytes": 1348,
+   "md5": "6f6d43691dd415ae6c936957d9cf314c",
+   "statements": 1,
+   "objects": [
+    "c:public.complex_sitemap_source",
+    "d:public.complex_sitemap_source"
+   ]
+  },
+  {
+   "version": "20260725002812",
+   "name": "tx_band_landing_source_view",
+   "bytes": 2900,
+   "md5": "1b5a7c2ea06152a2b882074578499106",
+   "statements": 1,
+   "objects": [
+    "c:public.tx_band_landing_source",
+    "d:public.tx_band_landing_source"
+   ]
+  },
+  {
+   "version": "20260725002829",
+   "name": "tx_band_complex_source_view",
+   "bytes": 1929,
+   "md5": "5d6774124e6e1375bee06f87fd6ae0ac",
+   "statements": 1,
+   "objects": [
+    "c:public.tx_band_complex_source",
+    "d:public.tx_band_complex_source"
+   ]
+  },
+  {
+   "version": "20260725005122",
+   "name": "c1_map_price_point_source_view",
+   "bytes": 2381,
+   "md5": "80aa06c19fe46a79de6f59efb5bc9ba6",
+   "statements": 1,
+   "objects": [
+    "c:public.map_price_point_source"
+   ]
+  },
+  {
+   "version": "20260725013228",
+   "name": "materialize_market_aggregates",
+   "bytes": 7713,
+   "md5": "5e55b290041e03da027cb49a77462c2f",
+   "statements": 1,
+   "objects": [
+    "c:map_price_point_mv_key",
+    "c:map_price_point_mv_latlng",
+    "c:map_price_point_mv_txcount",
+    "c:public.map_price_point_mv",
+    "c:public.tx_band_complex_mv",
+    "c:public.tx_band_landing_mv",
+    "c:tx_band_complex_mv_band",
+    "c:tx_band_complex_mv_key",
+    "c:tx_band_landing_mv_key"
+   ]
+  },
+  {
+   "version": "20260725013320",
+   "name": "swap_market_aggregate_views_to_mv",
+   "bytes": 3374,
+   "md5": "11d31724e3f2029ba562baaf3aa01f58",
+   "statements": 1,
+   "objects": [
+    "c:public.map_price_point_source",
+    "c:public.refresh_market_aggregates",
+    "c:public.tx_band_complex_source",
+    "c:public.tx_band_landing_source"
+   ]
+  },
+  {
+   "version": "20260725013421",
+   "name": "refresh_market_aggregates_timeout",
+   "bytes": 1553,
+   "md5": "66fee30bd1e7557934613502cb5a3c83",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260725014038",
+   "name": "move_market_aggregate_mvs_to_private_schema",
+   "bytes": 3314,
+   "md5": "162801920a8b2ddffb1a3ed61703ff9c",
+   "statements": 1,
+   "objects": [
+    "c:market_agg",
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260725020445",
+   "name": "experiment_framework_and_reengagement",
+   "bytes": 5477,
+   "md5": "4bca6154d588ec639ebedf728fbfce23",
+   "statements": 1,
+   "objects": [
+    "a:public.experiment_assignments",
+    "a:public.notification_preferences",
+    "a:public.platform_activity_events",
+    "a:public.reengagement_log",
+    "c:experiment_assignments_key_variant_idx",
+    "c:platform_activity_events_experiment_idx",
+    "c:public.experiment_assignments",
+    "c:public.experiment_results_source",
+    "c:public.reengagement_log",
+    "c:public.user_last_activity_source",
+    "c:reengagement_log_email_sent_idx"
+   ]
+  },
+  {
+   "version": "20260725021717",
+   "name": "experiment_exposure_rpc",
+   "bytes": 2595,
+   "md5": "3846024b9b687a9b2811aa2e254c5c5e",
+   "statements": 1,
+   "objects": [
+    "a:public.experiment_assignments",
+    "c:public.experiment_assignment_stats",
+    "c:public.record_experiment_exposure"
+   ]
+  },
+  {
+   "version": "20260725040926",
+   "name": "watchlist_last_price_band",
+   "bytes": 1126,
+   "md5": "9b8f3f235a787f237c1d6016d25c96a2",
+   "statements": 1,
+   "objects": [
+    "a:public.user_watchlist"
+   ]
+  },
+  {
+   "version": "20260725041607",
+   "name": "upsert_apartment_complexes_merge",
+   "bytes": 4208,
+   "md5": "13f10b9942ec9c9976dd91105ed5db30",
+   "statements": 1,
+   "objects": [
+    "c:public.upsert_apartment_complexes"
+   ]
+  },
+  {
+   "version": "20260725042611",
+   "name": "market_transactions_is_cancelled",
+   "bytes": 1811,
+   "md5": "47c54c9600ad51a2e52d83fedbaaa31a",
+   "statements": 1,
+   "objects": [
+    "a:public.market_transactions",
+    "c:market_transactions_active_trade_idx"
+   ]
+  },
+  {
+   "version": "20260725042708",
+   "name": "exclude_cancelled_from_market_aggregates",
+   "bytes": 9356,
+   "md5": "3bc3a8f9e8d18b68628080cde317980b",
+   "statements": 1,
+   "objects": [
+    "c:map_price_point_mv_key",
+    "c:map_price_point_mv_latlng",
+    "c:map_price_point_mv_txcount",
+    "c:market_agg.map_price_point_mv",
+    "c:market_agg.tx_band_complex_mv",
+    "c:market_agg.tx_band_landing_mv",
+    "c:public.complex_sitemap_source",
+    "c:public.map_price_point_source",
+    "c:public.tx_band_complex_source",
+    "c:public.tx_band_landing_source",
+    "c:tx_band_complex_mv_band",
+    "c:tx_band_complex_mv_key",
+    "c:tx_band_landing_mv_key",
+    "d:market_agg.map_price_point_mv",
+    "d:market_agg.tx_band_complex_mv",
+    "d:market_agg.tx_band_landing_mv",
+    "d:public.map_price_point_source",
+    "d:public.tx_band_complex_source",
+    "d:public.tx_band_landing_source"
+   ]
+  },
+  {
+   "version": "20260725060721",
+   "name": "search_complexes_scope_to_apt_master",
+   "bytes": 3201,
+   "md5": "de214ea65ac630a6fb46ea20a0572442",
+   "statements": 1,
+   "objects": [
+    "c:public.search_complexes"
+   ]
+  },
+  {
+   "version": "20260725062134",
+   "name": "listing_stale_notice_state",
+   "bytes": 3134,
+   "md5": "8813297041cb06da2747a52f7b2b20b0",
+   "statements": 1,
+   "objects": [
+    "a:public.listings",
+    "a:public.notification_preferences",
+    "c:listings_stale_scan_idx"
+   ]
+  },
+  {
+   "version": "20260725064948",
+   "name": "data_quality_report_rpc",
+   "bytes": 5865,
+   "md5": "beb458a1d305688ad1e07c2d0efc7fa6",
+   "statements": 1,
+   "objects": [
+    "c:public.data_quality_report"
+   ]
+  },
+  {
+   "version": "20260725092854",
+   "name": "add_push_weekly_digest_pref",
+   "bytes": 814,
+   "md5": "b1d1069f7a0fdaa44ee65fd7e7e713e4",
+   "statements": 1,
+   "objects": [
+    "a:public.notification_preferences"
+   ]
+  },
+  {
+   "version": "20260725132940",
+   "name": "seed_legal_regions_nationwide",
+   "bytes": 17983,
+   "md5": "b24d6ec118b3abf608e999f7801900df",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260725143928",
+   "name": "drop_duplicate_indexes_advisor_0009",
+   "bytes": 1373,
+   "md5": "720f5ce7939ab4be6dbe79a6fc4fd955",
+   "statements": 1,
+   "objects": [
+    "d:public.app_users_email_unique_idx",
+    "d:public.idx_evr_status_created",
+    "d:public.idx_group_members_meeting",
+    "d:public.idx_pdc_expires_at",
+    "d:public.owner_verifications_status_idx",
+    "d:public.ppr_complex_idx",
+    "d:public.ppr_dataset_idx",
+    "d:public.report_purchases_unique_idx"
+   ]
+  },
+  {
+   "version": "20260725143944",
+   "name": "harden_security_definer_grants_and_search_path",
+   "bytes": 1703,
+   "md5": "62914391cee90f0cfa330de172685c5d",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260725151428",
+   "name": "plan_expiry_and_search_trgm",
+   "bytes": 605,
+   "md5": "8ce8047a8df1fb7096550e12c7f6cf62",
+   "statements": 1,
+   "objects": [
+    "a:public.app_users",
+    "c:app_users_plan_expiry_idx",
+    "c:market_transactions_complex_name_trgm"
+   ]
+  },
+  {
+   "version": "20260725153531",
+   "name": "add_push_attendance_pref",
+   "bytes": 282,
+   "md5": "58da18a77c3a2824c67032f342af659c",
+   "statements": 1,
+   "objects": [
+    "a:public.notification_preferences"
+   ]
+  },
+  {
+   "version": "20260725153536",
+   "name": "complexes_needing_geocode_retry_notfound",
+   "bytes": 1027,
+   "md5": "f01cdbaa512eb425bab3841bd9f97f55",
+   "statements": 1,
+   "objects": [
+    "c:public.complexes_needing_geocode"
+   ]
+  },
+  {
+   "version": "20260725232135",
+   "name": "point_ledger_spend_rpc",
+   "bytes": 1580,
+   "md5": "cc140a597c0ac86ad22ccc07506c430b",
+   "statements": 1,
+   "objects": [
+    "c:public.point_ledger_spend"
+   ]
+  },
+  {
+   "version": "20260726015509",
+   "name": "geocode_rpc_harden_under_load",
+   "bytes": 612,
+   "md5": "85f60ea7fb1701f7676dfb72cbc47fff",
+   "statements": 1,
+   "objects": [
+    "c:mt_trade_complex_geo_idx"
+   ]
+  },
+  {
+   "version": "20260726024852",
+   "name": "geocode_rpc_early_exit",
+   "bytes": 1552,
+   "md5": "e0b57088cc4309f643190b8521567b5c",
+   "statements": 1,
+   "objects": [
+    "c:public.complexes_needing_geocode"
+   ]
+  },
+  {
+   "version": "20260726033311",
+   "name": "materialize_complex_sitemap_source",
+   "bytes": 3160,
+   "md5": "a17c34e0d083d7bd8f2ac3b607a2b533",
+   "statements": 1,
+   "objects": [
+    "c:complex_sitemap_mv_key",
+    "c:complex_sitemap_mv_rank",
+    "c:market_agg.complex_sitemap_mv",
+    "c:public.complex_sitemap_source",
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260726035902",
+   "name": "restore_market_agg_mv_grants",
+   "bytes": 798,
+   "md5": "c69f4bd1db21bf36ba3305c288794233",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260726045247",
+   "name": "complex_pair_source",
+   "bytes": 7720,
+   "md5": "3f3aa07e4247863974facd991cc77529",
+   "statements": 1,
+   "objects": [
+    "c:complex_pair_mv_key",
+    "c:complex_pair_mv_rank",
+    "c:market_agg.complex_pair_mv",
+    "c:public.complex_pair_source",
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260726052727",
+   "name": "20260726130000_market_temperature_snapshot",
+   "bytes": 1537,
+   "md5": "a8a9f4640fe8a6eca6ce2a0d1f8944d1",
+   "statements": 1,
+   "objects": [
+    "a:public.market_temperature_snapshot",
+    "c:market_temperature_snapshot_week_idx",
+    "c:public.market_temperature_snapshot"
+   ]
+  },
+  {
+   "version": "20260726055809",
+   "name": "public_read_for_build_prerender",
+   "bytes": 449,
+   "md5": "08202a0ff0278f033d800854ebdc7a89",
+   "statements": 1,
+   "objects": [
+    "c:market_temperature_snapshot_public_read",
+    "d:market_temperature_snapshot_public_read"
+   ]
+  },
+  {
+   "version": "20260726084003",
+   "name": "seo_measurement",
+   "bytes": 2216,
+   "md5": "598e5c515ffc45a432e54803ebf5416c",
+   "statements": 1,
+   "objects": [
+    "a:public.seo_field_perf",
+    "a:public.seo_index_coverage",
+    "c:public.seo_field_perf",
+    "c:public.seo_index_coverage",
+    "c:seo_field_perf_week_idx"
+   ]
+  },
+  {
+   "version": "20260726104532",
+   "name": "market_transactions_raw_statistics_off",
+   "bytes": 317,
+   "md5": "9aff688a3aa7fce936f7a2cc356fbe26",
+   "statements": 1,
+   "objects": [
+    "a:public.market_transactions"
+   ]
+  },
+  {
+   "version": "20260726231929",
+   "name": "market_transactions_region_recent_idx",
+   "bytes": 889,
+   "md5": "4aa3de687b34bd0ec71dda8de750dadb",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_region_recent_idx"
+   ]
+  },
+  {
+   "version": "20260726232115",
+   "name": "market_transactions_region_name_trgm_idx",
+   "bytes": 416,
+   "md5": "5e07ff2ceac11a78bc863a59d6972536",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_region_name_trgm"
+   ]
+  },
+  {
+   "version": "20260726232246",
+   "name": "drop_market_transactions_region_name_trgm_idx",
+   "bytes": 724,
+   "md5": "e7779584757e13d972b11831530ff6df",
+   "statements": 1,
+   "objects": [
+    "d:public.market_transactions_region_name_trgm"
+   ]
+  },
+  {
+   "version": "20260726232333",
+   "name": "market_transactions_trade_region_ym_idx",
+   "bytes": 811,
+   "md5": "2491194fedae628971ceb733d4eb00d4",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_trade_region_ym_idx"
+   ]
+  },
+  {
+   "version": "20260726234356",
+   "name": "geocode_priority_by_trade_volume",
+   "bytes": 3431,
+   "md5": "34d3881a4ba41adb7d6198da5bc19a35",
+   "statements": 1,
+   "objects": [
+    "c:complex_tx_stats_pk",
+    "c:complex_tx_stats_priority_idx",
+    "c:public.complex_tx_stats",
+    "c:public.complexes_needing_geocode"
+   ]
+  },
+  {
+   "version": "20260726234514",
+   "name": "refresh_complex_tx_stats_with_aggregates",
+   "bytes": 2723,
+   "md5": "535dcc16b2e0f1a07c22caffe8892e87",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260726234814",
+   "name": "apartment_complexes_name_address_trgm",
+   "bytes": 796,
+   "md5": "4cb467fead953b9b441c7cc40a7379fd",
+   "statements": 1,
+   "objects": [
+    "c:apartment_complexes_address_trgm",
+    "c:apartment_complexes_name_trgm"
+   ]
+  },
+  {
+   "version": "20260727001128",
+   "name": "market_region_names_rpc",
+   "bytes": 2582,
+   "md5": "a9f3ab4a89476145994bbe3de6ff2193",
+   "statements": 1,
+   "objects": [
+    "c:public.market_region_names"
+   ]
+  },
+  {
+   "version": "20260727002346",
+   "name": "posts_complex_id",
+   "bytes": 1674,
+   "md5": "d7fb431c394331c1e740a24bb3fa501d",
+   "statements": 1,
+   "objects": [
+    "a:public.posts",
+    "c:posts_complex_id_created_idx"
+   ]
+  },
+  {
+   "version": "20260727005535",
+   "name": "phantom_schema_districts_partners_oauth_links",
+   "bytes": 10510,
+   "md5": "e8e09ab754a48129b919b985c59bf161",
+   "statements": 1,
+   "objects": [
+    "a:public.app_users",
+    "a:public.district_snapshots",
+    "a:public.districts",
+    "a:public.nearby_provider_links",
+    "a:public.partner_listings",
+    "a:public.toss_login_tokens",
+    "c:app_users_kakao_user_id_key",
+    "c:app_users_toss_user_key_key",
+    "c:district_snapshots_key",
+    "c:district_snapshots_public_read",
+    "c:districts_lawd_cd_key",
+    "c:districts_public_read",
+    "c:districts_sido_short_sigungu_idx",
+    "c:districts_sido_sigungu_idx",
+    "c:nearby_provider_links_complex_idx",
+    "c:nearby_provider_links_key",
+    "c:nearby_provider_links_public_read",
+    "c:partner_listings_complex_status_idx",
+    "c:partner_listings_external_key_key",
+    "c:partner_listings_public_read_active",
+    "c:public.district_snapshots",
+    "c:public.districts",
+    "c:public.nearby_provider_links",
+    "c:public.partner_listings",
+    "c:public.toss_login_tokens"
+   ]
+  },
+  {
+   "version": "20260727005906",
+   "name": "partner_listings_district",
+   "bytes": 703,
+   "md5": "aff67dc2ce016339709cfb17b0e9723c",
+   "statements": 1,
+   "objects": [
+    "a:public.partner_listings",
+    "c:partner_listings_district_status_idx"
+   ]
+  },
+  {
+   "version": "20260727025459",
+   "name": "public_read_redevelopment_projects",
+   "bytes": 3124,
+   "md5": "491864ff1e4b217982f7d69b8ca80618",
+   "statements": 1,
+   "objects": [
+    "c:redevelopment_projects_public_read",
+    "d:redevelopment_projects_public_read"
+   ]
+  },
+  {
+   "version": "20260727070541",
+   "name": "fix_region_label_41430_and_disable_dead_codes",
+   "bytes": 2115,
+   "md5": "2b60fef45a86bf6034b87b5cd5ac28ef",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727070752",
+   "name": "fix_districts_label_41430_uiwang",
+   "bytes": 1005,
+   "md5": "692c9c04dcea811fbb23ba6263bc63dd",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727071124",
+   "name": "move_siheung_coords_to_41390_and_set_uiwang_center",
+   "bytes": 1555,
+   "md5": "b5d291d47760c8f25d7a39a494d51c00",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727071451",
+   "name": "popular_complexes_viewport",
+   "bytes": 5018,
+   "md5": "80a7dc39955c0f17c1b85e7fa1cf5980",
+   "statements": 1,
+   "objects": [
+    "c:complex_geocode_latlng_idx",
+    "c:complex_tx_stats_pk",
+    "c:complex_tx_stats_priority_idx",
+    "c:complex_tx_stats_recent_idx",
+    "c:public.complex_tx_stats",
+    "c:public.popular_complexes",
+    "d:public.complex_tx_stats"
+   ]
+  },
+  {
+   "version": "20260727071605",
+   "name": "complex_id_helper_and_popular_fix_v2",
+   "bytes": 3062,
+   "md5": "763e62f501f18a45366fec6c08453d9b",
+   "statements": 1,
+   "objects": [
+    "c:public.complex_id",
+    "c:public.popular_complexes",
+    "d:public.popular_complexes"
+   ]
+  },
+  {
+   "version": "20260727071621",
+   "name": "drop_duplicate_indexes",
+   "bytes": 778,
+   "md5": "18b725bc691a003ef9f8103f93c1a4f0",
+   "statements": 1,
+   "objects": [
+    "d:public.banned_words_word_idx",
+    "d:public.idx_pdc_cache_key",
+    "d:public.inspection_share_links_token_idx",
+    "d:public.kv_store_99a854cb_key_idx1",
+    "d:public.kv_store_99a854cb_key_idx2",
+    "d:public.kv_store_99a854cb_key_idx3",
+    "d:public.push_sub_endpoint_idx"
+   ]
+  },
+  {
+   "version": "20260727071637",
+   "name": "add_covering_indexes_for_foreign_keys",
+   "bytes": 2330,
+   "md5": "e0060f351e203ebf7429908d7c42fbf6",
+   "statements": 1,
+   "objects": [
+    "c:idx_admin_audit_logs_actor_id",
+    "c:idx_ai_analysis_jobs_report_id",
+    "c:idx_ai_analysis_runs_preset_id",
+    "c:idx_b2b_inquiries_partner_id",
+    "c:idx_chat_reports_message_id",
+    "c:idx_chat_reports_room_id",
+    "c:idx_content_reports_handled_by",
+    "c:idx_content_reports_target_comment_id",
+    "c:idx_content_reports_target_post_id",
+    "c:idx_expert_profiles_user_id",
+    "c:idx_expert_verification_requests_user_id",
+    "c:idx_inspection_schedules_note_id",
+    "c:idx_inspection_sessions_note_id",
+    "c:idx_inspection_share_links_note_id",
+    "c:idx_inspection_share_links_session_id",
+    "c:idx_map_events_user_id",
+    "c:idx_nearby_provider_links_expert_id",
+    "c:idx_owner_verifications_reviewed_by",
+    "c:idx_report_purchases_payment_id",
+    "c:idx_reports_author_id",
+    "c:idx_user_subscriptions_payment_order_id",
+    "c:idx_user_subscriptions_plan_id"
+   ]
+  },
+  {
+   "version": "20260727071657",
+   "name": "wrap_auth_calls_in_rls_policies_initplan",
+   "bytes": 1960,
+   "md5": "30cc43a4fee582c27e96b70d06f60802",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727073106",
+   "name": "sec_revoke_public_execute_on_security_definer_fns",
+   "bytes": 1804,
+   "md5": "a6654d6cedda0f37f8c3b5376aeadb3a",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727073140",
+   "name": "sec_profiles_pii_lockdown",
+   "bytes": 1395,
+   "md5": "4db6c8c09b4ed388fdf50a2cf13be042",
+   "statements": 1,
+   "objects": [
+    "c:profiles_select_self_or_admin",
+    "c:public.profiles_public",
+    "d:profiles_select_public"
+   ]
+  },
+  {
+   "version": "20260727073158",
+   "name": "sec_policy_and_privilege_hardening",
+   "bytes": 2424,
+   "md5": "de72a00e688a2b1abd4fbd1e3841bf04",
+   "statements": 1,
+   "objects": [
+    "c:chat_reports_admin_read",
+    "c:chat_reports_admin_update",
+    "c:open_beta_tasks_select_admin",
+    "d:chat_reports_admin_read",
+    "d:chat_reports_admin_update",
+    "d:open_beta_tasks_select_auth"
+   ]
+  },
+  {
+   "version": "20260727073220",
+   "name": "sec_consume_feature_quota_advisory_lock",
+   "bytes": 3660,
+   "md5": "7360874e0f762a48e30182ac6ebd2eb2",
+   "statements": 1,
+   "objects": [
+    "c:public.consume_feature_quota"
+   ]
+  },
+  {
+   "version": "20260727073253",
+   "name": "grant_popular_complexes_execute",
+   "bytes": 1348,
+   "md5": "6d0ca88cd33eccf2fd3e0ca0f85c9698",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727073918",
+   "name": "create_news_articles",
+   "bytes": 1895,
+   "md5": "1f83cb31d3971d19c4b1e06e15a5654d",
+   "statements": 1,
+   "objects": [
+    "a:public.news_articles",
+    "c:board_posts_external_key_key",
+    "c:news_articles_collected_date_rank_idx",
+    "c:news_articles_external_key_key",
+    "c:news_articles_public_read",
+    "c:news_articles_published_at_idx",
+    "c:news_articles_region_idx",
+    "c:public.news_articles",
+    "d:news_articles_public_read"
+   ]
+  },
+  {
+   "version": "20260727074510",
+   "name": "add_explicit_public_read_policies_for_reference_tables",
+   "bytes": 1688,
+   "md5": "48c6900ce0eee3d90aef3083f2040830",
+   "statements": 1,
+   "objects": [
+    "c:apartment_complexes_select_public",
+    "c:apartment_supply_select_public",
+    "c:banners_select_active",
+    "c:complex_geocode_select_public",
+    "c:court_auctions_select_public",
+    "c:onbid_auctions_select_public",
+    "c:policy_versions_select_public",
+    "c:public_property_records_select_public"
+   ]
+  },
+  {
+   "version": "20260727074952",
+   "name": "create_automation_scripts",
+   "bytes": 560,
+   "md5": "457c852379c950897341497c76d1d9a1",
+   "statements": 1,
+   "objects": [
+    "a:public.automation_scripts",
+    "c:public.automation_scripts"
+   ]
+  },
+  {
+   "version": "20260727075537",
+   "name": "complex_tx_stats_service_role_grant",
+   "bytes": 733,
+   "md5": "55bf947c460ed708c6c038323f9fc16b",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727080008",
+   "name": "create_ingest_daily_news",
+   "bytes": 4530,
+   "md5": "36a01b645a9055cc0232640e3a145f47",
+   "statements": 1,
+   "objects": [
+    "a:public.automation_secrets",
+    "c:public.automation_secrets",
+    "c:public.ingest_daily_news"
+   ]
+  },
+  {
+   "version": "20260727080050",
+   "name": "fix_board_posts_external_key_index",
+   "bytes": 147,
+   "md5": "ec211bd52573a3af4beed0bbffbffdf5",
+   "statements": 1,
+   "objects": [
+    "c:board_posts_external_key_key",
+    "d:public.board_posts_external_key_key"
+   ]
+  },
+  {
+   "version": "20260727080142",
+   "name": "create_get_automation_script",
+   "bytes": 680,
+   "md5": "052ac86112b8a219db2cfacbfdd8ca82",
+   "statements": 1,
+   "objects": [
+    "c:public.get_automation_script"
+   ]
+  },
+  {
+   "version": "20260727081748",
+   "name": "ingest_news_source_kind_breaking",
+   "bytes": 4377,
+   "md5": "e8c9728d560cdd0ef65c379f80d71090",
+   "statements": 1,
+   "objects": [
+    "c:public.ingest_daily_news"
+   ]
+  },
+  {
+   "version": "20260727084430",
+   "name": "iap_receipts",
+   "bytes": 958,
+   "md5": "ee078d3edebb6124f85d8bcb163b3553",
+   "statements": 1,
+   "objects": [
+    "a:public.iap_receipts",
+    "c:iap_receipts_user_email_idx",
+    "c:public.iap_receipts"
+   ]
+  },
+  {
+   "version": "20260727084441",
+   "name": "report_purchases_payment_binding",
+   "bytes": 828,
+   "md5": "ea3e95601add03ffb65349d23569512b",
+   "statements": 1,
+   "objects": [
+    "a:public.report_purchases",
+    "c:report_purchases_payment_id_key"
+   ]
+  },
+  {
+   "version": "20260727084456",
+   "name": "point_ledger_award_rpc",
+   "bytes": 2126,
+   "md5": "08feef6a78db665c18db48c533f9b418",
+   "statements": 1,
+   "objects": [
+    "c:public.point_ledger_award"
+   ]
+  },
+  {
+   "version": "20260727085616",
+   "name": "storage_buckets_hardening",
+   "bytes": 1892,
+   "md5": "868b01d805f350e84cfd3ca774705f71",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727090313",
+   "name": "sec_automation_tables_revoke",
+   "bytes": 372,
+   "md5": "1d8a1fc6baee62a53f1e95ad56fa0e73",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260727104613",
+   "name": "apt_detail_pending_partial_index",
+   "bytes": 1544,
+   "md5": "758778a34594d83aaa7ee52a61cb4ba8",
+   "statements": 1,
+   "objects": [
+    "c:apartment_complexes_detail_pending_idx"
+   ]
+  },
+  {
+   "version": "20260727111248",
+   "name": "complex_tx_stats_facets_v2",
+   "bytes": 4003,
+   "md5": "22e9fe79defe614912d98c46e555dbb6",
+   "statements": 1,
+   "objects": [
+    "c:complex_tx_stats_name_trgm",
+    "c:complex_tx_stats_pk",
+    "c:complex_tx_stats_priority_idx",
+    "c:complex_tx_stats_recent_idx",
+    "c:public.complex_tx_stats",
+    "d:public.complex_tx_stats"
+   ]
+  },
+  {
+   "version": "20260727111525",
+   "name": "map_filter_histogram_and_search_preview_v2",
+   "bytes": 9070,
+   "md5": "537d764307a34287bf9ddc2e8e9d5dff",
+   "statements": 1,
+   "objects": [
+    "c:public.map_filter_facets",
+    "c:public.popular_complexes",
+    "c:public.search_complexes_preview",
+    "d:public.popular_complexes"
+   ]
+  },
+  {
+   "version": "20260727111638",
+   "name": "map_filter_facets_dense_bins",
+   "bytes": 4689,
+   "md5": "c334a8d16d1dc0da7911bb6eb73dfeaa",
+   "statements": 1,
+   "objects": [
+    "c:public.map_filter_facets"
+   ]
+  },
+  {
+   "version": "20260727133228",
+   "name": "search_regions",
+   "bytes": 1890,
+   "md5": "c47ff7fa66cc501ec556985fd9a91a37",
+   "statements": 1,
+   "objects": [
+    "c:public.search_regions"
+   ]
+  },
+  {
+   "version": "20260727133313",
+   "name": "search_regions_v2",
+   "bytes": 1981,
+   "md5": "edfe9e723005a1d889de9ac6488950b4",
+   "statements": 1,
+   "objects": [
+    "c:public.search_regions"
+   ]
+  },
+  {
+   "version": "20260727152725",
+   "name": "aggregates_filter_property_type_apartment_part1",
+   "bytes": 3275,
+   "md5": "f46dd72ec7ff7a5da92643a1a2c72114",
+   "statements": 1,
+   "objects": [
+    "c:map_price_point_mv_key",
+    "c:map_price_point_mv_latlng",
+    "c:map_price_point_mv_txcount",
+    "c:market_agg.map_price_point_mv",
+    "c:public.map_price_point_source",
+    "d:market_agg.map_price_point_mv"
+   ]
+  },
+  {
+   "version": "20260727152754",
+   "name": "aggregates_filter_property_type_apartment_part2",
+   "bytes": 1227,
+   "md5": "980f866ab6c8fb93cccc8d9a3f4f2c9e",
+   "statements": 1,
+   "objects": [
+    "c:complex_sitemap_mv_key",
+    "c:complex_sitemap_mv_rank",
+    "c:market_agg.complex_sitemap_mv",
+    "c:public.complex_sitemap_source",
+    "d:market_agg.complex_sitemap_mv"
+   ]
+  },
+  {
+   "version": "20260727152818",
+   "name": "aggregates_filter_property_type_apartment_part3",
+   "bytes": 2621,
+   "md5": "727c60c4739299e4f329c2068f59e33a",
+   "statements": 1,
+   "objects": [
+    "c:market_agg.tx_band_landing_mv",
+    "c:public.tx_band_landing_source",
+    "c:tx_band_landing_mv_key",
+    "d:market_agg.tx_band_landing_mv"
+   ]
+  },
+  {
+   "version": "20260727152841",
+   "name": "aggregates_filter_property_type_apartment_part4",
+   "bytes": 2340,
+   "md5": "93191efd0c28923327a302081728263b",
+   "statements": 1,
+   "objects": [
+    "c:market_agg.tx_band_complex_mv",
+    "c:public.tx_band_complex_source",
+    "c:tx_band_complex_mv_band",
+    "c:tx_band_complex_mv_key",
+    "d:market_agg.tx_band_complex_mv"
+   ]
+  },
+  {
+   "version": "20260727152907",
+   "name": "aggregates_filter_property_type_apartment_part5",
+   "bytes": 2892,
+   "md5": "e8b40fd57d7ea15f606d418402359251",
+   "statements": 1,
+   "objects": [
+    "c:complex_tx_stats_name_trgm",
+    "c:complex_tx_stats_pk",
+    "c:complex_tx_stats_priority_idx",
+    "c:complex_tx_stats_recent_idx",
+    "c:public.complex_tx_stats",
+    "d:public.complex_tx_stats"
+   ]
+  },
+  {
+   "version": "20260727154809",
+   "name": "map_complex_attrs",
+   "bytes": 2495,
+   "md5": "0f9a25e8532e512268e7f71d973871d4",
+   "statements": 1,
+   "objects": [
+    "c:public.map_complex_attrs"
+   ]
+  },
+  {
+   "version": "20260801233000",
+   "name": "export_automation_drift_and_revoke_anon_writes",
+   "bytes": 1215,
+   "md5": "dad867e2ce443dc0881acf8a8aeb70cc",
+   "statements": 1,
+   "objects": [
+    "a:public.automation_scripts",
+    "a:public.automation_secrets",
+    "c:public.automation_scripts",
+    "c:public.automation_secrets"
+   ]
+  },
+  {
+   "version": "20260801234401",
+   "name": "add_news_articles_board_post_id_index",
+   "bytes": 300,
+   "md5": "b4aa828d6e34dcd9006356f86b8f0235",
+   "statements": 1,
+   "objects": [
+    "c:news_articles_board_post_id_idx"
+   ]
+  },
+  {
+   "version": "20260801235741",
+   "name": "notification_outbox_retry_columns",
+   "bytes": 219,
+   "md5": "8ed8ee7ada4bcacb603e40246ccc545d",
+   "statements": 1,
+   "objects": [
+    "a:public.notification_outbox"
+   ]
+  },
+  {
+   "version": "20260801235958",
+   "name": "security_definer_views_step1_tx_band_invoker",
+   "bytes": 334,
+   "md5": "43be1b8d14b13e41e67de71974a63abd",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802000022",
+   "name": "security_definer_views_step2_grant_then_invoker",
+   "bytes": 818,
+   "md5": "c8cced804c9e29a6419b56bea6d59bc4",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802000142",
+   "name": "perf_scope_permissive_policies_to_roles",
+   "bytes": 1467,
+   "md5": "9a566ee677c35d22cf66f065a42136bb",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802000313",
+   "name": "move_household_mvs_out_of_api_schema",
+   "bytes": 477,
+   "md5": "4708d6786f9435090d8d1318b77c8786",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802015600",
+   "name": "drop_unused_profiles_public_view",
+   "bytes": 1430,
+   "md5": "0a26bdf9d4ecbc6b41ce804309c4d56d",
+   "statements": 1,
+   "objects": [
+    "d:public.profiles_public"
+   ]
+  },
+  {
+   "version": "20260802082133",
+   "name": "consolidate_inspection_notes_select_and_drop_unused_indexes_wave1",
+   "bytes": 3895,
+   "md5": "ae01a25140cafdfb3c11507297c841a5",
+   "statements": 1,
+   "objects": [
+    "c:inspection_notes_select_public",
+    "d:inspection_notes_public_read",
+    "d:inspection_notes_select_public_published",
+    "d:public.ai_analysis_runs_author_created_idx",
+    "d:public.ai_analysis_runs_author_district_idx",
+    "d:public.ai_analysis_runs_platform_created_idx",
+    "d:public.chat_messages_author_idx",
+    "d:public.chat_messages_room_idx",
+    "d:public.chat_messages_sender_idx",
+    "d:public.chat_rooms_created_by_idx",
+    "d:public.chat_rooms_owner_idx",
+    "d:public.chat_rooms_topic_idx"
+   ]
+  },
+  {
+   "version": "20260802094924",
+   "name": "sec_revoke_anon_grants_on_deny_all_tables",
+   "bytes": 1617,
+   "md5": "2d0af2eda6ac8000e79bafc3a99a0a25",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802095822",
+   "name": "fix_refresh_market_aggregates_household_mv_schema",
+   "bytes": 4101,
+   "md5": "bf127d54d33b2a89753e76d8abc6484d",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260802104327",
+   "name": "sec_lock_default_privileges_public",
+   "bytes": 2162,
+   "md5": "1dc99593c6f5a2f906058056ab7b1152",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802110942",
+   "name": "sec_complex_reviews_hide_author_email_from_anon",
+   "bytes": 1190,
+   "md5": "10c1c646d65f177e20fb5196a50a2206",
+   "statements": 1,
+   "objects": [
+    "d:cr_anon_read"
+   ]
+  },
+  {
+   "version": "20260802113317",
+   "name": "perf_merge_duplicate_permissive_policies_wave2",
+   "bytes": 11554,
+   "md5": "d755ae0eff2b640917df77b295c365fc",
+   "statements": 1,
+   "objects": [
+    "c:chat_reports_select",
+    "c:inspection_ai_reports_select_anon",
+    "c:inspection_ai_reports_select_authed",
+    "c:map_related_experts_admin_delete",
+    "c:map_related_experts_admin_insert",
+    "c:map_related_experts_admin_update",
+    "c:map_related_experts_select",
+    "c:membership_plans_admin_delete",
+    "c:membership_plans_admin_insert",
+    "c:membership_plans_admin_update",
+    "c:payments_select",
+    "c:posts_delete",
+    "c:posts_insert",
+    "c:posts_select",
+    "c:posts_update",
+    "c:report_purchases_admin_delete",
+    "c:report_purchases_admin_insert",
+    "c:report_purchases_admin_update",
+    "c:report_purchases_select",
+    "c:reports_admin_delete",
+    "c:reports_admin_insert",
+    "c:reports_admin_update",
+    "c:uploads_admin_delete",
+    "c:uploads_admin_update",
+    "c:uploads_insert",
+    "c:uploads_select",
+    "c:user_subscriptions_select",
+    "d:admins",
+    "d:chat_reports_admin_read",
+    "d:chat_reports_self_read",
+    "d:inspection_ai_reports_select_owner_or_admin",
+    "d:inspection_ai_reports_select_public_note",
+    "d:map_related_experts_admin_write",
+    "d:map_related_experts_select_active",
+    "d:membership_plans_admin_write",
+    "d:note_embeddings_select_own",
+    "d:payments_admin_read",
+    "d:payments_self_read",
+    "d:posts_admin_all",
+    "d:posts_author_delete",
+    "d:posts_author_update",
+    "d:posts_author_write",
+    "d:posts_public_select",
+    "d:report_purchases_admin_all",
+    "d:report_purchases_self_read",
+    "d:reports_admin_write",
+    "d:uploads_admin_all",
+    "d:uploads_self_insert",
+    "d:uploads_self_read",
+    "d:users"
+   ]
+  },
+  {
+   "version": "20260802113441",
+   "name": "fix_wave2_split_roles_avoid_anon_app_users_reference",
+   "bytes": 5399,
+   "md5": "03bcdb9d59a54cc7cec0fa3ef15b8442",
+   "statements": 1,
+   "objects": [
+    "c:chat_reports_select",
+    "c:map_related_experts_select_anon",
+    "c:map_related_experts_select_authed",
+    "c:payments_select",
+    "c:posts_delete_authed",
+    "c:posts_insert_authed",
+    "c:posts_select_anon",
+    "c:posts_select_authed",
+    "c:posts_update_authed",
+    "c:report_purchases_select",
+    "c:uploads_insert",
+    "c:uploads_select",
+    "d:chat_reports_select",
+    "d:map_related_experts_select",
+    "d:payments_select",
+    "d:posts_delete",
+    "d:posts_insert",
+    "d:posts_select",
+    "d:posts_update",
+    "d:report_purchases_select",
+    "d:uploads_insert",
+    "d:uploads_select"
+   ]
+  },
+  {
+   "version": "20260802113611",
+   "name": "fix_admin_policy_branches_use_definer_helper",
+   "bytes": 6142,
+   "md5": "c957a32b11eb2d3f56bc2f44016802cd",
+   "statements": 1,
+   "objects": [
+    "c:audit_admin_read",
+    "c:inspection_notes_admin_all",
+    "c:open_beta_tasks_insert_admin",
+    "c:open_beta_tasks_update_admin",
+    "c:payments_select",
+    "c:posts_delete_authed",
+    "c:posts_insert_authed",
+    "c:posts_select_authed",
+    "c:posts_update_authed",
+    "c:report_purchases_admin_delete",
+    "c:report_purchases_admin_insert",
+    "c:report_purchases_admin_update",
+    "c:report_purchases_select",
+    "c:reports_admin_delete",
+    "c:reports_admin_insert",
+    "c:reports_admin_update",
+    "c:uploads_admin_delete",
+    "c:uploads_admin_update",
+    "c:uploads_insert",
+    "c:uploads_select",
+    "d:audit_admin_read",
+    "d:inspection_notes_admin_all",
+    "d:open_beta_tasks_insert_admin",
+    "d:open_beta_tasks_update_admin",
+    "d:payments_select",
+    "d:posts_delete_authed",
+    "d:posts_insert_authed",
+    "d:posts_select_authed",
+    "d:posts_update_authed",
+    "d:report_purchases_admin_delete",
+    "d:report_purchases_admin_insert",
+    "d:report_purchases_admin_update",
+    "d:report_purchases_select",
+    "d:reports_admin_delete",
+    "d:reports_admin_insert",
+    "d:reports_admin_update",
+    "d:uploads_admin_delete",
+    "d:uploads_admin_update",
+    "d:uploads_insert",
+    "d:uploads_select"
+   ]
+  },
+  {
+   "version": "20260802122721",
+   "name": "perf_inspection_notes_merge_dual_identity_policies",
+   "bytes": 3426,
+   "md5": "daebd45326f9e902d4a38edc596439df",
+   "statements": 1,
+   "objects": [
+    "c:inspection_notes_delete_authed",
+    "c:inspection_notes_insert_authed",
+    "c:inspection_notes_select_anon",
+    "c:inspection_notes_select_authed",
+    "c:inspection_notes_update_authed",
+    "d:inspection_notes_admin_all",
+    "d:inspection_notes_author_all",
+    "d:inspection_notes_delete_owner_or_admin",
+    "d:inspection_notes_insert_self",
+    "d:inspection_notes_select_own_or_admin",
+    "d:inspection_notes_select_public",
+    "d:inspection_notes_update_owner_or_admin"
+   ]
+  },
+  {
+   "version": "20260802123021",
+   "name": "perf_drop_unused_indexes_wave3",
+   "bytes": 2816,
+   "md5": "2cc9aa0fa08e0d2b957f4ce451cdbe7d",
+   "statements": 1,
+   "objects": [
+    "d:public.board_posts_automation_idx",
+    "d:public.board_posts_external_key_uidx",
+    "d:public.board_posts_feed_updated_idx",
+    "d:public.board_posts_geo_idx",
+    "d:public.board_posts_source_published_at_idx",
+    "d:public.complex_geocode_ok_idx",
+    "d:public.news_articles_published_at_idx",
+    "d:public.news_articles_region_idx",
+    "d:public.onbid_sido_idx"
+   ]
+  },
+  {
+   "version": "20260802130346",
+   "name": "perf_index_unindexed_foreign_keys",
+   "bytes": 452,
+   "md5": "81e5374b92693c56eadbd728f63635bc",
+   "statements": 1,
+   "objects": [
+    "c:chat_messages_author_id_idx",
+    "c:chat_rooms_owner_id_idx"
+   ]
+  },
+  {
+   "version": "20260802221656",
+   "name": "add_trade_region_first_recent_idx",
+   "bytes": 534,
+   "md5": "2474074f8ae0e418c7e2196b3dfe2849",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_region_first_ym_idx"
+   ]
+  },
+  {
+   "version": "20260802221750",
+   "name": "covering_idx_for_trade_region_ym_hot_query",
+   "bytes": 990,
+   "md5": "3c877b8df4ea08bc590ecec6d9ac8d1b",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_trade_region_ym_cov_idx",
+    "d:public.market_transactions_region_first_ym_idx",
+    "d:public.market_transactions_trade_region_ym_idx"
+   ]
+  },
+  {
+   "version": "20260802221819",
+   "name": "telemetry_retention_pg_cron",
+   "bytes": 652,
+   "md5": "23b524c3fe3f2e7e5539427e3245c3af",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260802223432",
+   "name": "daily_kpi_snapshot_infra",
+   "bytes": 2100,
+   "md5": "f3014a38357919370f3d61b1a9506457",
+   "statements": 1,
+   "objects": [
+    "a:public.daily_kpi_snapshot",
+    "c:public.capture_daily_kpi",
+    "c:public.daily_kpi_snapshot"
+   ]
+  },
+  {
+   "version": "20260802223508",
+   "name": "fix_map_refresh_search_path_pgcrypto",
+   "bytes": 360,
+   "md5": "de268a9e9bfa6140d3ad980a9301947e",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260803084012",
+   "name": "page_view_events_and_traffic_views",
+   "bytes": 3817,
+   "md5": "7701405ef3e87b2a8c6e007d566e71b3",
+   "statements": 1,
+   "objects": [
+    "a:public.page_view_events",
+    "c:page_view_events_occurred_idx",
+    "c:page_view_events_route_idx",
+    "c:page_view_events_session_idx",
+    "c:public.page_view_daily",
+    "c:public.page_view_events",
+    "c:public.page_view_route_30d",
+    "c:public.platform_event_usage_30d"
+   ]
+  },
+  {
+   "version": "20260803084231",
+   "name": "page_view_summary_windows",
+   "bytes": 1133,
+   "md5": "7c87ef69f3ee1080b94804b8420eaf7b",
+   "statements": 1,
+   "objects": [
+    "c:public.page_view_summary"
+   ]
+  },
+  {
+   "version": "20260803085247",
+   "name": "sec_payment_tables_revoke_client_writes",
+   "bytes": 1894,
+   "md5": "b21351df5c599dad83d2d1f5491b519d",
+   "statements": 1,
+   "objects": [
+    "d:payment_orders_insert_self"
+   ]
+  },
+  {
+   "version": "20260803130946",
+   "name": "page_view_referrer_utm",
+   "bytes": 2266,
+   "md5": "d7520a66260cb77851fef081afb3007c",
+   "statements": 1,
+   "objects": [
+    "a:public.page_view_events",
+    "c:public.page_view_referrer_30d",
+    "c:public.page_view_utm_30d"
+   ]
+  },
+  {
+   "version": "20260803221147",
+   "name": "sec_revoke_anon_execute_on_automation_rpcs",
+   "bytes": 688,
+   "md5": "8baa4fefc92d7e6a68c023df7596eb97",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260803222358",
+   "name": "perf_complex_tx_stats_norm_once_and_parallel_safe",
+   "bytes": 1271,
+   "md5": "8960caa052ec1b90283dc3ae76af11ff",
+   "statements": 1,
+   "objects": [
+    "c:public.complex_tx_stats"
+   ]
+  },
+  {
+   "version": "20260803222419",
+   "name": "perf_complex_tx_stats_norm_once_offset0_barrier",
+   "bytes": 837,
+   "md5": "f9175bd0477a1eda290394f504abaa11",
+   "statements": 1,
+   "objects": [
+    "c:public.complex_tx_stats"
+   ]
+  },
+  {
+   "version": "20260803222514",
+   "name": "extend_telemetry_retention_page_views_and_ingest_log",
+   "bytes": 703,
+   "md5": "4d9820109840237b20f272ac87c800c0",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260803223121",
+   "name": "reporting_schema_for_morning_brief",
+   "bytes": 7255,
+   "md5": "afdca9320c402f1878414f68e14b7832",
+   "statements": 1,
+   "objects": [
+    "c:market_transactions_created_at_idx",
+    "c:reporting",
+    "c:reporting.daily_series",
+    "c:reporting.date_spine",
+    "c:reporting.pipeline_health",
+    "c:reporting.web_vitals_p75",
+    "c:reporting.zombie_runs"
+   ]
+  },
+  {
+   "version": "20260803224240",
+   "name": "optimize_market_aggregates_cron_and_autovacuum",
+   "bytes": 5075,
+   "md5": "fb13f70c34e5891e30b446fe2fac4b3c",
+   "statements": 1,
+   "objects": [
+    "a:public.apartment_complexes",
+    "a:public.market_transactions",
+    "c:public.refresh_market_aggregates_cron",
+    "c:reporting.index_drop_candidates",
+    "c:reporting.index_usage_baseline"
+   ]
+  },
+  {
+   "version": "20260803224320",
+   "name": "harden_refresh_market_aggregates_cron_null_guard",
+   "bytes": 1627,
+   "md5": "5c0a52d03830141647fdfd7aafdbed87",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates_cron"
+   ]
+  },
+  {
+   "version": "20260803225006",
+   "name": "etl_zombie_reaper_cron",
+   "bytes": 1786,
+   "md5": "40d2b1d615c5955221f34283220af714",
+   "statements": 1,
+   "objects": [
+    "c:public.reap_stale_etl_runs"
+   ]
+  },
+  {
+   "version": "20260803225657",
+   "name": "refresh_market_aggregates_cron_statement_timeout",
+   "bytes": 2169,
+   "md5": "10dba06bd2d8d62f195cf77982fd933a",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates_cron"
+   ]
+  },
+  {
+   "version": "20260803225725",
+   "name": "platform_viewport_group_30d_view",
+   "bytes": 841,
+   "md5": "5c81f3aa9c89e56c4812e179d0ee09ad",
+   "statements": 1,
+   "objects": [
+    "c:public.platform_viewport_group_30d"
+   ]
+  },
+  {
+   "version": "20260803231016",
+   "name": "fix_etl_runs_finished_at_uses_clock_timestamp",
+   "bytes": 2094,
+   "md5": "1aba90a88d2128ba8523444d6d3f9123",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates_cron"
+   ]
+  },
+  {
+   "version": "20260804000834",
+   "name": "page_view_visitor_key_retention",
+   "bytes": 1307,
+   "md5": "6e34c9b56f0fcdaef0fc7040ac76e5d0",
+   "statements": 1,
+   "objects": [
+    "a:public.page_view_events",
+    "c:page_view_events_visitor_idx",
+    "c:public.page_view_retention_30d"
+   ]
+  },
+  {
+   "version": "20260804030022",
+   "name": "web_vitals_weekly_view",
+   "bytes": 731,
+   "md5": "beda40dae05b72d9cc11f5c42afbb50a",
+   "statements": 1,
+   "objects": [
+    "c:public.web_vitals_weekly"
+   ]
+  },
+  {
+   "version": "20260804074312",
+   "name": "precompute_complex_households_resolved",
+   "bytes": 3648,
+   "md5": "764fd26c2cf9a59b98208f45143b16e4",
+   "statements": 1,
+   "objects": [
+    "c:complex_households_resolved_pk",
+    "c:market_agg.complex_households_resolved",
+    "c:public.complex_tx_stats",
+    "c:public.map_complex_attrs"
+   ]
+  },
+  {
+   "version": "20260804074344",
+   "name": "complex_geocode_trade_count_index_for_map",
+   "bytes": 594,
+   "md5": "74d45ff903be58677d98f5e89f0930ea",
+   "statements": 1,
+   "objects": [
+    "c:complex_geocode_trade_rank_idx"
+   ]
+  },
+  {
+   "version": "20260804074431",
+   "name": "complex_geocode_bbox_covering_index",
+   "bytes": 743,
+   "md5": "eb791c7eada9f93c65d52ac7fc44e066",
+   "statements": 1,
+   "objects": [
+    "c:complex_geocode_latlng_cov_idx",
+    "d:public.complex_geocode_latlng_idx",
+    "d:public.complex_geocode_trade_rank_idx"
+   ]
+  },
+  {
+   "version": "20260804074542",
+   "name": "map_rpc_bbox_predicate_index_usable",
+   "bytes": 4506,
+   "md5": "d6356b1ca988c15f1caed2985b58e18e",
+   "statements": 1,
+   "objects": [
+    "c:public.map_complex_attrs",
+    "c:public.popular_complexes"
+   ]
+  },
+  {
+   "version": "20260804074619",
+   "name": "map_complex_attrs_dynamic_plan",
+   "bytes": 1932,
+   "md5": "210c2c890778512959cbe2136d1f44f6",
+   "statements": 1,
+   "objects": [
+    "c:public.map_complex_attrs"
+   ]
+  },
+  {
+   "version": "20260804074703",
+   "name": "popular_complexes_and_facets_dynamic_plan",
+   "bytes": 6655,
+   "md5": "f7afb728960428d1d0a41f8136f3c01b",
+   "statements": 1,
+   "objects": [
+    "c:public.map_filter_facets",
+    "c:public.popular_complexes"
+   ]
+  },
+  {
+   "version": "20260804074755",
+   "name": "refresh_households_resolved_in_cron",
+   "bytes": 2061,
+   "md5": "2cb623eb1427ab90c53a53b126bd4ab7",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates_cron"
+   ]
+  },
+  {
+   "version": "20260804074853",
+   "name": "extended_stats_for_complex_join_estimates",
+   "bytes": 608,
+   "md5": "264a2ce36246cff2e0972d2b77ab8d96",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260804102400",
+   "name": "complex_tx_stats_security_invoker",
+   "bytes": 1023,
+   "md5": "bd3b0b4654cb7710d89932560b0cfb34",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260804103713",
+   "name": "watch_duplicate_market_aggregate_refresh",
+   "bytes": 1376,
+   "md5": "9230a6dc10972045b49e20fbde98920f",
+   "statements": 1,
+   "objects": [
+    "c:reporting.duplicate_refresh_watch"
+   ]
+  },
+  {
+   "version": "20260804104718",
+   "name": "page_view_summary_snapshot_scaling",
+   "bytes": 3067,
+   "md5": "d707781a254f1bbe3ca0fdf168943f74",
+   "statements": 1,
+   "objects": [
+    "c:public.page_view_daily_snapshot",
+    "c:public.page_view_summary"
+   ]
+  },
+  {
+   "version": "20260804104747",
+   "name": "page_view_summary_first_event_precision_fix",
+   "bytes": 1588,
+   "md5": "eafa19f8cea37b688cdcd1bc8f2d9acb",
+   "statements": 1,
+   "objects": [
+    "c:public.page_view_summary"
+   ]
+  },
+  {
+   "version": "20260804105921",
+   "name": "move_admin_functions_out_of_api_schema",
+   "bytes": 1308,
+   "md5": "3f851af0653fd0e58c320ddcde82a580",
+   "statements": 1,
+   "objects": [
+    "c:ops"
+   ]
+  },
+  {
+   "version": "20260804110712",
+   "name": "map_facet_source_mv",
+   "bytes": 1741,
+   "md5": "dbd2d05b2a87818efdf524ccfa6ee086",
+   "statements": 1,
+   "objects": [
+    "c:map_facet_source_latlng",
+    "c:map_facet_source_pk",
+    "c:market_agg.map_facet_source"
+   ]
+  },
+  {
+   "version": "20260804110743",
+   "name": "map_filter_facets_use_facet_source",
+   "bytes": 5852,
+   "md5": "ab1ab3e75e75d87632032185ba19fbb5",
+   "statements": 1,
+   "objects": [
+    "c:ops.refresh_market_aggregates_cron",
+    "c:public.map_filter_facets"
+   ]
+  },
+  {
+   "version": "20260804113934",
+   "name": "market_region_monthly_auto_refresh",
+   "bytes": 6242,
+   "md5": "28323f737dc296efddf64d939097aef3",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_region_monthly"
+   ]
+  },
+  {
+   "version": "20260804114141",
+   "name": "market_region_monthly_min_sample_guard",
+   "bytes": 5758,
+   "md5": "a82b4732a87df00de18530ba4cca8150",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_region_monthly",
+    "d:public.refresh_market_region_monthly"
+   ]
+  },
+  {
+   "version": "20260804114244",
+   "name": "wire_market_region_monthly_into_daily_refresh",
+   "bytes": 4661,
+   "md5": "d8765fa2b6d90434e669f4d2d01d8f9f",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260804115844",
+   "name": "refresh_market_aggregates_freshness_guard",
+   "bytes": 4784,
+   "md5": "ca53bb92b023ac1831c52a09c135c77f",
+   "statements": 1,
+   "objects": [
+    "c:ops.refresh_market_aggregates_cron",
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260804234917",
+   "name": "add_set_automation_script_rpc",
+   "bytes": 1069,
+   "md5": "1daa6ec2f53ed77aca6df0085a14e501",
+   "statements": 1,
+   "objects": [
+    "c:public.set_automation_script"
+   ]
+  },
+  {
+   "version": "20260805015908",
+   "name": "market_aggregates_budget_guard_and_health",
+   "bytes": 5720,
+   "md5": "af74fde72e2e7b0c8587fbfcdabf4318",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates",
+    "c:reporting.market_aggregates_health"
+   ]
+  },
+  {
+   "version": "20260805024341",
+   "name": "harden_public_rpcs_tier1",
+   "bytes": 1468,
+   "md5": "d0ce8697c7342bbcfb57d2291d682dfa",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260805024423",
+   "name": "harden_public_rpcs_tier1_fix_public_grant",
+   "bytes": 527,
+   "md5": "1d055fb56a06d94a5873d00592a01054",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260805095832",
+   "name": "restore_complex_tx_stats_base_grant",
+   "bytes": 1185,
+   "md5": "65a02755c92fa3cecc225e96ee3e8db6",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260805224458",
+   "name": "ops_etl_freshness_watchdog",
+   "bytes": 4265,
+   "md5": "86e4a0a707329522120b348c1838fa34",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260805224554",
+   "name": "data_quality_report_snapshot",
+   "bytes": 8079,
+   "md5": "99526a379a18414bea651c994f11d791",
+   "statements": 1,
+   "objects": [
+    "a:public.data_quality_snapshot",
+    "c:data_quality_snapshot_computed_at_idx",
+    "c:public.capture_data_quality_snapshot",
+    "c:public.data_quality_report",
+    "c:public.data_quality_report_live",
+    "c:public.data_quality_snapshot"
+   ]
+  },
+  {
+   "version": "20260805224608",
+   "name": "fix_data_quality_snapshot_duration",
+   "bytes": 707,
+   "md5": "f17936fd85185e79841a8bbad8f59732",
+   "statements": 1,
+   "objects": [
+    "c:public.capture_data_quality_snapshot"
+   ]
+  },
+  {
+   "version": "20260805225137",
+   "name": "seo_field_perf_from_own_rum",
+   "bytes": 4235,
+   "md5": "770c33703ddd1ed81f64ccd098c8a25d",
+   "statements": 1,
+   "objects": [
+    "c:public.capture_seo_field_perf_rum"
+   ]
+  },
+  {
+   "version": "20260805225303",
+   "name": "ops_health_alert_log_and_watchdog",
+   "bytes": 1369,
+   "md5": "5247a7ad736436cb247ed756015eff64",
+   "statements": 1,
+   "objects": [
+    "c:health_alert_log_checked_at_idx",
+    "c:ops.health_alert_log",
+    "c:ops.record_health_alerts"
+   ]
+  },
+  {
+   "version": "20260805225415",
+   "name": "etl_freshness_cron_cadence_aware",
+   "bytes": 4798,
+   "md5": "514f680441a577505370a45078294960",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness",
+    "c:ops.record_health_alerts"
+   ]
+  },
+  {
+   "version": "20260806141330",
+   "name": "search_regions_official_name_match",
+   "bytes": 4905,
+   "md5": "c2f2411c6a0b7a838498bda3704b3bb7",
+   "statements": 1,
+   "objects": [
+    "c:public.search_regions"
+   ]
+  },
+  {
+   "version": "20260806154632",
+   "name": "reports_author_id_text_and_email_privacy",
+   "bytes": 3860,
+   "md5": "5d3ee9236b4f9bb56ddca5b3426ae65f",
+   "statements": 1,
+   "objects": [
+    "a:public.reports"
+   ]
+  },
+  {
+   "version": "20260806163853",
+   "name": "inspection_notes_author_email_privacy",
+   "bytes": 2627,
+   "md5": "94d5d2ecc6ac0cec43bf5b7488e1d64e",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806171024",
+   "name": "revoke_anon_write_grants",
+   "bytes": 2408,
+   "md5": "d4936203cff7d0f108f1fc7f91cb5342",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806174741",
+   "name": "fix_etl_runs_policy_use_private_is_admin",
+   "bytes": 175,
+   "md5": "6d308a3c8642d2148e0243610bbcee4c",
+   "statements": 1,
+   "objects": [
+    "c:etl_runs_admin_read",
+    "d:etl_runs_admin_read"
+   ]
+  },
+  {
+   "version": "20260806182312",
+   "name": "sec_rerevoke_anon_execute_on_automation_and_cleanup_rpcs",
+   "bytes": 744,
+   "md5": "770acb62321bceb5bf83cbbb54b838c7",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806223821",
+   "name": "data_quality_report_live_work_mem",
+   "bytes": 460,
+   "md5": "d7a74096aa35b7e58607391cb04080e4",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260806224022",
+   "name": "etl_freshness_month_rollover_check",
+   "bytes": 5050,
+   "md5": "74238324376c556c62b4918d8513be89",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260806224132",
+   "name": "etl_freshness_signal_semantics_by_source_class",
+   "bytes": 5868,
+   "md5": "a39fc9e1723f8f07c965e730fe353be7",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260808224022",
+   "name": "backfill_lawd_cd_gangwon_chungbuk_with_rollback",
+   "bytes": 1374,
+   "md5": "99ea2a41842740fb245f95f2c3fb5a50",
+   "statements": 1,
+   "objects": [
+    "c:ops.lawd_cd_backfill_20260809"
+   ]
+  },
+  {
+   "version": "20260808224300",
+   "name": "apartment_complexes_trgm_gin_fastupdate_off",
+   "bytes": 813,
+   "md5": "a0808d0b48d9a033537aebad0ab78912",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260808224400",
+   "name": "ops_etl_freshness_ranked_streaks",
+   "bytes": 2712,
+   "md5": "aa90b3ec17660673e8a1ac0669e28e3f",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness_ranked"
+   ]
+  },
+  {
+   "version": "20260809224025",
+   "name": "ops_site_rum_and_pipeline_heartbeat_checks",
+   "bytes": 8546,
+   "md5": "023dd94f66291df94d9edce2d8fbd08c",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260809224057",
+   "name": "ops_perf_baseline_verdict_and_trgm_fastupdate_verified",
+   "bytes": 1670,
+   "md5": "ca8dee705d590799d482086c700d6f21",
+   "statements": 1,
+   "objects": [
+    "a:ops.perf_baseline"
+   ]
+  },
+  {
+   "version": "20260809230322",
+   "name": "ops_rent_ppp_distortion_diagnostic",
+   "bytes": 2794,
+   "md5": "efd344eb71e3c1a65c0cba6d85cbc27a",
+   "statements": 1,
+   "objects": [
+    "c:ops.rent_ppp_distortion"
+   ]
+  },
+  {
+   "version": "20260809233410",
+   "name": "sec_hide_ai_editorial_rationale_from_anon",
+   "bytes": 4319,
+   "md5": "5cbbc4007e21951238e6d08b2a36847b",
+   "statements": 1,
+   "objects": [
+    "c:public.ingest_daily_news",
+    "d:news_articles_public_read"
+   ]
+  },
+  {
+   "version": "20260810001136",
+   "name": "wo_f_jeonse_monthly_rent_null_to_zero_with_rollback",
+   "bytes": 1127,
+   "md5": "25913ae0af67881d030660850b74188c",
+   "statements": 1,
+   "objects": [
+    "c:jeonse_null_to_zero_20260810_id_idx",
+    "c:ops.jeonse_null_to_zero_20260810"
+   ]
+  },
+  {
+   "version": "20260810002436",
+   "name": "ops_traffic_bot_share_and_index_hygiene",
+   "bytes": 1968,
+   "md5": "a30f5360131a6b5302cfc29ddbc99e98",
+   "statements": 1,
+   "objects": [
+    "c:ops.traffic_bot_share",
+    "d:ops.jeonse_null_to_zero_20260810_id_idx"
+   ]
+  },
+  {
+   "version": "20260810002633",
+   "name": "market_aggregates_source_watermark_guard",
+   "bytes": 5397,
+   "md5": "e7a3dd74272f27aa6c77a5a26c4a09a0",
+   "statements": 1,
+   "objects": [
+    "c:public.refresh_market_aggregates"
+   ]
+  },
+  {
+   "version": "20260810002714",
+   "name": "market_aggregates_health_source_aware_v2",
+   "bytes": 2636,
+   "md5": "7e3f444299e68a82b64be07592d72531",
+   "statements": 1,
+   "objects": [
+    "c:reporting.market_aggregates_health",
+    "d:reporting.market_aggregates_health"
+   ]
+  },
+  {
+   "version": "20260810004033",
+   "name": "reporting_health_alerts_and_traffic_composition",
+   "bytes": 2153,
+   "md5": "d8477dbaf2e459870f7e6f18d49840d0",
+   "statements": 1,
+   "objects": [
+    "c:reporting.health_alerts",
+    "c:reporting.traffic_composition"
+   ]
+  },
+  {
+   "version": "20260810004552",
+   "name": "cleanup_dedupe_traffic_view_and_rename_watchdog_job",
+   "bytes": 598,
+   "md5": "6eac4b6567e6b7e6b4fbc8b075c33725",
+   "statements": 1,
+   "objects": [
+    "d:reporting.traffic_composition"
+   ]
+  },
+  {
+   "version": "20260810131153",
+   "name": "dq_dup_key_add_address_and_kapt_collation",
+   "bytes": 6964,
+   "md5": "3793cbd0b364d47337eb8dba11b2efb1",
+   "statements": 1,
+   "objects": [
+    "c:public.data_quality_report_live"
+   ]
+  },
+  {
+   "version": "20260810131211",
+   "name": "null_wolse_price_per_pyeong_deposit_based",
+   "bytes": 1451,
+   "md5": "3b910bcd646dd41ffd06ce83a3664bed",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260810131343",
+   "name": "fill_sejong_sigungu_in_apt_master",
+   "bytes": 1438,
+   "md5": "f4a73a58ff7457ed99b42f4e861183b7",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260811064459",
+   "name": "search_preview_use_trgm_operator",
+   "bytes": 3073,
+   "md5": "cafb440a2c45acd7feec383be9754dc9",
+   "statements": 1,
+   "objects": [
+    "c:public.search_complexes_preview"
+   ]
+  },
+  {
+   "version": "20260811064922",
+   "name": "search_preview_trgm_length_branch",
+   "bytes": 4146,
+   "md5": "608798190cc8f3f7ee255328ce165e48",
+   "statements": 1,
+   "objects": [
+    "c:public.search_complexes_preview"
+   ]
+  },
+  {
+   "version": "20260811065248",
+   "name": "tmp_bench_search_preview_v0",
+   "bytes": 1747,
+   "md5": "c693f4d88c22dcb6ba129986b439aa71",
+   "statements": 1,
+   "objects": [
+    "c:public.zz_bench_search_preview_v0"
+   ]
+  },
+  {
+   "version": "20260811065433",
+   "name": "tmp_bench_search_preview_v0_cleanup",
+   "bytes": 116,
+   "md5": "6fea4af336d7da099830a6b8bbd8db9d",
+   "statements": 1,
+   "objects": [
+    "d:public.zz_bench_search_preview_v0"
+   ]
+  },
+  {
+   "version": "20260811223856",
+   "name": "ops_site_http_probe_and_honest_rum_check",
+   "bytes": 1492,
+   "md5": "2fc480a1c7394a4f44a4d016004d7f8d",
+   "statements": 1,
+   "objects": [
+    "c:ops.record_site_probe",
+    "c:ops.site_probe",
+    "c:site_probe_probed_at_idx"
+   ]
+  },
+  {
+   "version": "20260811223945",
+   "name": "etl_freshness_http_probe_check_and_honest_rum",
+   "bytes": 8595,
+   "md5": "dab3ceaa29ce0db41fd1781a2573eefd",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260811223959",
+   "name": "sec_web_vitals_reject_bots_fixed_search_path",
+   "bytes": 278,
+   "md5": "65e3a6c723578c5b6916124b5192429e",
+   "statements": 1,
+   "objects": []
+  },
+  {
+   "version": "20260812121249",
+   "name": "public_record_site_probe_service_wrapper",
+   "bytes": 1246,
+   "md5": "a8956b9b6307cad8222deff98356dbc2",
+   "statements": 1,
+   "objects": [
+    "c:public.record_site_probe_service"
+   ]
+  },
+  {
+   "version": "20260812183421",
+   "name": "site_probe_via_pg_net_hourly",
+   "bytes": 3614,
+   "md5": "8591a92c4ff1ac56d63e2736611af5e6",
+   "statements": 1,
+   "objects": [
+    "c:ops.run_site_probe",
+    "c:ops.site_probe_pending"
+   ]
+  },
+  {
+   "version": "20260812192340",
+   "name": "payments_billing_allow_weekly",
+   "bytes": 754,
+   "md5": "5535f515c5b362d0d5d93e2891fc2114",
+   "statements": 1,
+   "objects": [
+    "a:public.payments"
+   ]
+  },
+  {
+   "version": "20260813000256",
+   "name": "etl_freshness_rollover_window_not_last_row",
+   "bytes": 10200,
+   "md5": "ec0e367c518929d7b631502777118304",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260813010523",
+   "name": "reporting_retired_sources",
+   "bytes": 2594,
+   "md5": "173deee46271ebfae53b4e81e18b2146",
+   "statements": 1,
+   "objects": [
+    "c:reporting.pipeline_health",
+    "c:reporting.retired_sources"
+   ]
+  },
+  {
+   "version": "20260813010603",
+   "name": "social_uploads_queue_and_drain",
+   "bytes": 3702,
+   "md5": "d799d22764d10629c928e61492b967be",
+   "statements": 1,
+   "objects": [
+    "a:public.social_uploads",
+    "c:ops.run_social_upload_drain",
+    "c:public.social_uploads",
+    "c:social_uploads_due_idx"
+   ]
+  },
+  {
+   "version": "20260813012942",
+   "name": "social_uploads_source_and_autopost_cron",
+   "bytes": 1927,
+   "md5": "45401bd1730550b14b952b5d709b98c2",
+   "statements": 1,
+   "objects": [
+    "a:public.social_uploads",
+    "c:ops.run_social_autopost",
+    "c:social_uploads_source_uniq"
+   ]
+  },
+  {
+   "version": "20260813224435",
+   "name": "ops_billing_fulfillment_and_failure_checks",
+   "bytes": 12257,
+   "md5": "68e87584c7fa7ad9a46cea69f14ec73d",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260813224522",
+   "name": "ops_query_load_snapshot_and_spike_check",
+   "bytes": 3893,
+   "md5": "aee30a4e4d0d90ec2c51161a595042f0",
+   "statements": 1,
+   "objects": [
+    "c:ops.query_load_snapshot",
+    "c:query_load_snapshot_scope_time_idx",
+    "c:query_load_snapshot_qid_time_idx",
+    "c:ops.capture_query_load",
+    "c:ops.query_load_intervals"
+   ]
+  },
+  {
+   "version": "20260813224638",
+   "name": "etl_freshness_add_db_query_load_check",
+   "bytes": 12830,
+   "md5": "5b918a3da1d529232236c8f999b806d6",
+   "statements": 1,
+   "objects": [
+    "c:ops.etl_freshness"
+   ]
+  },
+  {
+   "version": "20260813235816",
+   "name": "toss_billing_subscriptions_and_renewal_cron",
+   "bytes": 5005,
+   "md5": "51cd8c0734c67fb7caba3e0dc23d529d",
+   "statements": 1,
+   "objects": [
+    "c:public.billing_subscriptions",
+    "c:billing_subscriptions_user_email_idx",
+    "c:billing_subscriptions_due_idx",
+    "c:billing_subscriptions_one_live_per_user",
+    "a:public.billing_subscriptions",
+    "c:ops.run_billing_renewals"
+   ]
+  }
+ ],
+ "absent_now": {
+  "note": [
+   "원장이 만들었다고 기록했지만 2026-08-06 실측 시점에 DB 에 존재하지 않는 객체다.",
+   "없는 객체는 저장소에 정의가 없는 게 맞으므로 대조 대상에서 뺀다. 빼지 않으면 이미 지운 것까지",
+   "결손으로 세어져 목록이 부풀고, 부푼 목록은 진짜 결손을 덮는다.",
+   "판정 근거는 '마지막 동사가 drop 인가' 가 아니라 '지금 있는가' 다. 둘은 다르다 —",
+   "public.refresh_market_region_monthly 은 20260804114141 에서 마지막 매칭이 drop 이지만",
+   "그건 오버로드 시그니처 하나를 지운 것이고 함수 자체는 살아 있다. 동사 순서로 판정했다면",
+   "실재하는 결손 하나를 조용히 숨길 뻔했다.",
+   "반대 방향도 있다 — complex_geocode_latlng_idx · inspection_notes_admin_all ·",
+   "inspection_notes_select_public 셋은 로컬 파일에는 정의가 있는데 DB 에는 없다.",
+   "그건 이 검사가 보는 방향(원장→파일)의 반대라 여기서는 안 잡는다."
   ],
-  "known_unmirrored": [
-    {
-      "object": "apartment_complexes",
-      "full": [
-        "public.apartment_complexes"
-      ],
-      "from": [
-        "20260803224240 optimize_market_aggregates_cron_and_autovacuum"
-      ]
-    },
-    {
-      "object": "apartment_complexes_select_public",
-      "full": [
-        "apartment_complexes_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "apartment_supply_select_public",
-      "full": [
-        "apartment_supply_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "app_users_plan_expiry_idx",
-      "full": [
-        "app_users_plan_expiry_idx"
-      ],
-      "from": [
-        "20260725151428 plan_expiry_and_search_trgm"
-      ]
-    },
-    {
-      "object": "banners_select_active",
-      "full": [
-        "banners_select_active"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "board_posts_external_key_key",
-      "full": [
-        "board_posts_external_key_key"
-      ],
-      "from": [
-        "20260727073918 create_news_articles",
-        "20260727080050 fix_board_posts_external_key_index"
-      ]
-    },
-    {
-      "object": "capture_daily_kpi",
-      "full": [
-        "public.capture_daily_kpi"
-      ],
-      "from": [
-        "20260802223432 daily_kpi_snapshot_infra"
-      ]
-    },
-    {
-      "object": "chat_messages_author_id_idx",
-      "full": [
-        "chat_messages_author_id_idx"
-      ],
-      "from": [
-        "20260802130346 perf_index_unindexed_foreign_keys"
-      ]
-    },
-    {
-      "object": "chat_reports_admin_update",
-      "full": [
-        "chat_reports_admin_update"
-      ],
-      "from": [
-        "20260727073158 sec_policy_and_privilege_hardening"
-      ]
-    },
-    {
-      "object": "chat_rooms_owner_id_idx",
-      "full": [
-        "chat_rooms_owner_id_idx"
-      ],
-      "from": [
-        "20260802130346 perf_index_unindexed_foreign_keys"
-      ]
-    },
-    {
-      "object": "complex_geocode_latlng_cov_idx",
-      "full": [
-        "complex_geocode_latlng_cov_idx"
-      ],
-      "from": [
-        "20260804074431 complex_geocode_bbox_covering_index"
-      ]
-    },
-    {
-      "object": "complex_geocode_select_public",
-      "full": [
-        "complex_geocode_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "complex_households_resolved",
-      "full": [
-        "market_agg.complex_households_resolved"
-      ],
-      "from": [
-        "20260804074312 precompute_complex_households_resolved"
-      ]
-    },
-    {
-      "object": "complex_households_resolved_pk",
-      "full": [
-        "complex_households_resolved_pk"
-      ],
-      "from": [
-        "20260804074312 precompute_complex_households_resolved"
-      ]
-    },
-    {
-      "object": "consume_feature_quota",
-      "full": [
-        "public.consume_feature_quota"
-      ],
-      "from": [
-        "20260727073220 sec_consume_feature_quota_advisory_lock"
-      ]
-    },
-    {
-      "object": "court_auctions_select_public",
-      "full": [
-        "court_auctions_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "daily_kpi_snapshot",
-      "full": [
-        "public.daily_kpi_snapshot"
-      ],
-      "from": [
-        "20260802223432 daily_kpi_snapshot_infra"
-      ]
-    },
-    {
-      "object": "daily_series",
-      "full": [
-        "reporting.daily_series"
-      ],
-      "from": [
-        "20260803223121 reporting_schema_for_morning_brief"
-      ]
-    },
-    {
-      "object": "date_spine",
-      "full": [
-        "reporting.date_spine"
-      ],
-      "from": [
-        "20260803223121 reporting_schema_for_morning_brief"
-      ]
-    },
-    {
-      "object": "dev_partners",
-      "full": [
-        "public.dev_partners"
-      ],
-      "from": [
-        "20260724225522 add_contact_masked_to_dev_partners"
-      ]
-    },
-    {
-      "object": "duplicate_refresh_watch",
-      "full": [
-        "reporting.duplicate_refresh_watch"
-      ],
-      "from": [
-        "20260804103713 watch_duplicate_market_aggregate_refresh"
-      ]
-    },
-    {
-      "object": "idx_admin_audit_logs_actor_id",
-      "full": [
-        "idx_admin_audit_logs_actor_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_ai_analysis_jobs_report_id",
-      "full": [
-        "idx_ai_analysis_jobs_report_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_ai_analysis_runs_preset_id",
-      "full": [
-        "idx_ai_analysis_runs_preset_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_b2b_inquiries_partner_id",
-      "full": [
-        "idx_b2b_inquiries_partner_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_chat_reports_message_id",
-      "full": [
-        "idx_chat_reports_message_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_chat_reports_room_id",
-      "full": [
-        "idx_chat_reports_room_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_content_reports_handled_by",
-      "full": [
-        "idx_content_reports_handled_by"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_content_reports_target_comment_id",
-      "full": [
-        "idx_content_reports_target_comment_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_content_reports_target_post_id",
-      "full": [
-        "idx_content_reports_target_post_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_expert_profiles_user_id",
-      "full": [
-        "idx_expert_profiles_user_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_expert_verification_requests_user_id",
-      "full": [
-        "idx_expert_verification_requests_user_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_inspection_schedules_note_id",
-      "full": [
-        "idx_inspection_schedules_note_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_inspection_sessions_note_id",
-      "full": [
-        "idx_inspection_sessions_note_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_inspection_share_links_note_id",
-      "full": [
-        "idx_inspection_share_links_note_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_inspection_share_links_session_id",
-      "full": [
-        "idx_inspection_share_links_session_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_map_events_user_id",
-      "full": [
-        "idx_map_events_user_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_nearby_provider_links_expert_id",
-      "full": [
-        "idx_nearby_provider_links_expert_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_owner_verifications_reviewed_by",
-      "full": [
-        "idx_owner_verifications_reviewed_by"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_report_purchases_payment_id",
-      "full": [
-        "idx_report_purchases_payment_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_reports_author_id",
-      "full": [
-        "idx_reports_author_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_user_subscriptions_payment_order_id",
-      "full": [
-        "idx_user_subscriptions_payment_order_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "idx_user_subscriptions_plan_id",
-      "full": [
-        "idx_user_subscriptions_plan_id"
-      ],
-      "from": [
-        "20260727071637 add_covering_indexes_for_foreign_keys"
-      ]
-    },
-    {
-      "object": "index_drop_candidates",
-      "full": [
-        "reporting.index_drop_candidates"
-      ],
-      "from": [
-        "20260803224240 optimize_market_aggregates_cron_and_autovacuum"
-      ]
-    },
-    {
-      "object": "index_usage_baseline",
-      "full": [
-        "reporting.index_usage_baseline"
-      ],
-      "from": [
-        "20260803224240 optimize_market_aggregates_cron_and_autovacuum"
-      ]
-    },
-    {
-      "object": "map_facet_source",
-      "full": [
-        "market_agg.map_facet_source"
-      ],
-      "from": [
-        "20260804110712 map_facet_source_mv"
-      ]
-    },
-    {
-      "object": "map_facet_source_latlng",
-      "full": [
-        "map_facet_source_latlng"
-      ],
-      "from": [
-        "20260804110712 map_facet_source_mv"
-      ]
-    },
-    {
-      "object": "map_facet_source_pk",
-      "full": [
-        "map_facet_source_pk"
-      ],
-      "from": [
-        "20260804110712 map_facet_source_mv"
-      ]
-    },
-    {
-      "object": "map_filter_facets",
-      "full": [
-        "public.map_filter_facets"
-      ],
-      "from": [
-        "20260727111525 map_filter_histogram_and_search_preview_v2",
-        "20260727111638 map_filter_facets_dense_bins",
-        "20260804074703 popular_complexes_and_facets_dynamic_plan",
-        "20260804110743 map_filter_facets_use_facet_source"
-      ]
-    },
-    {
-      "object": "map_related_experts_admin_delete",
-      "full": [
-        "map_related_experts_admin_delete"
-      ],
-      "from": [
-        "20260802113317 perf_merge_duplicate_permissive_policies_wave2"
-      ]
-    },
-    {
-      "object": "map_related_experts_admin_insert",
-      "full": [
-        "map_related_experts_admin_insert"
-      ],
-      "from": [
-        "20260802113317 perf_merge_duplicate_permissive_policies_wave2"
-      ]
-    },
-    {
-      "object": "map_related_experts_admin_update",
-      "full": [
-        "map_related_experts_admin_update"
-      ],
-      "from": [
-        "20260802113317 perf_merge_duplicate_permissive_policies_wave2"
-      ]
-    },
-    {
-      "object": "market_transactions_complex_name_trgm",
-      "full": [
-        "market_transactions_complex_name_trgm"
-      ],
-      "from": [
-        "20260725151428 plan_expiry_and_search_trgm"
-      ]
-    },
-    {
-      "object": "market_transactions_created_at_idx",
-      "full": [
-        "market_transactions_created_at_idx"
-      ],
-      "from": [
-        "20260803223121 reporting_schema_for_morning_brief"
-      ]
-    },
-    {
-      "object": "market_transactions_region_recent_idx",
-      "full": [
-        "market_transactions_region_recent_idx"
-      ],
-      "from": [
-        "20260726231929 market_transactions_region_recent_idx"
-      ]
-    },
-    {
-      "object": "market_transactions_trade_region_ym_cov_idx",
-      "full": [
-        "market_transactions_trade_region_ym_cov_idx"
-      ],
-      "from": [
-        "20260802221750 covering_idx_for_trade_region_ym_hot_query"
-      ]
-    },
-    {
-      "object": "mt_trade_complex_geo_idx",
-      "full": [
-        "mt_trade_complex_geo_idx"
-      ],
-      "from": [
-        "20260726015509 geocode_rpc_harden_under_load"
-      ]
-    },
-    {
-      "object": "news_articles",
-      "full": [
-        "public.news_articles"
-      ],
-      "from": [
-        "20260727073918 create_news_articles"
-      ]
-    },
-    {
-      "object": "news_articles_collected_date_rank_idx",
-      "full": [
-        "news_articles_collected_date_rank_idx"
-      ],
-      "from": [
-        "20260727073918 create_news_articles"
-      ]
-    },
-    {
-      "object": "news_articles_external_key_key",
-      "full": [
-        "news_articles_external_key_key"
-      ],
-      "from": [
-        "20260727073918 create_news_articles"
-      ]
-    },
-    {
-      "object": "news_articles_public_read",
-      "full": [
-        "news_articles_public_read"
-      ],
-      "from": [
-        "20260727073918 create_news_articles"
-      ]
-    },
-    {
-      "object": "onbid_auctions_select_public",
-      "full": [
-        "onbid_auctions_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "open_beta_tasks_select_admin",
-      "full": [
-        "open_beta_tasks_select_admin"
-      ],
-      "from": [
-        "20260727073158 sec_policy_and_privilege_hardening"
-      ]
-    },
-    {
-      "object": "ops",
-      "full": [
-        "ops"
-      ],
-      "from": [
-        "20260804105921 move_admin_functions_out_of_api_schema"
-      ]
-    },
-    {
-      "object": "page_view_daily_snapshot",
-      "full": [
-        "public.page_view_daily_snapshot"
-      ],
-      "from": [
-        "20260804104718 page_view_summary_snapshot_scaling"
-      ]
-    },
-    {
-      "object": "policy_versions_select_public",
-      "full": [
-        "policy_versions_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "profiles_select_self_or_admin",
-      "full": [
-        "profiles_select_self_or_admin"
-      ],
-      "from": [
-        "20260727073140 sec_profiles_pii_lockdown"
-      ]
-    },
-    {
-      "object": "public_property_records_select_public",
-      "full": [
-        "public_property_records_select_public"
-      ],
-      "from": [
-        "20260727074510 add_explicit_public_read_policies_for_reference_tables"
-      ]
-    },
-    {
-      "object": "reap_stale_etl_runs",
-      "full": [
-        "public.reap_stale_etl_runs"
-      ],
-      "from": [
-        "20260803225006 etl_zombie_reaper_cron"
-      ]
-    },
-    {
-      "object": "refresh_market_region_monthly",
-      "full": [
-        "public.refresh_market_region_monthly"
-      ],
-      "from": [
-        "20260804113934 market_region_monthly_auto_refresh",
-        "20260804114141 market_region_monthly_min_sample_guard"
-      ]
-    },
-    {
-      "object": "reporting",
-      "full": [
-        "reporting"
-      ],
-      "from": [
-        "20260803223121 reporting_schema_for_morning_brief"
-      ]
-    },
-    {
-      "object": "upsert_apartment_complexes",
-      "full": [
-        "public.upsert_apartment_complexes"
-      ],
-      "from": [
-        "20260725041607 upsert_apartment_complexes_merge"
-      ]
-    },
-    {
-      "object": "user_watchlist",
-      "full": [
-        "public.user_watchlist"
-      ],
-      "from": [
-        "20260725040926 watchlist_last_price_band"
-      ]
-    },
-    {
-      "object": "web_vitals_p75",
-      "full": [
-        "reporting.web_vitals_p75"
-      ],
-      "from": [
-        "20260803223121 reporting_schema_for_morning_brief"
-      ]
-    },
-    {
-      "object": "zombie_runs",
-      "full": [
-        "reporting.zombie_runs"
-      ],
-      "from": [
-        "20260803223121 reporting_schema_for_morning_brief"
-      ]
-    },
-    {
-      "object": "lawd_cd_backfill_20260809",
-      "full": [
-        "ops.lawd_cd_backfill_20260809"
-      ],
-      "from": [
-        "20260808224022 backfill_lawd_cd_gangwon_chungbuk_with_rollback"
-      ]
-    },
-    {
-      "object": "etl_freshness_ranked",
-      "full": [
-        "ops.etl_freshness_ranked"
-      ],
-      "from": [
-        "20260808224400 ops_etl_freshness_ranked_streaks"
-      ]
-    },
-    {
-      "object": "perf_baseline",
-      "full": [
-        "ops.perf_baseline"
-      ],
-      "from": [
-        "20260809224057 ops_perf_baseline_verdict_and_trgm_fastupdate_verified"
-      ]
-    },
-    {
-      "object": "rent_ppp_distortion",
-      "full": [
-        "ops.rent_ppp_distortion"
-      ],
-      "from": [
-        "20260809230322 ops_rent_ppp_distortion_diagnostic"
-      ]
-    }
-  ],
-  "last_increment_note": "2026-08-11 (13건 증분 — 병렬 세션 10건은 본문 바이트 대조 완료(bytes=원장 octet), 데이터 품질 3건 1311xx 는 원장 md5·octet 를 그대로 적음: 저장소 파일이 원장 본문과 사소하게 어긋난다(적용 호출과 파일 작성이 별개였음, #352 코스메틱 편차)) [2026-08-12] 병렬 세션(08-11 22시대)이 MCP 로 적용한 3건(ops.site_probe 프로브 이력, etl_freshness HTTP 프로브 판정, web_vitals_reject_bots search_path 고정)을 base64+md5 검증으로 미러링하며 188→191행 증분 갱신.",
-  "known_unmirrored_versions_note": [
-    "파일이 아예 없는 원장 행(version) 목록 — known_unmirrored(객체 단위)와 별개의 장부다.",
-    "객체 단위 대조만으로는 create or replace / alter 형 마이그레이션의 파일 삭제·누락이 안 보인다:",
-    "그 객체가 다른 파일에도 정의돼 있으면 커버리지가 유지되기 때문이다. 2026-08-12 실측 —",
-    "etl_freshness 미러 파일을 지워도 게이트가 통과했다. 그래서 version 단위 장부를 따로 둔다.",
-    "여기 적힌 것은 FAIL 시키지 않고 개수로만 나온다. 목록에 없는 새 결손(파일 없는 새 원장 행)은 FAIL.",
-    "파일을 복원했으면 여기서 빼야 한다 — 검사가 알려 준다."
-  ],
-  "known_unmirrored_versions": [
-    "20260724225522 add_contact_masked_to_dev_partners",
-    "20260724235826 complex_sitemap_source_view",
-    "20260724235924 drop_unused_sitemap_index",
-    "20260725000313 complex_sitemap_source_add_last_data_at",
-    "20260725002812 tx_band_landing_source_view",
-    "20260725002829 tx_band_complex_source_view",
-    "20260725005122 c1_map_price_point_source_view",
-    "20260725040926 watchlist_last_price_band",
-    "20260725041607 upsert_apartment_complexes_merge",
-    "20260725143928 drop_duplicate_indexes_advisor_0009",
-    "20260725143944 harden_security_definer_grants_and_search_path",
-    "20260725151428 plan_expiry_and_search_trgm",
-    "20260725153531 add_push_attendance_pref",
-    "20260725153536 complexes_needing_geocode_retry_notfound",
-    "20260725232135 point_ledger_spend_rpc",
-    "20260726015509 geocode_rpc_harden_under_load",
-    "20260726024852 geocode_rpc_early_exit",
-    "20260726033311 materialize_complex_sitemap_source",
-    "20260726035902 restore_market_agg_mv_grants",
-    "20260726045247 complex_pair_source",
-    "20260726052727 20260726130000_market_temperature_snapshot",
-    "20260726055809 public_read_for_build_prerender",
-    "20260726084003 seo_measurement",
-    "20260726104532 market_transactions_raw_statistics_off",
-    "20260726231929 market_transactions_region_recent_idx",
-    "20260726232115 market_transactions_region_name_trgm_idx",
-    "20260726232246 drop_market_transactions_region_name_trgm_idx",
-    "20260726232333 market_transactions_trade_region_ym_idx",
-    "20260726234356 geocode_priority_by_trade_volume",
-    "20260726234514 refresh_complex_tx_stats_with_aggregates",
-    "20260727071451 popular_complexes_viewport",
-    "20260727071605 complex_id_helper_and_popular_fix_v2",
-    "20260727071621 drop_duplicate_indexes",
-    "20260727071637 add_covering_indexes_for_foreign_keys",
-    "20260727071657 wrap_auth_calls_in_rls_policies_initplan",
-    "20260727073106 sec_revoke_public_execute_on_security_definer_fns",
-    "20260727073140 sec_profiles_pii_lockdown",
-    "20260727073158 sec_policy_and_privilege_hardening",
-    "20260727073220 sec_consume_feature_quota_advisory_lock",
-    "20260727073253 grant_popular_complexes_execute",
+  "how": "pg_class ∪ pg_proc ∪ pg_policy ∪ pg_trigger ∪ pg_type ∪ pg_namespace 의 이름을 소문자 마지막 마디로 비교. 같은 이름이 하나도 없으면 '지금 없다'. 스키마까지 맞추지 않고 이름만 보는 쪽이 보수적이다 — 있다고 볼 확률이 높아지고, 그러면 대조 대상에 남는다.",
+  "measured_at": "2026-08-06",
+  "objects": [
+   "chat_reports_admin_read",
+   "complex_geocode_latlng_idx",
+   "inspection_notes_admin_all",
+   "inspection_notes_select_public",
+   "map_related_experts_select",
+   "market_transactions_region_first_ym_idx",
+   "market_transactions_region_name_trgm",
+   "market_transactions_trade_complex_idx",
+   "market_transactions_trade_region_ym_idx",
+   "news_articles_published_at_idx",
+   "news_articles_region_idx",
+   "posts_delete",
+   "posts_insert",
+   "posts_select",
+   "posts_update",
+   "public.profiles_public"
+  ]
+ },
+ "known_unmirrored_note": [
+  "적용은 됐는데 저장소에 정의가 없는 객체 목록이다. 지금 당장 못 고치는 빚을 적어 둔 것이지,",
+  "괜찮다고 판정한 목록이 아니다. 여기 적힌 것은 FAIL 시키지 않고 PASS 줄에 개수로만 나온다.",
+  "늘 빨간 게이트는 아무도 안 보기 때문이다.",
+  "각 항목의 from 은 원장 version 과 name 이다. 그 행의 statements 를 그대로 파일로 남기면 빚이 준다.",
+  "선례: supabase/migrations/20260805225415_etl_freshness_cron_cadence_aware.sql",
+  "목록에서 빠진 결손은 FAIL 이다. 즉 이 목록이 실제보다 크면 그만큼 못 보는 범위가 넓어진다 —",
+  "파일을 복원했으면 여기서도 지워야 한다(검사가 '지금은 파일이 있다'고 알려 준다)."
+ ],
+ "known_unmirrored": [
+  {
+   "object": "apartment_complexes",
+   "full": [
+    "public.apartment_complexes"
+   ],
+   "from": [
+    "20260803224240 optimize_market_aggregates_cron_and_autovacuum"
+   ]
+  },
+  {
+   "object": "apartment_complexes_select_public",
+   "full": [
+    "apartment_complexes_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "apartment_supply_select_public",
+   "full": [
+    "apartment_supply_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "app_users_plan_expiry_idx",
+   "full": [
+    "app_users_plan_expiry_idx"
+   ],
+   "from": [
+    "20260725151428 plan_expiry_and_search_trgm"
+   ]
+  },
+  {
+   "object": "banners_select_active",
+   "full": [
+    "banners_select_active"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "board_posts_external_key_key",
+   "full": [
+    "board_posts_external_key_key"
+   ],
+   "from": [
     "20260727073918 create_news_articles",
-    "20260727074510 add_explicit_public_read_policies_for_reference_tables",
-    "20260727074952 create_automation_scripts",
-    "20260727075537 complex_tx_stats_service_role_grant",
-    "20260727080050 fix_board_posts_external_key_index",
-    "20260727084430 iap_receipts",
-    "20260727084441 report_purchases_payment_binding",
-    "20260727084456 point_ledger_award_rpc",
-    "20260727085616 storage_buckets_hardening",
-    "20260727104613 apt_detail_pending_partial_index",
-    "20260727111248 complex_tx_stats_facets_v2",
+    "20260727080050 fix_board_posts_external_key_index"
+   ]
+  },
+  {
+   "object": "capture_daily_kpi",
+   "full": [
+    "public.capture_daily_kpi"
+   ],
+   "from": [
+    "20260802223432 daily_kpi_snapshot_infra"
+   ]
+  },
+  {
+   "object": "chat_messages_author_id_idx",
+   "full": [
+    "chat_messages_author_id_idx"
+   ],
+   "from": [
+    "20260802130346 perf_index_unindexed_foreign_keys"
+   ]
+  },
+  {
+   "object": "chat_reports_admin_update",
+   "full": [
+    "chat_reports_admin_update"
+   ],
+   "from": [
+    "20260727073158 sec_policy_and_privilege_hardening"
+   ]
+  },
+  {
+   "object": "chat_rooms_owner_id_idx",
+   "full": [
+    "chat_rooms_owner_id_idx"
+   ],
+   "from": [
+    "20260802130346 perf_index_unindexed_foreign_keys"
+   ]
+  },
+  {
+   "object": "complex_geocode_latlng_cov_idx",
+   "full": [
+    "complex_geocode_latlng_cov_idx"
+   ],
+   "from": [
+    "20260804074431 complex_geocode_bbox_covering_index"
+   ]
+  },
+  {
+   "object": "complex_geocode_select_public",
+   "full": [
+    "complex_geocode_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "complex_households_resolved",
+   "full": [
+    "market_agg.complex_households_resolved"
+   ],
+   "from": [
+    "20260804074312 precompute_complex_households_resolved"
+   ]
+  },
+  {
+   "object": "complex_households_resolved_pk",
+   "full": [
+    "complex_households_resolved_pk"
+   ],
+   "from": [
+    "20260804074312 precompute_complex_households_resolved"
+   ]
+  },
+  {
+   "object": "consume_feature_quota",
+   "full": [
+    "public.consume_feature_quota"
+   ],
+   "from": [
+    "20260727073220 sec_consume_feature_quota_advisory_lock"
+   ]
+  },
+  {
+   "object": "court_auctions_select_public",
+   "full": [
+    "court_auctions_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "daily_kpi_snapshot",
+   "full": [
+    "public.daily_kpi_snapshot"
+   ],
+   "from": [
+    "20260802223432 daily_kpi_snapshot_infra"
+   ]
+  },
+  {
+   "object": "daily_series",
+   "full": [
+    "reporting.daily_series"
+   ],
+   "from": [
+    "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "date_spine",
+   "full": [
+    "reporting.date_spine"
+   ],
+   "from": [
+    "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "dev_partners",
+   "full": [
+    "public.dev_partners"
+   ],
+   "from": [
+    "20260724225522 add_contact_masked_to_dev_partners"
+   ]
+  },
+  {
+   "object": "duplicate_refresh_watch",
+   "full": [
+    "reporting.duplicate_refresh_watch"
+   ],
+   "from": [
+    "20260804103713 watch_duplicate_market_aggregate_refresh"
+   ]
+  },
+  {
+   "object": "idx_admin_audit_logs_actor_id",
+   "full": [
+    "idx_admin_audit_logs_actor_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_ai_analysis_jobs_report_id",
+   "full": [
+    "idx_ai_analysis_jobs_report_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_ai_analysis_runs_preset_id",
+   "full": [
+    "idx_ai_analysis_runs_preset_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_b2b_inquiries_partner_id",
+   "full": [
+    "idx_b2b_inquiries_partner_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_chat_reports_message_id",
+   "full": [
+    "idx_chat_reports_message_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_chat_reports_room_id",
+   "full": [
+    "idx_chat_reports_room_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_content_reports_handled_by",
+   "full": [
+    "idx_content_reports_handled_by"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_content_reports_target_comment_id",
+   "full": [
+    "idx_content_reports_target_comment_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_content_reports_target_post_id",
+   "full": [
+    "idx_content_reports_target_post_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_expert_profiles_user_id",
+   "full": [
+    "idx_expert_profiles_user_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_expert_verification_requests_user_id",
+   "full": [
+    "idx_expert_verification_requests_user_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_inspection_schedules_note_id",
+   "full": [
+    "idx_inspection_schedules_note_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_inspection_sessions_note_id",
+   "full": [
+    "idx_inspection_sessions_note_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_inspection_share_links_note_id",
+   "full": [
+    "idx_inspection_share_links_note_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_inspection_share_links_session_id",
+   "full": [
+    "idx_inspection_share_links_session_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_map_events_user_id",
+   "full": [
+    "idx_map_events_user_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_nearby_provider_links_expert_id",
+   "full": [
+    "idx_nearby_provider_links_expert_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_owner_verifications_reviewed_by",
+   "full": [
+    "idx_owner_verifications_reviewed_by"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_report_purchases_payment_id",
+   "full": [
+    "idx_report_purchases_payment_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_reports_author_id",
+   "full": [
+    "idx_reports_author_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_user_subscriptions_payment_order_id",
+   "full": [
+    "idx_user_subscriptions_payment_order_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "idx_user_subscriptions_plan_id",
+   "full": [
+    "idx_user_subscriptions_plan_id"
+   ],
+   "from": [
+    "20260727071637 add_covering_indexes_for_foreign_keys"
+   ]
+  },
+  {
+   "object": "index_drop_candidates",
+   "full": [
+    "reporting.index_drop_candidates"
+   ],
+   "from": [
+    "20260803224240 optimize_market_aggregates_cron_and_autovacuum"
+   ]
+  },
+  {
+   "object": "index_usage_baseline",
+   "full": [
+    "reporting.index_usage_baseline"
+   ],
+   "from": [
+    "20260803224240 optimize_market_aggregates_cron_and_autovacuum"
+   ]
+  },
+  {
+   "object": "map_facet_source",
+   "full": [
+    "market_agg.map_facet_source"
+   ],
+   "from": [
+    "20260804110712 map_facet_source_mv"
+   ]
+  },
+  {
+   "object": "map_facet_source_latlng",
+   "full": [
+    "map_facet_source_latlng"
+   ],
+   "from": [
+    "20260804110712 map_facet_source_mv"
+   ]
+  },
+  {
+   "object": "map_facet_source_pk",
+   "full": [
+    "map_facet_source_pk"
+   ],
+   "from": [
+    "20260804110712 map_facet_source_mv"
+   ]
+  },
+  {
+   "object": "map_filter_facets",
+   "full": [
+    "public.map_filter_facets"
+   ],
+   "from": [
     "20260727111525 map_filter_histogram_and_search_preview_v2",
     "20260727111638 map_filter_facets_dense_bins",
-    "20260727133228 search_regions",
-    "20260727133313 search_regions_v2",
-    "20260727152725 aggregates_filter_property_type_apartment_part1",
-    "20260727152754 aggregates_filter_property_type_apartment_part2",
-    "20260727152818 aggregates_filter_property_type_apartment_part3",
-    "20260727152841 aggregates_filter_property_type_apartment_part4",
-    "20260727152907 aggregates_filter_property_type_apartment_part5",
-    "20260727154809 map_complex_attrs",
-    "20260801235958 security_definer_views_step1_tx_band_invoker",
-    "20260802000022 security_definer_views_step2_grant_then_invoker",
-    "20260802000142 perf_scope_permissive_policies_to_roles",
-    "20260802000313 move_household_mvs_out_of_api_schema",
-    "20260802015600 drop_unused_profiles_public_view",
-    "20260802094924 sec_revoke_anon_grants_on_deny_all_tables",
-    "20260802104327 sec_lock_default_privileges_public",
-    "20260802110942 sec_complex_reviews_hide_author_email_from_anon",
-    "20260802130346 perf_index_unindexed_foreign_keys",
-    "20260802221656 add_trade_region_first_recent_idx",
-    "20260802221750 covering_idx_for_trade_region_ym_hot_query",
-    "20260802221819 telemetry_retention_pg_cron",
-    "20260802223432 daily_kpi_snapshot_infra",
-    "20260802223508 fix_map_refresh_search_path_pgcrypto",
-    "20260803085247 sec_payment_tables_revoke_client_writes",
-    "20260803222358 perf_complex_tx_stats_norm_once_and_parallel_safe",
-    "20260803222419 perf_complex_tx_stats_norm_once_offset0_barrier",
-    "20260803222514 extend_telemetry_retention_page_views_and_ingest_log",
-    "20260803223121 reporting_schema_for_morning_brief",
-    "20260803224240 optimize_market_aggregates_cron_and_autovacuum",
-    "20260803224320 harden_refresh_market_aggregates_cron_null_guard",
-    "20260803225006 etl_zombie_reaper_cron",
-    "20260803231016 fix_etl_runs_finished_at_uses_clock_timestamp",
-    "20260804000834 page_view_visitor_key_retention",
-    "20260804030022 web_vitals_weekly_view",
-    "20260804074312 precompute_complex_households_resolved",
-    "20260804074344 complex_geocode_trade_count_index_for_map",
-    "20260804074431 complex_geocode_bbox_covering_index",
-    "20260804074542 map_rpc_bbox_predicate_index_usable",
-    "20260804074619 map_complex_attrs_dynamic_plan",
     "20260804074703 popular_complexes_and_facets_dynamic_plan",
-    "20260804074755 refresh_households_resolved_in_cron",
-    "20260804074853 extended_stats_for_complex_join_estimates",
-    "20260804102400 complex_tx_stats_security_invoker",
-    "20260804103713 watch_duplicate_market_aggregate_refresh",
-    "20260804104718 page_view_summary_snapshot_scaling",
-    "20260804104747 page_view_summary_first_event_precision_fix",
-    "20260804105921 move_admin_functions_out_of_api_schema",
-    "20260804110712 map_facet_source_mv",
-    "20260804110743 map_filter_facets_use_facet_source",
+    "20260804110743 map_filter_facets_use_facet_source"
+   ]
+  },
+  {
+   "object": "map_related_experts_admin_delete",
+   "full": [
+    "map_related_experts_admin_delete"
+   ],
+   "from": [
+    "20260802113317 perf_merge_duplicate_permissive_policies_wave2"
+   ]
+  },
+  {
+   "object": "map_related_experts_admin_insert",
+   "full": [
+    "map_related_experts_admin_insert"
+   ],
+   "from": [
+    "20260802113317 perf_merge_duplicate_permissive_policies_wave2"
+   ]
+  },
+  {
+   "object": "map_related_experts_admin_update",
+   "full": [
+    "map_related_experts_admin_update"
+   ],
+   "from": [
+    "20260802113317 perf_merge_duplicate_permissive_policies_wave2"
+   ]
+  },
+  {
+   "object": "market_transactions_complex_name_trgm",
+   "full": [
+    "market_transactions_complex_name_trgm"
+   ],
+   "from": [
+    "20260725151428 plan_expiry_and_search_trgm"
+   ]
+  },
+  {
+   "object": "market_transactions_created_at_idx",
+   "full": [
+    "market_transactions_created_at_idx"
+   ],
+   "from": [
+    "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "market_transactions_region_recent_idx",
+   "full": [
+    "market_transactions_region_recent_idx"
+   ],
+   "from": [
+    "20260726231929 market_transactions_region_recent_idx"
+   ]
+  },
+  {
+   "object": "market_transactions_trade_region_ym_cov_idx",
+   "full": [
+    "market_transactions_trade_region_ym_cov_idx"
+   ],
+   "from": [
+    "20260802221750 covering_idx_for_trade_region_ym_hot_query"
+   ]
+  },
+  {
+   "object": "mt_trade_complex_geo_idx",
+   "full": [
+    "mt_trade_complex_geo_idx"
+   ],
+   "from": [
+    "20260726015509 geocode_rpc_harden_under_load"
+   ]
+  },
+  {
+   "object": "news_articles",
+   "full": [
+    "public.news_articles"
+   ],
+   "from": [
+    "20260727073918 create_news_articles"
+   ]
+  },
+  {
+   "object": "news_articles_collected_date_rank_idx",
+   "full": [
+    "news_articles_collected_date_rank_idx"
+   ],
+   "from": [
+    "20260727073918 create_news_articles"
+   ]
+  },
+  {
+   "object": "news_articles_external_key_key",
+   "full": [
+    "news_articles_external_key_key"
+   ],
+   "from": [
+    "20260727073918 create_news_articles"
+   ]
+  },
+  {
+   "object": "news_articles_public_read",
+   "full": [
+    "news_articles_public_read"
+   ],
+   "from": [
+    "20260727073918 create_news_articles"
+   ]
+  },
+  {
+   "object": "onbid_auctions_select_public",
+   "full": [
+    "onbid_auctions_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "open_beta_tasks_select_admin",
+   "full": [
+    "open_beta_tasks_select_admin"
+   ],
+   "from": [
+    "20260727073158 sec_policy_and_privilege_hardening"
+   ]
+  },
+  {
+   "object": "ops",
+   "full": [
+    "ops"
+   ],
+   "from": [
+    "20260804105921 move_admin_functions_out_of_api_schema"
+   ]
+  },
+  {
+   "object": "page_view_daily_snapshot",
+   "full": [
+    "public.page_view_daily_snapshot"
+   ],
+   "from": [
+    "20260804104718 page_view_summary_snapshot_scaling"
+   ]
+  },
+  {
+   "object": "policy_versions_select_public",
+   "full": [
+    "policy_versions_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "profiles_select_self_or_admin",
+   "full": [
+    "profiles_select_self_or_admin"
+   ],
+   "from": [
+    "20260727073140 sec_profiles_pii_lockdown"
+   ]
+  },
+  {
+   "object": "public_property_records_select_public",
+   "full": [
+    "public_property_records_select_public"
+   ],
+   "from": [
+    "20260727074510 add_explicit_public_read_policies_for_reference_tables"
+   ]
+  },
+  {
+   "object": "reap_stale_etl_runs",
+   "full": [
+    "public.reap_stale_etl_runs"
+   ],
+   "from": [
+    "20260803225006 etl_zombie_reaper_cron"
+   ]
+  },
+  {
+   "object": "refresh_market_region_monthly",
+   "full": [
+    "public.refresh_market_region_monthly"
+   ],
+   "from": [
     "20260804113934 market_region_monthly_auto_refresh",
-    "20260804114141 market_region_monthly_min_sample_guard",
-    "20260804114244 wire_market_region_monthly_into_daily_refresh",
-    "20260804115844 refresh_market_aggregates_freshness_guard",
-    "20260806223821 data_quality_report_live_work_mem",
-    "20260806224022 etl_freshness_month_rollover_check",
-    "20260806224132 etl_freshness_signal_semantics_by_source_class",
-    "20260808224022 backfill_lawd_cd_gangwon_chungbuk_with_rollback",
-    "20260808224300 apartment_complexes_trgm_gin_fastupdate_off",
-    "20260808224400 ops_etl_freshness_ranked_streaks",
-    "20260809224025 ops_site_rum_and_pipeline_heartbeat_checks",
-    "20260809224057 ops_perf_baseline_verdict_and_trgm_fastupdate_verified",
+    "20260804114141 market_region_monthly_min_sample_guard"
+   ]
+  },
+  {
+   "object": "reporting",
+   "full": [
+    "reporting"
+   ],
+   "from": [
+    "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "upsert_apartment_complexes",
+   "full": [
+    "public.upsert_apartment_complexes"
+   ],
+   "from": [
+    "20260725041607 upsert_apartment_complexes_merge"
+   ]
+  },
+  {
+   "object": "user_watchlist",
+   "full": [
+    "public.user_watchlist"
+   ],
+   "from": [
+    "20260725040926 watchlist_last_price_band"
+   ]
+  },
+  {
+   "object": "web_vitals_p75",
+   "full": [
+    "reporting.web_vitals_p75"
+   ],
+   "from": [
+    "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "zombie_runs",
+   "full": [
+    "reporting.zombie_runs"
+   ],
+   "from": [
+    "20260803223121 reporting_schema_for_morning_brief"
+   ]
+  },
+  {
+   "object": "lawd_cd_backfill_20260809",
+   "full": [
+    "ops.lawd_cd_backfill_20260809"
+   ],
+   "from": [
+    "20260808224022 backfill_lawd_cd_gangwon_chungbuk_with_rollback"
+   ]
+  },
+  {
+   "object": "etl_freshness_ranked",
+   "full": [
+    "ops.etl_freshness_ranked"
+   ],
+   "from": [
+    "20260808224400 ops_etl_freshness_ranked_streaks"
+   ]
+  },
+  {
+   "object": "perf_baseline",
+   "full": [
+    "ops.perf_baseline"
+   ],
+   "from": [
+    "20260809224057 ops_perf_baseline_verdict_and_trgm_fastupdate_verified"
+   ]
+  },
+  {
+   "object": "rent_ppp_distortion",
+   "full": [
+    "ops.rent_ppp_distortion"
+   ],
+   "from": [
     "20260809230322 ops_rent_ppp_distortion_diagnostic"
-  ]
+   ]
+  }
+ ],
+ "last_increment_note": "2026-08-11 (13건 증분 — 병렬 세션 10건은 본문 바이트 대조 완료(bytes=원장 octet), 데이터 품질 3건 1311xx 는 원장 md5·octet 를 그대로 적음: 저장소 파일이 원장 본문과 사소하게 어긋난다(적용 호출과 파일 작성이 별개였음, #352 코스메틱 편차)) [2026-08-12] 병렬 세션(08-11 22시대)이 MCP 로 적용한 3건(ops.site_probe 프로브 이력, etl_freshness HTTP 프로브 판정, web_vitals_reject_bots search_path 고정)을 base64+md5 검증으로 미러링하며 188→191행 증분 갱신. [2026-08-14] 병렬 세션이 MCP 로 적용한 3건(ops 결제 이행/실패 검사, DB 부하 감시 스냅샷, etl_freshness db.query_load 추가)과 이 세션의 토스 빌링 구독 원장(billing_subscriptions+갱신 크론) 1건을 base64+md5 검증으로 미러링하며 198→202행 증분 갱신.",
+ "known_unmirrored_versions_note": [
+  "파일이 아예 없는 원장 행(version) 목록 — known_unmirrored(객체 단위)와 별개의 장부다.",
+  "객체 단위 대조만으로는 create or replace / alter 형 마이그레이션의 파일 삭제·누락이 안 보인다:",
+  "그 객체가 다른 파일에도 정의돼 있으면 커버리지가 유지되기 때문이다. 2026-08-12 실측 —",
+  "etl_freshness 미러 파일을 지워도 게이트가 통과했다. 그래서 version 단위 장부를 따로 둔다.",
+  "여기 적힌 것은 FAIL 시키지 않고 개수로만 나온다. 목록에 없는 새 결손(파일 없는 새 원장 행)은 FAIL.",
+  "파일을 복원했으면 여기서 빼야 한다 — 검사가 알려 준다."
+ ],
+ "known_unmirrored_versions": [
+  "20260724225522 add_contact_masked_to_dev_partners",
+  "20260724235826 complex_sitemap_source_view",
+  "20260724235924 drop_unused_sitemap_index",
+  "20260725000313 complex_sitemap_source_add_last_data_at",
+  "20260725002812 tx_band_landing_source_view",
+  "20260725002829 tx_band_complex_source_view",
+  "20260725005122 c1_map_price_point_source_view",
+  "20260725040926 watchlist_last_price_band",
+  "20260725041607 upsert_apartment_complexes_merge",
+  "20260725143928 drop_duplicate_indexes_advisor_0009",
+  "20260725143944 harden_security_definer_grants_and_search_path",
+  "20260725151428 plan_expiry_and_search_trgm",
+  "20260725153531 add_push_attendance_pref",
+  "20260725153536 complexes_needing_geocode_retry_notfound",
+  "20260725232135 point_ledger_spend_rpc",
+  "20260726015509 geocode_rpc_harden_under_load",
+  "20260726024852 geocode_rpc_early_exit",
+  "20260726033311 materialize_complex_sitemap_source",
+  "20260726035902 restore_market_agg_mv_grants",
+  "20260726045247 complex_pair_source",
+  "20260726052727 20260726130000_market_temperature_snapshot",
+  "20260726055809 public_read_for_build_prerender",
+  "20260726084003 seo_measurement",
+  "20260726104532 market_transactions_raw_statistics_off",
+  "20260726231929 market_transactions_region_recent_idx",
+  "20260726232115 market_transactions_region_name_trgm_idx",
+  "20260726232246 drop_market_transactions_region_name_trgm_idx",
+  "20260726232333 market_transactions_trade_region_ym_idx",
+  "20260726234356 geocode_priority_by_trade_volume",
+  "20260726234514 refresh_complex_tx_stats_with_aggregates",
+  "20260727071451 popular_complexes_viewport",
+  "20260727071605 complex_id_helper_and_popular_fix_v2",
+  "20260727071621 drop_duplicate_indexes",
+  "20260727071637 add_covering_indexes_for_foreign_keys",
+  "20260727071657 wrap_auth_calls_in_rls_policies_initplan",
+  "20260727073106 sec_revoke_public_execute_on_security_definer_fns",
+  "20260727073140 sec_profiles_pii_lockdown",
+  "20260727073158 sec_policy_and_privilege_hardening",
+  "20260727073220 sec_consume_feature_quota_advisory_lock",
+  "20260727073253 grant_popular_complexes_execute",
+  "20260727073918 create_news_articles",
+  "20260727074510 add_explicit_public_read_policies_for_reference_tables",
+  "20260727074952 create_automation_scripts",
+  "20260727075537 complex_tx_stats_service_role_grant",
+  "20260727080050 fix_board_posts_external_key_index",
+  "20260727084430 iap_receipts",
+  "20260727084441 report_purchases_payment_binding",
+  "20260727084456 point_ledger_award_rpc",
+  "20260727085616 storage_buckets_hardening",
+  "20260727104613 apt_detail_pending_partial_index",
+  "20260727111248 complex_tx_stats_facets_v2",
+  "20260727111525 map_filter_histogram_and_search_preview_v2",
+  "20260727111638 map_filter_facets_dense_bins",
+  "20260727133228 search_regions",
+  "20260727133313 search_regions_v2",
+  "20260727152725 aggregates_filter_property_type_apartment_part1",
+  "20260727152754 aggregates_filter_property_type_apartment_part2",
+  "20260727152818 aggregates_filter_property_type_apartment_part3",
+  "20260727152841 aggregates_filter_property_type_apartment_part4",
+  "20260727152907 aggregates_filter_property_type_apartment_part5",
+  "20260727154809 map_complex_attrs",
+  "20260801235958 security_definer_views_step1_tx_band_invoker",
+  "20260802000022 security_definer_views_step2_grant_then_invoker",
+  "20260802000142 perf_scope_permissive_policies_to_roles",
+  "20260802000313 move_household_mvs_out_of_api_schema",
+  "20260802015600 drop_unused_profiles_public_view",
+  "20260802094924 sec_revoke_anon_grants_on_deny_all_tables",
+  "20260802104327 sec_lock_default_privileges_public",
+  "20260802110942 sec_complex_reviews_hide_author_email_from_anon",
+  "20260802130346 perf_index_unindexed_foreign_keys",
+  "20260802221656 add_trade_region_first_recent_idx",
+  "20260802221750 covering_idx_for_trade_region_ym_hot_query",
+  "20260802221819 telemetry_retention_pg_cron",
+  "20260802223432 daily_kpi_snapshot_infra",
+  "20260802223508 fix_map_refresh_search_path_pgcrypto",
+  "20260803085247 sec_payment_tables_revoke_client_writes",
+  "20260803222358 perf_complex_tx_stats_norm_once_and_parallel_safe",
+  "20260803222419 perf_complex_tx_stats_norm_once_offset0_barrier",
+  "20260803222514 extend_telemetry_retention_page_views_and_ingest_log",
+  "20260803223121 reporting_schema_for_morning_brief",
+  "20260803224240 optimize_market_aggregates_cron_and_autovacuum",
+  "20260803224320 harden_refresh_market_aggregates_cron_null_guard",
+  "20260803225006 etl_zombie_reaper_cron",
+  "20260803231016 fix_etl_runs_finished_at_uses_clock_timestamp",
+  "20260804000834 page_view_visitor_key_retention",
+  "20260804030022 web_vitals_weekly_view",
+  "20260804074312 precompute_complex_households_resolved",
+  "20260804074344 complex_geocode_trade_count_index_for_map",
+  "20260804074431 complex_geocode_bbox_covering_index",
+  "20260804074542 map_rpc_bbox_predicate_index_usable",
+  "20260804074619 map_complex_attrs_dynamic_plan",
+  "20260804074703 popular_complexes_and_facets_dynamic_plan",
+  "20260804074755 refresh_households_resolved_in_cron",
+  "20260804074853 extended_stats_for_complex_join_estimates",
+  "20260804102400 complex_tx_stats_security_invoker",
+  "20260804103713 watch_duplicate_market_aggregate_refresh",
+  "20260804104718 page_view_summary_snapshot_scaling",
+  "20260804104747 page_view_summary_first_event_precision_fix",
+  "20260804105921 move_admin_functions_out_of_api_schema",
+  "20260804110712 map_facet_source_mv",
+  "20260804110743 map_filter_facets_use_facet_source",
+  "20260804113934 market_region_monthly_auto_refresh",
+  "20260804114141 market_region_monthly_min_sample_guard",
+  "20260804114244 wire_market_region_monthly_into_daily_refresh",
+  "20260804115844 refresh_market_aggregates_freshness_guard",
+  "20260806223821 data_quality_report_live_work_mem",
+  "20260806224022 etl_freshness_month_rollover_check",
+  "20260806224132 etl_freshness_signal_semantics_by_source_class",
+  "20260808224022 backfill_lawd_cd_gangwon_chungbuk_with_rollback",
+  "20260808224300 apartment_complexes_trgm_gin_fastupdate_off",
+  "20260808224400 ops_etl_freshness_ranked_streaks",
+  "20260809224025 ops_site_rum_and_pipeline_heartbeat_checks",
+  "20260809224057 ops_perf_baseline_verdict_and_trgm_fastupdate_verified",
+  "20260809230322 ops_rent_ppp_distortion_diagnostic"
+ ]
 }

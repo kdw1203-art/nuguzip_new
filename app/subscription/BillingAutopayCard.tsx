@@ -1,0 +1,131 @@
+"use client";
+
+import { useState } from "react";
+
+/**
+ * 자동결제 상태 카드 + 해지 버튼 (구독 관리 패널 안).
+ *
+ * 서버(BillingPanel)가 넘겨주는 값은 공개 필드뿐이다 — billingKey·customerKey 는
+ * 서버 저장소 밖으로 나오지 않는다. 해지는 즉시 반영되고, 이미 결제한 기간은
+ * 만료일까지 유지된다는 사실을 버튼 옆에 그대로 적는다.
+ */
+
+type Props = {
+  plan: string;
+  billing: string;
+  amount: number;
+  status: string;
+  cardCompany: string | null;
+  cardNumberMasked: string | null;
+  nextChargeAt: string | null;
+};
+
+const PLAN_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "—";
+  return new Date(t).toLocaleDateString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function BillingAutopayCard(props: Props) {
+  const [state, setState] = useState<"idle" | "confirm" | "working" | "done" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function cancel() {
+    setState("working");
+    try {
+      const res = await fetch("/api/payments/toss/billing/cancel", { method: "POST" });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string };
+      if (res.ok && j.ok) {
+        setState("done");
+        setMessage(j.message ?? "자동결제를 해지했어요.");
+      } else {
+        setState("error");
+        setMessage(j.error ?? "해지 처리에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      }
+    } catch {
+      setState("error");
+      setMessage("네트워크 오류로 해지하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
+  if (state === "done") {
+    return (
+      <div className="rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3 text-[12px] leading-[1.7] text-text-2">
+        {message}
+      </div>
+    );
+  }
+
+  const suspended = props.status === "suspended";
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="text-[12px] font-extrabold text-ink">
+          자동결제 이용 중 · {PLAN_LABEL[props.plan] ?? props.plan}{" "}
+          {props.billing === "annual" ? "연간" : "월간"}
+        </span>
+        <span className="text-[12px] font-bold text-ink">
+          {props.amount.toLocaleString("ko-KR")}원 / {props.billing === "annual" ? "년" : "월"}
+        </span>
+      </div>
+      <p className="text-[11px] leading-[1.7] text-text-2">
+        {props.cardCompany || props.cardNumberMasked ? (
+          <>
+            결제 카드: {props.cardCompany ?? "카드"} {props.cardNumberMasked ?? ""} ·{" "}
+          </>
+        ) : null}
+        {suspended ? (
+          <b>결제 실패로 자동결제가 잠시 멈춰 있어요 — 카드를 다시 등록하면 이어서 이용할 수 있어요.</b>
+        ) : (
+          <>
+            다음 결제 예정일: <b>{fmtDate(props.nextChargeAt)}</b>
+          </>
+        )}
+      </p>
+      {state === "confirm" ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-text-2">
+            해지해도 이미 결제한 기간은 만료일까지 그대로 이용돼요. 해지할까요?
+          </span>
+          <button
+            type="button"
+            onClick={() => void cancel()}
+            className="btn-soft btn-sm rounded-lg px-3 py-1.5 text-[11px] font-bold text-danger"
+          >
+            해지 확정
+          </button>
+          <button
+            type="button"
+            onClick={() => setState("idle")}
+            className="btn-soft btn-sm rounded-lg px-3 py-1.5 text-[11px] font-bold"
+          >
+            유지하기
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setState("confirm")}
+            disabled={state === "working"}
+            className="btn-soft btn-sm w-fit rounded-lg px-3 py-1.5 text-[11px] font-bold disabled:opacity-60"
+          >
+            {state === "working" ? "해지 처리 중…" : "자동결제 해지"}
+          </button>
+          {state === "error" && message && (
+            <span className="text-[11px] text-danger">{message}</span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
