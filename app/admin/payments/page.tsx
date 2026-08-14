@@ -239,7 +239,11 @@ export default async function AdminPaymentsPage() {
             <b className="text-ink">라이브 전환</b> — 심사 승인 후 두 키를{" "}
             <b>같이</b> live_ 쌍으로 교체. 운영에 test 키가 남으면 confirm
             가드가 결제를 중단한다(청구 없는 가짜 성공 방지). 자동결제(빌링)는
-            리스크 검토·추가 계약 후 별도 배선(lib/payments/toss-billing 준비됨).
+            배선 완료(카드 등록·빌링키 발급·갱신 크론·해지·BILLING_DELETED 웹훅,
+            2026-08-14) — 전자계약 승인 후 Vercel 에{" "}
+            <code>NEXT_PUBLIC_TOSS_BILLING_ENABLED=1</code> 을 넣으면 열린다.
+            그 전까지 등록 화면·API 는 &ldquo;준비 중&rdquo;을 사실대로 응답
+            (docs/toss-integration-audit.md E절).
           </li>
           <li>
             <b className="text-ink">세금 파라미터</b> — 구독은 과세 상품이라
