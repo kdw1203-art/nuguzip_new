@@ -94,6 +94,13 @@ export interface NewHomeData {
   loanRateAsOf: string | null;
   /** KST 오늘 등록된 공개 임장노트 수(정확 카운트) — 조회 실패 시 null */
   notesToday: number | null;
+  /**
+   * 누적 공개 임장노트 수 — 홈 지표 카드용. "오늘 새 노트"(notesToday)는 활동이
+   * 적은 날 구조적으로 0이라 신규 방문자에게 "빈 사이트" 인상을 준다(제품 리뷰
+   * 실측). 누적 공개 노트 수는 같은 사실 위에서 더 의미 있는 값이며 0이 아니다.
+   * 지어낸 수가 아니라 실카운트다 — 조회 실패 시 null.
+   */
+  publicNotesTotal: number | null;
   /** AI 시장 브리핑 — market_region_monthly 최근 등락 기반, 생성 불가 시 null */
   briefing: HomeBriefing | null;
   /**
@@ -126,6 +133,7 @@ export const EMPTY_NEW_HOME_DATA: NewHomeData = {
   loanRate: null,
   loanRateAsOf: null,
   notesToday: null,
+  publicNotesTotal: null,
   briefing: null,
   activityToday: null,
   regions: [],
@@ -377,6 +385,18 @@ async function countPublicNotesToday(): Promise<number | null> {
   return count;
 }
 
+/** 누적 공개 임장노트 수 — 홈 지표 카드용(오늘 0이어도 의미 있는 실카운트). */
+async function countPublicNotesTotal(): Promise<number | null> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return null;
+  const { count, error } = await sb
+    .from("inspection_notes")
+    .select("id", { count: "exact", head: true })
+    .eq("is_public", true);
+  if (error || typeof count !== "number") return null;
+  return count;
+}
+
 /* ---------- 지역 시세 카드 (스냅샷 → 카드) ---------- */
 
 /** 스냅샷 맵에서 홈 지역 시세 카드를 만든다. DB 접근 없음(순수 변환). */
@@ -447,6 +467,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     briefing,
     activityToday,
     notesToday,
+    publicNotesTotal,
   ] = await Promise.all([
       loadHomeData().catch((err): HomeData => {
         logger.error("[loadNewHomeData] loadHomeData 실패", err);
@@ -473,6 +494,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
       loadBriefingCached().catch((): HomeBriefing | null => null),
       loadActivityToday().catch((): number | null => null),
       countPublicNotesToday().catch((): number | null => null),
+      countPublicNotesTotal().catch((): number | null => null),
     ]);
 
   // ── 지역 시세 카드 (market_region_price 스냅샷) ──
@@ -536,6 +558,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     loanRate,
     loanRateAsOf,
     notesToday,
+    publicNotesTotal,
     briefing,
     activityToday,
     regions,

@@ -116,7 +116,7 @@ function MarketStrip({
   saleIndexSeoul,
   baseRate,
   loanRate,
-  notesToday,
+  publicNotes,
   activityToday,
   marketAsOf,
   baseRateAsOf,
@@ -133,7 +133,9 @@ function MarketStrip({
    * 판단해야 하므로 null 을 null 그대로 받는다.
    */
   loanRate: string | null;
-  notesToday: string;
+  /** 누적 공개 임장노트 수(예: "12건"). "오늘 새 노트"는 활동 적은 날 구조적으로
+   *  0이라 신규 방문자에게 빈 사이트 인상을 줘서, 의미 있는 누적 실카운트로 바꿨다. */
+  publicNotes: string;
   activityToday: string;
   /** 실거래 적재 기준일 "2026.08.05" — 없으면 그 조각을 빼고 쓴다 */
   marketAsOf: string | null;
@@ -223,7 +225,7 @@ function MarketStrip({
      조건**이다. home-data.ts:520-530 을 따라가 보면 이 값은 `null` 이거나
      `"2.98%"` 꼴이지 "—" 가 되는 경로가 없다. 걸릴 리 없는 조건을 남겨 두면
      다음에 읽는 사람이 "대출금리가 —일 때도 안내가 뜬다" 고 믿는다. */
-  const desktopMissing = [saleIndexSeoul, baseRate, notesToday, activityToday].includes("—");
+  const desktopMissing = [saleIndexSeoul, baseRate, publicNotes, activityToday].includes("—");
   const desktopCaption = [asOfCaption, desktopMissing ? legend : null]
     .filter((s): s is string => s !== null)
     .join(" · ");
@@ -236,8 +238,8 @@ function MarketStrip({
           { label: "매매지수 서울", value: <>{saleIndexSeoul}</>, accent: false },
           { ...rateCell, accent: false },
           {
-            label: "오늘 새 노트",
-            value: <span className="text-primary">{notesToday}</span>,
+            label: "공개 임장노트",
+            value: <span className="text-primary">{publicNotes}</span>,
             accent: true,
           },
           {
@@ -305,7 +307,7 @@ export default async function Home() {
   /* 여기서 "—" 로 바꾸지 않는다 — MarketStrip 이 "칸을 뺄지"를 정해야 해서
      null 을 그대로 넘긴다. 사유는 MarketStrip 의 loanRate prop 주석. */
   const loanRate = data.loanRate;
-  const notesToday = data.notesToday !== null ? `${data.notesToday}건` : "—";
+  const publicNotes = data.publicNotesTotal !== null ? `${data.publicNotesTotal}건` : "—";
   const baseRate = baseRateData?.label ?? "—";
   /* "명"이 아니라 "건". 이 숫자는 사람 수가 아니라 오늘 일어난 행위 이벤트
      수다 — 사람으로 셀 수 없는 이유는 lib/newui/home-data.ts 의
@@ -406,7 +408,7 @@ export default async function Home() {
               saleIndexSeoul={saleIndexSeoul}
               baseRate={baseRate}
               loanRate={loanRate}
-              notesToday={notesToday}
+              publicNotes={publicNotes}
               activityToday={activityToday}
               marketAsOf={freshness}
               baseRateAsOf={baseRateAsOf}
@@ -598,7 +600,7 @@ export default async function Home() {
                 saleIndexSeoul={saleIndexSeoul}
                 baseRate={baseRate}
                 loanRate={loanRate}
-                notesToday={notesToday}
+                publicNotes={publicNotes}
                 activityToday={activityToday}
                 marketAsOf={freshness}
                 baseRateAsOf={baseRateAsOf}

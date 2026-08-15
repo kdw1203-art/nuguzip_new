@@ -1,5 +1,4 @@
 import "server-only";
-import { createHash } from "node:crypto";
 
 /**
  * 토스페이먼츠 자동결제(빌링) 서버 클라이언트 — 기반 모듈.
@@ -29,19 +28,9 @@ import { createHash } from "node:crypto";
 
 const API_BASE = "https://api.tosspayments.com";
 
-/**
- * 문자열에서 결정적으로 UUID v5 형태를 만든다 — confirm 라우트의 멱등키와 같은
- * 방식. 빌링 승인은 "구독 id + 청구 주기" 로 키를 만들어, 같은 주기의 재시도가
- * (크론이 두 번 돌아도) 토스 쪽에서 첫 응답을 그대로 받게 한다 = 이중 청구 불가.
- */
-export function deterministicIdempotencyKey(seed: string): string {
-  const h = createHash("sha1").update(seed).digest();
-  const b = Buffer.from(h.subarray(0, 16));
-  b[6] = (b[6] & 0x0f) | 0x50;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const hex = b.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
+/* 멱등키 생성은 lib/payments/idempotency.ts(순수·테스트 가능)로 옮겼다 —
+   confirm 라우트와 공유. 재수출해 기존 import 경로를 유지한다. */
+export { deterministicIdempotencyKey } from "@/lib/payments/idempotency";
 
 function authHeader(): string | null {
   const secret = process.env.TOSS_SECRET_KEY?.trim();

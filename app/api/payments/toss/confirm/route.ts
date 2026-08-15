@@ -4,25 +4,10 @@ import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
-import { createHash } from "node:crypto";
+import { idempotencyKeyForOrder } from "@/lib/payments/idempotency";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
-
-/**
- * 주문 하나에 늘 같은 멱등키를 만든다 (UUID v5 형태, 네임스페이스는 고정 문자열).
- *
- * 난수를 쓰면 재시도마다 키가 달라져 멱등성이 성립하지 않는다. orderId 로부터
- * 결정적으로 뽑아야 "같은 주문의 두 번째 승인 요청"이 첫 응답을 그대로 받는다.
- */
-function idempotencyKeyForOrder(orderId: string): string {
-  const h = createHash("sha1").update(`nuguzip:toss:confirm:${orderId}`).digest();
-  const b = Buffer.from(h.subarray(0, 16));
-  b[6] = (b[6] & 0x0f) | 0x50; // version 5
-  b[8] = (b[8] & 0x3f) | 0x80; // RFC 4122 variant
-  const hex = b.toString("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-}
 
 /**
  * 토스페이먼츠 결제 승인(confirm).
