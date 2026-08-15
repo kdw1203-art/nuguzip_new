@@ -97,12 +97,29 @@ export async function loadExpertOpsSummary(): Promise<ExpertOpsSummary> {
   };
 }
 
+/** 전문가 신청의 심사 자료 — 신청서에 저장돼 있지만 여태 심사자에게 안 보이던 것 */
+export type ExpertEvidence = {
+  intro: string | null;
+  organization: string | null;
+  phone: string | null;
+  certNumber: string | null;
+  businessRegNo: string | null;
+  yearsExperience: number;
+  specialties: string[];
+  documentUrls: string[];
+  sourceVerificationUrl: string | null;
+  workflowStage: string | null;
+  fraudFlags: { ruleId: string; severity: string; message: string }[];
+};
+
 export type PendingVerificationItem = {
   id: string;
   kind: "expert" | "owner";
   label: string;
   sub: string;
   createdAt: string | null;
+  /** kind=expert 일 때만 — 심사 근거 패널용 */
+  evidence?: ExpertEvidence;
 };
 
 /**
@@ -117,7 +134,9 @@ export async function loadPendingVerificationQueue(
   const [expertRes, ownerRes] = await Promise.all([
     sb
       .from("expert_verification_requests")
-      .select("id, display_name, applicant_email, specialty, regions, created_at")
+      .select(
+        "id, display_name, applicant_email, specialty, regions, created_at, intro, organization, phone, cert_number, business_reg_no, years_experience, specialties, document_urls, source_verification_url, workflow_stage, fraud_flags",
+      )
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(limit),
@@ -147,12 +166,34 @@ export async function loadPendingVerificationQueue(
     expertRes.data as Record<string, unknown>[]
   ).map((r) => {
     const regions = Array.isArray(r.regions) ? (r.regions as string[]) : [];
+    /* 심사 자료 — 31컬럼을 다 저장해 놓고 심사자에게는 이름·분야만 보여주던 것을
+       고친다(실사 갭 #5). 증빙 URL·등록번호·소개·플래그 없이 승인 버튼만 있으면
+       심사가 아니라 도장이다. */
+    const flagsRaw = Array.isArray(r.fraud_flags) ? (r.fraud_flags as Record<string, unknown>[]) : [];
+    const evidence: ExpertEvidence = {
+      intro: r.intro ? String(r.intro) : null,
+      organization: r.organization ? String(r.organization) : null,
+      phone: r.phone ? String(r.phone) : null,
+      certNumber: r.cert_number ? String(r.cert_number) : null,
+      businessRegNo: r.business_reg_no ? String(r.business_reg_no) : null,
+      yearsExperience: Number(r.years_experience ?? 0),
+      specialties: Array.isArray(r.specialties) ? (r.specialties as string[]).map(String) : [],
+      documentUrls: Array.isArray(r.document_urls) ? (r.document_urls as string[]).map(String) : [],
+      sourceVerificationUrl: r.source_verification_url ? String(r.source_verification_url) : null,
+      workflowStage: r.workflow_stage ? String(r.workflow_stage) : null,
+      fraudFlags: flagsRaw.map((f) => ({
+        ruleId: String(f.ruleId ?? f.rule_id ?? "?"),
+        severity: String(f.severity ?? "warn"),
+        message: String(f.message ?? ""),
+      })),
+    };
     return {
       id: String(r.id),
       kind: "expert" as const,
       label: String(r.display_name || r.applicant_email || "전문가 신청"),
       sub: [r.specialty, regions.join("·")].filter(Boolean).join(" · ") || "전문가 인증",
       createdAt: (r.created_at as string | null) ?? null,
+      evidence,
     };
   });
 

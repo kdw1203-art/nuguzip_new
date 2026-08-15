@@ -14,7 +14,37 @@ export type QueueItem = {
   label: string;
   sub: string;
   createdAt: string | null;
+  /** kind=expert — 심사 근거(신청서에 저장된 증빙·자격·플래그) */
+  evidence?: {
+    intro: string | null;
+    organization: string | null;
+    phone: string | null;
+    certNumber: string | null;
+    businessRegNo: string | null;
+    yearsExperience: number;
+    specialties: string[];
+    documentUrls: string[];
+    sourceVerificationUrl: string | null;
+    workflowStage: string | null;
+    fraudFlags: { ruleId: string; severity: string; message: string }[];
+  };
 };
+
+const SEVERITY_CLS: Record<string, string> = {
+  block: "bg-danger-soft text-danger",
+  review_queue: "bg-[#fdf3e7] text-warning",
+  warn: "bg-[rgba(0,0,0,.06)] text-text-2",
+};
+
+/** 심사 자료 한 줄 */
+function Fact({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex items-start justify-between gap-2">
+      <span className="shrink-0 text-[9px] font-bold text-text-3">{k}</span>
+      <span className="min-w-0 break-all text-right text-[10px] font-semibold text-ink">{v}</span>
+    </div>
+  );
+}
 
 function relDate(iso: string | null): string {
   if (!iso) return "";
@@ -28,6 +58,8 @@ function ExpertRow({ item }: { item: QueueItem }) {
   const { showToast } = useToast();
   const [phase, setPhase] = useState<"idle" | "approve" | "reject" | "busy">("idle");
   const [reason, setReason] = useState("");
+  const [evOpen, setEvOpen] = useState(false);
+  const ev = item.evidence;
 
   async function submit(action: "approve" | "reject") {
     setPhase("busy");
@@ -72,6 +104,16 @@ function ExpertRow({ item }: { item: QueueItem }) {
         </div>
         {phase === "idle" && (
           <span className="flex flex-shrink-0 gap-1">
+            {ev && (
+              <button
+                type="button"
+                onClick={() => setEvOpen((v) => !v)}
+                aria-expanded={evOpen}
+                className="rounded-[7px] bg-[rgba(29,79,216,.1)] px-2 py-1 text-[10px] font-extrabold text-primary"
+              >
+                {evOpen ? "자료 닫기" : "심사 자료"}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setPhase("approve")}
@@ -89,6 +131,66 @@ function ExpertRow({ item }: { item: QueueItem }) {
           </span>
         )}
       </div>
+
+      {/* 심사 자료 — 신청서가 저장한 증빙 전부. 이게 없으면 심사가 아니라 도장이다. */}
+      {evOpen && ev && (
+        <div className="flex flex-col gap-1.5 rounded-[8px] bg-surface px-2.5 py-2">
+          {ev.fraudFlags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {ev.fraudFlags.map((f, i) => (
+                <span
+                  key={`${f.ruleId}-${i}`}
+                  title={f.message}
+                  className={`rounded px-1.5 py-px text-[9px] font-extrabold ${SEVERITY_CLS[f.severity] ?? SEVERITY_CLS.warn}`}
+                >
+                  ⚑ {f.ruleId} · {f.severity}
+                </span>
+              ))}
+            </div>
+          )}
+          {ev.certNumber && <Fact k="등록/자격번호" v={ev.certNumber} />}
+          {ev.businessRegNo && ev.businessRegNo !== ev.certNumber && (
+            <Fact k="사업자번호" v={ev.businessRegNo} />
+          )}
+          {ev.organization && <Fact k="상호" v={ev.organization} />}
+          {ev.phone && <Fact k="전화" v={ev.phone} />}
+          {ev.yearsExperience > 0 && <Fact k="경력" v={`${ev.yearsExperience}년`} />}
+          {ev.specialties.length > 0 && <Fact k="전문 분야" v={ev.specialties.join(", ")} />}
+          {ev.workflowStage && <Fact k="자동검증 단계" v={ev.workflowStage} />}
+          {ev.intro && (
+            <p className="rounded bg-bg px-2 py-1.5 text-[10px] leading-[1.6] text-text-1">
+              {ev.intro}
+            </p>
+          )}
+          {(ev.documentUrls.length > 0 || ev.sourceVerificationUrl) && (
+            <div className="flex flex-wrap gap-1.5">
+              {ev.documentUrls
+                .filter((u) => /^https?:\/\//i.test(u))
+                .map((u, i) => (
+                  <a
+                    key={u}
+                    href={u}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-[6px] bg-primary-soft px-2 py-0.5 text-[9px] font-extrabold text-primary no-underline"
+                  >
+                    증빙 {i + 1} ↗
+                  </a>
+                ))}
+              {ev.sourceVerificationUrl && (
+                <a
+                  href={ev.sourceVerificationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-[6px] border border-line px-2 py-0.5 text-[9px] font-extrabold text-text-2 no-underline"
+                >
+                  공적 조회처 ↗
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {phase === "approve" && (
         <div className="flex items-center justify-end gap-1.5">
