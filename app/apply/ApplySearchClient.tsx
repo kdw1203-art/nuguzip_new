@@ -87,6 +87,52 @@ function fetchedLabel(iso: string): string {
   return `${m[2]}-${m[3]} ${m[4]}:${m[5]}`;
 }
 
+type SortKey = "default" | "rate" | "supply";
+
+/** 경쟁률 문자열("152.3:1" | "152.3" | "△" | "-")에서 숫자만. 없으면 null(미달·미공개). */
+function parseRate(raw?: string): number | null {
+  if (!raw) return null;
+  const m = /(\d+(?:\.\d+)?)/.exec(raw);
+  return m ? Number(m[1]) : null;
+}
+
+/** 표시 중인 행만 정렬한다(전체가 아니라 '화면에 그려진 것' 기준 — 라벨로 명시). */
+function sortItems(items: ApplyhomeListingItem[], key: SortKey): ApplyhomeListingItem[] {
+  if (key === "default") return items;
+  const arr = [...items];
+  if (key === "rate") {
+    arr.sort((a, b) => (parseRate(b.competitionRate) ?? -1) - (parseRate(a.competitionRate) ?? -1));
+  } else {
+    arr.sort((a, b) => (b.supplyCount ?? 0) - (a.supplyCount ?? 0));
+  }
+  return arr;
+}
+
+/** 특공 유형별 경쟁률 라벨 — 접수/공급. 공급 0이면 "—", 미달이면 "미달". */
+function typeRateLabel(supply: number, requests: number): string {
+  if (!supply || supply <= 0) return "—";
+  if (requests <= 0) return "0";
+  const r = requests / supply;
+  return requests < supply ? "미달" : `${r.toFixed(1)}:1`;
+}
+
+/** "YYYYMMDD" | "YYYY-MM-DD" → "YYYY.MM.DD". 형식이 다르면 원문. */
+function ymd(raw?: string): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (digits.length >= 8) return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 8)}`;
+  return raw;
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] font-semibold text-text-3">{label}</span>
+      <span className="font-bold text-ink">{value}</span>
+    </div>
+  );
+}
+
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="card flex min-w-0 flex-col gap-0.5 rounded-2xl px-3.5 py-3">
@@ -109,6 +155,18 @@ export function ApplySearchClient({ initial }: Props) {
       ? null
       : { message: "청약홈 데이터를 지금 불러오지 못했어요.", cause: initial.cause },
   );
+  /* 정렬은 '표시 중인 행'만 다시 세운다(서버 전체가 아니라). 확장 행은 청약 일정·
+     시행사·원문(경쟁률 탭) 또는 8개 특공 유형별 물량·접수(특별공급 탭)를 편다 —
+     이미 받아 놓고 표에서 버리던 데이터를 여는 것뿐이라 지어낸 값이 아니다. */
+  const [sortKey, setSortKey] = useState<SortKey>("default");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   async function load(opts: {
     tab?: ApplyhomeSearchTab;
@@ -125,6 +183,7 @@ export function ApplySearchClient({ initial }: Props) {
     if (append) setAppending(true);
     else setLoading(true);
     setError(null);
+    if (!append) setExpanded(new Set()); // 새 결과엔 이전 확장 상태를 남기지 않는다
     try {
       const params = new URLSearchParams({
         tab,
@@ -171,6 +230,13 @@ export function ApplySearchClient({ initial }: Props) {
 
   const tabLabel = state.tab === "competition" ? "청약 경쟁률" : "특별공급 접수현황";
   const showTiles = !error && state.mode === "live" && state.items.length > 0;
+  const displayItems = sortItems(state.items, sortKey);
+  const hasResults = !error && !loading && state.items.length > 0;
+
+  const sortPill = (on: boolean) =>
+    on
+      ? "press rounded-full bg-ink px-3 py-1.5 text-[11px] font-bold text-white"
+      : "press glass rounded-full px-3 py-1.5 text-[11px] font-semibold text-text-2";
 
   return (
     <div className="flex flex-col gap-3">
@@ -303,89 +369,202 @@ export function ApplySearchClient({ initial }: Props) {
           )}
         </div>
       ) : (
-        <div className="rise-in-2 card overflow-x-auto rounded-2xl px-[18px] py-1">
-          <div className="min-w-[540px]">
-            {state.tab === "competition" ? (
-              <>
-                <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
-                  <span>단지 · 지역</span>
-                  <span className="text-center">타입</span>
-                  <span className="text-center">공급</span>
-                  <span className="text-center">접수</span>
-                  <span className="text-center">경쟁률</span>
-                </div>
-                {state.items.map((item, i, arr) => (
-                  <div
-                    key={item.id}
-                    className={`grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] items-center gap-2 py-2.5 text-xs ${
-                      i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                    }`}
-                  >
-                    <span className="font-bold text-ink">
-                      {item.houseName}
-                      <span className="ml-1 text-[10px] font-medium text-text-3">
-                        {item.region}
-                        {item.resideLabel ? ` · ${item.resideLabel}` : ""}
-                      </span>
-                    </span>
-                    <span className="text-center font-bold text-text-1">{item.houseType}</span>
-                    <span className="text-center font-bold text-text-1">
-                      {item.supplyCount.toLocaleString()}
-                    </span>
-                    <span className="text-center font-bold text-text-1">
-                      {item.requestCount ?? "—"}
-                    </span>
-                    <span className="text-center font-extrabold text-danger">
-                      {item.competitionRate ?? "—"}
-                    </span>
+        <>
+          {/* 정렬 — 표시 중인 행만 다시 세운다(전체 아님). 라벨로 그 사실을 밝힌다. */}
+          {hasResults && (
+            <div className="rise-in-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-bold text-text-3">정렬</span>
+              <button type="button" onClick={() => setSortKey("default")} className={sortPill(sortKey === "default")}>
+                기본
+              </button>
+              <button type="button" onClick={() => setSortKey("rate")} className={sortPill(sortKey === "rate")}>
+                경쟁률 높은 순
+              </button>
+              <button type="button" onClick={() => setSortKey("supply")} className={sortPill(sortKey === "supply")}>
+                공급 많은 순
+              </button>
+              {sortKey !== "default" && (
+                <span className="text-[10px] text-text-3">표시 중 {state.items.length}건 기준</span>
+              )}
+            </div>
+          )}
+
+          <div className="rise-in-2 card overflow-x-auto rounded-2xl px-[18px] py-1">
+            <div className="min-w-[540px]">
+              {state.tab === "competition" ? (
+                <>
+                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                    <span>단지 · 지역</span>
+                    <span className="text-center">타입</span>
+                    <span className="text-center">공급</span>
+                    <span className="text-center">접수</span>
+                    <span className="text-center">경쟁률</span>
                   </div>
-                ))}
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
-                  <span>단지 · 지역</span>
-                  <span className="text-center">타입</span>
-                  <span className="text-center">특공 세대</span>
-                  <span className="text-center">접수</span>
-                  <span className="text-center">결과</span>
-                </div>
-                {state.items.map((item, i, arr) => {
-                  const requests = item.specialMetrics?.reduce((s, m) => s + m.requests, 0);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] items-center gap-2 py-2.5 text-xs ${
-                        i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
-                      }`}
-                    >
-                      <span className="font-bold text-ink">
-                        {item.houseName}
-                        <span className="ml-1 text-[10px] font-medium text-text-3">
-                          {item.region}
-                        </span>
-                      </span>
-                      <span className="text-center font-bold text-text-1">{item.houseType}</span>
-                      <span className="text-center font-bold text-text-1">
-                        {(item.specialSupplyTotal ?? item.supplyCount).toLocaleString()}
-                      </span>
-                      <span className="text-center font-bold text-text-1">
-                        {requests != null ? requests.toLocaleString() : "—"}
-                      </span>
-                      <span className="text-center font-extrabold text-danger">
-                        {item.resultLabel ?? "—"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-            <div className="pb-2 pt-1 text-[10px] text-text-3">
-              출처 청약홈(한국부동산원) 공공데이터
-              {state.fetchedAt ? ` · ${state.fetchedAt.slice(0, 10)} 조회` : ""}
+                  {displayItems.map((item, i, arr) => {
+                    const open = expanded.has(item.id);
+                    const hasDetail = Boolean(
+                      item.rankCode ||
+                        item.subscriptionPeriod ||
+                        item.announceDate ||
+                        item.builder ||
+                        item.portalUrl,
+                    );
+                    return (
+                      <div
+                        key={item.id}
+                        className={i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => hasDetail && toggleExpand(item.id)}
+                          aria-expanded={open}
+                          className={`grid w-full grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] items-center gap-2 py-2.5 text-left text-xs ${
+                            hasDetail ? "press" : "cursor-default"
+                          }`}
+                        >
+                          <span className="font-bold text-ink">
+                            {hasDetail && (
+                              <span className="mr-1 inline-block w-2.5 text-center text-[11px] font-extrabold text-text-3">
+                                {open ? "−" : "+"}
+                              </span>
+                            )}
+                            {item.houseName}
+                            <span className="ml-1 text-[10px] font-medium text-text-3">
+                              {item.region}
+                              {item.resideLabel ? ` · ${item.resideLabel}` : ""}
+                            </span>
+                          </span>
+                          <span className="text-center font-bold text-text-1">{item.houseType}</span>
+                          <span className="text-center font-bold text-text-1">
+                            {item.supplyCount.toLocaleString()}
+                          </span>
+                          <span className="text-center font-bold text-text-1">
+                            {item.requestCount ?? "—"}
+                          </span>
+                          <span className="text-center font-extrabold text-danger">
+                            {item.competitionRate ?? "—"}
+                          </span>
+                        </button>
+                        {open && hasDetail && (
+                          <div className="mb-2 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl bg-bg px-3.5 py-3 text-[11px] sm:grid-cols-3">
+                            {item.rankCode ? (
+                              <DetailField label="순위" value={`${item.rankCode}순위`} />
+                            ) : null}
+                            {item.subscriptionPeriod ? (
+                              <DetailField label="청약 접수" value={item.subscriptionPeriod} />
+                            ) : null}
+                            {ymd(item.announceDate) ? (
+                              <DetailField label="모집공고일" value={ymd(item.announceDate)!} />
+                            ) : null}
+                            {item.builder ? <DetailField label="시행사" value={item.builder} /> : null}
+                            {item.houseKind ? <DetailField label="구분" value={item.houseKind} /> : null}
+                            {item.portalUrl ? (
+                              <div className="col-span-2 sm:col-span-3">
+                                <a
+                                  href={item.portalUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-bold text-primary underline"
+                                >
+                                  청약홈 공고 원문 보기 ↗
+                                </a>
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                    <span>단지 · 지역</span>
+                    <span className="text-center">타입</span>
+                    <span className="text-center">특공 세대</span>
+                    <span className="text-center">접수</span>
+                    <span className="text-center">결과</span>
+                  </div>
+                  {displayItems.map((item, i, arr) => {
+                    const requests = item.specialMetrics?.reduce((s, m) => s + m.requests, 0);
+                    const typeRows = (item.specialMetrics ?? []).filter(
+                      (m) => m.supply > 0 || m.requests > 0,
+                    );
+                    const open = expanded.has(item.id);
+                    const hasDetail = typeRows.length > 0;
+                    return (
+                      <div
+                        key={item.id}
+                        className={i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => hasDetail && toggleExpand(item.id)}
+                          aria-expanded={open}
+                          className={`grid w-full grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] items-center gap-2 py-2.5 text-left text-xs ${
+                            hasDetail ? "press" : "cursor-default"
+                          }`}
+                        >
+                          <span className="font-bold text-ink">
+                            {hasDetail && (
+                              <span className="mr-1 inline-block w-2.5 text-center text-[11px] font-extrabold text-text-3">
+                                {open ? "−" : "+"}
+                              </span>
+                            )}
+                            {item.houseName}
+                            <span className="ml-1 text-[10px] font-medium text-text-3">
+                              {item.region}
+                            </span>
+                          </span>
+                          <span className="text-center font-bold text-text-1">{item.houseType}</span>
+                          <span className="text-center font-bold text-text-1">
+                            {(item.specialSupplyTotal ?? item.supplyCount).toLocaleString()}
+                          </span>
+                          <span className="text-center font-bold text-text-1">
+                            {requests != null ? requests.toLocaleString() : "—"}
+                          </span>
+                          <span className="text-center font-extrabold text-danger">
+                            {item.resultLabel ?? "—"}
+                          </span>
+                        </button>
+                        {open && hasDetail && (
+                          <div className="mb-2 rounded-xl bg-bg px-3.5 py-3">
+                            <div className="mb-1.5 text-[10px] font-bold text-text-3">
+                              특별공급 유형별 · 공급 / 접수 / 경쟁률
+                            </div>
+                            <div className="grid grid-cols-[1.4fr_.8fr_.8fr_.9fr] gap-x-2 gap-y-1 text-[11px]">
+                              {typeRows.map((m) => (
+                                <div key={m.id} className="contents">
+                                  <span className="text-text-2">{m.label}</span>
+                                  <span className="text-center tabular-nums text-text-1">
+                                    {m.supply.toLocaleString()}
+                                  </span>
+                                  <span className="text-center tabular-nums text-text-1">
+                                    {m.requests.toLocaleString()}
+                                  </span>
+                                  <span className="text-center font-bold text-danger">
+                                    {typeRateLabel(m.supply, m.requests)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-1.5 text-[10px] text-text-3">
+                              경쟁률 = 접수 ÷ 공급 · 접수가 공급보다 적으면 &lsquo;미달&rsquo;
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+              <div className="pb-2 pt-1 text-[10px] text-text-3">
+                출처 청약홈(한국부동산원) 공공데이터
+                {state.fetchedAt ? ` · ${state.fetchedAt.slice(0, 10)} 조회` : ""}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* 더보기 (페이지네이션) */}
