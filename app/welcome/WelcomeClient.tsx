@@ -17,6 +17,7 @@ const STEP_IDS = [
   "profile_region",
   "profile_budget",
   "profile_purpose",
+  "profile_persona",
   "profile_demo",
 ] as const;
 
@@ -50,6 +51,17 @@ const PURPOSE_OPTIONS: { id: PurposeId; label: string; emoji: string; desc: stri
   { id: "jeonse", label: "전세", emoji: "🔑", desc: "전세로 거주할 집을 찾아요" },
 ];
 
+/* 타깃 페르소나(방향성 리밸런싱) — '어떤 임장러인가'. purpose(무엇을 찾나)와 별개로
+   '어떻게 부동산을 대하는가'를 잡아 홈·추천을 맞춘다. 이모지는 Icon 매핑 게이트를
+   피하려 평문 텍스트로 그린다(아이콘 컴포넌트 미사용). */
+type PersonaId = "investor" | "resident" | "crew" | "explorer";
+const PERSONA_OPTIONS: { id: PersonaId; label: string; glyph: string; desc: string }[] = [
+  { id: "investor", label: "실전 투자자", glyph: "📈", desc: "여러 단지를 비교하고 타이밍을 재요" },
+  { id: "resident", label: "내집마련 실수요자", glyph: "🏠", desc: "내가 살 집, 신중하게 정할래요" },
+  { id: "crew", label: "임장 스터디·크루", glyph: "👥", desc: "스터디·모임과 함께 임장 다녀요" },
+  { id: "explorer", label: "아직 탐색 중", glyph: "🧭", desc: "부동산 공부를 막 시작했어요" },
+];
+
 export function WelcomeClient() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -58,6 +70,7 @@ export function WelcomeClient() {
   const [budgetType, setBudgetType] = useState<BudgetType>("sale");
   const [budgetBandId, setBudgetBandId] = useState<string | null>(null);
   const [purpose, setPurpose] = useState<PurposeId | null>(null);
+  const [persona, setPersona] = useState<PersonaId | null>(null);
   const [busy, setBusy] = useState(false);
 
   /* 로그인 확인 겸 저장된 진행 상태 조회 — 401 이면 로그인으로 (소셜 포함, 로그인 후 복귀) */
@@ -121,6 +134,11 @@ export function WelcomeClient() {
     setStep(3);
   };
 
+  const nextFromStep4 = () => {
+    recordStep(3);
+    setStep(4);
+  };
+
   const setProfileField = (key: string, value: string) => {
     setProfile((prev) => {
       if (prev[key] === value) {
@@ -136,7 +154,7 @@ export function WelcomeClient() {
   const finish = useCallback(async () => {
     if (busy || !purpose) return;
     setBusy(true);
-    recordStep(3); // 위저드 마지막 화면 통과 기록 (완료 판정·보너스와 무관)
+    recordStep(4); // 위저드 마지막 화면(기본 정보) 통과 기록 (완료 판정·보너스와 무관)
 
     const band = BUDGET_BANDS[budgetType].find((b) => b.id === budgetBandId) ?? null;
     const budget = band
@@ -152,11 +170,11 @@ export function WelcomeClient() {
           body: JSON.stringify({ type: "region", value }),
         }),
       ),
-      // 개인화 저장 (관심 지역·예산·목적)
+      // 개인화 저장 (관심 지역·예산·목적·페르소나)
       fetch("/api/me/preferences", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ regions, budget, purpose, profile }),
+        body: JSON.stringify({ regions, budget, purpose, persona, profile }),
       }),
     ]).catch(() => {});
 
@@ -170,7 +188,7 @@ export function WelcomeClient() {
       /* ignore */
     }
     router.push(`/notes/new?${qs.toString()}`);
-  }, [busy, purpose, recordStep, budgetType, budgetBandId, regions, profile, router]);
+  }, [busy, purpose, persona, recordStep, budgetType, budgetBandId, regions, profile, router]);
 
   if (!ready) {
     return (
@@ -375,6 +393,61 @@ export function WelcomeClient() {
       )}
 
       {step === 3 && (
+        <>
+          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+            어떤 임장러에
+            <br />
+            가까우세요?
+          </h1>
+          <p className="rise-in-1 -mt-2 text-[13px] text-text-2">
+            누구집은 발로 뛰는 임장러를 위한 부동산 의사결정 플랫폼이에요. 골라 주시면
+            홈·추천을 맞춰 드려요. (선택 사항)
+          </p>
+
+          <div className="rise-in-2 flex flex-col gap-2">
+            {PERSONA_OPTIONS.map((o) => {
+              const active = persona === o.id;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setPersona(active ? null : o.id)}
+                  aria-pressed={active}
+                  className={`flex items-center gap-3 rounded-2xl p-4 text-left transition ${
+                    active
+                      ? "bg-primary-soft ring-2 ring-primary/40"
+                      : "border border-[#e2e7ee] bg-surface"
+                  }`}
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-lg">
+                    {o.glyph}
+                  </span>
+                  <span className="flex flex-col">
+                    <span
+                      className={`text-[15px] font-extrabold ${active ? "text-primary" : "text-ink"}`}
+                    >
+                      {o.label}
+                    </span>
+                    <span className="text-[12px] text-text-2">{o.desc}</span>
+                  </span>
+                  {active && <span className="ml-auto text-primary">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={nextFromStep4}
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base"
+          >
+            {persona ? "다음" : "건너뛰고 다음"}
+          </button>
+        </>
+      )}
+
+      {step === 4 && (
         <>
           <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
             맞춤에 쓸

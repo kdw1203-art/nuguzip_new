@@ -38,10 +38,15 @@ export type OnboardingBudget = {
 /** 실거주 / 투자 / 전세 */
 export type PurposeId = "live" | "invest" | "jeonse";
 
+/** 타깃 페르소나(방향성 리밸런싱) — 실전 투자자 / 내집마련 실수요자 / 임장 스터디·크루 / 탐색 중 */
+export type PersonaId = "investor" | "resident" | "crew" | "explorer";
+
 export type OnboardingPersonalization = {
   regions: string[];
   budget: OnboardingBudget | null;
   purpose: PurposeId | null;
+  /** 타깃 페르소나 — 고르지 않았으면 null */
+  persona: PersonaId | null;
   /** 가입 화면 기본 정보 — 고르지 않았으면 null */
   profile: OnboardingProfile | null;
   updatedAt: string | null;
@@ -57,6 +62,7 @@ export type ResolvedRegion = {
 };
 
 const PURPOSE_SET = new Set<PurposeId>(["live", "invest", "jeonse"]);
+const PERSONA_SET = new Set<PersonaId>(["investor", "resident", "crew", "explorer"]);
 const BUDGET_TYPE_SET = new Set<BudgetType>(["sale", "jeonse"]);
 const MAX_REGIONS = 3;
 const MAX_REGION_LEN = 30;
@@ -102,18 +108,26 @@ export function sanitizePurpose(input: unknown): PurposeId | null {
     : null;
 }
 
+export function sanitizePersona(input: unknown): PersonaId | null {
+  return typeof input === "string" && PERSONA_SET.has(input as PersonaId)
+    ? (input as PersonaId)
+    : null;
+}
+
 function parse(raw: unknown): OnboardingPersonalization | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   const regions = sanitizeRegions(o.regions);
   const budget = sanitizeBudget(o.budget);
   const purpose = sanitizePurpose(o.purpose);
+  const persona = sanitizePersona(o.persona);
   const profile = sanitizeProfile(o.profile);
-  if (regions.length === 0 && !budget && !purpose && !profile) return null;
+  if (regions.length === 0 && !budget && !purpose && !persona && !profile) return null;
   return {
     regions,
     budget,
     purpose,
+    persona,
     profile,
     updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : null,
   };
@@ -186,12 +200,19 @@ export async function getOnboardingPersonalization(
 /** 온보딩 개인화 저장(전체 덮어쓰기) — email 기준 upsert. 실패는 흡수. */
 export async function saveOnboardingPersonalization(
   email: string,
-  input: { regions?: unknown; budget?: unknown; purpose?: unknown; profile?: unknown },
+  input: {
+    regions?: unknown;
+    budget?: unknown;
+    purpose?: unknown;
+    persona?: unknown;
+    profile?: unknown;
+  },
 ): Promise<OnboardingPersonalization> {
   const value: OnboardingPersonalization = {
     regions: sanitizeRegions(input.regions),
     budget: sanitizeBudget(input.budget),
     purpose: sanitizePurpose(input.purpose),
+    persona: sanitizePersona(input.persona),
     profile: sanitizeProfile(input.profile),
     updatedAt: new Date().toISOString(),
   };

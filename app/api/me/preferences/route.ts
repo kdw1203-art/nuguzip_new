@@ -60,6 +60,9 @@ export async function POST(req: Request) {
     regions: body.regions,
     budget: body.budget,
     purpose: body.purpose,
+    /* 타깃 페르소나(실전 투자자/실수요자/스터디 크루/탐색 중) — 방향성 리밸런싱.
+       sanitizePersona 화이트리스트로 거른다. user_personalization jsonb 라 마이그레이션 불필요. */
+    persona: body.persona,
     /* 가입 화면 기본 정보(나이대·성별·가구·직업·생애최초·보유 주택).
        예전엔 /signup 이 물어만 보고 아무 데도 보내지 않아 통째로 버려졌다.
        허용 항목·값은 sanitizeProfile 이 화이트리스트로 거른다. */
@@ -70,6 +73,7 @@ export async function POST(req: Request) {
     regions: personalization.regions,
     budget: personalization.budget,
     purpose: personalization.purpose,
+    persona: personalization.persona,
   });
 }
 
