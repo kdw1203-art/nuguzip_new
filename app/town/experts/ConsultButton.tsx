@@ -19,6 +19,11 @@ export function ConsultButton({
   const { promptSignup } = useSoftSignup();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  /* 상담 유형·희망 시간대 — DB(consult_type·preferred_time)와 전문가 답변 화면
+     (/my/consultations)은 이미 이 값을 그리는데 폼이 안 보내서 항상 비어 있었다.
+     연락처 자유입력은 넣지 않는다 — 아래 안내문(개인정보 기입 금지)과 모순되므로. */
+  const [consultType, setConsultType] = useState<"text" | "call">("text");
+  const [preferredTime, setPreferredTime] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +39,11 @@ export function ConsultButton({
       const res = await fetch(`/api/experts/${expertId}/consult`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, consultType: "text" }),
+        body: JSON.stringify({
+          message: text,
+          consultType,
+          preferredTime: preferredTime.trim() || undefined,
+        }),
       });
       if (res.status === 401) {
         // 작성한 상담 내용을 날리지 않기 위해 이동 대신 프롬프트. status 는 되돌린다.
@@ -102,6 +111,27 @@ export function ConsultButton({
               title={`${expertName} 상담 신청`}
               onClose={() => setOpen(false)}
             />
+            {/* 상담 유형 — 글 답변 / 전화 상담(플랫폼 안내 후 진행) */}
+            <div className="flex gap-1.5" role="group" aria-label="상담 유형">
+              {([
+                { id: "text", label: "글로 답변 받기" },
+                { id: "call", label: "전화 상담 요청" },
+              ] as const).map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => setConsultType(o.id)}
+                  aria-pressed={consultType === o.id}
+                  className={`flex-1 rounded-xl px-3 py-2 text-[12px] font-bold transition ${
+                    consultType === o.id
+                      ? "bg-primary-soft text-primary ring-1 ring-primary/30"
+                      : "border border-line bg-surface text-text-2"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -110,6 +140,16 @@ export function ConsultButton({
               placeholder="상담받고 싶은 내용을 구체적으로 적어주세요 (10자 이상). 임장노트 링크를 함께 붙이면 더 정확한 답변을 받을 수 있어요."
               className="w-full resize-none rounded-xl border border-line bg-bg p-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
+            {consultType === "call" && (
+              <input
+                value={preferredTime}
+                onChange={(e) => setPreferredTime(e.target.value)}
+                maxLength={60}
+                placeholder="통화 희망 시간대 (예: 평일 저녁 7시 이후)"
+                aria-label="통화 희망 시간대"
+                className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              />
+            )}
             {error && (
               <div className="text-[11px] font-semibold text-danger">{error}</div>
             )}

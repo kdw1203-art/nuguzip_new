@@ -47,6 +47,7 @@ export function ExpertApplyCta() {
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
   const [specialties, setSpecialties] = useState("");
+  const [yearsExp, setYearsExp] = useState("");
   const [bio, setBio] = useState("");
   const [documentUrls, setDocumentUrls] = useState<string[]>([""]);
   const [agree, setAgree] = useState(false);
@@ -85,6 +86,7 @@ export function ExpertApplyCta() {
             .split(/[,，]/)
             .map((s) => s.trim())
             .filter(Boolean),
+          yearsExp: Math.max(0, Math.min(60, Number(yearsExp) || 0)),
           documentUrls: docUrls,
           consent: { terms: true },
         }),
@@ -205,6 +207,17 @@ export function ExpertApplyCta() {
               onChange={(e) => setCertNumber(e.target.value)}
               maxLength={40}
               placeholder="중개등록번호 / 자격번호 (예: 제11-1234호)"
+              className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            />
+
+            {/* 경력(년) — 예전엔 안 물어봐서 프로필 '경력' 이 항상 비었다 */}
+            <input
+              value={yearsExp}
+              onChange={(e) => setYearsExp(e.target.value.replace(/[^0-9]/g, ""))}
+              inputMode="numeric"
+              maxLength={2}
+              placeholder="경력 (년 · 예: 8)"
+              aria-label="경력 (년)"
               className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
 

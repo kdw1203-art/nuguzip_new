@@ -21,6 +21,8 @@ export type ExpertVerificationRequest = {
   applicantEmail: string;
   displayName: string;
   specialty: string;
+  /** 신청 폼 '전문 분야' — 승인 시 프로필 specialties 로 복사 */
+  specialties: string[];
   expertType: string | null;
   regions: string[];
   certifications: string[];
@@ -57,6 +59,7 @@ function mapRow(r: Record<string, unknown>): ExpertVerificationRequest {
     applicantEmail: String(r.applicant_email ?? ""),
     displayName: String(r.display_name ?? ""),
     specialty: String(r.specialty ?? ""),
+    specialties: Array.isArray(r.specialties) ? (r.specialties as string[]).map(String) : [],
     expertType: r.expert_type ? String(r.expert_type) : null,
     regions: Array.isArray(r.regions) ? (r.regions as string[]) : [],
     certifications: Array.isArray(r.certifications)
@@ -246,6 +249,9 @@ export async function submitExpertApplication(
     display_name: input.name.trim(),
     specialty: input.expertType,
     expert_type: input.expertType,
+    /* 전문 분야 — 예전엔 API 까지 오고도 insert 에 컬럼이 없어 통째로 유실됐다.
+       승인 시 프로필 specialties 로 옮기기 위해 신청서에 보존한다. */
+    specialties: (input.specialties ?? []).map((x) => x.trim()).filter(Boolean).slice(0, 8),
     regions: [`${input.city} ${input.district}`.trim()],
     certifications: input.certNumber ? [input.certNumber.trim()] : [],
     years_experience: input.yearsExp,
@@ -371,9 +377,11 @@ export async function approveExpertVerification(
         title: req.specialty || "전문가",
         category: req.expertType || req.specialty || "expert",
         regions: req.regions,
-        specialties: [],
+        /* 신청서에 보존된 전문 분야를 그대로 — 예전엔 [] 하드코딩으로 유실 */
+        specialties: req.specialties,
         introduction: req.intro ?? "",
         experience: req.yearsExperience ? `${req.yearsExperience}년` : "",
+        organization: req.organization,
         userId: null,
         ownerEmail: applicantEmail,
       });

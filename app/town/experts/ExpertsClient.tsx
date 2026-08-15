@@ -35,6 +35,10 @@ export type ExpertPublicRow = {
   experience: string;
   responseTime: string;
   isVerified: boolean;
+  organization: string | null;
+  contactPhone: string | null;
+  contactKakao: string | null;
+  brokerRegistrationNo: string | null;
   createdAt: string;
 };
 
@@ -78,6 +82,10 @@ function toCard(e: ExpertPublicRow): ExpertCardData {
     verified: e.isVerified,
     actionable: e.isVerified,
     pendingLabel: e.isVerified ? null : "인증 심사 중",
+    organization: e.organization,
+    contactPhone: e.contactPhone,
+    contactKakao: e.contactKakao,
+    brokerRegistrationNo: e.brokerRegistrationNo,
   };
 }
 

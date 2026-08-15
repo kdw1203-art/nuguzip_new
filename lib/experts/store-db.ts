@@ -23,6 +23,11 @@ export type UserExpertProfile = {
   isPremium: boolean;
   badge?: string | null;
   gradient?: string | null;
+  /** 상호(사무소명) — 인증 신청서의 organization 을 승인 시 복사 */
+  organization: string | null;
+  /** 공개 연락처 — 본인이 프로필 수정에서 직접 채울 때만 노출(자동 공개 금지) */
+  contactPhone: string | null;
+  contactKakao: string | null;
   /** 운영 검증: 공인중개사 개설 등록번호 등(공개 정책에 따라 표기) */
   brokerRegistrationNo?: string | null;
   verificationCheckedAt?: string | null;
@@ -159,6 +164,7 @@ export async function createExpert(input: {
   consultationFee?: number;
   reportFee?: number;
   experience?: string;
+  organization?: string | null;
   userId?: string | null;
   ownerEmail?: string | null;
 }): Promise<UserExpertProfile> {
@@ -184,6 +190,9 @@ export async function createExpert(input: {
     responseTime: "",
     isVerified: false,
     isPremium: false,
+    organization: input.organization?.trim() || null,
+    contactPhone: null,
+    contactKakao: null,
     badge: null,
     gradient: null,
     createdAt: now,
@@ -207,6 +216,7 @@ export async function createExpert(input: {
       consultation_fee: input.consultationFee ?? 0,
       report_fee: input.reportFee ?? 0,
       experience: input.experience ?? null,
+      organization: input.organization?.trim() || null,
     })
     .select()
     .single();
@@ -226,6 +236,10 @@ export async function updateExpert(
     consultationFee: number;
     reportFee: number;
     experience: string;
+    responseTime: string;
+    organization: string | null;
+    contactPhone: string | null;
+    contactKakao: string | null;
   }>,
 ): Promise<UserExpertProfile | null> {
   const sb = getServiceSupabase();
@@ -245,6 +259,10 @@ export async function updateExpert(
   if (patch.consultationFee !== undefined) body.consultation_fee = patch.consultationFee;
   if (patch.reportFee !== undefined) body.report_fee = patch.reportFee;
   if (patch.experience !== undefined) body.experience = patch.experience;
+  if (patch.responseTime !== undefined) body.response_time = patch.responseTime;
+  if (patch.organization !== undefined) body.organization = patch.organization;
+  if (patch.contactPhone !== undefined) body.contact_phone = patch.contactPhone;
+  if (patch.contactKakao !== undefined) body.contact_kakao = patch.contactKakao;
   const { data, error } = await sb
     .from("expert_profiles")
     .update(body)
@@ -322,6 +340,9 @@ function mapRow(r: Record<string, unknown>): UserExpertProfile {
     responseTime: (r.response_time as string | null) ?? "",
     isVerified: Boolean(r.is_verified),
     isPremium: Boolean(r.is_premium),
+    organization: (r.organization as string | null) ?? null,
+    contactPhone: (r.contact_phone as string | null) ?? null,
+    contactKakao: (r.contact_kakao as string | null) ?? null,
     badge: (r.badge as string | null) ?? null,
     gradient: (r.gradient as string | null) ?? null,
     brokerRegistrationNo: (r.broker_registration_no as string | null) ?? null,

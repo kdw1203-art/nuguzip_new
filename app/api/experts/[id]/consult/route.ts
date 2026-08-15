@@ -13,6 +13,7 @@ import {
   type ConsultType,
 } from "@/lib/expert-consultations/store-db";
 import { getExpert } from "@/lib/experts/store-db";
+import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { checkExpertConsultQuota, resolveQuotaPlan } from "@/lib/subscriptions/usage-summary";
 import { withUserQuotaLock } from "@/lib/subscriptions/quota-lock";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
@@ -181,5 +182,14 @@ export async function PATCH(
   if (!result) {
     return NextResponse.json({ error: "답변 실패" }, { status: 500 });
   }
+  /* 답변 알림 — 신청 완료 화면이 "답변은 알림으로 안내됩니다"라고 약속하는데
+     여태 아무 알림도 없었다(상담 루프가 전문가 쪽에서 끊김). 요청자 전용 열람
+     페이지가 아직 없으므로 답변 본문을 알림에 실어 루프를 닫는다. */
+  void appendInboxNotification({
+    userEmail: result.userEmail,
+    title: `${expert.name} 전문가 답변이 도착했어요`,
+    body: replyMessage.length > 160 ? `${replyMessage.slice(0, 159)}…` : replyMessage,
+    actionUrl: "/town/experts",
+  }).catch(() => {});
   return NextResponse.json({ ok: true, consultation: result });
 }

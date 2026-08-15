@@ -641,12 +641,17 @@ export default async function MyPage() {
               <div>
                 <div className="text-[13px] font-extrabold text-ink">전문가 인증 완료</div>
                 <div className="mt-0.5 text-[11px] text-text-3">
-                  받은 상담을 확인하고 답변을 등록할 수 있어요
+                  받은 상담을 확인하고, 소개·전문분야·연락처를 직접 관리할 수 있어요
                 </div>
               </div>
-              <Link href="/my/consultations" className="btn-primary btn-md shrink-0 no-underline">
-                상담 관리
-              </Link>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link href="/my/expert-profile" className="btn-soft btn-md no-underline">
+                  프로필 수정
+                </Link>
+                <Link href="/my/consultations" className="btn-primary btn-md no-underline">
+                  상담 관리
+                </Link>
+              </div>
             </div>
           </section>
         )}

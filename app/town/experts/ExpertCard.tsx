@@ -30,6 +30,11 @@ export type ExpertCardData = {
   actionable: boolean;
   /** 비활성 사유 라벨: "예시"(목업) | "인증 심사 중"(미인증 실데이터) */
   pendingLabel: string | null;
+  /** 상호·공개 연락처·등록번호 — 인증 전문가만 값이 온다(서버 DTO 에서 차단) */
+  organization: string | null;
+  contactPhone: string | null;
+  contactKakao: string | null;
+  brokerRegistrationNo: string | null;
 };
 
 export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
@@ -180,6 +185,42 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
             ))}
           </div>
         </div>
+
+        {/* 상호·연락처·등록번호 — 인증 전문가가 프로필에서 직접 공개한 값만.
+            등록번호는 공적 조회 가능한 정보라 신뢰 표시로 보여 준다. */}
+        {(e.organization || e.contactPhone || e.contactKakao || e.brokerRegistrationNo) && (
+          <div className="mb-3 flex flex-col gap-1.5 rounded-xl bg-bg px-3.5 py-3 text-[12px]">
+            {e.organization && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-text-3">상호</span>
+                <span className="min-w-0 truncate font-bold text-ink">{e.organization}</span>
+              </div>
+            )}
+            {e.brokerRegistrationNo && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-text-3">등록번호</span>
+                <span className="min-w-0 truncate font-bold text-ink">{e.brokerRegistrationNo}</span>
+              </div>
+            )}
+            {e.contactPhone && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-text-3">전화</span>
+                <a href={`tel:${e.contactPhone.replace(/[^0-9+]/g, "")}`} className="font-extrabold text-primary no-underline">
+                  {e.contactPhone}
+                </a>
+              </div>
+            )}
+            {/* 사용자 입력 URL — https 만 링크로 렌더(javascript: 등 스킴 주입 차단) */}
+            {e.contactKakao && /^https:\/\//i.test(e.contactKakao.trim()) && (
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0 text-text-3">카카오톡</span>
+                <a href={e.contactKakao.trim()} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate font-extrabold text-primary no-underline">
+                  채널 열기 ↗
+                </a>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex items-center justify-between rounded-[14px] bg-bg px-4 py-3">
