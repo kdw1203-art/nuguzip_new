@@ -1,6 +1,8 @@
 import { CRAWLER_ENDPOINT_CACHE_CONTROL } from "@/lib/http/cache-policy";
 import { listReportMonths, formatYmKo } from "@/lib/reports/monthly";
 import { listPublicNotes } from "@/lib/inspection/store-db";
+import { readBoardPosts } from "@/lib/newui/board-posts";
+import { readNewsMeta } from "@/lib/news-seo";
 import { logger } from "@/lib/log";
 
 /**
@@ -26,6 +28,7 @@ export const dynamic = "force-dynamic";
 const BASE_URL = "https://nuguzip.com";
 const MAX_REPORTS = 12;
 const MAX_NOTES = 20;
+const MAX_NEWS = 15;
 
 type FeedItem = {
   title: string;
@@ -64,7 +67,7 @@ type Collected = { items: FeedItem[]; failed: string[]; attempted: number };
 async function collectItems(): Promise<Collected> {
   const items: FeedItem[] = [];
   const failed: string[] = [];
-  const attempted = 2; // 월간 리포트 + 공개 임장노트
+  const attempted = 3; // 월간 리포트 + 공개 임장노트 + 뉴스 다이제스트
 
   try {
     const months = await listReportMonths();
@@ -112,6 +115,41 @@ async function collectItems(): Promise<Collected> {
     );
   }
 
+  /* 뉴스 다이제스트(#223) — 실측(2026-08-15): board_posts 공개분 641건이 전부
+     자동 수집 뉴스이고 사용자 커뮤니티 글은 0건이다. 그래서 "커뮤니티 글"이라는
+     스트림은 아직 없고, 실을 수 있는 것은 뉴스 다이제스트뿐이다.
+     기준은 사이트의 색인 정책과 동일하게 둔다: **hasOwnContent(자체 요약·맥락이
+     있는 글 = 상세 페이지가 index 허용인 글)만** 싣는다. noindex 인 URL 을
+     RSS 로 뿌리면 "구독하라"와 "색인하지 말라"를 동시에 말하는 셈이다.
+     readBoardPosts 는 광고 제목·8자 미만·중복 external_key 를 이미 걸러 준다. */
+  try {
+    const posts = await readBoardPosts(60);
+    let added = 0;
+    for (const p of posts) {
+      if (added >= MAX_NEWS) break;
+      if (!p.isAutomated) continue;
+      const meta = readNewsMeta(p.automationMeta);
+      if (!meta.hasOwnContent) continue;
+      const summary = (meta.summary ?? "").trim();
+      items.push({
+        title: p.title,
+        link: `${BASE_URL}/town/news/${p.id}`,
+        description:
+          summary || p.body.trim().slice(0, 160) || "부동산 뉴스 다이제스트입니다.",
+        date: p.createdAt || null,
+        category: "부동산 뉴스",
+      });
+      added += 1;
+    }
+  } catch (err) {
+    failed.push("뉴스 다이제스트");
+    logger.error(
+      `[feed.xml] 뉴스 다이제스트 조회에 실패했습니다 — ${
+        err instanceof Error ? err.message : String(err)
+      }. "새 글이 없다"와 구분되지 않으므로 이 응답은 캐시하지 않습니다.`,
+    );
+  }
+
   // 날짜가 있는 항목을 최신순으로, 날짜 없는 항목은 뒤로.
   items.sort((a, b) => {
     if (a.date && b.date) return b.date.localeCompare(a.date);
@@ -142,10 +180,10 @@ function serializeFeed(items: FeedItem[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>누구집 — 실거래 리포트·임장노트</title>
+<title>누구집 — 실거래 리포트·임장노트·부동산 뉴스</title>
 <link>${BASE_URL}</link>
 <atom:link href="${BASE_URL}/feed.xml" rel="self" type="application/rss+xml" />
-<description>국토교통부 실거래 공개 데이터로 만드는 월간 지역 리포트와, 직접 다녀온 현장 기록(임장노트)을 발행합니다.</description>
+<description>국토교통부 실거래 공개 데이터로 만드는 월간 지역 리포트, 직접 다녀온 현장 기록(임장노트), 자체 정리한 부동산 뉴스 다이제스트를 발행합니다.</description>
 <language>ko-kr</language>
 <lastBuildDate>${lastBuild}</lastBuildDate>
 <generator>nuguzip.com</generator>
