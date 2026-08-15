@@ -76,6 +76,7 @@ function SellReportForm({
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
+  const [sourceNoteId, setSourceNoteId] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("300");
   const [busy, setBusy] = useState(false);
@@ -94,6 +95,8 @@ function SellReportForm({
           title: title.trim(),
           description: description.trim(),
           price: Number(price),
+          // 전달물 — 구매자가 열람할 내 노트 (필수)
+          sourceNoteId,
         }),
       });
       const json = (await res.json().catch(() => ({}))) as {
@@ -102,10 +105,11 @@ function SellReportForm({
       if (!res.ok) {
         setMsg({ ok: false, text: json.error ?? "등록에 실패했습니다." });
       } else {
-        setMsg({ ok: true, text: "유료 리포트로 등록됐어요. 판매가 집계됩니다." });
+        setMsg({ ok: true, text: "유료 리포트로 등록됐어요. 구매자는 연결한 노트를 열람합니다." });
         setTitle("");
         setDescription("");
         setPrice("300");
+        setSourceNoteId("");
         router.refresh();
       }
     } catch {
@@ -126,16 +130,19 @@ function SellReportForm({
 
       {noteOptions.length > 0 && (
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-bold text-text-3">내 공개 노트에서 불러오기 (선택)</span>
+          <span className="text-[11px] font-bold text-text-3">
+            판매할 내 노트 (필수) — 구매자가 이 노트를 열람해요
+          </span>
           <select
             className="input w-full"
-            defaultValue=""
+            value={sourceNoteId}
             onChange={(e) => {
+              setSourceNoteId(e.target.value);
               const n = noteOptions.find((o) => o.id === e.target.value);
-              if (n) setTitle(n.title);
+              if (n && !title.trim()) setTitle(n.title);
             }}
           >
-            <option value="">직접 입력</option>
+            <option value="">노트를 선택해 주세요</option>
             {noteOptions.map((n) => (
               <option key={n.id} value={n.id}>
                 {n.title}

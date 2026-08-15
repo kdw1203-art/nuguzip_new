@@ -22,6 +22,9 @@ export type UserReport = {
   pages: number;
   isPremium: boolean;
   gradient?: string | null;
+  /** 유료 리포트의 전달물 — 연결된 임장노트 id. 구매 기록이 있으면 이 노트를
+      열람할 수 있다(노트 상세의 게이트가 판정). null 이면 전달물 없는 구형 행. */
+  sourceNoteId?: string | null;
   publishedAt: string;
   updatedAt: string;
 };
@@ -79,6 +82,7 @@ export async function getReport(id: string): Promise<UserReport | null> {
 }
 
 export async function createReport(input: {
+  sourceNoteId?: string | null;
   title: string;
   subtitle?: string;
   category: string;
@@ -122,6 +126,7 @@ export async function createReport(input: {
     pages: input.pages ?? 10,
     isPremium: input.isPremium ?? false,
     gradient: null,
+    sourceNoteId: input.sourceNoteId ?? null,
     publishedAt: now,
     updatedAt: now,
   };
@@ -143,6 +148,7 @@ export async function createReport(input: {
       preview_content: input.previewContent ?? null,
       pages: input.pages ?? 10,
       is_premium: input.isPremium ?? false,
+      source_note_id: input.sourceNoteId ?? null,
       author_id: ownerEmail,
       /* 예전엔 author_label 을 아예 안 넣었다. 호출부가 넘긴 값을 받아 놓고
          버려서, 등록에 성공해도 공개 목록의 작성자 자리는 늘 비어 있었다. */
@@ -230,7 +236,31 @@ function mapRow(r: Record<string, unknown>): UserReport {
     pages: Number(r.pages ?? 0),
     isPremium: Boolean(r.is_premium),
     gradient: (r.gradient as string | null) ?? null,
+    sourceNoteId: (r.source_note_id as string | null) ?? null,
     publishedAt: r.published_at as string,
     updatedAt: r.updated_at as string,
   };
+}
+
+
+/**
+ * 이 노트를 전달물로 파는 유료 리포트 id — 노트 상세의 구매자 열람 게이트용.
+ * 없으면 null(그 노트는 판매 중이 아니다). 실패도 null — 게이트가 잠기는
+ * 방향(비공개 유지)이라 안전하다.
+ */
+export async function findPaidReportIdByNote(noteId: string): Promise<string | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  try {
+    const { data } = await sb
+      .from("reports")
+      .select("id")
+      .eq("source_note_id", noteId)
+      .gt("price", 0)
+      .limit(1)
+      .maybeSingle();
+    return data ? String((data as { id: unknown }).id) : null;
+  } catch {
+    return null;
+  }
 }

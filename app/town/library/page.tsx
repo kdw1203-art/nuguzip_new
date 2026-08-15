@@ -110,26 +110,30 @@ export default async function TownLibraryPage() {
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {/* 상세·구매 화면이 생겼으므로 이제 링크를 건다(예전 주석의 약속).
+                가격 단위도 정정 — 판매·정산이 포인트라 "원"이 아니라 "P"다. */}
             {reports.map((r) => (
-              <li key={r.id} className="card rise-in-1 rounded-[16px] px-4 py-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.45] text-ink">
-                      {r.title}
+              <li key={r.id} className="card card-hover rise-in-1 rounded-[16px]">
+                <Link href={`/town/library/${r.id}`} className="block px-4 py-3.5 no-underline">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.45] text-ink">
+                        {r.title}
+                      </div>
+                      <div className="mt-0.5 truncate text-[11px] text-text-3">
+                        {[r.authorLabel?.trim(), r.category?.trim(), r.region?.trim()]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
                     </div>
-                    <div className="mt-0.5 truncate text-[11px] text-text-3">
-                      {[r.authorLabel?.trim(), r.category?.trim(), r.region?.trim()]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
+                    <span className="shrink-0 text-[12px] font-extrabold text-primary">
+                      {r.price > 0 ? `${r.price.toLocaleString("ko-KR")}P` : "무료"}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-[12px] font-extrabold text-text-1">
-                    {r.price > 0 ? `${r.price.toLocaleString("ko-KR")}원` : "무료"}
-                  </span>
-                </div>
-                {r.pages > 0 && (
-                  <div className="mt-1.5 text-[11px] text-text-3">{r.pages}쪽</div>
-                )}
+                  {r.pages > 0 && (
+                    <div className="mt-1.5 text-[11px] text-text-3">{r.pages}쪽</div>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>

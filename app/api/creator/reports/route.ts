@@ -17,6 +17,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { isCreator } from "@/lib/creator/gate";
 import { getCreatorSales } from "@/lib/creator/sales";
 import { createReport } from "@/lib/reports/store-db";
+import { getNote } from "@/lib/inspection/store-db";
 import { applyRateLimit, WRITE_RATE_LIMIT, READ_RATE_LIMIT } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -62,9 +63,10 @@ export async function POST(req: NextRequest) {
     price?: unknown;
     category?: unknown;
     region?: unknown;
-    /* `sourceNoteId?: unknown` 이 여기 있었지만 **아무도 보내지 않고 아무도 읽지
-       않았다.** 타입만 남은 약속은 "노트를 골라 리포트로 만들 수 있다"고 읽힌다.
-       실제로 그 기능을 만들 때 다시 적는다. */
+    /* 전달물 — 이 리포트를 사면 열람하게 되는 내 임장노트. 예전 주석이 예고한
+       "실제로 만들 때 다시 적는다"가 지금이다: 전달물 없는 유료 판매는 받지
+       않는다(구매자가 받을 것이 없다). */
+    sourceNoteId?: unknown;
   };
 
   const title = String(body.title ?? "").trim();
@@ -81,15 +83,48 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  /* 전달물 검증 — 유료 리포트는 반드시 내 노트에 연결한다. 구매 = 그 노트
+     열람권이므로, (1) 존재하고 (2) 내 노트여야 한다. 남의 노트를 파는 것도,
+     받을 것 없는 판매도 여기서 막는다. */
+  const sourceNoteId = String(body.sourceNoteId ?? "").trim();
+  if (!sourceNoteId) {
+    return NextResponse.json(
+      { error: "판매할 노트를 선택해 주세요 — 구매자는 그 노트를 열람하게 됩니다." },
+      { status: 400 },
+    );
+  }
+  let note;
+  try {
+    note = await getNote(sourceNoteId);
+  } catch {
+    return NextResponse.json(
+      { error: "노트를 지금 확인할 수 없어요. 잠시 후 다시 시도해 주세요." },
+      { status: 503 },
+    );
+  }
+  if (!note || note.authorEmail.trim().toLowerCase() !== email.trim().toLowerCase()) {
+    return NextResponse.json(
+      { error: "본인 노트만 리포트로 판매할 수 있어요." },
+      { status: 403 },
+    );
+  }
+  if (note.isPublic) {
+    return NextResponse.json(
+      { error: "공개 노트는 이미 누구나 무료로 읽을 수 있어 판매할 수 없어요. 비공개 노트를 선택해 주세요." },
+      { status: 400 },
+    );
+  }
+
   try {
     const report = await createReport({
       title,
       subtitle: description || undefined,
       previewContent: description || undefined,
       category: (body.category ? String(body.category).trim() : "") || "유료 리포트",
-      region: body.region ? String(body.region).trim() : undefined,
       price,
       isPremium: true,
+      sourceNoteId,
+      region: (body.region ? String(body.region).trim() : "") || note.region || undefined,
       authorEmail: email,
       /* 이름 없으면 안 넘긴다 — createReport 가 이메일로 마스킹한다("kdw***").
          예전엔 이메일을 그대로 넘겼고, 저장소가 막아 주긴 했지만 공개 컬럼에

@@ -15,6 +15,8 @@ import {
 } from "@/lib/inspection/store-db";
 import { NotePhotoCarousel } from "./NotePhotoCarousel";
 import { safeAuth } from "@/lib/safe-auth";
+import { findPaidReportIdByNote } from "@/lib/reports/store-db";
+import { hasPurchased } from "@/lib/report-purchases/store-db";
 import { monthlyPrice } from "@/lib/subscriptions/billing-periods";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { ErrorState } from "@/app/components/ui/EmptyState";
@@ -500,7 +502,17 @@ export default async function NoteDetailPage({
     .toLowerCase()
     .trim();
   const isFreeViewer = viewerPlanRaw === "free" || viewerPlanRaw === "basic" || viewerPlanRaw === "";
-  if (!realNote.isPublic && !isOwner) notFound();
+  /* 비공개 노트 — 소유자 외에는 원칙 차단. 단, 이 노트를 전달물로 파는 유료
+     리포트를 **구매한 사람**은 열람한다(크리에이터 판매 루프의 전달 지점).
+     실패는 잠기는 방향(비공개 유지)이라 안전하다. */
+  let purchasedAccess = false;
+  if (!realNote.isPublic && !isOwner && viewerEmail) {
+    const reportId = await findPaidReportIdByNote(realNote.id);
+    if (reportId) {
+      purchasedAccess = await hasPurchased(reportId, viewerEmail).catch(() => false);
+    }
+  }
+  if (!realNote.isPublic && !isOwner && !purchasedAccess) notFound();
 
   // 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김
   let complexHref: string | null = null;

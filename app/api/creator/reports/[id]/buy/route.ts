@@ -38,7 +38,11 @@ export async function POST(
   if (limited) return limited;
 
   const session = await safeAuth();
-  const email = session?.user?.email;
+  /* 이메일은 여기서 한 번 정규화한다(소문자). 예전엔 raw 세션 이메일로 구매를
+     저장했는데, 열람 게이트(노트·상세)는 소문자로 조회한다 — 대소문자가 섞인
+     계정은 **구매하고도 못 여는** 불일치가 생긴다. 저장·중복확인·게이트 전부
+     같은 값이어야 한다. */
+  const email = session?.user?.email?.trim().toLowerCase();
   if (!email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }

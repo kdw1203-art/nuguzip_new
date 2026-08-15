@@ -72,7 +72,10 @@ export default async function CreatorDashboardPage() {
       const publicNotes = notes.filter((n) => n.isPublic);
       publicNotesLen = publicNotes.length;
       publicNoteCount = publicNotes.length;
-      noteOptions = publicNotes
+      /* 판매 선택지는 **비공개 노트만** — 공개 노트는 누구나 무료로 읽으므로
+         '구매하면 열람'이라는 전달물이 성립하지 않는다(API 도 같은 규칙로 막는다). */
+      noteOptions = notes
+        .filter((n) => !n.isPublic)
         .slice(0, 30)
         .map((n) => ({ id: n.id, title: n.title }));
       totalSaves = await countNoteSaves(publicNotes.map((n) => n.id));
