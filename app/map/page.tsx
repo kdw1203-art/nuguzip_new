@@ -544,6 +544,10 @@ export default async function MapPage({
   const priceMinParam = parseEokParam(firstParam(sp.priceMin));
   const priceMaxParam = parseEokParam(firstParam(sp.priceMax));
   const coordFocusParam = parseCoordFocus(firstParam(sp.lat), firstParam(sp.lng));
+  /* ?z= — 지도 상태 공유용 줌 레벨. 클라이언트가 idle 마다 URL 에 lat/lng/z 를
+     써 두므로(공유·뒤로가기), 열 때 같은 배율로 복원한다. 범위 밖은 무시. */
+  const zRaw = Number(firstParam(sp.z));
+  const initialLevel = Number.isFinite(zRaw) && zRaw >= 6 && zRaw <= 19 ? Math.round(zRaw) : null;
 
   /* 노트→지도 핸드오프: complexId 우선, 없으면 noteId/apt 로 단지 해석 */
   let initialComplexFocus: {
@@ -672,10 +676,12 @@ export default async function MapPage({
   /* 이름 해석이 이긴다(정규화된 display_name). 못 풀렸을 때만 넘겨받은 좌표를
      쓴다 — 이때 라벨은 부르는 쪽이 화면에 적어 둔 이름을 그대로 쓴다.
      좌표도 이름도 없으면 종전대로 null(기본 지도). */
+  /* 좌표 단독(?lat&lng 만) 진입도 허용한다 — idle 이 써 둔 공유 URL 은 지역명이
+     없다. 이름이 없으면 빈 문자열로 넘기고, 클라이언트가 기본 라벨로 처리한다. */
   const focus =
     resolvedFocus ??
-    (coordFocusParam && regionForFocus
-      ? { name: regionForFocus, lat: coordFocusParam.lat, lng: coordFocusParam.lng }
+    (coordFocusParam
+      ? { name: regionForFocus ?? "", lat: coordFocusParam.lat, lng: coordFocusParam.lng }
       : null);
 
   if (dbRun.state === "timeout") {
@@ -698,6 +704,7 @@ export default async function MapPage({
 
   return (
     <MapClient
+        initialLevel={initialLevel}
       danji={dbLoaded.ok ? dbLoaded.value.items : []}
       regionLabel={dbLoaded.ok ? dbLoaded.value.region : "수도권"}
       regionMarkers={markersLoaded.ok ? markersLoaded.value : []}

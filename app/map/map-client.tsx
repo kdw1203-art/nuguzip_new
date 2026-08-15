@@ -283,6 +283,8 @@ interface MapClientProps {
    * 이름을 legal_regions 좌표로 풀어 서버에서 넘긴다.
    */
   initialFocus?: { name: string; lat: number; lng: number } | null;
+  /** ?z= 공유 줌 레벨 (6~19) — 없으면 기존 규칙(진입 포커스 여부)으로 */
+  initialLevel?: number | null;
   /** 노트→지도 핸드오프 — 단지 패널을 바로 연다 */
   initialComplexFocus?: {
     id: string;
@@ -628,17 +630,25 @@ export function MapClient({
   danjiLoadFailed = false,
   regionMarkersLoadFailed = false,
   initialFocus = null,
+  initialLevel = null,
   initialComplexFocus = null,
   initialBudget = null,
   initialListingType = null,
 }: MapClientProps) {
-  const focusedRegion = initialFocus?.name ?? null;
+  /* 좌표 단독 공유 URL 은 name 이 "" 다 — 라벨은 기본값으로 폴백(|| 가 의도) */
+  const focusedRegion = initialFocus?.name || null;
   const hasEntryFocus = Boolean(initialFocus || initialComplexFocus);
-  const [zoom, setZoom] = useState<Zoom>(
-    hasEntryFocus || danji.length > 0 ? "danji" : "city",
-  );
+  const [zoom, setZoom] = useState<Zoom>(() => {
+    if (initialLevel != null) {
+      // 공유 URL 의 숫자 레벨 → 가장 가까운 탭으로 표시 동기화
+      const entries = Object.entries(LEVEL_BY_ZOOM) as [Zoom, number][];
+      entries.sort((a, b) => Math.abs(a[1] - initialLevel) - Math.abs(b[1] - initialLevel));
+      return entries[0][0];
+    }
+    return hasEntryFocus || danji.length > 0 ? "danji" : "city";
+  });
   const [level, setLevel] = useState<number>(
-    hasEntryFocus || danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city,
+    initialLevel ?? (hasEntryFocus || danji.length > 0 ? LEVEL_BY_ZOOM.danji : LEVEL_BY_ZOOM.city),
   );
   const [panelOpen, setPanelOpen] = useState(true);
   /* 모바일 지도↔목록 전환 — 데스크탑은 좌측 목록 패널이 항상 있지만 모바일은
@@ -2070,6 +2080,30 @@ export function MapClient({
     schedulePopularFetch(last?.bounds ?? null, last?.zoom ?? 0);
   }, [ranges, schedulePopularFetch]);
 
+  /* 지도 상태 → URL 동기화 — 중심·줌을 ?lat&lng&z 로 써 두면 지금 보는 화면을
+     그대로 공유·북마크할 수 있다(여태 지도 상태는 공유 불가였다). 이름 기반
+     파라미터(region·district·q)와 진입 전용(complexId·noteId·apt)은 지우는 게
+     맞다 — 서버에서 이름 해석이 좌표보다 이기므로, 남겨 두면 팬 해서 옮긴
+     화면을 공유해도 다시 원래 지역으로 튕긴다. 필터(type·priceMin/Max)는 유지. */
+  const urlSyncTimerRef = useRef<number | null>(null);
+  const syncUrl = useCallback((lat: number, lng: number, z: number) => {
+    if (urlSyncTimerRef.current !== null) window.clearTimeout(urlSyncTimerRef.current);
+    urlSyncTimerRef.current = window.setTimeout(() => {
+      try {
+        const sp = new URLSearchParams(window.location.search);
+        for (const k of ["region", "district", "q", "complexId", "noteId", "apt", "from", "ai", "quota"]) {
+          sp.delete(k);
+        }
+        sp.set("lat", lat.toFixed(5));
+        sp.set("lng", lng.toFixed(5));
+        sp.set("z", String(Math.round(z)));
+        window.history.replaceState(null, "", `${window.location.pathname}?${sp.toString()}`);
+      } catch {
+        /* replaceState 불가 환경 — 공유 기능만 조용히 비활성 */
+      }
+    }, 800);
+  }, []);
+
   const handleMapIdle = useCallback(
     (info: MapIdleInfo) => {
       const bounds = info.bounds;
@@ -2081,8 +2115,10 @@ export function MapClient({
       scheduleClusterFetch(bounds, info.zoom);
       schedulePopularFetch(bounds, info.zoom);
       fetchFacets(bounds, info.zoom);
+      // 중심 = 뷰포트 사각형의 중점 (idle 시점 기준)
+      syncUrl((bounds.swLat + bounds.neLat) / 2, (bounds.swLng + bounds.neLng) / 2, info.zoom);
     },
-    [fetchListings, scheduleClusterFetch, schedulePopularFetch, fetchFacets],
+    [fetchListings, scheduleClusterFetch, schedulePopularFetch, fetchFacets, syncUrl],
   );
 
   // 매매/전세 토글 변경 → 마지막 뷰포트로 즉시 재조회
@@ -2101,6 +2137,7 @@ export function MapClient({
       commuteAbortRef.current?.abort();
       if (popularTimerRef.current !== null) window.clearTimeout(popularTimerRef.current);
       popularAbortRef.current?.abort();
+      if (urlSyncTimerRef.current !== null) window.clearTimeout(urlSyncTimerRef.current);
     },
     [],
   );
@@ -2178,7 +2215,7 @@ export function MapClient({
     });
   }, [showListings, listingItems]);
 
-  /* ===== 정비사업 레이어 — 토글 ON 시 1회 로드(전국 소량 · bbox 불필요) =====
+  /* ===== 정비사업 레이어 — 뷰포트 기반 로드(idle 마다 bbox 재조회) =====
      서버(app/api/redevelopment/projects)는 조회 실패를 일부러 503 으로 돌려준다.
      주석까지 달려 있다 — "items: [] 로 답하면 지도가 '이 영역에 정비사업이
      없다'고 그리게 되고, 그건 장애를 사실로 바꿔 말하는 것이다."
@@ -2186,23 +2223,34 @@ export function MapClient({
      그런데 여기서 `r.ok ? r.json() : { items: [] }` 로 그 503 을 정확히 빈
      배열로 되돌려 놓고 있었다. 서버가 막으려던 오해를 화면에서 되살린 셈이다.
      이제 실패는 실패로 들고 와서 마커 대신 안내를 띄운다. */
+  /* 뷰포트 기반 재조회 — 예전엔 전국 3,000건을 토글 시 1회에 다 받았다(서버
+     API 는 처음부터 bbox 를 지원했는데 클라이언트가 안 보냈다). 이제 다른
+     레이어처럼 idle 뷰포트로 좁혀 받는다. 첫 idle 전(viewBounds null)엔 종전처럼
+     bbox 없이 받아 빈 지도를 만들지 않는다. */
   useEffect(() => {
-    if (!showRedevelopment || redevItems.length > 0) return;
+    if (!showRedevelopment) return;
+    const b = viewBounds;
     const controller = new AbortController();
-    setRedevFailed(false);
-    fetch("/api/redevelopment/projects?limit=3000", { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((json: { items?: RedevelopmentProject[] }) => {
-        if (controller.signal.aborted) return;
-        setRedevItems(Array.isArray(json.items) ? json.items : []);
-        setRedevFailed(false);
-      })
-      .catch((e) => {
-        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
-        setRedevFailed(true);
-      });
-    return () => controller.abort();
-  }, [showRedevelopment, redevItems.length]);
+    const t = window.setTimeout(() => {
+      setRedevFailed(false);
+      const bbox = b ? `&bbox=${b.swLat},${b.swLng},${b.neLat},${b.neLng}` : "";
+      fetch(`/api/redevelopment/projects?limit=2000${bbox}`, { signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((json: { items?: RedevelopmentProject[] }) => {
+          if (controller.signal.aborted) return;
+          setRedevItems(Array.isArray(json.items) ? json.items : []);
+          setRedevFailed(false);
+        })
+        .catch((e) => {
+          if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+          setRedevFailed(true);
+        });
+    }, 500);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+  }, [showRedevelopment, viewBounds]);
 
   const redevelopmentMarkers = useMemo<MapMarkerData[]>(() => {
     if (!showRedevelopment) return [];
@@ -3507,6 +3555,11 @@ export function MapClient({
             </div>
           )}
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3">
+            {(rangeActive || commuteActive) && popular.length > 0 && (
+              <div className="px-2 pb-1 text-[10px] leading-[1.5] text-text-3">
+                인기 순위는 지도 영역 기준이에요 — 상세 필터(가격·면적 등)와는 무관합니다.
+              </div>
+            )}
             {!popularFailed && !popularLoading && popular.length === 0 && (
               <div className="px-2 py-6 text-center text-[12px] leading-[1.7] text-text-3">
                 이 영역에는 실거래가 기록된 단지가 없어요.
