@@ -530,6 +530,13 @@ export default async function MapPage({
 }) {
   const sp = (await searchParams) ?? {};
   const regionParam = firstParam(sp.region);
+  /* ?district= 는 property-actions 가 만들어 보내는데 여태 아무도 안 읽어서
+     조용히 무시됐다(죽은 링크 경로). ?q= 도 지역명이면 서버에서 바로 포커스 —
+     예전엔 클라이언트가 마운트 후 suggest→geocode 두 번을 돌아야 했다.
+     지역명이 아닌 q(단지명 등)는 해석이 실패하고, 그 경우 기존 클라이언트
+     경로가 그대로 이어받는다(동작 손실 없음). */
+  const districtParam = firstParam(sp.district);
+  const qParam = firstParam(sp.q);
   const complexIdParam = firstParam(sp.complexId);
   const noteIdParam = firstParam(sp.noteId);
   const aptParam = firstParam(sp.apt);
@@ -649,7 +656,7 @@ export default async function MapPage({
      `Vercel Runtime Timeout Error` 로 죽은 기록이 있다. 그러면 화면이 아예 안 뜬다 —
      아래 danjiLoadFailed 안내조차 못 보여 준다. 45초에 접으면 적어도 "지금은 못
      불러왔다"는 화면은 뜬다. 늦게라도 정확한 답보다 제때 뜨는 답이 낫다. */
-  const regionForFocus = regionParam || regionFromNote;
+  const regionForFocus = regionParam || regionFromNote || districtParam || qParam;
   const [dbRun, markersRun, resolvedFocus] = await Promise.all([
     withBudget(
       Promise.resolve().then(() => loadDanjiFromDb()),

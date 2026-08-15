@@ -213,6 +213,7 @@ export function ComplexHubTabs({
   notesWriteHref,
   listings,
   priceSeries,
+  complexId,
 }: {
   aiTitle: string;
   aiBody: string;
@@ -226,6 +227,8 @@ export function ComplexHubTabs({
   notesWriteHref?: string;
   listings: HubListing[];
   priceSeries: PricePoint[];
+  /** 지도 CTA 딥링크용 — 있으면 /map?complexId= 로 단지 맥락을 들고 간다 */
+  complexId?: string;
 }) {
   const [tab, setTab] = useState<Tab>("요약");
 
@@ -398,7 +401,11 @@ export function ComplexHubTabs({
               <div className="text-[11px] text-text-3">{l.agent}</div>
             </div>
           ))}
-          <Link href="/map" className="btn-soft rounded-xl p-3 text-center text-[13px]">
+          {/* 예전엔 맨 /map — 단지 맥락이 통째로 사라져 전국 지도가 떴다 */}
+          <Link
+            href={complexId ? `/map?complexId=${encodeURIComponent(complexId)}` : "/map"}
+            className="btn-soft rounded-xl p-3 text-center text-[13px]"
+          >
             지도에서 매물 전체 보기
           </Link>
         </div>

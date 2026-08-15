@@ -957,6 +957,7 @@ export default async function ComplexHubPage({
           notes={v.notes}
           notesFailed={v.notesFailed}
           notesWriteHref={v.notesWriteHref}
+          complexId={id}
           listings={v.listings}
           priceSeries={v.priceSeries}
         />

@@ -18,10 +18,24 @@ import {
   type MapSearchSelectAddress,
   type MapSearchSelectComplex,
 } from "./MapSearchBox";
-import { ComplexInfoPanel } from "./ComplexInfoPanel";
+import dynamic from "next/dynamic";
+
+/* 첫 페인트에 렌더되지 않는 패널은 지연 로드 — 라우트 청크에서 분리(웹 성능).
+   ComplexInfoPanel(915줄)·매물 미리보기·히스토그램 슬라이더·코치마크는 전부
+   상호작용 후에만 열린다. ssr:false — 지도 위 오버레이라 서버 HTML 이 필요 없다. */
+const ComplexInfoPanel = dynamic(
+  () => import("./ComplexInfoPanel").then((m) => m.ComplexInfoPanel),
+  { ssr: false },
+);
 import { CompareTrayButton } from "@/app/complex/[id]/hub-client";
-import { HistogramRangeSlider } from "./HistogramRangeSlider";
-import { ListingPreviewPanel } from "./ListingPreviewPanel";
+const HistogramRangeSlider = dynamic(
+  () => import("./HistogramRangeSlider").then((m) => m.HistogramRangeSlider),
+  { ssr: false },
+);
+const ListingPreviewPanel = dynamic(
+  () => import("./ListingPreviewPanel").then((m) => m.ListingPreviewPanel),
+  { ssr: false },
+);
 import {
   colorForType,
   labelForType,
@@ -29,7 +43,11 @@ import {
   type RedevelopmentProject,
 } from "@/lib/redevelopment/types";
 import { Icon } from "@/app/components/Icon";
-import { CoachmarkTour, type CoachmarkStep } from "@/app/components/CoachmarkTour";
+import type { CoachmarkStep } from "@/app/components/CoachmarkTour";
+const CoachmarkTour = dynamic(
+  () => import("@/app/components/CoachmarkTour").then((m) => m.CoachmarkTour),
+  { ssr: false },
+);
 import {
   NO_DATA_COLOR,
   NO_DATA_LABEL,
@@ -901,6 +919,50 @@ export function MapClient({
 
   /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
   const [showRedevelopment, setShowRedevelopment] = useState(false);
+
+  /* 레이어·거래유형 선택 유지 — 예전엔 방문마다 전부 초기화됐다(localStorage 사용처가
+     코치마크 한 줄뿐이었다). URL 이 명시한 값(?type= → 매물 ON)은 저장값보다 우선.
+     초기값 대신 mount effect 로 복원하는 이유: 클라이언트 컴포넌트도 SSR 되므로
+     useState 초기화에서 localStorage 를 읽으면 하이드레이션이 어긋난다. */
+  const mapPrefsLoaded = useRef(false);
+  useEffect(() => {
+    if (mapPrefsLoaded.current) return;
+    mapPrefsLoaded.current = true;
+    try {
+      const raw = window.localStorage.getItem("nz_map_prefs");
+      if (!raw) return;
+      const p = JSON.parse(raw) as {
+        overlay?: boolean;
+        listings?: boolean;
+        redev?: boolean;
+        tx?: "trade" | "rent";
+      };
+      if (typeof p.overlay === "boolean") setShowPriceOverlay(p.overlay);
+      // URL 로 매물이 켜진 진입(?type=)은 사용자의 명시 의도 — 저장값이 끄지 않는다
+      if (typeof p.listings === "boolean" && !initialListingType) setShowListings(p.listings);
+      if (typeof p.redev === "boolean") setShowRedevelopment(p.redev);
+      if ((p.tx === "trade" || p.tx === "rent") && !initialListingType) setTxType(p.tx);
+    } catch {
+      /* 손상된 저장값은 무시 */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!mapPrefsLoaded.current) return;
+    try {
+      window.localStorage.setItem(
+        "nz_map_prefs",
+        JSON.stringify({
+          overlay: showPriceOverlay,
+          listings: showListings,
+          redev: showRedevelopment,
+          tx: txType,
+        }),
+      );
+    } catch {
+      /* 프라이빗 모드 등 — 유지 없이 진행 */
+    }
+  }, [showPriceOverlay, showListings, showRedevelopment, txType]);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
   /* 조회 실패와 "정말 0건"은 지도에서 똑같이 보인다 — 둘 다 마커가 없다.
      그래서 실패는 따로 들고 있다가 말로 알린다. */
