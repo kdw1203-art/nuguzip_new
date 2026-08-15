@@ -139,6 +139,27 @@ export async function closeMarketRequest(
   return { ok: true };
 }
 
+/**
+ * 견적 요청의 소유자 이메일·상태만 — 전문가 '제안 보내기' 알림 발송 전용(서버).
+ * mapRow 는 공개 응답에 실리므로 requester_email 을 일부러 싣지 않는다 — 알림
+ * 발송처럼 이메일이 꼭 필요한 서버 경로만 이 헬퍼로 좁혀 읽는다.
+ */
+export async function getMarketRequestOwnerEmail(
+  id: string,
+): Promise<{ email: string; status: string } | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("market_requests")
+    .select("requester_email, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  const email = String((data as { requester_email?: unknown }).requester_email ?? "").trim();
+  if (!email) return null;
+  return { email, status: String((data as { status?: unknown }).status ?? "open") };
+}
+
 /** 내 견적·자료 요청 목록 (requester_email 기준, 최신순) */
 export async function listMyMarketRequests(email: string): Promise<MarketRequest[]> {
   if (!email) return [];

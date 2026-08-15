@@ -6,6 +6,8 @@ import { Icon } from "@/app/components/Icon";
 import { ConsultReply } from "./ConsultReply";
 import { safeAuth } from "@/lib/safe-auth";
 import { getExpertByOwnerEmail } from "@/lib/experts/store-db";
+import { listMarketRequests } from "@/lib/market/store-db";
+import { ProposeQuote } from "./ProposeQuote";
 import {
   listConsultationsForExpert,
   type ExpertConsultation,
@@ -87,6 +89,16 @@ export default async function MyConsultationsPage() {
   }
 
   const items = await listConsultationsForExpert(expert.id);
+  /* 받은 견적 요청(공개 게시판형) — 여태 쌓이기만 하고 전문가가 볼 수 없던
+     market_requests 를 여기서 처음 노출한다(실사 갭 #7). 인증 전문가만
+     제안을 보낼 수 있고, 조회 실패는 빈 목록과 구분해 안내한다. */
+  let quoteRequests: Awaited<ReturnType<typeof listMarketRequests>> = [];
+  let quoteLoadFailed = false;
+  try {
+    quoteRequests = (await listMarketRequests()).filter((r) => r.status === "open").slice(0, 8);
+  } catch {
+    quoteLoadFailed = true;
+  }
   const counts = items.reduce<Record<string, number>>((acc, c) => {
     acc[c.status] = (acc[c.status] ?? 0) + 1;
     return acc;
@@ -215,6 +227,57 @@ export default async function MyConsultationsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── 받은 견적 요청 (열린 요청 게시판) ── */}
+      <div className="mt-8 mb-3 flex items-baseline justify-between">
+        <h2 className="text-[15px] font-extrabold text-ink">견적 요청 보드</h2>
+        <span className="text-[11px] text-text-3">이용자들이 올린 열린 요청</span>
+      </div>
+      {quoteLoadFailed ? (
+        <div className="card rounded-2xl px-4 py-6 text-center text-[12px] text-text-3">
+          견적 요청을 지금 불러오지 못했어요 — 요청이 없는 게 아니라 조회가 실패했습니다.
+        </div>
+      ) : quoteRequests.length === 0 ? (
+        <div className="card rounded-2xl px-4 py-6 text-center text-[12px] text-text-3">
+          아직 열린 견적 요청이 없어요. 새 요청이 올라오면 여기에 표시됩니다.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {quoteRequests.map((r) => (
+            <div key={r.id} className="card flex flex-col gap-2 rounded-2xl p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md bg-primary-soft chip-pad text-[10px] font-extrabold text-primary">
+                  {r.requestType}
+                </span>
+                <span className="text-[13px] font-extrabold text-ink">{r.title}</span>
+                <span className="ml-auto text-[10px] text-text-3">{timeAgo(r.createdAt)}</span>
+              </div>
+              {r.description && (
+                <p className="text-[12px] leading-[1.6] text-text-2">{r.description.slice(0, 160)}</p>
+              )}
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-3">
+                <span>{[r.city, r.district].filter(Boolean).join(" ") || "지역 무관"}</span>
+                {(r.budgetMin != null || r.budgetMax != null) && (
+                  <span>
+                    예산 {r.budgetMin != null ? `${r.budgetMin.toLocaleString("ko-KR")}` : ""}
+                    {r.budgetMin != null || r.budgetMax != null ? "~" : ""}
+                    {r.budgetMax != null ? `${r.budgetMax.toLocaleString("ko-KR")}` : ""}만원
+                  </span>
+                )}
+                {r.dueDate && <span>희망 기한 {r.dueDate}</span>}
+                <span>{r.requesterLabel}</span>
+              </div>
+              {expert.isVerified ? (
+                <ProposeQuote requestId={r.id} />
+              ) : (
+                <span className="text-[11px] text-text-3">
+                  제안 보내기는 인증 완료 후 열려요.
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

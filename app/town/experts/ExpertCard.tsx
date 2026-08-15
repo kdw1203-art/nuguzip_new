@@ -250,6 +250,15 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
             어긋나 있었다 — (1) /town/market 은 리다이렉트 경유지일 뿐이고,
             (2) 리포트 열람은 아직 오픈 전이라 "발행 리포트"는 한 건도 없다.
             실제로 닿는 곳(자료 허브)을 직접 가리키고, 라벨도 거기서 볼 수 있는 것에 맞춘다. */}
+        {/* 공유·색인 가능한 전문가 상세 페이지 — 모달은 목록 안 미리보기, 전체는 여기 */}
+        {e.id && (
+          <Link
+            href={`/town/experts/${e.id}`}
+            className="mt-2 block text-center text-[12px] font-bold text-primary no-underline"
+          >
+            프로필 전체 페이지 보기 →
+          </Link>
+        )}
         <Link
           href="/town/library"
           className="mt-2 block text-center text-[11px] text-text-3 no-underline"
