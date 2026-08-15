@@ -1,9 +1,13 @@
 /**
  * 게스트 홈 히어로·CTA 단일 소스.
  * 「임장 기록 → AI 정리 → 지도 비교」루프가 한 호흡으로 읽히게 유지한다.
+ *
+ * 방향성 리밸런싱(2026-08): 핵심 타깃은 '발로 뛰는 임장러'(실전 투자자·진지한
+ * 실수요자)다. 조회만 하는 앱이 아니라 **기록으로 결정을 만드는 부동산 의사결정
+ * 플랫폼**임을 첫 화면에서 말한다. 단, 노트 우선·정직한 퍼널(저장 시 로그인)은 유지.
  */
 
-export const HOME_HERO_BADGE = "AI 임장 기록 플랫폼";
+export const HOME_HERO_BADGE = "임장러를 위한 부동산 의사결정 플랫폼";
 
 /**
  * 문서에 단 하나뿐인 H1. 화면에는 안 보이지만 항상 존재한다.
@@ -18,21 +22,21 @@ export const HOME_HERO_BADGE = "AI 임장 기록 플랫폼";
  * 그래서 제목은 한 군데로 모은다: `<main>` 첫 자식의 sr-only h1 하나.
  * 히어로 문구는 뷰포트별 "시각 카피"로 강등해 `<p>` 로 그린다.
  */
-export const HOME_PAGE_H1 = "누구집 — 임장 기록으로 판단 근거를 만드는 곳";
+export const HOME_PAGE_H1 = "누구집 — 발로 뛴 임장을 데이터·결정으로 바꾸는 부동산 플랫폼";
 
-/** 모바일 히어로 문구 — emphasis 구간만 gradient */
+/** 모바일 히어로 문구 — emphasis 구간만 gradient (행동 우선, 전환 유지) */
 export const HOME_HERO_MOBILE_LINE1 = "오늘 본 집,";
 export const HOME_HERO_MOBILE_EMPHASIS = "3분 만에 기록";
 export const HOME_HERO_MOBILE_TAIL = "하세요";
 
-/** 데스크톱 히어로 문구 */
-export const HOME_HERO_DESKTOP_LEAD = "임장 기록이";
+/** 데스크톱 히어로 문구 — '발로 뛴 임장'(타깃) → '판단 근거'(의사결정) */
+export const HOME_HERO_DESKTOP_LEAD = "발로 뛴 임장이";
 export const HOME_HERO_DESKTOP_EMPHASIS = "판단 근거";
 export const HOME_HERO_DESKTOP_TAIL = "가 됩니다";
 
-/** 기기 공통 보조문 — 퍼널을 한 줄로 (저장·AI는 로그인 필요 — 정직하게) */
+/** 기기 공통 보조문 — 타깃(임장러)·포지셔닝(의사결정) + 정직한 퍼널(저장 시 로그인) */
 export const HOME_HERO_SUBLINE =
-  "3분 기록 → AI 정리 → 지도 비교. 노트 쓰기로 바로 시작하고, 저장할 때 로그인해요.";
+  "발로 뛰는 임장러를 위한 부동산 의사결정 도구 — 3분 기록 → AI 정리 → 실거래 비교. 노트 쓰기로 바로 시작하고, 저장할 때 로그인해요.";
 
 /** 루프 단계 하이라이트 (장식용·네비 아님) */
 export const HOME_FUNNEL_STEPS = ["기록", "AI", "지도"] as const;
