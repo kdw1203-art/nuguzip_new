@@ -15,6 +15,11 @@ import {
 import { listBookmarks } from "@/lib/bookmarks/store";
 import { listAlertSubscriptions, type AlertSubscription } from "@/lib/alerts/subscriptions";
 import { getVerifiedOnboarding } from "@/app/api/me/onboarding/verify";
+import {
+  computeRegionLevels,
+  regionLevelProgress,
+  regionLevelSummary,
+} from "@/lib/gamification/region-levels";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { getUsageSummary } from "@/lib/subscriptions/usage-summary";
@@ -441,6 +446,70 @@ export default async function MyPage() {
             )}
           </section>
         </div>
+
+        {/* ── 지역 임장 레벨 (인센티브 — 실제 노트 수 기반, 지어낸 수치 없음) ── */}
+        {notes.length > 0 &&
+          (() => {
+            const levels = computeRegionLevels(notes);
+            if (levels.length === 0) return null;
+            const summary = regionLevelSummary(levels);
+            return (
+              <section className="flex flex-col gap-2.5">
+                <SectionHead title="지역 임장 레벨" href="/notes?mine=1" hrefLabel="내 노트" />
+                <div className="card flex flex-col gap-3 rounded-[16px] p-5">
+                  <div className="text-[12px] text-text-3">
+                    지금까지 <b className="text-ink">{summary.regionCount}개 지역</b>을 임장했어요
+                    {summary.topLabel ? (
+                      <>
+                        {" · 최고 "}
+                        <b className="text-primary">{summary.topLabel}</b>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {levels.map((r) => (
+                      <div key={r.region} className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="truncate text-[13px] font-bold text-ink">
+                              {r.region}
+                            </span>
+                            <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                              Lv.{r.level} · {r.label}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-[12px] font-extrabold text-ink">
+                            {r.count}건
+                          </span>
+                        </div>
+                        {r.next ? (
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[rgba(0,0,0,.06)]">
+                              <span
+                                className="block h-full rounded-full bg-primary transition-all"
+                                style={{ width: `${regionLevelProgress(r)}%` }}
+                              />
+                            </div>
+                            <span className="shrink-0 text-[10px] text-text-3">
+                              다음 {r.next.label}까지 {r.next.need}건
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] font-bold text-primary">
+                            최고 레벨 달성 🎉
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] leading-relaxed text-text-3">
+                    같은 지역에 임장노트를 남길수록 레벨이 올라가요. 발로 뛴 만큼 그 동네
+                    전문가가 됩니다.
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
 
         {/* ── 관심 지역 (알림 구독) ── */}
         <section className="flex flex-col gap-2.5">
