@@ -421,46 +421,6 @@ export default async function Home() {
             <MarketTempWidget />
           </div>
 
-          <div data-reveal="" className="flex flex-col gap-3">
-            <h2 className="sr-only">지역 시세</h2>
-            {regions.length === 0 ? (
-              failed.regions ? (
-                <ErrorState
-                  title="지역 시세를 지금 불러오지 못했어요"
-                  desc="데이터가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
-                  action={{ label: "지도에서 찾아보기", href: "/map" }}
-                />
-              ) : (
-                <EmptyState
-                  icon="map"
-                  title="지역 시세를 아직 불러오지 못했어요"
-                  desc="실거래 스냅샷이 준비되면 여기에 표시됩니다."
-                  action={{ label: "지도에서 찾아보기", href: "/map" }}
-                />
-              )
-            ) : (
-              regions.slice(0, 2).map((r) => (
-                <div
-                  key={r.id}
-                  className="card card-hover flex items-center justify-between rounded-2xl px-4 py-3.5"
-                >
-                  <div>
-                    <div className="text-sm font-bold text-ink">{r.name}</div>
-                    <div className="text-xs text-text-3">{r.meta}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="t-num text-base text-ink">{r.price}</div>
-                    <div className={`text-xs ${deltaClass[r.tone]}`}>{r.delta}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          <div data-reveal="">
-            <HomeAiGateway briefing={data.briefing} />
-          </div>
-
           {/* 공개 노트 증거 (모바일) */}
           <div data-reveal="" className="card flex flex-col gap-2 rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between">
@@ -503,6 +463,46 @@ export default async function Home() {
             )}
           </div>
 
+          <div data-reveal="">
+            <HomeAiGateway briefing={data.briefing} />
+          </div>
+
+          <div data-reveal="" className="flex flex-col gap-3">
+            <h2 className="sr-only">지역 시세</h2>
+            {regions.length === 0 ? (
+              failed.regions ? (
+                <ErrorState
+                  title="지역 시세를 지금 불러오지 못했어요"
+                  desc="데이터가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              ) : (
+                <EmptyState
+                  icon="map"
+                  title="지역 시세를 아직 불러오지 못했어요"
+                  desc="실거래 스냅샷이 준비되면 여기에 표시됩니다."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              )
+            ) : (
+              regions.slice(0, 2).map((r) => (
+                <div
+                  key={r.id}
+                  className="card card-hover flex items-center justify-between rounded-2xl px-4 py-3.5"
+                >
+                  <div>
+                    <div className="text-sm font-bold text-ink">{r.name}</div>
+                    <div className="text-xs text-text-3">{r.meta}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="t-num text-base text-ink">{r.price}</div>
+                    <div className={`text-xs ${deltaClass[r.tone]}`}>{r.delta}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
           {/* 허브 밀도 축소 — 다이제스트·모임·안전 등 한 카드로 */}
           <div data-reveal="" className="card flex flex-col gap-2 rounded-2xl px-4 py-4">
             <h2 className="text-[13px] font-extrabold text-ink">더 알아보기</h2>
@@ -519,6 +519,12 @@ export default async function Home() {
                 </span>
               </span>
               <span className="shrink-0 font-extrabold text-primary">›</span>
+            </Link>
+            <Link
+              href="/analysis"
+              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+            >
+              실거래 분석 도구 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/town/groups"
@@ -612,49 +618,25 @@ export default async function Home() {
               <JourneyBanner />
             </div>
 
-            {/* 지역 시세 카드 4열 — 라운드 확대 + 호버 리프트 */}
-            <h2 className="sr-only">지역 시세</h2>
-            {regions.length === 0 ? (
-              failed.regions ? (
-                <ErrorState
-                  className="rise-in-2"
-                  title="지역 시세를 지금 불러오지 못했어요"
-                  desc="데이터가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
-                  action={{ label: "지도에서 찾아보기", href: "/map" }}
-                />
-              ) : (
-                <EmptyState
-                  className="rise-in-2"
-                  icon="map"
-                  title="지역 시세를 아직 불러오지 못했어요"
-                  desc="국토교통부 실거래 스냅샷이 적재되면 이 자리에 지역별 평균가와 변동률이 표시됩니다."
-                  action={{ label: "지도에서 찾아보기", href: "/map" }}
-                />
-              )
-            ) : (
-              <div className="rise-in-2 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {regions.slice(0, 4).map((r) => (
-                  <div key={r.id} className="card card-hover rounded-2xl px-4 py-4">
-                    <div className="text-xs text-text-3">
-                      {r.name} · {r.meta.split("· ")[1] ?? r.meta}
-                    </div>
-                    <div className="mt-1.5 flex items-baseline gap-1.5">
-                      <span className="t-num text-[19px] text-ink">{r.price}</span>
-                      <span className={`text-[11px] ${deltaClass[r.tone]}`}>
-                        {compactDelta(r.delta)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준, null이면 미표시 */}
-            {freshness && (
-              <p className="t-caption -mt-2 text-text-3">
-                실거래 기준: {freshness} (국토교통부)
-              </p>
-            )}
+            {/* 실거래 분석 도구 진입 — 전부 실데이터 연동 도구인데 홈에서 가는 문이
+                없어 /analysis 를 아는 사람만 썼다. 리밸런싱: 기록(노트) 다음의 두
+                번째 가치인 '검증(분석)'을 첫 화면에 노출한다. */}
+            <div className="rise-in-1 grid grid-cols-3 gap-3">
+              {[
+                { href: "/analysis/price", t: "면적대별 실거래", d: "평단가·지역 분위" },
+                { href: "/analysis/timing", t: "시세·타이밍", d: "12개월 추세·온도" },
+                { href: "/analysis/scenario", t: "대출 시나리오", d: "실금리 DSR·스트레스" },
+              ].map((t) => (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className="card card-hover flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+                >
+                  <span className="text-[13px] font-extrabold text-ink">{t.t}</span>
+                  <span className="text-[11px] text-text-3">{t.d}</span>
+                </Link>
+              ))}
+            </div>
 
             {/* 공개 노트 · 동네이야기 — 행 클릭 가능 (증거) */}
             <div data-reveal="" className="grid grid-cols-1 gap-3 xl:grid-cols-2">
@@ -747,6 +729,50 @@ export default async function Home() {
                 )}
               </div>
             </div>
+            {/* 지역 시세 카드 4열 — 라운드 확대 + 호버 리프트 */}
+            <h2 className="sr-only">지역 시세</h2>
+            {regions.length === 0 ? (
+              failed.regions ? (
+                <ErrorState
+                  className="rise-in-2"
+                  title="지역 시세를 지금 불러오지 못했어요"
+                  desc="데이터가 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              ) : (
+                <EmptyState
+                  className="rise-in-2"
+                  icon="map"
+                  title="지역 시세를 아직 불러오지 못했어요"
+                  desc="국토교통부 실거래 스냅샷이 적재되면 이 자리에 지역별 평균가와 변동률이 표시됩니다."
+                  action={{ label: "지도에서 찾아보기", href: "/map" }}
+                />
+              )
+            ) : (
+              <div className="rise-in-2 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {regions.slice(0, 4).map((r) => (
+                  <div key={r.id} className="card card-hover rounded-2xl px-4 py-4">
+                    <div className="text-xs text-text-3">
+                      {r.name} · {r.meta.split("· ")[1] ?? r.meta}
+                    </div>
+                    <div className="mt-1.5 flex items-baseline gap-1.5">
+                      <span className="t-num text-[19px] text-ink">{r.price}</span>
+                      <span className={`text-[11px] ${deltaClass[r.tone]}`}>
+                        {compactDelta(r.delta)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준, null이면 미표시 */}
+            {freshness && (
+              <p className="t-caption -mt-2 text-text-3">
+                실거래 기준: {freshness} (국토교통부)
+              </p>
+            )}
+
           </div>
 
           {/* 사이드바 — AI 시작 + 허브 묶음.
