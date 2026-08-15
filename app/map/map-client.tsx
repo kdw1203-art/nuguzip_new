@@ -127,6 +127,27 @@ const ZOOM_TABS: { key: Zoom; label: string }[] = [
   { key: "danji", label: "단지" },
 ];
 
+/** 줌 레벨 탭 버튼 — 헤더(xl+)와 플로팅 판(xl 미만)이 같은 마크업을 복사해
+    쓰다 서로 어긋날 수 있던 것을 한 곳으로 모은다(래퍼 스타일만 다르다). */
+function ZoomTabButtons({ zoom, onSelect }: { zoom: Zoom; onSelect: (k: Zoom) => void }) {
+  return (
+    <>
+      {ZOOM_TABS.map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={() => onSelect(t.key)}
+          className={`chip px-3 py-1.5 text-xs transition-colors ${
+            zoom === t.key ? "bg-[rgba(29,79,216,.12)] font-bold text-primary" : "text-text-1"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </>
+  );
+}
+
 const ZOOM_CAPTION: Record<Zoom, string> = {
   city: "줌 레벨 9 · 지역 집계 버블",
   dong: "줌 레벨 12 · 동별 시세 + 활동량",
@@ -2257,13 +2278,13 @@ export function MapClient({
     return redevItems.map((p) => {
       const color = colorForType(p.typeKey);
       const src = p.sourceUrl
-        ? `<a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:#3182f6">출처 ↗</a>`
+        ? `<a href="${p.sourceUrl}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--primary)">출처 ↗</a>`
         : "";
       const hh = p.households
         ? `<p style="font-size:11px;color:#888;margin:2px 0 0">예정 ${p.households.toLocaleString()}세대</p>`
         : "";
       const infoHtml = `<div style="min-width:180px;max-width:230px">
-        <p style="font-size:13px;font-weight:800;color:#191f28;margin:0">${p.name}</p>
+        <p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${p.name}</p>
         <p style="font-size:12px;margin:3px 0 0;display:flex;align-items:center;gap:5px">
           <span style="display:inline-block;width:9px;height:9px;border-radius:9999px;background:${color}"></span>
           <span style="color:#333;font-weight:600">${labelForType(p.typeKey)}</span>
@@ -2311,7 +2332,7 @@ export function MapClient({
           ? `<span style="color:${up ? "#e11900" : "#1565d8"};font-weight:700">${up ? "▲" : "▼"}${Math.abs(r.changePct).toFixed(2)}%</span>`
           : "";
       const infoHtml = `<div style="min-width:150px;font-family:sans-serif">
-        <p style="font-weight:800;font-size:13px;margin:0;color:#191f28">${r.name}</p>
+        <p style="font-weight:800;font-size:13px;margin:0;color:var(--ink)">${r.name}</p>
         <p style="font-size:12px;margin:3px 0 0;color:#333">평균 매매 <b>${price}</b> ${chgHtml}</p>
         <p style="font-size:11px;color:#888;margin:2px 0 0">거래 ${r.tradeCount.toLocaleString("ko-KR")}건${r.jeonseRatio != null ? ` · 전세가율 ${Math.round(r.jeonseRatio)}%` : ""}</p>
         <p style="font-size:10px;color:#aaa;margin:2px 0 0">${r.period.slice(0, 4)}.${r.period.slice(4, 6)} · 한국부동산원</p>
@@ -3088,18 +3109,7 @@ export function MapClient({
           className="hidden shrink-0 items-center gap-0.5 rounded-full bg-[rgba(16,28,54,.05)] p-1 xl:flex"
           title={ZOOM_CAPTION[zoom]}
         >
-          {ZOOM_TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => handleZoomTab(t.key)}
-              className={`chip px-3 py-1.5 text-xs transition-colors ${
-                zoom === t.key ? "bg-[rgba(29,79,216,.12)] font-bold text-primary" : "text-text-1"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+          <ZoomTabButtons zoom={zoom} onSelect={handleZoomTab} />
         </div>
         <div className="flex shrink-0 flex-col items-end gap-0.5">
           <Link
@@ -3454,18 +3464,7 @@ export function MapClient({
         className="glass absolute right-5 z-30 mt-9 flex items-center gap-0.5 rounded-full p-1 md:mt-0 md:translate-y-9 xl:hidden"
         style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
       >
-        {ZOOM_TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => handleZoomTab(t.key)}
-            className={`chip px-3 py-1.5 text-xs transition-colors ${
-              zoom === t.key ? "bg-[rgba(29,79,216,.12)] font-bold text-primary" : "text-text-1"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        <ZoomTabButtons zoom={zoom} onSelect={handleZoomTab} />
       </div>
       <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[rgba(255,255,255,.8)] px-2.5 py-[5px] text-[11px] text-text-3 md:block xl:hidden">
         {ZOOM_CAPTION[zoom]}
@@ -4270,7 +4269,7 @@ export function MapClient({
             <span>매물 = 호가(등록가)</span>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-[#177a4a]" />
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: JEONSE_MARKER_COLOR }} />
             <span>실거래 = 국토부 확정가</span>
           </div>
         </div>
