@@ -26,9 +26,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const e = await getExpert(id).catch(() => null);
-  if (!e) {
-    return { title: "전문가를 찾을 수 없습니다 | 누구집", robots: { index: false, follow: false } };
-  }
+  /* 여기서 notFound() 를 던져야 HTTP 404 가 된다. 메타데이터를 반환하면 Next 가
+     200 으로 스트리밍을 시작한 뒤 본문 notFound() 는 UI 만 바꾼다(soft-404) —
+     실측: 없는 id 가 200 + "찾을 수 없습니다" 본문으로 나갔다. */
+  if (!e) notFound();
   const title = `${e.name} ${e.title || e.category} — 부동산 전문가 | 누구집`;
   const description = (
     e.introduction?.trim() ||
