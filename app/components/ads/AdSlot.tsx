@@ -72,24 +72,38 @@ function BannerCard({ banner }: { banner: Banner }) {
   );
 }
 
+/**
+ * 하우스 광고(누구집 안내) 카드.
+ *
+ * 디자인: 예전엔 순백(bg-surface) 카드라, 커버 이미지가 있는 임장노트 카드들
+ * 사이(동네이야기 피드)에 끼면 "빈 구멍"처럼 튀어 리듬을 깼다(2026-08-15 소유자
+ * 캡처). 노트 카드와 같은 "커버 + 본문" 실루엣을 주면 의도된 안내 카드로 읽힌다 —
+ * 상단에 브랜드 그라데이션 커버 밴드를 얹고(아이브로·안내칩은 그 위 흰 글자),
+ * 본문은 아래에 둔다. 홈 피드(밝은 배경)에서도 자연스럽다.
+ */
 function HouseAdCard({ ad }: { ad: HouseAd }) {
   return (
     <AdSlotTracker creativeId={ad.id} kind="house">
       <Link
         href={ad.href}
-        className="block rounded-2xl border border-line bg-surface px-5 py-4 no-underline"
+        className="card card-hover block overflow-hidden rounded-[16px] no-underline"
       >
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-primary">{ad.eyebrow}</span>
-          <span className="rounded border border-line px-1 py-px text-[9px] font-semibold text-text-3">
+        {/* 브랜드 커버 밴드 — 노트 카드의 커버 자리에 대응 */}
+        <div className="relative flex items-center justify-between bg-gradient-to-br from-[#1d4fd8] to-[#3a63de] px-4 py-3">
+          <span className="text-[11px] font-extrabold tracking-tight text-white">
+            {ad.eyebrow}
+          </span>
+          <span className="rounded-[6px] bg-white/20 chip-pad text-[9px] font-bold text-white">
             누구집 안내
           </span>
         </div>
-        <div className="mt-1 text-[14.5px] font-extrabold text-ink">{ad.title}</div>
-        <p className="mt-1 text-[12px] leading-relaxed text-text-2">{ad.body}</p>
-        <span className="mt-2 inline-block text-[12px] font-bold text-primary">
-          {ad.ctaLabel} →
-        </span>
+        <div className="flex flex-col gap-1 px-4 pb-3.5 pt-2.5">
+          <div className="text-[14px] font-extrabold leading-snug text-ink">{ad.title}</div>
+          <p className="text-[12px] leading-relaxed text-text-2">{ad.body}</p>
+          <span className="mt-1 inline-block text-[12px] font-bold text-primary">
+            {ad.ctaLabel} →
+          </span>
+        </div>
       </Link>
     </AdSlotTracker>
   );

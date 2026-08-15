@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { resolveRegion } from "./region-map";
 import { useSettledSearchQuery } from "@/lib/search/settle";
 
@@ -230,17 +231,29 @@ export function ComplexPicker({
   return (
     <div ref={boxRef} className="relative flex flex-col gap-1.5">
       <span className="text-[11px] font-bold text-text-3">{label}</span>
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        {...compositionProps}
-        onFocus={() => {
-          if (items.length) setOpen(true);
-        }}
-        placeholder={placeholder}
-        aria-label={label}
-        className="w-full rounded-[10px] border border-line bg-surface px-3 py-2 text-xs font-bold text-ink outline-none focus:border-primary"
-      />
+      {/* 검색 입력 + 지도로 찾기 — 이름을 모르면 지도에서 눌러 고른다.
+          지도(/map)는 단지 선택 시 '/analysis?complexId=' 로 되돌려보내고,
+          이 선택기가 그 값을 읽어 자동 선택한다(맞물린 왕복). */}
+      <div className="flex items-stretch gap-1.5">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          {...compositionProps}
+          onFocus={() => {
+            if (items.length) setOpen(true);
+          }}
+          placeholder={placeholder}
+          aria-label={label}
+          className="min-w-0 flex-1 rounded-[10px] border border-line bg-surface px-3 py-2 text-xs font-bold text-ink outline-none focus:border-primary"
+        />
+        <Link
+          href="/map"
+          className="flex shrink-0 items-center gap-1 rounded-[10px] border border-line bg-surface px-2.5 text-[11px] font-bold text-primary no-underline hover:border-primary"
+          aria-label="지도에서 단지 찾기"
+        >
+          🗺 지도로 찾기
+        </Link>
+      </div>
 
       {open && items.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-[12px] border border-line bg-surface shadow-[0_14px_36px_rgba(16,28,54,.16)]">
