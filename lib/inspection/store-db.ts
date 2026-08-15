@@ -46,6 +46,13 @@ export type InspectionNoteMetadata = {
   complexId?: string;
   lat?: number;
   lng?: number;
+  /**
+   * "나만의 카드" 구성 — 사용자가 고른 테마·프레임(장). lib/notes/card-config 의
+   * CardConfig 형태({themeId, frameIds}). jsonb metadata 라 마이그레이션 없이 저장.
+   */
+  cardConfig?: { themeId: string; frameIds: string[] };
+  /** 소셜 소재 활용 동의(노트 폼) */
+  socialShareConsent?: boolean;
 };
 
 export type InspectionNote = {

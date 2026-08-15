@@ -63,7 +63,15 @@ export function NoteDetailActions({
   };
 
   return (
-    <div className="relative flex items-center gap-2">
+    <div className="relative flex flex-wrap items-center gap-2">
+      {/* 나만의 카드 — AI가 기록으로 자동 구성한 카드를 색상·장 선택으로 꾸민다.
+          소유자는 '만들기', 공개 노트 열람자는 '카드 보기'. */}
+      <Link
+        href={`/notes/${noteId}/card`}
+        className="btn-primary px-3.5 py-2 text-[13px] font-bold no-underline"
+      >
+        {isOwner ? "🎨 나만의 카드 만들기" : "🎴 카드 보기"}
+      </Link>
       {isOwner && (
         <Link
           href={`/notes/${noteId}/edit`}
