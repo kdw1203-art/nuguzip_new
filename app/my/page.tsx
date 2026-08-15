@@ -13,6 +13,8 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { listBookmarks } from "@/lib/bookmarks/store";
+import { listMyPurchases } from "@/lib/report-purchases/store-db";
+import { getReport } from "@/lib/reports/store-db";
 import { listAlertSubscriptions, type AlertSubscription } from "@/lib/alerts/subscriptions";
 import { getVerifiedOnboarding } from "@/app/api/me/onboarding/verify";
 import {
@@ -104,6 +106,31 @@ async function loadSavedNotes(
   }
 }
 
+/** 구매한 리포트 — 재열람 진입점. 상세 페이지가 "언제든 다시 열람"을 약속하므로
+    찾아갈 목록이 있어야 그 말이 참이 된다. 제목은 리포트에서 되짚는다(최대 6건). */
+async function loadMyPurchasedReports(
+  email: string,
+): Promise<{ ok: true; items: { id: string; title: string; amount: number; at: string }[] } | { ok: false }> {
+  try {
+    const purchases = (await listMyPurchases(email.trim().toLowerCase())).slice(0, 6);
+    const items = await Promise.all(
+      purchases.map(async (p) => {
+        const r = await getReport(p.reportId).catch(() => null);
+        return {
+          id: p.reportId,
+          title: r?.title ?? "삭제된 리포트",
+          amount: p.amount,
+          at: p.purchasedAt,
+        };
+      }),
+    );
+    return { ok: true, items };
+  } catch (e) {
+    logger.error("[my] 구매 리포트 조회 실패", e);
+    return { ok: false };
+  }
+}
+
 /* ── 비로그인 안내 ── */
 function GuestView() {
   const menu = [
@@ -183,7 +210,7 @@ export default async function MyPage() {
   );
   const history = ledgerLoaded.rows;
 
-  const [profile, notes, savedNotesLoaded, alerts, expert, onboarding, planExpiresAt] =
+  const [profile, notes, savedNotesLoaded, purchasedLoaded, alerts, expert, onboarding, planExpiresAt] =
     await Promise.all([
       loadMeProfile(email, {
         name: session.user.name,
@@ -192,6 +219,7 @@ export default async function MyPage() {
       }),
       listNotes(email),
       loadSavedNotes(email),
+      loadMyPurchasedReports(email),
       listAlertSubscriptions(email),
       getExpertStatus(email),
       // 온보딩 진행은 저장된 신고값이 아니라 실데이터 서버 판정 (완주 200P 도 여기서 멱등 지급)
@@ -538,6 +566,35 @@ export default async function MyPage() {
             </div>
           )}
         </section>
+
+        {/* ── 구매한 리포트 (재열람) ── */}
+        {(!purchasedLoaded.ok || purchasedLoaded.items.length > 0) && (
+          <section className="flex flex-col gap-2.5">
+            <SectionHead title="구매한 리포트" href="/town/library" hrefLabel="자료실" />
+            {!purchasedLoaded.ok ? (
+              <div className="card flex flex-col items-center gap-1.5 rounded-[14px] px-4 py-6 text-center">
+                <div className="text-[13px] font-bold text-ink">구매 내역을 지금 불러오지 못했어요</div>
+                <div className="text-[11px] text-text-3">내역이 없는 게 아니라 조회가 실패했습니다.</div>
+              </div>
+            ) : (
+              purchasedLoaded.items.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/town/library/${p.id}`}
+                  className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-bold text-ink">{p.title}</div>
+                    <div className="text-[11px] text-text-3">
+                      {shortDate(p.at)} 구매 · {p.amount.toLocaleString("ko-KR")}P
+                    </div>
+                  </div>
+                  <span className="shrink-0 pl-2 text-xs font-extrabold text-primary">열람 ›</span>
+                </Link>
+              ))
+            )}
+          </section>
+        )}
 
         {/* ── 포인트 요약 ── */}
         <section className="flex flex-col gap-2.5">
