@@ -94,6 +94,14 @@ const TOOLS = [
     sim: false,
   },
   {
+    href: "/analysis/price",
+    icon: "📈",
+    title: "면적대별 실거래 시세",
+    desc: "지역·면적대별 평단가·중앙값과 지역 분위, 면적 프리미엄을 실거래로 분석",
+    foot: "면적대별 시세 보기 ›",
+    sim: false,
+  },
+  {
     href: "/analysis/portfolio",
     icon: "💼",
     title: "포트폴리오 분석",
@@ -146,7 +154,7 @@ export default async function AnalysisHubPage({
         <div className="rise-in px-1">
           <h1 className="text-[26px] font-extrabold text-ink">AI 분석 도구</h1>
           <div className="mt-1.5 text-sm text-text-2">
-            내 노트와 실거래 데이터가 연결된 5가지 분석
+            내 노트와 국토교통부 실거래로 검증하는 분석 도구
           </div>
         </div>
 
