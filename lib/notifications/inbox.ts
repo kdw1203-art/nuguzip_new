@@ -86,8 +86,13 @@ export async function appendInboxNotification(input: {
     body: input.body,
     action_url: input.actionUrl ?? null,
   });
-  if (error && process.env.NODE_ENV !== "production") {
-    logger.warn("[inbox] insert skipped:", error.message);
+  /* 프로덕션에서 무음 삼킴 금지 — 예전엔 NODE_ENV!=="production" 일 때만 warn 을
+     찍어서, 운영에서 insert 가 깨지면(정책 변경·컬럼 드리프트) **아무 흔적 없이**
+     모든 알림이 증발했다. 전 기간 0행을 실사하다 발견한 구조다(이번엔 쓰기 경로가
+     정상임을 service_role 실삽입으로 확인했지만, 다음 고장은 로그가 잡아야 한다).
+     던지지는 않는다 — 알림은 곁가지라 본작업을 죽이면 안 된다. */
+  if (error) {
+    logger.error("[inbox] insert 실패 — 알림이 유실됩니다:", error.message);
   }
 }
 

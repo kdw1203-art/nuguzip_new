@@ -14,6 +14,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { getReport } from "@/lib/reports/store-db";
 import { hasPurchased, createPurchase } from "@/lib/report-purchases/store-db";
 import { getBalance, spendPoints } from "@/lib/points/ledger";
+import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { logger } from "@/lib/log";
 import {
   applyRateLimit,
@@ -140,6 +141,18 @@ export async function POST(
          구매자까지 넣어 사람마다 다른 값이 되게 한다. */
       paymentId: `points:${id}:${email.toLowerCase()}`,
     });
+
+    /* 판매 알림 — 크리에이터가 자기 리포트가 팔린 걸 알아야 정산 확인·후속
+       판매로 이어진다(여태 조용히 팔렸다). author_id = 판매자 이메일. 실패해도
+       구매 자체를 되돌리지 않는다(알림은 곁가지). */
+    if (report.authorId) {
+      void appendInboxNotification({
+        userEmail: report.authorId,
+        title: "리포트가 판매됐어요 🎉",
+        body: `‘${report.title}’ 이(가) ${report.price.toLocaleString("ko-KR")}P 에 판매됐어요. 판매 실적은 크리에이터 대시보드에서 확인할 수 있어요.`,
+        actionUrl: "/my/creator",
+      }).catch(() => {});
+    }
     return NextResponse.json(
       { ok: true, access: true, purchase, balance: spent.balance },
       { status: 201 },
