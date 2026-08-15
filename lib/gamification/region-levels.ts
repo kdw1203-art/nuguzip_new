@@ -91,6 +91,18 @@ export function computeRegionLevels(
   return out.slice(0, Math.max(0, limit));
 }
 
+/**
+ * 이 카운트가 **정확히 레벨 경계에 도달한 순간**인가 — 도달했으면 그 구간을 반환.
+ * 노트 저장 직후 지급 판정용: 카운트는 저장마다 1씩 오르므로 경계는 정확히 한 번
+ * 지나간다(경계가 아니면 null → 지급 없음). refId(지역:레벨) 멱등과 함께 쓴다.
+ */
+export function tierReachedAt(
+  count: number,
+): { level: number; label: string } | null {
+  const t = REGION_TIERS.find((x) => x.min === count);
+  return t ? { level: t.level, label: t.label } : null;
+}
+
 /** 현재 레벨 구간 안에서 다음 레벨까지의 진행률(0~100). 최고 레벨이면 100. */
 export function regionLevelProgress(r: RegionLevel): number {
   if (!r.next) return 100;

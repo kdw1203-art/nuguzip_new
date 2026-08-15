@@ -230,6 +230,33 @@ function noteQueryError(where: string, err: { message?: string; code?: string })
 }
 
 /**
+ * 작성자의 특정 지역 노트 수 — 지역 임장 레벨 지급 판정용(head-count, 정확).
+ *
+ * listNotes 는 200행 캡이 있어 다작 사용자에게 과소 집계될 수 있다 — 지급 판정은
+ * 정확해야 하므로 별도 count 쿼리를 쓴다. region 은 자유 텍스트("서울 강남구" /
+ * "강남구")라 구/시 토큰 부분일치(ilike)로 센다. 토큰의 %·_ 는 패턴 문자라 제거.
+ * 실패는 0 이 아니라 throw — 0 으로 접으면 "지급 안 해도 되는 상태"로 위장된다.
+ */
+export async function countNotesByRegionToken(
+  authorEmail: string,
+  token: string,
+): Promise<number> {
+  const clean = token.replace(/[%_]/g, "").trim();
+  if (!clean) return 0;
+  const sb = getServiceSupabase();
+  if (!sb) {
+    return memory.filter((n) => n.authorEmail === authorEmail && n.region.includes(clean)).length;
+  }
+  const { count, error } = await sb
+    .from("inspection_notes")
+    .select("id", { count: "exact", head: true })
+    .eq("author_email", authorEmail)
+    .ilike("region", `%${clean}%`);
+  if (error) throw noteQueryError("inspection_notes (지역 노트 수)", error);
+  return count ?? 0;
+}
+
+/**
  * 공개 임장노트 목록 (최신순).
  *
  * ── 2026-07-26: 두 가지를 고쳤다 ────────────────────────────────────────────

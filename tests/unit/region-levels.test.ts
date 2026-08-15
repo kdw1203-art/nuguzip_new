@@ -3,11 +3,27 @@ import assert from "node:assert/strict";
 import {
   guToken,
   tierForCount,
+  tierReachedAt,
   computeRegionLevels,
   regionLevelProgress,
   regionLevelSummary,
   REGION_TIERS,
 } from "@/lib/gamification/region-levels.ts";
+
+test("tierReachedAt 은 경계에 정확히 닿았을 때만 지급 대상", () => {
+  // 경계(1·3·5·10·20)에서만 tier 반환
+  assert.equal(tierReachedAt(1)?.level, 1);
+  assert.equal(tierReachedAt(3)?.level, 2);
+  assert.equal(tierReachedAt(5)?.level, 3);
+  assert.equal(tierReachedAt(10)?.level, 4);
+  assert.equal(tierReachedAt(20)?.level, 5);
+  // 경계가 아니면 null — 중간 카운트에 중복 지급하지 않는다
+  assert.equal(tierReachedAt(0), null);
+  assert.equal(tierReachedAt(2), null);
+  assert.equal(tierReachedAt(4), null);
+  assert.equal(tierReachedAt(11), null);
+  assert.equal(tierReachedAt(21), null);
+});
 
 test("guToken 은 구/시/군 토큰을 뽑는다", () => {
   assert.equal(guToken("서울 강남구"), "강남구");

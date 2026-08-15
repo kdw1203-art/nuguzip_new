@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { createNote, listNotes, listPublicNotes } from "@/lib/inspection/store-db";
+import {
+  countNotesByRegionToken,
+  createNote,
+  listNotes,
+  listPublicNotes,
+} from "@/lib/inspection/store-db";
 import { awardPoints } from "@/lib/points/ledger";
+import { guToken, tierReachedAt } from "@/lib/gamification/region-levels";
 import { appendOnboardingStep } from "@/lib/onboarding/append-step";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import { looksLikeEmail } from "@/lib/privacy/mask-email";
@@ -145,6 +151,22 @@ export async function POST(req: Request) {
       // refId=note.id 멱등 — 이후 PATCH(비공개→공개)에서 같은 refId 로 중복 지급되지 않음.
       await awardPoints(session.user.email, "note_public", note.id);
     }
+    /* 지역 임장 레벨업 포인트 — 이 노트로 그 지역(구/시) 노트 수가 레벨 경계
+       (1·3·5·10·20)에 정확히 도달했으면 50P. refId=지역:레벨 멱등이라 중복 지급
+       없음. 적립 실패가 노트 저장 응답을 막지 않도록 fire-and-forget. */
+    void (async () => {
+      try {
+        const gu = guToken(region);
+        if (!gu) return;
+        const count = await countNotesByRegionToken(session.user!.email!, gu);
+        const tier = tierReachedAt(count);
+        if (tier) {
+          await awardPoints(session.user!.email!, "region_level_up", `${gu}:${tier.level}`);
+        }
+      } catch {
+        /* 지급 판정 실패는 조용히 넘긴다 — 다음 경계에서 다시 기회가 있다 */
+      }
+    })();
     void recordFunnelEvent(req, {
       eventName: FUNNEL_EVENT.INSPECTION_NOTE_CREATE,
       userEmail: session.user.email,

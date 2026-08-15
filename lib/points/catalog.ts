@@ -35,6 +35,15 @@ export const EARN_RULES: Record<string, EarnRule> = {
     points: 40,
     dailyCap: 1,
   },
+  /* 지역 임장 레벨 상승(새싹→…→마스터, lib/gamification/region-levels.ts) —
+     노트 저장 시 그 지역 노트 수가 레벨 경계(1·3·5·10·20)에 도달하면 지급.
+     refId=지역:레벨 멱등이라 삭제·재작성으로 같은 경계를 다시 밟아도 1회만. */
+  region_level_up: {
+    key: "region_level_up",
+    label: "지역 임장 레벨 상승",
+    points: 50,
+    dailyCap: 3,
+  },
   referral: { key: "referral", label: "친구 추천 가입", points: 300 },
   onboarding_complete: {
     key: "onboarding_complete",

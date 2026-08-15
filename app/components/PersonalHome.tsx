@@ -40,8 +40,9 @@ type PersonalRegionMarket = {
   tone: "up" | "down" | "flat";
 };
 
-/** 온보딩 개인화 — 관심 지역(허브 링크)·예산·목적 */
+/** 온보딩 개인화 — 관심 지역(허브 링크)·예산·목적·페르소나 */
 type PurposeId = "live" | "invest" | "jeonse";
+type PersonaId = "investor" | "resident" | "crew" | "explorer";
 type ResolvedRegion = { name: string; regionId: string | null; gu: string };
 type PersonalPreferences = {
   regions: ResolvedRegion[];
@@ -52,6 +53,8 @@ type PersonalPreferences = {
     label: string | null;
   } | null;
   purpose: PurposeId | null;
+  /** 서버가 아직 안 내려주는 배포가 섞일 수 있어 optional */
+  persona?: PersonaId | null;
 };
 
 type PersonalHomeData = {
@@ -93,6 +96,30 @@ const PURPOSE_META: Record<
     label: "전세",
     emoji: "🔑",
     rec: "전세 매물과 전세가율 흐름을 함께 확인해 보세요.",
+  },
+};
+
+/* 페르소나별 맞춤 문구 — '어떤 임장러인가'에 따라 추천 행동을 바꾼다.
+   purpose(무엇을 찾나)보다 구체적이라, 있으면 페르소나 문구가 우선한다. */
+const PERSONA_META: Record<
+  PersonaId,
+  { label: string; rec: string }
+> = {
+  investor: {
+    label: "실전 투자자",
+    rec: "후보 단지를 비교에 담고, 면적대별 실거래·타이밍 신호로 진입 근거를 검증해 보세요.",
+  },
+  resident: {
+    label: "내집마련",
+    rec: "체크리스트로 하자·생활환경을 점검하고, 대출 시나리오로 월 부담을 미리 확인해 보세요.",
+  },
+  crew: {
+    label: "임장 크루",
+    rec: "함께 다녀온 단지를 노트로 남기고, AI 카드로 만들어 모임에 공유해 보세요.",
+  },
+  explorer: {
+    label: "탐색 중",
+    rec: "공개 임장노트로 다른 임장러의 기록을 살펴보고, 관심 지역 한 곳부터 시작해 보세요.",
   },
 };
 
@@ -472,7 +499,10 @@ export function PersonalHome() {
             <div className="flex items-center justify-between">
               <span className="rounded-md bg-primary-soft chip-pad text-[11px] font-extrabold text-primary">
                 관심 맞춤
-                {data.preferences.purpose ? (
+                {/* 페르소나(어떤 임장러)가 있으면 그걸, 없으면 목적(무엇을 찾나) */}
+                {data.preferences.persona ? (
+                  <>{` · ${PERSONA_META[data.preferences.persona].label}`}</>
+                ) : data.preferences.purpose ? (
                   <>
                     {" · "}
                     <Icon
@@ -502,9 +532,11 @@ export function PersonalHome() {
             </div>
 
             <p className="text-xs leading-[1.6] text-text-2">
-              {data.preferences.purpose
-                ? PURPOSE_META[data.preferences.purpose].rec
-                : "관심 지역·예산에 맞는 후보를 모아 보여드려요."}
+              {data.preferences.persona
+                ? PERSONA_META[data.preferences.persona].rec
+                : data.preferences.purpose
+                  ? PURPOSE_META[data.preferences.purpose].rec
+                  : "관심 지역·예산에 맞는 후보를 모아 보여드려요."}
               {/* 변동률을 모를 땐 괄호를 통째로 뺀다 — "(변동 미상)"까지 읽히면
                   평균가 문장이 오히려 지저분해진다. 평균가는 그대로 사실이다. */}
               {regionMarket

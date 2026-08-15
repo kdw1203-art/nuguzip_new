@@ -16,6 +16,7 @@ import {
   resolveRegions,
   type OnboardingBudget,
   type PurposeId,
+  type PersonaId,
   type ResolvedRegion,
 } from "@/lib/onboarding/personalization";
 
@@ -55,6 +56,8 @@ export type PersonalHomeData = {
     regions: ResolvedRegion[];
     budget: OnboardingBudget | null;
     purpose: PurposeId | null;
+    /** 타깃 페르소나(온보딩) — 미선택 시 null */
+    persona: PersonaId | null;
   } | null;
   /** preferences 가 null 인 이유가 "조회 실패"인지 "미설정"인지.
       true 면 조회 실패 — 이미 설정한 사람일 수 있으니 설정 유도 문구를 띄우면
@@ -173,6 +176,7 @@ export async function GET() {
         regions: resolvedRegions,
         budget: personalization.budget,
         purpose: personalization.purpose,
+        persona: personalization.persona,
       }
     : null;
 
