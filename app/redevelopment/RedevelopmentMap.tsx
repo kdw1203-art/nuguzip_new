@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
+import { NaverMap } from "@/components/map/NaverMapLazy";
+import type { MapMarkerData } from "@/components/map/NaverMap";
 import {
   STAGES,
   colorForType,

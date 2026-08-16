@@ -6,7 +6,7 @@ import { ReportButton } from "../../components/ReportButton";
 import { RefreshButton } from "./RefreshButton";
 import { InquiryForm } from "./InquiryForm";
 import { ListingSaveButton } from "@/components/ListingSaveButton";
-import { NaverMap } from "@/components/map/NaverMap";
+import { NaverMap } from "@/components/map/NaverMapLazy";
 import { safeAuth } from "@/lib/safe-auth";
 import { isBookmarked } from "@/lib/bookmarks/store";
 import {

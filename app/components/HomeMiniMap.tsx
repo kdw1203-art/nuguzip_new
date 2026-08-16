@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { getSessionLite } from "@/lib/client/session-lite";
 import { getHomePersonal } from "@/lib/client/home-personal";
-import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
+import { NaverMap } from "@/components/map/NaverMapLazy";
+import type { MapMarkerData } from "@/components/map/NaverMap";
 import {
   SEOUL_DISTRICTS,
   METRO_EXPLORE_DISTRICTS,

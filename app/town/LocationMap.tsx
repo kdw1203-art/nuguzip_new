@@ -1,6 +1,7 @@
 "use client";
 
-import { NaverMap, type MapMarkerData } from "@/components/map/NaverMap";
+import { NaverMap } from "@/components/map/NaverMapLazy";
+import type { MapMarkerData } from "@/components/map/NaverMap";
 import { Icon } from "@/app/components/Icon";
 import {
   SEOUL_DISTRICTS,

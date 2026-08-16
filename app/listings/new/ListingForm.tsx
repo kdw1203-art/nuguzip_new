@@ -4,7 +4,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { NaverMap, type MapIdleInfo } from "@/components/map/NaverMap";
+import { NaverMap } from "@/components/map/NaverMapLazy";
+import type { MapIdleInfo } from "@/components/map/NaverMap";
 import { Icon } from "@/app/components/Icon";
 import { DISTRICTS } from "@/lib/regions";
 import { resizeImageFiles } from "@/lib/client/image-resize";
