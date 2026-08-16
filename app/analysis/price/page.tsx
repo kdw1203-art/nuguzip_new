@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import { NextActions } from "../../components/NextActions";
+import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
+import { findTemperatureRegionIdByName } from "@/lib/market/temperature";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import {
   listTxRegions,
@@ -351,12 +352,23 @@ export default async function PricePage({
         </div>
 
         <div className="mt-4">
-          <NextActions
-            actions={[
-              { label: "이 지역 노트 쓰기", href: "/notes/new", primary: true },
-              { label: "단지 비교하기", href: "/analysis/compare" },
-              { label: "대출 시나리오", href: "/analysis/scenario" },
-            ]}
+          {/* #411 — 도구 간 이어가기: 보던 지역 그대로 타이밍·시나리오·지도로 */}
+          <AnalysisCrossLinks
+            current="price"
+            regionLabel={target.name}
+            regionFor={{
+              map: target.name,
+              ...(findTemperatureRegionIdByName(target.name)
+                ? {
+                    timing: findTemperatureRegionIdByName(target.name)!,
+                    scenario: findTemperatureRegionIdByName(target.name)!,
+                  }
+                : {}),
+            }}
+            note={{
+              label: "이 지역 노트 쓰기",
+              href: `/notes/new?region=${encodeURIComponent(target.name)}`,
+            }}
           />
         </div>
       </div>

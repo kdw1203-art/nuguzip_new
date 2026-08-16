@@ -276,6 +276,17 @@ export function findTemperatureRegion(regionId: string): TemperatureRegion | nul
   return TEMPERATURE_REGIONS.find((r) => r.id === regionId) ?? null;
 }
 
+/** 한글 지역명("강남구"·"안양시 동안구")→지역 id — 분석 도구 간 이어가기(#411)용.
+ *  못 찾으면 null: 링크는 파라미터 없이 나간다(틀린 어휘를 보내는 것보다 낫다). */
+export function findTemperatureRegionIdByName(name: string): string | null {
+  const n = name.trim();
+  if (!n) return null;
+  const hit = TEMPERATURE_REGIONS.find(
+    (r) => r.name === n || r.label === n || n.endsWith(r.name),
+  );
+  return hit ? hit.id : null;
+}
+
 /** 한 지역의 온도를 지금 데이터로 계산한다 (페이지·스냅샷 공용 진입점). */
 export async function computeRegionTemperature(
   region: TemperatureRegion,

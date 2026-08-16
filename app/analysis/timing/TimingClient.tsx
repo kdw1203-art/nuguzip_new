@@ -7,6 +7,7 @@ import type { TrendResult, MarketTemp } from "@/lib/market/temperature";
 import type { RegionMonthlyVolumeRow } from "@/lib/market/store";
 import { TimingRegionSelect } from "./region-select";
 import { TimingComplexPicker } from "./complex-picker";
+import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
 
 /**
  * /analysis/timing 클라이언트 셸 (사용량 절감 13차 — ISR 전환의 클라이언트 절반).
@@ -380,6 +381,20 @@ export function TimingClient({
           </div>
         </div>
       )}
+
+      {/* #411 — 도구 간 이어가기: 화면의 **현재 선택 지역** 그대로.
+          지역 전환이 이 컴포넌트 상태라 서버 카드로는 불가능했던 것. */}
+      <div className="mt-5">
+        <AnalysisCrossLinks
+          current="timing"
+          regionLabel={selected.label}
+          regionFor={{
+            scenario: selected.id,
+            map: selected.label.split(" ").pop() ?? selected.label,
+          }}
+          note={{ label: "알림 기준 설정", href: "/notifications" }}
+        />
+      </div>
     </>
   );
 }

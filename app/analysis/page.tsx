@@ -9,6 +9,12 @@ import {
 } from "@/lib/inspection/store-db";
 import { HubComplexPicker } from "./hub-picker";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { loadHubTeasers } from "./hub-teasers";
+import {
+  CompareTrayCount,
+  LastToolChip,
+  ToolLink,
+} from "./tool-cards-client";
 
 /** 공개 노트에서 AI(또는 규칙) 요약 문구가 있는 첫 건 — 게스트 미리보기용 */
 function pickPublicAiPreview(notes: InspectionNote[]): {
@@ -51,7 +57,8 @@ export const metadata = buildPageMetadata({
 });
 
 /* P1-10·P1-12: 가짜 개인화 foot 문구 제거(정적 설명으로 교체),
-   실연동 전 도구에는 "시뮬레이션" 칩을 붙여 오해 방지 */
+   실연동 전 도구에는 "시뮬레이션" 칩을 붙여 오해 방지.
+   #411 고도화: 실데이터 도구 우선 정렬 + 카드별 실측 티저(hub-teasers). */
 const TOOLS = [
   {
     href: "/notes",
@@ -62,20 +69,12 @@ const TOOLS = [
     sim: false,
   },
   {
-    href: "/analysis/compare",
-    icon: "⚖️",
-    title: "후보 단지 비교",
-    desc: "같은 기준으로 항목·재무를 나란히 비교",
-    foot: "비교 트레이 열기 ›",
+    href: "/analysis/price",
+    icon: "📈",
+    title: "면적대별 실거래 시세",
+    desc: "지역·면적대별 평단가·중앙값과 지역 분위, 면적 프리미엄을 실거래로 분석",
+    foot: "면적대별 시세 보기 ›",
     sim: false,
-  },
-  {
-    href: "/analysis/scenario",
-    icon: "📊",
-    title: "시장·대출 시나리오",
-    desc: "지역 시세가 있을 때 금리·시세 스트레스 테스트 · 기준가 없으면 예시 계산",
-    foot: "시나리오 열어보기 ›",
-    sim: true,
   },
   {
     href: "/analysis/timing",
@@ -94,12 +93,20 @@ const TOOLS = [
     sim: false,
   },
   {
-    href: "/analysis/price",
-    icon: "📈",
-    title: "면적대별 실거래 시세",
-    desc: "지역·면적대별 평단가·중앙값과 지역 분위, 면적 프리미엄을 실거래로 분석",
-    foot: "면적대별 시세 보기 ›",
+    href: "/analysis/compare",
+    icon: "⚖️",
+    title: "후보 단지 비교",
+    desc: "같은 기준으로 항목·재무를 나란히 비교",
+    foot: "비교 트레이 열기 ›",
     sim: false,
+  },
+  {
+    href: "/analysis/scenario",
+    icon: "📊",
+    title: "시장·대출 시나리오",
+    desc: "지역 시세가 있을 때 금리·시세 스트레스 테스트 · 기준가 없으면 예시 계산",
+    foot: "시나리오 열어보기 ›",
+    sim: true,
   },
   {
     href: "/analysis/portfolio",
@@ -126,6 +133,14 @@ export default async function AnalysisHubPage({
 }) {
   const { noteId, complexId, apt } = await searchParams;
 
+  /* #411 — 카드별 실측 티저 (실패/없음이면 해당 줄이 빠질 뿐, 허브는 뜬다) */
+  const teasers = await loadHubTeasers().catch(() => ({
+    timing: null,
+    temp: null,
+    price: null,
+    baseRate: null,
+  }));
+
   // 로그인 시 실데이터(내 노트 수)로 시작 섹션 구성 — 허위 수치 없음
   const session = await safeAuth();
   const email = session?.user?.email ?? null;
@@ -151,11 +166,15 @@ export default async function AnalysisHubPage({
   return (
     <PageShell>
       <div className="flex flex-col gap-4">
-        <div className="rise-in px-1">
-          <h1 className="text-[26px] font-extrabold text-ink">AI 분석 도구</h1>
-          <div className="mt-1.5 text-sm text-text-2">
-            내 노트와 국토교통부 실거래로 검증하는 분석 도구
+        <div className="rise-in flex flex-wrap items-end justify-between gap-3 px-1">
+          <div>
+            <h1 className="text-[26px] font-extrabold text-ink">AI 분석 도구</h1>
+            <div className="mt-1.5 text-sm text-text-2">
+              내 노트와 국토교통부 실거래로 검증하는 분석 도구
+            </div>
           </div>
+          {/* #411 항목별 고유기능 — 마지막 사용 도구 복귀 칩 (기록 없으면 없음) */}
+          <LastToolChip />
         </div>
 
         {/* 시작 섹션 — 로그인: 실 카운트 + CTA / 비로그인: 예시 분석 1건 + 로그인 CTA */}
@@ -260,10 +279,41 @@ export default async function AnalysisHubPage({
         />
 
         <div className="rise-in-1 grid grid-cols-1 gap-3.5 md:grid-cols-2 lg:grid-cols-3">
-          {TOOLS.map((t) => (
-            <Link
+          {TOOLS.map((t) => {
+            /* #411 — 카드별 실측 티저. 그 도구가 실제로 낼 숫자 한 줄을
+               카드에서 먼저 보여준다(실패/없음이면 줄 자체가 없다). */
+            let teaser: { value: string; caption: string } | null = null;
+            if (t.href === "/analysis/price" && teasers.price) {
+              teaser = {
+                value: `㎡당 ${teasers.price.perM2Manwon.toLocaleString("ko-KR")}만`,
+                caption: `${teasers.price.regionLabel} 매매${teasers.price.period ? ` · ${teasers.price.period}` : ""}`,
+              };
+            } else if (t.href === "/analysis/timing" && teasers.timing) {
+              teaser = {
+                value: `${teasers.timing.momentumPct > 0 ? "+" : ""}${teasers.timing.momentumPct}%`,
+                caption: `${teasers.timing.regionLabel} 최근 3구간 지수 모멘텀`,
+              };
+            } else if (t.href === "/analysis/temperature" && teasers.temp) {
+              teaser = {
+                value: `${teasers.temp.score}/100`,
+                caption: `${teasers.temp.headline} · ${teasers.temp.weekLabel}`,
+              };
+            } else if (t.href === "/analysis/scenario" && teasers.baseRate) {
+              teaser = {
+                value: teasers.baseRate,
+                caption: "실제 기준금리가 계산에 반영돼요",
+              };
+            } else if (t.href === "/notes" && myNoteCount !== null && myNoteCount > 0) {
+              teaser = {
+                value: `${myNoteCount}건`,
+                caption: "분석을 기다리는 내 노트",
+              };
+            }
+            return (
+            <ToolLink
               key={t.title}
               href={t.href}
+              title={t.title}
               className="card card-hover flex flex-col gap-2.5 rounded-[20px] p-[22px] no-underline"
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
@@ -280,9 +330,17 @@ export default async function AnalysisHubPage({
               <div className="text-[13px] leading-[1.55] text-text-2">
                 {t.desc}
               </div>
-              <div className="text-xs font-bold text-primary">{t.foot}</div>
-            </Link>
-          ))}
+              {teaser && (
+                <span className="t-num inline-flex w-fit items-baseline gap-1.5 rounded-xl bg-bg px-3 py-1.5">
+                  <span className="text-[15px] font-extrabold text-ink">{teaser.value}</span>
+                  <span className="text-[10.5px] text-text-3">{teaser.caption}</span>
+                </span>
+              )}
+              {t.href === "/analysis/compare" && <CompareTrayCount />}
+              <div className="mt-auto pt-1 text-xs font-bold text-primary">{t.foot}</div>
+            </ToolLink>
+            );
+          })}
 
           {/* 누구집 AI 에이전트 — 예전엔 눌러도 아무 일 없는 가짜 입력창 목업이었다.
               이제 실제 에이전트(/agent)로 연결된다: 내 임장노트·실거래를 도구로

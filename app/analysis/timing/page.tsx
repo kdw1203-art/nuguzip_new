@@ -1,5 +1,4 @@
 import { PageShell } from "../../components/PageShell";
-import { NextActions } from "../../components/NextActions";
 import {
   TEMPERATURE_REGIONS,
   computeRegionTemperature,
@@ -62,15 +61,9 @@ export default async function TimingPage() {
         builtYyyymm={currentYyyymm()}
       />
 
-      {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
-      <div className="mt-5">
-        <NextActions
-          actions={[
-            { label: "알림 기준 설정", href: "/notifications", primary: true },
-            { label: "시나리오 확인", href: "/analysis/scenario" },
-          ]}
-        />
-      </div>
+      {/* 15h-44 분석→행동 카드는 TimingClient 안의 AnalysisCrossLinks 로 이동
+          (#411) — 지역 전환이 클라이언트 상태라, 서버 카드로는 "보던 지역
+          그대로" 링크를 만들 수 없었다. */}
     </PageShell>
   );
 }

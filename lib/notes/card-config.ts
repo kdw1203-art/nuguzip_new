@@ -82,7 +82,7 @@ export function normalizeConfig(input: Partial<CardConfig> | null, source: NoteC
   }
   // 표지 강제(첫 장)
   const withoutCover = frames.filter((f) => f !== "cover");
-  let ordered = ["cover", ...withoutCover].slice(0, MAX_FRAMES);
+  const ordered = ["cover", ...withoutCover].slice(0, MAX_FRAMES);
   // 최소 장수 보정 — 자동 구성에서 빠진 장을 우선순위로 채운다
   if (ordered.length < MIN_FRAMES) {
     const auto = autoBuildConfig(source).frameIds;

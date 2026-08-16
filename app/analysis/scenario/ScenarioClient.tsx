@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "../../components/PageShell";
 import { SimulationNotice } from "../../components/ExampleBadge";
 import { ComplexPicker } from "../ComplexPicker";
+import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
 import {
   SEOUL_DISTRICTS,
   METRO_EXPLORE_DISTRICTS,
@@ -577,6 +578,28 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
             </div>
           </div>
         </div>
+
+        {/* #411 — 도구 간 이어가기: 선택한 기준 지역 그대로 (미선택이면 링크만) */}
+        <AnalysisCrossLinks
+          current="scenario"
+          regionLabel={
+            regionId
+              ? (REGION_OPTIONS.find((r) => r.id === regionId)?.label ?? null)
+              : null
+          }
+          regionFor={
+            regionId
+              ? {
+                  timing: regionId,
+                  map:
+                    REGION_OPTIONS.find((r) => r.id === regionId)
+                      ?.label.split(" ")
+                      .pop() ?? undefined,
+                }
+              : undefined
+          }
+          note={{ label: "이 조건 계산기로 정밀 계산", href: "/calculator" }}
+        />
       </div>
     </PageShell>
   );

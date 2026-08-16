@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
+import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
 import { QaBlock } from "../../components/QaBlock";
 import { CitationBlock } from "../../components/CitationBlock";
 import {
@@ -282,6 +283,11 @@ export default async function TemperatureHubPage() {
         </Link>
         에서 확인하실 수 있습니다.
       </p>
+
+      {/* #411 — 도구 간 이어가기 */}
+      <div className="mb-8">
+        <AnalysisCrossLinks current="temperature" />
+      </div>
     </PageShell>
   );
 }

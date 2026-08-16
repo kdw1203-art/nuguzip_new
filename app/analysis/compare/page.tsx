@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
-import { NextActions } from "../../components/NextActions";
+import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
 import { ComplexPicker } from "../ComplexPicker";
 import {
   addToCompareTray,
@@ -486,12 +486,10 @@ export default function ComparePage() {
         <RegionMarketSummary />
 
         {/* 15h-44 분석→행동: 결과 끝 다음 행동 카드 */}
-        <NextActions
-          actions={[
-            { label: "노트 쓰러 가기", href: "/notes/new", primary: true },
-            { label: "계산기로 월 부담 확인", href: "/calculator" },
-            { label: "알림 설정", href: "/notifications" },
-          ]}
+        {/* #411 — 도구 간 이어가기 (비교는 지역 컨텍스트가 없어 링크만) */}
+        <AnalysisCrossLinks
+          current="compare"
+          note={{ label: "노트 쓰러 가기", href: "/notes/new" }}
         />
       </div>
     </PageShell>
