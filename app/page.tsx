@@ -464,21 +464,25 @@ export default async function Home() {
         </section>
 
         {/* ================= 데스크탑 홈 ================= */}
-        <section className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="flex flex-col gap-4">
-            {/* #408 A+B — 히어로 카피 없음. 질문 한 줄 + 대형 검색이 첫인상. */}
-            <div className="home-search-hero rise-in flex flex-col justify-center gap-3.5 py-9">
-              <p className="text-center text-[26px] font-extrabold leading-[1.3] tracking-[-0.6px] text-ink">
-                어느 단지가 궁금하세요?
+        <section className="hidden md:block">
+          {/* #408 A+B — 히어로 카피 없음. 질문 한 줄 + 대형 검색이 첫인상.
+              소유자 캡처 지시(2026-08-16): 검색은 **페이지 전폭의 정중앙** —
+              사이드바 열 밖으로 빼고, 사이드바는 KPI 줄부터 시작한다. */}
+          <div className="home-search-hero rise-in flex flex-col justify-center gap-3.5 py-9">
+            <p className="text-center text-[26px] font-extrabold leading-[1.3] tracking-[-0.6px] text-ink">
+              어느 단지가 궁금하세요?
+            </p>
+            <HomeHeroSearch />
+            {freshness && (
+              <p className="text-center text-[11px] text-text-3">
+                실거래 데이터 {freshness} 기준 · 국토교통부 신고분
               </p>
-              <HomeHeroSearch />
-              {freshness && (
-                <p className="text-center text-[11px] text-text-3">
-                  실거래 데이터 {freshness} 기준 · 국토교통부 신고분
-                </p>
-              )}
-            </div>
+            )}
+          </div>
 
+          {/* 이하 2열 — 본문(KPI부터) | 사이드바 (윗선이 같다) */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="flex flex-col gap-4">
             {/* KPI 4칸 (시안 A) */}
             <div className="rise-in-1">
               <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
@@ -762,6 +766,7 @@ export default async function Home() {
                 키·슬롯 미설정/광고 없는 플랜이면 아무것도 렌더하지 않는다. */}
             <AdSenseUnit />
           </aside>
+          </div>
         </section>
       </main>
 
