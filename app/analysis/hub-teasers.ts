@@ -44,8 +44,10 @@ const loadSnapshotTeaser = cache(
       if (!snap || typeof snap.perM2Sale !== "number" || snap.perM2Sale <= 0) {
         throw new Error("스냅샷 없음"); // 실패/없음은 캐시에 남기지 않는다
       }
+      /* per_m2_sale 은 **원** 단위다 (프로덕션 실측 30,384,497원/㎡ ≈ 3,038만).
+         첫 배포에서 원값에 '만'을 붙여 "30,384,497만"으로 나갔다 — 만원 환산. */
       return {
-        perM2Manwon: Math.round(snap.perM2Sale),
+        perM2Manwon: Math.round(snap.perM2Sale / 10_000),
         period: snap.period ?? null,
       };
     },
