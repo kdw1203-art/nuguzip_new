@@ -21,6 +21,10 @@
   --nz-map-bottom-lane: calc(
     env(safe-area-inset-bottom, 0px) + 29px + var(--nz-map-nav-h, 51px)
   );
+  /* CLS 완화(2026-08-16, /map p75 0.888 실측): JS(ResizeObserver)가 붙기 전
+     기본값 51px 이 md 실측(71px)과 20px 어긋나, 측정이 들어오는 순간 하단
+     레인에 붙은 요소 전부가 점프했다. 실측된 폭 구간에는 실측값을 첫 페인트
+     기본값으로 줘 점프 폭을 0 에 붙인다(JS 는 이후 정확값으로 소폭 보정만). */
   /* /map 우측 예약 열 — 우하단 범례 열(right 70px · 너비 200px)이 차지하는 띠.
      좌하단 범례는 md 사이드바가 열리면 356px 로 비켜서는데, 폭이 216px 로 고정돼
      있어 오른쪽 열 안으로 8px 밀고 들어갔다(834폭 실측 8×36px). md 768폭이면
@@ -217,6 +221,8 @@
    (모바일 축소 사유는 :root 의 --fs-display 주석 참조). */
 @media (min-width: 768px) {
   :root {
+    /* /map 하단 내비 실측 높이(768폭 71px) — 위 --nz-map-bottom-lane 주석 참고 */
+    --nz-map-nav-h: 71px;
     --fs-display: 28px;
     --fs-title: 21px;
     --pad-compact: 14px;

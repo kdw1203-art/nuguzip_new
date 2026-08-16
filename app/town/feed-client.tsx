@@ -44,13 +44,18 @@ function Cover({ card }: { card: FeedCard }) {
   return (
     <div
       className="relative w-full overflow-hidden"
-      style={{ background: seedGradient(card.region || card.id) }}
+      /* CLS 수리(2026-08-16 실측): 이미지가 자연 높이로 렌더돼 로드 순간
+         카드가 통째로 자랐다 — /town p75 CLS 0.414 의 주범. 컨테이너가
+         높이를 **먼저** 확정하고(카드별 시드 높이 = 기존 매소너리 리듬 유지)
+         이미지는 absolute 로 그 안을 채운다. 로드 전후 높이가 같다 = 시프트 0. */
+      style={{
+        background: seedGradient(card.region || card.id),
+        height: seedCoverHeight(card.id),
+      }}
     >
-      {/* 로드 실패 시 그라디언트 배경이 보이도록 spacer 폴백으로 교체 (#18) */}
       <CoverImage
         src={card.cover}
-        imgClassName="block w-full object-cover"
-        fallback={<div style={{ height: seedCoverHeight(card.id) }} />}
+        imgClassName="absolute inset-0 h-full w-full object-cover"
       />
       <span
         className={`absolute left-2 top-2 rounded-[6px] bg-white/90 chip-pad text-[10px] font-extrabold ${labelColor}`}
