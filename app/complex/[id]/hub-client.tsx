@@ -4,13 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AIPanel } from "../../components/AIPanel";
 import { PriceTrendChart, type PricePoint } from "./PriceTrendChart";
-import {
-  isInCompareTray,
-  promoteCompareItemToServer,
-  removeCompareItemFromServer,
-  subscribeCompareTray,
-  toggleCompareTray,
-} from "@/lib/newui/compare-tray";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
@@ -39,52 +32,10 @@ export interface HubListing {
   agent: string;
 }
 
-/* ===== 비교 담기 버튼 — lib/newui/compare-tray (localStorage, 최대 5개) ===== */
-export function CompareTrayButton({
-  complexId,
-  name,
-  region,
-}: {
-  complexId: string;
-  name: string;
-  region?: string;
-}) {
-  const [inTray, setInTray] = useState(false);
-  const [full, setFull] = useState(false);
-
-  useEffect(() => {
-    setInTray(isInCompareTray(complexId));
-    return subscribeCompareTray(() => setInTray(isInCompareTray(complexId)));
-  }, [complexId]);
-
-  useEffect(() => {
-    if (!full) return;
-    const t = setTimeout(() => setFull(false), 2000);
-    return () => clearTimeout(t);
-  }, [full]);
-
-  const onClick = () => {
-    const r = toggleCompareTray({ id: complexId, name, region });
-    setInTray(r.inTray);
-    setFull(r.full);
-    // #46 로그인 상태면 서버 user_watchlist에도 반영 (실패 시 localStorage만 유지)
-    if (r.inTray) promoteCompareItemToServer({ id: complexId, name });
-    else if (!r.full) removeCompareItemFromServer(complexId);
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={inTray}
-      className={`flex-1 rounded-[11px] p-3 text-center text-[13px] transition-colors ${
-        inTray ? "bg-ink font-extrabold text-white" : "btn-secondary"
-      }`}
-    >
-      {full ? "최대 5개까지 담겨요" : inTray ? "비교 담김 ✓" : "비교 담기"}
-    </button>
-  );
-}
+/* ===== 비교 담기 버튼 — #412 로 app/components/CompareTrayButton.tsx 분리.
+   /map 이 버튼 하나 때문에 이 파일 전체(차트·AI 패널·탭)를 정적으로 끌고
+   오던 것을 끊었다. 기존 임포터 호환을 위해 재수출만 남긴다. ===== */
+export { CompareTrayButton } from "@/app/components/CompareTrayButton";
 
 /* ===== 관심 단지(팔로우) 버튼 =====
    2026-07-27 이전 단지 홈 제목 옆의 "+ 단지 팔로우" 는 onClick 이 없는

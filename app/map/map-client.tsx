@@ -27,7 +27,8 @@ const ComplexInfoPanel = dynamic(
   () => import("./ComplexInfoPanel").then((m) => m.ComplexInfoPanel),
   { ssr: false },
 );
-import { CompareTrayButton } from "@/app/complex/[id]/hub-client";
+/* #412 — 버튼 하나에 허브 클라이언트 전체가 딸려오지 않게 독립 모듈에서 */
+import { CompareTrayButton } from "@/app/components/CompareTrayButton";
 const HistogramRangeSlider = dynamic(
   () => import("./HistogramRangeSlider").then((m) => m.HistogramRangeSlider),
   { ssr: false },
