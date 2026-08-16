@@ -98,6 +98,16 @@ export function TimingClient({
     if (initial !== defaultRegionId) {
       setRegionId(initial);
       load(initial);
+    } else if (!initialData.trend && !initialData.temp && initialData.volume.length === 0) {
+      /* SSR 초깃값이 전부 빈 값이면 API 로 즉시 재조회 — 자기 회복.
+         실측(2026-08-16): 강남 지수 94점·거래량 8개월이 DB 에 있는데도
+         ISR 빌드/재생성이 빈 화면을 구웠고, 같은 계산을 하는 force-dynamic
+         /api/timing 은 정상 응답했다. 원인(정적 생성 컨텍스트의 서비스 키)
+         추적과 별개로, 사용자는 이 경로로 수백 ms 안에 실데이터를 본다.
+         기본 지역에 정말 데이터가 없는 경우엔 API 도 같은 빈 값을 돌려주므로
+         화면은 그대로 정직한 빈 상태다(추가 호출 1회는 CDN 30분 캐시). */
+      cache.current.delete(defaultRegionId);
+      load(defaultRegionId);
     }
     const onPop = () => {
       const id = readRegionFromLocation(defaultRegionId);

@@ -7,6 +7,8 @@ import {
 } from "@/lib/market/temperature";
 import { TimingClient } from "./TimingClient";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { getServiceSupabase } from "@/lib/supabase/service";
+import { logger } from "@/lib/log";
 
 /* ── ISR 전환 (사용량 절감 13차, 2026-08-11) ────────────────────────────────
    예전에는 force-dynamic + ?region= 서버 재렌더(요청·지역 전환마다 함수 실행
@@ -41,6 +43,15 @@ const REGION_OPTIONS = TEMPERATURE_REGIONS;
 export default async function TimingPage() {
   const defaultRegion = REGION_OPTIONS[0];
   const { trend, volume, temp } = await computeRegionTemperature(defaultRegion);
+  if (!trend && !temp && volume.length === 0) {
+    /* 전부 빈 값 = 십중팔구 "조회 실패/키 부재"지 "데이터 없음"이 아니다
+       (기본 지역 강남은 지수·거래량이 실존한다 — 2026-08-16 실측).
+       어느 쪽인지 로그로 가른다: serviceClient=null 이면 정적 생성 컨텍스트에
+       서비스 키가 없는 것이고, ok 인데 비었으면 조회 자체가 실패한 것이다. */
+    logger.warn(
+      `[timing] 기본 지역(${defaultRegion.id}) SSR 전부 빈 값 — serviceClient=${getServiceSupabase() ? "ok" : "null"}`,
+    );
+  }
 
   return (
     <PageShell breadcrumb="AI 분석 › 시세·타이밍">
