@@ -575,6 +575,20 @@ export default async function NoteDetailPage({
       {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
       <JsonLd data={noteJsonLd(realNote, v)} />
 
+      {/* 구매 열람 안내 — 비공개 노트를 리포트 구매로 읽는 중임을 명시.
+          이게 없으면 구매자가 "왜 남의 비공개 글이 보이지?" 하고 혼란스럽고,
+          재열람 경로(/my 구매 목록)도 모른 채 떠난다. */}
+      {purchasedAccess && (
+        <div className="rise-in mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+          <span>
+            <span className="font-extrabold text-primary">구매한 리포트</span>로
+            열람 중이에요 — 이 노트가 리포트의 전달물입니다.
+          </span>
+          <Link href="/my" className="shrink-0 font-extrabold text-primary no-underline">
+            내 구매 목록 ›
+          </Link>
+        </div>
+      )}
       {/* AI 한도 도달 안내 — 노트는 저장됐다는 사실을 먼저, 다음 행동(구독)을
           가격과 함께. 가격은 billing-periods 단일 출처. */}
       {isOwner && quotaHit && (
