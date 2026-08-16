@@ -17,6 +17,36 @@ export interface TickerItem {
 export function HomeTicker({ items }: { items: TickerItem[] }) {
   if (items.length === 0) return null;
 
+  /* 항목이 적으면(빌드 직후 ISR 재생성 전 등) 마퀴가 짧은 내용을 뱅글뱅글
+     돌려 어색하다 — 4개 미만은 정적 가운데 정렬로 그린다(#409). */
+  if (items.length < 4) {
+    return (
+      <div className="overflow-x-auto rounded-xl bg-ink px-4 py-2">
+        <div className="flex items-center justify-center gap-7">
+          {items.map((it, i) => (
+            <span
+              key={i}
+              className="flex shrink-0 items-baseline gap-1.5 text-[11px] font-bold"
+            >
+              <span className="text-white/55">{it.label}</span>
+              <span
+                className={`tabular-nums ${
+                  it.tone === "up"
+                    ? "text-[#8fb3ff]"
+                    : it.tone === "down"
+                      ? "text-[#ff9d9d]"
+                      : "text-white/90"
+                }`}
+              >
+                {it.value}
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const row = (dup: boolean) => (
     <div
       aria-hidden={dup || undefined}

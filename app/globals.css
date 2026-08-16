@@ -844,13 +844,8 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 .ticker-band:hover .ticker-track {
   animation-play-state: paused;
 }
-/* 로그인(개인화 활성) 시 검색 히어로는 공간을 접는다 — 개인화 섹션이 위에
-   이미 있으므로 "첫 화면 절반" 규칙은 비로그인에만 적용한다(#408). */
-body[data-personal-active="1"] .home-search-hero {
-  min-height: 0;
-  padding-top: 10px;
-  padding-bottom: 6px;
-}
+/* (#409) PersonalHome 제거로 data-personal-active 플래그 규칙도 함께 삭제 —
+   검색 히어로는 이제 로그인 여부와 무관하게 같은 높이다. */
 
 @keyframes riseIn {
   from {

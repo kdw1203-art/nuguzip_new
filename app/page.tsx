@@ -3,10 +3,9 @@ import { Header } from "./components/Header";
 import { Icon } from "./components/Icon";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
-import { PersonalHome } from "./components/PersonalHome";
+import { ResumeDraftPopup } from "./components/home/ResumeDraftPopup";
 import { EmptyState, ErrorState } from "./components/ui/EmptyState";
 import { JourneyBanner } from "./components/JourneyBanner";
-import { MarketTempWidget } from "./components/MarketTempWidget";
 import { BetaNoticeModal } from "./components/BetaNoticeModal";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
@@ -119,159 +118,6 @@ function HomeAiGateway({ briefing }: { briefing: HomeBriefing | null }) {
   );
 }
 
-/** 시세 KPI — 히어로 밖 얇은 스트립 (포털 티커처럼 주인공 되지 않게) */
-function MarketStrip({
-  saleIndexSeoul,
-  baseRate,
-  loanRate,
-  publicNotes,
-  activityToday,
-  marketAsOf,
-  baseRateAsOf,
-  loanRateAsOf,
-  compact,
-}: {
-  saleIndexSeoul: string;
-  baseRate: string;
-  /**
-   * 금감원 월 공시 주담대 최저금리. **null 이면 이 칸을 아예 그리지 않는다.**
-   *
-   * 다른 지표처럼 페이지 쪽에서 미리 "—" 로 바꿔 넘기면, 여기서는 "못 구한 값"과
-   * "정말 그렇게 생긴 값"을 구분할 수 없다. 자리를 뺄지 말지를 이 컴포넌트가
-   * 판단해야 하므로 null 을 null 그대로 받는다.
-   */
-  loanRate: string | null;
-  /** 누적 공개 임장노트 수(예: "12건"). "오늘 새 노트"는 활동 적은 날 구조적으로
-   *  0이라 신규 방문자에게 빈 사이트 인상을 줘서, 의미 있는 누적 실카운트로 바꿨다. */
-  publicNotes: string;
-  activityToday: string;
-  /** 실거래 적재 기준일 "2026.08.05" — 없으면 그 조각을 빼고 쓴다 */
-  marketAsOf: string | null;
-  /** 한국은행 기준금리 기준시점 "2026.08.04" */
-  baseRateAsOf: string | null;
-  /** 금감원 대출금리 공시 기준시점 "2026.06" */
-  loanRateAsOf: string | null;
-  compact?: boolean;
-}) {
-  /* 기준시점 캡션. 숫자마다 출처와 주기가 달라 하나의 날짜로 묶을 수 없다 —
-     그래서 있는 것만 각각 이름 붙여 나열하고, 못 구한 건 아예 안 쓴다.
-     (이 스트립은 [data-static-hero] 가 아니다. 히어로에 있던 기준시점 줄은
-      로그인하면 히어로째로 숨어서, 모바일 로그인 사용자에게는 기준시점 없는
-      숫자만 남아 있었다. 캡션이 숫자 옆에 붙어 있어야 하는 이유다.) */
-  const asOfParts = [
-    marketAsOf ? `매매지수 ${marketAsOf}` : null,
-    baseRateAsOf ? `기준금리 ${baseRateAsOf}` : null,
-    loanRateAsOf ? `대출금리 ${loanRateAsOf}` : null,
-  ].filter((s): s is string => s !== null);
-  const asOfCaption = asOfParts.length > 0 ? `${asOfParts.join(" · ")} 기준` : null;
-
-  /* 대출금리는 금감원 월 공시(finlife)에 붙어야 나오는 값인데, 운영에 발급키가
-     아직 없어서 **여태 한 번도 값이 있었던 적이 없다**(오늘 실측: 모바일 카드
-     "대출금리 —", 데스크톱 "기준 / 대출금리 = 2.75% / —"). 게다가 모바일에서는
-     그 영구 빈칸이 세 장 중 **유일하게 강조색이 칠해진 카드**였다 — 화면에서
-     제일 눈에 띄는 자리가 계속 비어 있었던 셈이다.
-
-     배치 4에서 기준시점 캡션에 세운 규칙을 그대로 적용한다: **값이 없으면
-     자리를 남기지 않는다.** 없는 걸 "—" 로 계속 보여 주는 건 정직하긴 해도,
-     고칠 수 없는 빈칸을 매일 보여 주는 것과 같다. 공시키가 들어오면 값과 함께
-     자리도 저절로 돌아온다(이 분기는 데이터만 보고 갈린다). */
-  const loanRateLabel = loanRate;
-
-  /* "미조회 항목은 —로 표시됩니다" 는 **실제로 — 가 있을 때만** 쓴다.
-     항상 붙어 있으면 아무도 안 읽는 상용구가 되고, 정작 뭔가를 못 읽은 날에도
-     평소와 똑같아 보여서 신호 구실을 못 한다. */
-  const legend = "미조회 항목은 “—”로 표시됩니다";
-
-  if (compact) {
-    const cards = [
-      { label: "매매지수 서울", value: saleIndexSeoul, accent: false },
-      { label: "기준금리", value: baseRate, accent: false },
-      ...(loanRateLabel !== null
-        ? [{ label: "대출금리", value: loanRateLabel, accent: true }]
-        : []),
-    ];
-    const hasMissing = cards.some((c) => c.value === "—");
-    const caption = [asOfCaption, hasMissing ? legend : null]
-      .filter((s): s is string => s !== null)
-      .join(" · ");
-    return (
-      <div className="flex flex-col gap-1.5">
-        <h2 className="sr-only">주요 지표</h2>
-        <div className="flex gap-2">
-          {cards.map((s) => (
-            /* 최적화 4 — 모바일 KPI 3장 밀도: 패딩·숫자 1단계 축소(라벨 유지) */
-            <div key={s.label} className="glass min-w-0 flex-1 rounded-[13px] px-2.5 py-2">
-              <div className="whitespace-nowrap text-[11px] text-text-3">{s.label}</div>
-              <div className={`t-num text-[15px] ${s.accent ? "text-primary" : "text-ink"}`}>
-                {s.value}
-              </div>
-            </div>
-          ))}
-        </div>
-        {caption ? (
-          <p className="text-[10px] leading-[1.5] text-text-3">{caption}</p>
-        ) : null}
-      </div>
-    );
-  }
-
-  /* 데스크톱은 칸 수(4)를 유지한다 — 대출금리를 못 구했을 때 칸을 지우는 게
-     아니라 **라벨과 값에서 그 조각만 뺀다**. "기준 / 대출금리 = 2.75% / —" 가
-     "기준금리 = 2.75%" 가 되는 것이고, 그리드가 3칸으로 무너지지 않는다. */
-  const rateCell = loanRateLabel !== null
-    ? {
-        label: "기준 / 대출금리",
-        value: (
-          <>
-            {baseRate} / <span className="text-primary">{loanRateLabel}</span>
-          </>
-        ),
-      }
-    : { label: "기준금리", value: <>{baseRate}</> };
-
-  /* loanRateLabel 은 이 목록에 넣지 않는다 — 방어적으로 보이지만 **절대 안 걸리는
-     조건**이다. home-data.ts:520-530 을 따라가 보면 이 값은 `null` 이거나
-     `"2.98%"` 꼴이지 "—" 가 되는 경로가 없다. 걸릴 리 없는 조건을 남겨 두면
-     다음에 읽는 사람이 "대출금리가 —일 때도 안내가 뜬다" 고 믿는다. */
-  const desktopMissing = [saleIndexSeoul, baseRate, publicNotes, activityToday].includes("—");
-  const desktopCaption = [asOfCaption, desktopMissing ? legend : null]
-    .filter((s): s is string => s !== null)
-    .join(" · ");
-
-  return (
-    <div className="flex w-full flex-col gap-1.5">
-      <h2 className="sr-only">주요 지표</h2>
-      <div className="grid w-full grid-cols-2 gap-2.5 xl:grid-cols-4">
-        {[
-          { label: "매매지수 서울", value: <>{saleIndexSeoul}</>, accent: false },
-          { ...rateCell, accent: false },
-          {
-            label: "공개 임장노트",
-            value: <span className="text-primary">{publicNotes}</span>,
-            accent: true,
-          },
-          {
-            label: "오늘 활동",
-            value: <>{activityToday}</>,
-            accent: true,
-          },
-        ].map((s, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-[rgba(255,255,255,.7)] bg-white/70 px-4 py-3 backdrop-blur-sm"
-          >
-            <div className="text-[10px] text-text-3">{s.label}</div>
-            <div className="t-num mt-0.5 text-[15px] text-ink">{s.value}</div>
-          </div>
-        ))}
-      </div>
-      {desktopCaption ? (
-        <p className="text-[10px] leading-[1.5] text-text-3">{desktopCaption}</p>
-      ) : null}
-    </div>
-  );
-}
-
 export default async function Home() {
   /* 4개 조회는 서로 의존이 없다 — 직렬로 기다리면 콜드/만료 렌더가 네 조회의
      시간을 전부 합산해 지불한다(`/` 는 300초 타임아웃 목록의 최상단이었다).
@@ -310,21 +156,14 @@ export default async function Home() {
      말했다 — 글은 있는데. 조회 실패는 데이터 없음이 아니다. */
   const failed = data.failed;
 
-  // 사실 기반 원칙: 실데이터 없는 수치는 허위 값 대신 "—" 표기
+  /* 사실 기반 원칙: 지표는 티커가 그린다(#409 — MarketStrip 흡수).
+     티커는 없는 항목을 "—"로 채우지 않고 **뺀다**. "—" 폴백은 매매지수·
+     기준금리에만 남는다(아래 조건들이 그 값으로 유무를 가른다). */
   const saleIndexSeoul = data.saleIndexSeoul ?? "—";
-  /* 여기서 "—" 로 바꾸지 않는다 — MarketStrip 이 "칸을 뺄지"를 정해야 해서
-     null 을 그대로 넘긴다. 사유는 MarketStrip 의 loanRate prop 주석. */
   const loanRate = data.loanRate;
-  const publicNotes = data.publicNotesTotal !== null ? `${data.publicNotesTotal}건` : "—";
   const baseRate = baseRateData?.label ?? "—";
-  /* "명"이 아니라 "건". 이 숫자는 사람 수가 아니라 오늘 일어난 행위 이벤트
-     수다 — 사람으로 셀 수 없는 이유는 lib/newui/home-data.ts 의
-     loadActivityToday() 주석에 실측과 함께 적어 두었다. */
-  const activityToday = data.activityToday !== null ? `${data.activityToday}건` : "—";
-  /* 지표 3종의 기준시점. 여태 화면에 한 번도 나온 적이 없었다 —
-     getBaseRate() 는 cycle 을 읽어 오고도 버렸고(오늘 실측: 2026-08-04),
-     대출금리는 월 공시(2026-06)라 두 값이 두 달 차이 나는데도 "기준 / 대출금리"
-     한 칸에 붙어 같은 시점처럼 읽혔다. */
+  /* 기준시점 — 기준금리는 일 단위, 주담대는 월 공시라 시점 없이 나란히 두면
+     두 달 차이 나는 숫자가 같은 날처럼 읽힌다. 티커 값에 함께 싣는다. */
   const baseRateAsOf = formatAsOfLabel(baseRateData?.cycle ?? null);
   const loanRateAsOf = formatAsOfLabel(data.loanRateAsOf);
 
@@ -368,8 +207,24 @@ export default async function Home() {
   for (const r of regions.slice(0, 3)) {
     tickerItems.push({ label: `${r.name} 평균`, value: `${r.price} ${r.delta}`, tone: r.tone });
   }
-  if (baseRate !== "—") tickerItems.push({ label: "기준금리", value: baseRate });
-  if (loanRate) tickerItems.push({ label: "주담대 변동", value: loanRate });
+  if (saleIndexSeoul !== "—") {
+    tickerItems.push({ label: "매매지수 서울", value: saleIndexSeoul });
+  }
+  /* 기준시점을 값에 함께 싣는다(#409) — 기준금리는 일 단위, 주담대는 월 공시라
+     시점 없이 나란히 흐르면 두 달 차이 나는 숫자가 같은 날처럼 읽힌다
+     (MarketStrip 이 지키던 표기를 티커가 물려받는다). */
+  if (baseRate !== "—") {
+    tickerItems.push({
+      label: "기준금리",
+      value: baseRateAsOf ? `${baseRate} (${baseRateAsOf})` : baseRate,
+    });
+  }
+  if (loanRate) {
+    tickerItems.push({
+      label: "주담대 변동",
+      value: loanRateAsOf ? `${loanRate} (${loanRateAsOf} 공시)` : loanRate,
+    });
+  }
   if (kpiTemp) {
     tickerItems.push({ label: "시장 온도", value: `${kpiTemp.score} · ${kpiTemp.headline}` });
   }
@@ -400,8 +255,10 @@ export default async function Home() {
              대상이 아니라 항상 숨은 채로 있는다.) */}
         <h1 className="sr-only">{HOME_PAGE_H1}</h1>
 
-        {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
-        <PersonalHome />
+        {/* 개인화 대형 블록(PersonalHome)은 소유자 지시(2026-08-16 "팝업형식
+            또는 제거")로 내렸다 — 새 홈(검색·KPI·칩)이 개인화 조각을 이미
+            흡수했고, 남은 핵심(작성 중 노트 복귀)만 우하단 팝업으로 남는다. */}
+        <ResumeDraftPopup />
 
         {/* ================= #408 상단 시세 티커 — 시안 A (모바일·데스크탑 공용).
             오늘의 실측 숫자가 흐른다. 항목이 하나도 없으면 밴드 자체가 없다. */}
@@ -447,28 +304,11 @@ export default async function Home() {
             <HomeMiniMap regions={mapRegions} className="h-[208px]" />
           </div>
 
-          {/* 스크롤 1단 이후: 여정·시세·피드 (첫 CTA 희석 방지) */}
+          {/* 스크롤 1단 이후: 여정·피드 (첫 CTA 희석 방지).
+              시세 스트립·온도 위젯은 디자인 최적화(#409)로 제거 — 같은 사실을
+              티커(위)와 KPI 칸이 이미 말한다. 한 화면에 같은 숫자 3벌은 소음이다. */}
           <div data-reveal="">
             <JourneyBanner />
-          </div>
-
-          <div data-reveal="">
-            <MarketStrip
-              compact
-              saleIndexSeoul={saleIndexSeoul}
-              baseRate={baseRate}
-              loanRate={loanRate}
-              publicNotes={publicNotes}
-              activityToday={activityToday}
-              marketAsOf={freshness}
-              baseRateAsOf={baseRateAsOf}
-              loanRateAsOf={loanRateAsOf}
-            />
-          </div>
-
-          {/* 고도화 9 — 주간 시장 온도 요약 (실측 스냅샷 · 실패/기록 없음이면 미렌더) */}
-          <div data-reveal="">
-            <MarketTempWidget />
           </div>
 
           {/* 실거래 분석 도구 — 데스크탑에만 있던 진입문을 모바일에도.
@@ -673,20 +513,8 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* 시세 스트립 — 스크롤 아래로 이동 (시안 B) */}
-            <div className="rise-in-1">
-              <MarketStrip
-                saleIndexSeoul={saleIndexSeoul}
-                baseRate={baseRate}
-                loanRate={loanRate}
-                publicNotes={publicNotes}
-                activityToday={activityToday}
-                marketAsOf={freshness}
-                baseRateAsOf={baseRateAsOf}
-                loanRateAsOf={loanRateAsOf}
-              />
-            </div>
-
+            {/* 시세 스트립은 디자인 최적화(#409)로 제거 — 티커·KPI 와 같은
+                숫자의 3벌째였다. 기준시점 표기는 티커 항목 값에 흡수. */}
             <div data-reveal="">
               <JourneyBanner />
             </div>
@@ -838,10 +666,8 @@ export default async function Home() {
               <HomeAiGateway briefing={data.briefing} />
             </div>
 
-            {/* 고도화 9 — 주간 시장 온도 요약 (실측 스냅샷 · 실패/기록 없음이면 미렌더) */}
-            <div className="rise-in-1">
-              <MarketTempWidget />
-            </div>
+            {/* 시장 온도 위젯은 #409 로 제거 — 티커·KPI 칸이 같은 스냅샷을
+                이미 말하고, 상세는 KPI 칸이 /analysis/temperature 로 잇는다. */}
 
             <div className="rise-in-2 card flex flex-col gap-2 rounded-2xl px-5 py-4">
               <h2 className="accent-underline text-[13px] font-extrabold text-ink">
