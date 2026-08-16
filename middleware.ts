@@ -200,8 +200,15 @@ export async function middleware(request: NextRequest) {
   // 열면 그 URL은 매 배포마다 바뀌어 네이버 지도 등 "도메인 화이트리스트" 기능이 깨진다.
   // 정식 도메인(nuguzip.com)으로 308 정규화해 항상 등록된 origin에서 동작하게 한다.
   // (preview 배포는 VERCEL_ENV !== "production" 이라 리다이렉트하지 않음 → 미리보기 테스트 보존)
+  //
+  // 단, /api/cron/* 는 제외 — Vercel 크론은 배포별 `*.vercel.app` URL 로 호출하고
+  // 리다이렉트를 따라가지 않는다. 이 308 때문에 소셜 크론이 2026-08-16 02:00 UTC
+  // 정시에 왔다가 함수 실행 없이 죽었다(실측: 런타임 로그 308, social_uploads 0행).
+  // 크론 경로는 헤드리스 호출이라 도메인 화이트리스트 문제와 무관하고,
+  // 인증은 핸들러 안의 authorizeCron(CRON_SECRET)이 그대로 지킨다.
   if (process.env.VERCEL_ENV === "production") {
-    if (hostname.endsWith(".vercel.app")) {
+    const isCronPath = request.nextUrl.pathname.startsWith("/api/cron/");
+    if (!isCronPath && hostname.endsWith(".vercel.app")) {
       const canonical = new URL(
         request.nextUrl.pathname + request.nextUrl.search,
         DEFAULT_DESKTOP_ORIGIN,
