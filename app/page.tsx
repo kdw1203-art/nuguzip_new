@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "./components/Header";
+import { Icon } from "./components/Icon";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { PersonalHome } from "./components/PersonalHome";
@@ -49,6 +50,33 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   alternates: seoAlternates("/"),
 };
+
+/* 실거래 분석 도구 진입 — 데스크탑 3열 스트립·모바일 컴팩트 스트립이 공유.
+   전부 실데이터 연동 도구(#380·#381·타이밍)인데 모바일에서는 "더 알아보기"의
+   글자 링크 하나뿐이라 사실상 아는 사람만 썼다. */
+const ANALYSIS_TOOLS = [
+  {
+    href: "/analysis/price",
+    icon: "bar",
+    t: "면적대별 실거래",
+    short: "면적대 실거래",
+    d: "평단가·지역 분위",
+  },
+  {
+    href: "/analysis/timing",
+    icon: "trending-up",
+    t: "시세·타이밍",
+    short: "시세 타이밍",
+    d: "12개월 추세·온도",
+  },
+  {
+    href: "/analysis/scenario",
+    icon: "calculator",
+    t: "대출 시나리오",
+    short: "대출 시나리오",
+    d: "실금리 DSR·스트레스",
+  },
+] as const;
 
 /* G10 / 사실 우선: 여기 있던 5개 예시 폴백을 삭제했다.
    - MOCK_REGIONS: "강남구 32.5억 ▼4.2%" — 실존 자치구에 지어낸 시세·변동률
@@ -421,6 +449,24 @@ export default async function Home() {
             <MarketTempWidget />
           </div>
 
+          {/* 실거래 분석 도구 — 데스크탑에만 있던 진입문을 모바일에도.
+              시세 지표(위) 바로 다음 자리: 숫자를 본 김에 도구로 더 파게 한다. */}
+          <div data-reveal="" className="grid grid-cols-3 gap-2">
+            <h2 className="sr-only">실거래 분석 도구</h2>
+            {ANALYSIS_TOOLS.map((t) => (
+              <Link
+                key={t.href}
+                href={t.href}
+                className="card press flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-center no-underline"
+              >
+                <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary">
+                  <Icon name={t.icon} size={15} />
+                </span>
+                <span className="text-[11px] font-bold leading-tight text-ink">{t.short}</span>
+              </Link>
+            ))}
+          </div>
+
           {/* 공개 노트 증거 (모바일) */}
           <div data-reveal="" className="card flex flex-col gap-2 rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between">
@@ -618,22 +664,23 @@ export default async function Home() {
               <JourneyBanner />
             </div>
 
-            {/* 실거래 분석 도구 진입 — 전부 실데이터 연동 도구인데 홈에서 가는 문이
-                없어 /analysis 를 아는 사람만 썼다. 리밸런싱: 기록(노트) 다음의 두
-                번째 가치인 '검증(분석)'을 첫 화면에 노출한다. */}
+            {/* 실거래 분석 도구 진입 — 리밸런싱: 기록(노트) 다음의 두 번째
+                가치인 '검증(분석)'을 첫 화면에 노출한다. 아이콘 칩으로 텍스트만
+                있던 카드에 시각 앵커를 준다(항목 정의는 ANALYSIS_TOOLS). */}
             <div className="rise-in-1 grid grid-cols-3 gap-3">
-              {[
-                { href: "/analysis/price", t: "면적대별 실거래", d: "평단가·지역 분위" },
-                { href: "/analysis/timing", t: "시세·타이밍", d: "12개월 추세·온도" },
-                { href: "/analysis/scenario", t: "대출 시나리오", d: "실금리 DSR·스트레스" },
-              ].map((t) => (
+              {ANALYSIS_TOOLS.map((t) => (
                 <Link
                   key={t.href}
                   href={t.href}
-                  className="card card-hover flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+                  className="card card-hover flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
                 >
-                  <span className="text-[13px] font-extrabold text-ink">{t.t}</span>
-                  <span className="text-[11px] text-text-3">{t.d}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                    <Icon name={t.icon} size={17} />
+                  </span>
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-[13px] font-extrabold text-ink">{t.t}</span>
+                    <span className="truncate text-[11px] text-text-3">{t.d}</span>
+                  </span>
                 </Link>
               ))}
             </div>
