@@ -86,6 +86,13 @@ export default async function TownLibraryPage() {
               오픈 전
             </span>
           )}
+          {/* 판매자 모집 — 구매 쪽 발견 경로만 있고 파는 쪽 초대가 없었다 */}
+          <Link
+            href="/my/creator"
+            className="ml-auto text-[12px] font-bold text-primary no-underline"
+          >
+            내 노트 판매하기 ›
+          </Link>
         </div>
 
         {reportsFailed ? (
@@ -101,12 +108,20 @@ export default async function TownLibraryPage() {
               지금은 아래 공개 임장노트만 열람할 수 있어요. 리포트가 올라오면 이
               자리에 실제 목록이 채워집니다.
             </p>
-            <Link
-              href="/notes"
-              className="mt-3 inline-block text-[12px] font-extrabold text-primary no-underline"
-            >
-              공개 임장노트 보기 ›
-            </Link>
+            <div className="mt-3 flex flex-wrap gap-4">
+              <Link
+                href="/notes"
+                className="text-[12px] font-extrabold text-primary no-underline"
+              >
+                공개 임장노트 보기 ›
+              </Link>
+              <Link
+                href="/my/creator"
+                className="text-[12px] font-extrabold text-primary no-underline"
+              >
+                내 노트를 리포트로 판매하기 ›
+              </Link>
+            </div>
           </div>
         ) : (
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">

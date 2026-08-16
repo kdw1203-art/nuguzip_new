@@ -566,11 +566,13 @@ export default async function Home() {
               </span>
               <span className="shrink-0 font-extrabold text-primary">›</span>
             </Link>
+            {/* 분석 도구 행은 위 컴팩트 스트립 신설로 중복이 돼 자료실로 교체 —
+                크리에이터 판매 루프(유료 리포트)의 홈 발견 경로가 없었다. */}
             <Link
-              href="/analysis"
+              href="/town/library"
               className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
             >
-              실거래 분석 도구 <span className="text-primary">›</span>
+              자료실 · 임장 리포트 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/town/groups"
@@ -863,6 +865,14 @@ export default async function Home() {
                 className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
               >
                 전문가 찾아보기
+                <span className="text-primary">›</span>
+              </Link>
+              {/* 자료실 — 유료 리포트 판매 루프의 홈 발견 경로 (전에는 없었다) */}
+              <Link
+                href="/town/library"
+                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              >
+                자료실 · 임장 리포트
                 <span className="text-primary">›</span>
               </Link>
               <Link
