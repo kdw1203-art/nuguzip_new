@@ -292,15 +292,8 @@ function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
 }
 
 /* ---------- SEO (20b): generateMetadata — 공개 노트만 index ---------- */
-
-async function fetchPublicNote(id: string): Promise<InspectionNote | null> {
-  try {
-    const note = await getNote(id);
-    return note && note.isPublic ? note : null;
-  } catch {
-    return null;
-  }
-}
+/* fetchPublicNote 헬퍼는 제거 — 실패와 없음을 둘 다 null 로 뭉개서
+   소프트 404 수복(아래)에 필요한 구분을 지우고 있었다. */
 
 export async function generateMetadata({
   params,
@@ -308,10 +301,14 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const note = await fetchPublicNote(id);
-
-  if (!note) {
-    // 비공개 노트·목업 폴백은 색인 금지 (20b 색인 정책)
+  let note: InspectionNote | null = null;
+  try {
+    note = await getNote(id);
+  } catch {
+    note = null;
+  }
+  if (!note || !note.isPublic) {
+    // 비공개 노트·없는 노트·조회 실패는 색인 금지 (20b 색인 정책)
     return {
       title: "임장노트 — 누구집",
       robots: { index: false, follow: false },
