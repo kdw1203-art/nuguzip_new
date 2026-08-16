@@ -8,6 +8,10 @@ import {
   type VitalStat,
 } from "@/lib/admin/stats";
 import { logger } from "@/lib/log";
+import {
+  listTopRegionDemands,
+  type RegionDemandRow,
+} from "@/lib/coverage/store-db";
 
 export const metadata: Metadata = {
   title: "트래픽 | 누구집 관리자",
@@ -213,6 +217,14 @@ export default async function AdminTrafficPage() {
     vitalsWeekly,
     failed,
   } = await loadAll();
+  /* #413 커버리지 수요 — 실패를 0건으로 위장하지 않는다 */
+  let demands: RegionDemandRow[] = [];
+  let demandsFailed = false;
+  try {
+    demands = await listTopRegionDemands(30, 15);
+  } catch {
+    demandsFailed = true;
+  }
   const collectedSince = summary?.first_event_at
     ? new Date(summary.first_event_at).toLocaleDateString("ko-KR")
     : null;
@@ -628,6 +640,56 @@ export default async function AdminTrafficPage() {
               비로그인 이벤트라는 뜻이지 0명이라는 뜻이 아니다.
             </p>
           </div>
+        )}
+      </section>
+
+      {/* #413 — 커버리지 수요: 검색 무결과에서 수집한 "열리면 알려주세요".
+          지역 확장 우선순위의 근거 데이터다. 조회 실패와 0건을 가른다. */}
+      <section className="card rounded-2xl p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">
+          커버리지 수요 (최근 30일)
+        </h2>
+        <p className="mt-0.5 text-[11px] text-text-3">
+          검색 무결과 화면의 &ldquo;열리면 알려주세요&rdquo; 요청 — 요청 많은
+          검색어부터 데이터 확장 우선순위에 반영
+        </p>
+        {demandsFailed ? (
+          <p className="mt-3 text-[12px] text-text-3">
+            수요 목록을 지금 불러오지 못했어요(0건이 아니라 조회 실패).
+          </p>
+        ) : demands.length === 0 ? (
+          <p className="mt-3 text-[12px] text-text-3">
+            아직 수집된 수요가 없어요 — 검색 무결과 화면에서 쌓입니다.
+          </p>
+        ) : (
+          <table className="mt-3 w-full text-left text-[12px]">
+            <thead>
+              <tr className="border-b border-line text-[11px] text-text-3">
+                <th className="py-1.5 font-bold">검색어</th>
+                <th className="py-1.5 text-right font-bold">요청</th>
+                <th className="py-1.5 text-right font-bold">알림 이메일</th>
+                <th className="py-1.5 text-right font-bold">최근</th>
+              </tr>
+            </thead>
+            <tbody>
+              {demands.map((d) => (
+                <tr key={d.query} className="border-b border-[#f0f3f8]">
+                  <td className="max-w-[220px] truncate py-2 font-bold text-ink">
+                    {d.query}
+                  </td>
+                  <td className="py-2 text-right tabular-nums text-text-1">
+                    {d.totalCount.toLocaleString("ko-KR")}
+                  </td>
+                  <td className="py-2 text-right tabular-nums text-text-2">
+                    {d.emailCount > 0 ? d.emailCount.toLocaleString("ko-KR") : "—"}
+                  </td>
+                  <td className="py-2 text-right text-[11px] text-text-3">
+                    {d.lastAt ? new Date(d.lastAt).toLocaleDateString("ko-KR") : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </div>

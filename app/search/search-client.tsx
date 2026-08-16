@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { CoverageRequestCard } from "./CoverageRequestCard";
 import {
   RECENT_SEARCH_MAX,
   readRecentSearches,
@@ -389,6 +390,11 @@ export function SearchClient() {
               </div>
             </div>
           )}
+
+          {/* #413 — 커버리지 수요 수집: 무결과를 그냥 보내지 않고 확장 우선순위
+              데이터로 바꾼다. 유사 단지 제안이 있어도 함께 보여준다(제안이
+              틀렸을 수 있고, 지역 검색은 제안 자체가 안 뜬다). */}
+          <CoverageRequestCard query={q.trim()} />
         </div>
       )}
 
