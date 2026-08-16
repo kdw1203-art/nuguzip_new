@@ -331,8 +331,8 @@ function SectionHead({
   return (
     <div className="mb-2 flex items-end justify-between gap-2">
       <div>
-        <div className="text-[12px] font-extrabold text-ink">{title}</div>
-        {sub ? <div className="text-[10px] text-text-3">{sub}</div> : null}
+        <div className="text-[13px] font-extrabold text-ink">{title}</div>
+        {sub ? <div className="mt-0.5 text-[10.5px] text-text-3">{sub}</div> : null}
       </div>
       {right}
     </div>
@@ -491,7 +491,11 @@ export function ComplexInfoPanel({
         onClick={onClose}
         className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.48)]"
       />
-      <aside className="glass-strong rise-in relative z-10 flex max-h-[min(94dvh,960px)] w-full max-w-[820px] flex-col overflow-hidden rounded-t-[22px] shadow-[0_28px_70px_rgba(16,28,54,.34)] sm:rounded-[24px]">
+      {/* 소유자 캡처 제보(2026-08-16): glass-strong(반투명+블러)이 뒤의 어두운
+          지도 딤과 겹쳐, backdrop-filter 가 약한 환경에서 패널이 탁한 어둠으로
+          렌더돼 "보기가 힘들다". 시트/모달은 불투명이 정답 — bg-surface 로 고정해
+          어떤 GPU·브라우저에서도 같은 흰 패널을 보장한다. */}
+      <aside className="rise-in relative z-10 flex max-h-[min(94dvh,960px)] w-full max-w-[820px] flex-col overflow-hidden rounded-t-[22px] bg-surface shadow-[0_28px_70px_rgba(16,28,54,.34)] sm:rounded-[24px]">
         {/* 히어로 — 가격 중심 + 칩 */}
         <div className="relative border-b border-[rgba(16,28,54,.06)] bg-gradient-to-br from-[#eef3ff] via-surface to-[#f7f9fd] px-5 pb-3.5 pt-4">
           <div className="flex items-start justify-between gap-2">
@@ -684,7 +688,7 @@ export function ComplexInfoPanel({
                 {specRows.map((row) => (
                   <div
                     key={row.label}
-                    className="flex items-baseline justify-between gap-2 border-b border-[#f0f3f8] py-[7px] text-[12px] last:border-b-0"
+                    className="flex items-baseline justify-between gap-2 border-b border-[#f0f3f8] py-2 text-[12.5px] last:border-b-0"
                   >
                     <span className="shrink-0 text-text-3">{row.label}</span>
                     <span className="truncate text-right font-bold text-ink">{row.value}</span>
@@ -743,7 +747,7 @@ export function ComplexInfoPanel({
                   return (
                     <div
                       key={`${t.yyyymm}-${i}`}
-                      className={`flex items-center justify-between gap-2 px-3 py-[7px] text-[12px] ${
+                      className={`flex items-center justify-between gap-2 px-3 py-2 text-[12.5px] ${
                         i > 0 ? "border-t border-[#e8edf5]" : ""
                       }`}
                     >

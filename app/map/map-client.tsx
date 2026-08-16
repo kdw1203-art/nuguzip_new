@@ -3111,27 +3111,19 @@ export function MapClient({
         >
           <ZoomTabButtons zoom={zoom} onSelect={handleZoomTab} />
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5">
-          <Link
-            href={
-              regionLabel.trim()
-                ? `/notes/new?region=${encodeURIComponent(regionLabel.trim())}`
-                : "/notes/new"
-            }
-            data-tour="map-note-cta"
-            className="btn-primary btn-cta rounded-xl px-4 py-[9px] text-[13px]"
-          >
-            이 지역 노트 쓰기
-          </Link>
-          {/* "기록 → AI → 비교" 는 무엇의 기록인지·어디서 비교하는지 안 읽혔다
-              (소유자 개선 요청 2026-08-10). 노트→AI 정리→지도 비교 흐름을 그대로 적는다. */}
-          <span
-            className="hidden text-[10px] font-semibold text-text-3 lg:inline"
-            title="임장노트에 남긴 기록을 AI가 정리하고, 이 지도에서 실거래 시세와 비교합니다"
-          >
-            기록 → AI 정리 → 지도 비교
-          </span>
-        </div>
+        {/* 흐름 캡션("기록 → AI 정리 → 지도 비교")은 소유자 요청(2026-08-16)으로
+            제거 — 버튼 문구만으로 충분하고, 캡션이 지도 위 컨트롤 행을 어지럽혔다. */}
+        <Link
+          href={
+            regionLabel.trim()
+              ? `/notes/new?region=${encodeURIComponent(regionLabel.trim())}`
+              : "/notes/new"
+          }
+          data-tour="map-note-cta"
+          className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] text-[13px]"
+        >
+          이 지역 노트 쓰기
+        </Link>
       </div>
 
       {/* ===== 모바일 검색 (md 미만) — 패널 열려 있으면 숨김 ===== */}
@@ -3713,7 +3705,9 @@ export function MapClient({
             onClick={() => setSelectedId(null)}
             className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.45)]"
           />
-          <aside className="glass-strong rise-in relative z-10 flex max-h-[min(88dvh,860px)] w-full max-w-[860px] flex-col overflow-hidden rounded-[24px] shadow-[0_28px_70px_rgba(16,28,54,.32)]">
+          {/* ComplexInfoPanel 과 같은 판단(2026-08-16): 어두운 딤 위 반투명 시트는
+              backdrop-filter 가 약한 환경에서 탁해진다 — 불투명 bg-surface 로 고정. */}
+          <aside className="rise-in relative z-10 flex max-h-[min(88dvh,860px)] w-full max-w-[860px] flex-col overflow-hidden rounded-[24px] bg-surface shadow-[0_28px_70px_rgba(16,28,54,.32)]">
           <div className="flex items-start justify-between border-b border-[rgba(16,28,54,.06)] px-[22px] pb-3.5 pt-5">
             <div>
               <div className="flex items-center gap-2">
