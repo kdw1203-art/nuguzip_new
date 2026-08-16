@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { listNotes } from "@/lib/inspection/store-db";
+import { computeRegionLevels, regionLevelSummary } from "@/lib/gamification/region-levels";
 import { countWatchlist } from "@/lib/watchlist/store-db";
 import { loadMeProfile } from "@/lib/me/profile";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
@@ -66,6 +67,9 @@ export type PersonalHomeData = {
   /** 캡처 개선(2026-08-04) — regionId → 지역 시세 칩(평균가·전월 대비).
       스냅샷이 없는 지역은 키 자체가 없다(칩 미표시). 조회 실패 시 null. */
   regionChips: Record<string, { price: string; delta: string; tone: "up" | "down" | "flat" }> | null;
+  /** 홈 리디자인(#408) KPI — 지역 임장 레벨 요약. 노트 조회 실패 시 null,
+      노트 0개면 {regionCount:0,...} (실카운트 기반 순수 계산 — 새 조회 없음). */
+  regionLevel: { regionCount: number; topLevel: number; topLabel: string | null } | null;
 };
 
 async function guarded<T>(fn: () => Promise<T>): Promise<T | null> {
@@ -208,6 +212,7 @@ export async function GET() {
     preferences,
     preferencesUnavailable: personalizationFailed,
     regionChips: regionChips ?? null,
+    regionLevel: notes ? regionLevelSummary(computeRegionLevels(notes)) : null,
   };
 
   /* 예전엔 `private, max-age=300` 이었다. 이 응답에는 이름·관심지역·노트 수가

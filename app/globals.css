@@ -828,6 +828,30 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 }
 
 /* ---------- 모션 (19a~19e — dur-xs/sm/md/lg + 이징 2종만 사용) ---------- */
+/* 홈 티커(#408) — 트랙 2벌 복제 후 절반만큼 이동하면 이음새 없는 무한 흐름.
+   reduced-motion 등록은 8f 블록에 있다(끊고 가로 스크롤로 대체). */
+@keyframes tickerScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ticker-track {
+  animation: tickerScroll 36s linear infinite;
+}
+.ticker-band:hover .ticker-track {
+  animation-play-state: paused;
+}
+/* 로그인(개인화 활성) 시 검색 히어로는 공간을 접는다 — 개인화 섹션이 위에
+   이미 있으므로 "첫 화면 절반" 규칙은 비로그인에만 적용한다(#408). */
+body[data-personal-active="1"] .home-search-hero {
+  min-height: 0;
+  padding-top: 10px;
+  padding-bottom: 6px;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
@@ -1709,6 +1733,12 @@ html[data-drag-scrolling] * {
 
 /* 8f. 접근성 — 위 7절 규칙: 새 모션은 반드시 여기 같이 적는다 */
 @media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-band {
+    overflow-x: auto;
+  }
   .card,
   a,
   button,

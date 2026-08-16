@@ -12,6 +12,10 @@ import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
 import { AdSenseUnit } from "./components/ads/AdSenseUnit";
 import { Footer } from "./components/Footer";
+import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
+import { HomeHeroSearch } from "./components/home/HomeHeroSearch";
+import { HomeKpiRow, type KpiRegion, type KpiTemp } from "./components/home/HomeKpiRow";
+import { loadLatestTemperatures } from "./components/MarketTempWidget";
 import { loadNewHomeData } from "@/lib/newui/home-data";
 import { compactDelta } from "@/lib/newui/delta-label";
 import { formatAsOfLabel } from "@/lib/newui/as-of-label";
@@ -21,22 +25,14 @@ import { getWeeklyDigest } from "@/lib/newui/digest";
 import { logger } from "@/lib/log";
 import type { Metadata } from "next";
 import type { DeltaTone, HomeBriefing } from "@/lib/newui/home-data";
+/* #408 리디자인 — 히어로 카피 상수(HOME_HERO_*)·보조 CTA(지도/AI)·퍼널 칩은
+   화면과 함께 내려갔다. 카피 정본은 lib/brand/home-copy.ts 에 그대로 있다. */
 import {
   HOME_AI_BRIEFING_LABEL,
   HOME_AI_GATEWAY_BODY,
   HOME_AI_GATEWAY_TITLE,
   HOME_CTA_AI,
-  HOME_CTA_MAP,
   HOME_CTA_NOTE,
-  HOME_FUNNEL_STEPS,
-  HOME_HERO_BADGE,
-  HOME_HERO_DESKTOP_EMPHASIS,
-  HOME_HERO_DESKTOP_LEAD,
-  HOME_HERO_DESKTOP_TAIL,
-  HOME_HERO_MOBILE_EMPHASIS,
-  HOME_HERO_MOBILE_LINE1,
-  HOME_HERO_MOBILE_TAIL,
-  HOME_HERO_SUBLINE,
   HOME_PAGE_H1,
 } from "@/lib/brand/home-copy";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -93,24 +89,8 @@ const deltaClass: Record<DeltaTone, string> = {
   flat: "delta-flat",
 };
 
-/** 기록 → AI → 지도 단계 하이라이트 (네비 아님) */
-function FunnelSteps({ className = "" }: { className?: string }) {
-  return (
-    <ol
-      className={`flex flex-wrap items-center gap-1.5 text-[11px] font-extrabold text-text-3 ${className}`}
-      aria-label="서비스 흐름"
-    >
-      {HOME_FUNNEL_STEPS.map((step, i) => (
-        <li key={step} className="flex items-center gap-1.5">
-          {i > 0 && <span className="font-semibold text-line" aria-hidden>→</span>}
-          <span className="rounded-full bg-[rgba(29,79,216,.08)] px-2.5 py-1 text-primary">
-            {step}
-          </span>
-        </li>
-      ))}
-    </ol>
-  );
-}
+/* FunnelSteps(기록→AI→지도 칩 행)는 #408 리디자인에서 히어로와 함께 제거 —
+   같은 흐름은 JourneyBanner 가 계속 말한다. */
 
 /** AI 시작 행동 + 시장 브리핑(참고) 강등 */
 function HomeAiGateway({ briefing }: { briefing: HomeBriefing | null }) {
@@ -351,6 +331,56 @@ export default async function Home() {
   // 홈 미니지도 마커용 시세 지역 (좌표 매핑은 HomeMiniMap 내부) — 실데이터만 마커로 표시
   const mapRegions = regions.slice(0, 4);
 
+  /* ---- 홈 리디자인(#408) — 티커·KPI 데이터. 전부 실측이고, 없으면 그
+     항목/칸이 **빠진다**(가짜 숫자·"—" 채움 없음. KPI 는 그리드가 접힌다). */
+  let kpiTemp: KpiTemp | null = null;
+  try {
+    const t = await loadLatestTemperatures();
+    const row =
+      t.rows.find((r) => r.current.regionId === (regions[0]?.id ?? "")) ??
+      t.rows[0] ??
+      null;
+    if (row) {
+      const m = row.current.weekStart.match(/^\d{4}-(\d{2})-(\d{2})$/);
+      kpiTemp = {
+        score: row.current.score,
+        headline: row.current.headline,
+        weekLabel: m ? `${Number(m[1])}.${m[2]} 주` : row.current.weekStart,
+      };
+    }
+  } catch {
+    /* 아카이브 없음/조회 실패 — 티커·KPI에서 온도 항목만 빠진다
+       (MarketTempWidget 과 같은 판단: 곁다리는 조용히 접는 쪽이 정직하다). */
+    kpiTemp = null;
+  }
+  const kpiRegion: KpiRegion | null = regions[0]
+    ? {
+        name: regions[0].name,
+        price: regions[0].price,
+        delta: regions[0].delta,
+        tone: regions[0].tone,
+        /* meta("서울 · 120건")에서 실거래 건수만 — 우리 포맷의 표시용 파싱 */
+        tradeLabel: regions[0].meta.match(/([\d,]+건)/)?.[1] ?? null,
+        href: `/map?region=${encodeURIComponent(regions[0].name)}`,
+      }
+    : null;
+  const tickerItems: TickerItem[] = [];
+  for (const r of regions.slice(0, 3)) {
+    tickerItems.push({ label: `${r.name} 평균`, value: `${r.price} ${r.delta}`, tone: r.tone });
+  }
+  if (baseRate !== "—") tickerItems.push({ label: "기준금리", value: baseRate });
+  if (loanRate) tickerItems.push({ label: "주담대 변동", value: loanRate });
+  if (kpiTemp) {
+    tickerItems.push({ label: "시장 온도", value: `${kpiTemp.score} · ${kpiTemp.headline}` });
+  }
+  if (data.publicNotesTotal !== null) {
+    tickerItems.push({ label: "공개 임장노트", value: `${data.publicNotesTotal}건`, tone: "up" });
+  }
+  if (data.activityToday !== null) {
+    tickerItems.push({ label: "오늘 활동", value: `${data.activityToday}건` });
+  }
+  if (freshness) tickerItems.push({ label: "실거래 기준", value: String(freshness) });
+
   return (
     <>
       <Header />
@@ -373,55 +403,47 @@ export default async function Home() {
         {/* S13-13a 홈 이원화 — 로그인 시에만 개인화 섹션 렌더 + 아래 정적 히어로(data-static-hero) 숨김 */}
         <PersonalHome />
 
-        {/* ================= 모바일 히어로 — 한 직업: 임장→AI→지도 ================= */}
+        {/* ================= #408 상단 시세 티커 — 시안 A (모바일·데스크탑 공용).
+            오늘의 실측 숫자가 흐른다. 항목이 하나도 없으면 밴드 자체가 없다. */}
+        {tickerItems.length > 0 && (
+          <div className="rise-in mb-2.5 md:mb-3.5">
+            <HomeTicker items={tickerItems} />
+          </div>
+        )}
+
+        {/* ================= 모바일 — 검색 포털 + 상황판 (#408 A+B 조합) ================= */}
         <section className="flex flex-col gap-2.5 md:hidden">
-          {/* 시각 카피(문서 제목 아님 — 위 sr-only h1 참고) */}
-          <p
-            data-static-hero
-            className="rise-in mt-2 text-[24px] font-extrabold leading-[1.25] tracking-[-0.6px] text-ink"
-          >
-            {HOME_HERO_MOBILE_LINE1}
-            <br />
-            <span className="text-gradient">{HOME_HERO_MOBILE_EMPHASIS}</span>
-            {HOME_HERO_MOBILE_TAIL}
-          </p>
-          <p data-static-hero className="rise-in-1 text-sm text-text-2">
-            {HOME_HERO_SUBLINE}
-          </p>
-          {/* 고도화 7 — 첫 화면에 오늘의 실데이터 한 줄. 값이 있을 때만 그린다
-              (조회 실패 시 이 줄 자체가 없다 — 낡은 날짜를 지어내지 않는다). */}
-          {freshness && (
-            <p data-static-hero className="rise-in-1 text-[11px] text-text-3">
-              실거래 데이터 {freshness} 기준 · 국토교통부 신고분
+          {/* 검색이 첫 화면의 절반 (시안 B). 히어로 카피 없음 (시안 A) —
+              질문 한 줄 + 대형 검색 + 실기록 칩. 로그인(개인화 활성) 시에는
+              globals.css 가 min-height 를 접어 개인화 섹션에 자리를 내준다. */}
+          <div className="home-search-hero flex min-h-[42dvh] flex-col justify-center gap-3 py-4">
+            <p className="rise-in text-center text-[22px] font-extrabold leading-[1.3] tracking-[-0.5px] text-ink">
+              어느 단지가 궁금하세요?
             </p>
-          )}
-          {/* 모바일 실측 14 — 히어로 부제("3분 기록 → AI 정리 → 지도 비교")와
-              같은 3단계를 칩으로 한 번 더 그려 첫 화면이 같은 말을 두 번 했다.
-              모바일에서는 칩 행을 내리고 부제와 아래 여정 배너가 역할을 나눈다. */}
+            <div className="rise-in-1">
+              <HomeHeroSearch />
+            </div>
+            {freshness && (
+              <p className="rise-in-1 text-center text-[11px] text-text-3">
+                실거래 데이터 {freshness} 기준 · 국토교통부 신고분
+              </p>
+            )}
+          </div>
+
+          {/* KPI 4칸 (시안 A) — 지역 평균·시장 온도·거래량·내 임장 레벨 */}
+          <div className="rise-in-2">
+            <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
+          </div>
+
           <Link
             href={HOME_CTA_NOTE.href}
-            data-static-hero
-            className="btn-primary glow press rise-in-2 rounded-xl p-3 text-center text-[15px] md:rounded-2xl md:p-[15px] md:text-base"
+            className="btn-primary glow press rise-in-3 rounded-xl p-3 text-center text-[15px]"
           >
             {HOME_CTA_NOTE.label}
           </Link>
-          <div data-static-hero className="rise-in-3 flex gap-2">
-            <Link
-              href={HOME_CTA_MAP.href}
-              className="glass press flex-1 rounded-xl p-[11px] text-center text-[13px] font-bold text-text-1"
-            >
-              {HOME_CTA_MAP.label}
-            </Link>
-            <Link
-              href={HOME_CTA_AI.href}
-              className="press flex-1 rounded-xl bg-[rgba(29,79,216,.1)] p-[11px] text-center text-[13px] font-bold text-primary"
-            >
-              {HOME_CTA_AI.label}
-            </Link>
-          </div>
 
-          {/* 관심지역 실지도 — 루프 증명(비교) */}
-          <div className="rise-in-4">
+          {/* 관심지역 실지도 — 스크롤 아래로 이동 (시안 B) */}
+          <div data-reveal="">
             <HomeMiniMap regions={mapRegions} className="h-[208px]" />
           </div>
 
@@ -604,51 +626,54 @@ export default async function Home() {
         {/* ================= 데스크탑 홈 ================= */}
         <section className="hidden grid-cols-1 gap-4 md:grid lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="flex flex-col gap-4">
-            {/* 히어로 — KPI 제거, CTA 3종 + 루프 증명 */}
-            <div
-              data-static-hero
-              className="rise-in bento bento-tint sheen flex flex-col items-start justify-between gap-6 px-7 py-7 xl:flex-row xl:items-center"
-              style={{ boxShadow: "var(--shadow-sm)" }}
-            >
-              <div className="flex flex-col gap-3">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[rgba(29,79,216,.08)] px-3 py-1 text-[11px] font-extrabold text-primary">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary float-slow" />{" "}
-                  {HOME_HERO_BADGE}
-                </span>
-                {/* 시각 카피(문서 제목 아님 — 위 sr-only h1 참고) */}
-                <p className="text-[30px] font-extrabold leading-[1.22] tracking-[-0.6px] text-ink">
-                  {HOME_HERO_DESKTOP_LEAD}{" "}
-                  <span className="text-gradient">{HOME_HERO_DESKTOP_EMPHASIS}</span>
-                  {HOME_HERO_DESKTOP_TAIL}
+            {/* #408 A+B — 히어로 카피 없음. 질문 한 줄 + 대형 검색이 첫인상. */}
+            <div className="home-search-hero rise-in flex flex-col justify-center gap-3.5 py-9">
+              <p className="text-center text-[26px] font-extrabold leading-[1.3] tracking-[-0.6px] text-ink">
+                어느 단지가 궁금하세요?
+              </p>
+              <HomeHeroSearch />
+              {freshness && (
+                <p className="text-center text-[11px] text-text-3">
+                  실거래 데이터 {freshness} 기준 · 국토교통부 신고분
                 </p>
-                <p className="text-sm text-text-2">{HOME_HERO_SUBLINE}</p>
-                <FunnelSteps />
-                <div className="mt-1 flex flex-wrap gap-2">
+              )}
+            </div>
+
+            {/* KPI 4칸 (시안 A) */}
+            <div className="rise-in-1">
+              <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
+            </div>
+
+            {/* 지도 | 분석 도구 — "보고 → 파고" 동선 (시안 A). 도구 스트립은
+                지도 오른쪽 세로 스택으로 이동, 노트 CTA 가 스택을 닫는다. */}
+            <div className="rise-in-1 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+              <HomeMiniMap regions={mapRegions} className="h-[300px]" />
+              <div className="flex flex-col gap-2">
+                {ANALYSIS_TOOLS.map((t) => (
                   <Link
-                    href={HOME_CTA_NOTE.href}
-                    className="btn-primary btn-cta press rounded-xl px-5 py-2.5 text-[13px]"
+                    key={t.href}
+                    href={t.href}
+                    className="card card-hover flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
                   >
-                    {HOME_CTA_NOTE.label}
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                      <Icon name={t.icon} size={17} />
+                    </span>
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="text-[13px] font-extrabold text-ink">{t.t}</span>
+                      <span className="truncate text-[11px] text-text-3">{t.d}</span>
+                    </span>
                   </Link>
-                  <Link
-                    href={HOME_CTA_MAP.href}
-                    className="btn-ghost press rounded-xl px-5 py-2.5 text-[13px]"
-                  >
-                    {HOME_CTA_MAP.label}
-                  </Link>
-                  <Link
-                    href={HOME_CTA_AI.href}
-                    className="press rounded-xl bg-[rgba(29,79,216,.1)] px-5 py-2.5 text-[13px] font-bold text-primary"
-                  >
-                    {HOME_CTA_AI.label}
-                  </Link>
-                </div>
-              </div>
-              <div className="w-full shrink-0 xl:w-[340px]">
-                <HomeMiniMap regions={mapRegions} className="h-[200px]" />
+                ))}
+                <Link
+                  href={HOME_CTA_NOTE.href}
+                  className="btn-primary btn-cta press mt-auto rounded-2xl p-3.5 text-center text-[14px]"
+                >
+                  {HOME_CTA_NOTE.label}
+                </Link>
               </div>
             </div>
 
+            {/* 시세 스트립 — 스크롤 아래로 이동 (시안 B) */}
             <div className="rise-in-1">
               <MarketStrip
                 saleIndexSeoul={saleIndexSeoul}
@@ -662,29 +687,8 @@ export default async function Home() {
               />
             </div>
 
-            <div className="rise-in-1">
+            <div data-reveal="">
               <JourneyBanner />
-            </div>
-
-            {/* 실거래 분석 도구 진입 — 리밸런싱: 기록(노트) 다음의 두 번째
-                가치인 '검증(분석)'을 첫 화면에 노출한다. 아이콘 칩으로 텍스트만
-                있던 카드에 시각 앵커를 준다(항목 정의는 ANALYSIS_TOOLS). */}
-            <div className="rise-in-1 grid grid-cols-3 gap-3">
-              {ANALYSIS_TOOLS.map((t) => (
-                <Link
-                  key={t.href}
-                  href={t.href}
-                  className="card card-hover flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-                    <Icon name={t.icon} size={17} />
-                  </span>
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-[13px] font-extrabold text-ink">{t.t}</span>
-                    <span className="truncate text-[11px] text-text-3">{t.d}</span>
-                  </span>
-                </Link>
-              ))}
             </div>
 
             {/* 공개 노트 · 동네이야기 — 행 클릭 가능 (증거) */}

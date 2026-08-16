@@ -1,0 +1,222 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Icon } from "@/app/components/Icon";
+import { pushRecentSearch, readRecentSearches } from "@/lib/search/recent-searches";
+import { useRecentComplexes } from "@/app/components/RecentComplexes";
+import { useSettledSearchQuery } from "@/lib/search/settle";
+
+/* 홈 리디자인(#408) 시안 B — 화면 정중앙 대형 검색.
+ *
+ * HeaderSearch 와 같은 원천(/api/search/unified · settle 대기 규칙 · 최근
+ * 검색 저장소)을 쓰되, 히어로 크기의 독립 컴포넌트다. 칩은 전부 실데이터:
+ * 최근 검색(localStorage) · 최근 본 단지(localStorage) — 없으면 실데이터
+ * 커버 지역 바로가기로 대체한다(지어낸 "인기 단지"는 그리지 않는다).
+ */
+
+type Kind = "complex" | "listing" | "note" | "news";
+
+interface UnifiedResults {
+  complexes: { id: string; name: string; region: string }[];
+  listings: { id: string; title: string; price: string }[];
+  notes: { id: string; title: string }[];
+  news: { id: string; title: string; source: string }[];
+}
+
+interface FlatItem {
+  key: string;
+  label: string;
+  title: string;
+  meta: string;
+  href: string;
+}
+
+const PER_GROUP = 3;
+
+function flatten(r: UnifiedResults): FlatItem[] {
+  const out: FlatItem[] = [];
+  const push = (kind: Kind, label: string, id: string, title: string, meta: string, base: string) =>
+    out.push({ key: `${kind}-${id}`, label, title, meta, href: `${base}/${encodeURIComponent(id)}` });
+  r.complexes.slice(0, PER_GROUP).forEach((c) => push("complex", "단지", c.id, c.name, c.region, "/complex"));
+  r.listings.slice(0, PER_GROUP).forEach((l) => push("listing", "매물", l.id, l.title, l.price, "/listings"));
+  r.notes.slice(0, PER_GROUP).forEach((n) => push("note", "노트", n.id, n.title, "", "/notes"));
+  r.news.slice(0, PER_GROUP).forEach((n) => push("news", "뉴스", n.id, n.title, n.source, "/town/news"));
+  return out;
+}
+
+/** 실데이터 커버 지역 바로가기 — 최근 기록이 아무것도 없는 첫 방문자용 폴백 */
+const REGION_FALLBACK = [
+  { label: "동안구", href: "/map?district=%EB%8F%99%EC%95%88%EA%B5%AC" },
+  { label: "만안구", href: "/map?district=%EB%A7%8C%EC%95%88%EA%B5%AC" },
+  { label: "의왕시", href: "/map?q=%EC%9D%98%EC%99%95%EC%8B%9C" },
+  { label: "과천시", href: "/map?q=%EA%B3%BC%EC%B2%9C%EC%8B%9C" },
+];
+
+export function HomeHeroSearch() {
+  const router = useRouter();
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState<FlatItem[]>([]);
+  const [open, setOpen] = useState(false);
+  const [recents, setRecents] = useState<string[]>([]);
+  const { items: recentComplexes } = useRecentComplexes();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const { query: settledQuery, compositionProps } = useSettledSearchQuery(q);
+
+  /* 최근 검색은 마운트 후에만 (SSR 불일치 방지) */
+  useEffect(() => {
+    setRecents(readRecentSearches());
+  }, []);
+
+  /* 제안 조회 — HeaderSearch 와 같은 unified 엔드포인트 */
+  useEffect(() => {
+    const query = settledQuery.trim();
+    if (query.length < 2) {
+      setItems([]);
+      return;
+    }
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    fetch(`/api/search/unified?q=${encodeURIComponent(query)}`, { signal: ac.signal })
+      .then((res) => (res.ok ? (res.json() as Promise<UnifiedResults>) : null))
+      .then((r) => {
+        if (!r || ac.signal.aborted) return;
+        setItems(flatten(r));
+        setOpen(true);
+      })
+      .catch(() => {});
+    return () => ac.abort();
+  }, [settledQuery]);
+
+  /* 바깥 클릭 → 닫기 */
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  function submit() {
+    const k = q.trim();
+    if (!k) return;
+    pushRecentSearch(k);
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(k)}`);
+  }
+
+  const hasHistory = recents.length > 0 || recentComplexes.length > 0;
+
+  return (
+    <div ref={boxRef} className="relative mx-auto w-full max-w-[560px]">
+      <div className="flex items-center gap-2.5 rounded-2xl border-2 border-primary bg-surface py-3 pl-4 pr-2 shadow-[0_10px_32px_rgba(29,79,216,.14)] md:py-3.5">
+        <Icon name="search" size={19} className="shrink-0 text-primary" />
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          {...compositionProps}
+          onFocus={() => {
+            if (q.trim() && items.length > 0) setOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            } else if (e.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+          placeholder="단지·지역·매물·노트 검색"
+          aria-label="통합 검색"
+          autoComplete="off"
+          className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-text-3"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          className="btn-primary press shrink-0 rounded-xl px-4 py-2 text-[13px]"
+        >
+          검색
+        </button>
+      </div>
+
+      {/* 제안 드롭다운 */}
+      {open && q.trim().length >= 2 && items.length > 0 && (
+        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
+          <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_48px_rgba(16,28,54,.16)] [animation:riseIn_160ms_var(--ease-out)_backwards]">
+            {items.slice(0, 7).map((it) => (
+              <button
+                key={it.key}
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setQ("");
+                  router.push(it.href);
+                }}
+                className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
+              >
+                <span className="shrink-0 rounded-md bg-[#f2f4f8] px-1.5 py-0.5 text-[10px] font-extrabold text-text-2">
+                  {it.label}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-text-1">
+                  {it.title}
+                </span>
+                {it.meta && (
+                  <span className="shrink-0 text-[11px] text-text-3">{it.meta}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 칩 — 최근 검색·최근 본 단지 (실기록), 없으면 커버 지역 바로가기 */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+        {hasHistory ? (
+          <>
+            {recents.slice(0, 3).map((k) => (
+              <button
+                key={`r-${k}`}
+                type="button"
+                onClick={() => {
+                  pushRecentSearch(k);
+                  router.push(`/search?q=${encodeURIComponent(k)}`);
+                }}
+                className="chip max-w-[160px] truncate bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm"
+              >
+                ⌕ {k}
+              </button>
+            ))}
+            {recentComplexes.slice(0, 3).map((c) => (
+              <button
+                key={`c-${c.id}`}
+                type="button"
+                onClick={() => router.push(`/complex/${encodeURIComponent(c.id)}`)}
+                className="chip max-w-[180px] truncate bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary"
+              >
+                🏢 {c.name}
+              </button>
+            ))}
+          </>
+        ) : (
+          <>
+            <span className="text-[11px] font-semibold text-text-3">실거래 지역 바로가기</span>
+            {REGION_FALLBACK.map((r) => (
+              <button
+                key={r.label}
+                type="button"
+                onClick={() => router.push(r.href)}
+                className="chip bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm"
+              >
+                {r.label}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

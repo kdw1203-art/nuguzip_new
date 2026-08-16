@@ -31,7 +31,9 @@ const NO_ARCHIVE = "__nz_no_temperature_archive__";
 
 type LatestTemperatures = Awaited<ReturnType<typeof listLatestTemperatures>>;
 
-const loadLatestTemperatures = cache(
+/* 홈 리디자인(#408)의 티커·KPI 도 같은 캐시 한 벌을 쓰도록 export —
+   위젯·티커·KPI 가 각자 캐시를 만들면 같은 주간 행을 세 번 읽는다. */
+export const loadLatestTemperatures = cache(
   unstable_cache(
     async (): Promise<LatestTemperatures> => {
       const res = await listLatestTemperatures(); // 조회 실패 시 throw (캐시 안 됨)
