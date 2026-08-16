@@ -23,6 +23,14 @@
     {
       "path": "/api/cron/site-probe",
       "schedule": "15 */6 * * *"
+    },
+    {
+      "path": "/api/cron/social-autopost",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/social-upload-drain",
+      "schedule": "20 2 * * *"
     }
   ]
 }
