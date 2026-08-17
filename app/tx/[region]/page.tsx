@@ -279,6 +279,14 @@ export default async function TxRegionPage({
         <Link href="/complex/browse" className="font-bold text-primary underline">
           단지별 실거래 브라우즈
         </Link>
+        {" · "}
+        {/* 시세(보기) → 임장(가기) 연결 — 같은 지역 원천이라 슬러그가 1:1 이다 */}
+        <Link
+          href={`/imjang/${encodeURIComponent(region.slug)}`}
+          className="font-bold text-primary underline"
+        >
+          이 지역 임장 가이드
+        </Link>
       </p>
     </PageShell>
   );

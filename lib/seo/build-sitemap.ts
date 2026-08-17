@@ -84,6 +84,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/partners", priority: 0.5 },
   // 임장 크리에이터 입점 랜딩 (성장 전략 U4 — 크리에이터 지참 관객 회로)
   { path: "/creators", priority: 0.5 },
+  // 임장 가이드 허브 (전략 §4-2 — "임장" 키워드군 소유. 지역 상세는 imjang 섹션)
+  { path: "/imjang", priority: 0.7 },
   { path: "/calculator", priority: 0.6 },
   { path: "/widget", priority: 0.5 }, // N17 — 시세 위젯 배포 안내
   // 가이드 (규제·세금 안내 · 계약 체크리스트)
@@ -296,6 +298,23 @@ export async function loadBandEntries(): Promise<MetadataRoute.Sitemap> {
       url: `${BASE_URL}${b.path}`,
       ...(b.lastModified ? { lastModified: b.lastModified } : {}),
       priority: b.isHub ? 0.7 : 0.6,
+    }));
+  });
+}
+
+/**
+ * 지역 임장 가이드 — /imjang/[slug]. /tx 와 같은 지역 원천(listTxRegions,
+ * minTx=10)이라 여기 실리는 URL 은 전부 실데이터가 있는 페이지다.
+ * lastModified 는 그 지역 거래 데이터의 마지막 적재 시각(lastDataAt).
+ */
+export async function loadImjangEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("임장 가이드", async () => {
+    const { listImjangRegions } = await import("@/lib/imjang/guide");
+    const regions = await listImjangRegions(200);
+    return regions.map((r) => ({
+      url: `${BASE_URL}/imjang/${encodeURIComponent(r.slug)}`,
+      ...(r.lastDataAt ? { lastModified: r.lastDataAt } : {}),
+      priority: 0.6,
     }));
   });
 }

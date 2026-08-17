@@ -296,7 +296,11 @@ export default async function TxIndexPage() {
         <Link href="/analysis/timing" className="font-bold text-primary underline">
           타이밍 분석
         </Link>
-        에서 확인하세요.
+        에서 확인하세요. 데이터를 봤다면 다음은 현장 —{" "}
+        <Link href="/imjang" className="font-bold text-primary underline">
+          임장 가이드
+        </Link>
+        로 답사를 준비하세요.
       </p>
     </PageShell>
   );

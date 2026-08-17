@@ -21,6 +21,8 @@ export const SITEMAP_SECTION_SLUGS = [
   "notes",
   "glossary",
   "temperature",
+  /* 지역 임장 가이드 — /tx 와 같은 지역 원천이라 tx 가 살아 있으면 함께 산다 */
+  "imjang",
   "digest",
   /* 뉴스 요약 — 우리가 쓴 요약·핵심·FAQ 가 붙은 기사만 싣는다.
      원문 본문을 그대로 싣던 시절에는 색인도 사이트맵도 막는 게 맞았지만,
