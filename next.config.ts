@@ -88,6 +88,12 @@ const nextConfig: NextConfig = {
     // 소셜 자동 영상: 프레임 렌더(한글 폰트) + ffmpeg 바이너리(~76MB, 이 라우트만)
     "/api/cron/social-autopost": ["./lib/og/fonts/**", "./node_modules/ffmpeg-static/ffmpeg"],
   },
+  /* ffmpeg-static 은 번들에서 제외해야 한다 — 2026-08-17 첫 실가동 500 의 원인.
+     웹팩이 index.js 를 인라인하면 __dirname 이 .next/server/... 로 바뀌어
+     바이너리 경로가 존재하지 않는 곳을 가리키고, spawn ENOENT(빈 stderr)로
+     죽는다. 외부화하면 런타임 require 가 실제 node_modules 경로를 돌려주고,
+     바이너리 자체는 위 outputFileTracingIncludes 가 이미 싣고 있다. */
+  serverExternalPackages: ["ffmpeg-static"],
   eslint: {
     // 빌드는 통과시키고 lint는 별도 `npm run lint` / CI에서 강제합니다.
     ignoreDuringBuilds: true,

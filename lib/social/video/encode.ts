@@ -1,9 +1,28 @@
 import "server-only";
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ffmpegPath from "ffmpeg-static";
+
+/* 2026-08-17 첫 실가동 500 의 교훈 —
+   ffmpeg-static 이 반환한 경로를 믿고 바로 spawn 했더니, 번들링으로 경로가
+   깨졌을 때 ENOENT 가 빈 stderr 로만 남아 원인이 보이지 않았다.
+   (next.config serverExternalPackages 로 근본 원인은 제거)
+   여기서는 ① 실재하는 후보 경로를 골라 쓰고 ② 실패 시 err.message(ENOENT 등)까지
+   드러낸다 — 빈 오류 메시지는 다음 사람의 밤을 잡아먹는다. */
+function resolveFfmpegBin(): string {
+  const candidates = [
+    process.env.FFMPEG_BIN,
+    typeof ffmpegPath === "string" ? ffmpegPath : null,
+    join(process.cwd(), "node_modules", "ffmpeg-static", "ffmpeg"),
+  ].filter((p): p is string => Boolean(p));
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  throw new Error(`ffmpeg 바이너리를 찾지 못했습니다 — 확인한 경로: ${candidates.join(" · ")}`);
+}
 
 /**
  * 스틸 프레임(PNG) 여러 장 → 9:16 쇼츠용 MP4 (H.264 + 무음 AAC 트랙).
@@ -17,7 +36,7 @@ import ffmpegPath from "ffmpeg-static";
 export async function encodeSlideshow(
   frames: { png: Buffer; seconds: number }[],
 ): Promise<Buffer> {
-  if (!ffmpegPath) throw new Error("ffmpeg-static 바이너리를 찾지 못했습니다");
+  const ffmpegBin = resolveFfmpegBin();
   if (frames.length === 0) throw new Error("프레임이 없습니다");
 
   const dir = await mkdtemp(join(tmpdir(), "social-video-"));
@@ -35,7 +54,7 @@ export async function encodeSlideshow(
     const out = join(dir, "out.mp4");
     await new Promise<void>((resolve, reject) => {
       execFile(
-        ffmpegPath as string,
+        ffmpegBin,
         [
           "-y",
           "-f", "concat", "-safe", "0", "-i", "list.ffconcat",
@@ -49,8 +68,11 @@ export async function encodeSlideshow(
         ],
         { cwd: dir, timeout: 180_000, maxBuffer: 8 * 1024 * 1024 },
         (err, _stdout, stderr) => {
-          if (err) reject(new Error(`ffmpeg 실패: ${String(stderr).slice(-400)}`));
-          else resolve();
+          if (err) {
+            /* stderr 가 비면(스폰 실패 등) err.message 가 유일한 단서다 — 둘 다 싣는다 */
+            const tail = String(stderr).trim().slice(-400);
+            reject(new Error(`ffmpeg 실패 (${err.message.slice(0, 160)})${tail ? ` — ${tail}` : ""}`));
+          } else resolve();
         },
       );
     });
