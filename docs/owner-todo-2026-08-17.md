@@ -8,19 +8,15 @@
 
 ## 🔴 지금 바로
 
-### 1. GitHub Actions 상태 확인 ← 오늘 새로 발생 (배포 6시간+ 정체)
-8/17 00:14 UTC 부터 **push 9건이 전부 워크플로 미기동** — Vercel 신규 배포
-0건, 프로덕션은 구버전(6f018a1)으로 정상 서비스 중. **예약 워크플로(etl
-06:00 UTC)도 미실행 확인**(런타임 로그에 인제스트 호출 전무) — push·schedule
-모두 죽어 있어 저장소 수준 Actions 문제 가능성이 큽니다. GitHub 상태
-페이지는 정상. 확인(1분):
-- https://github.com/kdw1203-art/nuguzip_new/actions 에서 최근 커밋 실행이
-  **아예 없는지 / Queued 인지**
-- 없다면 Settings → Actions → General 허용 상태 + 상단 경고 배너
-- 좌측 "deploy" 워크플로 비활성화(disabled) 표시 여부
-결과를 채팅으로 알려주시면 바로 대응합니다. 오늘 커밋 8건(운영 정본·전략·
-/creators·브랜드 라인·ffmpeg 수리·공유 회로·/imjang·크루 연결)이 큐에 안전
-대기 중이며 재개 시 한 번에 배포됩니다.
+### 1. GitHub Actions 상태 확인 (완화됨 — 배포는 터미널 경로로 해소)
+8/17 00:14 UTC 부터 push·schedule 워크플로 전면 미기동이었으나, **18:2x KST
+소유자 터미널 배포(Vercel CLI)로 13커밋 전부 프로덕션 반영 완료**(8e5c6f5,
+무오류 검증). 이 과정에서 환경변수를 Vercel 프로젝트에 등록해 **GitHub 없이
+도 배포 가능한 이중화**가 생겼습니다. 다만 CI 게이트 자동 실행과 etl(매일
+06:00 UTC 데이터 인제스트)은 여전히 Actions 소관이라 복구 확인은 필요:
+- https://github.com/kdw1203-art/nuguzip_new/actions 실행 유무 / Settings →
+  Actions 허용 상태 / deploy 워크플로 disabled 표시 여부
+- 참고: 잘못 연결됐던 Vercel "my-project"는 대시보드에서 지워도 무방
 
 ### 2. 토스 심사 회신 메일 발송 (자료 전달 완료 상태 유지)
 회신 본문 + 결제경로 PPT 2종 전달 완료(8/16). 남은 것:
