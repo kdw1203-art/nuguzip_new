@@ -52,7 +52,7 @@ export default async function AboutPage() {
       />
       <div className="mx-auto max-w-[720px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
-          누구집 — 임장 기록이 판단 근거가 됩니다
+          누구집 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다
         </h1>
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
           누구집(nuguzip.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래

@@ -65,8 +65,8 @@ export async function GET() {
             flexDirection: "column",
           }}
         >
-          <span>임장 기록이</span>
-          <span>판단 근거가 됩니다</span>
+          <span>시세는 누구나 봅니다,</span>
+          <span>현장은 가 본 사람만 압니다</span>
         </div>
         <div style={{ marginTop: "28px", fontSize: "26px", color: "#7b8494", display: "flex" }}>
           국토교통부 실거래 기반 시세 · 임장노트 · AI 분석 — nuguzip.com

@@ -82,6 +82,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   // 실매물 (집주인 직접·중개사 등록) + 중개사 제휴 안내
   { path: "/listings", priority: 0.8 },
   { path: "/partners", priority: 0.5 },
+  // 임장 크리에이터 입점 랜딩 (성장 전략 U4 — 크리에이터 지참 관객 회로)
+  { path: "/creators", priority: 0.5 },
   { path: "/calculator", priority: 0.6 },
   { path: "/widget", priority: 0.5 }, // N17 — 시세 위젯 배포 안내
   // 가이드 (규제·세금 안내 · 계약 체크리스트)

@@ -220,7 +220,7 @@ export const CARD_FRAMES: readonly CardFrame[] = [
     available: () => true,
     build: () => ({
       kind: "cta",
-      heading: "임장 기록이 판단 근거가 됩니다",
+      heading: "시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
       sub: "nuguzip.com",
     }),
   },

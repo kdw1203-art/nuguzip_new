@@ -86,10 +86,17 @@ export default async function TownLibraryPage() {
               오픈 전
             </span>
           )}
-          {/* 판매자 모집 — 구매 쪽 발견 경로만 있고 파는 쪽 초대가 없었다 */}
+          {/* 판매자 모집 — 구매 쪽 발견 경로만 있고 파는 쪽 초대가 없었다.
+              /creators 는 입점 피치 랜딩(성장 U4) — 절차·요율·정직 고지를 담는다 */}
+          <Link
+            href="/creators"
+            className="ml-auto text-[12px] font-bold text-primary no-underline"
+          >
+            크리에이터 입점 안내 ›
+          </Link>
           <Link
             href="/my/creator"
-            className="ml-auto text-[12px] font-bold text-primary no-underline"
+            className="text-[12px] font-bold text-primary no-underline"
           >
             내 노트 판매하기 ›
           </Link>

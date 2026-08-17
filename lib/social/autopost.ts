@@ -106,7 +106,7 @@ async function buildPromo(dayIndex: number) {
       sub: "현장에서 본 것을 남기면, 판단 재료로 정리해 드립니다",
       statLabel: "임장노트 · 지도 · AI 분석",
       count: async () => "기록은 무료",
-      title: "임장 기록이 판단 근거가 됩니다",
+      title: "시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
       caption: "3분 기록 → AI 정리 → 지도 비교. 임장노트와 지도는 무료입니다.",
       hashtags: ["임장", "임장노트", "부동산공부", "아파트", "누구집"],
     },

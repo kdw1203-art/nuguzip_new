@@ -34,12 +34,15 @@ export const metadata: Metadata = {
     google: "d4jn9bf7SyTraz2EEnn4aNIPemHwz-Bqqflre4DEuXU",
     other: { "naver-site-verification": "411fe0d67e731e16c96f4994d904f6160e4927af" },
   },
-  title: "누구집 — 임장 기록이 판단 근거가 됩니다",
+  /* 브랜드 포지션(전략 정본 §6): "임장 관리"라는 비어 있는 카테고리의 첫 이름.
+     시세를 '보는' 앱이 아니라 현장에 '가는' 사람의 앱 — 문장도 그 대립을 싣는다. */
+  title: "누구집 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
   description:
-    "3분 기록 → AI 정리 → 지도 비교. 부동산 임장노트 플랫폼 누구집. 로그인 없이 시작하세요.",
+    "부동산 임장 관리 플랫폼 누구집. 임장노트 3분 기록 → AI 정리 → 실거래가 지도 비교. 임장 체크리스트부터 지역 분석 리포트까지, 로그인 없이 시작하세요.",
   openGraph: {
-    title: "누구집 — 임장 기록이 판단 근거가 됩니다",
-    description: "3분 기록 → AI 정리 → 지도 비교. 부동산 임장노트 플랫폼 누구집.",
+    title: "누구집 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
+    description:
+      "부동산 임장 관리 플랫폼 누구집. 임장노트 3분 기록 → AI 정리 → 실거래가 지도 비교.",
     siteName: "누구집",
     locale: "ko_KR",
     type: "website",

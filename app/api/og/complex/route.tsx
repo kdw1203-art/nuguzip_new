@@ -214,7 +214,7 @@ export async function GET(req: NextRequest) {
             color: "#7b8494",
           }}
         >
-          임장 기록이 판단 근거가 됩니다 · nuguzip.com
+          시세는 누구나 봅니다, 현장은 가 본 사람만 압니다 · nuguzip.com
         </div>
       </div>
     ),

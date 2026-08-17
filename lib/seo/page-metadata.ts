@@ -19,7 +19,8 @@ import { seoAlternates } from "@/lib/seo/alternates";
 export const SITE_NAME = "누구집";
 
 export const SITE_DEFAULT = {
-  title: "누구집 | 임장 기록이 판단 근거가 됩니다",
+  /* 브랜드 포지션(전략 정본 §6) — 루트 레이아웃 타이틀과 같은 문장을 쓴다 */
+  title: "누구집 | 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
   description:
     "지도·시세·임장노트·동네 커뮤니티를 한 곳에서. 살고 싶은 곳을 기록하고 비교하세요.",
 } as const;
