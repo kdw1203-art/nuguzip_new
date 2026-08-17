@@ -13,8 +13,13 @@ import { Icon } from "@/app/components/Icon";
 export const dynamic = "force-dynamic";
 
 /* 동적 metadata — 예전에는 제목·설명이 루트 기본값으로 나가 공유·검색에서 모든
-   모임이 똑같이 보였다. 실제 모임명·지역을 제목에 싣는다. 조회 실패/없음이면
-   기본값으로 두되 색인은 막지 않는다(존재하는 모임 페이지라 나머지 조각은 그린다). */
+   모임이 똑같이 보였다. 실제 모임명·지역을 제목에 싣는다.
+   + 네이버 SEO 가이드 반영(2026-08-16): 없는 모임·조회 실패의 "찾을 수 없어요"
+   화면에는 noindex 를 단다 — 빈 안내 문서가 색인 가능한 상태로 수집되고 있었다
+   (가이드의 불용문서 케이스). HTTP 상태는 상위 loading.tsx 스트리밍이 200 을
+   먼저 커밋해 notFound() 로도 404 로 바꿀 수 없음을 실측 확인 — 완전한
+   소프트404 해소는 loading 경계 위 존재확인이 필요한 구조 변경(워크오더).
+   실재 모임은 색인 허용(원안 유지). */
 export async function generateMetadata({
   params,
 }: {
@@ -22,7 +27,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const meeting = await getMeeting(id).catch(() => null);
-  if (!meeting) return { title: "임장 모임 | 누구집" };
+  if (!meeting) {
+    return {
+      title: "임장 모임 | 누구집",
+      robots: { index: false, follow: false },
+    };
+  }
   const region = meeting.region || "";
   const title = `${meeting.title}${region ? ` · ${region}` : ""} 임장 모임 | 누구집`;
   const desc =

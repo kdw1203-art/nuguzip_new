@@ -609,6 +609,11 @@ export async function generateMetadata({
      읽는다. 404·noindex 는 정말 없는 단지에만 남는다. */
   const row: ComplexRow | null = await loadComplexRow(id);
   if (!row) {
+    /* ⚠ 알려진 한계(2026-08-10 실측): loading.tsx 스트리밍 때문에 없는 단지도
+       HTTP 200 으로 나간다(소프트 404). generateMetadata 의 notFound() 로도
+       상태 코드를 바꿀 수 없음을 봇 UA 포함으로 확인했다 — 200 이 먼저 커밋된다.
+       noindex 가 색인 유입을 막고 있으므로 당장의 방어는 유효하다. 진짜 404 를
+       원하면 loading 경계 위에서 존재 확인이 필요하다(구조 변경 — 워크오더). */
     return {
       title: "단지를 찾을 수 없습니다 | 누구집",
       description: "요청하신 단지 정보를 찾을 수 없습니다.",
