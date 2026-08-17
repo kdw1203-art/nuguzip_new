@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useToast } from "../../components/toast/ToastProvider";
 
 /* 노트 상세 실동작 액션 (더미 버튼 제거)
-   - 공유: 현재 URL 클립보드 복사 (실패 시 prompt 폴백) + 성공 토스트
+   - 공유(#바이럴 회로, 전략 정본 §5): 모바일은 OS 공유 시트(카카오톡·문자로
+     바로), 데스크톱은 클립보드. 링크에 utm_source=share 를 실어 어드민
+     트래픽의 기존 UTM 집계로 "공유 유입"이 그대로 잡히게 한다.
+     비공개 노트는 복사부터 막는다 — 받은 사람이 못 여는 링크는 바이럴이
+     아니라 신뢰 소모라서, 공개 전환을 먼저 안내한다.
    - 소유자: 수정(/notes/[id]/edit) + 공개/비공개 토글 — PATCH /api/inspection/notes/[id] */
 
 export function NoteDetailActions({
@@ -24,10 +28,24 @@ export function NoteDetailActions({
   const [busy, setBusy] = useState(false);
 
   const share = async () => {
-    const url = window.location.href;
+    if (!isPublic) {
+      showToast("비공개 노트는 링크를 받아도 볼 수 없어요 — 먼저 공개로 전환해 주세요");
+      return;
+    }
+    const url = `${window.location.origin}/notes/${encodeURIComponent(noteId)}?utm_source=share&utm_medium=note`;
+    /* 모바일 — OS 공유 시트로 카카오톡·문자에 바로. 시트를 닫으면(AbortError)
+       조용히 끝내고, 그 외 실패는 클립보드로 폴백한다. */
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: document.title, url });
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+    }
     try {
       await navigator.clipboard.writeText(url);
-      showToast("링크가 복사됐어요");
+      showToast("링크가 복사됐어요 — 붙여넣기만 하면 공유 완료");
     } catch {
       // 클립보드 권한 없음 등 — 수동 복사 폴백
       window.prompt("아래 링크를 복사해 공유하세요", url);
