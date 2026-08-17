@@ -9,9 +9,11 @@
 ## 🔴 지금 바로
 
 ### 1. GitHub Actions 상태 확인 ← 오늘 새로 발생 (배포 6시간+ 정체)
-8/17 00:14 UTC 부터 **push 8건이 전부 워크플로 미기동** — Vercel 신규 배포
-0건, 프로덕션은 구버전(6f018a1)으로 정상 서비스 중. GitHub 상태 페이지는
-정상이라 저장소 쪽 문제 가능성. 확인(1분):
+8/17 00:14 UTC 부터 **push 9건이 전부 워크플로 미기동** — Vercel 신규 배포
+0건, 프로덕션은 구버전(6f018a1)으로 정상 서비스 중. **예약 워크플로(etl
+06:00 UTC)도 미실행 확인**(런타임 로그에 인제스트 호출 전무) — push·schedule
+모두 죽어 있어 저장소 수준 Actions 문제 가능성이 큽니다. GitHub 상태
+페이지는 정상. 확인(1분):
 - https://github.com/kdw1203-art/nuguzip_new/actions 에서 최근 커밋 실행이
   **아예 없는지 / Queued 인지**
 - 없다면 Settings → Actions → General 허용 상태 + 상단 경고 배너
