@@ -599,6 +599,20 @@ export default async function MyPage() {
         {/* ── 포인트 요약 ── */}
         <section className="flex flex-col gap-2.5">
           <SectionHead title="포인트" href="/my/points" hrefLabel="전체 내역" />
+          {/* 친구 초대 — 기능은 완성돼 있었는데 진입점이 모바일 메뉴뿐이었다
+              (성장 회로 점검에서 발견). 포인트 맥락이 초대 보상의 자연스러운 자리다. */}
+          <Link
+            href="/my/referral"
+            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+          >
+            <span className="flex min-w-0 flex-col">
+              <span className="text-[13.5px] font-extrabold text-ink">친구 초대</span>
+              <span className="text-[11.5px] text-text-3">
+                내 링크로 가입하면 친구와 나 모두 300P
+              </span>
+            </span>
+            <span className="shrink-0 text-[13px] font-extrabold text-primary">초대 링크 ›</span>
+          </Link>
           <div className="card rounded-[16px] p-5">
             {!ledgerLoaded.ok ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">

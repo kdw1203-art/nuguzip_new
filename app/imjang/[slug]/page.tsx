@@ -4,6 +4,12 @@ import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { getImjangGuide, type ImjangGuide } from "@/lib/imjang/guide";
 import { IMJANG_CHECKPOINTS } from "@/lib/imjang/checkpoints";
+import { filterNotesByRegion } from "@/lib/imjang/notes-match";
+import {
+  inspectionAverageScore,
+  listPublicNotes,
+  type InspectionNote,
+} from "@/lib/inspection/store-db";
 import { formatKrwShort, formatYm, formatYmRange } from "@/lib/market/format";
 import { breadcrumbJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -70,6 +76,16 @@ export default async function ImjangRegionPage({
   if (!guide) notFound();
   const { region, topComplexes } = guide;
   const range = formatYmRange(region.firstYm, region.latestYm);
+
+  /* U3 플라이휠 조인 — 이 지역의 공개 임장노트. 곁다리 강화라 실패해도
+     페이지는 계속 그리되, 실패와 0건은 화면에서 구분한다(사실 규율). */
+  let regionNotes: InspectionNote[] = [];
+  let notesFailed = false;
+  try {
+    regionNotes = filterNotesByRegion(await listPublicNotes(200), region.name, 4);
+  } catch {
+    notesFailed = true;
+  }
 
   /* 지역 특징 한 줄 — 전부 실데이터에서 계산 (수치 창작 금지) */
   const busiestArea = region.areaCells.slice().sort((a, b) => b.txCount - a.txCount)[0] ?? null;
@@ -180,6 +196,52 @@ export default async function ImjangRegionPage({
             </div>
           ))}
         </div>
+      </section>
+
+      {/* 이 지역 공개 임장노트 — 가 본 사람의 기록 (U3 플라이휠) */}
+      <section className="mb-6">
+        <h2 className="mb-1 text-[15px] font-extrabold text-ink">이 지역을 다녀온 기록</h2>
+        {notesFailed ? (
+          <p className="text-[12.5px] text-text-2">
+            공개 노트를 지금 불러오지 못했어요 — 없는 게 아니라 조회가 실패했다는 뜻이에요.
+          </p>
+        ) : regionNotes.length === 0 ? (
+          <p className="text-[12.5px] leading-[1.65] text-text-2">
+            아직 이 지역의 공개 임장노트가 없어요 —{" "}
+            <Link href="/notes/new" className="font-bold text-primary underline">
+              첫 기록의 주인공
+            </Link>
+            이 되어 보세요. 공개 노트는 이 페이지와 검색에 실려 다음 방문자를 돕습니다.
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {regionNotes.map((n) => {
+              const avg = inspectionAverageScore(n.scores);
+              return (
+                <Link
+                  key={n.id}
+                  prefetch={false}
+                  href={`/notes/${encodeURIComponent(n.id)}`}
+                  className="card card-hover flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-extrabold text-ink">
+                      {n.title}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-text-3">
+                      {[n.aptName, n.region].filter(Boolean).join(" · ")}
+                    </span>
+                  </span>
+                  {avg > 0 && (
+                    <span className="shrink-0 rounded-lg bg-primary-soft px-2 py-1 text-[12px] font-extrabold text-primary">
+                      {avg.toFixed(1)}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <QaBlock title={`${region.name} 임장 Q&A`} items={faq} />
