@@ -61,6 +61,20 @@ export async function recordRegionDemand(input: {
   }
 }
 
+/** 최근 N일 같은 검색어(query_norm) 수요 합계 — 임계 경보용(자동화 로드맵 3). */
+export async function countRegionDemand(queryNorm: string, days = 30): Promise<number> {
+  const sb = getServiceSupabase();
+  if (!sb) throw new Error("서비스 클라이언트 없음");
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data, error } = await sb
+    .from("region_demand_requests")
+    .select("count")
+    .eq("query_norm", queryNorm)
+    .gte("created_at", since);
+  if (error) throw new Error(`수요 합계 조회 실패: ${error.message}`);
+  return (data ?? []).reduce((s, r) => s + Number(r.count ?? 1), 0);
+}
+
 export interface RegionDemandRow {
   query: string;
   totalCount: number;

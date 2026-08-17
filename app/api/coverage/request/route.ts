@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
-import { recordRegionDemand, sanitizeDemandEmail } from "@/lib/coverage/store-db";
+import {
+  countRegionDemand,
+  recordRegionDemand,
+  sanitizeDemandEmail,
+} from "@/lib/coverage/store-db";
 import { logger } from "@/lib/log";
 
 /* POST /api/coverage/request — 검색 무결과에서 "열리면 알려주세요" 수집(#413).
@@ -11,6 +15,9 @@ import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** 같은 검색어 30일 합이 이 값에 도달하는 순간 1회 경보 로그 (자동화 로드맵 3) */
+const COVERAGE_ALERT_THRESHOLD = 10;
 
 export async function POST(req: Request) {
   const ip = getClientIp(req);
@@ -34,6 +41,20 @@ export async function POST(req: Request) {
 
   try {
     await recordRegionDemand({ query, source, email });
+    /* 자동화 로드맵 3 — 수요 임계 경보 1차(로그 표면화). 같은 검색어 30일 합이
+       임계에 "도달하는 순간"에만 warn 을 남긴다 — 매 요청 재경보의 소음 없이,
+       P3 헬스 점검·주간 브리핑이 줍는다. RESEND 개통 후 이메일 경보로 승격.
+       경보 실패가 수집 성공(200)을 오염시키면 안 되므로 따로 삼킨다. */
+    try {
+      const total = await countRegionDemand(query.toLowerCase());
+      if (total === COVERAGE_ALERT_THRESHOLD) {
+        logger.warn(
+          `[coverage] 수요 임계 도달: "${query}" 최근 30일 ${total}건 — 확장 후보 검토 대상`,
+        );
+      }
+    } catch {
+      /* 합계 조회 실패 — 기록 자체는 성공했으므로 조용히 넘어간다 */
+    }
     return NextResponse.json({ ok: true });
   } catch (e) {
     logger.error("[coverage] 수요 기록 실패", e instanceof Error ? e.message : e);

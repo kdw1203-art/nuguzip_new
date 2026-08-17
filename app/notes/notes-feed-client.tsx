@@ -338,9 +338,13 @@ export function NotesFeedClient({
               : "이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요"}
           </p>
           {!mine && (
-            <p className="mt-2 text-[12px]">
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
               <Link href="/notes/best" className="font-bold text-primary underline">
                 이달의 공개 임장노트 — 선정 기준까지 공개 ›
+              </Link>
+              {/* 임장 가이드(전략 §4-2) — 기록 허브에서 준비 허브로 잇는다 */}
+              <Link href="/imjang" className="font-bold text-primary underline">
+                지역별 임장 가이드 — 답사 준비 ›
               </Link>
             </p>
           )}

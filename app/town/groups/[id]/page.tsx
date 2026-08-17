@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getMeeting } from "@/lib/meetings/store-db";
+import { findImjangRegionForLabel } from "@/lib/imjang/guide";
 import { safeAuth } from "@/lib/safe-auth";
 import { PageShell } from "../../../components/PageShell";
 import { ShareButton } from "./ShareButton";
@@ -91,6 +92,12 @@ export default async function TownGroupDetailPage({
       </PageShell>
     );
   }
+
+  /* 크루 도구(전략 §5 회로 4) — 모임 지역이 임장 가이드 지역과 맞으면 잇는다.
+     곁다리 강화라 실패는 삼키고 링크만 생략한다(모임 본문 존재 판정과 무관). */
+  const imjangRegion = meeting.region
+    ? await findImjangRegionForLabel(meeting.region).catch(() => null)
+    : null;
 
   const myEmail = session?.user?.email?.trim().toLowerCase() ?? null;
   const remaining = meeting.maxMembers - meeting.currentMembers;
@@ -194,6 +201,32 @@ export default async function TownGroupDetailPage({
             <p className="text-[11px] leading-[1.5] text-text-3">
               지역 기준 지도예요 · 정확한 집결 장소는 모임 채팅방에서 안내돼요.
             </p>
+          </div>
+
+          {/* 크루 도구 — 답사 전 준비를 누구집 안에서 끝내게 한다 */}
+          <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-5">
+            <div className="text-[13px] font-extrabold text-ink">임장 준비</div>
+            <p className="text-[12px] leading-[1.6] text-text-2">
+              가기 전에 데이터 브리핑과 현장 체크포인트를 훑고, 다녀와서는 각자
+              노트로 남겨 비교해 보세요.
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {imjangRegion && (
+                <Link
+                  prefetch={false}
+                  href={`/imjang/${encodeURIComponent(imjangRegion.slug)}`}
+                  className="text-[12.5px] font-extrabold text-primary no-underline"
+                >
+                  {imjangRegion.name} 임장 가이드 ›
+                </Link>
+              )}
+              <Link href="/notes/templates" className="text-[12.5px] font-bold text-text-2 no-underline hover:text-primary">
+                노트 템플릿 보기 ›
+              </Link>
+              <Link href="/notes/new" className="text-[12.5px] font-bold text-text-2 no-underline hover:text-primary">
+                임장노트 쓰기 ›
+              </Link>
+            </div>
           </div>
 
           <div className="flex gap-2">

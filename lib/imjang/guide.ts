@@ -7,6 +7,7 @@ import {
   type TxRegionSummary,
 } from "@/lib/market/tx-bands";
 import { aggregateComplexRows, type ComplexBandRow, type ImjangComplex } from "./aggregate";
+import { normalizeRegionLabel } from "./region-label";
 
 /* 지역 임장 가이드 데이터 조립 (전략 정본 §4-2).
  *
@@ -31,6 +32,21 @@ export async function listImjangRegions(limit = 60): Promise<TxRegionSummary[]> 
     .slice()
     .sort((a, b) => b.txCount - a.txCount || a.name.localeCompare(b.name, "ko"))
     .slice(0, Math.max(1, limit));
+}
+
+/**
+ * 임의 지역 표기("서울특별시 강남구" 등) → 실재하는 임장 가이드 지역.
+ * 정규화 후 **정확 일치**만 — 못 맞추면 null (틀린 지역으로 보내지 않는다).
+ * 모임 상세처럼 "있으면 잇고 없으면 조용히 생략"하는 자리에서 쓴다.
+ */
+export async function findImjangRegionForLabel(
+  label: string,
+): Promise<{ name: string; slug: string } | null> {
+  const norm = normalizeRegionLabel(label);
+  if (!norm) return null;
+  const regions = await listTxRegions();
+  const hit = regions.find((r) => r.name === norm);
+  return hit ? { name: hit.name, slug: hit.slug } : null;
 }
 
 export async function getImjangGuide(slug: string): Promise<ImjangGuide | null> {
