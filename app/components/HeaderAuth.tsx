@@ -67,11 +67,10 @@ export function HeaderAuth() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  if (state.status === "loading") {
-    return <span className="inline-block w-[30px]" aria-hidden />;
-  }
-
-  if (state.status === "guest") {
+  /* 세션 확인 중에도 게스트 링크를 그린다(#홈비판 — SSR/첫 페인트에 가입
+     경로가 아예 없었다). 첫 방문 트래픽 대다수가 비로그인이라 게스트가
+     기본값이 맞고, 로그인 사용자는 확인 후 아바타로 스왑된다(깜빡임 감수). */
+  if (state.status === "loading" || state.status === "guest") {
     /* 웹5 — CTA 위계 정리. 회원가입이 아웃라인 필이라 헤더의 진짜 목표
        행동("노트 쓰기" 파랑 버튼)과 경쟁했다. 이 제품의 첫 행동은 가입이
        아니라 기록이다(로그인 없이 작성, 저장할 때 로그인) — 회원가입은

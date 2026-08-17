@@ -125,6 +125,13 @@ READY → 프로덕션 콘텐츠 신호 확인.
 | 장애·경보 | 발생 시 | 인박스/로그→대화 | SYSTEM→AGENT |
 | 소유자 잔여업무 | 변동 시 | docs/owner-todo | AGENT |
 
+## 부속 SOP (2026-08-17 신설 — 운영 필수요소 ❌ 5 해소)
+
+sop-refunds(환불·분쟁) · privacy-incident(개인정보 사고) ·
+creator-settlement(정산·세무, 출금 개시 전 체크리스트) ·
+backup-restore(백업·복구 리허설) · customer-support(CS 채널·SLA).
+법무·세무 표기 항목은 전문가 확인 후 확정 — 각 문서 ⚠️ 표시 참조.
+
 ## 자동화 로드맵 (사람 의존 추가 제거)
 
 1. 소셜 산출물 하트비트를 P3 경보에 편입 (첫 실가동 검증 직후)

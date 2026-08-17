@@ -1,7 +1,14 @@
-/* 홈 리디자인(#408) 시안 A — 상단 시세 티커 밴드 (잉크 네이비).
+import Link from "next/link";
+
+/* 홈 리디자인(#408) 시안 A — 시세 티커 밴드 (잉크 네이비).
  *
  * 사실 우선: 항목은 전부 실측값이고, 조회에 실패한 항목은 **빠진다**(가짜
  * 숫자로 채우지 않는다). 항목이 하나도 없으면 밴드 자체를 그리지 않는다.
+ *
+ * 2026-08-17 개선(홈 비판 대응):
+ * - 항목 링크화 — 숫자에 "그래서 뭐?"가 없다는 지적. 기준금리→시나리오,
+ *   온도→온도 기록처럼 해석 페이지로 잇는다(href 없는 항목은 그대로 텍스트).
+ * - 가독성 — 11px/55% 라벨이 저시력·고령 사용자에게 부담: 12px/70%로.
  *
  * 모션: CSS 마퀴(트랙 2벌 복제 + translateX -50%). prefers-reduced-motion
  * 에서는 애니메이션을 끄고 가로 스크롤로 대체한다(globals.css 8f 등록).
@@ -12,6 +19,44 @@ export interface TickerItem {
   value: string;
   /** "up" = 파랑 강조, "down" = 붉은 강조 */
   tone?: "up" | "down" | "flat";
+  /** 해석 페이지 — 있으면 항목 전체가 링크가 된다 */
+  href?: string;
+}
+
+function ItemBody({ it }: { it: TickerItem }) {
+  return (
+    <>
+      <span className="text-white/70">{it.label}</span>
+      <span
+        className={`tabular-nums ${
+          it.tone === "up"
+            ? "text-[#8fb3ff]"
+            : it.tone === "down"
+              ? "text-[#ff9d9d]"
+              : "text-white/90"
+        }`}
+      >
+        {it.value}
+      </span>
+    </>
+  );
+}
+
+function Item({ it, linkable = true }: { it: TickerItem; linkable?: boolean }) {
+  const cls = "flex shrink-0 items-baseline gap-1.5 text-[12px] font-bold";
+  /* 마퀴 복제 트랙(aria-hidden)의 링크는 포커스 함정이 된다 — 복제분은 스팬으로 */
+  if (it.href && linkable) {
+    return (
+      <Link prefetch={false} href={it.href} className={`${cls} no-underline`}>
+        <ItemBody it={it} />
+      </Link>
+    );
+  }
+  return (
+    <span className={cls}>
+      <ItemBody it={it} />
+    </span>
+  );
 }
 
 export function HomeTicker({ items }: { items: TickerItem[] }) {
@@ -24,23 +69,7 @@ export function HomeTicker({ items }: { items: TickerItem[] }) {
       <div className="overflow-x-auto rounded-xl bg-ink px-4 py-2">
         <div className="flex items-center justify-center gap-7">
           {items.map((it, i) => (
-            <span
-              key={i}
-              className="flex shrink-0 items-baseline gap-1.5 text-[11px] font-bold"
-            >
-              <span className="text-white/55">{it.label}</span>
-              <span
-                className={`tabular-nums ${
-                  it.tone === "up"
-                    ? "text-[#8fb3ff]"
-                    : it.tone === "down"
-                      ? "text-[#ff9d9d]"
-                      : "text-white/90"
-                }`}
-              >
-                {it.value}
-              </span>
-            </span>
+            <Item key={i} it={it} />
           ))}
         </div>
       </div>
@@ -53,23 +82,7 @@ export function HomeTicker({ items }: { items: TickerItem[] }) {
       className="flex shrink-0 items-center gap-7 pr-7"
     >
       {items.map((it, i) => (
-        <span
-          key={`${dup ? "d" : "o"}-${i}`}
-          className="flex shrink-0 items-baseline gap-1.5 text-[11px] font-bold"
-        >
-          <span className="text-white/55">{it.label}</span>
-          <span
-            className={`tabular-nums ${
-              it.tone === "up"
-                ? "text-[#8fb3ff]"
-                : it.tone === "down"
-                  ? "text-[#ff9d9d]"
-                  : "text-white/90"
-            }`}
-          >
-            {it.value}
-          </span>
-        </span>
+        <Item key={`${dup ? "d" : "o"}-${i}`} it={it} linkable={!dup} />
       ))}
     </div>
   );

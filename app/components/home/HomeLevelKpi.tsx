@@ -88,11 +88,11 @@ export function HomeLevelKpi() {
     >
       <span className="text-[10.5px] font-bold text-text-3">내 임장 레벨</span>
       <span className="text-[15px] font-extrabold leading-tight text-primary">
-        {state.kind === "anon" ? "시작하기" : "첫 지역 레벨 쌓기"}
+        {state.kind === "anon" ? "3분이면 첫 노트" : "첫 지역 레벨 쌓기"}
       </span>
       <span className="text-[11px] font-bold text-text-2">
         {state.kind === "anon"
-          ? "노트를 쓰면 지역 레벨이 쌓여요"
+          ? "로그인 없이 쓰고, 저장할 때 가입해요"
           : "같은 지역 노트 1개면 Lv.1"}
       </span>
     </Link>

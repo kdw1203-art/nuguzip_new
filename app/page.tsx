@@ -205,10 +205,15 @@ export default async function Home() {
     : null;
   const tickerItems: TickerItem[] = [];
   for (const r of regions.slice(0, 3)) {
-    tickerItems.push({ label: `${r.name} 평균`, value: `${r.price} ${r.delta}`, tone: r.tone });
+    tickerItems.push({
+      label: `${r.name} 평균`,
+      value: `${r.price} ${r.delta}`,
+      tone: r.tone,
+      href: `/map?region=${encodeURIComponent(r.name)}`,
+    });
   }
   if (saleIndexSeoul !== "—") {
-    tickerItems.push({ label: "매매지수 서울", value: saleIndexSeoul });
+    tickerItems.push({ label: "매매지수 서울", value: saleIndexSeoul, href: "/analysis/timing" });
   }
   /* 기준시점을 값에 함께 싣는다(#409) — 기준금리는 일 단위, 주담대는 월 공시라
      시점 없이 나란히 흐르면 두 달 차이 나는 숫자가 같은 날처럼 읽힌다
@@ -217,24 +222,39 @@ export default async function Home() {
     tickerItems.push({
       label: "기준금리",
       value: baseRateAsOf ? `${baseRate} (${baseRateAsOf})` : baseRate,
+      href: "/analysis/scenario",
     });
   }
   if (loanRate) {
     tickerItems.push({
       label: "주담대 변동",
       value: loanRateAsOf ? `${loanRate} (${loanRateAsOf} 공시)` : loanRate,
+      href: "/analysis/scenario",
     });
   }
   if (kpiTemp) {
-    tickerItems.push({ label: "시장 온도", value: `${kpiTemp.score} · ${kpiTemp.headline}` });
+    tickerItems.push({
+      label: "시장 온도",
+      value: `${kpiTemp.score} · ${kpiTemp.headline}`,
+      href: "/analysis/temperature",
+    });
   }
-  if (data.publicNotesTotal !== null) {
-    tickerItems.push({ label: "공개 임장노트", value: `${data.publicNotesTotal}건`, tone: "up" });
+  /* 커뮤니티 규모 지표는 임계(100) 전까지 싣지 않는다 — "15건"을 전면에
+     흘리는 건 정직이 아니라 역광고다(수치를 부풀리지 않되, 작을 때는
+     시장 데이터가 밴드의 주인공이 된다). 임계를 넘으면 실측 그대로 복귀. */
+  const COMMUNITY_TICKER_MIN = 100;
+  if (data.publicNotesTotal !== null && data.publicNotesTotal >= COMMUNITY_TICKER_MIN) {
+    tickerItems.push({
+      label: "공개 임장노트",
+      value: `${data.publicNotesTotal}건`,
+      tone: "up",
+      href: "/notes",
+    });
   }
-  if (data.activityToday !== null) {
+  if (data.activityToday !== null && data.activityToday >= COMMUNITY_TICKER_MIN) {
     tickerItems.push({ label: "오늘 활동", value: `${data.activityToday}건` });
   }
-  if (freshness) tickerItems.push({ label: "실거래 기준", value: String(freshness) });
+  if (freshness) tickerItems.push({ label: "실거래 기준", value: String(freshness), href: "/tx" });
 
   return (
     <>
@@ -348,7 +368,7 @@ export default async function Home() {
                   icon="notebook-pen"
                   title="아직 공개된 임장노트가 없어요"
                   desc="첫 노트를 남기면 여기에 소개됩니다."
-                  action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+                  action={{ label: "첫 공개 노트 남기기", href: "/notes/new" }}
                 />
               )
             ) : (
@@ -436,11 +456,24 @@ export default async function Home() {
             >
               자료실 · 임장 리포트 <span className="text-primary">›</span>
             </Link>
+            {/* 수익모델·팀 서사 동선(#홈비판) — 리포트 판매와 만든 사람 이야기 */}
+            <Link
+              href="/creators"
+              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+            >
+              크리에이터 입점 · 리포트 판매 <span className="text-primary">›</span>
+            </Link>
             <Link
               href="/town/groups"
               className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
             >
               임장 모임 <span className="text-primary">›</span>
+            </Link>
+            <Link
+              href="/about"
+              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+            >
+              누구집 이야기 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/safety"
@@ -559,7 +592,7 @@ export default async function Home() {
                       icon="notebook-pen"
                       title="아직 공개된 임장노트가 없어요"
                       desc="첫 노트를 남기면 여기에 소개됩니다."
-                      action={{ label: "임장노트 쓰기", href: "/notes/new" }}
+                      action={{ label: "첫 공개 노트 남기기", href: "/notes/new" }}
                     />
                   )
                 ) : (
@@ -719,11 +752,26 @@ export default async function Home() {
                 자료실 · 임장 리포트
                 <span className="text-primary">›</span>
               </Link>
+              {/* 수익모델·팀 서사 동선(#홈비판) */}
+              <Link
+                href="/creators"
+                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              >
+                크리에이터 입점 · 리포트 판매
+                <span className="text-primary">›</span>
+              </Link>
               <Link
                 href="/town/groups"
                 className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
               >
                 임장 모임
+                <span className="text-primary">›</span>
+              </Link>
+              <Link
+                href="/about"
+                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              >
+                누구집 이야기
                 <span className="text-primary">›</span>
               </Link>
               {meetings.length > 0 && (

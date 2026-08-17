@@ -129,7 +129,7 @@ export function HomeHeroSearch() {
               setOpen(false);
             }
           }}
-          placeholder="단지·지역·매물·노트 검색"
+          placeholder="예: 공작아파트 · 동안구 · 재건축"
           aria-label="통합 검색"
           autoComplete="off"
           className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-text-3"
@@ -225,7 +225,11 @@ export function HomeHeroSearch() {
           </>
         ) : (
           <>
-            <span className="text-[11px] font-semibold text-text-3">실거래 지역 바로가기</span>
+            {/* "열린 지역" 프레임(#홈비판 — 커버리지가 작아 보이는 문제):
+                4개 지역은 한계가 아니라 수요 순 확장의 현재 지점이라고 말한다 */}
+            <span className="text-[11px] font-semibold text-text-3">
+              열린 지역 · 수요 순 확장 중
+            </span>
             {REGION_FALLBACK.map((r) => (
               <button
                 key={r.label}
@@ -236,6 +240,14 @@ export function HomeHeroSearch() {
                 {r.label}
               </button>
             ))}
+            {/* 커버 밖 방문자용 — 검색하면 무결과에서 열림 알림(수요 카드)로 이어진다 */}
+            <button
+              type="button"
+              onClick={() => router.push("/search")}
+              className="chip bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary"
+            >
+              + 내 지역 요청
+            </button>
           </>
         )}
       </div>

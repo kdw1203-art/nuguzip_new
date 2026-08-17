@@ -101,7 +101,10 @@ export function JourneyBanner() {
     return (
       <div className="card flex flex-col gap-2.5 rounded-2xl px-[18px] py-4">
         <div className="text-[13px] font-extrabold text-ink">지금 어디부터 할까요?</div>
-        <p className="text-[11px] text-text-3">임장노트 → AI 정리 → 지도 비교 순서가 기본이에요</p>
+        <p className="text-[11px] text-text-3">
+          임장(臨場)은 집을 현장에서 직접 확인하는 일 — 기록 → AI 정리 → 지도 비교
+          순서가 기본이에요
+        </p>
         <div className="flex gap-1.5">
           {STEP_KEYS.map((s) => (
             <button
