@@ -1,19 +1,14 @@
 import "server-only";
 
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { sanitizeDemandEmail } from "./email";
+
+export { sanitizeDemandEmail };
 
 /* 커버 밖 수요 수집(#413) — region_demand_requests 읽기/쓰기.
  * 같은 검색어는 (query_norm, created_day) 한 행에 count 로 접는다.
  * 실패는 던진다 — 호출부(API)가 502 로 정직하게 답한다. */
 
-const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,64}\.[^\s@]{2,24}$/;
-
-export function sanitizeDemandEmail(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  const v = raw.trim().toLowerCase();
-  if (!v || v.length > 120 || !EMAIL_RE.test(v)) return null;
-  return v;
-}
 
 /** 수요 1건 기록 — 오늘 같은 검색어 행이 있으면 count+1, 이메일은 중복 없이 추가. */
 export async function recordRegionDemand(input: {

@@ -143,6 +143,28 @@ export function HomeHeroSearch() {
         </button>
       </div>
 
+      {/* 제안 0건 — 커버리지 수요 루프(#413)로 연결: 홈이 제1 검색 표면이라
+          여기서 끊기면 수요가 기록되지 않는다. /search 무결과 화면에 수집
+          카드가 있으니 그리로 잇는다. */}
+      {open && q.trim().length >= 2 && items.length === 0 && (
+        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
+          <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_48px_rgba(16,28,54,.16)]">
+            <button
+              type="button"
+              onClick={submit}
+              className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
+            >
+              <span className="min-w-0 truncate text-[13px] text-text-2">
+                ‘{q.trim()}’ 제안이 없어요 — 아직 안 열린 지역일 수 있어요
+              </span>
+              <span className="shrink-0 text-[12px] font-extrabold text-primary">
+                전체 검색·수요 남기기 ›
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 제안 드롭다운 */}
       {open && q.trim().length >= 2 && items.length > 0 && (
         <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
