@@ -260,14 +260,6 @@ export default async function Home() {
             흡수했고, 남은 핵심(작성 중 노트 복귀)만 우하단 팝업으로 남는다. */}
         <ResumeDraftPopup />
 
-        {/* ================= #408 상단 시세 티커 — 시안 A (모바일·데스크탑 공용).
-            오늘의 실측 숫자가 흐른다. 항목이 하나도 없으면 밴드 자체가 없다. */}
-        {tickerItems.length > 0 && (
-          <div className="rise-in mb-2.5 md:mb-3.5">
-            <HomeTicker items={tickerItems} />
-          </div>
-        )}
-
         {/* ================= 모바일 — 검색 포털 + 상황판 (#408 A+B 조합) ================= */}
         <section className="flex flex-col gap-2.5 md:hidden">
           {/* 검색이 첫 화면의 절반 (시안 B). 히어로 카피 없음 (시안 A) —
@@ -286,6 +278,14 @@ export default async function Home() {
               </p>
             )}
           </div>
+
+          {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
+              검색 아래·상황판 위로. 검색이 첫인상, 숫자 밴드가 상황판의 머리가 된다. */}
+          {tickerItems.length > 0 && (
+            <div className="rise-in-2">
+              <HomeTicker items={tickerItems} />
+            </div>
+          )}
 
           {/* KPI 4칸 (시안 A) — 지역 평균·시장 온도·거래량·내 임장 레벨 */}
           <div className="rise-in-2">
@@ -467,8 +467,10 @@ export default async function Home() {
         <section className="hidden md:block">
           {/* #408 A+B — 히어로 카피 없음. 질문 한 줄 + 대형 검색이 첫인상.
               소유자 캡처 지시(2026-08-16): 검색은 **페이지 전폭의 정중앙** —
-              사이드바 열 밖으로 빼고, 사이드바는 KPI 줄부터 시작한다. */}
-          <div className="home-search-hero rise-in flex flex-col justify-center gap-3.5 py-9">
+              사이드바 열 밖으로 빼고, 사이드바는 KPI 줄부터 시작한다.
+              2026-08-17 지시: 티커를 검색 아래로 내리고 검색은 위로 —
+              py-9→py-5 로 죄어 첫 화면 밀집도를 올린다. */}
+          <div className="home-search-hero rise-in flex flex-col justify-center gap-3 py-5">
             <p className="text-center text-[26px] font-extrabold leading-[1.3] tracking-[-0.6px] text-ink">
               어느 단지가 궁금하세요?
             </p>
@@ -479,6 +481,14 @@ export default async function Home() {
               </p>
             )}
           </div>
+
+          {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
+              검색 아래·KPI 위 전폭 밴드로. 검색(질문)이 먼저, 숫자(상황판)가 다음. */}
+          {tickerItems.length > 0 && (
+            <div className="rise-in-1 mb-4">
+              <HomeTicker items={tickerItems} />
+            </div>
+          )}
 
           {/* 이하 2열 — 본문(KPI부터) | 사이드바 (윗선이 같다) */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
