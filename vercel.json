@@ -31,6 +31,30 @@
     {
       "path": "/api/cron/social-upload-drain",
       "schedule": "20 2 * * *"
+    },
+    {
+      "path": "/api/cron/molit-transactions-ingest",
+      "schedule": "40 0 * * *"
+    },
+    {
+      "path": "/api/cron/reb-ingest",
+      "schedule": "50 0 * * *"
+    },
+    {
+      "path": "/api/cron/kb-ingest",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/complex-crawl",
+      "schedule": "10 1 * * *"
+    },
+    {
+      "path": "/api/cron/geocode-complexes",
+      "schedule": "20 1 * * *"
+    },
+    {
+      "path": "/api/cron/apt-detail-enrich",
+      "schedule": "30 1 * * *"
     }
   ]
 }

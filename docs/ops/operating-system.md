@@ -140,3 +140,10 @@ backup-restore(백업·복구 리허설) · customer-support(CS 채널·SLA).
    도달 순간 warn 로그(P3·주간 브리핑이 줍는다). RESEND 개통 후 이메일 승격
 4. GH Actions 정체 자동 재점화 — 배포 무생성 20분 감지 시 빈 커밋 (현재는
    push 후 send_later 자동 점검 체인으로 운용 중)
+5. **핵심 인제스트 GH 독립(2026-08-18)**: molit·reb·kb·complex-crawl·
+   geocode·apt-detail 6종을 Vercel 크론(00:40~01:30 UTC)으로 이중화 —
+   GH Actions 가 죽어도 데이터 신선도 유지. 키 대기 소스(kosis·ecos·onbid·
+   court·redevelopment·apt-master)는 etl.yml 잔류(복구/키 등록 시 재개).
+   양쪽 모두 멱등(채워진 조합 건너뜀)이라 GH 복구 후 중복 실행 무해.
+   같은 날: seo-asset 프로브를 발사→동일 실행 수거로 수리(pg_net TTL 오탐
+   제거, 20260818000025) · 레거시 소셜 pg_cron 이중발사 잠복 결함 제거.
