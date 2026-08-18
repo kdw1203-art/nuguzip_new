@@ -69,7 +69,20 @@ export function MobileMenu() {
      먼저 보여주지 않는다). */
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  /* pointerdown 즉시 열기의 레이스 방어 — 여는 손가락을 떼는 순간의 click 이
+     방금 나타난 딤 배경에 떨어져 "열리자마자 닫히는" 문제(로컬 재현 확인).
+     열림 직후 350ms 동안은 배경 닫기를 무시한다(✕ 버튼·ESC 는 가드 없음). */
+  const openedAtRef = useRef(0);
   const pathname = usePathname();
+
+  const openMenu = () => {
+    openedAtRef.current = Date.now();
+    setOpen(true);
+  };
+  const closeFromBackdrop = () => {
+    if (Date.now() - openedAtRef.current < 350) return;
+    setOpen(false);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -132,26 +145,40 @@ export function MobileMenu() {
         type="button"
         aria-label="전체 메뉴 열기"
         aria-expanded={open}
-        onClick={() => setOpen(true)}
+        onPointerDown={openMenu}
+        onClick={openMenu}
         className="relative flex h-8 w-8 items-center justify-center rounded-xl text-text-1 transition-colors after:absolute after:-inset-1.5 after:content-[''] active:bg-[rgba(29,79,216,.08)] md:hidden"
       >
         <Icon name="menu" size={20} />
       </button>
 
-      {open && mounted &&
+      {/* 소유자 캡처(2026-08-18) — "열고 닫는 게 너무 느리다". 원인은 렌더 비용:
+          시트 전체(링크 45개 + PushSubscribe 의 서비스워커 조회)가 **열 때마다
+          마운트**되고 닫을 때 통째로 언마운트됐다. 한 번만 마운트해 두고
+          transform/opacity 만 전환한다 — 열기는 즉시(트리거도 pointerdown),
+          닫기는 200ms 슬라이드로 대칭. 닫힌 동안은 inert+invisible 로 포커스·
+          보조기술에서 제외(visibility 는 전환이 끝난 뒤 꺼진다). */}
+      {mounted &&
         createPortal(
-        <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label="전체 메뉴">
-          {/* 소유자 캡처(2026-08-04) — "닫기가 느리다". 두 가지가 겹쳐 있었다:
-              ① 전체 화면 backdrop blur — 아이폰 사파리에서 합성 해제가 무겁다.
-                 배경은 어둡기(dim)만으로 충분하다 → blur 제거.
-              ② click 은 터치를 뗀 뒤에야 발화 → pointerdown 에서 즉시 닫는다
-                 (배경은 스크롤 제스처가 없는 순수 딤이라 pointerdown 안전). */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="전체 메뉴"
+          aria-hidden={!open}
+          inert={!open}
+          className={`fixed inset-0 z-[60] md:hidden ${
+            open ? "visible" : "invisible [transition:visibility_0s_linear_220ms]"
+          }`}
+        >
+          {/* 배경 딤 — blur 없는 순수 딤(2026-08-04 결정 유지) + pointerdown 즉시 닫기 */}
           <button
             type="button"
             aria-label="메뉴 닫기"
-            onPointerDown={() => setOpen(false)}
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 h-full w-full cursor-default"
+            onPointerDown={closeFromBackdrop}
+            onClick={closeFromBackdrop}
+            className={`absolute inset-0 h-full w-full cursor-default transition-opacity duration-200 ${
+              open ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
             style={{ background: "rgba(20,26,38,.45)" }}
           />
 
@@ -159,8 +186,11 @@ export function MobileMenu() {
             ref={panelRef}
             tabIndex={-1}
             /* glass-strong(backdrop-filter) 제거 — 패널 배경이 불투명 surface 라
-               블러는 보이지 않으면서 비용만 냈다. 그림자로 대체. */
-            className="absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] flex-col rounded-l-3xl outline-none shadow-[-16px_0_44px_rgba(15,23,42,.22)] [animation:riseIn_220ms_var(--ease-out)_backwards]"
+               블러는 보이지 않으면서 비용만 냈다. 그림자로 대체.
+               전환은 transform 만(합성기 전용) — 레이아웃·페인트 비용 0. */
+            className={`absolute right-0 top-0 flex h-full w-[86%] max-w-[360px] transform-gpu flex-col rounded-l-3xl outline-none shadow-[-16px_0_44px_rgba(15,23,42,.22)] transition-transform duration-200 [transition-timing-function:var(--ease-out)] ${
+              open ? "translate-x-0" : "translate-x-full"
+            }`}
             style={{
               background: "var(--surface)",
               paddingTop: "max(16px, env(safe-area-inset-top, 0px))",
