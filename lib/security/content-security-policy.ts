@@ -31,7 +31,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
      쓴다. script 에 없으면 체크아웃 페이지에서 위젯 로드가 통째로 차단된다. */
   const tossScript = "https://cdn.toss.im https://js.tosspayments.com";
   const tossConnect =
-    "https://cdn.toss.im https://*.cert.toss.im https://api.tosspayments.com https://event.tosspayments.com https://js.tosspayments.com";
+    "https://cdn.toss.im https://*.cert.toss.im https://*.tosspayments.com";
   const tossFrame = "https://js.tosspayments.com https://*.tosspayments.com https://payment-gateway.tosspayments.com";
 
   return [
