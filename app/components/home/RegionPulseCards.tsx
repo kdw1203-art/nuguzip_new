@@ -27,7 +27,16 @@ const DELTA_CLASS: Record<HomeRegionCard["tone"], string> = {
   flat: "delta-flat",
 };
 
-function Sparkline({ values, tone }: { values: number[]; tone: HomeRegionCard["tone"] }) {
+function Sparkline({
+  values,
+  tone,
+  animate,
+}: {
+  values: number[];
+  tone: HomeRegionCard["tone"];
+  /** 뷰포트 진입 후 true — 그리기 애니메이션 트리거(페인트만 바뀌고 레이아웃은 불변) */
+  animate: boolean;
+}) {
   if (values.length < 4) return null;
   const w = 120;
   const h = 34;
@@ -61,10 +70,12 @@ function Sparkline({ values, tone }: { values: number[]; tone: HomeRegionCard["t
         strokeLinecap="round"
         strokeLinejoin="round"
         pathLength={1}
-        className="rp-spark-line"
+        className={animate ? "rp-spark-line" : "rp-spark-wait"}
       />
-      <circle cx={ex} cy={ey} r={2.4} fill={stroke} />
-      <circle cx={ex} cy={ey} r={2.4} fill={stroke} opacity={0.35} className="rp-spark-pulse" />
+      <circle cx={ex} cy={ey} r={2.4} fill={stroke} opacity={animate ? 1 : 0} />
+      {animate && (
+        <circle cx={ex} cy={ey} r={2.4} fill={stroke} opacity={0.35} className="rp-spark-pulse" />
+      )}
     </svg>
   );
 }
@@ -163,7 +174,9 @@ export function RegionPulseCards({ regions }: { regions: HomeRegionCard[] }) {
             </span>
             <span className={`text-[11px] ${DELTA_CLASS[r.tone]}`}>{r.delta}</span>
           </div>
-          {seen && <Sparkline values={r.spark} tone={r.tone} />}
+          {/* CLS 방지 — 스파크라인은 SSR부터 자리를 차지하고(레이아웃 불변),
+              뷰포트에 들어오면 그리기 애니메이션만 시작한다(페인트 변화만). */}
+          <Sparkline values={r.spark} tone={r.tone} animate={seen} />
           <div className="mt-1.5 flex items-center justify-between">
             <span className="text-[10px] text-text-3">
               {r.spark.length >= 4 ? `최근 ${r.spark.length}주 매매지수` : "국토부 실거래 기준"}
@@ -176,6 +189,10 @@ export function RegionPulseCards({ regions }: { regions: HomeRegionCard[] }) {
       ))}
       {/* 스파크라인 그리기 애니메이션 — 컴포넌트와 함께 배달되는 지역 스타일 */}
       <style>{`
+        .rp-spark-wait {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+        }
         .rp-spark-line {
           stroke-dasharray: 1;
           stroke-dashoffset: 1;
