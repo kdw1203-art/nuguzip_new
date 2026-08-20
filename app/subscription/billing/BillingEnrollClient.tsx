@@ -31,13 +31,24 @@ type Phase =
 
 const TIER_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
 
-function parseParams(): { tier: "pro" | "expert"; billing: "monthly" | "annual" } | null {
+type EnrollParams = {
+  tier: "pro" | "expert" | null;
+  billing: "monthly" | "annual";
+  /** mode=card — 살아 있는 구독의 결제 카드만 교체(추가 결제 없음) */
+  cardChange: boolean;
+};
+
+function parseParams(): EnrollParams | null {
   try {
     const sp = new URLSearchParams(window.location.search);
+    const cardChange = sp.get("mode") === "card";
     const tier = sp.get("tier");
     const billing = sp.get("billing") === "annual" ? "annual" : "monthly";
-    if (tier !== "pro" && tier !== "expert") return null;
-    return { tier, billing };
+    if (tier !== "pro" && tier !== "expert") {
+      // 카드 변경은 서버가 구독에서 플랜을 찾아 주므로 tier 없이도 진행
+      return cardChange ? { tier: null, billing, cardChange } : null;
+    }
+    return { tier, billing, cardChange };
   } catch {
     return null;
   }
@@ -45,7 +56,7 @@ function parseParams(): { tier: "pro" | "expert"; billing: "monthly" | "annual" 
 
 export function BillingEnrollClient() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
-  const [params, setParams] = useState<{ tier: "pro" | "expert"; billing: "monthly" | "annual" } | null>(null);
+  const [params, setParams] = useState<EnrollParams | null>(null);
   const [customerKey, setCustomerKey] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
@@ -69,12 +80,16 @@ export function BillingEnrollClient() {
         const res = await fetch("/api/payments/toss/billing/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tier: p.tier, billing: p.billing }),
+          body: JSON.stringify(
+            p.cardChange ? { mode: "card" } : { tier: p.tier, billing: p.billing },
+          ),
         });
         const j = (await res.json().catch(() => ({}))) as {
           customerKey?: string;
           amount?: number;
           error?: string;
+          plan?: string;
+          billing?: string;
         };
         if (res.status === 401) {
           setPhase({ kind: "login" });
@@ -92,6 +107,14 @@ export function BillingEnrollClient() {
           return;
         }
         setCustomerKey(j.customerKey);
+        // 카드 변경 — 서버가 구독에서 찾아 준 플랜·주기로 표기를 맞춘다
+        if (p.cardChange && (j.plan === "pro" || j.plan === "expert")) {
+          setParams({
+            tier: j.plan,
+            billing: j.billing === "annual" ? "annual" : "monthly",
+            cardChange: true,
+          });
+        }
         setPhase({ kind: "ready", amount: Number(j.amount) });
         void loadTossSdk().catch(() => {}); // 사파리 제스처 차단 대비 프리로드
       } catch {
@@ -109,7 +132,7 @@ export function BillingEnrollClient() {
       const origin = window.location.origin;
       await payment.requestBillingAuth({
         method: "CARD",
-        successUrl: `${origin}/api/payments/toss/billing/register`,
+        successUrl: `${origin}/api/payments/toss/billing/register${params.cardChange ? "?mode=card" : ""}`,
         failUrl: `${origin}/payment/fail`,
         ...(email ? { customerEmail: email } : {}),
       });
@@ -128,14 +151,16 @@ export function BillingEnrollClient() {
     }
   }
 
-  const label = params ? (TIER_LABEL[params.tier] ?? params.tier) : "";
+  const label = params?.tier ? (TIER_LABEL[params.tier] ?? params.tier) : "";
   const billingLabel = params?.billing === "annual" ? "연간" : "월간";
 
   return (
     <div className="mx-auto flex w-full max-w-[520px] flex-col gap-3">
       {params && (
         <p className="text-[13px] text-text-2">
-          {label} 플랜 · {billingLabel} 자동결제 등록
+          {params.cardChange
+            ? `자동결제 카드 변경${label ? ` — ${label} 플랜 · ${billingLabel}` : ""}`
+            : `${label} 플랜 · ${billingLabel} 자동결제 등록`}
         </p>
       )}
       {isTossTestEnv() && (
@@ -202,10 +227,22 @@ export function BillingEnrollClient() {
               </span>
             </div>
             <p className="mt-1 text-[11px] leading-[1.7] text-text-3">
-              카드를 등록하면 첫 결제가 바로 진행되고, 이후 같은 금액이 {billingLabel === "연간" ? "매년" : "매달"}{" "}
-              자동으로 결제돼요. 해지는 언제든 구독 관리에서 할 수 있고, 해지해도 이미 결제한
-              기간은 만료일까지 그대로 이용할 수 있어요. 카드 정보는 토스페이먼츠에만 저장되며
-              누구집 서버에는 카드번호가 남지 않아요.
+              {params?.cardChange ? (
+                <>
+                  새 카드를 등록하면 지금 등록된 카드를 대체해요 — 추가 결제 없이 다음
+                  결제일부터 새 카드로 청구돼요. 결제 실패로 멈춘 구독은 새 카드 등록 즉시
+                  재개돼요. 카드 정보는 토스페이먼츠에만 저장되며 누구집 서버에는 카드번호가
+                  남지 않아요.
+                </>
+              ) : (
+                <>
+                  카드를 등록하면 첫 결제가 바로 진행되고, 이후 같은 금액이{" "}
+                  {billingLabel === "연간" ? "매년" : "매달"} 자동으로 결제돼요. 해지는 언제든
+                  구독 관리에서 할 수 있고, 해지해도 이미 결제한 기간은 만료일까지 그대로
+                  이용할 수 있어요. 카드 정보는 토스페이먼츠에만 저장되며 누구집 서버에는
+                  카드번호가 남지 않아요.
+                </>
+              )}
             </p>
           </div>
           <button
@@ -214,7 +251,11 @@ export function BillingEnrollClient() {
             disabled={opening}
             className="btn-primary btn-cta rounded-[14px] p-[14px] text-center text-[15px] font-bold disabled:opacity-60"
           >
-            {opening ? "카드 등록창 여는 중…" : "카드 등록하고 자동결제 시작"}
+            {opening
+              ? "카드 등록창 여는 중…"
+              : params?.cardChange
+                ? "새 카드로 변경하기"
+                : "카드 등록하고 자동결제 시작"}
           </button>
           <p className="text-center text-[11px] text-text-3">
             결제 7일 이내 청약철회(전액 환불) 가능 ·{" "}

@@ -345,7 +345,12 @@ export default async function AdminPaymentsPage() {
                       {p.status === "paid" &&
                       p.providerPaymentKey &&
                       p.providerPaymentKey !== "MOCK-PAYMENT-KEY" ? (
-                        <CancelPaymentButton orderId={p.orderId} />
+                        <CancelPaymentButton
+                          orderId={p.orderId}
+                          amount={p.amount}
+                          billing={p.billing}
+                          paidAt={p.paidAt ?? p.requestedAt}
+                        />
                       ) : (
                         <span className="text-[11px] text-text-3">—</span>
                       )}

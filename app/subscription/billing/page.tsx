@@ -23,7 +23,7 @@ export default function BillingEnrollPage() {
   return (
     <PageShell breadcrumb="구독 · 자동결제" title="자동결제 등록">
       <BillingEnrollClient />
-      <div className="mt-4"><ComplianceNotice variant="payment" /></div>
+      <div className="mt-4"><ComplianceNotice variant="billing" /></div>
     </PageShell>
   );
 }

@@ -3,6 +3,11 @@ import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { markPaid, getPaymentByOrderId, type PaymentRecord } from "@/lib/payments/store";
+import {
+  getLiveSubscriptionByEmail,
+  toPublic,
+  type PublicBillingSubscription,
+} from "@/lib/payments/billing-store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import { getStripe } from "@/lib/billing/stripe";
 import { normalizePlan } from "@/lib/billing/plan";
@@ -33,6 +38,7 @@ export default async function PaymentSuccessPage({
     session_id?: string;
     source?: string;
     campaign?: string;
+    card?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -90,6 +96,11 @@ export default async function PaymentSuccessPage({
         message = "Stripe 가 설정되지 않았습니다. 관리자에게 문의해 주세요.";
       }
     }
+  } else if (sp.provider === "toss-billing" && sp.card === "changed") {
+    /* 카드 변경(재등록) — 결제 없이 빌링키·카드만 교체된 경우. 사실 확인은
+       아래 자동결제 정보 카드가 서버 저장값(구독 행)으로 한다. */
+    status = "ok";
+    message = "결제 카드가 변경됐어요. 다음 결제부터 새 카드로 청구됩니다.";
   } else if (sp.provider === "toss-billing" && orderId) {
     /* 자동결제 등록 — 발급·첫 결제·활성화는 /api/payments/toss/billing/register 가
        서버에서 이미 끝냈다. 화면은 원장 기록으로만 사실을 확인한다(쿼리스트링을
@@ -152,6 +163,19 @@ export default async function PaymentSuccessPage({
   }
 
   const ok = status !== "error";
+
+  /* 자동결제 안내 카드 재료 — 등록 카드·다음 결제일도 서버 저장값(구독 행)으로만
+     그린다(쿼리스트링 불신 원칙 동일). 등록 직후·카드 변경 직후 화면에서
+     "등록 카드·적용 플랜·다음 결제일"이 한눈에 확인된다. */
+  let billingSub: PublicBillingSubscription | null = null;
+  if (ok && sp.provider === "toss-billing") {
+    const session = await safeAuth();
+    const email = session?.user?.email?.trim().toLowerCase();
+    if (email) {
+      const live = await getLiveSubscriptionByEmail(email).catch(() => null);
+      if (live) billingSub = toPublic(live);
+    }
+  }
 
   /* 영수증 카드 재료 — 주문 기록에서 읽는다. 화면에 보이는 값은 전부 서버에
      저장된 값이다. 쿼리스트링의 amount 를 그대로 그리면 주소창을 고친 값이
@@ -246,6 +270,56 @@ export default async function PaymentSuccessPage({
         )}
         {receiptRows.length === 0 && orderId && (
           <p className="text-xs text-text-3">주문번호 {orderId}</p>
+        )}
+
+        {/* 자동결제 정보 — 등록 완료·카드 변경 화면의 핵심 확인값 */}
+        {billingSub && (
+          <div className="w-full overflow-hidden rounded-[18px] border border-line bg-surface text-left shadow-[0_8px_24px_rgba(16,28,54,.06)]">
+            <div className="border-b border-dashed border-[#dfe5ee] px-5 py-3.5">
+              <div className="text-[11px] font-bold text-text-3">자동결제 정보</div>
+            </div>
+            <dl className="flex flex-col gap-2.5 px-5 py-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-[12px] text-text-3">적용 플랜</dt>
+                <dd className="text-[13px] font-extrabold text-ink">
+                  {PLAN_LABEL[billingSub.plan] ?? billingSub.plan} ·{" "}
+                  {billingSub.billing === "annual" ? "연간" : "월간"} 자동결제
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-[12px] text-text-3">등록 카드</dt>
+                <dd className="text-[13px] font-extrabold text-ink">
+                  {billingSub.cardCompany || billingSub.cardNumberMasked
+                    ? `${billingSub.cardCompany ?? "카드"} ${billingSub.cardNumberMasked ?? ""}`.trim()
+                    : "카드"}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-[12px] text-text-3">결제 금액</dt>
+                <dd className="text-[13px] font-extrabold text-ink">
+                  {billingSub.amount.toLocaleString("ko-KR")}원 /{" "}
+                  {billingSub.billing === "annual" ? "년" : "월"}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 border-t border-[#f0f3f8] pt-2.5">
+                <dt className="text-[12px] text-text-3">다음 결제일</dt>
+                <dd className="text-[13px] font-extrabold text-ink">
+                  {billingSub.nextChargeAt
+                    ? new Date(billingSub.nextChargeAt).toLocaleDateString("ko-KR", {
+                        timeZone: "Asia/Seoul",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+            <p className="border-t border-line bg-[#f7f9fd] px-5 py-3 text-[11px] leading-[1.6] text-text-3">
+              해지·카드 변경은 구독 페이지의 구독 관리에서 언제든 가능해요 — 해지하면 다음
+              결제일에 청구되지 않아요.
+            </p>
+          </div>
         )}
 
         <div className="mt-3 flex w-full flex-col gap-2.5">

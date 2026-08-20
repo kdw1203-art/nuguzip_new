@@ -177,6 +177,40 @@ export async function attachBillingKey(input: {
 }
 
 /**
+ * 카드 변경(재등록) — 살아 있는(active/suspended) 구독의 빌링키·카드 정보를
+ * 새 값으로 교체한다. 추가 결제 없음. suspended(결제 실패 정지) 구독은
+ * reactivate=true 로 다시 active 로 올리고 next_charge_at 을 지금으로 당겨
+ * 다음 크론이 새 카드로 즉시 재청구하게 한다(실패 복구 경로).
+ */
+export async function replaceSubscriptionCard(input: {
+  id: string;
+  billingKey: string;
+  cardCompany: string | null;
+  cardNumberMasked: string | null;
+  reactivate?: boolean;
+}): Promise<BillingSubscription | null> {
+  const patch: Record<string, unknown> = {
+    billing_key: input.billingKey,
+    card_company: input.cardCompany,
+    card_number_masked: input.cardNumberMasked,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.reactivate) {
+    patch.status = "active";
+    patch.next_charge_at = new Date().toISOString();
+  }
+  const { data, error } = await sb()
+    .from("billing_subscriptions")
+    .update(patch)
+    .eq("id", input.id)
+    .in("status", ["active", "suspended"])
+    .select()
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapRow(data);
+}
+
+/**
  * 활성화 — 첫 결제 성공 후. DB 부분 유니크(살아 있는 구독 1건/사용자)와 충돌하지
  * 않도록 기존 active/suspended 를 먼저 canceled 로 접는다(플랜 변경 = 교체).
  */

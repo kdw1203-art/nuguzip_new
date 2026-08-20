@@ -8,11 +8,13 @@ import { logger } from "@/lib/log";
 export const runtime = "nodejs";
 
 /**
- * 관리자 결제 취소(전액 환불) — 청약철회(7일) 처리 수단.
+ * 관리자 결제 취소 — 전액(청약철회 7일)과 일할(중도 해지) 환불 처리 수단.
  *
- * 구독 FAQ 가 "7일 이내 청약철회"를 약속하는데 처리 경로가 없었다(빈 약속).
+ * 약관 제8조가 "7일 청약철회 전액 환불 + 중도 해지 잔여기간 일할 환불"을
+ * 약속한다 — 둘 다 여기서 실행된다(빈 약속 금지). amount 를 결제액보다 작게
+ * 주면 부분(일할) 취소, 생략하거나 결제액과 같으면 전액 취소.
  * 흐름: paid 상태의 토스 결제만 → 토스 취소 API(멱등키) → refunded 기록 →
- * 결제로 부여했던 플랜을 free 로 되돌림.
+ * 결제로 부여했던 플랜을 free 로 되돌림(부분 환불도 서비스 종료이므로 동일).
  *
  * 안전장치:
  *  - 관리자 세션 필수(isAdminApiRequest).
@@ -28,13 +30,31 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
     orderId?: string;
     reason?: string;
+    /** 환불 금액(원). 생략·결제액과 동일 = 전액, 그보다 작으면 일할(부분) 환불. */
+    amount?: number;
   };
   const orderId = body.orderId?.trim();
-  const reason = body.reason?.trim() || "고객 요청 환불(관리자 처리)";
   if (!orderId) return NextResponse.json({ error: "orderId 누락" }, { status: 400 });
 
   const record = await getPaymentByOrderId(orderId);
   if (!record) return NextResponse.json({ error: "결제 기록이 없습니다." }, { status: 404 });
+
+  let cancelAmount: number | undefined;
+  if (body.amount != null) {
+    const a = Number(body.amount);
+    if (!Number.isInteger(a) || a < 1 || a > record.amount) {
+      return NextResponse.json(
+        { error: `환불 금액은 1원 ~ ${record.amount.toLocaleString("ko-KR")}원(결제액) 사이의 정수여야 합니다.` },
+        { status: 400 },
+      );
+    }
+    if (a < record.amount) cancelAmount = a; // 결제액과 같으면 전액 취소로 처리
+  }
+  const reason =
+    body.reason?.trim() ||
+    (cancelAmount != null
+      ? `중도 해지 일할 환불 ${cancelAmount.toLocaleString("ko-KR")}원 / 결제액 ${record.amount.toLocaleString("ko-KR")}원 (약관 제8조)`
+      : "청약철회 전액 환불(관리자 처리, 약관 제8조)");
   if (record.status === "refunded") {
     return NextResponse.json({ ok: true, alreadyRefunded: true });
   }
@@ -55,6 +75,7 @@ export async function POST(req: NextRequest) {
     paymentKey: record.providerPaymentKey,
     orderId,
     cancelReason: reason,
+    cancelAmount,
   });
   if (!cancel.ok) {
     /* ALREADY_CANCELED_PAYMENT — 토스에서는 이미 취소됐는데 장부만 남은 경우.

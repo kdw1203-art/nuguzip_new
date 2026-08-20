@@ -42,6 +42,10 @@ export interface HomeRegionCard {
   /** 예: "▼ 4.2%" */
   delta: string;
   tone: DeltaTone;
+  /** 카드 클릭 목적지 — 지도 지역 딥링크 */
+  href: string;
+  /** KB 주간 매매가격지수 최근 시계열(오름차순, 실데이터). 없으면 빈 배열 — 그리지 않는다. */
+  spark: number[];
 }
 
 export interface HomeNoteItem {
@@ -421,9 +425,28 @@ function buildRegionCards(
       price: formatEok(priceWon),
       delta,
       tone,
+      href: `/map?region=${encodeURIComponent(target.name)}`,
+      spark: [],
     });
   }
   return regions;
+}
+
+/**
+ * 지역 카드에 KB 주간 매매가격지수 스파크라인을 붙인다(실데이터, 최근 16주).
+ * 조회 실패는 빈 배열로 두고 카드 본문은 그대로 산다 — 스파크라인은 곁가지다.
+ */
+async function attachRegionSparks(regions: HomeRegionCard[]): Promise<void> {
+  await Promise.all(
+    regions.map(async (r) => {
+      try {
+        const rows = await getRegionSeries(r.id, "sale_index", "weekly", 16);
+        r.spark = rows.map((x) => x.value).filter((v) => Number.isFinite(v));
+      } catch {
+        r.spark = [];
+      }
+    }),
+  );
 }
 
 /**
@@ -504,6 +527,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
      소유자 캡처). 실패로 분류해 "지금 불러오지 못했어요"로 말한다. */
   if (!regionsFailed && snapshots.size === 0) regionsFailed = true;
   const regions = buildRegionCards(snapshots);
+  await attachRegionSparks(regions);
 
   // ── 공개 임장노트 (inspection_notes) ──
   const notes: HomeNoteItem[] = publicNotes.slice(0, 3).map((n) => {

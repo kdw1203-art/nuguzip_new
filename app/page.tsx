@@ -14,9 +14,9 @@ import { Footer } from "./components/Footer";
 import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
 import { HomeHeroSearch } from "./components/home/HomeHeroSearch";
 import { HomeKpiRow, type KpiRegion, type KpiTemp } from "./components/home/HomeKpiRow";
+import { RegionPulseCards } from "./components/home/RegionPulseCards";
 import { loadLatestTemperatures } from "./components/MarketTempWidget";
 import { loadNewHomeData } from "@/lib/newui/home-data";
-import { compactDelta } from "@/lib/newui/delta-label";
 import { formatAsOfLabel } from "@/lib/newui/as-of-label";
 import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
@@ -376,13 +376,13 @@ export default async function Home() {
                 <Link
                   key={n.id}
                   href={`/notes/${n.id}`}
-                  className={`flex items-center justify-between gap-3 py-[7px] text-xs no-underline ${
+                  className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] text-xs no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
                     i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
                   }`}
                 >
                   <span className="truncate font-semibold text-text-1">{n.title}</span>
                   <span
-                    className={`shrink-0 font-extrabold ${n.hot ? "text-primary" : "text-text-3"}`}
+                    className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
                   >
                     {n.score}
                   </span>
@@ -600,13 +600,13 @@ export default async function Home() {
                     <Link
                       key={n.id}
                       href={`/notes/${n.id}`}
-                      className={`flex items-center justify-between gap-3 py-[7px] text-xs no-underline transition-colors hover:text-primary ${
+                      className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] text-xs no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
                         i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
                       }`}
                     >
                       <span className="truncate font-semibold text-text-1">{n.title}</span>
                       <span
-                        className={`shrink-0 font-extrabold ${n.hot ? "text-primary" : "text-text-3"}`}
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
                       >
                         {n.score}
                       </span>
@@ -646,7 +646,7 @@ export default async function Home() {
                     <Link
                       key={p.id}
                       href={`/town/news/${p.id}`}
-                      className={`py-[7px] text-xs font-semibold text-text-1 no-underline transition-colors hover:text-primary ${
+                      className={`-mx-1.5 block rounded-lg px-1.5 py-[7px] text-xs font-semibold text-text-1 no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] hover:text-primary ${
                         i < posts.length - 1 ? "border-b border-[#f0f3f8]" : ""
                       }`}
                     >
@@ -677,21 +677,8 @@ export default async function Home() {
                 />
               )
             ) : (
-              <div className="rise-in-2 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                {regions.slice(0, 4).map((r) => (
-                  <div key={r.id} className="card card-hover rounded-2xl px-4 py-4">
-                    <div className="text-xs text-text-3">
-                      {r.name} · {r.meta.split("· ")[1] ?? r.meta}
-                    </div>
-                    <div className="mt-1.5 flex items-baseline gap-1.5">
-                      <span className="t-num text-[19px] text-ink">{r.price}</span>
-                      <span className={`text-[11px] ${deltaClass[r.tone]}`}>
-                        {compactDelta(r.delta)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              /* 지역 시세 카드 — 스파크라인(실데이터)·카운트업·지도 딥링크 (#파란영역 고도화) */
+              <RegionPulseCards regions={regions.slice(0, 4)} />
             )}
 
             {/* 데이터 신선도 캡션(#21) — market_ingest_log 최근 성공 기준, null이면 미표시 */}

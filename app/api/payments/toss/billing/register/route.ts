@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import {
   chargeBillingKey,
+  deleteBillingKey,
   deterministicIdempotencyKey,
   isTossBillingEnabled,
   issueBillingKey,
@@ -10,6 +11,7 @@ import {
   activateSubscription,
   attachBillingKey,
   getByCustomerKey,
+  replaceSubscriptionCard,
 } from "@/lib/payments/billing-store";
 import { createPayment, markFailed, markPaid } from "@/lib/payments/store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
@@ -67,6 +69,40 @@ export async function GET(req: NextRequest) {
   const sub = await getByCustomerKey(customerKey).catch(() => null);
   if (!sub) return fail(origin, "MISSING_PARAMS");
   if (sub.userEmail !== userEmail) return fail(origin, "FORBIDDEN");
+
+  /* 카드 변경(재등록) — 결제 없이 빌링키·카드 정보만 새 카드로 교체한다.
+     suspended(결제 실패 정지) 구독은 교체와 함께 active 로 복구하고
+     next_charge_at 을 지금으로 당겨 다음 크론이 새 카드로 즉시 재청구한다. */
+  if (req.nextUrl.searchParams.get("mode") === "card") {
+    if (sub.status !== "active" && sub.status !== "suspended") {
+      return fail(origin, "NOT_CONFIGURED");
+    }
+    const issued = await issueBillingKey(authKey, customerKey);
+    if (!issued.ok) {
+      logger.warn("[toss-billing] 카드 변경 — 빌링키 발급 실패", {
+        code: issued.code,
+        status: issued.status,
+      });
+      return fail(origin, issued.code ?? "PROVIDER_ERROR");
+    }
+    const oldKey = sub.billingKey;
+    const replaced = await replaceSubscriptionCard({
+      id: sub.id,
+      billingKey: issued.data.billingKey,
+      cardCompany: issued.data.cardCompany,
+      cardNumberMasked: issued.data.cardNumberMasked,
+      reactivate: sub.status === "suspended",
+    });
+    if (!replaced) return fail(origin, "PROVIDER_ERROR");
+    if (oldKey && oldKey !== issued.data.billingKey) {
+      // 옛 카드 대체값을 청구 가능 상태로 남기지 않는다 — 실패해도 교체는 유효
+      await deleteBillingKey(oldKey).catch(() => {});
+    }
+    const u = new URL("/payment/success", origin);
+    u.searchParams.set("provider", "toss-billing");
+    u.searchParams.set("card", "changed");
+    return NextResponse.redirect(u, 303);
+  }
 
   // 새로고침 멱등 — 이미 활성화된 구독이면 성공 화면으로
   if (sub.status === "active" && sub.billingKey) {

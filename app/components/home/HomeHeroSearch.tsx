@@ -53,9 +53,28 @@ const REGION_FALLBACK = [
   { label: "과천시", href: "/map?q=%EA%B3%BC%EC%B2%9C%EC%8B%9C" },
 ];
 
+/** 회전 플레이스홀더 — 전부 실제 커버 지역의 검색어 예시(지어낸 단지 없음) */
+const PLACEHOLDERS = [
+  "예: 공작아파트 · 동안구 · 재건축",
+  "예: 평촌 신축 대단지",
+  "예: 인덕원 실거래",
+  "예: 관양동 임장노트",
+];
+
 export function HomeHeroSearch() {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [phIdx, setPhIdx] = useState(0);
+  const [focused, setFocused] = useState(false);
+
+  /* 입력이 비어 있고 포커스도 없을 때만 예시 문구를 돌린다 */
+  useEffect(() => {
+    if (q || focused) return;
+    const t = window.setInterval(() => {
+      setPhIdx((i) => (i + 1) % PLACEHOLDERS.length);
+    }, 3500);
+    return () => window.clearInterval(t);
+  }, [q, focused]);
   const [items, setItems] = useState<FlatItem[]>([]);
   const [open, setOpen] = useState(false);
   const [recents, setRecents] = useState<string[]>([]);
@@ -111,7 +130,7 @@ export function HomeHeroSearch() {
 
   return (
     <div ref={boxRef} className="relative mx-auto w-full max-w-[560px]">
-      <div className="flex items-center gap-2.5 rounded-2xl border-2 border-primary bg-surface py-3 pl-4 pr-2 shadow-[0_10px_32px_rgba(29,79,216,.14)] md:py-3.5">
+      <div className="flex items-center gap-2.5 rounded-2xl border-2 border-primary bg-surface py-3 pl-4 pr-2 shadow-[0_10px_32px_rgba(29,79,216,.14)] transition-shadow duration-300 focus-within:shadow-[0_14px_44px_rgba(29,79,216,.28)] md:py-3.5">
         <Icon name="search" size={19} className="shrink-0 text-primary" />
         <input
           type="search"
@@ -119,8 +138,10 @@ export function HomeHeroSearch() {
           onChange={(e) => setQ(e.target.value)}
           {...compositionProps}
           onFocus={() => {
+            setFocused(true);
             if (q.trim() && items.length > 0) setOpen(true);
           }}
+          onBlur={() => setFocused(false)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -129,7 +150,7 @@ export function HomeHeroSearch() {
               setOpen(false);
             }
           }}
-          placeholder="예: 공작아파트 · 동안구 · 재건축"
+          placeholder={PLACEHOLDERS[phIdx]}
           aria-label="통합 검색"
           autoComplete="off"
           className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-text-3"
@@ -207,7 +228,7 @@ export function HomeHeroSearch() {
                   pushRecentSearch(k);
                   router.push(`/search?q=${encodeURIComponent(k)}`);
                 }}
-                className="chip max-w-[160px] truncate bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm"
+                className="chip max-w-[160px] truncate bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 ⌕ {k}
               </button>
@@ -217,7 +238,7 @@ export function HomeHeroSearch() {
                 key={`c-${c.id}`}
                 type="button"
                 onClick={() => router.push(`/complex/${encodeURIComponent(c.id)}`)}
-                className="chip max-w-[180px] truncate bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary"
+                className="chip max-w-[180px] truncate bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 🏢 {c.name}
               </button>
@@ -235,7 +256,7 @@ export function HomeHeroSearch() {
                 key={r.label}
                 type="button"
                 onClick={() => router.push(r.href)}
-                className="chip bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm"
+                className="chip bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 {r.label}
               </button>
@@ -244,7 +265,7 @@ export function HomeHeroSearch() {
             <button
               type="button"
               onClick={() => router.push("/search")}
-              className="chip bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary"
+              className="chip bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
             >
               + 내 지역 요청
             </button>

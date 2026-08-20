@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 /**
  * 자동결제 상태 카드 + 해지 버튼 (구독 관리 패널 안).
@@ -113,6 +114,12 @@ export function BillingAutopayCard(props: Props) {
         </div>
       ) : (
         <div className="flex items-center gap-2">
+          <Link
+            href={`/subscription/billing?tier=${props.plan}&billing=${props.billing}&mode=card`}
+            className="btn-soft btn-sm w-fit rounded-lg px-3 py-1.5 text-[11px] font-bold no-underline"
+          >
+            {suspended ? "카드 다시 등록" : "카드 변경"}
+          </Link>
           <button
             type="button"
             onClick={() => setState("confirm")}

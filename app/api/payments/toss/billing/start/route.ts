@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { getPlan } from "@/lib/subscriptions/plans";
 import { isTossBillingEnabled } from "@/lib/payments/toss-billing";
-import { startPendingSubscription } from "@/lib/payments/billing-store";
+import { startPendingSubscription, getLiveSubscriptionByEmail } from "@/lib/payments/billing-store";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export const runtime = "nodejs";
  * 심사에 고지한 상품이라 자동결제 대상이 아니다 — weekly 요청은 400.
  */
 
-type Body = { tier?: string; billing?: string };
+type Body = { tier?: string; billing?: string; mode?: string };
 
 export async function POST(req: NextRequest) {
   const limited = await applyRateLimit(req, AUTH_RATE_LIMIT);
@@ -41,6 +41,27 @@ export async function POST(req: NextRequest) {
   }
 
   const body = (await req.json().catch(() => ({}))) as Body;
+
+  /* 카드 변경(재등록) — 살아 있는 구독의 customerKey 를 그대로 내려 준다.
+     새 pending 행을 만들지 않는다(만들면 첫 결제가 또 나간다). 실제 교체는
+     register 콜백의 mode=card 분기에서 결제 없이 수행된다. */
+  if (body.mode === "card") {
+    const live = await getLiveSubscriptionByEmail(userEmail);
+    if (!live) {
+      return NextResponse.json(
+        { error: "변경할 자동결제 구독이 없어요. 먼저 자동결제를 등록해 주세요." },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json({
+      customerKey: live.customerKey,
+      amount: live.amount,
+      mode: "card",
+      plan: live.plan,
+      billing: live.billing,
+    });
+  }
+
   const tier = body.tier === "pro" || body.tier === "expert" ? body.tier : null;
   const billing = body.billing === "annual" ? "annual" : body.billing === "monthly" ? "monthly" : null;
   if (!tier || !billing) {
