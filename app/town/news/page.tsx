@@ -32,6 +32,7 @@ export const metadata = buildPageMetadata({
   description:
     "부동산 뉴스와 이번 주 실거래 다이제스트를 한곳에서. 출처와 게시 시각을 함께 표시합니다.",
   path: "/town/news",
+  og: { badge: "뉴스", sub: "부동산 뉴스 · 주간 다이제스트 · 키워드 알림" },
 });
 
 const NEWS_SUB = COMMUNITY_SUBCATEGORIES.find((s) => s.id === "news");

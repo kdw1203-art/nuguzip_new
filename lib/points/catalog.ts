@@ -20,6 +20,10 @@ export const EARN_RULES: Record<string, EarnRule> = {
   listing_sold: { key: "listing_sold", label: "거래완료 신고", points: 500 },
   note_public: { key: "note_public", label: "임장노트 공개", points: 100, dailyCap: 5 },
   review_written: { key: "review_written", label: "단지 후기 작성", points: 30, dailyCap: 5 },
+  /* [3차] 동네이야기 참여 루프 — 글·댓글이 0인 커뮤니티에 첫 동기를 만든다.
+     refId(글 id) 멱등이라 같은 글에 댓글을 여러 개 달아도 1회만 적립된다. */
+  post_written: { key: "post_written", label: "동네 글 작성", points: 50, dailyCap: 2 },
+  comment_written: { key: "comment_written", label: "동네 댓글 작성", points: 20, dailyCap: 3 },
   attendance: { key: "attendance", label: "출석", points: 10, dailyCap: 1 },
   /* 연속 출석 보너스 — 출석 기본 10P 에 얹는 추가분(3일 +10P → 합 20P, 7일 +40P → 합 50P).
      lib/points/store-db.checkIn 의 스트릭 티어(10/20/50)와 합이 일치해야 한다. */

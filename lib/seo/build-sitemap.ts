@@ -66,6 +66,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   /* cycle/price/scenario/portfolio/switch 는 noIndex 데모·시뮬레이션 — 사이트맵에서 제외 */
   { path: "/analysis/timing", priority: 0.6 },
   { path: "/analysis/temperature", priority: 0.6 },
+  { path: "/analysis/gap", priority: 0.6 }, // [3차] 전세가율·갭 스크리너 — 실데이터
+
   { path: "/town", priority: 0.8 },
   { path: "/town/news", priority: 0.7 },
   { path: "/town/library", priority: 0.7 },

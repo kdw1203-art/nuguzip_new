@@ -242,6 +242,14 @@ export default async function MyPage() {
   );
   const aiUsage = usage?.items.find((i) => i.key === "ai_analysis") ?? null;
 
+  /* [3차 · 전환] 무료 플랜 한도 임박 항목 — 80% 이상 쓴 기능만. 거절당한 뒤가
+     아니라 거절당하기 전에, 지금 쓰고 있는 기능의 다음 단계를 보여준다.
+     유료 플랜·관리자에게는 그리지 않는다(이미 결제한 사람에게 결제 권유는 소음). */
+  const isPaidPlan = profile.plan === "pro" || profile.plan === "expert";
+  const nearLimitItems = (usage?.items ?? []).filter(
+    (i) => i.limit !== null && i.limit > 0 && i.used / i.limit >= 0.8,
+  );
+
   /* 세션 role 기준 — auth.ts 의 jwt 콜백이 app_users.role 을 매 요청 동기화한다 */
   const isAdminViewer = (session.user as { role?: string }).role === "admin";
 
@@ -317,6 +325,29 @@ export default async function MyPage() {
 
           <AttendanceButton />
         </section>
+
+        {/* [3차 · 전환] 한도 임박 안내 — 사실(사용량)만 말하고 다음 단계를 보여준다 */}
+        {!isAdminViewer && !isPaidPlan && nearLimitItems.length > 0 && (
+          <section className="rise-in card flex flex-wrap items-center justify-between gap-3 rounded-[16px] p-4">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-[13px] font-extrabold text-ink">
+                무료 한도가 가까워졌어요
+              </span>
+              <span className="text-[12px] leading-[1.6] text-text-3">
+                {nearLimitItems
+                  .map((i) => `${i.label} ${i.used}/${i.limit}`)
+                  .join(" · ")}{" "}
+                — 플러스는 이 한도가 크게 늘어나요.
+              </span>
+            </div>
+            <Link
+              href="/subscription"
+              className="btn-soft shrink-0 rounded-xl px-4 py-2 text-[12.5px] font-extrabold no-underline"
+            >
+              플랜 비교 보기 ›
+            </Link>
+          </section>
+        )}
 
         {/* ── A6 온보딩 완주 진행바 (완주 전까지만) ── */}
         {!onboarding.isComplete &&

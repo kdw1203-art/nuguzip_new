@@ -93,6 +93,14 @@ const TOOLS = [
     sim: false,
   },
   {
+    href: "/analysis/gap",
+    icon: "🧮",
+    title: "전세가율·갭 스크리너",
+    desc: "전국 시군구 전세가율 랭킹과 평균 매매가 기준 추정 갭 — 공표 통계 기반",
+    foot: "지역 랭킹 보기 ›",
+    sim: false,
+  },
+  {
     href: "/analysis/compare",
     icon: "⚖️",
     title: "후보 단지 비교",

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { regionIdForName } from "@/lib/region/catalog";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
 /* ============================================================
@@ -894,6 +895,22 @@ export function ComplexInfoPanel({
               AI 분석
             </Link>
           </div>
+
+          {/* [3차] 지도 → 지역 허브 연결 — 단지에서 그 동네 시장 전체(지수·거래량·
+              입주·시장 흐름 읽기)로 이어지는 유일한 다리. cityDistrict 가 카탈로그와
+              매칭될 때만 그린다(없는 링크를 만들지 않는다). */}
+          {(() => {
+            const rid = cityDistrict ? regionIdForName(cityDistrict) : null;
+            if (!rid) return null;
+            return (
+              <Link
+                href={`/region/${rid}`}
+                className="btn-secondary block rounded-xl p-[11px] text-center text-xs"
+              >
+                {cityDistrict} 시장 전체 보기 — 지수·거래량·입주
+              </Link>
+            );
+          })()}
 
           {fetchedLabel && (
             <p className="text-center text-[10px] text-text-3">{fetchedLabel} · 실거래·공공데이터</p>

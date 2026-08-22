@@ -20,6 +20,7 @@ export const metadata = buildPageMetadata({
   description:
     "직접 다녀온 사람이 남긴 공개 임장노트. 단지별 항목 점수와 현장 메모를 모아 봅니다.",
   path: "/notes",
+  og: { badge: "임장노트", sub: "직접 걸어본 사람들의 공개 기록" },
 });
 
 export const dynamic = "force-dynamic";

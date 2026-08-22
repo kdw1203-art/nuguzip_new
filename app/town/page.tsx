@@ -12,6 +12,7 @@ import { TownFeed, type FeedCard } from "./feed-client";
 import { AdSlot } from "../components/ads/AdSlot";
 import type { Post } from "@/lib/types/post";
 import { TownCategoryNav } from "./TownCategoryNav";
+import { TownPromptCard } from "./TownPromptCard";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
 
@@ -20,6 +21,7 @@ export const metadata = buildPageMetadata({
   description:
     "우리 동네 커뮤니티 글과 공개 임장노트를 한 피드에서. 사진으로 먼저 보고 관심 단지로 이어집니다.",
   path: "/town",
+  og: { badge: "동네이야기", sub: "동네 글 · 공개 임장노트 피드" },
 });
 
 /* 동네이야기 통합 피드(#5) — 기존 피드 + 발견 피드를 하나로 합친 사진 우선 카드 그리드.
@@ -118,6 +120,9 @@ export default async function TownPage() {
       {/* 동네이야기 카테고리 — 청약·입주·공매 + 뉴스·자료·모임·전문가 (인터랙티브).
           목록은 lib/town/category-links.ts 단일 소스. 하위 7개 페이지도 같은 것을 쓴다. */}
       <TownCategoryNav />
+
+      {/* [3차] 오늘의 동네 글감 — 유저 글 0의 원인(쓸 이유 없음)에 대한 직접 처방 */}
+      <TownPromptCard />
 
       {/* H3 광고 슬롯 — 서버에서 렌더해 피드 중간(8번째 카드 뒤)에 꽂는다.
           이 페이지도 revalidate=120 공유 캐시라 보는 사람의 플랜을 알 수 없어 plan={null}.

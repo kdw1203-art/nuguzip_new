@@ -5,6 +5,8 @@ import { POSTS_READ_LIMIT, prependPost, readPosts } from "@/lib/posts-store";
 import { decodeComplexId } from "@/lib/complex/complex-store";
 import type { Post } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
+import { awardPoints } from "@/lib/points/ledger";
+import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
 
@@ -177,8 +179,18 @@ export async function POST(req: Request) {
       metadata: { postId: post.id, ugcPostType, district, category },
     });
   }
+  /* [3차] 참여 적립 — 글 작성 50P(일 2회, 원장 규칙이 상한·중복 방어). fail-soft. */
+  let pointsAwarded = 0;
+  if (session?.user?.email) {
+    try {
+      const award = await awardPoints(session.user.email, "post_written", post.id);
+      if (award.ok) pointsAwarded = award.awarded;
+    } catch (e) {
+      logger.error("[post-points]", e);
+    }
+  }
   /* 서버 전용 값은 만든 본인에게도 굳이 돌려주지 않는다(목록 GET 과 같은 규칙).
      쓰기 화면은 성공 응답 본문을 읽지 않으므로 동작 변화가 없다. */
   const { notifyEmail: _n, authorEmail: _a, ...publicPost } = post;
-  return NextResponse.json({ post: publicPost }, { status: 201 });
+  return NextResponse.json({ post: publicPost, pointsAwarded }, { status: 201 });
 }

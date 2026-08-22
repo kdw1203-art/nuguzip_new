@@ -27,6 +27,7 @@ import DeepDivePanel from "./DeepDivePanel";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
 import { NoteSoftWall } from "./NoteSoftWall";
+import { RelatedNotes } from "./RelatedNotes";
 import { seoAlternates } from "@/lib/seo/alternates";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
@@ -1143,6 +1144,11 @@ export default async function NoteDetailPage({
           ]}
         />
       </div>
+
+      {/* [3차] 같은 지역 다른 노트 + 지역 허브 연결 — 읽고 끝나는 상세를 순환로로 */}
+      {realNote.isPublic && (
+        <RelatedNotes currentId={realNote.id} region={realNote.region} />
+      )}
 
       {/* A9 공개노트 전환 훅 — 비로그인 열람자에게 관심단지·알림 로그인 유도 */}
       {!viewerEmail && complexHref && (

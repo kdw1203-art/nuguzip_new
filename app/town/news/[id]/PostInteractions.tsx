@@ -213,6 +213,8 @@ export function CommentForm({ postId }: { postId: string }) {
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* [3차] 참여 적립 피드백 — 서버가 실제 지급한 값만 보여준다(상한·중복이면 0 → 미표시) */
+  const [earned, setEarned] = useState<number>(0);
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -243,6 +245,13 @@ export function CommentForm({ postId }: { postId: string }) {
         } | null;
         setError(data?.error ?? "댓글 등록에 실패했어요. 잠시 후 다시 시도해 주세요.");
         return;
+      }
+      const data = (await res.json().catch(() => null)) as {
+        pointsAwarded?: number;
+      } | null;
+      if (typeof data?.pointsAwarded === "number" && data.pointsAwarded > 0) {
+        setEarned(data.pointsAwarded);
+        window.setTimeout(() => setEarned(0), 4000);
       }
       setBody("");
       router.refresh();
@@ -277,8 +286,13 @@ export function CommentForm({ postId }: { postId: string }) {
           {error}
         </p>
       )}
+      {earned > 0 && (
+        <p className="px-1 text-[11px] font-bold text-success">
+          댓글 적립 +{earned}P — 포인트 내역에서 확인할 수 있어요
+        </p>
+      )}
       <p className="px-1 text-[10px] leading-[1.5] text-text-3">
-        로그인 후 등록돼요 · 개인정보(전화번호·계좌)는 적지 마세요
+        로그인 후 등록돼요 · 첫 댓글은 +20P · 개인정보(전화번호·계좌)는 적지 마세요
       </p>
     </form>
   );

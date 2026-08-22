@@ -6,6 +6,7 @@ import { notifyPostAuthorOfNewComment } from "@/lib/notifications/comment-notify
 import { appendComment } from "@/lib/posts-store";
 import type { PostComment } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
+import { awardPoints } from "@/lib/points/ledger";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -74,7 +75,17 @@ export async function POST(
   // 안 보여 "기능이 조용히 죽은" 것처럼 읽힌다 — 쓰기 성공 시 즉시 재생성.
   revalidatePath(`/town/news/${id}`);
 
-  return NextResponse.json({ post, comment }, { status: 201 });
+  /* [3차] 참여 적립 — 글당 1회(refId), 일 3회 상한은 원장 규칙이 방어한다.
+     적립 실패(상한·중복 포함)는 댓글 성공을 바꾸지 않는다(fail-soft). */
+  let pointsAwarded = 0;
+  try {
+    const award = await awardPoints(session.user.email, "comment_written", id);
+    if (award.ok) pointsAwarded = award.awarded;
+  } catch (e) {
+    logger.error("[comment-points]", e);
+  }
+
+  return NextResponse.json({ post, comment, pointsAwarded }, { status: 201 });
 }
 
 export async function DELETE(
