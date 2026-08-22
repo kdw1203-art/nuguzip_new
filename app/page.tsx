@@ -13,6 +13,7 @@ import { AdSenseUnit } from "./components/ads/AdSenseUnit";
 import { Footer } from "./components/Footer";
 import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
 import { HomeHeroSearch } from "./components/home/HomeHeroSearch";
+import { HomeEngagementCard } from "./components/home/HomeEngagementCard";
 import { HomeKpiRow, type KpiRegion, type KpiTemp } from "./components/home/HomeKpiRow";
 import { RegionPulseCards } from "./components/home/RegionPulseCards";
 import { loadLatestTemperatures } from "./components/MarketTempWidget";
@@ -70,6 +71,15 @@ const ANALYSIS_TOOLS = [
     t: "대출 시나리오",
     short: "대출 시나리오",
     d: "실금리 DSR·스트레스",
+  },
+  /* [개선 #33] 계산기 — 방문 실측 3위 진입 경로(홈·동네 다음)인데 홈에서 가는
+     길이 없었다. 대출·중개보수·전월세·갭·수익률 다섯 랜딩의 허브로 잇는다. */
+  {
+    href: "/calculator",
+    icon: "calculator",
+    t: "부동산 계산기",
+    short: "계산기",
+    d: "대출·중개보수·전월세",
   },
 ] as const;
 
@@ -312,6 +322,10 @@ export default async function Home() {
             <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
           </div>
 
+          {/* [개선 #11·12·29] 로그인 사용자의 매일 루프 — 출석·포인트 진행바·첫 노트
+              미션. 게스트에겐 안 그려진다(클라이언트 판정 — ISR 캐시 유지). */}
+          <HomeEngagementCard />
+
           <Link
             href={HOME_CTA_NOTE.href}
             className="btn-primary glow press rise-in-3 rounded-xl p-3 text-center text-[15px]"
@@ -530,6 +544,9 @@ export default async function Home() {
             <div className="rise-in-1">
               <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
             </div>
+
+            {/* [개선 #11·12·29] 로그인 사용자의 매일 루프 (게스트에겐 미렌더) */}
+            <HomeEngagementCard />
 
             {/* 지도 | 분석 도구 — "보고 → 파고" 동선 (시안 A). 도구 스트립은
                 지도 오른쪽 세로 스택으로 이동, 노트 CTA 가 스택을 닫는다. */}

@@ -10,6 +10,7 @@ export const metadata = buildPageMetadata({
   description:
     "주택담보대출 원리금·총이자·한도를 계산합니다. 공시 금리를 불러와 기본값에 반영합니다.",
   path: "/calculator",
+  og: { badge: "계산기", sub: "원리금·총이자·한도 — 공시 금리 반영" },
 });
 
 export const revalidate = 21600; // 6h — 공시 금리 캐시 주기와 동일

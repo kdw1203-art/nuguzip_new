@@ -6,7 +6,9 @@ import {
   bottomAboveTabBar,
   cookieConsentDecided,
   dismissedRecently,
+  engagedEnoughForInstall,
   isInstalled,
+  recordVisitDay,
   rememberDismiss,
   trackPwa,
 } from "@/lib/client/pwa-install";
@@ -71,6 +73,8 @@ export function InstallPrompt() {
 
   useEffect(() => {
     if (isInstalled()) return;
+    /* [개선 #14] 오늘 방문을 기록 — 3일째 방문부터 권한다(아래 가드) */
+    recordVisitDay();
 
     const onBeforeInstallPrompt = (e: Event) => {
       /* 기본 동작(브라우저 자체 미니 인포바)을 막고 이벤트를 쥐고 있는다.
@@ -82,6 +86,9 @@ export function InstallPrompt() {
          동의 배너 + 설치 배너가 겹치면 화면 하단이 배너로 덮인다. 동의를
          끝낸 다음 방문(이벤트는 페이지마다 다시 발생)에 뜨면 충분하다. */
       if (!cookieConsentDecided()) return;
+      /* [개선 #14, 2026-08-22] 첫 방문 즉시 권하지 않는다 — 30일 실측에서
+         노출 243회 대비 수락이 극소수였다. 3일째 방문부터. */
+      if (!engagedEnoughForInstall()) return;
       measure();
       setVisible(true);
       trackPwa("pwa_install_prompt_view");

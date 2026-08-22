@@ -210,6 +210,20 @@ export async function generateMetadata({
       siteName: "누구집",
       locale: "ko_KR",
       type: "website",
+      /* [개선 #4] 지역 카드 — 지역명·평균가가 박힌 동적 공유 카드(/api/og).
+         카톡 미리보기가 밋밋한 기본 카드로 나가던 것을 교체. */
+      images: [
+        {
+          url: `/api/og?${new URLSearchParams({
+            title: `${name} 아파트 시세`,
+            sub: `${price} · ${formatYm(snapshot.period)} 기준`,
+            badge: "지역 시세",
+          }).toString()}`,
+          width: 1200,
+          height: 630,
+          alt: `${name} 시세 카드`,
+        },
+      ],
     },
   };
 }

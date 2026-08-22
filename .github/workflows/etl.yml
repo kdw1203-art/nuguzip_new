@@ -129,6 +129,10 @@ jobs:
           # 옛 수치를 가져간다). 실패해도 ETL 을 죽이지 않는다 — 색인 힌트일 뿐이다.
           curl -sS --max-time 60 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/indexnow-submit" | head -c 500 || true
           echo
+          # [개선 #44] 신선도 감시 — 모든 적재가 끝난 뒤 재서, 임계를 넘긴 소스를
+          # 오류 로그로 승격한다(입주물량 한 달 정지 사각지대의 재발 방지).
+          curl -sS --max-time 60 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/freshness-watch" | head -c 500 || true
+          echo
           if [ -n "$FAILED" ]; then
             echo "failed:$FAILED" | tee etl-failed.txt
             exit 1

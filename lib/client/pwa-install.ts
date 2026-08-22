@@ -82,6 +82,44 @@ export function bottomAboveTabBar(): string {
   return `${Math.round(window.innerHeight - rect.top + GAP_ABOVE_TABBAR)}px`;
 }
 
+/**
+ * [개선 #14, 2026-08-22] 설치를 권해도 되는 만큼 친해졌는가.
+ *
+ * 30일 실측: 프롬프트 노출 243회에 수락은 극소수, 명시적 거절 40회 — 첫 방문
+ * 즉시 띄우는 설치 권유는 신뢰가 쌓이기 전의 요구라 거절만 학습시키고 있었다.
+ * 방문 "일수"를 세어(같은 날 재방문은 1회) **3일째 방문부터** 띄운다.
+ * localStorage 차단 환경은 셀 수 없으므로 종전대로 즉시 허용(기능 보존).
+ */
+const VISIT_DAYS_KEY = "nuguzip:visit-days";
+
+export function recordVisitDay(): void {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const raw = localStorage.getItem(VISIT_DAYS_KEY);
+    const days: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+    if (!Array.isArray(days)) throw new Error("corrupt");
+    if (!days.includes(today)) {
+      days.push(today);
+      // 판정에는 3개면 충분 — 무한히 쌓지 않는다
+      localStorage.setItem(VISIT_DAYS_KEY, JSON.stringify(days.slice(-10)));
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+export function engagedEnoughForInstall(): boolean {
+  try {
+    const raw = localStorage.getItem(VISIT_DAYS_KEY);
+    if (!raw) return false;
+    const days = JSON.parse(raw) as string[];
+    return Array.isArray(days) && days.length >= 3;
+  } catch {
+    /* 셀 수 없으면 종전 동작(즉시 허용) — 가드가 기능을 죽이면 안 된다 */
+    return true;
+  }
+}
+
 /** 설치 흐름 계측 — 실패해도 흐름을 막지 않는다 */
 export function trackPwa(eventName: string, metadata: Record<string, unknown> = {}) {
   try {

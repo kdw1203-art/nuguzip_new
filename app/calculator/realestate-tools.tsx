@@ -136,7 +136,7 @@ function ToolCard({ title, subtitle, children }: { title: string; subtitle: stri
 
 /* ---------- 1. 전월세 전환 ---------- */
 
-function JeonseWolse() {
+export function JeonseWolse() {
   const [dir, setDir] = useState<"toWolse" | "toJeonse">("toWolse");
   const [jeonse, setJeonse] = useState("50000"); // 전세보증금 (만원)
   const [deposit, setDeposit] = useState("10000"); // 월세보증금 (만원)
@@ -211,7 +211,7 @@ function JeonseWolse() {
 
 /* ---------- 2. 갭·전세가율 ---------- */
 
-function GapRatio() {
+export function GapRatio() {
   const [price, setPrice] = useState("84000"); // 매매가 (만원)
   const [jeonse, setJeonse] = useState("60000"); // 전세가 (만원)
 
@@ -243,7 +243,7 @@ function GapRatio() {
 
 /* ---------- 3. 임대수익률 ---------- */
 
-function RentalYield() {
+export function RentalYield() {
   const [price, setPrice] = useState("84000"); // 매매가 (만원)
   const [deposit, setDeposit] = useState("5000"); // 보증금 (만원)
   const [monthly, setMonthly] = useState("200"); // 월세 (만원)
@@ -310,6 +310,9 @@ function RentalYield() {
     </div>
   );
 }
+
+/* [개선 #6, 2026-08-22] 세 도구를 export 로 열었다 — /calculator/* 개별 검색
+   랜딩(전월세 전환·갭·수익률)이 같은 컴포넌트를 그대로 재사용한다(로직 단일 출처). */
 
 /* ---------- 컨테이너 ---------- */
 

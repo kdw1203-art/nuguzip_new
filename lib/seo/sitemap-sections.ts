@@ -6,11 +6,13 @@ import {
   loadBandEntries,
   loadComplexEntries,
   loadDigestEntries,
+  loadExpertEntries,
   loadGlossaryEntries,
   loadImjangEntries,
   loadNewsEntries,
   loadNoteEntries,
   loadPairEntries,
+  loadQnaEntries,
   loadRegionEntries,
   loadReportEntries,
   loadStaticEntries,
@@ -105,6 +107,11 @@ export const SITEMAP_SECTIONS: readonly SitemapSection[] = [
      되는 현실적인 경로는 "기사가 전부 사라졌다"가 아니라 "조회가 실패했다" 또는
      "요약 파이프라인이 멈췄다"뿐이다. 둘 다 조용히 넘어가면 안 되는 상태다. */
   { slug: "news", label: "뉴스 요약", required: true, load: loadNewsEntries },
+  /* [개선 #3, 2026-08-22] 색인 열린 두 상세 표면의 사이트맵 공백 수리.
+     둘 다 현재 0건이 사실(전문가·질문 미등록)이므로 optional — 0개면 인덱스에서
+     빠지고, 첫 데이터가 생기는 즉시 자동으로 실린다. */
+  { slug: "experts", label: "전문가 프로필", required: false, load: loadExpertEntries },
+  { slug: "qna", label: "단지 Q&A", required: false, load: loadQnaEntries },
 ];
 
 const SECTION_BY_SLUG = new Map(SITEMAP_SECTIONS.map((s) => [s.slug, s]));

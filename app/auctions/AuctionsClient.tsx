@@ -9,7 +9,7 @@
  *     SSR HTML 에 전부 실린다. 페이지는 ISR(10분).
  *   · 필터(usage·gu): /api/auctions 를 fetch — DB 가 전체에서 거른 결과.
  *     API 는 조합별로 CDN 캐시(s-maxage=600)라 함수 호출이 조합당 10분에 1회.
- *   · source=court: 데이터 없는 안내 한 장 — 클라이언트 분기.
+ *   · (경매 탭은 2026-08-22 폐지 — 개선 #23. ?source=court 구 링크는 온비드로 수렴)
  *
  * 시각 파생값(D-day·진행/마감 분리·캘린더)은 builtAtMs(서버 렌더 시각)로
  * SSR/하이드레이션을 일치시키고, 마운트 후 실제 현재 시각으로 재계산한다 —
@@ -22,7 +22,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AIPanel } from "@/app/components/AIPanel";
-import { ExampleBadge } from "@/app/components/ExampleBadge";
 import type { AuctionApiItem } from "@/app/api/auctions/route";
 
 /* ── lib/onbid/store 는 server-only(supabase) 를 끌고 와 값 import 불가.
@@ -193,77 +192,9 @@ function onbidToCard(a: AuctionApiItem, now: Date): AuctionCardData {
   };
 }
 
-/* ── 소스 탭 · 필터 칩 (pushState 버튼) ── */
-function SourceTabs({
-  active,
-  onChange,
-}: {
-  active: "onbid" | "court";
-  onChange: (s: "onbid" | "court") => void;
-}) {
-  const pill = (on: boolean) =>
-    on
-      ? "press rounded-full bg-primary px-4 py-2 text-[13px] font-bold"
-      : "press glass rounded-full px-4 py-2 text-[13px] font-semibold text-text-2";
-  const white = (on: boolean) => (on ? { color: "#fff" } : undefined);
-  return (
-    <div className="flex gap-1.5">
-      <button type="button" onClick={() => onChange("onbid")} style={white(active === "onbid")} className={pill(active === "onbid")}>
-        공매(온비드)
-      </button>
-      <button type="button" onClick={() => onChange("court")} style={white(active === "court")} className={pill(active === "court")}>
-        경매(법원)
-      </button>
-    </div>
-  );
-}
+/* [개선 #23] SourceTabs·CourtAuctionPlaceholder 제거 — 경매 탭 폐지(위 주석). */
 
-function CourtAuctionPlaceholder({ onBack }: { onBack: () => void }) {
-  return (
-    <div className="rise-in-1 card flex flex-col items-center gap-4 rounded-2xl px-6 py-12 text-center">
-      <ExampleBadge label="준비 중" />
-      <div className="flex flex-col gap-1.5">
-        <p className="text-[15px] font-extrabold text-ink">
-          법원경매는 데이터 연동 준비 중이에요
-        </p>
-        <p className="mx-auto max-w-[480px] text-[13px] leading-[1.7] text-text-2">
-          대법원 법원경매정보 데이터 소스가 아직 연결되지 않아 표시할 물건이
-          없어요. 사건번호·감정가·최저매각가격·매각기일은 지어내지 않고 비워
-          둡니다. 공매(온비드) 탭은 실데이터로 운영 중이에요.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-        <a
-          href="https://www.courtauction.go.kr"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "#fff" }}
-          className="btn-primary press rounded-[10px] px-4 py-[9px] no-underline"
-        >
-          대법원 법원경매정보 ↗
-        </a>
-        <button
-          type="button"
-          onClick={onBack}
-          className="press rounded-[10px] bg-primary-soft px-4 py-[9px] font-bold text-primary"
-        >
-          공매(온비드) 실데이터 보기
-        </button>
-        <Link
-          href="/my/saved-searches"
-          className="press rounded-[10px] bg-primary-soft px-4 py-[9px] font-bold text-primary no-underline"
-        >
-          저장 검색으로 알림 받기
-        </Link>
-      </div>
-      <p className="text-[11px] leading-[1.6] text-text-3">
-        연동이 완료되면 이 탭에서 물건 목록·매각기일을 볼 수 있어요.
-      </p>
-    </div>
-  );
-}
-
-/* ── 본체 ── */
+/* 필터 상태 — source 필드는 구 딥링크 호환용으로 남긴다(값은 이제 "onbid" 고정) */
 type Filter = { usage: string | null; gu: string | null; source: "onbid" | "court" };
 
 function pushFilterUrl(f: Filter) {
@@ -273,8 +204,7 @@ function pushFilterUrl(f: Filter) {
   else sp.delete("usage");
   if (f.gu) sp.set("gu", f.gu);
   else sp.delete("gu");
-  if (f.source === "court") sp.set("source", "court");
-  else sp.delete("source");
+  sp.delete("source"); // 경매 탭 폐지(#23) — 구 파라미터는 지운다
   window.history.pushState(null, "", url);
 }
 
@@ -314,7 +244,7 @@ export function AuctionsClient({
       setF({
         usage: AUCTION_USAGE_FILTERS.some((x) => x.key === u) ? u : null,
         gu: /^[가-힣]{1,10}$/.test(g) ? g : null,
-        source: p.get("source") === "court" ? "court" : "onbid",
+        source: "onbid", // 경매 탭 폐지(#23)
       });
     };
     read();
@@ -392,22 +322,16 @@ export function AuctionsClient({
       ? "chip-active px-3 py-1.5 text-xs"
       : "press chip border border-line bg-surface px-3 py-1.5 text-xs text-text-2";
 
-  if (f.source === "court") {
-    return (
-      <>
-        <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
-          <SourceTabs active="court" onChange={(s) => set({ source: s })} />
-        </div>
-        <CourtAuctionPlaceholder onBack={() => set({ source: "onbid" })} />
-      </>
-    );
-  }
-
+  /* [개선 #23, 2026-08-22] 경매(법원) 탭 제거 — 결정 근거:
+     대법원 법원경매정보는 공개 API 를 제공하지 않고, 동기화 코드는 소스 키
+     미설정 스텁 상태였다(court_auctions 1행 실측). 상시 "준비 중" 탭은
+     신뢰만 깎는다 — 탭을 내리고 아래 외부 링크 한 줄로 대체한다. 백엔드
+     (store·sync·크론)는 소스가 생기는 날을 위해 남겨 둔다.
+     구 딥링크(?source=court)는 온비드 화면으로 자연 수렴한다. */
   return (
     <>
-      {/* 상단 필 행: 소스 토글 + 용도 필터 + CTA */}
+      {/* 상단 필 행: 용도 필터 + CTA */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
-        <SourceTabs active="onbid" onChange={(s) => set({ source: s })} />
         <div className="flex flex-wrap gap-1.5">
           <button
             type="button"

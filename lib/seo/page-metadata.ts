@@ -31,6 +31,9 @@ type PageMetaInput = {
   description: string;
   path?: string;
   noIndex?: boolean;
+  /** [개선 #4] 동적 공유 카드(/api/og) — 지정하면 기본 정적 카드 대신 제목이
+      박힌 카드를 만든다. badge 는 카드 우상단 칩(예: "계산기"). */
+  og?: { badge?: string; sub?: string };
 };
 
 /** 공개 페이지 title/description/OG/Twitter 일관 생성 */
@@ -42,6 +45,15 @@ export function buildPageMetadata(input: PageMetaInput): Metadata {
   // G6: canonical 뿐 아니라 hreflang(ko-KR·x-default)까지 한 곳에서 만든다.
   const alternates = input.path ? seoAlternates(input.path) : undefined;
   const canonical = alternates?.canonical as string | undefined;
+
+  /* [개선 #4] og 옵션이 있으면 제목이 박힌 동적 카드(/api/og), 없으면 기본 정적 카드 */
+  const ogImage = input.og
+    ? `/api/og?${new URLSearchParams({
+        title: input.title,
+        ...(input.og.sub ? { sub: input.og.sub } : {}),
+        ...(input.og.badge ? { badge: input.og.badge } : {}),
+      }).toString()}`
+    : "/og-image";
 
   return {
     title,
@@ -55,13 +67,13 @@ export function buildPageMetadata(input: PageMetaInput): Metadata {
       locale: "ko_KR",
       ...(canonical ? { url: canonical } : {}),
       // S4 — 기본 공유 카드. 단지·노트 등 전용 카드가 있는 페이지는 개별 metadata 로 덮어쓴다.
-      images: [{ url: "/og-image", width: 1200, height: 630, alt: SITE_NAME }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: SITE_NAME }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description: input.description,
-      images: ["/og-image"],
+      images: [ogImage],
     },
     ...(input.noIndex
       ? { robots: { index: false, follow: false } }

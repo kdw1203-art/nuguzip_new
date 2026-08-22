@@ -48,8 +48,28 @@ export function ViewportGroupTracker() {
       lastGroup.current = ctx.viewport_group;
     };
 
-    // 최초 1회 — 세션의 시작 그룹
-    emit("initial");
+    // 최초 1회 — 세션의 시작 그룹.
+    // [개선 #15, 2026-08-22] 예전엔 **페이지 하드 로드마다** initial 을 쐈다 —
+    // 30일 실측 17,220행(사용자 6명)으로 전체 행동 이벤트의 97%를 차지해
+    // 가입·작성 같은 진짜 신호를 묻는 소음이었다. 시작 그룹은 세션당 한 번이면
+    // 충분하다(sessionStorage 가드). 그룹 '변경'은 종전대로 전부 발신한다.
+    let alreadySent = false;
+    try {
+      alreadySent = sessionStorage.getItem("nz_vp_initial") === "1";
+    } catch {
+      /* storage 차단 환경 — 종전 동작(로드마다 1회)으로 폴백 */
+    }
+    if (!alreadySent) {
+      emit("initial");
+      try {
+        sessionStorage.setItem("nz_vp_initial", "1");
+      } catch {
+        /* 무시 */
+      }
+    } else {
+      // 발신은 생략해도 change 판정 기준선은 필요하다
+      lastGroup.current = breakpointFromWidth(window.innerWidth);
+    }
 
     // 그룹 경계를 넘을 때만 발신 (디바운스 300ms)
     let timer: ReturnType<typeof setTimeout> | null = null;

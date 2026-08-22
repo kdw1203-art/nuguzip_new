@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { trackPlatformEvent } from "@/lib/platform-events-client";
 import { Icon } from "@/app/components/Icon";
-import { RegionPicker } from "@/app/components/RegionPicker";
 import { stashSignupHandoff } from "@/lib/onboarding/signup-handoff";
 import { useMoment } from "@/app/components/motion/MomentProvider";
 import type { SocialProvider } from "@/lib/auth/configured-social";
@@ -22,17 +21,11 @@ const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }
   },
 };
 
-/* 목표 카드. purpose 는 온보딩(/welcome)의 "목적" 과 같은 값이라 프리필에 쓴다.
-   전문가·중개사는 대응되는 목적이 없어 null — 없는 값을 지어내지 않는다. */
-const GOALS = [
-  { icon: "🏠", title: "첫 내집마련", desc: "실거주 관점 체크리스트 중심", purpose: "live" },
-  { icon: "📈", title: "투자 · 갈아타기", desc: "수익률·시세 흐름 중심", purpose: "invest" },
-  { icon: "💼", title: "전문가 · 중개사", desc: "리포트 발행·상담 도구", purpose: null },
-] as const;
-
-/** 관심 지역 선택 상한 — /welcome 온보딩과 같은 값(라벨의 "최대 3곳")
- *  인구통계(나이·성별 등)는 가입에서 빼고 /welcome 온보딩으로 미룬다. */
-const MAX_REGIONS = 3;
+/* [개선 #9, 2026-08-22] 목표·관심지역 선택을 가입에서 **제거**했다.
+   30일 실측: 진입 44명 → 목표 클릭 1명 → 완료 3명. 한 화면에 목표 3택 +
+   지역 검색 + 계정 폼 + 동의 3종을 다 요구하던 것이 이탈 지점이었다.
+   목표·지역은 가입 직후 온보딩(/welcome)이 **원래부터 다시 수집**하므로
+   여기서 물을 이유가 없었다(중복 질문). 가입은 계정 최소한만 남긴다. */
 
 type RegisterResponse = {
   error?: string;
@@ -47,14 +40,14 @@ type RegisterResponse = {
 export function SignupClient({ social }: { social: SocialProvider[] }) {
   const router = useRouter();
   const { showMoment } = useMoment();
-  const [goal, setGoal] = useState(0);
   const [socialBusy, setSocialBusy] = useState<SocialProvider | null>(null);
-  const [regions, setRegions] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
+  /* [개선 #9] 비밀번호 확인칸 제거 — 표시 토글로 오타를 눈으로 확인한다
+     (칸 하나가 줄고, 모바일에서 두 번 입력하는 마찰이 사라진다). */
+  const [showPw, setShowPw] = useState(false);
   const [agree, setAgree] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [agreeLocation, setAgreeLocation] = useState(false);
@@ -86,27 +79,22 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
     trackStep("signup_step_1");
   }, [trackStep]);
 
-  /* 관심 지역·목표는 온보딩(/welcome)으로 넘긴다. 인구통계는 welcome에서 수집. */
+  /* 관심 지역·목표·인구통계는 전부 온보딩(/welcome)이 수집한다(개선 #9). */
   useEffect(() => {
-    stashSignupHandoff({ regions, profile: {}, purpose: GOALS[goal].purpose });
-  }, [regions, goal]);
+    stashSignupHandoff({ regions: [], profile: {}, purpose: null });
+  }, []);
 
   const progressDone = [
-    regions.length > 0,
     email.trim().includes("@"),
-    password.length >= 8 && password === password2,
+    password.length >= 8,
     agree,
   ].filter(Boolean).length;
-  const progressPct = Math.round((progressDone / 4) * 100);
+  const progressPct = Math.round((progressDone / 3) * 100);
 
   async function socialSignIn(provider: SocialProvider) {
     setError(null);
     setSocialBusy(provider);
-    stashSignupHandoff({
-      regions,
-      profile: {},
-      purpose: GOALS[goal].purpose,
-    });
+    stashSignupHandoff({ regions: [], profile: {}, purpose: null });
     trackStep("signup_step_4", { method: provider });
     // 토스는 자체 리다이렉트 시작점 — 인가 후 /auth/toss/callback 이 세션을 만든다.
     if (provider === "toss") {
@@ -132,10 +120,6 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
     }
     if (password.length < 8) {
       setError("비밀번호는 8자 이상이어야 합니다.");
-      return;
-    }
-    if (password !== password2) {
-      setError("비밀번호 확인이 일치하지 않습니다.");
       return;
     }
     if (!agree) {
@@ -182,7 +166,6 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         return;
       }
       trackStep("signup_complete", {
-        goal: GOALS[goal].title,
         emailConfirmationRequired: Boolean(data.emailConfirmationRequired),
       });
       if (data.emailConfirmationRequired) {
@@ -342,9 +325,11 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
       </div>
 
       <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
-        어떤 집을 찾고 계세요?
+        30초면 시작할 수 있어요
       </h1>
-      <p className="rise-in-1 -mt-2 text-[13px] text-text-2">맞춤 지표와 체크리스트를 준비해 드려요</p>
+      <p className="rise-in-1 -mt-2 text-[13px] text-text-2">
+        가입 후 관심 지역·목표를 골라 맞춤 화면을 만들어 드려요
+      </p>
 
       {social.length > 0 && (
         <div className="rise-in-2 flex flex-col gap-2.5">
@@ -367,55 +352,8 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         </div>
       )}
 
-      <div className="rise-in-2 flex flex-col gap-2.5">
-        {GOALS.map((g, i) => (
-          <button
-            key={g.title}
-            type="button"
-            onClick={() => {
-              trackStep("signup_step_2", { goal: g.title });
-              setGoal(i);
-            }}
-            className={`flex items-center gap-3 rounded-2xl p-4 text-left ${
-              goal === i
-                ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.08)]"
-                : "card"
-            }`}
-          >
-            <Icon name={g.icon} size={20} />
-            <span className="flex-1">
-              <span className={`block text-sm font-extrabold ${goal === i ? "text-primary" : "text-ink"}`}>
-                {g.title}
-              </span>
-              <span className={`block text-xs ${goal === i ? "text-[#5b74b8]" : "text-text-3"}`}>
-                {g.desc}
-              </span>
-            </span>
-            {goal === i && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] text-white">
-                ✓
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      <div className="rise-in-3 flex flex-col gap-2">
-        <label htmlFor="signup-region-search" className="text-[13px] font-extrabold text-ink">
-          관심 지역{" "}
-          <span className="text-[11px] font-medium text-text-3">
-            전국 시·군·구 검색 · 최대 {MAX_REGIONS}곳
-          </span>
-        </label>
-        <RegionPicker
-          inputId="signup-region-search"
-          value={regions}
-          onChange={setRegions}
-          max={MAX_REGIONS}
-          onFirstPick={() => trackStep("signup_step_3", { section: "region" })}
-        />
-      </div>
-
+      {/* [개선 #9] 목표 3택·관심지역 검색 블록 제거 — /welcome 온보딩이 수집한다.
+          실측에서 이 두 블록 앞에서 거의 전원이 이탈했다(30일 44→1). */}
       <form onSubmit={onSubmit} className="rise-in-5 flex flex-col gap-2">
         <div className="text-[13px] font-extrabold text-ink">
           계정 만들기{" "}
@@ -449,27 +387,26 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         <label htmlFor="signup-password" className="sr-only">
           비밀번호 (8자 이상)
         </label>
-        <input
-          id="signup-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="비밀번호 (8자 이상)"
-          autoComplete="new-password"
-          className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
-        />
-        <label htmlFor="signup-password2" className="sr-only">
-          비밀번호 확인
-        </label>
-        <input
-          id="signup-password2"
-          type="password"
-          value={password2}
-          onChange={(e) => setPassword2(e.target.value)}
-          placeholder="비밀번호 확인"
-          autoComplete="new-password"
-          className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
-        />
+        <div className="relative">
+          <input
+            id="signup-password"
+            type={showPw ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="비밀번호 (8자 이상)"
+            autoComplete="new-password"
+            className="w-full rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            aria-pressed={showPw}
+            aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 표시"}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[11px] font-bold text-text-3"
+          >
+            {showPw ? "숨김" : "표시"}
+          </button>
+        </div>
         <label className="flex items-center gap-2 py-1 text-xs text-text-2">
           <input
             type="checkbox"

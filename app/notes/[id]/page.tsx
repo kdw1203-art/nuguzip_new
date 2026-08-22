@@ -26,6 +26,7 @@ import { AiFeedbackButtons } from "@/app/components/AiFeedbackButtons";
 import DeepDivePanel from "./DeepDivePanel";
 import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
+import { NoteSoftWall } from "./NoteSoftWall";
 import { seoAlternates } from "@/lib/seo/alternates";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
@@ -571,6 +572,11 @@ export default async function NoteDetailPage({
       <JsonLd data={articleJsonLd(realNote)} />
       {/* 항목 H37 — 공유 JsonLd 헬퍼로 Article/Review 구조화 데이터 삽입 */}
       <JsonLd data={noteJsonLd(realNote, v)} />
+
+      {/* [개선 #5] 비회원 소프트월 — 하루 3편까지 무료, 4편째부터 가입 안내.
+          서버는 항상 전문을 렌더하므로 SEO·봇에 영향이 없다(컴포넌트 주석 참고).
+          공개 노트에만 건다 — 구매 열람·본인 글은 realNote.isPublic 경로가 아니다. */}
+      {realNote.isPublic && <NoteSoftWall noteId={realNote.id} />}
 
       {/* 구매 열람 안내 — 비공개 노트를 리포트 구매로 읽는 중임을 명시.
           이게 없으면 구매자가 "왜 남의 비공개 글이 보이지?" 하고 혼란스럽고,

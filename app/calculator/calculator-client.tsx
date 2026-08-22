@@ -6,6 +6,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { EmptyState } from "@/app/components/ui/EmptyState";
 import { RealEstateTools } from "./realestate-tools";
+import { CalculatorNav } from "./CalculatorNav";
 
 /* B10: 상단 섹션 탭 — 기존 대출·수익률 계산기 + 신규 부동산 계산기 */
 const SECTIONS = [
@@ -301,6 +302,9 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
 
   return (
     <PageShell breadcrumb="투자 도구 › 대출·수익률 계산기" title="대출·수익률 계산기" wide>
+      {/* [개선 #6] 계산기 랜딩 5장 상호 링크 — 중개보수·전월세 전환·갭·수익률이
+          각자 검색 랜딩으로 분리됐다(방문 실측 상위 진입 경로의 SEO 확장). */}
+      <CalculatorNav current="/calculator" />
       {/* 사실 우선: 예전 문구("기기에만 저장 · 외부 전송 없음")는 거짓이었다 — 계산은
           서버 API(/api/loan/calc)로 전송된다. 실제 동작 그대로 고지한다. */}
       <div className="rise-in -mt-2 mb-4 text-[11px] text-text-3">

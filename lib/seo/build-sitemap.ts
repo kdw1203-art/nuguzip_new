@@ -87,11 +87,18 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   // 임장 가이드 허브 (전략 §4-2 — "임장" 키워드군 소유. 지역 상세는 imjang 섹션)
   { path: "/imjang", priority: 0.7 },
   { path: "/calculator", priority: 0.6 },
+  /* [개선 #6] 계산기 검색 랜딩 분리 — 방문 실측 상위 진입 경로의 키워드 확장 */
+  { path: "/calculator/brokerage", priority: 0.6 },
+  { path: "/calculator/jeonse-monthly", priority: 0.6 },
+  { path: "/calculator/gap", priority: 0.6 },
+  { path: "/calculator/rental-yield", priority: 0.6 },
   { path: "/widget", priority: 0.5 }, // N17 — 시세 위젯 배포 안내
   // 가이드 (규제·세금 안내 · 계약 체크리스트)
   { path: "/guides/regulations", priority: 0.5 },
   { path: "/guides/contract", priority: 0.5 },
   { path: "/apply", priority: 0.6 },
+  /* [개선 #17] 이번 주 청약 접수 일정 — 매주 스스로 새로워지는 표면 */
+  { path: "/apply/calendar", priority: 0.6 },
   { path: "/digest", priority: 0.6 },
   // 정비사업 추적 라이트 — 단계 안내 + 정비사업 뉴스
   { path: "/redevelopment", priority: 0.6 },
@@ -381,6 +388,43 @@ export async function loadDigestEntries(): Promise<MetadataRoute.Sitemap> {
       { url: `${BASE_URL}/digest/archive`, priority: 0.6 },
       ...weeks.map((w) => ({ url: `${BASE_URL}/digest/${w.slug}`, priority: 0.5 })),
     ];
+  });
+}
+
+/**
+ * [개선 #3, 2026-08-22] 전문가 프로필 — 인증 전문가만.
+ * 페이지의 색인 조건과 같은 선이다: /town/experts/[id] 는 isVerified 만
+ * index 를 연다(미인증은 noindex — 심사 중 프로필을 검색에 실지 않는다).
+ * 지금은 0건(실측)이라 optional 유형 — 첫 인증 전문가가 생기는 즉시 실린다.
+ */
+export async function loadExpertEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("전문가 프로필", async () => {
+    const { listExpertsAll } = await import("@/lib/experts/store-db");
+    const res = await listExpertsAll();
+    if (!res.ok) throw new Error("expert_profiles 조회 실패");
+    return res.items
+      .filter((e) => e.isVerified)
+      .map((e) => ({
+        url: `${BASE_URL}/town/experts/${e.id}`,
+        priority: 0.5,
+        ...(e.updatedAt ? { lastModified: new Date(e.updatedAt) } : {}),
+      }));
+  });
+}
+
+/**
+ * [개선 #3, 2026-08-22] 단지 Q&A 상세 — 색인 열린 페이지(robots index true 실측)인데
+ * 사이트맵에 없던 공백. 최신 100건(스토어 상한) — 질문·답변이 쌓이면 상한을 올린다.
+ * 지금은 0건(실측)이라 optional 유형이다.
+ */
+export async function loadQnaEntries(): Promise<MetadataRoute.Sitemap> {
+  return section("단지 Q&A", async () => {
+    const { listQuestions } = await import("@/lib/qna/store");
+    const questions = await listQuestions({ limit: 100 });
+    return questions.map((q) => ({
+      url: `${BASE_URL}/qna/${q.id}`,
+      priority: 0.5,
+    }));
   });
 }
 

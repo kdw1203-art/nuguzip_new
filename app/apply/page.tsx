@@ -113,6 +113,13 @@ export default async function ApplyPage() {
             <span className="text-[12px] font-bold text-primary">청약홈 실데이터</span>
           </h2>
           <div className="flex-1" />
+          {/* [개선 #17] 접수 일정 캘린더 — 접수 시작·마감을 날짜별로 */}
+          <Link
+            href="/apply/calendar"
+            className="glass press rounded-full px-3.5 py-2 text-xs font-bold text-primary no-underline"
+          >
+            📅 청약 캘린더
+          </Link>
           <a
             href={APPLYHOME_URL}
             target="_blank"
