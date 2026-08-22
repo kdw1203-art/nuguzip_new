@@ -163,6 +163,12 @@ export function QnaListClient({
   sidebar: ReactNode;
 }) {
   const [f, setF] = useState<Filter>({ status: "all", sort: "recent", topic: null, q: null });
+  /* 검색 입력값 — 제출 전까지는 필터에 반영하지 않는다(타이핑마다 URL 이 바뀌면
+     뒤로가기 히스토리가 글자 수만큼 쌓인다). 딥링크·뒤로가기로 f.q 가 바뀌면 동기화. */
+  const [qInput, setQInput] = useState("");
+  useEffect(() => {
+    setQInput(f.q ?? "");
+  }, [f.q]);
   useEffect(() => {
     const read = () => {
       const p = new URLSearchParams(window.location.search);
@@ -251,6 +257,30 @@ export function QnaListClient({
           ))}
         </div>
       </div>
+
+      {/* ── 검색(2026-08-22) — 키워드 필터(filterByKeyword)는 처음부터 있었는데
+          입력창이 없어 ?q= 딥링크로만 닿을 수 있었다. 보이는 검색창을 단다 —
+          제출 시 기존 set({ q }) 경로 그대로라 개수·빈 상태 문구도 같이 움직인다. */}
+      <form
+        className="rise-in-1 mt-2.5 flex items-center gap-1.5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          set({ q: qInput.trim().slice(0, 80) || null });
+        }}
+      >
+        <input
+          type="search"
+          value={qInput}
+          onChange={(e) => setQInput(e.target.value)}
+          maxLength={80}
+          placeholder="단지명·지역·키워드로 질문 검색"
+          aria-label="질문 검색"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13px] text-ink placeholder:text-text-3"
+        />
+        <button type="submit" className="btn-primary press rounded-xl px-4 py-2 text-[13px]">
+          검색
+        </button>
+      </form>
 
       {/* ── 세부 카테고리(주제) ──────────────────────── */}
       <div className="rise-in-1 mt-2.5 flex flex-wrap items-center gap-1.5">

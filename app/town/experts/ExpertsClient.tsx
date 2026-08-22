@@ -132,10 +132,19 @@ export function ExpertsClient({
   const sub = findSub(EXPERT_SUBCATEGORIES, filter.sub);
   const usingReal = items.length > 0;
 
-  /* 지역 칩 — 항상 전량 기준 (예전 서버 판과 동일) */
-  const regionKeys = [
-    ...new Set(items.flatMap((e) => e.regions).map(regionKeyOf).filter(Boolean)),
-  ].slice(0, 6);
+  /* 지역 칩 — 항상 전량 기준 (예전 서버 판과 동일).
+     [2026-08-22] 등록순으로 앞 6개를 자르던 것을 **빈도순** 6개로 — 임의 지역이
+     칩을 차지하고 정작 전문가가 많은 지역이 닿지 않는 문제. */
+  const regionFreq = new Map<string, number>();
+  for (const e of items) {
+    for (const r of e.regions.map(regionKeyOf).filter(Boolean)) {
+      regionFreq.set(r, (regionFreq.get(r) ?? 0) + 1);
+    }
+  }
+  const regionKeys = [...regionFreq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([k]) => k);
 
   let cards: ExpertCardData[] = [];
   if (usingReal) {
@@ -157,7 +166,10 @@ export function ExpertsClient({
   const verifiedCards = cards.filter((c) => c.verified);
   const otherCards = cards.filter((c) => !c.verified);
 
-  const subChips = EXPERT_SUBCATEGORIES.slice(0, 6);
+  /* [2026-08-22] slice(0,6) 이 7번째 '금융/대출' 칩을 잘라 먹고 있었다 — 등록
+     폼은 대출상담사를 받는데 목록 필터로는 닿을 수 없는 분야였다. 칩 줄은
+     가로 스크롤이라 전부 그려도 넘치지 않는다. */
+  const subChips = EXPERT_SUBCATEGORIES;
   const sortChips = [
     { id: "recent", label: "최근 등록순" },
     { id: "consult", label: "상담 많은 순" },

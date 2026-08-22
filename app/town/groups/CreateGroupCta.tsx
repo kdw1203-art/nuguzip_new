@@ -81,6 +81,13 @@ export function CreateGroupCta() {
         error?: string;
         group?: { id?: string };
       };
+      if (res.status === 401) {
+        /* [2026-08-22] 로그인 없이 7칸을 다 채운 뒤에야 빨간 오류 한 줄이 나오던
+           경로 — 로그인으로 보내고, 돌아오면 이 목록이다(작성 내용 복구까지는
+           안 되지만 "왜 안 되는지 모른 채 끝"보다는 낫다). */
+        window.location.href = `/login?callbackUrl=${encodeURIComponent("/town/groups")}`;
+        return;
+      }
       if (!res.ok) {
         setError(data.error ?? "모임을 만들지 못했어요. 잠시 후 다시 시도해 주세요.");
         setStatus("idle");

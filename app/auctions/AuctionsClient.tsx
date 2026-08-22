@@ -90,7 +90,11 @@ function usageDistribution(
       const u = it.usage;
       if (!u || f.match.length === 0) return false;
       const lower = u.toLowerCase();
-      return f.match.some((m) => lower.includes(m.toLowerCase()));
+      /* 서버(lib/onbid/store.ts)와 동일 규칙: 한 글자("전"·"답")는 정확일치 —
+         %전% 부분일치는 "전시장"류를 토지로 세는 과매칭이었다(2026-08-22). */
+      return f.match.some((m) =>
+        m.length === 1 ? u.trim() === m : lower.includes(m.toLowerCase()),
+      );
     }).length,
   }))
     .filter((c) => c.count > 0)
@@ -144,7 +148,10 @@ function buildCalendar(
   }
   let trail = 1;
   while (cells.length % 7 !== 0) cells.push({ day: trail++, muted: true, mark: false });
-  return { monthLabel: `${month + 1}월`, cells };
+  /* 연도 포함(2026-08-22) — 앵커가 내년 첫 마감월일 수 있는데 "3월"만 적으면
+     올해 3월로 읽힌다. 올해가 아닐 때만 연도를 붙여 소음을 줄인다. */
+  const yearPrefix = year === now.getFullYear() ? "" : `${year}년 `;
+  return { monthLabel: `${yearPrefix}${month + 1}월`, cells };
 }
 
 type AuctionCardData = {
@@ -293,6 +300,10 @@ export function AuctionsClient({
   const [f, setF] = useState<Filter>({ usage: null, gu: null, source: "onbid" });
   const [fetched, setFetched] = useState<Fetched>({ state: "idle" });
   const [nowMs, setNowMs] = useState(builtAtMs);
+  /* 표 표시 상한(2026-08-22) — "실데이터 1,130건" 헤더 아래 24행에서 뚝 끊기고
+     끝이었다(페이지네이션 없음). 더보기로 48행씩 연다. 필터를 바꾸면 목록이
+     새로 오므로 상한도 처음으로 되돌린다. */
+  const [rowCap, setRowCap] = useState(24);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -344,6 +355,7 @@ export function AuctionsClient({
   const set = (patch: Partial<Filter>) => {
     const next = { ...f, ...patch };
     setF(next);
+    setRowCap(24); // 새 조건 = 새 목록 — 표 상한도 처음부터
     pushFilterUrl(next);
   };
 
@@ -450,8 +462,8 @@ export function AuctionsClient({
       {/* 정직 안내 · 면책 */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6] text-primary">
         <span>
-          감정가·최저입찰가·입찰일정은 <b className="font-bold">공공 데이터</b> 기준이며 하루
-          2회 갱신됩니다. 갱신 사이에 변경·취소될 수 있으니 실제 입찰·명도 조건은{" "}
+          감정가·최저입찰가·입찰일정은 <b className="font-bold">공공 데이터</b> 기준이며 매일
+          자동 갱신됩니다. 갱신 사이에 변경·취소될 수 있으니 실제 입찰·명도 조건은{" "}
           <a
             href="https://www.onbid.co.kr"
             target="_blank"
@@ -633,7 +645,7 @@ export function AuctionsClient({
             {cards.length === 0 ? (
               <div className="rise-in-4 card p-[var(--pad-card)]">
                 <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center text-[13px] text-text-3">
-                  현재 조건의 진행·예정 공매 물건이 없어요. 데이터는 하루 2회 자동
+                  현재 조건의 진행·예정 공매 물건이 없어요. 데이터는 매일 자동
                   갱신됩니다.
                 </div>
               </div>
@@ -647,7 +659,7 @@ export function AuctionsClient({
                     <span className="text-center">최저가</span>
                     <span className="text-center">입찰마감</span>
                   </div>
-                  {cards.slice(0, 24).map((c, i, arr) => (
+                  {cards.slice(0, rowCap).map((c, i, arr) => (
                     <div
                       key={c.key}
                       className={`grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] items-center gap-2 py-2.5 text-xs ${
@@ -668,8 +680,18 @@ export function AuctionsClient({
                       <span className="text-center font-bold text-text-1">{c.dateValue}</span>
                     </div>
                   ))}
+                  {cards.length > rowCap && (
+                    <button
+                      type="button"
+                      onClick={() => setRowCap((n) => n + 48)}
+                      className="press my-2 w-full rounded-xl bg-bg py-2.5 text-center text-[12px] font-bold text-primary"
+                    >
+                      더보기 ({Math.min(rowCap, cards.length).toLocaleString()} /{" "}
+                      {cards.length.toLocaleString()}건)
+                    </button>
+                  )}
                   <div className="pb-2 pt-1 text-[10px] text-text-3">
-                    마감 임박순 · 출처: 한국자산관리공사 온비드(공공데이터포털) · 하루 2회 자동
+                    마감 임박순 · 출처: 한국자산관리공사 온비드(공공데이터포털) · 매일 자동
                     갱신
                   </div>
                 </div>

@@ -15,7 +15,14 @@ import { seoAlternates } from "@/lib/seo/alternates";
    검색에 실어 나르지 않는다. 연락처는 본인이 프로필 수정에서 채운 값만,
    인증 전문가에 한해 표시한다(목록 DTO 와 같은 원칙). */
 
-export const dynamic = "force-dynamic";
+/* 비용(2026-08-22): force-dynamic 이라 크롤·방문마다 오리진 함수가 돌았다.
+   이 렌더에 사용자별 상태가 없다(auth·cookies 0건) — 목록(ISR 300)과 같은
+   주기의 ISR 로 전환. 상담 신청 버튼은 클라이언트라 캐시와 무관하다. */
+export const revalidate = 300;
+// 동적 세그먼트는 이게 없으면 "요청마다 서버 렌더"로 분류된다(/town/news/[id] 실측)
+export function generateStaticParams() {
+  return [];
+}
 
 const BASE_URL = "https://nuguzip.com";
 

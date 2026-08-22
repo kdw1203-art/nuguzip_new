@@ -41,6 +41,8 @@ type ViewState = {
   items: ApplyhomeListingItem[];
   totalCount: number;
   mode: "live" | "mock" | "error";
+  /** 분양정보(상세) API 사용 가능 여부 — false면 지역·검색 필터 자체가 불가하다 */
+  detailAvailable: boolean;
   detailNotice?: string;
   fetchedAt?: string;
 };
@@ -49,7 +51,10 @@ type ViewState = {
 type ErrState = { message: string; cause?: string } | null;
 
 function fromPayload(p: ApplyhomeSearchPayload, prevItems?: ApplyhomeListingItem[]): ViewState {
-  const merged = prevItems ? [...prevItems, ...p.items] : p.items;
+  /* 모양이 어긋난 200 응답(items 누락 등)에도 TypeError 로 터지지 않게 방어 —
+     이전에는 `[... p.items]` 가 undefined 전개로 죽을 수 있었다. */
+  const incoming = Array.isArray(p.items) ? p.items : [];
+  const merged = prevItems ? [...prevItems, ...incoming] : incoming;
   // 페이지 경계 중복 방어 — id 기준 dedupe
   const seen = new Set<string>();
   const items = merged.filter((it) => {
@@ -59,12 +64,13 @@ function fromPayload(p: ApplyhomeSearchPayload, prevItems?: ApplyhomeListingItem
   });
   return {
     tab: p.tab,
-    region: p.filters.region,
-    q: p.filters.q,
+    region: p.filters?.region ?? "전체",
+    q: p.filters?.q ?? "",
     page: 1,
     items,
-    totalCount: p.totalCount,
+    totalCount: typeof p.totalCount === "number" ? p.totalCount : items.length,
     mode: p.mode,
+    detailAvailable: Boolean(p.detailAvailable),
     detailNotice: p.detailNotice,
     fetchedAt: p.fetchedAt,
   };
@@ -78,6 +84,7 @@ const EMPTY_STATE: ViewState = {
   items: [],
   totalCount: 0,
   mode: "error",
+  detailAvailable: false,
 };
 
 /** "2026-07-27T09:12:33Z" → "07-27 09:12". 파싱 실패 시 앞부분만 그대로 보여준다. */
@@ -122,6 +129,39 @@ function ymd(raw?: string): string | null {
   const digits = raw.replace(/[^0-9]/g, "");
   if (digits.length >= 8) return `${digits.slice(0, 4)}.${digits.slice(4, 6)}.${digits.slice(6, 8)}`;
   return raw;
+}
+
+/** 접수 기간("2026-08-19 ~ 2026-08-21")으로 지금 상태를 계산 — 데이터에 이미 있는
+    날짜만 쓴다(추정 없음). 과거 공고가 대부분이라 '마감' 칩은 소음 — 진행·예정만
+    칩으로 강조하고, 파싱 실패·과거는 null 로 아무것도 그리지 않는다. */
+function applyStatus(period?: string): { label: string; cls: string } | null {
+  if (!period) return null;
+  const dates = period.match(/\d{4}[-.]?\d{2}[-.]?\d{2}/g);
+  if (!dates || dates.length === 0) return null;
+  const toMs = (s: string) => {
+    const d = s.replace(/[^0-9]/g, "");
+    return Date.parse(`${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}T00:00:00+09:00`);
+  };
+  const start = toMs(dates[0]);
+  const endDay = toMs(dates[dates.length - 1]);
+  if (!Number.isFinite(start) || !Number.isFinite(endDay)) return null;
+  const end = endDay + 24 * 60 * 60 * 1000 - 1; // 마감일 그날 자정(KST)까지 접수 중
+  const now = Date.now();
+  if (now < start) return { label: "접수 예정", cls: "bg-primary-soft text-primary" };
+  if (now <= end) return { label: "접수 중", cls: "bg-[#e7f8ef] text-success" };
+  return null;
+}
+
+function StatusChip({ period }: { period?: string }) {
+  const st = applyStatus(period);
+  if (!st) return null;
+  return (
+    <span
+      className={`ml-1.5 inline-block rounded-md px-1.5 py-0.5 align-middle text-[9.5px] font-extrabold ${st.cls}`}
+    >
+      {st.label}
+    </span>
+  );
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -212,11 +252,19 @@ export function ApplySearchClient({ initial }: Props) {
     }
   }
 
+  /* 페이지 단위가 경로마다 다르다(2026-08-22 수리):
+       필터 없음 → 행(row) 페이지네이션: 행 수 vs 행 총계 비교가 맞다.
+       필터 있음 → 공고(detail) 페이지네이션: 한 공고가 타입·순위별 여러 행을
+         만들므로 행 수와 공고 총계를 비교하면 안 된다(45행 > 공고 20건이라
+         더 있는데도 버튼이 사라지는 식). 소비한 공고 수(page×PER_PAGE)로 센다. */
+  const filteredMode = state.region !== "전체" || state.q.trim().length > 0;
   const canLoadMore =
     !error &&
     state.mode === "live" &&
     state.items.length > 0 &&
-    state.items.length < state.totalCount;
+    (filteredMode
+      ? state.page * PER_PAGE < state.totalCount
+      : state.items.length < state.totalCount);
 
   const tabPill = (on: boolean) =>
     on
@@ -358,6 +406,16 @@ export function ApplySearchClient({ initial }: Props) {
               desc="DATA_GO_KR_SERVICE_KEY 가 없어 실데이터를 부를 수 없습니다. 지어낸 수치로 표를 채우지는 않아요."
               action={{ href: "https://www.applyhome.co.kr", label: "청약홈에서 직접 보기 ↗" }}
             />
+          ) : filteredMode && !state.detailAvailable ? (
+            /* 0건이 아니라 **필터 기능 자체가 지금 불가**한 상태 — 상세(분양정보)
+               API 미승인이면 지역·검색 필터를 걸 수 없다. "조건에 맞는 공고가
+               없어요"라고 말하면 있는 공고를 없다고 말하는 셈이라 구분한다. */
+            <EmptyState
+              icon="lock"
+              title="지역·단지명 필터를 지금 사용할 수 없어요"
+              desc="분양정보(상세) API 연동이 준비되지 않아 필터 검색이 불가합니다. 공고가 없다는 뜻이 아니에요 — ‘전체’로 돌아가면 전국 공고를 볼 수 있어요."
+              action={{ href: "/apply", label: "전체 공고 보기" }}
+            />
           ) : (
             <EmptyState
               icon="search"
@@ -429,6 +487,7 @@ export function ApplySearchClient({ initial }: Props) {
                               </span>
                             )}
                             {item.houseName}
+                            <StatusChip period={item.subscriptionPeriod} />
                             <span className="ml-1 text-[10px] font-medium text-text-3">
                               {item.region}
                               {item.resideLabel ? ` · ${item.resideLabel}` : ""}
@@ -512,6 +571,7 @@ export function ApplySearchClient({ initial }: Props) {
                               </span>
                             )}
                             {item.houseName}
+                            <StatusChip period={item.subscriptionPeriod} />
                             <span className="ml-1 text-[10px] font-medium text-text-3">
                               {item.region}
                             </span>
@@ -577,7 +637,12 @@ export function ApplySearchClient({ initial }: Props) {
         >
           {appending
             ? "불러오는 중…"
-            : `더보기 (${state.items.length.toLocaleString()} / ${state.totalCount.toLocaleString()}건)`}
+            : filteredMode
+              ? `더보기 — 공고 ${state.totalCount.toLocaleString()}건 중 ${Math.min(
+                  state.page * PER_PAGE,
+                  state.totalCount,
+                ).toLocaleString()}건 확인함`
+              : `더보기 (${state.items.length.toLocaleString()} / ${state.totalCount.toLocaleString()}건)`}
         </button>
       )}
     </div>

@@ -77,7 +77,11 @@ export async function getReport(id: string): Promise<UserReport | null> {
     .select("*")
     .eq("id", id)
     .maybeSingle();
-  if (error || !data) return null;
+  /* [2026-08-22] error 도 null 로 삼켰었다 — 상세 페이지가 그 null 을 notFound()
+     로 바꿔서, DB 가 잠깐 흔들리면 멀쩡한 리포트가 404 "없는 리포트"로 나갔다.
+     못 읽은 것(던진다)과 없는 것(null)은 다르다 — 목록(listReports)과 같은 규칙. */
+  if (error) throw new Error(`[reports] 상세 조회 실패: ${error.message}`);
+  if (!data) return null;
   return mapRow(data);
 }
 

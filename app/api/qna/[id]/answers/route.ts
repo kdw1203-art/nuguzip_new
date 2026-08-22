@@ -44,6 +44,9 @@ export async function POST(
   // /qna/[id] 는 ISR(600s)이다. 재생성 없이는 방금 단 답변이 최대 10분간
   // 캐시에 가려 "등록이 안 된" 것처럼 보인다 — 성공 시 즉시 재생성.
   revalidatePath(`/qna/${id}`);
+  // 목록(/qna)의 답변 수·"답변 완료" 배지도 같은 답변으로 바뀐다 — 상세만
+  // 재생성하면 목록이 최대 5분(ISR 300s) 동안 반대로 말한다. 함께 재생성.
+  revalidatePath("/qna");
 
   return NextResponse.json({ ok: true, id: result.id }, { status: 201 });
 }

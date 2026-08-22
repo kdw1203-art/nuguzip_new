@@ -72,6 +72,27 @@ const LOCKED = [
     must: ["영구적으로 기재하지 않습니다"],
     why: "수익 보장 문구 영구 미기재 고지",
   },
+  // ── 포인트 무상성 (2026-08-22 유의업종 소명) — 고지·약관·상점이 같은 사실을 말해야 함 ──
+  {
+    file: "lib/points/catalog.ts",
+    must: ["현금으로 구매(충전)할 수 없고", "현금으로 환불·전환되지 않으며"],
+    why: "토스에 '유상 충전 없음'을 소명한 무상성 고지의 단일 출처(POINTS_GRATUITOUS_NOTICE)",
+  },
+  {
+    file: "app/legal/terms/page.tsx",
+    must: ['id="points"', "유상으로 판매(충전)하지 않습니다"],
+    why: "약관 제8조의2(포인트) — 소명 회신에 URL(/legal/terms#points)로 적어 냈다",
+  },
+  {
+    file: "app/points/shop/page.tsx",
+    must: ["POINTS_GRATUITOUS_NOTICE"],
+    why: "포인트 상점 상시 고지 — 소명 캡처 1에 해당하는 화면",
+  },
+  {
+    file: "app/my/points/page.tsx",
+    must: ["POINTS_GRATUITOUS_NOTICE"],
+    why: "포인트 지갑 상시 고지 — 소명 회신에 '전 포인트 화면 고지'로 적어 냈다",
+  },
 ];
 
 /** 심사에서 금지된 것이 소스에 다시 들어오면 실패 */
@@ -85,6 +106,27 @@ const FORBIDDEN = [
     file: "lib/subcategories.ts",
     mustNot: ['"법무/계약 검토"'],
     why: "법률 상담 카테고리 제거가 심사 회신에 적혀 있다",
+  },
+  /* ── 충전형 상품 금지 (2026-08-22) ─────────────────────────────────
+     토스 유의업종 소명의 핵심: 돈→포인트 경로가 없다. 포인트는 활동 적립
+     무상 리워드이고 사이트 내부 혜택(닉네임 효과·추천글·리포트 열람 등)에만
+     쓴다. 유상 충전을 도입하는 날에는 보증보험·1회 10만원 한도·1년 환불 규정·
+     충전 결제경로 심사 등 유의업종 요건을 **선이행**한 뒤, 이 게이트와 약관
+     제8조의2·무상성 고지를 함께 갱신해야 한다(먼저 코드부터 넣으면 안 된다). */
+  {
+    file: "lib/points/catalog.ts",
+    mustNot: ["포인트 충전하기", "포인트를 충전", "충전 상품", "topup", "point_charge", "charge_points"],
+    why: "유상 충전(돈→포인트) 상품 부존재를 토스에 소명했다 — 카탈로그에 되살아나면 유의업종 요건 위반",
+  },
+  {
+    file: "app/points/shop/page.tsx",
+    mustNot: ["포인트 충전하기", "포인트를 충전", "충전 상품"],
+    why: "상점 표면의 충전 유도 문구 — 소명과 배치",
+  },
+  {
+    file: "app/my/points/page.tsx",
+    mustNot: ["포인트 충전하기", "포인트를 충전", "충전 상품"],
+    why: "지갑 표면의 충전 유도 문구 — 소명과 배치",
   },
 ];
 

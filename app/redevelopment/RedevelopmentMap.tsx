@@ -55,9 +55,15 @@ function buildInfoHtml(p: RedevelopmentProject): string {
   const asOfLine = p.asOf
     ? `<div style="font-size:10px;color:#9ca3af;margin-top:4px">${esc(p.asOf)} 공개자료 기준 · 최신 단계와 다를 수 있음</div>`
     : "";
+  /* 스킴 검증(2026-08-22) — 이 문자열은 지도 인포윈도 innerHTML 로 들어간다.
+     이스케이프는 하고 있었지만 href 스킴은 안 봤다: javascript: 값이 오면 클릭
+     시 실행된다. 쓰기 경로가 service-role 뿐이라 위험은 낮지만, http(s) 외에는
+     링크를 그리지 않는 것이 층 하나 더 싼 방어다. */
+  const safeSourceUrl =
+    p.sourceUrl != null && /^https?:\/\//i.test(p.sourceUrl.trim()) ? p.sourceUrl.trim() : null;
   const source =
-    p.sourceUrl != null
-      ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:2px;font-size:11px;font-weight:700;color:#1d4fd8;text-decoration:none">출처 ›</a>`
+    safeSourceUrl != null
+      ? `<a href="${esc(safeSourceUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:2px;font-size:11px;font-weight:700;color:#1d4fd8;text-decoration:none">출처 ›</a>`
       : "";
   return `
   <div style="padding:10px 12px;min-width:184px;max-width:220px;font-family:sans-serif;line-height:1.5">
@@ -90,6 +96,9 @@ export function RedevelopmentMap({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sigungu, setSigungu] = useState<string | null>(null);
   const [view, setView] = useState<ViewKey>("map");
+  /* 구역명 검색(2026-08-22) — 이름·주소가 전부 메모리에 있는데 40곳을 눈으로
+     훑는 것 말고는 특정 구역을 찾을 길이 없었다. 공백 무시 부분일치. */
+  const [q, setQ] = useState("");
 
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -129,10 +138,19 @@ export function RedevelopmentMap({
     [initialProjects, types, stages],
   );
 
-  const filtered = useMemo(
-    () => (sigungu ? byTypeStage.filter((p) => p.sigungu === sigungu) : byTypeStage),
-    [byTypeStage, sigungu],
-  );
+  const filtered = useMemo(() => {
+    let list = sigungu ? byTypeStage.filter((p) => p.sigungu === sigungu) : byTypeStage;
+    const needle = q.trim().toLowerCase().replace(/\s+/g, "");
+    if (needle) {
+      list = list.filter((p) =>
+        `${p.name} ${p.address ?? ""} ${p.sigungu ?? ""}`
+          .toLowerCase()
+          .replace(/\s+/g, "")
+          .includes(needle),
+      );
+    }
+    return list;
+  }, [byTypeStage, sigungu, q]);
 
   /** 현재 사업종류·진행단계 조건에서의 시군구별 구역 수(많은 순). */
   const regionCounts = useMemo(() => {
@@ -314,6 +332,16 @@ export function RedevelopmentMap({
               {sigungu}
             </span>
           ) : null}
+          {/* 구역명 검색 — 타이핑 즉시 지도·목록·집계가 같이 좁혀진다 */}
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            maxLength={40}
+            placeholder="구역명·주소 검색"
+            aria-label="정비구역 검색"
+            className="ml-auto w-[170px] rounded-xl border border-line bg-surface px-3 py-1.5 text-[12px] text-ink placeholder:text-text-3"
+          />
         </div>
         {topSigungu.length > 0 ? (
           <>

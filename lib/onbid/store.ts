@@ -101,8 +101,15 @@ export async function getAuctions(opts: {
     if (opts.usage) {
       const f = AUCTION_USAGE_FILTERS.find((x) => x.key === opts.usage);
       if (f) {
+        /* [2026-08-22] 한 글자 키워드("전"·"답")를 %전% 부분일치로 걸면 "전시장"
+           ·"운전학원"류 용도까지 토지로 잡힌다 — 한 글자는 정확일치(eq)로,
+           두 글자 이상만 부분일치(ilike)로 건다. */
         const ors = f.match
-          .map((m) => `usage_scls.ilike.%${m}%,usage_mcls.ilike.%${m}%`)
+          .map((m) =>
+            m.length === 1
+              ? `usage_scls.eq.${m},usage_mcls.eq.${m}`
+              : `usage_scls.ilike.%${m}%,usage_mcls.ilike.%${m}%`,
+          )
           .join(",");
         q = q.or(ors);
       }

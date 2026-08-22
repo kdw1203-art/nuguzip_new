@@ -12,6 +12,12 @@ import { TownCategoryNav } from "../TownCategoryNav";
 import { ErrorState } from "../../components/ui/EmptyState";
 import type { Metadata } from "next";
 import { seoAlternates } from "@/lib/seo/alternates";
+import {
+  NotesBrowser,
+  ReportsBrowser,
+  type NoteCardDto,
+  type ReportCardDto,
+} from "./LibraryBrowser";
 
 /* 항목 46b — 루트 레이아웃 제목을 그대로 상속하던 페이지에 개별 메타데이터. */
 export const metadata: Metadata = {
@@ -131,34 +137,27 @@ export default async function TownLibraryPage() {
             </div>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {/* 상세·구매 화면이 생겼으므로 이제 링크를 건다(예전 주석의 약속).
-                가격 단위도 정정 — 판매·정산이 포인트라 "원"이 아니라 "P"다. */}
-            {reports.map((r) => (
-              <li key={r.id} className="card card-hover rise-in-1 rounded-[16px]">
-                <Link href={`/town/library/${r.id}`} className="block px-4 py-3.5 no-underline">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.45] text-ink">
-                        {r.title}
-                      </div>
-                      <div className="mt-0.5 truncate text-[11px] text-text-3">
-                        {[r.authorLabel?.trim(), r.category?.trim(), r.region?.trim()]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </div>
-                    </div>
-                    <span className="shrink-0 text-[12px] font-extrabold text-primary">
-                      {r.price > 0 ? `${r.price.toLocaleString("ko-KR")}P` : "무료"}
-                    </span>
-                  </div>
-                  {r.pages > 0 && (
-                    <div className="mt-1.5 text-[11px] text-text-3">{r.pages}쪽</div>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          /* 상세·구매 화면이 생겼으므로 링크를 건다(예전 주석의 약속). 가격 단위는
+             판매·정산이 포인트라 "P". 필터·정렬은 LibraryBrowser(클라이언트)가 맡고,
+             여기서는 이미 읽은 컬럼만 직렬화해 내려준다. */
+          <ReportsBrowser
+            reports={reports.map(
+              (r): ReportCardDto => ({
+                id: r.id,
+                title: r.title,
+                subtitle: r.subtitle?.trim() || null,
+                meta: [r.authorLabel?.trim(), r.category?.trim(), r.region?.trim()]
+                  .filter(Boolean)
+                  .join(" · "),
+                price: r.price,
+                isPremium: r.isPremium,
+                pages: r.pages,
+                rating: r.rating,
+                tags: r.tags ?? [],
+                publishedAt: Date.parse(r.publishedAt) || 0,
+              }),
+            )}
+          />
         )}
       </section>
 
@@ -208,49 +207,21 @@ export default async function TownLibraryPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-            {notes.map((n, i) => {
-              const cover = n.photos.find(Boolean) ?? null;
-              const score = Math.round(inspectionAverageScore(n.scores) * 20);
-              return (
-                <Link
-                  key={n.id}
-                  href={`/notes/${n.id}`}
-                  className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-[16px]`}
-                >
-                  <div
-                    className="relative h-[112px] w-full overflow-hidden"
-                    style={{ background: seedGradient(n.region || n.id) }}
-                  >
-                    {cover && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={cover}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                    <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 chip-pad text-[10px] font-extrabold text-success">
-                      {n.visitDate ? "✓ 직접 방문" : "임장노트"}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1 p-3">
-                    <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.4] text-ink">
-                      {n.aptName?.trim() || n.title}
-                    </div>
-                    <div className="text-[11px] text-text-3">{n.region}</div>
-                    <div className="mt-auto flex items-center justify-between pt-1 text-[11px] text-text-3">
-                      <span className="min-w-0 truncate">
-                        {maskNoteAuthor(n.authorLabel, n.authorEmail)}
-                      </span>
-                      <span className="shrink-0 font-bold text-primary">{score}점</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <NotesBrowser
+            notes={notes.map(
+              (n): NoteCardDto => ({
+                id: n.id,
+                title: n.aptName?.trim() || n.title,
+                region: n.region,
+                author: maskNoteAuthor(n.authorLabel, n.authorEmail),
+                score: Math.round(inspectionAverageScore(n.scores) * 20),
+                cover: n.photos.find(Boolean) ?? null,
+                gradient: seedGradient(n.region || n.id),
+                visited: Boolean(n.visitDate),
+                createdAt: Date.parse(n.createdAt) || 0,
+              }),
+            )}
+          />
         )}
       </section>
     </PageShell>

@@ -51,9 +51,21 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-extrabold text-ink">
-              {e.title ? `${e.name} ${e.title}` : e.name}
-            </span>
+            {/* [2026-08-22] 인증 전문가는 이름이 상세 페이지로 가는 실링크다 —
+                예전엔 /town/experts/[id] 로 가는 길이 모달 안 링크뿐이라 공유도
+                크롤도 안 되는 2단계 깊이였다. 모달(상세 보기)은 그대로 둔다. */}
+            {e.verified && e.id ? (
+              <Link
+                href={`/town/experts/${e.id}`}
+                className="truncate text-[15px] font-extrabold text-ink no-underline hover:text-primary"
+              >
+                {e.title ? `${e.name} ${e.title}` : e.name}
+              </Link>
+            ) : (
+              <span className="truncate text-[15px] font-extrabold text-ink">
+                {e.title ? `${e.name} ${e.title}` : e.name}
+              </span>
+            )}
             {e.verified ? (
               <span className="shrink-0 rounded-[5px] bg-[#edf2fe] chip-pad-tight text-[10px] font-extrabold text-primary">
                 인증

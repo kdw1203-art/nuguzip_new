@@ -133,6 +133,8 @@ async function searchFromDetailFirst(options: {
   perPage: number;
 }): Promise<{ items: ApplyhomeListingItem[]; totalCount: number }> {
   const { tab, region, q, page, perPage } = options;
+  /* 서버측 필터가 이미 걸린다: 지역은 EQ, 검색어는 단지명 LIKE
+     (adapters/apt-detail.ts). detailTotal 은 그 조건의 **전체 건수**다. */
   const { rows: details, totalCount: detailTotal } = await fetchAptDetailPage({
     page,
     perPage,
@@ -140,43 +142,64 @@ async function searchFromDetailFirst(options: {
     q: q || undefined,
   });
 
-  const filteredDetails = q.trim() ? details : details.filter((d) => matchesQuery(d, q));
+  /* [수리 2026-08-22] 예전 코드는 삼항이 뒤집혀 있었다:
+       q 있음 → 로컬 필터 생략 / q 없음 → matchesQuery(d,"")(전부 true)
+     즉 주소·공고번호 매칭(matchesQuery)이 어느 경로에서도 돌지 않았고,
+     검색 시 totalCount 를 "받은 한 페이지 길이"로 보고해 더보기가 죽고
+     "총 공고" 타일이 15건으로 찍혔다. 정리:
+       - 단지명 LIKE 는 서버가 이미 했으므로 로컬 재필터는 불필요.
+       - 단지명으로 0건이면 **주소·공고번호일 수 있다** — 같은 페이지를
+         조건 없이 다시 받아 로컬 matchesQuery 로 거른다(1페이지 한정 폴백).
+       - totalCount 는 서버 건수(detailTotal)를 그대로 쓴다. 폴백 경로만
+         로컬 매칭 건수를 쓴다(그때는 그것이 아는 전부라서). */
+  let filteredDetails = details;
+  let localFallback = false;
+  if (q.trim() && details.length === 0) {
+    const { rows: unfiltered } = await fetchAptDetailPage({
+      page,
+      perPage: 50,
+      region: region !== "전체" ? region : undefined,
+    });
+    filteredDetails = unfiltered.filter((d) => matchesQuery(d, q)).slice(0, perPage);
+    localFallback = true;
+  }
   if (filteredDetails.length === 0) {
-    return { items: [], totalCount: q.trim() ? 0 : detailTotal };
+    return { items: [], totalCount: localFallback ? 0 : detailTotal };
   }
 
-  const items: ApplyhomeListingItem[] = [];
-
-  if (tab === "competition") {
-    for (const detail of filteredDetails) {
-      const json = await fetchOdcloudApplyhome<AptCompetitionRow>("getAPTLttotPblancCmpet", {
-        page: 1,
-        perPage: 20,
-        "cond[HOUSE_MANAGE_NO::EQ]": detail.HOUSE_MANAGE_NO,
-        "cond[PBLANC_NO::EQ]": detail.PBLANC_NO,
-      });
-      for (const row of json.data ?? []) {
-        items.push(competitionToItem(row, detail));
+  /* [최적화 2026-08-22] 상세 1행당 업스트림 1회를 **순차로** 돌던 N+1 —
+     검색이 이 페이지의 가장 느린 경로였다(최대 15회 왕복 합산). 병렬로 바꾼다.
+     실패한 행은 건너뛴다(전체 실패로 번지지 않게 allSettled). */
+  const perDetail = await Promise.allSettled(
+    filteredDetails.map(async (detail) => {
+      if (tab === "competition") {
+        const json = await fetchOdcloudApplyhome<AptCompetitionRow>("getAPTLttotPblancCmpet", {
+          page: 1,
+          perPage: 20,
+          "cond[HOUSE_MANAGE_NO::EQ]": detail.HOUSE_MANAGE_NO,
+          "cond[PBLANC_NO::EQ]": detail.PBLANC_NO,
+        });
+        return (json.data ?? []).map((row) => competitionToItem(row, detail));
       }
-      if (items.length >= perPage) break;
-    }
-  } else {
-    for (const detail of filteredDetails) {
       const { rows } = await fetchAptSpecialSupply({
         houseManageNo: detail.HOUSE_MANAGE_NO,
         pblancNo: detail.PBLANC_NO,
         perPage: 20,
       });
-      for (const row of rows) {
-        items.push(specialToItem(row, detail));
-      }
-      if (items.length >= perPage) break;
-    }
+      return rows.map((row) => specialToItem(row, detail));
+    }),
+  );
+  const items: ApplyhomeListingItem[] = [];
+  for (const r of perDetail) {
+    if (r.status === "fulfilled") items.push(...r.value);
   }
 
+  /* 자르지 않는다: 페이지 단위는 "공고(detail) perPage개"이고, 한 공고가 타입·순위별로
+     여러 행을 만든다. 예전처럼 행 수 기준으로 자르면 이번 페이지 공고의 뒷행들이
+     영영 보이지 않게 된다(다음 페이지는 다음 공고들을 받으므로). */
   return {
-    items: items.slice(0, perPage),
-    totalCount: q.trim() ? filteredDetails.length : detailTotal,
+    items,
+    totalCount: localFallback ? filteredDetails.length : detailTotal,
   };
 }
 

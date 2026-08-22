@@ -102,12 +102,24 @@ export default async function TownGroupDetailPage({
   const myEmail = session?.user?.email?.trim().toLowerCase() ?? null;
   const remaining = meeting.maxMembers - meeting.currentMembers;
   const isFull = remaining <= 0;
-  const statusLabel = isFull ? "모집 마감" : remaining <= 1 ? "마감 임박" : "모집 중";
-  const statusStyle = isFull
-    ? "bg-[#f2f4f8] text-text-3"
-    : remaining <= 1
-      ? "bg-[#fdf3e7] text-warning"
-      : "bg-[#edf2fe] text-primary";
+  /* [2026-08-22] 지난 모임 판정 — 목록(GroupsClient.deriveStatus)은 날짜를 보고
+     "일정 종료"라고 말하는데 이 상세는 정원만 봐서, 어제 끝난 모임이 "모집 중 ·
+     참여하기"로 나갔다(목록 주석이 금지한 바로 그 화면). 같은 판정을 쓴다. */
+  const scheduledTs = Date.parse(meeting.scheduledAt ?? "");
+  const isPast = Number.isFinite(scheduledTs) && scheduledTs < Date.now();
+  const statusLabel = isPast
+    ? "일정 종료"
+    : isFull
+      ? "모집 마감"
+      : remaining <= 1
+        ? "마감 임박"
+        : "모집 중";
+  const statusStyle =
+    isPast || isFull
+      ? "bg-[#f2f4f8] text-text-3"
+      : remaining <= 1
+        ? "bg-[#fdf3e7] text-warning"
+        : "bg-[#edf2fe] text-primary";
   const isOrganizer = myEmail !== null && meeting.organizerEmail?.trim().toLowerCase() === myEmail;
   const fillPct = Math.min(100, Math.round((meeting.currentMembers / Math.max(1, meeting.maxMembers)) * 100));
 
@@ -241,17 +253,36 @@ export default async function TownGroupDetailPage({
 
           {myEmail ? (
             <>
+              {/* [2026-08-22] "대기 참여" 문구 제거 — 대기 명단 기능은 어디에도
+                  없다. 정원이 찬 모임의 신규 입장은 채팅에서 정원 오류가 나므로,
+                  약속 없이 사실만 말한다(기존 참여자 재입장은 항상 허용됨). */}
               <Link
                 href={`/town/groups/${id}/chat`}
-                className="btn-primary rise-in-2 rounded-2xl p-3.5 text-center text-[15px] no-underline"
-                style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
+                className={`${
+                  isPast || (isFull && !isOrganizer) ? "btn-secondary" : "btn-primary"
+                } rise-in-2 rounded-2xl p-3.5 text-center text-[15px] no-underline`}
+                style={
+                  isPast || (isFull && !isOrganizer)
+                    ? undefined
+                    : { boxShadow: "0 10px 26px rgba(29,79,216,.35)" }
+                }
               >
-                {isOrganizer ? "모임 채팅방 관리" : isFull ? "대기 참여 · 채팅방 입장" : "참여하기 → 채팅방 입장"}
+                {isOrganizer
+                  ? "모임 채팅방 관리"
+                  : isPast
+                    ? "일정 종료 · 모임 채팅 보기"
+                    : isFull
+                      ? "모집 마감 · 참여했다면 채팅방 입장"
+                      : "참여하기 → 채팅방 입장"}
               </Link>
               <p className="rise-in-3 text-center text-[11px] text-text-3">
                 {isOrganizer
                   ? "내가 만든 모임이에요"
-                  : "채팅방 입장 시 모임 참여로 확정돼요"}
+                  : isPast
+                    ? "일정이 지난 모임이에요 — 후기·정리는 채팅에서 나눌 수 있어요"
+                    : isFull
+                      ? "정원이 차서 새로 참여할 수는 없어요"
+                      : "채팅방 입장 시 모임 참여로 확정돼요"}
               </p>
             </>
           ) : (

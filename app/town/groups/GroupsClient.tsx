@@ -54,7 +54,7 @@ function deriveStatus(g: GroupView, nowMs: number): GroupView["statusKey"] {
   return isPast ? "past" : remaining <= 0 ? "full" : remaining <= 1 ? "closing" : "open";
 }
 
-type Filter = { region: string; status: string; sort: string };
+type Filter = { region: string; status: string; sort: string; q: string };
 
 function readFilter(): Filter {
   const usp = new URLSearchParams(window.location.search);
@@ -62,6 +62,7 @@ function readFilter(): Filter {
     region: (usp.get("region") ?? "all").trim() || "all",
     status: (usp.get("status") ?? "all").trim() || "all",
     sort: (usp.get("sort") ?? "soon").trim() || "soon",
+    q: (usp.get("q") ?? "").trim().slice(0, 60) || "",
   };
 }
 
@@ -186,7 +187,9 @@ function MeetingCard({
             joinable ? "btn-primary" : "btn-soft"
           }`}
         >
-          {joinable ? "참여하기" : g.statusKey === "full" ? "대기 참여" : "모임 보기"}
+          {/* "대기 참여"(2026-08-22 제거) — 대기 명단 기능이 없는데 있는 것처럼
+              말하던 문구. 마감 모임은 상세를 보러 가는 것이 사실이다. */}
+          {joinable ? "참여하기" : "모임 보기"}
         </Link>
       </div>
     </div>
@@ -208,8 +211,13 @@ export function GroupsClient({
   truncated: boolean;
 }) {
   // SSR/첫 하이드레이션은 필터 없음 + 서버 시각 — 프리렌더 HTML 과 정확히 일치.
-  const [filter, setFilter] = useState<Filter>({ region: "all", status: "all", sort: "soon" });
+  const [filter, setFilter] = useState<Filter>({ region: "all", status: "all", sort: "soon", q: "" });
   const [nowMs, setNowMs] = useState(builtAtMs);
+  /* 검색 입력값 — 제출 시에만 필터·URL 에 반영(타이핑마다 히스토리가 쌓이지 않게) */
+  const [qInput, setQInput] = useState("");
+  useEffect(() => {
+    setQInput(filter.q);
+  }, [filter.q]);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -226,18 +234,35 @@ export function GroupsClient({
     if (next.region !== "all") usp.set("region", next.region);
     if (next.status !== "all") usp.set("status", next.status);
     if (next.sort !== "soon") usp.set("sort", next.sort);
+    if (next.q) usp.set("q", next.q);
     const s = usp.toString();
     window.history.pushState(null, "", s ? `/town/groups?${s}` : "/town/groups");
   };
 
   /* 시각 파생 상태 재계산 후 필터·정렬 — 예전 서버 판과 동일 순서 */
   const all = views.map((g) => ({ ...g, statusKey: deriveStatus(g, nowMs) }));
-  const regionKeys = [...new Set(all.map((g) => g.regionKey))].slice(0, 6);
+  /* [2026-08-22] 등록순 앞 6개 → **빈도순** 6개. 지역이 6곳을 넘으면 임의의
+     지역이 칩을 차지하고 모임 많은 지역이 닿지 않던 문제. */
+  const regionFreq = new Map<string, number>();
+  for (const g of all) regionFreq.set(g.regionKey, (regionFreq.get(g.regionKey) ?? 0) + 1);
+  const regionKeys = [...regionFreq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([k]) => k);
 
+  /* 검색(2026-08-22) — 제목·소개·태그·모임장·지역이 전부 메모리에 있는데 거를
+     길이 없었다. 공백 무시 부분일치(qna 목록과 같은 방식). */
+  const needle = filter.q.toLowerCase().replace(/\s+/g, "");
   let groups = all.filter((g) => {
     if (filter.region !== "all" && g.regionKey !== filter.region) return false;
     if (filter.status === "open" && (g.statusKey === "full" || g.statusKey === "past")) return false;
     if (filter.status === "full" && g.statusKey !== "full" && g.statusKey !== "past") return false;
+    if (needle) {
+      const hay = `${g.title} ${g.desc} ${g.region} ${g.host} ${g.tags.join(" ")}`
+        .toLowerCase()
+        .replace(/\s+/g, "");
+      if (!hay.includes(needle)) return false;
+    }
     return true;
   });
   groups = [...groups].sort((a, b) =>
@@ -257,7 +282,7 @@ export function GroupsClient({
     { id: "new", label: "최신순" },
   ];
   const filtersActive =
-    filter.region !== "all" || filter.status !== "all" || filter.sort !== "soon";
+    filter.region !== "all" || filter.status !== "all" || filter.sort !== "soon" || filter.q !== "";
   const chipCls = (on: boolean) =>
     `chip press px-3 py-1.5 ${on ? "chip-active" : "border border-line bg-surface text-text-2"}`;
 
@@ -313,13 +338,34 @@ export function GroupsClient({
           {filtersActive && (
             <button
               type="button"
-              onClick={() => apply({ region: "all", status: "all", sort: "soon" })}
+              onClick={() => apply({ region: "all", status: "all", sort: "soon", q: "" })}
               className="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-primary"
             >
               <Icon name="x" size={12} /> 필터 초기화
             </button>
           )}
         </div>
+        {/* 검색(2026-08-22) — 제목·태그·모임장·지역 부분일치. 제출 시에만 반영. */}
+        <form
+          className="flex items-center gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            apply({ q: qInput.trim().slice(0, 60) });
+          }}
+        >
+          <input
+            type="search"
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+            maxLength={60}
+            placeholder="모임 이름·태그·지역 검색"
+            aria-label="모임 검색"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13px] text-ink placeholder:text-text-3"
+          />
+          <button type="submit" className="btn-primary press rounded-xl px-4 py-2 text-[13px]">
+            검색
+          </button>
+        </form>
       </div>
 
       {truncated && (
@@ -342,7 +388,7 @@ export function GroupsClient({
           {filtersActive && (
             <button
               type="button"
-              onClick={() => apply({ region: "all", status: "all", sort: "soon" })}
+              onClick={() => apply({ region: "all", status: "all", sort: "soon", q: "" })}
               className="btn-soft rounded-lg px-4 py-2 text-xs"
             >
               필터 초기화

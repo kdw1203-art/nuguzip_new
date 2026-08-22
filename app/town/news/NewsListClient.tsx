@@ -9,16 +9,16 @@
    automation_meta 같은 원본을 클라이언트에 싣지 않는다. */
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /* 칩 전환은 서버 왕복 없는 얕은 URL 갱신으로 한다. Next 14.1+ 는
    window.history.pushState 를 라우터와 동기화해 useSearchParams 가 따라온다.
    Link(?region=) 를 쓰면 같은 ISR payload 를 다시 받아오는 RSC 왕복이 생기고,
    실제 조작 경로를 로컬 프로브에서 재볼 수도 없다(실측으로 확인). */
-function pushRegionUrl(region: string | null) {
+function pushParamUrl(key: "region" | "cat", value: string | null) {
   const url = new URL(window.location.href);
-  if (region) url.searchParams.set("region", region);
-  else url.searchParams.delete("region");
+  if (value) url.searchParams.set(key, value);
+  else url.searchParams.delete(key);
   window.history.pushState(null, "", url);
 }
 import { Icon } from "@/app/components/Icon";
@@ -106,31 +106,57 @@ export function NewsListClient({
      그래서 SSR 은 항상 전체 목록을 그리고(HTML 에 60건 전부), 필터는 마운트
      후 location.search 에서 읽어 적용한다. 딥링크는 하이드레이션 직후 걸린다. */
   const [active, setActive] = useState<string | null>(null);
+  /* 분류 필터(2026-08-22) — 카드가 이미 들고 있던 category 를 거를 수 있게 한다.
+     배지로 색만 칠하고 거르지는 못하던 값이었다. 지역과 같은 얕은 URL 방식(?cat=). */
+  const [activeCat, setActiveCat] = useState<string | null>(null);
+  const categories = useMemo(() => {
+    const freq = new Map<string, number>();
+    for (const c of cards) {
+      const k = c.category?.trim();
+      if (k) freq.set(k, (freq.get(k) ?? 0) + 1);
+    }
+    return Array.from(freq.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([k]) => k);
+  }, [cards]);
   useEffect(() => {
     const read = () => {
-      const raw = new URLSearchParams(window.location.search).get("region");
+      const sp = new URLSearchParams(window.location.search);
+      const raw = sp.get("region");
       setActive(raw && regions.includes(raw) ? raw : null);
+      const cat = sp.get("cat");
+      setActiveCat(cat && categories.includes(cat) ? cat : null);
     };
     read();
     window.addEventListener("popstate", read);
     return () => window.removeEventListener("popstate", read);
-    // regions 는 서버가 내려준 고정 배열이라 join 값으로만 비교한다
+    // regions/categories 는 서버 데이터 파생 고정 배열이라 join 값으로만 비교한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [regions.join("|")]);
+  }, [regions.join("|"), categories.join("|")]);
 
-  const list = active ? cards.filter((c) => c.city === active) : cards;
+  const list = cards.filter(
+    (c) => (!active || c.city === active) && (!activeCat || c.category === activeCat),
+  );
   const featured = list[0];
   const rest = list.slice(1);
+  const anyFilter = Boolean(active || activeCat);
+  const clearAll = () => {
+    pushParamUrl("region", null);
+    pushParamUrl("cat", null);
+    setActive(null);
+    setActiveCat(null);
+  };
 
   return (
     <>
       {/* 지역 필터 칩 — 얕은 pushState 라 서버 왕복이 없다. 뒤로가기·딥링크는
           useSearchParams 동기화로 동작한다(프로브에서 5개 시나리오 실측). */}
       {regions.length > 0 && (
-        <div className="rise-in mb-4 flex flex-wrap gap-1.5 text-xs">
+        <div className="rise-in mb-2 flex flex-wrap gap-1.5 text-xs">
           <button
             type="button"
-            onClick={() => { pushRegionUrl(null); setActive(null); }}
+            onClick={() => { pushParamUrl("region", null); setActive(null); }}
             aria-pressed={!active}
             className={`chip px-3.5 py-2 ${
               active ? "border border-[#e2e7ee] bg-surface text-text-2" : "chip-active"
@@ -142,7 +168,7 @@ export function NewsListClient({
             <button
               key={r}
               type="button"
-              onClick={() => { pushRegionUrl(r); setActive(r); }}
+              onClick={() => { pushParamUrl("region", r); setActive(r); }}
               aria-pressed={active === r}
               className={`chip px-3.5 py-2 ${
                 active === r
@@ -153,6 +179,38 @@ export function NewsListClient({
               {r}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* 분류 칩 + 검색 진입 — 배지로만 보이던 category 를 실제 필터로 연다.
+          검색은 이미 뉴스를 포함하는 통합검색(/search)으로 잇는다. */}
+      {categories.length > 1 && (
+        <div className="rise-in mb-4 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-[11px] font-bold text-text-3">분류</span>
+          {categories.map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => {
+                const next = activeCat === k ? null : k;
+                pushParamUrl("cat", next);
+                setActiveCat(next);
+              }}
+              aria-pressed={activeCat === k}
+              className={`chip px-3 py-1.5 ${
+                activeCat === k ? "chip-active" : "border border-[#e2e7ee] bg-surface text-text-2"
+              }`}
+            >
+              {k}
+            </button>
+          ))}
+          <Link
+            href="/search"
+            className="press chip ml-auto inline-flex items-center gap-1 border border-line bg-surface px-3 py-1.5 text-text-2 no-underline"
+          >
+            <Icon name="search" size={13} />
+            뉴스 검색
+          </Link>
         </div>
       )}
 
@@ -225,26 +283,28 @@ export function NewsListClient({
         </div>
       )}
 
-      {/* 표시 상한 안내 — 자른 사실을 숨기지 않는다 (전체 탭에서만 의미 있는 수) */}
-      {!active && hiddenCount > 0 && (
+      {/* 표시 상한 안내 — 자른 사실을 숨기지 않는다 (전체 탭에서만 의미 있는 수).
+          "검색으로 찾을 수 있어요"라면서 검색으로 가는 길이 없었다 — 링크를 건다. */}
+      {!anyFilter && hiddenCount > 0 && (
         <p className="mt-3 text-center text-[12px] text-text-3">
-          최신 {listCap}건을 보여드리고 있어요 — 이전 뉴스 {hiddenCount}건은 주간
-          다이제스트와 검색으로 찾을 수 있어요.
+          최신 {listCap}건을 보여드리고 있어요 — 이전 뉴스 {hiddenCount}건은{" "}
+          <Link href="/digest" className="font-bold text-primary">주간 다이제스트</Link>와{" "}
+          <Link href="/search" className="font-bold text-primary">검색</Link>으로 찾을 수 있어요.
         </p>
       )}
 
-      {/* 지역 필터 결과 0건 — 빈 상태 */}
-      {list.length === 0 && active && (
+      {/* 필터 결과 0건 — 빈 상태 (지역·분류 어느 쪽이든) */}
+      {list.length === 0 && anyFilter && (
         <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
           <div className="text-[26px]">
             <Icon name="🗞" size={26} />
           </div>
           <div className="text-sm font-bold text-text-1">
-            {active} 관련 뉴스가 아직 없어요
+            {[active, activeCat].filter(Boolean).join(" · ")} 관련 뉴스가 아직 없어요
           </div>
           <button
             type="button"
-            onClick={() => { pushRegionUrl(null); setActive(null); }}
+            onClick={clearAll}
             className="btn-primary mt-1 rounded-[10px] px-4 py-2 text-xs"
           >
             전체 뉴스 보기

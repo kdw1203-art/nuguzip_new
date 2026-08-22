@@ -135,6 +135,9 @@ export function SupplyClient({
   // SSR/첫 하이드레이션은 전국(null) — 프리렌더 HTML 과 정확히 일치.
   const [region, setRegion] = useState<string | null>(null);
   const [tableExpanded, setTableExpanded] = useState(false);
+  /* [2026-08-22] 지역 목록이 상위 5개에서 잘려 6위 이하 시도는 URL 을 손으로
+     고치지 않으면 선택 자체가 불가능했다 — 전체 보기 토글로 연다. */
+  const [regionsOpen, setRegionsOpen] = useState(false);
   // ISR 페이지의 시각 파생값(이번 분기 판정)은 서버 시각으로 하이드레이션을
   // 일치시킨 뒤 마운트에서 실제 시각으로 재계산한다 (auctions 선례).
   const [nowMs, setNowMs] = useState(builtAtMs);
@@ -478,7 +481,7 @@ export function SupplyClient({
             </p>
           ) : (
             <>
-              {regions.slice(0, 5).map((r, i) => {
+              {regions.slice(0, regionsOpen ? regions.length : 5).map((r, i) => {
                 const on = region === r.region;
                 return (
                   <button
@@ -502,6 +505,16 @@ export function SupplyClient({
                   </button>
                 );
               })}
+              {regions.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => setRegionsOpen((v) => !v)}
+                  aria-expanded={regionsOpen}
+                  className="press mt-0.5 rounded-lg bg-bg py-1.5 text-center text-[11px] font-bold text-primary"
+                >
+                  {regionsOpen ? "상위 5개만 보기" : `지역 전체 보기 (${regions.length}곳)`}
+                </button>
+              )}
               {region !== null && (
                 <button
                   type="button"

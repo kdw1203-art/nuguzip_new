@@ -24,8 +24,10 @@ export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "아파트 입주 예정 물량 | 누구집",
+  /* "캘린더" 표기는 제거(2026-08-22) — 실제 화면은 월별 물량 막대 + 단지 목록이지
+     달력 격자가 아니다. 이름이 화면과 다르면 찾던 것을 못 찾았다고 느낀다. */
   description:
-    "전국·지역별 아파트 입주 예정 물량(공급) 캘린더 — 입주월·단지·세대수. 공급이 많은 시기와 지역을 한눈에.",
+    "전국·지역별 아파트 입주 예정 물량(공급) — 입주월·단지·세대수. 공급이 많은 시기와 지역을 한눈에.",
   robots: { index: true, follow: true },
   // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
   alternates: seoAlternates("/supply"),
@@ -54,7 +56,7 @@ export default async function SupplyPage() {
 
   return (
     <PageShell breadcrumb="동네이야기 › 입주 물량" wide>
-      <h1 className="sr-only">입주 물량 캘린더</h1>
+      <h1 className="sr-only">아파트 입주 예정 물량</h1>
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
       <div style={SUPPLY_THEME}>
@@ -73,11 +75,15 @@ export default async function SupplyPage() {
             >
               공공데이터 출처 ↗
             </a>
+            {/* "지도에서 보기"(→/map)는 제거(2026-08-22) — 지도에 입주 물량
+                레이어가 없어서, 누르면 목적과 무관한 화면이 나오는 링크였다.
+                지도에 공급 레이어가 생기면 그때 되살린다. 대신 같은 판단 맥락인
+                청약(미래 공급의 앞단)으로 잇는다. */}
             <Link
-              href="/map"
+              href="/apply"
               className="glass press rounded-full px-3.5 py-2 font-bold text-text-1 no-underline"
             >
-              지도에서 보기
+              청약 경쟁률 보기
             </Link>
           </div>
         </div>

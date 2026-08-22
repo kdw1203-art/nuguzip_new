@@ -36,7 +36,17 @@ type LatestTemperatures = Awaited<ReturnType<typeof listLatestTemperatures>>;
 export const loadLatestTemperatures = cache(
   unstable_cache(
     async (): Promise<LatestTemperatures> => {
-      const res = await listLatestTemperatures(); // 조회 실패 시 throw (캐시 안 됨)
+      /* [2026-08-22] 운영 실측: 이 재검증이 DB 일시 타임아웃으로 실패해
+         /analysis 오류 로그에 남았다(8/19~8/22, TimeoutError). 값은 주 1회
+         바뀌는 아카이브라 1회 재시도면 일시 장애 대부분이 흡수된다 —
+         두 번째도 실패하면 종전대로 던진다(실패는 캐시하지 않는 원칙 유지). */
+      let res: LatestTemperatures;
+      try {
+        res = await listLatestTemperatures(); // 조회 실패 시 throw (캐시 안 됨)
+      } catch (e) {
+        logger.warn("[MarketTempWidget] 온도 아카이브 1차 조회 실패 — 1회 재시도", e);
+        res = await listLatestTemperatures();
+      }
       if (!res.weekStart || res.rows.length === 0) throw new Error(NO_ARCHIVE);
       return res;
     },
