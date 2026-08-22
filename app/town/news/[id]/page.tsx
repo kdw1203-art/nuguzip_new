@@ -15,6 +15,7 @@ import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import {
   readNewsMeta,
   extractUuid,
@@ -61,6 +62,44 @@ function fullDateTime(iso: string) {
 function shortDate(iso: string) {
   const d = new Date(iso);
   return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** 포인트 상점 '닉네임 오로라' — 글 작성자 프로필의 settings.nickname_effect 를
+    읽어 **만료 전일 때만** 종류를 돌려준다. rowToPost 는 개인정보 보호로
+    author_email 을 지우므로(피드에 이메일이 새지 않게), 여기서 서비스 키로
+    id→author_email→profiles.settings 를 직접 잇는다. 이 페이지는 ISR(600초)라
+    적용·만료가 최대 10분 늦게 보일 수 있다 — 꾸밈 효과라 수용. 조회 실패도
+    효과 없음으로 조용히 처리한다: 장식이 본문 렌더를 막으면 안 된다. */
+async function readAuthorNicknameEffect(postId: string): Promise<"aurora" | null> {
+  try {
+    const sb = getServiceSupabase();
+    if (!sb) return null;
+    const { data: row } = await sb
+      .from("posts")
+      .select("author_email")
+      .eq("id", postId)
+      .maybeSingle();
+    const email = typeof row?.author_email === "string" ? row.author_email : "";
+    if (!email) return null;
+    const { data: prof } = await sb
+      .from("profiles")
+      .select("settings")
+      .eq("email", email)
+      .maybeSingle();
+    const eff = (
+      prof?.settings as { nickname_effect?: { kind?: string; until?: string } } | null
+    )?.nickname_effect;
+    if (
+      eff?.kind === "aurora" &&
+      typeof eff.until === "string" &&
+      Date.parse(eff.until) > Date.now()
+    ) {
+      return "aurora";
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function paragraphs(body: string): string[] {
@@ -259,9 +298,19 @@ export default async function TownNewsDetailPage({
   }
 
   const isAutomated = Boolean(post.isAutomated);
-  const byline = isAutomated
-    ? `${renderOwnSummary ? "누구집 요약" : "자동 수집"} · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
-    : `${post.authorLabel} · ${fullDateTime(post.createdAt)}`;
+  /* 닉네임 오로라(포인트 상점 200P/7일) — 이웃 글에서만 작성자 이름을 빛낸다.
+     자동수집 글은 작성자가 사람이 아니므로 조회 자체를 건너뛴다. */
+  const nickEffect = isAutomated ? null : await readAuthorNicknameEffect(post.id);
+  const byline = isAutomated ? (
+    `${renderOwnSummary ? "누구집 요약" : "자동 수집"} · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
+  ) : (
+    <>
+      <span className={nickEffect === "aurora" ? "nick-aurora" : undefined}>
+        {post.authorLabel}
+      </span>
+      {` · ${fullDateTime(post.createdAt)}`}
+    </>
+  );
   const title = post.title;
   const category = post.category;
   const region = [post.city, post.district].filter(Boolean).join(" ") || "전국";

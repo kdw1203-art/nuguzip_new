@@ -68,6 +68,8 @@ function postToCard(p: Post): FeedCard {
     visited: false,
     createdAt: Date.parse(p.createdAt) || 0,
     isExample: false,
+    /* 포인트 추천글 부스트 — 만료(과거)면 자연 소멸이라 false */
+    boosted: Boolean(p.boostUntil && Date.parse(p.boostUntil) > Date.now()),
   };
 }
 

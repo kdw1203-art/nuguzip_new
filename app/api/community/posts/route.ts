@@ -20,7 +20,9 @@ export async function GET() {
   /* notifyEmail 은 작성자 알림용 서버 전용 값이다(lib/types/post.ts 주석).
      저장소 매핑이 무조건 실어 오는 바람에 익명 GET 응답에 작성자 실이메일이
      전량 노출되고 있었다(2026-08-02 감사) — 응답 직전에 벗긴다. */
-  const publicPosts = posts.map(({ notifyEmail: _drop, ...rest }) => rest);
+  const publicPosts = posts.map(
+    ({ notifyEmail: _drop, authorEmail: _drop2, ...rest }) => rest,
+  );
   return NextResponse.json({
     posts: publicPosts,
     limit: POSTS_READ_LIMIT,
@@ -146,6 +148,9 @@ export async function POST(req: Request) {
     visibility,
     notifyComments,
     notifyEmail,
+    /* 소유 판정용 신원(서버 전용) — 포인트 추천글 부스트가 posts.author_email 로
+       "내 글"을 찾는다. notifyEmail 은 알림 설정값이라 신원으로 겸용하지 않는다. */
+    authorEmail: session.user.email.trim(),
     ugcPostType,
     ...(imageUrls.length
       ? {
@@ -172,5 +177,8 @@ export async function POST(req: Request) {
       metadata: { postId: post.id, ugcPostType, district, category },
     });
   }
-  return NextResponse.json({ post }, { status: 201 });
+  /* 서버 전용 값은 만든 본인에게도 굳이 돌려주지 않는다(목록 GET 과 같은 규칙).
+     쓰기 화면은 성공 응답 본문을 읽지 않으므로 동작 변화가 없다. */
+  const { notifyEmail: _n, authorEmail: _a, ...publicPost } = post;
+  return NextResponse.json({ post: publicPost }, { status: 201 });
 }

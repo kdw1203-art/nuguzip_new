@@ -28,6 +28,8 @@ export type FeedCard = {
   visited: boolean;
   createdAt: number;
   isExample: boolean;
+  /** 포인트 추천글 부스트 활성 — 정렬 우선 + '추천글' 배지 */
+  boosted?: boolean;
 };
 
 const FILTERS = [
@@ -78,6 +80,11 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
         <Cover card={card} />
         <div className="flex flex-col gap-1.5 px-3 pb-3 pt-2.5">
           <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.4] text-ink">
+            {card.boosted && (
+              <span className="mr-1.5 inline-block align-middle rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-extrabold text-primary">
+                추천글
+              </span>
+            )}
             {card.title}
           </div>
           {card.tags.length > 0 && (
@@ -154,8 +161,11 @@ export function TownFeed({
     let list = cards;
     if (filter === "note") list = cards.filter((c) => c.kind === "note");
     else if (filter === "post") list = cards.filter((c) => c.kind === "post");
-    if (filter === "latest") return [...list].sort((a, b) => b.createdAt - a.createdAt);
-    return [...list].sort((a, b) => recommendScore(b) - recommendScore(a));
+    /* 포인트 추천글은 정렬과 무관하게 맨 앞 — 배지('추천글')로 이유를 밝힌다 */
+    const byBoost = (a: FeedCard, b: FeedCard) => Number(b.boosted ?? false) - Number(a.boosted ?? false);
+    if (filter === "latest")
+      return [...list].sort((a, b) => byBoost(a, b) || b.createdAt - a.createdAt);
+    return [...list].sort((a, b) => byBoost(a, b) || recommendScore(b) - recommendScore(a));
   }, [cards, filter]);
 
   return (

@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "존재하지 않는 상품이에요." }, { status: 400 });
   }
   const listingId = typeof body.listingId === "string" ? body.listingId : undefined;
+  const postId = typeof body.postId === "string" ? body.postId : undefined;
 
   // 효과 적용 후 차감 실패로 인한 "무료 지급"을 막기 위한 사전 잔액 확인
   /* 잔액을 못 읽었을 때 0 으로 보고 "포인트가 부족해요" 라고 답하면 안 된다 —
@@ -130,6 +131,98 @@ export async function POST(req: NextRequest) {
       effect: item.effect,
       boostUntil,
       note: `내 매물을 ${item.durationDays ?? 7}일간 목록·지도 상단에 노출해요.`,
+    });
+  }
+
+  // ── 동네이야기 추천글: 내 글이 있을 때만 차감 (listing_boost 와 같은 규칙) ──
+  if (item.effect === "post_boost") {
+    const sb = getServiceSupabase();
+    if (!sb) {
+      return NextResponse.json({ error: "잠시 후 다시 시도해 주세요.", balance }, { status: 503 });
+    }
+    let q = sb
+      .from("posts")
+      .select("id,title")
+      .eq("author_email", email)
+      .eq("is_automated", false);
+    if (postId) q = q.eq("id", postId);
+    const { data: target } = await q
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const targetId = target?.id ? String(target.id) : null;
+    if (!targetId) {
+      return NextResponse.json(
+        { error: "추천글로 올릴 내 글이 없어요. 동네이야기에 글을 쓴 뒤 이용해 주세요.", balance },
+        { status: 400 },
+      );
+    }
+    const boostUntil = new Date(Date.now() + (item.durationDays ?? 3) * DAY_MS).toISOString();
+    const { error: upErr } = await sb
+      .from("posts")
+      .update({ boost_until: boostUntil })
+      .eq("id", targetId);
+    if (upErr) {
+      logger.warn("[points:spend] post boost update", upErr);
+      return NextResponse.json(
+        { error: "추천글 적용에 실패했어요. 잠시 후 다시 시도해 주세요.", balance },
+        { status: 500 },
+      );
+    }
+    const spend = await spendPoints(email, item.cost, `spend:${item.key}`, targetId);
+    if (!spend.ok) return spendError(spend);
+    return NextResponse.json({
+      ok: true,
+      balance: spend.balance,
+      effect: item.effect,
+      boostUntil,
+      note: `내 글을 ${item.durationDays ?? 3}일간 동네이야기 상단에 추천글로 노출해요.`,
+    });
+  }
+
+  // ── 닉네임 오로라 효과: 프로필에 효과 기록 후 차감 ──
+  if (item.effect === "nickname_aurora") {
+    const sb = getServiceSupabase();
+    if (!sb) {
+      return NextResponse.json({ error: "잠시 후 다시 시도해 주세요.", balance }, { status: 503 });
+    }
+    const { data: prof } = await sb
+      .from("profiles")
+      .select("settings")
+      .eq("email", email)
+      .maybeSingle();
+    if (!prof) {
+      return NextResponse.json(
+        { error: "프로필을 찾지 못했어요. 마이페이지에서 프로필을 먼저 저장해 주세요.", balance },
+        { status: 400 },
+      );
+    }
+    const until = new Date(Date.now() + (item.durationDays ?? 7) * DAY_MS).toISOString();
+    const settings = (
+      prof.settings && typeof prof.settings === "object" ? prof.settings : {}
+    ) as Record<string, unknown>;
+    const { error: upErr } = await sb
+      .from("profiles")
+      .update({
+        settings: { ...settings, nickname_effect: { kind: "aurora", until } },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("email", email);
+    if (upErr) {
+      logger.warn("[points:spend] nickname effect update", upErr);
+      return NextResponse.json(
+        { error: "효과 적용에 실패했어요. 잠시 후 다시 시도해 주세요.", balance },
+        { status: 500 },
+      );
+    }
+    const spend = await spendPoints(email, item.cost, `spend:${item.key}`);
+    if (!spend.ok) return spendError(spend);
+    return NextResponse.json({
+      ok: true,
+      balance: spend.balance,
+      effect: item.effect,
+      effectUntil: until,
+      note: `닉네임 오로라 효과가 ${item.durationDays ?? 7}일간 적용돼요. 글 상세의 작성자 이름에서 확인할 수 있어요.`,
     });
   }
 

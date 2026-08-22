@@ -5,7 +5,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { getBalance } from "@/lib/points/ledger";
 import { ErrorState } from "@/app/components/ui/EmptyState";
 import { logger } from "@/lib/log";
-import { SPEND_ITEMS } from "@/lib/points/catalog";
+import { SPEND_ITEMS, POINTS_GRATUITOUS_NOTICE } from "@/lib/points/catalog";
 import { ShopClient } from "./ShopClient";
 
 export const runtime = "nodejs";
@@ -46,6 +46,23 @@ function GuestView() {
           </div>
         ))}
       </div>
+      <Link
+        href="/town/library"
+        className="rise-in-2 flex items-center justify-between rounded-2xl bg-primary-soft px-4 py-[15px] no-underline"
+      >
+        <div>
+          <div className="text-sm font-extrabold text-primary">
+            자료실 유료 리포트도 포인트로 구매
+          </div>
+          <div className="mt-0.5 text-xs text-[#5b74b8]">
+            이웃·전문가가 올린 유료 자료를 보유 포인트로 바로 열람해요
+          </div>
+        </div>
+        <span className="text-[15px] font-extrabold text-primary">›</span>
+      </Link>
+      <p className="rise-in-3 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+        {POINTS_GRATUITOUS_NOTICE}
+      </p>
     </div>
   );
 }
@@ -91,6 +108,26 @@ export default async function PointsShopPage() {
   return (
     <PageShell breadcrumb="포인트 상점">
       <ShopClient initialBalance={loaded.balance} />
+      {/* 사용처 안내 — 상점 목록 밖에서도 포인트가 쓰이는 곳: 자료실 유료 리포트.
+          (구매 자체는 /town/library 상세의 리포트 결제 버튼에서 포인트로 처리된다) */}
+      <Link
+        href="/town/library"
+        className="mx-auto mt-4 flex w-full max-w-[720px] items-center justify-between rounded-2xl bg-primary-soft px-4 py-[15px] no-underline"
+      >
+        <div>
+          <div className="text-sm font-extrabold text-primary">
+            자료실 유료 리포트도 포인트로 구매
+          </div>
+          <div className="mt-0.5 text-xs text-[#5b74b8]">
+            이웃·전문가가 올린 유료 자료를 보유 포인트로 바로 열람해요
+          </div>
+        </div>
+        <span className="text-[15px] font-extrabold text-primary">›</span>
+      </Link>
+      {/* 무상성 고지 — PG 심사·소비자 오인 방지 공용(단일 출처) */}
+      <p className="mx-auto mt-4 w-full max-w-[720px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+        {POINTS_GRATUITOUS_NOTICE}
+      </p>
     </PageShell>
   );
 }

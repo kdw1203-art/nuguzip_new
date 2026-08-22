@@ -43,6 +43,7 @@ function rowToPost(row: Record<string, unknown>): Post {
     likeCount: Number(row.like_count ?? 0),
     commentCount: Number(row.comment_count ?? comments.length),
     viewCount: Number(row.view_count ?? 0),
+    boostUntil: typeof row.boost_until === "string" ? row.boost_until : null,
     comments,
     relatedSite: row.related_site
       ? String(row.related_site)
@@ -173,6 +174,11 @@ export async function prependPostSb(post: Post): Promise<void> {
   }
   if (post.notifyEmail?.trim()) {
     row.notify_email = post.notifyEmail.trim();
+  }
+  /* 작성자 신원 — 포인트 추천글 부스트(spend:post_boost_*)와 닉네임 효과가
+     이 컬럼으로 "내 글"·작성자 프로필을 찾는다. rowToPost 는 되읽지 않는다(서버 전용). */
+  if (post.authorEmail?.trim()) {
+    row.author_email = post.authorEmail.trim();
   }
   if (post.ugcPostType) {
     row.ugc_post_type = post.ugcPostType;

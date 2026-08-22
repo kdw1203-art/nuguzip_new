@@ -37,7 +37,7 @@ export function BoostButton({ listingId, active }: { listingId: string; active: 
       if (res.status === 402) {
         promptUpgrade({
           title: "포인트가 부족해요",
-          message: json.error ?? "부스트에는 500P가 필요해요. 포인트 상점에서 충전할 수 있어요.",
+          message: json.error ?? "부스트에는 500P가 필요해요. 포인트는 출석·노트 공개 같은 활동으로 모을 수 있어요.",
           href: "/points/shop",
           ctaLabel: "포인트 상점 가기",
         });

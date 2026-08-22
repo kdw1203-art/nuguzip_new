@@ -41,6 +41,8 @@ export type Post = {
   commentCount: number;
   viewCount: number;
   bookmarkCount?: number;
+  /** 포인트 추천글 부스트 만료(ISO) — null/과거면 비활성 (spend:post_boost_*) */
+  boostUntil?: string | null;
   comments: PostComment[];
   /** 관련 단지·사업장명 (Info Hub 연계용) */
   relatedSite?: string;
@@ -59,6 +61,15 @@ export type Post = {
   notifyComments?: boolean;
   /** 로그인 작성 시 댓글 알림 수신 주소 (서버만 저장) */
   notifyEmail?: string;
+  /**
+   * 작성자 로그인 이메일 — **서버 전용 신원값**. 포인트 추천글 부스트의 소유
+   * 판정(posts.author_email = 세션 이메일)과 닉네임 효과의 작성자 프로필 조회가
+   * 이 컬럼을 쓴다(매물 listings.author_email 과 같은 규칙). notifyEmail 은
+   * "알림 받을 주소"라는 설정값이라 신원으로 쓰기엔 부적합해 따로 둔다.
+   * rowToPost 는 이 값을 응답용 Post 에 싣지 않고(개인정보), API 응답 직전에도
+   * notifyEmail 과 함께 벗긴다.
+   */
+  authorEmail?: string;
   /** UGC 유형 — question|review|tip|general */
   ugcPostType?: "question" | "review" | "tip" | "general";
 };

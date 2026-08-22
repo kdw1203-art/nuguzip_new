@@ -59,7 +59,7 @@ export type SpendItem = {
   cost: number;
   desc: string;
   /** 소비 후 부여되는 효과 종류 */
-  effect: "listing_boost" | "plan_pro" | "plan_expert";
+  effect: "listing_boost" | "plan_pro" | "plan_expert" | "post_boost" | "nickname_aurora";
   /** 부스트 등 기간성 효과의 일수 */
   durationDays?: number;
 };
@@ -72,6 +72,8 @@ export type SpendItem = {
    PDF 를 내려주는 소비 지점이 없었다. 기존 이력도 같은 폴백 라벨로 표시된다. */
 export const SPEND_ITEMS: SpendItem[] = [
   { key: "listing_boost_7d", label: "매물 상단 노출 7일", cost: 500, desc: "내 매물을 목록·지도 상단에 노출", effect: "listing_boost", durationDays: 7 },
+  { key: "post_boost_3d", label: "동네이야기 추천글 3일", cost: 300, desc: "내가 쓴 동네이야기 글을 3일간 피드 상단에 '추천글'로 노출", effect: "post_boost", durationDays: 3 },
+  { key: "nickname_aurora_7d", label: "닉네임 오로라 효과 7일", cost: 200, desc: "글 상세에서 내 닉네임이 오로라 그라데이션으로 빛나요", effect: "nickname_aurora", durationDays: 7 },
   { key: "plan_pro_1m", label: "PRO 구독 1개월 교환", cost: 2900, desc: "PRO 기능 1개월 이용권", effect: "plan_pro", durationDays: 30 },
   { key: "plan_expert_1m", label: "EXPERT 구독 1개월 교환", cost: 18900, desc: "EXPERT 기능 1개월 이용권", effect: "plan_expert", durationDays: 30 },
 ];
@@ -85,3 +87,15 @@ export const DAILY_EARN_CAP = 500;
 export const MONTHLY_EARN_CAP = 5000;
 /** 포인트 유효기간(개월) */
 export const POINT_EXPIRY_MONTHS = 6;
+
+/**
+ * 포인트 무상성 고지 — 단일 출처(상점·지갑·요금 FAQ·약관이 같은 사실을 말한다).
+ *
+ * [2026-08-22] 토스페이먼츠 심사팀이 사이트를 '포인트 충전 업종'으로 분류했다.
+ * 실제로는 유상 충전(돈→포인트) 경로가 코드 어디에도 없다 — 포인트는 전부
+ * EARN_RULES 의 활동 적립뿐이다. 오해의 여지를 없애기 위해 모든 포인트 표면에
+ * 이 사실을 상시 고지한다. 유상 충전 상품을 도입하는 날에는 이 문구와 약관
+ * 제8조의2, 그리고 PG 유의업종 요건(보증보험 등)을 함께 갱신해야 한다.
+ */
+export const POINTS_GRATUITOUS_NOTICE =
+  "누구집 포인트는 출석·기록 공개·친구 초대 같은 활동으로만 적립되는 무상 리워드입니다. 현금으로 구매(충전)할 수 없고, 현금으로 환불·전환되지 않으며, 회원 간 양도가 불가합니다. 적립일로부터 6개월이 지나면 소멸됩니다.";

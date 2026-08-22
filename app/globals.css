@@ -1732,9 +1732,49 @@ html[data-drag-scrolling] * {
   user-select: none !important;
 }
 
+/* 8e-1. 닉네임 오로라 — 포인트 상점 'nickname_aurora_7d'(200P/7일) 구매자.
+   글 상세의 작성자 이름 위로 그라데이션이 천천히 흐른다. 배경 클립 텍스트라
+   글자 크기·자리 그대로 색만 바뀐다(레이아웃 불변 = CLS 0). 그라데이션 양 끝을
+   같은 색으로 맞춰 0%→200% 한 주기가 이음새 없이 반복된다. */
+@keyframes nick-aurora-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+.nick-aurora {
+  font-weight: 800;
+  /* 배경 클립 미지원 브라우저 폴백 — 오로라 대신 보라 단색(가독 유지) */
+  color: #7c3aed;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .nick-aurora {
+    background-image: linear-gradient(
+      90deg,
+      #1d4fd8,
+      #7c3aed,
+      #06b6d4,
+      #16a34a,
+      #7c3aed,
+      #1d4fd8
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: nick-aurora-flow 6s linear infinite;
+  }
+}
+
 /* 8f. 접근성 — 위 7절 규칙: 새 모션은 반드시 여기 같이 적는다 */
 @media (prefers-reduced-motion: reduce) {
   .ticker-track {
+    animation: none;
+  }
+  /* 오로라는 정지 그라데이션으로 — 색은 남기고 움직임만 끈다 */
+  .nick-aurora {
     animation: none;
   }
   .ticker-band {

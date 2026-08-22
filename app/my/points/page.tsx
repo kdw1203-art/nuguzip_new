@@ -5,7 +5,8 @@ import { ErrorState } from "@/app/components/ui/EmptyState";
 import { safeAuth } from "@/lib/safe-auth";
 import { logger } from "@/lib/log";
 import { getBalance, getHistory, type LedgerRow } from "@/lib/points/ledger";
-import { EARN_RULES, getSpendItem } from "@/lib/points/catalog";
+import { EARN_RULES, getSpendItem, POINTS_GRATUITOUS_NOTICE } from "@/lib/points/catalog";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import { AttendanceButton } from "./AttendanceButton";
 
 export const runtime = "nodejs";
@@ -44,6 +45,34 @@ function sameMonth(iso: string, now: Date): boolean {
   return (
     d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
   );
+}
+
+/** 포인트로 산 닉네임 오로라가 지금 켜져 있는지 — 지갑에서 상태를 보여준다.
+    교환 직후 "적용됐나?"를 확인할 곳이 없으면 그대로 문의가 된다. 조회 실패는
+    표시 생략으로 처리해 지갑 본연의 잔액·내역 렌더를 막지 않는다. */
+async function readNicknameEffectUntil(email: string): Promise<string | null> {
+  try {
+    const sb = getServiceSupabase();
+    if (!sb) return null;
+    const { data } = await sb
+      .from("profiles")
+      .select("settings")
+      .eq("email", email)
+      .maybeSingle();
+    const eff = (
+      data?.settings as { nickname_effect?: { kind?: string; until?: string } } | null
+    )?.nickname_effect;
+    if (
+      eff?.kind === "aurora" &&
+      typeof eff.until === "string" &&
+      Date.parse(eff.until) > Date.now()
+    ) {
+      return eff.until;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /* ── 적립 방법 안내 (로그인 여부 무관) ── */
@@ -131,9 +160,12 @@ function GuestView() {
 function WalletView({
   balance,
   history,
+  nickEffectUntil,
 }: {
   balance: number;
   history: LedgerRow[];
+  /** 활성 닉네임 오로라 만료 시각(ISO) — 없으면 미적용 */
+  nickEffectUntil: string | null;
 }) {
   const now = new Date();
   const monthEarned = history
@@ -178,6 +210,26 @@ function WalletView({
           포인트 상점 가기
         </Link>
       </div>
+
+      {/* 적용 중인 상점 효과 — 산 것이 지금 켜져 있음을 지갑에서 확인시켜 준다 */}
+      {nickEffectUntil && (
+        <div className="rise-in-1 card flex items-center justify-between rounded-[16px] px-4 py-3">
+          <div className="min-w-0">
+            <div className="text-[13px] font-extrabold text-ink">
+              <span className="nick-aurora">닉네임 오로라</span> 적용 중
+            </div>
+            <div className="mt-0.5 text-[11px] text-text-3">
+              {fmtDate(nickEffectUntil)}까지 · 동네이야기 글 상세의 작성자 이름이 빛나요
+            </div>
+          </div>
+          <Icon name="✨" size={18} className="shrink-0 text-primary" />
+        </div>
+      )}
+
+      {/* 무상성 고지 — 상점·약관과 같은 단일 출처 문구 */}
+      <p className="rise-in-1 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+        {POINTS_GRATUITOUS_NOTICE}
+      </p>
 
       {/* 적립·소비 내역 */}
       <div className="rise-in-2 card rounded-[16px] p-5">
@@ -253,16 +305,19 @@ export default async function PointsWalletPage() {
   /* 2026-07-26: 내역 조회가 실패하면 예전에는 빈 배열이 내려와서 "아직 포인트
      내역이 없어요" 라고 썼다 — 적립한 적 없는 사람과 원장을 못 읽은 사람이
      구분되지 않았다. 실패는 실패라고 쓴다. */
-  const loaded = await Promise.all([getBalance(email), getHistory(email, 50)]).then(
-    ([balance, history]) => ({ ok: true as const, balance, history }),
-    (err: unknown) => {
-      logger.error("[my/points] 포인트 조회 실패", err);
-      return {
-        ok: false as const,
-        cause: err instanceof Error ? err.message : String(err),
-      };
-    },
-  );
+  const [loaded, nickEffectUntil] = await Promise.all([
+    Promise.all([getBalance(email), getHistory(email, 50)]).then(
+      ([balance, history]) => ({ ok: true as const, balance, history }),
+      (err: unknown) => {
+        logger.error("[my/points] 포인트 조회 실패", err);
+        return {
+          ok: false as const,
+          cause: err instanceof Error ? err.message : String(err),
+        };
+      },
+    ),
+    readNicknameEffectUntil(email),
+  ]);
 
   if (!loaded.ok) {
     return (
@@ -281,7 +336,11 @@ export default async function PointsWalletPage() {
 
   return (
     <PageShell breadcrumb="포인트 지갑">
-      <WalletView balance={loaded.balance} history={loaded.history} />
+      <WalletView
+        balance={loaded.balance}
+        history={loaded.history}
+        nickEffectUntil={nickEffectUntil}
+      />
     </PageShell>
   );
 }

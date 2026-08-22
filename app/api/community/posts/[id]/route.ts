@@ -28,8 +28,8 @@ export async function GET(
   const found = await lookupPost(id);
   if (found.state !== "ok") return postLookupErrorResponse(found);
   const post = found.post;
-  /* notifyEmail 은 서버 전용 — 익명 응답에서 벗긴다(목록 GET 과 동일 판단). */
-  const { notifyEmail: _drop, ...publicPost } = post;
+  /* notifyEmail·authorEmail 은 서버 전용 — 익명 응답에서 벗긴다(목록 GET 과 동일 판단). */
+  const { notifyEmail: _drop, authorEmail: _drop2, ...publicPost } = post;
   return NextResponse.json({ post: publicPost });
 }
 
@@ -72,7 +72,9 @@ export async function PATCH(
   if (!next) {
     return NextResponse.json({ error: "수정 실패" }, { status: 500 });
   }
-  return NextResponse.json({ post: next });
+  /* 서버 전용 값 제거 — GET 과 같은 규칙(작성자 본인 응답이라도 굳이 싣지 않는다) */
+  const { notifyEmail: _n, authorEmail: _a, ...publicNext } = next;
+  return NextResponse.json({ post: publicNext });
 }
 
 export async function DELETE(
