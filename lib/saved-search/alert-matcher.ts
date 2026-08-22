@@ -1,6 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SavedSearchScope } from "@/lib/saved-search/types";
+import { fetchAptDetailPage } from "@/lib/applyhome/adapters/apt-detail";
+import { isApplyhomeConfigured } from "@/lib/applyhome/odcloud-client";
+import { APPLYHOME_REGIONS } from "@/lib/applyhome/regions";
 
 /**
  * 저장 검색 알림 매처 — scope+query 로 현재 매치 수를 센다.
@@ -61,6 +64,31 @@ export async function countSavedSearchMatches(
       return error ? null : count ?? 0;
     }
 
+    if (scope === "news") {
+      // [개선 #13] 동네 뉴스·커뮤니티 글 키워드 — 매일 자동수집으로 새 행이
+      // 생기는 스트림이라 "매치 수 증가 → 알림"이 실제로 동작한다.
+      if (!q) return null;
+      const { count, error } = await read
+        .from("board_posts")
+        .select("id", { count: "exact", head: true })
+        .eq("board_type", "community")
+        .eq("is_published", true)
+        .or(`title.ilike.${p},region.ilike.${p},content.ilike.${p}`);
+      return error ? null : count ?? 0;
+    }
+
+    if (scope === "apply") {
+      // [개선 #13] 청약 공고 키워드 — 청약홈 분양정보 상세의 totalCount 를 그대로
+      // 쓴다. 검색어가 시도명(서울·경기…)이면 공급지역 EQ, 아니면 단지명 LIKE.
+      if (!q) return null;
+      if (!isApplyhomeConfigured()) return null; // 키 없음 — 가짜 0 으로 기준선을 오염시키지 않는다
+      const region = APPLYHOME_REGIONS.find((r) => r !== "전체" && q === r);
+      const res = region
+        ? await fetchAptDetailPage({ region, perPage: 1 })
+        : await fetchAptDetailPage({ q, perPage: 1 });
+      return res.totalCount;
+    }
+
     if (scope === "auctions") {
       if (!q) return null;
       const [court, onbid] = await Promise.all([
@@ -94,6 +122,10 @@ export function scopeActionUrl(scope: SavedSearchScope, query: string): string {
       return "/listings";
     case "auctions":
       return "/auctions";
+    case "news":
+      return "/town/news";
+    case "apply":
+      return "/apply";
     case "complex":
       return q ? `/search?q=${q}` : "/complex/browse";
     case "map":

@@ -111,6 +111,9 @@ jobs:
           echo "== molit prev-month top-up (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$PREV_YM&size=24" | head -c 500 || true
           echo
+          # [개선 #21] 입주물량 — 청약홈 분양공고의 입주예정월을 매일 업서트.
+          # 수동 업로드(2026-02) 이후 갱신 경로가 없어 한 달째 정지했던 소스의 자동화.
+          call supply "https://nuguzip.com/api/cron/supply-ingest"
           # 집계 MV 재계산 HTTP 호출은 삭제했다 (2026-08-10).
           # 본체는 pg_cron 'market-aggregates-daily'(jobid 12, 09:00·19:00 UTC,
           # DB 내부 실행 — Vercel 소모 0)로 이전 완료됐고, HTTP 경로는 예산

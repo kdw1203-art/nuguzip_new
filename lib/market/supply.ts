@@ -4,7 +4,8 @@ import { logger } from "@/lib/log";
 
 /**
  * 입주예정물량(apartment_supply) 읽기 전용 로더.
- * 출처: 공개 입주예정물량 자료(2026-02 기준, 2026-01~2027-12).
+ * 출처: 수동 업로드 기반분(2026-02, 2026-01~2027-12) + 청약홈 분양공고
+ * 자동 인제스트(매일, lib/market/supply-ingest.ts — 개선 #21).
  * 데이터 없거나 실패 시 빈 결과 → 화면은 정직한 빈 상태.
  */
 
@@ -25,8 +26,8 @@ export type SupplyMonthBucket = {
 
 /**
  * 데이터 적재 기준 시점 — apartment_supply 최신 created_at.
- * 이 테이블은 자동 갱신 경로가 없는 수동 적재 데이터라, 화면의 "기준" 표기는
- * 하드코딩("2026.02 기준")이 아니라 실제 DB 적재 시점에서 읽는다. 없으면 null.
+ * 화면의 "기준" 표기는 하드코딩이 아니라 실제 DB 적재 시점에서 읽는다(없으면 null).
+ * 자동 인제스트(#21) 가동 후에는 신규 공고가 들어온 마지막 날이 곧 기준일이 된다.
  */
 export async function getSupplyDataAsOf(): Promise<string | null> {
   const sb = getReadOnlySupabase();
@@ -138,9 +139,10 @@ export async function getSupplyList(
 }
 
 /** getSupplyAll 페치 상한 — 전량이 이 안에 들어와야 클라이언트 필터가 서버 필터와 동치다.
- *  실측(2026-08-10): apartment_supply 전량 675행(17개 시도, 최다 지역 209행) — 약 3배 여유.
- *  이 값에 도달하면 잘렸을 수 있다는 뜻이므로 truncated 로 알린다. */
-export const SUPPLY_FETCH_CAP = 2000;
+ *  실측(2026-08-10): 수동분 675행. 자동 인제스트(#21)가 청약홈 최근 공고를 매일
+ *  추가하므로 상한을 4000으로 올린다(인제스트 쪽이 입주월 하한·페이지 상한으로
+ *  총량을 다시 제어한다). 도달 시 truncated 로 알린다. */
+export const SUPPLY_FETCH_CAP = 4000;
 
 export type SupplyAllResult = {
   /** false = 조회 실패 (빈 결과와 구별 — "0건"이 아니라 "조회 실패"로 그려야 한다) */

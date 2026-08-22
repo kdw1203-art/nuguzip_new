@@ -33,6 +33,9 @@ import { ComplexAreaBands } from "./ComplexAreaBands";
 import { RegionRelative } from "./RegionRelative";
 import { NearbyRedevelopment } from "./NearbyRedevelopment";
 import { UpcomingSupply } from "./UpcomingSupply";
+import { ShareLinkButton } from "@/app/components/ShareLinkButton";
+import { Icon } from "@/app/components/Icon";
+import { regionIdForName } from "@/lib/region/catalog";
 import { ComplexQna } from "./ComplexQna";
 import { ComplexNotesNewsAi } from "./ComplexNotesNewsAi";
 import { SEOUL_BROWSE_REGIONS, buildComplexTxSlug } from "@/lib/market/complex-transactions";
@@ -848,6 +851,34 @@ export default async function ComplexHubPage({
           </div>
         )}
       </div>
+
+      {/* [개선 #32] 행동 3종 — 보고 끝나는 화면에서 다음 행동이 있는 화면으로.
+          ① 임장노트 쓰기(이 단지 프리필) ② 지역 허브(내부 연결) ③ 공유 */}
+      {(() => {
+        const noteQs = new URLSearchParams();
+        if (v.name) noteQs.set("apt", v.name);
+        if (v.dong) noteQs.set("region", v.dong);
+        noteQs.set("complexId", v.id);
+        if (typeof v.lat === "number") noteQs.set("lat", String(v.lat));
+        if (typeof v.lng === "number") noteQs.set("lng", String(v.lng));
+        const regionId = regionIdForName(v.city ?? "") ?? regionIdForName(v.dong ?? "");
+        const pill =
+          "inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-ink tap-ripple";
+        return (
+          <div className="rise-in-1 mt-3 flex flex-wrap items-center gap-2">
+            <Link href={`/notes/new?${noteQs.toString()}`} className={pill}>
+              <Icon name="notebook-pen" size={14} />이 단지 임장노트 쓰기
+            </Link>
+            {regionId && (
+              <Link href={`/region/${regionId}`} className={pill}>
+                <Icon name="pin" size={14} />
+                {v.city || v.dong} 시장 보기
+              </Link>
+            )}
+            <ShareLinkButton title={`${v.name} 시세·임장노트`} className={pill} />
+          </div>
+        );
+      })()}
 
       {/* 지표 6칸 — 시세·거래·매물·노트·세대·연차 */}
       <div className="rise-in-1 mt-3 grid grid-cols-3 gap-1.5 md:grid-cols-6">

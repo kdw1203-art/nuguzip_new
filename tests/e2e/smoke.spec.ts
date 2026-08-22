@@ -379,10 +379,12 @@ test("33. /dev-deals/partners renders partner directory", async ({ page }) => {
 
 // ---------- 법원경매 소스 토글 ----------
 
-test("34. /auctions?source=court renders 법원경매 tab", async ({ page }) => {
+test("34. /auctions?source=court 는 온비드 목록으로 정직하게 수렴한다", async ({ page }) => {
+  /* [개선 W1] 법원경매 탭 제거 — 실데이터 1건(스텁)뿐인 탭은 화면에서 뺐다.
+     옛 링크(?source=court)로 들어와도 빈 탭이 아니라 온비드 공매 목록이 보여야 한다. */
   await page.goto("/auctions?source=court");
-  await expect(page.getByText(/법원경매/).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: /경매\(법원\)/ })).toBeVisible();
+  await expect(page.locator("main")).toBeVisible();
+  await expect(page.getByText(/공매|온비드/).first()).toBeVisible();
 });
 
 // ---------- 친구 추천 초대 랜딩 ----------
@@ -554,4 +556,28 @@ test("49. 관리자 결제 취소 API 는 비관리자를 403 으로 거절한�
     data: { orderId: "SMOKE-TEST-NOT-REAL" },
   });
   expect(res.status()).toBe(403);
+});
+
+// ---------- 웨이브 2026-08-22: 계산기 확장 · 청약 캘린더 · 키워드 알림 ----------
+
+test("50. /calculator/brokerage renders 중개보수 계산기 (요율표 포함)", async ({ page }) => {
+  await page.goto("/calculator/brokerage");
+  await expect(
+    page.getByRole("heading", { name: /중개보수 계산기/ }).first(),
+  ).toBeVisible();
+  /* 법정 상한요율 안내가 화면에 있어야 한다 — 협의·상한 고지는 이 화면의 핵심 정직성 */
+  await expect(page.getByText(/상한요율/).first()).toBeVisible();
+});
+
+test("51. /apply/calendar renders 청약 캘린더 (데이터 유무와 무관한 껍데기)", async ({ page }) => {
+  await page.goto("/apply/calendar");
+  await expect(
+    page.getByRole("heading", { name: /청약 캘린더/ }).first(),
+  ).toBeVisible();
+});
+
+test("52. /town/news shows 키워드 알림 구독 스트립 (#13)", async ({ page }) => {
+  await page.goto("/town/news");
+  await expect(page.getByText("키워드 알림").first()).toBeVisible();
+  await expect(page.getByLabel("알림 받을 키워드")).toBeVisible();
 });

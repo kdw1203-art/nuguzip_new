@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
       ? (b.filters as Record<string, unknown>)
       : {};
 
-  const result = await createSavedSearch({ email, label, query, scope, filters });
+  const alertEnabled = b.alertEnabled === true;
+  const result = await createSavedSearch({ email, label, query, scope, filters, alertEnabled });
   if (!result.ok) {
     return NextResponse.json(
       { error: result.error ?? "저장에 실패했습니다." },

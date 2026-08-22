@@ -5,8 +5,16 @@
  * `server-only` 를 두지 않는다. DB 행 → 이 타입으로의 매핑은 store 에서만 수행한다.
  */
 
-/** 저장 검색이 적용되는 탐색 범위. */
-export type SavedSearchScope = "map" | "listings" | "complex" | "auctions";
+/** 저장 검색이 적용되는 탐색 범위.
+ *  [개선 #13] news(동네 뉴스·커뮤니티 글)·apply(청약 공고) 추가 — 매일 새 행이
+ *  생기는 유일한 콘텐츠 스트림이라 키워드 알림의 실질 가치가 가장 크다. */
+export type SavedSearchScope =
+  | "map"
+  | "listings"
+  | "complex"
+  | "auctions"
+  | "news"
+  | "apply";
 
 /** 클라이언트로 내려가는 저장 검색 1건 (DB 행을 좁힌 안전한 형태). */
 export interface SavedSearch {
@@ -29,9 +37,18 @@ export const SCOPE_LABELS: Record<SavedSearchScope, string> = {
   listings: "실매물",
   complex: "단지",
   auctions: "공매·경매",
+  news: "뉴스·동네 소식",
+  apply: "청약 공고",
 };
 
 /** 문자열이 유효한 범위 코드인지 좁히는 가드. */
 export function isScope(v: string): v is SavedSearchScope {
-  return v === "map" || v === "listings" || v === "complex" || v === "auctions";
+  return (
+    v === "map" ||
+    v === "listings" ||
+    v === "complex" ||
+    v === "auctions" ||
+    v === "news" ||
+    v === "apply"
+  );
 }

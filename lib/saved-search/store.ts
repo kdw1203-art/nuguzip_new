@@ -165,6 +165,8 @@ export async function createSavedSearch(input: {
   query: string;
   scope: SavedSearchScope;
   filters: Record<string, unknown>;
+  /** [개선 #13] 원탭 구독 버튼용 — 생성과 동시에 알림 on. 기본 false(기존 동작). */
+  alertEnabled?: boolean;
 }): Promise<{ ok: boolean; id?: string; error?: string }> {
   const owner = normEmail(input.email);
   if (!owner) return { ok: false, error: "로그인이 필요합니다." };
@@ -185,7 +187,14 @@ export async function createSavedSearch(input: {
   try {
     const { data, error } = await sb
       .from(TABLE)
-      .insert({ user_email: owner, label, query, scope, filters })
+      .insert({
+        user_email: owner,
+        label,
+        query,
+        scope,
+        filters,
+        alert_enabled: input.alertEnabled === true,
+      })
       .select("id")
       .single();
 

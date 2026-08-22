@@ -5,6 +5,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { formatPriceKrw, formatRentLabel } from "@/lib/listings/format";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 import { logger } from "@/lib/log";
+import { normalizeSearchQuery } from "@/lib/search/normalize-query";
 
 /* 통합 검색 API — 단지 + 매물 + 임장노트 + 뉴스를 한 번에.
    그룹별 상위 ~5건, 각 소스 실패 시 해당 그룹만 [] (부분 실패 허용).
@@ -76,17 +77,24 @@ async function safe<T>(label: string, fn: () => Promise<T[]>): Promise<GroupResu
   }
 }
 
-/** PostgREST or() 필터에 안전한 ilike 패턴 — 구문 문자(콤마·괄호)와 와일드카드 제거 */
+/** PostgREST or() 필터에 안전한 ilike 패턴 — 구문 문자(콤마·괄호)와 와일드카드 제거.
+ *  [개선 #31] 공백은 % 로 바꾼다: "잠실 주공" ↔ "잠실주공5단지"처럼 띄어쓰기
+ *  표기 차이가 0건의 최다 원인이었다(단어 순서는 유지된 채 사이만 느슨해진다). */
 function ilikePattern(term: string): string {
-  return `%${term.replace(/[,()%_]/g, " ").trim()}%`;
+  return `%${term
+    .replace(/[,()%_]/g, " ")
+    .trim()
+    .replace(/\s+/g, "%")}%`;
 }
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q")?.trim() ?? "";
+  const rawQ = searchParams.get("q")?.trim() ?? "";
+  // [개선 #31] 통용 약칭·"아파트" 꼬리 정규화 — 응답의 query 는 사용자가 친 원문 유지
+  const q = normalizeSearchQuery(rawQ);
 
   const empty: UnifiedResults = { complexes: [], listings: [], notes: [], news: [] };
-  if (!q) return NextResponse.json({ ...empty, query: q });
+  if (!q) return NextResponse.json({ ...empty, query: rawQ });
 
   const sb = getServiceSupabase();
   const pattern = ilikePattern(q);
@@ -213,7 +221,7 @@ export async function GET(req: Request) {
       suggestions: suggested.rows,
       /* 클라이언트는 이 목록을 "없음"이 아니라 "지금 못 불러왔음"으로 그린다. */
       failed,
-      query: q,
+      query: rawQ,
     },
     {
       headers: {

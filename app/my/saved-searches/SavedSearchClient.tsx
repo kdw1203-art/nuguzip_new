@@ -9,7 +9,7 @@ import {
   type SavedSearchScope,
 } from "@/lib/saved-search/types";
 
-const SCOPES: SavedSearchScope[] = ["map", "listings", "complex", "auctions"];
+const SCOPES: SavedSearchScope[] = ["map", "listings", "complex", "auctions", "news", "apply"];
 
 function riseClass(index: number): string {
   if (index <= 0) return "rise-in";

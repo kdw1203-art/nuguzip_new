@@ -35,6 +35,8 @@ import {
 } from "@/lib/redevelopment/types";
 import { findTemperatureRegion } from "@/lib/market/temperature";
 import { logger } from "@/lib/log";
+import { buildMarketRead } from "@/lib/region/market-read";
+import { KeywordAlertButton } from "@/app/components/KeywordAlertButton";
 import {
   breadcrumbJsonLd,
   regionPlaceJsonLd,
@@ -427,6 +429,21 @@ export default async function RegionHubPage({
   );
   const lead = leadSentences.join(" ");
 
+  /* [개선 #7] 시장 흐름 읽기 — 추가 조회 없이 위에서 읽은 값의 산술 서술 */
+  const marketRead = buildMarketRead({
+    name,
+    series,
+    volume: volume.map((v) => ({ month: v.month, count: v.count })),
+    supply: supply.map((si) => ({ households: si.households })),
+    supplyCapped: supply.length >= 24,
+    jeonseRatio: snapshot.jeonseRatio,
+    avgSaleLabel:
+      snapshot.avgSale !== undefined && snapshot.avgSale > 0
+        ? formatKrwShort(snapshot.avgSale)
+        : null,
+    periodLabel: formatYm(snapshot.period),
+  });
+
   /* ---------- Q&A — 이 페이지에 실제로 보이는 숫자로만 ---------- */
   const faq: FaqItem[] = [];
   if (priceClauses.length > 0) {
@@ -533,6 +550,29 @@ export default async function RegionHubPage({
           </div>
         ))}
       </section>
+
+      {/* [개선 #7] 시장 흐름 읽기 — 위 표·차트의 숫자를 지역마다 다른 문장으로.
+          전 문장이 이 페이지가 이미 읽은 실데이터의 산술 서술이다(전망·권유 없음,
+          lib/region/market-read.ts). 값이 부족한 지역은 문단 수가 줄고, 아예
+          없으면 섹션 자체가 안 그려진다 — 빈 틀을 만들지 않는다. */}
+      {marketRead.paragraphs.length > 0 && (
+        <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-[15px] font-extrabold text-ink">
+              {name} 시장 흐름 읽기
+            </h2>
+            {/* [개선 #13] 지역 이름 키워드로 뉴스·동네글 알림 원탭 구독 */}
+            <KeywordAlertButton scope="news" query={name} label={`${name} 새 소식`} />
+          </div>
+          <div className="mt-2 flex flex-col gap-2.5">
+            {marketRead.paragraphs.map((p, i) => (
+              <p key={i} className="text-[13.5px] leading-[1.8] text-text-1">
+                {p}
+              </p>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 최근 시세 추이 — 매매가격지수 월간 12개월, CSS 바 스파크라인 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">

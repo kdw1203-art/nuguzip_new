@@ -423,6 +423,7 @@ export function ApplySearchClient({ initial }: Props) {
               desc={`${state.region === "전체" ? "전국" : state.region}${
                 state.q ? ` · ‘${state.q}’` : ""
               } 조건으로는 조회 결과가 0건이었어요. 지역이나 검색어를 바꿔 보세요.`}
+              action={{ href: "/apply", label: "전체 공고 다시 보기" }}
             />
           )}
         </div>

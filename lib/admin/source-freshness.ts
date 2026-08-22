@@ -57,10 +57,10 @@ const SOURCES: SourceDef[] = [
   {
     key: "supply",
     label: "입주 예정 물량",
-    pipeline: "수동 적재 (자동화 예정 — 로드맵 #21)",
+    pipeline: "etl.yml → /api/cron/supply-ingest (매일, 청약홈 분양공고)",
     table: "apartment_supply",
     column: "created_at",
-    thresholdHours: 24 * 45, // 수동 적재 — 45일 넘으면 경보
+    thresholdHours: 24 * 14, // 신규 분양공고는 주 단위로 나온다 — 2주 무소식이면 이상
   },
   {
     key: "redevelopment",

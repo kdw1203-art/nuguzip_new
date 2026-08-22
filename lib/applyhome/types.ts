@@ -38,6 +38,8 @@ export type AptDetailRow = {
   RCRIT_PBLANC_DE?: string;
   PBLANC_URL?: string;
   BSNS_MBY_NM?: string;
+  /** 입주예정월 (예: "202612") — [개선 #21] 입주물량 자동 인제스트가 사용 */
+  MVN_PREARNGE_YM?: string;
 };
 
 export type AptCompetitionRow = {

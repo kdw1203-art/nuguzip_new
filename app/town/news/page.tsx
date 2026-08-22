@@ -9,6 +9,7 @@ import { Icon } from "@/app/components/Icon";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 import { TownCategoryNav } from "../TownCategoryNav";
 import { NewsListClient } from "./NewsListClient";
+import { NewsAlertSubscribe } from "./NewsAlertSubscribe";
 import { ErrorState } from "@/app/components/ui";
 import { logger } from "@/lib/log";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -183,6 +184,9 @@ export default async function TownNewsPage() {
           </span>
         </Link>
       )}
+
+      {/* [개선 #13] 키워드 알림 구독 — 뉴스가 매일 쌓이는 이 화면이 구독 전환의 최적 지점 */}
+      <NewsAlertSubscribe />
 
       {/* 뉴스 목록 + 지역 필터 — 클라이언트(NewsListClient). SSR 은 항상 전체
           60건을 HTML 에 그리고, 필터는 마운트 후 location.search 로 적용한다
