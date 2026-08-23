@@ -21,6 +21,7 @@ import {
 } from "./hub-client";
 import type { PricePoint } from "./PriceTrendChart";
 import { complexCanonicalPath, decodeComplexId } from "@/lib/complex/complex-store";
+import { pureIdFromParam } from "@/lib/seo/complex-slug";
 import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
@@ -602,7 +603,10 @@ export async function generateMetadata({
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  /* [#51] 슬러그 장식 제거 — 조회 계층은 언제나 순수 id 만 받는다
+     (장식이 섞인 id 가 decodeComplexId 에 들어가면 "없음"으로 위장된다). */
+  const id = pureIdFromParam(decodeURIComponent(rawId));
   /* 사실 우선: 존재하지 않는 단지는 목업 메타 대신 noindex 안내.
      여기 try/catch 로 실패를 null 로 바꾸던 자리다. getComplexById 는 없는
      단지에만 null 을 주고 조회 실패는 던지도록 일부러 만들어졌는데(그 함수
@@ -701,7 +705,8 @@ export default async function ComplexHubPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const complexId = decodeURIComponent(id);
+  /* [#51] 장식 슬러그 제거 — 아래 전 조회가 순수 id(base64·kapt)만 쓰게 한다 */
+  const complexId = pureIdFromParam(decodeURIComponent(id));
   /* 신선도 라벨은 row 에 의존하지 않는다 — 본문 로드와 병렬로 받는다.
      (직렬이면 이 페이지의 3단 직렬 최악이 그만큼 더 길어진다.) */
   const [v, freshness] = await Promise.all([

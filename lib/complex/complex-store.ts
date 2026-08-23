@@ -18,6 +18,7 @@ import {
   pickBestMaster,
 } from "@/lib/complex/master-match";
 import { logger } from "@/lib/log";
+import { decoratedParam } from "@/lib/seo/complex-slug";
 
 /**
  * 조회 실패는 던진다 — "없음"으로 답하지 않는다.
@@ -97,6 +98,8 @@ export interface ComplexTransactionRow {
 // ── 단지 식별자 인코딩/디코딩 ─────────────────────────────────────────
 /** region_name / complex_name 구분자 — 이름·지역에 나타나지 않는 제어문자(U+0001) */
 const SEP = String.fromCharCode(1);
+/* [#51] SEP 는 lib/seo/complex-slug.ts 의 COMPLEX_ID_SEP 와 같은 값이어야 한다
+   (미들웨어가 같은 규칙으로 id 를 해석한다 — 갈라지면 리다이렉트가 어긋난다). */
 
 /**
  * K-apt 코드 기반 id — 동명 단지 병합 리스크를 줄이기 위한 v2.
@@ -126,12 +129,20 @@ export function encodeKaptComplexId(kaptCode: string): string {
  * `complexCanonicalPathFromNames` 쪽을 쓴다. 두 함수의 출력은 정의상 동일하다.
  */
 export function complexCanonicalPath(row: Pick<ComplexRow, "canonical_id">): string {
-  return `/complex/${encodeURIComponent(row.canonical_id)}`;
+  /* [#51] canonical_id 는 항상 name-id — 이름을 복원해 슬러그 장식을 붙인다.
+     복원 실패(이론상 불가)면 기존 base64 경로로 안전 후퇴. */
+  const dec = decodeComplexId(row.canonical_id);
+  if (!dec) return `/complex/${encodeURIComponent(row.canonical_id)}`;
+  return complexCanonicalPathFromNames(dec.region, dec.name);
 }
 
-/** 사이트맵용 — 행(region_name, complex_name)만으로 같은 경로를 만든다. */
+/** 사이트맵용 — 행(region_name, complex_name)만으로 같은 경로를 만든다.
+ *  [#51] 한글 슬러그 전환: /complex/{슬러그}.{base64id}. 해석은 항상 꼬리 id 로만
+ *  하므로(미들웨어·페이지 공통) 슬러그 표기가 바뀌어도 링크는 죽지 않는다.
+ *  NEXT_PUBLIC_COMPLEX_URL_STYLE=code 면 기존 base64 경로로 롤백된다. */
 export function complexCanonicalPathFromNames(region: string, name: string): string {
-  return `/complex/${encodeURIComponent(encodeComplexId(region, name))}`;
+  const pureId = encodeComplexId(region, name);
+  return `/complex/${encodeURIComponent(decoratedParam(region, name, pureId))}`;
 }
 
 export type ParsedComplexId =

@@ -581,3 +581,25 @@ test("52. /town/news shows 키워드 알림 구독 스트립 (#13)", async ({ pa
   await expect(page.getByText("키워드 알림").first()).toBeVisible();
   await expect(page.getByLabel("알림 받을 키워드")).toBeVisible();
 });
+
+test("53. [#51] 단지 한글 슬러그 — 구 base64 URL 은 308, 표준 슬러그는 그대로", async ({ request }) => {
+  /* 이름이 id 안에 인코딩돼 있어 DB 없이도 미들웨어가 정규화한다 — CI 환경 안전 */
+  const SEP = String.fromCharCode(1);
+  const id = Buffer.from(`서울 노원구${SEP}상계주공7`, "utf8").toString("base64url");
+  const decorated = `${encodeURIComponent("서울-노원구-상계주공7")}.${id}`;
+
+  const legacy = await request.get(`/complex/${id}`, { maxRedirects: 0 });
+  expect(legacy.status()).toBe(308);
+  expect(legacy.headers()["location"] ?? "").toContain(`.${id}`);
+
+  const canonical = await request.get(`/complex/${decorated}`, { maxRedirects: 0 });
+  expect(canonical.status()).not.toBe(308); // 표준형은 다시 보내지 않는다(루프 금지)
+
+  const stale = await request.get(`/complex/${encodeURIComponent("옛-슬러그")}.${id}`, {
+    maxRedirects: 0,
+  });
+  expect(stale.status()).toBe(308);
+
+  const kapt = await request.get(`/complex/kapt.A10027336`, { maxRedirects: 0 });
+  expect(kapt.status()).not.toBe(308); // kapt 는 미들웨어가 손대지 않는다
+});

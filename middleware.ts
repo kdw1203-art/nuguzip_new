@@ -4,6 +4,7 @@ import { DEFAULT_DESKTOP_ORIGIN, detectShellFromHost, normalizeHost } from "@/li
 import { WOODONG_PATHNAME_HEADER } from "@/lib/seo/request-pathname";
 import { safeInternalPath } from "@/lib/safe-path";
 import { EXACT_REDIRECTS, legacyRedirectStatus } from "@/lib/seo/redirect-map";
+import { expectedComplexParam } from "@/lib/seo/complex-slug";
 import { updateSession } from "@/utils/supabase/middleware";
 import {
   applyMiniAppCors,
@@ -215,6 +216,30 @@ export async function middleware(request: NextRequest) {
       );
       const redirect = NextResponse.redirect(canonical, 308);
       return applySecurityHeaders(redirect, request);
+    }
+  }
+
+  /* [#51] 단지 한글 슬러그 정규화 — /complex/{base64} 구 URL 26,126개와 낡은
+     슬러그를 표준 슬러그로 308. DB 조회 0회(이름이 id 안에 인코딩돼 있다).
+     스트리밍 이전(미들웨어)이라 상태코드가 확실히 308 로 나간다 — 페이지 단
+     redirect 는 loading 경계 뒤라 200 으로 굳는 문제가 있었다(soft-404 실측과
+     같은 기제). 어떤 예외도 사이트 전체를 못 세우게 통째로 감싼다. */
+  if (request.nextUrl.pathname.startsWith("/complex/")) {
+    try {
+      const rest = request.nextUrl.pathname.slice("/complex/".length);
+      // 하위 세그먼트(/complex/tx/... 등)는 손대지 않는다 — 단지 상세 1세그먼트만.
+      if (rest && !rest.includes("/")) {
+        const expected = expectedComplexParam(rest);
+        if (expected !== null) {
+          const target = new URL(
+            `/complex/${encodeURIComponent(expected)}${request.nextUrl.search}`,
+            request.url,
+          );
+          return applySecurityHeaders(NextResponse.redirect(target, 308), request);
+        }
+      }
+    } catch {
+      /* 정규화 실패는 통과 — 페이지가 기존 규칙대로 처리한다 */
     }
   }
 
