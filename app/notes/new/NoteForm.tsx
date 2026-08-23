@@ -519,6 +519,35 @@ export function NoteForm({
     if (template && template.sections.length > 0) return todosFromTemplate(template);
     return TODO_DEFAULTS;
   });
+  /* [AI-24] AI 체크리스트 핸드오프 — /analysis/ai/my-checklist 에서 넘어온 항목을
+     고려사항(todo)으로 1회 병합. 10분 지난 저장분은 무시(우발 병합 방지). */
+  useEffect(() => {
+    if (initialNote) return; // 새 노트에서만
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("fromChecklist") !== "1") return;
+      const raw = window.localStorage.getItem("nz_ai_checklist");
+      if (!raw) return;
+      window.localStorage.removeItem("nz_ai_checklist");
+      const parsed = JSON.parse(raw) as { at?: number; items?: unknown };
+      if (!parsed || typeof parsed.at !== "number" || Date.now() - parsed.at > 10 * 60_000) return;
+      const items = Array.isArray(parsed.items)
+        ? parsed.items.filter((x): x is string => typeof x === "string").slice(0, 10)
+        : [];
+      if (!items.length) return;
+      setTodoItems((prev) => {
+        const exist = new Set(prev.map((t) => t.text));
+        const added = items
+          .filter((t) => !exist.has(t))
+          .map((t) => ({ text: t, level: "보통" as const }));
+        return added.length ? [...prev, ...added] : prev;
+      });
+    } catch {
+      /* 병합 실패는 조용히 — 폼 본연 동작 우선 */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [doneTodos, setDoneTodos] = useState<string[]>(() => {
     if (!initialNote) return [];
     const knownLabels = new Set(allKnownChecklistItems().map((it) => it.label));

@@ -16,6 +16,8 @@ export const EARN_RULES: Record<string, EarnRule> = {
   listing_approved: { key: "listing_approved", label: "매물 등록 승인", points: 300 },
   listing_first: { key: "listing_first", label: "첫 매물 등록 보너스", points: 500, once: true },
   listing_owner_verified: { key: "listing_owner_verified", label: "소유확인 완료", points: 200 },
+  /* [AI-39] 첫 AI 분석 — 워크벤치 입구 재건과 짝. 1회 한정 무상 리워드 */
+  ai_first: { key: "ai_first", label: "첫 AI 분석 실행", points: 100, once: true },
   listing_photos: { key: "listing_photos", label: "사진 3장 이상", points: 50 },
   listing_sold: { key: "listing_sold", label: "거래완료 신고", points: 500 },
   note_public: { key: "note_public", label: "임장노트 공개", points: 100, dailyCap: 5 },

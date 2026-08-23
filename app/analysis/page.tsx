@@ -10,6 +10,8 @@ import {
 import { HubComplexPicker } from "./hub-picker";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { loadHubTeasers } from "./hub-teasers";
+import { AI_TOOL_IDS } from "@/lib/ai/ai-tools";
+import { TOOL_IDENTITIES } from "@/lib/ai/tool-identity";
 import {
   CompareTrayCount,
   LastToolChip,
@@ -184,6 +186,33 @@ export default async function AnalysisHubPage({
           {/* #411 항목별 고유기능 — 마지막 사용 도구 복귀 칩 (기록 없으면 없음) */}
           <LastToolChip />
         </div>
+
+        {/* [AI-31] 12종 워크벤치 진입 카드 — 입구 부재가 실행 0회의 1원인이었다.
+            카드마다 "무엇을 넣으면 무엇이 나오는지"(tagline·useCase)를 명시한다. */}
+        <section className="rise-in-1 flex flex-col gap-2">
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="text-[16px] font-extrabold text-ink">AI 워크벤치 — 단지 하나로 실데이터 분석</h2>
+            <span className="text-[11.5px] text-text-3">전 도구 출처 각주·불확실성 표기</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+            {AI_TOOL_IDS.map((id) => {
+              const t = TOOL_IDENTITIES[id];
+              return (
+                <Link
+                  key={id}
+                  href={`/analysis/ai/${id}`}
+                  className="card card-hover flex flex-col gap-1 rounded-[14px] p-3.5 no-underline"
+                >
+                  <span className="text-[13.5px] font-extrabold text-ink">{t.title}</span>
+                  <span className="text-[11.5px] leading-[1.55] text-text-2">{t.tagline}</span>
+                  <span className="mt-auto pt-1 text-[10.5px] font-bold text-text-3">
+                    단지 검색 → 자동 로드 → 실행 · 약 1분
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
 
         {/* 시작 섹션 — 로그인: 실 카운트 + CTA / 비로그인: 예시 분석 1건 + 로그인 CTA */}
         {email ? (

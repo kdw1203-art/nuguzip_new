@@ -108,6 +108,15 @@ function CompareTraySection() {
           {COMPARE_TRAY_MAX}개까지 담을 수 있어요.
         </div>
       )}
+      {/* [AI-22] 트레이 → AI 비교 해석 — 같은 후보로 워크벤치 비교 도구를 연다 */}
+      {items.length >= 2 && (
+        <Link
+          href={`/analysis/ai/ai-compare?ids=${encodeURIComponent(items.slice(0, 3).map((i) => i.id).join(","))}`}
+          className="self-start rounded-[10px] bg-primary px-3.5 py-2 text-[12px] font-bold text-white no-underline"
+        >
+          이 후보들로 AI 비교 해석 ›
+        </Link>
+      )}
     </div>
   );
 }

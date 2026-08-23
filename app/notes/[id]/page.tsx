@@ -14,6 +14,7 @@ import {
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { NotePhotoCarousel } from "./NotePhotoCarousel";
+import { NoteAudioTools } from "./NoteAudioTools";
 import { safeAuth } from "@/lib/safe-auth";
 import { findPaidReportIdByNote } from "@/lib/reports/store-db";
 import { hasPurchased } from "@/lib/report-purchases/store-db";
@@ -656,6 +657,19 @@ export default async function NoteDetailPage({
           )}
         </div>
       )}
+      {/* [AI-40] 저장 직후 — 이 단지 AI 진단 원클릭(컨텍스트 이관). 가장 뜨거운 순간의 제안 */}
+      {isOwner && aiStatus && realNote.aptName && (
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[13px] text-text-1">
+          방금 다녀온 단지, 실데이터로도 확인해 볼까요?{" "}
+          <Link
+            href={`/analysis/ai/ai-diagnosis?apt=${encodeURIComponent(realNote.aptName)}&region=${encodeURIComponent(realNote.region)}`}
+            className="font-extrabold text-primary"
+          >
+            {realNote.aptName} AI 진단 1분 ›
+          </Link>
+          <span className="ml-1 text-[11.5px] text-text-3">첫 실행이면 +100P</span>
+        </div>
+      )}
       {isOwner && aiStatus === "fail" && (
         <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
           노트는 저장됐어요. AI 정리는 반영되지 않았어요 — 아래에서 다시 시도할 수
@@ -905,21 +919,21 @@ export default async function NoteDetailPage({
             analysis={(realNote.aiAnalysis ?? null) as Record<string, unknown> | null}
           />
 
-          {/* [#133] 음성 메모 — 현장 녹음 재생 */}
+          {/* [#133 → AI-36·37] 음성 메모 + 브리핑 듣기·전사 도구 */}
           {Array.isArray(realNote.metadata?.voiceMemos) &&
             realNote.metadata.voiceMemos.length > 0 && (
-              <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-5">
-                <div className="text-[14px] font-extrabold text-ink">
-                  현장 음성 메모{" "}
-                  <span className="text-[11px] font-medium text-text-3">
-                    {realNote.metadata.voiceMemos.length}개
-                  </span>
-                </div>
-                {realNote.metadata.voiceMemos.map((u) => (
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <audio key={u} src={u} controls preload="none" className="h-9 w-full" />
-                ))}
-              </div>
+              <NoteAudioTools
+                voiceMemos={realNote.metadata.voiceMemos}
+                isOwner={isOwner}
+                propertyLabel={realNote.aptName ?? realNote.title}
+                briefingScript={[
+                  `${realNote.title}. ${realNote.region}${realNote.aptName ? `, ${realNote.aptName}` : ""} 임장 브리핑입니다.`,
+                  realNote.summary ?? "",
+                  realNote.sections?.memo ? `메모. ${String(realNote.sections.memo).slice(0, 600)}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              />
             )}
 
           {/* [#131] 직전 저장본 — 본인에게만, 내용 수정이 있었던 노트만 */}

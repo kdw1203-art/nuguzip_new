@@ -64,7 +64,7 @@ export default async function MissionsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              {board.start.map((m) => (
+              {board.start.filter((m) => m.key !== "first_ai").map((m) => (
                 <Link
                   key={m.key}
                   href={m.href}
@@ -91,6 +91,33 @@ export default async function MissionsPage() {
               3가지를 모두 마치면 온보딩 완주 보너스 200P를 받을 수 있어요 (1회).
             </p>
           </section>
+
+          {/* [AI-39] 첫 AI 분석 — 시작 3미션과 별도 100P */}
+          {(() => {
+            const ai = board.start.find((m) => m.key === "first_ai");
+            if (!ai) return null;
+            return (
+              <section className="rise-in-1 mt-4">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <h2 className="text-[15px] font-extrabold text-ink">보너스 · 첫 AI 분석</h2>
+                  <MissionClaim kind="ai" points={100} disabled={!ai.done} claimed={ai.claimed} />
+                </div>
+                <Link
+                  href={ai.href}
+                  className="card card-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-extrabold text-ink">
+                      {ai.done ? "✓ " : ""}
+                      {ai.label}
+                    </div>
+                    <p className="mt-0.5 text-[12px] leading-[1.6] text-text-2">{ai.desc}</p>
+                  </div>
+                  <span className="shrink-0 text-[12px] font-extrabold text-primary">+{ai.points}P ›</span>
+                </Link>
+              </section>
+            );
+          })()}
 
           {/* 주간 미션 */}
           <section className="rise-in-2 mt-7">

@@ -18,6 +18,10 @@ import {
   resolveQuotaPlan,
 } from "@/lib/subscriptions/usage-summary";
 import { logger } from "@/lib/log";
+import { getServiceSupabase } from "@/lib/supabase/service";
+import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
+import { buildNumberWhitelist, guardLlmNumbers } from "@/lib/ai/insight-blocks";
+import { AI_PROMPT_VERSION } from "@/lib/ai/system-prompt";
 
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 
@@ -81,12 +85,15 @@ async function persistRunOr403(
   email: string,
   sessionPlan: string | null | undefined,
   input: Parameters<typeof appendRun>[0],
-): Promise<NextResponse | null> {
+): Promise<
+  | { denied: NextResponse }
+  | { denied: null; runId: string | null; usage: { used: number; limit: number | null } }
+> {
   const result = await appendAiRunWithinQuota(email, sessionPlan, input);
   if (!result.ok) {
-    return NextResponse.json(result.body, { status: 403 });
+    return { denied: NextResponse.json(result.body, { status: 403 }) };
   }
-  return null;
+  return { denied: null, runId: result.runId, usage: result.usage };
 }
 
 export async function POST(req: Request) {
@@ -188,8 +195,10 @@ export async function POST(req: Request) {
     const requested = typeof body.modelId === "string" ? body.modelId.trim() : "";
     const modelId = requested || "internal";
     const structuredSummary = buildStructuredSummary(markdown, input);
+    let runId: string | null = null;
+    let usage: { used: number; limit: number | null } | null = null;
     if (email) {
-      const denied = await persistRunOr403(email, sessionPlan, {
+      const persisted = await persistRunOr403(email, sessionPlan, {
         authorEmail: email,
         presetId: presetId || null,
         tool: tid,
@@ -203,8 +212,17 @@ export async function POST(req: Request) {
         structuredSummary,
         markdown,
       });
-      if (denied) return denied;
+      if (persisted.denied) return persisted.denied;
+      runId = persisted.runId;
+      usage = persisted.usage;
     }
+    /* [AI-45] 서버 계측 통일 — 실행·완료를 도구 축으로 기록 */
+    await recordFunnelEvent(req, {
+      eventName: FUNNEL_EVENT.AI_TOOL_RUN,
+      userEmail: email ?? "anon",
+      path: `/analysis/ai/${tid}`,
+      metadata: { tool: tid, source: "internal", promptVersion: AI_PROMPT_VERSION },
+    }).catch(() => {});
     return NextResponse.json({
       ok: true,
       source: "internal" as const,
@@ -214,6 +232,8 @@ export async function POST(req: Request) {
       structuredSummary,
       evidence_refs,
       markdown,
+      runId,
+      usage,
     });
   }
 
@@ -228,8 +248,10 @@ export async function POST(req: Request) {
       _notice: "모델 설정이 없어 규칙 기반 안내를 반환했습니다.",
     });
     const structuredSummary = buildStructuredSummary(markdown, input);
+    let runId: string | null = null;
+    let usage: { used: number; limit: number | null } | null = null;
     if (email) {
-      const denied = await persistRunOr403(email, sessionPlan, {
+      const persisted = await persistRunOr403(email, sessionPlan, {
         authorEmail: email,
         presetId: presetId || null,
         tool: tid,
@@ -243,8 +265,16 @@ export async function POST(req: Request) {
         structuredSummary,
         markdown,
       });
-      if (denied) return denied;
+      if (persisted.denied) return persisted.denied;
+      runId = persisted.runId;
+      usage = persisted.usage;
     }
+    await recordFunnelEvent(req, {
+      eventName: FUNNEL_EVENT.AI_RULE_FALLBACK,
+      userEmail: email ?? "anon",
+      path: `/analysis/ai/${tid}`,
+      metadata: { tool: tid, reason: "MODEL_OPTION_NOT_FOUND" },
+    }).catch(() => {});
     return NextResponse.json({
       ok: true,
       source: "stub" as const,
@@ -254,6 +284,8 @@ export async function POST(req: Request) {
       evidence_refs,
       structuredSummary,
       markdown,
+      runId,
+      usage,
     });
   }
 
@@ -268,7 +300,25 @@ export async function POST(req: Request) {
   let source: string;
   let apiModel = option.apiModel;
 
-  if (option.vendor === "openai" && !hasOpenAI) {
+  /* [AI-48] 월 LLM 예산 가드 — 이번 달 외부 모델 실행 수가 상한을 넘으면
+     조용히 과금이 늘지 않게 규칙 모드로 전환하고, 그 사실을 화면에 고지한다. */
+  const llmMonthlyCap = Number(process.env.AI_LLM_MONTHLY_CAP ?? "500");
+  let llmBudgetExceeded = false;
+  if (email && Number.isFinite(llmMonthlyCap) && llmMonthlyCap > 0) {
+    try {
+      llmBudgetExceeded = (await countLlmRunsThisMonth()) >= llmMonthlyCap;
+    } catch {
+      llmBudgetExceeded = false; // 예산 집계 실패가 기능을 막으면 안 된다
+    }
+  }
+
+  if (llmBudgetExceeded) {
+    source = "stub";
+    markdown = buildStubMarkdown(tid, {
+      ...input,
+      _notice: `이번 달 AI 서술 예산(${llmMonthlyCap}회)을 모두 사용해 규칙 기반 결과로 대신합니다. 다음 달에 자동으로 다시 열립니다.`,
+    });
+  } else if (option.vendor === "openai" && !hasOpenAI) {
     source = "stub";
     markdown = buildStubMarkdown(tid, {
       ...input,
@@ -292,14 +342,27 @@ export async function POST(req: Request) {
     } else {
       source = result.vendor;
       apiModel = result.apiModel;
-      markdown = result.text;
+      /* [AI-05] 문장 출처 라벨 — LLM 서술 전체를 명시 섹션으로 감싼다.
+         [AI-08] 수치 환각 가드 — 입력·공공 컨텍스트에 없던 숫자를 검출해
+         본문 위에 경고로 밝힌다(몰래 지우지 않고 드러낸다 — 정직 우선). */
+      const whitelist = buildNumberWhitelist([
+        input,
+        publicContext as unknown,
+      ]);
+      const guard = guardLlmNumbers(result.text, whitelist);
+      const guardNote = guard.ok
+        ? ""
+        : `\n> ⚠️ [수치 검증] 아래 서술에서 입력·공공데이터에 없는 숫자 ${guard.violations.length}개가 발견됐습니다(${guard.violations.slice(0, 4).join(", ")}${guard.violations.length > 4 ? " 외" : ""}). 해당 수치는 근거가 확인되지 않았으니 판단에 쓰지 마세요.\n`;
+      markdown = `## [AI 서술] 외부 모델 해석\n${guardNote}\n${result.text}\n\n---\n_위 서술은 외부 LLM(${result.apiModel})이 작성한 해석이며, 수치의 원천은 함께 표시된 [규칙] 계산·근거 각주입니다._`;
     }
   }
 
   const structuredSummary = buildStructuredSummary(markdown, input);
+  let runId: string | null = null;
+  let usage: { used: number; limit: number | null } | null = null;
   if (email) {
     try {
-      const denied = await persistRunOr403(email, sessionPlan, {
+      const persisted = await persistRunOr403(email, sessionPlan, {
         authorEmail: email,
         presetId: presetId || null,
         tool: tid,
@@ -313,11 +376,21 @@ export async function POST(req: Request) {
         structuredSummary,
         markdown,
       });
-      if (denied) return denied;
+      if (persisted.denied) return persisted.denied;
+      runId = persisted.runId;
+      usage = persisted.usage;
     } catch (e) {
       logger.error("[ai/analysis appendRun]", e);
     }
   }
+  /* [AI-45] 완료/폴백 계측 */
+  await recordFunnelEvent(req, {
+    eventName:
+      source === "stub" ? FUNNEL_EVENT.AI_RULE_FALLBACK : FUNNEL_EVENT.AI_LLM_COMPLETE,
+    userEmail: email ?? "anon",
+    path: `/analysis/ai/${tid}`,
+    metadata: { tool: tid, source, model: apiModel, promptVersion: AI_PROMPT_VERSION },
+  }).catch(() => {});
 
   return NextResponse.json({
     ok: true,
@@ -335,5 +408,23 @@ export async function POST(req: Request) {
     structuredSummary,
     evidence_refs,
     markdown,
+    runId,
+    usage,
   });
+}
+
+/* [AI-48] 이번 달 외부 LLM 실행 수 — source 가 벤더명인 run 만 센다 */
+async function countLlmRunsThisMonth(): Promise<number> {
+  const sb = getServiceSupabase();
+  if (!sb) return 0;
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const { count, error } = await sb
+    .from("ai_analysis_runs")
+    .select("*", { count: "exact", head: true })
+    .in("source", ["openai", "anthropic"])
+    .gte("created_at", monthStart.toISOString());
+  if (error || typeof count !== "number") return 0;
+  return count;
 }

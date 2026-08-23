@@ -139,6 +139,42 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
     logger.warn("[weekly-post] 청약 섹션 생략", e);
   }
 
+  /* ④ [AI-41] AI가 본 특이 단지·지역 — 규칙 판정(급변동·거래 급증)을 자동 발행에 합류.
+     지수 무버 스냅샷을 재사용해 추가 조회 없이, "왜 특이한지" 산술 근거만 적는다. */
+  try {
+    const snaps = [...(await getAllRegionSnapshots()).values()].filter(
+      (s) =>
+        s.saleChangeMonthly !== undefined &&
+        Number.isFinite(s.saleChangeMonthly) &&
+        s.tradeCount !== undefined,
+    );
+    const unusual = snaps
+      .map((s) => ({
+        s,
+        why:
+          Math.abs(s.saleChangeMonthly ?? 0) >= 1.2
+            ? `월간 ${(s.saleChangeMonthly ?? 0) > 0 ? "+" : ""}${s.saleChangeMonthly}% 급변동`
+            : (s.tradeCount ?? 0) >= 200
+              ? `월 거래 ${s.tradeCount}건 급증권`
+              : null,
+      }))
+      .filter((x): x is { s: (typeof snaps)[number]; why: string } => x.why !== null)
+      .sort((a, b) => Math.abs(b.s.saleChangeMonthly ?? 0) - Math.abs(a.s.saleChangeMonthly ?? 0))
+      .slice(0, 3);
+    if (unusual.length > 0) {
+      sections.push(
+        [
+          "■ AI 워크벤치가 본 이번 주 특이 지역 (규칙 판정)",
+          ...unusual.map(({ s, why }) => `· ${s.regionName} — ${why}`),
+          "각 지역 5축 진단(실거래·전월세·공급·정성·거시) → nuguzip.com/analysis/ai/ai-diagnosis",
+        ].join("\n"),
+      );
+      numbers.push(`특이 지역 ${unusual.length}곳`);
+    }
+  } catch (e) {
+    logger.warn("[weekly-post] AI 특이 지역 섹션 생략", e);
+  }
+
   if (sections.length === 0) return { posted: false, reason: "no-data-sections" };
 
   const title = `이번 주 부동산 숫자 — ${numbers.slice(0, 3).join(" · ") || label}`;

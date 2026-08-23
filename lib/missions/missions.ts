@@ -75,7 +75,7 @@ export async function buildMissionBoard(email: string): Promise<MissionBoard> {
   const weekKey = isoWeekKey();
   const weekStart = isoWeekStartIso();
 
-  const [watchAll, savedAll, notesAll, notesWeek, attendWeek, watchWeek, startClaimed] =
+  const [watchAll, savedAll, notesAll, notesWeek, attendWeek, watchWeek, startClaimed, aiRunsAll, aiClaimed] =
     await Promise.all([
       sb.from("user_watchlist").select("complex_id", { count: "exact", head: true }).eq("user_email", email),
       sb.from("saved_searches").select("id", { count: "exact", head: true }).eq("user_email", email),
@@ -84,6 +84,9 @@ export async function buildMissionBoard(email: string): Promise<MissionBoard> {
       sb.from("point_ledger").select("id", { count: "exact", head: true }).eq("user_email", email).eq("reason", "attendance").gte("created_at", weekStart),
       sb.from("user_watchlist").select("complex_id", { count: "exact", head: true }).eq("user_email", email).gte("created_at", weekStart),
       alreadyAwardedRef(email, "onboarding_complete", null),
+      /* [AI-39] 첫 AI 분석 — 워크벤치 실행 기록 */
+      sb.from("ai_analysis_runs").select("id", { count: "exact", head: true }).eq("author_email", email),
+      alreadyAwardedRef(email, "ai_first", null),
     ]);
   for (const r of [watchAll, savedAll, notesAll, notesWeek, attendWeek, watchWeek]) {
     if ((r as { error?: unknown }).error) throw new Error("미션 진행도 조회 실패");
@@ -125,7 +128,20 @@ export async function buildMissionBoard(email: string): Promise<MissionBoard> {
       points: 0,
     },
   ];
+  /* 시작 3미션 완주 판정은 기존 3개 기준 그대로(200P 조건 불변) —
+     [AI-39] 4번째 줄은 별도 100P 미션으로 뒤에 붙인다. */
   const startAllDone = start.every((m) => m.done);
+  start.push({
+    key: "first_ai",
+    label: "첫 AI 분석 1회",
+    desc: "단지 하나 고르면 실거래·전월세·공급 실데이터로 1분 진단.",
+    href: "/analysis",
+    target: 1,
+    progress: Math.min(1, n(aiRunsAll)),
+    done: n(aiRunsAll) >= 1,
+    claimed: aiClaimed,
+    points: 100,
+  });
 
   const weeklyDefs = [
     {

@@ -643,6 +643,19 @@ export default async function MyPage() {
             </span>
             <span className="shrink-0 text-[13px] font-extrabold text-primary">진행도 보기 ›</span>
           </Link>
+          {/* [AI-34] 내 AI 분석 기록 — 저장만 되고 안 보이던 히스토리의 진입점 */}
+          <Link
+            href="/my/analyses"
+            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+          >
+            <span className="flex min-w-0 flex-col">
+              <span className="text-[13.5px] font-extrabold text-ink">AI 분석 기록</span>
+              <span className="text-[11.5px] text-text-3">
+                실행한 분석 다시 보기 · 같은 도구 재실행
+              </span>
+            </span>
+            <span className="shrink-0 text-[13px] font-extrabold text-primary">기록 보기 ›</span>
+          </Link>
           {/* 친구 초대 — 기능은 완성돼 있었는데 진입점이 모바일 메뉴뿐이었다
               (성장 회로 점검에서 발견). 포인트 맥락이 초대 보상의 자연스러운 자리다. */}
           <Link

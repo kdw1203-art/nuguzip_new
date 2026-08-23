@@ -163,7 +163,11 @@ export async function appendAiRunWithinQuota(
   email: string,
   sessionPlan: string | null | undefined,
   input: Parameters<typeof appendRun>[0],
-): Promise<{ ok: true } | { ok: false; body: QuotaDeniedPayload }> {
+): Promise<
+  /* [AI-33·42] runId(공유 링크)·usage(쿼터 표면화)를 성공 응답에 실어 보낸다 */
+  | { ok: true; runId: string | null; usage: { used: number; limit: number | null } }
+  | { ok: false; body: QuotaDeniedPayload }
+> {
   return withUserQuotaLock(`ai:${email}`, async () => {
     const plan = await resolveQuotaPlan(email, sessionPlan);
     const quota = await checkAiAnalysisQuota(email, plan);
@@ -173,8 +177,12 @@ export async function appendAiRunWithinQuota(
         body: quotaDeniedJson(quota.message, quota.requiredTier, quota.used, quota.limit),
       };
     }
-    await appendRun(input);
-    return { ok: true as const };
+    const run = await appendRun(input);
+    return {
+      ok: true as const,
+      runId: (run as { id?: string } | null)?.id ?? null,
+      usage: { used: quota.used + 1, limit: quota.limit },
+    };
   });
 }
 

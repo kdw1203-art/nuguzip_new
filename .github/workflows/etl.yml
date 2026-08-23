@@ -241,6 +241,8 @@ jobs:
           call price-alerts "https://nuguzip.com/api/cron/price-alerts"
           # 저장 검색 신규 매치
           call saved-search "https://nuguzip.com/api/cron/saved-search-alerts"
+          # [AI-29] 경제지표 임계 알림 — 기준금리 워치(등록자 대상, 1회 통지 후 재무장식)
+          call economy-alerts "https://nuguzip.com/api/cron/economy-alerts"
           # 출석 리마인드 — 오늘 미출석 구독자에게만
           call attendance "https://nuguzip.com/api/cron/attendance-reminders"
           # 내 매물 신선도 — 21일 끌어올리기 안내 / 60일 마감 제안.

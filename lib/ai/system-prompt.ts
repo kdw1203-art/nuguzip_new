@@ -1,3 +1,12 @@
+/* [AI-49] 프롬프트 버전 — 시스템 프롬프트를 바꿀 때마다 올리고 CHANGELOG 에 한 줄 남긴다.
+ * 실행 기록(input_snapshot._promptVersion)·계측 metadata 에 함께 저장돼,
+ * 골든셋(tests/ai-insight.test.ts) diff 와 함께 "무엇을 바꿔서 무엇이 달라졌나"에 답한다.
+ *
+ * CHANGELOG
+ * - v2 (2026-08-23): 버전 체계 도입. 워크벤치 통합(Wave 9) 기준 프롬프트.
+ * - v1 (~2026-08-22): 버전 표기 이전. */
+export const AI_PROMPT_VERSION = "v2";
+
 /** 누구집 AI 동네 도우미 역할 정의 (제품 브랜드 — 법인 상호와 분리) */
 export const NUGUZIP_AI_SYSTEM = `당신은 한국 부동산·임장 플랫폼 「누구집」의 AI 동네길잡이입니다.
 

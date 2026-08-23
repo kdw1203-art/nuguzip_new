@@ -42,6 +42,9 @@ type Row = {
   saleChange?: number;
   /** [#94 잔여] 월세 환산 수익률(연 %) — 표본 30건 미만·분모 0 이하면 undefined */
   rentYield?: number;
+  /** [AI-28] 실측 갭 = 평균 매매가 − 전세 신고 중앙값(최근 3개월, 표본 30건+) */
+  measuredGap?: number;
+  jeonseSample?: number;
   group: "서울" | "경기" | "인천";
 };
 
@@ -60,7 +63,7 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
             <th className="py-2 pr-3 font-semibold">지역</th>
             <th className="py-2 pr-3 text-right font-semibold">전세가율</th>
             <th className="py-2 pr-3 text-right font-semibold">평균 매매가</th>
-            <th className="py-2 pr-3 text-right font-semibold">추정 갭</th>
+            <th className="py-2 pr-3 text-right font-semibold">갭(실측 우선)</th>
             <th className="py-2 pr-3 text-right font-semibold">월세 환산</th>
             <th className="py-2 pr-3 text-right font-semibold">매매지수 변동</th>
             <th className="py-2 text-right font-semibold">기준</th>
@@ -88,7 +91,19 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
                 {r.avgSale && r.avgSale > 0 ? formatKrwShort(r.avgSale) : "—"}
               </td>
               <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-ink">
-                {r.gap !== undefined ? formatKrwShort(r.gap) : "—"}
+                {r.measuredGap !== undefined ? (
+                  <>
+                    {formatKrwShort(r.measuredGap)}
+                    <span className="ml-1 rounded bg-success-soft px-1 py-px text-[9.5px] font-extrabold text-success">실측</span>
+                  </>
+                ) : r.gap !== undefined ? (
+                  <>
+                    {formatKrwShort(r.gap)}
+                    <span className="ml-1 rounded bg-bg px-1 py-px text-[9.5px] font-extrabold text-text-3">추정</span>
+                  </>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums text-text-1">
                 {r.rentYield !== undefined ? `${r.rentYield.toFixed(1)}%` : "—"}
@@ -159,8 +174,20 @@ export default async function GapScreenerPage() {
     }
     if (yieldMap) {
       for (const r of rows) {
-        const y = rentYieldPct(r.avgSale, yieldMap.get(r.name));
+        const yr = yieldMap.get(r.name);
+        const y = rentYieldPct(r.avgSale, yr);
         if (y !== null) r.rentYield = Math.round(y * 10) / 10;
+        /* [AI-28] 전월세 신고 실측 갭 — 추정(비율 환산)을 실측으로 대체 */
+        if (
+          yr &&
+          yr.jeonseCount >= 30 &&
+          yr.jeonseMedianDepositKrw &&
+          r.avgSale &&
+          r.avgSale > yr.jeonseMedianDepositKrw
+        ) {
+          r.measuredGap = Math.round(r.avgSale - yr.jeonseMedianDepositKrw);
+          r.jeonseSample = yr.jeonseCount;
+        }
       }
     }
   }
@@ -175,9 +202,12 @@ export default async function GapScreenerPage() {
     <PageShell breadcrumb="AI 분석 › 전세가율·갭" title="전세가율·갭 스크리너">
       <p className="rise-in mb-4 max-w-[720px] text-[13px] leading-[1.8] text-text-2">
         전세가율은 매매가 대비 전세가의 비율입니다. 비율이 높을수록 매매가와 전세가의
-        차이(갭)가 작다는 뜻입니다. 아래 추정 갭은{" "}
-        <b className="text-ink">평균 매매가 × (1 − 전세가율)</b>로 계산한 지역 평균값이며,
-        단지·면적에 따라 실제 갭은 크게 다릅니다.
+        차이(갭)가 작다는 뜻입니다. 갭은{" "}
+        <b className="text-ink">평균 매매가 − 전세 신고 중앙값(최근 3개월)</b>의{" "}
+        <b className="text-ink">실측</b>을 우선 표시하고, 전세 표본이 30건 미만인 지역만
+        비율 환산 <b className="text-ink">추정</b>으로 대신합니다. 전월세 신고는
+        갱신·신규 계약이 구분되지 않아 실측값에도 그 한계가 섞여 있으며, 단지·면적에
+        따라 실제 갭은 크게 다릅니다.
         {median !== null && (
           <>
             {" "}

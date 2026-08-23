@@ -183,6 +183,7 @@ export type IngestSource =
   | "apt-master"
   | "apt-detail"
   | "ecos"
+  | "economy-alerts"
   | "onbid"
   | "court-auction"
   | "redevelopment"

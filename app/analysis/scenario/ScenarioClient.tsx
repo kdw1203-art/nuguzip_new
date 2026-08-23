@@ -150,7 +150,31 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
       setIncomeManwon(Math.round(income));
     const rate = Number(sp.get("rate"));
     if (Number.isFinite(rate) && rate >= 0.5 && rate <= 15) setBaseRate(rate);
+    /* [AI-27] 공유 링크 복원 — price(가격 변동%)·offset(금리 오프셋) */
+    const price = Number(sp.get("price"));
+    if (Number.isFinite(price) && price >= -30 && price <= 30) setPricePct(price);
+    const offset = Number(sp.get("offset"));
+    if (Number.isFinite(offset) && offset >= -3 && offset <= 3) setRateOffset(offset);
   }, []);
+
+  /* [AI-27] 시나리오 공유 — 현재 입력 세트를 URL로. 열람은 로그인 불필요. */
+  const [shareCopied, setShareCopied] = useState(false);
+  const copyShareLink = () => {
+    try {
+      const sp = new URLSearchParams();
+      if (regionId) sp.set("region", regionId);
+      sp.set("ltv", String(ltvPct));
+      sp.set("income", String(incomeManwon));
+      sp.set("rate", String(baseRate));
+      sp.set("price", String(pricePct));
+      sp.set("offset", String(rateOffset));
+      void navigator.clipboard.writeText(`${location.origin}/analysis/scenario?${sp.toString()}`);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      setShareCopied(false);
+    }
+  };
 
   useEffect(() => {
     if (!regionId) {
@@ -261,6 +285,14 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
     <PageShell breadcrumb="AI 분석 › 시장·대출 시나리오">
       <div className="mb-2 flex items-center justify-between">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">시장·대출 시나리오</h1>
+        {/* [AI-27] 현재 조건 세트를 URL로 공유 — 커뮤니티 글감·상담 공유용 */}
+        <button
+          type="button"
+          onClick={copyShareLink}
+          className="rise-in rounded-[10px] border border-line-strong bg-surface px-3 py-1.5 text-[12px] font-bold text-text-1"
+        >
+          {shareCopied ? "링크 복사됨 ✓" : "이 조건 공유"}
+        </button>
       </div>
       {!isReal && (
         <div className="rise-in mb-3">

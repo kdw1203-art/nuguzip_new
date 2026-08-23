@@ -27,6 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/social", label: "소셜 · 쇼츠" },
   { href: "/admin/blog-pack", label: "블로그 팩" },
   { href: "/admin/community", label: "커뮤니티 운영" },
+  { href: "/admin/ai", label: "AI 도구" },
 ];
 
 export function AdminNav() {

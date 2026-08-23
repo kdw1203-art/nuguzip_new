@@ -35,6 +35,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: r.ok, awarded: r.awarded, reason: r.reason ?? null });
   }
 
+  /* [AI-39] 첫 AI 분석 100P — 서버가 실행 기록(runs≥1)을 재검증한 뒤 1회 지급 */
+  if (kind === "ai") {
+    const m = board.start.find((s) => s.key === "first_ai");
+    if (!m?.done) {
+      return NextResponse.json({ error: "아직 AI 분석을 실행하지 않았어요." }, { status: 400 });
+    }
+    const r = await awardPoints(email, "ai_first");
+    return NextResponse.json({ ok: r.ok, awarded: r.awarded, reason: r.reason ?? null });
+  }
+
   if (kind === "weekly") {
     const key = String(body.key ?? "");
     const m = board.weekly.find((w) => w.key === key);
@@ -46,5 +56,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: r.ok, awarded: r.awarded, reason: r.reason ?? null });
   }
 
-  return NextResponse.json({ error: "kind 는 start | weekly" }, { status: 400 });
+  return NextResponse.json({ error: "kind 는 start | ai | weekly" }, { status: 400 });
 }

@@ -11,7 +11,7 @@ export function MissionClaim({
   disabled,
   claimed,
 }: {
-  kind: "start" | "weekly";
+  kind: "start" | "ai" | "weekly";
   missionKey?: string;
   points: number;
   disabled: boolean;
