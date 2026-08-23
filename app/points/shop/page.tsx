@@ -23,7 +23,7 @@ function GuestView() {
           로그인하고 포인트를 교환하세요
         </div>
         <div className="text-xs leading-[1.6] text-ai-muted">
-          쌓인 포인트로 구독 이용권·매물 상단 노출을 받을 수 있어요
+          쌓인 포인트로 매물 상단 노출·닉네임 꾸미기 같은 내부 혜택을 받을 수 있어요
         </div>
         <Link
           href="/login?callbackUrl=/points/shop"

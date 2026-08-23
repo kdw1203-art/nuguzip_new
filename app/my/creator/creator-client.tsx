@@ -20,12 +20,10 @@ export type CreatorStats = {
 };
 
 export type CreatorClientProps = CreatorStats & {
-  /** 유료 리포트 판매 실적 + 정산 예정 집계 (실데이터) */
+  /** 유료 리포트 판매 실적 + 보상 포인트 집계 (실데이터) */
   sales: CreatorSalesSummary;
   /** 유료 리포트로 승격 가능한 내 공개 노트 (제목 프리필용) */
   noteOptions: { id: string; title: string }[];
-  /** 현금 출금 인프라 준비 여부 — false면 "미지원"으로 고지 */
-  payoutReady?: boolean;
 };
 
 const fmt = (n: number) => n.toLocaleString("ko-KR");
@@ -210,11 +208,9 @@ function SellReportForm({
 function MonetizationTab({
   sales,
   noteOptions,
-  payoutReady = false,
 }: {
   sales: CreatorSalesSummary;
   noteOptions: { id: string; title: string }[];
-  payoutReady?: boolean;
 }) {
   const dash = sales.available ? null : "—";
   const tiles = [
@@ -222,7 +218,7 @@ function MonetizationTab({
     { label: "총 판매", value: dash ?? `${fmt(sales.totalSales)}건` },
     { label: "누적 판매(P)", value: dash ?? fmt(sales.grossPoints) },
     {
-      label: payoutReady ? "정산 예정(P)" : "판매 포인트(출금 불가)",
+      label: "적립 포인트(현금 전환 불가)",
       value: dash ?? fmt(sales.netPoints),
     },
   ];
@@ -241,30 +237,30 @@ function MonetizationTab({
         ))}
       </div>
 
-      {/* 정산 안내 — payoutReady=false 면 출금 미지원을 분명히 */}
+      {/* 포인트 안내 — 2026-08-23 토스 회신 반영: 현금 전환·원화 환산 표기를 전부
+          제거했다. 판매 보상 포인트는 무상 리워드와 동일한 규칙(현금 전환·출금 불가,
+          사이트 내부 혜택 사용)을 따른다 — "1P≈1원"·"출금 오픈 전까지" 같은 환금성
+          암시 문구가 유의업종 오해의 근거가 된다. */}
       <div className="rise-in-2 rounded-[14px] bg-ink/[0.96] px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-extrabold text-white">정산 안내</span>
+          <span className="text-[13px] font-extrabold text-white">판매 보상 안내</span>
           <span className="rounded-full bg-[#f2c94c]/20 chip-pad text-[10px] font-extrabold text-[#f2c94c]">
-            {payoutReady ? "출금 가능" : "현금 출금 미지원"}
+            현금 전환 불가
           </span>
         </div>
         <div className="mt-2 text-[11px] leading-[1.7] text-[#c7d0e0]">
-          판매 대금은 포인트로 집계돼요 (1P ≈ 1원). 플랫폼 수수료 7% 차감 후
+          리포트가 열람되면 플랫폼 몫 7%를 뺀 포인트가 적립돼요
           {sales.available && (
             <>
               {" "}
-              현재 정산 예정{" "}
-              <b className="text-ai-accent">
-                {fmt(sales.netPoints)}P (약 {fmt(sales.netKrw)}원)
-              </b>
-              이에요.
+              — 현재 누적{" "}
+              <b className="text-ai-accent">{fmt(sales.netPoints)}P</b>
             </>
           )}
+          .
           <br />
-          {payoutReady
-            ? "현금 전환은 관리자 승인 · 최소 정산액 30,000원 기준으로 신청할 수 있어요."
-            : "현금 출금(계좌 이체)은 아직 지원하지 않아요. 오픈 전까지는 판매 실적·포인트만 적립됩니다."}
+          포인트는 현금으로 전환·출금되지 않으며, 포인트 상점의 서비스 내
+          혜택(매물 상단 노출·꾸미기 등)에만 쓸 수 있어요.
         </div>
       </div>
 
@@ -338,7 +334,6 @@ export function CreatorClient(props: CreatorClientProps) {
         <MonetizationTab
           sales={props.sales}
           noteOptions={props.noteOptions}
-          payoutReady={props.payoutReady}
         />
       )}
     </div>

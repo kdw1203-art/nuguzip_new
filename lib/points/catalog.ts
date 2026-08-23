@@ -73,8 +73,6 @@ export type SpendItem = {
   /** 소비 후 부여되는 효과 종류 */
   effect:
     | "listing_boost"
-    | "plan_pro"
-    | "plan_expert"
     | "post_boost"
     | "nickname_aurora"
     | "nickname_sunset"
@@ -99,8 +97,11 @@ export const SPEND_ITEMS: SpendItem[] = [
      소진처 부족이 원장 실측(소비 0행)으로 확인돼 추가. 시즌 종료 시 이 두 줄만 제거. */
   { key: "nickname_sunset_7d", label: "닉네임 노을 효과 7일", cost: 200, desc: "글 상세에서 내 닉네임이 가을 노을빛으로 물들어요", effect: "nickname_sunset", durationDays: 7, season: "2026 가을" },
   { key: "season_badge_30d", label: "가을 산책 배지 30일", cost: 150, desc: "글 상세의 내 이름 옆에 🍂 배지가 달려요", effect: "season_badge", durationDays: 30, season: "2026 가을" },
-  { key: "plan_pro_1m", label: "PRO 구독 1개월 교환", cost: 2900, desc: "PRO 기능 1개월 이용권", effect: "plan_pro", durationDays: 30 },
-  { key: "plan_expert_1m", label: "EXPERT 구독 1개월 교환", cost: 18900, desc: "EXPERT 기능 1개월 이용권", effect: "plan_expert", durationDays: 30 },
+  /* ── 구독 이용권 교환 2종(plan_pro_1m 2,900P · plan_expert_1m 18,900P)은
+     2026-08-23 토스 심사팀 회신에 따라 제거했다. 포인트 코스트가 유료 구독의
+     KRW 가격과 1:1 이라 "포인트=화폐 대체"로 읽혀 충전(유의)업종 오해의 핵심
+     근거가 됐다. 포인트 소진처는 사이트 내부 꾸밈·노출 혜택으로만 유지한다 —
+     결제 상품과 포인트가 교환되는 접점을 만들지 말 것. ── */
 ];
 
 export function getSpendItem(key: string): SpendItem | undefined {
@@ -123,4 +124,4 @@ export const POINT_EXPIRY_MONTHS = 6;
  * 제8조의2, 그리고 PG 유의업종 요건(보증보험 등)을 함께 갱신해야 한다.
  */
 export const POINTS_GRATUITOUS_NOTICE =
-  "누구집 포인트는 출석·기록 공개·친구 초대 같은 활동으로만 적립되는 무상 리워드입니다. 현금으로 구매(충전)할 수 없고, 현금으로 환불·전환되지 않으며, 회원 간 양도가 불가합니다. 적립일로부터 6개월이 지나면 소멸됩니다.";
+  "누구집 포인트는 출석·기록 공개·친구 초대 같은 활동으로만 적립되는 무상 리워드입니다. 현금으로 구매(충전)할 수 없고, 현금으로 환불·전환되지 않으며, 회원 간 양도가 불가합니다. 적립일로부터 6개월이 지나면 소멸됩니다. 누구집에는 포인트 충전(유상 판매) 기능이 없으며, 앞으로도 도입할 계획이 없습니다.";

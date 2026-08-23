@@ -134,7 +134,6 @@ export default async function CreatorDashboardPage() {
         }
         sales={sales}
         noteOptions={noteOptions}
-        payoutReady={SETTLEMENT.payoutReady}
       />
     </PageShell>
   );

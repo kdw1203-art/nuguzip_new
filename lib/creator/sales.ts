@@ -7,24 +7,21 @@ import { normEmailOrNull } from "@/lib/privacy/mask-email";
 const REPORT_PURCHASES_LIMIT = 20_000;
 
 /**
- * 크리에이터 유료 리포트 판매 실적 · 정산 집계.
+ * 크리에이터 유료 리포트 판매 실적 · 보상 집계.
  *
  * - 리포트 소유 판정: reports.author_id = 크리에이터 이메일 (기존 컬럼 재사용, 스키마 변경 없음).
  * - 판매 집계: report_purchases.amount(포인트) 합산 · 건수 집계.
- * - 정산: 포인트 판매액 → 현금 전환은 관리자 승인 필요. 현금 정산 인프라는 준비 중이라
- *   `payoutReady=false`로 두고 화면에서 정직하게 "현금 정산 준비 중"으로 안내한다.
+ * - 보상: 판매 보상은 포인트 적립뿐 — 현금 전환·출금은 없고 도입하지 않는다(하단 SETTLEMENT 주석).
  */
 
-/** 정산 정책 상수 — 1P ≈ 1원(포인트 카탈로그 공유 가정) */
+/** 판매 보상 정책 상수.
+ *  2026-08-23 토스 회신 반영: 구 "1P≈1원 환산·최소 정산액·출금 준비 여부"
+ *  상수를 제거했다 — 포인트의 원화 환산·현금 출금은 존재하지 않고 도입하지
+ *  않는다(무상성 소명·약관 제8조의2). 판매 보상 포인트는 무상 리워드와 같은
+ *  규칙(현금 전환 불가·서비스 내 혜택 전용)을 따른다. */
 export const SETTLEMENT = {
-  /** 1포인트당 원화 환산 (체감 가치) */
-  pointToKrw: 1,
-  /** 플랫폼 수수료 (전문가 리포트 요율 7%) */
+  /** 플랫폼 몫 (전문가 리포트 요율 7%) */
   platformFeeRate: 0.07,
-  /** 최소 정산 신청액 (원) */
-  minPayoutKrw: 30_000,
-  /** 현금 전환(출금) 인프라 준비 여부 — 아직 미구현 */
-  payoutReady: false as boolean,
 } as const;
 
 export type CreatorReportSale = {
@@ -53,7 +50,6 @@ export type CreatorSalesSummary = {
   /** 정산 예정 포인트 (수수료 차감 후) */
   netPoints: number;
   /** 정산 예정 금액 (원) */
-  netKrw: number;
   /** 집계 가능 여부 (false면 화면에서 "—") */
   available: boolean;
 };
@@ -65,7 +61,6 @@ const EMPTY: CreatorSalesSummary = {
   grossPoints: 0,
   feePoints: 0,
   netPoints: 0,
-  netKrw: 0,
   available: false,
 };
 
@@ -154,7 +149,6 @@ export async function getCreatorSales(email: string | null | undefined): Promise
       grossPoints,
       feePoints,
       netPoints,
-      netKrw: Math.round(netPoints * SETTLEMENT.pointToKrw),
       available: true,
     };
   } catch (e) {

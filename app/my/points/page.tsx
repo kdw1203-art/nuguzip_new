@@ -130,7 +130,7 @@ function GuestView() {
         <div className="text-xs leading-[1.6] text-ai-muted">
           매물 등록 · 임장노트 공개 · 출석으로 포인트가 쌓이고,
           <br />
-          상점에서 구독 이용권·매물 상단 노출로 교환할 수 있어요
+          상점에서 매물 상단 노출·닉네임 꾸미기로 교환할 수 있어요
         </div>
         <Link
           href="/login?callbackUrl=/my/points"

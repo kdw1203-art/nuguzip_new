@@ -276,14 +276,8 @@ export function PlanCards({
                       dark={p.dark}
                     />
                   )}
-                  <Link
-                    href="/points/shop"
-                    className={`text-center text-[11px] font-bold no-underline ${
-                      p.dark ? "text-ai-accent" : "text-primary"
-                    }`}
-                  >
-                    포인트로 교환하기 ›
-                  </Link>
+                  {/* 2026-08-23: "포인트로 교환하기" 링크 제거 — 포인트↔구독 교환
+                      상품이 토스 회신으로 내려가면서(catalog.ts 주석) 진입점도 삭제 */}
                 </>
               ) : (
                 <Link

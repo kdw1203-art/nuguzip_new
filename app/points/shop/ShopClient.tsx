@@ -138,8 +138,7 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
       </div>
 
       <p className="rise-in-2 px-1 text-[11px] leading-[1.6] text-text-3">
-        교환한 이용권·크레딧은 즉시 적용돼요. 구독 이용권 교환 시 반영까지 잠시 걸릴 수
-        있어요. 포인트는 환불되지 않으니 신중히 교환해 주세요.
+        교환한 효과는 즉시 적용돼요. 포인트는 환불되지 않으니 신중히 교환해 주세요.
       </p>
     </div>
   );

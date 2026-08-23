@@ -5,7 +5,6 @@ import { getClientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import { getSpendItem } from "@/lib/points/catalog";
 import { getBalance, spendPoints, type SpendResult } from "@/lib/points/ledger";
 import { getServiceSupabase } from "@/lib/supabase/service";
-import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -58,7 +57,7 @@ export async function POST(req: NextRequest) {
   // 효과 적용 후 차감 실패로 인한 "무료 지급"을 막기 위한 사전 잔액 확인
   /* 잔액을 못 읽었을 때 0 으로 보고 "포인트가 부족해요" 라고 답하면 안 된다 —
      넉넉히 가진 사람에게 없다고 말하는 것이다. 부족한 것과 확인하지 못한 것은
-     사용자가 취해야 할 행동부터 다르다(충전 vs 재시도). */
+     사용자가 취해야 할 행동부터 다르다(활동으로 더 모으기 vs 재시도). */
   const read = await getBalance(email).then(
     (balance) => ({ ok: true as const, balance }),
     (err: unknown) => {
@@ -278,30 +277,9 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── PRO / EXPERT 구독 이용권 교환: 차감 후 실제 등급 부여 시도 ──
-  if (item.effect === "plan_pro" || item.effect === "plan_expert") {
-    const spend = await spendPoints(email, item.cost, `spend:${item.key}`);
-    if (!spend.ok) return spendError(spend);
-    const tier = item.effect === "plan_pro" ? "pro" : "expert";
-    let granted = false;
-    try {
-      // 포인트 교환도 일회성 — 카탈로그의 이용 일수만큼 만료를 기록한다 (만료는 스윕 크론)
-      granted = await applyPlanToUserByEmail(email, tier, {
-        durationDays: item.durationDays ?? 30,
-      });
-    } catch (e) {
-      logger.warn("[points:spend] plan grant", e);
-    }
-    return NextResponse.json({
-      ok: true,
-      balance: spend.balance,
-      effect: item.effect,
-      grant: tier,
-      note: granted
-        ? `${tier.toUpperCase()} 구독 이용권이 적용됐어요. (${item.durationDays ?? 30}일)`
-        : "구독 이용권이 적용됩니다. 반영까지 잠시 걸릴 수 있어요.",
-    });
-  }
+  /* ── 구 PRO/EXPERT 구독 이용권 교환 분기는 2026-08-23 토스 회신에 따라
+     카탈로그 상품과 함께 제거 — 포인트와 유료 결제 상품의 교환 접점은 만들지
+     않는다(충전업종 오해 방지, lib/points/catalog.ts 주석 참조). ── */
 
   // (구 ai_analysis · complex_report 분기는 카탈로그에서 상품이 내려가면서 함께 제거 —
   //  둘 다 크레딧만 기록하고 실제 소비 지점이 없던 유령 상품이었다. 존재하지 않는
