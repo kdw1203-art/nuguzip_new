@@ -60,6 +60,11 @@ function doc(c: Coverage): string {
 ${regionLine}
 ${complexLine}
 - 시장 온도 지역별 시계열: https://nuguzip.com/analysis/temperature/{지역} — 예: https://nuguzip.com/analysis/temperature/gangnam
+- 월간 지역 시장 스냅샷 아카이브 (#79, 월 고정 수치): https://nuguzip.com/region/{지역id}/report/{yyyy-mm} — 예: https://nuguzip.com/region/gangnam/report/2026-07
+- 동네 홈 (지역 글·뉴스·시세 요약, 62개): https://nuguzip.com/town/{지역id} — 예: https://nuguzip.com/town/gangnam
+- 전세가율·갭·월세 환산 랭킹: https://nuguzip.com/analysis/gap
+- 주제별 부동산 뉴스 허브 (요약·동일 사건 묶음): https://nuguzip.com/town/news/tag/{주제} — 예: https://nuguzip.com/town/news/tag/jaegeonchug
+- 주간 청약 접수·마감 아카이브: https://nuguzip.com/apply/calendar/{yyyy-wNN}
 - 지도 (실거래·매물): https://nuguzip.com/map
 - 시세·타이밍 분석 (시장 온도): https://nuguzip.com/analysis/timing
 - 임장노트 (공개): https://nuguzip.com/notes

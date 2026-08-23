@@ -80,6 +80,14 @@ export default async function EmbedRegionPage({
       style={{ fontFamily: "system-ui, sans-serif" }}
       className="flex flex-col gap-2 rounded-2xl border border-[#e3e8f1] bg-white p-4"
     >
+      {/* [#107] 임베드 채택 비콘 — 부모 페이지(host)만 일집계, 개인 식별 없음 */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            'try{var r=document.referrer;if(r&&navigator.sendBeacon){navigator.sendBeacon("/api/embed/beacon",new Blob([JSON.stringify({ref:r,kind:"region"})],{type:"application/json"}))}}catch(e){}',
+        }}
+      />
+
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-[15px] font-extrabold text-[#1c2433]">
           {region.name} 아파트 시세

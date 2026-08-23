@@ -29,6 +29,9 @@ export const EARN_RULES: Record<string, EarnRule> = {
   /* [#69] 내가 공유한 체크리스트로 다른 이웃이 노트를 저장 — UGC 두 번째 축.
      refId=템플릿:노트 멱등, 본인 사용은 지급 경로에서 차단. */
   template_used: { key: "template_used", label: "내 체크리스트 사용됨", points: 20, dailyCap: 5 },
+  /* [#120] 주간 미션 달성 — refId=주차:미션키 멱등(주가 바뀌면 새 refId). 서버가
+     실데이터 진행도를 재검증한 뒤에만 청구를 통과시킨다(app/api/missions/claim). */
+  weekly_mission: { key: "weekly_mission", label: "주간 미션 달성", points: 50, dailyCap: 3 },
   attendance: { key: "attendance", label: "출석", points: 10, dailyCap: 1 },
   /* 연속 출석 보너스 — 출석 기본 10P 에 얹는 추가분(3일 +10P → 합 20P, 7일 +40P → 합 50P).
      lib/points/store-db.checkIn 의 스트릭 티어(10/20/50)와 합이 일치해야 한다. */
@@ -68,9 +71,18 @@ export type SpendItem = {
   cost: number;
   desc: string;
   /** 소비 후 부여되는 효과 종류 */
-  effect: "listing_boost" | "plan_pro" | "plan_expert" | "post_boost" | "nickname_aurora";
+  effect:
+    | "listing_boost"
+    | "plan_pro"
+    | "plan_expert"
+    | "post_boost"
+    | "nickname_aurora"
+    | "nickname_sunset"
+    | "season_badge";
   /** 부스트 등 기간성 효과의 일수 */
   durationDays?: number;
+  /** [#146] 시즌 한정 아이템 라벨 — 상점에서 배지로 노출 */
+  season?: string;
 };
 
 /* "AI 임장 분석 1회"(ai_analysis, 200P)는 제거 — 크레딧을 기록만 하고 실제로
@@ -83,6 +95,10 @@ export const SPEND_ITEMS: SpendItem[] = [
   { key: "listing_boost_7d", label: "매물 상단 노출 7일", cost: 500, desc: "내 매물을 목록·지도 상단에 노출", effect: "listing_boost", durationDays: 7 },
   { key: "post_boost_3d", label: "동네이야기 추천글 3일", cost: 300, desc: "내가 쓴 동네이야기 글을 3일간 피드 상단에 '추천글'로 노출", effect: "post_boost", durationDays: 3 },
   { key: "nickname_aurora_7d", label: "닉네임 오로라 효과 7일", cost: 200, desc: "글 상세에서 내 닉네임이 오로라 그라데이션으로 빛나요", effect: "nickname_aurora", durationDays: 7 },
+  /* [#146] 2026 가을 시즌 아이템 — 무상성 원칙 안(사이트 내부 꾸밈 혜택만).
+     소진처 부족이 원장 실측(소비 0행)으로 확인돼 추가. 시즌 종료 시 이 두 줄만 제거. */
+  { key: "nickname_sunset_7d", label: "닉네임 노을 효과 7일", cost: 200, desc: "글 상세에서 내 닉네임이 가을 노을빛으로 물들어요", effect: "nickname_sunset", durationDays: 7, season: "2026 가을" },
+  { key: "season_badge_30d", label: "가을 산책 배지 30일", cost: 150, desc: "글 상세의 내 이름 옆에 🍂 배지가 달려요", effect: "season_badge", durationDays: 30, season: "2026 가을" },
   { key: "plan_pro_1m", label: "PRO 구독 1개월 교환", cost: 2900, desc: "PRO 기능 1개월 이용권", effect: "plan_pro", durationDays: 30 },
   { key: "plan_expert_1m", label: "EXPERT 구독 1개월 교환", cost: 18900, desc: "EXPERT 기능 1개월 이용권", effect: "plan_expert", durationDays: 30 },
 ];

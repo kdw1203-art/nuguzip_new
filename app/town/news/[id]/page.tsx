@@ -72,35 +72,40 @@ function shortDate(iso: string) {
     id→author_email→profiles.settings 를 직접 잇는다. 이 페이지는 ISR(600초)라
     적용·만료가 최대 10분 늦게 보일 수 있다 — 꾸밈 효과라 수용. 조회 실패도
     효과 없음으로 조용히 처리한다: 장식이 본문 렌더를 막으면 안 된다. */
-async function readAuthorNicknameEffect(postId: string): Promise<"aurora" | null> {
+async function readAuthorNicknameEffect(
+  postId: string,
+): Promise<{ nick: "aurora" | "sunset" | null; badge: boolean }> {
+  const none = { nick: null, badge: false } as const;
   try {
     const sb = getServiceSupabase();
-    if (!sb) return null;
+    if (!sb) return none;
     const { data: row } = await sb
       .from("posts")
       .select("author_email")
       .eq("id", postId)
       .maybeSingle();
     const email = typeof row?.author_email === "string" ? row.author_email : "";
-    if (!email) return null;
+    if (!email) return none;
     const { data: prof } = await sb
       .from("profiles")
       .select("settings")
       .eq("email", email)
       .maybeSingle();
-    const eff = (
-      prof?.settings as { nickname_effect?: { kind?: string; until?: string } } | null
-    )?.nickname_effect;
-    if (
-      eff?.kind === "aurora" &&
-      typeof eff.until === "string" &&
-      Date.parse(eff.until) > Date.now()
-    ) {
-      return "aurora";
-    }
-    return null;
+    const settings = prof?.settings as {
+      nickname_effect?: { kind?: string; until?: string };
+      season_badge?: { kind?: string; until?: string };
+    } | null;
+    const eff = settings?.nickname_effect;
+    const alive = (u: unknown) => typeof u === "string" && Date.parse(u) > Date.now();
+    const nick =
+      (eff?.kind === "aurora" || eff?.kind === "sunset") && alive(eff.until)
+        ? (eff.kind as "aurora" | "sunset")
+        : null;
+    /* [#146] 시즌 배지 — 종류가 늘면 kind 별 이모지 매핑으로 확장 */
+    const badge = settings?.season_badge?.kind === "autumn2026" && alive(settings.season_badge.until);
+    return { nick, badge };
   } catch {
-    return null;
+    return none;
   }
 }
 
@@ -326,14 +331,30 @@ export default async function TownNewsDetailPage({
   const isAutomated = Boolean(post.isAutomated);
   /* 닉네임 오로라(포인트 상점 200P/7일) — 이웃 글에서만 작성자 이름을 빛낸다.
      자동수집 글은 작성자가 사람이 아니므로 조회 자체를 건너뛴다. */
-  const nickEffect = isAutomated ? null : await readAuthorNicknameEffect(post.id);
+  const nickEffect = isAutomated
+    ? { nick: null, badge: false }
+    : await readAuthorNicknameEffect(post.id);
   const byline = isAutomated ? (
     `${renderOwnSummary ? "누구집 요약" : "자동 수집"} · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
   ) : (
     <>
-      <span className={nickEffect === "aurora" ? "nick-aurora" : undefined}>
+      <span
+        className={
+          nickEffect.nick === "aurora"
+            ? "nick-aurora"
+            : nickEffect.nick === "sunset"
+              ? "nick-sunset"
+              : undefined
+        }
+      >
         {post.authorLabel}
       </span>
+      {nickEffect.badge && (
+        <span title="가을 산책 배지 — 포인트 상점" aria-label="가을 산책 배지">
+          {" "}
+          🍂
+        </span>
+      )}
       {` · ${fullDateTime(post.createdAt)}`}
     </>
   );

@@ -144,6 +144,18 @@ export default async function NoteTemplateDetailPage({
           다른 템플릿 보기
         </Link>
       </div>
+
+      {/* [#132] 이웃 템플릿 위생 — 신고 채널. 목록 정렬은 실사용 집계(use_count)가 이미 담당.
+          전용 신고 큐는 공유 볼륨이 생기면(주 10건+) 모더레이션 체계로 승격한다. */}
+      {!tpl.isOfficial && (
+        <p className="mt-4 text-[11.5px] text-text-3">
+          부적절한 내용(광고·비방·저작권)이 보이면{" "}
+          <Link href={`/support?subject=${encodeURIComponent(`체크리스트 신고: ${tpl.title}`)}`} className="font-bold text-primary">
+            고객센터로 신고
+          </Link>
+          해 주세요 — 확인 후 비공개 처리됩니다.
+        </p>
+      )}
     </PageShell>
   );
 }

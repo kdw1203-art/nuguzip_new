@@ -130,7 +130,15 @@ export async function runPriceRecordWatch(): Promise<PriceRecordResult> {
       source_name: "국토교통부 실거래가",
       external_key: externalKey,
       is_automated: true,
-      automation_meta: { source: "price-record-watch", summary_v: "2" },
+      automation_meta: {
+        source: "price-record-watch",
+        summary_v: "2",
+        /* [#114] 대표 단지 24개월 차트 카드 — 목록 썸네일·공유 카드로 쓰인다 */
+        image: `https://nuguzip.com/api/og/complex-trend?${new URLSearchParams({
+          region: top.region_name,
+          name: top.complex_name,
+        }).toString()}`,
+      },
       is_published: true,
     })
     .select("id")

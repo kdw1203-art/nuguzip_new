@@ -46,6 +46,7 @@ import {
   type FaqItem,
 } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
+import { regionTitle } from "@/lib/seo/title-experiment";
 
 /* ============================================================
    N9 — 지역 종합 가이드 (/region/[id])
@@ -199,7 +200,9 @@ export async function generateMetadata({
   const name = snapshot.regionName;
   const price =
     snapshot.avgSale !== undefined ? `평균 매매가 ${formatKrwShort(snapshot.avgSale)}` : "시세 준비 중";
-  const title = `${name} 아파트 시세·실거래·정비사업 | 누구집`;
+  /* [#102] title CTR 실험 — id 해시로 A/B 결정적 배정(요청 간 불변). 배정표는
+     /admin/seo, 판정 기준은 lib/seo/title-experiment.ts 주석. */
+  const { title } = regionTitle(id, name);
   const description = `${name} 아파트 ${price} (${formatYm(snapshot.period)} 기준) — 시세 추이, 최근 실거래, 월별 거래량, 입주 예정 물량, 정비사업, 이웃 임장노트를 한 화면에서 확인하세요.`;
   const alternates = seoAlternates(`/region/${id}`);
   return {

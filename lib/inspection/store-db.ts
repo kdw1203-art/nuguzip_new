@@ -44,6 +44,18 @@ export type InspectionNoteMetadata = {
   templateId?: string;
   /** [#71] 직접 방문 인증 — 거리 버킷(50m 단위)·시각만. 원 좌표는 설계상 저장하지 않는다. */
   visitVerified?: { method: "geo"; distanceM: number; at: string };
+  /** [#134] 사진 EXIF 촬영 시각(가장 이른 1개) — 방문 시간 배지 재료 */
+  photoTakenAt?: string;
+  /** [#133] 음성 메모 URL 목록 (최대 3개) */
+  voiceMemos?: string[];
+  /** [#131] 직전 저장본 1벌 — 내용 필드가 실제로 바뀐 PATCH 에서만 갱신 */
+  lastRevision?: {
+    at: string;
+    summary: string | null;
+    memo: string | null;
+    scores: InspectionScores | null;
+    checklistDone: number;
+  };
   /** 단지 허브 id — 회차 비교·지도 핸드오프의 정규 키(aptName 보다 우선) */
   complexId?: string;
   lat?: number;

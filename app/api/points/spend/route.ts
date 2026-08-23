@@ -180,8 +180,8 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // ── 닉네임 오로라 효과: 프로필에 효과 기록 후 차감 ──
-  if (item.effect === "nickname_aurora") {
+  // ── 닉네임 효과(오로라·[#146] 노을): 프로필에 효과 기록 후 차감 ──
+  if (item.effect === "nickname_aurora" || item.effect === "nickname_sunset") {
     const sb = getServiceSupabase();
     if (!sb) {
       return NextResponse.json({ error: "잠시 후 다시 시도해 주세요.", balance }, { status: 503 });
@@ -204,7 +204,13 @@ export async function POST(req: NextRequest) {
     const { error: upErr } = await sb
       .from("profiles")
       .update({
-        settings: { ...settings, nickname_effect: { kind: "aurora", until } },
+        settings: {
+          ...settings,
+          nickname_effect: {
+            kind: item.effect === "nickname_sunset" ? "sunset" : "aurora",
+            until,
+          },
+        },
         updated_at: new Date().toISOString(),
       })
       .eq("email", email);
@@ -222,7 +228,53 @@ export async function POST(req: NextRequest) {
       balance: spend.balance,
       effect: item.effect,
       effectUntil: until,
-      note: `닉네임 오로라 효과가 ${item.durationDays ?? 7}일간 적용돼요. 글 상세의 작성자 이름에서 확인할 수 있어요.`,
+      note: `닉네임 ${item.effect === "nickname_sunset" ? "노을" : "오로라"} 효과가 ${item.durationDays ?? 7}일간 적용돼요. 글 상세의 작성자 이름에서 확인할 수 있어요.`,
+    });
+  }
+
+  // ── [#146] 시즌 배지: 프로필에 배지 기록 후 차감 (닉네임 효과와 동일 패턴) ──
+  if (item.effect === "season_badge") {
+    const sb = getServiceSupabase();
+    if (!sb) {
+      return NextResponse.json({ error: "잠시 후 다시 시도해 주세요.", balance }, { status: 503 });
+    }
+    const { data: prof } = await sb
+      .from("profiles")
+      .select("settings")
+      .eq("email", email)
+      .maybeSingle();
+    if (!prof) {
+      return NextResponse.json(
+        { error: "프로필을 찾지 못했어요. 마이페이지에서 프로필을 먼저 저장해 주세요.", balance },
+        { status: 400 },
+      );
+    }
+    const until = new Date(Date.now() + (item.durationDays ?? 30) * DAY_MS).toISOString();
+    const settings = (
+      prof.settings && typeof prof.settings === "object" ? prof.settings : {}
+    ) as Record<string, unknown>;
+    const { error: upErr } = await sb
+      .from("profiles")
+      .update({
+        settings: { ...settings, season_badge: { kind: "autumn2026", until } },
+        updated_at: new Date().toISOString(),
+      })
+      .eq("email", email);
+    if (upErr) {
+      logger.warn("[points:spend] season badge update", upErr);
+      return NextResponse.json(
+        { error: "배지 적용에 실패했어요. 잠시 후 다시 시도해 주세요.", balance },
+        { status: 500 },
+      );
+    }
+    const spend = await spendPoints(email, item.cost, `spend:${item.key}`);
+    if (!spend.ok) return spendError(spend);
+    return NextResponse.json({
+      ok: true,
+      balance: spend.balance,
+      effect: item.effect,
+      effectUntil: until,
+      note: `가을 산책 배지가 ${item.durationDays ?? 30}일간 달려요. 글 상세의 내 이름 옆에서 확인할 수 있어요.`,
     });
   }
 

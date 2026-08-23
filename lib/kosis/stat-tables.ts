@@ -52,6 +52,23 @@ export const KOSIS_TABLES: KosisTable[] = [
     prdSe: "M",
     metric: "population",
   },
+  // [#139] 주택건설 인허가실적 (국토교통부, 월간, 지역별) — 공급 선행지표 ①
+  // tblId 출처: kosis.kr statHtml orgId=116&tblId=DT_MLTM_666 (2026-08 검색 확인)
+  {
+    label: "주택건설인허가실적",
+    orgId: "116",
+    tblId: "DT_MLTM_666",
+    prdSe: "M",
+    metric: "housing_permits",
+  },
+  // [#139] 주택건설 착공실적(월계) — 공급 선행지표 ② (tblId DT_MLTM_5386, 동일 확인)
+  {
+    label: "주택건설착공실적",
+    orgId: "116",
+    tblId: "DT_MLTM_5386",
+    prdSe: "M",
+    metric: "housing_starts",
+  },
   // 주택보급률 (연간, 시도)
   {
     label: "주택보급률",

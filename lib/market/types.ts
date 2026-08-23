@@ -17,7 +17,10 @@ export type MarketMetric =
   | "population" // 주민등록 인구(명)
   | "households" // 세대수(세대)
   | "unsold_units" // 미분양 주택(호)
-  | "housing_supply_ratio"; // 주택보급률(%)
+  | "housing_supply_ratio" // 주택보급률(%)
+  // ── [#139] 공급 선행지표 (KOSIS 국토부 월계) ──
+  | "housing_permits" // 주택건설 인허가 실적(호)
+  | "housing_starts"; // 주택건설 착공 실적(호)
 
 /** 한 지역의 KOSIS 보조지표 스냅샷 (인구·세대·미분양·보급률) */
 export interface RegionDemographics {

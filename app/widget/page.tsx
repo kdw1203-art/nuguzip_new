@@ -3,6 +3,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { breadcrumbJsonLd, faqJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 import { WidgetBuilder } from "./WidgetBuilder";
+import { OfficeLeadForm } from "./OfficeLeadForm";
 
 /* ============================================================
    N17 — 시세 위젯 배포 안내 (/widget).
@@ -93,6 +94,19 @@ export default function WidgetPage() {
             >
               지도에서 찾기 ›
             </Link>
+          </div>
+        </section>
+
+        {/* [#144] 중개사 사무소 B2B 리드 — 첫 B2B 퍼널 (백엔드는 /api/support 재사용) */}
+        <section className="rise-in-2 mt-6">
+          <h2 className="text-[16px] font-extrabold text-ink">공인중개사 사무소인가요?</h2>
+          <p className="mt-2 text-[13px] leading-[1.8] text-text-1">
+            사무소 홈페이지·블로그에 담당 단지 시세를 상시 노출하고 싶다면 문의를
+            남겨 주세요. 활용 방법을 직접 안내드리고, 사무소에서 필요한 위젯 구성이
+            있으면 만들 때 참고합니다.
+          </p>
+          <div className="mt-3">
+            <OfficeLeadForm />
           </div>
         </section>
 

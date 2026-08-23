@@ -346,6 +346,10 @@ export function NotesFeedClient({
               <Link href="/imjang" className="font-bold text-primary underline">
                 지역별 임장 가이드 — 답사 준비 ›
               </Link>
+              {/* [#143] 리포트 진열대 — 잠금 상태 선공개 */}
+              <Link href="/notes/market" className="font-bold text-primary underline">
+                리포트 진열대 — 판매 오픈 준비 중 ›
+              </Link>
             </p>
           )}
         </div>

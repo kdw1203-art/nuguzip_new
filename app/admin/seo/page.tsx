@@ -391,6 +391,174 @@ export default async function AdminSeoPage() {
         </p>
         <IndexCoveragePanel loaded={coverage} />
       </section>
+
+      {/* [#102] 타이틀 CTR 실험 배정표 — 배정은 결정적 해시(요청 간 불변) */}
+      <section className={card}>
+        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+          타이틀 실험 <span className="text-[10px] font-medium text-[#6b7688]">#102</span>
+        </h2>
+        <TitleExperimentPanel />
+      </section>
+
+      {/* [#107] 위젯 채택 — 임베드 비콘(host 일집계) 최근 30일 */}
+      <section className={card}>
+        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+          위젯 채택 <span className="text-[10px] font-medium text-[#6b7688]">#107</span>
+        </h2>
+        <WidgetAdoptionPanel />
+      </section>
+
+      {/* [#117] 뉴스 → 단지 링크율 — 자동 뉴스가 전환 표면(단지 허브)으로 흐르는 비율 */}
+      <section className={card}>
+        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+          뉴스→단지 연결률 <span className="text-[10px] font-medium text-[#6b7688]">#117</span>
+        </h2>
+        <NewsComplexLinkPanel />
+      </section>
+    </div>
+  );
+}
+
+async function NewsComplexLinkPanel() {
+  const { getServiceSupabase } = await import("@/lib/supabase/service");
+  const { resolveComplexHref } = await import("@/lib/newui/complex-link");
+  const sb = getServiceSupabase();
+  if (!sb) return <p className="text-[12px] text-[#9aa6b8]">DB 미구성</p>;
+  const { data, error } = await sb
+    .from("board_posts")
+    .select("title, region, automation_meta")
+    .eq("is_automated", true)
+    .order("created_at", { ascending: false })
+    .limit(60);
+  if (error) return <p className="text-[12px] text-[#ff9d9d]">조회 실패 — {error.message}</p>;
+  const rows = (data ?? []) as Array<{
+    title: string;
+    region: string | null;
+    automation_meta: Record<string, unknown> | null;
+  }>;
+  let withEntity = 0;
+  let hit = 0;
+  const misses: string[] = [];
+  for (const r of rows) {
+    /* 수집 세션이 뽑은 지명 엔티티(geo.landmarks) 중 단지명으로 해석되는 것이
+       있는가 — 상세 페이지의 그 매칭 함수(resolveComplexHref)로 실측. */
+    const geo = (r.automation_meta as { geo?: { landmarks?: unknown } } | null)?.geo;
+    const landmarks = Array.isArray(geo?.landmarks)
+      ? (geo!.landmarks as unknown[]).filter((x): x is string => typeof x === "string")
+      : [];
+    if (landmarks.length === 0) {
+      if (misses.length < 8) misses.push(`[엔티티 없음] ${r.title.slice(0, 26)}`);
+      continue;
+    }
+    withEntity += 1;
+    let matched = false;
+    for (const lm of landmarks.slice(0, 3)) {
+      const href = await resolveComplexHref(lm, r.region ?? "").catch(() => null);
+      if (href) {
+        matched = true;
+        break;
+      }
+    }
+    if (matched) hit += 1;
+    else if (misses.length < 8) misses.push(landmarks[0].slice(0, 30));
+  }
+  void withEntity;
+  const rate = rows.length > 0 ? Math.round((hit / rows.length) * 100) : 0;
+  return (
+    <div className="flex flex-col gap-2 text-[12px] text-[#c9d2e0]">
+      <p>
+        최근 자동 뉴스 {rows.length}건 중 단지 허브 링크 매칭{" "}
+        <b className="text-ai-accent">{hit}건 ({rate}%)</b> — 상세 페이지의
+        resolveComplexHref 실측정.
+      </p>
+      {misses.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] text-[#8b94a6]">미매칭 표본 (별칭 사전 보강 후보):</span>
+          {misses.map((m) => (
+            <span key={m} className="truncate text-[11px] text-[#9aa6b8]">
+              · {m}
+            </span>
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] leading-[1.6] text-[#8b94a6]">
+        연결률이 30% 미만으로 유지되면 REGION_ALIASES·단지명 별칭 사전 보강 회차를
+        엽니다 — 보강은 미매칭 표본 실측에서만 (추측 별칭 금지).
+      </p>
+    </div>
+  );
+}
+
+async function WidgetAdoptionPanel() {
+  const { getServiceSupabase } = await import("@/lib/supabase/service");
+  const sb = getServiceSupabase();
+  if (!sb) return <p className="text-[12px] text-[#9aa6b8]">DB 미구성</p>;
+  const since = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const { data, error } = await sb
+    .from("widget_embed_hits")
+    .select("host, kind, hits, day, sample_url")
+    .gte("day", since)
+    .order("day", { ascending: false })
+    .limit(300);
+  if (error) return <p className="text-[12px] text-[#ff9d9d]">조회 실패 — {error.message}</p>;
+  const byHost = new Map<string, { hits: number; kinds: Set<string>; sample: string | null }>();
+  for (const r of data ?? []) {
+    const cur = byHost.get(r.host) ?? { hits: 0, kinds: new Set<string>(), sample: null };
+    cur.hits += Number(r.hits) || 0;
+    cur.kinds.add(String(r.kind));
+    if (!cur.sample && r.sample_url) cur.sample = String(r.sample_url);
+    byHost.set(r.host, cur);
+  }
+  const rows = [...byHost.entries()].sort((a, b) => b[1].hits - a[1].hits).slice(0, 20);
+  if (rows.length === 0) {
+    return (
+      <p className="text-[12px] leading-[1.7] text-[#9aa6b8]">
+        아직 외부 임베드 관측 0 — 위젯을 처음 심는 블로그가 생기면 host 별로 여기
+        잡힙니다(부모 페이지 referrer 기준, 개인 식별 없음). B2B 영업 리스트(#144)의
+        원천입니다.
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1.5">
+      {rows.map(([host, v]) => (
+        <div key={host} className="flex items-center justify-between gap-3 text-[12px]">
+          <span className="min-w-0 truncate font-bold text-[#e7ecf5]" title={v.sample ?? host}>
+            {host}
+            <span className="ml-1.5 text-[10px] text-[#8b94a6]">{[...v.kinds].join("·")}</span>
+          </span>
+          <span className="shrink-0 font-extrabold text-ai-accent tabular-nums">{v.hits}뷰</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function TitleExperimentPanel() {
+  const { REGION_CATALOG } = await import("@/lib/region/catalog");
+  const { regionTitle, TITLE_EXPERIMENTS } = await import("@/lib/seo/title-experiment");
+  const rows = REGION_CATALOG.map((r) => ({ id: r.id, name: r.name, ...regionTitle(r.id, r.name) }));
+  const a = rows.filter((r) => r.variant === "A").length;
+  const exp = TITLE_EXPERIMENTS[0];
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[11px] leading-[1.7] text-[#9aa6b8]">
+        {exp.label} · 시작 {exp.startedAt} · 판정: {exp.judge}. 배정 A {a} / B{" "}
+        {rows.length - a} — GSC 성능 탭에서 아래 두 그룹의 페이지 CTR을 비교하세요.
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {rows.map((r) => (
+          <span
+            key={r.id}
+            className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+              r.variant === "A" ? "bg-[#1a2540] text-ai-accent" : "bg-[#2a2416] text-[#e0c589]"
+            }`}
+            title={r.title}
+          >
+            {r.name} {r.variant}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

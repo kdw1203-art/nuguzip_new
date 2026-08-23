@@ -32,7 +32,7 @@ export function assertCompliantCopy(...texts: string[]): void {
   }
 }
 
-async function uploadVideoToStorage(mp4: Buffer, key: string): Promise<string> {
+export async function uploadVideoToStorage(mp4: Buffer, key: string): Promise<string> {
   const sb = getServiceSupabase();
   if (!sb) throw new Error("서비스 클라이언트 미구성");
   const { error } = await sb.storage

@@ -74,6 +74,29 @@ export async function PATCH(
       ...(body.metadata as Record<string, unknown>),
     };
   }
+  /* [#131] 수정 이력 1단계 — 저장 직전 본문 1벌을 metadata.lastRevision 에 보관.
+     내용 필드가 실제로 바뀔 때만(메타데이터-only 패치로 이력이 덮이지 않게). */
+  const contentChanged =
+    (body.summary !== undefined && body.summary !== exists.summary) ||
+    (body.sections !== undefined &&
+      JSON.stringify(body.sections) !== JSON.stringify(exists.sections)) ||
+    (body.scores !== undefined &&
+      JSON.stringify(body.scores) !== JSON.stringify(exists.scores)) ||
+    (body.checklist !== undefined &&
+      JSON.stringify(body.checklist) !== JSON.stringify(exists.checklist));
+  if (contentChanged) {
+    body.metadata = {
+      ...(exists.metadata ?? {}),
+      ...((body.metadata as Record<string, unknown>) ?? {}),
+      lastRevision: {
+        at: new Date().toISOString(),
+        summary: exists.summary ?? null,
+        memo: exists.sections?.memo ?? null,
+        scores: exists.scores ?? null,
+        checklistDone: exists.checklist.filter((c) => c.done).length,
+      },
+    };
+  }
   let updated: Awaited<ReturnType<typeof updateNote>>;
   try {
     updated = await updateNote(id, body);

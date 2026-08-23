@@ -162,8 +162,18 @@ function WeekRow({
     region: string;
     houseKind: string | null;
     portalUrl: string | null;
+    /** [#109] 당첨자 발표일 — 지난 주에는 "결과 발표됨/발표 예정"으로 표기 */
+    winnerDate?: string | null;
   };
 }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const winner = it.winnerDate ?? null;
+  const winnerLabel =
+    winner === null
+      ? null
+      : winner <= today
+        ? `결과 발표됨 (${winner.slice(5).replace("-", ".")})`
+        : `발표 ${winner.slice(5).replace("-", ".")}`;
   const body = (
     <>
       <span
@@ -180,6 +190,15 @@ function WeekRow({
           {it.houseKind ? ` · ${it.houseKind}` : ""}
         </span>
       </span>
+      {winnerLabel && (
+        <span
+          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+            winner && winner <= today ? "bg-primary-soft text-primary" : "bg-bg text-text-3"
+          }`}
+        >
+          {winnerLabel}
+        </span>
+      )}
       {it.portalUrl && <span className="shrink-0 text-[11px] font-bold text-primary">공고 ↗</span>}
     </>
   );

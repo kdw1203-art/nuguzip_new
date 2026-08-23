@@ -8,6 +8,7 @@ import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 import { clusterNews } from "@/lib/news/cluster";
+import { NEWS_TAGS } from "@/lib/news/tags";
 import { TownCategoryNav } from "../TownCategoryNav";
 import { NewsListClient } from "./NewsListClient";
 import { NewsAlertSubscribe } from "./NewsAlertSubscribe";
@@ -211,6 +212,20 @@ export default async function TownNewsPage() {
 
       {/* [개선 #13] 키워드 알림 구독 — 뉴스가 매일 쌓이는 이 화면이 구독 전환의 최적 지점 */}
       <NewsAlertSubscribe />
+
+      {/* [#103] 주제 허브 진입 — 클러스터·요약을 재활용하는 색인 표면 20개 */}
+      <div className="rise-in mb-4 flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] font-bold text-text-3">주제별</span>
+        {NEWS_TAGS.slice(0, 10).map((t) => (
+          <Link
+            key={t.slug}
+            href={`/town/news/tag/${t.slug}`}
+            className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+          >
+            {t.label}
+          </Link>
+        ))}
+      </div>
 
       {/* 뉴스 목록 + 지역 필터 — 클라이언트(NewsListClient). SSR 은 항상 전체
           60건을 HTML 에 그리고, 필터는 마운트 후 location.search 로 적용한다

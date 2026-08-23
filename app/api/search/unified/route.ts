@@ -148,7 +148,8 @@ export async function GET(req: Request) {
         .select("id, title")
         .eq("is_public", true)
         .or(
-          `title.ilike.${pattern},region.ilike.${pattern},apt_name.ilike.${pattern},summary.ilike.${pattern}`,
+          /* [#129] 메모 본문까지 전문 검색 — trgm 인덱스(20260823150000)로 뒷받침 */
+          `title.ilike.${pattern},region.ilike.${pattern},apt_name.ilike.${pattern},summary.ilike.${pattern},sections->>memo.ilike.${pattern}`,
         )
         .order("created_at", { ascending: false })
         .limit(GROUP_CAP);
@@ -211,6 +212,18 @@ export async function GET(req: Request) {
         }));
       })
     : { rows: [] as UnifiedComplex[], failed: false };
+
+  /* [#105] 제로결과 로그 — 진짜 무결과(실패 아님)만 기록. fire-and-forget:
+     로깅 실패가 검색 응답을 늦추거나 막으면 안 된다. 개인정보를 줄이기 위해
+     2~40자 질의만, 원문 그대로(오타 포함 — 그것이 콘텐츠 주문서의 재료다). */
+  if (allEmpty && sb && q.length >= 2 && q.length <= 40) {
+    void sb
+      .from("search_zero_results")
+      .insert({ query: q })
+      .then(({ error }) => {
+        if (error) logger.warn("[search] 제로결과 로그 실패", error);
+      });
+  }
 
   return NextResponse.json(
     {

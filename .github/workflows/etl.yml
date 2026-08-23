@@ -7,119 +7,11 @@
 # ⚠️ 이 파일이 이 서비스의 유일한 스케줄러다. vercel.json 에는 crons 를 두지 않는다.
 #    양쪽에 두면 플랜이 바뀌는 순간 같은 작업이 두 번 돌고, 알림은 두 번 나간다.
 #    새 크론 라우트를 추가했다면 반드시 여기에도 한 줄 추가해야 실제로 돈다.
-name: Market ETL
-
-on:
-  schedule:
-    # 하루 1회 — 15:00 KST(06:00 UTC).
-    #
-    # 2026-08-10 감축: 2회(17:00·06:00 UTC) → 1회. 2026-08-09 밤 Vercel 무료
-    # 한도 초과로 사이트 전체가 DEPLOYMENT_PAUSED(503) 된 실사고의 후속이다.
-    # 이 잡의 장시간 함수 호출(회당 최대 290초 × ~15개)이 Vercel 함수 사용량의
-    # 최대 단일 소비처였다. 슬롯을 06:00 UTC 로 남긴 이유: alerts 잡의 실행
-    # 조건이 '0 6 * * *' 스케줄에 묶여 있어, 17:00 쪽을 남기면 알림이 전부
-    # 죽는다. 트레이드오프: molit 시군구 슬라이스 회전(12시간 버킷)이 하루
-    # 1칸으로 느려진다 — 전국 순회 속도 절반. 과거분은 이미 대부분 적재됐고
-    # 신규 거래는 신고 지연(30일)이 지배 변수라 수집 속도 절반은 체감 차이가
-    # 거의 없다. 필요 시 workflow_dispatch 로 수동 보강.
-    - cron: "0 6 * * *"
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  issues: write
-
-jobs:
-  etl:
-    runs-on: ubuntu-latest
-    # 크론 호출 ~15개 × 최대 290초 = 이론상 72분. 기본 상한(360분)이면 하나가
-    # 멈췄을 때 러너를 6시간 붙잡는다(deploy.yml 이 35분으로 줄인 것과 같은 이유).
-    timeout-minutes: 120
-    steps:
-      - name: Run daily ingests
-        env:
-          CRS: ${{ secrets.CRON_SECRET }}
-        run: |
-          set -o pipefail
-          # 시크릿 없이 호출을 강행하면 전부 401 로 실패해 원인 불명의 이슈만
-          # 쌓인다. 미설정은 설정 문제라고 한 문장으로 말하고 바로 끝낸다.
-          if [ -z "$CRS" ]; then
-            echo "CRON_SECRET 미설정 — 모든 크론 호출이 401 이 되므로 실행하지 않음" | tee etl-failed.txt
-            exit 1
-          fi
-          FAILED=""
-          # 실패 판정은 HTTP 상태 코드가 1차다. 예전엔 본문에서 "error" 문자열을
-          # 찾았는데, `"errors":0` 같은 무해한 필드에 오탐하고, 정작 "error" 단어가
-          # 없는 5xx HTML 에러 페이지는 놓쳤다. 본문 검사는 라우트가 200 으로
-          # 소프트 실패를 알리는 두 형태('"ok":false'·'"error":' 키)만 남긴다.
-          call() {
-            NAME="$1"; URL="$2"
-            echo "== $NAME =="
-            RES=$(curl -sS --max-time 290 -w '\n%{http_code}' -H "x-cron-secret: $CRS" "$URL" || printf '\n000')
-            CODE=${RES##*$'\n'}
-            BODY=${RES%$'\n'*}
-            echo "$BODY" | head -c 1000; echo " [HTTP $CODE]"
-            if [ "$CODE" != "200" ] || echo "$BODY" | grep -q '"ok":false\|"error":'; then
-              FAILED="$FAILED $NAME($CODE)"
-            fi
-          }
-          call reb "https://nuguzip.com/api/cron/reb-ingest"
-          call kb "https://nuguzip.com/api/cron/kb-ingest"
-          # kosis: KOSIS 키 활성화 전까지 skipped 응답 — 실패로 집계하지 않음(소프트)
-          echo "== kosis (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/kosis-ingest" | head -c 500 || true
-          echo
-          # ecos: ECOS 키 활성화 전까지 skipped 응답 — 소프트
-          echo "== ecos (soft) =="
-          curl -sS --max-time 60 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/ecos-sync" | head -c 500 || true
-          echo
-          # onbid: 서울 공매 물건 — 키 없으면 skipped (소프트)
-          echo "== onbid (soft) =="
-          curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/onbid-sync" | head -c 500 || true
-          echo
-          # court-auction: 법원경매 — 소스 미구현/키 없으면 skipped (소프트)
-          echo "== court-auction (soft) =="
-          curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/court-auction-sync" | head -c 500 || true
-          echo
-          # redevelopment: 서울 정비사업 — 키 없으면 mock/no-op (소프트)
-          echo "== redevelopment (soft) =="
-          curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/redevelopment-ingest" | head -c 500 || true
-          echo
-          # apt-master: 전국 공동주택 단지 마스터 — 시군구 슬라이스 회전 (소프트)
-          echo "== apt-master (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-master-ingest" | head -c 500 || true
-          echo
-          # apt-detail: 단지 기본정보 백필 — 회당 100단지 (소프트).
-          # 2026-07-29: limit=300+동시 6 이 Supabase Postgres ERROR 를 키웠다.
-          # Micro 인스턴스에서는 조회 안정성을 위해 배치를 줄인다.
-          echo "== apt-detail (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=100" | head -c 500 || true
-          echo
-          call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
-          # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용.
-          # DB 부하 완화: 500 → 200 (2026-07-29).
-          call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=200"
-          # 출석 리마인드는 아래 alerts 잡으로 옮겼다 — 하루 두 번 "출석하세요"는 알림이 아니라 소음이다.
-          # molit 전국 실거래: 매 실행마다 시군구 슬라이스 1구간씩 회전(12시간 창 기준 자동).
-          # 이미 채워진 (구, 계약월) 조합은 라우트에서 건너뛰므로 이중 계상 없음. 소프트 처리 —
-          # 일부 구가 실패해도 ETL 전체를 실패시키지 않는다.
-          echo "== molit (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$(date -u +%Y%m)&size=24" | head -c 800 || true
-          echo
-          # molit 직전월 보강: 신고 지연(계약 후 30일)으로 뒤늦게 등록되는 거래를 다시 줍는다.
-          PREV_YM=$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y%m)
-          echo "== molit prev-month top-up (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$PREV_YM&size=24" | head -c 500 || true
-          echo
-# 시장 데이터 ETL · 알림 스케줄러
-# Vercel 크론이 플랜 제약으로 실행되지 않아 GitHub Actions 스케줄로 이관.
-# 각 잡은 프로덕션 크론 엔드포인트를 CRON_SECRET 으로 호출한다.
-# (엔드포인트는 x-cron-secret 또는 Authorization: Bearer 일치 시 허용 — lib/cron/authorize.ts.
-#  x-vercel-cron 헤더는 아무나 붙일 수 있어 더 이상 인정하지 않고, ?secret= 도 로그에 남아 폐기했다)
-#
-# ⚠️ 이 파일이 이 서비스의 유일한 스케줄러다. vercel.json 에는 crons 를 두지 않는다.
-#    양쪽에 두면 플랜이 바뀌는 순간 같은 작업이 두 번 돌고, 알림은 두 번 나간다.
-#    새 크론 라우트를 추가했다면 반드시 여기에도 한 줄 추가해야 실제로 돈다.
+# ⚠️ 2026-08-23 실측 갱신: 위 문장과 달리 vercel.json 에 크론 9개(ingest 계열)가
+#    실제로 돌고 있다(00:40~01:30 UTC 로그 확인 — 플랜 변경으로 살아난 듯). 알림은
+#    여기(GitHub)에만 있어 중복 알림은 없고, ingest 는 멱등이라 이중 실행은 낭비일 뿐
+#    사고는 아니다. 한쪽으로 합칠지는 오너 판단 대기 — 그 전까지 이 파일이 정본이다.
+#    (이 파일은 2026-08-23 wave8b 에서 3중 중복 문서를 단일 문서로 정리한 것)
 name: Market ETL
 
 on:
@@ -227,6 +119,12 @@ jobs:
           # [개선 #21] 입주물량 — 청약홈 분양공고의 입주예정월을 매일 업서트.
           # 수동 업로드(2026-02) 이후 갱신 경로가 없어 한 달째 정지했던 소스의 자동화.
           call supply "https://nuguzip.com/api/cron/supply-ingest"
+          # [#111] 주간 시황 글 — 월요일에만 발행(글 중복은 external_key 가 막지만 호출도 아낀다)
+          if [ "$(date -u +%u)" = "1" ]; then
+            echo "== weekly-market-post (Mon, soft) =="
+            curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/weekly-market-post" | head -c 400 || true
+            echo
+          fi
           # [#81] 신고가 자동 소식 — molit 당일 유입분 탐지(위 molit 호출 뒤여야 함, 소프트)
           echo "== price-record (soft) =="
           curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/price-record-watch" | head -c 400 || true
@@ -238,147 +136,6 @@ jobs:
             curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/poi-ingest" | head -c 500 || true
             echo
           fi
-          # 집계 MV 재계산 HTTP 호출은 삭제했다 (2026-08-10).
-          # 본체는 pg_cron 'market-aggregates-daily'(jobid 12, 09:00·19:00 UTC,
-          # DB 내부 실행 — Vercel 소모 0)로 이전 완료됐고, HTTP 경로는 예산
-          # 가드로 무력화되어 실측 평균 0초짜리 빈 호출만 남아 있었다
-          # (reporting.duplicate_refresh_watch 로 7일간 검증). 같은 작업을 두
-          # 경로로 부르면 플랜 변화·가드 해제 때 하루 두 번씩 3분 36초짜리
-          # 중복 갱신이 되살아난다 — 경로 자체를 하나로 줄인다.
-          #
-          # N11 — 시장 온도 주간 스냅샷. 거래량 항이 market_region_monthly 를
-          # 읽는다. 이제 집계는 pg_cron(09:00·19:00 UTC)이 갱신하므로, 06:00 UTC
-          # 인 이 호출은 전일 19:00 집계를 읽는다 — 주 단위 스냅샷이라 하루
-          # 지연은 허용 오차다(키가 그 주의 월요일이라 매일 덮어써진다).
-          call temperature "https://nuguzip.com/api/cron/market-temperature-snapshot"
-          echo
-          # N1 — IndexNow. 집계가 갱신된 **뒤에** 알린다(먼저 부르면 크롤러가
-          # 옛 수치를 가져간다). 실패해도 ETL 을 죽이지 않는다 — 색인 힌트일 뿐이다.
-          curl -sS --max-time 60 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/indexnow-submit" | head -c 500 || true
-          echo
-          # [개선 #44] 신선도 감시 — 모든 적재가 끝난 뒤 재서, 임계를 넘긴 소스를
-          # 오류 로그로 승격한다(입주물량 한 달 정지 사각지대의 재발 방지).
-          curl -sS --max-time 60 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/freshness-watch" | head -c 500 || true
-          echo
-          if [ -n "$FAILED" ]; then
-            echo "failed:$FAILED" | tee etl-failed.txt
-            exit 1
-          fi
-      # 실패 리포트는 이슈 하나를 재사용한다(e2e.yml 패턴). 예전엔 실패마다 새
-      # 이슈를 팠는데, 같은 원인이 매일 2회 반복되면 이슈가 쌓여 새 원인이 묻힌다.
-      - name: Report ETL failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          DETAIL=$(cat etl-failed.txt 2>/dev/null || echo "unknown")
-          BODY="run: ${{ github.run_id }} ($(date -u +%FT%TZ)) — $DETAIL"
-          EXISTING=$(gh issue list --repo ${{ github.repository }} \
-            --label etl-failure --state open --limit 1 --json number \
-            --jq '.[0].number' 2>/dev/null || echo "")
-          if [ -n "$EXISTING" ]; then
-            gh issue comment "$EXISTING" --repo ${{ github.repository }} --body "$BODY" || true
-          else
-            gh label create etl-failure --repo ${{ github.repository }} \
-              --color B60205 --description "Market ETL 실패 리포트" 2>/dev/null || true
-            gh issue create --repo ${{ github.repository }} \
-              --title "Market ETL failure" --label etl-failure --body "$BODY" || true
-          fi
-      # 초록으로 돌아오면 열린 리포트를 자동으로 닫는다 — 사람이 기억해서 닫아야
-      # 하는 상태를 남기지 않는다.
-      - name: Close ETL failure report on success
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for N in $(gh issue list --repo ${{ github.repository }} \
-            --label etl-failure --state open --limit 20 --json number \
-            --jq '.[].number' 2>/dev/null); do
-            gh issue close "$N" --repo ${{ github.repository }} \
-              --comment "run ${{ github.run_id }} 통과 — 자동 종료" || true
-          done
-
-  # ── 알림 러너 ────────────────────────────────────────────────────────────────
-  # price-alerts · saved-search-alerts · attendance-reminders · listing-stale-reminders ·
-  # reengage-reminders 는
-  # vercel.json 의 crons 에만 적혀 있었고 Vercel 크론이 이 플랜에서 실행되지 않으므로
-  # 실제로는 한 번도 돌지 않았다. (근거: 2026-07-25 04:52 UTC 기준, vercel.json 이
-  #  03:00 UTC 로 예약한 apt-master 와 04:30 UTC 로 예약한 redevelopment 는 매 호출마다
-  #  market_ingest_log 에 무조건 기록하는데 그 시각 로그가 없다. 같은 날 02:57 의
-  #  GitHub Actions 실행 기록만 있다.) 그래서 여기로 옮긴다.
-  #
-  # 하루 2회가 아니라 1회(15:00 KST)만 도는 이유: 알림은 적재와 성격이 다르다.
-  # 같은 변동을 하루 두 번 알리면 정보가 두 배가 되는 게 아니라 신뢰가 반이 된다.
-  # 이탈 리마인드는 원래 설계가 주 1회(화)라 요일로 한 번 더 거른다.
-  alerts:
-    needs: etl
-    if: always() && (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 6 * * *')
-    runs-on: ubuntu-latest
-    # 알림 러너 ~12개 × 최대 290초 = 이론상 58분. etl 잡과 같은 이유의 상한.
-    timeout-minutes: 90
-    steps:
-      - name: Run alert runners
-        env:
-          CRS: ${{ secrets.CRON_SECRET }}
-        run: |
-          set -o pipefail
-          if [ -z "$CRS" ]; then
-            echo "CRON_SECRET 미설정 — 모든 크론 호출이 401 이 되므로 실행하지 않음"
-            exit 1
-          fi
-          call() {
-            NAME="$1"; URL="$2"
-            echo "== $NAME =="
-            curl -sS --max-time 290 -H "x-cron-secret: $CRS" "$URL" | head -c 600 || true
-            echo
-          }
-          # 구독 만료 스윕 — 일회성 결제 plan_expires_at 지난 사용자를 무료 플랜으로 강등
-          call plan-expiry "https://nuguzip.com/api/cron/plan-expiry-sweep"
-          # 이메일 outbox 드레인 — 발송 실패로 쌓인 pending 을 재시도(Resend 미설정이면 스킵)
-          call outbox-drain "https://nuguzip.com/api/cron/notification-outbox-drain"
-          # 포인트 만료 스윕 — expires_at 지난 미소진 적립분을 만료 차감(reason=expire)으로
-          # 집행하고, 만료 7일 전 잔여분에는 인앱 예고 알림을 보낸다
-          call points-expiry "https://nuguzip.com/api/cron/points-expiry-sweep"
-          # 관심 단지 가격 변동 — 대표 면적대 최근 6건 평균 기준(lib/market/complex-price.ts).
-          call price-alerts "https://nuguzip.com/api/cron/price-alerts"
-          # 저장 검색 신규 매치
-          call saved-search "https://nuguzip.com/api/cron/saved-search-alerts"
-          # 출석 리마인드 — 오늘 미출석 구독자에게만
-          call attendance "https://nuguzip.com/api/cron/attendance-reminders"
-          # 내 매물 신선도 — 21일 끌어올리기 안내 / 60일 마감 제안.
-          # 매일 돌아도 매물당 stale_notice_stage 가 올라갈 때만 나가므로 최대 2번이다.
-          # 자동 마감은 하지 않는다 — 제안만 하고 status 는 소유자가 바꾼다.
-          call listing-stale "https://nuguzip.com/api/cron/listing-stale-reminders"
-          # 이탈 리마인드는 화요일만(사람당 쿨다운 30일이라 매일 돌릴 이유가 없다)
-          if [ "$(date -u +%u)" = "2" ]; then
-            call reengage "https://nuguzip.com/api/cron/reengage-reminders"
-          else
-            echo "== reengage skipped (화요일 아님: $(date -u +%A)) =="
-          fi
-          # 주간 다이제스트는 월요일만. 옵트인(push_weekly_digest=true)한 사람에게만 나가고,
-          # 그 주에 실제로 모인 내용이 없으면 라우트가 skipped:"empty" 로 아무것도 안 보낸다.
-          if [ "$(date -u +%u)" = "1" ]; then
-            call weekly-digest "https://nuguzip.com/api/cron/weekly-digest"
-          else
-            echo "== weekly-digest skipped (월요일 아님: $(date -u +%A)) =="
-          fi
-          # SEO 측정 2종도 월요일만. 둘 다 주 단위로 움직이는 값이라 더 자주 부르면
-          # 소음이고, 색인 검사는 할당량(2,000/일)을 쓰는 호출이라 더더욱 그렇다.
-          # 키(CRUX_API_KEY / GSC_SERVICE_ACCOUNT_*)가 없으면 라우트가 skipped:"no_key"
-          # 로 아무것도 기록하지 않는다 — 키 미설정과 "재 봤는데 없었다"는 다른 사실이다.
-          if [ "$(date -u +%u)" = "1" ]; then
-            # N5 실사용자 성능(CrUX origin, 기기 3종)
-            call crux-sync "https://nuguzip.com/api/cron/crux-sync"
-            # N25 색인률 표본 측정(서치콘솔 URL 검사 API)
-            call gsc-index "https://nuguzip.com/api/cron/gsc-index-sync"
-          else
-            echo "== crux-sync / gsc-index skipped (월요일 아님: $(date -u +%A)) =="
-          fi
-          # 알림 러너는 fail-soft 라 여기서 워크플로를 실패시키지 않는다. 실패는
-          # 각 라우트가 JSON 요약(ok:false)으로 드러내고 위 로그에 그대로 찍힌다.
-
-          # 수동 업로드(2026-02) 이후 갱신 경로가 없어 한 달째 정지했던 소스의 자동화.
-          call supply "https://nuguzip.com/api/cron/supply-ingest"
           # 집계 MV 재계산 HTTP 호출은 삭제했다 (2026-08-10).
           # 본체는 pg_cron 'market-aggregates-daily'(jobid 12, 09:00·19:00 UTC,
           # DB 내부 실행 — Vercel 소모 0)로 이전 완료됐고, HTTP 경로는 예산

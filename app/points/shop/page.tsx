@@ -36,7 +36,14 @@ function GuestView() {
       <div className="rise-in-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {SPEND_ITEMS.map((item) => (
           <div key={item.key} className="card rounded-[16px] p-5 opacity-80">
-            <div className="text-sm font-extrabold text-ink">{item.label}</div>
+            <div className="text-sm font-extrabold text-ink">
+              {item.label}
+              {item.season && (
+                <span className="ml-1.5 align-middle rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-extrabold text-warning">
+                  {item.season} 한정
+                </span>
+              )}
+            </div>
             <div className="mt-1 text-[12px] leading-[1.5] text-text-3">
               {item.desc}
             </div>

@@ -20,6 +20,8 @@ export type ApplyCalendarItem = {
   receiptStart: string | null;
   receiptEnd: string | null;
   announceDate: string | null;
+  /** [#109] 당첨자 발표일 — 지난 주 페이지의 "결과" 표시 */
+  winnerDate: string | null;
   portalUrl: string | null;
 };
 
@@ -88,6 +90,7 @@ export async function buildApplyCalendar(): Promise<ApplyCalendarResult> {
         receiptStart: start,
         receiptEnd: end,
         announceDate: normDate(r.RCRIT_PBLANC_DE),
+        winnerDate: normDate(r.PRZWNER_PRESNATN_DE),
         portalUrl: r.PBLANC_URL ?? null,
       };
       if (start && start >= todayStr && start <= winEnd) dayOf(start).starts.push(item);
@@ -185,6 +188,7 @@ export async function buildApplyWeek(slugOrRange: string | ApplyWeekRange): Prom
         receiptStart: start,
         receiptEnd: end,
         announceDate: normDate(r.RCRIT_PBLANC_DE),
+        winnerDate: normDate(r.PRZWNER_PRESNATN_DE),
         portalUrl: r.PBLANC_URL ?? null,
       };
       if (startIn && start) dayOf(start).starts.push(item);

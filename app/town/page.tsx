@@ -148,7 +148,7 @@ export default async function TownPage() {
           </Link>
         ))}
         <Link
-          href="/region"
+          href="/tx"
           className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-primary"
         >
           전체 지역 보기 ›

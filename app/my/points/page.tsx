@@ -50,7 +50,9 @@ function sameMonth(iso: string, now: Date): boolean {
 /** 포인트로 산 닉네임 오로라가 지금 켜져 있는지 — 지갑에서 상태를 보여준다.
     교환 직후 "적용됐나?"를 확인할 곳이 없으면 그대로 문의가 된다. 조회 실패는
     표시 생략으로 처리해 지갑 본연의 잔액·내역 렌더를 막지 않는다. */
-async function readNicknameEffectUntil(email: string): Promise<string | null> {
+async function readNicknameEffectUntil(
+  email: string,
+): Promise<{ kind: "aurora" | "sunset"; until: string } | null> {
   try {
     const sb = getServiceSupabase();
     if (!sb) return null;
@@ -63,11 +65,11 @@ async function readNicknameEffectUntil(email: string): Promise<string | null> {
       data?.settings as { nickname_effect?: { kind?: string; until?: string } } | null
     )?.nickname_effect;
     if (
-      eff?.kind === "aurora" &&
+      (eff?.kind === "aurora" || eff?.kind === "sunset") &&
       typeof eff.until === "string" &&
       Date.parse(eff.until) > Date.now()
     ) {
-      return eff.until;
+      return { kind: eff.kind, until: eff.until };
     }
     return null;
   } catch {
@@ -160,12 +162,12 @@ function GuestView() {
 function WalletView({
   balance,
   history,
-  nickEffectUntil,
+  nickEffect,
 }: {
   balance: number;
   history: LedgerRow[];
-  /** 활성 닉네임 오로라 만료 시각(ISO) — 없으면 미적용 */
-  nickEffectUntil: string | null;
+  /** 활성 닉네임 효과(오로라·노을)와 만료 시각 — 없으면 미적용 */
+  nickEffect: { kind: "aurora" | "sunset"; until: string } | null;
 }) {
   const now = new Date();
   const monthEarned = history
@@ -212,14 +214,17 @@ function WalletView({
       </div>
 
       {/* 적용 중인 상점 효과 — 산 것이 지금 켜져 있음을 지갑에서 확인시켜 준다 */}
-      {nickEffectUntil && (
+      {nickEffect && (
         <div className="rise-in-1 card flex items-center justify-between rounded-[16px] px-4 py-3">
           <div className="min-w-0">
             <div className="text-[13px] font-extrabold text-ink">
-              <span className="nick-aurora">닉네임 오로라</span> 적용 중
+              <span className={nickEffect.kind === "sunset" ? "nick-sunset" : "nick-aurora"}>
+                닉네임 {nickEffect.kind === "sunset" ? "노을" : "오로라"}
+              </span>{" "}
+              적용 중
             </div>
             <div className="mt-0.5 text-[11px] text-text-3">
-              {fmtDate(nickEffectUntil)}까지 · 동네이야기 글 상세의 작성자 이름이 빛나요
+              {fmtDate(nickEffect.until)}까지 · 동네이야기 글 상세의 작성자 이름이 빛나요
             </div>
           </div>
           <Icon name="✨" size={18} className="shrink-0 text-primary" />
@@ -305,7 +310,7 @@ export default async function PointsWalletPage() {
   /* 2026-07-26: 내역 조회가 실패하면 예전에는 빈 배열이 내려와서 "아직 포인트
      내역이 없어요" 라고 썼다 — 적립한 적 없는 사람과 원장을 못 읽은 사람이
      구분되지 않았다. 실패는 실패라고 쓴다. */
-  const [loaded, nickEffectUntil] = await Promise.all([
+  const [loaded, nickEffect] = await Promise.all([
     Promise.all([getBalance(email), getHistory(email, 50)]).then(
       ([balance, history]) => ({ ok: true as const, balance, history }),
       (err: unknown) => {
@@ -339,7 +344,7 @@ export default async function PointsWalletPage() {
       <WalletView
         balance={loaded.balance}
         history={loaded.history}
-        nickEffectUntil={nickEffectUntil}
+        nickEffect={nickEffect}
       />
     </PageShell>
   );

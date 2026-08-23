@@ -748,6 +748,12 @@ export default async function NoteDetailPage({
                   자료 조사
                 </span>
               )}
+              {/* [#134] 사진 촬영 시각 — EXIF 기반 방문 시간(장식 신호, 사실 판정 아님) */}
+              {realNote.metadata?.photoTakenAt && (
+                <span className="rounded-md bg-bg chip-pad text-[11px] font-bold text-text-2">
+                  📷 {realNote.metadata.photoTakenAt.slice(5, 16).replace("T", " ")} 촬영
+                </span>
+              )}
               {/* [#71] 현장 인증 — 작성 시점에 단지 반경 2km 위치 확인을 통과한 노트 */}
               {v.fieldVerified && (
                 <span
@@ -899,6 +905,50 @@ export default async function NoteDetailPage({
             analysis={(realNote.aiAnalysis ?? null) as Record<string, unknown> | null}
           />
 
+          {/* [#133] 음성 메모 — 현장 녹음 재생 */}
+          {Array.isArray(realNote.metadata?.voiceMemos) &&
+            realNote.metadata.voiceMemos.length > 0 && (
+              <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-5">
+                <div className="text-[14px] font-extrabold text-ink">
+                  현장 음성 메모{" "}
+                  <span className="text-[11px] font-medium text-text-3">
+                    {realNote.metadata.voiceMemos.length}개
+                  </span>
+                </div>
+                {realNote.metadata.voiceMemos.map((u) => (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <audio key={u} src={u} controls preload="none" className="h-9 w-full" />
+                ))}
+              </div>
+            )}
+
+          {/* [#131] 직전 저장본 — 본인에게만, 내용 수정이 있었던 노트만 */}
+          {isOwner && realNote.metadata?.lastRevision && (
+            <details className="rise-in-1 card rounded-[20px] p-5">
+              <summary className="cursor-pointer text-[14px] font-extrabold text-ink">
+                수정 전 저장본{" "}
+                <span className="text-[11px] font-medium text-text-3">
+                  {realNote.metadata.lastRevision.at.slice(0, 16).replace("T", " ")} 저장분
+                </span>
+              </summary>
+              <div className="mt-2 flex flex-col gap-1.5 text-[13px] leading-[1.7] text-text-2">
+                {realNote.metadata.lastRevision.summary && (
+                  <p>
+                    <b className="text-ink">요약:</b> {realNote.metadata.lastRevision.summary}
+                  </p>
+                )}
+                {realNote.metadata.lastRevision.memo && (
+                  <p className="whitespace-pre-wrap">
+                    <b className="text-ink">메모:</b> {realNote.metadata.lastRevision.memo}
+                  </p>
+                )}
+                <p className="text-[11px] text-text-3">
+                  직전 1벌만 보관됩니다. 되돌리려면 내용을 복사해 수정 화면에 붙여넣으세요.
+                </p>
+              </div>
+            </details>
+          )}
+
           {/* [#72] 재방문 변화 리포트 — 직전 회차 대비, 바뀐 항목만 */}
           {revisitDelta && (
             <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-6">
@@ -942,6 +992,13 @@ export default async function NoteDetailPage({
                 className="text-xs font-bold text-primary"
               >
                 회차 전체 비교 ›
+              </Link>
+              {/* [#127] 인쇄·PDF — 공개/본인 노트 공통 */}
+              <Link
+                href={`/notes/${id}/print`}
+                className="ml-2 text-xs font-bold text-primary"
+              >
+                인쇄·PDF ›
               </Link>
             </div>
             <div className="flex flex-col">

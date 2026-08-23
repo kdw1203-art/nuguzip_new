@@ -968,6 +968,20 @@ export function MapClient({
   /* 좌표가 아직 준비되지 않아 지도에 못 올린 단지 수 — 숨기지 않고 말한다 */
   const [supplyUncoordinated, setSupplyUncoordinated] = useState(0);
 
+  /* ===== [#130] 내 노트 레이어 — 로그인 사용자의 임장 기록 (본인 전용) ===== */
+  const [showMyNotes, setShowMyNotes] = useState(false);
+  const [myNotes, setMyNotes] = useState<
+    Array<{ id: string; lat: number; lng: number; title: string; visitDate: string | null; avgScore: number | null }>
+  >([]);
+  const [myNotesState, setMyNotesState] = useState<"idle" | "unauth" | "failed">("idle");
+
+  /* ===== [#136] 월세 전환 레이어 — 지역별 월세 비중(신고 3개월) ===== */
+  const [showRentShare, setShowRentShare] = useState(false);
+  const [rentShareItems, setRentShareItems] = useState<
+    Array<{ id: string; name: string; lat: number; lng: number; wolseShare: number; monthlyMedianKrw: number | null; sample: number }>
+  >([]);
+  const [rentShareFailed, setRentShareFailed] = useState(false);
+
   /* 레이어·거래유형 선택 유지 — 예전엔 방문마다 전부 초기화됐다(localStorage 사용처가
      코치마크 한 줄뿐이었다). URL 이 명시한 값(?type= → 매물 ON)은 저장값보다 우선.
      초기값 대신 mount effect 로 복원하는 이유: 클라이언트 컴포넌트도 SSR 되므로
@@ -984,6 +998,8 @@ export function MapClient({
         listings?: boolean;
         redev?: boolean;
         supply?: boolean;
+        myNotes?: boolean;
+        rentShare?: boolean;
         tx?: "trade" | "rent";
       };
       if (typeof p.overlay === "boolean") setShowPriceOverlay(p.overlay);
@@ -991,6 +1007,8 @@ export function MapClient({
       if (typeof p.listings === "boolean" && !initialListingType) setShowListings(p.listings);
       if (typeof p.redev === "boolean") setShowRedevelopment(p.redev);
       if (typeof p.supply === "boolean") setShowSupply(p.supply);
+      if (typeof p.myNotes === "boolean") setShowMyNotes(p.myNotes);
+      if (typeof p.rentShare === "boolean") setShowRentShare(p.rentShare);
       if ((p.tx === "trade" || p.tx === "rent") && !initialListingType) setTxType(p.tx);
     } catch {
       /* 손상된 저장값은 무시 */
@@ -1007,13 +1025,15 @@ export function MapClient({
           listings: showListings,
           redev: showRedevelopment,
           supply: showSupply,
+          myNotes: showMyNotes,
+          rentShare: showRentShare,
           tx: txType,
         }),
       );
     } catch {
       /* 프라이빗 모드 등 — 유지 없이 진행 */
     }
-  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, txType]);
+  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, showMyNotes, showRentShare, txType]);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
   /* 조회 실패와 "정말 0건"은 지도에서 똑같이 보인다 — 둘 다 마커가 없다.
      그래서 실패는 따로 들고 있다가 말로 알린다. */
@@ -1727,6 +1747,32 @@ export function MapClient({
           >
             <Icon name="construction" size={14} className="inline align-middle" /> 입주 예정
           </button>
+          {/* [#130] 내 노트 레이어 — 로그인 사용자의 임장 기록 */}
+          <button
+            type="button"
+            aria-pressed={showMyNotes}
+            onClick={() => setShowMyNotes((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+              showMyNotes
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[var(--glass-bg)] text-text-2"
+            }`}
+          >
+            <Icon name="notebook-pen" size={14} className="inline align-middle" /> 내 노트
+          </button>
+          {/* [#136] 월세 전환 레이어 — 지역별 월세 비중 */}
+          <button
+            type="button"
+            aria-pressed={showRentShare}
+            onClick={() => setShowRentShare((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+              showRentShare
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[var(--glass-bg)] text-text-2"
+            }`}
+          >
+            <Icon name="coin" size={14} className="inline align-middle" /> 월세 비중
+          </button>
         </div>
         <div className="text-[10px] text-text-3">
           정비사업은 공개 자료 기준 참고값이에요. 실제 추진 단계는 관할 구청 고시를 확인하세요.
@@ -2348,6 +2394,81 @@ export function MapClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSupply]);
 
+  /* [#130] 내 노트 로드 — 토글 ON 시 1회. 401 이면 로그인 안내로 말한다. */
+  useEffect(() => {
+    if (!showMyNotes) return;
+    if (myNotes.length > 0 || myNotesState === "unauth") return;
+    const controller = new AbortController();
+    setMyNotesState("idle");
+    fetch("/api/map/my-notes", { signal: controller.signal })
+      .then(async (r) => {
+        if (r.status === 401) {
+          setMyNotesState("unauth");
+          return { items: [] };
+        }
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((json: { items?: typeof myNotes }) => {
+        if (controller.signal.aborted) return;
+        setMyNotes(Array.isArray(json.items) ? json.items : []);
+      })
+      .catch((e) => {
+        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+        setMyNotesState("failed");
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMyNotes]);
+
+  const myNoteMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showMyNotes) return [];
+    return myNotes.map((n) => ({
+      id: `mynote:${n.id}`,
+      lat: n.lat,
+      lng: n.lng,
+      label: n.title,
+      pinColor: "#7c3aed",
+      infoHtml: `<div style="min-width:160px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${n.title}</p><p style="font-size:11px;color:#888;margin:3px 0 0">${n.visitDate ?? "내 임장 기록"}${n.avgScore ? ` · 평점 ${n.avgScore}/5` : ""}</p><a href="/notes/${n.id}" style="font-size:11px;color:var(--primary);font-weight:700">노트 열기 →</a></div>`,
+    }));
+  }, [showMyNotes, myNotes]);
+
+  /* [#136] 월세 전환 로드 — 토글 ON 시 1회 (6h 캐시 API) */
+  useEffect(() => {
+    if (!showRentShare) return;
+    if (rentShareItems.length > 0) return;
+    const controller = new AbortController();
+    setRentShareFailed(false);
+    fetch("/api/map/rent-share", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((json: { items?: typeof rentShareItems }) => {
+        if (controller.signal.aborted) return;
+        setRentShareItems(Array.isArray(json.items) ? json.items : []);
+      })
+      .catch((e) => {
+        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+        setRentShareFailed(true);
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRentShare]);
+
+  const rentShareMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showRentShare) return [];
+    const color = (share: number) =>
+      share >= 60 ? "#b4571e" : share >= 40 ? "#c9861e" : share >= 25 ? "#5b8bff" : "#3d6ad1";
+    const manwon = (v: number | null) =>
+      v && v > 0 ? `${Math.round(v / 10_000).toLocaleString("ko-KR")}만` : null;
+    return rentShareItems.map((r) => ({
+      id: `rentshare:${r.id}`,
+      lat: r.lat,
+      lng: r.lng,
+      label: `${r.name} 월세 ${r.wolseShare}%`,
+      pinColor: color(r.wolseShare),
+      infoHtml: `<div style="min-width:170px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${r.name}</p><p style="font-size:12px;margin:3px 0 0;color:#333">월세 비중 <b>${r.wolseShare}%</b> · 표본 ${r.sample.toLocaleString()}건</p>${manwon(r.monthlyMedianKrw) ? `<p style=\"font-size:11px;color:#888;margin:2px 0 0\">월세 중앙값 ${manwon(r.monthlyMedianKrw)}</p>` : ""}<p style="font-size:10px;color:#aaa;margin:3px 0 0">최근 3개월 신고 · 갱신·신규 미구분</p></div>`,
+    }));
+  }, [showRentShare, rentShareItems]);
+
   const supplyMarkers = useMemo<MapMarkerData[]>(() => {
     if (!showSupply) return [];
     return supplyItems.map((s) => {
@@ -2505,6 +2626,8 @@ export function MapClient({
       ...listingMarkers,
       ...redevelopmentMarkers,
       ...supplyMarkers,
+      ...myNoteMarkers,
+      ...rentShareMarkers,
     ]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트.
@@ -2597,6 +2720,8 @@ export function MapClient({
       ...listingMarkers,
       ...redevelopmentMarkers,
       ...supplyMarkers,
+      ...myNoteMarkers,
+      ...rentShareMarkers,
     ]);
   }, [
     clusterMode,
@@ -2612,6 +2737,8 @@ export function MapClient({
     listingMarkers,
     redevelopmentMarkers,
     supplyMarkers,
+    myNoteMarkers,
+    rentShareMarkers,
     regionMarketMarkers,
     zoom,
     txType,
@@ -2974,6 +3101,23 @@ export function MapClient({
       text: "정비사업을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요. 사업장이 없다는 뜻은 아니에요",
     });
   }
+  /* [#130] 내 노트 — 로그인·실패·0건을 구분해 말한다 */
+  if (showMyNotes && myNotesState === "unauth") {
+    mapNotices.push({ key: "mynotes-auth", text: "내 노트 레이어는 로그인 후 볼 수 있어요" });
+  } else if (showMyNotes && myNotesState === "failed") {
+    mapNotices.push({ key: "mynotes-failed", text: "내 노트를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요" });
+  } else if (showMyNotes && myNotesState === "idle" && myNotes.length === 0) {
+    mapNotices.push({ key: "mynotes-empty", text: "좌표가 담긴 내 노트가 아직 없어요 — 작성 시 단지를 검색해 선택하면 지도에 찍혀요" });
+  }
+
+  /* [#136] 월세 전환 — 실패 안내 */
+  if (showRentShare && rentShareFailed) {
+    mapNotices.push({
+      key: "rentshare-failed",
+      text: "월세 비중을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요",
+    });
+  }
+
   /* [#74] 입주 예정 레이어 — 실패와 "0곳"을 구분해 말한다 */
   if (showSupply && supplyFailed) {
     mapNotices.push({

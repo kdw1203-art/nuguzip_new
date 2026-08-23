@@ -143,6 +143,9 @@ export default async function BestNotesIndexPage() {
           </div>
         )}
 
+        {/* [#124] 이달의 현장 인증 리더보드 — 위치 확인(#71) 통과 노트의 월간 랭킹 */}
+        <FieldVerifiedLeaderboard />
+
         <p className="mb-8 mt-5 text-[12px] text-text-3">
           <Link href="/notes" className="font-bold text-primary underline">
             공개 임장노트 전체 보기
@@ -150,5 +153,68 @@ export default async function BestNotesIndexPage() {
         </p>
       </div>
     </PageShell>
+  );
+}
+
+/* [#124] 월간 현장 인증 랭킹 — metadata.visitVerified 가 있는 공개 노트를
+   작성자 표시명 기준으로 집계. 0명이면 섹션을 그리지 않는다(빈 리더보드 금지). */
+async function FieldVerifiedLeaderboard() {
+  const { getServiceSupabase } = await import("@/lib/supabase/service");
+  const { maskNoteAuthor } = await import("@/app/town/shared");
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  let rows: Array<{ label: string; count: number }> = [];
+  try {
+    const { data, error } = await sb
+      .from("inspection_notes")
+      .select("author_label, author_email")
+      .eq("is_public", true)
+      .not("metadata->visitVerified", "is", null)
+      .gte("created_at", monthStart.toISOString())
+      .limit(500);
+    if (error || !data) return null;
+    const freq = new Map<string, number>();
+    for (const r of data as Array<{ author_label: string | null; author_email: string | null }>) {
+      const label = maskNoteAuthor(r.author_label, r.author_email ?? "");
+      freq.set(label, (freq.get(label) ?? 0) + 1);
+    }
+    rows = [...freq.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  } catch {
+    return null;
+  }
+  if (rows.length === 0) return null;
+  const medals = ["🥇", "🥈", "🥉", "4", "5"];
+  return (
+    <section className="mt-8">
+      <h2 className="text-[16px] font-extrabold text-ink">
+        이달의 현장 인증{" "}
+        <span className="text-[12px] font-medium text-text-3">
+          단지 반경 2km 위치 확인을 통과한 기록
+        </span>
+      </h2>
+      <div className="card mt-2 rounded-[16px] px-4 py-2">
+        {rows.map((r, i) => (
+          <div
+            key={r.label}
+            className="flex items-center justify-between border-b border-divider py-2.5 text-[13.5px] last:border-0"
+          >
+            <span className="font-bold text-ink">
+              <span className="mr-2">{medals[i]}</span>
+              {r.label}
+            </span>
+            <span className="font-extrabold text-primary tabular-nums">{r.count}편</span>
+          </div>
+        ))}
+      </div>
+      <p className="t-caption mt-1.5 text-text-3">
+        매월 1일 리셋 · 인증은 작성 시 선택이며 위치 좌표는 저장되지 않습니다.
+      </p>
+    </section>
   );
 }

@@ -36,6 +36,8 @@ export type AptDetailRow = {
   RCEPT_BGNDE?: string;
   RCEPT_ENDDE?: string;
   RCRIT_PBLANC_DE?: string;
+  /** [#109] 당첨자 발표일 — 주간 아카이브의 "결과" 열 */
+  PRZWNER_PRESNATN_DE?: string;
   PBLANC_URL?: string;
   BSNS_MBY_NM?: string;
   /** 입주예정월 (예: "202612") — [개선 #21] 입주물량 자동 인제스트가 사용 */

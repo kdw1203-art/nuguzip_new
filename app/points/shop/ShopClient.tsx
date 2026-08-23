@@ -89,7 +89,14 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
               key={item.key}
               className="card card-hover flex flex-col rounded-[16px] p-5"
             >
-              <div className="text-sm font-extrabold text-ink">{item.label}</div>
+              <div className="text-sm font-extrabold text-ink">
+                {item.label}
+                {item.season && (
+                  <span className="ml-1.5 align-middle rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-extrabold text-warning">
+                    {item.season} 한정
+                  </span>
+                )}
+              </div>
               <div className="mt-1 flex-1 text-[12px] leading-[1.5] text-text-3">
                 {item.desc}
               </div>

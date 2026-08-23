@@ -166,6 +166,8 @@ export default async function InvitePage({
         <div className="mt-5 flex flex-col gap-2 text-left">
           {[
             { icon: "coin", t: "가입 즉시 300P", d: "나와 초대한 친구 모두 적립" },
+            /* [#126] 시작 3미션(#119) 연결 — 300P 다음의 두 번째 계단을 미리 보여준다 */
+            { icon: "target", t: "시작 3미션 +200P", d: "관심 단지·키워드 알림·첫 기록이면 끝" },
             { icon: "trending-up", t: "실거래가·시세 열람", d: "관심 단지 가격을 한눈에" },
             { icon: "sparkles", t: "AI 분석·리포트", d: "포인트로 바로 이용" },
           ].map((b) => (

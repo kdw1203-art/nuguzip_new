@@ -153,6 +153,13 @@ function EmbedCard({ view }: { view: EmbedView }) {
 
   return (
     <div className="card card-pad-sm relative mx-auto w-full max-w-[360px]">
+      {/* [#107] 임베드 채택 비콘 — 부모 페이지(host)만 일집계, 개인 식별 없음 */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            'try{var r=document.referrer;if(r&&navigator.sendBeacon){navigator.sendBeacon("/api/embed/beacon",new Blob([JSON.stringify({ref:r,kind:"complex"})],{type:"application/json"}))}}catch(e){}',
+        }}
+      />
       <Wordmark />
 
       {/* 헤더 — 단지명 · 지역 */}

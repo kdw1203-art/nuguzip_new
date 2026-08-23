@@ -18,6 +18,8 @@ import {
 import { checklistHintsFromVoice } from "@/lib/inspection/voice-checklist-keywords";
 import { NOTE_DRAFT_KEY as DRAFT_KEY } from "@/lib/notes/draft-summary";
 import { resizeImageFiles } from "@/lib/client/image-resize";
+import { readExifTakenAt } from "@/lib/client/exif-datetime";
+import { VoiceMemoRecorder } from "./VoiceMemoRecorder";
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -625,6 +627,16 @@ export function NoteForm({
   );
   const [photos, setPhotos] = useState<string[]>(initialNote?.photos ?? []);
 
+  /* [#134] 사진 EXIF 촬영 시각 — 가장 이른 1개 (방문 시간 배지 재료, 장식 신호) */
+  const [photoTakenAt, setPhotoTakenAt] = useState<string | null>(null);
+
+  /* [#133] 음성 메모 URL 목록 (metadata.voiceMemos) */
+  const [voiceMemos, setVoiceMemos] = useState<string[]>(
+    Array.isArray(initialNote?.metadata?.voiceMemos)
+      ? (initialNote?.metadata?.voiceMemos as string[])
+      : [],
+  );
+
   /* [#68] 현장 퀵모드 — 임장의 실제 순서(사진 먼저, 평가는 나중)와 폼 순서를
      일치시킨다. 켜져 있으면 세부 평가 4개 섹션(현장 체크·체크리스트·태그·
      고려사항)을 접고, 사진·위치·메모·저장만 남긴다. 임시저장(1초 자동)이
@@ -889,6 +901,21 @@ export function NoteForm({
     setUploading(true);
     setSaveError(null);
     setNeedLogin(false);
+    /* [#134] 촬영 시각 — 리사이즈(canvas 재인코딩)가 EXIF 를 지우므로 그 전에
+       원본에서 읽는다. 가장 이른 촬영 시각 하나만 보관(방문 시간 배지 재료). */
+    void (async () => {
+      try {
+        const times = (
+          await Promise.all(picked.map((f) => readExifTakenAt(f)))
+        ).filter((t): t is string => Boolean(t));
+        if (times.length > 0) {
+          times.sort();
+          setPhotoTakenAt((prev) => (prev && prev < times[0] ? prev : times[0]));
+        }
+      } catch {
+        /* 장식 신호 — 실패 무시 */
+      }
+    })();
     try {
       /* 업로드 전 클라 리사이즈(#23) — 폰 원본(4000px·수 MB)을 긴 변 1600px 로
          줄여 올린다. 줄일 수 없으면 원본이 그대로 오므로 업로드는 막히지 않는다. */
@@ -981,6 +1008,10 @@ export function NoteForm({
           socialShareConsent: isPublic ? socialShareConsent : undefined,
           /* [#71] 방문 인증 — 거리 버킷·시각만 (원 좌표 비저장 원칙) */
           visitVerified: visitVerified ?? undefined,
+          /* [#134] 사진 촬영 시각(가장 이른 1개) — EXIF, 리사이즈 전에 읽음 */
+          photoTakenAt: photoTakenAt ?? undefined,
+          /* [#133] 음성 메모 — 저장만, 전사는 후속 */
+          voiceMemos: voiceMemos.length > 0 ? voiceMemos : undefined,
           complexId: loc.complexId ?? undefined,
           lat: loc.lat ?? undefined,
           lng: loc.lng ?? undefined,
@@ -1325,6 +1356,9 @@ export function NoteForm({
             )}
           </div>
         )}
+
+        {/* [#133] 음성 메모 — 현장의 세 번째 입력 수단 */}
+        {!isEdit && <VoiceMemoRecorder memos={voiceMemos} onChange={setVoiceMemos} />}
 
         {/* 방문 정보 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 p-4">

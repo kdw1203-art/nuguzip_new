@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/app/components/PageShell";
-import { findCatalogRegionById } from "@/lib/region/catalog";
+import { REGION_CATALOG, findCatalogRegionById } from "@/lib/region/catalog";
 import { recentReportSlugs } from "@/lib/region/monthly-report";
 import { seoAlternates } from "@/lib/seo/alternates";
 
@@ -76,6 +76,24 @@ export default async function RegionReportIndexPage({
           ← {region.name} 지역 홈 (최신 시황)
         </Link>
       </div>
+
+      {/* [#106] 다른 지역 아카이브 — 62개 월간 축의 내부 링크 그물 */}
+      <section className="rise-in-3 mt-7">
+        <h2 className="mb-2 px-1 text-[13px] font-extrabold text-ink">다른 지역 월간 리포트</h2>
+        <div className="flex flex-wrap gap-1.5">
+          {REGION_CATALOG.filter((r) => r.id !== id)
+            .slice(0, 16)
+            .map((r) => (
+              <Link
+                key={r.id}
+                href={`/region/${r.id}/report`}
+                className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+              >
+                {r.name}
+              </Link>
+            ))}
+        </div>
+      </section>
     </PageShell>
   );
 }

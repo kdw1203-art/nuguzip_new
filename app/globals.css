@@ -1777,13 +1777,41 @@ html[data-drag-scrolling] * {
   }
 }
 
+/* 8e-2. 닉네임 노을 — [#146] 시즌 상점 'nickname_sunset_7d'(200P/7일).
+   오로라와 같은 배경 클립 텍스트 기법·같은 keyframes 재사용, 팔레트만 가을 노을.
+   폴백·reduced-motion 규약도 오로라와 동일하게 지킨다. */
+.nick-sunset {
+  font-weight: 800;
+  /* 배경 클립 미지원 폴백 — 노을 대신 주황 단색(가독 유지) */
+  color: #d97706;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .nick-sunset {
+    background-image: linear-gradient(
+      90deg,
+      #b45309,
+      #ea580c,
+      #e11d48,
+      #f59e0b,
+      #ea580c,
+      #b45309
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: nick-aurora-flow 6s linear infinite;
+  }
+}
+
 /* 8f. 접근성 — 위 7절 규칙: 새 모션은 반드시 여기 같이 적는다 */
 @media (prefers-reduced-motion: reduce) {
   .ticker-track {
     animation: none;
   }
-  /* 오로라는 정지 그라데이션으로 — 색은 남기고 움직임만 끈다 */
-  .nick-aurora {
+  /* 오로라·노을은 정지 그라데이션으로 — 색은 남기고 움직임만 끈다 */
+  .nick-aurora,
+  .nick-sunset {
     animation: none;
   }
   .ticker-band {

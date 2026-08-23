@@ -79,6 +79,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "호가는 매도인이 부르는 희망 가격입니다. 실제 계약 금액이 아니므로 실거래가와 차이가 날 수 있으며, 시장이 꺾일 때는 호가와 실거래가의 간격이 커지는 경향이 있습니다.",
     category: "거래·시세",
     related: ["silgeoraega"],
+    href: "/tx",
+    hrefLabel: "호가가 아닌 실거래 기준 시세 보기",
   },
   {
     slug: "haejegeorae",
@@ -137,6 +139,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "갭투자는 전세 보증금을 끼고 매매가와 전세가의 차액(갭)만 들여 주택을 사는 방식입니다. 전세가율이 높을수록 필요한 자기 자금이 줄지만, 전세가 하락 시 보증금 반환 부담이 커지는 위험이 있습니다.",
     category: "거래·시세",
     related: ["jeonse-garyul", "jeonse"],
+    href: "/analysis/gap",
+    hrefLabel: "전세가율·갭 스크리너에서 지역별 실측 보기",
   },
   {
     slug: "imjang",
@@ -199,6 +203,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "국민평형은 전용면적 84㎡ 안팎의 주택형을 가리키는 관용적인 표현입니다. 법률 용어는 아니며, 공급면적 기준으로는 대략 33~34평에 해당해 흔히 '34평형'이라고도 불립니다. 공급 물량이 많아 시세 비교의 기준으로 자주 쓰입니다.",
     category: "면적·구조",
     related: ["jeonyongmyeonjeok", "gonggeupmyeonjeok"],
+    href: "/tx",
+    hrefLabel: "면적대별 실거래 랜딩에서 시세 보기",
   },
   {
     slug: "panshanghyeong",
@@ -217,6 +223,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "전세는 큰 보증금을 집주인에게 맡기고 월 임대료 없이 거주한 뒤, 계약이 끝나면 보증금을 돌려받는 한국 특유의 임대차 방식입니다. 임차인에게는 월 주거비가 없다는 장점이, 집주인에게는 목돈을 활용할 수 있다는 이점이 있습니다.",
     category: "임대차",
     related: ["wolse", "banjeonse", "jeonse-garyul", "bojeunggeum"],
+    href: "/analysis/gap",
+    hrefLabel: "지역별 전세 시세·전세가율 보기",
   },
   {
     slug: "wolse",
@@ -225,6 +233,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "월세는 일정 보증금을 맡기고 매달 임대료를 내는 임대차 방식입니다. 보증금 규모에 따라 월 임대료가 달라지며, 보증금이 큰 형태를 흔히 반전세라고 부릅니다.",
     category: "임대차",
     related: ["jeonse", "banjeonse", "jeonwolse-jeonhwanyul"],
+    href: "/analysis/gap",
+    hrefLabel: "월세 환산 수익률 열 보기",
   },
   {
     slug: "banjeonse",
@@ -241,6 +251,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "보증금은 임대차 계약에서 임차인이 임대인에게 맡기는 돈으로, 계약이 끝나면 밀린 임대료·손해배상액을 뺀 나머지를 돌려받습니다. 보증금을 안전하게 돌려받기 위한 장치가 대항력·확정일자·전세권 등입니다.",
     category: "임대차",
     related: ["daehangryeok", "hwakjeong-ilja", "jeonsegwon"],
+    href: "/calculator/jeonse-monthly",
+    hrefLabel: "보증금·월세 전환 계산기",
   },
   {
     slug: "jeonse-garyul",
@@ -249,6 +261,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "전세가율은 매매가 대비 전세가의 비율(%)입니다. 예를 들어 매매가 10억 아파트의 전세가 6억이면 전세가율은 60%입니다. 전세가율이 높을수록 매매가와 전세가의 차이(갭)가 작다는 뜻입니다.",
     category: "임대차",
     related: ["jeonse", "gap-tuja"],
+    href: "/analysis/gap",
+    hrefLabel: "지역별 전세가율 랭킹 실측 보기",
   },
   {
     slug: "jeonwolse-jeonhwanyul",
@@ -257,6 +271,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "전월세전환율은 전세 보증금의 일부를 월세로 바꿀 때 적용하는 연 환산 비율입니다. 예를 들어 보증금 1억을 월세로 돌릴 때 전환율이 연 5%라면 연 500만원, 월 약 41만원이 됩니다. 주택임대차보호법은 기존 계약을 전환할 때 적용할 수 있는 상한을 두고 있으며, 그 기준은 법령 개정에 따라 달라집니다.",
     category: "임대차",
     related: ["jeonse", "wolse", "banjeonse"],
+    href: "/calculator/jeonse-monthly",
+    hrefLabel: "전월세 전환 계산기로 직접 계산",
   },
   {
     slug: "gyeyaks-gaengsin-cheonggugwon",
@@ -295,6 +311,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "DTI 는 연 소득 대비 주택담보대출의 원리금과 그 밖의 대출 이자를 더한 금액의 비율입니다. 기타 대출의 원금까지 합산하는 DSR 보다 범위가 좁아, 같은 차주라도 DTI 보다 DSR 이 높게 계산되는 것이 보통입니다.",
     category: "대출·상환",
     related: ["dsr", "ltv"],
+    href: "/calculator",
+    hrefLabel: "대출 계산기에서 한도 가늠",
   },
   {
     slug: "wonligeum-gyundeung",
@@ -329,6 +347,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "중도금대출은 분양 계약 뒤 중도금 납부 시점에 맞춰 실행되는 집단대출입니다. 보통 시행사·시공사가 은행과 협약해 단지 단위로 취급하며, 입주 시점에 주택담보대출로 전환(대환)하는 것이 일반적입니다.",
     category: "대출·상환",
     related: ["bunyanggwon", "janggeum"],
+    href: "/calculator",
+    hrefLabel: "대출 계산기로 상환액 계산",
   },
 
   /* ── 세금·공시 ─────────────────────────────────────────── */
@@ -411,6 +431,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "분양권은 청약에 당첨돼 분양 계약을 체결한 사람이 완공 후 그 아파트를 소유할 수 있는 권리입니다. 아직 등기 대상 건물이 없는 상태의 권리라, 전매 제한 기간과 양도 시 과세가 별도로 정해져 있습니다.",
     category: "청약·분양",
     related: ["ipjugwon", "junggangeum-daechul", "cheongyak"],
+    href: "/apply/calendar",
+    hrefLabel: "이번 주 청약 접수·마감 일정",
   },
   {
     slug: "mibunyang",
@@ -419,6 +441,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "미분양은 분양 공고 후 계약이 이뤄지지 않아 남은 물량입니다. 준공 후에도 남은 물량은 '준공 후 미분양'으로 따로 집계하며, 공급 대비 수요가 약하다는 신호로 해석되는 지표입니다.",
     category: "청약·분양",
     related: ["ipju-mulryang", "cheongyak"],
+    href: "/supply",
+    hrefLabel: "입주 예정 물량에서 공급 흐름 보기",
   },
   {
     slug: "ipju-mulryang",
@@ -477,6 +501,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     def: "입주권은 재개발·재건축 조합원이 사업 완료 후 새 주택을 취득할 수 있는 권리입니다. 청약 당첨으로 생기는 분양권과 달리 기존 부동산 소유에서 비롯된 권리이며, 세금과 전매 규제의 적용도 분양권과 다릅니다.",
     category: "정비사업",
     related: ["bunyanggwon", "jaegaebal", "jaegeonchuk"],
+    href: "/supply",
+    hrefLabel: "입주 예정 물량 캘린더 보기",
   },
 
   /* ── 경매·공매 ─────────────────────────────────────────── */

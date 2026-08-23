@@ -13,6 +13,7 @@ import { complexCanonicalPathFromNames } from "@/lib/complex/complex-store";
 import { weekSlugFor } from "@/lib/applyhome/calendar";
 import { TOWN_PROMPTS } from "@/lib/town/prompts";
 import { REGION_CATALOG } from "@/lib/region/catalog";
+import { NEWS_TAGS } from "@/lib/news/tags";
 
 /**
  * 단지 사이트맵에 실을 최소 매매 실거래 건수.
@@ -229,6 +230,10 @@ export function loadStaticEntries(): MetadataRoute.Sitemap {
   /* [#64] 동네 홈 62곳 — 카탈로그 상수(dynamicParams=false 라 전부 실존) */
   for (const r of REGION_CATALOG) {
     entries.push({ url: `${BASE_URL}/town/${r.id}`, priority: 0.6 });
+  }
+  /* [#103] 뉴스 태그 허브 20곳 — 큐레이션 상수(dynamicParams=false) */
+  for (const t of NEWS_TAGS) {
+    entries.push({ url: `${BASE_URL}/town/news/tag/${t.slug}`, priority: 0.5 });
   }
   return entries;
 }
