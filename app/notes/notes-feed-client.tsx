@@ -467,14 +467,22 @@ export function NotesFeedClient({
           </div>
         )}
 
-        {/* 모바일 전용 노트 쓰기 CTA */}
-        <Link
-          href="/notes/new"
-          className="btn-primary rise-in-2 mx-auto w-full max-w-[468px] rounded-2xl p-[15px] text-center text-base md:hidden"
-          style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
-        >
-          노트 쓰기
-        </Link>
+        {/* 모바일 전용 노트 쓰기 CTA — [#68] 현장 퀵 기록 나란히 */}
+        <div className="rise-in-2 mx-auto flex w-full max-w-[468px] gap-2 md:hidden">
+          <Link
+            href="/notes/new"
+            className="btn-primary flex-1 rounded-2xl p-[15px] text-center text-base"
+            style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
+          >
+            노트 쓰기
+          </Link>
+          <Link
+            href="/notes/new?quick=1"
+            className="flex-1 rounded-2xl border-[1.5px] border-dashed border-[#c9d4e5] bg-surface p-[15px] text-center text-[14px] font-bold text-text-1"
+          >
+            📷 현장 퀵 기록
+          </Link>
+        </div>
       </div>
 
       {/* 모바일 노트 쓰기 FAB */}

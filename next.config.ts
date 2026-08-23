@@ -162,6 +162,8 @@ const nextConfig: NextConfig = {
   async headers() {
     const isDev = process.env.NODE_ENV === "development";
     const csp = buildContentSecurityPolicy(isDev);
+    /* [#88] 임베드 위젯 경로 — frame-ancestors * (외부 블로그·카페 iframe 이 존재 이유) */
+    const embedCsp = buildContentSecurityPolicy(isDev, { frameAncestors: "any" });
     const base = [
       { key: "Content-Security-Policy", value: csp },
       // X-Frame-Options 제거 — CSP frame-ancestors 'self' 로 대체 (더 정확하고 강력)
@@ -250,8 +252,19 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+    /* [#88] /embed/* 만 CSP 를 임베드용으로 교체. 캐치올(/:path*)이 embed 를
+       포함하면 CSP 헤더가 두 벌 나가고 브라우저는 **교집합**을 강제해
+       frame-ancestors 'self' 가 이긴다 — 그래서 캐치올에서 embed 를 제외한다. */
     return [
-      { source: "/:path*", headers: [...base, ...hsts] },
+      { source: "/((?!embed/).*)", headers: [...base, ...hsts] },
+      {
+        source: "/embed/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: embedCsp },
+          ...base.filter((h) => h.key !== "Content-Security-Policy"),
+          ...hsts,
+        ],
+      },
       ...staticAssetHeaders,
       ...pwaHeaders,
     ];

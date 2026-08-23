@@ -1,0 +1,42 @@
+# [#91] Web Vitals 랩 예산 — Lighthouse CI (주 1회 + 수동).
+#
+# RUM(실사용, Vercel Web Analytics + /api/vitals 수집)은 이미 돌고 있다.
+# 이 워크플로는 그 짝인 "배포 전/후 랩 측정"이다: 대표 5개 화면을 프로덕션에서
+# 재고, lighthouse-budget.json 의 예산(LCP·CLS·TBT·전송량)을 넘으면 실패로 표시한다.
+#
+# 왜 빌드가 아니라 프로덕션을 재는가: 이 저장소의 CI 에는 DB env 가 없어
+# `next build` 산출물을 로컬 기동해도 서버 렌더 페이지가 500 이 된다(로컬 실측).
+# 배포는 사용자 PC 의 vercel CLI 로 나가므로 "빌드마다"에 정확히 붙을 훅도 없다.
+# 주 1회 + 배포 후 수동 실행(workflow_dispatch)이 현재 파이프라인의 정직한 최선.
+#
+# 실패해도 배포를 막지는 않는다(모니터링 성격) — 결과는 Actions 요약과
+# temporary-public-storage 링크로 확인한다.
+name: lighthouse-budget
+
+on:
+  schedule:
+    - cron: "0 21 * * 1" # 월요일 21:00 UTC = 화요일 06:00 KST
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lighthouse CI (프로덕션 대표 5화면)
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://nuguzip.com/
+            https://nuguzip.com/map
+            https://nuguzip.com/region/gangnam
+            https://nuguzip.com/town
+            https://nuguzip.com/analysis/gap
+          budgetPath: ./lighthouse-budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 1

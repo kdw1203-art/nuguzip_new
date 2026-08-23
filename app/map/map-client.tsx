@@ -952,6 +952,22 @@ export function MapClient({
   /* ===== 정비사업 레이어 — 재개발·재건축 사업장 (공개 자료). 토글 ON 시 1회 로드 ===== */
   const [showRedevelopment, setShowRedevelopment] = useState(false);
 
+  /* ===== [#74] 입주 예정 레이어 — 자동 수집 입주물량(좌표 캐시분) ===== */
+  const [showSupply, setShowSupply] = useState(false);
+  const [supplyItems, setSupplyItems] = useState<
+    Array<{
+      lat: number;
+      lng: number;
+      name: string;
+      region: string;
+      moveInYm: string;
+      households: number | null;
+    }>
+  >([]);
+  const [supplyFailed, setSupplyFailed] = useState(false);
+  /* 좌표가 아직 준비되지 않아 지도에 못 올린 단지 수 — 숨기지 않고 말한다 */
+  const [supplyUncoordinated, setSupplyUncoordinated] = useState(0);
+
   /* 레이어·거래유형 선택 유지 — 예전엔 방문마다 전부 초기화됐다(localStorage 사용처가
      코치마크 한 줄뿐이었다). URL 이 명시한 값(?type= → 매물 ON)은 저장값보다 우선.
      초기값 대신 mount effect 로 복원하는 이유: 클라이언트 컴포넌트도 SSR 되므로
@@ -967,12 +983,14 @@ export function MapClient({
         overlay?: boolean;
         listings?: boolean;
         redev?: boolean;
+        supply?: boolean;
         tx?: "trade" | "rent";
       };
       if (typeof p.overlay === "boolean") setShowPriceOverlay(p.overlay);
       // URL 로 매물이 켜진 진입(?type=)은 사용자의 명시 의도 — 저장값이 끄지 않는다
       if (typeof p.listings === "boolean" && !initialListingType) setShowListings(p.listings);
       if (typeof p.redev === "boolean") setShowRedevelopment(p.redev);
+      if (typeof p.supply === "boolean") setShowSupply(p.supply);
       if ((p.tx === "trade" || p.tx === "rent") && !initialListingType) setTxType(p.tx);
     } catch {
       /* 손상된 저장값은 무시 */
@@ -988,13 +1006,14 @@ export function MapClient({
           overlay: showPriceOverlay,
           listings: showListings,
           redev: showRedevelopment,
+          supply: showSupply,
           tx: txType,
         }),
       );
     } catch {
       /* 프라이빗 모드 등 — 유지 없이 진행 */
     }
-  }, [showPriceOverlay, showListings, showRedevelopment, txType]);
+  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, txType]);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
   /* 조회 실패와 "정말 0건"은 지도에서 똑같이 보인다 — 둘 다 마커가 없다.
      그래서 실패는 따로 들고 있다가 말로 알린다. */
@@ -1695,9 +1714,30 @@ export function MapClient({
           >
             <Icon name="landmark" size={14} className="inline align-middle" /> 정비사업
           </button>
+          {/* [#74] 입주 예정 레이어 토글 — 자동 수집 입주물량(청약홈) 좌표분 */}
+          <button
+            type="button"
+            aria-pressed={showSupply}
+            onClick={() => setShowSupply((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
+              showSupply
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[rgba(255,255,255,.85)] text-text-2"
+            }`}
+          >
+            <Icon name="construction" size={14} className="inline align-middle" /> 입주 예정
+          </button>
         </div>
         <div className="text-[10px] text-text-3">
           정비사업은 공개 자료 기준 참고값이에요. 실제 추진 단계는 관할 구청 고시를 확인하세요.
+          {showSupply && supplyItems.length > 0 && (
+            <>
+              {" "}
+              입주 예정 {supplyItems.length}곳 표시
+              {supplyUncoordinated > 0 ? ` · 좌표 준비 중 ${supplyUncoordinated}곳` : ""} —
+              입주월은 청약홈 공고 기준이에요.
+            </>
+          )}
         </div>
       </div>
 
@@ -2274,6 +2314,65 @@ export function MapClient({
     };
   }, [showRedevelopment, viewBounds]);
 
+  /* [#74] 입주 예정 레이어 — 토글 ON 시 1회 로드(전국 좌표분 ≤ 수백 건, 일 1회 갱신
+     데이터라 뷰포트 재조회가 필요 없다). 실패는 실패로 들고 와 안내로 말한다. */
+  useEffect(() => {
+    if (!showSupply) return;
+    if (supplyItems.length > 0) return; // 세션 내 재로드 불필요 (일 단위 데이터)
+    const controller = new AbortController();
+    setSupplyFailed(false);
+    fetch("/api/map/supply-markers", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then(
+        (json: {
+          items?: Array<{
+            lat: number;
+            lng: number;
+            name: string;
+            region: string;
+            moveInYm: string;
+            households: number | null;
+          }>;
+          uncoordinated?: number;
+        }) => {
+          if (controller.signal.aborted) return;
+          setSupplyItems(Array.isArray(json.items) ? json.items : []);
+          setSupplyUncoordinated(Number(json.uncoordinated) || 0);
+        },
+      )
+      .catch((e) => {
+        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+        setSupplyFailed(true);
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSupply]);
+
+  const supplyMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showSupply) return [];
+    return supplyItems.map((s) => {
+      const ymLabel =
+        s.moveInYm.length === 6 ? `${s.moveInYm.slice(0, 4)}.${s.moveInYm.slice(4)}` : s.moveInYm;
+      const hh = s.households
+        ? `<p style="font-size:11px;color:#888;margin:2px 0 0">${s.households.toLocaleString()}세대</p>`
+        : "";
+      const infoHtml = `<div style="min-width:170px;max-width:230px">
+        <p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${s.name}</p>
+        <p style="font-size:12px;margin:3px 0 0;color:#0d9488;font-weight:700">🏗 ${ymLabel} 입주 예정</p>
+        <p style="font-size:11px;color:#888;margin:3px 0 0">${s.region} · 청약홈 공고 기준</p>
+        ${hh}
+      </div>`;
+      return {
+        id: `supply:${s.region}:${s.name}:${s.moveInYm}`,
+        lat: s.lat,
+        lng: s.lng,
+        label: s.name,
+        pinColor: "#0d9488",
+        infoHtml,
+      };
+    });
+  }, [showSupply, supplyItems]);
+
   const redevelopmentMarkers = useMemo<MapMarkerData[]>(() => {
     if (!showRedevelopment) return [];
     return redevItems.map((p) => {
@@ -2405,6 +2504,7 @@ export function MapClient({
       ...base,
       ...listingMarkers,
       ...redevelopmentMarkers,
+      ...supplyMarkers,
     ]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트.
@@ -2496,6 +2596,7 @@ export function MapClient({
       ...shownBase,
       ...listingMarkers,
       ...redevelopmentMarkers,
+      ...supplyMarkers,
     ]);
   }, [
     clusterMode,
@@ -2510,6 +2611,7 @@ export function MapClient({
     searchMarker,
     listingMarkers,
     redevelopmentMarkers,
+    supplyMarkers,
     regionMarketMarkers,
     zoom,
     txType,
@@ -2870,6 +2972,13 @@ export function MapClient({
     mapNotices.push({
       key: "redev-failed",
       text: "정비사업을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요. 사업장이 없다는 뜻은 아니에요",
+    });
+  }
+  /* [#74] 입주 예정 레이어 — 실패와 "0곳"을 구분해 말한다 */
+  if (showSupply && supplyFailed) {
+    mapNotices.push({
+      key: "supply-failed",
+      text: "입주 예정 물량을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요. 물량이 없다는 뜻은 아니에요",
     });
   }
   if (geoApplied) {

@@ -34,6 +34,8 @@ import { ComplexAreaBands } from "./ComplexAreaBands";
 import { RegionRelative } from "./RegionRelative";
 import { NearbyRedevelopment } from "./NearbyRedevelopment";
 import { UpcomingSupply } from "./UpcomingSupply";
+import { ComplexRentSection } from "./ComplexRentSection";
+import { ComplexNearbyPoi } from "./ComplexNearbyPoi";
 import { ShareLinkButton } from "@/app/components/ShareLinkButton";
 import { Icon } from "@/app/components/Icon";
 import { regionIdForName } from "@/lib/region/catalog";
@@ -1090,6 +1092,12 @@ export default async function ComplexHubPage({
           <ComplexReviews complexId={complexId} complexName={v.name} />
         </section>
       )}
+
+      {/* [#94 잔여] 전월세 실거래 이력 — 매매 중심 화면에 임차 수요 관점 추가 */}
+      <ComplexRentSection region={`${v.city} ${v.dong}`.trim()} name={v.name} />
+
+      {/* [#96] 도보권 학교·역 — 데이터 적재 후 자동 표시(미적재 시 미표시) */}
+      <ComplexNearbyPoi lat={v.lat} lng={v.lng} name={v.name} />
 
       {/* D3 정비사업 · D4 입주물량 · D2 Q&A (면적대·지역대비는 상단으로 이동) */}
       <NearbyRedevelopment sigungu={v.dong} />

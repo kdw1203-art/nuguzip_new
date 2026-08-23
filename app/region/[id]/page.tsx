@@ -548,6 +548,16 @@ export default async function RegionHubPage({
       {/* G12 — 이 문단만 떼어 인용해도 뜻이 통해야 한다 */}
       <p className="rise-in mb-5 text-[14px] leading-[1.75] text-text-1">{lead}</p>
 
+      {/* [#64] 동네 홈 상호 링크 — 숫자(여기) ↔ 생활(동네 홈) */}
+      <div className="rise-in mb-5 -mt-2">
+        <Link
+          href={`/town/${id}`}
+          className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-primary"
+        >
+          {name} 동네 홈 — 이웃 글·뉴스·임장노트 ›
+        </Link>
+      </div>
+
       {/* 현재가 KPI 4카드 */}
       <section className="rise-in-1 mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpiCards.map((k) => (
@@ -583,6 +593,15 @@ export default async function RegionHubPage({
                 {p}
               </p>
             ))}
+          </div>
+          {/* [#79] 월간 아카이브 진입 — "그때 얼마였지"를 월 고정 페이지로 */}
+          <div className="mt-3">
+            <Link
+              href={`/region/${id}/report`}
+              className="text-[12.5px] font-bold text-primary"
+            >
+              월간 리포트 아카이브 — 지난달까지의 월별 스냅샷 ›
+            </Link>
           </div>
         </section>
       )}
@@ -1135,6 +1154,25 @@ export default async function RegionHubPage({
 
       {/* Q&A — 위 숫자로만 만든 항목. FAQPage JSON-LD 는 QaBlock 이 함께 낸다. */}
       <QaBlock title={`${name} 자주 묻는 질문`} items={faq} />
+
+      {/* [#88] 지역 시세 위젯 배포 진입점 — 중개사 블로그·홈페이지용. 위젯 안에
+          출처 링크가 박혀 있으므로 퍼가기가 곧 백링크다(단지 위젯 N17 과 동일 원리). */}
+      <div className="rise-in-3 mb-4 flex flex-col gap-1 rounded-[14px] border border-line bg-surface p-4">
+        <span className="text-[13px] font-extrabold text-ink">
+          {name} 시세를 블로그·홈페이지에 붙이기
+        </span>
+        <span className="text-[12px] leading-[1.7] text-text-2">
+          중개사무소 블로그·홈페이지에 iframe 한 줄로 {name} 평균 매매가·전세가율·지수
+          변동 카드를 실을 수 있습니다. 시세가 갱신되면 붙여넣은 위젯도 함께 갱신됩니다.
+          무료이며 출처 표기가 포함됩니다.
+        </span>
+        <Link
+          href={`/widget?region=${encodeURIComponent(id)}`}
+          className="mt-2 w-fit rounded-[10px] bg-primary px-4 py-2 text-[12px] font-bold text-white"
+        >
+          위젯 코드 만들기 ›
+        </Link>
+      </div>
 
       {/* CTA */}
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">

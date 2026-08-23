@@ -167,6 +167,25 @@ export async function POST(req: Request) {
         /* 지급 판정 실패는 조용히 넘긴다 — 다음 경계에서 다시 기회가 있다 */
       }
     })();
+    /* [#69] 템플릿 마켓 — 이웃 템플릿으로 쓴 노트가 저장되는 순간이 "사용"이다.
+       공식 템플릿은 집계 스킵(내장 상수), 본인 템플릿 사용은 포인트 없음(자가 적립 차단).
+       refId=템플릿:노트 멱등 — 같은 노트로 두 번 지급되지 않는다. fire-and-forget. */
+    void (async () => {
+      try {
+        const meta = body.metadata as Record<string, unknown> | undefined;
+        const tplId = typeof meta?.templateId === "string" ? meta.templateId : null;
+        if (!tplId) return;
+        const { getTemplate, incrementUseCount } = await import("@/lib/note-templates/store");
+        const tpl = await getTemplate(tplId);
+        if (!tpl || tpl.isOfficial) return;
+        await incrementUseCount(tplId);
+        if (tpl.authorEmail && tpl.authorEmail !== session.user!.email) {
+          await awardPoints(tpl.authorEmail, "template_used", `${tplId}:${note.id}`);
+        }
+      } catch {
+        /* 사용 집계 실패가 노트 저장 응답을 막지 않는다 */
+      }
+    })();
     void recordFunnelEvent(req, {
       eventName: FUNNEL_EVENT.INSPECTION_NOTE_CREATE,
       userEmail: session.user.email,

@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestApplyhomeSupply } from "@/lib/market/supply-ingest";
+import { backfillSupplyGeocode } from "@/lib/market/supply-geocode";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
 
 export const runtime = "nodejs";
@@ -32,10 +33,19 @@ async function handle(req: Request) {
         result.reason ??
         `조회=${result.fetched} 업서트=${result.upserted} 이관=${result.migrated} 입주월없음/과거=${result.skippedNoMoveIn} 페이지=${result.pagesFetched}`,
     });
+    /* [#74] 좌표 점진 백필(일 25건) — 지도 레이어용. 실패해도 인제스트 성공은 유지. */
+    let geocode: Awaited<ReturnType<typeof backfillSupplyGeocode>> | { error: string } | null =
+      null;
+    try {
+      geocode = await backfillSupplyGeocode(25);
+    } catch (e) {
+      geocode = { error: e instanceof Error ? e.message : "지오코딩 실패" };
+    }
     return NextResponse.json({
       ok: true,
       mode: result.configured ? "live" : "mock",
       ...result,
+      geocode,
     });
   } catch (err) {
     const message = ingestErrorMessage(err, "입주물량 적재 실패");

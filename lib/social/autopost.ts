@@ -77,13 +77,59 @@ async function pickNote() {
   return (data ?? []).find((n) => !usedIds.has(n.id)) ?? null;
 }
 
-/** 홍보 로테이션 — 수치는 실측, 기준시점 포함 */
+/** 홍보 로테이션 — 수치는 실측, 기준시점 포함.
+ *  [#62] 데이터 소재 2종(주간 신고가·청약 마감)을 로테이션 앞줄에 추가했다.
+ *  데이터 소재는 그날 데이터가 없거나 조회가 실패하면 **그 소재만 건너뛰고**
+ *  다음 후보로 넘어간다 — 홍보 3종은 언제나 폴백으로 남아 하루 1건이 끊기지 않는다. */
 async function buildPromo(dayIndex: number) {
   const sb = getServiceSupabase();
   if (!sb) throw new Error("서비스 클라이언트 미구성");
   const asOf = new Date().toISOString().slice(0, 10).replace(/-/g, ".") + " 기준";
 
   const templates = [
+    {
+      id: "weekly-high",
+      headline: "이번 주 신고가 경신 단지",
+      sub: "국토교통부 실거래 신고에서 자동 탐지 — 계약 후 30일 신고분이라 이후 정정될 수 있습니다",
+      statLabel: "주간 신고가 (실거래 신고 기준)",
+      count: async () => {
+        const { getWeeklyPriceHighs } = await import("@/lib/market/weekly-highs");
+        const highs = await getWeeklyPriceHighs(1);
+        if (highs.length === 0) throw new Error("이번 주 신고가 없음 — 소재 건너뜀");
+        const h = highs[0];
+        const eok = (n: number) => `${(n / 1e8).toFixed(1).replace(/\.0$/, "")}억`;
+        // headline/sub 를 실데이터로 교체 (아래 스프레드에서 count 결과가 statValue 로 감)
+        return `${h.regionName} ${h.complexName} ${h.areaM2}㎡ ${eok(h.priceKrw)}`;
+      },
+      title: "이번 주 신고가 단지 — 실거래 신고 기준",
+      caption:
+        "국토교통부 실거래 신고에서 자동 탐지한 이번 주 신고가입니다. 계약 후 30일 신고 기한이 있어 이후 정정·취소될 수 있습니다. 지역별 전체 흐름은 nuguzip.com 에서. 투자 권유가 아닙니다.",
+      hashtags: ["신고가", "실거래가", "아파트", "부동산", "누구집"],
+    },
+    {
+      id: "apply-closing",
+      headline: "이번 주 접수 마감 청약",
+      sub: "청약홈 공고 기준 — 마감일·자격은 공고문이 최종입니다",
+      statLabel: "7일 내 접수 마감 (청약홈)",
+      count: async () => {
+        const { buildApplyCalendar } = await import("@/lib/applyhome/calendar");
+        const cal = await buildApplyCalendar();
+        if (cal.state !== "ok") throw new Error("청약 캘린더 조회 불가 — 소재 건너뜀");
+        const today = new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+        const week = new Date(Date.now() + 9 * 3600_000 + 6 * 86400_000)
+          .toISOString()
+          .slice(0, 10);
+        const ends = cal.days
+          .filter((d) => d.date >= today && d.date <= week)
+          .reduce((s, d) => s + d.ends.length, 0);
+        if (ends === 0) throw new Error("이번 주 마감 청약 없음 — 소재 건너뜀");
+        return `${ends}건`;
+      },
+      title: "이번 주 접수 마감 청약 일정",
+      caption:
+        "청약홈 공고 기준 7일 내 접수 마감 건수입니다. 단지별 일정과 지난 주 아카이브는 nuguzip.com/apply/calendar 에서. 자격·일정은 공고문이 최종입니다.",
+      hashtags: ["청약", "청약일정", "아파트청약", "부동산", "누구집"],
+    },
     {
       id: "map-tx",
       headline: "지도에 찍히는 가격,\n호가가 아니라 실거래가",
@@ -127,8 +173,19 @@ async function buildPromo(dayIndex: number) {
       hashtags: ["부동산시장", "시장온도", "아파트시세", "누구집"],
     },
   ];
-  const t = templates[dayIndex % templates.length];
-  return { ...t, statValue: await t.count(), statAsOf: asOf };
+  /* 로테이션 시작점만 dayIndex 로 돌리고, 실패(데이터 없음 포함)하는 소재는
+     건너뛴다. 전부 실패하면 마지막 오류를 던진다 — 상위(generateAndEnqueue)가
+     기존과 동일하게 실패를 보고한다. */
+  let lastErr: unknown = null;
+  for (let i = 0; i < templates.length; i += 1) {
+    const t = templates[(dayIndex + i) % templates.length];
+    try {
+      return { ...t, statValue: await t.count(), statAsOf: asOf };
+    } catch (e) {
+      lastErr = e; // 데이터 없음/조회 실패 — 다음 소재로
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error("소셜 소재 후보 전부 실패");
 }
 
 /**

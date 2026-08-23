@@ -30,11 +30,25 @@ export const metadata = buildPageMetadata({
 
 export const revalidate = 120;
 
+/* [#64] 동네 홈 바로가기 — 노트·글이 실제로 있는 지역 위주 8곳 (수동 선정).
+   전체 62곳은 각 동네 홈 하단의 "다른 동네" 칩으로 이동한다. */
+const TOWN_HOME_SHORTCUTS = [
+  { id: "gangnam", name: "강남구" },
+  { id: "nowon", name: "노원구" },
+  { id: "mapo", name: "마포구" },
+  { id: "songpa", name: "송파구" },
+  { id: "seongnam-bundang", name: "성남 분당구" },
+  { id: "suwon-yeongtong", name: "수원 영통구" },
+  { id: "goyang-deogyang", name: "고양 덕양구" },
+  { id: "incheon-yeonsu", name: "인천 연수구" },
+] as const;
+
 function noteToCard(n: InspectionNote): FeedCard {
   const oneLiner = n.summary?.trim() || n.sections.pros?.trim() || n.title;
   const tags: string[] = [];
   if (n.aptName?.trim()) tags.push(n.aptName.trim());
   if (n.visitDate) tags.push("직접방문");
+  if (n.metadata?.visitVerified) tags.push("현장 인증"); // [#71]
   // 허수 제거(#9): 예전의 "저장수 = 평균 평점×40 + 체크 수" 계산식을 없앴다.
   // 노트에는 실측 저장 지표가 없으므로 saves 미표시, 실데이터인 평균 평점만 노출.
   const rating = inspectionAverageScore(n.scores);
@@ -120,6 +134,26 @@ export default async function TownPage() {
       {/* 동네이야기 카테고리 — 청약·입주·공매 + 뉴스·자료·모임·전문가 (인터랙티브).
           목록은 lib/town/category-links.ts 단일 소스. 하위 7개 페이지도 같은 것을 쓴다. */}
       <TownCategoryNav />
+
+      {/* [#64] 동네 홈 진입 — ?region= 필터 대신 지역별 정식 페이지로 */}
+      <div className="rise-in-1 mb-4 flex flex-wrap items-center gap-1.5">
+        <span className="text-[12px] font-bold text-text-3">우리 동네 홈:</span>
+        {TOWN_HOME_SHORTCUTS.map((r) => (
+          <Link
+            key={r.id}
+            href={`/town/${r.id}`}
+            className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+          >
+            {r.name}
+          </Link>
+        ))}
+        <Link
+          href="/region"
+          className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-primary"
+        >
+          전체 지역 보기 ›
+        </Link>
+      </div>
 
       {/* [3차] 오늘의 동네 글감 — 유저 글 0의 원인(쓸 이유 없음)에 대한 직접 처방 */}
       <TownPromptCard />

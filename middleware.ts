@@ -32,7 +32,14 @@ function applySecurityHeaders(response: NextResponse, request?: NextRequest) {
 
   // CSP는 HTML 문서 응답에만 포함 (API·정적자산에는 불필요하고 노이즈)
   if (!isApiPath) {
-    response.headers.set("Content-Security-Policy", buildContentSecurityPolicy(isDev));
+    /* [#88] /embed/* 는 외부 iframe 삽입이 목적 — frame-ancestors 만 연다.
+       next.config headers 의 경로 분기와 반드시 같은 판정이어야 한다(두 값이
+       다르면 브라우저가 교집합을 강제해 임베드가 다시 죽는다). */
+    const isEmbed = request?.nextUrl.pathname.startsWith("/embed/") ?? false;
+    response.headers.set(
+      "Content-Security-Policy",
+      buildContentSecurityPolicy(isDev, { frameAncestors: isEmbed ? "any" : "self" }),
+    );
   }
   // 모든 미들웨어 통과 응답에 타입 스니핑 방지 헤더 추가
   response.headers.set("X-Content-Type-Options", "nosniff");

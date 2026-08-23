@@ -29,6 +29,8 @@ export default async function NoteNewPage({
     typeof sp.intent === "string" && sp.intent.trim().toLowerCase() === "ai";
   const fromWelcome =
     typeof sp.from === "string" && sp.from.trim().toLowerCase() === "welcome";
+  /* [#68] 현장 퀵모드 — ?quick=1: 사진·위치·메모만 먼저, 세부 항목은 접힘 */
+  const quickStart = typeof sp.quick === "string" && sp.quick.trim() === "1";
   let template: NoteFormTemplate | null = null;
   if (tplId) {
     try {
@@ -44,6 +46,7 @@ export default async function NoteNewPage({
       presetMemo={presetMemo}
       preferAi={preferAi || fromWelcome}
       fromWelcome={fromWelcome}
+      quickStart={quickStart}
     />
   );
 }

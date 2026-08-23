@@ -2,6 +2,11 @@ import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { getAllRegionSnapshots } from "@/lib/market/store";
 import { formatKrwShort } from "@/lib/market/format";
+import {
+  getRegionRentYieldMap,
+  rentYieldPct,
+  type RegionRentYieldMap,
+} from "@/lib/market/rent-yield";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
 import { ErrorState } from "@/app/components/ui";
@@ -35,6 +40,8 @@ type Row = {
   source: string;
   /** 월간 매매지수 변동(%) — 스냅샷의 sale_change (없으면 undefined) */
   saleChange?: number;
+  /** [#94 잔여] 월세 환산 수익률(연 %) — 표본 30건 미만·분모 0 이하면 undefined */
+  rentYield?: number;
   group: "서울" | "경기" | "인천";
 };
 
@@ -47,13 +54,14 @@ function fmtPeriod(period: string): string {
 function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
   return (
     <div className="card overflow-x-auto rounded-2xl px-4 py-2">
-      <table className="w-full min-w-[520px] text-[13px]">
+      <table className="w-full min-w-[600px] text-[13px]">
         <thead>
           <tr className="border-b border-line text-left text-[11px] text-text-3">
             <th className="py-2 pr-3 font-semibold">지역</th>
             <th className="py-2 pr-3 text-right font-semibold">전세가율</th>
             <th className="py-2 pr-3 text-right font-semibold">평균 매매가</th>
             <th className="py-2 pr-3 text-right font-semibold">추정 갭</th>
+            <th className="py-2 pr-3 text-right font-semibold">월세 환산</th>
             <th className="py-2 pr-3 text-right font-semibold">매매지수 변동</th>
             <th className="py-2 text-right font-semibold">기준</th>
           </tr>
@@ -81,6 +89,9 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
               </td>
               <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-ink">
                 {r.gap !== undefined ? formatKrwShort(r.gap) : "—"}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums text-text-1">
+                {r.rentYield !== undefined ? `${r.rentYield.toFixed(1)}%` : "—"}
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums">
                 {r.saleChange === undefined ? (
@@ -135,6 +146,23 @@ export default async function GapScreenerPage() {
   } catch (e) {
     logger.error("[analysis/gap] 스냅샷 로드 실패", e);
     loadFailed = true;
+  }
+
+  /* [#94 잔여] 월세 환산 수익률 — RPC 1회로 전 지역 중앙값을 받아 행에 붙인다.
+     실패는 열 결측("—")일 뿐 페이지 실패가 아니다 — 본문(전세가율)은 그대로 산다. */
+  if (!loadFailed && rows.length > 0) {
+    let yieldMap: RegionRentYieldMap | null = null;
+    try {
+      yieldMap = await getRegionRentYieldMap();
+    } catch (e) {
+      logger.error("[analysis/gap] 월세 수익률 RPC 실패 — 열 없이 렌더", e);
+    }
+    if (yieldMap) {
+      for (const r of rows) {
+        const y = rentYieldPct(r.avgSale, yieldMap.get(r.name));
+        if (y !== null) r.rentYield = Math.round(y * 10) / 10;
+      }
+    }
   }
 
   rows = rows.sort((a, b) => b.ratio - a.ratio);
@@ -232,6 +260,10 @@ export default async function GapScreenerPage() {
           {
             q: "전세가율이 높으면 안전한 지역인가요?",
             a: "아닙니다. 전세가율이 높다는 것은 갭이 작다는 산술일 뿐이며, 전세가 하락 시 보증금 반환 부담(역전세)과 매매가·전세가 역전 위험도 함께 커집니다.",
+          },
+          {
+            q: "월세 환산 수익률은 어떻게 계산하나요?",
+            a: "최근 3개월 그 지역 월세 신고의 중앙값을 써서, (월세 중앙값 × 12) ÷ (평균 매매가 − 월세 보증금 중앙값)으로 계산한 연 수익률입니다. 지역 평균 매매가와 단지가 뒤섞인 중앙값의 결합이라 참고 지표이며, 표본이 30건 미만인 지역은 표시하지 않습니다. 세금·수리비·공실은 반영되지 않습니다.",
           },
         ];
         return (

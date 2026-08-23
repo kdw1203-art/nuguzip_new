@@ -49,6 +49,7 @@ type NoteView = {
   chips: string[]; // 지역 › 단지 › 평형 칩 (20a ①)
   oneLiner: string; // 한 줄 총평 = 제목 (20a ③)
   directVisit: boolean; // 직접 방문 배지 (20a ①)
+  fieldVerified: boolean; // [#71] 현장 인증 배지 (위치 확인 통과)
   visitMeta: string; // 방문일·작성자 (20a ②)
   axes: Axis[]; // 채광·소음·주차·교통 4축 (20a ④)
   body: string;
@@ -235,6 +236,8 @@ function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
     chips,
     oneLiner: n.title,
     directVisit: Boolean(n.visitDate),
+    /* [#71] 현장 인증 — 작성 시점 위치 확인(거리 버킷만 저장) 통과 여부 */
+    fieldVerified: Boolean(n.metadata?.visitVerified),
     visitMeta: meta.join(" · "),
     axes,
     body:
@@ -523,6 +526,8 @@ export default async function NoteDetailPage({
 
   // 방문 기록 비교 — complexId 우선, 없으면 aptName. 비소유자는 공개 회차만.
   let visits: Visit[] | undefined;
+  /* [#72] 재방문 변화 — 이 노트 직전 회차와의 점수·메모 변화 자동 요약 */
+  let revisitDelta: import("@/lib/inspection/revisit").RevisitDelta | null = null;
   const visitComplexId =
     typeof realNote.metadata?.complexId === "string"
       ? realNote.metadata.complexId.trim()
@@ -545,6 +550,17 @@ export default async function NoteDetailPage({
           latest: x.id === realNote.id,
         };
       });
+      /* [#72] 이 노트가 2회차 이상이면 직전 회차와의 변화 요약을 만든다 */
+      const currIdx = visible.findIndex((x) => x.id === realNote.id);
+      if (currIdx > 0) {
+        const { buildRevisitDelta } = await import("@/lib/inspection/revisit");
+        revisitDelta = buildRevisitDelta(
+          visible[currIdx - 1],
+          visible[currIdx],
+          currIdx - 1,
+          currIdx,
+        );
+      }
     } catch {
       visits = undefined;
     }
@@ -732,6 +748,15 @@ export default async function NoteDetailPage({
                   자료 조사
                 </span>
               )}
+              {/* [#71] 현장 인증 — 작성 시점에 단지 반경 2km 위치 확인을 통과한 노트 */}
+              {v.fieldVerified && (
+                <span
+                  className="rounded-md bg-primary-soft chip-pad text-[11px] font-extrabold text-primary"
+                  title="작성 시점에 단지 반경 2km 이내 위치 확인을 통과했습니다 (거리 구간만 기록, 좌표 비저장)"
+                >
+                  📍 현장 인증
+                </span>
+              )}
               <span className="text-text-3">{v.visitMeta}</span>
             </div>
 
@@ -873,6 +898,40 @@ export default async function NoteDetailPage({
           <DeepDivePanel
             analysis={(realNote.aiAnalysis ?? null) as Record<string, unknown> | null}
           />
+
+          {/* [#72] 재방문 변화 리포트 — 직전 회차 대비, 바뀐 항목만 */}
+          {revisitDelta && (
+            <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-6">
+              <div className="text-base font-extrabold text-ink">
+                재방문 변화{" "}
+                <span className="text-[12px] font-medium text-text-3">
+                  {revisitDelta.fromLabel}({revisitDelta.prevVisitDate}) →{" "}
+                  {revisitDelta.toLabel}
+                </span>
+              </div>
+              {revisitDelta.changes.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {revisitDelta.changes.map((c) => (
+                    <span
+                      key={c}
+                      className="rounded-full bg-[#edf2fe] px-3 py-1.5 text-[12px] font-bold text-primary"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] text-text-2">
+                  비교 가능한 {revisitDelta.comparable}개 항목의 평가가 직전 회차와
+                  같아요 — 인상이 유지되고 있다는 것도 기록입니다.
+                </p>
+              )}
+              <p className="t-caption text-text-3">
+                같은 단지에 남긴 직전 기록과 이번 기록의 차이를 자동 비교했어요. 두 회차
+                모두 기록된 항목만 비교합니다.
+              </p>
+            </div>
+          )}
 
           {/* 방문 기록 비교 */}
           <div className="rise-in-1 card flex flex-col gap-3 rounded-[20px] p-6">

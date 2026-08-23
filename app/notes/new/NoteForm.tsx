@@ -404,6 +404,7 @@ export function NoteForm({
   presetMemo,
   preferAi = false,
   fromWelcome = false,
+  quickStart = false,
 }: {
   template?: NoteFormTemplate | null;
   initialNote?: NoteFormInitialNote | null;
@@ -413,6 +414,8 @@ export function NoteForm({
   preferAi?: boolean;
   /** /welcome 온보딩 — 저장·AI 후 지도로 루프 완료 */
   fromWelcome?: boolean;
+  /** [#68] 현장 퀵모드(?quick=1) — 사진·위치·메모 먼저, 세부 평가는 접어 둔다 */
+  quickStart?: boolean;
 }) {
   const router = useRouter();
   const { showMoment } = useMoment();
@@ -621,6 +624,60 @@ export function NoteForm({
     Boolean(initialNote?.metadata?.socialShareConsent),
   );
   const [photos, setPhotos] = useState<string[]>(initialNote?.photos ?? []);
+
+  /* [#68] 현장 퀵모드 — 임장의 실제 순서(사진 먼저, 평가는 나중)와 폼 순서를
+     일치시킨다. 켜져 있으면 세부 평가 4개 섹션(현장 체크·체크리스트·태그·
+     고려사항)을 접고, 사진·위치·메모·저장만 남긴다. 임시저장(1초 자동)이
+     이미 있으므로 "나중에 채우기"는 초안 복구로 자연스럽게 이어진다. */
+  const [quickMode, setQuickMode] = useState(quickStart && !isEdit);
+
+  /* [#71] 직접 방문 인증(선택) — 현재 위치와 단지 좌표의 거리로 확인.
+     프라이버시 설계: 사용자의 원 좌표는 **어디에도 저장·전송하지 않는다**.
+     브라우저 안에서 거리만 계산해 50m 단위 버킷과 시각만 metadata 에 남긴다.
+     동의는 이 버튼을 직접 누르는 행위 그 자체(눌러야만 위치 권한 요청). */
+  const [visitVerified, setVisitVerified] = useState<
+    { method: "geo"; distanceM: number; at: string } | null
+  >(null);
+  const [verifyState, setVerifyState] = useState<
+    "idle" | "asking" | "far" | "denied" | "unsupported"
+  >("idle");
+  const [verifyFarKm, setVerifyFarKm] = useState<number | null>(null);
+  const runVisitVerify = () => {
+    if (typeof loc.lat !== "number" || typeof loc.lng !== "number") return;
+    if (!("geolocation" in navigator)) {
+      setVerifyState("unsupported");
+      return;
+    }
+    setVerifyState("asking");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const toRad = (d: number) => (d * Math.PI) / 180;
+        const R = 6371000;
+        const dLat = toRad(pos.coords.latitude - (loc.lat as number));
+        const dLng = toRad(pos.coords.longitude - (loc.lng as number));
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos(toRad(loc.lat as number)) *
+            Math.cos(toRad(pos.coords.latitude)) *
+            Math.sin(dLng / 2) ** 2;
+        const dist = 2 * R * Math.asin(Math.sqrt(a));
+        if (dist <= 2000) {
+          setVisitVerified({
+            method: "geo",
+            distanceM: Math.max(50, Math.round(dist / 50) * 50), // 50m 버킷 — 정밀 위치 비저장
+            at: new Date().toISOString(),
+          });
+          setVerifyState("idle");
+        } else {
+          setVisitVerified(null);
+          setVerifyFarKm(Math.round(dist / 100) / 10);
+          setVerifyState("far");
+        }
+      },
+      () => setVerifyState("denied"),
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  };
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -922,6 +979,8 @@ export function NoteForm({
         photos,
         metadata: {
           socialShareConsent: isPublic ? socialShareConsent : undefined,
+          /* [#71] 방문 인증 — 거리 버킷·시각만 (원 좌표 비저장 원칙) */
+          visitVerified: visitVerified ?? undefined,
           complexId: loc.complexId ?? undefined,
           lat: loc.lat ?? undefined,
           lng: loc.lng ?? undefined,
@@ -1218,6 +1277,55 @@ export function NoteForm({
         {/* 위치 카드 — 단지·주소 검색으로 연결 */}
         <NoteLocationSearch value={loc} onChange={setLoc} />
 
+        {/* [#71] 방문 인증(선택) — 단지 좌표가 있을 때만. 원 좌표는 저장하지 않는다. */}
+        {!isEdit && typeof loc.lat === "number" && typeof loc.lng === "number" && (
+          <div className="rise-in-2 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-[12.5px] font-extrabold text-ink">
+                직접 방문 인증{" "}
+                <span className="font-medium text-text-3">(선택)</span>
+              </div>
+              {visitVerified ? (
+                <span className="rounded-md bg-success-soft px-2 py-1 text-[11px] font-extrabold text-success">
+                  ✓ 현장 인증됨 · 단지 반경 {visitVerified.distanceM >= 1000
+                    ? `${(visitVerified.distanceM / 1000).toFixed(1)}km`
+                    : `${visitVerified.distanceM}m`}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={runVisitVerify}
+                  disabled={verifyState === "asking"}
+                  className="rounded-[9px] border border-[#c9d4e5] bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1 disabled:opacity-60"
+                >
+                  {verifyState === "asking" ? "위치 확인 중…" : "현재 위치로 인증하기"}
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] leading-[1.6] text-text-3">
+              지금 단지 근처(2km 이내)에 있다면 노트에 &lsquo;현장 인증&rsquo; 배지가
+              붙어요. 버튼을 누를 때 한 번만 위치를 확인하며, 내 위치 좌표는 저장하지도
+              전송하지도 않습니다 — 거리 구간(50m 단위)만 남아요.
+            </p>
+            {verifyState === "far" && (
+              <p className="text-[11px] font-bold text-warning">
+                단지에서 약 {verifyFarKm}km 떨어져 있어 인증되지 않았어요. 현장에서 다시
+                시도해 주세요.
+              </p>
+            )}
+            {verifyState === "denied" && (
+              <p className="text-[11px] font-bold text-text-3">
+                위치 권한이 거부돼 인증을 건너뛰어요 — 인증 없이도 노트는 그대로 저장돼요.
+              </p>
+            )}
+            {verifyState === "unsupported" && (
+              <p className="text-[11px] font-bold text-text-3">
+                이 브라우저는 위치 확인을 지원하지 않아요.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* 방문 정보 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 p-4">
           <div className="flex items-center justify-between gap-2">
@@ -1307,6 +1415,26 @@ export function NoteForm({
           </div>
         </div>
 
+        {/* [#68] 퀵모드 배너 — 접힌 세부 평가를 여는 단 하나의 통로 */}
+        {quickMode && (
+          <div className="rise-in-3 flex items-center justify-between gap-3 rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.06)] px-4 py-3">
+            <div className="min-w-0 text-xs leading-[1.6] text-text-1">
+              <b className="text-primary">현장 퀵모드</b> — 사진·위치·메모만 먼저
+              저장하세요. 점수·체크리스트는 나중에{" "}
+              <b>수정</b>으로 채워도 되고, 지금 펼쳐도 됩니다.
+            </div>
+            <button
+              type="button"
+              onClick={() => setQuickMode(false)}
+              className="shrink-0 rounded-[9px] border border-[#c9d4e5] bg-surface px-3 py-2 text-[11px] font-bold text-text-1"
+            >
+              세부 항목 펼치기
+            </button>
+          </div>
+        )}
+
+        {!quickMode && (
+          <>
         {/* 현장 체크 — 세그먼트 평가 (9항목 → 5축 점수) */}
         <div className="rise-in-3 card flex flex-col gap-2.5 p-4">
           <div className="text-sm font-extrabold text-ink">
@@ -1568,6 +1696,9 @@ export function NoteForm({
             ＋ 고려사항 추가
           </button>
         </div>
+
+          </>
+        )}
 
         {/* 메모 + 사진 */}
         <div className="rise-in-6 card flex flex-col gap-2.5 p-4">

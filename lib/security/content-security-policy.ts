@@ -1,8 +1,17 @@
 /**
  * Content-Security-Policy — next.config headers + middleware 공용.
  * 한곳에서만 정의해 배포·엣지·브라우저 간 불일치를 줄인다.
+ *
+ * [#88] frameAncestors 옵션: 임베드 위젯(/embed/*)은 외부 블로그·카페가
+ * <iframe> 으로 싣는 것이 존재 이유인데, 기본값 'self' 가 그것을 전부
+ * 차단하고 있었다(위젯 기능이 배포 후 한 번도 외부에서 동작한 적 없음).
+ * embed 경로만 '*' 로 연다 — 위젯에는 세션 쓰기·개인화가 없고(공개 ISR),
+ * 클릭재킹으로 보호할 상태 변경 UI 도 없다. 나머지 전 경로는 'self' 유지.
  */
-export function buildContentSecurityPolicy(isDev: boolean): string {
+export function buildContentSecurityPolicy(
+  isDev: boolean,
+  opts?: { frameAncestors?: "self" | "any" },
+): string {
   /* 카카오 JS SDK 는 **JS 키가 설정된 배포에서만** 내려받는다. 키가 없으면 SDK 를
      띄울 일 자체가 없으니 정책도 그만큼 좁게 유지한다(허용 도메인은 적을수록 좋다). */
   const kakaoSdkEnabled = Boolean(process.env.NEXT_PUBLIC_KAKAO_JS_KEY?.trim());
@@ -50,7 +59,7 @@ export function buildContentSecurityPolicy(isDev: boolean): string {
     "base-uri 'self'",
     "form-action 'self'",
     // frame-ancestors는 X-Frame-Options보다 우선하며 더 정확하다
-    "frame-ancestors 'self'",
+    opts?.frameAncestors === "any" ? "frame-ancestors *" : "frame-ancestors 'self'",
     "upgrade-insecure-requests",
     /* 위반 리포트 수집 — enforce 정책은 그대로 두고 위반만 /api/security/csp-report 로 보낸다.
        report-uri 는 deprecated 지만 아직 가장 넓게 지원된다(report-to 는 Reporting-Endpoints

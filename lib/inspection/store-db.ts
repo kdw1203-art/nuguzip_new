@@ -42,6 +42,8 @@ export type InspectionNoteMetadata = {
   satisfaction?: number;
   /** 작성 시 적용한 노트 템플릿 id (출처 표시용) */
   templateId?: string;
+  /** [#71] 직접 방문 인증 — 거리 버킷(50m 단위)·시각만. 원 좌표는 설계상 저장하지 않는다. */
+  visitVerified?: { method: "geo"; distanceM: number; at: string };
   /** 단지 허브 id — 회차 비교·지도 핸드오프의 정규 키(aptName 보다 우선) */
   complexId?: string;
   lat?: number;

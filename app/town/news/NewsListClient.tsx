@@ -38,7 +38,37 @@ export type NewsCardDto = {
   host: string | null;
   image: string | null;
   favicon: string | null;
+  /** [#67] 같은 사건을 다룬 다른 매체 보도 — 카드 안에 접힌 목록 (최대 4건) */
+  related?: Array<{ id: string; title: string; source: string; timeLabel: string }>;
 };
+
+/* [#67] 관련 보도 접힘 목록 — 카드 하단의 <details>. 링크 카드(<Link>) 안에
+   중첩할 수 없어(중첩 앵커), 이 블록을 쓰는 카드는 겉을 div 로 바꾸고 본문만
+   Link 로 감싼다. */
+function RelatedFold({ related }: { related: NonNullable<NewsCardDto["related"]> }) {
+  if (related.length === 0) return null;
+  return (
+    <details className="border-t border-[#f0f3f8] px-3 py-2">
+      <summary className="cursor-pointer list-none text-[11px] font-bold text-primary">
+        관련 보도 {related.length}건 ▾
+      </summary>
+      <ul className="mt-1.5 flex flex-col gap-1.5">
+        {related.map((r) => (
+          <li key={r.id}>
+            <Link href={`/town/news/${r.id}`} className="flex flex-col gap-px">
+              <span className="line-clamp-2 text-[11.5px] font-bold leading-[1.4] text-ink">
+                {r.title}
+              </span>
+              <span className="text-[10px] text-text-3">
+                {r.source} · {r.timeLabel}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 function badgeStyle(category: string): string {
   const c = category ?? "";
@@ -214,29 +244,31 @@ export function NewsListClient({
         </div>
       )}
 
-      {/* 대표 뉴스 */}
+      {/* 대표 뉴스 — [#67] 관련 보도가 있으면 카드 하단에 접힘 목록 */}
       {featured && (
-        <Link
-          href={`/town/news/${featured.id}`}
-          className="rise-in card card-hover mb-5 block overflow-hidden rounded-[20px]"
-        >
-          <Thumb card={featured} tall />
-          <div className="flex flex-col gap-2 p-5">
-            <h2 className="text-[19px] font-extrabold leading-[1.4] text-ink">
-              {featured.title}
-            </h2>
-            {featured.body && (
-              <p className="line-clamp-2 text-sm leading-[1.6] text-text-2">
-                {featured.body}
-              </p>
-            )}
-            <div className="flex items-center gap-2 text-xs text-text-3">
-              <span className="font-semibold text-text-2">{featured.source}</span>
-              <span>· {featured.timeLabel}</span>
-              {featured.host && <span className="text-text-3">· {featured.host}</span>}
+        <div className="rise-in card card-hover mb-5 overflow-hidden rounded-[20px]">
+          <Link href={`/town/news/${featured.id}`} className="block">
+            <Thumb card={featured} tall />
+            <div className="flex flex-col gap-2 p-5">
+              <h2 className="text-[19px] font-extrabold leading-[1.4] text-ink">
+                {featured.title}
+              </h2>
+              {featured.body && (
+                <p className="line-clamp-2 text-sm leading-[1.6] text-text-2">
+                  {featured.body}
+                </p>
+              )}
+              <div className="flex items-center gap-2 text-xs text-text-3">
+                <span className="font-semibold text-text-2">{featured.source}</span>
+                <span>· {featured.timeLabel}</span>
+                {featured.host && <span className="text-text-3">· {featured.host}</span>}
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+          {featured.related && featured.related.length > 0 && (
+            <RelatedFold related={featured.related} />
+          )}
+        </div>
       )}
 
       {/* 뉴스에서 자주 다뤄지는 두 표면으로의 상설 진입 */}
@@ -257,28 +289,30 @@ export function NewsListClient({
         </Link>
       </div>
 
-      {/* 뉴스 그리드 */}
+      {/* 뉴스 그리드 — [#67] 관련 보도는 카드 하단 접힘 (대표 1건 + N건) */}
       {rest.length > 0 && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {rest.map((c, i) => (
-            <Link
+            <div
               key={c.id}
-              href={`/town/news/${c.id}`}
               className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-[16px]`}
             >
-              <Thumb card={c} />
-              <div className="flex flex-1 flex-col gap-1.5 p-3">
-                <div className="line-clamp-3 text-[13px] font-bold leading-[1.4] text-ink">
-                  {c.title}
+              <Link href={`/town/news/${c.id}`} className="flex flex-1 flex-col">
+                <Thumb card={c} />
+                <div className="flex flex-1 flex-col gap-1.5 p-3">
+                  <div className="line-clamp-3 text-[13px] font-bold leading-[1.4] text-ink">
+                    {c.title}
+                  </div>
+                  <div className="mt-auto flex items-center gap-1 text-[11px] text-text-3">
+                    <span className="min-w-0 truncate font-semibold text-text-2">
+                      {c.source}
+                    </span>
+                    <span className="shrink-0">· {c.timeLabel}</span>
+                  </div>
                 </div>
-                <div className="mt-auto flex items-center gap-1 text-[11px] text-text-3">
-                  <span className="min-w-0 truncate font-semibold text-text-2">
-                    {c.source}
-                  </span>
-                  <span className="shrink-0">· {c.timeLabel}</span>
-                </div>
-              </div>
-            </Link>
+              </Link>
+              {c.related && c.related.length > 0 && <RelatedFold related={c.related} />}
+            </div>
           ))}
         </div>
       )}

@@ -25,6 +25,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/freshness", label: "데이터 신선도" },
   { href: "/admin/seo", label: "SEO 측정" },
   { href: "/admin/social", label: "소셜 · 쇼츠" },
+  { href: "/admin/blog-pack", label: "블로그 팩" },
 ];
 
 export function AdminNav() {

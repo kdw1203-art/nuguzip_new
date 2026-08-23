@@ -190,6 +190,8 @@ export type IngestSource =
   | "supply"
   /** 신고가 자동 소식(app/api/cron/price-record-watch, #81) */
   | "news"
+  /** 생활 인프라 표준데이터 — 학교·도시철도역(app/api/cron/poi-ingest, #96) */
+  | "poi"
   | "geocode"
   /** 구독 만료 스윕(app/api/cron/plan-expiry-sweep) — 시장 데이터는 아니지만 크론 실행 기록은 같은 로그로 남긴다 */
   | "plan-expiry"

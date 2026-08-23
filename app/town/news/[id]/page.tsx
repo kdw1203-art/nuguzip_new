@@ -5,6 +5,7 @@ import { PageShell } from "../../../components/PageShell";
 import { AIPanel } from "../../../components/AIPanel";
 import { ReportButton } from "../../../components/ReportButton";
 import { getTownPost, readRelatedTownPosts } from "@/lib/newui/board-posts";
+import { relatedInCluster } from "@/lib/news/cluster";
 import { isPostHidden } from "@/lib/moderation/reports-store";
 import type { Post } from "@/lib/types/post";
 import { logger } from "@/lib/log";
@@ -237,6 +238,8 @@ export default async function TownNewsDetailPage({
   const uuid = extractUuid(id) ?? id;
 
   let similarPosts: { id: string | null; title: string; meta: string }[] = [];
+  /* [#67] 같은 사건을 다룬 다른 매체 보도 — 제목 유사도 클러스터(lib/news/cluster) */
+  let clusterRelated: { id: string; title: string; meta: string }[] = [];
   /* 웹19 — 목록 정렬(readTownPosts 와 동일) 기준 이웃 글. 목록으로 돌아가지
      않고 다음 기사로 넘어가는 동선. 현재 글이 목록에 없으면(숨김 등) 생략. */
   let newerPost: { id: string | null; title: string } | null = null;
@@ -270,6 +273,28 @@ export default async function TownNewsDetailPage({
     /* 관련글은 제목·분류·출처·시각만 쓴다 — 본문·automation_meta 는 안 읽는다.
        고르는 글은 readTownPosts 와 같다(정렬·중복 제거·품질 게이트 컬럼 동일). */
     const all = await readRelatedTownPosts();
+
+    /* [#67] 동일 사건 클러스터 — 자동수집 뉴스 풀에서 이 기사와 같은 사건으로
+       묶이는 다른 매체 보도. 유사 기사(주제·분류 기반)보다 강한 연결이라 위에 따로. */
+    if (post!.isAutomated) {
+      const pool = all
+        .filter((p) => p.isAutomated && p.id)
+        .map((p) => ({
+          id: p.id as string,
+          title: p.title,
+          timeMs: Date.parse(p.sourcePublishedAt || p.createdAt) || 0,
+          sourceName: p.sourceName || p.authorLabel,
+          at: p.sourcePublishedAt || p.createdAt,
+        }));
+      clusterRelated = relatedInCluster(pool, post!.id)
+        .slice(0, 4)
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          meta: `${r.sourceName} · ${shortDate(r.at)}`,
+        }));
+    }
+
     const sameCat = all.filter(
       (p) => p.id !== post!.id && p.category === post!.category,
     );
@@ -694,6 +719,30 @@ export default async function TownNewsDetailPage({
               </Link>
             </div>
           </div>
+
+          {/* [#67] 관련 보도 — 같은 사건을 다룬 다른 매체 (제목 유사도 클러스터) */}
+          {clusterRelated.length > 0 && (
+            <div className="rise-in-4 card flex flex-col gap-1 rounded-[18px] p-[18px]">
+              <div className="mb-1.5 text-[13px] font-extrabold text-ink">
+                관련 보도 {clusterRelated.length}건{" "}
+                <span className="text-[11px] font-medium text-text-3">같은 사건 · 다른 매체</span>
+              </div>
+              {clusterRelated.map((s, i) => (
+                <Link
+                  key={s.id}
+                  href={`/town/news/${s.id}`}
+                  className={`flex flex-col gap-0.5 py-[7px] ${
+                    i < clusterRelated.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  }`}
+                >
+                  <div className="line-clamp-2 text-xs font-bold leading-[1.4] text-ink">
+                    {s.title}
+                  </div>
+                  <div className="text-[10px] text-text-3">{s.meta}</div>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* 유사 기사 — 실데이터 있을 때만 */}
           {similarPosts.length > 0 && (

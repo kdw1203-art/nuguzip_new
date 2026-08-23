@@ -26,6 +26,9 @@ export const EARN_RULES: Record<string, EarnRule> = {
   comment_written: { key: "comment_written", label: "동네 댓글 작성", points: 20, dailyCap: 3 },
   /* [#65] 글쓴이가 내 댓글을 채택 — 질문→좋은 답 루프의 보상. refId=글:댓글 멱등. */
   comment_adopted: { key: "comment_adopted", label: "댓글 채택됨", points: 30, dailyCap: 5 },
+  /* [#69] 내가 공유한 체크리스트로 다른 이웃이 노트를 저장 — UGC 두 번째 축.
+     refId=템플릿:노트 멱등, 본인 사용은 지급 경로에서 차단. */
+  template_used: { key: "template_used", label: "내 체크리스트 사용됨", points: 20, dailyCap: 5 },
   attendance: { key: "attendance", label: "출석", points: 10, dailyCap: 1 },
   /* 연속 출석 보너스 — 출석 기본 10P 에 얹는 추가분(3일 +10P → 합 20P, 7일 +40P → 합 50P).
      lib/points/store-db.checkIn 의 스트릭 티어(10/20/50)와 합이 일치해야 한다. */

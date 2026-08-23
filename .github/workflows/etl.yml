@@ -231,6 +231,13 @@ jobs:
           echo "== price-record (soft) =="
           curl -sS --max-time 120 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/price-record-watch" | head -c 400 || true
           echo
+          # [#96] 학교·도시철도역 표준데이터 — 월 1회면 충분(매월 1일만, 수동 실행 시 항상).
+          # env 경로(POI_*_API_PATH) 미등록이면 라우트가 skipped 로 답한다 — 실패 아님.
+          if [ "$(date -u +%d)" = "01" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "== poi-ingest (schools+stations, soft) =="
+            curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/poi-ingest" | head -c 500 || true
+            echo
+          fi
           # 집계 MV 재계산 HTTP 호출은 삭제했다 (2026-08-10).
           # 본체는 pg_cron 'market-aggregates-daily'(jobid 12, 09:00·19:00 UTC,
           # DB 내부 실행 — Vercel 소모 0)로 이전 완료됐고, HTTP 경로는 예산

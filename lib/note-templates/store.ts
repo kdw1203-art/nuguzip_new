@@ -877,6 +877,88 @@ export async function getTemplate(id: string): Promise<NoteTemplate | null> {
   }
 }
 
+/* ── [#69] 사용자 템플릿 공유 ────────────────────────────────────────────── */
+
+const TPL_LIMITS = {
+  title: 60,
+  description: 200,
+  sectionTitle: 40,
+  item: 80,
+  maxSections: 8,
+  maxItemsPerSection: 20,
+  minTotalItems: 5,
+} as const;
+
+export type CreateTemplateInput = {
+  authorEmail: string;
+  title: string;
+  description: string;
+  category: string;
+  sections: TemplateSection[];
+};
+
+/**
+ * 이웃 체크리스트 공유 — note_templates 에 is_official=false·is_public=true 로 저장.
+ * 검증 실패는 사용자에게 보여줄 한국어 메시지로 throw. 1인 일일 3개 상한
+ * (도배 방지 — point 어뷰징 벡터이기도 하다).
+ */
+export async function createUserTemplate(input: CreateTemplateInput): Promise<string> {
+  const sb = getServiceSupabase();
+  if (!sb) throw new Error("저장소가 구성되지 않았습니다.");
+  const title = input.title.trim().slice(0, TPL_LIMITS.title);
+  const description = input.description.trim().slice(0, TPL_LIMITS.description);
+  const category = input.category.trim();
+  if (title.length < 4) throw new Error("제목을 4자 이상 적어 주세요.");
+  if (!["기본", "신축", "전월세", "재건축", "투자"].includes(category)) {
+    throw new Error("카테고리를 선택해 주세요.");
+  }
+  const sections: TemplateSection[] = [];
+  for (const s of input.sections.slice(0, TPL_LIMITS.maxSections)) {
+    const st = (s.title ?? "").trim().slice(0, TPL_LIMITS.sectionTitle);
+    const items = (s.items ?? [])
+      .map((i) => i.trim().slice(0, TPL_LIMITS.item))
+      .filter((i) => i.length >= 2)
+      .slice(0, TPL_LIMITS.maxItemsPerSection);
+    if (items.length > 0) sections.push({ title: st || "체크리스트", items });
+  }
+  const total = sections.reduce((n, s) => n + s.items.length, 0);
+  if (total < TPL_LIMITS.minTotalItems) {
+    throw new Error(`체크 항목을 ${TPL_LIMITS.minTotalItems}개 이상 적어 주세요.`);
+  }
+
+  // 일일 3개 상한
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const { count, error: cntErr } = await sb
+    .from("note_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("author_email", input.authorEmail)
+    .gte("created_at", dayStart.toISOString());
+  if (cntErr) throw new Error("공유 한도 확인에 실패했어요. 잠시 후 다시 시도해 주세요.");
+  if ((count ?? 0) >= 3) throw new Error("하루에 체크리스트 3개까지 공유할 수 있어요.");
+
+  const { data, error } = await sb
+    .from("note_templates")
+    .insert({
+      author_email: input.authorEmail,
+      title,
+      description,
+      category,
+      sections,
+      tags: [],
+      is_official: false,
+      is_public: true,
+      is_sample: false,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    logger.error("[note-templates] 사용자 템플릿 저장 실패", error);
+    throw new Error("저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
+  }
+  return String(data.id);
+}
+
 /**
  * 사용 횟수 +1 — best-effort. 공식 id 는 스킵(내장 상수라 DB 행이 없음).
  * 원자성 미보장, 실패는 무시.

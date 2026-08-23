@@ -7,6 +7,7 @@ import { seedGradient, faviconUrl, hostOf, relativeTime, newsImageUrl } from "..
 import type { Post } from "@/lib/types/post";
 import { Icon } from "@/app/components/Icon";
 import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
+import { clusterNews } from "@/lib/news/cluster";
 import { TownCategoryNav } from "../TownCategoryNav";
 import { NewsListClient } from "./NewsListClient";
 import { NewsAlertSubscribe } from "./NewsAlertSubscribe";
@@ -126,23 +127,45 @@ export default async function TownNewsPage() {
   /* 지역 필터 — 실데이터 기반(뉴스 city 상위 목록). 거르는 건 클라이언트. */
   const regions = [...new Set(news.map((p) => p.city).filter(Boolean))].slice(0, 8);
 
+  /* [#67] 동일 사건 클러스터링 — 같은 발표를 다룬 기사들을 대표 1건 + "관련 보도 N건"
+     으로 접는다(렌더 계층 처리 — 수집 원본은 전부 보존, 각 기사 상세도 그대로).
+     대표는 클러스터 내 최신 기사. */
+  const byId = new Map(news.map((p) => [p.id, p]));
+  const clusters = clusterNews(
+    news.map((p) => ({ id: p.id, title: p.title, timeMs: Date.parse(displayIso(p)) || 0 })),
+  );
+
   /* 최신 60장 상한(전량 299장·1.29MB 실측 후 도입) — 자른 사실은 목록 끝에 명시.
-     카드는 평탄화(DTO)해서 원본 메타를 클라이언트 payload 에 싣지 않는다. */
+     카드는 평탄화(DTO)해서 원본 메타를 클라이언트 payload 에 싣지 않는다.
+     상한은 이제 "클러스터 60개" — 관련 보도는 카드 안에 접혀 있어 payload 부담이 작다. */
   const LIST_CAP = 60;
-  const capped = news.slice(0, LIST_CAP);
-  const hiddenCount = Math.max(news.length - LIST_CAP, 0);
-  const cards = capped.map((p, i) => ({
-    id: p.id,
-    title: p.title,
-    body: i === 0 ? (p.body ?? null) : null,
-    category: p.category ?? "",
-    city: p.city ?? "",
-    source: p.sourceName || p.authorLabel || "",
-    timeLabel: relativeTime(displayIso(p)),
-    host: hostOf(p.sourceUrl),
-    image: newsImageUrl(p),
-    favicon: faviconUrl(p.sourceUrl),
-  }));
+  const cappedClusters = clusters.slice(0, LIST_CAP);
+  const visibleArticles = cappedClusters.reduce((s, c) => s + 1 + c.related.length, 0);
+  const hiddenCount = Math.max(news.length - visibleArticles, 0);
+  const cards = cappedClusters.map((c, i) => {
+    const p = byId.get(c.primary.id)!;
+    return {
+      id: p.id,
+      title: p.title,
+      body: i === 0 ? (p.body ?? null) : null,
+      category: p.category ?? "",
+      city: p.city ?? "",
+      source: p.sourceName || p.authorLabel || "",
+      timeLabel: relativeTime(displayIso(p)),
+      host: hostOf(p.sourceUrl),
+      image: newsImageUrl(p),
+      favicon: faviconUrl(p.sourceUrl),
+      related: c.related.slice(0, 4).map((r) => {
+        const rp = byId.get(r.id)!;
+        return {
+          id: rp.id,
+          title: rp.title,
+          source: rp.sourceName || rp.authorLabel || "",
+          timeLabel: relativeTime(displayIso(rp)),
+        };
+      }),
+    };
+  });
   const isMock = news.length === 0 && !newsFailed;
 
   return (

@@ -12,6 +12,7 @@ import {
 import { complexCanonicalPathFromNames } from "@/lib/complex/complex-store";
 import { weekSlugFor } from "@/lib/applyhome/calendar";
 import { TOWN_PROMPTS } from "@/lib/town/prompts";
+import { REGION_CATALOG } from "@/lib/region/catalog";
 
 /**
  * 단지 사이트맵에 실을 최소 매매 실거래 건수.
@@ -225,6 +226,10 @@ export function loadStaticEntries(): MetadataRoute.Sitemap {
   for (let i = 0; i < TOWN_PROMPTS.length; i += 1) {
     entries.push({ url: `${BASE_URL}/town/prompt/${i}`, priority: 0.5 });
   }
+  /* [#64] 동네 홈 62곳 — 카탈로그 상수(dynamicParams=false 라 전부 실존) */
+  for (const r of REGION_CATALOG) {
+    entries.push({ url: `${BASE_URL}/town/${r.id}`, priority: 0.6 });
+  }
   return entries;
 }
 
@@ -302,15 +307,29 @@ export async function loadComplexEntries(): Promise<MetadataRoute.Sitemap> {
 export async function loadRegionEntries(): Promise<MetadataRoute.Sitemap> {
   return section("지역", async () => {
     const { getAllRegionSnapshots } = await import("@/lib/market/store");
+    const { recentReportSlugs } = await import("@/lib/region/monthly-report");
     const snapshots = await getAllRegionSnapshots();
-    return [...snapshots.values()].map((s) => {
+    const entries: MetadataRoute.Sitemap = [];
+    /* [#79] 월간 리포트 — 최근 완결 6개월만 싣는다(사이트맵은 안전 부분집합:
+       실거래가 있는 지역·월이 대부분이고, 없는 조합은 페이지가 404 로 정직하게
+       말하지만 그런 URL 을 제출하지는 않도록 스냅샷 있는 지역만 돈다). */
+    const reportSlugs = recentReportSlugs(6);
+    for (const s of snapshots.values()) {
       const at = periodToDate(s.period);
-      return {
+      entries.push({
         url: `${BASE_URL}/region/${s.regionId}`,
         ...(at ? { lastModified: at } : {}),
         priority: 0.8,
-      };
-    });
+      });
+      entries.push({ url: `${BASE_URL}/region/${s.regionId}/report`, priority: 0.5 });
+      for (const slug of reportSlugs) {
+        entries.push({
+          url: `${BASE_URL}/region/${s.regionId}/report/${slug}`,
+          priority: 0.5,
+        });
+      }
+    }
+    return entries;
   });
 }
 
