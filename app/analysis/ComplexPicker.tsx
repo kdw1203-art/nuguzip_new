@@ -262,7 +262,7 @@ export function ComplexPicker({
               key={s.id}
               type="button"
               onClick={() => void choose(s)}
-              className="flex w-full flex-col items-start gap-0.5 border-b border-[#f0f3f8] px-3 py-2 text-left last:border-b-0 hover:bg-primary-soft"
+              className="flex w-full flex-col items-start gap-0.5 border-b border-divider px-3 py-2 text-left last:border-b-0 hover:bg-primary-soft"
             >
               <span className="text-xs font-extrabold text-ink">{s.name}</span>
               <span className="text-[10px] text-text-3">{s.region || s.dong}</span>

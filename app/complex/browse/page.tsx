@@ -106,7 +106,7 @@ export default async function ComplexBrowsePage({
               href={`/complex/browse?district=${encodeURIComponent(regionDisplayName(r))}`}
               className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition ${
                 active
-                  ? "bg-ink text-white"
+                  ? "bg-ink text-surface"
                   : "card card-hover text-text-2"
               }`}
             >

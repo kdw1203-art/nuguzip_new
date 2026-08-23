@@ -159,7 +159,7 @@ function GuestView() {
             key={m.label}
             href={m.href}
             className={`flex justify-between py-[13px] text-sm font-semibold text-text-1 no-underline ${
-              i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+              i < arr.length - 1 ? "border-b border-divider" : ""
             }`}
           >
             <span>{m.label}</span>
@@ -383,7 +383,7 @@ export default async function MyPage() {
                         key={s.id}
                         href={s.href}
                         className={`flex items-center gap-2.5 py-2 no-underline ${
-                          i < steps.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                          i < steps.length - 1 ? "border-b border-divider" : ""
                         }`}
                       >
                         <span
@@ -668,7 +668,7 @@ export default async function MyPage() {
                     <div
                       key={`${r.createdAt}-${i}`}
                       className={`flex items-center justify-between py-2.5 ${
-                        i < history.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        i < history.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       <div className="min-w-0">
@@ -846,7 +846,7 @@ export default async function MyPage() {
               key={m.label}
               href={m.href}
               className={`flex justify-between py-[13px] text-sm font-semibold text-text-1 no-underline ${
-                i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                i < arr.length - 1 ? "border-b border-divider" : ""
               }`}
             >
               <span>{m.label}</span>

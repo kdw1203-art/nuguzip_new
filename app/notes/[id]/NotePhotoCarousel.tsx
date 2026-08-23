@@ -218,7 +218,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
               }`}
             >
               {failed[i] ? (
-                <span className="flex h-full w-full items-center justify-center bg-[#eef1f6] text-[9px] font-bold text-text-3">
+                <span className="flex h-full w-full items-center justify-center bg-bg text-[9px] font-bold text-text-3">
                   실패
                 </span>
               ) : (

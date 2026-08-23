@@ -86,7 +86,7 @@ export default function AssetsPage() {
 
         <div className="rise-in-2 card flex flex-col gap-2.5 rounded-2xl p-4">
           <ExampleRow label="형태" value="실거주" />
-          <div className="flex justify-between border-t border-[#f0f3f8] pt-2 text-[13px]">
+          <div className="flex justify-between border-t border-divider pt-2 text-[13px]">
             <span className="text-text-2">취득 시기 / 취득가</span>
             <span className="font-extrabold text-ink">2019.05 · 4.9억</span>
           </div>
@@ -121,7 +121,7 @@ export default function AssetsPage() {
               <span className="text-text-3">상환 진행률</span>
               <span className="font-extrabold text-primary">28% (0.8억 상환)</span>
             </div>
-            <div className="relative h-1.5 rounded-[3px] bg-[#eef1f6]">
+            <div className="relative h-1.5 rounded-[3px] bg-bg">
               <div className="absolute left-0 top-0 h-1.5 w-[28%] rounded-[3px] bg-primary" />
             </div>
           </div>

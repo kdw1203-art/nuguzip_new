@@ -201,7 +201,7 @@ export function HomeHeroSearch() {
                 }}
                 className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
               >
-                <span className="shrink-0 rounded-md bg-[#f2f4f8] px-1.5 py-0.5 text-[10px] font-extrabold text-text-2">
+                <span className="shrink-0 rounded-md bg-bg px-1.5 py-0.5 text-[10px] font-extrabold text-text-2">
                   {it.label}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-text-1">

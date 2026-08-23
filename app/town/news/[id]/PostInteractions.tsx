@@ -144,7 +144,7 @@ export function PostActions({
       <button
         type="button"
         onClick={() => void share()}
-        className="press rounded-[10px] bg-[rgba(255,255,255,.7)] px-3.5 py-2 font-semibold text-text-2"
+        className="press rounded-[10px] bg-[var(--glass-bg)] px-3.5 py-2 font-semibold text-text-2"
       >
         {copied ? "링크 복사됨 ✓" : "공유"}
       </button>

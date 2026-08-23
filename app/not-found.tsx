@@ -36,7 +36,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/map"
-          className="rounded-[14px] border border-[#e2e7ee] bg-surface px-[22px] py-3 text-sm font-bold text-text-1"
+          className="rounded-[14px] border border-line bg-surface px-[22px] py-3 text-sm font-bold text-text-1"
         >
           지도 열기
         </Link>
@@ -52,20 +52,20 @@ export default function NotFound() {
         </Link>
         <Link
           href="/notes"
-          className="rounded-full bg-[#f2f4f8] px-[13px] py-[7px] text-[11px] font-bold text-text-1"
+          className="rounded-full bg-bg px-[13px] py-[7px] text-[11px] font-bold text-text-1"
         >
           내 임장노트
         </Link>
         {/* 고도화 46 — 잘못 들어온 방문자·크롤러의 최다 목적지 2곳 추가 */}
         <Link
           href="/tx"
-          className="rounded-full bg-[#f2f4f8] px-[13px] py-[7px] text-[11px] font-bold text-text-1"
+          className="rounded-full bg-bg px-[13px] py-[7px] text-[11px] font-bold text-text-1"
         >
           실거래 시세
         </Link>
         <Link
           href="/town"
-          className="rounded-full bg-[#f2f4f8] px-[13px] py-[7px] text-[11px] font-bold text-text-1"
+          className="rounded-full bg-bg px-[13px] py-[7px] text-[11px] font-bold text-text-1"
         >
           동네이야기
         </Link>

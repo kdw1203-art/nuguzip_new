@@ -135,7 +135,7 @@ export function PartnerForm() {
               className={`chip px-4 py-2 text-[13px] ${
                 specialties.includes(s)
                   ? "chip-active"
-                  : "bg-[rgba(255,255,255,.7)] text-text-2"
+                  : "bg-[var(--glass-bg)] text-text-2"
               }`}
             >
               {s}

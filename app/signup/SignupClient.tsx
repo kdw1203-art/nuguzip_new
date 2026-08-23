@@ -17,7 +17,7 @@ const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }
   },
   google: {
     label: "Google로 시작",
-    className: "border border-[#e2e7ee] bg-surface text-text-1",
+    className: "border border-line bg-surface text-text-1",
   },
 };
 
@@ -265,7 +265,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
                   setResendBusy(false);
                 }
               }}
-              className="w-full rounded-2xl border border-[#d7dee8] bg-white p-[15px] text-center text-base font-extrabold text-ink disabled:opacity-60"
+              className="w-full rounded-2xl border border-line bg-surface p-[15px] text-center text-base font-extrabold text-ink disabled:opacity-60"
             >
               {resendBusy ? "보내는 중…" : "인증 메일 다시 보내기"}
             </button>
@@ -307,7 +307,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         {/* 진행 막대 — 예전엔 w-1/2 하드코딩이라 페이지를 열자마자 50%,
             제출 직전에도 50% 였다. 실제로 채운 항목 비율로 그린다. */}
         <div
-          className="relative h-1 w-[120px] rounded-sm bg-[#e9edf3]"
+          className="relative h-1 w-[120px] rounded-sm bg-bg"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -345,9 +345,9 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
             </button>
           ))}
           <div className="flex items-center gap-3 text-[11px] text-text-3">
-            <span className="h-px flex-1 bg-[#e9edf3]" />
+            <span className="h-px flex-1 bg-bg" />
             또는 이메일로 가입
-            <span className="h-px flex-1 bg-[#e9edf3]" />
+            <span className="h-px flex-1 bg-bg" />
           </div>
         </div>
       )}
@@ -370,7 +370,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="이름 (선택)"
           autoComplete="name"
-          className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+          className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
         <label htmlFor="signup-email" className="sr-only">
           이메일
@@ -382,7 +382,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="이메일"
           autoComplete="email"
-          className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+          className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
         <label htmlFor="signup-password" className="sr-only">
           비밀번호 (8자 이상)
@@ -395,7 +395,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호 (8자 이상)"
             autoComplete="new-password"
-            className="w-full rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
+            className="w-full rounded-[12px] border border-line bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
           />
           <button
             type="button"

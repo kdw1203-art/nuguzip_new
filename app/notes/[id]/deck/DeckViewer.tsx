@@ -20,13 +20,13 @@ import type { DeckPage, DeckTheme, NoteDeck } from "@/lib/inspection/note-deck";
 /** 카드 배경·글자색 프리셋. 대비는 globals.css 토큰 규칙(본문 4.5:1)을 따른다. */
 const THEME: Record<DeckTheme, { card: string; eyebrow: string; title: string; body: string }> = {
   cover: {
-    card: "bg-ink text-white",
+    card: "bg-ink text-surface",
     eyebrow: "text-white/70",
     title: "text-white",
     body: "text-white/85",
   },
   ink: {
-    card: "bg-ink text-white",
+    card: "bg-ink text-surface",
     eyebrow: "text-white/70",
     title: "text-white",
     body: "text-white/85",
@@ -44,7 +44,7 @@ const THEME: Record<DeckTheme, { card: string; eyebrow: string; title: string; b
     body: "text-text-1",
   },
   photo: {
-    card: "bg-ink text-white",
+    card: "bg-ink text-surface",
     eyebrow: "text-white/80",
     title: "text-white",
     body: "text-white/85",

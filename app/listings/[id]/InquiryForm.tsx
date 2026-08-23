@@ -91,13 +91,13 @@ export function InquiryForm({
         onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
         rows={3}
         placeholder="궁금한 점(입주 가능일, 실제 상태, 방문 희망일 등)을 남겨 주세요."
-        className="w-full resize-none rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13px] leading-[1.6] text-ink outline-none focus:border-primary"
+        className="w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] leading-[1.6] text-ink outline-none focus:border-primary"
       />
       <input
         value={contact}
         onChange={(e) => setContact(e.target.value.slice(0, 120))}
         placeholder="회신받을 연락처(선택) — 전화·카톡 등"
-        className="w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13px] text-ink outline-none focus:border-primary"
+        className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none focus:border-primary"
       />
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] text-text-3">

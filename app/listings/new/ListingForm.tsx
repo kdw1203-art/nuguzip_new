@@ -369,7 +369,7 @@ export function ListingForm() {
               type="button"
               onClick={() => setSource(s.key)}
               className={`chip px-4 py-2 text-[13px] ${
-                source === s.key ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
+                source === s.key ? "chip-active" : "bg-[var(--glass-bg)] text-text-2"
               }`}
             >
               {s.text}
@@ -399,7 +399,7 @@ export function ListingForm() {
               className={`chip px-4 py-2 text-[13px] ${
                 listingType === t.key
                   ? "chip-active"
-                  : "bg-[rgba(255,255,255,.7)] text-text-2"
+                  : "bg-[var(--glass-bg)] text-text-2"
               }`}
             >
               {t.label}
@@ -420,7 +420,7 @@ export function ListingForm() {
               className={`chip px-4 py-2 text-[13px] ${
                 category === c.key
                   ? "chip-active"
-                  : "bg-[rgba(255,255,255,.7)] text-text-2"
+                  : "bg-[var(--glass-bg)] text-text-2"
               }`}
             >
               {c.label}

@@ -52,7 +52,7 @@ export function AiFeedbackButtons({
         className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-bold transition ${
           choice === "up"
             ? "border-primary bg-primary-soft text-primary"
-            : "border-[#e2e7ee] bg-surface text-text-2 hover:border-primary/40"
+            : "border-line bg-surface text-text-2 hover:border-primary/40"
         }`}
       >
         <Icon name="thumbs-up" size={12} />
@@ -66,7 +66,7 @@ export function AiFeedbackButtons({
         className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-bold transition ${
           choice === "down"
             ? "border-danger/40 bg-[#fff5f5] text-danger"
-            : "border-[#e2e7ee] bg-surface text-text-2 hover:border-danger/30"
+            : "border-line bg-surface text-text-2 hover:border-danger/30"
         }`}
       >
         <Icon name="thumbs-down" size={12} />

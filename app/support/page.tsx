@@ -86,7 +86,7 @@ const FAQ_CATEGORY_ICON: Record<string, string> = {
 const TICKETS = [
   {
     tag: "결제",
-    tagClass: "bg-[#fdf3e7] text-warning",
+    tagClass: "bg-warning-soft text-warning",
     status: "답변 완료",
     statusClass: "text-primary",
     title: "플러스 연간 결제 영수증 재발급",
@@ -195,7 +195,7 @@ export default async function SupportPage() {
               <div className="text-xs leading-[1.55] text-text-2">노트 · 구독 · 결제 · 전문가 등록</div>
               <a
                 href="#faq"
-                className="mt-1 rounded-[10px] bg-[#f2f4f8] p-[9px] text-center text-xs font-bold text-text-1"
+                className="mt-1 rounded-[10px] bg-bg p-[9px] text-center text-xs font-bold text-text-1"
               >
                 FAQ 보기
               </a>
@@ -205,7 +205,7 @@ export default async function SupportPage() {
               <div className="text-xs leading-[1.55] text-text-2">시세·크롤링 데이터 오류 제보</div>
               <a
                 href="#contact"
-                className="mt-1 rounded-[10px] bg-[#f2f4f8] p-[9px] text-center text-xs font-bold text-text-1"
+                className="mt-1 rounded-[10px] bg-bg p-[9px] text-center text-xs font-bold text-text-1"
               >
                 신고하기
               </a>
@@ -247,7 +247,7 @@ export default async function SupportPage() {
                   key={n.id}
                   href={`/town/news/${n.id}`}
                   className={`flex justify-between gap-3 py-2 text-xs ${
-                    i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < arr.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <span className="min-w-0 truncate font-semibold text-text-1">
@@ -295,7 +295,7 @@ export default async function SupportPage() {
             <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[20px] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="rounded-[5px] bg-[#fdf3e7] chip-pad text-[11px] font-extrabold text-warning">
+                  <span className="rounded-[5px] bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
                     결제
                   </span>
                   <span className="ml-2 text-base font-extrabold text-ink">
@@ -331,7 +331,7 @@ export default async function SupportPage() {
                   없어서 "도움됐어요"는 눌러도 아무 데도 기록되지 않았고, 애초에
                   onClick 이 없어 눌리지도 않았다. 평가는 지우고, 실제로 갈 곳이 있는
                   "추가 문의"만 위 1:1 문의 폼으로 이어지는 진짜 링크로 남긴다. */}
-              <div className="flex items-center justify-between gap-2 border-t border-[#f0f3f8] pt-3">
+              <div className="flex items-center justify-between gap-2 border-t border-divider pt-3">
                 <span className="text-xs text-text-3">
                   실제 문의도 같은 화면에서 이어서 주고받아요
                 </span>
@@ -370,7 +370,7 @@ export default async function SupportPage() {
                 key={it.id}
                 href={`/support/faq#${it.id}`}
                 className={`flex justify-between px-4 py-[13px] text-[13px] font-bold text-text-1 no-underline ${
-                  i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  i < arr.length - 1 ? "border-b border-divider" : ""
                 }`}
               >
                 <span>Q. {it.q}</span>

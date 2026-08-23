@@ -393,7 +393,7 @@ export function ChatRoom({
           const isBlocked = blocked.includes(m.senderId);
           return (
             <div key={m.id} className="group flex items-end gap-2">
-              <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
+              <div className="h-7 w-7 shrink-0 rounded-full bg-gradient-to-br from-line to-bg" />
               <div>
                 <div className="mb-[3px] text-[10px] text-text-3">
                   {m.senderLabel}
@@ -470,7 +470,7 @@ export function ChatRoom({
             <div className="flex items-center justify-between">
               <span className="text-sm font-extrabold text-ink">
                 채팅방 메뉴{" "}
-                <span className="rounded bg-[#f2f4f8] px-[7px] py-[2px] text-[9px] font-extrabold text-text-2">
+                <span className="rounded bg-bg px-[7px] py-[2px] text-[9px] font-extrabold text-text-2">
                   회원
                 </span>
               </span>
@@ -497,15 +497,15 @@ export function ChatRoom({
                 <div
                   key={m.id}
                   className={`flex items-center gap-2.5 py-[9px] ${
-                    i < members.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < members.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
-                  <div className="h-[30px] w-[30px] rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
+                  <div className="h-[30px] w-[30px] rounded-full bg-gradient-to-br from-line to-bg" />
                   <div className="flex-1">
                     <div className="text-xs font-bold text-ink">
                       {m.isSelf ? "나" : m.label}{" "}
                       {m.role === "owner" && (
-                        <span className="rounded bg-[#fdf3e7] px-[5px] py-px text-[9px] font-extrabold text-warning">
+                        <span className="rounded bg-warning-soft px-[5px] py-px text-[9px] font-extrabold text-warning">
                           모임장
                         </span>
                       )}

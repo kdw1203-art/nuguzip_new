@@ -55,9 +55,9 @@ export function HomeLevelKpi() {
   if (state.kind === "loading") {
     return (
       <div aria-hidden className="card animate-pulse rounded-2xl px-4 py-3">
-        <div className="h-3 w-14 rounded bg-[#eef1f6]" />
-        <div className="mt-2 h-5 w-20 rounded bg-[#eef1f6]" />
-        <div className="mt-1.5 h-3 w-16 rounded bg-[#eef1f6]" />
+        <div className="h-3 w-14 rounded bg-bg" />
+        <div className="mt-2 h-5 w-20 rounded bg-bg" />
+        <div className="mt-1.5 h-3 w-16 rounded bg-bg" />
       </div>
     );
   }

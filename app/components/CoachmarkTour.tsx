@@ -230,7 +230,7 @@ export function CoachmarkTour({
       )}
 
       <div
-        className="absolute w-[280px] rounded-[16px] bg-white p-4 shadow-[0_18px_44px_rgba(16,28,54,.28)]"
+        className="absolute w-[280px] rounded-[16px] bg-surface p-4 shadow-[0_18px_44px_rgba(16,28,54,.28)]"
         style={
           centered
             ? { top: "50%", left: "50%", transform: "translate(-50%,-50%)" }

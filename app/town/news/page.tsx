@@ -222,7 +222,7 @@ export default async function TownNewsPage() {
             className="relative h-[200px] w-full"
             style={{ background: seedGradient("molit") }}
           >
-            <span className="absolute left-2 top-2 rounded-[5px] bg-[#edf2fe] chip-pad text-[10px] font-extrabold text-primary">
+            <span className="absolute left-2 top-2 rounded-[5px] bg-primary-soft chip-pad text-[10px] font-extrabold text-primary">
               {EXAMPLE_NEWS.category}
             </span>
             <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">

@@ -139,7 +139,7 @@ function CalendarRow({
     <>
       <span
         className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold ${
-          kind === "start" ? "bg-[#e7f8ef] text-success" : "bg-[#fdf3e7] text-warning"
+          kind === "start" ? "bg-success-soft text-success" : "bg-warning-soft text-warning"
         }`}
       >
         {kind === "start" ? "접수 시작" : "접수 마감"}

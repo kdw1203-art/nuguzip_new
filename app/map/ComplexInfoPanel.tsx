@@ -167,7 +167,7 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
   const dealSum = tx.reduce((s, t) => s + (t.deal_count || 0), 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#e8edf5] bg-gradient-to-b from-[#f7f9fd] to-surface px-4 py-3">
+    <div className="overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-bg to-surface px-4 py-3">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div>
           <div className="text-[12px] font-extrabold text-ink">실거래가 추이</div>
@@ -498,7 +498,7 @@ export function ComplexInfoPanel({
           어떤 GPU·브라우저에서도 같은 흰 패널을 보장한다. */}
       <aside className="rise-in relative z-10 flex max-h-[min(94dvh,960px)] w-full max-w-[820px] flex-col overflow-hidden rounded-t-[22px] bg-surface shadow-[0_28px_70px_rgba(16,28,54,.34)] sm:rounded-[24px]">
         {/* 히어로 — 가격 중심 + 칩 */}
-        <div className="relative border-b border-[rgba(16,28,54,.06)] bg-gradient-to-br from-[#eef3ff] via-surface to-[#f7f9fd] px-5 pb-3.5 pt-4">
+        <div className="relative border-b border-[rgba(16,28,54,.06)] bg-gradient-to-br from-primary-soft via-surface to-bg px-5 pb-3.5 pt-4">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -599,7 +599,7 @@ export function ComplexInfoPanel({
           )}
 
           {data?.mode === "not_found" && !failed && (
-            <div className="rounded-xl bg-[#f5f7fb] px-3.5 py-2.5 text-xs text-text-2">
+            <div className="rounded-xl bg-bg px-3.5 py-2.5 text-xs text-text-2">
               단지 마스터와 아직 연결되지 않았어요. 실거래·이야기는 아래를 참고해 주세요.
             </div>
           )}
@@ -629,7 +629,7 @@ export function ComplexInfoPanel({
 
           {/* 지역 대비 */}
           {region && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-3">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-3">
               <SectionHead
                 title="이 동네 대비"
                 sub={`${region.district} · ㎡당 · ${region.period ? ymLabel(region.period) : "최근"} 기준`}
@@ -645,14 +645,14 @@ export function ComplexInfoPanel({
                 }
               />
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl bg-[#f5f7fb] px-3 py-2">
+                <div className="rounded-xl bg-bg px-3 py-2">
                   <div className="text-[10px] text-text-3">이 단지</div>
                   <div className="text-[14px] font-extrabold text-ink tabular-nums">
                     {region.complexPerM2Manwon.toLocaleString("ko-KR")}
                     <span className="text-[10px] font-bold text-text-3">만/㎡</span>
                   </div>
                 </div>
-                <div className="rounded-xl bg-[#f5f7fb] px-3 py-2">
+                <div className="rounded-xl bg-bg px-3 py-2">
                   <div className="text-[10px] text-text-3">{region.district} 평균</div>
                   <div className="text-[14px] font-extrabold text-ink tabular-nums">
                     {region.districtPerM2Manwon.toLocaleString("ko-KR")}
@@ -683,13 +683,13 @@ export function ComplexInfoPanel({
 
           {/* 스펙 그리드 */}
           {specRows.length > 0 && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
               <SectionHead title="단지 스펙" sub="공공·단지 마스터 기준" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-0 sm:grid-cols-3">
                 {specRows.map((row) => (
                   <div
                     key={row.label}
-                    className="flex items-baseline justify-between gap-2 border-b border-[#f0f3f8] py-2 text-[12.5px] last:border-b-0"
+                    className="flex items-baseline justify-between gap-2 border-b border-divider py-2 text-[12.5px] last:border-b-0"
                   >
                     <span className="shrink-0 text-text-3">{row.label}</span>
                     <span className="truncate text-right font-bold text-ink">{row.value}</span>
@@ -701,14 +701,14 @@ export function ComplexInfoPanel({
 
           {/* 면적대 — 전체 */}
           {bands.length > 0 && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
               <SectionHead title="면적대별 시세" sub={`${bands.length}개 구간 · 국토부`} />
-              <div className="overflow-hidden rounded-xl bg-[#f7f9fd]">
+              <div className="overflow-hidden rounded-xl bg-bg">
                 {bands.map((b, i) => (
                   <div
                     key={b.label}
                     className={`flex items-center justify-between gap-2 px-3 py-2 text-[12px] ${
-                      i > 0 ? "border-t border-[#e8edf5]" : ""
+                      i > 0 ? "border-t border-line" : ""
                     }`}
                   >
                     <div className="min-w-0">
@@ -733,12 +733,12 @@ export function ComplexInfoPanel({
 
           {/* 최근 실거래 14개월 */}
           {recent.length > 0 && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
               <SectionHead
                 title="월별 실거래"
                 sub={`최근 ${recent.length}개월 · 합 ${dealSum}건`}
               />
-              <div className="max-h-[220px] overflow-y-auto rounded-xl bg-[#f7f9fd]">
+              <div className="max-h-[220px] overflow-y-auto rounded-xl bg-bg">
                 {recent.map((t, i) => {
                   const p = recent[i + 1];
                   const d =
@@ -749,7 +749,7 @@ export function ComplexInfoPanel({
                     <div
                       key={`${t.yyyymm}-${i}`}
                       className={`flex items-center justify-between gap-2 px-3 py-2 text-[12.5px] ${
-                        i > 0 ? "border-t border-[#e8edf5]" : ""
+                        i > 0 ? "border-t border-line" : ""
                       }`}
                     >
                       <span className="text-text-2">
@@ -784,26 +784,26 @@ export function ComplexInfoPanel({
           )}
 
           {!loading && recent.length === 0 && !failed && (
-            <div className="rounded-xl bg-[#f5f7fb] px-3.5 py-2.5 text-xs text-text-3">
+            <div className="rounded-xl bg-bg px-3.5 py-2.5 text-xs text-text-3">
               최근 실거래 데이터가 아직 없어요.
             </div>
           )}
 
           {/* 후기 */}
           {reviews && reviews.count > 0 && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-3">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-3">
               <SectionHead title="거주민 후기" sub={`${reviews.count}건 평균`} />
               <div className="grid grid-cols-5 gap-1.5">
                 {REVIEW_LABELS.map(({ key, label }) => {
                   const v = reviews[key];
                   const pct = v != null ? Math.min(100, Math.round((v / 5) * 100)) : 0;
                   return (
-                    <div key={key} className="rounded-xl bg-[#f5f7fb] px-1 py-2 text-center">
+                    <div key={key} className="rounded-xl bg-bg px-1 py-2 text-center">
                       <div className="text-[10px] text-text-3">{label}</div>
                       <div className="text-[14px] font-extrabold text-ink">
                         {v != null ? v : "—"}
                       </div>
-                      <div className="mx-auto mt-1 h-1 w-[80%] overflow-hidden rounded-full bg-[#e2e7ee]">
+                      <div className="mx-auto mt-1 h-1 w-[80%] overflow-hidden rounded-full bg-line">
                         <div
                           className="h-full rounded-full bg-primary"
                           style={{ width: `${pct}%` }}
@@ -818,13 +818,13 @@ export function ComplexInfoPanel({
 
           {/* 이야기 6건 */}
           {posts.length > 0 && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
               <SectionHead title="단지 이야기" sub={`${posts.length}건 · 공개 글`} />
               <div className="flex flex-col gap-1">
                 {posts.slice(0, 6).map((p, i) => (
                   <div
                     key={p.id || `${p.title}-${i}`}
-                    className="rounded-xl bg-[#f7f9fd] px-3 py-2"
+                    className="rounded-xl bg-bg px-3 py-2"
                   >
                     <div className="truncate text-[12px] font-bold text-ink">{p.title}</div>
                     <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-text-3">
@@ -860,7 +860,7 @@ export function ComplexInfoPanel({
 
           {/* 인근 단지 */}
           {nearby.length > 0 && (
-            <div className="rounded-2xl border border-[#e8edf5] bg-surface px-3.5 py-2.5">
+            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
               <SectionHead
                 title={`${complex?.district || "근처"} 다른 단지`}
                 sub="같은 지역 비교"
@@ -870,7 +870,7 @@ export function ComplexInfoPanel({
                   <Link
                     key={n.id}
                     href={`/complex/${encodeURIComponent(n.id)}`}
-                    className="rounded-xl border border-[#e8edf5] bg-[#f7f9fd] px-3 py-2 transition-colors hover:border-primary/40"
+                    className="rounded-xl border border-line bg-bg px-3 py-2 transition-colors hover:border-primary/40"
                   >
                     <div className="truncate text-[12px] font-extrabold text-ink">{n.name}</div>
                     <div className="mt-0.5 truncate text-[10px] text-text-3">

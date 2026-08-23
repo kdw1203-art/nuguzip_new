@@ -111,7 +111,7 @@ function Toggle({ on }: { on: boolean }) {
   return (
     <span
       className={`relative inline-block h-6 w-10 shrink-0 rounded-full transition-colors ${
-        on ? "bg-primary" : "bg-[#e2e7ee]"
+        on ? "bg-primary" : "bg-line"
       }`}
       aria-hidden="true"
     >
@@ -212,7 +212,7 @@ function SmsAlertCard({
         </span>
         <Toggle on={on} />
       </button>
-      <div className="flex items-center gap-2 border-t border-[#f0f3f8] py-2.5">
+      <div className="flex items-center gap-2 border-t border-divider py-2.5">
         <input
           type="tel"
           inputMode="numeric"
@@ -363,7 +363,7 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
                   aria-checked={prefs[row.key]}
                   onClick={() => void toggle(row.key)}
                   className={`flex w-full items-center justify-between py-[11px] text-left ${
-                    i < group.rows.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < group.rows.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <span>
@@ -491,7 +491,7 @@ function PrivacyTab() {
                 void toggle("emailMarketing");
                 void consents.patch({ marketing: next });
               }}
-              className="flex w-full items-center justify-between border-b border-[#f0f3f8] py-[13px] text-left"
+              className="flex w-full items-center justify-between border-b border-divider py-[13px] text-left"
             >
               <span>
                 <span className="block text-[13px] font-semibold text-text-1">
@@ -571,12 +571,12 @@ function AccountTab() {
         <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">계정</div>
         <Link
           href="/forgot-password"
-          className="flex items-center justify-between border-b border-[#f0f3f8] py-3 text-[13px] font-semibold text-text-1 no-underline"
+          className="flex items-center justify-between border-b border-divider py-3 text-[13px] font-semibold text-text-1 no-underline"
         >
           <span>비밀번호 변경</span>
           <span className="text-[#c3cad6]">›</span>
         </Link>
-        <div className="flex items-center justify-between border-b border-[#f0f3f8] py-3">
+        <div className="flex items-center justify-between border-b border-divider py-3">
           <span className="text-[13px] font-semibold text-text-1">언어</span>
           <span className="text-[12px] font-bold text-text-3">한국어</span>
         </div>
@@ -635,7 +635,7 @@ export function SettingsClient({ channels }: { channels: NotifyChannels }) {
               type="button"
               onClick={() => setTab(t.key)}
               className={`chip px-3.5 py-2 text-[13px] ${
-                tab === t.key ? "chip-active" : "border border-[#e2e7ee] bg-surface text-text-2"
+                tab === t.key ? "chip-active" : "border border-line bg-surface text-text-2"
               }`}
             >
               {t.label}

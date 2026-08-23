@@ -245,7 +245,7 @@ export default async function PublicProfilePage({
         <div className="rise-in-2 card rounded-t-none border-t-0 px-5 pb-5">
           {/* 아바타 + 이름 + 팔로우 */}
           <div className="-mt-6 flex items-end gap-3">
-            <span className="h-[56px] w-[56px] shrink-0 rounded-full border-[3px] border-bg bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]" />
+            <span className="h-[56px] w-[56px] shrink-0 rounded-full border-[3px] border-bg bg-gradient-to-br from-line to-line-strong" />
             <div className="min-w-0 flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-[6px]">
                 <span className="text-[16px] font-extrabold text-ink">
@@ -317,18 +317,18 @@ export default async function PublicProfilePage({
             {grid.map((g, i) => {
               const inner = (
                 <>
-                  <span className="absolute inset-x-0 bottom-0 truncate bg-ink/70 px-2 py-1 text-[10px] font-bold text-white">
+                  <span className="absolute inset-x-0 bottom-0 truncate bg-ink/70 px-2 py-1 text-[10px] font-bold text-surface">
                     {g.title}
                   </span>
                   {i === grid.length - 1 && noteCount > grid.length && (
-                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-ink/85 chip-pad-tight text-[9px] font-extrabold text-white">
+                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-ink/85 chip-pad-tight text-[9px] font-extrabold text-surface">
                       +{noteCount - grid.length}
                     </span>
                   )}
                 </>
               );
               const cls =
-                "relative block aspect-square overflow-hidden rounded-[10px] bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]";
+                "relative block aspect-square overflow-hidden rounded-[10px] bg-gradient-to-br from-line to-line-strong";
               return (
                 <Link key={g.id} href={`/notes/${g.id}`} className={cls}>
                   {inner}

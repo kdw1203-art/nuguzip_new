@@ -37,7 +37,7 @@ export function NotificationBell({ variant }: { variant: "desktop" | "mobile" })
 
   const cls =
     variant === "desktop"
-      ? "press relative hidden h-9 w-9 items-center justify-center rounded-xl bg-[rgba(255,255,255,.7)] text-text-1 transition-colors hover:text-primary md:flex"
+      ? "press relative hidden h-9 w-9 items-center justify-center rounded-xl bg-[var(--glass-bg)] text-text-1 transition-colors hover:text-primary md:flex"
       : "press relative flex h-8 w-8 items-center justify-center after:absolute after:-inset-1.5 after:content-['']";
   const size = variant === "desktop" ? 18 : 19;
 

@@ -145,12 +145,12 @@ function CommentRow({
 }) {
   return (
     <div className="flex gap-2.5">
-      <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
+      <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-line to-bg" />
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs font-extrabold text-ink">{c.authorLabel}</span>
           {c.adopted && (
-            <span className="rounded-md bg-[#e7f8ef] px-1.5 py-0.5 text-[10px] font-extrabold text-success">
+            <span className="rounded-md bg-success-soft px-1.5 py-0.5 text-[10px] font-extrabold text-success">
               ✓ 채택된 답변
             </span>
           )}

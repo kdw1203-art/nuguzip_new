@@ -164,12 +164,12 @@ export function ListingCompareView({
                           className={`rounded-[6px] chip-pad-tight text-[10px] font-extrabold ${
                             r.source === "owner"
                               ? "bg-primary-soft text-primary"
-                              : "bg-[#fdf3e7] text-warning"
+                              : "bg-warning-soft text-warning"
                           }`}
                         >
                           {SOURCE_LABEL[r.source]}
                         </span>
-                        <span className="rounded-[6px] bg-[#f2f4f8] chip-pad-tight text-[10px] font-extrabold text-text-2">
+                        <span className="rounded-[6px] bg-bg chip-pad-tight text-[10px] font-extrabold text-text-2">
                           {TYPE_LABEL[r.listingType]}
                         </span>
                       </div>

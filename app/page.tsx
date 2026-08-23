@@ -391,7 +391,7 @@ export default async function Home() {
                   key={n.id}
                   href={`/notes/${n.id}`}
                   className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] text-xs no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
-                    i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < notes.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <span className="truncate font-semibold text-text-1">{n.title}</span>
@@ -618,7 +618,7 @@ export default async function Home() {
                       key={n.id}
                       href={`/notes/${n.id}`}
                       className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] text-xs no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
-                        i < notes.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        i < notes.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       <span className="truncate font-semibold text-text-1">{n.title}</span>
@@ -664,7 +664,7 @@ export default async function Home() {
                       key={p.id}
                       href={`/town/news/${p.id}`}
                       className={`-mx-1.5 block rounded-lg px-1.5 py-[7px] text-xs font-semibold text-text-1 no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] hover:text-primary ${
-                        i < posts.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        i < posts.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       {p.rank} {p.title}{" "}
@@ -779,7 +779,7 @@ export default async function Home() {
                 <span className="text-primary">›</span>
               </Link>
               {meetings.length > 0 && (
-                <ul className="mt-0.5 flex flex-col gap-1 border-t border-[#f0f3f8] pt-2">
+                <ul className="mt-0.5 flex flex-col gap-1 border-t border-divider pt-2">
                   {meetings.map((m) => (
                     <li key={m.id}>
                       <Link
@@ -796,7 +796,7 @@ export default async function Home() {
                 <p className="text-[11px] text-text-3">모임 목록을 지금 불러오지 못했어요.</p>
               )}
               {reports.length > 0 && (
-                <ul className="mt-0.5 flex flex-col gap-1 border-t border-[#f0f3f8] pt-2">
+                <ul className="mt-0.5 flex flex-col gap-1 border-t border-divider pt-2">
                   {reports.map((r) => (
                     <li key={r.id}>
                       {/* 리포트 1건을 여는 페이지는 아직 없다 — 그래서 목록이

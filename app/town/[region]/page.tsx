@@ -226,7 +226,7 @@ export default async function TownRegionHomePage({
                   <li key={p.id} className="border-b border-line last:border-0">
                     <Link
                       href={`/town/news/${p.id}`}
-                      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[#f7f9fd]"
+                      className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-bg"
                     >
                       <div className="min-w-0">
                         <div className="truncate text-[13.5px] font-bold text-ink">
@@ -268,7 +268,7 @@ export default async function TownRegionHomePage({
                   <li key={p.id} className="border-b border-line last:border-0">
                     <Link
                       href={`/town/news/${p.id}`}
-                      className="flex flex-col gap-0.5 px-4 py-3 transition-colors hover:bg-[#f7f9fd]"
+                      className="flex flex-col gap-0.5 px-4 py-3 transition-colors hover:bg-bg"
                     >
                       <span className="line-clamp-2 text-[13.5px] font-bold leading-[1.5] text-ink">
                         {p.title}

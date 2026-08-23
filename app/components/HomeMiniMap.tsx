@@ -261,7 +261,7 @@ export function HomeMiniMap({
   const [fallbackActive, setFallbackActive] = useState(false);
 
   const staticFallback = (
-    <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-[#e6ecf9] to-[#cdd9f0] px-4">
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-primary-soft to-line-strong px-4">
       <p className="flex items-center gap-1.5 text-[12px] font-bold text-text-1">
         <Icon name="🗺" size={16} /> 지도를 불러오지 못했어요
       </p>
@@ -311,7 +311,7 @@ export function HomeMiniMap({
         ) : (
           <div
             aria-hidden
-            className="h-full w-full bg-gradient-to-br from-[#e6ecf9] to-[#cdd9f0]"
+            className="h-full w-full bg-gradient-to-br from-primary-soft to-line-strong"
           />
         )}
       </div>

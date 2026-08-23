@@ -150,7 +150,7 @@ export function ListingsListClient({
             onClick={() => set({ type: f.key })}
             aria-pressed={filter.type === f.key}
             className={`chip px-3.5 py-2 ${
-              filter.type === f.key ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
+              filter.type === f.key ? "chip-active" : "bg-[var(--glass-bg)] text-text-2"
             }`}
           >
             {f.label}
@@ -165,7 +165,7 @@ export function ListingsListClient({
           onClick={() => set({ gu: "" })}
           aria-pressed={!filter.gu}
           className={`chip shrink-0 px-3 py-1.5 ${
-            !filter.gu ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
+            !filter.gu ? "chip-active" : "bg-[var(--glass-bg)] text-text-2"
           }`}
         >
           서울 전체
@@ -177,7 +177,7 @@ export function ListingsListClient({
             onClick={() => set({ gu: g })}
             aria-pressed={filter.gu === g}
             className={`chip shrink-0 px-3 py-1.5 ${
-              filter.gu === g ? "chip-active" : "bg-[rgba(255,255,255,.7)] text-text-2"
+              filter.gu === g ? "chip-active" : "bg-[var(--glass-bg)] text-text-2"
             }`}
           >
             {g}
@@ -232,12 +232,12 @@ export function ListingsListClient({
                     className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
                       l.source === "owner"
                         ? "bg-[rgba(29,79,216,.08)] text-primary"
-                        : "bg-[#fdf3e7] text-warning"
+                        : "bg-warning-soft text-warning"
                     }`}
                   >
                     {LISTING_SOURCE_LABEL[l.source]}
                   </span>
-                  <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (

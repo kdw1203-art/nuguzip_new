@@ -110,7 +110,7 @@ function Chip({
       className={`rounded-[10px] px-3 py-2 text-xs ${
         active
           ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
-          : "border border-[#e2e7ee] bg-surface text-text-2"
+          : "border border-line bg-surface text-text-2"
       } ${className}`}
     >
       {label}
@@ -426,7 +426,7 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-[#f0f3f8] pt-3">
+          <div className="flex flex-col gap-2 border-t border-divider pt-3">
             <div className="text-[13px] font-extrabold text-ink">금리 시나리오</div>
             <div className="flex flex-wrap gap-1.5">
               {RATE_OFFSETS.map((c) => (
@@ -524,7 +524,7 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
               {calc.bars.map((b) => (
                 <div key={b.label} className="flex items-center gap-3">
                   <span className="w-[90px] shrink-0 text-xs text-text-2">{b.label}</span>
-                  <div className="relative h-[22px] flex-1 rounded-md bg-[#eef1f6]">
+                  <div className="relative h-[22px] flex-1 rounded-md bg-bg">
                     <div
                       className="absolute left-0 flex h-[22px] items-center justify-end rounded-md pr-2 text-[11px] font-bold text-white"
                       style={{

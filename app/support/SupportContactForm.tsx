@@ -72,7 +72,7 @@ export function SupportContactForm() {
             setSubject("");
             setMessage("");
           }}
-          className="mt-1 rounded-full bg-[#f2f4f8] px-4 py-[7px] text-xs font-bold text-text-1"
+          className="mt-1 rounded-full bg-bg px-4 py-[7px] text-xs font-bold text-text-1"
         >
           새 문의 작성
         </button>
@@ -91,7 +91,7 @@ export function SupportContactForm() {
             className={`rounded-full px-3 py-1.5 text-xs ${
               category === c
                 ? "border-[1.5px] border-primary bg-primary-soft font-bold text-primary"
-                : "border border-[#e2e7ee] bg-surface text-text-2"
+                : "border border-line bg-surface text-text-2"
             }`}
           >
             {c}

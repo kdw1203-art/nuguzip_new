@@ -302,7 +302,7 @@ function PdfUpload({
   return (
     <div className="flex flex-col gap-1.5">
       <label
-        className={`flex cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-[#c9d4e5] p-3 text-[11px] font-bold text-primary ${
+        className={`flex cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-line-strong p-3 text-[11px] font-bold text-primary ${
           busy ? "pointer-events-none opacity-50" : ""
         }`}
       >
@@ -461,7 +461,7 @@ function StepPreview({ draft }: { draft: Draft }) {
             <b>{draft.fileName ? "첨부됨" : "미첨부"}</b>
           </div>
         </div>
-        <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] text-[11px] font-bold text-[#33415e]">
+        <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-line to-line-strong text-[11px] font-bold text-[#33415e]">
           미리보기 썸네일 영역 (자리표시)
         </div>
         <div className="rounded-xl bg-surface px-3.5 py-2.5 text-[10px] leading-relaxed text-text-2">

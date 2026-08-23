@@ -239,7 +239,7 @@ export default async function PaymentSuccessPage({
             나갔는지 보려면 카드사 알림을 열어야 했다. */}
         {receiptRows.length > 0 && (
           <div className="mt-2 w-full overflow-hidden rounded-[18px] border border-line bg-surface text-left shadow-[0_8px_24px_rgba(16,28,54,.06)]">
-            <div className="border-b border-dashed border-[#dfe5ee] px-5 py-3.5">
+            <div className="border-b border-dashed border-line px-5 py-3.5">
               <div className="text-[11px] font-bold text-text-3">결제 내역</div>
             </div>
             <dl className="flex flex-col gap-2.5 px-5 py-4">
@@ -250,7 +250,7 @@ export default async function PaymentSuccessPage({
                 </div>
               ))}
               {orderId && (
-                <div className="flex items-baseline justify-between gap-3 border-t border-[#f0f3f8] pt-2.5">
+                <div className="flex items-baseline justify-between gap-3 border-t border-divider pt-2.5">
                   <dt className="text-[11px] text-text-3">주문번호</dt>
                   <dd className="break-all text-right text-[11px] text-text-3">{orderId}</dd>
                 </div>
@@ -261,7 +261,7 @@ export default async function PaymentSuccessPage({
                 href={record.receiptUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="block border-t border-line bg-[#f7f9fd] px-5 py-3 text-center text-[12px] font-extrabold text-primary"
+                className="block border-t border-line bg-bg px-5 py-3 text-center text-[12px] font-extrabold text-primary"
               >
                 매출전표(영수증) 보기 ›
               </a>
@@ -275,7 +275,7 @@ export default async function PaymentSuccessPage({
         {/* 자동결제 정보 — 등록 완료·카드 변경 화면의 핵심 확인값 */}
         {billingSub && (
           <div className="w-full overflow-hidden rounded-[18px] border border-line bg-surface text-left shadow-[0_8px_24px_rgba(16,28,54,.06)]">
-            <div className="border-b border-dashed border-[#dfe5ee] px-5 py-3.5">
+            <div className="border-b border-dashed border-line px-5 py-3.5">
               <div className="text-[11px] font-bold text-text-3">자동결제 정보</div>
             </div>
             <dl className="flex flex-col gap-2.5 px-5 py-4">
@@ -301,7 +301,7 @@ export default async function PaymentSuccessPage({
                   {billingSub.billing === "annual" ? "년" : "월"}
                 </dd>
               </div>
-              <div className="flex items-baseline justify-between gap-3 border-t border-[#f0f3f8] pt-2.5">
+              <div className="flex items-baseline justify-between gap-3 border-t border-divider pt-2.5">
                 <dt className="text-[12px] text-text-3">다음 결제일</dt>
                 <dd className="text-[13px] font-extrabold text-ink">
                   {billingSub.nextChargeAt
@@ -315,7 +315,7 @@ export default async function PaymentSuccessPage({
                 </dd>
               </div>
             </dl>
-            <p className="border-t border-line bg-[#f7f9fd] px-5 py-3 text-[11px] leading-[1.6] text-text-3">
+            <p className="border-t border-line bg-bg px-5 py-3 text-[11px] leading-[1.6] text-text-3">
               해지·카드 변경은 구독 페이지의 구독 관리에서 언제든 가능해요 — 해지하면 다음
               결제일에 청구되지 않아요.
             </p>

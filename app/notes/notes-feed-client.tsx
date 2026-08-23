@@ -373,7 +373,7 @@ export function NotesFeedClient({
                 className={`chip press shrink-0 px-4 py-2 ${
                   activeFilter === f
                     ? "chip-active"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
+                    : "border border-line bg-surface text-text-2"
                 }`}
               >
                 {f}
@@ -478,7 +478,7 @@ export function NotesFeedClient({
           </Link>
           <Link
             href="/notes/new?quick=1"
-            className="flex-1 rounded-2xl border-[1.5px] border-dashed border-[#c9d4e5] bg-surface p-[15px] text-center text-[14px] font-bold text-text-1"
+            className="flex-1 rounded-2xl border-[1.5px] border-dashed border-line-strong bg-surface p-[15px] text-center text-[14px] font-bold text-text-1"
           >
             📷 현장 퀵 기록
           </Link>

@@ -806,13 +806,13 @@ export default async function ComplexHubPage({
         >
           {v.dong}
         </Link>
-        <span className="chip bg-ink px-2.5 py-1 text-[11px] font-extrabold text-white">
+        <span className="chip bg-ink px-2.5 py-1 text-[11px] font-extrabold text-surface">
           {v.name}
         </span>
       </div>
 
       {/* 단지명 + 팔로우 — 가격 히어로와 한 덩어리 */}
-      <div className="rise-in mt-3 overflow-hidden rounded-[20px] border border-[#e8edf5] bg-gradient-to-br from-[#eef3ff] via-surface to-[#f7f9fd] px-4 py-4 sm:px-5">
+      <div className="rise-in mt-3 overflow-hidden rounded-[20px] border border-line bg-gradient-to-br from-primary-soft via-surface to-bg px-4 py-4 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[22px] font-extrabold tracking-tight text-ink md:text-[26px]">
@@ -948,7 +948,7 @@ export default async function ComplexHubPage({
             {v.infoRows.map((r) => (
               <div
                 key={r.label}
-                className="flex items-baseline justify-between gap-3 border-b border-[#f0f3f8] py-[6px] text-xs last:border-b-0"
+                className="flex items-baseline justify-between gap-3 border-b border-divider py-[6px] text-xs last:border-b-0"
               >
                 <span className="shrink-0 text-text-3">{r.label}</span>
                 <span className="truncate text-right font-bold text-ink">{r.value}</span>
@@ -1010,19 +1010,19 @@ export default async function ComplexHubPage({
           <div className="rise-in-2 card flex flex-col gap-2 rounded-[18px] px-4 py-4">
             <div className="text-[13px] font-extrabold text-ink">한눈에 보기</div>
             <div className="grid grid-cols-2 gap-1.5">
-              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+              <div className="rounded-xl bg-bg px-2.5 py-2">
                 <div className="text-[10px] text-text-3">시세</div>
                 <div className="text-[14px] font-extrabold text-ink">{v.metric.price}</div>
               </div>
-              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+              <div className="rounded-xl bg-bg px-2.5 py-2">
                 <div className="text-[10px] text-text-3">거래</div>
                 <div className="text-[14px] font-extrabold text-ink">{v.metric.deals}</div>
               </div>
-              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+              <div className="rounded-xl bg-bg px-2.5 py-2">
                 <div className="text-[10px] text-text-3">매물</div>
                 <div className="text-[14px] font-extrabold text-ink">{v.metric.listings}</div>
               </div>
-              <div className="rounded-xl bg-[#f5f7fb] px-2.5 py-2">
+              <div className="rounded-xl bg-bg px-2.5 py-2">
                 <div className="text-[10px] text-text-3">노트</div>
                 <div className="text-[14px] font-extrabold text-ink">{v.metric.notes}</div>
               </div>
@@ -1032,7 +1032,7 @@ export default async function ComplexHubPage({
                 {v.chips.slice(0, 8).map((c) => (
                   <span
                     key={c}
-                    className="rounded-full bg-[#f2f4f8] chip-pad text-[10px] font-bold text-text-2"
+                    className="rounded-full bg-bg chip-pad text-[10px] font-bold text-text-2"
                   >
                     {c}
                   </span>
@@ -1049,7 +1049,7 @@ export default async function ComplexHubPage({
                 <Link
                   key={n.id}
                   href={`/complex/${encodeURIComponent(n.id)}`}
-                  className="rounded-xl px-2 py-2 transition-colors hover:bg-[#f5f7fb]"
+                  className="rounded-xl px-2 py-2 transition-colors hover:bg-bg"
                 >
                   <div className="truncate text-[12px] font-bold text-ink">{n.name}</div>
                   <div className="truncate text-[10px] text-text-3">{n.meta}</div>

@@ -147,7 +147,7 @@ function TemplateCard({ t, delay }: { t: NoteTemplate; delay: string }) {
             공식
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#e5f3ec] chip-pad text-[11px] font-semibold text-[#1a7f4e]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-success-soft chip-pad text-[11px] font-semibold text-success">
             <Icon name="users" size={12} />
             이웃 제작
           </span>

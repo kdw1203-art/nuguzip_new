@@ -227,7 +227,7 @@ export function MapSearchBox({
   const shellClass =
     variant === "floating"
       ? "glass-strong flex items-center gap-2 rounded-[16px] px-3.5 py-2.5"
-      : "flex w-full items-center gap-2 rounded-xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.7)] px-3.5 py-2";
+      : "flex w-full items-center gap-2 rounded-xl border border-[rgba(255,255,255,.9)] bg-[var(--glass-bg)] px-3.5 py-2";
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
@@ -260,7 +260,7 @@ export function MapSearchBox({
       </div>
 
       {open && query.trim().length >= 1 && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[60vh] overflow-y-auto rounded-2xl border border-[rgba(255,255,255,.9)] bg-[rgba(255,255,255,.98)] p-1.5 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
+        <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[60vh] overflow-y-auto rounded-2xl border border-[rgba(255,255,255,.9)] bg-[var(--glass-bg-strong)] p-1.5 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
           {busy && !hasResults && (
             <div className="px-3 py-3 text-xs text-text-3">검색 중…</div>
           )}
@@ -271,7 +271,7 @@ export function MapSearchBox({
             <button
               type="button"
               onClick={() => pickAddress(address)}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#f2f4f8]"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-bg"
             >
               <Icon name="📍" size={16} className="shrink-0" />
               <span className="min-w-0 flex-1">
@@ -287,7 +287,7 @@ export function MapSearchBox({
               key={c.id}
               type="button"
               onClick={() => pickComplex(c)}
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#f2f4f8]"
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-bg"
             >
               <Icon name="🏢" size={16} className="shrink-0" />
               <span className="min-w-0 flex-1">
@@ -325,7 +325,7 @@ export function MapSearchBox({
                   key={`place-${i}-${p.name}`}
                   type="button"
                   onClick={() => pickPlace(p)}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-[#f2f4f8]"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left hover:bg-bg"
                 >
                   <Icon name="📍" size={16} className="shrink-0" />
                   <span className="min-w-0 flex-1">

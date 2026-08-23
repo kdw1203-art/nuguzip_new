@@ -116,10 +116,10 @@ export default async function TownGroupDetailPage({
         : "모집 중";
   const statusStyle =
     isPast || isFull
-      ? "bg-[#f2f4f8] text-text-3"
+      ? "bg-bg text-text-3"
       : remaining <= 1
-        ? "bg-[#fdf3e7] text-warning"
-        : "bg-[#edf2fe] text-primary";
+        ? "bg-warning-soft text-warning"
+        : "bg-primary-soft text-primary";
   const isOrganizer = myEmail !== null && meeting.organizerEmail?.trim().toLowerCase() === myEmail;
   const fillPct = Math.min(100, Math.round((meeting.currentMembers / Math.max(1, meeting.maxMembers)) * 100));
 
@@ -165,7 +165,7 @@ export default async function TownGroupDetailPage({
             {meeting.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {meeting.tags.slice(0, 6).map((t) => (
-                  <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+                  <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[11px] text-text-2">
                     #{t}
                   </span>
                 ))}

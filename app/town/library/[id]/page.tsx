@@ -115,7 +115,7 @@ export default async function ReportDetailPage({
               {r.category}
             </span>
             {r.region && (
-              <span className="rounded-md bg-[#f2f4f8] px-2 py-0.5 text-[10px] font-bold text-text-2">
+              <span className="rounded-md bg-bg px-2 py-0.5 text-[10px] font-bold text-text-2">
                 {r.region}
               </span>
             )}
@@ -132,7 +132,7 @@ export default async function ReportDetailPage({
           {r.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {r.tags.map((t) => (
-                <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+                <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[11px] text-text-2">
                   #{t}
                 </span>
               ))}

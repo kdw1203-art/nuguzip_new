@@ -48,7 +48,7 @@ const inputCls =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink placeholder:text-text-3";
 const chip = (on: boolean) =>
   `press rounded-full px-3.5 py-2 text-[13px] ${
-    on ? "bg-ink font-bold text-white" : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+    on ? "bg-ink font-bold text-surface" : "border border-line bg-surface font-semibold text-text-2"
   }`;
 
 export function BrokerageFeeCalc() {
@@ -214,13 +214,13 @@ export function BrokerageFeeCalc() {
               </tr>
             </thead>
             <tbody className="text-text-1">
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">5천만원 미만</td><td className="pr-2">0.6% · 한도 25만</td><td>0.5% · 한도 20만</td></tr>
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">5천만 ~ 1억</td><td className="pr-2">0.5% · 한도 80만</td><td>0.4% · 한도 30만</td></tr>
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">1억 ~ 2억</td><td className="pr-2">0.5% · 한도 80만</td><td>0.3%</td></tr>
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">2억 ~ 6억</td><td className="pr-2">0.4%</td><td>0.3%</td></tr>
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">6억 ~ 9억</td><td className="pr-2">0.4%</td><td>0.4%</td></tr>
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">9억 ~ 12억</td><td className="pr-2">0.5%</td><td>0.4%</td></tr>
-              <tr className="border-b border-[#f0f3f8]"><td className="py-1.5 pr-2">12억 ~ 15억</td><td className="pr-2">0.6%</td><td>0.5%</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">5천만원 미만</td><td className="pr-2">0.6% · 한도 25만</td><td>0.5% · 한도 20만</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">5천만 ~ 1억</td><td className="pr-2">0.5% · 한도 80만</td><td>0.4% · 한도 30만</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">1억 ~ 2억</td><td className="pr-2">0.5% · 한도 80만</td><td>0.3%</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">2억 ~ 6억</td><td className="pr-2">0.4%</td><td>0.3%</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">6억 ~ 9억</td><td className="pr-2">0.4%</td><td>0.4%</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">9억 ~ 12억</td><td className="pr-2">0.5%</td><td>0.4%</td></tr>
+              <tr className="border-b border-divider"><td className="py-1.5 pr-2">12억 ~ 15억</td><td className="pr-2">0.6%</td><td>0.5%</td></tr>
               <tr><td className="py-1.5 pr-2">15억 이상</td><td className="pr-2">0.7%</td><td>0.6%</td></tr>
             </tbody>
           </table>

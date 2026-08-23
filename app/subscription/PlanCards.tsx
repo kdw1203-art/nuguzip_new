@@ -52,7 +52,7 @@ const CARDS: PlanCard[] = [
     badge: null,
     checkoutTier: null,
     cta: "무료로 시작",
-    ctaClass: "bg-[#f2f4f8] text-text-1",
+    ctaClass: "bg-bg text-text-1",
   },
   {
     kind: "pro",
@@ -178,7 +178,7 @@ export function PlanCards({
             type="button"
             onClick={() => setBilling(b)}
             className={`rounded-full px-4 py-1.5 font-bold transition-colors ${
-              billing === b ? "bg-ink text-white" : "text-text-3"
+              billing === b ? "bg-ink text-surface" : "text-text-3"
             }`}
           >
             {b === "monthly" ? "월간" : `연간 최대 -${Math.round(Math.max(pro.annualDiscountPct, expert.annualDiscountPct))}%`}
@@ -255,7 +255,7 @@ export function PlanCards({
                 <button
                   type="button"
                   disabled
-                  className="rounded-[14px] bg-[#f2f4f8] p-[13px] text-center text-sm font-bold text-text-1 opacity-70"
+                  className="rounded-[14px] bg-bg p-[13px] text-center text-sm font-bold text-text-1 opacity-70"
                 >
                   현재 이용 중
                 </button>

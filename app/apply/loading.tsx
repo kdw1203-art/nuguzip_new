@@ -36,7 +36,7 @@ export default function ApplyLoading() {
           {Array.from({ length: 8 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center justify-between gap-3 border-b border-[#f0f3f8] py-3 last:border-0"
+              className="flex items-center justify-between gap-3 border-b border-divider py-3 last:border-0"
             >
               <div className="min-w-0 flex-1">
                 <Skeleton className="h-3.5 w-2/3 rounded" />

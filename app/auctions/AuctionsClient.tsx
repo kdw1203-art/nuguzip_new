@@ -576,7 +576,7 @@ export function AuctionsClient({
             ) : (
               <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
                 <div className="min-w-[560px]">
-                  <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                  <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
                     <span>물건 · 소재지</span>
                     <span className="text-center">용도</span>
                     <span className="text-center">감정가</span>
@@ -587,7 +587,7 @@ export function AuctionsClient({
                     <div
                       key={c.key}
                       className={`grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] items-center gap-2 py-2.5 text-xs ${
-                        i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        i < arr.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       <span className="truncate-1 font-bold text-ink">
@@ -630,7 +630,7 @@ export function AuctionsClient({
                 </summary>
                 <div className="mt-2 overflow-x-auto">
                   <div className="min-w-[560px]">
-                    <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                    <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
                       <span>물건 · 소재지</span>
                       <span className="text-center">용도</span>
                       <span className="text-center">감정가</span>
@@ -641,7 +641,7 @@ export function AuctionsClient({
                       <div
                         key={c.key}
                         className={`grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] items-center gap-2 py-2.5 text-xs opacity-70 ${
-                          i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                          i < arr.length - 1 ? "border-b border-divider" : ""
                         }`}
                       >
                         <span className="truncate-1 font-bold text-ink">

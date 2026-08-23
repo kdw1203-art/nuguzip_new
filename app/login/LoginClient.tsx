@@ -55,7 +55,7 @@ const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }
   },
   google: {
     label: "Google로 시작",
-    className: "border border-[#e2e7ee] bg-surface text-text-1",
+    className: "border border-line bg-surface text-text-1",
   },
 };
 
@@ -345,9 +345,9 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
               </button>
             ))}
             <div className="flex items-center gap-3 text-[11px] text-text-3">
-              <span className="h-px flex-1 bg-[#e9edf3]" />
+              <span className="h-px flex-1 bg-bg" />
               또는 이메일로
-              <span className="h-px flex-1 bg-[#e9edf3]" />
+              <span className="h-px flex-1 bg-bg" />
             </div>
           </div>
         )}
@@ -365,7 +365,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="이메일"
             autoComplete="email"
-            className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+            className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
           />
           <label htmlFor="login-password" className="sr-only">
             비밀번호
@@ -377,7 +377,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호"
             autoComplete="current-password"
-            className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+            className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
           />
           <button
             type="submit"

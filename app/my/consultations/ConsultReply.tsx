@@ -74,7 +74,7 @@ export function ConsultReply({
         onChange={(e) => setReply(e.target.value.slice(0, REPLY_MAX))}
         rows={4}
         placeholder="상담 답변을 작성해 주세요. 신청자에게 전달됩니다."
-        className="w-full resize-none rounded-xl border border-line bg-white px-3.5 py-2.5 text-[13px] leading-[1.6] text-ink outline-none focus:border-primary"
+        className="w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] leading-[1.6] text-ink outline-none focus:border-primary"
       />
       <div className="flex items-center justify-between gap-2">
         <span className="text-[11px] text-text-3">

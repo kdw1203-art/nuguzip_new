@@ -1176,7 +1176,7 @@ export function NoteForm({
 
       {/* 입력 진행 바 — 위 progressItems 의 실제 충족 개수만 반영(하드코딩 66% 제거) */}
       <div
-        className="relative mt-2.5 h-1 rounded-sm bg-[#e9edf3]"
+        className="relative mt-2.5 h-1 rounded-sm bg-bg"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={progressItems.length}
@@ -1229,7 +1229,7 @@ export function NoteForm({
             <button
               type="button"
               onClick={discardDraft}
-              className="shrink-0 rounded-[9px] border border-[#e2e7ee] bg-surface px-3 py-2 text-[11px] font-bold text-text-2"
+              className="shrink-0 rounded-[9px] border border-line bg-surface px-3 py-2 text-[11px] font-bold text-text-2"
             >
               삭제
             </button>
@@ -1263,7 +1263,7 @@ export function NoteForm({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading || photos.length >= MAX_PHOTOS}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-[#c9d4e5] bg-surface px-4 py-2.5 text-[13px] font-bold text-text-2 disabled:opacity-60"
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-line-strong bg-surface px-4 py-2.5 text-[13px] font-bold text-text-2 disabled:opacity-60"
           >
             <Icon name="📷" size={16} className="inline align-middle" />
             {uploading
@@ -1296,7 +1296,7 @@ export function NoteForm({
                   type="button"
                   onClick={runVisitVerify}
                   disabled={verifyState === "asking"}
-                  className="rounded-[9px] border border-[#c9d4e5] bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1 disabled:opacity-60"
+                  className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1 disabled:opacity-60"
                 >
                   {verifyState === "asking" ? "위치 확인 중…" : "현재 위치로 인증하기"}
                 </button>
@@ -1361,7 +1361,7 @@ export function NoteForm({
                       className={`rounded-full px-3 py-1.5 text-xs ${
                         active
                           ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
-                          : "border border-[#e2e7ee] bg-surface text-text-2"
+                          : "border border-line bg-surface text-text-2"
                       }`}
                     >
                       {opt}
@@ -1385,7 +1385,7 @@ export function NoteForm({
                       className={`rounded-full px-3 py-1.5 text-xs ${
                         active
                           ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
-                          : "border border-[#e2e7ee] bg-surface text-text-2"
+                          : "border border-line bg-surface text-text-2"
                       }`}
                     >
                       {opt}
@@ -1397,7 +1397,7 @@ export function NoteForm({
                 <button
                   type="button"
                   onClick={() => setWeather(weatherHint.slice(0, 40))}
-                  className="self-start rounded-lg border border-[#e2e7ee] bg-bg px-2.5 py-1.5 text-left text-[11px] text-text-2"
+                  className="self-start rounded-lg border border-line bg-bg px-2.5 py-1.5 text-left text-[11px] text-text-2"
                 >
                   제안 · {weatherHint.slice(0, 48)}
                   {weatherHint.length > 48 ? "…" : ""} (탭하여 적용)
@@ -1408,7 +1408,7 @@ export function NoteForm({
                 value={weather}
                 onChange={(e) => setWeather(e.target.value.slice(0, 40))}
                 placeholder="직접 입력 (선택)"
-                className="w-full rounded-lg border border-[#e2e7ee] bg-surface px-2.5 py-1.5 text-xs text-text-1 outline-none"
+                className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-text-1 outline-none"
                 aria-label="방문 날씨"
               />
             </div>
@@ -1426,7 +1426,7 @@ export function NoteForm({
             <button
               type="button"
               onClick={() => setQuickMode(false)}
-              className="shrink-0 rounded-[9px] border border-[#c9d4e5] bg-surface px-3 py-2 text-[11px] font-bold text-text-1"
+              className="shrink-0 rounded-[9px] border border-line-strong bg-surface px-3 py-2 text-[11px] font-bold text-text-1"
             >
               세부 항목 펼치기
             </button>
@@ -1461,7 +1461,7 @@ export function NoteForm({
                       className={`flex h-9 flex-1 items-center justify-center rounded-[10px] px-2 text-xs ${
                         active
                           ? "border-[1.5px] border-primary bg-[rgba(29,79,216,.1)] font-bold text-primary"
-                          : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+                          : "border border-line bg-surface font-semibold text-text-2"
                       }`}
                     >
                       {lv}
@@ -1543,7 +1543,7 @@ export function NoteForm({
             const open = openGroups[g.id] ?? false;
             const doneCount = g.items.filter((it) => groupChecked[it.id]).length;
             return (
-              <div key={g.id} className="rounded-xl border border-[#e8edf5] bg-bg/60">
+              <div key={g.id} className="rounded-xl border border-line bg-bg/60">
                 <button
                   type="button"
                   onClick={() =>
@@ -1557,7 +1557,7 @@ export function NoteForm({
                   </span>
                 </button>
                 {open && (
-                  <div className="flex flex-col gap-1 border-t border-[#e8edf5] px-2 py-2">
+                  <div className="flex flex-col gap-1 border-t border-line px-2 py-2">
                     {g.items.map((it) => {
                       const checked = Boolean(groupChecked[it.id]);
                       const suggested = templateSuggestedIds.has(it.id);
@@ -1577,7 +1577,7 @@ export function NoteForm({
                             className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] text-[11px] ${
                               checked
                                 ? "bg-primary text-white"
-                                : "border-[1.5px] border-[#c9d4e5] bg-surface"
+                                : "border-[1.5px] border-line-strong bg-surface"
                             }`}
                           >
                             {checked ? "✓" : ""}
@@ -1625,7 +1625,7 @@ export function NoteForm({
                       ? t.tone === "neg"
                         ? "bg-danger-soft font-bold text-danger"
                         : "bg-[rgba(29,79,216,.1)] font-bold text-primary"
-                      : "border border-[#e2e7ee] bg-surface text-text-2"
+                      : "border border-line bg-surface text-text-2"
                   }`}
                 >
                   {active ? "✓ " : ""}
@@ -1636,7 +1636,7 @@ export function NoteForm({
             <button
               type="button"
               onClick={addCustomTag}
-              className="rounded-full bg-[#f2f4f8] px-3 py-1.5 text-xs text-text-3"
+              className="rounded-full bg-bg px-3 py-1.5 text-xs text-text-3"
             >
               ＋ 직접 입력
             </button>
@@ -1664,7 +1664,7 @@ export function NoteForm({
                   className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] text-[11px] ${
                     done
                       ? "bg-primary text-white"
-                      : "border-[1.5px] border-[#c9d4e5] bg-surface"
+                      : "border-[1.5px] border-line-strong bg-surface"
                   }`}
                 >
                   {done ? "✓" : ""}
@@ -1680,7 +1680,7 @@ export function NoteForm({
                   className={`rounded-full chip-pad text-[10px] font-bold ${
                     todo.level === "중요"
                       ? "bg-danger-soft text-danger"
-                      : "bg-[#f2f4f8] text-text-2"
+                      : "bg-bg text-text-2"
                   }`}
                 >
                   {todo.level}
@@ -1691,7 +1691,7 @@ export function NoteForm({
           <button
             type="button"
             onClick={addTodo}
-            className="flex items-center gap-2 rounded-xl border-[1.5px] border-dashed border-[#c9d4e5] px-3 py-[11px] text-[13px] text-text-3"
+            className="flex items-center gap-2 rounded-xl border-[1.5px] border-dashed border-line-strong px-3 py-[11px] text-[13px] text-text-3"
           >
             ＋ 고려사항 추가
           </button>
@@ -1747,7 +1747,7 @@ export function NoteForm({
                     type="button"
                     aria-label="사진 삭제"
                     onClick={() => removePhoto(p)}
-                    className="absolute -right-1 -top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-ink text-[10px] text-white"
+                    className="absolute -right-1 -top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-ink text-[10px] text-surface"
                   >
                     ✕
                   </button>
@@ -1759,7 +1759,7 @@ export function NoteForm({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading || photos.length >= MAX_PHOTOS}
-            className="flex items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-[#c9d4e5] p-[11px] text-center text-[13px] font-bold text-text-2 disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-line-strong p-[11px] text-center text-[13px] font-bold text-text-2 disabled:opacity-60"
           >
             <Icon name="📷" size={16} className="inline align-middle" />
             {uploading

@@ -152,7 +152,7 @@ function isOwnership(v: unknown): v is Ownership {
 }
 
 const numInputCls =
-  "w-[110px] rounded-lg border border-[#e2e7ee] bg-bg px-3 py-[7px] text-right text-[13px] font-extrabold text-ink outline-none focus:border-primary";
+  "w-[110px] rounded-lg border border-line bg-bg px-3 py-[7px] text-right text-[13px] font-extrabold text-ink outline-none focus:border-primary";
 
 export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) {
   const [section, setSection] = useState<Section>("loan");
@@ -320,8 +320,8 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             onClick={() => setSection(s.key)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] ${
               section === s.key
-                ? "bg-ink font-bold text-white"
-                : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+                ? "bg-ink font-bold text-surface"
+                : "border border-line bg-surface font-semibold text-text-2"
             }`}
           >
             <Icon name={s.icon} size={15} />
@@ -388,7 +388,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                 <span className="text-xs font-bold text-text-2">만원</span>
               </span>
             </label>
-            <div className="flex items-center gap-2 border-t border-[#f0f3f8] pt-2">
+            <div className="flex items-center gap-2 border-t border-divider pt-2">
               <span className="w-11 text-xs text-text-2">구분</span>
               <div className="flex flex-wrap gap-1.5">
                 {OWNERSHIPS.map((c) => (
@@ -400,7 +400,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                     className={`rounded-full px-3 py-1.5 text-xs ${
                       ownership === c
                         ? "border-[1.5px] border-primary bg-primary-soft font-bold text-primary"
-                        : "border border-[#e2e7ee] bg-surface text-text-2"
+                        : "border border-line bg-surface text-text-2"
                     }`}
                   >
                     {c}
@@ -480,8 +480,8 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                     onClick={() => setYears(y)}
                     className={`rounded-full px-2.5 py-1 text-xs ${
                       years === y
-                        ? "bg-ink font-bold text-white"
-                        : "border border-[#e2e7ee] bg-surface text-text-2"
+                        ? "bg-ink font-bold text-surface"
+                        : "border border-line bg-surface text-text-2"
                     }`}
                   >
                     {y}년
@@ -603,7 +603,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             </div>
             {mortgage.live ? (
               <div className="min-w-[540px]">
-                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[11px] text-text-3">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2 border-b border-divider py-2 text-[11px] text-text-3">
                   <span>은행</span>
                   <span className="text-center">변동금리</span>
                   <span className="text-center">고정금리</span>
@@ -616,7 +616,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                   return (
                     <div
                       key={row.bank}
-                      className={`grid grid-cols-[1.2fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs last:border-b-0 ${
+                      className={`grid grid-cols-[1.2fr_1fr_1fr_1fr] items-center gap-2 border-b border-divider py-2.5 text-xs last:border-b-0 ${
                         best ? "rounded-lg bg-[rgba(29,79,216,.04)]" : ""
                       }`}
                     >

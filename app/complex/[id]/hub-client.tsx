@@ -205,8 +205,8 @@ export function ComplexHubTabs({
             onClick={() => setTab(t)}
             className={`rounded-full px-3.5 py-2 font-bold transition-colors ${
               tab === t
-                ? "bg-ink text-white"
-                : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+                ? "bg-ink text-surface"
+                : "border border-line bg-surface font-semibold text-text-2"
             }`}
           >
             {t}
@@ -228,12 +228,12 @@ export function ComplexHubTabs({
                 </span>
                 <span className="text-[10px] text-text-3">시세 탭에서 전체</span>
               </div>
-              <div className="overflow-hidden rounded-xl bg-[#f7f9fd]">
+              <div className="overflow-hidden rounded-xl bg-bg">
                 {trades.slice(0, 18).map((t, i) => (
                   <div
                     key={`${t.date}-${i}`}
                     className={`flex items-center justify-between px-3 py-[7px] text-[12px] ${
-                      i > 0 ? "border-t border-[#e8edf5]" : ""
+                      i > 0 ? "border-t border-line" : ""
                     }`}
                   >
                     <span className="text-text-2">
@@ -261,7 +261,7 @@ export function ComplexHubTabs({
               {notes.slice(0, 4).map((n) => (
                 <div
                   key={n.title}
-                  className="rounded-xl bg-[#f7f9fd] px-3 py-2"
+                  className="rounded-xl bg-bg px-3 py-2"
                 >
                   <div className="truncate text-[12px] font-bold text-ink">{n.title}</div>
                   <div className="mt-0.5 flex justify-between gap-2 text-[10px] text-text-3">
@@ -338,7 +338,7 @@ export function ComplexHubTabs({
               <div className="flex items-center gap-1.5">
                 <span
                   className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${
-                    l.urgent ? "bg-danger-soft text-danger" : "bg-[#f2f4f8] font-bold text-text-2"
+                    l.urgent ? "bg-danger-soft text-danger" : "bg-bg font-bold text-text-2"
                   }`}
                 >
                   {l.badge}
@@ -372,14 +372,14 @@ export function ComplexHubTabs({
           {priceSeries.length >= 2 && <PriceTrendChart points={priceSeries} />}
           {trades.length > 0 ? (
             <div className="card flex flex-col overflow-hidden rounded-[14px] px-0 py-0">
-              <div className="border-b border-[#e8edf5] bg-[#f7f9fd] px-3.5 py-2 text-[11px] font-bold text-text-2">
+              <div className="border-b border-line bg-bg px-3.5 py-2 text-[11px] font-bold text-text-2">
                 전체 {trades.length}개월 · 국토교통부
               </div>
               {trades.map((t, i) => (
                 <div
                   key={`${t.date}-${i}`}
                   className={`flex items-center justify-between px-3.5 py-[7px] text-[12px] ${
-                    i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < trades.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <span className="text-text-2">

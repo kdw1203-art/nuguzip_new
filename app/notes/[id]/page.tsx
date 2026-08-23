@@ -723,7 +723,7 @@ export default async function NoteDetailPage({
                   key={c}
                   className={
                     i === v.chips.length - 1
-                      ? "rounded-full bg-ink px-2.5 py-1 text-[11px] font-extrabold text-white"
+                      ? "rounded-full bg-ink px-2.5 py-1 text-[11px] font-extrabold text-surface"
                       : "rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
                   }
                 >
@@ -914,7 +914,7 @@ export default async function NoteDetailPage({
                   {revisitDelta.changes.map((c) => (
                     <span
                       key={c}
-                      className="rounded-full bg-[#edf2fe] px-3 py-1.5 text-[12px] font-bold text-primary"
+                      className="rounded-full bg-primary-soft px-3 py-1.5 text-[12px] font-bold text-primary"
                     >
                       {c}
                     </span>
@@ -949,7 +949,7 @@ export default async function NoteDetailPage({
                 <div
                   key={visit.label}
                   className={`flex justify-between py-2.5 text-[13px] ${
-                    i < v.visits.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < v.visits.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <span
@@ -1077,7 +1077,7 @@ export default async function NoteDetailPage({
                 </div>
               </div>
             ) : (
-              <div className="flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-[#eef1f6]">
+              <div className="flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-bg">
                 <span className="text-[18px] font-extrabold text-text-3">—</span>
                 <span className="mt-0.5 text-[10px] text-text-3">미입력</span>
               </div>
@@ -1098,7 +1098,7 @@ export default async function NoteDetailPage({
                   <span className="w-11 shrink-0 text-[11px] text-text-2">
                     {b.label}
                   </span>
-                  <div className="relative h-2 flex-1 rounded bg-[#eef1f6]">
+                  <div className="relative h-2 flex-1 rounded bg-bg">
                     <div
                       className={`absolute left-0 h-2 rounded ${
                         b.bad ? "bg-danger" : "bg-primary"

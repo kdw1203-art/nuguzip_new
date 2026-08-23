@@ -19,7 +19,7 @@ export const NaverMap = dynamic(
     loading: () => (
       <div
         aria-hidden
-        className="h-full min-h-[160px] w-full animate-pulse rounded-2xl bg-[#eef1f6]"
+        className="h-full min-h-[160px] w-full animate-pulse rounded-2xl bg-bg"
       />
     ),
   },

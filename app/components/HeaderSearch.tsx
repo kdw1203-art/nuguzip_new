@@ -161,7 +161,7 @@ export function HeaderSearch() {
       {/* 폭 실측(2026-08-16 캡처): w-[200px]에서 입력부 가용폭이 ~125px 인데
           플레이스홀더가 ~150px 라 "검색"이 글자 중간에서 잘렸다. 문구가 온전히
           들어가는 폭으로 넓히고, 그래도 좁아지는 상황은 말줄임(…)으로 접는다. */}
-      <div className="flex w-[232px] items-center gap-2 rounded-xl bg-[rgba(255,255,255,.7)] px-3.5 py-2 text-[13px] text-text-3 xl:w-[252px]">
+      <div className="flex w-[232px] items-center gap-2 rounded-xl bg-[var(--glass-bg)] px-3.5 py-2 text-[13px] text-text-3 xl:w-[252px]">
         <span aria-hidden>⌕</span>
         <input
           ref={inputRef}
@@ -198,7 +198,7 @@ export function HeaderSearch() {
         {/* 항목 12 — 단축키 발견성. 장식이므로 스크린리더에서는 숨긴다(aria-label 에 명시). */}
         <kbd
           aria-hidden
-          className="shrink-0 rounded-md border border-line bg-[rgba(255,255,255,.8)] chip-pad-tight font-sans text-[10px] font-bold text-text-3"
+          className="shrink-0 rounded-md border border-line bg-[var(--glass-bg)] chip-pad-tight font-sans text-[10px] font-bold text-text-3"
         >
           /
         </kbd>
@@ -272,7 +272,7 @@ export function HeaderSearch() {
             <button
               type="button"
               onClick={submit}
-              className="mt-0.5 flex w-full items-center rounded-[10px] border-t border-[#f0f3f8] px-3 py-2 text-left text-[12px] font-bold text-primary transition-colors hover:bg-[rgba(29,79,216,.08)]"
+              className="mt-0.5 flex w-full items-center rounded-[10px] border-t border-divider px-3 py-2 text-left text-[12px] font-bold text-primary transition-colors hover:bg-[rgba(29,79,216,.08)]"
             >
               “{q.trim()}” 통합 검색 ›
             </button>

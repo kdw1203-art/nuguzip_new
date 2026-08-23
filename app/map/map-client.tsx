@@ -256,7 +256,7 @@ function FilterChipGroup({
               className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
                 active
                   ? "bg-primary text-white font-bold shadow-[0_2px_8px_rgba(29,79,216,.3)]"
-                  : "bg-[rgba(255,255,255,.85)] text-text-2"
+                  : "bg-[var(--glass-bg)] text-text-2"
               }`}
             >
               {o.label}
@@ -1386,7 +1386,7 @@ export function MapClient({
           className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
             topTradeKey === t.key
               ? "chip-active"
-              : "bg-[rgba(255,255,255,.75)] text-text-2"
+              : "bg-[var(--glass-bg)] text-text-2"
           }`}
         >
           {t.label}
@@ -1399,7 +1399,7 @@ export function MapClient({
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           showListings
             ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
-            : "bg-[rgba(255,255,255,.75)] text-text-2"
+            : "bg-[var(--glass-bg)] text-text-2"
         }`}
       >
         <Icon name="🏠" size={14} className="inline align-middle" /> 매물
@@ -1421,7 +1421,7 @@ export function MapClient({
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           filterActive || filtersExpanded
             ? "bg-[rgba(29,79,216,.12)] text-primary"
-            : "bg-[rgba(255,255,255,.75)] text-text-2"
+            : "bg-[var(--glass-bg)] text-text-2"
         }`}
       >
         필터
@@ -1461,7 +1461,7 @@ export function MapClient({
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           radiusMode
             ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
-            : "bg-[rgba(255,255,255,.75)] text-text-2"
+            : "bg-[var(--glass-bg)] text-text-2"
         }`}
       >
         ◎ 반경
@@ -1475,7 +1475,7 @@ export function MapClient({
             className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs font-bold transition-colors ${
               radiusM === r
                 ? "bg-[rgba(29,79,216,.12)] text-primary"
-                : "bg-[rgba(255,255,255,.75)] text-text-2"
+                : "bg-[var(--glass-bg)] text-text-2"
             }`}
           >
             {r >= 1000 ? `${r / 1000}km` : `${r}m`}
@@ -1512,7 +1512,7 @@ export function MapClient({
         className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
           measureMode
             ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
-            : "bg-[rgba(255,255,255,.75)] text-text-2"
+            : "bg-[var(--glass-bg)] text-text-2"
         }`}
       >
         ↔ 거리
@@ -1696,7 +1696,7 @@ export function MapClient({
             className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
               showPriceOverlay
                 ? "bg-primary-soft font-bold text-primary"
-                : "bg-[rgba(255,255,255,.85)] text-text-2"
+                : "bg-[var(--glass-bg)] text-text-2"
             }`}
           >
             <Icon name="🎨" size={14} className="inline align-middle" /> 시세 색상
@@ -1709,7 +1709,7 @@ export function MapClient({
             className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
               showRedevelopment
                 ? "bg-primary-soft font-bold text-primary"
-                : "bg-[rgba(255,255,255,.85)] text-text-2"
+                : "bg-[var(--glass-bg)] text-text-2"
             }`}
           >
             <Icon name="landmark" size={14} className="inline align-middle" /> 정비사업
@@ -1722,7 +1722,7 @@ export function MapClient({
             className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
               showSupply
                 ? "bg-primary-soft font-bold text-primary"
-                : "bg-[rgba(255,255,255,.85)] text-text-2"
+                : "bg-[var(--glass-bg)] text-text-2"
             }`}
           >
             <Icon name="construction" size={14} className="inline align-middle" /> 입주 예정
@@ -1756,7 +1756,7 @@ export function MapClient({
           }}
           placeholder="회사 주소 (예: 강남구 테헤란로 152)"
           aria-label="회사 주소"
-          className="w-full rounded-lg border border-line bg-[rgba(255,255,255,.9)] px-2.5 py-1.5 text-xs text-text-1 outline-none placeholder:text-text-3"
+          className="w-full rounded-lg border border-line bg-[var(--glass-bg-strong)] px-2.5 py-1.5 text-xs text-text-1 outline-none placeholder:text-text-3"
         />
         <div className="flex flex-wrap items-center gap-1.5">
           <button
@@ -1776,7 +1776,7 @@ export function MapClient({
                 className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs transition-colors ${
                   active
                     ? "bg-primary font-bold text-white"
-                    : "bg-[rgba(255,255,255,.85)] text-text-2"
+                    : "bg-[var(--glass-bg)] text-text-2"
                 }`}
               >
                 {o.label}
@@ -2916,7 +2916,7 @@ export function MapClient({
      기존엔 가짜 지역 시세 버블(동안구 7.1억 등)을 그렸으나, 사실 우선 원칙에 따라
      실데이터가 아닌 수치는 표시하지 않고 "지도를 불러올 수 없어요" 상태로 대체. */
   const gradientFallback = (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] px-8 text-center">
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-line to-line-strong px-8 text-center">
       <Icon name="🗺" size={34} />
       <div className="text-[15px] font-extrabold text-ink">지도를 불러오지 못했어요</div>
       <p className="max-w-[280px] text-[12px] leading-relaxed text-text-2">
@@ -3016,7 +3016,7 @@ export function MapClient({
     // dvh 미지원 브라우저는 inset-0(bottom:0)이 폴백으로 풀스크린 유지.
     <div
       ref={mapWrapRef}
-      className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]"
+      className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-line to-line-strong"
     >
       <Suspense fallback={null}>
         <WelcomeHandoff />
@@ -3073,7 +3073,7 @@ export function MapClient({
       {/* ===== 마커 호버 요약 — 누르기 전에 보이는 단지 정보 ===== */}
       {hoverMarker && hoverPos && (
         <div
-          className="pointer-events-none absolute z-[46] w-[212px] rounded-[14px] bg-[rgba(255,255,255,.97)] px-3.5 py-3 shadow-[0_12px_30px_rgba(16,28,54,.22)] ring-1 ring-[rgba(16,28,54,.08)]"
+          className="pointer-events-none absolute z-[46] w-[212px] rounded-[14px] bg-[var(--glass-bg-strong)] px-3.5 py-3 shadow-[0_12px_30px_rgba(16,28,54,.22)] ring-1 ring-[rgba(16,28,54,.08)]"
           style={{
             // 커서 오른쪽 아래가 기본. 화면 끝에 닿으면 반대편으로 접는다.
             left: Math.min(hoverPos.x + 16, Math.max(8, (mapWrapRef.current?.clientWidth ?? 0) - 220)),
@@ -3173,7 +3173,7 @@ export function MapClient({
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+                    className="rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
                   >
                     필터 초기화
                   </button>
@@ -3381,7 +3381,7 @@ export function MapClient({
                       className={`rounded-[10px] px-2.5 py-2 text-left ${
                         showDrivingRoute
                           ? "bg-[rgba(230,126,34,.12)]"
-                          : "bg-[#f5f7fb]"
+                          : "bg-bg"
                       }`}
                     >
                       <div className="flex items-center justify-between text-[10px] text-text-3">
@@ -3395,7 +3395,7 @@ export function MapClient({
                     </button>
                   )}
                   {!routeLoading && !routeResult?.driving && measurePoints.length >= 2 && (
-                    <div className="rounded-[10px] bg-[#f5f7fb] px-2.5 py-2 text-[10px] text-text-3">
+                    <div className="rounded-[10px] bg-bg px-2.5 py-2 text-[10px] text-text-3">
                       차량 경로 API 미연동 또는 조회 불가 — 직선만 표시
                     </div>
                   )}
@@ -3406,7 +3406,7 @@ export function MapClient({
                       className={`rounded-[10px] px-2.5 py-2 text-left ${
                         showWalkingRoute
                           ? "bg-[rgba(13,148,136,.12)]"
-                          : "bg-[#f5f7fb]"
+                          : "bg-bg"
                       }`}
                     >
                       <div className="flex items-center justify-between text-[10px] text-text-3">
@@ -3568,7 +3568,7 @@ export function MapClient({
       >
         <ZoomTabButtons zoom={zoom} onSelect={handleZoomTab} />
       </div>
-      <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[rgba(255,255,255,.8)] px-2.5 py-[5px] text-[11px] text-text-3 md:block xl:hidden">
+      <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[11px] text-text-3 md:block xl:hidden">
         {ZOOM_CAPTION[zoom]}
       </div>
 
@@ -3789,7 +3789,7 @@ export function MapClient({
           type="button"
           onClick={() => setPanelOpen((v) => !v)}
           aria-label={panelOpen ? "패널 접기" : "패널 열기"}
-          className={`absolute top-1/2 z-30 hidden h-16 w-4 -translate-y-1/2 items-center justify-center rounded-r-xl border border-[rgba(255,255,255,.95)] bg-[rgba(255,255,255,.92)] text-[11px] text-text-3 shadow-[6px_0_14px_rgba(16,28,54,.08)] md:flex ${
+          className={`absolute top-1/2 z-30 hidden h-16 w-4 -translate-y-1/2 items-center justify-center rounded-r-xl border border-line bg-[var(--glass-bg-strong)] text-[11px] text-text-3 shadow-[6px_0_14px_rgba(16,28,54,.08)] md:flex ${
             panelOpen ? "left-[340px]" : "left-0"
           }`}
         >
@@ -3954,7 +3954,7 @@ export function MapClient({
                         key={l.id}
                         href={`/listings/${encodeURIComponent(l.id)}`}
                         className={`flex items-center justify-between gap-2 py-2.5 ${
-                          i < complexListings.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                          i < complexListings.length - 1 ? "border-b border-divider" : ""
                         }`}
                       >
                         <span className="flex min-w-0 flex-col">
@@ -4003,7 +4003,7 @@ export function MapClient({
                       <div
                         key={`${t.date}-${i}`}
                         className={`flex items-center justify-between py-2.5 text-[13px] ${
-                          i < trades.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                          i < trades.length - 1 ? "border-b border-divider" : ""
                         }`}
                       >
                         <span className="text-text-2">
@@ -4044,7 +4044,7 @@ export function MapClient({
                         key={n.id}
                         href={`/notes/${encodeURIComponent(n.id)}`}
                         className={`flex items-center justify-between gap-2 py-2.5 text-[13px] ${
-                          i < complexNotes.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                          i < complexNotes.length - 1 ? "border-b border-divider" : ""
                         }`}
                       >
                         <span className="min-w-0 truncate font-bold text-ink">
@@ -4220,7 +4220,7 @@ export function MapClient({
             임장한 단지
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-            <span className="h-[9px] w-[9px] rounded-[3px] border border-[#c3cad6] bg-surface" />
+            <span className="h-[9px] w-[9px] rounded-[3px] border border-line-strong bg-surface" />
             미방문
           </div>
         </div>
@@ -4242,7 +4242,7 @@ export function MapClient({
               임장한 단지 (내 노트 있음)
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-text-1">
-              <span className="h-[9px] w-[9px] shrink-0 rounded-[3px] border border-[#c3cad6] bg-surface" />
+              <span className="h-[9px] w-[9px] shrink-0 rounded-[3px] border border-line-strong bg-surface" />
               미방문
             </div>
             {txType === "rent" ? (

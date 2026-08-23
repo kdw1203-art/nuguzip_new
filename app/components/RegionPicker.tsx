@@ -218,13 +218,13 @@ export function RegionPicker({
           aria-expanded={open && list.length > 0}
           aria-controls={`${inputId}-listbox`}
           aria-autocomplete="list"
-          className="w-full rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-primary"
+          className="w-full rounded-[12px] border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-primary"
         />
         {open && query.trim() !== "" && (
           <div
             id={`${inputId}-listbox`}
             role="listbox"
-            className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-[260px] overflow-y-auto rounded-[12px] border border-[#e2e7ee] bg-surface shadow-lg"
+            className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 max-h-[260px] overflow-y-auto rounded-[12px] border border-line bg-surface shadow-lg"
           >
             {busy && list.length === 0 && (
               <div className="px-4 py-3 text-xs text-text-3">찾는 중…</div>
@@ -284,7 +284,7 @@ export function RegionPicker({
               className={`rounded-full px-[13px] py-[7px] text-xs transition disabled:opacity-40 ${
                 active
                   ? "bg-primary-soft font-bold text-primary"
-                  : "border border-[#e2e7ee] bg-surface text-text-2"
+                  : "border border-line bg-surface text-text-2"
               }`}
             >
               {active ? "✓ " : ""}

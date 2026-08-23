@@ -238,7 +238,7 @@ export function QuoteRequestModal({
                         className={`shrink-0 rounded-[5px] chip-pad-tight text-[10px] font-extrabold ${
                           r.status === "open"
                             ? "bg-primary-soft text-primary"
-                            : "bg-[#f2f4f8] text-text-3"
+                            : "bg-bg text-text-3"
                         }`}
                       >
                         {r.status === "open" ? "대기 중" : "마감"}

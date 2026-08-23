@@ -67,7 +67,7 @@ export async function ComplexRentSection({
           </thead>
           <tbody>
             {shown.map((m) => (
-              <tr key={m.month} className="border-b border-[#f0f3f8] last:border-0">
+              <tr key={m.month} className="border-b border-divider last:border-0">
                 <td className="py-2.5 pr-3 font-bold text-ink tabular-nums">
                   {fmtYm(m.month)}
                 </td>

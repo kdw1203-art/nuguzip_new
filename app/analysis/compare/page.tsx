@@ -210,7 +210,7 @@ function ComplexCompareTable() {
         <>
           <div className="overflow-x-auto">
             <div className="min-w-[620px]">
-              <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] gap-2 border-b border-[#f0f3f8] pb-2 text-[11px] font-bold text-text-3">
+              <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] gap-2 border-b border-divider pb-2 text-[11px] font-bold text-text-3">
                 <span>단지</span>
                 <span className="text-center">6개월 평균가</span>
                 <span className="text-center">평당가 (6개월)</span>
@@ -220,7 +220,7 @@ function ComplexCompareTable() {
               {items.map((it) => (
                 <div
                   key={it.id}
-                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs"
+                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] items-center gap-2 border-b border-divider py-2.5 text-xs"
                 >
                   <span className="font-bold text-ink">
                     <Link href={`/complex/${encodeURIComponent(it.id)}`} className="no-underline">
@@ -411,7 +411,7 @@ function RegionMarketSummary() {
         <>
           <div className="overflow-x-auto">
             <div className="min-w-[520px]">
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-2 border-b border-[#f0f3f8] pb-2 text-[11px] font-bold text-text-3">
+              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-2 border-b border-divider pb-2 text-[11px] font-bold text-text-3">
                 <span>지역 (기준월)</span>
                 <span className="text-center">평균 매매가</span>
                 <span className="text-center">전월 대비</span>
@@ -422,7 +422,7 @@ function RegionMarketSummary() {
                 return (
                   <div
                     key={it.regionId}
-                    className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs"
+                    className="grid grid-cols-[1.4fr_1fr_1fr_1fr] items-center gap-2 border-b border-divider py-2.5 text-xs"
                   >
                     <span className="font-bold text-ink">
                       {it.regionName}

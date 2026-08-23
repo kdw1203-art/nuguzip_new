@@ -130,7 +130,7 @@ export function HomeEngagementCard() {
               </div>
             </div>
             {st.checkedToday ? (
-              <span className="shrink-0 rounded-full bg-[#e7f8ef] px-3 py-1.5 text-[12px] font-extrabold text-success">
+              <span className="shrink-0 rounded-full bg-success-soft px-3 py-1.5 text-[12px] font-extrabold text-success">
                 ✓ 완료
               </span>
             ) : (

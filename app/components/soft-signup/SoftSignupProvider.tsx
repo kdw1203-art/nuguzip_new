@@ -151,7 +151,7 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
             onClick={dismiss}
             className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.5)]"
           />
-          <div className="relative w-full max-w-[380px] rounded-[20px] bg-white p-5 shadow-[0_24px_60px_rgba(16,28,54,.3)]">
+          <div className="relative w-full max-w-[380px] rounded-[20px] bg-surface p-5 shadow-[0_24px_60px_rgba(16,28,54,.3)]">
             <div id="soft-signup-title" className="text-[17px] font-extrabold text-ink">
               {intent.title}
             </div>

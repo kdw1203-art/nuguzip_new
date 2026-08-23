@@ -48,7 +48,7 @@ export type NewsCardDto = {
 function RelatedFold({ related }: { related: NonNullable<NewsCardDto["related"]> }) {
   if (related.length === 0) return null;
   return (
-    <details className="border-t border-[#f0f3f8] px-3 py-2">
+    <details className="border-t border-divider px-3 py-2">
       <summary className="cursor-pointer list-none text-[11px] font-bold text-primary">
         관련 보도 {related.length}건 ▾
       </summary>
@@ -73,9 +73,9 @@ function RelatedFold({ related }: { related: NonNullable<NewsCardDto["related"]>
 function badgeStyle(category: string): string {
   const c = category ?? "";
   if (["개발", "재건축", "재개발", "분양"].some((k) => c.includes(k)))
-    return "bg-[#fdf3e7] text-warning";
-  if (["정책", "뉴스"].some((k) => c.includes(k))) return "bg-[#edf2fe] text-primary";
-  return "bg-[#f2f4f8] text-text-2";
+    return "bg-warning-soft text-warning";
+  if (["정책", "뉴스"].some((k) => c.includes(k))) return "bg-primary-soft text-primary";
+  return "bg-bg text-text-2";
 }
 
 function Thumb({ card, tall = false }: { card: NewsCardDto; tall?: boolean }) {
@@ -189,7 +189,7 @@ export function NewsListClient({
             onClick={() => { pushParamUrl("region", null); setActive(null); }}
             aria-pressed={!active}
             className={`chip px-3.5 py-2 ${
-              active ? "border border-[#e2e7ee] bg-surface text-text-2" : "chip-active"
+              active ? "border border-line bg-surface text-text-2" : "chip-active"
             }`}
           >
             전체
@@ -203,7 +203,7 @@ export function NewsListClient({
               className={`chip px-3.5 py-2 ${
                 active === r
                   ? "chip-active"
-                  : "border border-[#e2e7ee] bg-surface text-text-2"
+                  : "border border-line bg-surface text-text-2"
               }`}
             >
               {r}
@@ -228,7 +228,7 @@ export function NewsListClient({
               }}
               aria-pressed={activeCat === k}
               className={`chip px-3 py-1.5 ${
-                activeCat === k ? "chip-active" : "border border-[#e2e7ee] bg-surface text-text-2"
+                activeCat === k ? "chip-active" : "border border-line bg-surface text-text-2"
               }`}
             >
               {k}

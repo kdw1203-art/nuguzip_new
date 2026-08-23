@@ -123,7 +123,7 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
                     {r.pages > 0 && <span>{r.pages}쪽</span>}
                     {r.rating > 0 && <span>★ {r.rating.toFixed(1)}</span>}
                     {r.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="rounded-full bg-[#f2f4f8] px-2 py-0.5 text-[10px]">
+                      <span key={t} className="rounded-full bg-bg px-2 py-0.5 text-[10px]">
                         #{t}
                       </span>
                     ))}

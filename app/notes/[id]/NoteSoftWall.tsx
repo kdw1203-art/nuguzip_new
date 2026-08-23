@@ -71,7 +71,7 @@ export function NoteSoftWall({ noteId }: { noteId: string }) {
             "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,.9) 45%, #ffffff 80%)",
         }}
       />
-      <div className="bg-white px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-1">
+      <div className="bg-surface px-5 pb-[max(20px,env(safe-area-inset-bottom))] pt-1">
         <div className="mx-auto flex w-full max-w-[440px] flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-5 text-center shadow-[0_18px_44px_rgba(15,23,42,.16)]">
           <div className="text-[15px] font-extrabold text-ink">
             오늘 무료 열람 {FREE_PER_DAY}편을 다 보셨어요

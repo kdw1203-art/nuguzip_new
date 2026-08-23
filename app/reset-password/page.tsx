@@ -152,7 +152,7 @@ export default function ResetPasswordPage() {
             : strength.score >= 2
               ? "bg-[#e2a33c]"
               : "bg-danger"
-          : "bg-[#e9edf3]"
+          : "bg-bg"
       }`}
     />
   ));
@@ -228,7 +228,7 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="새 비밀번호 (8자 이상)"
-                  className="w-full rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
+                  className="w-full rounded-[12px] border border-line bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
                 />
                 <button
                   type="button"
@@ -251,7 +251,7 @@ export default function ResetPasswordPage() {
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}
                 placeholder="비밀번호 확인"
-                className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+                className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
               />
               {password2 && password !== password2 && (
                 <p className="text-[11px] font-bold text-danger">비밀번호가 일치하지 않습니다.</p>

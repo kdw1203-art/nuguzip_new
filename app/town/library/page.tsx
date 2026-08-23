@@ -88,7 +88,7 @@ export default async function TownLibraryPage() {
         <div className="mb-3 flex items-center gap-2">
           <h2 className="text-[15px] font-extrabold text-ink">리포트</h2>
           {!reportsFailed && reports.length === 0 && (
-            <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
+            <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
               오픈 전
             </span>
           )}

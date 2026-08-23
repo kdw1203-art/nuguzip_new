@@ -167,7 +167,7 @@ function TownWriteForm() {
                 className={`chip px-3 py-[7px] text-xs ${
                   category === c.label
                     ? "chip-active"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
+                    : "border border-line bg-surface text-text-2"
                 }`}
               >
                 {c.emoji} {c.label}

@@ -191,7 +191,7 @@ export default async function PricePage({
                       return (
                         <tr
                           key={c.bandSlug}
-                          className="border-b border-[#f0f3f8] last:border-0"
+                          className="border-b border-divider last:border-0"
                         >
                           <td className="px-5 py-2.5">
                             <span className="font-bold text-ink">{c.bandLabel}</span>
@@ -272,7 +272,7 @@ export default async function PricePage({
                 {topComplexes.map((c, i) => (
                   <div
                     key={`${c.name}-${i}`}
-                    className="flex items-center justify-between gap-3 border-b border-[#f0f3f8] py-2 text-[13px] last:border-0"
+                    className="flex items-center justify-between gap-3 border-b border-divider py-2 text-[13px] last:border-0"
                   >
                     <span className="min-w-0 truncate font-bold text-ink">{c.name}</span>
                     <span className="flex shrink-0 items-center gap-3 text-[12px]">

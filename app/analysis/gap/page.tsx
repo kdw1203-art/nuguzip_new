@@ -68,7 +68,7 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.regionId} className="border-b border-[#f0f3f8] last:border-0">
+            <tr key={r.regionId} className="border-b border-divider last:border-0">
               <td className="py-2.5 pr-3">
                 <Link
                   href={`/region/${r.regionId}`}

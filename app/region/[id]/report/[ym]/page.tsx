@@ -236,7 +236,7 @@ export default async function RegionMonthlyReportPage({
                 {report.topDeals.map((d, i) => (
                   <tr
                     key={`${d.complexName}-${i}`}
-                    className="border-b border-[#f0f3f8] last:border-0"
+                    className="border-b border-divider last:border-0"
                   >
                     <td className="py-2.5 pr-3 font-bold text-ink">{d.complexName}</td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-text-1">

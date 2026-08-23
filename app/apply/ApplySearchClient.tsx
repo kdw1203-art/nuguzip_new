@@ -148,7 +148,7 @@ function applyStatus(period?: string): { label: string; cls: string } | null {
   const end = endDay + 24 * 60 * 60 * 1000 - 1; // 마감일 그날 자정(KST)까지 접수 중
   const now = Date.now();
   if (now < start) return { label: "접수 예정", cls: "bg-primary-soft text-primary" };
-  if (now <= end) return { label: "접수 중", cls: "bg-[#e7f8ef] text-success" };
+  if (now <= end) return { label: "접수 중", cls: "bg-success-soft text-success" };
   return null;
 }
 
@@ -283,7 +283,7 @@ export function ApplySearchClient({ initial }: Props) {
 
   const sortPill = (on: boolean) =>
     on
-      ? "press rounded-full bg-ink px-3 py-1.5 text-[11px] font-bold text-white"
+      ? "press rounded-full bg-ink px-3 py-1.5 text-[11px] font-bold text-surface"
       : "press glass rounded-full px-3 py-1.5 text-[11px] font-semibold text-text-2";
 
   return (
@@ -452,7 +452,7 @@ export function ApplySearchClient({ initial }: Props) {
             <div className="min-w-[540px]">
               {state.tab === "competition" ? (
                 <>
-                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
                     <span>단지 · 지역</span>
                     <span className="text-center">타입</span>
                     <span className="text-center">공급</span>
@@ -471,7 +471,7 @@ export function ApplySearchClient({ initial }: Props) {
                     return (
                       <div
                         key={item.id}
-                        className={i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""}
+                        className={i < arr.length - 1 ? "border-b border-divider" : ""}
                       >
                         <button
                           type="button"
@@ -538,7 +538,7 @@ export function ApplySearchClient({ initial }: Props) {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] gap-2 border-b border-[#f0f3f8] py-2 text-[10px] text-text-3">
+                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
                     <span>단지 · 지역</span>
                     <span className="text-center">타입</span>
                     <span className="text-center">특공 세대</span>
@@ -555,7 +555,7 @@ export function ApplySearchClient({ initial }: Props) {
                     return (
                       <div
                         key={item.id}
-                        className={i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""}
+                        className={i < arr.length - 1 ? "border-b border-divider" : ""}
                       >
                         <button
                           type="button"

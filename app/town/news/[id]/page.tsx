@@ -390,7 +390,7 @@ export default async function TownNewsDetailPage({
           {/* ---------- 기사 본문 ---------- */}
           <article className="rise-in card flex flex-col gap-4 rounded-[20px] p-7">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-[5px] bg-[#fdf3e7] chip-pad text-[11px] font-extrabold text-warning">
+              <span className="rounded-[5px] bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
                 {category}
               </span>
               <span className="truncate text-xs text-text-3">{byline}</span>
@@ -445,14 +445,14 @@ export default async function TownNewsDetailPage({
             {heroImage ? (
               /* 최적화 22 — 로드 전 높이 0 → 로드 후 본문이 밀리는 CLS.
                  16:9 비율 상자를 먼저 잡아 레이아웃을 고정한다(og:image 표준 비율). */
-              <div className="relative aspect-[16/9] max-h-[380px] w-full overflow-hidden rounded-[14px] bg-[#eef2f8]">
+              <div className="relative aspect-[16/9] max-h-[380px] w-full overflow-hidden rounded-[14px] bg-bg">
                 <CoverImage
                   src={heroImage}
                   alt=""
                   imgClassName="absolute inset-0 h-full w-full object-cover"
                 />
                 {post.sourceName && (
-                  <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[rgba(255,255,255,.85)] px-3 py-[5px] text-[11px] text-text-3">
+                  <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[var(--glass-bg)] px-3 py-[5px] text-[11px] text-text-3">
                     사진: {post.sourceName}
                   </span>
                 )}
@@ -530,7 +530,7 @@ export default async function TownNewsDetailPage({
             {faq.length > 0 ? (
               <section
                 aria-label="자주 묻는 질문"
-                className="flex flex-col gap-3 border-t border-[#f0f3f8] pt-4"
+                className="flex flex-col gap-3 border-t border-divider pt-4"
               >
                 <h2 className="text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
                 <dl className="flex flex-col gap-3">
@@ -549,7 +549,7 @@ export default async function TownNewsDetailPage({
             {geo.places && geo.places.length > 0 ? (
               <nav
                 aria-label="관련 지역"
-                className="flex flex-wrap items-center gap-1.5 border-t border-[#f0f3f8] pt-3.5"
+                className="flex flex-wrap items-center gap-1.5 border-t border-divider pt-3.5"
               >
                 <span className="text-[11px] font-bold text-text-3">관련 지역</span>
                 {geo.places.map((place) => {
@@ -581,7 +581,7 @@ export default async function TownNewsDetailPage({
               </nav>
             ) : null}
 
-            <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-3.5">
+            <div className="flex items-center justify-between border-t border-divider pt-3.5">
               <div className="flex flex-wrap items-center gap-1 text-[11px] text-text-3">
                 <span>
                   {renderOwnSummary
@@ -678,7 +678,7 @@ export default async function TownNewsDetailPage({
               />
               <Link
                 href="/map"
-                className="absolute bottom-2.5 right-2.5 rounded-lg bg-[rgba(255,255,255,.85)] px-2.5 py-[5px] text-[10px] font-bold text-primary"
+                className="absolute bottom-2.5 right-2.5 rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[10px] font-bold text-primary"
               >
                 지도에서 열기 ›
               </Link>
@@ -732,7 +732,7 @@ export default async function TownNewsDetailPage({
                   key={s.id}
                   href={`/town/news/${s.id}`}
                   className={`flex flex-col gap-0.5 py-[7px] ${
-                    i < clusterRelated.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < clusterRelated.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <div className="line-clamp-2 text-xs font-bold leading-[1.4] text-ink">
@@ -755,10 +755,10 @@ export default async function TownNewsDetailPage({
                   key={s.title}
                   href={s.id ? `/town/news/${s.id}` : "/town/news"}
                   className={`flex gap-2.5 py-[7px] ${
-                    i < similarPosts.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < similarPosts.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
-                  <div className="h-[38px] w-[52px] shrink-0 rounded-lg bg-gradient-to-br from-[#e8edf5] to-[#f2f5fa]" />
+                  <div className="h-[38px] w-[52px] shrink-0 rounded-lg bg-gradient-to-br from-[#e8edf5] to-bg" />
                   <div>
                     <div className="line-clamp-2 text-xs font-bold leading-[1.4] text-ink">
                       {s.title}

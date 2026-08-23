@@ -213,7 +213,7 @@ export function WelcomeClient() {
             <span
               key={id}
               className={`h-1.5 rounded-full transition-all ${
-                i === step ? "w-5 bg-primary" : i < step ? "w-1.5 bg-primary" : "w-1.5 bg-[#e2e7ee]"
+                i === step ? "w-5 bg-primary" : i < step ? "w-1.5 bg-primary" : "w-1.5 bg-line"
               }`}
             />
           ))}
@@ -268,7 +268,7 @@ export function WelcomeClient() {
           </p>
 
           {/* 매매 / 전세 토글 */}
-          <div className="rise-in-2 flex gap-1.5 rounded-2xl bg-[#f2f4f8] p-1">
+          <div className="rise-in-2 flex gap-1.5 rounded-2xl bg-bg p-1">
             {(["sale", "jeonse"] as BudgetType[]).map((t) => (
               <button
                 key={t}
@@ -297,7 +297,7 @@ export function WelcomeClient() {
                   className={`rounded-2xl px-3 py-3.5 text-center text-sm transition ${
                     active
                       ? "bg-primary-soft font-bold text-primary"
-                      : "border border-[#e2e7ee] bg-surface text-text-2"
+                      : "border border-line bg-surface text-text-2"
                   }`}
                 >
                   {active ? "✓ " : ""}
@@ -342,7 +342,7 @@ export function WelcomeClient() {
                   className={`flex items-center gap-3 rounded-2xl p-4 text-left transition ${
                     active
                       ? "bg-primary-soft ring-2 ring-primary/40"
-                      : "border border-[#e2e7ee] bg-surface"
+                      : "border border-line bg-surface"
                   }`}
                 >
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 text-lg">
@@ -416,7 +416,7 @@ export function WelcomeClient() {
                   className={`flex items-center gap-3 rounded-2xl p-4 text-left transition ${
                     active
                       ? "bg-primary-soft ring-2 ring-primary/40"
-                      : "border border-[#e2e7ee] bg-surface"
+                      : "border border-line bg-surface"
                   }`}
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-lg">
@@ -474,7 +474,7 @@ export function WelcomeClient() {
                         className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition ${
                           active
                             ? "bg-primary-soft text-primary"
-                            : "border border-[#e2e7ee] bg-surface text-text-2"
+                            : "border border-line bg-surface text-text-2"
                         }`}
                       >
                         {opt}
@@ -486,7 +486,7 @@ export function WelcomeClient() {
             ))}
           </div>
 
-          <div className="rise-in-2 rounded-2xl bg-[#f2f4f8] px-4 py-3 text-[12px] leading-[1.6] text-text-2">
+          <div className="rise-in-2 rounded-2xl bg-bg px-4 py-3 text-[12px] leading-[1.6] text-text-2">
             <span className="font-extrabold text-ink">다음은 첫 임장노트 → AI → 지도예요.</span>{" "}
             {HOME_HERO_SUBLINE}
           </div>

@@ -109,7 +109,7 @@ function CompareTable({ model }: { model: VisitCompareModel }) {
     <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
       <div className="min-w-[520px]">
         <div
-          className="grid items-end gap-2 border-b border-[#f0f3f8] pb-2.5 pt-2 text-[11px] text-text-3"
+          className="grid items-end gap-2 border-b border-divider pb-2.5 pt-2 text-[11px] text-text-3"
           style={gridStyle}
         >
           <span />
@@ -136,7 +136,7 @@ function CompareTable({ model }: { model: VisitCompareModel }) {
         {model.rows.map((row) => (
           <div
             key={row.label}
-            className="grid items-center gap-2 border-b border-[#f0f3f8] py-[9px] text-xs"
+            className="grid items-center gap-2 border-b border-divider py-[9px] text-xs"
             style={gridStyle}
           >
             <span className="text-text-2">{row.label}</span>
@@ -216,7 +216,7 @@ export default async function NotesComparePage({
               </Link>
               <Link
                 href="/complex/compare"
-                className="rounded-full border border-[#e2e7ee] bg-surface px-2.5 py-1.5 font-bold text-text-2 no-underline"
+                className="rounded-full border border-line bg-surface px-2.5 py-1.5 font-bold text-text-2 no-underline"
               >
                 단지 A/B 비교
               </Link>

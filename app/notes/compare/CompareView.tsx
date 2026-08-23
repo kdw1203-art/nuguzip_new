@@ -28,7 +28,7 @@ export function CompareView({
       <div
         role="tablist"
         aria-label="회차 비교 보기 방식"
-        className="flex items-center gap-1 self-start rounded-2xl bg-[#f2f4f8] p-1"
+        className="flex items-center gap-1 self-start rounded-2xl bg-bg p-1"
       >
         {TABS.map((t) => {
           const active = view === t.id;

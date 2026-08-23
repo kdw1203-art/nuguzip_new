@@ -77,7 +77,7 @@ export async function ComplexAreaBands({
       <div className="card overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] sm:overflow-hidden sm:[mask-image:none]">
         <table className="w-full min-w-[420px] text-left text-[12px] sm:min-w-0 sm:text-[13px]">
           <thead>
-            <tr className="border-b border-line bg-[#f7f9fd] text-[10px] text-text-3 sm:text-[11px]">
+            <tr className="border-b border-line bg-bg text-[10px] text-text-3 sm:text-[11px]">
               <th className="px-3 py-2 font-semibold sm:px-4 sm:py-2.5">면적</th>
               <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">최근</th>
               <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">평균</th>

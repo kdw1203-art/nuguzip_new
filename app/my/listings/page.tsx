@@ -235,7 +235,7 @@ export default async function MyListingsPage() {
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (

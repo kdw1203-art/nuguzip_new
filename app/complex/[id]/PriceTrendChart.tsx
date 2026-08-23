@@ -116,7 +116,7 @@ export function PriceTrendChart({ points }: { points: PricePoint[] }) {
       </svg>
 
       {/* 범위 */}
-      <div className="flex items-center justify-between border-t border-[#f0f3f8] pt-2 text-[10px] text-text-3">
+      <div className="flex items-center justify-between border-t border-divider pt-2 text-[10px] text-text-3">
         <span>
           최저 <b className="text-text-2">{fmtEok(min)}</b>
         </span>

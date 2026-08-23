@@ -92,7 +92,7 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               {card.tags.slice(0, 3).map((t) => (
                 <span
                   key={t}
-                  className="rounded-full bg-[#f2f4f8] chip-pad text-[10px] font-semibold text-text-2"
+                  className="rounded-full bg-bg chip-pad text-[10px] font-semibold text-text-2"
                 >
                   #{t}
                 </span>

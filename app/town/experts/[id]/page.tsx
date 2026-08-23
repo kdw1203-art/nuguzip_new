@@ -100,14 +100,14 @@ export default async function ExpertDetailPage({
         {/* 헤더 */}
         <div className="rise-in card flex flex-col gap-4 rounded-[20px] p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8] text-[20px] font-extrabold text-primary">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-line to-bg text-[20px] font-extrabold text-primary">
               {e.name.slice(0, 1)}
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-[20px] font-extrabold text-ink">{e.name}</h1>
                 {e.isVerified ? (
-                  <span className="rounded-[6px] bg-[#edf2fe] px-2 py-0.5 text-[11px] font-extrabold text-primary">
+                  <span className="rounded-[6px] bg-primary-soft px-2 py-0.5 text-[11px] font-extrabold text-primary">
                     ✓ 인증 전문가
                   </span>
                 ) : (
@@ -167,7 +167,7 @@ export default async function ExpertDetailPage({
             <h2 className="text-[14px] font-extrabold text-ink">전문 분야</h2>
             <div className="flex flex-wrap gap-1.5">
               {(e.specialties.length > 0 ? e.specialties : [e.category]).filter(Boolean).map((t) => (
-                <span key={t} className="rounded-full bg-[#f2f4f8] px-3 py-1.5 text-[12px] font-semibold text-text-2">
+                <span key={t} className="rounded-full bg-bg px-3 py-1.5 text-[12px] font-semibold text-text-2">
                   {t}
                 </span>
               ))}

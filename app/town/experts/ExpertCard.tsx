@@ -46,7 +46,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
       className={`card card-hover rise-in-${Math.min(index + 1, 6)} flex flex-col gap-3 rounded-[20px] p-[22px]`}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8] text-[15px] font-extrabold text-primary">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-line to-bg text-[15px] font-extrabold text-primary">
           {e.initial}
         </div>
         <div className="min-w-0 flex-1">
@@ -67,7 +67,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
               </span>
             )}
             {e.verified ? (
-              <span className="shrink-0 rounded-[5px] bg-[#edf2fe] chip-pad-tight text-[10px] font-extrabold text-primary">
+              <span className="shrink-0 rounded-[5px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
                 인증
               </span>
             ) : (
@@ -84,7 +84,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
 
       <div className="flex flex-wrap gap-1.5">
         {e.tags.map((t) => (
-          <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+          <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[11px] text-text-2">
             {t}
           </span>
         ))}
@@ -124,14 +124,14 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
       >
         <div className="mb-3 flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8] text-lg font-extrabold text-primary">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-line to-bg text-lg font-extrabold text-primary">
               {e.initial}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[16px] font-extrabold text-ink">{e.name}</span>
                 {e.verified && (
-                  <span className="rounded-[5px] bg-[#edf2fe] chip-pad-tight text-[10px] font-extrabold text-primary">
+                  <span className="rounded-[5px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
                     인증
                   </span>
                 )}
@@ -191,7 +191,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
           <div className="mb-1.5 text-[11px] font-bold text-text-2">전문 분야</div>
           <div className="flex flex-wrap gap-1.5">
             {e.tags.map((t) => (
-              <span key={t} className="rounded-full bg-[#f2f4f8] px-2.5 py-1 text-[11px] text-text-2">
+              <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[11px] text-text-2">
                 {t}
               </span>
             ))}

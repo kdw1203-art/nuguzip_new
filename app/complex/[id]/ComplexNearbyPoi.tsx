@@ -43,7 +43,7 @@ export async function ComplexNearbyPoi({
               {poi.schools.map((s) => (
                 <li
                   key={`${s.name}-${s.distanceM}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-[#f0f3f8] py-2 text-[13px] last:border-0"
+                  className="flex items-baseline justify-between gap-3 border-b border-divider py-2 text-[13px] last:border-0"
                 >
                   <span className="min-w-0 truncate font-bold text-ink">
                     {s.name}
@@ -70,7 +70,7 @@ export async function ComplexNearbyPoi({
               {poi.stations.map((s) => (
                 <li
                   key={`${s.name}-${s.line}-${s.distanceM}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-[#f0f3f8] py-2 text-[13px] last:border-0"
+                  className="flex items-baseline justify-between gap-3 border-b border-divider py-2 text-[13px] last:border-0"
                 >
                   <span className="min-w-0 truncate font-bold text-ink">
                     {s.name}

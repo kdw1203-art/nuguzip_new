@@ -215,7 +215,7 @@ export default async function TxIndexPage() {
                     {maxTx > 0 && (
                       <span
                         aria-hidden
-                        className="block h-[3px] overflow-hidden rounded-full bg-[#eef2f8]"
+                        className="block h-[3px] overflow-hidden rounded-full bg-bg"
                       >
                         <span
                           className="block h-full rounded-full bg-primary/45"

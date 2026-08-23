@@ -121,7 +121,7 @@ function priceCompareBadge(deltaPct: number): { label: string; className: string
   if (deltaPct >= 3) {
     return { label: `시세 대비 +${deltaPct}%`, className: "bg-danger-soft text-danger" };
   }
-  return { label: "시세 수준", className: "bg-[#f2f4f8] text-text-2" };
+  return { label: "시세 수준", className: "bg-bg text-text-2" };
 }
 
 function txCompareHref(l: ListingDetail): string | null {
@@ -297,16 +297,16 @@ export default async function ListingDetailPage({
               className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
                 listing.source === "owner"
                   ? "bg-[rgba(29,79,216,.08)] text-primary"
-                  : "bg-[#fdf3e7] text-warning"
+                  : "bg-warning-soft text-warning"
               }`}
             >
               {LISTING_SOURCE_LABEL[listing.source]}
             </span>
-            <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
+            <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
               {LISTING_TYPE_LABEL[listing.listingType]}
             </span>
             {category && (
-              <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
+              <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
                 {category}
               </span>
             )}

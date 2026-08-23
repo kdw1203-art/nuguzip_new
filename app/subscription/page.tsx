@@ -263,7 +263,7 @@ export default async function SubscriptionPage({
                 tier="pro"
                 billing="weekly"
                 label="주간권 구매"
-                className="w-full bg-ink text-white"
+                className="w-full bg-ink text-surface"
               />
             </div>
           )}
@@ -288,7 +288,7 @@ export default async function SubscriptionPage({
       {/* 기능 비교표 (9k) */}
       <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] overflow-x-auto rounded-[20px] px-[22px] py-5">
         <div className="min-w-[640px]">
-          <div className="grid grid-cols-[200px_repeat(3,1fr)] items-end gap-2 border-b border-[#f0f3f8] pb-3 pt-1.5">
+          <div className="grid grid-cols-[200px_repeat(3,1fr)] items-end gap-2 border-b border-divider pb-3 pt-1.5">
             <span className="text-[11px] text-text-3">기능 비교</span>
             <div className="text-center">
               <div className="text-sm font-extrabold text-ink">무료</div>
@@ -310,7 +310,7 @@ export default async function SubscriptionPage({
           {FEATURE_ROWS.map((r) => (
             <div
               key={r.label}
-              className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs"
+              className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 border-b border-divider py-2.5 text-xs"
             >
               <span className="text-text-2">{r.label}</span>
               <span className={`text-center ${r.free === "—" ? "text-text-3" : "text-text-2"}`}>
@@ -354,7 +354,7 @@ export default async function SubscriptionPage({
               일시불 결제 · 중도 해지 시 잔여기간 일할 환불(고객센터 접수)
             </span>
           </div>
-          <div className="grid grid-cols-[120px_repeat(2,1fr)] gap-2 border-b border-[#f0f3f8] py-[7px] text-[11px] text-text-3">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] gap-2 border-b border-divider py-[7px] text-[11px] text-text-3">
             <span />
             {BILLING_PERIOD_PRICES.pro.map((p) => (
               <span key={p.months} className="text-center">
@@ -362,7 +362,7 @@ export default async function SubscriptionPage({
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 border-b border-[#f0f3f8] py-2.5 text-xs">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 border-b border-divider py-2.5 text-xs">
             <span className="font-extrabold text-primary">✦ 플러스</span>
             {BILLING_PERIOD_PRICES.pro.map((p) => (
               <span

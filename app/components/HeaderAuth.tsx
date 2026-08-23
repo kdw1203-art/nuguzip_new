@@ -111,7 +111,7 @@ export function HeaderAuth() {
         aria-label="내 계정 메뉴"
         className="flex items-center"
       >
-        <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef] text-[13px] font-extrabold text-primary">
+        <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-gradient-to-br from-line to-line-strong text-[13px] font-extrabold text-primary">
           {initial}
         </span>
       </button>
@@ -131,7 +131,7 @@ export function HeaderAuth() {
         <Link
           href="/subscription"
           title="플랜 비교·업그레이드"
-          className="hidden rounded-full border border-[#d7dee8] chip-pad text-[10px] font-extrabold text-text-3 no-underline transition-colors hover:border-primary hover:text-primary md:inline-block"
+          className="hidden rounded-full border border-line chip-pad text-[10px] font-extrabold text-text-3 no-underline transition-colors hover:border-primary hover:text-primary md:inline-block"
         >
           무료
         </Link>

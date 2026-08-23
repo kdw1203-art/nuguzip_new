@@ -1020,7 +1020,7 @@ export function NaverMap({
         </button>
       ) : null}
       {!loaded ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-[#dfe7f5] to-[#c9d6ef]">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-line to-line-strong">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1d4fd8] border-t-transparent" />
         </div>
       ) : null}

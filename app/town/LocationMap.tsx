@@ -66,7 +66,7 @@ export function LocationMap({
     : [];
 
   const fallback = (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#eef2f8] to-[#e2e8f2] text-center">
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-bg to-line text-center">
       <div>
         <div className="text-2xl">
           <Icon name="📍" size={24} />

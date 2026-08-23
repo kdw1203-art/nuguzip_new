@@ -88,7 +88,7 @@ function EarnGuide() {
           <div
             key={rule.key}
             className={`flex items-center justify-between py-2.5 ${
-              i < arr.length - 1 ? "border-b border-[#f0f3f8]" : ""
+              i < arr.length - 1 ? "border-b border-divider" : ""
             }`}
           >
             <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ function WalletView({
                 <div
                   key={`${r.createdAt}-${i}`}
                   className={`flex items-center justify-between py-3 ${
-                    i < history.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                    i < history.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <div className="min-w-0">

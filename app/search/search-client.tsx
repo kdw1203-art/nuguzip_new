@@ -302,7 +302,7 @@ export function SearchClient() {
                   key={k}
                   type="button"
                   onClick={() => runSearch(k)}
-                  className="chip bg-[#f2f4f8] px-3 py-1.5 text-[11px] text-text-2"
+                  className="chip bg-bg px-3 py-1.5 text-[11px] text-text-2"
                 >
                   {k}
                 </button>
@@ -431,7 +431,7 @@ export function SearchClient() {
                       href={hrefFor(g.key, r.id)}
                       onClick={() => saveRecent(q)}
                       className={`flex items-center justify-between gap-3 py-2.5 transition-colors hover:text-primary ${
-                        i < g.rows.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                        i < g.rows.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       <span className="min-w-0 truncate text-[13px] font-bold text-ink">

@@ -627,7 +627,9 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 }
 .chip-active {
   background: var(--ink);
-  color: #fff;
+  /* [#89] #fff 하드코딩이 다크에서 잉크(밝음)+흰 글자 = 투명 칩을 만들었다.
+     surface 는 라이트 #fff 그대로, 다크에선 어두운 면이라 양쪽 모두 대비 확보. */
+  color: var(--surface);
   font-weight: 700;
 }
 .chip-soft {
@@ -1272,6 +1274,10 @@ body:has(textarea:focus-visible) .tabbar-autohide {
    수동 토글 기본값 light; 시스템 동기화는 표면 감사 후 활성화 예정. */
 .dark {
   color-scheme: dark;
+  /* [#89] 사진 없는 커버의 시드 그라디언트(seedGradient — 인라인 style, 전부
+     135deg 파스텔)가 다크에서 형광 타일처럼 떠 보인다. 마크업 7곳을 쫓는 대신
+     인라인 135deg 그라디언트만 골라 어둡게 내린다. (인스타 스토리 링은 45deg,
+     tailwind 그라디언트는 class 라 이 선택자에 걸리지 않는다.) */
   --primary: #5b8bff;
   --primary-strong: #86a9ff;
   --primary-soft: #1a2540;
@@ -1309,6 +1315,9 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   --shadow-cta: 0 6px 18px rgba(29, 79, 216, 0.5);
 
   --divider: #20262f;
+}
+.dark [style*="linear-gradient(135deg"] {
+  filter: brightness(0.62) saturate(0.82);
 }
 
 /* #18 a11y — 스크린리더 전용 텍스트 유틸 */

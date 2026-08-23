@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="가입한 이메일 주소"
                 autoComplete="email"
-                className="rounded-[12px] border border-[#e2e7ee] bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+                className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
               />
               <button
                 type="submit"

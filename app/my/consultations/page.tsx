@@ -118,7 +118,7 @@ export default async function MyConsultationsPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-[15px] font-extrabold text-ink">{expert.name}</span>
-          <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-bold text-text-2">
+          <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-bold text-text-2">
             {expert.category}
           </span>
           {expert.isVerified ? (
@@ -182,7 +182,7 @@ export default async function MyConsultationsPage() {
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-[#f2f4f8] chip-pad text-[11px] font-bold text-text-2">
+                  <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-bold text-text-2">
                     {TYPE_LABEL[c.type]}
                   </span>
                   <span className="text-[13px] font-bold text-ink">

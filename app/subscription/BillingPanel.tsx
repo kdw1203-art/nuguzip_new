@@ -106,7 +106,7 @@ export async function BillingPanel({
           </div>
         ) : (
           <div className="min-w-[620px]">
-            <div className="grid grid-cols-[130px_100px_80px_90px_110px_1fr] gap-2 border-b border-[#f0f3f8] pb-2 text-[11px] text-text-3">
+            <div className="grid grid-cols-[130px_100px_80px_90px_110px_1fr] gap-2 border-b border-divider pb-2 text-[11px] text-text-3">
               <span>결제 요청일</span>
               <span>플랜</span>
               <span>기간</span>
@@ -117,7 +117,7 @@ export async function BillingPanel({
             {payments.map((p) => (
               <div
                 key={p.id}
-                className="grid grid-cols-[130px_100px_80px_90px_110px_1fr] items-center gap-2 border-b border-[#f0f3f8] py-2.5"
+                className="grid grid-cols-[130px_100px_80px_90px_110px_1fr] items-center gap-2 border-b border-divider py-2.5"
               >
                 <span className={cell}>{fmtDate(p.requestedAt)}</span>
                 <span className={cell}>

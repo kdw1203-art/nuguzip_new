@@ -163,8 +163,8 @@ export function JeonseWolse() {
               onClick={() => setDir(key)}
               className={`flex-1 rounded-full p-[9px] text-center text-[13px] ${
                 dir === key
-                  ? "bg-ink font-bold text-white"
-                  : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+                  ? "bg-ink font-bold text-surface"
+                  : "border border-line bg-surface font-semibold text-text-2"
               }`}
             >
               {label}
@@ -273,7 +273,7 @@ export function RentalYield() {
         <Field label="매매가" value={price} onChange={setPrice} unit="만원" />
         <Field label="보증금" value={deposit} onChange={setDeposit} unit="만원" />
         <Field label="월세" value={monthly} onChange={setMonthly} unit="만원" />
-        <div className="flex items-center gap-2 border-t border-[#f0f3f8] pt-3">
+        <div className="flex items-center gap-2 border-t border-divider pt-3">
           <Icon name="landmark" size={14} className="text-text-3" />
           <span className="text-[11px] font-semibold text-text-3">대출 (선택 · 레버리지 반영)</span>
         </div>
@@ -329,8 +329,8 @@ export function RealEstateTools() {
             onClick={() => setTool(t)}
             className={`flex-1 rounded-full p-[9px] text-center text-[13px] ${
               tool === t
-                ? "bg-ink font-bold text-white"
-                : "border border-[#e2e7ee] bg-surface font-semibold text-text-2"
+                ? "bg-ink font-bold text-surface"
+                : "border border-line bg-surface font-semibold text-text-2"
             }`}
           >
             {t}

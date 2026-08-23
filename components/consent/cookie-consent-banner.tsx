@@ -30,7 +30,9 @@ export function CookieConsentBanner() {
       {/* 모바일 실측(2026-08-02): 글래스 60% 불투명이라 밑 본문 글자가 배너 문구와
           겹쳐 읽혔고, 패딩까지 더해 화면 하단 1/3 을 차지했다. 동의는 법적 행위의
           UI 다 — 배경을 사실상 불투명(94%)으로 올리고 여백을 줄인다. */}
-      <div className="mx-auto flex max-w-[560px] flex-col gap-2 rounded-2xl border border-line bg-[rgba(255,255,255,.94)] p-3.5 shadow-[0_12px_32px_rgba(15,23,42,.18)] backdrop-blur-md md:max-w-[360px]">
+      {/* [#89] 흰색 고정 배경이 다크에서 회색 글자와 만나 읽을 수 없었다 —
+          글래스 토큰(양 테마 정의됨)으로 교체. */}
+      <div className="mx-auto flex max-w-[560px] flex-col gap-2 rounded-2xl border border-line bg-[var(--glass-bg-strong)] p-3.5 shadow-[var(--shadow-md)] backdrop-blur-md md:max-w-[360px]">
         <p className="text-[12px] leading-[1.55] text-text-1">
           누구집은 서비스 운영에 필요한 필수 쿠키를 사용해요. 이용 통계 분석 쿠키는{" "}
           <b>동의하신 경우에만</b> 사용합니다.{" "}

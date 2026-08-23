@@ -774,7 +774,7 @@ export default async function RegionHubPage({
               </thead>
               <tbody>
                 {areaBands.bands.map((b) => (
-                  <tr key={b.key} className="border-b border-[#f0f3f8] last:border-0">
+                  <tr key={b.key} className="border-b border-divider last:border-0">
                     <td className="py-2 pr-3 font-bold text-ink">{b.label}</td>
                     <td className="py-2 pr-3 text-right tabular-nums text-text-1">
                       {b.count.toLocaleString("ko-KR")}건
@@ -972,7 +972,7 @@ export default async function RegionHubPage({
                     <span className="w-[38px] shrink-0 font-bold tabular-nums text-text-2">
                       {y}
                     </span>
-                    <span className="h-[8px] flex-1 overflow-hidden rounded-full bg-[#eef2f8]">
+                    <span className="h-[8px] flex-1 overflow-hidden rounded-full bg-bg">
                       <span
                         className="block h-full rounded-full bg-primary/55"
                         style={{ width: `${Math.max(2, Math.round((v / max) * 100))}%` }}

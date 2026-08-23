@@ -148,7 +148,7 @@ export default function SafetyPage() {
               <div
                 key={c.label}
                 className={`flex flex-col gap-0.5 py-[9px] ${
-                  i < CHECK_ITEMS.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                  i < CHECK_ITEMS.length - 1 ? "border-b border-divider" : ""
                 }`}
               >
                 <span className="text-[13px] font-bold text-text-1">{c.label}</span>

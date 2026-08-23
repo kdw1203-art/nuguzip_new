@@ -16,7 +16,8 @@ import type { HomeRegionCard } from "@/lib/newui/home-data";
  */
 
 const SPARK_STROKE: Record<HomeRegionCard["tone"], string> = {
-  up: "#d64545",
+  /* SVG stroke 라 토큰 클래스를 못 쓴다 — 2026-07-27 대비 정정 팔레트의 현재 값 */
+  up: "#c62828",
   down: "#2f6fe4",
   flat: "#96a0b5",
 };

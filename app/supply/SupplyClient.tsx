@@ -336,7 +336,7 @@ export function SupplyClient({
                 className="rise-in-3 card flex items-center justify-between gap-3 rounded-2xl px-[18px] py-3.5"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="shrink-0 rounded-md bg-[#f2f4f8] chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="shrink-0 rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
                     {monthLabel(s.moveInYm)}
                   </span>
                   <div className="min-w-0">

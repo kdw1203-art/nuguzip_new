@@ -175,7 +175,7 @@ export function ListingManageActions(props: {
               type="button"
               onClick={() => setType(t.key)}
               className={`flex-1 rounded-[8px] py-1.5 text-[12px] font-extrabold ${
-                type === t.key ? "bg-primary text-white" : "bg-[#f2f4f8] text-text-2"
+                type === t.key ? "bg-primary text-white" : "bg-bg text-text-2"
               }`}
             >
               {t.label}

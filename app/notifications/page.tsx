@@ -270,7 +270,7 @@ function AlertSubscriptionSection() {
           {subs.map((s) => (
             <span
               key={s.id}
-              className="chip inline-flex items-center gap-1.5 border border-[#e2e7ee] bg-surface px-2.5 py-1 text-[11px] text-text-1"
+              className="chip inline-flex items-center gap-1.5 border border-line bg-surface px-2.5 py-1 text-[11px] text-text-1"
             >
               <b className="font-bold text-ink">{s.label}</b>
               <button
@@ -291,7 +291,7 @@ function AlertSubscriptionSection() {
         <select
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          className="h-8 rounded-[9px] border border-[#e2e7ee] bg-surface px-2 text-[11px] text-ink"
+          className="h-8 rounded-[9px] border border-line bg-surface px-2 text-[11px] text-ink"
           aria-label="구독할 지역"
         >
           <option value="">지역 선택</option>
@@ -310,7 +310,7 @@ function AlertSubscriptionSection() {
           }}
           maxLength={30}
           placeholder="키워드 (예: 재건축)"
-          className="h-8 min-w-0 flex-1 rounded-[9px] border border-[#e2e7ee] bg-surface px-2.5 text-[11px] text-ink placeholder:text-text-3"
+          className="h-8 min-w-0 flex-1 rounded-[9px] border border-line bg-surface px-2.5 text-[11px] text-ink placeholder:text-text-3"
           aria-label="구독할 키워드"
         />
         <button
@@ -544,7 +544,7 @@ export default function NotificationsPage() {
                 className={`chip whitespace-nowrap px-[13px] py-1.5 text-xs ${
                   active
                     ? "chip-active"
-                    : "border border-[#e2e7ee] bg-surface text-text-2"
+                    : "border border-line bg-surface text-text-2"
                 }`}
               >
                 {t.label}

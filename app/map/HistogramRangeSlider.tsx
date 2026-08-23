@@ -201,7 +201,7 @@ export function HistogramRangeSlider({
             aria-valuetext={format(v)}
             onPointerDown={onPointerDown(which)}
             onKeyDown={onKey(which)}
-            className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-[1.5px] border-primary bg-white shadow-[0_2px_6px_rgba(16,28,54,.25)] focus:outline-none focus:ring-2 focus:ring-primary/40 active:cursor-grabbing"
+            className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-[1.5px] border-primary bg-surface shadow-[0_2px_6px_rgba(16,28,54,.25)] focus:outline-none focus:ring-2 focus:ring-primary/40 active:cursor-grabbing"
             style={{ left: `${pct}%` }}
           />
         ))}

@@ -78,7 +78,7 @@ export default function CyclePage() {
             <div
               key={s.name}
               className={`flex justify-between gap-3 py-[7px] text-xs ${
-                i < SCENARIO_ASSUMPTIONS.length - 1 ? "border-b border-[#f0f3f8]" : ""
+                i < SCENARIO_ASSUMPTIONS.length - 1 ? "border-b border-divider" : ""
               }`}
             >
               <span className={`shrink-0 font-bold ${s.tone}`}>{s.name}</span>
