@@ -240,3 +240,46 @@ export async function redeemReferral(
     return { ok: false, reason: "error" };
   }
 }
+
+/* ── [#100] 추천 리더보드 ─────────────────────────────────────────
+ * referral_redemptions 를 추천인별로 집계한 상위 목록. 이메일은 화면에 그대로
+ * 내보내지 않는다 — 마스킹 라벨만 만든다(개인정보 최소 노출). 실패는 빈 배열이
+ * 아니라 null 로 돌려 "아직 없음"과 "못 읽음"을 화면에서 구분하게 한다. */
+
+export type ReferralLeaderRow = { label: string; count: number; isMe: boolean };
+
+function maskEmailLabel(email: string): string {
+  const local = email.split("@")[0] ?? "";
+  const head = local.slice(0, 2) || "이웃";
+  return `${head}**`;
+}
+
+export async function getReferralLeaderboard(
+  viewerEmail: string,
+  limit = 10,
+): Promise<ReferralLeaderRow[] | null> {
+  const read = getReadOnlySupabase();
+  if (!read) return null;
+  const { data, error } = await read
+    .from("referral_redemptions")
+    .select("referrer_email")
+    .limit(3000);
+  if (error || !Array.isArray(data)) {
+    if (error) logger.error("[referral] 리더보드 조회 실패", error);
+    return null;
+  }
+  const counts = new Map<string, number>();
+  for (const r of data as Array<Record<string, unknown>>) {
+    const em = String(r.referrer_email ?? "").toLowerCase();
+    if (!em) continue;
+    counts.set(em, (counts.get(em) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([em, count]) => ({
+      label: maskEmailLabel(em),
+      count,
+      isMe: em === viewerEmail.toLowerCase(),
+    }));
+}

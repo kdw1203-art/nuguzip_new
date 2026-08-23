@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { searchComplexes } from "@/lib/complex/complex-store";
+import { normalizeSearchQuery } from "@/lib/search/normalize-query";
 import { isPlaceSearchConfigured, searchPlaces } from "@/lib/search/place-search";
 import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 import { logger } from "@/lib/log";
@@ -98,7 +99,9 @@ async function suggestViaRpc(q: string): Promise<SuggestItem[]> {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q")?.trim() ?? "";
+  /* [#76] 통용 약칭·"아파트" 꼬리 정규화 — 지도 검색도 통합검색과 같은 흡수력을 갖는다.
+     (오타 내성 자체는 아래 search_complexes_preview 트라이그램이 이미 담당) */
+  const q = normalizeSearchQuery(searchParams.get("q")?.trim() ?? "");
 
   if (!q) {
     return NextResponse.json(

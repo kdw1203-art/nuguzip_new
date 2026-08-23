@@ -6,6 +6,7 @@ import { decodeComplexId } from "@/lib/complex/complex-store";
 import type { Post } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import { awardPoints } from "@/lib/points/ledger";
+import { parsePromptIndex, promptTag } from "@/lib/town/prompts";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -68,6 +69,19 @@ export async function POST(req: Request) {
       : Array.isArray(tagsRaw)
         ? tagsRaw.map((t) => String(t).trim()).filter(Boolean)
         : [];
+
+  /* [#63] 글감 답변 태깅 — pi 가 유효한 글감 인덱스이면 스레드 태그를 붙인다.
+     (서버가 인덱스 범위를 검증 — 클라이언트 값은 신뢰하지 않는다) */
+  const promptIdx = parsePromptIndex(
+    typeof b.promptIndex === "string" || typeof b.promptIndex === "number"
+      ? String(b.promptIndex)
+      : null,
+  );
+  if (promptIdx !== null) {
+    const tag = promptTag(promptIdx);
+    if (!tags.includes(tag)) tags.push(tag);
+    if (!tags.includes("오늘의질문")) tags.push("오늘의질문");
+  }
 
   const relatedSite = String(b.relatedSite ?? "").trim() || undefined;
 

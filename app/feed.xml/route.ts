@@ -160,7 +160,15 @@ async function collectItems(): Promise<Collected> {
   return { items, failed, attempted };
 }
 
-function serializeFeed(items: FeedItem[]): string {
+/* [#59] 카테고리 피드 — ?category=reports|notes|news 로 스트림을 좁힌다.
+ * 뉴스레터·리더가 원하는 스트림만 구독할 수 있게 하는 준비 작업(전체 피드는 그대로). */
+const CATEGORY_FILTERS: Record<string, { label: string; match: string }> = {
+  reports: { label: "월간 리포트", match: "월간 리포트" },
+  notes: { label: "임장노트", match: "임장노트" },
+  news: { label: "부동산 뉴스", match: "부동산 뉴스" },
+};
+
+function serializeFeed(items: FeedItem[], selfPath = "/feed.xml", titleSuffix = ""): string {
   const lastBuild = new Date().toUTCString();
   const body = items
     .map((it) => {
@@ -180,9 +188,9 @@ function serializeFeed(items: FeedItem[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>누구집 — 실거래 리포트·임장노트·부동산 뉴스</title>
+<title>누구집 — 실거래 리포트·임장노트·부동산 뉴스${titleSuffix ? ` · ${titleSuffix}` : ""}</title>
 <link>${BASE_URL}</link>
-<atom:link href="${BASE_URL}/feed.xml" rel="self" type="application/rss+xml" />
+<atom:link href="${BASE_URL}${selfPath}" rel="self" type="application/rss+xml" />
 <description>국토교통부 실거래 공개 데이터로 만드는 월간 지역 리포트, 직접 다녀온 현장 기록(임장노트), 자체 정리한 부동산 뉴스 다이제스트를 발행합니다.</description>
 <language>ko-kr</language>
 <lastBuildDate>${lastBuild}</lastBuildDate>
@@ -193,8 +201,14 @@ ${body}
 `;
 }
 
-export async function GET(): Promise<Response> {
-  const { items, failed, attempted } = await collectItems();
+export async function GET(req: Request): Promise<Response> {
+  const { items: allItems, failed, attempted } = await collectItems();
+
+  /* [#59] 카테고리 필터 — 모르는 값은 전체 피드로(404 대신 관대하게) */
+  const categoryParam = new URL(req.url).searchParams.get("category")?.trim() ?? "";
+  const filter = CATEGORY_FILTERS[categoryParam] ?? null;
+  const items = filter ? allItems.filter((it) => it.category === filter.match) : allItems;
+  const selfPath = filter ? `/feed.xml?category=${categoryParam}` : "/feed.xml";
 
   /* 전부 실패했으면 피드를 내지 않는다. 항목 0개짜리 200 은 리더에게
      "발행이 멈춘 사이트"로 읽히고, 그건 우리가 확인한 사실이 아니다.
@@ -211,7 +225,7 @@ export async function GET(): Promise<Response> {
      그동안 리더는 빠진 쪽을 "삭제된 글"로 본다. */
   const partial = failed.length > 0;
 
-  return new Response(serializeFeed(items), {
+  return new Response(serializeFeed(items, selfPath, filter?.label ?? ""), {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
       "Cache-Control": partial ? "no-store" : CRAWLER_ENDPOINT_CACHE_CONTROL,

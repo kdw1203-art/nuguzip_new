@@ -54,11 +54,20 @@ export default function robots(): MetadataRoute.Robots {
           "/widget",
         ],
       },
-      // AI crawlers - meta-externalagent alone = 27% of RUM
+      /* [#57, 2026-08-23 소유자 승인] AI 크롤러 개방 — llms.txt 로 "읽어가라"고
+         해 놓고 robots 로 전면 차단하던 모순(WO-H)의 해소. AI 검색(ChatGPT·
+         Claude·Perplexity)에서 인용되는 것이 GEO 전략의 목적이므로, 공개 콘텐츠는
+         열고 개인 영역만 * 와 같은 기준으로 막는다.
+         meta-externalagent 만 전면 차단 유지 — 검색 인용이 아니라 학습 전용
+         크롤러인데 단독으로 RUM 27% 를 차지한 실측 낭비가 있어서다. */
       { userAgent: "meta-externalagent", disallow: "/" },
-      { userAgent: "GPTBot", disallow: "/" },
-      { userAgent: "CCBot", disallow: "/" },
-      { userAgent: "ClaudeBot", disallow: "/" },
+      ...["GPTBot", "OAI-SearchBot", "ClaudeBot", "CCBot", "PerplexityBot", "Google-Extended"].map(
+        (userAgent) => ({
+          userAgent,
+          allow: ["/", "/api/og/"],
+          disallow: ["/admin", "/my", "/messages", "/notifications", "/points", "/invite", "/welcome", "/payment", "/api"],
+        }),
+      ),
     ],
     /* N4 — 인덱스 + 자식 전부를 적는다.
        인덱스 하나만 적어도 규격상 충분하지만, 실제로는 사이트맵 인덱스 처리가

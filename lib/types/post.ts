@@ -12,6 +12,10 @@ export type PostComment = {
   authorEmail?: string;
   /** soft-delete 시각 (ISO) */
   deletedAt?: string | null;
+  /** [#66] 대댓글 — 부모 댓글 id (1단계만 허용, 서버가 검증) */
+  parentId?: string | null;
+  /** [#65] 글쓴이 채택 표시 — 글당 최대 1개 */
+  adopted?: boolean;
 };
 
 export type PostVisibility = "public" | "link_only";

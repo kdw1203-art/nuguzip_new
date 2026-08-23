@@ -36,6 +36,8 @@ import {
 import { findTemperatureRegion } from "@/lib/market/temperature";
 import { logger } from "@/lib/log";
 import { buildMarketRead } from "@/lib/region/market-read";
+import { getRegionRentSnapshot, type RegionRentSnapshot } from "@/lib/market/rent";
+import { getRegionTradeAreaBands, type RegionAreaBands } from "@/lib/market/area-bands-lite";
 import { KeywordAlertButton } from "@/app/components/KeywordAlertButton";
 import {
   breadcrumbJsonLd,
@@ -264,7 +266,7 @@ export default async function RegionHubPage({
      다만 이 값은 sideResults 에 넣지 않는다 — 아래 중단 판단은 "화면이 비었나"를
      세는 것이고, 이건 실패해도 내부 링크 하나가 빠질 뿐이라 성격이 다르다. */
   const budget = startDeadline();
-  const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR, txBandRegion] =
+  const [seriesR, transactionsR, complexR, notesR, volumeR, projectsR, supplyR, txBandRegion, rentSnap, areaBands] =
     await Promise.all([
       /* 항목 25: budget.signal 로 예산 초과 시 PostgREST 요청 자체를 끊는다. */
       settle(
@@ -303,6 +305,17 @@ export default async function RegionHubPage({
           `[/region/${id}] 실거래 구간 지역 매칭 실패 — 링크 섹션을 생략합니다:`,
           e instanceof Error ? e.message : String(e),
         );
+        return null;
+      }),
+      /* [#94] 전월세 스냅샷 — txBandRegion 과 같은 성격의 보너스 섹션: 실패하면
+         섹션이 빠질 뿐이라 sideResults(중단 판정)에는 넣지 않는다. */
+      getRegionRentSnapshot(id, name, budget.signal).catch((e: unknown): RegionRentSnapshot | null => {
+        logger.error(`[/region/${id}] 전월세 스냅샷 조회 실패 — 섹션 생략:`, e instanceof Error ? e.message : String(e));
+        return null;
+      }),
+      /* [#52] 평형대별 시세 — 같은 규칙 */
+      getRegionTradeAreaBands(id, name, budget.signal).catch((e: unknown): RegionAreaBands | null => {
+        logger.error(`[/region/${id}] 평형대별 시세 조회 실패 — 섹션 생략:`, e instanceof Error ? e.message : String(e));
         return null;
       }),
     ]);
@@ -631,6 +644,139 @@ export default async function RegionHubPage({
           </p>
         )}
       </section>
+
+      {/* [#94] 전월세 시장 — 46.9만 행의 첫 노출면. 산술 사실(중앙값·건수)만 서술,
+          신고 지연·갱신/신규 미구분(원천 한계)은 화면에 명기한다. */}
+      {rentSnap && (rentSnap.jeonse.count > 0 || rentSnap.wolse.count > 0) && (
+        <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            전월세 시장{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              {rentSnap.periodLabel} 신고분 {rentSnap.sampleCount.toLocaleString("ko-KR")}건
+              {rentSnap.sampleTruncated ? " 표본" : ""} 기준
+            </span>
+          </h2>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="rounded-xl bg-bg px-3 py-2.5">
+              <div className="text-[10.5px] text-text-3">전세 보증금 중앙값</div>
+              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums text-ink">
+                {rentSnap.jeonse.medianDepositKrw59_85 !== null
+                  ? formatKrwShort(rentSnap.jeonse.medianDepositKrw59_85)
+                  : rentSnap.jeonse.medianDepositKrw !== null
+                    ? formatKrwShort(rentSnap.jeonse.medianDepositKrw)
+                    : "—"}
+              </div>
+              <div className="text-[10px] text-text-3">
+                {rentSnap.jeonse.medianDepositKrw59_85 !== null ? "59~85㎡ 기준" : "전체 면적 기준"} ·{" "}
+                {rentSnap.jeonse.count.toLocaleString("ko-KR")}건
+              </div>
+            </div>
+            <div className="rounded-xl bg-bg px-3 py-2.5">
+              <div className="text-[10.5px] text-text-3">월세 중앙값</div>
+              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums text-ink">
+                {rentSnap.wolse.medianMonthlyKrw !== null
+                  ? `월 ${Math.round(rentSnap.wolse.medianMonthlyKrw / 10_000).toLocaleString("ko-KR")}만`
+                  : "—"}
+              </div>
+              <div className="text-[10px] text-text-3">
+                보증금 중앙{" "}
+                {rentSnap.wolse.medianDepositKrw !== null
+                  ? formatKrwShort(rentSnap.wolse.medianDepositKrw)
+                  : "—"}{" "}
+                · {rentSnap.wolse.count.toLocaleString("ko-KR")}건
+              </div>
+            </div>
+            <div className="rounded-xl bg-bg px-3 py-2.5">
+              <div className="text-[10.5px] text-text-3">월세 비중</div>
+              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums text-ink">
+                {rentSnap.wolseShare !== null ? `${Math.round(rentSnap.wolseShare * 100)}%` : "—"}
+              </div>
+              <div className="text-[10px] text-text-3">전월세 신고 중 월세 계약</div>
+            </div>
+          </div>
+          {rentSnap.monthly.length >= 4 && (
+            <>
+              <div className="mt-4 flex h-[64px] items-end gap-[6px]">
+                {rentSnap.monthly.map((m, i) => {
+                  const max = Math.max(...rentSnap.monthly.map((x) => x.count));
+                  const h = max > 0 ? Math.max(4, Math.round((m.count / max) * 60)) : 4;
+                  return (
+                    <div
+                      key={m.month}
+                      className="flex min-w-0 flex-1 flex-col items-center"
+                      title={`${formatYm(m.month)} · ${m.count.toLocaleString("ko-KR")}건`}
+                    >
+                      <div
+                        className="w-full rounded-t-[4px]"
+                        style={{
+                          height: `${h}px`,
+                          background:
+                            i >= rentSnap.monthly.length - 2 ? "var(--primary-soft)" : "var(--primary)",
+                          border: i >= rentSnap.monthly.length - 2 ? "1px dashed var(--border)" : "none",
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-1 flex justify-between text-[9px] text-text-3">
+                <span>{shortYm(rentSnap.monthly[0].month)}</span>
+                <span>{shortYm(rentSnap.monthly[rentSnap.monthly.length - 1].month)}</span>
+              </div>
+            </>
+          )}
+          <p className="mt-3 text-[11px] leading-[1.7] text-text-3">
+            국토교통부 전월세 신고 기준. 최근 두 달(점선)은 신고 지연으로 실제보다 적게
+            잡힐 수 있고, 신고분에는 갱신·신규 계약이 섞여 있어 체감 시세와 다를 수
+            있습니다. 중앙값은 지역 전체 기준이라 단지별 편차가 큽니다.
+          </p>
+        </section>
+      )}
+
+      {/* [#52] 평형대별 시세 — "○○구 30평대" 검색 수요를 지역 페이지 안에서 받는다 */}
+      {areaBands && areaBands.bands.length > 0 && (
+        <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
+          <h2 className="text-[15px] font-extrabold text-ink">
+            평형대별 매매 시세{" "}
+            <span className="text-[11px] font-medium text-text-3">
+              {areaBands.periodLabel} 신고 {areaBands.sampleCount.toLocaleString("ko-KR")}건
+              {areaBands.truncated ? " 표본" : ""} 기준
+            </span>
+          </h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-[13px]">
+              <thead>
+                <tr className="border-b border-line text-left text-[11px] text-text-3">
+                  <th className="py-1.5 pr-3 font-semibold">면적대</th>
+                  <th className="py-1.5 pr-3 text-right font-semibold">거래</th>
+                  <th className="py-1.5 pr-3 text-right font-semibold">중앙값</th>
+                  <th className="py-1.5 text-right font-semibold">평당 중앙값</th>
+                </tr>
+              </thead>
+              <tbody>
+                {areaBands.bands.map((b) => (
+                  <tr key={b.key} className="border-b border-[#f0f3f8] last:border-0">
+                    <td className="py-2 pr-3 font-bold text-ink">{b.label}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-text-1">
+                      {b.count.toLocaleString("ko-KR")}건
+                    </td>
+                    <td className="py-2 pr-3 text-right font-extrabold tabular-nums text-ink">
+                      {formatKrwShort(b.medianKrw)}
+                    </td>
+                    <td className="py-2 text-right tabular-nums text-text-1">
+                      {formatKrwShort(b.medianPerPyeongKrw)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+            표본 5건 미만 면적대는 표시하지 않습니다. 중앙값 기준이라 단지·층·연식에 따라
+            실제 가격은 다릅니다.
+          </p>
+        </section>
+      )}
 
       {/* 월별 거래량 — market_region_monthly (국토부 실거래 집계) */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">

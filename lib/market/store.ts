@@ -188,6 +188,8 @@ export type IngestSource =
   | "redevelopment"
   /** 입주물량 자동 인제스트(app/api/cron/supply-ingest, 개선 #21) */
   | "supply"
+  /** 신고가 자동 소식(app/api/cron/price-record-watch, #81) */
+  | "news"
   | "geocode"
   /** 구독 만료 스윕(app/api/cron/plan-expiry-sweep) — 시장 데이터는 아니지만 크론 실행 기록은 같은 로그로 남긴다 */
   | "plan-expiry"
@@ -514,7 +516,7 @@ export interface RegionTransactionRow {
  * market_transactions.region_name 표기("서울 강남구"·"고양 덕양구"·"과천시")와
  * market_region_price.region_name 표기("강남구"·"고양시 덕양구")를 잇는 후보 목록.
  */
-function transactionNameCandidates(regionId: string, regionName: string): string[] {
+export function transactionNameCandidates(regionId: string, regionName: string): string[] {
   const name = regionName.trim();
   const out = new Set<string>([name]);
   if (name.includes(" ")) {

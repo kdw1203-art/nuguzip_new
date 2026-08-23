@@ -5,6 +5,7 @@ import { formatKrwShort } from "@/lib/market/format";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
 import { ErrorState } from "@/app/components/ui";
+import { faqJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 
 /* [3차 · AI 분석 확충] 전세가율·갭 스크리너.
  *
@@ -32,6 +33,9 @@ type Row = {
   gap?: number;
   period: string;
   source: string;
+  /** 월간 매매지수 변동(%) — 스냅샷의 sale_change (없으면 undefined) */
+  saleChange?: number;
+  group: "서울" | "경기" | "인천";
 };
 
 function fmtPeriod(period: string): string {
@@ -50,6 +54,7 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
             <th className="py-2 pr-3 text-right font-semibold">전세가율</th>
             <th className="py-2 pr-3 text-right font-semibold">평균 매매가</th>
             <th className="py-2 pr-3 text-right font-semibold">추정 갭</th>
+            <th className="py-2 pr-3 text-right font-semibold">매매지수 변동</th>
             <th className="py-2 text-right font-semibold">기준</th>
           </tr>
         </thead>
@@ -76,6 +81,17 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
               </td>
               <td className="py-2.5 pr-3 text-right font-bold tabular-nums text-ink">
                 {r.gap !== undefined ? formatKrwShort(r.gap) : "—"}
+              </td>
+              <td className="py-2.5 pr-3 text-right tabular-nums">
+                {r.saleChange === undefined ? (
+                  <span className="text-text-3">—</span>
+                ) : Math.abs(r.saleChange) < 0.005 ? (
+                  <span className="text-text-3">보합</span>
+                ) : r.saleChange > 0 ? (
+                  <span className="font-bold text-danger">▲ {r.saleChange.toFixed(2)}%</span>
+                ) : (
+                  <span className="font-bold text-primary">▼ {Math.abs(r.saleChange).toFixed(2)}%</span>
+                )}
               </td>
               <td className="py-2.5 text-right text-[11px] text-text-3">
                 {fmtPeriod(r.period)} · {r.source.toUpperCase()}
@@ -105,6 +121,15 @@ export default async function GapScreenerPage() {
         gap: avgSale !== undefined ? Math.round(avgSale * (1 - s.jeonseRatio / 100)) : undefined,
         period: s.period,
         source: s.source,
+        saleChange:
+          s.saleChangeMonthly !== undefined && Number.isFinite(s.saleChangeMonthly)
+            ? s.saleChangeMonthly
+            : undefined,
+        group: regionId.startsWith("incheon-")
+          ? "인천"
+          : /^[^\s]+구$/.test(s.regionName.trim())
+            ? "서울"
+            : "경기",
       });
     }
   } catch (e) {
@@ -165,8 +190,68 @@ export default async function GapScreenerPage() {
             </h2>
             <RankTable rows={bottom} tone="low" />
           </section>
+
+          {/* [#78 v2] 시도별 전체 표 — 앵커 점프로 필터를 대신한다(파라미터 없는 ISR 유지) */}
+          <div className="rise-in-2 mb-3 flex flex-wrap gap-2">
+            {(["서울", "경기", "인천"] as const).map((g) => (
+              <a
+                key={g}
+                href={`#sido-${g}`}
+                className="chip border border-line bg-surface px-3.5 py-1.5 text-[12px] font-bold text-primary no-underline"
+              >
+                {g} 전체 ({rows.filter((r) => r.group === g).length})
+              </a>
+            ))}
+          </div>
+          {(["서울", "경기", "인천"] as const).map((g) => {
+            const groupRows = rows.filter((r) => r.group === g);
+            if (groupRows.length === 0) return null;
+            return (
+              <section key={g} id={`sido-${g}`} className="mb-6 scroll-mt-20">
+                <h2 className="mb-2 text-[15px] font-extrabold text-ink">
+                  {g} 전체 — 전세가율 순 {groupRows.length}개 지역
+                </h2>
+                <RankTable rows={groupRows} tone="high" />
+              </section>
+            );
+          })}
         </>
       )}
+
+      {/* [#55] FAQ — 화면에 실제로 보이는 문답과 같은 배열로만 JSON-LD 생성 (허위 표기 금지 규칙) */}
+      {(() => {
+        const faq = [
+          {
+            q: "전세가율이란 무엇인가요?",
+            a: "매매가 대비 전세가의 비율입니다. 예를 들어 매매가 10억 원, 전세가 7억 원이면 전세가율은 70%입니다. 비율이 높을수록 매매가와 전세가의 차이(갭)가 작습니다.",
+          },
+          {
+            q: "추정 갭은 어떻게 계산하나요?",
+            a: "평균 매매가 × (1 − 전세가율)로 계산합니다. 지역 평균 기준이므로 단지·면적에 따라 실제 갭은 크게 다를 수 있습니다.",
+          },
+          {
+            q: "전세가율이 높으면 안전한 지역인가요?",
+            a: "아닙니다. 전세가율이 높다는 것은 갭이 작다는 산술일 뿐이며, 전세가 하락 시 보증금 반환 부담(역전세)과 매매가·전세가 역전 위험도 함께 커집니다.",
+          },
+        ];
+        return (
+          <section className="mt-8">
+            <h2 className="mb-2 text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
+            <div className="flex flex-col gap-2">
+              {faq.map((f) => (
+                <details key={f.q} className="card rounded-xl px-4 py-3">
+                  <summary className="cursor-pointer text-[13.5px] font-bold text-ink">{f.q}</summary>
+                  <p className="mt-2 text-[13px] leading-[1.8] text-text-2">{f.a}</p>
+                </details>
+              ))}
+            </div>
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: jsonLdScript([faqJsonLd(faq)]) }}
+            />
+          </section>
+        );
+      })()}
 
       <p className="mt-6 text-[11px] leading-[1.7] text-text-3">
         출처: 한국부동산원(REB)·KB 공표 지역 통계 — 지역·출처별 최신 공표 주기 기준이라

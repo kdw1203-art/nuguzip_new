@@ -20,6 +20,8 @@ import {
   POSTS_READ_LIMIT,
   readPostsSb,
   softDeleteCommentSb,
+  adoptCommentSb,
+  listPostsByTagSb,
   togglePostLikeSb,
   updatePostSb,
   userHasLikedSb,
@@ -87,6 +89,27 @@ export async function softDeleteComment(
   return storageBackendIsSupabase()
     ? softDeleteCommentSb(postId, commentId, actor)
     : softDeleteCommentFile(postId, commentId, actor);
+}
+
+/** [#63] 태그로 글 목록 — 파일 백엔드(로컬 개발)는 빈 배열. */
+export async function listPostsByTag(tag: string, limit = 50): Promise<Post[]> {
+  return storageBackendIsSupabase() ? listPostsByTagSb(tag, limit) : [];
+}
+
+/** [#65] 답변 채택 — Supabase 백엔드 전용(파일 백엔드는 로컬 개발용이라 미지원 → null). */
+export async function adoptComment(
+  postId: string,
+  commentId: string,
+  actorEmail: string,
+): Promise<
+  | { post: Post; adoptedAuthorEmail: string | null }
+  | "forbidden"
+  | "self"
+  | null
+> {
+  return storageBackendIsSupabase()
+    ? adoptCommentSb(postId, commentId, actorEmail)
+    : null;
 }
 
 export async function togglePostLike(

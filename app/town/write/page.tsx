@@ -48,8 +48,9 @@ function TownWriteForm() {
      뿐이고, 저장되는 연결 키는 complexId 하나다(서버가 다시 검증한다). */
   const complexId = (searchParams.get("complex") ?? "").trim();
   const complexName = (searchParams.get("complexName") ?? "").trim();
-  /* [3차] 오늘의 동네 글감(/town 프롬프트 카드)에서 넘어온 제목 프리필 */
+  /* [3차·#63] 오늘의 동네 글감(/town 프롬프트 카드)에서 넘어온 제목 프리필 + 글감 인덱스 */
   const topic = (searchParams.get("topic") ?? "").trim().slice(0, 120);
+  const promptIndex = (searchParams.get("pi") ?? "").trim();
 
   const [category, setCategory] = useState(CATEGORIES[0]?.label ?? "정보/소식");
   const [city, setCity] = useState<CityOption>("서울특별시");
@@ -95,6 +96,7 @@ function TownWriteForm() {
           city,
           district,
           ...(complexId ? { complexId } : {}),
+          ...(promptIndex ? { promptIndex } : {}),
         }),
       });
       if (res.status === 401) {

@@ -47,6 +47,10 @@ const ROUTES: Array<{ path: string; name: string }> = [
   { path: "/subscription", name: "구독" },
   { path: "/login", name: "로그인" },
   { path: "/offline", name: "오프라인 폴백" },
+  /* [#90] 4차에서 늘어난 표면 — 새 화면도 같은 게이트를 통과해야 한다 */
+  { path: "/analysis/gap", name: "전세가율 스크리너" },
+  { path: "/town/prompt/0", name: "글감 스레드" },
+  { path: "/apply/calendar", name: "청약 캘린더" },
 ];
 
 /**

@@ -207,7 +207,16 @@ export function LikeButton({
   );
 }
 
-export function CommentForm({ postId }: { postId: string }) {
+export function CommentForm({
+  postId,
+  parentId,
+  compact = false,
+}: {
+  postId: string;
+  /** [#66] 답글 대상 최상위 댓글 id */
+  parentId?: string;
+  compact?: boolean;
+}) {
   const router = useRouter();
   const { promptSignup } = useSoftSignup();
   const [body, setBody] = useState("");
@@ -229,7 +238,7 @@ export function CommentForm({ postId }: { postId: string }) {
       const res = await fetch(`/api/community/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text }),
+        body: JSON.stringify({ body: text, ...(parentId ? { parentId } : {}) }),
       });
       if (res.status === 401) {
         promptSignup({
@@ -270,7 +279,7 @@ export function CommentForm({ postId }: { postId: string }) {
           onChange={(e) => setBody(e.target.value)}
           maxLength={1000}
           aria-label="댓글 내용"
-          placeholder="댓글 남기기…"
+          placeholder={parentId ? "답글 남기기…" : "댓글 남기기…"}
           className="min-w-0 flex-1 bg-transparent py-[6px] text-[13px] text-ink outline-none placeholder:text-text-3"
         />
         <button
@@ -291,9 +300,11 @@ export function CommentForm({ postId }: { postId: string }) {
           댓글 적립 +{earned}P — 포인트 내역에서 확인할 수 있어요
         </p>
       )}
-      <p className="px-1 text-[10px] leading-[1.5] text-text-3">
-        로그인 후 등록돼요 · 첫 댓글은 +20P · 개인정보(전화번호·계좌)는 적지 마세요
-      </p>
+      {!compact && (
+        <p className="px-1 text-[10px] leading-[1.5] text-text-3">
+          로그인 후 등록돼요 · 첫 댓글은 +20P · 개인정보(전화번호·계좌)는 적지 마세요
+        </p>
+      )}
     </form>
   );
 }

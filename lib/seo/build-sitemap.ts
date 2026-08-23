@@ -10,6 +10,8 @@ import {
   periodToDate,
 } from "@/lib/seo/sitemap-entries";
 import { complexCanonicalPathFromNames } from "@/lib/complex/complex-store";
+import { weekSlugFor } from "@/lib/applyhome/calendar";
+import { TOWN_PROMPTS } from "@/lib/town/prompts";
 
 /**
  * 단지 사이트맵에 실을 최소 매매 실거래 건수.
@@ -206,10 +208,24 @@ async function section(
 /** 정적 라우트는 배포할 때 바뀐다 — 언제였는지 런타임에 알 방법이 없으므로
     lastModified 를 적지 않는다(추측한 날짜보다 없는 편이 정확하다). */
 export function loadStaticEntries(): MetadataRoute.Sitemap {
-  return STATIC_ROUTES.map((r) => ({
+  const entries: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
     url: `${BASE_URL}${r.path}`,
     priority: r.priority,
   }));
+  /* [#53] 주간 청약 아카이브 — 최근 6주 슬러그(순수 날짜 계산, 조회 0회).
+     주가 바뀌면 목록이 한 칸 굴러가고, 오래된 주 URL 은 페이지가 빈 상태를
+     정직하게 그리므로 죽은 링크가 아니다. */
+  for (let offset = 0; offset >= -5; offset -= 1) {
+    entries.push({
+      url: `${BASE_URL}/apply/calendar/${weekSlugFor(offset)}`,
+      priority: offset === 0 ? 0.6 : 0.4,
+    });
+  }
+  /* [#63] 글감 스레드 14개 — 고정 질문 페이지(순수 상수) */
+  for (let i = 0; i < TOWN_PROMPTS.length; i += 1) {
+    entries.push({ url: `${BASE_URL}/town/prompt/${i}`, priority: 0.5 });
+  }
+  return entries;
 }
 
 export async function loadNoteEntries(): Promise<MetadataRoute.Sitemap> {

@@ -1,5 +1,6 @@
 import { loadSourceFreshness } from "@/lib/admin/source-freshness";
 import { loadNewsRegionLinkage } from "@/lib/admin/news-region-link";
+import { loadGeocodeCoverage, loadIngestLogSummary24h } from "@/lib/admin/data-health-extras";
 
 /* [개선 #24] 데이터 신선도 대시보드 — 소스별 마지막 적재와 임계.
    입주물량 한 달 정지를 아무도 몰랐던 사각지대의 해소 화면. 판정은
@@ -21,9 +22,11 @@ function age(h: number | null): string {
 }
 
 export default async function AdminFreshnessPage() {
-  const [rows, linkage] = await Promise.all([
+  const [rows, linkage, geocode, ingestLog] = await Promise.all([
     loadSourceFreshness(),
     loadNewsRegionLinkage(),
+    loadGeocodeCoverage(),
+    loadIngestLogSummary24h(),
   ]);
   const staleCount = rows.filter((r) => r.stale).length;
   const linkPct =
@@ -110,6 +113,48 @@ export default async function AdminFreshnessPage() {
           )}
         </div>
       )}
+
+      {/* [#97] 지오코딩 커버리지 + 최근 24h 수집 로그 — 신선도와 같은 화면에서 본다 */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {geocode && (
+          <div className="card rounded-2xl px-4 py-3.5">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-[13px] font-extrabold text-ink">지오코딩 커버리지</span>
+              <span
+                className={`text-[20px] font-extrabold tabular-nums ${
+                  geocode.pct >= 95 ? "text-success" : geocode.pct >= 70 ? "text-ink" : "text-danger"
+                }`}
+              >
+                {geocode.pct}%
+              </span>
+              <span className="text-[11.5px] text-text-3">
+                단지 {geocode.complexes.toLocaleString("ko-KR")}개 중{" "}
+                {geocode.geocoded.toLocaleString("ko-KR")}개 좌표 확보 — 지도에 찍을 수 있는 비율
+              </span>
+            </div>
+          </div>
+        )}
+        {ingestLog && ingestLog.length > 0 && (
+          <div className="card rounded-2xl px-4 py-3.5">
+            <div className="text-[13px] font-extrabold text-ink">최근 24시간 수집 로그</div>
+            <div className="mt-2 flex flex-col gap-1">
+              {ingestLog.slice(0, 8).map((r) => (
+                <div key={r.source} className="flex items-center gap-2 text-[12px]">
+                  <span className="w-24 shrink-0 font-bold text-ink">{r.source}</span>
+                  <span className="text-success">ok {r.ok}</span>
+                  <span className="text-text-3">skip {r.skipped}</span>
+                  <span className={r.error > 0 ? "font-extrabold text-danger" : "text-text-3"}>
+                    err {r.error}
+                  </span>
+                  {r.error > 0 && r.lastMessage && (
+                    <span className="min-w-0 truncate text-[10.5px] text-text-3">{r.lastMessage}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       <p className="text-[11px] leading-[1.7] text-text-3">
         빨간 소스를 발견하면: 갱신 경로 열의 크론·워크플로를 먼저 확인하고, 키 미설정

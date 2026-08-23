@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { safeAuth } from "@/lib/safe-auth";
 import { isAdmin } from "@/lib/auth/is-admin";
 import { notifyPostAuthorOfNewComment } from "@/lib/notifications/comment-notify";
-import { appendComment } from "@/lib/posts-store";
+import { appendComment, getPost } from "@/lib/posts-store";
 import type { PostComment } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import { awardPoints } from "@/lib/points/ledger";
@@ -39,6 +39,25 @@ export async function POST(
     return NextResponse.json({ error: "댓글 내용을 입력해 주세요." }, { status: 400 });
   }
 
+  /* [#66] 대댓글 — parentId 는 실제 존재하는 최상위 댓글일 때만 붙인다(1단계 제한).
+     검증 실패는 400 — 조용히 최상위 댓글로 강등하면 "왜 엉뚱한 데 달렸지"가 된다. */
+  const parentIdRaw = typeof b.parentId === "string" ? b.parentId.trim() : "";
+  let parentId: string | null = null;
+  if (parentIdRaw) {
+    const cur = await getPost(id);
+    if (!cur) {
+      return NextResponse.json({ error: "게시글을 찾을 수 없습니다." }, { status: 404 });
+    }
+    const parent = cur.comments.find((c) => c.id === parentIdRaw);
+    if (!parent || parent.deletedAt) {
+      return NextResponse.json({ error: "답글 대상 댓글을 찾을 수 없습니다." }, { status: 400 });
+    }
+    if (parent.parentId) {
+      return NextResponse.json({ error: "답글에는 다시 답글을 달 수 없어요." }, { status: 400 });
+    }
+    parentId = parentIdRaw;
+  }
+
   const comment: PostComment = {
     id: crypto.randomUUID(),
     authorLabel,
@@ -49,6 +68,7 @@ export async function POST(
       : {}),
     body: text,
     createdAt: new Date().toISOString(),
+    ...(parentId ? { parentId } : {}),
   };
 
   const post = await appendComment(id, comment);

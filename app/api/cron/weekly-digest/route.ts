@@ -4,6 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
 import { getWeeklyDigest } from "@/lib/newui/digest";
+import { buildWatchlistBrief } from "@/lib/market/watchlist-brief";
 import { captureException } from "@/lib/monitoring/capture";
 import { logger } from "@/lib/log";
 
@@ -151,6 +152,7 @@ async function run(dryRun: boolean): Promise<RunSummary> {
 
   let notified = 0;
   let pushSent = 0;
+  let watchlistBriefs = 0;
   for (const email of emails) {
     try {
       await appendInboxNotification({
@@ -164,8 +166,25 @@ async function run(dryRun: boolean): Promise<RunSummary> {
     } catch (e) {
       captureException(e, { where: "cron/weekly-digest", email });
     }
+    /* [#80] 관심단지 주간 브리핑 — 같은 옵트인 안의 확장. 이번 주 실거래가 있는
+       사람에게만 두 번째 알림 한 건(활동 0 = 무발송, 소음 금지). fail-soft. */
+    try {
+      const brief = await buildWatchlistBrief(email);
+      if (brief) {
+        await appendInboxNotification({
+          userEmail: email,
+          title: brief.title,
+          body: brief.body,
+          actionUrl: "/my/watchlist",
+        });
+        watchlistBriefs += 1;
+      }
+    } catch (e) {
+      captureException(e, { where: "cron/weekly-digest:watchlist", email });
+    }
   }
 
+  logger.info(`[cron/weekly-digest] 관심단지 브리핑 ${watchlistBriefs}건 동봉`);
   return { ...base, optedIn, notified, pushSent };
 }
 

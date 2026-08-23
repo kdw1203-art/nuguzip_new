@@ -1,4 +1,5 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { logger } from "@/lib/log";
 import {
   canDeleteComment,
   softDeleteCommentBody,
@@ -15,14 +16,20 @@ function rowToPost(row: Record<string, unknown>): Post {
      댓글 작성자 이메일은 공개할 값이 아니다. 삭제 권한 판정은 저장된 원본 JSON 을
      직접 읽는 softDeleteCommentSb 가 한다. */
   const comments: PostComment[] = Array.isArray(rawComments)
-    ? rawComments.map((c) => ({
-        id: String((c as PostComment).id),
-        authorLabel: String((c as PostComment).authorLabel ?? "익명"),
-        body: String((c as PostComment).body ?? ""),
-        createdAt: String(
-          (c as PostComment).createdAt ?? new Date().toISOString(),
-        ),
-      }))
+    ? rawComments.map((c) => {
+        const pc = c as PostComment;
+        return {
+          id: String(pc.id),
+          authorLabel: String(pc.authorLabel ?? "익명"),
+          body: String(pc.body ?? ""),
+          createdAt: String(pc.createdAt ?? new Date().toISOString()),
+          /* [#65·#66] 화면 렌더에 필요한 상태 필드는 그대로 싣는다.
+             (authorEmail 만 의도적으로 제외 — 위 주석의 규칙) */
+          ...(pc.deletedAt ? { deletedAt: String(pc.deletedAt) } : {}),
+          ...(pc.parentId ? { parentId: String(pc.parentId) } : {}),
+          ...(pc.adopted === true ? { adopted: true } : {}),
+        };
+      })
     : [];
 
   const vis = row.visibility as string | undefined;
@@ -385,4 +392,79 @@ export async function softDeleteCommentSb(
     .single();
   if (error || !data) return null;
   return rowToPost(data as Record<string, unknown>);
+}
+
+/* ── [#65] 답변 채택 ──────────────────────────────────────────────
+ * 글쓴이(notify_email 기준 — softDeleteCommentSb 와 같은 판정 근거)만 댓글
+ * 하나를 채택한다. 글당 1개: 기존 채택은 해제하고 대상만 켠다. 반환값에
+ * 채택된 댓글의 authorEmail 을 함께 준다 — 호출부(라우트)가 포인트를 지급할
+ * 유일한 근거이고, 이 값은 API 응답에는 싣지 않는다. */
+export async function adoptCommentSb(
+  postId: string,
+  commentId: string,
+  actorEmail: string,
+): Promise<
+  | { post: Post; adoptedAuthorEmail: string | null }
+  | "forbidden"
+  | "self"
+  | null
+> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { data: row, error: readError } = await sb
+    .from("posts")
+    .select("comments, notify_email")
+    .eq("id", postId)
+    .maybeSingle();
+  if (readError || !row) return null;
+
+  const owner = String((row as Record<string, unknown>).notify_email ?? "")
+    .trim()
+    .toLowerCase();
+  if (!owner || owner !== actorEmail.trim().toLowerCase()) return "forbidden";
+
+  const rawComments = (row as Record<string, unknown>).comments;
+  if (!Array.isArray(rawComments)) return null;
+  const comments = rawComments as Array<Record<string, unknown>>;
+  const target = comments.find((c) => String(c.id) === commentId);
+  if (!target || target.deletedAt) return null;
+  const targetAuthor = String(target.authorEmail ?? "").trim().toLowerCase();
+  if (targetAuthor && targetAuthor === owner) return "self"; // 자기 댓글 채택 금지
+
+  for (const c of comments) {
+    if (String(c.id) === commentId) c.adopted = true;
+    else if (c.adopted) delete c.adopted;
+  }
+
+  const { data, error } = await sb
+    .from("posts")
+    .update({ comments, updated_at: new Date().toISOString() })
+    .eq("id", postId)
+    .select("*")
+    .single();
+  if (error || !data) return null;
+  return {
+    post: rowToPost(data as Record<string, unknown>),
+    adoptedAuthorEmail: targetAuthor || null,
+  };
+}
+
+/* [#63] 태그로 글 목록 — 글감 스레드(/town/prompt/[idx])용.
+ * visibility 는 공개(public/미지정)만 — link_only 글을 스레드에 늘어놓지 않는다. */
+export async function listPostsByTagSb(tag: string, limit = 50): Promise<Post[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("posts")
+    .select("*")
+    .contains("tags", [tag])
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, limit));
+  if (error || !data) {
+    if (error) logger.error("[posts] listPostsByTagSb", error);
+    return [];
+  }
+  return data
+    .map((r) => rowToPost(r as Record<string, unknown>))
+    .filter((p) => p.visibility !== "link_only");
 }

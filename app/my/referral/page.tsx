@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
-import { getReferralStats } from "@/lib/referral/store";
+import { getReferralStats, getReferralLeaderboard } from "@/lib/referral/store";
 import { CopyLink } from "./CopyLink";
 import { ShareRow } from "./ShareRow";
 
@@ -145,7 +145,11 @@ export default async function ReferralPage() {
     );
   }
 
-  const [stats, origin] = await Promise.all([getReferralStats(email), currentOrigin()]);
+  const [stats, origin, leaders] = await Promise.all([
+    getReferralStats(email),
+    currentOrigin(),
+    getReferralLeaderboard(email, 10),
+  ]);
   const code = stats.code;
   const link = code ? `${origin}/invite/${code}` : null;
 
@@ -278,6 +282,35 @@ export default async function ReferralPage() {
             ))}
           </ol>
         </section>
+
+        {/* [#100] 추천 리더보드 — 초대의 사회적 동기. 못 읽으면 섹션 생략(0명 위장 금지) */}
+        {leaders !== null && leaders.length > 0 && (
+          <section className="card rounded-[18px] p-5">
+            <h2 className="text-[14px] font-extrabold text-ink">추천 리더보드</h2>
+            <p className="mt-0.5 text-[11.5px] text-text-3">가장 많이 초대한 이웃 (익명 표시)</p>
+            <ol className="mt-3 flex list-none flex-col gap-1.5 p-0">
+              {leaders.map((l, i) => (
+                <li
+                  key={`${l.label}-${i}`}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                    l.isMe ? "bg-primary-soft" : "bg-bg"
+                  }`}
+                >
+                  <span className="w-5 text-center text-[13px] font-extrabold tabular-nums text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[13px] font-bold text-ink">
+                    {l.label}
+                    {l.isMe && <span className="ml-1 text-[11px] font-extrabold text-primary">나</span>}
+                  </span>
+                  <span className="text-[12px] font-bold tabular-nums text-text-2">
+                    {l.count.toLocaleString("ko-KR")}명 초대
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
 
         <Link
           href="/my/points"

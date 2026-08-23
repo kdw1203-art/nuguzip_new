@@ -15,6 +15,7 @@ import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
+import { CommentThread } from "./CommentThread";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import {
   readNewsMeta,
@@ -611,30 +612,21 @@ export default async function TownNewsDetailPage({
             <div className="text-[15px] font-extrabold text-ink">
               댓글 {commentCount}
             </div>
-            {activeComments.length > 0 ? (
-              activeComments.map((c) => (
-                <div key={c.id} className="flex gap-2.5">
-                  <div className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-[#e2e8f2] to-[#eef2f8]" />
-                  <div className="flex flex-1 flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-extrabold text-ink">
-                        {c.authorLabel}
-                      </span>
-                      <span className="text-[10px] text-text-3">
-                        {relativeTime(c.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-[13px] leading-[1.55] text-text-1">
-                      {c.body}
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="py-2 text-[13px] text-text-3">
-                아직 댓글이 없어요. 첫 댓글을 남겨보세요.
-              </p>
-            )}
+            {/* [#65·#66] 채택·대댓글 스레드 — 상대시각은 서버에서 계산해 넘긴다(하이드레이션 불일치 방지) */}
+            <CommentThread
+              postId={post.id}
+              comments={activeComments.map((c) => ({
+                id: c.id,
+                authorLabel: c.authorLabel,
+                body: c.body,
+                createdAt: c.createdAt,
+                parentId: c.parentId ?? null,
+                adopted: c.adopted === true,
+              }))}
+              relativeLabels={Object.fromEntries(
+                activeComments.map((c) => [c.id, relativeTime(c.createdAt)]),
+              )}
+            />
             {/* 입력칸처럼 생긴 <div> + "등록" 글자였다 — 타이핑도 전송도 불가능했다.
                 POST /api/community/posts/[id]/comments 는 이미 있었으므로 연결했다. */}
             <CommentForm postId={post.id} />

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { ErrorState, EmptyState } from "@/app/components/ui/EmptyState";
-import { buildApplyCalendar } from "@/lib/applyhome/calendar";
+import { buildApplyCalendar, weekSlugFor } from "@/lib/applyhome/calendar";
 import { seoAlternates } from "@/lib/seo/alternates";
 
 /* [개선 #17] 이번 주 청약 캘린더 — 접수 시작·마감을 날짜별로.
@@ -104,6 +104,18 @@ export default async function ApplyCalendarPage() {
             </p>
           </div>
         )}
+        {/* [#53] 주간 아카이브 링크 — 지난 주 일정은 고정 URL 로 남는다 */}
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          {[weekSlugFor(-2), weekSlugFor(-1), weekSlugFor(0)].map((s) => (
+            <Link
+              key={s}
+              href={`/apply/calendar/${s}`}
+              className="chip border border-line bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 no-underline"
+            >
+              {s === weekSlugFor(0) ? "이번 주 아카이브" : `${s} 일정`}
+            </Link>
+          ))}
+        </div>
       </div>
     </PageShell>
   );

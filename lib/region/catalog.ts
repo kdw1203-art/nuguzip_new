@@ -33,7 +33,25 @@ const CATALOG_BY_KEY = new Map(
 
 const CATALOG_BY_ID = new Map(REGION_CATALOG.map((info) => [info.id, info]));
 
-/** 구/시명으로 카탈로그 항목 조회 (정확 → 부분 일치). */
+/** [#54] 통용 지명·신도시 별칭 → 카탈로그 id.
+ *  뉴스 region 값의 미매핑 상위 실측(2026-08-23)에서 확실한 것만 넣는다 —
+ *  틀린 연결은 미연결보다 나쁘다. 모호한 지명(위례·광교 등 복수 행정구 걸침)은
+ *  대표 행정구가 사회적으로 합의된 경우만 포함. */
+const REGION_ALIASES: Record<string, string> = {
+  평촌: "anyang-dongan",
+  평촌신도시: "anyang-dongan",
+  판교: "seongnam-bundang",
+  목동: "yangcheon",
+  마곡: "gangseo",
+  송도: "incheon-yeonsu",
+  청라: "incheon-seo",
+  미사: "hanam",
+  별내: "namyangju",
+  다산: "namyangju",
+  광교: "suwon-yeongtong",
+};
+
+/** 구/시명으로 카탈로그 항목 조회 (정확 → 별칭 → 부분 일치). */
 export function findCatalogRegionByName(
   query: string,
 ): SeoulDistrictInfo | undefined {
@@ -41,6 +59,8 @@ export function findCatalogRegionByName(
   if (!key) return undefined;
   const exact = CATALOG_BY_KEY.get(key);
   if (exact) return exact;
+  const aliasId = REGION_ALIASES[key];
+  if (aliasId) return CATALOG_BY_ID.get(aliasId);
   return REGION_CATALOG.find((info) => {
     const k = normalizeRegionKey(info.name);
     return k.includes(key) || key.includes(k);

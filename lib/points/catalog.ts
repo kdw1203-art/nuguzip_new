@@ -24,6 +24,8 @@ export const EARN_RULES: Record<string, EarnRule> = {
      refId(글 id) 멱등이라 같은 글에 댓글을 여러 개 달아도 1회만 적립된다. */
   post_written: { key: "post_written", label: "동네 글 작성", points: 50, dailyCap: 2 },
   comment_written: { key: "comment_written", label: "동네 댓글 작성", points: 20, dailyCap: 3 },
+  /* [#65] 글쓴이가 내 댓글을 채택 — 질문→좋은 답 루프의 보상. refId=글:댓글 멱등. */
+  comment_adopted: { key: "comment_adopted", label: "댓글 채택됨", points: 30, dailyCap: 5 },
   attendance: { key: "attendance", label: "출석", points: 10, dailyCap: 1 },
   /* 연속 출석 보너스 — 출석 기본 10P 에 얹는 추가분(3일 +10P → 합 20P, 7일 +40P → 합 50P).
      lib/points/store-db.checkIn 의 스트릭 티어(10/20/50)와 합이 일치해야 한다. */
