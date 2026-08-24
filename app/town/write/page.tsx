@@ -7,6 +7,7 @@ import { PageShell } from "../../components/PageShell";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { COMMUNITY_SUBCATEGORIES } from "@/lib/subcategories";
 import { CITY_OPTIONS, DISTRICTS } from "@/lib/regions";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 /* ============================================================
    동네이야기 글쓰기 — POST /api/community/posts 실연동
@@ -147,7 +148,7 @@ function TownWriteForm() {
             </span>
             <span>이야기로 등록돼요 — 이 단지 페이지의 노트 탭에 함께 보여요.</span>
             <Link
-              href={`/complex/${encodeURIComponent(complexId)}`}
+              href={complexHrefFromId(complexId)}
               className="font-bold text-primary underline"
             >
               단지 보기

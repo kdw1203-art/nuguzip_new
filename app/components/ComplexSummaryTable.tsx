@@ -3,7 +3,7 @@ import {
   buildComplexTxSlug,
   type ComplexSummary,
 } from "@/lib/market/complex-transactions";
-import { encodeComplexId } from "@/lib/complex/complex-store";
+import { complexHrefFromNames } from "@/lib/seo/complex-slug";
 
 /* 단지별 실거래 요약 테이블 — /region/[id] · /complex/browse 공용 (서버 컴포넌트).
    국토부 실거래가 기반, 매물 호가 아님. */
@@ -76,7 +76,7 @@ export function ComplexSummaryTable({
                 <Link
                   href={
                     s.regionName
-                      ? `/complex/${encodeComplexId(s.regionName, s.complexName)}`
+                      ? complexHrefFromNames(s.regionName, s.complexName)
                       : `/complex/tx/${buildComplexTxSlug(s.complexName, regionId)}`
                   }
                   className="block"

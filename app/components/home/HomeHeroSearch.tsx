@@ -6,6 +6,7 @@ import { Icon } from "@/app/components/Icon";
 import { pushRecentSearch, readRecentSearches } from "@/lib/search/recent-searches";
 import { useRecentComplexes } from "@/app/components/RecentComplexes";
 import { useSettledSearchQuery } from "@/lib/search/settle";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 /* 홈 리디자인(#408) 시안 B — 화면 정중앙 대형 검색.
  *
@@ -237,7 +238,7 @@ export function HomeHeroSearch() {
               <button
                 key={`c-${c.id}`}
                 type="button"
-                onClick={() => router.push(`/complex/${encodeURIComponent(c.id)}`)}
+                onClick={() => router.push(complexHrefFromId(c.id))}
                 className="chip max-w-[180px] truncate bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 🏢 {c.name}

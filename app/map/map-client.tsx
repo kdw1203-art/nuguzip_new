@@ -57,6 +57,7 @@ import {
   tierColor,
   tierTextColor,
 } from "@/lib/map/price-tiers";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 /** A1 — 지도 첫 방문 3스텝 안내. 대상이 화면에 없으면 그 스텝은 자동 생략된다. */
 const MAP_TOUR_STEPS: CoachmarkStep[] = [
@@ -3976,7 +3977,7 @@ export function MapClient({
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href={`/complex/${encodeURIComponent(selected.id)}`}
+                href={complexHrefFromId(selected.id)}
                 className="btn-primary btn-cta hidden rounded-xl px-3.5 py-2 text-xs font-extrabold text-white md:inline-flex"
               >
                 전체 화면으로 자세히 보기 ›
@@ -4041,7 +4042,7 @@ export function MapClient({
                   </div>
                 </div>
                 <Link
-                  href={`/complex/${encodeURIComponent(selected.id)}`}
+                  href={complexHrefFromId(selected.id)}
                   className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-[15px] py-[13px] text-left"
                 >
                   <span className="text-[13px] font-bold text-ink">
@@ -4244,7 +4245,7 @@ export function MapClient({
           {/* 모바일에서는 헤더에 넣을 자리가 없어 아래에 고정 CTA 로 둔다. */}
           <div className="border-t border-[rgba(16,28,54,.06)] px-[22px] py-3 md:hidden">
             <Link
-              href={`/complex/${encodeURIComponent(selected.id)}`}
+              href={complexHrefFromId(selected.id)}
               className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
             >
               전체 화면으로 자세히 보기 ›

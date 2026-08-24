@@ -22,7 +22,7 @@ import {
 import type { PricePoint } from "./PriceTrendChart";
 import { complexCanonicalPath, decodeComplexId } from "@/lib/complex/complex-store";
 import { ComplexAxisSummary } from "./ComplexAxisSummary";
-import { pureIdFromParam } from "@/lib/seo/complex-slug";
+import { pureIdFromParam, complexHrefFromId} from "@/lib/seo/complex-slug";
 import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
@@ -1056,7 +1056,7 @@ export default async function ComplexHubPage({
               {v.nearby.slice(0, 5).map((n) => (
                 <Link
                   key={n.id}
-                  href={`/complex/${encodeURIComponent(n.id)}`}
+                  href={complexHrefFromId(n.id)}
                   className="rounded-xl px-2 py-2 transition-colors hover:bg-bg"
                 >
                   <div className="truncate text-[12px] font-bold text-ink">{n.name}</div>
@@ -1081,7 +1081,7 @@ export default async function ComplexHubPage({
             {v.nearby.map((n) => (
               <Link
                 key={n.id}
-                href={`/complex/${encodeURIComponent(n.id)}`}
+                href={complexHrefFromId(n.id)}
                 className="card card-hover rounded-2xl px-3.5 py-3"
               >
                 <div className="truncate text-[13px] font-extrabold text-ink">

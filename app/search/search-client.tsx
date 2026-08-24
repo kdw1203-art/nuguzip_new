@@ -10,6 +10,7 @@ import {
   writeRecentSearches,
 } from "@/lib/search/recent-searches";
 import { useSettledSearchQuery } from "@/lib/search/settle";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 /* ============================================================
    통합 검색 경험 — 단지·매물·임장노트·뉴스 통합 결과
@@ -38,7 +39,7 @@ function hrefFor(key: SectionKey, id: string): string {
   const enc = encodeURIComponent(id);
   switch (key) {
     case "complexes":
-      return `/complex/${enc}`;
+      return complexHrefFromId(id);
     case "listings":
       return `/listings/${enc}`;
     case "notes":
@@ -373,7 +374,7 @@ export function SearchClient() {
                 {suggestions.map((c) => (
                   <Link
                     key={c.id}
-                    href={`/complex/${encodeURIComponent(c.id)}`}
+                    href={complexHrefFromId(c.id)}
                     className="card card-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3 no-underline"
                   >
                     <div className="min-w-0">

@@ -11,6 +11,7 @@ import { captureException } from "@/lib/monitoring/capture";
 import { logger } from "@/lib/log";
 import { resolveComplexPrice, type ComplexPriceResult } from "@/lib/market/complex-price";
 import { formatKrwShort, formatYmRange } from "@/lib/market/format";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,7 +112,7 @@ async function maybeSendPriceAlertSms(
     const content =
       `[누구집] 관심단지 실거래 알림\n` +
       `${body}\n` +
-      `자세히: https://nuguzip.com/complex/${complexId}\n\n` +
+      `자세히: https://nuguzip.com${complexHrefFromId(complexId)}\n\n` +
       `수신거부: 마이 > 알림 설정`;
     const result = await sendSensSms({
       type: "LMS",
@@ -157,7 +158,7 @@ async function maybeSendPriceAlertPush(
     const payload: PushPayload = {
       title: "관심 단지 가격 변동",
       body,
-      url: `/complex/${complexId}`,
+      url: complexHrefFromId(complexId),
       tag: `watchlist-${complexId}`,
       eventType: "generic",
     };
@@ -293,7 +294,7 @@ async function runPriceAlerts(): Promise<RunSummary> {
             userEmail,
             title: "관심 단지 가격 변동",
             body,
-            actionUrl: `/complex/${complexId}`,
+            actionUrl: complexHrefFromId(complexId),
           });
           notified++;
           // 옵트인 사용자에게 SMS(NCP SENS)로도 발송 — 미설정/미동의 시 no-op

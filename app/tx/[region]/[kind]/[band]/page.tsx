@@ -11,10 +11,10 @@ import {
 } from "@/lib/market/tx-bands";
 import { BAND_KIND_LABEL, isBandKind, type BandKind } from "@/lib/market/bands";
 import { formatKrwShort, formatYm, formatYmRange, m2ToPyeong } from "@/lib/market/format";
-import { encodeComplexId } from "@/lib/complex/complex-store";
 import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { logger } from "@/lib/log";
+import { complexHrefFromNames } from "@/lib/seo/complex-slug";
 
 /* ============================================================
    지역 × 구간 실거래 랜딩 — /tx/[region]/[kind]/[band]
@@ -244,7 +244,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
                   <tr key={c.name} className="border-b border-border last:border-b-0">
                     <td className="py-2.5">
                       <Link
-                        href={`/complex/${encodeComplexId(region.name, c.name)}`}
+                        href={complexHrefFromNames(region.name, c.name)}
                         className="font-bold text-primary underline"
                       >
                         {c.name}

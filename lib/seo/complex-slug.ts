@@ -77,6 +77,42 @@ export function decoratedParam(region: string, name: string, pureId: string): st
   return slug ? `${slug}.${pureId}` : pureId;
 }
 
+/** UTF-8 → base64url (Edge 안전 · Buffer 금지). complex-store 의 encodeComplexId 와 동일 출력. */
+function utf8ToBase64url(input: string): string {
+  const bytes = new TextEncoder().encode(input);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/* [OPT · 308 제거] 내부 링크가 base64 순수 id(`/complex/{id}`)를 그대로 쓰면
+   미들웨어가 매번 한글 슬러그로 308 리다이렉트한다(실측: 24h 4,736건, 전부 단지 페이지).
+   외부 유입(옛 색인)은 어쩔 수 없지만, 우리 링크는 처음부터 정규 슬러그를 내보내
+   그 한 홉을 없앤다. 아래 두 헬퍼는 미들웨어와 같은 규칙을 쓰는 순수·클라이언트 안전
+   함수라, 서버·클라이언트 어디서든 링크 생성에 바로 쓸 수 있다(DB 조회 0). */
+
+/** 단지 id → 정규 href. 이미 슬러그가 붙었거나 kapt·해석 불가면 안전하게 그대로 둔다(멱등). */
+export function complexHrefFromId(id: string): string {
+  const raw = (id ?? "").trim();
+  if (!raw) return "/complex";
+  if (!slugStyleEnabled() || raw.startsWith(KAPT_PREFIX)) {
+    return `/complex/${encodeURIComponent(raw)}`;
+  }
+  const pureId = pureIdFromParam(raw);
+  const dec = decodeNameIdSafe(pureId);
+  if (!dec) return `/complex/${encodeURIComponent(raw)}`;
+  return `/complex/${encodeURIComponent(decoratedParam(dec.region, dec.name, pureId))}`;
+}
+
+/** (region, name) → 정규 href. 이름을 아는 목록·표에서 308 없이 바로 링크한다. */
+export function complexHrefFromNames(region: string, name: string): string {
+  const r = (region ?? "").trim();
+  const n = (name ?? "").trim();
+  if (!r || !n) return "/complex";
+  const pureId = utf8ToBase64url(`${r}${COMPLEX_ID_SEP}${n}`);
+  return `/complex/${encodeURIComponent(decoratedParam(r, n, pureId))}`;
+}
+
 /** URL 파라미터에서 순수 id 를 뽑는다 (장식 슬러그 제거). kapt.* 는 그대로. */
 export function pureIdFromParam(param: string): string {
   const p = param.trim();

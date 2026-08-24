@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 /* ============================================================
    최근 본 단지 (호갱노노 벤치마크 — 재방문 동선 단축)
@@ -156,7 +157,7 @@ export function RecentComplexChips({ className }: { className?: string }) {
             className="chip flex items-center gap-1.5 border border-line bg-bg px-3 py-1.5 text-[11px] text-text-2"
           >
             <Link
-              href={`/complex/${encodeURIComponent(r.id)}`}
+              href={complexHrefFromId(r.id)}
               className="font-semibold text-text-1"
             >
               {r.name}

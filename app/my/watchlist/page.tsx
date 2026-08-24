@@ -10,6 +10,7 @@ import { resolveComplexPrice, type ComplexPriceResult } from "@/lib/market/compl
 import { countRecentPublicNotesByComplex } from "@/lib/inspection/store-db";
 import { formatKrwShort } from "@/lib/market/format";
 import { logger } from "@/lib/log";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 
 /* ============================================================
    웹17 — 관심 단지 대시보드 (/my/watchlist, 로그인 필수)
@@ -166,7 +167,7 @@ export default async function WatchlistDashboardPage() {
                     <tr key={w.id} className="border-b border-border last:border-b-0">
                       <td className="py-2.5 pr-3">
                         <Link
-                          href={`/complex/${encodeURIComponent(w.complexId)}`}
+                          href={complexHrefFromId(w.complexId)}
                           className="font-bold text-ink no-underline hover:text-primary"
                         >
                           {w.complexName}
@@ -201,7 +202,7 @@ export default async function WatchlistDashboardPage() {
                           <span className="text-[12px] text-text-3">조회 실패</span>
                         ) : noteCount > 0 ? (
                           <Link
-                            href={`/complex/${encodeURIComponent(w.complexId)}`}
+                            href={complexHrefFromId(w.complexId)}
                             className="font-bold text-primary no-underline"
                           >
                             {noteCount}개 ›
