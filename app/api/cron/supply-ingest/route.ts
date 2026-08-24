@@ -31,7 +31,7 @@ async function handle(req: Request) {
       status: !result.configured ? "skipped" : "ok",
       message:
         result.reason ??
-        `조회=${result.fetched} 업서트=${result.upserted} 이관=${result.migrated} 입주월없음/과거=${result.skippedNoMoveIn} 페이지=${result.pagesFetched}`,
+        `조회=${result.fetched} 업서트=${result.upserted} 이관=${result.migrated} 입주월없음/과거=${result.skippedNoMoveIn} 재공고제외=${result.skippedDupAnnouncement} 기존키제외=${result.skippedExistingKey} 페이지=${result.pagesFetched}`,
     });
     /* [#74] 좌표 점진 백필(일 25건) — 지도 레이어용. 실패해도 인제스트 성공은 유지. */
     let geocode: Awaited<ReturnType<typeof backfillSupplyGeocode>> | { error: string } | null =

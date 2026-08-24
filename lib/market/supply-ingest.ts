@@ -42,6 +42,10 @@ export type SupplyIngestResult = {
   /** 수동 업로드 행을 applyhome 소유로 이관한 수 */
   migrated: number;
   skippedNoMoveIn: number;
+  /** 같은 (입주월·단지명·주소) 재공고(무순위 등) — 배치 안에서 하나만 남기고 제외 */
+  skippedDupAnnouncement: number;
+  /** 같은 키가 이미 DB에 있어(다른 공고번호) 건너뛴 수 — apt_supply_dedup 보호 */
+  skippedExistingKey: number;
   pagesFetched: number;
   totalCount: number;
 };
@@ -76,6 +80,8 @@ export async function ingestApplyhomeSupply(): Promise<SupplyIngestResult> {
     upserted: 0,
     migrated: 0,
     skippedNoMoveIn: 0,
+    skippedDupAnnouncement: 0,
+    skippedExistingKey: 0,
     pagesFetched: 0,
     totalCount: 0,
   };
@@ -180,9 +186,59 @@ export async function ingestApplyhomeSupply(): Promise<SupplyIngestResult> {
     }
   }
 
+  /* ── 3.5 dedup 키 정리 — apt_supply_dedup(입주월+단지명+주소 유니크) 보호 ──
+     첫 가동(2026-08-24 06:40 UTC) 실측: 청약홈은 같은 단지·같은 입주월에 공고번호만
+     다른 재공고(무순위·잔여세대)를 낸다. 업서트 충돌 기준은 (source,source_id)라서
+     이런 행이 INSERT 로 가다가 dedup 유니크 인덱스에 막혀 배치 전체가 죽었다.
+     ① 배치 안 같은 키는 세대수 큰 공고 하나만 남긴다.
+     ② 키가 이미 DB에 있으면(다른 공고번호로) 건너뛴다 — 이중 계상도, 중단도 없게. */
+  const dedupKeyOf = (r: { move_in_ym: string; apt_name: string; address: string | null }) =>
+    `${r.move_in_ym}|${r.apt_name}|${r.address ?? ""}`;
+  let skippedDupAnnouncement = 0;
+  const byDedupKey = new Map<string, SupplyUpsertRow>();
+  for (const row of bySourceId.values()) {
+    const key = dedupKeyOf(row);
+    const kept = byDedupKey.get(key);
+    if (!kept) {
+      byDedupKey.set(key, row);
+      continue;
+    }
+    skippedDupAnnouncement += 1;
+    if ((row.households ?? 0) > (kept.households ?? 0)) byDedupKey.set(key, row);
+  }
+
+  let skippedExistingKey = 0;
+  let candidates = [...byDedupKey.values()];
+  if (candidates.length > 0) {
+    const yms = [...new Set(candidates.map((r) => r.move_in_ym))];
+    const { data: existing, error: existErr } = await sb
+      .from("apartment_supply")
+      .select("move_in_ym, apt_name, address, source_id")
+      .in("move_in_ym", yms)
+      .limit(20000);
+    if (existErr) {
+      logger.error("[supply-ingest] 기존 키 조회 실패 — 충돌 필터 없이 진행", existErr);
+    } else {
+      const existingKey = new Map<string, string | null>();
+      for (const m of existing ?? []) {
+        existingKey.set(
+          `${m.move_in_ym}|${String(m.apt_name ?? "")}|${String(m.address ?? "")}`,
+          m.source_id == null ? null : String(m.source_id),
+        );
+      }
+      candidates = candidates.filter((row) => {
+        const found = existingKey.get(dedupKeyOf(row));
+        if (found === undefined) return true; // 새 키 — 삽입
+        if (found === row.source_id) return true; // 같은 공고 — (source,source_id) 업서트로 갱신
+        skippedExistingKey += 1; // 다른 공고번호가 같은 자리 — dedup 인덱스가 막을 행
+        return false;
+      });
+    }
+  }
+
   /* ── 4. 업서트 (500행 배치) ── */
   let upserted = 0;
-  const rest = [...bySourceId.values()];
+  const rest = candidates;
   for (let i = 0; i < rest.length; i += 500) {
     const batch = rest.slice(i, i + 500);
     const { error } = await sb
@@ -201,6 +257,8 @@ export async function ingestApplyhomeSupply(): Promise<SupplyIngestResult> {
     upserted,
     migrated,
     skippedNoMoveIn,
+    skippedDupAnnouncement,
+    skippedExistingKey,
     pagesFetched,
     totalCount,
   };
