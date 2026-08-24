@@ -66,6 +66,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  /* [토스 심사 보완 2026-08-24] 이 라우트는 **단건 결제 주문** 전용이다.
+     정기(월간·연간) 구독은 빌링 결제창(requestBillingAuth → 빌링키) 경로만 판다 —
+     화면(PlanCheckoutButton·CheckoutClient)에 이어 서버에서도 한 번 더 막아야
+     옛 링크·직접 호출로 정기 상품이 단건 결제창에 실리는 일이 재발하지 않는다. */
+  if (billing !== "weekly") {
+    return NextResponse.json(
+      {
+        error:
+          "월간·연간 구독은 자동결제(빌링) 카드 등록으로 진행합니다. /subscription/billing 에서 등록해 주세요.",
+        code: "USE_BILLING_WINDOW",
+      },
+      { status: 400 },
+    );
+  }
+
   const planDef = getPlan(tier);
   const amount =
     billing === "weekly"

@@ -121,11 +121,17 @@ export function PlanCheckoutButton({
 
     try {
       /* 토스 레일 — NEXT_PUBLIC_TOSS_CLIENT_KEY 가 설정돼 있으면 최우선.
-         결제위젯 체크아웃 페이지로 보낸다(주문서형 — 계약 후 상점관리자
-         어드민에서 코드 수정 없이 결제수단·UI 관리 가능). 주문 생성·위젯 렌더·
-         실패 안내는 그 페이지가 담당하고, 승인은 서버 confirm 이 맡는다. */
+         [토스 심사 보완 2026-08-24] 상품 성격에 맞는 결제창으로 갈라 보낸다:
+         · 주간권(단건) → 단건 결제창(/subscription/checkout, requestPayment)
+         · 월간·연간(정기) → 빌링 전용 카드 등록창(/subscription/billing,
+           requestBillingAuth → 빌링키 발급 → 첫 승인 → 갱신 크론)
+         정기 상품을 단건 결제창으로 팔면 카드사 심사 기준 위반이자,
+         "자동 갱신"이라는 상품 실체와 결제 UX 가 어긋난다(사실 우선). */
       if (tossClientKey()) {
-        window.location.href = `/subscription/checkout?tier=${tier}&billing=${billing}`;
+        window.location.href =
+          billing === "weekly"
+            ? `/subscription/checkout?tier=${tier}&billing=${billing}`
+            : `/subscription/billing?tier=${tier}&billing=${billing}`;
         return;
       }
 

@@ -81,6 +81,13 @@ export function CheckoutClient() {
       setPhase({ kind: "error", msg: "결제할 플랜 정보가 없어요. 구독 페이지에서 다시 시작해 주세요." });
       return;
     }
+    /* [토스 심사 보완 2026-08-24] 이 페이지(단건 결제창)는 주간권 전용이다.
+       정기(월간·연간)가 딥링크·북마크로 들어오면 빌링 카드 등록창으로 보낸다 —
+       버튼(PlanCheckoutButton)만 고치면 옛 링크로 재발한다. */
+    if (p.billing !== "weekly") {
+      window.location.replace(`/subscription/billing?tier=${p.tier}&billing=${p.billing}`);
+      return;
+    }
     setParams(p);
 
     if (!tossClientKey()) {
