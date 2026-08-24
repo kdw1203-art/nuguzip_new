@@ -1,5 +1,6 @@
 import type { AiAnalysisToolId } from "@/lib/ai/ai-tools";
 import type { LlmMessage } from "@/lib/ai/llm-provider";
+import type { WorkbenchComplex } from "@/lib/ai/workbench-constants";
 import {
   CHECKLIST_FULL,
   DISTRICT_OPTIONS,
@@ -105,7 +106,8 @@ export function buildInternalAnalysisMarkdown(
           priceSaleMan: number;
           trendPct5y: number;
         };
-        compositeScore: number;
+        complexIsLive?: boolean;
+        compositeScore: number | null;
         jeonseRatioPct: number;
         customerDeclared: Record<string, unknown>;
         mortgageRateSensitivity?: {
@@ -116,15 +118,25 @@ export function buildInternalAnalysisMarkdown(
       };
       const userPriceMan = Number(s.customerDeclared.currentPriceMan ?? 0);
       const benchMan = s.complex.priceSaleMan;
+      const isLive = s.complexIsLive === true;
+      /* 실단지(live)는 샘플 지표(5년 추세)가 없다 — 없는 수치는 문장에서 뺀다. */
+      const ratioLine = isLive
+        ? s.jeonseRatioPct > 0
+          ? `지역 전세가율(신고 통계 참고) 약 **${s.jeonseRatioPct}%** — 개별 계약 조건과 다를 수 있습니다.`
+          : "전세가율·추세지표는 데이터가 부족해 표기하지 않습니다."
+        : `전세가율(참고) 약 **${s.jeonseRatioPct}%**, 5년 추세지표(샘플) 약 **${s.complex.trendPct5y}%** — 실제 시장·실거래와 다를 수 있습니다.`;
+      const benchLabel = isLive
+        ? "단지 최근 실거래 평균(만원, 국토부 신고)"
+        : "참고 단지 매매 호가(만원, 샘플)";
       const lines: string[] = [
         "## 요약 (자체 엔진·참고용)",
-        `${s.complex.districtLabel} **${s.complex.name}** 기준으로 앱 내 참고 데이터와 입력값을 정리했습니다.`,
-        `전세가율(참고) 약 **${s.jeonseRatioPct}%**, 5년 추세지표(샘플) 약 **${s.complex.trendPct5y}%** — 실제 시장·실거래와 다를 수 있습니다.`,
+        `${s.complex.districtLabel ? `${s.complex.districtLabel} ` : ""}**${s.complex.name}** 기준으로 ${isLive ? "실거래·신고 데이터와 입력값" : "앱 내 참고 데이터와 입력값"}을 정리했습니다.`,
+        ratioLine,
         "",
         "## 입력값에서 본 핵심",
         `- 구·동 맥락: ${String(s.customerDeclared.regionLabel ?? s.customerDeclared.regionFreeText ?? "—")}`,
         `- 입력하신 시세(만원): ${userPriceMan > 0 ? userPriceMan.toLocaleString() : "—"}`,
-        `- 참고 단지 매매 호가(만원, 샘플): ${benchMan > 0 ? benchMan.toLocaleString() : "—"}`,
+        `- ${benchLabel}: ${benchMan > 0 ? benchMan.toLocaleString() : "—"}`,
         "",
         "## 순위·점수 표기 제한",
         "- 샘플 단지군 대비 **상위 N%·종합점수 순위**는 실사용자 통계가 아니므로 오픈 화면에서는 제공하지 않습니다.",
@@ -146,7 +158,9 @@ export function buildInternalAnalysisMarkdown(
       lines.push(
         "## 데이터·면책",
         `- 분석 기준일: **${basis} (KST)**`,
-        "- 위 수치는 **앱 내 워크벤치 샘플·규칙**에 기반한 참고용이며, 투자 권유나 법률·세무 자문이 아닙니다.",
+        isLive
+          ? "- 위 수치는 **국토부 신고 데이터·앱 내 규칙**에 기반한 참고용이며, 투자 권유나 법률·세무 자문이 아닙니다."
+          : "- 위 수치는 **앱 내 워크벤치 샘플·규칙**에 기반한 참고용이며, 투자 권유나 법률·세무 자문이 아닙니다.",
         "- 서술형 AI 해석이 필요하면 화면에서 **외부 LLM 연동**을 켜고 다시 실행하세요.",
       );
       return lines.join("\n");
@@ -154,9 +168,33 @@ export function buildInternalAnalysisMarkdown(
     case "ai-compare": {
       const s = snap as {
         rows: { name: string; score: number; jr: number }[];
+        liveCandidates?: { name: string; region: string }[];
         compareMemo?: string;
       };
       const rows = [...s.rows].sort((a, b) => b.score - a.score);
+      const liveCand = s.liveCandidates ?? [];
+      if (!rows.length && liveCand.length) {
+        /* 실단지 비교: 샘플 전용 규칙 점수로 순위를 지어내지 않는다. */
+        return [
+          "## 요약 (자체 엔진·비교)",
+          `실단지 ${liveCand.length}곳을 비교 후보로 받았습니다: ${liveCand
+            .map((x) => `**${x.name}**${x.region ? `(${x.region})` : ""}`)
+            .join(", ")}.`,
+          "",
+          "## 규칙 점수 순위를 내지 않는 이유",
+          "- 자체 규칙 점수는 앱 내 샘플 단지 전용 지표라, 실단지에 그대로 매기면 근거 없는 순위가 됩니다.",
+          "- 각 단지의 실측 근거(레이더·신호·각주)는 워크벤치 화면에서 단지별로 확인할 수 있습니다.",
+          "",
+          "## 다음에 할 일",
+          ...liveCand.map(
+            (x) => `- **${x.name}** 개별 진단(투자 진단 도구) 실행 후 가격·거래·공급 신호 색을 나란히 비교`,
+          ),
+          "- 서술형 비교가 필요하면 화면에서 **외부 LLM 연동**을 켜고 다시 실행",
+          "",
+          "## 데이터·면책",
+          `- 분석 기준일: **${basis} (KST)** · 참고용이며 투자 권유가 아닙니다.`,
+        ].join("\n");
+      }
       if (!rows.length) {
         return [
           "## 요약 (자체 엔진)",
@@ -450,6 +488,51 @@ export function buildInternalAnalysisMarkdown(
   }
 }
 
+/**
+ * [Wave 9 후속] 워크벤치 클라이언트는 실제 단지(base64 id)와 실측 컨텍스트(live)를 보낸다.
+ * 샘플 목록(c1~)에 없는 id 를 은마아파트(WORKBENCH_COMPLEXES[0])로 폴백하면
+ * 자체 엔진 요약 첫 줄이 **남의 단지 이름**으로 시작한다(라이브 검증에서 실측된 결함).
+ * 실단지 입력이 있으면 그대로 단지 카드로 쓰고, 없는 수치는 0으로 둔다 —
+ * 0 은 템플릿에서 "표기 생략" 처리한다(지어내지 않기).
+ */
+function liveComplexFromInput(in_: Record<string, unknown>): WorkbenchComplex | null {
+  const name =
+    typeof in_.complexName === "string" && in_.complexName.trim()
+      ? in_.complexName.trim()
+      : "";
+  if (!name) return null;
+  const region = typeof in_.region === "string" ? in_.region.trim() : "";
+  const live =
+    in_.live && typeof in_.live === "object" && !Array.isArray(in_.live)
+      ? (in_.live as Record<string, unknown>)
+      : {};
+  const pos = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  };
+  const priceSaleMan = Math.round(pos(live.priceKrw) / 10000);
+  const jr = pos(live.jeonseRatio);
+  return {
+    id: String(in_.complexId ?? name),
+    name,
+    districtId: "",
+    districtLabel: region,
+    dong: "",
+    priceSaleMan,
+    priceJeonMan:
+      priceSaleMan > 0 && jr > 0 ? Math.round((priceSaleMan * jr) / 100) : 0,
+    areaSqm: 0,
+    yearBuilt: 0,
+    households: 0,
+    transitScore: 0,
+    schoolScore: 0,
+    devScore: 0,
+    liquidityIdx: 0,
+    aiGrade: "B",
+    trendPct5y: 0,
+  };
+}
+
 /** `objective` 객체를 최상위와 병합해 스냅샷·프롬프트에서 읽습니다. */
 export function flattenAnalysisInput(input: Record<string, unknown>): Record<string, unknown> {
   const o = input.objective;
@@ -500,9 +583,14 @@ export function buildAnalysisMessages(
 function buildDataSnapshot(tool: AiAnalysisToolId, input: Record<string, unknown>) {
   const in_ = flattenAnalysisInput(input);
   const complexId = String(in_.complexId ?? "c1");
-  const c = complexById(complexId) ?? WORKBENCH_COMPLEXES[0];
+  const sampleComplex = complexById(complexId);
+  const liveComplex = sampleComplex ? null : liveComplexFromInput(in_);
+  const c = sampleComplex ?? liveComplex ?? WORKBENCH_COMPLEXES[0];
+  const complexIsLive = liveComplex != null;
   const districtLabel =
-    DISTRICT_OPTIONS.find((d) => d.id === in_.regionDistrictId)?.label ?? in_.regionFreeText;
+    DISTRICT_OPTIONS.find((d) => d.id === in_.regionDistrictId)?.label ??
+    in_.regionFreeText ??
+    (typeof in_.region === "string" && in_.region.trim() ? in_.region.trim() : undefined);
 
   switch (tool) {
     case "ai-diagnosis":
@@ -546,8 +634,9 @@ function buildDataSnapshot(tool: AiAnalysisToolId, input: Record<string, unknown
           : undefined;
       return {
         complex: c,
-        compositeScore: compositeScore(c),
-        jeonseRatioPct: jeonseRatio(c),
+        complexIsLive,
+        compositeScore: complexIsLive ? null : compositeScore(c),
+        jeonseRatioPct: Math.round(jeonseRatio(c)),
         sliders: {
           loc: in_.loc,
           demand: in_.demand,
@@ -581,6 +670,17 @@ function buildDataSnapshot(tool: AiAnalysisToolId, input: Record<string, unknown
     }
     case "ai-compare": {
       const ids = Array.isArray(in_.complexIds) ? (in_.complexIds as string[]) : [];
+      /* [Wave 9 후속] 워크벤치는 실단지 후보를 compare:[{id,name,region}] 로 보낸다 —
+         샘플 id(complexIds)가 비어 있어도 "후보가 비어 있다"고 답하지 않도록 함께 읽는다. */
+      const liveCandidates = Array.isArray(in_.compare)
+        ? (in_.compare as Array<Record<string, unknown> | null>)
+            .map((r) => ({
+              name: typeof r?.name === "string" ? r.name.trim() : "",
+              region: typeof r?.region === "string" ? r.region.trim() : "",
+            }))
+            .filter((r) => r.name)
+            .slice(0, 8)
+        : [];
       return {
         rows: ids
           .map((id) => complexById(id))
@@ -590,6 +690,7 @@ function buildDataSnapshot(tool: AiAnalysisToolId, input: Record<string, unknown
             score: compositeScore(x!),
             jr: jeonseRatio(x!),
           })),
+        liveCandidates,
         compareMemo: in_.compareMemo,
         watchRegions: Array.isArray(in_.watchRegions) ? in_.watchRegions : [],
         subjectiveMemo: input.subjectiveMemo,
