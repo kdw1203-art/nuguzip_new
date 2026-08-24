@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
-import { MapClient, type DanjiItem, type TradeItem } from "./map-client";
+import { MapClientLazy as MapClient } from "./MapClientLazy";
+import type { DanjiItem, TradeItem } from "./map-client";
 import {
   encodeComplexId,
   getComplexById,

@@ -8,6 +8,7 @@ import { ingestReb } from "@/lib/reb/ingest";
 import { isRebConfigured } from "@/lib/reb/client";
 import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
+import { invalidateAfterIngest } from "@/lib/cache/invalidate";
 import { withBudget, CRON_WORK_BUDGET_MS } from "@/lib/async/with-budget";
 
 export const runtime = "nodejs";
@@ -50,6 +51,8 @@ export async function GET(req: Request) {
       status: "error",
       message,
     });
+    /* [OPT-10] 수집이 실제로 끝난 순간에만 캐시를 비운다 — 시간 추측 제거 */
+    invalidateAfterIngest("reb");
     return NextResponse.json({ ok: false, error: message, timedOut: true }, { status: 503 });
   }
 

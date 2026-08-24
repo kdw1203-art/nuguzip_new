@@ -11,7 +11,13 @@ import { isAiAnalysisToolId, type AiAnalysisToolId } from "@/lib/ai/ai-tools";
    지금 데이터로 다시 계산하지 않고, 다시 계산은 "직접 실행" 버튼이 담당한다.
    작성자 이메일 등 개인 식별 정보는 렌더하지 않는다. */
 
-export const dynamic = "force-dynamic";
+/* [OPT-09] 공유 스냅샷은 불변(재현성: AI-02) — 요청마다 렌더할 이유가 없다.
+   복도(2026-07-28) 교훈대로 빈 generateStaticParams 로 ISR 분류를 강제한다. */
+export const revalidate = 3600;
+export const dynamicParams = true;
+export function generateStaticParams(): Array<{ id: string }> {
+  return [];
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

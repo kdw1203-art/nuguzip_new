@@ -19,7 +19,12 @@ import { checklistHintsFromVoice } from "@/lib/inspection/voice-checklist-keywor
 import { NOTE_DRAFT_KEY as DRAFT_KEY } from "@/lib/notes/draft-summary";
 import { resizeImageFiles } from "@/lib/client/image-resize";
 import { readExifTakenAt } from "@/lib/client/exif-datetime";
-import { VoiceMemoRecorder } from "./VoiceMemoRecorder";
+/* [OPT-27] 음성 녹음기는 새 노트에서만 쓰인다 — 폼 첫 로드 번들에서 분리 */
+import nextDynamic from "next/dynamic";
+const VoiceMemoRecorder = nextDynamic(
+  () => import("./VoiceMemoRecorder").then((m) => m.VoiceMemoRecorder),
+  { ssr: false, loading: () => <div className="h-10 animate-pulse rounded-xl bg-surface" /> },
+);
 
 /* 임장노트 작성/수정 공용 폼 (시안 6b·6r)
    - 작성: POST /api/inspection/notes → /api/inspection/ai(AI 정리) → 상세 이동
@@ -1156,7 +1161,23 @@ export function NoteForm({
       });
       router.push(afterSaveHref(noteId, aiFlag, false));
     } catch {
-      setSaveError("네트워크 오류로 저장하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.");
+      /* [OPT-46] 오프라인 임장 — 현장(지하주차장 등)에서 신호가 끊겨도 기록은 안전하다.
+         작성 내용은 #45 임시저장(1초 디바운스 localStorage)이 이미 들고 있으므로,
+         "저장 실패"가 아니라 "초안 보관 + 연결 복귀 시 재시도 안내"로 말한다.
+         online 복귀 이벤트에서 한 번 더 알려 저장 버튼을 다시 누르게 유도한다. */
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      setSaveError(
+        offline
+          ? "오프라인이에요 — 작성 내용은 이 기기에 초안으로 안전하게 보관 중입니다. 연결이 돌아오면 저장을 다시 눌러 주세요."
+          : "네트워크 오류로 저장하지 못했어요. 작성 내용은 초안으로 보관 중이니 연결을 확인한 뒤 다시 시도해 주세요.",
+      );
+      if (offline && typeof window !== "undefined") {
+        const onBack = () => {
+          setSaveError("연결이 돌아왔어요 — 지금 저장을 다시 누르면 이어서 제출됩니다.");
+          window.removeEventListener("online", onBack);
+        };
+        window.addEventListener("online", onBack);
+      }
     } finally {
       setAiRunning(false);
       setSaving(false);

@@ -307,9 +307,11 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Supabase 세션 갱신 + 레거시 리다이렉트
-     * 정적 자산·이미지는 제외
+     * Supabase 세션 갱신 + 레거시 리다이렉트 + 보안 헤더
+     * [OPT-14] 정적 자산 제외 목록 확장 — sw.js·manifest·icons·fonts·robots·
+     * sitemap·feed·.well-known 은 미들웨어(110KB)를 지날 이유가 없다.
+     * /api 는 유지 — 보안 헤더·캐시 헤더 로직이 API 응답에도 걸려 있다.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap[^/]*\\.xml|feed\\.xml|icons/|fonts/|\\.well-known/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?)$).*)",
   ],
 };

@@ -49,11 +49,11 @@
       "schedule": "10 1 * * *"
     },
     {
-      "path": "/api/cron/geocode-complexes",
+      "path": "/api/cron/geocode-complexes?limit=200",
       "schedule": "20 1 * * *"
     },
     {
-      "path": "/api/cron/apt-detail-enrich",
+      "path": "/api/cron/apt-detail-enrich?limit=100",
       "schedule": "30 1 * * *"
     }
   ]

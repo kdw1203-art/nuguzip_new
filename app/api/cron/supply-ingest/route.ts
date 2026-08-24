@@ -10,6 +10,7 @@ import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestApplyhomeSupply } from "@/lib/market/supply-ingest";
 import { backfillSupplyGeocode } from "@/lib/market/supply-geocode";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
+import { invalidateAfterIngest } from "@/lib/cache/invalidate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,8 @@ async function handle(req: Request) {
         result.reason ??
         `조회=${result.fetched} 업서트=${result.upserted} 이관=${result.migrated} 입주월없음/과거=${result.skippedNoMoveIn} 재공고제외=${result.skippedDupAnnouncement} 기존키제외=${result.skippedExistingKey} 페이지=${result.pagesFetched}`,
     });
+    /* [OPT-10] 수집이 실제로 끝난 순간에만 캐시를 비운다 — 시간 추측 제거 */
+    invalidateAfterIngest("supply");
     /* [#74] 좌표 점진 백필(일 25건) — 지도 레이어용. 실패해도 인제스트 성공은 유지. */
     let geocode: Awaited<ReturnType<typeof backfillSupplyGeocode>> | { error: string } | null =
       null;

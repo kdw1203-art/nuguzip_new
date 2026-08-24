@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ComplexPicker, type PickedComplex } from "@/app/analysis/ComplexPicker";
 import type { AiAnalysisToolId } from "@/lib/ai/ai-tools";
@@ -209,6 +209,45 @@ export function WorkbenchClient({
   );
 
 
+  /* [OPT-48] 단일 단지 딥링크 — ?complexId=… 또는 ?apt=…&region=… (노트 배너 AI-40,
+     단지 허브 요약의 "AI 진단으로" 링크가 쓴다). Wave 9 배너가 파라미터만 넘기고
+     받는 쪽이 없던 결합부를 여기서 닫는다. base64url 인코딩은 서버의
+     encodeComplexId(region + \x01 + name)와 반드시 같은 규칙. */
+  useEffect(() => {
+    if (isCompare) return;
+    const sp = new URLSearchParams(window.location.search);
+    let id = sp.get("complexId");
+    if (!id) {
+      const apt = sp.get("apt")?.trim();
+      const region = sp.get("region")?.trim();
+      if (apt && region) {
+        const bytes = new TextEncoder().encode(`${region}\u0001${apt}`);
+        let bin = "";
+        bytes.forEach((b) => (bin += String.fromCharCode(b)));
+        id = btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      }
+    }
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/ai/context?complexId=${encodeURIComponent(id)}`, { cache: "no-store" });
+        const json = await res.json();
+        const cx = json?.context?.complex as { id: string; name: string; region: string } | null;
+        if (cx && !cancelled) {
+          setPicked({ id: cx.id, name: cx.name, region: cx.region, regionId: null, regionLabel: cx.region } as PickedComplex);
+          setCtxState({ phase: "ready", ctx: json.context, footnotes: json.footnotes, insight: json.insight, similar: Array.isArray(json.similar) ? json.similar : [] });
+        }
+      } catch {
+        /* 딥링크 실패는 조용히 — 사용자는 평소처럼 검색으로 고른다 */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCompare]);
+
   /* [AI-22] /analysis/compare 트레이 딥링크(?ids=a,b,c) — 같은 후보로 이어 받는다 */
   useEffect(() => {
     if (!isCompare) return;
@@ -349,11 +388,14 @@ export function WorkbenchClient({
         body: JSON.stringify({ tool, input, skipExternalLlm: !useLlm }),
       });
       const json = (await res.json()) as RunResult;
-      if (!res.ok) {
-        setResult({ ...json, ok: false });
-      } else {
-        setResult(json);
-      }
+      /* [OPT-50] 결과 마크다운 렌더는 무거운 갱신 — 전환으로 미뤄 입력 반응성(INP)을 지킨다 */
+      startTransition(() => {
+        if (!res.ok) {
+          setResult({ ...json, ok: false });
+        } else {
+          setResult(json);
+        }
+      });
     } catch {
       setResult({
         ok: false,
@@ -391,15 +433,17 @@ export function WorkbenchClient({
   );
 
   const addWatch = useCallback(async () => {
-    if (!picked || watchState === "busy") return;
-    setWatchState("busy");
+    if (!picked || watchState === "busy" || watchState === "done") return;
+    /* [OPT-49] 낙관적 반영 — 누르는 즉시 "등록됨"으로 그리고, 실패하면 되돌린다.
+       "등록 중…"을 기다리게 하는 대신 실패(주로 비로그인)만 예외로 다룬다. */
+    setWatchState("done");
     try {
       const res = await fetch("/api/me/watchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ complexId: picked.id, complexName: picked.name }),
       });
-      setWatchState(res.ok ? "done" : "fail");
+      if (!res.ok) setWatchState("fail");
     } catch {
       setWatchState("fail");
     }

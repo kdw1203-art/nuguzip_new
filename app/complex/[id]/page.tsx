@@ -21,6 +21,7 @@ import {
 } from "./hub-client";
 import type { PricePoint } from "./PriceTrendChart";
 import { complexCanonicalPath, decodeComplexId } from "@/lib/complex/complex-store";
+import { ComplexAxisSummary } from "./ComplexAxisSummary";
 import { pureIdFromParam } from "@/lib/seo/complex-slug";
 import { geocodeAndCache } from "@/lib/map/complex-geocode";
 import { settle, startDeadline } from "@/lib/data/section-budget";
@@ -858,6 +859,13 @@ export default async function ComplexHubPage({
           </div>
         )}
       </div>
+
+      {/* [OPT-48] 허브 2.0 — AI 워크벤치와 같은 라이브 컨텍스트 요약(1.2초 예산·자체 생략).
+          regionName 은 dec.region 포맷("서울 중랑구")과 같아야 한다 — city===dong 중복 방어. */}
+      <ComplexAxisSummary
+        complexId={v.id}
+        regionName={v.city && v.dong && v.city !== v.dong ? `${v.city} ${v.dong}` : (v.city ?? v.dong ?? "")}
+      />
 
       {/* [개선 #32] 행동 3종 — 보고 끝나는 화면에서 다음 행동이 있는 화면으로.
           ① 임장노트 쓰기(이 단지 프리필) ② 지역 허브(내부 연결) ③ 공유 */}

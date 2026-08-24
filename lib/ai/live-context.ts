@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { decodeComplexId } from "@/lib/complex/complex-store";
 import { resolveComplexPrice } from "@/lib/market/complex-price";
@@ -400,3 +401,14 @@ export function axisAgeDays(asOf: string | null, now = new Date()): number | nul
   if (!d) return null;
   return Math.max(0, Math.round((now.getTime() - d.getTime()) / 86_400_000));
 }
+
+/* [OPT-23] 컨텍스트 캐시 — 워크벤치가 축마다 별도 쿼리(9개 allSettled)를 돌지만,
+   같은 단지를 5분 안에 다시 열면 DB 왕복 없이 같은 스냅샷을 재사용한다.
+   generatedAt·asOf 는 캐시된 시점 그대로 남아 "언제 데이터인지"가 화면에 정직하게
+   드러난다(각주 ageDays). 수집 크론이 revalidateTag 로 즉시 비울 수 있다(OPT-10). */
+export const buildLiveToolContextCached = unstable_cache(
+  async (complexId: string | null, regionName: string | null) =>
+    buildLiveToolContext({ complexId, regionName }),
+  ["live-tool-context-v1"],
+  { revalidate: 300, tags: ["market", "supply", "news", "economy"] },
+);

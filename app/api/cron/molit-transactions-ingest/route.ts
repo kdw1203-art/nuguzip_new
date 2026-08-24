@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { authorizeCron } from "@/lib/cron/authorize";
 import { ingestMolitTransactions } from "@/lib/market/molit-transactions";
 import { ingestErrorMessage, logIngest } from "@/lib/market/store";
+import { invalidateAfterIngest } from "@/lib/cache/invalidate";
 import { withBudget, CRON_WORK_BUDGET_MS } from "@/lib/async/with-budget";
 
 export const runtime = "nodejs";
@@ -81,6 +82,8 @@ async function handle(req: Request) {
       status: "error",
       message,
     });
+    /* [OPT-10] 수집이 실제로 끝난 순간에만 캐시를 비운다 — 시간 추측 제거 */
+    invalidateAfterIngest("molit");
     return NextResponse.json(
       { ok: false, error: message, timedOut: true, finishedAt: new Date().toISOString() },
       { status: 503 },

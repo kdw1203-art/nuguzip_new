@@ -57,7 +57,10 @@ export function HeaderSearch() {
      끼어들지 않는다. 헤더 인풋이 화면에 없는 뷰포트(lg 미만)에서는 /search 로. */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      /* [OPT-45] ⌘K/Ctrl+K 도 검색 진입 — 다른 도구들에서 몸에 밴 단축키를 존중 */
+      const isCmdK = (e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k";
+      const isSlash = e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey;
+      if (!isSlash && !isCmdK) return;
       const t = e.target as HTMLElement | null;
       if (
         t &&

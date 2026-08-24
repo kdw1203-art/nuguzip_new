@@ -15,6 +15,9 @@ type VitalsPayload = {
   rating?: string;
   path?: string;
   navType?: string;
+  /* [OPT-01] attribution — LCP 요소 선택자·리소스 URL, INP 대상 등 */
+  element?: string;
+  attrUrl?: string;
 };
 
 export async function POST(req: NextRequest): Promise<Response> {
@@ -51,6 +54,8 @@ export async function POST(req: NextRequest): Promise<Response> {
     path: typeof body.path === "string" ? body.path.slice(0, 256) : null,
     nav_type: typeof body.navType === "string" ? body.navType.slice(0, 32) : null,
     user_agent: (req.headers.get("user-agent") ?? "").slice(0, 256) || null,
+    element: typeof body.element === "string" ? body.element.slice(0, 256) : null,
+    attr_url: typeof body.attrUrl === "string" ? body.attrUrl.slice(0, 512) : null,
   });
   if (error) {
     // 초기 운영에서 테이블이 아직 없으면 수집만 생략하고 정상 응답

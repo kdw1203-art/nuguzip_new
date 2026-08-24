@@ -4,14 +4,17 @@
 # (엔드포인트는 x-cron-secret 또는 Authorization: Bearer 일치 시 허용 — lib/cron/authorize.ts.
 #  x-vercel-cron 헤더는 아무나 붙일 수 있어 더 이상 인정하지 않고, ?secret= 도 로그에 남아 폐기했다)
 #
-# ⚠️ 이 파일이 이 서비스의 유일한 스케줄러다. vercel.json 에는 crons 를 두지 않는다.
-#    양쪽에 두면 플랜이 바뀌는 순간 같은 작업이 두 번 돌고, 알림은 두 번 나간다.
-#    새 크론 라우트를 추가했다면 반드시 여기에도 한 줄 추가해야 실제로 돈다.
-# ⚠️ 2026-08-23 실측 갱신: 위 문장과 달리 vercel.json 에 크론 9개(ingest 계열)가
-#    실제로 돌고 있다(00:40~01:30 UTC 로그 확인 — 플랜 변경으로 살아난 듯). 알림은
-#    여기(GitHub)에만 있어 중복 알림은 없고, ingest 는 멱등이라 이중 실행은 낭비일 뿐
-#    사고는 아니다. 한쪽으로 합칠지는 오너 판단 대기 — 그 전까지 이 파일이 정본이다.
-#    (이 파일은 2026-08-23 wave8b 에서 3중 중복 문서를 단일 문서로 정리한 것)
+# ⚠️ [OPT-33] 2026-08-24 일원화 완료 — 잡마다 스케줄러는 정확히 하나다.
+#    · Vercel 크론(vercel.json): 매일 도는 수집 6종 — molit(당월 회전)·reb·kb·
+#      complex-crawl·geocode(limit=200)·apt-detail(limit=100) + site-probe·social 2종.
+#      근거: 08-23 GitHub 스케줄이 하루를 통째로 건너뛴 실사고 — GH 스케줄은
+#      best-effort 지연·스킵이 있고 Vercel 크론은 9일 연속 정시였다. 매일 수집은
+#      더 신뢰성 있는 쪽에 둔다. (인증: Vercel 이 CRON_SECRET 을 Bearer 로 붙인다)
+#    · GitHub(이 파일): molit **직전월 보강**(신고 지연 재수집 — Vercel 쪽에 없는
+#      역할), kosis·ecos·onbid·court-auction·redevelopment·apt-master·supply·
+#      주간 글·poi·temperature·indexnow·freshness + alerts 잡 전부.
+#    새 크론 라우트는 두 파일 중 **한 곳에만** 등록한다. 여기서 뺀 6종의 실패는
+#    이 워크플로의 FAILED 대신 신선도 감시(freshness-watch·pipeline_health)가 잡는다.
 name: Market ETL
 
 on:
@@ -68,8 +71,7 @@ jobs:
               FAILED="$FAILED $NAME($CODE)"
             fi
           }
-          call reb "https://nuguzip.com/api/cron/reb-ingest"
-          call kb "https://nuguzip.com/api/cron/kb-ingest"
+          # [OPT-33] reb·kb 는 Vercel 크론(00:50·01:00 UTC)으로 일원화 — 여기서 제거.
           # kosis: KOSIS 키 활성화 전까지 skipped 응답 — 실패로 집계하지 않음(소프트)
           echo "== kosis (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/kosis-ingest" | head -c 500 || true
@@ -94,24 +96,12 @@ jobs:
           echo "== apt-master (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-master-ingest" | head -c 500 || true
           echo
-          # apt-detail: 단지 기본정보 백필 — 회당 100단지 (소프트).
-          # 2026-07-29: limit=300+동시 6 이 Supabase Postgres ERROR 를 키웠다.
-          # Micro 인스턴스에서는 조회 안정성을 위해 배치를 줄인다.
-          echo "== apt-detail (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/apt-detail-enrich?limit=100" | head -c 500 || true
-          echo
-          call complex-crawl "https://nuguzip.com/api/cron/complex-crawl"
-          # 단지 좌표 지오코딩 백필 — 지도 개별 단지 표시용.
-          # DB 부하 완화: 500 → 200 (2026-07-29).
-          call geocode "https://nuguzip.com/api/cron/geocode-complexes?limit=200"
+          # [OPT-33] apt-detail(limit=100)·complex-crawl·geocode(limit=200)·molit 당월분은
+          # Vercel 크론(01:30·01:10·01:20·00:40 UTC)으로 일원화 — 여기서 제거.
+          # 튜닝 파라미터(limit)는 vercel.json 경로 쿼리스트링으로 그대로 이관했다.
           # 출석 리마인드는 아래 alerts 잡으로 옮겼다 — 하루 두 번 "출석하세요"는 알림이 아니라 소음이다.
-          # molit 전국 실거래: 매 실행마다 시군구 슬라이스 1구간씩 회전(12시간 창 기준 자동).
-          # 이미 채워진 (구, 계약월) 조합은 라우트에서 건너뛰므로 이중 계상 없음. 소프트 처리 —
-          # 일부 구가 실패해도 ETL 전체를 실패시키지 않는다.
-          echo "== molit (soft) =="
-          curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$(date -u +%Y%m)&size=24" | head -c 800 || true
-          echo
           # molit 직전월 보강: 신고 지연(계약 후 30일)으로 뒤늦게 등록되는 거래를 다시 줍는다.
+          # (당월 회전 수집은 Vercel 몫이고, 이 보강 호출은 여기에만 있는 고유 역할이라 남긴다)
           PREV_YM=$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y%m)
           echo "== molit prev-month top-up (soft) =="
           curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/molit-transactions-ingest?yyyymm=$PREV_YM&size=24" | head -c 500 || true

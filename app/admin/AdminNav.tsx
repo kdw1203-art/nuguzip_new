@@ -28,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/blog-pack", label: "블로그 팩" },
   { href: "/admin/community", label: "커뮤니티 운영" },
   { href: "/admin/ai", label: "AI 도구" },
+  { href: "/admin/perf", label: "성능" },
 ];
 
 export function AdminNav() {

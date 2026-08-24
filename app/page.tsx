@@ -14,6 +14,7 @@ import { Footer } from "./components/Footer";
 import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
 import { HomeHeroSearch } from "./components/home/HomeHeroSearch";
 import { HomeEngagementCard } from "./components/home/HomeEngagementCard";
+import { HomeWatchlistBrief } from "./components/HomeWatchlistBrief";
 import { HomeKpiRow, type KpiRegion, type KpiTemp } from "./components/home/HomeKpiRow";
 import { RegionPulseCards } from "./components/home/RegionPulseCards";
 import { loadLatestTemperatures } from "./components/MarketTempWidget";
@@ -325,6 +326,9 @@ export default async function Home() {
           {/* [개선 #11·12·29] 로그인 사용자의 매일 루프 — 출석·포인트 진행바·첫 노트
               미션. 게스트에겐 안 그려진다(클라이언트 판정 — ISR 캐시 유지). */}
           <HomeEngagementCard />
+
+          {/* [OPT-47] 내 워치 단지 최근 거래 브리핑 — 같은 원칙(클라이언트 섬·ISR 유지) */}
+          <HomeWatchlistBrief />
 
           <Link
             href={HOME_CTA_NOTE.href}

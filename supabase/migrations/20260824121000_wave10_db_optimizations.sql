@@ -1,0 +1,13 @@
+-- Wave 10 DB 최적화 묶음 — MCP apply_migration 'wave10_db_optimizations' 로 2026-08-24 적용 완료(기록용 미러).
+-- [OPT-20] 미사용 인덱스 정리(1차):
+--   · 전체 165개의 정의를 ops.index_cleanup_20260824 표에 보관(롤백 원본).
+--   · 쓰기 활발 테이블의 12개만 드랍 — page_view_events(2)·map_events·analytics_events·
+--     market_complex_price·public_data_cache·map_metric_snapshots·posts(2)·user_points·
+--     user_attendance·reengagement_log. 죽은/저쓰기 테이블의 나머지 153개는 유지 비용이
+--     사실상 0이라 남기고 분기 재검토(pg_stat idx_scan 재확인 후 2차).
+-- [OPT-24] autovacuum 민감도: market_transactions 2%/1%, 텔레메트리 3종 5%.
+-- [OPT-17] refresh_market_aggregates_impl 에 단계별 ms 계측(steps jsonb) 내장 —
+--   동작 동일, 오늘 밤 19:00 실행부터 etl_runs.params.steps 로 고래 식별.
+-- [OPT-19] BRIN(contract_ym)은 **부적합 판정**: 임대차 백필이 과거 월을 지금 append 해서
+--   물리 순서와 계약월의 상관이 무너져 있다. 파티셔닝 전환 런북은 docs/perf/ 참고(전용 회차).
+-- 전문은 DB 적용본과 동일 — 원문은 마이그레이션 이력('wave10_db_optimizations') 참조.

@@ -5,6 +5,7 @@ import { InstallPrompt } from "./components/InstallPrompt";
 import { IosInstallHint } from "./components/IosInstallHint";
 import { AdSenseLoader } from "./components/AdSenseLoader";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
+import { ClientErrorReporter } from "./components/ClientErrorReporter";
 import { TrafficRecorder } from "./components/TrafficRecorder";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ThemeColorMeta } from "./components/ThemeColorMeta";
@@ -191,6 +192,7 @@ export default function RootLayout({
                   <IosInstallHint />
                   <AdSenseLoader />
                   <WebVitalsReporter />
+                  <ClientErrorReporter />
                   {/* 어드민 트래픽 대시보드용 1st-party 페이지뷰·체류 기록 —
                       GA4 와 같은 분석 동의 게이트 뒤에서만 동작한다. */}
                   <TrafficRecorder />

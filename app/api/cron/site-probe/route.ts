@@ -56,30 +56,53 @@ async function handle(req: Request) {
     target = parsed.toString();
   }
 
-  /* 프로브 — TTFB 는 헤더 도착까지. 본문은 상태 판정에 필요 없으므로 버린다. */
-  let status: number | null = null;
-  let ttfbMs: number | null = null;
-  let vercelError: string | null = null;
-  let note: string | null = "vercel-cron self-probe";
-  const startedAt = performance.now();
-  try {
-    const res = await fetch(target, {
-      cache: "no-store",
-      redirect: "manual", // 3xx 도 그대로 기록 — 홈이 리다이렉트면 그것 자체가 이상 신호다
-      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
-      headers: { "user-agent": "nuguzip-site-probe/1" },
-    });
-    ttfbMs = Math.round((performance.now() - startedAt) * 10) / 10;
-    status = res.status;
-    vercelError = res.headers.get("x-vercel-error");
-    res.body?.cancel().catch(() => {});
-  } catch (e) {
-    /* 실패도 기록한다 — status null 이 곧 critical 판정 근거다. 여기서 던지고
-       기록을 건너뛰면 "다운일수록 기록이 없다"가 되어 검사가 신선도 경고로만
-       늦게 알게 된다. */
-    ttfbMs = Math.round((performance.now() - startedAt) * 10) / 10;
-    note = `fetch 실패: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300);
+  /* [OPT-44] 커버리지 확장 — ?url 미지정(크론 기본 호출)이면 핵심 경로 4곳을
+     순서대로 재서 각각 기록한다. 응답시간 추세가 "이 배포가 느리게 만들었나"에
+     데이터로 답한다. 개별 타임아웃 12초 × 4 = 최악 48초 < maxDuration 60초. */
+  const targets: string[] = rawUrl
+    ? [target]
+    : ["/", "/analysis", "/apply", "/analysis/accuracy"].map((p) => ALLOWED_ORIGIN + p);
+  const perProbeTimeout = rawUrl ? PROBE_TIMEOUT_MS : 12_000;
+
+  async function probeOne(url: string): Promise<{
+    target: string;
+    status: number | null;
+    ttfbMs: number | null;
+    vercelError: string | null;
+    note: string | null;
+  }> {
+    let status: number | null = null;
+    let ttfbMs: number | null = null;
+    let vercelError: string | null = null;
+    let note: string | null = "vercel-cron self-probe";
+    const startedAt = performance.now();
+    try {
+      const res = await fetch(url, {
+        cache: "no-store",
+        redirect: "manual", // 3xx 도 그대로 기록 — 홈이 리다이렉트면 그것 자체가 이상 신호다
+        signal: AbortSignal.timeout(perProbeTimeout),
+        headers: { "user-agent": "nuguzip-site-probe/1" },
+      });
+      ttfbMs = Math.round((performance.now() - startedAt) * 10) / 10;
+      status = res.status;
+      vercelError = res.headers.get("x-vercel-error");
+      res.body?.cancel().catch(() => {});
+    } catch (e) {
+      /* 실패도 기록한다 — status null 이 곧 critical 판정 근거다. */
+      ttfbMs = Math.round((performance.now() - startedAt) * 10) / 10;
+      note = `fetch 실패: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300);
+    }
+    return { target: url, status, ttfbMs, vercelError, note };
   }
+
+  const probes: Awaited<ReturnType<typeof probeOne>>[] = [];
+  for (const url of targets) probes.push(await probeOne(url));
+  const first = probes[0];
+  const status = first.status;
+  const ttfbMs = first.ttfbMs;
+  const vercelError = first.vercelError;
+  const note = first.note;
+  target = first.target;
 
   const sb = getServiceSupabase();
   if (!sb) {
@@ -88,25 +111,29 @@ async function handle(req: Request) {
       { status: 500 },
     );
   }
-  const { data, error } = await sb.rpc("record_site_probe_service", {
-    p_url: target,
-    p_status: status,
-    p_ttfb_ms: ttfbMs,
-    p_vercel_error: vercelError,
-    p_note: note,
-  });
-  if (error) {
-    /* 기록 실패는 실패다 — 200 으로 눙치면 검사가 낡은 프로브를 보게 된다. */
-    return NextResponse.json(
-      { ok: false, error: `기록 실패: ${error.message}`, probed: { target, status, ttfbMs } },
-      { status: 500 },
-    );
+  let firstId: unknown = null;
+  for (const p of probes) {
+    const { data, error } = await sb.rpc("record_site_probe_service", {
+      p_url: p.target,
+      p_status: p.status,
+      p_ttfb_ms: p.ttfbMs,
+      p_vercel_error: p.vercelError,
+      p_note: p.note,
+    });
+    if (error) {
+      /* 기록 실패는 실패다 — 200 으로 눙치면 검사가 낡은 프로브를 보게 된다. */
+      return NextResponse.json(
+        { ok: false, error: `기록 실패: ${error.message}`, probed: probes },
+        { status: 500 },
+      );
+    }
+    if (firstId == null) firstId = data;
   }
 
   return NextResponse.json({
     ok: true,
-    id: data,
-    probed: { target, status, ttfbMs, vercelError, note },
+    id: firstId,
+    probed: probes.length === 1 ? { target, status, ttfbMs, vercelError, note } : probes,
     finishedAt: new Date().toISOString(),
   });
 }

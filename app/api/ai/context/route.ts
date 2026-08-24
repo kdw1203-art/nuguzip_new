@@ -1,7 +1,8 @@
+import { PUBLIC_CACHE } from "@/lib/http/cache-headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { applyRateLimit, READ_RATE_LIMIT } from "@/lib/rate-limit";
-import { buildLiveToolContext, contextFootnotes, axisAgeDays } from "@/lib/ai/live-context";
+import { buildLiveToolContextCached, contextFootnotes, axisAgeDays } from "@/lib/ai/live-context";
 import {
   diagnosisRadar,
   riskFlags,
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
   }
 
   const [ctx, similar] = await Promise.all([
-    buildLiveToolContext({ complexId, regionName }),
+    buildLiveToolContextCached(complexId ?? null, regionName ?? null),
     complexId ? similarComplexes(complexId) : Promise.resolve([]),
   ]);
   const footnotes = contextFootnotes(ctx);
@@ -92,6 +93,8 @@ export async function GET(req: NextRequest) {
       },
       similar,
     },
-    { headers: { "Cache-Control": "private, max-age=60" } },
+    /* [OPT-12] 공개 데이터만 담는 응답 — CDN 60초·백그라운드 갱신 10분.
+       세션·개인화가 없으므로 private 일 이유가 없었다. */
+    { headers: { "Cache-Control": PUBLIC_CACHE.short } },
   );
 }
