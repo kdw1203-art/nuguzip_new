@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { logger } from "@/lib/log";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -121,20 +122,38 @@ const SIDE_FAILURE_ABORT_THRESHOLD = 4;
    상한을 넘본다. 주의: 시간 초과는 **throw** 다 — null 로 바꾸면 notFound()
    가 "조회 실패"를 "없는 단지(404)"로 위장한다. */
 const COMPLEX_ROW_TIMEOUT_MS = 10_000;
-const loadComplexRow = cache(async (id: string) => {
+/* 재시도 1회. 이 조회 자체는 빠르다 — 프로덕션 실행 계획 실측 15.8ms
+   (mt_trade_complex_geo_idx 인덱스 스캔, 22행). 그런데 2026-08-24~25 사이
+   181건(사용자 32명)이 10초를 넘겼다. 원인은 이 쿼리가 아니라 그 시각 DB 가
+   다른 것에 잡혀 있었던 것이고(전월세 집계 RPC 하나가 전체 DB 시간의 27.9% 를
+   먹고 있었다), 그런 포화는 몇 초면 지나간다.
+   그래서 한 번은 다시 물어본다 — 두 번째도 넘기면 그때는 진짜 장애다. */
+const COMPLEX_ROW_RETRY_DELAY_MS = 350;
+
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label} (${ms}ms)`)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
+
+const loadComplexRow = cache(async (id: string) => {
+  const label = "단지 정보 조회 시간 초과";
   try {
-    return await Promise.race([
-      getComplexById(id),
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`단지 정보 조회 시간 초과 (${COMPLEX_ROW_TIMEOUT_MS}ms)`)),
-          COMPLEX_ROW_TIMEOUT_MS,
-        );
-      }),
-    ]);
-  } finally {
-    clearTimeout(timer);
+    return await withTimeout(getComplexById(id), COMPLEX_ROW_TIMEOUT_MS, label);
+  } catch (first) {
+    logger.warn("[complex] 단지 조회 1차 실패 — 1회 재시도", {
+      id,
+      message: first instanceof Error ? first.message : String(first),
+    });
+    await new Promise((r) => setTimeout(r, COMPLEX_ROW_RETRY_DELAY_MS));
+    /* 2차는 짧게 — 여기서도 막히면 페이지 전체 예산을 지키는 쪽이 낫다.
+       주의: 시간 초과는 여전히 **throw** 다. null 로 바꾸면 notFound() 가
+       "조회 실패"를 "없는 단지(404)"로 위장하고, 그 404 가 ISR 로 얼어붙는다. */
+    return await withTimeout(getComplexById(id), 6_000, label);
   }
 });
 const loadTxHistory = cache(getTransactionHistory);

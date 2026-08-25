@@ -1,4 +1,5 @@
 import "server-only";
+import { getRegionRentYieldRows } from "@/lib/market/rent-yield";
 
 import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase/service";
@@ -104,11 +105,16 @@ const NUM = (v: unknown): number | null => {
 };
 
 async function loadRent(regionName: string): Promise<LiveToolContext["rent"]> {
-  const sb = getServiceSupabase();
-  if (!sb) return null;
-  const { data, error } = await sb.rpc("region_rent_yield_summary", { p_months: 3 });
-  if (error || !Array.isArray(data)) return null;
-  const row = (data as Array<Record<string, unknown>>).find(
+  /* 예전엔 여기서 직접 RPC 를 불렀다 — 워크벤치를 열 때마다 758,872행짜리
+     전월세 집계를 **전 지역** 돌린 뒤 그중 한 지역만 골라 썼다(평균 5.5초).
+     같은 값을 쓰는 세 화면이 공유 캐시 한 벌을 보게 바꿨다. */
+  let data: Array<Record<string, unknown>>;
+  try {
+    data = await getRegionRentYieldRows();
+  } catch {
+    return null;
+  }
+  const row = data.find(
     (r) => String(r.region_name ?? "").trim() === regionName,
   );
   if (!row) return null;

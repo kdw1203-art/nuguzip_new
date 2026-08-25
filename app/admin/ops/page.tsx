@@ -4,6 +4,7 @@ import { getOperatingMetrics } from "@/lib/admin/operating-metrics";
 import { loadAdminKpi } from "@/lib/admin/stats";
 import { listBanners, type Banner } from "@/lib/admin/banners";
 import { loadRecentErrors } from "@/lib/admin/error-log";
+import { loadRecentHealthAlerts } from "@/lib/admin/health-alerts";
 import {
   STAFF_ROLE_LABEL,
   canAccessAdminSection,
@@ -97,12 +98,14 @@ function probeSession(role: StaffRole): Session {
 export default async function AdminOpsPage() {
   // 실집계 전환 퍼널 (활성방문 → 임장노트 → AI·LLM / AI·규칙 → 지도 핸드오프 → 결제).
   // 조회 실패·빈 데이터 시 빈 배열 → 아래에서 "데이터 없음" 빈 상태 렌더.
-  const [funnel, kpi, banners, errors] = await Promise.all([
+  const [funnel, kpi, banners, errors, alerts] = await Promise.all([
     getOperatingMetrics(),
     loadAdminKpi(),
     listBanners().catch(() => [] as Banner[]),
     loadRecentErrors(12),
+    loadRecentHealthAlerts(7, 12).catch(() => []),
   ]);
+  const criticalAlerts = alerts.filter((a) => a.severity === "critical");
   const hasFunnel = funnel.length > 0 && funnel.some((s) => s.count > 0);
 
   // 운영 지표 — 실집계(loadAdminKpi). 조작 KPI(DAU/리텐션 등) 대신 실 수치만.
@@ -135,6 +138,51 @@ export default async function AdminOpsPage() {
       <div className="rise-in text-[19px] font-extrabold text-white">
         공지·배너 스케줄러 · 운영 지표 · 권한(RBAC) · 약관 버전 관리
       </div>
+
+      {/* 운영 경보 — 이 판이 생기기 전까지 경보는 ops.health_alert_log 에만
+          쌓이고 아무도 읽지 않았다(7일 critical 169건 · db.query_load 매일).
+          메일 발송은 키가 아직 없어 닫혀 있고, 그 전까지 여기가 유일한 눈이다. */}
+      {alerts.length > 0 && (
+        <div className="rise-in-1 flex flex-col gap-2.5 rounded-[20px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-extrabold text-white">운영 경보 (7일)</span>
+            {criticalAlerts.length > 0 && (
+              <span className="rounded-md bg-[rgba(255,107,107,.16)] px-2 py-0.5 text-[11px] font-extrabold text-ai-danger">
+                critical {criticalAlerts.length}종
+              </span>
+            )}
+            <span className="ml-auto text-[11px] text-ai-muted">
+              ops.health_alert_log · 같은 검사끼리 접어서 표시
+            </span>
+          </div>
+          <div className="flex flex-col">
+            {alerts.map((a) => (
+              <div
+                key={`${a.checkName}-${a.severity}`}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-[rgba(255,255,255,.06)] py-2 last:border-0"
+              >
+                <span
+                  className={`rounded px-1.5 py-px text-[10px] font-extrabold ${
+                    a.severity === "critical"
+                      ? "bg-[rgba(255,107,107,.16)] text-ai-danger"
+                      : "bg-[rgba(224,169,46,.16)] text-[#e0a92e]"
+                  }`}
+                >
+                  {a.severity}
+                </span>
+                <span className="text-[12.5px] font-bold text-white">{a.checkName}</span>
+                <span className="text-[11px] text-ai-muted">{a.count}회</span>
+                {a.ageHours != null && (
+                  <span className="text-[11px] text-ai-muted">지연 {Math.round(a.ageHours)}h</span>
+                )}
+                {a.detail && (
+                  <span className="w-full truncate text-[11px] text-ai-muted">{a.detail}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="rise-in-1 grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_1fr]">
         {/* 좌측 */}
