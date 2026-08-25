@@ -25,7 +25,7 @@ export default async function AccuracyPage() {
         <div className="rise-in">
           <h1 className="text-[24px] font-extrabold text-ink">시세 예측, 얼마나 맞았나</h1>
           <p className="mt-1.5 max-w-[62ch] text-[13.5px] leading-[1.75] text-text-2">
-            시세 예측 AI가 쓰는 것과 같은 규칙(직전 3개월 모멘텀 외삽)으로 과거{" "}
+            ‘이 단지 시세 예측’이 쓰는 것과 같은 규칙(직전 3개월 모멘텀 외삽)으로 과거{" "}
             {BACKTEST.lookbackMonths}개월을 되짚어, 예측이 실제 평당가의 ±
             {BACKTEST.hitBandPct}% 안에 들어온 비율을 공개합니다. 월 거래{" "}
             {BACKTEST.minMonthlyTx}건 이상인 지역·월만 계산하며, 잘 나온 구간을
@@ -120,7 +120,7 @@ export default async function AccuracyPage() {
           이 성적표는 조회 시점의 실거래 집계로 재계산됩니다. 과거 적중률은 미래
           수익을 보장하지 않으며, 예측 도구도 이 한계를 화면에 함께 표시합니다.{" "}
           <Link href="/analysis/ai/ai-prediction" className="font-bold text-primary no-underline">
-            시세 예측 AI 실행 ›
+            이 단지 시세 예측 실행 ›
           </Link>
         </div>
       </div>

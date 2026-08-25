@@ -229,12 +229,12 @@ export function AiNoteAnalysisCard({
   };
 
   return (
-    <div className="card flex h-full flex-col gap-2.5 rounded-[20px] p-[22px]">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary">
-        <Icon name="🤖" size={19} />
+    <div className="card flex h-full flex-col gap-2.5 rounded-[14px] p-4">
+      <div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-warning-soft text-warning">
+        <Icon name="bot" size={17} />
       </div>
-      <div className="text-base font-extrabold text-ink">임장노트 AI 분석</div>
-      <div className="text-[13px] leading-[1.55] text-text-2">
+      <div className="t-section text-ink">임장노트 AI 분석</div>
+      <div className="t-sub text-text-2">
         내 노트의 점수·기록과 지역 실시세를 합쳐 강점·약점·확인 항목을 정리해요
       </div>
 

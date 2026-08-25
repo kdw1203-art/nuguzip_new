@@ -1837,3 +1837,174 @@ html[data-drag-scrolling] * {
     animation: none;
   }
 }
+
+/* ============================================================
+   분석 허브 (/analysis) 리디자인 — UI-05·06·07·08·10
+   (2026-08-25) 소유자 피드백: "딱딱하고 개성이 없다 · 내용이 너무 많다 ·
+   인터랙티브하지 않다 · 뭐가 중요한지, 어느 게 무슨 기능인지 모르겠다".
+
+   여기 있는 규칙은 전부 **기존 토큰만** 쓴다(raw hex 0). 새 색을 만들면
+   대비 게이트가 보증하는 범위 밖으로 나가고, 다크 대응도 갈라진다.
+   ============================================================ */
+
+/* ---------- 히어로 (UI-05) — 검색이 화면 첫 요소가 된다 ---------- */
+.hub-hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+/* 브랜드 틴트 한 겹 — 카드 무리와 히어로를 색으로 구분한다(테두리만으론 평평하다) */
+.hub-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--grad-brand-soft);
+  pointer-events: none;
+}
+/* 오른쪽 위 은은한 광원 — 히어로가 카드 무리와 다른 "면"이라는 걸 알린다.
+   색은 브랜드 소프트 그라데이션 한 겹뿐이라 다크에서도 같이 접힌다. */
+.hub-hero::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand-soft);
+  filter: blur(28px);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.hub-hero > * {
+  position: relative;
+}
+
+/* ---------- 스텝퍼 (UI-10) — 카드 12장에 12번 반복되던 "약 1분"을 한 곳으로 ---------- */
+.hub-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.hub-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.hub-step-n {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+.hub-step + .hub-step::before {
+  content: "";
+  width: 14px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+/* ---------- 타일 (UI-08) — 카드 한 장의 hover/press/focus 를 한 클래스로 ----------
+   기존 .card-hover 는 translateY(-2px) 하나뿐이라 "눌리는 물건"처럼 안 보였다.
+   여기서는 들림 + 그림자 + 테두리 강조 + 아이콘·화살표 미세 이동을 묶는다. */
+.tile {
+  position: relative;
+  transition:
+    transform var(--dur-sm) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out),
+    border-color var(--dur-sm) var(--ease-out);
+}
+.tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+.tile:active {
+  transform: translateY(-1px) scale(0.995);
+}
+.tile:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.tile-ico {
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+.tile:hover .tile-ico {
+  transform: scale(1.08);
+}
+.tile-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+.tile:hover .tile-go {
+  transform: translateX(3px);
+}
+/* 스파크라인은 평소 옅게 두고 호버에서 또렷해진다 — 카드 12장이 동시에
+   소리치지 않게 하려는 것이다(내용 과다 피드백의 직접 대응). */
+.tile-spark {
+  opacity: 0.62;
+  transition: opacity var(--dur-sm) var(--ease-out);
+}
+.tile:hover .tile-spark {
+  opacity: 1;
+}
+
+/* ---------- 계열 머리글 (UI-01) — 질문 3개가 화면의 뼈대다 ---------- */
+.hub-tier-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--divider);
+}
+
+/* ---------- 체험 구역 (UI-04) — 접힘. 실데이터 도구와 섞지 않는다 ---------- */
+.hub-sim > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.hub-sim > summary::-webkit-details-marker {
+  display: none;
+}
+.hub-sim > summary .hub-sim-caret {
+  display: inline-block;
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+.hub-sim[open] > summary .hub-sim-caret {
+  transform: rotate(180deg);
+}
+.hub-sim > summary .hub-sim-open {
+  display: none;
+}
+.hub-sim[open] > summary .hub-sim-open {
+  display: inline;
+}
+.hub-sim[open] > summary .hub-sim-closed {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .tile-ico,
+  .tile-go,
+  .tile-spark,
+  .hub-sim > summary .hub-sim-caret {
+    transition: none;
+  }
+  .tile:hover,
+  .tile:active {
+    transform: none;
+  }
+}

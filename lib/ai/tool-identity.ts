@@ -77,7 +77,7 @@ const FALLBACK: ToolIdentity = {
 export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   "ai-diagnosis": {
     id: "ai-diagnosis",
-    title: "AI 투자 진단",
+    title: "이 단지 종합 진단",
     tagline: "주소·단지 조건으로 종합 스코어와 코멘트",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -94,7 +94,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-prediction": {
     id: "ai-prediction",
-    title: "시세 예측 AI",
+    title: "이 단지 시세 예측",
     tagline: "1~5년 매매·전세·월세 시나리오",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -111,7 +111,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-risk": {
     id: "ai-risk",
-    title: "리스크 분석",
+    title: "이 단지 리스크 점검",
     tagline: "권리·역세권·공급·환경 리스크 진단",
     accentColor: "#f04452",
     accentGradient: "from-[#f04452] to-[#f87171]",
@@ -128,7 +128,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-compare": {
     id: "ai-compare",
-    title: "AI 비교 분석",
+    title: "이 단지 vs 다른 단지",
     tagline: "단지 2~3개를 한 화면에서 비교",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -145,7 +145,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-inspection": {
     id: "ai-inspection",
-    title: "맞춤 임장 추천",
+    title: "이 단지 임장 동선",
     tagline: "성향·조건 기반 임장 동선 추천",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -179,7 +179,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-portfolio": {
     id: "ai-portfolio",
-    title: "포트폴리오 분석",
+    title: "내 자산 구성 진단",
     tagline: "현재 자산 분포·리밸런싱 제안",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -196,7 +196,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-timing": {
     id: "ai-timing",
-    title: "AI 매수 타이밍",
+    title: "이 단지 매수 타이밍",
     tagline: "구별 시그널·거래량 추세",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -213,7 +213,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-simulator": {
     id: "ai-simulator",
-    title: "수익률 시뮬레이터",
+    title: "이 단지 수익률 계산",
     tagline: "매수가·대출·임대료로 수익률 시뮬",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",
@@ -230,7 +230,7 @@ export const TOOL_IDENTITIES: Record<AiAnalysisToolId, ToolIdentity> = {
   },
   "ai-gap": {
     id: "ai-gap",
-    title: "갭투자 분석기",
+    title: "이 단지 갭투자 진단",
     tagline: "전세가율·갭·회전 가능성 진단",
     accentColor: "#3182f6",
     accentGradient: "from-[#3182f6] to-[#1b64da]",

@@ -36,7 +36,7 @@ const ALERTS = [
 /* 최적화 10 — 홈과 같은 제목을 달고 있던 화면(cycle/page.tsx 주석 참고).
    본문이 "아직 등록된 자산이 없어요" 하나뿐이라 색인은 걸지 않는다. */
 export const metadata = buildPageMetadata({
-  title: "포트폴리오 분석",
+  title: "자산 배분 시뮬레이터",
   description: "보유 자산을 등록하면 포트폴리오를 분석합니다. 자산 등록 기능은 아직 준비 중입니다.",
   path: "/analysis/portfolio",
   noIndex: true,
@@ -44,9 +44,9 @@ export const metadata = buildPageMetadata({
 
 export default function PortfolioPage() {
   return (
-    <PageShell breadcrumb="AI 분석 › 포트폴리오">
+    <PageShell breadcrumb="분석 도구 › 자산 배분">
       <div className="mb-3 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">포트폴리오 분석</h1>
+        <h1 className="rise-in text-[22px] font-extrabold text-ink">자산 배분 시뮬레이터</h1>
       </div>
 
       <div className="flex flex-col gap-4">

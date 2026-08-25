@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { listCompareTray } from "@/lib/newui/compare-tray";
+import { useHubPicked } from "./hub-context";
 
 /* 분석 허브 항목별 고유 기능(#411) — 클라이언트 조각 3종.
  *
@@ -37,15 +38,23 @@ export function ToolLink({
   title,
   className,
   children,
+  withPicked = false,
 }: {
   href: string;
   title: string;
   className?: string;
   children: ReactNode;
+  /** 히어로에서 고른 단지를 ?complexId= 로 실어 보낼 도구인지 (tool-catalog.ACCEPTS_COMPLEX) */
+  withPicked?: boolean;
 }) {
+  /* 허브가 공유하는 선택 단지 — 서버가 그린 카드 내용은 그대로 두고 **링크만**
+     바꾼다. 그래서 스파크라인·티저는 서버 렌더 그대로면서도, 위에서 단지를
+     고르면 이 카드가 그 단지로 열린다. */
+  const { query } = useHubPicked();
+  const target = withPicked && query ? `${href}${query}` : href;
   return (
     <Link
-      href={href}
+      href={target}
       className={className}
       onClick={() => {
         try {

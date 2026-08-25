@@ -3,10 +3,10 @@ import { CORE_AI_TOOL_IDS, type AiAnalysisToolId } from "@/lib/ai/ai-tools";
 export type CoreAiToolId = (typeof CORE_AI_TOOL_IDS)[number];
 
 export const CORE_TOOL_LABEL: Record<CoreAiToolId, string> = {
-  "ai-diagnosis": "AI 투자 진단",
-  "ai-prediction": "시세 예측 AI",
-  "ai-inspection": "맞춤 임장 추천",
-  "ai-timing": "AI 매수 타이밍",
+  "ai-diagnosis": "이 단지 종합 진단",
+  "ai-prediction": "이 단지 시세 예측",
+  "ai-inspection": "이 단지 임장 동선",
+  "ai-timing": "이 단지 매수 타이밍",
 };
 
 export function isCoreAiToolId(id: AiAnalysisToolId): id is CoreAiToolId {
