@@ -34,7 +34,7 @@ function formatDate(iso: string | null): string | null {
 function Fact({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
-      <dt className="text-[10px] font-bold text-text-3">{label}</dt>
+      <dt className="t-caption font-bold text-text-3">{label}</dt>
       <dd className={`mt-0.5 text-[12px] leading-[1.5] ${muted ? "text-text-3" : "text-ink"}`}>
         {value}
       </dd>
@@ -64,21 +64,21 @@ export function ProjectDetailPanel({
               className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ background: color }}
             />
-            <h3 className="text-[15px] font-extrabold text-ink">{project.name}</h3>
+            <h3 className="t-section text-ink">{project.name}</h3>
             {project.isSample ? (
-              <span className="rounded-full bg-warning-soft chip-pad text-[10px] font-bold text-warning">
+              <span className="rounded-full bg-warning-soft chip-pad t-caption font-bold text-warning">
                 예시 데이터
               </span>
             ) : null}
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span
-              className="rounded-full chip-pad text-[11px] font-semibold"
+              className="rounded-full chip-pad t-sub font-semibold"
               style={{ background: `${color}1a`, color }}
             >
               {labelForType(project.typeKey)}
             </span>
-            <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+            <span className="rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
               현재 {stageLabel(project.stageKey)}
             </span>
           </div>
@@ -98,8 +98,8 @@ export function ProjectDetailPanel({
       {/* ===== 진행 상황 ===== */}
       <div>
         <div className="flex items-baseline justify-between">
-          <h4 className="text-[13px] font-extrabold text-ink">진행 상황</h4>
-          <span className="text-[10px] text-text-3">도시정비법 일반 절차 기준 7단계</span>
+          <h4 className="t-body font-extrabold text-ink">진행 상황</h4>
+          <span className="t-caption text-text-3">도시정비법 일반 절차 기준 7단계</span>
         </div>
         <ol className="mt-2 -mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
           {STAGES.map((s) => {
@@ -134,14 +134,14 @@ export function ProjectDetailPanel({
                 >
                   {s.label}
                 </span>
-                <span className="text-[10px] text-text-3">
+                <span className="t-caption text-text-3">
                   {state === "now" ? "현재" : state === "past" ? "지나온 단계" : "남은 단계"}
                 </span>
               </li>
             );
           })}
         </ol>
-        <p className="mt-1.5 text-[10.5px] leading-[1.6] text-text-3">
+        <p className="mt-1.5 t-caption text-text-3">
           공개 자료에서 확인한 건 <b className="text-text-2">현재 단계</b> 하나예요. 각 단계를 언제
           통과했는지(인가일 등)는 확보하지 못해 표시하지 않아요 — 날짜가 필요하면 지자체 고시·조합
           공고를 확인하세요.
@@ -150,7 +150,7 @@ export function ProjectDetailPanel({
 
       {/* ===== 현황 자료 ===== */}
       <div>
-        <h4 className="text-[13px] font-extrabold text-ink">현황 자료</h4>
+        <h4 className="t-body font-extrabold text-ink">현황 자료</h4>
         <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Fact
             label="소재지"
@@ -173,7 +173,7 @@ export function ProjectDetailPanel({
           <Fact label="출처" value={project.source ?? "출처 표기 없음"} muted={!project.source} />
         </dl>
         {project.summary ? (
-          <p className="mt-2 rounded-[10px] bg-surface px-3 py-2 text-[12px] leading-[1.65] text-text-1">
+          <p className="mt-2 rounded-[10px] bg-surface px-3 py-2 t-sub text-text-1">
             {project.summary}
           </p>
         ) : null}
@@ -182,7 +182,7 @@ export function ProjectDetailPanel({
             href={project.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="press mt-2 inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary no-underline"
+            className="press mt-2 inline-flex items-center gap-1 rounded-full bg-primary-soft px-3 py-1.5 t-sub font-bold text-primary no-underline"
           >
             출처 원문 보기 ↗
           </a>
@@ -192,13 +192,13 @@ export function ProjectDetailPanel({
       {/* ===== 이 단계에서 확인할 것 ===== */}
       {guide ? (
         <div>
-          <h4 className="text-[13px] font-extrabold text-ink">
+          <h4 className="t-body font-extrabold text-ink">
             {guide.longLabel} 단계에서 확인할 것
           </h4>
-          <p className="mt-1 text-[11.5px] leading-[1.65] text-text-2">{guide.desc}</p>
+          <p className="mt-1 t-sub text-text-2">{guide.desc}</p>
           <div className="mt-2 flex gap-1.5 rounded-[10px] bg-warning-soft px-2.5 py-2">
             <Icon name="warning" size={13} className="mt-px shrink-0 text-warning" />
-            <p className="text-[11px] leading-[1.6] text-warning">
+            <p className="t-sub text-warning">
               <span className="font-bold">유의점 </span>
               {guide.caution}
             </p>
@@ -207,11 +207,11 @@ export function ProjectDetailPanel({
             {guide.checklist.map((c) => (
               <li key={c} className="flex gap-1.5">
                 <Icon name="check" size={13} className="mt-px shrink-0 text-primary" />
-                <span className="text-[11px] leading-[1.55] text-text-2">{c}</span>
+                <span className="t-sub text-text-2">{c}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[10px] leading-[1.6] text-text-3">
+          <p className="mt-2 t-caption text-text-3">
             위 항목은 법정 일반 절차에 대한 설명이에요. 이 구역에 대해 저희가 확인한 결과가 아니라,
             직접 확인하실 목록이에요.
           </p>

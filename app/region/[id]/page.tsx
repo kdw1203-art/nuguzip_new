@@ -100,7 +100,7 @@ export async function generateStaticParams(): Promise<Array<{ id: string }>> {
  */
 function LoadFailed({ what }: { what: string }) {
   return (
-    <p className="py-6 text-center text-[13px] leading-[1.7] text-text-3">
+    <p className="py-6 text-center t-body text-text-3">
       {what}을 지금 불러오지 못했습니다. 데이터가 없다는 뜻이 아니라 조회에 실패했다는
       뜻입니다 — 이 화면은 최대 1시간 저장되므로, 잠시 뒤에 다시 방문해 주세요.
     </p>
@@ -545,17 +545,17 @@ export default async function RegionHubPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(regionJsonLd) }}
       />
-      <p className="rise-in mb-1 text-[12px] text-text-3">
+      <p className="rise-in mb-1 t-sub text-text-3">
         {formatYm(snapshot.period)} 기준 · 출처 {sourceLabel(snapshot.source)}
       </p>
       {/* G12 — 이 문단만 떼어 인용해도 뜻이 통해야 한다 */}
-      <p className="rise-in mb-5 text-[14px] leading-[1.75] text-text-1">{lead}</p>
+      <p className="rise-in mb-5 t-body text-text-1">{lead}</p>
 
       {/* [#64] 동네 홈 상호 링크 — 숫자(여기) ↔ 생활(동네 홈) */}
       <div className="rise-in mb-5 -mt-2">
         <Link
           href={`/town/${id}`}
-          className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-primary"
+          className="chip border border-line bg-surface px-3.5 py-2 t-body font-bold text-primary"
         >
           {name} 동네 홈 — 이웃 글·뉴스·임장노트 ›
         </Link>
@@ -565,7 +565,7 @@ export default async function RegionHubPage({
       <section className="rise-in-1 mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {kpiCards.map((k) => (
           <div key={k.label} className="card p-4">
-            <div className="text-[11px] text-text-3">{k.label}</div>
+            <div className="t-sub text-text-3">{k.label}</div>
             <div
               className={`mt-1 text-[20px] font-extrabold ${
                 k.subClass ?? "text-ink"
@@ -584,7 +584,7 @@ export default async function RegionHubPage({
       {marketRead.paragraphs.length > 0 && (
         <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-[15px] font-extrabold text-ink">
+            <h2 className="t-section text-ink">
               {name} 시장 흐름 읽기
             </h2>
             {/* [개선 #13] 지역 이름 키워드로 뉴스·동네글 알림 원탭 구독 */}
@@ -592,7 +592,7 @@ export default async function RegionHubPage({
           </div>
           <div className="mt-2 flex flex-col gap-2.5">
             {marketRead.paragraphs.map((p, i) => (
-              <p key={i} className="text-[13.5px] leading-[1.8] text-text-1">
+              <p key={i} className="t-body text-text-1">
                 {p}
               </p>
             ))}
@@ -601,7 +601,7 @@ export default async function RegionHubPage({
           <div className="mt-3">
             <Link
               href={`/region/${id}/report`}
-              className="text-[12.5px] font-bold text-primary"
+              className="t-body font-bold text-primary"
             >
               월간 리포트 아카이브 — 지난달까지의 월별 스냅샷 ›
             </Link>
@@ -611,16 +611,16 @@ export default async function RegionHubPage({
 
       {/* 최근 시세 추이 — 매매가격지수 월간 12개월, CSS 바 스파크라인 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           최근 시세 추이{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             매매가격지수 · 월간
           </span>
         </h2>
         {!seriesR.ok ? (
           <LoadFailed what="시세 추이" />
         ) : series.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             이 지역의 매매가격지수 시계열이 아직 수집되지 않았습니다.
           </p>
         ) : (
@@ -649,14 +649,14 @@ export default async function RegionHubPage({
                 </div>
               ))}
             </div>
-            <div className="mt-1 flex justify-between text-[9px] text-text-3">
+            <div className="mt-1 flex justify-between t-caption text-text-3">
               <span>{shortPeriod(series[0].period)}</span>
               <span>{shortPeriod(series[series.length - 1].period)}</span>
             </div>
           </>
         )}
         {tempRegion && (
-          <p className="mt-3 text-[12px] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             <Link
               href={`/analysis/temperature/${encodeURIComponent(id)}`}
               className="font-bold text-primary underline"
@@ -671,36 +671,36 @@ export default async function RegionHubPage({
           신고 지연·갱신/신규 미구분(원천 한계)은 화면에 명기한다. */}
       {rentSnap && (rentSnap.jeonse.count > 0 || rentSnap.wolse.count > 0) && (
         <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             전월세 시장{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               {rentSnap.periodLabel} 신고분 {rentSnap.sampleCount.toLocaleString("ko-KR")}건
               {rentSnap.sampleTruncated ? " 표본" : ""} 기준
             </span>
           </h2>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             <div className="rounded-xl bg-bg px-3 py-2.5">
-              <div className="text-[10.5px] text-text-3">전세 보증금 중앙값</div>
-              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums text-ink">
+              <div className="t-caption text-text-3">전세 보증금 중앙값</div>
+              <div className="mt-0.5 t-section tabular-nums text-ink">
                 {rentSnap.jeonse.medianDepositKrw59_85 !== null
                   ? formatKrwShort(rentSnap.jeonse.medianDepositKrw59_85)
                   : rentSnap.jeonse.medianDepositKrw !== null
                     ? formatKrwShort(rentSnap.jeonse.medianDepositKrw)
                     : "—"}
               </div>
-              <div className="text-[10px] text-text-3">
+              <div className="t-caption text-text-3">
                 {rentSnap.jeonse.medianDepositKrw59_85 !== null ? "59~85㎡ 기준" : "전체 면적 기준"} ·{" "}
                 {rentSnap.jeonse.count.toLocaleString("ko-KR")}건
               </div>
             </div>
             <div className="rounded-xl bg-bg px-3 py-2.5">
-              <div className="text-[10.5px] text-text-3">월세 중앙값</div>
-              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums text-ink">
+              <div className="t-caption text-text-3">월세 중앙값</div>
+              <div className="mt-0.5 t-section tabular-nums text-ink">
                 {rentSnap.wolse.medianMonthlyKrw !== null
                   ? `월 ${Math.round(rentSnap.wolse.medianMonthlyKrw / 10_000).toLocaleString("ko-KR")}만`
                   : "—"}
               </div>
-              <div className="text-[10px] text-text-3">
+              <div className="t-caption text-text-3">
                 보증금 중앙{" "}
                 {rentSnap.wolse.medianDepositKrw !== null
                   ? formatKrwShort(rentSnap.wolse.medianDepositKrw)
@@ -709,11 +709,11 @@ export default async function RegionHubPage({
               </div>
             </div>
             <div className="rounded-xl bg-bg px-3 py-2.5">
-              <div className="text-[10.5px] text-text-3">월세 비중</div>
-              <div className="mt-0.5 text-[16px] font-extrabold tabular-nums text-ink">
+              <div className="t-caption text-text-3">월세 비중</div>
+              <div className="mt-0.5 t-section tabular-nums text-ink">
                 {rentSnap.wolseShare !== null ? `${Math.round(rentSnap.wolseShare * 100)}%` : "—"}
               </div>
-              <div className="text-[10px] text-text-3">전월세 신고 중 월세 계약</div>
+              <div className="t-caption text-text-3">전월세 신고 중 월세 계약</div>
             </div>
           </div>
           {rentSnap.monthly.length >= 4 && (
@@ -741,13 +741,13 @@ export default async function RegionHubPage({
                   );
                 })}
               </div>
-              <div className="mt-1 flex justify-between text-[9px] text-text-3">
+              <div className="mt-1 flex justify-between t-caption text-text-3">
                 <span>{shortYm(rentSnap.monthly[0].month)}</span>
                 <span>{shortYm(rentSnap.monthly[rentSnap.monthly.length - 1].month)}</span>
               </div>
             </>
           )}
-          <p className="mt-3 text-[11px] leading-[1.7] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             국토교통부 전월세 신고 기준. 최근 두 달(점선)은 신고 지연으로 실제보다 적게
             잡힐 수 있고, 신고분에는 갱신·신규 계약이 섞여 있어 체감 시세와 다를 수
             있습니다. 중앙값은 지역 전체 기준이라 단지별 편차가 큽니다.
@@ -758,17 +758,17 @@ export default async function RegionHubPage({
       {/* [#52] 평형대별 시세 — "○○구 30평대" 검색 수요를 지역 페이지 안에서 받는다 */}
       {areaBands && areaBands.bands.length > 0 && (
         <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             평형대별 매매 시세{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               {areaBands.periodLabel} 신고 {areaBands.sampleCount.toLocaleString("ko-KR")}건
               {areaBands.truncated ? " 표본" : ""} 기준
             </span>
           </h2>
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[420px] text-[13px]">
+            <table className="w-full min-w-[420px] t-body">
               <thead>
-                <tr className="border-b border-line text-left text-[11px] text-text-3">
+                <tr className="border-b border-line text-left t-sub text-text-3">
                   <th className="py-1.5 pr-3 font-semibold">면적대</th>
                   <th className="py-1.5 pr-3 text-right font-semibold">거래</th>
                   <th className="py-1.5 pr-3 text-right font-semibold">중앙값</th>
@@ -793,7 +793,7 @@ export default async function RegionHubPage({
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+          <p className="mt-2 t-sub text-text-3">
             표본 5건 미만 면적대는 표시하지 않습니다. 중앙값 기준이라 단지·층·연식에 따라
             실제 가격은 다릅니다.
           </p>
@@ -802,16 +802,16 @@ export default async function RegionHubPage({
 
       {/* 월별 거래량 — market_region_monthly (국토부 실거래 집계) */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           월별 거래량{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             아파트 매매 신고 건수
           </span>
         </h2>
         {!volumeR.ok ? (
           <LoadFailed what="월별 거래량" />
         ) : volume.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             이 지역의 월별 거래량 집계가 아직 없습니다.
           </p>
         ) : (
@@ -836,11 +836,11 @@ export default async function RegionHubPage({
                 </div>
               ))}
             </div>
-            <div className="mt-1 flex justify-between text-[9px] text-text-3">
+            <div className="mt-1 flex justify-between t-caption text-text-3">
               <span>{shortYm(volume[0].month)}</span>
               <span>{shortYm(volume[volume.length - 1].month)}</span>
             </div>
-            <p className="mt-3 text-[12px] leading-[1.7] text-text-2">
+            <p className="mt-3 t-sub text-text-2">
               최근 {volume.length}개월 합계 {volumeTotal.toLocaleString("ko-KR")}건
               {latestVolume
                 ? ` · ${formatYm(latestVolume.month)} ${latestVolume.count.toLocaleString("ko-KR")}건`
@@ -848,7 +848,7 @@ export default async function RegionHubPage({
             </p>
             {/* 신고 지연은 반드시 화면에 적는다 — 적지 않으면 마지막 두 칸을
                 "거래 급감" 으로 오해하게 된다. 그래서 그 두 칸은 점선으로 그린다. */}
-            <p className="mt-1 text-[11px] leading-[1.7] text-text-3">
+            <p className="mt-1 t-sub text-text-3">
               실거래 신고 기한은 계약일로부터 30일입니다. 점선으로 표시한 최근 두 달은
               아직 신고가 들어오는 중이라 실제보다 적게 잡혀 있습니다.
             </p>
@@ -858,16 +858,16 @@ export default async function RegionHubPage({
 
       {/* 최근 실거래 5건 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           최근 실거래{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             아파트 매매 · 국토부 실거래가
           </span>
         </h2>
         {!transactionsR.ok ? (
           <LoadFailed what="최근 실거래" />
         ) : transactions.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             이 지역에서 수집된 아파트 매매 실거래가 아직 없습니다.
           </p>
         ) : (
@@ -880,17 +880,17 @@ export default async function RegionHubPage({
                 }`}
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-bold text-ink">
+                  <div className="truncate t-body font-bold text-ink">
                     {t.complexName}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-text-3">
+                  <div className="mt-0.5 t-sub text-text-3">
                     {formatYm(t.contractYm)}
                     {t.contractDay ? `.${String(t.contractDay).padStart(2, "0")}` : ""}
                     {t.areaM2 !== null ? ` · ${t.areaM2.toFixed(1)}㎡` : ""}
                     {t.floor !== null ? ` · ${t.floor}층` : ""}
                   </div>
                 </div>
-                <div className="shrink-0 text-[15px] font-extrabold text-ink">
+                <div className="shrink-0 t-section text-ink">
                   {formatKrwShort(t.dealAmountKrw)}
                 </div>
               </li>
@@ -902,9 +902,9 @@ export default async function RegionHubPage({
       {/* 단지별 현황 — market_transactions 그룹 요약 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             단지별 현황{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               국토부 실거래가 기반 · 매물 호가 아님
             </span>
           </h2>
@@ -932,7 +932,7 @@ export default async function RegionHubPage({
               href={`/complex/browse?district=${encodeURIComponent(
                 txRegion.city === "서울" ? `서울 ${txRegion.name}` : txRegion.name,
               )}`}
-              className="text-[12px] font-bold text-primary"
+              className="t-sub font-bold text-primary"
             >
               서울 전체 단지 브라우즈 →
             </Link>
@@ -944,9 +944,9 @@ export default async function RegionHubPage({
           (없다고 말하지 않기 위해서다) */}
       {supply.length > 0 && (
         <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             {name} 입주 예정 물량{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               공급 · 2026~2027
             </span>
           </h2>
@@ -971,7 +971,7 @@ export default async function RegionHubPage({
             return (
               <div className="mt-3 flex flex-col gap-1.5">
                 {years.map(([y, v]) => (
-                  <div key={y} className="flex items-center gap-2.5 text-[12px]">
+                  <div key={y} className="flex items-center gap-2.5 t-sub">
                     <span className="w-[38px] shrink-0 font-bold tabular-nums text-text-2">
                       {y}
                     </span>
@@ -986,7 +986,7 @@ export default async function RegionHubPage({
                     </span>
                   </div>
                 ))}
-                <p className="text-[10px] leading-[1.6] text-text-3">
+                <p className="t-caption text-text-3">
                   조회분 {supply.length}건 중 세대수 확인분 합계
                   {unknown > 0 && ` (세대수 미상 ${unknown}건 제외)`} · 일정은 변동될 수
                   있습니다
@@ -1001,23 +1001,23 @@ export default async function RegionHubPage({
                 className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-bold text-ink">
+                  <div className="truncate t-body font-bold text-ink">
                     {s.aptName ?? "미정"}
                     {s.bizType ? (
-                      <span className="ml-1.5 rounded-full bg-primary-soft chip-pad-tight text-[10px] font-semibold text-primary">
+                      <span className="ml-1.5 rounded-full bg-primary-soft chip-pad-tight t-caption font-semibold text-primary">
                         {s.bizType}
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-0.5 truncate text-[11px] text-text-3">
+                  <div className="mt-0.5 truncate t-sub text-text-3">
                     {s.address ?? ""}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="text-[13px] font-extrabold text-ink">
+                  <div className="t-body font-extrabold text-ink">
                     {s.moveInYm.slice(0, 4)}.{s.moveInYm.slice(4, 6)}
                   </div>
-                  <div className="text-[11px] text-text-3">
+                  <div className="t-sub text-text-3">
                     {s.households ? `${s.households.toLocaleString()}세대` : "—"}
                   </div>
                 </div>
@@ -1026,7 +1026,7 @@ export default async function RegionHubPage({
           </ul>
           <Link
             href={`/supply?region=${encodeURIComponent(txRegion.city)}`}
-            className="mt-3 inline-block text-[12px] font-bold text-primary"
+            className="mt-3 inline-block t-sub font-bold text-primary"
           >
             {txRegion.city} 전체 입주 물량 ›
           </Link>
@@ -1037,9 +1037,9 @@ export default async function RegionHubPage({
           "정비사업이 없는 동네" 는 우리가 확인할 수 없는 주장이다. */}
       {projectsShown.length > 0 && (
         <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             {shortName} 정비사업{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               공개 자료 확인분 {projects.length.toLocaleString("ko-KR")}곳
             </span>
           </h2>
@@ -1050,25 +1050,25 @@ export default async function RegionHubPage({
                 className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-bold text-ink">{p.name}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-text-3">
+                  <div className="truncate t-body font-bold text-ink">{p.name}</div>
+                  <div className="mt-0.5 truncate t-sub text-text-3">
                     {labelForType(p.typeKey)} · {stageLabel(p.stageKey)}
                     {p.address ? ` · ${p.address}` : ""}
                   </div>
                 </div>
-                <div className="shrink-0 text-right text-[11px] text-text-3">
+                <div className="shrink-0 text-right t-sub text-text-3">
                   {p.households ? `${p.households.toLocaleString("ko-KR")}세대` : "세대수 미공개"}
                 </div>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11px] leading-[1.7] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             진행 단계는 공개 고시·언론 공개정보 기준 참고값입니다. 확정 일정과 조건은
             조합·지자체 공고를 확인해 주세요.
           </p>
           <Link
             href="/redevelopment"
-            className="mt-2 inline-block text-[12px] font-bold text-primary"
+            className="mt-2 inline-block t-sub font-bold text-primary"
           >
             정비사업 지도에서 보기 ›
           </Link>
@@ -1077,13 +1077,13 @@ export default async function RegionHubPage({
 
       {/* 이 지역 공개 임장노트 */}
       <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           {name} 공개 임장노트
         </h2>
         {!notesR.ok ? (
           <LoadFailed what="공개 임장노트" />
         ) : notes.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             아직 이 지역의 공개 임장노트가 없어요. 첫 노트를 남겨보세요.
           </p>
         ) : (
@@ -1092,17 +1092,17 @@ export default async function RegionHubPage({
               <Link
                 key={n.id}
                 href={`/notes/${n.id}`}
-                className="card card-hover block p-4"
+                className="card tile block p-4"
               >
-                <div className="truncate text-[13px] font-bold text-ink">
+                <div className="truncate t-body font-bold text-ink">
                   {n.title}
                 </div>
-                <div className="mt-1 text-[11px] text-text-3">
+                <div className="mt-1 t-sub text-text-3">
                   {n.region}
                   {n.aptName ? ` · ${n.aptName}` : ""} · {n.visitDate}
                 </div>
                 {n.summary ? (
-                  <p className="mt-2 line-clamp-2 text-[12px] leading-[1.6] text-text-2">
+                  <p className="mt-2 line-clamp-2 t-sub text-text-2">
                     {n.summary}
                   </p>
                 ) : null}
@@ -1115,9 +1115,9 @@ export default async function RegionHubPage({
       {/* A5 — 면적대·가격대별 실거래 랜딩 내부 링크 */}
       {txBandRegion && (
         <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             면적대·가격대별 실거래{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               국토부 신고 {txBandRegion.txCount.toLocaleString("ko-KR")}건 기준
             </span>
           </h2>
@@ -1126,13 +1126,13 @@ export default async function RegionHubPage({
             if (cells.length === 0) return null;
             return (
               <div key={kind} className="mt-3">
-                <div className="mb-1.5 text-[11px] text-text-3">{BAND_KIND_LABEL[kind]}</div>
+                <div className="mb-1.5 t-sub text-text-3">{BAND_KIND_LABEL[kind]}</div>
                 <div className="flex flex-wrap gap-2">
                   {cells.map((c) => (
                     <Link
                       key={c.bandSlug}
                       href={`/tx/${encodeURIComponent(txBandRegion.slug)}/${kind}/${c.bandSlug}`}
-                      className="card-hover rounded-full border border-border px-3 py-1.5 text-[12px] font-bold text-ink"
+                      className="tile rounded-full border border-border px-3 py-1.5 t-sub font-bold text-ink"
                     >
                       {c.bandLabel}
                       <span className="ml-1 font-medium text-text-3">
@@ -1144,7 +1144,7 @@ export default async function RegionHubPage({
               </div>
             );
           })}
-          <p className="mt-3 text-[12px] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             <Link
               href={`/tx/${encodeURIComponent(txBandRegion.slug)}`}
               className="font-bold text-primary underline"
@@ -1161,17 +1161,17 @@ export default async function RegionHubPage({
       {/* [#88] 지역 시세 위젯 배포 진입점 — 중개사 블로그·홈페이지용. 위젯 안에
           출처 링크가 박혀 있으므로 퍼가기가 곧 백링크다(단지 위젯 N17 과 동일 원리). */}
       <div className="rise-in-3 mb-4 flex flex-col gap-1 rounded-[14px] border border-line bg-surface p-4">
-        <span className="text-[13px] font-extrabold text-ink">
+        <span className="t-body font-extrabold text-ink">
           {name} 시세를 블로그·홈페이지에 붙이기
         </span>
-        <span className="text-[12px] leading-[1.7] text-text-2">
+        <span className="t-sub text-text-2">
           중개사무소 블로그·홈페이지에 iframe 한 줄로 {name} 평균 매매가·전세가율·지수
           변동 카드를 실을 수 있습니다. 시세가 갱신되면 붙여넣은 위젯도 함께 갱신됩니다.
           무료이며 출처 표기가 포함됩니다.
         </span>
         <Link
           href={`/widget?region=${encodeURIComponent(id)}`}
-          className="mt-2 w-fit rounded-[10px] bg-primary px-4 py-2 text-[12px] font-bold text-white"
+          className="mt-2 w-fit rounded-[10px] bg-primary px-4 py-2 t-sub font-bold text-white"
         >
           위젯 코드 만들기 ›
         </Link>
@@ -1181,19 +1181,19 @@ export default async function RegionHubPage({
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">
         <Link
           href="/notes/new"
-          className="rounded-xl bg-primary px-5 py-3 text-[13px] font-bold text-white shadow-[var(--shadow-cta)]"
+          className="rounded-xl bg-primary px-5 py-3 t-body font-bold text-white shadow-[var(--shadow-cta)]"
         >
           이 지역 임장노트 쓰기
         </Link>
         <Link
           href="/map"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           지도에서 보기
         </Link>
         <Link
           href="/notifications"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           시세 알림 구독
         </Link>

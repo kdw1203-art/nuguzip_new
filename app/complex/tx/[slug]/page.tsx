@@ -182,14 +182,14 @@ export default async function ComplexTxPage({
       breadcrumb={`홈 › 단지 실거래 › ${regionLabel} › ${complexName}`}
       title={`${complexName} 실거래가`}
     >
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         국토교통부 실거래가 기반 · 매물 호가 아님 · 최근 거래{" "}
         <strong className="text-ink">{formatKrwShort(latest.dealAmountKrw)}</strong> (
         {formatYmd(latest.contractYm, latest.contractDay)})
       </p>
 
       {/* 실매물 연결 — 집주인 직접·중개사 등록 (검수 통과분만) */}
-      <p className="rise-in mb-5 -mt-3 text-[13px]">
+      <p className="rise-in mb-5 -mt-3 t-body">
         <Link
           href={`/listings?complex=${encodeURIComponent(complexName)}`}
           className="font-bold text-primary underline"
@@ -200,12 +200,12 @@ export default async function ComplexTxPage({
 
       {/* 단지 개요 */}
       <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">단지 개요</h2>
+        <h2 className="t-section text-ink">단지 개요</h2>
         <div className="mt-2">
           {overviewRows.map((r) => (
             <div
               key={r.label}
-              className="flex items-baseline justify-between gap-3 border-b border-border py-2 text-[13px] last:border-b-0"
+              className="flex items-baseline justify-between gap-3 border-b border-border py-2 t-body last:border-b-0"
             >
               <span className="shrink-0 text-text-3">{r.label}</span>
               <span className="text-right font-bold text-ink">{r.value}</span>
@@ -213,7 +213,7 @@ export default async function ComplexTxPage({
           ))}
         </div>
         {aptMatch && (
-          <p className="mt-2 text-[11px] text-text-3">
+          <p className="mt-2 t-sub text-text-3">
             단지 정보: 공동주택 단지 데이터({aptMatch.name}) 병합
           </p>
         )}
@@ -222,16 +222,16 @@ export default async function ComplexTxPage({
       {/* 면적대별 요약 */}
       {bands.length > 0 && (
         <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             면적대별 시세{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               최근 {transactions.length}건 기준
             </span>
           </h2>
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[420px] text-left text-[13px]">
+            <table className="w-full min-w-[420px] text-left t-body">
               <thead>
-                <tr className="border-b border-border text-[11px] text-text-3">
+                <tr className="border-b border-border t-sub text-text-3">
                   <th className="py-2 font-medium">전용면적</th>
                   <th className="py-2 font-medium">거래</th>
                   <th className="py-2 text-right font-medium">최근가</th>
@@ -245,7 +245,7 @@ export default async function ComplexTxPage({
                     <td className="py-2.5 text-text-2">{b.count}건</td>
                     <td className="py-2.5 text-right font-extrabold text-ink">
                       {formatKrwShort(b.latestAmountKrw)}
-                      <span className="ml-1 text-[11px] font-medium text-text-3">
+                      <span className="ml-1 t-sub font-medium text-text-3">
                         {shortYm(b.latestYm)}
                       </span>
                     </td>
@@ -262,12 +262,12 @@ export default async function ComplexTxPage({
 
       {/* 12개월 월별 거래량·평균가 미니 차트 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           월별 거래{" "}
-          <span className="text-[11px] font-medium text-text-3">최근 12개월 · 거래량·평균가</span>
+          <span className="t-sub font-medium text-text-3">최근 12개월 · 거래량·평균가</span>
         </h2>
         {count12m === 0 ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             최근 12개월 거래가 없습니다. 아래 전체 이력에서 과거 거래를 확인하세요.
           </p>
         ) : (
@@ -281,7 +281,7 @@ export default async function ComplexTxPage({
                     m.avgAmountKrw !== null ? ` · 평균 ${formatKrwShort(m.avgAmountKrw)}` : ""
                   }`}
                 >
-                  <span className="text-[9px] font-bold text-text-3">
+                  <span className="t-caption font-bold text-text-3">
                     {m.avgAmountKrw !== null ? formatKrwShort(m.avgAmountKrw) : ""}
                   </span>
                   <div
@@ -295,7 +295,7 @@ export default async function ComplexTxPage({
                 </div>
               ))}
             </div>
-            <div className="mt-1 flex justify-between text-[9px] text-text-3">
+            <div className="mt-1 flex justify-between t-caption text-text-3">
               <span>{shortYm(monthly[0].ym)}</span>
               <span>{shortYm(monthly[monthly.length - 1].ym)}</span>
             </div>
@@ -305,16 +305,16 @@ export default async function ComplexTxPage({
 
       {/* 최근 거래 30건 표 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           거래 이력{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             최근 {transactions.length}건 · 국토부 실거래가
           </span>
         </h2>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[420px] text-left text-[13px]">
+          <table className="w-full min-w-[420px] text-left t-body">
             <thead>
-              <tr className="border-b border-border text-[11px] text-text-3">
+              <tr className="border-b border-border t-sub text-text-3">
                 <th className="py-2 font-medium">계약일</th>
                 <th className="py-2 font-medium">전용면적</th>
                 <th className="py-2 font-medium">층</th>
@@ -344,7 +344,7 @@ export default async function ComplexTxPage({
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-[11px] text-text-3">
+        <p className="mt-2 t-sub text-text-3">
           국토교통부 실거래가 공개시스템 신고 자료 기반이며, 실제 매물 호가와 다를 수 있습니다.
         </p>
       </section>
@@ -360,9 +360,9 @@ export default async function ComplexTxPage({
       {/* KB 시세정보 (CODEF 연동 시 노출) */}
       {quoteRecords.length > 0 && (
         <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             KB 시세{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               면적별 매매 상·하한 평균가 · 만원 아님(원 환산 표기)
             </span>
           </h2>
@@ -373,14 +373,14 @@ export default async function ComplexTxPage({
                 className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
               >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-bold text-ink">
+                  <div className="t-body font-bold text-ink">
                     {r.areaM2 ? `${r.areaM2}㎡` : "면적 미상"}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-text-3">
+                  <div className="mt-0.5 t-sub text-text-3">
                     {r.recordDate ?? r.period ?? ""} 기준
                   </div>
                 </div>
-                <div className="shrink-0 text-right text-[13px] font-extrabold text-ink">
+                <div className="shrink-0 text-right t-body font-extrabold text-ink">
                   {r.priceLowKrw ? formatKrwShort(r.priceLowKrw) : "—"}
                   {" ~ "}
                   {r.priceHighKrw ? formatKrwShort(r.priceHighKrw) : "—"}
@@ -388,7 +388,7 @@ export default async function ComplexTxPage({
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[11px] text-text-3">
+          <p className="mt-2 t-sub text-text-3">
             출처: KB부동산 시세(공개 자료) · 참고용, 실거래·계약 조건에 따라 다를 수 있습니다.
           </p>
         </section>
@@ -398,22 +398,22 @@ export default async function ComplexTxPage({
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">
         <Link
           href="/notes/new"
-          className="rounded-xl bg-primary px-5 py-3 text-[13px] font-bold text-white shadow-[var(--shadow-cta)]"
+          className="rounded-xl bg-primary px-5 py-3 t-body font-bold text-white shadow-[var(--shadow-cta)]"
         >
           이 단지 임장노트 쓰기
         </Link>
         <Link
           href={`/region/${region.id}`}
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           {region.name} 지역 허브
         </Link>
-        <Link href="/map" className="card card-hover px-5 py-3 text-[13px] font-bold text-ink">
+        <Link href="/map" className="card tile px-5 py-3 t-body font-bold text-ink">
           지도에서 보기
         </Link>
         <Link
           href={`/complex/browse?district=${encodeURIComponent(regionLabel)}`}
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           {region.name} 다른 단지
         </Link>

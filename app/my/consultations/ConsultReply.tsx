@@ -74,10 +74,10 @@ export function ConsultReply({
         onChange={(e) => setReply(e.target.value.slice(0, REPLY_MAX))}
         rows={4}
         placeholder="상담 답변을 작성해 주세요. 신청자에게 전달됩니다."
-        className="w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] leading-[1.6] text-ink outline-none focus:border-primary"
+        className="w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 t-body text-ink outline-none focus:border-primary"
       />
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-text-3">
+        <span className="t-sub text-text-3">
           {reply.length}/{REPLY_MAX}
         </span>
         <div className="flex gap-2">
@@ -102,7 +102,7 @@ export function ConsultReply({
           </button>
         </div>
       </div>
-      {error && <span className="text-[11px] font-bold text-danger">{error}</span>}
+      {error && <span className="t-sub font-bold text-danger">{error}</span>}
     </div>
   );
 }

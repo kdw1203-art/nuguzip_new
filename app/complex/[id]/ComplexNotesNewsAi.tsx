@@ -156,19 +156,19 @@ export async function ComplexNotesNewsAi({
       {/* ── 이 단지 임장노트 ─────────────────────────────────────────────── */}
       <div className="card rounded-2xl p-5">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-[15px] font-extrabold text-ink">이 단지 임장노트</h2>
+          <h2 className="t-section text-ink">이 단지 임장노트</h2>
           {notes.length > 0 && (
-            <span className="text-[11px] text-text-3">{notes.length}건</span>
+            <span className="t-sub text-text-3">{notes.length}건</span>
           )}
         </div>
 
         {notesFailed ? (
-          <p className="mt-3 text-[12px] leading-[1.7] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             노트를 지금 불러오지 못했어요. 노트가 없는 게 아니라 조회가 실패했습니다 —
             잠시 후 새로고침해 주세요.
           </p>
         ) : notes.length === 0 ? (
-          <p className="mt-3 text-[12px] leading-[1.7] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             아직 이 단지의 공개 임장노트가 없어요. 직접 다녀오셨다면 첫 기록을 남겨
             주세요 — 다음 사람이 그 기록을 보고 옵니다.
           </p>
@@ -180,10 +180,10 @@ export async function ComplexNotesNewsAi({
                   href={`/notes/${encodeURIComponent(n.id)}`}
                   className="block rounded-xl border border-line bg-surface px-3.5 py-2.5 transition-colors hover:border-primary"
                 >
-                  <span className="block truncate text-[13px] font-bold text-ink">
+                  <span className="block truncate t-body font-bold text-ink">
                     {n.title}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-text-3">
+                  <span className="mt-0.5 block t-sub text-text-3">
                     {[n.visitDate, n.region].filter(Boolean).join(" · ") || "방문일 미기재"}
                   </span>
                 </Link>
@@ -194,7 +194,7 @@ export async function ComplexNotesNewsAi({
 
         <Link
           href={noteHref}
-          className="btn-secondary mt-3 block rounded-xl p-2.5 text-center text-[12px] font-extrabold"
+          className="btn-secondary mt-3 block rounded-xl p-2.5 text-center t-sub font-extrabold"
         >
           이 단지 임장노트 쓰기
         </Link>
@@ -202,14 +202,14 @@ export async function ComplexNotesNewsAi({
 
       {/* ── AI 분석 ──────────────────────────────────────────────────────── */}
       <div className="card rounded-2xl p-5">
-        <h2 className="text-[15px] font-extrabold text-ink">AI 분석</h2>
+        <h2 className="t-section text-ink">AI 분석</h2>
         {/* 여기에 분석 결과를 미리 적어 두지 않는다. 재료가 무엇인지만 밝힌다 —
             읽는 사람이 "이 분석이 무엇을 근거로 하는가"를 먼저 알아야 한다. */}
-        <p className="mt-3 text-[12px] leading-[1.7] text-text-3">
+        <p className="mt-3 t-sub text-text-3">
           이 단지에 대해 AI가 읽는 재료는 아래와 같습니다. 분석은 요청하실 때 그
           시점의 데이터로 만들어집니다.
         </p>
-        <ul className="mt-3 flex flex-col gap-1.5 text-[12px] text-text-2">
+        <ul className="mt-3 flex flex-col gap-1.5 t-sub text-text-2">
           <li className="flex items-center justify-between gap-2 border-b border-[rgba(16,28,54,.06)] pb-1.5">
             <span>국토교통부 실거래</span>
             <span className="font-bold text-ink">
@@ -233,7 +233,7 @@ export async function ComplexNotesNewsAi({
         </ul>
         <Link
           href={analysisHref}
-          className="btn-primary btn-cta mt-3 block rounded-xl p-2.5 text-center text-[12px] font-extrabold text-white"
+          className="btn-primary btn-cta mt-3 block rounded-xl p-2.5 text-center t-sub font-extrabold text-white"
         >
           이 단지 AI 분석 받기
         </Link>
@@ -241,9 +241,9 @@ export async function ComplexNotesNewsAi({
 
       {/* ── 관련 기사 ────────────────────────────────────────────────────── */}
       <div className="card rounded-2xl p-5">
-        <h2 className="text-[15px] font-extrabold text-ink">관련 기사</h2>
+        <h2 className="t-section text-ink">관련 기사</h2>
         {news.length === 0 ? (
-          <p className="mt-3 text-[12px] leading-[1.7] text-text-3">
+          <p className="mt-3 t-sub text-text-3">
             이 단지·지역을 다룬 기사가 아직 모이지 않았어요.
           </p>
         ) : (
@@ -254,10 +254,10 @@ export async function ComplexNotesNewsAi({
                   href={n.href}
                   className="block rounded-xl border border-line bg-surface px-3.5 py-2.5 transition-colors hover:border-primary"
                 >
-                  <span className="line-clamp-2 block text-[13px] font-bold leading-[1.45] text-ink">
+                  <span className="line-clamp-2 block t-body font-bold text-ink">
                     {n.title}
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-text-3">
+                  <span className="mt-0.5 block t-sub text-text-3">
                     {[n.source, n.when].filter(Boolean).join(" · ") || "출처 미상"}
                   </span>
                 </Link>
@@ -267,7 +267,7 @@ export async function ComplexNotesNewsAi({
         )}
         <Link
           href={`/town/news?region=${encodeURIComponent(region)}`}
-          className="btn-secondary mt-3 block rounded-xl p-2.5 text-center text-[12px] font-extrabold"
+          className="btn-secondary mt-3 block rounded-xl p-2.5 text-center t-sub font-extrabold"
         >
           이 지역 뉴스 더 보기
         </Link>

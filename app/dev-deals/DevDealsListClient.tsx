@@ -62,7 +62,7 @@ function DealCard({ d }: { d: DevDeal }) {
   if (land !== "—") stats.push({ label: "부지면적", value: land });
 
   return (
-    <article className="card card-hover flex flex-col gap-3 rounded-2xl p-[var(--pad-card)]">
+    <article className="card tile flex flex-col gap-3 rounded-2xl p-[var(--pad-card)]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">

@@ -67,7 +67,7 @@ export default function LegalHubPage() {
 
       <section className="mt-6 space-y-3">
         {ITEMS.map((item) => (
-          <Link key={item.href} href={item.href} className="card card-hover block p-5">
+          <Link key={item.href} href={item.href} className="card tile block p-5">
             <p className="text-sm font-semibold text-ink">{item.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-text-2">{item.desc}</p>
           </Link>

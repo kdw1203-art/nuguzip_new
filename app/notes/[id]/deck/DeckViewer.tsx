@@ -159,7 +159,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
           {page.scores.length > 0 && <ScoreBars scores={page.scores} dark={dark} />}
 
           {page.checks.length > 0 && (
-            <ul className="flex flex-col gap-1.5 text-[13px]">
+            <ul className="flex flex-col gap-1.5 t-body">
               {page.checks.map((c, i) => (
                 <li key={i} className="flex items-start gap-2">
                   <span
@@ -269,7 +269,7 @@ export function DeckViewer({ deck }: { deck: NoteDeck }) {
           onClick={() => goTo(Math.max(0, active - 1))}
           disabled={active === 0}
           aria-label="이전 카드"
-          className="press flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-[15px] font-extrabold text-text-1 disabled:opacity-35"
+          className="press flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface t-section text-text-1 disabled:opacity-35"
         >
           ‹
         </button>
@@ -302,7 +302,7 @@ export function DeckViewer({ deck }: { deck: NoteDeck }) {
                 style={{ width: `${Math.round(((active + 1) / total) * 100)}%` }}
               />
             </span>
-            <span className="text-[12px] font-extrabold tabular-nums text-text-2">
+            <span className="t-sub font-extrabold tabular-nums text-text-2">
               {active + 1} / {total}
             </span>
           </div>
@@ -313,7 +313,7 @@ export function DeckViewer({ deck }: { deck: NoteDeck }) {
           onClick={() => goTo(Math.min(total - 1, active + 1))}
           disabled={active === total - 1}
           aria-label="다음 카드"
-          className="press flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-[15px] font-extrabold text-text-1 disabled:opacity-35"
+          className="press flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface t-section text-text-1 disabled:opacity-35"
         >
           ›
         </button>

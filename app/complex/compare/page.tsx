@@ -178,7 +178,7 @@ export default async function ComplexComparePage() {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
       />
 
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         같은 동에서 거래가 많은 단지끼리 실거래를 나란히 놓고 봅니다.
         {pairs.length > 0 && (
           <>
@@ -195,7 +195,7 @@ export default async function ComplexComparePage() {
 
       {loadFailed ? (
         <section className="rise-in-1 card p-[var(--pad-card)]">
-          <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          <p className="py-8 text-center t-body text-text-3">
             <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
             비교할 단지가 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는
@@ -204,7 +204,7 @@ export default async function ComplexComparePage() {
         </section>
       ) : pairs.length === 0 ? (
         <section className="rise-in-1 card p-[var(--pad-card)]">
-          <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          <p className="py-8 text-center t-body text-text-3">
             아직 기준을 넘은 조합이 없습니다.
             <br />
             같은 동에서 최근 12개월 매매 {MIN_SIDE_TX}건 이상인 단지가 둘 이상 모이면 이곳에
@@ -215,11 +215,11 @@ export default async function ComplexComparePage() {
         <div className="rise-in-1 mb-6 space-y-4">
           {groups.map((group) => (
             <section key={group.regionId} className="card p-[var(--pad-card)]">
-              <h2 className="flex items-baseline justify-between gap-3 text-[15px] font-extrabold text-ink">
+              <h2 className="flex items-baseline justify-between gap-3 t-section text-ink">
                 <Link href={`/region/${group.regionId}`} className="hover:underline">
                   {group.label}
                 </Link>
-                <span className="shrink-0 text-[11px] font-medium text-text-3">
+                <span className="shrink-0 t-sub font-medium text-text-3">
                   조합 {group.pairs.length}개
                 </span>
               </h2>
@@ -228,14 +228,14 @@ export default async function ComplexComparePage() {
                   <Link
                     key={complexPairPath(pair)}
                     href={complexPairPath(pair)}
-                    className="card-hover rounded-[10px] border border-border px-3 py-2.5"
+                    className="tile rounded-[10px] border border-border px-3 py-2.5"
                   >
-                    <span className="block text-[13px] font-bold leading-[1.5] text-ink">
+                    <span className="block t-body font-bold text-ink">
                       {pair.complexA}
-                      <span className="mx-1 text-[11px] font-medium text-text-3">vs</span>
+                      <span className="mx-1 t-sub font-medium text-text-3">vs</span>
                       {pair.complexB}
                     </span>
-                    <span className="mt-0.5 block text-[11px] text-text-3">
+                    <span className="mt-0.5 block t-sub text-text-3">
                       {pair.dong} · 12개월 {pair.tradeCountA.toLocaleString("ko-KR")}건 vs{" "}
                       {pair.tradeCountB.toLocaleString("ko-KR")}건
                     </span>
@@ -250,8 +250,8 @@ export default async function ComplexComparePage() {
       <QaBlock items={qa} />
 
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">조합을 고른 기준</h2>
-        <ul className="mt-2 space-y-1.5 text-[13px] leading-[1.6] text-text-2">
+        <h2 className="t-section text-ink">조합을 고른 기준</h2>
+        <ul className="mt-2 space-y-1.5 t-body text-text-2">
           <li>
             · <strong className="text-ink">같은 법정동</strong>에 있는 단지끼리만 짝지었습니다.
             생활권이 다른 단지를 나란히 놓으면 가격 차이가 단지 차이인지 동네 차이인지 알 수
@@ -274,7 +274,7 @@ export default async function ComplexComparePage() {
         </ul>
       </section>
 
-      <p className="mb-8 text-[12px] text-text-3">
+      <p className="mb-8 t-sub text-text-3">
         단지 하나씩 보려면{" "}
         <Link href="/complex/browse" className="font-bold text-primary underline">
           단지 실거래 브라우즈

@@ -40,7 +40,7 @@ export function CopyLink({
   if (variant === "code") {
     return (
       <div className="flex flex-col items-center gap-3">
-        <div className="select-all font-mono text-[34px] font-extrabold tracking-[0.18em] text-text-1">
+        <div className="select-all font-mono t-title tracking-[0.18em] text-text-1">
           {value}
         </div>
         <button
@@ -56,7 +56,7 @@ export function CopyLink({
 
   return (
     <div className="flex items-stretch gap-2">
-      <div className="flex-1 truncate rounded-[12px] bg-surface px-3.5 py-3 text-[13px] text-text-2">
+      <div className="flex-1 truncate rounded-[12px] bg-surface px-3.5 py-3 t-body text-text-2">
         {value}
       </div>
       <button

@@ -109,7 +109,7 @@ export function AiRetryButton({
         type="button"
         onClick={run}
         disabled={busy}
-        className="press inline-flex w-fit items-center rounded-lg bg-white/10 px-3 py-2 text-[12px] font-extrabold text-ai-accent disabled:opacity-60"
+        className="press inline-flex w-fit items-center rounded-lg bg-white/10 px-3 py-2 t-sub font-extrabold text-ai-accent disabled:opacity-60"
       >
         {busy ? "AI 정리 중…" : "AI 다시 정리하기"}
       </button>

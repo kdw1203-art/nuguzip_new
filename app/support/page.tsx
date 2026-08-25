@@ -125,7 +125,7 @@ export default async function SupportPage() {
           이 화면에서 실제로 답이 있는 곳은 FAQ 전체 목록이므로 그리로 보낸다. */}
       <Link
         href="/support/faq"
-        className="rise-in card-hover mb-4 flex items-center justify-between gap-2 rounded-[14px] border border-line bg-surface px-3.5 py-3 text-[13px] text-text-2 md:w-[280px]"
+        className="rise-in tile mb-4 flex items-center justify-between gap-2 rounded-[14px] border border-line bg-surface px-3.5 py-3 text-[13px] text-text-2 md:w-[280px]"
       >
         <span>자주 묻는 질문에서 답 찾기</span>
         <span className="text-xs font-extrabold text-primary">›</span>
@@ -137,7 +137,7 @@ export default async function SupportPage() {
           <Link
             key={g.category}
             href={`/support/faq#${encodeURIComponent(g.category)}`}
-            className="card card-hover rounded-[14px] p-3.5 text-center no-underline"
+            className="card tile rounded-[14px] p-3.5 text-center no-underline"
           >
             <div className="text-lg">
               <Icon

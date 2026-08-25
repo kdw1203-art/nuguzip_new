@@ -85,8 +85,8 @@ export default async function WishlistPage() {
   return (
     <PageShell breadcrumb="마이 › 관심 매물" title="관심 매물">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-text-3">저장한 매물 {items.length}개</p>
-        <Link href="/complex/browse" className="text-[13px] font-bold text-primary no-underline">
+        <p className="t-body text-text-3">저장한 매물 {items.length}개</p>
+        <Link href="/complex/browse" className="t-body font-bold text-primary no-underline">
           관심 단지 둘러보기 →
         </Link>
       </div>
@@ -99,11 +99,11 @@ export default async function WishlistPage() {
         />
       ) : items.length === 0 ? (
         <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[26px]">
+          <div className="t-title">
             <Icon name="🤍" size={26} />
           </div>
-          <div className="text-[15px] font-extrabold text-ink">아직 저장한 매물이 없어요</div>
-          <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+          <div className="t-section text-ink">아직 저장한 매물이 없어요</div>
+          <p className="max-w-[420px] t-body text-text-3">
             마음에 드는 매물의 관심(♥) 버튼을 누르면 여기에 모여요. 실거래가와 비교하며
             천천히 살펴보세요.
           </p>
@@ -114,7 +114,7 @@ export default async function WishlistPage() {
       ) : (
         <>
           {loaded.ok && loaded.failedCount > 0 && (
-            <p className="mb-3 rounded-xl border border-line bg-bg px-3 py-2 text-[12px] text-text-2">
+            <p className="mb-3 rounded-xl border border-line bg-bg px-3 py-2 t-sub text-text-2">
               저장한 매물 중 {loaded.failedCount}건은 지금 불러오지 못했어요 — 삭제된 게
               아니라 조회가 실패한 것일 수 있습니다. 잠시 후 새로고침해 주세요.
             </p>
@@ -125,17 +125,17 @@ export default async function WishlistPage() {
             return (
               <div key={l.id} className="card card-pad-sm flex flex-col gap-2.5">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+                    <span className="rounded-[6px] bg-success-soft chip-pad t-sub font-extrabold text-success">
                       소유확인
                     </span>
                   )}
                   {stale && (
                     <span
-                      className="rounded-[6px] chip-pad text-[11px] font-extrabold"
+                      className="rounded-[6px] chip-pad t-sub font-extrabold"
                       style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
                     >
                       확인 필요
@@ -145,12 +145,12 @@ export default async function WishlistPage() {
 
                 <Link
                   href={`/listings/${l.id}`}
-                  className="text-[15px] font-extrabold leading-[1.4] text-ink hover:underline"
+                  className="t-section text-ink hover:underline"
                 >
                   {l.complexName}
                 </Link>
-                <div className="text-[15px] font-extrabold text-primary">{priceLine(l)}</div>
-                <div className="text-[12px] text-text-3">
+                <div className="t-section text-primary">{priceLine(l)}</div>
+                <div className="t-sub text-text-3">
                   {[
                     l.regionName,
                     l.areaM2 !== null ? `${l.areaM2}㎡` : null,

@@ -101,7 +101,7 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
           {visible.map((r) => {
             const paid = r.isPremium && r.price > 0;
             return (
-              <li key={r.id} className="card card-hover rounded-[16px]">
+              <li key={r.id} className="card tile rounded-[16px]">
                 <Link href={`/town/library/${r.id}`} className="block px-4 py-3.5 no-underline">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -189,7 +189,7 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
             <Link
               key={n.id}
               href={`/notes/${n.id}`}
-              className="card card-hover flex flex-col overflow-hidden rounded-[16px]"
+              className="card tile flex flex-col overflow-hidden rounded-[16px]"
             >
               <div
                 className="relative h-[112px] w-full overflow-hidden"

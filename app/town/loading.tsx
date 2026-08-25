@@ -24,11 +24,13 @@ export default function TownLoading() {
         ))}
       </div>
 
-      {/* 사진 우선 피드 카드 그리드 */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+      {/* 사진 우선 피드 — 실제 피드는 커버 높이가 카드마다 다른 매소너리다.
+          스켈레톤이 4열 균등 격자면 실제 목록이 붙는 순간 리듬이 통째로 바뀐다.
+          같은 시드 리듬(짧음·중간·김)을 그대로 흉내 낸다. */}
+      <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="card overflow-hidden rounded-2xl">
-            <Skeleton className="h-40 w-full" />
+          <div key={i} className="card mb-3 break-inside-avoid overflow-hidden rounded-[14px]">
+            <Skeleton className={`w-full ${["h-40", "h-56", "h-32", "h-48"][i % 4]}`} />
             <div className="flex flex-col gap-2 p-3">
               <Skeleton className="h-3.5 w-full rounded" />
               <Skeleton className="h-3.5 w-2/3 rounded" />

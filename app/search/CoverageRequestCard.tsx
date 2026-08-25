@@ -35,11 +35,11 @@ export function CoverageRequestCard({ query }: { query: string }) {
   if (state === "done") {
     return (
       <div className="mt-5 w-full max-w-[520px] rounded-2xl border border-primary/25 bg-primary-soft px-4 py-3.5 text-center">
-        <div className="text-[13px] font-extrabold text-primary">
+        <div className="t-body font-extrabold text-primary">
           수요를 기록했어요 — 확장 우선순위에 반영됩니다
         </div>
         {email.trim() && (
-          <div className="mt-0.5 text-[11px] text-text-2">
+          <div className="mt-0.5 t-sub text-text-2">
             이 지역 데이터가 열리면 알려드릴게요.
           </div>
         )}
@@ -50,10 +50,10 @@ export function CoverageRequestCard({ query }: { query: string }) {
   return (
     <div className="card mt-5 flex w-full max-w-[520px] flex-col gap-2.5 rounded-2xl px-4 py-4 text-left">
       <div>
-        <div className="text-[13.5px] font-extrabold text-ink">
+        <div className="t-body font-extrabold text-ink">
           찾는 지역이 아직 안 열렸나요?
         </div>
-        <p className="mt-0.5 text-[12px] leading-[1.6] text-text-2">
+        <p className="mt-0.5 t-sub text-text-2">
           실거래 상세 데이터는 수도권 주요 지역부터 순차 확장 중이에요. 요청이
           많은 지역부터 엽니다 — 이 검색어를 수요로 기록해 두세요.
         </p>
@@ -66,19 +66,19 @@ export function CoverageRequestCard({ query }: { query: string }) {
           placeholder="(선택) 열리면 알림 받을 이메일"
           aria-label="열리면 알림 받을 이메일 (선택)"
           maxLength={120}
-          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2.5 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
         />
         <button
           type="button"
           onClick={() => void submit()}
           disabled={state === "busy"}
-          className="btn-primary shrink-0 rounded-xl px-4 py-2.5 text-[13px] disabled:opacity-60"
+          className="btn-primary shrink-0 rounded-xl px-4 py-2.5 t-body disabled:opacity-60"
         >
           {state === "busy" ? "기록 중…" : "열리면 알려주세요"}
         </button>
       </div>
       {state === "error" && (
-        <p className="text-[11px] font-semibold text-danger">
+        <p className="t-sub font-semibold text-danger">
           지금은 기록하지 못했어요. 잠시 후 다시 시도해 주세요.
         </p>
       )}

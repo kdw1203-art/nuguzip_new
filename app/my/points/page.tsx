@@ -82,7 +82,7 @@ function EarnGuide() {
   return (
     <div className="rise-in-3 card rounded-[16px] p-5">
       <div className="text-sm font-extrabold text-ink">포인트 적립 방법</div>
-      <div className="mt-0.5 text-[12px] text-text-3">
+      <div className="mt-0.5 t-sub text-text-3">
         활동하면 자동으로 쌓여요 · 1P는 약 1원의 가치예요
       </div>
       <div className="mt-3 flex flex-col">
@@ -94,21 +94,21 @@ function EarnGuide() {
             }`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold text-text-1">
+              <span className="t-body font-semibold text-text-1">
                 {rule.label}
               </span>
               {rule.once && (
-                <span className="chip-tag chip-pad-tight text-[10px]">
+                <span className="chip-tag chip-pad-tight t-caption">
                   최초 1회
                 </span>
               )}
               {rule.dailyCap && (
-                <span className="chip-tag chip-pad-tight text-[10px]">
+                <span className="chip-tag chip-pad-tight t-caption">
                   하루 {rule.dailyCap}회
                 </span>
               )}
             </div>
-            <span className="text-[13px] font-extrabold text-primary">
+            <span className="t-body font-extrabold text-primary">
               +{rule.points.toLocaleString("ko-KR")}P
             </span>
           </div>
@@ -150,7 +150,7 @@ function GuestView() {
             어떤 혜택으로 바꿀 수 있는지 미리 살펴보세요
           </div>
         </div>
-        <span className="text-[15px] font-extrabold text-primary">›</span>
+        <span className="t-section text-primary">›</span>
       </Link>
 
       <EarnGuide />
@@ -184,7 +184,7 @@ function WalletView({
         <div>
           <div className="text-xs text-ai-muted">사용 가능한 포인트</div>
           <div className="mt-1 flex items-end gap-1">
-            <span className="text-[40px] font-extrabold leading-none text-white">
+            <span className="t-title leading-none text-white">
               {balance.toLocaleString("ko-KR")}
             </span>
             <span className="mb-1 text-lg font-extrabold text-ai-accent">P</span>
@@ -192,13 +192,13 @@ function WalletView({
         </div>
         <div className="flex gap-2">
           <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.07)] p-3 text-center">
-            <div className="text-[11px] text-ai-muted">이번 달 적립</div>
+            <div className="t-sub text-ai-muted">이번 달 적립</div>
             <div className="mt-0.5 text-base font-extrabold text-ai-accent">
               +{monthEarned.toLocaleString("ko-KR")}P
             </div>
           </div>
           <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.07)] p-3 text-center">
-            <div className="text-[11px] text-ai-muted">이번 달 사용</div>
+            <div className="t-sub text-ai-muted">이번 달 사용</div>
             <div className="mt-0.5 text-base font-extrabold text-white">
               −{monthSpent.toLocaleString("ko-KR")}P
             </div>
@@ -217,13 +217,13 @@ function WalletView({
       {nickEffect && (
         <div className="rise-in-1 card flex items-center justify-between rounded-[16px] px-4 py-3">
           <div className="min-w-0">
-            <div className="text-[13px] font-extrabold text-ink">
+            <div className="t-body font-extrabold text-ink">
               <span className={nickEffect.kind === "sunset" ? "nick-sunset" : "nick-aurora"}>
                 닉네임 {nickEffect.kind === "sunset" ? "노을" : "오로라"}
               </span>{" "}
               적용 중
             </div>
-            <div className="mt-0.5 text-[11px] text-text-3">
+            <div className="mt-0.5 t-sub text-text-3">
               {fmtDate(nickEffect.until)}까지 · 동네이야기 글 상세의 작성자 이름이 빛나요
             </div>
           </div>
@@ -232,7 +232,7 @@ function WalletView({
       )}
 
       {/* 무상성 고지 — 상점·약관과 같은 단일 출처 문구 */}
-      <p className="rise-in-1 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <p className="rise-in-1 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
         {POINTS_GRATUITOUS_NOTICE}
       </p>
 
@@ -241,10 +241,10 @@ function WalletView({
         <div className="text-sm font-extrabold text-ink">포인트 내역</div>
         {history.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-8 text-center">
-            <div className="text-[13px] font-bold text-ink">
+            <div className="t-body font-bold text-ink">
               아직 포인트 내역이 없어요
             </div>
-            <div className="text-[11px] text-text-3">
+            <div className="t-sub text-text-3">
               활동을 시작하면 여기에 적립·사용 기록이 모여요
             </div>
           </div>
@@ -263,7 +263,7 @@ function WalletView({
                     <div className="truncate text-sm font-bold text-ink">
                       {reasonLabel(r.reason)}
                     </div>
-                    <div className="text-[11px] text-text-3">
+                    <div className="t-sub text-text-3">
                       {fmtDate(r.createdAt)}
                       {earn && r.expiresAt
                         ? ` · ${fmtDate(r.expiresAt)} 만료 예정`
@@ -279,7 +279,7 @@ function WalletView({
                       {earn ? "+" : "−"}
                       {fmtP(r.delta)}
                     </div>
-                    <div className="text-[11px] text-text-3">
+                    <div className="t-sub text-text-3">
                       잔액 {r.balance.toLocaleString("ko-KR")}P
                     </div>
                   </div>

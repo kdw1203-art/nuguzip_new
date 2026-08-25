@@ -243,7 +243,7 @@ export function ComplexReviews({
   return (
     <div className="card rounded-[18px] px-[18px] py-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[15px] font-extrabold text-ink">거주민 후기</h2>
+        <h2 className="t-section text-ink">거주민 후기</h2>
         {!formOpen && (
           <button
             type="button"
@@ -252,19 +252,19 @@ export function ComplexReviews({
               setSubmitState("idle");
               setError(null);
             }}
-            className="btn-primary rounded-[10px] px-3.5 py-2 text-[12px]"
+            className="btn-primary rounded-[10px] px-3.5 py-2 t-sub"
           >
             후기 쓰기
           </button>
         )}
       </div>
-      <p className="mt-1 text-[11px] text-text-3">
+      <p className="mt-1 t-sub text-text-3">
         직접 살아봤거나 임장에서 확인한 내용만 남겨주세요 · 같은 단지 재작성 시 기존 후기가
         갱신돼요 · 실거주·방문 후기가 먼저 보여요
       </p>
 
       {submitState === "done" && (
-        <div className="mt-2 rounded-[10px] bg-primary-soft px-3 py-2 text-[12px] font-bold text-primary">
+        <div className="mt-2 rounded-[10px] bg-primary-soft px-3 py-2 t-sub font-bold text-primary">
           후기가 등록됐어요. 이웃에게 큰 도움이 됩니다.
         </div>
       )}
@@ -286,14 +286,14 @@ export function ComplexReviews({
             rows={3}
             maxLength={500}
             placeholder="한줄 후기 (선택 · 500자 이내) — 예: 저녁 8시 이후 주차 자리가 부족해요"
-            className="w-full resize-none rounded-xl border border-line bg-surface p-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            className="w-full resize-none rounded-xl border border-line bg-surface p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
 
           {/* 신뢰 신호 — 실거주/방문 인증 (선택) */}
           <div className="flex flex-col gap-2">
-            <span className="text-[11px] font-bold text-text-2">신뢰 정보 (선택)</span>
+            <span className="t-sub font-bold text-text-2">신뢰 정보 (선택)</span>
             <div className="flex flex-wrap gap-2">
-              <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-text-1">
+              <label className="flex cursor-pointer items-center gap-1.5 t-sub text-text-1">
                 <input
                   type="checkbox"
                   checked={isResident}
@@ -302,7 +302,7 @@ export function ComplexReviews({
                 />
                 실거주 (자가/세입자)
               </label>
-              <label className="flex cursor-pointer items-center gap-1.5 text-[12px] text-text-1">
+              <label className="flex cursor-pointer items-center gap-1.5 t-sub text-text-1">
                 <input
                   type="checkbox"
                   checked={isVisitVerified}
@@ -318,17 +318,17 @@ export function ComplexReviews({
               onChange={(e) => setResidentPeriod(e.target.value)}
               maxLength={60}
               placeholder="거주/방문 시기 (선택) — 예: 2023~2024, 2024년 3월 방문"
-              className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-[12px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              className="w-full rounded-xl border border-line bg-surface px-3 py-2 t-sub text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
           </div>
 
-          {error && <div className="text-[11px] font-semibold text-danger">{error}</div>}
+          {error && <div className="t-sub font-semibold text-danger">{error}</div>}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => void submit()}
               disabled={submitState === "sending"}
-              className="btn-primary flex-1 rounded-xl p-2.5 text-[13px] disabled:opacity-60"
+              className="btn-primary flex-1 rounded-xl p-2.5 t-body disabled:opacity-60"
             >
               {submitState === "sending" ? "등록 중…" : "후기 등록"}
             </button>
@@ -338,12 +338,12 @@ export function ComplexReviews({
                 setFormOpen(false);
                 setError(null);
               }}
-              className="btn-secondary rounded-xl px-4 py-2.5 text-[13px]"
+              className="btn-secondary rounded-xl px-4 py-2.5 t-body"
             >
               취소
             </button>
           </div>
-          <p className="text-[10px] leading-[1.5] text-text-3">
+          <p className="t-caption text-text-3">
             개인 특정·비방 내용은 삭제될 수 있어요 · 시간당 5회까지 등록 가능
           </p>
         </div>
@@ -353,13 +353,13 @@ export function ComplexReviews({
       {summary && summary.count > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-[14px] border border-line bg-bg px-3.5 py-3">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[20px] font-extrabold text-ink">
+            <span className="t-title text-ink">
               {summary.overall.toFixed(1)}
             </span>
             <Stars value={summary.overall} size={13} />
-            <span className="text-[11px] text-text-3">후기 {summary.count}개</span>
+            <span className="t-sub text-text-3">후기 {summary.count}개</span>
           </div>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 t-sub text-text-2">
             {CATEGORIES.map((c) => (
               <span key={c.key}>
                 {c.label}{" "}
@@ -374,21 +374,21 @@ export function ComplexReviews({
 
       {/* 목록 */}
       {loadState === "loading" && (
-        <div className="mt-3 py-6 text-center text-[12px] text-text-3">
+        <div className="mt-3 py-6 text-center t-sub text-text-3">
           후기를 불러오는 중…
         </div>
       )}
       {loadState === "error" && (
-        <div className="mt-3 py-6 text-center text-[12px] text-text-3">
+        <div className="mt-3 py-6 text-center t-sub text-text-3">
           후기를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
         </div>
       )}
       {loadState === "ready" && reviews.length === 0 && (
         <div className="mt-3 flex flex-col items-center gap-1 py-6 text-center">
-          <div className="text-[13px] font-extrabold text-ink">
+          <div className="t-body font-extrabold text-ink">
             아직 등록된 거주민 후기가 없어요
           </div>
-          <div className="text-[12px] text-text-3">
+          <div className="t-sub text-text-3">
             이 단지를 다녀오셨다면 첫 후기를 남겨주세요
           </div>
         </div>
@@ -398,7 +398,7 @@ export function ComplexReviews({
           {reviews.map((r) => (
             <li key={r.id} className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[12px] font-extrabold text-ink">{r.author}</span>
+                <span className="t-sub font-extrabold text-ink">{r.author}</span>
                 <Stars
                   value={
                     (r.noiseScore +
@@ -409,7 +409,7 @@ export function ComplexReviews({
                     5
                   }
                 />
-                <span className="text-[10px] text-text-3">{formatDate(r.createdAt)}</span>
+                <span className="t-caption text-text-3">{formatDate(r.createdAt)}</span>
                 <ReportButton postId={`complex-review:${r.id}`} className="ml-auto" />
               </div>
 
@@ -418,24 +418,24 @@ export function ComplexReviews({
                 <div className="flex flex-wrap items-center gap-1.5">
                   {r.isResident && (
                     <span
-                      className="chip chip-pad text-[10px]"
+                      className="chip chip-pad t-caption"
                       style={{ background: "var(--success-soft)", color: "var(--success)" }}
                     >
                       실거주
                     </span>
                   )}
                   {r.isVisitVerified && (
-                    <span className="chip bg-primary-soft chip-pad text-[10px] text-primary">
+                    <span className="chip bg-primary-soft chip-pad t-caption text-primary">
                       방문
                     </span>
                   )}
                   {r.residentPeriod && (
-                    <span className="text-[10px] text-text-3">{r.residentPeriod}</span>
+                    <span className="t-caption text-text-3">{r.residentPeriod}</span>
                   )}
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[10px] text-text-3">
+              <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 t-caption text-text-3">
                 {CATEGORIES.map((c) => (
                   <span key={c.key}>
                     {c.label} {r[c.key]}
@@ -443,7 +443,7 @@ export function ComplexReviews({
                 ))}
               </div>
               {r.comment && (
-                <p className="text-[13px] leading-[1.6] text-text-1">{r.comment}</p>
+                <p className="t-body text-text-1">{r.comment}</p>
               )}
 
               {/* 도움돼요 투표 */}

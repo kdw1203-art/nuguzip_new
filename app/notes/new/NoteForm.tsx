@@ -1215,10 +1215,10 @@ export function NoteForm({
           ✕
         </Link>
         <div className="flex flex-col items-center">
-          <div className="text-[15px] font-extrabold text-ink">
+          <div className="t-section text-ink">
             {isEdit ? "임장노트 수정" : "임장노트"}
           </div>
-          <div className="text-[10px] text-text-3">
+          <div className="t-caption text-text-3">
             {isEdit ? "내 기록 수정" : "현장 기록"} · {progressDone}/
             {progressItems.length} 항목 입력
           </div>
@@ -1229,7 +1229,7 @@ export function NoteForm({
           <button
             type="button"
             onClick={writeDraft}
-            className="text-[13px] font-bold text-primary"
+            className="t-body font-bold text-primary"
           >
             {savedDraft ? "저장됨 ✓" : "임시저장"}
           </button>
@@ -1239,7 +1239,7 @@ export function NoteForm({
       {(preferAi || fromWelcome) && !isEdit && (
         <div
           role="status"
-          className="mt-2.5 rounded-[12px] border border-primary/25 bg-primary-soft px-3.5 py-2.5 text-[12px] leading-[1.6] text-text-1"
+          className="mt-2.5 rounded-[12px] border border-primary/25 bg-primary-soft px-3.5 py-2.5 t-sub text-text-1"
         >
           {fromWelcome ? (
             <>
@@ -1297,20 +1297,20 @@ export function NoteForm({
                 작성 중이던 노트가 있어요
               </div>
               {draftSavedLabel && (
-                <div className="text-[10px] text-text-3">{draftSavedLabel}</div>
+                <div className="t-caption text-text-3">{draftSavedLabel}</div>
               )}
             </div>
             <button
               type="button"
               onClick={restoreDraft}
-              className="shrink-0 rounded-[9px] bg-primary px-3 py-2 text-[11px] font-bold text-white"
+              className="shrink-0 rounded-[9px] bg-primary px-3 py-2 t-sub font-bold text-white"
             >
               이어서 쓰기
             </button>
             <button
               type="button"
               onClick={discardDraft}
-              className="shrink-0 rounded-[9px] border border-line bg-surface px-3 py-2 text-[11px] font-bold text-text-2"
+              className="shrink-0 rounded-[9px] border border-line bg-surface px-3 py-2 t-sub font-bold text-text-2"
             >
               삭제
             </button>
@@ -1344,7 +1344,7 @@ export function NoteForm({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading || photos.length >= MAX_PHOTOS}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-line-strong bg-surface px-4 py-2.5 text-[13px] font-bold text-text-2 disabled:opacity-60"
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-line-strong bg-surface px-4 py-2.5 t-body font-bold text-text-2 disabled:opacity-60"
           >
             <Icon name="📷" size={16} className="inline align-middle" />
             {uploading
@@ -1362,12 +1362,12 @@ export function NoteForm({
         {!isEdit && typeof loc.lat === "number" && typeof loc.lng === "number" && (
           <div className="rise-in-2 flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-[12.5px] font-extrabold text-ink">
+              <div className="t-body font-extrabold text-ink">
                 직접 방문 인증{" "}
                 <span className="font-medium text-text-3">(선택)</span>
               </div>
               {visitVerified ? (
-                <span className="rounded-md bg-success-soft px-2 py-1 text-[11px] font-extrabold text-success">
+                <span className="rounded-md bg-success-soft px-2 py-1 t-sub font-extrabold text-success">
                   ✓ 현장 인증됨 · 단지 반경 {visitVerified.distanceM >= 1000
                     ? `${(visitVerified.distanceM / 1000).toFixed(1)}km`
                     : `${visitVerified.distanceM}m`}
@@ -1377,30 +1377,30 @@ export function NoteForm({
                   type="button"
                   onClick={runVisitVerify}
                   disabled={verifyState === "asking"}
-                  className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1 disabled:opacity-60"
+                  className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1 disabled:opacity-60"
                 >
                   {verifyState === "asking" ? "위치 확인 중…" : "현재 위치로 인증하기"}
                 </button>
               )}
             </div>
-            <p className="text-[11px] leading-[1.6] text-text-3">
+            <p className="t-sub text-text-3">
               지금 단지 근처(2km 이내)에 있다면 노트에 &lsquo;현장 인증&rsquo; 배지가
               붙어요. 버튼을 누를 때 한 번만 위치를 확인하며, 내 위치 좌표는 저장하지도
               전송하지도 않습니다 — 거리 구간(50m 단위)만 남아요.
             </p>
             {verifyState === "far" && (
-              <p className="text-[11px] font-bold text-warning">
+              <p className="t-sub font-bold text-warning">
                 단지에서 약 {verifyFarKm}km 떨어져 있어 인증되지 않았어요. 현장에서 다시
                 시도해 주세요.
               </p>
             )}
             {verifyState === "denied" && (
-              <p className="text-[11px] font-bold text-text-3">
+              <p className="t-sub font-bold text-text-3">
                 위치 권한이 거부돼 인증을 건너뛰어요 — 인증 없이도 노트는 그대로 저장돼요.
               </p>
             )}
             {verifyState === "unsupported" && (
-              <p className="text-[11px] font-bold text-text-3">
+              <p className="t-sub font-bold text-text-3">
                 이 브라우저는 위치 확인을 지원하지 않아요.
               </p>
             )}
@@ -1413,7 +1413,7 @@ export function NoteForm({
         {/* 방문 정보 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 p-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="text-[13px] font-extrabold text-ink">방문 정보</div>
+            <div className="t-body font-extrabold text-ink">방문 정보</div>
             <button
               type="button"
               onClick={() => {
@@ -1423,7 +1423,7 @@ export function NoteForm({
                   시간대: timeSlotFromClock(),
                 }));
               }}
-              className="shrink-0 text-[11px] font-bold text-primary"
+              className="shrink-0 t-sub font-bold text-primary"
             >
               지금 시간대
             </button>
@@ -1481,7 +1481,7 @@ export function NoteForm({
                 <button
                   type="button"
                   onClick={() => setWeather(weatherHint.slice(0, 40))}
-                  className="self-start rounded-lg border border-line bg-bg px-2.5 py-1.5 text-left text-[11px] text-text-2"
+                  className="self-start rounded-lg border border-line bg-bg px-2.5 py-1.5 text-left t-sub text-text-2"
                 >
                   제안 · {weatherHint.slice(0, 48)}
                   {weatherHint.length > 48 ? "…" : ""} (탭하여 적용)
@@ -1510,7 +1510,7 @@ export function NoteForm({
             <button
               type="button"
               onClick={() => setQuickMode(false)}
-              className="shrink-0 rounded-[9px] border border-line-strong bg-surface px-3 py-2 text-[11px] font-bold text-text-1"
+              className="shrink-0 rounded-[9px] border border-line-strong bg-surface px-3 py-2 t-sub font-bold text-text-1"
             >
               세부 항목 펼치기
             </button>
@@ -1529,7 +1529,7 @@ export function NoteForm({
           </div>
           {Object.keys(CHECK_DEFAULTS).map((item) => (
             <div key={item} className="flex items-center gap-2.5">
-              <span className="w-12 shrink-0 text-[13px] font-semibold text-text-1">
+              <span className="w-12 shrink-0 t-body font-semibold text-text-1">
                 {item}
               </span>
               <div className="flex flex-1 gap-1.5">
@@ -1581,9 +1581,9 @@ export function NoteForm({
 
         {/* 카테고리별 현장 체크리스트 (입지·단지·내부·학군·생활·호재) */}
         <div className="rise-in-3 card flex flex-col gap-2 p-4">
-          <div className="text-[13px] font-extrabold text-ink">
+          <div className="t-body font-extrabold text-ink">
             체크리스트{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               목적({visit["목적"] || "실거주"})에 맞춰 항목이 바뀝니다 ·{" "}
               {checklistGroups.reduce(
                 (n, g) => n + g.items.filter((it) => groupChecked[it.id]).length,
@@ -1597,7 +1597,7 @@ export function NoteForm({
           </div>
           {memoHints.length > 0 && (
             <div className="flex flex-col gap-1.5 rounded-xl border border-primary/20 bg-primary-soft/40 px-3 py-2.5">
-              <div className="text-[11px] font-bold text-primary">
+              <div className="t-sub font-bold text-primary">
                 메모에서 찾은 점검 제안
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -1615,7 +1615,7 @@ export function NoteForm({
                         setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
                       }
                     }}
-                    className="rounded-full border border-primary/30 bg-surface px-2.5 py-1 text-[11px] font-bold text-primary"
+                    className="rounded-full border border-primary/30 bg-surface px-2.5 py-1 t-sub font-bold text-primary"
                   >
                     ＋ {h.label}
                   </button>
@@ -1635,8 +1635,8 @@ export function NoteForm({
                   }
                   className="flex w-full items-center justify-between px-3 py-2.5 text-left"
                 >
-                  <span className="text-[13px] font-bold text-ink">{g.title}</span>
-                  <span className="text-[11px] font-semibold text-text-3">
+                  <span className="t-body font-bold text-ink">{g.title}</span>
+                  <span className="t-sub font-semibold text-text-3">
                     {doneCount}/{g.items.length} {open ? "▴" : "▾"}
                   </span>
                 </button>
@@ -1673,7 +1673,7 @@ export function NoteForm({
                           >
                             {it.label}
                             {suggested && !checked && (
-                              <span className="ml-1.5 text-[10px] font-bold text-primary">
+                              <span className="ml-1.5 t-caption font-bold text-primary">
                                 템플릿 추천
                               </span>
                             )}
@@ -1690,9 +1690,9 @@ export function NoteForm({
 
         {/* 눈에 띈 점 태그 */}
         <div className="rise-in-4 card flex flex-col gap-2.5 p-4">
-          <div className="text-[13px] font-extrabold text-ink">
+          <div className="t-body font-extrabold text-ink">
             눈에 띈 점{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               탭해서 태그 추가 (예: 초품아 · 이중주차)
             </span>
           </div>
@@ -1729,9 +1729,9 @@ export function NoteForm({
 
         {/* 고려사항 — 추가 확인 항목 (중요/보통) */}
         <div className="rise-in-5 card flex flex-col gap-2.5 p-4">
-          <div className="text-[13px] font-extrabold text-ink">
+          <div className="t-body font-extrabold text-ink">
             고려사항{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               결정 전 꼭 확인할 것 · 중요도 표시
             </span>
           </div>
@@ -1775,7 +1775,7 @@ export function NoteForm({
           <button
             type="button"
             onClick={addTodo}
-            className="flex items-center gap-2 rounded-xl border-[1.5px] border-dashed border-line-strong px-3 py-[11px] text-[13px] text-text-3"
+            className="flex items-center gap-2 rounded-xl border-[1.5px] border-dashed border-line-strong px-3 py-[11px] t-body text-text-3"
           >
             ＋ 고려사항 추가
           </button>
@@ -1831,7 +1831,7 @@ export function NoteForm({
                     type="button"
                     aria-label="사진 삭제"
                     onClick={() => removePhoto(p)}
-                    className="absolute -right-1 -top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-ink text-[10px] text-surface"
+                    className="absolute -right-1 -top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-ink t-caption text-surface"
                   >
                     ✕
                   </button>
@@ -1843,7 +1843,7 @@ export function NoteForm({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading || photos.length >= MAX_PHOTOS}
-            className="flex items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-line-strong p-[11px] text-center text-[13px] font-bold text-text-2 disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-line-strong p-[11px] text-center t-body font-bold text-text-2 disabled:opacity-60"
           >
             <Icon name="📷" size={16} className="inline align-middle" />
             {uploading
@@ -1861,10 +1861,10 @@ export function NoteForm({
           className="rise-in-6 card flex items-center justify-between gap-3 p-4 text-left"
         >
           <div className="min-w-0">
-            <div className="text-[13px] font-extrabold text-ink">
+            <div className="t-body font-extrabold text-ink">
               공개 노트로 저장
             </div>
-            <div className="mt-0.5 text-[11px] text-text-3">
+            <div className="mt-0.5 t-sub text-text-3">
               {isPublic
                 ? "공개 피드에 노출돼요 · 노트당 최초 공개 시 100P 적립"
                 : "꺼져 있으면 나만 볼 수 있어요 (기본값)"}
@@ -1895,10 +1895,10 @@ export function NoteForm({
               className="mt-0.5 h-4 w-4 accent-[#1d4fd8]"
             />
             <span className="min-w-0">
-              <span className="block text-[13px] font-extrabold text-ink">
+              <span className="block t-body font-extrabold text-ink">
                 누구집 공식 소셜 소재 활용 동의 (선택)
               </span>
-              <span className="mt-0.5 block text-[11px] leading-relaxed text-text-3">
+              <span className="mt-0.5 block t-sub text-text-3">
                 이 노트의 지역·단지명·요약·체감 점수를 누구집 공식 인스타그램
                 릴스·유튜브 쇼츠 영상으로 만들어 게시하는 데 동의해요. 동의는
                 노트 수정에서 언제든 철회할 수 있고, 철회하면 이후 소재로 쓰이지
@@ -1912,7 +1912,7 @@ export function NoteForm({
       {/* 하단 CTA */}
       <div className="mt-4 flex flex-col gap-2">
         {needLogin && (
-          <div className="rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.08)] px-4 py-3 text-center text-[13px] text-primary">
+          <div className="rounded-[14px] border border-[rgba(29,79,216,.2)] bg-[rgba(29,79,216,.08)] px-4 py-3 text-center t-body text-primary">
             저장하려면 로그인이 필요해요 — 작성한 내용은 유지돼요.{" "}
             <Link href={loginHref} className="font-extrabold underline underline-offset-2">
               로그인하기 ›
@@ -1920,7 +1920,7 @@ export function NoteForm({
           </div>
         )}
         {saveError && (
-          <div className="rounded-[14px] border border-[color:var(--danger-border)] bg-danger-soft px-4 py-3 text-center text-[13px] font-semibold text-danger">
+          <div className="rounded-[14px] border border-[color:var(--danger-border)] bg-danger-soft px-4 py-3 text-center t-body font-semibold text-danger">
             {saveError}
           </div>
         )}

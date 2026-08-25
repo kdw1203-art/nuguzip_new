@@ -86,14 +86,14 @@ export function NoteDetailActions({
           소유자는 '만들기', 공개 노트 열람자는 '카드 보기'. */}
       <Link
         href={`/notes/${noteId}/card`}
-        className="btn-primary px-3.5 py-2 text-[13px] font-bold no-underline"
+        className="btn-primary px-3.5 py-2 t-body font-bold no-underline"
       >
         {isOwner ? "🎨 나만의 카드 만들기" : "🎴 카드 보기"}
       </Link>
       {isOwner && (
         <Link
           href={`/notes/${noteId}/edit`}
-          className="btn-soft px-3.5 py-2 text-[13px] no-underline"
+          className="btn-soft px-3.5 py-2 t-body no-underline"
         >
           수정
         </Link>
@@ -103,7 +103,7 @@ export function NoteDetailActions({
           type="button"
           onClick={toggleVisibility}
           disabled={busy}
-          className="btn-soft px-3.5 py-2 text-[13px] disabled:opacity-60"
+          className="btn-soft px-3.5 py-2 t-body disabled:opacity-60"
         >
           {busy ? "전환 중…" : isPublic ? "비공개로 전환" : "공개로 전환"}
         </button>
@@ -111,7 +111,7 @@ export function NoteDetailActions({
       <button
         type="button"
         onClick={share}
-        className="btn-soft px-3.5 py-2 text-[13px]"
+        className="btn-soft px-3.5 py-2 t-body"
       >
         공유 링크
       </button>

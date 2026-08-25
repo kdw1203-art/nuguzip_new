@@ -326,7 +326,7 @@ export default function ContractGuidePage() {
         {/* 관련 가이드 */}
         <Link
           href="/guides/regulations"
-          className="card-hover flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-4 no-underline"
+          className="tile flex items-center justify-between rounded-2xl border border-line bg-surface px-5 py-4 no-underline"
         >
           <div>
             <div className="text-[13px] font-extrabold text-ink">

@@ -44,13 +44,13 @@ export async function RelatedNotes({
   return (
     <section className="mt-6">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           {sameRegionMode ? `${regionTrim}의 다른 임장노트` : "최근 공개 임장노트"}
         </h2>
         {regionId && (
           <Link
             href={`/region/${regionId}`}
-            className="inline-flex items-center gap-1 text-[12px] font-bold text-primary no-underline"
+            className="inline-flex items-center gap-1 t-sub font-bold text-primary no-underline"
           >
             <Icon name="pin" size={13} />
             {regionTrim} 시장 데이터 보기 ›
@@ -66,8 +66,8 @@ export async function RelatedNotes({
               href={`/notes/${n.id}`}
               className="card flex flex-col gap-1 rounded-xl p-3.5 no-underline tap-ripple"
             >
-              <span className="line-clamp-1 text-[13.5px] font-bold text-ink">{n.title}</span>
-              <span className="flex items-center gap-2 text-[11.5px] text-text-3">
+              <span className="line-clamp-1 t-body font-bold text-ink">{n.title}</span>
+              <span className="flex items-center gap-2 t-sub text-text-3">
                 <span>{n.region || "전국"}</span>
                 {n.aptName?.trim() && <span>· {n.aptName.trim()}</span>}
                 {rating > 0 && (

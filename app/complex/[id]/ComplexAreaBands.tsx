@@ -38,8 +38,8 @@ export async function ComplexAreaBands({
   if (!bands.ok) {
     return (
       <section className={wrap}>
-        <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">면적대별 시세</h2>
-        <p className="card rounded-2xl px-4 py-3.5 text-[13px] text-text-3">
+        <h2 className="mb-1.5 px-0.5 t-section text-ink">면적대별 시세</h2>
+        <p className="card rounded-2xl px-4 py-3.5 t-body text-text-3">
           지금은 면적대별 시세를 불러오지 못했어요. 거래가 없는 게 아니라 조회에 실패한
           것이라, 잠시 후 새로고침하면 보일 수 있어요.
         </p>
@@ -64,9 +64,9 @@ export async function ComplexAreaBands({
 
   return (
     <section className={wrap}>
-      <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">
+      <h2 className="mb-1.5 px-0.5 t-section text-ink">
         면적대별 시세{" "}
-        <span className="text-[11px] font-medium text-text-3">
+        <span className="t-sub font-medium text-text-3">
           {bands.data.length}구간 · 국토부
         </span>
       </h2>
@@ -75,9 +75,9 @@ export async function ComplexAreaBands({
           우측 페이드로 "더 있다"를 암시한다(TownCategoryNav 와 같은 패턴).
           sm+ 는 표가 통째로 들어가므로 페이드를 해제한다. */}
       <div className="card overflow-x-auto rounded-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] sm:overflow-hidden sm:[mask-image:none]">
-        <table className="w-full min-w-[420px] text-left text-[12px] sm:min-w-0 sm:text-[13px]">
+        <table className="w-full min-w-[420px] text-left t-sub sm:min-w-0 sm:t-body">
           <thead>
-            <tr className="border-b border-line bg-bg text-[10px] text-text-3 sm:text-[11px]">
+            <tr className="border-b border-line bg-bg t-caption text-text-3 sm:t-sub">
               <th className="px-3 py-2 font-semibold sm:px-4 sm:py-2.5">면적</th>
               <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">최근</th>
               <th className="px-3 py-2 text-right font-semibold sm:px-4 sm:py-2.5">평균</th>
@@ -90,13 +90,13 @@ export async function ComplexAreaBands({
                 <td className="px-3 py-2 font-bold text-ink sm:px-4 sm:py-2.5">{b.label}</td>
                 <td className="px-4 py-2.5 text-right">
                   <span className="font-extrabold text-primary">{manwon(b.latestManwon)}</span>{" "}
-                  <span className="text-[10px] text-text-3">{ymLabel(b.latestYm)}</span>
+                  <span className="t-caption text-text-3">{ymLabel(b.latestYm)}</span>
                 </td>
                 <td className="px-4 py-2.5 text-right text-text-2">
                   {manwon(b.avgManwon)}
                   {/* 구간 안 분포 — 최저~최고가 같으면(거래 1건 등) 반복 표기 생략 */}
                   {b.minManwon !== b.maxManwon && (
-                    <span className="block text-[10px] leading-tight text-text-3">
+                    <span className="block t-caption leading-tight text-text-3">
                       {manwon(b.minManwon)}~{manwon(b.maxManwon)}
                     </span>
                   )}
@@ -107,7 +107,7 @@ export async function ComplexAreaBands({
           </tbody>
         </table>
       </div>
-      <p className="mt-1.5 px-1 text-[10px] leading-relaxed text-text-3">
+      <p className="mt-1.5 px-1 t-caption text-text-3">
         {/* 항목 14 — 용어 첫 등장에 용어사전 링크 */}
         <Link href="/glossary/jeonyongmyeonjeok" className="underline underline-offset-2">
           전용면적

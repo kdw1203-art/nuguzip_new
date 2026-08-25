@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { TrendChart } from "@/app/components/viz/TrendChart";
+import { Bars } from "@/app/components/viz/Bars";
 import Link from "next/link";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
@@ -130,67 +132,81 @@ function postDateLabel(iso?: string): string | null {
 }
 
 function Sparkline({ tx }: { tx: TxRow[] }) {
-  const byYm = new Map<string, { sum: number; n: number }>();
+  /* 월별로 접어 평균 평단가와 거래 건수를 함께 만든다.
+     예전엔 여기서 자체 SVG 를 그리고 색을 #1d4fd8 / #c62828 로 박아 두었다 —
+     다크에서 토큰을 안 타고, 격자·범위 표기가 없어 값을 읽을 수 없었다.
+     공통 차트(TrendChart·Bars)로 옮기면 색은 currentColor 를 타고, 최고·최저
+     범위와 격자가 함께 온다. */
+  const byYm = new Map<string, { sum: number; n: number; deals: number }>();
   for (const t of tx) {
     if (!t.yyyymm || !Number.isFinite(t.avg_manwon) || t.avg_manwon <= 0) continue;
-    const cur = byYm.get(t.yyyymm) ?? { sum: 0, n: 0 };
+    const cur = byYm.get(t.yyyymm) ?? { sum: 0, n: 0, deals: 0 };
     cur.sum += t.avg_manwon;
     cur.n += 1;
+    cur.deals += t.deal_count || 0;
     byYm.set(t.yyyymm, cur);
   }
   const series = [...byYm.entries()]
-    .map(([ym, v]) => ({ ym, avg: v.sum / v.n }))
+    .map(([ym, v]) => ({ ym, avg: v.sum / v.n, deals: v.deals }))
     .sort((a, b) => a.ym.localeCompare(b.ym));
   if (series.length < 3) return null;
 
-  const W = 320;
-  const H = 52;
-  const PAD = 4;
   const vals = series.map((s) => s.avg);
   const min = Math.min(...vals);
   const max = Math.max(...vals);
-  const span = max - min || 1;
-  const stepX = (W - PAD * 2) / (series.length - 1);
-  const pts = series.map((s, i) => {
-    const x = PAD + i * stepX;
-    const y = PAD + (H - PAD * 2) * (1 - (s.avg - min) / span);
-    return { x, y };
-  });
-  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
-  const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${H - PAD} L${pts[0].x.toFixed(1)},${H - PAD} Z`;
-  const last = pts[pts.length - 1];
-  const first = series[0].avg;
-  const lastVal = series[series.length - 1].avg;
+  const first = vals[0];
+  const lastVal = vals[vals.length - 1];
   const deltaPct = first > 0 ? Math.round(((lastVal - first) / first) * 1000) / 10 : 0;
   const up = lastVal >= first;
-  const stroke = up ? "#1d4fd8" : "#c62828";
-  const dealSum = tx.reduce((s, t) => s + (t.deal_count || 0), 0);
+  const dealSum = series.reduce((s, t) => s + t.deals, 0);
+  const labels = series.map((s) => ymLabel(s.ym));
+  const tone = up ? "text-primary" : "text-danger";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-bg to-surface px-4 py-3">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-2 rounded-[14px] border border-line bg-surface px-4 py-3">
+      <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="t-sub font-extrabold text-ink">실거래가 추이</div>
+          <div className="t-section text-ink">실거래가 추이</div>
           <div className="t-caption text-text-3">
             {series.length}개월 · 거래 {dealSum.toLocaleString("ko-KR")}건 · 국토부
           </div>
         </div>
-        <span className={`shrink-0 text-[12px] font-extrabold ${up ? "text-primary" : "text-danger"}`}>
-          {deltaPct > 0 ? "+" : ""}
-          {deltaPct}%
+        <span className={`delta shrink-0 ${up ? "delta-up-b" : "delta-down-b"}`}>
+          {up ? "▲" : "▼"} {Math.abs(deltaPct)}%
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
-        <path d={area} fill={up ? "rgba(29,79,216,.10)" : "rgba(198,40,40,.08)"} />
-        <path d={line} fill="none" stroke={stroke} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx={last.x} cy={last.y} r={2.8} fill={stroke} />
-      </svg>
-      <div className="mt-1 flex justify-between t-caption text-text-3">
-        <span>{ymLabel(series[0].ym)}</span>
+
+      <div className={tone}>
+        <TrendChart
+          values={vals}
+          labels={labels}
+          height={112}
+          bands={3}
+          valueSuffix="만"
+          ariaLabel={`실거래 평단가 ${series.length}개월 추이`}
+        />
+      </div>
+
+      {/* 거래 건수 — 가격만 보면 "그 값이 몇 건에서 나왔는지"를 모른다.
+          한 건짜리 달의 평균과 스무 건짜리 달의 평균은 무게가 다르다. */}
+      {dealSum > 0 && (
+        <div className="text-text-3">
+          <div className="t-caption pb-0.5">월별 거래 건수</div>
+          <Bars
+            values={series.map((s) => s.deals)}
+            height={40}
+            valueSuffix="건"
+            ariaLabel="월별 거래 건수"
+          />
+        </div>
+      )}
+
+      <div className="flex justify-between t-caption text-text-3">
+        <span>{labels[0]}</span>
         <span>
           {manwonLabel(Math.round(min))} ~ {manwonLabel(Math.round(max))}
         </span>
-        <span>{ymLabel(series[series.length - 1].ym)}</span>
+        <span>{labels[labels.length - 1]}</span>
       </div>
     </div>
   );
@@ -683,7 +699,7 @@ export function ComplexInfoPanel({
 
           {/* 스펙 그리드 */}
           {specRows.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
+            <div className="rounded-[14px] border border-line bg-surface px-3.5 py-2.5">
               <SectionHead title="단지 스펙" sub="공공·단지 마스터 기준" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-0 sm:grid-cols-3">
                 {specRows.map((row) => (
@@ -701,39 +717,46 @@ export function ComplexInfoPanel({
 
           {/* 면적대 — 전체 */}
           {bands.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
+            <div className="rounded-[14px] border border-line bg-surface px-3.5 py-2.5">
               <SectionHead title="면적대별 시세" sub={`${bands.length}개 구간 · 국토부`} />
-              <div className="overflow-hidden rounded-xl bg-bg">
-                {bands.map((b, i) => (
-                  <div
-                    key={b.label}
-                    className={`flex items-center justify-between gap-2 px-3 py-2 text-[12px] ${
-                      i > 0 ? "border-t border-line" : ""
-                    }`}
-                  >
-                    <div className="min-w-0">
-                      <div className="font-bold text-ink">{b.label}</div>
-                      <div className="t-caption text-text-3">
-                        {b.count}건 · {ymLabel(b.latestYm)}
+              {/* 면적대 간 격차를 배경 길이로 먼저 보인다 — 숫자 네 줄을
+                  세로로 읽어야 "어느 평형이 비싼가"가 잡히던 자리. */}
+              <div className="overflow-hidden rounded-[10px] bg-bg">
+                {bands.map((b, i) => {
+                  const maxLatest = Math.max(1, ...bands.map((x) => x.latestManwon || 0));
+                  const w = Math.round(((b.latestManwon || 0) / maxLatest) * 100);
+                  return (
+                    <div
+                      key={b.label}
+                      className={`cell-bar row-hl flex items-center justify-between gap-2 px-3 py-2 t-sub text-primary ${
+                        i > 0 ? "border-t border-line" : ""
+                      }`}
+                      style={{ ["--w" as string]: `${w}%` }}
+                    >
+                      <div className="min-w-0">
+                        <div className="font-bold text-ink">{b.label}</div>
+                        <div className="t-caption text-text-3">
+                          {b.count}건 · {ymLabel(b.latestYm)}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="t-num text-ink">
+                          {manwonLabel(b.latestManwon) ?? "—"}
+                        </div>
+                        <div className="t-caption text-text-3">
+                          평균 {manwonLabel(b.avgManwon) ?? "—"}
+                        </div>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <div className="font-extrabold text-ink">
-                        {manwonLabel(b.latestManwon) ?? "—"}
-                      </div>
-                      <div className="t-caption text-text-3">
-                        평균 {manwonLabel(b.avgManwon) ?? "—"}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* 최근 실거래 14개월 */}
           {recent.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
+            <div className="rounded-[14px] border border-line bg-surface px-3.5 py-2.5">
               <SectionHead
                 title="월별 실거래"
                 sub={`최근 ${recent.length}개월 · 합 ${dealSum}건`}
@@ -818,7 +841,7 @@ export function ComplexInfoPanel({
 
           {/* 이야기 6건 */}
           {posts.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
+            <div className="rounded-[14px] border border-line bg-surface px-3.5 py-2.5">
               <SectionHead title="단지 이야기" sub={`${posts.length}건 · 공개 글`} />
               <div className="flex flex-col gap-1">
                 {posts.slice(0, 6).map((p, i) => (
@@ -860,7 +883,7 @@ export function ComplexInfoPanel({
 
           {/* 인근 단지 */}
           {nearby.length > 0 && (
-            <div className="rounded-2xl border border-line bg-surface px-3.5 py-2.5">
+            <div className="rounded-[14px] border border-line bg-surface px-3.5 py-2.5">
               <SectionHead
                 title={`${complex?.district || "근처"} 다른 단지`}
                 sub="같은 지역 비교"

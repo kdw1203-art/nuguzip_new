@@ -41,13 +41,13 @@ export default async function MissionsPage() {
 
   return (
     <PageShell breadcrumb="마이 › 미션">
-      <h1 className="rise-in text-[22px] font-extrabold text-ink">미션</h1>
-      <p className="rise-in-1 mt-1 text-[13px] text-text-2">
+      <h1 className="rise-in t-title text-ink">미션</h1>
+      <p className="rise-in-1 mt-1 t-body text-text-2">
         실제 활동으로 진행도가 자동 채워지고, 달성하면 포인트를 받아갈 수 있어요.
       </p>
 
       {!board ? (
-        <div className="card mt-4 rounded-2xl px-5 py-6 text-[13px] text-text-2">
+        <div className="card mt-4 rounded-2xl px-5 py-6 t-body text-text-2">
           진행도를 지금 불러오지 못했어요 — 잠시 후 다시 열어봐 주세요.
         </div>
       ) : (
@@ -55,7 +55,7 @@ export default async function MissionsPage() {
           {/* 시작 3미션 */}
           <section className="rise-in-1 mt-5">
             <div className="mb-2 flex items-center justify-between px-1">
-              <h2 className="text-[15px] font-extrabold text-ink">시작 3미션</h2>
+              <h2 className="t-section text-ink">시작 3미션</h2>
               <MissionClaim
                 kind="start"
                 points={200}
@@ -68,14 +68,14 @@ export default async function MissionsPage() {
                 <Link
                   key={m.key}
                   href={m.href}
-                  className="card card-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+                  className="card tile flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
                 >
                   <div className="min-w-0">
-                    <div className="text-[13.5px] font-extrabold text-ink">
+                    <div className="t-body font-extrabold text-ink">
                       {m.done ? "✓ " : ""}
                       {m.label}
                     </div>
-                    <p className="mt-0.5 text-[12px] leading-[1.6] text-text-2">{m.desc}</p>
+                    <p className="mt-0.5 t-sub text-text-2">{m.desc}</p>
                   </div>
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
@@ -99,21 +99,21 @@ export default async function MissionsPage() {
             return (
               <section className="rise-in-1 mt-4">
                 <div className="mb-2 flex items-center justify-between px-1">
-                  <h2 className="text-[15px] font-extrabold text-ink">보너스 · 첫 AI 분석</h2>
+                  <h2 className="t-section text-ink">보너스 · 첫 AI 분석</h2>
                   <MissionClaim kind="ai" points={100} disabled={!ai.done} claimed={ai.claimed} />
                 </div>
                 <Link
                   href={ai.href}
-                  className="card card-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
+                  className="card tile flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5"
                 >
                   <div className="min-w-0">
-                    <div className="text-[13.5px] font-extrabold text-ink">
+                    <div className="t-body font-extrabold text-ink">
                       {ai.done ? "✓ " : ""}
                       {ai.label}
                     </div>
-                    <p className="mt-0.5 text-[12px] leading-[1.6] text-text-2">{ai.desc}</p>
+                    <p className="mt-0.5 t-sub text-text-2">{ai.desc}</p>
                   </div>
-                  <span className="shrink-0 text-[12px] font-extrabold text-primary">+{ai.points}P ›</span>
+                  <span className="shrink-0 t-sub font-extrabold text-primary">+{ai.points}P ›</span>
                 </Link>
               </section>
             );
@@ -121,9 +121,9 @@ export default async function MissionsPage() {
 
           {/* 주간 미션 */}
           <section className="rise-in-2 mt-7">
-            <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+            <h2 className="mb-2 px-1 t-section text-ink">
               이번 주 미션{" "}
-              <span className="text-[12px] font-medium text-text-3">
+              <span className="t-sub font-medium text-text-3">
                 {board.weekKey} · 월요일마다 리셋
               </span>
             </h2>
@@ -132,8 +132,8 @@ export default async function MissionsPage() {
                 <div key={m.key} className="card flex flex-col gap-2 rounded-2xl px-4 py-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-[13.5px] font-extrabold text-ink">{m.label}</div>
-                      <p className="mt-0.5 text-[12px] leading-[1.6] text-text-2">{m.desc}</p>
+                      <div className="t-body font-extrabold text-ink">{m.label}</div>
+                      <p className="mt-0.5 t-sub text-text-2">{m.desc}</p>
                     </div>
                     <MissionClaim
                       kind="weekly"
@@ -145,12 +145,12 @@ export default async function MissionsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Bar progress={m.progress} target={m.target} />
-                    <span className="shrink-0 text-[11px] font-bold text-text-3 tabular-nums">
+                    <span className="shrink-0 t-sub font-bold text-text-3 tabular-nums">
                       {Math.min(m.progress, m.target)}/{m.target}
                     </span>
                   </div>
                   {!m.done && (
-                    <Link href={m.href} className="text-[12px] font-bold text-primary">
+                    <Link href={m.href} className="t-sub font-bold text-primary">
                       하러 가기 ›
                     </Link>
                   )}

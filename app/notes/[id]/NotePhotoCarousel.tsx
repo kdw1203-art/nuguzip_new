@@ -120,10 +120,10 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
         <div className="flex h-[248px] w-full items-center justify-center sm:h-[340px] lg:h-[400px]">
           {isFailed ? (
             <div className="flex flex-col items-center gap-1 px-6 text-center">
-              <span className="text-[13px] font-extrabold text-white/85">
+              <span className="t-body font-extrabold text-white/85">
                 사진을 불러오지 못했어요
               </span>
-              <span className="text-[11px] text-white/55">
+              <span className="t-sub text-white/55">
                 {idx + 1}번째 사진 · 원본 주소에 접근하지 못했습니다
               </span>
             </div>
@@ -162,14 +162,14 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             <span
               aria-hidden
               onClick={() => go(-1)}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 text-[18px] font-extrabold leading-none text-white backdrop-blur-sm transition hover:bg-black/70"
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 t-section leading-none text-white backdrop-blur-sm transition hover:bg-black/70"
             >
               ‹
             </span>
             <span
               aria-hidden
               onClick={() => go(1)}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 text-[18px] font-extrabold leading-none text-white backdrop-blur-sm transition hover:bg-black/70"
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 t-section leading-none text-white backdrop-blur-sm transition hover:bg-black/70"
             >
               ›
             </span>
@@ -180,7 +180,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             aria-live: 스크린리더도 장 전환을 들을 수 있게 (조용한 상태 변경 금지) */}
         <span
           aria-live="polite"
-          className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-extrabold text-white"
+          className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2.5 py-1 t-sub font-extrabold text-white"
         >
           {idx + 1} / {total}
         </span>
@@ -190,7 +190,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             type="button"
             onClick={() => setZoom(true)}
             aria-label="사진 전체화면으로 보기"
-            className="absolute right-2 top-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-extrabold text-white backdrop-blur-sm transition hover:bg-black/75"
+            className="absolute right-2 top-2 z-10 rounded-full bg-black/55 px-2.5 py-1 t-sub font-extrabold text-white backdrop-blur-sm transition hover:bg-black/75"
           >
             크게 보기
           </button>
@@ -218,7 +218,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
               }`}
             >
               {failed[i] ? (
-                <span className="flex h-full w-full items-center justify-center bg-bg text-[9px] font-bold text-text-3">
+                <span className="flex h-full w-full items-center justify-center bg-bg t-caption font-bold text-text-3">
                   실패
                 </span>
               ) : (
@@ -247,7 +247,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
           onClick={() => setZoom(false)}
         >
           <div className="flex items-center justify-between px-4 py-3 text-white">
-            <span className="text-[13px] font-extrabold">
+            <span className="t-body font-extrabold">
               {label} {idx + 1} / {total}
             </span>
             <button
@@ -256,7 +256,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
                 e.stopPropagation();
                 setZoom(false);
               }}
-              className="rounded-full bg-white/15 px-3 py-1.5 text-[12px] font-extrabold text-white hover:bg-white/25"
+              className="rounded-full bg-white/15 px-3 py-1.5 t-sub font-extrabold text-white hover:bg-white/25"
             >
               닫기 (Esc)
             </button>
@@ -266,7 +266,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             {isFailed ? (
-              <span className="text-[13px] text-white/80">
+              <span className="t-body text-white/80">
                 사진을 불러오지 못했어요
               </span>
             ) : (
@@ -285,7 +285,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
                   type="button"
                   aria-label="이전 사진"
                   onClick={() => go(-1)}
-                  className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-[22px] font-extrabold text-white hover:bg-white/30"
+                  className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 t-title text-white hover:bg-white/30"
                 >
                   ‹
                 </button>
@@ -293,7 +293,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
                   type="button"
                   aria-label="다음 사진"
                   onClick={() => go(1)}
-                  className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-[22px] font-extrabold text-white hover:bg-white/30"
+                  className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 t-title text-white hover:bg-white/30"
                 >
                   ›
                 </button>

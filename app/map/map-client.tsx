@@ -1384,44 +1384,43 @@ export function MapClient({
   // 컴팩트 칩 행: 매매/전세/월세 + 매물 + 필터 …
   const filterBar = (
     <>
-      {(
-        [
-          { key: "sale", label: "매매" },
-          { key: "jeonse", label: "전세" },
-          { key: "monthly", label: "월세" },
-        ] as const
-      ).map((t) => (
-        <button
-          key={t.key}
-          type="button"
-          aria-pressed={topTradeKey === t.key}
-          onClick={() => {
-            if (t.key === "monthly") {
-              setListingTradeKey("monthly");
-              setShowListings(true);
-              return;
-            }
-            setTxType(t.key === "jeonse" ? "rent" : "trade");
-            setListingTradeKey(t.key);
-          }}
-          className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
-            topTradeKey === t.key
-              ? "chip-active"
-              : "bg-[var(--glass-bg)] text-text-2"
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
+      {/* ① 거래유형 — 서로 배타적이라 한 덩어리(세그먼티드)로 묶는다.
+             칩 3개가 흩어져 있으면 "셋 중 하나"라는 규칙이 안 보인다. */}
+      <div className="map-seg" role="group" aria-label="거래유형">
+        {(
+          [
+            { key: "sale", label: "매매" },
+            { key: "jeonse", label: "전세" },
+            { key: "monthly", label: "월세" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            aria-pressed={topTradeKey === t.key}
+            onClick={() => {
+              if (t.key === "monthly") {
+                setListingTradeKey("monthly");
+                setShowListings(true);
+                return;
+              }
+              setTxType(t.key === "jeonse" ? "rent" : "trade");
+              setListingTradeKey(t.key);
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <span className="map-zone-sep" aria-hidden="true" />
+
+      {/* ② 표시·필터 — 지도 위에 무엇을 얹을지 */}
       <button
         type="button"
         aria-pressed={showListings}
         onClick={() => setShowListings((v) => !v)}
-        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
-          showListings
-            ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
-            : "bg-[var(--glass-bg)] text-text-2"
-        }`}
+        className="map-chip"
       >
         <Icon name="🏠" size={14} className="inline align-middle" /> 매물
       </button>
@@ -1439,30 +1438,29 @@ export function MapClient({
             return next;
           })
         }
-        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
-          filterActive || filtersExpanded
-            ? "bg-[rgba(29,79,216,.12)] text-primary"
-            : "bg-[var(--glass-bg)] text-text-2"
-        }`}
+        className={`map-chip ${filterActive || filtersExpanded ? "map-chip-soft" : ""}`}
       >
         필터
         {activeCount > 0 && (
-          <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 t-caption font-extrabold text-white">
+          <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 t-caption font-extrabold text-surface">
             {activeCount}
           </span>
         )}{" "}
-        ▾
+        <span className={filtersExpanded ? "inline-block rotate-180" : "inline-block"}>▾</span>
       </button>
       {filterActive && (
         <button
           type="button"
           onClick={resetFilters}
-          className="whitespace-nowrap t-sub font-bold text-text-3 underline"
+          className="whitespace-nowrap t-sub font-bold text-text-3 underline transition-colors hover:text-primary"
         >
           초기화
         </button>
       )}
-      {/* C3 반경 필터 토글 + 프리셋 */}
+
+      <span className="map-zone-sep" aria-hidden="true" />
+
+      {/* ③ 도구 — 지도 위에 그리는 것(반경·거리). 서로 배타적이라 하나만 켜진다. */}
       <button
         type="button"
         aria-pressed={radiusMode}
@@ -1479,11 +1477,7 @@ export function MapClient({
             return next;
           })
         }
-        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
-          radiusMode
-            ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
-            : "bg-[var(--glass-bg)] text-text-2"
-        }`}
+        className="map-chip"
       >
         ◎ 반경
       </button>
@@ -1493,11 +1487,8 @@ export function MapClient({
             key={r}
             type="button"
             onClick={() => setRadiusM(r)}
-            className={`chip whitespace-nowrap px-2.5 py-1.5 text-xs font-bold transition-colors ${
-              radiusM === r
-                ? "bg-[rgba(29,79,216,.12)] text-primary"
-                : "bg-[var(--glass-bg)] text-text-2"
-            }`}
+            aria-pressed={radiusM === r}
+            className={`map-chip ${radiusM === r ? "map-chip-soft" : ""}`}
           >
             {r >= 1000 ? `${r / 1000}km` : `${r}m`}
           </button>
@@ -1506,7 +1497,7 @@ export function MapClient({
         <button
           type="button"
           onClick={() => setRadiusCenter(null)}
-          className="whitespace-nowrap t-sub font-bold text-text-3 underline"
+          className="whitespace-nowrap t-sub font-bold text-text-3 underline transition-colors hover:text-primary"
         >
           중심 해제
         </button>
@@ -1530,11 +1521,7 @@ export function MapClient({
             return next;
           })
         }
-        className={`chip whitespace-nowrap px-3 py-1.5 text-xs font-bold transition-colors ${
-          measureMode
-            ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.35)]"
-            : "bg-[var(--glass-bg)] text-text-2"
-        }`}
+        className="map-chip"
       >
         ↔ 거리
       </button>
@@ -3049,10 +3036,33 @@ export function MapClient({
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-line to-line-strong px-8 text-center">
       <Icon name="🗺" size={34} />
       <div className="t-section text-ink">지도를 불러오지 못했어요</div>
-      <p className="max-w-[280px] t-sub text-text-2">
-        네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요. 좌측 목록에서 단지 시세·실거래는
-        그대로 확인할 수 있어요.
+      <p className="max-w-[300px] t-sub text-text-2">
+        지도 타일을 받지 못했습니다. 단지가 없는 게 아니라 지도만 못 그린 상태라,
+        시세·실거래는 그대로 볼 수 있어요.
       </p>
+      {/* 막다른 길로 두지 않는다 — 지도 없이도 갈 수 있는 곳을 준다 */}
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="btn-soft btn-md"
+        >
+          다시 시도
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView("list")}
+          className="chip chip-soft px-3 py-1.5 t-sub md:hidden"
+        >
+          목록으로 보기 ›
+        </button>
+        <Link href="/analysis/price" className="chip chip-soft px-3 py-1.5 t-sub no-underline">
+          면적대별 시세 ›
+        </Link>
+        <Link href="/analysis/timing" className="chip chip-soft px-3 py-1.5 t-sub no-underline">
+          시세·타이밍 ›
+        </Link>
+      </div>
     </div>
   );
 

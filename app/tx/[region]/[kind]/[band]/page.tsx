@@ -184,7 +184,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
         dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
       />
 
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         국토교통부 아파트 매매 실거래{" "}
         <strong className="text-ink">{cell.txCount.toLocaleString("ko-KR")}건</strong>
         {range && ` · ${range} 신고 기준`} · 중앙값{" "}
@@ -194,18 +194,18 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
 
       {/* 구간 요약 */}
       <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           {cell.bandLabel} 요약{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             {kind === "area" ? "전용면적 기준" : "거래금액 기준"}
           </span>
         </h2>
         <div className="mt-3 grid grid-cols-2 gap-x-4 sm:grid-cols-3">
           {stats.map((s) => (
             <div key={s.label} className="border-b border-border py-2.5">
-              <div className="text-[11px] text-text-3">{s.label}</div>
-              <div className="text-[15px] font-extrabold leading-tight text-ink">{s.value}</div>
-              {s.hint && <div className="mt-0.5 text-[11px] text-text-3">{s.hint}</div>}
+              <div className="t-sub text-text-3">{s.label}</div>
+              <div className="t-section leading-tight text-ink">{s.value}</div>
+              {s.hint && <div className="mt-0.5 t-sub text-text-3">{s.hint}</div>}
             </div>
           ))}
         </div>
@@ -213,25 +213,25 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
 
       {/* 단지 목록 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           이 구간에서 거래된 단지{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             거래 많은 순 · 상위 {Math.min(complexes.length, 40)}곳
           </span>
         </h2>
         {complexesFailed ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             단지별 내역을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.
           </p>
         ) : complexes.length === 0 ? (
-          <p className="py-6 text-center text-[13px] text-text-3">
+          <p className="py-6 text-center t-body text-text-3">
             이 구간에서 거래된 단지 내역이 아직 정리되지 않았습니다.
           </p>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[520px] text-left text-[13px]">
+            <table className="w-full min-w-[520px] text-left t-body">
               <thead>
-                <tr className="border-b border-border text-[11px] text-text-3">
+                <tr className="border-b border-border t-sub text-text-3">
                   <th className="py-2 font-medium">단지</th>
                   <th className="py-2 font-medium">거래</th>
                   <th className="py-2 text-right font-medium">평균</th>
@@ -250,7 +250,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
                         {c.name}
                       </Link>
                       {c.avgAreaM2 !== null && (
-                        <span className="ml-1.5 text-[11px] text-text-3">
+                        <span className="ml-1.5 t-sub text-text-3">
                           {c.avgAreaM2.toFixed(0)}㎡
                         </span>
                       )}
@@ -259,10 +259,10 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
                     <td className="py-2.5 text-right font-extrabold text-ink">
                       {formatKrwShort(c.avgKrw)}
                     </td>
-                    <td className="py-2.5 text-right text-[12px] text-text-2">
+                    <td className="py-2.5 text-right t-sub text-text-2">
                       {formatKrwShort(c.minKrw)}~{formatKrwShort(c.maxKrw)}
                     </td>
-                    <td className="py-2.5 text-right text-[12px] text-text-3">
+                    <td className="py-2.5 text-right t-sub text-text-3">
                       {formatYm(c.latestYm)}
                     </td>
                   </tr>
@@ -276,7 +276,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
       {/* 같은 지역 다른 구간 — 내부 링크 */}
       {siblings.length > 0 && (
         <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             {region.name} 다른 {BAND_KIND_LABEL[kind]}
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -284,7 +284,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
               <Link
                 key={s.bandSlug}
                 href={`${regionHref}/${kind}/${s.bandSlug}`}
-                className="card-hover rounded-full border border-border px-3 py-1.5 text-[12px] font-bold text-ink"
+                className="tile rounded-full border border-border px-3 py-1.5 t-sub font-bold text-ink"
               >
                 {s.bandLabel}
                 <span className="ml-1 font-medium text-text-3">
@@ -298,7 +298,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
 
       {crossCells.length > 0 && (
         <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             {region.name} {BAND_KIND_LABEL[kind === "area" ? "price" : "area"]}별로 보기
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -306,7 +306,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
               <Link
                 key={s.bandSlug}
                 href={`${regionHref}/${kind === "area" ? "price" : "area"}/${s.bandSlug}`}
-                className="card-hover rounded-full border border-border px-3 py-1.5 text-[12px] font-bold text-ink"
+                className="tile rounded-full border border-border px-3 py-1.5 t-sub font-bold text-ink"
               >
                 {s.bandLabel}
                 <span className="ml-1 font-medium text-text-3">
@@ -318,7 +318,7 @@ export default async function TxBandPage({ params }: { params: Promise<Params> }
         </section>
       )}
 
-      <p className="mb-8 text-[12px] leading-[1.7] text-text-3">
+      <p className="mb-8 t-sub text-text-3">
         평균·중앙값은 이 구간에 신고된 거래만으로 계산한 값이며, 특정 단지의 현재 가격이나 지역
         전체 시세를 뜻하지 않습니다. 계약 후 신고까지 시차가 있어 최근 달 건수는 더 늘어날 수
         있습니다. 면적은 전용면적 기준입니다.

@@ -71,12 +71,12 @@ function ShareTemplateForm({ onDone }: { onDone: () => void }) {
           onChange={(e) => setTitle(e.target.value)}
           maxLength={60}
           placeholder="체크리스트 이름 (예: 아이 학령기 실거주 체크)"
-          className="min-w-[220px] flex-1 rounded-[11px] border border-line bg-surface px-3.5 py-2.5 text-[13px]"
+          className="min-w-[220px] flex-1 rounded-[11px] border border-line bg-surface px-3.5 py-2.5 t-body"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-[11px] border border-line bg-surface px-3 py-2.5 text-[13px]"
+          className="rounded-[11px] border border-line bg-surface px-3 py-2.5 t-body"
           aria-label="카테고리"
         >
           {CATEGORIES.filter((c) => c !== "전체").map((c) => (
@@ -91,34 +91,34 @@ function ShareTemplateForm({ onDone }: { onDone: () => void }) {
         onChange={(e) => setDescription(e.target.value)}
         maxLength={200}
         placeholder="한 줄 소개 (어떤 상황에 쓰는 체크리스트인가요?)"
-        className="rounded-[11px] border border-line bg-surface px-3.5 py-2.5 text-[13px]"
+        className="rounded-[11px] border border-line bg-surface px-3.5 py-2.5 t-body"
       />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={7}
         placeholder={"# 등하교 동선\n정문에서 초등학교까지 직접 걸어보기\n횡단보도·신호등 개수 세기\n\n# 소음\n창문 닫고 5분, 열고 5분 있어보기"}
-        className="rounded-[11px] border border-line bg-surface px-3.5 py-2.5 font-mono text-[12.5px] leading-[1.7]"
+        className="rounded-[11px] border border-line bg-surface px-3.5 py-2.5 font-mono t-body"
       />
-      <p className="text-[11px] leading-[1.6] text-text-3">
+      <p className="t-sub text-text-3">
         # 으로 시작하는 줄은 섹션 제목, 나머지 줄은 체크 항목이 됩니다. 항목 5개 이상 ·
         하루 3개까지 공유할 수 있어요. 공유하면 모두에게 공개되고, 다른 이웃이 내
         체크리스트로 노트를 저장할 때마다 20P(일 5회)가 적립됩니다.
       </p>
       {needLogin && (
-        <p className="text-[12px] font-bold text-warning">
+        <p className="t-sub font-bold text-warning">
           로그인 후 공유할 수 있어요.{" "}
           <Link href="/login?callbackUrl=/notes/templates" className="text-primary underline">
             로그인 ›
           </Link>
         </p>
       )}
-      {error && <p className="text-[12px] font-bold text-danger">{error}</p>}
+      {error && <p className="t-sub font-bold text-danger">{error}</p>}
       <button
         type="button"
         onClick={submit}
         disabled={busy}
-        className="btn-primary w-fit rounded-[11px] px-5 py-2.5 text-[13px] disabled:opacity-60"
+        className="btn-primary w-fit rounded-[11px] px-5 py-2.5 t-body disabled:opacity-60"
       >
         {busy ? "저장 중…" : "체크리스트 공유하기"}
       </button>
@@ -138,36 +138,36 @@ function TemplateCard({ t, delay }: { t: NoteTemplate; delay: string }) {
   return (
     <Link
       href={`/notes/templates/${t.id}`}
-      className={`card card-hover press ${delay} flex flex-col gap-3 rounded-[18px] p-5 no-underline`}
+      className={`card tile press ${delay} flex flex-col gap-3 rounded-[18px] p-5 no-underline`}
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {t.isOfficial ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
             <Icon name="sparkles" size={12} />
             공식
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-success-soft chip-pad text-[11px] font-semibold text-success">
+          <span className="inline-flex items-center gap-1 rounded-full bg-success-soft chip-pad t-sub font-semibold text-success">
             <Icon name="users" size={12} />
             이웃 제작
           </span>
         )}
-        <span className="rounded-full bg-[rgba(0,0,0,.05)] chip-pad text-[11px] font-semibold text-text-2">
+        <span className="rounded-full bg-[rgba(0,0,0,.05)] chip-pad t-sub font-semibold text-text-2">
           {t.category}
         </span>
       </div>
 
-      <h2 className="text-[16px] font-extrabold leading-[1.4] text-ink">
+      <h2 className="t-section text-ink">
         {t.title}
       </h2>
 
       {t.description && (
-        <p className="line-clamp-2 text-[13px] leading-[1.6] text-text-2">
+        <p className="line-clamp-2 t-body text-text-2">
           {t.description}
         </p>
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-text-3">
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 t-sub text-text-3">
         <span className="inline-flex items-center gap-1">
           <Icon name="notebook-pen" size={13} />
           {sectionCount}개 섹션
@@ -186,7 +186,7 @@ function TemplateCard({ t, delay }: { t: NoteTemplate; delay: string }) {
         )}
       </div>
 
-      <span className="text-[13px] font-semibold text-primary">
+      <span className="t-body font-semibold text-primary">
         자세히 보기 →
       </span>
     </Link>
@@ -213,11 +213,11 @@ export function TemplateBrowser({ initial }: { initial: NoteTemplate[] }) {
           className="flex items-center justify-between text-left"
           aria-expanded={shareOpen}
         >
-          <span className="text-[15px] font-extrabold text-ink">
+          <span className="t-section text-ink">
             내 체크리스트 공유하기
-            <span className="ml-2 text-[11px] font-bold text-primary">사용될 때마다 +20P</span>
+            <span className="ml-2 t-sub font-bold text-primary">사용될 때마다 +20P</span>
           </span>
-          <span className="text-[13px] font-bold text-text-3">{shareOpen ? "접기 ▴" : "열기 ▾"}</span>
+          <span className="t-body font-bold text-text-3">{shareOpen ? "접기 ▴" : "열기 ▾"}</span>
         </button>
         {shareOpen && (
           <ShareTemplateForm
@@ -230,7 +230,7 @@ export function TemplateBrowser({ initial }: { initial: NoteTemplate[] }) {
       </div>
 
       {/* 카테고리 칩 필터 */}
-      <div className="rise-in flex flex-wrap gap-2 text-[13px]">
+      <div className="rise-in flex flex-wrap gap-2 t-body">
         {CATEGORIES.map((c) => (
           <button
             key={c}
@@ -250,7 +250,7 @@ export function TemplateBrowser({ initial }: { initial: NoteTemplate[] }) {
       {visible.length === 0 ? (
         <div className="rise-in-1 flex flex-col items-center gap-2 rounded-[16px] border border-line bg-surface px-4 py-12 text-center">
           <Icon name="search" size={22} className="text-text-3" />
-          <p className="text-[14px] text-text-2">
+          <p className="t-body text-text-2">
             해당 카테고리의 템플릿이 아직 없어요.
           </p>
         </div>

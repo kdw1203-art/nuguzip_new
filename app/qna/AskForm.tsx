@@ -106,14 +106,14 @@ export function AskForm() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="card card-hover press flex w-full items-center gap-2.5 text-left"
+        className="card tile press flex w-full items-center gap-2.5 text-left"
       >
         <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary-soft text-primary">
           <Icon name="plus" size={18} />
         </span>
         <span className="flex flex-col">
-          <span className="text-[14px] font-bold text-ink">궁금한 단지·동네, 질문해 보세요</span>
-          <span className="text-[12px] text-text-3">재건축·학군·주차·교통 등 무엇이든 물어보세요.</span>
+          <span className="t-body font-bold text-ink">궁금한 단지·동네, 질문해 보세요</span>
+          <span className="t-sub text-text-3">재건축·학군·주차·교통 등 무엇이든 물어보세요.</span>
         </span>
       </button>
     );
@@ -122,7 +122,7 @@ export function AskForm() {
   return (
     <form ref={rootRef} onSubmit={submit} className="card flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-[15px] font-bold text-ink">질문 작성</h2>
+        <h2 className="t-body font-bold text-ink">질문 작성</h2>
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -173,7 +173,7 @@ export function AskForm() {
         maxLength={120}
       />
 
-      {error && <p className="text-[12px] text-danger">{error}</p>}
+      {error && <p className="t-sub text-danger">{error}</p>}
 
       <div className="flex items-center justify-end gap-2">
         <button
@@ -182,7 +182,7 @@ export function AskForm() {
             reset();
             setOpen(false);
           }}
-          className="press text-[13px] text-text-3"
+          className="press t-body text-text-3"
         >
           취소
         </button>

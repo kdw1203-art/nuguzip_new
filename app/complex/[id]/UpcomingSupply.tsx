@@ -32,9 +32,9 @@ export async function UpcomingSupply({ area }: { area: string }) {
 
   return (
     <section className="rise-in-5 mt-6">
-      <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+      <h2 className="mb-2 px-1 t-section text-ink">
         인근 입주물량{" "}
-        <span className="text-[12px] font-medium text-text-3">
+        <span className="t-sub font-medium text-text-3">
           {name}
           {totalHouseholds > 0 ? ` · 약 ${totalHouseholds.toLocaleString("ko-KR")}세대` : ""}
         </span>
@@ -47,17 +47,17 @@ export async function UpcomingSupply({ area }: { area: string }) {
               className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5 last:border-0"
             >
               <div className="min-w-0">
-                <div className="truncate text-[13px] font-bold text-ink">
+                <div className="truncate t-body font-bold text-ink">
                   {i.aptName || "공급 예정 단지"}
                 </div>
-                <div className="truncate text-[11px] text-text-3">
+                <div className="truncate t-sub text-text-3">
                   {[i.address || i.region, i.bizType].filter(Boolean).join(" · ")}
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[13px] font-extrabold text-primary">{fmtYm(i.moveInYm)}</div>
+                <div className="t-body font-extrabold text-primary">{fmtYm(i.moveInYm)}</div>
                 {i.households != null && (
-                  <div className="text-[11px] text-text-3">
+                  <div className="t-sub text-text-3">
                     {i.households.toLocaleString("ko-KR")}세대
                   </div>
                 )}
@@ -66,7 +66,7 @@ export async function UpcomingSupply({ area }: { area: string }) {
           ))}
         </ul>
       </div>
-      <p className="mt-1.5 px-1 text-[11px] leading-[1.6] text-text-3">
+      <p className="mt-1.5 px-1 t-sub text-text-3">
         입주물량은 주변 시세·전세에 영향을 줄 수 있어요. 공공 공급 데이터 기준이며 일정은 변동될 수 있습니다.
       </p>
     </section>

@@ -47,20 +47,20 @@ function AxisBlock({
         >
           {section.eyebrow}
         </span>
-        <span className="flex-1 text-[13px] font-extrabold text-ink">{section.label}</span>
-        <span className="text-[11px] font-bold text-text-3">
+        <span className="flex-1 t-body font-extrabold text-ink">{section.label}</span>
+        <span className="t-sub font-bold text-text-3">
           {unavailable ? "확인하지 못함" : section.status === "partial" ? "일부 확인" : "확인"}
         </span>
-        <span className="text-[13px] text-text-3 group-open:hidden">›</span>
+        <span className="t-body text-text-3 group-open:hidden">›</span>
       </summary>
 
       <div className="mt-2 flex flex-col gap-2">
         {section.headline && (
-          <p className="text-[13px] font-bold leading-[1.6] text-text-1">{section.headline}</p>
+          <p className="t-body font-bold text-text-1">{section.headline}</p>
         )}
 
         {section.insight && (
-          <p className="rounded-[10px] bg-primary-soft px-2.5 py-2 text-[12px] leading-[1.7] text-primary">
+          <p className="rounded-[10px] bg-primary-soft px-2.5 py-2 t-sub text-primary">
             <b className="mr-1">해석</b>
             {section.insight}
           </p>
@@ -71,7 +71,7 @@ function AxisBlock({
             {section.facts.map((fact) => (
               <li
                 key={`${fact.label}-${fact.value}`}
-                className="rounded-[8px] bg-bg chip-pad text-[11px] text-text-2"
+                className="rounded-[8px] bg-bg chip-pad t-sub text-text-2"
               >
                 <b className="mr-1 font-bold text-text-1">{fact.label}</b>
                 {fact.value}
@@ -83,7 +83,7 @@ function AxisBlock({
         {section.bullets.length > 0 && (
           <ul className="flex flex-col gap-1">
             {section.bullets.map((bullet) => (
-              <li key={bullet} className="flex gap-1.5 text-[12.5px] leading-[1.7] text-text-1">
+              <li key={bullet} className="flex gap-1.5 t-body text-text-1">
                 <span className="mt-[7px] h-[4px] w-[4px] shrink-0 rounded-full bg-text-3/45" />
                 <span>{bullet}</span>
               </li>
@@ -93,11 +93,11 @@ function AxisBlock({
 
         {/* 못 채운 사유 — 비어 있는 축을 "해당 없음"으로 바꿔 적지 않는다. */}
         {section.note && (
-          <p className="text-[11.5px] leading-[1.7] text-text-3">{section.note}</p>
+          <p className="t-sub text-text-3">{section.note}</p>
         )}
 
         {section.sources.length > 0 && (
-          <p className="text-[11px] text-text-3">출처 · {section.sources.join(" · ")}</p>
+          <p className="t-sub text-text-3">출처 · {section.sources.join(" · ")}</p>
         )}
       </div>
     </details>
@@ -120,7 +120,7 @@ export default function DeepDivePanel({
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-base font-extrabold text-ink">AI 심화 분석</div>
-          <div className="mt-0.5 text-[11.5px] text-text-3">
+          <div className="mt-0.5 t-sub text-text-3">
             노트에 적힌 내용과 공개 데이터를 함께 읽어 {total}개 축으로 정리했어요 · {filled}개 축
             확인
           </div>
@@ -136,10 +136,10 @@ export default function DeepDivePanel({
       {/* 못 읽은 소스 — 어떤 축이 왜 비었는지 한 곳에 모아 둔다. */}
       {deepDive.gaps.length > 0 && (
         <div className="rounded-[12px] border border-line bg-bg px-3 py-2.5">
-          <div className="text-[11.5px] font-bold text-text-2">이번에 확인하지 못한 자료</div>
+          <div className="t-sub font-bold text-text-2">이번에 확인하지 못한 자료</div>
           <ul className="mt-1 flex flex-col gap-0.5">
             {deepDive.gaps.map((gap) => (
-              <li key={gap} className="text-[11px] leading-[1.7] text-text-3">
+              <li key={gap} className="t-sub text-text-3">
                 · {gap}
               </li>
             ))}
@@ -148,7 +148,7 @@ export default function DeepDivePanel({
       )}
 
       {deepDive.disclaimer && (
-        <p className="border-t border-line pt-2.5 text-[11px] leading-[1.7] text-text-3">
+        <p className="border-t border-line pt-2.5 t-sub text-text-3">
           {deepDive.disclaimer}
         </p>
       )}

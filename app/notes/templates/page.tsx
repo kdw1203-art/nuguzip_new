@@ -21,7 +21,7 @@ export default async function NoteTemplatesPage() {
 
   return (
     <PageShell breadcrumb="홈 › 임장노트 › 템플릿" title="임장 노트 템플릿">
-      <p className="rise-in mb-5 text-[14px] leading-[1.7] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         임장 갈 때 무엇을 봐야 할지 막막하다면, 검증된 체크리스트로 시작하세요.
         아파트 기본 점검부터 분양권·전월세 계약·재건축까지 상황별 템플릿을 골라
         &lsquo;이 템플릿으로 노트 쓰기&rsquo;를 누르면 바로 임장 노트를 작성할 수 있어요.

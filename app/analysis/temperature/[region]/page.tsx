@@ -423,19 +423,19 @@ export default async function TemperatureRegionPage({
         </Link>
         <Link
           href={`/region/${region.id}`}
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 text-[13px] font-bold text-ink"
         >
           {region.name} 지역 허브
         </Link>
         <Link
           href="/analysis/temperature"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 text-[13px] font-bold text-ink"
         >
           다른 지역 온도
         </Link>
         <Link
           href="/methodology"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 text-[13px] font-bold text-ink"
         >
           데이터 방법론
         </Link>

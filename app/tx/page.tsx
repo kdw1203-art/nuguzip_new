@@ -141,7 +141,7 @@ export default async function TxIndexPage() {
         }}
       />
 
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         국토교통부 아파트 매매 실거래 신고분을 지역 × 면적대·가격대로 나눠 정리했습니다.
         {total > 0 && (
           <>
@@ -168,7 +168,7 @@ export default async function TxIndexPage() {
         <section className="rise-in-1 card p-[var(--pad-card)]">
           {/* 모바일 실측 18 — py-8 은 세 줄 문구에 화면의 40% 를 차지했다. 문구는
               그대로(정직성 유지), 여백만 줄인다. */}
-          <p className="py-4 text-center text-[13px] leading-[1.7] text-text-3 md:py-8">
+          <p className="py-4 text-center t-body text-text-3 md:py-8">
             실거래 집계를 <strong className="text-ink">불러오지 못했습니다</strong>.
             <br />
             거래가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시
@@ -177,7 +177,7 @@ export default async function TxIndexPage() {
         </section>
       ) : regions.length === 0 ? (
         <section className="rise-in-1 card p-[var(--pad-card)]">
-          <p className="py-4 text-center text-[13px] leading-[1.7] text-text-3 md:py-8">
+          <p className="py-4 text-center t-body text-text-3 md:py-8">
             아직 구간으로 정리된 지역이 없습니다.
             <br />
             한 구간에 거래 {MIN_BAND_TX}건이 모이면 이곳에 지역이 나타납니다.
@@ -185,9 +185,9 @@ export default async function TxIndexPage() {
         </section>
       ) : (
         <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             지역{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               거래 많은 순 · 구간별 페이지로 이동
             </span>
           </h2>
@@ -203,11 +203,11 @@ export default async function TxIndexPage() {
                     key={r.slug}
                     prefetch={false}
                     href={`/tx/${encodeURIComponent(r.slug)}`}
-                    className="card-hover flex flex-col gap-1.5 rounded-[10px] border border-border px-3 py-2.5 text-[13px]"
+                    className="tile flex flex-col gap-1.5 rounded-[10px] border border-border px-3 py-2.5 t-body"
                   >
                     <span className="flex items-baseline justify-between gap-3">
                       <span className="font-bold text-ink">{r.name}</span>
-                      <span className="shrink-0 text-[12px] text-text-3">
+                      <span className="shrink-0 t-sub text-text-3">
                         {r.txCount.toLocaleString("ko-KR")}건 · 구간{" "}
                         {r.areaCells.length + r.priceCells.length}
                       </span>
@@ -232,8 +232,8 @@ export default async function TxIndexPage() {
       )}
 
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">이 숫자를 읽는 법</h2>
-        <ul className="mt-2 space-y-1.5 text-[13px] leading-[1.6] text-text-2">
+        <h2 className="t-section text-ink">이 숫자를 읽는 법</h2>
+        <ul className="mt-2 space-y-1.5 t-body text-text-2">
           {/* 항목 14 — 용어 첫 등장에 용어사전 링크(전 페이지 도배가 아니라
               읽는 법 안내에서 한 번씩만). */}
           <li>
@@ -269,7 +269,7 @@ export default async function TxIndexPage() {
             내기에 표본이 모자란 구간입니다.
           </li>
         </ul>
-        <p className="mt-2.5 text-[12px] text-text-3">
+        <p className="mt-2.5 t-sub text-text-3">
           낯선 용어는{" "}
           <Link href="/glossary" className="font-bold text-primary">
             부동산 용어사전 ›
@@ -281,7 +281,7 @@ export default async function TxIndexPage() {
       {/* 애드센스 데스크탑 유닛 — 본문(읽는 법) 아래 빈공간. 모바일 미노출. */}
       <AdSenseUnit className="mb-6" />
 
-      <p className="mb-8 text-[12px] text-text-3">
+      <p className="mb-8 t-sub text-text-3">
         단지 단위로 보려면{" "}
         <Link href="/complex/browse" className="font-bold text-primary underline">
           단지 실거래 브라우즈

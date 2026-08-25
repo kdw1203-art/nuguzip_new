@@ -59,7 +59,7 @@ export function BillingAutopayCard(props: Props) {
 
   if (state === "done") {
     return (
-      <div className="rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3 text-[12px] leading-[1.7] text-text-2">
+      <div className="rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3 t-sub text-text-2">
         {message}
       </div>
     );
@@ -70,15 +70,15 @@ export function BillingAutopayCard(props: Props) {
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[12px] font-extrabold text-ink">
+        <span className="t-sub font-extrabold text-ink">
           자동결제 이용 중 · {PLAN_LABEL[props.plan] ?? props.plan}{" "}
           {props.billing === "annual" ? "연간" : "월간"}
         </span>
-        <span className="text-[12px] font-bold text-ink">
+        <span className="t-sub font-bold text-ink">
           {props.amount.toLocaleString("ko-KR")}원 / {props.billing === "annual" ? "년" : "월"}
         </span>
       </div>
-      <p className="text-[11px] leading-[1.7] text-text-2">
+      <p className="t-sub text-text-2">
         {props.cardCompany || props.cardNumberMasked ? (
           <>
             결제 카드: {props.cardCompany ?? "카드"} {props.cardNumberMasked ?? ""} ·{" "}
@@ -94,20 +94,20 @@ export function BillingAutopayCard(props: Props) {
       </p>
       {state === "confirm" ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-text-2">
+          <span className="t-sub text-text-2">
             해지해도 이미 결제한 기간은 만료일까지 그대로 이용돼요. 해지할까요?
           </span>
           <button
             type="button"
             onClick={() => void cancel()}
-            className="btn-soft btn-sm rounded-lg px-3 py-1.5 text-[11px] font-bold text-danger"
+            className="btn-soft btn-sm rounded-lg px-3 py-1.5 t-sub font-bold text-danger"
           >
             해지 확정
           </button>
           <button
             type="button"
             onClick={() => setState("idle")}
-            className="btn-soft btn-sm rounded-lg px-3 py-1.5 text-[11px] font-bold"
+            className="btn-soft btn-sm rounded-lg px-3 py-1.5 t-sub font-bold"
           >
             유지하기
           </button>
@@ -116,7 +116,7 @@ export function BillingAutopayCard(props: Props) {
         <div className="flex items-center gap-2">
           <Link
             href={`/subscription/billing?tier=${props.plan}&billing=${props.billing}&mode=card`}
-            className="btn-soft btn-sm w-fit rounded-lg px-3 py-1.5 text-[11px] font-bold no-underline"
+            className="btn-soft btn-sm w-fit rounded-lg px-3 py-1.5 t-sub font-bold no-underline"
           >
             {suspended ? "카드 다시 등록" : "카드 변경"}
           </Link>
@@ -124,12 +124,12 @@ export function BillingAutopayCard(props: Props) {
             type="button"
             onClick={() => setState("confirm")}
             disabled={state === "working"}
-            className="btn-soft btn-sm w-fit rounded-lg px-3 py-1.5 text-[11px] font-bold disabled:opacity-60"
+            className="btn-soft btn-sm w-fit rounded-lg px-3 py-1.5 t-sub font-bold disabled:opacity-60"
           >
             {state === "working" ? "해지 처리 중…" : "자동결제 해지"}
           </button>
           {state === "error" && message && (
-            <span className="text-[11px] text-danger">{message}</span>
+            <span className="t-sub text-danger">{message}</span>
           )}
         </div>
       )}

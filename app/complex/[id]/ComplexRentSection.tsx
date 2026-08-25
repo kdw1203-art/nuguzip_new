@@ -46,18 +46,18 @@ export async function ComplexRentSection({
 
   return (
     <section className="rise-in-5 mt-6">
-      <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+      <h2 className="mb-2 px-1 t-section text-ink">
         전월세 실거래 이력{" "}
-        <span className="text-[12px] font-medium text-text-3">
+        <span className="t-sub font-medium text-text-3">
           {hist.periodLabel} · 전세 {jeonseTotal.toLocaleString("ko-KR")}건 · 월세{" "}
           {wolseTotal.toLocaleString("ko-KR")}건
           {hist.truncated ? " · 표본 상한 도달" : ""}
         </span>
       </h2>
       <div className="card overflow-x-auto rounded-2xl px-4 py-2">
-        <table className="w-full min-w-[520px] text-[13px]">
+        <table className="w-full min-w-[520px] t-body">
           <thead>
-            <tr className="border-b border-line text-left text-[11px] text-text-3">
+            <tr className="border-b border-line text-left t-sub text-text-3">
               <th className="py-2 pr-3 font-semibold">계약월</th>
               <th className="py-2 pr-3 text-right font-semibold">전세 중앙값</th>
               <th className="py-2 pr-3 text-right font-semibold">전세 건수</th>

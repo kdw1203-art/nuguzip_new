@@ -124,8 +124,8 @@ export default async function QnaListPage() {
             sidebar={
               <>
                 <section className="rise-in-2 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-                  <h2 className="text-[14px] font-bold text-ink">질문 전에 여기부터</h2>
-                  <p className="text-[12px] leading-[1.6] text-text-3">
+                  <h2 className="t-body font-bold text-ink">질문 전에 여기부터</h2>
+                  <p className="t-sub text-text-3">
                     이미 남아 있는 기록에 답이 있을 수 있어요. 단지 허브에는 실거래·지도·
                     임장노트·이 단지 Q&amp;A 가 한 곳에 모여 있습니다.
                   </p>
@@ -159,8 +159,8 @@ export default async function QnaListPage() {
                           <Icon name={l.icon} size={16} />
                         </span>
                         <span className="flex flex-col">
-                          <span className="text-[13px] font-bold text-ink">{l.label}</span>
-                          <span className="text-[11px] text-text-3">{l.desc}</span>
+                          <span className="t-body font-bold text-ink">{l.label}</span>
+                          <span className="t-sub text-text-3">{l.desc}</span>
                         </span>
                       </Link>
                     ))}
@@ -168,23 +168,23 @@ export default async function QnaListPage() {
                 </section>
 
                 <section className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-                  <h2 className="text-[14px] font-bold text-ink">이런 걸 물어보세요</h2>
+                  <h2 className="t-body font-bold text-ink">이런 걸 물어보세요</h2>
                   <ul className="flex flex-col gap-1.5">
                     {QNA_TOPICS.slice(0, 6).map((t) => (
                       <li key={t.key} className="flex items-start gap-2">
-                        <span className="mt-[1px] shrink-0 text-[13px]">{t.icon}</span>
-                        <span className="text-[12px] leading-[1.55] text-text-2">{t.hint}</span>
+                        <span className="mt-[1px] shrink-0 t-body">{t.icon}</span>
+                        <span className="t-sub text-text-2">{t.hint}</span>
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-1 text-[11px] leading-[1.55] text-text-3">
+                  <p className="mt-1 t-sub text-text-3">
                     단지명과 지역을 함께 적으면 그 단지를 아는 이웃에게 더 잘 닿아요.
                   </p>
                 </section>
 
                 <section className="rise-in-4 card flex flex-col gap-1.5 rounded-[18px] p-[18px]">
-                  <h2 className="text-[14px] font-bold text-ink">답변은 이웃의 경험이에요</h2>
-                  <p className="text-[12px] leading-[1.6] text-text-3">
+                  <h2 className="t-body font-bold text-ink">답변은 이웃의 경험이에요</h2>
+                  <p className="t-sub text-text-3">
                     Q&amp;A의 답변은 이용자 개개인의 의견으로 정확성이 보장되지 않습니다. 투자·매매·
                     임대차 등 계약 판단과 그 결과에 대한 책임은 본인에게 있으니, 참고 자료로만
                     활용해 주세요.

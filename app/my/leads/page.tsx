@@ -58,13 +58,13 @@ export default async function MyLeadsPage() {
       <PageShell breadcrumb="마이 › 받은 문의" title="받은 문의">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
-            <div className="text-[26px]">
+            <div className="t-title">
               <Icon name="✉️" size={26} />
             </div>
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-section text-ink">
               받은 문의는 공인중개사 인증 후 이용할 수 있어요
             </div>
-            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+            <p className="max-w-[420px] t-body text-text-3">
               개업공인중개사 자격을 인증하면 내 매물에 남겨진 문의(리드)를 이 화면에서
               받아 관리할 수 있어요.
             </p>
@@ -85,7 +85,7 @@ export default async function MyLeadsPage() {
   return (
     <PageShell breadcrumb="마이 › 받은 문의" title="받은 문의">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-text-3">
+        <p className="t-body text-text-3">
           전체 {stats.total} · 새 문의{" "}
           <b className={stats.unread > 0 ? "text-primary" : "text-text-2"}>{stats.unread}</b>
         </p>
@@ -96,8 +96,8 @@ export default async function MyLeadsPage() {
 
       {items.length === 0 ? (
         <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[15px] font-extrabold text-ink">아직 받은 문의가 없어요</div>
-          <p className="max-w-[440px] text-[13px] leading-[1.7] text-text-3">
+          <div className="t-section text-ink">아직 받은 문의가 없어요</div>
+          <p className="max-w-[440px] t-body text-text-3">
             노출 중인 매물에 관심 있는 이용자가 문의를 남기면 여기로 도착해요. 매물 정보와
             사진을 충실히 채우면 문의가 늘어나요.
           </p>
@@ -124,21 +124,21 @@ export default async function MyLeadsPage() {
                   </span>
                   <Link
                     href={`/listings/${q.listingId}`}
-                    className="text-[14px] font-extrabold text-ink hover:underline"
+                    className="t-section text-ink hover:underline"
                   >
                     {q.complexName ?? "매물"}
                   </Link>
                   {q.regionName && (
-                    <span className="text-[12px] text-text-3">· {q.regionName}</span>
+                    <span className="t-sub text-text-3">· {q.regionName}</span>
                   )}
-                  <span className="ml-auto text-[11px] text-text-3">{timeAgo(q.createdAt)}</span>
+                  <span className="ml-auto t-sub text-text-3">{timeAgo(q.createdAt)}</span>
                 </div>
 
-                <p className="whitespace-pre-wrap rounded-xl bg-[rgba(0,0,0,.03)] px-3.5 py-2.5 text-[13px] leading-[1.7] text-text-2">
+                <p className="whitespace-pre-wrap rounded-xl bg-[rgba(0,0,0,.03)] px-3.5 py-2.5 t-body text-text-2">
                   {q.message}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-text-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 t-sub text-text-3">
                   <span>
                     문의자 · <b className="text-text-2">{q.inquirerLabel ?? "이용자"}</b>
                   </span>
@@ -159,7 +159,7 @@ export default async function MyLeadsPage() {
       )}
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
         문의는 이용자가 남긴 정보입니다. 누구집은 광고 매체로서 문의를 전달할 뿐 중개
         당사자가 아니며, 회신·중개 행위는 개업공인중개사가 수행합니다.
       </div>

@@ -150,31 +150,31 @@ export default async function BestNotesMonthPage({
         }}
       />
       <div className="mx-auto max-w-[860px]">
-        <h1 className="rise-in text-[24px] font-extrabold text-ink">
+        <h1 className="rise-in t-title text-ink">
           {label} 이달의 공개 임장노트
         </h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-1">{leadSentence}</p>
+        <p className="rise-in-1 mt-2 t-body text-text-1">{leadSentence}</p>
 
         {/* 집계 요약 — 뽑힌 수만 보여 주면 분모를 숨기는 셈이 된다 */}
         <div className="rise-in-1 mt-4 grid grid-cols-3 gap-2">
           <div className="rounded-[12px] border border-border px-4 py-3">
-            <p className="text-[11px] font-bold text-text-3">그 달 공개 노트</p>
-            <p className="mt-0.5 text-[17px] font-extrabold text-ink">{month.totalCount}편</p>
+            <p className="t-sub font-bold text-text-3">그 달 공개 노트</p>
+            <p className="mt-0.5 t-section text-ink">{month.totalCount}편</p>
           </div>
           <div className="rounded-[12px] border border-border px-4 py-3">
-            <p className="text-[11px] font-bold text-text-3">{MIN_SCORE}점 이상</p>
-            <p className="mt-0.5 text-[17px] font-extrabold text-ink">{month.qualifiedCount}편</p>
+            <p className="t-sub font-bold text-text-3">{MIN_SCORE}점 이상</p>
+            <p className="mt-0.5 t-section text-ink">{month.qualifiedCount}편</p>
           </div>
           <div className="rounded-[12px] border border-border px-4 py-3">
-            <p className="text-[11px] font-bold text-text-3">여기 실린 노트</p>
-            <p className="mt-0.5 text-[17px] font-extrabold text-primary">
+            <p className="t-sub font-bold text-text-3">여기 실린 노트</p>
+            <p className="mt-0.5 t-section text-primary">
               {month.picks.length}편
             </p>
           </div>
         </div>
 
         {month.qualifiedCount > month.picks.length && (
-          <p className="rise-in-1 mt-2 text-[12px] leading-[1.6] text-text-3">
+          <p className="rise-in-1 mt-2 t-sub text-text-3">
             자격을 갖춘 {month.qualifiedCount}편 가운데 {month.picks.length}편만 실렸습니다 — 한
             달 최대 {MAX_NOTES_PER_MONTH}편, 같은 작성자 최대 {MAX_PER_AUTHOR}편 상한 때문입니다.
             상한에 걸려 빠진 노트가 더 나쁜 노트라는 뜻은 아닙니다.
@@ -187,29 +187,29 @@ export default async function BestNotesMonthPage({
             <article key={p.note.id} className="card rounded-[16px] p-[var(--pad-card)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[12px] font-extrabold text-text-3">
+                  <p className="t-sub font-extrabold text-text-3">
                     {i + 1}위 · {placeLabel(p.note)}
                   </p>
-                  <h2 className="mt-1 text-[16px] font-extrabold leading-[1.4] text-ink">
+                  <h2 className="mt-1 t-section text-ink">
                     <Link href={`/notes/${p.note.id}`} className="no-underline hover:underline">
                       {p.note.title}
                     </Link>
                   </h2>
-                  <p className="mt-1 text-[12px] text-text-3">
+                  <p className="mt-1 t-sub text-text-3">
                     {maskAuthor(p.note)} · {p.note.visitDate || p.note.createdAt.slice(0, 10)} 방문
                     기록
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-[20px] font-extrabold leading-none text-primary">
+                  <p className="t-title leading-none text-primary">
                     {p.total}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold text-text-3">/ {MAX_SCORE}점</p>
+                  <p className="mt-1 t-sub font-bold text-text-3">/ {MAX_SCORE}점</p>
                 </div>
               </div>
 
               {p.note.summary?.trim() && (
-                <p className="mt-3 text-[13px] leading-[1.7] text-text-2">
+                <p className="mt-3 t-body text-text-2">
                   {p.note.summary.trim().length > 140
                     ? `${p.note.summary.trim().slice(0, 140)}…`
                     : p.note.summary.trim()}
@@ -217,7 +217,7 @@ export default async function BestNotesMonthPage({
               )}
 
               <div className="mt-3 overflow-x-auto">
-                <table className="w-full min-w-[420px] border-collapse text-[12px]">
+                <table className="w-full min-w-[420px] border-collapse t-sub">
                   <thead>
                     <tr className="border-b border-border text-left text-text-3">
                       <th className="py-1.5 pr-2 font-bold">항목</th>
@@ -246,7 +246,7 @@ export default async function BestNotesMonthPage({
               <p className="mt-3">
                 <Link
                   href={`/notes/${p.note.id}`}
-                  className="text-[13px] font-bold text-primary underline"
+                  className="t-body font-bold text-primary underline"
                 >
                   노트 전문 보기 ›
                 </Link>
@@ -257,18 +257,18 @@ export default async function BestNotesMonthPage({
 
         {/* 계산식 재게시 — 목록에서 넘어오지 않은 방문자도 기준을 볼 수 있어야 한다 */}
         <section className="rise-in-3 card mt-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">점수는 이렇게 계산했습니다</h2>
+          <h2 className="t-section text-ink">점수는 이렇게 계산했습니다</h2>
           <div className="mt-3 flex flex-col gap-3">
             {SCORE_AXES.map((a) => (
               <div key={a.key} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
-                <p className="text-[13px] font-extrabold text-ink">
+                <p className="t-body font-extrabold text-ink">
                   {a.label} <span className="text-primary">{a.max}점</span>
                 </p>
-                <p className="mt-0.5 text-[12px] leading-[1.6] text-text-3">{a.how}</p>
+                <p className="mt-0.5 t-sub text-text-3">{a.how}</p>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[12px] leading-[1.6] text-text-3">
+          <p className="mt-4 t-sub text-text-3">
             이 점수는 <strong className="text-ink">기록의 충실도</strong>만 잽니다. 그 단지가 좋은
             단지인지, 값이 적절한지와는 무관합니다.
           </p>
@@ -276,7 +276,7 @@ export default async function BestNotesMonthPage({
 
         <QaBlock items={faq} />
 
-        <p className="mb-8 mt-5 flex flex-wrap gap-4 text-[12px] text-text-3">
+        <p className="mb-8 mt-5 flex flex-wrap gap-4 t-sub text-text-3">
           <Link href="/notes/best" className="font-bold text-primary underline">
             다른 달 보기
           </Link>

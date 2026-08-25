@@ -91,7 +91,7 @@ export default async function SupplyPage() {
         {/* 정직 안내 배너 (초록 틴트) — 화면의 모든 수치가 실데이터가 된 뒤로는
             "예시 구성" 이라고 적을 것이 없다. 남은 사실(수동 적재·자동 갱신 없음)만 적는다. */}
         <div
-          className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6]"
+          className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 t-sub"
           style={{ color: "var(--primary-strong)" }}
         >
           <span>
@@ -125,14 +125,14 @@ export default async function SupplyPage() {
              예전 로더들은 실패를 [] 로 삼켜 빈 상태처럼 보였다 — getSupplyAll 이
              ok 로 구별한다. 이 화면도 revalidate 주기 동안은 캐시되지만,
              빈 데이터를 "정상 0건" 처럼 눌러앉히는 것보다는 정직하다. */
-          <div className="card rounded-2xl px-4 py-10 text-center text-[13px] text-text-2">
+          <div className="card rounded-2xl px-4 py-10 text-center t-body text-text-2">
             입주 물량 데이터를 불러오지 못했어요. 0건인 게 아니라 조회에 실패한
             것이니, 잠시 뒤 새로고침해 주세요.
           </div>
         )}
 
         {/* 면책 (초록 톤 유지) */}
-        <p className="mt-6 text-[11px] leading-[1.6] text-text-3">
+        <p className="mt-6 t-sub text-text-3">
           입주 예정 물량은 공개 자료를 취합한 참고용 정보이며, 사업 진행·일정
           변경에 따라 실제와 다를 수 있습니다.
         </p>

@@ -175,7 +175,7 @@ function GuestView() {
 function SectionHead({ title, href, hrefLabel }: { title: string; href?: string; hrefLabel?: string }) {
   return (
     <div className="flex items-baseline justify-between px-1">
-      <h2 className="text-[15px] font-extrabold text-ink">{title}</h2>
+      <h2 className="t-section text-ink">{title}</h2>
       {href && (
         <Link href={href} className="text-xs font-semibold text-primary no-underline">
           {hrefLabel ?? "전체 보기"} ›
@@ -297,12 +297,12 @@ export default async function MyPage() {
           </div>
 
           <div className="flex flex-col gap-1 rounded-2xl bg-[rgba(255,255,255,.07)] p-4">
-            <div className="text-[11px] text-ai-muted">사용 가능한 포인트</div>
+            <div className="t-sub text-ai-muted">사용 가능한 포인트</div>
             <div className="flex items-end justify-between">
               {/* 조회 실패에 "0 P" 를 찍으면 가진 사람에게 없다고 말하는 것이 된다 */}
               {ledgerLoaded.ok ? (
                 <div className="flex items-end gap-1">
-                  <span className="text-[34px] font-extrabold leading-none text-white">
+                  <span className="t-title leading-none text-white">
                     {ledgerLoaded.balance.toLocaleString("ko-KR")}
                   </span>
                   <span className="mb-0.5 text-base font-extrabold text-ai-accent">P</span>
@@ -312,7 +312,7 @@ export default async function MyPage() {
                   <span className="text-lg font-extrabold leading-tight text-white">
                     잔액을 불러오지 못했어요
                   </span>
-                  <span className="text-[11px] text-ai-muted">
+                  <span className="t-sub text-ai-muted">
                     0 P 라는 뜻이 아니라 조회가 실패했습니다
                   </span>
                 </div>
@@ -330,10 +330,10 @@ export default async function MyPage() {
         {!isAdminViewer && !isPaidPlan && nearLimitItems.length > 0 && (
           <section className="rise-in card flex flex-wrap items-center justify-between gap-3 rounded-[16px] p-4">
             <div className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[13px] font-extrabold text-ink">
+              <span className="t-body font-extrabold text-ink">
                 무료 한도가 가까워졌어요
               </span>
-              <span className="text-[12px] leading-[1.6] text-text-3">
+              <span className="t-sub text-text-3">
                 {nearLimitItems
                   .map((i) => `${i.label} ${i.used}/${i.limit}`)
                   .join(" · ")}{" "}
@@ -342,7 +342,7 @@ export default async function MyPage() {
             </div>
             <Link
               href="/subscription"
-              className="btn-soft shrink-0 rounded-xl px-4 py-2 text-[12.5px] font-extrabold no-underline"
+              className="btn-soft shrink-0 rounded-xl px-4 py-2 t-body font-extrabold no-underline"
             >
               플랜 비교 보기 ›
             </Link>
@@ -362,10 +362,10 @@ export default async function MyPage() {
             return (
               <section className="rise-in card flex flex-col gap-3 rounded-[16px] p-5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[14px] font-extrabold text-ink">
+                  <span className="t-section text-ink">
                     시작하기 {done}/{onboarding.total}
                   </span>
-                  <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-bold text-primary">
+                  <span className="rounded-full bg-primary-soft chip-pad t-sub font-bold text-primary">
                     완주 시 200P
                   </span>
                 </div>
@@ -400,7 +400,7 @@ export default async function MyPage() {
                         >
                           {s.label}
                         </span>
-                        {!isDone && <span className="ml-auto text-[13px] font-bold text-primary">→</span>}
+                        {!isDone && <span className="ml-auto t-body font-bold text-primary">→</span>}
                       </Link>
                     );
                   })}
@@ -415,8 +415,8 @@ export default async function MyPage() {
             <SectionHead title="내 임장노트" href="/notes?mine=1" hrefLabel={`전체 ${total}`} />
             {recentNotes.length === 0 ? (
               <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-                <div className="text-[13px] font-bold text-ink">아직 임장노트가 없어요</div>
-                <div className="text-[11px] text-text-3">현장 기록을 남기면 여기에 모여요</div>
+                <div className="t-body font-bold text-ink">아직 임장노트가 없어요</div>
+                <div className="t-sub text-text-3">현장 기록을 남기면 여기에 모여요</div>
                 <Link href="/notes/new" className="btn-primary btn-md mt-1 no-underline">
                   첫 노트 쓰기
                 </Link>
@@ -426,13 +426,13 @@ export default async function MyPage() {
                 <Link
                   key={n.id}
                   href={`/notes/${n.id}`}
-                  className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+                  className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold text-ink">
                       {n.aptName?.trim() || n.title}
                     </div>
-                    <div className="text-[11px] text-text-3">
+                    <div className="t-sub text-text-3">
                       방문 {shortDate(n.visitDate)} · {n.isPublic ? "공개" : "비공개"}
                     </div>
                   </div>
@@ -448,15 +448,15 @@ export default async function MyPage() {
               문이 없으면 없는 기능이다. */}
           <Link
             href="/my/watchlist"
-            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+            className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
           >
             <span>
-              <span className="block text-[13px] font-extrabold text-ink">관심 단지 대시보드</span>
-              <span className="mt-0.5 block text-[11px] text-text-3">
+              <span className="block t-body font-extrabold text-ink">관심 단지 대시보드</span>
+              <span className="mt-0.5 block t-sub text-text-3">
                 담아 둔 단지의 현재가 · 변동 · 새 임장노트를 한 표로
               </span>
             </span>
-            <span className="text-[13px] font-extrabold text-primary">›</span>
+            <span className="t-body font-extrabold text-primary">›</span>
           </Link>
 
           {/* ── 관심 임장노트 (저장) ── */}
@@ -465,17 +465,17 @@ export default async function MyPage() {
             {!savedNotesLoaded.ok ? (
               /* 조회 실패 ≠ 저장한 노트 없음 — 실패는 실패로 말한다. */
               <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-                <div className="text-[13px] font-bold text-ink">
+                <div className="t-body font-bold text-ink">
                   관심 노트를 지금 불러오지 못했어요
                 </div>
-                <div className="text-[11px] text-text-3">
+                <div className="t-sub text-text-3">
                   저장한 노트가 없는 게 아니라 조회가 실패했어요. 잠시 후 새로고침해 주세요.
                 </div>
               </div>
             ) : savedNotes.length === 0 ? (
               <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-                <div className="text-[13px] font-bold text-ink">저장한 노트가 없어요</div>
-                <div className="text-[11px] text-text-3">
+                <div className="t-body font-bold text-ink">저장한 노트가 없어요</div>
+                <div className="t-sub text-text-3">
                   마음에 드는 공개 노트를 저장하면 여기에 모여요
                 </div>
                 <Link href="/notes" className="btn-soft btn-md mt-1 no-underline">
@@ -487,13 +487,13 @@ export default async function MyPage() {
                 <Link
                   key={n.id}
                   href={`/notes/${n.id}`}
-                  className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+                  className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold text-ink">
                       {n.aptName?.trim() || n.title}
                     </div>
-                    <div className="text-[11px] text-text-3">
+                    <div className="t-sub text-text-3">
                       {n.authorLabel?.trim() || "임장러"} · {shortDate(n.visitDate)}
                     </div>
                   </div>
@@ -516,7 +516,7 @@ export default async function MyPage() {
               <section className="flex flex-col gap-2.5">
                 <SectionHead title="지역 임장 레벨" href="/notes?mine=1" hrefLabel="내 노트" />
                 <div className="card flex flex-col gap-3 rounded-[16px] p-5">
-                  <div className="text-[12px] text-text-3">
+                  <div className="t-sub text-text-3">
                     지금까지 <b className="text-ink">{summary.regionCount}개 지역</b>을 임장했어요
                     {summary.topLabel ? (
                       <>
@@ -530,14 +530,14 @@ export default async function MyPage() {
                       <div key={r.region} className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-[13px] font-bold text-ink">
+                            <span className="truncate t-body font-bold text-ink">
                               {r.region}
                             </span>
-                            <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary">
+                            <span className="shrink-0 rounded-full bg-primary-soft px-2 py-0.5 t-caption font-extrabold text-primary">
                               Lv.{r.level} · {r.label}
                             </span>
                           </span>
-                          <span className="shrink-0 text-[12px] font-extrabold text-ink">
+                          <span className="shrink-0 t-sub font-extrabold text-ink">
                             {r.count}건
                           </span>
                         </div>
@@ -549,19 +549,19 @@ export default async function MyPage() {
                                 style={{ width: `${regionLevelProgress(r)}%` }}
                               />
                             </div>
-                            <span className="shrink-0 text-[10px] text-text-3">
+                            <span className="shrink-0 t-caption text-text-3">
                               다음 {r.next.label}까지 {r.next.need}건
                             </span>
                           </div>
                         ) : (
-                          <div className="text-[10px] font-bold text-primary">
+                          <div className="t-caption font-bold text-primary">
                             최고 레벨 달성 🎉
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
-                  <div className="text-[10px] leading-relaxed text-text-3">
+                  <div className="t-caption text-text-3">
                     같은 지역에 임장노트를 남길수록 레벨이 올라가요. 발로 뛴 만큼 그 동네
                     전문가가 됩니다.
                   </div>
@@ -575,8 +575,8 @@ export default async function MyPage() {
           <SectionHead title="관심 지역 · 급매 알림" href="/notifications" hrefLabel="관리" />
           {alerts.length === 0 ? (
             <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-              <div className="text-[13px] font-bold text-ink">구독한 알림이 없어요</div>
-              <div className="text-[11px] text-text-3">
+              <div className="t-body font-bold text-ink">구독한 알림이 없어요</div>
+              <div className="t-sub text-text-3">
                 관심 지역·키워드를 구독하면 급매·시세 변동을 알려드려요
               </div>
               <Link href="/notifications" className="btn-soft btn-md mt-1 no-underline">
@@ -588,7 +588,7 @@ export default async function MyPage() {
               {alerts.map((a: AlertSubscription) => (
                 <span
                   key={a.id}
-                  className="chip-tag inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold"
+                  className="chip-tag inline-flex items-center gap-1 rounded-full px-3 py-1.5 t-sub font-semibold"
                 >
                   <Icon name={a.type === "region" ? "📍" : "🔔"} size={14} />
                   {a.value}
@@ -604,19 +604,19 @@ export default async function MyPage() {
             <SectionHead title="구매한 리포트" href="/town/library" hrefLabel="자료실" />
             {!purchasedLoaded.ok ? (
               <div className="card flex flex-col items-center gap-1.5 rounded-[14px] px-4 py-6 text-center">
-                <div className="text-[13px] font-bold text-ink">구매 내역을 지금 불러오지 못했어요</div>
-                <div className="text-[11px] text-text-3">내역이 없는 게 아니라 조회가 실패했습니다.</div>
+                <div className="t-body font-bold text-ink">구매 내역을 지금 불러오지 못했어요</div>
+                <div className="t-sub text-text-3">내역이 없는 게 아니라 조회가 실패했습니다.</div>
               </div>
             ) : (
               purchasedLoaded.items.map((p) => (
                 <Link
                   key={p.id}
                   href={`/town/library/${p.id}`}
-                  className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+                  className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold text-ink">{p.title}</div>
-                    <div className="text-[11px] text-text-3">
+                    <div className="t-sub text-text-3">
                       {shortDate(p.at)} 구매 · {p.amount.toLocaleString("ko-KR")}P
                     </div>
                   </div>
@@ -633,58 +633,58 @@ export default async function MyPage() {
           {/* [#119·#120] 미션 센터 진입 — 첫 행동 3계단 + 주간 미션 */}
           <Link
             href="/my/missions"
-            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+            className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
           >
             <span className="flex min-w-0 flex-col">
-              <span className="text-[13.5px] font-extrabold text-ink">미션</span>
-              <span className="text-[11.5px] text-text-3">
+              <span className="t-body font-extrabold text-ink">미션</span>
+              <span className="t-sub text-text-3">
                 시작 3미션 200P · 주간 미션 매주 리셋
               </span>
             </span>
-            <span className="shrink-0 text-[13px] font-extrabold text-primary">진행도 보기 ›</span>
+            <span className="shrink-0 t-body font-extrabold text-primary">진행도 보기 ›</span>
           </Link>
           {/* [AI-34] 내 AI 분석 기록 — 저장만 되고 안 보이던 히스토리의 진입점 */}
           <Link
             href="/my/analyses"
-            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+            className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
           >
             <span className="flex min-w-0 flex-col">
-              <span className="text-[13.5px] font-extrabold text-ink">AI 분석 기록</span>
-              <span className="text-[11.5px] text-text-3">
+              <span className="t-body font-extrabold text-ink">AI 분석 기록</span>
+              <span className="t-sub text-text-3">
                 실행한 분석 다시 보기 · 같은 도구 재실행
               </span>
             </span>
-            <span className="shrink-0 text-[13px] font-extrabold text-primary">기록 보기 ›</span>
+            <span className="shrink-0 t-body font-extrabold text-primary">기록 보기 ›</span>
           </Link>
           {/* 친구 초대 — 기능은 완성돼 있었는데 진입점이 모바일 메뉴뿐이었다
               (성장 회로 점검에서 발견). 포인트 맥락이 초대 보상의 자연스러운 자리다. */}
           <Link
             href="/my/referral"
-            className="card card-hover flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
+            className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
           >
             <span className="flex min-w-0 flex-col">
-              <span className="text-[13.5px] font-extrabold text-ink">친구 초대</span>
-              <span className="text-[11.5px] text-text-3">
+              <span className="t-body font-extrabold text-ink">친구 초대</span>
+              <span className="t-sub text-text-3">
                 내 링크로 가입하면 친구와 나 모두 300P
               </span>
             </span>
-            <span className="shrink-0 text-[13px] font-extrabold text-primary">초대 링크 ›</span>
+            <span className="shrink-0 t-body font-extrabold text-primary">초대 링크 ›</span>
           </Link>
           <div className="card rounded-[16px] p-5">
             {!ledgerLoaded.ok ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
                 {/* 조회 실패는 "내역 없음" 이 아니다 */}
-                <div className="text-[13px] font-bold text-ink">
+                <div className="t-body font-bold text-ink">
                   포인트 내역을 지금 불러오지 못했어요
                 </div>
-                <div className="text-[11px] text-text-3">
+                <div className="t-sub text-text-3">
                   내역이 없는 게 아니라 조회가 실패했습니다
                 </div>
               </div>
             ) : history.length === 0 ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
-                <div className="text-[13px] font-bold text-ink">아직 포인트 내역이 없어요</div>
-                <div className="text-[11px] text-text-3">활동하면 적립·사용 기록이 모여요</div>
+                <div className="t-body font-bold text-ink">아직 포인트 내역이 없어요</div>
+                <div className="t-sub text-text-3">활동하면 적립·사용 기록이 모여요</div>
               </div>
             ) : (
               <div className="flex flex-col">
@@ -698,10 +698,10 @@ export default async function MyPage() {
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-[13px] font-bold text-ink">
+                        <div className="truncate t-body font-bold text-ink">
                           {reasonLabel(r.reason)}
                         </div>
-                        <div className="text-[11px] text-text-3">{shortDate(r.createdAt)}</div>
+                        <div className="t-sub text-text-3">{shortDate(r.createdAt)}</div>
                       </div>
                       <span
                         className={`shrink-0 pl-2 text-[13px] font-extrabold ${earn ? "text-primary" : "text-text-3"}`}
@@ -726,8 +726,8 @@ export default async function MyPage() {
           {expert.isBroker ? (
             <div className="card flex flex-col gap-3 rounded-[16px] p-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="text-[13px] font-extrabold text-ink">공인중개사 인증 완료</div>
-                <div className="mt-0.5 text-[11px] text-text-3">
+                <div className="t-body font-extrabold text-ink">공인중개사 인증 완료</div>
+                <div className="mt-0.5 t-sub text-text-3">
                   {expert.brokerNo ? `등록번호 ${expert.brokerNo} · ` : ""}매물을 등록하고 관리할 수 있어요
                 </div>
               </div>
@@ -745,13 +745,13 @@ export default async function MyPage() {
             </div>
           ) : (
             <div className="card flex flex-col items-center gap-2 rounded-[16px] px-4 py-7 text-center">
-              <div className="text-[22px]">
+              <div className="t-title">
                 <Icon name="🏢" size={22} />
               </div>
-              <div className="text-[13px] font-extrabold text-ink">
+              <div className="t-body font-extrabold text-ink">
                 매물 등록은 공인중개사 인증 후 이용할 수 있어요
               </div>
-              <div className="text-[11px] leading-[1.6] text-text-3">
+              <div className="t-sub text-text-3">
                 개업공인중개사 자격을 인증하면 매물 등록·관리 기능이 열려요
               </div>
               <Link href="/town/experts" className="btn-primary btn-md mt-1 no-underline">
@@ -767,8 +767,8 @@ export default async function MyPage() {
             <SectionHead title="전문가 활동" />
             <div className="card flex flex-col gap-3 rounded-[16px] p-5 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="text-[13px] font-extrabold text-ink">전문가 인증 완료</div>
-                <div className="mt-0.5 text-[11px] text-text-3">
+                <div className="t-body font-extrabold text-ink">전문가 인증 완료</div>
+                <div className="mt-0.5 t-sub text-text-3">
                   받은 상담을 확인하고, 소개·전문분야·연락처를 직접 관리할 수 있어요
                 </div>
               </div>
@@ -789,10 +789,10 @@ export default async function MyPage() {
           <SectionHead title="구독 상태" href="/subscription" hrefLabel="플랜 관리" />
           <div className="card flex items-center justify-between rounded-[16px] p-5">
             <div>
-              <div className="text-[13px] font-extrabold text-ink">
+              <div className="t-body font-extrabold text-ink">
                 현재 플랜 · {planLabel(profile.plan)}
               </div>
-              <div className="mt-0.5 text-[11px] text-text-3">
+              <div className="mt-0.5 t-sub text-text-3">
                 {/* 만료일은 app_users.plan_expires_at (일회성 결제·포인트 교환 경로).
                     Stripe 구독은 웹훅이 관리하므로 null → 만료일 없이 관리 안내만. */}
                 {profile.plan === "free"
@@ -821,8 +821,8 @@ export default async function MyPage() {
               return (
                 <div className="card flex flex-col gap-2 rounded-[16px] p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[12px] font-bold text-ink">이번 달 AI 분석</span>
-                    <span className="text-[12px] tabular-nums text-text-2">
+                    <span className="t-sub font-bold text-ink">이번 달 AI 분석</span>
+                    <span className="t-sub tabular-nums text-text-2">
                       {unlimited ? (
                         <b className="text-primary">무제한</b>
                       ) : (
@@ -841,7 +841,7 @@ export default async function MyPage() {
                       />
                     </div>
                   )}
-                  <div className="text-[11px] text-text-3">
+                  <div className="t-sub text-text-3">
                     {unlimited
                       ? "유료 플랜은 AI 비교 리포트가 무제한이에요."
                       : atLimit

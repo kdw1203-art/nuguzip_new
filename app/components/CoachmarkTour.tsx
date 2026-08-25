@@ -108,15 +108,20 @@ export function CoachmarkTour({
         // 조회 실패 시엔 localStorage 기준으로만 판단
       }
       if (cancelled) return;
-      // 지도·차트가 그려질 시간을 준 뒤 대상 존재 여부를 확정한다.
+      /* 지도·차트가 그려질 시간을 준 뒤 대상 존재 여부를 확정한다.
+         900ms 는 지도 SDK 가 타일을 받기도 전이라, 첫 방문자가 **제품을 보기도
+         전에** 딤 처리된 안내부터 만났다(2026-08-25 실측 스크린샷: 지도가 아직
+         비어 있는 상태에서 1/3 카드가 화면을 덮음). 첫인상은 제품이어야 한다.
+         탭이 뒤에 있으면 아예 열지 않는다 — 돌아왔을 때 이미 닫힌 안내가 된다. */
       window.setTimeout(() => {
         if (cancelled) return;
+        if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
         const usable = steps.filter((s) => !s.target || s.keepIfMissing || measure(s.target));
         if (usable.length === 0) return;
         setVisibleSteps(usable);
         setIndex(0);
         setActive(true);
-      }, 900);
+      }, 2000);
     })();
 
     return () => {

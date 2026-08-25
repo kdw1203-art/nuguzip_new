@@ -121,28 +121,28 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
       {/* 생성 폼 */}
       <form onSubmit={handleCreate} className="card rise-in flex flex-col gap-3">
-        <div className="flex items-center gap-1.5 text-[14px] font-extrabold text-ink">
+        <div className="flex items-center gap-1.5 t-section text-ink">
           <Icon name="plus" size={16} />새 검색 저장
         </div>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[12px] font-semibold text-text-2">검색 이름</span>
+          <span className="t-sub font-semibold text-text-2">검색 이름</span>
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             maxLength={80}
             placeholder="예) 강남 30평대 전세"
-            className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink placeholder:text-text-3"
+            className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 t-body text-ink placeholder:text-text-3"
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[12px] font-semibold text-text-2">탐색 범위</span>
+          <span className="t-sub font-semibold text-text-2">탐색 범위</span>
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value as SavedSearchScope)}
-            className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink"
+            className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 t-body text-ink"
           >
             {SCOPES.map((s) => (
               <option key={s} value={s}>
@@ -153,7 +153,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[12px] font-semibold text-text-2">
+          <span className="t-sub font-semibold text-text-2">
             검색어 <span className="text-text-3">(선택)</span>
           </span>
           <input
@@ -162,7 +162,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
             onChange={(e) => setQuery(e.target.value)}
             maxLength={200}
             placeholder="예) 래미안, 역세권"
-            className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink placeholder:text-text-3"
+            className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 t-body text-ink placeholder:text-text-3"
           />
         </label>
 
@@ -179,7 +179,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
       {error && (
         <div
           role="alert"
-          className="rise-in flex items-start gap-1.5 rounded-xl border border-line bg-primary-soft px-3.5 py-2.5 text-[12px] leading-[1.6] text-primary-strong"
+          className="rise-in flex items-start gap-1.5 rounded-xl border border-line bg-primary-soft px-3.5 py-2.5 t-sub text-primary-strong"
         >
           <Icon name="x" size={15} />
           <span>{error}</span>
@@ -192,8 +192,8 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
           <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-primary">
             <Icon name="search" size={20} />
           </span>
-          <p className="text-[14px] font-bold text-ink">아직 저장한 검색이 없어요.</p>
-          <p className="text-[12px] leading-[1.6] text-text-3">
+          <p className="t-body font-bold text-ink">아직 저장한 검색이 없어요.</p>
+          <p className="t-sub text-text-3">
             위에서 관심 조건을 저장하면 여기에 모아 볼 수 있어요.
           </p>
         </div>
@@ -202,25 +202,25 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
           {items.map((item, i) => (
             <li
               key={item.id}
-              className={`card card-hover ${riseClass(i)} flex flex-col gap-2.5`}
+              className={`card tile ${riseClass(i)} flex flex-col gap-2.5`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate text-[15px] font-extrabold text-ink">
+                    <span className="truncate t-section text-ink">
                       {item.label}
                     </span>
-                    <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+                    <span className="rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
                       {SCOPE_LABELS[item.scope]}
                     </span>
                   </div>
                   {item.query ? (
-                    <p className="flex items-center gap-1 text-[12px] text-text-2">
+                    <p className="flex items-center gap-1 t-sub text-text-2">
                       <Icon name="search" size={13} />
                       <span className="truncate">{item.query}</span>
                     </p>
                   ) : (
-                    <p className="text-[12px] text-text-3">검색어 없음</p>
+                    <p className="t-sub text-text-3">검색어 없음</p>
                   )}
                 </div>
               </div>
@@ -243,7 +243,7 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
                   type="button"
                   onClick={() => handleDelete(item)}
                   disabled={busyId === item.id}
-                  className="press inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-semibold text-text-3 disabled:opacity-60"
+                  className="press inline-flex items-center gap-1 rounded-full px-2.5 py-1 t-sub font-semibold text-text-3 disabled:opacity-60"
                   aria-label={`${item.label} 삭제`}
                 >
                   <Icon name="x" size={14} />

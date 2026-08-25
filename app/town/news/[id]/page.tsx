@@ -528,7 +528,7 @@ export default async function TownNewsDetailPage({
                       href={post.sourceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="card-hover flex items-center justify-between gap-3 rounded-[14px] border border-line bg-bg px-4 py-3 no-underline"
+                      className="tile flex items-center justify-between gap-3 rounded-[14px] border border-line bg-bg px-4 py-3 no-underline"
                     >
                       <span className="min-w-0">
                         <span className="block text-[11px] font-semibold text-text-3">
@@ -629,7 +629,7 @@ export default async function TownNewsDetailPage({
               {newerPost?.id ? (
                 <Link
                   href={`/town/news/${encodeURIComponent(newerPost.id)}`}
-                  className="card card-hover flex flex-col gap-1 rounded-[14px] px-4 py-3 no-underline"
+                  className="card tile flex flex-col gap-1 rounded-[14px] px-4 py-3 no-underline"
                 >
                   <span className="text-[10px] font-bold text-text-3">‹ 더 최신 글</span>
                   <span className="line-clamp-2 text-[13px] font-bold leading-snug text-ink">
@@ -642,7 +642,7 @@ export default async function TownNewsDetailPage({
               {olderPost?.id && (
                 <Link
                   href={`/town/news/${encodeURIComponent(olderPost.id)}`}
-                  className="card card-hover flex flex-col gap-1 rounded-[14px] px-4 py-3 no-underline sm:items-end sm:text-right"
+                  className="card tile flex flex-col gap-1 rounded-[14px] px-4 py-3 no-underline sm:items-end sm:text-right"
                 >
                   <span className="text-[10px] font-bold text-text-3">이전 글 ›</span>
                   <span className="line-clamp-2 text-[13px] font-bold leading-snug text-ink">

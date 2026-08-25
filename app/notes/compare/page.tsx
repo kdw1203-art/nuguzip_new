@@ -109,7 +109,7 @@ function CompareTable({ model }: { model: VisitCompareModel }) {
     <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
       <div className="min-w-[520px]">
         <div
-          className="grid items-end gap-2 border-b border-divider pb-2.5 pt-2 text-[11px] text-text-3"
+          className="grid items-end gap-2 border-b border-divider pb-2.5 pt-2 t-sub text-text-3"
           style={gridStyle}
         >
           <span />
@@ -158,7 +158,7 @@ function CompareTable({ model }: { model: VisitCompareModel }) {
             </span>
           ))}
         </div>
-        <div className="mt-3 text-[11px] text-text-3">
+        <div className="mt-3 t-sub text-text-3">
           점수 추이 {first} → {last} · 작성자 5축 평균×20 (0~100)
         </div>
       </div>
@@ -188,7 +188,7 @@ export default async function NotesComparePage({
         <div className="flex flex-col gap-3.5">
           <div className="rise-in flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-[22px] font-extrabold text-ink">
+              <h1 className="t-title text-ink">
                 노트 다회차 비교
               </h1>
               <p className="mt-1.5 text-sm text-text-2">
@@ -252,7 +252,7 @@ export default async function NotesComparePage({
               href={`/notes/new?apt=${encodeURIComponent(model.aptName)}${
                 model.region ? `&region=${encodeURIComponent(model.region)}` : ""
               }`}
-              className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+              className="btn-primary rounded-xl px-4 py-2.5 t-body no-underline"
             >
               이 단지 노트 쓰기
             </Link>
@@ -288,21 +288,21 @@ export default async function NotesComparePage({
     <PageShell breadcrumb="임장노트 › 회차 비교">
       <div className="flex flex-col gap-3.5">
         <div className="rise-in px-1">
-          <h1 className="text-[22px] font-extrabold text-ink">노트 다회차 비교</h1>
+          <h1 className="t-title text-ink">노트 다회차 비교</h1>
           <p className="mt-1.5 text-sm text-text-2">
             같은 단지를 여러 번 기록하면 점수 축 변화를 표로 비교해요.
           </p>
         </div>
         <div className="card flex flex-col gap-3 rounded-[20px] px-[22px] py-8 text-center">
-          <div className="text-[15px] font-extrabold text-ink">{emptyTitle}</div>
-          <p className="mx-auto max-w-[420px] text-[13px] leading-[1.6] text-text-2">
+          <div className="t-section text-ink">{emptyTitle}</div>
+          <p className="mx-auto max-w-[420px] t-body text-text-2">
             {emptyDesc}
           </p>
           <div className="mt-1 flex flex-wrap justify-center gap-2">
             {result.kind === "need_login" ? (
               <Link
                 href="/login?callbackUrl=/notes/compare"
-                className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                className="btn-primary rounded-xl px-4 py-2.5 t-body no-underline"
               >
                 로그인
               </Link>
@@ -310,13 +310,13 @@ export default async function NotesComparePage({
               <>
                 <Link
                   href={`/notes/new?apt=${encodeURIComponent(result.aptName)}`}
-                  className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                  className="btn-primary rounded-xl px-4 py-2.5 t-body no-underline"
                 >
                   같은 단지 한 번 더 기록
                 </Link>
                 <Link
                   href={`/notes/${encodeURIComponent(result.noteId)}`}
-                  className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                  className="btn-secondary rounded-xl px-4 py-2.5 t-body no-underline"
                 >
                   노트 상세로
                 </Link>
@@ -325,13 +325,13 @@ export default async function NotesComparePage({
               <>
                 <Link
                   href="/notes?mine=1"
-                  className="btn-primary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                  className="btn-primary rounded-xl px-4 py-2.5 t-body no-underline"
                 >
                   내 노트 보기
                 </Link>
                 <Link
                   href="/notes/new"
-                  className="btn-secondary rounded-xl px-4 py-2.5 text-[13px] no-underline"
+                  className="btn-secondary rounded-xl px-4 py-2.5 t-body no-underline"
                 >
                   임장노트 쓰기
                 </Link>

@@ -265,7 +265,7 @@ export function ListingManageActions(props: {
         </label>
 
         {props.status === "approved" && (
-          <div className="rounded-lg bg-[rgba(245,158,11,.1)] px-2.5 py-1.5 text-[11px] leading-[1.6] text-[#b45309]">
+          <div className="rounded-lg bg-[rgba(245,158,11,.1)] px-2.5 py-1.5 t-sub text-[#b45309]">
             노출 중인 매물을 수정하면 재검수를 위해 잠시 검수중 상태로 전환돼요.
           </div>
         )}
@@ -295,7 +295,7 @@ export function ListingManageActions(props: {
   if (mode === "confirmSold") {
     return (
       <span className="inline-flex flex-wrap items-center gap-1.5">
-        <span className="text-[12px] font-bold text-text-3">
+        <span className="t-sub font-bold text-text-3">
           거래가 끝났나요? 마감하면 목록에서 내려가고 다시 수정할 수 없어요.
         </span>
         <button
@@ -321,12 +321,12 @@ export function ListingManageActions(props: {
   if (mode === "confirmDelete") {
     return (
       <span className="inline-flex items-center gap-1.5">
-        <span className="text-[12px] font-bold text-text-3">삭제할까요?</span>
+        <span className="t-sub font-bold text-text-3">삭제할까요?</span>
         <button
           type="button"
           disabled={removeBusy}
           onClick={() => void remove()}
-          className="rounded-[8px] bg-danger-fill px-2.5 py-1 text-[12px] font-extrabold text-white disabled:opacity-60"
+          className="rounded-[8px] bg-danger-fill px-2.5 py-1 t-sub font-extrabold text-white disabled:opacity-60"
         >
           {removeBusy ? "삭제 중…" : "삭제"}
         </button>

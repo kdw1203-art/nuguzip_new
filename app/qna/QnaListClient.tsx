@@ -70,7 +70,7 @@ function QuestionCard({ row }: { row: QnaRow }) {
   const { q, complexHref } = row;
   const answered = q.status === "answered";
   return (
-    <article className="card card-hover flex flex-col gap-2">
+    <article className="card tile flex flex-col gap-2">
       <div className="flex items-center gap-1.5">
         <span
           className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
@@ -80,29 +80,29 @@ function QuestionCard({ row }: { row: QnaRow }) {
           {answered ? "답변 완료" : "답변 대기"}
         </span>
         {q.bountyPoints > 0 && (
-          <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
+          <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-[#b45309]">
             현상금 {q.bountyPoints.toLocaleString()}P
           </span>
         )}
         {q.isSample && (
-          <span className="rounded-full bg-[rgba(127,140,158,.12)] chip-pad text-[11px] font-semibold text-text-3">
+          <span className="rounded-full bg-[rgba(127,140,158,.12)] chip-pad t-sub font-semibold text-text-3">
             예시
           </span>
         )}
-        <span className="ml-auto text-[11px] text-text-3">{row.timeLabel}</span>
+        <span className="ml-auto t-sub text-text-3">{row.timeLabel}</span>
       </div>
 
       <Link href={`/qna/${q.id}`} className="no-underline">
-        <h3 className="line-clamp-2 text-[15px] font-bold leading-snug text-ink">{q.title}</h3>
+        <h3 className="line-clamp-2 t-body font-bold leading-snug text-ink">{q.title}</h3>
         {q.body && (
-          <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-text-2">{q.body}</p>
+          <p className="mt-1.5 line-clamp-2 t-body text-text-2">{q.body}</p>
         )}
       </Link>
 
       {q.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {q.tags.slice(0, 5).map((t) => (
-            <span key={t} className="chip-tag chip-pad text-[10px]">
+            <span key={t} className="chip-tag chip-pad t-caption">
               #{t}
             </span>
           ))}
@@ -114,7 +114,7 @@ function QuestionCard({ row }: { row: QnaRow }) {
           {complexHref ? (
             <Link
               href={complexHref}
-              className="press inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+              className="press inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 t-sub font-bold text-primary no-underline"
             >
               <Icon name="building" size={12} />
               {q.complexName ?? "단지 정보"}
@@ -122,13 +122,13 @@ function QuestionCard({ row }: { row: QnaRow }) {
             </Link>
           ) : (
             q.complexName && (
-              <span className="rounded-full bg-[rgba(127,140,158,.1)] px-2.5 py-1 text-[11px] font-semibold text-text-3">
+              <span className="rounded-full bg-[rgba(127,140,158,.1)] px-2.5 py-1 t-sub font-semibold text-text-3">
                 {q.complexName}
               </span>
             )
           )}
           {q.region && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(127,140,158,.1)] px-2.5 py-1 text-[11px] font-semibold text-text-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(127,140,158,.1)] px-2.5 py-1 t-sub font-semibold text-text-3">
               <Icon name="pin" size={12} />
               {q.region}
             </span>
@@ -136,7 +136,7 @@ function QuestionCard({ row }: { row: QnaRow }) {
         </div>
       )}
 
-      <div className="flex items-center gap-3 border-t border-line pt-2.5 text-[12px] text-text-3">
+      <div className="flex items-center gap-3 border-t border-line pt-2.5 t-sub text-text-3">
         <span className="inline-flex items-center gap-1">
           <Icon name="user" size={13} />
           {q.authorLabel}
@@ -275,9 +275,9 @@ export function QnaListClient({
           maxLength={80}
           placeholder="단지명·지역·키워드로 질문 검색"
           aria-label="질문 검색"
-          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13px] text-ink placeholder:text-text-3"
+          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 t-body text-ink placeholder:text-text-3"
         />
-        <button type="submit" className="btn-primary press rounded-xl px-4 py-2 text-[13px]">
+        <button type="submit" className="btn-primary press rounded-xl px-4 py-2 t-body">
           검색
         </button>
       </form>
@@ -313,7 +313,7 @@ export function QnaListClient({
         </div>
       )}
 
-      <p className="rise-in-1 mt-2.5 text-[12px] leading-[1.6] text-text-3">
+      <p className="rise-in-1 mt-2.5 t-sub text-text-3">
         {activeTopic ? `‘${activeTopic.label}’ 주제 ` : ""}
         <b className="text-text-1">{items.length}</b>건
         {f.q && <> — 최근 질문 100건 안에서 ‘{f.q}’ 를 찾은 결과예요.</>}

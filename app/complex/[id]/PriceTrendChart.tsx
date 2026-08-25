@@ -73,15 +73,15 @@ export function PriceTrendChart({ points }: { points: PricePoint[] }) {
       {/* 헤더 — 최신 평균가 + 기간 변동률 */}
       <div className="flex items-end justify-between">
         <div>
-          <div className="text-[10px] text-text-3">실거래 평균 · 최근 {points.length}개월</div>
+          <div className="t-caption text-text-3">실거래 평균 · 최근 {points.length}개월</div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[20px] font-extrabold text-ink">{fmtEok(last.avgManwon)}</span>
-            <span className="text-[11px] font-bold" style={{ color: chg.color }}>
+            <span className="t-title text-ink">{fmtEok(last.avgManwon)}</span>
+            <span className="t-sub font-bold" style={{ color: chg.color }}>
               {chg.arrow} {chg.pct}
             </span>
           </div>
         </div>
-        <div className="text-right text-[10px] text-text-3">
+        <div className="text-right t-caption text-text-3">
           <div>
             {ymLabel(first.ym)}~{ymLabel(last.ym)}
           </div>
@@ -116,7 +116,7 @@ export function PriceTrendChart({ points }: { points: PricePoint[] }) {
       </svg>
 
       {/* 범위 */}
-      <div className="flex items-center justify-between border-t border-divider pt-2 text-[10px] text-text-3">
+      <div className="flex items-center justify-between border-t border-divider pt-2 t-caption text-text-3">
         <span>
           최저 <b className="text-text-2">{fmtEok(min)}</b>
         </span>

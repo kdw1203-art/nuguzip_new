@@ -63,7 +63,7 @@ export function AnswerForm({
 
   if (isSample) {
     return (
-      <div className="card text-[13px] text-text-3">
+      <div className="card t-body text-text-3">
         예시 질문에는 답변할 수 없어요. 실제 질문에 답변을 남겨보세요.
       </div>
     );
@@ -71,7 +71,7 @@ export function AnswerForm({
 
   return (
     <form onSubmit={submit} className="card flex flex-col gap-3">
-      <h2 className="text-[15px] font-bold text-ink">답변 작성</h2>
+      <h2 className="t-body font-bold text-ink">답변 작성</h2>
       <textarea
         className={`${INPUT} min-h-[120px] resize-y`}
         placeholder="이웃에게 도움이 될 답변을 남겨주세요. (5자 이상)"
@@ -80,7 +80,7 @@ export function AnswerForm({
         maxLength={4000}
       />
 
-      {error && <p className="text-[12px] text-danger">{error}</p>}
+      {error && <p className="t-sub text-danger">{error}</p>}
 
       <div className="flex justify-end">
         <button type="submit" disabled={busy} className="btn-primary press disabled:opacity-60">

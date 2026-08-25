@@ -44,7 +44,7 @@ export function HomeKpiRow({
       {region && (
         <Link
           href={region.href}
-          className="card card-hover flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+          className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
         >
           <span className="text-[10.5px] font-bold text-text-3">{region.name} 평균</span>
           <span className="text-[19px] font-extrabold leading-tight text-ink tabular-nums">
@@ -58,7 +58,7 @@ export function HomeKpiRow({
       {temp && (
         <Link
           href="/analysis/temperature"
-          className="card card-hover flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+          className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
         >
           <span className="text-[10.5px] font-bold text-text-3">
             시장 온도 · {temp.weekLabel}
@@ -73,7 +73,7 @@ export function HomeKpiRow({
       {region?.tradeLabel && (
         <Link
           href="/analysis/price"
-          className="card card-hover flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+          className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
         >
           <span className="text-[10.5px] font-bold text-text-3">{region.name} 최근 거래</span>
           <span className="text-[19px] font-extrabold leading-tight text-ink tabular-nums">

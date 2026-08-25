@@ -136,23 +136,27 @@ export default async function TownPage() {
       <TownCategoryNav />
 
       {/* [#64] 동네 홈 진입 — ?region= 필터 대신 지역별 정식 페이지로 */}
-      <div className="rise-in-1 mb-4 flex flex-wrap items-center gap-1.5">
-        <span className="t-sub font-bold text-text-3">우리 동네 홈:</span>
-        {TOWN_HOME_SHORTCUTS.map((r) => (
+      {/* 지역 칩 — 줄바꿈으로 두 줄이 되면 카테고리 격자와 붙어 경계가 흐려진다.
+          한 줄 가로 레일(스냅)로 고정한다. */}
+      <div className="mb-4 flex items-center gap-2" data-reveal="">
+        <span className="t-sub shrink-0 font-bold text-text-3">우리 동네 홈</span>
+        <div className="rail-x -mx-1 px-1 py-0.5">
+          {TOWN_HOME_SHORTCUTS.map((r) => (
+            <Link
+              key={r.id}
+              href={`/town/${r.id}`}
+              className="chip tile border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2 no-underline"
+            >
+              {r.name}
+            </Link>
+          ))}
           <Link
-            key={r.id}
-            href={`/town/${r.id}`}
-            className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2"
+            href="/tx"
+            className="chip tile border border-line bg-surface px-3 py-1.5 t-sub font-bold text-primary no-underline"
           >
-            {r.name}
+            전체 지역 ›
           </Link>
-        ))}
-        <Link
-          href="/tx"
-          className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-primary"
-        >
-          전체 지역 보기 ›
-        </Link>
+        </div>
       </div>
 
       {/* [3차] 오늘의 동네 글감 — 유저 글 0의 원인(쓸 이유 없음)에 대한 직접 처방 */}

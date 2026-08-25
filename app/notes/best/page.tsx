@@ -71,8 +71,8 @@ export default async function BestNotesIndexPage() {
   return (
     <PageShell breadcrumb="이달의 공개 임장노트">
       <div className="mx-auto max-w-[760px]">
-        <h1 className="rise-in text-[24px] font-extrabold text-ink">이달의 공개 임장노트</h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <h1 className="rise-in t-title text-ink">이달의 공개 임장노트</h1>
+        <p className="rise-in-1 mt-2 t-body text-text-2">
           공개에 동의한 임장노트 중 <strong className="text-ink">기록이 충실한 노트</strong>를
           매달 정리합니다. 운영자가 마음에 드는 노트를 고르는 방식이 아니라, 아래 계산식으로
           점수를 매겨 상위를 싣습니다.
@@ -80,18 +80,18 @@ export default async function BestNotesIndexPage() {
 
         {/* 선정 기준 — 문서 N13 의 "선정 기준 공개" */}
         <section className="rise-in-2 card mt-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">선정 기준 (총 {MAX_SCORE}점)</h2>
+          <h2 className="t-section text-ink">선정 기준 (총 {MAX_SCORE}점)</h2>
           <div className="mt-3 flex flex-col gap-3">
             {SCORE_AXES.map((a) => (
               <div key={a.key} className="border-b border-border pb-3 last:border-b-0 last:pb-0">
-                <p className="text-[13px] font-extrabold text-ink">
+                <p className="t-body font-extrabold text-ink">
                   {a.label} <span className="text-primary">{a.max}점</span>
                 </p>
-                <p className="mt-0.5 text-[12px] leading-[1.6] text-text-3">{a.how}</p>
+                <p className="mt-0.5 t-sub text-text-3">{a.how}</p>
               </div>
             ))}
           </div>
-          <ul className="mt-4 flex list-disc flex-col gap-1.5 pl-5 text-[12px] leading-[1.6] text-text-3">
+          <ul className="mt-4 flex list-disc flex-col gap-1.5 pl-5 t-sub text-text-3">
             <li>
               {MIN_SCORE}점 미만은 후보로 세지 않고, 자격 노트가 {MIN_NOTES_PER_MONTH}편 미만인
               달은 아예 만들지 않습니다. 두 편짜리 선정은 선정이 아니기 때문입니다.
@@ -109,7 +109,7 @@ export default async function BestNotesIndexPage() {
         </section>
 
         {loadFailed ? (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center t-body text-text-3">
             <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
             공개 임장노트가 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는
@@ -121,19 +121,19 @@ export default async function BestNotesIndexPage() {
               <Link
                 key={m.ym}
                 href={`/notes/best/${m.ym}`}
-                className="card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
+                className="card tile flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
               >
-                <span className="text-[15px] font-extrabold text-ink">
+                <span className="t-section text-ink">
                   {formatYmKo(m.ym)} 이달의 임장노트
                 </span>
-                <span className="text-[12px] font-semibold text-text-3">
+                <span className="t-sub font-semibold text-text-3">
                   {m.picks.length}편 수록 · 후보 {m.qualifiedCount}편 ›
                 </span>
               </Link>
             ))}
           </div>
         ) : (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center t-body text-text-3">
             아직 기준을 채운 달이 없습니다. 한 달에 {MIN_SCORE}점 이상 노트가{" "}
             {MIN_NOTES_PER_MONTH}편 모이면 자동으로 만들어집니다.
             <br />
@@ -146,7 +146,7 @@ export default async function BestNotesIndexPage() {
         {/* [#124] 이달의 현장 인증 리더보드 — 위치 확인(#71) 통과 노트의 월간 랭킹 */}
         <FieldVerifiedLeaderboard />
 
-        <p className="mb-8 mt-5 text-[12px] text-text-3">
+        <p className="mb-8 mt-5 t-sub text-text-3">
           <Link href="/notes" className="font-bold text-primary underline">
             공개 임장노트 전체 보기
           </Link>
@@ -192,9 +192,9 @@ async function FieldVerifiedLeaderboard() {
   const medals = ["🥇", "🥈", "🥉", "4", "5"];
   return (
     <section className="mt-8">
-      <h2 className="text-[16px] font-extrabold text-ink">
+      <h2 className="t-section text-ink">
         이달의 현장 인증{" "}
-        <span className="text-[12px] font-medium text-text-3">
+        <span className="t-sub font-medium text-text-3">
           단지 반경 2km 위치 확인을 통과한 기록
         </span>
       </h2>
@@ -202,7 +202,7 @@ async function FieldVerifiedLeaderboard() {
         {rows.map((r, i) => (
           <div
             key={r.label}
-            className="flex items-center justify-between border-b border-divider py-2.5 text-[13.5px] last:border-0"
+            className="flex items-center justify-between border-b border-divider py-2.5 t-body last:border-0"
           >
             <span className="font-bold text-ink">
               <span className="mr-2">{medals[i]}</span>

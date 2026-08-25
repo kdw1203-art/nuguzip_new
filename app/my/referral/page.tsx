@@ -75,7 +75,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
     <section className="card flex flex-col gap-4 rounded-[20px] p-5">
       <div className="flex items-center gap-2">
         <Icon name="trophy" size={16} className="text-primary" />
-        <div className="text-[14px] font-extrabold text-text-1">초대 여정</div>
+        <div className="t-section text-text-1">초대 여정</div>
       </div>
 
       {/* 배지 4종 */}
@@ -100,7 +100,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
               >
                 {m.label}
               </div>
-              <div className="text-[10px] text-text-3">{m.n}명</div>
+              <div className="t-caption text-text-3">{m.n}명</div>
             </div>
           );
         })}
@@ -115,7 +115,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <div className="text-[11px] leading-[1.6] text-text-3">
+          <div className="t-sub text-text-3">
             <span className="font-bold text-text-2">{next.label}</span> 배지까지{" "}
             <span className="font-bold text-primary">{remaining}명</span> 남았어요 ·
             초대가 성사될 때마다 나와 친구 모두 300P가 적립돼요.
@@ -124,7 +124,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
       ) : (
         <div className="flex items-center gap-2 rounded-[12px] bg-primary-soft px-3 py-2.5">
           <Icon name="party" size={16} className="text-primary" />
-          <div className="text-[12px] font-semibold text-primary">
+          <div className="t-sub font-semibold text-primary">
             모든 배지를 모았어요! 초대는 계속 300P로 이어져요.
           </div>
         </div>
@@ -162,10 +162,10 @@ export default async function ReferralPage() {
             <Icon name="gift" size={24} />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-[19px] font-extrabold leading-[1.35] text-text-1">
+            <h1 className="t-section text-text-1">
               친구를 초대하고 둘 다 300P
             </h1>
-            <p className="text-[12px] leading-[1.6] text-text-3">
+            <p className="t-sub text-text-3">
               아래 링크로 친구가 가입하면 친구와 나 모두 300P가 적립돼요
             </p>
           </div>
@@ -173,7 +173,7 @@ export default async function ReferralPage() {
           {code ? (
             <>
               <div className="w-full rounded-[16px] bg-primary-soft px-4 py-4">
-                <div className="text-[11px] font-bold text-primary">내 추천 코드</div>
+                <div className="t-sub font-bold text-primary">내 추천 코드</div>
                 <div className="mt-2">
                   <CopyLink value={code} variant="code" />
                 </div>
@@ -188,7 +188,7 @@ export default async function ReferralPage() {
               {link && <ShareRow link={link} code={code} />}
             </>
           ) : (
-            <div className="text-[13px] text-text-3">
+            <div className="t-body text-text-3">
               코드를 준비하는 중이에요. 잠시 후 새로고침해 주세요.
             </div>
           )}
@@ -197,43 +197,43 @@ export default async function ReferralPage() {
         {/* ── 성과 ── */}
         <section className="card grid grid-cols-2 gap-3 rounded-[20px] p-5">
           <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-1 text-[11px] text-text-3">
+            <div className="flex items-center gap-1 t-sub text-text-3">
               <Icon name="user-plus" size={13} />
               초대 성공
             </div>
             {/* 못 센 것을 "0명"으로 그리지 않는다 — 아직 아무도 초대 못 한
                 사람과 지금 셀 수 없는 사람은 다르다. */}
-            <div className="text-[26px] font-extrabold leading-none text-text-1">
+            <div className="t-title leading-none text-text-1">
               {stats.invitedCount === null ? (
                 "—"
               ) : (
                 <>
                   {stats.invitedCount.toLocaleString("ko-KR")}
-                  <span className="ml-0.5 text-[13px] text-text-3">명</span>
+                  <span className="ml-0.5 t-body text-text-3">명</span>
                 </>
               )}
             </div>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <div className="flex items-center gap-1 text-[11px] text-text-3">
+            <div className="flex items-center gap-1 t-sub text-text-3">
               <Icon name="coin" size={13} />
               적립 포인트
             </div>
             {/* 적립 P 는 성사 수 × 300 이라, 성사 수를 못 세면 이것도 모른다.
                 "0P"라고 쓰면 적립이 없었다는 말이 되므로 같이 "—"로 둔다. */}
-            <div className="text-[26px] font-extrabold leading-none text-primary">
+            <div className="t-title leading-none text-primary">
               {stats.pointsEarned === null ? (
                 "—"
               ) : (
                 <>
                   {stats.pointsEarned.toLocaleString("ko-KR")}
-                  <span className="ml-0.5 text-[13px]">P</span>
+                  <span className="ml-0.5 t-body">P</span>
                 </>
               )}
             </div>
           </div>
           {stats.invitedCount === null && (
-            <div className="col-span-2 text-center text-[11px] leading-[1.6] text-text-3">
+            <div className="col-span-2 text-center t-sub text-text-3">
               지금은 초대 성과를 불러오지 못했어요. 초대 링크는 그대로 쓸 수 있고,
               적립은 잠시 후 다시 열면 반영돼요.
             </div>
@@ -248,7 +248,7 @@ export default async function ReferralPage() {
 
         {/* ── 이렇게 초대돼요 ── */}
         <section className="card flex flex-col gap-3 rounded-[20px] p-5">
-          <div className="text-[14px] font-extrabold text-text-1">이렇게 초대돼요</div>
+          <div className="t-section text-text-1">이렇게 초대돼요</div>
           <ol className="flex flex-col gap-2.5">
             {[
               {
@@ -272,11 +272,11 @@ export default async function ReferralPage() {
                   <Icon name={s.icon} size={15} />
                 </span>
                 <div>
-                  <div className="text-[13px] font-bold text-text-1">
+                  <div className="t-body font-bold text-text-1">
                     <span className="mr-1 text-primary">{i + 1}.</span>
                     {s.t}
                   </div>
-                  <div className="text-[12px] text-text-3">{s.d}</div>
+                  <div className="t-sub text-text-3">{s.d}</div>
                 </div>
               </li>
             ))}
@@ -286,8 +286,8 @@ export default async function ReferralPage() {
         {/* [#100] 추천 리더보드 — 초대의 사회적 동기. 못 읽으면 섹션 생략(0명 위장 금지) */}
         {leaders !== null && leaders.length > 0 && (
           <section className="card rounded-[18px] p-5">
-            <h2 className="text-[14px] font-extrabold text-ink">추천 리더보드</h2>
-            <p className="mt-0.5 text-[11.5px] text-text-3">가장 많이 초대한 이웃 (익명 표시)</p>
+            <h2 className="t-section text-ink">추천 리더보드</h2>
+            <p className="mt-0.5 t-sub text-text-3">가장 많이 초대한 이웃 (익명 표시)</p>
             <ol className="mt-3 flex list-none flex-col gap-1.5 p-0">
               {leaders.map((l, i) => (
                 <li
@@ -296,14 +296,14 @@ export default async function ReferralPage() {
                     l.isMe ? "bg-primary-soft" : "bg-bg"
                   }`}
                 >
-                  <span className="w-5 text-center text-[13px] font-extrabold tabular-nums text-primary">
+                  <span className="w-5 text-center t-body font-extrabold tabular-nums text-primary">
                     {i + 1}
                   </span>
-                  <span className="min-w-0 flex-1 text-[13px] font-bold text-ink">
+                  <span className="min-w-0 flex-1 t-body font-bold text-ink">
                     {l.label}
-                    {l.isMe && <span className="ml-1 text-[11px] font-extrabold text-primary">나</span>}
+                    {l.isMe && <span className="ml-1 t-sub font-extrabold text-primary">나</span>}
                   </span>
-                  <span className="text-[12px] font-bold tabular-nums text-text-2">
+                  <span className="t-sub font-bold tabular-nums text-text-2">
                     {l.count.toLocaleString("ko-KR")}명 초대
                   </span>
                 </li>
@@ -314,7 +314,7 @@ export default async function ReferralPage() {
 
         <Link
           href="/my/points"
-          className="press text-center text-[12px] font-semibold text-text-3 no-underline"
+          className="press text-center t-sub font-semibold text-text-3 no-underline"
         >
           적립된 포인트는 지갑에서 확인 ›
         </Link>

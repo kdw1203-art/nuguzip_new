@@ -163,7 +163,7 @@ export function ShareRow({ link, code }: { link: string; code: string }) {
           }`}
         >
           <Icon name={KAKAO_JS_KEY ? "messages-square" : "share"} size={20} />
-          <span className="text-[12px] font-bold">{KAKAO_JS_KEY ? "카카오톡" : "공유"}</span>
+          <span className="t-sub font-bold">{KAKAO_JS_KEY ? "카카오톡" : "공유"}</span>
         </button>
 
         <button
@@ -172,7 +172,7 @@ export function ShareRow({ link, code }: { link: string; code: string }) {
           className="press flex flex-col items-center justify-center gap-1.5 rounded-[14px] bg-primary-soft px-2 py-3 text-primary"
         >
           <Icon name="link" size={20} />
-          <span className="text-[12px] font-bold">링크복사</span>
+          <span className="t-sub font-bold">링크복사</span>
         </button>
 
         <a
@@ -181,11 +181,11 @@ export function ShareRow({ link, code }: { link: string; code: string }) {
           style={{ border: "1px solid var(--border)" }}
         >
           <Icon name="phone" size={20} />
-          <span className="text-[12px] font-bold">문자</span>
+          <span className="t-sub font-bold">문자</span>
         </a>
       </div>
 
-      <div className="flex items-center gap-1.5 text-[11px] text-text-3" aria-live="polite">
+      <div className="flex items-center gap-1.5 t-sub text-text-3" aria-live="polite">
         {toast ? (
           <>
             <Icon name="check" size={13} className="text-primary" />

@@ -192,13 +192,13 @@ export function PlanCheckoutButton({
     <div className="flex flex-col gap-1.5">
       {confirming && !busy ? (
         <div className="flex flex-col gap-1.5">
-          <p className="text-center text-[11px] font-bold text-text-2">
+          <p className="text-center t-sub font-bold text-text-2">
             {billingLabel} 결제창으로 이동합니다
           </p>
           {/* 사실 우선 — 테스트 키 환경에서는 승인이 가상으로 이루어져 실제
               청구가 없다(토스 환경 가이드). 가짜 결제를 진짜처럼 보이게 두지 않는다. */}
           {isTossTestEnv() && (
-            <p className="text-center text-[11px] font-bold text-[#b45309]">
+            <p className="text-center t-sub font-bold text-[#b45309]">
               테스트 결제 환경 — 실제 금액이 청구되지 않아요
             </p>
           )}
@@ -233,7 +233,7 @@ export function PlanCheckoutButton({
         </button>
       )}
       {notice && (
-        <p role="alert" className="text-center text-[11px] font-bold text-danger">
+        <p role="alert" className="text-center t-sub font-bold text-danger">
           {notice}
         </p>
       )}

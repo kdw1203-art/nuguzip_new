@@ -193,7 +193,7 @@ function SmsAlertCard({
 
   return (
     <div className="card flex flex-col rounded-2xl px-4 py-1">
-      <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">SMS 알림 (문자)</div>
+      <div className="pb-1 pt-3 t-sub font-extrabold text-text-3">SMS 알림 (문자)</div>
       <button
         type="button"
         role="switch"
@@ -203,10 +203,10 @@ function SmsAlertCard({
         className="flex w-full items-center justify-between py-[11px] text-left disabled:opacity-60"
       >
         <span>
-          <span className="block text-[13px] font-semibold text-text-1">
+          <span className="block t-body font-semibold text-text-1">
             관심단지 가격 변동 SMS 받기
           </span>
-          <span className="block text-[10px] text-text-3">
+          <span className="block t-caption text-text-3">
             시세가 의미 있게 변하면 문자로 알려드려요
           </span>
         </span>
@@ -220,18 +220,18 @@ function SmsAlertCard({
           onChange={(e) => setPhone(e.target.value)}
           placeholder="휴대폰 번호 (예: 01012345678)"
           aria-label="SMS 알림 수신 번호"
-          className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink outline-none placeholder:text-text-3"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 t-body text-ink outline-none placeholder:text-text-3"
         />
         <button
           type="button"
           onClick={() => void savePhone()}
           disabled={busy || !phoneValid}
-          className="shrink-0 rounded-lg bg-primary px-3 py-2 text-[12px] font-bold text-white disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-primary px-3 py-2 t-sub font-bold text-white disabled:opacity-50"
         >
           번호 저장
         </button>
       </div>
-      <p className="pb-2.5 text-[10px] leading-[1.6] text-text-3">
+      <p className="pb-2.5 t-caption text-text-3">
         입력한 번호는 SMS 알림 발송에만 사용되며, 이 화면에서 언제든 해지할 수 있어요.
         문자 수신 시 통신사 요금 정책이 적용될 수 있습니다.
       </p>
@@ -295,12 +295,12 @@ function usePrefs() {
 function GuestCard() {
   return (
     <div className="card flex flex-col items-center gap-2.5 rounded-2xl px-4 py-8 text-center">
-      <div className="text-[13px] font-extrabold text-ink">
+      <div className="t-body font-extrabold text-ink">
         로그인하면 설정을 저장할 수 있어요
       </div>
       <Link
         href={`/login?callbackUrl=${encodeURIComponent("/my/settings")}`}
-        className="btn-primary rounded-xl px-5 py-2.5 text-[13px] no-underline"
+        className="btn-primary rounded-xl px-5 py-2.5 t-body no-underline"
       >
         로그인
       </Link>
@@ -321,20 +321,20 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
         className="card flex items-center justify-between rounded-2xl px-4 py-3.5 no-underline"
       >
         <div>
-          <div className="text-[13px] font-extrabold text-ink">관심 지역 · 급매 알림 구독</div>
-          <div className="text-[10px] text-text-3">구독한 지역·키워드 추가/삭제</div>
+          <div className="t-body font-extrabold text-ink">관심 지역 · 급매 알림 구독</div>
+          <div className="t-caption text-text-3">구독한 지역·키워드 추가/삭제</div>
         </div>
         <span className="text-[#c3cad6]">›</span>
       </Link>
 
       {phase === "loading" && (
-        <div className="card rounded-2xl px-4 py-8 text-center text-[13px] text-text-3">
+        <div className="card rounded-2xl px-4 py-8 text-center t-body text-text-3">
           알림 설정을 불러오는 중…
         </div>
       )}
       {phase === "guest" && <GuestCard />}
       {phase === "error" && (
-        <div className="card rounded-2xl px-4 py-8 text-center text-[13px] text-text-3">
+        <div className="card rounded-2xl px-4 py-8 text-center t-body text-text-3">
           설정을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.
         </div>
       )}
@@ -349,7 +349,7 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
           {groups.map((group) => (
             <div key={group.title} className="card flex flex-col rounded-2xl px-4 py-1">
               <div className="flex items-center justify-between pb-1 pt-3">
-                <span className="text-[11px] font-extrabold text-text-3">{group.title}</span>
+                <span className="t-sub font-extrabold text-text-3">{group.title}</span>
                 {/* 푸시는 서버 키만으로는 못 간다 — 이 브라우저의 구독 허용까지 있어야
                     비로소 도착한다. 그래서 켜는 입구를 토글 바로 옆에 둔다.
                     (예전엔 모바일 메뉴에만 있어서 PC 사용자는 켤 방법이 없었다.) */}
@@ -367,8 +367,8 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
                   }`}
                 >
                   <span>
-                    <span className="block text-[13px] font-semibold text-text-1">{row.label}</span>
-                    {row.desc && <span className="block text-[10px] text-text-3">{row.desc}</span>}
+                    <span className="block t-body font-semibold text-text-1">{row.label}</span>
+                    {row.desc && <span className="block t-caption text-text-3">{row.desc}</span>}
                   </span>
                   <Toggle on={prefs[row.key]} />
                 </button>
@@ -384,14 +384,14 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
           {groups.length === 0 && !channels.sms ? (
             /* 채널이 하나도 없을 때 빈 화면만 두면 "설정이 사라졌다" 로 읽힌다.
                지금 상태를 그대로 말한다 — 알림함은 채널과 무관하게 항상 동작한다. */
-            <div className="card rounded-2xl px-4 py-6 text-center text-[12px] leading-[1.7] text-text-2">
+            <div className="card rounded-2xl px-4 py-6 text-center t-sub text-text-2">
               지금은 메일·푸시·문자 알림을 보내지 않고 있어요.
               <br />
               새 소식은 위의 <span className="font-bold text-text-1">알림함</span>에서 확인하실 수
               있어요.
             </div>
           ) : (
-            <div className="text-[10px] text-text-3">
+            <div className="t-caption text-text-3">
               변경 즉시 저장돼요
             </div>
           )}
@@ -469,15 +469,15 @@ function PrivacyTab() {
   return (
     <div className="flex flex-col gap-3">
       <div className="card flex flex-col rounded-2xl px-4 py-1">
-        <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">선택 동의 · 철회</div>
+        <div className="pb-1 pt-3 t-sub font-extrabold text-text-3">선택 동의 · 철회</div>
         {phase === "guest" || consents.phase === "guest" ? (
           <div className="py-4">
             <GuestCard />
           </div>
         ) : phase === "loading" || consents.phase === "loading" ? (
-          <div className="py-6 text-center text-[13px] text-text-3">불러오는 중…</div>
+          <div className="py-6 text-center t-body text-text-3">불러오는 중…</div>
         ) : phase === "error" || !prefs || consents.phase === "error" ? (
-          <div className="py-6 text-center text-[13px] text-text-3">
+          <div className="py-6 text-center t-body text-text-3">
             불러오지 못했어요. 새로고침 후 다시 시도해 주세요.
           </div>
         ) : (
@@ -494,10 +494,10 @@ function PrivacyTab() {
               className="flex w-full items-center justify-between border-b border-divider py-[13px] text-left"
             >
               <span>
-                <span className="block text-[13px] font-semibold text-text-1">
+                <span className="block t-body font-semibold text-text-1">
                   혜택 · 소식 이메일 받기
                 </span>
-                <span className="block text-[10px] text-text-3">
+                <span className="block t-caption text-text-3">
                   새 기능 · 이벤트 · 할인 안내 (선택 · 언제든 해제)
                 </span>
               </span>
@@ -511,10 +511,10 @@ function PrivacyTab() {
               className="flex w-full items-center justify-between py-[13px] text-left"
             >
               <span>
-                <span className="block text-[13px] font-semibold text-text-1">
+                <span className="block t-body font-semibold text-text-1">
                   위치정보 이용 동의
                 </span>
-                <span className="block text-[10px] text-text-3">
+                <span className="block t-caption text-text-3">
                   주변 단지·지도 편의 (선택 · 언제든 철회)
                 </span>
               </span>
@@ -530,7 +530,7 @@ function PrivacyTab() {
       )}
 
       <div className="card flex flex-col gap-2 rounded-2xl p-4">
-        <div className="text-[13px] font-extrabold text-ink">노트 공개 범위</div>
+        <div className="t-body font-extrabold text-ink">노트 공개 범위</div>
         <p className="text-xs leading-[1.6] text-text-2">
           공개 여부는 노트 작성·수정 화면에서 노트별로 설정할 수 있어요. 사진은 업로드할 때 위치정보(EXIF)를
           지우지만, 본문 글자나 사진 속 인물·차량번호를 자동으로 가려 주지는 않아요. 공개로 올리기 전에
@@ -545,7 +545,7 @@ function PrivacyTab() {
       </div>
 
       <div className="card flex flex-col gap-1.5 rounded-2xl p-4">
-        <div className="text-[13px] font-extrabold text-ink">개인정보 처리</div>
+        <div className="t-body font-extrabold text-ink">개인정보 처리</div>
         <p className="text-xs leading-[1.6] text-text-2">
           열람·정정·삭제 요청은 개인정보 처리방침의 절차를 따라요.
         </p>
@@ -568,21 +568,21 @@ function AccountTab() {
     <div className="flex flex-col gap-3">
       {/* 계정 관리 */}
       <div className="card flex flex-col rounded-2xl px-4 py-1">
-        <div className="pb-1 pt-3 text-[11px] font-extrabold text-text-3">계정</div>
+        <div className="pb-1 pt-3 t-sub font-extrabold text-text-3">계정</div>
         <Link
           href="/forgot-password"
-          className="flex items-center justify-between border-b border-divider py-3 text-[13px] font-semibold text-text-1 no-underline"
+          className="flex items-center justify-between border-b border-divider py-3 t-body font-semibold text-text-1 no-underline"
         >
           <span>비밀번호 변경</span>
           <span className="text-[#c3cad6]">›</span>
         </Link>
         <div className="flex items-center justify-between border-b border-divider py-3">
-          <span className="text-[13px] font-semibold text-text-1">언어</span>
-          <span className="text-[12px] font-bold text-text-3">한국어</span>
+          <span className="t-body font-semibold text-text-1">언어</span>
+          <span className="t-sub font-bold text-text-3">한국어</span>
         </div>
         <Link
           href="/subscription"
-          className="flex items-center justify-between py-3 text-[13px] font-semibold text-text-1 no-underline"
+          className="flex items-center justify-between py-3 t-body font-semibold text-text-1 no-underline"
         >
           <span>구독 · 결제 관리</span>
           <span className="text-[#c3cad6]">›</span>
@@ -592,10 +592,10 @@ function AccountTab() {
       {/* 데이터 내보내기 — 미구현: 정직하게 준비 중 표기 */}
       <div className="card flex flex-col gap-1.5 rounded-2xl p-4">
         <div className="flex items-center justify-between">
-          <span className="text-[13px] font-extrabold text-ink">내 데이터 내보내기</span>
-          <span className="text-[11px] font-bold text-text-3">준비 중</span>
+          <span className="t-body font-extrabold text-ink">내 데이터 내보내기</span>
+          <span className="t-sub font-bold text-text-3">준비 중</span>
         </div>
-        <p className="text-[11px] leading-[1.6] text-text-2">
+        <p className="t-sub text-text-2">
           임장노트 전체(PDF·ZIP)와 비교 데이터를 내려받는 기능을 준비하고 있어요. 그 전에는
           고객센터로 요청하면 도와드려요.
         </p>
@@ -611,7 +611,7 @@ function AccountTab() {
         >
           로그아웃
         </a>
-        <p className="text-center text-[11px] leading-[1.6] text-text-3">
+        <p className="text-center t-sub text-text-3">
           회원탈퇴는{" "}
           <Link href="/support" className="font-bold text-danger no-underline">
             고객센터

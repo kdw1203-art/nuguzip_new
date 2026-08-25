@@ -600,7 +600,7 @@ export default async function NoteDetailPage({
           이게 없으면 구매자가 "왜 남의 비공개 글이 보이지?" 하고 혼란스럽고,
           재열람 경로(/my 구매 목록)도 모른 채 떠난다. */}
       {purchasedAccess && (
-        <div className="rise-in mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+        <div className="rise-in mb-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 t-body text-text-1">
           <span>
             <span className="font-extrabold text-primary">구매한 리포트</span>로
             열람 중이에요 — 이 노트가 리포트의 전달물입니다.
@@ -613,7 +613,7 @@ export default async function NoteDetailPage({
       {/* AI 한도 도달 안내 — 노트는 저장됐다는 사실을 먼저, 다음 행동(구독)을
           가격과 함께. 가격은 billing-periods 단일 출처. */}
       {isOwner && quotaHit && (
-        <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+        <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 t-body text-text-1">
           노트는 저장됐어요. 이번 달 AI 정리 한도에 도달해 이번 건은 AI 없이
           저장됐어요 —{" "}
           <Link href="/subscription" className="font-extrabold text-primary">
@@ -623,7 +623,7 @@ export default async function NoteDetailPage({
       )}
       {/* 저장 직후 루프 안내 — LLM / 규칙 폴백 / 실패를 구분 */}
       {isOwner && aiStatus === "ok" && hasLlmAi && (
-        <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+        <div className="rise-in mb-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 t-body text-text-1">
           AI 정리가 반영됐어요.{" "}
           <Link href={mapCompareHref} className="font-extrabold text-primary">
             지도에서 이 단지와 비교 ›
@@ -640,7 +640,7 @@ export default async function NoteDetailPage({
         </div>
       )}
       {isOwner && (aiStatus === "rule" || (aiStatus === "ok" && !hasLlmAi)) && (
-        <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 t-body text-text-2">
           노트는 저장됐고 규칙 기반 요약만 있어요 — AI 정리는 아래에서 다시 시도할 수
           있어요.{" "}
           {/* 항목 22 — AI 성패와 무관하게 저장 완료 후 다음 행동은 있어야 한다 */}
@@ -659,7 +659,7 @@ export default async function NoteDetailPage({
       )}
       {/* [AI-40] 저장 직후 — 이 단지 AI 진단 원클릭(컨텍스트 이관). 가장 뜨거운 순간의 제안 */}
       {isOwner && aiStatus && realNote.aptName && (
-        <div className="rise-in mb-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[13px] text-text-1">
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-surface px-4 py-3 t-body text-text-1">
           방금 다녀온 단지, 실데이터로도 확인해 볼까요?{" "}
           <Link
             href={`/analysis/ai/ai-diagnosis?apt=${encodeURIComponent(realNote.aptName)}&region=${encodeURIComponent(realNote.region)}`}
@@ -667,11 +667,11 @@ export default async function NoteDetailPage({
           >
             {realNote.aptName} AI 진단 1분 ›
           </Link>
-          <span className="ml-1 text-[11.5px] text-text-3">첫 실행이면 +100P</span>
+          <span className="ml-1 t-sub text-text-3">첫 실행이면 +100P</span>
         </div>
       )}
       {isOwner && aiStatus === "fail" && (
-        <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 text-[13px] text-text-2">
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-bg px-4 py-3 t-body text-text-2">
           노트는 저장됐어요. AI 정리는 반영되지 않았어요 — 아래에서 다시 시도할 수
           있어요.{" "}
           <Link href={mapCompareHref} className="font-bold text-primary">
@@ -699,14 +699,14 @@ export default async function NoteDetailPage({
             공개·비공개 모두 열리며, 열람 권한은 이 페이지와 같은 관문을 쓴다. */}
         <Link
           href={`/notes/${id}/deck`}
-          className="btn-soft px-3.5 py-2 text-[13px] no-underline"
+          className="btn-soft px-3.5 py-2 t-body no-underline"
         >
           카드로 보기
         </Link>
         {isOwner && !hasLlmAi && (
           <Link
             href={`/analysis?noteId=${encodeURIComponent(id)}`}
-            className="btn-soft px-3.5 py-2 text-[13px] no-underline"
+            className="btn-soft px-3.5 py-2 t-body no-underline"
           >
             AI 분석 허브
           </Link>
@@ -714,7 +714,7 @@ export default async function NoteDetailPage({
         {/* 지역 컨텍스트를 넘겨 지도 비교 루프가 끊기지 않게 한다 */}
         <Link
           href={mapCompareHref}
-          className="btn-primary btn-cta px-3.5 py-2 text-[13px]"
+          className="btn-primary btn-cta px-3.5 py-2 t-body"
         >
           지도에서 비교
         </Link>
@@ -747,31 +747,31 @@ export default async function NoteDetailPage({
             </div>
 
             {/* ② 한 줄 총평 (= 제목) */}
-            <h1 className="text-[19px] font-extrabold leading-[1.4] text-ink md:text-[21px]">
+            <h1 className="t-section text-ink md:t-title">
               {v.oneLiner}
             </h1>
 
             {/* ③ 직접 방문 배지 + 방문일·작성자 */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {v.directVisit ? (
-                <span className="rounded-md bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+                <span className="rounded-md bg-success-soft chip-pad t-sub font-extrabold text-success">
                   ✓ 직접 방문
                 </span>
               ) : (
-                <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-3">
+                <span className="rounded-md bg-bg chip-pad t-sub font-extrabold text-text-3">
                   자료 조사
                 </span>
               )}
               {/* [#134] 사진 촬영 시각 — EXIF 기반 방문 시간(장식 신호, 사실 판정 아님) */}
               {realNote.metadata?.photoTakenAt && (
-                <span className="rounded-md bg-bg chip-pad text-[11px] font-bold text-text-2">
+                <span className="rounded-md bg-bg chip-pad t-sub font-bold text-text-2">
                   📷 {realNote.metadata.photoTakenAt.slice(5, 16).replace("T", " ")} 촬영
                 </span>
               )}
               {/* [#71] 현장 인증 — 작성 시점에 단지 반경 2km 위치 확인을 통과한 노트 */}
               {v.fieldVerified && (
                 <span
-                  className="rounded-md bg-primary-soft chip-pad text-[11px] font-extrabold text-primary"
+                  className="rounded-md bg-primary-soft chip-pad t-sub font-extrabold text-primary"
                   title="작성 시점에 단지 반경 2km 이내 위치 확인을 통과했습니다 (거리 구간만 기록, 좌표 비저장)"
                 >
                   📍 현장 인증
@@ -782,7 +782,7 @@ export default async function NoteDetailPage({
 
             {/* ④ 4축 항목 평가 — 채광·소음·주차·교통 상중하 */}
             <div className="flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface p-3.5">
-              <div className="text-[11px] font-extrabold text-text-3">항목 평가</div>
+              <div className="t-sub font-extrabold text-text-3">항목 평가</div>
               <div className="grid grid-cols-2 gap-1.5 md:grid-cols-4">
                 {v.axes.map((a) => (
                   <div
@@ -839,7 +839,7 @@ export default async function NoteDetailPage({
                 {v.aiBadge}
                 {v.aiBadge.startsWith("규칙") ? " · LLM 아님" : " · LLM"}
               </span>
-              <p className="text-[13px] leading-[1.7]">{v.aiInline}</p>
+              <p className="t-body">{v.aiInline}</p>
               {isOwner && !hasLlmAi && (
                 <AiRetryButton
                   noteId={id}
@@ -861,7 +861,7 @@ export default async function NoteDetailPage({
             )}
 
             {/* ⑦⑧⑩ 출처·데이터 기준일 각주 + 지역·단지 실 내부 링크 */}
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-line pt-3 text-[11px] text-text-3">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-line pt-3 t-sub text-text-3">
               <span className="h-[5px] w-[5px] rounded-full bg-success" />
               <span>
                 {v.sourceLabel} · 기준일 {v.baseDate}
@@ -939,13 +939,13 @@ export default async function NoteDetailPage({
           {/* [#131] 직전 저장본 — 본인에게만, 내용 수정이 있었던 노트만 */}
           {isOwner && realNote.metadata?.lastRevision && (
             <details className="rise-in-1 card rounded-[20px] p-5">
-              <summary className="cursor-pointer text-[14px] font-extrabold text-ink">
+              <summary className="cursor-pointer t-section text-ink">
                 수정 전 저장본{" "}
-                <span className="text-[11px] font-medium text-text-3">
+                <span className="t-sub font-medium text-text-3">
                   {realNote.metadata.lastRevision.at.slice(0, 16).replace("T", " ")} 저장분
                 </span>
               </summary>
-              <div className="mt-2 flex flex-col gap-1.5 text-[13px] leading-[1.7] text-text-2">
+              <div className="mt-2 flex flex-col gap-1.5 t-body text-text-2">
                 {realNote.metadata.lastRevision.summary && (
                   <p>
                     <b className="text-ink">요약:</b> {realNote.metadata.lastRevision.summary}
@@ -956,7 +956,7 @@ export default async function NoteDetailPage({
                     <b className="text-ink">메모:</b> {realNote.metadata.lastRevision.memo}
                   </p>
                 )}
-                <p className="text-[11px] text-text-3">
+                <p className="t-sub text-text-3">
                   직전 1벌만 보관됩니다. 되돌리려면 내용을 복사해 수정 화면에 붙여넣으세요.
                 </p>
               </div>
@@ -968,7 +968,7 @@ export default async function NoteDetailPage({
             <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-6">
               <div className="text-base font-extrabold text-ink">
                 재방문 변화{" "}
-                <span className="text-[12px] font-medium text-text-3">
+                <span className="t-sub font-medium text-text-3">
                   {revisitDelta.fromLabel}({revisitDelta.prevVisitDate}) →{" "}
                   {revisitDelta.toLabel}
                 </span>
@@ -978,14 +978,14 @@ export default async function NoteDetailPage({
                   {revisitDelta.changes.map((c) => (
                     <span
                       key={c}
-                      className="rounded-full bg-primary-soft px-3 py-1.5 text-[12px] font-bold text-primary"
+                      className="rounded-full bg-primary-soft px-3 py-1.5 t-sub font-bold text-primary"
                     >
                       {c}
                     </span>
                   ))}
                 </div>
               ) : (
-                <p className="text-[13px] text-text-2">
+                <p className="t-body text-text-2">
                   비교 가능한 {revisitDelta.comparable}개 항목의 평가가 직전 회차와
                   같아요 — 인상이 유지되고 있다는 것도 기록입니다.
                 </p>
@@ -1042,9 +1042,9 @@ export default async function NoteDetailPage({
 
           {/* 좋았던 점 · 주의할 점 상세 (10f) */}
           <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[20px] p-6">
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-section text-ink">
               좋았던 점 · 주의할 점{" "}
-              <span className="text-[11px] font-medium text-text-3">
+              <span className="t-sub font-medium text-text-3">
                 {v.evidenceNote}
               </span>
             </div>
@@ -1105,7 +1105,7 @@ export default async function NoteDetailPage({
           {/* AI 판단 근거 정리 (6c) */}
           <div className="rise-in-1">
             <AIPanel title="판단 근거 정리">
-              <p className="text-[13px] leading-[1.7]">{v.aiSummary}</p>
+              <p className="t-body">{v.aiSummary}</p>
               <div className="mt-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
                   <span className="text-xs">기록 종합 점수</span>
@@ -1141,16 +1141,16 @@ export default async function NoteDetailPage({
                 }}
               >
                 <div className="absolute inset-[9px] flex flex-col items-center justify-center rounded-full bg-surface">
-                  <span className="text-[30px] font-extrabold leading-none text-primary">
+                  <span className="t-title leading-none text-primary">
                     {v.totalScore}
                   </span>
-                  <span className="text-[10px] text-text-3">/ 100</span>
+                  <span className="t-caption text-text-3">/ 100</span>
                 </div>
               </div>
             ) : (
               <div className="flex h-[110px] w-[110px] flex-col items-center justify-center rounded-full bg-bg">
-                <span className="text-[18px] font-extrabold text-text-3">—</span>
-                <span className="mt-0.5 text-[10px] text-text-3">미입력</span>
+                <span className="t-section text-text-3">—</span>
+                <span className="mt-0.5 t-caption text-text-3">미입력</span>
               </div>
             )}
             <div className="text-center text-xs text-text-2">
@@ -1166,7 +1166,7 @@ export default async function NoteDetailPage({
             <div className="flex w-full flex-col gap-[7px]">
               {v.scoreBars.map((b) => (
                 <div key={b.label} className="flex items-center gap-2">
-                  <span className="w-11 shrink-0 text-[11px] text-text-2">
+                  <span className="w-11 shrink-0 t-sub text-text-2">
                     {b.label}
                   </span>
                   <div className="relative h-2 flex-1 rounded bg-bg">
@@ -1187,7 +1187,7 @@ export default async function NoteDetailPage({
                 </div>
               ))}
             </div>
-            <div className="text-[10px] text-text-3">
+            <div className="t-caption text-text-3">
               점수 = 입력된 축(입지·학군·교통·시설·미래가치)만 평균 × 20 · 미입력
               축은 평균·막대에서 제외합니다
             </div>
@@ -1195,7 +1195,7 @@ export default async function NoteDetailPage({
 
           {/* 기록 완성도 (10f) */}
           <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">기록 완성도</div>
+            <div className="t-body font-extrabold text-ink">기록 완성도</div>
             <div className="flex justify-between text-xs">
               <span className="text-text-2">체크 항목</span>
               <span className="font-extrabold text-primary">
@@ -1225,7 +1225,7 @@ export default async function NoteDetailPage({
           노트를 보는 무료 소유자에게만 보인다(한도 문구가 아니라 가치 문구). */}
       {isOwner && isFreeViewer && hasLlmAi && (
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3">
-          <p className="text-[13px] leading-[1.6] text-text-1">
+          <p className="t-body text-text-1">
             이 AI 정리가 도움이 됐다면 — PRO(월{" "}
             {monthlyPrice("pro").toLocaleString("ko-KR")}원)에서는 매 노트마다
             제한 없이 받을 수 있어요.
@@ -1283,8 +1283,8 @@ export default async function NoteDetailPage({
       {/* A9 공개노트 전환 훅 — 비로그인 열람자에게 관심단지·알림 로그인 유도 */}
       {!viewerEmail && complexHref && (
         <div className="mt-4 rounded-2xl bg-[rgba(29,79,216,.05)] p-5 text-center">
-          <div className="text-[15px] font-extrabold text-ink">이 단지가 궁금하신가요?</div>
-          <p className="mx-auto mt-1 max-w-[440px] text-[13px] leading-[1.7] text-text-3">
+          <div className="t-section text-ink">이 단지가 궁금하신가요?</div>
+          <p className="mx-auto mt-1 max-w-[440px] t-body text-text-3">
             로그인하면 {realNote.aptName?.trim() || "이 단지"}를 관심 단지로 저장하고, 실거래·시세
             변동 알림을 받을 수 있어요.
           </p>

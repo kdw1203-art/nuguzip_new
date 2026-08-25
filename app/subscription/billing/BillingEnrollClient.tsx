@@ -157,27 +157,27 @@ export function BillingEnrollClient() {
   return (
     <div className="mx-auto flex w-full max-w-[520px] flex-col gap-3">
       {params && (
-        <p className="text-[13px] text-text-2">
+        <p className="t-body text-text-2">
           {params.cardChange
             ? `자동결제 카드 변경${label ? ` — ${label} 플랜 · ${billingLabel}` : ""}`
             : `${label} 플랜 · ${billingLabel} 자동결제 등록`}
         </p>
       )}
       {isTossTestEnv() && (
-        <p className="rounded-xl bg-[rgba(245,158,11,.12)] px-3.5 py-2.5 text-[12px] font-bold text-[#b45309]">
+        <p className="rounded-xl bg-[rgba(245,158,11,.12)] px-3.5 py-2.5 t-sub font-bold text-[#b45309]">
           테스트 환경 — 카드 등록·결제가 가상으로 이루어져 실제 금액이 청구되지 않아요.
         </p>
       )}
 
       {phase.kind === "loading" && (
-        <div className="card rounded-2xl px-4 py-8 text-center text-[13px] text-text-3">
+        <div className="card rounded-2xl px-4 py-8 text-center t-body text-text-3">
           자동결제 등록 준비 중…
         </div>
       )}
 
       {phase.kind === "login" && (
         <div className="card flex flex-col items-center gap-2.5 rounded-2xl px-4 py-8 text-center">
-          <p className="text-[14px] font-extrabold text-ink">카드를 등록하려면 로그인이 필요해요</p>
+          <p className="t-section text-ink">카드를 등록하려면 로그인이 필요해요</p>
           <Link
             href={`/login?callbackUrl=${encodeURIComponent(
               typeof window !== "undefined"
@@ -193,8 +193,8 @@ export function BillingEnrollClient() {
 
       {phase.kind === "unavailable" && (
         <div className="card flex flex-col items-center gap-2.5 rounded-2xl px-4 py-8 text-center">
-          <p className="text-[14px] font-extrabold text-ink">자동결제는 아직 준비 중이에요</p>
-          <p className="text-[12px] leading-[1.6] text-text-3">{phase.msg}</p>
+          <p className="t-section text-ink">자동결제는 아직 준비 중이에요</p>
+          <p className="t-sub text-text-3">{phase.msg}</p>
           <Link href="/subscription" className="btn-soft btn-sm no-underline">
             단건 결제로 이용하기
           </Link>
@@ -203,8 +203,8 @@ export function BillingEnrollClient() {
 
       {phase.kind === "error" && (
         <div className="card flex flex-col items-center gap-2.5 rounded-2xl px-4 py-8 text-center">
-          <p className="text-[14px] font-extrabold text-ink">등록을 시작하지 못했어요</p>
-          <p className="text-[12px] leading-[1.6] text-text-3">{phase.msg}</p>
+          <p className="t-section text-ink">등록을 시작하지 못했어요</p>
+          <p className="t-sub text-text-3">{phase.msg}</p>
           <Link href="/subscription" className="btn-soft btn-sm no-underline">
             구독 페이지로 돌아가기
           </Link>
@@ -214,19 +214,19 @@ export function BillingEnrollClient() {
       {phase.kind === "ready" && (
         <>
           <div className="card flex flex-col gap-2 rounded-2xl px-4 py-5">
-            <div className="flex items-center justify-between text-[13px]">
+            <div className="flex items-center justify-between t-body">
               <span className="text-text-3">플랜</span>
               <span className="font-bold text-ink">
                 {label} · {billingLabel} 자동결제
               </span>
             </div>
-            <div className="flex items-center justify-between text-[13px]">
+            <div className="flex items-center justify-between t-body">
               <span className="text-text-3">결제 금액</span>
               <span className="font-extrabold text-ink">
                 {phase.amount.toLocaleString("ko-KR")}원 / {billingLabel === "연간" ? "년" : "월"}
               </span>
             </div>
-            <p className="mt-1 text-[11px] leading-[1.7] text-text-3">
+            <p className="mt-1 t-sub text-text-3">
               {params?.cardChange ? (
                 <>
                   새 카드를 등록하면 지금 등록된 카드를 대체해요 — 추가 결제 없이 다음
@@ -249,7 +249,7 @@ export function BillingEnrollClient() {
             type="button"
             onClick={() => void openBillingAuth()}
             disabled={opening}
-            className="btn-primary btn-cta rounded-[14px] p-[14px] text-center text-[15px] font-bold disabled:opacity-60"
+            className="btn-primary btn-cta rounded-[14px] p-[14px] text-center t-body font-bold disabled:opacity-60"
           >
             {opening
               ? "카드 등록창 여는 중…"
@@ -257,7 +257,7 @@ export function BillingEnrollClient() {
                 ? "새 카드로 변경하기"
                 : "카드 등록하고 자동결제 시작"}
           </button>
-          <p className="text-center text-[11px] text-text-3">
+          <p className="text-center t-sub text-text-3">
             결제 7일 이내 청약철회(전액 환불) 가능 ·{" "}
             <Link href="/legal/terms#refund" className="underline underline-offset-2">
               환불 규정

@@ -434,7 +434,7 @@ export default async function Home() {
               regions.slice(0, 2).map((r) => (
                 <div
                   key={r.id}
-                  className="card card-hover flex items-center justify-between rounded-2xl px-4 py-3.5"
+                  className="card tile flex items-center justify-between rounded-2xl px-4 py-3.5"
                 >
                   <div>
                     <div className="text-sm font-bold text-ink">{r.name}</div>
@@ -561,7 +561,7 @@ export default async function Home() {
                   <Link
                     key={t.href}
                     href={t.href}
-                    className="card card-hover flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
+                    className="card tile flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
                   >
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
                       <Icon name={t.icon} size={17} />
@@ -589,7 +589,7 @@ export default async function Home() {
 
             {/* 공개 노트 · 동네이야기 — 행 클릭 가능 (증거) */}
             <div data-reveal="" className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              <div className="card card-hover flex flex-col gap-2 rounded-2xl px-5 py-5">
+              <div className="card tile flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
                   <h2 className="accent-underline text-sm font-extrabold text-ink">
                     공개 임장노트
@@ -635,7 +635,7 @@ export default async function Home() {
                   ))
                 )}
               </div>
-              <div className="card card-hover flex flex-col gap-2 rounded-2xl px-5 py-5">
+              <div className="card tile flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
                   <h2 className="accent-underline text-sm font-extrabold text-ink">
                     동네이야기 · 자료

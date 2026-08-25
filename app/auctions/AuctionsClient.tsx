@@ -377,14 +377,14 @@ export function AuctionsClient({
       </div>
 
       {/* 요약 라인 */}
-      <p className="rise-in mb-3 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-3 t-body text-text-2">
         한국자산관리공사 <strong className="text-ink">온비드</strong> 공매 부동산 — 입찰
         중·예정 물건 <strong className="text-ink">{activeTotal.toLocaleString()}건</strong>.
         감정가·최저입찰가·입찰일정은 공공 데이터 기준입니다.
       </p>
 
       {/* 정직 안내 · 면책 */}
-      <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6] text-primary">
+      <div className="rise-in mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 t-sub text-primary">
         <span>
           감정가·최저입찰가·입찰일정은 <b className="font-bold">공공 데이터</b> 기준이며 매일
           자동 갱신됩니다. 갱신 사이에 변경·취소될 수 있으니 실제 입찰·명도 조건은{" "}
@@ -403,7 +403,7 @@ export function AuctionsClient({
       {fetchFailed ? (
         /* 필터 조회 실패 — "0건"이 아니라 실패라고 말한다 */
         <div className="rise-in-1 card p-[var(--pad-card)]">
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center text-[13px] text-text-3">
+          <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
             이 조건의 목록을 지금 불러오지 못했어요 — 물건이 0건인 게 아니라 조회가
             실패했습니다. 잠시 후 다시 시도하거나{" "}
             <button
@@ -418,7 +418,7 @@ export function AuctionsClient({
         </div>
       ) : fetchLoading ? (
         <div className="rise-in-1 card p-[var(--pad-card)]">
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center text-[13px] text-text-3">
+          <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
             조건에 맞는 물건을 불러오는 중…
           </div>
         </div>
@@ -431,14 +431,14 @@ export function AuctionsClient({
                 <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
                   {monthLabel} 입찰 캘린더
                 </span>
-                <div className="flex gap-2.5 text-[11px]">
+                <div className="flex gap-2.5 t-sub">
                   <span className="flex items-center gap-1 text-text-2">
                     <span className="h-2 w-2 rounded-[2px] bg-primary" />
                     입찰마감일
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-text-3">
+              <div className="grid grid-cols-7 gap-1 text-center t-caption text-text-3">
                 {weekdays.map((d) => (
                   <span key={d}>{d}</span>
                 ))}
@@ -487,22 +487,22 @@ export function AuctionsClient({
                         <div className="flex flex-wrap items-center gap-1.5 text-sm font-extrabold text-ink">
                           {c.name}
                           {c.usage && (
-                            <span className="rounded bg-primary-soft px-[7px] py-0.5 text-[10px] font-extrabold text-primary">
+                            <span className="rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">
                               {c.usage}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-text-3">{c.region || "—"}</div>
+                        <div className="t-sub text-text-3">{c.region || "—"}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3.5">
                       <div className="text-right">
-                        <div className="text-[11px] text-text-3">감정가</div>
-                        <div className="text-[13px] font-extrabold text-ink">{c.appraisalValue}</div>
+                        <div className="t-sub text-text-3">감정가</div>
+                        <div className="t-body font-extrabold text-ink">{c.appraisalValue}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[11px] text-text-3">최저입찰가</div>
-                        <div className="text-[13px] font-extrabold text-primary">{c.minBidValue}</div>
+                        <div className="t-sub text-text-3">최저입찰가</div>
+                        <div className="t-body font-extrabold text-primary">{c.minBidValue}</div>
                       </div>
                       <a
                         href={c.href}
@@ -531,19 +531,19 @@ export function AuctionsClient({
                     className="rise-in-3 card flex items-center justify-between rounded-2xl px-[18px] py-3.5"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="rounded-md bg-danger-fill chip-pad text-[11px] font-extrabold text-white">
+                      <span className="rounded-md bg-danger-fill chip-pad t-sub font-extrabold text-white">
                         {c.dday?.label}
                       </span>
                       <div>
                         <div className="flex flex-wrap items-center gap-1.5 text-sm font-extrabold text-ink">
                           {c.name}
                           {c.usage && (
-                            <span className="rounded bg-primary-soft px-[7px] py-0.5 text-[10px] font-extrabold text-primary">
+                            <span className="rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">
                               {c.usage}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-text-3">
+                        <div className="t-sub text-text-3">
                           {c.region || "—"} · 최저입찰가 {c.minBidValue}
                         </div>
                       </div>
@@ -568,7 +568,7 @@ export function AuctionsClient({
             </div>
             {cards.length === 0 ? (
               <div className="rise-in-4 card p-[var(--pad-card)]">
-                <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center text-[13px] text-text-3">
+                <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
                   현재 조건의 진행·예정 공매 물건이 없어요. 데이터는 매일 자동
                   갱신됩니다.
                 </div>
@@ -576,7 +576,7 @@ export function AuctionsClient({
             ) : (
               <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
                 <div className="min-w-[560px]">
-                  <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
+                  <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 t-caption text-text-3">
                     <span>물건 · 소재지</span>
                     <span className="text-center">용도</span>
                     <span className="text-center">감정가</span>
@@ -593,7 +593,7 @@ export function AuctionsClient({
                       <span className="truncate-1 font-bold text-ink">
                         {c.name}
                         {c.region ? (
-                          <span className="ml-1 text-[10px] font-medium text-text-3">{c.region}</span>
+                          <span className="ml-1 t-caption font-medium text-text-3">{c.region}</span>
                         ) : null}
                       </span>
                       <span className="truncate-1 text-center font-bold text-text-1">
@@ -608,13 +608,13 @@ export function AuctionsClient({
                     <button
                       type="button"
                       onClick={() => setRowCap((n) => n + 48)}
-                      className="press my-2 w-full rounded-xl bg-bg py-2.5 text-center text-[12px] font-bold text-primary"
+                      className="press my-2 w-full rounded-xl bg-bg py-2.5 text-center t-sub font-bold text-primary"
                     >
                       더보기 ({Math.min(rowCap, cards.length).toLocaleString()} /{" "}
                       {cards.length.toLocaleString()}건)
                     </button>
                   )}
-                  <div className="pb-2 pt-1 text-[10px] text-text-3">
+                  <div className="pb-2 pt-1 t-caption text-text-3">
                     마감 임박순 · 출처: 한국자산관리공사 온비드(공공데이터포털) · 매일 자동
                     갱신
                   </div>
@@ -630,7 +630,7 @@ export function AuctionsClient({
                 </summary>
                 <div className="mt-2 overflow-x-auto">
                   <div className="min-w-[560px]">
-                    <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
+                    <div className="grid grid-cols-[1.9fr_.8fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 t-caption text-text-3">
                       <span>물건 · 소재지</span>
                       <span className="text-center">용도</span>
                       <span className="text-center">감정가</span>
@@ -647,7 +647,7 @@ export function AuctionsClient({
                         <span className="truncate-1 font-bold text-ink">
                           {c.name}
                           {c.region ? (
-                            <span className="ml-1 text-[10px] font-medium text-text-3">
+                            <span className="ml-1 t-caption font-medium text-text-3">
                               {c.region}
                             </span>
                           ) : null}
@@ -660,7 +660,7 @@ export function AuctionsClient({
                         <span className="text-center font-bold text-text-1">{c.dateValue}</span>
                       </div>
                     ))}
-                    <div className="pb-1 pt-1 text-[10px] text-text-3">
+                    <div className="pb-1 pt-1 t-caption text-text-3">
                       입찰이 마감된 공고예요 — 결과·재공고 여부는 온비드에서 확인하세요.
                     </div>
                   </div>
@@ -668,7 +668,7 @@ export function AuctionsClient({
               </details>
             )}
 
-            <p className="rise-in-4 mt-1 px-1 text-[11px] leading-[1.6] text-text-3">
+            <p className="rise-in-4 mt-1 px-1 t-sub text-text-3">
               출처: 한국자산관리공사 온비드(공공데이터포털) · 참고용 정보이며 권리분석·명도·정확한
               입찰조건은 온비드 공고 원문과 전문가 확인이 필요합니다.
             </p>
@@ -714,13 +714,13 @@ export function AuctionsClient({
 
             {/* 지역(자치구)별 요약 — 버튼이 gu 필터를 세팅한다 */}
             <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-              <div className="flex items-center justify-between text-[13px] font-extrabold text-ink">
+              <div className="flex items-center justify-between t-body font-extrabold text-ink">
                 지역별 요약
                 {f.gu && (
                   <button
                     type="button"
                     onClick={() => set({ gu: null })}
-                    className="text-[11px] font-bold text-primary"
+                    className="t-sub font-bold text-primary"
                   >
                     {f.gu} 해제 ×
                   </button>
@@ -742,37 +742,37 @@ export function AuctionsClient({
                   </button>
                 ))
               ) : (
-                <p className="text-[10px] leading-[1.6] text-text-3">
+                <p className="t-caption text-text-3">
                   표시할 지역 분포가 아직 없어요. 데이터가 갱신되면 자동으로 채워집니다.
                 </p>
               )}
-              <p className="text-[10px] leading-[1.6] text-text-3">
+              <p className="t-caption text-text-3">
                 지역을 선택하면 해당 자치구 물건만 볼 수 있어요.
               </p>
             </div>
 
             {/* 용도별 요약 */}
             <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-              <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
+              <div className="flex items-center gap-1.5 t-body font-extrabold text-ink">
                 용도별 요약
               </div>
               {dist.length > 0 ? (
                 dist.map((d) => (
                   <div key={d.label} className="flex items-center gap-2">
-                    <span className="w-16 shrink-0 text-[11px] text-text-1">{d.label}</span>
+                    <span className="w-16 shrink-0 t-sub text-text-1">{d.label}</span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-primary-soft">
                       <span
                         className="block h-full rounded-full bg-primary"
                         style={{ width: `${Math.round((d.count / max) * 100)}%` }}
                       />
                     </span>
-                    <span className="w-7 shrink-0 text-right text-[11px] font-bold text-ink">
+                    <span className="w-7 shrink-0 text-right t-sub font-bold text-ink">
                       {d.count}
                     </span>
                   </div>
                 ))
               ) : (
-                <p className="text-[10px] leading-[1.6] text-text-3">
+                <p className="t-caption text-text-3">
                   표시할 용도 분포가 아직 없어요. 데이터가 연동되면 자동으로 채워집니다.
                 </p>
               )}
@@ -780,7 +780,7 @@ export function AuctionsClient({
                 href="https://www.onbid.co.kr"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-0.5 text-[11px] font-bold text-primary no-underline"
+                className="mt-0.5 t-sub font-bold text-primary no-underline"
               >
                 온비드 바로가기 ↗
               </a>

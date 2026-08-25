@@ -90,10 +90,10 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
     <PageShell breadcrumb="임장노트 › 카드" wide>
       <div className="rise-in mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="truncate text-[21px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="truncate t-title text-ink">
             {note.title}
           </h1>
-          <p className="mt-1 text-[12.5px] text-text-3">
+          <p className="mt-1 t-body text-text-3">
             {[note.region, note.aptName].filter(Boolean).join(" · ")} · {deck.pages.length}장 ·{" "}
             {deck.planLabel} {deck.range.label}
             {!note.isPublic && " · 비공개 노트"}
@@ -101,7 +101,7 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
         </div>
         <Link
           href={`/notes/${id}`}
-          className="press shrink-0 rounded-xl border border-border bg-surface px-3.5 py-2 text-[13px] font-bold text-text-1"
+          className="press shrink-0 rounded-xl border border-border bg-surface px-3.5 py-2 t-body font-bold text-text-1"
         >
           원문 보기
         </Link>
@@ -110,7 +110,7 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
       <DeckViewer deck={deck} />
 
       {/* 무엇으로 만들어졌는지 — 카드가 예쁘게 나올수록 출처를 분명히 적는다. */}
-      <p className="mt-4 text-[12px] leading-relaxed text-text-3">
+      <p className="mt-4 t-sub text-text-3">
         카드의 글은 이 노트에 직접 쓰신 내용과{" "}
         {deck.hasAiReport ? "저장된 AI 분석" : "노트 원문"}에서 그대로 옮긴 것입니다. 카드로 만들
         때 없는 내용을 지어내지 않습니다.
@@ -119,10 +119,10 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
       {/* 내용이 모자라 플랜 최소 장수에 못 미친 경우 — 채워 넣는 대신 사실대로 말한다. */}
       {deck.shortOf > 0 && (
         <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
-          <p className="text-[13.5px] font-extrabold text-ink">
+          <p className="t-body font-extrabold text-ink">
             지금 노트로 만들 수 있는 카드는 {deck.pages.length}장이에요
           </p>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-text-2">
+          <p className="mt-1.5 t-body text-text-2">
             {deck.planLabel} 플랜은 {deck.range.label}까지 만들 수 있지만, 없는 내용을 지어내
             장수를 채우지는 않습니다. 아래를 채우면 카드가 늘어납니다.
           </p>
@@ -131,7 +131,7 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
               {deck.growthHints.map((h) => (
                 <li
                   key={h}
-                  className="rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-bold text-primary"
+                  className="rounded-full bg-primary-soft px-2.5 py-1 t-sub font-bold text-primary"
                 >
                   {h}
                 </li>
@@ -141,7 +141,7 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
           {isOwner && (
             <Link
               href={`/notes/${id}/edit`}
-              className="press mt-3 inline-flex rounded-xl bg-primary px-3.5 py-2 text-[13px] font-bold text-white"
+              className="press mt-3 inline-flex rounded-xl bg-primary px-3.5 py-2 t-body font-bold text-white"
             >
               노트 이어서 쓰기
             </Link>
@@ -152,16 +152,16 @@ export default async function NoteDeckPage({ params }: { params: Promise<{ id: s
       {/* 상한 때문에 잘린 분량이 실제로 있을 때만 상위 플랜을 안내한다. */}
       {deck.trimmed > 0 && upgradeRange && (
         <div className="mt-4 rounded-2xl border border-border bg-primary-soft p-4">
-          <p className="text-[13.5px] font-extrabold text-ink">
+          <p className="t-body font-extrabold text-ink">
             이 노트에는 {deck.trimmed}장이 더 있어요
           </p>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-text-2">
+          <p className="mt-1.5 t-body text-text-2">
             지금 {deck.planLabel} 플랜은 {deck.range.label}까지 보여 드립니다. 이 노트로 만들 수
             있는 카드는 모두 {deck.available}장이에요.
           </p>
           <Link
             href="/subscription"
-            className="press mt-3 inline-flex rounded-xl bg-primary px-3.5 py-2 text-[13px] font-bold text-white"
+            className="press mt-3 inline-flex rounded-xl bg-primary px-3.5 py-2 t-body font-bold text-white"
           >
             {upgradeRange.label} 플랜 보기
           </Link>

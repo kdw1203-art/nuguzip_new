@@ -112,24 +112,24 @@ export default async function MyListingsPage() {
       <PageShell breadcrumb="마이 › 내 매물" title="내 매물">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
-            <div className="text-[26px]">
+            <div className="t-title">
               <Icon name="🏢" size={26} />
             </div>
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-section text-ink">
               매물 등록은 공인중개사 인증 후 이용할 수 있어요
             </div>
-            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+            <p className="max-w-[420px] t-body text-text-3">
               개업공인중개사 자격을 인증하면 매물 등록·검수·노출 관리 기능이 열려요.
               인증 후에는 이 화면에서 내 매물 상태와 조회수를 확인할 수 있어요.
             </p>
             <Link href="/town/experts" className="btn-primary btn-md mt-1 no-underline">
               전문가 인증 신청
             </Link>
-            <Link href="/my" className="text-[12px] font-bold text-text-3 no-underline">
+            <Link href="/my" className="t-sub font-bold text-text-3 no-underline">
               마이로 돌아가기 ›
             </Link>
           </div>
-          <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+          <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
             누구집은 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물
             등록·중개 행위는 개업공인중개사가 수행합니다.
           </div>
@@ -159,12 +159,12 @@ export default async function MyListingsPage() {
       {items.length > 0 && (
         <div className="rise-in mb-4 grid grid-cols-3 gap-2.5">
           <div className="card card-pad-sm flex flex-col gap-0.5">
-            <span className="text-[11px] text-text-3">노출중 매물</span>
-            <span className="text-[20px] font-extrabold text-ink">{activeCount}</span>
+            <span className="t-sub text-text-3">노출중 매물</span>
+            <span className="t-title text-ink">{activeCount}</span>
           </div>
           <div className="card card-pad-sm flex flex-col gap-0.5">
-            <span className="text-[11px] text-text-3">총 조회</span>
-            <span className="text-[20px] font-extrabold text-ink">
+            <span className="t-sub text-text-3">총 조회</span>
+            <span className="t-title text-ink">
               {totalViews.toLocaleString("ko-KR")}
             </span>
           </div>
@@ -172,11 +172,11 @@ export default async function MyListingsPage() {
             href="/my/leads"
             className="card card-pad-sm flex flex-col gap-0.5 no-underline transition-colors hover:bg-[rgba(29,79,216,.03)]"
           >
-            <span className="text-[11px] text-text-3">받은 문의</span>
+            <span className="t-sub text-text-3">받은 문의</span>
             <span className="flex items-baseline gap-1.5">
-              <span className="text-[20px] font-extrabold text-ink">{inquiry.total}</span>
+              <span className="t-title text-ink">{inquiry.total}</span>
               {inquiry.unread > 0 && (
-                <span className="rounded-full bg-primary chip-pad-tight text-[10px] font-extrabold text-white">
+                <span className="rounded-full bg-primary chip-pad-tight t-caption font-extrabold text-white">
                   새 {inquiry.unread}
                 </span>
               )}
@@ -187,7 +187,7 @@ export default async function MyListingsPage() {
 
       {/* I10 — 낡은 매물이 있을 때만 뜨는 안내. 없으면 아무 말도 하지 않는다. */}
       {staleCount > 0 && (
-        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 text-[12px] leading-[1.7] text-[#b45309]">
+        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 t-sub text-[#b45309]">
           노출중 매물 {staleCount}건이 {LISTING_STALE_DAYS}일 넘게 갱신되지 않았어요.
           아직 거래 중이면 끌어올리고, 끝난 거래는 거래완료로 마감해 주세요. 오래된
           호가가 남아 있으면 문의가 와도 헛걸음이 돼요.
@@ -195,7 +195,7 @@ export default async function MyListingsPage() {
       )}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-text-3">
+        <p className="t-body text-text-3">
           검수중 {counts.pending ?? 0} · 노출중 {counts.approved ?? 0} · 반려{" "}
           {counts.rejected ?? 0} · 마감 {counts.closed ?? 0}
         </p>
@@ -211,8 +211,8 @@ export default async function MyListingsPage() {
 
       {items.length === 0 ? (
         <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[15px] font-extrabold text-ink">아직 등록한 매물이 없어요</div>
-          <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+          <div className="t-section text-ink">아직 등록한 매물이 없어요</div>
+          <p className="max-w-[420px] t-body text-text-3">
             지도에서 위치를 찍어 손쉽게 매물을 등록해 보세요. 승인되면 실매물 목록에
             노출되고 포인트가 지급돼요.
           </p>
@@ -235,16 +235,16 @@ export default async function MyListingsPage() {
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+                    <span className="rounded-[6px] bg-success-soft chip-pad t-sub font-extrabold text-success">
                       소유확인
                     </span>
                   )}
                   {boost && (
-                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
+                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-[#b45309]">
                       {boost}
                     </span>
                   )}
@@ -259,12 +259,12 @@ export default async function MyListingsPage() {
 
                 <Link
                   href={`/listings/${l.id}`}
-                  className="text-[15px] font-extrabold leading-[1.4] text-ink hover:underline"
+                  className="t-section text-ink hover:underline"
                 >
                   {l.complexName}
                 </Link>
-                <div className="text-[15px] font-extrabold text-primary">{priceLine(l)}</div>
-                <div className="text-[12px] text-text-3">
+                <div className="t-section text-primary">{priceLine(l)}</div>
+                <div className="t-sub text-text-3">
                   {[
                     l.regionName,
                     l.areaM2 !== null ? `${l.areaM2}㎡` : null,
@@ -276,13 +276,13 @@ export default async function MyListingsPage() {
                 </div>
 
                 {l.status === "rejected" && l.rejectReason && (
-                  <div className="rounded-lg bg-danger-soft px-3 py-2 text-[12px] leading-[1.6] text-danger">
+                  <div className="rounded-lg bg-danger-soft px-3 py-2 t-sub text-danger">
                     반려 사유 · {l.rejectReason}
                   </div>
                 )}
 
                 {l.status !== "rejected" && l.flagReason && (
-                  <div className="rounded-lg bg-[rgba(245,158,11,.08)] px-3 py-2 text-[12px] leading-[1.6] text-[#b45309]">
+                  <div className="rounded-lg bg-[rgba(245,158,11,.08)] px-3 py-2 t-sub text-[#b45309]">
                     확인 필요 · {l.flagReason}
                   </div>
                 )}
@@ -335,7 +335,7 @@ export default async function MyListingsPage() {
       )}
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
         누구집은 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물 정보의
         정확성에 대한 책임은 등록자에게 있습니다.
       </div>

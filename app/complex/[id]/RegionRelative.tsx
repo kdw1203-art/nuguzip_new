@@ -29,8 +29,8 @@ export async function RegionRelative({
   if (!res.ok) {
     return (
       <section className={wrap}>
-        <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">이 동네 대비</h2>
-        <p className="card rounded-2xl px-4 py-3.5 text-[13px] text-text-3">
+        <h2 className="mb-1.5 px-0.5 t-section text-ink">이 동네 대비</h2>
+        <p className="card rounded-2xl px-4 py-3.5 t-body text-text-3">
           지금은 동네 평균과 비교하지 못했어요. 비교할 자료가 없는 게 아니라 조회에
           실패한 것이라, 잠시 후 다시 보면 나올 수 있어요.
         </p>
@@ -47,9 +47,9 @@ export async function RegionRelative({
 
   return (
     <section className={wrap}>
-      <h2 className="mb-1.5 px-0.5 text-[14px] font-extrabold text-ink">
+      <h2 className="mb-1.5 px-0.5 t-section text-ink">
         이 동네 대비{" "}
-        <span className="text-[11px] font-medium text-text-3">{r.district} · ㎡당</span>
+        <span className="t-sub font-medium text-text-3">{r.district} · ㎡당</span>
       </h2>
       <div
         className={`card flex flex-col gap-2.5 rounded-2xl ${compact ? "px-4 py-3.5" : "p-5"}`}
@@ -63,14 +63,14 @@ export async function RegionRelative({
             {higher ? "+" : ""}
             {r.deltaPct}%
           </span>
-          <span className="text-[12px] text-text-2">
+          <span className="t-sub text-text-2">
             {r.district} 평균 대비 {higher ? "높아요" : "낮아요"}
           </span>
         </div>
 
         <div className="flex flex-col gap-2">
           <div>
-            <div className="mb-0.5 flex justify-between text-[11px]">
+            <div className="mb-0.5 flex justify-between t-sub">
               <span className="font-bold text-ink">이 단지</span>
               <span className="tabular-nums text-ink">
                 {r.complexPerM2Manwon.toLocaleString("ko-KR")}만/㎡
@@ -84,7 +84,7 @@ export async function RegionRelative({
             </div>
           </div>
           <div>
-            <div className="mb-0.5 flex justify-between text-[11px]">
+            <div className="mb-0.5 flex justify-between t-sub">
               <span className="text-text-3">{r.district} 평균</span>
               <span className="tabular-nums text-text-3">
                 {r.districtPerM2Manwon.toLocaleString("ko-KR")}만/㎡
@@ -99,7 +99,7 @@ export async function RegionRelative({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 t-sub text-text-3">
           {r.saleChangePct != null && (
             <span>
               구 시세 변동{" "}

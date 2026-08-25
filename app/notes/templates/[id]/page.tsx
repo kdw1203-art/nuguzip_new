@@ -46,12 +46,12 @@ export default async function NoteTemplateDetailPage({
       <PageShell breadcrumb="홈 › 임장노트 › 템플릿" title="템플릿을 찾을 수 없어요">
         <div className="card rise-in flex flex-col items-center gap-4 rounded-[18px] p-8 text-center">
           <Icon name="file-text" size={28} className="text-text-3" />
-          <p className="text-[14px] leading-[1.6] text-text-2">
+          <p className="t-body text-text-2">
             요청하신 템플릿이 없거나 비공개로 전환되었어요.
           </p>
           <Link
             href="/notes/templates"
-            className="btn-primary press rounded-[12px] px-5 py-2.5 text-[14px] font-bold no-underline"
+            className="btn-primary press rounded-[12px] px-5 py-2.5 t-body font-bold no-underline"
           >
             템플릿 목록으로
           </Link>
@@ -67,21 +67,21 @@ export default async function NoteTemplateDetailPage({
       {/* 상단 배지 */}
       <div className="rise-in mb-3 flex flex-wrap items-center gap-1.5">
         {tpl.isOfficial && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 t-sub font-semibold text-primary">
             <Icon name="sparkles" size={13} />
             공식
           </span>
         )}
-        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2.5 py-1 text-[12px] font-semibold text-text-2">
+        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2.5 py-1 t-sub font-semibold text-text-2">
           {tpl.category}
         </span>
-        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2.5 py-1 text-[11px] font-semibold text-text-3">
+        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2.5 py-1 t-sub font-semibold text-text-3">
           {tpl.sections.length}개 섹션 · {totalItems}개 항목
         </span>
       </div>
 
       {tpl.description && (
-        <p className="rise-in mb-5 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in mb-5 t-body text-text-2">
           {tpl.description}
         </p>
       )}
@@ -93,15 +93,15 @@ export default async function NoteTemplateDetailPage({
             key={`${section.title}-${i}`}
             className="card rise-in-1 flex flex-col gap-3 rounded-[18px] p-5"
           >
-            <h2 className="flex items-center gap-2 text-[16px] font-extrabold text-ink">
-              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-bold text-primary">
+            <h2 className="flex items-center gap-2 t-section text-ink">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-soft t-sub font-bold text-primary">
                 {i + 1}
               </span>
               {section.title}
             </h2>
             <ul className="flex flex-col gap-2">
               {section.items.map((item, j) => (
-                <li key={j} className="flex items-start gap-2 text-[14px] leading-[1.6] text-text-1">
+                <li key={j} className="flex items-start gap-2 t-body text-text-1">
                   <Icon
                     name="check"
                     size={15}
@@ -121,7 +121,7 @@ export default async function NoteTemplateDetailPage({
           {tpl.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-surface px-2.5 py-1 text-[12px] text-text-3 border border-line"
+              className="rounded-full bg-surface px-2.5 py-1 t-sub text-text-3 border border-line"
             >
               #{tag}
             </span>
@@ -133,13 +133,13 @@ export default async function NoteTemplateDetailPage({
       <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link
           href={`/notes/new?tpl=${tpl.id}`}
-          className="btn-primary press inline-flex items-center justify-center gap-2 rounded-[14px] px-6 py-3.5 text-[15px] font-bold no-underline"
+          className="btn-primary press inline-flex items-center justify-center gap-2 rounded-[14px] px-6 py-3.5 t-body font-bold no-underline"
         >
           <Icon name="notebook-pen" size={17} />이 템플릿으로 노트 쓰기
         </Link>
         <Link
           href="/notes/templates"
-          className="press inline-flex items-center justify-center rounded-[14px] border border-line bg-surface px-6 py-3.5 text-[14px] font-semibold text-text-2 no-underline"
+          className="press inline-flex items-center justify-center rounded-[14px] border border-line bg-surface px-6 py-3.5 t-body font-semibold text-text-2 no-underline"
         >
           다른 템플릿 보기
         </Link>
@@ -148,7 +148,7 @@ export default async function NoteTemplateDetailPage({
       {/* [#132] 이웃 템플릿 위생 — 신고 채널. 목록 정렬은 실사용 집계(use_count)가 이미 담당.
           전용 신고 큐는 공유 볼륨이 생기면(주 10건+) 모더레이션 체계로 승격한다. */}
       {!tpl.isOfficial && (
-        <p className="mt-4 text-[11.5px] text-text-3">
+        <p className="mt-4 t-sub text-text-3">
           부적절한 내용(광고·비방·저작권)이 보이면{" "}
           <Link href={`/support?subject=${encodeURIComponent(`체크리스트 신고: ${tpl.title}`)}`} className="font-bold text-primary">
             고객센터로 신고

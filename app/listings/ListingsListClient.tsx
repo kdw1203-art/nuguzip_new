@@ -216,7 +216,7 @@ export function ListingsListClient({
               <Link
                 key={l.id}
                 href={`/listings/${l.id}`}
-                className="card card-hover card-pad-sm flex flex-col gap-2"
+                className="card tile card-pad-sm flex flex-col gap-2"
               >
                 {l.thumbnailUrl && (
                   // eslint-disable-next-line @next/next/no-img-element

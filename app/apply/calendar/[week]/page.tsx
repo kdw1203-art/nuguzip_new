@@ -70,7 +70,7 @@ export default async function ApplyWeekPage({
     <PageShell breadcrumb="동네이야기 › 청약 센터 › 청약 캘린더" title={`${label} 청약 일정`}>
       <div className="mx-auto w-full max-w-[760px]">
         <div className="rise-in mb-4 flex flex-wrap items-center gap-2">
-          <p className="min-w-0 flex-1 text-[13px] leading-[1.7] text-text-2">
+          <p className="min-w-0 flex-1 t-body text-text-2">
             {range ? (
               <>
                 <b className="text-ink">{range.start} ~ {range.end}</b> 접수 시작·마감
@@ -82,7 +82,7 @@ export default async function ApplyWeekPage({
           </p>
           <Link
             href="/apply/calendar"
-            className="chip press shrink-0 border border-line bg-surface px-3.5 py-2 text-[12px] font-bold text-primary no-underline"
+            className="chip press shrink-0 border border-line bg-surface px-3.5 py-2 t-sub font-bold text-primary no-underline"
           >
             이번 주 캘린더 ›
           </Link>
@@ -116,7 +116,7 @@ export default async function ApplyWeekPage({
                 key={day.date}
                 className={`rise-in-${Math.min(di + 1, 6)} card rounded-[18px] p-[18px]`}
               >
-                <h2 className="mb-2 text-[14px] font-extrabold text-ink">{dateLabel(day.date)}</h2>
+                <h2 className="mb-2 t-section text-ink">{dateLabel(day.date)}</h2>
                 <div className="flex flex-col gap-1.5">
                   {day.starts.map((it, i) => (
                     <WeekRow key={`s${i}`} kind="start" it={it} />
@@ -127,7 +127,7 @@ export default async function ApplyWeekPage({
                 </div>
               </section>
             ))}
-            <p className="text-center text-[11px] text-text-3">
+            <p className="text-center t-sub text-text-3">
               최근 공고 400건 기준 · 정확한 일정·자격은 청약홈 공고 원문을 확인하세요
             </p>
           </div>
@@ -140,7 +140,7 @@ export default async function ApplyWeekPage({
               <Link
                 key={s}
                 href={`/apply/calendar/${s}`}
-                className="chip border border-line bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 no-underline"
+                className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2 no-underline"
               >
                 {s === thisWeek ? "이번 주" : s}
               </Link>
@@ -183,9 +183,9 @@ function WeekRow({
       >
         {kind === "start" ? "접수 시작" : "접수 마감"}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+      <span className="min-w-0 flex-1 truncate t-body font-bold text-ink">
         {it.houseName}
-        <span className="ml-1.5 text-[11px] font-medium text-text-3">
+        <span className="ml-1.5 t-sub font-medium text-text-3">
           {it.region}
           {it.houseKind ? ` · ${it.houseKind}` : ""}
         </span>
@@ -199,7 +199,7 @@ function WeekRow({
           {winnerLabel}
         </span>
       )}
-      {it.portalUrl && <span className="shrink-0 text-[11px] font-bold text-primary">공고 ↗</span>}
+      {it.portalUrl && <span className="shrink-0 t-sub font-bold text-primary">공고 ↗</span>}
     </>
   );
   return it.portalUrl ? (

@@ -33,11 +33,11 @@ export function CardFrameView({
     >
       {/* 상단 브랜드 표식 + 페이지 인디케이터 */}
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-extrabold tracking-tight" style={{ color: theme.accent }}>
+        <span className="t-sub font-extrabold tracking-tight" style={{ color: theme.accent }}>
           누구집 임장노트
         </span>
         {typeof index === "number" && typeof total === "number" && (
-          <span className="text-[10px] font-bold" style={{ color: theme.sub }}>
+          <span className="t-caption font-bold" style={{ color: theme.sub }}>
             {index + 1} / {total}
           </span>
         )}
@@ -49,7 +49,7 @@ export function CardFrameView({
 
       {/* 마무리 장이 아니면 하단에 얇은 브랜드 라인 */}
       {content.kind !== "cta" && (
-        <div className="text-[10px] font-semibold" style={{ color: theme.sub }}>
+        <div className="t-caption font-semibold" style={{ color: theme.sub }}>
           nuguzip.com
         </div>
       )}
@@ -63,16 +63,16 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
       return (
         <div className="flex flex-col gap-2">
           {content.region && (
-            <span className="text-[12px] font-bold" style={{ color: theme.sub }}>
+            <span className="t-sub font-bold" style={{ color: theme.sub }}>
               {content.region}
               {content.visit ? ` · ${content.visit}` : ""}
             </span>
           )}
-          <span className="text-[26px] font-extrabold leading-tight" style={{ color: theme.ink }}>
+          <span className="t-title leading-tight" style={{ color: theme.ink }}>
             {content.apt}
           </span>
           {content.verdict && (
-            <span className="mt-1 text-[14px] font-semibold leading-snug" style={{ color: theme.accent }}>
+            <span className="mt-1 t-body font-semibold leading-snug" style={{ color: theme.accent }}>
               “{content.verdict}”
             </span>
           )}
@@ -86,14 +86,14 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
             className="flex h-[128px] w-[128px] flex-col items-center justify-center rounded-full"
             style={{ border: `8px solid ${theme.accent}`, background: theme.panel }}
           >
-            <span className="text-[44px] font-extrabold leading-none" style={{ color: theme.accent }}>
+            <span className="t-title leading-none" style={{ color: theme.accent }}>
               {content.score}
             </span>
-            <span className="text-[11px] font-bold" style={{ color: theme.sub }}>
+            <span className="t-sub font-bold" style={{ color: theme.sub }}>
               / 100
             </span>
           </div>
-          <span className="text-[15px] font-extrabold" style={{ color: theme.ink }}>
+          <span className="t-section" style={{ color: theme.ink }}>
             {content.grade}
           </span>
         </div>
@@ -102,12 +102,12 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
     case "scoreBars":
       return (
         <div className="flex flex-col gap-2.5">
-          <span className="mb-1 text-[13px] font-extrabold" style={{ color: theme.ink }}>
+          <span className="mb-1 t-body font-extrabold" style={{ color: theme.ink }}>
             항목별 점수
           </span>
           {content.bars.map((b) => (
             <div key={b.label} className="flex items-center gap-2">
-              <span className="w-14 shrink-0 text-[12px] font-bold" style={{ color: theme.sub }}>
+              <span className="w-14 shrink-0 t-sub font-bold" style={{ color: theme.sub }}>
                 {b.label}
               </span>
               <div className="h-2.5 flex-1 overflow-hidden rounded-full" style={{ background: theme.panel }}>
@@ -116,7 +116,7 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
                   style={{ width: `${Math.max(4, Math.min(100, b.value))}%`, background: theme.accent }}
                 />
               </div>
-              <span className="w-7 shrink-0 text-right text-[12px] font-extrabold" style={{ color: theme.ink }}>
+              <span className="w-7 shrink-0 text-right t-sub font-extrabold" style={{ color: theme.ink }}>
                 {b.value}
               </span>
             </div>
@@ -127,10 +127,10 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
     case "summary":
       return (
         <div className="flex flex-col gap-2">
-          <span className="text-[13px] font-extrabold" style={{ color: theme.accent }}>
+          <span className="t-body font-extrabold" style={{ color: theme.accent }}>
             {content.heading}
           </span>
-          <span className="text-[18px] font-bold leading-relaxed" style={{ color: theme.ink }}>
+          <span className="t-body font-bold" style={{ color: theme.ink }}>
             {content.body}
           </span>
         </div>
@@ -139,12 +139,12 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
     case "checklist":
       return (
         <div className="flex flex-col gap-2">
-          <span className="mb-1 text-[13px] font-extrabold" style={{ color: theme.ink }}>
+          <span className="mb-1 t-body font-extrabold" style={{ color: theme.ink }}>
             현장 체크
           </span>
           {content.items.map((it, i) => (
             <div key={i} className="flex items-start justify-between gap-2">
-              <span className="flex min-w-0 items-start gap-2 text-[12.5px] font-semibold leading-snug" style={{ color: theme.ink }}>
+              <span className="flex min-w-0 items-start gap-2 t-body font-semibold leading-snug" style={{ color: theme.ink }}>
                 <span
                   className="mt-[5px] inline-block h-2 w-2 shrink-0 rounded-full"
                   style={{ background: it.rating ? TONE_DOT[it.tone] : theme.accent }}
@@ -152,7 +152,7 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
                 <span className="min-w-0">{it.label}</span>
               </span>
               {it.rating && (
-                <span className="shrink-0 text-[12px] font-bold" style={{ color: theme.sub }}>
+                <span className="shrink-0 t-sub font-bold" style={{ color: theme.sub }}>
                   {it.rating}
                 </span>
               )}
@@ -165,14 +165,14 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
       return (
         <div className="flex flex-col gap-2">
           <span
-            className="text-[13px] font-extrabold"
+            className="t-body font-extrabold"
             style={{ color: content.tone === "pos" ? theme.accent : "#f87171" }}
           >
             {content.heading}
           </span>
           <div className="flex flex-col gap-1.5">
             {content.items.map((it, i) => (
-              <span key={i} className="text-[14px] font-semibold leading-snug" style={{ color: theme.ink }}>
+              <span key={i} className="t-body font-semibold leading-snug" style={{ color: theme.ink }}>
                 {content.tone === "pos" ? "▲ " : "▽ "}
                 {it}
               </span>
@@ -186,10 +186,10 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
         <div className="flex flex-col gap-3">
           {content.rows.map((r) => (
             <div key={r.label} className="flex flex-col gap-0.5">
-              <span className="text-[11px] font-bold" style={{ color: theme.sub }}>
+              <span className="t-sub font-bold" style={{ color: theme.sub }}>
                 {r.label}
               </span>
-              <span className="text-[17px] font-extrabold" style={{ color: theme.ink }}>
+              <span className="t-section" style={{ color: theme.ink }}>
                 {r.value}
               </span>
             </div>
@@ -200,14 +200,14 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
     case "tags":
       return (
         <div className="flex flex-col gap-3">
-          <span className="text-[13px] font-extrabold" style={{ color: theme.ink }}>
+          <span className="t-body font-extrabold" style={{ color: theme.ink }}>
             {content.heading}
           </span>
           <div className="flex flex-wrap gap-2">
             {content.tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full px-3 py-1.5 text-[13px] font-bold"
+                className="rounded-full px-3 py-1.5 t-body font-bold"
                 style={{ background: theme.chipBg, color: theme.chipInk }}
               >
                 #{t}
@@ -220,11 +220,11 @@ function FrameBody({ content, theme }: { content: FrameContent; theme: CardTheme
     case "cta":
       return (
         <div className="flex flex-col items-center gap-2 text-center">
-          <span className="text-[19px] font-extrabold leading-snug" style={{ color: theme.ink }}>
+          <span className="t-section leading-snug" style={{ color: theme.ink }}>
             {content.heading}
           </span>
           <span
-            className="rounded-full px-4 py-1.5 text-[13px] font-extrabold"
+            className="rounded-full px-4 py-1.5 t-body font-extrabold"
             style={{ background: theme.chipBg, color: theme.chipInk }}
           >
             {content.sub}

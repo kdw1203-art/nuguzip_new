@@ -268,11 +268,11 @@ export function RedevelopmentMap({
             <Icon name="landmark" size={15} />
             사업종류
             {types.size > 0 ? (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-extrabold text-white">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 t-caption font-extrabold text-white">
                 {types.size}
               </span>
             ) : null}
-            <span className="text-[10px] leading-none text-text-3">
+            <span className="t-caption leading-none text-text-3">
               {typePanelOpen ? "▴" : "▾"}
             </span>
           </button>
@@ -280,7 +280,7 @@ export function RedevelopmentMap({
           <button
             type="button"
             onClick={handleReset}
-            className="press ml-auto inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-2 text-[12px] font-semibold text-text-2"
+            className="press ml-auto inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-2 t-sub font-semibold text-text-2"
           >
             <Icon name="x" size={13} />
             초기화
@@ -298,7 +298,7 @@ export function RedevelopmentMap({
 
         {/* 진행단계 다중선택 칩 */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[12px] font-bold text-text-2">진행단계</span>
+          <span className="mr-1 t-sub font-bold text-text-2">진행단계</span>
           {STAGES.map((s) => {
             const active = stages.has(s.key);
             return (
@@ -322,13 +322,13 @@ export function RedevelopmentMap({
 
       {/* ===== 지역 선택 ===== */}
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+        <div className="flex flex-wrap items-center gap-2 t-body">
           <span className="font-extrabold text-ink">
             표시 중 {filtered.length.toLocaleString("ko-KR")}곳
           </span>
           <span className="text-text-3">/ 전체 {total.toLocaleString("ko-KR")}곳</span>
           {sigungu ? (
-            <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-bold text-primary">
+            <span className="rounded-full bg-primary-soft chip-pad t-sub font-bold text-primary">
               {sigungu}
             </span>
           ) : null}
@@ -340,7 +340,7 @@ export function RedevelopmentMap({
             maxLength={40}
             placeholder="구역명·주소 검색"
             aria-label="정비구역 검색"
-            className="ml-auto w-[170px] rounded-xl border border-line bg-surface px-3 py-1.5 text-[12px] text-ink placeholder:text-text-3"
+            className="ml-auto w-[170px] rounded-xl border border-line bg-surface px-3 py-1.5 t-sub text-ink placeholder:text-text-3"
           />
         </div>
         {topSigungu.length > 0 ? (
@@ -374,7 +374,7 @@ export function RedevelopmentMap({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] leading-[1.6] text-text-3">
+            <p className="t-caption text-text-3">
               지역 칩의 숫자는 지금 걸린 사업종류·진행단계 조건에서 센 구역 수예요
               {regionCounts.length > topSigungu.length
                 ? ` (구역이 많은 순 12개 · 조건에 맞는 시군구 ${regionCounts.length}곳 중)`
@@ -437,7 +437,7 @@ export function RedevelopmentMap({
       {/* ===== 목록 뷰 ===== */}
       {view === "list" ? (
         filtered.length === 0 ? (
-          <div className="card rounded-2xl px-5 py-8 text-center text-[12px] text-text-3">
+          <div className="card rounded-2xl px-5 py-8 text-center t-sub text-text-3">
             선택한 조건에 해당하는 정비사업장이 없어요. 필터를 조정해 보세요.
           </div>
         ) : (
@@ -463,7 +463,7 @@ export function RedevelopmentMap({
                       handleCardClick(p.id);
                     }
                   }}
-                  className={`card-hover press cursor-pointer rounded-xl border p-3 text-left ${
+                  className={`tile press cursor-pointer rounded-xl border p-3 text-left ${
                     active ? "border-primary ring-1 ring-primary" : "border-line"
                   }`}
                 >
@@ -472,25 +472,25 @@ export function RedevelopmentMap({
                       className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ background: color }}
                     />
-                    <span className="truncate text-[13px] font-extrabold text-ink">{p.name}</span>
+                    <span className="truncate t-body font-extrabold text-ink">{p.name}</span>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span
-                      className="rounded-full chip-pad text-[11px] font-semibold"
+                      className="rounded-full chip-pad t-sub font-semibold"
                       style={{ background: `${color}1a`, color }}
                     >
                       {labelForType(p.typeKey)}
                     </span>
-                    <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+                    <span className="rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
                       {stageLabel(p.stageKey)}
                     </span>
                   </div>
-                  {loc ? <div className="mt-1.5 text-[11px] text-text-2">{loc}</div> : null}
+                  {loc ? <div className="mt-1.5 t-sub text-text-2">{loc}</div> : null}
                   {households ? (
-                    <div className="mt-0.5 text-[11px] text-text-3">예정 {households}</div>
+                    <div className="mt-0.5 t-sub text-text-3">예정 {households}</div>
                   ) : null}
                   {p.asOf ? (
-                    <div className="mt-0.5 text-[10px] text-text-3">
+                    <div className="mt-0.5 t-caption text-text-3">
                       {p.asOf} 공개자료 기준 · 최신 단계와 다를 수 있음
                     </div>
                   ) : null}
@@ -507,29 +507,29 @@ export function RedevelopmentMap({
         <div className="flex flex-col gap-3">
           <section className="card rounded-2xl px-5 py-4">
             <div className="flex items-baseline justify-between">
-              <h3 className="text-[13px] font-extrabold text-ink">
+              <h3 className="t-body font-extrabold text-ink">
                 {sigungu ?? "선택한 조건"} 요약
               </h3>
-              <span className="text-[10px] text-text-3">화면에 표시 중인 구역 기준</span>
+              <span className="t-caption text-text-3">화면에 표시 중인 구역 기준</span>
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
               <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
-                <dt className="text-[10px] font-bold text-text-3">구역 수</dt>
-                <dd className="mt-0.5 text-[15px] font-extrabold text-ink">
+                <dt className="t-caption font-bold text-text-3">구역 수</dt>
+                <dd className="mt-0.5 t-section text-ink">
                   {filtered.length.toLocaleString("ko-KR")}곳
                 </dd>
               </div>
               <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
-                <dt className="text-[10px] font-bold text-text-3">사업종류</dt>
-                <dd className="mt-0.5 text-[15px] font-extrabold text-ink">
+                <dt className="t-caption font-bold text-text-3">사업종류</dt>
+                <dd className="mt-0.5 t-section text-ink">
                   {summary.types.length}종
                 </dd>
               </div>
               <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
-                <dt className="text-[10px] font-bold text-text-3">
+                <dt className="t-caption font-bold text-text-3">
                   예정 세대 합계 (공개된 {summary.householdsKnown}곳)
                 </dt>
-                <dd className="mt-0.5 text-[15px] font-extrabold text-ink">
+                <dd className="mt-0.5 t-section text-ink">
                   {summary.householdsKnown > 0
                     ? `${summary.householdsSum.toLocaleString("ko-KR")}세대`
                     : "공개 자료에 없음"}
@@ -537,7 +537,7 @@ export function RedevelopmentMap({
               </div>
             </dl>
             {summary.householdsMissing > 0 ? (
-              <p className="mt-2 text-[10px] leading-[1.6] text-text-3">
+              <p className="mt-2 t-caption text-text-3">
                 {summary.householdsMissing.toLocaleString("ko-KR")}곳은 공개 자료에 세대수가
                 없어 합계에서 빠졌어요 — 0세대라는 뜻이 아니라 값을 확보하지 못했다는 뜻이에요.
               </p>
@@ -546,7 +546,7 @@ export function RedevelopmentMap({
 
           {summary.types.length > 0 ? (
             <section className="card rounded-2xl px-5 py-4">
-              <h3 className="text-[13px] font-extrabold text-ink">사업종류 분포</h3>
+              <h3 className="t-body font-extrabold text-ink">사업종류 분포</h3>
               <ul className="mt-2 flex flex-col gap-1.5">
                 {summary.types.map(([key, count]) => {
                   const color = colorForType(key);
@@ -557,7 +557,7 @@ export function RedevelopmentMap({
                         className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ background: color }}
                       />
-                      <span className="w-[104px] shrink-0 truncate text-[11.5px] font-semibold text-text-1">
+                      <span className="w-[104px] shrink-0 truncate t-sub font-semibold text-text-1">
                         {labelForType(key)}
                       </span>
                       <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-bg">
@@ -566,7 +566,7 @@ export function RedevelopmentMap({
                           style={{ width: `${pct}%`, background: color }}
                         />
                       </span>
-                      <span className="w-[54px] shrink-0 text-right text-[11px] text-text-2">
+                      <span className="w-[54px] shrink-0 text-right t-sub text-text-2">
                         {count.toLocaleString("ko-KR")}곳
                       </span>
                     </li>
@@ -578,15 +578,15 @@ export function RedevelopmentMap({
 
           <section className="card rounded-2xl px-5 py-4">
             <div className="flex items-baseline justify-between">
-              <h3 className="text-[13px] font-extrabold text-ink">진행단계 분포</h3>
-              <span className="text-[10px] text-text-3">도시정비법 일반 절차 기준 7단계</span>
+              <h3 className="t-body font-extrabold text-ink">진행단계 분포</h3>
+              <span className="t-caption text-text-3">도시정비법 일반 절차 기준 7단계</span>
             </div>
             <ol className="mt-2 flex flex-col gap-1.5">
               {summary.stages.map(({ stage, count }) => {
                 const pct = filtered.length > 0 ? (count / filtered.length) * 100 : 0;
                 return (
                   <li key={stage.key} className="flex items-center gap-2">
-                    <span className="w-4 shrink-0 text-[10px] font-bold text-text-3">
+                    <span className="w-4 shrink-0 t-caption font-bold text-text-3">
                       {stage.order}
                     </span>
                     <button
@@ -605,14 +605,14 @@ export function RedevelopmentMap({
                         style={{ width: `${pct}%` }}
                       />
                     </span>
-                    <span className="w-[54px] shrink-0 text-right text-[11px] text-text-2">
+                    <span className="w-[54px] shrink-0 text-right t-sub text-text-2">
                       {count.toLocaleString("ko-KR")}곳
                     </span>
                   </li>
                 );
               })}
             </ol>
-            <p className="mt-2 text-[10px] leading-[1.6] text-text-3">
+            <p className="mt-2 t-caption text-text-3">
               단계 이름을 누르면 그 단계만 걸러서 볼 수 있어요. 각 구역이 단계를 언제
               통과했는지(인가일)는 확보한 자료에 없어 표시하지 않아요.
             </p>
@@ -620,7 +620,7 @@ export function RedevelopmentMap({
 
           {regionCounts.length > 0 ? (
             <section className="card rounded-2xl px-5 py-4">
-              <h3 className="text-[13px] font-extrabold text-ink">지역별 구역 수</h3>
+              <h3 className="t-body font-extrabold text-ink">지역별 구역 수</h3>
               <ul className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-2">
                 {regionCounts.map((r) => (
                   <li key={r.name}>
@@ -634,10 +634,10 @@ export function RedevelopmentMap({
                           : "border-line bg-surface"
                       }`}
                     >
-                      <span className="truncate text-[12px] font-semibold text-ink">
+                      <span className="truncate t-sub font-semibold text-ink">
                         {r.name}
                       </span>
-                      <span className="shrink-0 text-[11px] font-bold text-text-2">
+                      <span className="shrink-0 t-sub font-bold text-text-2">
                         {r.count.toLocaleString("ko-KR")}곳
                       </span>
                     </button>
@@ -653,7 +653,7 @@ export function RedevelopmentMap({
       <DataSourceCard sources={sources} />
 
       {/* ===== 면책 ===== */}
-      <p className="flex gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2 text-[10px] leading-[1.6] text-primary">
+      <p className="flex gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2 t-caption text-primary">
         <Icon name="landmark" size={13} className="mt-px shrink-0" />
         <span>
           구역·진행단계는 {asOfLabel ? `${asOfLabel} ` : ""}공개자료 기준 참고값이며 좌표는 구역

@@ -115,7 +115,7 @@ export function NoteLocationSearch({
         <Icon name="📍" size={16} className="shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-bold text-ink">{value.aptName || "단지·주소 검색"}</div>
-          <div className="truncate text-[11px] text-text-3">
+          <div className="truncate t-sub text-text-3">
             {value.region ? `${value.region} · 눌러서 변경` : "단지명이나 주소를 검색해 연결"}
           </div>
         </div>
@@ -133,7 +133,7 @@ export function NoteLocationSearch({
               onChange={(e) => setQ(e.target.value)}
               {...compositionProps}
               placeholder="단지명 또는 주소 (예: 은마아파트, 대치동)"
-              className="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-text-3"
+              className="w-full bg-transparent t-body text-ink outline-none placeholder:text-text-3"
             />
             {q ? (
               <button type="button" aria-label="지우기" onClick={() => setQ("")} className="press">
@@ -144,18 +144,18 @@ export function NoteLocationSearch({
 
           <div className="mt-2 max-h-[280px] overflow-y-auto">
             {loading || pending ? (
-              <div className="px-2 py-3 text-[12px] text-text-3">검색 중…</div>
+              <div className="px-2 py-3 t-sub text-text-3">검색 중…</div>
             ) : q.trim().length < 2 ? (
-              <div className="px-2 py-3 text-[12px] text-text-3">두 글자 이상 입력해 주세요.</div>
+              <div className="px-2 py-3 t-sub text-text-3">두 글자 이상 입력해 주세요.</div>
             ) : suggestions.length === 0 && places.length === 0 ? (
-              <div className="px-2 py-3 text-[12px] text-text-3">
+              <div className="px-2 py-3 t-sub text-text-3">
                 검색 결과가 없어요. 단지명·지역을 직접 입력해도 돼요.
               </div>
             ) : (
               <>
                 {suggestions.length > 0 ? (
                   <div className="mb-1">
-                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-text-3">
+                    <div className="px-2 py-1 t-caption font-bold uppercase tracking-wide text-text-3">
                       단지
                     </div>
                     {suggestions.map((s) => (
@@ -167,10 +167,10 @@ export function NoteLocationSearch({
                       >
                         <Icon name="building2" size={15} className="shrink-0 text-primary" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold text-ink">
+                          <span className="block truncate t-body font-semibold text-ink">
                             {s.name}
                           </span>
-                          <span className="block truncate text-[11px] text-text-3">{s.region}</span>
+                          <span className="block truncate t-sub text-text-3">{s.region}</span>
                         </span>
                       </button>
                     ))}
@@ -178,7 +178,7 @@ export function NoteLocationSearch({
                 ) : null}
                 {places.length > 0 ? (
                   <div>
-                    <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-text-3">
+                    <div className="px-2 py-1 t-caption font-bold uppercase tracking-wide text-text-3">
                       주소·장소
                     </div>
                     {places.map((p, i) => (
@@ -190,10 +190,10 @@ export function NoteLocationSearch({
                       >
                         <Icon name="map" size={15} className="shrink-0 text-text-2" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[13px] font-semibold text-ink">
+                          <span className="block truncate t-body font-semibold text-ink">
                             {p.name}
                           </span>
-                          <span className="block truncate text-[11px] text-text-3">{p.address}</span>
+                          <span className="block truncate t-sub text-text-3">{p.address}</span>
                         </span>
                       </button>
                     ))}

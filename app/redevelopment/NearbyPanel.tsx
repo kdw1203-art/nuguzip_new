@@ -80,10 +80,10 @@ export function NearbyPanel({
 
   /* 실패했을 때 두 칸에 공통으로 쓰는 문구. "없어요" 라고 말하지 않는다. */
   const failureNote = (
-    <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center text-[12px] leading-[1.7] text-text-3">
+    <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center t-sub text-text-3">
       지금은 불러오지 못했어요 · 잠시 후 다시 시도해 주세요.
       <br />
-      <span className="text-[11px]">없다는 뜻은 아니에요.</span>
+      <span className="t-sub">없다는 뜻은 아니에요.</span>
     </div>
   );
 
@@ -91,19 +91,19 @@ export function NearbyPanel({
     <div className="card rounded-2xl p-[var(--pad-card)]">
       <div className="flex items-center gap-1.5">
         <Icon name="landmark" size={16} className="text-primary" />
-        <h3 className="text-[14px] font-extrabold text-ink">
+        <h3 className="t-section text-ink">
           「{projectName}」 인근 매물 · 최근 실거래
         </h3>
       </div>
 
       {loading ? (
-        <div className="mt-3 text-[12px] text-text-3">인근 정보를 불러오는 중…</div>
+        <div className="mt-3 t-sub text-text-3">인근 정보를 불러오는 중…</div>
       ) : (
         <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* 최근 실거래 */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[12px] font-bold text-text-2">
+              <span className="t-sub font-bold text-text-2">
                 최근 실거래 {data?.regionLabel ? `· ${data.regionLabel}` : ""}
               </span>
             </div>
@@ -112,23 +112,23 @@ export function NearbyPanel({
                 {data.transactions.map((t, i) => (
                   <li key={`${t.complexName}-${i}`} className="flex items-center justify-between gap-2 py-2">
                     <div className="min-w-0">
-                      <div className="truncate text-[12.5px] font-semibold text-ink">
+                      <div className="truncate t-body font-semibold text-ink">
                         {t.complexName}
                       </div>
-                      <div className="text-[11px] text-text-3">
+                      <div className="t-sub text-text-3">
                         {[pyeong(t.areaM2), t.floor ? `${t.floor}층` : "", t.contractYmd]
                           .filter(Boolean)
                           .join(" · ")}
                       </div>
                     </div>
-                    <div className="delta-up shrink-0 text-[13px]">{t.priceLabel}</div>
+                    <div className="delta-up shrink-0 t-body">{t.priceLabel}</div>
                   </li>
                 ))}
               </ul>
             ) : failed ? (
               failureNote
             ) : (
-              <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center text-[12px] text-text-3">
+              <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center t-sub text-text-3">
                 최근 실거래 정보가 없어요.
               </div>
             )}
@@ -137,8 +137,8 @@ export function NearbyPanel({
           {/* 인근 매물 */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[12px] font-bold text-text-2">인근 매물 (약 2km)</span>
-              <Link href="/listings/new" className="text-[11px] font-semibold text-primary">
+              <span className="t-sub font-bold text-text-2">인근 매물 (약 2km)</span>
+              <Link href="/listings/new" className="t-sub font-semibold text-primary">
                 매물 등록 ›
               </Link>
             </div>
@@ -151,14 +151,14 @@ export function NearbyPanel({
                       className="flex items-center justify-between gap-2 no-underline"
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-[12.5px] font-semibold text-ink">
+                        <div className="truncate t-body font-semibold text-ink">
                           {l.complexName || "매물"}
                         </div>
-                        <span className="rounded-full bg-primary-soft chip-pad-tight text-[10px] font-semibold text-primary">
+                        <span className="rounded-full bg-primary-soft chip-pad-tight t-caption font-semibold text-primary">
                           {TYPE_LABEL[l.listingType] ?? "매물"}
                         </span>
                       </div>
-                      <div className="shrink-0 text-[13px] font-extrabold text-ink">
+                      <div className="shrink-0 t-body font-extrabold text-ink">
                         {l.priceLabel}
                       </div>
                     </Link>
@@ -168,7 +168,7 @@ export function NearbyPanel({
             ) : failed ? (
               failureNote
             ) : (
-              <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center text-[12px] text-text-3">
+              <div className="rounded-[10px] border border-line bg-surface px-3 py-4 text-center t-sub text-text-3">
                 등록된 인근 매물이 없어요.
               </div>
             )}
@@ -176,7 +176,7 @@ export function NearbyPanel({
         </div>
       )}
 
-      <p className="mt-3 text-[10px] leading-[1.6] text-text-3">
+      <p className="mt-3 t-caption text-text-3">
         실거래는 시군구 단위 최근 매매(국토부 실거래가) 기준이며, 매물은 반경 약 2km의 등록 매물이에요.
         구역 경계와 정확히 일치하지 않을 수 있어요.
       </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { Bars } from "@/app/components/viz/Bars";
 // server-only 체인이 있는 모듈이라 값 import 는 불가 — 타입은 컴파일에서 소거되므로 안전.
 import type { SupplyItem } from "@/lib/market/supply";
 import { AIPanel } from "@/app/components/AIPanel";
@@ -204,7 +205,7 @@ export function SupplyClient({
       {/* ── 본문 ── */}
       <div className="flex flex-col gap-3">
         {truncated && (
-          <div className="rounded-xl border border-line bg-surface px-4 py-3 text-[11px] leading-[1.6] text-text-3">
+          <div className="rounded-[12px] border border-line bg-surface px-4 py-3 t-sub text-text-3">
             데이터가 조회 상한에 도달해 일부가 잘렸을 수 있어요 — 지역별 곳수·
             세대수 합계가 실제보다 적게 보일 수 있습니다.
           </div>
@@ -218,15 +219,47 @@ export function SupplyClient({
             일정이 있는 것처럼 보이는 걸 막을 수 없어 지웠다. 실제로 가진 축
             (월별 세대수)만 그린다 — 지어낼 값이 하나도 없다. */}
         {/* 월별 입주 물량 — apartment_supply 실집계(월·세대수) */}
-        <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-extrabold text-ink">
-              월별 입주 물량
-            </span>
-            <span className="text-[11px] text-text-3">
-              {scope}· 세대수 기준
-            </span>
+        <div className="chart-card text-primary" data-reveal="">
+          <div className="chart-head">
+            <span className="t-section text-ink">월별 입주 물량</span>
+            <span className="t-caption ml-auto text-text-3">{scope}· 세대수 기준</span>
           </div>
+
+          {/* 24개월을 세로 막대 한 장으로 먼저 보인다 — 아래 가로 막대 24줄은
+              값을 정확히 읽는 자리지만, "물량이 언제 몰리는가"라는 모양은
+              스크롤하며 읽어야 했다. 같은 데이터, 다른 축이다. */}
+          {monthlyShown.length > 2 && (
+            <Bars
+              values={monthlyShown.map((b) => b.households)}
+              labels={monthlyShown.map((b) => fmtYm(b.ym))}
+              height={110}
+              valueSuffix="세대"
+              ariaLabel="월별 입주 세대수"
+            />
+          )}
+          {monthlyShown.length > 0 && (
+            <div className="kpi-row">
+              <div className="kpi">
+                <span className="kpi-k">합계</span>
+                <span className="kpi-v">{totalHouseholds.toLocaleString("ko-KR")}세대</span>
+                <span className="kpi-d">{scope}· {monthlyShown.length}개월</span>
+              </div>
+              {peak && (
+                <div className="kpi">
+                  <span className="kpi-k">가장 많은 달</span>
+                  <span className="kpi-v">{fmtYm(peak.ym)}</span>
+                  <span className="kpi-d">
+                    {peak.households.toLocaleString("ko-KR")}세대 · {peak.count}곳
+                  </span>
+                </div>
+              )}
+              <div className="kpi">
+                <span className="kpi-k">단지 수</span>
+                <span className="kpi-v">{list.length.toLocaleString("ko-KR")}곳</span>
+                <span className="kpi-d">현재 필터 기준</span>
+              </div>
+            </div>
+          )}
           {monthlyShown.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               {monthlyShown.map((b) => {
@@ -238,17 +271,17 @@ export function SupplyClient({
                 return (
                   <div
                     key={b.ym}
-                    className="grid grid-cols-[52px_1fr_92px] items-center gap-2 text-[11px]"
+                    className="row-hl grid grid-cols-[52px_1fr_92px] items-center gap-2 t-sub"
                   >
                     <span
                       className={`shrink-0 ${isPeak ? "font-extrabold text-primary" : "text-text-3"}`}
                     >
                       {fmtYm(b.ym)}
                     </span>
-                    <span className="h-2 w-full overflow-hidden rounded-full bg-bg">
+                    <span className={`rank-track ${isPeak ? "text-primary" : "text-primary"}`}>
                       <span
-                        className={`block h-full rounded-full ${isPeak ? "bg-primary" : "bg-primary-soft"}`}
-                        style={{ width: `${pct}%` }}
+                        className="rank-fill"
+                        style={{ width: `${pct}%`, opacity: isPeak ? 1 : 0.45 }}
                       />
                     </span>
                     <span className="shrink-0 text-right text-text-2">
@@ -260,7 +293,7 @@ export function SupplyClient({
               })}
             </div>
           ) : (
-            <div className="rounded-[12px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-3">
+            <div className="rounded-[12px] border border-line bg-surface px-4 py-8 text-center t-body text-text-3">
               표시할 월별 입주 물량 데이터가 없어요.
             </div>
           )}
@@ -274,7 +307,7 @@ export function SupplyClient({
                 이번 분기 입주 · {thisQuarter?.items.length ?? 0}곳
               </span>
               {thisQuarter && (
-                <span className="text-[11px] text-text-3">
+                <span className="t-sub text-text-3">
                   {thisQuarter.label} · {thisQuarter.households.toLocaleString()}세대
                 </span>
               )}
@@ -285,19 +318,19 @@ export function SupplyClient({
                 className="rise-in-2 flex flex-col gap-3 rounded-2xl border-[1.5px] border-primary bg-surface px-[18px] py-3.5 md:flex-row md:items-center md:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="shrink-0 rounded-md bg-primary chip-pad text-[11px] font-extrabold text-white">
+                  <span className="shrink-0 rounded-md bg-primary chip-pad t-sub font-extrabold text-white">
                     {monthLabel(s.moveInYm)}
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
                       <span className="truncate">{s.aptName ?? "미정"}</span>
                       {s.bizType && (
-                        <span className="shrink-0 rounded bg-primary-soft px-[7px] py-0.5 text-[10px] font-extrabold text-primary">
+                        <span className="shrink-0 rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">
                           {s.bizType}
                         </span>
                       )}
                     </div>
-                    <div className="truncate text-[11px] text-text-3">
+                    <div className="truncate t-sub text-text-3">
                       {s.households
                         ? `${s.households.toLocaleString()}세대 · `
                         : ""}
@@ -307,8 +340,8 @@ export function SupplyClient({
                 </div>
                 <div className="flex shrink-0 items-center gap-3.5">
                   <div className="text-right">
-                    <div className="text-[11px] text-text-3">입주 예정</div>
-                    <div className="text-[13px] font-extrabold text-primary">
+                    <div className="t-sub text-text-3">입주 예정</div>
+                    <div className="t-body font-extrabold text-primary">
                       {fmtYm(s.moveInYm)}
                     </div>
                   </div>
@@ -316,7 +349,7 @@ export function SupplyClient({
               </div>
             ))}
             {featuredMore > 0 && (
-              <p className="rise-in-2 px-1 text-[11px] leading-[1.6] text-text-3">
+              <p className="rise-in-2 px-1 t-sub text-text-3">
                 외 {featuredMore.toLocaleString()}곳 — 전체 목록은 아래 표에서
                 확인하세요.
               </p>
@@ -336,19 +369,19 @@ export function SupplyClient({
                 className="rise-in-3 card flex items-center justify-between gap-3 rounded-2xl px-[18px] py-3.5"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="shrink-0 rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="shrink-0 rounded-md bg-bg chip-pad t-sub font-extrabold text-text-2">
                     {monthLabel(s.moveInYm)}
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
                       <span className="truncate">{s.aptName ?? "미정"}</span>
                       {s.bizType && (
-                        <span className="shrink-0 rounded bg-primary-soft px-[7px] py-0.5 text-[10px] font-extrabold text-primary">
+                        <span className="shrink-0 rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">
                           {s.bizType}
                         </span>
                       )}
                     </div>
-                    <div className="truncate text-[11px] text-text-3">
+                    <div className="truncate t-sub text-text-3">
                       {s.households
                         ? `${s.households.toLocaleString()}세대 · `
                         : ""}
@@ -356,12 +389,12 @@ export function SupplyClient({
                     </div>
                   </div>
                 </div>
-                <span className="shrink-0 text-[11px] font-bold text-primary">
+                <span className="shrink-0 t-sub font-bold text-primary">
                   입주 {fmtYm(s.moveInYm)}
                 </span>
               </div>
             ))}
-            <p className="rise-in-3 px-1 text-[11px] leading-[1.6] text-text-3">
+            <p className="rise-in-3 px-1 t-sub text-text-3">
               {upcomingMore > 0
                 ? `이번 분기·예정 카드는 대표 단지를 추려 보여드려요 (예정 외 ${upcomingMore.toLocaleString()}곳). 전체 목록은 아래 표에서 확인하세요.`
                 : "이번 분기·예정 카드는 대표 단지를 추려 보여드려요 — 전체 목록은 아래 표에서 확인하세요."}
@@ -377,13 +410,13 @@ export function SupplyClient({
             : "지난·전체 입주 예정 단지"}
         </div>
         {list.length === 0 ? (
-          <div className="rise-in-4 card rounded-2xl px-4 py-8 text-center text-[13px] text-text-3">
+          <div className="rise-in-4 card rounded-2xl px-4 py-8 text-center t-body text-text-3">
             해당 지역 입주 예정 물량 데이터가 없어요.
           </div>
         ) : (
           <div className="rise-in-4 card overflow-x-auto rounded-2xl px-[18px] py-1">
             <div className="min-w-[520px]">
-              <div className="grid grid-cols-[1.8fr_.8fr_.8fr_.9fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
+              <div className="grid grid-cols-[1.8fr_.8fr_.8fr_.9fr] gap-2 border-b border-divider py-2 t-caption text-text-3">
                 <span>단지 · 지역</span>
                 <span className="text-center">입주월</span>
                 <span className="text-center">세대수</span>
@@ -398,7 +431,7 @@ export function SupplyClient({
                 >
                   <span className="truncate font-bold text-ink">
                     {item.aptName ?? "미정"}
-                    <span className="ml-1 text-[10px] font-medium text-text-3">
+                    <span className="ml-1 t-caption font-medium text-text-3">
                       {item.region}
                     </span>
                   </span>
@@ -424,7 +457,7 @@ export function SupplyClient({
                   </button>
                 </div>
               )}
-              <div className="pb-2 pt-1 text-[10px] text-text-3">
+              <div className="pb-2 pt-1 t-caption text-text-3">
                 출처 공공데이터(data.go.kr) 입주예정물량 · 수동 적재 데이터
                 {asOfLabel ? ` (최근 적재 ${asOfLabel})` : ""} · 자동 갱신 없음
               </div>
@@ -472,11 +505,11 @@ export function SupplyClient({
             pushState 버튼이라 서버 왕복이 없고, 활성 지역을 다시 누르면 전국으로
             돌아온다 (예전엔 전국으로 돌아갈 컨트롤 자체가 없었다). */}
         <div className="rise-in-3 card flex flex-col gap-1 rounded-[18px] p-[18px]">
-          <div className="mb-1 text-[13px] font-extrabold text-ink">
+          <div className="mb-1 t-body font-extrabold text-ink">
             지역별 입주 요약
           </div>
           {regions.length === 0 ? (
-            <p className="text-[10px] leading-[1.6] text-text-3">
+            <p className="t-caption text-text-3">
               표시할 지역 데이터가 없어요.
             </p>
           ) : (
@@ -494,7 +527,7 @@ export function SupplyClient({
                     }`}
                   >
                     <span className="flex items-center gap-2 font-bold text-ink">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft text-[10px] font-extrabold text-primary">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft t-caption font-extrabold text-primary">
                         {i + 1}
                       </span>
                       {r.region}
@@ -510,7 +543,7 @@ export function SupplyClient({
                   type="button"
                   onClick={() => setRegionsOpen((v) => !v)}
                   aria-expanded={regionsOpen}
-                  className="press mt-0.5 rounded-lg bg-bg py-1.5 text-center text-[11px] font-bold text-primary"
+                  className="press mt-0.5 rounded-lg bg-bg py-1.5 text-center t-sub font-bold text-primary"
                 >
                   {regionsOpen ? "상위 5개만 보기" : `지역 전체 보기 (${regions.length}곳)`}
                 </button>
@@ -519,12 +552,12 @@ export function SupplyClient({
                 <button
                   type="button"
                   onClick={() => selectRegion(null)}
-                  className="press mt-1 rounded-lg border border-line bg-surface py-1.5 text-[11px] font-bold text-text-1"
+                  className="press mt-1 rounded-lg border border-line bg-surface py-1.5 t-sub font-bold text-text-1"
                 >
                   전국 전체 보기
                 </button>
               )}
-              <p className="mt-1 text-[10px] leading-[1.6] text-text-3">
+              <p className="mt-1 t-caption text-text-3">
                 지역을 선택하면 해당 지역 입주 물량만 볼 수 있어요.
               </p>
             </>

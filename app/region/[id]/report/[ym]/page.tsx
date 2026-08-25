@@ -180,10 +180,10 @@ export default async function RegionMonthlyReportPage({
         }}
       />
 
-      <h1 className="rise-in text-[22px] font-extrabold tracking-tight text-ink md:text-[26px]">
+      <h1 className="rise-in t-title tracking-tight text-ink md:t-title">
         {region.name} 아파트 시장 — {label}
       </h1>
-      <p className="rise-in-1 mt-1.5 text-[13px] text-text-2">
+      <p className="rise-in-1 mt-1.5 t-body text-text-2">
         {label}에 고정된 월간 스냅샷입니다. 신고 지연분이 이후 반영될 수 있어 하루 1회
         갱신됩니다. 최신 시황은{" "}
         <Link href={`/region/${id}`} className="font-bold text-primary">
@@ -196,11 +196,11 @@ export default async function RegionMonthlyReportPage({
         <div className="rise-in-1 mt-4 grid grid-cols-2 gap-1.5 md:grid-cols-5">
           {facts.map((f) => (
             <div key={f.label} className="card rounded-xl px-3 py-3 text-center">
-              <div className="text-[10px] text-text-3">{f.label}</div>
-              <div className="mt-0.5 truncate text-[16px] font-extrabold text-ink tabular-nums">
+              <div className="t-caption text-text-3">{f.label}</div>
+              <div className="mt-0.5 truncate t-section text-ink tabular-nums">
                 {f.value}
               </div>
-              {f.sub && <div className="mt-0.5 truncate text-[10px] text-text-3">{f.sub}</div>}
+              {f.sub && <div className="mt-0.5 truncate t-caption text-text-3">{f.sub}</div>}
             </div>
           ))}
         </div>
@@ -209,7 +209,7 @@ export default async function RegionMonthlyReportPage({
       {paragraphs.length > 0 && (
         <section className="rise-in-2 card mt-4 rounded-[16px] px-5 py-4">
           {paragraphs.map((p) => (
-            <p key={p.slice(0, 20)} className="text-[14px] leading-[1.9] text-text-1">
+            <p key={p.slice(0, 20)} className="t-body text-text-1">
               {p}
             </p>
           ))}
@@ -218,14 +218,14 @@ export default async function RegionMonthlyReportPage({
 
       {report.topDeals.length > 0 && (
         <section className="rise-in-2 mt-6">
-          <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+          <h2 className="mb-2 px-1 t-section text-ink">
             {label} 상위 실거래{" "}
-            <span className="text-[12px] font-medium text-text-3">신고 금액순 5건</span>
+            <span className="t-sub font-medium text-text-3">신고 금액순 5건</span>
           </h2>
           <div className="card overflow-x-auto rounded-2xl px-4 py-2">
-            <table className="w-full min-w-[420px] text-[13px]">
+            <table className="w-full min-w-[420px] t-body">
               <thead>
-                <tr className="border-b border-line text-left text-[11px] text-text-3">
+                <tr className="border-b border-line text-left t-sub text-text-3">
                   <th className="py-2 pr-3 font-semibold">단지</th>
                   <th className="py-2 pr-3 text-right font-semibold">전용면적</th>
                   <th className="py-2 pr-3 text-right font-semibold">신고가</th>
@@ -245,7 +245,7 @@ export default async function RegionMonthlyReportPage({
                     <td className="py-2.5 pr-3 text-right font-extrabold tabular-nums text-ink">
                       {formatKrwShort(d.priceKrw)}
                     </td>
-                    <td className="py-2.5 text-right text-[11px] tabular-nums text-text-3">
+                    <td className="py-2.5 text-right t-sub tabular-nums text-text-3">
                       {d.contractDay !== null ? `${Number(ym.slice(4, 6))}.${d.contractDay}` : "—"}
                     </td>
                   </tr>
@@ -265,7 +265,7 @@ export default async function RegionMonthlyReportPage({
         {older && (
           <Link
             href={`/region/${id}/report/${older}`}
-            className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-text-1"
+            className="chip border border-line bg-surface px-3.5 py-2 t-body font-bold text-text-1"
           >
             ← {older.replace("-", "년 ")}월
           </Link>
@@ -273,26 +273,26 @@ export default async function RegionMonthlyReportPage({
         {newer && (
           <Link
             href={`/region/${id}/report/${newer}`}
-            className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-text-1"
+            className="chip border border-line bg-surface px-3.5 py-2 t-body font-bold text-text-1"
           >
             {newer.replace("-", "년 ")}월 →
           </Link>
         )}
         <Link
           href={`/region/${id}/report`}
-          className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-primary"
+          className="chip border border-line bg-surface px-3.5 py-2 t-body font-bold text-primary"
         >
           전체 월간 아카이브
         </Link>
         <Link
           href={`/region/${id}`}
-          className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-primary"
+          className="chip border border-line bg-surface px-3.5 py-2 t-body font-bold text-primary"
         >
           {region.name} 지역 홈
         </Link>
       </div>
 
-      <p className="mt-6 text-[11px] leading-[1.7] text-text-3">
+      <p className="mt-6 t-sub text-text-3">
         출처: 국토교통부 실거래가 공개시스템(신고 기준), 한국부동산원 매매가격지수. 본
         페이지는 공개 데이터의 산술 정리이며 투자 권유가 아닙니다.
       </p>

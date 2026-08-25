@@ -60,7 +60,7 @@ export function LeadActions({
           {a.label}
         </button>
       ))}
-      {error && <span className="text-[11px] font-bold text-danger">처리 실패</span>}
+      {error && <span className="t-sub font-bold text-danger">처리 실패</span>}
     </div>
   );
 }

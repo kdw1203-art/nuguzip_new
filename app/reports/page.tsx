@@ -156,7 +156,7 @@ export default async function ReportsIndexPage() {
                           key={m.ym}
                           prefetch={false}
                           href={`/reports/${m.ym}`}
-                          className={`rise-in-${Math.min(i + 2, 6)} card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline`}
+                          className={`rise-in-${Math.min(i + 2, 6)} card tile flex items-center justify-between rounded-[16px] px-5 py-4 no-underline`}
                         >
                           <span className="text-[15px] font-extrabold text-ink">
                             {formatYmKo(m.ym)} 실거래 리포트
@@ -193,7 +193,7 @@ export default async function ReportsIndexPage() {
                 <Link
                   key={s.def.slug}
                   href={`/reports/season/${s.def.slug}`}
-                  className="card card-hover flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
+                  className="card tile flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
                 >
                   <span>
                     <span className="block text-[15px] font-extrabold text-ink">

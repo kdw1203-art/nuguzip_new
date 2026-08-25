@@ -135,15 +135,15 @@ export default async function DigestWeekPage({
         dangerouslySetInnerHTML={{ __html: jsonLdScript([articleJsonLd, crumbs]) }}
       />
       <div className="mx-auto max-w-[860px]">
-        <h1 className="rise-in text-[24px] font-extrabold text-ink">
+        <h1 className="rise-in t-title text-ink">
           {data.ordinalLabel} 부동산 주간 다이제스트
         </h1>
-        <p className="rise-in-1 mt-1 text-[12px] font-semibold text-text-3">{data.rangeLabel}</p>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-1">{leadSentence}</p>
+        <p className="rise-in-1 mt-1 t-sub font-semibold text-text-3">{data.rangeLabel}</p>
+        <p className="rise-in-1 mt-2 t-body text-text-1">{leadSentence}</p>
 
         {/* 뉴스 */}
         <section className="rise-in-2 mt-6">
-          <h2 className="text-[16px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             그 주 뉴스 <span className="text-text-3">{data.newsCount}건</span>
           </h2>
           {data.news.length > 0 ? (
@@ -152,11 +152,11 @@ export default async function DigestWeekPage({
                 <li key={item.id} className="card rounded-[14px] px-4 py-3">
                   <Link
                     href={`/town/news/${item.id}`}
-                    className="text-[14px] font-bold leading-[1.5] text-ink no-underline hover:underline"
+                    className="t-body font-bold text-ink no-underline hover:underline"
                   >
                     {item.title}
                   </Link>
-                  <p className="mt-1 text-[11px] text-text-3">
+                  <p className="mt-1 t-sub text-text-3">
                     {[shortDate(item.at), item.sourceName, item.region]
                       .filter(Boolean)
                       .join(" · ")}
@@ -165,10 +165,10 @@ export default async function DigestWeekPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-[13px] text-text-3">그 주에 수집된 뉴스가 없습니다.</p>
+            <p className="mt-3 t-body text-text-3">그 주에 수집된 뉴스가 없습니다.</p>
           )}
           {data.newsCount > data.news.length && (
-            <p className="mt-2 text-[12px] text-text-3">
+            <p className="mt-2 t-sub text-text-3">
               그 주 뉴스 {data.newsCount}건 중 {data.news.length}건만 표시했습니다.
             </p>
           )}
@@ -176,7 +176,7 @@ export default async function DigestWeekPage({
 
         {/* 이웃 글 */}
         <section className="rise-in-3 mt-8">
-          <h2 className="text-[16px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             그 주 이웃 글 <span className="text-text-3">{data.communityCount}건</span>
           </h2>
           {data.community.length > 0 ? (
@@ -185,21 +185,21 @@ export default async function DigestWeekPage({
                 <li key={item.id} className="card rounded-[14px] px-4 py-3">
                   <Link
                     href={`/town/news/${item.id}`}
-                    className="text-[14px] font-bold leading-[1.5] text-ink no-underline hover:underline"
+                    className="t-body font-bold text-ink no-underline hover:underline"
                   >
                     {item.title}
                   </Link>
-                  <p className="mt-1 text-[11px] text-text-3">
+                  <p className="mt-1 t-sub text-text-3">
                     {[shortDate(item.at), item.region].filter(Boolean).join(" · ")}
                   </p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-[13px] text-text-3">그 주에 올라온 이웃 글이 없습니다.</p>
+            <p className="mt-3 t-body text-text-3">그 주에 올라온 이웃 글이 없습니다.</p>
           )}
           {data.communityCount > data.community.length && (
-            <p className="mt-2 text-[12px] text-text-3">
+            <p className="mt-2 t-sub text-text-3">
               그 주 이웃 글 {data.communityCount}건 중 {data.community.length}건만
               표시했습니다.
             </p>
@@ -208,15 +208,15 @@ export default async function DigestWeekPage({
 
         {/* 시장 온도 — 그 주 스냅샷이 있을 때만 */}
         <section className="rise-in-4 mt-8">
-          <h2 className="text-[16px] font-extrabold text-ink">그 주 시장 온도</h2>
+          <h2 className="t-section text-ink">그 주 시장 온도</h2>
           {data.temperature.length > 0 ? (
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[420px] border-collapse text-[13px]">
+              <table className="w-full min-w-[420px] border-collapse t-body">
                 <thead>
                   <tr className="border-b border-border text-left text-text-3">
-                    <th className="py-2 pr-2 text-[12px] font-bold">지역</th>
-                    <th className="py-2 pr-2 text-right text-[12px] font-bold">온도</th>
-                    <th className="py-2 text-[12px] font-bold">한 줄 요약</th>
+                    <th className="py-2 pr-2 t-sub font-bold">지역</th>
+                    <th className="py-2 pr-2 text-right t-sub font-bold">온도</th>
+                    <th className="py-2 t-sub font-bold">한 줄 요약</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,7 +240,7 @@ export default async function DigestWeekPage({
               </table>
             </div>
           ) : (
-            <p className="mt-3 text-[13px] leading-[1.7] text-text-3">
+            <p className="mt-3 t-body text-text-3">
               그 주에 기록된 시장 온도 스냅샷이 없습니다. 다른 주 값으로 대신 채우지 않습니다 —
               그 주의 숫자가 아니기 때문입니다.
             </p>
@@ -249,7 +249,7 @@ export default async function DigestWeekPage({
 
         <QaBlock items={faq} />
 
-        <p className="mb-8 mt-5 flex flex-wrap gap-4 text-[12px] text-text-3">
+        <p className="mb-8 mt-5 flex flex-wrap gap-4 t-sub text-text-3">
           <Link href="/digest/archive" className="font-bold text-primary underline">
             다른 주 보기
           </Link>

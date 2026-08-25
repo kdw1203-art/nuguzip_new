@@ -47,7 +47,7 @@ export function CancelRequestButton({ currentPlan }: { currentPlan: string }) {
 
   if (done) {
     return (
-      <p className="text-[12px] font-semibold text-primary">
+      <p className="t-sub font-semibold text-primary">
         해지 요청이 접수됐어요. 알림함·이메일로 접수 확인을 보내 드려요.{" "}
         <Link href="/notifications" className="underline">
           알림 보기
@@ -62,11 +62,11 @@ export function CancelRequestButton({ currentPlan }: { currentPlan: string }) {
         type="button"
         onClick={() => void submit()}
         disabled={busy || currentPlan === "free"}
-        className="btn-soft w-fit rounded-[10px] px-3.5 py-2 text-[12px] font-bold disabled:opacity-50"
+        className="btn-soft w-fit rounded-[10px] px-3.5 py-2 t-sub font-bold disabled:opacity-50"
       >
         {busy ? "접수 중…" : "해지 요청하기"}
       </button>
-      {error && <p className="text-[11px] font-semibold text-danger">{error}</p>}
+      {error && <p className="t-sub font-semibold text-danger">{error}</p>}
     </div>
   );
 }

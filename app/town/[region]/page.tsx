@@ -166,7 +166,7 @@ export default async function TownRegionHomePage({
       {snapshot && (
         <Link
           href={`/region/${id}`}
-          className="rise-in-1 card card-hover mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[18px] px-5 py-4 no-underline"
+          className="rise-in-1 card tile mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[18px] px-5 py-4 no-underline"
         >
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {snapshot.avgSale && snapshot.avgSale > 0 && (
@@ -318,7 +318,7 @@ export default async function TownRegionHomePage({
               <Link
                 key={n.id}
                 href={`/notes/${n.id}`}
-                className="card card-hover rounded-2xl px-4 py-3.5"
+                className="card tile rounded-2xl px-4 py-3.5"
               >
                 <div className="truncate t-body font-extrabold text-ink">{n.title}</div>
                 <div className="mt-1 flex items-center gap-2 t-sub text-text-3">

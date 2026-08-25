@@ -125,7 +125,7 @@ export function NoteCardStudio({
             />
           ))}
         </div>
-        <p className="mt-2 text-center text-[11px] text-text-3">
+        <p className="mt-2 text-center t-sub text-text-3">
           {frames.length}장 · {activeFrame?.label ?? ""}
         </p>
       </div>
@@ -134,7 +134,7 @@ export function NoteCardStudio({
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           {/* 테마 10종 */}
           <div>
-            <div className="mb-2 text-[12px] font-extrabold text-ink">카드 색상 테마</div>
+            <div className="mb-2 t-sub font-extrabold text-ink">카드 색상 테마</div>
             <div className="flex flex-wrap gap-2">
               {CARD_THEMES.map((t) => (
                 <button
@@ -160,10 +160,10 @@ export function NoteCardStudio({
           {/* 프레임(장) 선택 */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12px] font-extrabold text-ink">
+              <span className="t-sub font-extrabold text-ink">
                 카드에 담을 장 (최소 {MIN_FRAMES}장)
               </span>
-              <span className="text-[11px] text-text-3">{selected.length}장 선택</span>
+              <span className="t-sub text-text-3">{selected.length}장 선택</span>
             </div>
             <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
               {available.map((f) => {
@@ -181,9 +181,9 @@ export function NoteCardStudio({
                         : "border-line bg-surface text-text-2"
                     } ${locked ? "opacity-70" : ""}`}
                   >
-                    <span className="text-[13px]">{on ? "✓" : "+"}</span>
+                    <span className="t-body">{on ? "✓" : "+"}</span>
                     <span className="min-w-0 truncate">{f.label}</span>
-                    {locked && <span className="ml-auto text-[9px] text-text-3">고정</span>}
+                    {locked && <span className="ml-auto t-caption text-text-3">고정</span>}
                   </button>
                 );
               })}
@@ -195,7 +195,7 @@ export function NoteCardStudio({
               type="button"
               onClick={() => void save()}
               disabled={saving}
-              className="btn-primary btn-sm rounded-[10px] px-4 py-2 text-[13px] font-bold disabled:opacity-60"
+              className="btn-primary btn-sm rounded-[10px] px-4 py-2 t-body font-bold disabled:opacity-60"
             >
               {saving ? "저장 중…" : "카드 저장"}
             </button>
@@ -205,14 +205,14 @@ export function NoteCardStudio({
               </span>
             )}
           </div>
-          <p className="text-[11px] leading-relaxed text-text-3">
+          <p className="t-sub text-text-3">
             표지는 항상 첫 장이에요. 담은 장의 내용은 임장노트에서 기록한 값으로 자동으로 채워지고,
             데이터가 없는 장은 목록에 나오지 않아요.
           </p>
         </div>
       ) : (
         <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <p className="text-[13px] leading-relaxed text-text-2">
+          <p className="t-body text-text-2">
             작성자가 만든 {frames.length}장짜리 임장 카드예요. 점을 눌러 넘겨 보세요.
           </p>
         </div>

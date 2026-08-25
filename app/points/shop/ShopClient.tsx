@@ -87,7 +87,7 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
           return (
             <div
               key={item.key}
-              className="card card-hover flex flex-col rounded-[16px] p-5"
+              className="card tile flex flex-col rounded-[16px] p-5"
             >
               <div className="text-sm font-extrabold text-ink">
                 {item.label}

@@ -66,7 +66,7 @@ export function HomeLevelKpi() {
     return (
       <Link
         href="/my"
-        className="card card-hover flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+        className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
       >
         <span className="text-[10.5px] font-bold text-text-3">내 임장 레벨</span>
         <span className="text-[19px] font-extrabold leading-tight text-ink">
@@ -84,7 +84,7 @@ export function HomeLevelKpi() {
   return (
     <Link
       href={href}
-      className="card card-hover flex flex-col gap-0.5 rounded-2xl border-dashed px-4 py-3 no-underline"
+      className="card tile flex flex-col gap-0.5 rounded-2xl border-dashed px-4 py-3 no-underline"
     >
       <span className="text-[10.5px] font-bold text-text-3">내 임장 레벨</span>
       <span className="text-[15px] font-extrabold leading-tight text-primary">

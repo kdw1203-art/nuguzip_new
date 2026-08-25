@@ -144,7 +144,7 @@ function RecCard({ item }: { item: RecItem }) {
   return (
     <Link
       href={`/region/${item.regionId}`}
-      className="card card-hover card-pad rounded-[16px] no-underline"
+      className="card tile card-pad rounded-[16px] no-underline"
     >
       {inner}
     </Link>

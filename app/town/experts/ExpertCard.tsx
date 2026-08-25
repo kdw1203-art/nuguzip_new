@@ -43,7 +43,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
 
   return (
     <div
-      className={`card card-hover rise-in-${Math.min(index + 1, 6)} flex flex-col gap-3 rounded-[20px] p-[22px]`}
+      className={`card tile rise-in-${Math.min(index + 1, 6)} flex flex-col gap-3 rounded-[20px] p-[22px]`}
     >
       <div className="flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-line to-bg t-section text-primary">

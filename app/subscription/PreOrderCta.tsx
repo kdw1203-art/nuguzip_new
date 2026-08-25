@@ -49,7 +49,7 @@ export function PreOrderCta({
 
   if (state === "done") {
     return (
-      <div className="rounded-[14px] bg-primary-soft p-[13px] text-center text-[13px] font-bold text-primary">
+      <div className="rounded-[14px] bg-primary-soft p-[13px] text-center t-body font-bold text-primary">
         등록됐어요 — 결제가 열리면 알림으로 알려드릴게요
       </div>
     );

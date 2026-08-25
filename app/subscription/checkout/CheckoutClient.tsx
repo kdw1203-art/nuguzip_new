@@ -283,19 +283,19 @@ export function CheckoutClient() {
   return (
     <div className="mx-auto flex w-full max-w-[520px] flex-col gap-3">
       {params && (
-        <p className="text-[13px] text-text-2">
+        <p className="t-body text-text-2">
           {label} 플랜 · {billingLabel} 결제
         </p>
       )}
       {isTossTestEnv() && (
-        <p className="rounded-xl bg-[rgba(245,158,11,.12)] px-3.5 py-2.5 text-[12px] font-bold text-[#b45309]">
+        <p className="rounded-xl bg-[rgba(245,158,11,.12)] px-3.5 py-2.5 t-sub font-bold text-[#b45309]">
           테스트 결제 환경 — 승인이 가상으로 이루어져 실제 금액이 청구되지 않아요.
         </p>
       )}
 
       {phase.kind === "login" && (
         <div className="card flex flex-col items-center gap-2.5 rounded-2xl px-4 py-8 text-center">
-          <p className="text-[14px] font-extrabold text-ink">결제하려면 로그인이 필요해요</p>
+          <p className="t-section text-ink">결제하려면 로그인이 필요해요</p>
           <Link
             href={`/login?callbackUrl=${encodeURIComponent(
               typeof window !== "undefined"
@@ -311,8 +311,8 @@ export function CheckoutClient() {
 
       {phase.kind === "error" && (
         <div className="card flex flex-col items-center gap-2.5 rounded-2xl px-4 py-8 text-center">
-          <p className="text-[14px] font-extrabold text-ink">결제를 시작하지 못했어요</p>
-          <p className="text-[12px] leading-[1.6] text-text-3">{phase.msg}</p>
+          <p className="t-section text-ink">결제를 시작하지 못했어요</p>
+          <p className="t-sub text-text-3">{phase.msg}</p>
           <Link href="/subscription" className="btn-soft btn-sm no-underline">
             구독 페이지로 돌아가기
           </Link>
@@ -320,7 +320,7 @@ export function CheckoutClient() {
       )}
 
       {phase.kind === "loading" && (
-        <div className="card rounded-2xl px-4 py-8 text-center text-[13px] text-text-3">
+        <div className="card rounded-2xl px-4 py-8 text-center t-body text-text-3">
           {phase.msg}
         </div>
       )}
@@ -337,13 +337,13 @@ export function CheckoutClient() {
               type="button"
               onClick={() => void pay()}
               disabled={paying}
-              className="btn-primary btn-cta rounded-[14px] p-[14px] text-center text-[15px] font-bold disabled:opacity-60"
+              className="btn-primary btn-cta rounded-[14px] p-[14px] text-center t-body font-bold disabled:opacity-60"
             >
               {paying
                 ? "결제창 여는 중…"
                 : `${phase.amount.toLocaleString("ko-KR")}원 결제하기`}
             </button>
-            <p className="text-center text-[11px] text-text-3">
+            <p className="text-center t-sub text-text-3">
               결제 완료 후 자동으로 구독이 활성화돼요 · 주문번호 {phase.orderId}
             </p>
           </>
@@ -353,19 +353,19 @@ export function CheckoutClient() {
         {phase.kind === "window-ready" && (
           <>
             <div className="card flex flex-col gap-2 rounded-2xl px-4 py-5">
-              <div className="flex items-center justify-between text-[13px]">
+              <div className="flex items-center justify-between t-body">
                 <span className="text-text-3">플랜</span>
                 <span className="font-bold text-ink">
                   {label} · {billingLabel}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[13px]">
+              <div className="flex items-center justify-between t-body">
                 <span className="text-text-3">결제 금액</span>
                 <span className="font-extrabold text-ink">
                   {phase.amount.toLocaleString("ko-KR")}원
                 </span>
               </div>
-              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+              <p className="mt-1 t-sub text-text-3">
                 버튼을 누르면 토스페이먼츠 카드 결제창이 열려요. 결제 완료 후
                 자동으로 구독이 활성화돼요.
               </p>
@@ -374,13 +374,13 @@ export function CheckoutClient() {
               type="button"
               onClick={() => void payWindow()}
               disabled={paying}
-              className="btn-primary btn-cta rounded-[14px] p-[14px] text-center text-[15px] font-bold disabled:opacity-60"
+              className="btn-primary btn-cta rounded-[14px] p-[14px] text-center t-body font-bold disabled:opacity-60"
             >
               {paying
                 ? "결제창 여는 중…"
                 : `${phase.amount.toLocaleString("ko-KR")}원 카드로 결제하기`}
             </button>
-            <p className="text-center text-[11px] text-text-3">
+            <p className="text-center t-sub text-text-3">
               주문번호 {phase.orderId}
             </p>
           </>

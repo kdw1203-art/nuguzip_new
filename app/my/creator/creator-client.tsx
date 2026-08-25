@@ -39,18 +39,18 @@ function PerformanceTab({ stats }: { stats: CreatorStats }) {
     <div className="flex flex-col gap-3">
       {/* 상단 글래스 바 — 전체 기간 */}
       <div className="glass rise-in flex flex-wrap items-center gap-3 rounded-[14px] px-4 py-3">
-        <span className="text-[14px] font-extrabold text-ink">
+        <span className="t-section text-ink">
           내 콘텐츠 성과
         </span>
-        <span className="text-[12px] text-text-3">전체 기간</span>
+        <span className="t-sub text-text-3">전체 기간</span>
       </div>
 
       {/* 지표 4종 — 공개 노트·저장은 실데이터, 미집계는 "—" (허위 수치 금지) */}
       <div className="rise-in-2 grid grid-cols-2 gap-2 md:grid-cols-4">
         {tiles.map((s) => (
           <div key={s.label} className="card px-3 py-[10px]">
-            <div className="text-[10px] text-text-3">{s.label}</div>
-            <div className="mt-[2px] text-[17px] font-extrabold tabular-nums text-ink">
+            <div className="t-caption text-text-3">{s.label}</div>
+            <div className="mt-[2px] t-section tabular-nums text-ink">
               {s.value}
             </div>
           </div>
@@ -58,7 +58,7 @@ function PerformanceTab({ stats }: { stats: CreatorStats }) {
       </div>
 
       {/* 협찬 라벨 원칙 */}
-      <div className="rise-in-3 rounded-[12px] bg-primary-soft px-4 py-[10px] text-[11px] font-bold leading-[1.6] text-primary">
+      <div className="rise-in-3 rounded-[12px] bg-primary-soft px-4 py-[10px] t-sub font-bold text-primary">
         협찬·제공 받은 임장은 반드시 &quot;광고&quot; 라벨을 켜야 해요 — 미표시
         확인 시 노출 제한
       </div>
@@ -120,15 +120,15 @@ function SellReportForm({
   return (
     <form onSubmit={submit} className="rise-in-4 card flex flex-col gap-3 px-4 py-4">
       <div>
-        <div className="text-[13px] font-extrabold text-ink">유료 리포트 판매 등록</div>
-        <div className="mt-[2px] text-[11px] text-text-3">
+        <div className="t-body font-extrabold text-ink">유료 리포트 판매 등록</div>
+        <div className="mt-[2px] t-sub text-text-3">
           내 노트·분석을 유료 리포트로 승격해 포인트로 판매해요 (가격 100P~100,000P)
         </div>
       </div>
 
       {noteOptions.length > 0 && (
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-bold text-text-3">
+          <span className="t-sub font-bold text-text-3">
             판매할 내 노트 (필수) — 구매자가 이 노트를 열람해요
           </span>
           <select
@@ -151,7 +151,7 @@ function SellReportForm({
       )}
 
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold text-text-3">제목</span>
+        <span className="t-sub font-bold text-text-3">제목</span>
         <input
           className="input w-full"
           value={title}
@@ -162,7 +162,7 @@ function SellReportForm({
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold text-text-3">설명</span>
+        <span className="t-sub font-bold text-text-3">설명</span>
         <textarea
           className="input min-h-[80px] w-full"
           value={description}
@@ -173,7 +173,7 @@ function SellReportForm({
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold text-text-3">가격 (포인트)</span>
+        <span className="t-sub font-bold text-text-3">가격 (포인트)</span>
         <input
           type="number"
           className="input w-[160px]"
@@ -229,8 +229,8 @@ function MonetizationTab({
       <div className="rise-in grid grid-cols-2 gap-2 md:grid-cols-4">
         {tiles.map((t) => (
           <div key={t.label} className="card px-3 py-[10px]">
-            <div className="text-[10px] text-text-3">{t.label}</div>
-            <div className="mt-[2px] text-[17px] font-extrabold tabular-nums text-ink">
+            <div className="t-caption text-text-3">{t.label}</div>
+            <div className="mt-[2px] t-section tabular-nums text-ink">
               {t.value}
             </div>
           </div>
@@ -243,12 +243,12 @@ function MonetizationTab({
           암시 문구가 유의업종 오해의 근거가 된다. */}
       <div className="rise-in-2 rounded-[14px] bg-ink/[0.96] px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-extrabold text-white">판매 보상 안내</span>
-          <span className="rounded-full bg-[#f2c94c]/20 chip-pad text-[10px] font-extrabold text-[#f2c94c]">
+          <span className="t-body font-extrabold text-white">판매 보상 안내</span>
+          <span className="rounded-full bg-[#f2c94c]/20 chip-pad t-caption font-extrabold text-[#f2c94c]">
             현금 전환 불가
           </span>
         </div>
-        <div className="mt-2 text-[11px] leading-[1.7] text-[#c7d0e0]">
+        <div className="mt-2 t-sub text-[#c7d0e0]">
           리포트가 열람되면 플랫폼 몫 7%를 뺀 포인트가 적립돼요
           {sales.available && (
             <>
@@ -266,13 +266,13 @@ function MonetizationTab({
 
       {/* 등록 리포트 목록 */}
       <div className="rise-in-3 card px-4 py-4">
-        <div className="text-[13px] font-extrabold text-ink">내 유료 리포트</div>
+        <div className="t-body font-extrabold text-ink">내 유료 리포트</div>
         {!sales.available ? (
-          <div className="mt-3 rounded-[12px] bg-bg px-4 py-6 text-center text-[12px] text-text-3">
+          <div className="mt-3 rounded-[12px] bg-bg px-4 py-6 text-center t-sub text-text-3">
             판매 실적을 불러올 수 없어요 — 잠시 후 다시 확인해 주세요.
           </div>
         ) : sales.reports.length === 0 ? (
-          <div className="mt-3 rounded-[12px] bg-bg px-4 py-6 text-center text-[12px] text-text-3">
+          <div className="mt-3 rounded-[12px] bg-bg px-4 py-6 text-center t-sub text-text-3">
             아직 등록한 유료 리포트가 없어요. 아래에서 첫 리포트를 판매해 보세요.
           </div>
         ) : (
@@ -283,10 +283,10 @@ function MonetizationTab({
                 className="flex items-center justify-between gap-3 rounded-[10px] bg-bg px-3 py-[10px]"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-bold text-text-1">
+                  <div className="truncate t-body font-bold text-text-1">
                     {r.title}
                   </div>
-                  <div className="mt-[2px] text-[11px] text-text-3">
+                  <div className="mt-[2px] t-sub text-text-3">
                     {fmt(r.price)}P · 판매 {fmt(r.salesCount)}건 · 누적 {fmt(r.grossPoints)}P
                   </div>
                 </div>

@@ -23,14 +23,14 @@ export function MissionClaim({
 
   if (claimed) {
     return (
-      <span className="rounded-full bg-success-soft px-3 py-1.5 text-[11px] font-extrabold text-success">
+      <span className="rounded-full bg-success-soft px-3 py-1.5 t-sub font-extrabold text-success">
         적립 완료 ✓
       </span>
     );
   }
   return (
     <div className="flex items-center gap-2">
-      {msg && <span className="text-[11px] font-bold text-warning">{msg}</span>}
+      {msg && <span className="t-sub font-bold text-warning">{msg}</span>}
       <button
         type="button"
         disabled={disabled || busy}

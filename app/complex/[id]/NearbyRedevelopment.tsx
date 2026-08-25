@@ -35,22 +35,22 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
 
   return (
     <section className="rise-in-5 mt-6">
-      <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
-        인근 정비사업 <span className="text-[12px] font-medium text-text-3">{gu}</span>
+      <h2 className="mb-2 px-1 t-section text-ink">
+        인근 정비사업 <span className="t-sub font-medium text-text-3">{gu}</span>
       </h2>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {projects.map((p) => (
           <div key={p.id} className="card flex flex-col gap-1.5 rounded-2xl px-4 py-3.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+              <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
                 {typeLabel(p.typeKey)}
               </span>
-              <span className="rounded-[6px] bg-primary-soft chip-pad text-[11px] font-extrabold text-primary">
+              <span className="rounded-[6px] bg-primary-soft chip-pad t-sub font-extrabold text-primary">
                 {stageLabel(p.stageKey)}
               </span>
             </div>
-            <div className="text-[14px] font-extrabold text-ink">{p.name}</div>
-            <div className="text-[12px] text-text-3">
+            <div className="t-section text-ink">{p.name}</div>
+            <div className="t-sub text-text-3">
               {[
                 p.address,
                 p.households ? `${p.households.toLocaleString("ko-KR")}세대 예정` : null,
@@ -59,20 +59,20 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
                 .join(" · ") || gu}
             </div>
             {p.summary && (
-              <p className="line-clamp-2 text-[12px] leading-[1.6] text-text-2">{p.summary}</p>
+              <p className="line-clamp-2 t-sub text-text-2">{p.summary}</p>
             )}
           </div>
         ))}
       </div>
       {hasSeed && (
-        <p className="mt-1.5 px-1 text-[10px] leading-[1.6] text-text-3">
+        <p className="mt-1.5 px-1 t-caption text-text-3">
           {seedAsOf ? `${seedAsOf} ` : ""}공개자료(정비사업 정보몽땅·지자체 고시 등) 취합 기준
           참고 정보예요 — 최신 단계와 다를 수 있어요.
         </p>
       )}
       <Link
         href="/redevelopment"
-        className="mt-2 inline-block px-1 text-[13px] font-bold text-primary"
+        className="mt-2 inline-block px-1 t-body font-bold text-primary"
       >
         정비사업 지도에서 전체 보기 →
       </Link>

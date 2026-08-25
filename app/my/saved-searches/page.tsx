@@ -25,10 +25,10 @@ export default async function SavedSearchesPage() {
             <Icon name="bell" size={22} />
           </span>
           <div className="flex flex-col gap-1.5">
-            <p className="text-[15px] font-extrabold text-ink">
+            <p className="t-section text-ink">
               로그인하고 검색을 저장해 보세요
             </p>
-            <p className="text-[13px] leading-[1.6] text-text-2">
+            <p className="t-body text-text-2">
               관심 조건을 저장해 두면 새 매물이 나올 때 알림으로 받아볼 수 있어요.
             </p>
           </div>

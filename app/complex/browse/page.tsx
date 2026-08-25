@@ -84,13 +84,13 @@ export default async function ComplexBrowsePage({
 
   return (
     <PageShell breadcrumb="홈 › 단지 실거래 › 서울 단지 브라우즈" title="서울 단지별 실거래 현황">
-      <p className="rise-in mb-4 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-4 t-body text-text-2">
         국토교통부 실거래가 기반 단지별 현황 — 매물 호가가 아닙니다. 구를 선택해
         최근 실거래가·평단가·거래량을 확인하세요.
       </p>
 
       {/* A5 — 면적대·가격대 랜딩 진입점 */}
-      <p className="rise-in mb-4 -mt-2 text-[13px]">
+      <p className="rise-in mb-4 -mt-2 t-body">
         <Link href="/tx" className="font-bold text-primary underline">
           지역별 면적대·가격대 실거래 보기 →
         </Link>
@@ -107,7 +107,7 @@ export default async function ComplexBrowsePage({
               className={`rounded-full px-3 py-1.5 text-[12px] font-bold transition ${
                 active
                   ? "bg-ink text-surface"
-                  : "card card-hover text-text-2"
+                  : "card tile text-text-2"
               }`}
             >
               {r.name}
@@ -118,9 +118,9 @@ export default async function ComplexBrowsePage({
 
       {/* 해당 구 단지 요약 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           {label} 단지별 현황{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="t-sub font-medium text-text-3">
             최신 거래순 · 상위 {summaries.length}개
           </span>
         </h2>
@@ -135,22 +135,22 @@ export default async function ComplexBrowsePage({
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">
         <Link
           href={`/region/${region.id}`}
-          className="rounded-xl bg-primary px-5 py-3 text-[13px] font-bold text-white shadow-[var(--shadow-cta)]"
+          className="rounded-xl bg-primary px-5 py-3 t-body font-bold text-white shadow-[var(--shadow-cta)]"
         >
           {region.name} 지역 허브 보기
         </Link>
-        <Link href="/map" className="card card-hover px-5 py-3 text-[13px] font-bold text-ink">
+        <Link href="/map" className="card tile px-5 py-3 t-body font-bold text-ink">
           지도에서 보기
         </Link>
         <Link
           href="/complex/compare"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           단지끼리 비교하기
         </Link>
         <Link
           href="/notes/new"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           임장노트 쓰기
         </Link>

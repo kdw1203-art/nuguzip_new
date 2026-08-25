@@ -44,10 +44,10 @@ export default async function RegionReportIndexPage({
 
   return (
     <PageShell breadcrumb={`지역 › ${region.name} › 월간 리포트`}>
-      <h1 className="rise-in text-[22px] font-extrabold tracking-tight text-ink">
+      <h1 className="rise-in t-title tracking-tight text-ink">
         {region.name} 월간 리포트 아카이브
       </h1>
-      <p className="rise-in-1 mt-1.5 max-w-[640px] text-[13px] leading-[1.8] text-text-2">
+      <p className="rise-in-1 mt-1.5 max-w-[640px] t-body text-text-2">
         매월 1일이 지나면 직전 달의 {region.name} 아파트 시장이 스냅샷으로 고정됩니다 —
         거래량·평균가·중앙값·상위 실거래·가격지수. &ldquo;그때 얼마였지&rdquo;가 궁금할 때
         찾는 페이지입니다.
@@ -58,12 +58,12 @@ export default async function RegionReportIndexPage({
           <Link
             key={s}
             href={`/region/${id}/report/${s}`}
-            className="card card-hover rounded-2xl px-4 py-3.5"
+            className="card tile rounded-2xl px-4 py-3.5"
           >
-            <div className="text-[15px] font-extrabold text-ink tabular-nums">
+            <div className="t-section text-ink tabular-nums">
               {s.replace("-", "년 ")}월
             </div>
-            <div className="mt-0.5 text-[11px] text-text-3">월간 시장 스냅샷 →</div>
+            <div className="mt-0.5 t-sub text-text-3">월간 시장 스냅샷 →</div>
           </Link>
         ))}
       </div>
@@ -71,7 +71,7 @@ export default async function RegionReportIndexPage({
       <div className="rise-in-2 mt-6">
         <Link
           href={`/region/${id}`}
-          className="chip border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-primary"
+          className="chip border border-line bg-surface px-3.5 py-2 t-body font-bold text-primary"
         >
           ← {region.name} 지역 홈 (최신 시황)
         </Link>
@@ -79,7 +79,7 @@ export default async function RegionReportIndexPage({
 
       {/* [#106] 다른 지역 아카이브 — 62개 월간 축의 내부 링크 그물 */}
       <section className="rise-in-3 mt-7">
-        <h2 className="mb-2 px-1 text-[13px] font-extrabold text-ink">다른 지역 월간 리포트</h2>
+        <h2 className="mb-2 px-1 t-body font-extrabold text-ink">다른 지역 월간 리포트</h2>
         <div className="flex flex-wrap gap-1.5">
           {REGION_CATALOG.filter((r) => r.id !== id)
             .slice(0, 16)
@@ -87,7 +87,7 @@ export default async function RegionReportIndexPage({
               <Link
                 key={r.id}
                 href={`/region/${r.id}/report`}
-                className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+                className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2"
               >
                 {r.name}
               </Link>

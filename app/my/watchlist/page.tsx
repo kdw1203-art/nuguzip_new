@@ -90,12 +90,12 @@ export default async function WatchlistDashboardPage() {
   return (
     <PageShell breadcrumb="마이 › 관심 단지" title="관심 단지">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-text-3">
+        <p className="t-body text-text-3">
           관심 단지 {items.length}곳
           {items.length >= MAX_ROWS && ` (최근 ${MAX_ROWS}곳 표시)`} · 시세 변동
           ±1% 이상이면 알림을 보내드려요
         </p>
-        <Link href="/my/wishlist" className="text-[13px] font-bold text-primary no-underline">
+        <Link href="/my/wishlist" className="t-body font-bold text-primary no-underline">
           관심 매물 보기 →
         </Link>
       </div>
@@ -108,11 +108,11 @@ export default async function WatchlistDashboardPage() {
         />
       ) : items.length === 0 ? (
         <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[26px]">
+          <div className="t-title">
             <Icon name="📌" size={26} />
           </div>
-          <div className="text-[15px] font-extrabold text-ink">아직 담아 둔 단지가 없어요</div>
-          <p className="max-w-[440px] text-[13px] leading-[1.7] text-text-3">
+          <div className="t-section text-ink">아직 담아 둔 단지가 없어요</div>
+          <p className="max-w-[440px] t-body text-text-3">
             단지 화면의 &ldquo;단지 팔로우&rdquo; 나 지도의 &ldquo;관심 단지 담기&rdquo;를
             누르면 여기에 모이고, 시세가 ±1% 이상 움직이면 알림을 받아요.
           </p>
@@ -123,15 +123,15 @@ export default async function WatchlistDashboardPage() {
       ) : (
         <>
           {!notesR.ok && (
-            <p className="mb-3 rounded-xl border border-line bg-bg px-3 py-2 text-[12px] text-text-2">
+            <p className="mb-3 rounded-xl border border-line bg-bg px-3 py-2 t-sub text-text-2">
               새 노트 수를 지금 불러오지 못했어요 — 노트가 없는 게 아니라 조회가
               실패했습니다.
             </p>
           )}
           <div className="rise-in card overflow-x-auto rounded-2xl p-[var(--pad-card)]">
-            <table className="w-full min-w-[560px] text-left text-[13px]">
+            <table className="w-full min-w-[560px] text-left t-body">
               <thead>
-                <tr className="border-b border-border text-[11px] text-text-3">
+                <tr className="border-b border-border t-sub text-text-3">
                   <th className="py-2 font-medium">단지</th>
                   <th className="py-2 text-right font-medium">현재가 (대표 구간)</th>
                   <th className="py-2 text-right font-medium">기준가 대비</th>
@@ -173,7 +173,7 @@ export default async function WatchlistDashboardPage() {
                           {w.complexName}
                         </Link>
                         {(w.alertPriceMin != null || w.alertPriceMax != null) && (
-                          <span className="mt-0.5 block text-[10px] text-text-3">
+                          <span className="mt-0.5 block t-caption text-text-3">
                             알림 범위 {w.alertPriceMin != null ? formatKrwShort(w.alertPriceMin) : ""}
                             ~{w.alertPriceMax != null ? formatKrwShort(w.alertPriceMax) : ""}
                           </span>
@@ -185,13 +185,13 @@ export default async function WatchlistDashboardPage() {
                             <span className="font-extrabold text-ink">
                               {formatKrwShort(p.price.priceKrw)}
                             </span>
-                            <span className="mt-0.5 block text-[10px] leading-tight text-text-3">
+                            <span className="mt-0.5 block t-caption leading-tight text-text-3">
                               {p.price.bandLabel} · {p.price.sampleSize}건 ·{" "}
                               {ymLabel(p.price.latestYm)}까지
                             </span>
                           </>
                         ) : (
-                          <span className="text-[12px] text-text-3">{skipLabel(p.reason)}</span>
+                          <span className="t-sub text-text-3">{skipLabel(p.reason)}</span>
                         )}
                       </td>
                       <td className={`py-2.5 text-right font-bold ${deltaCell.cls}`}>
@@ -199,7 +199,7 @@ export default async function WatchlistDashboardPage() {
                       </td>
                       <td className="py-2.5 text-right">
                         {noteCount === null ? (
-                          <span className="text-[12px] text-text-3">조회 실패</span>
+                          <span className="t-sub text-text-3">조회 실패</span>
                         ) : noteCount > 0 ? (
                           <Link
                             href={complexHrefFromId(w.complexId)}
@@ -216,7 +216,7 @@ export default async function WatchlistDashboardPage() {
                 })}
               </tbody>
             </table>
-            <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+            <p className="mt-2 t-sub text-text-3">
               현재가는 거래가 가장 많은 전용면적 구간의 최근 최대 6건 평균(최소
               3건, 해제 신고 제외) — 시세 변동 알림과 같은 계산입니다. 기준가
               대비는 마지막 알림 관측가 기준이며, 대표 면적대가 바뀐 단지는

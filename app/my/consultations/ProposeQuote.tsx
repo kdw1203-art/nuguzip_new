@@ -40,7 +40,7 @@ export function ProposeQuote({ requestId }: { requestId: string }) {
 
   if (status === "done") {
     return (
-      <span className="rounded-lg bg-success-soft px-3 py-1.5 text-[11px] font-extrabold text-success">
+      <span className="rounded-lg bg-success-soft px-3 py-1.5 t-sub font-extrabold text-success">
         ✓ 제안 보냄 — 요청자 알림으로 전달됐어요
       </span>
     );
@@ -52,7 +52,7 @@ export function ProposeQuote({ requestId }: { requestId: string }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="btn-primary w-fit rounded-lg px-3.5 py-1.5 text-[12px]"
+          className="btn-primary w-fit rounded-lg px-3.5 py-1.5 t-sub"
         >
           제안 보내기
         </button>
@@ -64,22 +64,22 @@ export function ProposeQuote({ requestId }: { requestId: string }) {
             rows={3}
             maxLength={500}
             placeholder="어떻게 도와드릴 수 있는지, 진행 방식과 예상 비용을 간단히 적어 주세요 (10자 이상). 요청자 알림으로 전달되고 내 프로필이 함께 연결돼요."
-            className="w-full resize-none rounded-xl border border-line bg-bg p-3 text-[12.5px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            className="w-full resize-none rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
-          {error && <div className="text-[11px] font-semibold text-danger">{error}</div>}
+          {error && <div className="t-sub font-semibold text-danger">{error}</div>}
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => void send()}
               disabled={status === "sending"}
-              className="btn-primary rounded-lg px-3.5 py-1.5 text-[12px] disabled:opacity-60"
+              className="btn-primary rounded-lg px-3.5 py-1.5 t-sub disabled:opacity-60"
             >
               {status === "sending" ? "전송 중…" : "보내기"}
             </button>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="btn-soft rounded-lg px-3.5 py-1.5 text-[12px]"
+              className="btn-soft rounded-lg px-3.5 py-1.5 t-sub"
             >
               취소
             </button>

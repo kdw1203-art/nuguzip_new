@@ -47,6 +47,17 @@ const STATUS_META: Record<
   past: { label: "일정 종료", style: "bg-bg text-text-3", dot: "bg-text-3" },
 };
 
+/** D-day 라벨 — whenTs 가 실제 일정이라 계산이 성립한다.
+ *  일정 미정(MAX_SAFE_INTEGER)이면 null 을 내고 배지를 안 그린다. */
+function ddayLabel(whenTs: number, nowMs: number): string | null {
+  if (!Number.isFinite(whenTs) || whenTs === Number.MAX_SAFE_INTEGER) return null;
+  const days = Math.ceil((whenTs - nowMs) / 86_400_000);
+  if (days < 0) return null;
+  if (days === 0) return "오늘";
+  if (days === 1) return "내일";
+  return `D-${days}`;
+}
+
 /** 시각 파생 상태 재계산 — 예전 서버 toView 의 판정 그대로 */
 function deriveStatus(g: GroupView, nowMs: number): GroupView["statusKey"] {
   const remaining = g.max - g.members;
@@ -70,26 +81,29 @@ function readFilter(): Filter {
 
 function MeetingCard({
   g,
-  i,
   chat24h = 0,
+  nowMs,
 }: {
   g: GroupView;
-  i: number;
   /** 최근 24h 채팅 메시지 수 — 실측일 때만 양수, 0/미확인은 배지 미표시 */
   chat24h?: number;
+  /** 셸이 마운트 후 재계산하는 현재 시각 — D-day 계산 기준 */
+  nowMs: number;
 }) {
   const meta = STATUS_META[g.statusKey];
   const remaining = Math.max(g.max - g.members, 0);
   const pct = Math.min(100, Math.round((g.members / Math.max(g.max, 1)) * 100));
   const joinable = g.statusKey === "open" || g.statusKey === "closing";
+  const dday = ddayLabel(g.whenTs, nowMs);
   return (
     <div
-      className={`card card-hover press rise-in-${Math.min(i + 2, 8)} flex flex-col gap-3 rounded-[16px] p-4`}
+      className="card tile flex flex-col gap-3 rounded-[14px] p-4"
+      data-reveal=""
     >
       <div className="flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-md chip-pad text-[11px] font-extrabold ${meta.style}`}
+            className={`inline-flex items-center gap-1.5 rounded-md chip-pad t-sub font-extrabold ${meta.style}`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
             {meta.label}
@@ -107,15 +121,25 @@ function MeetingCard({
             </span>
           )}
         </span>
-        <span className="inline-flex items-center gap-1 t-sub font-semibold text-text-3">
-          <Icon name="calendar" size={12} />
-          {g.whenLabel}
+        <span className="inline-flex shrink-0 items-center gap-1.5">
+          {/* 남은 날짜 — "8월 30일 토요일"만 있으면 얼마나 급한지가 안 읽힌다 */}
+          {dday && (
+            <span
+              className={`delta ${g.statusKey === "closing" || dday === "오늘" || dday === "내일" ? "delta-up-b" : "delta-flat-b"}`}
+            >
+              {dday}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1 t-sub font-semibold text-text-3">
+            <Icon name="calendar" size={12} />
+            {g.whenLabel}
+          </span>
         </span>
       </div>
 
       <div>
         <h3 className="line-clamp-1 t-section text-ink">{g.title}</h3>
-        <p className="mt-1 line-clamp-2 text-xs leading-[1.55] text-text-2">{g.desc}</p>
+        <p className="mt-1 line-clamp-2 t-sub text-text-2">{g.desc}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 t-sub text-text-3">
@@ -162,12 +186,9 @@ function MeetingCard({
             {g.members}/{g.max}
           </span>
         </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg">
-          <div
-            className={`h-full rounded-full ${g.statusKey === "full" ? "bg-text-3" : "bg-primary"}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        <span className={`rank-track ${g.statusKey === "full" ? "text-text-3" : "text-primary"}`}>
+          <span className="rank-fill" style={{ width: `${Math.max(3, pct)}%` }} />
+        </span>
       </div>
 
       {/* 푸터 — 가짜 아바타 원(장식용 색 원 3개)은 제거했다. 실제 참여자
@@ -183,9 +204,7 @@ function MeetingCard({
         </span>
         <Link
           href={`/town/groups/${g.id}`}
-          className={`rounded-lg px-4 py-2 text-xs no-underline ${
-            joinable ? "btn-primary" : "btn-soft"
-          }`}
+          className={`btn-md no-underline ${joinable ? "btn-primary" : "btn-soft"}`}
         >
           {/* "대기 참여"(2026-08-22 제거) — 대기 명단 기능이 없는데 있는 것처럼
               말하던 문구. 마감 모임은 상세를 보러 가는 것이 사실이다. */}
@@ -406,7 +425,7 @@ export function GroupsClient({
             {recruiting.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {recruiting.map((g, i) => (
-                  <MeetingCard key={g.id} g={g} i={i} chat24h={chat[g.id] ?? 0} />
+                  <MeetingCard key={g.id} g={g} chat24h={chat[g.id] ?? 0} nowMs={nowMs} />
                 ))}
               </div>
             ) : (
@@ -434,7 +453,7 @@ export function GroupsClient({
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {closed.map((g, i) => (
-                  <MeetingCard key={g.id} g={g} i={i} chat24h={chat[g.id] ?? 0} />
+                  <MeetingCard key={g.id} g={g} chat24h={chat[g.id] ?? 0} nowMs={nowMs} />
                 ))}
               </div>
             </section>

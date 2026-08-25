@@ -185,7 +185,7 @@ export function ComplexHubTabs({
 
   const myRecordCard = (
     <div className="card flex items-center justify-between rounded-[14px] px-[15px] py-3.5">
-      <span className="text-[13px] text-text-1">
+      <span className="t-body text-text-1">
         <b className="text-ink">내 기록</b> — {myRecord}
       </span>
       <Link href="/my" className="shrink-0 text-xs font-extrabold text-primary">
@@ -197,7 +197,7 @@ export function ComplexHubTabs({
   return (
     <div className="flex flex-col gap-3">
       {/* 탭 칩 5개 */}
-      <div className="rise-in-2 flex flex-wrap gap-1.5 text-[13px]">
+      <div className="rise-in-2 flex flex-wrap gap-1.5 t-body">
         {TABS.map((t) => (
           <button
             key={t}
@@ -223,10 +223,10 @@ export function ComplexHubTabs({
           {trades.length > 0 ? (
             <div className="card flex flex-col rounded-[14px] px-3.5 py-2">
               <div className="flex items-baseline justify-between px-0.5 py-1.5">
-                <span className="text-[11px] font-bold text-text-2">
+                <span className="t-sub font-bold text-text-2">
                   최근 실거래 · {Math.min(trades.length, 18)}개월
                 </span>
-                <span className="text-[10px] text-text-3">시세 탭에서 전체</span>
+                <span className="t-caption text-text-3">시세 탭에서 전체</span>
               </div>
               <div className="overflow-hidden rounded-xl bg-bg">
                 {trades.slice(0, 18).map((t, i) => (
@@ -249,13 +249,13 @@ export function ComplexHubTabs({
               </div>
             </div>
           ) : (
-            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+            <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
               아직 수집된 국토교통부 실거래가 없어요
             </div>
           )}
           {notes.length > 0 && (
             <div className="card flex flex-col gap-1.5 rounded-[14px] px-3.5 py-2.5">
-              <div className="px-0.5 text-[11px] font-bold text-text-2">
+              <div className="px-0.5 t-sub font-bold text-text-2">
                 단지 이야기 미리보기 · {notes.length}건
               </div>
               {notes.slice(0, 4).map((n) => (
@@ -263,8 +263,8 @@ export function ComplexHubTabs({
                   key={n.title}
                   className="rounded-xl bg-bg px-3 py-2"
                 >
-                  <div className="truncate text-[12px] font-bold text-ink">{n.title}</div>
-                  <div className="mt-0.5 flex justify-between gap-2 text-[10px] text-text-3">
+                  <div className="truncate t-sub font-bold text-ink">{n.title}</div>
+                  <div className="mt-0.5 flex justify-between gap-2 t-caption text-text-3">
                     <span className="truncate">{n.author}</span>
                     <span className="shrink-0 font-bold text-primary">{n.score}</span>
                   </div>
@@ -279,7 +279,7 @@ export function ComplexHubTabs({
       {tab === "노트" && (
         <div className="rise-in-3 flex flex-col gap-2.5">
           {notes.length === 0 && (
-            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+            <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
               {notesFailed ? (
                 <>
                   <b className="text-ink">지금은 불러올 수 없어요</b>
@@ -296,24 +296,24 @@ export function ComplexHubTabs({
           {notes.map((n) => (
             <div
               key={n.title}
-              className="card card-hover flex flex-col gap-0.5 rounded-[14px] px-3.5 py-3"
+              className="card tile flex flex-col gap-0.5 rounded-[14px] px-3.5 py-3"
             >
-              <div className="text-[13px] font-bold text-ink">{n.title}</div>
+              <div className="t-body font-bold text-ink">{n.title}</div>
               <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
-                <span className="text-[11px] text-text-3">{n.author}</span>
-                <span className="text-[11px] font-extrabold text-primary">{n.score}</span>
+                <span className="t-sub text-text-3">{n.author}</span>
+                <span className="t-sub font-extrabold text-primary">{n.score}</span>
               </div>
             </div>
           ))}
           {notesWriteHref && !notesFailed && (
             <Link
               href={notesWriteHref}
-              className="btn-primary rounded-xl p-3 text-center text-[13px]"
+              className="btn-primary rounded-xl p-3 text-center t-body"
             >
               이 단지 이야기 쓰기
             </Link>
           )}
-          <Link href="/notes" className="btn-soft rounded-xl p-3 text-center text-[13px]">
+          <Link href="/notes" className="btn-soft rounded-xl p-3 text-center t-body">
             공개 노트 모두 보기
           </Link>
         </div>
@@ -324,14 +324,14 @@ export function ComplexHubTabs({
         <div className="rise-in-3 flex flex-col gap-2.5">
           <div className="px-1 text-xs font-extrabold text-text-3">{listingsLabel}</div>
           {listings.length === 0 && (
-            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+            <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
               등록된 실매물이 아직 없어요 · 지도에서 주변 매물을 확인해 보세요
             </div>
           )}
           {listings.map((l) => (
             <div
               key={l.price}
-              className={`card card-hover flex flex-col gap-1.5 rounded-[16px] px-[15px] py-3.5 ${
+              className={`card tile flex flex-col gap-1.5 rounded-[16px] px-[15px] py-3.5 ${
                 l.urgent ? "border-[1.5px] border-primary" : ""
               }`}
             >
@@ -349,13 +349,13 @@ export function ComplexHubTabs({
                 )}
               </div>
               <div className="text-xs text-text-2">{l.meta}</div>
-              <div className="text-[11px] text-text-3">{l.agent}</div>
+              <div className="t-sub text-text-3">{l.agent}</div>
             </div>
           ))}
           {/* 예전엔 맨 /map — 단지 맥락이 통째로 사라져 전국 지도가 떴다 */}
           <Link
             href={complexId ? `/map?complexId=${encodeURIComponent(complexId)}` : "/map"}
-            className="btn-soft rounded-xl p-3 text-center text-[13px]"
+            className="btn-soft rounded-xl p-3 text-center t-body"
           >
             지도에서 매물 전체 보기
           </Link>
@@ -372,7 +372,7 @@ export function ComplexHubTabs({
           {priceSeries.length >= 2 && <PriceTrendChart points={priceSeries} />}
           {trades.length > 0 ? (
             <div className="card flex flex-col overflow-hidden rounded-[14px] px-0 py-0">
-              <div className="border-b border-line bg-bg px-3.5 py-2 text-[11px] font-bold text-text-2">
+              <div className="border-b border-line bg-bg px-3.5 py-2 t-sub font-bold text-text-2">
                 전체 {trades.length}개월 · 국토교통부
               </div>
               {trades.map((t, i) => (
@@ -394,11 +394,11 @@ export function ComplexHubTabs({
               ))}
             </div>
           ) : (
-            <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+            <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
               아직 수집된 국토교통부 실거래가 없어요
             </div>
           )}
-          <Link href="/analysis/price" className="btn-soft rounded-xl p-3 text-center text-[13px]">
+          <Link href="/analysis/price" className="btn-soft rounded-xl p-3 text-center t-body">
             AI 시세 분석 보기
           </Link>
         </div>
@@ -410,10 +410,10 @@ export function ComplexHubTabs({
           {myRecordCard}
           {/* 사실 우선: 개인화된 노트 판정은 실제 작성 노트가 있을 때만 — 허위 점수·강약점 제거 */}
           <div className="card flex flex-col items-center gap-1.5 rounded-[14px] px-[15px] py-6 text-center">
-            <span className="text-[13px] font-bold text-ink">
+            <span className="t-body font-bold text-ink">
               아직 이 단지에 남긴 임장노트가 없어요
             </span>
-            <span className="text-[11px] text-text-3">
+            <span className="t-sub text-text-3">
               직접 방문해 기록하면 내 판정·방문 이력이 여기에 쌓여요
             </span>
             <Link
@@ -424,7 +424,7 @@ export function ComplexHubTabs({
             </Link>
           </div>
           <div className="card flex items-center justify-between rounded-[14px] px-[15px] py-3.5">
-            <span className="text-[13px] text-text-1">
+            <span className="t-body text-text-1">
               비로그인 상태에서는 요약·노트만 열람돼요
             </span>
             <Link href="/login" className="shrink-0 text-xs font-extrabold text-primary">

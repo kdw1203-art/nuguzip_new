@@ -42,18 +42,18 @@ export default async function CreatorDashboardPage() {
       <PageShell breadcrumb="마이 › 크리에이터" title="크리에이터 대시보드">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-2 px-5 py-12 text-center">
-            <div className="text-[26px]">✍️</div>
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-title">✍️</div>
+            <div className="t-section text-ink">
               로그인하면 내 콘텐츠 성과를 볼 수 있어요
             </div>
-            <div className="text-[12px] leading-[1.6] text-text-3">
+            <div className="t-sub text-text-3">
               공개 노트 수·저장 수와 탑 임장러 현황은
               <br />내 계정 기준으로 집계돼요
             </div>
             <Link href="/login" className="btn-primary btn-md mt-2">
               로그인하고 시작하기
             </Link>
-            <Link href="/notes" className="text-[12px] font-bold text-text-3">
+            <Link href="/notes" className="t-sub font-bold text-text-3">
               공개 임장노트 둘러보기 ›
             </Link>
           </div>
@@ -93,11 +93,11 @@ export default async function CreatorDashboardPage() {
       <PageShell breadcrumb="마이 › 크리에이터" title="크리에이터 대시보드">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
-            <div className="text-[26px]">✍️</div>
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-title">✍️</div>
+            <div className="t-section text-ink">
               크리에이터 대시보드는 조건 충족 후 열려요
             </div>
-            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+            <p className="max-w-[420px] t-body text-text-3">
               공개 임장노트를 1건 이상 발행하거나 전문가 인증을 마치면 콘텐츠
               성과·탑 임장러 현황을 볼 수 있어요.
             </p>
@@ -109,7 +109,7 @@ export default async function CreatorDashboardPage() {
                 전문가 인증 신청
               </Link>
             </div>
-            <Link href="/my" className="text-[12px] font-bold text-text-3 no-underline">
+            <Link href="/my" className="t-sub font-bold text-text-3 no-underline">
               마이로 돌아가기 ›
             </Link>
           </div>

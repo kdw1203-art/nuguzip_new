@@ -84,8 +84,8 @@ export async function BillingPanel({
   return (
     <section className="rise-in-3 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[15px] font-extrabold text-ink">구독 관리 · 결제 내역</h2>
-        <span className="text-[11px] text-text-3">
+        <h2 className="t-section text-ink">구독 관리 · 결제 내역</h2>
+        <span className="t-sub text-text-3">
           현재 플랜 · {PAYMENT_PLAN_LABEL[currentPlan] ?? currentPlan}
         </span>
       </div>
@@ -94,19 +94,19 @@ export async function BillingPanel({
         {!ok ? (
           /* 조회 실패를 "내역 없음"으로 보여 주면, 결제한 사람이 자기 기록이
              사라졌다고 오해한다. 두 상태는 반드시 구분한다. */
-          <div className="rounded-xl bg-[rgba(242,201,76,.08)] px-4 py-5 text-[12px] text-text-2">
+          <div className="rounded-xl bg-[rgba(242,201,76,.08)] px-4 py-5 t-sub text-text-2">
             결제 내역을 지금 불러오지 못했어요. 잠시 후 새로고침해 주세요 — 결제 기록이
             사라진 것은 아닙니다.
           </div>
         ) : payments.length === 0 ? (
-          <div className="rounded-xl bg-[rgba(0,0,0,.02)] px-4 py-6 text-center text-[12px] text-text-3">
+          <div className="rounded-xl bg-[rgba(0,0,0,.02)] px-4 py-6 text-center t-sub text-text-3">
             아직 결제 내역이 없어요.
             <br />
             결제가 완료되면 금액·이용 기간·영수증 링크가 여기에 쌓입니다.
           </div>
         ) : (
           <div className="min-w-[620px]">
-            <div className="grid grid-cols-[130px_100px_80px_90px_110px_1fr] gap-2 border-b border-divider pb-2 text-[11px] text-text-3">
+            <div className="grid grid-cols-[130px_100px_80px_90px_110px_1fr] gap-2 border-b border-divider pb-2 t-sub text-text-3">
               <span>결제 요청일</span>
               <span>플랜</span>
               <span>기간</span>
@@ -166,8 +166,8 @@ export async function BillingPanel({
       {/* 해지 요청 — 단건 결제는 자동 갱신이 없어 "다음 결제 예정일" 자체가 없다.
           자동결제 이용자는 위 카드에 실제 저장값(next_charge_at)이 표시된다. */}
       <div className="mt-4 flex flex-col gap-2 rounded-xl bg-[rgba(29,79,216,.04)] px-4 py-3">
-        <div className="text-[12px] font-extrabold text-ink">플랜 변경 · 해지 · 환불</div>
-        <p className="text-[11px] leading-[1.7] text-text-2">
+        <div className="t-sub font-extrabold text-ink">플랜 변경 · 해지 · 환불</div>
+        <p className="t-sub text-text-2">
           유료 플랜 해지는 아래 <b>해지 요청하기</b>로 접수하거나{" "}
           <Link
             href="/support?category=payment"
@@ -189,7 +189,7 @@ export async function BillingPanel({
           </b>
         </p>
         {billingOpen && !autopay && currentPlan !== "free" && (
-          <p className="text-[11px] leading-[1.7] text-text-2">
+          <p className="t-sub text-text-2">
             매번 결제하기 번거롭다면{" "}
             <Link
               href={`/subscription/billing?tier=${currentPlan}&billing=monthly`}
@@ -201,7 +201,7 @@ export async function BillingPanel({
           </p>
         )}
         {currentPlan !== "free" && <CancelRequestButton currentPlan={currentPlan} />}
-        <p className="text-[11px] leading-[1.7] text-text-3">
+        <p className="t-sub text-text-3">
           상위 플랜으로 올리는 것은 위 요금제 카드에서 바로 결제하면 적용됩니다.
         </p>
       </div>

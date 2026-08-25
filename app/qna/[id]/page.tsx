@@ -91,20 +91,20 @@ export async function generateMetadata({
 function AnswerCard({ a }: { a: QnaAnswer }) {
   return (
     <article className={`card ${a.isAccepted ? "border border-primary" : ""}`}>
-      <div className="flex items-center gap-2 text-[12px] text-text-3">
+      <div className="flex items-center gap-2 t-sub text-text-3">
         <span className="inline-flex items-center gap-1">
           <Icon name="user" size={13} />
           {a.authorLabel}
         </span>
         {a.isAccepted && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
             <Icon name="check" size={12} />
             채택된 답변
           </span>
         )}
         <span className="ml-auto">{shortDate(a.createdAt)}</span>
       </div>
-      <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-text-1">{a.body}</p>
+      <p className="mt-2 whitespace-pre-wrap t-body text-text-1">{a.body}</p>
     </article>
   );
 }
@@ -140,7 +140,7 @@ export default async function QnaDetailPage({
       <PageShell breadcrumb="홈 › 동네이야기 › 단지 Q&A" title="질문을 찾을 수 없어요" wide>
         <TownCategoryNav stick />
         <div style={QNA_THEME} className="card rise-in flex flex-col items-start gap-3">
-          <p className="text-[14px] text-text-2">
+          <p className="t-body text-text-2">
             요청하신 질문을 찾을 수 없어요. 이미 삭제되었거나 잘못된 주소일 수 있어요.
           </p>
           <Link href="/qna" className="btn-primary press">
@@ -170,7 +170,7 @@ export default async function QnaDetailPage({
   const body = (
     <>
       <div className="mb-3">
-        <Link href="/qna" className="inline-flex items-center gap-1 text-[13px] text-text-3">
+        <Link href="/qna" className="inline-flex items-center gap-1 t-body text-text-3">
           <Icon name="messages-square" size={14} />
           단지 Q&amp;A 목록
         </Link>
@@ -180,30 +180,30 @@ export default async function QnaDetailPage({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
             {question.complexName && (
-              <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
                 {question.complexName}
               </span>
             )}
             {question.region && (
-              <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
                 {question.region}
               </span>
             )}
             {question.bountyPoints > 0 && (
-              <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+              <span className="rounded-full bg-primary-soft chip-pad t-sub font-semibold text-primary">
                 현상금 {question.bountyPoints.toLocaleString()}P
               </span>
             )}
           </div>
           {question.isSample && (
-            <span className="shrink-0 rounded-full bg-[rgba(127,140,158,.12)] chip-pad text-[11px] font-semibold text-text-3">
+            <span className="shrink-0 rounded-full bg-[rgba(127,140,158,.12)] chip-pad t-sub font-semibold text-text-3">
               예시
             </span>
           )}
         </div>
 
         {question.body && (
-          <p className="mt-3 whitespace-pre-wrap text-[14px] leading-relaxed text-text-1">
+          <p className="mt-3 whitespace-pre-wrap t-body text-text-1">
             {question.body}
           </p>
         )}
@@ -211,14 +211,14 @@ export default async function QnaDetailPage({
         {question.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {question.tags.map((t) => (
-              <span key={t} className="chip text-[11px]">
+              <span key={t} className="chip t-sub">
                 #{t}
               </span>
             ))}
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 text-[12px] text-text-3">
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-line pt-3 t-sub text-text-3">
           <span className="inline-flex items-center gap-1">
             <Icon name="user" size={13} />
             {question.authorLabel}
@@ -233,9 +233,9 @@ export default async function QnaDetailPage({
       </article>
 
       <section className="mt-5">
-        <h2 className="mb-2.5 text-[15px] font-bold text-ink">답변 {answers.length}</h2>
+        <h2 className="mb-2.5 t-body font-bold text-ink">답변 {answers.length}</h2>
         {answers.length === 0 ? (
-          <div className="card text-[13px] text-text-3">
+          <div className="card t-body text-text-3">
             아직 답변이 없어요. 첫 번째 답변을 남겨보세요.
           </div>
         ) : (
@@ -251,7 +251,7 @@ export default async function QnaDetailPage({
         <AnswerForm questionId={id} isSample={question.isSample} />
       </div>
 
-      <p className="mt-6 text-[11px] leading-relaxed text-text-3">
+      <p className="mt-6 t-sub text-text-3">
         ※ 답변은 이용자 개인의 의견이며 정확성이 보장되지 않습니다. 투자·계약 판단과 그 책임은
         본인에게 있습니다.
       </p>
@@ -292,8 +292,8 @@ export default async function QnaDetailPage({
   const aside = (
     <div className="flex flex-col gap-3">
       <section className="card flex flex-col gap-2 rounded-[18px] p-[18px]">
-        <h2 className="text-[14px] font-bold text-ink">이어서 확인하기</h2>
-        <p className="text-[12px] leading-[1.6] text-text-3">
+        <h2 className="t-body font-bold text-ink">이어서 확인하기</h2>
+        <p className="t-sub text-text-3">
           답변을 기다리는 동안, 이미 남아 있는 자료에서 먼저 확인할 수 있어요.
         </p>
         <div className="mt-1 flex flex-col gap-2">
@@ -307,8 +307,8 @@ export default async function QnaDetailPage({
                 <Icon name={l.icon} size={16} />
               </span>
               <span className="flex flex-col">
-                <span className="text-[13px] font-bold text-ink">{l.label}</span>
-                <span className="text-[11px] text-text-3">{l.desc}</span>
+                <span className="t-body font-bold text-ink">{l.label}</span>
+                <span className="t-sub text-text-3">{l.desc}</span>
               </span>
             </Link>
           ))}
@@ -317,7 +317,7 @@ export default async function QnaDetailPage({
 
       {topics.length > 0 && (
         <section className="card flex flex-col gap-2 rounded-[18px] p-[18px]">
-          <h2 className="text-[14px] font-bold text-ink">비슷한 주제 더 보기</h2>
+          <h2 className="t-body font-bold text-ink">비슷한 주제 더 보기</h2>
           {/* 주제는 태그·본문에서 추정한 값이라 단정하지 않고 "검색 링크" 로만 쓴다 */}
           <div className="flex flex-wrap gap-1.5">
             {topics.map((k) => {

@@ -171,7 +171,7 @@ export function PlanCards({
   return (
     <div className="flex flex-col items-center gap-6">
       {/* 월간 / 연간 토글 */}
-      <div className="rise-in inline-flex gap-1 rounded-full border border-line bg-surface p-1 text-[13px]">
+      <div className="rise-in inline-flex gap-1 rounded-full border border-line bg-surface p-1 t-body">
         {(["monthly", "annual"] as const).map((b) => (
           <button
             key={b}
@@ -208,12 +208,12 @@ export function PlanCards({
               } ${isCurrent ? "ring-2 ring-primary" : ""}`}
             >
               {isCurrent ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-3.5 py-[5px] text-[11px] font-extrabold text-ai-accent">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-3.5 py-[5px] t-sub font-extrabold text-ai-accent">
                   현재 이용 중
                 </span>
               ) : (
                 p.badge && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3.5 py-[5px] text-[11px] font-extrabold text-white shadow-[0_6px_16px_rgba(29,79,216,.4)]">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3.5 py-[5px] t-sub font-extrabold text-white shadow-[0_6px_16px_rgba(29,79,216,.4)]">
                     {p.badge}
                   </span>
                 )

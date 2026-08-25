@@ -30,7 +30,7 @@ export function ExpandableComplexRows({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="press text-[12px] font-bold text-primary"
+            className="press t-sub font-bold text-primary"
           >
             더 보기
           </button>

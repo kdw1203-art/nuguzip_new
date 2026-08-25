@@ -73,9 +73,9 @@ export async function ComplexAxisSummary({
       <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
         {cells.map((c) => (
           <div key={c.label} className="rounded-xl border border-line bg-bg p-2.5">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-text-3">{c.label}</div>
+            <div className="t-caption font-bold uppercase tracking-wide text-text-3">{c.label}</div>
             <div className="mt-0.5 text-lg font-extrabold text-ink tabular-nums">{c.value}</div>
-            <div className="text-[10px] text-text-3">{c.sub}</div>
+            <div className="t-caption text-text-3">{c.sub}</div>
           </div>
         ))}
       </div>
@@ -89,7 +89,7 @@ export async function ComplexAxisSummary({
           ))}
         </div>
       )}
-      <p className="mt-2 text-[10px] text-text-3">
+      <p className="mt-2 t-caption text-text-3">
         참고용 요약이며 투자 권유가 아닙니다 · 축별 출처·기준일은 AI 진단 화면의 근거 각주에서 확인
       </p>
     </section>

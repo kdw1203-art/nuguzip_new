@@ -108,9 +108,9 @@ export default async function ApplyPage() {
         {/* 상단 CTA — 예전의 정적 탭(전체·예정·접수 중·지난 청약)은 클릭해도 아무
             동작이 없는 장식이라 제거했다. 실동작 탭(경쟁률/특별공급)은 아래 검색 영역에 있다. */}
         <div className="rise-in mt-4 mb-4 flex flex-wrap items-center gap-2">
-          <h2 className="text-[17px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             청약 경쟁률 · 특별공급{" "}
-            <span className="text-[12px] font-bold text-primary">청약홈 실데이터</span>
+            <span className="t-sub font-bold text-primary">청약홈 실데이터</span>
           </h2>
           <div className="flex-1" />
           {/* [개선 #17] 접수 일정 캘린더 — 접수 시작·마감을 날짜별로 */}
@@ -131,7 +131,7 @@ export default async function ApplyPage() {
         </div>
 
         {/* 정직 안내 — 이 페이지의 표는 전부 청약홈 공공데이터 실데이터 */}
-        <div className="rise-in mb-4 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.6] text-primary">
+        <div className="rise-in mb-4 rounded-xl bg-primary-soft px-4 py-3 t-sub text-primary">
           경쟁률·특별공급 표는 <b>청약홈(한국부동산원) 공공데이터</b>예요. 접수 일정·공고 원문·청약
           신청은{" "}
           <a
@@ -152,26 +152,26 @@ export default async function ApplyPage() {
           {/* 우측 사이드 */}
           <aside className="flex flex-col gap-3.5">
             <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-              <div className="flex items-center gap-2 text-[13px] font-extrabold text-ink">
+              <div className="flex items-center gap-2 t-body font-extrabold text-ink">
                 <Icon name="lightbulb" className="h-4 w-4 text-primary" />이 숫자를 읽는 법
               </div>
-              <p className="text-[12px] leading-[1.7] text-text-2">
+              <p className="t-sub text-text-2">
                 경쟁률은 <b>공고 · 주택형(타입) · 순위</b>별로 제공돼요. 그래서 같은 단지가 타입 수만큼
                 여러 줄로 보이는 게 정상이고, 한 줄의 경쟁률은 그 타입 하나의 경쟁률이에요.
               </p>
-              <p className="text-[12px] leading-[1.7] text-text-2">
+              <p className="t-sub text-text-2">
                 단지명이 &ldquo;단지명 미제공&rdquo;으로 표시되는 행은 청약홈 분양정보(상세) API 승인
                 대기 상태라 공고 번호만 확보된 경우예요 — 타입코드를 단지명처럼 보여드리지 않아요.
               </p>
-              <p className="text-[11px] leading-[1.6] text-text-3">
+              <p className="t-sub text-text-3">
                 출처: 청약홈(한국부동산원) 공공데이터포털 · 조회 시점 기준이며 실제 공고·결과는 청약홈
                 원문이 우선합니다.
               </p>
             </div>
 
             <div className="rise-in-4 card flex flex-col gap-1.5 rounded-[18px] p-[18px]">
-              <div className="text-[13px] font-extrabold text-ink">함께 보면 좋아요</div>
-              <p className="mb-1 text-[11px] leading-[1.6] text-text-3">
+              <div className="t-body font-extrabold text-ink">함께 보면 좋아요</div>
+              <p className="mb-1 t-sub text-text-3">
                 청약은 단독으로 보기 어려워요. 같은 지역의 공급·가격 하단도 같이 확인해 보세요.
               </p>
               {CROSS_LINKS.map((l) => (
@@ -184,8 +184,8 @@ export default async function ApplyPage() {
                     <Icon name={l.icon} className="h-4 w-4 text-primary" />
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[12.5px] font-bold text-ink">{l.label}</span>
-                    <span className="block truncate text-[11px] text-text-3">{l.desc}</span>
+                    <span className="block t-body font-bold text-ink">{l.label}</span>
+                    <span className="block truncate t-sub text-text-3">{l.desc}</span>
                   </span>
                 </Link>
               ))}

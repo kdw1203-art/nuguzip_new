@@ -246,7 +246,7 @@ export function NewsListClient({
 
       {/* 대표 뉴스 — [#67] 관련 보도가 있으면 카드 하단에 접힘 목록 */}
       {featured && (
-        <div className="rise-in card card-hover mb-5 overflow-hidden rounded-[20px]">
+        <div className="rise-in card tile mb-5 overflow-hidden rounded-[20px]">
           <Link href={`/town/news/${featured.id}`} className="block">
             <Thumb card={featured} tall />
             <div className="flex flex-col gap-2 p-5">
@@ -295,7 +295,7 @@ export function NewsListClient({
           {rest.map((c, i) => (
             <div
               key={c.id}
-              className={`card card-hover rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-[16px]`}
+              className={`card tile rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-[16px]`}
             >
               <Link href={`/town/news/${c.id}`} className="flex flex-1 flex-col">
                 <Thumb card={c} />

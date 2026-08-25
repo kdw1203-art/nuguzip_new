@@ -81,7 +81,7 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
           <span className="flex h-[62px] w-[62px] items-center justify-center rounded-full border-2 border-dashed border-[#d5dceb] text-primary">
             <Icon name="plus" size={22} />
           </span>
-          <span className="w-full truncate text-center text-[10px] text-text-2">
+          <span className="w-full truncate text-center t-caption text-text-2">
             노트 쓰기
           </span>
         </Link>
@@ -101,7 +101,7 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
                   imgClassName="h-full w-full object-cover"
                   fallback={
                     <span
-                      className="flex h-full w-full items-center justify-center text-[15px] font-extrabold text-white"
+                      className="flex h-full w-full items-center justify-center t-section text-white"
                       style={{ background: seedGradient(n.id) }}
                     >
                       {shortLabel(n).slice(0, 2)}
@@ -110,7 +110,7 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
                 />
               </span>
             </span>
-            <span className="w-full truncate text-center text-[10px] text-text-2">
+            <span className="w-full truncate text-center t-caption text-text-2">
               {shortLabel(n)}
             </span>
           </Link>
@@ -139,21 +139,21 @@ function GridTile({ n }: { n: FeedNote }) {
         }
       />
       {/* 점수 배지 (인스타 조회수/캐러셀 인디케이터 위치) */}
-      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 chip-pad-tight text-[10px] font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:text-[11px]">
+      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 chip-pad-tight t-caption font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:t-sub">
         체크 {n.score}
       </span>
       {n.isExample && (
-        <span className="absolute left-1.5 top-1.5 rounded bg-black/45 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur-sm">
+        <span className="absolute left-1.5 top-1.5 rounded bg-black/45 px-1.5 py-0.5 t-caption font-bold text-white backdrop-blur-sm">
           예시
         </span>
       )}
       {/* 하단 스크림 + 제목·지역 오버레이 */}
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/78 via-black/25 to-transparent px-2 pb-2 pt-7 md:px-3 md:pb-3">
-        <p className="line-clamp-2 text-[11.5px] font-bold leading-[1.25] text-white drop-shadow-sm md:text-[14px]">
+        <p className="line-clamp-2 t-sub font-bold text-white drop-shadow-sm md:t-body">
           {n.title}
         </p>
         {n.region && (
-          <p className="mt-0.5 truncate text-[9.5px] text-white/85 md:mt-1 md:text-[11.5px]">
+          <p className="mt-0.5 truncate t-caption text-white/85 md:mt-1 md:t-sub">
             {n.region}
           </p>
         )}
@@ -174,11 +174,11 @@ function PostCard({ n }: { n: FeedNote }) {
           aria-hidden="true"
         />
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-[13px] font-bold text-ink">
+          <div className="flex items-center gap-1 t-body font-bold text-ink">
             <span className="truncate">{n.author}</span>
             {n.isExample && <ExampleBadge />}
           </div>
-          <div className="truncate text-[11px] text-text-3">{n.title}</div>
+          <div className="truncate t-sub text-text-3">{n.title}</div>
         </div>
         <span
           className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
@@ -203,13 +203,13 @@ function PostCard({ n }: { n: FeedNote }) {
               className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 px-7 text-center text-white"
               style={{ background: seedGradient(n.id) }}
             >
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/85">
+              <span className="t-sub font-bold uppercase tracking-[0.14em] text-white/85">
                 임장노트
               </span>
-              <span className="line-clamp-3 text-[23px] font-extrabold leading-[1.25] drop-shadow-sm">
+              <span className="line-clamp-3 t-title drop-shadow-sm">
                 {n.title}
               </span>
-              <span className="mt-1 rounded-full bg-white/22 px-3.5 py-1 text-[12px] font-extrabold backdrop-blur-sm">
+              <span className="mt-1 rounded-full bg-white/22 px-3.5 py-1 t-sub font-extrabold backdrop-blur-sm">
                 자가 체크 요약 {n.score}
               </span>
             </div>
@@ -221,25 +221,25 @@ function PostCard({ n }: { n: FeedNote }) {
         <div className="flex items-center px-3.5 pt-3">
           <Link
             href={n.complexHref}
-            className="text-[12px] font-bold text-primary no-underline"
+            className="t-sub font-bold text-primary no-underline"
           >
             단지 허브 ›
           </Link>
         </div>
       )}
       <div className="px-3.5 pb-3.5 pt-2">
-        <p className="text-[13px] leading-[1.55] text-text-1">
+        <p className="t-body text-text-1">
           <span className="font-bold text-ink">{n.author}</span>{" "}
           <span className="text-text-2">{n.excerpt}</span>
         </p>
         {n.tags.length > 0 && (
-          <p className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-0.5 text-[12px] font-semibold text-primary">
+          <p className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-0.5 t-sub font-semibold text-primary">
             {n.tags.map((t) => (
               <span key={t.label}>#{t.label.replace(/\s/g, "")}</span>
             ))}
           </p>
         )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 text-[11px] text-text-3">
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 t-sub text-text-3">
           <span>{n.meta}</span>
           {n.footer.map((f) => (
             <span key={f}>· {f}</span>
@@ -247,7 +247,7 @@ function PostCard({ n }: { n: FeedNote }) {
         </div>
         <Link
           href={detailHref}
-          className="mt-2 inline-block text-[12px] font-semibold text-text-3 no-underline"
+          className="mt-2 inline-block t-sub font-semibold text-text-3 no-underline"
         >
           자세히 보기 ›
         </Link>
@@ -329,7 +329,7 @@ export function NotesFeedClient({
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 md:gap-5">
         {/* 헤더 */}
         <div className="px-1">
-          <h1 className="text-[22px] font-extrabold text-ink md:text-[26px]">
+          <h1 className="t-title text-ink md:t-title">
             {mine ? "내 임장노트" : "공개 임장노트"}
           </h1>
           <p className="mt-1.5 text-sm text-text-2">
@@ -338,7 +338,7 @@ export function NotesFeedClient({
               : "이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요"}
           </p>
           {!mine && (
-            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 t-sub">
               <Link href="/notes/best" className="font-bold text-primary underline">
                 이달의 공개 임장노트 — 선정 기준까지 공개 ›
               </Link>
@@ -356,7 +356,7 @@ export function NotesFeedClient({
 
         {/* 조회 실패 — 이 경우 "노트가 없다" 고 읽히면 안 되므로 빈 상태와 분리한다 */}
         {loadError && (
-          <div className="rounded-[12px] border border-line bg-surface px-3.5 py-3 text-[12px] leading-[1.6] text-text-2">
+          <div className="rounded-[12px] border border-line bg-surface px-3.5 py-3 t-sub text-text-2">
             {mine ? "내 임장노트를" : "공개 임장노트를"}{" "}
             <strong className="text-ink">불러오지 못했습니다</strong>. 노트가 없다는 뜻이 아니라
             조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해 주세요.
@@ -368,7 +368,7 @@ export function NotesFeedClient({
 
         {/* 필터 칩 + 뷰 전환 */}
         <div className="flex items-center justify-between gap-2 px-1">
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 text-[13px] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 t-body [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {filters.map((f) => (
               <button
                 key={f}
@@ -412,7 +412,7 @@ export function NotesFeedClient({
 
         {/* 예시 안내 */}
         {exampleOnly && (
-          <div className="flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 text-[11px] text-text-3">
+          <div className="flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 t-sub text-text-3">
             <ExampleBadge />
             <span>
               아직 공개된 임장노트가 없어 샘플 1건을 보여드려요 — 실데이터가
@@ -482,7 +482,7 @@ export function NotesFeedClient({
           </Link>
           <Link
             href="/notes/new?quick=1"
-            className="flex-1 rounded-2xl border-[1.5px] border-dashed border-line-strong bg-surface p-[15px] text-center text-[14px] font-bold text-text-1"
+            className="flex-1 rounded-2xl border-[1.5px] border-dashed border-line-strong bg-surface p-[15px] text-center t-body font-bold text-text-1"
           >
             📷 현장 퀵 기록
           </Link>
@@ -493,7 +493,7 @@ export function NotesFeedClient({
       <Link
         href="/notes/new"
         aria-label="노트 쓰기"
-        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full text-[24px] md:hidden"
+        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full t-title md:hidden"
         style={{
           boxShadow: "0 10px 24px rgba(29,79,216,.45)",
           bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",

@@ -41,8 +41,8 @@ export function TypeFilterPanel({
         >
           <Icon name="check" size={11} />
         </span>
-        <span className="text-[13px] font-bold text-ink">전체</span>
-        <span className="text-[11px] text-text-3">모든 사업종류 표시</span>
+        <span className="t-body font-bold text-ink">전체</span>
+        <span className="t-sub text-text-3">모든 사업종류 표시</span>
       </button>
 
       {/* 그룹별 컬러 알약 */}
@@ -52,7 +52,7 @@ export function TypeFilterPanel({
           if (items.length === 0) return null;
           return (
             <div key={g.key}>
-              <div className="mb-1.5 text-[11px] font-bold text-text-2">{g.label}</div>
+              <div className="mb-1.5 t-sub font-bold text-text-2">{g.label}</div>
               <div className="flex flex-wrap gap-1.5">
                 {items.map((t) => {
                   const active = selected.has(t.key);

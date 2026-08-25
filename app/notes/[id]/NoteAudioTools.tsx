@@ -76,15 +76,15 @@ export function NoteAudioTools({
   return (
     <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-[14px] font-extrabold text-ink">
+        <div className="t-section text-ink">
           현장 음성 메모{" "}
-          <span className="text-[11px] font-medium text-text-3">{voiceMemos.length}개</span>
+          <span className="t-sub font-medium text-text-3">{voiceMemos.length}개</span>
         </div>
         {/* [AI-36] 브리핑 듣기 — 녹음이 없어도 노트 자체를 읽어준다 */}
         <button
           type="button"
           onClick={() => void playBriefing()}
-          className="rounded-[10px] border border-line-strong bg-bg px-3 py-1.5 text-[12px] font-bold text-text-1"
+          className="rounded-[10px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1"
         >
           {ttsState === "loading"
             ? "브리핑 준비 중…"
@@ -106,14 +106,14 @@ export function NoteAudioTools({
                 type="button"
                 onClick={() => void transcribe(u)}
                 disabled={busyUrl === u}
-                className="shrink-0 rounded-[9px] bg-bg px-2.5 py-1.5 text-[11.5px] font-bold text-text-1 disabled:opacity-60"
+                className="shrink-0 rounded-[9px] bg-bg px-2.5 py-1.5 t-sub font-bold text-text-1 disabled:opacity-60"
               >
                 {busyUrl === u ? "전사 중…" : transcripts[u] ? "다시 전사" : "글로 변환"}
               </button>
             )}
           </div>
           {transcripts[u] && (
-            <div className="rounded-[10px] bg-bg px-3 py-2 text-[12px] leading-[1.7] text-text-1">
+            <div className="rounded-[10px] bg-bg px-3 py-2 t-sub text-text-1">
               {transcripts[u]}
               <button
                 type="button"
@@ -125,11 +125,11 @@ export function NoteAudioTools({
                     setCopied(null);
                   }
                 }}
-                className="ml-2 text-[11px] font-bold text-primary"
+                className="ml-2 t-sub font-bold text-primary"
               >
                 {copied === u ? "복사됨 ✓" : "복사"}
               </button>
-              <span className="ml-1 text-[10.5px] text-text-3">
+              <span className="ml-1 t-caption text-text-3">
                 — 노트 수정에서 메모에 붙여넣어 저장하세요 (음성 메모 {i + 1})
               </span>
             </div>

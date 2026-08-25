@@ -63,7 +63,7 @@ export default async function DigestPage() {
     return (
       <PageShell breadcrumb="주간 다이제스트">
         <div className="mx-auto flex w-full max-w-[480px] flex-col gap-2.5">
-          <h1 className="mt-2 text-[17px] font-extrabold text-ink">주간 다이제스트</h1>
+          <h1 className="mt-2 t-section text-ink">주간 다이제스트</h1>
           <ErrorState
             title="주간 요약을 불러오지 못했어요"
             desc="데이터 조회가 실패했습니다. 이번 주에 소식이 없다는 뜻은 아니에요. 잠시 후 다시 열어봐 주세요."
@@ -103,9 +103,9 @@ export default async function DigestPage() {
               <span className="text-xs font-extrabold text-ink">
                 누구집 · 주간 다이제스트
               </span>
-              <span className="text-[10px] text-text-3">최근 7일</span>
+              <span className="t-caption text-text-3">최근 7일</span>
             </div>
-            <div className="mt-0.5 text-[11px] text-text-2">{previewLine}</div>
+            <div className="mt-0.5 t-sub text-text-2">{previewLine}</div>
           </div>
         </div>
 
@@ -116,11 +116,11 @@ export default async function DigestPage() {
             발송 크론(/api/cron/weekly-digest, 월 18:00 KST)이 실제로 있다. */}
         <Link
           href="/my/settings"
-          className="rise-in-1 card-hover flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3.5 no-underline"
+          className="rise-in-1 tile flex items-center justify-between rounded-2xl border border-line bg-surface px-4 py-3.5 no-underline"
         >
           <div>
-            <div className="text-[13px] font-extrabold text-ink">매주 받아보기</div>
-            <div className="mt-0.5 text-[11px] text-text-2">
+            <div className="t-body font-extrabold text-ink">매주 받아보기</div>
+            <div className="mt-0.5 t-sub text-text-2">
               설정 › 알림 › 푸시 알림에서 ‘주간 다이제스트’를 켜면 매주 월요일 저녁에
               이 요약을 한 번 보내드려요.
             </div>
@@ -130,7 +130,7 @@ export default async function DigestPage() {
           </span>
         </Link>
 
-        <h1 className="rise-in-1 mt-2 text-[17px] font-extrabold text-ink">
+        <h1 className="rise-in-1 mt-2 t-section text-ink">
           {digest.weekLabel} 주간 다이제스트
         </h1>
 
@@ -138,26 +138,26 @@ export default async function DigestPage() {
         <div className="rise-in-2 card flex flex-col gap-2 rounded-2xl px-4 py-3.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-ink">뉴스 하이라이트</span>
-            <Link href="/town/news" className="text-[11px] font-extrabold text-primary">
+            <Link href="/town/news" className="t-sub font-extrabold text-primary">
               전체 ›
             </Link>
           </div>
           {news.length === 0 &&
             (failed.news ? (
-              <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-[11px] leading-[1.6] text-ink">
+              <div className="rounded-[10px] bg-danger-soft px-3 py-2 t-sub text-ink">
                 뉴스를 불러오지 못했어요 (조회 실패). 수집된 뉴스가 없다는 뜻은 아니에요.
               </div>
             ) : (
-              <div className="text-[11px] text-text-3">
+              <div className="t-sub text-text-3">
                 최근 7일 수집된 뉴스가 없어요.
               </div>
             ))}
           {news.map((n) => (
             <Link key={n.id} href={`/town/news/${n.id}`} className="group">
-              <div className="text-[12px] font-bold leading-[1.45] text-ink group-hover:text-primary">
+              <div className="t-sub font-bold text-ink group-hover:text-primary">
                 {n.title}
               </div>
-              <div className="mt-[2px] text-[10px] text-text-3">
+              <div className="mt-[2px] t-caption text-text-3">
                 {[n.sourceName, shortDate(n.publishedAt), n.region]
                   .filter(Boolean)
                   .join(" · ")}
@@ -170,23 +170,23 @@ export default async function DigestPage() {
         <div className="rise-in-3 card flex flex-col gap-[7px] rounded-2xl px-4 py-3.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-ink">시장 요약</span>
-            <span className="text-[10px] text-text-3">
+            <span className="t-caption text-text-3">
               평균 매매가 · 전월 대비
               {market[0]?.periodLabel ? ` · ${market[0].periodLabel} 기준` : ""}
             </span>
           </div>
           {market.length === 0 &&
             (failed.market ? (
-              <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-[11px] leading-[1.6] text-ink">
+              <div className="rounded-[10px] bg-danger-soft px-3 py-2 t-sub text-ink">
                 시세를 불러오지 못했어요 (조회 실패).
               </div>
             ) : (
-              <div className="text-[11px] text-text-3">
+              <div className="t-sub text-text-3">
                 주요 지역 시세로 표시할 최신 스냅샷이 아직 없어요.
               </div>
             ))}
           {market.map((m) => (
-            <div key={m.regionId} className="flex items-center justify-between text-[11px]">
+            <div key={m.regionId} className="flex items-center justify-between t-sub">
               <span className="text-text-2">
                 <b className="font-bold text-ink">{m.name}</b>
                 <span className="ml-1 text-text-3">{m.city}</span>
@@ -203,28 +203,28 @@ export default async function DigestPage() {
         <div className="rise-in-4 card flex flex-col gap-2 rounded-2xl px-4 py-3.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-ink">커뮤니티</span>
-            <Link href="/town" className="text-[11px] font-extrabold text-primary">
+            <Link href="/town" className="t-sub font-extrabold text-primary">
               동네 이야기 ›
             </Link>
           </div>
           {failed.community ? (
-            <div className="rounded-[10px] bg-danger-soft px-3 py-2 text-[11px] leading-[1.6] text-ink">
+            <div className="rounded-[10px] bg-danger-soft px-3 py-2 t-sub text-ink">
               이웃 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요.
             </div>
           ) : community.count === 0 ? (
-            <div className="text-[11px] text-text-3">
+            <div className="t-sub text-text-3">
               이번 주 새 이웃 글이 아직 없어요. 첫 글을 남겨보세요.
             </div>
           ) : (
             <>
-              <div className="text-[11px] text-text-2">
+              <div className="t-sub text-text-2">
                 이번 주 새 이웃 글 <b className="text-ink">{community.count}건</b>
               </div>
               {community.titles.map((t) => (
                 <Link
                   key={t.id}
                   href={`/town/news/${t.id}`}
-                  className="text-[12px] font-bold leading-[1.45] text-ink hover:text-primary"
+                  className="t-sub font-bold text-ink hover:text-primary"
                 >
                   {t.title}
                 </Link>
@@ -235,13 +235,13 @@ export default async function DigestPage() {
 
         {/* N23 — 이 페이지는 "최근 7일" 이라 어제 본 내용과 오늘 본 내용이 다르다.
             그래서 이 주소는 인용할 수 없다. 주 단위로 고정된 아카이브를 따로 둔다. */}
-        <p className="rise-in-5 text-center text-[11px] text-text-3">
+        <p className="rise-in-5 text-center t-sub text-text-3">
           <Link href="/digest/archive" className="font-extrabold text-primary">
             지난 주간 다이제스트 아카이브 ›
           </Link>
         </p>
 
-        <p className="rise-in-5 text-center text-[10px] text-text-3">
+        <p className="rise-in-5 text-center t-caption text-text-3">
           데이터 기준 시각 {asOfLabel(digest.generatedAt)}
           {digest.marketAsOf ? ` · 실거래 기준 ${digest.marketAsOf} (국토교통부)` : ""}
         </p>

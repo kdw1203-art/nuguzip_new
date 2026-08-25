@@ -29,31 +29,31 @@ export async function ComplexNearbyPoi({
 
   return (
     <section className="rise-in-5 mt-6">
-      <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+      <h2 className="mb-2 px-1 t-section text-ink">
         {name} 도보권 학교·역{" "}
-        <span className="text-[12px] font-medium text-text-3">직선거리 기준</span>
+        <span className="t-sub font-medium text-text-3">직선거리 기준</span>
       </h2>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {poi.schools.length > 0 && (
           <div className="card rounded-2xl px-4 py-3">
-            <div className="mb-1 text-[12px] font-extrabold text-text-2">
+            <div className="mb-1 t-sub font-extrabold text-text-2">
               학교 {poi.schools.length}곳 (1.2km 이내)
             </div>
             <ul className="flex flex-col">
               {poi.schools.map((s) => (
                 <li
                   key={`${s.name}-${s.distanceM}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-divider py-2 text-[13px] last:border-0"
+                  className="flex items-baseline justify-between gap-3 border-b border-divider py-2 t-body last:border-0"
                 >
                   <span className="min-w-0 truncate font-bold text-ink">
                     {s.name}
                     {s.category && (
-                      <span className="ml-1.5 text-[11px] font-medium text-text-3">
+                      <span className="ml-1.5 t-sub font-medium text-text-3">
                         {s.category}
                       </span>
                     )}
                   </span>
-                  <span className="shrink-0 text-[11.5px] text-text-2 tabular-nums">
+                  <span className="shrink-0 t-sub text-text-2 tabular-nums">
                     {walkLabel(s.distanceM)}
                   </span>
                 </li>
@@ -63,24 +63,24 @@ export async function ComplexNearbyPoi({
         )}
         {poi.stations.length > 0 && (
           <div className="card rounded-2xl px-4 py-3">
-            <div className="mb-1 text-[12px] font-extrabold text-text-2">
+            <div className="mb-1 t-sub font-extrabold text-text-2">
               도시철도역 {poi.stations.length}곳 (1.5km 이내)
             </div>
             <ul className="flex flex-col">
               {poi.stations.map((s) => (
                 <li
                   key={`${s.name}-${s.line}-${s.distanceM}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-divider py-2 text-[13px] last:border-0"
+                  className="flex items-baseline justify-between gap-3 border-b border-divider py-2 t-body last:border-0"
                 >
                   <span className="min-w-0 truncate font-bold text-ink">
                     {s.name}
                     {s.line && (
-                      <span className="ml-1.5 text-[11px] font-medium text-text-3">
+                      <span className="ml-1.5 t-sub font-medium text-text-3">
                         {s.line}
                       </span>
                     )}
                   </span>
-                  <span className="shrink-0 text-[11.5px] text-text-2 tabular-nums">
+                  <span className="shrink-0 t-sub text-text-2 tabular-nums">
                     {walkLabel(s.distanceM)}
                   </span>
                 </li>

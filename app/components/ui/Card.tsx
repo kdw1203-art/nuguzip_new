@@ -14,7 +14,7 @@ export type CardProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
 };
 
-/** Surface card wrapper — reuses the design-system `.card` (+ `.card-hover`). */
+/** Surface card wrapper — reuses the design-system `.card` (+ `.tile`). */
 export function Card({
   hover = false,
   padding = "card",
@@ -22,7 +22,7 @@ export function Card({
   children,
   ...rest
 }: CardProps) {
-  const cls = ["card", hover && "card-hover press", PADDING[padding], className]
+  const cls = ["card", hover && "tile press", PADDING[padding], className]
     .filter(Boolean)
     .join(" ");
   return (

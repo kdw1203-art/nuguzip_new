@@ -98,14 +98,14 @@ export function VoiceMemoRecorder({
   return (
     <div className="flex flex-col gap-1.5 rounded-[14px] border border-line bg-surface px-4 py-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[12.5px] font-extrabold text-ink">
+        <span className="t-body font-extrabold text-ink">
           음성 메모 <span className="font-medium text-text-3">(선택 · 최대 {MAX_MEMOS}개)</span>
         </span>
         {state === "recording" ? (
           <button
             type="button"
             onClick={stop}
-            className="rounded-[9px] bg-danger px-3 py-1.5 text-[11.5px] font-bold text-white"
+            className="rounded-[9px] bg-danger px-3 py-1.5 t-sub font-bold text-white"
           >
             ■ 녹음 끝내기 {sec}s
           </button>
@@ -114,7 +114,7 @@ export function VoiceMemoRecorder({
             type="button"
             onClick={start}
             disabled={state === "uploading" || memos.length >= MAX_MEMOS}
-            className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1 disabled:opacity-50"
+            className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1 disabled:opacity-50"
           >
             {state === "uploading" ? "저장 중…" : "🎙 30초 녹음"}
           </button>
@@ -130,7 +130,7 @@ export function VoiceMemoRecorder({
                 type="button"
                 aria-label={`음성 메모 ${i + 1} 삭제`}
                 onClick={() => onChange(memos.filter((m) => m !== u))}
-                className="shrink-0 text-[12px] font-bold text-text-3"
+                className="shrink-0 t-sub font-bold text-text-3"
               >
                 ✕
               </button>
@@ -139,15 +139,15 @@ export function VoiceMemoRecorder({
         </div>
       )}
       {state === "denied" && (
-        <p className="text-[11px] font-bold text-text-3">마이크 권한이 거부돼 녹음을 건너뛰어요.</p>
+        <p className="t-sub font-bold text-text-3">마이크 권한이 거부돼 녹음을 건너뛰어요.</p>
       )}
       {state === "unsupported" && (
-        <p className="text-[11px] font-bold text-text-3">이 브라우저는 녹음을 지원하지 않아요.</p>
+        <p className="t-sub font-bold text-text-3">이 브라우저는 녹음을 지원하지 않아요.</p>
       )}
       {state === "error" && (
-        <p className="text-[11px] font-bold text-warning">저장에 실패했어요 — 다시 시도해 주세요.</p>
+        <p className="t-sub font-bold text-warning">저장에 실패했어요 — 다시 시도해 주세요.</p>
       )}
-      <p className="text-[10.5px] leading-[1.6] text-text-3">
+      <p className="t-caption text-text-3">
         말로 남긴 첫인상은 나중에 글로 옮길 때 가장 좋은 재료가 됩니다. 녹음은 노트에
         첨부되며, 공개 노트에서는 다른 사람도 들을 수 있어요.
       </p>

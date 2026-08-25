@@ -222,7 +222,7 @@ export default async function ImjangRegionPage({
                   key={n.id}
                   prefetch={false}
                   href={`/notes/${encodeURIComponent(n.id)}`}
-                  className="card card-hover flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
+                  className="card tile flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-extrabold text-ink">

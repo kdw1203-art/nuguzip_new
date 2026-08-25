@@ -280,12 +280,12 @@ function Metric({
 }) {
   return (
     <tr className="border-b border-border last:border-b-0 align-top">
-      <th scope="row" className="py-2.5 pr-2 text-left text-[12px] font-medium text-text-3">
+      <th scope="row" className="py-2.5 pr-2 text-left t-sub font-medium text-text-3">
         {label}
-        {note ? <span className="block text-[10px] text-text-3">{note}</span> : null}
+        {note ? <span className="block t-caption text-text-3">{note}</span> : null}
       </th>
-      <td className="py-2.5 text-right text-[13px] font-extrabold text-ink">{valueA}</td>
-      <td className="py-2.5 text-right text-[13px] font-extrabold text-ink">{valueB}</td>
+      <td className="py-2.5 text-right t-body font-extrabold text-ink">{valueA}</td>
+      <td className="py-2.5 text-right t-body font-extrabold text-ink">{valueB}</td>
     </tr>
   );
 }
@@ -425,7 +425,7 @@ export default async function ComplexComparePage({
         dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
 
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         {regionLabel} {pair.dong} · 국토교통부 실거래가(매매) {windowLabel} 기준 ·{" "}
         <strong className="text-ink">
           {a.count + b.count}
@@ -436,11 +436,11 @@ export default async function ComplexComparePage({
 
       {/* 한눈에 비교 */}
       <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">한눈에 비교</h2>
+        <h2 className="t-section text-ink">한눈에 비교</h2>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[420px] text-[13px]">
+          <table className="w-full min-w-[420px] t-body">
             <thead>
-              <tr className="border-b border-border text-[11px] text-text-3">
+              <tr className="border-b border-border t-sub text-text-3">
                 <th className="py-2 text-left font-medium">항목</th>
                 <th className="py-2 text-right font-medium">
                   <Link href={pathA} className="text-primary underline">
@@ -501,7 +501,7 @@ export default async function ComplexComparePage({
           </table>
         </div>
         {priceGap && (
-          <p className="mt-3 text-[12px] leading-[1.7] text-text-2">
+          <p className="mt-3 t-sub text-text-2">
             평균 거래가는 {priceGap}. 두 단지의 주력 면적대가 다르면 이 차이에는 면적 차이가
             섞여 있습니다 — 아래 <strong className="text-ink">면적대별 비교</strong>를 함께
             보세요.
@@ -512,16 +512,16 @@ export default async function ComplexComparePage({
       {/* 면적대별 비교 */}
       {sharedBands.length > 0 && (
         <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             면적대별 비교{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="t-sub font-medium text-text-3">
               {windowLabel} 평균 · 거래 있는 구간만
             </span>
           </h2>
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[460px] text-left text-[13px]">
+            <table className="w-full min-w-[460px] text-left t-body">
               <thead>
-                <tr className="border-b border-border text-[11px] text-text-3">
+                <tr className="border-b border-border t-sub text-text-3">
                   <th className="py-2 font-medium">전용면적</th>
                   <th className="py-2 text-right font-medium">{a.name}</th>
                   <th className="py-2 text-right font-medium">{b.name}</th>
@@ -545,7 +545,7 @@ export default async function ComplexComparePage({
                             <span className="font-extrabold text-ink">
                               {formatKrwShort(cellA.avgKrw)}
                             </span>
-                            <span className="ml-1 text-[11px] text-text-3">
+                            <span className="ml-1 t-sub text-text-3">
                               {cellA.count}건
                             </span>
                           </>
@@ -559,7 +559,7 @@ export default async function ComplexComparePage({
                             <span className="font-extrabold text-ink">
                               {formatKrwShort(cellB.avgKrw)}
                             </span>
-                            <span className="ml-1 text-[11px] text-text-3">
+                            <span className="ml-1 t-sub text-text-3">
                               {cellB.count}건
                             </span>
                           </>
@@ -567,11 +567,11 @@ export default async function ComplexComparePage({
                           <span className="text-text-3">거래 없음</span>
                         )}
                       </td>
-                      <td className="py-2.5 text-right text-[12px] text-text-2">
+                      <td className="py-2.5 text-right t-sub text-text-2">
                         {diff !== null && higher ? (
                           <>
                             {formatKrwShort(diff)}
-                            <span className="ml-1 text-[10px] text-text-3">{higher}↑</span>
+                            <span className="ml-1 t-caption text-text-3">{higher}↑</span>
                           </>
                         ) : (
                           <span className="text-text-3">—</span>
@@ -584,7 +584,7 @@ export default async function ComplexComparePage({
             </table>
           </div>
           {bothBands.length === 0 && (
-            <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+            <p className="mt-2 t-sub text-text-3">
               두 단지가 같이 거래된 면적 구간이 없습니다. 이 경우 평균 거래가 비교는 면적이
               다른 집을 견주는 셈이므로, 위 표의 &ldquo;평균 평당가&rdquo;를 보는 편이
               낫습니다.
@@ -595,11 +595,11 @@ export default async function ComplexComparePage({
 
       {/* 월별 거래량 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           월별 거래량{" "}
-          <span className="text-[11px] font-medium text-text-3">{windowLabel} · 계약월 기준</span>
+          <span className="t-sub font-medium text-text-3">{windowLabel} · 계약월 기준</span>
         </h2>
-        <div className="mt-3 flex items-center gap-4 text-[11px] text-text-2">
+        <div className="mt-3 flex items-center gap-4 t-sub text-text-2">
           <span className="flex items-center gap-1">
             <span
               className="inline-block h-2 w-3 rounded-[2px]"
@@ -642,7 +642,7 @@ export default async function ComplexComparePage({
                     }}
                   />
                 </div>
-                <span className="text-[9px] text-text-3">{shortYm(ym)}</span>
+                <span className="t-caption text-text-3">{shortYm(ym)}</span>
               </div>
             );
           })}
@@ -651,21 +651,21 @@ export default async function ComplexComparePage({
 
       {/* 최근 거래 이력 */}
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">
+        <h2 className="t-section text-ink">
           최근 거래 이력{" "}
-          <span className="text-[11px] font-medium text-text-3">각 단지 최근 6건</span>
+          <span className="t-sub font-medium text-text-3">각 단지 최근 6건</span>
         </h2>
         <div className="mt-3 grid gap-5 sm:grid-cols-2">
           {[a, b].map((side, idx) => (
             <div key={side.name}>
-              <h3 className="text-[13px] font-extrabold text-ink">
+              <h3 className="t-body font-extrabold text-ink">
                 <Link href={idx === 0 ? pathA : pathB} className="text-primary underline">
                   {side.name}
                 </Link>
               </h3>
-              <table className="mt-2 w-full text-left text-[12px]">
+              <table className="mt-2 w-full text-left t-sub">
                 <thead>
-                  <tr className="border-b border-border text-[10px] text-text-3">
+                  <tr className="border-b border-border t-caption text-text-3">
                     <th className="py-1.5 font-medium">계약일</th>
                     <th className="py-1.5 font-medium">전용</th>
                     <th className="py-1.5 text-right font-medium">거래금액</th>
@@ -699,8 +699,8 @@ export default async function ComplexComparePage({
 
       {/* 방법론·출처 */}
       <section className="rise-in-3 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">이 비교를 만든 방법</h2>
-        <ul className="mt-2 flex flex-col gap-1.5 text-[12px] leading-[1.7] text-text-2">
+        <h2 className="t-section text-ink">이 비교를 만든 방법</h2>
+        <ul className="mt-2 flex flex-col gap-1.5 t-sub text-text-2">
           <li>
             출처: 국토교통부 실거래가 공개시스템 아파트 매매 신고 자료. 해제된 거래는
             제외했습니다. 매물 호가·시세가 아닙니다.
@@ -732,25 +732,25 @@ export default async function ComplexComparePage({
       <section className="rise-in-3 mb-4 flex flex-wrap gap-2">
         <Link
           href="/notes/new"
-          className="rounded-xl bg-primary px-5 py-3 text-[13px] font-bold text-white shadow-[var(--shadow-cta)]"
+          className="rounded-xl bg-primary px-5 py-3 t-body font-bold text-white shadow-[var(--shadow-cta)]"
         >
           두 단지 임장노트 쓰기
         </Link>
-        <Link href={pathA} className="card card-hover px-5 py-3 text-[13px] font-bold text-ink">
+        <Link href={pathA} className="card tile px-5 py-3 t-body font-bold text-ink">
           {a.name} 실거래
         </Link>
-        <Link href={pathB} className="card card-hover px-5 py-3 text-[13px] font-bold text-ink">
+        <Link href={pathB} className="card tile px-5 py-3 t-body font-bold text-ink">
           {b.name} 실거래
         </Link>
         <Link
           href={`/region/${region.id}`}
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           {region.name} 지역 허브
         </Link>
         <Link
           href="/complex/compare"
-          className="card card-hover px-5 py-3 text-[13px] font-bold text-ink"
+          className="card tile px-5 py-3 t-body font-bold text-ink"
         >
           다른 단지 비교
         </Link>

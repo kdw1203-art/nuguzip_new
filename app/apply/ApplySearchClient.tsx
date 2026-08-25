@@ -167,7 +167,7 @@ function StatusChip({ period }: { period?: string }) {
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold text-text-3">{label}</span>
+      <span className="t-caption font-semibold text-text-3">{label}</span>
       <span className="font-bold text-ink">{value}</span>
     </div>
   );
@@ -176,9 +176,9 @@ function DetailField({ label, value }: { label: string; value: string }) {
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="card flex min-w-0 flex-col gap-0.5 rounded-2xl px-3.5 py-3">
-      <span className="text-[10.5px] font-bold text-text-3">{label}</span>
-      <span className="truncate text-[17px] font-extrabold text-ink">{value}</span>
-      {hint && <span className="truncate text-[10.5px] text-text-3">{hint}</span>}
+      <span className="t-caption font-bold text-text-3">{label}</span>
+      <span className="truncate t-section text-ink">{value}</span>
+      {hint && <span className="truncate t-caption text-text-3">{hint}</span>}
     </div>
   );
 }
@@ -324,12 +324,12 @@ export function ApplySearchClient({ initial }: Props) {
             maxLength={80}
             placeholder="단지명·주소 검색"
             aria-label="단지명·주소 검색"
-            className="min-w-[160px] flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13px] text-ink placeholder:text-text-3"
+            className="min-w-[160px] flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 t-body text-ink placeholder:text-text-3"
           />
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary press rounded-xl px-4 py-2 text-[13px] disabled:opacity-60"
+            className="btn-primary press rounded-xl px-4 py-2 t-body disabled:opacity-60"
           >
             검색
           </button>
@@ -378,7 +378,7 @@ export function ApplySearchClient({ initial }: Props) {
 
       {/* 상세 API 미승인 등 데이터 한계 안내 — 서버가 준 사실 그대로 */}
       {state.detailNotice && (
-        <p className="rise-in-2 rounded-xl bg-primary-soft px-4 py-2.5 text-[11px] leading-[1.6] text-primary">
+        <p className="rise-in-2 rounded-xl bg-primary-soft px-4 py-2.5 t-sub text-primary">
           {state.detailNotice}
         </p>
       )}
@@ -394,7 +394,7 @@ export function ApplySearchClient({ initial }: Props) {
           />
         </div>
       ) : loading ? (
-        <div className="rise-in-2 card rounded-2xl px-4 py-12 text-center text-[13px] text-text-3">
+        <div className="rise-in-2 card rounded-2xl px-4 py-12 text-center t-body text-text-3">
           청약홈 데이터를 불러오는 중…
         </div>
       ) : state.items.length === 0 ? (
@@ -432,7 +432,7 @@ export function ApplySearchClient({ initial }: Props) {
           {/* 정렬 — 표시 중인 행만 다시 세운다(전체 아님). 라벨로 그 사실을 밝힌다. */}
           {hasResults && (
             <div className="rise-in-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-bold text-text-3">정렬</span>
+              <span className="t-sub font-bold text-text-3">정렬</span>
               <button type="button" onClick={() => setSortKey("default")} className={sortPill(sortKey === "default")}>
                 기본
               </button>
@@ -443,7 +443,7 @@ export function ApplySearchClient({ initial }: Props) {
                 공급 많은 순
               </button>
               {sortKey !== "default" && (
-                <span className="text-[10px] text-text-3">표시 중 {state.items.length}건 기준</span>
+                <span className="t-caption text-text-3">표시 중 {state.items.length}건 기준</span>
               )}
             </div>
           )}
@@ -452,7 +452,7 @@ export function ApplySearchClient({ initial }: Props) {
             <div className="min-w-[540px]">
               {state.tab === "competition" ? (
                 <>
-                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
+                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.9fr_1fr] gap-2 border-b border-divider py-2 t-caption text-text-3">
                     <span>단지 · 지역</span>
                     <span className="text-center">타입</span>
                     <span className="text-center">공급</span>
@@ -483,13 +483,13 @@ export function ApplySearchClient({ initial }: Props) {
                         >
                           <span className="font-bold text-ink">
                             {hasDetail && (
-                              <span className="mr-1 inline-block w-2.5 text-center text-[11px] font-extrabold text-text-3">
+                              <span className="mr-1 inline-block w-2.5 text-center t-sub font-extrabold text-text-3">
                                 {open ? "−" : "+"}
                               </span>
                             )}
                             {item.houseName}
                             <StatusChip period={item.subscriptionPeriod} />
-                            <span className="ml-1 text-[10px] font-medium text-text-3">
+                            <span className="ml-1 t-caption font-medium text-text-3">
                               {item.region}
                               {item.resideLabel ? ` · ${item.resideLabel}` : ""}
                             </span>
@@ -506,7 +506,7 @@ export function ApplySearchClient({ initial }: Props) {
                           </span>
                         </button>
                         {open && hasDetail && (
-                          <div className="mb-2 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl bg-bg px-3.5 py-3 text-[11px] sm:grid-cols-3">
+                          <div className="mb-2 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-xl bg-bg px-3.5 py-3 t-sub sm:grid-cols-3">
                             {item.rankCode ? (
                               <DetailField label="순위" value={`${item.rankCode}순위`} />
                             ) : null}
@@ -538,7 +538,7 @@ export function ApplySearchClient({ initial }: Props) {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 text-[10px] text-text-3">
+                  <div className="grid grid-cols-[1.6fr_.9fr_.8fr_.8fr_1fr] gap-2 border-b border-divider py-2 t-caption text-text-3">
                     <span>단지 · 지역</span>
                     <span className="text-center">타입</span>
                     <span className="text-center">특공 세대</span>
@@ -567,13 +567,13 @@ export function ApplySearchClient({ initial }: Props) {
                         >
                           <span className="font-bold text-ink">
                             {hasDetail && (
-                              <span className="mr-1 inline-block w-2.5 text-center text-[11px] font-extrabold text-text-3">
+                              <span className="mr-1 inline-block w-2.5 text-center t-sub font-extrabold text-text-3">
                                 {open ? "−" : "+"}
                               </span>
                             )}
                             {item.houseName}
                             <StatusChip period={item.subscriptionPeriod} />
-                            <span className="ml-1 text-[10px] font-medium text-text-3">
+                            <span className="ml-1 t-caption font-medium text-text-3">
                               {item.region}
                             </span>
                           </span>
@@ -590,10 +590,10 @@ export function ApplySearchClient({ initial }: Props) {
                         </button>
                         {open && hasDetail && (
                           <div className="mb-2 rounded-xl bg-bg px-3.5 py-3">
-                            <div className="mb-1.5 text-[10px] font-bold text-text-3">
+                            <div className="mb-1.5 t-caption font-bold text-text-3">
                               특별공급 유형별 · 공급 / 접수 / 경쟁률
                             </div>
-                            <div className="grid grid-cols-[1.4fr_.8fr_.8fr_.9fr] gap-x-2 gap-y-1 text-[11px]">
+                            <div className="grid grid-cols-[1.4fr_.8fr_.8fr_.9fr] gap-x-2 gap-y-1 t-sub">
                               {typeRows.map((m) => (
                                 <div key={m.id} className="contents">
                                   <span className="text-text-2">{m.label}</span>
@@ -609,7 +609,7 @@ export function ApplySearchClient({ initial }: Props) {
                                 </div>
                               ))}
                             </div>
-                            <div className="mt-1.5 text-[10px] text-text-3">
+                            <div className="mt-1.5 t-caption text-text-3">
                               경쟁률 = 접수 ÷ 공급 · 접수가 공급보다 적으면 &lsquo;미달&rsquo;
                             </div>
                           </div>
@@ -619,7 +619,7 @@ export function ApplySearchClient({ initial }: Props) {
                   })}
                 </>
               )}
-              <div className="pb-2 pt-1 text-[10px] text-text-3">
+              <div className="pb-2 pt-1 t-caption text-text-3">
                 출처 청약홈(한국부동산원) 공공데이터
                 {state.fetchedAt ? ` · ${state.fetchedAt.slice(0, 10)} 조회` : ""}
               </div>
@@ -634,7 +634,7 @@ export function ApplySearchClient({ initial }: Props) {
           type="button"
           disabled={appending}
           onClick={() => void load({ page: state.page + 1, append: true })}
-          className="rise-in-3 press card rounded-2xl px-4 py-3 text-center text-[13px] font-bold text-primary disabled:opacity-60"
+          className="rise-in-3 press card rounded-2xl px-4 py-3 text-center t-body font-bold text-primary disabled:opacity-60"
         >
           {appending
             ? "불러오는 중…"

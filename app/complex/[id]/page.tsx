@@ -768,7 +768,7 @@ export default async function ComplexHubPage({
             }
             return `/notes/new?${params.toString()}`;
           })()}
-          className="btn-primary btn-cta flex-1 rounded-[11px] p-3 text-center text-[13px]"
+          className="btn-primary btn-cta flex-1 rounded-[11px] p-3 text-center t-body"
         >
           이 단지 임장노트 쓰기
         </Link>
@@ -795,7 +795,7 @@ export default async function ComplexHubPage({
       <div className="rise-in flex flex-wrap gap-1.5">
         <Link
           href="/map"
-          className="chip border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+          className="chip border border-line bg-surface px-2.5 py-1 t-sub font-bold text-text-2"
         >
           ‹ 지도
         </Link>
@@ -803,11 +803,11 @@ export default async function ComplexHubPage({
             없었다. 지역 지도로 실제로 이동하게 한다(?region= 지원 추가됨). */}
         <Link
           href={`/map?region=${encodeURIComponent(v.dong)}`}
-          className="chip border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+          className="chip border border-line bg-surface px-2.5 py-1 t-sub font-bold text-text-2"
         >
           {v.dong}
         </Link>
-        <span className="chip bg-ink px-2.5 py-1 text-[11px] font-extrabold text-surface">
+        <span className="chip bg-ink px-2.5 py-1 t-sub font-extrabold text-surface">
           {v.name}
         </span>
       </div>
@@ -816,10 +816,10 @@ export default async function ComplexHubPage({
       <div className="rise-in mt-3 overflow-hidden rounded-[20px] border border-line bg-gradient-to-br from-primary-soft via-surface to-bg px-4 py-4 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-extrabold tracking-tight text-ink md:text-[26px]">
+            <h1 className="t-title tracking-tight text-ink md:t-title">
               {v.name}
             </h1>
-            <p className="mt-0.5 text-[12px] text-text-2">
+            <p className="mt-0.5 t-sub text-text-2">
               {v.dong}
               {v.city && v.city !== v.dong ? ` · ${v.city}` : ""}
             </p>
@@ -829,11 +829,11 @@ export default async function ComplexHubPage({
 
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wide text-text-3">
+            <div className="t-caption font-bold uppercase tracking-wide text-text-3">
               최근 실거래 평균
             </div>
             <div className="mt-0.5 flex items-baseline gap-2">
-              <span className="text-[30px] font-extrabold leading-none text-ink tabular-nums md:text-[34px]">
+              <span className="t-title leading-none text-ink tabular-nums md:t-title">
                 {v.metric.price}
               </span>
               <span className={`text-[13px] font-extrabold ${v.metric.priceSubClass}`}>
@@ -851,7 +851,7 @@ export default async function ComplexHubPage({
             {v.chips.map((c) => (
               <span
                 key={c}
-                className="chip-soft rounded-full px-2.5 py-[4px] text-[11px] font-bold text-text-2"
+                className="chip-soft rounded-full px-2.5 py-[4px] t-sub font-bold text-text-2"
               >
                 {c}
               </span>
@@ -898,8 +898,8 @@ export default async function ComplexHubPage({
       {/* 지표 6칸 — 시세·거래·매물·노트·세대·연차 */}
       <div className="rise-in-1 mt-3 grid grid-cols-3 gap-1.5 md:grid-cols-6">
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
-          <div className="text-[10px] text-text-3">시세</div>
-          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+          <div className="t-caption text-text-3">시세</div>
+          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
             {v.metric.price}
           </div>
           <div className={`mt-0.5 truncate text-[10px] font-bold ${v.metric.priceSubClass}`}>
@@ -907,41 +907,41 @@ export default async function ComplexHubPage({
           </div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
-          <div className="text-[10px] text-text-3">거래</div>
-          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+          <div className="t-caption text-text-3">거래</div>
+          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
             {v.metric.deals}
           </div>
-          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.dealsSub}</div>
+          <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.dealsSub}</div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
-          <div className="text-[10px] text-text-3">매물</div>
-          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+          <div className="t-caption text-text-3">매물</div>
+          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
             {v.metric.listings}
           </div>
-          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.listingsSub}</div>
+          <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.listingsSub}</div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
-          <div className="text-[10px] text-text-3">노트</div>
-          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+          <div className="t-caption text-text-3">노트</div>
+          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
             {v.metric.notes}
           </div>
-          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.notesSub}</div>
+          <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.notesSub}</div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
-          <div className="text-[10px] text-text-3">세대</div>
-          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+          <div className="t-caption text-text-3">세대</div>
+          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
             {v.households ? `${v.households.toLocaleString("ko-KR")}` : "—"}
           </div>
-          <div className="mt-0.5 truncate text-[10px] text-text-3">
+          <div className="mt-0.5 truncate t-caption text-text-3">
             {v.households ? "공공데이터" : "미확인"}
           </div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
-          <div className="text-[10px] text-text-3">연차</div>
-          <div className="mt-0.5 truncate text-[14px] font-extrabold text-ink sm:text-base">
+          <div className="t-caption text-text-3">연차</div>
+          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
             {v.metric.age}
           </div>
-          <div className="mt-0.5 truncate text-[10px] text-text-3">{v.metric.ageSub}</div>
+          <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.ageSub}</div>
         </div>
       </div>
 
@@ -949,8 +949,8 @@ export default async function ComplexHubPage({
       {v.infoRows.length > 0 && (
         <div className="rise-in-1 card mt-3 rounded-[16px] px-4 py-3">
           <div className="mb-1 flex items-baseline justify-between">
-            <div className="text-[13px] font-extrabold text-ink">단지 스펙</div>
-            <div className="text-[10px] text-text-3">{v.infoRows.length}항목</div>
+            <div className="t-body font-extrabold text-ink">단지 스펙</div>
+            <div className="t-caption text-text-3">{v.infoRows.length}항목</div>
           </div>
           <div className="grid grid-cols-1 gap-x-5 sm:grid-cols-2 lg:grid-cols-3">
             {v.infoRows.map((r) => (
@@ -977,15 +977,15 @@ export default async function ComplexHubPage({
         <div className="rise-in-1 mt-3">
           <Link
             href={v.txHref}
-            className="card card-hover flex items-center justify-between rounded-xl px-4 py-3"
+            className="card tile flex items-center justify-between rounded-xl px-4 py-3"
           >
-            <span className="text-[13px] font-bold text-ink">
+            <span className="t-body font-bold text-ink">
               {v.name} 국토부 실거래 이력 보기
-              <span className="ml-2 text-[11px] font-medium text-text-3">
+              <span className="ml-2 t-sub font-medium text-text-3">
                 실거래가 기반 · 매물 호가 아님
               </span>
             </span>
-            <span className="text-[13px] font-bold text-primary">→</span>
+            <span className="t-body font-bold text-primary">→</span>
           </Link>
         </div>
       )}
@@ -1016,23 +1016,23 @@ export default async function ComplexHubPage({
         {/* 데스크탑 우측 — 중복 스펙 대신 한눈에 + 인근 + CTA */}
         <aside className="hidden flex-col gap-3 lg:flex">
           <div className="rise-in-2 card flex flex-col gap-2 rounded-[18px] px-4 py-4">
-            <div className="text-[13px] font-extrabold text-ink">한눈에 보기</div>
+            <div className="t-body font-extrabold text-ink">한눈에 보기</div>
             <div className="grid grid-cols-2 gap-1.5">
               <div className="rounded-xl bg-bg px-2.5 py-2">
-                <div className="text-[10px] text-text-3">시세</div>
-                <div className="text-[14px] font-extrabold text-ink">{v.metric.price}</div>
+                <div className="t-caption text-text-3">시세</div>
+                <div className="t-section text-ink">{v.metric.price}</div>
               </div>
               <div className="rounded-xl bg-bg px-2.5 py-2">
-                <div className="text-[10px] text-text-3">거래</div>
-                <div className="text-[14px] font-extrabold text-ink">{v.metric.deals}</div>
+                <div className="t-caption text-text-3">거래</div>
+                <div className="t-section text-ink">{v.metric.deals}</div>
               </div>
               <div className="rounded-xl bg-bg px-2.5 py-2">
-                <div className="text-[10px] text-text-3">매물</div>
-                <div className="text-[14px] font-extrabold text-ink">{v.metric.listings}</div>
+                <div className="t-caption text-text-3">매물</div>
+                <div className="t-section text-ink">{v.metric.listings}</div>
               </div>
               <div className="rounded-xl bg-bg px-2.5 py-2">
-                <div className="text-[10px] text-text-3">노트</div>
-                <div className="text-[14px] font-extrabold text-ink">{v.metric.notes}</div>
+                <div className="t-caption text-text-3">노트</div>
+                <div className="t-section text-ink">{v.metric.notes}</div>
               </div>
             </div>
             {v.chips.slice(0, 8).length > 0 && (
@@ -1040,7 +1040,7 @@ export default async function ComplexHubPage({
                 {v.chips.slice(0, 8).map((c) => (
                   <span
                     key={c}
-                    className="rounded-full bg-bg chip-pad text-[10px] font-bold text-text-2"
+                    className="rounded-full bg-bg chip-pad t-caption font-bold text-text-2"
                   >
                     {c}
                   </span>
@@ -1050,7 +1050,7 @@ export default async function ComplexHubPage({
           </div>
           {v.nearby.length > 0 && (
             <div className="rise-in-2 card flex flex-col gap-1.5 rounded-[18px] px-4 py-3.5">
-              <div className="mb-0.5 text-[13px] font-extrabold text-ink">
+              <div className="mb-0.5 t-body font-extrabold text-ink">
                 {v.dong} 다른 단지
               </div>
               {v.nearby.slice(0, 5).map((n) => (
@@ -1059,8 +1059,8 @@ export default async function ComplexHubPage({
                   href={complexHrefFromId(n.id)}
                   className="rounded-xl px-2 py-2 transition-colors hover:bg-bg"
                 >
-                  <div className="truncate text-[12px] font-bold text-ink">{n.name}</div>
-                  <div className="truncate text-[10px] text-text-3">{n.meta}</div>
+                  <div className="truncate t-sub font-bold text-ink">{n.name}</div>
+                  <div className="truncate t-caption text-text-3">{n.meta}</div>
                 </Link>
               ))}
             </div>
@@ -1073,21 +1073,21 @@ export default async function ComplexHubPage({
       {/* 내부 링크 그물(#34) — 모바일·전체 그리드 */}
       {v.nearby.length > 0 && (
         <section className="rise-in-5 mt-6">
-          <h2 className="mb-2 px-1 text-[15px] font-extrabold text-ink">
+          <h2 className="mb-2 px-1 t-section text-ink">
             {v.dong} 다른 단지{" "}
-            <span className="text-[12px] font-medium text-text-3">{v.nearby.length}곳</span>
+            <span className="t-sub font-medium text-text-3">{v.nearby.length}곳</span>
           </h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {v.nearby.map((n) => (
               <Link
                 key={n.id}
                 href={complexHrefFromId(n.id)}
-                className="card card-hover rounded-2xl px-3.5 py-3"
+                className="card tile rounded-2xl px-3.5 py-3"
               >
-                <div className="truncate text-[13px] font-extrabold text-ink">
+                <div className="truncate t-body font-extrabold text-ink">
                   {n.name}
                 </div>
-                <div className="mt-0.5 truncate text-[11px] text-text-3">{n.meta}</div>
+                <div className="mt-0.5 truncate t-sub text-text-3">{n.meta}</div>
               </Link>
             ))}
           </div>
@@ -1148,16 +1148,16 @@ export default async function ComplexHubPage({
 
       {/* N17 — 위젯 배포 진입점. 위젯에는 출처 링크가 박혀 있으므로 퍼가기가 곧 백링크다. */}
       <div className="rise-in-5 mt-6 flex flex-col gap-1 rounded-[14px] border border-line bg-surface p-4">
-        <span className="text-[13px] font-extrabold text-ink">
+        <span className="t-body font-extrabold text-ink">
           이 단지 시세를 블로그에 붙이기
         </span>
-        <span className="text-[12px] leading-[1.7] text-text-2">
+        <span className="t-sub text-text-2">
           최근 실거래 시세 카드를 iframe 한 줄로 퍼갈 수 있습니다. 시세가 갱신되면 붙여넣은
           위젯도 함께 갱신됩니다.
         </span>
         <Link
           href={`/widget?complex=${encodeURIComponent(complexId)}`}
-          className="mt-2 w-fit rounded-[10px] bg-primary px-4 py-2 text-[12px] font-bold text-white"
+          className="mt-2 w-fit rounded-[10px] bg-primary px-4 py-2 t-sub font-bold text-white"
         >
           위젯 코드 만들기 ›
         </Link>

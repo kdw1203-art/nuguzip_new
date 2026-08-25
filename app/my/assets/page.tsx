@@ -24,7 +24,7 @@ const REPAY_STATS = [
 /** 예시 값 한 줄 (라벨 / 값) — 카드 내 다른 행과 동일한 정적 표기 */
 function ExampleRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-[13px]">
+    <div className="flex justify-between t-body">
       <span className="text-text-2">{label}</span>
       <span className="font-extrabold text-ink">{value}</span>
     </div>
@@ -52,14 +52,14 @@ export default function AssetsPage() {
           <Link href="/my" className="text-base text-text-1" aria-label="닫기">
             ✕
           </Link>
-          <h1 className="flex items-center gap-1.5 text-[15px] font-extrabold text-ink">
+          <h1 className="flex items-center gap-1.5 t-section text-ink">
             자산 등록 <ExampleBadge />
           </h1>
           {/* 저장 API 미연동 — 가짜 저장 버튼 대신 정직한 표기 */}
-          <span className="text-[13px] font-bold text-text-3">준비 중</span>
+          <span className="t-body font-bold text-text-3">준비 중</span>
         </div>
 
-        <div className="rise-in flex items-start gap-1.5 rounded-xl bg-[rgba(29,79,216,.06)] px-3.5 py-2.5 text-[11px] leading-[1.6] text-[#5b74b8]">
+        <div className="rise-in flex items-start gap-1.5 rounded-xl bg-[rgba(29,79,216,.06)] px-3.5 py-2.5 t-sub text-[#5b74b8]">
           <span>
             아래는 자산 등록 기능의 <b>예시 화면</b>이에요. 단지·금액은 가상의
             데이터이며 저장·자동 시세 연동은 준비 중입니다.{" "}
@@ -80,30 +80,30 @@ export default function AssetsPage() {
           <Icon name="🏠" size={16} className="shrink-0" />
           <div className="flex-1">
             <div className="text-sm font-bold text-ink">평촌 초원마을 6단지 512동</div>
-            <div className="text-[11px] text-text-3">주소 검색 자동 인식 · 59㎡</div>
+            <div className="t-sub text-text-3">주소 검색 자동 인식 · 59㎡</div>
           </div>
         </div>
 
         <div className="rise-in-2 card flex flex-col gap-2.5 rounded-2xl p-4">
           <ExampleRow label="형태" value="실거주" />
-          <div className="flex justify-between border-t border-divider pt-2 text-[13px]">
+          <div className="flex justify-between border-t border-divider pt-2 t-body">
             <span className="text-text-2">취득 시기 / 취득가</span>
             <span className="font-extrabold text-ink">2019.05 · 4.9억</span>
           </div>
-          <div className="flex justify-between text-[13px]">
+          <div className="flex justify-between t-body">
             <span className="text-text-2">
-              현재 시세 <span className="text-[10px] text-primary">자동</span>
+              현재 시세 <span className="t-caption text-primary">자동</span>
             </span>
             <span className="font-extrabold text-ink">
-              6.8억 <span className="text-[11px] text-primary">▼1.8%</span>
+              6.8억 <span className="t-sub text-primary">▼1.8%</span>
             </span>
           </div>
-          <div className="flex justify-between text-[13px]">
+          <div className="flex justify-between t-body">
             <span className="text-text-2">대출 은행 / 상품</span>
             {/* `▾` 를 뗐다 — 펼쳐지는 선택기처럼 읽혔지만 select 도 버튼도 아닌 그냥 글자였다. */}
             <span className="font-extrabold text-ink">K은행 주담대 (변동)</span>
           </div>
-          <div className="flex justify-between text-[13px]">
+          <div className="flex justify-between t-body">
             <span className="text-text-2">최초 대출금 / 금리</span>
             <span className="font-extrabold text-ink">2.9억 · 3.8%</span>
           </div>
@@ -111,13 +111,13 @@ export default function AssetsPage() {
 
         <div className="rise-in-3 card flex flex-col gap-2.5 rounded-2xl p-4">
           <div className="flex items-baseline justify-between">
-            <span className="text-[13px] font-extrabold text-ink">
-              대출 상환 현황 <span className="text-[10px] font-bold text-primary">자동 계산</span>
+            <span className="t-body font-extrabold text-ink">
+              대출 상환 현황 <span className="t-caption font-bold text-primary">자동 계산</span>
             </span>
-            <span className="text-[11px] text-text-3">2019.06 ~ · 87회차</span>
+            <span className="t-sub text-text-3">2019.06 ~ · 87회차</span>
           </div>
           <div className="flex flex-col gap-[5px]">
-            <div className="flex justify-between text-[11px]">
+            <div className="flex justify-between t-sub">
               <span className="text-text-3">상환 진행률</span>
               <span className="font-extrabold text-primary">28% (0.8억 상환)</span>
             </div>
@@ -128,38 +128,38 @@ export default function AssetsPage() {
           <div className="grid grid-cols-2 gap-2">
             {REPAY_STATS.map((s) => (
               <div key={s.label} className="rounded-[10px] bg-bg px-3 py-2.5">
-                <div className="text-[10px] text-text-3">{s.label}</div>
+                <div className="t-caption text-text-3">{s.label}</div>
                 <div className={`text-[15px] font-extrabold ${s.tone}`}>{s.value}</div>
               </div>
             ))}
           </div>
           <div className="flex flex-col gap-[5px] rounded-xl bg-[rgba(29,79,216,.06)] px-[13px] py-[11px]">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold text-primary">
+              <span className="t-sub font-extrabold text-primary">
                 갈아탈 만한 대출 (대환 추천)
               </span>
-              <span className="text-[10px] text-[#5b74b8]">07.19 기준</span>
+              <span className="t-caption text-[#5b74b8]">07.19 기준</span>
             </div>
             {/* 더미 1개 원칙 — 예시 추천 상품은 1건만 */}
-            <div className="flex justify-between text-[11px]">
+            <div className="flex justify-between t-sub">
               <span className="text-[#5b74b8]">S은행 대환 고정 3.42%</span>
               <span className="font-extrabold text-primary">월 -9.8만 · 총 -2,700만</span>
             </div>
             {/* "자세히 ›" 는 상세 화면 링크처럼 보였지만 갈 곳이 없는 평문이었다 — 뺀다. */}
-            <div className="text-[10px] text-text-3">
+            <div className="t-caption text-text-3">
               중도상환수수료(잔여 0.4%) 반영한 실익 기준
             </div>
           </div>
         </div>
 
         <div className="rise-in-4 card flex flex-col gap-2.5 rounded-2xl p-4">
-          <div className="text-[13px] font-extrabold text-ink">세금·대출 판정 정보</div>
+          <div className="t-body font-extrabold text-ink">세금·대출 판정 정보</div>
           <ExampleRow label="보유 주택" value="2주택" />
           <ExampleRow label="생애최초" value="비해당" />
-          <div className="flex justify-between text-[13px]">
+          <div className="flex justify-between t-body">
             <span className="text-text-2">거주 기간</span>
             <span className="font-extrabold text-ink">
-              7년 2개월 <span className="text-[10px] text-primary">비과세 요건 충족</span>
+              7년 2개월 <span className="t-caption text-primary">비과세 요건 충족</span>
             </span>
           </div>
         </div>

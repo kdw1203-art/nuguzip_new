@@ -42,18 +42,18 @@ export default async function NotePrintPage({
         }}
       />
       <div className="no-print mb-4 flex items-center justify-between rounded-xl bg-[#f2f4f8] px-4 py-3">
-        <span className="text-[13px] font-bold">
+        <span className="t-body font-bold">
           인쇄 대화상자에서 &lsquo;PDF로 저장&rsquo;을 고르면 파일로 저장됩니다.
         </span>
         <PrintButton />
       </div>
 
       <header className="border-b-2 border-[#111] pb-4">
-        <div className="text-[11px] font-bold tracking-widest text-[#666]">
+        <div className="t-sub font-bold tracking-widest text-[#666]">
           누구집 임장노트 · nuguzip.com
         </div>
-        <h1 className="mt-1 text-[24px] font-extrabold leading-tight">{note.title}</h1>
-        <p className="mt-1 text-[13px] text-[#444]">
+        <h1 className="mt-1 t-title leading-tight">{note.title}</h1>
+        <p className="mt-1 t-body text-[#444]">
           {note.region}
           {note.aptName ? ` · ${note.aptName}` : ""}
           {note.visitDate ? ` · ${note.visitDate} 방문` : ""}
@@ -63,15 +63,15 @@ export default async function NotePrintPage({
 
       {note.summary && (
         <section className="mt-5">
-          <h2 className="text-[14px] font-extrabold">한 줄 요약</h2>
-          <p className="mt-1 text-[14px] leading-[1.8]">{note.summary}</p>
+          <h2 className="t-section">한 줄 요약</h2>
+          <p className="mt-1 t-body">{note.summary}</p>
         </section>
       )}
 
       {note.scores && (
         <section className="mt-5">
-          <h2 className="text-[14px] font-extrabold">항목 점수</h2>
-          <table className="mt-2 w-full border-collapse text-[13px]">
+          <h2 className="t-section">항목 점수</h2>
+          <table className="mt-2 w-full border-collapse t-body">
             <tbody>
               <tr className="border-b border-[#ddd]">
                 {[
@@ -82,8 +82,8 @@ export default async function NotePrintPage({
                   ["미래가치", note.scores.future],
                 ].map(([label, v]) => (
                   <td key={String(label)} className="py-2 text-center">
-                    <div className="text-[11px] text-[#666]">{label}</div>
-                    <div className="text-[16px] font-extrabold">{v || "—"}</div>
+                    <div className="t-sub text-[#666]">{label}</div>
+                    <div className="t-section">{v || "—"}</div>
                   </td>
                 ))}
               </tr>
@@ -94,10 +94,10 @@ export default async function NotePrintPage({
 
       {doneChecks.length > 0 && (
         <section className="mt-5">
-          <h2 className="text-[14px] font-extrabold">
-            확인한 항목 <span className="text-[11px] font-medium text-[#666]">{doneChecks.length}/{checks.length}</span>
+          <h2 className="t-section">
+            확인한 항목 <span className="t-sub font-medium text-[#666]">{doneChecks.length}/{checks.length}</span>
           </h2>
-          <ul className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-[13px]">
+          <ul className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 t-body">
             {doneChecks.map((c) => (
               <li key={c.label}>✓ {c.label}</li>
             ))}
@@ -107,8 +107,8 @@ export default async function NotePrintPage({
 
       {note.sections?.memo && (
         <section className="mt-5">
-          <h2 className="text-[14px] font-extrabold">현장 메모</h2>
-          <p className="mt-1 whitespace-pre-wrap text-[13.5px] leading-[1.9]">
+          <h2 className="t-section">현장 메모</h2>
+          <p className="mt-1 whitespace-pre-wrap t-body">
             {note.sections.memo}
           </p>
         </section>
@@ -116,7 +116,7 @@ export default async function NotePrintPage({
 
       {note.photos.length > 0 && (
         <section className="mt-5">
-          <h2 className="text-[14px] font-extrabold">현장 사진 {note.photos.length}장</h2>
+          <h2 className="t-section">현장 사진 {note.photos.length}장</h2>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {note.photos.slice(0, 8).map((p) => (
               // eslint-disable-next-line @next/next/no-img-element
@@ -126,7 +126,7 @@ export default async function NotePrintPage({
         </section>
       )}
 
-      <footer className="mt-8 border-t border-[#ddd] pt-3 text-[11px] leading-[1.7] text-[#666]">
+      <footer className="mt-8 border-t border-[#ddd] pt-3 t-sub text-[#666]">
         이 문서는 작성자의 현장 방문 기록입니다. 개인 기록 기반이며 투자 권유가
         아닙니다. 실거래가·시세 데이터는 nuguzip.com 에서 확인하세요. ·{" "}
         {new Date().toISOString().slice(0, 10)} 출력

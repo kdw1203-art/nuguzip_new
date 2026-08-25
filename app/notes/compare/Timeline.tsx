@@ -66,7 +66,7 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Icon name="clock" size={16} className="text-primary" />
         <h2 className="text-sm font-extrabold text-ink">방문 타임라인</h2>
-        <span className="text-[11px] text-text-3">
+        <span className="t-sub text-text-3">
           회차별 변화 · 이전 회차 대비 하이라이트
         </span>
       </div>
@@ -99,10 +99,10 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
                   >
                     {step.n}
                   </b>
-                  <span className="text-[11px] text-text-3">{step.meta}</span>
+                  <span className="t-sub text-text-3">{step.meta}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-text-3">종합</span>
+                  <span className="t-sub text-text-3">종합</span>
                   <span
                     className={`text-[15px] font-extrabold ${
                       step.latest ? "text-primary" : "text-text-1"
@@ -116,11 +116,11 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
 
               <div className="mt-2">
                 {step.scoreDelta === null ? (
-                  <p className="text-[11px] text-text-3">
+                  <p className="t-sub text-text-3">
                     첫 방문 · 이후 회차를 비교하는 기준 회차예요.
                   </p>
                 ) : step.changes.length === 0 ? (
-                  <p className="text-[11px] text-text-3">
+                  <p className="t-sub text-text-3">
                     이전 회차 대비 바뀐 항목이 없어요.
                   </p>
                 ) : (
@@ -155,7 +155,7 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
         ))}
       </ol>
 
-      <p className="mt-4 border-t border-line pt-3 text-[10px] leading-[1.6] text-text-3">
+      <p className="mt-4 border-t border-line pt-3 t-caption text-text-3">
         ▲ 상승(개선) · ▼ 하락(악화) — 방향 색상은 시세 관례(상승 빨강 / 하락 파랑)를
         따릅니다. 위 회차·수치는 <b className="font-bold">예시 데이터</b>예요.
       </p>

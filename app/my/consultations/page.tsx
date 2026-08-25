@@ -69,13 +69,13 @@ export default async function MyConsultationsPage() {
       <PageShell breadcrumb="마이 › 상담 관리" title="상담 관리">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
-            <div className="text-[26px]">
+            <div className="t-title">
               <Icon name="💬" size={26} />
             </div>
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-section text-ink">
               전문가 등록 후 상담을 받을 수 있어요
             </div>
-            <p className="max-w-[420px] text-[13px] leading-[1.7] text-text-3">
+            <p className="max-w-[420px] t-body text-text-3">
               전문가로 등록·인증되면 이용자가 남긴 상담 신청을 이 화면에서 받아 답변할 수
               있어요. 답변률·응답 속도는 프로필에 반영돼요.
             </p>
@@ -117,16 +117,16 @@ export default async function MyConsultationsPage() {
       {/* 전문가 요약 */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-extrabold text-ink">{expert.name}</span>
-          <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-bold text-text-2">
+          <span className="t-section text-ink">{expert.name}</span>
+          <span className="rounded-[6px] bg-bg chip-pad t-sub font-bold text-text-2">
             {expert.category}
           </span>
           {expert.isVerified ? (
-            <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+            <span className="rounded-[6px] bg-success-soft chip-pad t-sub font-extrabold text-success">
               인증 완료
             </span>
           ) : (
-            <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
+            <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-[#b45309]">
               인증 검토 중
             </span>
           )}
@@ -140,7 +140,7 @@ export default async function MyConsultationsPage() {
       <div className="rise-in mb-4 grid grid-cols-3 gap-2.5">
         {stats.map((s) => (
           <div key={s.label} className="card card-pad-sm flex flex-col gap-0.5">
-            <span className="text-[11px] text-text-3">{s.label}</span>
+            <span className="t-sub text-text-3">{s.label}</span>
             <span
               className={`text-[20px] font-extrabold ${s.accent ? "text-primary" : "text-ink"}`}
             >
@@ -151,7 +151,7 @@ export default async function MyConsultationsPage() {
       </div>
 
       {!expert.isVerified && (
-        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 text-[12px] leading-[1.7] text-[#b45309]">
+        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 t-sub text-[#b45309]">
           아직 인증 검토 중이에요. 인증이 완료되면 전문가 목록에 노출되고 상담 신청을 받을 수
           있어요.
         </div>
@@ -159,8 +159,8 @@ export default async function MyConsultationsPage() {
 
       {items.length === 0 ? (
         <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="text-[15px] font-extrabold text-ink">아직 받은 상담이 없어요</div>
-          <p className="max-w-[440px] text-[13px] leading-[1.7] text-text-3">
+          <div className="t-section text-ink">아직 받은 상담이 없어요</div>
+          <p className="max-w-[440px] t-body text-text-3">
             이용자가 상담을 신청하면 여기로 도착해요. 프로필의 소개·전문 분야를 충실히
             채우면 상담 신청이 늘어나요.
           </p>
@@ -182,20 +182,20 @@ export default async function MyConsultationsPage() {
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-bold text-text-2">
+                  <span className="rounded-[6px] bg-bg chip-pad t-sub font-bold text-text-2">
                     {TYPE_LABEL[c.type]}
                   </span>
-                  <span className="text-[13px] font-bold text-ink">
+                  <span className="t-body font-bold text-ink">
                     {c.userName ?? "이용자"}
                   </span>
-                  <span className="ml-auto text-[11px] text-text-3">{timeAgo(c.createdAt)}</span>
+                  <span className="ml-auto t-sub text-text-3">{timeAgo(c.createdAt)}</span>
                 </div>
 
-                <p className="whitespace-pre-wrap rounded-xl bg-[rgba(0,0,0,.03)] px-3.5 py-2.5 text-[13px] leading-[1.7] text-text-2">
+                <p className="whitespace-pre-wrap rounded-xl bg-[rgba(0,0,0,.03)] px-3.5 py-2.5 t-body text-text-2">
                   {c.message}
                 </p>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-text-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 t-sub text-text-3">
                   {c.contactInfo && (
                     <span>
                       연락처 · <b className="text-ink break-all">{c.contactInfo}</b>
@@ -210,8 +210,8 @@ export default async function MyConsultationsPage() {
 
                 {c.reply && (
                   <div className="rounded-xl border border-[color:var(--success-border)] bg-success-soft px-3.5 py-2.5">
-                    <div className="mb-1 text-[11px] font-bold text-success">내 답변</div>
-                    <p className="whitespace-pre-wrap text-[13px] leading-[1.7] text-text-2">
+                    <div className="mb-1 t-sub font-bold text-success">내 답변</div>
+                    <p className="whitespace-pre-wrap t-body text-text-2">
                       {c.reply}
                     </p>
                   </div>
@@ -232,15 +232,15 @@ export default async function MyConsultationsPage() {
 
       {/* ── 받은 견적 요청 (열린 요청 게시판) ── */}
       <div className="mt-8 mb-3 flex items-baseline justify-between">
-        <h2 className="text-[15px] font-extrabold text-ink">견적 요청 보드</h2>
-        <span className="text-[11px] text-text-3">이용자들이 올린 열린 요청</span>
+        <h2 className="t-section text-ink">견적 요청 보드</h2>
+        <span className="t-sub text-text-3">이용자들이 올린 열린 요청</span>
       </div>
       {quoteLoadFailed ? (
-        <div className="card rounded-2xl px-4 py-6 text-center text-[12px] text-text-3">
+        <div className="card rounded-2xl px-4 py-6 text-center t-sub text-text-3">
           견적 요청을 지금 불러오지 못했어요 — 요청이 없는 게 아니라 조회가 실패했습니다.
         </div>
       ) : quoteRequests.length === 0 ? (
-        <div className="card rounded-2xl px-4 py-6 text-center text-[12px] text-text-3">
+        <div className="card rounded-2xl px-4 py-6 text-center t-sub text-text-3">
           아직 열린 견적 요청이 없어요. 새 요청이 올라오면 여기에 표시됩니다.
         </div>
       ) : (
@@ -248,16 +248,16 @@ export default async function MyConsultationsPage() {
           {quoteRequests.map((r) => (
             <div key={r.id} className="card flex flex-col gap-2 rounded-2xl p-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-primary-soft chip-pad text-[10px] font-extrabold text-primary">
+                <span className="rounded-md bg-primary-soft chip-pad t-caption font-extrabold text-primary">
                   {r.requestType}
                 </span>
-                <span className="text-[13px] font-extrabold text-ink">{r.title}</span>
-                <span className="ml-auto text-[10px] text-text-3">{timeAgo(r.createdAt)}</span>
+                <span className="t-body font-extrabold text-ink">{r.title}</span>
+                <span className="ml-auto t-caption text-text-3">{timeAgo(r.createdAt)}</span>
               </div>
               {r.description && (
-                <p className="text-[12px] leading-[1.6] text-text-2">{r.description.slice(0, 160)}</p>
+                <p className="t-sub text-text-2">{r.description.slice(0, 160)}</p>
               )}
-              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-text-3">
+              <div className="flex flex-wrap gap-x-3 gap-y-1 t-sub text-text-3">
                 <span>{[r.city, r.district].filter(Boolean).join(" ") || "지역 무관"}</span>
                 {(r.budgetMin != null || r.budgetMax != null) && (
                   <span>
@@ -272,7 +272,7 @@ export default async function MyConsultationsPage() {
               {expert.isVerified ? (
                 <ProposeQuote requestId={r.id} />
               ) : (
-                <span className="text-[11px] text-text-3">
+                <span className="t-sub text-text-3">
                   제안 보내기는 인증 완료 후 열려요.
                 </span>
               )}
@@ -282,7 +282,7 @@ export default async function MyConsultationsPage() {
       )}
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
         상담 답변은 전문가 개인의 의견이며, 누구집은 상담 당사자가 아니에요. 투자·법률·세무
         판단의 최종 책임은 이용자 본인에게 있습니다.
       </div>

@@ -34,7 +34,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[12px] font-bold text-text-2">
+      <span className="t-sub font-bold text-text-2">
         {label}
         {hint && <span className="ml-1 font-medium text-text-3">{hint}</span>}
       </span>
@@ -103,12 +103,12 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
   return (
     <div className="card flex flex-col gap-4 rounded-[20px] p-5 md:p-6">
       <div className="flex items-center justify-between">
-        <div className="text-[15px] font-extrabold text-ink">
+        <div className="t-section text-ink">
           {expert.name}
-          <span className="ml-1.5 text-[12px] font-semibold text-text-3">{expert.title}</span>
+          <span className="ml-1.5 t-sub font-semibold text-text-3">{expert.title}</span>
         </div>
         {expert.isVerified && (
-          <span className="rounded-full bg-success-soft px-2.5 py-1 text-[10px] font-extrabold text-success">
+          <span className="rounded-full bg-success-soft px-2.5 py-1 t-caption font-extrabold text-success">
             ✓ 인증 전문가
           </span>
         )}
@@ -185,9 +185,9 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
       </div>
 
       <div className="flex flex-col gap-3 rounded-2xl bg-bg p-4">
-        <div className="text-[12px] font-extrabold text-ink">
+        <div className="t-sub font-extrabold text-ink">
           상호 · 공개 연락처
-          <span className="ml-1 text-[11px] font-medium text-text-3">
+          <span className="ml-1 t-sub font-medium text-text-3">
             직접 채운 값만 공개돼요 (비우면 미노출{expert.isVerified ? "" : " · 인증 승인 후 노출"})
           </span>
         </div>
@@ -221,7 +221,7 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
             />
           </Field>
         </div>
-        <p className="text-[10px] leading-[1.6] text-text-3">
+        <p className="t-caption text-text-3">
           플랫폼 밖 선결제 유도는 신고 대상이에요. 연락처는 상담·문의 연결 용도로만
           노출됩니다.
         </p>
@@ -231,7 +231,7 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
         type="button"
         onClick={() => void save()}
         disabled={busy}
-        className="btn-primary rounded-xl p-3.5 text-[14px] disabled:opacity-60"
+        className="btn-primary rounded-xl p-3.5 t-body disabled:opacity-60"
       >
         {busy ? "저장 중…" : "프로필 저장"}
       </button>

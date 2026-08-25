@@ -80,16 +80,16 @@ function BandTable({
   if (cells.length === 0) return null;
   return (
     <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-      <h2 className="text-[15px] font-extrabold text-ink">
+      <h2 className="t-section text-ink">
         {BAND_KIND_LABEL[kind]}별{" "}
-        <span className="text-[11px] font-medium text-text-3">
+        <span className="t-sub font-medium text-text-3">
           {kind === "area" ? "전용면적 기준" : "거래금액 기준"} · {cells.length}구간
         </span>
       </h2>
       <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[460px] text-left text-[13px]">
+        <table className="w-full min-w-[460px] text-left t-body">
           <thead>
-            <tr className="border-b border-border text-[11px] text-text-3">
+            <tr className="border-b border-border t-sub text-text-3">
               <th className="py-2 font-medium">{kind === "area" ? "전용면적" : "거래금액"}</th>
               <th className="py-2 font-medium">거래</th>
               <th className="py-2 font-medium">단지</th>
@@ -225,7 +225,7 @@ export default async function TxRegionPage({
         dangerouslySetInnerHTML={{ __html: jsonLdScript([crumbs, datasetJsonLd]) }}
       />
 
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
+      <p className="rise-in mb-5 t-body text-text-2">
         국토교통부 아파트 매매 실거래{" "}
         <strong className="text-ink">{region.txCount.toLocaleString("ko-KR")}건</strong>
         {range && ` (${range} 신고 기준)`} · 단지{" "}
@@ -249,9 +249,9 @@ export default async function TxRegionPage({
       {/* 웹9 — 같은 시/도 인접 지역 칩 (실재 허브만) */}
       {siblings.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-2 text-[13px] font-extrabold text-ink">
+          <h2 className="mb-2 t-body font-extrabold text-ink">
             {sido}의 다른 지역{" "}
-            <span className="text-[11px] font-medium text-text-3">거래 많은 순</span>
+            <span className="t-sub font-medium text-text-3">거래 많은 순</span>
           </h2>
           <div className="flex flex-wrap gap-2">
             {siblings.map((s) => (
@@ -259,7 +259,7 @@ export default async function TxRegionPage({
                 key={s.slug}
                 prefetch={false}
                 href={`/tx/${encodeURIComponent(s.slug)}`}
-                className="chip border border-line bg-bg px-3 py-1.5 text-[12px] font-bold text-text-2 no-underline transition-colors hover:border-primary hover:text-primary"
+                className="chip border border-line bg-bg px-3 py-1.5 t-sub font-bold text-text-2 no-underline transition-colors hover:border-primary hover:text-primary"
               >
                 {s.name.slice(sido.length).trim() || s.name}
               </Link>
@@ -268,7 +268,7 @@ export default async function TxRegionPage({
         </section>
       )}
 
-      <p className="mb-8 text-[12px] leading-[1.7] text-text-3">
+      <p className="mb-8 t-sub text-text-3">
         거래 10건 미만 구간은 평균이 한두 건에 크게 흔들려 따로 페이지를 만들지 않습니다. 면적은
         전용면적 기준이며, 계약 후 신고까지 시차가 있어 최근 달 건수는 더 늘어날 수 있습니다.
         <br />

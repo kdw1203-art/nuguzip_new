@@ -71,7 +71,7 @@ export function VerifyOwnershipButton({ listingId }: { listingId: string }) {
 
   if (phase === "done") {
     return (
-      <span className="rounded-[8px] bg-success-soft px-3 py-1.5 text-[12px] font-extrabold text-success">
+      <span className="rounded-[8px] bg-success-soft px-3 py-1.5 t-sub font-extrabold text-success">
         소유확인 신청 접수됨
       </span>
     );

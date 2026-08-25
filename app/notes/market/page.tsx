@@ -47,31 +47,31 @@ export default async function NotesMarketPage() {
     <div className="mx-auto flex w-full max-w-[980px] flex-col gap-5 px-4 py-6">
       {/* 헤더 */}
       <div className="flex flex-col gap-2">
-        <nav className="text-[12px] font-semibold text-text-3">
+        <nav className="t-sub font-semibold text-text-3">
           <Link href="/notes" className="no-underline hover:underline">
             임장노트
           </Link>{" "}
           › 리포트 진열대
         </nav>
-        <h1 className="text-[22px] font-extrabold leading-[1.3] text-ink">
+        <h1 className="t-title text-ink">
           임장 리포트 진열대{" "}
-          <span className="align-middle rounded-full bg-warning-soft px-2.5 py-1 text-[11.5px] font-extrabold text-warning">
+          <span className="align-middle rounded-full bg-warning-soft px-2.5 py-1 t-sub font-extrabold text-warning">
             판매 오픈 준비 중
           </span>
         </h1>
-        <p className="text-[13.5px] leading-[1.7] text-text-2">
+        <p className="t-body text-text-2">
           아래 기준을 충족한 공개 임장노트는 결제 기능이 열리면 작성자가 유료
           리포트로 판매할 수 있어요. 지금은 진열만 미리 공개합니다 — 전문은 각
           노트에서 무료로 읽을 수 있어요.
         </p>
         <div className="flex flex-wrap gap-1.5">
-          <span className="rounded-[9px] bg-bg px-2.5 py-1 text-[11.5px] font-bold text-text-2">
+          <span className="rounded-[9px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
             기준 · 사진 {MIN_PHOTOS}장+
           </span>
-          <span className="rounded-[9px] bg-bg px-2.5 py-1 text-[11.5px] font-bold text-text-2">
+          <span className="rounded-[9px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
             본문 {MIN_TEXT.toLocaleString("ko-KR")}자+
           </span>
-          <span className="rounded-[9px] bg-bg px-2.5 py-1 text-[11.5px] font-bold text-text-2">
+          <span className="rounded-[9px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
             직접 방문 인증 우대
           </span>
         </div>
@@ -79,15 +79,15 @@ export default async function NotesMarketPage() {
 
       {/* 목록 */}
       {loadFailed ? (
-        <div className="rounded-[14px] border border-line bg-surface px-5 py-8 text-center text-[13px] font-bold text-text-3">
+        <div className="rounded-[14px] border border-line bg-surface px-5 py-8 text-center t-body font-bold text-text-3">
           목록을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요.
         </div>
       ) : qualified.length === 0 ? (
         <div className="rounded-[14px] border border-line bg-surface px-5 py-8 text-center">
-          <p className="text-[13.5px] font-bold text-text-2">
+          <p className="t-body font-bold text-text-2">
             아직 기준을 충족한 노트가 없어요.
           </p>
-          <p className="mt-1 text-[12.5px] text-text-3">
+          <p className="mt-1 t-body text-text-3">
             사진 {MIN_PHOTOS}장·본문 {MIN_TEXT.toLocaleString("ko-KR")}자를 넘긴 첫
             노트가 이 자리에 올라옵니다.
           </p>
@@ -107,38 +107,38 @@ export default async function NotesMarketPage() {
                     alt=""
                     imgClassName="absolute inset-0 h-full w-full object-cover"
                     fallback={
-                      <div className="absolute inset-0 flex items-center justify-center bg-primary-soft text-[13px] font-extrabold text-primary">
+                      <div className="absolute inset-0 flex items-center justify-center bg-primary-soft t-body font-extrabold text-primary">
                         임장노트
                       </div>
                     }
                   />
                   {verified && (
-                    <span className="absolute left-2.5 top-2.5 rounded-full bg-success px-2 py-0.5 text-[10.5px] font-extrabold text-surface">
+                    <span className="absolute left-2.5 top-2.5 rounded-full bg-success px-2 py-0.5 t-caption font-extrabold text-surface">
                       ✓ 직접 방문 인증
                     </span>
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-1.5 p-4">
-                  <div className="text-[14px] font-extrabold leading-[1.45] text-ink line-clamp-2">
+                  <div className="t-section text-ink line-clamp-2">
                     {note.title}
                   </div>
-                  <div className="text-[12px] font-semibold text-text-3">
+                  <div className="t-sub font-semibold text-text-3">
                     {note.region}
                     {note.aptName ? ` · ${note.aptName}` : ""} ·{" "}
                     {maskNoteAuthor(note.authorLabel, note.authorEmail ?? "")}
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    <span className="rounded-[7px] bg-bg px-2 py-0.5 text-[11px] font-bold text-text-2">
+                    <span className="rounded-[7px] bg-bg px-2 py-0.5 t-sub font-bold text-text-2">
                       사진 {note.photos.length}장
                     </span>
-                    <span className="rounded-[7px] bg-bg px-2 py-0.5 text-[11px] font-bold text-text-2">
+                    <span className="rounded-[7px] bg-bg px-2 py-0.5 t-sub font-bold text-text-2">
                       본문 {textLen.toLocaleString("ko-KR")}자
                     </span>
                   </div>
                   <div className="mt-auto flex items-center gap-2 pt-2.5">
                     <Link
                       href={`/notes/${note.id}`}
-                      className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 text-[12.5px] font-bold text-text-1 no-underline"
+                      className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 t-body font-bold text-text-1 no-underline"
                     >
                       전문 미리보기
                     </Link>
@@ -146,7 +146,7 @@ export default async function NotesMarketPage() {
                       type="button"
                       disabled
                       title="결제 기능 오픈 후 판매가 시작됩니다"
-                      className="flex-1 cursor-not-allowed rounded-[10px] bg-bg px-3.5 py-2 text-[12.5px] font-extrabold text-text-3"
+                      className="flex-1 cursor-not-allowed rounded-[10px] bg-bg px-3.5 py-2 t-body font-extrabold text-text-3"
                     >
                       🔒 판매 오픈 준비 중
                     </button>
@@ -160,7 +160,7 @@ export default async function NotesMarketPage() {
 
       {/* 작성자 CTA + 정직 고지 */}
       <div className="rounded-[14px] border border-line bg-bg px-4 py-3.5">
-        <p className="text-[12.5px] leading-[1.7] text-text-2">
+        <p className="t-body text-text-2">
           <strong className="text-ink">내 노트도 올리고 싶다면</strong> — 기준(사진{" "}
           {MIN_PHOTOS}장+·본문 {MIN_TEXT.toLocaleString("ko-KR")}자+)을 넘긴 공개
           노트는 자동으로 이 진열대에 올라옵니다.{" "}
@@ -168,7 +168,7 @@ export default async function NotesMarketPage() {
             임장노트 쓰기 ›
           </Link>
         </p>
-        <p className="mt-1.5 text-[11.5px] leading-[1.7] text-text-3">
+        <p className="mt-1.5 t-sub text-text-3">
           판매 가격·정산은 결제 기능 오픈 후 작성자가 직접 정합니다. 오픈 전까지
           어떤 결제도 발생하지 않아요.
         </p>

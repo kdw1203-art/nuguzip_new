@@ -239,7 +239,7 @@ export function SearchClient() {
           autoComplete="off"
           // 16px 미만 입력은 iOS 가 포커스 시 화면을 강제 줌한다(모바일 실측 7).
           // 모바일 16px, md+ 는 기존 15px 유지.
-          className="w-full bg-transparent text-[16px] text-ink outline-none placeholder:text-text-3 md:text-[15px]"
+          className="w-full bg-transparent t-body text-ink outline-none placeholder:text-text-3 md:t-body"
         />
         {hasQuery && (
           <button
@@ -258,7 +258,7 @@ export function SearchClient() {
         <Link
           href={`/map?q=${encodeURIComponent(q.trim())}`}
           onClick={() => saveRecent(q)}
-          className="btn-soft rise-in inline-flex w-fit items-center gap-1.5 rounded-xl px-3.5 py-2 text-[13px] font-bold text-primary"
+          className="btn-soft rise-in inline-flex w-fit items-center gap-1.5 rounded-xl px-3.5 py-2 t-body font-bold text-primary"
         >
           <Icon name="🗺" size={16} /> ‘{q.trim()}’ 지도에서 보기 ›
         </Link>
@@ -274,7 +274,7 @@ export function SearchClient() {
                 {recent.map((k) => (
                   <span
                     key={k}
-                    className="chip flex items-center gap-1.5 border border-line bg-bg px-3 py-1.5 text-[11px] text-text-2"
+                    className="chip flex items-center gap-1.5 border border-line bg-bg px-3 py-1.5 t-sub text-text-2"
                   >
                     <button type="button" onClick={() => runSearch(k)} className="font-semibold">
                       {k}
@@ -303,7 +303,7 @@ export function SearchClient() {
                   key={k}
                   type="button"
                   onClick={() => runSearch(k)}
-                  className="chip bg-bg px-3 py-1.5 text-[11px] text-text-2"
+                  className="chip bg-bg px-3 py-1.5 t-sub text-text-2"
                 >
                   {k}
                 </button>
@@ -321,10 +321,10 @@ export function SearchClient() {
       {/* 조회 실패 — "없음"이 아니라 "못 불러왔음"으로 적는다 */}
       {hasQuery && !busy && failed.length > 0 && (
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
-          <div className="text-[15px] font-extrabold text-ink">
+          <div className="t-section text-ink">
             지금은 {failed.join("·")} 검색이 되지 않아요
           </div>
-          <div className="text-[12px] text-text-3">
+          <div className="t-sub text-text-3">
             결과가 없는 게 아니라 조회에 실패한 거예요. 잠시 후 다시 시도해 주세요.
           </div>
         </div>
@@ -333,10 +333,10 @@ export function SearchClient() {
       {/* 빈 결과 + A8 대안 단지 제안 */}
       {hasQuery && !busy && failed.length === 0 && total === 0 && (
         <div className="mt-8 flex flex-col items-center gap-2 text-center">
-          <div className="text-[15px] font-extrabold text-ink">
+          <div className="t-section text-ink">
             ‘{q.trim()}’ 검색 결과가 없어요
           </div>
-          <div className="text-[12px] text-text-3">
+          <div className="t-sub text-text-3">
             단지명·지역·매물·임장노트·뉴스를 검색할 수 있어요.
           </div>
 
@@ -347,19 +347,19 @@ export function SearchClient() {
             <Link
               href={`/map?q=${encodeURIComponent(q.trim())}`}
               onClick={() => saveRecent(q)}
-              className="chip border border-line bg-bg px-3.5 py-2 text-[12px] font-bold text-primary"
+              className="chip border border-line bg-bg px-3.5 py-2 t-sub font-bold text-primary"
             >
               🗺 지도에서 찾아보기
             </Link>
             <Link
               href="/complex/browse"
-              className="chip border border-line bg-bg px-3.5 py-2 text-[12px] font-bold text-text-2"
+              className="chip border border-line bg-bg px-3.5 py-2 t-sub font-bold text-text-2"
             >
               단지 둘러보기
             </Link>
             <Link
               href="/tx"
-              className="chip border border-line bg-bg px-3.5 py-2 text-[12px] font-bold text-text-2"
+              className="chip border border-line bg-bg px-3.5 py-2 t-sub font-bold text-text-2"
             >
               실거래가 허브
             </Link>
@@ -367,7 +367,7 @@ export function SearchClient() {
 
           {suggestions.length > 0 && (
             <div className="mt-5 w-full max-w-[520px] text-left">
-              <div className="mb-2 px-1 text-[13px] font-extrabold text-ink">
+              <div className="mb-2 px-1 t-body font-extrabold text-ink">
                 혹시 이 단지를 찾으셨나요?
               </div>
               <div className="flex flex-col gap-2">
@@ -375,17 +375,17 @@ export function SearchClient() {
                   <Link
                     key={c.id}
                     href={complexHrefFromId(c.id)}
-                    className="card card-hover flex items-center justify-between gap-3 rounded-2xl px-4 py-3 no-underline"
+                    className="card tile flex items-center justify-between gap-3 rounded-2xl px-4 py-3 no-underline"
                   >
                     <div className="min-w-0">
-                      <div className="truncate text-[14px] font-extrabold text-ink">
+                      <div className="truncate t-section text-ink">
                         {c.name}
                       </div>
                       {c.region && (
-                        <div className="truncate text-[11px] text-text-3">{c.region}</div>
+                        <div className="truncate t-sub text-text-3">{c.region}</div>
                       )}
                     </div>
-                    <span className="shrink-0 text-[16px] text-[#c3cad6]">›</span>
+                    <span className="shrink-0 t-body text-[#c3cad6]">›</span>
                   </Link>
                 ))}
               </div>
@@ -407,7 +407,7 @@ export function SearchClient() {
             .map((g) => (
               <section key={g.key} className="rise-in card rounded-2xl p-[18px]">
                 <header className="mb-1 flex items-center justify-between">
-                  <div className="text-[13px] font-extrabold text-ink">
+                  <div className="t-body font-extrabold text-ink">
                     {g.label} <span className="text-text-3">{g.rows.length}</span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -415,12 +415,12 @@ export function SearchClient() {
                       <Link
                         href={`/map?q=${encodeURIComponent(q.trim())}`}
                         onClick={() => saveRecent(q)}
-                        className="text-[12px] font-bold text-primary"
+                        className="t-sub font-bold text-primary"
                       >
                         지도 ›
                       </Link>
                     )}
-                    <Link href={g.more} className="text-[12px] font-bold text-primary">
+                    <Link href={g.more} className="t-sub font-bold text-primary">
                       더 보기 ›
                     </Link>
                   </div>
@@ -435,11 +435,11 @@ export function SearchClient() {
                         i < g.rows.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
-                      <span className="min-w-0 truncate text-[13px] font-bold text-ink">
+                      <span className="min-w-0 truncate t-body font-bold text-ink">
                         {r.title}
                       </span>
                       {r.meta && (
-                        <span className="shrink-0 text-[11px] text-text-3">{r.meta}</span>
+                        <span className="shrink-0 t-sub text-text-3">{r.meta}</span>
                       )}
                     </Link>
                   ))}
