@@ -113,7 +113,7 @@ export function CreateGroupCta() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="btn-primary btn-cta rounded-xl px-[18px] py-2.5 text-[13px]"
+        className="btn-primary btn-cta rounded-xl px-[18px] py-2.5 t-body"
       >
         + 모임 만들기
       </button>
@@ -128,7 +128,7 @@ export function CreateGroupCta() {
 
         <div className="flex flex-col gap-3">
           <div>
-            <div className="mb-1.5 text-[11px] font-bold text-text-2">모임 유형</div>
+            <div className="mb-1.5 t-sub font-bold text-text-2">모임 유형</div>
             <div className="flex flex-wrap gap-1.5">
               {TYPES.map((t) => (
                 <button
@@ -150,7 +150,7 @@ export function CreateGroupCta() {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={60}
             placeholder="모임 제목 (예: 과천지식정보타운 같이 봐요)"
-            className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
 
           <div className="flex gap-2">
@@ -158,7 +158,7 @@ export function CreateGroupCta() {
               value={city}
               onChange={(e) => setCity(e.target.value as (typeof CITIES)[number])}
               aria-label="시/도"
-              className="w-[110px] shrink-0 rounded-xl border border-line bg-bg p-3 text-[13px] font-bold text-ink outline-none focus:border-primary"
+              className="w-[110px] shrink-0 rounded-xl border border-line bg-bg p-3 t-body font-bold text-ink outline-none focus:border-primary"
             >
               {CITIES.map((c) => (
                 <option key={c} value={c}>
@@ -171,22 +171,22 @@ export function CreateGroupCta() {
               onChange={(e) => setDistrict(e.target.value)}
               maxLength={40}
               placeholder="시·군·구 (예: 과천시)"
-              className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
           </div>
 
           <div className="flex gap-2">
-            <label className="flex flex-1 flex-col gap-1 text-[11px] font-bold text-text-2">
+            <label className="flex flex-1 flex-col gap-1 t-sub font-bold text-text-2">
               일시
               <input
                 type="datetime-local"
                 value={nextAt}
                 min={nowLocalMinute()}
                 onChange={(e) => setNextAt(e.target.value)}
-                className="w-full rounded-xl border border-line bg-bg p-2.5 text-[13px] text-ink outline-none focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-2.5 t-body text-ink outline-none focus:border-primary"
               />
             </label>
-            <label className="flex w-[80px] flex-col gap-1 text-[11px] font-bold text-text-2">
+            <label className="flex w-[80px] flex-col gap-1 t-sub font-bold text-text-2">
               정원
               <input
                 type="number"
@@ -194,10 +194,10 @@ export function CreateGroupCta() {
                 max={200}
                 value={maxMembers}
                 onChange={(e) => setMaxMembers(e.target.value)}
-                className="w-full rounded-xl border border-line bg-bg p-2.5 text-[13px] text-ink outline-none focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-2.5 t-body text-ink outline-none focus:border-primary"
               />
             </label>
-            <label className="flex w-[110px] flex-col gap-1 text-[11px] font-bold text-text-2">
+            <label className="flex w-[110px] flex-col gap-1 t-sub font-bold text-text-2">
               참가비(원)
               <input
                 type="number"
@@ -205,7 +205,7 @@ export function CreateGroupCta() {
                 step={1000}
                 value={fee}
                 onChange={(e) => setFee(e.target.value)}
-                className="w-full rounded-xl border border-line bg-bg p-2.5 text-[13px] text-ink outline-none focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-2.5 t-body text-ink outline-none focus:border-primary"
               />
             </label>
           </div>
@@ -216,7 +216,7 @@ export function CreateGroupCta() {
             rows={3}
             maxLength={1000}
             placeholder="모임 소개·코스·준비물을 적어주세요 (10자 이상)"
-            className="w-full resize-none rounded-xl border border-line bg-bg p-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            className="w-full resize-none rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
 
           <input
@@ -224,20 +224,20 @@ export function CreateGroupCta() {
             onChange={(e) => setTags(e.target.value)}
             maxLength={60}
             placeholder="태그 (쉼표로 구분 · 예: 초보환영, 재건축)"
-            className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+            className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
 
-          {error && <div className="text-[11px] font-semibold text-danger">{error}</div>}
+          {error && <div className="t-sub font-semibold text-danger">{error}</div>}
 
           <button
             type="button"
             onClick={() => void submit()}
             disabled={status === "sending"}
-            className="btn-primary rounded-xl p-3 text-[13px] disabled:opacity-60"
+            className="btn-primary rounded-xl p-3 t-body disabled:opacity-60"
           >
             {status === "sending" ? "만드는 중…" : "모임 만들기"}
           </button>
-          <p className="text-[10px] leading-[1.5] text-text-3">
+          <p className="t-caption text-text-3">
             개인정보(전화번호·계좌)는 적지 마세요 · 모임 생성 시 채팅방이 함께 열립니다
           </p>
         </div>

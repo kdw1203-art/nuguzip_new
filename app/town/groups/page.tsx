@@ -119,8 +119,8 @@ export default async function TownGroupsPage() {
       {/* ---------- 페이지 헤더 ---------- */}
       <div className="rise-in mb-5 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-extrabold text-ink">임장 모임</h1>
-          <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
+          <h1 className="t-title text-ink">임장 모임</h1>
+          <p className="mt-1 t-body text-text-2">
             같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
           </p>
         </div>

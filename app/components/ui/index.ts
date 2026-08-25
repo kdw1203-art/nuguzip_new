@@ -26,3 +26,7 @@ export type { ModalProps } from "./Modal";
 
 export { SourceNote } from "./SourceNote";
 export type { SourceNoteProps, SourceNoteTone } from "./SourceNote";
+
+export { Segmented } from "./Segmented";
+
+export { SkLine, SkBlock, SkCard, SkTable } from "./Skeleton";

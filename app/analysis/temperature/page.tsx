@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
 import { PageShell } from "../../components/PageShell";
+import { ToolHero, type HeroKpi } from "@/app/components/analysis/ToolHero";
+import { Gauge } from "@/app/components/viz/Gauge";
+import { Bars } from "@/app/components/viz/Bars";
 import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
 import { QaBlock } from "../../components/QaBlock";
 import { CitationBlock } from "../../components/CitationBlock";
@@ -70,13 +73,21 @@ const loadHub = cache(async (): Promise<HubData> => {
     : { weekStart: null, rows: [], loadFailed: true };
 });
 
-/** 점수 밴드 색 — /analysis/timing 의 온도 막대와 같은 눈금을 쓴다. */
-function scoreTone(score: number): { bg: string; fg: string } {
-  if (score >= 65) return { bg: "rgba(220, 38, 38, 0.10)", fg: "#dc2626" };
-  if (score >= 55) return { bg: "rgba(234, 88, 12, 0.10)", fg: "#ea580c" };
-  if (score >= 45) return { bg: "var(--primary-soft)", fg: "var(--primary)" };
-  if (score >= 35) return { bg: "rgba(2, 132, 199, 0.10)", fg: "#0284c7" };
-  return { bg: "rgba(37, 99, 235, 0.10)", fg: "#2563eb" };
+/* 점수 밴드 색 — 예전엔 #dc2626·#ea580c·#0284c7·#2563eb 를 인라인 style 로
+   박아 두었다. 다크에서 토큰을 안 타 그대로 튀었고, 대비 게이트가 보증하는
+   조합 밖이었다. 토큰 클래스로 바꾼다(위→아래 = 뜨거움→식음). */
+function scoreToneClass(score: number): string {
+  if (score >= 65) return "bg-danger-soft text-danger";
+  if (score >= 55) return "bg-warning-soft text-warning";
+  if (score >= 45) return "bg-bg text-text-2";
+  return "bg-primary-soft text-primary";
+}
+
+/** 지난주 대비 배지 색 — 오름은 뜨거워짐(위험색), 내림은 식음(파랑). */
+function diffToneClass(diff: number): string {
+  if (diff > 0) return "delta-up-b";
+  if (diff < 0) return "delta-down-b";
+  return "delta-flat-b";
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -110,6 +121,38 @@ export default async function TemperatureHubPage() {
   const falling = rows.filter((r) => r.previous && r.current.score < r.previous.score).length;
   const compared = rows.filter((r) => r.previous).length;
 
+  /* 첫 화면 숫자 — 62개 지역 카드 격자만 있던 자리에 "지금 시장이 어느 쪽인가"를 세운다. */
+  const BIN = 10;
+  const binned = new Map<number, number>();
+  for (const r of rows) {
+    const b = Math.min(90, Math.floor(r.current.score / BIN) * BIN);
+    binned.set(b, (binned.get(b) ?? 0) + 1);
+  }
+  const binKeys = [...binned.keys()].sort((a, b) => a - b);
+  const histValues = binKeys.map((k) => binned.get(k) ?? 0);
+  const histLabels = binKeys.map((k) => `${k}`);
+  const avgScore =
+    rows.length > 0
+      ? Math.round((rows.reduce((a, r) => a + r.current.score, 0) / rows.length) * 10) / 10
+      : null;
+
+  const heroKpis: HeroKpi[] = [];
+  if (rows.length > 0) {
+    heroKpis.push({ label: "기록 지역", value: `${rows.length}곳`, note: weekLabel ? `${weekLabel} 주 기준` : undefined });
+    if (avgScore !== null) {
+      heroKpis.push({ label: "평균 온도", value: `${avgScore}`, note: "50이 중립" });
+    }
+    if (hottest) {
+      heroKpis.push({ label: "가장 뜨거운 곳", value: `${hottest.current.score}`, note: `${hottest.current.regionLabel} · ${hottest.current.headline}` });
+    }
+    if (coldest) {
+      heroKpis.push({ label: "가장 차가운 곳", value: `${coldest.current.score}`, note: `${coldest.current.regionLabel} · ${coldest.current.headline}` });
+    }
+    if (compared > 0) {
+      heroKpis.push({ label: "지난주 대비", value: `▲${rising} · ▼${falling}`, note: `비교 가능한 ${compared}곳 기준` });
+    }
+  }
+
   const crumbs = breadcrumbJsonLd([
     { name: "홈", url: "/" },
     { name: "AI 분석", url: "/analysis" },
@@ -136,14 +179,54 @@ export default async function TemperatureHubPage() {
   ];
 
   return (
-    <PageShell breadcrumb="홈 › AI 분석 › 시장 온도 주간 기록" title="지역별 시장 온도 주간 기록">
+    <PageShell breadcrumb="홈 › AI 분석 › 시장 온도 주간 기록">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
       />
 
-      <p className="rise-in mb-5 text-[13px] leading-[1.6] text-text-2">
-        매매가격지수 모멘텀과 실거래 거래량 추이를 0~100 눈금으로 합쳐 매주 기록합니다.
+      <ToolHero
+        eyebrow="지역·시장 흐름"
+        icon="flame"
+        title="지역별 시장 온도 주간 기록"
+        toneClass="text-warning"
+        lead="매매가격지수 모멘텀과 실거래 거래량 추이를 0~100 눈금으로 합쳐 매주 기록합니다. 50이 중립이고, 매수·매도 권유가 아닙니다."
+        kpis={heroKpis}
+        chart={
+          hottest ? (
+            <div className="flex items-center gap-3 rounded-[12px] border border-line bg-surface px-3 py-2">
+              <Gauge
+                value={hottest.current.score}
+                label={String(hottest.current.score)}
+                caption={hottest.current.regionLabel}
+                size={112}
+                className="shrink-0 text-warning"
+              />
+              {histValues.length > 1 && (
+                <div className="min-w-0 flex-1 text-warning">
+                  <span className="t-caption block pb-1 text-text-3">
+                    온도 분포 · 10점 구간별 지역 수
+                  </span>
+                  <Bars
+                    values={histValues}
+                    labels={histLabels}
+                    height={62}
+                    valueSuffix="곳"
+                    ariaLabel="시장 온도 분포"
+                  />
+                </div>
+              )}
+            </div>
+          ) : null
+        }
+        source={
+          weekLabel
+            ? `${weekLabel}이 속한 주 · 한국부동산원 매매가격지수 · 국토교통부 실거래 거래량 · 그 주에 마지막으로 관측한 값`
+            : "한국부동산원 매매가격지수 · 국토교통부 실거래 거래량"
+        }
+      />
+
+      <p className="t-body mb-5 mt-4 text-text-2">
         {rows.length > 0 && weekLabel && (
           <>
             {" "}
@@ -158,21 +241,20 @@ export default async function TemperatureHubPage() {
             )}
             .
           </>
-        )}{" "}
-        50점이 중립이고, 매수·매도 권유가 아닙니다.
+        )}
       </p>
 
       {loadFailed ? (
-        <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-          <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+        <section className="card mb-6 p-[var(--pad-card)]" data-reveal="">
+          <p className="t-body py-8 text-center text-text-3">
             <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
             주간 기록이 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는 뜻입니다.
           </p>
         </section>
       ) : rows.length === 0 ? (
-        <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-          <p className="py-8 text-center text-[13px] leading-[1.7] text-text-3">
+        <section className="card mb-6 p-[var(--pad-card)]" data-reveal="">
+          <p className="t-body py-8 text-center text-text-3">
             아직 쌓인 주가 없습니다.
             <br />
             주간 기록은 매일 도는 수집 작업이 그 주의 값을 갱신하며 만들어집니다. 첫 기록이
@@ -184,55 +266,51 @@ export default async function TemperatureHubPage() {
           </p>
         </section>
       ) : (
-        <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
-          <h2 className="flex items-baseline justify-between gap-3 text-[15px] font-extrabold text-ink">
+        <section className="card mb-6 p-[var(--pad-card)]" data-reveal="">
+          <h2 className="t-title flex items-baseline justify-between gap-3 text-ink">
             {weekLabel} 주 기준
-            <span className="shrink-0 text-[11px] font-medium text-text-3">
+            <span className="t-sub shrink-0 text-text-3">
               온도 높은 순 · {rows.length}개 지역
             </span>
           </h2>
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {rows.map(({ current, previous }) => {
-              const tone = scoreTone(current.score);
               const diff = previous ? current.score - previous.score : null;
               return (
                 <Link
                   key={current.regionId}
                   href={`${PATH}/${current.regionId}`}
-                  className="card-hover flex items-center gap-3 rounded-[10px] border border-border px-3 py-2.5"
+                  className="tile card flex items-center gap-3 rounded-[12px] px-3 py-2.5 no-underline"
                 >
                   <span
-                    className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[10px] text-[15px] font-extrabold"
-                    style={{ background: tone.bg, color: tone.fg }}
+                    className={`tile-ico t-num flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px] text-[15px] ${scoreToneClass(current.score)}`}
                   >
                     {current.score}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-bold leading-[1.5] text-ink">
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="t-sub truncate font-bold text-ink">
                       {current.regionLabel}
                     </span>
-                    <span className="block truncate text-[11px] text-text-3">
-                      {current.headline}
+                    <span className="t-caption truncate text-text-3">{current.headline}</span>
+                    {/* 눈금 위 위치 — 숫자만으로는 "62가 높은 편인가"를 못 읽는다.
+                        가운데 눈금이 중립(50)이다. */}
+                    <span className="rank-track" aria-hidden="true">
+                      <span
+                        className={`rank-fill ${current.score >= 55 ? "text-warning" : "text-primary"}`}
+                        style={{ width: `${Math.min(100, Math.max(3, current.score))}%` }}
+                      />
                     </span>
                   </span>
-                  <span
-                    className="shrink-0 text-[11px] font-bold"
-                    style={{
-                      color:
-                        diff === null || diff === 0
-                          ? "var(--text-3)"
-                          : diff > 0
-                            ? "#dc2626"
-                            : "#2563eb",
-                    }}
-                  >
-                    {diff === null ? "—" : diff === 0 ? "±0" : `${diff > 0 ? "+" : ""}${diff}`}
-                  </span>
+                  {diff !== null && (
+                    <span className={`delta shrink-0 ${diffToneClass(diff)}`}>
+                      {diff === 0 ? "±0" : `${diff > 0 ? "▲" : "▼"}${Math.abs(diff)}`}
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </div>
-          <p className="mt-3 text-[11px] leading-[1.7] text-text-3">
+          <p className="t-sub mt-3 text-text-3">
             오른쪽 숫자는 지난주 기록과의 점수 차이입니다. &ldquo;—&rdquo;는 그 지역의 직전 주
             기록이 없다는 뜻입니다(기록이 시작된 첫 주이거나 그 주에 계산 근거가 없었던
             경우).
@@ -248,9 +326,9 @@ export default async function TemperatureHubPage() {
 
       <QaBlock title="시장 온도 Q&A" items={qa} />
 
-      <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
-        <h2 className="text-[15px] font-extrabold text-ink">이 기록을 읽는 법</h2>
-        <ul className="mt-2 space-y-1.5 text-[13px] leading-[1.6] text-text-2">
+      <section className="card mb-6 p-[var(--pad-card)]" data-reveal="">
+        <h2 className="t-title text-ink">이 기록을 읽는 법</h2>
+        <ul className="t-body mt-2 space-y-1.5 text-text-2">
           <li>
             · 값은 <strong className="text-ink">그 주에 마지막으로 관측한 온도</strong>입니다.
             주간 평균이 아니며, 주가 넘어가면 그 값이 그대로 굳습니다.

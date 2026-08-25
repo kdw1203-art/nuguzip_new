@@ -10,6 +10,9 @@ import {
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
 import { ErrorState } from "@/app/components/ui";
+import { ToolHero, type HeroKpi } from "@/app/components/analysis/ToolHero";
+import { Bars } from "@/app/components/viz/Bars";
+import { RankBars } from "@/app/components/viz/RankBars";
 import { faqJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
 
 /* [3차 · AI 분석 확충] 전세가율·갭 스크리너.
@@ -48,18 +51,25 @@ type Row = {
   group: "서울" | "경기" | "인천";
 };
 
+/* 표 안 셀 배경 막대 — 값의 크기를 배경 길이로 먼저 보인다.
+   숫자 7열짜리 표는 눈이 한 열씩 훑어야 순위가 잡힌다. */
+function ratioBarStyle(ratio: number, max: number): React.CSSProperties {
+  const w = max > 0 ? Math.min(100, Math.round((ratio / max) * 100)) : 0;
+  return { ["--w" as string]: `${w}%` };
+}
+
 function fmtPeriod(period: string): string {
   const d = period.replace(/[^0-9]/g, "");
   if (d.length < 6) return period;
   return `${d.slice(0, 4)}.${d.slice(4, 6)}`;
 }
 
-function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
+function RankTable({ rows, tone, maxRatio }: { rows: Row[]; tone: "high" | "low"; maxRatio: number }) {
   return (
-    <div className="card overflow-x-auto rounded-2xl px-4 py-2">
-      <table className="w-full min-w-[600px] text-[13px]">
+    <div className="card overflow-x-auto rounded-[14px] px-4 py-2">
+      <table className="t-body w-full min-w-[600px]">
         <thead>
-          <tr className="border-b border-line text-left text-[11px] text-text-3">
+          <tr className="t-sub border-b border-line text-left text-text-3">
             <th className="py-2 pr-3 font-semibold">지역</th>
             <th className="py-2 pr-3 text-right font-semibold">전세가율</th>
             <th className="py-2 pr-3 text-right font-semibold">평균 매매가</th>
@@ -71,7 +81,7 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.regionId} className="border-b border-divider last:border-0">
+            <tr key={r.regionId} className="row-hl border-b border-divider last:border-0">
               <td className="py-2.5 pr-3">
                 <Link
                   href={`/region/${r.regionId}`}
@@ -81,9 +91,10 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
                 </Link>
               </td>
               <td
-                className={`py-2.5 pr-3 text-right font-extrabold tabular-nums ${
-                  tone === "high" ? "text-primary" : "text-ink"
+                className={`cell-bar py-2.5 pr-3 text-right font-extrabold tabular-nums ${
+                  tone === "high" ? "text-primary" : "text-text-2"
                 }`}
+                style={ratioBarStyle(r.ratio, maxRatio)}
               >
                 {r.ratio.toFixed(1)}%
               </td>
@@ -94,12 +105,12 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
                 {r.measuredGap !== undefined ? (
                   <>
                     {formatKrwShort(r.measuredGap)}
-                    <span className="ml-1 rounded bg-success-soft px-1 py-px text-[9.5px] font-extrabold text-success">실측</span>
+                    <span className="t-caption ml-1 rounded bg-success-soft px-1 py-px font-extrabold text-success">실측</span>
                   </>
                 ) : r.gap !== undefined ? (
                   <>
                     {formatKrwShort(r.gap)}
-                    <span className="ml-1 rounded bg-bg px-1 py-px text-[9.5px] font-extrabold text-text-3">추정</span>
+                    <span className="t-caption ml-1 rounded bg-bg px-1 py-px font-extrabold text-text-3">추정</span>
                   </>
                 ) : (
                   "—"
@@ -119,7 +130,7 @@ function RankTable({ rows, tone }: { rows: Row[]; tone: "high" | "low" }) {
                   <span className="font-bold text-primary">▼ {Math.abs(r.saleChange).toFixed(2)}%</span>
                 )}
               </td>
-              <td className="py-2.5 text-right text-[11px] text-text-3">
+              <td className="t-sub py-2.5 text-right text-text-3">
                 {fmtPeriod(r.period)} · {r.source.toUpperCase()}
               </td>
             </tr>
@@ -197,24 +208,81 @@ export default async function GapScreenerPage() {
   const bottom = [...rows].reverse().slice(0, 10);
   const median =
     rows.length > 0 ? rows[Math.floor(rows.length / 2)].ratio : null;
+  const maxRatio = rows.length > 0 ? rows[0].ratio : 0;
+
+  /* 분포 히스토그램 — 표만 보면 "내 지역이 높은 편인가"를 알 수 없다.
+     5%p 구간으로 세어 전국이 어디 몰려 있는지를 먼저 보인다. */
+  const BIN = 5;
+  const binned = new Map<number, number>();
+  for (const r of rows) {
+    const b = Math.floor(r.ratio / BIN) * BIN;
+    binned.set(b, (binned.get(b) ?? 0) + 1);
+  }
+  const binKeys = [...binned.keys()].sort((a, b) => a - b);
+  const histValues = binKeys.map((k) => binned.get(k) ?? 0);
+  const histLabels = binKeys.map((k) => `${k}%`);
+
+  const measured = rows.filter((r) => r.measuredGap !== undefined).length;
+  const kpis: HeroKpi[] = [];
+  if (rows.length > 0) {
+    kpis.push({ label: "집계 지역", value: `${rows.length}곳`, note: "서울·경기·인천" });
+    if (median !== null) {
+      kpis.push({ label: "전세가율 중앙값", value: `${median.toFixed(1)}%`, note: "절반이 이 값보다 높다" });
+    }
+    kpis.push({
+      label: "가장 높은 곳",
+      value: `${rows[0].ratio.toFixed(1)}%`,
+      note: `${rows[0].name} · 갭이 가장 작다`,
+    });
+    kpis.push({
+      label: "가장 낮은 곳",
+      value: `${rows[rows.length - 1].ratio.toFixed(1)}%`,
+      note: `${rows[rows.length - 1].name} · 갭이 가장 크다`,
+    });
+    if (measured > 0) {
+      kpis.push({
+        label: "실측 갭 지역",
+        value: `${measured}곳`,
+        note: "전세 신고 30건 이상 — 나머지는 비율 환산 추정",
+      });
+    }
+  }
 
   return (
-    <PageShell breadcrumb="AI 분석 › 전세가율·갭" title="전세가율·갭 스크리너">
-      <p className="rise-in mb-4 max-w-[720px] text-[13px] leading-[1.8] text-text-2">
-        전세가율은 매매가 대비 전세가의 비율입니다. 비율이 높을수록 매매가와 전세가의
-        차이(갭)가 작다는 뜻입니다. 갭은{" "}
+    <PageShell breadcrumb="AI 분석 › 전세가율·갭">
+      <ToolHero
+        eyebrow="지역·시장 흐름"
+        icon="landmark"
+        title="전세가율·갭 스크리너"
+        toneClass="text-success"
+        lead="수도권 시군구를 전세가율 순으로 줄 세워, 갭이 작은 곳과 큰 곳을 한 화면에서 봅니다."
+        kpis={kpis}
+        chart={
+          histValues.length > 1 ? (
+            <div className="rounded-[12px] border border-line bg-surface px-2 pb-1 pt-2 text-success">
+              <span className="t-caption block px-1 pb-1 text-text-3">
+                전세가율 분포 · {BIN}%p 구간별 지역 수
+              </span>
+              <Bars
+                values={histValues}
+                labels={histLabels}
+                height={78}
+                valueSuffix="곳"
+                ariaLabel="전세가율 분포 히스토그램"
+              />
+            </div>
+          ) : null
+        }
+        source="한국부동산원(REB)·KB 공표 지역 통계 — 지역·출처별 공표 주기가 달라 기준 시점이 지역마다 다릅니다(표의 기준 열 참고)."
+      />
+
+      <p className="mb-4 mt-4 max-w-[720px] t-body text-text-2">
+        전세가율은 매매가 대비 전세가의 비율이고, 높을수록 갭이 작습니다. 갭은{" "}
         <b className="text-ink">평균 매매가 − 전세 신고 중앙값(최근 3개월)</b>의{" "}
         <b className="text-ink">실측</b>을 우선 표시하고, 전세 표본이 30건 미만인 지역만
         비율 환산 <b className="text-ink">추정</b>으로 대신합니다. 전월세 신고는
         갱신·신규 계약이 구분되지 않아 실측값에도 그 한계가 섞여 있으며, 단지·면적에
         따라 실제 갭은 크게 다릅니다.
-        {median !== null && (
-          <>
-            {" "}
-            지금 집계된 {rows.length}개 지역의 전세가율 중앙값은{" "}
-            <b className="text-ink">{median.toFixed(1)}%</b>입니다.
-          </>
-        )}
       </p>
 
       {loadFailed ? (
@@ -230,32 +298,57 @@ export default async function GapScreenerPage() {
         />
       ) : (
         <>
-          <section className="rise-in-1 mb-6">
-            <h2 className="mb-2 text-[15px] font-extrabold text-ink">
+          <section className="mb-6" data-reveal="">
+            <h2 className="mb-2 t-title text-ink">
               전세가율 상위 — 갭이 작은 지역 TOP {top.length}
             </h2>
-            <RankTable rows={top} tone="high" />
-            <p className="mt-2 text-[11.5px] leading-[1.7] text-text-3">
-              ⚠️ 전세가율이 높은 지역은 갭이 작은 만큼, 전세가 하락 시 보증금 반환 부담
+            {/* 막대가 먼저, 표는 그 아래. 순위는 길이로 읽고 세부는 표에서 읽는다 */}
+            <div className="card mb-2 rounded-[14px] p-3 text-success">
+              <RankBars
+                rows={top.map((r) => ({
+                  key: r.regionId,
+                  label: r.name,
+                  value: r.ratio,
+                  href: `/region/${r.regionId}`,
+                }))}
+                suffix="%"
+                max={maxRatio}
+              />
+            </div>
+            <RankTable rows={top} tone="high" maxRatio={maxRatio} />
+            <p className="mt-2 t-sub text-text-3">
+              전세가율이 높은 지역은 갭이 작은 만큼, 전세가 하락 시 보증금 반환 부담
               (역전세)·매매가와 전세가 역전 위험도 함께 큽니다. 갭이 작다는 산술이
               &lsquo;안전하다&rsquo;는 뜻이 아닙니다.
             </p>
           </section>
 
-          <section className="rise-in-2 mb-6">
-            <h2 className="mb-2 text-[15px] font-extrabold text-ink">
+          <section className="mb-6" data-reveal="">
+            <h2 className="mb-2 t-title text-ink">
               전세가율 하위 — 갭이 큰 지역 {bottom.length}곳
             </h2>
-            <RankTable rows={bottom} tone="low" />
+            <div className="card mb-2 rounded-[14px] p-3 text-warning">
+              <RankBars
+                rows={bottom.map((r) => ({
+                  key: r.regionId,
+                  label: r.name,
+                  value: r.ratio,
+                  href: `/region/${r.regionId}`,
+                }))}
+                suffix="%"
+                max={maxRatio}
+              />
+            </div>
+            <RankTable rows={bottom} tone="low" maxRatio={maxRatio} />
           </section>
 
           {/* [#78 v2] 시도별 전체 표 — 앵커 점프로 필터를 대신한다(파라미터 없는 ISR 유지) */}
-          <div className="rise-in-2 mb-3 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2" data-reveal="">
             {(["서울", "경기", "인천"] as const).map((g) => (
               <a
                 key={g}
                 href={`#sido-${g}`}
-                className="chip border border-line bg-surface px-3.5 py-1.5 text-[12px] font-bold text-primary no-underline"
+                className="chip t-sub border border-line bg-surface px-3.5 py-1.5 font-bold text-primary no-underline transition-colors hover:bg-primary-soft"
               >
                 {g} 전체 ({rows.filter((r) => r.group === g).length})
               </a>
@@ -266,10 +359,10 @@ export default async function GapScreenerPage() {
             if (groupRows.length === 0) return null;
             return (
               <section key={g} id={`sido-${g}`} className="mb-6 scroll-mt-20">
-                <h2 className="mb-2 text-[15px] font-extrabold text-ink">
+                <h2 className="mb-2 t-title text-ink">
                   {g} 전체 — 전세가율 순 {groupRows.length}개 지역
                 </h2>
-                <RankTable rows={groupRows} tone="high" />
+                <RankTable rows={groupRows} tone="high" maxRatio={maxRatio} />
               </section>
             );
           })}
@@ -298,12 +391,12 @@ export default async function GapScreenerPage() {
         ];
         return (
           <section className="mt-8">
-            <h2 className="mb-2 text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
+            <h2 className="mb-2 t-title text-ink">자주 묻는 질문</h2>
             <div className="flex flex-col gap-2">
               {faq.map((f) => (
-                <details key={f.q} className="card rounded-xl px-4 py-3">
-                  <summary className="cursor-pointer text-[13.5px] font-bold text-ink">{f.q}</summary>
-                  <p className="mt-2 text-[13px] leading-[1.8] text-text-2">{f.a}</p>
+                <details key={f.q} className="card tile rounded-[14px] px-4 py-3">
+                  <summary className="cursor-pointer t-section text-ink">{f.q}</summary>
+                  <p className="mt-2 t-body text-text-2">{f.a}</p>
                 </details>
               ))}
             </div>
@@ -315,7 +408,7 @@ export default async function GapScreenerPage() {
         );
       })()}
 
-      <p className="mt-6 text-[11px] leading-[1.7] text-text-3">
+      <p className="mt-6 t-caption text-text-3">
         출처: 한국부동산원(REB)·KB 공표 지역 통계 — 지역·출처별 최신 공표 주기 기준이라
         시점이 지역마다 다를 수 있습니다(각 행의 기준 열 참고). 본 화면은 공표 통계의
         산술 정리이며 투자 권유가 아닙니다. 판단과 책임은 이용자에게 있습니다.

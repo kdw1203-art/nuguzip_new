@@ -50,15 +50,15 @@ export function WelcomeHandoff() {
       <div className="card flex flex-col gap-2 rounded-[16px] px-3.5 py-3 shadow-lg">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <div className="text-[13px] font-extrabold text-ink">온보딩 루프 완료</div>
-            <p className="mt-0.5 text-[11px] leading-[1.55] text-text-2">
+            <div className="t-body font-extrabold text-ink">온보딩 루프 완료</div>
+            <p className="mt-0.5 t-sub text-text-2">
               {aiLabel} · 같은 생활권 후보를 지도에서 비교해 보세요
             </p>
           </div>
           <button
             type="button"
             onClick={() => setShow(false)}
-            className="shrink-0 text-[12px] font-semibold text-text-3"
+            className="shrink-0 t-sub font-semibold text-text-3"
             aria-label="닫기"
           >
             ✕
@@ -68,14 +68,14 @@ export function WelcomeHandoff() {
           {noteId && (
             <Link
               href={`/notes/${encodeURIComponent(noteId)}`}
-              className="chip border border-primary/30 bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+              className="chip border border-primary/30 bg-primary-soft px-2.5 py-1 t-sub font-bold text-primary no-underline"
             >
               방금 쓴 노트
             </Link>
           )}
           <Link
             href="/notes/new"
-            className="chip border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-1 no-underline"
+            className="chip border border-line bg-surface px-2.5 py-1 t-sub font-bold text-text-1 no-underline"
           >
             노트 더 쓰기
           </Link>

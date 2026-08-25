@@ -75,33 +75,33 @@ export function ListingPreviewPanel({
           {/* 본문 */}
           <div className="min-w-0 flex-1">
             {state === "loading" ? (
-              <div className="py-3 text-[12px] text-text-3">매물 정보를 불러오는 중…</div>
+              <div className="py-3 t-sub text-text-3">매물 정보를 불러오는 중…</div>
             ) : state === "error" || !data ? (
-              <div className="py-3 text-[12px] text-text-3">매물 정보를 불러올 수 없어요.</div>
+              <div className="py-3 t-sub text-text-3">매물 정보를 불러올 수 없어요.</div>
             ) : (
               <>
                 <div className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-bold text-primary">
+                  <span className="rounded-full bg-primary-soft chip-pad t-sub font-bold text-primary">
                     {data.listingTypeLabel}
                   </span>
                   {data.ownerVerified ? (
-                    <span className="rounded-full bg-[rgba(14,159,110,.12)] chip-pad text-[10px] font-bold text-[#0b8058]">
+                    <span className="rounded-full bg-[rgba(14,159,110,.12)] chip-pad t-caption font-bold text-[#0b8058]">
                       소유확인
                     </span>
                   ) : null}
                   {data.boosted ? (
-                    <span className="rounded-full bg-[rgba(245,166,35,.14)] chip-pad text-[10px] font-bold text-[#b26a00]">
+                    <span className="rounded-full bg-[rgba(245,166,35,.14)] chip-pad t-caption font-bold text-[#b26a00]">
                       부스트
                     </span>
                   ) : null}
                 </div>
-                <div className="mt-1 truncate text-[15px] font-extrabold text-ink">
+                <div className="mt-1 truncate t-section text-ink">
                   {data.priceLabel}
                 </div>
-                <div className="truncate text-[12px] font-semibold text-text-1">
+                <div className="truncate t-sub font-semibold text-text-1">
                   {data.complexName || "매물"}
                 </div>
-                <div className="truncate text-[11px] text-text-3">
+                <div className="truncate t-sub text-text-3">
                   {[data.regionName, data.areaLabel, data.floor ? `${data.floor}층` : ""]
                     .filter(Boolean)
                     .join(" · ")}
@@ -125,7 +125,7 @@ export function ListingPreviewPanel({
           <div className="mt-2.5 flex items-center gap-2">
             <Link
               href={`/listings/${data.id}`}
-              className="btn-primary flex-1 rounded-xl py-2.5 text-center text-[13px]"
+              className="btn-primary flex-1 rounded-xl py-2.5 text-center t-body"
             >
               상세 보기
             </Link>

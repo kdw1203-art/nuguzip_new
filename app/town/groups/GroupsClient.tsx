@@ -95,30 +95,30 @@ function MeetingCard({
             {meta.label}
           </span>
           {g.fee > 0 && (
-            <span className="inline-flex items-center rounded-md bg-bg chip-pad text-[11px] font-bold text-text-2">
+            <span className="inline-flex items-center rounded-md bg-bg chip-pad t-sub font-bold text-text-2">
               참가비 {g.fee.toLocaleString("ko-KR")}원
             </span>
           )}
           {/* 고도화 29 — 채팅 활성도(실측 24h). 0·미확인이면 그리지 않는다 */}
           {chat24h > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-success-soft chip-pad text-[11px] font-bold text-success">
+            <span className="inline-flex items-center gap-1 rounded-md bg-success-soft chip-pad t-sub font-bold text-success">
               <Icon name="messages-square" size={11} />
               24시간 메시지 {chat24h.toLocaleString("ko-KR")}개
             </span>
           )}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
+        <span className="inline-flex items-center gap-1 t-sub font-semibold text-text-3">
           <Icon name="calendar" size={12} />
           {g.whenLabel}
         </span>
       </div>
 
       <div>
-        <h3 className="line-clamp-1 text-[15px] font-extrabold text-ink">{g.title}</h3>
+        <h3 className="line-clamp-1 t-section text-ink">{g.title}</h3>
         <p className="mt-1 line-clamp-2 text-xs leading-[1.55] text-text-2">{g.desc}</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 t-sub text-text-3">
         {/* 지역명이 카탈로그에서 유일하게 해석될 때만 지역 랜딩으로 링크한다 —
             해석 실패·모호는 링크 없이 텍스트(죽은 링크 금지). */}
         {regionIdForName(g.region) ? (
@@ -144,7 +144,7 @@ function MeetingCard({
       {g.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {g.tags.map((t) => (
-            <span key={t} className="chip-tag px-2.5 py-1 text-[11px]">
+            <span key={t} className="chip-tag px-2.5 py-1 t-sub">
               #{t}
             </span>
           ))}
@@ -153,7 +153,7 @@ function MeetingCard({
 
       {/* 모집 인원 */}
       <div className="mt-auto">
-        <div className="mb-1 flex items-center justify-between text-[11px]">
+        <div className="mb-1 flex items-center justify-between t-sub">
           <span className="inline-flex items-center gap-1 text-text-3">
             <Icon name="users" size={12} />
             모집 인원
@@ -173,7 +173,7 @@ function MeetingCard({
       {/* 푸터 — 가짜 아바타 원(장식용 색 원 3개)은 제거했다. 실제 참여자
           프로필이 아닌 그림은 "사람이 있는 것처럼" 보이게 만들 뿐이다. */}
       <div className="flex items-center justify-between border-t border-line pt-3">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-text-3">
+        <span className="inline-flex items-center gap-1.5 t-sub font-medium text-text-3">
           <Icon name="users" size={12} />
           {g.statusKey === "past"
             ? `${g.members}명 참여했어요`
@@ -290,7 +290,7 @@ export function GroupsClient({
     <>
       {/* ---------- 필터 (pushState 버튼 — 서버 왕복 없음) ---------- */}
       <div className="rise-in-1 mb-6 flex flex-col gap-2.5">
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 t-body [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={() => apply({ region: "all" })}
@@ -311,7 +311,7 @@ export function GroupsClient({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
+        <div className="flex flex-wrap items-center gap-1.5 t-body">
           {statusChips.map((c) => (
             <button
               key={c.id}
@@ -339,7 +339,7 @@ export function GroupsClient({
             <button
               type="button"
               onClick={() => apply({ region: "all", status: "all", sort: "soon", q: "" })}
-              className="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-primary"
+              className="ml-auto inline-flex items-center gap-1 t-sub font-semibold text-primary"
             >
               <Icon name="x" size={12} /> 필터 초기화
             </button>
@@ -360,16 +360,16 @@ export function GroupsClient({
             maxLength={60}
             placeholder="모임 이름·태그·지역 검색"
             aria-label="모임 검색"
-            className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-[13px] text-ink placeholder:text-text-3"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 t-body text-ink placeholder:text-text-3"
           />
-          <button type="submit" className="btn-primary press rounded-xl px-4 py-2 text-[13px]">
+          <button type="submit" className="btn-primary press rounded-xl px-4 py-2 t-body">
             검색
           </button>
         </form>
       </div>
 
       {truncated && (
-        <p className="mb-3 text-[11px] leading-[1.6] text-text-3">
+        <p className="mb-3 t-sub text-text-3">
           모임이 조회 상한에 도달해 일부가 잘렸을 수 있어요 — 필터 결과가
           실제보다 적게 보일 수 있습니다.
         </p>
@@ -400,8 +400,8 @@ export function GroupsClient({
           {/* 모집 중 모임 */}
           <section className="mb-8">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-[15px] font-extrabold text-ink">모집 중 모임</h2>
-              <span className="text-[12px] font-semibold text-text-3">{recruiting.length}개</span>
+              <h2 className="t-section text-ink">모집 중 모임</h2>
+              <span className="t-sub font-semibold text-text-3">{recruiting.length}개</span>
             </div>
             {recruiting.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -429,8 +429,8 @@ export function GroupsClient({
           {closed.length > 0 && (
             <section>
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-[15px] font-extrabold text-ink">마감·종료된 모임</h2>
-                <span className="text-[12px] font-semibold text-text-3">{closed.length}개</span>
+                <h2 className="t-section text-ink">마감·종료된 모임</h2>
+                <span className="t-sub font-semibold text-text-3">{closed.length}개</span>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {closed.map((g, i) => (

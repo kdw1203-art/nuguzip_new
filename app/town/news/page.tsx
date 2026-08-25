@@ -174,8 +174,8 @@ export default async function TownNewsPage() {
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">뉴스</h1>
-        <Link href="/town/library" className="text-[13px] font-bold text-primary">
+        <h1 className="rise-in t-title text-ink">뉴스</h1>
+        <Link href="/town/library" className="t-body font-bold text-primary">
           자료·리포트 ›
         </Link>
       </div>
@@ -187,14 +187,14 @@ export default async function TownNewsPage() {
           className="rise-in ai-panel mb-4 flex items-center justify-between gap-3 rounded-[18px] p-5 no-underline"
         >
           <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-ai-accent">
+            <div className="flex items-center gap-1.5 t-sub font-extrabold text-ai-accent">
               <Icon name="file-text" size={14} />
               주간 다이제스트
-              <span className="rounded bg-white/10 px-1.5 py-px text-[10px] text-ai-text">
+              <span className="rounded bg-white/10 px-1.5 py-px t-caption text-ai-text">
                 {digest.weekLabel}
               </span>
             </div>
-            <div className="text-[15px] font-extrabold text-white">
+            <div className="t-section text-white">
               {digestSummaryLine(digest)}
             </div>
             {digestTeaser && (
@@ -215,12 +215,12 @@ export default async function TownNewsPage() {
 
       {/* [#103] 주제 허브 진입 — 클러스터·요약을 재활용하는 색인 표면 20개 */}
       <div className="rise-in mb-4 flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] font-bold text-text-3">주제별</span>
+        <span className="t-sub font-bold text-text-3">주제별</span>
         {NEWS_TAGS.slice(0, 10).map((t) => (
           <Link
             key={t.slug}
             href={`/town/news/tag/${t.slug}`}
-            className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+            className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2"
           >
             {t.label}
           </Link>
@@ -237,7 +237,7 @@ export default async function TownNewsPage() {
             className="relative h-[200px] w-full"
             style={{ background: seedGradient("molit") }}
           >
-            <span className="absolute left-2 top-2 rounded-[5px] bg-primary-soft chip-pad text-[10px] font-extrabold text-primary">
+            <span className="absolute left-2 top-2 rounded-[5px] bg-primary-soft chip-pad t-caption font-extrabold text-primary">
               {EXAMPLE_NEWS.category}
             </span>
             <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">
@@ -245,7 +245,7 @@ export default async function TownNewsPage() {
             </span>
           </div>
           <div className="flex flex-col gap-2 p-5">
-            <h2 className="text-[19px] font-extrabold leading-[1.4] text-ink">
+            <h2 className="t-section text-ink">
               {EXAMPLE_NEWS.title}
             </h2>
             <div className="flex items-center gap-1.5 text-xs text-text-3">
@@ -254,7 +254,7 @@ export default async function TownNewsPage() {
               </span>
               <ExampleBadge />
             </div>
-            <p className="text-[11px] leading-[1.6] text-text-3">
+            <p className="t-sub text-text-3">
               아직 수집된 뉴스가 없어 예시 1건을 보여드려요 — 새 뉴스가 수집되면
               자동으로 교체됩니다.
             </p>

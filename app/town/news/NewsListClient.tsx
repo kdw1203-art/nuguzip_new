@@ -49,17 +49,17 @@ function RelatedFold({ related }: { related: NonNullable<NewsCardDto["related"]>
   if (related.length === 0) return null;
   return (
     <details className="border-t border-divider px-3 py-2">
-      <summary className="cursor-pointer list-none text-[11px] font-bold text-primary">
+      <summary className="cursor-pointer list-none t-sub font-bold text-primary">
         관련 보도 {related.length}건 ▾
       </summary>
       <ul className="mt-1.5 flex flex-col gap-1.5">
         {related.map((r) => (
           <li key={r.id}>
             <Link href={`/town/news/${r.id}`} className="flex flex-col gap-px">
-              <span className="line-clamp-2 text-[11.5px] font-bold leading-[1.4] text-ink">
+              <span className="line-clamp-2 t-sub font-bold text-ink">
                 {r.title}
               </span>
-              <span className="text-[10px] text-text-3">
+              <span className="t-caption text-text-3">
                 {r.source} · {r.timeLabel}
               </span>
             </Link>
@@ -216,7 +216,7 @@ export function NewsListClient({
           검색은 이미 뉴스를 포함하는 통합검색(/search)으로 잇는다. */}
       {categories.length > 1 && (
         <div className="rise-in mb-4 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="text-[11px] font-bold text-text-3">분류</span>
+          <span className="t-sub font-bold text-text-3">분류</span>
           {categories.map((k) => (
             <button
               key={k}
@@ -250,7 +250,7 @@ export function NewsListClient({
           <Link href={`/town/news/${featured.id}`} className="block">
             <Thumb card={featured} tall />
             <div className="flex flex-col gap-2 p-5">
-              <h2 className="text-[19px] font-extrabold leading-[1.4] text-ink">
+              <h2 className="t-section text-ink">
                 {featured.title}
               </h2>
               {featured.body && (
@@ -300,10 +300,10 @@ export function NewsListClient({
               <Link href={`/town/news/${c.id}`} className="flex flex-1 flex-col">
                 <Thumb card={c} />
                 <div className="flex flex-1 flex-col gap-1.5 p-3">
-                  <div className="line-clamp-3 text-[13px] font-bold leading-[1.4] text-ink">
+                  <div className="line-clamp-3 t-body font-bold text-ink">
                     {c.title}
                   </div>
-                  <div className="mt-auto flex items-center gap-1 text-[11px] text-text-3">
+                  <div className="mt-auto flex items-center gap-1 t-sub text-text-3">
                     <span className="min-w-0 truncate font-semibold text-text-2">
                       {c.source}
                     </span>
@@ -320,7 +320,7 @@ export function NewsListClient({
       {/* 표시 상한 안내 — 자른 사실을 숨기지 않는다 (전체 탭에서만 의미 있는 수).
           "검색으로 찾을 수 있어요"라면서 검색으로 가는 길이 없었다 — 링크를 건다. */}
       {!anyFilter && hiddenCount > 0 && (
-        <p className="mt-3 text-center text-[12px] text-text-3">
+        <p className="mt-3 text-center t-sub text-text-3">
           최신 {listCap}건을 보여드리고 있어요 — 이전 뉴스 {hiddenCount}건은{" "}
           <Link href="/digest" className="font-bold text-primary">주간 다이제스트</Link>와{" "}
           <Link href="/search" className="font-bold text-primary">검색</Link>으로 찾을 수 있어요.
@@ -330,7 +330,7 @@ export function NewsListClient({
       {/* 필터 결과 0건 — 빈 상태 (지역·분류 어느 쪽이든) */}
       {list.length === 0 && anyFilter && (
         <div className="card flex flex-col items-center gap-2 rounded-[18px] px-6 py-10 text-center">
-          <div className="text-[26px]">
+          <div className="t-title">
             <Icon name="🗞" size={26} />
           </div>
           <div className="text-sm font-bold text-text-1">

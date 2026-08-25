@@ -65,15 +65,15 @@ export default async function TownLibraryPage() {
       {/* ---------- 페이지 헤더 ---------- */}
       <div className="rise-in mb-6">
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-[22px] font-extrabold text-ink">자료</h1>
+          <h1 className="t-title text-ink">자료</h1>
           <Link
             href="/town/news"
-            className="text-[13px] font-bold text-primary no-underline"
+            className="t-body font-bold text-primary no-underline"
           >
             뉴스 ›
           </Link>
         </div>
-        <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
+        <p className="mt-1 t-body text-text-2">
           리포트와 이웃들의 공개 임장노트를 한곳에서 열람하세요
         </p>
       </div>
@@ -86,9 +86,9 @@ export default async function TownLibraryPage() {
            나쁘다. 상세·구매 화면이 생기면 그때 링크를 건다. */}
       <section id="reports" className="mb-8 scroll-mt-20">
         <div className="mb-3 flex items-center gap-2">
-          <h2 className="text-[15px] font-extrabold text-ink">리포트</h2>
+          <h2 className="t-section text-ink">리포트</h2>
           {!reportsFailed && reports.length === 0 && (
-            <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+            <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
               오픈 전
             </span>
           )}
@@ -96,13 +96,13 @@ export default async function TownLibraryPage() {
               /creators 는 입점 피치 랜딩(성장 U4) — 절차·요율·정직 고지를 담는다 */}
           <Link
             href="/creators"
-            className="ml-auto text-[12px] font-bold text-primary no-underline"
+            className="ml-auto t-sub font-bold text-primary no-underline"
           >
             크리에이터 입점 안내 ›
           </Link>
           <Link
             href="/my/creator"
-            className="text-[12px] font-bold text-primary no-underline"
+            className="t-sub font-bold text-primary no-underline"
           >
             내 노트 판매하기 ›
           </Link>
@@ -116,21 +116,21 @@ export default async function TownLibraryPage() {
           />
         ) : reports.length === 0 ? (
           <div className="card rise-in-1 rounded-[16px] px-4 py-5">
-            <p className="text-[13px] font-bold text-ink">유료·단지 리포트는 아직 없어요</p>
-            <p className="mt-1 text-[12px] leading-[1.65] text-text-2">
+            <p className="t-body font-bold text-ink">유료·단지 리포트는 아직 없어요</p>
+            <p className="mt-1 t-sub text-text-2">
               지금은 아래 공개 임장노트만 열람할 수 있어요. 리포트가 올라오면 이
               자리에 실제 목록이 채워집니다.
             </p>
             <div className="mt-3 flex flex-wrap gap-4">
               <Link
                 href="/notes"
-                className="text-[12px] font-extrabold text-primary no-underline"
+                className="t-sub font-extrabold text-primary no-underline"
               >
                 공개 임장노트 보기 ›
               </Link>
               <Link
                 href="/my/creator"
-                className="text-[12px] font-extrabold text-primary no-underline"
+                className="t-sub font-extrabold text-primary no-underline"
               >
                 내 노트를 리포트로 판매하기 ›
               </Link>
@@ -164,18 +164,18 @@ export default async function TownLibraryPage() {
       {/* ---------- 공개 임장노트 공유 — listPublicNotes 실데이터 ---------- */}
       <section>
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h2 className="text-[15px] font-extrabold text-ink">공개 임장노트</h2>
+          <h2 className="t-section text-ink">공개 임장노트</h2>
           <div className="flex items-center gap-3">
             {/* 노트를 읽다 생긴 궁금증의 다음 행동 — 단지 Q&A (키워드 필터 지원) */}
             <Link
               href="/qna"
-              className="text-[12px] font-bold text-primary no-underline"
+              className="t-sub font-bold text-primary no-underline"
             >
               단지 Q&A ›
             </Link>
             <Link
               href="/notes"
-              className="text-[12px] font-bold text-primary no-underline"
+              className="t-sub font-bold text-primary no-underline"
             >
               모두 보기 ›
             </Link>

@@ -75,8 +75,8 @@ export default async function TownExpertsPage() {
       {/* ---------- 페이지 헤더 ---------- */}
       <div className="rise-in mb-4 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-[22px] font-extrabold text-ink">전문가</h1>
-          <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
+          <h1 className="t-title text-ink">전문가</h1>
+          <p className="mt-1 t-body text-text-2">
             검증 절차를 거치는 공인중개사·세무사·감정평가사에게 내 임장노트를 첨부해 바로 질문하세요
           </p>
         </div>
@@ -86,7 +86,7 @@ export default async function TownExpertsPage() {
       </div>
 
       {/* 인증 안내 — 인증 전문가만 실제 상담 가능 */}
-      <div className="rise-in-1 mb-4 flex items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-2.5 text-[12px] leading-[1.6] text-[#5b74b8]">
+      <div className="rise-in-1 mb-4 flex items-center gap-2 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-2.5 t-sub text-[#5b74b8]">
         <Icon name="shield" size={15} className="shrink-0 text-primary" />
         <span>
           <b className="text-primary">인증</b> 배지가 있는 전문가만 실제 상담·견적 요청이 가능해요.
@@ -97,28 +97,28 @@ export default async function TownExpertsPage() {
           있어서 "인증하면 뭘 할 수 있는지"를 게이트에 부딪혀야만 알 수 있었다.
           공통 vs 중개사 전용을 한 곳에서 밝힌다(법무·변호사 유료 입점 불가 정책 유지). */}
       <details className="rise-in-1 card mb-4 rounded-2xl px-5 py-4">
-        <summary className="cursor-pointer list-none text-[13px] font-extrabold text-ink">
+        <summary className="cursor-pointer list-none t-body font-extrabold text-ink">
           전문가 인증으로 할 수 있는 일 <span className="font-semibold text-primary">펼치기 ›</span>
         </summary>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
           <div className="rounded-xl bg-bg px-4 py-3">
-            <div className="text-[12px] font-extrabold text-ink">모든 인증 전문가 공통</div>
-            <ul className="mt-1.5 flex list-none flex-col gap-1 text-[12px] leading-[1.6] text-text-2">
+            <div className="t-sub font-extrabold text-ink">모든 인증 전문가 공통</div>
+            <ul className="mt-1.5 flex list-none flex-col gap-1 t-sub text-text-2">
               <li>· 프로필 노출 + 상담 신청 수신·답변 (답변은 신청자 알림으로 전달)</li>
               <li>· 소개·전문 분야·경력·상담료·연락처를 직접 관리 (마이 › 전문가 프로필)</li>
               <li>· 크리에이터 활동 — 임장 리포트 발행·판매</li>
             </ul>
           </div>
           <div className="rounded-xl bg-bg px-4 py-3">
-            <div className="text-[12px] font-extrabold text-ink">공인중개사 추가 권한</div>
-            <ul className="mt-1.5 flex list-none flex-col gap-1 text-[12px] leading-[1.6] text-text-2">
+            <div className="t-sub font-extrabold text-ink">공인중개사 추가 권한</div>
+            <ul className="mt-1.5 flex list-none flex-col gap-1 t-sub text-text-2">
               <li>· 매물 등록·관리 + 받은 문의(리드) 확인</li>
               <li>· 매물 상단 노출 부스트 (포인트)</li>
               <li>· 상호·중개등록번호·전화가 프로필에 표시돼 신뢰를 높여요</li>
             </ul>
           </div>
         </div>
-        <p className="mt-2.5 text-[10px] leading-[1.6] text-text-3">
+        <p className="mt-2.5 t-caption text-text-3">
           세무사·감정평가사·대출상담사도 인증 대상이에요 (법무 서비스는 정책상 유료 입점
           불가). 인증 절차·검증 기준은 <Link href="/legal/expert" className="font-bold text-primary">전문가 약관</Link>에서 확인할 수 있어요.
         </p>
@@ -150,17 +150,17 @@ export default async function TownExpertsPage() {
       )}
 
       {/* 전문가 등록/인증 신청 CTA */}
-      <div className="rise-in-3 flex flex-col items-center justify-center gap-3 rounded-[20px] border-[1.5px] border-dashed border-[#a9bde8] bg-[rgba(29,79,216,.05)] p-6 text-center">
+      <div className="flex flex-col items-center justify-center gap-3 rounded-[14px] border-[1.5px] border-dashed border-line-strong bg-primary-soft p-6 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
           <Icon name="shield" size={24} />
         </div>
-        <div className="text-[15px] font-extrabold text-primary">전문가이신가요?</div>
-        <p className="text-[13px] leading-[1.6] text-[#5b74b8]">
+        <div className="t-section text-primary">전문가이신가요?</div>
+        <p className="t-body text-[#5b74b8]">
           자격 인증 후 상담·리포트 수익과
           <br />내 매물 등록·크리에이터 활동이 열려요
         </p>
         <ExpertApplyCta />
-        <p className="text-[11px] text-text-3">
+        <p className="t-sub text-text-3">
           중개사무소 매물 노출·상담 연결 제휴는{" "}
           <Link href="/partners" className="font-bold text-primary underline underline-offset-2">
             중개사 제휴 안내
@@ -171,7 +171,7 @@ export default async function TownExpertsPage() {
 
       {/* 베타 공급 부족의 실제 대안 — 전문가가 없어도 판단은 이어져야 한다 */}
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-        <span className="text-[11px] text-text-3">원하는 전문가가 없다면:</span>
+        <span className="t-sub text-text-3">원하는 전문가가 없다면:</span>
         <Link href="/qna" className="press chip border border-line bg-surface px-3 py-1.5 text-xs text-text-2 no-underline">
           이웃에게 묻기 (단지 Q&A)
         </Link>
@@ -180,7 +180,7 @@ export default async function TownExpertsPage() {
         </Link>
       </div>
 
-      <p className="mt-4 text-center text-[11px] leading-[1.6] text-text-3">
+      <p className="mt-4 text-center t-sub text-text-3">
         상담·견적 요청은 로그인 후 이용할 수 있어요 · 개인정보(전화번호·계좌)는 남기지 마세요 ·
         플랫폼 밖 결제 유도는 신고 대상입니다
       </p>

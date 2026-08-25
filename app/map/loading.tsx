@@ -24,7 +24,7 @@ export default function MapLoading() {
       </div>
       <div
         role="status"
-        className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 text-[12px] font-semibold text-white"
+        className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-[rgba(16,28,54,.72)] px-4 py-2 t-sub font-semibold text-white"
       >
         지도를 불러오는 중…
       </div>

@@ -40,7 +40,7 @@ export default function SwitchPage() {
   return (
     <PageShell breadcrumb="AI 분석 › 포트폴리오 › 갈아타기 추천">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">갈아타기 추천 지역</h1>
+        <h1 className="rise-in t-title text-ink">갈아타기 추천 지역</h1>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -64,7 +64,7 @@ export default function SwitchPage() {
           />
         </div>
 
-        <div className="rise-in-3 card rounded-[18px] px-[18px] py-4 text-[12px] leading-[1.7] text-text-2">
+        <div className="rise-in-3 card rounded-[18px] px-[18px] py-4 t-sub text-text-2">
           갈아타기 추천이 열리면 알림으로 알려드릴게요.{" "}
           <Link href="/notifications" className="font-bold text-primary no-underline">
             알림 설정 열기

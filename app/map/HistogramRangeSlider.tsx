@@ -135,8 +135,8 @@ export function HistogramRangeSlider({
   if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo || bins.length === 0) {
     return (
       <div className="flex flex-col gap-1">
-        <div className="text-[11px] font-bold text-text-3">{label}</div>
-        <div className="text-[11px] text-text-3">
+        <div className="t-sub font-bold text-text-3">{label}</div>
+        <div className="t-sub text-text-3">
           이 지역에는 아직 값이 있는 단지가 없어요
         </div>
       </div>
@@ -146,7 +146,7 @@ export function HistogramRangeSlider({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">
-        <span className="text-[11px] font-bold text-text-3">{label}</span>
+        <span className="t-sub font-bold text-text-3">{label}</span>
         <span className={`text-[11px] font-bold ${narrowed ? "text-primary" : "text-text-3"}`}>
           {format(vMin)} ~ {format(vMax)}
           {value[1] === null && hi > vMin ? "+" : ""}
@@ -210,7 +210,7 @@ export function HistogramRangeSlider({
       {/* 값이 없는 단지가 많으면 숨기지 않고 적는다 — 필터가 "없는 값"을
           조건 불만족으로 취급하지 않는다는 사실을 사용자가 알아야 한다. */}
       {available !== undefined && total !== undefined && available < total && (
-        <div className="text-[10px] leading-[1.5] text-text-3">
+        <div className="t-caption text-text-3">
           이 값이 있는 단지 {available.toLocaleString("ko-KR")}개 / 화면 안{" "}
           {total.toLocaleString("ko-KR")}개 · 값이 없는 단지는 이 조건으로 걸러지지 않아요
         </div>

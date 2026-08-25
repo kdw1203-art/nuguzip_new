@@ -141,13 +141,13 @@ export default async function TownRegionHomePage({
       {/* 헤더 — 동네 이름 + 행동 */}
       <div className="rise-in mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[11px] font-bold text-text-3">
+          <div className="t-sub font-bold text-text-3">
             <Link href="/town" className="hover:underline">
               동네이야기
             </Link>{" "}
             › 동네 홈
           </div>
-          <h1 className="mt-0.5 text-[24px] font-extrabold tracking-tight text-ink">
+          <h1 className="mt-0.5 t-title tracking-tight text-ink">
             {region.name} 동네 홈
           </h1>
         </div>
@@ -155,7 +155,7 @@ export default async function TownRegionHomePage({
           <KeywordAlertButton scope="news" query={region.name} label={`${region.name} 새 소식`} />
           <Link
             href={`/town/write?region=${encodeURIComponent(region.name)}`}
-            className="btn-primary btn-cta px-4 py-[9px] text-[13px]"
+            className="btn-primary btn-cta px-4 py-[9px] t-body"
           >
             이 동네 글쓰기
           </Link>
@@ -171,25 +171,25 @@ export default async function TownRegionHomePage({
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {snapshot.avgSale && snapshot.avgSale > 0 && (
               <div>
-                <div className="text-[10px] text-text-3">평균 매매가</div>
-                <div className="text-[18px] font-extrabold text-ink tabular-nums">
+                <div className="t-caption text-text-3">평균 매매가</div>
+                <div className="t-section text-ink tabular-nums">
                   {formatKrwShort(snapshot.avgSale)}
                 </div>
               </div>
             )}
             {snapshot.jeonseRatio !== undefined && Number.isFinite(snapshot.jeonseRatio) && (
               <div>
-                <div className="text-[10px] text-text-3">전세가율</div>
-                <div className="text-[18px] font-extrabold text-ink tabular-nums">
+                <div className="t-caption text-text-3">전세가율</div>
+                <div className="t-section text-ink tabular-nums">
                   {snapshot.jeonseRatio.toFixed(1)}%
                 </div>
               </div>
             )}
-            <div className="text-[11px] text-text-3">
+            <div className="t-sub text-text-3">
               {region.name} 시장 데이터 전체 보기 — 지수 추이·실거래·입주 물량
             </div>
           </div>
-          <span className="shrink-0 text-[13px] font-bold text-primary">시장 데이터 →</span>
+          <span className="shrink-0 t-body font-bold text-primary">시장 데이터 →</span>
         </Link>
       )}
 
@@ -197,24 +197,24 @@ export default async function TownRegionHomePage({
         {/* 이웃 글 */}
         <section className="rise-in-1">
           <div className="mb-2 flex items-baseline justify-between px-1">
-            <h2 className="text-[15px] font-extrabold text-ink">이웃 글</h2>
-            <Link href="/town" className="text-[12px] font-bold text-primary">
+            <h2 className="t-section text-ink">이웃 글</h2>
+            <Link href="/town" className="t-sub font-bold text-primary">
               전체 피드 ›
             </Link>
           </div>
           {postsFailed ? (
-            <div className="card rounded-2xl px-5 py-6 text-[13px] text-text-2">
+            <div className="card rounded-2xl px-5 py-6 t-body text-text-2">
               글을 지금 불러오지 못했어요. 잠시 후 다시 열어봐 주세요.
             </div>
           ) : communityPosts.length === 0 ? (
             <div className="card flex flex-col items-start gap-2 rounded-2xl px-5 py-6">
-              <p className="text-[13px] leading-[1.7] text-text-2">
+              <p className="t-body text-text-2">
                 아직 {region.name} 이웃 글이 없어요. 이 동네에 다녀오셨다면 첫 이야기를
                 남겨 주세요 — 글 작성 시 포인트가 적립됩니다.
               </p>
               <Link
                 href={`/town/write?region=${encodeURIComponent(region.name)}`}
-                className="btn-soft rounded-[10px] px-3.5 py-2 text-[12px] font-bold"
+                className="btn-soft rounded-[10px] px-3.5 py-2 t-sub font-bold"
               >
                 첫 글 쓰기 ›
               </Link>
@@ -229,16 +229,16 @@ export default async function TownRegionHomePage({
                       className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-bg"
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-[13.5px] font-bold text-ink">
+                        <div className="truncate t-body font-bold text-ink">
                           {p.title}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-text-3">
+                        <div className="mt-0.5 flex items-center gap-2 t-sub text-text-3">
                           <span>{p.authorLabel || "이웃"}</span>
                           <span>{relTime(p.createdAt)}</span>
                           {p.commentCount > 0 && <span>댓글 {p.commentCount}</span>}
                         </div>
                       </div>
-                      <span className="shrink-0 text-[13px] font-bold text-text-3">›</span>
+                      <span className="shrink-0 t-body font-bold text-text-3">›</span>
                     </Link>
                   </li>
                 ))}
@@ -250,13 +250,13 @@ export default async function TownRegionHomePage({
         {/* 동네 뉴스 */}
         <section className="rise-in-2">
           <div className="mb-2 flex items-baseline justify-between px-1">
-            <h2 className="text-[15px] font-extrabold text-ink">{region.name} 뉴스</h2>
-            <Link href="/town/news" className="text-[12px] font-bold text-primary">
+            <h2 className="t-section text-ink">{region.name} 뉴스</h2>
+            <Link href="/town/news" className="t-sub font-bold text-primary">
               전체 뉴스 ›
             </Link>
           </div>
           {newsPosts.length === 0 ? (
-            <div className="card rounded-2xl px-5 py-6 text-[13px] leading-[1.7] text-text-2">
+            <div className="card rounded-2xl px-5 py-6 t-body text-text-2">
               최근 수집된 {region.name} 뉴스가 없어요. 매일 아침 자동 수집되며, 위의
               &lsquo;{region.name} 새 소식&rsquo; 알림을 켜 두면 새 기사가 잡히는 대로
               알림함으로 알려드려요.
@@ -270,10 +270,10 @@ export default async function TownRegionHomePage({
                       href={`/town/news/${p.id}`}
                       className="flex flex-col gap-0.5 px-4 py-3 transition-colors hover:bg-bg"
                     >
-                      <span className="line-clamp-2 text-[13.5px] font-bold leading-[1.5] text-ink">
+                      <span className="line-clamp-2 t-body font-bold text-ink">
                         {p.title}
                       </span>
-                      <span className="text-[11px] text-text-3">
+                      <span className="t-sub text-text-3">
                         {p.sourceName || "뉴스"} ·{" "}
                         {relTime(p.sourcePublishedAt || p.createdAt)}
                       </span>
@@ -289,25 +289,25 @@ export default async function TownRegionHomePage({
       {/* 공개 임장노트 */}
       <section className="rise-in-3 mt-6">
         <div className="mb-2 flex items-baseline justify-between px-1">
-          <h2 className="text-[15px] font-extrabold text-ink">
+          <h2 className="t-section text-ink">
             {region.name} 공개 임장노트{" "}
             {notes.length > 0 && (
-              <span className="text-[12px] font-medium text-text-3">{notes.length}편</span>
+              <span className="t-sub font-medium text-text-3">{notes.length}편</span>
             )}
           </h2>
-          <Link href="/notes" className="text-[12px] font-bold text-primary">
+          <Link href="/notes" className="t-sub font-bold text-primary">
             임장노트 홈 ›
           </Link>
         </div>
         {notes.length === 0 ? (
           <div className="card flex flex-col items-start gap-2 rounded-2xl px-5 py-6">
-            <p className="text-[13px] leading-[1.7] text-text-2">
+            <p className="t-body text-text-2">
               아직 {region.name} 공개 임장노트가 없어요. 직접 다녀온 기록이 이 동네의 첫
               번째 현장 자료가 됩니다.
             </p>
             <Link
               href={`/notes/new?region=${encodeURIComponent(region.name)}`}
-              className="btn-soft rounded-[10px] px-3.5 py-2 text-[12px] font-bold"
+              className="btn-soft rounded-[10px] px-3.5 py-2 t-sub font-bold"
             >
               {region.name} 임장노트 쓰기 ›
             </Link>
@@ -320,13 +320,13 @@ export default async function TownRegionHomePage({
                 href={`/notes/${n.id}`}
                 className="card card-hover rounded-2xl px-4 py-3.5"
               >
-                <div className="truncate text-[13.5px] font-extrabold text-ink">{n.title}</div>
-                <div className="mt-1 flex items-center gap-2 text-[11px] text-text-3">
+                <div className="truncate t-body font-extrabold text-ink">{n.title}</div>
+                <div className="mt-1 flex items-center gap-2 t-sub text-text-3">
                   {n.aptName && <span className="truncate">{n.aptName}</span>}
                   {n.visitDate && <span className="shrink-0">직접방문</span>}
                 </div>
                 {n.summary && (
-                  <p className="mt-1.5 line-clamp-2 text-[12px] leading-[1.6] text-text-2">
+                  <p className="mt-1.5 line-clamp-2 t-sub text-text-2">
                     {n.summary}
                   </p>
                 )}
@@ -338,7 +338,7 @@ export default async function TownRegionHomePage({
 
       {/* 다른 동네 + 지도 */}
       <section className="rise-in-4 mt-8">
-        <h2 className="mb-2 px-1 text-[13px] font-extrabold text-ink">다른 동네 홈</h2>
+        <h2 className="mb-2 px-1 t-body font-extrabold text-ink">다른 동네 홈</h2>
         <div className="flex flex-wrap gap-1.5">
           {REGION_CATALOG.filter((r) => r.id !== id)
             .slice(0, 16)
@@ -346,14 +346,14 @@ export default async function TownRegionHomePage({
               <Link
                 key={r.id}
                 href={`/town/${r.id}`}
-                className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+                className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2"
               >
                 {r.name}
               </Link>
             ))}
           <Link
             href={`/map?region=${encodeURIComponent(region.name)}`}
-            className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-primary"
+            className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-primary"
           >
             지도에서 {region.name} 보기 ›
           </Link>

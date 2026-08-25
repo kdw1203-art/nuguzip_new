@@ -15,6 +15,10 @@ export type TownCategoryLink = {
   label: string;
   icon: string;
   desc: string;
+  /** 아이콘 칩 색 — 9칸이 전부 같은 잉크색이라 목록이 눈에 안 들어왔다.
+   *  성격이 비슷한 것끼리 색을 묶는다(사람=파랑 / 공급·분양=초록 /
+   *  글·자료=주황). raw hex 금지 — 토큰 클래스만. */
+  tone: string;
 };
 
 /* [개선 #33, 2026-08-22] 순서를 **방문 실측 빈도순**으로 재배열했다
@@ -22,15 +26,15 @@ export type TownCategoryLink = {
    예전 순서는 기획 시점의 감이었고, 실제 손이 가는 카테고리가 스크롤
    뒤쪽에 있었다. 데이터가 바뀌면 이 순서도 다시 잰다(주간 브리핑 지표). */
 export const TOWN_CATEGORY_LINKS: TownCategoryLink[] = [
-  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "전문가 상담" },
-  { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" },
+  { href: "/town/experts", label: "전문가", icon: "🎓", desc: "전문가 상담" , tone: "bg-primary-soft text-primary" },
+  { href: "/apply", label: "청약 센터", icon: "🎟️", desc: "분양·경쟁률" , tone: "bg-success-soft text-success" },
   /* 모바일 실측(2026-08-02): "뉴스·다이제스트"는 카드 폭(104px)에서 "뉴스·다이제…"
      로 잘렸다. 라벨은 짧게, 다이제스트는 부제로. */
-  { href: "/town/news", label: "뉴스", icon: "📰", desc: "다이제스트·주간" },
-  { href: "/qna", label: "단지 Q&A", icon: "💬", desc: "묻고 답하기" },
-  { href: "/auctions", label: "공매 물건", icon: "🔨", desc: "온비드 공매" },
-  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·노트" },
-  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" },
-  { href: "/supply", label: "입주 물량", icon: "🏗️", desc: "공급 물량" },
-  { href: "/redevelopment", label: "정비사업 지도", icon: "🗺️", desc: "재개발·재건축" },
+  { href: "/town/news", label: "뉴스", icon: "📰", desc: "다이제스트·주간" , tone: "bg-warning-soft text-warning" },
+  { href: "/qna", label: "단지 Q&A", icon: "💬", desc: "묻고 답하기" , tone: "bg-primary-soft text-primary" },
+  { href: "/auctions", label: "공매 물건", icon: "🔨", desc: "온비드 공매" , tone: "bg-success-soft text-success" },
+  { href: "/town/library", label: "자료", icon: "📁", desc: "리포트·노트" , tone: "bg-warning-soft text-warning" },
+  { href: "/town/groups", label: "임장 모임", icon: "🧭", desc: "함께 임장" , tone: "bg-primary-soft text-primary" },
+  { href: "/supply", label: "입주 물량", icon: "🏗️", desc: "공급 물량" , tone: "bg-success-soft text-success" },
+  { href: "/redevelopment", label: "정비사업 지도", icon: "🗺️", desc: "재개발·재건축" , tone: "bg-success-soft text-success" },
 ];

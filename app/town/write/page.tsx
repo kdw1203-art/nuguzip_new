@@ -30,7 +30,7 @@ export default function TownWritePage() {
     <Suspense
       fallback={
         <PageShell breadcrumb="동네이야기 › 글쓰기">
-          <div className="mx-auto w-full max-w-[640px] px-1 py-10 text-[13px] text-text-3">
+          <div className="mx-auto w-full max-w-[640px] px-1 py-10 t-body text-text-3">
             글쓰기 화면을 준비하고 있어요…
           </div>
         </PageShell>
@@ -135,14 +135,14 @@ function TownWriteForm() {
     <PageShell breadcrumb="동네이야기 › 글쓰기">
       <div className="mx-auto flex w-full max-w-[640px] flex-col gap-4">
         <div className="rise-in px-1">
-          <h1 className="text-[22px] font-extrabold text-ink">글쓰기</h1>
-          <p className="mt-1 text-[13px] text-text-2">
+          <h1 className="t-title text-ink">글쓰기</h1>
+          <p className="mt-1 t-body text-text-2">
             우리 동네 이야기·질문을 이웃과 나눠보세요
           </p>
         </div>
 
         {complexId && (
-          <div className="rise-in flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 text-[13px] text-text-1">
+          <div className="rise-in flex flex-wrap items-center gap-2 rounded-xl bg-primary-soft px-4 py-3 t-body text-text-1">
             <span className="font-extrabold text-primary">
               {complexName || "선택한 단지"}
             </span>
@@ -158,7 +158,7 @@ function TownWriteForm() {
 
         {/* 카테고리 선택 */}
         <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-5">
-          <div className="text-[13px] font-extrabold text-ink">게시판 선택</div>
+          <div className="t-body font-extrabold text-ink">게시판 선택</div>
           <div className="flex flex-wrap gap-1.5">
             {CATEGORIES.map((c) => (
               <button
@@ -179,7 +179,7 @@ function TownWriteForm() {
 
         {/* 지역 선택 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[18px] p-5">
-          <div className="text-[13px] font-extrabold text-ink">지역</div>
+          <div className="t-body font-extrabold text-ink">지역</div>
           <div className="grid grid-cols-2 gap-2">
             <select
               value={city}
@@ -224,7 +224,7 @@ function TownWriteForm() {
             placeholder="이웃과 나누고 싶은 이야기를 적어주세요 (5글자 이상)"
             className={`${inputClass} min-h-[200px] resize-y leading-[1.6]`}
           />
-          <div className="text-right text-[11px] text-text-3">
+          <div className="text-right t-sub text-text-3">
             {content.trim().length}자
           </div>
         </div>
@@ -232,9 +232,9 @@ function TownWriteForm() {
         {/* 오류 안내 */}
         {error && (
           <div className="card rounded-[14px] border-l-[3px] border-l-danger px-[15px] py-3">
-            <div className="text-[13px] font-semibold text-danger">{error}</div>
+            <div className="t-body font-semibold text-danger">{error}</div>
             {blockedWord && (
-              <div className="mt-1.5 text-[12px] leading-[1.5] text-text-2">
+              <div className="mt-1.5 t-sub text-text-2">
                 누구집 커뮤니티는 이웃 모두가 안심하고 이용할 수 있도록 일부
                 표현의 게시를 제한하고 있어요. 제목·본문에서{" "}
                 <span className="font-bold text-danger">
@@ -250,7 +250,7 @@ function TownWriteForm() {
         <div className="flex gap-2">
           <Link
             href="/town"
-            className="btn-secondary flex-1 rounded-[11px] p-3 text-center text-[13px]"
+            className="btn-secondary flex-1 rounded-[11px] p-3 text-center t-body"
           >
             취소
           </Link>
@@ -258,7 +258,7 @@ function TownWriteForm() {
             type="button"
             onClick={onSubmit}
             disabled={submitting}
-            className="btn-primary btn-cta flex-[2] rounded-[11px] p-3 text-center text-[13px] disabled:opacity-60"
+            className="btn-primary btn-cta flex-[2] rounded-[11px] p-3 text-center t-body disabled:opacity-60"
           >
             {submitting ? "등록 중…" : "등록하기"}
           </button>

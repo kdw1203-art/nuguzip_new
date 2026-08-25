@@ -5,6 +5,14 @@ import Link from "next/link";
 // 서버 전용 체인이 있는 모듈들 — 타입만 가져온다(컴파일에서 소거).
 import type { TrendResult, MarketTemp } from "@/lib/market/temperature";
 import type { RegionMonthlyVolumeRow } from "@/lib/market/store";
+import { Icon } from "@/app/components/Icon";
+import { ToolHero, type HeroKpi } from "@/app/components/analysis/ToolHero";
+import { TrendChart } from "@/app/components/viz/TrendChart";
+import { Bars } from "@/app/components/viz/Bars";
+import { Gauge } from "@/app/components/viz/Gauge";
+import { Spark } from "@/app/components/viz/Spark";
+import { CountUp } from "@/app/components/motion/CountUp";
+import { SkBlock } from "@/app/components/ui/Skeleton";
 import { TimingRegionSelect } from "./region-select";
 import { TimingComplexPicker } from "./complex-picker";
 import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
@@ -135,37 +143,128 @@ export function TimingClient({
 
   const selected = regions.find((r) => r.id === regionId) ?? regions[0];
   const { trend, volume, temp } = data;
-  const maxVolCount = Math.max(1, ...volume.map((v) => v.count));
+  const loading = status === "loading";
+
+  /* ── 차트 입력 ──────────────────────────────────────────────────────────
+     예전엔 div 높이 %로 막대를 쌓고 색을 #1d4fd8 / #c9d4e5 로 박아 두었다.
+     다크 모드에서 그 색이 그대로 나오고(토큰을 안 타서), 지수는 "선"이 아니라
+     막대라 방향이 안 읽혔다. SVG 차트 컴포넌트로 옮기고 색은 currentColor 로
+     계열 토큰을 타게 한다. */
+  const idxValues = trend?.points.map((p) => p.value) ?? [];
+  const idxLabels = trend?.points.map((p) => periodLabel(p.period)) ?? [];
+  const volValues = volume.map((v) => v.count);
+  const volLabels = volume.map((v) => `${v.month.slice(2, 4)}.${v.month.slice(4)}`);
+  const lastVol = volume.length ? volume[volume.length - 1] : null;
+  const prevVol = volume.length > 1 ? volume[volume.length - 2] : null;
+  const volDeltaPct =
+    lastVol && prevVol && prevVol.count > 0
+      ? Math.round(((lastVol.count - prevVol.count) / prevVol.count) * 1000) / 10
+      : null;
+
+  /* 첫 화면이 "제목 → 빈 카드"였다. 이 도구가 내는 숫자를 먼저 세운다.
+     값이 없으면 그 칸은 **아예 만들지 않는다**(빈 칸을 "—"로 채우지 않는다). */
+  const kpis: HeroKpi[] = [];
+  if (trend) {
+    kpis.push({
+      label: trend.periodType === "weekly" ? "최근 주 변동" : "최근 월 변동",
+      value: (
+        <CountUp
+          value={trend.latestChangePct}
+          decimals={2}
+          prefix={trend.latestChangePct > 0 ? "+" : ""}
+          suffix="%"
+        />
+      ),
+      note: `${trend.points.length}구간 지수 기준`,
+    });
+    kpis.push({
+      label: "기간 누적",
+      value: (
+        <CountUp
+          value={trend.cumulativePct}
+          decimals={1}
+          prefix={trend.cumulativePct > 0 ? "+" : ""}
+          suffix="%"
+        />
+      ),
+      note: `${idxLabels[0] ?? ""} → ${idxLabels[idxLabels.length - 1] ?? ""}`,
+    });
+  }
+  if (temp) {
+    kpis.push({ label: "시장 온도", value: `${temp.score}/100`, note: temp.headline });
+  }
+  if (lastVol) {
+    kpis.push({
+      label: "최근 월 거래량",
+      value: <CountUp value={lastVol.count} suffix="건" />,
+      delta: volDeltaPct === null ? null : { pct: volDeltaPct, label: "전월" },
+      note: "신고 지연으로 최근 2개월은 과소 집계",
+    });
+  }
+
+  const heroChart = trend ? (
+    <div className="rounded-[12px] border border-line bg-surface px-2 pb-1 pt-2">
+      <TrendChart
+        values={idxValues}
+        labels={idxLabels}
+        height={92}
+        bands={3}
+        ariaLabel={`${selected.label} 매매가격지수 ${idxValues.length}구간 추세`}
+      />
+    </div>
+  ) : null;
 
   return (
     <>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">시세·타이밍 분석</h1>
-        <div className="flex flex-wrap items-end gap-2">
-          <TimingComplexPicker
-            key={`${deep.c ?? ""}|${deep.a ?? ""}`}
-            initialComplexId={deep.c}
-            initialApt={deep.a}
-            currentRegion={selected.id}
-            onRegion={selectRegion}
-          />
-          <TimingRegionSelect
-            options={regions}
-            value={selected.id}
-            disabled={status === "loading"}
-            onChange={selectRegion}
-          />
-        </div>
-      </div>
+      <ToolHero
+        eyebrow="지역·시장 흐름"
+        icon="trending-up"
+        title="시세·타이밍 분석"
+        lead={
+          <>
+            {selected.label}의 매매가격지수·거래량·시장 온도를 한 화면에서 봅니다. 모든
+            수치는 실측이고, 없는 구간은 없다고 표시합니다.
+          </>
+        }
+        kpis={kpis}
+        chart={heroChart}
+        toneClass="text-success"
+        actions={
+          <div className="flex w-full flex-wrap items-end gap-2">
+            <TimingComplexPicker
+              key={`${deep.c ?? ""}|${deep.a ?? ""}`}
+              initialComplexId={deep.c}
+              initialApt={deep.a}
+              currentRegion={selected.id}
+              onRegion={selectRegion}
+            />
+            <TimingRegionSelect
+              options={regions}
+              value={selected.id}
+              disabled={loading}
+              onChange={selectRegion}
+            />
+            {loading && (
+              <span className="t-sub inline-flex items-center gap-1.5 font-bold text-primary">
+                <span className="pulse-dot" />
+                {selected.label} 불러오는 중
+              </span>
+            )}
+          </div>
+        }
+        source={
+          trend
+            ? `한국부동산원 ${trend.periodType === "weekly" ? "주간" : "월간"} 매매가격지수 · 국토교통부 실거래 집계 · 규칙 기반 판정(참고용)`
+            : "한국부동산원 지수 · 국토교통부 실거래 집계"
+        }
+      />
 
       {status === "error" ? (
         /* 조회 실패 — "데이터 없음"과 다른 사실이다. 캐시 API 실패는 no-store 라
            재시도가 의미 있다. */
-        <div className="rise-in mb-4 card flex flex-col items-center gap-2 rounded-[20px] p-8 text-center">
-          <p className="text-sm font-bold text-ink">
-            {selected.label} 분석을 불러오지 못했어요
-          </p>
-          <p className="text-xs leading-[1.6] text-text-3">
+        <div className="card mt-5 flex flex-col items-center gap-2 rounded-[14px] p-8 text-center">
+          <p className="t-section text-ink">{selected.label} 분석을 불러오지 못했어요</p>
+          <p className="t-sub text-text-3">
             데이터가 없는 게 아니라 조회에 실패한 거예요. 잠시 뒤 다시 시도해 주세요.
           </p>
           <button
@@ -174,216 +273,173 @@ export function TimingClient({
               cache.current.delete(selected.id);
               load(selected.id);
             }}
-            className="btn-soft mt-1 rounded-lg px-4 py-2 text-xs"
+            className="btn-soft btn-md mt-1"
           >
             다시 시도
           </button>
         </div>
       ) : (
-        <div className={status === "loading" ? "opacity-60 transition-opacity" : ""}>
-          {/* ── 실데이터 영역: 실제 지수 시리즈 기반 추세·모멘텀 판정 ── */}
-          <div className="rise-in mb-4 card flex flex-col gap-3 rounded-[20px] p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-base font-extrabold text-ink">
-                {selected.label} 매매가격지수 추세
-              </div>
-              <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
+          {/* ── 지수 추세 ── */}
+          <div className="chart-card text-success lg:col-span-1" data-reveal="">
+            <div className="chart-head">
+              <span className="t-section text-ink">{selected.label} 매매가격지수</span>
+              {trend && (
+                <span className="chip chip-soft chip-pad t-caption">{trend.verdict}</span>
+              )}
+              <span className="t-caption ml-auto rounded border border-line px-1.5 py-px font-bold text-text-3">
                 실데이터 기준
               </span>
             </div>
-
-            {trend ? (
+            {loading ? (
+              <SkBlock h={168} />
+            ) : trend ? (
               <>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="rounded-[10px] bg-primary-soft px-3 py-1.5 text-sm font-extrabold text-primary">
-                    {trend.verdict}
-                  </span>
-                  <span className="text-xs text-text-2">
-                    최근 변동 {trend.latestChangePct >= 0 ? "▲" : "▼"}
-                    {Math.abs(trend.latestChangePct).toFixed(2)}% · 기간 누적{" "}
-                    {trend.cumulativePct >= 0 ? "+" : ""}
-                    {trend.cumulativePct.toFixed(1)}%
-                    {trend.periodType === "weekly" ? " (주간 지수 대체)" : " (12개월 지수)"}
-                  </span>
-                </div>
-                <div className="text-[13px] leading-[1.6] text-text-1">{trend.detail}</div>
-
-                {/* 지수 미니 차트 (실데이터) */}
-                <div className="flex h-[120px] items-end gap-1 border-b border-line pb-px">
-                  {(() => {
-                    const vals = trend.points.map((p) => p.value);
-                    const min = Math.min(...vals);
-                    const max = Math.max(...vals);
-                    const span = max - min || 1;
-                    return trend.points.map((p, i) => {
-                      const h = 18 + Math.round(((p.value - min) / span) * 82);
-                      const isLast = i === trend.points.length - 1;
-                      return (
-                        <div
-                          key={p.period}
-                          title={`${p.period} · ${p.value.toFixed(1)}`}
-                          className="flex-1 rounded-t-[3px]"
-                          style={{
-                            height: `${h}%`,
-                            background: isLast ? "#1d4fd8" : "#c9d4e5",
-                          }}
-                        />
-                      );
-                    });
-                  })()}
-                </div>
-                <div className="flex justify-between text-[10px] text-text-3">
-                  <span>{periodLabel(trend.points[0].period)}</span>
-                  <span>{periodLabel(trend.points[trend.points.length - 1].period)}</span>
-                </div>
-                <div className="text-[9px] leading-[1.5] text-text-3">
-                  규칙 기반 판정 · 본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
-                </div>
+                <TrendChart
+                  values={idxValues}
+                  labels={idxLabels}
+                  height={168}
+                  ariaLabel={`${selected.label} 매매가격지수 추세`}
+                />
+                <p className="t-sub text-text-1">{trend.detail}</p>
               </>
             ) : (
-              <div className="rounded-[12px] bg-bg px-3 py-3 text-xs text-text-3">
-                {selected.label}의 지수 시계열 데이터가 아직 없어요. 다른 지역을 선택하거나
-                데이터 수집 후 다시 확인해 주세요.
+              <div className="rounded-[10px] bg-bg px-3 py-3">
+                <p className="t-sub text-text-3">
+                  {selected.label}의 지수 시계열이 아직 없어요. 다른 지역을 고르거나 수집이
+                  쌓인 뒤 다시 확인해 주세요.
+                </p>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_400px]">
-            {/* ── 월별 거래량 (실데이터) ── */}
-            <div className="rise-in-1 card flex flex-col gap-4 rounded-[20px] p-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-base font-extrabold text-ink">
-                  {selected.label} 월별 매매 거래량
-                </div>
-                <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
-                  실데이터 기준
-                </span>
-              </div>
-              {volume.length > 0 ? (
-                <>
-                  <div className="flex h-[200px] items-end gap-2 border-b border-line pb-px">
-                    {volume.map((v) => {
-                      const h = 8 + Math.round((v.count / maxVolCount) * 88);
-                      const isCurrentMonth = v.month >= nowYm;
-                      return (
-                        <div key={v.month} className="flex flex-1 flex-col items-center gap-1">
-                          <span className="text-[10px] font-bold text-text-2">
-                            {v.count.toLocaleString("ko-KR")}
-                          </span>
-                          <div
-                            title={`${v.month.slice(0, 4)}.${v.month.slice(4)} · ${v.count}건`}
-                            className="w-full rounded-t-[4px]"
-                            style={{
-                              height: `${h}%`,
-                              background: isCurrentMonth ? "#c9d4e5" : "#1d4fd8",
-                            }}
-                          />
-                          <span className="text-[10px] text-text-3">
-                            {v.month.slice(2, 4)}.{v.month.slice(4)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="text-[10px] leading-[1.5] text-text-3">
-                    국토교통부 실거래 집계 · 이번 달(연한 막대)과 직전 월은 신고 지연(계약 후
-                    30일 이내 신고)으로 실제보다 적게 표시될 수 있어요.
-                  </div>
-                </>
-              ) : (
-                <div className="rounded-[12px] bg-bg px-3 py-3 text-xs text-text-3">
-                  {selected.label}의 월별 거래량 집계가 아직 없어요. 실거래 수집이 쌓이면
-                  자동으로 표시됩니다.
-                </div>
-              )}
+          {/* ── 시장 온도 ── */}
+          <div className="ai-panel flex flex-col gap-3 rounded-[14px] p-4" data-reveal="">
+            <div className="flex items-center justify-between gap-2">
+              <span className="t-section text-ai-text">시장 온도</span>
+              <span className="t-caption rounded border border-line px-1.5 py-px font-bold text-ai-muted">
+                규칙 기반 · 실데이터 입력
+              </span>
             </div>
-
-            {/* 우측 */}
-            <div className="flex flex-col gap-4">
-              {temp ? (
-                <div className="rise-in-2 ai-panel flex flex-col gap-3 rounded-[20px] p-[22px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="ai-chip h-[22px] w-[22px] rounded-[7px] text-[11px]">AI</span>
-                      <span className="text-sm font-extrabold text-white">시장 온도</span>
-                    </div>
-                    <span className="rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted">
-                      규칙 기반 · 실데이터 입력
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
+            {loading ? (
+              <SkBlock h={120} />
+            ) : temp ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <Gauge
+                    value={temp.score}
+                    label={String(temp.score)}
+                    caption="50이 중립"
+                    size={116}
+                    className="shrink-0 text-ai-accent"
+                  />
+                  <p className="t-sub min-w-0 flex-1 text-ai-text">
+                    <b className="text-ai-accent">{temp.headline}</b>
+                    <br />
+                    지수 모멘텀(±25)과 거래량 추이(±25)를 50점 기준에 더한 값입니다.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {temp.inputs.map((s) => (
                     <div
-                      className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[5px] text-base font-extrabold text-ai-accent"
-                      style={{
-                        borderColor: "rgba(126,162,255,.25)",
-                        borderTopColor: "#7ea2ff",
-                        borderRightColor: "#7ea2ff",
-                      }}
+                      key={s.label}
+                      className="ai-row"
                     >
-                      {temp.score}
-                    </div>
-                    <div className="text-xs leading-[1.6] text-ai-text">
-                      {selected.label} 시장 온도 {temp.score}/100 —{" "}
-                      <b className="text-white">{temp.headline}</b>. 50이 중립이며, 아래
-                      실측 지표에서 계산됩니다.
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {temp.inputs.map((s) => (
-                      <div
-                        key={s.label}
-                        className="flex justify-between gap-2 rounded-lg bg-[rgba(255,255,255,.07)] px-3 py-2 text-xs"
+                      <span className="t-sub shrink-0 text-ai-muted">{s.label}</span>
+                      <span
+                        className={`t-sub t-num text-right ${s.accent ? "text-ai-accent" : "text-ai-text"}`}
                       >
-                        <span className="shrink-0 text-ai-muted">{s.label}</span>
-                        <span className={`text-right font-bold ${s.accent ? "text-ai-accent" : "text-ai-text"}`}>
-                          {s.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  {temp.volumeNote && (
-                    <div className="text-[10px] leading-[1.5] text-ai-muted">{temp.volumeNote}</div>
-                  )}
-                  <div className="text-[9px] leading-[1.5] text-ai-muted">
-                    지수 모멘텀(±25점)과 거래량 추이(±25점)를 50점 기준에 더한 값입니다.
-                    매수·매도 추천이 아니며, 본 분석은 참고용으로 투자 판단의 책임은
-                    이용자에게 있습니다.{" "}
-                    <Link href="/methodology#temperature" className="font-bold text-ai-accent no-underline">
-                      계산 공식 보기 ›
-                    </Link>{" "}
-                    <Link
-                      href={`/analysis/temperature/${selected.id}`}
-                      className="font-bold text-ai-accent no-underline"
-                    >
-                      주간 기록 보기 ›
-                    </Link>
-                  </div>
+                        {s.value}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="rise-in-2 card rounded-[20px] p-5 text-xs text-text-3">
-                  이 지역은 지수 시계열이 아직 없어 시장 온도를 계산할 수 없어요.
+                {temp.volumeNote && (
+                  <p className="t-caption text-ai-muted">{temp.volumeNote}</p>
+                )}
+                <div className="mt-auto flex flex-wrap gap-2 pt-1">
+                  <Link
+                    href="/methodology#temperature"
+                    className="t-sub font-bold text-ai-accent no-underline"
+                  >
+                    계산 공식 ›
+                  </Link>
+                  <Link
+                    href={`/analysis/temperature/${selected.id}`}
+                    className="t-sub font-bold text-ai-accent no-underline"
+                  >
+                    주간 기록 ›
+                  </Link>
                 </div>
-              )}
+              </>
+            ) : (
+              <p className="t-sub text-ai-muted">
+                이 지역은 지수 시계열이 아직 없어 온도를 계산할 수 없어요.
+              </p>
+            )}
+          </div>
 
-              <div className="rise-in-3 card flex flex-col gap-2 rounded-[20px] p-5">
-                <div className="text-sm font-extrabold text-ink">알림 설정</div>
-                <div className="text-[12px] leading-[1.6] text-text-2">
-                  관심 지역의 실거래 등록·시세 변동 알림을 받아보세요.
-                </div>
-                <Link
-                  href="/notifications"
-                  className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
-                >
-                  알림 설정 열기
-                </Link>
-              </div>
+          {/* ── 월별 거래량 ── */}
+          <div className="chart-card text-primary" data-reveal="">
+            <div className="chart-head">
+              <span className="t-section text-ink">{selected.label} 월별 매매 거래량</span>
+              {lastVol && (
+                <span className="t-num t-sub text-primary">
+                  최근 {lastVol.count.toLocaleString("ko-KR")}건
+                </span>
+              )}
+              <span className="t-caption ml-auto rounded border border-line px-1.5 py-px font-bold text-text-3">
+                국토교통부 실거래
+              </span>
             </div>
+            {loading ? (
+              <SkBlock h={140} />
+            ) : volume.length > 0 ? (
+              <>
+                <Bars
+                  values={volValues}
+                  labels={volLabels}
+                  height={140}
+                  valueSuffix="건"
+                  ariaLabel={`${selected.label} 월별 매매 거래량`}
+                />
+                <p className="t-caption text-text-3">
+                  이번 달과 직전 월은 신고 지연(계약 후 30일 이내 신고)으로 실제보다 적게
+                  보일 수 있어요. 가장 진한 막대가 이 구간의 최다 거래월입니다.
+                  {nowYm && volume.some((v) => v.month >= nowYm) ? " (마지막 칸이 진행 중인 달)" : ""}
+                </p>
+              </>
+            ) : (
+              <div className="rounded-[10px] bg-bg px-3 py-3">
+                <p className="t-sub text-text-3">
+                  월별 거래량 집계가 아직 없어요. 실거래 수집이 쌓이면 자동으로 표시됩니다.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* ── 알림 ── */}
+          <div className="card tile flex flex-col gap-2 rounded-[14px] p-4" data-reveal="">
+            <span className="tile-ico flex h-9 w-9 items-center justify-center rounded-[11px] bg-primary-soft text-primary">
+              <Icon name="bell" size={17} />
+            </span>
+            <span className="t-section text-ink">이 지역 알림 받기</span>
+            <p className="t-sub text-text-2">
+              {selected.label}의 실거래 등록·시세 변동이 생기면 알려 드려요.
+            </p>
+            {trend && (
+              <span className="mt-1 text-success">
+                <Spark values={idxValues} width={140} height={26} smooth />
+              </span>
+            )}
+            <Link href="/notifications" className="btn-soft btn-md mt-auto no-underline">
+              알림 설정 열기
+            </Link>
           </div>
         </div>
       )}
 
-      {/* #411 — 도구 간 이어가기: 화면의 **현재 선택 지역** 그대로.
-          지역 전환이 이 컴포넌트 상태라 서버 카드로는 불가능했던 것. */}
+      {/* #411 — 도구 간 이어가기: 화면의 **현재 선택 지역** 그대로. */}
       <div className="mt-5">
         <AnalysisCrossLinks
           current="timing"

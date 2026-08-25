@@ -17,7 +17,7 @@ export function NewsAlertSubscribe() {
 
   return (
     <div className="rise-in card mb-4 flex flex-wrap items-center gap-2.5 p-4">
-      <div className="flex min-w-0 items-center gap-1.5 text-[13px] font-bold text-ink">
+      <div className="flex min-w-0 items-center gap-1.5 t-body font-bold text-ink">
         <Icon name="bell" size={15} />
         키워드 알림
       </div>
@@ -27,7 +27,7 @@ export function NewsAlertSubscribe() {
         aria-label="알림 받을 키워드"
         placeholder="동네·단지·키워드 (예: 성동구, 재건축)"
         maxLength={40}
-        className="min-w-0 flex-1 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-ink placeholder:text-text-3"
+        className="min-w-0 flex-1 rounded-full border border-line bg-surface px-3.5 py-1.5 t-body text-ink placeholder:text-text-3"
       />
       {trimmed ? (
         <KeywordAlertButton key={trimmed} scope="news" query={trimmed} />
@@ -38,7 +38,7 @@ export function NewsAlertSubscribe() {
               key={s}
               type="button"
               onClick={() => setQ(s)}
-              className="rounded-full border border-line bg-surface px-2.5 py-1 text-[11.5px] font-semibold text-text-2 tap-ripple"
+              className="rounded-full border border-line bg-surface px-2.5 py-1 t-sub font-semibold text-text-2 tap-ripple"
             >
               {s}
             </button>

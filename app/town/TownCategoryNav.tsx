@@ -76,18 +76,20 @@ export function TownCategoryNav({
             className={`press relative flex w-[92px] shrink-0 flex-col items-center justify-center rounded-[16px] border px-2 text-center transition-all duration-300 ease-out md:w-auto md:min-w-0 md:flex-1 md:basis-0 ${
               pinned
                 ? "h-[64px] border-primary bg-primary-soft shadow-[0_6px_18px_rgba(29,79,216,.18)] md:h-[72px]"
-                : "card card-hover h-[76px] border-transparent md:h-[92px]"
+                : "card tile h-[76px] border-transparent md:h-[92px]"
             }`}
           >
+            {/* 아이콘 칩 — 9칸이 전부 같은 잉크색이라 목록이 평평했다.
+                성격별 색을 입혀 스캔이 되게 한다. */}
             <span
-              className={`flex h-6 w-6 items-center justify-center leading-none transition-colors ${
-                pinned ? "text-primary" : "text-ink"
+              className={`tile-ico flex h-8 w-8 items-center justify-center rounded-[10px] transition-colors ${
+                pinned ? "bg-primary text-surface" : l.tone
               }`}
             >
-              <Icon name={l.icon} size={pinned ? 18 : 20} />
+              <Icon name={l.icon} size={pinned ? 16 : 17} />
             </span>
             <span
-              className={`mt-1.5 w-full truncate text-[12px] font-extrabold leading-tight transition-colors ${
+              className={`mt-1.5 w-full truncate t-sub font-extrabold transition-colors ${
                 pinned ? "text-primary" : "text-ink"
               }`}
             >
@@ -95,7 +97,7 @@ export function TownCategoryNav({
             </span>
             {/* 고정 시 설명이 접히며 카드가 세로로 살짝 줄어든다 */}
             <span
-              className={`w-full truncate text-[10px] leading-[1.35] text-text-3 transition-all duration-300 ease-out ${
+              className={`w-full truncate t-caption text-text-3 transition-all duration-300 ease-out ${
                 pinned ? "mt-0 max-h-0 opacity-0" : "mt-0.5 max-h-4 opacity-100"
               }`}
             >

@@ -27,6 +27,64 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
    상태(useState)가 사라져 "use client" 도 필요 없어졌다.
    ============================================================ */
 
+/* 부동산 사이클의 네 국면 — **일반 개념**이다. 특정 지역·시점이 지금 어느
+   국면인지 판정하지 않고, 어떤 신호가 각 국면에서 관찰되는지만 적는다.
+   (판정을 하려면 모델이 있어야 하고, 이 화면에는 그 모델이 없다.) */
+const PHASES = [
+  { name: "회복", tone: "text-primary", signal: "거래량 먼저 늘고 가격은 아직 보합" },
+  { name: "확장", tone: "text-danger", signal: "가격·거래량 동반 상승 · 신규 공급 계획 증가" },
+  { name: "둔화", tone: "text-warning", signal: "거래량 먼저 꺾이고 가격은 지연 반응" },
+  { name: "조정", tone: "text-text-3", signal: "가격 하락 · 미분양·입주 물량 부담" },
+] as const;
+
+/* 네 국면을 원으로 배치한 도식. 숫자·확률·좌표 예측이 하나도 없다 —
+   순환한다는 사실과 각 국면의 관찰 신호만 그린다. */
+function CycleRing() {
+  const S = 240;
+  const c = S / 2;
+  const r = 78;
+  const pos = PHASES.map((_, i) => {
+    const a = (Math.PI * 2 * i) / PHASES.length - Math.PI / 2;
+    return { x: c + r * Math.cos(a), y: c + r * Math.sin(a) };
+  });
+  return (
+    <svg viewBox={`0 0 ${S} ${S}`} width={S} height={S} role="img" aria-label="시장 사이클 네 국면 도식">
+      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--divider)" strokeWidth="2" strokeDasharray="4 6" />
+      {/* 순환 방향 화살표 — 위 → 오른쪽 */}
+      <path
+        d={`M${c + r - 8} ${c - 6} l8 6 -8 6`}
+        fill="none"
+        stroke="var(--text-3)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {pos.map((p, i) => (
+        <g key={PHASES[i].name} className={PHASES[i].tone}>
+          <circle cx={p.x} cy={p.y} r="26" fill="var(--surface)" stroke="currentColor" strokeWidth="2" />
+          <text
+            x={p.x}
+            y={p.y}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="currentColor"
+            fontSize="13"
+            fontWeight="800"
+          >
+            {PHASES[i].name}
+          </text>
+        </g>
+      ))}
+      <text x={c} y={c - 6} textAnchor="middle" fill="var(--text-3)" fontSize="11" fontWeight="700">
+        순환 개념도
+      </text>
+      <text x={c} y={c + 10} textAnchor="middle" fill="var(--text-3)" fontSize="9.5">
+        전망·확률 아님
+      </text>
+    </svg>
+  );
+}
+
 const SCENARIO_ASSUMPTIONS = [
   { name: "적극적", tone: "text-danger", cond: "금리 인하 · 정비사업 가시화 · 공급 부족" },
   { name: "기준", tone: "text-primary", cond: "금리 동결 · 과거 사이클 평균 회복" },
@@ -55,7 +113,7 @@ export default function CyclePage() {
   return (
     <PageShell breadcrumb="AI 분석 › 시세·타이밍 › 사이클 전망">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">사이클 전망</h1>
+        <h1 className="rise-in t-title text-ink">사이클 전망</h1>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -68,11 +126,38 @@ export default function CyclePage() {
           />
         </div>
 
+        {/* 국면 도식 — 표 한 장이던 자리. 그림에도 숫자는 하나도 없다. */}
+        <div className="card flex flex-col gap-3 rounded-[14px] p-4 md:flex-row md:items-center md:gap-5" data-reveal="">
+          <div className="shrink-0 self-center">
+            <CycleRing />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <div className="t-section text-ink">
+              시장은 네 국면을 돕니다{" "}
+              <span className="t-caption font-medium text-text-3">일반 개념 · 전망 아님</span>
+            </div>
+            {PHASES.map((ph) => (
+              <div key={ph.name} className="flex gap-2.5 border-b border-divider pb-2 last:border-0">
+                <span className={`t-sub w-9 shrink-0 font-extrabold ${ph.tone}`}>{ph.name}</span>
+                <span className="t-sub text-text-2">{ph.signal}</span>
+              </div>
+            ))}
+            <p className="t-caption text-text-3">
+              지금 어느 국면인지는 판정하지 않습니다 — 그러려면 모델이 있어야 하고, 이
+              화면에는 그 모델이 없습니다. 실제로 집계된 지수·거래량은{" "}
+              <a href="/analysis/timing" className="font-bold text-primary no-underline">
+                시세·타이밍
+              </a>
+              에서 보세요.
+            </p>
+          </div>
+        </div>
+
         {/* 숫자 없는 정성적 설명 — 어떤 조건이 시나리오를 가르는지에 대한 안내라 남긴다 */}
-        <div className="rise-in-2 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-          <div className="text-[13px] font-extrabold text-ink">
+        <div className="card flex flex-col gap-2 rounded-[14px] p-4" data-reveal="">
+          <div className="t-body font-extrabold text-ink">
             시나리오는 이런 조건으로 갈립니다{" "}
-            <span className="text-[11px] font-medium text-text-3">일반 설명 · 전망치 아님</span>
+            <span className="t-sub font-medium text-text-3">일반 설명 · 전망치 아님</span>
           </div>
           {SCENARIO_ASSUMPTIONS.map((s, i) => (
             <div
@@ -85,7 +170,7 @@ export default function CyclePage() {
               <span className="text-right text-text-2">{s.cond}</span>
             </div>
           ))}
-          <div className="text-[10px] leading-[1.5] text-text-3">
+          <div className="t-caption text-text-3">
             어느 시나리오가 얼마나 유력한지는 판단하지 않습니다. 본 안내는 참고용이며 투자
             판단의 책임은 이용자에게 있습니다.
           </div>

@@ -46,7 +46,7 @@ export default function PortfolioPage() {
   return (
     <PageShell breadcrumb="분석 도구 › 자산 배분">
       <div className="mb-3 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">자산 배분 시뮬레이터</h1>
+        <h1 className="rise-in t-title text-ink">자산 배분 시뮬레이터</h1>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -71,8 +71,8 @@ export default function PortfolioPage() {
         </div>
 
         <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-          <div className="text-[13px] font-extrabold text-ink">자산 알림</div>
-          <div className="text-[11px] leading-[1.6] text-text-3">
+          <div className="t-body font-extrabold text-ink">자산 알림</div>
+          <div className="t-sub text-text-3">
             자산 등록이 열리면 아래 알림을 받을 수 있어요.
           </div>
           {/* 장식용 가짜 토글 제거 — 실제 알림 설정으로 연결 */}

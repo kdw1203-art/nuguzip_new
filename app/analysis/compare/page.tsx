@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
@@ -15,15 +15,40 @@ import {
   subscribeCompareTray,
   type CompareTrayItem,
 } from "@/lib/newui/compare-tray";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
+import { Radar } from "@/app/components/viz/Radar";
+import { SkTable } from "@/app/components/ui/Skeleton";
 
 /* ---------- 단지 선택기 → 비교 트레이에 담기 (검색·지도·딥링크 공용) ---------- */
+
+/* 항목별 최고/최저를 표에서 배지로 알린다 — 숫자 5열을 눈으로 비교하던 자리.
+   동점이면 둘 다 표시한다(임의로 하나를 고르면 그건 사실이 아니다). */
+function bestOf<T>(items: readonly T[], pick: (x: T) => number | null, dir: "max" | "min"): Set<number> {
+  const vals = items.map(pick);
+  const usable = vals.filter((v): v is number => v !== null && Number.isFinite(v));
+  if (usable.length < 2) return new Set();
+  const target = dir === "max" ? Math.max(...usable) : Math.min(...usable);
+  const out = new Set<number>();
+  vals.forEach((v, i) => {
+    if (v !== null && v === target) out.add(i);
+  });
+  return out;
+}
+
+function WinBadge({ label }: { label: string }) {
+  return (
+    <span className="t-caption ml-1 rounded bg-success-soft px-1 py-px font-extrabold text-success">
+      {label}
+    </span>
+  );
+}
 
 function ComparePickerSection() {
   const [note, setNote] = useState<string | null>(null);
 
   return (
     <div className="rise-in card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-      <div className="text-[13px] font-extrabold text-ink">비교할 단지 담기</div>
+      <div className="t-body font-extrabold text-ink">비교할 단지 담기</div>
       <ComplexPicker
         label="검색해서 최대 5개까지 담기"
         placeholder="단지명으로 검색 (예: 공작아파트)"
@@ -44,7 +69,7 @@ function ComparePickerSection() {
           );
         }}
       />
-      {note && <div className="text-[11px] font-bold text-primary">{note}</div>}
+      {note && <div className="t-sub font-bold text-primary">{note}</div>}
     </div>
   );
 }
@@ -71,7 +96,7 @@ function CompareTraySection() {
 
   return (
     <div className="rise-in card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-      <div className="text-[13px] font-extrabold text-ink">
+      <div className="t-body font-extrabold text-ink">
         내가 담은 후보 {items.length}개
         <span className="ml-1 font-semibold text-text-3">
           / 최대 {COMPARE_TRAY_MAX}개
@@ -82,7 +107,7 @@ function CompareTraySection() {
           {items.map((item) => (
             <span
               key={item.id}
-              className="chip chip-soft flex items-center gap-1.5 px-[11px] py-[5px] text-[11px]"
+              className="chip chip-soft flex items-center gap-1.5 px-[11px] py-[5px] t-sub"
             >
               <Link href={`/complex/${encodeURIComponent(item.id)}`}>
                 {item.name}
@@ -103,7 +128,7 @@ function CompareTraySection() {
           ))}
         </div>
       ) : (
-        <div className="text-[11px] text-text-3">
+        <div className="t-sub text-text-3">
           아직 담은 후보가 없어요 — 단지 화면의 &quot;비교 담기&quot;로 최대{" "}
           {COMPARE_TRAY_MAX}개까지 담을 수 있어요.
         </div>
@@ -112,7 +137,7 @@ function CompareTraySection() {
       {items.length >= 2 && (
         <Link
           href={`/analysis/ai/ai-compare?ids=${encodeURIComponent(items.slice(0, 3).map((i) => i.id).join(","))}`}
-          className="self-start rounded-[10px] bg-primary px-3.5 py-2 text-[12px] font-bold text-white no-underline"
+          className="self-start rounded-[10px] bg-primary px-3.5 py-2 t-sub font-bold text-white no-underline"
         >
           이 후보들로 AI 비교 해석 ›
         </Link>
@@ -144,6 +169,26 @@ function fmtEok(krw: number | null): string {
 function fmtManwon(krw: number | null): string {
   if (krw === null) return "—";
   return `${Math.round(krw / 10_000).toLocaleString("ko-KR")}만`;
+}
+
+function ratio(v: number | null, max: number): number {
+  if (v === null || !Number.isFinite(v) || max <= 0) return 0;
+  return Math.min(1, Math.max(0.06, v / max));
+}
+
+function pctOf(v: number | null, max: number): string {
+  if (v === null || !Number.isFinite(v) || max <= 0) return "0%";
+  return `${Math.round((v / max) * 100)}%`;
+}
+
+/** 최근 거래가 얼마나 최근인지 0~1 (12개월 전=0, 이번 달=1). 없으면 0. */
+function recencyRatio(ym: string | null): number {
+  if (!ym || !/^\d{6}$/.test(ym)) return 0;
+  const y = Number(ym.slice(0, 4));
+  const m = Number(ym.slice(4));
+  const now = new Date();
+  const months = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+  return Math.min(1, Math.max(0, 1 - months / 12));
 }
 
 function fmtYm(ym: string): string {
@@ -194,11 +239,38 @@ function ComplexCompareTable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey]);
 
+  /* 표의 셀 배경 막대와 "최저·최다" 배지를 위한 파생값. 값이 있는 단지가
+     2곳 미만이면 비교 자체가 성립하지 않아 배지도 안 붙는다. */
+  const withData = useMemo(() => (items ?? []).filter((i) => i.hasData), [items]);
+  const maxAvg = Math.max(0, ...withData.map((i) => i.avg6mKrw ?? 0));
+  const maxPyeong = Math.max(0, ...withData.map((i) => i.avgPyeong6mKrw ?? 0));
+  const maxCount = Math.max(0, ...withData.map((i) => i.count12m));
+  const cheapest = bestOf(items ?? [], (i) => (i.hasData ? i.avg6mKrw : null), "min");
+  const cheapestPyeong = bestOf(items ?? [], (i) => (i.hasData ? i.avgPyeong6mKrw : null), "min");
+  const mostActive = bestOf(items ?? [], (i) => (i.hasData ? i.count12m : null), "max");
+
+  const RADAR_TONES = ["text-primary", "text-success", "text-warning"] as const;
+  const radar = useMemo(
+    () =>
+      withData.slice(0, 3).map((it, i) => ({
+        name: it.name,
+        toneClass: RADAR_TONES[i] ?? "text-primary",
+        axes: [
+          { key: "avg", label: "평균가", ratio: ratio(it.avg6mKrw, maxAvg) },
+          { key: "pyeong", label: "평당가", ratio: ratio(it.avgPyeong6mKrw, maxPyeong) },
+          { key: "c12", label: "12개월 거래", ratio: ratio(it.count12m, maxCount) },
+          { key: "c6", label: "최근 6개월", ratio: ratio(it.count6m, Math.max(1, ...withData.map((x) => x.count6m))) },
+          { key: "recent", label: "최근성", ratio: recencyRatio(it.latest?.ym ?? null) },
+        ],
+      })),
+    [withData, maxAvg, maxPyeong, maxCount],
+  );
+
   if (!ids || ids.length === 0) {
     return (
-      <div className="rise-in card flex flex-col gap-1.5 rounded-2xl px-[18px] py-4">
-        <div className="text-[13px] font-extrabold text-ink">단지별 실거래 비교표</div>
-        <div className="text-[11px] leading-relaxed text-text-3">
+      <div className="card flex flex-col gap-1.5 rounded-[14px] p-4">
+        <div className="t-section text-ink">단지별 실거래 비교표</div>
+        <div className="t-sub text-text-3">
           위에서 단지를 담으면 최근 6개월 평균가·평당가·거래량을 나란히 비교해 드려요.
         </div>
       </div>
@@ -206,49 +278,82 @@ function ComplexCompareTable() {
   }
 
   return (
-    <div className="rise-in card flex flex-col gap-3 rounded-[20px] p-[22px]">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[15px] font-extrabold text-ink">단지별 실거래 비교표</div>
-        <span className="rounded border border-line px-1.5 py-px text-[9px] font-bold text-text-3">
+    <div className="card flex flex-col gap-3 rounded-[14px] p-4" data-reveal="">
+      <div className="chart-head">
+        <span className="t-section text-ink">단지별 실거래 비교표</span>
+        <span className="t-caption ml-auto rounded border border-line px-1.5 py-px font-bold text-text-3">
           실데이터 기준
         </span>
       </div>
       {loading && !items ? (
-        <div className="text-xs text-text-3">실거래를 집계하는 중…</div>
+        /* 예전엔 "집계하는 중…" 한 줄이라 표가 나타날 때 화면이 통째로 튀었다 */
+        <SkTable rows={Math.min(4, ids.length)} />
       ) : items ? (
         <>
+          {/* 성격 비교 — 표는 항목별 우열은 보여 주지만 "어떤 단지인가"는 안 보여 준다.
+              값이 있는 단지가 2곳 이상일 때만 그린다(한 곳짜리 레이더는 의미 없다). */}
+          {radar.length >= 2 && (
+            <div className="flex flex-wrap items-center justify-center gap-4 rounded-[12px] bg-bg p-3">
+              <Radar series={radar} size={200} />
+              <ul className="flex flex-col gap-1.5">
+                {radar.map((r) => (
+                  <li key={r.name} className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${r.toneClass}`} style={{ background: "currentColor" }} />
+                    <span className="t-sub font-bold text-ink">{r.name}</span>
+                  </li>
+                ))}
+                <li className="t-caption max-w-[220px] text-text-3">
+                  각 축은 담긴 단지들 사이의 상대 위치입니다(가장 큰 값이 바깥). 절대
+                  수치는 아래 표에서 보세요.
+                </li>
+              </ul>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <div className="min-w-[620px]">
-              <div className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] gap-2 border-b border-divider pb-2 text-[11px] font-bold text-text-3">
+              <div className="t-sub grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] gap-2 border-b border-divider pb-2 font-bold text-text-3">
                 <span>단지</span>
                 <span className="text-center">6개월 평균가</span>
                 <span className="text-center">평당가 (6개월)</span>
                 <span className="text-center">거래 6/12개월</span>
                 <span className="text-center">최근 거래</span>
               </div>
-              {items.map((it) => (
+              {items.map((it, idx) => (
                 <div
                   key={it.id}
-                  className="grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] items-center gap-2 border-b border-divider py-2.5 text-xs"
+                  className="row-hl grid grid-cols-[1.5fr_1fr_1fr_0.8fr_1.3fr] items-center gap-2 border-b border-divider py-2.5"
                 >
-                  <span className="font-bold text-ink">
-                    <Link href={`/complex/${encodeURIComponent(it.id)}`} className="no-underline">
+                  <span className="t-sub font-bold text-ink">
+                    <Link href={complexHrefFromId(it.id)} className="no-underline">
                       {it.name}
                     </Link>
-                    <span className="ml-1 text-[10px] font-semibold text-text-3">{it.region}</span>
+                    <span className="t-caption ml-1 font-semibold text-text-3">{it.region}</span>
                   </span>
                   {it.hasData ? (
                     <>
-                      <span className="text-center font-extrabold text-text-1">
+                      <span
+                        className="cell-bar t-sub t-num text-center text-primary"
+                        style={{ ["--w" as string]: pctOf(it.avg6mKrw, maxAvg) }}
+                      >
                         {fmtEok(it.avg6mKrw)}
+                        {cheapest.has(idx) && <WinBadge label="최저" />}
                       </span>
-                      <span className="text-center font-bold text-text-1">
+                      <span
+                        className="cell-bar t-sub t-num text-center text-primary"
+                        style={{ ["--w" as string]: pctOf(it.avgPyeong6mKrw, maxPyeong) }}
+                      >
                         {fmtManwon(it.avgPyeong6mKrw)}
+                        {cheapestPyeong.has(idx) && <WinBadge label="최저" />}
                       </span>
-                      <span className="text-center font-bold text-text-1">
+                      <span
+                        className="cell-bar t-sub t-num text-center text-success"
+                        style={{ ["--w" as string]: pctOf(it.count12m, maxCount) }}
+                      >
                         {it.count6m}/{it.count12m}건
+                        {mostActive.has(idx) && <WinBadge label="최다" />}
                       </span>
-                      <span className="text-center text-[11px] text-text-2">
+                      <span className="t-sub text-center text-text-2">
                         {it.latest
                           ? `${fmtYm(it.latest.ym)} · ${fmtEok(it.latest.amountKrw)}${
                               it.latest.areaM2 ? ` · ${Math.round(it.latest.areaM2)}㎡` : ""
@@ -257,7 +362,7 @@ function ComplexCompareTable() {
                       </span>
                     </>
                   ) : (
-                    <span className="col-span-4 text-center text-[11px] text-text-3">
+                    <span className="t-sub col-span-4 text-center text-text-3">
                       최근 12개월 실거래 없음
                     </span>
                   )}
@@ -265,16 +370,14 @@ function ComplexCompareTable() {
               ))}
             </div>
           </div>
-          <div className="text-[9px] leading-[1.5] text-text-3">
+          <p className="t-caption text-text-3">
             국토교통부 실거래 기준(해제 신고분 제외) · 면적·타입 구분 없는 단순 평균이므로
-            같은 단지라도 평형 구성에 따라 체감과 다를 수 있어요. 평형별 시세는 단지
-            상세에서 확인하세요.
-          </div>
+            같은 단지라도 평형 구성에 따라 체감과 다를 수 있어요. &ldquo;최저·최다&rdquo;
+            배지는 담긴 단지들 사이의 비교일 뿐 좋고 나쁨의 판정이 아닙니다.
+          </p>
         </>
       ) : (
-        <div className="text-xs text-text-3">
-          집계에 실패했어요. 잠시 후 다시 시도해 주세요.
-        </div>
+        <p className="t-sub text-text-3">집계에 실패했어요. 잠시 후 다시 시도해 주세요.</p>
       )}
     </div>
   );
@@ -382,7 +485,7 @@ function RegionMarketSummary() {
   return (
     <div className="rise-in-2 card flex flex-col gap-3 rounded-[20px] p-[22px]">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[15px] font-extrabold text-ink">
+        <div className="t-section text-ink">
           후보 지역 실시세 스냅샷
         </div>
         {regions.length > 0 && state.kind !== "loading" && (
@@ -397,19 +500,19 @@ function RegionMarketSummary() {
       </div>
 
       {regions.length === 0 ? (
-        <div className="text-[11px] leading-relaxed text-text-3">
+        <div className="t-sub text-text-3">
           아직 담은 후보가 없어요. 위에서 단지를 담으면 후보 지역의 국토교통부 실거래
           기반 시세 스냅샷과 종합 코멘트를 만들어 드려요.
         </div>
       ) : state.kind === "idle" ? (
-        <div className="text-[11px] leading-relaxed text-text-3">
+        <div className="t-sub text-text-3">
           담은 후보 {regions.length}개 지역의 시세 스냅샷을 준비했어요. &quot;요약
           생성&quot; 버튼을 누르면 지역 실시세와 종합 코멘트를 불러와요.
         </div>
       ) : state.kind === "loading" ? (
         <div className="text-xs text-text-3">지역 시세를 불러오는 중…</div>
       ) : state.kind === "empty" ? (
-        <div className="text-[11px] leading-relaxed text-text-3">
+        <div className="t-sub text-text-3">
           담은 후보 지역의 실시세 데이터가 아직 없어요. 시세 수집 후 다시 시도해 주세요.
         </div>
       ) : state.kind === "limited" || state.kind === "error" ? (
@@ -420,7 +523,7 @@ function RegionMarketSummary() {
         <>
           <div className="overflow-x-auto">
             <div className="min-w-[520px]">
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-2 border-b border-divider pb-2 text-[11px] font-bold text-text-3">
+              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-2 border-b border-divider pb-2 t-sub font-bold text-text-3">
                 <span>지역 (기준월)</span>
                 <span className="text-center">평균 매매가</span>
                 <span className="text-center">전월 대비</span>
@@ -435,7 +538,7 @@ function RegionMarketSummary() {
                   >
                     <span className="font-bold text-ink">
                       {it.regionName}
-                      <span className="ml-1 text-[10px] font-semibold text-text-3">
+                      <span className="ml-1 t-caption font-semibold text-text-3">
                         {it.period} · {it.source.toUpperCase()}
                       </span>
                     </span>
@@ -455,17 +558,17 @@ function RegionMarketSummary() {
           {state.comment && (
             <div className="ai-panel flex flex-col gap-2 rounded-2xl p-[18px]">
               <div className="flex items-start gap-3">
-                <span className="ai-chip h-[22px] w-[22px] shrink-0 rounded-[7px] text-[11px]">
+                <span className="ai-chip h-[22px] w-[22px] shrink-0 rounded-[7px] t-sub">
                   AI
                 </span>
                 <div className="flex-1 text-xs leading-[1.65] text-ai-text">
                   {state.comment}
                 </div>
-                <span className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px text-[9px] font-bold text-ai-muted">
+                <span className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-1.5 py-px t-caption font-bold text-ai-muted">
                   {state.mode === "llm" ? "AI 생성" : "규칙 기반 요약"}
                 </span>
               </div>
-              <div className="text-[9px] leading-[1.5] text-ai-muted">
+              <div className="t-caption text-ai-muted">
                 {state.disclaimer}.
               </div>
             </div>

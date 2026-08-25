@@ -25,12 +25,12 @@ export default async function AgentPage() {
   return (
     <PageShell breadcrumb="AI 분석 › AI 에이전트">
       <div className="mb-4">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">누구집 AI 에이전트</h1>
-        <p className="rise-in-1 mt-1 max-w-xl text-[13px] leading-[1.6] text-text-2">
+        <h1 className="rise-in t-title text-ink">누구집 AI 에이전트</h1>
+        <p className="rise-in-1 mt-1 max-w-xl t-body text-text-2">
           내 임장노트와 국토교통부 실거래 데이터를 <b>직접 조회해서</b> 답해요.
           기억이나 추정으로 시세를 말하지 않고, 조회한 데이터 목록을 답변과 함께 보여줍니다.
         </p>
-        <p className="rise-in-1 mt-1.5 max-w-xl text-[12px] leading-[1.6] text-text-3">
+        <p className="rise-in-1 mt-1.5 max-w-xl t-sub text-text-3">
           AI 분석은 단지·노트 1건을 깊게, 에이전트는 여러 데이터를 검색·조합해
           질문에 답합니다 · 현재 수도권 실거래 기준
         </p>
@@ -43,12 +43,12 @@ export default async function AgentPage() {
         </div>
       ) : (
         <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[20px] px-6 py-12 text-center">
-          <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl text-[15px]">AI</div>
+          <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl t-body">AI</div>
           <div className="text-sm font-extrabold text-ink">로그인하면 에이전트를 쓸 수 있어요</div>
           <div className="max-w-sm text-xs leading-[1.6] text-text-3">
             에이전트는 회원님의 임장노트를 읽어 답하기 때문에 로그인이 필요해요.
           </div>
-          <Link href="/login?callbackUrl=/agent" className="btn-primary rounded-xl px-5 py-2.5 text-[13px] no-underline">
+          <Link href="/login?callbackUrl=/agent" className="btn-primary rounded-xl px-5 py-2.5 t-body no-underline">
             로그인하고 시작하기
           </Link>
         </div>

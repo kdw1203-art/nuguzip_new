@@ -2008,3 +2008,375 @@ html[data-drag-scrolling] * {
     transform: none;
   }
 }
+
+/* ============================================================
+   시각화·상호작용 시스템 (2026-08-25 · 초대규모 디자인 개선)
+
+   왜 이게 한 곳에 모였나 — 실측:
+     · /analysis 기능 페이지 12개를 통틀어 SVG 차트 0개, .tile 0개,
+       transition 0~1개, 타입 램프 사용 0회. 표와 텍스트만 있었다.
+     · 그 결과 체류시간이 허브 117초 ↔ 기능 페이지 1~3초로 갈렸다
+       (/analysis/ai/* 1.0초 · /analysis/portfolio 1.5초 · timing 3.2초).
+   화면마다 따로 그리면 또 갈라진다. 그림·움직임·상태를 **여기 한 벌**로 두고
+   화면은 그걸 쓰기만 한다.
+
+   전부 기존 토큰만 쓴다(raw hex 0) — 대비 게이트 보증 안에 남기 위해서다.
+   ============================================================ */
+
+/* ---------- 랭킹 막대 (RankBars) ---------- */
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-xs) var(--ease-out);
+}
+a.rank-row:hover {
+  background: var(--bg);
+}
+.rank-track {
+  position: relative;
+  flex: 1 1 34%;
+  min-width: 56px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--divider);
+  overflow: hidden;
+}
+.rank-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  transform-origin: left center;
+  animation: rankGrow 620ms var(--ease-out) both;
+}
+@keyframes rankGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------- 게이지 호 그리기 ---------- */
+.gauge-arc {
+  stroke-dasharray: 1000;
+  animation: arcDraw 900ms var(--ease-out) both;
+}
+@keyframes arcDraw {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------- KPI 스트립 ----------
+   기능 페이지의 첫 화면은 "이 도구가 내는 숫자"여야 한다. 표를 먼저 보여 주면
+   무엇을 읽어야 하는지 모른 채 스크롤한다(실측 이탈 원인). */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+}
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.kpi-v {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.kpi-k {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.kpi-d {
+  font-size: 10.5px;
+  color: var(--text-3);
+  line-height: 1.45;
+}
+
+/* ---------- 세그먼티드 컨트롤 (기간·지표 전환) ---------- */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.seg > button {
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--dur-xs) var(--ease-out),
+    color var(--dur-xs) var(--ease-out);
+}
+.seg > button:hover {
+  color: var(--primary);
+}
+.seg > button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- 차트 카드 ---------- */
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--pad-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.chart-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 표 행 상호작용 ----------
+   순위표는 눈이 행을 따라가야 하는데 지금은 아무 반응이 없다. */
+.row-hl {
+  transition: background var(--dur-xs) var(--ease-out);
+}
+.row-hl:hover {
+  background: var(--bg);
+}
+/* 표 안 미니 막대 — 셀 뒤에 깔아 값의 크기를 배경으로 보인다 */
+.cell-bar {
+  position: relative;
+  isolation: isolate;
+}
+.cell-bar::before {
+  content: "";
+  position: absolute;
+  inset: 3px auto 3px 0;
+  width: var(--w, 0%);
+  border-radius: 3px;
+  background: currentColor;
+  opacity: 0.13;
+  z-index: -1;
+}
+
+/* ---------- 가로 스크롤 레일 (칩 줄·미니 카드 줄) ---------- */
+.rail-x {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+.rail-x::-webkit-scrollbar {
+  display: none;
+}
+.rail-x > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* ---------- 살아 있음 표시 (실시간 갱신 데이터) ---------- */
+.pulse-dot {
+  position: relative;
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  opacity: 0.35;
+  animation: pulseRing 2s var(--ease-inout) infinite;
+}
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.45;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* ---------- 스켈레톤 ----------
+   지금은 로딩 중에 화면이 비어 있다가 통째로 튀어나온다(레이아웃 점프).
+   최종 레이아웃과 **같은 모양**으로 자리를 잡아 둔다. */
+.sk {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--divider) 0%,
+    var(--bg) 50%,
+    var(--divider) 100%
+  );
+  background-size: 200% 100%;
+  animation: skShimmer 1.4s linear infinite;
+}
+@keyframes skShimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ---------- 진행 스텝 (실행 중 상태) ---------- */
+.run-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.run-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  background: var(--surface);
+}
+.run-step[data-state="active"] {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.run-step[data-state="done"] {
+  color: var(--success);
+  border-color: var(--success-border, var(--border));
+}
+.run-step[data-state="active"] .run-dot {
+  animation: pulseRing 1.4s var(--ease-inout) infinite;
+}
+.run-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+/* ---------- AI 패널 안 데이터 행 ----------
+   예전엔 rgba(255,255,255,.07) 을 클래스에 직접 박아 썼다. 패널이 항상 잉크
+   다크라 라이트에서도 흰 반투명이 맞긴 했지만, 그런 값이 하나 생기면 다음 화면이
+   .05 를 쓰고 그다음이 .09 를 쓴다. 한 줄로 못 박는다. */
+.ai-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ---------- 델타 배지 (전기 대비) ---------- */
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.delta-up-b {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.delta-down-b {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.delta-flat-b {
+  background: var(--bg);
+  color: var(--text-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rank-fill,
+  .gauge-arc {
+    animation: none;
+  }
+  .sk {
+    animation: none;
+    background: var(--divider);
+  }
+  .pulse-dot::after,
+  .run-step[data-state="active"] .run-dot {
+    animation: none;
+  }
+  .seg > button,
+  .row-hl,
+  .rank-row {
+    transition: none;
+  }
+}
+
+/* ---------- 워크벤치 실행 바 ----------
+   ①단지 → ②데이터 → ③실행 폼이 길어서, 정작 실행 버튼이 스크롤 밖에 있었다.
+   모바일에서 바닥에 붙여 둔다(탭바 위). 데스크톱은 흐름 그대로. */
+@media (max-width: 767px) {
+  .run-bar {
+    position: sticky;
+    bottom: calc(var(--nz-tabbar-offset, 64px) + 8px);
+    z-index: 20;
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--glass-bg-strong, var(--surface));
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* ---------- 피드 커버 스크림 ----------
+   생성 커버는 글자가 그려진 포스터다. 그 위에 흰 배지가 올라가면 밝은
+   이미지에서 안 읽힌다. 위쪽만 아주 옅게 눌러 준다(이미지 인상은 유지). */
+.cover-scrim {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 42px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.22), transparent);
+  pointer-events: none;
+}

@@ -297,7 +297,7 @@ export default async function TemperatureRegionPage({
                 <>
                   {" · "}
                   지난주 대비{" "}
-                  <strong style={{ color: diff > 0 ? "#dc2626" : diff < 0 ? "#2563eb" : undefined }}>
+                  <strong className={diff > 0 ? "text-danger" : diff < 0 ? "text-primary" : undefined}>
                     {diff === 0 ? "±0" : `${diff > 0 ? "+" : ""}${diff}`}점
                   </strong>
                 </>
@@ -380,7 +380,7 @@ export default async function TemperatureRegionPage({
                         <span
                           className="ml-1 text-[11px]"
                           style={{
-                            color: d > 0 ? "#dc2626" : d < 0 ? "#2563eb" : "var(--text-3)",
+                            color: d > 0 ? "var(--danger)" : d < 0 ? "var(--primary)" : "var(--text-3)",
                           }}
                         >
                           {d === 0 ? "±0" : `${d > 0 ? "+" : ""}${d}`}

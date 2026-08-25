@@ -122,10 +122,10 @@ export default async function TownPage() {
   return (
     <PageShell wide>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">동네이야기</h1>
+        <h1 className="rise-in t-title text-ink">동네이야기</h1>
         <Link
           href="/town/write"
-          className="btn-primary btn-cta hidden px-4 py-[9px] text-[13px] md:block"
+          className="btn-primary btn-cta hidden px-4 py-[9px] t-body md:block"
         >
           글쓰기
         </Link>
@@ -137,19 +137,19 @@ export default async function TownPage() {
 
       {/* [#64] 동네 홈 진입 — ?region= 필터 대신 지역별 정식 페이지로 */}
       <div className="rise-in-1 mb-4 flex flex-wrap items-center gap-1.5">
-        <span className="text-[12px] font-bold text-text-3">우리 동네 홈:</span>
+        <span className="t-sub font-bold text-text-3">우리 동네 홈:</span>
         {TOWN_HOME_SHORTCUTS.map((r) => (
           <Link
             key={r.id}
             href={`/town/${r.id}`}
-            className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-text-2"
+            className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2"
           >
             {r.name}
           </Link>
         ))}
         <Link
           href="/tx"
-          className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-primary"
+          className="chip border border-line bg-surface px-3 py-1.5 t-sub font-bold text-primary"
         >
           전체 지역 보기 ›
         </Link>
@@ -172,7 +172,7 @@ export default async function TownPage() {
       <Link
         href="/town/write"
         aria-label="글쓰기"
-        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full text-[22px] md:hidden"
+        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full t-title md:hidden"
         style={{
           bottom: "calc(var(--nz-tabbar-offset) + 12px)",
           boxShadow: "0 10px 24px rgba(29,79,216,.45)",

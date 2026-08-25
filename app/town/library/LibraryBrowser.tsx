@@ -93,7 +93,7 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="card rounded-[16px] px-4 py-6 text-center text-[12px] text-text-3">
+        <div className="card rounded-[16px] px-4 py-6 text-center t-sub text-text-3">
           이 조건의 리포트가 없어요 — 필터를 바꿔 보세요.
         </div>
       ) : (
@@ -105,25 +105,25 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
                 <Link href={`/town/library/${r.id}`} className="block px-4 py-3.5 no-underline">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.45] text-ink">
+                      <div className="line-clamp-2 t-body font-extrabold text-ink">
                         {r.title}
                       </div>
                       {r.subtitle && (
-                        <div className="mt-0.5 line-clamp-1 text-[11.5px] text-text-2">
+                        <div className="mt-0.5 line-clamp-1 t-sub text-text-2">
                           {r.subtitle}
                         </div>
                       )}
-                      <div className="mt-0.5 truncate text-[11px] text-text-3">{r.meta}</div>
+                      <div className="mt-0.5 truncate t-sub text-text-3">{r.meta}</div>
                     </div>
-                    <span className="shrink-0 text-[12px] font-extrabold text-primary">
+                    <span className="shrink-0 t-sub font-extrabold text-primary">
                       {paid ? `${r.price.toLocaleString("ko-KR")}P` : "무료"}
                     </span>
                   </div>
-                  <div className="mt-1.5 flex items-center gap-2 text-[11px] text-text-3">
+                  <div className="mt-1.5 flex items-center gap-2 t-sub text-text-3">
                     {r.pages > 0 && <span>{r.pages}쪽</span>}
                     {r.rating > 0 && <span>★ {r.rating.toFixed(1)}</span>}
                     {r.tags.slice(0, 3).map((t) => (
-                      <span key={t} className="rounded-full bg-bg px-2 py-0.5 text-[10px]">
+                      <span key={t} className="rounded-full bg-bg px-2 py-0.5 t-caption">
                         #{t}
                       </span>
                     ))}
@@ -180,7 +180,7 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="card rounded-[16px] px-4 py-6 text-center text-[12px] text-text-3">
+        <div className="card rounded-[16px] px-4 py-6 text-center t-sub text-text-3">
           이 조건의 노트가 없어요 — 필터를 바꿔 보세요.
         </div>
       ) : (
@@ -199,16 +199,16 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={n.cover} alt="" loading="lazy" className="h-full w-full object-cover" />
                 )}
-                <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 chip-pad text-[10px] font-extrabold text-success">
+                <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 chip-pad t-caption font-extrabold text-success">
                   {n.visited ? "✓ 직접 방문" : "임장노트"}
                 </span>
               </div>
               <div className="flex flex-1 flex-col gap-1 p-3">
-                <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.4] text-ink">
+                <div className="line-clamp-2 t-body font-extrabold text-ink">
                   {n.title}
                 </div>
-                <div className="text-[11px] text-text-3">{n.region}</div>
-                <div className="mt-auto flex items-center justify-between pt-1 text-[11px] text-text-3">
+                <div className="t-sub text-text-3">{n.region}</div>
+                <div className="mt-auto flex items-center justify-between pt-1 t-sub text-text-3">
                   <span className="min-w-0 truncate">{n.author}</span>
                   <span className="shrink-0 font-bold text-primary">{n.score}점</span>
                 </div>

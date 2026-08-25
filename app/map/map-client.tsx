@@ -245,7 +245,7 @@ function FilterChipGroup({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="text-[11px] font-bold text-text-3">{label}</div>
+      <div className="t-sub font-bold text-text-3">{label}</div>
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => {
           const active = o.key === valueKey;
@@ -1447,7 +1447,7 @@ export function MapClient({
       >
         필터
         {activeCount > 0 && (
-          <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-extrabold text-white">
+          <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 t-caption font-extrabold text-white">
             {activeCount}
           </span>
         )}{" "}
@@ -1457,7 +1457,7 @@ export function MapClient({
         <button
           type="button"
           onClick={resetFilters}
-          className="whitespace-nowrap text-[11px] font-bold text-text-3 underline"
+          className="whitespace-nowrap t-sub font-bold text-text-3 underline"
         >
           초기화
         </button>
@@ -1506,7 +1506,7 @@ export function MapClient({
         <button
           type="button"
           onClick={() => setRadiusCenter(null)}
-          className="whitespace-nowrap text-[11px] font-bold text-text-3 underline"
+          className="whitespace-nowrap t-sub font-bold text-text-3 underline"
         >
           중심 해제
         </button>
@@ -1554,7 +1554,7 @@ export function MapClient({
           type="button"
           onClick={() => setFiltersExpanded(false)}
           aria-label="필터 닫기"
-          className="text-[13px] text-text-3"
+          className="t-body text-text-3"
         >
           ✕
         </button>
@@ -1618,7 +1618,7 @@ export function MapClient({
           />
         </>
       ) : (
-        <div className="py-2 text-[11px] text-text-3">이 지역 분포를 불러오는 중…</div>
+        <div className="py-2 t-sub text-text-3">이 지역 분포를 불러오는 중…</div>
       )}
       <FilterChipGroup
         label={`거래유형 (매물${showListings ? "" : " · 선택 시 매물 레이어 권장"})`}
@@ -1669,7 +1669,7 @@ export function MapClient({
           if (key !== "all") setShowListings(true);
         }}
       />
-      <p className="text-[10px] leading-[1.5] text-text-3">
+      <p className="t-caption text-text-3">
         방·화장실·주차·건물유형은 <b className="text-text-2">등록 매물</b> 기준입니다. 값이
         없는 매물은 해당 필터에서 제외돼요. 국토부 실거래(단지 마커)는 아파트 시세입니다.
         {showListings &&
@@ -1707,7 +1707,7 @@ export function MapClient({
 
       {/* ===== 지도 레이어 — 정비사업(실적재 공개 자료) ===== */}
       <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
-        <div className="text-[11px] font-bold text-text-3">지도 레이어</div>
+        <div className="t-sub font-bold text-text-3">지도 레이어</div>
         <div className="flex flex-wrap gap-1.5">
           {/* C1 시세 색상 오버레이 토글 — 실거래 평단가 구간별 색 */}
           <button
@@ -1775,7 +1775,7 @@ export function MapClient({
             <Icon name="coin" size={14} className="inline align-middle" /> 월세 비중
           </button>
         </div>
-        <div className="text-[10px] text-text-3">
+        <div className="t-caption text-text-3">
           정비사업은 공개 자료 기준 참고값이에요. 실제 추진 단계는 관할 구청 고시를 확인하세요.
           {showSupply && supplyItems.length > 0 && (
             <>
@@ -1790,7 +1790,7 @@ export function MapClient({
 
       {/* ===== 출퇴근 필터 (#10) — 회사 주소 + 임계 소요시간 ===== */}
       <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2.5">
-        <div className="text-[11px] font-bold text-text-3">출퇴근 (회사 위치)</div>
+        <div className="t-sub font-bold text-text-3">출퇴근 (회사 위치)</div>
         <input
           type="text"
           value={officeInput}
@@ -1809,7 +1809,7 @@ export function MapClient({
           <button
             type="button"
             onClick={() => setOfficeQuery(officeInput.trim())}
-            className="btn-soft rounded-lg px-2.5 py-1.5 text-[11px] font-bold"
+            className="btn-soft rounded-lg px-2.5 py-1.5 t-sub font-bold"
           >
             적용
           </button>
@@ -1832,26 +1832,26 @@ export function MapClient({
           })}
         </div>
         {commuteLoading && (
-          <div className="text-[10px] text-text-3">소요시간 계산 중…</div>
+          <div className="t-caption text-text-3">소요시간 계산 중…</div>
         )}
-        {commuteError && <div className="text-[10px] text-danger">{commuteError}</div>}
+        {commuteError && <div className="t-caption text-danger">{commuteError}</div>}
         {!commuteError && commuteOfficeResolved && commuteBasis === "haversine" && (
-          <div className="text-[10px] text-text-3">
+          <div className="t-caption text-text-3">
             직선거리 기준(정확 소요시간은 연동 시)
           </div>
         )}
         {!commuteError && commuteOfficeResolved && commuteBasis === "directions" && (
-          <div className="text-[10px] text-text-3">실시간 경로 기준 소요시간</div>
+          <div className="t-caption text-text-3">실시간 경로 기준 소요시간</div>
         )}
         {commuteActive && commuteThreshold !== null && (
-          <div className="text-[10px] font-bold text-primary">
+          <div className="t-caption font-bold text-primary">
             출퇴근 {commuteThreshold}분 이내 · 단지 {filteredDanji.length}개
           </div>
         )}
       </div>
 
       <div className="flex items-center justify-between border-t border-[rgba(16,28,54,.08)] pt-2.5">
-        <button type="button" onClick={resetFilters} className="text-[12px] font-bold text-text-3 underline">
+        <button type="button" onClick={resetFilters} className="t-sub font-bold text-text-3 underline">
           전체 초기화
         </button>
         <button
@@ -1896,6 +1896,8 @@ export function MapClient({
      전자는 "이 지역엔 단지가 없다", 후자는 "우리가 못 읽었다". */
   const [popularFailed, setPopularFailed] = useState(false);
   const [popularLoading, setPopularLoading] = useState(true);
+  /* 순위 막대의 기준값 — 1위 건수. 0이면 막대를 그리지 않는다. */
+  const popularMax = popular.length > 0 ? Math.max(...popular.map((p) => p.recentTradeCount)) : 0;
   const popularTimerRef = useRef<number | null>(null);
   const popularAbortRef = useRef<AbortController | null>(null);
 
@@ -3046,8 +3048,8 @@ export function MapClient({
   const gradientFallback = (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 overflow-hidden bg-gradient-to-br from-line to-line-strong px-8 text-center">
       <Icon name="🗺" size={34} />
-      <div className="text-[15px] font-extrabold text-ink">지도를 불러오지 못했어요</div>
-      <p className="max-w-[280px] text-[12px] leading-relaxed text-text-2">
+      <div className="t-section text-ink">지도를 불러오지 못했어요</div>
+      <p className="max-w-[280px] t-sub text-text-2">
         네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요. 좌측 목록에서 단지 시세·실거래는
         그대로 확인할 수 있어요.
       </p>
@@ -3225,9 +3227,9 @@ export function MapClient({
             top: Math.min(hoverPos.y + 16, Math.max(8, (mapWrapRef.current?.clientHeight ?? 0) - 180)),
           }}
         >
-          <div className="truncate text-[13px] font-extrabold text-ink">{hoverMarker.label}</div>
+          <div className="truncate t-body font-extrabold text-ink">{hoverMarker.label}</div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="text-[17px] font-extrabold text-primary">
+            <span className="t-section text-primary">
               {hoverMarker.priceLabel ?? "시세 준비 중"}
             </span>
             {hoverMarker.momPct !== undefined && Number.isFinite(hoverMarker.momPct) && (
@@ -3243,25 +3245,25 @@ export function MapClient({
           </div>
           <div className="mt-2 grid grid-cols-3 gap-1.5 border-t border-[rgba(16,28,54,.07)] pt-2">
             <div>
-              <div className="text-[9px] text-text-3">세대수</div>
-              <div className="text-[12px] font-bold text-ink">
+              <div className="t-caption text-text-3">세대수</div>
+              <div className="t-sub font-bold text-ink">
                 {hoverMarker.households ? hoverMarker.households.toLocaleString("ko-KR") : "—"}
               </div>
             </div>
             <div>
-              <div className="text-[9px] text-text-3">준공</div>
-              <div className="text-[12px] font-bold text-ink">
+              <div className="t-caption text-text-3">준공</div>
+              <div className="t-sub font-bold text-ink">
                 {hoverMarker.buildYear ?? "—"}
               </div>
             </div>
             <div>
-              <div className="text-[9px] text-text-3">평균 전용</div>
-              <div className="text-[12px] font-bold text-ink">
+              <div className="t-caption text-text-3">평균 전용</div>
+              <div className="t-sub font-bold text-ink">
                 {hoverMarker.avgAreaM2 ? `${Math.round(hoverMarker.avgAreaM2)}㎡` : "—"}
               </div>
             </div>
           </div>
-          <div className="mt-2 text-[10px] text-text-3">클릭하면 자세히 봅니다</div>
+          <div className="mt-2 t-caption text-text-3">클릭하면 자세히 봅니다</div>
         </div>
       )}
 
@@ -3285,7 +3287,7 @@ export function MapClient({
             <div
               key={n.key}
               role="status"
-              className="max-w-full rounded-[14px] bg-[rgba(16,28,54,.82)] px-3.5 py-2 text-[12px] font-semibold leading-[1.5] text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
+              className="max-w-full rounded-[14px] bg-[rgba(16,28,54,.82)] px-3.5 py-2 t-sub font-semibold text-white shadow-[0_6px_18px_rgba(16,28,54,.25)]"
             >
               {n.text}
             </div>
@@ -3293,8 +3295,8 @@ export function MapClient({
 
           {listingNoticeKind === "error" && (
             <div className="glass pointer-events-auto max-w-full rounded-xl px-3.5 py-2.5">
-              <div className="text-[12px] font-extrabold text-ink">매물을 불러오지 못했어요</div>
-              <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
+              <div className="t-sub font-extrabold text-ink">매물을 불러오지 못했어요</div>
+              <div className="mt-0.5 t-sub text-text-3">
                 일시적 오류예요. 매물이 없다는 뜻은 아닙니다. 잠시 후 지도를 조금 옮기거나 다시
                 시도해 주세요.
               </div>
@@ -3303,12 +3305,12 @@ export function MapClient({
 
           {listingNoticeKind === "empty" && (
             <div className="glass pointer-events-auto max-w-full rounded-xl px-3.5 py-2.5">
-              <div className="text-[12px] font-extrabold text-ink">
+              <div className="t-sub font-extrabold text-ink">
                 {listingFilterNarrowed
                   ? "조건에 맞는 등록 매물이 없어요"
                   : "이 화면에 등록 매물이 아직 없어요"}
               </div>
-              <div className="mt-0.5 text-[11px] leading-[1.55] text-text-3">
+              <div className="mt-0.5 t-sub text-text-3">
                 {listingFilterNarrowed
                   ? "필터·예산 조건을 완화하거나, 지도를 넓혀 보세요. 포털처럼 매물이 많은 상태가 아니라 승인된 등록분만 보여요."
                   : "필터 문제가 아니라 아직 쌓인 재고가 적어요. 단지 실거래 마커는 그대로 볼 수 있고, 매물을 올리면 여기 표시돼요."}
@@ -3318,14 +3320,14 @@ export function MapClient({
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+                    className="rounded-full border border-line bg-surface px-2.5 py-1 t-sub font-bold text-text-2"
                   >
                     필터 초기화
                   </button>
                 )}
                 <Link
                   href="/listings/new"
-                  className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-extrabold text-white"
+                  className="rounded-full bg-primary px-2.5 py-1 t-sub font-extrabold text-white"
                 >
                   매물 등록하기
                 </Link>
@@ -3375,7 +3377,7 @@ export function MapClient({
               : "/notes/new"
           }
           data-tour="map-note-cta"
-          className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] text-[13px]"
+          className="btn-primary btn-cta shrink-0 rounded-xl px-4 py-[9px] t-body"
         >
           이 지역 노트 쓰기
         </Link>
@@ -3444,16 +3446,16 @@ export function MapClient({
         >
           {mapClickMode === "radius" ? (
             <>
-              <div className="text-[12px] font-extrabold text-ink">반경 보기</div>
-              <p className="text-[11px] leading-[1.55] text-text-3">
+              <div className="t-sub font-extrabold text-ink">반경 보기</div>
+              <p className="t-sub text-text-3">
                 {radiusCenter
                   ? "중심·크기 핸들을 드래그하거나, 지도를 클릭해 중심을 옮겨요."
                   : "지도를 클릭해 중심을 찍으세요. 안 찍으면 화면 중앙 기준입니다."}
               </p>
-              <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2 text-[11px] font-bold text-primary">
+              <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2 t-sub font-bold text-primary">
                 반경 {radiusM >= 1000 ? `${radiusM / 1000}km` : `${radiusM}m`} 안 단지 표시
               </div>
-              <label className="flex items-center gap-2 text-[11px] text-text-2">
+              <label className="flex items-center gap-2 t-sub text-text-2">
                 <span className="shrink-0 font-bold">직접 입력</span>
                 <input
                   type="number"
@@ -3466,7 +3468,7 @@ export function MapClient({
                     if (!Number.isFinite(n)) return;
                     setRadiusM(Math.min(5000, Math.max(100, Math.round(n))));
                   }}
-                  className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 text-[12px] font-bold text-ink"
+                  className="w-full rounded-lg border border-line bg-surface px-2 py-1.5 t-sub font-bold text-ink"
                   aria-label="반경 미터"
                 />
                 <span className="text-text-3">m</span>
@@ -3475,7 +3477,7 @@ export function MapClient({
                 <button
                   type="button"
                   onClick={() => setRadiusCenter(null)}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                 >
                   중심 삭제
                 </button>
@@ -3484,7 +3486,7 @@ export function MapClient({
                   onClick={() => {
                     setRadiusCenter(center);
                   }}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                 >
                   화면 중앙으로
                 </button>
@@ -3493,31 +3495,31 @@ export function MapClient({
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-[12px] font-extrabold text-ink">거리 재기</span>
-                <span className="text-[10px] text-text-3">{measurePoints.length}개 지점</span>
+                <span className="t-sub font-extrabold text-ink">거리 재기</span>
+                <span className="t-caption text-text-3">{measurePoints.length}개 지점</span>
               </div>
-              <p className="text-[11px] leading-[1.55] text-text-3">
+              <p className="t-sub text-text-3">
                 {measureRelocate
                   ? "지도를 클릭하면 선택한 지점이 그곳으로 옮겨져요."
                   : "클릭으로 지점 추가 · 번호 드래그로 이동 · 탭해서 선택 후 수정/삭제"}
               </p>
               {measurePoints.length < 2 ? (
-                <p className="text-[11px] leading-[1.55] text-text-3">
+                <p className="t-sub text-text-3">
                   두 지점 이상이면 직선·차량·도보 거리를 보여 드려요.
                 </p>
               ) : (
                 <>
                   <div className="rounded-[10px] bg-[rgba(29,79,216,.07)] px-2.5 py-2">
-                    <div className="text-[10px] text-text-3">직선 (실선)</div>
-                    <div className="text-[15px] font-extrabold text-primary">
+                    <div className="t-caption text-text-3">직선 (실선)</div>
+                    <div className="t-section text-primary">
                       {formatDistanceM(measureStraightM)}
                     </div>
                   </div>
                   {routeLoading && (
-                    <div className="text-[10px] text-text-3">차량·도보 경로 찾는 중…</div>
+                    <div className="t-caption text-text-3">차량·도보 경로 찾는 중…</div>
                   )}
                   {routeError && (
-                    <div className="text-[10px] text-danger">{routeError}</div>
+                    <div className="t-caption text-danger">{routeError}</div>
                   )}
                   {routeResult?.driving && (
                     <button
@@ -3529,18 +3531,18 @@ export function MapClient({
                           : "bg-bg"
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[10px] text-text-3">
+                      <div className="flex items-center justify-between t-caption text-text-3">
                         <span>차량 (주황 점선)</span>
                         <span>{showDrivingRoute ? "표시" : "숨김"}</span>
                       </div>
-                      <div className="text-[13px] font-extrabold text-[#c8640a]">
+                      <div className="t-body font-extrabold text-[#c8640a]">
                         {formatDistanceM(routeResult.driving.distanceM)} · 약{" "}
                         {routeResult.driving.durationMin}분
                       </div>
                     </button>
                   )}
                   {!routeLoading && !routeResult?.driving && measurePoints.length >= 2 && (
-                    <div className="rounded-[10px] bg-bg px-2.5 py-2 text-[10px] text-text-3">
+                    <div className="rounded-[10px] bg-bg px-2.5 py-2 t-caption text-text-3">
                       차량 경로 API 미연동 또는 조회 불가 — 직선만 표시
                     </div>
                   )}
@@ -3554,7 +3556,7 @@ export function MapClient({
                           : "bg-bg"
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[10px] text-text-3">
+                      <div className="flex items-center justify-between t-caption text-text-3">
                         <span>
                           도보{" "}
                           {routeResult.walking.basis === "estimate" ? "추정" : ""}{" "}
@@ -3562,7 +3564,7 @@ export function MapClient({
                         </span>
                         <span>{showWalkingRoute ? "표시" : "숨김"}</span>
                       </div>
-                      <div className="text-[13px] font-extrabold text-[#0f766e]">
+                      <div className="t-body font-extrabold text-[#0f766e]">
                         {formatDistanceM(routeResult.walking.distanceM)} · 약{" "}
                         {routeResult.walking.durationMin}분
                       </div>
@@ -3573,7 +3575,7 @@ export function MapClient({
                       {measureLegs.map((l) => (
                         <div
                           key={`${l.from}-${l.to}`}
-                          className="flex items-center justify-between text-[11px] text-text-2"
+                          className="flex items-center justify-between t-sub text-text-2"
                         >
                           <span>
                             {l.from} → {l.to}
@@ -3583,7 +3585,7 @@ export function MapClient({
                           </span>
                         </div>
                       ))}
-                      <div className="mt-0.5 flex items-center justify-between border-t border-[rgba(16,28,54,.08)] pt-1 text-[11px]">
+                      <div className="mt-0.5 flex items-center justify-between border-t border-[rgba(16,28,54,.08)] pt-1 t-sub">
                         <span className="text-text-3">이어 잰 합계</span>
                         <span className="font-extrabold text-ink">
                           {formatDistanceM(measureTotalM)}
@@ -3596,21 +3598,21 @@ export function MapClient({
 
               {selectedMeasureIdx != null && (
                 <div className="rounded-[10px] border border-primary/30 bg-[rgba(29,79,216,.06)] px-2.5 py-2">
-                  <div className="text-[11px] font-bold text-ink">
+                  <div className="t-sub font-bold text-ink">
                     지점 {selectedMeasureIdx + 1} 선택됨
                   </div>
                   <div className="mt-1.5 flex gap-1.5">
                     <button
                       type="button"
                       onClick={() => setMeasureRelocate(true)}
-                      className="flex-1 rounded-[8px] bg-primary px-2 py-1.5 text-[11px] font-extrabold text-white"
+                      className="flex-1 rounded-[8px] bg-primary px-2 py-1.5 t-sub font-extrabold text-white"
                     >
                       수정
                     </button>
                     <button
                       type="button"
                       onClick={deleteSelectedMeasurePoint}
-                      className="flex-1 rounded-[8px] border border-danger/40 bg-danger-soft px-2 py-1.5 text-[11px] font-extrabold text-danger"
+                      className="flex-1 rounded-[8px] border border-danger/40 bg-danger-soft px-2 py-1.5 t-sub font-extrabold text-danger"
                     >
                       삭제
                     </button>
@@ -3627,7 +3629,7 @@ export function MapClient({
                     setMeasureRelocate(false);
                   }}
                   disabled={measurePoints.length === 0}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2 disabled:opacity-40"
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2 disabled:opacity-40"
                 >
                   되돌리기
                 </button>
@@ -3640,7 +3642,7 @@ export function MapClient({
                     setRouteResult(null);
                   }}
                   disabled={measurePoints.length === 0}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2 disabled:opacity-40"
+                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2 disabled:opacity-40"
                 >
                   전체 삭제
                 </button>
@@ -3648,26 +3650,26 @@ export function MapClient({
 
               {measurePoints.length >= 2 && (
                 <div className="flex flex-col gap-1.5 border-t border-[rgba(16,28,54,.08)] pt-2">
-                  <div className="text-[10px] font-bold text-text-3">액션</div>
+                  <div className="t-caption font-bold text-text-3">액션</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
                       onClick={() => void copyMeasureSummary()}
-                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       거리 복사
                     </button>
                     <button
                       type="button"
                       onClick={() => openExternalDirections("car")}
-                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       차량 길찾기
                     </button>
                     <button
                       type="button"
                       onClick={() => openExternalDirections("walk")}
-                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       도보 길찾기
                     </button>
@@ -3677,7 +3679,7 @@ export function MapClient({
                         setSelectedMeasureIdx(0);
                         setMeasureRelocate(true);
                       }}
-                      className="rounded-[9px] border border-line px-2 py-1.5 text-[11px] font-bold text-text-2"
+                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       시작점 수정
                     </button>
@@ -3697,7 +3699,7 @@ export function MapClient({
               setMeasureRelocate(false);
               setRouteResult(null);
             }}
-            className="rounded-[9px] bg-[rgba(16,28,54,.06)] px-2 py-1.5 text-[11px] font-bold text-text-2"
+            className="rounded-[9px] bg-[rgba(16,28,54,.06)] px-2 py-1.5 t-sub font-bold text-text-2"
           >
             끝내기
           </button>
@@ -3713,7 +3715,7 @@ export function MapClient({
       >
         <ZoomTabButtons zoom={zoom} onSelect={handleZoomTab} />
       </div>
-      <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[11px] text-text-3 md:block xl:hidden">
+      <div className="absolute right-5 top-[92px] z-30 hidden translate-y-[76px] rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] t-sub text-text-3 md:block xl:hidden">
         {ZOOM_CAPTION[zoom]}
       </div>
 
@@ -3732,42 +3734,42 @@ export function MapClient({
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
         >
           <div className="flex items-baseline justify-between px-5 pb-1 pt-4">
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-section text-ink">
               {popularScope === "viewport" ? "이 지역 인기 단지" : "전국 인기 단지"}
             </div>
-            <div className="text-[11px] text-text-3">최근 거래순</div>
+            <div className="t-sub text-text-3">최근 거래순</div>
           </div>
           {/* ?region= 으로 들어왔음을 화면에서도 확인할 수 있게 — 관심지역 칩을
               눌렀는데 늘 같은 화면이 뜨던 예전과 달라졌다는 신호. */}
           {focusedRegion && (
             <div className="px-5 pb-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 t-sub font-bold text-primary">
                 <Icon name="📍" size={11} />
                 {focusedRegion}에서 시작
               </span>
             </div>
           )}
-          <div className="px-5 pb-2.5 text-[11px] leading-[1.5] text-text-3">
+          <div className="px-5 pb-2.5 t-sub text-text-3">
             {popularScope === "viewport"
               ? "지도를 움직이면 보이는 지역 기준으로 바뀝니다"
               : "지도를 확대하면 그 지역 기준으로 바뀝니다"}
           </div>
           {popularFailed && (
             <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
-              <div className="text-[12px] font-extrabold text-ink">
+              <div className="t-sub font-extrabold text-ink">
                 인기 단지를 지금 불러오지 못했어요
               </div>
-              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+              <p className="mt-1 t-sub text-text-3">
                 이 지역에 단지가 없는 게 아니라 조회가 실패했습니다. 지도는 그대로 쓸 수 있어요.
               </p>
             </div>
           )}
           {danjiLoadFailed && (
             <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
-              <div className="text-[12px] font-extrabold text-ink">
+              <div className="t-sub font-extrabold text-ink">
                 단지 목록을 지금 불러오지 못했어요
               </div>
-              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+              <p className="mt-1 t-sub text-text-3">
                 이 지역에 단지가 0개인 게 아니라 조회 자체가 실패했습니다. 지도는 그대로 쓸 수
                 있어요 — 잠시 후 새로고침해 주세요.
               </p>
@@ -3775,16 +3777,16 @@ export function MapClient({
           )}
           {!danjiLoadFailed && regionMarkersLoadFailed && (
             <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
-              <div className="text-[12px] font-extrabold text-ink">
+              <div className="t-sub font-extrabold text-ink">
                 지역 시세 말풍선을 불러오지 못했어요
               </div>
-              <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+              <p className="mt-1 t-sub text-text-3">
                 거래가 없는 게 아니라 조회가 실패했습니다. 단지 목록과 지도는 그대로 쓸 수 있어요.
               </p>
             </div>
           )}
           {txType === "rent" && (
-            <div className="px-5 pb-1.5 text-[10px] text-text-3">
+            <div className="px-5 pb-1.5 t-caption text-text-3">
               목록 가격은 매매 실거래 평균이에요 — 전세 보증금은 지도 마커에서 확인
             </div>
           )}
@@ -3794,7 +3796,7 @@ export function MapClient({
               <button
                 type="button"
                 onClick={resetFilters}
-                className="btn-soft rounded-lg px-3 py-1.5 text-[11px]"
+                className="btn-soft rounded-lg px-3 py-1.5 t-sub"
               >
                 필터 초기화
               </button>
@@ -3802,47 +3804,80 @@ export function MapClient({
           )}
           <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3">
             {(rangeActive || commuteActive) && popular.length > 0 && (
-              <div className="px-2 pb-1 text-[10px] leading-[1.5] text-text-3">
+              <div className="px-2 pb-1 t-caption text-text-3">
                 인기 순위는 지도 영역 기준이에요 — 상세 필터(가격·면적 등)와는 무관합니다.
               </div>
             )}
             {!popularFailed && !popularLoading && popular.length === 0 && (
-              <div className="px-2 py-6 text-center text-[12px] leading-[1.7] text-text-3">
+              <div className="px-2 py-6 text-center t-sub text-text-3">
                 이 영역에는 실거래가 기록된 단지가 없어요.
                 <br />
                 지도를 넓히거나 다른 지역으로 옮겨 보세요.
               </div>
             )}
-            {popular.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => openInfoPanel(p.id, p.name, p.lat, p.lng)}
-                /* 선택 상태 테두리는 두지 않는다 — 이 목록은 아무것도 선택되지
-                   않았을 때만 그려지므로(위 조건) 선택된 항목이 있을 수 없다. */
-                className={`rise-in-${Math.min(i + 1, 6)} card-hover flex items-center gap-3 rounded-[14px] border border-line bg-surface px-4 py-3 text-left`}
-              >
-                {/* 순위를 눈에 보이게 — "왜 이 순서인가"가 목록의 뜻이다 */}
-                <span
-                  className={`shrink-0 text-[13px] font-extrabold ${
-                    i < 3 ? "text-primary" : "text-text-3"
-                  }`}
+            {/* 목록이 채워지기 전에는 빈 칸이었다 — 결과가 통째로 튀어나오며
+                패널이 점프했다. 같은 모양으로 자리를 먼저 잡는다. */}
+            {popularLoading && popular.length === 0 && !popularFailed && (
+              <div className="flex flex-col gap-2 px-1 py-1">
+                {[0, 1, 2, 3, 4].map((k) => (
+                  <div key={k} className="card flex items-center gap-3 rounded-[14px] px-4 py-3">
+                    <span className="sk h-4 w-4 rounded" />
+                    <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <span className="sk h-3.5 w-[70%] rounded" />
+                      <span className="sk h-2.5 w-[45%] rounded" />
+                    </span>
+                    <span className="sk h-7 w-12 rounded" />
+                  </div>
+                ))}
+              </div>
+            )}
+            {popular.map((p, i) => {
+              /* 순위 근거(최근 6개월 거래 건수)를 **길이**로도 보인다.
+                 숫자만 세로로 늘어놓으면 1위와 9위의 차이가 안 읽힌다. */
+              const barPct = popularMax > 0
+                ? Math.max(4, Math.round((p.recentTradeCount / popularMax) * 100))
+                : 0;
+              const priceLabel = manwonLabel(p.avgPriceManwon ?? undefined);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => openInfoPanel(p.id, p.name, p.lat, p.lng)}
+                  /* 선택 상태 테두리는 두지 않는다 — 이 목록은 아무것도 선택되지
+                     않았을 때만 그려지므로(위 조건) 선택된 항목이 있을 수 없다. */
+                  className="tile card flex items-center gap-3 rounded-[14px] px-4 py-3 text-left"
                 >
-                  {i + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-bold text-ink">{p.name}</span>
-                  <span className="mt-0.5 block text-[11px] text-text-3">{p.regionName}</span>
-                </span>
-                <span className="shrink-0 text-right">
-                  {/* 순위 근거를 그대로 적는다 — 숨은 점수로 줄 세우지 않는다 */}
-                  <span className="block text-[13px] font-extrabold text-ink">
-                    {p.recentTradeCount.toLocaleString("ko-KR")}건
+                  {/* 순위를 눈에 보이게 — "왜 이 순서인가"가 목록의 뜻이다 */}
+                  <span
+                    className={`t-num shrink-0 text-[13px] ${
+                      i < 3 ? "text-primary" : "text-text-3"
+                    }`}
+                  >
+                    {i + 1}
                   </span>
-                  <span className="block text-[10px] text-text-3">최근 6개월</span>
-                </span>
-              </button>
-            ))}
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="t-section block truncate text-ink">{p.name}</span>
+                    <span className="t-caption flex flex-wrap items-center gap-x-1.5 text-text-3">
+                      <span className="truncate">{p.regionName}</span>
+                      {p.buildYear ? <span>· {p.buildYear}년</span> : null}
+                      {priceLabel ? (
+                        <span className="t-num font-bold text-primary">· 평균 {priceLabel}</span>
+                      ) : null}
+                    </span>
+                    <span className="rank-track text-primary" aria-hidden="true">
+                      <span className="rank-fill" style={{ width: `${barPct}%` }} />
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    {/* 순위 근거를 그대로 적는다 — 숨은 점수로 줄 세우지 않는다 */}
+                    <span className="t-num block t-body text-ink">
+                      {p.recentTradeCount.toLocaleString("ko-KR")}건
+                    </span>
+                    <span className="t-caption block text-text-3">최근 6개월</span>
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </aside>
       )}
@@ -3854,13 +3889,13 @@ export function MapClient({
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 86px)" }}
         >
           <div className="flex items-baseline justify-between px-5 pb-2 pt-3">
-            <div className="text-[15px] font-extrabold text-ink">
+            <div className="t-section text-ink">
               {regionLabel} 단지 {danjiLoadFailed ? "—" : filteredDanji.length}
               {!danjiLoadFailed && (rangeActive || commuteActive) && (
-                <span className="ml-1 text-[11px] font-bold text-primary">필터 적용</span>
+                <span className="ml-1 t-sub font-bold text-primary">필터 적용</span>
               )}
             </div>
-            <span className="text-[11px] text-text-3">국토부 실거래 평균</span>
+            <span className="t-sub text-text-3">국토부 실거래 평균</span>
           </div>
           {filteredDanji.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
@@ -3877,7 +3912,7 @@ export function MapClient({
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="btn-soft rounded-lg px-3 py-1.5 text-[11px]"
+                  className="btn-soft rounded-lg px-3 py-1.5 t-sub"
                 >
                   필터 초기화
                 </button>
@@ -3899,12 +3934,12 @@ export function MapClient({
                   className="card flex flex-col gap-1.5 rounded-[14px] bg-surface px-4 py-3.5 text-left"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="text-[15px] font-bold text-ink">{d.name}</div>
+                    <div className="t-body font-bold text-ink">{d.name}</div>
                     <span className="text-xs text-text-3">{d.size}</span>
                   </div>
                   <div className="text-xs text-text-3">{d.meta}</div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[17px] font-extrabold text-ink">{d.price}</span>
+                    <span className="t-section text-ink">{d.price}</span>
                     <span className={`text-xs ${deltaClass(d.deltaTone)}`}>{d.delta}</span>
                   </div>
                 </button>
@@ -3921,7 +3956,7 @@ export function MapClient({
         <button
           type="button"
           onClick={() => setMobileView((v) => (v === "map" ? "list" : "map"))}
-          className="glass-strong absolute left-1/2 z-40 -translate-x-1/2 rounded-full px-5 py-2.5 text-[13px] font-extrabold text-ink shadow-[0_8px_22px_rgba(16,28,54,.2)] md:hidden"
+          className="glass-strong absolute left-1/2 z-40 -translate-x-1/2 rounded-full px-5 py-2.5 t-body font-extrabold text-ink shadow-[0_8px_22px_rgba(16,28,54,.2)] md:hidden"
           style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
         >
           {mobileView === "map" ? "☰ 목록으로 보기" : "🗺 지도로 보기"}
@@ -3966,9 +4001,9 @@ export function MapClient({
           <div className="flex items-start justify-between border-b border-[rgba(16,28,54,.06)] px-[22px] pb-3.5 pt-5">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[22px] font-extrabold text-ink">{selected.name}</span>
+                <span className="t-title text-ink">{selected.name}</span>
                 {selected.note && (
-                  <span className="rounded-[5px] bg-primary-soft chip-pad text-[10px] font-extrabold text-primary">
+                  <span className="rounded-[5px] bg-primary-soft chip-pad t-caption font-extrabold text-primary">
                     내 {selected.note}
                   </span>
                 )}
@@ -3986,7 +4021,7 @@ export function MapClient({
                 type="button"
                 onClick={() => setSelectedId(null)}
                 aria-label="패널 닫기"
-                className="text-[15px] text-text-3"
+                className="t-body text-text-3"
               >
                 ✕
               </button>
@@ -4022,7 +4057,7 @@ export function MapClient({
                     집계 소스가 없어 허위였으므로 제거. */}
                 <div className="card rounded-[14px] px-[15px] py-3.5">
                   {/* item3 — 대표가격 근거 병기: 면적 통합 평균 + 언제·몇 건인지 */}
-                  <div className="text-[10px] text-text-3">
+                  <div className="t-caption text-text-3">
                     실거래 평균 (면적 통합
                     {selected.latestYm && selected.latestDealCount != null
                       ? ` · ${selected.latestYm} ${selected.latestDealCount}건`
@@ -4030,7 +4065,7 @@ export function MapClient({
                     ) · 국토교통부 기준
                   </div>
                   <div className="mt-1 flex items-baseline gap-2">
-                    <span className="text-[22px] font-extrabold text-ink">{selected.price}</span>
+                    <span className="t-title text-ink">{selected.price}</span>
                     {selected.delta === "표본 부족" ? (
                       // 최신월 3건 미만 — 등락률은 노이즈라 표시하지 않는다
                       <span className="text-xs text-text-3">표본 부족 · 전월비 생략</span>
@@ -4045,7 +4080,7 @@ export function MapClient({
                   href={complexHrefFromId(selected.id)}
                   className="flex items-center justify-between rounded-[14px] border border-line bg-surface px-[15px] py-[13px] text-left"
                 >
-                  <span className="text-[13px] font-bold text-ink">
+                  <span className="t-body font-bold text-ink">
                     단지 홈에서 실거래 이력·노트 보기
                   </span>
                   <span className="text-xs font-extrabold text-primary">›</span>
@@ -4078,7 +4113,7 @@ export function MapClient({
             {detailTab === "매물" && (
               <div className="flex flex-col gap-3">
                 {complexListingsStatus === "loading" && (
-                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[12px] text-text-3">
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center t-sub text-text-3">
                     매물을 불러오는 중…
                   </div>
                 )}
@@ -4086,8 +4121,8 @@ export function MapClient({
                     남의 매물을 없다고 말하는 셈이 된다. */}
                 {complexListingsStatus === "error" && (
                   <div className="card rounded-[14px] px-[15px] py-6 text-center">
-                    <div className="text-[13px] font-bold text-ink">매물을 불러오지 못했어요</div>
-                    <div className="mt-1 text-[11px] text-text-3">
+                    <div className="t-body font-bold text-ink">매물을 불러오지 못했어요</div>
+                    <div className="mt-1 t-sub text-text-3">
                       잠시 후 다시 시도해 주세요.
                     </div>
                   </div>
@@ -4103,10 +4138,10 @@ export function MapClient({
                         }`}
                       >
                         <span className="flex min-w-0 flex-col">
-                          <span className="text-[13px] font-bold text-ink">
+                          <span className="t-body font-bold text-ink">
                             {LISTING_TYPE_LABEL[l.listingType]} {listingPriceLabel(l)}
                           </span>
-                          <span className="truncate text-[11px] text-text-3">
+                          <span className="truncate t-sub text-text-3">
                             {[
                               l.areaM2 ? `${Math.round(l.areaM2)}㎡` : null,
                               l.floor != null ? `${l.floor}층` : null,
@@ -4123,15 +4158,15 @@ export function MapClient({
                 )}
                 {complexListingsStatus === "ok" && complexListings.length === 0 && (
                   <div className="card rounded-[14px] px-[15px] py-6 text-center">
-                    <div className="text-[13px] font-bold text-ink">
+                    <div className="t-body font-bold text-ink">
                       이 단지에 등록된 매물이 아직 없어요
                     </div>
-                    <div className="mt-1 text-[11px] leading-relaxed text-text-3">
+                    <div className="mt-1 t-sub text-text-3">
                       지도 상단의 “매물” 레이어를 켜면 주변 단지의 등록 매물을 볼 수 있어요.
                     </div>
                   </div>
                 )}
-                <Link href="/listings/new" className="btn-soft rounded-xl p-3 text-center text-[13px]">
+                <Link href="/listings/new" className="btn-soft rounded-xl p-3 text-center t-body">
                   내 매물 등록하기
                 </Link>
               </div>
@@ -4139,7 +4174,7 @@ export function MapClient({
 
             {detailTab === "실거래" && (
               <>
-                <div className="px-1 text-[11px] font-bold text-text-3">
+                <div className="px-1 t-sub font-bold text-text-3">
                   국토교통부 실거래가 기준
                 </div>
                 {trades.length > 0 ? (
@@ -4162,7 +4197,7 @@ export function MapClient({
                     ))}
                   </div>
                 ) : (
-                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
                     아직 수집된 국토교통부 실거래가 없어요
                   </div>
                 )}
@@ -4173,12 +4208,12 @@ export function MapClient({
               <>
                 {/* item9 — inspection_notes 단지명 매칭 실조회. 없으면 정직한 빈 상태 + 실링크 */}
                 {complexNotesStatus === "loading" && (
-                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
                     이 단지 임장노트를 찾는 중…
                   </div>
                 )}
                 {complexNotesStatus === "error" && (
-                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
                     일시적 오류로 노트를 불러오지 못했어요
                   </div>
                 )}
@@ -4194,13 +4229,13 @@ export function MapClient({
                       >
                         <span className="min-w-0 truncate font-bold text-ink">
                           {n.mine && (
-                            <span className="mr-1.5 rounded-[4px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
+                            <span className="mr-1.5 rounded-[4px] bg-primary-soft chip-pad-tight t-caption font-extrabold text-primary">
                               내 노트
                             </span>
                           )}
                           {n.title}
                         </span>
-                        <span className="shrink-0 text-[11px] text-text-3">
+                        <span className="shrink-0 t-sub text-text-3">
                           {n.visitDate ?? ""}
                         </span>
                       </Link>
@@ -4208,7 +4243,7 @@ export function MapClient({
                   </div>
                 )}
                 {complexNotesStatus === "ok" && complexNotes.length === 0 && (
-                  <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                  <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
                     아직 이 단지의 임장노트가 없어요 — 첫 노트 → AI 요약 → 지도
                     비교로 이어져요
                   </div>
@@ -4216,13 +4251,13 @@ export function MapClient({
                 <div className="flex gap-2">
                   <Link
                     href={noteHrefFor(selected)}
-                    className="btn-primary btn-cta flex-1 rounded-xl p-3 text-center text-[13px]"
+                    className="btn-primary btn-cta flex-1 rounded-xl p-3 text-center t-body"
                   >
                     이 단지 노트 쓰기
                   </Link>
                   <Link
                     href="/notes"
-                    className="btn-soft flex-1 rounded-xl p-3 text-center text-[13px]"
+                    className="btn-soft flex-1 rounded-xl p-3 text-center t-body"
                   >
                     공개 노트 모아보기
                   </Link>
@@ -4233,10 +4268,10 @@ export function MapClient({
             {detailTab === "이야기" && (
               <>
                 {/* 사실 우선: 하드코딩 Q&A 제거 — 동네이야기로 연결 */}
-                <div className="card rounded-[14px] px-[15px] py-6 text-center text-[13px] text-text-3">
+                <div className="card rounded-[14px] px-[15px] py-6 text-center t-body text-text-3">
                   이 지역의 질문·이야기를 동네이야기에서 확인해 보세요
                 </div>
-                <Link href="/town" className="btn-soft rounded-xl p-3 text-center text-[13px]">
+                <Link href="/town" className="btn-soft rounded-xl p-3 text-center t-body">
                   동네이야기 보기
                 </Link>
               </>
@@ -4246,7 +4281,7 @@ export function MapClient({
           <div className="border-t border-[rgba(16,28,54,.06)] px-[22px] py-3 md:hidden">
             <Link
               href={complexHrefFromId(selected.id)}
-              className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
+              className="btn-primary btn-cta block rounded-xl p-3 text-center t-body font-extrabold text-white"
             >
               전체 화면으로 자세히 보기 ›
             </Link>
@@ -4311,7 +4346,7 @@ export function MapClient({
           type="button"
           aria-label="확대"
           onClick={() => setLevel((v) => Math.max(1, v - 1))}
-          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-[15px] text-text-1"
+          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] t-body text-text-1"
         >
           ＋
         </button>
@@ -4319,7 +4354,7 @@ export function MapClient({
           type="button"
           aria-label="축소"
           onClick={() => setLevel((v) => Math.min(14, v + 1))}
-          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-[15px] text-text-1"
+          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] t-body text-text-1"
         >
           －
         </button>
@@ -4342,12 +4377,12 @@ export function MapClient({
       >
         {showRedevelopment && redevLegend.length > 0 && (
           <div className="glass flex min-h-0 flex-col gap-1.5 overflow-y-auto rounded-xl px-3 py-2.5">
-            <div className="text-[11px] font-extrabold text-ink">정비사업 종류</div>
+            <div className="t-sub font-extrabold text-ink">정비사업 종류</div>
             <div className="flex flex-col gap-1">
               {redevLegend.map((it) => (
                 <div
                   key={it.label}
-                  className="flex items-center gap-1.5 text-[11px] text-text-1"
+                  className="flex items-center gap-1.5 t-sub text-text-1"
                 >
                   <span
                     className="h-[9px] w-[9px] shrink-0 rounded-full"
@@ -4360,11 +4395,11 @@ export function MapClient({
           </div>
         )}
         <div className="glass flex shrink-0 gap-3.5 rounded-xl px-3.5 py-[9px]">
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+          <div className="flex items-center gap-1.5 t-sub text-text-1">
             <span className="h-[9px] w-[9px] rounded-[3px] bg-primary" />
             임장한 단지
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+          <div className="flex items-center gap-1.5 t-sub text-text-1">
             <span className="h-[9px] w-[9px] rounded-[3px] border border-line-strong bg-surface" />
             미방문
           </div>
@@ -4381,17 +4416,17 @@ export function MapClient({
       >
         {mobileLegendOpen && (
           <div className="glass flex w-[196px] flex-col gap-1.5 rounded-xl px-3 py-2.5">
-            <div className="text-[11px] font-extrabold text-ink">범례</div>
-            <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <div className="t-sub font-extrabold text-ink">범례</div>
+            <div className="flex items-center gap-1.5 t-sub text-text-1">
               <span className="h-[9px] w-[9px] shrink-0 rounded-[3px] bg-primary" />
               임장한 단지 (내 노트 있음)
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+            <div className="flex items-center gap-1.5 t-sub text-text-1">
               <span className="h-[9px] w-[9px] shrink-0 rounded-[3px] border border-line-strong bg-surface" />
               미방문
             </div>
             {txType === "rent" ? (
-              <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+              <div className="flex items-center gap-1.5 t-sub text-text-1">
                 <span
                   className="h-[9px] w-[9px] shrink-0 rounded-full"
                   style={{ background: JEONSE_MARKER_COLOR }}
@@ -4412,14 +4447,14 @@ export function MapClient({
                 </div>
               )
             )}
-            <div className="text-[10px] leading-[1.5] text-text-3">{ZOOM_CAPTION[zoom]}</div>
+            <div className="t-caption text-text-3">{ZOOM_CAPTION[zoom]}</div>
           </div>
         )}
         <button
           type="button"
           aria-expanded={mobileLegendOpen}
           onClick={() => setMobileLegendOpen((v) => !v)}
-          className="glass rounded-full px-3 py-1.5 text-[11px] font-bold text-text-1"
+          className="glass rounded-full px-3 py-1.5 t-sub font-bold text-text-1"
         >
           범례 {mobileLegendOpen ? "▾" : "▸"}
         </button>
@@ -4448,15 +4483,15 @@ export function MapClient({
           {txType === "rent" ? (
             <>
               {/* item2 — 전세 모드 범례: 매매 평단가 색표를 보증금에 갖다 붙이지 않는다 */}
-              <div className="text-[11px] font-extrabold text-ink">전세 평균 보증금</div>
-              <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+              <div className="t-sub font-extrabold text-ink">전세 평균 보증금</div>
+              <div className="flex items-center gap-1.5 t-sub text-text-1">
                 <span
                   className="h-[9px] w-[9px] shrink-0 rounded-full"
                   style={{ background: JEONSE_MARKER_COLOR }}
                 />
                 <span>단지 줌에서 평균 보증금 표시</span>
               </div>
-              <div className="text-[10px] leading-[1.5] text-text-3">
+              <div className="t-caption text-text-3">
                 국토교통부 전월세 실거래 중 전세 계약 기준 · 월세 계약 제외
                 {ymLabel(priceMeta.latestYm) ? ` · ~${ymLabel(priceMeta.latestYm)} 신고분` : ""}
                 {priceMeta.txCount > 0
@@ -4466,7 +4501,7 @@ export function MapClient({
             </>
           ) : (
             <>
-              <div className="text-[11px] font-extrabold text-ink">실거래 평단가 (만원/평)</div>
+              <div className="t-sub font-extrabold text-ink">실거래 평단가 (만원/평)</div>
               <div>
                 <div className="flex overflow-hidden rounded-[3px]">
                   {PRICE_TIERS.map((t) => (
@@ -4483,7 +4518,7 @@ export function MapClient({
                   {PRICE_TIERS.slice(1).map((t, i) => (
                     <span
                       key={t.slug}
-                      className="absolute top-0 -translate-x-1/2 text-[10px] leading-[12px] text-text-3"
+                      className="absolute top-0 -translate-x-1/2 t-caption text-text-3"
                       style={{ left: `${((i + 1) / PRICE_TIERS.length) * 100}%` }}
                     >
                       {t.minManwon.toLocaleString("ko-KR")}
@@ -4491,14 +4526,14 @@ export function MapClient({
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+              <div className="flex items-center gap-1.5 t-sub text-text-1">
                 <span
                   className="h-[9px] w-[9px] shrink-0 rounded-[3px]"
                   style={{ background: NO_DATA_COLOR }}
                 />
                 <span>{NO_DATA_LABEL} (실거래 없음)</span>
               </div>
-              <div className="text-[10px] leading-[1.5] text-text-3">
+              <div className="t-caption text-text-3">
                 국토교통부 실거래가(매매) 기준 · 매물 호가 아님
                 {ymLabel(priceMeta.latestYm) ? ` · ~${ymLabel(priceMeta.latestYm)} 신고분` : ""}
                 {priceMeta.txCount > 0
@@ -4512,12 +4547,12 @@ export function MapClient({
         {/* C8 가격 표기 범례 — 매물(호가) vs 실거래(국토부 확정가) 구분 명시 */}
         {showListings && (
         <div className="glass flex flex-col gap-1 rounded-xl px-3 py-2.5">
-          <div className="text-[11px] font-extrabold text-ink">가격 표기 안내</div>
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+          <div className="t-sub font-extrabold text-ink">가격 표기 안내</div>
+          <div className="flex items-center gap-1.5 t-sub text-text-1">
             <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-primary" />
             <span>매물 = 호가(등록가)</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-text-1">
+          <div className="flex items-center gap-1.5 t-sub text-text-1">
             <span className="h-[9px] w-[9px] shrink-0 rounded-full" style={{ background: JEONSE_MARKER_COLOR }} />
             <span>실거래 = 국토부 확정가</span>
           </div>
@@ -4540,13 +4575,13 @@ export function MapClient({
       >
         <Link
           href="/"
-          className="flex items-center gap-1.5 rounded-full px-4 py-[9px] text-[13px] font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary"
+          className="flex items-center gap-1.5 rounded-full px-4 py-[9px] t-body font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary"
         >
           <HomeIcon />홈
         </Link>
         <Link
           href="/notes"
-          className="rounded-full px-4 py-[9px] text-[13px] font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary"
+          className="rounded-full px-4 py-[9px] t-body font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary"
         >
           임장노트
         </Link>
@@ -4554,19 +4589,19 @@ export function MapClient({
             aria-current 로 "여기가 지금 보고 있는 화면"임을 스크린리더에도 알린다. */}
         <span
           aria-current="page"
-          className="rounded-full bg-[rgba(29,79,216,.12)] px-4 py-[9px] text-[13px] font-bold text-primary"
+          className="rounded-full bg-[rgba(29,79,216,.12)] px-4 py-[9px] t-body font-bold text-primary"
         >
           지도
         </span>
         <Link
           href="/analysis"
-          className="hidden rounded-full px-4 py-[9px] text-[13px] font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary md:block"
+          className="hidden rounded-full px-4 py-[9px] t-body font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary md:block"
         >
           AI 분석
         </Link>
         <Link
           href="/town"
-          className="hidden rounded-full px-4 py-[9px] text-[13px] font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary md:block"
+          className="hidden rounded-full px-4 py-[9px] t-body font-semibold text-text-1 transition-colors hover:bg-[rgba(29,79,216,.08)] hover:text-primary md:block"
         >
           동네이야기
         </Link>

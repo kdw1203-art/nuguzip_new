@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { PageShell } from "../../components/PageShell";
 import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
+import { ToolHero, type HeroKpi } from "@/app/components/analysis/ToolHero";
+import { Bars } from "@/app/components/viz/Bars";
+import { RankBars } from "@/app/components/viz/RankBars";
 import { findTemperatureRegionIdByName } from "@/lib/market/temperature";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import {
@@ -10,6 +13,7 @@ import {
   type BandComplex,
 } from "@/lib/market/tx-bands";
 import { RegionSelect } from "./RegionSelect";
+import { complexHrefFromNames } from "@/lib/seo/complex-slug";
 
 /* 면적대별 **실거래** 시세 분석 — 예전엔 이 경로가 손으로 적은 "적정가 산정 예시"
    (수치 전부 하드코딩)였다. 이제 tx_band_landing/complex 뷰(국토교통부 실거래)
@@ -146,6 +150,37 @@ export default async function PricePage({
     "ko-KR",
   )}건 · ${target.complexCount.toLocaleString("ko-KR")}개 단지`;
 
+  /* 첫 화면에 세울 숫자 — 값이 없으면 그 칸을 만들지 않는다. */
+  const perValues = cells.map((c) => Math.round((c.avgPerPyeongKrw ?? 0) / 10_000));
+  const heroKpis: HeroKpi[] = [
+    {
+      label: "수집 실거래",
+      value: `${target.txCount.toLocaleString("ko-KR")}건`,
+      note: `${target.complexCount.toLocaleString("ko-KR")}개 단지 · ${ymLabel(target.firstYm)}~${ymLabel(target.latestYm)}`,
+    },
+  ];
+  if (busiest) {
+    heroKpis.push({
+      label: "거래가 가장 많은 면적대",
+      value: busiest.bandLabel,
+      note: `${busiest.txCount.toLocaleString("ko-KR")}건 · 중앙값 ${eok(busiest.medianKrw)}`,
+    });
+  }
+  if (hiBand) {
+    heroKpis.push({
+      label: "평단가 최고 면적대",
+      value: manPerPyeong(hiBand.avgPerPyeongKrw),
+      note: `${hiBand.bandLabel}${premiumKind ? ` · ${premiumKind} 프리미엄` : ""}`,
+    });
+  }
+  if (premiumRatio && loBand && hiBand && loBand.bandSlug !== hiBand.bandSlug) {
+    heroKpis.push({
+      label: "면적 프리미엄",
+      value: `${premiumRatio.toFixed(2)}배`,
+      note: `${hiBand.bandLabel} ÷ ${loBand.bandLabel} 평단가`,
+    });
+  }
+
   const selectRegions = areaRegions.map((r) => ({
     slug: r.slug,
     name: r.name,
@@ -155,26 +190,44 @@ export default async function PricePage({
   return (
     <PageShell breadcrumb="AI 분석 · 면적대별 실거래 시세">
       <div className="mx-auto w-full max-w-[900px]">
-        {/* 헤더 + 지역 선택 */}
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="rise-in text-[22px] font-extrabold text-ink">면적대별 실거래 시세</h1>
-          <RegionSelect regions={selectRegions} current={target.slug} />
-        </div>
-        <p className="rise-in mb-4 text-[12px] text-text-3">
-          {target.name} · {coverage} · 국토교통부 신고 매매가 기준
-        </p>
+        <ToolHero
+          eyebrow="지역·시장 흐름"
+          icon="bar"
+          title="면적대별 실거래 시세"
+          toneClass="text-success"
+          lead={`${target.name}의 면적대별 평단가·중앙값·거래량을 국토교통부 신고 매매가로 정리했습니다.`}
+          kpis={heroKpis}
+          chart={
+            perValues.some((v) => v > 0) ? (
+              <div className="rounded-[12px] border border-line bg-surface px-2 pb-1 pt-2 text-success">
+                <span className="t-caption block px-1 pb-1 text-text-3">
+                  면적대별 평단가 (만원/평)
+                </span>
+                <Bars
+                  values={perValues}
+                  labels={cells.map((c) => c.bandLabel)}
+                  height={78}
+                  valueSuffix="만"
+                  ariaLabel="면적대별 평단가 막대"
+                />
+              </div>
+            ) : null
+          }
+          actions={<RegionSelect regions={selectRegions} current={target.slug} />}
+          source={`${target.name} · ${coverage} · 국토교통부 신고 매매가 기준`}
+        />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           {/* 좌: 면적대 표 + 평단가 곡선 */}
           <div className="flex flex-col gap-4">
-            <div className="rise-in-1 card overflow-hidden rounded-[18px]">
-              <div className="border-b border-line px-5 py-3.5 text-sm font-extrabold text-ink">
+            <div className="card overflow-hidden rounded-[14px]" data-reveal="">
+              <div className="t-section border-b border-line px-5 py-3.5 text-ink">
                 면적대별 평단가 · 중앙값 · 거래량
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] text-[13px]">
+                <table className="t-body w-full min-w-[520px]">
                   <thead>
-                    <tr className="border-b border-line text-left text-[11px] text-text-3">
+                    <tr className="t-sub border-b border-line text-left text-text-3">
                       <th className="px-5 py-2 font-semibold">면적대</th>
                       <th className="px-2 py-2 text-right font-semibold">거래</th>
                       <th className="px-2 py-2 text-right font-semibold">중앙값</th>
@@ -191,12 +244,12 @@ export default async function PricePage({
                       return (
                         <tr
                           key={c.bandSlug}
-                          className="border-b border-divider last:border-0"
+                          className="row-hl border-b border-divider last:border-0"
                         >
                           <td className="px-5 py-2.5">
                             <span className="font-bold text-ink">{c.bandLabel}</span>
                             {isHi && premiumKind && (
-                              <span className="ml-1.5 rounded bg-primary-soft px-1.5 py-px text-[9px] font-extrabold text-primary">
+                              <span className="t-caption ml-1.5 rounded bg-primary-soft px-1.5 py-px font-extrabold text-primary">
                                 평단가 최고
                               </span>
                             )}
@@ -207,10 +260,15 @@ export default async function PricePage({
                           <td className="px-2 py-2.5 text-right tabular-nums font-semibold text-ink">
                             {eok(c.medianKrw)}
                           </td>
-                          <td className="px-2 py-2.5 text-right tabular-nums font-extrabold text-ink">
+                          <td
+                            className="cell-bar px-2 py-2.5 text-right font-extrabold tabular-nums text-success"
+                            style={{
+                              ["--w" as string]: `${Math.round(((c.avgPerPyeongKrw ?? 0) / maxPer) * 100)}%`,
+                            }}
+                          >
                             {manPerPyeong(c.avgPerPyeongKrw)}
                           </td>
-                          <td className="px-5 py-2.5 text-right text-[12px] text-text-2">
+                          <td className="t-sub px-5 py-2.5 text-right text-text-2">
                             {top !== null ? `상위 ${top}%` : "—"}
                           </td>
                         </tr>
@@ -219,71 +277,58 @@ export default async function PricePage({
                   </tbody>
                 </table>
               </div>
-              <div className="px-5 py-2.5 text-[10px] leading-relaxed text-text-3">
+              <div className="t-caption px-5 py-2.5 text-text-3">
                 평단가 = 전용면적 평(3.3㎡)당 평균 매매가. 지역 분위는 누구집에 수록된
                 지역들 중 같은 면적대 평단가 순위예요(표본 8곳 이상일 때만 표시).
               </div>
             </div>
 
-            {/* 평단가 곡선 */}
-            <div className="rise-in-2 card flex flex-col gap-3 rounded-[18px] px-5 py-5">
-              <div className="text-sm font-extrabold text-ink">면적대별 평단가 곡선</div>
-              <div className="flex items-end justify-between gap-2">
-                {cells.map((c) => {
-                  const h = c.avgPerPyeongKrw
-                    ? Math.max(8, Math.round((c.avgPerPyeongKrw / maxPer) * 100))
-                    : 0;
-                  const isHi = hiBand?.bandSlug === c.bandSlug;
-                  return (
-                    <div key={c.bandSlug} className="flex flex-1 flex-col items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-text-2">
-                        {c.avgPerPyeongKrw
-                          ? `${Math.round(c.avgPerPyeongKrw / 10_000).toLocaleString("ko-KR")}`
-                          : "—"}
-                      </span>
-                      <div className="flex h-[110px] w-full items-end">
-                        <div
-                          className="w-full rounded-t-md transition-all"
-                          style={{
-                            height: `${h}%`,
-                            background: isHi ? "#1d4fd8" : "#a9bde8",
-                          }}
-                        />
-                      </div>
-                      <span className="text-center text-[10px] leading-tight text-text-3">
-                        {c.bandLabel}
-                      </span>
-                    </div>
-                  );
-                })}
+            {/* 평단가 곡선 — 예전엔 div 높이 %에 색을 #1d4fd8/#a9bde8 로 박아
+                그렸다(다크에서 토큰을 안 타고, 값 라벨이 막대마다 겹쳤다). */}
+            <div className="chart-card text-success" data-reveal="">
+              <div className="chart-head">
+                <span className="t-section text-ink">면적대별 평단가 곡선</span>
+                <span className="t-caption ml-auto text-text-3">만원/평 · 가장 진한 막대가 최고</span>
               </div>
-              <div className="text-[10px] text-text-3">막대 값 = 평단가(만원/평)</div>
+              <Bars
+                values={perValues}
+                labels={cells.map((c) => c.bandLabel)}
+                height={150}
+                valueSuffix="만"
+                ariaLabel="면적대별 평단가"
+              />
             </div>
 
-            {/* 대표 단지 */}
+            {/* 대표 단지 — 예전엔 이름·건수·가격 3열 텍스트 목록이라
+                "어디가 얼마나 많이 거래됐나"가 숫자를 다 읽어야 보였다. */}
             {busiest && topComplexes.length > 0 && (
-              <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] px-5 py-5">
-                <div className="text-sm font-extrabold text-ink">
-                  {busiest.bandLabel} 실거래 상위 단지
-                  <span className="ml-1.5 text-[11px] font-medium text-text-3">
-                    거래 많은 순
+              <div className="chart-card text-primary" data-reveal="">
+                <div className="chart-head">
+                  <span className="t-section text-ink">
+                    {busiest.bandLabel} 실거래 상위 단지
                   </span>
+                  <span className="t-caption ml-auto text-text-3">거래 많은 순</span>
                 </div>
-                {topComplexes.map((c, i) => (
-                  <div
-                    key={`${c.name}-${i}`}
-                    className="flex items-center justify-between gap-3 border-b border-divider py-2 text-[13px] last:border-0"
-                  >
-                    <span className="min-w-0 truncate font-bold text-ink">{c.name}</span>
-                    <span className="flex shrink-0 items-center gap-3 text-[12px]">
-                      <span className="tabular-nums text-text-3">{c.txCount}건</span>
-                      <span className="tabular-nums font-extrabold text-ink">{eok(c.avgKrw)}</span>
-                    </span>
-                  </div>
-                ))}
+                <RankBars
+                  rows={topComplexes.map((c, i) => ({
+                    key: `${c.name}-${i}`,
+                    label: c.name,
+                    value: c.txCount,
+                    href: complexHrefFromNames(target.name, c.name),
+                  }))}
+                  suffix="건"
+                />
+                <div className="flex flex-col gap-1">
+                  {topComplexes.slice(0, 3).map((c, i) => (
+                    <div key={`avg-${i}`} className="flex justify-between gap-2">
+                      <span className="t-sub truncate text-text-3">{c.name} 평균</span>
+                      <span className="t-sub t-num text-ink">{eok(c.avgKrw)}</span>
+                    </div>
+                  ))}
+                </div>
                 <Link
                   href={`/tx/${encodeURIComponent(target.slug)}`}
-                  className="btn-soft mt-1 rounded-[10px] p-2.5 text-center text-xs no-underline"
+                  className="btn-soft btn-md mt-auto no-underline"
                 >
                   {target.name} 전체 실거래·단지 보기
                 </Link>
@@ -294,9 +339,9 @@ export default async function PricePage({
           {/* 우: 인사이트 */}
           <div className="flex flex-col gap-3.5">
             {hiBand && premiumKind && premiumRatio && (
-              <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-                <div className="text-[13px] font-extrabold text-ink">면적 프리미엄</div>
-                <div className="text-[13px] leading-relaxed text-text-2">
+              <div className="card tile flex flex-col gap-2 rounded-[14px] p-4" data-reveal="">
+                <div className="t-section text-ink">면적 프리미엄</div>
+                <div className="t-body text-text-2">
                   {target.name}에서 평단가가 가장 높은 면적대는{" "}
                   <b className="text-primary">{hiBand.bandLabel}</b>
                   {premiumKind === "소형" ? " (소형 프리미엄)" : " (대형 프리미엄)"}이에요.
@@ -308,7 +353,7 @@ export default async function PricePage({
                     </>
                   )}
                 </div>
-                <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">
+                <div className="t-sub text-text-3">
                   {premiumKind === "소형"
                     ? "소형 평단가가 높으면 실수요·임대수요가 두텁거나 재건축 기대가 반영된 경우가 많아요."
                     : "대형 평단가가 높으면 학군·조망 등 프리미엄이 큰 평형에 몰린 지역일 수 있어요."}
@@ -316,34 +361,34 @@ export default async function PricePage({
               </div>
             )}
 
-            <div className="rise-in-2 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-              <div className="text-[13px] font-extrabold text-ink">거래가 가장 많은 면적대</div>
+            <div className="card tile flex flex-col gap-2 rounded-[14px] p-4" data-reveal="">
+              <div className="t-section text-ink">거래가 가장 많은 면적대</div>
               {busiest ? (
                 <>
-                  <div className="text-[20px] font-extrabold text-ink">{busiest.bandLabel}</div>
-                  <div className="text-[12px] text-text-3">
+                  <div className="t-num text-[19px] text-ink">{busiest.bandLabel}</div>
+                  <div className="t-sub text-text-3">
                     최근 실거래 {busiest.txCount.toLocaleString("ko-KR")}건 · 중앙값{" "}
                     {eok(busiest.medianKrw)} · 평단가 {manPerPyeong(busiest.avgPerPyeongKrw)}
                   </div>
-                  <div className="mt-0.5 text-[11px] leading-relaxed text-text-3">
+                  <div className="t-sub text-text-3">
                     거래가 몰린 면적대는 환금성이 좋아 실거래가도 촘촘하게 형성돼요.
                   </div>
                 </>
               ) : (
-                <div className="text-[12px] text-text-3">데이터가 부족해요.</div>
+                <div className="t-sub text-text-3">데이터가 부족해요.</div>
               )}
             </div>
 
-            <div className="rise-in-3 card flex flex-col gap-2 rounded-[18px] p-[18px]">
-              <div className="text-[13px] font-extrabold text-ink">이 데이터로 할 수 있는 것</div>
-              <div className="text-[11px] leading-relaxed text-text-3">
+            <div className="card tile flex flex-col gap-2 rounded-[14px] p-4" data-reveal="">
+              <div className="t-section text-ink">이 데이터로 할 수 있는 것</div>
+              <div className="t-sub text-text-3">
                 관심 평형의 평단가·중앙값을 지역 분위와 함께 확인하고, 임장 전 목표
                 면적대의 시세대를 잡아보세요. 개별 단지 시세·추이는 단지 상세에서 더
                 자세히 볼 수 있어요.
               </div>
               <Link
                 href={`/tx/${encodeURIComponent(target.slug)}`}
-                className="text-[11px] font-bold text-primary no-underline"
+                className="tile-go t-sub font-bold text-primary no-underline"
               >
                 {target.name} 실거래 상세 ›
               </Link>

@@ -181,7 +181,7 @@ export function ExpertsClient({
     <>
       {/* ---------- 필터 (pushState 버튼 — 서버 왕복 없음) ---------- */}
       <div className="rise-in-1 mb-4 flex flex-col gap-2.5">
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5 text-[13px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 t-body [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {subChips.map((c) => (
             <button
               key={c.id}
@@ -198,7 +198,7 @@ export function ExpertsClient({
         </div>
 
         {usingReal && (
-          <div className="flex flex-wrap items-center gap-1.5 text-[13px]">
+          <div className="flex flex-wrap items-center gap-1.5 t-body">
             <button
               type="button"
               onClick={() => apply({ region: "all" })}
@@ -234,7 +234,7 @@ export function ExpertsClient({
               <button
                 type="button"
                 onClick={() => apply({ sub: "all", region: "all", sort: "recent" })}
-                className="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-primary"
+                className="ml-auto inline-flex items-center gap-1 t-sub font-semibold text-primary"
               >
                 <Icon name="x" size={12} /> 필터 초기화
               </button>
@@ -244,7 +244,7 @@ export function ExpertsClient({
       </div>
 
       {truncated && (
-        <p className="mb-3 text-[11px] leading-[1.6] text-text-3">
+        <p className="mb-3 t-sub text-text-3">
           등록 전문가가 조회 상한에 도달해 일부가 잘렸을 수 있어요 — 필터 결과가
           실제보다 적게 보일 수 있습니다.
         </p>
@@ -292,8 +292,8 @@ export function ExpertsClient({
           {/* 인증 전문가 */}
           <section className="mb-8">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-[15px] font-extrabold text-ink">인증 전문가</h2>
-              <span className="text-[12px] font-semibold text-text-3">
+              <h2 className="t-section text-ink">인증 전문가</h2>
+              <span className="t-sub font-semibold text-text-3">
                 {verifiedCards.length}명
               </span>
             </div>
@@ -320,8 +320,8 @@ export function ExpertsClient({
           {otherCards.length > 0 && (
             <section className="mb-8">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-[15px] font-extrabold text-ink">그 외 전문가</h2>
-                <span className="text-[12px] font-semibold text-text-3">{otherCards.length}명</span>
+                <h2 className="t-section text-ink">그 외 전문가</h2>
+                <span className="t-sub font-semibold text-text-3">{otherCards.length}명</span>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {otherCards.map((e, i) => (

@@ -57,10 +57,12 @@ function Cover({ card }: { card: FeedCard }) {
     >
       <CoverImage
         src={card.cover}
-        imgClassName="absolute inset-0 h-full w-full object-cover"
+        imgClassName="absolute inset-0 h-full w-full object-cover object-top"
       />
+      {/* 위쪽 배지가 밝은 이미지 위에 올라가면 읽히지 않는다 — 아주 옅은 스크림 */}
+      <span className="cover-scrim" aria-hidden="true" />
       <span
-        className={`absolute left-2 top-2 rounded-[6px] bg-white/90 chip-pad text-[10px] font-extrabold ${labelColor}`}
+        className={`absolute left-2 top-2 z-10 rounded-[6px] bg-surface/90 chip-pad t-caption font-extrabold ${labelColor}`}
       >
         {label}
       </span>
@@ -76,12 +78,12 @@ function Cover({ card }: { card: FeedCard }) {
 function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
   return (
     <div className={`mb-3 break-inside-avoid rise-in-${Math.min(delay, 6)}`}>
-      <Link href={card.href} className="card card-hover block overflow-hidden rounded-[16px]">
+      <Link href={card.href} className="card tile block overflow-hidden rounded-[14px] no-underline">
         <Cover card={card} />
         <div className="flex flex-col gap-1.5 px-3 pb-3 pt-2.5">
-          <div className="line-clamp-2 text-[13px] font-extrabold leading-[1.4] text-ink">
+          <div className="line-clamp-2 t-body font-extrabold text-ink">
             {card.boosted && (
-              <span className="mr-1.5 inline-block align-middle rounded-md bg-primary-soft px-1.5 py-0.5 text-[10px] font-extrabold text-primary">
+              <span className="mr-1.5 inline-block align-middle rounded-md bg-primary-soft px-1.5 py-0.5 t-caption font-extrabold text-primary">
                 추천글
               </span>
             )}
@@ -92,14 +94,14 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               {card.tags.slice(0, 3).map((t) => (
                 <span
                   key={t}
-                  className="rounded-full bg-bg chip-pad text-[10px] font-semibold text-text-2"
+                  className="rounded-full bg-bg chip-pad t-caption font-semibold text-text-2"
                 >
                   #{t}
                 </span>
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between text-[11px] text-text-3">
+          <div className="flex items-center justify-between t-sub text-text-3">
             <span className="min-w-0 truncate">
               {card.author}
               {card.region ? ` · ${card.region}` : ""}
@@ -157,6 +159,17 @@ export function TownFeed({
 }) {
   const [filter, setFilter] = useState<FilterId>("all");
 
+  /* 각 칸의 실제 개수 — 필터를 눌러 보기 전에 결과 크기를 알 수 있게 한다. */
+  const counts = useMemo<Record<FilterId, number>>(
+    () => ({
+      all: cards.length,
+      latest: cards.length,
+      note: cards.filter((c) => c.kind === "note").length,
+      post: cards.filter((c) => c.kind === "post").length,
+    }),
+    [cards],
+  );
+
   const visible = useMemo(() => {
     let list = cards;
     if (filter === "note") list = cards.filter((c) => c.kind === "note");
@@ -170,25 +183,33 @@ export function TownFeed({
 
   return (
     <>
-      {/* 모바일 실측 11 — 우측 페이드로 가로 스크롤 가능함을 암시 (카테고리 카드와 동일 처리) */}
-      <div className="rise-in mb-3 flex gap-[6px] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] md:[mask-image:none]">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFilter(f.id)}
-            className={`min-h-[36px] px-3.5 py-2 shrink-0 ${filter === f.id ? "chip-active" : "chip"}`}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* 정렬·필터는 같은 화면의 **상태**다 — 링크형 칩 4개가 흩어져 있으면
+          지금 무엇이 켜져 있는지가 약하게 읽힌다. 세그먼티드 한 덩어리로 묶고
+          각 칸에 실제 개수를 적는다(눌러 보기 전에 결과 크기를 안다). */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="seg" role="group" aria-label="피드 정렬·필터">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={filter === f.id}
+              onClick={() => setFilter(f.id)}
+            >
+              {f.label}
+              <span className="t-num ml-1 opacity-70">{counts[f.id]}</span>
+            </button>
+          ))}
+        </div>
+        <span className="t-sub text-text-3">
+          {visible.length.toLocaleString("ko-KR")}개 표시 중
+        </span>
       </div>
 
       {loadFailed && (
         // 빨강 글씨 대신 배경으로 신호를 준다. --danger 토큰 자체는 이제 AA 를
         // 넘지만(#c62828, soft 위 4.83), 11px 안내문은 text-ink(14.24:1)가 확실히
         // 읽힌다 — 색은 "실패"라는 신호만 지고, 문장은 검정으로 읽는다.
-        <div className="rise-in-2 mb-3 rounded-[12px] border border-line bg-danger-soft px-3.5 py-2.5 text-[11px] leading-[1.6] text-ink">
+        <div className="rise-in-2 mb-3 rounded-[12px] border border-line bg-danger-soft px-3.5 py-2.5 t-sub text-ink">
           일부 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요 — 잠시 후
           새로고침해 주세요.
         </div>
@@ -196,12 +217,12 @@ export function TownFeed({
 
       {visible.length === 0 ? (
         <div className="rise-in-3 card flex flex-col items-center gap-2 px-5 py-12 text-center">
-          <div className="text-[26px]"><Icon name="📍" size={26} /></div>
+          <div className="t-title"><Icon name="📍" size={26} /></div>
           {/* 조회 실패로 목록이 비었을 때 "글이 없어요"라고 하면 사실이 아니다. */}
-          <div className="text-[15px] font-extrabold text-ink">
+          <div className="t-section text-ink">
             {loadFailed ? "글을 불러오지 못했어요" : "아직 이 필터에 보여줄 글이 없어요"}
           </div>
-          <div className="text-[12px] text-text-3">
+          <div className="t-sub text-text-3">
             {loadFailed
               ? "데이터 조회가 실패했습니다. 잠시 후 다시 시도해 주세요."
               : "첫 임장노트나 동네 이야기를 남기면 가장 먼저 노출돼요"}

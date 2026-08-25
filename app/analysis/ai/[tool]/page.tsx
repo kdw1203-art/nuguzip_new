@@ -47,16 +47,16 @@ export default async function AiToolPage({
       <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4">
         <div className="rise-in flex flex-wrap items-end justify-between gap-3 px-1">
           <div>
-            <nav className="text-[12px] font-semibold text-text-3">
+            <nav className="t-sub font-semibold text-text-3">
               <Link href="/analysis" className="no-underline hover:underline">
                 분석 도구
               </Link>{" "}
               › {identity.title}
             </nav>
-            <h1 className="mt-1 text-[24px] font-extrabold text-ink">{identity.title}</h1>
-            <p className="mt-1 text-[13px] text-text-2">{identity.tagline}</p>
+            <h1 className="mt-1 t-title text-ink">{identity.title}</h1>
+            <p className="mt-1 t-body text-text-2">{identity.tagline}</p>
           </div>
-          <span className="rounded-[10px] bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-2">
+          <span className="rounded-[10px] bg-bg px-3 py-1.5 t-sub font-bold text-text-2">
             실데이터 계산 · 출처 각주
           </span>
         </div>
@@ -66,7 +66,7 @@ export default async function AiToolPage({
         {/* 면책 — check-ai-compliance.mjs 가 이 마커의 존재를 검사한다 */}
         <p
           data-ai-compliance="notice"
-          className="rounded-[12px] bg-bg px-4 py-3 text-[11px] leading-[1.7] text-text-3"
+          className="rounded-[12px] bg-bg px-4 py-3 t-sub text-text-3"
         >
           이 도구의 수치는 공공 데이터 기반의 규칙 계산이며(서술형 해석이 붙는 경우
           문장 단위로 [AI 서술] 라벨 표기), 투자 권유·수익 보장·법률·세무 자문이

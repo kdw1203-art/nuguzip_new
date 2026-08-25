@@ -130,7 +130,7 @@ export function ExpertApplyCta() {
           setPhase("idle");
           setError(null);
         }}
-        className="btn-primary btn-cta rounded-xl px-[22px] py-[11px] text-[13px]"
+        className="btn-primary btn-cta rounded-xl px-[22px] py-[11px] t-body"
       >
         전문가 인증 신청
       </button>
@@ -146,7 +146,7 @@ export function ExpertApplyCta() {
             {/* 예전엔 name="🛡" 였다 — Icon 은 이모지를 키로 받지 않아 아무것도
                 그려지지 않았다. 실제 아이콘 키(shield)로 고친다. */}
             <Icon name="shield" size={26} className="text-primary" />
-            <div className="text-[15px] font-extrabold text-ink">인증 신청이 접수됐어요</div>
+            <div className="t-section text-ink">인증 신청이 접수됐어요</div>
             <p className="text-xs leading-[1.7] text-text-2">
               자격·서류 심사 후 인증됩니다. 인증이 완료되면 상담·리포트 판매와
               <br />내 매물 등록 권한이 열려요. 진행 상황은 알림으로 안내드려요.
@@ -154,7 +154,7 @@ export function ExpertApplyCta() {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="btn-primary mt-1 rounded-xl px-6 py-2.5 text-[13px]"
+              className="btn-primary mt-1 rounded-xl px-6 py-2.5 t-body"
             >
               확인
             </button>
@@ -162,13 +162,13 @@ export function ExpertApplyCta() {
         ) : (
           <div className="flex flex-col gap-3">
             <ModalHeader title="전문가 인증 신청" onClose={() => setOpen(false)} />
-            <p className="text-[11px] leading-[1.6] text-text-3">
+            <p className="t-sub text-text-3">
               자격을 검증한 뒤 &quot;인증&quot; 배지가 부여됩니다. 인증 후 상담·리포트
               수익과 매물 등록(중개사)·크리에이터 활동이 열려요.
             </p>
 
             <div>
-              <div className="mb-1.5 text-[11px] font-bold text-text-2">전문가 유형</div>
+              <div className="mb-1.5 t-sub font-bold text-text-2">전문가 유형</div>
               <div className="flex flex-wrap gap-1.5">
                 {TYPES.map((t) => (
                   <button
@@ -191,14 +191,14 @@ export function ExpertApplyCta() {
                 onChange={(e) => setName(e.target.value)}
                 maxLength={40}
                 placeholder="대표자명 (실명)"
-                className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
               />
               <input
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
                 maxLength={60}
                 placeholder="상호 (예: 관양부동산)"
-                className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
               />
             </div>
 
@@ -207,7 +207,7 @@ export function ExpertApplyCta() {
               onChange={(e) => setCertNumber(e.target.value)}
               maxLength={40}
               placeholder="중개등록번호 / 자격번호 (예: 제11-1234호)"
-              className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
 
             {/* 경력(년) — 예전엔 안 물어봐서 프로필 '경력' 이 항상 비었다 */}
@@ -218,12 +218,12 @@ export function ExpertApplyCta() {
               maxLength={2}
               placeholder="경력 (년 · 예: 8)"
               aria-label="경력 (년)"
-              className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
 
             {/* 증빙 URL — 자격증·등록증 사본, 사무소 등록 조회 링크 등. 심사 자료로 실전송된다. */}
             <div className="flex flex-col gap-1.5">
-              <div className="text-[11px] font-bold text-text-2">
+              <div className="t-sub font-bold text-text-2">
                 증빙 URL <span className="font-normal text-text-3">(선택 · 자격증 사본, 등록 조회 링크 등)</span>
               </div>
               {documentUrls.map((u, i) => (
@@ -236,7 +236,7 @@ export function ExpertApplyCta() {
                     maxLength={500}
                     inputMode="url"
                     placeholder="https://…"
-                    className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+                    className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
                   />
                   {documentUrls.length > 1 && (
                     <button
@@ -245,7 +245,7 @@ export function ExpertApplyCta() {
                       onClick={() =>
                         setDocumentUrls((prev) => prev.filter((_, j) => j !== i))
                       }
-                      className="shrink-0 text-[13px] text-text-3"
+                      className="shrink-0 t-body text-text-3"
                     >
                       ✕
                     </button>
@@ -256,7 +256,7 @@ export function ExpertApplyCta() {
                 <button
                   type="button"
                   onClick={() => setDocumentUrls((prev) => [...prev, ""])}
-                  className="self-start text-[11px] font-bold text-primary"
+                  className="self-start t-sub font-bold text-primary"
                 >
                   + 증빙 URL 추가
                 </button>
@@ -269,14 +269,14 @@ export function ExpertApplyCta() {
                 onChange={(e) => setCity(e.target.value)}
                 maxLength={20}
                 placeholder="활동 시/도 (예: 경기)"
-                className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
               />
               <input
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 maxLength={40}
                 placeholder="시·군·구 (예: 안양시 동안구)"
-                className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+                className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
               />
             </div>
 
@@ -285,7 +285,7 @@ export function ExpertApplyCta() {
               onChange={(e) => setSpecialties(e.target.value)}
               maxLength={80}
               placeholder="전문 분야 (쉼표로 구분 · 예: 재건축, 갈아타기)"
-              className="w-full rounded-xl border border-line bg-bg p-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              className="w-full rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
 
             <textarea
@@ -294,10 +294,10 @@ export function ExpertApplyCta() {
               rows={3}
               maxLength={1000}
               placeholder="경력·강점을 소개해 주세요 (20자 이상)"
-              className="w-full resize-none rounded-xl border border-line bg-bg p-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+              className="w-full resize-none rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
             />
 
-            <label className="flex items-start gap-2 text-[12px] leading-[1.5] text-text-2">
+            <label className="flex items-start gap-2 t-sub text-text-2">
               <input
                 type="checkbox"
                 checked={agree}
@@ -307,17 +307,17 @@ export function ExpertApplyCta() {
               <span>전문가 운영정책 및 자격 검증 절차에 동의합니다. (허위 기재 시 인증이 거부될 수 있어요)</span>
             </label>
 
-            {error && <div className="text-[11px] font-semibold text-danger">{error}</div>}
+            {error && <div className="t-sub font-semibold text-danger">{error}</div>}
 
             <button
               type="button"
               onClick={() => void submit()}
               disabled={phase === "sending"}
-              className="btn-primary rounded-xl p-3 text-[13px] disabled:opacity-60"
+              className="btn-primary rounded-xl p-3 t-body disabled:opacity-60"
             >
               {phase === "sending" ? "접수 중…" : "인증 신청하기"}
             </button>
-            <p className="text-[10px] leading-[1.5] text-text-3">
+            <p className="t-caption text-text-3">
               본인인증·서류 확인 후 심사됩니다 · 개인정보(계좌 등)는 이 단계에서 적지 마세요
             </p>
           </div>

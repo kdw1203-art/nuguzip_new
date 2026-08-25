@@ -275,10 +275,10 @@ export function MapSearchBox({
             >
               <Icon name="📍" size={16} className="shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold text-ink">
+                <span className="block truncate t-body font-bold text-ink">
                   {address.address}
                 </span>
-                <span className="text-[11px] text-text-3">이 주소로 지도 이동</span>
+                <span className="t-sub text-text-3">이 주소로 지도 이동</span>
               </span>
             </button>
           )}
@@ -291,9 +291,9 @@ export function MapSearchBox({
             >
               <Icon name="🏢" size={16} className="shrink-0" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold text-ink">{c.name}</span>
+                <span className="block truncate t-body font-bold text-ink">{c.name}</span>
                 {c.region && (
-                  <span className="block truncate text-[11px] text-text-3">{c.region}</span>
+                  <span className="block truncate t-sub text-text-3">{c.region}</span>
                 )}
                 {/* 미리보기 — 있는 값만 점으로 잇는다. 없는 항목은 자리를
                     비우고 "0"이나 "—"로 채우지 않는다. */}
@@ -306,18 +306,18 @@ export function MapSearchBox({
                   ].filter(Boolean) as string[];
                   if (bits.length === 0) return null;
                   return (
-                    <span className="mt-0.5 block truncate text-[11px] text-text-2">
+                    <span className="mt-0.5 block truncate t-sub text-text-2">
                       {bits.join(" · ")}
                     </span>
                   );
                 })()}
               </span>
-              <span className="shrink-0 text-[11px] font-bold text-primary">선택 ›</span>
+              <span className="shrink-0 t-sub font-bold text-primary">선택 ›</span>
             </button>
           ))}
           {places.length > 0 && (
             <div className="mt-1 border-t border-[rgba(16,28,54,.06)] pt-1">
-              <div className="px-3 pb-0.5 pt-1.5 text-[10px] font-bold uppercase tracking-wide text-text-3">
+              <div className="px-3 pb-0.5 pt-1.5 t-caption font-bold uppercase tracking-wide text-text-3">
                 지도 장소 · 실시간 검색
               </div>
               {places.map((p, i) => (
@@ -329,12 +329,12 @@ export function MapSearchBox({
                 >
                   <Icon name="📍" size={16} className="shrink-0" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-bold text-ink">{p.name}</span>
+                    <span className="block truncate t-body font-bold text-ink">{p.name}</span>
                     {p.address && (
-                      <span className="block truncate text-[11px] text-text-3">{p.address}</span>
+                      <span className="block truncate t-sub text-text-3">{p.address}</span>
                     )}
                   </span>
-                  <span className="shrink-0 text-[11px] font-bold text-primary">이동 ›</span>
+                  <span className="shrink-0 t-sub font-bold text-primary">이동 ›</span>
                 </button>
               ))}
             </div>

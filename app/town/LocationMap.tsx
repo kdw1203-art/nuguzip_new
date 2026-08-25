@@ -71,7 +71,7 @@ export function LocationMap({
         <div className="text-2xl">
           <Icon name="📍" size={24} />
         </div>
-        <div className="mt-1 text-[12px] font-bold text-text-1">
+        <div className="mt-1 t-sub font-bold text-text-1">
           {region || city || "장소 미정"}
         </div>
       </div>

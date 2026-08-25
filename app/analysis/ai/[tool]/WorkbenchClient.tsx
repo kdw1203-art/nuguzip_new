@@ -3,6 +3,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ComplexPicker, type PickedComplex } from "@/app/analysis/ComplexPicker";
+import { SkBlock, SkLine } from "@/app/components/ui/Skeleton";
 import type { AiAnalysisToolId } from "@/lib/ai/ai-tools";
 import { UNCERTAINTY, CONFIDENCE_LABEL, judgeConfidence } from "@/lib/ai/insight-blocks";
 
@@ -88,19 +89,19 @@ function won(n: number | null | undefined): string {
 function MdLite({ text }: { text: string }) {
   const lines = text.split("\n");
   return (
-    <div className="flex flex-col gap-1 text-[13px] leading-[1.75] text-text-1">
+    <div className="flex flex-col gap-1 t-body text-text-1">
       {lines.map((ln, i) => {
         const t = ln.trim();
         if (!t) return <div key={i} className="h-1" />;
         if (t.startsWith("## "))
           return (
-            <div key={i} className="mt-2 text-[14px] font-extrabold text-ink">
+            <div key={i} className="mt-2 t-section text-ink">
               {t.slice(3)}
             </div>
           );
         if (t.startsWith("> "))
           return (
-            <div key={i} className="rounded-[10px] bg-warning-soft px-3 py-2 text-[12px] font-bold text-warning">
+            <div key={i} className="rounded-[10px] bg-warning-soft px-3 py-2 t-sub font-bold text-warning">
               {t.slice(2)}
             </div>
           );
@@ -344,6 +345,7 @@ export function WorkbenchClient({
   }, [loadContext]);
 
   const ready = ctxState.phase === "ready";
+  const ctxLoading = ctxState.phase === "loading";
   const ctx = ready ? ctxState.ctx : null;
   const insight = ready ? ctxState.insight : null;
   const footnotes = ready ? ctxState.footnotes : [];
@@ -483,19 +485,19 @@ export function WorkbenchClient({
       {needsComplex && (
         <div className="card rounded-[16px] p-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[13px] font-extrabold text-ink">① 단지 선택</span>
-            <span className="text-[11px] text-text-3">{useCase}</span>
+            <span className="t-body font-extrabold text-ink">① 단지 선택</span>
+            <span className="t-sub text-text-3">{useCase}</span>
           </div>
           <ComplexPicker onSelect={onPick} />
           {presets.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-bold text-text-3">내 프리셋:</span>
+              <span className="t-sub font-bold text-text-3">내 프리셋:</span>
               {presets.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => applyPreset(p)}
-                  className="chip border border-line bg-bg px-2.5 py-1 text-[11.5px] font-bold text-text-1"
+                  className="chip border border-line bg-bg px-2.5 py-1 t-sub font-bold text-text-1"
                 >
                   {p.name}
                 </button>
@@ -505,7 +507,7 @@ export function WorkbenchClient({
           {isCompare && compareTray.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {compareTray.map((c) => (
-                <span key={c.id} className="chip border border-line bg-bg px-2.5 py-1 text-[11.5px] font-bold text-text-1">
+                <span key={c.id} className="chip border border-line bg-bg px-2.5 py-1 t-sub font-bold text-text-1">
                   {c.name}
                   <button
                     type="button"
@@ -517,16 +519,16 @@ export function WorkbenchClient({
                   </button>
                 </span>
               ))}
-              <span className="text-[11px] text-text-3">최대 3곳 — 검색으로 추가</span>
+              <span className="t-sub text-text-3">최대 3곳 — 검색으로 추가</span>
             </div>
           )}
           {isPortfolio && (
             <div className="mt-2">
-              <button type="button" onClick={loadPortfolio} className="rounded-[10px] border border-line-strong bg-bg px-3 py-1.5 text-[12px] font-bold text-text-1">
+              <button type="button" onClick={loadPortfolio} className="rounded-[10px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1">
                 내 관심 단지 불러오기
               </button>
               {portfolio && (
-                <span className="ml-2 text-[11.5px] text-text-3">
+                <span className="ml-2 t-sub text-text-3">
                   {portfolio.length > 0 ? `${portfolio.length}곳 로드됨` : "관심 단지가 없어요(로그인·등록 필요)"}
                 </span>
               )}
@@ -536,12 +538,12 @@ export function WorkbenchClient({
       )}
 
       {isContract && (
-        <div className="card rounded-[16px] p-4 text-[13px] leading-[1.7] text-text-2">
+        <div className="card rounded-[16px] p-4 t-body text-text-2">
           계약 리스크 점검은 전세 안전 셀프체크와 같은 문항 세트로 봅니다 —{" "}
           <Link href="/safety" className="font-bold text-primary no-underline">
             전세 안전 셀프체크 열기 ›
           </Link>
-          <div className="mt-1 text-[11.5px] text-text-3">
+          <div className="mt-1 t-sub text-text-3">
             단지를 선택하면 아래에서 해당 지역의 전세가율·월세 비중 같은 계약 관련 실측도 함께 봅니다.
           </div>
           <div className="mt-2">
@@ -554,15 +556,15 @@ export function WorkbenchClient({
       {ctxState.phase !== "idle" && (
         <div className="card rounded-[16px] p-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[13px] font-extrabold text-ink">② 자동 로드 데이터</span>
-            <span className="text-[11px] text-text-3">수치마다 출처·시점을 아래 각주로 표기</span>
+            <span className="t-body font-extrabold text-ink">② 자동 로드 데이터</span>
+            <span className="t-sub text-text-3">수치마다 출처·시점을 아래 각주로 표기</span>
           </div>
 
           {ctxState.phase === "loading" && (
-            <div className="py-4 text-center text-[12.5px] font-bold text-text-3">실데이터 불러오는 중…</div>
+            <div className="py-4 text-center t-body font-bold text-text-3">실데이터 불러오는 중…</div>
           )}
           {ctxState.phase === "error" && (
-            <div className="py-3 text-center text-[12.5px] font-bold text-warning">
+            <div className="py-3 text-center t-body font-bold text-warning">
               데이터를 불러오지 못했어요 — 없는 것과 다릅니다. 잠시 후 다시 시도해 주세요.
             </div>
           )}
@@ -580,9 +582,9 @@ export function WorkbenchClient({
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   {ctx.news?.items?.length ? (
                     <div className="rounded-[12px] bg-bg px-3 py-2.5">
-                      <div className="text-[11px] font-bold text-text-3">최근 사건(자동수집 뉴스)</div>
+                      <div className="t-sub font-bold text-text-3">최근 사건(자동수집 뉴스)</div>
                       {ctx.news.items.slice(0, 2).map((n) => (
-                        <Link key={n.id} href={`/town/news/${n.id}`} className="mt-0.5 block truncate text-[12px] font-bold text-text-1 no-underline">
+                        <Link key={n.id} href={`/town/news/${n.id}`} className="mt-0.5 block truncate t-sub font-bold text-text-1 no-underline">
                           · {n.title}
                         </Link>
                       ))}
@@ -590,8 +592,8 @@ export function WorkbenchClient({
                   ) : null}
                   {ctx.notes ? (
                     <div className="rounded-[12px] bg-bg px-3 py-2.5">
-                      <div className="text-[11px] font-bold text-text-3">이웃 임장노트</div>
-                      <div className="mt-0.5 text-[12px] font-bold text-text-1">
+                      <div className="t-sub font-bold text-text-3">이웃 임장노트</div>
+                      <div className="mt-0.5 t-sub font-bold text-text-1">
                         {ctx.notes.count}건 · 평균 {ctx.notes.avgScore ?? "—"}점
                         {ctx.notes.latest && (
                           <Link href={`/notes/${ctx.notes.latest.id}`} className="ml-1 font-bold text-primary no-underline">
@@ -607,7 +609,7 @@ export function WorkbenchClient({
               {/* [AI-16] 유사 단지 자동 후보 — 비교 트레이에 원클릭 추가/전환 */}
               {similar.length > 0 && (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-text-3">
+                  <span className="t-sub font-bold text-text-3">
                     이 지역 거래 활발 단지:
                   </span>
                   {similar.map((sc) => (
@@ -623,7 +625,7 @@ export function WorkbenchClient({
                           regionLabel: picked?.region ?? null,
                         } as PickedComplex)
                       }
-                      className="chip border border-line bg-surface px-2.5 py-1 text-[11.5px] font-bold text-text-1"
+                      className="chip border border-line bg-surface px-2.5 py-1 t-sub font-bold text-text-1"
                     >
                       {sc.name} <span className="text-text-3">({sc.txCount}건)</span>
                     </button>
@@ -634,16 +636,16 @@ export function WorkbenchClient({
               {/* 보정 입력 — 최소한만 */}
               <div className="mt-3 flex flex-wrap items-end gap-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-bold text-text-3">가용 예산(만원 · 선택)</span>
+                  <span className="t-sub font-bold text-text-3">가용 예산(만원 · 선택)</span>
                   <input
                     value={budgetKrw}
                     onChange={(e) => setBudgetKrw(e.target.value)}
                     inputMode="numeric"
                     placeholder="예: 30000"
-                    className="w-[140px] rounded-[10px] border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink outline-none focus:border-primary"
+                    className="w-[140px] rounded-[10px] border border-line bg-surface px-3 py-2 t-body font-semibold text-ink outline-none focus:border-primary"
                   />
                 </label>
-                <label className="flex items-center gap-1.5 pb-2 text-[12px] font-bold text-text-2">
+                <label className="flex items-center gap-1.5 pb-2 t-sub font-bold text-text-2">
                   <input type="checkbox" checked={useLlm} onChange={(e) => setUseLlm(e.target.checked)} />
                   AI 서술 추가(외부 모델 · 로그인 필요)
                 </label>
@@ -658,26 +660,52 @@ export function WorkbenchClient({
         <EconomyWatchPanel currentRate={ctx.macro.baseRatePct} />
       )}
 
-      {/* ── ③ 실행 ── */}
-      <div className="flex items-center gap-2">
+      {/* ── ③ 실행 ──
+          예전엔 버튼 하나에 "분석 중…" 글자만 바뀌었다. 무엇이 얼마나 남았는지
+          모르는 대기는 실제보다 길게 느껴진다(이 화면 평균 체류 1.0초 실측 —
+          열자마자 나간다). 진행 단계를 눈에 보이게 만든다. */}
+      <div className="run-bar flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={run}
-          disabled={running || (needsComplex && !picked && !(isPortfolio && portfolio?.length)) }
-          className="btn-primary rounded-[12px] px-5 py-2.5 text-[14px] font-extrabold disabled:opacity-50"
+          disabled={running || (needsComplex && !picked && !(isPortfolio && portfolio?.length))}
+          className="btn-primary btn-lg disabled:opacity-50"
         >
           {running ? "분석 중…" : "③ 분석 실행"}
         </button>
-        <Link href="/my/analyses" className="text-[12px] font-bold text-text-3 no-underline">
+        <div className="run-steps" aria-live="polite">
+          <span className="run-step" data-state={picked || (isPortfolio && portfolio?.length) ? "done" : "active"}>
+            <span className="run-dot" />단지 선택
+          </span>
+          <span className="run-step" data-state={ready ? "done" : ctxLoading ? "active" : undefined}>
+            <span className="run-dot" />데이터 로드
+          </span>
+          <span className="run-step" data-state={result ? "done" : running ? "active" : undefined}>
+            <span className="run-dot" />분석 실행
+          </span>
+        </div>
+        <Link href="/my/analyses" className="t-sub ml-auto font-bold text-text-3 no-underline">
           내 분석 기록 ›
         </Link>
       </div>
+
+      {/* 실행 중에는 결과 자리를 미리 잡아 둔다 — 결과가 통째로 튀어나오면
+          화면이 점프하고, 그 점프가 "느리다"는 인상의 대부분이다. */}
+      {running && !result && (
+        <div className="card flex flex-col gap-3 rounded-[14px] p-4">
+          <SkLine w="70%" h={16} />
+          <SkBlock h={92} />
+          <SkLine w="94%" h={11} />
+          <SkLine w="86%" h={11} />
+          <SkLine w="60%" h={11} />
+        </div>
+      )}
 
       {/* ── 결과 ── */}
       {result && (
         <div className="card flex flex-col gap-3 rounded-[16px] p-4">
           {!result.ok ? (
-            <div className="text-[13px] font-bold text-danger">
+            <div className="t-body font-bold text-danger">
               {result.error ?? "실행에 실패했어요."}
               {result.code === "QUOTA_EXCEEDED" && (
                 <span className="ml-2 font-bold text-text-2">
@@ -692,7 +720,7 @@ export function WorkbenchClient({
           ) : (
             <>
               {result.structuredSummary?.headline && (
-                <div className="text-[14.5px] font-extrabold leading-[1.5] text-ink">
+                <div className="t-section text-ink">
                   {result.structuredSummary.headline}
                 </div>
               )}
@@ -701,7 +729,7 @@ export function WorkbenchClient({
               {insight && tool === "ai-diagnosis" && <RadarBlock radar={insight.radar} />}
               {insight && (tool === "ai-timing" || tool === "ai-prediction") && <SignalBlock signals={insight.signals} />}
               {tool === "ai-prediction" && (
-                <Link href="/analysis/accuracy" className="text-[12px] font-bold text-primary no-underline">
+                <Link href="/analysis/accuracy" className="t-sub font-bold text-primary no-underline">
                   이 예측 규칙의 과거 적중률 공개 페이지 › (±5% 기준 실측)
                 </Link>
               )}
@@ -710,9 +738,9 @@ export function WorkbenchClient({
               {/* [AI-04] 반대 시나리오 */}
               {insight && insight.counters.length > 0 && (
                 <div className="rounded-[12px] bg-bg px-3.5 py-3">
-                  <div className="text-[11.5px] font-extrabold text-text-2">이 판단이 틀리는 조건 [규칙]</div>
+                  <div className="t-sub font-extrabold text-text-2">이 판단이 틀리는 조건 [규칙]</div>
                   {insight.counters.map((c, i) => (
-                    <div key={i} className="mt-1 text-[12px] leading-[1.65] text-text-2">· {c}</div>
+                    <div key={i} className="mt-1 t-sub text-text-2">· {c}</div>
                   ))}
                 </div>
               )}
@@ -720,14 +748,14 @@ export function WorkbenchClient({
               <MdLite text={result.markdown} />
 
               {result.degraded && result.reasonCode?.includes("KEY_MISSING") && (
-                <div className="rounded-[10px] bg-warning-soft px-3 py-2 text-[11.5px] font-bold text-warning">
+                <div className="rounded-[10px] bg-warning-soft px-3 py-2 t-sub font-bold text-warning">
                   외부 AI 서술은 서버 키가 등록되면 켜집니다(오너 설정 대기) — 위 결과는 규칙 계산입니다.
                 </div>
               )}
 
               {/* [AI-42] 쿼터 표면화 */}
               {result.usage && (
-                <div className="text-[11.5px] text-text-3">
+                <div className="t-sub text-text-3">
                   이번 달 사용 {result.usage.used}
                   {result.usage.limit != null ? ` / ${result.usage.limit}회` : "회 (무제한)"} ·{" "}
                   <Link href="/subscription" className="font-bold text-primary no-underline">더 필요하면 PRO ›</Link>
@@ -737,12 +765,12 @@ export function WorkbenchClient({
               {/* [AI-01·17] 근거 각주 */}
               {footnotes.length > 0 && (
                 <details className="rounded-[12px] bg-bg px-3.5 py-2.5">
-                  <summary className="cursor-pointer text-[12px] font-extrabold text-text-2">
+                  <summary className="cursor-pointer t-sub font-extrabold text-text-2">
                     근거 각주 {footnotes.length}건 — 출처·기준 시점·표본 (표본 {UNCERTAINTY.thinSample}건 미만·{UNCERTAINTY.staleDays}일 초과는 주의 표기)
                   </summary>
                   <div className="mt-2 flex flex-col gap-1">
                     {footnotes.map((f) => (
-                      <div key={f.n} className="flex flex-wrap items-baseline gap-x-2 text-[11.5px] text-text-2">
+                      <div key={f.n} className="flex flex-wrap items-baseline gap-x-2 t-sub text-text-2">
                         <span className="font-mono font-bold text-primary">[{f.n}]</span>
                         <span className="font-bold text-ink">{f.label}</span>
                         <span>{f.source}</span>
@@ -756,7 +784,7 @@ export function WorkbenchClient({
                         {(() => {
                           const c = judgeConfidence(f.sample, f.ageDays);
                           return c !== "ok" ? (
-                            <span className="rounded bg-warning-soft px-1.5 py-px text-[10px] font-extrabold text-warning">
+                            <span className="rounded bg-warning-soft px-1.5 py-px t-caption font-extrabold text-warning">
                               {CONFIDENCE_LABEL[c]}
                             </span>
                           ) : null;
@@ -774,13 +802,13 @@ export function WorkbenchClient({
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={picked ? `/map?complexId=${encodeURIComponent(picked.id)}` : "/map"}
-                  className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 text-[12.5px] font-bold text-text-1 no-underline"
+                  className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 t-body font-bold text-text-1 no-underline"
                 >
                   지도에서 보기
                 </Link>
                 <Link
                   href={noteHref}
-                  className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 text-[12.5px] font-bold text-text-1 no-underline"
+                  className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 t-body font-bold text-text-1 no-underline"
                 >
                   이 단지 임장노트 쓰기
                 </Link>
@@ -788,7 +816,7 @@ export function WorkbenchClient({
                   type="button"
                   onClick={addWatch}
                   disabled={!picked || watchState === "busy" || watchState === "done"}
-                  className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 text-[12.5px] font-bold text-text-1 disabled:opacity-60"
+                  className="rounded-[10px] border border-line-strong bg-bg px-3.5 py-2 t-body font-bold text-text-1 disabled:opacity-60"
                 >
                   {watchState === "done" ? "관심 단지 등록됨 ✓" : watchState === "busy" ? "등록 중…" : watchState === "fail" ? "등록 실패(로그인 필요)" : "관심 단지 + 가격 알림"}
                 </button>
@@ -818,7 +846,7 @@ export function WorkbenchClient({
                       /* 저장 실패해도 이동은 그대로 */
                     }
                   }}
-                  className="self-start rounded-[10px] bg-primary px-3.5 py-2 text-[12.5px] font-bold text-white no-underline"
+                  className="self-start rounded-[10px] bg-primary px-3.5 py-2 t-body font-bold text-white no-underline"
                 >
                   이 체크리스트로 노트 시작 ›
                 </Link>
@@ -837,20 +865,20 @@ export function WorkbenchClient({
                         setShareCopied(false);
                       }
                     }}
-                    className="rounded-[9px] bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1"
+                    className="rounded-[9px] bg-bg px-3 py-1.5 t-sub font-bold text-text-1"
                   >
                     {shareCopied ? "링크 복사됨 ✓" : "결과 링크 복사"}
                   </button>
                 )}
                 {picked && (
-                  <button type="button" onClick={savePreset} className="rounded-[9px] bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-1">
+                  <button type="button" onClick={savePreset} className="rounded-[9px] bg-bg px-3 py-1.5 t-sub font-bold text-text-1">
                     프리셋 저장
                   </button>
                 )}
-                {presetMsg && <span className="text-[11px] text-text-3">{presetMsg}</span>}
+                {presetMsg && <span className="t-sub text-text-3">{presetMsg}</span>}
 
                 {/* [AI-46] 피드백 */}
-                <span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-text-3">
+                <span className="ml-auto flex items-center gap-1.5 t-sub text-text-3">
                   {feedback === "sent" ? (
                     "피드백 감사합니다"
                   ) : (
@@ -862,7 +890,7 @@ export function WorkbenchClient({
                         value={feedbackNote}
                         onChange={(e) => setFeedbackNote(e.target.value)}
                         placeholder="한 줄 이유(선택)"
-                        className="w-[130px] rounded border border-line bg-surface px-2 py-1 text-[11px]"
+                        className="w-[130px] rounded border border-line bg-surface px-2 py-1 t-sub"
                       />
                     </>
                   )}
@@ -875,7 +903,7 @@ export function WorkbenchClient({
 
       {/* 도움말 */}
       {!result && tips.length > 0 && (
-        <div className="rounded-[12px] bg-bg px-4 py-3 text-[11.5px] leading-[1.7] text-text-3">
+        <div className="rounded-[12px] bg-bg px-4 py-3 t-sub text-text-3">
           {tips.map((t, i) => (
             <div key={i}>· {t}</div>
           ))}
@@ -888,9 +916,9 @@ export function WorkbenchClient({
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="rounded-[12px] bg-bg px-3 py-2.5">
-      <div className="text-[10.5px] font-bold text-text-3">{label}</div>
-      <div className="text-[15px] font-extrabold tabular-nums text-ink">{value}</div>
-      {sub && <div className="text-[10.5px] text-text-3">{sub}</div>}
+      <div className="t-caption font-bold text-text-3">{label}</div>
+      <div className="t-section tabular-nums text-ink">{value}</div>
+      {sub && <div className="t-caption text-text-3">{sub}</div>}
     </div>
   );
 }
@@ -899,17 +927,17 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 function RadarBlock({ radar }: { radar: Insight["radar"] }) {
   return (
     <div className="rounded-[12px] bg-bg px-3.5 py-3">
-      <div className="text-[11.5px] font-extrabold text-text-2">진단 5축 [규칙 · 실데이터]</div>
+      <div className="t-sub font-extrabold text-text-2">진단 5축 [규칙 · 실데이터]</div>
       <div className="mt-2 flex flex-col gap-1.5">
         {radar.map((a) => (
           <div key={a.key} className="flex items-center gap-2">
-            <span className="w-[72px] shrink-0 text-[11.5px] font-bold text-text-1">{a.label}</span>
+            <span className="w-[72px] shrink-0 t-sub font-bold text-text-1">{a.label}</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-line">
               {a.score != null && (
                 <div className="h-full rounded-full bg-primary" style={{ width: `${a.score}%` }} />
               )}
             </div>
-            <span className="w-[110px] shrink-0 text-right text-[10.5px] tabular-nums text-text-3">
+            <span className="w-[110px] shrink-0 text-right t-caption tabular-nums text-text-3">
               {a.score != null ? `${a.score} · ` : "데이터 없음 · "}
               {a.basis.length > 14 ? `${a.basis.slice(0, 14)}…` : a.basis}
             </span>
@@ -926,12 +954,12 @@ function SignalBlock({ signals }: { signals: Insight["signals"] }) {
       {signals.map((s) => (
         <div key={s.key} className="rounded-[12px] bg-bg px-3 py-2.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11.5px] font-bold text-text-2">{s.label}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${SIGNAL_COLOR[s.state]}`}>
+            <span className="t-sub font-bold text-text-2">{s.label}</span>
+            <span className={`rounded-full px-2 py-0.5 t-caption font-extrabold ${SIGNAL_COLOR[s.state]}`}>
               {SIGNAL_LABEL[s.state]}
             </span>
           </div>
-          <div className="mt-1 text-[11px] leading-[1.55] text-text-3">{s.basis}</div>
+          <div className="mt-1 t-sub text-text-3">{s.basis}</div>
         </div>
       ))}
     </div>
@@ -941,7 +969,7 @@ function SignalBlock({ signals }: { signals: Insight["signals"] }) {
 function FlagBlock({ flags }: { flags: Insight["flags"] }) {
   if (flags.length === 0)
     return (
-      <div className="rounded-[12px] bg-success-soft px-3.5 py-2.5 text-[12px] font-bold text-success">
+      <div className="rounded-[12px] bg-success-soft px-3.5 py-2.5 t-sub font-bold text-success">
         실측 조건 기준 점등된 리스크 플래그가 없습니다 — 표본·시점은 각주를 확인하세요.
       </div>
     );
@@ -952,10 +980,10 @@ function FlagBlock({ flags }: { flags: Insight["flags"] }) {
           key={f.key}
           className={`rounded-[12px] px-3.5 py-2.5 ${f.level === "warn" ? "bg-warning-soft" : "bg-bg"}`}
         >
-          <div className={`text-[12px] font-extrabold ${f.level === "warn" ? "text-warning" : "text-text-1"}`}>
+          <div className={`t-sub font-extrabold ${f.level === "warn" ? "text-warning" : "text-text-1"}`}>
             ⚑ {f.title}
           </div>
-          <div className="mt-0.5 text-[11.5px] leading-[1.6] text-text-2">{f.detail}</div>
+          <div className="mt-0.5 t-sub text-text-2">{f.detail}</div>
         </div>
       ))}
     </div>
@@ -994,15 +1022,15 @@ function EconomyWatchPanel({ currentRate }: { currentRate: number }) {
 
   return (
     <div className="card rounded-[16px] p-4">
-      <div className="text-[13px] font-extrabold text-ink">
+      <div className="t-body font-extrabold text-ink">
         기준금리 알림 걸기{" "}
-        <span className="text-[11px] font-medium text-text-3">현재 {currentRate}% · 조건 도달 시 알림함으로 1회</span>
+        <span className="t-sub font-medium text-text-3">현재 {currentRate}% · 조건 도달 시 알림함으로 1회</span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <select
           value={direction}
           onChange={(e) => setDirection(e.target.value as "above" | "below")}
-          className="rounded-[10px] border border-line bg-surface px-2.5 py-2 text-[12.5px] font-bold text-ink"
+          className="rounded-[10px] border border-line bg-surface px-2.5 py-2 t-body font-bold text-ink"
         >
           <option value="above">이상으로 오르면</option>
           <option value="below">이하로 내리면</option>
@@ -1011,22 +1039,22 @@ function EconomyWatchPanel({ currentRate }: { currentRate: number }) {
           value={threshold}
           onChange={(e) => setThreshold(e.target.value)}
           inputMode="decimal"
-          className="w-[90px] rounded-[10px] border border-line bg-surface px-3 py-2 text-[13px] font-bold text-ink"
+          className="w-[90px] rounded-[10px] border border-line bg-surface px-3 py-2 t-body font-bold text-ink"
         />
-        <span className="text-[12px] font-bold text-text-2">%</span>
+        <span className="t-sub font-bold text-text-2">%</span>
         <button
           type="button"
           onClick={() => void submit()}
           disabled={state === "busy" || state === "done"}
-          className="rounded-[10px] bg-primary px-3.5 py-2 text-[12.5px] font-bold text-white disabled:opacity-60"
+          className="rounded-[10px] bg-primary px-3.5 py-2 t-body font-bold text-white disabled:opacity-60"
         >
           {state === "done" ? "등록됨 ✓" : state === "busy" ? "등록 중…" : "알림 등록"}
         </button>
       </div>
       {state === "login" && (
-        <p className="mt-1.5 text-[11.5px] font-bold text-warning">로그인하면 알림을 걸 수 있어요.</p>
+        <p className="mt-1.5 t-sub font-bold text-warning">로그인하면 알림을 걸 수 있어요.</p>
       )}
-      {note && <p className="mt-1.5 text-[11.5px] text-text-3">{note}</p>}
+      {note && <p className="mt-1.5 t-sub text-text-3">{note}</p>}
     </div>
   );
 }

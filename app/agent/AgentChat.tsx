@@ -157,12 +157,12 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
       {/* 모델 선택 — 키가 설정된 벤더의 모델만 서버가 내려준다 */}
       {models.length > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <label className="flex items-center gap-2 text-[12px] font-bold text-text-2">
+          <label className="flex items-center gap-2 t-sub font-bold text-text-2">
             AI 모델
             <select
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
-              className="rounded-[10px] border border-line bg-surface px-2.5 py-1.5 text-[12px] font-bold text-ink outline-none focus:border-primary"
+              className="rounded-[10px] border border-line bg-surface px-2.5 py-1.5 t-sub font-bold text-ink outline-none focus:border-primary"
             >
               {models.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -172,7 +172,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
             </select>
           </label>
           {currentModel && (
-            <span className="text-[11px] text-text-3">{currentModel.description}</span>
+            <span className="t-sub text-text-3">{currentModel.description}</span>
           )}
         </div>
       )}
@@ -181,7 +181,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
       <div className="card flex min-h-[380px] flex-col gap-3 rounded-[20px] p-5">
         {messages.length === 0 && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center">
-            <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl text-[15px]">AI</div>
+            <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl t-body">AI</div>
             <div className="text-sm font-extrabold text-ink">
               내 임장노트와 실거래 데이터로 답하는 에이전트예요
             </div>
@@ -195,7 +195,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
                   key={s}
                   type="button"
                   onClick={() => void send(s)}
-                  className="chip chip-soft px-3 py-1.5 text-[12px]"
+                  className="chip chip-soft press px-3 py-1.5 t-sub transition-transform"
                 >
                   {s}
                 </button>
@@ -206,23 +206,23 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
 
         {messages.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="self-end rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-[13px] leading-[1.6] text-white max-w-[85%]">
+            <div key={i} className="self-end rounded-2xl rounded-br-md bg-primary px-4 py-2.5 t-body text-white max-w-[85%]">
               {m.content}
             </div>
           ) : (
             <div key={i} className="flex max-w-[92%] flex-col gap-1.5 self-start">
-              <div className="rounded-2xl rounded-bl-md bg-bg px-4 py-3 text-[13px] leading-[1.7] text-text-1 whitespace-pre-wrap">
+              <div className="rounded-2xl rounded-bl-md bg-bg px-4 py-3 t-body text-text-1 whitespace-pre-wrap">
                 {m.content}
               </div>
               {(m.trace.length > 0 || m.model) && (
                 <div className="flex flex-wrap items-center gap-1 px-1">
                   {m.trace.length > 0 && (
                     <>
-                      <span className="text-[10px] font-bold text-text-3">조회한 데이터:</span>
+                      <span className="t-caption font-bold text-text-3">조회한 데이터:</span>
                       {m.trace.map((t, j) => (
                         <span
                           key={j}
-                          className={`rounded border px-1.5 py-px text-[10px] font-semibold ${
+                          className={`rounded border px-1.5 py-px t-caption font-semibold ${
                             t.ok ? "border-line text-text-2" : "border-line text-text-3 line-through"
                           }`}
                         >
@@ -232,7 +232,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
                     </>
                   )}
                   {m.model && (
-                    <span className="rounded bg-bg px-1.5 py-px text-[10px] font-semibold text-text-3">
+                    <span className="rounded bg-bg px-1.5 py-px t-caption font-semibold text-text-3">
                       {m.model}
                     </span>
                   )}
@@ -243,16 +243,31 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
         )}
 
         {busy && (
-          <div className="flex items-center gap-2 self-start rounded-2xl bg-bg px-4 py-3 text-[12px] text-text-3">
-            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-line border-t-primary" />
-            노트·실거래 데이터를 조회하는 중…
-            <button
-              type="button"
-              onClick={() => abortRef.current?.abort()}
-              className="rounded-md border border-line px-2 py-0.5 text-[11px] font-bold text-text-2 hover:border-primary hover:text-primary"
-            >
-              취소
-            </button>
+          /* 스피너 하나로는 "지금 뭘 하는 중인지"가 안 보인다. 실제 순서를
+             그대로 적는다 — 질문을 읽고 → 데이터를 조회하고 → 답을 쓴다.
+             (도구별 조회 내역은 답변이 오면 그 아래 칩으로 정확히 나온다) */
+          <div className="flex flex-col gap-2 self-start rounded-2xl bg-bg px-4 py-3">
+            <div className="run-steps">
+              <span className="run-step" data-state="done">
+                <span className="run-dot" />질문 이해
+              </span>
+              <span className="run-step" data-state="active">
+                <span className="run-dot" />노트·실거래 조회
+              </span>
+              <span className="run-step">
+                <span className="run-dot" />답변 작성
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="t-sub text-text-3">보통 5~15초 걸려요</span>
+              <button
+                type="button"
+                onClick={() => abortRef.current?.abort()}
+                className="rounded-md border border-line px-2 py-0.5 t-sub font-bold text-text-2 transition-colors hover:border-primary hover:text-primary"
+              >
+                취소
+              </button>
+            </div>
           </div>
         )}
         {error && (
@@ -262,7 +277,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
               <button
                 type="button"
                 onClick={() => void send(lastFailed)}
-                className="rounded-md border border-danger px-2 py-0.5 text-[11px] font-bold text-danger hover:bg-danger-fill hover:text-white"
+                className="rounded-md border border-danger px-2 py-0.5 t-sub font-bold text-danger hover:bg-danger-fill hover:text-white"
               >
                 다시 시도
               </button>
@@ -285,13 +300,13 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
           onChange={(e) => setInput(e.target.value)}
           maxLength={2000}
           placeholder="예: 내 노트 중 교통 점수가 낮았던 단지의 최근 실거래는?"
-          className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+          className="w-full rounded-xl border border-line bg-surface px-4 py-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
         />
         {busy ? (
           <button
             type="button"
             onClick={() => abortRef.current?.abort()}
-            className="shrink-0 rounded-xl border border-line bg-surface px-5 py-3 text-[13px] font-bold text-text-2 hover:border-primary hover:text-primary"
+            className="shrink-0 rounded-xl border border-line bg-surface px-5 py-3 t-body font-bold text-text-2 hover:border-primary hover:text-primary"
           >
             취소
           </button>
@@ -299,14 +314,14 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
           <button
             type="submit"
             disabled={!input.trim()}
-            className="btn-primary shrink-0 rounded-xl px-5 py-3 text-[13px] disabled:opacity-50"
+            className="btn-primary shrink-0 rounded-xl px-5 py-3 t-body disabled:opacity-50"
           >
             보내기
           </button>
         )}
       </form>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] leading-[1.5] text-text-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 t-caption text-text-3">
         <span>
           본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다 · 시간당{" "}
           {rateInfo ? `${rateInfo.limit}회 중 ${rateInfo.remaining}회 남음` : "12회"} · 현재

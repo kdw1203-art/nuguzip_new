@@ -170,8 +170,8 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
     <div className="overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-bg to-surface px-4 py-3">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div>
-          <div className="text-[12px] font-extrabold text-ink">실거래가 추이</div>
-          <div className="text-[10px] text-text-3">
+          <div className="t-sub font-extrabold text-ink">실거래가 추이</div>
+          <div className="t-caption text-text-3">
             {series.length}개월 · 거래 {dealSum.toLocaleString("ko-KR")}건 · 국토부
           </div>
         </div>
@@ -185,7 +185,7 @@ function Sparkline({ tx }: { tx: TxRow[] }) {
         <path d={line} fill="none" stroke={stroke} strokeWidth={1.8} strokeLinejoin="round" strokeLinecap="round" />
         <circle cx={last.x} cy={last.y} r={2.8} fill={stroke} />
       </svg>
-      <div className="mt-1 flex justify-between text-[10px] text-text-3">
+      <div className="mt-1 flex justify-between t-caption text-text-3">
         <span>{ymLabel(series[0].ym)}</span>
         <span>
           {manwonLabel(Math.round(min))} ~ {manwonLabel(Math.round(max))}
@@ -332,8 +332,8 @@ function SectionHead({
   return (
     <div className="mb-2 flex items-end justify-between gap-2">
       <div>
-        <div className="text-[13px] font-extrabold text-ink">{title}</div>
-        {sub ? <div className="mt-0.5 text-[10.5px] text-text-3">{sub}</div> : null}
+        <div className="t-body font-extrabold text-ink">{title}</div>
+        {sub ? <div className="mt-0.5 t-caption text-text-3">{sub}</div> : null}
       </div>
       {right}
     </div>
@@ -502,7 +502,7 @@ export function ComplexInfoPanel({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="truncate text-[20px] font-extrabold tracking-tight text-ink sm:text-[22px]">
+                <h2 className="truncate t-title tracking-tight text-ink sm:t-title">
                   {name}
                 </h2>
                 {loading && (
@@ -510,14 +510,14 @@ export function ComplexInfoPanel({
                 )}
               </div>
               {address ? (
-                <div className="mt-0.5 truncate text-[11px] text-text-2">{address}</div>
+                <div className="mt-0.5 truncate t-sub text-text-2">{address}</div>
               ) : null}
             </div>
             <button
               type="button"
               onClick={onClose}
               aria-label="패널 닫기"
-              className="relative ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-[14px] text-text-3 after:absolute after:-inset-1.5 after:content-['']"
+              className="relative ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 t-body text-text-3 after:absolute after:-inset-1.5 after:content-['']"
             >
               ✕
             </button>
@@ -525,11 +525,11 @@ export function ComplexInfoPanel({
 
           <div className="mt-3 flex items-end justify-between gap-3">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-wide text-text-3">
+              <div className="t-caption font-bold uppercase tracking-wide text-text-3">
                 최근 실거래 평균
               </div>
               <div className="mt-0.5 flex items-baseline gap-2">
-                <span className="text-[28px] font-extrabold leading-none text-ink tabular-nums sm:text-[32px]">
+                <span className="t-title leading-none text-ink tabular-nums sm:t-title">
                   {priceLabel ?? (loading ? "…" : "—")}
                 </span>
                 {momPct != null && (
@@ -540,11 +540,11 @@ export function ComplexInfoPanel({
                   >
                     {momPct > 0 ? "+" : ""}
                     {momPct}%
-                    <span className="ml-1 text-[10px] font-semibold text-text-3">전월</span>
+                    <span className="ml-1 t-caption font-semibold text-text-3">전월</span>
                   </span>
                 )}
               </div>
-              <div className="mt-1 text-[11px] text-text-3">
+              <div className="mt-1 t-sub text-text-3">
                 {latest
                   ? `${ymLabel(latest.yyyymm)} · ${latest.deal_count}건${
                       latest.min_manwon && latest.max_manwon
@@ -559,14 +559,14 @@ export function ComplexInfoPanel({
             </div>
             <div className="grid shrink-0 grid-cols-2 gap-1.5 text-center">
               <div className="min-w-[68px] rounded-xl bg-white/80 px-2 py-1.5 shadow-sm">
-                <div className="text-[10px] text-text-3">거래</div>
-                <div className="text-[13px] font-extrabold text-ink">
+                <div className="t-caption text-text-3">거래</div>
+                <div className="t-body font-extrabold text-ink">
                   {dealSum > 0 ? `${dealSum}` : "—"}
                 </div>
               </div>
               <div className="min-w-[68px] rounded-xl bg-white/80 px-2 py-1.5 shadow-sm">
-                <div className="text-[10px] text-text-3">세대</div>
-                <div className="text-[13px] font-extrabold text-ink">
+                <div className="t-caption text-text-3">세대</div>
+                <div className="t-body font-extrabold text-ink">
                   {complex?.households
                     ? complex.households >= 1000
                       ? `${(complex.households / 1000).toFixed(1)}천`
@@ -582,7 +582,7 @@ export function ComplexInfoPanel({
               {chips.map((c) => (
                 <span
                   key={c}
-                  className="chip-soft rounded-full chip-pad text-[10px] font-bold text-text-2"
+                  className="chip-soft rounded-full chip-pad t-caption font-bold text-text-2"
                 >
                   {c}
                 </span>
@@ -606,20 +606,20 @@ export function ComplexInfoPanel({
 
           {focusNoteHref && (
             <div className="rounded-2xl border border-primary/25 bg-primary-soft/60 px-3.5 py-3">
-              <div className="text-[12px] font-extrabold text-ink">임장노트에서 이어보기</div>
-              <p className="mt-0.5 text-[11px] leading-[1.55] text-text-2">
+              <div className="t-sub font-extrabold text-ink">임장노트에서 이어보기</div>
+              <p className="mt-0.5 t-sub text-text-2">
                 이 단지를 노트·AI와 함께 지도에서 비교하고 있어요.
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <Link
                   href={focusNoteHref}
-                  className="rounded-xl bg-surface px-2.5 py-2 text-center text-[11px] font-extrabold text-primary shadow-sm"
+                  className="rounded-xl bg-surface px-2.5 py-2 text-center t-sub font-extrabold text-primary shadow-sm"
                 >
                   노트 보기
                 </Link>
                 <Link
                   href={analysisHref}
-                  className="rounded-xl bg-primary px-2.5 py-2 text-center text-[11px] font-extrabold text-white"
+                  className="rounded-xl bg-primary px-2.5 py-2 text-center t-sub font-extrabold text-white"
                 >
                   AI 정리 보기
                 </Link>
@@ -646,21 +646,21 @@ export function ComplexInfoPanel({
               />
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-xl bg-bg px-3 py-2">
-                  <div className="text-[10px] text-text-3">이 단지</div>
-                  <div className="text-[14px] font-extrabold text-ink tabular-nums">
+                  <div className="t-caption text-text-3">이 단지</div>
+                  <div className="t-section text-ink tabular-nums">
                     {region.complexPerM2Manwon.toLocaleString("ko-KR")}
-                    <span className="text-[10px] font-bold text-text-3">만/㎡</span>
+                    <span className="t-caption font-bold text-text-3">만/㎡</span>
                   </div>
                 </div>
                 <div className="rounded-xl bg-bg px-3 py-2">
-                  <div className="text-[10px] text-text-3">{region.district} 평균</div>
-                  <div className="text-[14px] font-extrabold text-ink tabular-nums">
+                  <div className="t-caption text-text-3">{region.district} 평균</div>
+                  <div className="t-section text-ink tabular-nums">
                     {region.districtPerM2Manwon.toLocaleString("ko-KR")}
-                    <span className="text-[10px] font-bold text-text-3">만/㎡</span>
+                    <span className="t-caption font-bold text-text-3">만/㎡</span>
                   </div>
                 </div>
               </div>
-              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-text-3">
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 t-caption text-text-3">
                 {region.saleChangePct != null && (
                   <span>
                     구 변동{" "}
@@ -689,7 +689,7 @@ export function ComplexInfoPanel({
                 {specRows.map((row) => (
                   <div
                     key={row.label}
-                    className="flex items-baseline justify-between gap-2 border-b border-divider py-2 text-[12.5px] last:border-b-0"
+                    className="flex items-baseline justify-between gap-2 border-b border-divider py-2 t-body last:border-b-0"
                   >
                     <span className="shrink-0 text-text-3">{row.label}</span>
                     <span className="truncate text-right font-bold text-ink">{row.value}</span>
@@ -713,7 +713,7 @@ export function ComplexInfoPanel({
                   >
                     <div className="min-w-0">
                       <div className="font-bold text-ink">{b.label}</div>
-                      <div className="text-[10px] text-text-3">
+                      <div className="t-caption text-text-3">
                         {b.count}건 · {ymLabel(b.latestYm)}
                       </div>
                     </div>
@@ -721,7 +721,7 @@ export function ComplexInfoPanel({
                       <div className="font-extrabold text-ink">
                         {manwonLabel(b.latestManwon) ?? "—"}
                       </div>
-                      <div className="text-[10px] text-text-3">
+                      <div className="t-caption text-text-3">
                         평균 {manwonLabel(b.avgManwon) ?? "—"}
                       </div>
                     </div>
@@ -756,7 +756,7 @@ export function ComplexInfoPanel({
                         {ymLabel(t.yyyymm)}
                         <span className="ml-1.5 text-text-3">{t.deal_count}건</span>
                         {t.min_manwon && t.max_manwon && t.min_manwon !== t.max_manwon ? (
-                          <span className="ml-1 hidden text-[10px] text-text-3 sm:inline">
+                          <span className="ml-1 hidden t-caption text-text-3 sm:inline">
                             {manwonLabel(t.min_manwon)}~{manwonLabel(t.max_manwon)}
                           </span>
                         ) : null}
@@ -799,8 +799,8 @@ export function ComplexInfoPanel({
                   const pct = v != null ? Math.min(100, Math.round((v / 5) * 100)) : 0;
                   return (
                     <div key={key} className="rounded-xl bg-bg px-1 py-2 text-center">
-                      <div className="text-[10px] text-text-3">{label}</div>
-                      <div className="text-[14px] font-extrabold text-ink">
+                      <div className="t-caption text-text-3">{label}</div>
+                      <div className="t-section text-ink">
                         {v != null ? v : "—"}
                       </div>
                       <div className="mx-auto mt-1 h-1 w-[80%] overflow-hidden rounded-full bg-line">
@@ -826,8 +826,8 @@ export function ComplexInfoPanel({
                     key={p.id || `${p.title}-${i}`}
                     className="rounded-xl bg-bg px-3 py-2"
                   >
-                    <div className="truncate text-[12px] font-bold text-ink">{p.title}</div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-2 text-[10px] text-text-3">
+                    <div className="truncate t-sub font-bold text-ink">{p.title}</div>
+                    <div className="mt-0.5 flex flex-wrap gap-x-2 t-caption text-text-3">
                       {postDateLabel(p.created_at) && <span>{postDateLabel(p.created_at)}</span>}
                       {p.district && <span>{p.district}</span>}
                       {p.like_count != null && <span>공감 {p.like_count}</span>}
@@ -847,7 +847,7 @@ export function ComplexInfoPanel({
           {/* 부가 섹션 조회 실패 고지 — 섹션이 안 보이는 이유가 "없어서"가
               아니라 "지금 못 읽어서"일 때, 그 사실을 말한다. */}
           {(sideFailed.has("regionRelative") || sideFailed.has("nearby")) && (
-            <div className="rounded-2xl border border-[#f3d9a4] bg-[#fdf7ea] px-3.5 py-2.5 text-[11px] leading-[1.6] text-[#8a6d1f]">
+            <div className="rounded-2xl border border-[#f3d9a4] bg-[#fdf7ea] px-3.5 py-2.5 t-sub text-[#8a6d1f]">
               {[
                 sideFailed.has("regionRelative") ? "이 동네 대비" : null,
                 sideFailed.has("nearby") ? "인근 단지" : null,
@@ -872,8 +872,8 @@ export function ComplexInfoPanel({
                     href={`/complex/${encodeURIComponent(n.id)}`}
                     className="rounded-xl border border-line bg-bg px-3 py-2 transition-colors hover:border-primary/40"
                   >
-                    <div className="truncate text-[12px] font-extrabold text-ink">{n.name}</div>
-                    <div className="mt-0.5 truncate text-[10px] text-text-3">
+                    <div className="truncate t-sub font-extrabold text-ink">{n.name}</div>
+                    <div className="mt-0.5 truncate t-caption text-text-3">
                       {n.meta || "단지 정보"}
                     </div>
                   </Link>
@@ -913,7 +913,7 @@ export function ComplexInfoPanel({
           })()}
 
           {fetchedLabel && (
-            <p className="text-center text-[10px] text-text-3">{fetchedLabel} · 실거래·공공데이터</p>
+            <p className="text-center t-caption text-text-3">{fetchedLabel} · 실거래·공공데이터</p>
           )}
         </div>
 
@@ -925,7 +925,7 @@ export function ComplexInfoPanel({
         <div className="border-t border-[rgba(16,28,54,.06)] bg-surface px-5 py-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] sm:pb-3">
           <Link
             href={detailHref}
-            className="btn-primary btn-cta block rounded-xl p-3 text-center text-[13px] font-extrabold text-white"
+            className="btn-primary btn-cta block rounded-xl p-3 text-center t-body font-extrabold text-white"
           >
             전체 화면으로 더 자세히 보기 ›
           </Link>
