@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getPaymentByOrderId,
-  markFailed,
+  markCancelled,
   markPaid,
   markRefunded,
 } from "@/lib/payments/store";
@@ -186,7 +186,10 @@ export async function POST(req: NextRequest) {
         await markRefunded({ orderId: payloadOrderId });
       }
     } else if (status === "ABORTED" || status === "EXPIRED") {
-      if (order.status === "requested") await markFailed(payloadOrderId);
+      /* 결제창 만료·사용자 중단은 **거절이 아니다**. 예전엔 이 둘을 failed 로
+         적어서 실패율 지표가 미완료 시도까지 실패로 셌다(2026-08-25 실측:
+         "결제 실패 2건 / 시도 3건" critical — 둘 다 창을 닫은 건이었다). */
+      if (order.status === "requested") await markCancelled(payloadOrderId);
     }
     // READY·IN_PROGRESS·WAITING_FOR_DEPOSIT 등 중간 상태는 기록 변경 없음
     return NextResponse.json({ ok: true });

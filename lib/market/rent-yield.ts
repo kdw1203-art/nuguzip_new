@@ -48,6 +48,16 @@ function num(v: unknown): number | null {
  *
  * 값의 성질: "최근 3개월 전월세 신고"의 집계다. 하루에 한 번 바뀌면 많이 바뀌는
  * 값이라 6시간 캐시로 충분하다. 실패는 던져서 캐시에 눌러앉지 않게 한다.
+ *
+ * ── 캐시는 2층이다. 앱 쪽 6시간(unstable_cache)만 보고 안심하면 안 된다 ──
+ * RPC region_rent_yield_summary 자체가 DB 안에서 ops.rent_yield_cache 를 먼저
+ * 본다(72시간 유효). 맞으면 jsonb 를 그대로 풀어 0.0ms 로 돌아오고, 창을 넘기면
+ * 758,872행 라이브 집계로 폴백한다 — 그 폴백이 곧 장애다(2026-08-25: 폴백 253회 →
+ * /complex/[id] 조회 시간 초과 521건 · 사용자 40명).
+ * 캐시를 채우는 쪽은 pg_cron 'rent-yield-cache-refresh'(매일 19:50 UTC,
+ * ops.refresh_rent_yield_cache). 그 잡이 실패하면 ops.cron_job_failure_check 가
+ * 매시 critical 로, 0행을 집계하면 refresh 함수가 warn 으로 /admin/ops 에 띄운다.
+ * 그러니 여기 6시간 캐시는 "DB 왕복을 줄이는" 층이지 "느린 집계를 막는" 층이 아니다.
  */
 const RENT_YIELD_MONTHS = 3;
 

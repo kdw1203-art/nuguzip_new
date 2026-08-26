@@ -151,7 +151,7 @@ export default function RootLayout({
             와도 안 보여서 반쪽짜리다 — 포커스 시 화면에 나타나야 한다(고도화 47). */}
         <a
           href="#main-content"
-          className="sr-only z-[100] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2.5 focus:text-sm focus:font-bold focus:text-white focus:shadow-lg"
+          className="sr-only z-[100] focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2.5 focus:t-body focus:font-bold focus:text-white focus:shadow-lg"
         >
           본문 바로가기
         </a>

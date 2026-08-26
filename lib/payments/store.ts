@@ -278,6 +278,35 @@ async function clawBackMembershipOnRefund(rec: PaymentRecord): Promise<void> {
  * 되돌리면 안 되는 상태(paid/cancelled/refunded)는 그대로 둔다 — 여기서 할 수 있는
  * 가장 안전한 실패는 "아무것도 하지 않기" 다.
  */
+/**
+ * 미완료 종료로 표시 — 결제창 만료(EXPIRED)·사용자 중단(ABORTED).
+ *
+ * 왜 markFailed 와 갈라야 하나(2026-08-25 실측): 이 둘을 `failed` 로 적고
+ * 있었는데 그건 **카드가 거절된 것**을 뜻하는 상태다. 실제로 "결제 실패 2건 /
+ * 시도 3건" critical 경보가 울렸고 그 둘은 전부 결제창을 닫은 미완료 시도였다.
+ * 지표가 거짓말을 하면 진짜 거절이 왔을 때 아무도 안 믿는다.
+ *
+ * markFailed 와 같은 보호: `requested` 인 행만 바꾼다 — 이미 승인된 결제를
+ * 뒤집는 일은 없다.
+ */
+export async function markCancelled(orderId: string): Promise<void> {
+  const sb = getServiceSupabase();
+  const now = new Date().toISOString();
+  if (!sb) {
+    const r = memory.find((x) => x.orderId === orderId);
+    if (r && r.status === "requested") {
+      r.status = "cancelled";
+      r.cancelledAt = now;
+    }
+    return;
+  }
+  await sb
+    .from("payments")
+    .update({ status: "cancelled", cancelled_at: now })
+    .eq("order_id", orderId)
+    .eq("status", "requested");
+}
+
 export async function markFailed(orderId: string): Promise<void> {
   const sb = getServiceSupabase();
   const now = new Date().toISOString();

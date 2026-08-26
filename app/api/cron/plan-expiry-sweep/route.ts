@@ -94,6 +94,42 @@ async function sendPreExpiryReminders(
   return reminded;
 }
 
+/**
+ * 버려진 결제 시도 정리 (2026-08-25).
+ *
+ * 실측: payments 에 `requested` 로 만들어진 뒤 아무 콜백도 오지 않아 그대로
+ * 남은 주문이 있었다(08-25 11:55 요청분이 9시간 넘게 requested). 토스 결제창은
+ * 유효시간이 지나면 실패 웹훅이 오지만, 사용자가 창을 그냥 닫으면 그 웹훅조차
+ * 오지 않는다 — 장부에 영원히 "진행 중"으로 남는다.
+ *
+ * `failed` 로 적으면 안 된다. 거절과 미완료는 다른 사실이고, 합치면 실패율
+ * 지표가 거짓말을 한다. 이미 스키마에 있는 `cancelled` 로 적는다.
+ */
+const ABANDON_AFTER_MIN = 45;
+
+async function sweepAbandonedPayments(
+  sb: NonNullable<ReturnType<typeof getServiceSupabase>>,
+): Promise<number> {
+  try {
+    const cutoff = new Date(Date.now() - ABANDON_AFTER_MIN * 60_000).toISOString();
+    const { data, error } = await sb
+      .from("payments")
+      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+      .eq("status", "requested")
+      .lt("requested_at", cutoff)
+      .select("order_id");
+    if (error) throw new Error(error.message);
+    const n = data?.length ?? 0;
+    if (n > 0) {
+      logger.warn(`[plan-expiry] 미완료 결제 시도 ${n}건을 cancelled 로 정리 (${ABANDON_AFTER_MIN}분 초과)`);
+    }
+    return n;
+  } catch (e) {
+    logger.error("[plan-expiry] 미완료 결제 정리 실패", e);
+    return 0;
+  }
+}
+
 export async function GET(req: Request) {
   const authorized = await authorizeCron(req);
   if (!authorized) {
@@ -104,6 +140,8 @@ export async function GET(req: Request) {
   if (!sb) return NextResponse.json({ ok: true, demoted: 0, note: "Supabase 미설정" });
 
   const nowIso = new Date().toISOString();
+  /* 결제 장부 정리를 먼저 — 만료 스윕이 실패해도 이건 끝나 있게 한다. */
+  const abandoned = await sweepAbandonedPayments(sb);
   try {
     const { data: expired, error } = await sb
       .from("app_users")
@@ -126,7 +164,7 @@ export async function GET(req: Request) {
         status: "ok",
         message: `만료된 유료 플랜 없음 · 사전 알림 ${reminded}명`,
       });
-      return NextResponse.json({ ok: true, demoted: 0, reminded });
+      return NextResponse.json({ ok: true, demoted: 0, reminded, abandoned });
     }
 
     const ids = targets.map((r) => String(r.id));
@@ -171,7 +209,7 @@ export async function GET(req: Request) {
       status: "ok",
       message: `만료 강등 ${demoted}명 (후보 ${targets.length}명) · 사전 알림 ${reminded}명`,
     });
-    return NextResponse.json({ ok: true, demoted, candidates: targets.length, reminded });
+    return NextResponse.json({ ok: true, demoted, candidates: targets.length, reminded, abandoned });
   } catch (e) {
     logger.error("[plan-expiry-sweep]", e);
     await logIngest({

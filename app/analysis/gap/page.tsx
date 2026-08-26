@@ -14,6 +14,7 @@ import { ToolHero, type HeroKpi } from "@/app/components/analysis/ToolHero";
 import { Bars } from "@/app/components/viz/Bars";
 import { RankBars } from "@/app/components/viz/RankBars";
 import { faqJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
+import { monthsBehind } from "@/lib/newui/as-of-label";
 
 /* [3차 · AI 분석 확충] 전세가율·갭 스크리너.
  *
@@ -64,7 +65,27 @@ function fmtPeriod(period: string): string {
   return `${d.slice(0, 4)}.${d.slice(4, 6)}`;
 }
 
-function RankTable({ rows, tone, maxRatio }: { rows: Row[]; tone: "high" | "low"; maxRatio: number }) {
+/** 공표 지연을 사람 말로 — "적재가 멈춘 것"과 "원래 늦게 나오는 것"을 가른다. */
+function periodNote(period: string): string | null {
+  const n = monthsBehind(period);
+  if (n === null) return null;
+  if (n <= 1) return "최신";
+  if (n === 2) return "공표 주기상 최신";
+  return `${n}개월 지연`;
+}
+
+function RankTable({
+  rows,
+  tone,
+  maxRatio,
+  yieldFailed = false,
+}: {
+  rows: Row[];
+  tone: "high" | "low";
+  maxRatio: number;
+  /** 월세 수익률 조회가 실패했는가 — 표본 없음("—")과 구분해 적는다 */
+  yieldFailed?: boolean;
+}) {
   return (
     <div className="card overflow-x-auto rounded-[14px] px-4 py-2">
       <table className="t-body w-full min-w-[600px]">
@@ -117,7 +138,13 @@ function RankTable({ rows, tone, maxRatio }: { rows: Row[]; tone: "high" | "low"
                 )}
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums text-text-1">
-                {r.rentYield !== undefined ? `${r.rentYield.toFixed(1)}%` : "—"}
+                {r.rentYield !== undefined ? (
+                  `${r.rentYield.toFixed(1)}%`
+                ) : yieldFailed ? (
+                  <span className="t-caption font-bold text-warning">조회 실패</span>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums">
                 {r.saleChange === undefined ? (
@@ -132,6 +159,9 @@ function RankTable({ rows, tone, maxRatio }: { rows: Row[]; tone: "high" | "low"
               </td>
               <td className="t-sub py-2.5 text-right text-text-3">
                 {fmtPeriod(r.period)} · {r.source.toUpperCase()}
+                {periodNote(r.period) && (
+                  <span className="t-caption ml-1 block text-text-3">{periodNote(r.period)}</span>
+                )}
               </td>
             </tr>
           ))}
@@ -176,12 +206,16 @@ export default async function GapScreenerPage() {
 
   /* [#94 잔여] 월세 환산 수익률 — RPC 1회로 전 지역 중앙값을 받아 행에 붙인다.
      실패는 열 결측("—")일 뿐 페이지 실패가 아니다 — 본문(전세가율)은 그대로 산다. */
+  let yieldFailed = false;
   if (!loadFailed && rows.length > 0) {
     let yieldMap: RegionRentYieldMap | null = null;
     try {
       yieldMap = await getRegionRentYieldMap();
     } catch (e) {
+      /* 표본이 없어서 빈 칸인 것과 조회가 실패해서 빈 칸인 것은 전혀 다른
+         사실이다. 예전엔 로그만 남기고 화면에는 "—" 만 나갔다. */
       logger.error("[analysis/gap] 월세 수익률 RPC 실패 — 열 없이 렌더", e);
+      yieldFailed = true;
     }
     if (yieldMap) {
       for (const r of rows) {
@@ -298,6 +332,15 @@ export default async function GapScreenerPage() {
         />
       ) : (
         <>
+          {yieldFailed && (
+            <div className="mb-4 rounded-[12px] border border-line bg-warning-soft px-3.5 py-2.5">
+              <p className="t-sub text-ink">
+                월세 환산 수익률·실측 갭을 지금 불러오지 못했어요. 그 열이 비어 있는 건
+                <b> 표본이 없어서가 아니라 조회가 실패했기 때문</b>입니다 — 전세가율은
+                그대로 실측값입니다.
+              </p>
+            </div>
+          )}
           <section className="mb-6" data-reveal="">
             <h2 className="mb-2 t-title text-ink">
               전세가율 상위 — 갭이 작은 지역 TOP {top.length}
@@ -315,7 +358,7 @@ export default async function GapScreenerPage() {
                 max={maxRatio}
               />
             </div>
-            <RankTable rows={top} tone="high" maxRatio={maxRatio} />
+            <RankTable rows={top} tone="high" maxRatio={maxRatio} yieldFailed={yieldFailed} />
             <p className="mt-2 t-sub text-text-3">
               전세가율이 높은 지역은 갭이 작은 만큼, 전세가 하락 시 보증금 반환 부담
               (역전세)·매매가와 전세가 역전 위험도 함께 큽니다. 갭이 작다는 산술이
@@ -339,7 +382,7 @@ export default async function GapScreenerPage() {
                 max={maxRatio}
               />
             </div>
-            <RankTable rows={bottom} tone="low" maxRatio={maxRatio} />
+            <RankTable rows={bottom} tone="low" maxRatio={maxRatio} yieldFailed={yieldFailed} />
           </section>
 
           {/* [#78 v2] 시도별 전체 표 — 앵커 점프로 필터를 대신한다(파라미터 없는 ISR 유지) */}
@@ -362,7 +405,7 @@ export default async function GapScreenerPage() {
                 <h2 className="mb-2 t-title text-ink">
                   {g} 전체 — 전세가율 순 {groupRows.length}개 지역
                 </h2>
-                <RankTable rows={groupRows} tone="high" maxRatio={maxRatio} />
+                <RankTable rows={groupRows} tone="high" maxRatio={maxRatio} yieldFailed={yieldFailed} />
               </section>
             );
           })}

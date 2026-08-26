@@ -53,7 +53,7 @@ export function Header() {
         </Link>
 
         {/* 데스크탑 메뉴 — 9m 호버 드롭다운 + 언더라인 인디케이터 */}
-        <nav className="hidden gap-0.5 text-sm font-semibold text-text-1 md:flex">
+        <nav className="hidden gap-0.5 t-body font-semibold text-text-1 md:flex">
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (

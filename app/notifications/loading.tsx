@@ -19,17 +19,20 @@ export default function NotificationsLoading() {
           ))}
         </div>
 
-        {/* 알림 카드 목록 */}
-        <div className="mt-3 flex flex-col gap-2.5">
+        {/* 알림 카드 목록 — 실제 카드와 같은 높이(85px)·같은 간격(8px)으로 둔다.
+            스켈레톤이 실물보다 낮으면 데이터가 붙는 순간 목록 전체가 밀린다. */}
+        <div className="mt-3 flex flex-col gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="card flex gap-2.5 rounded-[14px] px-[15px] py-[13px]"
+              className="card flex h-[85px] gap-2.5 rounded-[14px] px-[15px] py-[13px]"
             >
-              <Skeleton className="h-[34px] w-[34px] shrink-0 rounded-[10px]" />
+              <Skeleton className="mt-[6px] h-[34px] w-[34px] shrink-0 rounded-[10px]" />
               <div className="min-w-0 flex-1">
-                <Skeleton className="h-3 w-3/4 rounded" />
-                <Skeleton className="mt-2 h-2.5 w-1/3 rounded" />
+                {/* 제목 13 · 본문 11 · 메타 9 — 카드의 타입 램프를 그대로 흉내낸다 */}
+                <Skeleton className="h-[13px] w-3/4 rounded" />
+                <Skeleton className="mt-[6px] h-[11px] w-full rounded" />
+                <Skeleton className="mt-[7px] h-[9px] w-2/5 rounded" />
               </div>
             </div>
           ))}

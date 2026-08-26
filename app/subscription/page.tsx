@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { safeAuth } from "@/lib/safe-auth";
+import { getUsageSummary, type UsageItem } from "@/lib/subscriptions/usage-summary";
 import { loadMeProfile } from "@/lib/me/profile";
 import { BILLING_PERIOD_PRICES, periodPrice, WEEKLY_PASS } from "@/lib/subscriptions/billing-periods";
 import { PlanCards, type TierPricing } from "./PlanCards";
@@ -143,6 +144,7 @@ export default async function SubscriptionPage({
   /* 관리자 배지 — 운영 계정은 플랜 대신 "관리자"로 표기한다. */
   const isAdminViewer = (session?.user as { role?: string } | undefined)?.role === "admin";
   let currentPlan: "free" | "pro" | "expert" = "free";
+  let usage: UsageItem[] = [];
   if (email) {
     const profile = await loadMeProfile(email, {
       name: session?.user?.name,
@@ -150,6 +152,11 @@ export default async function SubscriptionPage({
       role: (session?.user as { role?: string } | undefined)?.role,
     });
     currentPlan = profile.plan;
+    /* 지금 얼마나 썼는지 — 한도는 카드에 적혀 있는데 내가 얼마 썼는지는 어디에도
+       없었다. 살지 말지를 정하는 숫자가 그것인데. 실패해도 페이지는 그대로 산다. */
+    usage = await getUsageSummary(email, profile.plan)
+      .then((u) => u.items)
+      .catch(() => []);
   }
 
   /* 항목 46d — 요금제를 Product/Offer 로 기술. 가격은 billing-periods 단일
@@ -232,6 +239,52 @@ export default async function SubscriptionPage({
         )}
       </section>
 
+      {/* 이번 달 사용량 — 로그인한 사람에게만, 값이 있을 때만.
+          "월 30회"가 카드에 적혀 있어도 내가 12회를 썼는지 29회를 썼는지 모르면
+          그 숫자는 판단에 쓸 수 없다. */}
+      {email && usage.length > 0 && (
+        <section className="mt-5" data-reveal="">
+          <div className="card flex flex-col gap-3 rounded-[14px] p-4">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="t-section text-ink">이번 달 내 사용량</span>
+              <span className="t-caption ml-auto text-text-3">
+                {PLAN_LABEL[currentPlan]} 기준 · 매월 1일 초기화
+              </span>
+            </div>
+            <div className="kpi-row">
+              {usage.map((u) => {
+                const cap = u.limit;
+                const unlimited = cap === null;
+                const pct =
+                  cap === null || cap <= 0 ? 0 : Math.min(100, Math.round((u.used / cap) * 100));
+                const tight = cap !== null && cap > 0 && u.used / cap >= 0.8;
+                return (
+                  <div key={u.key} className="kpi">
+                    <span className="kpi-k">{u.label}</span>
+                    <span className="kpi-v">
+                      {u.used.toLocaleString("ko-KR")}
+                      <span className="t-sub font-bold text-text-3">
+                        {cap === null ? " / 무제한" : ` / ${cap.toLocaleString("ko-KR")}`}
+                      </span>
+                    </span>
+                    {!unlimited && (
+                      <span className={`rank-track mt-1 ${tight ? "text-warning" : "text-primary"}`}>
+                        <span className="rank-fill" style={{ width: `${Math.max(3, pct)}%` }} />
+                      </span>
+                    )}
+                    {tight && (
+                      <span className="kpi-d text-warning">
+                        한도의 {pct}% 사용 — 곧 막혀요
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 요금제 카드 3종 + 월간/연간 토글 (item 13) */}
       <section className="mx-auto mt-8 w-full">
         <PlanCards
@@ -271,7 +324,7 @@ export default async function SubscriptionPage({
       </section>
 
       {/* P2-8: 환불 규정 직링크 — 약관 제8조(청약철회) 앵커 */}
-      <p className="rise-in-4 mx-auto mt-4 w-full max-w-[1080px] text-center text-xs text-text-3">
+      <p className="rise-in-4 mx-auto mt-4 w-full max-w-[1080px] text-center t-sub text-text-3">
         결제 7일 이내 청약철회(환불) 가능 ·{" "}
         <Link
           href="/legal/terms#refund"
@@ -291,18 +344,18 @@ export default async function SubscriptionPage({
           <div className="grid grid-cols-[200px_repeat(3,1fr)] items-end gap-2 border-b border-divider pb-3 pt-1.5">
             <span className="t-sub text-text-3">기능 비교</span>
             <div className="text-center">
-              <div className="text-sm font-extrabold text-ink">무료</div>
-              <div className="text-lg font-extrabold text-ink">0원</div>
+              <div className="t-body font-extrabold text-ink">무료</div>
+              <div className="t-title text-ink">0원</div>
             </div>
             <div className="rounded-[10px] bg-[rgba(29,79,216,.05)] py-1.5 text-center">
-              <div className="text-sm font-extrabold text-primary">✦ 플러스</div>
-              <div className="text-lg font-extrabold text-ink">
+              <div className="t-body font-extrabold text-primary">✦ 플러스</div>
+              <div className="t-title text-ink">
                 {PLUS_MONTHLY}<span className="t-sub text-text-3">/월</span>
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-extrabold text-warning">✦ 프로</div>
-              <div className="text-lg font-extrabold text-ink">
+              <div className="t-body font-extrabold text-warning">✦ 프로</div>
+              <div className="t-title text-ink">
                 {PRO_MONTHLY}<span className="t-sub text-text-3">/월</span>
               </div>
             </div>
@@ -310,7 +363,7 @@ export default async function SubscriptionPage({
           {FEATURE_ROWS.map((r) => (
             <div
               key={r.label}
-              className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 border-b border-divider py-2.5 text-xs"
+              className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 border-b border-divider py-2.5 t-sub"
             >
               <span className="text-text-2">{r.label}</span>
               <span className={`text-center ${r.free === "—" ? "text-text-3" : "text-text-2"}`}>
@@ -332,7 +385,7 @@ export default async function SubscriptionPage({
               </span>
             </div>
           ))}
-          <div className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 py-2.5 text-xs">
+          <div className="grid grid-cols-[200px_repeat(3,1fr)] items-center gap-2 py-2.5 t-sub">
             <span className="text-text-2">프로필 인증배지</span>
             <span className="text-center text-text-3">—</span>
             <span className="bg-[rgba(29,79,216,.04)] py-1 text-center">
@@ -349,7 +402,7 @@ export default async function SubscriptionPage({
       <section className="rise-in-5 card mx-auto mt-4 w-full max-w-[1080px] overflow-x-auto rounded-2xl px-5 py-4">
         <div className="min-w-[560px]">
           <div className="mb-1.5 flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-ink">기간별 할인 (월 환산가)</span>
+            <span className="t-section text-ink">기간별 할인 (월 환산가)</span>
             <span className="t-sub text-text-3">
               일시불 결제 · 중도 해지 시 잔여기간 일할 환불(고객센터 접수)
             </span>
@@ -362,7 +415,7 @@ export default async function SubscriptionPage({
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 border-b border-divider py-2.5 text-xs">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 border-b border-divider py-2.5 t-sub">
             <span className="font-extrabold text-primary">✦ 플러스</span>
             {BILLING_PERIOD_PRICES.pro.map((p) => (
               <span
@@ -380,7 +433,7 @@ export default async function SubscriptionPage({
               </span>
             ))}
           </div>
-          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 py-2.5 text-xs">
+          <div className="grid grid-cols-[120px_repeat(2,1fr)] items-center gap-2 py-2.5 t-sub">
             <span className="font-extrabold text-warning">✦ 프로</span>
             {BILLING_PERIOD_PRICES.expert.map((p) => (
               <span
@@ -406,7 +459,7 @@ export default async function SubscriptionPage({
           제목마다 예시임을 적는다(내용 자체는 그대로 두되, 사실 주장이 되지 않게). */}
       <section className="rise-in-6 mx-auto mt-4 grid w-full max-w-[1080px] gap-3.5 md:grid-cols-3">
         <div className="card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-          <div className="text-xs font-extrabold text-text-3">배지 노출 예시 — 커뮤니티 글</div>
+          <div className="t-sub font-extrabold text-text-3">배지 노출 예시 — 커뮤니티 글</div>
           <div className="flex items-center gap-2">
             <div className="h-[30px] w-[30px] rounded-full bg-[repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2_5px,#eef2f8_5px,#eef2f8_10px)]" />
             <div>
@@ -417,21 +470,21 @@ export default async function SubscriptionPage({
               <div className="t-sub text-text-3">관양동 · 2시간 전</div>
             </div>
           </div>
-          <div className="text-xs text-text-1">공작아파트 3번째 임장 다녀왔어요…</div>
+          <div className="t-sub text-text-1">공작아파트 3번째 임장 다녀왔어요…</div>
         </div>
         <div className="card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-          <div className="text-xs font-extrabold text-text-3">배지 노출 예시 — 공개 노트</div>
+          <div className="t-sub font-extrabold text-text-3">배지 노출 예시 — 공개 노트</div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="t-body font-extrabold text-ink">동편3 702동 노트</span>
               <PlanBadge tier="pro" />
             </div>
-            <span className="text-xs font-extrabold text-primary">82점</span>
+            <span className="t-sub font-extrabold text-primary">82점</span>
           </div>
           <div className="t-sub text-text-3">프로(전문가) 노트는 검색·피드에서 상단 정렬</div>
         </div>
         <div className="card flex flex-col gap-2 rounded-2xl px-[18px] py-4">
-          <div className="text-xs font-extrabold text-text-3">배지 노출 예시 — 홈 헤더</div>
+          <div className="t-sub font-extrabold text-text-3">배지 노출 예시 — 홈 헤더</div>
           <div className="flex items-center gap-1.5">
             <div className="h-[30px] w-[30px] rounded-full bg-[repeating-linear-gradient(45deg,#e2e8f2,#e2e8f2_5px,#eef2f8_5px,#eef2f8_10px)]" />
             <PlanBadge tier="plus" />
@@ -459,7 +512,7 @@ export default async function SubscriptionPage({
         dangerouslySetInnerHTML={{ __html: jsonLdScript(faqJsonLd(SUBSCRIPTION_FAQ)) }}
       />
 
-      <p className="mx-auto mt-5 w-full max-w-[1080px] text-xs text-text-3">
+      <p className="mx-auto mt-5 w-full max-w-[1080px] t-sub text-text-3">
         {/* "언제든 해지 가능"만 적어 두면 화면 어딘가에 해지 버튼이 있다는 뜻으로 읽힌다.
             셀프서비스 해지는 아직 없으므로 실제 접수 경로를 함께 적는다(E1). */}
       <div className="mx-auto mt-4 w-full max-w-[1080px]">

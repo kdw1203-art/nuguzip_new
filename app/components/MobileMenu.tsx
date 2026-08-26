@@ -244,7 +244,7 @@ export function MobileMenu() {
                     prefetch={false}
                             key={c.href + c.label}
                             href={c.href}
-                            className="truncate rounded-[10px] px-3 py-[8px] text-[12.5px] font-semibold text-text-2 transition-colors active:bg-[rgba(29,79,216,.08)] active:text-primary"
+                            className="truncate rounded-[10px] px-3 py-[8px] t-body font-semibold text-text-2 transition-colors active:bg-[rgba(29,79,216,.08)] active:text-primary"
                           >
                             {c.label}
                           </Link>
@@ -333,7 +333,7 @@ export function MobileMenu() {
                   </a>
                 )}
               </div>
-              <Link prefetch={false} href="/notes/new" className="btn-primary rounded-xl py-3 text-center text-sm">
+              <Link prefetch={false} href="/notes/new" className="btn-primary rounded-xl py-3 text-center t-body font-bold">
                 임장노트 쓰기
               </Link>
             </div>

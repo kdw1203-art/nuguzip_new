@@ -201,7 +201,7 @@ export function HeaderSearch() {
         {/* 항목 12 — 단축키 발견성. 장식이므로 스크린리더에서는 숨긴다(aria-label 에 명시). */}
         <kbd
           aria-hidden
-          className="shrink-0 rounded-md border border-line bg-[var(--glass-bg)] chip-pad-tight font-sans text-[10px] font-bold text-text-3"
+          className="shrink-0 rounded-md border border-line bg-[var(--glass-bg)] chip-pad-tight font-sans t-caption font-bold text-text-3"
         >
           /
         </kbd>

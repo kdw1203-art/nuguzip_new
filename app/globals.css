@@ -791,7 +791,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 .tooltip {
   background: var(--ink);
   color: #fff;
-  font-size: 10px;
+  font-size: var(--fs-sub); /* 램프: 10px → 11px */
   line-height: 1.5;
   padding: 7px 11px;
   border-radius: 8px;
@@ -1916,7 +1916,7 @@ html[data-drag-scrolling] * {
   border-radius: var(--radius-pill);
   background: var(--primary-soft);
   color: var(--primary);
-  font-size: 10px;
+  font-size: var(--fs-caption); /* 램프: 10px → 9px (18px 원 안 숫자) */
   font-weight: 800;
   line-height: 1;
 }
@@ -2121,14 +2121,16 @@ a.rank-row:hover {
   color: var(--ink);
 }
 .kpi-k {
-  font-size: 11px;
+  font-size: var(--fs-sub); /* 11 */
   font-weight: 700;
   color: var(--text-3);
 }
+/* 라벨(11)과 설명(10.5)이 0.5px 차이라 사실상 같은 크기로 보였다.
+   램프 한 칸(9)을 내려 라벨/설명이 구분되게 한다. */
 .kpi-d {
-  font-size: 10.5px;
+  font-size: var(--fs-caption); /* 램프: 10.5px → 9px */
   color: var(--text-3);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* ---------- 세그먼티드 컨트롤 (기간·지표 전환) ---------- */
@@ -2145,7 +2147,7 @@ a.rank-row:hover {
   background: transparent;
   border-radius: var(--radius-pill);
   padding: 5px 12px;
-  font-size: 11.5px;
+  font-size: var(--fs-sub); /* 램프: 11.5px → 11px */
   font-weight: 700;
   color: var(--text-3);
   cursor: pointer;
@@ -2336,7 +2338,7 @@ a.rank-row:hover {
   gap: 2px;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  font-size: 10.5px;
+  font-size: var(--fs-caption); /* 램프: 10.5px → 9px */
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -2411,7 +2413,7 @@ a.rank-row:hover {
   border-radius: var(--radius-pill);
   white-space: nowrap;
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--fs-sub); /* 램프: 12px → 11px */
   font-weight: 700;
   color: var(--text-2);
   background: var(--glass-bg);
@@ -2447,7 +2449,7 @@ a.rank-row:hover {
   cursor: pointer;
   border-radius: var(--radius-pill);
   padding: 4px 11px;
-  font-size: 12px;
+  font-size: var(--fs-sub); /* 램프: 12px → 11px */
   font-weight: 700;
   color: var(--text-2);
   white-space: nowrap;
@@ -2471,3 +2473,64 @@ a.rank-row:hover {
   background: var(--border-strong);
   opacity: 0.7;
 }
+
+/* ============================================================
+   터치 타깃 확보 (2026-08-25)
+
+   코드 주석에 이미 기록돼 있던 미해결 건이다 — "10×4(px-2.5 py-1) 40곳은
+   누르는 칩이고 높이 24px 라 44px 탭 타깃 권고에 못 미친다. 이번 변경이 만든
+   문제가 아니라 원래 그랬고, 여기서 고치지 않았다는 사실만 적어 둔다."
+
+   이제 고친다. 다만 **보이는 크기는 그대로 둔다** — 칩을 키우면 이번 라운드에서
+   맞춘 밀도가 통째로 흐트러진다. 대신 손가락이 닿는 범위만 투명하게 넓힌다.
+   포인터가 굵은 기기(터치)에서만 켜서 마우스 환경의 호버 판정은 건드리지 않는다.
+   ============================================================ */
+@media (pointer: coarse) {
+  a.chip,
+  button.chip,
+  .map-chip,
+  .seg > button,
+  .map-seg > button {
+    position: relative;
+  }
+  a.chip::after,
+  button.chip::after,
+  .map-chip::after,
+  .seg > button::after,
+  .map-seg > button::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 44px;
+    transform: translateY(-50%);
+    /* 그리기 없음 — 히트 영역만 넓힌다. 뒤 요소를 가리지 않도록 음수 z 는 쓰지 않고
+       부모의 스택 순서를 그대로 따른다(칩끼리 8px 간격이라 겹침이 생기지 않는다). */
+    pointer-events: auto;
+  }
+  /* 아이콘 전용 정사각 버튼도 같은 규칙 */
+  .tap-44 {
+    position: relative;
+  }
+  .tap-44::after {
+    content: "";
+    position: absolute;
+    inset: 50% 50% 50% 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* 가로 스크롤 탭 — 오른쪽 끝을 살짝 흐려 "더 있다"를 알린다.
+   관리자 알림함은 탭이 6개(전체·매물·관심지역·활동·포인트·운영)라
+   390px 화면에서 마지막 탭이 화면 밖에서 시작한다. 잘린 것과 없는 것은 다르다.
+   (스크롤 끝 감지는 넣지 않는다 — JS 없이 CSS 로는 못 하고, 안 하는 일을 하는
+    척하는 셀렉터를 두느니 항상 같은 힌트를 주는 편이 정직하다.) */
+.tab-scroll {
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
+}
+.tab-scroll::-webkit-scrollbar { display: none; }

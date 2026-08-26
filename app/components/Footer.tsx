@@ -28,7 +28,7 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t border-line bg-surface px-5 pb-28 pt-6 md:pb-6">
-      <div className="mx-auto flex max-w-[1240px] flex-col gap-2 text-xs leading-relaxed text-text-3">
+      <div className="mx-auto flex max-w-[1240px] flex-col gap-2 t-sub text-text-3">
         {/* 1행: 사업자 고지 */}
         <div>
           누구집 · 상호: {biz.legalName}({biz.domain}) · 대표:{" "}

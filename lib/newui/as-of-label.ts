@@ -40,3 +40,41 @@ function isSaneYm(y: string, m: string): boolean {
   const mm = Number(m);
   return yy >= 1900 && yy <= 2999 && mm >= 1 && mm <= 12;
 }
+
+
+/* ── 공표 지연 표기 ──────────────────────────────────────────────────────
+ *
+ * 왜 필요한가(2026-08-25 실측): market_region_price 의 최신 period 는 202607
+ * 인데 그 행은 **오늘 갱신됐다**. 한국부동산원 같은 공표 통계는 원래 한두 달
+ * 늦게 나오기 때문이다. 그런데 화면에는 "2026.07 기준" 만 나가서 보는 사람은
+ * 적재가 멈춘 것으로 읽는다. 내부 신선도 감시도 같은 이유로 "적재 정지"
+ * 오경보를 냈다(임계 240h 가 월 단위 공표를 고려하지 않음).
+ *
+ * 지어내지 않는다: 우리가 아는 건 "우리 테이블에 들어온 것 중 가장 최근
+ * 공표분"이지 "기관이 발표한 최신분"이 아니다. 문구도 딱 그만큼만 말한다.
+ */
+
+/** 지금 기준 몇 개월 전 공표분인가 (YYYYMM 계열). 해석 불가·미래면 null. */
+export function monthsBehind(raw: string | null | undefined, now = new Date()): number | null {
+  const digits = String(raw ?? "").replace(/[^0-9]/g, "");
+  if (digits.length < 6) return null;
+  const y = Number(digits.slice(0, 4));
+  const m = Number(digits.slice(4, 6));
+  if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) return null;
+  const diff = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m);
+  return diff < 0 ? null : diff;
+}
+
+/** "2026.07 공표분 · 수록된 최신" 형태. 2개월을 넘으면 지연을 명시한다. */
+export function publishedAsOfLabel(
+  raw: string | null | undefined,
+  now = new Date(),
+): string | null {
+  const base = formatAsOfLabel(raw);
+  if (!base) return null;
+  const behind = monthsBehind(raw, now);
+  if (behind === null) return `${base} 공표분`;
+  if (behind <= 1) return `${base} 공표분 · 수록된 최신`;
+  if (behind === 2) return `${base} 공표분 · 공표 주기상 최신`;
+  return `${base} 공표분 · ${behind}개월 지연`;
+}
