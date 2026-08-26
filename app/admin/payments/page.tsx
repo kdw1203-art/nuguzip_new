@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listPayments, type PaymentRecord } from "@/lib/payments/store";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
+import { checkTossKeyPair, isBillingCapableClientKey } from "@/lib/payments/toss-keys";
 import { CancelPaymentButton } from "./CancelPaymentButton";
 import { NotifyPreorderButton } from "./NotifyPreorderButton";
 
@@ -67,10 +68,29 @@ function maskEmail(email: string | null): string {
 }
 
 export default async function AdminPaymentsPage() {
-  const clientEnv = keyEnv(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY, "test_ck_", "live_ck_");
-  const secretEnv = keyEnv(process.env.TOSS_SECRET_KEY, "test_sk_", "live_sk_");
-  const paired =
-    clientEnv !== "missing" && secretEnv !== "missing" && clientEnv === secretEnv;
+  /* 2026-08-26: 예전엔 클라이언트 키를 "test_ck_/live_ck_" 로만 봤다. 그래서
+     주문서형·결제창형 연동 키(live_gck_…)를 넣으면 **설정돼 있는데도 미설정**으로
+     떴다. 이제 종류(gck/ck)와 환경(test/live)을 함께 보고, 짝이 맞는지까지 본다. */
+  const generalPair = checkTossKeyPair(
+    process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    process.env.TOSS_SECRET_KEY,
+  );
+  /* 자동결제는 MID 가 달라 키 세트도 다르다. 전용 값이 없으면 일반결제 값으로
+     폴백하는 런타임과 같은 규칙으로 판정한다. */
+  const billingPair = checkTossKeyPair(
+    process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY ?? process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    process.env.TOSS_BILLING_SECRET_KEY ?? process.env.TOSS_SECRET_KEY,
+  );
+  const billingClientOk = isBillingCapableClientKey(
+    process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY ?? process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+  );
+  const clientEnv = keyEnv(
+    process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    "test_",
+    "live_",
+  );
+  const secretEnv = keyEnv(process.env.TOSS_SECRET_KEY, "test_", "live_");
+  const paired = generalPair.ok;
 
   let payments: PaymentRecord[] = [];
   let paymentsFailed = false;
@@ -138,6 +158,22 @@ export default async function AdminPaymentsPage() {
       label: "시크릿 키 (TOSS_SECRET_KEY)",
       env: secretEnv,
       note: "승인·조회·웹훅 재검증 — 서버 전용, 절대 클라이언트 금지",
+    },
+    {
+      label: "일반결제 키 세트",
+      env: generalPair.ok ? (generalPair.mode === "live" ? "live" : "test") : "missing",
+      note: generalPair.reason,
+    },
+    {
+      label: "자동결제 키 세트 (MID 별도)",
+      env: billingPair.ok && billingClientOk
+        ? (billingPair.mode === "live" ? "live" : "test")
+        : "missing",
+      note: billingPair.ok
+        ? billingClientOk
+          ? `${billingPair.reason} · NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY${process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY ? " 설정됨" : " 미설정 → 일반결제 키로 폴백"}`
+          : "카드 등록창은 결제창 SDK 라 API 개별 연동 키(ck)가 필요하다 — 위젯 키(gck)로는 안 열린다"
+        : billingPair.reason,
     },
   ];
 

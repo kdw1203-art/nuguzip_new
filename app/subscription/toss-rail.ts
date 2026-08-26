@@ -65,6 +65,28 @@ export function tossClientKey(): string | null {
 }
 
 /**
+ * 자동결제(빌링) 카드 등록에 쓸 클라이언트 키.
+ *
+ * 토스는 서비스마다 **다른 상점아이디(MID)** 에 API 개별 연동 키를 따로 발급한다
+ * ("자동결제(빌링) … 서비스마다 다른 상점아이디(MID)에 각각 API 개별 연동 키가
+ * 발급돼요"). 이 상점도 일반결제 MID 와 자동결제 MID 가 나뉘어 있어,
+ * 일반결제 키로 requestBillingAuth 를 부르면 카드 등록부터 실패한다.
+ *
+ * 미설정이면 기존 키로 폴백한다 — 빌링은 NEXT_PUBLIC_TOSS_BILLING_ENABLED=1
+ * 이어야만 열리므로, 키를 안 넣은 상태에서 동작이 바뀌지는 않는다.
+ * (폴백 값이 위젯 키(gck)면 lib/payments/toss-keys.isBillingCapableClientKey 가
+ *  false 를 돌려주므로 화면이 정직한 대기 상태로 남는다.)
+ */
+export function tossBillingClientKey(): string | null {
+  const k = process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY?.trim();
+  if (k && (k.startsWith("test_ck_") || k.startsWith("live_ck_"))) return k;
+  const fallback = tossClientKey();
+  return fallback && (fallback.startsWith("test_ck_") || fallback.startsWith("live_ck_"))
+    ? fallback
+    : null;
+}
+
+/**
  * 결제위젯 연동 키인가.
  *
  * API 키 문서: 클라이언트 키와 시크릿 키는 세트고, **결제위젯 SDK(widgets)는

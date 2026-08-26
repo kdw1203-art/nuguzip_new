@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { isTossTestEnv, loadTossSdk, tossClientKey } from "../toss-rail";
+import { isTossTestEnv, loadTossSdk, tossBillingClientKey } from "../toss-rail";
 
 /* ============================================================
    자동결제(빌링) 카드 등록 클라이언트.
@@ -128,7 +128,8 @@ export function BillingEnrollClient() {
     setOpening(true);
     try {
       const TossPayments = await loadTossSdk();
-      const payment = TossPayments(tossClientKey() as string).payment({ customerKey });
+      /* 자동결제 MID 의 클라이언트 키 — 일반결제 키로는 카드 등록이 안 된다 */
+      const payment = TossPayments(tossBillingClientKey() as string).payment({ customerKey });
       const origin = window.location.origin;
       await payment.requestBillingAuth({
         method: "CARD",

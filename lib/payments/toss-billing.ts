@@ -1,5 +1,7 @@
 import "server-only";
 
+import { isBillingCapableClientKey } from "@/lib/payments/toss-keys";
+
 /**
  * 토스페이먼츠 자동결제(빌링) 서버 클라이언트 — 기반 모듈.
  *
@@ -32,8 +34,21 @@ const API_BASE = "https://api.tosspayments.com";
    confirm 라우트와 공유. 재수출해 기존 import 경로를 유지한다. */
 export { deterministicIdempotencyKey } from "@/lib/payments/idempotency";
 
+/**
+ * 빌링 API 인증 헤더.
+ *
+ * 자동결제는 **자동결제 MID 의 시크릿 키**를 쓴다. 토스 문서: "클라이언트 키와
+ * 시크릿 키는 항상 '세트'로 묶여 있고, 한 세트로 써야 돼요" · "서비스마다 다른
+ * 상점아이디(MID)에 각각 API 개별 연동 키가 발급돼요". 일반결제 MID 의 시크릿으로
+ * 빌링키를 발급하면 그 MID 에는 없는 계약이라 거절된다.
+ *
+ * TOSS_BILLING_SECRET_KEY 가 없으면 기존 TOSS_SECRET_KEY 로 폴백한다 —
+ * MID 를 하나만 쓰는 상점(혹은 테스트 환경)에서는 그게 정답이고, 나뉜 상점에서는
+ * 소유자가 값을 넣는 순간 자동으로 갈라진다.
+ */
 function authHeader(): string | null {
-  const secret = process.env.TOSS_SECRET_KEY?.trim();
+  const secret =
+    process.env.TOSS_BILLING_SECRET_KEY?.trim() || process.env.TOSS_SECRET_KEY?.trim();
   if (!secret) return null;
   return `Basic ${Buffer.from(secret + ":").toString("base64")}`;
 }
@@ -57,7 +72,15 @@ export function isTossBillingConfigured(): boolean {
  */
 export function isTossBillingEnabled(): boolean {
   return (
-    process.env.NEXT_PUBLIC_TOSS_BILLING_ENABLED?.trim() === "1" && isTossBillingConfigured()
+    process.env.NEXT_PUBLIC_TOSS_BILLING_ENABLED?.trim() === "1" &&
+    isTossBillingConfigured() &&
+    /* 카드 등록창(payment().requestBillingAuth)은 결제창 SDK 라 API 개별 연동
+       키(ck)가 필요하다. 위젯 키(gck)만 있는 상태로 열면 등록창이 안 뜬다 —
+       그건 "되는 척하는 화면" 이므로 아예 열지 않는다. */
+    isBillingCapableClientKey(
+      process.env.NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY ??
+        process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    )
   );
 }
 

@@ -42,6 +42,11 @@ const optionalProductionWarnings = [
   "OPENAI_API_KEY",
   "TOSS_SECRET_KEY",
   "NEXT_PUBLIC_TOSS_CLIENT_KEY",
+  /* 자동결제는 MID 가 달라 키 세트도 다르다(토스 문서: 서비스마다 다른 MID 에
+     각각 API 개별 연동 키가 발급된다). 미설정이면 일반결제 키로 폴백하지만,
+     MID 가 나뉜 상점에서는 그 폴백이 곧 카드 등록 실패다. */
+  "TOSS_BILLING_SECRET_KEY",
+  "NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY",
   "NEXT_PUBLIC_NAVER_MAP_CLIENT_ID",
   "MOLIT_SERVICE_KEY",
   "SEOUL_DATA_API_KEY",

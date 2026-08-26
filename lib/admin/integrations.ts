@@ -1,4 +1,5 @@
 import "server-only";
+import { checkTossKeyPair } from "@/lib/payments/toss-keys";
 import { getKakaoRestApiKey } from "@/lib/kakao/rest-client";
 import {
   getKakaoRolloutPhases,
@@ -46,9 +47,12 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
   const github =
     Boolean(process.env.GITHUB_TOKEN?.trim()) ||
     Boolean(process.env.GH_TOKEN?.trim());
-  const toss =
-    Boolean(process.env.TOSS_SECRET_KEY?.trim()) &&
-    Boolean(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim());
+  /* 키가 "있다" 가 아니라 "짝이 맞다" 로 본다 — 위젯 클라이언트 키(gck)에
+     API 시크릿(sk)을 물리면 결제창은 뜨는데 승인에서 깨진다. */
+  const toss = checkTossKeyPair(
+    process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY,
+    process.env.TOSS_SECRET_KEY,
+  ).ok;
   const tossTest = Boolean(
     process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY?.trim().startsWith("test_"),
   );
@@ -104,7 +108,8 @@ export function getPlatformIntegrationRows(): PlatformIntegrationRow[] {
         ? "원화 결제(테스트 키 — 승인은 가상, 실제 청구 없음)"
         : "원화 결제·payments 테이블 연동 (카드+간편결제 통합결제창)",
       ok: toss,
-      envKeys: "TOSS_SECRET_KEY + NEXT_PUBLIC_TOSS_CLIENT_KEY (test/live 짝 일치)",
+      envKeys:
+        "TOSS_SECRET_KEY + NEXT_PUBLIC_TOSS_CLIENT_KEY (종류·환경 짝 일치) · 자동결제는 TOSS_BILLING_SECRET_KEY + NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY",
       docsUrl: "https://docs.tosspayments.com/guides/environment",
     },
     {
