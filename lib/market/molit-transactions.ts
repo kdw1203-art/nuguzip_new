@@ -17,7 +17,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { fetchMolitDeals, type MolitDeal, type MolitRtmsType } from "@/lib/national-data/molit-api";
 import { getSigunguInfo, getAllSido, getSigunguBySido, type SigunguInfo } from "@/lib/national-data/region-codes";
 import { logIngest } from "@/lib/market/store";
-import { refreshMarketAggregates, type RefreshAggregatesResult } from "@/lib/market/refresh-aggregates";
+import type { RefreshAggregatesResult } from "@/lib/market/refresh-aggregates";
 import { logger } from "@/lib/log";
 
 /** 1평 = 3.305785㎡ */
@@ -539,16 +539,24 @@ const RECENT_MONTHS = 3;
       (firstError ? ` 첫오류=${firstError.slice(0, 200)}` : "");
   }
 
-  // 새 실거래가 들어왔을 때만 집계 MV 를 다시 계산한다.
-  // (`/tx` 랜딩과 지도 시세 색상이 이 집계를 읽는다. 갱신하지 않으면 새로 적재한
-  //  거래가 화면에 영영 반영되지 않는다.)
-  // 적재 0건이면 집계 결과가 바뀔 수 없으므로 8초짜리 재계산을 건너뛴다.
-  // 갱신이 실패해도 적재 자체는 이미 성공했으므로 result.ok 를 뒤집지 않는다.
-  /* 중단했으면 재계산도 하지 않는다. DB 가 죽어 있는 판에 8초짜리 MV 재계산을
-     얹으면 회복만 늦추고, 어차피 실패한다. */
-  if (result.inserted > 0 && !aborted) {
-    result.aggregates = await refreshMarketAggregates();
-  }
+  /* 적재 직후 집계 재계산 — **부르지 않는다.**
+   *
+   * 예전 주석은 "실측 8.75초" 라고 적혀 있었지만, 지금 이 경로는 PostgREST 를
+   * 지나므로 authenticator 의 statement_timeout(8초)을 물려받는다. DB 쪽
+   * refresh_market_aggregates() 는 600초 미만 예산이면 스스로 물러나도록
+   * 되어 있어(예산 가드), 이 호출은 **매번 deferred 로 끝났다.**
+   *
+   * 실측(2026-08-26): etl_runs 의 market-aggregates-http 최근 9건이 전부
+   *   {"reason":"insufficient statement_timeout","budget_ms":8000,"required_ms":600000}
+   * 이다. 즉 이 줄은 5일 동안 아홉 번 불려서 아홉 번 아무 일도 안 하고,
+   * 대신 etl_runs 에 잡음만 아홉 줄 남겼다.
+   *
+   * 집계 갱신은 pg_cron market-aggregates-daily(19:00 UTC, 900초 예산)가
+   * 책임진다. 2026-08-26 에 그 잡의 무거운 구간(25개월 전체 재구축)을 최근
+   * 4개월로 줄여 5.5초로 떨어뜨렸으므로, 하루 한 번으로 충분히 따라온다.
+   * 여기서 다시 부르려면 8초 안에 끝나는 별도 경량 함수가 있어야 하고,
+   * 그건 지금 없다 — 없는 것을 있는 척 부르지 않는다. */
+  void aborted;
 
   await logIngest({
     source: "molit",

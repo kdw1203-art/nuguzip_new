@@ -952,11 +952,11 @@ export function NaverMap({
       bbox,
     )}&layer=mapnik&marker=${center.lat},${center.lng}`;
     return (
-      <div className={`relative overflow-hidden rounded-2xl bg-slate-100 ${className}`}>
+      <div className={`relative min-h-[200px] overflow-hidden rounded-2xl bg-slate-100 ${className}`}>
         <iframe
           title="대체 지도 (OpenStreetMap)"
           src={osmSrc}
-          className="h-full w-full min-h-[200px] border-0"
+          className="absolute inset-0 h-full w-full border-0"
           loading="lazy"
         />
         <div className="absolute inset-x-0 bottom-0 z-10 bg-amber-50/95 px-3 py-2 text-[11px] leading-snug text-amber-900 backdrop-blur">
@@ -988,9 +988,16 @@ export function NaverMap({
   }
 
   return (
+    /* CLS 수정(2026-08-26): 높이 하한을 **바깥 상자**로 옮겼다.
+       예전에는 바깥이 min-h-0 이고 안쪽 지도 컨테이너가 `h-full min-h-[200px]`
+       이었다. 부모 높이가 확정되지 않은 자리에서는 h-full 이 auto 로 풀려,
+       컨테이너가 200px 로 시작했다가 SDK 가 타일을 넣는 순간 그만큼 커졌다.
+       프로덕션 실측: /map CLS p75 0.825, 귀속 요소가 바로 이 상자 안의 타일
+       <img> (단일 표본 1.609). 이제 안쪽은 absolute inset-0 라 내용이 상자를
+       키울 수 없다 — 타일이 언제 오든 크기가 그대로다. */
     <div
       className={cn(
-        "relative h-full w-full min-h-0 overflow-hidden",
+        "relative h-full w-full min-h-[200px] overflow-hidden",
         rounded && "rounded-2xl",
         className,
       )}
@@ -1029,7 +1036,10 @@ export function NaverMap({
           자기 커서를 따로 갖고 있어서 컨테이너에만 주면 되돌아간다. */}
       <div
         ref={containerRef}
-        className={cn("h-full w-full min-h-[200px]", crosshair && "cursor-crosshair [&_*]:cursor-crosshair")}
+        className={cn(
+          "absolute inset-0",
+          crosshair && "cursor-crosshair [&_*]:cursor-crosshair",
+        )}
       />
     </div>
   );

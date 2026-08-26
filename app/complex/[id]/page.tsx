@@ -8,7 +8,7 @@ import {
   getComplexById,
   getTransactionHistory,
   getComplexPosts,
-  searchComplexes,
+  listComplexesInDistrict,
   type ComplexRow,
   type ComplexTransactionRow,
 } from "@/lib/complex/complex-store";
@@ -561,7 +561,7 @@ async function loadView(id: string): Promise<HubView | null> {
     row.district
       ? settle(
           `${row.district} 인근 단지`,
-          searchComplexes("", row.district, 9, budget.signal),
+          listComplexesInDistrict(row.district, 9, budget.signal),
           budget.expired,
         )
       : Promise.resolve({ ok: true as const, data: [] as ComplexRow[] }),

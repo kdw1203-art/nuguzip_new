@@ -611,6 +611,75 @@ export async function searchComplexes(
 }
 
 /**
+ * 같은 구의 다른 단지 — 단지 단위 집계표에서 바로 읽는다.
+ *
+ * 왜 따로 뒀나(2026-08-26 실측): 이 용도로 `searchComplexes("", district, 9)` 를
+ * 부르고 있었는데, 그 함수는 **market_transactions 에서 800건을 긁어다** JS 로
+ * 접어 9개 단지를 만든다. 758,872행 · 1.17GB 짜리 표를 단지 목록 뽑자고 훑는 셈이다.
+ *
+ *   pg_stat_statements: 이 형태의 조회가 158,936회 · 평균 43.2ms · 누적 6,862초
+ *   = 전체 DB 실행시간의 **14%**. 최다 소비 3위이자, 사람 트래픽으로는 설명되지
+ *   않는 횟수다(하루 7,200회). /complex/[id] 를 열 때마다 한 번씩 돈다.
+ *
+ * complex_tx_stats_base 는 이미 매일 갱신되는 **단지 단위** 매트뷰다(32,853행).
+ * 같은 결과를 3.8ms 에 낸다 — 8.8배. 게다가 정렬 기준이 "최근 거래일" 이 아니라
+ * "거래량" 이라, 옆 단지 추천으로는 이쪽이 더 맞다.
+ *
+ * 실거래가 한 건도 없는 단지는 이 표에 없다. 그건 손실이 아니다 —
+ * 옆 단지 추천에 거래 이력이 없는 단지를 올릴 이유가 없다.
+ */
+export async function listComplexesInDistrict(
+  district: string,
+  limit = 9,
+  signal?: AbortSignal,
+): Promise<ComplexRow[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const dist = (district ?? "").trim();
+  if (!dist) return [];
+
+  const names = await loadRegionNames(sb);
+  if (names === null) return [];
+  const needle = dist.toLowerCase();
+  const hit = names.filter((n) => n.toLowerCase().includes(needle));
+  /* 해석표에 없는 지역명은 사실 0건이다 — ILIKE 로 훑어도 결과는 같고 느리기만 하다. */
+  if (hit.length === 0) return [];
+
+  let q = sb
+    .from("complex_tx_stats_base")
+    .select("complex_name, region_name, address, build_year")
+    .in("region_name", hit.slice(0, REGION_IN_MAX))
+    .order("tx_count", { ascending: false })
+    .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+
+  const { data, error } = await q;
+  /* 빈 배열은 "그 구에 거래 이력 있는 단지가 없다" 는 뜻이다. 못 읽은 것을
+     그렇게 말하면 안 되므로 던진다 — 호출부가 접는다. */
+  if (error) throw dbError("complex_tx_stats_base (같은 구 단지)", error);
+
+  const rows =
+    (data as
+      | {
+          complex_name: string;
+          region_name: string;
+          address: string | null;
+          build_year: number | null;
+        }[]
+      | null) ?? [];
+  const out: ComplexRow[] = [];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (!r.complex_name || !r.region_name) continue;
+    const key = `${r.region_name}${SEP}${r.complex_name}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(toComplexRow(r.region_name, r.complex_name, r));
+  }
+  return out;
+}
+
+/**
  * A8 — 검색 무결과 대안 제안. 정확 매칭이 실패했을 때, 질의를 토큰으로 쪼개
  * complex_name/region_name 어느 한 쪽이라도 포함하는 실거래 단지를 폭넓게 추천한다.
  * (searchComplexes 는 전체 질의 contains 라 "래미안 강남" 같은 조합은 못 잡음 → 토큰 OR 로 보완)

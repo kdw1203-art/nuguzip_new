@@ -12,7 +12,7 @@ import {
   getComplexPosts,
   getAreaBands,
   getRegionRelative,
-  searchComplexes,
+  listComplexesInDistrict,
 } from "@/lib/complex/complex-store";
 import { listApprovedListings } from "@/lib/listings/store-db";
 import { getServiceSupabase } from "@/lib/supabase/service";
@@ -63,7 +63,7 @@ export async function GET(
       return null;
     }),
     complex?.district
-      ? searchComplexes("", complex.district, 6)
+      ? listComplexesInDistrict(complex.district, 6)
           .then((rows) =>
             rows
               .filter((c) => c.id !== id)
