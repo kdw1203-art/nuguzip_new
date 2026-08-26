@@ -43,7 +43,7 @@ function ItemBody({ it }: { it: TickerItem }) {
 }
 
 function Item({ it, linkable = true }: { it: TickerItem; linkable?: boolean }) {
-  const cls = "flex shrink-0 items-baseline gap-1.5 text-[12px] font-bold";
+  const cls = "flex shrink-0 items-baseline gap-1.5 t-sub font-bold";
   /* 마퀴 복제 트랙(aria-hidden)의 링크는 포커스 함정이 된다 — 복제분은 스팬으로 */
   if (it.href && linkable) {
     return (

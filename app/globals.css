@@ -358,6 +358,18 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   a {
     color: var(--primary);
   }
+  /* 버튼 기본 글자 크기 — 사이즈 클래스를 안 붙인 버튼이 루트 16px 을
+     물려받아 램프를 벗어나고 있었다(/subscription 의 "오픈 알림 받기" 등).
+     base 레이어에 두는 이유는 위와 같다 — 호출부의 text-[13px] 같은
+     유틸리티가 언제나 이겨야 한다. */
+  .btn-primary,
+  .btn-secondary,
+  .btn-soft,
+  .btn-outline,
+  .btn-ghost,
+  .btn-cta {
+    font-size: var(--fs-section);
+  }
   a:hover {
     color: var(--primary-strong);
   }

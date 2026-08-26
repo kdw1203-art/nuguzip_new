@@ -103,7 +103,7 @@ function FeatureList({ features, dark }: { features: PlanFeature[]; dark: boolea
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className={`py-2 text-left text-[12px] font-bold md:hidden ${
+          className={`py-2 text-left text-[13px] font-bold md:hidden ${
             dark ? "text-ai-muted" : "text-primary"
           }`}
         >
@@ -137,7 +137,7 @@ function FeatureRow({ f, dark }: { f: PlanFeature; dark: boolean }) {
       </span>
       {f.note && !off && (
         <span
-          className={`shrink-0 rounded-md chip-pad-tight text-[10px] font-bold ${
+          className={`shrink-0 rounded-md chip-pad-tight text-[9px] font-bold ${
             dark ? "bg-white/10 text-[#9db9ff]" : "bg-primary-soft text-primary"
           }`}
         >
@@ -222,14 +222,14 @@ export function PlanCards({
               <div className="flex flex-col gap-1">
                 <div className={`text-[15px] font-extrabold ${p.nameTone}`}>{p.name}</div>
                 {/* 단일 출처 tagline — "누구를 위한 플랜인가" 한 줄 */}
-                <div className={`text-[12px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
+                <div className={`text-[11px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
                   {def.tagline}
                 </div>
               </div>
 
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-baseline gap-1.5">
-                  <span className={`text-[32px] font-extrabold ${p.dark ? "text-white" : "text-ink"}`}>
+                  <span className={`text-[28px] font-extrabold ${p.dark ? "text-white" : "text-ink"}`}>
                     {tierPrice == null ? "0원" : fmtWon(monthlyShown)}
                   </span>
                   {tierPrice != null && (
@@ -255,7 +255,7 @@ export function PlanCards({
                 <button
                   type="button"
                   disabled
-                  className="rounded-[14px] bg-bg p-[13px] text-center text-sm font-bold text-text-1 opacity-70"
+                  className="rounded-[14px] bg-bg p-[13px] text-center text-[15px] font-bold text-text-1 opacity-70"
                 >
                   현재 이용 중
                 </button>
@@ -282,7 +282,7 @@ export function PlanCards({
               ) : (
                 <Link
                   href="/notes/new"
-                  className={`rounded-[14px] p-[13px] text-center text-sm font-bold no-underline ${p.ctaClass}`}
+                  className={`rounded-[14px] p-[13px] text-center text-[15px] font-bold no-underline ${p.ctaClass}`}
                 >
                   {p.cta}
                 </Link>

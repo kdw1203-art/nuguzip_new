@@ -172,9 +172,9 @@ function HouseAdCard({ ad }: { ad: HouseAd }) {
           </span>
         </div>
         <div className="flex flex-col gap-1 px-4 pb-3.5 pt-2.5">
-          <div className="text-[14px] font-extrabold leading-snug text-ink">{ad.title}</div>
-          <p className="text-[12px] leading-relaxed text-text-2">{ad.body}</p>
-          <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-bold text-primary">
+          <div className="text-[15px] font-extrabold leading-snug text-ink">{ad.title}</div>
+          <p className="text-[13px] leading-relaxed text-text-2">{ad.body}</p>
+          <span className="mt-1 inline-flex items-center gap-1 text-[13px] font-bold text-primary">
             {ad.ctaLabel}
             <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">
               →

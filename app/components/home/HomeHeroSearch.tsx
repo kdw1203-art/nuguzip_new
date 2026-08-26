@@ -179,7 +179,7 @@ export function HomeHeroSearch() {
               <span className="min-w-0 truncate text-[13px] text-text-2">
                 ‘{q.trim()}’ 제안이 없어요 — 아직 안 열린 지역일 수 있어요
               </span>
-              <span className="shrink-0 text-[12px] font-extrabold text-primary">
+              <span className="shrink-0 t-body font-extrabold text-primary">
                 전체 검색·수요 남기기 ›
               </span>
             </button>
@@ -202,10 +202,10 @@ export function HomeHeroSearch() {
                 }}
                 className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
               >
-                <span className="shrink-0 rounded-md bg-bg px-1.5 py-0.5 text-[10px] font-extrabold text-text-2">
+                <span className="shrink-0 rounded-md bg-bg px-1.5 py-0.5 t-caption font-extrabold text-text-2">
                   {it.label}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[13.5px] font-semibold text-text-1">
+                <span className="min-w-0 flex-1 truncate t-body font-semibold text-text-1">
                   {it.title}
                 </span>
                 {it.meta && (
@@ -229,7 +229,7 @@ export function HomeHeroSearch() {
                   pushRecentSearch(k);
                   router.push(`/search?q=${encodeURIComponent(k)}`);
                 }}
-                className="chip max-w-[160px] truncate bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
+                className="chip max-w-[160px] truncate bg-surface px-3 py-1.5 t-sub font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 ⌕ {k}
               </button>
@@ -239,7 +239,7 @@ export function HomeHeroSearch() {
                 key={`c-${c.id}`}
                 type="button"
                 onClick={() => router.push(complexHrefFromId(c.id))}
-                className="chip max-w-[180px] truncate bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
+                className="chip max-w-[180px] truncate bg-primary-soft px-3 py-1.5 t-sub font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 🏢 {c.name}
               </button>
@@ -257,7 +257,7 @@ export function HomeHeroSearch() {
                 key={r.label}
                 type="button"
                 onClick={() => router.push(r.href)}
-                className="chip bg-surface px-3 py-1.5 text-[11.5px] font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
+                className="chip bg-surface px-3 py-1.5 t-sub font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
                 {r.label}
               </button>
@@ -266,7 +266,7 @@ export function HomeHeroSearch() {
             <button
               type="button"
               onClick={() => router.push("/search")}
-              className="chip bg-primary-soft px-3 py-1.5 text-[11.5px] font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
+              className="chip bg-primary-soft px-3 py-1.5 t-sub font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
             >
               + 내 지역 요청
             </button>

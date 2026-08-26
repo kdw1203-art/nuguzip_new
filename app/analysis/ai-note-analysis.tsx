@@ -245,7 +245,7 @@ export function AiNoteAnalysisCard({
           <select
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
-            className="w-full rounded-[10px] border border-line bg-surface px-2.5 py-2 text-xs font-bold text-ink"
+            className="w-full rounded-[10px] border border-line bg-surface px-2.5 py-2 t-sub font-bold text-ink"
           >
             {notes.map((n) => (
               <option key={n.id} value={n.id}>
@@ -273,10 +273,10 @@ export function AiNoteAnalysisCard({
       )}
       {loggedIn && notesLoaded && notes.length === 0 && state.kind !== "login" && (
         <div className="flex items-center justify-between rounded-[12px] bg-primary-soft px-3 py-2.5">
-          <span className="text-xs font-bold text-primary">
+          <span className="t-sub font-bold text-primary">
             분석할 임장노트가 아직 없어요
           </span>
-          <Link href="/notes/new" className="shrink-0 text-xs font-extrabold text-primary">
+          <Link href="/notes/new" className="shrink-0 t-sub font-extrabold text-primary">
             첫 노트 쓰기 ›
           </Link>
         </div>
@@ -285,11 +285,11 @@ export function AiNoteAnalysisCard({
       {state.kind === "done" ? (
         <div className="ai-panel flex flex-col gap-2 rounded-[14px] p-3.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-extrabold text-white">
+            <span className="t-sub font-extrabold text-white">
               {state.result.headline}
             </span>
             <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${
+              className={`shrink-0 rounded px-1.5 py-0.5 t-caption font-extrabold ${
                 state.result.mode === "llm"
                   ? "border border-emerald-400/40 bg-emerald-500/15 text-emerald-100"
                   : "border border-amber-400/50 bg-amber-500/15 text-amber-100"
@@ -304,33 +304,33 @@ export function AiNoteAnalysisCard({
             </span>
           </div>
           {state.result.cached && (
-            <div className="text-[10px] font-bold text-ai-muted">
+            <div className="t-caption font-bold text-ai-muted">
               노트 내용이 그대로라 저장된 분석을 다시 보여드려요. 새로 분석하려면
               &quot;다시 분석하기&quot;를 누르세요.
             </div>
           )}
           {state.result.mode === "rule" && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[rgba(255,255,255,.07)] px-2.5 py-1.5">
-              <span className="flex-1 text-[10px] leading-[1.5] text-ai-muted">
+              <span className="flex-1 t-caption leading-[1.5] text-ai-muted">
                 AI 모델이 일시적으로 응답하지 않아 규칙 기반으로 요약했어요.
               </span>
               <button
                 type="button"
                 onClick={() => run(true)}
-                className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-2 py-0.5 text-[10px] font-bold text-ai-accent"
+                className="shrink-0 rounded border border-[rgba(255,255,255,.25)] px-2 py-0.5 t-caption font-bold text-ai-accent"
               >
                 다시 시도
               </button>
             </div>
           )}
           {state.result.marketSummary && (
-            <div className="rounded-lg bg-[rgba(255,255,255,.07)] px-2.5 py-1.5 text-[10px] font-bold text-ai-accent">
+            <div className="rounded-lg bg-[rgba(255,255,255,.07)] px-2.5 py-1.5 t-caption font-bold text-ai-accent">
               실시세 {state.result.marketSummary}
             </div>
           )}
           {state.result.strengths.length > 0 && (
             <div>
-              <div className="text-[10px] font-extrabold text-ai-accent">강점</div>
+              <div className="t-caption font-extrabold text-ai-accent">강점</div>
               {state.result.strengths.map((b) => (
                 <div key={b} className="text-[11px] leading-[1.55] text-ai-text">
                   · {b}
@@ -340,7 +340,7 @@ export function AiNoteAnalysisCard({
           )}
           {state.result.risks.length > 0 && (
             <div>
-              <div className="text-[10px] font-extrabold text-[#ffb0b0]">약점·리스크</div>
+              <div className="t-caption font-extrabold text-[#ffb0b0]">약점·리스크</div>
               {state.result.risks.map((b) => (
                 <div key={b} className="text-[11px] leading-[1.55] text-ai-text">
                   · {b}
@@ -350,7 +350,7 @@ export function AiNoteAnalysisCard({
           )}
           {state.result.followUps.length > 0 && (
             <div>
-              <div className="text-[10px] font-extrabold text-ai-muted">확인 필요</div>
+              <div className="t-caption font-extrabold text-ai-muted">확인 필요</div>
               {state.result.followUps.map((b) => (
                 <div key={b} className="text-[11px] leading-[1.55] text-ai-text">
                   · {b}
@@ -369,27 +369,27 @@ export function AiNoteAnalysisCard({
         </div>
       ) : state.kind === "login" ? (
         <div className="flex items-center justify-between rounded-[12px] bg-primary-soft px-3 py-2.5">
-          <span className="text-xs font-bold text-primary">
+          <span className="t-sub font-bold text-primary">
             AI 분석은 로그인 후 이용할 수 있어요
           </span>
-          <Link href="/login" className="shrink-0 text-xs font-extrabold text-primary">
+          <Link href="/login" className="shrink-0 t-sub font-extrabold text-primary">
             로그인 ›
           </Link>
         </div>
       ) : state.kind === "quota" ? (
         <div className="flex flex-col gap-1.5 rounded-[12px] bg-danger-soft px-3 py-2.5">
-          <span className="text-xs font-bold text-danger">{state.message}</span>
+          <span className="t-sub font-bold text-danger">{state.message}</span>
           {state.upgrade && (
             <Link
               href="/subscription"
-              className="self-start text-xs font-extrabold text-primary"
+              className="self-start t-sub font-extrabold text-primary"
             >
               플랜 업그레이드하고 한도 늘리기 ›
             </Link>
           )}
         </div>
       ) : state.kind === "error" ? (
-        <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
+        <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 t-sub font-bold text-danger">
           {state.message}
         </div>
       ) : null}

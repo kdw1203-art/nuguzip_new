@@ -143,13 +143,13 @@ function GuestView() {
     <div className="mx-auto flex max-w-[640px] flex-col gap-3">
       <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
         <div className="h-11 w-11 rounded-full bg-[repeating-linear-gradient(45deg,#2a3242,#2a3242_5px,#333d4f_5px,#333d4f_10px)]" />
-        <div className="mt-1 text-base font-extrabold text-white">
+        <div className="mt-1 t-section font-extrabold text-white">
           로그인하고 내 활동을 한곳에서 관리하세요
         </div>
-        <div className="text-xs leading-[1.6] text-ai-muted">
+        <div className="t-sub leading-[1.6] text-ai-muted">
           임장노트 · 포인트 · 관심 지역 · 구독이 마이 화면에 모여요
         </div>
-        <Link href="/login?callbackUrl=/my" className="btn-primary mt-3 rounded-[12px] px-6 py-2.5 text-sm">
+        <Link href="/login?callbackUrl=/my" className="btn-primary mt-3 rounded-[12px] px-6 py-2.5 text-[15px]">
           로그인하고 시작하기
         </Link>
       </div>
@@ -158,7 +158,7 @@ function GuestView() {
           <Link
             key={m.label}
             href={m.href}
-            className={`flex justify-between py-[13px] text-sm font-semibold text-text-1 no-underline ${
+            className={`flex justify-between py-[13px] t-body font-semibold text-text-1 no-underline ${
               i < arr.length - 1 ? "border-b border-divider" : ""
             }`}
           >
@@ -177,7 +177,7 @@ function SectionHead({ title, href, hrefLabel }: { title: string; href?: string;
     <div className="flex items-baseline justify-between px-1">
       <h2 className="t-section text-ink">{title}</h2>
       {href && (
-        <Link href={href} className="text-xs font-semibold text-primary no-underline">
+        <Link href={href} className="t-sub font-semibold text-primary no-underline">
           {hrefLabel ?? "전체 보기"} ›
         </Link>
       )}
@@ -276,22 +276,22 @@ export default async function MyPage() {
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-extrabold text-white">{name}님</span>
+                  <span className="t-section font-extrabold text-white">{name}님</span>
                   <Link
                     href="/subscription"
-                    className={`rounded-full bg-[rgba(255,255,255,.1)] chip-pad text-[10px] font-extrabold no-underline ${
+                    className={`rounded-full bg-[rgba(255,255,255,.1)] chip-pad t-caption font-extrabold no-underline ${
                       isAdminViewer ? "text-[#7ee2a8]" : planBadgeTone(profile.plan)
                     }`}
                   >
                     ✦ {isAdminViewer ? "관리자" : planLabel(profile.plan)}
                   </Link>
                 </div>
-                <div className="mt-0.5 text-xs text-ai-muted">
+                <div className="mt-0.5 t-sub text-ai-muted">
                   {profile.primaryRegion?.trim() || "관심 지역을 설정해 보세요"}
                 </div>
               </div>
             </div>
-            <Link href="/my/settings" className="text-lg text-ai-muted no-underline" aria-label="설정">
+            <Link href="/my/settings" className="t-title text-ai-muted no-underline" aria-label="설정">
               <Icon name="⚙" size={18} />
             </Link>
           </div>
@@ -305,11 +305,11 @@ export default async function MyPage() {
                   <span className="t-title leading-none text-white">
                     {ledgerLoaded.balance.toLocaleString("ko-KR")}
                   </span>
-                  <span className="mb-0.5 text-base font-extrabold text-ai-accent">P</span>
+                  <span className="mb-0.5 t-section font-extrabold text-ai-accent">P</span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-lg font-extrabold leading-tight text-white">
+                  <span className="t-title font-extrabold leading-tight text-white">
                     잔액을 불러오지 못했어요
                   </span>
                   <span className="t-sub text-ai-muted">
@@ -317,7 +317,7 @@ export default async function MyPage() {
                   </span>
                 </div>
               )}
-              <Link href="/my/points" className="text-xs font-bold text-ai-accent no-underline">
+              <Link href="/my/points" className="t-sub font-bold text-ai-accent no-underline">
                 지갑 전체 보기 ›
               </Link>
             </div>
@@ -429,14 +429,14 @@ export default async function MyPage() {
                   className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-bold text-ink">
+                    <div className="truncate t-body font-bold text-ink">
                       {n.aptName?.trim() || n.title}
                     </div>
                     <div className="t-sub text-text-3">
                       방문 {shortDate(n.visitDate)} · {n.isPublic ? "공개" : "비공개"}
                     </div>
                   </div>
-                  <span className="shrink-0 pl-2 text-xs font-extrabold text-primary">
+                  <span className="shrink-0 pl-2 t-sub font-extrabold text-primary">
                     {noteScore(n)}점
                   </span>
                 </Link>
@@ -490,14 +490,14 @@ export default async function MyPage() {
                   className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-bold text-ink">
+                    <div className="truncate t-body font-bold text-ink">
                       {n.aptName?.trim() || n.title}
                     </div>
                     <div className="t-sub text-text-3">
                       {n.authorLabel?.trim() || "임장러"} · {shortDate(n.visitDate)}
                     </div>
                   </div>
-                  <span className="shrink-0 pl-2 text-xs font-extrabold text-primary">
+                  <span className="shrink-0 pl-2 t-sub font-extrabold text-primary">
                     {noteScore(n)}점
                   </span>
                 </Link>
@@ -615,12 +615,12 @@ export default async function MyPage() {
                   className="card tile flex items-center justify-between rounded-[14px] px-4 py-3.5 no-underline"
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-bold text-ink">{p.title}</div>
+                    <div className="truncate t-body font-bold text-ink">{p.title}</div>
                     <div className="t-sub text-text-3">
                       {shortDate(p.at)} 구매 · {p.amount.toLocaleString("ko-KR")}P
                     </div>
                   </div>
-                  <span className="shrink-0 pl-2 text-xs font-extrabold text-primary">열람 ›</span>
+                  <span className="shrink-0 pl-2 t-sub font-extrabold text-primary">열람 ›</span>
                 </Link>
               ))
             )}
@@ -714,7 +714,7 @@ export default async function MyPage() {
                 })}
               </div>
             )}
-            <Link href="/points/shop" className="btn-primary mt-3 block rounded-[10px] py-2.5 text-center text-xs no-underline">
+            <Link href="/points/shop" className="btn-primary mt-3 block rounded-[10px] py-2.5 text-center t-sub no-underline">
               포인트 상점 가기
             </Link>
           </div>
@@ -871,7 +871,7 @@ export default async function MyPage() {
             <Link
               key={m.label}
               href={m.href}
-              className={`flex justify-between py-[13px] text-sm font-semibold text-text-1 no-underline ${
+              className={`flex justify-between py-[13px] t-body font-semibold text-text-1 no-underline ${
                 i < arr.length - 1 ? "border-b border-divider" : ""
               }`}
             >

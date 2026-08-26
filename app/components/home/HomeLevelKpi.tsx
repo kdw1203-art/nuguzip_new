@@ -68,10 +68,10 @@ export function HomeLevelKpi() {
         href="/my"
         className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
       >
-        <span className="text-[10.5px] font-bold text-text-3">내 임장 레벨</span>
+        <span className="t-caption font-bold text-text-3">내 임장 레벨</span>
         <span className="text-[19px] font-extrabold leading-tight text-ink">
           Lv.{state.top}
-          <span className="ml-1 text-[12px] text-text-2">{state.label}</span>
+          <span className="ml-1 t-sub text-text-2">{state.label}</span>
         </span>
         <span className="text-[11px] font-bold text-text-2">
           {state.regions}개 지역 · 노트 {state.notes}개
@@ -86,7 +86,7 @@ export function HomeLevelKpi() {
       href={href}
       className="card tile flex flex-col gap-0.5 rounded-2xl border-dashed px-4 py-3 no-underline"
     >
-      <span className="text-[10.5px] font-bold text-text-3">내 임장 레벨</span>
+      <span className="t-caption font-bold text-text-3">내 임장 레벨</span>
       <span className="text-[15px] font-extrabold leading-tight text-primary">
         {state.kind === "anon" ? "3분이면 첫 노트" : "첫 지역 레벨 쌓기"}
       </span>

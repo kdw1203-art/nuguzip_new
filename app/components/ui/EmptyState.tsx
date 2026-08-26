@@ -31,12 +31,12 @@ const PAD: Record<StateTone, string> = {
 };
 
 const TITLE: Record<StateTone, string> = {
-  light: "text-[14px] font-bold text-ink",
+  light: "text-[15px] font-bold text-ink",
   admin: "text-[13px] font-bold text-white",
 };
 
 const DESC: Record<StateTone, string> = {
-  light: "text-[12px] leading-[1.6] text-text-3",
+  light: "text-[13px] leading-[1.6] text-text-3",
   admin: "text-[11px] leading-[1.6] text-[#9aa6b8]",
 };
 

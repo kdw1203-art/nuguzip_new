@@ -19,14 +19,14 @@ export function AIPanel({
   return (
     <div className={`ai-panel flex flex-col gap-2 p-[18px] ${className}`}>
       <div className="flex items-center gap-[7px]">
-        <span className="ai-chip h-5 w-5 text-[10px]">AI</span>
+        <span className="ai-chip h-5 w-5 text-[9px]">AI</span>
         <span className="text-[13px] font-extrabold text-white">{title}</span>
       </div>
       <div className="text-[13px] leading-[1.6] text-ai-text">{children}</div>
       {cta && (
         <Link
           href={cta.href}
-          className="press mt-0.5 inline-flex w-fit items-center rounded-lg bg-white/10 px-3 py-2 text-[12px] font-extrabold text-ai-accent no-underline"
+          className="press mt-0.5 inline-flex w-fit items-center rounded-lg bg-white/10 px-3 py-2 t-body font-extrabold text-ai-accent no-underline"
         >
           {cta.label} ›
         </Link>

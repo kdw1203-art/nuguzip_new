@@ -165,7 +165,7 @@ export function RegionPulseCards({ regions }: { regions: HomeRegionCard[] }) {
         >
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-[13px] font-extrabold tracking-tight text-ink">{r.name}</span>
-            <span className="rounded-md bg-[rgba(0,0,0,.04)] px-1.5 py-0.5 text-[10px] font-bold text-text-3">
+            <span className="rounded-md bg-[rgba(0,0,0,.04)] px-1.5 py-0.5 t-caption font-bold text-text-3">
               {r.meta}
             </span>
           </div>
@@ -179,7 +179,7 @@ export function RegionPulseCards({ regions }: { regions: HomeRegionCard[] }) {
               뷰포트에 들어오면 그리기 애니메이션만 시작한다(페인트 변화만). */}
           <Sparkline values={r.spark} tone={r.tone} animate={seen} />
           <div className="mt-1.5 flex items-center justify-between">
-            <span className="text-[10px] text-text-3">
+            <span className="t-caption text-text-3">
               {r.spark.length >= 4 ? `최근 ${r.spark.length}주 매매지수` : "국토부 실거래 기준"}
             </span>
             <span className="translate-x-1 text-[11px] font-bold text-primary opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">

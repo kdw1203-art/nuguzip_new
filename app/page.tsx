@@ -111,7 +111,7 @@ function HomeAiGateway({ briefing }: { briefing: HomeBriefing | null }) {
     >
       <p className="m-0">{HOME_AI_GATEWAY_BODY}</p>
       <div className="mt-2 border-t border-white/15 pt-2">
-        <div className="mb-1 text-[10px] font-extrabold tracking-wide text-ai-muted">
+        <div className="mb-1 t-caption font-extrabold text-ai-muted">
           {HOME_AI_BRIEFING_LABEL}
         </div>
         {briefing ? (
@@ -297,7 +297,7 @@ export default async function Home() {
               질문 한 줄 + 대형 검색 + 실기록 칩. 로그인(개인화 활성) 시에는
               globals.css 가 min-height 를 접어 개인화 섹션에 자리를 내준다. */}
           <div className="home-search-hero flex min-h-[42dvh] flex-col justify-center gap-3 py-4">
-            <p className="rise-in text-center text-[22px] font-extrabold leading-[1.3] tracking-[-0.5px] text-ink">
+            <p className="rise-in t-display text-center text-ink">
               어느 단지가 궁금하세요?
             </p>
             <div className="rise-in-1">
@@ -370,7 +370,7 @@ export default async function Home() {
           {/* 공개 노트 증거 (모바일) */}
           <div data-reveal="" className="card flex flex-col gap-2 rounded-2xl px-4 py-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-extrabold text-ink">공개 임장노트</h2>
+              <h2 className="t-section text-ink">공개 임장노트</h2>
               <Link
                 href="/notes"
                 className="text-[11px] text-text-3 transition-colors hover:text-primary"
@@ -380,7 +380,7 @@ export default async function Home() {
             </div>
             {notes.length === 0 ? (
               failed.notes ? (
-                <p className="text-xs text-text-3">목록을 지금 불러오지 못했어요.</p>
+                <p className="t-sub text-text-3">목록을 지금 불러오지 못했어요.</p>
               ) : (
                 <EmptyState
                   icon="notebook-pen"
@@ -394,13 +394,13 @@ export default async function Home() {
                 <Link
                   key={n.id}
                   href={`/notes/${n.id}`}
-                  className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] text-xs no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
+                  className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] t-body no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
                     i < notes.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
                   <span className="truncate font-semibold text-text-1">{n.title}</span>
                   <span
-                    className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
+                    className={`shrink-0 rounded-md px-1.5 py-0.5 t-caption font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
                   >
                     {n.score}
                   </span>
@@ -437,12 +437,12 @@ export default async function Home() {
                   className="card tile flex items-center justify-between rounded-2xl px-4 py-3.5"
                 >
                   <div>
-                    <div className="text-sm font-bold text-ink">{r.name}</div>
-                    <div className="text-xs text-text-3">{r.meta}</div>
+                    <div className="t-body font-bold text-ink">{r.name}</div>
+                    <div className="t-sub text-text-3">{r.meta}</div>
                   </div>
                   <div className="text-right">
-                    <div className="t-num text-base text-ink">{r.price}</div>
-                    <div className={`text-xs ${deltaClass[r.tone]}`}>{r.delta}</div>
+                    <div className="t-num t-section text-ink">{r.price}</div>
+                    <div className={`t-sub ${deltaClass[r.tone]}`}>{r.delta}</div>
                   </div>
                 </div>
               ))
@@ -454,7 +454,7 @@ export default async function Home() {
             <h2 className="text-[13px] font-extrabold text-ink">더 알아보기</h2>
             <Link
               href="/digest"
-              className="flex items-center justify-between gap-2 py-1.5 text-xs no-underline"
+              className="flex items-center justify-between gap-2 py-1.5 t-body no-underline"
             >
               <span className="min-w-0">
                 <span className="block font-bold text-text-1">
@@ -470,38 +470,38 @@ export default async function Home() {
                 크리에이터 판매 루프(유료 리포트)의 홈 발견 경로가 없었다. */}
             <Link
               href="/town/library"
-              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
               자료실 · 임장 리포트 <span className="text-primary">›</span>
             </Link>
             {/* 수익모델·팀 서사 동선(#홈비판) — 리포트 판매와 만든 사람 이야기 */}
             <Link
               href="/creators"
-              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
               크리에이터 입점 · 리포트 판매 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/town/groups"
-              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
               임장 모임 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/about"
-              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
               누구집 이야기 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/safety"
-              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
               전세 안전 진단 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/town"
-              className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
               동네이야기 <span className="text-primary">›</span>
             </Link>
@@ -522,7 +522,7 @@ export default async function Home() {
               2026-08-17 지시: 티커를 검색 아래로 내리고 검색은 위로 —
               py-9→py-5 로 죄어 첫 화면 밀집도를 올린다. */}
           <div className="home-search-hero rise-in flex flex-col justify-center gap-3 py-5">
-            <p className="text-center text-[26px] font-extrabold leading-[1.3] tracking-[-0.6px] text-ink">
+            <p className="t-display text-center text-ink">
               어느 단지가 궁금하세요?
             </p>
             <HomeHeroSearch />
@@ -574,7 +574,7 @@ export default async function Home() {
                 ))}
                 <Link
                   href={HOME_CTA_NOTE.href}
-                  className="btn-primary btn-cta press mt-auto rounded-2xl p-3.5 text-center text-[14px]"
+                  className="btn-primary btn-cta press mt-auto rounded-2xl p-3.5 text-center t-section"
                 >
                   {HOME_CTA_NOTE.label}
                 </Link>
@@ -591,7 +591,7 @@ export default async function Home() {
             <div data-reveal="" className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               <div className="card tile flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
-                  <h2 className="accent-underline text-sm font-extrabold text-ink">
+                  <h2 className="accent-underline t-section text-ink">
                     공개 임장노트
                   </h2>
                   <Link
@@ -621,13 +621,13 @@ export default async function Home() {
                     <Link
                       key={n.id}
                       href={`/notes/${n.id}`}
-                      className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] text-xs no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
+                      className={`-mx-1.5 flex items-center justify-between gap-3 rounded-lg px-1.5 py-[7px] t-body no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
                         i < notes.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       <span className="truncate font-semibold text-text-1">{n.title}</span>
                       <span
-                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 t-caption font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
                       >
                         {n.score}
                       </span>
@@ -637,7 +637,7 @@ export default async function Home() {
               </div>
               <div className="card tile flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
-                  <h2 className="accent-underline text-sm font-extrabold text-ink">
+                  <h2 className="accent-underline t-section text-ink">
                     동네이야기 · 자료
                   </h2>
                   <Link
@@ -667,7 +667,7 @@ export default async function Home() {
                     <Link
                       key={p.id}
                       href={`/town/news/${p.id}`}
-                      className={`-mx-1.5 block rounded-lg px-1.5 py-[7px] text-xs font-semibold text-text-1 no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] hover:text-primary ${
+                      className={`-mx-1.5 block rounded-lg px-1.5 py-[7px] t-body font-semibold text-text-1 no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] hover:text-primary ${
                         i < posts.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
@@ -732,7 +732,7 @@ export default async function Home() {
                 href="/digest"
                 className="flex flex-col gap-0.5 py-1.5 no-underline"
               >
-                <span className="flex items-center justify-between text-xs font-bold text-text-1">
+                <span className="flex items-center justify-between t-body font-bold text-text-1">
                   주간 다이제스트{digestWeekLabel ? ` · ${digestWeekLabel}` : ""}
                   <span className="text-primary">›</span>
                 </span>
@@ -740,14 +740,14 @@ export default async function Home() {
               </Link>
               <Link
                 href="/safety"
-                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 전세 안전 진단
                 <span className="text-primary">›</span>
               </Link>
               <Link
                 href="/town/experts"
-                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 전문가 찾아보기
                 <span className="text-primary">›</span>
@@ -755,7 +755,7 @@ export default async function Home() {
               {/* 자료실 — 유료 리포트 판매 루프의 홈 발견 경로 (전에는 없었다) */}
               <Link
                 href="/town/library"
-                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 자료실 · 임장 리포트
                 <span className="text-primary">›</span>
@@ -763,21 +763,21 @@ export default async function Home() {
               {/* 수익모델·팀 서사 동선(#홈비판) */}
               <Link
                 href="/creators"
-                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 크리에이터 입점 · 리포트 판매
                 <span className="text-primary">›</span>
               </Link>
               <Link
                 href="/town/groups"
-                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 임장 모임
                 <span className="text-primary">›</span>
               </Link>
               <Link
                 href="/about"
-                className="flex justify-between py-1.5 text-xs font-semibold text-text-1 no-underline"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 누구집 이야기
                 <span className="text-primary">›</span>

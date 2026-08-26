@@ -157,18 +157,18 @@ export function JourneyBanner() {
                 className="group flex w-full min-w-0 flex-col items-start gap-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(29,79,216,.45)] hover:shadow-[0_10px_22px_rgba(16,28,54,.08)]"
               >
                 <span className="flex items-center gap-1.5">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft text-[10px] font-extrabold text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-soft t-caption font-extrabold text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                     {i + 1}
                   </span>
                   <StepIcon
                     step={s}
                     className="h-4 w-4 text-text-3 transition-all duration-200 group-hover:scale-110 group-hover:text-primary"
                   />
-                  <span className="text-[12px] font-extrabold text-text-1 group-hover:text-primary">
+                  <span className="t-body font-extrabold text-text-1 group-hover:text-primary">
                     {STEP_LABEL[s].split(". ")[1]}
                   </span>
                 </span>
-                <span className="truncate text-[10.5px] text-text-3">{STEP_DESC[s]}</span>
+                <span className="truncate t-caption text-text-3">{STEP_DESC[s]}</span>
               </button>
               {i < STEP_KEYS.length - 1 && (
                 <span aria-hidden className="shrink-0 px-1 text-[11px] text-text-3">

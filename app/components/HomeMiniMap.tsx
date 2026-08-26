@@ -262,7 +262,7 @@ export function HomeMiniMap({
 
   const staticFallback = (
     <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-primary-soft to-line-strong px-4">
-      <p className="flex items-center gap-1.5 text-[12px] font-bold text-text-1">
+      <p className="flex items-center gap-1.5 t-body font-bold text-text-1">
         <Icon name="🗺" size={16} /> 지도를 불러오지 못했어요
       </p>
       <div className="mt-0.5 flex items-center gap-2">
@@ -339,12 +339,12 @@ export function HomeMiniMap({
         href={mapHref(focus.regionQuery ?? focus.regionLabel, focus.regionQuery ? focus.center : null)}
         className="glass press absolute inset-x-3.5 bottom-3.5 z-10 flex items-center justify-between rounded-2xl px-4 py-2.5 transition-colors hover:text-primary"
       >
-        <span className="text-[12px] font-semibold text-text-2">
+        <span className="t-body font-semibold text-text-2">
           {focus.regionLabel
             ? `${focus.regionLabel} 주변 실거래·노트를 지도에서`
             : "관심지역 실거래·노트를 지도에서 살펴보세요"}
         </span>
-        <span className="shrink-0 text-[12px] font-extrabold text-primary">
+        <span className="shrink-0 t-body font-extrabold text-primary">
           지도 열기 ›
         </span>
       </Link>

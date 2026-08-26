@@ -133,7 +133,7 @@ export function HomeEngagementCard() {
               </div>
             </div>
             {st.checkedToday ? (
-              <span className="shrink-0 rounded-full bg-success-soft px-3 py-1.5 text-[12px] font-extrabold text-success">
+              <span className="shrink-0 rounded-full bg-success-soft px-3 py-1.5 t-body font-extrabold text-success">
                 ✓ 완료
               </span>
             ) : (
@@ -141,7 +141,7 @@ export function HomeEngagementCard() {
                 type="button"
                 onClick={checkIn}
                 disabled={checking}
-                className="btn-primary press shrink-0 rounded-full px-4 py-2 text-[12px] font-bold disabled:opacity-60"
+                className="btn-primary press shrink-0 rounded-full px-4 py-2 t-body font-bold disabled:opacity-60"
               >
                 {checking ? "체크 중…" : "출석 +10P"}
               </button>
@@ -181,7 +181,7 @@ export function HomeEngagementCard() {
               href="/notes/new"
               className="flex items-center justify-between rounded-xl bg-primary-soft px-3 py-2 no-underline"
             >
-              <span className="text-[12px] font-bold text-primary">
+              <span className="t-body font-bold text-primary">
                 🎯 첫 임장노트 쓰면 +300P (공개 100P + 완주 보너스 200P)
               </span>
               <span className="text-[13px] font-extrabold text-primary">›</span>
