@@ -182,9 +182,10 @@ export default async function AdminPaymentsPage() {
       <div>
         <h1 className="text-[20px] font-extrabold text-ink">결제 연동 (토스페이먼츠)</h1>
         <p className="mt-1 text-[13px] text-text-2">
-          상호 우리동네이야기 · MID <b className="text-ink">nuguzibowg</b> · 전자결제
-          심사 접수일 2026-08-03. 심사 결과는 이 시스템이 감지할 수 없다 — 승인
-          통보를 받으면 아래 체크리스트의 &ldquo;라이브 전환&rdquo;을 진행할 것.
+          상호 우리동네이야기 · 전자결제 계약 <b className="text-ink">완료</b>(2026-08-26)
+          · 일반결제 MID <b className="text-ink">nuguzibowg</b> · 자동결제 MID{" "}
+          <b className="text-ink">bill_nuguzevk8</b>. 두 MID 는 키 세트가 서로 다르다 —
+          아래 &ldquo;키 상태&rdquo;에서 각 세트의 짝이 맞는지 확인할 것.
         </p>
       </div>
 
@@ -272,14 +273,33 @@ export default async function AdminPaymentsPage() {
             variantKey 를 체크아웃 코드에 지정.
           </li>
           <li>
-            <b className="text-ink">라이브 전환</b> — 심사 승인 후 두 키를{" "}
-            <b>같이</b> live_ 쌍으로 교체. 운영에 test 키가 남으면 confirm
-            가드가 결제를 중단한다(청구 없는 가짜 성공 방지). 자동결제(빌링)는
-            배선 완료(카드 등록·빌링키 발급·갱신 크론·해지·BILLING_DELETED 웹훅,
-            2026-08-14) — 전자계약 승인 후 Vercel 에{" "}
-            <code>NEXT_PUBLIC_TOSS_BILLING_ENABLED=1</code> 을 넣으면 열린다.
-            그 전까지 등록 화면·API 는 &ldquo;준비 중&rdquo;을 사실대로 응답
-            (docs/toss-integration-audit.md E절).
+            <b className="text-ink">라이브 전환</b> — 클라이언트·시크릿은 반드시{" "}
+            <b>같은 섹션의 짝</b>으로 넣는다. 위젯 키(<code>gck</code>)에 API
+            시크릿(<code>sk</code>)을 물리면 결제창은 뜨는데 승인에서 깨진다.
+            운영에 test 키가 남으면 confirm 가드가 결제를 중단한다(청구 없는
+            가짜 성공 방지). 자세한 배치는 <code>docs/ops/toss-keys.md</code>.
+          </li>
+          <li>
+            <b className="text-ink">자동결제 열기</b> — 배선은 완료돼 있다(카드
+            등록·빌링키 발급·갱신 크론·해지·BILLING_DELETED 웹훅, 2026-08-14).
+            열기 전에 <b>순서대로</b> 셋을 확인할 것.
+            <ol className="mt-1.5 list-decimal pl-4">
+              <li>
+                Vercel 에 <code>NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY</code> ·{" "}
+                <code>TOSS_BILLING_SECRET_KEY</code> (자동결제 MID 세트)
+              </li>
+              <li>
+                Supabase vault 에 <code>cron_secret</code> 등록 — Vercel 의{" "}
+                <code>CRON_SECRET</code> 과 <b>같은 값</b>. 이게 없으면 갱신
+                크론이 <b>아무 일도 않고 성공을 보고</b>한다(2026-08-26 실측:
+                25회 실행 전부 &ldquo;succeeded&rdquo;, 실제 호출 0회). 지금은
+                미등록 시 크론이 실패하도록 바꿔 뒀으니 /admin/ops 경보에 뜬다.
+              </li>
+              <li>
+                마지막에 <code>NEXT_PUBLIC_TOSS_BILLING_ENABLED=1</code>. 이걸
+                먼저 켜면 카드 등록은 되는데 둘째 달 갱신이 안 나간다.
+              </li>
+            </ol>
           </li>
           <li>
             <b className="text-ink">세금 파라미터</b> — 구독은 과세 상품이라

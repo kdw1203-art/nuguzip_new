@@ -50,3 +50,35 @@
 시크릿 키는 **Vercel 대시보드에 직접 입력한다.** 채팅·이슈·커밋 어디에도 남기지
 않는다. 클라이언트 키는 브라우저 번들에 실리는 공개 값이라 공유해도 무방하다 —
 둘의 성격이 다르다는 점이 이 문서에서 가장 중요한 한 줄이다.
+
+## 자동결제를 열기 전에 — 순서가 중요하다
+
+두 MID 모두 전자결제 계약 완료(2026-08-26). 이제 열 수 있지만 **순서를 지켜야**
+한다. 마지막 스위치를 먼저 켜면 첫 달만 청구되고 둘째 달부터 조용히 끊긴다.
+
+1. `NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY` · `TOSS_BILLING_SECRET_KEY` (자동결제 MID 세트)
+2. **Supabase vault 에 `cron_secret` 등록** — Vercel 의 `CRON_SECRET` 과 같은 값
+3. `NEXT_PUBLIC_TOSS_BILLING_ENABLED=1`
+
+### 2번이 왜 따로 적혀 있나
+
+`ops.run_billing_renewals()` 는 vault 의 `cron_secret` 으로 `/api/cron/billing-renewals`
+를 호출한다. 시크릿이 없으면 예전에는 이렇게 끝났다:
+
+```sql
+if s is null then
+  return;   -- 조용히 종료
+end if;
+```
+
+2026-08-26 실측: vault 에 등록된 시크릿은 `toss_secret_key` 하나뿐이고
+`cron_secret` 은 **없다.** 그 결과 `cron.job_run_details` 에는
+**25회 실행 · 25회 succeeded** 로 남았다(마지막 08-26 10:10 KST). 8월 13일 배선
+이후 갱신은 한 번도 돌지 않았는데 기록은 계속 성공이었다.
+
+`ops.cron_job_failure_check` 는 `status <> 'succeeded'` 만 보므로 이 잡을
+영원히 못 잡는다. **아무 일도 안 하면서 성공을 보고하는 잡은, 실패하는 잡보다
+나쁘다.** 그래서 `return` 을 `raise exception` 으로 바꿨다 — 이제 시크릿이 없으면
+크론이 실패하고, 기존 경보 배선(매시 `cron_job_failure_check` → critical →
+`/admin/ops`)이 그대로 잡는다. 같은 패턴을 쓰던 `run_social_autopost`,
+`run_social_upload_drain` 도 함께 고쳤다.
