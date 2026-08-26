@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Header } from "./components/Header";
-import { Icon } from "./components/Icon";
 import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { ResumeDraftPopup } from "./components/home/ResumeDraftPopup";
@@ -15,7 +14,10 @@ import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
 import { HomeHeroSearch } from "./components/home/HomeHeroSearch";
 import { HomeEngagementCard } from "./components/home/HomeEngagementCard";
 import { HomeWatchlistBrief } from "./components/HomeWatchlistBrief";
-import { HomeKpiRow, type KpiRegion, type KpiTemp } from "./components/home/HomeKpiRow";
+import type { KpiRegion, KpiTemp } from "./components/home/HomeKpiRow";
+import { HomeTodayLine } from "./components/home/HomeTodayLine";
+import { HomeToolPick } from "./components/home/HomeToolPick";
+import { HomeLevelKpi } from "./components/home/HomeLevelKpi";
 import { RegionPulseCards } from "./components/home/RegionPulseCards";
 import { loadLatestTemperatures } from "./components/MarketTempWidget";
 import { loadNewHomeData } from "@/lib/newui/home-data";
@@ -48,41 +50,10 @@ export const metadata: Metadata = {
   alternates: seoAlternates("/"),
 };
 
-/* 실거래 분석 도구 진입 — 데스크탑 3열 스트립·모바일 컴팩트 스트립이 공유.
-   전부 실데이터 연동 도구(#380·#381·타이밍)인데 모바일에서는 "더 알아보기"의
-   글자 링크 하나뿐이라 사실상 아는 사람만 썼다. */
-const ANALYSIS_TOOLS = [
-  {
-    href: "/analysis/price",
-    icon: "bar",
-    t: "면적대별 실거래",
-    short: "면적대 실거래",
-    d: "평단가·지역 분위",
-  },
-  {
-    href: "/analysis/timing",
-    icon: "trending-up",
-    t: "시세·타이밍",
-    short: "시세 타이밍",
-    d: "12개월 추세·온도",
-  },
-  {
-    href: "/analysis/scenario",
-    icon: "calculator",
-    t: "대출 시나리오",
-    short: "대출 시나리오",
-    d: "실금리 DSR·스트레스",
-  },
-  /* [개선 #33] 계산기 — 방문 실측 3위 진입 경로(홈·동네 다음)인데 홈에서 가는
-     길이 없었다. 대출·중개보수·전월세·갭·수익률 다섯 랜딩의 허브로 잇는다. */
-  {
-    href: "/calculator",
-    icon: "calculator",
-    t: "부동산 계산기",
-    short: "계산기",
-    d: "대출·중개보수·전월세",
-  },
-] as const;
+/* ANALYSIS_TOOLS 상수는 제거했다(2026-08-26).
+   홈에서 도구 넷을 나열하지 않게 되면서 쓰는 곳이 없어졌다 —
+   추천 로직과 그 근거는 app/components/home/HomeToolPick.tsx 가 갖는다.
+   전체 목록이 필요하면 /analysis 허브(app/analysis/tool-catalog.ts)가 단일 출처다. */
 
 /* G10 / 사실 우선: 여기 있던 5개 예시 폴백을 삭제했다.
    - MOCK_REGIONS: "강남구 32.5억 ▼4.2%" — 실존 자치구에 지어낸 시세·변동률
@@ -221,10 +192,16 @@ export default async function Home() {
       value: `${r.price} ${r.delta}`,
       tone: r.tone,
       href: `/map?region=${encodeURIComponent(r.name)}`,
+      kind: "region", // 주인공 (A15)
     });
   }
   if (saleIndexSeoul !== "—") {
-    tickerItems.push({ label: "매매지수 서울", value: saleIndexSeoul, href: "/analysis/timing" });
+    tickerItems.push({
+      label: "매매지수 서울",
+      value: saleIndexSeoul,
+      href: "/analysis/timing",
+      kind: "macro",
+    });
   }
   /* 기준시점을 값에 함께 싣는다(#409) — 기준금리는 일 단위, 주담대는 월 공시라
      시점 없이 나란히 흐르면 두 달 차이 나는 숫자가 같은 날처럼 읽힌다
@@ -234,6 +211,7 @@ export default async function Home() {
       label: "기준금리",
       value: baseRateAsOf ? `${baseRate} (${baseRateAsOf})` : baseRate,
       href: "/analysis/scenario",
+      kind: "macro",
     });
   }
   if (loanRate) {
@@ -241,6 +219,7 @@ export default async function Home() {
       label: "주담대 변동",
       value: loanRateAsOf ? `${loanRate} (${loanRateAsOf} 공시)` : loanRate,
       href: "/analysis/scenario",
+      kind: "macro",
     });
   }
   if (kpiTemp) {
@@ -248,6 +227,7 @@ export default async function Home() {
       label: "시장 온도",
       value: `${kpiTemp.score} · ${kpiTemp.headline}`,
       href: "/analysis/temperature",
+      kind: "macro",
     });
   }
   /* 커뮤니티 규모 지표는 임계(100) 전까지 싣지 않는다 — "15건"을 전면에
@@ -260,12 +240,20 @@ export default async function Home() {
       value: `${data.publicNotesTotal}건`,
       tone: "up",
       href: "/notes",
+      kind: "macro",
     });
   }
   if (data.activityToday !== null && data.activityToday >= COMMUNITY_TICKER_MIN) {
-    tickerItems.push({ label: "오늘 활동", value: `${data.activityToday}건` });
+    tickerItems.push({ label: "오늘 활동", value: `${data.activityToday}건`, kind: "macro" });
   }
-  if (freshness) tickerItems.push({ label: "실거래 기준", value: String(freshness), href: "/tx" });
+  if (freshness) {
+    tickerItems.push({
+      label: "실거래 기준",
+      value: String(freshness),
+      href: "/tx",
+      kind: "macro",
+    });
+  }
 
   return (
     <>
@@ -318,14 +306,18 @@ export default async function Home() {
             </div>
           )}
 
-          {/* KPI 4칸 (시안 A) — 지역 평균·시장 온도·거래량·내 임장 레벨 */}
+          {/* 홈의 주제 — 한 문장. (A03)
+              예전에는 KPI 4칸을 나란히 놨는데, 넷을 동시에 말하면 무엇이 중요한지
+              사라진다. 가장 큰 변화 하나를 문장으로 말하고 나머지는 그 아래 작게. */}
           <div className="rise-in-2">
-            <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
+            <HomeTodayLine region={kpiRegion} temp={kpiTemp} saleIndex={saleIndexSeoul} />
           </div>
 
-          {/* [개선 #11·12·29] 로그인 사용자의 매일 루프 — 출석·포인트 진행바·첫 노트
-              미션. 게스트에겐 안 그려진다(클라이언트 판정 — ISR 캐시 유지). */}
+          {/* 개인 영역 — 시장 사실과 **분리**한다. (A01)
+              내 임장 레벨은 시장 지표가 아니라 나의 상태다. 예전엔 KPI 4번째 칸에
+              있어서 앞의 셋(지역 평균·온도·거래량)과 같은 종류로 읽혔다. */}
           <HomeEngagementCard />
+          <HomeLevelKpi />
 
           {/* [OPT-47] 내 워치 단지 최근 거래 브리핑 — 같은 원칙(클라이언트 섬·ISR 유지) */}
           <HomeWatchlistBrief />
@@ -349,22 +341,10 @@ export default async function Home() {
             <JourneyBanner />
           </div>
 
-          {/* 실거래 분석 도구 — 데스크탑에만 있던 진입문을 모바일에도.
-              시세 지표(위) 바로 다음 자리: 숫자를 본 김에 도구로 더 파게 한다. */}
-          <div data-reveal="" className="grid grid-cols-3 gap-2">
-            <h2 className="sr-only">실거래 분석 도구</h2>
-            {ANALYSIS_TOOLS.map((t) => (
-              <Link
-                key={t.href}
-                href={t.href}
-                className="card press flex flex-col items-center gap-1.5 rounded-2xl px-2 py-3 text-center no-underline"
-              >
-                <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary-soft text-primary">
-                  <Icon name={t.icon} size={15} />
-                </span>
-                <span className="text-[11px] font-bold leading-tight text-ink">{t.short}</span>
-              </Link>
-            ))}
+          {/* 도구는 넷을 나열하지 않고 **하나를 이유와 함께** 추천한다. (A06·A07)
+              넷을 늘어놓는 건 고르라는 뜻인데, 처음 온 사람은 고를 근거가 없었다. */}
+          <div data-reveal="">
+            <HomeToolPick />
           </div>
 
           {/* 공개 노트 증거 (모바일) */}
@@ -414,7 +394,15 @@ export default async function Home() {
           </div>
 
           <div data-reveal="" className="flex flex-col gap-3">
-            <h2 className="sr-only">지역 시세</h2>
+            {/* 소제목을 눈에도 보이게. (A10)
+                sr-only 면 스크린리더만 주제를 안다 — 화면을 보는 사람에게
+                구역이 그냥 카드 더미로 보이던 이유다. */}
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="t-section text-ink">지역 시세</h2>
+              <Link href="/map" className="t-sub font-bold text-primary no-underline">
+                지도에서 전체 보기 ›
+              </Link>
+            </div>
             {regions.length === 0 ? (
               failed.regions ? (
                 <ErrorState
@@ -499,11 +487,20 @@ export default async function Home() {
             >
               전세 안전 진단 <span className="text-primary">›</span>
             </Link>
-            <Link
-              href="/town"
-              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
-            >
-              동네이야기 <span className="text-primary">›</span>
+            {/* 동네이야기는 목록의 죽은 라벨이 아니라 **살아 있는 입구**여야 한다. (A18)
+                주간 다이제스트 행이 티저를 다는 것과 같은 규칙 — 지금 저기 무엇이
+                있는지 한 줄 보여야 눌러 볼 이유가 생긴다. 글이 없으면 없다고 쓴다. */}
+            <Link href="/town" className="flex flex-col gap-0.5 py-1.5 no-underline">
+              <span className="flex items-center justify-between t-body font-semibold text-text-1">
+                동네이야기 <span className="text-primary">›</span>
+              </span>
+              <span className="truncate t-sub text-text-3">
+                {failed.posts
+                  ? "지금 불러오지 못했어요"
+                  : posts.length > 0
+                    ? posts[0].title
+                    : "아직 올라온 글이 없어요 — 첫 글을 남겨 보세요"}
+              </span>
             </Link>
           </div>
 
@@ -544,34 +541,29 @@ export default async function Home() {
           {/* 이하 2열 — 본문(KPI부터) | 사이드바 (윗선이 같다) */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="flex flex-col gap-4">
-            {/* KPI 4칸 (시안 A) */}
+            {/* 홈의 주제 — 한 문장. 그 아래 시장 지표 3칸이 뒷받침한다. (A03) */}
             <div className="rise-in-1">
-              <HomeKpiRow region={kpiRegion} temp={kpiTemp} />
+              {/* KPI 3칸을 여기서 뺐다(2026-08-26). HomeTodayLine 안의 보조 지표 줄이
+                  같은 숫자(시장 온도·거래 건수·매매지수)를 이미 말한다 — 한 화면에
+                  같은 사실 두 벌은 소유자가 지적한 "주제가 안 보인다"의 전형이다. */}
+              <HomeTodayLine region={kpiRegion} temp={kpiTemp} saleIndex={saleIndexSeoul} />
             </div>
 
             {/* [개선 #11·12·29] 로그인 사용자의 매일 루프 (게스트에겐 미렌더) */}
             <HomeEngagementCard />
+            {/* 내 진행 — 시장 지표와 분리한다 (A01) */}
+            <div className="rise-in-1">
+              <HomeLevelKpi />
+            </div>
 
-            {/* 지도 | 분석 도구 — "보고 → 파고" 동선 (시안 A). 도구 스트립은
+            {/* 지도 | 도구 추천 — "보고 → 파고" 동선 (시안 A). 도구 스트립은
                 지도 오른쪽 세로 스택으로 이동, 노트 CTA 가 스택을 닫는다. */}
-            <div className="rise-in-1 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+            {/* 지도가 주인공이다 — 도구 열이 지도를 좁히던 300px 를 260px 로. (A14)
+                도구는 넷 나열 대신 근거 있는 하나(A06·A07), 그 아래 주 행동 하나(A04). */}
+            <div className="rise-in-1 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
               <HomeMiniMap regions={mapRegions} className="h-[300px]" />
-              <div className="flex flex-col gap-2">
-                {ANALYSIS_TOOLS.map((t) => (
-                  <Link
-                    key={t.href}
-                    href={t.href}
-                    className="card tile flex items-center gap-3 rounded-2xl px-4 py-3 no-underline"
-                  >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
-                      <Icon name={t.icon} size={17} />
-                    </span>
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="text-[13px] font-extrabold text-ink">{t.t}</span>
-                      <span className="truncate text-[11px] text-text-3">{t.d}</span>
-                    </span>
-                  </Link>
-                ))}
+              <div className="flex flex-col gap-2.5">
+                <HomeToolPick />
                 <Link
                   href={HOME_CTA_NOTE.href}
                   className="btn-primary btn-cta press mt-auto rounded-2xl p-3.5 text-center t-section"
@@ -679,7 +671,15 @@ export default async function Home() {
               </div>
             </div>
             {/* 지역 시세 카드 4열 — 라운드 확대 + 호버 리프트 */}
-            <h2 className="sr-only">지역 시세</h2>
+            {/* 소제목을 눈에도 보이게. (A10)
+                sr-only 면 스크린리더만 주제를 안다 — 화면을 보는 사람에게
+                구역이 그냥 카드 더미로 보이던 이유다. */}
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="t-section text-ink">지역 시세</h2>
+              <Link href="/map" className="t-sub font-bold text-primary no-underline">
+                지도에서 전체 보기 ›
+              </Link>
+            </div>
             {regions.length === 0 ? (
               failed.regions ? (
                 <ErrorState

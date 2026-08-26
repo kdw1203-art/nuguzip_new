@@ -1,13 +1,14 @@
-import Link from "next/link";
-import { HomeLevelKpi } from "./HomeLevelKpi";
-
-/* 홈 리디자인(#408) 시안 A — KPI 4칸.
- * ① 대표 지역 평균(실거래 스냅샷) ② 시장 온도(주간 아카이브)
- * ③ 거래량(같은 스냅샷의 최근 거래 건수) ④ 내 임장 레벨(클라이언트 —
- * 로그인 시 실측 레벨, 비로그인은 시작 CTA).
+/* 시장 지표 칸 — 지역 평균 · 시장 온도 · 거래량.
+ *
+ * 2026-08-26(소유자 지적): 예전에는 여기 ④번으로 "내 임장 레벨" 이 함께 있었다.
+ * 앞의 셋은 **시장 사실**이고 넷째는 **나의 상태**인데 같은 카드 모양이라
+ * 같은 종류로 읽혔다 — 홈이 무슨 이야기를 하는 화면인지 흐려진 원인 중 하나다.
+ * 레벨 카드는 개인 영역(HomeEngagementCard 옆)으로 옮겼다.
+ *
+ * 이 행 자체도 이제는 주인공이 아니다. 주인공은 HomeTodayLine 의 한 문장이고,
+ * 여기는 그 문장을 뒷받침하는 자리다(데스크톱 보조 행).
  *
  * 사실 우선: 값이 없는 칸은 "—"가 아니라 **칸 자체를 뺀다**(그리드가 접힌다).
- * 단 ④는 상태(비로그인/로딩/실측)가 곧 내용이라 항상 그린다.
  */
 
 export interface KpiRegion {
@@ -26,63 +27,7 @@ export interface KpiTemp {
   weekLabel: string;
 }
 
-const toneClass: Record<KpiRegion["tone"], string> = {
-  up: "text-primary",
-  down: "text-danger",
-  flat: "text-text-3",
-};
-
-export function HomeKpiRow({
-  region,
-  temp,
-}: {
-  region: KpiRegion | null;
-  temp: KpiTemp | null;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
-      {region && (
-        <Link
-          href={region.href}
-          className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
-        >
-          <span className="t-caption font-bold text-text-3">{region.name} 평균</span>
-          <span className="text-[19px] font-extrabold leading-tight text-ink tabular-nums">
-            {region.price}
-          </span>
-          <span className={`text-[11px] font-extrabold ${toneClass[region.tone]}`}>
-            {region.delta}
-          </span>
-        </Link>
-      )}
-      {temp && (
-        <Link
-          href="/analysis/temperature"
-          className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
-        >
-          <span className="t-caption font-bold text-text-3">
-            시장 온도 · {temp.weekLabel}
-          </span>
-          <span className="text-[19px] font-extrabold leading-tight text-ink tabular-nums">
-            {temp.score}
-            <span className="text-[11px] text-text-3">/100</span>
-          </span>
-          <span className="truncate text-[11px] font-bold text-text-2">{temp.headline}</span>
-        </Link>
-      )}
-      {region?.tradeLabel && (
-        <Link
-          href="/analysis/price"
-          className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
-        >
-          <span className="t-caption font-bold text-text-3">{region.name} 최근 거래</span>
-          <span className="text-[19px] font-extrabold leading-tight text-ink tabular-nums">
-            {region.tradeLabel}
-          </span>
-          <span className="text-[11px] font-bold text-text-2">면적대별 실거래 ›</span>
-        </Link>
-      )}
-      <HomeLevelKpi />
-    </div>
-  );
-}
+/* HomeKpiRow 컴포넌트는 2026-08-26 에 제거했다.
+   홈 KPI 3~4칸이 HomeTodayLine 의 보조 지표 줄과 **같은 숫자 두 벌**이었기 때문이다
+   (소유자 지적: "주제가 명확하지 않다"의 직접 원인 중 하나).
+   타입 KpiRegion·KpiTemp 는 page.tsx 와 HomeTodayLine 이 계속 쓰므로 남긴다. */

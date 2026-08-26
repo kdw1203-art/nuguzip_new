@@ -339,10 +339,17 @@ export function HomeMiniMap({
         href={mapHref(focus.regionQuery ?? focus.regionLabel, focus.regionQuery ? focus.center : null)}
         className="glass press absolute inset-x-3.5 bottom-3.5 z-10 flex items-center justify-between rounded-2xl px-4 py-2.5 transition-colors hover:text-primary"
       >
+        {/* 설명이 아니라 **결과**를 적는다. (A08)
+            예전 문구는 "…를 지도에서 살펴보세요" — 무엇이 지도에 있는지는 안 말하고
+            할 일만 시켰다. 지금 이 지도에 실제로 무엇이 찍혀 있는지 말한다. */}
         <span className="t-body font-semibold text-text-2">
-          {focus.regionLabel
-            ? `${focus.regionLabel} 주변 실거래·노트를 지도에서`
-            : "관심지역 실거래·노트를 지도에서 살펴보세요"}
+          {markers.length === 0
+            ? "지도에 표시할 지역 시세가 아직 없어요"
+            : focus.regionLabel
+              ? markers.length > 1
+                ? `${focus.regionLabel} 외 ${markers.length - 1}곳 평균 시세`
+                : `${focus.regionLabel} 평균 시세`
+              : `주요 ${markers.length}곳 평균 시세`}
         </span>
         <span className="shrink-0 t-body font-extrabold text-primary">
           지도 열기 ›

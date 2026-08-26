@@ -21,19 +21,27 @@ export interface TickerItem {
   tone?: "up" | "down" | "flat";
   /** 해석 페이지 — 있으면 항목 전체가 링크가 된다 */
   href?: string;
+  /** 위계. (A15)
+   *  region = 지역 시세(이 티커의 주인공) · macro = 기준금리·지수 같은 배경 지표.
+   *  예전에는 전부 같은 밝기·굵기로 흘러서, 무엇이 내 이야기이고 무엇이
+   *  배경인지 구분이 없었다 — 여덟 항목이 같은 무게로 지나가면 아무것도 안 읽힌다. */
+  kind?: "region" | "macro";
 }
 
 function ItemBody({ it }: { it: TickerItem }) {
+  const macro = it.kind === "macro";
   return (
     <>
-      <span className="text-white/70">{it.label}</span>
+      <span className={macro ? "text-white/45" : "text-white/70"}>{it.label}</span>
       <span
         className={`tabular-nums ${
           it.tone === "up"
             ? "text-[#8fb3ff]"
             : it.tone === "down"
               ? "text-[#ff9d9d]"
-              : "text-white/90"
+              : macro
+                ? "text-white/60"
+                : "text-white/95"
         }`}
       >
         {it.value}
@@ -43,7 +51,7 @@ function ItemBody({ it }: { it: TickerItem }) {
 }
 
 function Item({ it, linkable = true }: { it: TickerItem; linkable?: boolean }) {
-  const cls = "flex shrink-0 items-baseline gap-1.5 t-sub font-bold";
+  const cls = `flex shrink-0 items-baseline gap-1.5 t-sub ${it.kind === "macro" ? "font-semibold" : "font-bold"}`;
   /* 마퀴 복제 트랙(aria-hidden)의 링크는 포커스 함정이 된다 — 복제분은 스팬으로 */
   if (it.href && linkable) {
     return (

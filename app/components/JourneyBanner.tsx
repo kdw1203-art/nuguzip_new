@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getHomePersonal } from "@/lib/client/home-personal";
 import { HOME_CTA_AI, HOME_CTA_MAP, HOME_CTA_NOTE } from "@/lib/brand/home-copy";
 
 /**
@@ -87,6 +88,11 @@ export function JourneyBanner() {
   const [ready, setReady] = useState(false);
   /** 로그인 PersonalHome 이 켜지면 이중 여정 배너를 숨긴다 */
   const [personalActive, setPersonalActive] = useState(false);
+  /* 이미 노트를 써 본 사람에게는 안 그린다. (A05)
+     "기록 → AI → 지도" 는 홈의 주 버튼(임장노트 쓰기)이 이미 시작하는 흐름이라,
+     아는 사람에게는 같은 말을 두 번 하는 셈이었다 — 홈에 CTA 가 넷이던 원인 중 하나.
+     null 은 "아직 모름"이고 false 가 되어야 그린다(모르는 동안 깜빡이지 않게). */
+  const [isNewcomer, setIsNewcomer] = useState<boolean | null>(null);
 
   useEffect(() => {
     try {
@@ -106,6 +112,12 @@ export function JourneyBanner() {
     } catch {
       /* ignore */
     }
+    /* 노트가 하나라도 있으면 신규가 아니다. 비로그인·조회 실패는 신규로 본다 —
+       처음 온 사람에게 안내를 빠뜨리는 쪽이 더 나쁜 실수다. */
+    getHomePersonal<{ recentNote: unknown | null }>()
+      .then((p) => setIsNewcomer(!p || !p.recentNote))
+      .catch(() => setIsNewcomer(true));
+
     const readPersonal = () => {
       setPersonalActive(document.body.getAttribute("data-personal-active") === "1");
     };
@@ -138,6 +150,8 @@ export function JourneyBanner() {
   };
 
   if (!ready || personalActive) return null;
+  /* 신규 여부를 아직 모르면 그리지 않는다 — 떴다 사라지는 배너가 더 어수선하다. */
+  if (isNewcomer !== true) return null;
 
   if (step === null) {
     return (

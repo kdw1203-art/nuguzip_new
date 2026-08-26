@@ -64,17 +64,19 @@ export function HomeLevelKpi() {
 
   if (state.kind === "level") {
     return (
+      /* KPI 칸(1/4 폭)에서 개인 영역으로 옮기면서 한 줄 요약이 됐다.
+         큰 카드로 두면 시장 지표와 다시 같은 무게가 된다 — 이건 곁다리다. */
       <Link
         href="/my"
-        className="card tile flex flex-col gap-0.5 rounded-2xl px-4 py-3 no-underline"
+        className="card tile flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 rounded-2xl px-4 py-2.5 no-underline"
       >
         <span className="t-caption font-bold text-text-3">내 임장 레벨</span>
-        <span className="text-[19px] font-extrabold leading-tight text-ink">
+        <span className="t-body font-extrabold text-ink">
           Lv.{state.top}
-          <span className="ml-1 t-sub text-text-2">{state.label}</span>
+          <span className="ml-1 t-sub font-bold text-text-2">{state.label}</span>
         </span>
-        <span className="text-[11px] font-bold text-text-2">
-          {state.regions}개 지역 · 노트 {state.notes}개
+        <span className="t-sub text-text-3 sm:ml-auto">
+          {state.regions}개 지역 · 노트 {state.notes}개 ›
         </span>
       </Link>
     );
@@ -84,13 +86,15 @@ export function HomeLevelKpi() {
   return (
     <Link
       href={href}
-      className="card tile flex flex-col gap-0.5 rounded-2xl border-dashed px-4 py-3 no-underline"
+      /* 좁은 화면에서 ml-auto 가 줄바꿈된 설명을 오른쪽 끝으로 밀어 어색했다 —
+         한 줄에 다 못 들어가면 그냥 왼쪽에서 이어 쓰게 둔다. */
+      className="card tile flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 rounded-2xl border-dashed px-4 py-2.5 no-underline"
     >
       <span className="t-caption font-bold text-text-3">내 임장 레벨</span>
-      <span className="text-[15px] font-extrabold leading-tight text-primary">
+      <span className="t-body font-extrabold text-primary">
         {state.kind === "anon" ? "3분이면 첫 노트" : "첫 지역 레벨 쌓기"}
       </span>
-      <span className="text-[11px] font-bold text-text-2">
+      <span className="t-sub text-text-3 sm:ml-auto">
         {state.kind === "anon"
           ? "로그인 없이 쓰고, 저장할 때 가입해요"
           : "같은 지역 노트 1개면 Lv.1"}
