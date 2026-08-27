@@ -409,12 +409,33 @@ export function axisAgeDays(asOf: string | null, now = new Date()): number | nul
 }
 
 /* [OPT-23] 컨텍스트 캐시 — 워크벤치가 축마다 별도 쿼리(9개 allSettled)를 돌지만,
-   같은 단지를 5분 안에 다시 열면 DB 왕복 없이 같은 스냅샷을 재사용한다.
+   같은 단지를 캐시 수명 안에 다시 열면 DB 왕복 없이 같은 스냅샷을 재사용한다.
    generatedAt·asOf 는 캐시된 시점 그대로 남아 "언제 데이터인지"가 화면에 정직하게
-   드러난다(각주 ageDays). 수집 크론이 revalidateTag 로 즉시 비울 수 있다(OPT-10). */
+   드러난다(각주 ageDays). 수집 크론이 revalidateTag 로 즉시 비울 수 있다(OPT-10).
+
+   [F93] 수명 5분 → 6시간 (2026-08-28 실측 근거).
+
+   이 캐시는 /api/ai/context 뿐 아니라 **단지 상세 페이지의 서버 컴포넌트**
+   (ComplexAxisSummary)에서도 불린다. 사이트맵의 단지가 26,162개라, 캐시 키가
+   단지마다 갈라지는 상황에서 5분 수명은 사실상 "거의 항상 미스"였다 —
+   크롤러가 단지를 훑는 동안 같은 단지를 5분 안에 다시 볼 일이 없기 때문이다.
+
+   ops.query_load_snapshot 24시간 차분(08-27 → 08-28)에서 이 경로의 쿼리들이
+   상위를 채웠다: board_posts 42,236회/일(910초), market_transactions 28,437회
+   (667초), apartment_supply 57,111회(612초), apartment_complexes 27,002회(214초).
+   DB 실행시간은 사고 전 기준선 25~35k ms/h 에서 185k ms/h 로 아직 6배 높다.
+
+   수명을 늘려도 신선도가 나빠지지 않는 이유: 이 캐시가 담는 값의 원천은 전부
+   하루 1회 ETL 이고, market·supply·economy 세 태그는 수집 크론이 끝나는 즉시
+   revalidateTag 로 비운다(lib/cache/invalidate.ts). 즉 실거래·물량·금리는
+   수명과 무관하게 적재 직후 갱신된다.
+   **다만 news 태그는 비우는 곳이 없다**(SOURCE_MAP 에 news 키가 없고, board_posts
+   에 쓰는 크론도 없다) — 그래서 이 6시간이 뉴스 한 줄의 실제 최대 지연이다.
+   AI 컨텍스트의 참고 항목이라 그 정도 지연은 받아들일 만하다고 판단했다.
+   뉴스를 즉시 반영해야 하게 되면 SOURCE_MAP 에 news 를 추가하는 쪽이 먼저다. */
 export const buildLiveToolContextCached = unstable_cache(
   async (complexId: string | null, regionName: string | null) =>
     buildLiveToolContext({ complexId, regionName }),
   ["live-tool-context-v1"],
-  { revalidate: 300, tags: ["market", "supply", "news", "economy"] },
+  { revalidate: 21_600, tags: ["market", "supply", "news", "economy"] },
 );
