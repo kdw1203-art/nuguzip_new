@@ -12,7 +12,14 @@ import { logger } from "@/lib/log";
 import { newsImageUrl } from "../../shared";
 import { LocationMap } from "../../LocationMap";
 import { regionIdForName } from "@/lib/region/catalog";
-import { resolveComplexHref } from "@/lib/newui/complex-link";
+import {
+  complexHrefKey,
+  resolveComplexHref,
+  resolveComplexHrefs,
+} from "@/lib/newui/complex-link";
+import { NEWS_TAGS } from "@/lib/news/tags";
+import { townHandoff } from "@/lib/town/handoff";
+import { postAttachments } from "@/lib/community/attachments";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
@@ -397,6 +404,58 @@ export default async function TownNewsDetailPage({
       )
     : null;
 
+  /* [B35·B36] 지도·노트로 넘어갈 때 **지금 보던 동네**를 들고 간다.
+     주소 조립은 lib/town/handoff.ts (단위 테스트 있음) — 지금 DB 의 글은 전부
+     지역이 비어 있어(자동수집 뉴스) 화면만으로는 지역이 실린 경로를 못 본다. */
+  const { region: regionQuery, mapHref, noteNewHref } = townHandoff({
+    city: post.city,
+    district: post.district,
+  });
+
+  /* [B31] 이웃이 붙인 사진. 자동수집 기사의 og:image(heroImage)와는 다른 값이다 —
+     그쪽은 원문 매체 사진이고 이쪽은 작성자가 올린 것이라 출처 표기도 다르다. */
+  const photos = postAttachments(post);
+
+  /* [B34] 글의 태그를 **갈 수 있는 곳**으로 만든다.
+     태그(#성산시영, #재건축)는 메타데이터에만 쓰이고 화면에 아예 없었다 —
+     본문에서 단지 이름을 읽어도 그 단지 시세로 갈 방법이 없었다.
+
+     자유 텍스트인 본문을 정규식으로 훑어 단지명을 찾는 방식은 쓰지 않는다:
+     "한강"·"자이"처럼 흔한 말이 엉뚱한 단지로 링크된다. 대신 이미 정제된
+     태그 목록만 해석하고, **실제로 해석된 것만** 링크한다(죽은 링크 금지).
+     단지 해석은 동시 상한·마감이 있는 일괄 해석기를 쓴다(N+1 방지). */
+  const postTags = (post.tags ?? [])
+    .map((t) => String(t ?? "").trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  const tagComplexHrefs = postTags.length
+    ? await resolveComplexHrefs(
+        postTags.map((t) => ({ name: t, region: post.district || post.city })),
+      ).catch(() => new Map<string, string | null>())
+    : new Map<string, string | null>();
+  const tagLinks = postTags.map((t) => {
+    const complexHref = tagComplexHrefs.get(complexHrefKey(t, post.district || post.city));
+    if (complexHref) return { label: t, href: complexHref, kind: "complex" as const };
+    /* 주제 태그 매칭 — 정확 일치만 보면 "주담대 금리" 가 "주담대" 허브를 못 찾는다.
+       키워드가 태그 안에 들어 있으면 그 주제로 본다. 여러 개가 걸리면 **가장 긴**
+       키워드가 이긴다("대출 한도"는 "대출"보다 구체적인 키워드가 있으면 그쪽으로). */
+    const norm = t.replace(/\s+/g, "");
+    let topic: (typeof NEWS_TAGS)[number] | null = null;
+    let topicKeyLen = 0;
+    for (const n of NEWS_TAGS) {
+      for (const m of [n.label, ...n.match]) {
+        const k = m.replace(/\s+/g, "");
+        if (k.length < 2 || !norm.includes(k)) continue;
+        if (k.length > topicKeyLen) {
+          topic = n;
+          topicKeyLen = k.length;
+        }
+      }
+    }
+    if (topic) return { label: t, href: `/town/news/tag/${topic.slug}`, kind: "topic" as const };
+    return { label: t, href: null, kind: "plain" as const };
+  });
+
   return (
     <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
       {/* 구조화 데이터 — 우리 글로 렌더할 때만. 화면에 없는 내용을 마크업하지 않는다. */}
@@ -479,6 +538,36 @@ export default async function TownNewsDetailPage({
                 )}
               </div>
             ) : null}
+
+            {/* [B31] 이웃이 올린 사진 — 저장은 되는데(automation_meta.attachments)
+                그리는 코드가 없어 한 장도 화면에 나온 적이 없던 값이다.
+                한 장이면 넓게, 여러 장이면 격자로. 두 경우 모두 컨테이너가
+                비율로 높이를 **먼저** 잡아 로드 전후 시프트가 0이다. */}
+            {photos.length > 0 && (
+              <div
+                className={
+                  photos.length === 1
+                    ? "grid grid-cols-1 gap-2"
+                    : "grid grid-cols-2 gap-2 sm:grid-cols-3"
+                }
+              >
+                {photos.map((url, i) => (
+                  <div
+                    key={url}
+                    className={`relative w-full overflow-hidden rounded-[12px] bg-bg ${
+                      photos.length === 1 ? "aspect-[16/10] max-h-[420px]" : "aspect-square"
+                    }`}
+                  >
+                    <CoverImage
+                      src={url}
+                      alt={`${title} 사진 ${i + 1}`}
+                      imgClassName="absolute inset-0 h-full w-full object-cover"
+                      sizes={photos.length === 1 ? "(max-width: 768px) 100vw, 640px" : "(max-width: 768px) 50vw, 220px"}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex flex-col gap-4 text-sm leading-[1.85] text-text-1">
               {/* 우리가 쓴 요약 — 원문 문장을 옮기지 않고 핵심 사실(수치·기관·
@@ -602,6 +691,34 @@ export default async function TownNewsDetailPage({
               </nav>
             ) : null}
 
+            {/* [B34] 태그 — 단지로 해석되면 그 단지 시세로, 주제 태그면 태그 허브로.
+                둘 다 아니면 링크 없는 칩으로 남긴다(어디로도 못 가는 파란 글씨 금지). */}
+            {tagLinks.length > 0 && (
+              <nav aria-label="관련 태그" className="flex flex-wrap gap-1.5">
+                {tagLinks.map((t) =>
+                  t.href ? (
+                    <Link
+                      key={t.label}
+                      href={t.href}
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+                    >
+                      #{t.label}
+                      {t.kind === "complex" && (
+                        <span className="ml-1 font-medium text-text-3">시세</span>
+                      )}
+                    </Link>
+                  ) : (
+                    <span
+                      key={t.label}
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] text-text-2"
+                    >
+                      #{t.label}
+                    </span>
+                  ),
+                )}
+              </nav>
+            )}
+
             <div className="flex items-center justify-between border-t border-divider pt-3.5">
               <div className="flex flex-wrap items-center gap-1 text-[11px] text-text-3">
                 <span>
@@ -654,7 +771,13 @@ export default async function TownNewsDetailPage({
           )}
 
           {/* ---------- 댓글 ---------- */}
-          <section className="rise-in-1 card flex flex-col gap-3 rounded-[20px] px-[26px] py-[22px]">
+          {/* id="comments" — 댓글 알림(메일·인앱)의 착지점이다.
+              lib/notifications/comment-notify.ts 가 이 앵커로 링크를 만든다.
+              여기 id 를 지우면 알림이 글 맨 위로 떨어져 "어느 댓글인지"를 다시 찾게 된다. */}
+          <section
+            id="comments"
+            className="rise-in-1 card flex flex-col gap-3 scroll-mt-24 rounded-[20px] px-[26px] py-[22px]"
+          >
             <div className="text-[15px] font-extrabold text-ink">
               댓글 {commentCount}
             </div>
@@ -698,10 +821,10 @@ export default async function TownNewsDetailPage({
                 className="h-[150px]"
               />
               <Link
-                href="/map"
-                className="absolute bottom-2.5 right-2.5 rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[10px] font-bold text-primary"
+                href={mapHref}
+                className="absolute bottom-2.5 right-2.5 rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[11px] font-bold text-primary"
               >
-                지도에서 열기 ›
+                {regionQuery ? `${regionQuery} 지도 열기` : "지도에서 열기"} ›
               </Link>
             </div>
             {post.relatedSite && (
@@ -721,20 +844,23 @@ export default async function TownNewsDetailPage({
 
           {/* 이 지역 임장노트 — 사실 우선: 허위 노트 목록·건수 제거, 작성/열람 진입만 */}
           <div className="rise-in-3 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-            <div className="text-[13px] font-extrabold text-ink">이 지역 임장노트</div>
+            <div className="text-[13px] font-extrabold text-ink">
+              {regionQuery || "이 지역"} 임장노트
+            </div>
             <p className="text-[11px] leading-relaxed text-text-3">
               현장을 다녀오셨다면 임장노트로 기록해 이웃과 공유해 보세요.
+              {regionQuery ? ` 지역은 ${regionQuery}로 미리 채워집니다.` : ""}
             </p>
             <div className="flex gap-2">
               <Link
-                href="/notes/new"
-                className="btn-primary btn-cta flex-1 rounded-[10px] p-2.5 text-center text-xs"
+                href={noteNewHref}
+                className="btn-primary btn-cta flex-1 rounded-[10px] p-2.5 text-center text-[11px]"
               >
-                이 지역 노트 쓰기
+                {regionQuery ? `${regionQuery} 노트 쓰기` : "이 지역 노트 쓰기"}
               </Link>
               <Link
                 href="/notes"
-                className="btn-soft flex-1 rounded-[10px] p-2.5 text-center text-xs"
+                className="btn-soft flex-1 rounded-[10px] p-2.5 text-center text-[11px]"
               >
                 공개 노트 보기
               </Link>

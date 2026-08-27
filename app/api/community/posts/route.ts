@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { findBlockedWord } from "@/lib/community/moderation";
-import { POSTS_READ_LIMIT, prependPost, readPosts } from "@/lib/posts-store";
+import {
+  POSTS_READ_LIMIT,
+  listRecentPostsByAuthor,
+  prependPost,
+  readPosts,
+} from "@/lib/posts-store";
+import {
+  DUPE_WINDOW_MS,
+  judgeFlood,
+} from "@/lib/community/flood-guard";
 import { decodeComplexId } from "@/lib/complex/complex-store";
 import type { Post } from "@/lib/types/post";
 import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
@@ -141,6 +150,33 @@ export async function POST(req: Request) {
       },
       { status: 400 },
     );
+  }
+
+  /* [B32] 도배 방지 — 금칙어만 보고 **횟수·중복**은 아무도 안 봤다.
+     로그인만 하면 같은 글을 몇 초 간격으로 몇 번이든 올릴 수 있었고, 피드는
+     최신순이라 한 사람이 동네 하나를 통째로 덮을 수 있었다.
+     판정 규칙은 lib/community/flood-guard.ts (단위 테스트 있음).
+     조회 실패는 통과시킨다 — 글쓰기를 닫는 대가가 몇 건 새는 대가보다 크다. */
+  {
+    const authorEmail = session.user.email.trim();
+    const sinceIso = new Date(Date.now() - DUPE_WINDOW_MS).toISOString();
+    try {
+      const recent = await listRecentPostsByAuthor(authorEmail, sinceIso);
+      if (recent) {
+        const verdict = judgeFlood({ title, body: content }, recent, Date.now());
+        if (!verdict.ok) {
+          return NextResponse.json(
+            { error: verdict.message, floodReason: verdict.reason },
+            {
+              status: 429,
+              headers: { "Retry-After": String(verdict.retryAfterSec) },
+            },
+          );
+        }
+      }
+    } catch (e) {
+      logger.error("[community/posts] 도배 검사 조회 실패 — 통과시킴", e);
+    }
   }
 
   const now = new Date().toISOString();

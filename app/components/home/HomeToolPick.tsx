@@ -44,9 +44,17 @@ const FALLBACK: Pick = {
 
 function decide(p: Personal | null): Pick {
   if (!p) return FALLBACK;
+  /* [D64] 이유를 말했으면 **그 이유를 목적지에도 실어 보낸다.**
+     예전에는 "관심지역 강남구의 12개월 흐름을 봐요"라고 적어 놓고 파라미터
+     없는 /analysis/timing 으로 보냈다 — 도착하면 기본 지역이 떠서, 방금 읽은
+     문장과 화면이 다른 말을 했다. 받는 쪽은 이제 어떤 지역 표기든 읽는다
+     (lib/regions/param.ts · D62). */
   if (p.recentNote?.aptName) {
+    const region = p.recentNote.region?.trim() || p.primaryRegion?.trim() || "";
     return {
-      href: "/analysis/price",
+      href: region
+        ? `/analysis/price?region=${encodeURIComponent(region)}`
+        : "/analysis/price",
       icon: "bar",
       title: "면적대별 실거래",
       why: `최근 노트한 ${p.recentNote.aptName}의 면적대를 비교해 보세요`,
@@ -54,7 +62,7 @@ function decide(p: Personal | null): Pick {
   }
   if (p.primaryRegion) {
     return {
-      href: "/analysis/timing",
+      href: `/analysis/timing?region=${encodeURIComponent(p.primaryRegion)}`,
       icon: "trending-up",
       title: "시세·타이밍",
       why: `관심지역 ${p.primaryRegion}의 12개월 흐름을 봐요`,

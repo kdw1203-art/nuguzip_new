@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { scrollBehavior } from "@/lib/ui/scroll";
 import { CoverImage } from "@/app/components/CoverImage";
 import type { DeckPage, DeckTheme, NoteDeck } from "@/lib/inspection/note-deck";
 
@@ -235,7 +236,7 @@ export function DeckViewer({ deck }: { deck: NoteDeck }) {
     if (!el) return;
     const child = el.children[i] as HTMLElement | undefined;
     if (!child) return;
-    el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    el.scrollTo({ left: child.offsetLeft - el.offsetLeft, behavior: scrollBehavior() });
   }, []);
 
   useEffect(() => {

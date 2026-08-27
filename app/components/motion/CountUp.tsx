@@ -10,12 +10,16 @@ import { useEffect, useRef, useState } from "react";
  *  ② prefers-reduced-motion 이면 아예 굴리지 않는다.
  *  ③ 자릿수가 흔들리면 옆 요소가 밀린다 — tabular-nums(.t-num)와 함께 쓴다.
  */
+/** 카운트업 기본 지속 시간(ms) — 손으로 만든 카운트업도 이 값을 쓴다.
+ *  (RegionPulseCards 가 750ms 로 따로 적어 같은 화면에 두 속도가 있었다.) */
+export const COUNTUP_MS = 700;
+
 export function CountUp({
   value,
   decimals = 0,
   prefix = "",
   suffix = "",
-  duration = 700,
+  duration = COUNTUP_MS,
   className,
 }: {
   value: number;

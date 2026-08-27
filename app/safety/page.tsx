@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { scrollBehavior } from "@/lib/ui/scroll";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { AIPanel } from "@/app/components/AIPanel";
@@ -60,7 +61,7 @@ export default function SafetyPage() {
     requestAnimationFrame(() => {
       document
         .getElementById(SELF_CHECK_ANCHOR_ID)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        ?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     });
   };
 
@@ -109,7 +110,7 @@ export default function SafetyPage() {
                   onClick={() =>
                     document
                       .getElementById(SELF_CHECK_ANCHOR_ID)
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      ?.scrollIntoView({ behavior: scrollBehavior(), block: "start" })
                   }
                   className="btn-primary rounded-[10px] px-4 py-2.5 text-xs"
                 >

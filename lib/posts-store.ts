@@ -22,6 +22,7 @@ import {
   softDeleteCommentSb,
   adoptCommentSb,
   listPostsByTagSb,
+  listRecentPostsByAuthorSb,
   togglePostLikeSb,
   updatePostSb,
   userHasLikedSb,
@@ -56,6 +57,20 @@ export async function prependPost(post: Post): Promise<void> {
     return;
   }
   await prependPostFile(post);
+}
+
+/**
+ * [B32] 도배 판정용 — 한 작성자의 최근 글(제목·본문·작성시각)만.
+ * 파일 백엔드는 author_email 을 저장하지 않아 판정할 수 없다 —
+ * **빈 배열이 아니라 null** 을 돌려 "확인 안 됨"과 "글 없음"을 구분한다.
+ * (빈 배열로 뭉개면 로컬 파일 모드에서 도배 검사를 통과한 것처럼 보인다.)
+ */
+export async function listRecentPostsByAuthor(
+  authorEmail: string,
+  sinceIso: string,
+): Promise<{ title: string; body: string; createdAt: string }[] | null> {
+  if (!storageBackendIsSupabase()) return null;
+  return listRecentPostsByAuthorSb(authorEmail, sinceIso);
 }
 
 export async function getPost(id: string): Promise<Post | null> {

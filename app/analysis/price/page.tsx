@@ -14,6 +14,8 @@ import {
 } from "@/lib/market/tx-bands";
 import { RegionSelect } from "./RegionSelect";
 import { complexHrefFromNames } from "@/lib/seo/complex-slug";
+import { pickRegionByAnyName } from "@/lib/regions/param";
+import { findCatalogRegionById } from "@/lib/region/catalog";
 
 /* 면적대별 **실거래** 시세 분석 — 예전엔 이 경로가 손으로 적은 "적정가 산정 예시"
    (수치 전부 하드코딩)였다. 이제 tx_band_landing/complex 뷰(국토교통부 실거래)
@@ -88,10 +90,22 @@ export default async function PricePage({
     );
   }
 
+  /* [D62] `?region=` 은 화면마다 다른 말로 온다 — 지도는 "서울 강남구",
+     타이밍·시나리오는 "gangnam", 여기 목록은 "서울-강남구". 예전에는 정확히
+     일치할 때만 찾고 **아니면 조용히 첫 지역으로** 갔다: 사용자는 자기가 고른
+     줄 알았던 다른 동네의 숫자를 봤다. 이제 어느 말로 와도 찾고, 정말 없으면
+     못 찾았다고 화면에 적는다. */
   const wanted = (sp.region ?? "").trim();
-  const target =
-    (wanted ? areaRegions.find((r) => r.slug === wanted || r.name === wanted) : null) ??
-    areaRegions[0];
+  /* 카탈로그 id("gangnam")로 오는 경우가 있다 — 타이밍·시나리오가 쓰는 말이다.
+     이 목록에는 id 칸이 없으므로(실거래 집계는 슬러그·한글명뿐), 먼저 id 를
+     한글 지역명으로 옮긴 뒤 같은 매칭을 한 번 더 돌린다. 서버 전용 import 라
+     클라이언트 번들에는 영향이 없다. */
+  const wantedAsName = wanted ? (findCatalogRegionById(wanted)?.name ?? null) : null;
+  const matched =
+    (wanted ? pickRegionByAnyName(wanted, areaRegions) : null) ??
+    (wantedAsName ? pickRegionByAnyName(wantedAsName, areaRegions) : null);
+  const target = matched ?? areaRegions[0];
+  const regionMissed = Boolean(wanted) && !matched;
 
   // 지역 분위 — 같은 면적대의 평단가를 수록 지역끼리 줄 세운다
   const perByBand = new Map<string, number[]>();
@@ -190,6 +204,15 @@ export default async function PricePage({
   return (
     <PageShell breadcrumb="AI 분석 · 면적대별 실거래 시세">
       <div className="mx-auto w-full max-w-[900px]">
+        {/* [D62] 넘겨받은 지역을 못 찾았으면 **그 사실을 말한다.**
+            예전에는 조용히 첫 지역으로 갈아탔다 — 화면에는 다른 동네의 숫자가
+            아무 표시 없이 떠 있었고, 사용자는 그게 자기가 고른 지역인 줄 알았다. */}
+        {regionMissed && (
+          <div className="mb-3 rounded-[12px] border border-line bg-warning-soft px-3.5 py-2.5 t-sub text-ink">
+            “{wanted}”는 실거래 집계에 아직 없는 지역이에요 — 대신{" "}
+            <b>{target.name}</b>를 보여 드립니다. 아래에서 지역을 바꿀 수 있어요.
+          </div>
+        )}
         <ToolHero
           eyebrow="지역·시장 흐름"
           icon="bar"

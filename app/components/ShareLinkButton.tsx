@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
 import { Icon } from "@/app/components/Icon";
 
 /* [개선 #32] 범용 공유 버튼 — Web Share API 우선, 미지원 시 클립보드 복사 폴백.
@@ -30,7 +31,7 @@ export function ShareLinkButton({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
     } catch {
       /* 클립보드 접근 불가 — 무시 */
     }

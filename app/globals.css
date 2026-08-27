@@ -381,6 +381,21 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   outline-offset: 2px;
 }
 
+/* [E84] 입력칸을 감싼 상자가 포커스를 대신 보여 주는 자리.
+
+   검색바·댓글칸처럼 <input> 이 껍데기 안에 투명하게 얹힌 구조에서는 입력칸에
+   outline-none 을 주고 껍데기가 테두리를 그린다. 그런데 껍데기에 포커스 표시가
+   없으면 키보드로 다니는 사람에게 **아무 신호도 남지 않는다** — 전역
+   :focus-visible 규칙은 input 자신에 걸리는데 그걸 지워 버렸기 때문이다.
+   (실측: 헤더 검색·글 댓글칸이 그 상태였다.)
+
+   껍데기에 이 클래스를 붙이면 안쪽이 키보드 포커스를 받았을 때만 링이 뜬다.
+   마우스로 눌러 놓은 상태에서는 뜨지 않는다(:focus-visible 의 정의 그대로). */
+.field-focus:has(:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 /* ---------- 15a 타입 램프 유틸 ---------- */
 .t-display {
   font-size: var(--fs-display);
@@ -570,7 +585,10 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   align-items: center;
   justify-content: center;
 }
-/* 아이콘 버튼 = md 40px 정사각 고정 (모바일 히트 44px 확보) */
+/* 아이콘 버튼 = md 40px 정사각 고정.
+   주의: 40px 은 44px 권고에 못 미친다. 예전 주석은 "모바일 히트 44px 확보"라고
+   적혀 있었지만 실제로 넓히는 규칙이 어디에도 없었다 — 아래 (pointer: coarse)
+   블록에서 .icon-btn 도 히트 영역을 넓힌다(보이는 크기는 40px 그대로). */
 .icon-btn {
   width: 40px;
   height: 40px;
@@ -2501,6 +2519,7 @@ a.rank-row:hover {
   a.chip,
   button.chip,
   .map-chip,
+  .icon-btn,
   .seg > button,
   .map-seg > button {
     position: relative;
@@ -2508,6 +2527,7 @@ a.rank-row:hover {
   a.chip::after,
   button.chip::after,
   .map-chip::after,
+  .icon-btn::after,
   .seg > button::after,
   .map-seg > button::after {
     content: "";
@@ -2520,6 +2540,13 @@ a.rank-row:hover {
     /* 그리기 없음 — 히트 영역만 넓힌다. 뒤 요소를 가리지 않도록 음수 z 는 쓰지 않고
        부모의 스택 순서를 그대로 따른다(칩끼리 8px 간격이라 겹침이 생기지 않는다). */
     pointer-events: auto;
+  }
+  /* 아이콘 버튼은 40×40 정사각이라 세로만 늘리면 가로가 여전히 40px 이다.
+     좌우로 2px 씩 내보내 44×44 를 만든다(헤더의 아이콘 사이 간격은 8px 이상이라
+     서로 겹치지 않는다). */
+  .icon-btn::after {
+    left: -2px;
+    right: -2px;
   }
   /* 아이콘 전용 정사각 버튼도 같은 규칙 */
   .tap-44 {

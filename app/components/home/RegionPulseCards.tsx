@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { HomeRegionCard } from "@/lib/newui/home-data";
+import { COUNTUP_MS } from "@/app/components/motion/CountUp";
 
 /**
  * 지역 시세 카드 4열 — 정적 숫자 카드를 "살아 있는 계기판"으로.
@@ -92,7 +93,16 @@ function parsePrice(price: string): { num: number; digits: number; suffix: strin
 
 function PriceCountUp({ price, active }: { price: string; active: boolean }) {
   const parsed = parsePrice(price);
-  const [text, setText] = useState(parsed ? `0${parsed.suffix}` : price);
+  /* [E75] 초기 상태는 **서버가 그린 최종 값**이다.
+     예전에는 `0${suffix}` 로 시작했다. 클라이언트 컴포넌트도 첫 렌더는 서버에서
+     그려지므로, 그 초깃값이 곧 홈의 서버 HTML 에 들어가는 시세가 된다 —
+     지역 카드가 있는 홈이라면 마크업상 전부 "0억"이다. 크롤러와 JS 가 죽은
+     환경에서는 그 0억이 우리가 말한 시세다. 애니메이션 편의를 위해 없는 숫자를
+     마크업에 남길 이유가 없다.
+     (근거는 코드 계약이다 — 이 샌드박스는 지역 시세 조회가 비어 있어
+      화면으로는 재현하지 못했다. app/components/motion/CountUp.tsx 의 규칙 ①
+      이 같은 이유로 최종 값을 초기 상태로 두고 있다 — 그 계약에 맞춘다.) */
+  const [text, setText] = useState(price);
   const doneRef = useRef(false);
 
   useEffect(() => {
@@ -108,7 +118,9 @@ function PriceCountUp({ price, active }: { price: string; active: boolean }) {
     }
     doneRef.current = true;
     const t0 = performance.now();
-    const dur = 750;
+    /* 지속 시간은 공용 카운트업과 같은 값을 쓴다 — 예전엔 750ms 로 따로 적혀
+       있어 같은 화면 안에서 700ms 와 750ms 두 속도가 돌았다. */
+    const dur = COUNTUP_MS;
     let raf = 0;
     const tick = (t: number) => {
       const p = Math.min(1, (t - t0) / dur);

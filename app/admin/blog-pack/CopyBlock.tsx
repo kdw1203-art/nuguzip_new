@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
 
 /* 복사 가능한 블록 — 관리자 블로그 팩 전용의 작은 클라이언트 조각 */
 export function CopyBlock({
@@ -23,7 +24,7 @@ export function CopyBlock({
             try {
               await navigator.clipboard.writeText(text);
               setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
+              setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
             } catch {
               /* 클립보드 권한 없음 — 수동 선택 복사로 폴백 (textarea 는 그대로) */
             }

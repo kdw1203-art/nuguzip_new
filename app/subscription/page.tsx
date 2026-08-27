@@ -299,13 +299,30 @@ export default async function SubscriptionPage({
       <section className="rise-in-4 mx-auto mt-5 w-full max-w-[1080px]">
         <div className="card flex flex-col items-center gap-4 rounded-3xl p-6 md:flex-row md:justify-between">
           <div className="flex flex-col gap-1 text-center md:text-left">
-            <div className="t-section text-ink">
-              {WEEKLY_PASS.label} · {WEEKLY_PASS.totalKrw.toLocaleString("ko-KR")}원
+            <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+              {/* [C38] 주간권이 위 세 플랜과 나란히 놓이면 "네 번째 요금제"로 읽힌다.
+                  실제로는 **플러스를 카드 등록 없이 먼저 써보는 길**이다 —
+                  월간·연간은 카드 등록형 자동결제(/subscription/billing)이고
+                  이것만 단건이다. 그 차이가 고르는 이유이므로 먼저 적는다. */}
+              <span className="rounded-[6px] bg-primary-soft chip-pad t-caption font-extrabold text-primary">
+                카드 등록 없이
+              </span>
+              <div className="t-section text-ink">
+                {WEEKLY_PASS.label} · {WEEKLY_PASS.totalKrw.toLocaleString("ko-KR")}원
+              </div>
             </div>
             <p className="t-sub text-text-3">
               {WEEKLY_PASS.days}일 동안 플러스 기능 전체 이용 · 1회성 단건 결제(자동
               반복청구 없음) · 기간이 끝나면 자동으로 무료 플랜으로 돌아가며 추가
               청구가 없습니다
+            </p>
+            {/* 하루 단가는 월간이 더 싸다 — 그 사실을 감추지 않는다.
+                주간권의 가치는 가격이 아니라 "약정 없이 먼저 써본다"는 데 있다. */}
+            <p className="t-sub text-text-3">
+              하루 {Math.round(WEEKLY_PASS.totalKrw / WEEKLY_PASS.days).toLocaleString("ko-KR")}원
+              꼴이에요. 계속 쓰실 것 같으면 월간(
+              {Math.round(tierPricing("pro").monthly / 30).toLocaleString("ko-KR")}원/일)이 더
+              저렴합니다.
             </p>
           </div>
           {paymentsReady && (
@@ -336,8 +353,75 @@ export default async function SubscriptionPage({
           로그인하지 않았으면 보여 줄 사실이 없으므로 아예 렌더하지 않는다. */}
       {email && <BillingPanel email={email} currentPlan={currentPlan} />}
 
-      {/* 기능 비교표 (9k) */}
-      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] overflow-x-auto rounded-[20px] px-[22px] py-5">
+      {/* 기능 비교표 (9k)
+          [C49] 예전엔 640px 고정 폭 표 하나뿐이라, 390px 화면에서는 라벨 칸
+          200px 이 절반을 먹고 나머지를 가로로 밀어야 했다 — 가격을 비교하려고
+          연 화면에서 세 플랜이 한 번에 안 보였고, 가로 스크롤이 된다는 힌트도
+          없었다. 데이터(FEATURE_ROWS)는 그대로 두고 좁은 화면용 배치를 따로 둔다:
+          기능 이름을 한 줄 위로 올리고 값 세 칸을 가로로 나란히 —
+          세 플랜이 한 화면에 들어오고 가로 스크롤이 사라진다. */}
+      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
+        {/* ── 좁은 화면(< md) ── */}
+        <div className="md:hidden">
+          <div className="mb-2 t-sub font-bold text-text-3">기능 비교</div>
+          <div /* 헤더 아래에 붙여 둔다 — 아래로 내려가도 어느 칸이 어느 플랜인지 잃지 않는다.
+                 56px 은 TownCategoryNav 와 같은 실측 헤더 높이다. */
+            className="sticky top-[56px] z-10 grid grid-cols-3 gap-1.5 rounded-[10px] bg-surface py-1.5">
+            <div className="text-center">
+              <div className="t-sub font-extrabold text-ink">무료</div>
+              <div className="t-sub text-text-3">0원</div>
+            </div>
+            <div className="rounded-[8px] bg-[rgba(29,79,216,.06)] py-0.5 text-center">
+              <div className="t-sub font-extrabold text-primary">✦ 플러스</div>
+              <div className="t-sub text-text-3">{PLUS_MONTHLY}/월</div>
+            </div>
+            <div className="text-center">
+              <div className="t-sub font-extrabold text-warning">✦ 프로</div>
+              <div className="t-sub text-text-3">{PRO_MONTHLY}/월</div>
+            </div>
+          </div>
+          {FEATURE_ROWS.map((r) => (
+            <div key={r.label} className="border-t border-divider py-2">
+              <div className="mb-1 t-sub font-semibold text-text-2">{r.label}</div>
+              <div className="grid grid-cols-3 gap-1.5 text-center t-sub">
+                <span className={r.free === "—" ? "text-text-3" : "text-text-2"}>{r.free}</span>
+                <span
+                  className={`rounded-[6px] bg-[rgba(29,79,216,.04)] py-0.5 ${
+                    r.plus === "—" ? "text-text-3" : "font-bold text-primary"
+                  }`}
+                >
+                  {r.plus}
+                </span>
+                <span
+                  className={
+                    r.pro === "—"
+                      ? "text-text-3"
+                      : r.proAccent
+                        ? "font-bold text-warning"
+                        : "font-bold text-primary"
+                  }
+                >
+                  {r.pro}
+                </span>
+              </div>
+            </div>
+          ))}
+          <div className="border-t border-divider py-2">
+            <div className="mb-1 t-sub font-semibold text-text-2">프로필 인증배지</div>
+            <div className="grid grid-cols-3 items-center gap-1.5 text-center">
+              <span className="t-sub text-text-3">—</span>
+              <span className="rounded-[6px] bg-[rgba(29,79,216,.04)] py-0.5">
+                <PlanBadge tier="plus" />
+              </span>
+              <span>
+                <PlanBadge tier="pro" />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 넓은 화면(md+) — 종전 표 그대로 ── */}
+        <div className="hidden overflow-x-auto md:block">
         <div className="min-w-[640px]">
           <div className="grid grid-cols-[200px_repeat(3,1fr)] items-end gap-2 border-b border-divider pb-3 pt-1.5">
             <span className="t-sub text-text-3">기능 비교</span>
@@ -393,6 +477,7 @@ export default async function SubscriptionPage({
               <PlanBadge tier="pro" />
             </span>
           </div>
+        </div>
         </div>
       </section>
 

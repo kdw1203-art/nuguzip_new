@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { planLabel } from "@/lib/subscriptions/labels";
+import {
+  accessEndsAtMs,
+  billingDurationLabel,
+  type PaymentBilling,
+} from "@/lib/subscriptions/billing-periods";
 import Link from "next/link";
 import {
   isTossTestEnv,
@@ -60,6 +65,85 @@ function parseParams(): {
   } catch {
     return null;
   }
+}
+
+/* ============================================================
+   [C42] 결제 전 요약 — 무엇을, 얼마에, 언제까지.
+
+   이 화면은 **주간권(단건) 전용**이다 — 월간·연간은 위 useEffect 가
+   /subscription/billing(카드 등록형 정기결제)으로 보낸다.
+
+   예전 화면에는 "플러스 플랜 · 주간 결제" 와 "1,100원 결제하기" 버튼뿐이었고,
+   위젯형(gck)에는 요약 카드조차 없었다. 빠져 있던 사실은 두 가지다:
+   **언제까지 쓰는지**(applyPlanToUserByEmail durationDays=7, 이후
+   plan-expiry-sweep 이 무료로 되돌린다)와 **자동 갱신이 없다는 것**.
+   결제 버튼 위는 그 둘을 말할 마지막 자리다.
+   ============================================================ */
+function CheckoutSummary({
+  planName,
+  billing,
+  billingLabel,
+  amount,
+  orderId,
+}: {
+  planName: string;
+  billing: PaymentBilling;
+  billingLabel: string;
+  amount: number;
+  orderId: string;
+}) {
+  /* 종료일은 렌더 시점 기준이다. 사용자가 이 화면을 오래 열어 두면 실제
+     승인 시각과 하루 어긋날 수 있어 "결제 시각 기준"이라고 밝혀 둔다. */
+  const endsAt = new Date(accessEndsAtMs(billing, Date.now()));
+  const endsLabel = endsAt.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  return (
+    <div className="card flex flex-col gap-2 rounded-2xl px-4 py-5">
+      <div className="flex items-center justify-between t-body">
+        <span className="text-text-3">플랜</span>
+        <span className="font-bold text-ink">
+          {planName} · {billingLabel}
+        </span>
+      </div>
+      <div className="flex items-center justify-between t-body">
+        <span className="text-text-3">이용 기간</span>
+        <span className="font-bold text-ink">
+          {billingDurationLabel(billing)} · {endsLabel}까지
+        </span>
+      </div>
+      <div className="flex items-center justify-between border-t border-divider pt-2 t-body">
+        <span className="text-text-3">결제 금액</span>
+        <span className="t-section font-extrabold text-ink">
+          {amount.toLocaleString("ko-KR")}원
+        </span>
+      </div>
+      <div className="mt-1 flex flex-col gap-1 rounded-xl bg-bg px-3 py-2.5 t-sub text-text-2">
+        <span>
+          <span className="font-bold text-ink">자동 갱신되지 않는 1회 결제예요.</span>{" "}
+          기간이 끝나면 추가 청구 없이 무료 플랜으로 돌아갑니다.
+        </span>
+        <span>
+          계속 쓰실 생각이면{" "}
+          <Link href="/subscription" className="font-bold text-primary underline">
+            월간·연간 정기결제
+          </Link>
+          가 하루 기준으로 더 저렴해요 — 그건 카드 등록형이라 해지 전까지 자동
+          갱신됩니다.
+        </span>
+        <span>
+          결제 7일 이내 청약철회(환불) 가능 ·{" "}
+          <Link href="/legal/terms#refund" className="font-bold text-primary underline">
+            환불 규정
+          </Link>
+        </span>
+      </div>
+      <p className="t-sub text-text-3">주문번호 {orderId}</p>
+    </div>
+  );
 }
 
 export function CheckoutClient() {
@@ -332,8 +416,15 @@ export function CheckoutClient() {
       <div className="flex flex-col gap-2">
         <div id="toss-payment-methods" className="overflow-hidden rounded-2xl" />
         <div id="toss-agreement" className="overflow-hidden rounded-2xl" />
-        {phase.kind === "ready" && (
+        {phase.kind === "ready" && params && (
           <>
+            <CheckoutSummary
+              planName={label}
+              billing={params.billing}
+              billingLabel={billingLabel}
+              amount={phase.amount}
+              orderId={phase.orderId}
+            />
             <button
               type="button"
               onClick={() => void pay()}
@@ -345,32 +436,24 @@ export function CheckoutClient() {
                 : `${phase.amount.toLocaleString("ko-KR")}원 결제하기`}
             </button>
             <p className="text-center t-sub text-text-3">
-              결제 완료 후 자동으로 구독이 활성화돼요 · 주문번호 {phase.orderId}
+              결제 완료 후 자동으로 구독이 활성화돼요.
             </p>
           </>
         )}
 
         {/* 결제창형(ck 키) — 위젯 대신 요약 카드 + 결제창 버튼 */}
-        {phase.kind === "window-ready" && (
+        {phase.kind === "window-ready" && params && (
           <>
-            <div className="card flex flex-col gap-2 rounded-2xl px-4 py-5">
-              <div className="flex items-center justify-between t-body">
-                <span className="text-text-3">플랜</span>
-                <span className="font-bold text-ink">
-                  {label} · {billingLabel}
-                </span>
-              </div>
-              <div className="flex items-center justify-between t-body">
-                <span className="text-text-3">결제 금액</span>
-                <span className="font-extrabold text-ink">
-                  {phase.amount.toLocaleString("ko-KR")}원
-                </span>
-              </div>
-              <p className="mt-1 t-sub text-text-3">
-                버튼을 누르면 토스페이먼츠 카드 결제창이 열려요. 결제 완료 후
-                자동으로 구독이 활성화돼요.
-              </p>
-            </div>
+            <CheckoutSummary
+              planName={label}
+              billing={params.billing}
+              billingLabel={billingLabel}
+              amount={phase.amount}
+              orderId={phase.orderId}
+            />
+            <p className="t-sub text-text-3">
+              버튼을 누르면 토스페이먼츠 카드 결제창이 열려요.
+            </p>
             <button
               type="button"
               onClick={() => void payWindow()}
@@ -381,9 +464,6 @@ export function CheckoutClient() {
                 ? "결제창 여는 중…"
                 : `${phase.amount.toLocaleString("ko-KR")}원 카드로 결제하기`}
             </button>
-            <p className="text-center t-sub text-text-3">
-              주문번호 {phase.orderId}
-            </p>
           </>
         )}
       </div>

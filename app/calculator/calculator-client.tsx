@@ -151,12 +151,24 @@ function isOwnership(v: unknown): v is Ownership {
   return typeof v === "string" && (OWNERSHIPS as readonly string[]).includes(v);
 }
 
+/* [D69] 매매가 슬라이더의 경계 — 프리필도 같은 경계를 쓴다.
+   따로 적으면 URL 로 20억을 넘겨받았을 때 화면 숫자(정상)와 슬라이더 손잡이
+   (최대치에 붙어 있음)가 서로 다른 말을 한다. */
+const PRICE_MIN_MANWON = 30_000;
+const PRICE_MAX_MANWON = 200_000;
+
 const numInputCls =
   "w-[110px] rounded-lg border border-line bg-bg px-3 py-[7px] text-right text-[13px] font-extrabold text-ink outline-none focus:border-primary";
 
 export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) {
   const [section, setSection] = useState<Section>("loan");
   const [price, setPrice] = useState(84000); // 만원
+  /* [D69] 이 금액이 어디서 왔는지 — 실거래에서 넘겨받았을 때만 값이 있다.
+     계산기의 기본값 84,000만원은 우리가 정한 예시 숫자다. 단지 화면에서
+     "이 시세로 계산"을 눌러 온 사람에게는 그게 **자기 단지의 실거래가**여야
+     하고, 그 사실을 화면이 말해야 숫자를 믿을 수 있다. */
+  const [priceFrom, setPriceFrom] = useState<string | null>(null);
+  const [priceClamped, setPriceClamped] = useState(false);
   const [loanRatio, setLoanRatio] = useState(40); // %
   const [years, setYears] = useState(30);
   const [serverCalc, setServerCalc] = useState<LoanCalcResult | null>(null);
@@ -195,6 +207,32 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
       if (isOwnership(s.ownership)) setOwnership(s.ownership);
     } catch {
       /* 프라이빗 모드 등 접근 불가 — 기본값으로 진행 */
+    }
+  }, []);
+
+  /* [D69] URL 프리필 — 저장된 입력보다 **뒤에** 적용해서 URL 이 이긴다.
+     단지 화면에서 실거래가를 들고 넘어왔는데 지난번에 만지던 숫자가 그대로
+     떠 있으면, 링크를 누른 의미가 사라진다.
+
+     ?price= 는 **만원** 단위다(화면 입력 단위와 같게 맞춘다 — 원 단위로 받으면
+     0을 네 개 더 붙인 링크가 언젠가 생긴다). 범위 밖 값은 무시한다. */
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const p = Number(sp.get("price"));
+      if (Number.isFinite(p) && p > 0) {
+        /* 슬라이더 밖 금액은 **잘라서** 넣고, 잘랐다는 사실을 아래에 적는다.
+           그냥 무시하면 "이 시세로 계산"을 눌렀는데 아무 일도 안 일어난다. */
+        const clamped = Math.min(PRICE_MAX_MANWON, Math.max(PRICE_MIN_MANWON, Math.round(p)));
+        setPrice(clamped);
+        const from = (sp.get("from") ?? "").trim().slice(0, 40);
+        setPriceFrom(from || null);
+        setPriceClamped(clamped !== Math.round(p));
+      }
+      const sec = sp.get("section");
+      if (sec === "realestate" || sec === "loan") setSection(sec);
+    } catch {
+      /* URL 이 깨졌으면 기본값으로 진행 */
     }
   }, []);
 
@@ -421,10 +459,19 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
               <span className="text-[13px] text-text-2">매매가</span>
               <span className="text-base font-extrabold text-ink">{formatEok(price)}</span>
             </div>
+            {/* [D69] 이 숫자의 출처. 기본값(8.4억)은 우리가 정한 예시이고,
+                단지 화면에서 넘어온 값은 그 단지의 실거래가다 — 둘은 믿을 근거가
+                전혀 다르므로 화면이 구분해서 말해야 한다. */}
+            {priceFrom && (
+              <div className="-mt-1.5 rounded-[10px] bg-primary-soft px-2.5 py-1.5 text-[11px] text-text-1">
+                <b className="text-primary">{priceFrom}</b> 실거래가를 넣었어요
+                {priceClamped && " (계산기 범위에 맞춰 조정)"} · 아래에서 바꿔도 돼요
+              </div>
+            )}
             <input
               type="range"
-              min={30000}
-              max={200000}
+              min={PRICE_MIN_MANWON}
+              max={PRICE_MAX_MANWON}
               step={1000}
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}

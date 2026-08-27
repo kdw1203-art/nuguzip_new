@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
 
 /* ============================================================
    N17 — 시세 위젯 코드 생성기 (클라이언트).
@@ -85,7 +86,7 @@ export function WidgetBuilder() {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
     } catch {
       // 클립보드 권한이 없는 브라우저 — 코드는 화면에 그대로 있으니 직접 복사하면 된다.
       setCopied(false);

@@ -8,13 +8,24 @@ import path from "node:path";
 const ROOT = process.cwd();
 const MANIFEST = path.join(ROOT, ".next", "app-build-manifest.json");
 
-/** 라우트: raw KB 상한 (실측 + 여유) */
+/** 라우트: raw KB 상한 (실측 + 여유)
+ *
+ * [F90] 2026-08-27 재조정 — 여유를 25% 에서 ~8% 로 좁힌다.
+ *
+ * 처음 예산을 잡을 때는 다이어트 직후라 어디까지 줄어들지 몰라 25% 를 뒀다.
+ * 그 뒤 사흘 동안 다섯 라우트가 전부 예산의 63~79% 에 머물렀다 — 즉 지금 예산은
+ * "회귀를 잡는 선"이 아니라 "100KB 를 더 늘려도 초록불인 선"이다. 게이트가
+ * 실제로 막는 것이 없으면 없는 것과 같다.
+ *
+ * 여유를 8% 로 좁히면 라우트당 30~40KB 까지는 조용히 늘어나도 되고(정상적인
+ * 기능 추가), 그 이상은 빌드가 멈춰 이유를 말하게 된다. 늘리는 방향의 조정은
+ * 여전히 근거(무엇이 얼마나 늘었고 왜 필요한가)와 함께여야 한다. */
 const BUDGETS_KB = {
-  "/page": 550, // 실측 454KB (2026-08-24)
-  "/map/page": 450, // 실측 347KB — MapClientLazy 분리 후
-  "/analysis/page": 550, // 실측 435KB
-  "/analysis/ai/[tool]/page": 550, // 실측 440KB
-  "/notes/new/page": 550, // 실측 435KB — VoiceMemoRecorder 분리 후
+  "/page": 495, // 실측 457KB (2026-08-27)
+  "/map/page": 375, // 실측 347KB — MapClientLazy 분리 후
+  "/analysis/page": 490, // 실측 453KB
+  "/analysis/ai/[tool]/page": 480, // 실측 441KB
+  "/notes/new/page": 470, // 실측 434KB — VoiceMemoRecorder 분리 후
 };
 
 let manifest;

@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { getHomePersonal } from "@/lib/client/home-personal";
 import Link from "next/link";
 import { seedGradient, seedCoverHeight } from "./shared";
 import { ExampleBadge } from "../components/ExampleBadge";
@@ -32,13 +33,22 @@ export type FeedCard = {
   boosted?: boolean;
 };
 
-const FILTERS = [
-  { id: "all", label: "추천" },
-  { id: "latest", label: "최신" },
+/* [B19] 유형(무엇을 보나)과 정렬(어떤 순서로 보나)은 서로 다른 축인데
+   한 세그먼트에 4칸으로 섞여 있었다. 그래서 "임장노트를 최신순으로" 가
+   **표현 불가능**했고(둘 다 같은 칸을 차지한다), "추천 20 · 최신 20" 처럼
+   같은 수가 두 번 적혀 고장난 것처럼 보였다. 두 줄로 가른다. */
+const KINDS = [
+  { id: "all", label: "전체" },
   { id: "note", label: "임장노트" },
   { id: "post", label: "이야기" },
 ] as const;
-type FilterId = (typeof FILTERS)[number]["id"];
+type KindId = (typeof KINDS)[number]["id"];
+
+const SORTS = [
+  { id: "reco", label: "추천순" },
+  { id: "latest", label: "최신순" },
+] as const;
+type SortId = (typeof SORTS)[number]["id"];
 
 function Cover({ card }: { card: FeedCard }) {
   const label = card.kind === "note" ? (card.visited ? "✓ 직접 방문" : "임장노트") : "이야기";
@@ -101,11 +111,16 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between t-sub text-text-3">
-            <span className="min-w-0 truncate">
-              {card.author}
-              {card.region ? ` · ${card.region}` : ""}
+          {/* 지역을 작성자 뒤 메타 텍스트에서 **배지**로 올린다. (B20)
+              동네이야기의 축은 지역인데, 목록에서 어느 동네 글인지 훑어지지 않았다.
+              "홍길동 · 관양동" 처럼 이름 뒤에 붙어 있으면 눈이 그걸 찾지 않는다. */}
+          {card.region && (
+            <span className="w-fit rounded-[5px] bg-primary-soft px-1.5 py-px t-caption font-extrabold text-primary">
+              {card.region}
             </span>
+          )}
+          <div className="flex items-center justify-between t-sub text-text-3">
+            <span className="min-w-0 truncate">{card.author}</span>
             {typeof card.rating === "number" && card.rating > 0 ? (
               <span className="inline-flex shrink-0 items-center gap-1">
                 ★ {card.rating.toFixed(1)}
@@ -157,51 +172,142 @@ export function TownFeed({
   /** 서버에서 렌더한 광고 슬롯(없으면 null) */
   ad?: ReactNode;
 }) {
-  const [filter, setFilter] = useState<FilterId>("all");
+  const [kind, setKind] = useState<KindId>("all");
+  const [sort, setSort] = useState<SortId>("reco");
+  /* 내 관심지역 — 로그인 사용자만. 홈에서 정한 지역이 여기서 초기화되던 문제(B21).
+     null = 아직 모름 / [] = 설정 안 함 → 칩을 그리지 않는다. */
+  const [myRegions, setMyRegions] = useState<string[] | null>(null);
+  const [onlyMine, setOnlyMine] = useState(false);
+  useEffect(() => {
+    let dead = false;
+    getHomePersonal<{ primaryRegion: string | null; regions: string[] | null }>()
+      .then((p) => {
+        if (dead || !p) return;
+        const list = [p.primaryRegion, ...(p.regions ?? [])]
+          .map((r) => String(r ?? "").trim())
+          .filter(Boolean);
+        setMyRegions([...new Set(list)]);
+      })
+      .catch(() => {
+        /* 개인화 실패 — 칩을 안 그린다. 빈 결과를 "내 지역 글이 없다"로 오인시키지 않는다. */
+      });
+    return () => {
+      dead = true;
+    };
+  }, []);
 
-  /* 각 칸의 실제 개수 — 필터를 눌러 보기 전에 결과 크기를 알 수 있게 한다. */
-  const counts = useMemo<Record<FilterId, number>>(
+  /* 카드의 region 표기("서울 강남구")와 관심지역 표기("강남구")가 다를 수 있어
+     한쪽이 다른 쪽을 포함하면 같은 지역으로 본다. */
+  const matchesMine = useCallback(
+    (c: FeedCard) => {
+      const list = myRegions ?? [];
+      if (list.length === 0) return true;
+      const r = (c.region ?? "").replace(/\s+/g, "");
+      if (!r) return false;
+      return list.some((m) => {
+        const n = m.replace(/\s+/g, "");
+        return n.length > 1 && (r.includes(n) || n.includes(r));
+      });
+    },
+    [myRegions],
+  );
+
+  /* 각 칸의 실제 개수 — 눌러 보기 전에 결과 크기를 알 수 있게 한다.
+     개수는 **유형**에만 붙인다(정렬은 같은 목록을 다시 세우는 것이라 수가 같다). */
+  const counts = useMemo<Record<KindId, number>>(
     () => ({
       all: cards.length,
-      latest: cards.length,
       note: cards.filter((c) => c.kind === "note").length,
       post: cards.filter((c) => c.kind === "post").length,
     }),
     [cards],
   );
 
+  const mineCount = useMemo(
+    () => (myRegions && myRegions.length > 0 ? cards.filter(matchesMine).length : 0),
+    [cards, myRegions, matchesMine],
+  );
+
   const visible = useMemo(() => {
-    let list = cards;
-    if (filter === "note") list = cards.filter((c) => c.kind === "note");
-    else if (filter === "post") list = cards.filter((c) => c.kind === "post");
+    let list = onlyMine ? cards.filter(matchesMine) : cards;
+    if (kind !== "all") list = list.filter((c) => c.kind === kind);
     /* 포인트 추천글은 정렬과 무관하게 맨 앞 — 배지('추천글')로 이유를 밝힌다 */
     const byBoost = (a: FeedCard, b: FeedCard) => Number(b.boosted ?? false) - Number(a.boosted ?? false);
-    if (filter === "latest")
+    if (sort === "latest")
       return [...list].sort((a, b) => byBoost(a, b) || b.createdAt - a.createdAt);
     return [...list].sort((a, b) => byBoost(a, b) || recommendScore(b) - recommendScore(a));
-  }, [cards, filter]);
+  }, [cards, kind, sort, onlyMine, matchesMine]);
 
   return (
     <>
-      {/* 정렬·필터는 같은 화면의 **상태**다 — 링크형 칩 4개가 흩어져 있으면
-          지금 무엇이 켜져 있는지가 약하게 읽힌다. 세그먼티드 한 덩어리로 묶고
-          각 칸에 실제 개수를 적는다(눌러 보기 전에 결과 크기를 안다). */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="seg" role="group" aria-label="피드 정렬·필터">
-          {FILTERS.map((f) => (
+      {/* 유형(무엇) · 정렬(순서)를 두 줄로 가른다 — 한 줄에 섞여 있으면
+          "임장노트를 최신순으로" 를 표현할 수 없다(B19). */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="seg" role="group" aria-label="글 유형">
+          {KINDS.map((k) => (
             <button
-              key={f.id}
+              key={k.id}
               type="button"
-              aria-pressed={filter === f.id}
-              onClick={() => setFilter(f.id)}
+              aria-pressed={kind === k.id}
+              onClick={() => setKind(k.id)}
             >
-              {f.label}
-              <span className="t-num ml-1 opacity-70">{counts[f.id]}</span>
+              {k.label}
+              <span className="t-num ml-1 opacity-70">{counts[k.id]}</span>
             </button>
           ))}
         </div>
+        {/* 홈에서 정한 관심지역을 여기서도 쓴다 (B21) — 없으면 그리지 않는다.
+            "0개"가 나오는 칩을 만들어 두면 눌러 보고 실망하게 된다. */}
+        {myRegions && myRegions.length > 0 && mineCount > 0 && (
+          <button
+            type="button"
+            aria-pressed={onlyMine}
+            onClick={() => setOnlyMine((v) => !v)}
+            className={`chip px-3 py-1.5 t-sub font-bold ${
+              onlyMine ? "chip-active" : "border border-line bg-surface text-text-2"
+            }`}
+          >
+            내 관심지역
+            <span className="t-num ml-1 opacity-70">{mineCount}</span>
+          </button>
+        )}
+        {/* 관심지역이 있으면 그 동네로 바로 글쓰기 (B22) — 매번 지역부터
+            다시 고르게 하지 않는다. */}
+        {myRegions && myRegions.length > 0 && (
+          <Link
+            href={`/town/write?region=${encodeURIComponent(myRegions[0])}`}
+            className="ml-auto t-sub font-bold text-primary no-underline"
+          >
+            {myRegions[0]}에 글쓰기 ›
+          </Link>
+        )}
+      </div>
+
+      <div className="mb-3 flex flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="seg" role="group" aria-label="정렬">
+            {SORTS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                aria-pressed={sort === o.id}
+                onClick={() => setSort(o.id)}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <span className="t-sub text-text-3">
+            {visible.length.toLocaleString("ko-KR")}개 표시 중
+          </span>
+        </div>
+        {/* [B24] 추천의 **기준**을 적는다. 무엇이 위로 올라오는지 모르는 순위는
+            "누가 밀어준 글"로 읽힌다 — 실제로는 위 recommendScore 가 전부다.
+            좁은 화면에서 세그먼트 옆에 붙이면 잘리므로 제 줄을 준다. */}
         <span className="t-sub text-text-3">
-          {visible.length.toLocaleString("ko-KR")}개 표시 중
+          {sort === "reco"
+            ? "최신 글이 먼저, 노트 평점·저장수만큼 위로 올라와요"
+            : "올린 시각이 빠른 순서예요"}
         </span>
       </div>
 
@@ -220,7 +326,11 @@ export function TownFeed({
           <div className="t-title"><Icon name="📍" size={26} /></div>
           {/* 조회 실패로 목록이 비었을 때 "글이 없어요"라고 하면 사실이 아니다. */}
           <div className="t-section text-ink">
-            {loadFailed ? "글을 불러오지 못했어요" : "아직 이 필터에 보여줄 글이 없어요"}
+            {loadFailed
+              ? "글을 불러오지 못했어요"
+              : onlyMine
+                ? "내 관심지역에는 아직 글이 없어요"
+                : "아직 이 조건에 보여줄 글이 없어요"}
           </div>
           <div className="t-sub text-text-3">
             {loadFailed

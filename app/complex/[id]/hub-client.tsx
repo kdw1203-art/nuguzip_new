@@ -165,6 +165,7 @@ export function ComplexHubTabs({
   listings,
   priceSeries,
   complexId,
+  complexName,
 }: {
   aiTitle: string;
   aiBody: string;
@@ -180,8 +181,14 @@ export function ComplexHubTabs({
   priceSeries: PricePoint[];
   /** 지도 CTA 딥링크용 — 있으면 /map?complexId= 로 단지 맥락을 들고 간다 */
   complexId?: string;
+  /** 계산기 프리필의 출처 표기용 단지명 (D69) */
+  complexName?: string;
 }) {
   const [tab, setTab] = useState<Tab>("요약");
+  /* 가장 최근 달의 평균 매매가(만원) — 계산기 프리필용. priceSeries 는 오름차순이다. */
+  const latestAvgManwon = priceSeries.length > 0
+    ? Math.round(priceSeries[priceSeries.length - 1]?.avgManwon ?? 0)
+    : 0;
 
   const myRecordCard = (
     <div className="card flex items-center justify-between rounded-[14px] px-[15px] py-3.5">
@@ -398,9 +405,24 @@ export function ComplexHubTabs({
               아직 수집된 국토교통부 실거래가 없어요
             </div>
           )}
-          <Link href="/analysis/price" className="btn-soft rounded-xl p-3 text-center t-body">
-            AI 시세 분석 보기
-          </Link>
+          {/* [D69] 계산기로 **이 단지의 실거래가를 들고** 간다.
+              예전엔 계산기가 어디서도 값을 받지 못해 8.4억이라는 예시 숫자에서
+              늘 새로 시작했다 — 방금 시세를 보고 온 사람에게 그건 남의 숫자다.
+              최근 달 평균 매매가(만원)를 그대로 넘긴다. 값이 없으면 링크를
+              만들지 않는다(빈손으로 보내면 예시 숫자가 자기 단지인 척한다). */}
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Link href="/analysis/price" className="btn-soft rounded-xl p-3 text-center t-body">
+              AI 시세 분석 보기
+            </Link>
+            {latestAvgManwon > 0 && (
+              <Link
+                href={`/calculator?price=${latestAvgManwon}${complexName ? `&from=${encodeURIComponent(complexName)}` : ""}`}
+                className="btn-soft rounded-xl p-3 text-center t-body"
+              >
+                이 시세로 대출 계산
+              </Link>
+            )}
+          </div>
         </div>
       )}
 

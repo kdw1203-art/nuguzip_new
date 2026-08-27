@@ -100,3 +100,35 @@ export function annualDiscountPct(
   const annual = BILLING_PERIOD_PRICES[tier].find((r) => r.months === 12);
   return annual && annual.discountPct > 0 ? annual.discountPct : null;
 }
+
+/* ============================================================
+   [C42] 결제 한 건이 **며칠짜리인지** — 단일 출처.
+
+   주문서형/결제창형 결제(/api/payments/toss/confirm)는 정기결제가 아니다.
+   applyPlanToUserByEmail 에 durationDays 를 넘겨 그 기간만 플랜을 켜고,
+   만료되면 plan-expiry-sweep 크론이 무료로 되돌린다 — **자동 갱신이 없다**.
+
+   그런데 결제 화면에는 "플러스 · 월간 결제 / 2,900원" 만 적혀 있었다.
+   "월간"이라고 쓰여 있으면 사람은 매달 자동으로 갱신된다고 읽는다. 실제로는
+   30일 뒤 조용히 무료로 내려간다 — 우리가 말하지 않아서 생기는 오해다.
+   기간 숫자를 화면과 서버가 각자 적으면 언젠가 어긋나므로 여기 한 곳에 둔다.
+   ============================================================ */
+export const BILLING_DURATION_DAYS: Record<PaymentBilling, number> = {
+  weekly: WEEKLY_PASS.days,
+  monthly: 30,
+  annual: 365,
+};
+
+/** 사람이 읽는 이용 기간 — "7일" · "30일" · "365일(1년)" */
+export function billingDurationLabel(billing: PaymentBilling): string {
+  const d = BILLING_DURATION_DAYS[billing];
+  return billing === "annual" ? `${d}일(1년)` : `${d}일`;
+}
+
+/**
+ * 지금 결제하면 언제까지 쓸 수 있는지.
+ * @param fromMs 기준 시각(ms). 테스트에서 고정하기 위해 주입받는다.
+ */
+export function accessEndsAtMs(billing: PaymentBilling, fromMs: number): number {
+  return fromMs + BILLING_DURATION_DAYS[billing] * 24 * 60 * 60 * 1000;
+}

@@ -19,7 +19,10 @@ export default function ListingsLoading() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="card overflow-hidden rounded-[18px]">
-            <Skeleton className="h-40 w-full" />
+            {/* [E73] 실물 커버 높이와 같게. h-40(160px)이었는데 실제 카드 이미지는
+                h-[150px] 라(ListingsListClient.tsx), 카드 6장이 로드되는 순간
+                10px×6 만큼 목록이 통째로 밀렸다 — 스켈레톤이 만들어 내는 CLS 다. */}
+            <Skeleton className="h-[150px] w-full" />
             <div className="flex flex-col gap-2 p-4">
               <div className="flex items-center justify-between">
                 <Skeleton className="h-5 w-24 rounded" />

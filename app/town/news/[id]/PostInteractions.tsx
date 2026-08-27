@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
@@ -65,6 +66,13 @@ export function PostActions({
     setBusy(true);
     setError(null);
     const next = !saved;
+    /* [E72] 낙관적 토글 — 누른 즉시 상태를 바꾸고, 실패하면 되돌린다.
+       왕복이 200~600ms 라 그동안 버튼이 죽은 것처럼 보였다(두 번 누르는 사람이
+       생긴다). 주의: 낙관적으로 바꾸는 건 **내 토글 상태**뿐이고 저장 **수**는
+       건드리지 않는다 — 서버가 센 숫자를 화면에서 임의로 올리면 그건 지어낸
+       값이다(이 파일의 오랜 원칙). 실패·401 경로는 아래에서 전부 되돌린다. */
+    setSaved(next);
+    const revert = () => setSaved(!next);
     try {
       const res = next
         ? await fetch("/api/bookmarks", {
@@ -77,6 +85,7 @@ export function PostActions({
             { method: "DELETE" },
           );
       if (res.status === 401) {
+        revert();
         promptSignup({
           action: "bookmark_post",
           title: "저장하려면 로그인이 필요해요",
@@ -91,13 +100,14 @@ export function PostActions({
         };
         /* 고도화 33 — 한도 도달(quotaDeniedJson)은 다른 화면과 같은 공통
            페이월 모달로. 문구는 그대로 곁들여 보인다(모달을 닫아도 사유가 남게). */
+        revert();
         handleUpgradeResponse(res.status, data);
         setError(data.error ?? "잠시 후 다시 시도해 주세요.");
         return;
       }
-      setSaved(next);
       router.refresh();
     } catch {
+      revert();
       setError("네트워크 오류가 발생했어요.");
     } finally {
       setBusy(false);
@@ -118,7 +128,7 @@ export function PostActions({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      window.setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
     } catch {
       /* 클립보드 권한 없음 — 주소창의 주소를 그대로 쓰면 된다 */
     }
@@ -167,6 +177,19 @@ export function LikeButton({
   async function toggle() {
     if (busy) return;
     setBusy(true);
+    /* [E72] 낙관적 반영 — 누르는 즉시 켜고 숫자를 ±1 한다.
+       예전에는 왕복이 끝날 때까지 아무 일도 일어나지 않아 버튼이 죽은 것처럼
+       보였다. "숫자를 임의로 올리지 않는다"는 원칙은 유지된다 — 임시로 보인
+       ±1 은 응답이 오는 즉시 **서버가 센 값으로 덮이고**, 실패하면 정확히
+       되돌아간다. 지어낸 값이 화면에 남는 경로가 없다. */
+    const prevLiked = liked;
+    const prevCount = count;
+    setLiked(!prevLiked);
+    setCount(Math.max(0, prevCount + (prevLiked ? -1 : 1)));
+    const revert = () => {
+      setLiked(prevLiked);
+      setCount(prevCount);
+    };
     try {
       const res = await fetch(`/api/community/posts/${postId}/like`, {
         method: "POST",
@@ -174,6 +197,7 @@ export function LikeButton({
         body: "{}",
       });
       if (res.status === 401) {
+        revert();
         promptSignup({
           action: "post_like",
           title: "공감하려면 로그인이 필요해요",
@@ -181,12 +205,22 @@ export function LikeButton({
         });
         return;
       }
-      if (!res.ok) return;
+      if (!res.ok) {
+        revert();
+        return;
+      }
       const data = (await res.json()) as { liked?: boolean; likeCount?: number };
-      if (typeof data.likeCount === "number") setCount(data.likeCount);
-      if (typeof data.liked === "boolean") setLiked(data.liked);
+      /* 서버 값이 최종이다. 하나라도 안 오면 통째로 되돌린다 —
+         반쪽만 반영하면 켜졌는데 숫자는 그대로인 화면이 남는다. */
+      if (typeof data.likeCount === "number" && typeof data.liked === "boolean") {
+        setCount(data.likeCount);
+        setLiked(data.liked);
+      } else {
+        revert();
+      }
     } catch {
-      /* 네트워크 실패 — 숫자를 임의로 올리지 않는다. 다시 누르면 된다. */
+      /* 네트워크 실패 — 눌리기 전으로 정확히 되돌린다. 다시 누르면 된다. */
+      revert();
     } finally {
       setBusy(false);
     }
@@ -273,7 +307,7 @@ export function CommentForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2">
+      <div className="field-focus flex items-center gap-2 rounded-xl bg-bg px-3.5 py-2">
         <input
           value={body}
           onChange={(e) => setBody(e.target.value)}

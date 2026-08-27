@@ -10,6 +10,7 @@ import {
   SEOUL_DISTRICTS,
   METRO_EXPLORE_DISTRICTS,
 } from "@/lib/map/seoul-districts";
+import { pickRegionByAnyName } from "@/lib/regions/param";
 
 /* ============================================================
    시장·대출 시나리오 — 기준 시세를 지역 실데이터(스냅샷 평균가)로 프리필.
@@ -141,21 +142,38 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams(window.location.search);
+    /* [D62] 지역은 어느 말로 와도 받는다 — 지도·홈은 "서울 강남구", 실거래
+       화면은 "서울-강남구", 여기 목록은 "gangnam". 예전에는 받은 문자열을
+       그대로 id 로 넣어, 다른 화면에서 온 링크가 조용히 기본 지역으로 떨어졌다. */
     const r = sp.get("region");
-    if (r) setRegionId(r);
-    const ltv = Number(sp.get("ltv"));
-    if (Number.isFinite(ltv) && ltv >= 0 && ltv <= 100)
+    if (r) {
+      const hit = pickRegionByAnyName(r, REGION_OPTIONS);
+      if (hit) setRegionId(hit.id);
+    }
+    /* 파라미터가 **없을 때** 0 으로 읽히던 버그 수리 (2026-08-27 실측).
+       Number(null) === 0 이라, 파라미터 없이 /analysis/scenario 를 열면
+       `ltv >= 0` 가드를 통과해 대출 비율이 40% → **0%** 로 덮였다.
+       대출 계산기가 "대출 0원 · 필요 현금 8.4억"으로 열리고 있었다.
+       숫자로 바꾸기 전에 "값이 실제로 왔는지"를 먼저 본다. */
+    const num = (key: string): number | null => {
+      const raw = sp.get(key);
+      if (raw === null || raw.trim() === "") return null;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : null;
+    };
+    const ltv = num("ltv");
+    if (ltv !== null && ltv >= 0 && ltv <= 100)
       setLtvPct(Math.min(70, Math.round(ltv / 5) * 5)); // 슬라이더 step=5에 맞춰 반올림
-    const income = Number(sp.get("income"));
-    if (Number.isFinite(income) && income >= 100 && income <= 100_000)
+    const income = num("income");
+    if (income !== null && income >= 100 && income <= 100_000)
       setIncomeManwon(Math.round(income));
-    const rate = Number(sp.get("rate"));
-    if (Number.isFinite(rate) && rate >= 0.5 && rate <= 15) setBaseRate(rate);
+    const rate = num("rate");
+    if (rate !== null && rate >= 0.5 && rate <= 15) setBaseRate(rate);
     /* [AI-27] 공유 링크 복원 — price(가격 변동%)·offset(금리 오프셋) */
-    const price = Number(sp.get("price"));
-    if (Number.isFinite(price) && price >= -30 && price <= 30) setPricePct(price);
-    const offset = Number(sp.get("offset"));
-    if (Number.isFinite(offset) && offset >= -3 && offset <= 3) setRateOffset(offset);
+    const price = num("price");
+    if (price !== null && price >= -30 && price <= 30) setPricePct(price);
+    const offset = num("offset");
+    if (offset !== null && offset >= -3 && offset <= 3) setRateOffset(offset);
   }, []);
 
   /* [AI-27] 시나리오 공유 — 현재 입력 세트를 URL로. 열람은 로그인 불필요. */
@@ -407,8 +425,30 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
                 <span className="font-bold text-text-2">만원</span>
               </span>
             </label>
-            <label className="flex items-center justify-between gap-2 t-body">
+            {/* [D68] 금리는 이 화면에서 **가장 많이 만지는 값**인데 숫자 입력칸
+                하나뿐이었다 — 0.05씩 올려 보려면 화살표를 스무 번 눌러야 한다.
+                대출 비율은 이미 슬라이더인데 금리만 아닌 건 일관성 문제이기도 하다.
+                슬라이더를 더하되 숫자칸은 남긴다: 슬라이더는 "훑어보기",
+                숫자칸은 "내 대출 금리 정확히 넣기" — 둘은 다른 용도다.
+                DSR 은 입력이 아니라 결과다(소득·상환액에서 계산된다) — 만질 수
+                있는 것처럼 보이게 하지 않고, 슬라이더를 움직이는 즉시 아래에서
+                다시 계산돼 보인다. */}
+            <div className="flex justify-between t-body">
               <span className="text-text-2">기준 금리</span>
+              <span className="font-extrabold text-ink">{baseRate.toFixed(2)}%</span>
+            </div>
+            <input
+              type="range"
+              min={2}
+              max={9}
+              step={0.05}
+              value={Math.min(9, Math.max(2, baseRate))}
+              onChange={(e) => setBaseRate(Number(e.target.value))}
+              aria-label="기준 금리 (연 %) 슬라이더"
+              className="w-full accent-primary"
+            />
+            <label className="flex items-center justify-between gap-2 t-body">
+              <span className="text-text-2">직접 입력</span>
               <span className="flex items-center gap-1">
                 <input
                   type="number"

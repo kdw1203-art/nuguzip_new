@@ -15,6 +15,7 @@ import { TownCategoryNav } from "./TownCategoryNav";
 import { TownPromptCard } from "./TownPromptCard";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
+import { postAttachments } from "@/lib/community/attachments";
 
 export const metadata = buildPageMetadata({
   title: "동네 이야기",
@@ -42,6 +43,21 @@ const TOWN_HOME_SHORTCUTS = [
   { id: "goyang-deogyang", name: "고양 덕양구" },
   { id: "incheon-yeonsu", name: "인천 연수구" },
 ] as const;
+
+/* [B25] 동네별 활동량 — 8개 칩이 전부 같은 모양이라 "어디에 사람이 있는지"가
+   안 보였다. 눌러 봐야 빈 동네인 걸 알게 되는 순서가 반복된다.
+   여기서 세는 모수는 **이 피드에 실린 글**(공개 노트 40건 + 커뮤니티 글)이지
+   그 동네의 전체 글이 아니다 — 그래서 화면에도 "최근 글 기준"이라고 적는다.
+   숫자를 정확히 부르지 못할 바엔 무엇을 센 건지 밝히는 편이 낫다. */
+function shortcutActivity(cards: FeedCard[], name: string): number {
+  /* "성남 분당구" 처럼 두 토막인 이름은 두 토막이 **모두** 들어가야 그 동네다
+     ("분당구"만 보면 다른 시의 동명 구가 섞이고, "성남"만 보면 수정구도 걸린다). */
+  const parts = name.split(/\s+/).filter(Boolean);
+  return cards.filter((c) => {
+    const r = (c.region ?? "").replace(/\s+/g, "");
+    return r.length > 0 && parts.every((p) => r.includes(p));
+  }).length;
+}
 
 function noteToCard(n: InspectionNote): FeedCard {
   const oneLiner = n.summary?.trim() || n.sections.pros?.trim() || n.title;
@@ -74,7 +90,10 @@ function postToCard(p: Post): FeedCard {
     id: p.id,
     href: `/town/news/${p.id}`,
     kind: "post",
-    cover: null,
+    /* [B31] 첨부 사진의 첫 장이 커버다. 예전엔 무조건 null 이라 사진 우선
+       격자에서 이야기 글만 늘 그라디언트 상자였다 — 저장은 되는데 읽는 코드가
+       한 줄도 없던 값이다(lib/community/attachments.ts 주석 참고). */
+    cover: postAttachments(p)[0] ?? null,
     title: p.title,
     author: p.authorLabel || "이웃",
     region,
@@ -117,6 +136,13 @@ export default async function TownPage() {
     (a, b) => b.createdAt - a.createdAt,
   );
 
+  /* [B25] 활동이 있는 동네를 앞으로. 같은 수면 원래 순서를 지킨다(임의 재배열 금지). */
+  const shortcuts = TOWN_HOME_SHORTCUTS.map((r, i) => ({
+    ...r,
+    count: shortcutActivity(cards, r.name),
+    order: i,
+  })).sort((a, b) => b.count - a.count || a.order - b.order);
+
   /* 공작 등 가짜 예시 카드는 쓰지 않는다 — 0건이면 정직한 empty+CTA.
      (예시 배너 분기(exampleOnly)는 상수 false 로 영구 죽은 코드였다 — 제거) */
   return (
@@ -139,15 +165,21 @@ export default async function TownPage() {
       {/* 지역 칩 — 줄바꿈으로 두 줄이 되면 카테고리 격자와 붙어 경계가 흐려진다.
           한 줄 가로 레일(스냅)로 고정한다. */}
       <div className="mb-4 flex items-center gap-2" data-reveal="">
-        <span className="t-sub shrink-0 font-bold text-text-3">우리 동네 홈</span>
+        <span className="shrink-0">
+          <span className="t-sub font-bold text-text-3">우리 동네 홈</span>
+          <span className="ml-1 t-caption text-text-3">최근 글 기준</span>
+        </span>
         <div className="rail-x -mx-1 px-1 py-0.5">
-          {TOWN_HOME_SHORTCUTS.map((r) => (
+          {shortcuts.map((r) => (
             <Link
               key={r.id}
               href={`/town/${r.id}`}
               className="chip tile border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2 no-underline"
             >
               {r.name}
+              {r.count > 0 && (
+                <span className="t-num ml-1 font-extrabold text-primary">{r.count}</span>
+              )}
             </Link>
           ))}
           <Link

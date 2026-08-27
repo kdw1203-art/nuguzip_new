@@ -204,7 +204,7 @@ export function PlanCards({
           return (
             <div
               key={p.kind}
-              className={`rise-in-${i + 1} relative flex flex-col gap-4 rounded-3xl p-7 ${
+              className={`rise-in-${Math.min(i + 1, 6)} relative flex flex-col gap-4 rounded-3xl p-7 ${
                 p.dark
                   ? "bg-[rgba(25,31,40,.96)] shadow-[0_24px_60px_rgba(16,28,54,.28)] md:-translate-y-2"
                   : "card"

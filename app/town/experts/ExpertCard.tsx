@@ -67,7 +67,16 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
               </span>
             )}
             {e.verified ? (
-              <span className="shrink-0 rounded-[5px] bg-primary-soft chip-pad-tight t-caption font-extrabold text-primary">
+              /* [B26] 배지 글자는 "인증"으로 고정한다 — 신청·심사·상세가 전부
+                 그 말을 쓴다(ExpertApplyCta, /town/experts/[id]). 카드에서만
+                 다른 말을 쓰면 같은 상태를 두 이름으로 부르게 된다.
+                 대신 **무엇을 인증했는지**를 title 로 밝힌다: 실제 절차는
+                 자격 서류·신원 확인 후 관리자 승인이다
+                 (lib/experts/verification-store.ts) — 그 이상을 주장하지 않는다. */
+              <span
+                title="자격 서류와 신원 확인을 거쳐 누구집이 승인한 전문가예요"
+                className="shrink-0 rounded-[5px] bg-primary-soft chip-pad-tight t-caption font-extrabold text-primary"
+              >
                 인증
               </span>
             ) : (
@@ -81,6 +90,21 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
           <div className="truncate text-xs text-text-3">{e.regionLine}</div>
         </div>
       </div>
+
+      {/* [B26] 이용자가 **직접 확인할 수 있는** 신호를 카드에 올린다.
+          상호와 개업공인중개사 등록번호는 공적으로 조회 가능한 값인데, 여태
+          상세 모달을 열어야 볼 수 있었다 — 목록에서 고르는 단계에 정작 없었다.
+          값이 없으면 줄 자체를 그리지 않는다(빈 항목은 신뢰를 깎는다). */}
+      {(e.organization || e.brokerRegistrationNo) && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-[10px] bg-bg px-2.5 py-1.5 t-caption text-text-2">
+          {e.organization && <span className="font-bold text-text-1">{e.organization}</span>}
+          {e.brokerRegistrationNo && (
+            <span>
+              등록번호 <span className="t-num font-semibold">{e.brokerRegistrationNo}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1.5">
         {e.tags.map((t) => (

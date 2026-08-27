@@ -7,11 +7,15 @@ export default function MapLoading() {
     <div className="relative h-dvh w-full overflow-hidden bg-bg">
       {/* 지도 캔버스 자리 */}
       <Skeleton className="absolute inset-0 rounded-none" />
-      {/* 상단 검색바 자리 */}
-      <div className="absolute left-1/2 top-4 w-[min(560px,calc(100vw-32px))] -translate-x-1/2">
-        <Skeleton className="h-11 w-full rounded-2xl" />
+      {/* 상단 검색바 자리.
+          [E73] 실물 툴바는 h-[58px] · w-[calc(100%-32px)] · max-w-[1180px] 다
+          (map-client.tsx). 예전 스켈레톤은 h-11(44px) · 최대 560px 라 높이도
+          14px 짧고 폭은 절반이 안 됐다 — 뜨는 순간 화면이 두 번 다시 그려진다. */}
+      <div className="absolute left-1/2 top-4 w-[calc(100%-32px)] max-w-[1180px] -translate-x-1/2">
+        <Skeleton className="h-[58px] w-full rounded-2xl" />
       </div>
-      {/* 좌측 단지 패널 자리 (데스크톱) */}
+      {/* 좌측 단지 패널 자리 (데스크톱) — 실물은 md:left-[356px] 부터 지도가
+          시작하므로 패널 오른쪽 끝이 344px 이 되도록 left-4 + w-[340px] 를 유지한다. */}
       <div className="absolute bottom-6 left-4 top-20 hidden w-[340px] flex-col gap-3 md:flex">
         <div className="card flex-1 rounded-2xl p-4">
           <Skeleton className="h-5 w-28 rounded" />

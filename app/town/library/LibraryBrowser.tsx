@@ -36,8 +36,29 @@ export type NoteCardDto = {
 
 const chip = (on: boolean) =>
   on
-    ? "press chip-active shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold"
-    : "press chip shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold";
+    ? "press chip-active shrink-0 rounded-full px-3 py-1.5 t-sub font-bold"
+    : "press chip shrink-0 rounded-full px-3 py-1.5 t-sub font-semibold";
+
+/* [B28] 자료실 검색 — 자료가 쌓일수록 "칩으로 거르기"만으로는 원하는 문서를
+   못 찾는다. 새 조회를 하지 않는다: 이미 서버가 내려준 배열 안에서 제목·부제·
+   메타·태그를 훑는다(네트워크 0회, 즉시 반응). 공백은 무시하고 각 낱말이 모두
+   들어 있어야 통과 — "강남 재건축" 이 "강남구 재건축 리포트" 를 찾게 한다. */
+/* 넓은 화면에서 화면 폭을 다 먹으면 "검색"이 아니라 "제목 입력란"처럼 보인다 */
+const searchClass =
+  "w-full max-w-[340px] rounded-full border border-line bg-surface px-3.5 py-2 t-sub text-ink outline-none placeholder:text-text-3 focus:border-primary";
+
+function useMatcher(query: string): (haystack: string) => boolean {
+  /* useMemo 로 고정한다 — 매 렌더 새 함수를 돌려주면 이걸 의존성으로 쓰는
+     아래 useMemo 들이 전부 매번 다시 돈다(목록 정렬이 공짜가 아니다). */
+  return useMemo(() => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return (haystack: string) => {
+      if (terms.length === 0) return true;
+      const hay = haystack.toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    };
+  }, [query]);
+}
 
 /* ── 리포트 선반 — 무료/유료 필터 + 최신·가격 정렬 ── */
 
@@ -47,21 +68,39 @@ type ReportSort = "latest" | "priceAsc" | "priceDesc";
 export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
   const [filter, setFilter] = useState<ReportFilter>("all");
   const [sort, setSort] = useState<ReportSort>("latest");
+  const [query, setQuery] = useState("");
+  const matches = useMatcher(query);
 
   const visible = useMemo(() => {
     const paid = (r: ReportCardDto) => r.isPremium && r.price > 0;
     let list = reports;
     if (filter === "free") list = reports.filter((r) => !paid(r));
     else if (filter === "paid") list = reports.filter(paid);
+    list = list.filter((r) =>
+      matches(`${r.title} ${r.subtitle ?? ""} ${r.meta} ${r.tags.join(" ")}`),
+    );
     const arr = [...list];
     if (sort === "priceAsc") arr.sort((a, b) => a.price - b.price);
     else if (sort === "priceDesc") arr.sort((a, b) => b.price - a.price);
     else arr.sort((a, b) => b.publishedAt - a.publishedAt);
     return arr;
-  }, [reports, filter, sort]);
+  }, [reports, filter, sort, matches]);
 
   return (
     <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="제목 · 지역 · 태그로 찾기"
+          aria-label="리포트 검색"
+          className={searchClass}
+        />
+        {query.trim() && (
+          <span className="shrink-0 t-sub text-text-3">{visible.length}건</span>
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => setFilter("all")} className={chip(filter === "all")}>
           전체 {reports.length}
@@ -94,7 +133,9 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
 
       {visible.length === 0 ? (
         <div className="card rounded-[16px] px-4 py-6 text-center t-sub text-text-3">
-          이 조건의 리포트가 없어요 — 필터를 바꿔 보세요.
+          {query.trim()
+            ? `"${query.trim()}" 와 맞는 리포트가 없어요 — 검색어를 줄여 보세요.`
+            : "이 조건의 리포트가 없어요 — 필터를 바꿔 보세요."}
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -145,19 +186,35 @@ type NoteSort = "latest" | "score";
 export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
   const [visitedOnly, setVisitedOnly] = useState(false);
   const [sort, setSort] = useState<NoteSort>("latest");
+  const [query, setQuery] = useState("");
+  const matches = useMatcher(query);
 
   const visible = useMemo(() => {
-    const list = visitedOnly ? notes.filter((n) => n.visited) : notes;
+    let list = visitedOnly ? notes.filter((n) => n.visited) : notes;
+    list = list.filter((n) => matches(`${n.title} ${n.region} ${n.author}`));
     const arr = [...list];
     if (sort === "score") arr.sort((a, b) => b.score - a.score);
     else arr.sort((a, b) => b.createdAt - a.createdAt);
     return arr;
-  }, [notes, visitedOnly, sort]);
+  }, [notes, visitedOnly, sort, matches]);
 
   const visitedCount = notes.filter((n) => n.visited).length;
 
   return (
     <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="단지 · 지역 · 작성자로 찾기"
+          aria-label="임장노트 검색"
+          className={searchClass}
+        />
+        {query.trim() && (
+          <span className="shrink-0 t-sub text-text-3">{visible.length}건</span>
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => setVisitedOnly(false)} className={chip(!visitedOnly)}>
           전체 {notes.length}
@@ -181,7 +238,9 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
 
       {visible.length === 0 ? (
         <div className="card rounded-[16px] px-4 py-6 text-center t-sub text-text-3">
-          이 조건의 노트가 없어요 — 필터를 바꿔 보세요.
+          {query.trim()
+            ? `"${query.trim()}" 와 맞는 노트가 없어요 — 검색어를 줄여 보세요.`
+            : "이 조건의 노트가 없어요 — 필터를 바꿔 보세요."}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">

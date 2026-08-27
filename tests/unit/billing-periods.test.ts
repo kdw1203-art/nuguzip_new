@@ -41,3 +41,40 @@ test("팔지 않는 기간(3·6개월) 행이 없다(썩는 숫자 방지)", () 
     assert.deepEqual(months, [1, 12]);
   }
 });
+
+/* ── [C42] 결제 한 건의 이용 기간 — 화면과 서버가 같은 숫자를 쓴다 ── */
+import {
+  accessEndsAtMs,
+  BILLING_DURATION_DAYS,
+  billingDurationLabel,
+} from "../../lib/subscriptions/billing-periods";
+
+test("주간권 기간은 WEEKLY_PASS 와 어긋날 수 없다", () => {
+  assert.equal(BILLING_DURATION_DAYS.weekly, WEEKLY_PASS.days);
+});
+
+test("월간은 30일, 연간은 365일", () => {
+  assert.equal(BILLING_DURATION_DAYS.monthly, 30);
+  assert.equal(BILLING_DURATION_DAYS.annual, 365);
+});
+
+test("기간 라벨은 연간만 '1년'을 덧붙인다", () => {
+  assert.equal(billingDurationLabel("weekly"), "7일");
+  assert.equal(billingDurationLabel("monthly"), "30일");
+  assert.equal(billingDurationLabel("annual"), "365일(1년)");
+});
+
+test("종료 시각은 기준 시각 + 기간(일)", () => {
+  const from = Date.UTC(2026, 0, 1, 0, 0, 0);
+  const day = 24 * 60 * 60 * 1000;
+  assert.equal(accessEndsAtMs("weekly", from), from + 7 * day);
+  assert.equal(accessEndsAtMs("monthly", from), from + 30 * day);
+  assert.equal(accessEndsAtMs("annual", from), from + 365 * day);
+});
+
+test("월간은 '한 달'이 아니라 30일이다 — 말과 계산이 같아야 한다", () => {
+  const from = Date.UTC(2026, 0, 31, 0, 0, 0); // 1/31 결제
+  const end = new Date(accessEndsAtMs("monthly", from));
+  /* 달을 더하는 방식이었다면 2/28 이 됐을 것이다. 우리는 30일을 더한다. */
+  assert.equal(end.toISOString().slice(0, 10), "2026-03-02");
+});

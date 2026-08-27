@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { scrollIntoViewSafely } from "@/lib/ui/scroll";
 import { NaverMap } from "@/components/map/NaverMapLazy";
 import type { MapMarkerData } from "@/components/map/NaverMap";
 import {
@@ -234,7 +235,7 @@ export function RedevelopmentMap({
   useEffect(() => {
     if (!selectedId || view !== "list") return;
     const el = cardRefs.current.get(selectedId);
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    scrollIntoViewSafely(el, { block: "nearest" });
   }, [selectedId, view]);
 
   const total = initialProjects.length;

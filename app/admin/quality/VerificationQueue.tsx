@@ -220,7 +220,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="반려 사유 (신청자에게 전달)"
-            className="min-w-0 flex-1 rounded-[7px] border border-line bg-surface px-2 py-1 text-[11px] text-ink outline-none"
+            className="min-w-0 flex-1 rounded-[7px] border border-line bg-surface px-2 py-1 text-[11px] text-ink outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
           />
           <button
             type="button"

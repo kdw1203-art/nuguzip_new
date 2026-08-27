@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPaidPaymentByProviderKey, getPaymentByOrderId, markFailed, markPaid } from "@/lib/payments/store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
+import { BILLING_DURATION_DAYS } from "@/lib/subscriptions/billing-periods";
 import type { AppPlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
@@ -262,6 +263,8 @@ async function maybeApplyPlan(
   const appPlan: AppPlan = tier;
   // 토스는 일회성 결제 — 결제 주기만큼만 이용 기간을 기록한다 (만료는 스윕 크론).
   await applyPlanToUserByEmail(userEmail, appPlan, {
-    durationDays: billing === "annual" ? 365 : billing === "weekly" ? 7 : 30,
+    /* [C42] 기간 숫자는 결제 화면과 같은 출처를 쓴다 — 여기와 화면이 각자
+       적으면 "30일"이라고 보여 주고 28일만 켜지는 날이 온다. */
+    durationDays: BILLING_DURATION_DAYS[billing],
   });
 }

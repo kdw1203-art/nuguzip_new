@@ -172,7 +172,7 @@ function Row({ item }: { item: OwnerVerificationItem }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="반려 사유 (신청자에게 그대로 전달돼요)"
-            className="min-w-0 flex-1 rounded-lg border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.04)] px-2.5 py-1.5 text-[11.5px] text-white outline-none"
+            className="min-w-0 flex-1 rounded-lg border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.04)] px-2.5 py-1.5 text-[11.5px] text-white outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
           />
           <button
             type="button"

@@ -194,6 +194,33 @@ export async function prependPostSb(post: Post): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * [B32] 도배 판정용 — **한 작성자의 최근 글만** 좁게 읽는다.
+ * 전체 목록(readPostsSb)을 끌어와 거르면 자동수집 뉴스 수천 건을 함께 읽는다.
+ * author_email 은 서버 전용 컬럼이라 rowToPost 로 되읽지 않고 필요한 3칸만 뽑는다.
+ */
+export async function listRecentPostsByAuthorSb(
+  authorEmail: string,
+  sinceIso: string,
+  limit = 20,
+): Promise<{ title: string; body: string; createdAt: string }[]> {
+  const sb = getServiceSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("posts")
+    .select("title, body, created_at")
+    .eq("author_email", authorEmail)
+    .gte("created_at", sinceIso)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    title: String((r as Record<string, unknown>).title ?? ""),
+    body: String((r as Record<string, unknown>).body ?? ""),
+    createdAt: String((r as Record<string, unknown>).created_at ?? ""),
+  }));
+}
+
 export async function updatePostSb(
   id: string,
   patch: Partial<Post>,

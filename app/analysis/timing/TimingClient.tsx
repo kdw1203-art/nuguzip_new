@@ -16,6 +16,7 @@ import { SkBlock } from "@/app/components/ui/Skeleton";
 import { TimingRegionSelect } from "./region-select";
 import { TimingComplexPicker } from "./complex-picker";
 import { AnalysisCrossLinks } from "../AnalysisCrossLinks";
+import { pickRegionByAnyName } from "@/lib/regions/param";
 
 /**
  * /analysis/timing 클라이언트 셸 (사용량 절감 13차 — ISR 전환의 클라이언트 절반).
@@ -48,9 +49,20 @@ function clientYyyymm(): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function readRegionFromLocation(fallback: string): string {
+/**
+ * [D62] `?region=` 을 **어느 말로 와도** 내 지역 목록에서 찾는다.
+ *
+ * 예전에는 받은 문자열을 그대로 지역 id 로 믿고 /api/timing?region= 에 보냈다.
+ * 그런데 지도·홈은 "서울 강남구"(한글 이름)를, 실거래 화면은 "서울-강남구"
+ * (슬러그)를 쓴다 — 그 링크를 타고 오면 API 가 그런 id 를 모르니 빈 화면이
+ * 떴다. 화면끼리 잇는 링크가 조용히 죽어 있던 자리다.
+ *
+ * 목록(regions)은 이미 이 컴포넌트가 prop 으로 들고 있으므로 새 의존이 없다.
+ */
+function readRegionFromLocation(fallback: string, regions: RegionOption[]): string {
   const raw = (new URLSearchParams(window.location.search).get("region") ?? "").trim();
-  return raw || fallback;
+  if (!raw) return fallback;
+  return pickRegionByAnyName(raw, regions)?.id ?? fallback;
 }
 
 export function TimingClient({
@@ -103,7 +115,7 @@ export function TimingClient({
     setNowYm(clientYyyymm());
     const usp = new URLSearchParams(window.location.search);
     setDeep({ c: usp.get("complexId"), a: usp.get("apt") });
-    const initial = readRegionFromLocation(defaultRegionId);
+    const initial = readRegionFromLocation(defaultRegionId, regions);
     if (initial !== defaultRegionId) {
       setRegionId(initial);
       load(initial);
@@ -119,7 +131,7 @@ export function TimingClient({
       load(defaultRegionId);
     }
     const onPop = () => {
-      const id = readRegionFromLocation(defaultRegionId);
+      const id = readRegionFromLocation(defaultRegionId, regions);
       setRegionId(id);
       load(id);
     };

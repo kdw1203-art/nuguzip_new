@@ -46,8 +46,13 @@ export type ButtonProps = ButtonAsButton | ButtonAsLink;
 /* `tap-ripple` 은 CSS 만으로 도는 눌림 파문이다(:active + ::after).
    포인터 좌표를 따라가려면 클라이언트 컴포넌트로 내려야 하는데, 버튼 하나
    때문에 서버 컴포넌트를 포기할 값어치는 없다 — 가운데서 퍼지게 둔다. */
+/* [E71] disabled 는 **투명도로 표현하지 않는다** — globals.css 의
+   "15b disabled: bg #eef1f6 · text #b0b8c1 (opacity 금지)" 규칙과 같은 처리다.
+   여기만 opacity-60 을 쓰고 있어서, 같은 화면에서 비활성 <Button> 과 비활성
+   .btn-primary 가 서로 다르게 보였다(하나는 흐려지고 하나는 회색으로 바뀐다).
+   opacity 는 글자·배경·테두리를 한꺼번에 흐려 대비를 무너뜨리기도 한다. */
 const BASE =
-  "press tap-ripple inline-flex items-center justify-center gap-1.5 rounded-xl font-bold no-underline text-center transition-colors disabled:opacity-60 disabled:pointer-events-none";
+  "press tap-ripple inline-flex items-center justify-center gap-1.5 rounded-xl font-bold no-underline text-center transition-colors disabled:bg-[var(--disabled-bg)] disabled:text-[var(--disabled-text)] disabled:border-[var(--disabled-bg)] disabled:shadow-none disabled:pointer-events-none";
 
 const SIZES: Record<ButtonSize, string> = {
   sm: "px-3 py-1.5 text-[11px]",

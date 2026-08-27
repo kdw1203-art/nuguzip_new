@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
 
 /**
  * 복사 버튼 (마이 · 친구 추천).
@@ -31,7 +32,7 @@ export function CopyLink({
         document.body.removeChild(ta);
       }
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      window.setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
     } catch {
       /* 클립보드 접근 실패 시 무시 */
     }

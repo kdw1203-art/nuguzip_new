@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { scrollIntoViewSafely } from "@/lib/ui/scroll";
 import Link from "next/link";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
@@ -46,7 +47,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    scrollIntoViewSafely(bottomRef.current, { block: "end" });
   }, [messages, busy]);
 
   useEffect(() => () => abortRef.current?.abort(), []);

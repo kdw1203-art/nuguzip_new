@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { scrollIntoViewSafely } from "@/lib/ui/scroll";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
@@ -38,7 +39,7 @@ export function AskForm() {
       // 펼침이 커밋된 다음 프레임에 스크롤 (이중 rAF — 커밋 전 실행 방지)
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          scrollIntoViewSafely(rootRef.current, { block: "start" });
         }),
       );
     } catch {

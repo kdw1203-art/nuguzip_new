@@ -362,9 +362,26 @@ export default async function TemperatureHubPage() {
         에서 확인하실 수 있습니다.
       </p>
 
-      {/* #411 — 도구 간 이어가기 */}
+      {/* #411 — 도구 간 이어가기.
+          [D62·D55] 예전에는 파라미터 없이 보냈다("비교·온도는 지역을 모른다").
+          사실은 안다 — 이 화면의 주인공은 이번 주 가장 뜨거운 지역이다.
+          받는 쪽이 어떤 지역 표기든 읽게 됐으므로(lib/regions/param.ts),
+          그 지역을 그대로 실어 보낸다. hottest 가 없으면(빈 주간) 종전대로 빈손. */}
       <div className="mb-8">
-        <AnalysisCrossLinks current="temperature" />
+        <AnalysisCrossLinks
+          current="temperature"
+          regionLabel={hottest?.current.regionLabel ?? null}
+          regionFor={
+            hottest
+              ? {
+                  price: hottest.current.regionLabel,
+                  timing: hottest.current.regionId,
+                  scenario: hottest.current.regionId,
+                  map: hottest.current.regionLabel,
+                }
+              : undefined
+          }
+        />
       </div>
     </PageShell>
   );
