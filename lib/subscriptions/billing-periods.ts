@@ -73,3 +73,30 @@ export function monthlyPrice(tier: Extract<PlanTier, "pro" | "expert">): number 
 export function annualMonthlyEquivalent(tier: Extract<PlanTier, "pro" | "expert">): number {
   return periodPrice(tier, 12)?.monthlyEquivalentKrw ?? 0;
 }
+
+/**
+ * 연간 결제로 1년에 실제로 덜 내는 금액(원). (C48)
+ *
+ * 화면에는 "월 2,300원꼴"만 있었다. 월 환산가는 **싸 보이게 만드는 표기**지
+ * 얼마를 아끼는지를 말하지 않는다 — 연간을 고르는 사람이 알고 싶은 건 후자다.
+ * 월간 12개월 총액과 연간 총액의 차이를 그대로 돌려준다(만들어 낸 수치 없음).
+ * 연간 행이 없으면 null — 없는 할인을 0원으로 그리지 않는다.
+ */
+export function annualSavingKrw(
+  tier: Extract<PlanTier, "pro" | "expert">,
+): number | null {
+  const rows = BILLING_PERIOD_PRICES[tier];
+  const monthly = rows.find((r) => r.months === 1);
+  const annual = rows.find((r) => r.months === 12);
+  if (!monthly || !annual) return null;
+  const saving = monthly.totalKrw * 12 - annual.totalKrw;
+  return saving > 0 ? saving : null;
+}
+
+/** 연간 할인율(%) — 표에 적힌 값을 그대로 쓴다(재계산해서 미세하게 어긋나지 않게). */
+export function annualDiscountPct(
+  tier: Extract<PlanTier, "pro" | "expert">,
+): number | null {
+  const annual = BILLING_PERIOD_PRICES[tier].find((r) => r.months === 12);
+  return annual && annual.discountPct > 0 ? annual.discountPct : null;
+}

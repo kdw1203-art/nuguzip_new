@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { planLabel } from "@/lib/subscriptions/labels";
 import Link from "next/link";
 import { isTossTestEnv, loadTossSdk, tossBillingClientKey } from "../toss-rail";
 
@@ -29,7 +30,7 @@ type Phase =
   | { kind: "unavailable"; msg: string }
   | { kind: "error"; msg: string };
 
-const TIER_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
+/* 플랜명은 단일 출처 — lib/subscriptions/labels.planLabel (게이트: check:plan-labels) */
 
 type EnrollParams = {
   tier: "pro" | "expert" | null;
@@ -52,6 +53,23 @@ function parseParams(): EnrollParams | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * 오늘 등록하면 다음 청구가 언제인가. (C43)
+ *
+ * 말일 보정: 1월 31일에 등록하면 2월 31일은 없다 — 그 달의 마지막 날로 당긴다
+ * (토스 빌링도 같은 방식이고, 안 맞추면 화면과 실제 청구일이 어긋난다).
+ * 이 값은 **표시용 안내**다. 실제 청구일은 서버가 결제 성공 시점에 확정한다.
+ */
+function nextChargeLabel(billing: "monthly" | "annual"): string {
+  const now = new Date();
+  const y = now.getFullYear() + (billing === "annual" ? 1 : 0);
+  const m = now.getMonth() + (billing === "annual" ? 0 : 1);
+  const target = new Date(y, m, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(now.getDate(), lastDay));
+  return target.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
 }
 
 export function BillingEnrollClient() {
@@ -152,7 +170,7 @@ export function BillingEnrollClient() {
     }
   }
 
-  const label = params?.tier ? (TIER_LABEL[params.tier] ?? params.tier) : "";
+  const label = params?.tier ? (planLabel(params.tier)) : "";
   const billingLabel = params?.billing === "annual" ? "연간" : "월간";
 
   return (
@@ -227,6 +245,18 @@ export function BillingEnrollClient() {
                 {phase.amount.toLocaleString("ko-KR")}원 / {billingLabel === "연간" ? "년" : "월"}
               </span>
             </div>
+            {/* 다음 결제일을 **날짜로** 적는다. (C43)
+                "매달 자동으로 결제돼요"는 언제인지를 말하지 않는다 — 자동결제에서
+                사용자가 가장 알고 싶은 한 가지이고, 안 적으면 첫 청구 때 문의가 된다.
+                카드 변경은 청구 주기를 바꾸지 않으므로 이 줄을 그리지 않는다. */}
+            {!params?.cardChange && (
+              <div className="flex items-center justify-between t-body">
+                <span className="text-text-3">다음 결제일</span>
+                <span className="font-bold text-ink">
+                  {nextChargeLabel(params?.billing === "annual" ? "annual" : "monthly")}
+                </span>
+              </div>
+            )}
             <p className="mt-1 t-sub text-text-3">
               {params?.cardChange ? (
                 <>

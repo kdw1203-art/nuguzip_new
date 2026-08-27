@@ -16,6 +16,7 @@
  */
 
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { planLabel } from "@/lib/subscriptions/labels";
 
 export type PaymentRecord = {
   id: string;
@@ -48,11 +49,12 @@ export const PAYMENT_STATUS_LABEL: Record<string, string> = {
   refunded: "환불 완료",
 };
 
-export const PAYMENT_PLAN_LABEL: Record<string, string> = {
-  free: "무료",
-  pro: "플러스",
-  expert: "프로 (전문가)",
-};
+/* 지역 맵이었다 — 같은 플랜을 "프로 (전문가)"로 불러 다른 화면의 "프로"와 어긋났다.
+   이제 lib/subscriptions/labels.ts 한 곳만 본다. 기존 import 경로는 유지한다. */
+export const PAYMENT_PLAN_LABEL: Record<string, string> = new Proxy(
+  {},
+  { get: (_t, k) => planLabel(String(k)) },
+) as Record<string, string>;
 
 export async function loadBillingHistory(
   userEmail: string,

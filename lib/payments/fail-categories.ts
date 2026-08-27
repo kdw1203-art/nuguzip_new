@@ -104,3 +104,32 @@ export function categorizeFailure(sp: {
   }
   return "unknown";
 }
+
+/**
+ * 카테고리별 **다음 행동**. (C45)
+ *
+ * 예전에는 어떤 실패든 화면 버튼이 "다시 시도하기 / 문의하기" 둘로 똑같았다.
+ * 그런데 필요한 행동은 실패 사유마다 다르다 — 정지된 카드로 "다시 시도"를
+ * 눌러 봐야 같은 자리에서 또 막힌다. 안내 문구만 다르고 행동이 같으면,
+ * 사용자는 읽은 대로 하지 못한다.
+ *
+ * primary 는 그 상황에서 실제로 통할 가능성이 있는 행동 하나다.
+ */
+export type FailAction = { label: string; kind: "retry" | "card" | "support" | "plans" };
+
+export const CATEGORY_ACTION: Record<FailCategory, FailAction> = {
+  user_cancel: { label: "다시 시도하기", kind: "retry" },
+  /* 한도·잔액은 같은 카드로 다시 눌러도 같은 답이다 — 카드를 바꾸게 안내한다 */
+  limit_exceeded: { label: "다른 카드로 시도", kind: "card" },
+  card_rejected: { label: "다른 카드로 시도", kind: "card" },
+  invalid_card: { label: "다른 카드로 시도", kind: "card" },
+  /* 일시 오류는 정말로 재시도가 답이다 */
+  network: { label: "다시 시도하기", kind: "retry" },
+  not_configured: { label: "고객센터 문의", kind: "support" },
+  forbidden: { label: "로그인 확인하기", kind: "support" },
+  /* 금액 검증 실패는 처음부터 — 플랜 선택으로 돌려보낸다 */
+  amount_mismatch: { label: "플랜 다시 고르기", kind: "plans" },
+  session_expired: { label: "플랜 다시 고르기", kind: "plans" },
+  billing_card: { label: "다른 카드로 등록", kind: "card" },
+  unknown: { label: "다시 시도하기", kind: "retry" },
+};

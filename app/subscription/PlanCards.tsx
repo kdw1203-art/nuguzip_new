@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { annualSavingKrw } from "@/lib/subscriptions/billing-periods";
 import Link from "next/link";
 import { PlanCheckoutButton, type CheckoutTier } from "./PlanCheckoutButton";
 import { PreOrderCta } from "./PreOrderCta";
@@ -68,7 +69,9 @@ const CARDS: PlanCard[] = [
   {
     kind: "expert",
     defTier: "expert",
-    name: "프로 (전문가)",
+    /* 토스 심사 회신에 적어 낸 상품명은 "프로" 다(가격 잠금 주석 참고).
+       여기만 "프로 (전문가)" 라 같은 페이지 비교표의 "프로" 와 어긋났다. */
+    name: "프로",
     nameTone: "text-warning",
     dark: false,
     badge: null,
@@ -237,9 +240,26 @@ export function PlanCards({
                   )}
                 </div>
                 {tierPrice != null && billing === "annual" && (
-                  <span className={`text-[11px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
-                    연 {fmtWon(tierPrice.annualTotal)} · -{Math.round(tierPrice.annualDiscountPct)}%
-                  </span>
+                  <>
+                    <span className={`text-[11px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
+                      연 {fmtWon(tierPrice.annualTotal)} · -{Math.round(tierPrice.annualDiscountPct)}%
+                    </span>
+                    {/* 월 환산가는 싸 보이게 만드는 표기일 뿐, **얼마를 아끼는지**는
+                        말하지 않는다. 연간을 고르는 사람이 알고 싶은 건 그쪽이다. (C48) */}
+                    {p.defTier !== "basic" &&
+                      annualSavingKrw(p.defTier as "pro" | "expert") !== null && (
+                        <span
+                          className="mt-0.5 w-fit rounded-[5px] px-1.5 py-px t-caption font-extrabold"
+                          style={
+                            p.dark
+                              ? { background: "rgba(255,255,255,.12)", color: "var(--ai-accent)" }
+                              : { background: "var(--success-soft)", color: "var(--success)" }
+                          }
+                        >
+                          1년에 {fmtWon(annualSavingKrw(p.defTier as "pro" | "expert")!)} 절약
+                        </span>
+                      )}
+                  </>
                 )}
               </div>
 

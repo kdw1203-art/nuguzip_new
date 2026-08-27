@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { planLabel } from "@/lib/subscriptions/labels";
 import { authorizeCron } from "@/lib/cron/authorize";
 import {
   chargeBillingKey,
@@ -40,7 +41,7 @@ export const maxDuration = 300;
  *    시점에 정상 강등한다 — 여기서 즉시 뺏지 않는다.
  */
 
-const PLAN_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
+/* 상품명은 결제 내역·영수증에 그대로 남는다 — 단일 출처를 쓴다. */
 const MAX_CONSECUTIVE_FAILS = 3;
 const BATCH = 10;
 
@@ -77,7 +78,7 @@ async function renewOne(sub: BillingSubscription): Promise<"charged" | "failed" 
     customerKey: sub.customerKey,
     amount: sub.amount,
     orderId,
-    orderName: `누구집 ${PLAN_LABEL[sub.plan]} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제 갱신`,
+    orderName: `누구집 ${planLabel(sub.plan)} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제 갱신`,
     customerEmail: sub.userEmail,
     idempotencyKey: deterministicIdempotencyKey(`nuguzip:toss:billing:${sub.id}:${cycle}`),
   });

@@ -15,7 +15,7 @@
     "dev:clean": "npm run clean && next dev --turbopack",
     "dev:turbo": "next dev --turbopack",
     "check:env": "node ./scripts/validate-env.mjs",
-    "build": "npm run check:env && npm run check:tx-filters && npm run check:review-freeze && npm run check:ai-compliance && npm run check:moderation-filter && npm run check:import-hygiene && npm run check:type-ramp && npm run test:unit && next build && npm run check:bundle-budget",
+    "build": "npm run check:env && npm run check:tx-filters && npm run check:review-freeze && npm run check:ai-compliance && npm run check:moderation-filter && npm run check:import-hygiene && npm run check:type-ramp && npm run check:plan-labels && npm run test:unit && next build && npm run check:bundle-budget",
     "start": "next start",
     "lint": "eslint .",
     "test": "node --import ./tests/unit/register.mjs --test \"tests/unit/*.test.ts\"",
@@ -72,7 +72,8 @@
     "check:import-hygiene": "node scripts/check-import-hygiene.mjs",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:perf": "node scripts/check-perf.mjs",
-    "check:type-ramp": "node scripts/check-type-ramp.mjs"
+    "check:type-ramp": "node scripts/check-type-ramp.mjs",
+    "check:plan-labels": "node scripts/check-plan-labels.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

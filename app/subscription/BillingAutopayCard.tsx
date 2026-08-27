@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { planLabel } from "@/lib/subscriptions/labels";
 import Link from "next/link";
 
 /**
@@ -21,7 +22,7 @@ type Props = {
   nextChargeAt: string | null;
 };
 
-const PLAN_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
+/* 플랜명은 단일 출처를 쓴다 — 지역 맵은 곧 다른 화면과 어긋난다. */
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -71,7 +72,7 @@ export function BillingAutopayCard(props: Props) {
     <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="t-sub font-extrabold text-ink">
-          자동결제 이용 중 · {PLAN_LABEL[props.plan] ?? props.plan}{" "}
+          자동결제 이용 중 · {planLabel(props.plan)}{" "}
           {props.billing === "annual" ? "연간" : "월간"}
         </span>
         <span className="t-sub font-bold text-ink">

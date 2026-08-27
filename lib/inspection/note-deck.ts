@@ -19,6 +19,7 @@
  */
 
 import { readStoredDeepDive } from "@/lib/inspection/deep-dive-view";
+import { planLabel } from "@/lib/subscriptions/labels";
 import type {
   InspectionChecklistItem,
   InspectionNote,
@@ -114,12 +115,8 @@ export const DECK_PLAN_RANGE: Record<DeckPlan, { min: number; max: number; label
   enterprise: { min: 15, max: 24, label: "15장 이상" },
 };
 
-const PLAN_LABEL: Record<DeckPlan, string> = {
-  free: "FREE",
-  pro: "PRO",
-  expert: "EXPERT",
-  enterprise: "ENTERPRISE",
-};
+/* 여기만 영문(FREE/PRO/EXPERT)이라, 같은 사용자가 요금제에서 "플러스"를 사고
+   노트 덱에서는 "PRO"를 봤다. 단일 출처로 통일. */
 
 /** 문자열(세션·DB) → 덱 플랜. 모르는 값은 가장 낮은 티어로 떨어뜨린다. */
 export function normalizeDeckPlan(raw: string | null | undefined): DeckPlan {
@@ -645,7 +642,7 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
   return {
     noteId: note.id,
     plan,
-    planLabel: PLAN_LABEL[plan],
+    planLabel: planLabel(plan),
     range,
     pages,
     available,

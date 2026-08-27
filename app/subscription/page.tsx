@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { planLabel } from "@/lib/subscriptions/labels";
 import { PageShell } from "@/app/components/PageShell";
 import { safeAuth } from "@/lib/safe-auth";
 import { getUsageSummary, type UsageItem } from "@/lib/subscriptions/usage-summary";
@@ -94,11 +95,8 @@ const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; pr
   { label: "유료 상담 수신 · 동행 임장", free: "—", plus: "—", pro: "포함 (전문가 인증 필수)", proAccent: true },
 ];
 
-const PLAN_LABEL: Record<"free" | "pro" | "expert", string> = {
-  free: "무료 플랜",
-  pro: "플러스",
-  expert: "프로 (전문가)",
-};
+/* 자체 맵이었다 — 같은 페이지 안에서 카드는 "프로 (전문가)", 비교표는 "프로" 였다.
+   단일 출처(lib/subscriptions/labels)로 통일. */
 
 function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
@@ -234,7 +232,7 @@ export default async function SubscriptionPage({
         </p>
         {email && (
           <span className="mt-1 rounded-full bg-primary-soft px-3 py-1 t-sub font-bold text-primary">
-            현재 플랜 · {isAdminViewer ? "관리자 (모든 기능 무제한)" : PLAN_LABEL[currentPlan]}
+            현재 플랜 · {isAdminViewer ? "관리자 (모든 기능 무제한)" : planLabel(currentPlan)}
           </span>
         )}
       </section>
@@ -248,7 +246,7 @@ export default async function SubscriptionPage({
             <div className="flex flex-wrap items-baseline gap-2">
               <span className="t-section text-ink">이번 달 내 사용량</span>
               <span className="t-caption ml-auto text-text-3">
-                {PLAN_LABEL[currentPlan]} 기준 · 매월 1일 초기화
+                {planLabel(currentPlan)} 기준 · 매월 1일 초기화
               </span>
             </div>
             <div className="kpi-row">

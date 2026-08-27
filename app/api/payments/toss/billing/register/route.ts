@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { planLabel } from "@/lib/subscriptions/labels";
 import { safeAuth } from "@/lib/safe-auth";
 import {
   chargeBillingKey,
@@ -39,7 +40,7 @@ export const dynamic = "force-dynamic";
  * 세션 이메일과 구독 소유자가 다르면 여기서 끊는다.
  */
 
-const PLAN_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
+/* 상품명은 결제 내역·영수증에 그대로 남는다 — 단일 출처를 쓴다. */
 
 function fail(origin: string, code: string): NextResponse {
   const u = new URL("/payment/fail", origin);
@@ -136,7 +137,7 @@ export async function GET(req: NextRequest) {
 
   // 2) 첫 주기 결제 — 단건 결제와 같은 원장(payments)에 기록한다
   const orderId = `BILLING-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const orderName = `누구집 ${PLAN_LABEL[sub.plan]} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제`;
+  const orderName = `누구집 ${planLabel(sub.plan)} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제`;
   try {
     await createPayment({
       orderId,

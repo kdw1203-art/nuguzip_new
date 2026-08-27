@@ -22,6 +22,7 @@ export const dynamic = "force-dynamic";
 
 import {
   categorizeFailure as categorize,
+  CATEGORY_ACTION,
   CATEGORY_MESSAGE,
 } from "@/lib/payments/fail-categories";
 
@@ -104,16 +105,24 @@ export default async function PaymentFailPage({
             {codeShown ? `코드 ${codeShown}` : null}
           </p>
         )}
+        {/* 실패 사유마다 통하는 행동이 다르다 — 정지된 카드로 "다시 시도"를
+            눌러 봐야 같은 자리에서 또 막힌다. (C45) */}
         <div className="mt-3 flex w-full flex-col gap-2.5">
           <Link
-            href={retryHref}
-            className="btn-primary rounded-[14px] p-[13px] text-center text-sm font-bold"
+            href={
+              CATEGORY_ACTION[category].kind === "support"
+                ? "/support"
+                : CATEGORY_ACTION[category].kind === "plans"
+                  ? "/subscription"
+                  : retryHref
+            }
+            className="btn-primary rounded-[14px] p-[13px] text-center text-[15px] font-bold"
           >
-            다시 시도하기
+            {CATEGORY_ACTION[category].label}
           </Link>
           <Link
             href="/support"
-            className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-sm font-bold text-text-1"
+            className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-[15px] font-bold text-text-1"
           >
             문의하기
           </Link>

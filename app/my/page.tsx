@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { planLabel } from "@/lib/subscriptions/labels";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
@@ -53,9 +54,7 @@ function reasonLabel(reason: string): string {
   }
   return EARN_RULES[reason]?.label ?? "포인트 적립";
 }
-function planLabel(plan: string): string {
-  return plan === "expert" ? "프로 (전문가)" : plan === "pro" ? "플러스" : "무료 플랜";
-}
+/* planLabel 자체 구현을 지웠다 — lib/subscriptions/labels 단일 출처를 쓴다. */
 function planBadgeTone(plan: string): string {
   return plan === "expert" ? "text-[#f2c94c]" : plan === "pro" ? "text-ai-accent" : "text-ai-muted";
 }

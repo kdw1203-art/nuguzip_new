@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { planLabel } from "@/lib/subscriptions/labels";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
@@ -184,12 +185,8 @@ export default async function PaymentSuccessPage({
   if (ok && orderId) {
     record = await getPaymentByOrderId(orderId).catch(() => null);
   }
-  const PLAN_LABEL: Record<string, string> = {
-    basic: "베이직",
-    pro: "플러스",
-    expert: "프로 (전문가)",
-    enterprise: "엔터프라이즈",
-  };
+  /* 결제 완료 화면의 플랜명 — 단일 출처(lib/subscriptions/labels). "베이직"은
+     어디에도 없는 이름이었다. */
   const METHOD_LABEL: Record<string, string> = {
     "카드": "카드 (토스페이먼츠)",
     "카드(자동결제)": "카드 자동결제 (토스페이먼츠)",
@@ -199,7 +196,7 @@ export default async function PaymentSuccessPage({
     ? [
         {
           label: "플랜",
-          value: `${PLAN_LABEL[record.plan] ?? record.plan} · ${
+          value: `${planLabel(record.plan)} · ${
             record.billing === "annual" ? "연간" : record.billing === "weekly" ? "주간권(7일)" : "월간"
           }`,
         },
@@ -282,7 +279,7 @@ export default async function PaymentSuccessPage({
               <div className="flex items-baseline justify-between gap-3">
                 <dt className="text-[12px] text-text-3">적용 플랜</dt>
                 <dd className="text-[13px] font-extrabold text-ink">
-                  {PLAN_LABEL[billingSub.plan] ?? billingSub.plan} ·{" "}
+                  {planLabel(billingSub.plan)} ·{" "}
                   {billingSub.billing === "annual" ? "연간" : "월간"} 자동결제
                 </dd>
               </div>

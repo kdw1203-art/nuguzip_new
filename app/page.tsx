@@ -4,7 +4,6 @@ import { TabBar } from "./components/TabBar";
 import { AIPanel } from "./components/AIPanel";
 import { ResumeDraftPopup } from "./components/home/ResumeDraftPopup";
 import { EmptyState, ErrorState } from "./components/ui/EmptyState";
-import { JourneyBanner } from "./components/JourneyBanner";
 import { BetaNoticeModal } from "./components/BetaNoticeModal";
 import { HomeMiniMap } from "./components/HomeMiniMap";
 import { AdSlot } from "./components/ads/AdSlot";
@@ -70,8 +69,9 @@ const deltaClass: Record<DeltaTone, string> = {
   flat: "delta-flat",
 };
 
-/* FunnelSteps(기록→AI→지도 칩 행)는 #408 리디자인에서 히어로와 함께 제거 —
-   같은 흐름은 JourneyBanner 가 계속 말한다. */
+/* FunnelSteps(기록→AI→지도 칩 행)는 #408 리디자인에서 히어로와 함께 제거됐고,
+   그 자리를 물려받았던 JourneyBanner("지금 어디부터 할까요?")도 2026-08-26 에
+   홈에서 뺐다 — 주 버튼이 이미 시작하는 흐름을 배너가 한 번 더 설명하고 있었다. */
 
 /** AI 시작 행동 + 시장 브리핑(참고) 강등 */
 function HomeAiGateway({ briefing }: { briefing: HomeBriefing | null }) {
@@ -310,7 +310,14 @@ export default async function Home() {
               예전에는 KPI 4칸을 나란히 놨는데, 넷을 동시에 말하면 무엇이 중요한지
               사라진다. 가장 큰 변화 하나를 문장으로 말하고 나머지는 그 아래 작게. */}
           <div className="rise-in-2">
-            <HomeTodayLine region={kpiRegion} temp={kpiTemp} saleIndex={saleIndexSeoul} />
+            <HomeTodayLine
+              region={kpiRegion}
+              temp={kpiTemp}
+              saleIndex={saleIndexSeoul}
+              baseRate={baseRate}
+              loanRate={loanRate}
+              publicNotes={data.publicNotesTotal}
+            />
           </div>
 
           {/* 개인 영역 — 시장 사실과 **분리**한다. (A01)
@@ -334,12 +341,10 @@ export default async function Home() {
             <HomeMiniMap regions={mapRegions} className="h-[208px]" />
           </div>
 
-          {/* 스크롤 1단 이후: 여정·피드 (첫 CTA 희석 방지).
-              시세 스트립·온도 위젯은 디자인 최적화(#409)로 제거 — 같은 사실을
-              티커(위)와 KPI 칸이 이미 말한다. 한 화면에 같은 숫자 3벌은 소음이다. */}
-          <div data-reveal="">
-            <JourneyBanner />
-          </div>
+          {/* "지금 어디부터 할까요?"(JourneyBanner) 는 홈에서 제거했다
+              (소유자 지시 2026-08-26). 기록 → AI → 지도 흐름은 주 버튼
+              "임장노트 쓰기" 가 이미 시작하고, 같은 말을 두 번 하면 홈의
+              주제가 다시 흐려진다. */}
 
           {/* 도구는 넷을 나열하지 않고 **하나를 이유와 함께** 추천한다. (A06·A07)
               넷을 늘어놓는 건 고르라는 뜻인데, 처음 온 사람은 고를 근거가 없었다. */}
@@ -546,7 +551,14 @@ export default async function Home() {
               {/* KPI 3칸을 여기서 뺐다(2026-08-26). HomeTodayLine 안의 보조 지표 줄이
                   같은 숫자(시장 온도·거래 건수·매매지수)를 이미 말한다 — 한 화면에
                   같은 사실 두 벌은 소유자가 지적한 "주제가 안 보인다"의 전형이다. */}
-              <HomeTodayLine region={kpiRegion} temp={kpiTemp} saleIndex={saleIndexSeoul} />
+              <HomeTodayLine
+              region={kpiRegion}
+              temp={kpiTemp}
+              saleIndex={saleIndexSeoul}
+              baseRate={baseRate}
+              loanRate={loanRate}
+              publicNotes={data.publicNotesTotal}
+            />
             </div>
 
             {/* [개선 #11·12·29] 로그인 사용자의 매일 루프 (게스트에겐 미렌더) */}
@@ -560,24 +572,20 @@ export default async function Home() {
                 지도 오른쪽 세로 스택으로 이동, 노트 CTA 가 스택을 닫는다. */}
             {/* 지도가 주인공이다 — 도구 열이 지도를 좁히던 300px 를 260px 로. (A14)
                 도구는 넷 나열 대신 근거 있는 하나(A06·A07), 그 아래 주 행동 하나(A04). */}
-            <div className="rise-in-1 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-              <HomeMiniMap regions={mapRegions} className="h-[300px]" />
-              <div className="flex flex-col gap-2.5">
-                <HomeToolPick />
-                <Link
-                  href={HOME_CTA_NOTE.href}
-                  className="btn-primary btn-cta press mt-auto rounded-2xl p-3.5 text-center t-section"
-                >
-                  {HOME_CTA_NOTE.label}
-                </Link>
-              </div>
+            {/* 지도가 본문 전체 폭을 쓴다 (소유자 지시 2026-08-26).
+                오른쪽 260px 도구 열은 항목 하나짜리 카드라 지도만 좁히고 있었다 —
+                도구는 모바일 홈과 /analysis 허브가 맡는다.
+                주 행동(임장노트 쓰기)은 지도 아래 전체 폭 막대로 남긴다. */}
+            <div className="rise-in-1 flex flex-col gap-3">
+              <HomeMiniMap regions={mapRegions} className="h-[360px]" />
+              <Link
+                href={HOME_CTA_NOTE.href}
+                className="btn-primary btn-cta press rounded-2xl p-3.5 text-center t-section"
+              >
+                {HOME_CTA_NOTE.label}
+              </Link>
             </div>
 
-            {/* 시세 스트립은 디자인 최적화(#409)로 제거 — 티커·KPI 와 같은
-                숫자의 3벌째였다. 기준시점 표기는 티커 항목 값에 흡수. */}
-            <div data-reveal="">
-              <JourneyBanner />
-            </div>
 
             {/* 공개 노트 · 동네이야기 — 행 클릭 가능 (증거) */}
             <div data-reveal="" className="grid grid-cols-1 gap-3 xl:grid-cols-2">

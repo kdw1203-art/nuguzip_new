@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { planLabel } from "@/lib/subscriptions/labels";
 import Link from "next/link";
 import {
   isTossTestEnv,
@@ -40,7 +41,7 @@ type Phase =
   | { kind: "login" }
   | { kind: "error"; msg: string };
 
-const TIER_LABEL: Record<string, string> = { pro: "플러스", expert: "프로" };
+/* 플랜명은 단일 출처 — lib/subscriptions/labels.planLabel (게이트: check:plan-labels) */
 
 function parseParams(): {
   tier: "pro" | "expert";
@@ -209,8 +210,8 @@ export function CheckoutClient() {
         orderId: phase.orderId,
         orderName:
           params.billing === "weekly"
-            ? `누구집 ${TIER_LABEL[params.tier]} 주간권 (7일 · 단건)`
-            : `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+            ? `누구집 ${planLabel(params.tier)} 주간권 (7일 · 단건)`
+            : `누구집 ${planLabel(params.tier)} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
         successUrl: `${origin}/payment/success`,
         failUrl: `${origin}/payment/fail`,
         ...(email ? { customerEmail: email } : {}),
@@ -248,8 +249,8 @@ export function CheckoutClient() {
         orderId: phase.orderId,
         orderName:
           params.billing === "weekly"
-            ? `누구집 ${TIER_LABEL[params.tier]} 주간권 (7일 · 단건)`
-            : `누구집 ${TIER_LABEL[params.tier]} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+            ? `누구집 ${planLabel(params.tier)} 주간권 (7일 · 단건)`
+            : `누구집 ${planLabel(params.tier)} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
         successUrl: `${origin}/payment/success`,
         failUrl: `${origin}/payment/fail`,
         /* 결제 결과 안내 문서: customerEmail 을 주면 승인·취소 때 토스가
@@ -276,7 +277,7 @@ export function CheckoutClient() {
     }
   }
 
-  const label = params ? (TIER_LABEL[params.tier] ?? params.tier) : "";
+  const label = params ? (planLabel(params.tier)) : "";
   const billingLabel =
     params?.billing === "annual" ? "연간" : params?.billing === "weekly" ? "주간권(7일 단건)" : "월간";
 
