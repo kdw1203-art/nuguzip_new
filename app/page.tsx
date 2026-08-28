@@ -287,10 +287,19 @@ export default async function Home() {
 
         {/* ================= 모바일 — 검색 포털 + 상황판 (#408 A+B 조합) ================= */}
         <section className="flex flex-col gap-2.5 md:hidden">
-          {/* 검색이 첫 화면의 절반 (시안 B). 히어로 카피 없음 (시안 A) —
-              질문 한 줄 + 대형 검색 + 실기록 칩. 로그인(개인화 활성) 시에는
-              globals.css 가 min-height 를 접어 개인화 섹션에 자리를 내준다. */}
-          <div className="home-search-hero flex min-h-[42dvh] flex-col justify-center gap-3 py-4">
+          {/* 검색이 첫인상 (시안 B). 질문 한 줄 + 대형 검색 + 실기록 칩.
+
+              [2026-08-28] min-h-[42dvh] + justify-center 를 걷어냈다.
+              안에 든 것(제목·검색창)은 다 합쳐 140px 남짓인데 화면 높이의 42%를
+              **미리 잡아 두고** 그 안에서 가운데 정렬을 했다. 남는 높이는 위아래
+              빈칸으로 갈라져, 좁은 창에서는 헤더와 제목 사이·칩과 티커 사이에
+              큰 여백 두 덩이가 생겼다(소유자 캡처).
+
+              옛 주석은 "로그인하면 globals.css 가 min-height 를 접는다"고 적혀
+              있었지만 `.home-search-hero` 규칙은 CSS 에 존재하지 않는다 —
+              접히는 일이 없었고, 그래서 항상 42dvh 를 먹고 있었다.
+              지금은 내용 높이대로 서고 여백은 패딩으로만 준다. */}
+          <div className="flex flex-col gap-3 pb-3 pt-5">
             <p className="rise-in t-display text-center text-ink">
               어느 단지가 궁금하세요?
             </p>
@@ -524,7 +533,7 @@ export default async function Home() {
               사이드바 열 밖으로 빼고, 사이드바는 KPI 줄부터 시작한다.
               2026-08-17 지시: 티커를 검색 아래로 내리고 검색은 위로 —
               py-9→py-5 로 죄어 첫 화면 밀집도를 올린다. */}
-          <div className="home-search-hero rise-in flex flex-col justify-center gap-3 py-5">
+          <div className="rise-in flex flex-col justify-center gap-3 py-5">
             <p className="t-display text-center text-ink">
               어느 단지가 궁금하세요?
             </p>
