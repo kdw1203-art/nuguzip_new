@@ -956,7 +956,7 @@ export function NaverMap({
         <iframe
           title="대체 지도 (OpenStreetMap)"
           src={osmSrc}
-          className="absolute inset-0 h-full w-full border-0"
+          className="h-full w-full border-0"
           loading="lazy"
         />
         <div className="absolute inset-x-0 bottom-0 z-10 bg-amber-50/95 px-3 py-2 text-[11px] leading-snug text-amber-900 backdrop-blur">
@@ -988,13 +988,21 @@ export function NaverMap({
   }
 
   return (
-    /* CLS 수정(2026-08-26): 높이 하한을 **바깥 상자**로 옮겼다.
-       예전에는 바깥이 min-h-0 이고 안쪽 지도 컨테이너가 `h-full min-h-[200px]`
-       이었다. 부모 높이가 확정되지 않은 자리에서는 h-full 이 auto 로 풀려,
-       컨테이너가 200px 로 시작했다가 SDK 가 타일을 넣는 순간 그만큼 커졌다.
-       프로덕션 실측: /map CLS p75 0.825, 귀속 요소가 바로 이 상자 안의 타일
-       <img> (단일 표본 1.609). 이제 안쪽은 absolute inset-0 라 내용이 상자를
-       키울 수 없다 — 타일이 언제 오든 크기가 그대로다. */
+    /* CLS 수정(2026-08-26) + 되돌림(2026-08-28).
+       원래 문제: 바깥이 min-h-0 이고 안쪽 지도 컨테이너가 `h-full min-h-[200px]`
+       이라, 부모 높이가 확정되지 않은 자리에서 h-full 이 auto 로 풀려 컨테이너가
+       200px 로 시작했다가 타일이 들어오는 순간 그만큼 커졌다
+       (프로덕션 실측 /map CLS p75 0.825, 귀속 요소가 이 상자 안 타일 <img>).
+
+       그때 안쪽을 `absolute inset-0` 으로 바꿨는데 **지도가 아예 안 그려졌다**.
+       SDK 는 로드·인증·타일 요청까지 정상이었고(네트워크 200 확인) 화면에만
+       아무것도 안 나왔다 — 즉 컨테이너를 흐름 밖으로 빼면서 SDK 가 잡는
+       레이아웃이 깨진 것이다. 시크릿 창(확장 없음)에서도 같아 확장 문제도 아니었다.
+
+       지금 방식: **높이 하한은 바깥 상자만** 갖고(min-h-[200px]), 안쪽은 흐름
+       안에서 부모를 채우기만 한다(h-full w-full, 자체 min-h 없음).
+       - 바깥이 높이를 먼저 확정하므로 타일이 늦게 와도 상자가 안 자란다(CLS 방어 유지)
+       - 안쪽은 정상적인 블록이라 SDK 가 예전처럼 크기를 잡는다 */
     <div
       className={cn(
         "relative h-full w-full min-h-[200px] overflow-hidden",
@@ -1037,7 +1045,7 @@ export function NaverMap({
       <div
         ref={containerRef}
         className={cn(
-          "absolute inset-0",
+          "h-full w-full",
           crosshair && "cursor-crosshair [&_*]:cursor-crosshair",
         )}
       />
