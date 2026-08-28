@@ -246,6 +246,12 @@ export default async function Home() {
   if (data.activityToday !== null && data.activityToday >= COMMUNITY_TICKER_MIN) {
     tickerItems.push({ label: "오늘 활동", value: `${data.activityToday}건`, kind: "macro" });
   }
+  /* 출처·기준일은 화면에 **한 번만** 적는다.
+     예전엔 검색 히어로 바로 아래에 "실거래 데이터 YYYY.MM.DD 기준 · 국토교통부
+     신고분"을 따로 깔았는데, 같은 사실이 이 티커의 "실거래 기준"과 푸터의
+     "실거래가는 국토교통부 공개 데이터 기준입니다"에도 이미 있었다 — 첫 화면에서
+     같은 말을 세 번 하면 정작 물어보는 문장("어느 단지가 궁금하세요?")이 묻힌다.
+     기준일은 여기(클릭하면 /tx 로 간다), 출처 표기는 푸터가 맡는다. */
   if (freshness) {
     tickerItems.push({
       label: "실거래 기준",
@@ -291,11 +297,6 @@ export default async function Home() {
             <div className="rise-in-1">
               <HomeHeroSearch />
             </div>
-            {freshness && (
-              <p className="rise-in-1 text-center text-[11px] text-text-3">
-                실거래 데이터 {freshness} 기준 · 국토교통부 신고분
-              </p>
-            )}
           </div>
 
           {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
@@ -528,11 +529,6 @@ export default async function Home() {
               어느 단지가 궁금하세요?
             </p>
             <HomeHeroSearch />
-            {freshness && (
-              <p className="text-center text-[11px] text-text-3">
-                실거래 데이터 {freshness} 기준 · 국토교통부 신고분
-              </p>
-            )}
           </div>
 
           {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
