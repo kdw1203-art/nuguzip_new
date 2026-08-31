@@ -121,6 +121,20 @@ export function CoachmarkTour({
         setVisibleSteps(usable);
         setIndex(0);
         setActive(true);
+        /* [E006 2026-08-31] 시작 이벤트 — 완주율의 분모.
+           complete/skip 은 이미 남고 있었는데 "몇 명이 투어를 봤는가"가 없어서
+           완주율을 계산할 수 없었다. 분모 없는 분자는 지표가 아니다. */
+        void fetch("/api/platform/event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventName: "onboarding_tour_view",
+            source: "client",
+            campaign: "funnel",
+            path: window.location.pathname,
+            metadata: { tourId, totalSteps: usable.length },
+          }),
+        }).catch(() => {});
       }, 2000);
     })();
 

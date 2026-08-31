@@ -6,6 +6,8 @@ import { sendPush, type PushPayload } from "@/lib/push/vapid";
 import { getWeeklyDigest } from "@/lib/newui/digest";
 import { buildWatchlistBrief } from "@/lib/market/watchlist-brief";
 import { captureException } from "@/lib/monitoring/capture";
+import { sendEmail, isEmailConfigured } from "@/lib/email/send";
+import { weeklyDigestEmail } from "@/lib/email/templates";
 import { logger } from "@/lib/log";
 
 export const runtime = "nodejs";
@@ -27,8 +29,9 @@ export const maxDuration = 120;
  *       모두 0 이면 아무에게도 보내지 않는다 — 보낼 내용이 없는데 "요약이 왔어요"라고
  *       알리는 것은 그 자체로 거짓이다(skipped: "empty" 로 응답에 드러낸다).
  *
- * 채널: 인앱 수신함(항상) + 웹푸시(구독이 있을 때만) — reengage-reminders 와 동일.
- *       이메일은 보내지 않는다(발신 도메인·템플릿 미구성).
+ * 채널: 인앱 수신함(항상) + 웹푸시(구독이 있을 때만) + 이메일([D002] 2026-08-31).
+ *       이메일은 RESEND_API_KEY 가 있을 때만 나가고, 없으면 emailSent:0 에
+ *       emailSkipped 사유가 응답에 남는다 — 안 보낸 걸 보냈다고 착각하지 않게.
  *
  * 주기: `.github/workflows/etl.yml` 의 `alerts` 잡이 **월요일 09:00 UTC(=18:00 KST)**
  *       에만 호출한다. 주간 요약이므로 주 1회다.
@@ -49,6 +52,10 @@ interface RunSummary {
   notified: number;
   /** 그중 웹푸시가 나간 구독 수 */
   pushSent: number;
+  /** 이메일 발송 성공 수 ([D002]) */
+  emailSent: number;
+  /** 이메일을 건너뛴 이유 (미설정 등, 있을 때만) */
+  emailSkipped?: string;
   /** 보내지 않은 이유 (있을 때만) */
   skipped?: string;
 }
@@ -96,7 +103,7 @@ async function pushToEmail(
 }
 
 async function run(dryRun: boolean): Promise<RunSummary> {
-  const base: RunSummary = { ok: true, dryRun, optedIn: 0, notified: 0, pushSent: 0 };
+  const base: RunSummary = { ok: true, dryRun, optedIn: 0, notified: 0, pushSent: 0, emailSent: 0 };
 
   const sb = getServiceSupabase();
   if (!sb) return { ...base, skipped: "supabase-unconfigured" };
@@ -150,8 +157,21 @@ async function run(dryRun: boolean): Promise<RunSummary> {
     eventType: "generic",
   };
 
+  /* [D002] 이메일 본문은 한 번만 만든다 — 수신자 개인화가 없는 공통 요약이라
+     루프 밖에서 렌더한다. RESEND 미설정이면 시도 자체를 생략하고 이유를 남긴다. */
+  const emailReady = isEmailConfigured();
+  const emailContent = emailReady
+    ? weeklyDigestEmail({
+        weekLabel: digest.weekLabel,
+        market: digest.market.map((m) => ({ name: m.name, price: m.price, delta: m.delta, tone: m.tone })),
+        news: digest.news.map((n) => ({ title: n.title, sourceName: n.sourceName })),
+        communityCount: digest.community.count,
+      })
+    : null;
+
   let notified = 0;
   let pushSent = 0;
+  let emailSent = 0;
   let watchlistBriefs = 0;
   for (const email of emails) {
     try {
@@ -165,6 +185,14 @@ async function run(dryRun: boolean): Promise<RunSummary> {
       pushSent += await pushToEmail(sb, email, payload);
     } catch (e) {
       captureException(e, { where: "cron/weekly-digest", email });
+    }
+    if (emailContent) {
+      try {
+        const r = await sendEmail({ to: email, ...emailContent });
+        if (r.sent) emailSent += 1;
+      } catch (e) {
+        captureException(e, { where: "cron/weekly-digest:email", email });
+      }
     }
     /* [#80] 관심단지 주간 브리핑 — 같은 옵트인 안의 확장. 이번 주 실거래가 있는
        사람에게만 두 번째 알림 한 건(활동 0 = 무발송, 소음 금지). fail-soft. */
@@ -185,7 +213,14 @@ async function run(dryRun: boolean): Promise<RunSummary> {
   }
 
   logger.info(`[cron/weekly-digest] 관심단지 브리핑 ${watchlistBriefs}건 동봉`);
-  return { ...base, optedIn, notified, pushSent };
+  return {
+    ...base,
+    optedIn,
+    notified,
+    pushSent,
+    emailSent,
+    ...(emailReady ? {} : { emailSkipped: "RESEND_API_KEY 미설정" }),
+  };
 }
 
 async function handle(req: Request): Promise<Response> {
@@ -204,6 +239,7 @@ async function handle(req: Request): Promise<Response> {
       optedIn: 0,
       notified: 0,
       pushSent: 0,
+      emailSent: 0,
       skipped: "exception",
     });
   }

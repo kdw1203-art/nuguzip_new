@@ -134,3 +134,71 @@ export function supportInquiryEmail(params: {
   ].join("\n");
   return { subject: `[누구집 문의:${params.category}] ${params.subject}`, html, text };
 }
+
+/** [D002] 주간 다이제스트 메일 — cron/weekly-digest 의 이메일 채널.
+ *
+ * 내용은 인앱·푸시와 같은 원천(getWeeklyDigest)이다. 요약 한 줄이 아니라
+ * 시세·뉴스의 실제 항목을 싣는다 — 메일은 열어 보는 매체라 "왔어요"만으로는
+ * 다시 올 이유가 되지 않는다. 항목이 없는 섹션은 통째로 뺀다(빈 제목 금지).
+ */
+export function weeklyDigestEmail(params: {
+  weekLabel: string;
+  market: Array<{ name: string; price: string; delta: string; tone: "up" | "down" | "flat" }>;
+  news: Array<{ title: string; sourceName: string | null }>;
+  communityCount: number;
+}) {
+  const subject = `[누구집] ${params.weekLabel} 주간 다이제스트`;
+  const toneColor = (t: "up" | "down" | "flat") =>
+    t === "up" ? "#c62828" : t === "down" ? "#1565c0" : "#8a94a6";
+
+  const marketRows = params.market
+    .slice(0, 6)
+    .map(
+      (m) => `<tr>
+        <td style="padding:7px 0;font-size:14px;color:#191f28;">${escapeHtml(m.name)}</td>
+        <td style="padding:7px 0;font-size:14px;font-weight:700;color:#191f28;text-align:right;">${escapeHtml(m.price)}</td>
+        <td style="padding:7px 0 7px 10px;font-size:13px;font-weight:700;color:${toneColor(m.tone)};text-align:right;white-space:nowrap;">${escapeHtml(m.delta)}</td>
+      </tr>`,
+    )
+    .join("");
+  const newsRows = params.news
+    .slice(0, 5)
+    .map(
+      (n) => `<li style="margin:0 0 8px;font-size:14px;line-height:1.55;color:#191f28;">
+        ${escapeHtml(n.title)}${n.sourceName ? ` <span style="color:#8a94a6;font-size:12px;">· ${escapeHtml(n.sourceName)}</span>` : ""}
+      </li>`,
+    )
+    .join("");
+
+  const html = emailLayout(`
+    <h1 style="margin:0 0 6px;font-size:19px;color:#191f28;">${escapeHtml(params.weekLabel)} 주간 다이제스트</h1>
+    <p style="margin:0 0 18px;font-size:13px;color:#8a94a6;">국토교통부 실거래 기준 · 매물 호가가 아닙니다</p>
+    ${
+      marketRows
+        ? `<h2 style="margin:0 0 6px;font-size:14px;color:#191f28;">주요 지역 시세</h2>
+           <table style="width:100%;border-collapse:collapse;margin:0 0 18px;">${marketRows}</table>`
+        : ""
+    }
+    ${
+      newsRows
+        ? `<h2 style="margin:0 0 8px;font-size:14px;color:#191f28;">이번 주 뉴스</h2>
+           <ul style="margin:0 0 18px;padding:0 0 0 18px;">${newsRows}</ul>`
+        : ""
+    }
+    ${
+      params.communityCount > 0
+        ? `<p style="margin:0 0 18px;font-size:13px;color:#4a5568;">이웃 글 ${params.communityCount}건이 새로 올라왔어요.</p>`
+        : ""
+    }
+    <a href="https://nuguzip.com/digest" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">전체 다이제스트 보기</a>
+  `);
+
+  const text = [
+    `${params.weekLabel} 주간 다이제스트`,
+    ...params.market.slice(0, 6).map((m) => `${m.name} ${m.price} ${m.delta}`),
+    ...params.news.slice(0, 5).map((n) => `- ${n.title}`),
+    "전체 보기: https://nuguzip.com/digest",
+  ].join("\n");
+
+  return { subject, html, text };
+}
