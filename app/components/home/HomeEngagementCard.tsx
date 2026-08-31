@@ -27,6 +27,8 @@ type State =
       streak: number;
       balance: number;
       needNoteMission: boolean;
+      /** [E004] 관심지역 미설정 — 개인화 홈·알림·다이제스트가 전부 이걸 전제한다 */
+      needRegionSetup: boolean;
     };
 
 /* 2026-08-23: 구 PLAN_PRO_COST(2,900P → 플러스 1개월) 진행바는 제거 —
@@ -67,6 +69,7 @@ export function HomeEngagementCard() {
           streak: Number(att.streak) || 0,
           balance: Number(pts?.balance ?? att.totalPoints) || 0,
           needNoteMission: !steps.includes("inspection"),
+          needRegionSetup: !steps.includes("profile_region"),
         });
       })
       .catch(() => setSt({ phase: "none" }));
@@ -174,6 +177,21 @@ export function HomeEngagementCard() {
               />
             </div>
           </div>
+
+          {/* [E004] 관심지역 유도 — 미설정자에게만. 개인화 홈·관심단지 알림·
+              주간 다이제스트가 전부 관심지역을 전제하는데, 이 설정으로 가는
+              문이 지도 폴백 화면에만 있었다. 매일 여는 카드에 문을 하나 더. */}
+          {st.needRegionSetup && (
+            <Link
+              href="/welcome"
+              className="flex items-center justify-between rounded-xl bg-primary-soft px-3 py-2 no-underline"
+            >
+              <span className="t-body font-bold text-primary">
+                📍 관심지역을 정하면 홈·알림이 내 동네 기준으로 바뀌어요
+              </span>
+              <span className="text-[13px] font-extrabold text-primary">›</span>
+            </Link>
+          )}
 
           {/* ③ 첫 노트 미션 — 이미 쓴 사람에겐 안 보인다 */}
           {st.needNoteMission && (

@@ -5,6 +5,7 @@ import { loadAdminKpi } from "@/lib/admin/stats";
 import { listBanners, type Banner } from "@/lib/admin/banners";
 import { loadRecentErrors } from "@/lib/admin/error-log";
 import { loadRecentHealthAlerts } from "@/lib/admin/health-alerts";
+import { listAuditLog, type AuditRow } from "@/lib/admin/audit";
 import {
   STAFF_ROLE_LABEL,
   canAccessAdminSection,
@@ -98,12 +99,15 @@ function probeSession(role: StaffRole): Session {
 export default async function AdminOpsPage() {
   // 실집계 전환 퍼널 (활성방문 → 임장노트 → AI·LLM / AI·규칙 → 지도 핸드오프 → 결제).
   // 조회 실패·빈 데이터 시 빈 배열 → 아래에서 "데이터 없음" 빈 상태 렌더.
-  const [funnel, kpi, banners, errors, alerts] = await Promise.all([
+  const [funnel, kpi, banners, errors, alerts, audits] = await Promise.all([
     getOperatingMetrics(),
     loadAdminKpi(),
     listBanners().catch(() => [] as Banner[]),
     loadRecentErrors(12),
     loadRecentHealthAlerts(7, 12).catch(() => []),
+    /* [G009] 감사 로그 — recordAudit 는 오래 쓰고 있었는데 읽는 화면이 없었다.
+       "화면 없는 로더 = 없는 기능"(웹18 판단과 동일)이라 여기서 처음 배선한다. */
+    listAuditLog(15).catch(() => [] as AuditRow[]),
   ]);
   const criticalAlerts = alerts.filter((a) => a.severity === "critical");
   const hasFunnel = funnel.length > 0 && funnel.some((s) => s.count > 0);
@@ -178,6 +182,37 @@ export default async function AdminOpsPage() {
                 {a.detail && (
                   <span className="w-full truncate text-[11px] text-ai-muted">{a.detail}</span>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* [G009] 관리자 행위 감사 로그 — 누가 언제 무엇을 바꿨나 (최근 15건) */}
+      {audits.length > 0 && (
+        <div className="rise-in-1 rounded-2xl border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.02)] p-4">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[15px] font-extrabold text-white">관리자 행위 기록</span>
+            <span className="text-[11px] text-[#9aa6b8]">admin_audit_log · 최근 15건</span>
+          </div>
+          <div className="mt-2">
+            {audits.map((a) => (
+              <div
+                key={a.id}
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-[rgba(255,255,255,.06)] py-1.5 last:border-0"
+              >
+                <span className="text-[11px] text-[#9aa6b8]">
+                  {new Date(a.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className="text-[13px] font-bold text-white">{a.action}</span>
+                {a.target_type && (
+                  <span className="text-[11px] text-[#9aa6b8]">
+                    {a.target_type}
+                    {a.target_id ? ` #${String(a.target_id).slice(0, 8)}` : ""}
+                  </span>
+                )}
+                <span className="text-[11px] text-[#9aa6b8]">{a.actor_email}</span>
+                {a.note && <span className="w-full truncate text-[11px] text-[#9aa6b8]">{a.note}</span>}
               </div>
             ))}
           </div>

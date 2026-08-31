@@ -60,6 +60,37 @@ for (const [route, budgetKb] of Object.entries(BUDGETS_KB)) {
   lines.push(`${over ? "✗" : "✓"} ${route}: ${kb}KB / 예산 ${budgetKb}KB${over ? "  ← 초과!" : ""}`);
 }
 console.log(lines.join("\n"));
+
+/* [B009 2026-08-31] 예산 목록 밖의 무거운 라우트 감시.
+ *
+ * 예산은 5개 라우트만 지키는데 라우트는 169개다 — 새 페이지가 500KB 로 태어나도
+ * 이 게이트는 초록불이었다. 목록에 없는 라우트 중 최대 예산(495KB)을 넘는 것이
+ * 생기면 실패시킨다: "이 라우트를 다이어트하거나, 근거와 함께 예산 목록에
+ * 올려라"가 요구사항이 된다. 기존 라우트가 이미 넘는 상태로 발견되면 그날이
+ * 등재일이다. */
+const MAX_UNLISTED_KB = Math.max(...Object.values(BUDGETS_KB));
+const unlistedOver = [];
+for (const [route, files] of Object.entries(pages)) {
+  if (route in BUDGETS_KB) continue;
+  if (!Array.isArray(files)) continue;
+  let bytes = 0;
+  for (const f of new Set(files)) {
+    if (!f.endsWith(".js")) continue;
+    try {
+      bytes += statSync(path.join(ROOT, ".next", f)).size;
+    } catch {
+      /* 파일 없음 — 무시 */
+    }
+  }
+  const kb = Math.round(bytes / 1024);
+  if (kb > MAX_UNLISTED_KB) unlistedOver.push(`✗ ${route}: ${kb}KB (미등재 상한 ${MAX_UNLISTED_KB}KB)`);
+}
+if (unlistedOver.length > 0) {
+  failed = true;
+  console.error(unlistedOver.join("\n"));
+  console.error("  예산 목록 밖 라우트가 최대 예산을 넘었습니다 — 다이어트하거나 실측 근거와 함께 BUDGETS_KB 에 올리세요.");
+}
+
 if (failed) {
   console.error("\n번들 예산 초과 — 무거워진 임포트를 분리(next/dynamic)하거나 예산 근거를 갱신하세요.");
   process.exit(1);

@@ -56,8 +56,41 @@ function shortfall(v: VariantResult): string {
   return `${parts.join(" · ")} 더 필요`;
 }
 
+/** [G011] 현재 유입 속도로 표본 기준까지 몇 주 걸리는지.
+ *
+ * "부족하다"와 "얼마나 더"까지는 이미 말하고 있었는데, **언제** 볼 수 있는지가
+ * 없었다. 지금 트래픽(주 150PV)에서는 그 답이 대부분 "수십 주"다 — 그걸
+ * 숨기면 운영자는 실험이 곧 끝날 것처럼 기다린다. 속도가 0이면 기다림이
+ * 아니라 유입이 먼저라고 말한다. */
+function weeksToThreshold(r: ExperimentResult): string | null {
+  const worst = Math.max(
+    0,
+    ...r.variants.map((v) => MIN_EXPOSURES_PER_VARIANT - v.exposures),
+  );
+  if (worst === 0) return null; // 기준 충족 — 계산 불필요
+  const first = r.firstAt ? new Date(r.firstAt).getTime() : NaN;
+  const last = r.lastAt ? new Date(r.lastAt).getTime() : NaN;
+  const spanDays = Number.isFinite(first) && Number.isFinite(last)
+    ? Math.max(1, (last - first) / 86_400_000)
+    : null;
+  if (spanDays === null || r.totalExposures === 0) {
+    return "현 유입으로는 도달 시점을 예측할 수 없어요 — 실험보다 유입(D트랙)이 먼저입니다.";
+  }
+  const perVariantWeeklyPace =
+    (r.totalExposures / Math.max(1, r.variants.length)) / (spanDays / 7);
+  if (perVariantWeeklyPace <= 0) {
+    return "현 유입으로는 도달 시점을 예측할 수 없어요 — 실험보다 유입(D트랙)이 먼저입니다.";
+  }
+  const weeks = Math.ceil(worst / perVariantWeeklyPace);
+  if (weeks > 52) {
+    return `현재 속도로는 기준 충족까지 약 ${weeks}주(1년 이상) — 이 트래픽에서는 실험이 사실상 판정 불가입니다. 유입(D트랙)이 먼저입니다.`;
+  }
+  return `현재 속도 기준, 표본 기준 충족까지 약 ${weeks}주 남았습니다.`;
+}
+
 function ExperimentCard({ r }: { r: ExperimentResult }) {
   const conflicts = r.variants.reduce((s, v) => s + v.variantConflicts, 0);
+  const eta = weeksToThreshold(r);
 
   return (
     <div className={darkCard}>
@@ -170,6 +203,9 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
             모두 넘겨야 개선율과 p 값을 계산합니다. 그 전에 나온 차이는 대부분 우연이라, 숫자를
             띄우지 않는 편이 정확합니다.
           </p>
+          {eta && (
+            <p className="mt-1.5 text-[11px] font-bold leading-relaxed text-[#e0a92e]">{eta}</p>
+          )}
         </div>
       )}
 
