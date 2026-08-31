@@ -1112,8 +1112,16 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   .btn-primary:active,
   .btn-outline:active,
   .btn-ghost:active,
-  .icon-btn:active {
+  .icon-btn:active,
+  .chip:active,
+  .chip-check:active,
+  .btn-soft:active {
     transform: none;
+  }
+  /* [937] 무한 반복 링 펄스 — 그동안 등록이 누락돼 있었다(기존 빚 상환) */
+  .pulse-dot::after,
+  .run-step[data-state="active"] .run-dot {
+    animation: none;
   }
 }
 
@@ -1121,6 +1129,16 @@ body:has(textarea:focus-visible) .tabbar-autohide {
    트렌드 갱신 (2026): bento · 그라데이션 · 마이크로 인터랙션
    기존 토큰/클래스는 유지 — 아래는 순수 추가분
    ============================================================ */
+
+/* [937 인터랙션] 칩·소프트 버튼 누름 피드백 — 누르면 "눌린다"는 물성.
+   transform 뿐이라 리플로우가 없고, transition 을 걸지 않아 기존 클래스의
+   transition-colors 선언(축약형 충돌)과 싸우지 않는다. reduced-motion 은
+   아래 1085 블록에 등록돼 있다(신규 모션 등록 규칙). */
+.chip:active,
+.chip-check:active,
+.btn-soft:active {
+  transform: scale(0.96);
+}
 
 /* 그라데이션 텍스트 — 히어로 강조 단어 */
 .text-gradient {

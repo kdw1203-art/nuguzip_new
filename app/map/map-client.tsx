@@ -987,6 +987,27 @@ export function MapClient({
   >([]);
   const [rentShareFailed, setRentShareFailed] = useState(false);
 
+  /* ===== [지도확장 2차 · 937] 공매 배지 레이어 — 온비드 진행 물건 구 단위 집계.
+     물건에 좌표가 없어(주소 텍스트뿐) 개별 핀은 허위 위치가 된다 — 구 중심에
+     "공매 N건" 배지만 올리고 상세는 /auctions?gu= 로 넘긴다. */
+  const [showAuctions, setShowAuctions] = useState(false);
+  const [auctionItems, setAuctionItems] = useState<
+    Array<{ id: string; name: string; lat: number; lng: number; count: number; minBidKrw: number | null }>
+  >([]);
+  const [auctionsFailed, setAuctionsFailed] = useState(false);
+  const [auctionsLoaded, setAuctionsLoaded] = useState(false);
+  const [auctionsUncharted, setAuctionsUncharted] = useState(0);
+  /* 새 레이어 발견성 — 한 번도 눌러 본 적 없으면 칩에 펄스 점을 단다.
+     SSR 하이드레이션 일치를 위해 mount 후에만 계산(localStorage). */
+  const [auctionChipIsNew, setAuctionChipIsNew] = useState(false);
+  useEffect(() => {
+    try {
+      if (!window.localStorage.getItem("nz_seen_auction_layer")) setAuctionChipIsNew(true);
+    } catch {
+      /* 프라이빗 모드 — 점 없이 진행 */
+    }
+  }, []);
+
   /* 레이어·거래유형 선택 유지 — 예전엔 방문마다 전부 초기화됐다(localStorage 사용처가
      코치마크 한 줄뿐이었다). URL 이 명시한 값(?type= → 매물 ON)은 저장값보다 우선.
      초기값 대신 mount effect 로 복원하는 이유: 클라이언트 컴포넌트도 SSR 되므로
@@ -1005,6 +1026,7 @@ export function MapClient({
         supply?: boolean;
         myNotes?: boolean;
         rentShare?: boolean;
+        auctions?: boolean;
         tx?: "trade" | "rent";
       };
       if (typeof p.overlay === "boolean") setShowPriceOverlay(p.overlay);
@@ -1014,6 +1036,7 @@ export function MapClient({
       if (typeof p.supply === "boolean") setShowSupply(p.supply);
       if (typeof p.myNotes === "boolean") setShowMyNotes(p.myNotes);
       if (typeof p.rentShare === "boolean") setShowRentShare(p.rentShare);
+      if (typeof p.auctions === "boolean") setShowAuctions(p.auctions);
       if ((p.tx === "trade" || p.tx === "rent") && !initialListingType) setTxType(p.tx);
     } catch {
       /* 손상된 저장값은 무시 */
@@ -1032,13 +1055,14 @@ export function MapClient({
           supply: showSupply,
           myNotes: showMyNotes,
           rentShare: showRentShare,
+          auctions: showAuctions,
           tx: txType,
         }),
       );
     } catch {
       /* 프라이빗 모드 등 — 유지 없이 진행 */
     }
-  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, showMyNotes, showRentShare, txType]);
+  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, showMyNotes, showRentShare, showAuctions, txType]);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
   /* 조회 실패와 "정말 0건"은 지도에서 똑같이 보인다 — 둘 다 마커가 없다.
      그래서 실패는 따로 들고 있다가 말로 알린다. */
@@ -1765,6 +1789,32 @@ export function MapClient({
           >
             <Icon name="coin" size={14} className="inline align-middle" /> 월세 비중
           </button>
+          {/* [937] 공매 배지 레이어 — 온비드 진행 물건 구 단위 집계 */}
+          <button
+            type="button"
+            aria-pressed={showAuctions}
+            onClick={() => {
+              setShowAuctions((v) => !v);
+              if (auctionChipIsNew) {
+                setAuctionChipIsNew(false);
+                try {
+                  window.localStorage.setItem("nz_seen_auction_layer", "1");
+                } catch {
+                  /* 저장 실패 — 다음 방문에 점이 다시 보일 뿐 */
+                }
+              }
+            }}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-[13px] transition-colors ${
+              showAuctions
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[var(--glass-bg)] text-text-2"
+            }`}
+          >
+            <Icon name="gavel" size={14} className="inline align-middle" /> 공매
+            {auctionChipIsNew && (
+              <span aria-hidden className="pulse-dot ml-1 align-middle text-primary" />
+            )}
+          </button>
         </div>
         <div className="t-caption text-text-3">
           정비사업은 공개 자료 기준 참고값이에요. 실제 추진 단계는 관할 구청 고시를 확인하세요.
@@ -1774,6 +1824,13 @@ export function MapClient({
               입주 예정 {supplyItems.length}곳 표시
               {supplyUncoordinated > 0 ? ` · 좌표 준비 중 ${supplyUncoordinated}곳` : ""} —
               입주월은 청약홈 공고 기준이에요.
+            </>
+          )}
+          {showAuctions && auctionItems.length > 0 && (
+            <>
+              {" "}
+              공매는 물건 주소에 좌표가 없어 구 중심에 건수로 모아 보여요
+              {auctionsUncharted > 0 ? ` · 지도 밖 권역 ${auctionsUncharted}건 제외` : ""}.
             </>
           )}
         </div>
@@ -2463,6 +2520,50 @@ export function MapClient({
     }));
   }, [showRentShare, rentShareItems]);
 
+  /* [937] 공매 배지 로드 — 토글 ON 시 1회 (1h 캐시 API) */
+  useEffect(() => {
+    if (!showAuctions) return;
+    if (auctionItems.length > 0) return;
+    const controller = new AbortController();
+    setAuctionsFailed(false);
+    fetch("/api/map/auctions", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((json: { items?: typeof auctionItems; uncharted?: number }) => {
+        if (controller.signal.aborted) return;
+        setAuctionItems(Array.isArray(json.items) ? json.items : []);
+        setAuctionsUncharted(typeof json.uncharted === "number" ? json.uncharted : 0);
+        setAuctionsLoaded(true);
+      })
+      .catch((e) => {
+        if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+        setAuctionsFailed(true);
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAuctions]);
+
+  const auctionMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showAuctions) return [];
+    const eok = (v: number | null) =>
+      v && v > 0
+        ? v >= 100_000_000
+          ? `${(v / 100_000_000).toFixed(v >= 1_000_000_000 ? 0 : 1)}억`
+          : `${Math.round(v / 10_000).toLocaleString("ko-KR")}만`
+        : null;
+    return auctionItems.map((a) => {
+      const minBid = eok(a.minBidKrw);
+      return {
+        id: `auction:${a.id}`,
+        /* 같은 구 중심에 시세 버블·월세 배지가 함께 설 수 있어 살짝 남쪽으로 비켜 세운다 */
+        lat: a.lat - 0.006,
+        lng: a.lng,
+        label: `${a.name} 공매 ${a.count}건`,
+        pinColor: "#7c3aed",
+        infoHtml: `<div style="min-width:170px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${a.name}</p><p style="font-size:13px;margin:3px 0 0;color:#333">공매 진행 <b>${a.count}건</b>${minBid ? ` · 최저입찰 ${minBid}~` : ""}</p><p style="font-size:11px;color:#888;margin:3px 0 0">온비드(한국자산관리공사) · 구 단위 집계 — 물건 위치는 구 중심 표시</p><a href="/auctions?gu=${encodeURIComponent(a.name)}" style="font-size:11px;color:var(--primary);font-weight:700">물건 목록 보기 →</a></div>`,
+      };
+    });
+  }, [showAuctions, auctionItems]);
+
   const supplyMarkers = useMemo<MapMarkerData[]>(() => {
     if (!showSupply) return [];
     return supplyItems.map((s) => {
@@ -2632,6 +2733,7 @@ export function MapClient({
       ...supplyMarkers,
       ...myNoteMarkers,
       ...rentShareMarkers,
+      ...auctionMarkers,
     ]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트.
@@ -2726,6 +2828,7 @@ export function MapClient({
       ...supplyMarkers,
       ...myNoteMarkers,
       ...rentShareMarkers,
+      ...auctionMarkers,
     ]);
   }, [
     clusterMode,
@@ -2743,6 +2846,7 @@ export function MapClient({
     supplyMarkers,
     myNoteMarkers,
     rentShareMarkers,
+    auctionMarkers,
     regionMarketMarkers,
     zoom,
     txType,
@@ -3142,6 +3246,19 @@ export function MapClient({
     mapNotices.push({
       key: "rentshare-failed",
       text: "월세 비중을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요",
+    });
+  }
+
+  /* [937] 공매 배지 — 실패와 "0건"을 구분해 말한다 */
+  if (showAuctions && auctionsFailed) {
+    mapNotices.push({
+      key: "auctions-failed",
+      text: "공매 물건을 불러오지 못했어요 — 잠시 후 다시 시도해 주세요. 물건이 없다는 뜻은 아니에요",
+    });
+  } else if (showAuctions && auctionsLoaded && auctionItems.length === 0) {
+    mapNotices.push({
+      key: "auctions-empty",
+      text: "지금 진행 중인 공매 물건이 지도 권역에 없어요",
     });
   }
 

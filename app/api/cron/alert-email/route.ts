@@ -33,32 +33,30 @@ async function handle(req: Request) {
     return NextResponse.json({ ok: false, reason: "no-db" }, { status: 500 });
   }
 
-  const since = new Date(Date.now() - 24 * 3_600_000).toISOString();
-  const { data: alerts, error } = await sb
-    .schema("ops")
-    .from("health_alert_log")
-    .select("check_name, severity, detail, checked_at")
-    .eq("severity", "critical")
-    .gte("checked_at", since)
-    .order("checked_at", { ascending: false })
-    .limit(200);
+  /* [937 수리 2026-08-31] `.schema("ops")` REST 조회는 PGRST106(Invalid schema)
+     으로 매시간 실패해 왔다 — ops 는 PostgREST 에 노출돼 있지 않다(설계 유지).
+     public 의 SECURITY DEFINER RPC(service_role 전용)로 읽는다. 최근 1일치를
+     넉넉히 받아 critical 만 추린다. */
+  const { data: alerts, error } = await sb.rpc("admin_recent_health_alerts", {
+    p_days: 1,
+    p_limit: 500,
+  });
   if (error) {
     logger.error("[alert-email] 경보 조회 실패", error);
     return NextResponse.json({ ok: false, reason: "query-failed" }, { status: 500 });
   }
-  const rows = alerts ?? [];
+  const rows = ((alerts ?? []) as Array<Record<string, unknown>>)
+    .filter((r) => String(r.severity ?? "") === "critical")
+    .slice(0, 200);
   if (rows.length === 0) {
     return NextResponse.json({ ok: true, criticals: 0, sent: false, reason: "무경보" });
   }
 
-  // 쿨다운 — 마지막 발송이 23시간 안이면 다시 보내지 않는다
-  const { data: last } = await sb
-    .schema("ops")
-    .from("alert_email_log")
-    .select("sent_at")
-    .order("sent_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // 쿨다운 — 마지막 발송이 23시간 안이면 다시 보내지 않는다 (RPC: service_role 전용)
+  const { data: lastRows } = await sb.rpc("admin_last_alert_email");
+  const last = (Array.isArray(lastRows) ? lastRows[0] : lastRows) as
+    | { sent_at?: string }
+    | undefined;
   const lastSent = last?.sent_at ? new Date(String(last.sent_at)).getTime() : 0;
   if (Date.now() - lastSent < 23 * 3_600_000) {
     return NextResponse.json({ ok: true, criticals: rows.length, sent: false, reason: "쿨다운" });
@@ -99,10 +97,10 @@ async function handle(req: Request) {
   });
 
   if (result.sent) {
-    await sb
-      .schema("ops")
-      .from("alert_email_log")
-      .insert({ alert_count: rows.length, summary: summary.slice(0, 500) });
+    await sb.rpc("admin_log_alert_email", {
+      p_alert_count: rows.length,
+      p_summary: summary.slice(0, 500),
+    });
   }
   return NextResponse.json({ ok: true, criticals: rows.length, sent: result.sent, ...(result.sent ? {} : { reason: (result as { reason?: string }).reason }) });
 }

@@ -29,15 +29,12 @@ export interface HealthAlertRow {
 export async function loadRecentHealthAlerts(days = 7, limit = 12): Promise<HealthAlertRow[]> {
   const sb = getServiceSupabase();
   if (!sb) return [];
-  const since = new Date(Date.now() - days * 86_400_000).toISOString();
-  const run = () =>
-    sb
-      .schema("ops")
-      .from("health_alert_log")
-      .select("check_name, severity, detail, age_hours, checked_at")
-      .gte("checked_at", since)
-      .order("checked_at", { ascending: false })
-      .limit(500);
+  /* [937 수리 2026-08-31] `.schema("ops")` REST 조회는 PGRST106으로 항상
+     실패한다 — ops 는 PostgREST exposed schemas 에 없다(설계 유지, rls-inventory).
+     이 함수는 그동안 조용히 빈 배열을 돌려줬다: 경보 배너도, 운영 콘솔 경보
+     판도 사실상 꺼져 있었다. public 의 SECURITY DEFINER RPC(service_role 전용)
+     로 통로를 바꾼다. */
+  const run = () => sb.rpc("admin_recent_health_alerts", { p_days: days, p_limit: 500 });
   let { data, error } = await run();
   if (error) {
     /* [G003 2026-08-31] 1회 재시도. 7일간 이 조회의 실패 2건은 전부 DB 포화

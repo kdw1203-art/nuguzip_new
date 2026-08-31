@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
 import { CoverageRequestCard } from "./CoverageRequestCard";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/search/recent-searches";
 import { useSettledSearchQuery } from "@/lib/search/settle";
 import { complexHrefFromId } from "@/lib/seo/complex-slug";
+import { trackPlatformEvent } from "@/lib/platform-events-client";
 
 /* ============================================================
    통합 검색 경험 — 단지·매물·임장노트·뉴스 통합 결과
@@ -34,6 +35,24 @@ const SUGGESTED_REGIONS = ["강남구", "분당", "마포구", "해운대구"] a
 /* 최근 검색어 읽기/쓰기는 헤더 검색과 공유한다(항목 12) — lib/search/recent-searches */
 
 type SectionKey = keyof UnifiedResults;
+
+/** [937 검색] 결과 제목에서 검색어 일치 구간만 강조 — 왜 이 결과가 나왔는지
+ *  한눈에 보이게 한다. 대소문자 무시, 첫 일치 구간만(과한 강조는 소음). */
+function highlightMatch(text: string, query: string): ReactNode {
+  const q = query.trim();
+  if (!q) return text;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx < 0) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark className="bg-transparent font-extrabold text-primary">
+        {text.slice(idx, idx + q.length)}
+      </mark>
+      {text.slice(idx + q.length)}
+    </>
+  );
+}
 
 function hrefFor(key: SectionKey, id: string): string {
   const enc = encodeURIComponent(id);
@@ -71,6 +90,12 @@ export function SearchClient() {
   const [failed, setFailed] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
+  /* [937 검색] 빈 화면의 "많이 찾는 단지" — 추측이 아니라 실측(최근 6개월
+     실거래 + 조회수, popular_complexes RPC). 실패하면 섹션째 조용히 접는다 —
+     부가 정보가 검색 화면을 볼모로 잡지 않는다. */
+  const [popular, setPopular] = useState<
+    Array<{ id: string; name: string; regionName: string; recentTradeCount: number; avgPriceManwon: number | null }>
+  >([]);
   const abortRef = useRef<AbortController | null>(null);
   const { query: settledQuery, compositionProps } = useSettledSearchQuery(q);
   /* 아직 굳지 않은 입력은 "아직 안 물어본 상태"다. 이걸 대기로 안 치면 치는
@@ -95,6 +120,21 @@ export function SearchClient() {
     } catch {
       // URL 파싱 실패 — 무시
     }
+  }, []);
+
+  /* [937 검색] 많이 찾는 단지 로드 — 마운트 1회, 전국 기준 상위 6곳 */
+  useEffect(() => {
+    const ac = new AbortController();
+    fetch("/api/map/popular?limit=6", { signal: ac.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((json: { items?: typeof popular }) => {
+        if (!ac.signal.aborted && Array.isArray(json.items)) setPopular(json.items);
+      })
+      .catch(() => {
+        /* 실패 시 섹션 미노출 — 검색 자체와 무관 */
+      });
+    return () => ac.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* 통합 검색 — 대기 규칙은 lib/search/settle 한 군데에서만 정한다.
@@ -132,6 +172,21 @@ export function SearchClient() {
         });
         setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
         setFailed(Array.isArray(json.failed) ? json.failed : []);
+        /* [937 검색] 무결과 실측 — 커버리지 카드는 버튼을 눌러야 남지만,
+           "찾았는데 없었다"는 사실 자체가 확장 우선순위 데이터다. */
+        const n =
+          (json.complexes?.length ?? 0) +
+          (json.listings?.length ?? 0) +
+          (json.notes?.length ?? 0) +
+          (json.news?.length ?? 0);
+        if (n === 0 && (!json.failed || json.failed.length === 0)) {
+          trackPlatformEvent({
+            eventName: "search_no_result",
+            source: "client",
+            campaign: "funnel",
+            metadata: { query: query.slice(0, 80) },
+          });
+        }
       } catch {
         if (!ac.signal.aborted) {
           setResults(EMPTY);
@@ -269,7 +324,19 @@ export function SearchClient() {
         <div className="rise-in mt-2 flex flex-col gap-5">
           {recent.length > 0 && (
             <div>
-              <div className="mb-2 px-1 text-xs font-extrabold text-text-3">최근 검색</div>
+              <div className="mb-2 flex items-center justify-between px-1">
+                <span className="text-xs font-extrabold text-text-3">최근 검색</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecent([]);
+                    writeRecentSearches([]);
+                  }}
+                  className="t-caption text-text-3 underline underline-offset-2"
+                >
+                  전체 삭제
+                </button>
+              </div>
               <div className="flex flex-wrap gap-[6px]">
                 {recent.map((k) => (
                   <span
@@ -310,6 +377,48 @@ export function SearchClient() {
               ))}
             </div>
           </div>
+          {/* [937 검색] 많이 찾는 단지 — 실측 순위(최근 6개월 실거래 + 조회수).
+              추천 지역과 달리 이건 진짜 측정값이라 근거를 그대로 적는다. */}
+          {popular.length > 0 && (
+            <div>
+              <div className="mb-2 px-1 t-caption font-extrabold text-text-3">
+                많이 찾는 단지{" "}
+                <span className="font-medium">(최근 6개월 실거래·조회 기준)</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {popular.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={complexHrefFromId(c.id)}
+                    onClick={() =>
+                      trackPlatformEvent({
+                        eventName: "search_popular_click",
+                        source: "client",
+                        campaign: "funnel",
+                        metadata: { complexId: c.id },
+                      })
+                    }
+                    className="card tile flex items-center justify-between gap-3 rounded-2xl px-4 py-2.5 no-underline"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate t-body font-bold text-ink">{c.name}</div>
+                      <div className="truncate t-caption text-text-3">
+                        {c.regionName}
+                        {c.recentTradeCount > 0 ? ` · 6개월 거래 ${c.recentTradeCount}건` : ""}
+                      </div>
+                    </div>
+                    {c.avgPriceManwon != null && c.avgPriceManwon > 0 && (
+                      <span className="shrink-0 t-sub font-bold text-text-2">
+                        {c.avgPriceManwon >= 10_000
+                          ? `${(c.avgPriceManwon / 10_000).toFixed(1).replace(/\.0$/, "")}억`
+                          : `${c.avgPriceManwon.toLocaleString("ko-KR")}만`}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -430,13 +539,23 @@ export function SearchClient() {
                     <Link
                       key={r.id}
                       href={hrefFor(g.key, r.id)}
-                      onClick={() => saveRecent(q)}
+                      onClick={() => {
+                        saveRecent(q);
+                        /* [937 검색] 그룹별 클릭 실측 — 어떤 결과 묶음이 실제로
+                           쓰이는지 없이는 검색 개선의 다음 순서를 정할 수 없다. */
+                        trackPlatformEvent({
+                          eventName: "search_result_click",
+                          source: "client",
+                          campaign: "funnel",
+                          metadata: { group: g.key, query: q.trim().slice(0, 80) },
+                        });
+                      }}
                       className={`flex items-center justify-between gap-3 py-2.5 transition-colors hover:text-primary ${
                         i < g.rows.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
                       <span className="min-w-0 truncate t-body font-bold text-ink">
-                        {r.title}
+                        {highlightMatch(r.title, settledQuery)}
                       </span>
                       {r.meta && (
                         <span className="shrink-0 t-sub text-text-3">{r.meta}</span>
