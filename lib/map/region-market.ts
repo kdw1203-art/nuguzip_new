@@ -1,6 +1,8 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { listLatestTemperatures } from "@/lib/market/temperature-archive";
+import { logger } from "@/lib/log";
 import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
 
 /**
@@ -25,6 +27,10 @@ export type RegionMarketMarker = {
   jeonseRatio: number | null;
   /** 기준월 "YYYYMM" */
   period: string;
+  /** [지도확장 2026-08-31] 주간 시장 온도(0~100 · 50 중립) — 아카이브 없으면 null */
+  tempScore: number | null;
+  /** 온도 기준 주 시작일 (YYYY-MM-DD) — 시점 없는 숫자는 지어낸 값과 같다 */
+  tempWeek: string | null;
 };
 
 type CoordEntry = { lat: number; lng: number; name: string };
@@ -69,6 +75,21 @@ async function loadRegionMarketMarkersUncached(): Promise<RegionMarketMarker[]> 
   const seen = new Set<string>();
   const out: RegionMarketMarker[] = [];
 
+  /* [지도확장] 주간 시장 온도 조인 — 아카이브 조회가 실패해도 시세 마커는
+     그대로 나간다(온도만 null). 온도는 부가 정보라 시세를 볼모로 잡지 않는다. */
+  const tempByRegion = new Map<string, { score: number; week: string }>();
+  try {
+    const t = await listLatestTemperatures();
+    for (const row of t.rows) {
+      tempByRegion.set(row.current.regionId, {
+        score: row.current.score,
+        week: row.current.weekStart,
+      });
+    }
+  } catch (e) {
+    logger.warn("[region-market] 시장 온도 조인 실패 — 온도 없이 계속", e);
+  }
+
   for (const r of rows) {
     if (!r.region_id || seen.has(r.region_id)) continue; // period 내림차순 → 첫 등장이 최신월
     const c = coords.get(r.region_id);
@@ -90,6 +111,8 @@ async function loadRegionMarketMarkersUncached(): Promise<RegionMarketMarker[]> 
       tradeCount: r.trade_count ?? 0,
       jeonseRatio: r.jeonse_ratio != null ? Number(r.jeonse_ratio) : null,
       period: r.period,
+      tempScore: tempByRegion.get(r.region_id)?.score ?? null,
+      tempWeek: tempByRegion.get(r.region_id)?.week ?? null,
     });
   }
   return out;

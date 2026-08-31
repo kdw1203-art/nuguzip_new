@@ -1,0 +1,31 @@
+# [H007] 의존성 취약점 월간 점검.
+#
+# npm audit 를 빌드 게이트에 넣지 않는 이유: 취약점 공개는 우리 커밋과 무관하게
+# 일어나므로, 어제 초록이던 빌드가 오늘 이유 없이 빨개진다 — 게이트는 우리가
+# 바꾼 것만 심판해야 한다. 대신 월 1회 스케줄로 돌리고, high 이상이 있으면
+# 잡을 실패시켜 GitHub 알림(워치 중인 소유자 메일)으로 드러낸다.
+#
+# 수동 실행: Actions 탭 → security-audit → Run workflow
+name: security-audit
+on:
+  schedule:
+    - cron: "0 21 1 * *" # 매월 1일 06:00 KST
+  workflow_dispatch:
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm audit (high 이상에서 실패)
+        run: |
+          npm audit --audit-level=high || {
+            echo "::error::high 이상 취약점 발견 — npm audit 출력을 확인하고 영향 범위를 판단하세요."
+            exit 1
+          }
+      - name: 전체 감사 결과 (참고용, 실패시키지 않음)
+        if: always()
+        run: npm audit || true

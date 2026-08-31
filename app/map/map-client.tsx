@@ -281,6 +281,10 @@ export type RegionMarker = {
   tradeCount: number;
   jeonseRatio: number | null;
   period: string;
+  /** [지도확장] 주간 시장 온도(0~100) — 아카이브 없으면 null/미전달 */
+  tempScore?: number | null;
+  /** 온도 기준 주 (YYYY-MM-DD) */
+  tempWeek?: string | null;
 };
 
 interface MapClientProps {
@@ -2542,11 +2546,21 @@ export function MapClient({
         r.changePct != null
           ? `<span style="color:${up ? "#e11900" : "#1565d8"};font-weight:700">${up ? "▲" : "▼"}${Math.abs(r.changePct).toFixed(2)}%</span>`
           : "";
+      /* [지도확장 2026-08-31] 주간 시장 온도 — /analysis/temperature 에만 있던
+         지표를 지역 마커에 함께. 색은 온도계 관례(높음=붉음, 낮음=푸름, 50 중립).
+         기준 주를 함께 적는다 — 시점 없는 숫자는 지어낸 값과 같다. */
+      const t = r.tempScore;
+      const tempColor = t == null ? "#888" : t >= 65 ? "#e11900" : t >= 50 ? "#e07f00" : t >= 35 ? "#1565d8" : "#0d47a1";
+      const tempHtml =
+        t != null
+          ? `<p style="font-size:11px;margin:2px 0 0;color:#555">시장 온도 <b style="color:${tempColor}">${Math.round(t)}</b><span style="color:#aaa">/100${r.tempWeek ? ` · ${r.tempWeek.slice(5).replace("-", ".")}주` : ""}</span></p>`
+          : "";
       const infoHtml = `<div style="min-width:150px;font-family:sans-serif">
         <p style="font-weight:800;font-size:13px;margin:0;color:var(--ink)">${r.name}</p>
         <p style="font-size:12px;margin:3px 0 0;color:#333">평균 매매 <b>${price}</b> ${chgHtml}</p>
+        ${tempHtml}
         <p style="font-size:11px;color:#888;margin:2px 0 0">거래 ${r.tradeCount.toLocaleString("ko-KR")}건${r.jeonseRatio != null ? ` · 전세가율 ${Math.round(r.jeonseRatio)}%` : ""}</p>
-        <p style="font-size:10px;color:#aaa;margin:2px 0 0">${r.period.slice(0, 4)}.${r.period.slice(4, 6)} · 한국부동산원</p>
+        <p style="font-size:10px;color:#aaa;margin:2px 0 0">${r.period.slice(0, 4)}.${r.period.slice(4, 6)} · 한국부동산원 · 온도는 자체 산출</p>
       </div>`;
       return {
         id: `region:${r.id}`,
@@ -4021,6 +4035,17 @@ export function MapClient({
               <div className="mt-1 text-xs text-text-2">{selected.meta}</div>
             </div>
             <div className="flex items-center gap-2">
+              {/* [지도확장 2026-08-31] 네이버지도 새 탭 — 거리뷰·로드뷰·주변시설은
+                  네이버가 이미 잘한다. 흉내내는 대신 이어 준다(임장 전 현장 확인 동선).
+                  이름 검색 딥링크는 공식 문서화된 안정 경로다. */}
+              <a
+                href={`https://map.naver.com/p/search/${encodeURIComponent(`${selected.meta?.split(" · ").pop() ?? ""} ${selected.name}`.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden rounded-xl border border-line px-3 py-2 t-caption font-extrabold text-text-1 no-underline hover:border-primary hover:text-primary md:inline-flex"
+              >
+                네이버지도 ↗
+              </a>
               <Link
                 href={complexHrefFromId(selected.id)}
                 className="btn-primary btn-cta hidden rounded-xl px-3.5 py-2 text-xs font-extrabold text-white md:inline-flex"

@@ -3,6 +3,8 @@ import { authorizeCron } from "@/lib/cron/authorize";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { sendPush, type PushPayload } from "@/lib/push/vapid";
+import { sendEmail, isEmailConfigured } from "@/lib/email/send";
+import { reengageEmail } from "@/lib/email/templates";
 import {
   loadReengagementCandidates,
   COOLDOWN_DAYS,
@@ -22,7 +24,8 @@ export const maxDuration = 120;
  * 선별 기준과 문구의 근거는 lib/reengagement/candidates.ts 에 있다. 여기서는
  * 보내고 기록하는 일만 한다.
  *
- * 채널: 인앱 수신함(항상) + 웹푸시(구독이 있을 때만). **이메일은 보내지 않는다.**
+ * 채널: 인앱 수신함(항상) + 웹푸시(구독이 있을 때만) + 이메일([E010] 2026-08-31,
+ *       **마케팅 수신 동의자 한정** · 제목 (광고) 표기 · RESEND 미설정 시 생략).
  * 발송 후 reengagement_log 에 남기고, 그 로그가 다음 회차의 쿨다운 근거가 된다.
  * 로그 기록이 실패하면 그 사람은 다음 회차에 또 받게 되므로, 기록 실패는
  * 요약에 logFailed 로 그대로 드러낸다(조용히 넘기지 않는다).
@@ -58,6 +61,8 @@ interface RunSummary {
   pushSent: number;
   /** 발송은 됐는데 로그 기록에 실패한 수 — 다음 회차 중복 발송 위험 */
   logFailed: number;
+  /** 이메일 발송 성공 수 — 마케팅 동의자에게만 ([E010]) */
+  emailSent: number;
   reason?: string;
 }
 
@@ -125,6 +130,7 @@ async function runReengagement(dryRun: boolean): Promise<RunSummary> {
     notified: 0,
     pushSent: 0,
     logFailed: 0,
+    emailSent: 0,
     ...(scan.reason ? { reason: scan.reason } : {}),
   };
 
@@ -134,6 +140,23 @@ async function runReengagement(dryRun: boolean): Promise<RunSummary> {
   let notified = 0;
   let pushSent = 0;
   let logFailed = 0;
+  let emailSent = 0;
+
+  /* [E010] 이메일은 마케팅 수신 동의자에게만. 동의 명단을 한 번에 받아 온다 —
+     후보가 최대 200명이라 IN 조회 한 번이면 된다. 조회 실패 시 이메일만
+     조용히 생략(인앱·푸시는 그대로) — 동의 여부가 불확실하면 안 보내는 쪽이 맞다. */
+  const marketingOk = new Set<string>();
+  if (sb && isEmailConfigured()) {
+    const { data: consents } = await sb
+      .from("user_consents")
+      .select("user_email")
+      .eq("marketing_agreed", true)
+      .in("user_email", scan.candidates.map((c) => c.userEmail));
+    for (const r of consents ?? []) {
+      const e = String((r as { user_email?: unknown }).user_email ?? "").trim();
+      if (e) marketingOk.add(e.toLowerCase());
+    }
+  }
 
   for (const c of scan.candidates) {
     try {
@@ -146,12 +169,22 @@ async function runReengagement(dryRun: boolean): Promise<RunSummary> {
       notified += 1;
       pushSent += await pushIfSubscribed(sb, c);
 
+      /* [E010] 동의자에게만, (광고) 표기와 함께. 실패해도 인앱은 이미 남았다. */
+      let emailOk = false;
+      if (marketingOk.has(c.userEmail.toLowerCase())) {
+        const r = await sendEmail({ to: c.userEmail, ...reengageEmail(c) }).catch(
+          () => ({ sent: false as const, reason: "예외" }),
+        );
+        emailOk = r.sent;
+        if (emailOk) emailSent += 1;
+      }
+
       /* 쿨다운의 근거. 여기 실패하면 다음 회차에 같은 사람이 또 뽑히므로 숨기지 않는다. */
       if (sb) {
         const { error } = await sb.from("reengagement_log").insert({
           user_email: c.userEmail,
           reason: c.reason,
-          channels: ["inbox"],
+          channels: emailOk ? ["inbox", "email"] : ["inbox"],
           payload: {
             title: c.title,
             body: c.body,
@@ -176,7 +209,7 @@ async function runReengagement(dryRun: boolean): Promise<RunSummary> {
     }
   }
 
-  return { ...base, notified, pushSent, logFailed };
+  return { ...base, notified, pushSent, logFailed, emailSent };
 }
 
 async function handle(req: Request): Promise<Response> {

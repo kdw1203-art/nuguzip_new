@@ -202,3 +202,25 @@ export function weeklyDigestEmail(params: {
 
   return { subject, html, text };
 }
+
+/** [E010] 이탈 리마인드 메일 — reengage-reminders 크론의 이메일 채널.
+ *
+ * 법적 전제: **마케팅 수신 동의자(user_consents.marketing_agreed)에게만** 나가고,
+ * 제목에 (광고) 표기를 붙인다(정보통신망법 광고성 정보 표기). 수신거부 경로는
+ * emailLayout 하단 고지(마이 › 설정 › 알림)가 담당한다. 동의 없는 회원에게는
+ * 인앱·푸시까지만 — 이 구분을 코드가 강제한다(호출부 참조).
+ */
+export function reengageEmail(params: { title: string; body: string; actionUrl: string }) {
+  const url = params.actionUrl.startsWith("http")
+    ? params.actionUrl
+    : `https://nuguzip.com${params.actionUrl}`;
+  return {
+    subject: `(광고) ${params.title}`,
+    html: emailLayout(`
+      <h1 style="margin:0 0 10px;font-size:18px;color:#191f28;">${escapeHtml(params.title)}</h1>
+      <p style="margin:0 0 18px;font-size:14px;line-height:1.65;color:#4a5568;">${escapeHtml(params.body)}</p>
+      <a href="${url}" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">이어서 보기</a>
+    `),
+    text: `${params.title}\n\n${params.body}\n\n이어서 보기: ${url}`,
+  };
+}
