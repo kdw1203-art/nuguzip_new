@@ -37,18 +37,31 @@ export async function GET() {
   const sb = getServiceSupabase();
   if (!sb) return dbUnavailable("map/auctions", new Error("service client 미구성"));
 
-  const { data, error } = await sb
-    .from("onbid_auctions")
-    .select("sido, sigungu, bid_end, min_bid_krw")
-    .limit(5000);
-  if (error) {
-    return NextResponse.json({ error: "공매 집계 조회 실패" }, { status: 503 });
+  /* [938 수리] `.limit(5000)` 한 방 조회는 PostgREST 기본 상한(1,000행)에 조용히
+     잘렸다 — 실측: 전체 1,563건인데 activeTotal 이 1,000으로 내려가 배지 건수가
+     전부 축소돼 있었다. 잘림은 오류가 아니라서 아무도 몰랐다. 1,000행씩
+     .range() 페이지로 전량을 받는다(안전 상한 10페이지 = 1만 건). */
+  const PAGE = 1000;
+  const MAX_PAGES = 10;
+  const rows: Array<Record<string, unknown>> = [];
+  for (let p = 0; p < MAX_PAGES; p += 1) {
+    const { data, error } = await sb
+      .from("onbid_auctions")
+      .select("sido, sigungu, bid_end, min_bid_krw")
+      .order("id", { ascending: true })
+      .range(p * PAGE, p * PAGE + PAGE - 1);
+    if (error) {
+      return NextResponse.json({ error: "공매 집계 조회 실패" }, { status: 503 });
+    }
+    const batch = (data ?? []) as Array<Record<string, unknown>>;
+    rows.push(...batch);
+    if (batch.length < PAGE) break; // 마지막 페이지
   }
 
   const now = new Date();
   const byKey = new Map<string, Agg>();
   let active = 0;
-  for (const r of (data ?? []) as Array<Record<string, unknown>>) {
+  for (const r of rows) {
     const bidEnd = r.bid_end == null ? null : String(r.bid_end);
     if (isPastBidEnd(bidEnd, now)) continue; // 입찰이 끝난 물건은 지도에 올리지 않는다
     active += 1;

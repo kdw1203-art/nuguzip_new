@@ -209,6 +209,32 @@ export async function fetchRebTableItems(statblId: string): Promise<RebItemInfo[
   }));
 }
 
+/** 시도 광역 "서울" 행 식별용 특수 region id — 구 단위 표·시계열에는 절대 넣지 않는다. */
+export const SIDO_SEOUL_ID = "sido-seoul";
+
+/**
+ * [938] R-ONE 광역(시도) 서울 행 매칭.
+ *
+ * 왜 필요한가(실측 2026-08-31): `market_price_indices`(홈 티커 "매매지수 서울"의
+ * 1순위 원천)는 이 코드베이스 어디에도 쓰는 곳이 없었다 — 07-17에 외부에서 한 번
+ * 적재된 뒤 방치. 원인은 지역 매처가 "서울>강남구" 같은 구 단위만 알고,
+ * 정작 부동산원이 공식 발표하는 **서울 광역 지수 행**("서울" 또는
+ * "전국>수도권>서울")은 세그먼트 부족으로 버려서다. 광역 행을 여기서 잡아
+ * 시도 스냅샷 전용으로만 넘긴다. 서울 지수를 구 평균으로 지어내지 않고
+ * 발표값 그대로 쓰기 위한 통로다.
+ */
+export function matchSeoulCitywide(clsFullNm: string | null | undefined): RegionMatch | null {
+  if (!clsFullNm) return null;
+  const rest = clsFullNm
+    .split(">")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => s !== "전국" && !s.endsWith("권")); // 권역(수도권 등)·전국 제거
+  if (rest.length !== 1) return null; // 아래에 시/구가 더 달려 있으면 광역 행이 아니다
+  if (!rest[0].startsWith("서울")) return null;
+  return { id: SIDO_SEOUL_ID, name: "서울", city: "서울" };
+}
+
 /**
  * 한 통계표의 "최신" 데이터를 내부 지역으로 매핑해 반환.
  * R-ONE 응답은 기간 오름차순 → 마지막 페이지(들)이 최신. START/END 필터는 일부 표에서
@@ -239,7 +265,9 @@ export async function fetchRebStat(
     for (const r of rows) {
       if (stat.itmIncludes && !(r.ITM_NM ?? "").includes(stat.itmIncludes)) continue;
       if (stat.itmExcludes && (r.ITM_NM ?? "").includes(stat.itmExcludes)) continue;
-      const region = matchRegionFromClsFullNm(r.CLS_FULLNM ?? r.CLS_NM);
+      const region =
+        matchRegionFromClsFullNm(r.CLS_FULLNM ?? r.CLS_NM) ??
+        matchSeoulCitywide(r.CLS_FULLNM ?? r.CLS_NM);
       if (!region) continue;
       const value = typeof r.DTA_VAL === "string" ? Number(r.DTA_VAL) : r.DTA_VAL;
       if (value == null || !Number.isFinite(value)) continue;

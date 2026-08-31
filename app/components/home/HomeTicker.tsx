@@ -74,7 +74,7 @@ export function HomeTicker({ items }: { items: TickerItem[] }) {
      돌려 어색하다 — 4개 미만은 정적 가운데 정렬로 그린다(#409). */
   if (items.length < 4) {
     return (
-      <div className="overflow-x-auto rounded-xl bg-ink px-4 py-2">
+      <div className="ticker-surface overflow-x-auto rounded-xl px-4 py-2">
         <div className="flex items-center justify-center gap-7">
           {items.map((it, i) => (
             <Item key={i} it={it} />
@@ -96,7 +96,7 @@ export function HomeTicker({ items }: { items: TickerItem[] }) {
   );
 
   return (
-    <div className="ticker-band overflow-hidden rounded-xl bg-ink px-0 py-2">
+    <div className="ticker-band ticker-surface overflow-hidden rounded-xl px-0 py-2">
       <div className="ticker-track flex w-max">
         {row(false)}
         {row(true)}

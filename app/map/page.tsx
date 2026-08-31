@@ -17,6 +17,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 import { getNote } from "@/lib/inspection/store-db";
 import { resolveComplexHref } from "@/lib/newui/complex-link";
 import { getOnboardingPersonalization } from "@/lib/onboarding/personalization";
+import { saveLastGood, loadLastGood } from "@/lib/cache/last-good";
 
 /* auth·searchParams 때문에 요청마다 렌더. 지역 시세 마커는
    lib/map/region-market.ts 의 unstable_cache(10분)로 DB 부하를 줄인다. */
@@ -362,7 +363,36 @@ async function fetchHouseholds(
 async function loadSharedDanjiUncached(): Promise<{ items: DanjiItem[]; region: string }> {
   /* 2026-07-26: 통째로 try/catch 해서 조회 실패도 `null`, 좌표가 0건인 것도 `null`
      이었다. 호출부는 둘을 구분할 방법이 없어서 두 경우 모두 "단지 0" 으로 그렸다.
-     이제 실패는 던지고, 빈 결과만 빈 목록으로 돌려준다. */
+     이제 실패는 던지고, 빈 결과만 빈 목록으로 돌려준다.
+     [938 · B007] 단, DB 포화 시간대의 조회 타임아웃(실측 일 2~4건)은 마지막
+     정상본으로 잇는다 — 이 데이터는 전 방문자 공용이고 원천이 하루 한 번
+     갱신되므로, 몇 시간 전 정상본이 "지금 못 불러왔다" 화면보다 사실에 가깝다.
+     정상본이 없거나 이틀 넘게 낡았으면 예전처럼 던진다. */
+  try {
+    const fresh = await loadSharedDanjiLive();
+    /* await — 서버리스에서 비동기 잔여 작업은 응답 후 얼어붙을 수 있다.
+       10분에 한 번(재생성 시)만 도는 소형 upsert 라 대기 비용은 무시 수준. */
+    await saveLastGood(SHARED_DANJI_LKG_KEY, fresh);
+    return fresh;
+  } catch (err) {
+    const lkg = await loadLastGood<{ items: DanjiItem[]; region: string }>(
+      SHARED_DANJI_LKG_KEY,
+      48,
+    );
+    if (lkg && Array.isArray(lkg.value.items) && lkg.value.items.length > 0) {
+      logger.warn("[map] 공유 단지 배치 실패 — 마지막 정상본으로 대체", {
+        fetchedAt: lkg.fetchedAt,
+        cause: err instanceof Error ? err.message : String(err),
+      });
+      return lkg.value;
+    }
+    throw err;
+  }
+}
+
+const SHARED_DANJI_LKG_KEY = "map:shared-danji-v1";
+
+async function loadSharedDanjiLive(): Promise<{ items: DanjiItem[]; region: string }> {
   const geo = await loadGeocodedComplexes(30);
   if (geo.length === 0) return { items: [], region: "수도권" };
 

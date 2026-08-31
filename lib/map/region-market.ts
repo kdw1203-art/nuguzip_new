@@ -4,6 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { listLatestTemperatures } from "@/lib/market/temperature-archive";
 import { logger } from "@/lib/log";
 import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
+import { saveLastGood, loadLastGood } from "@/lib/cache/last-good";
 
 /**
  * 지역(구/시) 단위 실시세 마커 — 한국부동산원(REB) 집계 `market_region_price` 실데이터.
@@ -118,9 +119,33 @@ async function loadRegionMarketMarkersUncached(): Promise<RegionMarketMarker[]> 
   return out;
 }
 
+const REGION_MARKET_LKG_KEY = "map:region-market-markers-v1";
+
+/* [938 · B007] DB 포화 시간대 타임아웃(실측 1건/24h)은 마지막 정상본으로 잇는다.
+   REB 집계는 하루 한 번 갱신되는 공용 데이터라 몇 시간 전 정상본이
+   "시세 마커 없음"보다 사실에 가깝다. 정상본이 없거나 이틀 넘게 낡았으면
+   예전처럼 던져서 호출부가 안내 문구로 구분한다. */
+async function loadRegionMarketMarkersDurable(): Promise<RegionMarketMarker[]> {
+  try {
+    const fresh = await loadRegionMarketMarkersUncached();
+    await saveLastGood(REGION_MARKET_LKG_KEY, fresh);
+    return fresh;
+  } catch (err) {
+    const lkg = await loadLastGood<RegionMarketMarker[]>(REGION_MARKET_LKG_KEY, 48);
+    if (lkg && Array.isArray(lkg.value) && lkg.value.length > 0) {
+      logger.warn("[region-market] 조회 실패 — 마지막 정상본으로 대체", {
+        fetchedAt: lkg.fetchedAt,
+        cause: err instanceof Error ? err.message : String(err),
+      });
+      return lkg.value;
+    }
+    throw err;
+  }
+}
+
 /** 지도 SSR이 force-dynamic 이어도 시세 마커는 10분 캐시 */
 export const loadRegionMarketMarkers = unstable_cache(
-  loadRegionMarketMarkersUncached,
+  loadRegionMarketMarkersDurable,
   ["map-region-market-markers-v1"],
   { revalidate: 600, tags: ["map-region-markers"] },
 );
