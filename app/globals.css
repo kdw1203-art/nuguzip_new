@@ -1555,6 +1555,26 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   animation: riseIn var(--dur-md) var(--ease-out) 700ms backwards;
 }
 
+/* ---------- 3.5 빈 공간 자동 정리 (data-autotrim) ---------- */
+/* 컨테이너에 `data-autotrim` 하나만 붙이면, 그 안에서 **아무것도 그리지 않게
+   된 자식**이 자리를 차지하지 않는다. 넣고 빼는 화면(조건부 카드, 광고 슬롯,
+   빈 목록)에서 "패딩만 남은 상자" 가 남지 않도록 하는 안전망이다.
+
+   왜 CSS 인가 — 리액트 쪽은 AutoStack/Section 이 막지만, 그 둘을 안 쓰는
+   기존 화면과 서드파티가 꽂는 상자(광고 iframe 이 안 뜬 자리 등)까지는 못
+   막는다. 이 규칙은 그 나머지를 받아 준다.
+
+   제외 목록이 있는 이유: `:empty` 는 "자식이 없다" 일 뿐 "안 보인다" 가
+   아니다. 스스로 그리는 것들(이미지·구분선·배경/테두리를 가진 상자)은
+   비어 있어도 화면에 존재하므로 접으면 안 된다. */
+[data-autotrim] > :empty:not(img):not(svg):not(canvas):not(iframe):not(video):not(input):not(textarea):not(select):not(button):not(hr):not(br):not([class*="bg-"]):not([class*="border"]):not([class*="skeleton"]):not([style]) {
+  display: none;
+}
+/* 컨테이너 자신이 통째로 비면 컨테이너도 접는다(부모의 gap 까지 사라진다) */
+[data-autotrim]:empty {
+  display: none;
+}
+
 /* ---------- 4. 스크롤 리빌 ---------- */
 /* 서버 컴포넌트에서도 쓸 수 있도록 **속성 하나**로 켠다: data-reveal.
    자바스크립트가 꺼져 있거나 옵저버가 못 붙어도 기본값이 "보임" 이어야 한다 —

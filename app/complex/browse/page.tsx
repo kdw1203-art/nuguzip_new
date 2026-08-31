@@ -56,6 +56,15 @@ export async function generateMetadata({
       siteName: "누구집",
       locale: "ko_KR",
       type: "website",
+      /* [C004] 12페이지 실측에서 og:image 없는 페이지가 여기와 /tx 뿐이었다.
+         공유 카드가 빈 회색으로 나가면 눌리지 않는다 — 제목 박힌 동적 카드. */
+      images: [
+        {
+          url: `/api/og?${new URLSearchParams({ title: `${label} 단지별 실거래` }).toString()}`,
+          width: 1200,
+          height: 630,
+        },
+      ],
     },
   };
 }

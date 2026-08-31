@@ -75,7 +75,13 @@ const SOURCES: SourceDef[] = [
     label: "시세 지수 (REB/KB)",
     pipeline: "etl.yml → reb-ingest·kb-ingest (매일)",
     table: "market_price_indices",
-    column: "created_at",
+    /* [A006 2026-08-31] created_at → updated_at. 이 표에는 created_at 이 없어서
+       조회가 매번 실패했고, 경보는 "마지막 확인 불가"로 7번 울리면서 정작
+       진짜 나이(마지막 갱신 07-18)는 아무도 몰랐다. 고치고 나면 이 경보는
+       "6주 지남"으로 정직하게 울린다 — 그게 맞다. 월간 지수 적재가 실제로
+       멈춰 있고, 홈은 그동안 5월 값을 시점 표기 없이 띄우고 있었다
+       (loadSaleIndexSeoul 에 기준월 표기를 같이 넣었다). */
+    column: "updated_at",
     thresholdHours: 24 * 10, // 주간 지수 — 열흘 넘게 새 행이 없으면 이상
   },
   {

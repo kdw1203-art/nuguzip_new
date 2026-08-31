@@ -637,6 +637,12 @@ export default async function NoteDetailPage({
               </Link>
             </>
           )}
+          {/* [D008] 세 번째 행동: 공유 카드. 사용자가 카드를 카톡에 올리는 순간이
+              지금 있는 유일한 무료 홍보 채널이다 — 저장 직후가 가장 눌리는 때. */}
+          {" · "}
+          <Link href={`/notes/${realNote.id}/card`} className="font-extrabold text-primary">
+            카드로 공유하기 ›
+          </Link>
         </div>
       )}
       {isOwner && (aiStatus === "rule" || (aiStatus === "ok" && !hasLlmAi)) && (

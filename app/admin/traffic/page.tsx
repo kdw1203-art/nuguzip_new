@@ -230,6 +230,16 @@ export default async function AdminTrafficPage() {
     : null;
   const maxViews = Math.max(1, ...daily.map((d) => d.views));
 
+  /* [G006 2026-08-31] 주간 목표선·추세 — 숫자는 많은데 "좋아지고 있나"가 없었다.
+     daily 14일에서 이번 주(최근 7일)·지난 주(그 전 7일)를 접어 비교한다.
+     목표는 상수다: 실측 기준 주간 PV 152 에서 시작하는 현실적 계단(300).
+     목표를 넘기 시작하면 이 상수를 올린다 — 조정 이력은 커밋으로 남는다. */
+  const WEEKLY_PV_TARGET = 300;
+  const thisWeekPv = daily.slice(-7).reduce((a, d) => a + d.views, 0);
+  const prevWeekPv = daily.slice(-14, -7).reduce((a, d) => a + d.views, 0);
+  const weekDeltaPct =
+    prevWeekPv > 0 ? Math.round(((thisWeekPv - prevWeekPv) / prevWeekPv) * 100) : null;
+
   const kpis = summary
     ? [
         { label: "오늘 방문자", value: summary.sessions_today, sub: `페이지뷰 ${summary.views_today.toLocaleString("ko-KR")}` },
@@ -256,6 +266,37 @@ export default async function AdminTrafficPage() {
           {failed.join(" · ")} 조회에 실패했어요 — 데이터가 없는 게 아니라 못 읽은
           것입니다. 새로고침해 주세요.
         </p>
+      )}
+
+      {/* [G006] 주간 목표 대비 — 이 페이지의 첫 문장은 "이번 주 어땠나"여야 한다 */}
+      {daily.length > 0 && (
+        <section className="card rounded-2xl px-5 py-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <div className="text-[11px] text-text-3">이번 주 페이지뷰 (최근 7일 · 목표 {WEEKLY_PV_TARGET.toLocaleString("ko-KR")})</div>
+              <div className="t-num mt-1 text-[24px] font-extrabold text-ink">
+                {thisWeekPv.toLocaleString("ko-KR")}
+                <span className="ml-2 text-[13px] font-bold text-text-3">
+                  / {WEEKLY_PV_TARGET.toLocaleString("ko-KR")}
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] text-text-3">지난 주 대비</div>
+              <div className={`t-num mt-1 text-[19px] font-extrabold ${weekDeltaPct === null ? "text-text-3" : weekDeltaPct >= 0 ? "text-success" : "text-danger"}`}>
+                {weekDeltaPct === null ? "—" : `${weekDeltaPct >= 0 ? "▲" : "▼"} ${Math.abs(weekDeltaPct)}%`}
+              </div>
+              <div className="mt-0.5 text-[11px] text-text-3">지난 주 {prevWeekPv.toLocaleString("ko-KR")}뷰</div>
+            </div>
+          </div>
+          {/* 목표 진행 막대 — 초과해도 100%로 클램프 */}
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-bg">
+            <div
+              className={`h-full rounded-full ${thisWeekPv >= WEEKLY_PV_TARGET ? "bg-success" : "bg-primary"}`}
+              style={{ width: `${Math.min(100, Math.round((thisWeekPv / WEEKLY_PV_TARGET) * 100))}%` }}
+            />
+          </div>
+        </section>
       )}
 
       {/* 접속자 KPI */}

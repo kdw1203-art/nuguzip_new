@@ -5,6 +5,7 @@
    (자리 확보용 스켈레톤도 없음 — 비로그인 다수에게 레이아웃 이동을 만들지 않기). */
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getSessionLite } from "@/lib/client/session-lite";
 
 type Brief = { title: string; body: string; complexCount: number; tradeCount: number };
 
@@ -12,8 +13,16 @@ export function HomeWatchlistBrief() {
   const [brief, setBrief] = useState<Brief | null>(null);
   useEffect(() => {
     let alive = true;
-    fetch("/api/me/home-brief", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
+    /* [2026-08-28] 로그인 여부를 먼저 본다. 예전에는 마운트 즉시 쏴서
+       비로그인 방문자마다 401 이 돌아왔고, 크롬 콘솔에 빨간 줄이 남았다.
+       세션 조회는 홈이 어차피 하고 있고 모듈 캐시를 공유한다(요청 증가 없음). */
+    void getSessionLite()
+      .then((s) => {
+        if (!alive || !s?.user?.email) return null;
+        return fetch("/api/me/home-brief", { cache: "no-store" }).then((r) =>
+          r.ok ? r.json() : null,
+        );
+      })
       .then((j: { ok?: boolean; brief?: Brief | null } | null) => {
         if (alive && j?.ok && j.brief) setBrief(j.brief);
       })

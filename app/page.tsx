@@ -550,7 +550,8 @@ export default async function Home() {
 
           {/* 이하 2열 — 본문(KPI부터) | 사이드바 (윗선이 같다) */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="flex flex-col gap-4">
+          {/* data-autotrim: 조건부 블록이 빠져도 그 자리가 남지 않는다 (globals.css 3.5) */}
+          <div data-autotrim="" className="flex flex-col gap-4">
             {/* 홈의 주제 — 한 문장. 그 아래 시장 지표 3칸이 뒷받침한다. (A03) */}
             <div className="rise-in-1">
               {/* KPI 3칸을 여기서 뺐다(2026-08-26). HomeTodayLine 안의 보조 지표 줄이
@@ -662,9 +663,9 @@ export default async function Home() {
                   ) : (
                     <EmptyState
                       icon="messages-square"
-                      title="아직 올라온 글이 없어요"
-                      desc="동네 이야기를 먼저 시작해 보세요."
-                      action={{ label: "글쓰기", href: "/town/write" }}
+                      title="이 동네의 첫 글이 비어 있어요"
+                      desc="첫 글의 주인공이 되어 보세요 — 임장 다녀온 동네 한 줄이면 충분합니다."
+                      action={{ label: "1분 만에 첫 글 쓰기", href: "/town/write" }}
                     />
                   )
                 ) : (
@@ -729,7 +730,7 @@ export default async function Home() {
               됐다. sticky 로 따라오게 한다. top 76px = 헤더(48px 스크롤 시)
               + 상단 여백. self-start 필수 — 그리드 기본 stretch 상태에서는
               aside 높이가 행 전체라 sticky 가 작동하지 않는다. */}
-          <aside className="flex flex-col gap-3 lg:sticky lg:top-[76px] lg:self-start">
+          <aside data-autotrim="" className="flex flex-col gap-3 lg:sticky lg:top-[76px] lg:self-start">
             <div className="rise-in-1">
               <HomeAiGateway briefing={data.briefing} />
             </div>

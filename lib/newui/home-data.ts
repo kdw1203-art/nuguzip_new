@@ -239,8 +239,18 @@ async function loadSaleIndexSeoul(): Promise<string | null> {
         .order("month", { ascending: false })
         .limit(1);
       if (!error && Array.isArray(data) && data[0]) {
-        const v = Number((data[0] as { value: unknown }).value);
-        if (Number.isFinite(v) && v > 0) return v.toFixed(1);
+        const row = data[0] as { value: unknown; month: unknown };
+        const v = Number(row.value);
+        /* [A006 2026-08-31] 기준월을 함께 쓴다. 이 표의 최신 행이 202605 인
+           채로 석 달을 흘렀는데, 홈 티커는 "매매지수 서울 198.8" 을 시점 없이
+           띄우고 있었다 — 5월 지수가 오늘 지수처럼 읽혔다. 값은 사실이어도
+           시점을 감추면 지어낸 값과 다를 게 없다(기준금리·주담대에 시점을
+           붙인 것과 같은 판단). */
+        if (Number.isFinite(v) && v > 0) {
+          const m = String(row.month ?? "");
+          const label = /^\d{6}$/.test(m) ? ` (${m.slice(0, 4)}.${m.slice(4)})` : "";
+          return `${v.toFixed(1)}${label}`;
+        }
       }
     }
   } catch (e) {

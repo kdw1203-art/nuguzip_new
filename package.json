@@ -73,7 +73,8 @@
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:perf": "node scripts/check-perf.mjs",
     "check:type-ramp": "node scripts/check-type-ramp.mjs",
-    "check:plan-labels": "node scripts/check-plan-labels.mjs"
+    "check:plan-labels": "node scripts/check-plan-labels.mjs",
+    "check:void": "node scripts/check-void-space.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

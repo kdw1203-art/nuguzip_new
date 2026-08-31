@@ -18,19 +18,33 @@
  * 끌어올 수 없다(서버 전용 모듈이 딸려 온다).
  */
 
+import { getSessionLite } from "@/lib/client/session-lite";
+
 const TTL_MS = 30_000;
 
 let cache: { at: number; promise: Promise<unknown> } | null = null;
 
-/** 성공 시 응답 JSON, 비로그인(401)·오류·네트워크 실패 시 null. */
+/** 성공 시 응답 JSON, 비로그인·오류·네트워크 실패 시 null.
+ *
+ * [2026-08-28] 로그인 여부를 **먼저 보고** 요청한다.
+ * 예전에는 마운트 즉시 무조건 쏴서, 비로그인 방문자마다 401 이 돌아왔다.
+ * fetch 로 401 을 조용히 처리해도 크롬은 콘솔에 빨간 줄을 남긴다 — 실제
+ * 오류를 찾을 때 그 줄이 계속 끼어들었다(지도 문제를 쫓는 동안에도 그랬다).
+ *
+ * 요청이 하나 더 늘지 않는다: /api/auth/session 은 홈에서 이미 부르고 있고
+ * (HomeMiniMap), 모듈 캐시(30초)를 공유하며, 비로그인이면 401 이 아니라
+ * 200 + 빈 객체로 답한다. 비로그인 방문자 기준 왕복 2회와 빨간 줄 2개가 준다. */
 export function getHomePersonal<T = unknown>(): Promise<T | null> {
   if (cache && Date.now() - cache.at < TTL_MS) {
     return cache.promise as Promise<T | null>;
   }
-  const promise: Promise<unknown> = fetch("/api/home/personal", {
-    cache: "no-store",
-  })
-    .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
+  const promise: Promise<unknown> = getSessionLite()
+    .then((s) => {
+      if (!s?.user?.email) return null; // 비로그인 — 요청 자체를 하지 않는다
+      return fetch("/api/home/personal", { cache: "no-store" }).then((r) =>
+        r.ok ? (r.json() as Promise<unknown>) : null,
+      );
+    })
     .catch(() => null)
     .then((d) => {
       if (d === null && cache?.promise === promise) cache = null;

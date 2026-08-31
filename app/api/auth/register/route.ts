@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { FUNNEL_EVENT, recordFunnelEvent } from "@/lib/platform-funnel-events";
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
@@ -205,6 +206,8 @@ async function signUpWithSupabaseAuth(
   /* 본인확인(identity) 인자는 일부러 받지 않는다 — 아래 POST 안의 주석 참조. */
   /** true 면 신규 signUp 없이 미인증 재발송만 시도 */
   resendOnly?: boolean,
+  /* [E001] 퍼널 기록의 UA 판별용 — 없으면 이벤트만 건너뛴다(가입은 영향 없음) */
+  req?: Request,
 ) {
   if (resendOnly) {
     const recovered = await recoverUnconfirmedSignup({
@@ -321,6 +324,17 @@ async function signUpWithSupabaseAuth(
     );
   }
   const emailConfirmationRequired = !data.session;
+  /* [E001] 가입 퍼널의 서버 확정 기록 — 응답을 막지 않는다(void).
+     이메일 인증 대기 여부를 메타로 남겨 "가입은 했는데 인증에서 멈춘"
+     구간도 나중에 셀 수 있게 한다. */
+  if (req) {
+    void recordFunnelEvent(req, {
+      eventName: FUNNEL_EVENT.SIGNUP_COMPLETE,
+      userEmail: email,
+      path: "/api/auth/register",
+      metadata: { emailConfirmationRequired },
+    });
+  }
   return NextResponse.json(
     {
       user: {
@@ -460,6 +474,7 @@ export async function POST(req: NextRequest) {
       campaign,
       verifyRedirect,
       resendOnly,
+      req,
     );
   }
 
@@ -478,6 +493,8 @@ export async function POST(req: NextRequest) {
       source,
       campaign,
       verifyRedirect,
+      undefined,
+      req,
     );
   }
 
@@ -547,6 +564,8 @@ export async function POST(req: NextRequest) {
         source,
         campaign,
         verifyRedirect,
+        undefined,
+        req,
       );
     }
     const duplicated =

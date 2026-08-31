@@ -77,6 +77,7 @@ export default async function AdminDashboardPage() {
     metrics.kpis.length > 0
       ? metrics.kpis
       : ([
+          { label: "주간 첫 노트 사용자 (목표 3)", value: "—", delta: null, accent: true },
           { label: "DAU (24h)", value: "—", delta: null, accent: false },
           { label: "신규 임장노트 (24h)", value: "—", delta: null, accent: false },
           { label: "노트 작성 전환율", value: "—", delta: null, accent: true },
@@ -120,7 +121,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* KPI 4종 — 실집계 (실패 시 "—") */}
-      <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {kpis.map((k) => (
           <div key={k.label} className={`${darkCard} p-4`}>
             <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>

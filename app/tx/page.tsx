@@ -35,7 +35,9 @@ import { logger } from "@/lib/log";
      3) 정말로 빈 결과 — "아직 구간이 없다" 는 별개의 문장
    ============================================================ */
 
-export const revalidate = 3600;
+/* [B001 1단계] 1h → 24h. 이 페이지의 원천(국토부 실거래)은 하루 1번 적재라
+   더 자주 재렌더할 이유가 없다 — 26k 페이지 크롤 재렌더가 DB 를 밀던 문제의 반쪽. */
+export const revalidate = 86400;
 
 const PATH = "/tx";
 
@@ -88,6 +90,14 @@ export async function generateMetadata(): Promise<Metadata> {
       description,
       url: `https://nuguzip.com${PATH}`,
       type: "website",
+      /* [C004] og:image 부재 2페이지 중 하나 — 제목 박힌 동적 카드 */
+      images: [
+        {
+          url: `/api/og?${new URLSearchParams({ title: "지역별 실거래 한눈에" }).toString()}`,
+          width: 1200,
+          height: 630,
+        },
+      ],
     },
   };
 }

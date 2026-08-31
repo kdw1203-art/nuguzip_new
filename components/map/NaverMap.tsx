@@ -956,7 +956,7 @@ export function NaverMap({
         <iframe
           title="대체 지도 (OpenStreetMap)"
           src={osmSrc}
-          className="h-full w-full border-0"
+          className="h-full w-full min-h-[200px] border-0"
           loading="lazy"
         />
         <div className="absolute inset-x-0 bottom-0 z-10 bg-amber-50/95 px-3 py-2 text-[11px] leading-snug text-amber-900 backdrop-blur">
@@ -988,21 +988,29 @@ export function NaverMap({
   }
 
   return (
-    /* CLS 수정(2026-08-26) + 되돌림(2026-08-28).
-       원래 문제: 바깥이 min-h-0 이고 안쪽 지도 컨테이너가 `h-full min-h-[200px]`
-       이라, 부모 높이가 확정되지 않은 자리에서 h-full 이 auto 로 풀려 컨테이너가
-       200px 로 시작했다가 타일이 들어오는 순간 그만큼 커졌다
-       (프로덕션 실측 /map CLS p75 0.825, 귀속 요소가 이 상자 안 타일 <img>).
+    /* 지도 컨테이너 높이 — 원인 확정(2026-08-28, 헤드리스 크롬 실측).
 
-       그때 안쪽을 `absolute inset-0` 으로 바꿨는데 **지도가 아예 안 그려졌다**.
-       SDK 는 로드·인증·타일 요청까지 정상이었고(네트워크 200 확인) 화면에만
-       아무것도 안 나왔다 — 즉 컨테이너를 흐름 밖으로 빼면서 SDK 가 잡는
-       레이아웃이 깨진 것이다. 시크릿 창(확장 없음)에서도 같아 확장 문제도 아니었다.
+       2026-08-26 CLS 작업에서 안쪽 컨테이너를 `h-full w-full min-h-[200px]`
+       → `absolute inset-0` 으로 바꿨다. 그 뒤 지도가 "아주 살짝 보이다가
+       사라졌다". 원인은 레이아웃이 아니라 **SDK 가 우리 클래스를 덮어쓰는 것**:
 
-       지금 방식: **높이 하한은 바깥 상자만** 갖고(min-h-[200px]), 안쪽은 흐름
-       안에서 부모를 채우기만 한다(h-full w-full, 자체 min-h 없음).
-       - 바깥이 높이를 먼저 확정하므로 타일이 늦게 와도 상자가 안 자란다(CLS 방어 유지)
-       - 안쪽은 정상적인 블록이라 SDK 가 예전처럼 크기를 잡는다 */
+         new naver.maps.Map(el, …) 이 el 에 인라인으로
+         `position: relative; overflow: hidden; background: #f8f9fa` 를 쓴다.
+
+       인라인 스타일이 Tailwind `absolute` 를 이긴다. position 이 relative 가
+       되는 순간 `inset-0` 은 늘리는 힘을 잃고 offset 으로만 남는다. 높이는
+       auto 로 풀리는데 SDK 가 넣는 자식은 전부 position:absolute 라 기여분이
+       0 이다 → 컨테이너가 height:0 으로 접힌다.
+
+       프로덕션 번들 실측(1280×860):
+         `absolute inset-0`            → /map 1280×0   · 마커 0개
+         `h-full w-full min-h-[200px]` → /map 1280×860 · 마커 렌더 확인
+       홈 미니맵 842×0 → 842×358, /redevelopment 1066×0 → 1066×560.
+
+       그래서 높이는 position 에 의존하지 않는 방식으로만 준다(h-full = 100%).
+       min-h-[200px] 는 부모 높이가 확정되지 않은 자리에서 100% 가 auto 로
+       풀릴 때의 바닥이다 — 이걸 빼면 그런 자리에서 다시 0 이 된다.
+       바깥 상자의 min-h 는 CLS 방어로 그대로 둔다. */
     <div
       className={cn(
         "relative h-full w-full min-h-[200px] overflow-hidden",
@@ -1045,7 +1053,7 @@ export function NaverMap({
       <div
         ref={containerRef}
         className={cn(
-          "h-full w-full",
+          "h-full w-full min-h-[200px]",
           crosshair && "cursor-crosshair [&_*]:cursor-crosshair",
         )}
       />

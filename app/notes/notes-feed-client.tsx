@@ -98,6 +98,10 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
               <span className="block h-full w-full overflow-hidden rounded-full border-2 border-surface bg-bg">
                 <CoverImage
                   src={n.coverUrl}
+                  alt={`${shortLabel(n)} 노트 커버`}
+                  /* [B004] 62px 원에 기본 힌트(50vw)로는 384w 가 내려온다 —
+                     실 표시 크기를 말해 가장 작은 변환(384→실효 128w급)으로. */
+                  sizes="62px"
                   imgClassName="h-full w-full object-cover"
                   fallback={
                     <span
@@ -130,6 +134,7 @@ function GridTile({ n }: { n: FeedNote }) {
     >
       <CoverImage
         src={n.coverUrl}
+        alt={n.isExample ? "" : `${n.title} 커버 사진`}
         imgClassName="absolute inset-0 h-full w-full object-cover md:transition-transform md:duration-300 md:group-hover:scale-[1.06]"
         fallback={
           <span
@@ -197,6 +202,7 @@ function PostCard({ n }: { n: FeedNote }) {
       >
         <CoverImage
           src={n.coverUrl}
+          alt={`${n.title} 커버 사진`}
           imgClassName="absolute inset-0 h-full w-full object-cover"
           fallback={
             <div

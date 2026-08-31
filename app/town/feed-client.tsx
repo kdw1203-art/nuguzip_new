@@ -67,6 +67,7 @@ function Cover({ card }: { card: FeedCard }) {
     >
       <CoverImage
         src={card.cover}
+        alt={`${card.title} 커버 사진`}
         imgClassName="absolute inset-0 h-full w-full object-cover object-top"
       />
       {/* 위쪽 배지가 밝은 이미지 위에 올라가면 읽히지 않는다 — 아주 옅은 스크림 */}
@@ -329,8 +330,8 @@ export function TownFeed({
             {loadFailed
               ? "글을 불러오지 못했어요"
               : onlyMine
-                ? "내 관심지역에는 아직 글이 없어요"
-                : "아직 이 조건에 보여줄 글이 없어요"}
+                ? "내 관심지역의 첫 글이 비어 있어요 — 주인공이 되어 보세요"
+                : "이 조건의 첫 글이 비어 있어요 — 주인공이 되어 보세요"}
           </div>
           <div className="t-sub text-text-3">
             {loadFailed

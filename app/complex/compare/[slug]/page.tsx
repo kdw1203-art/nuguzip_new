@@ -40,7 +40,9 @@ import { seoAlternates } from "@/lib/seo/alternates";
    숫자와 아래 표가 다르면 그건 그냥 거짓말이다. 그래서 출처를 하나로 묶었다.
    ============================================================ */
 
-export const revalidate = 3600;
+/* [B001 1단계] 1h → 24h. 이 페이지의 원천(국토부 실거래)은 하루 1번 적재라
+   더 자주 재렌더할 이유가 없다 — 26k 페이지 크롤 재렌더가 DB 를 밀던 문제의 반쪽. */
+export const revalidate = 86400;
 /* 빈 배열 = "빌드 때 미리 만들 경로는 없다". 이 export 가 있어야 Next 가 이
    라우트를 ISR 로 분류한다 — 없으면 `revalidate` 를 적어 둬도 요청마다 서버
    렌더로 돌면서 Next 가 `private, no-cache, no-store` 를 실어 보내고, CDN 은

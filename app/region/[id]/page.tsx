@@ -75,7 +75,8 @@ import { regionTitle } from "@/lib/seo/title-experiment";
    복귀시켰다. scripts/check-cache-policy.mjs 의 ISR_EXEMPT 면제도 해제됐다.
    ============================================================ */
 
-export const revalidate = 3600;
+/* [B001 1단계] 1h → 6h — 근거는 app/complex/[id]/page.tsx 의 revalidate 주석. */
+export const revalidate = 21600;
 
 /* 빈 generateStaticParams — 빌드 때는 아무 지역도 미리 만들지 않고, 첫 요청이
    ISR 로 채운다. ?complexes=30(searchParams)을 클라이언트 토글로 옮겼으므로

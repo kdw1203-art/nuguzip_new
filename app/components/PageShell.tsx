@@ -18,8 +18,11 @@ export function PageShell({
     <>
       <Header />
       {/* 모바일 화면 패딩 14px — 2026-08-03 2차 축소(요소 ~90%·글자 유지) */}
+      {/* data-autotrim — 내용이 없어진 블록이 자리를 차지하지 않게 한다.
+          규칙은 globals.css 3.5 절. */}
       <main
         id="main-content"
+        data-autotrim=""
         className={`mx-auto w-full flex-1 px-3.5 pb-32 pt-3.5 md:px-5 md:pb-16 md:pt-5 ${
           wide ? "max-w-[1400px]" : "max-w-[1240px]"
         }`}

@@ -27,7 +27,9 @@ import { QaBlock } from "@/app/components/QaBlock";
    서로를 링크한다. DB 에 없는 슬러그는 404 (임의 문자열 페이지 양산 금지).
    ============================================================ */
 
-export const revalidate = 3600;
+/* [B001 1단계] 1h → 24h. 이 페이지의 원천(국토부 실거래)은 하루 1번 적재라
+   더 자주 재렌더할 이유가 없다 — 26k 페이지 크롤 재렌더가 DB 를 밀던 문제의 반쪽. */
+export const revalidate = 86400;
 /* 빈 배열 = ISR 분류용 (app/tx/[region]/page.tsx 의 같은 자리 주석 참고 —
    이 export 가 없으면 요청마다 서버 렌더 + no-store 로 돌아 함수 호출이 샌다). */
 export function generateStaticParams(): { slug: string }[] {

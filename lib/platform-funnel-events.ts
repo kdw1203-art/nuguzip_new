@@ -42,6 +42,11 @@ export const FUNNEL_EVENT = {
   /** 로그인 성공/실패율 (provider·reason 메타 — 비밀번호 미포함) */
   AUTH_LOGIN_OK: "auth_login_ok",
   AUTH_LOGIN_FAIL: "auth_login_fail",
+  /** [E001] 가입 완료 — 방문→가입→첫 노트 퍼널의 가운데 칸.
+      register 성공(201)에서 서버 확정으로 기록한다. 이 이벤트가 없어서
+      "로그인 페이지 20뷰 vs 신규 가입 0명" 사이에 무엇이 있는지 아무도
+      말할 수 없었다. */
+  SIGNUP_COMPLETE: "signup_complete",
 } as const;
 
 const FUNNEL_VERSION = "2026q2";

@@ -273,8 +273,42 @@ function deltaVsPrev(current: number, prev: number | null): string | null {
   return `${sign}${Math.abs(pct).toFixed(0)}%`;
 }
 
+/* [G005 2026-08-31] 북극성 — 주간 "첫 노트" 사용자 수.
+ *
+ * 지금 단계(가입 14명·유료 0건)의 성공은 매출도 DAU 도 아니고, "처음으로
+ * 임장노트를 써 본 사람이 이번 주 몇 명 생겼나"다. 홈 카피(3분이면 첫 노트),
+ * 온보딩, 유입 — 전부 이 숫자를 움직이려고 있는 것들이라 대시보드 첫 카드로
+ * 올린다.
+ *
+ * 구현 노트: author 별 최초 작성 시각이 필요해 전 노트의 (author, created_at)
+ * 을 읽고 JS 로 접는다. 노트 22개 규모라 문제없고, 수천 개가 되면 RPC 로
+ * 옮긴다 — 그때가 오면 이 지표는 이미 제 역할을 다한 뒤다. */
+async function loadWeeklyFirstNoteUsers(): Promise<number | null> {
+  const sb = getReadOnlySupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("inspection_notes")
+    .select("author_id, created_at")
+    .order("created_at", { ascending: true })
+    .limit(2000);
+  if (error || !Array.isArray(data)) return null;
+  const firstByAuthor = new Map<string, string>();
+  for (const r of data as Array<{ author_id: string | null; created_at: string }>) {
+    const a = r.author_id ?? "";
+    if (!a || firstByAuthor.has(a)) continue;
+    firstByAuthor.set(a, r.created_at);
+  }
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  let n = 0;
+  for (const at of firstByAuthor.values()) {
+    if (new Date(at).getTime() >= weekAgo) n += 1;
+  }
+  return n;
+}
+
 export async function loadAdminDashboardMetrics(): Promise<AdminDashboardMetrics> {
-  const [dau, notes, signups, revenue, pending] = await Promise.all([
+  const [firstNotes, dau, notes, signups, revenue, pending] = await Promise.all([
+    loadWeeklyFirstNoteUsers().catch((): number | null => null),
     loadDau().catch((e) => {
       logger.error("[admin-metrics] dau", e);
       return null;
@@ -292,6 +326,14 @@ export async function loadAdminDashboardMetrics(): Promise<AdminDashboardMetrics
       : null;
 
   const kpis: AdminKpiCard[] = [
+    {
+      /* 북극성 카드 — 항상 맨 앞. 목표(주 3명)는 현 규모의 현실적 계단이고,
+         넘기 시작하면 상수를 올린다(트래픽 콘솔의 주간 PV 목표와 같은 규칙). */
+      label: "주간 첫 노트 사용자 (목표 3)",
+      value: firstNotes !== null ? `${firstNotes}명` : "—",
+      delta: null,
+      accent: true,
+    },
     {
       label: "DAU (24h)",
       value: dau ? dau.current.toLocaleString("ko-KR") : "—",

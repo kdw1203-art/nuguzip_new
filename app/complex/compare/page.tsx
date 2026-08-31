@@ -50,7 +50,9 @@ import { cache } from "react";
    조회가 두 번 들어갔다 — 60초 예산을 두 배로 태우던 자리다.
    ============================================================ */
 
-export const revalidate = 3600;
+/* [B001 1단계] 1h → 24h. 이 페이지의 원천(국토부 실거래)은 하루 1번 적재라
+   더 자주 재렌더할 이유가 없다 — 26k 페이지 크롤 재렌더가 DB 를 밀던 문제의 반쪽. */
+export const revalidate = 86400;
 
 const PATH = "/complex/compare";
 

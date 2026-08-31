@@ -704,7 +704,12 @@ export default async function MapPage({
       : { ok: false as const };
 
   return (
-    <MapClient
+    <>
+      {/* [C003 2026-08-31] 이 페이지에 h1 이 없었다(12페이지 실측 중 유일).
+          지도는 시각 UI 라 보이는 제목이 어색하므로 sr-only 로 문서 제목만 준다 —
+          검색엔진·스크린리더에게 "이 문서의 주제"를 말하는 최소한의 기본기. */}
+      <h1 className="sr-only">지도에서 실거래가 비교</h1>
+      <MapClient
         initialLevel={initialLevel}
       danji={dbLoaded.ok ? dbLoaded.value.items : []}
       regionLabel={dbLoaded.ok ? dbLoaded.value.region : "수도권"}
@@ -721,5 +726,6 @@ export default async function MapPage({
           : null)
       }
     />
+    </>
   );
 }
