@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 import { TOOL_IDENTITIES } from "@/lib/ai/tool-identity";
 import { AI_TOOL_IDS, isAiAnalysisToolId, type AiAnalysisToolId } from "@/lib/ai/ai-tools";
 import { AI_PROMPT_VERSION } from "@/lib/ai/system-prompt";
+import { AI_DRAFT_LIMITS, AI_REPORT_LIMITS } from "@/lib/inspection/quota";
 
 /* [AI-45~47] AI 도구 상태 대시보드 — "LLM이 죽어 규칙 폴백만 나가는" 상태가
    몇 달씩 조용히 지속되는 일을 막는다. 도구별 실행·소스 분해·피드백을 실집계로.
@@ -22,15 +23,32 @@ interface ToolStat {
   lastAt: string | null;
 }
 
+/* [945 · 실사용50 #42] 무료 한도 소진율 — 월간 한도(정리 10·초안 10)는 가설이다.
+   도달하는 사람이 0이면 벽이 없는 것이고, 대부분 즉시 도달하면 벽이 너무 낮다.
+   4주 데이터로 무료/플러스 경계를 조정하는 근거 지표. */
+type QuotaHeat = {
+  users: number; // 이달 사용자 수 (해당 기능 1회 이상)
+  atLimit: number; // 무료 한도 도달자 수
+  max: number; // 최고 사용량
+};
+
 async function loadStats(): Promise<{
   ok: boolean;
   tools: ToolStat[];
   feedback: { up: number; down: number };
   llmMonth: number;
   runsAllTime: number;
+  quotaHeat: { report: QuotaHeat; draft: QuotaHeat } | null;
 }> {
   const sb = getServiceSupabase();
-  const empty = { ok: false, tools: [], feedback: { up: 0, down: 0 }, llmMonth: 0, runsAllTime: 0 };
+  const empty = {
+    ok: false,
+    tools: [],
+    feedback: { up: 0, down: 0 },
+    llmMonth: 0,
+    runsAllTime: 0,
+    quotaHeat: null,
+  };
   if (!sb) return empty;
 
   const since = new Date(Date.now() - 30 * 86400_000).toISOString();
@@ -38,8 +56,13 @@ async function loadStats(): Promise<{
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
+  const yyyymm = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
   try {
-    const [runsRes, fbRes, llmRes, allRes] = await Promise.all([
+    const [runsRes, fbRes, llmRes, allRes, usageRes] = await Promise.all([
       sb
         .from("ai_analysis_runs")
         .select("tool,source,created_at")
@@ -58,6 +81,11 @@ async function loadStats(): Promise<{
         .in("source", ["openai", "anthropic"])
         .gte("created_at", monthStart.toISOString()),
       sb.from("ai_analysis_runs").select("*", { count: "exact", head: true }),
+      sb
+        .from("inspection_ai_usage")
+        .select("report_count, draft_count")
+        .eq("yyyymm", yyyymm)
+        .limit(2000),
     ]);
     if (runsRes.error) return empty;
 
@@ -86,6 +114,29 @@ async function loadStats(): Promise<{
       else if (row.metadata?.rating === "down") down += 1;
     }
 
+    /* 한도 소진율 — 무료(basic) 한도 기준. 유료 사용자가 생기면 도달자 수가
+       과대집계될 수 있으나(한도가 더 높으므로), 그때는 이 카드가 아니라 plan 별
+       분해가 필요해진다 — 현재 유료 0명 단계의 근사로 충분하다. */
+    let quotaHeat: { report: QuotaHeat; draft: QuotaHeat } | null = null;
+    if (!usageRes.error) {
+      const rows = (usageRes.data ?? []) as Array<{
+        report_count: number | null;
+        draft_count: number | null;
+      }>;
+      const heat = (pick: (r: (typeof rows)[number]) => number, freeLimit: number): QuotaHeat => {
+        const counts = rows.map(pick).filter((n) => n > 0);
+        return {
+          users: counts.length,
+          atLimit: counts.filter((n) => n >= freeLimit).length,
+          max: counts.length > 0 ? Math.max(...counts) : 0,
+        };
+      };
+      quotaHeat = {
+        report: heat((r) => Number(r.report_count ?? 0), AI_REPORT_LIMITS.free ?? 10),
+        draft: heat((r) => Number(r.draft_count ?? 0), AI_DRAFT_LIMITS.free ?? 10),
+      };
+    }
+
     return {
       ok: true,
       tools: AI_TOOL_IDS.map(
@@ -95,6 +146,7 @@ async function loadStats(): Promise<{
       feedback: { up, down },
       llmMonth: llmRes.count ?? 0,
       runsAllTime: allRes.count ?? 0,
+      quotaHeat,
     };
   } catch {
     return empty;
@@ -161,6 +213,50 @@ export default async function AdminAiPage() {
                 )}
               </div>
             ))}
+          </div>
+
+          {/* [945 #42] 무료 한도 소진율 — 가격 경계 조정의 근거 */}
+          <div className="rise-in-2 mt-4 flex flex-col gap-2">
+            <div className="text-[15px] font-extrabold text-white">
+              무료 한도 소진율 (이달){" "}
+              <span className="text-[11px] font-medium text-[#9aa6b8]">
+                도달 0명 = 벽이 없음 · 대부분 도달 = 벽이 낮음
+              </span>
+            </div>
+            {stats.quotaHeat ? (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    label: `AI 노트 정리 (무료 월 ${AI_REPORT_LIMITS.free ?? "?"}회)`,
+                    h: stats.quotaHeat.report,
+                    limit: AI_REPORT_LIMITS.free ?? 0,
+                  },
+                  {
+                    label: `AI 초안·브리핑 (무료 월 ${AI_DRAFT_LIMITS.free ?? "?"}회)`,
+                    h: stats.quotaHeat.draft,
+                    limit: AI_DRAFT_LIMITS.free ?? 0,
+                  },
+                ].map((c) => (
+                  <div key={c.label} className={`${darkCard} p-4`}>
+                    <div className="text-[11px] text-[#9aa6b8]">{c.label}</div>
+                    <div className="mt-1 text-[19px] font-extrabold tabular-nums text-white">
+                      도달 {c.h.atLimit}
+                      <span className="text-[13px] font-bold text-[#9aa6b8]">
+                        {" "}
+                        / 사용자 {c.h.users}명
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-[#9aa6b8]">
+                      최고 사용 {c.h.max}회 · 유료 전환 제안은 도달자에게만 의미가 있다
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={`${darkCard} p-4 text-[13px] text-[#9aa6b8]`}>
+                사용량 표를 읽지 못했습니다 — 0명이 아니라 조회 실패입니다.
+              </div>
+            )}
           </div>
 
           <div className="rise-in-2 mt-4 flex flex-col gap-2">

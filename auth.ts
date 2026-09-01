@@ -3,7 +3,9 @@ import NextAuth from "next-auth";
 import type { JWT } from "@auth/core/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import Kakao from "next-auth/providers/kakao";
 import { fetchAppUserByEmail } from "@/lib/auth/fetch-app-user";
+import { isKakaoOAuthConfigured } from "@/lib/auth/kakao-oauth-config";
 import type { UserRole } from "@/lib/auth/types";
 import {
   isSupabaseConfigured,
@@ -56,6 +58,9 @@ function resolveAuthSecret(): string | undefined {
 const googleConfigured =
   Boolean(process.env.AUTH_GOOGLE_ID) &&
   Boolean(process.env.AUTH_GOOGLE_SECRET);
+
+/* [945 · 실사용50 #10] 카카오 — 버튼 노출(configured-social)과 같은 판정 함수 */
+const kakaoConfigured = isKakaoOAuthConfigured();
 
 const supabasePassword = isSupabasePasswordLoginConfigured();
 const tossLoginEnabled = isTossLoginEnabled();
@@ -163,6 +168,33 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           Google({
             clientId: process.env.AUTH_GOOGLE_ID,
             clientSecret: process.env.AUTH_GOOGLE_SECRET,
+          }),
+        ]
+      : []),
+    ...(kakaoConfigured
+      ? [
+          Kakao({
+            clientId: process.env.AUTH_KAKAO_ID,
+            clientSecret: process.env.AUTH_KAKAO_SECRET,
+            /* 이메일 동의항목이 없는 앱(비즈 전환 전)은 email 이 비어 온다.
+               이 앱의 세션·프로필 조회가 전부 email 키라서, 비면 로그인은
+               되는데 어디에도 못 매이는 유령 세션이 된다 — 합성 주소로
+               식별만 하고(발송 불가 도메인), 실이메일이 오면 그걸 쓴다. */
+            profile(profile) {
+              const kakaoId = String(profile.id);
+              const email =
+                profile.kakao_account?.email?.trim().toLowerCase() ||
+                `kakao-${kakaoId}@noreply.nuguzip.com`;
+              return {
+                id: `kakao:${kakaoId}`,
+                email,
+                name:
+                  profile.kakao_account?.profile?.nickname ??
+                  `카카오회원${kakaoId.slice(-4)}`,
+                image: profile.kakao_account?.profile?.profile_image_url ?? null,
+                role: "user" satisfies UserRole,
+              };
+            },
           }),
         ]
       : []),
@@ -392,19 +424,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   events: {
     async signIn({ user, account }) {
+      /* [945 #14] 환영 메일 — 모든 provider 의 첫 로그인에서 1회 (fire-and-forget).
+         welcomed_at 원자 선점으로 중복 발송을 막는다 — 상세는 welcome-email.ts */
+      if (typeof user?.email === "string" && user.email) {
+        const email = user.email;
+        const name = typeof user.name === "string" ? user.name : null;
+        void import("@/lib/auth/welcome-email")
+          .then(({ maybeSendWelcomeEmail }) => maybeSendWelcomeEmail(email, name))
+          .catch(() => {});
+        /* [945 #36] 관리자 계정 로그인은 매번 관측한다 — 2차 인증 전의 최소 방어 */
+        if (isAllowlistedAdmin(email)) {
+          const provider = account?.provider ?? "unknown";
+          void import("@/lib/auth/admin-login-alert")
+            .then(({ notifyAdminLogin }) => notifyAdminLogin({ email, provider }))
+            .catch(() => {});
+        }
+      }
+      /* password 경로는 authorizeWithPassword 에서 이미 기록 — OAuth만 여기서 */
       const provider =
         account?.provider === "google"
-          ? "google"
-          : account?.provider === "password" || account?.provider === "credentials"
-            ? "password"
-            : "unknown";
-      /* password 경로는 authorizeWithPassword 에서 이미 기록 — OAuth만 여기서 */
-      if (provider !== "google") return;
+          ? ("google" as const)
+          : account?.provider === "kakao"
+            ? ("kakao" as const)
+            : null;
+      if (!provider) return;
       await recordAuthLoginOutcome({
         ok: true,
-        provider: "google",
+        provider,
         userEmail: typeof user.email === "string" ? user.email : null,
-        path: "/api/auth/callback/google",
+        path: `/api/auth/callback/${provider}`,
       });
     },
   },

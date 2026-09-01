@@ -677,8 +677,21 @@ export async function generateMetadata({
     delta = d.tone === "flat" ? "" : `${d.delta} 전월비`;
   }
 
-  const title = `${name} 시세·매물·임장노트 | 누구집`;
-  const description = `${region} ${name} 단지 홈 — 실거래 시세, 매물, 이웃 임장노트, 안전 진단을 한 화면에서 확인하세요.`;
+  /* [945 · 실사용50 #24] 타이틀에 최신 실거래가·시점 — 검색결과에서
+     "잠실엘스 실거래가"를 찾는 사람에게 클릭 전에 답의 존재를 보여준다.
+     값은 위에서 이미 읽은 월별 집계의 최신월 평균(추가 조회 없음) — 시점을
+     같이 적어 오래된 값이 현재가로 읽히지 않게 한다. 거래 없는 단지는
+     수치 없는 기본 타이틀(없는 값을 타이틀에 지어내지 않는다). */
+  const ymLabel =
+    latest && /^\d{6}$/.test(latest.yyyymm)
+      ? `${latest.yyyymm.slice(2, 4)}.${Number(latest.yyyymm.slice(4))}월`
+      : null;
+  const title = latest
+    ? `${name} 실거래가 ${price}${ymLabel ? ` (${ymLabel})` : ""} · 시세·임장노트 | 누구집`
+    : `${name} 시세·매물·임장노트 | 누구집`;
+  const description = latest
+    ? `${region} ${name} 최신 실거래 평균 ${price}${ymLabel ? ` (${ymLabel} 신고분)` : ""}${delta ? ` · ${delta}` : ""} — 실거래 추이, 매물, 이웃 임장노트, 안전 진단을 한 화면에서.`
+    : `${region} ${name} 단지 홈 — 실거래 시세, 매물, 이웃 임장노트, 안전 진단을 한 화면에서 확인하세요.`;
   // 동적 OG 이미지 — 실데이터 값 URL 인코딩 (metadataBase 기준 절대화)
   const ogQuery = new URLSearchParams({ name, price, region });
   if (delta) ogQuery.set("delta", delta);

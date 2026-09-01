@@ -35,6 +35,12 @@ export type NotificationPrefs = {
    * /digest 화면 문구도 "켜면 보내드려요"이므로 기본값이 켜져 있으면 안 된다.
    */
   pushWeeklyDigest: boolean;
+  /**
+   * [945 · 실사용50 #20] 관심단지 새 실거래 메일. 기본 true.
+   * 본인이 담은 단지의 신규 신고 소식이라 "본인 루틴 안내" 계열(기본 켜짐) —
+   * 끄면 watchlist-new-tx 크론이 메일 채널만 건너뛴다(인앱은 유지).
+   */
+  emailWatchlistTx: boolean;
   /** SMS(NCP SENS) 관심단지 가격 알림 수신 번호(숫자만) — 옵트인 시에만 저장 */
   alertPhone: string | null;
   /** 관심단지 가격변동 SMS 수신 동의(옵트인) */
@@ -61,6 +67,7 @@ const DEFAULT_PREFS: Omit<NotificationPrefs, "userEmail" | "updatedAt"> = {
      주 1회·요약형이라 소음 축이 아니고, 기본 false 면 VAPID 키를 넣어도 도달
      범위가 0에 가깝다. 설정 화면에서 언제든 끌 수 있다. */
   pushWeeklyDigest: true,
+  emailWatchlistTx: true,
   alertPhone: null,
   smsPriceAlerts: false,
   smsConsentAt: null,
@@ -91,6 +98,7 @@ function mapRow(r: Record<string, unknown>): NotificationPrefs {
     pushListingStale: Boolean(r.push_listing_stale ?? DEFAULT_PREFS.pushListingStale),
     pushAttendance: Boolean(r.push_attendance ?? DEFAULT_PREFS.pushAttendance),
     pushWeeklyDigest: Boolean(r.push_weekly_digest ?? DEFAULT_PREFS.pushWeeklyDigest),
+    emailWatchlistTx: Boolean(r.email_watchlist_tx ?? DEFAULT_PREFS.emailWatchlistTx),
     alertPhone: r.alert_phone ? String(r.alert_phone) : null,
     smsPriceAlerts: Boolean(r.sms_price_alerts ?? DEFAULT_PREFS.smsPriceAlerts),
     smsConsentAt: r.sms_consent_at ? String(r.sms_consent_at) : null,
@@ -155,6 +163,8 @@ export async function upsertPrefs(
   if (patch.pushAttendance !== undefined) payload.push_attendance = patch.pushAttendance;
   if (patch.pushWeeklyDigest !== undefined)
     payload.push_weekly_digest = patch.pushWeeklyDigest;
+  if (patch.emailWatchlistTx !== undefined)
+    payload.email_watchlist_tx = patch.emailWatchlistTx;
   // 전화번호: 서버에서 정규화(숫자만·01x·10~11자리) 후 저장, 그 외 null
   if (patch.alertPhone !== undefined) {
     payload.alert_phone = patch.alertPhone ? normalizeAlertPhone(patch.alertPhone) : null;

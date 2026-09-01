@@ -7,7 +7,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSessionLite } from "@/lib/client/session-lite";
 
-type Brief = { title: string; body: string; complexCount: number; tradeCount: number };
+type Brief = {
+  title: string;
+  body: string;
+  complexCount: number;
+  tradeCount: number;
+  /** [945 #47] 관심지역 브리핑이면 지역 상세로 — 없으면 워치리스트 기본 */
+  href?: string;
+  linkLabel?: string;
+};
 
 export function HomeWatchlistBrief() {
   const [brief, setBrief] = useState<Brief | null>(null);
@@ -39,13 +47,18 @@ export function HomeWatchlistBrief() {
     >
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-bold text-ink">{brief.title}</h2>
-        <Link href="/my/watchlist" className="shrink-0 text-xs font-semibold text-primary">
-          워치리스트 ›
+        <Link
+          href={brief.href ?? "/my/watchlist"}
+          className="shrink-0 text-xs font-semibold text-primary"
+        >
+          {brief.linkLabel ?? "워치리스트 ›"}
         </Link>
       </div>
       <p className="mt-1 text-sm text-text-2">{brief.body}</p>
       <p className="mt-1 text-[11px] text-text-3">
-        관심 단지 {brief.complexCount}곳 · 최근 7일 신규 신고 {brief.tradeCount}건 · 국토부 실거래 기준
+        {brief.complexCount > 0
+          ? `관심 단지 ${brief.complexCount}곳 · 최근 7일 신규 신고 ${brief.tradeCount}건 · 국토부 실거래 기준`
+          : "관심지역 요약 · 국토부 실거래·공표 지수 기준"}
       </p>
     </section>
   );

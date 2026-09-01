@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { listLatestTemperatures } from "@/lib/market/temperature-archive";
 import { logger } from "@/lib/log";
-import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
+import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS, METRO_CITY_DISTRICTS } from "@/lib/map/seoul-districts";
 import { saveLastGood, loadLastGood } from "@/lib/cache/last-good";
 
 /**
@@ -38,7 +38,7 @@ type CoordEntry = { lat: number; lng: number; name: string };
 
 function coordIndex(): Map<string, CoordEntry> {
   const idx = new Map<string, CoordEntry>();
-  for (const d of [...SEOUL_DISTRICTS, ...METRO_EXPLORE_DISTRICTS]) {
+  for (const d of [...SEOUL_DISTRICTS, ...METRO_EXPLORE_DISTRICTS, ...METRO_CITY_DISTRICTS]) {
     idx.set(d.id, { lat: d.lat, lng: d.lng, name: d.name });
   }
   return idx;

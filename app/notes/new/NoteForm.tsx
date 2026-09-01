@@ -1449,12 +1449,23 @@ export function NoteForm({
             aptName={loc.aptName}
             complexId={loc.complexId ?? null}
             purpose={visit["목적"] || null}
+            emphasize={preferAi || fromWelcome}
             onApply={applyAiDraft}
           />
         )}
 
         {/* [#133] 음성 메모 — 현장의 세 번째 입력 수단 */}
-        {!isEdit && <VoiceMemoRecorder memos={voiceMemos} onChange={setVoiceMemos} />}
+        {!isEdit && (
+          <VoiceMemoRecorder
+            memos={voiceMemos}
+            onChange={setVoiceMemos}
+            onTranscript={(text) =>
+              setMemo((prev) =>
+                prev.trim() ? `${prev.trimEnd()}\n\n🎙 ${text}` : `🎙 ${text}`,
+              )
+            }
+          />
+        )}
 
         {/* 방문 정보 */}
         <div className="rise-in-2 card flex flex-col gap-2.5 p-4">

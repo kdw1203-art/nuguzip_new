@@ -101,9 +101,10 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
       sections.push(
         [
           "■ 이번 주 신고가 (국토교통부 실거래 신고)",
+          /* [945 #26] 단지별 내부링크 — 검색으로 들어온 사람이 글에서 끝나지 않게 */
           ...highs.map(
             (h) =>
-              `· ${h.regionName} ${h.complexName} ${h.areaM2}㎡ — ${eok(h.priceKrw)} (직전 최고 ${eok(h.priorMaxKrw)})`,
+              `· ${h.regionName} ${h.complexName} ${h.areaM2}㎡ — ${eok(h.priceKrw)} (직전 최고 ${eok(h.priorMaxKrw)}) → nuguzip.com/map?q=${encodeURIComponent(h.complexName)}`,
           ),
         ].join("\n"),
       );
@@ -177,7 +178,13 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
 
   if (sections.length === 0) return { posted: false, reason: "no-data-sections" };
 
-  const title = `이번 주 부동산 숫자 — ${numbers.slice(0, 3).join(" · ") || label}`;
+  /* [945 · 실사용50 #26] 검색어형 제목 — "9월 1주 아파트 실거래" 류 질의에
+     걸리는 형태(월·주차 + '아파트 실거래·시세' 키워드)를 앞에, 실측 헤드라인
+     숫자를 뒤에 둔다. 주차는 KST 기준 월내 주차(1~5주). */
+  const kst = new Date(Date.now() + 9 * 3600_000);
+  const weekOfMonth = Math.ceil(kst.getUTCDate() / 7);
+  const searchLead = `${kst.getUTCMonth() + 1}월 ${weekOfMonth}주 아파트 실거래·시세`;
+  const title = `${searchLead} — ${numbers.slice(0, 3).join(" · ") || label}`;
   const content = [
     `${label} 시장을 공개 데이터로만 정리했습니다. 전 수치는 공표·신고 기준이며 투자 권유가 아닙니다.`,
     "",

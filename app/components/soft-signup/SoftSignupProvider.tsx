@@ -158,9 +158,17 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
             <p className="mt-2 text-[13px] leading-relaxed text-text-2">{intent.benefit}</p>
             <a
               href={loginHref(callback)}
-              onClick={() =>
-                track("soft_signup_prompt_click", { action: intent.action }, tagRef.current)
-              }
+              onClick={() => {
+                track("soft_signup_prompt_click", { action: intent.action }, tagRef.current);
+                /* [945 #11] 수락 → 실제 가입 완료 귀속. 가입 화면(/signup)이 이 키를
+                   읽어 register 의 source/campaign 으로 보낸다 — "어떤 액션이 가입을
+                   만들었나"를 클릭이 아니라 **가입 완료**로 셀 수 있게 된다. */
+                try {
+                  window.sessionStorage.setItem("nz_signup_via", `soft:${intent.action}`);
+                } catch {
+                  /* 계측 실패가 흐름을 막지 않는다 */
+                }
+              }}
               className="btn-primary mt-4 block rounded-xl px-4 py-3 text-center text-[14px] font-bold no-underline"
             >
               {ctaLabel}

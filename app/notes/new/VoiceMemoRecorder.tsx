@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 /* [#133] 음성 메모 — 현장 30초 녹음. MediaRecorder → /api/upload(audio/webm).
-   전사는 하지 않는다(후속 판단) — 저장·재생만. 최대 3개·개당 60초.
+   저장·재생 + [945 #16] 전사(글로 옮기기): /api/ai/transcribe 가 텍스트를
+   돌려주면 onTranscript 로 메모란에 붙인다. 최대 3개·개당 60초.
    권한 거부·미지원은 배지로 말하고 조용히 접힌다(폼 저장은 영향 없음). */
 
 const MAX_MEMOS = 3;
@@ -12,10 +13,42 @@ const MAX_SEC = 60;
 export function VoiceMemoRecorder({
   memos,
   onChange,
+  onTranscript,
 }: {
   memos: string[];
   onChange: (urls: string[]) => void;
+  /** 전사 결과를 받을 곳(메모란 append) — 없으면 전사 버튼을 그리지 않는다 */
+  onTranscript?: (text: string) => void;
 }) {
+  /* url → 전사 상태. done 은 같은 녹음의 중복 전사(중복 비용)를 막는다 */
+  const [txState, setTxState] = useState<Record<string, "busy" | "done" | "error" | "unavailable">>({});
+
+  async function transcribe(url: string) {
+    if (!onTranscript || txState[url] === "busy" || txState[url] === "done") return;
+    setTxState((s) => ({ ...s, [url]: "busy" }));
+    try {
+      const res = await fetch("/api/ai/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        reason?: string;
+        text?: string;
+      };
+      if (json.ok && json.text) {
+        onTranscript(json.text);
+        setTxState((s) => ({ ...s, [url]: "done" }));
+      } else if (json.reason === "unavailable") {
+        setTxState((s) => ({ ...s, [url]: "unavailable" }));
+      } else {
+        setTxState((s) => ({ ...s, [url]: "error" }));
+      }
+    } catch {
+      setTxState((s) => ({ ...s, [url]: "error" }));
+    }
+  }
   const [state, setState] = useState<
     "idle" | "recording" | "uploading" | "unsupported" | "denied" | "error"
   >("idle");
@@ -123,17 +156,41 @@ export function VoiceMemoRecorder({
       {memos.length > 0 && (
         <div className="flex flex-col gap-1">
           {memos.map((u, i) => (
-            <div key={u} className="flex items-center gap-2">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <audio src={u} controls preload="none" className="h-8 w-full" />
-              <button
-                type="button"
-                aria-label={`음성 메모 ${i + 1} 삭제`}
-                onClick={() => onChange(memos.filter((m) => m !== u))}
-                className="shrink-0 t-sub font-bold text-text-3"
-              >
-                ✕
-              </button>
+            <div key={u} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <audio src={u} controls preload="none" className="h-8 w-full" />
+                {onTranscript && (
+                  <button
+                    type="button"
+                    onClick={() => void transcribe(u)}
+                    disabled={txState[u] === "busy" || txState[u] === "done"}
+                    className="shrink-0 rounded-[9px] border border-line px-2.5 py-1.5 t-caption font-bold text-text-1 disabled:opacity-60"
+                  >
+                    {txState[u] === "busy"
+                      ? "옮기는 중…"
+                      : txState[u] === "done"
+                        ? "✓ 옮김"
+                        : "✍ 글로"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label={`음성 메모 ${i + 1} 삭제`}
+                  onClick={() => onChange(memos.filter((m) => m !== u))}
+                  className="shrink-0 t-sub font-bold text-text-3"
+                >
+                  ✕
+                </button>
+              </div>
+              {txState[u] === "error" && (
+                <p className="t-caption font-semibold text-warning">
+                  전사에 실패했어요 — 잠시 후 다시 눌러 주세요.
+                </p>
+              )}
+              {txState[u] === "unavailable" && (
+                <p className="t-caption text-text-3">지금은 전사를 지원하지 않아요.</p>
+              )}
             </div>
           ))}
         </div>

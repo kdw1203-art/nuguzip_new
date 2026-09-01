@@ -14,6 +14,7 @@ import { weekSlugFor } from "@/lib/applyhome/calendar";
 import { TOWN_PROMPTS } from "@/lib/town/prompts";
 import { REGION_CATALOG } from "@/lib/region/catalog";
 import { NEWS_TAGS } from "@/lib/news/tags";
+import { GUIDES } from "@/lib/guides/catalog";
 
 /**
  * 단지 사이트맵에 실을 최소 매매 실거래 건수.
@@ -100,6 +101,8 @@ const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "/calculator/rental-yield", priority: 0.6 },
   { path: "/widget", priority: 0.5 }, // N17 — 시세 위젯 배포 안내
   // 가이드 (규제·세금 안내 · 계약 체크리스트)
+  { path: "/guides", priority: 0.6 },
+  { path: "/data-sources", priority: 0.5 },
   { path: "/guides/regulations", priority: 0.5 },
   { path: "/guides/contract", priority: 0.5 },
   { path: "/apply", priority: 0.6 },
@@ -234,6 +237,10 @@ export function loadStaticEntries(): MetadataRoute.Sitemap {
   /* [#103] 뉴스 태그 허브 20곳 — 큐레이션 상수(dynamicParams=false) */
   for (const t of NEWS_TAGS) {
     entries.push({ url: `${BASE_URL}/town/news/tag/${t.slug}`, priority: 0.5 });
+  }
+  /* [945 #25] 실전 가이드 10편 — 카탈로그 상수(dynamicParams=false 라 전부 실존) */
+  for (const g of GUIDES) {
+    entries.push({ url: `${BASE_URL}/guides/${g.slug}`, priority: 0.6 });
   }
   return entries;
 }

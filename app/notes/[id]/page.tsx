@@ -29,6 +29,9 @@ import { Icon } from "@/app/components/Icon";
 import { JsonLd } from "@/app/components/JsonLd";
 import { NoteSoftWall } from "./NoteSoftWall";
 import { RelatedNotes } from "./RelatedNotes";
+import { CompareTrayButton } from "@/app/components/CompareTrayButton";
+import { listComplexesInDistrict } from "@/lib/complex/complex-store";
+import { complexHrefFromId } from "@/lib/seo/complex-slug";
 import { seoAlternates } from "@/lib/seo/alternates";
 
 /* 시안 6c(노트 상세 + AI) + 10f(AI 노트 분석) + 20a(공개 임장노트 표준 11항목) + 20b(SEO)
@@ -584,6 +587,28 @@ export default async function NoteDetailPage({
   }
   const mapCompareHref = `/map?${mapCompareParams.toString()}`;
 
+  /* [945 · 실사용50 #18] 저장 직후 "다음 행동" — 같은 구에서 거래가 활발한
+     비교 후보 단지 3곳. 실거래 이력 있는 단지만 나오는 매트뷰 기반이라
+     빈 추천을 지어내지 않는다. 실패는 조용히 접는다(저장 화면이 우선). */
+  let nearbyCandidates: Array<{ id: string; name: string; sub: string }> = [];
+  if (isOwner && aiStatus && realNote.region.trim()) {
+    try {
+      const sameApt = (realNote.aptName ?? "").trim();
+      nearbyCandidates = (await listComplexesInDistrict(realNote.region.trim(), 6))
+        .filter((c) => c.name !== sameApt)
+        .slice(0, 3)
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          sub: [c.district, c.build_year ? `${c.build_year}년` : null]
+            .filter(Boolean)
+            .join(" · "),
+        }));
+    } catch {
+      nearbyCandidates = [];
+    }
+  }
+
   return (
     <PageShell breadcrumb={v.breadcrumb}>
       {/* JSON-LD(Article) — 공개 실데이터 노트만 삽입 (20b). 이스케이프는 <JsonLd> 가 한다. */}
@@ -674,6 +699,41 @@ export default async function NoteDetailPage({
             {realNote.aptName} AI 진단 1분 ›
           </Link>
           <span className="ml-1 t-sub text-text-3">첫 실행이면 +100P</span>
+        </div>
+      )}
+      {/* [945 #18] 저장 직후 다음 행동 ①비교 후보 ②비교 담기 ③다음 임장 —
+          루프가 "저장"에서 끝나지 않게 한다. 후보가 없으면 통째로 접는다. */}
+      {isOwner && aiStatus && nearbyCandidates.length > 0 && (
+        <div className="rise-in mb-3 rounded-2xl border border-line bg-surface px-4 py-3">
+          <div className="t-body font-extrabold text-ink">
+            다음 임장, 근처 비교 후보로 이어가 볼까요?
+          </div>
+          <p className="mt-0.5 t-caption text-text-3">
+            {realNote.region} 최근 거래 많은 단지 — 담아서 표로 비교할 수 있어요.
+          </p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {nearbyCandidates.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center justify-between gap-2 rounded-xl bg-bg px-3 py-2"
+              >
+                <Link
+                  href={complexHrefFromId(c.id)}
+                  className="min-w-0 flex-1 no-underline"
+                >
+                  <span className="t-body font-bold text-ink">{c.name}</span>
+                  {c.sub && <span className="ml-1.5 t-caption text-text-3">{c.sub}</span>}
+                </Link>
+                <CompareTrayButton complexId={c.id} name={c.name} region={realNote.region} />
+                <Link
+                  href={`/notes/new?apt=${encodeURIComponent(c.name)}&region=${encodeURIComponent(realNote.region)}`}
+                  className="shrink-0 rounded-[9px] border border-line px-2.5 py-1.5 t-caption font-bold text-text-1 no-underline"
+                >
+                  다음 임장 노트
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {isOwner && aiStatus === "fail" && (

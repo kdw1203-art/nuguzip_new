@@ -44,13 +44,19 @@ type LoginContext = { line1: string; line2: string; sub: string };
    "카카오·네이버·구글" 을 고정 문자열로 박아 두면, 그 셋 중 하나도 설정돼
    있지 않은 상태에서도 화면은 세 가지로 시작할 수 있다고 말하게 된다. */
 const SOCIAL_LABEL: Record<SocialProvider, string> = {
+  kakao: "카카오",
   google: "구글",
   toss: "토스",
 };
 
 const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }> = {
+  /* 카카오 브랜드 가이드 — 버튼 배경 #FEE500, 라벨 #191919 (다크에서도 고정) */
+  kakao: {
+    label: "카카오로 3초 만에 시작",
+    className: "bg-[#fee500] text-[#191919] shadow-[0_6px_16px_rgba(254,229,0,.3)]",
+  },
   toss: {
-    label: "토스로 3초 만에 시작",
+    label: "토스로 시작",
     className: "bg-[#3182f6] text-white shadow-[0_6px_16px_rgba(49,130,246,.35)]",
   },
   google: {
@@ -218,7 +224,9 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         source: "auth",
         campaign: "login_monitor",
         path: "/login",
-        metadata: { provider: "google", reason: "oauth_error", code: oauthErr.slice(0, 40) },
+        /* NextAuth 에러 리다이렉트는 어느 provider 였는지 알려주지 않는다 —
+           카카오·구글 둘 다 이 경로로 온다. 특정 못 하는 값을 지어내지 않는다. */
+        metadata: { provider: "oauth", reason: "oauth_error", code: oauthErr.slice(0, 40) },
       });
     }
   }, [generic]);

@@ -179,7 +179,16 @@ export default async function NotesFeedPage({
   let notes: FeedNote[] = [];
   let loadError: string | null = null;
   try {
-    const rows = await listPublicNotes(50);
+    /* [945 · 실사용50 #35] 비로그인 공개 피드는 내용이 모두에게 같다 —
+       카페 글 스파이크가 이 목록 조회를 방문마다 DB 에 꽂지 않도록 60초 데이터
+       캐시로 묶는다(페이지는 auth 분기 때문에 동적 유지). 로그인 사용자의
+       "내 노트" 경로(위)는 개인 데이터라 그대로 실조회다. */
+    const { unstable_cache } = await import("next/cache");
+    const rows = await unstable_cache(
+      () => listPublicNotes(50),
+      ["notes-public-feed-v1"],
+      { revalidate: 60 },
+    )();
     // 아파트명(+지역)으로 complexes 실 id 조회 — 중복 접기 + 동시 4개 + 3초 마감
     const hrefs = await resolveComplexHrefs(
       rows.map((n) => ({ name: n.aptName, region: n.region })),

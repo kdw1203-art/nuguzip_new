@@ -1,7 +1,7 @@
 import { recordPlatformEvent } from "@/lib/platform-events";
 import { FUNNEL_EVENT } from "@/lib/platform-funnel-events";
 
-export type AuthLoginProvider = "password" | "google" | "unknown";
+export type AuthLoginProvider = "password" | "google" | "kakao" | "unknown";
 export type AuthLoginFailReason =
   | "invalid_input"
   | "rate_limited"

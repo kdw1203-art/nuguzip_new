@@ -17,7 +17,11 @@ const LEGAL_LINKS = [
   /* S20 — 신뢰·데이터 페이지 내부 링크 (전 페이지 크롤 경로 확보) */
   { label: "소개", href: "/about", bold: false },
   { label: "데이터 방법론", href: "/methodology", bold: false },
+  /* [945 #33] 출처·한계 한 장 — 신뢰 문서의 크롤·도달 경로 */
+  { label: "데이터 출처", href: "/data-sources", bold: false },
   { label: "용어사전", href: "/glossary", bold: false },
+  /* [945 #25] 가이드 허브 — 검색 유입 콘텐츠의 내부 크롤 경로 */
+  { label: "실전 가이드", href: "/guides", bold: false },
   { label: "월간 리포트", href: "/reports", bold: false },
   /* N20 — 공개 집계 API 문서. 링크가 없으면 크롤러도 사람도 도달하지 못한다. */
   { label: "공개 API", href: "/developers", bold: false },

@@ -203,6 +203,84 @@ export function weeklyDigestEmail(params: {
   return { subject, html, text };
 }
 
+/** [945 · 실사용50 #20] 관심단지 새 실거래 메일 — 하루 1통 묶음.
+ * 수치는 전부 국토부 신고 실측(금액·면적·층·계약월) — 해석·권유 문장을 넣지 않는다. */
+export function watchlistTxEmail(params: {
+  items: Array<{
+    complexName: string;
+    count: number;
+    latestLine: string; // 예: "84㎡ 12층 28.5억 (2026.08 계약)"
+    href: string; // 절대 URL
+  }>;
+}) {
+  const total = params.items.reduce((a, x) => a + x.count, 0);
+  const rows = params.items
+    .slice(0, 8)
+    .map(
+      (x) => `<tr>
+        <td style="padding:9px 0;">
+          <a href="${x.href}" style="font-size:14px;font-weight:700;color:#191f28;text-decoration:none;">${escapeHtml(x.complexName)}</a>
+          <span style="font-size:12px;color:#8a94a6;"> · 새 신고 ${x.count}건</span>
+          <p style="margin:2px 0 0;font-size:13px;color:#4a5568;">${escapeHtml(x.latestLine)}</p>
+        </td>
+      </tr>`,
+    )
+    .join("");
+  const html = emailLayout(`
+    <h1 style="margin:0 0 6px;font-size:18px;color:#191f28;">관심단지에 새 실거래 ${total}건</h1>
+    <p style="margin:0 0 14px;font-size:13px;color:#8a94a6;">국토교통부 실거래 신고 기준 · 매물 호가가 아닙니다</p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 16px;">${rows}</table>
+    <a href="https://nuguzip.com/my/watchlist" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">관심 단지 전체 보기</a>
+  `);
+  const text = [
+    `관심단지에 새 실거래 ${total}건`,
+    ...params.items.map((x) => `- ${x.complexName}: ${x.count}건 · ${x.latestLine}`),
+    "전체 보기: https://nuguzip.com/my/watchlist",
+  ].join("\n");
+  return { subject: `[누구집] 관심단지 새 실거래 ${total}건`, html, text };
+}
+
+/** [945 · 실사용50 #14] 가입 환영 메일 — 첫 로그인 성공 시 1회 발송.
+ *
+ * 트랜잭션성(가입 완료 안내 + 시작 방법)이라 (광고) 표기 대상이 아니다.
+ * 서비스에 실재하는 기능만 적는다 — 노트 저장·AI 초안·관심 단지·지도.
+ */
+export function welcomeEmail(params: { name: string }) {
+  const name = escapeHtml(params.name || "회원");
+  const item = (emoji: string, title: string, desc: string, href: string) => `
+    <tr>
+      <td style="padding:10px 12px 10px 0;font-size:20px;vertical-align:top;">${emoji}</td>
+      <td style="padding:10px 0;">
+        <a href="${href}" style="font-size:14px;font-weight:700;color:#191f28;text-decoration:none;">${title}</a>
+        <p style="margin:2px 0 0;font-size:13px;line-height:1.55;color:#8a94a6;">${desc}</p>
+      </td>
+    </tr>`;
+  const html = emailLayout(`
+    <h1 style="margin:0 0 8px;font-size:19px;color:#191f28;">${name}님, 누구집에 오신 것을 환영해요</h1>
+    <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#4a5568;">
+      집 보러 다니는 날의 기록이 흩어지지 않게 — 누구집이 도와드릴게요.<br />
+      지금 바로 할 수 있는 것들이에요.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin:0 0 18px;">
+      ${item("📝", "첫 임장노트 쓰기", "체크리스트·사진·음성메모로 현장을 기록해요. AI가 데이터 초안도 잡아줘요.", "https://nuguzip.com/notes/new")}
+      ${item("🗺️", "지도에서 시세 보기", "구별 평균가·전세가율·경사·공매 물건까지 한 화면에서.", "https://nuguzip.com/map")}
+      ${item("⭐", "관심 단지 등록", "보고 있는 단지를 담아두면 새 실거래를 모아볼 수 있어요.", "https://nuguzip.com/my/watchlist")}
+    </table>
+    <a href="https://nuguzip.com/welcome" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:11px 22px;border-radius:8px;text-decoration:none;">30초 시작 가이드 보기</a>
+  `);
+  const text = [
+    `${params.name || "회원"}님, 누구집에 오신 것을 환영해요`,
+    "",
+    "지금 바로 할 수 있는 것들:",
+    "- 첫 임장노트 쓰기 (AI 초안 지원): https://nuguzip.com/notes/new",
+    "- 지도에서 시세 보기: https://nuguzip.com/map",
+    "- 관심 단지 등록: https://nuguzip.com/my/watchlist",
+    "",
+    "30초 시작 가이드: https://nuguzip.com/welcome",
+  ].join("\n");
+  return { subject: "[누구집] 환영해요 — 첫 임장노트, 오늘 써봐요", html, text };
+}
+
 /** [E010] 이탈 리마인드 메일 — reengage-reminders 크론의 이메일 채널.
  *
  * 법적 전제: **마케팅 수신 동의자(user_consents.marketing_agreed)에게만** 나가고,

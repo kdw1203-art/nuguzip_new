@@ -6,6 +6,7 @@
 
 import {
   METRO_EXPLORE_DISTRICTS,
+  METRO_CITY_DISTRICTS,
   SEOUL_DISTRICTS,
   type SeoulDistrictInfo,
 } from "@/lib/map/seoul-districts";
@@ -14,6 +15,8 @@ import {
 export const REGION_CATALOG: SeoulDistrictInfo[] = [
   ...SEOUL_DISTRICTS,
   ...METRO_EXPLORE_DISTRICTS,
+  /* [945] 5대 광역시 39개 구·군 — 실사용50 #4 전국 확장 1차 */
+  ...METRO_CITY_DISTRICTS,
 ];
 
 /**

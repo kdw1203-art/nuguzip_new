@@ -21,6 +21,7 @@ export function AiDraftPanel({
   complexId,
   purpose,
   disabled,
+  emphasize = false,
   onApply,
 }: {
   region: string;
@@ -30,6 +31,8 @@ export function AiDraftPanel({
   purpose: string | null;
   /** 수정 모드 등 패널을 잠글 때 */
   disabled?: boolean;
+  /** [945 #12] /welcome·AI 의도 진입 — 관심지역 브리핑 패널을 시각적으로 앞세운다 */
+  emphasize?: boolean;
   onApply: (draft: NoteDraft) => void;
 }) {
   const [state, setState] = useState<"idle" | "busy" | "applied" | "quota" | "error">("idle");
@@ -89,12 +92,22 @@ export function AiDraftPanel({
     applied != null && (Object.keys(applied.checks).length > 0 || applied.satisfaction != null);
 
   return (
-    <section className="rounded-2xl border border-[rgba(29,79,216,.25)] bg-primary-soft/40 p-[13px]">
+    <section
+      className={`rounded-2xl border p-[13px] ${
+        emphasize
+          ? "border-primary/45 bg-primary-soft/60 ring-2 ring-primary/20"
+          : "border-[rgba(29,79,216,.25)] bg-primary-soft/40"
+      }`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="t-body font-extrabold text-ink">✨ AI 초안으로 시작</div>
+          <div className="t-body font-extrabold text-ink">
+            ✨ {emphasize && region.trim() ? `${region.trim()} AI 브리핑으로 시작` : "AI 초안으로 시작"}
+          </div>
           <p className="mt-0.5 t-caption text-text-2">
-            실거래·시세·공급 데이터를 모아 예습 초안을 채워 드려요 — 현장 확인이 본편입니다.
+            {emphasize && region.trim()
+              ? "고르신 관심지역의 실거래·시세·공급 데이터로 첫 노트 초안을 채워 드려요."
+              : "실거래·시세·공급 데이터를 모아 예습 초안을 채워 드려요 — 현장 확인이 본편입니다."}
           </p>
         </div>
         {state !== "applied" && (

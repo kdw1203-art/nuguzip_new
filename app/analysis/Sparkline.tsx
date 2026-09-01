@@ -36,8 +36,12 @@ export function Sparkline({
     >
       {/* 면 채움은 현재색의 12% — 선만 있을 때보다 추세 방향이 먼저 읽힌다 */}
       <path d={g.area} fill="currentColor" fillOpacity="0.12" />
+      {/* [945-G] 선 드로우-인 — pathLength=1 정규화로 dasharray 1 트릭.
+          reduced-motion 은 globals.css .spark-line 등록이 정지시킨다. */}
       <path
         d={g.line}
+        pathLength={1}
+        className="spark-line"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.6"

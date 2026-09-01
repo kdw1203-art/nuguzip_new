@@ -77,6 +77,11 @@ function Cover({ card }: { card: FeedCard }) {
       >
         {label}
       </span>
+      {/* [945-G] 24시간 내 새 글 — "지금 살아 있는 피드"의 실측 신호.
+          점멸은 reduced-motion 에서 정지(badge-new 등록). */}
+      {Date.now() - card.createdAt < 24 * 3600_000 && !card.isExample && (
+        <span className="badge-new absolute right-2 top-2 z-10 t-caption">NEW</span>
+      )}
       {card.isExample && (
         <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">
           <ExampleBadge />
@@ -89,7 +94,10 @@ function Cover({ card }: { card: FeedCard }) {
 function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
   return (
     <div className={`mb-3 break-inside-avoid rise-in-${Math.min(delay, 6)}`}>
-      <Link href={card.href} className="card tile block overflow-hidden rounded-[14px] no-underline">
+      <Link
+        href={card.href}
+        className="card tile card-zoom block overflow-hidden rounded-[14px] no-underline"
+      >
         <Cover card={card} />
         <div className="flex flex-col gap-1.5 px-3 pb-3 pt-2.5">
           <div className="line-clamp-2 t-body font-extrabold text-ink">

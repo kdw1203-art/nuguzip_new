@@ -11,8 +11,13 @@ import { useMoment } from "@/app/components/motion/MomentProvider";
 import type { SocialProvider } from "@/lib/auth/configured-social";
 
 const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }> = {
+  /* 카카오 브랜드 가이드 — 배경 #FEE500 · 라벨 #191919 고정 */
+  kakao: {
+    label: "카카오로 3초 만에 시작",
+    className: "bg-[#fee500] text-[#191919] shadow-[0_6px_16px_rgba(254,229,0,.3)]",
+  },
   toss: {
-    label: "토스로 3초 만에 시작",
+    label: "토스로 시작",
     className: "bg-[#3182f6] text-white shadow-[0_6px_16px_rgba(49,130,246,.35)]",
   },
   google: {
@@ -75,8 +80,20 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
     [],
   );
 
+  /* [945 #11] 소프트 가입 프롬프트 수락 귀속 — SoftSignupProvider 가 남긴 키.
+     "soft:watchlist_add" 형식. 가입 완료 시 register 의 source/campaign 으로
+     보내져, 클릭 수가 아니라 **가입 완료 수**로 프롬프트 효과를 잰다. */
+  const signupViaRef = useRef<string | null>(null);
   useEffect(() => {
-    trackStep("signup_step_1");
+    try {
+      signupViaRef.current = window.sessionStorage.getItem("nz_signup_via");
+    } catch {
+      signupViaRef.current = null;
+    }
+    trackStep(
+      "signup_step_1",
+      signupViaRef.current ? { via: signupViaRef.current } : undefined,
+    );
   }, [trackStep]);
 
   /* 관심 지역·목표·인구통계는 전부 온보딩(/welcome)이 수집한다(개선 #9). */
@@ -136,8 +153,8 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           email: normalizedEmail,
           password,
           name: name.trim(),
-          source: "onboarding_signup",
-          campaign: "default",
+          source: signupViaRef.current ? "soft_signup" : "onboarding_signup",
+          campaign: signupViaRef.current?.replace(/^soft:/, "") || "default",
           consent: {
             terms: true,
             privacy: true,
@@ -167,7 +184,14 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
       }
       trackStep("signup_complete", {
         emailConfirmationRequired: Boolean(data.emailConfirmationRequired),
+        ...(signupViaRef.current ? { via: signupViaRef.current } : {}),
       });
+      /* 귀속 소진 — 같은 탭의 다음 가입 시도에 새 프롬프트 없이 딸려가지 않게 */
+      try {
+        window.sessionStorage.removeItem("nz_signup_via");
+      } catch {
+        /* ignore */
+      }
       if (data.emailConfirmationRequired) {
         setConfirmHint(
           data.message ??

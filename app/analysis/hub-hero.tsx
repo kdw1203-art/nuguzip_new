@@ -99,7 +99,7 @@ export function HubHero({
     : `/analysis/timing${q}`;
 
   return (
-    <section className="hub-hero rise-in card-pad-lg flex flex-col gap-4">
+    <section className="hub-hero sheen rise-in card-pad-lg flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="t-caption font-bold uppercase tracking-wider text-primary">

@@ -58,7 +58,10 @@ export const EARN_RULES: Record<string, EarnRule> = {
     points: 50,
     dailyCap: 3,
   },
-  referral: { key: "referral", label: "친구 추천 가입", points: 300 },
+  /* [945 · 실사용50 #30] dailyCap 5 — 어뷰징 상한. 하루 5명 넘는 "초대 성사"는
+     실제 확산이 아니라 계정 공장이 먼저다(현 주간 방문 10명 규모에서 상식 상한).
+     상한 초과분: 리딤 기록·피추천인 300P 는 유지되고 **추천인 적립만** 멈춘다. */
+  referral: { key: "referral", label: "친구 추천 가입", points: 300, dailyCap: 5 },
   onboarding_complete: {
     key: "onboarding_complete",
     label: "온보딩 완주 보너스",

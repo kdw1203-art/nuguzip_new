@@ -2621,3 +2621,189 @@ a.rank-row:hover {
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
 }
 .tab-scroll::-webkit-scrollbar { display: none; }
+
+/* ============================================================
+   [945-G] 동네이야기 · AI 분석 액티브 개편 — 살아 있는 표면
+   원칙: 토큰만 사용(다크 자동 대응) · 호버 모션은 (hover:hover) 기기만 ·
+   모든 신규 애니메이션은 블록 하단 reduced-motion 에서 해제.
+   ============================================================ */
+
+/* ── 동네이야기 히어로 밴드 — 동네의 온기(웜 틴트) + 느린 드리프트 광원 ── */
+.town-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+.town-hero::before {
+  content: "";
+  position: absolute;
+  top: -55%;
+  left: -12%;
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand-soft);
+  filter: blur(30px);
+  animation: townDrift 11s var(--ease-inout) infinite;
+  pointer-events: none;
+}
+.town-hero::after {
+  content: "";
+  position: absolute;
+  bottom: -60%;
+  right: -8%;
+  width: 52%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  filter: blur(34px);
+  animation: townDrift 13s var(--ease-inout) infinite reverse;
+  pointer-events: none;
+}
+.town-hero > * {
+  position: relative;
+}
+@keyframes townDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -5%, 0) scale(1.06);
+  }
+}
+
+/* 히어로 실측 스탯 — 숫자가 먼저 읽히는 칩 */
+.town-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  backdrop-filter: blur(6px);
+  padding: 5px 11px;
+}
+.town-stat b {
+  font-size: var(--fs-title, 19px);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 활동 1위 동네 칩 — 열기(웜 그라디언트 테두리) */
+.chip-heat {
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    linear-gradient(120deg, var(--primary), color-mix(in srgb, var(--warning) 70%, var(--primary))) border-box;
+}
+
+/* ── 피드 카드 살아나기 — 커버 줌 + NEW 배지 ── */
+@media (hover: hover) and (pointer: fine) {
+  .card-zoom img {
+    transition: transform var(--dur-md) var(--ease-out);
+  }
+  .card-zoom:hover img {
+    transform: scale(1.045);
+  }
+}
+.badge-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: #fff;
+  padding: 2px 7px;
+  font-weight: 800;
+}
+.badge-new::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  animation: newBlink 1.6s var(--ease-inout) infinite;
+}
+@keyframes newBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* 글쓰기 FAB 숨쉬기 — "여기가 시작점"이라는 가장 조용한 신호 */
+.fab-breathe {
+  animation: fabBreathe 3.4s var(--ease-inout) infinite;
+}
+@keyframes fabBreathe {
+  0%,
+  100% {
+    box-shadow: 0 10px 24px rgba(29, 79, 216, 0.45);
+  }
+  50% {
+    box-shadow: 0 12px 34px rgba(29, 79, 216, 0.62);
+  }
+}
+
+/* ── AI 분석 허브 — 도구 카드 글로우 + 스파크라인 드로우 ── */
+@media (hover: hover) and (pointer: fine) {
+  .ai-glow:hover {
+    box-shadow:
+      var(--shadow-md),
+      0 0 0 1px color-mix(in srgb, var(--ai-accent) 55%, transparent),
+      0 8px 30px color-mix(in srgb, var(--ai-accent) 26%, transparent);
+  }
+}
+/* 스파크라인 선 그리기 — 카드가 "지금 계산된 것"처럼 등장한다 */
+.spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: sparkDraw 1s var(--ease-out) 250ms forwards;
+}
+@keyframes sparkDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 뉴스 읽기 진행 바 — 상세 상단 고정, scaleX 는 클라이언트가 지정 */
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 120;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: var(--grad-brand);
+  pointer-events: none;
+}
+
+/* [945-G] 신규 모션 해제 — 규약: 새 애니메이션은 반드시 여기 등록 */
+@media (prefers-reduced-motion: reduce) {
+  .town-hero::before,
+  .town-hero::after,
+  .badge-new::before,
+  .fab-breathe,
+  .spark-line {
+    animation: none;
+  }
+  .spark-line {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+  .card-zoom img,
+  .card-zoom:hover img {
+    transition: none;
+    transform: none;
+  }
+}

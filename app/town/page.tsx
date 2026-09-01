@@ -145,17 +145,49 @@ export default async function TownPage() {
 
   /* 공작 등 가짜 예시 카드는 쓰지 않는다 — 0건이면 정직한 empty+CTA.
      (예시 배너 분기(exampleOnly)는 상수 false 로 영구 죽은 코드였다 — 제거) */
+  /* [945-G] 히어로 실측 스탯 — 이 피드에 실린 카드 기준(전수 아님 — 라벨에 명시).
+     지어내는 수치 없이 "지금 살아 있는 곳"이라는 감각만 만든다. */
+  const now = Date.now();
+  const todayCount = cards.filter((c) => now - c.createdAt < 24 * 3600_000).length;
+  const weekCount = cards.filter((c) => now - c.createdAt < 7 * 24 * 3600_000).length;
+  const hottest = shortcuts[0]?.count > 0 ? shortcuts[0] : null;
+
   return (
     <PageShell wide>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in t-title text-ink">동네이야기</h1>
-        <Link
-          href="/town/write"
-          className="btn-primary btn-cta hidden px-4 py-[9px] t-body md:block"
-        >
-          글쓰기
-        </Link>
-      </div>
+      {/* [945-G] 동네이야기 히어로 — 정적 제목 한 줄에서, 오늘의 활기가 먼저
+          읽히는 밴드로. 광원 드리프트는 reduced-motion 에서 정지. */}
+      <section className="town-hero rise-in mb-4 px-4 py-4 md:px-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="t-title text-ink">동네이야기</h1>
+            <p className="mt-1 t-sub text-text-2">
+              직접 다녀온 사람들의 기록과 이웃 소식 — 지금 이 피드 기준
+            </p>
+          </div>
+          <Link
+            href="/town/write"
+            className="btn-primary btn-cta hidden px-4 py-[9px] t-body md:block"
+          >
+            글쓰기
+          </Link>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="town-stat t-caption text-text-2">
+            오늘 새 글 <b>{todayCount}</b>
+          </span>
+          <span className="town-stat t-caption text-text-2">
+            이번 주 <b>{weekCount}</b>
+          </span>
+          {hottest && (
+            <Link
+              href={`/town/${hottest.id}`}
+              className="town-stat t-caption text-text-2 no-underline"
+            >
+              가장 활발한 동네 <b className="!text-ink">{hottest.name}</b>
+            </Link>
+          )}
+        </div>
+      </section>
 
       {/* 동네이야기 카테고리 — 청약·입주·공매 + 뉴스·자료·모임·전문가 (인터랙티브).
           목록은 lib/town/category-links.ts 단일 소스. 하위 7개 페이지도 같은 것을 쓴다. */}
@@ -170,11 +202,13 @@ export default async function TownPage() {
           <span className="ml-1 t-caption text-text-3">최근 글 기준</span>
         </span>
         <div className="rail-x -mx-1 px-1 py-0.5">
-          {shortcuts.map((r) => (
+          {shortcuts.map((r, i) => (
             <Link
               key={r.id}
               href={`/town/${r.id}`}
-              className="chip tile border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2 no-underline"
+              className={`chip tile border border-line bg-surface px-3 py-1.5 t-sub font-bold text-text-2 no-underline ${
+                i === 0 && r.count > 0 ? "chip-heat" : ""
+              }`}
             >
               {r.name}
               {r.count > 0 && (
@@ -208,7 +242,7 @@ export default async function TownPage() {
       <Link
         href="/town/write"
         aria-label="글쓰기"
-        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full t-title md:hidden"
+        className="btn-primary fab-breathe fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full t-title md:hidden"
         style={{
           bottom: "calc(var(--nz-tabbar-offset) + 12px)",
           boxShadow: "0 10px 24px rgba(29,79,216,.45)",

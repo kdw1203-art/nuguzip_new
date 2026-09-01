@@ -2,7 +2,7 @@
  * R-ONE CLS_FULLNM / KB 지역명 → 내부 지역(id/name/city) 매핑.
  * R-ONE CLS_FULLNM 예: "서울>강남구", "경기>경부1권>안양시>만안구", "인천>연수구", "전북>전주시"
  */
-import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
+import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS, METRO_CITY_DISTRICTS } from "@/lib/map/seoul-districts";
 
 export interface RegionMatch {
   id: string;
@@ -19,6 +19,8 @@ interface InternalRegion {
 const INTERNAL_REGIONS: InternalRegion[] = [
   ...SEOUL_DISTRICTS.map((d) => ({ id: d.id, name: d.name, city: d.city ?? "서울" })),
   ...METRO_EXPLORE_DISTRICTS.map((d) => ({ id: d.id, name: d.name, city: d.city ?? "서울" })),
+  /* [945] 5대 광역시 — REB 수집이 다음 회차부터 자동 적재 */
+  ...METRO_CITY_DISTRICTS.map((d) => ({ id: d.id, name: d.name, city: d.city ?? "서울" })),
 ];
 
 function stripSpaces(s: string): string {

@@ -51,7 +51,8 @@ type PrefKey =
   | "pushReengagement"
   | "pushListingStale"
   | "pushAttendance"
-  | "pushWeeklyDigest";
+  | "pushWeeklyDigest"
+  | "emailWatchlistTx";
 
 type Prefs = Record<PrefKey, boolean> & {
   /** SMS(NCP SENS) 관심단지 가격 알림 — 별도 카드에서 관리 */
@@ -73,6 +74,11 @@ const PREF_GROUPS: {
       { key: "emailLikes", label: "좋아요 · 저장" },
       { key: "emailMeeting", label: "임장 모임 · 모임 채팅", desc: "새 메시지 · 일정 변경" },
       { key: "emailExpert", label: "전문가 상담 답변" },
+      {
+        key: "emailWatchlistTx",
+        label: "관심단지 새 실거래",
+        desc: "담아둔 단지에 새 실거래가 신고되면 하루 1통으로 묶어서 (기본 켜짐)",
+      },
     ],
   },
   {

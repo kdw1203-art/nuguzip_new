@@ -22,6 +22,7 @@ import { townHandoff } from "@/lib/town/handoff";
 import { postAttachments } from "@/lib/community/attachments";
 import { CoverImage } from "@/app/components/CoverImage";
 import { AdSlot } from "@/app/components/ads/AdSlot";
+import { ReadingProgress } from "./ReadingProgress";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
 import { CommentThread } from "./CommentThread";
 import { getServiceSupabase } from "@/lib/supabase/service";
@@ -458,6 +459,8 @@ export default async function TownNewsDetailPage({
 
   return (
     <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
+      {/* [945-G] 읽기 진행 바 — 긴 글에서만 나타난다(컴포넌트가 판정) */}
+      <ReadingProgress />
       {/* 구조화 데이터 — 우리 글로 렌더할 때만. 화면에 없는 내용을 마크업하지 않는다. */}
       {jsonLd && <JsonLd data={jsonLd} />}
 

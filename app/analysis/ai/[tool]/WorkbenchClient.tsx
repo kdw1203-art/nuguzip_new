@@ -669,7 +669,13 @@ export function WorkbenchClient({
           type="button"
           onClick={run}
           disabled={running || (needsComplex && !picked && !(isPortfolio && portfolio?.length))}
-          className="btn-primary btn-lg disabled:opacity-50"
+          className={`btn-primary btn-lg disabled:opacity-50 ${
+            /* [945-G] 실행 가능해진 순간에만 글로우 — "지금 누르면 된다"의 신호.
+               비활성 글로우는 거짓말이라 켜지 않는다. */
+            !running && (!needsComplex || picked || (isPortfolio && Boolean(portfolio?.length)))
+              ? "glow"
+              : ""
+          }`}
         >
           {running ? "분석 중…" : "③ 분석 실행"}
         </button>

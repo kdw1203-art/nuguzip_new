@@ -107,7 +107,7 @@ function TierHead({ id, count }: { id: TierId; count: number }) {
         >
           <Icon name={TIER_ICON[id]} size={16} />
         </span>
-        <h2 className="t-title text-balance text-ink">{t.question}</h2>
+        <h2 className="accent-underline t-title text-balance text-ink">{t.question}</h2>
         <span className="t-caption ml-auto shrink-0 rounded border border-line px-1.5 py-px font-bold text-text-3">
           {t.badge} · {count}종
         </span>
@@ -134,7 +134,7 @@ function ToolCard({
       href={t.href}
       title={t.title}
       withPicked={ACCEPTS_COMPLEX.has(t.href)}
-      className="tile card flex flex-col gap-2 rounded-[14px] p-4 no-underline"
+      className="tile card ai-glow flex flex-col gap-2 rounded-[14px] p-4 no-underline"
     >
       <div className="flex items-start gap-2">
         <span

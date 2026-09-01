@@ -122,6 +122,8 @@ jobs:
           # [#96] 학교·도시철도역 표준데이터 — 월 1회면 충분(매월 1일만, 수동 실행 시 항상).
           # env 경로(POI_*_API_PATH) 미등록이면 라우트가 skipped 로 답한다 — 실패 아님.
           if [ "$(date -u +%d)" = "01" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "== region-intro-posts (monthly-idempotent, soft) =="
+            curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/region-intro-posts" | head -c 300 || true
             echo "== poi-ingest (schools+stations, soft) =="
             curl -sS --max-time 290 -H "x-cron-secret: $CRS" "https://nuguzip.com/api/cron/poi-ingest" | head -c 500 || true
             echo
@@ -229,6 +231,8 @@ jobs:
           call points-expiry "https://nuguzip.com/api/cron/points-expiry-sweep"
           # 관심 단지 가격 변동 — 대표 면적대 최근 6건 평균 기준(lib/market/complex-price.ts).
           call price-alerts "https://nuguzip.com/api/cron/price-alerts"
+          # [945 #20] 관심 단지 새 실거래 신고 — 적재 시각 고수위선 기준, 사용자당 1건 묶음
+          call watchlist-new-tx "https://nuguzip.com/api/cron/watchlist-new-tx"
           # 저장 검색 신규 매치
           call saved-search "https://nuguzip.com/api/cron/saved-search-alerts"
           # [AI-29] 경제지표 임계 알림 — 기준금리 워치(등록자 대상, 1회 통지 후 재무장식)

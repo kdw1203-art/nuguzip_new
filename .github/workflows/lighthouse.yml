@@ -28,6 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lighthouse CI (프로덕션 대표 5화면)
+        id: lhci
         uses: treosh/lighthouse-ci-action@v12
         with:
           urls: |
@@ -40,3 +41,35 @@ jobs:
           uploadArtifacts: true
           temporaryPublicStorage: true
           runs: 1
+
+      # [945 · 실사용50 #45] 점수를 서비스로 보고 → 직전 대비 10점 이상 하락 시
+      # 관리자 경보(운영 수신함 + 오류 채널). 측정만 있고 경보가 없던 공백을 잇는다.
+      - name: 점수 회귀 보고
+        if: always()
+        env:
+          CRS: ${{ secrets.CRON_SECRET }}
+          MANIFEST: ${{ steps.lhci.outputs.manifest }}
+        run: |
+          if [ -z "$CRS" ]; then echo "CRON_SECRET 없음 — 보고 생략"; exit 0; fi
+          if [ -z "$MANIFEST" ]; then echo "manifest 없음 — 보고 생략"; exit 0; fi
+          printf '%s' "$MANIFEST" | node -e '
+            let raw = "";
+            process.stdin.on("data", (c) => (raw += c));
+            process.stdin.on("end", () => {
+              let m;
+              try { m = JSON.parse(raw); } catch { console.log("manifest 파싱 실패 — 생략"); process.exit(0); }
+              const rows = (Array.isArray(m) ? m : []).map((r) => ({
+                url: r.url,
+                performance: Math.round((r.summary?.performance ?? 0) * 100),
+                accessibility: Math.round((r.summary?.accessibility ?? 0) * 100),
+                seo: Math.round((r.summary?.seo ?? 0) * 100),
+              }));
+              require("fs").writeFileSync("lh-scores.json", JSON.stringify({ scores: rows }));
+            });
+          '
+          if [ -f lh-scores.json ]; then
+            curl -sS --max-time 60 -X POST \
+              -H "x-cron-secret: $CRS" -H "Content-Type: application/json" \
+              --data @lh-scores.json \
+              "https://nuguzip.com/api/cron/lighthouse-report" | head -c 400 || true
+          fi

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { dbUnavailable } from "@/lib/api/db-unavailable";
 import { isPastBidEnd } from "@/lib/onbid/store";
-import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-districts";
+import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS, METRO_CITY_DISTRICTS } from "@/lib/map/seoul-districts";
 
 /* [지도확장 2차 · 937] 공매 물건 구 단위 배지 레이어.
  *
@@ -41,6 +41,11 @@ function cityKeyFromSido(sido: string): string | null {
   if (sido.startsWith("서울")) return "서울";
   if (sido.startsWith("경기")) return "경기";
   if (sido.startsWith("인천")) return "인천";
+  if (sido.startsWith("부산")) return "부산";
+  if (sido.startsWith("대구")) return "대구";
+  if (sido.startsWith("대전")) return "대전";
+  if (sido.startsWith("광주")) return "광주";
+  if (sido.startsWith("울산")) return "울산";
   return null; // 그 외 시도는 좌표 카탈로그가 없다 — 매칭 불가로 셈만 한다
 }
 
@@ -121,7 +126,7 @@ export async function GET() {
     top: AuctionPreview[];
   }> = [];
   let matched = 0;
-  for (const d of [...SEOUL_DISTRICTS, ...METRO_EXPLORE_DISTRICTS]) {
+  for (const d of [...SEOUL_DISTRICTS, ...METRO_EXPLORE_DISTRICTS, ...METRO_CITY_DISTRICTS]) {
     const city = d.city ?? "서울";
     const agg = byKey.get(coordKey(city, d.name));
     if (!agg || agg.count === 0) continue;

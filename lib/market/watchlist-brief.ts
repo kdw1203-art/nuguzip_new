@@ -14,6 +14,9 @@ export type WatchlistBrief = {
   body: string;
   complexCount: number;
   tradeCount: number;
+  /** [945 #47] 카드의 이동처 — 없으면 기존 기본(/my/watchlist) */
+  href?: string;
+  linkLabel?: string;
 };
 
 function krwEok(v: number): string {
@@ -42,7 +45,12 @@ export async function buildWatchlistBrief(email: string): Promise<WatchlistBrief
         .filter(Boolean),
     ),
   ].slice(0, 30);
-  if (names.length === 0) return null;
+  /* [945 · 실사용50 #47] 관심 단지가 없어도, /welcome 에서 고른 **관심지역**
+     구독(alert:region:…)이 있으면 그 동네의 오늘을 첫 화면에 준다 —
+     재방문자에게 홈이 매번 같은 화면이 되지 않게. */
+  if (names.length === 0) {
+    return buildRegionBrief(watchRows ?? []);
+  }
 
   const fromYm = (() => {
     const d = new Date();
@@ -66,7 +74,8 @@ export async function buildWatchlistBrief(email: string): Promise<WatchlistBrief
     return null;
   }
   const rows = (txRows ?? []) as Array<Record<string, unknown>>;
-  if (rows.length === 0) return null;
+  /* 관심 단지에 이번 주 소식이 없으면 관심지역의 오늘로 폴백(빈 카드 금지) */
+  if (rows.length === 0) return buildRegionBrief(watchRows ?? []);
 
   const byComplex = new Map<string, { count: number; max: number }>();
   for (const r of rows) {
@@ -90,4 +99,50 @@ export async function buildWatchlistBrief(email: string): Promise<WatchlistBrief
     complexCount: byComplex.size,
     tradeCount: rows.length,
   };
+}
+
+/**
+ * [945 · 실사용50 #47] 관심지역 브리핑 — user_watchlist 의 지역 구독 행
+ * (complex_id = "alert:region:{이름}")에서 첫 지역의 오늘을 요약한다.
+ * 시세 실측이 없는 지역이면 null — 빈 브리핑을 지어내지 않는다.
+ */
+async function buildRegionBrief(
+  watchRows: Array<Record<string, unknown>>,
+): Promise<WatchlistBrief | null> {
+  const regionName = watchRows
+    .map((r) => String(r.complex_id ?? ""))
+    .filter((id) => id.startsWith("alert:region:"))
+    .map((id) => id.slice("alert:region:".length).trim())
+    .find(Boolean);
+  if (!regionName) return null;
+
+  try {
+    const { regionIdForName } = await import("@/lib/region/catalog");
+    const { getRegionSnapshot } = await import("@/lib/market/store");
+    const regionId = regionIdForName(regionName);
+    if (!regionId) return null;
+    const snap = await getRegionSnapshot(regionId).catch(() => null);
+    if (!snap || snap.avgSale == null || snap.avgSale <= 0) return null;
+
+    const bits: string[] = [`평균 매매 ${krwEok(snap.avgSale)}`];
+    if (snap.saleChangeMonthly != null && Number.isFinite(snap.saleChangeMonthly)) {
+      bits.push(
+        `전월 대비 ${snap.saleChangeMonthly > 0 ? "+" : ""}${snap.saleChangeMonthly}%`,
+      );
+    }
+    if (snap.jeonseRatio != null) bits.push(`전세가율 ${Math.round(snap.jeonseRatio)}%`);
+    if (snap.tradeCount != null) bits.push(`최근 월 거래 ${snap.tradeCount}건`);
+
+    return {
+      title: `${regionName} 오늘`,
+      body: `${bits.join(" · ")} — 공표·신고 기준`,
+      complexCount: 0,
+      tradeCount: 0,
+      href: `/region/${regionId}`,
+      linkLabel: "지역 상세 ›",
+    };
+  } catch (e) {
+    logger.warn("[watchlist-brief] 지역 브리핑 실패", e);
+    return null;
+  }
 }

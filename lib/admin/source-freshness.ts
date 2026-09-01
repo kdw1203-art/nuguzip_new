@@ -34,6 +34,8 @@ type SourceDef = {
   pipeline: string;
   table: string;
   column: string;
+  /** [945] 같은 표에 성격이 다른 행이 섞일 때(자동/수동 글 등) 최신 시각을 가르는 필터 */
+  filter?: { column: string; value: boolean | string | number };
   thresholdHours: number;
 };
 
@@ -93,6 +95,17 @@ const SOURCES: SourceDef[] = [
     thresholdHours: 72,
   },
   {
+    /* [945 · 실사용50 #7] 동네 뉴스 자동 수집 — 자동 글의 최신 시각만 본다.
+       사람 글이 섞이면 수집이 죽어도 초록불이 되므로 filter 로 가른다. */
+    key: "town_news",
+    label: "동네 뉴스 자동 수집",
+    pipeline: "외부 자동화 → ingest_daily_news RPC (매일)",
+    table: "board_posts",
+    column: "created_at",
+    filter: { column: "is_automated", value: true },
+    thresholdHours: 24 * 4,
+  },
+  {
     key: "temperature",
     label: "시장 온도 주간 스냅샷",
     pipeline: "etl.yml → market-temperature-snapshot (주간)",
@@ -110,12 +123,13 @@ export async function loadSourceFreshness(): Promise<SourceFreshnessRow[]> {
       let lastAt: string | null = null;
       if (sb) {
         try {
-          const { data } = await sb
+          let q = sb
             .from(s.table)
             .select(s.column)
             .order(s.column, { ascending: false })
-            .limit(1)
-            .maybeSingle();
+            .limit(1);
+          if (s.filter) q = q.eq(s.filter.column, s.filter.value);
+          const { data } = await q.maybeSingle();
           const raw = (data as Record<string, unknown> | null)?.[s.column];
           lastAt = typeof raw === "string" ? raw : null;
         } catch {

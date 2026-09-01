@@ -104,3 +104,55 @@ export const METRO_EXPLORE_DISTRICTS: SeoulDistrictInfo[] = [
   { id: "incheon-gyeyang", name: "계양구", lat: 37.537, lng: 126.738, city: "인천" },
   { id: "incheon-jung", name: "인천 중구", lat: 37.474, lng: 126.621, city: "인천" },
 ];
+
+/* ── [945 · 실사용50 #4] 5대 광역시 시군구 — 전국 확장 1차 ──
+   좌표는 구 중심 근사(기존 카탈로그와 같은 규약). 이름이 서울·타 시도와 겹치는
+   구(중·서·동·남·북·강서)는 "부산 중구"처럼 시도를 이름에 접두해 정규화 키
+   충돌을 막는다(인천 중구 선례). REB 월간·주간 집계가 다음 수집부터 이
+   지역들에 자동 적재된다(matchRegionFromClsFullNm 경유). */
+export const METRO_CITY_DISTRICTS: SeoulDistrictInfo[] = [
+  // ── 부산 (16) ──
+  { id: "busan-jung", name: "부산 중구", lat: 35.1063, lng: 129.0323, city: "부산" },
+  { id: "busan-seo", name: "부산 서구", lat: 35.0979, lng: 129.0243, city: "부산" },
+  { id: "busan-dong", name: "부산 동구", lat: 35.1292, lng: 129.0453, city: "부산" },
+  { id: "busan-yeongdo", name: "영도구", lat: 35.0911, lng: 129.0679, city: "부산" },
+  { id: "busan-jin", name: "부산진구", lat: 35.1631, lng: 129.0533, city: "부산" },
+  { id: "busan-dongnae", name: "동래구", lat: 35.2048, lng: 129.0839, city: "부산" },
+  { id: "busan-nam", name: "부산 남구", lat: 35.1366, lng: 129.0843, city: "부산" },
+  { id: "busan-buk", name: "부산 북구", lat: 35.1972, lng: 128.9903, city: "부산" },
+  { id: "busan-haeundae", name: "해운대구", lat: 35.1631, lng: 129.1636, city: "부산" },
+  { id: "busan-saha", name: "사하구", lat: 35.1046, lng: 128.9749, city: "부산" },
+  { id: "busan-geumjeong", name: "금정구", lat: 35.2429, lng: 129.0922, city: "부산" },
+  { id: "busan-gangseo", name: "부산 강서구", lat: 35.2122, lng: 128.9806, city: "부산" },
+  { id: "busan-yeonje", name: "연제구", lat: 35.1762, lng: 129.0798, city: "부산" },
+  { id: "busan-suyeong", name: "수영구", lat: 35.1456, lng: 129.1131, city: "부산" },
+  { id: "busan-sasang", name: "사상구", lat: 35.1526, lng: 128.9911, city: "부산" },
+  { id: "busan-gijang", name: "기장군", lat: 35.2445, lng: 129.2224, city: "부산" },
+  // ── 대구 (8) ──
+  { id: "daegu-jung", name: "대구 중구", lat: 35.8694, lng: 128.6062, city: "대구" },
+  { id: "daegu-dong", name: "대구 동구", lat: 35.8867, lng: 128.6357, city: "대구" },
+  { id: "daegu-seo", name: "대구 서구", lat: 35.8718, lng: 128.5591, city: "대구" },
+  { id: "daegu-nam", name: "대구 남구", lat: 35.8460, lng: 128.5977, city: "대구" },
+  { id: "daegu-buk", name: "대구 북구", lat: 35.8858, lng: 128.5829, city: "대구" },
+  { id: "daegu-suseong", name: "수성구", lat: 35.8582, lng: 128.6309, city: "대구" },
+  { id: "daegu-dalseo", name: "달서구", lat: 35.8299, lng: 128.5326, city: "대구" },
+  { id: "daegu-dalseong", name: "달성군", lat: 35.7745, lng: 128.4313, city: "대구" },
+  // ── 대전 (5) ──
+  { id: "daejeon-dong", name: "대전 동구", lat: 36.3120, lng: 127.4548, city: "대전" },
+  { id: "daejeon-jung", name: "대전 중구", lat: 36.3255, lng: 127.4213, city: "대전" },
+  { id: "daejeon-seo", name: "대전 서구", lat: 36.3555, lng: 127.3838, city: "대전" },
+  { id: "daejeon-yuseong", name: "유성구", lat: 36.3624, lng: 127.3565, city: "대전" },
+  { id: "daejeon-daedeok", name: "대덕구", lat: 36.3466, lng: 127.4155, city: "대전" },
+  // ── 광주 (5) ──
+  { id: "gwangju-dong", name: "광주 동구", lat: 35.1460, lng: 126.9230, city: "광주" },
+  { id: "gwangju-seo", name: "광주 서구", lat: 35.1520, lng: 126.8895, city: "광주" },
+  { id: "gwangju-nam", name: "광주 남구", lat: 35.1328, lng: 126.9026, city: "광주" },
+  { id: "gwangju-buk", name: "광주 북구", lat: 35.1741, lng: 126.9120, city: "광주" },
+  { id: "gwangju-gwangsan", name: "광산구", lat: 35.1394, lng: 126.7936, city: "광주" },
+  // ── 울산 (5) ──
+  { id: "ulsan-jung", name: "울산 중구", lat: 35.5694, lng: 129.3328, city: "울산" },
+  { id: "ulsan-nam", name: "울산 남구", lat: 35.5437, lng: 129.3301, city: "울산" },
+  { id: "ulsan-dong", name: "울산 동구", lat: 35.5052, lng: 129.4166, city: "울산" },
+  { id: "ulsan-buk", name: "울산 북구", lat: 35.5827, lng: 129.3613, city: "울산" },
+  { id: "ulsan-ulju", name: "울주군", lat: 35.5622, lng: 129.1243, city: "울산" },
+];
