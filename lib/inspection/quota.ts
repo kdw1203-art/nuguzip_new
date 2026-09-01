@@ -11,6 +11,10 @@ import { logger } from "@/lib/log";
 export const AI_REPORT_LIMITS: Record<PlanTier, number | null> =
   monthlyLimitsAsPlanTiers("ai_inspection_note");
 
+/* [944] AI 초안·예습 브리핑 — 정리 리포트와 별도 카운터(draft_count). */
+export const AI_DRAFT_LIMITS: Record<PlanTier, number | null> =
+  monthlyLimitsAsPlanTiers("ai_note_draft");
+
 export async function getUserPlanTier(email: string): Promise<PlanTier> {
   const profile = await fetchAppUserByEmail(email);
   return normalizePlanToGate(profile.plan);
@@ -105,5 +109,71 @@ export async function incrementReportUsage(email: string): Promise<void> {
       report_count: 1,
     });
     if (error) logger.error("[quota] 사용량 기록 실패:", error.message);
+  }
+}
+
+/* ── [944] AI 초안 쿼터 — 리포트(report_count)와 같은 규약, 다른 열(draft_count) ── */
+
+export async function getMonthlyDraftUsage(email: string): Promise<number> {
+  const sb = getServiceSupabase();
+  if (!sb) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "SUPABASE_SERVICE_ROLE_KEY 미설정 — 사용량을 셀 수 없어 AI 초안 한도 판정을 중단합니다.",
+      );
+    }
+    return 0;
+  }
+  const { data, error } = await sb
+    .from("inspection_ai_usage")
+    .select("draft_count")
+    .eq("author_email", email.trim().toLowerCase())
+    .eq("yyyymm", currentYyyymm())
+    .maybeSingle();
+  if (error) throw new Error(`inspection_ai_usage 조회 실패: ${error.message}`);
+  return Number(data?.draft_count ?? 0);
+}
+
+export async function checkDraftQuota(email: string): Promise<{
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  plan: PlanTier;
+}> {
+  const plan = await getUserPlanTier(email);
+  const limit = AI_DRAFT_LIMITS[plan];
+  const used = await getMonthlyDraftUsage(email);
+  if (limit === null) return { allowed: true, used, limit, plan };
+  return { allowed: used < limit, used, limit, plan };
+}
+
+export async function incrementDraftUsage(email: string): Promise<void> {
+  const sb = getServiceSupabase();
+  if (!sb) return;
+  const normalized = email.trim().toLowerCase();
+  const yyyymm = currentYyyymm();
+  const { data: existing, error: readError } = await sb
+    .from("inspection_ai_usage")
+    .select("id, draft_count")
+    .eq("author_email", normalized)
+    .eq("yyyymm", yyyymm)
+    .maybeSingle();
+  if (readError) {
+    logger.error("[quota] inspection_ai_usage 조회 실패 — 초안 사용량 증가 생략:", readError.message);
+    return;
+  }
+  if (existing?.id) {
+    const { error } = await sb
+      .from("inspection_ai_usage")
+      .update({ draft_count: Number(existing.draft_count ?? 0) + 1 })
+      .eq("id", existing.id);
+    if (error) logger.error("[quota] 초안 사용량 증가 실패:", error.message);
+  } else {
+    const { error } = await sb.from("inspection_ai_usage").insert({
+      author_email: normalized,
+      yyyymm,
+      draft_count: 1,
+    });
+    if (error) logger.error("[quota] 초안 사용량 기록 실패:", error.message);
   }
 }

@@ -49,6 +49,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       { label: "지역 탐색 지도 · 동네 맥락", included: true },
       { label: "북마크 · 관심단지", included: "limited", note: "10개" },
       { label: "AI 임장노트 자동정리", included: "limited", note: "월 2회" },
+      { label: "AI 노트 초안·예습 브리핑", included: "limited", note: "월 10회" },
       { label: "동네 분석 요약", included: "limited", note: "월 3회" },
       { label: "비교 트레이", included: "limited", note: "2개" },
       { label: "CSV 다운로드", included: false },
@@ -80,6 +81,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       { label: "FREE 의 모든 혜택 포함", included: true },
       { label: "북마크 · 관심단지", included: true, note: "100개" },
       { label: "AI 임장노트 자동정리", included: true, note: "월 30회" },
+      { label: "AI 노트 초안·예습 브리핑", included: true, note: "월 100회" },
       { label: "동네 분석 요약", included: true, note: "월 50회" },
       { label: "비교 트레이", included: true, note: "10개" },
       { label: "CSV 다운로드", included: true, note: "월 10회" },
@@ -158,6 +160,7 @@ export const PLAN_FEATURE_MATRIX: Array<{
 }> = [
   { feature: "북마크·관심단지", free: "10개", pro: "100개", expert: "무제한" },
   { feature: "AI 임장노트 자동정리", free: "월 2회", pro: "월 30회", expert: "무제한" },
+  { feature: "AI 노트 초안·예습 브리핑", free: "월 10회", pro: "월 100회", expert: "무제한" },
   { feature: "동네 분석 요약", free: "월 3회", pro: "월 50회", expert: "무제한" },
   { feature: "비교 트레이", free: "2개", pro: "10개", expert: "무제한" },
   { feature: "CSV 다운로드", free: "불가", pro: "월 10회", expert: "무제한" },

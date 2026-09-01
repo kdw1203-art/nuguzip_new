@@ -57,7 +57,8 @@ export type FeatureKey =
   | "ad_free"             // 광고 제거
   | "report_sell"         // 리포트 판매
   | "compare_tray"        // 비교 트레이
-  | "ai_agent";           // AI 에이전트(질의 라운드)
+  | "ai_agent"            // AI 에이전트(질의 라운드)
+  | "ai_note_draft";      // [944] AI 임장노트 초안·예습 브리핑 (방문 전 자동 작성)
 
 type FeatureRule = {
   minTier: PlanTier;
@@ -117,6 +118,12 @@ export const FEATURE_RULES: Record<FeatureKey, FeatureRule> = {
   ai_inspection_note: {
     minTier: "basic",
     monthlyLimit: { basic: 2, pro: 30, expert: null, enterprise: null },
+  },
+  /* [944] 방문 전 초안·브리핑 — 정리(위)와 별도 카운터. 무료 10회는 소유자 결정
+     (2026-09-01: 초기엔 이용자 확보 우선, AI 비용은 규모상 부담 없음). */
+  ai_note_draft: {
+    minTier: "basic",
+    monthlyLimit: { basic: 10, pro: 100, expert: null, enterprise: null },
   },
   data_export: {
     minTier: "pro",

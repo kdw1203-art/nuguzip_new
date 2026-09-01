@@ -43,6 +43,7 @@ import { Icon } from "@/app/components/Icon";
 import { regionIdForName } from "@/lib/region/catalog";
 import { ComplexQna } from "./ComplexQna";
 import { ComplexNotesNewsAi } from "./ComplexNotesNewsAi";
+import { AiBriefingCard } from "./AiBriefingCard";
 import { SEOUL_BROWSE_REGIONS, buildComplexTxSlug } from "@/lib/market/complex-transactions";
 import {
   complexResidenceJsonLd,
@@ -1092,6 +1093,18 @@ export default async function ComplexHubPage({
             </div>
           )}
           <div className="rise-in-3">{cta}</div>
+          {/* [944] 방문 전 AI 예습 브리핑 — CTA 바로 아래, 노트 시작 동선과 한 몸 */}
+          <AiBriefingCard
+            complexId={complexId}
+            region={v.dong ?? v.city ?? ""}
+            aptName={v.name}
+            noteHref={(() => {
+              const p = new URLSearchParams({ apt: v.name });
+              if (v.dong) p.set("region", v.dong);
+              if (complexId) p.set("complexId", complexId);
+              return `/notes/new?${p.toString()}`;
+            })()}
+          />
           <AdSlot placement="community_feed" seed={0} plan={null} />
         </aside>
       </div>

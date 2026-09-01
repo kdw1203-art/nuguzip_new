@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { NoteLocationSearch, type NoteLocation } from "./NoteLocationSearch";
+import { AiDraftPanel } from "./AiDraftPanel";
+import type { NoteDraft as AiNoteDraft } from "@/lib/ai/note-draft-core";
 import { FieldCaptureConsentNotice } from "@/components/inspection/field-capture-consent";
 import { useMoment } from "@/app/components/motion/MomentProvider";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
@@ -724,6 +726,33 @@ export function NoteForm({
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
     );
   };
+  /* [944] AI 초안 적용 흔적 — 저장 메타(aiDraft*)와 화면 라벨의 근거 */
+  const [aiDraftMeta, setAiDraftMeta] = useState<{
+    llm: boolean;
+    model: string | null;
+    scored: boolean;
+  } | null>(null);
+  const applyAiDraft = (d: AiNoteDraft) => {
+    /* 사용자 입력 보존이 원칙: 비어 있으면 채우고, 있으면 아래에 덧붙인다. */
+    setMemo((prev) => (prev.trim() ? `${prev.trimEnd()}\n\n${d.memo}` : d.memo));
+    if (Object.keys(d.checks).length > 0) {
+      setChecks((prev) => ({ ...prev, ...(d.checks as Record<string, Level>) }));
+    }
+    if (d.satisfaction != null) setSatisfaction(d.satisfaction);
+    if (d.todo.length > 0) {
+      setTodoItems((prev) => {
+        const seen = new Set(prev.map((t) => t.text));
+        const add = d.todo.filter((t) => !seen.has(t)).map((text) => ({ text, level: "보통" as const }));
+        return [...prev, ...add];
+      });
+    }
+    setAiDraftMeta({
+      llm: d.llmUsed,
+      model: d.model,
+      scored: Object.keys(d.checks).length > 0 || d.satisfaction != null,
+    });
+  };
+
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -1063,6 +1092,11 @@ export function NoteForm({
           investorRole: investorRoleFromPurpose(visit["목적"]),
           weather: weather.trim() || undefined,
           fieldRatings: checks,
+          /* [944] AI 초안 사용 흔적 — 점수 추정이 섞인 노트는 상세에서 라벨로
+             구분할 근거가 된다. 라벨 없는 추정 점수는 지어낸 값과 같다. */
+          aiDraft: aiDraftMeta ? true : undefined,
+          aiDraftScored: aiDraftMeta?.scored || undefined,
+          aiDraftModel: aiDraftMeta?.model ?? undefined,
           todoLevels: Object.fromEntries(todoItems.map((t) => [t.text, t.level])),
           checklistGroupCounts: {
             checked: categoryChecklist.length,
@@ -1405,6 +1439,18 @@ export function NoteForm({
               </p>
             )}
           </div>
+        )}
+
+        {/* [944] AI 초안으로 시작 — 위치 선택 직후, 본 입력 전에 제안한다.
+            수정 모드에선 숨김(이미 쓴 노트를 초안으로 덮을 이유가 없다). */}
+        {!isEdit && (
+          <AiDraftPanel
+            region={loc.region}
+            aptName={loc.aptName}
+            complexId={loc.complexId ?? null}
+            purpose={visit["목적"] || null}
+            onApply={applyAiDraft}
+          />
         )}
 
         {/* [#133] 음성 메모 — 현장의 세 번째 입력 수단 */}
