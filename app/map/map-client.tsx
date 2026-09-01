@@ -992,6 +992,20 @@ export function MapClient({
      "—" 로 띄운다(없다는 사실도 정보다). */
   const [regionMetric, setRegionMetric] = useState<"avg" | "perM2" | "jeonse" | "temp">("avg");
 
+  /* ===== [943 · #96] 학교·지하철 POI 레이어 — 공공데이터 표준데이터 2종.
+     활용신청 승인 전엔 표가 비어 있다 — ready 플래그로 "준비 중"과 "이 지역에
+     없음"을 구분해 말한다(빈 지도를 없다고 단정하지 않는다). */
+  const [showSchools, setShowSchools] = useState(false);
+  const [showStations, setShowStations] = useState(false);
+  const [poiData, setPoiData] = useState<{
+    schools: Array<{ name: string; category: string | null; lat: number; lng: number }>;
+    stations: Array<{ name: string; line: string | null; lat: number; lng: number }>;
+    schoolsReady: boolean;
+    stationsReady: boolean;
+    tooWide: boolean;
+  } | null>(null);
+  const [poiFailed, setPoiFailed] = useState(false);
+
   /* ===== [지도확장 2차 · 937] 공매 배지 레이어 — 온비드 진행 물건 구 단위 집계.
      물건에 좌표가 없어(주소 텍스트뿐) 개별 핀은 허위 위치가 된다 — 구 중심에
      "공매 N건" 배지만 올리고 상세는 /auctions?gu= 로 넘긴다. */
@@ -1045,6 +1059,8 @@ export function MapClient({
         setShowMyNotes(on.has("mynotes"));
         setShowRentShare(on.has("rentshare"));
         setShowAuctions(on.has("auctions"));
+        setShowSchools(on.has("schools"));
+        setShowStations(on.has("stations"));
         const m = sp.get("metric");
         if (m === "avg" || m === "perM2" || m === "jeonse" || m === "temp") setRegionMetric(m);
         return;
@@ -1063,6 +1079,8 @@ export function MapClient({
         myNotes?: boolean;
         rentShare?: boolean;
         auctions?: boolean;
+        schools?: boolean;
+        stations?: boolean;
         regionMetric?: string;
         tx?: "trade" | "rent";
       };
@@ -1074,6 +1092,8 @@ export function MapClient({
       if (typeof p.myNotes === "boolean") setShowMyNotes(p.myNotes);
       if (typeof p.rentShare === "boolean") setShowRentShare(p.rentShare);
       if (typeof p.auctions === "boolean") setShowAuctions(p.auctions);
+      if (typeof p.schools === "boolean") setShowSchools(p.schools);
+      if (typeof p.stations === "boolean") setShowStations(p.stations);
       if (
         p.regionMetric === "avg" || p.regionMetric === "perM2" ||
         p.regionMetric === "jeonse" || p.regionMetric === "temp"
@@ -1099,6 +1119,8 @@ export function MapClient({
           myNotes: showMyNotes,
           rentShare: showRentShare,
           auctions: showAuctions,
+          schools: showSchools,
+          stations: showStations,
           regionMetric,
           tx: txType,
         }),
@@ -1119,6 +1141,8 @@ export function MapClient({
         showMyNotes ? "mynotes" : null,
         showRentShare ? "rentshare" : null,
         showAuctions ? "auctions" : null,
+        showSchools ? "schools" : null,
+        showStations ? "stations" : null,
       ].filter(Boolean);
       url.searchParams.set("layers", tokens.join(","));
       if (regionMetric !== "avg") url.searchParams.set("metric", regionMetric);
@@ -1880,6 +1904,31 @@ export function MapClient({
               <span aria-hidden className="pulse-dot ml-1 align-middle text-primary" />
             )}
           </button>
+          {/* [943 · #96] 학교·지하철 POI — 공공데이터 표준데이터 */}
+          <button
+            type="button"
+            aria-pressed={showSchools}
+            onClick={() => setShowSchools((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-[13px] transition-colors ${
+              showSchools
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[var(--glass-bg)] text-text-2"
+            }`}
+          >
+            <Icon name="🏫" size={14} className="inline align-middle" /> 학교
+          </button>
+          <button
+            type="button"
+            aria-pressed={showStations}
+            onClick={() => setShowStations((v) => !v)}
+            className={`chip whitespace-nowrap px-2.5 py-1.5 text-[13px] transition-colors ${
+              showStations
+                ? "bg-primary-soft font-bold text-primary"
+                : "bg-[var(--glass-bg)] text-text-2"
+            }`}
+          >
+            <Icon name="🚇" size={14} className="inline align-middle" /> 지하철
+          </button>
         </div>
         {/* [940] 구 버블 지표 전환 — 넓은 줌의 구 단위 버블에 어떤 숫자를 띄울지.
             단지 줌·전세 모드에서는 구 버블 자체가 숨으므로 비활성으로 보여 준다. */}
@@ -2638,6 +2687,60 @@ export function MapClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAuctions]);
 
+  /* [943] POI 로드 — 정비사업과 같은 뷰포트 재조회 패턴(idle 후 500ms 디바운스).
+     둘 중 하나라도 켜져 있으면 한 번에 받는다(학교·역이 같은 API). */
+  useEffect(() => {
+    if (!showSchools && !showStations) return;
+    const b = viewBounds;
+    if (!b) return; // 첫 idle 전 — 뷰포트가 잡히면 다시 돈다
+    const controller = new AbortController();
+    const t = window.setTimeout(() => {
+      setPoiFailed(false);
+      fetch(
+        `/api/map/poi?swLat=${b.swLat}&swLng=${b.swLng}&neLat=${b.neLat}&neLng=${b.neLng}`,
+        { signal: controller.signal },
+      )
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((json: NonNullable<typeof poiData>) => {
+          if (controller.signal.aborted) return;
+          setPoiData(json);
+        })
+        .catch((e) => {
+          if (controller.signal.aborted || (e as Error)?.name === "AbortError") return;
+          setPoiFailed(true);
+        });
+    }, 500);
+    return () => {
+      window.clearTimeout(t);
+      controller.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSchools, showStations, viewBounds]);
+
+  const schoolMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showSchools || !poiData) return [];
+    return poiData.schools.map((s) => ({
+      id: `school:${s.name}:${s.lat.toFixed(5)}`,
+      lat: s.lat,
+      lng: s.lng,
+      label: s.name,
+      pinColor: "#2e7d32",
+      infoHtml: `<div style="min-width:140px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${s.name}</p><p style="font-size:11px;color:#555;margin:2px 0 0">${s.category ?? "학교"}</p><p style="font-size:11px;color:#aaa;margin:2px 0 0">전국초중등학교위치 표준데이터</p></div>`,
+    }));
+  }, [showSchools, poiData]);
+
+  const stationMarkers = useMemo<MapMarkerData[]>(() => {
+    if (!showStations || !poiData) return [];
+    return poiData.stations.map((s) => ({
+      id: `station:${s.name}:${s.line ?? ""}`,
+      lat: s.lat,
+      lng: s.lng,
+      label: s.line ? `${s.name} (${s.line})` : s.name,
+      pinColor: "#00579b",
+      infoHtml: `<div style="min-width:140px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${s.name}</p><p style="font-size:11px;color:#555;margin:2px 0 0">${s.line ?? "도시철도"}</p><p style="font-size:11px;color:#aaa;margin:2px 0 0">전국도시철도역사 표준데이터</p></div>`,
+    }));
+  }, [showStations, poiData]);
+
   const auctionMarkers = useMemo<MapMarkerData[]>(() => {
     if (!showAuctions) return [];
     const eok = (v: number | null) =>
@@ -2867,6 +2970,8 @@ export function MapClient({
       ...myNoteMarkers,
       ...rentShareMarkers,
       ...auctionMarkers,
+      ...schoolMarkers,
+      ...stationMarkers,
     ]);
     }
     // 높은 줌: 기존 시세 말풍선 마커 + 뷰포트 내 추가 단지 포인트.
@@ -2962,6 +3067,8 @@ export function MapClient({
       ...myNoteMarkers,
       ...rentShareMarkers,
       ...auctionMarkers,
+      ...schoolMarkers,
+      ...stationMarkers,
     ]);
   }, [
     clusterMode,
@@ -2980,6 +3087,8 @@ export function MapClient({
     myNoteMarkers,
     rentShareMarkers,
     auctionMarkers,
+    schoolMarkers,
+    stationMarkers,
     regionMarketMarkers,
     zoom,
     txType,
@@ -3393,6 +3502,30 @@ export function MapClient({
       key: "auctions-empty",
       text: "지금 진행 중인 공매 물건이 지도 권역에 없어요",
     });
+  }
+
+  /* [943] POI — 실패 / 데이터 미적재 / 줌아웃을 각각 구분해 말한다.
+     빈 지도를 "학교가 없다"로 읽게 두는 것이 최악의 실패다. */
+  if ((showSchools || showStations) && poiFailed) {
+    mapNotices.push({
+      key: "poi-failed",
+      text: "학교·지하철 정보를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요",
+    });
+  } else if ((showSchools || showStations) && poiData) {
+    if (poiData.tooWide) {
+      mapNotices.push({
+        key: "poi-zoom",
+        text: "학교·지하철은 지도를 더 확대하면 표시돼요",
+      });
+    } else if (
+      (showSchools && !poiData.schoolsReady) ||
+      (showStations && !poiData.stationsReady)
+    ) {
+      mapNotices.push({
+        key: "poi-not-ready",
+        text: "학교·지하철 데이터가 아직 준비 중이에요 — 공공데이터 활용신청 승인 후 자동으로 채워집니다",
+      });
+    }
   }
 
   /* [#74] 입주 예정 레이어 — 실패와 "0곳"을 구분해 말한다 */
