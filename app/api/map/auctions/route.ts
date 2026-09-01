@@ -18,7 +18,24 @@ import { SEOUL_DISTRICTS, METRO_EXPLORE_DISTRICTS } from "@/lib/map/seoul-distri
 export const runtime = "nodejs";
 export const revalidate = 3600;
 
-type Agg = { count: number; minBidKrw: number | null };
+type AuctionPreview = { name: string; minBidKrw: number | null; endYmd: string | null };
+/** 내부 집계용 — s = 마감일 정렬키(응답에는 내보내지 않음) */
+type AuctionPreviewRow = AuctionPreview & { s: string };
+type Agg = { count: number; minBidKrw: number | null; top: AuctionPreviewRow[] };
+
+/** bid_end 원문("YYYYMMDDHHMM" 등 형식 관용) → "MM.DD" (해석 불가면 null) */
+function endYmdOf(bidEnd: string | null): string | null {
+  if (!bidEnd) return null;
+  const digits = bidEnd.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  return `${digits.slice(4, 6)}.${digits.slice(6, 8)}`;
+}
+
+/** 정렬용 — 마감 빠른 순. 해석 불가는 뒤로. */
+function endSortKey(bidEnd: string | null): string {
+  const digits = (bidEnd ?? "").replace(/\D/g, "");
+  return digits.length >= 8 ? digits.slice(0, 8) : "99999999";
+}
 
 function cityKeyFromSido(sido: string): string | null {
   if (sido.startsWith("서울")) return "서울";
@@ -47,7 +64,7 @@ export async function GET() {
   for (let p = 0; p < MAX_PAGES; p += 1) {
     const { data, error } = await sb
       .from("onbid_auctions")
-      .select("sido, sigungu, bid_end, min_bid_krw")
+      .select("sido, sigungu, bid_end, min_bid_krw, name")
       .order("id", { ascending: true })
       .range(p * PAGE, p * PAGE + PAGE - 1);
     if (error) {
@@ -70,11 +87,26 @@ export async function GET() {
     const city = cityKeyFromSido(sido);
     if (!city || !sigungu) continue; // active에는 세고 matched에는 못 드니 uncharted로 잡힌다
     const key = coordKey(city, sigungu);
-    const prev = byKey.get(key) ?? { count: 0, minBidKrw: null };
+    const prev = byKey.get(key) ?? { count: 0, minBidKrw: null, top: [] };
     prev.count += 1;
     const bid = r.min_bid_krw != null ? Number(r.min_bid_krw) : NaN;
     if (Number.isFinite(bid) && bid > 0) {
       prev.minBidKrw = prev.minBidKrw == null ? bid : Math.min(prev.minBidKrw, bid);
+    }
+    /* [940] 인포윈도우 미리보기 — 마감 빠른 순 상위 3건. 배지 클릭이 목록으로
+       가기 전에 "이 구에 지금 뭐가 있나"를 지도 안에서 보여 준다. */
+    const nm = r.name ? String(r.name).trim() : "";
+    if (nm) {
+      prev.top.push({
+        name: nm.length > 26 ? `${nm.slice(0, 25)}…` : nm,
+        minBidKrw: Number.isFinite(bid) && bid > 0 ? bid : null,
+        endYmd: endYmdOf(bidEnd),
+        s: endSortKey(bidEnd),
+      });
+      if (prev.top.length > 12) {
+        prev.top.sort((a, b) => a.s.localeCompare(b.s));
+        prev.top.length = 6; // 중간 가지치기 — 구당 수백 건 배열 성장 방지
+      }
     }
     byKey.set(key, prev);
   }
@@ -86,6 +118,7 @@ export async function GET() {
     lng: number;
     count: number;
     minBidKrw: number | null;
+    top: AuctionPreview[];
   }> = [];
   let matched = 0;
   for (const d of [...SEOUL_DISTRICTS, ...METRO_EXPLORE_DISTRICTS]) {
@@ -93,6 +126,10 @@ export async function GET() {
     const agg = byKey.get(coordKey(city, d.name));
     if (!agg || agg.count === 0) continue;
     matched += agg.count;
+    const top = [...agg.top]
+      .sort((a, b) => a.s.localeCompare(b.s))
+      .slice(0, 3)
+      .map(({ name, minBidKrw, endYmd }) => ({ name, minBidKrw, endYmd }));
     items.push({
       id: d.id,
       name: d.name,
@@ -100,6 +137,7 @@ export async function GET() {
       lng: d.lng,
       count: agg.count,
       minBidKrw: agg.minBidKrw,
+      top,
     });
   }
 

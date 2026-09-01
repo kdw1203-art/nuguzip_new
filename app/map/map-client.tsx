@@ -987,12 +987,26 @@ export function MapClient({
   >([]);
   const [rentShareFailed, setRentShareFailed] = useState(false);
 
+  /* ===== [940] 구 버블 지표 전환 — 이미 실려 오는 실데이터(평균가·㎡당·전세가율·
+     시장온도) 중 무엇을 버블 숫자로 띄울지. 값이 없는 구는 그 지표에서 숨기지 않고
+     "—" 로 띄운다(없다는 사실도 정보다). */
+  const [regionMetric, setRegionMetric] = useState<"avg" | "perM2" | "jeonse" | "temp">("avg");
+
   /* ===== [지도확장 2차 · 937] 공매 배지 레이어 — 온비드 진행 물건 구 단위 집계.
      물건에 좌표가 없어(주소 텍스트뿐) 개별 핀은 허위 위치가 된다 — 구 중심에
      "공매 N건" 배지만 올리고 상세는 /auctions?gu= 로 넘긴다. */
   const [showAuctions, setShowAuctions] = useState(false);
   const [auctionItems, setAuctionItems] = useState<
-    Array<{ id: string; name: string; lat: number; lng: number; count: number; minBidKrw: number | null }>
+    Array<{
+      id: string;
+      name: string;
+      lat: number;
+      lng: number;
+      count: number;
+      minBidKrw: number | null;
+      /** [940] 마감 임박 상위 3건 미리보기 */
+      top?: Array<{ name: string; minBidKrw: number | null; endYmd: string | null }>;
+    }>
   >([]);
   const [auctionsFailed, setAuctionsFailed] = useState(false);
   const [auctionsLoaded, setAuctionsLoaded] = useState(false);
@@ -1016,6 +1030,28 @@ export function MapClient({
   useEffect(() => {
     if (mapPrefsLoaded.current) return;
     mapPrefsLoaded.current = true;
+    /* [940] ?layers= 가 있으면 그 조합이 곧 명시 의도다 — 공유받은 링크가
+       내 저장값에 덮이면 "보낸 사람이 보던 지도"가 아니게 된다. URL 이 이기고,
+       저장값 복원은 건너뛴다. (?type= 규칙과 같은 원칙) */
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const layersRaw = sp.get("layers");
+      if (layersRaw != null) {
+        const on = new Set(layersRaw.split(",").map((s) => s.trim()).filter(Boolean));
+        setShowPriceOverlay(on.has("price"));
+        if (!initialListingType) setShowListings(on.has("listings"));
+        setShowRedevelopment(on.has("redev"));
+        setShowSupply(on.has("supply"));
+        setShowMyNotes(on.has("mynotes"));
+        setShowRentShare(on.has("rentshare"));
+        setShowAuctions(on.has("auctions"));
+        const m = sp.get("metric");
+        if (m === "avg" || m === "perM2" || m === "jeonse" || m === "temp") setRegionMetric(m);
+        return;
+      }
+    } catch {
+      /* URL 파싱 실패 — 저장값 복원으로 진행 */
+    }
     try {
       const raw = window.localStorage.getItem("nz_map_prefs");
       if (!raw) return;
@@ -1027,6 +1063,7 @@ export function MapClient({
         myNotes?: boolean;
         rentShare?: boolean;
         auctions?: boolean;
+        regionMetric?: string;
         tx?: "trade" | "rent";
       };
       if (typeof p.overlay === "boolean") setShowPriceOverlay(p.overlay);
@@ -1037,6 +1074,12 @@ export function MapClient({
       if (typeof p.myNotes === "boolean") setShowMyNotes(p.myNotes);
       if (typeof p.rentShare === "boolean") setShowRentShare(p.rentShare);
       if (typeof p.auctions === "boolean") setShowAuctions(p.auctions);
+      if (
+        p.regionMetric === "avg" || p.regionMetric === "perM2" ||
+        p.regionMetric === "jeonse" || p.regionMetric === "temp"
+      ) {
+        setRegionMetric(p.regionMetric);
+      }
       if ((p.tx === "trade" || p.tx === "rent") && !initialListingType) setTxType(p.tx);
     } catch {
       /* 손상된 저장값은 무시 */
@@ -1056,13 +1099,35 @@ export function MapClient({
           myNotes: showMyNotes,
           rentShare: showRentShare,
           auctions: showAuctions,
+          regionMetric,
           tx: txType,
         }),
       );
     } catch {
       /* 프라이빗 모드 등 — 유지 없이 진행 */
     }
-  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, showMyNotes, showRentShare, showAuctions, txType]);
+    /* [940] 주소창을 현재 레이어 조합과 동기화 — 브라우저 주소를 그대로 복사해
+       보내면 받은 사람이 같은 지도를 본다(공유 버튼 없이 URL 자체가 공유물).
+       replaceState 라 히스토리를 오염시키지 않고, q·type 등 기존 파라미터는 남긴다. */
+    try {
+      const url = new URL(window.location.href);
+      const tokens = [
+        showPriceOverlay ? "price" : null,
+        showListings ? "listings" : null,
+        showRedevelopment ? "redev" : null,
+        showSupply ? "supply" : null,
+        showMyNotes ? "mynotes" : null,
+        showRentShare ? "rentshare" : null,
+        showAuctions ? "auctions" : null,
+      ].filter(Boolean);
+      url.searchParams.set("layers", tokens.join(","));
+      if (regionMetric !== "avg") url.searchParams.set("metric", regionMetric);
+      else url.searchParams.delete("metric");
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 주소창 동기화 실패 — 지도 동작과 무관 */
+    }
+  }, [showPriceOverlay, showListings, showRedevelopment, showSupply, showMyNotes, showRentShare, showAuctions, regionMetric, txType]);
   const [redevItems, setRedevItems] = useState<RedevelopmentProject[]>([]);
   /* 조회 실패와 "정말 0건"은 지도에서 똑같이 보인다 — 둘 다 마커가 없다.
      그래서 실패는 따로 들고 있다가 말로 알린다. */
@@ -1816,6 +1881,37 @@ export function MapClient({
             )}
           </button>
         </div>
+        {/* [940] 구 버블 지표 전환 — 넓은 줌의 구 단위 버블에 어떤 숫자를 띄울지.
+            단지 줌·전세 모드에서는 구 버블 자체가 숨으므로 비활성으로 보여 준다. */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="t-caption font-bold text-text-3">구 버블</span>
+          {(
+            [
+              ["avg", "평균가"],
+              ["perM2", "㎡당"],
+              ["jeonse", "전세가율"],
+              ["temp", "온도"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={regionMetric === key}
+              disabled={txType === "rent"}
+              onClick={() => setRegionMetric(key)}
+              className={`chip whitespace-nowrap px-2 py-1 t-caption transition-colors disabled:opacity-40 ${
+                regionMetric === key
+                  ? "bg-primary-soft font-bold text-primary"
+                  : "bg-[var(--glass-bg)] text-text-2"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {txType === "rent" && (
+            <span className="t-caption text-text-3">전세 모드에선 구 버블이 숨어요</span>
+          )}
+        </div>
         <div className="t-caption text-text-3">
           정비사업은 공개 자료 기준 참고값이에요. 실제 추진 단계는 관할 구청 고시를 확인하세요.
           {showSupply && supplyItems.length > 0 && (
@@ -2550,8 +2646,22 @@ export function MapClient({
           ? `${(v / 100_000_000).toFixed(v >= 1_000_000_000 ? 0 : 1)}억`
           : `${Math.round(v / 10_000).toLocaleString("ko-KR")}만`
         : null;
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
     return auctionItems.map((a) => {
       const minBid = eok(a.minBidKrw);
+      /* [940] 마감 임박 상위 3건 미리보기 — 목록으로 나가기 전에 지도 안에서
+         "이 구에 지금 뭐가 있나"가 보인다. 마감일이 없는 물건은 날짜를 비워 둔다. */
+      const topHtml =
+        Array.isArray(a.top) && a.top.length > 0
+          ? `<div style="margin:5px 0 0;border-top:1px solid rgba(16,28,54,.08);padding-top:5px">${a.top
+              .map(
+                (t) =>
+                  `<p style="font-size:11px;margin:2px 0 0;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px">${
+                    t.endYmd ? `<b style="color:#7c3aed">${t.endYmd}</b> ` : ""
+                  }${esc(t.name)}${eok(t.minBidKrw) ? ` <span style="color:#888">${eok(t.minBidKrw)}~</span>` : ""}</p>`,
+              )
+              .join("")}</div>`
+          : "";
       return {
         id: `auction:${a.id}`,
         /* 같은 구 중심에 시세 버블·월세 배지가 함께 설 수 있어 살짝 남쪽으로 비켜 세운다 */
@@ -2559,7 +2669,7 @@ export function MapClient({
         lng: a.lng,
         label: `${a.name} 공매 ${a.count}건`,
         pinColor: "#7c3aed",
-        infoHtml: `<div style="min-width:170px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${a.name}</p><p style="font-size:13px;margin:3px 0 0;color:#333">공매 진행 <b>${a.count}건</b>${minBid ? ` · 최저입찰 ${minBid}~` : ""}</p><p style="font-size:11px;color:#888;margin:3px 0 0">온비드(한국자산관리공사) · 구 단위 집계 — 물건 위치는 구 중심 표시</p><a href="/auctions?gu=${encodeURIComponent(a.name)}" style="font-size:11px;color:var(--primary);font-weight:700">물건 목록 보기 →</a></div>`,
+        infoHtml: `<div style="min-width:190px;max-width:240px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${a.name}</p><p style="font-size:13px;margin:3px 0 0;color:#333">공매 진행 <b>${a.count}건</b>${minBid ? ` · 최저입찰 ${minBid}~` : ""}</p>${topHtml}<p style="font-size:11px;color:#888;margin:4px 0 0">온비드(한국자산관리공사) · 구 단위 집계 — 위치는 구 중심 표시${a.top?.length ? " · 굵은 날짜는 입찰 마감일" : ""}</p><a href="/auctions?gu=${encodeURIComponent(a.name)}" style="font-size:11px;color:var(--primary);font-weight:700">물건 목록 보기 →</a></div>`,
       };
     });
   }, [showAuctions, auctionItems]);
@@ -2663,18 +2773,41 @@ export function MapClient({
         <p style="font-size:11px;color:#888;margin:2px 0 0">거래 ${r.tradeCount.toLocaleString("ko-KR")}건${r.jeonseRatio != null ? ` · 전세가율 ${Math.round(r.jeonseRatio)}%` : ""}</p>
         <p style="font-size:10px;color:#aaa;margin:2px 0 0">${r.period.slice(0, 4)}.${r.period.slice(4, 6)} · 한국부동산원 · 온도는 자체 산출</p>
       </div>`;
+      /* [940] 지표 전환 — 버블 숫자를 평균가/㎡당/전세가율/온도로 바꿔 띄운다.
+         인포윈도우는 항상 전체 지표를 담고 있으므로 그대로 둔다. 값이 없는 구는
+         "—" — 지표를 바꿨더니 구가 사라지는 것보다 없다고 말하는 쪽이 정직하다. */
+      let bubble = price;
+      let bubbleColor: string | undefined;
+      let momForBubble: number | undefined = r.changePct ?? undefined;
+      if (regionMetric === "perM2") {
+        bubble = r.perM2Manwon != null ? `㎡ ${r.perM2Manwon.toLocaleString("ko-KR")}만` : "—";
+        momForBubble = undefined;
+      } else if (regionMetric === "jeonse") {
+        bubble = r.jeonseRatio != null ? `전세 ${Math.round(r.jeonseRatio)}%` : "—";
+        bubbleColor =
+          r.jeonseRatio == null ? "#9aa4b2"
+          : r.jeonseRatio >= 75 ? "#b4571e"
+          : r.jeonseRatio >= 60 ? "#c9861e"
+          : undefined;
+        momForBubble = undefined;
+      } else if (regionMetric === "temp") {
+        bubble = t != null ? `온도 ${Math.round(t)}` : "—";
+        bubbleColor = t != null ? tempColor : "#9aa4b2";
+        momForBubble = undefined;
+      }
       return {
         id: `region:${r.id}`,
         lat: r.lat,
         lng: r.lng,
         label: r.name,
-        priceLabel: price,
+        priceLabel: bubble,
         avgPricePerM2: 1, // 시세 말풍선 스타일 플래그
-        momPct: r.changePct ?? undefined,
+        ...(bubbleColor ? { tierColor: bubbleColor } : {}),
+        momPct: momForBubble,
         infoHtml,
       };
     });
-  }, [regionMarkers]);
+  }, [regionMarkers, regionMetric]);
 
   const markers = useMemo<MapMarkerData[]>(() => {
     const infoId = infoComplex?.id ?? null;
