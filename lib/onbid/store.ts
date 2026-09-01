@@ -97,7 +97,17 @@ export async function getAuctions(opts: {
       .select("*")
       .order("bid_end", { ascending: true, nullsFirst: false })
       .limit(opts.limit ?? 100);
-    if (opts.sigungu) q = q.ilike("sigungu", `%${opts.sigungu}%`);
+    if (opts.sigungu) {
+      /* [941] 수도권 확대 대응 — "성남시 분당구"처럼 공백이 든 이름은 원문
+         표기(공백 유무)가 소스마다 다르다. 공백 그대로/제거 두 변형을 OR 로 건다.
+         (값에 쉼표·괄호가 없는 한글 지명이라 PostgREST or 문법과 충돌하지 않는다) */
+      const g = opts.sigungu.trim();
+      const tight = g.replace(/\s+/g, "");
+      q =
+        tight !== g
+          ? q.or(`sigungu.ilike.%${g}%,sigungu.ilike.%${tight}%`)
+          : q.ilike("sigungu", `%${g}%`);
+    }
     if (opts.usage) {
       const f = AUCTION_USAGE_FILTERS.find((x) => x.key === opts.usage);
       if (f) {

@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
   const usage = AUCTION_USAGE_FILTERS.some((f) => f.key === usageRaw)
     ? usageRaw
     : undefined;
-  const gu = /^[가-힣]{1,10}$/.test(guRaw) ? guRaw : undefined;
+  const gu = /^[가-힣]{1,10}( [가-힣]{1,10})?$/.test(guRaw) ? guRaw : undefined; // [941] 공백 1칸 허용
 
   try {
     const [items, activeTotal] = await Promise.all([

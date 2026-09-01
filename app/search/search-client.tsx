@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { CoverageRequestCard } from "./CoverageRequestCard";
 import {
@@ -270,6 +271,44 @@ export function SearchClient() {
     },
   ];
 
+  /* [941] 키보드 내비게이션 — ↑↓ 로 결과를 훑고 Enter 로 연다(표준 콤보박스
+     관행). 포커스는 입력창에 남는다 — 계속 타이핑해 검색을 좁힐 수 있게. */
+  const flatRows = useMemo(
+    () =>
+      groups.flatMap((g) =>
+        g.rows.map((r) => ({ key: `${g.key}:${r.id}`, group: g.key, href: hrefFor(g.key, r.id) })),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [results],
+  );
+  const [activeIdx, setActiveIdx] = useState(-1);
+  useEffect(() => setActiveIdx(-1), [results]);
+  useEffect(() => {
+    if (activeIdx < 0) return;
+    document
+      .getElementById(`search-opt-${activeIdx}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeIdx]);
+  const flatIndexOf = useMemo(() => {
+    const m = new Map<string, number>();
+    flatRows.forEach((r, i) => m.set(r.key, i));
+    return m;
+  }, [flatRows]);
+  const router = useRouter();
+  const openActive = useCallback(() => {
+    const row = activeIdx >= 0 ? flatRows[activeIdx] : null;
+    if (!row) return false;
+    saveRecent(q);
+    trackPlatformEvent({
+      eventName: "search_result_click",
+      source: "client",
+      campaign: "funnel",
+      metadata: { group: row.group, query: q.trim().slice(0, 80), via: "keyboard" },
+    });
+    router.push(row.href);
+    return true;
+  }, [activeIdx, flatRows, q, router, saveRecent]);
+
   return (
     <div className="flex flex-col gap-4">
       {/* 큰 검색 입력 */}
@@ -284,11 +323,30 @@ export function SearchClient() {
           onChange={(e) => setQ(e.target.value)}
           {...compositionProps}
           onKeyDown={(e) => {
+            /* [941] 한글 조합 중 방향키/Enter 는 IME 몫 — 가로채지 않는다 */
+            if (e.nativeEvent.isComposing) return;
+            if (e.key === "ArrowDown" && flatRows.length > 0) {
+              e.preventDefault();
+              setActiveIdx((i) => Math.min(i + 1, flatRows.length - 1));
+              return;
+            }
+            if (e.key === "ArrowUp" && flatRows.length > 0) {
+              e.preventDefault();
+              setActiveIdx((i) => Math.max(i - 1, -1));
+              return;
+            }
+            if (e.key === "Escape") {
+              setActiveIdx(-1);
+              return;
+            }
             if (e.key === "Enter") {
               e.preventDefault();
-              runSearch(q);
+              if (!openActive()) runSearch(q);
             }
           }}
+          role="combobox"
+          aria-expanded={flatRows.length > 0}
+          aria-activedescendant={activeIdx >= 0 ? `search-opt-${activeIdx}` : undefined}
           placeholder="단지·매물·임장노트·뉴스 통합 검색"
           aria-label="통합 검색"
           autoComplete="off"
@@ -538,6 +596,7 @@ export function SearchClient() {
                   {g.rows.map((r, i) => (
                     <Link
                       key={r.id}
+                      id={`search-opt-${flatIndexOf.get(`${g.key}:${r.id}`) ?? ""}`}
                       href={hrefFor(g.key, r.id)}
                       onClick={() => {
                         saveRecent(q);
@@ -550,8 +609,12 @@ export function SearchClient() {
                           metadata: { group: g.key, query: q.trim().slice(0, 80) },
                         });
                       }}
-                      className={`flex items-center justify-between gap-3 py-2.5 transition-colors hover:text-primary ${
+                      className={`flex items-center justify-between gap-3 rounded-lg py-2.5 transition-colors hover:text-primary ${
                         i < g.rows.length - 1 ? "border-b border-divider" : ""
+                      } ${
+                        flatIndexOf.get(`${g.key}:${r.id}`) === activeIdx
+                          ? "-mx-1.5 bg-primary-soft px-1.5"
+                          : ""
                       }`}
                     >
                       <span className="min-w-0 truncate t-body font-bold text-ink">

@@ -243,7 +243,7 @@ export function AuctionsClient({
       const g = (p.get("gu") ?? "").trim();
       setF({
         usage: AUCTION_USAGE_FILTERS.some((x) => x.key === u) ? u : null,
-        gu: /^[가-힣]{1,10}$/.test(g) ? g : null,
+        gu: /^[가-힣]{1,10}( [가-힣]{1,10})?$/.test(g) ? g : null, // [941] "성남시 분당구" 공백 1칸 허용
         source: "onbid", // 경매 탭 폐지(#23)
       });
     };

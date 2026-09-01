@@ -23,9 +23,9 @@ import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: "서울 공매 물건 (온비드) | 누구집",
+  title: "수도권 공매 물건 (온비드) | 누구집",
   description:
-    "한국자산관리공사 온비드 공매 부동산 — 서울권 아파트·오피스텔·빌라 감정가·최저입찰가·입찰일정. 공공 데이터 기반.",
+    "한국자산관리공사 온비드 공매 부동산 — 서울·경기·인천 아파트·오피스텔·빌라 감정가·최저입찰가·입찰일정. 공공 데이터 기반.",
   robots: { index: true, follow: true },
   // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
   alternates: seoAlternates("/auctions"),
