@@ -208,8 +208,10 @@ export default async function AdminRevenuePage() {
       {/* 구독 플랜 분해 (실 카운트) */}
       <div className="rise-in-2 mt-4 flex flex-col gap-2">
         <div className="text-[15px] font-extrabold text-white">구독 플랜 분해</div>
-        <div className={`${darkCard} overflow-hidden`}>
-          <table className="w-full text-left text-[13px]">
+        {/* [939 · G012] overflow-hidden 은 모바일에서 넘친 열을 잘라 버린다 —
+            표는 제 폭을 지키고 카드 안에서 가로 스크롤로 다 보이게 한다. */}
+        <div className={`${darkCard} overflow-x-auto`}>
+          <table className="w-full min-w-[520px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-[rgba(255,255,255,.08)] text-[11px] text-[#9aa6b8]">
                 <th className="px-4 py-2.5 font-semibold">플랜</th>

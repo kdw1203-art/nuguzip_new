@@ -167,6 +167,39 @@ function copyCookies(from: NextResponse, to: NextResponse) {
  * (stale 캐시 대응은 CSP_REV_COOKIE 비교 + Clear-Site-Data 응답이 단독으로 담당)
  * 과거 공유·북마크된 `?_wd=` 링크는 파라미터를 벗겨 308 정규화한다.
  */
+/* [939 · I004] /api/admin/* 전용 고정창 카운터 — 엣지 런타임 안전(전역 Map 뿐).
+   창이 바뀌면 통째로 새 Map 으로 교체해 무한 성장도 막는다. */
+const ADMIN_RL_MAX = 120;
+const ADMIN_RL_WINDOW_MS = 60_000;
+let adminRlWindowStart = 0;
+let adminRlCounts = new Map<string, number>();
+
+function adminApiRateLimit(request: NextRequest): NextResponse | null {
+  const now = Date.now();
+  if (now - adminRlWindowStart >= ADMIN_RL_WINDOW_MS) {
+    adminRlWindowStart = now;
+    adminRlCounts = new Map();
+  }
+  const ip =
+    request.headers.get("x-real-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    "unknown";
+  const n = (adminRlCounts.get(ip) ?? 0) + 1;
+  adminRlCounts.set(ip, n);
+  if (n <= ADMIN_RL_MAX) return null;
+  return NextResponse.json(
+    { error: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": Math.ceil((adminRlWindowStart + ADMIN_RL_WINDOW_MS - now) / 1000).toString(),
+        "X-RateLimit-Limit": String(ADMIN_RL_MAX),
+        "X-RateLimit-Remaining": "0",
+      },
+    },
+  );
+}
+
 function maybeStripLegacyWdParam(request: NextRequest): NextResponse | null {
   if (request.method !== "GET") return null;
   if (!request.nextUrl.searchParams.has("_wd")) return null;
@@ -180,6 +213,16 @@ export async function middleware(request: NextRequest) {
   const isApi = request.nextUrl.pathname.startsWith("/api");
   const origin = request.headers.get("origin");
   const hostname = normalizeHost(host);
+
+  /* [939 · I004] 관리자 API 속도 제한 — 25개 라우트의 유일한 관문(이 미들웨어)에서
+     IP당 분 120회로 막는다. 관리자 화면의 정상 사용은 분당 수십 회를 넘지 않고,
+     403 반복 탐침·스크레이핑이 이 문턱에 걸린다. 엣지 격리 인스턴스별 메모리라
+     전역 정밀 카운터는 아니지만(격리마다 별도 창), 남용 패턴을 끊는 데는 충분하고
+     오탐(정상 관리자 차단) 위험이 사실상 없다 — 정밀함보다 오탐 없음을 골랐다. */
+  if (request.nextUrl.pathname.startsWith("/api/admin")) {
+    const limited = adminApiRateLimit(request);
+    if (limited) return applySecurityHeaders(limited, request);
+  }
 
   // m.·www. → 정식 도메인(nuguzip.com) 정규화 — 네이버 지도 등 URL 등록형 API 대응
   if (hostname === "m.nuguzip.com" || hostname === "www.nuguzip.com") {
