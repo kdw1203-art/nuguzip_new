@@ -26,7 +26,9 @@ export const maxDuration = 300;
 
 /**
  * 자동결제 갱신 크론 — 토스는 스케줄러를 제공하지 않는다(빌링 문서 명시).
- * pg_cron(ops.run_billing_renewals, 10:10·22:10 KST)이 이 라우트를 호출한다.
+ * 호출원: pg_cron(ops.run_billing_renewals, 10:10·22:10 KST) + Vercel 크론
+ * (vercel.json). vault cron_secret 이 없어도 Vercel 쪽은 CRON_SECRET Bearer 로
+ * 청구를 돌린다. pg_cron 경보를 끄려면 vault 등록이 필요하다.
  *
  * 이중 청구 불가 구조(세 겹):
  *  1) 멱등키 = 구독 id + 이번 주기(next_charge_at) — 크론이 겹쳐 돌아도 토스가
