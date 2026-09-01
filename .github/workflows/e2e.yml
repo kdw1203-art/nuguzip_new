@@ -56,6 +56,10 @@ jobs:
         env:
           AUTH_SECRET: ci-linkcheck-only-dummy-secret-not-used-in-production-1234567890
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # [942] 이 서버는 운영 DB를 보므로, Playwright 방문이 퍼널 이벤트로
+          # 쌓이면 지표가 봇으로 오염된다(실측: signup_step_1 매일 2건 = 전부 E2E).
+          # 합성 실행은 지표를 남기지 않는다.
+          PLATFORM_EVENTS_DISABLED: "1"
         run: |
           # ⚠️ pipefail 을 지우지 말 것. 아래 playwright 호출은 tee 로 파이프되므로
           #    pipefail 이 없으면 $? 가 항상 tee 의 0 이 되고, 이 게이트는 무슨 일이

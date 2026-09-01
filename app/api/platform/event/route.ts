@@ -16,6 +16,15 @@ export async function POST(req: Request) {
   /* 무인증 텔레메트리 — 정상 사용은 페이지 이동당 몇 건이다. 도배만 막는다. */
   const rl = rateLimit(`platform-event:${getClientIp(req)}`, { limit: 120, windowMs: 60_000 });
   if (!rl.ok) return tooManyRequests(rl.retryAfterSec);
+  /* [942] 자동화 UA 차단(2차 방어) — CI E2E 는 PLATFORM_EVENTS_DISABLED 로
+     서버째 접지만, 주간 Lighthouse 는 운영 도메인을 직접 치며 JS 를 실행한다
+     (동의 게이트가 없는 이 텔레메트리에는 그대로 쌓인다). 헤드리스·측정 도구
+     UA 는 지표가 아니라 소음이므로 성공 응답으로 조용히 접는다 — 도구가
+     재시도하게 만들 이유가 없다. */
+  const ua = req.headers.get("user-agent") ?? "";
+  if (/HeadlessChrome|Chrome-Lighthouse|Lighthouse|PageSpeed|Playwright|Puppeteer|Googlebot|bingbot|Yeti|spider|crawler/i.test(ua)) {
+    return NextResponse.json({ ok: true, skipped: "automation" });
+  }
   const session = await safeAuth();
   const platform = detectShellFromUserAgent(req.headers.get("user-agent"));
   const body = (await req.json().catch(() => ({}))) as {

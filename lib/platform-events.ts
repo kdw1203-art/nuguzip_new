@@ -16,6 +16,12 @@ export async function recordPlatformEvent(input: {
   experimentKey?: string | null;
   variant?: string | null;
 }): Promise<void> {
+  /* [942] 합성 실행 차단 — 야간 E2E 는 CI 로컬 서버로 돌지만 그 서버가 운영
+     DB(서비스 키)를 본다. 실측(2026-09-01): 매일 밤 Playwright 의 /signup 방문
+     2건이 signup_step_1 로 쌓여, 7일 퍼널이 "가입 시작 14 · 완료 0" 으로
+     읽혔다 — 전부 봇이었다. 합성 서버는 이 플래그를 들고 뜨고, 여기서 접는다.
+     지표에 안 쌓는 것이지 실패가 아니다. */
+  if (process.env.PLATFORM_EVENTS_DISABLED === "1") return;
   const sb = getServiceSupabase();
   if (!sb) return;
 
