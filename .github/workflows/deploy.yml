@@ -48,7 +48,7 @@ jobs:
       # 액션은 전부 커밋 SHA 로 핀한다 — gitleaks 스텝 주석의 원칙(움직이는 태그는
       # 저장소 오염 시 임의 코드 실행)을 나머지 액션에도 동일 적용. SHA 는
       # `git ls-remote` 로 2026-08-03 확인. 갱신은 Dependabot 이 주 1회 PR 로 제안한다.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # gitleaks 이력 스캔을 위해 전체 히스토리 필요
           fetch-depth: 0
