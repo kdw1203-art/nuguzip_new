@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listQuestionsForComplex } from "@/lib/qna/store";
+import { loadComplexQuestions } from "./section-loaders";
 import { logger } from "@/lib/log";
 
 /* D2 — 단지 Q&A 임베드. 이 단지(complex_name 일치)의 실 질문만.
@@ -37,7 +37,7 @@ export async function ComplexQna({
   /* 2026-07-26: `.catch(() => [])` 였다. 조회가 실패하면 아래 빈 상태 CTA
      ("첫 질문을 남겨 보세요")가 뜨는데, 이미 남아 있는 질문을 없는 것처럼
      보이게 만든다. 실패는 실패라고 쓴다 — 질문 남기기 링크는 그대로 둔다. */
-  const loaded = await listQuestionsForComplex(name, 5).then(
+  const loaded = await loadComplexQuestions(name).then(
     (items) => ({ ok: true as const, items }),
     (err: unknown) => {
       logger.error("[complex] 단지 Q&A 조회 실패", err);

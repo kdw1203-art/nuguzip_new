@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAreaBands } from "@/lib/complex/complex-store";
+import { loadAreaBands } from "./section-loaders";
 import { logger } from "@/lib/log";
 
 /* D5 — 면적대별 시세표 허브 승격. market_transactions 실거래 면적 구간별 최근가·평균가.
@@ -27,7 +27,7 @@ export async function ComplexAreaBands({
   /** 상단 배치 시 여백·패딩을 줄여 밀도 확보 */
   compact?: boolean;
 }) {
-  const bands = await getAreaBands(complexId).then(
+  const bands = await loadAreaBands(complexId).then(
     (data) => ({ ok: true as const, data }),
     (e: unknown) => {
       logger.error("[complex] 면적대별 시세 조회 실패", e);

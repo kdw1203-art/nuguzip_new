@@ -175,10 +175,13 @@ export default async function AnalysisHubPage({
 
   /* 카드별 실측 티저 + 12구간 추세선. 실패/없음이면 해당 키가 아예 없고,
      카드에서는 그 줄이 빠질 뿐이다(가짜 수치·"—" 채움 없음). */
-  const teasers = await loadHubTeasers().catch(() => ({}));
+  /* [949] 티저(1시간 데이터 캐시)와 세션 확인은 독립이라 나란히 받는다. */
+  const [teasers, session] = await Promise.all([
+    loadHubTeasers().catch(() => ({})),
+    safeAuth(),
+  ]);
 
   // 로그인 시 실데이터(내 노트 수)로 시작 섹션 구성 — 허위 수치 없음
-  const session = await safeAuth();
   const email = session?.user?.email ?? null;
   let myNoteCount: number | null = null;
   if (email) {
@@ -193,7 +196,16 @@ export default async function AnalysisHubPage({
   let publicPreview: ReturnType<typeof pickPublicAiPreview> = null;
   if (!email) {
     try {
-      publicPreview = pickPublicAiPreview(await listPublicNotes(24));
+      /* [949] 게스트 미리보기는 모두에게 같은 값 — 60초 데이터 캐시(/notes 공개
+         피드와 같은 판단). 이 허브는 하루 500회 넘게 열리는 동적 페이지라 방문마다
+         공개 노트 24건을 다시 읽고 있었다. */
+      const { unstable_cache } = await import("next/cache");
+      const rows = await unstable_cache(
+        () => listPublicNotes(24),
+        ["analysis-public-preview-v1"],
+        { revalidate: 60 },
+      )();
+      publicPreview = pickPublicAiPreview(rows);
     } catch {
       publicPreview = null;
     }

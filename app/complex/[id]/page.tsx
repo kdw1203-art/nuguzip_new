@@ -5,13 +5,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import {
-  getComplexById,
+  getComplexBaseById,
+  enrichComplexRow,
   getTransactionHistory,
   getComplexPosts,
   listComplexesInDistrict,
   type ComplexRow,
   type ComplexTransactionRow,
 } from "@/lib/complex/complex-store";
+import {
+  prefetchComplexSections,
+  prefetchAxisSummary,
+  sectionRegionLabel,
+  axisRegionName,
+} from "./section-loaders";
 import {
   ComplexHubTabs,
   CompareTrayButton,
@@ -147,10 +154,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   ]).finally(() => clearTimeout(timer)) as Promise<T>;
 }
 
-const loadComplexRow = cache(async (id: string) => {
+/* [949] 대표행을 두 단계로 받는다 — base(실거래 대표행, 시간 초과·재시도 포함) 와
+   enrich(대장 마스터). loadView 는 base 를 받는 즉시 곁다리 조회와 섹션 프리페치를
+   enrich 와 **나란히** 띄운다(직렬 파도 하나 제거). generateMetadata·본문은 여전히
+   완성본(loadComplexRow)을 쓰고, React cache() 라 base 는 요청당 한 번만 조회된다. */
+const loadComplexBase = cache(async (id: string) => {
   const label = "단지 정보 조회 시간 초과";
   try {
-    return await withTimeout(getComplexById(id), COMPLEX_ROW_TIMEOUT_MS, label);
+    return await withTimeout(getComplexBaseById(id), COMPLEX_ROW_TIMEOUT_MS, label);
   } catch (first) {
     logger.warn("[complex] 단지 조회 1차 실패 — 1회 재시도", {
       id,
@@ -160,8 +171,15 @@ const loadComplexRow = cache(async (id: string) => {
     /* 2차는 짧게 — 여기서도 막히면 페이지 전체 예산을 지키는 쪽이 낫다.
        주의: 시간 초과는 여전히 **throw** 다. null 로 바꾸면 notFound() 가
        "조회 실패"를 "없는 단지(404)"로 위장하고, 그 404 가 ISR 로 얼어붙는다. */
-    return await withTimeout(getComplexById(id), 6_000, label);
+    return await withTimeout(getComplexBaseById(id), 6_000, label);
   }
+});
+const loadComplexRow = cache(async (id: string) => {
+  const base = await loadComplexBase(id);
+  if (!base) return null;
+  /* enrich 는 내부에서 실패를 삼키고(로그) base 를 그대로 돌려준다 — 예전
+     getComplexById 와 같은 계약. 시간 상한은 base 쪽에만 있었으므로 그대로 둔다. */
+  return enrichComplexRow(base);
 });
 const loadTxHistory = cache(getTransactionHistory);
 
@@ -543,9 +561,32 @@ function toView(
 
 async function loadView(id: string): Promise<HubView | null> {
   // 사실 우선: 존재하지 않는 단지는 목업 대신 null → notFound()
-  const row = await loadComplexRow(id);
-  if (!row) return null;
+  const t0 = Date.now();
+  const base = await loadComplexBase(id);
+  if (!base) return null;
+  const tBase = Date.now();
   const dec = decodeComplexId(id);
+
+  /* [949] 대표행(base)만 있으면 시작할 수 있는 섹션 조회에 지금 불을 붙인다.
+     결과는 섹션 컴포넌트가 같은 로더로 받는다(section-loaders.ts). */
+  prefetchComplexSections({
+    complexId: id,
+    name: base.name,
+    city: base.city,
+    district: base.district,
+  });
+
+  /* enrich(대장 마스터)는 곁다리 조회와 나란히 돈다. 곁다리 중 row.id 를 쓰는
+     단지 이야기(getComplexPosts)만 enrich 결과를 기다린다 — kapt 매칭이 되면
+     id 가 kapt 형태로 바뀌고 글은 그 id 로 묶여 있기 때문이다.
+     주의: enrichComplexRow 는 base 객체를 **제자리에서** 채운다(applyMasterEnrich) —
+     그래서 base 와 enriched 는 같은 참조이고, 아래에서 base.id 를 "enrich 전 값"으로
+     쓰면 안 된다. 축 요약 키(kapt 형태일 수 있는 id)는 enrich 가 끝나는 순간 띄운다. */
+  const rowP = loadComplexRow(id);
+  void rowP.then((r) => {
+    if (r) prefetchAxisSummary({ rowId: r.id, city: r.city, district: r.district });
+  }).catch(() => undefined);
+  const row: ComplexRow = base; // name·district·canonical_id·address 는 enrich 가 바꾸지 않는다
 
   /* 곁다리 6개가 **함께** 쓰는 8초 예산.
      예전에는 각 조회가 `.catch(() => [])` 로 실패를 빈 배열로 바꿔서
@@ -556,14 +597,19 @@ async function loadView(id: string): Promise<HubView | null> {
      요청이 실제로 끊기게 한다(안 끊으면 최대 45초 더 살아 연결을 붙잡는다).
      loadTxHistory 는 React cache() 로 렌더 내 재사용(아래 tx 재호출)되므로
      signal 을 받지 않는다 — 인자에 신호를 섞으면 dedupe 키가 깨진다. */
-  const [txR, postsR, sameDongR, coordR, listingsR] = await Promise.all([
+  const [enriched, txR, postsR, sameDongR, coordR, listingsR] = await Promise.all([
+    rowP,
     /* canonical_id 를 쓴다 — row.id 는 kapt 매칭 시 `kapt.A10027336` 이 되는데
        getTransactionHistory 는 decodeComplexId 로 시작하고 그 함수는 kapt id 에
        null 을 준다. 그래서 실거래가 160~212건 있는 단지가 조용히 빈 배열을 받아
        "실거래 없음 · 시세 준비 중"으로 그려지고 있었다(2026-08-05 표본 12개 중 6개).
        canonical_id 는 항상 name-id 라 decode 가 반드시 성공한다. */
     settle(`${row.name} 실거래 이력`, loadTxHistory(row.canonical_id, TX_HISTORY_MONTHS), budget.expired),
-    settle(`${row.name} 단지 이야기`, getComplexPosts(row.id, 12, budget.signal), budget.expired),
+    settle(
+      `${row.name} 단지 이야기`,
+      rowP.then((r) => getComplexPosts((r ?? row).id, 12, budget.signal)),
+      budget.expired,
+    ),
     // #34: 같은 동(district) 다른 단지 — 자기 자신 제외분 확보 위해 더 넓게
     row.district
       ? settle(
@@ -588,6 +634,18 @@ async function loadView(id: string): Promise<HubView | null> {
     ),
   ]);
   budget.done();
+  /* [949 · 계측] 본문 파도 시간 — 대표행(base)과 enrich+곁다리 파도를 따로 잰다.
+     느린 렌더(600ms↑)는 전부, 나머지는 5% 표본만 남긴다. ISR 미스의 TTFB 는
+     이 두 파도 + 섹션 파도이므로, 배포 뒤 이 로그로 "어느 파도가 남았는지"를 읽는다. */
+  const tSides = Date.now();
+  if (tSides - t0 >= 600 || Math.random() < 0.05) {
+    // logger.info 는 운영에서 침묵한다(lib/log.ts) — 이 줄은 운영 로그가 목적이다.
+    console.info(
+      `[complex-timing] base=${tBase - t0}ms wave2=${tSides - tBase}ms total=${tSides - t0}ms ` +
+        `fail=${[txR, postsR, sameDongR, coordR, listingsR].filter((r) => !r.ok).length} id=${id.slice(0, 40)}`,
+    );
+  }
+  const rowFinal: ComplexRow = enriched ?? row;
 
   /* 껍데기를 캐시에 얼리지 않는다 (/region/[id] 의 SIDE_FAILURE_ABORT_THRESHOLD
      와 같은 판단). 한두 섹션이 늦는 것은 평상시에도 있는 일이고 그때는 아래
@@ -614,7 +672,7 @@ async function loadView(id: string): Promise<HubView | null> {
   if (!listingsR.ok) loadFailures.push("매물");
 
   const coord = coordR.ok ? coordR.data : null;
-  const located: ComplexRow = coord ? { ...row, lat: coord.lat, lng: coord.lng } : row;
+  const located: ComplexRow = coord ? { ...rowFinal, lat: coord.lat, lng: coord.lng } : rowFinal;
   return toView(
     located,
     txR.ok ? txR.data : [],
@@ -901,10 +959,7 @@ export default async function ComplexHubPage({
 
       {/* [OPT-48] 허브 2.0 — AI 워크벤치와 같은 라이브 컨텍스트 요약(1.2초 예산·자체 생략).
           regionName 은 dec.region 포맷("서울 중랑구")과 같아야 한다 — city===dong 중복 방어. */}
-      <ComplexAxisSummary
-        complexId={v.id}
-        regionName={v.city && v.dong && v.city !== v.dong ? `${v.city} ${v.dong}` : (v.city ?? v.dong ?? "")}
-      />
+      <ComplexAxisSummary complexId={v.id} regionName={axisRegionName(v.city, v.dong)} />
 
       {/* [개선 #32] 행동 3종 — 보고 끝나는 화면에서 다음 행동이 있는 화면으로.
           ① 임장노트 쓰기(이 단지 프리필) ② 지역 허브(내부 연결) ③ 공유 */}
@@ -1154,7 +1209,7 @@ export default async function ComplexHubPage({
       )}
 
       {/* [#94 잔여] 전월세 실거래 이력 — 매매 중심 화면에 임차 수요 관점 추가 */}
-      <ComplexRentSection region={`${v.city} ${v.dong}`.trim()} name={v.name} />
+      <ComplexRentSection region={sectionRegionLabel(v.city, v.dong)} name={v.name} />
 
       {/* [#96] 도보권 학교·역 — 데이터 적재 후 자동 표시(미적재 시 미표시) */}
       <ComplexNearbyPoi lat={v.lat} lng={v.lng} name={v.name} />
@@ -1164,7 +1219,7 @@ export default async function ComplexHubPage({
       <UpcomingSupply area={v.dong} />
       <ComplexQna
         complexName={v.name}
-        region={`${v.city} ${v.dong}`.trim()}
+        region={sectionRegionLabel(v.city, v.dong)}
         /* 항목 18 — 노트 조회 실패면 null (0개라고 지어내지 않는다) */
         noteCount={v.notesFailed ? null : v.notes.length}
       />

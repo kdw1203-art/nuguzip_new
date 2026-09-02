@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { buildLiveToolContextCached } from "@/lib/ai/live-context";
+import { loadAxisContext } from "./section-loaders";
 import { timingSignals } from "@/lib/ai/insight-blocks";
 
 /* [OPT-48] 단지 허브 2.0 — 워크벤치와 같은 근거(라이브 컨텍스트)를 허브에도 요약.
@@ -15,7 +15,7 @@ export async function ComplexAxisSummary({
   regionName: string;
 }) {
   const ctx = await Promise.race([
-    buildLiveToolContextCached(complexId, regionName || null).catch(() => null),
+    loadAxisContext(complexId, regionName).catch(() => null),
     new Promise<null>((r) => setTimeout(() => r(null), 1200)),
   ]);
   if (!ctx) return null;

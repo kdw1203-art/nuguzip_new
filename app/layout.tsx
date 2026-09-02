@@ -71,6 +71,10 @@ export const viewport: Viewport = {
  */
 export const maxDuration = 120;
 
+/* 슬로건 "오래 머물 집을, 지금." + 빈 화면 문구 글자만 담은 Noto Serif KR 서브셋 CSS. */
+const BRAND_SERIF_CSS =
+  "https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600&display=swap&text=%EC%98%A4%EB%9E%98%20%EB%A8%B8%EB%AC%BC%20%EC%A7%91%EC%9D%84%2C%20%EC%A7%80%EA%B8%88.%EC%95%84%EC%A7%81%20%EA%B8%B0%EB%A1%9D%EC%9D%B4%20%EC%97%86%EC%96%B4%EC%9A%94";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -137,11 +141,26 @@ export default function RootLayout({
           />
         </noscript>
         {/* [946] 브랜드 슬로건 세리프 — text= 파라미터로 슬로건 글자만 서브셋(수 KB).
-            통짜 Noto Serif KR(수백 KB)을 문장 하나 때문에 싣지 않는다. */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600&display=swap&text=%EC%98%A4%EB%9E%98%20%EB%A8%B8%EB%AC%BC%20%EC%A7%91%EC%9D%84%2C%20%EC%A7%80%EA%B8%88.%EC%95%84%EC%A7%81%20%EA%B8%B0%EB%A1%9D%EC%9D%B4%20%EC%97%86%EC%96%B4%EC%9A%94"
+            통짜 Noto Serif KR(수백 KB)을 문장 하나 때문에 싣지 않는다.
+            [949] 946 에서는 이 링크가 **렌더 차단** stylesheet 였다 — 모든 페이지가
+            첫 페인트 전에 fonts.googleapis.com 으로 DNS·TCP·TLS 를 새로 열고 CSS 를
+            받아야 했다(슬로건이 없는 단지 페이지까지). 실사용 web_vitals 14일:
+            /complex FCP p75 2.3s 중 TTFB 를 뺀 0.9s 가 이런 차단 자원 몫이다.
+            Pretendard 와 같은 preload → media=print→all 스왑으로 비차단화하고,
+            폰트 파일 호스트(gstatic)를 미리 연결한다. 슬로건은 display=swap 이라
+            시스템 세리프로 먼저 그려지고 로드 후 바뀐다. */}
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preload" as="style" href={BRAND_SERIF_CSS} />
+        <link id="brand-serif-font" rel="stylesheet" href={BRAND_SERIF_CSS} media="print" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){var l=document.getElementById('brand-serif-font');if(!l)return;function a(){l.media='all'}l.addEventListener('load',a);if(l.sheet)a();})();",
+          }}
         />
+        <noscript>
+          <link rel="stylesheet" href={BRAND_SERIF_CSS} />
+        </noscript>
         {/* #19 PWA — iOS 홈 화면 아이콘 · 웹앱 메타
             G9: .svg → .png 로 교체했다. Safari 는 apple-touch-icon 으로 SVG 를
             받지 않는다 — 지금까지 iOS 에서 홈 화면에 추가하면 아이콘이 아니라

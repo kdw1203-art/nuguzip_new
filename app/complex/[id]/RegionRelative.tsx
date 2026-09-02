@@ -1,4 +1,4 @@
-import { getRegionRelative } from "@/lib/complex/complex-store";
+import { loadRegionRelative } from "./section-loaders";
 import { logger } from "@/lib/log";
 
 /* D6 — 지역 대비 상대 위치. 단지 ㎡당 시세를 소재 구 평균(REB 실집계)과 비교.
@@ -18,7 +18,7 @@ export async function RegionRelative({
   complexId: string;
   compact?: boolean;
 }) {
-  const res = await getRegionRelative(complexId).then(
+  const res = await loadRegionRelative(complexId).then(
     (data) => ({ ok: true as const, data }),
     (e: unknown) => {
       logger.error("[complex] 지역 대비 시세 조회 실패", e);

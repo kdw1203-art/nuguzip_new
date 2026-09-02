@@ -287,7 +287,22 @@ export async function middleware(request: NextRequest) {
      스트리밍 이전(미들웨어)이라 상태코드가 확실히 308 로 나간다 — 페이지 단
      redirect 는 loading 경계 뒤라 200 으로 굳는 문제가 있었다(soft-404 실측과
      같은 기제). 어떤 예외도 사이트 전체를 못 세우게 통째로 감싼다. */
+  /* [949 · 계측] /notes/new 는 robots 로 막았는데도 하루 1,900회 함수가 돈다 —
+     역시 UA 표본(20%)을 남겨 정체를 본다. */
+  if (request.nextUrl.pathname === "/notes/new" && Math.random() < 0.2) {
+    const ua = (request.headers.get("user-agent") ?? "").slice(0, 80);
+    console.info(`[ua-sample] notes-new ua="${ua}"`);
+  }
   if (request.nextUrl.pathname.startsWith("/complex/")) {
+    /* [949 · 계측] 단지 허브는 하루 6천 회 넘게 함수가 도는데(ISR 미스, 1.5초에 1개
+       꼴로 롱테일을 훑는 크롤러) 런타임 로그에는 UA 가 남지 않아 **누가** 훑는지
+       알 수 없었다. 5% 표본으로 UA 앞 80자만 엣지 로그에 남긴다 — 사람 방문은
+       web_vitals 로 이미 보이므로 이 표본은 사실상 봇 구성표다. 가치 없는 봇이면
+       robots/차단으로, 검색엔진이면 크롤 예산 조정으로 대응한다(개인정보 아님). */
+    if (Math.random() < 0.05) {
+      const ua = (request.headers.get("user-agent") ?? "").slice(0, 80);
+      console.info(`[ua-sample] complex ua="${ua}"`);
+    }
     try {
       const rest = request.nextUrl.pathname.slice("/complex/".length);
       // 하위 세그먼트(/complex/tx/... 등)는 손대지 않는다 — 단지 상세 1세그먼트만.

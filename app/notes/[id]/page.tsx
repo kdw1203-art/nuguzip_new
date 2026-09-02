@@ -476,10 +476,11 @@ export default async function NoteDetailPage({
       : undefined;
 
   // 뷰어 세션 — 소유자면 비공개 노트도 열람 + 공개/비공개 토글 제공
-  const session = await safeAuth();
+  /* [949] 세션과 노트 본문은 서로 독립이라 나란히 받는다 — 예전엔 세션(Auth 쿠키
+     검증) 뒤에 노트를 읽어 왕복 하나가 통째로 직렬이었다. 이 페이지는 동적
+     렌더라 요청마다 이 직렬이 그대로 TTFB 였다(실측 콜드 0.98s). */
+  const [session, loaded] = await Promise.all([safeAuth(), loadNote(id)]);
   const viewerEmail = session?.user?.email?.trim().toLowerCase() ?? null;
-
-  const loaded = await loadNote(id);
 
   // 조회 실패 — "노트가 없다"고 말하면 거짓이므로 실패 그대로 알린다.
   if (loaded.kind === "error") {
@@ -511,37 +512,50 @@ export default async function NoteDetailPage({
   /* 비공개 노트 — 소유자 외에는 원칙 차단. 단, 이 노트를 전달물로 파는 유료
      리포트를 **구매한 사람**은 열람한다(크리에이터 판매 루프의 전달 지점).
      실패는 잠기는 방향(비공개 유지)이라 안전하다. */
-  let purchasedAccess = false;
-  if (!realNote.isPublic && !isOwner && viewerEmail) {
-    const reportId = await findPaidReportIdByNote(realNote.id);
-    if (reportId) {
-      purchasedAccess = await hasPurchased(reportId, viewerEmail).catch(() => false);
-    }
-  }
-  if (!realNote.isPublic && !isOwner && !purchasedAccess) notFound();
-
-  // 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김
-  let complexHref: string | null = null;
-  try {
-    complexHref = await resolveComplexHref(realNote.aptName, realNote.region);
-  } catch {
-    complexHref = null;
-  }
-
-  // 방문 기록 비교 — complexId 우선, 없으면 aptName. 비소유자는 공개 회차만.
-  let visits: Visit[] | undefined;
-  /* [#72] 재방문 변화 — 이 노트 직전 회차와의 점수·메모 변화 자동 요약 */
-  let revisitDelta: import("@/lib/inspection/revisit").RevisitDelta | null = null;
+  /* [949] 여기부터의 조회 네 가지(구매 확인·단지 링크·회차 목록·비교 후보)는
+     서로 독립이다 — 예전엔 차례로 await 해 왕복 4개가 직렬이었다. 함께 띄우고
+     결과만 순서대로 판정한다. 구매 확인이 "잠금"으로 끝나면 나머지는 버려질
+     뿐이고(화면에 닿지 않는다), 그 경우는 드물다(비공개 노트 + 비소유자 + 로그인). */
   const visitComplexId =
     typeof realNote.metadata?.complexId === "string"
       ? realNote.metadata.complexId.trim()
       : "";
   const visitApt = realNote.aptName?.trim() ?? "";
-  if (visitComplexId || visitApt) {
+  const wantsNearby = isOwner && Boolean(aiStatus) && Boolean(realNote.region.trim());
+  const [purchasedAccess, complexHref, groupedR, nearbyRowsR] = await Promise.all([
+    (async () => {
+      if (realNote.isPublic || isOwner || !viewerEmail) return false;
+      const reportId = await findPaidReportIdByNote(realNote.id);
+      if (!reportId) return false;
+      return hasPurchased(reportId, viewerEmail).catch(() => false);
+    })(),
+    // 아파트명(+지역)으로 실 단지 id 조회 — 못 찾으면 링크 숨김
+    resolveComplexHref(realNote.aptName, realNote.region).catch((): string | null => null),
+    // 방문 기록 비교 — complexId 우선, 없으면 aptName. 비소유자는 공개 회차만.
+    visitComplexId || visitApt
+      ? (visitComplexId
+          ? listNotesByAuthorForComplex(realNote.authorEmail, visitComplexId)
+          : listNotesByAuthorForApt(realNote.authorEmail, visitApt)
+        ).then(
+          (rows) => ({ ok: true as const, rows }),
+          () => ({ ok: false as const }),
+        )
+      : Promise.resolve({ ok: false as const }),
+    wantsNearby
+      ? listComplexesInDistrict(realNote.region.trim(), 6).then(
+          (rows) => ({ ok: true as const, rows }),
+          () => ({ ok: false as const }),
+        )
+      : Promise.resolve({ ok: false as const }),
+  ]);
+  if (!realNote.isPublic && !isOwner && !purchasedAccess) notFound();
+
+  let visits: Visit[] | undefined;
+  /* [#72] 재방문 변화 — 이 노트 직전 회차와의 점수·메모 변화 자동 요약 */
+  let revisitDelta: import("@/lib/inspection/revisit").RevisitDelta | null = null;
+  if (groupedR.ok) {
     try {
-      const grouped = visitComplexId
-        ? await listNotesByAuthorForComplex(realNote.authorEmail, visitComplexId)
-        : await listNotesByAuthorForApt(realNote.authorEmail, visitApt);
+      const grouped = groupedR.rows;
       let visible = isOwner ? grouped : grouped.filter((x) => x.isPublic);
       if (!visible.some((x) => x.id === realNote.id)) visible = [...visible, realNote];
       visits = visible.map((x, i) => {
@@ -591,22 +605,18 @@ export default async function NoteDetailPage({
      비교 후보 단지 3곳. 실거래 이력 있는 단지만 나오는 매트뷰 기반이라
      빈 추천을 지어내지 않는다. 실패는 조용히 접는다(저장 화면이 우선). */
   let nearbyCandidates: Array<{ id: string; name: string; sub: string }> = [];
-  if (isOwner && aiStatus && realNote.region.trim()) {
-    try {
-      const sameApt = (realNote.aptName ?? "").trim();
-      nearbyCandidates = (await listComplexesInDistrict(realNote.region.trim(), 6))
-        .filter((c) => c.name !== sameApt)
-        .slice(0, 3)
-        .map((c) => ({
-          id: c.id,
-          name: c.name,
-          sub: [c.district, c.build_year ? `${c.build_year}년` : null]
-            .filter(Boolean)
-            .join(" · "),
-        }));
-    } catch {
-      nearbyCandidates = [];
-    }
+  if (wantsNearby && nearbyRowsR.ok) {
+    const sameApt = (realNote.aptName ?? "").trim();
+    nearbyCandidates = nearbyRowsR.rows
+      .filter((c) => c.name !== sameApt)
+      .slice(0, 3)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        sub: [c.district, c.build_year ? `${c.build_year}년` : null]
+          .filter(Boolean)
+          .join(" · "),
+      }));
   }
 
   return (

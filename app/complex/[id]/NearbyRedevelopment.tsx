@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { listProjects } from "@/lib/redevelopment/store";
+import type { listProjects } from "@/lib/redevelopment/store";
+import { loadRedevelopment } from "./section-loaders";
 import { PROJECT_TYPES, stageLabel } from "@/lib/redevelopment/types";
 import { logger } from "@/lib/log";
 
@@ -20,7 +21,7 @@ export async function NearbyRedevelopment({ sigungu }: { sigungu: string }) {
   /* 곁다리 섹션이라 실패해도 단지 페이지 전체를 죽이지는 않는다. 다만 조용히
      삼키지는 않는다 — 이 섹션이 계속 안 보이는데 로그가 없으면 "그 구에 정비사업이
      없다"와 "조회가 실패했다"를 아무도 구분할 수 없다. */
-  const projects = await listProjects({ sigungu: gu, limit: 6 }).catch(
+  const projects = await loadRedevelopment(gu).catch(
     (e: unknown) => {
       logger.error(`[NearbyRedevelopment] ${gu} 정비사업 조회 실패 — 섹션을 접습니다: ${String(e)}`);
       return [] as Awaited<ReturnType<typeof listProjects>>;

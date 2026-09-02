@@ -1,5 +1,5 @@
+import { loadRentHistory } from "./section-loaders";
 import {
-  getComplexRentHistoryByNames,
   type ComplexRentHistory,
 } from "@/lib/market/complex-rent";
 
@@ -34,7 +34,8 @@ export async function ComplexRentSection({
 }) {
   let hist: ComplexRentHistory | null = null;
   try {
-    hist = await getComplexRentHistoryByNames(region, name);
+    // [949] 본문이 미리 띄운 같은 인자의 조회를 그대로 받는다(section-loaders)
+    hist = await loadRentHistory(region, name);
   } catch {
     return null; // 곁다리 섹션 — 못 읽으면 접는다 (본문 실거래와 달리 페이지 정체성이 아님)
   }

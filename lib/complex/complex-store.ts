@@ -371,10 +371,25 @@ async function enrichFromApartmentComplex(
   };
 }
 
-export async function getComplexById(id: string): Promise<ComplexRow | null> {
+/**
+ * [949] 단지 대표행 조회를 두 단계로 갈랐다 — (1) 실거래 대표행(base) (2) 대장 마스터
+ * enrich. getComplexById 는 예전과 똑같이 둘을 이어서 돌려주고, 허브 페이지는
+ * base 만 먼저 받아 곁다리 조회(실거래 이력·인근 단지·좌표·매물)를 enrich 와
+ * **동시에** 시작한다 — enrich 는 apartment_complexes ILIKE 라 계획 포함 30ms 안팎이고
+ * 그동안 나머지 조회가 놀고 있었다(직렬 3단 → 2단).
+ *
+ * base 의 필드 중 enrich 가 바꾸는 것: id(kapt 형태), kapt_code, build_year(없을 때만),
+ * heating, road_address, builder_name, lat/lng, households, building_count,
+ * parking_count, parking_per_hh. 바뀌지 않는 것: name, city, district, canonical_id,
+ * address. 곁다리 조회는 바뀌지 않는 필드만 써야 한다 — 단지 이야기(getComplexPosts)는
+ * row.id 를 쓰므로 enrich 뒤에 부른다.
+ */
+export async function getComplexBaseById(id: string): Promise<ComplexRow | null> {
   const parsed = parseComplexId(id);
   if (!parsed) return null;
   if (parsed.kind === "kapt") {
+    /* kapt 경로는 마스터에서 시작해 실거래로 보강하므로 두 단계로 갈리지 않는다 —
+       여기서는 완성본을 돌려주고, enrichComplexRow 는 이를 그대로 통과시킨다. */
     return getComplexByKaptCode(parsed.kaptCode);
   }
   const dec = parsed;
@@ -396,15 +411,33 @@ export async function getComplexById(id: string): Promise<ComplexRow | null> {
   if (error) throw dbError(`market_transactions (단지 ${dec.name})`, error);
   const row = (data as { address: string | null; build_year: number | null }[] | null)?.[0];
   if (!row) return null;
+  return toComplexRow(dec.region, dec.name, row);
+}
 
-  const base = toComplexRow(dec.region, dec.name, row);
+/** getComplexBaseById 결과에 대장 마스터 정보를 입힌다 (kapt 경로 결과는 그대로 통과). */
+export async function enrichComplexRow(base: ComplexRow): Promise<ComplexRow> {
+  if (parseComplexId(base.id)?.kind === "kapt") return base;
+  const dec = decodeComplexId(base.canonical_id);
+  if (!dec) return base;
   // D7 — 대장 마스터(apartment_complexes) 매칭 enrich (세대수·준공·난방·도로명·kapt).
   // 실패해도 허브는 실거래만으로 그린다. 다만 조용히 넘기지 않고 로그는 남긴다.
-  const apt = await enrichFromApartmentComplex(dec.region, dec.name, row.address).catch((e) => {
+  const apt = await enrichFromApartmentComplex(dec.region, dec.name, base.address).catch((e) => {
     logger.warn("[complex] 대장 마스터 enrich 실패 — 실거래만으로 계속", e);
     return null;
   });
-  if (apt) {
+  if (!apt) return base;
+  return applyMasterEnrich(base, apt);
+}
+
+export async function getComplexById(id: string): Promise<ComplexRow | null> {
+  const base = await getComplexBaseById(id);
+  if (!base) return null;
+  return enrichComplexRow(base);
+}
+
+function applyMasterEnrich(base: ComplexRow, apt: AptEnrich): ComplexRow {
+  {
+    // (블록은 이전 getComplexById 본문을 그대로 옮긴 것 — 들여쓰기 diff 를 줄이려고 남겼다)
     base.kapt_code = apt.kaptCode ?? base.kapt_code;
     /* kapt 가 있으면 URL id 도 kapt 형태로 노출 — 동명 충돌 시 링크가 갈라진다.
        기존 name-id 북마크는 위 decode 경로로 계속 동작한다. */
