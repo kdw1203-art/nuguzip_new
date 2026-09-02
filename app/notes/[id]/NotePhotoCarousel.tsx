@@ -115,15 +115,15 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
           const dx = end - start;
           if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
         }}
-        className="relative w-full min-w-0 overflow-hidden rounded-[14px] border border-line bg-[#0e1420] outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="brand-photo-frame relative w-full min-w-0 overflow-hidden rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <div className="flex h-[248px] w-full items-center justify-center sm:h-[340px] lg:h-[400px]">
           {isFailed ? (
             <div className="flex flex-col items-center gap-1 px-6 text-center">
-              <span className="t-body font-extrabold text-white/85">
+              <span className="t-body font-extrabold text-[var(--brand-hanji)]">
                 사진을 불러오지 못했어요
               </span>
-              <span className="t-sub text-white/55">
+              <span className="t-sub text-[rgba(246,241,231,.6)]">
                 {idx + 1}번째 사진 · 원본 주소에 접근하지 못했습니다
               </span>
             </div>
@@ -162,14 +162,14 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             <span
               aria-hidden
               onClick={() => go(-1)}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 t-section leading-none text-white backdrop-blur-sm transition hover:bg-black/70"
+              className="brand-photo-chip absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full t-section leading-none backdrop-blur-sm transition"
             >
               ‹
             </span>
             <span
               aria-hidden
               onClick={() => go(1)}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full bg-black/45 t-section leading-none text-white backdrop-blur-sm transition hover:bg-black/70"
+              className="brand-photo-chip absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full t-section leading-none backdrop-blur-sm transition"
             >
               ›
             </span>
@@ -180,7 +180,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             aria-live: 스크린리더도 장 전환을 들을 수 있게 (조용한 상태 변경 금지) */}
         <span
           aria-live="polite"
-          className="pointer-events-none absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2.5 py-1 t-sub font-extrabold text-white"
+          className="brand-photo-chip pointer-events-none absolute bottom-2 right-2 z-10 rounded-full px-2.5 py-1 t-sub font-extrabold"
         >
           {idx + 1} / {total}
         </span>
@@ -190,9 +190,9 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
             type="button"
             onClick={() => setZoom(true)}
             aria-label="사진 전체화면으로 보기"
-            className="absolute right-2 top-2 z-10 rounded-full bg-black/55 px-2.5 py-1 t-sub font-extrabold text-white backdrop-blur-sm transition hover:bg-black/75"
+            className="brand-photo-chip absolute right-2 top-2 z-10 rounded-full px-2.5 py-1 t-sub font-extrabold backdrop-blur-sm transition"
           >
-            크게 보기
+            <span className="njn-dot mr-1.5 inline-block h-[7px] w-[7px] align-middle" aria-hidden="true" />크게 보기
           </button>
         )}
       </div>
@@ -213,7 +213,7 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
               aria-current={i === idx ? "true" : undefined}
               className={`h-[52px] w-[74px] shrink-0 overflow-hidden rounded-lg border-2 bg-bg transition ${
                 i === idx
-                  ? "border-primary opacity-100"
+                  ? "border-[var(--brand-red)] opacity-100"
                   : "border-transparent opacity-60 hover:opacity-100"
               }`}
             >
@@ -237,67 +237,94 @@ export function NotePhotoCarousel({ photos, label = "현장 사진" }: Props) {
         </div>
       )}
 
-      {/* ── 전체화면 ─────────────────────────────────────────── */}
+      {/* ── 크게 보기 팝업 ─────────────────────────────────────────
+          [951] 예전엔 화면 전체를 검게 덮고 <img max-h-full> 을 넣었는데, 부모가
+          flex-1 이면서 min-height:auto 라 이미지 원본 높이만큼 늘어나 세로가 긴
+          차트 이미지는 위아래가 잘린 채 나갔다(소유자 캡처: "너무 크게 나와").
+          이제 가운데 팝업 카드 안에 넣고, 이미지 최대 높이를 뷰포트 기준(dvh)으로
+          못 박아 **한 화면에 전부** 들어오게 한다. 배경 클릭·Esc 로 닫힌다. */}
       {zoom && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={`${label} 전체화면`}
-          className="fixed inset-0 z-[120] flex flex-col bg-black/92"
+          aria-label={`${label} 크게 보기`}
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-3 sm:p-6"
           onClick={() => setZoom(false)}
         >
-          <div className="flex items-center justify-between px-4 py-3 text-white">
-            <span className="t-body font-extrabold">
-              {label} {idx + 1} / {total}
-            </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setZoom(false);
-              }}
-              className="rounded-full bg-white/15 px-3 py-1.5 t-sub font-extrabold text-white hover:bg-white/25"
-            >
-              닫기 (Esc)
-            </button>
-          </div>
           <div
-            className="relative flex flex-1 items-center justify-center px-2 pb-4"
+            className="brand-photo-frame flex max-h-[calc(100dvh-24px)] w-full max-w-[1100px] min-w-0 flex-col overflow-hidden rounded-2xl shadow-[0_24px_64px_rgba(11,37,69,.55)] sm:max-h-[calc(100dvh-48px)]"
             onClick={(e) => e.stopPropagation()}
           >
-            {isFailed ? (
-              <span className="t-body text-white/80">
-                사진을 불러오지 못했어요
+            <div className="flex shrink-0 items-center justify-between px-4 py-2.5 text-[var(--brand-hanji)]">
+              <span className="t-body font-extrabold">
+                <span className="njn-dot mr-2 inline-block h-[8px] w-[8px] align-middle" aria-hidden="true" />
+                {label} {idx + 1} / {total}
               </span>
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={src}
-                alt={`${label} ${idx + 1} / ${total}`}
-                decoding="async"
-                onError={() => markFailed(idx)}
-                className="max-h-full max-w-full object-contain"
-              />
-            )}
+              <button
+                type="button"
+                onClick={() => setZoom(false)}
+                className="brand-photo-chip rounded-full px-3 py-1.5 t-sub font-extrabold transition"
+              >
+                닫기 (Esc)
+              </button>
+            </div>
+            <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-3">
+              {isFailed ? (
+                <span className="t-body text-[var(--brand-hanji)]">
+                  사진을 불러오지 못했어요
+                </span>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={src}
+                  alt={`${label} ${idx + 1} / ${total}`}
+                  decoding="async"
+                  onError={() => markFailed(idx)}
+                  /* 높이 상한을 뷰포트로 직접 잰다 — 부모 max-h 만으로는 이미지가
+                     min-height:auto 를 타고 원본 크기로 커진다(위 주석). */
+                  className="max-h-[calc(100dvh-96px)] max-w-full rounded-lg object-contain sm:max-h-[calc(100dvh-120px)]"
+                />
+              )}
+              {total > 1 && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="이전 사진"
+                    onClick={() => go(-1)}
+                    className="brand-photo-chip absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full t-title transition"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="다음 사진"
+                    onClick={() => go(1)}
+                    className="brand-photo-chip absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full t-title transition"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+            </div>
+            {/* 팝업 안 썸네일 — 닫지 않고 다음 장으로 건너뛴다 */}
             {total > 1 && (
-              <>
-                <button
-                  type="button"
-                  aria-label="이전 사진"
-                  onClick={() => go(-1)}
-                  className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 t-title text-white hover:bg-white/30"
-                >
-                  ‹
-                </button>
-                <button
-                  type="button"
-                  aria-label="다음 사진"
-                  onClick={() => go(1)}
-                  className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 t-title text-white hover:bg-white/30"
-                >
-                  ›
-                </button>
-              </>
+              <div className="flex shrink-0 gap-1.5 overflow-x-auto px-3 pb-3">
+                {photos.map((p, i) => (
+                  <button
+                    key={`z-${i}`}
+                    type="button"
+                    aria-label={`${i + 1}번째 사진 보기`}
+                    aria-current={i === idx ? "true" : undefined}
+                    onClick={() => setIdx(i)}
+                    className={`h-[40px] w-[58px] shrink-0 overflow-hidden rounded-md border-2 bg-[rgba(246,241,231,.06)] ${
+                      i === idx ? "border-[var(--brand-red-on-dark)]" : "border-transparent opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </div>

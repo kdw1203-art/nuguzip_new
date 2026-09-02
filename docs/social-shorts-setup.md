@@ -80,7 +80,7 @@ select vault.create_secret('<CRON_SECRET 값>', 'cron_secret');
 3. **큐 등록**: 관리자로 로그인한 브라우저 콘솔 또는 curl 로:
 
 ```
-POST https://nuguzip.com/api/admin/social-uploads
+POST https://naezipnow.com/api/admin/social-uploads
 { "videoUrl": "<공개 URL>", "title": "8월 2주차 시장 브리핑",
   "caption": "이번 주 실거래 하이라이트", "hashtags": ["부동산", "임장", "실거래가"],
   "scheduledAt": "2026-08-14T09:00:00+09:00",
@@ -104,7 +104,7 @@ POST https://nuguzip.com/api/admin/social-uploads
 D 의 수동 등록 없이도 **매일 11:00 KST** 에 소재가 자동으로 만들어져 큐에 들어갑니다:
 
 1. **임장노트 영상**: 공개(is_public) + 운영자 본인 작성 노트 중 아직 발행 안 된 것을
-   최신순으로 1건 골라, 표지(지역·단지) → 현장 요약 → 체감 점수 바 → nuguzip.com CTA
+   최신순으로 1건 골라, 표지(지역·단지) → 현장 요약 → 체감 점수 바 → naezipnow.com CTA
    4프레임 슬라이드 영상(약 13초, 1080×1920 H.264+AAC)으로 렌더링합니다.
    - 다른 이용자의 노트는 자동화하지 않습니다(저작권·동의 문제). 소재 확대를 원하면
      노트 작성 시 "소셜 공유 동의" 옵션을 붙이는 것이 다음 단계입니다.

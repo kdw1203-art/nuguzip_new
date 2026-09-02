@@ -105,7 +105,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: seoAlternates(path),
-    openGraph: { title, description, url: `https://nuguzip.com${path}`, type: "website" },
+    openGraph: { title, description, url: `https://naezipnow.com${path}`, type: "website" },
   };
 }
 

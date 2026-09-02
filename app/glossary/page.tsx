@@ -25,19 +25,19 @@ function definedTermSetJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "DefinedTermSet",
-    "@id": "https://nuguzip.com/glossary",
+    "@id": "https://naezipnow.com/glossary",
     name: "내집나우 부동산 용어사전",
     description:
       "부동산 실거래·시세·임대차·대출·세금·청약·경매 용어를 한 문단 정의로 정리한 사전입니다.",
     inLanguage: "ko-KR",
-    url: "https://nuguzip.com/glossary",
+    url: "https://naezipnow.com/glossary",
     hasDefinedTerm: GLOSSARY_TERMS.map((t) => ({
       "@type": "DefinedTerm",
-      "@id": `https://nuguzip.com/glossary/${t.slug}`,
+      "@id": `https://naezipnow.com/glossary/${t.slug}`,
       name: t.term,
       description: t.def,
       termCode: t.slug,
-      url: `https://nuguzip.com/glossary/${t.slug}`,
+      url: `https://naezipnow.com/glossary/${t.slug}`,
     })),
   };
 }

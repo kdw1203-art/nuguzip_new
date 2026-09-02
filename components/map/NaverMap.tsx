@@ -344,7 +344,7 @@ export function NaverMap({
             `네이버 지도 인증 실패. 현재 접속 주소(${origin})가 NCP에 등록되지 않았을 수 있어요. ` +
             `NCP 콘솔 > Maps > Application > "Web 서비스 URL"에 ${host} 를 등록하세요(포트·경로 제외).` +
             (isVercelPreview
-              ? " ⚠ 지금 *.vercel.app 미리보기 URL로 보고 있습니다 — https://nuguzip.com 으로 접속하거나 이 미리보기 도메인도 등록해야 합니다."
+              ? " ⚠ 지금 *.vercel.app 미리보기 URL로 보고 있습니다 — https://naezipnow.com 으로 접속하거나 이 미리보기 도메인도 등록해야 합니다."
               : "") +
             (isLoopback
               ? ` ⚠ NCP는 http://localhost 와 http://127.0.0.1 을 서로 다른 주소로 봅니다. VS Code Live Preview 등은 127.0.0.1 로 뜨므로 둘 다 등록하세요(지금은 ${host}).`

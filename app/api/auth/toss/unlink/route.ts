@@ -14,7 +14,7 @@ import { logger } from "@/lib/log";
  * - Basic Auth 헤더(base64)를 디코딩해 콘솔 입력값과 일치하는지 검증
  * - referrer: UNLINK | WITHDRAWAL_TERMS | WITHDRAWAL_TOSS
  *
- * 콘솔 등록 URL 예: https://nuguzip.com/api/auth/toss/unlink
+ * 콘솔 등록 URL 예: https://naezipnow.com/api/auth/toss/unlink
  */
 
 export const dynamic = "force-dynamic";

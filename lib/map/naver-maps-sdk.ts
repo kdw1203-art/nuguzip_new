@@ -65,7 +65,7 @@ let authFailed = false;
 
 /** NCP Web Service URL / Dynamic Map 미설정 시 SDK가 호출하는 콜백 안내 문구 */
 export const NAVER_MAP_AUTH_FAILURE_MESSAGE =
-  "네이버 지도 인증 실패 — NCP Maps 콘솔 Application에서 'Dynamic Map'을 켜고, 'Web 서비스 URL'에 https://nuguzip.com, https://www.nuguzip.com, https://m.nuguzip.com, http://localhost, http://127.0.0.1 을 등록하세요(포트·경로 없이). localhost와 127.0.0.1은 별도 주소입니다.";
+  "네이버 지도 인증 실패 — NCP Maps 콘솔 Application에서 'Dynamic Map'을 켜고, 'Web 서비스 URL'에 https://naezipnow.com, https://www.naezipnow.com, https://m.naezipnow.com, http://localhost, http://127.0.0.1 을 등록하세요(포트·경로 없이). localhost와 127.0.0.1은 별도 주소입니다.";
 
 export const NAVER_MAP_SETUP_DOC_PATH = "/docs/naver-map-ncp-setup.md";
 

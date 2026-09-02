@@ -190,7 +190,7 @@ autovacuum ANALYZE 가 표본 30,000행을 다 읽고도 `computing statistics` 
   `sitemap.xml` 과 RSS 피드를 제출해 주세요.
 - **Bing 웹마스터 등록** (N2) — 계정 소유자만 가능합니다.
 - **data.go.kr 활용사례 등록** (N22) — 계정 소유자만 가능합니다.
-- **GA4 확인** — nuguzip.com 접속 → 쿠키 배너 "모두 허용" → 실시간 보고서.
+- **GA4 확인** — naezipnow.com 접속 → 쿠키 배너 "모두 허용" → 실시간 보고서.
   **GTM-WJ27GGWP 와 G-01QJ36Y4PD 는 설치하지 마세요** — G-XEJPECJM53 과 중복 집계됩니다.
 - **개인정보처리방침에 GA4 문구 추가 여부** — 법적 문서라 제가 단독으로 고치지 않았습니다.
 

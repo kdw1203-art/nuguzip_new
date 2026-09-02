@@ -3,7 +3,7 @@
  * - checkout 미인증/잘못된 body → 401/400류
  * - success/fail 페이지 존재
  */
-const BASE = (process.env.SMOKE_BASE_URL || "https://nuguzip.com").replace(/\/$/, "");
+const BASE = (process.env.SMOKE_BASE_URL || "https://naezipnow.com").replace(/\/$/, "");
 const failures = [];
 
 async function check(name, fn) {

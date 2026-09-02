@@ -8,7 +8,7 @@
  * @see https://developers-apps-in-toss.toss.im/development/deploy.md (CORS)
  *
  * 추가 origin이 필요하면 환경변수 MINI_APP_ALLOWED_ORIGINS(쉼표 구분, 정확한 origin)로 등록합니다.
- * 허용 origin이 아니면 어떤 CORS 헤더도 붙이지 않으므로, 웹뷰가 nuguzip.com을 직접 로드하는
+ * 허용 origin이 아니면 어떤 CORS 헤더도 붙이지 않으므로, 웹뷰가 naezipnow.com을 직접 로드하는
  * 동일 출처 구성에서는 동작에 영향이 없습니다.
  */
 

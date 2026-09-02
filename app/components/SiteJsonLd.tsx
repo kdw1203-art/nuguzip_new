@@ -14,7 +14,7 @@ import { SITE_NAME, SITE_DEFAULT } from "@/lib/seo/page-metadata";
    기원이 되는 날 </script> 로 문서를 빠져나간다. 전역 컴포넌트라 모든 페이지가 같이 뚫린다. */
 import { jsonLdScript } from "@/lib/seo/jsonld";
 
-const BASE_URL = "https://nuguzip.com";
+const BASE_URL = "https://naezipnow.com";
 
 export function SiteJsonLd() {
   const biz = getBusinessInfo();

@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 function hostOf(u: string): string | null {
   try {
     const h = new URL(u).hostname.toLowerCase();
-    if (!h || h === "nuguzip.com" || h.endsWith(".nuguzip.com")) return null; // 자체 페이지 제외
+    if (!h || h === "naezipnow.com" || h.endsWith(".naezipnow.com")) return null; // 자체 페이지 제외
     return h.slice(0, 100);
   } catch {
     return null;

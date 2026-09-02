@@ -7,7 +7,7 @@ export type PlatformShell = "desktop" | "mobile";
  * 파생되므로, 도메인 이전 시 이 env 하나 + 문자열 일괄 치환(런북 참조)으로 끝난다.
  * NEXT_PUBLIC_ 접두어라 클라이언트 번들에도 같은 값이 들어간다(빌드 시 확정). */
 export const DEFAULT_DESKTOP_ORIGIN = (
-  process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim() || "https://nuguzip.com"
+  process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim() || "https://naezipnow.com"
 ).replace(/\/+$/, "");
 /** 도메인만 필요할 때 (메일 표기·쿠키 도메인 등) */
 export const SITE_DOMAIN = DEFAULT_DESKTOP_ORIGIN.replace(/^https?:\/\//, "");

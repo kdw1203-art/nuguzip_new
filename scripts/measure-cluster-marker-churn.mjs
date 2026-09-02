@@ -21,13 +21,13 @@
  * 안에** 있으므로 floor(centroid / cell) 로 셀 인덱스를 정확히 복원할 수 있다.
  * 추정이 아니라 항등식이다.
  *
- * 사용:  node scripts/measure-cluster-marker-churn.mjs [https://nuguzip.com]
+ * 사용:  node scripts/measure-cluster-marker-churn.mjs [https://naezipnow.com]
  * 결과(2026-08-04, 강남 일대 zoom 12, 450m 씩 6번 팬):
  *   옛 id(무게중심 좌표) 26/30 재생성(87%) · 새 id(셀 키) 0/30(0%)
  */
 import { execFileSync } from "node:child_process";
 
-const BASE = process.argv[2] ?? "https://nuguzip.com";
+const BASE = process.argv[2] ?? "https://naezipnow.com";
 
 /* app/api/map/clusters/route.ts 의 cellSizeForZoom 과 같은 표. 둘이 어긋나면
    이 스크립트가 조용히 틀린 답을 낸다 — 바꿀 때 같이 바꾼다. */

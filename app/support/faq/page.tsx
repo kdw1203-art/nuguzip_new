@@ -41,9 +41,9 @@ export default function SupportFaqPage() {
         dangerouslySetInnerHTML={{
           __html: jsonLdScript(
             breadcrumbJsonLd([
-              { name: "홈", url: "https://nuguzip.com/" },
-              { name: "고객지원", url: "https://nuguzip.com/support" },
-              { name: "자주 묻는 질문", url: "https://nuguzip.com/support/faq" },
+              { name: "홈", url: "https://naezipnow.com/" },
+              { name: "고객지원", url: "https://naezipnow.com/support" },
+              { name: "자주 묻는 질문", url: "https://naezipnow.com/support/faq" },
             ]),
           ),
         }}

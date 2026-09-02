@@ -39,10 +39,10 @@ export function emailLayout(bodyHtml: string): string {
       ${bodyHtml}
     </div>
     <p style="color:#8a94a6;font-size:12px;line-height:1.6;margin:16px 4px 0;">
-      본 메일은 내집나우(nuguzip.com)에서 자동 발송되었습니다. 문의는
-      <a href="https://nuguzip.com/support" style="color:#8a94a6;">고객센터</a>,
+      본 메일은 내집나우(naezipnow.com)에서 자동 발송되었습니다. 문의는
+      <a href="https://naezipnow.com/support" style="color:#8a94a6;">고객센터</a>,
       알림 메일 수신 설정(수신거부)은
-      <a href="https://nuguzip.com/my/settings" style="color:#8a94a6;">마이 › 설정 › 알림</a>
+      <a href="https://naezipnow.com/my/settings" style="color:#8a94a6;">마이 › 설정 › 알림</a>
       에서 할 수 있습니다.
     </p>
     <p style="color:#a8b0bf;font-size:11px;line-height:1.6;margin:8px 4px 0;">
@@ -190,14 +190,14 @@ export function weeklyDigestEmail(params: {
         ? `<p style="margin:0 0 18px;font-size:13px;color:#4a5568;">이웃 글 ${params.communityCount}건이 새로 올라왔어요.</p>`
         : ""
     }
-    <a href="https://nuguzip.com/digest" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">전체 다이제스트 보기</a>
+    <a href="https://naezipnow.com/digest" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">전체 다이제스트 보기</a>
   `);
 
   const text = [
     `${params.weekLabel} 주간 다이제스트`,
     ...params.market.slice(0, 6).map((m) => `${m.name} ${m.price} ${m.delta}`),
     ...params.news.slice(0, 5).map((n) => `- ${n.title}`),
-    "전체 보기: https://nuguzip.com/digest",
+    "전체 보기: https://naezipnow.com/digest",
   ].join("\n");
 
   return { subject, html, text };
@@ -230,12 +230,12 @@ export function watchlistTxEmail(params: {
     <h1 style="margin:0 0 6px;font-size:18px;color:#191f28;">관심단지에 새 실거래 ${total}건</h1>
     <p style="margin:0 0 14px;font-size:13px;color:#8a94a6;">국토교통부 실거래 신고 기준 · 매물 호가가 아닙니다</p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 16px;">${rows}</table>
-    <a href="https://nuguzip.com/my/watchlist" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">관심 단지 전체 보기</a>
+    <a href="https://naezipnow.com/my/watchlist" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;text-decoration:none;">관심 단지 전체 보기</a>
   `);
   const text = [
     `관심단지에 새 실거래 ${total}건`,
     ...params.items.map((x) => `- ${x.complexName}: ${x.count}건 · ${x.latestLine}`),
-    "전체 보기: https://nuguzip.com/my/watchlist",
+    "전체 보기: https://naezipnow.com/my/watchlist",
   ].join("\n");
   return { subject: `[내집나우] 관심단지 새 실거래 ${total}건`, html, text };
 }
@@ -262,21 +262,21 @@ export function welcomeEmail(params: { name: string }) {
       지금 바로 할 수 있는 것들이에요.
     </p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 18px;">
-      ${item("📝", "첫 임장노트 쓰기", "체크리스트·사진·음성메모로 현장을 기록해요. AI가 데이터 초안도 잡아줘요.", "https://nuguzip.com/notes/new")}
-      ${item("🗺️", "지도에서 시세 보기", "구별 평균가·전세가율·경사·공매 물건까지 한 화면에서.", "https://nuguzip.com/map")}
-      ${item("⭐", "관심 단지 등록", "보고 있는 단지를 담아두면 새 실거래를 모아볼 수 있어요.", "https://nuguzip.com/my/watchlist")}
+      ${item("📝", "첫 임장노트 쓰기", "체크리스트·사진·음성메모로 현장을 기록해요. AI가 데이터 초안도 잡아줘요.", "https://naezipnow.com/notes/new")}
+      ${item("🗺️", "지도에서 시세 보기", "구별 평균가·전세가율·경사·공매 물건까지 한 화면에서.", "https://naezipnow.com/map")}
+      ${item("⭐", "관심 단지 등록", "보고 있는 단지를 담아두면 새 실거래를 모아볼 수 있어요.", "https://naezipnow.com/my/watchlist")}
     </table>
-    <a href="https://nuguzip.com/welcome" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:11px 22px;border-radius:8px;text-decoration:none;">30초 시작 가이드 보기</a>
+    <a href="https://naezipnow.com/welcome" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:11px 22px;border-radius:8px;text-decoration:none;">30초 시작 가이드 보기</a>
   `);
   const text = [
     `${params.name || "회원"}님, 내집나우에 오신 것을 환영해요`,
     "",
     "지금 바로 할 수 있는 것들:",
-    "- 첫 임장노트 쓰기 (AI 초안 지원): https://nuguzip.com/notes/new",
-    "- 지도에서 시세 보기: https://nuguzip.com/map",
-    "- 관심 단지 등록: https://nuguzip.com/my/watchlist",
+    "- 첫 임장노트 쓰기 (AI 초안 지원): https://naezipnow.com/notes/new",
+    "- 지도에서 시세 보기: https://naezipnow.com/map",
+    "- 관심 단지 등록: https://naezipnow.com/my/watchlist",
     "",
-    "30초 시작 가이드: https://nuguzip.com/welcome",
+    "30초 시작 가이드: https://naezipnow.com/welcome",
   ].join("\n");
   return { subject: "[내집나우] 환영해요 — 첫 임장노트, 오늘 써봐요", html, text };
 }
@@ -291,7 +291,7 @@ export function welcomeEmail(params: { name: string }) {
 export function reengageEmail(params: { title: string; body: string; actionUrl: string }) {
   const url = params.actionUrl.startsWith("http")
     ? params.actionUrl
-    : `https://nuguzip.com${params.actionUrl}`;
+    : `https://naezipnow.com${params.actionUrl}`;
   return {
     subject: `(광고) ${params.title}`,
     html: emailLayout(`

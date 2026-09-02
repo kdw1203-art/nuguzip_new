@@ -1,4 +1,4 @@
-# 누구집(nuguzip.com) 대규모 개편 사전 감사 (Overhaul Audit)
+# 누구집(naezipnow.com) 대규모 개편 사전 감사 (Overhaul Audit)
 
 작성일: 2026-07-20 · 감사 방법: 로컬 프로덕션 빌드(`next start -p 3400`) 전 라우트 크롤링 + 소스 전수 열람
 주의: 감사 환경은 외부 네트워크 차단 상태(Supabase·네이버·청약홈 fetch 실패) → 모든 페이지가 목업 폴백으로 렌더됨. "데이터 연동 자체"의 정상 여부는 판단 불가한 항목에 `[데이터 의존]` 표기. 그 외 지적은 코드 구조상 확정된 사실임.
@@ -251,4 +251,4 @@
 - 미들웨어 레거시 타깃 실측: 404 타깃 15군 확인 (P0-4 표), 2단 홉 4군.
 - 페이지별 `<button>` 대비 `onClick` 부재(죽은 버튼): town/market 2/0, library 1/0, safety 1/0, town/experts 3/0, upgrade 7/1, seller 8/4.
 - "준비 중" 노출 지점: /seller 심사 신청(L501), /digest 빈 상태 문구(정상 폴백), 시세 폴백 문구(map·complex — `[데이터 의존]` 정상 처리).
-- metadataBase(`https://nuguzip.com`)·openGraph·robots.ts·법적 고지 8종·CSP·no-store 정책은 양호.
+- metadataBase(`https://naezipnow.com`)·openGraph·robots.ts·법적 고지 8종·CSP·no-store 정책은 양호.

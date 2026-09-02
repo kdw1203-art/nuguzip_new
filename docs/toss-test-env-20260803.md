@@ -76,7 +76,7 @@ webhook · learn/tax · learn/payment-results · get-started/llms-guide.
    10초 내 200 규칙 준수, 멱등(같은 이벤트 재수신 시 상태 재변경 없음),
    모르는 주문은 무기록 200. DEPOSIT_CALLBACK(가상계좌)은 미사용 상점이라
    기록만 남기고 승인하지 않음(발급 시작 시 secret 대조 로직을 붙일 것).
-   **등록(사람)**: 개발자센터 → 웹훅 → https://nuguzip.com/api/payments/toss/webhook
+   **등록(사람)**: 개발자센터 → 웹훅 → https://naezipnow.com/api/payments/toss/webhook
    · PAYMENT_STATUS_CHANGED 구독.
 3. **자동결제(빌링) 기반 모듈** `lib/payments/toss-billing.ts`
    — issueBillingKey(authKey 교환)·chargeBillingKey(멱등키 지원). 문서 명시대로

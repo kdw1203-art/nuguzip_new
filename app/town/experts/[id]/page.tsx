@@ -24,7 +24,7 @@ export function generateStaticParams() {
   return [];
 }
 
-const BASE_URL = "https://nuguzip.com";
+const BASE_URL = "https://naezipnow.com";
 
 export async function generateMetadata({
   params,

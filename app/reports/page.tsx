@@ -83,7 +83,7 @@ export default async function ReportsIndexPage() {
             "@type": "ListItem",
             position: i + 1,
             name: `${formatYmKo(m.ym)} 실거래 리포트`,
-            url: `https://nuguzip.com/reports/${m.ym}`,
+            url: `https://naezipnow.com/reports/${m.ym}`,
           })),
         }
       : null;

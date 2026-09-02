@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** 초대 링크 기본 도메인. 요청 헤더에서 유추, 없으면 운영 도메인. */
-const FALLBACK_ORIGIN = "https://nuguzip.com";
+const FALLBACK_ORIGIN = "https://naezipnow.com";
 
 function originFrom(req: NextRequest): string {
   const proto = req.headers.get("x-forwarded-proto") ?? "https";

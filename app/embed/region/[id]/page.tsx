@@ -35,7 +35,7 @@ function FallbackCard({ name }: { name: string }) {
         시세를 불러오지 못했어요. 잠시 후 새로고침하면 표시됩니다.
       </p>
       <a
-        href="https://nuguzip.com"
+        href="https://naezipnow.com"
         target="_blank"
         rel="noopener noreferrer"
         className="text-[11px] font-bold text-[#1d4fd8]"
@@ -132,7 +132,7 @@ export default async function EmbedRegionPage({
           한국부동산원·KB 공표 통계 · 매물 호가 아님
         </span>
         <a
-          href={`https://nuguzip.com/region/${id}`}
+          href={`https://naezipnow.com/region/${id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[11px] font-extrabold text-[#1d4fd8]"

@@ -39,7 +39,7 @@ const SKIP_PREFIXES = ["VERCEL_", "TURBO_", "NX_"];
 const SKIP_KEYS = new Set(["VERCEL", "VERCEL_URL"]);
 
 const EXTRA_FOR_TARGET = {
-  AUTH_URL: "https://nuguzip.com",
+  AUTH_URL: "https://naezipnow.com",
 };
 
 const dryRun = process.argv.includes("--dry-run");

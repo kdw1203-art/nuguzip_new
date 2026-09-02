@@ -43,7 +43,7 @@
 UTM 캠페인 표**에서 세션 단위로 집계된다(30일 창).
 
 ```
-https://nuguzip.com/notes/<id>?utm_source=cafe&utm_medium=community&utm_campaign=<채널>-w<주차>
+https://naezipnow.com/notes/<id>?utm_source=cafe&utm_medium=community&utm_campaign=<채널>-w<주차>
 예) ...?utm_source=cafe&utm_medium=community&utm_campaign=bdstudy-w1
 ```
 
@@ -63,7 +63,7 @@ https://nuguzip.com/notes/<id>?utm_source=cafe&utm_medium=community&utm_campaign
 >   저는 이 차이가 가격 차이보다 컸습니다. 대로변 동은 창 열면 차 소리 들립니다.
 >
 > 체크한 항목(채광/소음/주차/경사/관리)이랑 사진은 노트로 정리해 뒀습니다.
-> 기록은 여기: nuguzip.com/notes/<본인 노트 id>?utm_source=cafe&...
+> 기록은 여기: naezipnow.com/notes/<본인 노트 id>?utm_source=cafe&...
 > (제가 쓰려고 만들고 있는 임장노트 서비스라, 피드백도 환영합니다)
 >
 > 다음 주엔 옆 동네 ◇◇지구 보러 갑니다. 거기 임장해 보신 분 계시면 팁 부탁드립니다.
@@ -82,7 +82,7 @@ https://nuguzip.com/notes/<id>?utm_source=cafe&utm_medium=community&utm_campaign
 >    ◇◇지구 입주(○천 세대)가 변수로 보입니다.
 > 3. 해제(취소) 신고도 ○건 섞여 있었습니다. 신고가 뉴스 보실 때 해제 여부 확인하세요.
 >
-> 구별 전세가율 순위는 여기서 봤습니다: nuguzip.com/analysis/gap?utm_source=cafe&...
+> 구별 전세가율 순위는 여기서 봤습니다: naezipnow.com/analysis/gap?utm_source=cafe&...
 > 해석에 이견 있으시면 댓글로 알려주세요 — 저도 공부 중입니다.
 
 **포인트**: 서비스가 아니라 데이터가 주인공. 숫자마다 출처·시점. 겸손한 마무리.

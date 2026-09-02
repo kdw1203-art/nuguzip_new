@@ -23,7 +23,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const BASE = "https://nuguzip.com";
+const BASE = "https://naezipnow.com";
 const NOTE_FRESH_DAYS = 7;
 
 /** 데이터가 매일 갱신되는 허브 — 여기는 "바뀌었다"가 사실이다. */

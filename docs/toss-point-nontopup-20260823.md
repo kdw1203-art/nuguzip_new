@@ -32,9 +32,9 @@
   뿐이며 심사 제출 가격표와 동일(동결 게이트 유지).
 
 ## 확인 URL (회신 메일에 기재)
-- https://nuguzip.com/points/shop · /my/points — 무충전 고지 상시 노출
-- https://nuguzip.com/legal/terms#points — 약관 제8조의2
-- https://nuguzip.com/subscription — 결제 상품에 포인트 관련 문구 없음
+- https://naezipnow.com/points/shop · /my/points — 무충전 고지 상시 노출
+- https://naezipnow.com/legal/terms#points — 약관 제8조의2
+- https://naezipnow.com/subscription — 결제 상품에 포인트 관련 문구 없음
 
 ## 회신 요지
 충전형 상품·기능 부존재 + 미도입 확정 → 충전업종 요건(전자계약·보증보험·

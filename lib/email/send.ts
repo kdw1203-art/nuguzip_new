@@ -4,11 +4,11 @@
  *  - RESEND_API_KEY 환경변수가 설정돼 있고 "re_" 로 시작하면 Resend REST API 로 발송.
  *  - 미설정이면 { sent: false, reason: "미설정" } 을 조용히 반환 (경고 로그는 최초 1회만).
  *
- * 발신 주소는 항상 "내집나우 <noreply@nuguzip.com>" 을 사용합니다.
+ * 발신 주소는 항상 "내집나우 <noreply@naezipnow.com>" 을 사용합니다.
  */
 import { logger } from "@/lib/log";
 
-export const EMAIL_FROM = "내집나우 <noreply@nuguzip.com>";
+export const EMAIL_FROM = "내집나우 <noreply@naezipnow.com>";
 
 export interface SendEmailInput {
   to: string | string[];

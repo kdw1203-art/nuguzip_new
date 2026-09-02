@@ -5,7 +5,7 @@
 정책 · 계좌 인증 API)를 기존 연동 코드와 1:1 대조한 결과다. "이미 맞게 되어 있던 것"과
 "이번에 고친 것"을 구분해 적는다 — 전부 새로 했다고 적으면 그것도 거짓말이다.
 
-상점: 우리동네이야기 · MID `nuguzibowg` · https://nuguzip.com
+상점: 우리동네이야기 · MID `nuguzibowg` · https://naezipnow.com
 
 ---
 
@@ -74,7 +74,7 @@
 
 ## C. 보안 문서 대조 (방화벽 IP · TLS)
 
-- **TLS 1.2 이상**: 충족. nuguzip.com 은 Vercel 종단이 TLS 를 처리하며 TLS 1.2+ 만
+- **TLS 1.2 이상**: 충족. naezipnow.com 은 Vercel 종단이 TLS 를 처리하며 TLS 1.2+ 만
   허용한다. 우리가 토스 API 로 나가는 요청도 Node fetch 의 기본 TLS(1.2+)다.
 - **인바운드(웹훅 발신 IP) 허용 목록**: Vercel 서버리스에는 IP 방화벽 개념이 없어
   "허용 목록" 방식은 적용 불가다. 대신 우리 웹훅은 **IP 를 신뢰 근거로 쓰지 않는다** —
@@ -103,7 +103,7 @@
 2. 계약 승인 후 Vercel 환경변수 **`NEXT_PUBLIC_TOSS_BILLING_ENABLED=1`** 추가 → 재배포.
    이 플래그 전까지 자동결제 화면·API 는 "준비 중"을 사실대로 보여 준다(정직한 대기).
 3. **웹훅 등록**(개발자센터 > 내 개발정보 > 웹훅, MID `nuguzibowg`):
-   - URL: `https://nuguzip.com/api/payments/toss/webhook`
+   - URL: `https://naezipnow.com/api/payments/toss/webhook`
    - 이벤트: `PAYMENT_STATUS_CHANGED` + **`BILLING_DELETED`** (가상계좌를 열면 DEPOSIT_CALLBACK 추가)
    - 문서 기준 10초 내 200 응답 요건: 우리 핸들러는 재조회 1회 후 즉시 응답(통상 수 초).
      실패 시 최대 7회 재전송되므로 처리는 멱등으로 구현돼 있다.

@@ -61,11 +61,11 @@ async function handle(req: Request) {
         continue;
       }
       const headline = `${label}\n${s.regionName} 아파트 시장`;
-      const sub = `월간 스냅샷 — nuguzip.com/region/${s.regionId}/report 에 월별로 고정 보관됩니다`;
+      const sub = `월간 스냅샷 — naezipnow.com/region/${s.regionId}/report 에 월별로 고정 보관됩니다`;
       const statLabel = `${label} 매매 신고`;
       const statValue = `${count.toLocaleString("ko-KR")}건${s.avgSale && s.avgSale > 0 ? ` · 평균 ${formatKrwShort(s.avgSale)}` : ""}`;
       const title = `${label} ${s.regionName} 아파트 시장 정리`;
-      const caption = `${label} ${s.regionName} 매매 신고 ${count.toLocaleString("ko-KR")}건. 월별 스냅샷은 nuguzip.com/region/${s.regionId}/report 에서. 국토교통부 신고 기준이며 투자 권유가 아닙니다.`;
+      const caption = `${label} ${s.regionName} 매매 신고 ${count.toLocaleString("ko-KR")}건. 월별 스냅샷은 naezipnow.com/region/${s.regionId}/report 에서. 국토교통부 신고 기준이며 투자 권유가 아닙니다.`;
       assertCompliantCopy(title, caption, headline, sub);
 
       const frames = await renderPromoFrames({

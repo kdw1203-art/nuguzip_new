@@ -32,9 +32,9 @@ test("공백만 든 값은 없는 것으로 본다", () => {
 
 test("지역명이 URL 로 왕복해도 원래 문자열이 나온다", () => {
   const h = townHandoff({ city: "경기", district: "안양시 동안구" });
-  const map = new URL(h.mapHref, "https://nuguzip.com");
+  const map = new URL(h.mapHref, "https://naezipnow.com");
   assert.equal(map.searchParams.get("region"), "경기 안양시 동안구");
   assert.equal(map.searchParams.get("district"), "안양시 동안구");
-  const note = new URL(h.noteNewHref, "https://nuguzip.com");
+  const note = new URL(h.noteNewHref, "https://naezipnow.com");
   assert.equal(note.searchParams.get("region"), "경기 안양시 동안구");
 });

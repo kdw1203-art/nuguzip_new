@@ -32,11 +32,11 @@ jobs:
         uses: treosh/lighthouse-ci-action@v12
         with:
           urls: |
-            https://nuguzip.com/
-            https://nuguzip.com/map
-            https://nuguzip.com/region/gangnam
-            https://nuguzip.com/town
-            https://nuguzip.com/analysis/gap
+            https://naezipnow.com/
+            https://naezipnow.com/map
+            https://naezipnow.com/region/gangnam
+            https://naezipnow.com/town
+            https://naezipnow.com/analysis/gap
           budgetPath: ./lighthouse-budget.json
           uploadArtifacts: true
           temporaryPublicStorage: true

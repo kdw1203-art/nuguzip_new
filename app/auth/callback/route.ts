@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  * 세션 쿠키를 심은 뒤 /login?verified=1 로 보낸다.
  *
  * Site URL / Redirect URLs 에 반드시 등록:
- *   https://nuguzip.com/auth/callback
+ *   https://naezipnow.com/auth/callback
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;

@@ -12,7 +12,7 @@
  * 사용:
  *   node scripts/qa-shots.mjs                    # 기본 루트: / /town /analysis
  *   node scripts/qa-shots.mjs /map /search       # 지정 루트만
- *   QA_BASE=https://nuguzip.com node scripts/qa-shots.mjs   # 배포 후 프로덕션 확인
+ *   QA_BASE=https://naezipnow.com node scripts/qa-shots.mjs   # 배포 후 프로덕션 확인
  *   QA_FULL=1 node scripts/qa-shots.mjs          # 접힌 부분까지 전체 페이지 캡처
  *   QA_CHROME=/path/to/chrome                    # 크로뮴 실행 파일 강제 지정
  *

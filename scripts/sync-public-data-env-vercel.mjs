@@ -44,7 +44,7 @@ const PUBLIC_DATA_KEYS = [
   },
   {
     key: "VWORLD_API_DOMAIN",
-    label: "VWorld 키 등록 도메인 (예: https://nuguzip.com)",
+    label: "VWorld 키 등록 도메인 (예: https://naezipnow.com)",
     portal: "https://www.vworld.kr",
   },
   {

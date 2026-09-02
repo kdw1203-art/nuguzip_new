@@ -8,7 +8,7 @@
  */
 import { readFileSync, existsSync } from "node:fs";
 
-const BASE = process.env.REHEARSAL_BASE_URL ?? "https://nuguzip.com";
+const BASE = process.env.REHEARSAL_BASE_URL ?? "https://naezipnow.com";
 const results = [];
 const add = (name, ok, detail) => results.push({ name, ok, detail });
 

@@ -256,7 +256,7 @@ export async function GET(req: NextRequest) {
                   display: "flex",
                 }}
               >
-                시세는 누구나 봅니다, 현장은 가 본 사람만 압니다 · nuguzip.com
+                시세는 누구나 봅니다, 현장은 가 본 사람만 압니다 · naezipnow.com
               </div>
               {mapDataUri && (
                 // eslint-disable-next-line @next/next/no-img-element

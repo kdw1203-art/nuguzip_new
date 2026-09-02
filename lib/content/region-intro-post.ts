@@ -105,10 +105,10 @@ export async function publishRegionIntroPosts(limit = 30): Promise<RegionIntroRe
         `■ 숫자로 보는 ${region.name} (${periodLabel} 기준)`,
         ...lines,
         "",
-        `상세 지표·지수 추이 → nuguzip.com/region/${region.id}`,
-        `지도에서 보기 → nuguzip.com/map?q=${encodeURIComponent(region.name)}`,
+        `상세 지표·지수 추이 → naezipnow.com/region/${region.id}`,
+        `지도에서 보기 → naezipnow.com/map?q=${encodeURIComponent(region.name)}`,
         "",
-        `이 동네에 다녀오셨다면 첫 이웃 글의 주인공이 되어 주세요 → nuguzip.com/town/write?region=${encodeURIComponent(region.name)}`,
+        `이 동네에 다녀오셨다면 첫 이웃 글의 주인공이 되어 주세요 → naezipnow.com/town/write?region=${encodeURIComponent(region.name)}`,
       ].join("\n");
 
       const { error: insErr } = await sb.from("board_posts").insert({

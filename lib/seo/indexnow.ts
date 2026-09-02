@@ -25,7 +25,7 @@ import { logger } from "@/lib/log";
 /** IndexNow 키 — public/4a720d8a3dc61704cf05d0fe9e92900b.txt 와 같은 값이어야 한다. */
 export const INDEXNOW_KEY = "4a720d8a3dc61704cf05d0fe9e92900b";
 
-export const INDEXNOW_HOST = "nuguzip.com";
+export const INDEXNOW_HOST = "naezipnow.com";
 export const INDEXNOW_KEY_LOCATION = `https://${INDEXNOW_HOST}/${INDEXNOW_KEY}.txt`;
 
 /** 프로토콜 상한은 10,000. 우리는 한 번에 그만큼 바뀔 일이 없어 넉넉히 낮춘다. */

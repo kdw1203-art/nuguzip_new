@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
   if (snapshots.length > 0) {
     const llm = await tryLlmText(
-      "당신은 nuguzip.com의 한국어 부동산 비교 분석 보조 AI입니다. 과장·투자 권유 없이, 제공된 지역 실시세만 근거로 3~4문장 종합 코멘트를 평문 한 단락으로 작성하세요.",
+      "당신은 naezipnow.com의 한국어 부동산 비교 분석 보조 AI입니다. 과장·투자 권유 없이, 제공된 지역 실시세만 근거로 3~4문장 종합 코멘트를 평문 한 단락으로 작성하세요.",
       [
         "다음 후보 지역들의 실시세 스냅샷을 비교해 종합 코멘트를 작성해 주세요.",
         ...snapshots.map((s) => `- ${describeSnapshot(s)}`),

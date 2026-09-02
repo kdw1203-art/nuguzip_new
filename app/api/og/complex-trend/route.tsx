@@ -134,7 +134,7 @@ export async function GET(req: NextRequest) {
             국토교통부 실거래 신고 · 24개월 월평균 · 투자 권유 아님
           </div>
           <div style={{ display: "flex", fontSize: "24px", color: "#9db4dd", fontWeight: 700 }}>
-            nuguzip.com
+            naezipnow.com
           </div>
         </div>
       </div>

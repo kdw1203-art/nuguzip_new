@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "친구 추천 · 내집나우" };
 
-const FALLBACK_ORIGIN = "https://nuguzip.com";
+const FALLBACK_ORIGIN = "https://naezipnow.com";
 
 /** 초대 여정 배지 — 실제 추가 적립을 약속하지 않는 순수 동기부여 지표. */
 const MILESTONES: { n: number; label: string; icon: string }[] = [

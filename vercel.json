@@ -6,19 +6,6 @@
   "regions": [
     "icn1"
   ],
-  "redirects": [
-    {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "m.nuguzip.com"
-        }
-      ],
-      "destination": "https://nuguzip.com/:path*",
-      "permanent": true
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron/site-probe",

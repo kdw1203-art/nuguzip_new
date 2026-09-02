@@ -117,7 +117,7 @@ export default function MethodologyPage() {
         </h1>
         {/* G12 — 정의형 첫 문단: 이 페이지가 무엇인지 완결 문장으로 */}
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
-          이 페이지는 내집나우(nuguzip.com)이 국토교통부 실거래 데이터를 수집·집계해
+          이 페이지는 내집나우(naezipnow.com)이 국토교통부 실거래 데이터를 수집·집계해
           시세와 지표를 만드는 방식을 공개한 문서입니다. 새로 만든 규칙이 아니라,
           서비스가 실제로 동작하는 방식을 그대로 적었습니다.
         </p>

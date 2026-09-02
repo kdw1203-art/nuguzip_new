@@ -88,7 +88,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "지역별 면적대·가격대 실거래 | 내집나우",
       description,
-      url: `https://nuguzip.com${PATH}`,
+      url: `https://naezipnow.com${PATH}`,
       type: "website",
       /* [C004] og:image 부재 2페이지 중 하나 — 제목 박힌 동적 카드 */
       images: [
@@ -132,7 +132,7 @@ export default async function TxIndexPage() {
             "@type": "ListItem",
             position: i + 1,
             name: `${r.name} 실거래 구간`,
-            url: `https://nuguzip.com/tx/${encodeURIComponent(r.slug)}`,
+            url: `https://naezipnow.com/tx/${encodeURIComponent(r.slug)}`,
           })),
         }
       : null;

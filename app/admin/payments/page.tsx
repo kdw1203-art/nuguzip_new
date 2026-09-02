@@ -247,7 +247,7 @@ export default async function AdminPaymentsPage() {
           <li>
             <b className="text-ink">웹훅 등록</b> — 개발자센터 → 웹훅 → URL{" "}
             <code className="rounded bg-[#f2f4f8] px-1.5 py-0.5 text-[12px]">
-              https://nuguzip.com/api/payments/toss/webhook
+              https://naezipnow.com/api/payments/toss/webhook
             </code>{" "}
             · 이벤트 <b>PAYMENT_STATUS_CHANGED</b> 구독. 수신부는 페이로드를 믿지
             않고 결제 조회 API 로 재검증한 뒤 반영한다(멱등).

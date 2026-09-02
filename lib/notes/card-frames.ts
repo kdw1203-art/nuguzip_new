@@ -221,7 +221,7 @@ export const CARD_FRAMES: readonly CardFrame[] = [
     build: () => ({
       kind: "cta",
       heading: "시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
-      sub: "nuguzip.com",
+      sub: "naezipnow.com",
     }),
   },
 ] as const;

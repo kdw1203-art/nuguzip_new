@@ -18,7 +18,7 @@ export const metadata = buildPageMetadata({
    상수(MAX_LIMIT·DEFAULT_LIMIT·라이선스)는 API 구현과 같은 모듈에서 가져온다.
    문서와 구현이 따로 놀면 문서가 거짓말을 하기 때문이다. */
 
-const BASE = "https://nuguzip.com/api/public/v1";
+const BASE = "https://naezipnow.com/api/public/v1";
 
 type Endpoint = {
   path: string;
@@ -95,7 +95,7 @@ const QA: { q: string; a: string }[] = [
   },
   {
     q: "상업적으로 써도 되나요?",
-    a: "출처를 표기하면 상업적 이용을 포함해 자유롭게 쓸 수 있습니다. 원자료는 국토교통부 공개 자료이고, 내집나우는 그 위의 집계를 제공합니다. 표기 예: \"내집나우(nuguzip.com) 집계, 국토교통부 실거래 기반, 2026년 5월 기준\". 다만 집계 방식의 한계(단순 평균·신고 지연)를 함께 밝혀 주시기를 권합니다.",
+    a: "출처를 표기하면 상업적 이용을 포함해 자유롭게 쓸 수 있습니다. 원자료는 국토교통부 공개 자료이고, 내집나우는 그 위의 집계를 제공합니다. 표기 예: \"내집나우(naezipnow.com) 집계, 국토교통부 실거래 기반, 2026년 5월 기준\". 다만 집계 방식의 한계(단순 평균·신고 지연)를 함께 밝혀 주시기를 권합니다.",
   },
   {
     q: "엔드포인트가 바뀔 수도 있나요?",
@@ -112,10 +112,10 @@ function jsonLd() {
         name: "내집나우 공개 집계 API",
         description:
           "국토교통부 실거래 신고 자료로 만든 아파트 매매 월간 지역 집계를 인증 없이 제공하는 JSON API",
-        documentation: "https://nuguzip.com/developers",
+        documentation: "https://naezipnow.com/developers",
         url: BASE,
-        provider: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
-        termsOfService: "https://nuguzip.com/legal/terms",
+        provider: { "@type": "Organization", name: "내집나우", url: "https://naezipnow.com" },
+        termsOfService: "https://naezipnow.com/legal/terms",
       },
       {
         "@type": "FAQPage",
@@ -139,7 +139,7 @@ export default function DevelopersPage() {
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">공개 집계 API</h1>
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
-          내집나우(nuguzip.com)은 국토교통부 실거래 신고 자료로 만든 아파트 매매 월간 지역
+          내집나우(naezipnow.com)은 국토교통부 실거래 신고 자료로 만든 아파트 매매 월간 지역
           집계를 인증 없이 JSON 으로 제공합니다. 사이트 화면에 이미 공개된 수치와 같은
           값이며, 출처를 표기하면 누구나 쓸 수 있습니다.
         </p>
@@ -229,7 +229,7 @@ export default function DevelopersPage() {
             출처가 함께 이동합니다.
           </p>
           <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] leading-[1.7] text-text-1">
-            내집나우(nuguzip.com) 집계, {PUBLIC_API_LICENSE.sources[0].name} 자료 기반, ○○○○년
+            내집나우(naezipnow.com) 집계, {PUBLIC_API_LICENSE.sources[0].name} 자료 기반, ○○○○년
             ○월 기준
           </div>
           <p className="mt-3 text-[12px] leading-[1.7] text-text-3">

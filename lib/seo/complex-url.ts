@@ -25,7 +25,7 @@
 export const URL_STYLE: 'code' | 'slug' =
   (process.env.NEXT_PUBLIC_COMPLEX_URL_STYLE as 'code' | 'slug') ?? 'code'
 
-export const SITE_ORIGIN = 'https://nuguzip.com'
+export const SITE_ORIGIN = 'https://naezipnow.com'
 
 export type ComplexUrlInput = {
   /** K-apt 단지코드. 예: 'A10027336'. 없을 수 있음. */

@@ -55,7 +55,7 @@ export default async function AboutPage() {
           내집나우 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다
         </h1>
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
-          내집나우(nuguzip.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래
+          내집나우(naezipnow.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래
           데이터와 나란히 놓고, 부동산 판단의 근거를 쌓도록 돕는 서비스입니다.
         </p>
 

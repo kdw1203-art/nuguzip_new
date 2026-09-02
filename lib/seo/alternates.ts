@@ -16,7 +16,7 @@ function normalizePathname(raw: string | null): string {
 /**
  * G6 — 경로만 알면 되는 canonical + hreflang.
  *
- * 브랜드 도메인(`nuguzip.com`)을 기준으로 절대 URL을 만든다. 프리뷰 배포에서도
+ * 브랜드 도메인(`naezipnow.com`)을 기준으로 절대 URL을 만든다. 프리뷰 배포에서도
  * 같은 값이 나가는데, 이게 맞다: 프리뷰 URL 이 색인되면 안 되고 canonical 은
  * 운영 주소를 가리켜야 한다.
  *

@@ -253,7 +253,7 @@ export default async function PublicProfilePage({
                 </span>
               </div>
               <div className="mt-[2px] text-[11px] text-text-3">
-                nuguzip.com/@{handleLabel}
+                naezipnow.com/@{handleLabel}
                 {region ? ` · ${region}` : ""}
               </div>
             </div>

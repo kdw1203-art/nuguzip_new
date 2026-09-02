@@ -86,7 +86,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: seoAlternates(path),
-    openGraph: { title, description, url: `https://nuguzip.com${path}`, type: "article" },
+    openGraph: { title, description, url: `https://naezipnow.com${path}`, type: "article" },
   };
 }
 
@@ -120,8 +120,8 @@ export default async function SeasonReportPage({
 
   const citation =
     compared.length === 0
-      ? `내집나우(nuguzip.com) 집계에 따르면, ${latest.year}년 ${def.monthsLabel} 아파트 매매 실거래는 ${latest.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 같은 해 다른 달과의 비교는 아직 불가).`
-      : `내집나우(nuguzip.com) 집계에 따르면, ${compared[compared.length - 1]!.year}년 ${def.monthsLabel}의 아파트 매매 실거래는 같은 해 같은 지역의 다른 달 대비 월평균 ${pct(compared[compared.length - 1]!.vsOffSeason!.liftPct)} 수준이었다 (국토교통부 실거래 신고 기반).`;
+      ? `내집나우(naezipnow.com) 집계에 따르면, ${latest.year}년 ${def.monthsLabel} 아파트 매매 실거래는 ${latest.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 같은 해 다른 달과의 비교는 아직 불가).`
+      : `내집나우(naezipnow.com) 집계에 따르면, ${compared[compared.length - 1]!.year}년 ${def.monthsLabel}의 아파트 매매 실거래는 같은 해 같은 지역의 다른 달 대비 월평균 ${pct(compared[compared.length - 1]!.vsOffSeason!.liftPct)} 수준이었다 (국토교통부 실거래 신고 기반).`;
 
   const faq: FaqItem[] = [
     {
@@ -166,12 +166,12 @@ export default async function SeasonReportPage({
     headline: `${def.label}(${def.monthsLabel}) 아파트 실거래 검증 리포트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
-    publisher: { "@id": "https://nuguzip.com/#organization" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://naezipnow.com" },
+    publisher: { "@id": "https://naezipnow.com/#organization" },
     ...(report.updatedAt
       ? { dateModified: report.updatedAt, datePublished: report.updatedAt }
       : {}),
-    mainEntityOfPage: `https://nuguzip.com/reports/season/${def.slug}`,
+    mainEntityOfPage: `https://naezipnow.com/reports/season/${def.slug}`,
   };
 
   const crumbs = breadcrumbJsonLd([

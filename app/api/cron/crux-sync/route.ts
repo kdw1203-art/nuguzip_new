@@ -28,7 +28,7 @@ export const maxDuration = 60;
  * fail-soft: 던지지 않고 JSON 요약을 돌려준다(ETL 을 죽이지 않는다).
  */
 
-const ORIGIN = "https://nuguzip.com";
+const ORIGIN = "https://naezipnow.com";
 const FORM_FACTORS: readonly CruxFormFactor[] = ["PHONE", "DESKTOP", "ALL"];
 
 export async function GET(req: Request) {

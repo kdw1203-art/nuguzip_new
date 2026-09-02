@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   /* 관리자 계정에 인박스 알림으로 전달 (Supabase 미연결 시에도 메모리 저장).
-     기본값이 admin@nuguzip.com 이었는데 그 계정은 존재하지 않는다 — ADMIN_EMAIL
+     기본값이 admin@naezipnow.com 이었는데 그 계정은 존재하지 않는다 — ADMIN_EMAIL
      을 안 넣으면 문의가 아무도 안 보는 인박스로 들어가 조용히 사라졌다.
      읽는 쪽(lib/newui/admin-metrics.ts)도 같은 기본값을 각자 적고 있어서,
      한쪽만 고치면 쓰는 곳과 읽는 곳이 어긋난다. 상수 한 곳에서 가져온다. */

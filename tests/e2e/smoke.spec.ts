@@ -524,11 +524,11 @@ test("46. /llms.txt 는 실데이터 라우트로 응답한다", async ({ reques
   const res = await request.get("/llms.txt");
   expect(res.ok()).toBeTruthy();
   const body = await res.text();
-  expect(body).toContain("# 내집나우 (nuguzip.com)");
+  expect(body).toContain("# 내집나우 (naezipnow.com)");
   /* 커버리지 숫자는 환경(DB 유무)에 따라 있거나 생략된다 — 어느 쪽이든
      문서 골격과 핵심 링크는 있어야 한다. 숫자 유무를 단언하지 않는 이유:
      CI 일회용 서버에는 DB 가 없어 정직하게 생략되는 것이 맞는 동작이다. */
-  expect(body).toContain("https://nuguzip.com/tx");
+  expect(body).toContain("https://naezipnow.com/tx");
   expect(body).toContain("sitemap-complexes.xml");
 });
 

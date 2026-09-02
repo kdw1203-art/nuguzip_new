@@ -66,7 +66,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: seoAlternates(path),
-    openGraph: { title, description, url: `https://nuguzip.com${path}`, type: "website" },
+    openGraph: { title, description, url: `https://naezipnow.com${path}`, type: "website" },
   };
 }
 
@@ -187,11 +187,11 @@ export default async function TxRegionPage({
     "@type": "Dataset",
     name: `${region.name} 아파트 매매 실거래 집계`,
     description: `${region.name} 아파트 매매 실거래 ${region.txCount.toLocaleString("ko-KR")}건의 면적대·가격대별 집계${range ? ` (${range} 신고 기준)` : ""}. 해제 신고분 제외.`,
-    url: `https://nuguzip.com/tx/${encodeURIComponent(region.slug)}`,
+    url: `https://naezipnow.com/tx/${encodeURIComponent(region.slug)}`,
     inLanguage: "ko-KR",
-    creator: { "@id": "https://nuguzip.com/#organization" },
+    creator: { "@id": "https://naezipnow.com/#organization" },
     isBasedOn: "https://rt.molit.go.kr",
-    license: "https://nuguzip.com/methodology",
+    license: "https://naezipnow.com/methodology",
     keywords: [region.name, "아파트", "실거래가", "매매"],
     /* 항목 45 — 기계 판독용 신선도·기간·인용 가능한 API. 값은 전부 페이지가
        이미 가진 실데이터에서만 온다 — 없으면 필드 자체를 넣지 않는다. */
@@ -206,7 +206,7 @@ export default async function TxRegionPage({
     distribution: [
       {
         "@type": "DataDownload",
-        contentUrl: "https://nuguzip.com/api/public/v1/regions/monthly",
+        contentUrl: "https://naezipnow.com/api/public/v1/regions/monthly",
         encodingFormat: "application/json",
       },
     ],
@@ -244,7 +244,7 @@ export default async function TxRegionPage({
       {/* G8 — 인용 유도: 출처·기준월이 붙은 완결 인용문 제공 */}
       {region.txCount > 0 && (
         <CitationBlock
-          sentence={`내집나우(nuguzip.com) 집계에 따르면, ${region.name} 아파트 매매 실거래는${range ? ` ${range}` : ""} ${region.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 해제분 제외).`}
+          sentence={`내집나우(naezipnow.com) 집계에 따르면, ${region.name} 아파트 매매 실거래는${range ? ` ${range}` : ""} ${region.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 해제분 제외).`}
         />
       )}
 

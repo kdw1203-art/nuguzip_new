@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * nuguzip.com Vercel 환경변수 대화형 설정 스크립트
+ * naezipnow.com Vercel 환경변수 대화형 설정 스크립트
  * 실행: node scripts/setup-vercel.mjs
  * 사전 요구: vercel CLI 로그인 상태 (vercel login)
  */
@@ -26,7 +26,7 @@ function addEnv(key, value, env = "production") {
 
 async function main() {
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("  nuguzip.com Vercel 환경변수 설정 도우미");
+  console.log("  naezipnow.com Vercel 환경변수 설정 도우미");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
   // 1. 필수 인증
@@ -38,8 +38,8 @@ async function main() {
   addEnv("AUTH_SECRET", secret);
   console.log(`  → AUTH_SECRET 값: ${secret.slice(0, 8)}… (복사해두세요)\n`);
 
-  addEnv("AUTH_URL", "https://nuguzip.com");
-  console.log("  → AUTH_URL=https://nuguzip.com 등록됨\n");
+  addEnv("AUTH_URL", "https://naezipnow.com");
+  console.log("  → AUTH_URL=https://naezipnow.com 등록됨\n");
 
   // 2. Supabase
   console.log("[ 2단계 ] Supabase 설정 (이메일 로그인)\n");

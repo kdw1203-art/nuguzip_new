@@ -15,7 +15,7 @@
  * 이슈를 만든다.
  */
 
-const BASE = process.env.SMOKE_BASE_URL?.trim() || "https://nuguzip.com";
+const BASE = process.env.SMOKE_BASE_URL?.trim() || "https://naezipnow.com";
 
 /** 마커는 서버 렌더 HTML 에 항상 있는 정적 문자열만 쓴다(데이터 의존 금지 —
  *  DB 장애 시에도 페이지 셸은 그려져야 하고, 그건 이 검사의 실패가 아니다). */

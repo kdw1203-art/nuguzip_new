@@ -81,7 +81,7 @@ export async function buildBlogPack(): Promise<BlogPack> {
             ...lines,
             "",
             `전체 ${movers.length}개 지역 랭킹과 전세가율은 내집나우 갭 스크리너에서 볼 수 있어요.`,
-            `→ https://nuguzip.com/analysis/gap`,
+            `→ https://naezipnow.com/analysis/gap`,
           ].join("\n"),
         );
         sections.push("지역별 지수 흐름");
@@ -138,7 +138,7 @@ export async function buildBlogPack(): Promise<BlogPack> {
             ...lines,
             ends.length > 6 ? `외 ${ends.length - 6}건` : "",
             "",
-            "전체 일정 → https://nuguzip.com/apply/calendar",
+            "전체 일정 → https://naezipnow.com/apply/calendar",
           ]
             .filter(Boolean)
             .join("\n"),
@@ -157,7 +157,7 @@ export async function buildBlogPack(): Promise<BlogPack> {
   const outro = [
     "─────────────────",
     "데이터 출처: 한국부동산원·KB(지수), 국토교통부 실거래가(신고가), 청약홈(청약 일정)",
-    "매일 갱신되는 지도·시세·임장노트는 내집나우에서 → https://nuguzip.com",
+    "매일 갱신되는 지도·시세·임장노트는 내집나우에서 → https://naezipnow.com",
     "이 정리는 산술 사실의 요약이며 투자 판단과 책임은 각자에게 있습니다.",
   ].join("\n");
 
@@ -182,7 +182,7 @@ export async function buildBlogPack(): Promise<BlogPack> {
       "아파트시세",
       "내집나우",
     ],
-    imageUrl: "https://nuguzip.com/api/og/market-card",
+    imageUrl: "https://naezipnow.com/api/og/market-card",
     sections,
     missing,
     generatedAt: new Date().toISOString(),

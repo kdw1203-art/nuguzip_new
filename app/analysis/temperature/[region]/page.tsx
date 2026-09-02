@@ -132,7 +132,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${region.label} 시장 온도 주간 기록 | 내집나우`,
       description,
-      url: `https://nuguzip.com${path}`,
+      url: `https://naezipnow.com${path}`,
       type: "website",
     },
   };
@@ -214,20 +214,20 @@ export default async function TemperatureRegionPage({
     "@type": "Dataset",
     name: `${region.label} 시장 온도 주간 시계열`,
     description: `${region.label}의 시장 온도(0~100, 50이 중립) 주간 기록 ${history.length}주(${rangeLabel}). 한국부동산원 아파트 매매가격지수 모멘텀과 국토교통부 실거래 월별 거래량 추이를 합성한 값이며, 각 주의 값은 그 주에 마지막으로 관측한 것입니다.`,
-    url: `https://nuguzip.com${path}`,
+    url: `https://naezipnow.com${path}`,
     inLanguage: "ko-KR",
     temporalCoverage: `${firstWeek}/${latest.weekStart}`,
     variableMeasured: "시장 온도 (0~100)",
-    creator: { "@id": "https://nuguzip.com/#organization" },
+    creator: { "@id": "https://naezipnow.com/#organization" },
     isBasedOn: ["https://www.reb.or.kr", "https://rt.molit.go.kr"],
-    license: "https://nuguzip.com/methodology",
+    license: "https://naezipnow.com/methodology",
     keywords: [region.name, "시장 온도", "매매가격지수", "실거래", "주간"],
     /* 항목 45 — 최신 관측 주 = 기계 판독용 갱신일. 인용 가능한 공개 API 연결. */
     dateModified: latest.weekStart,
     distribution: [
       {
         "@type": "DataDownload",
-        contentUrl: "https://nuguzip.com/api/public/v1/regions/monthly",
+        contentUrl: "https://naezipnow.com/api/public/v1/regions/monthly",
         encodingFormat: "application/json",
       },
     ],
@@ -407,7 +407,7 @@ export default async function TemperatureRegionPage({
       </section>
 
       <CitationBlock
-        sentence={`내집나우(nuguzip.com) 집계에 따르면, ${region.label}의 시장 온도는 ${formatWeekKorean(
+        sentence={`내집나우(naezipnow.com) 집계에 따르면, ${region.label}의 시장 온도는 ${formatWeekKorean(
           latest.weekStart,
         )}이 속한 주 기준 ${latest.score}점이다 (0~100 눈금, 50이 중립. 한국부동산원 아파트 매매가격지수 모멘텀과 국토교통부 실거래 거래량 추이 기반, 그 주에 마지막으로 관측한 값).`}
       />

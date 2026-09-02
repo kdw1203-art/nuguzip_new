@@ -46,7 +46,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description,
     alternates: seoAlternates(PATH),
     ...(loadError ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: `https://nuguzip.com${PATH}`, type: "website" },
+    openGraph: { title, description, url: `https://naezipnow.com${PATH}`, type: "website" },
   };
 }
 

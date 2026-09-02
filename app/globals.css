@@ -2874,6 +2874,26 @@ a.rank-row:hover {
   position: relative;
 }
 
+/* [951] 임장노트 사진 프레임·크게 보기 팝업 — 브랜드 규칙 적용.
+   어두운 면은 네이비(#0B2545, 검정 아님), 그 위 글자·칩은 한지(#F6F1E7),
+   선택·신호는 주홍(라이트 #C8442B / 다크 위 #E0563A). 나우블루는 CTA·링크
+   전용이라 썸네일 선택 테두리에 쓰지 않는다(마스터 가이드 v2.1). */
+.brand-photo-frame {
+  background: var(--brand-navy);
+  border: 1px solid rgba(246, 241, 231, 0.1);
+}
+.brand-photo-chip {
+  background: rgba(246, 241, 231, 0.14);
+  color: var(--brand-hanji);
+  border: 1px solid rgba(246, 241, 231, 0.18);
+}
+.brand-photo-chip:hover {
+  background: rgba(246, 241, 231, 0.24);
+}
+.brand-photo-frame .njn-dot {
+  background: var(--brand-red-on-dark);
+}
+
 /* 온점 로딩 — 호흡(인라인 대기). 모션 시스템 v1 규격 1.6s ease-in-out */
 .njn-dot {
   display: inline-block;

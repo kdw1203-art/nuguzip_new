@@ -1,6 +1,6 @@
-# 내집나우(nuguzip.com) 운영 런북
+# 내집나우(naezipnow.com) 운영 런북
 
-프로덕션: https://nuguzip.com (Vercel, `icn1` 리전 / Next.js App Router / Supabase)
+프로덕션: https://naezipnow.com (Vercel, `icn1` 리전 / Next.js App Router / Supabase)
 배포 파이프라인: `.github/workflows/deploy.yml` (main 푸시 → 프로덕션, 그 외 브랜치 → 프리뷰)
 합성 모니터링: `.github/workflows/synthetic.yml` (UTC 21시·9시 = KST 06시·18시, 핵심 URL 5개 + `/api/health`)
 
@@ -30,7 +30,7 @@
 ### 2-1. Vercel Instant Rollback (수 초, 코드 변경 없음)
 1. Vercel 대시보드 → 해당 프로젝트(`prj_hsE8uEG7QyxefafQpVnKx6diCVqO`) → Deployments.
 2. 마지막 정상 프로덕션 배포를 찾아 "…" 메뉴 → **Instant Rollback** (또는 "Promote to Production").
-3. https://nuguzip.com 과 `/api/health`(status가 `ok`인지)로 복구 확인.
+3. https://naezipnow.com 과 `/api/health`(status가 `ok`인지)로 복구 확인.
 4. 주의: Instant Rollback은 배포 산출물만 되돌린다 — **환경변수·Supabase 데이터는 되돌아가지 않는다.** 또한 main에는 여전히 문제 커밋이 남아 있으므로 다음 푸시에서 다시 배포된다 → 반드시 2-2를 이어서 수행.
 
 ### 2-2. git revert (근본 조치)
@@ -45,7 +45,7 @@ git push origin main          # 푸시 → deploy.yml이 자동으로 프로덕�
 ### 상태 확인
 1. https://status.supabase.com 에서 플랫폼 장애 여부 확인.
 2. 프로젝트 자체 확인: `https://pbhiskvwpwwhtkmnhkbm.supabase.co` (Supabase 대시보드 → 프로젝트 Health/Logs).
-3. 앱 관점 확인: `https://nuguzip.com/api/health` — `checks.db.ok`가 `false`면 DB 접근 실패, `checks.env.ok`가 `false`면 URL/키 env 문제.
+3. 앱 관점 확인: `https://naezipnow.com/api/health` — `checks.db.ok`가 `false`면 DB 접근 실패, `checks.env.ok`가 `false`면 URL/키 env 문제.
 4. 로컬 진단 스크립트: `node scripts/check-supabase.mjs` (`.env.local` 필요).
 
 ### 앱의 폴백 구조 (장애 시 기대 동작)
@@ -72,19 +72,19 @@ git push origin main          # 푸시 → deploy.yml이 자동으로 프로덕�
 
 `codef-sync` 는 어느 스케줄에도 없다 — 대상 단지 목록이 코드에 없어 지금은 호출해도 `skipped` 를 돌려준다. 관리자 화면에서 단건 테스트만 가능하다.
 
-1. **감지**: `https://nuguzip.com/api/health`의 `checks.etl` 확인 — `market_ingest_log`의 마지막 성공(status=ok)이 **48시간**보다 오래되면 `ok: false`(→ 전체 status `degraded`, 합성 모니터링이 이슈 생성). `lastSuccessAt`으로 마지막 성공 시각 확인.
+1. **감지**: `https://naezipnow.com/api/health`의 `checks.etl` 확인 — `market_ingest_log`의 마지막 성공(status=ok)이 **48시간**보다 오래되면 `ok: false`(→ 전체 status `degraded`, 합성 모니터링이 이슈 생성). `lastSuccessAt`으로 마지막 성공 시각 확인.
 2. **크론 실행 로그**: GitHub → Actions → **Market ETL** 워크플로의 최근 실행에서 각 `== 이름 ==` 블록의 응답 본문 확인. 실패 시 워크플로가 이슈를 자동 생성한다. 함수 쪽 오류는 Vercel Logs(Functions)에서 `/api/cron/*` 필터. 적재 결과 요약은 `/admin/data` 의 "최근 적재 로그"(=`market_ingest_log`)에서도 볼 수 있다.
 3. **수동 재실행**: `/admin/data` → "수집 작업 실행" 패널에서 버튼으로 즉시 1회 실행(관리자 세션으로 인가된다). 워크플로 전체를 다시 돌리려면 GitHub Actions → Market ETL → **Run workflow**. 엔드포인트를 직접 부를 때는 `x-cron-secret` 헤더에 `CRON_SECRET` 을 넣는다.
 4. 외부 API 키 문제(국토부·KOSIS·서울열린데이터 등)는 `/api/health?detail=1`(운영에서는 `HEALTHCHECK_TOKEN` 필요)의 `publicData` 섹션으로 어느 키가 비었는지 확인.
 
 ## 5. 도메인/SSL
 
-- 프로덕션 도메인 `nuguzip.com`은 Vercel 프로젝트에 연결. `m.nuguzip.com`은 `vercel.json` redirects로 `https://nuguzip.com`에 301 리다이렉트.
+- 프로덕션 도메인 `naezipnow.com`은 Vercel 프로젝트에 연결. `m.naezipnow.com`은 `vercel.json` redirects로 `https://naezipnow.com`에 301 리다이렉트.
 - SSL 인증서는 Vercel이 자동 발급·갱신(Let's Encrypt) — 수동 갱신 작업 없음.
 - 장애 시 점검 순서:
-  1. `curl -sI https://nuguzip.com` — TLS 핸드셰이크/응답코드 확인.
+  1. `curl -sI https://naezipnow.com` — TLS 핸드셰이크/응답코드 확인.
   2. Vercel 대시보드 → 프로젝트 → Settings → **Domains**: 도메인 상태가 Valid인지, 인증서 갱신 오류 배너가 없는지.
-  3. DNS: `dig nuguzip.com +short` 결과가 Vercel(A 76.76.21.21 또는 CNAME cname.vercel-dns.com)을 가리키는지. 아니면 도메인 등록기관의 네임서버/레코드 확인.
+  3. DNS: `dig naezipnow.com +short` 결과가 Vercel(A 76.76.21.21 또는 CNAME cname.vercel-dns.com)을 가리키는지. 아니면 도메인 등록기관의 네임서버/레코드 확인.
   4. 도메인 만료 여부(등록기관 대시보드) 확인.
 - `www` 등 서브도메인 문제는 Domains 화면에서 리다이렉트 설정 확인.
 

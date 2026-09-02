@@ -15,7 +15,7 @@ import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
    고장난 것처럼 보인다. 사용자가 실제 단지를 넣기 전까지는 빈 상태를 둔다.
    ============================================================ */
 
-const SITE = "https://nuguzip.com";
+const SITE = "https://naezipnow.com";
 
 export type WidgetTarget =
   | { kind: "complex"; id: string }

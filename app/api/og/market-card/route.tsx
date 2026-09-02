@@ -203,7 +203,7 @@ export async function GET() {
                 padding: "30px 34px",
               }}
             >
-              오늘 지표를 불러오지 못했어요 — nuguzip.com 에서 확인하세요
+              오늘 지표를 불러오지 못했어요 — naezipnow.com 에서 확인하세요
             </div>
           )}
         </div>
@@ -213,7 +213,7 @@ export async function GET() {
             한국부동산원·KB 공표 통계 · 청약홈 — {asOf} 기준 · 투자 권유 아님
           </div>
           <div style={{ display: "flex", fontSize: "26px", color: "#9db4dd", fontWeight: 700 }}>
-            nuguzip.com
+            naezipnow.com
           </div>
         </div>
       </div>

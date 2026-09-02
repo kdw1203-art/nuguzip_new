@@ -76,14 +76,14 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
       if ((up.saleChangeMonthly ?? 0) > 0) {
         const rid = regionIdForName(up.regionName);
         lines.push(
-          `· 상승 1위 ${up.regionName} +${(up.saleChangeMonthly ?? 0).toFixed(2)}%${rid ? ` → nuguzip.com/region/${rid}` : ""}`,
+          `· 상승 1위 ${up.regionName} +${(up.saleChangeMonthly ?? 0).toFixed(2)}%${rid ? ` → naezipnow.com/region/${rid}` : ""}`,
         );
         numbers.push(`${up.regionName} +${(up.saleChangeMonthly ?? 0).toFixed(2)}%`);
       }
       if ((down.saleChangeMonthly ?? 0) < 0) {
         const rid = regionIdForName(down.regionName);
         lines.push(
-          `· 하락 1위 ${down.regionName} ${(down.saleChangeMonthly ?? 0).toFixed(2)}%${rid ? ` → nuguzip.com/region/${rid}` : ""}`,
+          `· 하락 1위 ${down.regionName} ${(down.saleChangeMonthly ?? 0).toFixed(2)}%${rid ? ` → naezipnow.com/region/${rid}` : ""}`,
         );
       }
       if (lines.length > 0) {
@@ -104,7 +104,7 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
           /* [945 #26] 단지별 내부링크 — 검색으로 들어온 사람이 글에서 끝나지 않게 */
           ...highs.map(
             (h) =>
-              `· ${h.regionName} ${h.complexName} ${h.areaM2}㎡ — ${eok(h.priceKrw)} (직전 최고 ${eok(h.priorMaxKrw)}) → nuguzip.com/map?q=${encodeURIComponent(h.complexName)}`,
+              `· ${h.regionName} ${h.complexName} ${h.areaM2}㎡ — ${eok(h.priceKrw)} (직전 최고 ${eok(h.priorMaxKrw)}) → naezipnow.com/map?q=${encodeURIComponent(h.complexName)}`,
           ),
         ].join("\n"),
       );
@@ -130,7 +130,7 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
             ...ends
               .slice(0, 4)
               .map((i) => `· ${i.date.slice(5).replace("-", ".")} 마감 — ${i.region} ${i.houseName}`),
-            ends.length > 4 ? `외 ${ends.length - 4}건 → nuguzip.com/apply/calendar` : "전체 일정 → nuguzip.com/apply/calendar",
+            ends.length > 4 ? `외 ${ends.length - 4}건 → naezipnow.com/apply/calendar` : "전체 일정 → naezipnow.com/apply/calendar",
           ].join("\n"),
         );
         numbers.push(`청약 마감 ${ends.length}건`);
@@ -167,7 +167,7 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
         [
           "■ AI 워크벤치가 본 이번 주 특이 지역 (규칙 판정)",
           ...unusual.map(({ s, why }) => `· ${s.regionName} — ${why}`),
-          "각 지역 5축 진단(실거래·전월세·공급·정성·거시) → nuguzip.com/analysis/ai/ai-diagnosis",
+          "각 지역 5축 진단(실거래·전월세·공급·정성·거시) → naezipnow.com/analysis/ai/ai-diagnosis",
         ].join("\n"),
       );
       numbers.push(`특이 지역 ${unusual.length}곳`);
@@ -189,7 +189,7 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
     `${label} 시장을 공개 데이터로만 정리했습니다. 전 수치는 공표·신고 기준이며 투자 권유가 아닙니다.`,
     "",
     ...sections.flatMap((s) => [s, ""]),
-    "지역별 전체 랭킹과 전세가율은 nuguzip.com/analysis/gap, 매일 갱신 카드는 nuguzip.com/api/og/market-card 에서.",
+    "지역별 전체 랭킹과 전세가율은 naezipnow.com/analysis/gap, 매일 갱신 카드는 naezipnow.com/api/og/market-card 에서.",
   ].join("\n");
 
   const { data: inserted, error: insErr } = await sb
@@ -208,7 +208,7 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
       is_automated: true,
       automation_meta: {
         source: "weekly-market-post",
-        image: "https://nuguzip.com/api/og/market-card",
+        image: "https://naezipnow.com/api/og/market-card",
       },
       is_published: true,
     })

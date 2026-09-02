@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * image_link/link/price)로 담는다 — 스펙에 없는 필드를 지어내지 않는다.
  */
 
-const SITE = "https://nuguzip.com";
+const SITE = "https://naezipnow.com";
 /* 플랜명은 단일 출처 — lib/subscriptions/labels.planLabel (게이트: check:plan-labels) */
 
 type FeedItem = {

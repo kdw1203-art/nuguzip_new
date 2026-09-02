@@ -55,8 +55,8 @@ export default function WidgetPage() {
         dangerouslySetInnerHTML={{
           __html: jsonLdScript(
             breadcrumbJsonLd([
-              { name: "홈", url: "https://nuguzip.com/" },
-              { name: "실거래 시세 위젯", url: "https://nuguzip.com/widget" },
+              { name: "홈", url: "https://naezipnow.com/" },
+              { name: "실거래 시세 위젯", url: "https://naezipnow.com/widget" },
             ]),
           ),
         }}

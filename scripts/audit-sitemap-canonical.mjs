@@ -21,13 +21,13 @@ const opt = (k, d) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : d
 }
 
-const ORIGIN = (opt('origin', 'https://nuguzip.com')).replace(/\/$/, '')
+const ORIGIN = (opt('origin', 'https://naezipnow.com')).replace(/\/$/, '')
 const SAMPLE = parseInt(opt('n', '40'), 10)
 const MAPS = opt('map', 'complexes,regions,pairs,tx,temperature,glossary,pages')
   .split(',').map((s) => s.trim()).filter(Boolean)
 const CONCURRENCY = parseInt(opt('c', '6'), 10)
 
-const UA = 'nuguzip-seo-audit/1.0 (+https://nuguzip.com)'
+const UA = 'nuguzip-seo-audit/1.0 (+https://naezipnow.com)'
 
 async function get(url) {
   const res = await fetch(url, { headers: { 'user-agent': UA }, redirect: 'follow' })

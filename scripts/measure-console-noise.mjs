@@ -60,7 +60,7 @@ const ENV_NOISE = [
   /* `/_vercel/insights/script.js` 는 Vercel 이 엣지에서 붙여 주는 경로다.
      로컬 `next start` 에는 그 경로가 없어 404 HTML 이 돌아오고, 브라우저가
      "MIME 이 text/html 이라 실행 거부"라고 찍는다. 코드 결함처럼 보이지만
-     운영에서는 아니다 — 실측: `curl https://nuguzip.com/_vercel/insights/script.js`
+     운영에서는 아니다 — 실측: `curl https://naezipnow.com/_vercel/insights/script.js`
      → 200 · application/javascript · 2,495B. 그래서 환경 소음으로 뺀다.
      빼는 근거를 여기 적어 두는 이유는, 근거 없이 뺀 항목은 다음 사람이
      "왜 안 세지?"라고 물을 때 아무도 답할 수 없기 때문이다. */

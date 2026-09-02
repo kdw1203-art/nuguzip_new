@@ -195,7 +195,7 @@ function serializeFeed(items: FeedItem[], selfPath = "/feed.xml", titleSuffix = 
 <description>국토교통부 실거래 공개 데이터로 만드는 월간 지역 리포트, 직접 다녀온 현장 기록(임장노트), 자체 정리한 부동산 뉴스 다이제스트를 발행합니다.</description>
 <language>ko-kr</language>
 <lastBuildDate>${lastBuild}</lastBuildDate>
-<generator>nuguzip.com</generator>
+<generator>naezipnow.com</generator>
 ${body}
 </channel>
 </rss>

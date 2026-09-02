@@ -54,7 +54,7 @@ const ENV = {
  * 1:1 문의가 쌓이는 관리자 인박스 키 (ADMIN_EMAIL 미설정 시 기본값).
  *
  * 쓰는 쪽(app/api/support/route.ts)과 읽는 쪽(lib/newui/admin-metrics.ts)이
- * 각자 "admin@nuguzip.com" 을 기본값으로 적고 있었다. 그 계정은 존재하지 않아
+ * 각자 "admin@naezipnow.com" 을 기본값으로 적고 있었다. 그 계정은 존재하지 않아
  * 문의가 아무도 안 보는 곳에 쌓였고, 한쪽만 고치면 두 값이 어긋나 이미 들어온
  * 문의를 못 읽게 된다. 두 곳이 같은 상수를 본다.
  */
@@ -108,7 +108,7 @@ const MAIL_ORDER_SALES_NUMBER = "2026-안양동안-1095";
    구 표기(지번 "관양동 1588 302동 1010호")는 같은 건물(공작부영아파트)의 지번 주소. */
 const ADDRESS = "경기도 안양시 동안구 관평로212번길 21, 302동 1010호 (관양동, 공작부영아파트)";
 
-/** Vercel env 미설정 시 기본값 — 구 사이트(nuguzip.com)가 공개 게시한 실값. env가 있으면 env 우선. */
+/** Vercel env 미설정 시 기본값 — 구 사이트(naezipnow.com)가 공개 게시한 실값. env가 있으면 env 우선. */
 const DEFAULTS = {
   legalName: "우리동네이야기",
   representative: "고대웅",
@@ -135,7 +135,7 @@ export function getBusinessInfo(): BusinessInfo {
   return {
     /** 전자상거래·약관상 서비스 운영 상호 */
     serviceName: "우리동네이야기",
-    domain: "nuguzip.com",
+    domain: "naezipnow.com",
     legalName: readEnv(ENV.legalName, DEFAULTS.legalName),
     representative: readEnv(ENV.representative, DEFAULTS.representative),
     registrationNumber: readEnv(ENV.registrationNumber, DEFAULTS.registrationNumber),

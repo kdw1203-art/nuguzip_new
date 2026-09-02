@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     .filter(
       (s): s is ScoreRow =>
         typeof s?.url === "string" &&
-        s.url.startsWith("https://nuguzip.com") &&
+        s.url.startsWith("https://naezipnow.com") &&
         Number.isFinite(s?.performance),
     )
     .slice(0, 12)
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
   const alerts: string[] = [];
   for (const cur of scores) {
     const before = prevByUrl.get(cur.url);
-    const path = cur.url.replace("https://nuguzip.com", "") || "/";
+    const path = cur.url.replace("https://naezipnow.com", "") || "/";
     if (before && before.performance - cur.performance >= DROP_THRESHOLD) {
       alerts.push(
         `${path} 성능 ${before.performance}→${cur.performance} (-${before.performance - cur.performance})`,

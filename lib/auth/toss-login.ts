@@ -3,7 +3,7 @@
  *
  * 적용 환경:
  *  - 앱인토스 미니앱: 별도 계약 없이 사용 가능(콘솔에서 토스 로그인 신청·설정).
- *  - 자체 웹(nuguzip.com): 토스 인증 부서(cert.support@toss.im) 계약 후 Client ID 발급 필요.
+ *  - 자체 웹(naezipnow.com): 토스 인증 부서(cert.support@toss.im) 계약 후 Client ID 발급 필요.
  *
  * @see https://developers-apps-in-toss.toss.im/login/intro.md
  *

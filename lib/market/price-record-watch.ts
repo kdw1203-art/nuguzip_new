@@ -101,7 +101,7 @@ export async function runPriceRecordWatch(): Promise<PriceRecordResult> {
   const lines = items.map((r) => {
     const pct = ((r.deal_amount_krw / r.prior_max - 1) * 100).toFixed(1);
     const rid = regionIdForName(r.region_name);
-    const regionLink = rid ? ` → 지역 시세: nuguzip.com/region/${rid}` : "";
+    const regionLink = rid ? ` → 지역 시세: naezipnow.com/region/${rid}` : "";
     return `· ${r.region_name} ${r.complex_name} ${r.area}㎡(${pyeong(r.area)}) — ${krwEok(
       r.deal_amount_krw,
     )} 신고 (직전 3년 최고 ${krwEok(r.prior_max)} 대비 +${pct}%, 비교 표본 ${r.prior_n}건)${regionLink}`;
@@ -134,7 +134,7 @@ export async function runPriceRecordWatch(): Promise<PriceRecordResult> {
         source: "price-record-watch",
         summary_v: "2",
         /* [#114] 대표 단지 24개월 차트 카드 — 목록 썸네일·공유 카드로 쓰인다 */
-        image: `https://nuguzip.com/api/og/complex-trend?${new URLSearchParams({
+        image: `https://naezipnow.com/api/og/complex-trend?${new URLSearchParams({
           region: top.region_name,
           name: top.complex_name,
         }).toString()}`,

@@ -17,7 +17,7 @@ export const runtime = "nodejs";
  * 토스페이먼츠 웹훅 수신 (v2).
  *
  * 등록: developers.tosspayments.com → 내 개발정보 → 웹훅 → URL 에
- *   https://nuguzip.com/api/payments/toss/webhook
+ *   https://naezipnow.com/api/payments/toss/webhook
  * 구독 이벤트: PAYMENT_STATUS_CHANGED (전 결제수단) · DEPOSIT_CALLBACK (가상계좌)
  *   · BILLING_DELETED (자동결제 빌링키 삭제 — 빌링 운영 시 필수)
  *

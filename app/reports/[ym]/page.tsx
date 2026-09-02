@@ -71,7 +71,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: seoAlternates(path),
-    openGraph: { title, description, url: `https://nuguzip.com${path}`, type: "article" },
+    openGraph: { title, description, url: `https://naezipnow.com${path}`, type: "article" },
   };
 }
 
@@ -100,7 +100,7 @@ export default async function MonthlyReportPage({
     momText ? ` (${momText})` : ""
   } — 국토교통부 실거래 신고 기준.`;
 
-  const citation = `내집나우(nuguzip.com) 집계에 따르면, ${label} 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반).`;
+  const citation = `내집나우(naezipnow.com) 집계에 따르면, ${label} 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반).`;
 
   const faq: FaqItem[] = [
     {
@@ -159,12 +159,12 @@ export default async function MonthlyReportPage({
     headline: `${label} 아파트 실거래 리포트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
-    publisher: { "@id": "https://nuguzip.com/#organization" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://naezipnow.com" },
+    publisher: { "@id": "https://naezipnow.com/#organization" },
     ...(report.updatedAt
       ? { dateModified: report.updatedAt, datePublished: report.updatedAt }
       : {}),
-    mainEntityOfPage: `https://nuguzip.com/reports/${report.ym}`,
+    mainEntityOfPage: `https://naezipnow.com/reports/${report.ym}`,
   };
 
   const crumbs = breadcrumbJsonLd([

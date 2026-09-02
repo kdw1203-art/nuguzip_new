@@ -19,7 +19,11 @@ export function getVworldApiKey(): string | null {
   return process.env.VWORLD_API_KEY?.trim() || null;
 }
 
-/** VWorld 키 발급 시 등록한 도메인 (production: https://nuguzip.com) */
+/** VWorld 키 발급 시 등록한 도메인.
+ *  [951 · 도메인 전환] 이 값은 사이트 도메인이 아니라 **VWorld 콘솔에 등록된 도메인**과
+ *  일치해야 한다(불일치면 키가 거부된다). 키는 아직 nuguzip.com 으로 등록돼 있으므로
+ *  기본값을 구 도메인으로 남긴다. vworld.kr 에서 키 도메인을 naezipnow.com 으로 바꾼 뒤
+ *  env `VWORLD_API_DOMAIN=https://naezipnow.com` 을 넣으면 그때 바뀐다(runbook ③). */
 export function getVworldDomain(): string {
   return (
     process.env.VWORLD_API_DOMAIN?.trim() ||

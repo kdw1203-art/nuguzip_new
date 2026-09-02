@@ -251,7 +251,24 @@ export async function middleware(request: NextRequest) {
       `www.${canonicalHost}`,
       `m.${canonicalHost}`,
     ]);
-    if (hostname && hostname !== canonicalHost && legacyHosts.has(hostname)) {
+    /* [951 · 도메인 전환] 구 도메인 → 새 도메인 308 은 **NEXT_PUBLIC_SITE_ORIGIN 이 명시적으로
+       설정된 뒤에만** 켠다. 코드 기본값(naezipnow.com)만으로 켜지면, 새 도메인을 Vercel 에
+       붙이기 전에 배포된 경우 nuguzip.com 요청이 아직 없는 호스트로 튕겨 사이트가 통째로
+       죽는다. 순서: 도메인 구매·연결 → env 설정 → 재배포(그때 이 분기가 산다).
+       www./m. 서브도메인 정규화(같은 도메인 안)는 env 와 무관하게 항상 켠다. */
+    const redirectArmed = Boolean(process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim());
+    const sameFamily = hostname === `www.${canonicalHost}` || hostname === `m.${canonicalHost}`;
+    /* /api/cron/* 는 예외 — GitHub Actions ETL 이 구 도메인으로 헤드리스 호출하고 308 을
+       따라가지 않는다(vercel.app 리다이렉트 사고와 같은 기제). 워크플로의 크론 주소는
+       구 도메인을 유지한다(docs/ops/domain-migration.md). */
+    const isCronPath = request.nextUrl.pathname.startsWith("/api/cron/");
+    if (
+      hostname &&
+      hostname !== canonicalHost &&
+      legacyHosts.has(hostname) &&
+      !isCronPath &&
+      (redirectArmed || sameFamily)
+    ) {
       const canonical = new URL(
         request.nextUrl.pathname + request.nextUrl.search,
         DEFAULT_DESKTOP_ORIGIN,

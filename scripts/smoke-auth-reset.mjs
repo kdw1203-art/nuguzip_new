@@ -3,7 +3,7 @@
  * - forgot-password: 유효/무효 이메일 → 200 opaque 또는 429
  * - reset-password GET/POST: 잘못된 토큰 → 400
  */
-const BASE = (process.env.SMOKE_BASE_URL || "https://nuguzip.com").replace(/\/$/, "");
+const BASE = (process.env.SMOKE_BASE_URL || "https://naezipnow.com").replace(/\/$/, "");
 const failures = [];
 
 async function check(name, fn) {

@@ -185,7 +185,7 @@ export default async function SubscriptionPage({
               price: p.monthly,
               priceCurrency: "KRW",
               availability,
-              url: "https://nuguzip.com/subscription",
+              url: "https://naezipnow.com/subscription",
             },
             /* 주간권(단건) — 플러스 전용. 가격은 billing-periods 단일 출처. */
             ...(tier === WEEKLY_PASS.tier
@@ -195,7 +195,7 @@ export default async function SubscriptionPage({
                     price: WEEKLY_PASS.totalKrw,
                     priceCurrency: "KRW",
                     availability,
-                    url: "https://nuguzip.com/subscription?billing=weekly",
+                    url: "https://naezipnow.com/subscription?billing=weekly",
                   },
                 ]
               : []),
@@ -206,7 +206,7 @@ export default async function SubscriptionPage({
                     price: p.annualTotal,
                     priceCurrency: "KRW",
                     availability,
-                    url: "https://nuguzip.com/subscription?billing=annual",
+                    url: "https://naezipnow.com/subscription?billing=annual",
                   },
                 ]
               : []),

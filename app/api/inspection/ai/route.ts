@@ -237,7 +237,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content: [
-              "당신은 nuguzip.com의 한국어 임장노트 분석 보조 AI입니다.",
+              "당신은 naezipnow.com의 한국어 임장노트 분석 보조 AI입니다.",
               "제공되는 marketSnapshot(지역 실시세: 평균 매매가·전월 대비 변동률·전세가율)이 있으면 강점/리스크/확인 항목·총평에 반드시 반영하세요.",
               "deepDive 는 이미 확정된 사실입니다. 그 안의 숫자를 고치거나 새 숫자를 더하지 말고, 해석만 붙이세요.",
               inspectionAiReportJsonInstruction(),

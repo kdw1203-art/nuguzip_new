@@ -49,7 +49,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description: t.short,
-      url: `https://nuguzip.com${path}`,
+      url: `https://naezipnow.com${path}`,
       type: "article",
       siteName: "내집나우",
       locale: "ko_KR",
@@ -69,17 +69,17 @@ function definedTermJsonLd(t: GlossaryTerm) {
   return {
     "@context": "https://schema.org",
     "@type": "DefinedTerm",
-    "@id": `https://nuguzip.com/glossary/${t.slug}`,
+    "@id": `https://naezipnow.com/glossary/${t.slug}`,
     name: t.term,
     description: t.def,
     termCode: t.slug,
     inDefinedTermSet: {
       "@type": "DefinedTermSet",
-      "@id": "https://nuguzip.com/glossary",
+      "@id": "https://naezipnow.com/glossary",
       name: "내집나우 부동산 용어사전",
     },
     inLanguage: "ko-KR",
-    url: `https://nuguzip.com/glossary/${t.slug}`,
+    url: `https://naezipnow.com/glossary/${t.slug}`,
   };
 }
 
@@ -113,9 +113,9 @@ export default async function GlossaryTermPage({
         dangerouslySetInnerHTML={{
           __html: jsonLdScript(
             breadcrumbJsonLd([
-              { name: "홈", url: "https://nuguzip.com/" },
-              { name: "부동산 용어사전", url: "https://nuguzip.com/glossary" },
-              { name: t.term, url: `https://nuguzip.com/glossary/${t.slug}` },
+              { name: "홈", url: "https://naezipnow.com/" },
+              { name: "부동산 용어사전", url: "https://naezipnow.com/glossary" },
+              { name: t.term, url: `https://naezipnow.com/glossary/${t.slug}` },
             ]),
           ),
         }}

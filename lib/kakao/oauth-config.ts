@@ -4,7 +4,7 @@
  * **로그인 콜백**: NextAuth(Auth.js)가 처리합니다. 별도 `/api/auth/kakao/callback` 을
  * 만들지 마세요. Kakao Developers → Redirect URI:
  *   `{AUTH_URL}/api/auth/callback/kakao`
- * (예: `https://nuguzip.com/api/auth/callback/kakao`, 로컬 `http://localhost:3000/api/auth/callback/kakao`)
+ * (예: `https://naezipnow.com/api/auth/callback/kakao`, 로컬 `http://localhost:3000/api/auth/callback/kakao`)
  *
  * KOE006: 등록되지 않은 redirect URI — 콘솔 URI와 AUTH_URL 호스트·포트가 정확히 일치해야 합니다.
  *

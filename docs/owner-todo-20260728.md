@@ -19,10 +19,10 @@
 등록돼 있지 않았습니다. 실측:
 
 ```
-$ curl https://nuguzip.com/api/auth/providers
+$ curl https://naezipnow.com/api/auth/providers
 {"password":{"id":"password","name":"이메일", ...}}          ← password 하나뿐
 
-$ curl -I https://nuguzip.com/api/auth/signin/google
+$ curl -I https://naezipnow.com/api/auth/signin/google
 302 → /api/auth/error?error=Configuration
 ```
 
@@ -37,7 +37,7 @@ $ curl -I https://nuguzip.com/api/auth/signin/google
 한국 서비스에서 카카오 로그인이 없는 건 가입 이탈로 바로 이어집니다. 셋 다 무료이고,
 등록 절차는 서로 비슷합니다. **셋 중 하나만 하실 거면 카카오**를 먼저 하세요.
 
-공통으로 필요한 것: 사이트 주소 `https://nuguzip.com`, 그리고 각 콘솔에 넣을
+공통으로 필요한 것: 사이트 주소 `https://naezipnow.com`, 그리고 각 콘솔에 넣을
 **콜백(Redirect) URI**. 콜백 주소를 한 글자라도 다르게 넣으면 로그인 직전에
 에러가 납니다.
 
@@ -46,7 +46,7 @@ $ curl -I https://nuguzip.com/api/auth/signin/google
 | 항목 | 값 |
 | --- | --- |
 | 콘솔 | https://developers.kakao.com → 내 애플리케이션 → 애플리케이션 추가 |
-| Redirect URI | `https://nuguzip.com/api/auth/callback/kakao` |
+| Redirect URI | `https://naezipnow.com/api/auth/callback/kakao` |
 | 켤 것 | 제품 설정 → 카카오 로그인 **활성화 ON** / 보안 → **Client Secret 생성 + 사용 ON** |
 | 동의항목 | 닉네임·프로필 사진·이메일 (이메일은 "선택 동의"로 두면 미제공 계정 대응 가능) |
 | Vercel 환경변수 | `AUTH_KAKAO_ID` = REST API 키, `AUTH_KAKAO_SECRET` = Client Secret |
@@ -64,8 +64,8 @@ $ curl -I https://nuguzip.com/api/auth/signin/google
 | --- | --- |
 | 콘솔 | https://developers.naver.com/apps/#/register |
 | 사용 API | **네이버 로그인** |
-| 서비스 URL | `https://nuguzip.com` |
-| Callback URL | `https://nuguzip.com/api/auth/callback/naver` |
+| 서비스 URL | `https://naezipnow.com` |
+| Callback URL | `https://naezipnow.com/api/auth/callback/naver` |
 | Vercel 환경변수 | `AUTH_NAVER_ID` = Client ID, `AUTH_NAVER_SECRET` = Client Secret |
 
 ### 1-3. 구글 로그인
@@ -74,13 +74,13 @@ $ curl -I https://nuguzip.com/api/auth/signin/google
 | --- | --- |
 | 콘솔 | https://console.cloud.google.com/apis/credentials |
 | 만들 것 | 사용자 인증 정보 → OAuth 클라이언트 ID → **웹 애플리케이션** |
-| 승인된 자바스크립트 원본 | `https://nuguzip.com` |
-| 승인된 리디렉션 URI | `https://nuguzip.com/api/auth/callback/google` |
-| 사전 작업 | OAuth 동의 화면 구성(앱 이름·지원 이메일·개인정보처리방침 URL `https://nuguzip.com/privacy`) |
+| 승인된 자바스크립트 원본 | `https://naezipnow.com` |
+| 승인된 리디렉션 URI | `https://naezipnow.com/api/auth/callback/google` |
+| 사전 작업 | OAuth 동의 화면 구성(앱 이름·지원 이메일·개인정보처리방침 URL `https://naezipnow.com/privacy`) |
 | Vercel 환경변수 | `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` |
 
 **끝나면 확인하는 법** (제가 아니라 직접 보실 수 있습니다):
-`https://nuguzip.com/api/auth/providers` 를 브라우저에서 열어 `kakao`·`naver`·`google`
+`https://naezipnow.com/api/auth/providers` 를 브라우저에서 열어 `kakao`·`naver`·`google`
 이 목록에 뜨는지 보시면 됩니다. 뜨는 순간 로그인 화면에도 버튼이 자동으로 살아납니다.
 
 ---
@@ -99,15 +99,15 @@ Supabase 기본 SMTP 는 발송량 제한이 빡빡해서, 사용자가 몰리�
 
 절차:
 
-1. https://resend.com 가입 → **Domains** → `nuguzip.com` 추가
+1. https://resend.com 가입 → **Domains** → `naezipnow.com` 추가
 2. Resend 가 보여주는 DNS 레코드(SPF·DKIM·(선택)DMARC)를 **Vercel → Domains →
-   nuguzip.com → DNS Records** 에 그대로 추가
+   naezipnow.com → DNS Records** 에 그대로 추가
 3. Resend 에서 도메인이 **Verified** 로 바뀔 때까지 대기 (보통 수 분~수 시간)
 4. **API Keys** → 키 생성 → Vercel 환경변수 `RESEND_API_KEY` 에 입력
    (키는 `re_` 로 시작합니다. 이 접두사가 아니면 코드가 무시합니다.)
 
-> 발신 주소는 코드에 `누구집 <noreply@nuguzip.com>` 로 고정돼 있습니다. 그래서
-> **다른 도메인이 아니라 반드시 `nuguzip.com` 을 인증**하셔야 합니다.
+> 발신 주소는 코드에 `누구집 <noreply@naezipnow.com>` 로 고정돼 있습니다. 그래서
+> **다른 도메인이 아니라 반드시 `naezipnow.com` 을 인증**하셔야 합니다.
 
 ---
 
@@ -139,7 +139,7 @@ node scripts/generate-vapid-keys.mjs
 
 네이버·구글은 등록을 마치셨습니다. Bing 은 아직입니다.
 https://www.bing.com/webmasters → **Google Search Console 에서 가져오기** 를 쓰면
-소유권 확인 없이 몇 초면 끝납니다. 사이트맵 주소는 `https://nuguzip.com/sitemap.xml`
+소유권 확인 없이 몇 초면 끝납니다. 사이트맵 주소는 `https://naezipnow.com/sitemap.xml`
 (색인 파일, 하위 10종 · 총 27,427 URL).
 
 ### 4-2. Search Console 데이터 연동 (`GSC_*`)
@@ -155,7 +155,7 @@ https://www.bing.com/webmasters → **Google Search Console 에서 가져오기*
    - `GSC_SERVICE_ACCOUNT_PRIVATE_KEY` — JSON 의 `private_key` **통째로**
      (BEGIN PRIVATE KEY 라고 적힌 머리글 줄부터 마지막 줄까지, 줄바꿈 포함.
      머리글을 여기 문자 그대로 적으면 시크릿 스캐너가 잡으므로 말로 씀)
-   - `GSC_SITE_URL` — `https://nuguzip.com`
+   - `GSC_SITE_URL` — `https://naezipnow.com`
 
 ### 4-3. CrUX API 키 (실사용자 성능 지표)
 

@@ -211,7 +211,7 @@ export async function GET(req: NextRequest) {
             color: "#7b8494",
           }}
         >
-          실거래가와 비교하며 확인하세요 · nuguzip.com
+          실거래가와 비교하며 확인하세요 · naezipnow.com
         </div>
       </div>
     ),

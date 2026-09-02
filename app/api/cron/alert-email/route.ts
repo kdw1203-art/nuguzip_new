@@ -90,10 +90,10 @@ async function handle(req: Request) {
   const result = await sendEmail({
     to,
     subject: `[내집나우 경보] 심각 ${folded.size}종 · ${rows.length}건 (24시간)`,
-    text: `최근 24시간 critical 경보입니다.\n\n${lines.join("\n")}\n\n운영 콘솔: https://nuguzip.com/admin/ops`,
+    text: `최근 24시간 critical 경보입니다.\n\n${lines.join("\n")}\n\n운영 콘솔: https://naezipnow.com/admin/ops`,
     html: `<p>최근 24시간 <b>critical</b> 경보입니다.</p><pre style="font-family:inherit;white-space:pre-wrap">${lines
       .map((l) => l.replace(/&/g, "&amp;").replace(/</g, "&lt;"))
-      .join("\n")}</pre><p><a href="https://nuguzip.com/admin/ops">운영 콘솔에서 확인</a></p>`,
+      .join("\n")}</pre><p><a href="https://naezipnow.com/admin/ops">운영 콘솔에서 확인</a></p>`,
   });
 
   if (result.sent) {

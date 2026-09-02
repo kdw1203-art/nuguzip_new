@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 const LAST_UPDATED = "2026-04-30";
 
 export default function CommunityPolicyPage() {
-  /* 2026-07-28: 여기 적혀 있던 report@nuguzip.com · support@nuguzip.com 은
+  /* 2026-07-28: 여기 적혀 있던 report@naezipnow.com · support@naezipnow.com 은
      받는 사람이 없는 주소였다. 정책 문서에서 "여기로 신고하세요"라고 안내하는
      주소가 실제로 아무도 안 읽는 곳이면, 신고 창구가 없는 것보다 나쁘다 —
      사용자는 보냈다고 믿고 기다린다.

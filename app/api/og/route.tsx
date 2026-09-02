@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
             color: "#8a93a8",
           }}
         >
-          <div>발품 기록이 판단이 되는 곳 · nuguzip.com</div>
+          <div>발품 기록이 판단이 되는 곳 · naezipnow.com</div>
           <div style={{ display: "flex", gap: 8 }}>
             <div style={{ width: 14, height: 14, borderRadius: 99, background: BRAND }} />
             <div style={{ width: 14, height: 14, borderRadius: 99, background: "#8fb0ff" }} />

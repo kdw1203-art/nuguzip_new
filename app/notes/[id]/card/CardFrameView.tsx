@@ -50,7 +50,7 @@ export function CardFrameView({
       {/* 마무리 장이 아니면 하단에 얇은 브랜드 라인 */}
       {content.kind !== "cta" && (
         <div className="t-caption font-semibold" style={{ color: theme.sub }}>
-          nuguzip.com
+          naezipnow.com
         </div>
       )}
     </div>

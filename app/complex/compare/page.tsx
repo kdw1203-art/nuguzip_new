@@ -138,7 +138,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "단지 vs 단지 실거래 비교 | 내집나우",
       description,
-      url: `https://nuguzip.com${PATH}`,
+      url: `https://naezipnow.com${PATH}`,
       type: "website",
     },
   };

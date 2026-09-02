@@ -20,7 +20,7 @@ jobs:
       - name: Probe production URLs
         id: probe
         run: |
-          BASE="https://nuguzip.com"
+          BASE="https://naezipnow.com"
           FAILED=""
           for P in / /notes /town /calculator /api/health; do
             CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 --retry 2 --retry-delay 5 "$BASE$P" || echo 000)
@@ -57,7 +57,7 @@ jobs:
           HEALTH_STATUS: ${{ steps.probe.outputs.health_status }}
           HEALTH_CHECKS: ${{ steps.probe.outputs.health_checks }}
         run: |
-          TITLE="Synthetic monitoring failure: nuguzip.com"
+          TITLE="Synthetic monitoring failure: naezipnow.com"
           # 중복 이슈 방지 — 같은 제목의 open 이슈가 있으면 스킵
           EXISTING=$(gh api "repos/${{ github.repository }}/issues?state=open&per_page=100" \
             --jq "[.[] | select(.title == \"$TITLE\")] | length" || echo 0)
@@ -87,7 +87,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TITLE="Synthetic monitoring failure: nuguzip.com"
+          TITLE="Synthetic monitoring failure: naezipnow.com"
           for N in $(gh api "repos/${{ github.repository }}/issues?state=open&per_page=100" \
             --jq "[.[] | select(.title == \"$TITLE\")] | .[].number" 2>/dev/null); do
             gh issue close "$N" --repo ${{ github.repository }} \

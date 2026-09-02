@@ -7,7 +7,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
  * 원래 여기가 "우리동네이야기" 였는데, 같은 사이트의 og:siteName 이 두 값으로
  * 갈려 있었다 — app/layout.tsx 는 "내집나우", 이 헬퍼를 쓰는 페이지는
  * "우리동네이야기". 같은 속성에 두 값이 나가면 검색엔진 입장에서 브랜드 신호가
- * 쪼개진다. 도메인(nuguzip.com) · manifest(short_name "내집나우") ·
+ * 쪼개진다. 도메인(naezipnow.com) · manifest(short_name "내집나우") ·
  * apple-mobile-web-app-title · 루트 레이아웃이 모두 "내집나우" 이므로 이쪽으로 맞췄다.
  *
  * 약관·개인정보처리방침 본문과 결제 항목명에 쓰이는 **등록 서비스명**은 그대로

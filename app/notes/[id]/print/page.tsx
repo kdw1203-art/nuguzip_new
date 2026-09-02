@@ -50,7 +50,7 @@ export default async function NotePrintPage({
 
       <header className="border-b-2 border-[#111] pb-4">
         <div className="t-sub font-bold tracking-widest text-[#666]">
-          내집나우 임장노트 · nuguzip.com
+          내집나우 임장노트 · naezipnow.com
         </div>
         <h1 className="mt-1 t-title leading-tight">{note.title}</h1>
         <p className="mt-1 t-body text-[#444]">
@@ -128,7 +128,7 @@ export default async function NotePrintPage({
 
       <footer className="mt-8 border-t border-[#ddd] pt-3 t-sub text-[#666]">
         이 문서는 작성자의 현장 방문 기록입니다. 개인 기록 기반이며 투자 권유가
-        아닙니다. 실거래가·시세 데이터는 nuguzip.com 에서 확인하세요. ·{" "}
+        아닙니다. 실거래가·시세 데이터는 naezipnow.com 에서 확인하세요. ·{" "}
         {new Date().toISOString().slice(0, 10)} 출력
       </footer>
     </div>

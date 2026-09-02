@@ -31,7 +31,7 @@ import type { SitemapSectionSlug } from "@/lib/seo/sitemap-slugs";
  *
  * 키: GSC_SERVICE_ACCOUNT_EMAIL · GSC_SERVICE_ACCOUNT_PRIVATE_KEY · GSC_SITE_URL
  *     GSC_SITE_URL 은 서치콘솔 속성 식별자 그대로 — 도메인 속성이면
- *     `sc-domain:nuguzip.com`, URL 접두어 속성이면 `https://nuguzip.com/`.
+ *     `sc-domain:naezipnow.com`, URL 접두어 속성이면 `https://naezipnow.com/`.
  */
 
 const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";

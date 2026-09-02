@@ -72,7 +72,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: seoAlternates(path),
-    openGraph: { title, description, url: `https://nuguzip.com${path}`, type: "article" },
+    openGraph: { title, description, url: `https://naezipnow.com${path}`, type: "article" },
   };
 }
 
@@ -114,10 +114,10 @@ export default async function BestNotesMonthPage({
     headline: `${label} 이달의 공개 임장노트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
-    publisher: { "@id": "https://nuguzip.com/#organization" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://naezipnow.com" },
+    publisher: { "@id": "https://naezipnow.com/#organization" },
     ...(top ? { dateModified: top.note.updatedAt, datePublished: top.note.createdAt } : {}),
-    mainEntityOfPage: `https://nuguzip.com/notes/best/${month.ym}`,
+    mainEntityOfPage: `https://naezipnow.com/notes/best/${month.ym}`,
   };
 
   const itemListJsonLd = {
@@ -130,7 +130,7 @@ export default async function BestNotesMonthPage({
       "@type": "ListItem",
       position: i + 1,
       name: p.note.title,
-      url: `https://nuguzip.com/notes/${p.note.id}`,
+      url: `https://naezipnow.com/notes/${p.note.id}`,
     })),
   };
 

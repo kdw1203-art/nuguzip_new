@@ -26,7 +26,7 @@ export async function maybeSendWelcomeEmail(
   const normalized = email.trim().toLowerCase();
   if (!normalized.includes("@")) return;
   /* 카카오 이메일 미동의 사용자의 합성 주소 — 수신함이 없는 도메인 */
-  if (normalized.endsWith("@noreply.nuguzip.com")) return;
+  if (normalized.endsWith("@noreply.naezipnow.com")) return;
   if (!isEmailConfigured()) return;
   const sb = getServiceSupabase();
   if (!sb) return;

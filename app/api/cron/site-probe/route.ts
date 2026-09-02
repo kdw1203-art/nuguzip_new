@@ -16,7 +16,7 @@
  * 이미 하고 있다 — 거기서도 이 라우트를 호출해 기록하도록 패치를 별도 제공
  * (워크플로 쓰기 권한이 없어 소유자 적용 필요, docs/patches/ 참고).
  *
- * 파라미터: ?url=... (기본 https://nuguzip.com/ — 같은 오리진만 허용)
+ * 파라미터: ?url=... (기본 https://naezipnow.com/ — 같은 오리진만 허용)
  * 보호: lib/cron/authorize.ts (CRON_SECRET Bearer/헤더 · 관리자 세션)
  *       vercel.json crons 가 Authorization: Bearer <CRON_SECRET> 으로 부른다.
  */
@@ -28,7 +28,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const ALLOWED_ORIGIN = "https://nuguzip.com";
+const ALLOWED_ORIGIN = "https://naezipnow.com";
 const PROBE_TIMEOUT_MS = 30_000;
 
 async function handle(req: Request) {

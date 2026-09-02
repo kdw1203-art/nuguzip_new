@@ -2,7 +2,7 @@
  * Read-only: print the redirect_uri NextAuth sends to Google (no secrets).
  * Usage: node scripts/probe-google-oauth-redirect.mjs [origin]
  */
-const origin = (process.argv[2] || "https://nuguzip.com").replace(/\/$/, "");
+const origin = (process.argv[2] || "https://naezipnow.com").replace(/\/$/, "");
 
 const csrfRes = await fetch(`${origin}/api/auth/csrf`, { cache: "no-store" });
 const csrfJson = await csrfRes.json().catch(() => ({}));

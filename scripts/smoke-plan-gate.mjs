@@ -4,7 +4,7 @@
  * - 구독/결제 라우트 존재·응답 형태
  * 실패 시 process.exit(1)
  */
-const BASE = (process.env.SMOKE_BASE_URL || "https://nuguzip.com").replace(/\/$/, "");
+const BASE = (process.env.SMOKE_BASE_URL || "https://naezipnow.com").replace(/\/$/, "");
 
 const failures = [];
 

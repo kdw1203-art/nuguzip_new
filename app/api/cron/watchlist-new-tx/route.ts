@@ -140,7 +140,7 @@ async function run() {
         complexName: name,
         count: list.length,
         latestLine: latestLine(list[0]),
-        href: `https://nuguzip.com${complexHrefFromId(complexId)}`,
+        href: `https://naezipnow.com${complexHrefFromId(complexId)}`,
       });
       perUser.set(userEmail, bucket);
       advance.push({ id: row.id, seenAt: list[0].created_at });

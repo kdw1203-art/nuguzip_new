@@ -39,7 +39,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 
 export const dynamic = "force-dynamic";
 
-const BASE_URL = "https://nuguzip.com";
+const BASE_URL = "https://naezipnow.com";
 
 /* ---------- 뷰 모델 ---------- */
 

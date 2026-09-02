@@ -103,7 +103,7 @@ async function buildPromo(dayIndex: number) {
       },
       title: "이번 주 신고가 단지 — 실거래 신고 기준",
       caption:
-        "국토교통부 실거래 신고에서 자동 탐지한 이번 주 신고가입니다. 계약 후 30일 신고 기한이 있어 이후 정정·취소될 수 있습니다. 지역별 전체 흐름은 nuguzip.com 에서. 투자 권유가 아닙니다.",
+        "국토교통부 실거래 신고에서 자동 탐지한 이번 주 신고가입니다. 계약 후 30일 신고 기한이 있어 이후 정정·취소될 수 있습니다. 지역별 전체 흐름은 naezipnow.com 에서. 투자 권유가 아닙니다.",
       hashtags: ["신고가", "실거래가", "아파트", "부동산", "내집나우"],
     },
     {
@@ -127,7 +127,7 @@ async function buildPromo(dayIndex: number) {
       },
       title: "이번 주 접수 마감 청약 일정",
       caption:
-        "청약홈 공고 기준 7일 내 접수 마감 건수입니다. 단지별 일정과 지난 주 아카이브는 nuguzip.com/apply/calendar 에서. 자격·일정은 공고문이 최종입니다.",
+        "청약홈 공고 기준 7일 내 접수 마감 건수입니다. 단지별 일정과 지난 주 아카이브는 naezipnow.com/apply/calendar 에서. 자격·일정은 공고문이 최종입니다.",
       hashtags: ["청약", "청약일정", "아파트청약", "부동산", "내집나우"],
     },
     {
@@ -202,7 +202,7 @@ export async function generateAndEnqueue(now = new Date()): Promise<AutopostResu
       rawSummary.length > 120 ? `${rawSummary.slice(0, 118)}…` : rawSummary || "현장에서 직접 보고 남긴 기록입니다.";
     const visit = (note.visit_date || note.created_at || "").slice(0, 7).replace("-", ".");
     const title = `${region} ${aptName} 임장노트`;
-    const caption = `${summary}\n\n전체 노트와 실거래가는 nuguzip.com 에서. 개인 기록 기반이며 투자 권유가 아닙니다.`;
+    const caption = `${summary}\n\n전체 노트와 실거래가는 naezipnow.com 에서. 개인 기록 기반이며 투자 권유가 아닙니다.`;
     assertCompliantCopy(title, caption);
 
     const frames = await renderNoteFrames({

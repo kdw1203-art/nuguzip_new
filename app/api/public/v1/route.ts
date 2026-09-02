@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   return publicApiJson({
     service: "내집나우 공개 집계 API",
     version: "v1",
-    docs: "https://nuguzip.com/developers",
+    docs: "https://naezipnow.com/developers",
     scope:
       "국토교통부 실거래 신고 자료로 만든 아파트 매매 월간 지역 집계. 개별 실거래 행·전월세·사용자 데이터는 포함하지 않습니다.",
     updateCadence: "하루 2회 (KST 09:00 · 18:00 전후) 수집 후 집계 갱신",

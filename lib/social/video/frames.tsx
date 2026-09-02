@@ -69,7 +69,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           }}
         />
         <div style={{ fontSize: "34px", fontWeight: 800, color: INK, display: "flex" }}>
-          내집나우 · nuguzip.com
+          내집나우 · naezipnow.com
         </div>
       </div>
     </div>
@@ -215,7 +215,7 @@ export async function renderNoteFrames(n: NoteFrameInput): Promise<Buffer[]> {
           display: "flex",
         }}
       >
-        nuguzip.com 에서
+        naezipnow.com 에서
       </div>
       <div style={{ marginTop: "48px", fontSize: "40px", color: GRAY, display: "flex" }}>
         기록은 무료 · 시세는 국토교통부 공개 데이터 기준
@@ -306,7 +306,7 @@ export async function renderPromoFrames(p: PromoFrameInput): Promise<Buffer[]> {
         판단은 더 깊게
       </div>
       <div style={{ marginTop: "48px", fontSize: "40px", color: GRAY, display: "flex" }}>
-        nuguzip.com — 임장노트 · 지도 · AI 분석
+        naezipnow.com — 임장노트 · 지도 · AI 분석
       </div>
     </Shell>,
   );

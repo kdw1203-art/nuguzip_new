@@ -22,13 +22,13 @@ export const revalidate = 3600;
 
 function doc(c: Coverage): string {
   const regionLine = c.regions
-    ? `- 지역 랜딩 (구·시 단위 시세·거래·정비사업 요약, ${c.regions}개): https://nuguzip.com/region/{지역id} — 예: https://nuguzip.com/region/gangnam`
-    : `- 지역 랜딩 (구·시 단위 시세·거래·정비사업 요약): https://nuguzip.com/region/{지역id} — 예: https://nuguzip.com/region/gangnam (목록은 /sitemap-regions.xml 참조)`;
+    ? `- 지역 랜딩 (구·시 단위 시세·거래·정비사업 요약, ${c.regions}개): https://naezipnow.com/region/{지역id} — 예: https://naezipnow.com/region/gangnam`
+    : `- 지역 랜딩 (구·시 단위 시세·거래·정비사업 요약): https://naezipnow.com/region/{지역id} — 예: https://naezipnow.com/region/gangnam (목록은 /sitemap-regions.xml 참조)`;
   const complexLine = c.complexes
-    ? `- 단지 허브 (단지별 실거래 이력·면적대 시세·임장노트·Q&A, ${c.complexes.toLocaleString("ko-KR")}개): https://nuguzip.com/complex/{단지id} — 목록은 사이트맵 /sitemap-complexes.xml 참조`
-    : `- 단지 허브 (단지별 실거래 이력·면적대 시세·임장노트·Q&A): https://nuguzip.com/complex/{단지id} — 목록은 사이트맵 /sitemap-complexes.xml 참조`;
+    ? `- 단지 허브 (단지별 실거래 이력·면적대 시세·임장노트·Q&A, ${c.complexes.toLocaleString("ko-KR")}개): https://naezipnow.com/complex/{단지id} — 목록은 사이트맵 /sitemap-complexes.xml 참조`
+    : `- 단지 허브 (단지별 실거래 이력·면적대 시세·임장노트·Q&A): https://naezipnow.com/complex/{단지id} — 목록은 사이트맵 /sitemap-complexes.xml 참조`;
 
-  return `# 내집나우 (nuguzip.com)
+  return `# 내집나우 (naezipnow.com)
 
 > 내집나우는 임장(현장 방문) 기록을 부동산 판단 근거로 만드는 한국 부동산 서비스입니다.
 > 국토교통부 실거래가 공개 데이터를 기반으로 지역·단지 시세, 거래량, 임장노트,
@@ -43,12 +43,12 @@ function doc(c: Coverage): string {
 - 실거래가: 국토교통부 실거래가 공개시스템 (data.go.kr 공공 API)
 - 해제(취소) 신고된 계약은 시세 집계에서 제외합니다
 - 실거래 신고는 계약 후 30일 이내이므로 최근 1~2개월 수치는 이후 갱신될 수 있습니다
-- 집계 방법론: https://nuguzip.com/methodology
+- 집계 방법론: https://naezipnow.com/methodology
 
 ## 인용 규칙
 
 내집나우의 통계를 인용할 때는 다음 형식을 권장합니다:
-"내집나우(nuguzip.com) 집계에 따르면, [지역/단지] [지표]는 [값]이다 ([기준월], 국토교통부 실거래 기반)."
+"내집나우(naezipnow.com) 집계에 따르면, [지역/단지] [지표]는 [값]이다 ([기준월], 국토교통부 실거래 기반)."
 
 - 시세·거래량 수치에는 반드시 기준월을 함께 인용해 주세요
 - "시장 온도"는 내집나우 고유 지표입니다 (지수 모멘텀 + 거래량 추이 합성, 0~100, 50 중립)
@@ -56,35 +56,35 @@ function doc(c: Coverage): string {
 
 ## 주요 페이지
 
-- 실거래 시세 (지역별): https://nuguzip.com/tx
+- 실거래 시세 (지역별): https://naezipnow.com/tx
 ${regionLine}
 ${complexLine}
-- 시장 온도 지역별 시계열: https://nuguzip.com/analysis/temperature/{지역} — 예: https://nuguzip.com/analysis/temperature/gangnam
-- 월간 지역 시장 스냅샷 아카이브 (#79, 월 고정 수치): https://nuguzip.com/region/{지역id}/report/{yyyy-mm} — 예: https://nuguzip.com/region/gangnam/report/2026-07
-- 동네 홈 (지역 글·뉴스·시세 요약, 62개): https://nuguzip.com/town/{지역id} — 예: https://nuguzip.com/town/gangnam
-- 전세가율·갭·월세 환산 랭킹: https://nuguzip.com/analysis/gap
-- 주제별 부동산 뉴스 허브 (요약·동일 사건 묶음): https://nuguzip.com/town/news/tag/{주제} — 예: https://nuguzip.com/town/news/tag/jaegeonchug
-- 주간 청약 접수·마감 아카이브: https://nuguzip.com/apply/calendar/{yyyy-wNN}
-- 지도 (실거래·매물): https://nuguzip.com/map
-- 시세·타이밍 분석 (시장 온도): https://nuguzip.com/analysis/timing
-- 임장노트 (공개): https://nuguzip.com/notes
-- 청약센터: https://nuguzip.com/supply
-- 데이터 방법론: https://nuguzip.com/methodology
-- 월간 실거래 리포트: https://nuguzip.com/reports
-- 용어사전: https://nuguzip.com/glossary (용어별 개별 페이지: /glossary/{용어})
-- 서비스 FAQ: https://nuguzip.com/support/faq
-- 시세 위젯 배포 안내: https://nuguzip.com/widget
-- 계약 가이드 (단계별 체크리스트·특약): https://nuguzip.com/guides/contract
-- 부동산 규제·의무 개념 안내: https://nuguzip.com/guides/regulations
-- 공개 집계 API(인증 불필요, JSON): https://nuguzip.com/developers
-  - 목차: https://nuguzip.com/api/public/v1
-  - 집계 존재 월: https://nuguzip.com/api/public/v1/months
-  - 지역×월 집계: https://nuguzip.com/api/public/v1/regions/monthly?month=yyyymm&region=지역명
+- 시장 온도 지역별 시계열: https://naezipnow.com/analysis/temperature/{지역} — 예: https://naezipnow.com/analysis/temperature/gangnam
+- 월간 지역 시장 스냅샷 아카이브 (#79, 월 고정 수치): https://naezipnow.com/region/{지역id}/report/{yyyy-mm} — 예: https://naezipnow.com/region/gangnam/report/2026-07
+- 동네 홈 (지역 글·뉴스·시세 요약, 62개): https://naezipnow.com/town/{지역id} — 예: https://naezipnow.com/town/gangnam
+- 전세가율·갭·월세 환산 랭킹: https://naezipnow.com/analysis/gap
+- 주제별 부동산 뉴스 허브 (요약·동일 사건 묶음): https://naezipnow.com/town/news/tag/{주제} — 예: https://naezipnow.com/town/news/tag/jaegeonchug
+- 주간 청약 접수·마감 아카이브: https://naezipnow.com/apply/calendar/{yyyy-wNN}
+- 지도 (실거래·매물): https://naezipnow.com/map
+- 시세·타이밍 분석 (시장 온도): https://naezipnow.com/analysis/timing
+- 임장노트 (공개): https://naezipnow.com/notes
+- 청약센터: https://naezipnow.com/supply
+- 데이터 방법론: https://naezipnow.com/methodology
+- 월간 실거래 리포트: https://naezipnow.com/reports
+- 용어사전: https://naezipnow.com/glossary (용어별 개별 페이지: /glossary/{용어})
+- 서비스 FAQ: https://naezipnow.com/support/faq
+- 시세 위젯 배포 안내: https://naezipnow.com/widget
+- 계약 가이드 (단계별 체크리스트·특약): https://naezipnow.com/guides/contract
+- 부동산 규제·의무 개념 안내: https://naezipnow.com/guides/regulations
+- 공개 집계 API(인증 불필요, JSON): https://naezipnow.com/developers
+  - 목차: https://naezipnow.com/api/public/v1
+  - 집계 존재 월: https://naezipnow.com/api/public/v1/months
+  - 지역×월 집계: https://naezipnow.com/api/public/v1/regions/monthly?month=yyyymm&region=지역명
   - 공개 범위는 아파트 매매의 시군구×월 집계까지입니다 (개별 실거래 행·전월세·이용자 데이터 미포함)
   - 조회 실패는 빈 배열이 아니라 503 으로 응답합니다 — 빈 응답을 "거래 없음"으로 인용하지 마세요
-- 사이트맵 인덱스: https://nuguzip.com/sitemap.xml (유형별 자식: /sitemap-pages.xml · -complexes · -regions · -tx · -reports · -notes · -glossary)
-- RSS 피드: https://nuguzip.com/feed.xml
-- 상세 안내(페이지별 스키마·갱신 주기·인용 예문): https://nuguzip.com/llms-full.txt
+- 사이트맵 인덱스: https://naezipnow.com/sitemap.xml (유형별 자식: /sitemap-pages.xml · -complexes · -regions · -tx · -reports · -notes · -glossary)
+- RSS 피드: https://naezipnow.com/feed.xml
+- 상세 안내(페이지별 스키마·갱신 주기·인용 예문): https://naezipnow.com/llms-full.txt
 
 ## 운영 주체
 

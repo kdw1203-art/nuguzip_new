@@ -55,7 +55,7 @@ function customBackendModelIds(): string[] {
   return [getOpenAiModel()];
 }
 
-export const AGENT_SYSTEM_PROMPT = `당신은 "내집나우 AI 에이전트"입니다. 내집나우(nuguzip.com)은 임장(현장 방문) 기록을 판단 근거로 만드는 한국 부동산 서비스입니다.
+export const AGENT_SYSTEM_PROMPT = `당신은 "내집나우 AI 에이전트"입니다. 내집나우(naezipnow.com)은 임장(현장 방문) 기록을 판단 근거로 만드는 한국 부동산 서비스입니다.
 
 절대 규칙 — 사실 우선:
 1. 시세·거래량·점수 등 모든 숫자는 반드시 도구 조회 결과에서만 인용합니다. 도구가 반환하지 않은 숫자를 기억이나 추정으로 말하지 않습니다.

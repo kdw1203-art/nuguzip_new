@@ -72,7 +72,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: seoAlternates(path),
-    openGraph: { title, description, url: `https://nuguzip.com${path}`, type: "article" },
+    openGraph: { title, description, url: `https://naezipnow.com${path}`, type: "article" },
   };
 }
 
@@ -115,10 +115,10 @@ export default async function DigestWeekPage({
     headline: `${data.ordinalLabel} 부동산 주간 다이제스트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
-    publisher: { "@id": "https://nuguzip.com/#organization" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://naezipnow.com" },
+    publisher: { "@id": "https://naezipnow.com/#organization" },
     datePublished: new Date(data.startMs).toISOString(),
-    mainEntityOfPage: `https://nuguzip.com/digest/${data.slug}`,
+    mainEntityOfPage: `https://naezipnow.com/digest/${data.slug}`,
   };
 
   const crumbs = breadcrumbJsonLd([

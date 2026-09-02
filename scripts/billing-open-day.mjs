@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const BASE = process.env.REHEARSAL_BASE_URL ?? "https://nuguzip.com";
+const BASE = process.env.REHEARSAL_BASE_URL ?? "https://naezipnow.com";
 const DRY = process.argv.includes("--dry");
 
 const results = [];

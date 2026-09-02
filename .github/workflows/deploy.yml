@@ -1,5 +1,5 @@
 # Vercel 자동 배포
-# - main 브랜치 푸시 → 프로덕션 (nuguzip.com)
+# - main 브랜치 푸시 → 프로덕션 (naezipnow.com)
 # - 그 외 브랜치 푸시 → 프리뷰 URL
 # 필요 시크릿: VERCEL_TOKEN (저장소 Settings → Secrets → Actions)
 name: Deploy to Vercel

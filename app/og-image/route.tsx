@@ -69,7 +69,7 @@ export async function GET() {
           <span>현장은 가 본 사람만 압니다</span>
         </div>
         <div style={{ marginTop: "28px", fontSize: "26px", color: "#7b8494", display: "flex" }}>
-          국토교통부 실거래 기반 시세 · 임장노트 · AI 분석 — nuguzip.com
+          국토교통부 실거래 기반 시세 · 임장노트 · AI 분석 — naezipnow.com
         </div>
       </div>
     ),
