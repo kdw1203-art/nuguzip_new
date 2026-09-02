@@ -137,7 +137,9 @@ async function loadRent(regionName: string): Promise<LiveToolContext["rent"]> {
 async function loadNews(
   regionName: string,
   complexName: string | null,
+  opts: { fallbackToRegion?: boolean } = {},
 ): Promise<LiveToolContext["news"]> {
+  const fallbackToRegion = opts.fallbackToRegion ?? true;
   const sb = getServiceSupabase();
   if (!sb) return null;
   /* 단지명 우선, 없으면 지역명 — 제목·요약 매칭(자동수집 글만) */
@@ -150,7 +152,8 @@ async function loadNews(
     .order("created_at", { ascending: false })
     .limit(3);
   if (error || !Array.isArray(data) || data.length === 0) {
-    if (complexName) return loadNews(regionName, null); // 단지 매칭 실패 → 지역으로 폴백
+    // 단지 매칭 실패 → 지역으로 폴백 (948: 단지 캐시 채우기에서는 끈다)
+    if (complexName && fallbackToRegion) return loadNews(regionName, null);
     return null;
   }
   return {
@@ -169,7 +172,9 @@ async function loadNews(
 async function loadNotes(
   regionName: string,
   complexName: string | null,
+  opts: { fallbackToRegion?: boolean } = {},
 ): Promise<LiveToolContext["notes"]> {
+  const fallbackToRegion = opts.fallbackToRegion ?? true;
   const sb = getServiceSupabase();
   if (!sb) return null;
   let q = sb
@@ -182,7 +187,7 @@ async function loadNotes(
   const { data, error } = await q;
   if (error || !Array.isArray(data)) return null;
   if (data.length === 0) {
-    if (complexName) return loadNotes(regionName, null);
+    if (complexName && fallbackToRegion) return loadNotes(regionName, null);
     return null;
   }
   const scores = (data as Array<{ scores: InspectionScores | null }>)
@@ -240,53 +245,130 @@ async function loadPoi(regionName: string): Promise<LiveToolContext["poi"]> {
   };
 }
 
-/**
- * 단지 또는 지역 기준의 라이브 컨텍스트 조립.
- * complexId 는 encodeComplexId(region, name) 형식 — 해석 실패 시 지역 축만 조립한다.
- */
-export async function buildLiveToolContext(params: {
-  complexId?: string | null;
-  regionName?: string | null;
-}): Promise<LiveToolContext> {
-  const decoded = params.complexId ? decodeComplexId(params.complexId) : null;
-  const regionName = (decoded?.region ?? params.regionName ?? "").trim();
-  const complexName = decoded?.name ?? null;
-  const regionId = regionName ? regionIdForName(regionName) : null;
+/* ── [948 · 최적화 2차] 축을 "지역 단위"와 "단지 단위"로 갈라서 캐시한다 ──────
+   실측(2026-09-02, pg_stat_statements 11.5시간 델타): 단지 허브 렌더 약 3,000회에
+   apartment_supply ILIKE 6,035회·board_posts ILIKE 4,408회·region_rent_yield_summary
+   RPC 2,959회·apartment_complexes 2,995회 — 즉 **단지마다 9개 축을 전부 다시 읽었다**.
+   원인은 둘이다.
+   (1) 캐시 키가 단지 id 라 크롤러가 훑는 롱테일(2.6만 단지)에서는 사실상 항상 미스.
+   (2) 캐시 채우기 안에서 부른 안쪽 unstable_cache(rent-yield)가 저장되지 않아
+       "전역 1벌" 이어야 할 RPC 가 렌더마다 돌았다(13회 렌더 → 13회 호출로 확인).
+   그래서 지역 축(시세 스냅샷·인구·전월세·입주·지역 뉴스·거시·학교)은 **지역명
+   키**(전국 218개)로 따로 캐시하고, 단지 축(대표가·단지 뉴스·단지 노트)만 단지 키로
+   캐시한다. 두 캐시 모두 최상위에서 부른다(중첩 금지 — 위 (2) 의 이유).
+   조립 결과(LiveToolContext) 모양은 그대로다 — 부르는 쪽은 바뀌지 않는다. */
 
-  const [priceR, snapR, demoR, rentR, supplyR, newsR, notesR, macroR, poiR] =
+type RegionAxes = {
+  snapshot: Awaited<ReturnType<typeof getRegionSnapshot>>;
+  demographics: Awaited<ReturnType<typeof getRegionDemographics>>;
+  rent: LiveToolContext["rent"];
+  supply: Awaited<ReturnType<typeof getSupplyForArea>>;
+  news: LiveToolContext["news"];
+  notes: LiveToolContext["notes"];
+  macro: LiveToolContext["macro"];
+  poi: LiveToolContext["poi"];
+};
+
+type ComplexAxes = {
+  price: Awaited<ReturnType<typeof resolveComplexPrice>> | null;
+  news: LiveToolContext["news"];
+  notes: LiveToolContext["notes"];
+};
+
+const settledVal = <T,>(r: PromiseSettledResult<T>, label: string): T | null => {
+  if (r.status === "fulfilled") return r.value;
+  logger.warn(`[live-context] ${label} 축 조회 실패`, r.reason);
+  return null;
+};
+
+async function loadRegionAxes(regionName: string): Promise<RegionAxes> {
+  const regionId = regionName ? regionIdForName(regionName) : null;
+  const [snapR, demoR, rentR, supplyR, newsR, notesR, macroR, poiR] =
     await Promise.allSettled([
-      params.complexId && decoded
-        ? resolveComplexPrice(params.complexId)
-        : Promise.resolve(null),
       regionId ? getRegionSnapshot(regionId) : Promise.resolve(null),
       regionId ? getRegionDemographics(regionId) : Promise.resolve(null),
       regionName ? loadRent(regionName) : Promise.resolve(null),
       regionName ? getSupplyForArea(regionName, 24) : Promise.resolve([]),
-      regionName ? loadNews(regionName, complexName) : Promise.resolve(null),
-      regionName ? loadNotes(regionName, complexName) : Promise.resolve(null),
+      regionName ? loadNews(regionName, null) : Promise.resolve(null),
+      regionName ? loadNotes(regionName, null) : Promise.resolve(null),
       loadMacro(),
       regionName ? loadPoi(regionName) : Promise.resolve(null),
     ]);
-
-  const val = <T,>(r: PromiseSettledResult<T>): T | null => {
-    if (r.status === "fulfilled") return r.value;
-    logger.warn("[live-context] 축 조회 실패", r.reason);
-    return null;
+  const axes: RegionAxes = {
+    snapshot: settledVal(snapR, "지역 시세"),
+    demographics: settledVal(demoR, "인구·미분양"),
+    rent: settledVal(rentR, "전월세"),
+    supply: settledVal(supplyR, "입주 물량") ?? [],
+    news: settledVal(newsR, "지역 뉴스"),
+    notes: settledVal(notesR, "지역 노트"),
+    macro: settledVal(macroR, "거시"),
+    poi: settledVal(poiR, "학교"),
   };
+  /* 축이 **하나도** 없으면 던진다 — 로더들은 실패를 null 로 삼키므로, 전부 null 은
+     "이 지역엔 정말 아무 것도 없다"가 아니라 DB 가 잡혀 있던 순간일 가능성이
+     높다(거시 축은 지역과 무관하게 항상 있다). 던지면 데이터 캐시에 빈 지역이
+     6시간 동안 굳지 않는다 — 부르는 쪽(ComplexAxisSummary 등)은 catch 로 접는다. */
+  const blank =
+    !axes.snapshot && !axes.demographics && !axes.rent && axes.supply.length === 0 &&
+    !axes.news && !axes.notes && !axes.macro && !axes.poi;
+  if (blank) throw new Error(`[live-context] ${regionName} 지역 축 전부 없음 — 캐시하지 않음`);
+  return axes;
+}
 
-  const price = val(priceR);
-  const snap = val(snapR);
-  const demo = val(demoR);
-  const supplyItems = val(supplyR) ?? [];
+/* 단지 축 — loadNews/loadNotes 는 단지 매칭이 0건이면 지역으로 스스로 물러선다.
+   여기서는 그 폴백을 **끄고**(단지 결과만 저장) 조립 단계에서 지역 캐시의 값으로
+   대신한다 — 그래야 폴백 조회가 단지마다 반복되지 않는다. */
+async function loadComplexAxes(
+  complexId: string,
+  regionName: string,
+  complexName: string,
+): Promise<ComplexAxes> {
+  const [priceR, newsR, notesR] = await Promise.allSettled([
+    resolveComplexPrice(complexId),
+    loadNews(regionName, complexName, { fallbackToRegion: false }),
+    loadNotes(regionName, complexName, { fallbackToRegion: false }),
+  ]);
+  return {
+    price: settledVal(priceR, "실거래가"),
+    news: settledVal(newsR, "단지 뉴스"),
+    notes: settledVal(notesR, "단지 노트"),
+  };
+}
+
+/* 지역 키 캐시 — 전국 218개 지역명 × 6시간. market·supply·economy 태그는 수집
+   크론이 끝나는 즉시 비운다(lib/cache/invalidate.ts). */
+const loadRegionAxesCached = unstable_cache(loadRegionAxes, ["live-region-axes-v1"], {
+  revalidate: 21_600,
+  tags: ["market", "supply", "news", "economy"],
+});
+
+const loadComplexAxesCached = unstable_cache(loadComplexAxes, ["live-complex-axes-v1"], {
+  revalidate: 21_600,
+  tags: ["market", "news"],
+});
+
+function assembleContext(params: {
+  complexId: string | null;
+  decoded: { region: string; name: string } | null;
+  regionName: string;
+  regionAxes: RegionAxes | null;
+  complexAxes: ComplexAxes | null;
+}): LiveToolContext {
+  const { complexId, decoded, regionName, regionAxes, complexAxes } = params;
+  const regionId = regionName ? regionIdForName(regionName) : null;
+  const price = complexAxes?.price ?? null;
+  const snap = regionAxes?.snapshot ?? null;
+  const demo = regionAxes?.demographics ?? null;
+  const supplyItems = regionAxes?.supply ?? [];
 
   const upcoming = supplyItems.filter((s) => s.moveInYm >= new Date().toISOString().slice(0, 7).replace("-", ""));
 
   return {
     generatedAt: new Date().toISOString(),
     complex:
-      decoded && params.complexId
+      decoded && complexId
         ? {
-            id: params.complexId,
+            id: complexId,
             name: decoded.name,
             region: decoded.region,
             price:
@@ -298,7 +380,7 @@ export async function buildLiveToolContext(params: {
                     source: "국토교통부 실거래(신고) · 대표 면적대 최근 거래 평균",
                     asOf: price.price.latestYm,
                     sample: price.price.sampleSize,
-                    href: `/complex/${encodeURIComponent(params.complexId)}`,
+                    href: `/complex/${encodeURIComponent(complexId)}`,
                   }
                 : null,
           }
@@ -334,7 +416,7 @@ export async function buildLiveToolContext(params: {
             : null,
         }
       : null,
-    rent: val(rentR),
+    rent: regionAxes?.rent ?? null,
     supply:
       upcoming.length > 0
         ? {
@@ -351,11 +433,46 @@ export async function buildLiveToolContext(params: {
             href: "/apply/calendar",
           }
         : null,
-    news: val(newsR),
-    notes: val(notesR),
-    macro: val(macroR),
-    poi: val(poiR),
+    /* 단지 매칭이 있으면 단지 값, 없으면 지역 값 — 예전 loadNews/loadNotes 의
+       "단지 0건 → 지역 폴백"과 같은 결과다. */
+    news: complexAxes?.news ?? regionAxes?.news ?? null,
+    notes: complexAxes?.notes ?? regionAxes?.notes ?? null,
+    macro: regionAxes?.macro ?? null,
+    poi: regionAxes?.poi ?? null,
   };
+}
+
+function resolveTarget(params: { complexId?: string | null; regionName?: string | null }) {
+  const complexId = params.complexId ?? null;
+  const decoded = complexId ? decodeComplexId(complexId) : null;
+  const regionName = (decoded?.region ?? params.regionName ?? "").trim();
+  return { complexId, decoded, regionName };
+}
+
+/**
+ * 단지 또는 지역 기준의 라이브 컨텍스트 조립 — **캐시 없이** 실조회.
+ * complexId 는 encodeComplexId(region, name) 형식 — 해석 실패 시 지역 축만 조립한다.
+ * (AI 초안 생성처럼 "지금 값"이 필요한 곳이 쓴다. 화면은 아래 Cached 를 쓴다.)
+ */
+export async function buildLiveToolContext(params: {
+  complexId?: string | null;
+  regionName?: string | null;
+}): Promise<LiveToolContext> {
+  const { complexId, decoded, regionName } = resolveTarget(params);
+  const [regionAxes, complexAxes] = await Promise.all([
+    /* 캐시가 없는 경로에서는 "축 전부 없음" 예외를 삼켜 예전처럼 빈 컨텍스트를
+       돌려준다 — 이 예외는 오직 캐시에 빈 값을 남기지 않기 위한 것이다. */
+    regionName
+      ? loadRegionAxes(regionName).catch((e): RegionAxes | null => {
+          logger.warn("[live-context] 지역 축 조립 실패", e);
+          return null;
+        })
+      : Promise.resolve(null),
+    complexId && decoded
+      ? loadComplexAxes(complexId, regionName, decoded.name)
+      : Promise.resolve(null),
+  ]);
+  return assembleContext({ complexId, decoded, regionName, regionAxes, complexAxes });
 }
 
 /* ── [AI-01] 근거 각주 — 컨텍스트에서 각주 표를 뽑는다 ───────────────── */
@@ -408,34 +525,28 @@ export function axisAgeDays(asOf: string | null, now = new Date()): number | nul
   return Math.max(0, Math.round((now.getTime() - d.getTime()) / 86_400_000));
 }
 
-/* [OPT-23] 컨텍스트 캐시 — 워크벤치가 축마다 별도 쿼리(9개 allSettled)를 돌지만,
-   같은 단지를 캐시 수명 안에 다시 열면 DB 왕복 없이 같은 스냅샷을 재사용한다.
-   generatedAt·asOf 는 캐시된 시점 그대로 남아 "언제 데이터인지"가 화면에 정직하게
-   드러난다(각주 ageDays). 수집 크론이 revalidateTag 로 즉시 비울 수 있다(OPT-10).
-
-   [F93] 수명 5분 → 6시간 (2026-08-28 실측 근거).
-
-   이 캐시는 /api/ai/context 뿐 아니라 **단지 상세 페이지의 서버 컴포넌트**
-   (ComplexAxisSummary)에서도 불린다. 사이트맵의 단지가 26,162개라, 캐시 키가
-   단지마다 갈라지는 상황에서 5분 수명은 사실상 "거의 항상 미스"였다 —
-   크롤러가 단지를 훑는 동안 같은 단지를 5분 안에 다시 볼 일이 없기 때문이다.
-
-   ops.query_load_snapshot 24시간 차분(08-27 → 08-28)에서 이 경로의 쿼리들이
-   상위를 채웠다: board_posts 42,236회/일(910초), market_transactions 28,437회
-   (667초), apartment_supply 57,111회(612초), apartment_complexes 27,002회(214초).
-   DB 실행시간은 사고 전 기준선 25~35k ms/h 에서 185k ms/h 로 아직 6배 높다.
-
-   수명을 늘려도 신선도가 나빠지지 않는 이유: 이 캐시가 담는 값의 원천은 전부
-   하루 1회 ETL 이고, market·supply·economy 세 태그는 수집 크론이 끝나는 즉시
-   revalidateTag 로 비운다(lib/cache/invalidate.ts). 즉 실거래·물량·금리는
-   수명과 무관하게 적재 직후 갱신된다.
-   **다만 news 태그는 비우는 곳이 없다**(SOURCE_MAP 에 news 키가 없고, board_posts
-   에 쓰는 크론도 없다) — 그래서 이 6시간이 뉴스 한 줄의 실제 최대 지연이다.
-   AI 컨텍스트의 참고 항목이라 그 정도 지연은 받아들일 만하다고 판단했다.
-   뉴스를 즉시 반영해야 하게 되면 SOURCE_MAP 에 news 를 추가하는 쪽이 먼저다. */
-export const buildLiveToolContextCached = unstable_cache(
-  async (complexId: string | null, regionName: string | null) =>
-    buildLiveToolContext({ complexId, regionName }),
-  ["live-tool-context-v1"],
-  { revalidate: 21_600, tags: ["market", "supply", "news", "economy"] },
-);
+/* [OPT-23 → 948] 컨텍스트 캐시 — 예전엔 조립 전체를 단지 id 키 하나로 캐시했다.
+   그 판단과 실측 기록은 위 "[948 · 최적화 2차]" 주석에 있다. 이제 지역 캐시와
+   단지 캐시를 **여기 최상위에서** 나란히 부른다(중첩하면 안쪽 캐시가 저장되지 않는다).
+   generatedAt 은 조립 시각이지만 축마다 asOf 가 따로 실리므로 "언제 데이터인지"는
+   여전히 각주(ageDays)가 정직하게 말한다. */
+export async function buildLiveToolContextCached(
+  complexId: string | null,
+  regionName: string | null,
+): Promise<LiveToolContext> {
+  const target = resolveTarget({ complexId, regionName });
+  const [regionAxes, complexAxes] = await Promise.all([
+    /* 지역 축 전부 없음(DB 포화 순간)은 캐시에 남지 않고 여기서 null 로 접힌다 —
+       화면은 예전처럼 축 없는 컨텍스트를 받는다(부르는 쪽은 바뀌지 않는다). */
+    target.regionName
+      ? loadRegionAxesCached(target.regionName).catch((e): RegionAxes | null => {
+          logger.warn("[live-context] 지역 축 캐시 조립 실패", e);
+          return null;
+        })
+      : Promise.resolve(null),
+    target.complexId && target.decoded
+      ? loadComplexAxesCached(target.complexId, target.regionName, target.decoded.name)
+      : Promise.resolve(null),
+  ]);
+  return assembleContext({ ...target, regionAxes, complexAxes });
+}

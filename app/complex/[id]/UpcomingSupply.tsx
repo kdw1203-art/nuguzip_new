@@ -1,4 +1,17 @@
-import { getSupplyForArea } from "@/lib/market/supply";
+import { unstable_cache } from "next/cache";
+import { getSupplyForAreaStrict } from "@/lib/market/supply";
+
+/* [948 · 최적화 2차] 인자가 지역명뿐이라 같은 지역의 모든 단지가 같은 값을 본다.
+   실측(2026-09-02)에서 apartment_supply ILIKE 가 단지 렌더마다 돌았다(12시간
+   7,034회). 지역명 키 6시간 캐시 — supply 태그는 입주물량 적재 직후 비워진다
+   (lib/cache/invalidate.ts). Strict 판을 쓰는 이유: 조회 실패를 [] 로 삼키면
+   그 빈 배열이 6시간 동안 "없음"으로 굳는다 — 던지면 캐시에 남지 않고, 아래
+   .catch 가 이번 렌더만 섹션을 생략한다(예전과 같은 화면). */
+const loadSupplyCached = unstable_cache(
+  (area: string) => getSupplyForAreaStrict(area, 24),
+  ["upcoming-supply-v1"],
+  { revalidate: 21_600, tags: ["supply"] },
+);
 
 /* D4 — 향후 공급(입주물량) 섹션. 단지 소재 지역 인근 apartment_supply(실데이터) 중
    아직 도래하지 않았거나 최근의 입주 예정 물량. 없으면 렌더 생략(사실 우선). */
@@ -19,7 +32,7 @@ export async function UpcomingSupply({ area }: { area: string }) {
   const name = area.trim();
   if (!name) return null;
 
-  const items = await getSupplyForArea(name, 24).catch(() => []);
+  const items = await loadSupplyCached(name).catch(() => []);
   if (items.length === 0) return null;
 
   // 향후(현재월 이상) 우선, 부족하면 최근 물량으로 채움

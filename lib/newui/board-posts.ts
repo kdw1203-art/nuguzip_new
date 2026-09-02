@@ -12,6 +12,7 @@
  */
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import {
   getAnonReadOnlySupabase,
   getReadOnlySupabase,
@@ -318,9 +319,19 @@ export const readTownPosts = cache((): Promise<Post[]> => mergeTownPosts(readBoa
  * 닿지 않는다. /town/news/[id] 는 뉴스 453건마다 한 장씩 있어서, 한 장을
  * 그리려고 300행 × 2.5KB 를 읽던 게 이 경로에서 제일 큰 낭비였다.
  */
-export const readRelatedTownPosts = cache(
+/* [948 · 최적화 2차] 이 목록은 인자가 없어 **모든 단지·모든 뉴스 페이지에 같은
+   값**인데, 실측(2026-09-02, 12시간)에서 board_posts 300행 조회가 3,802회(평균
+   10.5ms)로 렌더마다 다시 읽히고 있었다 — 단지 허브 관련기사 카드가 크롤러
+   렌더 3,500회마다 한 번씩 부른 것이다. 5분 데이터 캐시로 묶는다. 원천은
+   하루 1회 뉴스 적재라 5분 지연은 화면에서 구분되지 않는다(관련글 카드는
+   제목·출처·시각만 그린다). 실패는 던져서 캐시에 남지 않는다. */
+const readRelatedTownPostsCached = unstable_cache(
   (): Promise<Post[]> => mergeTownPosts(readLightBoardPosts()),
+  ["related-town-posts-v1"],
+  { revalidate: 300, tags: ["news"] },
 );
+
+export const readRelatedTownPosts = cache((): Promise<Post[]> => readRelatedTownPostsCached());
 
 async function mergeTownPosts(boardPromise: Promise<Post[]>): Promise<Post[]> {
   const [storePosts, boardPosts] = await Promise.all([

@@ -197,30 +197,44 @@ export async function getSupplyForArea(
   /** 곁다리 예산 신호 (항목 25) — 예산이 접히면 PostgREST 요청도 끊는다. */
   signal?: AbortSignal,
 ): Promise<SupplyItem[]> {
-  const name = areaName.trim();
-  if (!name) return [];
-  const sb = getReadOnlySupabase();
-  if (!sb) return [];
   try {
-    let q = sb
-      .from("apartment_supply")
-      .select("move_in_ym, region, biz_type, address, apt_name, households")
-      .ilike("address", `%${name}%`)
-      .order("move_in_ym", { ascending: true })
-      .limit(limit);
-    if (signal) q = q.abortSignal(signal);
-    const { data, error } = await q;
-    if (error || !Array.isArray(data)) return [];
-    return (data as Record<string, unknown>[]).map((r) => ({
-      moveInYm: String(r.move_in_ym ?? ""),
-      region: String(r.region ?? ""),
-      bizType: r.biz_type ? String(r.biz_type) : null,
-      address: r.address ? String(r.address) : null,
-      aptName: r.apt_name ? String(r.apt_name) : null,
-      households: r.households != null ? Number(r.households) : null,
-    }));
+    return await getSupplyForAreaStrict(areaName, limit, signal);
   } catch (e) {
     logger.error("[getSupplyForArea]", e);
     return [];
   }
+}
+
+/**
+ * getSupplyForArea 와 같되 **조회 실패를 던진다** — 데이터 캐시(unstable_cache)
+ * 뒤에 둘 때 쓴다. 실패를 [] 로 삼키면 그 빈 배열이 캐시 수명 동안 "이 지역은
+ * 입주물량 없음"으로 굳는다(948, app/complex/[id]/UpcomingSupply.tsx).
+ */
+export async function getSupplyForAreaStrict(
+  areaName: string,
+  limit = 12,
+  signal?: AbortSignal,
+): Promise<SupplyItem[]> {
+  const name = areaName.trim();
+  if (!name) return [];
+  const sb = getReadOnlySupabase();
+  if (!sb) return [];
+  let q = sb
+    .from("apartment_supply")
+    .select("move_in_ym, region, biz_type, address, apt_name, households")
+    .ilike("address", `%${name}%`)
+    .order("move_in_ym", { ascending: true })
+    .limit(limit);
+  if (signal) q = q.abortSignal(signal);
+  const { data, error } = await q;
+  if (error) throw new Error(`apartment_supply(${name}) 조회 실패: ${error.message}`);
+  if (!Array.isArray(data)) return [];
+  return (data as Record<string, unknown>[]).map((r) => ({
+    moveInYm: String(r.move_in_ym ?? ""),
+    region: String(r.region ?? ""),
+    bizType: r.biz_type ? String(r.biz_type) : null,
+    address: r.address ? String(r.address) : null,
+    aptName: r.apt_name ? String(r.apt_name) : null,
+    households: r.households != null ? Number(r.households) : null,
+  }));
 }

@@ -25,3 +25,66 @@
   실제 스파이크 발생 시 Vercel 함수 동시성 그래프로 사후 검증한다.
 
 재감사 시점: 카페 배포(플레이북 #29) 첫 실행 주간의 실트래픽으로.
+
+---
+
+# 2차 — 함수 호출량·DB 시간 기준 (2026-09-02, 948 최적화)
+
+1차 표는 "엣지가 흡수하는가"를 봤다. 이번에는 **실제로 함수가 몇 번 돌고
+DB 가 어디에 시간을 쓰는가**를 봤다. 재료: Vercel 런타임 로그 24시간
+라우트별 집계 + `pg_stat_statements` 델타(ops.pgss_snapshot_20260902,
+00:06Z→11:41Z, queryid 로 양쪽을 먼저 합친 뒤 차분).
+
+## 함수 호출 상위 (24h, 로그 행 수)
+
+| 라우트 | 호출 | 성격 |
+|---|---:|---|
+| /complex/[id] | 6,034 | ISR 6h 인데 **크롤러가 롱테일 단지를 1.5초에 1개씩** 훑어 거의 전부 MISS → 콜드 렌더 0.6~1.5s |
+| /notes/new | 1,936 | force-dynamic 작성 폼. 비로그인도 200 — 크롤러 유입 |
+| /analysis/ai/[tool] | 934 | ISR 1h |
+| /qna | 919 | ISR 300s |
+| / | 754 | ISR 60s |
+| (308) | 4,630 | 구 `/complex/<base64>` → 슬러그 URL 리다이렉트. 엣지 미들웨어라 함수 비용 없음 |
+
+## DB 시간 상위 (11.5h 델타, 실행시간만 — 계획 시간 별도)
+
+| 쿼리 | 호출 | 평균 | 합계 | 출처 |
+|---|---:|---:|---:|---|
+| market_transactions complex_name ILIKE (검색) | 4,427 | 42ms | 187s | `resolveComplexHref` — /notes·/qna·/notes/[id]·/map 이 **요청마다** 목록 전체를 다시 해석 |
+| board_posts title/ai_summary ILIKE | 4,408 | 27ms | 117s | live-context 뉴스 축(단지 → 지역 폴백 2회) · seq scan |
+| market_transactions 전월세 24개월 | 2,997 | 34ms | 100s | ComplexRentSection |
+| apartment_complexes name/address ILIKE | 2,995 | 27ms | 80s | enrichFromApartmentComplex |
+| apartment_supply address ILIKE | 6,035 | 11ms | 64s | live-context + UpcomingSupply — 단지마다 2회 |
+| market_transactions 대표행(build_year) | 3,093 | 17ms | 52s | getComplexById |
+| region_rent_yield_summary RPC | 2,959 | 9ms | 27s | **"전역 1벌" 캐시가 실제로는 렌더마다 호출** |
+
+단지 콜드 렌더 1회 ≈ PostgREST 왕복 22회. 실행시간 합은 150ms 안팎이지만
+왕복마다 계획 5~16ms(트랜잭션 풀러라 준비문 재사용 없음) + 네트워크가 붙는다.
+즉 줄일 것은 "쿼리 단가"보다 **"왕복 횟수"** 다.
+
+## 발견 — 중첩 unstable_cache 는 안쪽이 저장되지 않는다
+
+`buildLiveToolContextCached`(단지 키 6h) 안에서 부르는 `loadRentYieldRows`
+(전역 키 6h)가 렌더 13회에 RPC 13회로 확인됐다. 최상위에서 부르는
+`/notes` 의 60초 캐시는 5회 요청에 DB 0회로 정상. → 캐시는 **중첩하지 않고
+최상위에서 나란히** 부른다(lib/ai/live-context.ts 주석).
+
+## 조치 (948)
+
+| 조치 | 기대 효과 | 검증 방법 |
+|---|---|---|
+| `resolveComplexHref` (이름, 지역) 키 데이터 캐시 6h — 실패는 던져서 캐시 안 함 | DB 시간 1위(187s/11.5h) 소멸 | pgss queryid −1075091874752423485 호출 수 |
+| live-context 를 **지역 축 캐시(218키)** + **단지 축 캐시** 로 분리, 최상위 호출 | 단지 렌더당 왕복 −7 (뉴스 폴백·입주·학교·거시·RPC·지역 스냅샷·인구) | apartment_supply·RPC·board_posts ILIKE 호출 수 |
+| `readRelatedTownPosts` 5분 데이터 캐시 (인자 없음) | board_posts 300행 조회(10.5ms×3,802) 소멸 | queryid 2247053509333565828 |
+| UpcomingSupply 지역 키 캐시 6h (Strict 판 — 실패는 캐시 안 함) | apartment_supply 왕복 −1/렌더 | 위와 같음 |
+| trigram GIN 인덱스 3종 (board_posts title·ai_summary, apartment_supply address) — **적용 완료(11:50Z)** | board_posts ILIKE 17.6ms → 1.3ms(EXPLAIN ANALYZE) | pgss 평균 실행시간 |
+
+건드리지 않은 것과 이유:
+- `enrichFromApartmentComplex` 를 lawd_cd 등치로 바꾸는 안 — 지역 카탈로그의
+  이름 매칭이 부분 일치 폴백을 가져("중구" 류) 잘못된 코드로 엉뚱한 단지 스펙이
+  붙을 수 있다. 27ms 를 아끼려고 정합성을 걸 일이 아니다.
+- /notes/new 비로그인 200 — 폼 자체가 클라이언트에서 로그인 벽을 그린다.
+  엣지 리다이렉트로 바꾸면 ?memo= 프리필 흐름(계산기 → 노트)이 로그인 후
+  돌아올 때 깨진다. 호출 1,936회/일 × 짧은 실행이라 비용도 작다.
+
+재측정: 948 배포 후 24시간, 같은 델타 방식(ops.pgss_snapshot_20260902_pre948 기준).

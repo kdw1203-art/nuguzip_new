@@ -6,6 +6,7 @@
  * 애매하거나(지역 불일치) 못 찾으면 null → 호출부는 링크를 숨긴다 (mock-1로 보내지 않음).
  */
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import {
   encodeKaptComplexId,
   searchComplexes,
@@ -99,6 +100,51 @@ export function complexHrefKey(
   return `${(name ?? "").trim()}|${region ?? ""}`;
 }
 
+/* 실제 해석 — 조회 실패는 **던진다**(아래 데이터 캐시가 실패를 6시간 동안
+   "링크 없음"으로 굳히지 않게). "못 찾음"(null)만 값으로 돌려준다. */
+async function resolveComplexHrefUncached(
+  query: string,
+  region: string,
+): Promise<string | null> {
+  const rows = await searchComplexes(query, undefined, 10);
+  if (rows.length === 0) return null;
+
+  // 이름이 실제로 겹치는 후보만 (검색 RPC의 느슨한 결과에서 오매칭 방지)
+  const nq = normalize(query);
+  const nameMatches = rows.filter((r) => {
+    const rn = normalize(r.name);
+    return rn.includes(nq) || nq.includes(rn);
+  });
+  if (nameMatches.length === 0) return null;
+
+  const tokens = regionTokens(region);
+  if (tokens.length > 0) {
+    // 지역 정보가 있으면 지역까지 일치하는 단지만 신뢰
+    const regionHit = nameMatches.find((r) => {
+      const hay = rowHaystack(r);
+      return tokens.some((t) => hay.includes(t));
+    });
+    if (regionHit) return hrefForRow(regionHit);
+    // 동명 타지역 단지로의 오연결 방지 — 유일 후보가 아니면 숨김
+    return nameMatches.length === 1 ? hrefForRow(nameMatches[0]) : null;
+  }
+
+  return hrefForRow(nameMatches[0]);
+}
+
+/* [948 · 최적화 2차] (단지명, 지역) → href 를 데이터 캐시에 6시간 보관.
+   실측(2026-09-02, pg_stat_statements 11.5시간 델타): 이 해석이 부르는
+   `complex_name ILIKE` 조회가 4,427회 · 평균 42ms = 187초로 DB 시간 1위였다.
+   /notes·/qna·/notes/[id]·/map 은 동적 렌더라 요청마다 목록 전체(최대 50건)를
+   다시 풀었고, 결과는 실거래 단지명에서만 나와 하루 안에 바뀌지 않는다.
+   키는 (이름, 지역) 문자열 — 요청·사용자와 무관하게 같은 값이다.
+   market 태그: 실거래 적재(molit) 뒤 invalidateAfterIngest 가 비운다. */
+const resolveComplexHrefCached = unstable_cache(
+  async (query: string, region: string) => resolveComplexHrefUncached(query, region),
+  ["complex-href-v1"],
+  { revalidate: 21_600, tags: ["market"] },
+);
+
 export const resolveComplexHref = cache(
   async (
     name: string | null | undefined,
@@ -107,30 +153,7 @@ export const resolveComplexHref = cache(
     const query = (name ?? "").trim();
     if (!query) return null;
     try {
-      const rows = await searchComplexes(query, undefined, 10);
-      if (rows.length === 0) return null;
-
-      // 이름이 실제로 겹치는 후보만 (검색 RPC의 느슨한 결과에서 오매칭 방지)
-      const nq = normalize(query);
-      const nameMatches = rows.filter((r) => {
-        const rn = normalize(r.name);
-        return rn.includes(nq) || nq.includes(rn);
-      });
-      if (nameMatches.length === 0) return null;
-
-      const tokens = regionTokens(region);
-      if (tokens.length > 0) {
-        // 지역 정보가 있으면 지역까지 일치하는 단지만 신뢰
-        const regionHit = nameMatches.find((r) => {
-          const hay = rowHaystack(r);
-          return tokens.some((t) => hay.includes(t));
-        });
-        if (regionHit) return hrefForRow(regionHit);
-        // 동명 타지역 단지로의 오연결 방지 — 유일 후보가 아니면 숨김
-        return nameMatches.length === 1 ? hrefForRow(nameMatches[0]) : null;
-      }
-
-      return hrefForRow(nameMatches[0]);
+      return await resolveComplexHrefCached(query, (region ?? "").trim());
     } catch {
       return null;
     }
