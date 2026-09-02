@@ -2,7 +2,7 @@
  * GET /api/og/complex?name=&price=&delta=&region=
  * 단지 허브 공유용 동적 OG 카드 (1200×630, next/og ImageResponse).
  * - 리퀴드 글래스 무드: #f7f9fc 배경 + 좌상단 파란 radial 블롭
- * - 좌: 누구집 로고 텍스트 + 단지명 + 지역 / 우: 가격 + 전월비 delta
+ * - 좌: 내집나우 로고 텍스트 + 단지명 + 지역 / 우: 가격 + 전월비 delta
  * - 폰트: 시스템 기본만 사용 (커스텀 폰트 로드 금지 — 컨테이너·엣지 이슈 회피)
  * - 쿼리 값은 60자 절단 후 JSX 텍스트로만 렌더 (XSS 안전)
  */
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
                   display: "flex",
                 }}
               >
-                누구집
+                내집나우
               </div>
             </div>
             <div

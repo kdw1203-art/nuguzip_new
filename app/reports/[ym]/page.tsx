@@ -61,10 +61,10 @@ export async function generateMetadata({
   const { ym } = await params;
   const report = isValidYm(ym) ? await getMonthlyReport(ym) : null;
   if (!report) {
-    return { title: "월간 실거래 리포트 | 누구집", robots: { index: false, follow: false } };
+    return { title: "월간 실거래 리포트 | 내집나우", robots: { index: false, follow: false } };
   }
   const label = formatYmKo(report.ym);
-  const title = `${label} 아파트 실거래 리포트 — ${report.regionCount}개 지역 ${report.txCount.toLocaleString("ko-KR")}건 | 누구집`;
+  const title = `${label} 아파트 실거래 리포트 — ${report.regionCount}개 지역 ${report.txCount.toLocaleString("ko-KR")}건 | 내집나우`;
   const description = `${label} 전국 집계 지역 아파트 매매 실거래 ${report.txCount.toLocaleString("ko-KR")}건. 지역별 거래량·평균가·전월 대비 변동을 국토교통부 신고 기준으로 정리했습니다.`;
   const path = `/reports/${report.ym}`;
   return {
@@ -96,11 +96,11 @@ export default async function MonthlyReportPage({
       : null;
 
   /* G12 — 첫 문단: 발췌해도 완결되는 정의형 문장 */
-  const leadSentence = `${label} 누구집 집계 지역(${report.regionCount}곳)의 아파트 매매 실거래는 총 ${report.txCount.toLocaleString("ko-KR")}건입니다${
+  const leadSentence = `${label} 내집나우 집계 지역(${report.regionCount}곳)의 아파트 매매 실거래는 총 ${report.txCount.toLocaleString("ko-KR")}건입니다${
     momText ? ` (${momText})` : ""
   } — 국토교통부 실거래 신고 기준.`;
 
-  const citation = `누구집(nuguzip.com) 집계에 따르면, ${label} 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반).`;
+  const citation = `내집나우(nuguzip.com) 집계에 따르면, ${label} 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반).`;
 
   const faq: FaqItem[] = [
     {
@@ -128,7 +128,7 @@ export default async function MonthlyReportPage({
   /* N18 — 기사 리드로 그대로 옮길 수 있는 3문장. 전부 위에서 쓴 실측치 재사용이고,
      여기서 새로 계산하거나 해석을 덧붙이지 않는다. 근거가 없으면 문장을 뺀다. */
   const pressSentences: string[] = [
-    `누구집이 국토교통부 실거래 신고 자료를 집계한 결과, ${label} 전국 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건으로 나타났다${
+    `내집나우가 국토교통부 실거래 신고 자료를 집계한 결과, ${label} 전국 집계 지역 ${report.regionCount}곳의 아파트 매매 실거래는 ${report.txCount.toLocaleString("ko-KR")}건으로 나타났다${
       momPct !== null ? ` (전월 ${formatYmKo(report.prevYm!)} 대비 ${momPct.toFixed(1)}%)` : ""
     }.`,
   ];
@@ -159,7 +159,7 @@ export default async function MonthlyReportPage({
     headline: `${label} 아파트 실거래 리포트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "누구집", url: "https://nuguzip.com" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
     publisher: { "@id": "https://nuguzip.com/#organization" },
     ...(report.updatedAt
       ? { dateModified: report.updatedAt, datePublished: report.updatedAt }

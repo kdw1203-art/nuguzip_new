@@ -12,7 +12,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "이번 주 청약 캘린더 — 접수 시작·마감 일정 | 누구집",
+  title: "이번 주 청약 캘린더 — 접수 시작·마감 일정 | 내집나우",
   description:
     "이번 주와 다음 달 아파트 청약 접수 시작·마감 일정을 날짜별로 정리했습니다. 청약홈(한국부동산원) 공공데이터 기준.",
   alternates: seoAlternates("/apply/calendar"),

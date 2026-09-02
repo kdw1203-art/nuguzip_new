@@ -10,7 +10,7 @@ import { PrintButton } from "./PrintButton";
    접근 규칙은 상세와 동일(공개 or 본인). 유료 리포트(#70)의 지면 설계 원형. */
 
 export const metadata: Metadata = {
-  title: "임장노트 인쇄 | 누구집",
+  title: "임장노트 인쇄 | 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -50,7 +50,7 @@ export default async function NotePrintPage({
 
       <header className="border-b-2 border-[#111] pb-4">
         <div className="t-sub font-bold tracking-widest text-[#666]">
-          누구집 임장노트 · nuguzip.com
+          내집나우 임장노트 · nuguzip.com
         </div>
         <h1 className="mt-1 t-title leading-tight">{note.title}</h1>
         <p className="mt-1 t-body text-[#444]">

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <title>내집나우 심볼 - 온점 기본형</title>
+  <path d="M52 28 L68 28" fill="none" stroke="#0B2545" stroke-width="7" stroke-linecap="round"/>
+  <path d="M14 46 C 38 64, 82 64, 106 46" fill="none" stroke="#0B2545" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="60" cy="86" r="8.5" fill="#C8442B"/>
+</svg>

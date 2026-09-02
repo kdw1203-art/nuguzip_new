@@ -22,7 +22,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "상담 관리 · 누구집",
+  title: "상담 관리 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -283,7 +283,7 @@ export default async function MyConsultationsPage() {
 
       {/* 법적 고지 */}
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
-        상담 답변은 전문가 개인의 의견이며, 누구집은 상담 당사자가 아니에요. 투자·법률·세무
+        상담 답변은 전문가 개인의 의견이며, 내집나우는 상담 당사자가 아니에요. 투자·법률·세무
         판단의 최종 책임은 이용자 본인에게 있습니다.
       </div>
     </PageShell>

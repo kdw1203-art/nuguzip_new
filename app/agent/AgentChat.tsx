@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
-/* 누구집 AI 에이전트 채팅.
+/* 내집나우 AI 에이전트 채팅.
    차별점(사실 우선)을 UI로 드러낸다: 답변마다 에이전트가 실제로 조회한
    데이터(내 노트·실거래·지역 시세)의 목록을 회색 칩으로 보여 준다.
    조회 내역이 없는 일반 답변과, 데이터를 읽고 한 답변이 한눈에 구분된다. */

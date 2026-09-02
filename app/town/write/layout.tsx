@@ -5,7 +5,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
    각각 별개 페이지로 색인되지 않도록 canonical 을 이 layout 에서 선언한다. (N7)
 
    최적화 10 — 그때 canonical 만 넣고 **title 을 안 넣어서**, 이 화면의 탭 제목이
-   루트 레이아웃의 홈 제목("누구집 — 임장 기록이 판단 근거가 됩니다")이었다.
+   루트 레이아웃의 홈 제목("내집나우 — 임장 기록이 판단 근거가 됩니다")이었다.
    canonical 은 맞는데 사람이 보는 이름이 틀려 있던 셈이다. h1 과 같은 "글쓰기"
    로 맞춘다.
 

@@ -37,7 +37,7 @@ export async function notifyAdminLogin(input: {
       const alertTo = process.env.ALERT_EMAIL_TO?.trim() || input.email;
       await sendEmail({
         to: alertTo,
-        subject: `[누구집 보안] 관리자 로그인 — ${when}`,
+        subject: `[내집나우 보안] 관리자 로그인 — ${when}`,
         html: emailLayout(`
           <h1 style="margin:0 0 10px;font-size:17px;color:#191f28;">관리자 계정 로그인</h1>
           <table style="width:100%;border-collapse:collapse;font-size:14px;color:#3d4657;">
@@ -49,7 +49,7 @@ export async function notifyAdminLogin(input: {
             본인의 로그인이면 조치가 필요 없습니다. 본인이 아니라면 즉시 비밀번호를
             교체하고 세션을 무효화하세요(AUTH_SECRET 교체 = 전체 세션 로그아웃).
           </p>`),
-        text: `[누구집 보안] 관리자 로그인 — ${input.email} · ${input.provider} · ${when} KST`,
+        text: `[내집나우 보안] 관리자 로그인 — ${input.email} · ${input.provider} · ${when} KST`,
       });
     } catch (e) {
       logger.warn("[admin-login-alert] 메일 발송 실패", e);

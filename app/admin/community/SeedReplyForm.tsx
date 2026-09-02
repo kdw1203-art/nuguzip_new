@@ -28,7 +28,7 @@ export function SeedReplyForm({ postId, postTitle }: { postId: string; postTitle
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={3}
-            placeholder={`"${postTitle.slice(0, 30)}" 에 누구집 공식 답글…`}
+            placeholder={`"${postTitle.slice(0, 30)}" 에 내집나우 공식 답글…`}
             className="w-full rounded-lg border border-[rgba(255,255,255,.14)] bg-[#0d1119] p-2.5 text-[12px] text-[#e7ecf5]"
           />
           <div className="flex items-center gap-2">

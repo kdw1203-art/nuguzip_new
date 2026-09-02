@@ -224,14 +224,27 @@ export async function middleware(request: NextRequest) {
     if (limited) return applySecurityHeaders(limited, request);
   }
 
-  // m.·www. → 정식 도메인(nuguzip.com) 정규화 — 네이버 지도 등 URL 등록형 API 대응
-  if (hostname === "m.nuguzip.com" || hostname === "www.nuguzip.com") {
-    const canonical = new URL(
-      request.nextUrl.pathname + request.nextUrl.search,
-      DEFAULT_DESKTOP_ORIGIN,
-    );
-    canonical.searchParams.delete("_wd");
-    return applySecurityHeaders(NextResponse.redirect(canonical, 308), request);
+  // m.·www. → 정식 도메인 정규화 — 네이버 지도 등 URL 등록형 API 대응.
+  // [947 · 도메인 전환 준비] NEXT_PUBLIC_SITE_ORIGIN 을 새 도메인으로 바꾸면
+  // 구 도메인(nuguzip.com 계열)로 온 요청도 여기서 새 정식 도메인으로 308 —
+  // 별도 코드 수정 없이 env 전환만으로 리다이렉트가 켜진다(경로·쿼리 보존).
+  {
+    const canonicalHost = normalizeHost(new URL(DEFAULT_DESKTOP_ORIGIN).host);
+    const legacyHosts = new Set([
+      "nuguzip.com",
+      "www.nuguzip.com",
+      "m.nuguzip.com",
+      `www.${canonicalHost}`,
+      `m.${canonicalHost}`,
+    ]);
+    if (hostname && hostname !== canonicalHost && legacyHosts.has(hostname)) {
+      const canonical = new URL(
+        request.nextUrl.pathname + request.nextUrl.search,
+        DEFAULT_DESKTOP_ORIGIN,
+      );
+      canonical.searchParams.delete("_wd");
+      return applySecurityHeaders(NextResponse.redirect(canonical, 308), request);
+    }
   }
 
   const wdStrip = maybeStripLegacyWdParam(request);

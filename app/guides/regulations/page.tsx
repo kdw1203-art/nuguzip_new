@@ -15,7 +15,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 const PATH = "/guides/regulations";
 
 export const metadata: Metadata = {
-  title: "부동산 규제·의무 안내 | 누구집",
+  title: "부동산 규제·의무 안내 | 내집나우",
   description:
     "규제지역, 실거주 의무·전매제한, 대출 규제(LTV·DSR), 취득세·양도세·종부세, 청약 자격까지 부동산 규제와 의무의 핵심 개념을 쉽게 정리했습니다.",
   alternates: seoAlternates(PATH),

@@ -27,7 +27,7 @@ export function parseWidgetTarget(input: string): WidgetTarget | null {
   const raw = input.trim();
   if (!raw) return null;
 
-  // 1) 누구집 단지 URL — /complex/{id} · /embed/complex/{id} (쿼리·해시 무시)
+  // 1) 내집나우 단지 URL — /complex/{id} · /embed/complex/{id} (쿼리·해시 무시)
   const m = raw.match(/\/(?:embed\/)?complex\/([^/?#\s]+)/);
   if (m && m[1]) {
     try {
@@ -57,7 +57,7 @@ export function parseComplexId(input: string): string | null {
 
 function snippetFor(target: WidgetTarget, height: number): string {
   const src = `${SITE}/embed/${target.kind}/${encodeURIComponent(target.id)}`;
-  const title = target.kind === "region" ? "누구집 지역 시세 위젯" : "누구집 실거래 시세 위젯";
+  const title = target.kind === "region" ? "내집나우 지역 시세 위젯" : "내집나우 실거래 시세 위젯";
   return `<iframe src="${src}" width="100%" height="${height}" style="border:0;max-width:400px" loading="lazy" title="${title}"></iframe>`;
 }
 
@@ -103,7 +103,7 @@ export function WidgetBuilder() {
           1. 단지 또는 지역 주소 붙여넣기
         </label>
         <p className="mt-1 text-[12px] leading-[1.7] text-text-2">
-          누구집에서 단지 페이지(/complex/…) 또는 지역 페이지(/region/…)를 열고
+          내집나우에서 단지 페이지(/complex/…) 또는 지역 페이지(/region/…)를 열고
           주소창의 주소를 그대로 붙여넣으세요. 지역 주소를 넣으면 중개사무소
           블로그용 지역 시세 요약 위젯이 만들어집니다.
         </p>
@@ -118,7 +118,7 @@ export function WidgetBuilder() {
         />
         {input.trim() !== "" && !target && (
           <p className="mt-2 text-[12px] font-bold text-danger">
-            누구집 주소가 아닙니다. /complex/ 또는 /region/ 이 들어간 주소를 붙여넣어
+            내집나우 주소가 아닙니다. /complex/ 또는 /region/ 이 들어간 주소를 붙여넣어
             주세요.
           </p>
         )}
@@ -178,7 +178,7 @@ export function WidgetBuilder() {
             height={height}
             style={{ border: 0, maxWidth: 400 }}
             loading="lazy"
-            title="누구집 실거래 시세 위젯 미리보기"
+            title="내집나우 실거래 시세 위젯 미리보기"
             className="mt-2 block"
           />
         ) : (

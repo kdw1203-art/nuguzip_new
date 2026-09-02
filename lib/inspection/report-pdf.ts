@@ -90,7 +90,7 @@ export async function buildInspectionReportPdf(opts: {
         : branding.tier === "expert"
           ? "PRO"
           : "PLUS";
-    ctx = drawLines(ctx, `Nuguzip ${badge}`, 9);
+    ctx = drawLines(ctx, `NAEJIP NOW ${badge}`, 9);
     ctx = { ...ctx, y: ctx.y - 4 };
   }
 

@@ -35,7 +35,7 @@ export function Footer() {
       <div className="mx-auto flex max-w-[1240px] flex-col gap-2 t-sub text-text-3">
         {/* 1행: 사업자 고지 */}
         <div>
-          누구집 · 상호: {biz.legalName}({biz.domain}) · 대표:{" "}
+          내집나우 · 상호: {biz.legalName}({biz.domain}) · 대표:{" "}
           {biz.representative || "—"} · 사업자등록번호:{" "}
           {biz.registrationNumber || "—"}
         </div>

@@ -294,8 +294,8 @@ export function CheckoutClient() {
         orderId: phase.orderId,
         orderName:
           params.billing === "weekly"
-            ? `누구집 ${planLabel(params.tier)} 주간권 (7일 · 단건)`
-            : `누구집 ${planLabel(params.tier)} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+            ? `내집나우 ${planLabel(params.tier)} 주간권 (7일 · 단건)`
+            : `내집나우 ${planLabel(params.tier)} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
         successUrl: `${origin}/payment/success`,
         failUrl: `${origin}/payment/fail`,
         ...(email ? { customerEmail: email } : {}),
@@ -333,8 +333,8 @@ export function CheckoutClient() {
         orderId: phase.orderId,
         orderName:
           params.billing === "weekly"
-            ? `누구집 ${planLabel(params.tier)} 주간권 (7일 · 단건)`
-            : `누구집 ${planLabel(params.tier)} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
+            ? `내집나우 ${planLabel(params.tier)} 주간권 (7일 · 단건)`
+            : `내집나우 ${planLabel(params.tier)} ${params.billing === "annual" ? "연간" : "월간"} 구독`,
         successUrl: `${origin}/payment/success`,
         failUrl: `${origin}/payment/fail`,
         /* 결제 결과 안내 문서: customerEmail 을 주면 승인·취소 때 토스가

@@ -110,7 +110,7 @@ async function maybeSendPriceAlertSms(
     const prefs = await getPrefs(userEmail);
     if (!prefs.smsPriceAlerts || !prefs.alertPhone) return false;
     const content =
-      `[누구집] 관심단지 실거래 알림\n` +
+      `[내집나우] 관심단지 실거래 알림\n` +
       `${body}\n` +
       `자세히: https://nuguzip.com${complexHrefFromId(complexId)}\n\n` +
       `수신거부: 마이 > 알림 설정`;

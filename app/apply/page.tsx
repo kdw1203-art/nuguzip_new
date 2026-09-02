@@ -22,7 +22,7 @@ const APPLYHOME_URL = "https://www.applyhome.co.kr";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "청약 센터 — 청약홈 경쟁률·특별공급 | 누구집",
+  title: "청약 센터 — 청약홈 경쟁률·특별공급 | 내집나우",
   description:
     "청약홈(한국부동산원) 공공데이터 기반 아파트 청약 경쟁률·특별공급 접수현황 — 지역·단지명 검색.",
   alternates: seoAlternates("/apply"),

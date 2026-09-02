@@ -126,7 +126,7 @@ export function InquiryForm({
       </div>
       {error && <span className="text-[11px] font-bold text-danger">{error}</span>}
       <p className="text-[11px] leading-[1.6] text-text-3">
-        문의는 등록자(개업공인중개사)에게 전달돼요. 누구집은 중개 당사자가 아니에요.
+        문의는 등록자(개업공인중개사)에게 전달돼요. 내집나우는 중개 당사자가 아니에요.
       </p>
     </div>
   );

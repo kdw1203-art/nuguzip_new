@@ -120,7 +120,7 @@ export async function publishRegionIntroPosts(limit = 30): Promise<RegionIntroRe
         tags: [region.name, "동네브리핑"],
         ai_summary: `${region.name} ${monthLabel} 공개 데이터 요약 — 평균가·전세가율·거래량·입주.`,
         ai_keywords: [region.name, "시세", "브리핑"],
-        source_name: "누구집 자동 집계",
+        source_name: "내집나우 자동 집계",
         is_automated: true,
         external_key: externalKey,
       });

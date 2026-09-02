@@ -133,8 +133,8 @@ export async function generateMetadata({
   const { profile } = await findProfile(input);
   const name = profile?.name ?? resolveDisplayName(input);
   return {
-    title: `${name}님의 임장 프로필 — 누구집`,
-    description: `${name}님이 직접 다녀온 공개 임장노트를 모아 봅니다 — 누구집`,
+    title: `${name}님의 임장 프로필 — 내집나우`,
+    description: `${name}님이 직접 다녀온 공개 임장노트를 모아 봅니다 — 내집나우`,
     // P2-10 색인 정책: 공개 프로필은 당분간 색인하지 않음
     robots: { index: false, follow: false },
   };

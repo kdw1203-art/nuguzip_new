@@ -22,7 +22,7 @@ async function loadKoreanFont(text: string): Promise<ArrayBuffer | null> {
   try {
     const cssUrl =
       "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@800&text=" +
-      encodeURIComponent(text + "누구집");
+      encodeURIComponent(text + "내집나우");
     const css = await fetch(cssUrl, {
       // 구형 UA 로 요청하면 woff2 대신 ImageResponse 가 읽는 TTF 가 온다
       headers: { "User-Agent": "Mozilla/5.0 (Windows NT 6.1)" },
@@ -38,7 +38,7 @@ async function loadKoreanFont(text: string): Promise<ArrayBuffer | null> {
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
-  const title = (sp.get("title") ?? "누구집").slice(0, 60);
+  const title = (sp.get("title") ?? "내집나우").slice(0, 60);
   const sub = (sp.get("sub") ?? "").slice(0, 60);
   const badge = (sp.get("badge") ?? "").slice(0, 16);
 
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
           >
             🏠
           </div>
-          <div style={{ fontSize: 34, fontWeight: 800, color: "#17203a" }}>누구집</div>
+          <div style={{ fontSize: 34, fontWeight: 800, color: "#17203a" }}>내집나우</div>
           {badge ? (
             <div
               style={{

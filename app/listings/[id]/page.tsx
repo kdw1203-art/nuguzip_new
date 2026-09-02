@@ -51,7 +51,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const base: Metadata = {
-    title: "매물 상세 · 누구집",
+    title: "매물 상세 · 내집나우",
     description:
       "집주인 직접·중개사 등록 매물의 상세 정보. 실거래가와 비교하며 확인하세요.",
   };
@@ -71,7 +71,7 @@ export async function generateMetadata({
     `&area=${encodeURIComponent(area)}` +
     `&type=${encodeURIComponent(LISTING_TYPE_LABEL[listing.listingType])}`;
 
-  const title = `${listing.complexName} · ${priceLine(listing)} · 누구집`;
+  const title = `${listing.complexName} · ${priceLine(listing)} · 내집나우`;
   const description =
     `${listing.regionName ? `${listing.regionName} · ` : ""}${LISTING_TYPE_LABEL[listing.listingType]} 매물 — 실거래가와 비교하며 확인하세요.`;
 
@@ -536,8 +536,8 @@ export default async function ListingDetailPage({
 
       {/* 법적 고지 */}
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
-        누구집은 광고 매체이며 중개하지 않습니다. 매물 정보의 정확성과 권리관계에 대한 책임은
-        등록자에게 있으며, 누구집의 검수는 형식 요건 확인일 뿐 진위를 보증하지 않습니다. 중개
+        내집나우는 광고 매체이며 중개하지 않습니다. 매물 정보의 정확성과 권리관계에 대한 책임은
+        등록자에게 있으며, 내집나우의 검수는 형식 요건 확인일 뿐 진위를 보증하지 않습니다. 중개
         행위는 해당 매물을 등록한 개업공인중개사가 수행합니다.
       </div>
     </PageShell>

@@ -28,10 +28,10 @@ export async function generateMetadata({
     (r) => ({ ok: true as const, r }),
     () => ({ ok: false as const }),
   );
-  if (!read.ok) return { title: "리포트 | 누구집", robots: { index: false, follow: false } };
+  if (!read.ok) return { title: "리포트 | 내집나우", robots: { index: false, follow: false } };
   const r = read.r;
   if (!r) notFound();
-  const title = `${r.title} — 유료 임장 리포트 | 누구집`;
+  const title = `${r.title} — 유료 임장 리포트 | 내집나우`;
   const description = (r.subtitle ?? r.previewContent ?? "임장러가 직접 쓴 유료 리포트").slice(0, 150);
   return {
     title,
@@ -120,7 +120,7 @@ export default async function ReportDetailPage({
               </span>
             )}
             <span className="ml-auto text-[11px] text-text-3">
-              {r.authorLabel?.trim() || "누구집 크리에이터"}
+              {r.authorLabel?.trim() || "내집나우 크리에이터"}
             </span>
           </div>
 

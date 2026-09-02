@@ -78,9 +78,9 @@ try {
 
 /* ④ 오픈 공지 — idempotent(external_key). 서비스 키 없으면 초안만. */
 const NOTICE_KEY = "billing-open-notice:v1";
-const noticeTitle = "누구집 플러스, 오늘부터 시작할 수 있어요";
+const noticeTitle = "내집나우 플러스, 오늘부터 시작할 수 있어요";
 const noticeBody = [
-  "누구집 플러스 자동결제가 오늘 열렸습니다.",
+  "내집나우 플러스 자동결제가 오늘 열렸습니다.",
   "",
   "- 주간권 1,100원 · 월간권 9,900원 — /subscription 에서 시작",
   "- 언제든 해지 가능, 남은 기간은 일할 환불",
@@ -140,7 +140,7 @@ if (DRY) {
             title: noticeTitle,
             content: noticeBody,
             tags: ["공지"],
-            source_name: "누구집",
+            source_name: "내집나우",
             external_key: NOTICE_KEY,
             is_automated: true,
             automation_meta: { source: "billing-open-day" },

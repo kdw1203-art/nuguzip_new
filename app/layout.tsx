@@ -1,3 +1,4 @@
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SwRegister } from "./components/SwRegister";
@@ -25,7 +26,7 @@ import { RevealOnScroll } from "./components/motion/RevealOnScroll";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://nuguzip.com"),
+  metadataBase: new URL(DEFAULT_DESKTOP_ORIGIN), /* [947] 도메인 단일 소스 */
   manifest: "/manifest.webmanifest",
   /* S2·S3 — 검색엔진 소유 확인 메타태그 (2026-07-25 소유자 제공 토큰).
      구글: 정식 도메인 속성 인증은 Vercel DNS 의 TXT 레코드로 하고, 이 태그는
@@ -37,18 +38,18 @@ export const metadata: Metadata = {
   },
   /* 브랜드 포지션(전략 정본 §6): "임장 관리"라는 비어 있는 카테고리의 첫 이름.
      시세를 '보는' 앱이 아니라 현장에 '가는' 사람의 앱 — 문장도 그 대립을 싣는다. */
-  title: "누구집 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
+  title: "내집나우 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
   description:
-    "부동산 임장 관리 플랫폼 누구집. 임장노트 3분 기록 → AI 정리 → 실거래가 지도 비교. 임장 체크리스트부터 지역 분석 리포트까지, 로그인 없이 시작하세요.",
+    "부동산 임장 관리 플랫폼 내집나우. 임장노트 3분 기록 → AI 정리 → 실거래가 지도 비교. 임장 체크리스트부터 지역 분석 리포트까지, 로그인 없이 시작하세요.",
   openGraph: {
-    title: "누구집 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
+    title: "내집나우 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
     description:
-      "부동산 임장 관리 플랫폼 누구집. 임장노트 3분 기록 → AI 정리 → 실거래가 지도 비교.",
-    siteName: "누구집",
+      "부동산 임장 관리 플랫폼 내집나우. 임장노트 3분 기록 → AI 정리 → 실거래가 지도 비교.",
+    siteName: "내집나우",
     locale: "ko_KR",
     type: "website",
     // S4 — 기본 공유 카드(/og-image). 페이지 전용 카드가 있으면 각 페이지가 덮어쓴다.
-    images: [{ url: "/og-image", width: 1200, height: 630, alt: "누구집" }],
+    images: [{ url: "/og-image", width: 1200, height: 630, alt: "내집나우" }],
   },
 };
 
@@ -97,8 +98,8 @@ export default function RootLayout({
         <link
           rel="alternate"
           type="application/rss+xml"
-          title="누구집 — 실거래 리포트·임장노트"
-          href="https://nuguzip.com/feed.xml"
+          title="내집나우 — 실거래 리포트·임장노트"
+          href={`${DEFAULT_DESKTOP_ORIGIN}/feed.xml`}
         />
         {/* LCP: Pretendard 비차단 — preload 후 media=print→all 스왑.
             첫 페인트는 시스템 폰트, 로드 후 Pretendard.
@@ -135,16 +136,25 @@ export default function RootLayout({
             href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
           />
         </noscript>
+        {/* [946] 브랜드 슬로건 세리프 — text= 파라미터로 슬로건 글자만 서브셋(수 KB).
+            통짜 Noto Serif KR(수백 KB)을 문장 하나 때문에 싣지 않는다. */}
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600&display=swap&text=%EC%98%A4%EB%9E%98%20%EB%A8%B8%EB%AC%BC%20%EC%A7%91%EC%9D%84%2C%20%EC%A7%80%EA%B8%88.%EC%95%84%EC%A7%81%20%EA%B8%B0%EB%A1%9D%EC%9D%B4%20%EC%97%86%EC%96%B4%EC%9A%94"
+        />
         {/* #19 PWA — iOS 홈 화면 아이콘 · 웹앱 메타
             G9: .svg → .png 로 교체했다. Safari 는 apple-touch-icon 으로 SVG 를
             받지 않는다 — 지금까지 iOS 에서 홈 화면에 추가하면 아이콘이 아니라
-            페이지 스크린샷 축소판이 박혔다는 뜻이다(조용히 실패해서 티가 안 났다). */}
-        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+            페이지 스크린샷 축소판이 박혔다는 뜻이다(조용히 실패해서 티가 안 났다).
+            [946 리브랜딩] 내집나우 아이콘 세트로 교체 — 180px 전용 파일 사용. */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         {/* S16/G16 — Organization·WebSite JSON-LD (정적 값만, 데이터 페칭 없음) */}
         <SiteJsonLd />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="누구집" />
+        <meta name="apple-mobile-web-app-title" content="내집나우" />
       </head>
       <body className="min-h-full flex flex-col">
         {/* #18 a11y — 본문 바로가기 (키보드 첫 Tab). sr-only 로만 두면 포커스가

@@ -22,7 +22,7 @@ export const HOME_HERO_BADGE = "임장러를 위한 부동산 의사결정 플�
  * 그래서 제목은 한 군데로 모은다: `<main>` 첫 자식의 sr-only h1 하나.
  * 히어로 문구는 뷰포트별 "시각 카피"로 강등해 `<p>` 로 그린다.
  */
-export const HOME_PAGE_H1 = "누구집 — 발로 뛴 임장을 데이터·결정으로 바꾸는 부동산 플랫폼";
+export const HOME_PAGE_H1 = "내집나우 — 발로 뛴 임장을 데이터·결정으로 바꾸는 부동산 플랫폼";
 
 /** 모바일 히어로 문구 — emphasis 구간만 gradient (행동 우선, 전환 유지) */
 export const HOME_HERO_MOBILE_LINE1 = "오늘 본 집,";

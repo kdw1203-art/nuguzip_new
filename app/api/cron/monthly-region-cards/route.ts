@@ -81,7 +81,7 @@ async function handle(req: Request) {
         videoUrl,
         title,
         caption,
-        hashtags: ["부동산", "아파트", s.regionName.replace(/\s+/g, ""), "실거래가", "누구집"],
+        hashtags: ["부동산", "아파트", s.regionName.replace(/\s+/g, ""), "실거래가", "내집나우"],
         targets: { instagram: true, youtube: true },
         createdBy: "monthly-region-cards",
         sourceKind: "promo",

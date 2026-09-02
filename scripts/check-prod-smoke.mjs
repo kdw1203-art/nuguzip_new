@@ -24,7 +24,7 @@ const TARGETS = [
   { path: "/tx", marker: "실거래" },
   { path: "/search", marker: "통합 검색" },
   { path: "/subscription", marker: "구독" },
-  { path: "/llms.txt", marker: "누구집" },
+  { path: "/llms.txt", marker: "내집나우" },
 ];
 
 const RETRIES = 3;

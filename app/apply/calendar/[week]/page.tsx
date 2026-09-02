@@ -43,7 +43,7 @@ export async function generateMetadata({
   if (!range) notFound();
   const label = weekLabel(week, range);
   return {
-    title: `${label} 청약 일정 — 접수 시작·마감 | 누구집`,
+    title: `${label} 청약 일정 — 접수 시작·마감 | 내집나우`,
     description: `${range.start}~${range.end} 아파트 청약 접수 시작·마감 일정. 청약홈(한국부동산원) 공공데이터 기준.`,
     alternates: seoAlternates(`/apply/calendar/${week.toLowerCase()}`),
     robots: { index: true, follow: true },

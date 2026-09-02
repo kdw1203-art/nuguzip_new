@@ -36,7 +36,7 @@ import { AttendanceButton } from "./points/AttendanceButton";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "마이 · 누구집" };
+export const metadata = { title: "마이 · 내집나우" };
 
 /* ── 표시 헬퍼 ── */
 function noteScore(n: InspectionNote): number {

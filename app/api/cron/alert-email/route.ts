@@ -89,7 +89,7 @@ async function handle(req: Request) {
 
   const result = await sendEmail({
     to,
-    subject: `[누구집 경보] 심각 ${folded.size}종 · ${rows.length}건 (24시간)`,
+    subject: `[내집나우 경보] 심각 ${folded.size}종 · ${rows.length}건 (24시간)`,
     text: `최근 24시간 critical 경보입니다.\n\n${lines.join("\n")}\n\n운영 콘솔: https://nuguzip.com/admin/ops`,
     html: `<p>최근 24시간 <b>critical</b> 경보입니다.</p><pre style="font-family:inherit;white-space:pre-wrap">${lines
       .map((l) => l.replace(/&/g, "&amp;").replace(/</g, "&lt;"))

@@ -1,7 +1,16 @@
 export type PlatformShell = "desktop" | "mobile";
 
-/** 실운영 기본 origin (환경변수·호스트 파싱 실패 시). 모바일·데스크톱 단일 도메인. */
-export const DEFAULT_DESKTOP_ORIGIN = "https://nuguzip.com";
+/** 실운영 기본 origin (환경변수·호스트 파싱 실패 시). 모바일·데스크톱 단일 도메인.
+ *
+ * [947 · 도메인 전환 준비] NEXT_PUBLIC_SITE_ORIGIN 이 있으면 그 값이 정본이다 —
+ * canonical·sitemap·robots·RSS·JSON-LD·인증 리다이렉트가 전부 이 상수에서
+ * 파생되므로, 도메인 이전 시 이 env 하나 + 문자열 일괄 치환(런북 참조)으로 끝난다.
+ * NEXT_PUBLIC_ 접두어라 클라이언트 번들에도 같은 값이 들어간다(빌드 시 확정). */
+export const DEFAULT_DESKTOP_ORIGIN = (
+  process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim() || "https://nuguzip.com"
+).replace(/\/+$/, "");
+/** 도메인만 필요할 때 (메일 표기·쿠키 도메인 등) */
+export const SITE_DOMAIN = DEFAULT_DESKTOP_ORIGIN.replace(/^https?:\/\//, "");
 /**
  * @deprecated 단일 도메인 운영으로 전환되어 데스크톱 origin과 동일합니다.
  * 남은 참조 호환을 위해 유지합니다.

@@ -1,5 +1,5 @@
 /**
- * 한국어 이메일 템플릿 — 누구집 브랜드(포인트 컬러 #1d4fd8), 인라인 스타일 HTML.
+ * 한국어 이메일 템플릿 — 내집나우 브랜드(포인트 컬러 #1d4fd8), 인라인 스타일 HTML.
  * 각 함수는 sendEmail 에 바로 펼쳐 넣을 수 있는 { subject, html, text } 를 반환합니다.
  */
 
@@ -33,13 +33,13 @@ export function emailLayout(bodyHtml: string): string {
 <body style="margin:0;padding:0;background-color:#f4f6fb;">
   <div style="max-width:520px;margin:0 auto;padding:32px 16px;font-family:'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Arial,sans-serif;">
     <div style="padding:0 4px 16px;">
-      <span style="font-size:20px;font-weight:700;color:${ACCENT};letter-spacing:-0.5px;">누구집</span>
+      <span style="font-size:20px;font-weight:700;color:${ACCENT};letter-spacing:-0.5px;">내집나우</span>
     </div>
     <div style="background-color:#ffffff;border:1px solid #e5e9f2;border-radius:12px;padding:28px 24px;">
       ${bodyHtml}
     </div>
     <p style="color:#8a94a6;font-size:12px;line-height:1.6;margin:16px 4px 0;">
-      본 메일은 누구집(nuguzip.com)에서 자동 발송되었습니다. 문의는
+      본 메일은 내집나우(nuguzip.com)에서 자동 발송되었습니다. 문의는
       <a href="https://nuguzip.com/support" style="color:#8a94a6;">고객센터</a>,
       알림 메일 수신 설정(수신거부)은
       <a href="https://nuguzip.com/my/settings" style="color:#8a94a6;">마이 › 설정 › 알림</a>
@@ -63,7 +63,7 @@ export function passwordResetEmail(params: { resetUrl: string; expiresMinutes?: 
   const html = layout(`
       <h1 style="margin:0 0 12px;font-size:18px;color:#1a2233;">비밀번호 재설정 안내</h1>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#3d4657;">
-        누구집 계정의 비밀번호 재설정 요청을 받았습니다.<br />
+        내집나우 계정의 비밀번호 재설정 요청을 받았습니다.<br />
         아래 버튼을 눌러 새 비밀번호를 설정해 주세요. 링크는 <strong>${expiresMinutes}분</strong> 동안만 유효합니다.
       </p>
       <a href="${safeUrl}"
@@ -78,14 +78,14 @@ export function passwordResetEmail(params: { resetUrl: string; expiresMinutes?: 
         본인이 요청하지 않았다면 이 메일을 무시하셔도 됩니다. 비밀번호는 변경되지 않습니다.
       </p>`);
   const text = [
-    "누구집 비밀번호 재설정 안내",
+    "내집나우 비밀번호 재설정 안내",
     "",
     `아래 링크에서 새 비밀번호를 설정해 주세요. (${expiresMinutes}분 유효)`,
     resetUrl,
     "",
     "본인이 요청하지 않았다면 이 메일을 무시하셔도 됩니다.",
   ].join("\n");
-  return { subject: "[누구집] 비밀번호 재설정 안내", html, text };
+  return { subject: "[내집나우] 비밀번호 재설정 안내", html, text };
 }
 
 /** 고객 문의 접수 알림 메일 (운영팀 수신용) */
@@ -132,7 +132,7 @@ export function supportInquiryEmail(params: {
     "",
     params.message,
   ].join("\n");
-  return { subject: `[누구집 문의:${params.category}] ${params.subject}`, html, text };
+  return { subject: `[내집나우 문의:${params.category}] ${params.subject}`, html, text };
 }
 
 /** [D002] 주간 다이제스트 메일 — cron/weekly-digest 의 이메일 채널.
@@ -147,7 +147,7 @@ export function weeklyDigestEmail(params: {
   news: Array<{ title: string; sourceName: string | null }>;
   communityCount: number;
 }) {
-  const subject = `[누구집] ${params.weekLabel} 주간 다이제스트`;
+  const subject = `[내집나우] ${params.weekLabel} 주간 다이제스트`;
   const toneColor = (t: "up" | "down" | "flat") =>
     t === "up" ? "#c62828" : t === "down" ? "#1565c0" : "#8a94a6";
 
@@ -237,7 +237,7 @@ export function watchlistTxEmail(params: {
     ...params.items.map((x) => `- ${x.complexName}: ${x.count}건 · ${x.latestLine}`),
     "전체 보기: https://nuguzip.com/my/watchlist",
   ].join("\n");
-  return { subject: `[누구집] 관심단지 새 실거래 ${total}건`, html, text };
+  return { subject: `[내집나우] 관심단지 새 실거래 ${total}건`, html, text };
 }
 
 /** [945 · 실사용50 #14] 가입 환영 메일 — 첫 로그인 성공 시 1회 발송.
@@ -256,9 +256,9 @@ export function welcomeEmail(params: { name: string }) {
       </td>
     </tr>`;
   const html = emailLayout(`
-    <h1 style="margin:0 0 8px;font-size:19px;color:#191f28;">${name}님, 누구집에 오신 것을 환영해요</h1>
+    <h1 style="margin:0 0 8px;font-size:19px;color:#191f28;">${name}님, 내집나우에 오신 것을 환영해요</h1>
     <p style="margin:0 0 18px;font-size:14px;line-height:1.7;color:#4a5568;">
-      집 보러 다니는 날의 기록이 흩어지지 않게 — 누구집이 도와드릴게요.<br />
+      집 보러 다니는 날의 기록이 흩어지지 않게 — 내집나우가 도와드릴게요.<br />
       지금 바로 할 수 있는 것들이에요.
     </p>
     <table style="width:100%;border-collapse:collapse;margin:0 0 18px;">
@@ -269,7 +269,7 @@ export function welcomeEmail(params: { name: string }) {
     <a href="https://nuguzip.com/welcome" style="display:inline-block;background:#1d4fd8;color:#ffffff;font-size:14px;font-weight:700;padding:11px 22px;border-radius:8px;text-decoration:none;">30초 시작 가이드 보기</a>
   `);
   const text = [
-    `${params.name || "회원"}님, 누구집에 오신 것을 환영해요`,
+    `${params.name || "회원"}님, 내집나우에 오신 것을 환영해요`,
     "",
     "지금 바로 할 수 있는 것들:",
     "- 첫 임장노트 쓰기 (AI 초안 지원): https://nuguzip.com/notes/new",
@@ -278,7 +278,7 @@ export function welcomeEmail(params: { name: string }) {
     "",
     "30초 시작 가이드: https://nuguzip.com/welcome",
   ].join("\n");
-  return { subject: "[누구집] 환영해요 — 첫 임장노트, 오늘 써봐요", html, text };
+  return { subject: "[내집나우] 환영해요 — 첫 임장노트, 오늘 써봐요", html, text };
 }
 
 /** [E010] 이탈 리마인드 메일 — reengage-reminders 크론의 이메일 채널.

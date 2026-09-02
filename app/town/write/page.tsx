@@ -528,7 +528,7 @@ function TownWriteForm() {
             <div className="t-body font-semibold text-danger">{error}</div>
             {blockedWord && (
               <div className="mt-1.5 t-sub text-text-2">
-                누구집 커뮤니티는 이웃 모두가 안심하고 이용할 수 있도록 일부
+                내집나우 커뮤니티는 이웃 모두가 안심하고 이용할 수 있도록 일부
                 표현의 게시를 제한하고 있어요. 제목·본문에서{" "}
                 <span className="font-bold text-danger">
                   &quot;{blockedWord}&quot;

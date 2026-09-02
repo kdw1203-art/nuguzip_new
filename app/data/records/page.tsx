@@ -15,7 +15,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: "공공 부동산 자료 현황 | 누구집",
+  title: "공공 부동산 자료 현황 | 내집나우",
   description:
     "KB 시세·공시가격·실거래·신고이력 등 공공·공개 부동산 자료의 연동 현황과 단지별 조회.",
   robots: { index: true, follow: true },

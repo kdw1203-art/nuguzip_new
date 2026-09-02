@@ -7,7 +7,7 @@ import { SocialPanel } from "./SocialPanel";
  * 데이터·조작은 전부 클라이언트 패널이 관리자 API(/api/admin/social-uploads)와
  * 크론 라우트(관리자 세션 폴백 인가)를 통해 한다 — 이 페이지는 껍데기다.
  */
-export const metadata: Metadata = { title: "소셜 업로드 · 누구집 Admin" };
+export const metadata: Metadata = { title: "소셜 업로드 · 내집나우 Admin" };
 export const dynamic = "force-dynamic";
 
 export default function AdminSocialPage() {

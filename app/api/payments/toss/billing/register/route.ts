@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
 
   // 2) 첫 주기 결제 — 단건 결제와 같은 원장(payments)에 기록한다
   const orderId = `BILLING-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const orderName = `누구집 ${planLabel(sub.plan)} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제`;
+  const orderName = `내집나우 ${planLabel(sub.plan)} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제`;
   try {
     await createPayment({
       orderId,

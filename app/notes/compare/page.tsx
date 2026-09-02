@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
    로그인한 작성자에게만 의미가 있다. 검색엔진에 들어갈 페이지가 아니므로
    noindex (N7 파라미터 canonical 감사 기준). */
 export const metadata = {
-  title: "임장노트 회차 비교 | 누구집",
+  title: "임장노트 회차 비교 | 내집나우",
   robots: { index: false, follow: false },
 };
 

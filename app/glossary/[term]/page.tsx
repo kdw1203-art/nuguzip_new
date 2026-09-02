@@ -38,9 +38,9 @@ export async function generateMetadata({
   const { term: slug } = await params;
   const t = findGlossaryTerm(slug);
   if (!t) {
-    return { title: "부동산 용어사전 | 누구집", robots: { index: false, follow: false } };
+    return { title: "부동산 용어사전 | 내집나우", robots: { index: false, follow: false } };
   }
-  const title = `${t.term} 뜻 — 부동산 용어사전 | 누구집`;
+  const title = `${t.term} 뜻 — 부동산 용어사전 | 내집나우`;
   const path = `/glossary/${t.slug}`;
   return {
     title,
@@ -51,7 +51,7 @@ export async function generateMetadata({
       description: t.short,
       url: `https://nuguzip.com${path}`,
       type: "article",
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       images: [{ url: "/og-image", width: 1200, height: 630, alt: t.term }],
     },
@@ -76,7 +76,7 @@ function definedTermJsonLd(t: GlossaryTerm) {
     inDefinedTermSet: {
       "@type": "DefinedTermSet",
       "@id": "https://nuguzip.com/glossary",
-      name: "누구집 부동산 용어사전",
+      name: "내집나우 부동산 용어사전",
     },
     inLanguage: "ko-KR",
     url: `https://nuguzip.com/glossary/${t.slug}`,
@@ -145,7 +145,7 @@ export default async function GlossaryTermPage({
               href={t.href}
               className="mt-4 inline-block rounded-[10px] bg-primary px-4 py-2 text-[13px] font-bold text-white"
             >
-              {t.hrefLabel ?? "누구집에서 보기"} ›
+              {t.hrefLabel ?? "내집나우에서 보기"} ›
             </Link>
           )}
         </article>
@@ -188,7 +188,7 @@ export default async function GlossaryTermPage({
         <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
           용어 풀이는 일반적인 이해를 돕기 위한 것입니다. 대출 한도·세율·규제 지역
           지정처럼 제도에 따라 달라지는 수치는 시점마다 바뀌므로, 실제 적용 기준은
-          금융기관·관할 관청에서 확인하세요. 누구집이 시세를 집계하는 방식은{" "}
+          금융기관·관할 관청에서 확인하세요. 내집나우가 시세를 집계하는 방식은{" "}
           <Link href="/methodology" className="font-bold text-primary">
             데이터 방법론
           </Link>

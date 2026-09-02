@@ -2,7 +2,7 @@
  * GET /api/og/listing?title=&price=&region=&area=&type=
  * 매물 상세 공유용 동적 OG 카드 (1200×630, next/og ImageResponse).
  * app/api/og/complex/route.tsx 스타일 미러 — 리퀴드 글래스 무드 + 시스템 폰트.
- * - 좌: 누구집 로고 + 거래유형 칩 + 단지/제목 + 지역·전용면적
+ * - 좌: 내집나우 로고 + 거래유형 칩 + 단지/제목 + 지역·전용면적
  * - 우: 가격 카드
  * - 쿼리 값은 60자 절단 후 JSX 텍스트로만 렌더 (XSS 안전)
  */
@@ -19,7 +19,7 @@ function q(req: NextRequest, key: string, fallback: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const title = q(req, "title", "누구집 매물");
+  const title = q(req, "title", "내집나우 매물");
   const price = q(req, "price", "");
   const region = q(req, "region", "");
   const area = q(req, "area", "");
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
                   display: "flex",
                 }}
               >
-                누구집
+                내집나우
               </div>
               <div
                 style={{

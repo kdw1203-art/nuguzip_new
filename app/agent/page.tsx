@@ -8,14 +8,14 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 export const metadata = buildPageMetadata({
   title: "AI 에이전트",
   description:
-    "내 임장노트와 국토교통부 실거래 데이터를 직접 조회해 답하는 누구집 AI 에이전트.",
+    "내 임장노트와 국토교통부 실거래 데이터를 직접 조회해 답하는 내집나우 AI 에이전트.",
   path: "/agent",
 });
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/* 누구집 AI 에이전트 — 임장노트·실거래 grounding 챗.
+/* 내집나우 AI 에이전트 — 임장노트·실거래 grounding 챗.
    로그인하지 않으면 채팅 대신 로그인 안내를 보여 준다(도구가 본인 노트를 읽는다). */
 
 export default async function AgentPage() {
@@ -25,7 +25,7 @@ export default async function AgentPage() {
   return (
     <PageShell breadcrumb="AI 분석 › AI 에이전트">
       <div className="mb-4">
-        <h1 className="rise-in t-title text-ink">누구집 AI 에이전트</h1>
+        <h1 className="rise-in t-title text-ink">내집나우 AI 에이전트</h1>
         <p className="rise-in-1 mt-1 max-w-xl t-body text-text-2">
           내 임장노트와 국토교통부 실거래 데이터를 <b>직접 조회해서</b> 답해요.
           기억이나 추정으로 시세를 말하지 않고, 조회한 데이터 목록을 답변과 함께 보여줍니다.

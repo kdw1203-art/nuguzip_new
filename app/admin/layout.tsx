@@ -7,7 +7,7 @@ import { AdminNav } from "./AdminNav";
 import { loadCriticalAlerts24h } from "@/lib/admin/health-alerts";
 
 export const metadata: Metadata = {
-  title: "관리자 콘솔 · 누구집",
+  title: "관리자 콘솔 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -45,7 +45,7 @@ export default async function AdminLayout({
             />
           </svg>
           <span className="text-[15px] font-extrabold !text-white">
-            누구집 Admin
+            내집나우 Admin
           </span>
         </Link>
         <AdminNav />

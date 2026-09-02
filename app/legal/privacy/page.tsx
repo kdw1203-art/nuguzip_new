@@ -3,7 +3,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 export const metadata = buildPageMetadata({
   title: "개인정보처리방침",
-  description: "누구집(서비스 운영: 우리동네이야기) 개인정보처리방침 전문",
+  description: "내집나우(서비스 운영: 우리동네이야기) 개인정보처리방침 전문",
   path: "/legal/privacy",
 });
 

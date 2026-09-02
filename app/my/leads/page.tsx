@@ -21,7 +21,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "받은 문의 · 누구집",
+  title: "받은 문의 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -160,7 +160,7 @@ export default async function MyLeadsPage() {
 
       {/* 법적 고지 */}
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
-        문의는 이용자가 남긴 정보입니다. 누구집은 광고 매체로서 문의를 전달할 뿐 중개
+        문의는 이용자가 남긴 정보입니다. 내집나우는 광고 매체로서 문의를 전달할 뿐 중개
         당사자가 아니며, 회신·중개 행위는 개업공인중개사가 수행합니다.
       </div>
     </PageShell>

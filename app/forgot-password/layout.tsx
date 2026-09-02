@@ -5,7 +5,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
    app/notifications/layout.tsx 주석). children 을 그대로 반환한다.
 
    noIndex: 비밀번호 초기화 링크를 **메일로 받는** 흐름의 입구다. 검색으로
-   들어올 화면이 아니고, 색인되면 "누구집 비밀번호" 류 검색에 이 페이지가
+   들어올 화면이 아니고, 색인되면 "내집나우 비밀번호" 류 검색에 이 페이지가
    떠서 피싱 흉내에 좋은 표적이 된다. */
 export const metadata = buildPageMetadata({
   title: "비밀번호 찾기",

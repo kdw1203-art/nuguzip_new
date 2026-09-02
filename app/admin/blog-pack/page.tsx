@@ -5,7 +5,7 @@ import { CopyBlock } from "./CopyBlock";
    매 방문 시점 데이터로 즉석 생성(force-dynamic 은 admin 레이아웃이 이미 강제).
    발행 절차: 제목 하나 고르고 → 본문 붙여넣고 → 이미지 URL 삽입 → 해시태그. */
 
-export const metadata = { title: "블로그 팩 · 누구집 Admin" };
+export const metadata = { title: "블로그 팩 · 내집나우 Admin" };
 
 export default async function BlogPackPage() {
   let pack: Awaited<ReturnType<typeof buildBlogPack>> | null = null;

@@ -12,7 +12,7 @@ const PAGE_CONFIG: Record<
   { title: string; subtitle: string; items: string[]; accent: string }
 > = {
   home: {
-    title: "누구집",
+    title: "내집나우",
     subtitle: "임장 기록 · AI 정리 · 지도 비교",
     items: ["📍 지역별 부동산 정보 한눈에", "🤝 전문가 상담 & 임장 모임", "🤖 AI 투자 분석 도구"],
     accent: "#3182f6",

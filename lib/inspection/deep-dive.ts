@@ -284,7 +284,7 @@ function buildIssues(note: InspectionNote, g: NoteGrounding): DeepDiveSection {
     facts.push({
       label: "시장 온도",
       value: `${temp.temp.score}점`,
-      source: "누구집 시장온도(지수 모멘텀·거래량)",
+      source: "내집나우 시장온도(지수 모멘텀·거래량)",
     });
   }
 
@@ -587,7 +587,7 @@ function buildInvestment(note: InspectionNote, g: NoteGrounding): DeepDiveSectio
     facts.push({
       label: "시장 온도",
       value: `${temp.temp.score}점 / 100`,
-      source: "누구집 시장온도(지수 모멘텀·거래량)",
+      source: "내집나우 시장온도(지수 모멘텀·거래량)",
     });
     if (temp.trend) {
       bullets.push(`지수 추세: ${cap(temp.trend.detail, 140)}`);

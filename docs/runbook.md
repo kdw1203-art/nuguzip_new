@@ -1,4 +1,4 @@
-# 누구집(nuguzip.com) 운영 런북
+# 내집나우(nuguzip.com) 운영 런북
 
 프로덕션: https://nuguzip.com (Vercel, `icn1` 리전 / Next.js App Router / Supabase)
 배포 파이프라인: `.github/workflows/deploy.yml` (main 푸시 → 프로덕션, 그 외 브랜치 → 프리뷰)

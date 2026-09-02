@@ -4,7 +4,7 @@ import { BillingEnrollClient } from "./BillingEnrollClient";
 import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 export const metadata: Metadata = {
-  title: "자동결제 등록 | 누구집",
+  title: "자동결제 등록 | 내집나우",
   // 개인 결제 설정 화면 — 색인 대상이 아니다
   robots: { index: false, follow: false },
 };

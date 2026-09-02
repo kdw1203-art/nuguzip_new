@@ -57,7 +57,7 @@ export async function generateMetadata({
   const ref = code ? await lookupInviter(code) : null;
   const inviter = ref ? maskEmail(ref.referrerEmail) : "친구의 초대";
   const ogUrl = `/api/og/invite?by=${encodeURIComponent(inviter)}`;
-  const title = "친구가 초대했어요 · 가입하면 둘 다 300P — 누구집";
+  const title = "친구가 초대했어요 · 가입하면 둘 다 300P — 내집나우";
   const description =
     "초대 링크로 가입하면 초대한 친구와 나 모두 300P. 실거래가·시세·AI 임장 분석을 바로 이용하세요.";
   return {
@@ -67,10 +67,10 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      siteName: "누구집",
+      siteName: "내집나우",
       type: "website",
       locale: "ko_KR",
-      images: [{ url: ogUrl, width: 1200, height: 630, alt: "누구집 친구 초대" }],
+      images: [{ url: ogUrl, width: 1200, height: 630, alt: "내집나우 친구 초대" }],
     },
     twitter: {
       card: "summary_large_image",
@@ -209,7 +209,7 @@ export default async function InvitePage({
       </div>
 
       <p className="mt-4 text-center text-[11px] text-text-3">
-        누구집 · 실거래가 · 임장노트 · 부동산 커뮤니티
+        내집나우 · 실거래가 · 임장노트 · 부동산 커뮤니티
       </p>
     </main>
   );

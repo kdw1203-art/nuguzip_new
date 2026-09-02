@@ -33,10 +33,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { idx } = await params;
   const i = parsePromptIndex(idx);
-  if (i === null) return { title: "오늘의 동네 질문 | 누구집" };
+  if (i === null) return { title: "오늘의 동네 질문 | 내집나우" };
   return {
-    title: `${TOWN_PROMPTS[i]} — 동네 이웃들의 답변 | 누구집`,
-    description: `"${TOWN_PROMPTS[i]}" 질문에 대한 동네 이웃들의 실제 답변 모음. 누구집 오늘의 동네 글감.`,
+    title: `${TOWN_PROMPTS[i]} — 동네 이웃들의 답변 | 내집나우`,
+    description: `"${TOWN_PROMPTS[i]}" 질문에 대한 동네 이웃들의 실제 답변 모음. 내집나우 오늘의 동네 글감.`,
     alternates: seoAlternates(`/town/prompt/${i}`),
     robots: { index: true, follow: true },
   };

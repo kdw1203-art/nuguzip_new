@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
   /* itemName 은 화면 표기용이라 클라이언트 값을 받아도 되지만, 길이는 잘라 둔다. */
   const itemName =
     body.itemName?.trim().slice(0, 100) ||
-    `누구집 ${planDef.name} (${billing === "annual" ? "연간" : "월간"})`;
+    `내집나우 ${planDef.name} (${billing === "annual" ? "연간" : "월간"})`;
 
   const recent = await findRecentRequestedPayment({
     userEmail,

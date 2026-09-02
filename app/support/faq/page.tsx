@@ -19,7 +19,7 @@ import { supportFaqByCategory, supportFaqItems } from "@/lib/support/faq";
 export const metadata = buildPageMetadata({
   title: "자주 묻는 질문 — 데이터·임장노트·구독·AI",
   description:
-    "누구집 시세 데이터의 출처와 집계 기준, 임장노트 공개 범위와 사진 위치정보 처리, 구독 요금·해지·환불, AI 분석의 근거를 질문별로 답했습니다.",
+    "내집나우 시세 데이터의 출처와 집계 기준, 임장노트 공개 범위와 사진 위치정보 처리, 구독 요금·해지·환불, AI 분석의 근거를 질문별로 답했습니다.",
   path: "/support/faq",
 });
 

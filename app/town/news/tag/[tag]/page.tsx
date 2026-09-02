@@ -33,8 +33,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { tag: slug } = await params;
   const tag = findNewsTag(slug);
-  if (!tag) return { title: "뉴스 주제를 찾을 수 없습니다 | 누구집" };
-  const title = `${tag.label} 부동산 뉴스 모음 | 누구집`;
+  if (!tag) return { title: "뉴스 주제를 찾을 수 없습니다 | 내집나우" };
+  const title = `${tag.label} 부동산 뉴스 모음 | 내집나우`;
   const description = `${tag.label} 관련 부동산 뉴스를 매일 자동 수집해 같은 사건은 묶고 요약과 함께 정리합니다. 출처·게시 시각 명시.`;
   return { title, description, alternates: seoAlternates(`/town/news/tag/${slug}`) };
 }

@@ -315,7 +315,7 @@ export default async function SupportPage() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="text-[11px] text-text-3">
-                    누구집 지원팀 · 07.18 14:02 (접수 후 1시간 38분)
+                    내집나우 지원팀 · 07.18 14:02 (접수 후 1시간 38분)
                   </div>
                   <div className="max-w-[460px] rounded-[14px] rounded-tl-[4px] bg-bg px-[15px] py-3 text-[13px] leading-[1.65] text-text-1">
                     가능합니다. 설정 › 결제 내역에서 &lsquo;영수증 › 사업자 정보 입력&rsquo; 후

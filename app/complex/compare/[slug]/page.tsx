@@ -243,11 +243,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const data = await loadPageData(slug);
   if (!data) {
-    return { title: "단지 비교 | 누구집", robots: { index: false, follow: false } };
+    return { title: "단지 비교 | 내집나우", robots: { index: false, follow: false } };
   }
   const { pair, region, a, b, canonicalSlug } = data;
   const regionLabel = regionDisplayName(region);
-  const title = `${pair.complexA} vs ${pair.complexB} 실거래 비교 | 누구집`;
+  const title = `${pair.complexA} vs ${pair.complexB} 실거래 비교 | 내집나우`;
   const description =
     `${regionLabel} ${pair.dong} ${pair.complexA}(최근 12개월 ${a.count}건, 평균 ${formatKrwShort(a.avgAmountKrw)})와 ` +
     `${pair.complexB}(${b.count}건, 평균 ${formatKrwShort(b.avgAmountKrw)})를 국토교통부 실거래가로 비교합니다. ` +
@@ -260,7 +260,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "website",
     },

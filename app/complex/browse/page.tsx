@@ -41,7 +41,7 @@ export async function generateMetadata({
   const sp = await searchParams;
   const region = resolveRegion(sp.district);
   const label = regionDisplayName(region);
-  const title = `${label} 아파트 단지별 실거래 현황 | 누구집`;
+  const title = `${label} 아파트 단지별 실거래 현황 | 내집나우`;
   const description = `${label} 아파트 단지별 최근 실거래가·평단가·12개월 거래량 — 국토교통부 실거래가 기반(매물 호가 아님). 서울 25개 구 단지 현황을 한 화면에서 확인하세요.`;
   return {
     title,
@@ -53,7 +53,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "website",
       /* [C004] 12페이지 실측에서 og:image 없는 페이지가 여기와 /tx 뿐이었다.

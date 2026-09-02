@@ -2,7 +2,7 @@ import Link from "next/link";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 최적화 10 — 404 화면의 <title> 이 홈과 글자 하나까지 같았다. 주소를 잘못
-   눌러 404 로 떨어져도 탭·방문 기록에는 "누구집 — 임장 기록이 판단 근거가
+   눌러 404 로 떨어져도 탭·방문 기록에는 "내집나우 — 임장 기록이 판단 근거가
    됩니다" 로 남아서, 나중에 기록을 되짚을 때 홈에 다녀온 것처럼 보였다.
    (not-found.tsx 에서 metadata export 가 먹는지는 문서로 믿지 않고 빌드
    산출물 _not-found.html 을 열어 확인했다 — 먹는다.)

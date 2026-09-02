@@ -36,7 +36,7 @@ async function loadIndex(): Promise<IndexData> {
 
 export async function generateMetadata(): Promise<Metadata> {
   const { regions, loadError } = await loadIndex();
-  const title = "임장 가이드 — 지역별 답사 준비와 현장 체크포인트 | 누구집";
+  const title = "임장 가이드 — 지역별 답사 준비와 현장 체크포인트 | 내집나우";
   const description =
     regions.length > 0
       ? `${regions.length}개 지역의 임장(현장 답사) 가이드: 실거래 데이터로 단지 우선순위를 잡고, 현장에서만 확인되는 체크포인트 ${IMJANG_CHECKPOINTS.length}가지로 답사합니다. 시세는 누구나 봅니다 — 현장은 가 본 사람만 압니다.`

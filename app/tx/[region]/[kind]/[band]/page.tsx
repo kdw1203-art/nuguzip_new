@@ -88,11 +88,11 @@ export async function generateMetadata({
   const p = await params;
   const data = await load(p);
   if (!data) {
-    return { title: "실거래 구간 | 누구집", robots: { index: false, follow: false } };
+    return { title: "실거래 구간 | 내집나우", robots: { index: false, follow: false } };
   }
   const { region, kind, cell } = data;
   const range = formatYmRange(cell.firstYm, cell.latestYm);
-  const title = `${pageTitle(region, kind, cell)} — 중앙값 ${formatKrwShort(cell.medianKrw)} | 누구집`;
+  const title = `${pageTitle(region, kind, cell)} — 중앙값 ${formatKrwShort(cell.medianKrw)} | 내집나우`;
   const description = `${region.name} ${cell.bandLabel} 아파트 매매 실거래 ${cell.txCount.toLocaleString(
     "ko-KR",
   )}건 (${range} 신고 기준) · 중앙값 ${formatKrwShort(cell.medianKrw)} · 평균 ${formatKrwShort(

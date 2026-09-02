@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ============================================================
-   누구집 디자인 시스템 — 리퀴드 글래스 (클로드 디자인 핸드오프 기반)
+   내집나우 디자인 시스템 — 리퀴드 글래스 (클로드 디자인 핸드오프 기반)
    3차 갱신: S15 디자인 개선 50 (15a~15d) + S19 모션 시스템 50 (19a~19e)
    ============================================================ */
 
@@ -85,6 +85,18 @@
   --warning: #946200; /* soft 위 4.75 · 흰 배경 5.24 — 통과, 그대로 둔다 */
   --warning-soft: #fdf3dd;
   --warning-border: rgba(148, 98, 0, 0.35);
+
+  /* ── [946 리브랜딩] 내집나우 브랜드층 — 기능색(--primary 계열)은 그대로 두고
+     브랜드 순간(로고·히어로·슬로건·라이브 신호)에만 쓰는 별도 층.
+     홈 프리뷰 tokens.css 초안 그대로: 네이비/주홍/한지 + 다크 반전. */
+  --brand-navy: #0B2545;
+  --brand-red: #C8442B; /* '지금' 신호 — 라이트 배경용 */
+  --brand-red-on-dark: #E0563A; /* 어두운 배경(네이비·다크모드) 위 주홍 */
+  --brand-hanji: #F6F1E7; /* 브랜드 순간의 배경(슬로건 띠·빈 화면) */
+  --brand-hanji-ink: #0B2545; /* 한지 위 글자 */
+  --brand-symbol-ink: #0B2545; /* 로고 획 */
+  --brand-dot: #C8442B; /* 로고 온점 */
+  --brand-wordmark: #0B2545;
   --danger-border: rgba(198, 40, 40, 0.35);
 
   /* 15b 채움(배지·솔리드 버튼)용 — 전경이 항상 흰 글씨인 자리.
@@ -1386,6 +1398,15 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   --shadow-cta: 0 6px 18px rgba(29, 79, 216, 0.5);
 
   --divider: #20262f;
+
+  /* [946] 브랜드층 다크 — 반전형 규정: 획 한지·온점 E0563A.
+     한지 '배경'은 다크에서 어두운 웜 서피스로 바꾸고 글자가 한지색이 된다. */
+  --brand-symbol-ink: #F6F1E7;
+  --brand-dot: #E0563A;
+  --brand-wordmark: #F6F1E7;
+  --brand-red: #E0563A; /* 다크 배경 위 '지금' 신호도 밝은 주홍으로 */
+  --brand-hanji: #262119;
+  --brand-hanji-ink: #F6F1E7;
 }
 .dark [style*="linear-gradient(135deg"] {
   filter: brightness(0.62) saturate(0.82);
@@ -2657,7 +2678,7 @@ a.rank-row:hover {
   width: 52%;
   aspect-ratio: 1;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  background: color-mix(in srgb, var(--brand-red) 14%, transparent);
   filter: blur(34px);
   animation: townDrift 13s var(--ease-inout) infinite reverse;
   pointer-events: none;
@@ -2699,7 +2720,7 @@ a.rank-row:hover {
   border-color: transparent !important;
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, var(--primary), color-mix(in srgb, var(--warning) 70%, var(--primary))) border-box;
+    linear-gradient(120deg, var(--brand-navy), var(--brand-red)) border-box;
 }
 
 /* ── 피드 카드 살아나기 — 커버 줌 + NEW 배지 ── */
@@ -2716,7 +2737,8 @@ a.rank-row:hover {
   align-items: center;
   gap: 4px;
   border-radius: var(--radius-pill);
-  background: var(--primary);
+  /* [946] '지금' 신호 = 브랜드 주홍 — 채움 고정 규약(테마 무관, 흰 글씨 4.9:1) */
+  background: #c8442b;
   color: #fff;
   padding: 2px 7px;
   font-weight: 800;
@@ -2805,5 +2827,86 @@ a.rank-row:hover {
   .card-zoom:hover img {
     transition: none;
     transform: none;
+  }
+}
+
+
+/* ============================================================
+   [946 리브랜딩] 브랜드 표면 — 슬로건 띠 · 네이비 카드 · 온점 로딩
+   ============================================================ */
+.brand-slogan-band {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-radius: var(--radius-xl);
+  background: var(--brand-hanji);
+  padding: 12px 16px;
+}
+.brand-slogan-band .slg {
+  font-family: "Noto Serif KR", "Nanum Myeongjo", Batang, serif;
+  font-size: 13px; /* 램프 13 */
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--brand-hanji-ink);
+}
+.brand-slogan-band .slg i {
+  font-style: normal;
+  color: var(--brand-red);
+  font-weight: 700;
+}
+
+/* 오늘의 한 줄 — 브랜드 네이비 카드(홈 프리뷰 ③). 워터마크는 장식(콘텐츠 아님). */
+.brand-navy-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--brand-navy);
+  border: 1px solid rgba(246, 241, 231, 0.08);
+}
+.brand-navy-card .brand-wm {
+  position: absolute;
+  right: -22px;
+  top: -14px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+.brand-navy-card > * {
+  position: relative;
+}
+
+/* 온점 로딩 — 호흡(인라인 대기). 모션 시스템 v1 규격 1.6s ease-in-out */
+.njn-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-red);
+}
+.njn-dot--breathe {
+  animation: njnBreathe 1.6s var(--ease-inout) infinite;
+}
+@keyframes njnBreathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.28);
+    opacity: 0.75;
+  }
+}
+
+/* 빈 화면 온점 — 조용히 숨쉰다 (모션 시스템 07) */
+.empty-dot-breathe {
+  animation: njnBreathe 2.4s var(--ease-inout) infinite;
+  transform-origin: center;
+}
+
+/* [946] 신규 모션 해제 등록 */
+@media (prefers-reduced-motion: reduce) {
+  .njn-dot--breathe,
+  .empty-dot-breathe {
+    animation: none;
   }
 }

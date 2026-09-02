@@ -8,7 +8,7 @@ import { CancelPaymentButton } from "./CancelPaymentButton";
 import { NotifyPreorderButton } from "./NotifyPreorderButton";
 
 export const metadata: Metadata = {
-  title: "결제 연동 | 누구집 관리자",
+  title: "결제 연동 | 내집나우 관리자",
   robots: { index: false, follow: false },
 };
 

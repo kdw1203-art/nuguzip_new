@@ -72,7 +72,7 @@ export default async function SharedRunPage({
       <div className="mx-auto flex w-full max-w-[760px] flex-col gap-3">
         <div className="rise-in">
           <div className="text-[11.5px] font-bold text-text-3">
-            누구집 AI 분석 결과 공유 · {at} 실행 스냅샷
+            내집나우 AI 분석 결과 공유 · {at} 실행 스냅샷
           </div>
           <h1 className="mt-1 text-[21px] font-extrabold text-ink">{identity.title}</h1>
           {run.structured_summary?.headline && (

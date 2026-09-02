@@ -29,7 +29,7 @@ import { getReadOnlySupabase } from "@/lib/newui/supabase-read";
 /** API 응답에 항상 실리는 출처·이용 조건. 값 자체가 계약이라 한 곳에만 둔다. */
 export const PUBLIC_API_LICENSE = {
   /** 인용 시 표기할 이름 */
-  attribution: "누구집(nuguzip.com)",
+  attribution: "내집나우(nuguzip.com)",
   attributionUrl: "https://nuguzip.com",
   /** 원자료 출처 — 우리가 만든 숫자가 아니다 */
   sources: [

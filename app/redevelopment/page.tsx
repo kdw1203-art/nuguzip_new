@@ -26,7 +26,7 @@ import { STAGE_GUIDES, REDEV_GLOSSARY } from "@/lib/redevelopment/stage-guide";
 export const revalidate = 3600;
 
 export const metadata = {
-  title: "정비사업 지도 | 누구집",
+  title: "정비사업 지도 | 내집나우",
   description:
     "재개발·재건축·소규모 정비사업을 사업종류별 컬러 마커로 보는 정비사업 지도. 사업종류·진행단계로 필터링하고, 7단계 진행 절차와 최신 정비사업 뉴스를 한곳에서 확인하세요.",
 };

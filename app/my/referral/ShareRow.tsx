@@ -99,7 +99,7 @@ async function copyText(value: string): Promise<boolean> {
 export function ShareRow({ link, code }: { link: string; code: string }) {
   const [toast, setToast] = useState<string | null>(null);
 
-  const message = `누구집에서 함께 부동산 봐요! 이 링크로 가입하면 나랑 친구 둘 다 300P를 받아요.\n${link}`;
+  const message = `내집나우에서 함께 부동산 봐요! 이 링크로 가입하면 나랑 친구 둘 다 300P를 받아요.\n${link}`;
 
   function flash(msg: string) {
     setToast(msg);
@@ -126,7 +126,7 @@ export function ShareRow({ link, code }: { link: string; code: string }) {
     // 2) Web Share (모바일 공유 시트)
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "누구집 친구 초대", text: message, url: link });
+        await navigator.share({ title: "내집나우 친구 초대", text: message, url: link });
         return;
       } catch {
         // 사용자가 취소했을 수 있음 → 조용히 종료

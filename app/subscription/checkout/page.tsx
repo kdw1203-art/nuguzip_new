@@ -4,7 +4,7 @@ import { CheckoutClient } from "./CheckoutClient";
 import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 
 export const metadata: Metadata = {
-  title: "결제하기 | 누구집",
+  title: "결제하기 | 내집나우",
   // 개인 주문 화면 — 색인 대상이 아니다
   robots: { index: false, follow: false },
 };

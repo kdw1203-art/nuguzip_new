@@ -14,7 +14,7 @@ import { RetryButton } from "./RetryButton";
  * 문서이며, 캐시하는 것도 이 문서 하나뿐이다.
  */
 export const metadata: Metadata = {
-  title: "오프라인 — 누구집",
+  title: "오프라인 — 내집나우",
   description: "인터넷 연결이 끊겼습니다.",
   robots: { index: false, follow: false },
 };
@@ -40,7 +40,7 @@ export default function OfflinePage() {
           인터넷에 연결되어 있지 않아요
         </h1>
         <p className="text-[14px] leading-relaxed text-slate-500">
-          누구집은 시세·실거래를 항상 최신으로 보여주기 위해 오프라인에서는 데이터를
+          내집나우는 시세·실거래를 항상 최신으로 보여주기 위해 오프라인에서는 데이터를
           저장해 두지 않습니다. 연결이 돌아오면 그대로 이어서 볼 수 있어요.
         </p>
       </div>

@@ -14,7 +14,7 @@ import {
 } from "@/lib/coverage/store-db";
 
 export const metadata: Metadata = {
-  title: "트래픽 | 누구집 관리자",
+  title: "트래픽 | 내집나우 관리자",
   robots: { index: false, follow: false },
 };
 

@@ -4,7 +4,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { getPaymentByOrderId, markFailed } from "@/lib/payments/store";
 
 export const metadata: Metadata = {
-  title: "결제 실패 | 누구집",
+  title: "결제 실패 | 내집나우",
   robots: { index: false, follow: false },
 };
 

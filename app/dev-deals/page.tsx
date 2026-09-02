@@ -20,9 +20,9 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
-  title: "개발물건 중개 · 누구집",
+  title: "개발물건 중개 · 내집나우",
   description:
-    "시행사·부동산사업자가 개발물건(정비사업·신축·부지)을 등록하면 시공사·설계사·신탁·PF 등 협력업체가 참여 문의를 보내는 B2B 디벨로퍼 매칭. 누구집은 소개·중개(매칭)만 담당합니다.",
+    "시행사·부동산사업자가 개발물건(정비사업·신축·부지)을 등록하면 시공사·설계사·신탁·PF 등 협력업체가 참여 문의를 보내는 B2B 디벨로퍼 매칭. 내집나우는 소개·중개(매칭)만 담당합니다.",
   robots: { index: true, follow: true },
   // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
   alternates: seoAlternates("/dev-deals"),
@@ -38,7 +38,7 @@ const DEV_THEME = {
 } as CSSProperties;
 
 const DISCLAIMER =
-  "누구집은 개발물건의 소개·정보 게시 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
+  "내집나우는 개발물건의 소개·정보 게시 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
 
 /** 등록 물건이 0건일 때 레이아웃을 보여주기 위한 예시 카드용 더미(예시 배지 표시) */
 const EXAMPLE_DEAL: DevDeal = {
@@ -108,7 +108,7 @@ export default async function DevDealsHubPage() {
             시행사·개발을 원하는 부동산사업자가 <strong className="text-ink">개발물건</strong>
             (정비사업·신축·부지 등)을 등록하면,{" "}
             <strong className="text-ink">시공사·설계사·신탁·PF·기타 협력업체</strong>가 이를 발견해
-            참여 문의·제안을 보냅니다. 누구집은 양측을 이어주는{" "}
+            참여 문의·제안을 보냅니다. 내집나우는 양측을 이어주는{" "}
             <strong className="text-ink">소개·중개(매칭)</strong> 역할만 하며{" "}
             <strong className="text-ink">결제·정산은 진행하지 않습니다</strong> — 실제 계약·정산은
             당사자 간 오프라인으로 진행됩니다.
@@ -124,7 +124,7 @@ export default async function DevDealsHubPage() {
             안내
           </span>
           <span>
-            누구집은 개발물건 <strong>소개·정보 게시 플랫폼</strong>이에요. 게시 정보의 정확성·거래 책임은
+            내집나우는 개발물건 <strong>소개·정보 게시 플랫폼</strong>이에요. 게시 정보의 정확성·거래 책임은
             당사자에게 있으며, <strong>결제·자금 정산은 제공하지 않습니다.</strong> 계약·인허가·수수료
             약정은 반드시 당사자 확인과 전문가 자문을 거치세요.
           </span>

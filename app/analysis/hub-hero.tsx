@@ -103,7 +103,7 @@ export function HubHero({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <span className="t-caption font-bold uppercase tracking-wider text-primary">
-            누구집 분석 도구
+            내집나우 분석 도구
           </span>
           <h1 className="t-display text-balance text-ink">
             무엇을 분석해 볼까요?

@@ -651,7 +651,7 @@ export async function generateMetadata({
        noindex 가 색인 유입을 막고 있으므로 당장의 방어는 유효하다. 진짜 404 를
        원하면 loading 경계 위에서 존재 확인이 필요하다(구조 변경 — 워크오더). */
     return {
-      title: "단지를 찾을 수 없습니다 | 누구집",
+      title: "단지를 찾을 수 없습니다 | 내집나우",
       description: "요청하신 단지 정보를 찾을 수 없습니다.",
       robots: { index: false, follow: false },
     };
@@ -687,8 +687,8 @@ export async function generateMetadata({
       ? `${latest.yyyymm.slice(2, 4)}.${Number(latest.yyyymm.slice(4))}월`
       : null;
   const title = latest
-    ? `${name} 실거래가 ${price}${ymLabel ? ` (${ymLabel})` : ""} · 시세·임장노트 | 누구집`
-    : `${name} 시세·매물·임장노트 | 누구집`;
+    ? `${name} 실거래가 ${price}${ymLabel ? ` (${ymLabel})` : ""} · 시세·임장노트 | 내집나우`
+    : `${name} 시세·매물·임장노트 | 내집나우`;
   const description = latest
     ? `${region} ${name} 최신 실거래 평균 ${price}${ymLabel ? ` (${ymLabel} 신고분)` : ""}${delta ? ` · ${delta}` : ""} — 실거래 추이, 매물, 이웃 임장노트, 안전 진단을 한 화면에서.`
     : `${region} ${name} 단지 홈 — 실거래 시세, 매물, 이웃 임장노트, 안전 진단을 한 화면에서 확인하세요.`;
@@ -726,7 +726,7 @@ export async function generateMetadata({
       title,
       description,
       url: alternates.canonical as string,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "website",
       images: [

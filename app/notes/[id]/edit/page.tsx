@@ -9,7 +9,7 @@ import { NoteForm, type NoteFormInitialNote } from "../../new/NoteForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "임장노트 수정 — 누구집",
+  title: "임장노트 수정 — 내집나우",
   robots: { index: false, follow: false },
 };
 

@@ -4,7 +4,9 @@
  * 각 페이지 본문에서 <script type="application/ld+json"> 로 주입한다.
  */
 
-const BASE_URL = "https://nuguzip.com";
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
+
+const BASE_URL = DEFAULT_DESKTOP_ORIGIN; /* [947] 도메인 단일 소스 */
 
 /** null·undefined·빈문자열·빈객체를 재귀적으로 제거 (0·false 는 보존) */
 function compact<T>(value: T): T {

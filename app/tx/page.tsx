@@ -79,14 +79,14 @@ export async function generateMetadata(): Promise<Metadata> {
         )}. 매물 호가가 아닙니다.`
       : "국토교통부 아파트 매매 실거래를 지역·면적대·가격대로 나눠 봅니다. 매물 호가가 아닙니다.";
   return {
-    title: "지역별 면적대·가격대 실거래 | 누구집",
+    title: "지역별 면적대·가격대 실거래 | 내집나우",
     description,
     alternates: seoAlternates(PATH),
     // 조회가 실패한 상태의 껍데기를 색인시키지 않는다. 다음 재검증에서 성공하면
     // 이 지시는 사라진다 — 실패를 색인에 남기는 것보다 잠깐 빠지는 편이 낫다.
     ...(loadError ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
-      title: "지역별 면적대·가격대 실거래 | 누구집",
+      title: "지역별 면적대·가격대 실거래 | 내집나우",
       description,
       url: `https://nuguzip.com${PATH}`,
       type: "website",

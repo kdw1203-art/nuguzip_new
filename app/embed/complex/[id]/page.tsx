@@ -27,7 +27,7 @@ export function generateStaticParams() {
 }
 
 export const metadata: Metadata = {
-  title: "단지 실거래 시세 · 누구집",
+  title: "단지 실거래 시세 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -100,7 +100,7 @@ function buildView(
 /* 사실 우선: 여기 있던 EXAMPLE_VIEW 를 삭제했다.
    "예시 단지 · 8.2억 · ▼1.8% 전월비 · 2003년 · 1,200세대" 를 폴백으로 그렸는데,
    이 위젯은 <iframe> 으로 외부 블로그·카페에 박히는 카드다. 남의 글 안에서
-   누구집 워드마크와 "국토교통부 실거래가 기준" 문구를 달고 지어낸 가격이 뜬다 —
+   내집나우 워드마크와 "국토교통부 실거래가 기준" 문구를 달고 지어낸 가격이 뜬다 —
    작은 "예시" 배지로 상쇄되지 않는다. 조회에 실패하면 가격을 아예 그리지 않는다. */
 
 // ── 카드 ───────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ function UnavailableCard({ reason }: { reason: "notfound" | "error" }) {
         rel="noopener noreferrer"
         className="mt-3 flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
       >
-        누구집에서 단지 찾기 →
+        내집나우에서 단지 찾기 →
       </Link>
     </div>
   );
@@ -139,11 +139,11 @@ function Wordmark() {
       href="/"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="누구집 홈"
+      aria-label="내집나우 홈"
       className="absolute right-3 top-3 inline-flex items-center gap-1 text-[10px] font-extrabold text-text-3 transition-colors hover:text-primary"
     >
       <Icon name="house" size={11} />
-      누구집
+      내집나우
     </Link>
   );
 }
@@ -195,14 +195,14 @@ function EmbedCard({ view }: { view: EmbedView }) {
         </div>
       )}
 
-      {/* CTA — 누구집에서 자세히 보기 (새 탭) */}
+      {/* CTA — 내집나우에서 자세히 보기 (새 탭) */}
       <Link
         href={detailHref}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-3 flex items-center justify-center gap-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
       >
-        누구집에서 자세히 보기 →
+        내집나우에서 자세히 보기 →
       </Link>
 
       <div className="mt-1.5 text-center text-[10px] text-text-3">

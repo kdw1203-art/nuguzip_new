@@ -106,12 +106,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const data = await loadPageData(slug);
   if (!data) {
-    return { title: "단지 실거래 | 누구집", robots: { index: false, follow: false } };
+    return { title: "단지 실거래 | 내집나우", robots: { index: false, follow: false } };
   }
   const { complexName, region, transactions } = data;
   const latest = transactions[0];
   const regionLabel = regionDisplayName(region);
-  const title = `${complexName} 실거래가 — 최근 ${formatKrwShort(latest.dealAmountKrw)} | 누구집`;
+  const title = `${complexName} 실거래가 — 최근 ${formatKrwShort(latest.dealAmountKrw)} | 내집나우`;
   const description = `${regionLabel} ${complexName} 아파트 실거래 — 최근 거래 ${formatKrwShort(
     latest.dealAmountKrw,
   )} (${formatYmd(latest.contractYm, latest.contractDay)}). 국토교통부 실거래가 기반 거래 이력·면적대별 시세·월별 거래량을 확인하세요. 매물 호가가 아닙니다.`;
@@ -130,7 +130,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "website",
     },

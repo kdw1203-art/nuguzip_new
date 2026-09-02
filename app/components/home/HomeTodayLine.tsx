@@ -157,7 +157,9 @@ export function HomeTodayLine({
       ref={rootRef}
       aria-labelledby="home-today"
       aria-roledescription="배너"
-      className="card overflow-hidden rounded-2xl px-[18px] py-4"
+      /* [946 리브랜딩 · 홈 프리뷰 ③] 흰 카드 → 딥 네이비 + 심볼 워터마크.
+         글자는 한지색 — #F6F1E7 on #0B2545 ≈ 14:1. */
+      className="brand-navy-card overflow-hidden rounded-2xl px-[18px] py-4"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -167,8 +169,25 @@ export function HomeTodayLine({
         if (e.key === "ArrowLeft") go(i - 1);
       }}
     >
+      {/* 심볼 워터마크 — 처마+온점 한지색, 장식(aria-hidden) */}
+      <svg
+        className="brand-wm"
+        width="150"
+        height="140"
+        viewBox="0 0 120 120"
+        aria-hidden="true"
+      >
+        <path
+          d="M14 46 C 38 64, 82 64, 106 46"
+          fill="none"
+          stroke="#F6F1E7"
+          strokeWidth="7"
+          strokeLinecap="round"
+        />
+        <circle cx="60" cy="86" r="8.5" fill="#F6F1E7" />
+      </svg>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <h2 id="home-today" className="t-sub font-extrabold text-text-3">
+        <h2 id="home-today" className="t-sub font-extrabold" style={{ color: "#9FB2CC" }}>
           오늘의 한 줄
         </h2>
         {/* 근거 배지 — 이 지역이 어디서 왔는지 밝힌다. 없으면 사용자는
@@ -177,8 +196,8 @@ export function HomeTodayLine({
           className="rounded-[5px] px-1.5 py-px t-caption font-extrabold"
           style={
             personalized
-              ? { background: "var(--success-soft)", color: "var(--success)" }
-              : { background: "var(--bg)", color: "var(--text-3)" }
+              ? { background: "rgba(246,241,231,.16)", color: "#F6F1E7" }
+              : { background: "rgba(246,241,231,.1)", color: "#9FB2CC" }
           }
         >
           {personalized ? "내 관심지역" : "대표 지역"}
@@ -186,7 +205,8 @@ export function HomeTodayLine({
         {!personalized && (
           <Link
             href="/my/settings#region"
-            className="ml-auto t-sub font-bold text-primary no-underline"
+            className="ml-auto t-sub font-bold no-underline"
+            style={{ color: "#9FC0FF" }}
           >
             내 지역으로 바꾸기 ›
           </Link>
@@ -199,7 +219,8 @@ export function HomeTodayLine({
         href={cur.href}
         /* 두 줄 높이를 미리 잡아 둔다 — 문장 길이가 바뀔 때 아래 카드가 밀리지 않게(CLS).
            짧은 문장에서 아래가 비어 보이지만, 넘길 때마다 화면이 튀는 쪽이 훨씬 나쁘다. */
-        className="today-slide mt-1.5 block min-h-[2.9em] t-title text-ink no-underline md:min-h-[2.1em]"
+        className="today-slide mt-1.5 block min-h-[2.9em] t-title no-underline md:min-h-[2.1em]"
+        style={{ color: "#F6F1E7" }}
       >
         {cur.text}
       </Link>
@@ -217,14 +238,15 @@ export function HomeTodayLine({
               /* 비활성 점이 6px·연한 회색이라 흰 카드 위에서 거의 안 보였다 —
                  지름을 키우고 대비를 올린다. 몇 개인지 세어질 만큼은 보여야 한다. */
               className="tap-44 h-2 rounded-full transition-all duration-200 hover:opacity-80"
+              /* [946] 활성 점 = 브랜드 주홍(어두운 배경용 E0563A · 네이비 위 3.2:1) */
               style={{
                 width: n === i ? 20 : 8,
-                background: n === i ? "var(--primary)" : "var(--text-3)",
-                opacity: n === i ? 1 : 0.32,
+                background: n === i ? "var(--brand-red-on-dark)" : "#F6F1E7",
+                opacity: n === i ? 1 : 0.42,
               }}
             />
           ))}
-          <span className="ml-auto t-caption text-text-3">
+          <span className="ml-auto t-caption" style={{ color: "#9FB2CC" }}>
             {i + 1}/{slides.length}
           </span>
         </div>

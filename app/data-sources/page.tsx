@@ -12,9 +12,9 @@ import { seoAlternates } from "@/lib/seo/alternates";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = {
-  title: "데이터 출처와 한계 | 누구집",
+  title: "데이터 출처와 한계 | 내집나우",
   description:
-    "누구집이 사용하는 데이터의 원천(국토교통부·한국부동산원·KB·온비드·청약홈 등), 갱신 주기, 알려진 한계, AI 생성·추정 콘텐츠 라벨 정책을 공개합니다.",
+    "내집나우가 사용하는 데이터의 원천(국토교통부·한국부동산원·KB·온비드·청약홈 등), 갱신 주기, 알려진 한계, AI 생성·추정 콘텐츠 라벨 정책을 공개합니다.",
   alternates: seoAlternates("/data-sources"),
 };
 
@@ -86,7 +86,7 @@ const SOURCES: SourceRow[] = [
   },
   {
     name: "시장 온도",
-    origin: "누구집 자체 산출 (실거래·지수·거래량 합성)",
+    origin: "내집나우 자체 산출 (실거래·지수·거래량 합성)",
     cadence: "주 1회 스냅샷",
     used: "지도 온도 레이어, 지역 카드",
     limits: "자체 지표 — 공식 통계가 아니며 산출식은 방법론 페이지에 공개.",
@@ -131,7 +131,7 @@ export default function DataSourcesPage() {
           이 숫자, 어디서 왔나요
         </h1>
         <p className="rise-in-1 mt-2 t-body leading-[1.75] text-text-2">
-          누구집의 모든 수치는 아래 원천에서 자동 수집됩니다. 각 원천의 갱신 주기와
+          내집나우의 모든 수치는 아래 원천에서 자동 수집됩니다. 각 원천의 갱신 주기와
           <b className="text-ink"> 알려진 한계</b>까지 함께 적습니다 — 한계를 모르는 숫자는
           틀린 숫자보다 위험하기 때문입니다. 계산 공식이 궁금하면{" "}
           <Link href="/methodology" className="font-bold text-primary">
@@ -163,7 +163,7 @@ export default function DataSourcesPage() {
         <section className="mt-8">
           <h2 className="text-[19px] font-extrabold text-ink">AI 콘텐츠 라벨 정책</h2>
           <p className="mt-1.5 t-body leading-[1.7] text-text-2">
-            누구집은 AI가 만든 것과 사람이 쓴 것, 실측과 추정을 화면에서 구분합니다.
+            내집나우는 AI가 만든 것과 사람이 쓴 것, 실측과 추정을 화면에서 구분합니다.
             이 정책은 코드 게이트로 강제됩니다 — 라벨 없는 AI 수치는 배포 단계에서 막힙니다.
           </p>
           <div className="mt-3 flex flex-col gap-2">

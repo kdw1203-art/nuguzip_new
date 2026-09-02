@@ -607,7 +607,7 @@ export function buildNoteDeck({ note, plan }: BuildDeckInput): NoteDeck {
     id: "closing",
     kind: "closing",
     theme: "cover",
-    eyebrow: "누구집 임장노트",
+    eyebrow: "내집나우 임장노트",
     title: placeLine || note.title,
     body: [`${author} · ${note.visitDate} 방문`],
     source: "방문 기록",

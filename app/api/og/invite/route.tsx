@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
                 color: "#191f28",
               }}
             >
-              누구집
+              내집나우
             </div>
             <div style={{ display: "flex", fontSize: "24px", color: "#8a93a3" }}>
               시세는 누구나 봅니다, 현장은 가 본 사람만 압니다 · nuguzip.com

@@ -51,7 +51,7 @@ export async function GET() {
             />
           </svg>
           <div style={{ fontSize: "44px", fontWeight: 800, color: "#1d4fd8", display: "flex" }}>
-            누구집
+            내집나우
           </div>
         </div>
         <div

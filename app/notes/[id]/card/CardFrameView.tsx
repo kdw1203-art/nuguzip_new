@@ -34,7 +34,7 @@ export function CardFrameView({
       {/* 상단 브랜드 표식 + 페이지 인디케이터 */}
       <div className="flex items-center justify-between">
         <span className="t-sub font-extrabold tracking-tight" style={{ color: theme.accent }}>
-          누구집 임장노트
+          내집나우 임장노트
         </span>
         {typeof index === "number" && typeof total === "number" && (
           <span className="t-caption font-bold" style={{ color: theme.sub }}>

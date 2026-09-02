@@ -11,7 +11,7 @@ import { logger } from "@/lib/log";
    실측 0(글·구독·적립) 상태에 대한 처방: 첫 행동을 계단 3개로 쪼개고 보상을 명시. */
 
 export const metadata: Metadata = {
-  title: "미션 | 누구집",
+  title: "미션 | 내집나우",
   robots: { index: false, follow: false },
 };
 

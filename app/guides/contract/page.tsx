@@ -14,7 +14,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 const PATH = "/guides/contract";
 
 export const metadata: Metadata = {
-  title: "계약 전 체크리스트 & 표준계약·특약 가이드 | 누구집",
+  title: "계약 전 체크리스트 & 표준계약·특약 가이드 | 내집나우",
   description:
     "가계약부터 잔금·입주까지 단계별 확인사항, 임대차·매매 표준계약서 핵심 조항, 자주 쓰는 특약 예시, 등기부·건축물대장 확인 포인트를 정리한 계약 가이드입니다.",
   alternates: seoAlternates(PATH),

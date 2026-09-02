@@ -104,7 +104,7 @@ async function buildPromo(dayIndex: number) {
       title: "이번 주 신고가 단지 — 실거래 신고 기준",
       caption:
         "국토교통부 실거래 신고에서 자동 탐지한 이번 주 신고가입니다. 계약 후 30일 신고 기한이 있어 이후 정정·취소될 수 있습니다. 지역별 전체 흐름은 nuguzip.com 에서. 투자 권유가 아닙니다.",
-      hashtags: ["신고가", "실거래가", "아파트", "부동산", "누구집"],
+      hashtags: ["신고가", "실거래가", "아파트", "부동산", "내집나우"],
     },
     {
       id: "apply-closing",
@@ -128,7 +128,7 @@ async function buildPromo(dayIndex: number) {
       title: "이번 주 접수 마감 청약 일정",
       caption:
         "청약홈 공고 기준 7일 내 접수 마감 건수입니다. 단지별 일정과 지난 주 아카이브는 nuguzip.com/apply/calendar 에서. 자격·일정은 공고문이 최종입니다.",
-      hashtags: ["청약", "청약일정", "아파트청약", "부동산", "누구집"],
+      hashtags: ["청약", "청약일정", "아파트청약", "부동산", "내집나우"],
     },
     {
       id: "map-tx",
@@ -144,7 +144,7 @@ async function buildPromo(dayIndex: number) {
       },
       title: "호가 말고 실거래가로 보는 지도",
       caption: "지도에 찍히는 금액은 국토교통부 실거래가입니다. 중개사 호가와 섞이지 않습니다.",
-      hashtags: ["부동산", "실거래가", "아파트", "임장", "누구집"],
+      hashtags: ["부동산", "실거래가", "아파트", "임장", "내집나우"],
     },
     {
       id: "ai-note",
@@ -154,7 +154,7 @@ async function buildPromo(dayIndex: number) {
       count: async () => "기록은 무료",
       title: "시세는 누구나 봅니다, 현장은 가 본 사람만 압니다",
       caption: "3분 기록 → AI 정리 → 지도 비교. 임장노트와 지도는 무료입니다.",
-      hashtags: ["임장", "임장노트", "부동산공부", "아파트", "누구집"],
+      hashtags: ["임장", "임장노트", "부동산공부", "아파트", "내집나우"],
     },
     {
       id: "market-temp",
@@ -170,7 +170,7 @@ async function buildPromo(dayIndex: number) {
       },
       title: "매주 갱신되는 동네 시장 온도",
       caption: "실거래 지수 모멘텀 + 거래량 추이 기반 주간 산출. 투자 권유가 아닌 참고 지표입니다.",
-      hashtags: ["부동산시장", "시장온도", "아파트시세", "누구집"],
+      hashtags: ["부동산시장", "시장온도", "아파트시세", "내집나우"],
     },
   ];
   /* 로테이션 시작점만 dayIndex 로 돌리고, 실패(데이터 없음 포함)하는 소재는
@@ -225,7 +225,7 @@ export async function generateAndEnqueue(now = new Date()): Promise<AutopostResu
       videoUrl,
       title,
       caption,
-      hashtags: ["임장", "임장노트", "부동산", "아파트", "누구집"],
+      hashtags: ["임장", "임장노트", "부동산", "아파트", "내집나우"],
       targets: { instagram: true, youtube: true },
       createdBy: "autopost",
       sourceKind: "note",

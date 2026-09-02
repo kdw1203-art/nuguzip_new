@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 /* 항목 46b — 로그인 화면은 개별 제목 + noindex (계정 흐름은 색인 대상이 아니다). */
 export const metadata = {
-  title: "로그인 | 누구집",
+  title: "로그인 | 내집나우",
   robots: { index: false, follow: true },
 };
 

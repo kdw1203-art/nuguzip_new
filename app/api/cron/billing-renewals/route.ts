@@ -80,7 +80,7 @@ async function renewOne(sub: BillingSubscription): Promise<"charged" | "failed" 
     customerKey: sub.customerKey,
     amount: sub.amount,
     orderId,
-    orderName: `누구집 ${planLabel(sub.plan)} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제 갱신`,
+    orderName: `내집나우 ${planLabel(sub.plan)} ${sub.billing === "annual" ? "연간" : "월간"} 자동결제 갱신`,
     customerEmail: sub.userEmail,
     idempotencyKey: deterministicIdempotencyKey(`nuguzip:toss:billing:${sub.id}:${cycle}`),
   });

@@ -23,7 +23,7 @@ import { SupplyClient } from "./SupplyClient";
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: "아파트 입주 예정 물량 | 누구집",
+  title: "아파트 입주 예정 물량 | 내집나우",
   /* "캘린더" 표기는 제거(2026-08-22) — 실제 화면은 월별 물량 막대 + 단지 목록이지
      달력 격자가 아니다. 이름이 화면과 다르면 찾던 것을 못 찾았다고 느낀다. */
   description:

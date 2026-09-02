@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
               {region || "단지 시세"}
             </div>
             <div style={{ display: "flex", fontSize: "46px", fontWeight: 800, marginTop: "4px" }}>
-              {name || "누구집"}
+              {name || "내집나우"}
             </div>
           </div>
           {last && (

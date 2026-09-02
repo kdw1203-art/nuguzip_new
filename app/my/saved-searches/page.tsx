@@ -9,7 +9,7 @@ import { SavedSearchClient } from "./SavedSearchClient";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "저장 검색 | 누구집",
+  title: "저장 검색 | 내집나우",
   description: "관심 조건을 저장하고 새 매물이 나오면 알림으로 받아보세요.",
 };
 

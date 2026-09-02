@@ -165,7 +165,7 @@ export async function generateMetadata({
   const post = await getTownPost(uuid);
   if (!post) {
     return {
-      title: "글을 찾을 수 없습니다 | 누구집",
+      title: "글을 찾을 수 없습니다 | 내집나우",
       description: "요청하신 글을 찾을 수 없습니다.",
       robots: { index: false, follow: false },
     };
@@ -200,7 +200,7 @@ export async function generateMetadata({
   ].filter(Boolean);
 
   return {
-    title: `${seo.seo_title ?? post.title} | 누구집`,
+    title: `${seo.seo_title ?? post.title} | 내집나우`,
     description,
     ...(keywords.length ? { keywords } : {}),
     alternates: { canonical },
@@ -210,7 +210,7 @@ export async function generateMetadata({
       title: seo.seo_title ?? post.title,
       description,
       url: canonical,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       ...(ogImage ? { images: [{ url: ogImage }] } : {}),
       ...(post.sourcePublishedAt ? { publishedTime: post.sourcePublishedAt } : {}),
@@ -343,7 +343,7 @@ export default async function TownNewsDetailPage({
     ? { nick: null, badge: false }
     : await readAuthorNicknameEffect(post.id);
   const byline = isAutomated ? (
-    `${renderOwnSummary ? "누구집 요약" : "자동 수집"} · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
+    `${renderOwnSummary ? "내집나우 요약" : "자동 수집"} · ${post.sourceName || "뉴스 자동수집"} · ${fullDateTime(post.sourcePublishedAt || post.createdAt)}`
   ) : (
     <>
       <span
@@ -726,7 +726,7 @@ export default async function TownNewsDetailPage({
               <div className="flex flex-wrap items-center gap-1 text-[11px] text-text-3">
                 <span>
                   {renderOwnSummary
-                    ? `누구집이 원문을 요약·정리한 글입니다 · 원문 저작권은 ${post.sourceName || "원 매체"}에 있음 ·`
+                    ? `내집나우가 원문을 요약·정리한 글입니다 · 원문 저작권은 ${post.sourceName || "원 매체"}에 있음 ·`
                     : isAutomated
                       ? "자동 수집 콘텐츠 · 저작권은 원 매체에 있음 ·"
                       : `${region} 이웃이 남긴 글 ·`}

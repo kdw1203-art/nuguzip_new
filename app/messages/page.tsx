@@ -7,7 +7,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 최적화 10 — robots 는 이미 맞게 걸려 있었는데 **title 이 없어서** 루트
    레이아웃의 홈 제목을 그대로 물려받고 있었다. noindex 라 검색 결과에는 안
-   나오지만, 탭 제목·북마크·방문 기록은 그대로 "누구집 — 임장 기록이 판단
+   나오지만, 탭 제목·북마크·방문 기록은 그대로 "내집나우 — 임장 기록이 판단
    근거가 됩니다" 로 남는다. 로그인한 사람이 탭 여러 개를 열어 두면 어느 게
    쪽지함인지 알 수 없다. 색인 방침(index:false, follow:false)은 그대로 두고
    제목만 붙인다 — buildPageMetadata 의 noIndex 가 같은 값을 만든다. */

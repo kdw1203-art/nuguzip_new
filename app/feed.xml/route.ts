@@ -1,3 +1,4 @@
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 import { CRAWLER_ENDPOINT_CACHE_CONTROL } from "@/lib/http/cache-policy";
 import { listReportMonths, formatYmKo } from "@/lib/reports/monthly";
 import { listPublicNotes } from "@/lib/inspection/store-db";
@@ -25,7 +26,7 @@ import { logger } from "@/lib/log";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BASE_URL = "https://nuguzip.com";
+const BASE_URL = DEFAULT_DESKTOP_ORIGIN; /* [947] 도메인 단일 소스 */
 const MAX_REPORTS = 12;
 const MAX_NOTES = 20;
 const MAX_NEWS = 15;
@@ -76,7 +77,7 @@ async function collectItems(): Promise<Collected> {
       items.push({
         title: `${label} 아파트 실거래 리포트 — ${m.regionCount}개 지역 ${m.txCount.toLocaleString("ko-KR")}건`,
         link: `${BASE_URL}/reports/${m.ym}`,
-        description: `${label} 누구집 집계 지역 ${m.regionCount}곳의 아파트 매매 실거래 ${m.txCount.toLocaleString("ko-KR")}건. 지역별 거래량·평균가·전월 대비 변동을 국토교통부 실거래 신고 기준으로 정리했습니다.`,
+        description: `${label} 내집나우 집계 지역 ${m.regionCount}곳의 아파트 매매 실거래 ${m.txCount.toLocaleString("ko-KR")}건. 지역별 거래량·평균가·전월 대비 변동을 국토교통부 실거래 신고 기준으로 정리했습니다.`,
         date: m.updatedAt,
         category: "월간 리포트",
       });
@@ -188,7 +189,7 @@ function serializeFeed(items: FeedItem[], selfPath = "/feed.xml", titleSuffix = 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
-<title>누구집 — 실거래 리포트·임장노트·부동산 뉴스${titleSuffix ? ` · ${titleSuffix}` : ""}</title>
+<title>내집나우 — 실거래 리포트·임장노트·부동산 뉴스${titleSuffix ? ` · ${titleSuffix}` : ""}</title>
 <link>${BASE_URL}</link>
 <atom:link href="${BASE_URL}${selfPath}" rel="self" type="application/rss+xml" />
 <description>국토교통부 실거래 공개 데이터로 만드는 월간 지역 리포트, 직접 다녀온 현장 기록(임장노트), 자체 정리한 부동산 뉴스 다이제스트를 발행합니다.</description>

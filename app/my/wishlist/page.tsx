@@ -22,7 +22,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "관심 매물 · 누구집",
+  title: "관심 매물 · 내집나우",
   robots: { index: false, follow: false },
 };
 

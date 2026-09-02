@@ -1,3 +1,4 @@
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 import "server-only";
 
 import type { MetadataRoute } from "next";
@@ -56,7 +57,7 @@ const SITEMAP_MIN_TRADE_COUNT = Number(process.env.SITEMAP_MIN_TRADE_COUNT ?? 1)
    서비스 롤이 항상 있고(= 데이터가 빠지지 않는다), 응답에 Cache-Control 을
    직접 실으니 Next 가 덮지 않는다(= CDN 공유 캐시가 실제로 걸린다). */
 
-const BASE_URL = "https://nuguzip.com";
+const BASE_URL = DEFAULT_DESKTOP_ORIGIN; /* [947] 도메인 단일 소스 */
 
 const STATIC_ROUTES: Array<{ path: string; priority: number }> = [
   { path: "", priority: 1 },

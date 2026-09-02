@@ -9,7 +9,7 @@ import { autoBuildConfig, normalizeConfig } from "@/lib/notes/card-config";
 import { NoteCardStudio, type AvailableFrame } from "./NoteCardStudio";
 
 export const metadata: Metadata = {
-  title: "나만의 임장 카드 | 누구집",
+  title: "나만의 임장 카드 | 내집나우",
   robots: { index: false, follow: false },
 };
 

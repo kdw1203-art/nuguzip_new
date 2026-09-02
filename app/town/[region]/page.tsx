@@ -45,7 +45,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { region: id } = await params;
   const region = findCatalogRegionById(id);
-  if (!region) return { title: "동네를 찾을 수 없습니다 | 누구집" };
+  if (!region) return { title: "동네를 찾을 수 없습니다 | 내집나우" };
   const title = `${region.name} 동네 홈 — 이웃 글·뉴스·시세 한눈에`;
   const description = `${region.name} 이웃들의 임장·거주 이야기, 오늘의 ${region.name} 부동산 뉴스, 아파트 시세 요약을 한 화면에서. 키워드 알림으로 새 소식을 받아보세요.`;
   return {

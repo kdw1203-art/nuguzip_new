@@ -101,7 +101,7 @@ export default async function DigestPage() {
           <div className="flex-1">
             <div className="flex justify-between">
               <span className="text-xs font-extrabold text-ink">
-                누구집 · 주간 다이제스트
+                내집나우 · 주간 다이제스트
               </span>
               <span className="t-caption text-text-3">최근 7일</span>
             </div>

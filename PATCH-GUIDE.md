@@ -1,4 +1,4 @@
-# 누구집 최적화 패치 — 적용 가이드
+# 내집나우 최적화 패치 — 적용 가이드
 
 작성: 2026-08-05 · 대상: `nuguzip-homepage` (Next.js App Router, Vercel)
 

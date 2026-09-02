@@ -23,7 +23,7 @@ import { QnaListClient, type QnaRow } from "./QnaListClient";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "단지 Q&A | 누구집",
+  title: "단지 Q&A | 내집나우",
   description:
     "아파트 단지·동네에 대한 궁금증을 묻고 이웃·실거주자에게 답을 받아보세요. 재건축·학군·주차·교통까지 단지 Q&A에서 확인하세요.",
   robots: { index: true, follow: true },

@@ -76,7 +76,7 @@ function digestTeaserOf(d: WeeklyDigest): string | null {
 const EXAMPLE_NEWS = {
   category: "안내",
   title: "예시 카드 — 실제 정책·공지 뉴스가 아직 없을 때 레이아웃만 보여 줍니다",
-  sourceName: "누구집 예시(공식 출처 아님)",
+  sourceName: "내집나우 예시(공식 출처 아님)",
   time: "예시",
 };
 

@@ -5,7 +5,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 export const metadata = buildPageMetadata({
   title: "이용약관",
-  description: "누구집(서비스 운영: 우리동네이야기) 이용약관 전문",
+  description: "내집나우(서비스 운영: 우리동네이야기) 이용약관 전문",
   path: "/legal/terms",
 });
 

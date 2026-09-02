@@ -196,7 +196,7 @@ export async function generateMetadata({
      빠진다. 던지면 5xx 가 되고 크롤러는 다시 온다. */
   const snapshot = await getRegionSnapshot(id);
   if (!snapshot) {
-    return { title: "지역 시세 | 누구집", robots: { index: false, follow: false } };
+    return { title: "지역 시세 | 내집나우", robots: { index: false, follow: false } };
   }
   const name = snapshot.regionName;
   const price =
@@ -215,7 +215,7 @@ export async function generateMetadata({
       title,
       description,
       url: alternates.canonical as string,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "website",
       /* [개선 #4] 지역 카드 — 지역명·평균가가 박힌 동적 공유 카드(/api/og).

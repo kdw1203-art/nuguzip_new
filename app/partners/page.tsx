@@ -9,9 +9,9 @@ import { PartnerForm } from "./PartnerForm";
    ============================================================ */
 
 export const metadata: Metadata = {
-  title: "중개사 제휴 안내 · 누구집",
+  title: "중개사 제휴 안내 · 내집나우",
   description:
-    "개업공인중개사를 위한 누구집 제휴 프로그램 — 매물 노출, 전문가 프로필, 상담 연결까지.",
+    "개업공인중개사를 위한 내집나우 제휴 프로그램 — 매물 노출, 전문가 프로필, 상담 연결까지.",
 };
 
 const BENEFITS = [
@@ -34,12 +34,12 @@ export default function PartnersPage() {
     <PageShell breadcrumb="홈 › 중개사 제휴">
       <div className="mb-6 max-w-[720px]">
         <h1 className="rise-in text-[24px] font-extrabold leading-[1.35] text-ink">
-          동네 매물, 누구집에서 더 많은 이웃에게
+          동네 매물, 내집나우에서 더 많은 이웃에게
         </h1>
         <p className="mt-2 text-[14px] leading-[1.7] text-text-2">
-          누구집은 국토부 실거래가 데이터를 보는 이웃들이 모이는 곳이에요. 제휴
+          내집나우는 국토부 실거래가 데이터를 보는 이웃들이 모이는 곳이에요. 제휴
           중개사무소가 되면 실거래가를 확인하던 이웃에게 보유 매물을 바로 보여줄 수
-          있어요. 중개 행위는 제휴 중개사가 직접 수행하고, 누구집은 광고 매체로서
+          있어요. 중개 행위는 제휴 중개사가 직접 수행하고, 내집나우는 광고 매체로서
           매물 정보를 게재합니다.
         </p>
         <p className="mt-2 text-[13px] leading-[1.7] text-text-3">

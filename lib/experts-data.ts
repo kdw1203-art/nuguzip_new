@@ -16,7 +16,7 @@ export const EXPERTS: ExpertCard[] = [
     name: "김정비",
     role: "정비사업 컨설턴트",
     region: "서울·경기",
-    org: "누구집 파트너",
+    org: "내집나우 파트너",
     specialty: "관리처분·조합 운영",
     feeFrom: 150000,
     rating: 4.9,

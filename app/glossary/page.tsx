@@ -26,7 +26,7 @@ function definedTermSetJsonLd() {
     "@context": "https://schema.org",
     "@type": "DefinedTermSet",
     "@id": "https://nuguzip.com/glossary",
-    name: "누구집 부동산 용어사전",
+    name: "내집나우 부동산 용어사전",
     description:
       "부동산 실거래·시세·임대차·대출·세금·청약·경매 용어를 한 문단 정의로 정리한 사전입니다.",
     inLanguage: "ko-KR",
@@ -54,7 +54,7 @@ export default function GlossaryPage() {
       <div className="mx-auto max-w-[820px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">부동산 용어사전</h1>
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
-          누구집 화면과 부동산 거래에서 만나는 용어 {GLOSSARY_TERMS.length}개를 분류별로
+          내집나우 화면과 부동산 거래에서 만나는 용어 {GLOSSARY_TERMS.length}개를 분류별로
           정리했습니다. 용어를 누르면 정의와 관련 용어를 함께 볼 수 있습니다.
         </p>
 

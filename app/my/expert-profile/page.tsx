@@ -10,7 +10,7 @@ import { ExpertProfileForm } from "./ExpertProfileForm";
    얼어 있었다. 연락처(전화·카카오)는 여기서 본인이 채울 때만 공개된다. */
 
 export const metadata = {
-  title: "전문가 프로필 관리 · 누구집",
+  title: "전문가 프로필 관리 · 내집나우",
   robots: { index: false, follow: false },
 };
 export const dynamic = "force-dynamic";

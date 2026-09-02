@@ -1900,8 +1900,13 @@ export function MapClient({
             }`}
           >
             <Icon name="gavel" size={14} className="inline align-middle" /> 공매
+            {/* [946] '지금 새로 올라옴' 신호 = 브랜드 주홍 */}
             {auctionChipIsNew && (
-              <span aria-hidden className="pulse-dot ml-1 align-middle text-primary" />
+              <span
+                aria-hidden
+                className="pulse-dot ml-1 align-middle"
+                style={{ color: "var(--brand-red)" }}
+              />
             )}
           </button>
           {/* [943 · #96] 학교·지하철 POI — 공공데이터 표준데이터 */}

@@ -166,7 +166,7 @@ export default async function SubscriptionPage({
   const plansJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "누구집 멤버십 요금제",
+    name: "내집나우 멤버십 요금제",
     itemListElement: (["pro", "expert"] as const).map((tier, i) => {
       const p = tierPricing(tier);
       return {
@@ -174,7 +174,7 @@ export default async function SubscriptionPage({
         position: i + 1,
         item: {
           "@type": "Product",
-          name: tier === "pro" ? "누구집 PRO 멤버십" : "누구집 EXPERT 멤버십",
+          name: tier === "pro" ? "내집나우 PRO 멤버십" : "내집나우 EXPERT 멤버십",
           description:
             tier === "pro"
               ? "AI 임장노트 정리·분석 확장, 광고 제거 등 개인 이용자용 멤버십"

@@ -1,4 +1,4 @@
-# 누구집 디자인 시스템 (#50)
+# 내집나우 디자인 시스템 (#50)
 
 > 근거 소스: `app/globals.css` (단일 소스). 이 문서는 요약본이며, 값이 다르면 항상 `globals.css`가 우선한다.
 > 스택: Next.js App Router + Tailwind v4 (`@theme inline`으로 CSS 변수 → Tailwind 색 토큰 매핑).
@@ -209,7 +209,7 @@ disabled는 클래스 무관 공통: `--disabled-bg` + `--disabled-text`, 그림
 | `Header` | 없음 (client) | 글래스 플로팅 GNB. 데스크탑 메뉴(홈·임장노트·지도·AI 분석·동네이야기)+검색+CTA, 모바일 로고+아이콘. PageShell이 포함하므로 직접 쓸 일 거의 없음 |
 | `TabBar` | 없음 (client) | 모바일 하단 글래스 탭바 (`md:hidden`). IA: 홈·발견(/discover)·노트(＋ 중앙)·지도·마이. 키보드 열림 시 자동 숨김 |
 | `AIPanel` | `title: string` · `children` · `className?` | AI 결과 잉크 다크 패널 — AI 칩 + 제목 + 본문(`--ai-text`). AI 결과는 반드시 이 컴포넌트로 |
-| `Logo` / `HouseMark` | `size?: number`(기본 21) | 브랜드 로고(집 마크 + "누구집") / 마크 단독 |
+| `Logo` / `HouseMark` | `size?: number`(기본 21) | 브랜드 로고(집 마크 + "내집나우") / 마크 단독 |
 | `TopScoutBadge` | `className?` | ◈ 탑 임장러 배지 — 최상위 활동 배지, **구매 불가** |
 | `HoloAvatar` (TopScoutBadge.tsx) | `size?: number`(기본 52) · `label?: string` | 홀로그램 conic 링 아바타 |
 

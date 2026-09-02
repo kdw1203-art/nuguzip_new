@@ -17,7 +17,7 @@ import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "협력업체 디렉터리 · 개발물건 중개 · 누구집",
+  title: "협력업체 디렉터리 · 개발물건 중개 · 내집나우",
   description:
     "시공사·설계사·신탁·PF·마케팅·감리 등 개발사업 협력업체를 찾고, 우리 회사를 등록해 개발물건 매칭을 받아 보세요.",
   robots: { index: true, follow: true },
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 const DISCLAIMER =
-  "누구집은 개발물건의 소개·정보 게시 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
+  "내집나우는 개발물건의 소개·정보 게시 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
 
 export default async function DevPartnersPage() {
   const loaded = await listPartnersAll();

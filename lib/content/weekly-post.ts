@@ -203,7 +203,7 @@ export async function publishWeeklyMarketPost(): Promise<WeeklyPostResult> {
       tags: ["주간시황", "실거래"],
       ai_summary: `${label} 시황 자동 정리 — ${numbers.join(", ") || "지수·신고가·청약"}.`,
       ai_keywords: ["주간시황", "아파트", "실거래"],
-      source_name: "누구집 자동 집계",
+      source_name: "내집나우 자동 집계",
       external_key: externalKey,
       is_automated: true,
       automation_meta: {

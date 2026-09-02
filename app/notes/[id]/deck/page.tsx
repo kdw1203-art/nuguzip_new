@@ -24,7 +24,7 @@ import { DeckViewer } from "./DeckViewer";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "임장노트 카드 — 누구집",
+  title: "임장노트 카드 — 내집나우",
   robots: { index: false, follow: false },
 };
 

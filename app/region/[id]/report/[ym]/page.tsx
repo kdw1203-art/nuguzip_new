@@ -53,7 +53,7 @@ export async function generateMetadata({
   const ym = parseReportMonth(slug);
   if (!region || !ym) {
     return {
-      title: "리포트를 찾을 수 없습니다 | 누구집",
+      title: "리포트를 찾을 수 없습니다 | 내집나우",
       robots: { index: false, follow: false },
     };
   }

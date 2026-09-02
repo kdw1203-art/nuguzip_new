@@ -62,10 +62,10 @@ export function ArticleJsonLd(props: {
     mainEntityOfPage: { '@type': 'WebPage', '@id': props.url },
     datePublished: props.datePublished,
     dateModified: props.dateModified,
-    author: { '@type': 'Organization', name: '누구집', url: 'https://nuguzip.com' },
+    author: { '@type': 'Organization', name: '내집나우', url: 'https://nuguzip.com' },
     publisher: {
       '@type': 'Organization',
-      name: '누구집',
+      name: '내집나우',
       url: 'https://nuguzip.com',
     },
   }

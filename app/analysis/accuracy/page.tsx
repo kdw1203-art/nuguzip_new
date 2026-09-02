@@ -12,7 +12,7 @@ export const revalidate = 3600;
 export const metadata = buildPageMetadata({
   title: "시세 예측 적중률 — 우리 성적표 공개",
   description:
-    "누구집 시세 예측(3개월 모멘텀 외삽)의 과거 적중률을 공개합니다. 예측 ±5% 안에 실제 평당가가 들어온 비율과 평균 오차 — 실측 그대로.",
+    "내집나우 시세 예측(3개월 모멘텀 외삽)의 과거 적중률을 공개합니다. 예측 ±5% 안에 실제 평당가가 들어온 비율과 평균 오차 — 실측 그대로.",
   path: "/analysis/accuracy",
 });
 

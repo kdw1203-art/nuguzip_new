@@ -11,7 +11,7 @@ import { logger } from "@/lib/log";
    단지 위젯(embed/complex)과 같은 규칙:
    - 실데이터만, 조회 실패 시 "불러올 수 없음" 카드 (never crash)
    - 사이트 크롬 없음(embed 레이아웃), noindex
-   - 출처(한국부동산원·국토교통부)와 누구집 링크가 카드 안에 박힌다 — 퍼가기가 곧 백링크
+   - 출처(한국부동산원·국토교통부)와 내집나우 링크가 카드 안에 박힌다 — 퍼가기가 곧 백링크
    ============================================================ */
 
 export const revalidate = 3600;
@@ -20,7 +20,7 @@ export function generateStaticParams(): Array<{ id: string }> {
 }
 
 export const metadata: Metadata = {
-  title: "지역 아파트 시세 · 누구집",
+  title: "지역 아파트 시세 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -40,7 +40,7 @@ function FallbackCard({ name }: { name: string }) {
         rel="noopener noreferrer"
         className="text-[11px] font-bold text-[#1d4fd8]"
       >
-        누구집에서 보기 ↗
+        내집나우에서 보기 ↗
       </a>
     </div>
   );
@@ -137,7 +137,7 @@ export default async function EmbedRegionPage({
           rel="noopener noreferrer"
           className="text-[11px] font-extrabold text-[#1d4fd8]"
         >
-          누구집에서 자세히 ↗
+          내집나우에서 자세히 ↗
         </a>
       </div>
     </div>

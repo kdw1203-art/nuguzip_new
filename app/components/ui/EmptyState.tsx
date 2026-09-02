@@ -90,13 +90,45 @@ export function EmptyState({
   return (
     <div
       className={`${SHELL[tone]} ${PAD[tone]} flex flex-col items-center gap-2 text-center ${className}`.trim()}
+      /* [946 리브랜딩 · 모션 07] 공개 화면의 빈 상태 = 한지 + 숨쉬는 온점.
+         비어 있음이 초라함이 아니라 기다림이 되게 — 신규 사용자가 가장 먼저
+         마주치는 화면이 브랜드의 첫 화면이다. 어드민 톤은 기존 유지. */
+      style={tone === "light" ? { background: "var(--brand-hanji)", border: "none" } : undefined}
     >
-      {icon && (
-        <div
-          className={`flex h-12 w-12 items-center justify-center rounded-full ${ICON_WRAP[tone]}`}
-        >
-          <Icon name={icon} size={22} />
-        </div>
+      {tone === "light" ? (
+        /* 온점만 숨쉰다(2.4s) — 심볼 전체를 흔들면 장식이 소음이 된다 */
+        <svg width="44" height="40" viewBox="0 0 120 120" aria-hidden="true">
+          <path
+            d="M52 28 L68 28"
+            fill="none"
+            stroke="var(--brand-symbol-ink)"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path
+            d="M14 46 C 38 64, 82 64, 106 46"
+            fill="none"
+            stroke="var(--brand-symbol-ink)"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <circle
+            className="empty-dot-breathe"
+            cx="60"
+            cy="86"
+            r="8.5"
+            fill="var(--brand-dot)"
+            style={{ transformOrigin: "60px 86px" }}
+          />
+        </svg>
+      ) : (
+        icon && (
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full ${ICON_WRAP[tone]}`}
+          >
+            <Icon name={icon} size={22} />
+          </div>
+        )
       )}
       <p className={TITLE[tone]}>{title}</p>
       {desc && <p className={DESC[tone]}>{desc}</p>}

@@ -258,7 +258,7 @@ export function TimingClient({
             />
             {loading && (
               <span className="t-sub inline-flex items-center gap-1.5 font-bold text-primary">
-                <span className="pulse-dot" />
+                <span className="pulse-dot" style={{ color: "var(--brand-red)" }} />
                 {selected.label} 불러오는 중
               </span>
             )}

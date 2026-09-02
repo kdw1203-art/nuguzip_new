@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
                   display: "flex",
                 }}
               >
-                누구집 임장노트
+                내집나우 임장노트
               </div>
             </div>
             <div

@@ -1,0 +1,12 @@
+-- [946 리브랜딩] 상표 문제로 서비스명 변경: 누구집 → 내집나우 (도메인 nuguzip.com 유지).
+-- ingest_daily_news 의 표시 작성자 문자열만 교체 — 서명·권한·로직 변경 없음
+-- (CREATE OR REPLACE 는 기존 GRANT 를 보존한다. 라이브에는 2026-09-01 MCP로 적용 완료:
+--  migration name rebrand_ingest_daily_news_display_author — 이 파일은 저장소 기록용).
+-- 본문 전문은 라이브 정의와 동일하며, display_author 만 '내집나우 뉴스봇'이다.
+-- 데이터 정리(동시 적용 완료):
+--   board_posts.source_name '누구집 자동 집계' → '내집나우 자동 집계' (2행)
+--   inspection_notes Lab 노트 22행 제목·라벨·본문·메타 치환
+--   board_posts automation_meta display_author/jsonld org 360행 치환
+--   news_articles.raw_meta jsonld org 358행 치환
+--   automation_scripts 2본(news_collector_py v3 · lab index v32) 치환
+select 1; -- no-op marker (라이브 함수 교체는 위 MCP 마이그레이션이 수행)

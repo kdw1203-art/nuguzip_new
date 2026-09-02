@@ -36,7 +36,7 @@ export async function sendPasswordResetEmail({
 
   await sendEmail({
     to: toEmail,
-    subject: "[누구집] 비밀번호 재설정 안내",
+    subject: "[내집나우] 비밀번호 재설정 안내",
     html,
     text,
   }).catch(() => undefined);

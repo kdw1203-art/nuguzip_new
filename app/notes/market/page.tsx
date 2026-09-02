@@ -13,7 +13,7 @@ import { CoverImage } from "@/app/components/CoverImage";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "임장 리포트 진열대 — 판매 오픈 준비 중 | 누구집",
+  title: "임장 리포트 진열대 — 판매 오픈 준비 중 | 내집나우",
   description:
     "기준을 충족한 임장노트가 유료 리포트로 판매될 예정입니다. 사진 5장 이상, 본문 2,000자 이상의 검증된 현장 기록.",
   alternates: { canonical: "/notes/market" },

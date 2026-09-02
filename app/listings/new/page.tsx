@@ -15,7 +15,7 @@ import { ListingForm } from "./ListingForm";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "매물 등록 · 누구집",
+  title: "매물 등록 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -49,7 +49,7 @@ export default async function ListingNewPage() {
             </Link>
           </div>
           <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
-            중개 행위는 개업공인중개사가 수행하며, 누구집은 광고 매체로서 정보를
+            중개 행위는 개업공인중개사가 수행하며, 내집나우는 광고 매체로서 정보를
             게재할 뿐 중개 당사자가 아닙니다.
           </div>
         </div>
@@ -70,9 +70,9 @@ export default async function ListingNewPage() {
       {/* 법적 고지 */}
       <div className="mt-8 max-w-[640px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
         허위·과장 매물 등록 시 「공인중개사법」 등 관련 법령에 따라 제재를 받을 수
-        있으며, 매물 정보의 정확성에 대한 책임은 등록자에게 있습니다. 누구집의
+        있으며, 매물 정보의 정확성에 대한 책임은 등록자에게 있습니다. 내집나우의
         검수는 형식 요건 확인일 뿐 매물의 진위·권리관계를 보증하지 않습니다. 중개
-        행위는 해당 매물을 등록한 개업공인중개사가 수행하며, 누구집은 광고 매체로서
+        행위는 해당 매물을 등록한 개업공인중개사가 수행하며, 내집나우는 광고 매체로서
         정보를 게재할 뿐 중개 당사자가 아닙니다.
       </div>
     </PageShell>

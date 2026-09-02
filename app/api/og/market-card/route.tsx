@@ -147,7 +147,7 @@ export async function GET() {
               borderRadius: "999px",
             }}
           >
-            누구집
+            내집나우
           </div>
         </div>
 

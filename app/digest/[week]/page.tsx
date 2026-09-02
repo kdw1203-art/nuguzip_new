@@ -56,16 +56,16 @@ export async function generateMetadata({
   const { week } = await params;
   const startMs = weekSlugToMs(week);
   if (startMs === null) {
-    return { title: "주간 다이제스트 | 누구집", robots: { index: false, follow: false } };
+    return { title: "주간 다이제스트 | 내집나우", robots: { index: false, follow: false } };
   }
   const data = await getDigestWeek(week);
   if (!data) {
     return {
-      title: `${weekOrdinalLabel(startMs)} 주간 다이제스트 | 누구집`,
+      title: `${weekOrdinalLabel(startMs)} 주간 다이제스트 | 내집나우`,
       robots: { index: false, follow: true },
     };
   }
-  const title = `${data.ordinalLabel}(${data.rangeLabel}) 부동산 주간 다이제스트 | 누구집`;
+  const title = `${data.ordinalLabel}(${data.rangeLabel}) 부동산 주간 다이제스트 | 내집나우`;
   const description = `${data.rangeLabel} 한 주 동안 수집된 부동산 뉴스 ${data.newsCount}건과 이웃 글 ${data.communityCount}건을 한 장으로 정리했습니다.`;
   const path = `/digest/${data.slug}`;
   return {
@@ -88,7 +88,7 @@ export default async function DigestWeekPage({
   if (!data) notFound();
 
   /* G12 — 발췌해도 완결되는 첫 문단. 실측 개수만 쓴다. */
-  const leadSentence = `${data.rangeLabel}(한국시간 월~일) 한 주 동안 누구집에 수집된 부동산 뉴스는 ${data.newsCount}건, 이웃이 올린 글은 ${data.communityCount}건입니다.${
+  const leadSentence = `${data.rangeLabel}(한국시간 월~일) 한 주 동안 내집나우에 수집된 부동산 뉴스는 ${data.newsCount}건, 이웃이 올린 글은 ${data.communityCount}건입니다.${
     data.temperature.length > 0
       ? ` 같은 주 시장 온도 기록은 ${data.temperature.length}개 지역에 남아 있습니다.`
       : " 같은 주 시장 온도 스냅샷은 남아 있지 않습니다."
@@ -115,7 +115,7 @@ export default async function DigestWeekPage({
     headline: `${data.ordinalLabel} 부동산 주간 다이제스트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "누구집", url: "https://nuguzip.com" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
     publisher: { "@id": "https://nuguzip.com/#organization" },
     datePublished: new Date(data.startMs).toISOString(),
     mainEntityOfPage: `https://nuguzip.com/digest/${data.slug}`,

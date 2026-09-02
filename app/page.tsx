@@ -13,6 +13,7 @@ import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
 import { HomeHeroSearch } from "./components/home/HomeHeroSearch";
 import { HomeEngagementCard } from "./components/home/HomeEngagementCard";
 import { HomeWatchlistBrief } from "./components/HomeWatchlistBrief";
+import { BrandSloganBand } from "./components/BrandSloganBand";
 import type { KpiRegion, KpiTemp } from "./components/home/HomeKpiRow";
 import { HomeTodayLine } from "./components/home/HomeTodayLine";
 import { HomeToolPick } from "./components/home/HomeToolPick";
@@ -346,6 +347,9 @@ export default async function Home() {
             {HOME_CTA_NOTE.label}
           </Link>
 
+          {/* [946 리브랜딩 ⑤] 슬로건 띠 — 한지 + 세리프 한 줄, CTA 바로 아래 */}
+          <BrandSloganBand className="rise-in-3" />
+
           {/* 관심지역 실지도 — 스크롤 아래로 이동 (시안 B) */}
           <div data-reveal="">
             <HomeMiniMap regions={mapRegions} className="h-[208px]" />
@@ -494,7 +498,7 @@ export default async function Home() {
               href="/about"
               className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
             >
-              누구집 이야기 <span className="text-primary">›</span>
+              내집나우 이야기 <span className="text-primary">›</span>
             </Link>
             <Link
               href="/safety"
@@ -547,6 +551,9 @@ export default async function Home() {
               <HomeTicker items={tickerItems} />
             </div>
           )}
+
+          {/* [946 리브랜딩 ⑤] 슬로건 띠 — 티커 아래 전폭 */}
+          <BrandSloganBand className="rise-in-1 mb-4" />
 
           {/* 이하 2열 — 본문(KPI부터) | 사이드바 (윗선이 같다) */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -793,7 +800,7 @@ export default async function Home() {
                 href="/about"
                 className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
-                누구집 이야기
+                내집나우 이야기
                 <span className="text-primary">›</span>
               </Link>
               {meetings.length > 0 && (

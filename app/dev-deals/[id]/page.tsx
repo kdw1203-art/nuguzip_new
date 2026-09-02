@@ -22,7 +22,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const DISCLAIMER =
-  "누구집은 개발물건의 소개·정보 게시 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
+  "내집나우는 개발물건의 소개·정보 게시 플랫폼으로, 당사자 간 계약·자금 정산에 관여하지 않습니다. 게시 정보의 정확성은 등록자에게 있으며, 실제 거래·인허가·수수료 약정은 반드시 당사자 간 확인 및 전문가(법무·세무·공인중개사 등) 자문을 거치시기 바랍니다. 표기된 중개 수수료는 기준이며 사업 규모·조건에 따라 협의됩니다.";
 
 export async function generateMetadata({
   params,
@@ -32,10 +32,10 @@ export async function generateMetadata({
   const { id } = await params;
   const deal = await getDeal(id);
   if (!deal) {
-    return { title: "개발물건을 찾을 수 없습니다 · 누구집" };
+    return { title: "개발물건을 찾을 수 없습니다 · 내집나우" };
   }
   return {
-    title: `${deal.title} · 개발물건 중개 · 누구집`,
+    title: `${deal.title} · 개발물건 중개 · 내집나우`,
     description:
       deal.summary ??
       `${deal.dealType} · ${deal.region ?? ""} · 사업규모 ${formatKrwEok(deal.totalCostKrw)}`,

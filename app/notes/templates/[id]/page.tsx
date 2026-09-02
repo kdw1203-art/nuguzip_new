@@ -22,10 +22,10 @@ export async function generateMetadata({
   const { id } = await params;
   const tpl = await getTemplate(id);
   if (!tpl) {
-    return { title: "템플릿을 찾을 수 없어요 | 누구집" };
+    return { title: "템플릿을 찾을 수 없어요 | 내집나우" };
   }
   return {
-    title: `${tpl.title} | 임장 노트 템플릿 | 누구집`,
+    title: `${tpl.title} | 임장 노트 템플릿 | 내집나우`,
     description:
       tpl.description ||
       `${tpl.category} 임장 체크리스트 — ${tpl.sections.length}개 섹션의 점검 항목으로 임장 노트를 작성하세요.`,

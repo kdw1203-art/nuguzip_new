@@ -9,7 +9,7 @@ import { seoAlternates } from "@/lib/seo/alternates";
 export const dynamic = "force-static";
 
 export const metadata: Metadata = {
-  title: "부동산 실전 가이드 — 임장·시세·전세·청약 | 누구집",
+  title: "부동산 실전 가이드 — 임장·시세·전세·청약 | 내집나우",
   description:
     "임장 체크리스트, 전세가율 보는 법, 실거래가 해석, 전세 안전 점검, 청약 일정까지 — 검색할 필요 없이 순서대로 따라 하는 실전 가이드 모음.",
   alternates: seoAlternates("/guides"),

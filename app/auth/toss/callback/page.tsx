@@ -3,7 +3,7 @@ import { TossCallbackClient } from "./TossCallbackClient";
 
 /* 항목: 계정 흐름은 색인 대상이 아니다. */
 export const metadata = {
-  title: "토스 로그인 처리 중 | 누구집",
+  title: "토스 로그인 처리 중 | 내집나우",
   robots: { index: false, follow: false },
 };
 

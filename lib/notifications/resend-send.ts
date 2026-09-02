@@ -19,7 +19,7 @@ export async function trySendViaResend(input: {
 }): Promise<{ ok: boolean; error?: string }> {
   const key = process.env.RESEND_API_KEY?.trim();
   /* 고도화 49 — 발신명 단일화. RESEND_FROM_EMAIL 이 있으면 그 값을,
-     없으면 lib/email/send 의 표준 발신자("누구집 <noreply@…>")를 쓴다.
+     없으면 lib/email/send 의 표준 발신자("내집나우 <noreply@…>")를 쓴다.
      두 발송 경로(email/send · resend-send)가 서로 다른 발신명으로 나가면
      수신함에서 다른 서비스처럼 보이고 스팸 평판도 갈라진다. */
   const from = process.env.RESEND_FROM_EMAIL?.trim() || EMAIL_FROM;

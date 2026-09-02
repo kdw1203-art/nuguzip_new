@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
    맞지 않아(비교 결과는 /listings 와 다른 내용이다) 색인에서 뺀다.
    follow 는 남겨 비교표 안의 매물 링크는 그대로 크롤되게 둔다. */
 export const metadata: Metadata = {
-  title: "매물 비교함 — 담은 매물 나란히 비교 · 누구집",
+  title: "매물 비교함 — 담은 매물 나란히 비교 · 내집나우",
   description:
     "관심 매물 2~3개를 담아 가격·면적·층·시세대비·신선도·위치를 한눈에 비교하세요.",
   robots: { index: false, follow: true },

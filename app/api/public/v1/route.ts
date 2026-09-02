@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
 
   return publicApiJson({
-    service: "누구집 공개 집계 API",
+    service: "내집나우 공개 집계 API",
     version: "v1",
     docs: "https://nuguzip.com/developers",
     scope:

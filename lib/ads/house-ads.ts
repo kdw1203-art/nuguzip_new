@@ -38,7 +38,7 @@ export type HouseAd = {
 export const HOUSE_ADS: HouseAd[] = [
   {
     id: "house_note_start",
-    eyebrow: "누구집",
+    eyebrow: "내집나우",
     title: "본 집, 기억나세요?",
     body: "다녀온 집은 사흘이면 섞입니다. 임장노트에 남겨두면 나중에 비교할 근거가 됩니다.",
     ctaLabel: "임장노트 쓰기",

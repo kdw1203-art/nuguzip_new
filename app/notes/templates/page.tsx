@@ -10,9 +10,9 @@ import { TemplateBrowser } from "./TemplateBrowser";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "임장 노트 템플릿 | 누구집",
+  title: "임장 노트 템플릿 | 내집나우",
   description:
-    "입지·채광·소음·주차·하자부터 분양권·전월세·재건축까지, 바로 쓰는 임장 체크리스트 템플릿을 골라 임장 노트를 작성하세요. 누구집이 만든 공식 체크리스트 제공.",
+    "입지·채광·소음·주차·하자부터 분양권·전월세·재건축까지, 바로 쓰는 임장 체크리스트 템플릿을 골라 임장 노트를 작성하세요. 내집나우가 만든 공식 체크리스트 제공.",
   robots: { index: true, follow: true },
 };
 

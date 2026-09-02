@@ -1,5 +1,5 @@
 /**
- * 누구집 서비스워커 — PWA 설치 요건용 최소 구현.
+ * 내집나우 서비스워커 — PWA 설치 요건용 최소 구현.
  * (구 woodong-sw-v11-purge는 캐시 삭제 후 자가 unregister 하는 정리용이라
  *  SwRegister 와 함께 쓰면 재등록 루프가 생기므로, 최소 안전 SW로 교체)
  */
@@ -77,7 +77,7 @@ self.addEventListener("push", (event) => {
     payload = { body: event.data ? event.data.text() : "" };
   }
 
-  const title = payload.title || "누구집 알림";
+  const title = payload.title || "내집나우 알림";
   const options = {
     body: payload.body || "",
     /* 알림 아이콘도 PNG. 안드로이드 알림 트레이는 SVG 를 렌더하지 않아서

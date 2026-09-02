@@ -1,3 +1,4 @@
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 import "server-only";
 
 import type { MetadataRoute } from "next";
@@ -126,7 +127,7 @@ for (const slug of SITEMAP_SECTION_SLUGS) {
   }
 }
 
-const BASE_URL = "https://nuguzip.com";
+const BASE_URL = DEFAULT_DESKTOP_ORIGIN; /* [947] 도메인 단일 소스 */
 
 function xmlEscape(value: string): string {
   return value

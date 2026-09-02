@@ -74,7 +74,7 @@ export function ExpertCard({ e, index }: { e: ExpertCardData; index: number }) {
                  자격 서류·신원 확인 후 관리자 승인이다
                  (lib/experts/verification-store.ts) — 그 이상을 주장하지 않는다. */
               <span
-                title="자격 서류와 신원 확인을 거쳐 누구집이 승인한 전문가예요"
+                title="자격 서류와 신원 확인을 거쳐 내집나우가 승인한 전문가예요"
                 className="shrink-0 rounded-[5px] bg-primary-soft chip-pad-tight t-caption font-extrabold text-primary"
               >
                 인증

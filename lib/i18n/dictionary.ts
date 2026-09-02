@@ -52,7 +52,7 @@ type Dict = {
 };
 
 const KO: Dict = {
-  brand: "누구집",
+  brand: "내집나우",
   tagline: "AI 임장·부동산 커뮤니티",
   nav: {
     home: "홈",
@@ -90,7 +90,7 @@ const KO: Dict = {
 };
 
 const EN: Dict = {
-  brand: "Nuguzip",
+  brand: "NAEJIP NOW",
   tagline: "AI field-note real estate community",
   nav: {
     home: "Home",

@@ -1,7 +1,7 @@
 /**
  * 개발물건 등록 API.
  * POST /api/dev-deals/deal — authed(safeAuth) · IP/계정당 속도 제한 · {ok,id} 반환.
- * 누구집은 소개·매칭 플랫폼으로 계약·정산에 관여하지 않는다.
+ * 내집나우는 소개·매칭 플랫폼으로 계약·정산에 관여하지 않는다.
  */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";

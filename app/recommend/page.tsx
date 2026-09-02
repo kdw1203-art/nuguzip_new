@@ -22,7 +22,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "맞춤 추천 · 누구집",
+  title: "맞춤 추천 · 내집나우",
   description:
     "관심지역·예산·목적에 맞춘 단지·지역 추천과 추천 이유를 확인하세요. 데이터가 쌓일수록 더 정교해집니다.",
 };

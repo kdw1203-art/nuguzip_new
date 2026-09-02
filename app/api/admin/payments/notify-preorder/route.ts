@@ -68,7 +68,7 @@ export async function POST() {
       await appendInboxNotification({
         userEmail: email,
         title: "멤버십 결제가 열렸어요",
-        body: "사전 등록하신 누구집 멤버십 결제가 열렸습니다. 등록해 두신 관심에 감사드려요 — 요금제 페이지에서 플랜을 확인해 보세요.",
+        body: "사전 등록하신 내집나우 멤버십 결제가 열렸습니다. 등록해 두신 관심에 감사드려요 — 요금제 페이지에서 플랜을 확인해 보세요.",
         actionUrl: "/subscription",
       });
       /* 발송 기록을 먼저가 아니라 발송 성공 직후에 남긴다 — 기록만 되고

@@ -17,7 +17,7 @@ import { PaymentSuccessMoment } from "./PaymentSuccessMoment";
 import type { AppPlan } from "@/lib/billing/plan";
 
 export const metadata: Metadata = {
-  title: "결제 완료 | 누구집",
+  title: "결제 완료 | 내집나우",
   robots: { index: false, follow: false },
 };
 

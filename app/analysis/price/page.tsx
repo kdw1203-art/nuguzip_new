@@ -301,7 +301,7 @@ export default async function PricePage({
                 </table>
               </div>
               <div className="t-caption px-5 py-2.5 text-text-3">
-                평단가 = 전용면적 평(3.3㎡)당 평균 매매가. 지역 분위는 누구집에 수록된
+                평단가 = 전용면적 평(3.3㎡)당 평균 매매가. 지역 분위는 내집나우에 수록된
                 지역들 중 같은 면적대 평단가 순위예요(표본 8곳 이상일 때만 표시).
               </div>
             </div>

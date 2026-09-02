@@ -37,17 +37,17 @@ export async function generateMetadata({
      200 으로 스트리밍을 시작한 뒤 본문 notFound() 는 UI 만 바꾼다(soft-404) —
      실측: 없는 id 가 200 + "찾을 수 없습니다" 본문으로 나갔다. */
   if (!e) notFound();
-  const title = `${e.name} ${e.title || e.category} — 부동산 전문가 | 누구집`;
+  const title = `${e.name} ${e.title || e.category} — 부동산 전문가 | 내집나우`;
   const description = (
     e.introduction?.trim() ||
-    `${e.regions.join("·") || "전국"} 활동 ${e.category} 전문가. 누구집에서 상담을 신청할 수 있어요.`
+    `${e.regions.join("·") || "전국"} 활동 ${e.category} 전문가. 내집나우에서 상담을 신청할 수 있어요.`
   ).slice(0, 150);
   return {
     title,
     description,
     alternates: seoAlternates(`/town/experts/${e.id}`),
     robots: e.isVerified ? { index: true, follow: true } : { index: false, follow: false },
-    openGraph: { title, description, url: `${BASE_URL}/town/experts/${e.id}`, siteName: "누구집", locale: "ko_KR", type: "profile" },
+    openGraph: { title, description, url: `${BASE_URL}/town/experts/${e.id}`, siteName: "내집나우", locale: "ko_KR", type: "profile" },
   };
 }
 

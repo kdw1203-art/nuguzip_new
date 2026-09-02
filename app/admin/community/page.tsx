@@ -5,7 +5,7 @@ import { SeedReplyForm } from "./SeedReplyForm";
 /* [#121·#123] 커뮤니티 운영 — 참여 지표 + 미답변 글 시드 답글 도구.
    0→1 구간의 계기판: 이번 주 글·댓글·채택률·미답변, 그리고 빈 스레드 처방. */
 
-export const metadata = { title: "커뮤니티 운영 · 누구집 Admin" };
+export const metadata = { title: "커뮤니티 운영 · 내집나우 Admin" };
 
 type Metric = { label: string; value: string; sub?: string };
 
@@ -95,7 +95,7 @@ export default async function AdminCommunityPage() {
         <h1 className="text-[20px] font-extrabold text-white">커뮤니티 운영</h1>
         <p className="mt-1 text-[12.5px] leading-[1.7] text-[#9aa6b8]">
           0→1 구간 계기판 — 이번 주 참여, 미답변 글 시드 답글, 검색 제로결과(콘텐츠
-          주문서). 시드 답글은 &lsquo;누구집&rsquo; 공식 라벨로 게시되고 포인트는 적립되지
+          주문서). 시드 답글은 &lsquo;내집나우&rsquo; 공식 라벨로 게시되고 포인트는 적립되지
           않습니다.
         </p>
       </div>

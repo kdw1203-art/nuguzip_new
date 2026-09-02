@@ -70,16 +70,16 @@ export async function generateMetadata({
   const { slug } = await params;
   const def = seasonBySlug(slug);
   if (!def) {
-    return { title: "계절 리포트 | 누구집", robots: { index: false, follow: false } };
+    return { title: "계절 리포트 | 내집나우", robots: { index: false, follow: false } };
   }
   const report = await getSeasonReport(slug);
   if (!report) {
     return {
-      title: `${def.label}(${def.monthsLabel}) 실거래 리포트 | 누구집`,
+      title: `${def.label}(${def.monthsLabel}) 실거래 리포트 | 내집나우`,
       robots: { index: false, follow: true },
     };
   }
-  const title = `${def.label} ${def.monthsLabel} 아파트 거래, 정말 몰릴까 — 실거래로 검증 | 누구집`;
+  const title = `${def.label} ${def.monthsLabel} 아파트 거래, 정말 몰릴까 — 실거래로 검증 | 내집나우`;
   const description = `${def.monthsLabel} 아파트 매매 실거래를 같은 해 다른 달과 비교했습니다. ${report.latest.year}년 ${def.monthsLabel} 거래 ${report.latest.txCount.toLocaleString("ko-KR")}건, 국토교통부 신고 기준.`;
   const path = `/reports/season/${slug}`;
   return {
@@ -120,8 +120,8 @@ export default async function SeasonReportPage({
 
   const citation =
     compared.length === 0
-      ? `누구집(nuguzip.com) 집계에 따르면, ${latest.year}년 ${def.monthsLabel} 아파트 매매 실거래는 ${latest.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 같은 해 다른 달과의 비교는 아직 불가).`
-      : `누구집(nuguzip.com) 집계에 따르면, ${compared[compared.length - 1]!.year}년 ${def.monthsLabel}의 아파트 매매 실거래는 같은 해 같은 지역의 다른 달 대비 월평균 ${pct(compared[compared.length - 1]!.vsOffSeason!.liftPct)} 수준이었다 (국토교통부 실거래 신고 기반).`;
+      ? `내집나우(nuguzip.com) 집계에 따르면, ${latest.year}년 ${def.monthsLabel} 아파트 매매 실거래는 ${latest.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 같은 해 다른 달과의 비교는 아직 불가).`
+      : `내집나우(nuguzip.com) 집계에 따르면, ${compared[compared.length - 1]!.year}년 ${def.monthsLabel}의 아파트 매매 실거래는 같은 해 같은 지역의 다른 달 대비 월평균 ${pct(compared[compared.length - 1]!.vsOffSeason!.liftPct)} 수준이었다 (국토교통부 실거래 신고 기반).`;
 
   const faq: FaqItem[] = [
     {
@@ -146,8 +146,8 @@ export default async function SeasonReportPage({
   /* N18 — 기사 리드로 옮길 수 있는 문장. 위에서 쓴 실측치 재사용만 한다. */
   const pressSentences: string[] = [
     compared.length === 0
-      ? `누구집이 국토교통부 실거래 신고 자료를 집계한 결과, ${latest.year}년 ${def.monthsLabel} 아파트 매매 실거래는 ${latest.txCount.toLocaleString("ko-KR")}건으로 나타났다. 같은 해 다른 달 집계가 없어 계절 간 비교는 하지 않았다.`
-      : `누구집이 국토교통부 실거래 신고 자료를 집계한 결과, ${compared[compared.length - 1]!.year}년 ${def.monthsLabel}의 아파트 매매 실거래는 월평균 ${n(compared[compared.length - 1]!.vsOffSeason!.seasonPerMonth)}건으로, 같은 해 같은 지역의 다른 달(월평균 ${n(compared[compared.length - 1]!.vsOffSeason!.offPerMonth)}건) 대비 ${pct(compared[compared.length - 1]!.vsOffSeason!.liftPct)} 수준이었다.`,
+      ? `내집나우가 국토교통부 실거래 신고 자료를 집계한 결과, ${latest.year}년 ${def.monthsLabel} 아파트 매매 실거래는 ${latest.txCount.toLocaleString("ko-KR")}건으로 나타났다. 같은 해 다른 달 집계가 없어 계절 간 비교는 하지 않았다.`
+      : `내집나우가 국토교통부 실거래 신고 자료를 집계한 결과, ${compared[compared.length - 1]!.year}년 ${def.monthsLabel}의 아파트 매매 실거래는 월평균 ${n(compared[compared.length - 1]!.vsOffSeason!.seasonPerMonth)}건으로, 같은 해 같은 지역의 다른 달(월평균 ${n(compared[compared.length - 1]!.vsOffSeason!.offPerMonth)}건) 대비 ${pct(compared[compared.length - 1]!.vsOffSeason!.liftPct)} 수준이었다.`,
   ];
   if (compared.length >= 2) {
     pressSentences.push(
@@ -166,7 +166,7 @@ export default async function SeasonReportPage({
     headline: `${def.label}(${def.monthsLabel}) 아파트 실거래 검증 리포트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "누구집", url: "https://nuguzip.com" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
     publisher: { "@id": "https://nuguzip.com/#organization" },
     ...(report.updatedAt
       ? { dateModified: report.updatedAt, datePublished: report.updatedAt }

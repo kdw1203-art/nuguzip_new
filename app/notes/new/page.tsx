@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
    사용자의 일회용 진입 주소이고(메모 초안이 주소에 실리기도 한다), 검색에서
    들어와도 로그인 벽을 만난다. follow 는 남겨 내부 링크는 그대로 타게 둔다. */
 export const metadata: Metadata = {
-  title: "임장노트 작성 | 누구집",
+  title: "임장노트 작성 | 내집나우",
   robots: { index: false, follow: true },
 };
 

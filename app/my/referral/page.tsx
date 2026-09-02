@@ -17,7 +17,7 @@ import { ShareRow } from "./ShareRow";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "친구 추천 · 누구집" };
+export const metadata = { title: "친구 추천 · 내집나우" };
 
 const FALLBACK_ORIGIN = "https://nuguzip.com";
 

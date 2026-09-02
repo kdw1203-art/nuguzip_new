@@ -400,7 +400,7 @@ export function WelcomeClient() {
             가까우세요?
           </h1>
           <p className="rise-in-1 -mt-2 text-[13px] text-text-2">
-            누구집은 발로 뛰는 임장러를 위한 부동산 의사결정 플랫폼이에요. 골라 주시면
+            내집나우는 발로 뛰는 임장러를 위한 부동산 의사결정 플랫폼이에요. 골라 주시면
             홈·추천을 맞춰 드려요. (선택 사항)
           </p>
 

@@ -69,7 +69,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           }}
         />
         <div style={{ fontSize: "34px", fontWeight: 800, color: INK, display: "flex" }}>
-          누구집 · nuguzip.com
+          내집나우 · nuguzip.com
         </div>
       </div>
     </div>
@@ -239,7 +239,7 @@ export type PromoFrameInput = {
 export async function renderPromoFrames(p: PromoFrameInput): Promise<Buffer[]> {
   const cover = await toPng(
     <Shell>
-      <Badge text="누구집" />
+      <Badge text="내집나우" />
       <div
         style={{
           marginTop: "96px",

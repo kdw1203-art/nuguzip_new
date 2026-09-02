@@ -105,7 +105,7 @@ export async function generateMetadata({
   const { region: regionId } = await params;
   const data = await loadPage(regionId);
   if (!data) {
-    return { title: "시장 온도 주간 기록 | 누구집", robots: { index: false, follow: false } };
+    return { title: "시장 온도 주간 기록 | 내집나우", robots: { index: false, follow: false } };
   }
   const { region, history } = data;
   const latest = history[history.length - 1] ?? null;
@@ -113,7 +113,7 @@ export async function generateMetadata({
 
   if (!latest) {
     return {
-      title: `${region.label} 시장 온도 주간 기록 | 누구집`,
+      title: `${region.label} 시장 온도 주간 기록 | 내집나우`,
       description: `${region.label}의 시장 온도 주간 기록입니다. 아직 저장된 주가 없습니다.`,
       alternates: seoAlternates(path),
       // 내용이 없는 페이지를 색인시키지 않는다. 기록이 쌓이면 자연히 풀린다.
@@ -125,12 +125,12 @@ export async function generateMetadata({
     `${region.label} 시장 온도는 ${formatWeekKorean(latest.weekStart)}이 속한 주 기준 ${latest.score}점(0~100, 50이 중립)입니다. ` +
     `${latest.headline}. 최근 ${history.length}주 기록을 한국부동산원 매매가격지수 모멘텀과 국토교통부 실거래 거래량 추이로 계산해 매주 저장합니다.`;
   return {
-    title: `${region.label} 시장 온도 주간 기록 | 누구집`,
+    title: `${region.label} 시장 온도 주간 기록 | 내집나우`,
     description,
     alternates: seoAlternates(path),
     robots: { index: true, follow: true },
     openGraph: {
-      title: `${region.label} 시장 온도 주간 기록 | 누구집`,
+      title: `${region.label} 시장 온도 주간 기록 | 내집나우`,
       description,
       url: `https://nuguzip.com${path}`,
       type: "website",
@@ -407,7 +407,7 @@ export default async function TemperatureRegionPage({
       </section>
 
       <CitationBlock
-        sentence={`누구집(nuguzip.com) 집계에 따르면, ${region.label}의 시장 온도는 ${formatWeekKorean(
+        sentence={`내집나우(nuguzip.com) 집계에 따르면, ${region.label}의 시장 온도는 ${formatWeekKorean(
           latest.weekStart,
         )}이 속한 주 기준 ${latest.score}점이다 (0~100 눈금, 50이 중립. 한국부동산원 아파트 매매가격지수 모멘텀과 국토교통부 실거래 거래량 추이 기반, 그 주에 마지막으로 관측한 값).`}
       />

@@ -5,7 +5,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 export const metadata = buildPageMetadata({
   title: "커뮤니티 운영정책",
-  description: "누구집 커뮤니티 이용 규칙, 금지 행위, 신고·제재 절차를 안내합니다.",
+  description: "내집나우 커뮤니티 이용 규칙, 금지 행위, 신고·제재 절차를 안내합니다.",
   path: "/legal/community",
 });
 

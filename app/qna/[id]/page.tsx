@@ -75,14 +75,14 @@ export async function generateMetadata({
   const loaded = await loadQuestion(id);
   /* 못 읽은 것은 없는 것이 아니다 — 색인만 막고 제목은 실패라고 정확히 쓴다. */
   if (!loaded.ok) {
-    return { title: "질문을 불러오지 못했어요 | 누구집", robots: { index: false, follow: false } };
+    return { title: "질문을 불러오지 못했어요 | 내집나우", robots: { index: false, follow: false } };
   }
   if (!loaded.data) {
-    return { title: "질문을 찾을 수 없어요 | 누구집", robots: { index: false, follow: false } };
+    return { title: "질문을 찾을 수 없어요 | 내집나우", robots: { index: false, follow: false } };
   }
   const { title, body } = loaded.data.question;
   return {
-    title: `${title} | 단지 Q&A | 누구집`,
+    title: `${title} | 단지 Q&A | 내집나우`,
     description: (body || title).slice(0, 150),
     robots: { index: true, follow: true },
   };

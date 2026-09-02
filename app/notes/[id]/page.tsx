@@ -208,7 +208,7 @@ function toView(n: InspectionNote, visitsOverride?: Visit[]): NoteView {
   const doneCount = n.checklist.filter((c) => c.done).length;
   const meta: string[] = [`방문 ${n.visitDate}`];
   if (n.weather) meta.push(n.weather);
-  meta.push(n.authorLabel?.trim() || "누구집 스카우트");
+  meta.push(n.authorLabel?.trim() || "내집나우 스카우트");
 
   const chips = [n.region, displayTitle].filter(Boolean);
   const weakest = scoreEntries
@@ -319,13 +319,13 @@ export async function generateMetadata({
   if (!note || !note.isPublic) {
     // 비공개 노트·없는 노트·조회 실패는 색인 금지 (20b 색인 정책)
     return {
-      title: "임장노트 — 누구집",
+      title: "임장노트 — 내집나우",
       robots: { index: false, follow: false },
     };
   }
 
   const displayTitle = note.aptName?.trim() || note.title;
-  const title = `${note.title} — ${note.region} 임장노트 | 누구집`;
+  const title = `${note.title} — ${note.region} 임장노트 | 내집나우`;
   const description = (
     note.summary?.trim() ||
     note.sections.memo?.trim() ||
@@ -360,7 +360,7 @@ export async function generateMetadata({
       title,
       description,
       url: canonical,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "article",
       publishedTime: note.createdAt,
@@ -397,11 +397,11 @@ function articleJsonLd(note: InspectionNote): Record<string, unknown> {
     dateModified: note.updatedAt,
     author: {
       "@type": "Person",
-      name: note.authorLabel?.trim() || "누구집 스카우트",
+      name: note.authorLabel?.trim() || "내집나우 스카우트",
     },
     publisher: {
       "@type": "Organization",
-      name: "누구집",
+      name: "내집나우",
       url: BASE_URL,
     },
     mainEntityOfPage: {
@@ -424,7 +424,7 @@ function noteJsonLd(
   view: NoteView,
 ): Record<string, unknown> {
   const apt = note.aptName?.trim() || undefined;
-  const author = note.authorLabel?.trim() || "누구집 스카우트";
+  const author = note.authorLabel?.trim() || "내집나우 스카우트";
   const datePublished = note.createdAt || undefined;
   const score = view.totalScore;
 

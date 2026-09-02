@@ -9,9 +9,9 @@ import { loadCoverage } from "@/lib/stats/coverage";
 export const revalidate = 3600;
 
 export const metadata = buildPageMetadata({
-  title: "누구집 소개 — 운영 원칙",
+  title: "내집나우 소개 — 운영 원칙",
   description:
-    "누구집은 임장 기록을 부동산 판단 근거로 만드는 서비스입니다. 사실 우선 원칙과 데이터 처리 방식을 공개합니다.",
+    "내집나우는 임장 기록을 부동산 판단 근거로 만드는 서비스입니다. 사실 우선 원칙과 데이터 처리 방식을 공개합니다.",
   path: "/about",
 });
 
@@ -34,7 +34,7 @@ const PRINCIPLES: { title: string; body: string }[] = [
   },
   {
     title: "판단은 사용자의 것입니다",
-    body: "누구집은 매수·매도를 추천하지 않습니다. 데이터와 본인의 임장 기록을 나란히 두고, 판단의 근거를 쌓는 것을 돕습니다.",
+    body: "내집나우는 매수·매도를 추천하지 않습니다. 데이터와 본인의 임장 기록을 나란히 두고, 판단의 근거를 쌓는 것을 돕습니다.",
   },
 ];
 
@@ -52,10 +52,10 @@ export default async function AboutPage() {
       />
       <div className="mx-auto max-w-[720px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
-          누구집 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다
+          내집나우 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다
         </h1>
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
-          누구집(nuguzip.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래
+          내집나우(nuguzip.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래
           데이터와 나란히 놓고, 부동산 판단의 근거를 쌓도록 돕는 서비스입니다.
         </p>
 

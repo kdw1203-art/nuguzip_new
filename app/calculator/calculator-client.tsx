@@ -323,7 +323,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
 
   /* CTA 조건 전달 — 임장노트 메모 프리셋 · 시나리오 딥링크 파라미터 */
   const memoDraft = [
-    "대출 계산 조건 (누구집 계산기)",
+    "대출 계산 조건 (내집나우 계산기)",
     `- 매매가 ${formatEok(price)} · 구분 ${ownership}`,
     `- 대출 ${effectiveRatio}% (${formatEok(Math.round(loan))}) · 금리 ${rate}%${rateIsLive ? "(공시 평균)" : "(가정)"} · ${years}년 원리금균등`,
     `- 월 원리금 약 ${Math.round(monthly)}만원 · 취득세(${acqRateLabel}) 포함 필요 현금 약 ${formatEok(Math.round(cashNeeded))}`,

@@ -24,15 +24,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const guide = GUIDE_BY_SLUG.get(slug);
-  if (!guide) return { title: "가이드 | 누구집" };
+  if (!guide) return { title: "가이드 | 내집나우" };
   return {
-    title: `${guide.title} | 누구집`,
+    title: `${guide.title} | 내집나우`,
     description: guide.metaDescription,
     alternates: seoAlternates(`/guides/${guide.slug}`),
     openGraph: {
       title: guide.title,
       description: guide.metaDescription,
-      siteName: "누구집",
+      siteName: "내집나우",
       locale: "ko_KR",
       type: "article",
     },

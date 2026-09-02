@@ -6,7 +6,7 @@ import { safeAuth } from "@/lib/safe-auth";
 import { appendComment, getPost } from "@/lib/posts-store";
 
 /* [#121] 시드 답글 — 빈 스레드가 첫 방문자를 돌려세우지 않도록, 관리자만
-   공식 라벨("누구집")로 빠른 답글을 단다. 일반 댓글 경로(포인트 적립·알림)와
+   공식 라벨("내집나우")로 빠른 답글을 단다. 일반 댓글 경로(포인트 적립·알림)와
    분리된 운영 도구이므로 적립은 없다(자가 적립 원천 차단). */
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const updated = await appendComment(postId, {
     id: randomUUID(),
-    authorLabel: "누구집",
+    authorLabel: "내집나우",
     authorEmail: session?.user?.email ?? undefined,
     body: text.slice(0, 2000),
     createdAt: new Date().toISOString(),

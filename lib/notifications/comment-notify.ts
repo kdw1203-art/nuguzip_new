@@ -25,7 +25,7 @@ export async function notifyPostAuthorOfNewComment(input: {
     return;
   }
 
-  const subject = `[누구집] 새 댓글: ${post.title.slice(0, 60)}`;
+  const subject = `[내집나우] 새 댓글: ${post.title.slice(0, 60)}`;
   const preview = comment.body.slice(0, 280);
   /* [B23] 알림이 **그 글로** 가야 한다.
      예전에는 메일도 인앱 알림도 목적지가 `/town` 이었다 — 댓글 알림을 받고

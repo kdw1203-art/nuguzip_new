@@ -73,7 +73,7 @@ function BannerCard({ banner }: { banner: Banner }) {
 }
 
 /**
- * 하우스 광고(누구집 안내) 카드.
+ * 하우스 광고(내집나우 안내) 카드.
  *
  * 디자인: 예전엔 순백(bg-surface) 카드라, 커버 이미지가 있는 임장노트 카드들
  * 사이(동네이야기 피드)에 끼면 "빈 구멍"처럼 튀어 리듬을 깼다(2026-08-15 소유자
@@ -168,7 +168,7 @@ function HouseAdCard({ ad }: { ad: HouseAd }) {
             {ad.eyebrow}
           </span>
           <span className="relative rounded-[6px] bg-white/20 chip-pad text-[9px] font-bold text-white">
-            누구집 안내
+            내집나우 안내
           </span>
         </div>
         <div className="flex flex-col gap-1 px-4 pb-3.5 pt-2.5">

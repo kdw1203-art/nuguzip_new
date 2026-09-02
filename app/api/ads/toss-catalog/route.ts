@@ -45,12 +45,12 @@ function buildItems(): FeedItem[] {
       const billingLabel = months === 12 ? "연간" : "월간";
       items.push({
         id: `nuguzip-${tier}-${billing}`,
-        title: `누구집 ${planLabel(tier)} ${billingLabel} 구독`,
+        title: `내집나우 ${planLabel(tier)} ${billingLabel} 구독`,
         description:
           months === 12
             ? `아파트 실거래·시세 분석 ${planLabel(tier)} 플랜 — 월 ${period.monthlyEquivalentKrw.toLocaleString("ko-KR")}원 꼴(${period.discountPct}% 할인), 결제 7일 이내 전액 환불`
             : `아파트 실거래·시세 분석 ${planLabel(tier)} 플랜 — 월 ${period.totalKrw.toLocaleString("ko-KR")}원, 결제 7일 이내 전액 환불`,
-        brand: "누구집",
+        brand: "내집나우",
         /* 1200×630 기본 공유 카드(라우트 확인: app 레이아웃 og 기본값) —
            광고 소재 심사에서 별도 규격을 요구하면 그때 교체한다. */
         image_link: `${SITE}/og-image`,

@@ -26,8 +26,8 @@ export function regionTitle(id: string, name: string): { title: string; variant:
     variant,
     title:
       variant === "A"
-        ? `${name} 아파트 시세·실거래·정비사업 | 누구집`
-        : `${name} 아파트 값 총정리 — 시세·실거래·입주 물량 | 누구집`,
+        ? `${name} 아파트 시세·실거래·정비사업 | 내집나우`
+        : `${name} 아파트 값 총정리 — 시세·실거래·입주 물량 | 내집나우`,
   };
 }
 

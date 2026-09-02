@@ -34,7 +34,7 @@ export function CookieConsentBanner() {
           글래스 토큰(양 테마 정의됨)으로 교체. */}
       <div className="mx-auto flex max-w-[560px] flex-col gap-2 rounded-2xl border border-line bg-[var(--glass-bg-strong)] p-3.5 shadow-[var(--shadow-md)] backdrop-blur-md md:max-w-[360px]">
         <p className="text-[12px] leading-[1.55] text-text-1">
-          누구집은 서비스 운영에 필요한 필수 쿠키를 사용해요. 이용 통계 분석 쿠키는{" "}
+          내집나우는 서비스 운영에 필요한 필수 쿠키를 사용해요. 이용 통계 분석 쿠키는{" "}
           <b>동의하신 경우에만</b> 사용합니다.{" "}
           <Link href="/legal/privacy" className="font-bold text-primary underline">
             개인정보처리방침

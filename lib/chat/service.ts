@@ -419,7 +419,7 @@ export async function sendMessageByPolicy(
     if (allowEmail) {
       await enqueueEmailNotification({
         to: email,
-        subject: "[누구집] 새 채팅 메시지",
+        subject: "[내집나우] 새 채팅 메시지",
         body: preview,
         metadata: { roomId: input.roomId, messageId: message.id, from: sender },
       });

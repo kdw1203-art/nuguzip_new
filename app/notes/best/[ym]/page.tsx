@@ -56,16 +56,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { ym } = await params;
   if (!/^\d{6}$/.test(ym)) {
-    return { title: "이달의 공개 임장노트 | 누구집", robots: { index: false, follow: false } };
+    return { title: "이달의 공개 임장노트 | 내집나우", robots: { index: false, follow: false } };
   }
   const month = await getBestNotesMonth(ym);
   if (!month) {
     return {
-      title: `${formatYmKo(ym)} 이달의 공개 임장노트 | 누구집`,
+      title: `${formatYmKo(ym)} 이달의 공개 임장노트 | 내집나우`,
       robots: { index: false, follow: true },
     };
   }
-  const title = `${formatYmKo(month.ym)} 이달의 공개 임장노트 ${month.picks.length}편 | 누구집`;
+  const title = `${formatYmKo(month.ym)} 이달의 공개 임장노트 ${month.picks.length}편 | 내집나우`;
   const description = `${formatYmKo(month.ym)}에 공개된 임장노트 ${month.totalCount}편 중 기록이 충실한 ${month.picks.length}편입니다. 사람이 고르지 않고 공개된 ${MAX_SCORE}점 계산식으로 뽑았습니다.`;
   const path = `/notes/best/${month.ym}`;
   return {
@@ -114,7 +114,7 @@ export default async function BestNotesMonthPage({
     headline: `${label} 이달의 공개 임장노트`,
     description: leadSentence,
     inLanguage: "ko-KR",
-    author: { "@type": "Organization", name: "누구집", url: "https://nuguzip.com" },
+    author: { "@type": "Organization", name: "내집나우", url: "https://nuguzip.com" },
     publisher: { "@id": "https://nuguzip.com/#organization" },
     ...(top ? { dateModified: top.note.updatedAt, datePublished: top.note.createdAt } : {}),
     mainEntityOfPage: `https://nuguzip.com/notes/best/${month.ym}`,

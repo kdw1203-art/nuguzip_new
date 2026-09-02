@@ -67,7 +67,7 @@ const SOCIAL_BUTTON: Record<SocialProvider, { label: string; className: string }
 
 function genericContext(social: SocialProvider[]): LoginContext {
   return {
-    line1: "누구집 계정으로",
+    line1: "내집나우 계정으로",
     line2: "임장 기록을 이어가세요",
     sub: social.length
       ? `${social.map((p) => SOCIAL_LABEL[p]).join("·")} 계정으로 3초면 시작할 수 있어요`

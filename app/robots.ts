@@ -20,7 +20,9 @@ import { SITEMAP_PATHS } from "@/lib/seo/sitemap-slugs";
  *   /points(잔액·내역)만 막고 /shop 은 예외로 연다.
  */
 
-const BASE_URL = "https://nuguzip.com";
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
+
+const BASE_URL = DEFAULT_DESKTOP_ORIGIN; /* [947] 도메인 단일 소스 */
 
 export default function robots(): MetadataRoute.Robots {
   return {

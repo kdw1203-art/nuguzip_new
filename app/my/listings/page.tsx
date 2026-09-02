@@ -37,7 +37,7 @@ import { getOwnerInquiryStats } from "@/lib/listings/inquiries";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "내 매물 · 누구집",
+  title: "내 매물 · 내집나우",
   robots: { index: false, follow: false },
 };
 
@@ -130,7 +130,7 @@ export default async function MyListingsPage() {
             </Link>
           </div>
           <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
-            누구집은 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물
+            내집나우는 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물
             등록·중개 행위는 개업공인중개사가 수행합니다.
           </div>
         </div>
@@ -336,7 +336,7 @@ export default async function MyListingsPage() {
 
       {/* 법적 고지 */}
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 t-sub text-text-3">
-        누구집은 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물 정보의
+        내집나우는 광고 매체로서 매물 정보를 게재할 뿐 중개 당사자가 아니며, 매물 정보의
         정확성에 대한 책임은 등록자에게 있습니다.
       </div>
     </PageShell>

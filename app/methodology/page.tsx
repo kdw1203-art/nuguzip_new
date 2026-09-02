@@ -4,7 +4,7 @@ import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { jsonLdScript } from "@/lib/seo/jsonld";
 
 export const metadata = buildPageMetadata({
-  title: "데이터 방법론 — 누구집 시세는 이렇게 계산합니다",
+  title: "데이터 방법론 — 내집나우 시세는 이렇게 계산합니다",
   description:
     "국토교통부 실거래 기반 시세 집계 방식, 해제거래 제외, 신고 지연 처리, 시장 온도 지표의 계산 공식을 공개합니다.",
   path: "/methodology",
@@ -53,7 +53,7 @@ const SECTIONS: { id: string; q: string; a: string[] }[] = [
     id: "temperature",
     q: "\"시장 온도\"는 무엇인가요?",
     a: [
-      "누구집 고유 지표로, 지역 시장의 가격·거래 활동을 0~100으로 요약합니다. 50이 중립입니다.",
+      "내집나우 고유 지표로, 지역 시장의 가격·거래 활동을 0~100으로 요약합니다. 50이 중립입니다.",
       "계산: 50점 기준에 ① 매매가격지수 모멘텀(최근 3개월 평균 변동률, 월 ±1%를 ±25점으로 환산)과 ② 거래량 추이(신고 완결월 기준 최근 구간 대비 직전 구간 증감, ±50%를 ±25점으로 환산)를 더합니다. 거래량 완결월이 4개 미만이면 지수 모멘텀만 반영하며, 화면에 그 사실을 표시합니다.",
       "시장 온도는 매수·매도 추천이 아니라 시장 상태의 서술이며, 계산에 쓰인 실측 입력값을 항상 함께 보여 줍니다.",
     ],
@@ -113,11 +113,11 @@ export default function MethodologyPage() {
       />
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
-          누구집 시세는 이렇게 계산합니다
+          내집나우 시세는 이렇게 계산합니다
         </h1>
         {/* G12 — 정의형 첫 문단: 이 페이지가 무엇인지 완결 문장으로 */}
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
-          이 페이지는 누구집(nuguzip.com)이 국토교통부 실거래 데이터를 수집·집계해
+          이 페이지는 내집나우(nuguzip.com)이 국토교통부 실거래 데이터를 수집·집계해
           시세와 지표를 만드는 방식을 공개한 문서입니다. 새로 만든 규칙이 아니라,
           서비스가 실제로 동작하는 방식을 그대로 적었습니다.
         </p>

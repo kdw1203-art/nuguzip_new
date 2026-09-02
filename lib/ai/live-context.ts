@@ -159,7 +159,7 @@ async function loadNews(
       title: String(r.title),
       at: String(r.created_at),
     })),
-    source: "누구집 자동수집 뉴스(우리 요약)",
+    source: "내집나우 자동수집 뉴스(우리 요약)",
     asOf: String((data[0] as { created_at?: string }).created_at ?? "").slice(0, 10) || null,
     sample: data.length,
     href: "/town/news",

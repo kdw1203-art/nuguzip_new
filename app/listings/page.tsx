@@ -23,7 +23,7 @@ import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "실매물 — 집주인 직접·중개사 등록 매물 · 누구집",
+  title: "실매물 — 집주인 직접·중개사 등록 매물 · 내집나우",
   description:
     "집주인이 직접 등록하거나 제휴 중개사가 올린 매물을 검수 후 보여드려요. 실거래가와 비교하며 확인하세요.",
   // N7 — 필터·정렬 파라미터 조합이 별개 URL 로 색인되지 않도록 canonical 고정
@@ -80,9 +80,9 @@ export default async function ListingsPage() {
       {/* 법적 고지 */}
       <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
         매물 정보는 등록자(집주인·중개사)가 직접 입력한 내용으로, 그 정확성에 대한
-        책임은 등록자에게 있습니다. 누구집의 검수는 형식 요건 확인일 뿐 매물의 진위·
+        책임은 등록자에게 있습니다. 내집나우의 검수는 형식 요건 확인일 뿐 매물의 진위·
         권리관계를 보증하지 않습니다. 중개 행위는 해당 매물을 등록한 개업공인중개사가
-        수행하며, 누구집은 광고 매체로서 정보를 게재할 뿐 중개 당사자가 아닙니다.
+        수행하며, 내집나우는 광고 매체로서 정보를 게재할 뿐 중개 당사자가 아닙니다.
       </div>
       {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 마켓 표면 공통 고지 */}
       <ComplianceNotice variant="market" className="mt-2" />

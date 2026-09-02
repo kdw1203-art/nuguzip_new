@@ -130,13 +130,13 @@ export async function generateMetadata(): Promise<Metadata> {
       ? `같은 동에서 최근 12개월 매매 ${MIN_SIDE_TX}건 이상 신고된 단지끼리만 짝지어, ${regionCount}개 지역 ${pairs.length.toLocaleString("ko-KR")}개 조합의 실거래를 나란히 비교합니다. 국토교통부 신고 자료 기준이며 매물 호가가 아닙니다.`
       : "같은 동의 거래 많은 단지끼리 실거래를 나란히 비교합니다. 국토교통부 신고 자료 기준이며 매물 호가가 아닙니다.";
   return {
-    title: "단지 vs 단지 실거래 비교 | 누구집",
+    title: "단지 vs 단지 실거래 비교 | 내집나우",
     description,
     alternates: seoAlternates(PATH),
     // 조회가 실패한 상태의 껍데기를 색인시키지 않는다. 다음 재검증에서 성공하면 사라진다.
     ...(loadFailed ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
-      title: "단지 vs 단지 실거래 비교 | 누구집",
+      title: "단지 vs 단지 실거래 비교 | 내집나우",
       description,
       url: `https://nuguzip.com${PATH}`,
       type: "website",

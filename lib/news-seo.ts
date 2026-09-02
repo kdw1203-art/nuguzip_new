@@ -12,7 +12,10 @@ import type { PostAutomationMeta } from "@/lib/types/post";
  *   geo = { scope, sido, sigungu, places[], landmarks[], address }
  */
 
-export const SITE_URL = "https://nuguzip.com";
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
+
+/* [947] 도메인 단일 소스 — platform-shell 에서 파생 */
+export const SITE_URL = DEFAULT_DESKTOP_ORIGIN;
 
 export type NewsSeo = {
   seo_title?: string;
@@ -138,7 +141,7 @@ export function splitSummary(summary: string): string[] {
  * 구조화 데이터.
  *
  * DB 의 jsonld 를 바탕으로 하되 URL 계열은 현재 정식 URL 로 덮어쓴다(slug 도입
- * 후에도 어긋나지 않게). author 는 **누구집**이다 — 이 페이지 본문이 원문 전재가
+ * 후에도 어긋나지 않게). author 는 **내집나우**이다 — 이 페이지 본문이 원문 전재가
  * 아니라 우리가 쓴 요약·분석이기 때문이다. 원 매체는 citation / isBasedOn 으로
  * 명시해 출처는 그대로 밝히되 저작 주체를 사실대로 적는다.
  *
@@ -159,8 +162,8 @@ export function buildNewsJsonLd(
     ...seo.jsonld,
     url,
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
-    author: { "@type": "Organization", name: "누구집", url: SITE_URL },
-    publisher: { "@type": "Organization", name: "누구집", url: SITE_URL },
+    author: { "@type": "Organization", name: "내집나우", url: SITE_URL },
+    publisher: { "@type": "Organization", name: "내집나우", url: SITE_URL },
   };
 
   if (sourceUrl) {

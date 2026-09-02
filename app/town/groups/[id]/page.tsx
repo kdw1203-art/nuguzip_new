@@ -30,12 +30,12 @@ export async function generateMetadata({
   const meeting = await getMeeting(id).catch(() => null);
   if (!meeting) {
     return {
-      title: "임장 모임 | 누구집",
+      title: "임장 모임 | 내집나우",
       robots: { index: false, follow: false },
     };
   }
   const region = meeting.region || "";
-  const title = `${meeting.title}${region ? ` · ${region}` : ""} 임장 모임 | 누구집`;
+  const title = `${meeting.title}${region ? ` · ${region}` : ""} 임장 모임 | 내집나우`;
   const desc =
     (meeting.description || "같은 단지를 함께 돌아볼 이웃을 찾는 임장 모임입니다.")
       .replace(/\s+/g, " ")
@@ -215,7 +215,7 @@ export default async function TownGroupDetailPage({
             </p>
           </div>
 
-          {/* 크루 도구 — 답사 전 준비를 누구집 안에서 끝내게 한다 */}
+          {/* 크루 도구 — 답사 전 준비를 내집나우 안에서 끝내게 한다 */}
           <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-5">
             <div className="text-[13px] font-extrabold text-ink">임장 준비</div>
             <p className="text-[12px] leading-[1.6] text-text-2">

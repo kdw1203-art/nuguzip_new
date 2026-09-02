@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getBusinessInfo } from "@/lib/brand/business-info";
 
 export const metadata: Metadata = {
-  title: "법적 고지 | 누구집",
+  title: "법적 고지 | 내집나우",
   description: "이용약관, 개인정보처리방침, 위치/청소년 정책과 개인정보 열람 안내",
 };
 

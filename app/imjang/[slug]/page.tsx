@@ -49,11 +49,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const guide = await load(slug);
   if (!guide) {
-    return { title: "지역 임장 가이드 | 누구집", robots: { index: false, follow: false } };
+    return { title: "지역 임장 가이드 | 내집나우", robots: { index: false, follow: false } };
   }
   const { region, topComplexes } = guide;
   const range = formatYmRange(region.firstYm, region.latestYm);
-  const title = `${region.name} 임장 가이드 — 단지 우선순위·현장 체크포인트 | 누구집`;
+  const title = `${region.name} 임장 가이드 — 단지 우선순위·현장 체크포인트 | 내집나우`;
   const description = `${region.name} 임장(현장 답사) 준비: 실거래 ${region.txCount.toLocaleString(
     "ko-KR",
   )}건 기준 거래 활발 단지 ${Math.min(topComplexes.length, 10)}곳과 현장에서만 확인되는 체크포인트 ${
@@ -114,7 +114,7 @@ export default async function ImjangRegionPage({
   }
   faq.push({
     q: "임장노트는 왜 쓰나요?",
-    a: "시세는 누구나 볼 수 있지만 소음·주차·관리 상태 같은 현장 정보는 가 본 사람만 압니다. 기록해 두면 여러 단지를 같은 기준으로 비교할 수 있고, 누구집은 기록을 AI 로 정리해 실거래 데이터와 나란히 놓아 줍니다.",
+    a: "시세는 누구나 볼 수 있지만 소음·주차·관리 상태 같은 현장 정보는 가 본 사람만 압니다. 기록해 두면 여러 단지를 같은 기준으로 비교할 수 있고, 내집나우는 기록을 AI 로 정리해 실거래 데이터와 나란히 놓아 줍니다.",
   });
 
   const crumbs = breadcrumbJsonLd([

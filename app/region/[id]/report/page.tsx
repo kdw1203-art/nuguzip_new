@@ -24,7 +24,7 @@ export async function generateMetadata({
   const { id } = await params;
   const region = findCatalogRegionById(id);
   if (!region) {
-    return { title: "지역을 찾을 수 없습니다 | 누구집", robots: { index: false, follow: false } };
+    return { title: "지역을 찾을 수 없습니다 | 내집나우", robots: { index: false, follow: false } };
   }
   const title = `${region.name} 월간 아파트 시장 리포트 아카이브`;
   const description = `${region.name} 아파트 매매 거래량·평균가·상위 실거래를 월별로 고정한 스냅샷 아카이브. 매월 자동 축적됩니다.`;

@@ -23,8 +23,8 @@ export function pdfBrandingForPlan(plan: string | null | undefined, authorLabel?
       authorLabel,
       showProBadge: true,
       footerLine: authorLabel
-        ? `${authorLabel} · Nuguzip EXPERT · B2B 리포트`
-        : "Nuguzip EXPERT · 팀·법인 브랜드 리포트",
+        ? `${authorLabel} · NAEJIP NOW EXPERT · B2B 리포트`
+        : "NAEJIP NOW EXPERT · 팀·법인 브랜드 리포트",
     };
   }
   if (tier === "expert") {
@@ -33,8 +33,8 @@ export function pdfBrandingForPlan(plan: string | null | undefined, authorLabel?
       authorLabel,
       showProBadge: true,
       footerLine: authorLabel
-        ? `${authorLabel} · Nuguzip PRO 리포트 · AI 추정 포함`
-        : "Nuguzip PRO · 전문가 브랜드 임장 리포트",
+        ? `${authorLabel} · NAEJIP NOW PRO 리포트 · AI 추정 포함`
+        : "NAEJIP NOW PRO · 전문가 브랜드 임장 리포트",
     };
   }
   if (tier === "pro") {
@@ -42,13 +42,13 @@ export function pdfBrandingForPlan(plan: string | null | undefined, authorLabel?
       tier,
       authorLabel,
       showProBadge: true,
-      footerLine: "Nuguzip PLUS · PRO 임장 리포트",
+      footerLine: "NAEJIP NOW PLUS · PRO 임장 리포트",
     };
   }
   return {
     tier,
     authorLabel,
     showProBadge: false,
-    footerLine: "Nuguzip · 참고용 임장 리포트",
+    footerLine: "NAEJIP NOW · 참고용 임장 리포트",
   };
 }

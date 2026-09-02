@@ -434,7 +434,7 @@ function DevDealsSidebar() {
         <div className="text-[14px] font-extrabold text-ink">중개 수수료</div>
         <p className="mt-1.5 text-[12px] leading-[1.6] text-text-2">
           매칭이 성사되면 <strong className="text-ink">사업규모(총사업비)</strong>에 따라 중개
-          수수료가 부과돼요. <strong className="text-ink">누구집은 결제·정산을 진행하지 않으며</strong>{" "}
+          수수료가 부과돼요. <strong className="text-ink">내집나우는 결제·정산을 진행하지 않으며</strong>{" "}
           실제 정산은 당사자 간에 이뤄집니다.
         </p>
         <Link

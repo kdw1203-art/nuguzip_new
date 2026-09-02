@@ -54,10 +54,10 @@ export async function generateMetadata({
   const { region: slug } = await params;
   const region = await load(slug);
   if (!region) {
-    return { title: "지역 실거래 구간 | 누구집", robots: { index: false, follow: false } };
+    return { title: "지역 실거래 구간 | 내집나우", robots: { index: false, follow: false } };
   }
   const range = formatYmRange(region.firstYm, region.latestYm);
-  const title = `${region.name} 아파트 실거래 ${region.txCount.toLocaleString("ko-KR")}건 — 면적대·가격대별 | 누구집`;
+  const title = `${region.name} 아파트 실거래 ${region.txCount.toLocaleString("ko-KR")}건 — 면적대·가격대별 | 내집나우`;
   const description = `${region.name} 아파트 매매 실거래를 면적대(${region.areaCells.length}구간)·가격대(${region.priceCells.length}구간)로 나눠 봅니다. 국토교통부 신고 기준${
     range ? ` ${range}` : ""
   } ${region.txCount.toLocaleString("ko-KR")}건. 매물 호가가 아닙니다.`;
@@ -244,7 +244,7 @@ export default async function TxRegionPage({
       {/* G8 — 인용 유도: 출처·기준월이 붙은 완결 인용문 제공 */}
       {region.txCount > 0 && (
         <CitationBlock
-          sentence={`누구집(nuguzip.com) 집계에 따르면, ${region.name} 아파트 매매 실거래는${range ? ` ${range}` : ""} ${region.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 해제분 제외).`}
+          sentence={`내집나우(nuguzip.com) 집계에 따르면, ${region.name} 아파트 매매 실거래는${range ? ` ${range}` : ""} ${region.txCount.toLocaleString("ko-KR")}건이다 (국토교통부 실거래 신고 기반, 해제분 제외).`}
         />
       )}
 

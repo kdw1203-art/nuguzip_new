@@ -97,13 +97,13 @@ export async function generateMetadata(): Promise<Metadata> {
       ? `${formatWeekKorean(weekStart)} 주 기준 ${rows.length}개 지역의 시장 온도(0~100)를 지난주와 나란히 봅니다. 매매가격지수 모멘텀과 실거래 거래량 추이로 계산하며, 매주 기록을 남겨 추세를 확인할 수 있습니다.`
       : "지역별 시장 온도(0~100)를 매주 기록해 추세를 확인합니다. 매매가격지수 모멘텀과 국토교통부 실거래 거래량 추이로만 계산하며, 근거가 없는 지역은 점수를 만들지 않습니다.";
   return {
-    title: "지역별 시장 온도 주간 기록 | 누구집",
+    title: "지역별 시장 온도 주간 기록 | 내집나우",
     description,
     alternates: seoAlternates(PATH),
     // 조회가 실패한 상태의 껍데기를 색인시키지 않는다. 다음 재검증에서 성공하면 사라진다.
     ...(loadFailed ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
-      title: "지역별 시장 온도 주간 기록 | 누구집",
+      title: "지역별 시장 온도 주간 기록 | 내집나우",
       description,
       url: `https://nuguzip.com${PATH}`,
       type: "website",
@@ -320,7 +320,7 @@ export default async function TemperatureHubPage() {
 
       {hottest && coldest && weekLabel && rows.length >= 2 && (
         <CitationBlock
-          sentence={`누구집(nuguzip.com) 집계에 따르면, ${weekLabel}이 속한 주의 시장 온도는 ${hottest.current.regionLabel}가 ${hottest.current.score}점으로 가장 높고 ${coldest.current.regionLabel}가 ${coldest.current.score}점으로 가장 낮다 (0~100 눈금, 50이 중립. 한국부동산원 매매가격지수 모멘텀과 국토교통부 실거래 거래량 추이 기반, 그 주에 마지막으로 관측한 값).`}
+          sentence={`내집나우(nuguzip.com) 집계에 따르면, ${weekLabel}이 속한 주의 시장 온도는 ${hottest.current.regionLabel}가 ${hottest.current.score}점으로 가장 높고 ${coldest.current.regionLabel}가 ${coldest.current.score}점으로 가장 낮다 (0~100 눈금, 50이 중립. 한국부동산원 매매가격지수 모멘텀과 국토교통부 실거래 거래량 추이 기반, 그 주에 마지막으로 관측한 값).`}
         />
       )}
 

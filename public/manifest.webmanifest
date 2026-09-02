@@ -1,7 +1,7 @@
 {
-  "name": "누구집 — 임장노트 플랫폼",
-  "short_name": "누구집",
-  "description": "3분 기록 → AI 정리 → 지도 비교. 부동산 임장노트 플랫폼 누구집.",
+  "name": "내집나우 — 임장노트 플랫폼",
+  "short_name": "내집나우",
+  "description": "3분 기록 → AI 정리 → 지도 비교. 부동산 임장노트 플랫폼 내집나우.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
