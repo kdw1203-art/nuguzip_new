@@ -34,13 +34,17 @@ type Personal = {
 
 type Slide = { key: string; text: string; href: string };
 
-const ROTATE_MS = 6000;
+const ROTATE_MS = 9000; // [950] 6→9초: 한 문장을 읽기 전에 넘어간다는 지적
 
 function regionSentence(r: KpiRegion): string {
   const d = r.delta.replace(/[▲▼]/g, "").trim();
-  if (r.tone === "up") return `${r.name} 아파트 평균이 ${r.price}, 지난달보다 ${d} 올랐어요.`;
-  if (r.tone === "down") return `${r.name} 아파트 평균이 ${r.price}, 지난달보다 ${d} 내렸어요.`;
-  return `${r.name} 아파트 평균은 ${r.price}, 지난달과 비슷해요.`;
+  /* [950] 기준월을 문장에 적는다 — "지난달보다"만 있으면 9월에 읽는 사람은 8월 대비로
+     오해한다(스냅샷은 7월 지수). 숫자의 시점은 숫자의 일부다. */
+  const when = r.periodLabel ? `${r.periodLabel} ` : "";
+  const vs = r.periodLabel ? "전월보다" : "지난달보다";
+  if (r.tone === "up") return `${r.name} ${when}아파트 평균이 ${r.price}, ${vs} ${d} 올랐어요.`;
+  if (r.tone === "down") return `${r.name} ${when}아파트 평균이 ${r.price}, ${vs} ${d} 내렸어요.`;
+  return `${r.name} ${when}아파트 평균은 ${r.price}, 전월과 비슷해요.`;
 }
 
 export function HomeTodayLine({

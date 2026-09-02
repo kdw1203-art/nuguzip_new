@@ -360,6 +360,8 @@ export type PublicNoteCard = {
    * 이것 때문에 `select("*")` 로 돌아가지 않게 여기 포함한다.
    */
   scores: InspectionScores;
+  /** [950] 작성 주체 라벨 — "내집나우 Lab …"(데이터 노트) 과 사람 노트를 화면에서 구분한다 */
+  authorLabel: string | null;
 };
 
 /**
@@ -391,7 +393,7 @@ export async function listPublicNoteCards(
     .from("inspection_notes")
     /* 한 줄짜리 **리터럴**이어야 한다. `"a," + "b"` 로 쪼개면 supabase-js 가
        컬럼 목록을 타입 수준에서 못 읽어 data 가 GenericStringError[] 로 떨어진다. */
-    .select("id,title,region,apt_name,visit_date,summary,created_at,score_location,score_school,score_transport,score_facility,score_future")
+    .select("id,title,region,apt_name,visit_date,summary,created_at,author_label,score_location,score_school,score_transport,score_facility,score_future")
     .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -411,6 +413,7 @@ export async function listPublicNoteCards(
     visitDate: String(r.visit_date ?? "").slice(0, 10),
     summary: (r.summary as string | null) ?? null,
     createdAt: String(r.created_at ?? ""),
+    authorLabel: (r.author_label as string | null) ?? null,
     scores: {
       location: Number(r.score_location ?? 0),
       school: Number(r.score_school ?? 0),
@@ -419,6 +422,11 @@ export async function listPublicNoteCards(
       future: Number(r.score_future ?? 0),
     },
   }));
+}
+
+/** [950] Lab(데이터·AI 편집) 노트인가 — author_label 에 "Lab" 이 들어가면 그렇다(실측: 공개 22건 전부). */
+export function isLabNoteLabel(authorLabel: string | null | undefined): boolean {
+  return /\blab\b/i.test(authorLabel ?? "");
 }
 
 /**

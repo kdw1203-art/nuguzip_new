@@ -27,6 +27,9 @@ import {
   type PublicNoteCard,
 } from "@/lib/inspection/store-db";
 import { getMortgageRates } from "@/lib/finance/mortgage-rates";
+import { SEOUL_DISTRICTS } from "@/lib/map/seoul-districts";
+import { isLabNoteLabel } from "@/lib/inspection/store-db";
+import { readRelatedTownPosts } from "@/lib/newui/board-posts";
 import { DELTA_UNKNOWN } from "@/lib/newui/delta-label";
 import { logger } from "@/lib/log";
 
@@ -37,6 +40,8 @@ export interface HomeRegionCard {
   name: string;
   /** 예: "서울 · 37건" */
   meta: string;
+  /** [950] 스냅샷 기준월 — 예: "7월". 티커·카드·한 줄 문장이 같은 시점을 적는다(홈 비판 ⑥). */
+  periodLabel: string | null;
   /** 예: "32.5억" */
   price: string;
   /** 예: "▼ 4.2%" */
@@ -54,6 +59,17 @@ export interface HomeNoteItem {
   /** 예: "78점" */
   score: string;
   hot: boolean;
+  /** [950] "lab" = 내집나우 Lab 데이터·AI 편집 노트, "user" = 사람이 쓴 노트 */
+  kind: "lab" | "user";
+}
+
+/** [950] 커뮤니티 글이 없을 때 홈이 대신 보여 주는 자동수집 뉴스 한 줄 */
+export interface HomeNewsItem {
+  id: string;
+  title: string;
+  source: string | null;
+  /** YYYY.MM.DD */
+  when: string | null;
 }
 
 export interface HomePostItem {
@@ -81,6 +97,8 @@ export interface HomeBriefing {
   text: string;
   /** 예: "기준일 2026.07" */
   asOfLabel: string;
+  /** [950] 무엇을 잰 값인지 — 예: "REB 매매가격지수 전월비". 티커·지역 카드와 같은 기준임을 화면에 적는다. */
+  basis: string;
 }
 
 export interface NewHomeData {
@@ -115,6 +133,8 @@ export interface NewHomeData {
   regions: HomeRegionCard[];
   notes: HomeNoteItem[];
   posts: HomePostItem[];
+  /** [950] 커뮤니티 글(posts)이 0건일 때 대신 보여 줄 자동수집 뉴스 3건 — 빈 방 대신 읽을거리 */
+  news: HomeNewsItem[];
   meetings: HomeMeetingItem[];
   reports: HomeReportItem[];
   /**
@@ -143,6 +163,7 @@ export const EMPTY_NEW_HOME_DATA: NewHomeData = {
   regions: [],
   notes: [],
   posts: [],
+  news: [],
   meetings: [],
   reports: [],
   /* 이 상수가 쓰이는 경로는 "로더가 통째로 실패했다" 하나뿐이다.
@@ -319,7 +340,45 @@ async function computeBriefing(): Promise<HomeBriefing | null> {
     arrow === "—" ? "평균 보합" : `평균 ${arrow}${Math.abs(avg).toFixed(1)}%`;
   const text = `${lead}, ${avgLabel}`;
   const asOfLabel = `기준일 ${latestMonth.slice(0, 4)}.${latestMonth.slice(4, 6)}`;
-  return { text, asOfLabel };
+  return { text, asOfLabel, basis: "신고 실거래 평균가 전월비(거래 구성 변화 포함)" };
+}
+
+/* [950] 브리핑을 **티커·지역 카드와 같은 원천**(market_region_price · REB 지수 전월비)
+   으로 만든다. 예전 computeBriefing 은 market_region_monthly(실거래 평균가 전월비,
+   거래 구성 변화 포함)를 읽어 "서울 25곳 중 18곳 하락 ▼5.7%"(8월) 를 내놓았고, 바로
+   위 티커는 같은 화면에서 "강남구 ▲0.6%"(7월 지수) 를 흘렸다 — 둘 다 사실이지만
+   기준이 달라 읽는 사람에게는 데이터가 서로 모순돼 보였다(홈 비판 ⑥).
+   같은 스냅샷에서 세면 문장과 숫자가 한 기준으로 맞는다. 옛 함수는 남겨 둔다
+   (market_region_monthly 기반 문장이 필요한 화면이 생기면 basis 를 적어 쓰면 된다). */
+function briefingFromSnapshots(
+  snapshots: Map<string, RegionMarketSnapshot>,
+): HomeBriefing | null {
+  const deltas: number[] = [];
+  let period: string | null = null;
+  for (const d of SEOUL_DISTRICTS) {
+    const snap = snapshots.get(d.id);
+    const v = snap?.saleChangeMonthly;
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    deltas.push(v);
+    if (!period && snap?.period) period = String(snap.period);
+  }
+  const n = deltas.length;
+  if (n < 5 || !period) return null; // 서울 구 5곳 미만이면 "서울" 을 대표한다고 말하지 않는다
+  const falling = deltas.filter((d) => d < -0.1).length;
+  const rising = deltas.filter((d) => d > 0.1).length;
+  const avg = deltas.reduce((a, b) => a + b, 0) / n;
+  const arrow = avg > 0.05 ? "▲" : avg < -0.05 ? "▼" : "—";
+  const lead =
+    rising >= falling
+      ? `서울 ${n}개 구 중 ${rising}곳 상승`
+      : `서울 ${n}개 구 중 ${falling}곳 하락`;
+  const avgLabel = arrow === "—" ? "평균 보합" : `평균 ${arrow}${Math.abs(avg).toFixed(1)}%`;
+  const ym = /^\d{6}$/.test(period) ? `${period.slice(0, 4)}.${period.slice(4, 6)}` : period;
+  return {
+    text: `${lead}, ${avgLabel}`,
+    asOfLabel: `기준 ${ym}`,
+    basis: "한국부동산원 매매가격지수 전월비 · 위 지역 평균과 같은 기준",
+  };
 }
 
 const loadBriefingCached = unstable_cache(
@@ -334,6 +393,7 @@ const loadBriefingCached = unstable_cache(
   ["newui-home-briefing"],
   { revalidate: 3600 },
 );
+void loadBriefingCached; // 950: 홈은 briefingFromSnapshots 를 쓴다(위 주석). 참조만 남겨 삭제를 막는다.
 
 /* ---------- 오늘 활동 (platform_activity_events, KST 오늘) ---------- */
 
@@ -414,6 +474,12 @@ async function countPublicNotesTotal(): Promise<number | null> {
 /* ---------- 지역 시세 카드 (스냅샷 → 카드) ---------- */
 
 /** 스냅샷 맵에서 홈 지역 시세 카드를 만든다. DB 접근 없음(순수 변환). */
+/** "202607" → "7월" — 스냅샷 기준월 표시용. 형식이 다르면 null(없는 시점을 지어내지 않는다). */
+function periodLabelOf(period: string | null | undefined): string | null {
+  if (!period || !/^\d{6}$/.test(period)) return null;
+  return `${Number(period.slice(4, 6))}월`;
+}
+
 function buildRegionCards(
   snapshots: Map<string, RegionMarketSnapshot>,
 ): HomeRegionCard[] {
@@ -428,10 +494,12 @@ function buildRegionCards(
       typeof snap.tradeCount === "number" && snap.tradeCount > 0
         ? ` · ${Math.round(snap.tradeCount).toLocaleString("ko-KR")}건`
         : "";
+    const periodLabel = periodLabelOf(snap.period);
     regions.push({
       id: target.id,
       name: target.name,
-      meta: `${target.city}${trade}`,
+      meta: `${target.city}${trade}${periodLabel ? ` (${periodLabel})` : ""}`,
+      periodLabel,
       price: formatEok(priceWon),
       delta,
       tone,
@@ -497,7 +565,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     publicNotes,
     saleIndexSeoul,
     mortgage,
-    briefing,
+    newsPosts,
     activityToday,
     notesToday,
     publicNotesTotal,
@@ -524,7 +592,11 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
       }),
       loadSaleIndexSeoul().catch(() => null),
       getMortgageRates().catch(() => null),
-      loadBriefingCached().catch((): HomeBriefing | null => null),
+      /* [950] 자동수집 뉴스 — 커뮤니티 글이 비어 있을 때의 대체 읽을거리(5분 데이터 캐시) */
+      readRelatedTownPosts().catch((err): Awaited<ReturnType<typeof readRelatedTownPosts>> => {
+        logger.error("[loadNewHomeData] 뉴스 목록 조회 실패", err);
+        return [];
+      }),
       loadActivityToday().catch((): number | null => null),
       countPublicNotesToday().catch((): number | null => null),
       countPublicNotesTotal().catch((): number | null => null),
@@ -540,15 +612,32 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
   await attachRegionSparks(regions);
 
   // ── 공개 임장노트 (inspection_notes) ──
-  const notes: HomeNoteItem[] = publicNotes.slice(0, 3).map((n) => {
-    const score = noteScoreOf(n);
-    return {
-      id: n.id,
-      title: n.aptName && !n.title.includes(n.aptName) ? `${n.aptName} — ${n.title}` : n.title,
-      score: `${score}점`,
-      hot: score >= 75,
-    };
-  });
+  /* [950] 사람(이웃) 노트를 Lab 데이터 노트보다 앞에 둔다 — 최신순은 유지하되
+     종류로 먼저 가른다. 10건 중 사람 노트가 하나라도 있으면 홈 3칸에 반드시 들어간다. */
+  const notes: HomeNoteItem[] = publicNotes
+    .map((n) => {
+      const score = noteScoreOf(n);
+      return {
+        id: n.id,
+        title: n.aptName && !n.title.includes(n.aptName) ? `${n.aptName} — ${n.title}` : n.title,
+        score: `${score}점`,
+        hot: score >= 75,
+        kind: (isLabNoteLabel(n.authorLabel) ? "lab" : "user") as HomeNoteItem["kind"],
+      };
+    })
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "user" ? -1 : 1))
+    .slice(0, 3);
+  /* [950] 브리핑은 지역 카드와 같은 스냅샷에서 센다 — 한 화면 한 기준 */
+  const briefing = briefingFromSnapshots(snapshots);
+  const news: HomeNewsItem[] = newsPosts
+    .filter((p) => p.isAutomated === true) // 뉴스만 — 사람 글은 posts 가 이미 맡는다
+    .slice(0, 3)
+    .map((p) => ({
+      id: String(p.id),
+      title: String(p.title ?? ""),
+      source: p.sourceName ? String(p.sourceName) : null,
+      when: p.createdAt ? String(p.createdAt).slice(0, 10).replace(/-/g, ".") : null,
+    }));
   /* notesToday 는 위 Promise.all 의 countPublicNotesToday() 결과다 — 목록(3건)과
      같은 조회에서 세지 않는다. 목록은 10건만 받아오므로 오늘 11건째부터는
      영원히 10건으로 굳었다. */
@@ -598,6 +687,7 @@ async function loadNewHomeDataInternal(): Promise<NewHomeData> {
     regions,
     notes,
     posts,
+    news,
     meetings,
     reports,
     failed: {

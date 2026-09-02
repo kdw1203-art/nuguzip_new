@@ -24,6 +24,9 @@ import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 
 const BASE_URL = DEFAULT_DESKTOP_ORIGIN; /* [947] 도메인 단일 소스 */
 
+/** 단일 출처: lib/security/blocked-crawlers.ts (미들웨어 403 목록과 같은 표) */
+import { BLOCKED_CRAWLERS } from "@/lib/security/blocked-crawlers";
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
@@ -63,6 +66,11 @@ export default function robots(): MetadataRoute.Robots {
          meta-externalagent 만 전면 차단 유지 — 검색 인용이 아니라 학습 전용
          크롤러인데 단독으로 RUM 27% 를 차지한 실측 낭비가 있어서다. */
       { userAgent: "meta-externalagent", disallow: "/" },
+      /* [950 · 운영 필수 11] 트래픽을 보내지 않는 SEO 도구·스크레이퍼 크롤러 전면 차단.
+         단지 페이지가 하루 6천 회 넘게 함수로 렌더되는데(ISR 미스), 이런 봇은 색인
+         유입이 없다. 검색엔진(Google·Naver·Bing·Daum)과 AI 검색 봇은 위 규칙대로 연다.
+         robots 를 무시하는 것(Bytespider 등)은 middleware.ts 가 엣지에서 403 으로 막는다. */
+      ...BLOCKED_CRAWLERS.map((userAgent) => ({ userAgent, disallow: "/" })),
       ...["GPTBot", "OAI-SearchBot", "ClaudeBot", "CCBot", "PerplexityBot", "Google-Extended"].map(
         (userAgent) => ({
           userAgent,

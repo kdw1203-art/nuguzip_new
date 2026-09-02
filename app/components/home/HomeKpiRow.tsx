@@ -19,6 +19,8 @@ export interface KpiRegion {
   /** meta 에서 뽑은 최근 거래 건수 문자열 (예: "120건") — 없으면 null */
   tradeLabel: string | null;
   href: string;
+  /** [950] 기준월(예: "7월") — 문장이 "지난달보다"라고만 하면 어느 달인지 알 수 없다 */
+  periodLabel?: string | null;
 }
 
 export interface KpiTemp {

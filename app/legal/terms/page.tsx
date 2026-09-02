@@ -57,7 +57,8 @@ export default function TermsPage() {
           <p className="mt-1 text-sm text-text-3">시행일: {UPDATED}</p>
           <div className="mt-3 rounded-[14px] bg-primary-soft p-3 text-xs leading-relaxed text-primary">
             본 약관은 우리동네이야기(이하 &quot;회사&quot;)가 제공하는 서비스의 이용 조건 및 절차, 회사와
-            이용자의 권리·의무 및 책임에 관한 사항을 규정합니다.
+            이용자의 권리·의무 및 책임에 관한 사항을 규정합니다. &quot;내집나우&quot;는 회사가 운영하는
+            서비스의 이름이며, 본 약관에서 &quot;서비스&quot;는 내집나우(웹·모바일)를 뜻합니다.
           </div>
         </div>
 

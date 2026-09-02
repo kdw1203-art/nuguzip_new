@@ -12,6 +12,7 @@ import {
   isAllowedMiniAppOrigin,
 } from "@/lib/mini-app/cors";
 import { buildContentSecurityPolicy } from "@/lib/security/content-security-policy";
+import { isBlockedCrawler } from "@/lib/security/blocked-crawlers";
 import { CSP_REV_COOKIE, CSP_REVISION, currentDeployId, DEPLOY_COOKIE } from "@/lib/security/deploy-sync";
 import {
   CRAWLER_ENDPOINT_CACHE_CONTROL,
@@ -214,6 +215,19 @@ export async function middleware(request: NextRequest) {
   const origin = request.headers.get("origin");
   const hostname = normalizeHost(host);
 
+  /* [950 · 운영 필수 11] 가치 없는 크롤러는 엣지에서 끝낸다 — 함수(ISR 렌더)까지
+     가지 않는다. 표는 robots.txt 와 같다(lib/security/blocked-crawlers.ts). 크론
+     경로는 헤드리스 curl 이라 UA 가 겹칠 일이 없지만 원칙상 제외한다. */
+  if (
+    !request.nextUrl.pathname.startsWith("/api/cron/") &&
+    isBlockedCrawler(request.headers.get("user-agent"))
+  ) {
+    return new NextResponse("crawler not permitted — see /robots.txt", {
+      status: 403,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
+
   /* [939 · I004] 관리자 API 속도 제한 — 25개 라우트의 유일한 관문(이 미들웨어)에서
      IP당 분 120회로 막는다. 관리자 화면의 정상 사용은 분당 수십 회를 넘지 않고,
      403 반복 탐침·스크레이핑이 이 문턱에 걸린다. 엣지 격리 인스턴스별 메모리라
@@ -290,17 +304,17 @@ export async function middleware(request: NextRequest) {
   /* [949 · 계측] /notes/new 는 robots 로 막았는데도 하루 1,900회 함수가 돈다 —
      역시 UA 표본(20%)을 남겨 정체를 본다. */
   if (request.nextUrl.pathname === "/notes/new" && Math.random() < 0.2) {
-    const ua = (request.headers.get("user-agent") ?? "").slice(0, 80);
+    const ua = (request.headers.get("user-agent") ?? "").slice(0, 160);
     console.info(`[ua-sample] notes-new ua="${ua}"`);
   }
   if (request.nextUrl.pathname.startsWith("/complex/")) {
     /* [949 · 계측] 단지 허브는 하루 6천 회 넘게 함수가 도는데(ISR 미스, 1.5초에 1개
        꼴로 롱테일을 훑는 크롤러) 런타임 로그에는 UA 가 남지 않아 **누가** 훑는지
-       알 수 없었다. 5% 표본으로 UA 앞 80자만 엣지 로그에 남긴다 — 사람 방문은
+       알 수 없었다. 5% 표본으로 UA 앞 160자만 엣지 로그에 남긴다 — 사람 방문은
        web_vitals 로 이미 보이므로 이 표본은 사실상 봇 구성표다. 가치 없는 봇이면
        robots/차단으로, 검색엔진이면 크롤 예산 조정으로 대응한다(개인정보 아님). */
     if (Math.random() < 0.05) {
-      const ua = (request.headers.get("user-agent") ?? "").slice(0, 80);
+      const ua = (request.headers.get("user-agent") ?? "").slice(0, 160);
       console.info(`[ua-sample] complex ua="${ua}"`);
     }
     try {

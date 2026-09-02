@@ -46,23 +46,24 @@ function flatten(r: UnifiedResults): FlatItem[] {
   return out;
 }
 
-/** 실데이터 커버 지역 바로가기 — 최근 기록이 아무것도 없는 첫 방문자용 폴백 */
-const REGION_FALLBACK = [
-  { label: "동안구", href: "/map?district=%EB%8F%99%EC%95%88%EA%B5%AC" },
-  { label: "만안구", href: "/map?district=%EB%A7%8C%EC%95%88%EA%B5%AC" },
-  { label: "의왕시", href: "/map?q=%EC%9D%98%EC%99%95%EC%8B%9C" },
-  { label: "과천시", href: "/map?q=%EA%B3%BC%EC%B2%9C%EC%8B%9C" },
-];
+/** [950] 지역 칩은 서버(홈)가 실데이터 지역 카드에서 넘긴다 — 티커·카드와 같은 지역.
+ *  예전 고정 폴백(동안구·만안구·의왕시·과천시)은 초기 커버리지의 흔적이라 서비스가
+ *  안양 근방만 다루는 것처럼 읽혔다(홈 비판 ③). 넘어온 칩이 없으면 칩 행을 그리지 않는다. */
+export interface HeroRegionChip {
+  label: string;
+  href: string;
+}
 
-/** 회전 플레이스홀더 — 전부 실제 커버 지역의 검색어 예시(지어낸 단지 없음) */
+/** 회전 플레이스홀더 — 검색이 무엇을 찾아 주는지 예고한다(단지·지역·노트·뉴스).
+ *  실제 존재하는 단지·지역만 적는다(헬리오시티: 서울 송파구 실거래 다수). */
 const PLACEHOLDERS = [
-  "예: 공작아파트 · 동안구 · 재건축",
-  "예: 평촌 신축 대단지",
-  "예: 인덕원 실거래",
-  "예: 관양동 임장노트",
+  "단지명 — 예: 헬리오시티",
+  "지역명 — 예: 마포구 신축",
+  "동네 + 임장노트 — 예: 잠실 임장노트",
+  "뉴스·재건축 — 예: 목동 재건축",
 ];
 
-export function HomeHeroSearch() {
+export function HomeHeroSearch({ regionChips = [] }: { regionChips?: HeroRegionChip[] }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [phIdx, setPhIdx] = useState(0);
@@ -246,31 +247,31 @@ export function HomeHeroSearch() {
             ))}
           </>
         ) : (
-          <>
-            {/* "열린 지역" 프레임(#홈비판 — 커버리지가 작아 보이는 문제):
-                4개 지역은 한계가 아니라 수요 순 확장의 현재 지점이라고 말한다 */}
-            <span className="text-[11px] font-semibold text-text-3">
-              열린 지역 · 수요 순 확장 중
-            </span>
-            {REGION_FALLBACK.map((r) => (
+          regionChips.length > 0 && (
+            <>
+              {/* [950] "열린 지역 · 수요 순 확장 중" 은 전국 218개 시군구를 다루는 지금과
+                  맞지 않는 문구였다. 바로 눌러 볼 수 있는 지역(시세 카드와 같은 곳)만 보인다. */}
+              <span className="text-[11px] font-semibold text-text-3">바로 보기</span>
+              {regionChips.map((r) => (
+                <button
+                  key={r.label}
+                  type="button"
+                  onClick={() => router.push(r.href)}
+                  className="chip bg-surface px-3 py-1.5 t-sub font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
+                >
+                  {r.label}
+                </button>
+              ))}
+              {/* 내 동네는 지도에서 — 검색 무결과 화면의 수요 카드는 그대로 살아 있다 */}
               <button
-                key={r.label}
                 type="button"
-                onClick={() => router.push(r.href)}
-                className="chip bg-surface px-3 py-1.5 t-sub font-bold text-text-2 shadow-sm transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
+                onClick={() => router.push("/map")}
+                className="chip bg-primary-soft px-3 py-1.5 t-sub font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
               >
-                {r.label}
+                지도에서 내 동네 찾기
               </button>
-            ))}
-            {/* 커버 밖 방문자용 — 검색하면 무결과에서 열림 알림(수요 카드)로 이어진다 */}
-            <button
-              type="button"
-              onClick={() => router.push("/search")}
-              className="chip bg-primary-soft px-3 py-1.5 t-sub font-bold text-primary transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_rgba(16,28,54,.12)]"
-            >
-              + 내 지역 요청
-            </button>
-          </>
+            </>
+          )
         )}
       </div>
     </div>

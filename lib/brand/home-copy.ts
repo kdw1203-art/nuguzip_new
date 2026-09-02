@@ -52,7 +52,21 @@ export const HOME_CTA_AI = {
   href: "/notes/new?intent=ai",
 } as const;
 
+/** [950] 검색 질문 아래 한 줄 — "무엇이 다른가"를 첫 화면에서 말한다(홈 비판 ①).
+ *  히어로 블록은 두지 않는다(소유자 지시 2026-08-16: 검색이 첫인상). 작은 보조문 한 줄. */
+export const HOME_HERO_SUBLINE_SHORT =
+  "시세는 누구나 봅니다. 현장은 가 본 사람만 압니다 — 실거래 옆에 현장 기록을 남기는 임장노트";
+
 export const HOME_AI_GATEWAY_TITLE = "임장노트 AI 정리";
+/** [950] 예시를 두 칸(입력→정리)으로 보여 준다 — 수치 창작 없음, 형식 안내 */
+export const HOME_AI_GATEWAY_LEAD =
+  "현장에서 적은 짧은 메모를 저장하면 AI(또는 규칙 초안)가 장단점·리스크·확인 항목으로 정리합니다. 로그인은 저장할 때만.";
+export const HOME_AI_EXAMPLE_INPUT = "“복도 결로 흔적, 밤 주차 빡빡, 초등학교 도보 7분”";
+export const HOME_AI_EXAMPLE_OUTPUT = [
+  "리스크 2건: 결로(관리 상태 확인) · 야간 주차난",
+  "장점 1건: 초등학교 도보권",
+  "다음 방문 때 확인: 세대당 주차대수 · 결로 부위 사진",
+] as const;
 /* 예시는 지표가 아니라 형태를 보여 준다(수치 창작 아님) — "AI"라는 단어만으로는
    무엇이 좋아지는지 전달되지 않는다는 홈 비판 대응. */
 export const HOME_AI_GATEWAY_BODY =

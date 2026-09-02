@@ -21,6 +21,8 @@ import { HomeLevelKpi } from "./components/home/HomeLevelKpi";
 import { RegionPulseCards } from "./components/home/RegionPulseCards";
 import { loadLatestTemperatures } from "./components/MarketTempWidget";
 import { loadNewHomeData } from "@/lib/newui/home-data";
+import { loadHomeCoverage } from "@/lib/newui/home-coverage";
+import { HomeCoverageLine } from "./components/home/HomeCoverageLine";
 import { formatAsOfLabel } from "@/lib/newui/as-of-label";
 import { getBaseRate } from "@/lib/market/base-rate";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
@@ -32,10 +34,13 @@ import type { DeltaTone, HomeBriefing } from "@/lib/newui/home-data";
    화면과 함께 내려갔다. 카피 정본은 lib/brand/home-copy.ts 에 그대로 있다. */
 import {
   HOME_AI_BRIEFING_LABEL,
-  HOME_AI_GATEWAY_BODY,
+  HOME_AI_EXAMPLE_INPUT,
+  HOME_AI_EXAMPLE_OUTPUT,
+  HOME_AI_GATEWAY_LEAD,
   HOME_AI_GATEWAY_TITLE,
   HOME_CTA_AI,
   HOME_CTA_NOTE,
+  HOME_HERO_SUBLINE_SHORT,
   HOME_PAGE_H1,
 } from "@/lib/brand/home-copy";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -64,6 +69,9 @@ export const metadata: Metadata = {
    "예시" 배지를 붙여도 홈 첫 화면에서는 실데이터와 같은 카드 모양으로 읽힌다.
    데이터가 없으면 없다고 말하고, 채우는 행동(CTA)으로 안내한다. */
 
+const LAB_NOTES_CAPTION =
+  "Lab 데이터 노트는 실거래·통계로 편집부가 정리한 노트예요. 이웃이 직접 다녀와 쓴 노트가 올라오면 여기에 함께 보입니다.";
+
 const deltaClass: Record<DeltaTone, string> = {
   down: "delta-down",
   up: "delta-up",
@@ -74,14 +82,51 @@ const deltaClass: Record<DeltaTone, string> = {
    그 자리를 물려받았던 JourneyBanner("지금 어디부터 할까요?")도 2026-08-26 에
    홈에서 뺐다 — 주 버튼이 이미 시작하는 흐름을 배너가 한 번 더 설명하고 있었다. */
 
-/** AI 시작 행동 + 시장 브리핑(참고) 강등 */
-function HomeAiGateway({ briefing }: { briefing: HomeBriefing | null }) {
+/** AI 시작 행동 + 시장 브리핑(참고) 강등
+ *  [950] 홈 비판 ⑦ — "먼저 노트를 남겨 보세요"는 결과를 보여 주기 전에 노력을 요구했다.
+ *  같은 예시를 문장이 아니라 **입력 → 정리** 두 칸으로 그려 결과의 모양을 먼저 보인다.
+ *  예시라는 표식을 붙인다(지어낸 수치가 아니라 형식 안내다). 예시 노트가 실제로
+ *  있으면(공개 노트 1건) "이렇게 정리됩니다" 링크로 실물을 잇는다. */
+function HomeAiGateway({
+  briefing,
+  exampleNoteId,
+}: {
+  briefing: HomeBriefing | null;
+  exampleNoteId: string | null;
+}) {
   return (
     <AIPanel
       title={HOME_AI_GATEWAY_TITLE}
       cta={{ href: HOME_CTA_AI.href, label: HOME_CTA_AI.label }}
     >
-      <p className="m-0">{HOME_AI_GATEWAY_BODY}</p>
+      <p className="m-0">{HOME_AI_GATEWAY_LEAD}</p>
+      <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+        <div className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-2">
+          <div className="t-caption font-extrabold text-ai-muted">예시 · 현장 메모</div>
+          <div className="mt-0.5 t-body leading-[1.5] text-white/85">
+            {HOME_AI_EXAMPLE_INPUT}
+          </div>
+        </div>
+        <div className="hidden text-center text-ai-accent sm:block" aria-hidden="true">
+          →
+        </div>
+        <div className="rounded-lg border border-ai-accent/40 bg-white/5 px-2.5 py-2">
+          <div className="t-caption font-extrabold text-ai-muted">예시 · AI 정리</div>
+          <ul className="mt-0.5 m-0 list-none p-0 t-body leading-[1.5] text-white/85">
+            {HOME_AI_EXAMPLE_OUTPUT.map((line) => (
+              <li key={line}>· {line}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      {exampleNoteId && (
+        <Link
+          href={`/notes/${exampleNoteId}`}
+          className="mt-1 w-fit text-[11px] font-bold text-ai-accent no-underline"
+        >
+          실제 정리된 공개 노트 보기 ›
+        </Link>
+      )}
       <div className="mt-2 border-t border-white/15 pt-2">
         <div className="mb-1 t-caption font-extrabold text-ai-muted">
           {HOME_AI_BRIEFING_LABEL}
@@ -92,6 +137,8 @@ function HomeAiGateway({ briefing }: { briefing: HomeBriefing | null }) {
             <span className="ml-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
               {briefing.asOfLabel}
             </span>
+            {/* [950] 무엇을 잰 값인지 — 티커의 지역 평균과 같은 기준임을 한 줄로 */}
+            <div className="mt-0.5 t-caption text-ai-muted">{briefing.basis}</div>
           </>
         ) : (
           <>오늘 브리핑을 아직 만들지 못했어요. 실거래 데이터가 갱신되면 표시됩니다.</>
@@ -105,7 +152,7 @@ export default async function Home() {
   /* 4개 조회는 서로 의존이 없다 — 직렬로 기다리면 콜드/만료 렌더가 네 조회의
      시간을 전부 합산해 지불한다(`/` 는 300초 타임아웃 목록의 최상단이었다).
      한 Promise.all 로 임계 경로를 가장 느린 하나로 줄인다. */
-  const [data, freshness, digest, baseRateData] = await Promise.all([
+  const [data, freshness, digest, baseRateData, coverage] = await Promise.all([
     loadNewHomeData(),
     // 데이터 신선도 라벨(#21) — 조회 실패 시 null → 캡션 미표시
     getMarketFreshnessDateLabel(),
@@ -119,7 +166,10 @@ export default async function Home() {
     }),
     // 기준금리: ECOS(한국은행) 연동 시 실값, 미연동 시 "—" (허위 수치 금지)
     getBaseRate(),
+    // [950] 커버리지 실수치(실거래·단지·지역) — 6시간 데이터 캐시, 실패 시 줄 생략
+    loadHomeCoverage(),
   ]);
+
   /* 주차 라벨도 다이제스트에서 온다 — 못 읽었으면 없는 채로 둔다. */
   const digestWeekLabel = digest?.weekLabel ?? null;
   const digestTeaser =
@@ -131,6 +181,18 @@ export default async function Home() {
   // 실데이터만 사용한다 — 0건이면 빈 상태를 그린다(가짜 카드로 채우지 않는다).
   const regions = data.regions;
   const notes = data.notes;
+  const news = data.news;
+  /* [950] 공개 노트가 전부 Lab(데이터·AI 편집) 노트면 그 사실을 한 줄로 적는다 —
+     "나 같은 사람의 노트"가 없다는 걸 숨기지 않는다(홈 비판 ⑥). 이웃 노트가 하나라도
+     섞이면 캡션은 사라진다. */
+  const allLabNotes = notes.length > 0 && notes.every((n) => n.kind === "lab");
+  /* [950] 검색 아래 지역 칩 — 티커·시세 카드와 같은 지역(실데이터)으로 맞춘다.
+     예전 칩(동안구·만안구·의왕시·과천시)은 초기 커버리지의 흔적이라 "안양 근방
+     서비스"로 읽혔다(홈 비판 ③). 지역 카드가 비면 칩 자체를 그리지 않는다. */
+  const heroRegionChips = regions.slice(0, 4).map((r) => ({
+    label: r.name,
+    href: `/map?region=${encodeURIComponent(r.name)}`,
+  }));
   const posts = data.posts;
   const meetings = data.meetings;
   const reports = data.reports;
@@ -184,12 +246,14 @@ export default async function Home() {
         /* meta("서울 · 120건")에서 실거래 건수만 — 우리 포맷의 표시용 파싱 */
         tradeLabel: regions[0].meta.match(/([\d,]+건)/)?.[1] ?? null,
         href: `/map?region=${encodeURIComponent(regions[0].name)}`,
+        periodLabel: regions[0].periodLabel,
       }
     : null;
   const tickerItems: TickerItem[] = [];
   for (const r of regions.slice(0, 3)) {
     tickerItems.push({
-      label: `${r.name} 평균`,
+      /* [950] 기준월을 라벨에 — 티커·카드·브리핑이 같은 달(부동산원 지수)임을 드러낸다 */
+      label: r.periodLabel ? `${r.name} ${r.periodLabel} 평균` : `${r.name} 평균`,
       value: `${r.price} ${r.delta}`,
       tone: r.tone,
       href: `/map?region=${encodeURIComponent(r.name)}`,
@@ -198,7 +262,8 @@ export default async function Home() {
   }
   if (saleIndexSeoul !== "—") {
     tickerItems.push({
-      label: "매매지수 서울",
+      /* [950] "매매지수" 만으로는 무엇인지 모른다는 지적 — 출처를 라벨에 */
+      label: "부동산원 매매지수 · 서울",
       value: saleIndexSeoul,
       href: "/analysis/timing",
       kind: "macro",
@@ -225,7 +290,8 @@ export default async function Home() {
   }
   if (kpiTemp) {
     tickerItems.push({
-      label: "시장 온도",
+      /* [950] "온도 45" 는 척도를 모르면 읽히지 않는다 — 0~100 척도를 값에 적는다 */
+      label: "시장 온도 (0~100)",
       value: `${kpiTemp.score} · ${kpiTemp.headline}`,
       href: "/analysis/temperature",
       kind: "macro",
@@ -255,7 +321,9 @@ export default async function Home() {
      기준일은 여기(클릭하면 /tx 로 간다), 출처 표기는 푸터가 맡는다. */
   if (freshness) {
     tickerItems.push({
-      label: "실거래 기준",
+      /* [950] "실거래 기준 9.2" 와 "7월 평균" 이 나란히 흐르면 모순으로 읽힌다 —
+         이 날짜는 신고분 적재일이지 평균의 기준월이 아니다. 라벨로 구분한다. */
+      label: "실거래 신고분 적재",
       value: String(freshness),
       href: "/tx",
       kind: "macro",
@@ -304,9 +372,12 @@ export default async function Home() {
             <p className="rise-in t-display text-center text-ink">
               어느 단지가 궁금하세요?
             </p>
+            {/* [950] 무엇이 다른 서비스인지 한 줄(홈 비판 ①) — 히어로 블록 없이 보조문만 */}
+            <p className="rise-in -mt-1 text-center t-sub text-text-2">{HOME_HERO_SUBLINE_SHORT}</p>
             <div className="rise-in-1">
-              <HomeHeroSearch />
+              <HomeHeroSearch regionChips={heroRegionChips} />
             </div>
+            <HomeCoverageLine coverage={coverage} publicNotes={data.publicNotesTotal} className="rise-in-1" />
           </div>
 
           {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
@@ -397,8 +468,15 @@ export default async function Home() {
                     i < notes.length - 1 ? "border-b border-divider" : ""
                   }`}
                 >
-                  <span className="truncate font-semibold text-text-1">{n.title}</span>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    {/* [950] 누가 쓴 노트인지(홈 비판 ⑥) — Lab 데이터 노트와 이웃 노트를 구분 */}
+                    <span className={`shrink-0 rounded px-1 py-px t-caption font-extrabold ${n.kind === "lab" ? "bg-[rgba(0,0,0,.05)] text-text-3" : "bg-primary-soft text-primary"}`}>
+                      {n.kind === "lab" ? "Lab 데이터" : "이웃"}
+                    </span>
+                    <span className="truncate font-semibold text-text-1">{n.title}</span>
+                  </span>
                   <span
+                    title="현장 체크 5개 항목 평균 × 20 (100점 만점)"
                     className={`shrink-0 rounded-md px-1.5 py-0.5 t-caption font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
                   >
                     {n.score}
@@ -406,10 +484,11 @@ export default async function Home() {
                 </Link>
               ))
             )}
+            {allLabNotes && <p className="m-0 t-caption text-text-3">{LAB_NOTES_CAPTION}</p>}
           </div>
 
           <div data-reveal="">
-            <HomeAiGateway briefing={data.briefing} />
+            <HomeAiGateway briefing={data.briefing} exampleNoteId={notes[0]?.id ?? null} />
           </div>
 
           <div data-reveal="" className="flex flex-col gap-3">
@@ -518,8 +597,18 @@ export default async function Home() {
                   ? "지금 불러오지 못했어요"
                   : posts.length > 0
                     ? posts[0].title
-                    : "아직 올라온 글이 없어요 — 첫 글을 남겨 보세요"}
+                    : news.length > 0
+                      ? `뉴스 · ${news[0].title}`
+                      : "아직 올라온 글이 없어요 — 첫 글을 남겨 보세요"}
               </span>
+            </Link>
+            {/* [950] 수익모델이 홈에 없다는 지적(투자자 ④) — 무엇이 유료인지 한 줄로 잇는다.
+                수익 약속 표현은 쓰지 않는다(푸터 고지와 같은 원칙). */}
+            <Link
+              href="/subscription"
+              className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
+            >
+              구독 안내 · 기록·지도는 무료, 유료는 AI 분석 깊이·월 한도 확대 <span className="text-primary">›</span>
             </Link>
           </div>
 
@@ -541,7 +630,10 @@ export default async function Home() {
             <p className="t-display text-center text-ink">
               어느 단지가 궁금하세요?
             </p>
-            <HomeHeroSearch />
+            {/* [950] 무엇이 다른 서비스인지 한 줄(홈 비판 ①) */}
+            <p className="-mt-1 text-center t-sub text-text-2">{HOME_HERO_SUBLINE_SHORT}</p>
+            <HomeHeroSearch regionChips={heroRegionChips} />
+            <HomeCoverageLine coverage={coverage} publicNotes={data.publicNotesTotal} />
           </div>
 
           {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
@@ -638,8 +730,14 @@ export default async function Home() {
                         i < notes.length - 1 ? "border-b border-divider" : ""
                       }`}
                     >
-                      <span className="truncate font-semibold text-text-1">{n.title}</span>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className={`shrink-0 rounded px-1 py-px t-caption font-extrabold ${n.kind === "lab" ? "bg-[rgba(0,0,0,.05)] text-text-3" : "bg-primary-soft text-primary"}`}>
+                          {n.kind === "lab" ? "Lab 데이터" : "이웃"}
+                        </span>
+                        <span className="truncate font-semibold text-text-1">{n.title}</span>
+                      </span>
                       <span
+                        title="현장 체크 5개 항목 평균 × 20 (100점 만점)"
                         className={`shrink-0 rounded-md px-1.5 py-0.5 t-caption font-extrabold ${n.hot ? "bg-primary-soft text-primary" : "bg-[rgba(0,0,0,.045)] text-text-3"}`}
                       >
                         {n.score}
@@ -647,6 +745,7 @@ export default async function Home() {
                     </Link>
                   ))
                 )}
+                {allLabNotes && <p className="m-0 t-caption text-text-3">{LAB_NOTES_CAPTION}</p>}
               </div>
               <div className="card tile flex flex-col gap-2 rounded-2xl px-5 py-5">
                 <div className="flex items-center justify-between">
@@ -667,12 +766,41 @@ export default async function Home() {
                       desc="글이 없는 게 아니라 조회가 실패했어요. 잠시 후 다시 열어 주세요."
                       action={{ label: "동네이야기 보기", href: "/town" }}
                     />
+                  ) : news.length > 0 ? (
+                    /* [950] 빈 방 대신 읽을거리(홈 비판 ⑧) — 자동수집 뉴스 3건을 뉴스라고
+                       적어서 보여 주고, 첫 글 부담은 한 줄짜리 낮은 문턱으로 남긴다.
+                       사람 글이 생기면 위 posts 분기가 그 자리를 다시 가져간다. */
+                    <>
+                      {news.map((n, i) => (
+                        <Link
+                          key={n.id}
+                          href={`/town/news/${n.id}`}
+                          className={`-mx-1.5 flex items-center gap-2 rounded-lg px-1.5 py-[7px] t-body no-underline transition-colors hover:bg-[rgba(29,79,216,.05)] ${
+                            i < news.length - 1 ? "border-b border-divider" : ""
+                          }`}
+                        >
+                          <span className="shrink-0 rounded bg-[rgba(0,0,0,.05)] px-1 py-px t-caption font-extrabold text-text-3">
+                            뉴스
+                          </span>
+                          <span className="min-w-0 truncate font-semibold text-text-1">{n.title}</span>
+                          {n.source && (
+                            <span className="ml-auto shrink-0 text-[11px] text-text-3">{n.source}</span>
+                          )}
+                        </Link>
+                      ))}
+                      <Link
+                        href="/town/write"
+                        className="mt-1 text-[11px] font-bold text-primary no-underline"
+                      >
+                        다녀온 동네 한 줄 남기기 ›
+                      </Link>
+                    </>
                   ) : (
                     <EmptyState
                       icon="messages-square"
-                      title="이 동네의 첫 글이 비어 있어요"
-                      desc="첫 글의 주인공이 되어 보세요 — 임장 다녀온 동네 한 줄이면 충분합니다."
-                      action={{ label: "1분 만에 첫 글 쓰기", href: "/town/write" }}
+                      title="아직 이웃 글이 없어요"
+                      desc="임장 다녀온 동네 한 줄이면 충분합니다."
+                      action={{ label: "한 줄 남기기", href: "/town/write" }}
                     />
                   )
                 ) : (
@@ -739,7 +867,7 @@ export default async function Home() {
               aside 높이가 행 전체라 sticky 가 작동하지 않는다. */}
           <aside data-autotrim="" className="flex flex-col gap-3 lg:sticky lg:top-[76px] lg:self-start">
             <div className="rise-in-1">
-              <HomeAiGateway briefing={data.briefing} />
+              <HomeAiGateway briefing={data.briefing} exampleNoteId={notes[0]?.id ?? null} />
             </div>
 
             {/* 시장 온도 위젯은 #409 로 제거 — 티커·KPI 칸이 같은 스냅샷을
@@ -802,6 +930,19 @@ export default async function Home() {
               >
                 내집나우 이야기
                 <span className="text-primary">›</span>
+              </Link>
+              {/* [950] 수익모델 동선(투자자 ④) — 수익 약속 표현 없음 */}
+              <Link
+                href="/subscription"
+                className="flex flex-col gap-0.5 py-1.5 no-underline"
+              >
+                <span className="flex items-center justify-between t-body font-semibold text-text-1">
+                  구독 안내
+                  <span className="text-primary">›</span>
+                </span>
+                <span className="truncate text-[11px] text-text-3">
+                  기록·지도는 무료 · 유료는 AI 분석 깊이·월 한도 확대
+                </span>
               </Link>
               {meetings.length > 0 && (
                 <ul className="mt-0.5 flex flex-col gap-1 border-t border-divider pt-2">
