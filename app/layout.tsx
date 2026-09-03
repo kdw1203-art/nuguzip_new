@@ -34,7 +34,14 @@ export const metadata: Metadata = {
      검증 토큰은 공개돼도 되는 값이다(시크릿 아님). */
   verification: {
     google: "d4jn9bf7SyTraz2EEnn4aNIPemHwz-Bqqflre4DEuXU",
-    other: { "naver-site-verification": "411fe0d67e731e16c96f4994d904f6160e4927af" },
+    /* [955] 네이버 토큰 2개 — 첫 값은 nuguzip.com 속성(유지), 둘째는 naezipnow.com 속성
+       (2026-09-03 도메인 전환 뒤 서치어드바이저가 새로 발급). 배열이면 meta 가 두 줄 나간다. */
+    other: {
+      "naver-site-verification": [
+        "411fe0d67e731e16c96f4994d904f6160e4927af",
+        "7d0c6c7a97eea67fa4a5d6eab160e1c6131a51d9",
+      ],
+    },
   },
   /* 브랜드 포지션(전략 정본 §6): "임장 관리"라는 비어 있는 카테고리의 첫 이름.
      시세를 '보는' 앱이 아니라 현장에 '가는' 사람의 앱 — 문장도 그 대립을 싣는다. */
