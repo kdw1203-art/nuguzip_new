@@ -177,7 +177,7 @@ const ClauseColumn = ({
   clauses: Clause[];
 }) => (
   <div className="flex flex-col gap-2.5">
-    <div className="inline-flex w-fit items-center rounded-full bg-primary-soft px-3 py-1 text-[11px] font-bold text-primary">
+    <div className="inline-flex w-fit items-center rounded-full bg-primary-soft px-3 py-1 text-[12px] font-bold text-primary">
       {label}
     </div>
     {clauses.map((c) => (
@@ -316,7 +316,7 @@ export default function ContractGuidePage() {
               </div>
             ))}
           </div>
-          <p className="mt-4 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 text-[11px] leading-[1.7] text-text-2">
+          <p className="mt-4 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 text-[12px] leading-[1.7] text-text-2">
             등기부등본은 인터넷등기소(iros.go.kr), 건축물대장은 정부24(gov.kr)에서
             열람할 수 있어요. 계약~잔금 사이 권리가 바뀔 수 있으니 <b>잔금 직전에
             다시 한 번</b> 열람하세요.
@@ -332,7 +332,7 @@ export default function ContractGuidePage() {
             <div className="text-[13px] font-extrabold text-ink">
               부동산 규제·의무 안내
             </div>
-            <div className="mt-0.5 text-[11px] text-text-2">
+            <div className="mt-0.5 text-[12px] text-text-2">
               규제지역·대출·세금·청약 등 계약 전 알아둘 제도 개념을 함께 확인하세요.
             </div>
           </div>
@@ -342,7 +342,7 @@ export default function ContractGuidePage() {
         </Link>
 
         {/* 공통 면책 */}
-        <p className="px-1 pb-2 text-[11px] leading-[1.7] text-text-3">
+        <p className="px-1 pb-2 text-[12px] leading-[1.7] text-text-3">
           본 안내는 일반 정보이며 법률·세무 자문이 아닙니다. 실제 거래·신고·세금은
           공인중개사·법무사·세무사 등 전문가와 관련 기관 확인이 필요합니다.
         </p>

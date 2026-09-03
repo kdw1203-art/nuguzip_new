@@ -45,7 +45,7 @@ function krw(n: number): string {
 }
 
 const inputCls =
-  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink placeholder:text-text-3";
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink placeholder:text-text-3";
 const chip = (on: boolean) =>
   `press rounded-full px-3.5 py-2 text-[13px] ${
     on ? "bg-brand-navy font-bold text-surface" : "border border-line bg-surface font-semibold text-text-2"
@@ -117,8 +117,8 @@ export function BrokerageFeeCalc() {
     <div className="flex flex-col gap-4">
       <div className="card flex flex-col gap-3 rounded-[18px] p-[18px]">
         <div className="flex items-baseline justify-between">
-          <span className="text-sm font-extrabold text-ink">중개보수 상한 계산</span>
-          <span className="text-[11px] font-medium text-text-3">법정 상한요율 기준</span>
+          <span className="text-[13px] font-extrabold text-ink">중개보수 상한 계산</span>
+          <span className="text-[12px] font-medium text-text-3">법정 상한요율 기준</span>
         </div>
 
         <div className="flex gap-2">
@@ -186,13 +186,13 @@ export function BrokerageFeeCalc() {
 
         {result && (
           <div className="rounded-2xl bg-bg p-4">
-            <div className="text-[11px] text-text-3">{result.amountNote}</div>
+            <div className="text-[12px] text-text-3">{result.amountNote}</div>
             <div className="mt-0.5 text-[12px] text-text-2">
               거래금액 <b className="text-ink">{krw(result.amount)}</b> · 적용 상한요율{" "}
               <b className="text-ink">{result.rateLabel}</b>
             </div>
-            <div className="mt-2 text-[22px] font-extrabold text-primary">{result.feeLabel}</div>
-            <div className="mt-1 text-[11px] leading-[1.7] text-text-3">
+            <div className="mt-2 text-[21px] font-extrabold text-primary">{result.feeLabel}</div>
+            <div className="mt-1 text-[12px] leading-[1.7] text-text-3">
               법정 <b>상한</b>이며 확정 보수가 아니에요 — 실제 보수는 이 금액 이내에서
               중개사와 협의해 정합니다{result.capped ? " (구간 한도액이 적용된 금액)" : ""}.
               부가가치세 10%는 별도입니다.
@@ -203,11 +203,11 @@ export function BrokerageFeeCalc() {
 
       {/* 요율표 전문 — 계산 근거를 그대로 공개한다 (검색 사용자가 찾는 표이기도 하다) */}
       <div className="card flex flex-col gap-3 rounded-[18px] p-[18px]">
-        <span className="text-sm font-extrabold text-ink">주택 중개보수 상한요율표</span>
+        <span className="text-[13px] font-extrabold text-ink">주택 중개보수 상한요율표</span>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[420px] text-[12px]">
             <thead>
-              <tr className="border-b border-line text-left text-[11px] text-text-3">
+              <tr className="border-b border-line text-left text-[12px] text-text-3">
                 <th className="py-1.5 pr-2 font-semibold">거래금액</th>
                 <th className="py-1.5 pr-2 font-semibold">매매·교환</th>
                 <th className="py-1.5 font-semibold">임대차</th>
@@ -225,7 +225,7 @@ export function BrokerageFeeCalc() {
             </tbody>
           </table>
         </div>
-        <p className="text-[11px] leading-[1.7] text-text-3">
+        <p className="text-[12px] leading-[1.7] text-text-3">
           오피스텔(전용 85㎡ 이하·주거설비 갖춤): 매매 0.5% · 임대차 0.4%. 토지·상가 등
           주택 외: 0.9% 이내 협의. 근거: 공인중개사법 시행규칙 제20조(법정 상한요율) ·
           한국공인중개사협회 게시 요율표 대조(2026-08). 지자체 조례로 일부 다를 수 있어요.

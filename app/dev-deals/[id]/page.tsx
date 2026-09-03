@@ -47,7 +47,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line bg-surface px-3 py-2.5">
       <div className="text-[10px] text-text-3">{label}</div>
-      <div className="mt-0.5 text-[14px] font-extrabold text-ink">{value}</div>
+      <div className="mt-0.5 text-[13px] font-extrabold text-ink">{value}</div>
     </div>
   );
 }
@@ -74,7 +74,7 @@ export default async function DevDealDetailPage({
         <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-semibold text-primary">
           {deal.dealType}
         </span>
-        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2.5 py-1 text-[11px] font-semibold text-text-2">
+        <span className="rounded-full bg-[rgba(0,0,0,.05)] px-2.5 py-1 text-[12px] font-semibold text-text-2">
           {STATUS_LABEL[deal.status] ?? deal.status}
         </span>
         {deal.isVerified && (
@@ -170,32 +170,32 @@ export default async function DevDealDetailPage({
             <h2 className="mb-1 text-[15px] font-extrabold text-ink">
               예상 중개수수료
             </h2>
-            <p className="mb-3 text-[11px] text-text-3">
+            <p className="mb-3 text-[12px] text-text-3">
               {COMMISSION_BASIS_LABEL} — 사업 규모·조건에 따라 협의됩니다.
             </p>
             <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
               <div>
                 <div className="text-[10px] text-text-3">해당 구간</div>
-                <div className="text-[14px] font-bold text-ink">
+                <div className="text-[13px] font-bold text-ink">
                   {commission.tierLabel}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-text-3">기준 요율</div>
-                <div className="text-[14px] font-bold text-ink">
+                <div className="text-[13px] font-bold text-ink">
                   {commission.rateText}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-text-3">예상 수수료(기준)</div>
-                <div className="text-[16px] font-extrabold text-primary">
+                <div className="text-[15px] font-extrabold text-primary">
                   {commission.estimatedKrw != null
                     ? formatKrwEok(commission.estimatedKrw)
                     : "성사 시 협의"}
                 </div>
               </div>
             </div>
-            <p className="mt-3 text-[11px] leading-[1.6] text-text-3">
+            <p className="mt-3 text-[12px] leading-[1.6] text-text-3">
               소개·문의는 무료이며, 수수료는 매칭 성사 시에만 부과됩니다.{" "}
               <Link href="/dev-deals/fees" className="font-bold text-primary underline">
                 수수료 안내 자세히
@@ -215,7 +215,7 @@ export default async function DevDealDetailPage({
             <div className="mt-1 text-[13px] text-text-2">
               연락처 <b className="text-ink">{deal.contactMasked ?? "문의 시 공개"}</b>
             </div>
-            <p className="mt-2 text-[11px] leading-[1.6] text-text-3">
+            <p className="mt-2 text-[12px] leading-[1.6] text-text-3">
               연락처는 개인정보 보호를 위해 일부만 표시됩니다. 아래 참여 문의를 남기면
               등록자에게 전달됩니다.
             </p>
@@ -229,7 +229,7 @@ export default async function DevDealDetailPage({
       </div>
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         {DISCLAIMER}
       </div>
     </PageShell>

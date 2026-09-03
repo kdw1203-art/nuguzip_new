@@ -16,13 +16,13 @@ export const metadata = buildPageMetadata({
 });
 
 const H2 = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="mt-8 text-lg font-bold text-ink">{children}</h2>
+  <h2 className="mt-8 text-[19px] font-bold text-ink">{children}</h2>
 );
 
 export default function ExpertLegalPolicyPage() {
   return (
     <main className="mx-auto w-full max-w-3xl">
-      <article className="card rise-in p-6 md:p-8 text-sm leading-7 text-text-1">
+      <article className="card rise-in p-6 md:p-8 text-[13px] leading-7 text-text-1">
         <h1 className="text-2xl font-extrabold text-ink">전문가 운영정책</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-text-2">
           우리동네이야기(내집나우 운영사) 전문가 프로그램은 <strong>자격·소속·서류를 검증한 전문가</strong>만
@@ -171,7 +171,7 @@ export default function ExpertLegalPolicyPage() {
           ))}
         </ul>
 
-        <p className="mt-8 border-t border-line pt-4 text-sm text-text-3">
+        <p className="mt-8 border-t border-line pt-4 text-[13px] text-text-3">
           시행일: 2026년 6월 19일 · 개정: 2026년 9월 3일(후기·견적 제안 조항 신설) · 문의:{" "}
           <Link href="/support" className="text-primary hover:underline">
             고객센터

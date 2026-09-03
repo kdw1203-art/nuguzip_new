@@ -53,7 +53,7 @@ export default function GlossaryPage() {
       />
       <div className="mx-auto max-w-[820px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">부동산 용어사전</h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-2">
           내집나우 화면과 부동산 거래에서 만나는 용어 {GLOSSARY_TERMS.length}개를 분류별로
           정리했습니다. 용어를 누르면 정의와 관련 용어를 함께 볼 수 있습니다.
         </p>
@@ -67,7 +67,7 @@ export default function GlossaryPage() {
           }))}
         />
 
-        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
+        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[12px] leading-[1.7] text-text-3">
           용어 풀이는 일반적인 이해를 돕기 위한 것으로, 대출 한도·세율·규제 지역 지정 등
           제도 관련 수치는 시점에 따라 달라집니다. 그래서 정의에 특정 수치를 적어 두지
           않았습니다. 시세 집계 방식은{" "}

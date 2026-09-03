@@ -157,7 +157,7 @@ export function RoadviewButton({ lat, lng, label }: RoadviewButtonProps) {
               )}
               {error && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
-                  <p className="text-[12.5px] font-semibold leading-[1.6] text-text-2">
+                  <p className="text-[13px] font-semibold leading-[1.6] text-text-2">
                     이 위치 근처의 거리뷰 촬영 지점을 찾지 못했어요
                   </p>
                   <a
@@ -172,14 +172,14 @@ export function RoadviewButton({ lat, lng, label }: RoadviewButtonProps) {
               )}
             </div>
             <div className="flex items-center justify-between gap-2 px-3.5 py-2">
-              <span className="truncate text-[11px] text-text-3">
+              <span className="truncate text-[12px] text-text-3">
                 네이버 거리뷰{label ? ` · ${label}` : ""}
               </span>
               <a
                 href={naverMapHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 text-[11px] font-bold text-primary no-underline"
+                className="shrink-0 text-[12px] font-bold text-primary no-underline"
               >
                 크게 보기 ↗
               </a>

@@ -50,7 +50,7 @@ function ScoreDelta({ delta }: { delta: number }) {
   const sign = delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : "0";
   return (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-md bg-[rgba(0,0,0,.035)] chip-pad-tight text-[11px] ${cls}`}
+      className={`inline-flex items-center gap-0.5 rounded-md bg-[rgba(0,0,0,.035)] chip-pad-tight text-[12px] ${cls}`}
       aria-label={`이전 회차 대비 ${delta > 0 ? "상승" : delta < 0 ? "하락" : "동일"} ${Math.abs(delta)}점`}
     >
       <span aria-hidden="true">{glyph}</span>
@@ -65,7 +65,7 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
     <div className="rise-in-1 card rounded-[18px] px-[22px] py-5">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Icon name="clock" size={16} className="text-primary" />
-        <h2 className="text-sm font-extrabold text-ink">방문 타임라인</h2>
+        <h2 className="text-[13px] font-extrabold text-ink">방문 타임라인</h2>
         <span className="t-sub text-text-3">
           회차별 변화 · 이전 회차 대비 하이라이트
         </span>
@@ -133,7 +133,7 @@ export function Timeline({ steps }: { steps: TimelineStep[] }) {
                           className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs"
                         >
                           <span
-                            className={`inline-flex w-[52px] shrink-0 items-center gap-0.5 text-[11px] font-bold ${meta.cls}`}
+                            className={`inline-flex w-[52px] shrink-0 items-center gap-0.5 text-[12px] font-bold ${meta.cls}`}
                           >
                             <span aria-hidden="true">{meta.glyph}</span>
                             {meta.label}

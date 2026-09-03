@@ -22,10 +22,10 @@ export default function MessagesPage() {
   return (
     <PageShell>
       <div className="mx-auto w-full max-w-[480px]">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">쪽지함</h1>
+        <h1 className="rise-in text-[21px] font-extrabold text-ink">쪽지함</h1>
 
         <div className="rise-in-1 card mt-4 flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-[22px]">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-[21px]">
             ✉️
           </div>
           <div className="text-[15px] font-extrabold text-ink">
@@ -54,7 +54,7 @@ export default function MessagesPage() {
           </Link>
         </div>
 
-        <div className="rise-in-2 mt-3 text-center text-[11px] text-text-3">
+        <div className="rise-in-2 mt-3 text-center text-[12px] text-text-3">
           쪽지는 닉네임으로만 오가도록 준비하고 있어요 · 연락처 요구는 신고
           대상입니다
         </div>

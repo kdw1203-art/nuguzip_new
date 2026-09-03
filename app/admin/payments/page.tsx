@@ -180,7 +180,7 @@ export default async function AdminPaymentsPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-[20px] font-extrabold text-ink">결제 연동 (토스페이먼츠)</h1>
+        <h1 className="text-[19px] font-extrabold text-ink">결제 연동 (토스페이먼츠)</h1>
         <p className="mt-1 text-[13px] text-text-2">
           상호 우리동네이야기 · 전자결제 계약 <b className="text-ink">완료</b>(2026-08-26)
           · 일반결제 MID <b className="text-ink">nuguzibowg</b> · 자동결제 MID{" "}
@@ -197,10 +197,10 @@ export default async function AdminPaymentsPage() {
             <div key={r.label} className="flex items-center justify-between gap-3 text-[13px]">
               <div className="min-w-0">
                 <div className="font-bold text-text-1">{r.label}</div>
-                <div className="text-[11px] text-text-3">{r.note}</div>
+                <div className="text-[12px] text-text-3">{r.note}</div>
               </div>
               <span
-                className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-extrabold ${ENV_LABEL[r.env].cls}`}
+                className={`shrink-0 rounded-lg px-2.5 py-1 text-[12px] font-extrabold ${ENV_LABEL[r.env].cls}`}
               >
                 {ENV_LABEL[r.env].text}
               </span>
@@ -225,7 +225,7 @@ export default async function AdminPaymentsPage() {
       <section className="card rounded-2xl p-5">
         <h2 className="text-[15px] font-extrabold text-ink">
           연동 체크리스트{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="text-[12px] font-medium text-text-3">
             코드 밖에서 해야 하는 일 — 완료 여부는 이 시스템이 감지할 수 없어
             체크박스를 그리지 않는다
           </span>
@@ -351,7 +351,7 @@ export default async function AdminPaymentsPage() {
       <section className="card rounded-2xl p-5">
         <h2 className="text-[15px] font-extrabold text-ink">
           최근 결제 기록{" "}
-          <span className="text-[11px] font-medium text-text-3">최근 20건 · 전 제공사</span>
+          <span className="text-[12px] font-medium text-text-3">최근 20건 · 전 제공사</span>
         </h2>
         {paymentsFailed ? (
           <p className="mt-3 text-[13px] text-text-3">
@@ -366,7 +366,7 @@ export default async function AdminPaymentsPage() {
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-[12px]">
               <thead>
-                <tr className="border-b border-line text-[11px] text-text-3">
+                <tr className="border-b border-line text-[12px] text-text-3">
                   <th className="py-2 pr-3 font-semibold">시각</th>
                   <th className="py-2 pr-3 font-semibold">주문번호</th>
                   <th className="py-2 pr-3 font-semibold">사용자</th>
@@ -380,7 +380,7 @@ export default async function AdminPaymentsPage() {
                 {payments.map((p) => (
                   <tr key={p.id} className="border-b border-line last:border-0">
                     <td className="py-2 pr-3 text-text-3">{fmtWhen(p.paidAt ?? p.requestedAt)}</td>
-                    <td className="max-w-[180px] truncate py-2 pr-3 font-mono text-[11px] text-text-2">
+                    <td className="max-w-[180px] truncate py-2 pr-3 font-mono text-[12px] text-text-2">
                       {p.orderId}
                     </td>
                     <td className="py-2 pr-3 text-text-2">{maskEmail(p.userEmail)}</td>
@@ -408,7 +408,7 @@ export default async function AdminPaymentsPage() {
                           paidAt={p.paidAt ?? p.requestedAt}
                         />
                       ) : (
-                        <span className="text-[11px] text-text-3">—</span>
+                        <span className="text-[12px] text-text-3">—</span>
                       )}
                     </td>
                   </tr>
@@ -417,7 +417,7 @@ export default async function AdminPaymentsPage() {
             </table>
           </div>
         )}
-        <p className="mt-3 text-[11px] text-text-3">
+        <p className="mt-3 text-[12px] text-text-3">
           수익 합계·MRR 은{" "}
           <Link href="/admin/revenue" className="font-bold text-primary underline">
             수익 대시보드

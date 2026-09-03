@@ -143,7 +143,7 @@ export function NoteCardStudio({
                   onClick={() => setThemeId(t.id)}
                   aria-label={t.label}
                   title={t.label}
-                  className={`flex h-9 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold transition-all ${
+                  className={`flex h-9 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-bold transition-all ${
                     themeId === t.id ? "border-primary ring-2 ring-primary/30" : "border-line"
                   }`}
                 >

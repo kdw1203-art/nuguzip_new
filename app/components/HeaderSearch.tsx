@@ -224,7 +224,7 @@ export function HeaderSearch() {
                 onClick={() => pickRecent(k)}
                 className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.08)]"
               >
-                <span aria-hidden className="shrink-0 text-[11px] text-text-3">
+                <span aria-hidden className="shrink-0 text-[12px] text-text-3">
                   ⌕
                 </span>
                 <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-1">
@@ -250,14 +250,14 @@ export function HeaderSearch() {
                   onClick={() => pick(it)}
                   className="flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.08)]"
                 >
-                  <span className="shrink-0 rounded bg-primary-soft px-1.5 py-px text-[9px] font-extrabold text-primary">
+                  <span className="shrink-0 rounded bg-primary-soft px-1.5 py-px text-[10px] font-extrabold text-primary">
                     {it.label}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-text-1">
                     {it.title}
                   </span>
                   {it.meta && (
-                    <span className="max-w-[84px] shrink-0 truncate text-[11px] text-text-3">
+                    <span className="max-w-[84px] shrink-0 truncate text-[12px] text-text-3">
                       {it.meta}
                     </span>
                   )}

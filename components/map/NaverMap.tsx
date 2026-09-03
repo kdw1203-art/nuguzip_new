@@ -959,7 +959,7 @@ export function NaverMap({
           className="h-full w-full min-h-[200px] border-0"
           loading="lazy"
         />
-        <div className="absolute inset-x-0 bottom-0 z-10 bg-amber-50/95 px-3 py-2 text-[11px] leading-snug text-amber-900 backdrop-blur">
+        <div className="absolute inset-x-0 bottom-0 z-10 bg-amber-50/95 px-3 py-2 text-[12px] leading-snug text-amber-900 backdrop-blur">
           <span className="font-bold">대체 지도(OSM)</span> — 네이버 지도를 불러오지 못했어요.{" "}
           {error}
         </div>
@@ -976,7 +976,7 @@ export function NaverMap({
         <p className="text-2xl">
           <Icon name="🗺" size={24} />
         </p>
-        <p className="text-sm font-semibold text-slate-700">지도 미리보기</p>
+        <p className="text-[13px] font-semibold text-slate-700">지도 미리보기</p>
         <p className="text-xs text-slate-500 text-center px-4">
           네이버 지도 API Client ID가 필요합니다.
           <br />
@@ -1025,7 +1025,7 @@ export function NaverMap({
           disabled={!loaded || geoLoading}
           /* 모바일22 — 36→44px(터치 하한). bottom-right 는 한 손 조작 반경
              (우하단)이며 모바일 탭바(바닥 6px + 높이 ~59px) 위로 띄운다. */
-          className={`absolute z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-base shadow-md ring-1 ring-black/10 hover:bg-slate-50 disabled:opacity-60 ${
+          className={`absolute z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[15px] shadow-md ring-1 ring-black/10 hover:bg-slate-50 disabled:opacity-60 ${
             geolocationButtonPosition === "bottom-left"
               ? "bottom-3 left-3"
               : geolocationButtonPosition === "bottom-right"

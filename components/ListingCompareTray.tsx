@@ -49,7 +49,7 @@ export function ListingCompareTray() {
           <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
             <Icon name="scale" size={16} strokeWidth={2} />
             비교함 <span className="text-primary">({items.length})</span>
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="text-[12px] font-medium text-text-3">
               / 최대 {MAX_COMPARE}
             </span>
           </div>
@@ -83,7 +83,7 @@ export function ListingCompareTray() {
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] text-text-3">
+          <span className="text-[12px] text-text-3">
             {canCompare
               ? "나란히 비교해 보세요"
               : `${MIN_COMPARE}개 이상 담으면 비교할 수 있어요`}

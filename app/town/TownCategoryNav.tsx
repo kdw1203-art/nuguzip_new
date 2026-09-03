@@ -73,10 +73,11 @@ export function TownCategoryNav({
             title={`${l.label} — ${l.desc}`}
             /* 제안 모바일2(2026-08-03) — 카드 축소: 모바일 92×76px(기존 104×92).
                md+ 는 가로 균등 분배 유지. */
-            className={`press relative flex w-[92px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 text-center transition-all duration-300 ease-out md:w-auto md:min-w-0 md:flex-1 md:basis-0 ${
+            /* [959] 램프 상향(sub 12·caption 10)에 맞춰 높이 +4px. 그림자는 토큰 3단 중 md. */
+            className={`press relative flex w-[96px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 text-center transition-all duration-300 ease-out md:w-auto md:min-w-0 md:flex-1 md:basis-0 ${
               pinned
-                ? "h-[64px] border-primary bg-primary-soft shadow-[0_6px_18px_rgba(29,79,216,.18)] md:h-[72px]"
-                : "card tile h-[76px] border-transparent md:h-[92px]"
+                ? "h-[68px] border-primary bg-primary-soft shadow-[var(--shadow-md)] md:h-[76px]"
+                : "card tile h-[80px] border-transparent md:h-[96px]"
             }`}
           >
             {/* 아이콘 칩 — 9칸이 전부 같은 잉크색이라 목록이 평평했다.
@@ -88,6 +89,14 @@ export function TownCategoryNav({
             >
               <Icon name={l.icon} size={pinned ? 16 : 17} />
             </span>
+            {/* [959] 사람이 채우는 칸(전문가·모임·자료)은 "모집" 점 — 비어 있어도 놀라지 않게 */}
+            {l.humanSupplied && !pinned ? (
+              <span
+                className="absolute left-2 top-2 h-1.5 w-1.5 rounded-full bg-brand-red"
+                title="참여자를 모집 중인 칸"
+                aria-hidden="true"
+              />
+            ) : null}
             <span
               className={`mt-1.5 w-full truncate t-sub font-extrabold transition-colors ${
                 pinned ? "text-primary" : "text-ink"

@@ -206,14 +206,14 @@ export function PlanCheckoutButton({
             <button
               type="button"
               onClick={() => setConfirming(false)}
-              className="flex-1 rounded-[14px] border border-line bg-surface p-[13px] text-center text-sm font-bold text-text-1"
+              className="flex-1 rounded-[14px] border border-line bg-surface p-[13px] text-center text-[13px] font-bold text-text-1"
             >
               취소
             </button>
             <button
               type="button"
               onClick={() => void startCheckout()}
-              className={`flex-1 rounded-[14px] p-[13px] text-center text-sm font-bold ${className}`}
+              className={`flex-1 rounded-[14px] p-[13px] text-center text-[13px] font-bold ${className}`}
             >
               계속
             </button>
@@ -227,7 +227,7 @@ export function PlanCheckoutButton({
             setNotice(null);
             setConfirming(true);
           }}
-          className={`rounded-[14px] p-[13px] text-center text-sm font-bold disabled:opacity-60 ${className}`}
+          className={`rounded-[14px] p-[13px] text-center text-[13px] font-bold disabled:opacity-60 ${className}`}
         >
           {busy ? "연결 중…" : label}
         </button>

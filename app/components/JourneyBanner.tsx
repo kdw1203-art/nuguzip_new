@@ -158,7 +158,7 @@ export function JourneyBanner() {
       <div className="card flex flex-col gap-3 rounded-2xl px-[18px] py-4">
         <div className="flex items-baseline justify-between gap-2">
           <div className="text-[13px] font-extrabold text-ink">지금 어디부터 할까요?</div>
-          <p className="hidden text-[11px] text-text-3 sm:block">
+          <p className="hidden text-[12px] text-text-3 sm:block">
             임장(臨場) = 현장에서 직접 확인 — 기록 → AI 정리 → 지도 비교 순서
           </p>
         </div>
@@ -185,7 +185,7 @@ export function JourneyBanner() {
                 <span className="truncate t-caption text-text-3">{STEP_DESC[s]}</span>
               </button>
               {i < STEP_KEYS.length - 1 && (
-                <span aria-hidden className="shrink-0 px-1 text-[11px] text-text-3">
+                <span aria-hidden className="shrink-0 px-1 text-[12px] text-text-3">
                   →
                 </span>
               )}
@@ -208,7 +208,7 @@ export function JourneyBanner() {
               type="button"
               onClick={() => select(s)}
               aria-current={s === step ? "step" : undefined}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-extrabold transition-all duration-200 ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-[12px] font-extrabold transition-all duration-200 ${
                 s === step
                   ? "bg-primary text-white shadow-[0_4px_12px_rgba(29,79,216,.3)]"
                   : i < activeIdx
@@ -231,14 +231,14 @@ export function JourneyBanner() {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] text-text-3">
+        <span className="text-[12px] text-text-3">
           {STEP_DESC[step]} — 추천
         </span>
         {recs.map((r) => (
           <Link
             key={r.href + r.label}
             href={r.href}
-            className="group chip border border-primary/30 bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary no-underline transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_14px_rgba(29,79,216,.18)]"
+            className="group chip border border-primary/30 bg-primary-soft px-2.5 py-1 text-[12px] font-bold text-primary no-underline transition-all duration-150 hover:-translate-y-px hover:shadow-[0_6px_14px_rgba(29,79,216,.18)]"
           >
             {r.label}
             <span aria-hidden className="ml-0.5 inline-block transition-transform duration-150 group-hover:translate-x-0.5">
@@ -249,7 +249,7 @@ export function JourneyBanner() {
         <button
           type="button"
           onClick={reset}
-          className="ml-auto text-[11px] font-semibold text-text-3 underline transition-colors hover:text-text-1"
+          className="ml-auto text-[12px] font-semibold text-text-3 underline transition-colors hover:text-text-1"
         >
           단계 다시 고르기
         </button>

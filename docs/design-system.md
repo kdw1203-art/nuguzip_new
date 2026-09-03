@@ -76,21 +76,23 @@ CSS 변수(`:root`)가 `@theme inline`을 통해 Tailwind 유틸(`text-primary`,
 
 상태색 대비 규칙: soft bg 위 text 대비 4.5:1 유지, 텍스트에 bg색 직접 사용 금지.
 
-## 2. 타이포 램프 (7단, 15a)
+## 2. 타이포 램프 (7단, 15a · 957 개정)
 
 폰트: 애플 기기 = 시스템 폰트(SF Pro KR 등), 그 외 = Pretendard 폴백 (`--font-sans`).
 
-| 유틸 | 크기 | lh | 비고 |
-|---|---|---|---|
-| `.t-display` | 28px | 1.3 | ls -1% · weight 800 · 홈 헤드라인 |
-| `.t-title` | 21px | 1.35 | 화면 제목 (PageShell `title`과 동일 스펙) |
-| `.t-section` | 15px | 1.4 | 카드 제목 |
-| `.t-body` | 13px | 1.6 | 본문 · 최대 34자/행 |
-| `.t-sub` | 11px | 1.5 | 보조 |
-| `.t-caption` | 9px | 1.5 | ls +1% · 캡션·각주·출처 |
-| `.t-num` | (상속) | 1.2 | 큰 숫자(가격): 자간 -1% + `tabular-nums` + 800 |
+| 유틸 | 모바일 | md↑ | lh | 비고 |
+|---|---|---|---|---|
+| `.t-display` | 24px | 28px | 1.3 | ls -1% · weight 800 · 홈·허브 헤드라인 |
+| `.t-title` | 19px | 21px | 1.35 | 화면 제목 (PageShell `title`·`TownPageHead` 와 동일 스펙) |
+| `.t-section` | 15px | 15px | 1.4 | 카드 제목 |
+| `.t-body` | 13px | 13px | 1.6 | 본문 · 최대 34자/행 |
+| `.t-sub` | 12px | 12px | 1.5 | 보조 — 957 에서 11→12 (모바일 실측: 11px 한글은 획이 뭉개졌다) |
+| `.t-caption` | 10px | 10px | 1.5 | ls +1% · 캡션·각주·출처 — 957 에서 9→10 |
+| `.t-num` | (상속) | | 1.2 | 큰 숫자(가격): 자간 -1% + `tabular-nums` + 800 |
 
-10/12/14/16px 등 임의 크기 혼용 금지 — 램프로 스냅. 텍스트 오버플로는 `.clamp-2`(제목 2줄) / `.truncate-1`(목록 1줄).
+허용 픽셀은 `scripts/check-type-ramp.mjs` 의 `RAMP = {10,12,13,15,19,21,24,28}` 한 곳이 정한다 —
+임의 `text-[Npx]`·`text-sm/base/lg/xl/3xl` 는 빌드 게이트가 잡는다(기존 예외는 `type-ramp-baseline.json`).
+텍스트 오버플로는 `.clamp-2`(제목 2줄) / `.truncate-1`(목록 1줄).
 
 ## 3. 간격 (8pt 스케일, 15a)
 

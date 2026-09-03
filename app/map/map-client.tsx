@@ -1653,7 +1653,7 @@ export function MapClient({
        (402×874 실측: 218~882). 화면 밖으로 나간 필터는 스크롤로도 못 본다. */
     <div className="glass-strong flex max-h-[var(--nz-filter-max-h,calc(100dvh-210px))] w-full flex-col gap-3 overflow-y-auto rounded-[18px] p-4 shadow-[0_16px_40px_rgba(16,28,54,.2)]">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-extrabold text-ink">상세 필터</span>
+        <span className="text-[13px] font-extrabold text-ink">상세 필터</span>
         <button
           type="button"
           onClick={() => setFiltersExpanded(false)}
@@ -3646,7 +3646,7 @@ export function MapClient({
             </span>
             {hoverMarker.momPct !== undefined && Number.isFinite(hoverMarker.momPct) && (
               <span
-                className={`text-[11px] font-extrabold ${
+                className={`text-[12px] font-extrabold ${
                   hoverMarker.momPct >= 0 ? "text-danger" : "text-primary"
                 }`}
               >
@@ -4381,7 +4381,7 @@ export function MapClient({
           type="button"
           onClick={() => setPanelOpen((v) => !v)}
           aria-label={panelOpen ? "패널 접기" : "패널 열기"}
-          className={`absolute top-1/2 z-30 hidden h-16 w-4 -translate-y-1/2 items-center justify-center rounded-r-xl border border-line bg-[var(--glass-bg-strong)] text-[11px] text-text-3 shadow-[6px_0_14px_rgba(16,28,54,.08)] md:flex ${
+          className={`absolute top-1/2 z-30 hidden h-16 w-4 -translate-y-1/2 items-center justify-center rounded-r-xl border border-line bg-[var(--glass-bg-strong)] text-[12px] text-text-3 shadow-[6px_0_14px_rgba(16,28,54,.08)] md:flex ${
             panelOpen ? "left-[340px]" : "left-0"
           }`}
         >
@@ -4614,7 +4614,7 @@ export function MapClient({
                         </span>
                         <span className="flex items-baseline gap-2">
                           <span className="font-extrabold text-ink">{t.price}</span>
-                          <span className={`text-[11px] ${deltaClass(t.tone)}`}>{t.delta}</span>
+                          <span className={`text-[12px] ${deltaClass(t.tone)}`}>{t.delta}</span>
                         </span>
                       </div>
                     ))}
@@ -4756,7 +4756,7 @@ export function MapClient({
         }`}
         style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 220px)" }}
       >
-        <span className="text-base leading-none">＋</span>
+        <span className="text-[15px] leading-none">＋</span>
         매물 등록
       </Link>
 

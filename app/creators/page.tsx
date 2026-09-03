@@ -83,7 +83,7 @@ export default function CreatorsPage() {
         <h1 className="rise-in text-[24px] font-extrabold leading-[1.35] text-ink">
           임장 콘텐츠, 조회수로 끝내지 마세요
         </h1>
-        <p className="mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="mt-2 text-[13px] leading-[1.7] text-text-2">
           발로 뛰어 만든 지역 분석과 임장 기록을 내집나우 자료실에서 리포트로
           판매할 수 있습니다. 한 번 만든 콘텐츠가 그 지역을 검색하는 다음
           사람에게 계속 팔리는 구조입니다. 수익을 약속하지는 않습니다 —
@@ -96,14 +96,14 @@ export default function CreatorsPage() {
         {WHY.map((w) => (
           <div key={w.title} className="card rounded-2xl px-4 py-4">
             <Icon name={w.icon} size={20} className="text-primary" />
-            <div className="mt-2 text-[14px] font-extrabold text-ink">{w.title}</div>
-            <p className="mt-1 text-[12.5px] leading-[1.65] text-text-2">{w.desc}</p>
+            <div className="mt-2 text-[13px] font-extrabold text-ink">{w.title}</div>
+            <p className="mt-1 text-[13px] leading-[1.65] text-text-2">{w.desc}</p>
           </div>
         ))}
       </div>
 
       {/* 판매까지 3단계 */}
-      <h2 className="mb-3 text-[16px] font-extrabold text-ink">판매까지 3단계</h2>
+      <h2 className="mb-3 text-[15px] font-extrabold text-ink">판매까지 3단계</h2>
       <ol className="mb-8 grid gap-3 sm:grid-cols-3">
         {STEPS.map((s) => (
           <li key={s.no} className="card flex gap-3 rounded-2xl px-4 py-4">
@@ -111,8 +111,8 @@ export default function CreatorsPage() {
               {s.no}
             </span>
             <div>
-              <div className="text-[13.5px] font-extrabold text-ink">{s.title}</div>
-              <p className="mt-0.5 text-[12.5px] leading-[1.6] text-text-2">{s.desc}</p>
+              <div className="text-[13px] font-extrabold text-ink">{s.title}</div>
+              <p className="mt-0.5 text-[13px] leading-[1.6] text-text-2">{s.desc}</p>
             </div>
           </li>
         ))}
@@ -120,7 +120,7 @@ export default function CreatorsPage() {
 
       {/* 사실 고지 — 이 정직함이 브랜드다 */}
       <div className="mb-8 max-w-[720px] rounded-2xl border border-line bg-bg px-4 py-3.5">
-        <div className="text-[12.5px] font-extrabold text-ink">있는 그대로의 고지</div>
+        <div className="text-[13px] font-extrabold text-ink">있는 그대로의 고지</div>
         <ul className="mt-1.5 flex flex-col gap-1 text-[12px] leading-[1.65] text-text-2">
           <li>· 판매 수익 규모는 보장하지도, 전망으로 제시하지도 않습니다.</li>
           <li>
@@ -138,19 +138,19 @@ export default function CreatorsPage() {
       </div>
 
       {/* FAQ */}
-      <h2 className="mb-3 text-[16px] font-extrabold text-ink">자주 묻는 것</h2>
+      <h2 className="mb-3 text-[15px] font-extrabold text-ink">자주 묻는 것</h2>
       <div className="mb-8 flex max-w-[720px] flex-col gap-3">
         {FAQ.map((f) => (
           <div key={f.q} className="card rounded-2xl px-4 py-3.5">
-            <div className="text-[13.5px] font-extrabold text-ink">{f.q}</div>
-            <p className="mt-1 text-[12.5px] leading-[1.65] text-text-2">{f.a}</p>
+            <div className="text-[13px] font-extrabold text-ink">{f.q}</div>
+            <p className="mt-1 text-[13px] leading-[1.65] text-text-2">{f.a}</p>
           </div>
         ))}
       </div>
 
       {/* CTA */}
       <div className="mb-4 flex flex-wrap items-center gap-2.5">
-        <Link href="/my/creator" className="btn-primary press rounded-xl px-5 py-2.5 text-[13.5px]">
+        <Link href="/my/creator" className="btn-primary press rounded-xl px-5 py-2.5 text-[13px]">
           크리에이터 센터에서 시작 ›
         </Link>
         <Link

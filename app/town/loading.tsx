@@ -12,10 +12,10 @@ export default function TownLoading() {
 
       {/* 카테고리 바로가기 카드 행 */}
       <div className="mb-5 flex gap-2.5 overflow-hidden pb-1">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 9 }).map((_, i) => (
           <div
             key={i}
-            className="card flex min-w-[118px] shrink-0 flex-col gap-2 rounded-2xl px-4 py-3.5"
+            className="card flex w-[96px] shrink-0 flex-col gap-2 rounded-2xl px-4 py-3.5"
           >
             <Skeleton className="h-5 w-5 rounded" />
             <Skeleton className="mt-1 h-3.5 w-10 rounded" />
@@ -28,7 +28,7 @@ export default function TownLoading() {
           스켈레톤이 4열 균등 격자면 실제 목록이 붙는 순간 리듬이 통째로 바뀐다.
           같은 시드 리듬(짧음·중간·김)을 그대로 흉내 낸다. */}
       <div className="columns-2 gap-3 md:columns-3 lg:columns-4">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="card mb-3 break-inside-avoid overflow-hidden rounded-[14px]">
             <Skeleton className={`w-full ${["h-40", "h-56", "h-32", "h-48"][i % 4]}`} />
             <div className="flex flex-col gap-2 p-3">

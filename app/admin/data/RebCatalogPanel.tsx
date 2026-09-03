@@ -99,7 +99,7 @@ export function RebCatalogPanel() {
           {busy ? "조회 중…" : "조회"}
         </button>
       </div>
-      {msg && <div className="text-[10.5px] text-[#9aa6b8]">{msg}</div>}
+      {msg && <div className="text-[10px] text-[#9aa6b8]">{msg}</div>}
 
       {tables.length > 0 && (
         <div className="max-h-[280px] overflow-y-auto rounded-xl border border-[rgba(255,255,255,.07)]">
@@ -110,7 +110,7 @@ export function RebCatalogPanel() {
                 onClick={() => void loadItems(t.statblId ?? "")}
                 className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-[rgba(255,255,255,.04)]"
               >
-                <span className="min-w-0 flex-1 truncate text-[11.5px] text-white">
+                <span className="min-w-0 flex-1 truncate text-[12px] text-white">
                   {t.statblNm}
                 </span>
                 <code className="shrink-0 text-[10px] text-ai-accent">{t.statblId}</code>
@@ -118,11 +118,11 @@ export function RebCatalogPanel() {
               {openId === t.statblId && (
                 <div className="bg-[rgba(0,0,0,.2)] px-3 py-2">
                   {items.length === 0 ? (
-                    <div className="text-[10.5px] text-[#9aa6b8]">세부항목 불러오는 중…</div>
+                    <div className="text-[10px] text-[#9aa6b8]">세부항목 불러오는 중…</div>
                   ) : (
                     <div className="flex flex-col gap-1">
                       {items.slice(0, 40).map((it) => (
-                        <div key={it.itmId} className="flex gap-2 text-[10.5px]">
+                        <div key={it.itmId} className="flex gap-2 text-[10px]">
                           <code className="shrink-0 text-[#f2c94c]">{it.itmId}</code>
                           <span className="min-w-0 truncate text-[#c7d0de]">
                             {it.itmFullNm || it.itmNm}

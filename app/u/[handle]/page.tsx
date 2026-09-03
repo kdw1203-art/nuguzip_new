@@ -248,11 +248,11 @@ export default async function PublicProfilePage({
             <span className="h-[56px] w-[56px] shrink-0 rounded-full border-[3px] border-bg bg-gradient-to-br from-line to-line-strong" />
             <div className="min-w-0 flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-[6px]">
-                <span className="text-[16px] font-extrabold text-ink">
+                <span className="text-[15px] font-extrabold text-ink">
                   {displayName}
                 </span>
               </div>
-              <div className="mt-[2px] text-[11px] text-text-3">
+              <div className="mt-[2px] text-[12px] text-text-3">
                 naezipnow.com/@{handleLabel}
                 {region ? ` · ${region}` : ""}
               </div>
@@ -278,13 +278,13 @@ export default async function PublicProfilePage({
           {/* 통계 2종 — 실데이터(공개 노트 수·팔로워)만 */}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <div className="rounded-[10px] border border-line bg-bg px-2 py-[10px] text-center">
-              <div className="text-[16px] font-extrabold text-ink">
+              <div className="text-[15px] font-extrabold text-ink">
                 {noteCount}
               </div>
               <div className="text-[10px] text-text-3">공개 노트</div>
             </div>
             <div className="rounded-[10px] border border-line bg-bg px-2 py-[10px] text-center">
-              <div className="text-[16px] font-extrabold text-ink">
+              <div className="text-[15px] font-extrabold text-ink">
                 {followerCount === null ? "—" : followerCount.toLocaleString("ko-KR")}
               </div>
               <div className="text-[10px] text-text-3">
@@ -321,7 +321,7 @@ export default async function PublicProfilePage({
                     {g.title}
                   </span>
                   {i === grid.length - 1 && noteCount > grid.length && (
-                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-brand-navy/85 chip-pad-tight text-[9px] font-extrabold text-surface">
+                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-brand-navy/85 chip-pad-tight text-[10px] font-extrabold text-surface">
                       +{noteCount - grid.length}
                     </span>
                   )}

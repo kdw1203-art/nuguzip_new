@@ -252,7 +252,7 @@ export default async function AdminTrafficPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-[20px] font-extrabold text-ink">트래픽</h1>
+        <h1 className="text-[19px] font-extrabold text-ink">트래픽</h1>
         <p className="mt-1 text-[13px] leading-[1.6] text-text-2">
           접속자·체류는 <b className="text-ink">분석 동의 사용자 표본</b>이다(동의
           배너에서 &ldquo;필수만 허용&rdquo;을 누른 방문은 집계에 없음 — 전체
@@ -273,7 +273,7 @@ export default async function AdminTrafficPage() {
         <section className="card rounded-2xl px-5 py-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <div>
-              <div className="text-[11px] text-text-3">이번 주 페이지뷰 (최근 7일 · 목표 {WEEKLY_PV_TARGET.toLocaleString("ko-KR")})</div>
+              <div className="text-[12px] text-text-3">이번 주 페이지뷰 (최근 7일 · 목표 {WEEKLY_PV_TARGET.toLocaleString("ko-KR")})</div>
               <div className="t-num mt-1 text-[24px] font-extrabold text-ink">
                 {thisWeekPv.toLocaleString("ko-KR")}
                 <span className="ml-2 text-[13px] font-bold text-text-3">
@@ -282,11 +282,11 @@ export default async function AdminTrafficPage() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] text-text-3">지난 주 대비</div>
+              <div className="text-[12px] text-text-3">지난 주 대비</div>
               <div className={`t-num mt-1 text-[19px] font-extrabold ${weekDeltaPct === null ? "text-text-3" : weekDeltaPct >= 0 ? "text-success" : "text-danger"}`}>
                 {weekDeltaPct === null ? "—" : `${weekDeltaPct >= 0 ? "▲" : "▼"} ${Math.abs(weekDeltaPct)}%`}
               </div>
-              <div className="mt-0.5 text-[11px] text-text-3">지난 주 {prevWeekPv.toLocaleString("ko-KR")}뷰</div>
+              <div className="mt-0.5 text-[12px] text-text-3">지난 주 {prevWeekPv.toLocaleString("ko-KR")}뷰</div>
             </div>
           </div>
           {/* 목표 진행 막대 — 초과해도 100%로 클램프 */}
@@ -304,11 +304,11 @@ export default async function AdminTrafficPage() {
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kpis.map((k) => (
             <div key={k.label} className="card rounded-2xl px-5 py-4">
-              <div className="text-[11px] text-text-3">{k.label}</div>
+              <div className="text-[12px] text-text-3">{k.label}</div>
               <div className="t-num mt-1 text-[24px] font-extrabold text-ink">
                 {k.value.toLocaleString("ko-KR")}
               </div>
-              <div className="mt-0.5 text-[11px] text-text-3">{k.sub}</div>
+              <div className="mt-0.5 text-[12px] text-text-3">{k.sub}</div>
             </div>
           ))}
         </section>
@@ -318,7 +318,7 @@ export default async function AdminTrafficPage() {
       <section className="card rounded-2xl p-5">
         <h2 className="text-[15px] font-extrabold text-ink">
           일별 추이{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="text-[12px] font-medium text-text-3">
             최근 14일 · KST 기준 · 막대=페이지뷰, 숫자=방문자
           </span>
         </h2>
@@ -350,7 +350,7 @@ export default async function AdminTrafficPage() {
       <section className="card rounded-2xl p-5">
         <h2 className="text-[15px] font-extrabold text-ink">
           페이지별 조회·체류{" "}
-          <span className="text-[11px] font-medium text-text-3">최근 30일 · 상위 15개 라우트</span>
+          <span className="text-[12px] font-medium text-text-3">최근 30일 · 상위 15개 라우트</span>
         </h2>
         {routes.length === 0 ? (
           <p className="mt-3 text-[13px] text-text-3">아직 집계할 페이지뷰가 없어요.</p>
@@ -358,7 +358,7 @@ export default async function AdminTrafficPage() {
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-[12px]">
               <thead>
-                <tr className="border-b border-line text-[11px] text-text-3">
+                <tr className="border-b border-line text-[12px] text-text-3">
                   <th className="py-2 pr-3 font-semibold">라우트</th>
                   <th className="py-2 pr-3 text-right font-semibold">조회</th>
                   <th className="py-2 pr-3 text-right font-semibold">방문자</th>
@@ -369,7 +369,7 @@ export default async function AdminTrafficPage() {
               <tbody>
                 {routes.map((r) => (
                   <tr key={r.route} className="border-b border-line last:border-0">
-                    <td className="max-w-[220px] truncate py-2 pr-3 font-mono text-[11px] font-bold text-ink">
+                    <td className="max-w-[220px] truncate py-2 pr-3 font-mono text-[12px] font-bold text-ink">
                       {r.route}
                     </td>
                     <td className="t-num py-2 pr-3 text-right text-text-1">
@@ -388,7 +388,7 @@ export default async function AdminTrafficPage() {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-[11px] text-text-3">
+            <p className="mt-2 text-[12px] text-text-3">
               평균 체류는 이탈 비콘이 도착한 조회(표본)만으로 계산 — 표본 0이면
               평균을 만들지 않는다. 탭 전환·닫기 시점까지의 노출 시간 기준, 1시간 상한.
             </p>
@@ -402,7 +402,7 @@ export default async function AdminTrafficPage() {
         <section className="card rounded-2xl p-5">
           <h2 className="text-[15px] font-extrabold text-ink">
             기기 비율{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="text-[12px] font-medium text-text-3">
               최근 30일 · 세션 시작 시점 화면 폭 기준(viewport_group_change 계측)
             </span>
           </h2>
@@ -445,7 +445,7 @@ export default async function AdminTrafficPage() {
         <section className="card rounded-2xl p-5">
           <h2 className="text-[15px] font-extrabold text-ink">
             재방문{" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="text-[12px] font-medium text-text-3">
               최근 30일 · 서로 다른 2일 이상 방문한 방문자 비율
             </span>
           </h2>
@@ -456,7 +456,7 @@ export default async function AdminTrafficPage() {
               {retention.visitors.toLocaleString("ko-KR")}명
             </span>
           </p>
-          <p className="mt-1.5 text-[11px] leading-[1.6] text-text-3">
+          <p className="mt-1.5 text-[12px] leading-[1.6] text-text-3">
             같은 브라우저 기준(방문자 키 — 기기·브라우저를 바꾸면 새 방문자로
             셉니다). 키는 2026-08-04 도입 — 그 이전 방문은 소급되지 않고, 분석
             동의 표본만 집계됩니다.
@@ -469,7 +469,7 @@ export default async function AdminTrafficPage() {
         <section className="card rounded-2xl p-5">
           <h2 className="text-[15px] font-extrabold text-ink">
             성능 (웹바이탈){" "}
-            <span className="text-[11px] font-medium text-text-3">
+            <span className="text-[12px] font-medium text-text-3">
               실사용자 측정(RUM) · p75 · 최근 7일
             </span>
           </h2>
@@ -491,7 +491,7 @@ export default async function AdminTrafficPage() {
                     className="rounded-[12px] border border-line bg-bg px-3.5 py-2.5"
                   >
                     <div className="text-[10px] font-bold text-text-3">{v.metric}</div>
-                    <div className={`text-[16px] font-extrabold ${cls}`}>
+                    <div className={`text-[15px] font-extrabold ${cls}`}>
                       {formatVital(v.metric, v.p75)}
                     </div>
                     <div className="text-[10px] text-text-3">{v.samples}표본</div>
@@ -518,7 +518,7 @@ export default async function AdminTrafficPage() {
                     const thin = r.samples < 20;
                     return (
                       <div key={r.week_start} className="flex flex-1 flex-col items-center gap-1">
-                        <span className="text-[9px] tabular-nums text-text-3">
+                        <span className="text-[10px] tabular-nums text-text-3">
                           {formatVital(metric, r.p75)}
                         </span>
                         <div className="flex h-[52px] w-full items-end">
@@ -530,7 +530,7 @@ export default async function AdminTrafficPage() {
                             title={`${r.week_start} 주 · ${formatVital(metric, r.p75)} · ${r.samples}표본`}
                           />
                         </div>
-                        <span className="text-[9px] text-text-3">
+                        <span className="text-[10px] text-text-3">
                           {r.week_start.slice(5).replace("-", ".")}
                         </span>
                       </div>
@@ -540,7 +540,7 @@ export default async function AdminTrafficPage() {
               </div>
             );
           })}
-          <p className="mt-2 text-[11px] leading-[1.6] text-text-3">
+          <p className="mt-2 text-[12px] leading-[1.6] text-text-3">
             색: 웹 표준 임계값 기준(좋음 · 개선 필요 · 나쁨 — LCP 2.5s/4s ·
             CLS 0.1/0.25). 옅은 막대는 표본 20개 미만이라 p75 신뢰도가 낮은
             주입니다. 수집이 없던 주는 칸 자체가 없습니다.
@@ -552,7 +552,7 @@ export default async function AdminTrafficPage() {
       <section className="card rounded-2xl p-5">
         <h2 className="text-[15px] font-extrabold text-ink">
           유입 출처{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="text-[12px] font-medium text-text-3">
             최근 30일 · 세션 첫 방문(랜딩) 기준 · 리퍼러는 호스트만 저장(검색어 등
             전체 URL 미저장)
           </span>
@@ -585,7 +585,7 @@ export default async function AdminTrafficPage() {
             })()}
           </div>
         )}
-        <p className="mt-3 text-[11px] text-text-3">
+        <p className="mt-3 text-[12px] text-text-3">
           &ldquo;(직접/앱)&rdquo;은 주소창 입력·북마크·앱, 그리고 리퍼러를 보내지
           않는 브라우저를 합친 값이다 — 이 셋은 기술적으로 구분할 수 없다.
         </p>
@@ -593,14 +593,14 @@ export default async function AdminTrafficPage() {
         {/* UTM 캠페인 — 우리가 발행한 링크 파라미터 기준 */}
         <h3 className="mt-5 text-[13px] font-extrabold text-ink">
           캠페인 링크(UTM){" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="text-[12px] font-medium text-text-3">
             utm_source·medium·campaign 이 붙은 랜딩만
           </span>
         </h3>
         {utms.length === 0 ? (
           <p className="mt-2 text-[12px] text-text-3">
             UTM 파라미터가 붙은 유입이 아직 없어요. 홍보 링크에{" "}
-            <code className="rounded bg-[#f2f4f8] px-1 py-0.5 text-[11px]">
+            <code className="rounded bg-[#f2f4f8] px-1 py-0.5 text-[12px]">
               ?utm_source=instagram&amp;utm_campaign=open
             </code>{" "}
             형식을 붙이면 여기서 링크별 성과가 집계됩니다.
@@ -609,7 +609,7 @@ export default async function AdminTrafficPage() {
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[420px] text-left text-[12px]">
               <thead>
-                <tr className="border-b border-line text-[11px] text-text-3">
+                <tr className="border-b border-line text-[12px] text-text-3">
                   <th className="py-2 pr-3 font-semibold">source</th>
                   <th className="py-2 pr-3 font-semibold">medium</th>
                   <th className="py-2 pr-3 font-semibold">campaign</th>
@@ -637,7 +637,7 @@ export default async function AdminTrafficPage() {
       <section className="card rounded-2xl p-5">
         <h2 className="text-[15px] font-extrabold text-ink">
           기능 사용{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="text-[12px] font-medium text-text-3">
             최근 30일 · 서버 확정 이벤트 · 상위 20개
           </span>
         </h2>
@@ -647,7 +647,7 @@ export default async function AdminTrafficPage() {
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[440px] text-left text-[12px]">
               <thead>
-                <tr className="border-b border-line text-[11px] text-text-3">
+                <tr className="border-b border-line text-[12px] text-text-3">
                   <th className="py-2 pr-3 font-semibold">기능</th>
                   <th className="py-2 pr-3 text-right font-semibold">횟수</th>
                   <th className="py-2 text-right font-semibold">사용자</th>
@@ -676,7 +676,7 @@ export default async function AdminTrafficPage() {
                 ))}
               </tbody>
             </table>
-            <p className="mt-2 text-[11px] text-text-3">
+            <p className="mt-2 text-[12px] text-text-3">
               사용자 수는 로그인 상태로 기록된 이벤트만 셀 수 있다 — &ldquo;—&rdquo;는
               비로그인 이벤트라는 뜻이지 0명이라는 뜻이 아니다.
             </p>
@@ -690,7 +690,7 @@ export default async function AdminTrafficPage() {
         <h2 className="text-[15px] font-extrabold text-ink">
           커버리지 수요 (최근 30일)
         </h2>
-        <p className="mt-0.5 text-[11px] text-text-3">
+        <p className="mt-0.5 text-[12px] text-text-3">
           검색 무결과 화면의 &ldquo;열리면 알려주세요&rdquo; 요청 — 요청 많은
           검색어부터 데이터 확장 우선순위에 반영
         </p>
@@ -705,7 +705,7 @@ export default async function AdminTrafficPage() {
         ) : (
           <table className="mt-3 w-full text-left text-[12px]">
             <thead>
-              <tr className="border-b border-line text-[11px] text-text-3">
+              <tr className="border-b border-line text-[12px] text-text-3">
                 <th className="py-1.5 font-bold">검색어</th>
                 <th className="py-1.5 text-right font-bold">요청</th>
                 <th className="py-1.5 text-right font-bold">알림 이메일</th>
@@ -724,7 +724,7 @@ export default async function AdminTrafficPage() {
                   <td className="py-2 text-right tabular-nums text-text-2">
                     {d.emailCount > 0 ? d.emailCount.toLocaleString("ko-KR") : "—"}
                   </td>
-                  <td className="py-2 text-right text-[11px] text-text-3">
+                  <td className="py-2 text-right text-[12px] text-text-3">
                     {d.lastAt ? new Date(d.lastAt).toLocaleDateString("ko-KR") : "—"}
                   </td>
                 </tr>

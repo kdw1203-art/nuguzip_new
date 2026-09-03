@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
       style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
     >
       <div className="flex justify-end">
-        <Link href="/login" className="text-[17px] text-text-3" aria-label="닫기">
+        <Link href="/login" className="text-[15px] text-text-3" aria-label="닫기">
           ✕
         </Link>
       </div>
@@ -53,10 +53,10 @@ export default function ForgotPasswordPage() {
         <div className="rise-in">
           <Logo size={34} />
         </div>
-        <h1 className="rise-in-1 text-[22px] font-extrabold leading-[1.35] text-ink">
+        <h1 className="rise-in-1 text-[21px] font-extrabold leading-[1.35] text-ink">
           비밀번호 찾기
         </h1>
-        <p className="rise-in-2 text-sm text-text-2">
+        <p className="rise-in-2 text-[13px] text-text-2">
           가입한 이메일로 비밀번호 초기화 링크를 보내드립니다
         </p>
 
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
             </ol>
             <Link
               href="/login"
-              className="btn-primary mt-2 rounded-[10px] p-3 text-center text-sm font-bold"
+              className="btn-primary mt-2 rounded-[10px] p-3 text-center text-[13px] font-bold"
             >
               로그인으로 돌아가기
             </Link>
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
                 setSent(false);
                 setEmail("");
               }}
-              className="rounded-[10px] border border-line bg-surface p-3 text-center text-sm font-bold text-text-2"
+              className="rounded-[10px] border border-line bg-surface p-3 text-center text-[13px] font-bold text-text-2"
             >
               다른 이메일로 다시 시도
             </button>
@@ -108,12 +108,12 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="가입한 이메일 주소"
                 autoComplete="email"
-                className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+                className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
               />
               <button
                 type="submit"
                 disabled={busy}
-                className="btn-primary rounded-[10px] p-3 text-center text-sm font-bold disabled:opacity-60"
+                className="btn-primary rounded-[10px] p-3 text-center text-[13px] font-bold disabled:opacity-60"
               >
                 {busy ? "전송 중…" : "초기화 링크 보내기"}
               </button>

@@ -19,10 +19,10 @@ const Section = ({
   children: React.ReactNode;
 }) => (
   <section className="mt-8 first:mt-0">
-    <h2 className="text-base font-bold text-ink">
+    <h2 className="text-[15px] font-bold text-ink">
       {num}. {title}
     </h2>
-    <div className="mt-2 space-y-2 text-sm leading-7 text-text-1">{children}</div>
+    <div className="mt-2 space-y-2 text-[13px] leading-7 text-text-1">{children}</div>
   </section>
 );
 
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
       <article className="card rise-in p-6 md:p-8">
         <div className="mb-6 border-b border-line pb-6">
           <h1 className="text-2xl font-extrabold text-ink">개인정보처리방침</h1>
-          <p className="mt-1 text-sm text-text-3">시행일: {UPDATED}</p>
+          <p className="mt-1 text-[13px] text-text-3">시행일: {UPDATED}</p>
           <div className="mt-3 rounded-[14px] bg-primary-soft p-3 text-xs leading-relaxed text-primary">
             우리동네이야기(이하 &quot;회사&quot;)는 「개인정보보호법」 및 「정보통신망 이용촉진 및 정보보호 등에
             관한 법률」을 준수하며, 이용자의 개인정보를 안전하게 보호합니다. 본 방침은 회원가입,
@@ -121,7 +121,7 @@ export default function PrivacyPage() {
               ],
             ]}
           />
-          <p id="field-capture" className="mt-4 text-sm leading-relaxed text-text-1">
+          <p id="field-capture" className="mt-4 text-[13px] leading-relaxed text-text-1">
             <strong>임장 기록(음성·사진·위치)</strong>은 AI 임장노트 기능 이용 시{" "}
             <strong>업로드 전 별도 동의</strong> 후 수집됩니다. STT·이미지 분석 처리를 위해 AI
             API(OpenAI·Anthropic 등, 미국)로 전송될 수 있으며,{" "}
@@ -267,7 +267,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section num="8" title="개인정보보호책임자">
-          <div className="space-y-1 rounded-[14px] border border-line bg-bg p-4 text-sm">
+          <div className="space-y-1 rounded-[14px] border border-line bg-bg p-4 text-[13px]">
             <p>
               <strong>개인정보보호책임자</strong>: 미정 (오픈 시 기재)
             </p>

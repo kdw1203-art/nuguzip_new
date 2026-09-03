@@ -122,7 +122,7 @@ export function PushSubscribe() {
 
   if (status === "subscribed") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-text-3">
+      <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-text-3">
         <Icon name="bell" size={13} />알림 켜짐
       </span>
     );
@@ -130,7 +130,7 @@ export function PushSubscribe() {
 
   if (status === "denied") {
     return (
-      <span className="text-[11px] text-text-3">브라우저 알림이 차단됨</span>
+      <span className="text-[12px] text-text-3">브라우저 알림이 차단됨</span>
     );
   }
 
@@ -139,7 +139,7 @@ export function PushSubscribe() {
       type="button"
       onClick={subscribe}
       disabled={status === "loading"}
-      className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-text-2 transition-colors hover:text-primary disabled:opacity-60"
+      className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2 transition-colors hover:text-primary disabled:opacity-60"
     >
       {status === "loading" ? (
         "설정 중…"

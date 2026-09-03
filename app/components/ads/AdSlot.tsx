@@ -164,10 +164,10 @@ function HouseAdCard({ ad }: { ad: HouseAd }) {
               {theme.icon}
             </svg>
           )}
-          <span className="relative text-[11px] font-extrabold tracking-tight text-white">
+          <span className="relative text-[12px] font-extrabold tracking-tight text-white">
             {ad.eyebrow}
           </span>
-          <span className="relative rounded-md bg-white/20 chip-pad text-[9px] font-bold text-white">
+          <span className="relative rounded-md bg-white/20 chip-pad text-[10px] font-bold text-white">
             내집나우 안내
           </span>
         </div>

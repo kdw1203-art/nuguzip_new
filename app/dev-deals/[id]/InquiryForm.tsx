@@ -170,7 +170,7 @@ export function InquiryForm({
       <button type="submit" className="btn-primary btn-md" disabled={submitting}>
         {submitting ? "접수 중…" : "참여 문의 보내기"}
       </button>
-      <p className="text-[11px] leading-[1.6] text-text-3">
+      <p className="text-[12px] leading-[1.6] text-text-3">
         소개·문의는 무료입니다. 중개 수수료는 매칭 성사 시에만, 사업 규모에 따라 협의됩니다.
       </p>
     </form>

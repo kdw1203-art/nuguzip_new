@@ -94,7 +94,7 @@ export function AiRetryButton({
               type="button"
               disabled={busy}
               onClick={() => setRole(o.role)}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-bold disabled:opacity-60 ${
+              className={`rounded-full px-2.5 py-1 text-[12px] font-bold disabled:opacity-60 ${
                 active
                   ? "bg-white/20 text-ai-accent"
                   : "bg-white/5 text-white/70"

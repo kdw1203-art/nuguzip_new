@@ -74,7 +74,7 @@ export function NotifyPreorderButton() {
           {phase === "busy" ? "발송 중…" : "사전등록자에게 오픈 알림 발송"}
         </button>
       )}
-      {result && <p className="mt-1.5 text-[11px] leading-[1.6] text-text-2">{result}</p>}
+      {result && <p className="mt-1.5 text-[12px] leading-[1.6] text-text-2">{result}</p>}
     </div>
   );
 }

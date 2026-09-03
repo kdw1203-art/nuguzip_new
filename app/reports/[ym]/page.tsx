@@ -183,7 +183,7 @@ export default async function MonthlyReportPage({
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
           {label} 아파트 실거래 리포트
         </h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-1">{leadSentence}</p>
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-1">{leadSentence}</p>
         {report.isProvisional && (
           <p className="rise-in-1 mt-1 text-[12px] leading-[1.6] text-text-3">
             실거래 신고 기한(계약 후 30일)이 지나지 않아 이 달의 수치는 앞으로 더
@@ -223,12 +223,12 @@ export default async function MonthlyReportPage({
         <section className="rise-in-3 card mt-5 p-[var(--pad-card)]">
           <h2 className="text-[15px] font-extrabold text-ink">
             지역별 거래량·평균가{" "}
-            <span className="text-[11px] font-medium text-text-3">거래량순 · {report.regionCount}개 지역</span>
+            <span className="text-[12px] font-medium text-text-3">거래량순 · {report.regionCount}개 지역</span>
           </h2>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-[13px]">
               <thead>
-                <tr className="border-b border-border text-[11px] text-text-3">
+                <tr className="border-b border-border text-[12px] text-text-3">
                   <th className="py-2 font-medium">지역</th>
                   <th className="py-2 text-right font-medium">거래량</th>
                   <th className="py-2 text-right font-medium">평균가</th>
@@ -261,7 +261,7 @@ export default async function MonthlyReportPage({
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-[11px] leading-[1.6] text-text-3">
+          <p className="mt-3 text-[12px] leading-[1.6] text-text-3">
             평균가는 면적·타입 구분 없는 단순 평균입니다. 해제(취소) 신고분은 집계에서
             제외했습니다 —{" "}
             <Link href="/methodology" className="font-bold text-primary underline">

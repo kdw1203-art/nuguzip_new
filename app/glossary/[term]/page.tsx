@@ -130,7 +130,7 @@ export default async function GlossaryTermPage({
           <span>{t.category}</span>
         </nav>
 
-        <h1 className="rise-in mt-2 text-[26px] font-extrabold leading-[1.3] text-ink">
+        <h1 className="rise-in mt-2 text-[24px] font-extrabold leading-[1.3] text-ink">
           {t.term}
         </h1>
 
@@ -152,7 +152,7 @@ export default async function GlossaryTermPage({
 
         {related.length > 0 && (
           <section className="rise-in-2 mt-5">
-            <h2 className="text-[14px] font-extrabold text-ink">함께 보면 좋은 용어</h2>
+            <h2 className="text-[13px] font-extrabold text-ink">함께 보면 좋은 용어</h2>
             <div className="mt-2 flex flex-col gap-2">
               {related.map((r) => (
                 <Link
@@ -170,7 +170,7 @@ export default async function GlossaryTermPage({
 
         {siblings.length > 0 && (
           <section className="rise-in-3 mt-5">
-            <h2 className="text-[14px] font-extrabold text-ink">{t.category} 용어</h2>
+            <h2 className="text-[13px] font-extrabold text-ink">{t.category} 용어</h2>
             <div className="mt-2 flex flex-wrap gap-2">
               {siblings.map((s) => (
                 <Link
@@ -185,7 +185,7 @@ export default async function GlossaryTermPage({
           </section>
         )}
 
-        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
+        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[12px] leading-[1.7] text-text-3">
           용어 풀이는 일반적인 이해를 돕기 위한 것입니다. 대출 한도·세율·규제 지역
           지정처럼 제도에 따라 달라지는 수치는 시점마다 바뀌므로, 실제 적용 기준은
           금융기관·관할 관청에서 확인하세요. 내집나우가 시세를 집계하는 방식은{" "}

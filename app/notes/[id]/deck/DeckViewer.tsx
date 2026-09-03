@@ -121,7 +121,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
             }`}
           >
           {page.eyebrow && (
-            <p className={`text-[11.5px] font-extrabold tracking-wide ${t.eyebrow}`}>
+            <p className={`text-[12px] font-extrabold tracking-wide ${t.eyebrow}`}>
               {page.eyebrow}
             </p>
           )}
@@ -129,7 +129,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
           {page.title && (
             <h2
               className={`text-[19px] font-extrabold leading-[1.35] ${t.title} ${
-                page.kind === "cover" ? "text-[23px]" : ""
+                page.kind === "cover" ? "text-[24px]" : ""
               }`}
             >
               {page.title}
@@ -137,7 +137,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
           )}
 
           {page.body.length > 0 && (
-            <div className={`flex flex-col gap-2 text-[13.5px] leading-relaxed ${t.body}`}>
+            <div className={`flex flex-col gap-2 text-[13px] leading-relaxed ${t.body}`}>
               {page.body.map((p, i) => (
                 <p key={i}>{p}</p>
               ))}
@@ -145,7 +145,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
           )}
 
           {page.bullets.length > 0 && (
-            <ul className={`flex flex-col gap-2 text-[13.5px] leading-relaxed ${t.body}`}>
+            <ul className={`flex flex-col gap-2 text-[13px] leading-relaxed ${t.body}`}>
               {page.bullets.map((b, i) => (
                 <li key={i} className="flex gap-2">
                   <span aria-hidden className={dark ? "text-white/60" : "text-primary"}>
@@ -198,11 +198,11 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
           </div>
 
           <div className="flex items-center justify-between pt-3">
-            <span className={`text-[11px] font-bold ${dark ? "text-white/60" : "text-text-3"}`}>
+            <span className={`text-[12px] font-bold ${dark ? "text-white/60" : "text-text-3"}`}>
               출처 · {page.source}
             </span>
             <span
-              className={`text-[11px] font-extrabold tabular-nums ${
+              className={`text-[12px] font-extrabold tabular-nums ${
                 dark ? "text-white/60" : "text-text-3"
               }`}
             >

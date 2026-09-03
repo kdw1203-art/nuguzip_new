@@ -88,16 +88,16 @@ export default async function PaymentFailPage({
             경고색을 보여줄 이유가 없다 — 잘못한 게 아니다. */}
         <span
           aria-hidden
-          className={`flex h-16 w-16 items-center justify-center rounded-full text-[30px] text-white shadow-[0_10px_28px_rgba(16,28,54,.18)] ${
+          className={`flex h-16 w-16 items-center justify-center rounded-full text-[28px] text-white shadow-[0_10px_28px_rgba(16,28,54,.18)] ${
             category === "user_cancel" ? "bg-text-3" : "bg-danger"
           }`}
         >
           {category === "user_cancel" ? "−" : "!"}
         </span>
-        <h1 className="text-[22px] font-extrabold tracking-[-0.4px] text-ink">
+        <h1 className="text-[21px] font-extrabold tracking-[-0.4px] text-ink">
           {category === "user_cancel" ? "결제를 취소했습니다" : "결제가 완료되지 않았습니다"}
         </h1>
-        <p className="text-sm leading-[1.6] text-text-2">{CATEGORY_MESSAGE[category]}</p>
+        <p className="text-[13px] leading-[1.6] text-text-2">{CATEGORY_MESSAGE[category]}</p>
         {(orderIdShown || codeShown) && (
           <p className="text-xs text-text-3">
             {orderIdShown ? `주문번호 ${orderIdShown}` : null}

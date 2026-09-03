@@ -74,7 +74,7 @@ function LevelBadge({ level }: { level: Level }) {
   const s = LEVEL_STYLE[level];
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full chip-pad text-[11px] font-bold"
+      className="inline-flex items-center gap-1 rounded-full chip-pad text-[12px] font-bold"
       style={{ background: s.soft, color: s.color }}
     >
       <Icon name={level === "안전" ? "check" : "warning"} size={12} />
@@ -189,7 +189,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
           <div className="flex flex-col gap-0.5">
             <div className="text-[15px] font-extrabold text-ink">
               전세 안심 진단{" "}
-              <span className="text-[11px] font-medium text-text-3">자가진단</span>
+              <span className="text-[12px] font-medium text-text-3">자가진단</span>
             </div>
             <p className="text-[12px] leading-[1.6] text-text-2">
               보증금·시세·선순위 근저당을 입력하면 전세가율·근저당비율·부채비율을
@@ -239,7 +239,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
                     ? "입력한 주소/단지명으로 최근 실거래 평균을 조회해요"
                     : "상단에 주소/단지명을 먼저 입력하세요"
                 }
-                className="btn-soft shrink-0 whitespace-nowrap rounded-[10px] px-2.5 py-2 text-[11px] font-bold disabled:opacity-50"
+                className="btn-soft shrink-0 whitespace-nowrap rounded-[10px] px-2.5 py-2 text-[12px] font-bold disabled:opacity-50"
               >
                 {lookingUp ? "조회 중…" : "실거래 평균"}
               </button>
@@ -282,7 +282,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
             ))}
           </div>
           {type === "빌라·다세대" && (
-            <span className="text-[11px] text-text-3">
+            <span className="text-[12px] text-text-3">
               환금성이 낮아 기준을 더 보수적으로 적용해요
             </span>
           )}
@@ -305,7 +305,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
             >
               <Icon name={LEVEL_STYLE[result.overall].icon} size={24} />
               <div className="flex flex-col">
-                <span className="text-[16px] font-extrabold">
+                <span className="text-[15px] font-extrabold">
                   종합 {result.overall}
                 </span>
                 <span className="text-[12px] font-medium leading-[1.5] opacity-90">
@@ -342,7 +342,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
                       <LevelBadge level={ind.level} />
                     </div>
                   </div>
-                  <p className="mt-1 text-[11px] leading-[1.6] text-text-2">
+                  <p className="mt-1 text-[12px] leading-[1.6] text-text-2">
                     {ind.explain}
                   </p>
                 </div>
@@ -371,7 +371,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
 
         {/* 면책 */}
         <div
-          className="flex items-start gap-1.5 rounded-[10px] px-3 py-2.5 text-[11px] leading-[1.6]"
+          className="flex items-start gap-1.5 rounded-[10px] px-3 py-2.5 text-[12px] leading-[1.6]"
           style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
         >
           <Icon name="warning" size={14} className="mt-0.5 shrink-0" />

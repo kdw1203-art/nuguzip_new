@@ -230,7 +230,7 @@ export function ComplexPicker({
 
   return (
     <div ref={boxRef} className="relative flex flex-col gap-1.5">
-      <span className="text-[11px] font-bold text-text-3">{label}</span>
+      <span className="text-[12px] font-bold text-text-3">{label}</span>
       {/* 검색 입력 + 지도로 찾기 — 이름을 모르면 지도에서 눌러 고른다.
           지도(/map)는 단지 선택 시 '/analysis?complexId=' 로 되돌려보내고,
           이 선택기가 그 값을 읽어 자동 선택한다(맞물린 왕복). */}
@@ -248,7 +248,7 @@ export function ComplexPicker({
         />
         <Link
           href="/map"
-          className="flex shrink-0 items-center gap-1 rounded-[10px] border border-line bg-surface px-2.5 text-[11px] font-bold text-primary no-underline hover:border-primary"
+          className="flex shrink-0 items-center gap-1 rounded-[10px] border border-line bg-surface px-2.5 text-[12px] font-bold text-primary no-underline hover:border-primary"
           aria-label="지도에서 단지 찾기"
         >
           🗺 지도로 찾기
@@ -282,7 +282,7 @@ export function ComplexPicker({
           {selected.priceLabel && (
             <span className="text-[10px] font-bold text-text-2">· 최근 {selected.priceLabel}</span>
           )}
-          <span className="ml-auto rounded border border-line px-1 py-px text-[9px] font-bold text-text-3">
+          <span className="ml-auto rounded border border-line px-1 py-px text-[10px] font-bold text-text-3">
             실데이터 기준
           </span>
         </div>

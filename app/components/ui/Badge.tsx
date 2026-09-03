@@ -28,7 +28,7 @@ export type BadgeProps = {
  */
 export function Badge({ tone = "neutral", children }: BadgeProps) {
   const cls = [
-    "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold",
+    "inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold",
     TONES[tone],
   ].join(" ");
   return <span className={cls}>{children}</span>;

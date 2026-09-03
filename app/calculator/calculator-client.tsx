@@ -345,7 +345,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
       <CalculatorNav current="/calculator" />
       {/* 사실 우선: 예전 문구("기기에만 저장 · 외부 전송 없음")는 거짓이었다 — 계산은
           서버 API(/api/loan/calc)로 전송된다. 실제 동작 그대로 고지한다. */}
-      <div className="rise-in -mt-2 mb-4 text-[11px] text-text-3">
+      <div className="rise-in -mt-2 mb-4 text-[12px] text-text-3">
         입력값은 계산에만 사용하고 서버에 저장하지 않아요 · 입력 내용은 이 브라우저에 저장돼
         다음 방문 때 복원돼요
       </div>
@@ -375,13 +375,13 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
         {/* ---------- 입력 (9j 좌측 + 6h 슬라이더) ---------- */}
         <div className="flex flex-col gap-3">
           {/* 실거주/전세/월세 탭 제거 — 계산에 반영되지 않는 선택지를 두지 않는다 */}
-          <div className="rise-in text-[11px] font-semibold text-text-3">
+          <div className="rise-in text-[12px] font-semibold text-text-3">
             매매(주택담보대출) 전용 계산기예요 — 전세·월세 비용 비교는 준비 중이에요.
           </div>
 
           <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-[18px]">
-            <div className="text-sm font-extrabold text-ink">1. 내 정보</div>
-            <div className="-mt-1 text-[11px] text-text-3">
+            <div className="text-[13px] font-extrabold text-ink">1. 내 정보</div>
+            <div className="-mt-1 text-[12px] text-text-3">
               소득·현금은 이 기기에서만 쓰여요. 소득을 입력하면 부담률 판정이 계산돼요.
             </div>
             <label className="flex items-center justify-between text-[13px]">
@@ -454,16 +454,16 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           </div>
 
           <div className="rise-in-2 card flex flex-col gap-3 rounded-[18px] p-[18px]">
-            <div className="text-sm font-extrabold text-ink">2. 대상 매물 · 조건</div>
+            <div className="text-[13px] font-extrabold text-ink">2. 대상 매물 · 조건</div>
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-text-2">매매가</span>
-              <span className="text-base font-extrabold text-ink">{formatEok(price)}</span>
+              <span className="text-[15px] font-extrabold text-ink">{formatEok(price)}</span>
             </div>
             {/* [D69] 이 숫자의 출처. 기본값(8.4억)은 우리가 정한 예시이고,
                 단지 화면에서 넘어온 값은 그 단지의 실거래가다 — 둘은 믿을 근거가
                 전혀 다르므로 화면이 구분해서 말해야 한다. */}
             {priceFrom && (
-              <div className="-mt-1.5 rounded-[10px] bg-primary-soft px-2.5 py-1.5 text-[11px] text-text-1">
+              <div className="-mt-1.5 rounded-[10px] bg-primary-soft px-2.5 py-1.5 text-[12px] text-text-1">
                 <b className="text-primary">{priceFrom}</b> 실거래가를 넣었어요
                 {priceClamped && " (계산기 범위에 맞춰 조정)"} · 아래에서 바꿔도 돼요
               </div>
@@ -481,9 +481,9 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             <div className="flex items-center justify-between">
               <span className="text-[13px] text-text-2">
                 대출 비율{" "}
-                <span className="text-[11px] text-text-3">(상한 {ltvCap}%)</span>
+                <span className="text-[12px] text-text-3">(상한 {ltvCap}%)</span>
               </span>
-              <span className="text-base font-extrabold text-ink">{effectiveRatio}%</span>
+              <span className="text-[15px] font-extrabold text-ink">{effectiveRatio}%</span>
             </div>
             <input
               type="range"
@@ -498,11 +498,11 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[13px] text-text-2">
                 금리{" "}
-                <span className="text-[11px] text-text-3">
+                <span className="text-[12px] text-text-3">
                   {rateIsLive ? "(공시 평균)" : "(직접 입력한 가정치)"}
                 </span>
               </span>
-              <span className="text-base font-extrabold text-primary">{rate}%</span>
+              <span className="text-[15px] font-extrabold text-primary">{rate}%</span>
             </div>
             {/* 공시 실데이터가 없으면 금리를 사용자가 직접 정한다 — 임의값을 시장 금리처럼 굳혀두지 않는다. */}
             {!rateIsLive && (
@@ -580,7 +580,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                 </span>
               </div>
             ) : (
-              <div className="text-[11px] text-ai-muted">
+              <div className="text-[12px] text-ai-muted">
                 연 소득을 입력하면 소득 대비 부담률과 적정/주의/위험 판정이 계산돼요.
               </div>
             )}
@@ -593,7 +593,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             <span className="text-[13px] font-bold text-primary">
               이 조건으로 임장노트에 저장
             </span>
-            <span className="text-sm font-extrabold text-primary">›</span>
+            <span className="text-[13px] font-extrabold text-primary">›</span>
           </Link>
 
           {/* 계산기→시나리오 연결 (15h) — 현재 조건(대출비율·금리·소득)을 딥링크로 전달 */}
@@ -610,8 +610,8 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           {/* 사실 우선: 슬라이더 입력과 무관하게 고정돼 있던 결과를 실제 입력 기반 계산으로 교체 */}
           <div className="rise-in-1 grid gap-3 md:grid-cols-3">
             <div className="ai-panel rounded-2xl p-[18px]">
-              <div className="text-[11px] text-ai-muted">최대 대출 (LTV {ltvCap}%)</div>
-              <div className="mt-1 text-[23px] font-extrabold text-ai-accent">
+              <div className="text-[12px] text-ai-muted">최대 대출 (LTV {ltvCap}%)</div>
+              <div className="mt-1 text-[24px] font-extrabold text-ai-accent">
                 {formatEok(Math.round(price * (ltvCap / 100)))}
               </div>
               <div className="mt-[3px] text-[10px] text-ai-muted">
@@ -619,15 +619,15 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
               </div>
             </div>
             <div className="card rounded-2xl p-[18px]">
-              <div className="text-[11px] text-text-3">선택한 대출액</div>
-              <div className="mt-1 text-[23px] font-extrabold text-ink">
+              <div className="text-[12px] text-text-3">선택한 대출액</div>
+              <div className="mt-1 text-[24px] font-extrabold text-ink">
                 {formatEok(Math.round(loan))}
               </div>
               <div className="mt-[3px] text-[10px] text-text-3">대출 비율 {effectiveRatio}%</div>
             </div>
             <div className="card rounded-2xl p-[18px]">
-              <div className="text-[11px] text-text-3">월 원리금 (선택 조건)</div>
-              <div className="mt-1 text-[23px] font-extrabold text-primary">
+              <div className="text-[12px] text-text-3">월 원리금 (선택 조건)</div>
+              <div className="mt-1 text-[24px] font-extrabold text-primary">
                 {Math.round(monthly)}만원
               </div>
               <div className="mt-[3px] text-[10px] text-primary">
@@ -639,9 +639,9 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           {/* P2-4: 은행별 금리 — 공시 실데이터(변동/고정 min~max) 또는 예시 표 */}
           <div className="rise-in-2 card flex flex-col gap-1 overflow-x-auto rounded-[18px] px-5 py-[18px]">
             <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+              <span className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
                 3. 은행별 금리 비교{" "}
-                <span className="text-[11px] font-medium text-text-3">
+                <span className="text-[12px] font-medium text-text-3">
                   {mortgage.live
                     ? `주담대 공시 금리${mortgage.asOf ? ` · ${mortgage.asOf} 기준` : ""}`
                     : "공시 미연동"}
@@ -650,7 +650,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             </div>
             {mortgage.live ? (
               <div className="min-w-[540px]">
-                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2 border-b border-divider py-2 text-[11px] text-text-3">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr] gap-2 border-b border-divider py-2 text-[12px] text-text-3">
                   <span>은행</span>
                   <span className="text-center">변동금리</span>
                   <span className="text-center">고정금리</span>
@@ -685,7 +685,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                     </div>
                   );
                 })}
-                <div className="mt-2 text-[11px] text-text-3">
+                <div className="mt-2 text-[12px] text-text-3">
                   금리 출처: {mortgage.source}
                   {mortgage.asOf ? ` · 공시 기준월 ${mortgage.asOf}` : ""} · 월 원리금은 현재 입력한
                   대출액({formatEok(Math.round(loan))})·{years}년 원리금균등 기준 참고 계산이며 실제
@@ -708,7 +708,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           {/* 사실 우선: 임의 가정(+8% 상승·손익분기·연 수익률 등) 기반 수익률 시뮬레이션과
               특정 수치를 단정하던 AI 판단 보조를 제거. 시세 상승 전망은 사실이 아니므로 표시하지 않음. */}
           <div className="rise-in-3 card flex flex-col gap-1.5 rounded-[18px] px-5 py-[18px]">
-            <div className="text-sm font-extrabold text-ink">참고 안내</div>
+            <div className="text-[13px] font-extrabold text-ink">참고 안내</div>
             <p className="text-[12px] leading-relaxed text-text-2">
               위 금액은 입력한 매매가·대출 비율·금리·기간에 따른 원리금균등 계산 결과예요.
               취득세·LTV는 보유주택 구분에 따른 대략적 구간(취득세 1.1~3.3% / 다주택 8.4%,

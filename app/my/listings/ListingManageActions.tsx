@@ -165,7 +165,7 @@ export function ListingManageActions(props: {
   if (mode === "edit" || mode === "busy") {
     const input =
       "w-full rounded-[8px] border border-line bg-surface px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-primary";
-    const lbl = "text-[11px] font-bold text-text-3";
+    const lbl = "text-[12px] font-bold text-text-3";
     return (
       <div className="mt-1 flex w-full flex-col gap-2 rounded-xl bg-[rgba(29,79,216,.03)] p-3">
         <div className="flex gap-1.5">

@@ -33,8 +33,8 @@ const LIFECYCLE_LABEL: Record<BannerLifecycle, { text: string; cls: string }> = 
 };
 
 const input =
-  "w-full rounded-lg border border-[#2b3750] bg-[#0f1522] px-3 py-2 text-[12.5px] text-[#e8edf6] outline-none focus:border-[#4f7dff]";
-const label = "text-[11px] font-bold text-[#8d99ab]";
+  "w-full rounded-lg border border-[#2b3750] bg-[#0f1522] px-3 py-2 text-[13px] text-[#e8edf6] outline-none focus:border-[#4f7dff]";
+const label = "text-[12px] font-bold text-[#8d99ab]";
 
 /** datetime-local 값 ↔ ISO 변환. 빈 문자열은 null(무기한). */
 function toLocalInput(iso?: string | null): string {
@@ -211,7 +211,7 @@ export function BannersClient({ initial }: { initial: Row[] }) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-[14px] font-extrabold text-[#e8edf6]">등록된 배너</h2>
+        <h2 className="text-[13px] font-extrabold text-[#e8edf6]">등록된 배너</h2>
         <button
           type="button"
           onClick={() => {
@@ -397,7 +397,7 @@ export function BannersClient({ initial }: { initial: Row[] }) {
       )}
 
       {initial.length === 0 ? (
-        <p className="rounded-[18px] border border-[#243049] bg-[#141b2b] px-5 py-6 text-[12.5px] text-[#8d99ab]">
+        <p className="rounded-[18px] border border-[#243049] bg-[#141b2b] px-5 py-6 text-[13px] text-[#8d99ab]">
           등록된 배너가 없습니다. 광고 슬롯에는 아래 하우스 광고가 나갑니다.
         </p>
       ) : (
@@ -410,33 +410,33 @@ export function BannersClient({ initial }: { initial: Row[] }) {
                 className="flex flex-col gap-2 rounded-[18px] border border-[#243049] bg-[#141b2b] p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded px-2 py-0.5 text-[10.5px] font-bold ${badge.cls}`}>
+                  <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${badge.cls}`}>
                     {badge.text}
                   </span>
                   <span className="text-[13px] font-extrabold text-[#e8edf6]">{b.title}</span>
-                  <span className="text-[11px] text-[#8d99ab]">
+                  <span className="text-[12px] text-[#8d99ab]">
                     {PLACEMENTS.find((p) => p.value === b.placement)?.label ?? b.placement} · 우선순위{" "}
                     {b.priority}
                   </span>
                 </div>
-                {b.subtitle && <p className="text-[11.5px] text-[#9aa6b8]">{b.subtitle}</p>}
-                <p className="text-[11px] text-[#8d99ab]">
+                {b.subtitle && <p className="text-[12px] text-[#9aa6b8]">{b.subtitle}</p>}
+                <p className="text-[12px] text-[#8d99ab]">
                   {b.startsAt ? new Date(b.startsAt).toLocaleString("ko-KR") : "즉시"} ~{" "}
                   {b.endsAt ? new Date(b.endsAt).toLocaleString("ko-KR") : "무기한"}
                   {b.targetPlan ? ` · 타겟 ${b.targetPlan}` : ""}
                 </p>
                 {b.ctaUrl && (
-                  <p className="flex flex-wrap items-center gap-2 text-[11px] text-ai-accent">
+                  <p className="flex flex-wrap items-center gap-2 text-[12px] text-ai-accent">
                     <span>{b.ctaUrl}</span>
                     <button
                       type="button"
                       onClick={() => checkLink(b)}
-                      className="rounded border border-[#2b3750] px-2 py-0.5 text-[10.5px] font-bold text-[#c9d2e0]"
+                      className="rounded border border-[#2b3750] px-2 py-0.5 text-[10px] font-bold text-[#c9d2e0]"
                     >
                       링크 확인
                     </button>
                     {linkState[b.id] && (
-                      <span className="text-[10.5px] text-[#9aa6b8]">{linkState[b.id]}</span>
+                      <span className="text-[10px] text-[#9aa6b8]">{linkState[b.id]}</span>
                     )}
                   </p>
                 )}
@@ -448,7 +448,7 @@ export function BannersClient({ initial }: { initial: Row[] }) {
                       setError(null);
                       setDraft(draftFrom(b));
                     }}
-                    className="rounded-lg border border-[#2b3750] px-3 py-1.5 text-[11.5px] font-bold text-[#c9d2e0]"
+                    className="rounded-lg border border-[#2b3750] px-3 py-1.5 text-[12px] font-bold text-[#c9d2e0]"
                   >
                     수정
                   </button>
@@ -456,7 +456,7 @@ export function BannersClient({ initial }: { initial: Row[] }) {
                     type="button"
                     disabled={busy}
                     onClick={() => toggleActive(b)}
-                    className="rounded-lg border border-[#2b3750] px-3 py-1.5 text-[11.5px] font-bold text-[#c9d2e0]"
+                    className="rounded-lg border border-[#2b3750] px-3 py-1.5 text-[12px] font-bold text-[#c9d2e0]"
                   >
                     {b.isActive ? "중지" : "노출"}
                   </button>
@@ -466,14 +466,14 @@ export function BannersClient({ initial }: { initial: Row[] }) {
                         type="button"
                         disabled={busy}
                         onClick={() => remove(b.id)}
-                        className="rounded-lg bg-[#8b2b2b] px-3 py-1.5 text-[11.5px] font-bold text-white"
+                        className="rounded-lg bg-[#8b2b2b] px-3 py-1.5 text-[12px] font-bold text-white"
                       >
                         정말 삭제
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmId(null)}
-                        className="rounded-lg border border-[#2b3750] px-3 py-1.5 text-[11.5px] font-bold text-[#c9d2e0]"
+                        className="rounded-lg border border-[#2b3750] px-3 py-1.5 text-[12px] font-bold text-[#c9d2e0]"
                       >
                         취소
                       </button>
@@ -483,7 +483,7 @@ export function BannersClient({ initial }: { initial: Row[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => setConfirmId(b.id)}
-                      className="rounded-lg border border-[#4a2b2b] px-3 py-1.5 text-[11.5px] font-bold text-[#e08a8a]"
+                      className="rounded-lg border border-[#4a2b2b] px-3 py-1.5 text-[12px] font-bold text-[#e08a8a]"
                     >
                       삭제
                     </button>

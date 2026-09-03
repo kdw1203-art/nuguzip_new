@@ -41,7 +41,7 @@ export default async function DataRecordsPage() {
       <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">
           데이터셋 연동 현황{" "}
-          <span className="text-[11px] font-medium text-text-3">
+          <span className="text-[12px] font-medium text-text-3">
             총 {totalRows.toLocaleString()}건 적재
           </span>
         </h2>
@@ -56,7 +56,7 @@ export default async function DataRecordsPage() {
               >
                 <div className="min-w-0">
                   <div className="text-[13px] font-bold text-ink">{p.label}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-text-3">
+                  <div className="mt-0.5 truncate text-[12px] text-text-3">
                     {p.description}
                   </div>
                 </div>
@@ -75,7 +75,7 @@ export default async function DataRecordsPage() {
             );
           })}
         </div>
-        <p className="mt-3 text-[11px] leading-[1.6] text-text-3">
+        <p className="mt-3 text-[12px] leading-[1.6] text-text-3">
           &ldquo;연동 대기&rdquo; 자료는 CODEF(codef.io) 자격 증명 설정 후 자동 적재됩니다.
           실거래·시세 지도는 이미 국토부·KB 공개 데이터로 운영 중입니다.
         </p>
@@ -87,7 +87,7 @@ export default async function DataRecordsPage() {
         <RecordsSearchClient />
       </section>
 
-      <p className="mb-4 text-[11px] leading-[1.6] text-text-3">
+      <p className="mb-4 text-[12px] leading-[1.6] text-text-3">
         본 자료는 공공·공개 데이터를 취합한 참고용 정보이며, 실제 거래·계약 조건과 다를 수
         있습니다. 투자 판단의 책임은 이용자 본인에게 있습니다.
       </p>

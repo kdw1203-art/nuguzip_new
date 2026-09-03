@@ -65,7 +65,7 @@ function DealCard({ d }: { d: DevDeal }) {
     <article className="card tile flex flex-col gap-3 rounded-2xl p-[var(--pad-card)]">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-extrabold text-primary">
+          <span className="rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-extrabold text-primary">
             {d.dealType}
           </span>
           {d.isVerified && (
@@ -99,7 +99,7 @@ function DealCard({ d }: { d: DevDeal }) {
             {d.title}
           </Link>
         )}
-        <div className="mt-1 text-[11px] text-text-3">
+        <div className="mt-1 text-[12px] text-text-3">
           {[d.region, d.address].filter(Boolean).join(" · ") || "지역 미정"}
         </div>
       </div>
@@ -120,7 +120,7 @@ function DealCard({ d }: { d: DevDeal }) {
         {stats.slice(0, 2).map((s) => (
           <div key={s.label} className="rounded-xl bg-bg px-3 py-2.5">
             <div className="text-[10px] text-text-3">{s.label}</div>
-            <div className="mt-0.5 text-[14px] font-extrabold text-ink">{s.value}</div>
+            <div className="mt-0.5 text-[13px] font-extrabold text-ink">{s.value}</div>
           </div>
         ))}
       </div>
@@ -151,7 +151,7 @@ function DealCard({ d }: { d: DevDeal }) {
           </div>
         </div>
         {d.isSample ? (
-          <span className="chip shrink-0 bg-bg px-3 py-2 text-[11px] font-bold text-text-3">
+          <span className="chip shrink-0 bg-bg px-3 py-2 text-[12px] font-bold text-text-3">
             예시 카드 · 문의 불가
           </span>
         ) : (
@@ -349,14 +349,14 @@ export function DevDealsListClient({
 
           <div className="flex items-center justify-between">
             <h2 className="text-[15px] font-extrabold text-ink">등록된 개발물건</h2>
-            <span className="text-[11px] text-text-3">{deals.length.toLocaleString()}건</span>
+            <span className="text-[12px] text-text-3">{deals.length.toLocaleString()}건</span>
           </div>
 
           {loadFailed ? (
             /* 실패는 목록 자리에서만 말한다 — 예시 카드도 그리지 않는다.
                DB 원문(cause)은 싣지 않는다(에러 노출 마감 정책). */
             <div className="card rounded-2xl p-[var(--pad-card)] text-center">
-              <div className="text-[14px] font-extrabold text-ink">
+              <div className="text-[13px] font-extrabold text-ink">
                 개발물건 목록을 지금 불러오지 못했어요
               </div>
               <p className="mx-auto mt-1 max-w-md text-[12px] leading-[1.6] text-text-3">
@@ -367,7 +367,7 @@ export function DevDealsListClient({
           ) : deals.length === 0 ? (
             <div className="flex flex-col gap-3">
               <div className="card rounded-2xl p-[var(--pad-card)] text-center">
-                <div className="text-[14px] font-extrabold text-ink">
+                <div className="text-[13px] font-extrabold text-ink">
                   조건에 맞는 개발물건이 아직 없어요
                 </div>
                 <p className="mx-auto mt-1 max-w-md text-[12px] leading-[1.6] text-text-3">
@@ -411,7 +411,7 @@ function DevDealsSidebar() {
   return (
     <aside className="rise-in-3 flex flex-col gap-3">
       <div className="card rounded-2xl p-[var(--pad-card)]">
-        <div className="text-[14px] font-extrabold text-ink">이렇게 매칭돼요</div>
+        <div className="text-[13px] font-extrabold text-ink">이렇게 매칭돼요</div>
         <ol className="mt-3 flex flex-col gap-3">
           {MATCH_STEPS.map((s, i) => (
             <li key={s.title} className="flex gap-3">
@@ -423,7 +423,7 @@ function DevDealsSidebar() {
               </span>
               <div>
                 <div className="text-[13px] font-bold text-ink">{s.title}</div>
-                <div className="text-[11px] leading-[1.6] text-text-3">{s.desc}</div>
+                <div className="text-[12px] leading-[1.6] text-text-3">{s.desc}</div>
               </div>
             </li>
           ))}
@@ -431,7 +431,7 @@ function DevDealsSidebar() {
       </div>
 
       <div className="card rounded-2xl p-[var(--pad-card)]">
-        <div className="text-[14px] font-extrabold text-ink">중개 수수료</div>
+        <div className="text-[13px] font-extrabold text-ink">중개 수수료</div>
         <p className="mt-1.5 text-[12px] leading-[1.6] text-text-2">
           매칭이 성사되면 <strong className="text-ink">사업규모(총사업비)</strong>에 따라 중개
           수수료가 부과돼요. <strong className="text-ink">내집나우는 결제·정산을 진행하지 않으며</strong>{" "}
@@ -446,7 +446,7 @@ function DevDealsSidebar() {
       </div>
 
       <div className="card rounded-2xl p-[var(--pad-card)]">
-        <div className="text-[14px] font-extrabold text-ink">협력업체를 찾으시나요?</div>
+        <div className="text-[13px] font-extrabold text-ink">협력업체를 찾으시나요?</div>
         <p className="mt-1.5 text-[12px] leading-[1.6] text-text-2">
           검증된 시공·설계·신탁·PF·마케팅·감리 협력업체를 디렉토리에서 확인하고, 우리 회사를
           등록해 매칭 기회를 받으세요.

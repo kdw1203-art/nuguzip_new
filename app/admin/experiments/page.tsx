@@ -95,7 +95,7 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
   return (
     <div className={darkCard}>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="text-sm font-extrabold text-white">{r.def.key}</div>
+        <div className="text-[13px] font-extrabold text-white">{r.def.key}</div>
         <span
           className={`rounded-full chip-pad text-[10px] font-bold ${
             r.def.enabled
@@ -109,7 +109,7 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
 
       <p className="text-[12px] leading-relaxed text-[#c9d2e0]">{r.def.hypothesis}</p>
 
-      <div className="flex flex-col gap-1 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5 text-[11px] text-[#9aa6b8]">
+      <div className="flex flex-col gap-1 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5 text-[12px] text-[#9aa6b8]">
         <div>
           노출 이벤트 <span className="font-semibold text-[#c9d2e0]">{r.def.exposureEvent}</span> · 전환
           이벤트 <span className="font-semibold text-[#c9d2e0]">{r.def.primaryMetricEvent}</span>
@@ -121,7 +121,7 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] border-collapse text-[11px]">
+        <table className="w-full min-w-[560px] border-collapse text-[12px]">
           <thead>
             <tr className="text-left text-[#9aa6b8]">
               <th className="border-b border-[rgba(255,255,255,.08)] py-2 pr-3 font-semibold">변형</th>
@@ -204,13 +204,13 @@ function ExperimentCard({ r }: { r: ExperimentResult }) {
             띄우지 않는 편이 정확합니다.
           </p>
           {eta && (
-            <p className="mt-1.5 text-[11px] font-bold leading-relaxed text-[#e0a92e]">{eta}</p>
+            <p className="mt-1.5 text-[12px] font-bold leading-relaxed text-[#e0a92e]">{eta}</p>
           )}
         </div>
       )}
 
       {conflicts > 0 && (
-        <div className="rounded-[10px] border border-[#f0c9c9] bg-[#fdecec] px-3 py-2.5 text-[11px] text-[#a33]">
+        <div className="rounded-[10px] border border-[#f0c9c9] bg-[#fdecec] px-3 py-2.5 text-[12px] text-[#a33]">
           <span className="font-bold">재배정 {fmt(conflicts)}건</span> — 같은 대상이 도중에 다른
           변형을 받았습니다. 변형 구성이나 가중치가 실험 중에 바뀐 흔적이라, 이 비교는 깨끗하지
           않습니다. 구성을 고정한 뒤 다시 시작하는 편이 낫습니다.
@@ -238,7 +238,7 @@ export default async function AdminExperimentsPage() {
   return (
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">실험 (A/B)</div>
-      <div className="rise-in -mt-2 mb-1 max-w-[760px] text-[11px] leading-relaxed text-[#9aa6b8]">
+      <div className="rise-in -mt-2 mb-1 max-w-[760px] text-[12px] leading-relaxed text-[#9aa6b8]">
         문구·버튼 라벨처럼 <b>사실 주장이 아닌 표현</b>만 실험합니다. 가격·거래 건수·면적·시세는
         사람마다 다르게 보이면 안 되므로 실험 대상이 아닙니다. 전환율의 분모는 사람 수가 아니라{" "}
         <b>노출 이벤트 수</b>입니다(같은 사람이 여러 번 볼 수 있음).
@@ -254,8 +254,8 @@ export default async function AdminExperimentsPage() {
         />
       ) : results.length === 0 ? (
         <div className={`rise-in-1 ${darkCard}`}>
-          <div className="text-sm font-extrabold text-white">등록된 실험이 없습니다</div>
-          <p className="text-[11px] leading-relaxed text-[#9aa6b8]">
+          <div className="text-[13px] font-extrabold text-white">등록된 실험이 없습니다</div>
+          <p className="text-[12px] leading-relaxed text-[#9aa6b8]">
             실험은 <code className="text-[#c9d2e0]">lib/experiments/registry.ts</code> 에 선언된 것만
             존재합니다. 코드 아무 데서나 만든 키는 서버에서 버려집니다.
           </p>

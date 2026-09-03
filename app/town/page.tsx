@@ -4,6 +4,7 @@ import { readTownPosts } from "@/lib/newui/board-posts";
 import {
   listPublicNotes,
   inspectionAverageScore,
+  isLabNoteLabel,
   type InspectionNote,
 } from "@/lib/inspection/store-db";
 import { maskNoteAuthor } from "./shared";
@@ -13,12 +14,14 @@ import { AdSlot } from "../components/ads/AdSlot";
 import type { Post } from "@/lib/types/post";
 import { TownCategoryNav } from "./TownCategoryNav";
 import { TownPromptCard } from "./TownPromptCard";
+import { Icon } from "@/app/components/Icon";
+import { TownExpertBand } from "./TownExpertBand";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { logger } from "@/lib/log";
 import { postAttachments } from "@/lib/community/attachments";
 
 export const metadata = buildPageMetadata({
-  title: "동네 이야기",
+  title: "동네이야기",
   description:
     "우리 동네 커뮤니티 글과 공개 임장노트를 한 피드에서. 사진으로 먼저 보고 관심 단지로 이어집니다.",
   path: "/town",
@@ -61,9 +64,12 @@ function shortcutActivity(cards: FeedCard[], name: string): number {
 
 function noteToCard(n: InspectionNote): FeedCard {
   const oneLiner = n.summary?.trim() || n.sections.pros?.trim() || n.title;
+  const lab = isLabNoteLabel(n.authorLabel);
   const tags: string[] = [];
   if (n.aptName?.trim()) tags.push(n.aptName.trim());
-  if (n.visitDate) tags.push("직접방문");
+  /* [959] Lab 노트는 현장 방문이 아니라 데이터 카드 — "직접방문" 태그를 달지 않는다 */
+  if (n.visitDate && !lab) tags.push("직접방문");
+  if (lab) tags.push("데이터 분석");
   if (n.metadata?.visitVerified) tags.push("현장 인증"); // [#71]
   // 허수 제거(#9): 예전의 "저장수 = 평균 평점×40 + 체크 수" 계산식을 없앴다.
   // 노트에는 실측 저장 지표가 없으므로 saves 미표시, 실데이터인 평균 평점만 노출.
@@ -78,9 +84,11 @@ function noteToCard(n: InspectionNote): FeedCard {
     region: n.region || "전국",
     rating: rating > 0 ? rating : null,
     tags,
-    visited: Boolean(n.visitDate),
+    visited: Boolean(n.visitDate) && !lab,
     createdAt: Date.parse(n.createdAt) || 0,
     isExample: false,
+    lab,
+    aptName: n.aptName?.trim() || null,
   };
 }
 
@@ -154,38 +162,44 @@ export default async function TownPage() {
 
   return (
     <PageShell wide>
-      {/* [945-G] 동네이야기 히어로 — 정적 제목 한 줄에서, 오늘의 활기가 먼저
-          읽히는 밴드로. 광원 드리프트는 reduced-motion 에서 정지. */}
-      <section className="town-hero rise-in mb-4 px-4 py-4 md:px-5">
+      {/* [959] 동네이야기 히어로 — 브랜드 네이비 면(전문가·AI 분석 허브와 같은 규칙).
+          정적 제목 한 줄이 아니라 오늘의 활기(실측 카드 기준)와 글쓰기 출발점이 먼저 읽힌다. */}
+      <section className="brand-navy-card rise-in mb-4 rounded-[18px] px-5 py-5 md:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="t-title text-ink">동네이야기</h1>
-            <p className="mt-1 t-sub text-text-2">
-              직접 다녀온 사람들의 기록과 이웃 소식 — 지금 이 피드 기준
+          <div className="max-w-[560px]">
+            <span className="t-caption font-extrabold tracking-wider text-on-dark-muted">동네이야기</span>
+            <h1 className="mt-1 t-display text-on-dark">
+              다녀온 사람의 기록이 <span className="text-brand-red-dark">지금</span> 동네를 말합니다
+            </h1>
+            <p className="mt-1.5 t-body text-on-dark-muted">
+              공개 임장노트와 이웃 글, 뉴스 요약·청약·공매·입주 물량까지 — 동네 단위로 모아 봅니다.
             </p>
           </div>
-          <Link
-            href="/town/write"
-            className="btn-primary btn-cta hidden px-4 py-[9px] t-body md:block"
-          >
-            글쓰기
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/town/write" className="btn-primary btn-cta rounded-xl px-4 py-2.5 t-body no-underline">
+              글쓰기
+            </Link>
+            <Link href="/notes/new" className="brand-photo-chip rounded-xl px-4 py-2.5 t-body font-bold no-underline">
+              임장노트 쓰기
+            </Link>
+          </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="town-stat t-caption text-text-2">
-            오늘 새 글 <b>{todayCount}</b>
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-on-dark-faint pt-3">
+          <span className="t-sub text-on-dark-muted">
+            오늘 새 글 <b className="t-num text-on-dark">{todayCount}</b>
           </span>
-          <span className="town-stat t-caption text-text-2">
-            이번 주 <b>{weekCount}</b>
+          <span className="t-sub text-on-dark-muted">
+            이번 주 <b className="t-num text-on-dark">{weekCount}</b>
+          </span>
+          <span className="t-sub text-on-dark-muted">
+            이 피드 <b className="t-num text-on-dark">{cards.length}</b>건
           </span>
           {hottest && (
-            <Link
-              href={`/town/${hottest.id}`}
-              className="town-stat t-caption text-text-2 no-underline"
-            >
-              가장 활발한 동네 <b className="!text-ink">{hottest.name}</b>
+            <Link href={`/town/${hottest.id}`} className="t-sub text-on-dark-muted no-underline">
+              가장 활발한 동네 <b className="text-brand-red-dark">{hottest.name} ›</b>
             </Link>
           )}
+          <span className="t-caption text-on-dark-faint">지금 이 피드에 실린 글 기준</span>
         </div>
       </section>
 
@@ -228,6 +242,9 @@ export default async function TownPage() {
       {/* [3차] 오늘의 동네 글감 — 유저 글 0의 원인(쓸 이유 없음)에 대한 직접 처방 */}
       <TownPromptCard />
 
+      {/* [959] 전문가 모집·상담 띠 — 사람이 채우는 칸을 정직하게 "모집 중"으로 알린다 */}
+      <TownExpertBand />
+
       {/* H3 광고 슬롯 — 서버에서 렌더해 피드 중간(8번째 카드 뒤)에 꽂는다.
           이 페이지도 revalidate=120 공유 캐시라 보는 사람의 플랜을 알 수 없어 plan={null}.
           유료 플랜의 광고 제거는 AdSlot 안의 AdFreeGate 가 클라이언트에서 처리한다(캐시 유지).
@@ -242,13 +259,10 @@ export default async function TownPage() {
       <Link
         href="/town/write"
         aria-label="글쓰기"
-        className="btn-primary fab-breathe fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full t-title md:hidden"
-        style={{
-          bottom: "calc(var(--nz-tabbar-offset) + 12px)",
-          boxShadow: "0 10px 24px rgba(29,79,216,.45)",
-        }}
+        className="btn-primary fab-breathe fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full md:hidden"
+        style={{ bottom: "calc(var(--nz-tabbar-offset) + 12px)", boxShadow: "var(--shadow-cta)" }}
       >
-        ✎
+        <Icon name="notebook-pen" size={22} />
       </Link>
     </PageShell>
   );

@@ -100,7 +100,7 @@ export function InquiryForm({
         className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none focus:border-primary"
       />
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-text-3">
+        <span className="text-[12px] text-text-3">
           {message.length}/{MESSAGE_MAX}
         </span>
         <div className="flex gap-2">
@@ -124,8 +124,8 @@ export function InquiryForm({
           </button>
         </div>
       </div>
-      {error && <span className="text-[11px] font-bold text-danger">{error}</span>}
-      <p className="text-[11px] leading-[1.6] text-text-3">
+      {error && <span className="text-[12px] font-bold text-danger">{error}</span>}
+      <p className="text-[12px] leading-[1.6] text-text-3">
         문의는 등록자(개업공인중개사)에게 전달돼요. 내집나우는 중개 당사자가 아니에요.
       </p>
     </div>

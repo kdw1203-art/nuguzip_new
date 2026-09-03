@@ -92,8 +92,8 @@ export default async function AdminCommunityPage() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-[20px] font-extrabold text-white">커뮤니티 운영</h1>
-        <p className="mt-1 text-[12.5px] leading-[1.7] text-[#9aa6b8]">
+        <h1 className="text-[19px] font-extrabold text-white">커뮤니티 운영</h1>
+        <p className="mt-1 text-[13px] leading-[1.7] text-[#9aa6b8]">
           0→1 구간 계기판 — 이번 주 참여, 미답변 글 시드 답글, 검색 제로결과(콘텐츠
           주문서). 시드 답글은 &lsquo;내집나우&rsquo; 공식 라벨로 게시되고 포인트는 적립되지
           않습니다.
@@ -109,16 +109,16 @@ export default async function AdminCommunityPage() {
           <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {metrics.map((m) => (
               <div key={m.label} className="rounded-2xl border border-[rgba(255,255,255,.08)] bg-[#171e2b] px-5 py-4">
-                <div className="text-[11px] text-[#8b94a6]">{m.label}</div>
+                <div className="text-[12px] text-[#8b94a6]">{m.label}</div>
                 <div className="mt-1 text-[24px] font-extrabold text-white tabular-nums">{m.value}</div>
-                {m.sub && <div className="mt-0.5 text-[11px] text-[#8b94a6]">{m.sub}</div>}
+                {m.sub && <div className="mt-0.5 text-[12px] text-[#8b94a6]">{m.sub}</div>}
               </div>
             ))}
           </section>
 
           <section className="rounded-2xl border border-[rgba(255,255,255,.08)] bg-[#171e2b] p-5">
             <h2 className="text-[15px] font-extrabold text-white">
-              미답변 글 <span className="text-[11px] font-medium text-[#8b94a6]">24시간 경과 · 최근 10</span>
+              미답변 글 <span className="text-[12px] font-medium text-[#8b94a6]">24시간 경과 · 최근 10</span>
             </h2>
             {unanswered.length === 0 ? (
               <p className="mt-3 text-[13px] text-[#9aa6b8]">
@@ -131,11 +131,11 @@ export default async function AdminCommunityPage() {
                     <div className="flex items-baseline justify-between gap-3">
                       <Link
                         href={`/town/news/${p.id}`}
-                        className="min-w-0 truncate text-[13.5px] font-bold text-[#e7ecf5] hover:underline"
+                        className="min-w-0 truncate text-[13px] font-bold text-[#e7ecf5] hover:underline"
                       >
                         {p.title}
                       </Link>
-                      <span className="shrink-0 text-[11px] text-[#8b94a6]">{p.createdAt}</span>
+                      <span className="shrink-0 text-[12px] text-[#8b94a6]">{p.createdAt}</span>
                     </div>
                     <SeedReplyForm postId={p.id} postTitle={p.title} />
                   </li>
@@ -146,7 +146,7 @@ export default async function AdminCommunityPage() {
 
           <section className="rounded-2xl border border-[rgba(255,255,255,.08)] bg-[#171e2b] p-5">
             <h2 className="text-[15px] font-extrabold text-white">
-              검색 제로결과 <span className="text-[11px] font-medium text-[#8b94a6]">최근 7일 · 콘텐츠 주문서</span>
+              검색 제로결과 <span className="text-[12px] font-medium text-[#8b94a6]">최근 7일 · 콘텐츠 주문서</span>
             </h2>
             {zeroQueries.length === 0 ? (
               <p className="mt-3 text-[13px] text-[#9aa6b8]">
@@ -164,7 +164,7 @@ export default async function AdminCommunityPage() {
                 ))}
               </div>
             )}
-            <p className="mt-3 text-[11.5px] leading-[1.7] text-[#8b94a6]">
+            <p className="mt-3 text-[12px] leading-[1.7] text-[#8b94a6]">
               반복되는 질의는 만들 가치가 있는 표면입니다 — 단지 데이터 요청이면 수집
               범위를, 정보성 질의면 용어사전·가이드 추가를 검토하세요.
             </p>

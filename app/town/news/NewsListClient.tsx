@@ -254,7 +254,7 @@ export function NewsListClient({
                 {featured.title}
               </h2>
               {featured.body && (
-                <p className="line-clamp-2 text-sm leading-[1.6] text-text-2">
+                <p className="line-clamp-2 text-[13px] leading-[1.6] text-text-2">
                   {featured.body}
                 </p>
               )}
@@ -333,7 +333,7 @@ export function NewsListClient({
           <div className="t-title">
             <Icon name="🗞" size={26} />
           </div>
-          <div className="text-sm font-bold text-text-1">
+          <div className="text-[13px] font-bold text-text-1">
             {[active, activeCat].filter(Boolean).join(" · ")} 관련 뉴스가 아직 없어요
           </div>
           <button

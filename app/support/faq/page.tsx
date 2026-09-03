@@ -51,7 +51,7 @@ export default function SupportFaqPage() {
 
       <div className="mx-auto max-w-[820px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">자주 묻는 질문</h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-2">
           데이터가 어디서 오는지, 노트를 공개하면 무엇이 보이는지, 요금과 해지는
           어떻게 되는지를 질문별로 답했습니다. 아직 없는 기능은 없다고 적었습니다.
         </p>
@@ -75,11 +75,11 @@ export default function SupportFaqPage() {
               id={encodeURIComponent(g.category)}
               className={`rise-in-${Math.min(gi + 2, 6)} scroll-mt-24`}
             >
-              <h2 className="text-[16px] font-extrabold text-ink">{g.category}</h2>
+              <h2 className="text-[15px] font-extrabold text-ink">{g.category}</h2>
               <dl className="mt-2 flex flex-col gap-2">
                 {g.items.map((it) => (
                   <div key={it.id} id={it.id} className="card scroll-mt-24 rounded-2xl p-5">
-                    <dt className="text-[14px] font-extrabold leading-[1.5] text-ink">
+                    <dt className="text-[13px] font-extrabold leading-[1.5] text-ink">
                       {it.q}
                     </dt>
                     <dd className="mt-2 text-[13px] leading-[1.8] text-text-1">

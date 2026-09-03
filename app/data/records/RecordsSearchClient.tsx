@@ -154,7 +154,7 @@ export function RecordsSearchClient() {
                   {datasetLabel(r.dataset)}
                   {r.areaM2 ? ` · ${r.areaM2}㎡` : ""}
                 </div>
-                <div className="mt-0.5 text-[11px] text-text-3">
+                <div className="mt-0.5 text-[12px] text-text-3">
                   {r.complexName ?? ""} {r.recordDate ?? r.period ?? ""}
                 </div>
               </div>

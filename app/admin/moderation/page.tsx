@@ -73,11 +73,11 @@ export default async function AdminModerationPage() {
     <>
       <div className="rise-in flex flex-wrap items-center justify-between gap-2">
         <span className="text-[19px] font-extrabold text-white">신고 · 모더레이션</span>
-        <span className="text-[11px] text-[#9aa6b8]">
+        <span className="text-[12px] text-[#9aa6b8]">
           커뮤니티 {stats.bySource.content}건 · 채팅 {stats.bySource.chat}건
         </span>
       </div>
-      <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
+      <div className="rise-in -mt-2 mb-1 text-[12px] text-[#9aa6b8]">
         접수된 신고를 실시간으로 읽어옵니다. 표시되는 수치는 모두 DB 실집계입니다.
       </div>
 
@@ -88,7 +88,7 @@ export default async function AdminModerationPage() {
             className="rounded-2xl border border-[rgba(255,255,255,.06)] bg-[#12161f] px-4 py-3.5"
           >
             <div className="text-[10px] text-[#9aa6b8]">{c.label}</div>
-            <div className="mt-0.5 text-[17px] font-extrabold" style={{ color: c.color }}>
+            <div className="mt-0.5 text-[15px] font-extrabold" style={{ color: c.color }}>
               {c.value}
             </div>
           </div>
@@ -100,7 +100,7 @@ export default async function AdminModerationPage() {
         <div className={card}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">신고 큐</span>
-            <span className="text-[11px] text-[#9aa6b8]">미처리 우선 · 최신순</span>
+            <span className="text-[12px] text-[#9aa6b8]">미처리 우선 · 최신순</span>
           </div>
           <ModerationQueue items={items} />
         </div>
@@ -111,13 +111,13 @@ export default async function AdminModerationPage() {
             <span className="text-[15px] font-extrabold text-white">처리 소요</span>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between rounded-xl border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.03)] px-3.5 py-2.5">
-                <span className="text-[11.5px] text-[#9aa6b8]">평균 접수→처리</span>
+                <span className="text-[12px] text-[#9aa6b8]">평균 접수→처리</span>
                 <span className="text-[13px] font-extrabold text-white">
                   {hoursLabel(stats.avgHandleHours)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-xl border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.03)] px-3.5 py-2.5">
-                <span className="text-[11.5px] text-[#9aa6b8]">가장 오래 대기</span>
+                <span className="text-[12px] text-[#9aa6b8]">가장 오래 대기</span>
                 <span
                   className="text-[13px] font-extrabold"
                   style={{ color: (stats.oldestOpenHours ?? 0) > 72 ? "var(--ai-danger)" : "#ffffff" }}
@@ -136,17 +136,17 @@ export default async function AdminModerationPage() {
           <div className={card}>
             <div className="flex items-center justify-between">
               <span className="text-[15px] font-extrabold text-white">운영 기준</span>
-              <span className="text-[11px] text-[#9aa6b8]">정책 문서</span>
+              <span className="text-[12px] text-[#9aa6b8]">정책 문서</span>
             </div>
             <ol className="flex flex-col gap-1.5">
               {MODERATION_PIPELINE.map((s, i) => (
                 <li key={s.id} className="flex gap-2.5">
-                  <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[rgba(126,162,255,.16)] text-[9px] font-bold text-ai-accent">
+                  <span className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[rgba(126,162,255,.16)] text-[10px] font-bold text-ai-accent">
                     {i + 1}
                   </span>
                   <span className="min-w-0">
-                    <span className="text-[11.5px] font-bold text-white">{s.label}</span>
-                    <span className="ml-1.5 text-[10.5px] text-[#9aa6b8]">{s.description}</span>
+                    <span className="text-[12px] font-bold text-white">{s.label}</span>
+                    <span className="ml-1.5 text-[10px] text-[#9aa6b8]">{s.description}</span>
                   </span>
                 </li>
               ))}
@@ -158,7 +158,7 @@ export default async function AdminModerationPage() {
                 여기서만 보면 숨겨진 매물이 방치되므로 상호 링크를 둔다. */}
             <Link
               href="/admin/listings"
-              className="text-[11px] font-bold text-ai-accent no-underline"
+              className="text-[12px] font-bold text-ai-accent no-underline"
             >
               매물 신고·자동 숨김 큐 보기 (/admin/listings) →
             </Link>

@@ -83,7 +83,7 @@ export function ListingSaveButton({
         <Icon name="heart" size={15} style={saved ? { fill: "currentColor" } : undefined} />
         {saved ? "관심 저장됨" : "관심"}
       </button>
-      {error && <span className="text-[11px] font-bold text-danger">{error}</span>}
+      {error && <span className="text-[12px] font-bold text-danger">{error}</span>}
     </div>
   );
 }

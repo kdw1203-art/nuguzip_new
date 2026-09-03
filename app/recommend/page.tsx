@@ -47,7 +47,7 @@ function LoginPrompt() {
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
           <Icon name="sparkles" size={24} />
         </div>
-        <div className="text-base font-extrabold text-ink">
+        <div className="text-[15px] font-extrabold text-ink">
           관심지역을 설정하고 맞춤 추천을 받아보세요
         </div>
         <div className="text-[13px] leading-[1.7] text-text-3">
@@ -124,10 +124,10 @@ function RecCard({ item }: { item: RecItem }) {
       <div className="mt-3 flex items-start gap-1.5 border-t border-line pt-3">
         <Icon name="sparkles" size={14} className="mt-0.5 shrink-0 text-primary" />
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="text-[11px] font-bold text-primary">추천 이유</span>
+          <span className="text-[12px] font-bold text-primary">추천 이유</span>
           <div className="flex flex-wrap gap-1">
             {item.reasons.map((r, i) => (
-              <span key={`${r}-${i}`} className="chip chip-soft chip-pad text-[11px]">
+              <span key={`${r}-${i}`} className="chip chip-soft chip-pad text-[12px]">
                 {r}
               </span>
             ))}
@@ -251,7 +251,7 @@ export default async function RecommendPage() {
           />
         )}
 
-        <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+        <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
           추천은 관심지역 매칭·예산 적합도·최근 매매 변동·거래량을 종합한 룰 기반 결과이며,
           투자 판단의 참고 자료입니다. 실제 시세·수익과 다를 수 있어요.
         </p>

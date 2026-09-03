@@ -252,7 +252,7 @@ export function ListingForm() {
   if (done) {
     return (
       <div className="rise-in card card-pad-sm flex max-w-[640px] flex-col items-start gap-3 py-8">
-        <div className="text-[16px] font-extrabold text-ink">매물 등록이 접수됐어요</div>
+        <div className="text-[15px] font-extrabold text-ink">매물 등록이 접수됐어요</div>
         <p className="text-[13px] leading-[1.7] text-text-2">
           <b>검수 후 노출됩니다 (1~2일)</b>. 형식 요건 확인이 끝나면 실매물 목록에 공개돼요.{" "}
           <b>승인되면 포인트가 지급돼요.</b> 반려 시 사유를 안내드립니다.
@@ -663,7 +663,7 @@ export function ListingForm() {
           ))}
           {photos.length < MAX_PHOTOS && (
             <label
-              className={`flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[rgba(0,0,0,.18)] text-[11px] text-text-3 ${
+              className={`flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[rgba(0,0,0,.18)] text-[12px] text-text-3 ${
                 photosUploading
                   ? "pointer-events-none opacity-60"
                   : "cursor-pointer hover:border-primary hover:text-primary"
@@ -681,7 +681,7 @@ export function ListingForm() {
                 <span>업로드 중…</span>
               ) : (
                 <>
-                  <span className="text-[18px] leading-none">＋</span>
+                  <span className="text-[19px] leading-none">＋</span>
                   <span>사진 추가</span>
                 </>
               )}

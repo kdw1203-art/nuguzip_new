@@ -22,7 +22,7 @@ type CityOption = (typeof CITY_OPTIONS)[number];
 const CATEGORIES = COMMUNITY_SUBCATEGORIES.filter((c) => c.id !== "all");
 
 const inputClass =
-  "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-sm text-ink outline-none placeholder:text-text-3 focus:border-primary";
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary";
 
 /* ============================================================
    [B30] 임시저장 — 길게 쓴 글을 잃지 않는다.

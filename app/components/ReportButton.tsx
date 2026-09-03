@@ -61,7 +61,7 @@ export function ReportButton({
 
   if (state === "done") {
     return (
-      <span className={`text-[11px] font-bold text-success ${className ?? ""}`}>
+      <span className={`text-[12px] font-bold text-success ${className ?? ""}`}>
         접수됨
       </span>
     );
@@ -72,7 +72,7 @@ export function ReportButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`text-[11px] text-text-3 underline decoration-line underline-offset-2 transition-colors hover:text-danger ${className ?? ""}`}
+        className={`text-[12px] text-text-3 underline decoration-line underline-offset-2 transition-colors hover:text-danger ${className ?? ""}`}
       >
         신고
       </button>

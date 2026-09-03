@@ -76,7 +76,7 @@ export function ListingReviewActions({ id }: { id: string }) {
       >
         반려
       </button>
-      {error && <span className="text-[11px] font-bold text-[#f2c94c]">{error}</span>}
+      {error && <span className="text-[12px] font-bold text-[#f2c94c]">{error}</span>}
     </div>
   );
 }

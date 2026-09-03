@@ -204,12 +204,12 @@ export default async function AdminAiPage() {
               },
             ].map((k) => (
               <div key={k.label} className={`${darkCard} p-4`}>
-                <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>
-                <div className="mt-1 text-[18px] font-extrabold tabular-nums text-white">
+                <div className="text-[12px] text-[#9aa6b8]">{k.label}</div>
+                <div className="mt-1 text-[19px] font-extrabold tabular-nums text-white">
                   {k.value}
                 </div>
                 {"sub" in k && k.sub && (
-                  <div className="mt-0.5 text-[11px] text-[#9aa6b8]">{k.sub}</div>
+                  <div className="mt-0.5 text-[12px] text-[#9aa6b8]">{k.sub}</div>
                 )}
               </div>
             ))}
@@ -219,7 +219,7 @@ export default async function AdminAiPage() {
           <div className="rise-in-2 mt-4 flex flex-col gap-2">
             <div className="text-[15px] font-extrabold text-white">
               무료 한도 소진율 (이달){" "}
-              <span className="text-[11px] font-medium text-[#9aa6b8]">
+              <span className="text-[12px] font-medium text-[#9aa6b8]">
                 도달 0명 = 벽이 없음 · 대부분 도달 = 벽이 낮음
               </span>
             </div>
@@ -238,7 +238,7 @@ export default async function AdminAiPage() {
                   },
                 ].map((c) => (
                   <div key={c.label} className={`${darkCard} p-4`}>
-                    <div className="text-[11px] text-[#9aa6b8]">{c.label}</div>
+                    <div className="text-[12px] text-[#9aa6b8]">{c.label}</div>
                     <div className="mt-1 text-[19px] font-extrabold tabular-nums text-white">
                       도달 {c.h.atLimit}
                       <span className="text-[13px] font-bold text-[#9aa6b8]">
@@ -246,7 +246,7 @@ export default async function AdminAiPage() {
                         / 사용자 {c.h.users}명
                       </span>
                     </div>
-                    <div className="mt-0.5 text-[11px] text-[#9aa6b8]">
+                    <div className="mt-0.5 text-[12px] text-[#9aa6b8]">
                       최고 사용 {c.h.max}회 · 유료 전환 제안은 도달자에게만 의미가 있다
                     </div>
                   </div>
@@ -265,7 +265,7 @@ export default async function AdminAiPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-[13px]">
                   <thead>
-                    <tr className="border-b border-[rgba(255,255,255,.08)] text-[11px] text-[#9aa6b8]">
+                    <tr className="border-b border-[rgba(255,255,255,.08)] text-[12px] text-[#9aa6b8]">
                       <th className="px-4 py-2.5 font-semibold">도구</th>
                       <th className="px-4 py-2.5 text-right font-semibold">실행</th>
                       <th className="px-4 py-2.5 text-right font-semibold">규칙</th>
@@ -299,7 +299,7 @@ export default async function AdminAiPage() {
                           >
                             {t.stub}
                           </td>
-                          <td className="px-4 py-2.5 text-right text-[11px] text-[#9aa6b8]">
+                          <td className="px-4 py-2.5 text-right text-[12px] text-[#9aa6b8]">
                             {t.lastAt ? new Date(t.lastAt).toLocaleString("ko-KR") : "—"}
                           </td>
                         </tr>
@@ -309,7 +309,7 @@ export default async function AdminAiPage() {
                 </table>
               </div>
             </div>
-            <p className="text-[11px] leading-relaxed text-[#9aa6b8]">
+            <p className="text-[12px] leading-relaxed text-[#9aa6b8]">
               폴백(stub)이 지속되면 LLM 키 미설정 또는 예산 초과입니다 — 서버 env
               OPENAI_API_KEY/ANTHROPIC_API_KEY(오너 ⑨)와 AI_LLM_MONTHLY_CAP을 확인하세요.
               피드백 사유 원문은 활동 이벤트(ai_feedback)의 metadata.note 로 적재됩니다.

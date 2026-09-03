@@ -19,7 +19,7 @@ export function AIPanel({
   return (
     <div className={`ai-panel flex flex-col gap-2 p-[18px] ${className}`}>
       <div className="flex items-center gap-[7px]">
-        <span className="ai-chip h-5 w-5 text-[9px]">AI</span>
+        <span className="ai-chip h-5 w-5 text-[10px]">AI</span>
         <span className="text-[13px] font-extrabold text-white">{title}</span>
       </div>
       <div className="text-[13px] leading-[1.6] text-ai-text">{children}</div>
@@ -32,7 +32,7 @@ export function AIPanel({
         </Link>
       )}
       {disclaimer && (
-        <div className="text-[9px] leading-[1.5] text-ai-muted">
+        <div className="text-[10px] leading-[1.5] text-ai-muted">
           본 분석은 참고용이며 투자 판단의 책임은 이용자에게 있습니다.
         </div>
       )}

@@ -73,7 +73,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
             key={f}
             type="button"
             onClick={() => setFilter(f)}
-            className={`rounded-lg px-3 py-1.5 text-[11.5px] font-bold ${
+            className={`rounded-lg px-3 py-1.5 text-[12px] font-bold ${
               filter === f
                 ? "bg-ai-accent text-[#0e1320]"
                 : "border border-[rgba(255,255,255,.12)] text-[#9aa6b8]"
@@ -84,14 +84,14 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
         ))}
       </div>
 
-      {error && <div className="text-[11px] text-ai-danger">{error}</div>}
+      {error && <div className="text-[12px] text-ai-danger">{error}</div>}
 
       {shown.length === 0 ? (
         <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-8 text-center">
-          <div className="text-[12.5px] font-bold text-white">
+          <div className="text-[13px] font-bold text-white">
             {filter === "open" ? "미처리 신고가 없습니다" : "접수된 신고가 없습니다"}
           </div>
-          <div className="mt-1 text-[10.5px] text-[#9aa6b8]">
+          <div className="mt-1 text-[10px] text-[#9aa6b8]">
             커뮤니티 글·댓글 신고와 채팅 신고가 들어오면 여기에 바로 표시됩니다.
           </div>
         </div>
@@ -107,12 +107,12 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
               >
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className="rounded px-1.5 py-px text-[9.5px] font-bold"
+                    className="rounded px-1.5 py-px text-[10px] font-bold"
                     style={{ color: meta.color, background: meta.bg }}
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded bg-[rgba(126,162,255,.14)] px-1.5 py-px text-[9.5px] font-bold text-ai-accent">
+                  <span className="rounded bg-[rgba(126,162,255,.14)] px-1.5 py-px text-[10px] font-bold text-ai-accent">
                     {SOURCE_LABEL[item.source] ?? item.source}
                   </span>
                   {item.category && (
@@ -145,7 +145,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
                       type="button"
                       disabled={busy === key}
                       onClick={() => void act(item, "reviewed")}
-                      className="rounded-lg border border-[rgba(74,222,128,.4)] px-3 py-1.5 text-[11px] font-bold text-ai-success disabled:opacity-50"
+                      className="rounded-lg border border-[rgba(74,222,128,.4)] px-3 py-1.5 text-[12px] font-bold text-ai-success disabled:opacity-50"
                     >
                       처리 완료
                     </button>
@@ -154,7 +154,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
                         type="button"
                         disabled={busy === key}
                         onClick={() => void act(item, "actioned")}
-                        className="rounded-lg border border-[rgba(248,113,113,.4)] px-3 py-1.5 text-[11px] font-bold text-ai-danger disabled:opacity-50"
+                        className="rounded-lg border border-[rgba(248,113,113,.4)] px-3 py-1.5 text-[12px] font-bold text-ai-danger disabled:opacity-50"
                       >
                         제재 적용
                       </button>
@@ -163,7 +163,7 @@ export function ModerationQueue({ items }: { items: QueueItem[] }) {
                       type="button"
                       disabled={busy === key}
                       onClick={() => void act(item, "dismissed")}
-                      className="rounded-lg border border-[rgba(255,255,255,.14)] px-3 py-1.5 text-[11px] font-bold text-[#9aa6b8] disabled:opacity-50"
+                      className="rounded-lg border border-[rgba(255,255,255,.14)] px-3 py-1.5 text-[12px] font-bold text-[#9aa6b8] disabled:opacity-50"
                     >
                       기각
                     </button>

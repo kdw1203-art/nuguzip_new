@@ -322,7 +322,7 @@ export function SupplyClient({
                     {monthLabel(s.moveInYm)}
                   </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                    <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
                       <span className="truncate">{s.aptName ?? "미정"}</span>
                       {s.bizType && (
                         <span className="shrink-0 rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">
@@ -373,7 +373,7 @@ export function SupplyClient({
                     {monthLabel(s.moveInYm)}
                   </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                    <div className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
                       <span className="truncate">{s.aptName ?? "미정"}</span>
                       {s.bizType && (
                         <span className="shrink-0 rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">

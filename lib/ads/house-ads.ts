@@ -8,8 +8,8 @@
  *  - 없는 경로로 보내는 CTA (404)
  *  - 수치 주장 (사용자 수·만족도 등) — 셀 수 있는 값이라도 여기 박아두면 곧 낡는다
  *
- * href 는 반드시 실제 라우트여야 한다. 아래 4개는 app/ 아래 page.tsx 존재를 확인함:
- *   /notes/new · /map · /subscription · /town/experts
+ * href 는 반드시 실제 라우트여야 한다. 아래 5개는 app/ 아래 page.tsx 존재를 확인함:
+ *   /notes/new · /map · /subscription · /town/experts · /town/experts/join
  */
 
 import type { AdPlacement } from "@/lib/ads/adsense-policy";
@@ -66,11 +66,23 @@ export const HOUSE_ADS: HouseAd[] = [
   {
     id: "house_expert",
     placements: ["community_feed", "report_free_body"],
-    eyebrow: "전문가",
+    eyebrow: "전문가 상담",
     title: "혼자 판단하기 어려운 계약이라면",
-    body: "등록된 공인중개사·전문가에게 상담을 신청하고, 답변을 내 상담 내역에서 받아볼 수 있어요.",
+    body: "자격을 확인한 공인중개사·세무사·대출상담사에게 글로 묻고, 답변은 상담함으로 받아요. 고르기 어려우면 견적 요청 하나로 제안을 비교하세요.",
     ctaLabel: "전문가 찾아보기",
     href: "/town/experts",
+    showWhenSignedIn: true,
+  },
+  /* [959] 전문가 모집 — 공급이 0인 칸은 홍보 없이는 채워지지 않는다. 문구는 join 페이지·
+     EXPERT_CERT_FEES(가입 심사비 무료)와 같은 사실만. app/town/experts/join/page.tsx 존재 확인. */
+  {
+    id: "house_expert_join",
+    placements: ["community_feed", "report_free_body"],
+    eyebrow: "전문가 모집",
+    title: "공인중개사·세무사·감정평가사·대출상담사·건축사이신가요?",
+    body: "협회 공개 조회로 자격을 확인하고 프로필을 열어 드려요. 가입 심사비 무료, 상담 답변과 견적 제안이 열립니다.",
+    ctaLabel: "참여 안내 보기",
+    href: "/town/experts/join",
     showWhenSignedIn: true,
   },
 ];

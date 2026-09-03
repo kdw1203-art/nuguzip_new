@@ -15,7 +15,7 @@ export function DataSourceCard({
         <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-soft text-primary">
           <Icon name="file-text" size={14} />
         </span>
-        <h2 className="text-sm font-extrabold text-ink">데이터 출처</h2>
+        <h2 className="text-[13px] font-extrabold text-ink">데이터 출처</h2>
       </div>
 
       <div className="mt-3 overflow-hidden rounded-xl border border-line">

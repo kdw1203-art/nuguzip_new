@@ -1244,7 +1244,7 @@ export function NoteForm({
         <Link
           href={editId ? `/notes/${editId}` : "/notes"}
           aria-label="닫기"
-          className="text-base text-text-1"
+          className="text-[15px] text-text-1"
         >
           ✕
         </Link>
@@ -1578,7 +1578,7 @@ export function NoteForm({
           <>
         {/* 현장 체크 — 세그먼트 평가 (9항목 → 5축 점수) */}
         <div className="rise-in-3 card flex flex-col gap-2.5 p-4">
-          <div className="text-sm font-extrabold text-ink">
+          <div className="text-[13px] font-extrabold text-ink">
             현장 체크{" "}
             <span className="text-xs font-medium text-text-3">
               좋음·보통·아쉬움으로 빠르게 기록
@@ -1715,7 +1715,7 @@ export function NoteForm({
                           className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-surface"
                         >
                           <span
-                            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[11px] ${
+                            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[12px] ${
                               checked
                                 ? "bg-primary text-white"
                                 : "border-[1.5px] border-line-strong bg-surface"
@@ -1802,7 +1802,7 @@ export function NoteForm({
                 className="flex items-center gap-2.5 rounded-xl bg-bg px-3 py-[11px] text-left"
               >
                 <span
-                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[11px] ${
+                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[12px] ${
                     done
                       ? "bg-primary text-white"
                       : "border-[1.5px] border-line-strong bg-surface"
@@ -1843,7 +1843,7 @@ export function NoteForm({
 
         {/* 메모 + 사진 */}
         <div className="rise-in-6 card flex flex-col gap-2.5 p-4">
-          <div className="text-sm font-extrabold text-ink">
+          <div className="text-[13px] font-extrabold text-ink">
             메모{" "}
             <span className="text-xs font-medium text-text-3">
               현장에서 본 그대로
@@ -1859,7 +1859,7 @@ export function NoteForm({
               setMemoHints(hints);
             }}
             rows={3}
-            className="min-h-16 w-full resize-none rounded-xl bg-bg p-3.5 text-sm leading-[1.55] text-text-1 outline-none placeholder:text-text-3"
+            className="min-h-16 w-full resize-none rounded-xl bg-bg p-3.5 text-[13px] leading-[1.55] text-text-1 outline-none placeholder:text-text-3"
             placeholder="예: 남향이라 오후 채광 좋음. 단지 뒤 도로 소음 약간 있음"
             aria-label="메모"
           />
@@ -1987,7 +1987,7 @@ export function NoteForm({
           type="button"
           onClick={handleSave}
           disabled={saving || uploading}
-          className="btn-primary rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+          className="btn-primary rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
           style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
         >
           {aiRunning

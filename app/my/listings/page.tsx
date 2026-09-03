@@ -231,7 +231,7 @@ export default async function MyListingsPage() {
               <div key={l.id} className="card card-pad-sm flex flex-col gap-2.5">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`rounded-md chip-pad text-[11px] font-extrabold ${meta.cls}`}
+                    className={`rounded-md chip-pad text-[12px] font-extrabold ${meta.cls}`}
                   >
                     {meta.label}
                   </span>
@@ -250,7 +250,7 @@ export default async function MyListingsPage() {
                   )}
                   {staleMeta && (
                     <span
-                      className={`rounded-md chip-pad text-[11px] font-extrabold ${staleMeta.cls}`}
+                      className={`rounded-md chip-pad text-[12px] font-extrabold ${staleMeta.cls}`}
                     >
                       {staleMeta.label}
                     </span>

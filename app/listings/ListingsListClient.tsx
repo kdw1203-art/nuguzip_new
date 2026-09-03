@@ -229,7 +229,7 @@ export function ListingsListClient({
                 )}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
-                    className={`rounded-md chip-pad text-[11px] font-extrabold ${
+                    className={`rounded-md chip-pad text-[12px] font-extrabold ${
                       l.source === "owner"
                         ? "bg-[rgba(29,79,216,.08)] text-primary"
                         : "bg-warning-soft text-warning"
@@ -237,21 +237,21 @@ export function ListingsListClient({
                   >
                     {LISTING_SOURCE_LABEL[l.source]}
                   </span>
-                  <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+                  <span className="rounded-md bg-bg chip-pad text-[12px] font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-md bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+                    <span className="rounded-md bg-success-soft chip-pad text-[12px] font-extrabold text-success">
                       소유확인
                     </span>
                   )}
                   {boostOn && (
-                    <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-warning">
+                    <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad text-[12px] font-extrabold text-warning">
                       부스트
                     </span>
                   )}
                   {l.regionName && (
-                    <span className="text-[11px] text-text-3">{l.regionName}</span>
+                    <span className="text-[12px] text-text-3">{l.regionName}</span>
                   )}
                 </div>
                 <div className="text-[15px] font-extrabold leading-[1.4] text-ink">

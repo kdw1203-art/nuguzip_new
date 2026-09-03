@@ -69,6 +69,5 @@ export const HOME_AI_EXAMPLE_OUTPUT = [
 ] as const;
 /* 예시는 지표가 아니라 형태를 보여 준다(수치 창작 아님) — "AI"라는 단어만으로는
    무엇이 좋아지는지 전달되지 않는다는 홈 비판 대응. */
-export const HOME_AI_GATEWAY_BODY =
-  "현장 기록을 저장하면 AI(또는 규칙 초안)로 장단점을 정리합니다. 예: “복도 결로 흔적, 밤 주차 빡빡” → 리스크 2건·확인 항목으로 정리. 먼저 노트를 남겨 보세요.";
+/* [958] HOME_AI_GATEWAY_BODY 는 아무도 import 하지 않아 지웠다(죽은 카피는 표류한다) */
 export const HOME_AI_BRIEFING_LABEL = "오늘의 시장 브리핑 (참고)";

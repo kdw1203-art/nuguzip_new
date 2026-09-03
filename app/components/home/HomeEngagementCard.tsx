@@ -122,12 +122,12 @@ export function HomeEngagementCard() {
               <div className="text-[13px] font-extrabold text-ink">
                 {st.checkedToday ? "오늘 출석 완료" : "오늘 출석하고 포인트 받기"}
                 {st.streak > 1 && (
-                  <span className="ml-1.5 text-[11px] font-bold text-warning">
+                  <span className="ml-1.5 text-[12px] font-bold text-warning">
                     🔥 연속 {st.streak}일
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-text-3">
+              <div className="text-[12px] text-text-3">
                 {st.checkedToday
                   ? justEarned
                     ? `+${justEarned}P 적립됐어요`
@@ -153,7 +153,7 @@ export function HomeEngagementCard() {
 
           {/* ② 포인트 → 상점 최고 아이템(상단 노출 7일) 진행바 */}
           <div>
-            <div className="mb-1 flex items-center justify-between text-[11px]">
+            <div className="mb-1 flex items-center justify-between text-[12px]">
               <span className="text-text-3">
                 내 포인트 <b className="text-ink">{st.balance.toLocaleString("ko-KR")}P</b>
               </span>

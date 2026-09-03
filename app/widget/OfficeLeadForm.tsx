@@ -66,8 +66,8 @@ export function OfficeLeadForm() {
   if (state === "done") {
     return (
       <div className="rounded-[14px] border border-line bg-success-soft px-5 py-6 text-center">
-        <p className="text-[14px] font-extrabold text-success">문의가 접수됐어요</p>
-        <p className="mt-1 text-[12.5px] leading-[1.7] text-text-2">
+        <p className="text-[13px] font-extrabold text-success">문의가 접수됐어요</p>
+        <p className="mt-1 text-[13px] leading-[1.7] text-text-2">
           {email.trim()} 로 영업일 기준 24~72시간 안에 답변드립니다.
         </p>
       </div>
@@ -139,11 +139,11 @@ export function OfficeLeadForm() {
         type="button"
         onClick={submit}
         disabled={state === "sending"}
-        className="rounded-[10px] bg-primary px-4 py-2.5 text-[13.5px] font-extrabold text-white disabled:opacity-60"
+        className="rounded-[10px] bg-primary px-4 py-2.5 text-[13px] font-extrabold text-white disabled:opacity-60"
       >
         {state === "sending" ? "접수 중…" : "문의 보내기"}
       </button>
-      <p className="text-[11px] leading-[1.6] text-text-3">
+      <p className="text-[12px] leading-[1.6] text-text-3">
         입력하신 정보는 문의 답변에만 사용됩니다. 위젯 자체는 지금도 무료·무신청으로
         위 생성기에서 바로 발급됩니다.
       </p>

@@ -147,7 +147,7 @@ export function HistogramRangeSlider({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline justify-between">
         <span className="t-sub font-bold text-text-3">{label}</span>
-        <span className={`text-[11px] font-bold ${narrowed ? "text-primary" : "text-text-3"}`}>
+        <span className={`text-[12px] font-bold ${narrowed ? "text-primary" : "text-text-3"}`}>
           {format(vMin)} ~ {format(vMax)}
           {value[1] === null && hi > vMin ? "+" : ""}
         </span>

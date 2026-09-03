@@ -80,7 +80,7 @@ export default async function AdminListingsPage() {
             </span>
           )}
         </div>
-        <span className="text-[11px] text-[#9aa6b8]">
+        <span className="text-[12px] text-[#9aa6b8]">
           검수는 형식 요건 확인 — 승인 시 /listings에 즉시 노출
         </span>
       </div>
@@ -116,11 +116,11 @@ export default async function AdminListingsPage() {
                 <span className="rounded-[6px] bg-[rgba(255,255,255,.08)] chip-pad text-[10px] font-extrabold text-[#c9d2e0]">
                   {LISTING_TYPE_LABEL[l.listingType]}
                 </span>
-                <span className="text-[14px] font-extrabold text-white">
+                <span className="text-[13px] font-extrabold text-white">
                   {l.complexName}
                 </span>
                 {l.regionName && (
-                  <span className="text-[11px] text-[#9aa6b8]">{l.regionName}</span>
+                  <span className="text-[12px] text-[#9aa6b8]">{l.regionName}</span>
                 )}
               </div>
               <div className="text-[12px] text-[#c9d2e0]">
@@ -142,13 +142,13 @@ export default async function AdminListingsPage() {
                   <span className="rounded-[6px] bg-[rgba(214,69,69,.2)] chip-pad text-[10px] font-extrabold text-ai-danger">
                     ⚠ 자동 플래그
                   </span>
-                  <span className="text-[11px] font-bold text-[#ffb3b3]">
+                  <span className="text-[12px] font-bold text-[#ffb3b3]">
                     {l.flagReason ?? "중복 주소 의심"}
                   </span>
                   <span className="text-[10px] text-[#9aa6b8]">— 승인 전 확인 권장</span>
                 </div>
               )}
-              <div className="text-[11px] text-[#9aa6b8]">
+              <div className="text-[12px] text-[#9aa6b8]">
                 등록자: {l.authorLabel} ({l.authorEmail})
                 {l.contact ? ` · 연락: ${l.contact}` : ""} ·{" "}
                 {new Date(l.createdAt).toLocaleString("ko-KR", {
@@ -165,7 +165,7 @@ export default async function AdminListingsPage() {
           자동 숨김은 이미 승인된 매물에서 일어나므로 pending 큐에 절대 뜨지 않는다.
           여기가 없으면 신고를 받아 감추기만 하고 아무도 확인하지 않는 상태가 된다. */}
       <div className="rise-in-2 flex items-center justify-between">
-        <div className="text-[16px] font-extrabold text-white">
+        <div className="text-[15px] font-extrabold text-white">
           신고 누적 · 자동 숨김{" "}
           {reported.length > 0 && (
             <span className="ml-1 rounded-[6px] bg-[rgba(214,69,69,.18)] chip-pad text-[12px] font-extrabold text-ai-danger">
@@ -173,7 +173,7 @@ export default async function AdminListingsPage() {
             </span>
           )}
         </div>
-        <span className="text-[11px] text-[#9aa6b8]">
+        <span className="text-[12px] text-[#9aa6b8]">
           신고 3건 누적 시 자동 숨김 — 확인 후 해제할 수 있어요
         </span>
       </div>
@@ -204,23 +204,23 @@ export default async function AdminListingsPage() {
                     숨김 중
                   </span>
                 )}
-                <span className="text-[14px] font-extrabold text-white">{l.complexName}</span>
+                <span className="text-[13px] font-extrabold text-white">{l.complexName}</span>
                 {l.regionName && (
-                  <span className="text-[11px] text-[#9aa6b8]">{l.regionName}</span>
+                  <span className="text-[12px] text-[#9aa6b8]">{l.regionName}</span>
                 )}
                 <span className="rounded-[6px] bg-[rgba(255,255,255,.08)] chip-pad text-[10px] font-extrabold text-[#c9d2e0]">
                   {LISTING_TYPE_LABEL[l.listingType]}
                 </span>
               </div>
               {l.flagReason && (
-                <div className="text-[11px] font-bold text-[#ffb3b3]">
+                <div className="text-[12px] font-bold text-[#ffb3b3]">
                   자동 플래그: {l.flagReason}
                 </div>
               )}
               {l.description && (
                 <p className="text-[12px] leading-[1.6] text-[#9aa6b8]">{l.description}</p>
               )}
-              <div className="text-[11px] text-[#9aa6b8]">
+              <div className="text-[12px] text-[#9aa6b8]">
                 등록자: {l.authorLabel} ({l.authorEmail}) ·{" "}
                 {new Date(l.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
               </div>
@@ -232,8 +232,8 @@ export default async function AdminListingsPage() {
 
       {/* I1 — 소유확인 심사 큐. 증빙을 확인한 뒤에만 인증 배지가 세워진다. */}
       <div className="rise-in-2 flex items-center justify-between">
-        <div className="text-[16px] font-extrabold text-white">소유확인 심사</div>
-        <span className="text-[11px] text-[#9aa6b8]">
+        <div className="text-[15px] font-extrabold text-white">소유확인 심사</div>
+        <span className="text-[12px] text-[#9aa6b8]">
           증빙 확인 후 승인 — 승인 시 매물에 소유확인 배지 표시
         </span>
       </div>

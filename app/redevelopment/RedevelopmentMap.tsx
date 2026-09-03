@@ -351,7 +351,7 @@ export function RedevelopmentMap({
                 type="button"
                 onClick={() => handleSigunguClick(null)}
                 aria-pressed={sigungu === null}
-                className={`chip press shrink-0 border px-2.5 py-1 text-[11px] ${
+                className={`chip press shrink-0 border px-2.5 py-1 text-[12px] ${
                   sigungu === null
                     ? "chip-active border-transparent"
                     : "border-line bg-surface text-text-2"
@@ -365,7 +365,7 @@ export function RedevelopmentMap({
                   type="button"
                   onClick={() => handleSigunguClick(s.name)}
                   aria-pressed={sigungu === s.name}
-                  className={`chip press shrink-0 border px-2.5 py-1 text-[11px] ${
+                  className={`chip press shrink-0 border px-2.5 py-1 text-[12px] ${
                     sigungu === s.name
                       ? "chip-active border-transparent"
                       : "border-line bg-surface text-text-2"
@@ -401,7 +401,7 @@ export function RedevelopmentMap({
               role="tab"
               aria-selected={active}
               onClick={() => setView(v.key)}
-              className={`press flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[12.5px] font-bold ${
+              className={`press flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-bold ${
                 active ? "bg-primary text-white" : "text-text-2"
               }`}
               style={active ? { color: "#fff" } : undefined}
@@ -594,7 +594,7 @@ export function RedevelopmentMap({
                       type="button"
                       onClick={() => toggleStage(stage.key)}
                       aria-pressed={stages.has(stage.key)}
-                      className={`w-[92px] shrink-0 truncate text-left text-[11.5px] font-semibold ${
+                      className={`w-[92px] shrink-0 truncate text-left text-[12px] font-semibold ${
                         stages.has(stage.key) ? "text-primary" : "text-text-1"
                       }`}
                     >

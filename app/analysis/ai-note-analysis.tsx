@@ -241,7 +241,7 @@ export function AiNoteAnalysisCard({
       {/* 노트 선택 */}
       {notesLoaded && notes.length > 0 && (
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-bold text-text-3">분석할 노트</span>
+          <span className="text-[12px] font-bold text-text-3">분석할 노트</span>
           <select
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
@@ -257,7 +257,7 @@ export function AiNoteAnalysisCard({
       )}
       {/* 허브 단지 선택기에서 고른 단지 컨텍스트 (실시세 프리필) */}
       {seedComplexName && (
-        <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2 text-[11px] font-bold text-primary">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2 text-[12px] font-bold text-primary">
           <span>선택 단지 {seedComplexName}</span>
           {seedRegionLabel && <span className="text-text-2">· {seedRegionLabel}</span>}
           {seedSnap && (
@@ -266,7 +266,7 @@ export function AiNoteAnalysisCard({
               {seedSnap.period ? ` (${seedSnap.period})` : ""}
             </span>
           )}
-          <span className="ml-auto rounded border border-line px-1 py-px text-[9px] font-bold text-text-3">
+          <span className="ml-auto rounded border border-line px-1 py-px text-[10px] font-bold text-text-3">
             실데이터 기준
           </span>
         </div>
@@ -332,7 +332,7 @@ export function AiNoteAnalysisCard({
             <div>
               <div className="t-caption font-extrabold text-ai-accent">강점</div>
               {state.result.strengths.map((b) => (
-                <div key={b} className="text-[11px] leading-[1.55] text-ai-text">
+                <div key={b} className="text-[12px] leading-[1.55] text-ai-text">
                   · {b}
                 </div>
               ))}
@@ -342,7 +342,7 @@ export function AiNoteAnalysisCard({
             <div>
               <div className="t-caption font-extrabold text-[#ffb0b0]">약점·리스크</div>
               {state.result.risks.map((b) => (
-                <div key={b} className="text-[11px] leading-[1.55] text-ai-text">
+                <div key={b} className="text-[12px] leading-[1.55] text-ai-text">
                   · {b}
                 </div>
               ))}
@@ -352,18 +352,18 @@ export function AiNoteAnalysisCard({
             <div>
               <div className="t-caption font-extrabold text-ai-muted">확인 필요</div>
               {state.result.followUps.map((b) => (
-                <div key={b} className="text-[11px] leading-[1.55] text-ai-text">
+                <div key={b} className="text-[12px] leading-[1.55] text-ai-text">
                   · {b}
                 </div>
               ))}
             </div>
           )}
           {state.result.verdict && (
-            <div className="border-t border-[rgba(255,255,255,.12)] pt-1.5 text-[11px] leading-[1.55] text-ai-text">
+            <div className="border-t border-[rgba(255,255,255,.12)] pt-1.5 text-[12px] leading-[1.55] text-ai-text">
               <b className="text-white">총평</b> — {state.result.verdict}
             </div>
           )}
-          <div className="text-[9px] leading-[1.5] text-ai-muted">
+          <div className="text-[10px] leading-[1.5] text-ai-muted">
             {state.result.disclaimer}.
           </div>
         </div>

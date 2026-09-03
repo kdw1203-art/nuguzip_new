@@ -64,7 +64,7 @@ export function Gauge({
         <circle cx={arc.end.x} cy={arc.end.y} r="3" fill="currentColor" />
       </svg>
       <div className="-mt-3 flex flex-col items-center">
-        <span className="t-num text-[22px] leading-none">{label ?? safe}</span>
+        <span className="t-num text-[21px] leading-none">{label ?? safe}</span>
         {caption && <span className="t-caption mt-1 text-text-3">{caption}</span>}
       </div>
     </div>

@@ -428,7 +428,7 @@ export function AuctionsClient({
             {/* a) 입찰 캘린더 */}
             <div className="rise-in-1 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-sm font-extrabold text-ink">
+                <span className="flex items-center gap-1.5 text-[13px] font-extrabold text-ink">
                   {monthLabel} 입찰 캘린더
                 </span>
                 <div className="flex gap-2.5 t-sub">
@@ -476,7 +476,7 @@ export function AuctionsClient({
                     <div className="flex items-center gap-3">
                       {c.dday && (
                         <span
-                          className={`rounded-md chip-pad text-[11px] font-extrabold text-white ${
+                          className={`rounded-md chip-pad text-[12px] font-extrabold text-white ${
                             c.dday.urgent ? "bg-danger" : "bg-primary"
                           }`}
                         >
@@ -484,7 +484,7 @@ export function AuctionsClient({
                         </span>
                       )}
                       <div>
-                        <div className="flex flex-wrap items-center gap-1.5 text-sm font-extrabold text-ink">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-extrabold text-ink">
                           {c.name}
                           {c.usage && (
                             <span className="rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">
@@ -535,7 +535,7 @@ export function AuctionsClient({
                         {c.dday?.label}
                       </span>
                       <div>
-                        <div className="flex flex-wrap items-center gap-1.5 text-sm font-extrabold text-ink">
+                        <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-extrabold text-ink">
                           {c.name}
                           {c.usage && (
                             <span className="rounded bg-primary-soft px-[7px] py-0.5 t-caption font-extrabold text-primary">

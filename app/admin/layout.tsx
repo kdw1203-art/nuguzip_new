@@ -49,7 +49,7 @@ export default async function AdminLayout({
           </span>
         </Link>
         <AdminNav />
-        <div className="mt-auto hidden px-5 pt-6 text-[11px] text-[#9aa6b8] md:block">
+        <div className="mt-auto hidden px-5 pt-6 text-[12px] text-[#9aa6b8] md:block">
           <Link href="/" className="!text-[#9aa6b8] hover:!text-[#c9d2e0]">
             ← 서비스로 돌아가기
           </Link>

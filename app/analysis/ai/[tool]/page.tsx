@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/app/components/PageShell";
+import { ToolGlyph, WORKBENCH_GLYPH } from "../../ToolGlyph";
 import { AI_TOOL_IDS, isAiAnalysisToolId, type AiAnalysisToolId } from "@/lib/ai/ai-tools";
 import { TOOL_IDENTITIES } from "@/lib/ai/tool-identity";
 import { WorkbenchClient } from "./WorkbenchClient";
@@ -43,23 +44,46 @@ export default async function AiToolPage({
   const identity = TOOL_IDENTITIES[tid];
 
   return (
-    <PageShell breadcrumb={identity.title}>
+    <PageShell breadcrumb={`AI 분석 › ${identity.title}`}>
       <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4">
-        <div className="rise-in flex flex-wrap items-end justify-between gap-3 px-1">
-          <div>
-            <nav className="t-sub font-semibold text-text-3">
-              <Link href="/analysis" className="no-underline hover:underline">
-                분석 도구
-              </Link>{" "}
-              › {identity.title}
-            </nav>
-            <h1 className="mt-1 t-title text-ink">{identity.title}</h1>
-            <p className="mt-1 t-body text-text-2">{identity.tagline}</p>
+        {/* [958] 도구 머리 — 네이비 면 + 결과물 글리프 + "넣는 것 → 계산 → 나오는 것".
+            예전엔 제목·한 줄 설명뿐이라 12개 도구가 무엇이 다른지, 결과가 AI 인지
+            규칙인지 실행 전에는 알 수 없었다. 실행 전에 말한다. */}
+        <section className="hub-hero rise-in flex flex-col gap-4 p-5 md:p-6">
+          <div className="flex items-start gap-4">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-hanji text-brand-hanji-ink">
+              <ToolGlyph id={WORKBENCH_GLYPH[tid] ?? "radar"} size={44} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <nav className="t-caption font-extrabold tracking-wider text-on-dark-muted">
+                <Link href="/analysis" className="no-underline hover:underline">
+                  AI 분석
+                </Link>{" "}
+                › 단지 하나를 깊게
+              </nav>
+              <h1 className="mt-1 t-title text-on-dark">{identity.title}</h1>
+              <p className="mt-1 t-body text-on-dark-muted">{identity.tagline}</p>
+            </div>
           </div>
-          <span className="rounded-[10px] bg-bg px-3 py-1.5 t-sub font-bold text-text-2">
-            실데이터 계산 · 출처 각주
-          </span>
-        </div>
+          <div className="grid grid-cols-1 gap-2 border-t border-on-dark-faint pt-4 sm:grid-cols-3">
+            <div className="rounded-xl bg-on-dark-faint px-3 py-2.5">
+              <div className="t-caption font-extrabold text-on-dark-muted">넣는 것</div>
+              <div className="t-sub text-on-dark">단지 1곳{identity.useCase ? ` · ${identity.useCase}` : ""}</div>
+            </div>
+            <div className="rounded-xl bg-on-dark-faint px-3 py-2.5">
+              <div className="t-caption font-extrabold text-on-dark-muted">계산</div>
+              <div className="t-sub text-on-dark">실거래·전월세·공급·뉴스 실데이터 규칙 계산 · AI 서술은 선택</div>
+            </div>
+            <div className="rounded-xl bg-on-dark-faint px-3 py-2.5">
+              <div className="t-caption font-extrabold text-on-dark-muted">나오는 것</div>
+              <div className="t-sub text-on-dark">
+                {identity.metricLabel && identity.metricLabel !== "결과"
+                  ? `${identity.metricLabel}${identity.metricUnit ? `(${identity.metricUnit})` : ""} + 근거 각주`
+                  : "요약 · 근거 각주"}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <WorkbenchClient tool={tid} useCase={identity.useCase} tips={identity.tips} />
 

@@ -40,7 +40,7 @@ const SEVERITY_CLS: Record<string, string> = {
 function Fact({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-start justify-between gap-2">
-      <span className="shrink-0 text-[9px] font-bold text-text-3">{k}</span>
+      <span className="shrink-0 text-[10px] font-bold text-text-3">{k}</span>
       <span className="min-w-0 break-all text-right text-[10px] font-semibold text-ink">{v}</span>
     </div>
   );
@@ -92,12 +92,12 @@ function ExpertRow({ item }: { item: QueueItem }) {
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <span className="rounded bg-primary-soft px-1.5 py-px text-[9px] font-extrabold text-primary">
+            <span className="rounded bg-primary-soft px-1.5 py-px text-[10px] font-extrabold text-primary">
               전문가
             </span>
             <span className="truncate text-xs font-extrabold text-ink">{item.label}</span>
           </div>
-          <div className="mt-0.5 truncate text-[9px] text-text-3">
+          <div className="mt-0.5 truncate text-[10px] text-text-3">
             {item.sub}
             {item.createdAt ? ` · 신청 ${relDate(item.createdAt)}` : ""}
           </div>
@@ -141,7 +141,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
                 <span
                   key={`${f.ruleId}-${i}`}
                   title={f.message}
-                  className={`rounded px-1.5 py-px text-[9px] font-extrabold ${SEVERITY_CLS[f.severity] ?? SEVERITY_CLS.warn}`}
+                  className={`rounded px-1.5 py-px text-[10px] font-extrabold ${SEVERITY_CLS[f.severity] ?? SEVERITY_CLS.warn}`}
                 >
                   ⚑ {f.ruleId} · {f.severity}
                 </span>
@@ -172,7 +172,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
                     href={u}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-[6px] bg-primary-soft px-2 py-0.5 text-[9px] font-extrabold text-primary no-underline"
+                    className="rounded-[6px] bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary no-underline"
                   >
                     증빙 {i + 1} ↗
                   </a>
@@ -182,7 +182,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
                   href={ev.sourceVerificationUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-[6px] border border-line px-2 py-0.5 text-[9px] font-extrabold text-text-2 no-underline"
+                  className="rounded-[6px] border border-line px-2 py-0.5 text-[10px] font-extrabold text-text-2 no-underline"
                 >
                   공적 조회처 ↗
                 </a>
@@ -220,7 +220,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="반려 사유 (신청자에게 전달)"
-            className="min-w-0 flex-1 rounded-[7px] border border-line bg-surface px-2 py-1 text-[11px] text-ink outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="min-w-0 flex-1 rounded-[7px] border border-line bg-surface px-2 py-1 text-[12px] text-ink outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
           />
           <button
             type="button"
@@ -253,7 +253,7 @@ function ExpertRow({ item }: { item: QueueItem }) {
 export function VerificationQueue({ queue }: { queue: QueueItem[] }) {
   if (queue.length === 0) {
     return (
-      <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[11px] text-text-3">
+      <div className="rounded-[14px] bg-bg px-3.5 py-6 text-center text-[12px] text-text-3">
         현재 심사 대기 중인 신청이 없어요.
       </div>
     );
@@ -270,12 +270,12 @@ export function VerificationQueue({ queue }: { queue: QueueItem[] }) {
           >
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="rounded bg-[#fdf3e7] px-1.5 py-px text-[9px] font-extrabold text-warning">
+                <span className="rounded bg-[#fdf3e7] px-1.5 py-px text-[10px] font-extrabold text-warning">
                   소유확인
                 </span>
                 <span className="truncate text-xs font-extrabold text-ink">{q.label}</span>
               </div>
-              <div className="mt-0.5 truncate text-[9px] text-text-3">
+              <div className="mt-0.5 truncate text-[10px] text-text-3">
                 {q.sub}
                 {q.createdAt ? ` · 신청 ${relDate(q.createdAt)}` : ""}
               </div>

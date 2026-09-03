@@ -80,7 +80,7 @@ function MetricCell({
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-[10px] font-semibold text-[#9aa6b8]">{label}</span>
-      <span className="text-[17px] font-extrabold" style={{ color: VERDICT_COLOR[verdict] }}>
+      <span className="text-[15px] font-extrabold" style={{ color: VERDICT_COLOR[verdict] }}>
         {value === null ? "—" : `${fmt(Math.round(value * 1000) / 1000)}${unit}`}
       </span>
       <span className="text-[10px] text-[#6b7688]">
@@ -118,7 +118,7 @@ function FieldPerfPanel({ loaded }: { loaded: Loaded<FieldPerfRow> }) {
           return (
             <div key={row.formFactor} className="rounded-xl border border-[rgba(255,255,255,.06)] p-3">
               <span className="text-[12px] font-bold text-[#c9d2e0]">{row.formFactor}</span>
-              <p className="mt-1 text-[11px] leading-[1.7] text-[#9aa6b8]">
+              <p className="mt-1 text-[12px] leading-[1.7] text-[#9aa6b8]">
                 CrUX 표본 미달 — 아직 이 사이트의 실사용자 데이터가 공개 기준을 넘지
                 못했습니다. 성능이 나쁘다는 뜻이 아니라 방문자 수가 아직 적다는 뜻이고,
                 트래픽이 늘면 자동으로 잡힙니다.
@@ -130,7 +130,7 @@ function FieldPerfPanel({ loaded }: { loaded: Loaded<FieldPerfRow> }) {
           return (
             <div key={row.formFactor} className="rounded-xl border border-[rgba(248,113,113,.25)] p-3">
               <span className="text-[12px] font-bold text-[#c9d2e0]">{row.formFactor}</span>
-              <p className="mt-1 text-[11px] leading-[1.7] text-ai-danger">
+              <p className="mt-1 text-[12px] leading-[1.7] text-ai-danger">
                 조회 실패: {row.errorDetail ?? "원인 미기록"}
               </p>
             </div>
@@ -189,7 +189,7 @@ function FieldPerfPanel({ loaded }: { loaded: Loaded<FieldPerfRow> }) {
 
       {weeks.length > 1 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-left text-[11px]">
+          <table className="w-full min-w-[520px] text-left text-[12px]">
             <thead>
               <tr className="border-b border-[rgba(255,255,255,.08)] text-[10px] text-[#6b7688]">
                 <th className="py-1.5 font-medium">주(월요일)</th>
@@ -254,7 +254,7 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
       <div className="flex flex-wrap items-end gap-6">
         <div>
           <div className="text-[10px] font-semibold text-[#9aa6b8]">색인률(표본)</div>
-          <div className="text-[26px] font-extrabold text-ai-accent">
+          <div className="text-[24px] font-extrabold text-ai-accent">
             {rate === null ? "—" : `${rate.toFixed(1)}%`}
           </div>
           <div className="text-[10px] text-[#6b7688]">
@@ -263,12 +263,12 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
         </div>
         <div>
           <div className="text-[10px] font-semibold text-[#9aa6b8]">사이트맵 제출</div>
-          <div className="text-[26px] font-extrabold text-[#c9d2e0]">{fmt(latest.submitted)}</div>
+          <div className="text-[24px] font-extrabold text-[#c9d2e0]">{fmt(latest.submitted)}</div>
           <div className="text-[10px] text-[#6b7688]">우리 사이트맵이 싣고 있는 URL 수</div>
         </div>
         <div>
           <div className="text-[10px] font-semibold text-[#9aa6b8]">검사 실패</div>
-          <div className="text-[26px] font-extrabold text-[#c9d2e0]">{fmt(latest.errored)}</div>
+          <div className="text-[24px] font-extrabold text-[#c9d2e0]">{fmt(latest.errored)}</div>
           <div className="text-[10px] text-[#6b7688]">미색인으로 세지 않습니다</div>
         </div>
         <div className="text-[10px] text-[#6b7688]">기준 주 {latest.collectedWeek}</div>
@@ -282,7 +282,7 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
 
       {Object.keys(latest.bySection).length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px] text-left text-[11px]">
+          <table className="w-full min-w-[420px] text-left text-[12px]">
             <thead>
               <tr className="border-b border-[rgba(255,255,255,.08)] text-[10px] text-[#6b7688]">
                 <th className="py-1.5 font-medium">유형</th>
@@ -314,7 +314,7 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
             {Object.entries(latest.coverageStates)
               .sort((a, b) => b[1] - a[1])
               .map(([state, count]) => (
-                <li key={state} className="text-[11px] text-[#9aa6b8]">
+                <li key={state} className="text-[12px] text-[#9aa6b8]">
                   {state} — {fmt(count)}건
                 </li>
               ))}
@@ -328,7 +328,7 @@ function IndexCoveragePanel({ loaded }: { loaded: Loaded<IndexCoverageRow> }) {
 
       {loaded.rows.length > 1 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[420px] text-left text-[11px]">
+          <table className="w-full min-w-[420px] text-left text-[12px]">
             <thead>
               <tr className="border-b border-[rgba(255,255,255,.08)] text-[10px] text-[#6b7688]">
                 <th className="py-1.5 font-medium">주(월요일)</th>
@@ -362,7 +362,7 @@ export default async function AdminSeoPage() {
   return (
     <div className="flex flex-col gap-5">
       <header>
-        <h1 className="text-[18px] font-extrabold text-[#e8eef8]">SEO 측정</h1>
+        <h1 className="text-[19px] font-extrabold text-[#e8eef8]">SEO 측정</h1>
         <p className="mt-1 text-[12px] leading-[1.7] text-[#9aa6b8]">
           실사용자 성능(CrUX)과 색인률을 주 단위로 쌓아 둡니다. 둘 다 매주 월요일
           15시(KST) 무렵에 한 번 수집합니다. 반복 관측 루틴(AI 인용·쿼리 갭)은 코드가 아니라
@@ -371,10 +371,10 @@ export default async function AdminSeoPage() {
       </header>
 
       <section className={card}>
-        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+        <h2 className="text-[13px] font-extrabold text-[#e8eef8]">
           실사용자 성능 (CrUX) <span className="text-[10px] font-medium text-[#6b7688]">N5</span>
         </h2>
-        <p className="-mt-1 text-[11px] leading-[1.7] text-[#9aa6b8]">
+        <p className="-mt-1 text-[12px] leading-[1.7] text-[#9aa6b8]">
           릴리스 게이트의 번들 예산은 실험실 지표입니다. 구글이 순위 신호로 쓰는 것은 실제
           방문자의 기기·회선에서 측정된 이 값입니다.
         </p>
@@ -382,10 +382,10 @@ export default async function AdminSeoPage() {
       </section>
 
       <section className={card}>
-        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+        <h2 className="text-[13px] font-extrabold text-[#e8eef8]">
           색인률 <span className="text-[10px] font-medium text-[#6b7688]">N25</span>
         </h2>
-        <p className="-mt-1 text-[11px] leading-[1.7] text-[#9aa6b8]">
+        <p className="-mt-1 text-[12px] leading-[1.7] text-[#9aa6b8]">
           사이트맵에 올린 URL 중 실제로 색인된 비율. 사이트맵을 유형별로 나눈 효과가
           여기서 드러납니다 — 어느 유형이 안 잡히는지 보입니다.
         </p>
@@ -394,7 +394,7 @@ export default async function AdminSeoPage() {
 
       {/* [#102] 타이틀 CTR 실험 배정표 — 배정은 결정적 해시(요청 간 불변) */}
       <section className={card}>
-        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+        <h2 className="text-[13px] font-extrabold text-[#e8eef8]">
           타이틀 실험 <span className="text-[10px] font-medium text-[#6b7688]">#102</span>
         </h2>
         <TitleExperimentPanel />
@@ -402,7 +402,7 @@ export default async function AdminSeoPage() {
 
       {/* [#107] 위젯 채택 — 임베드 비콘(host 일집계) 최근 30일 */}
       <section className={card}>
-        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+        <h2 className="text-[13px] font-extrabold text-[#e8eef8]">
           위젯 채택 <span className="text-[10px] font-medium text-[#6b7688]">#107</span>
         </h2>
         <WidgetAdoptionPanel />
@@ -410,7 +410,7 @@ export default async function AdminSeoPage() {
 
       {/* [#117] 뉴스 → 단지 링크율 — 자동 뉴스가 전환 표면(단지 허브)으로 흐르는 비율 */}
       <section className={card}>
-        <h2 className="text-[14px] font-extrabold text-[#e8eef8]">
+        <h2 className="text-[13px] font-extrabold text-[#e8eef8]">
           뉴스→단지 연결률 <span className="text-[10px] font-medium text-[#6b7688]">#117</span>
         </h2>
         <NewsComplexLinkPanel />
@@ -473,15 +473,15 @@ async function NewsComplexLinkPanel() {
       </p>
       {misses.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] text-[#8b94a6]">미매칭 표본 (별칭 사전 보강 후보):</span>
+          <span className="text-[12px] text-[#8b94a6]">미매칭 표본 (별칭 사전 보강 후보):</span>
           {misses.map((m) => (
-            <span key={m} className="truncate text-[11px] text-[#9aa6b8]">
+            <span key={m} className="truncate text-[12px] text-[#9aa6b8]">
               · {m}
             </span>
           ))}
         </div>
       )}
-      <p className="text-[11px] leading-[1.6] text-[#8b94a6]">
+      <p className="text-[12px] leading-[1.6] text-[#8b94a6]">
         연결률이 30% 미만으로 유지되면 REGION_ALIASES·단지명 별칭 사전 보강 회차를
         엽니다 — 보강은 미매칭 표본 실측에서만 (추측 별칭 금지).
       </p>
@@ -542,7 +542,7 @@ async function TitleExperimentPanel() {
   const exp = TITLE_EXPERIMENTS[0];
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[11px] leading-[1.7] text-[#9aa6b8]">
+      <p className="text-[12px] leading-[1.7] text-[#9aa6b8]">
         {exp.label} · 시작 {exp.startedAt} · 판정: {exp.judge}. 배정 A {a} / B{" "}
         {rows.length - a} — GSC 성능 탭에서 아래 두 그룹의 페이지 CTR을 비교하세요.
       </p>

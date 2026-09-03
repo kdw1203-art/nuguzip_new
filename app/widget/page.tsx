@@ -64,7 +64,7 @@ export default function WidgetPage() {
 
       <div className="mx-auto max-w-[820px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">실거래 시세 위젯</h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-2">
           단지의 최근 실거래 시세를 블로그·카페 글에 한 줄로 붙여넣을 수 있습니다.
           국토교통부 실거래 신고 자료를 그대로 보여 주고, 시세가 갱신되면 이미 붙여넣은
           위젯도 같이 갱신됩니다.
@@ -75,7 +75,7 @@ export default function WidgetPage() {
         </div>
 
         <section className="rise-in-2 mt-6">
-          <h2 className="text-[16px] font-extrabold text-ink">단지 주소는 어디서 찾나요?</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">단지 주소는 어디서 찾나요?</h2>
           <p className="mt-2 text-[13px] leading-[1.8] text-text-1">
             단지 브라우즈에서 구를 고르면 단지 목록이 나옵니다. 원하는 단지를 눌러
             단지 페이지로 들어간 뒤, 브라우저 주소창의 주소를 그대로 복사해 위에
@@ -99,7 +99,7 @@ export default function WidgetPage() {
 
         {/* [#144] 중개사 사무소 B2B 리드 — 첫 B2B 퍼널 (백엔드는 /api/support 재사용) */}
         <section className="rise-in-2 mt-6">
-          <h2 className="text-[16px] font-extrabold text-ink">공인중개사 사무소인가요?</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">공인중개사 사무소인가요?</h2>
           <p className="mt-2 text-[13px] leading-[1.8] text-text-1">
             사무소 홈페이지·블로그에 담당 단지 시세를 상시 노출하고 싶다면 문의를
             남겨 주세요. 활용 방법을 직접 안내드리고, 사무소에서 필요한 위젯 구성이
@@ -111,18 +111,18 @@ export default function WidgetPage() {
         </section>
 
         <section className="rise-in-3 mt-6">
-          <h2 className="text-[16px] font-extrabold text-ink">자주 묻는 질문</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
           <dl className="mt-2 flex flex-col gap-2">
             {FAQ.map((f) => (
               <div key={f.q} className="card rounded-2xl p-5">
-                <dt className="text-[14px] font-extrabold leading-[1.5] text-ink">{f.q}</dt>
+                <dt className="text-[13px] font-extrabold leading-[1.5] text-ink">{f.q}</dt>
                 <dd className="mt-2 text-[13px] leading-[1.8] text-text-1">{f.a}</dd>
               </div>
             ))}
           </dl>
         </section>
 
-        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
+        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[12px] leading-[1.7] text-text-3">
           위젯의 숫자는 신고된 실거래의 단순 평균이며 면적·층을 가중하지 않습니다. 집계
           방식과 잠정치 처리 기준은{" "}
           <Link href="/methodology" className="font-bold text-primary">

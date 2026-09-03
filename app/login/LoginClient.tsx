@@ -304,7 +304,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
       style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
     >
       <div className="flex justify-end">
-        <Link href="/" className="text-[17px] text-text-3" aria-label="닫기">
+        <Link href="/" className="text-[15px] text-text-3" aria-label="닫기">
           ✕
         </Link>
       </div>
@@ -312,12 +312,12 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         <div className="rise-in">
           <Logo size={34} />
         </div>
-        <h1 className="rise-in-1 text-[22px] font-extrabold leading-[1.35] text-ink">
+        <h1 className="rise-in-1 text-[21px] font-extrabold leading-[1.35] text-ink">
           {ctx.line1}
           <br />
           {ctx.line2}
         </h1>
-        <p className="rise-in-2 text-sm text-text-2">{ctx.sub}</p>
+        <p className="rise-in-2 text-[13px] text-text-2">{ctx.sub}</p>
 
         {verifiedNotice && (
           <div
@@ -352,7 +352,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
                 {SOCIAL_BUTTON[provider].label}
               </button>
             ))}
-            <div className="flex items-center gap-3 text-[11px] text-text-3">
+            <div className="flex items-center gap-3 text-[12px] text-text-3">
               <span className="h-px flex-1 bg-bg" />
               또는 이메일로
               <span className="h-px flex-1 bg-bg" />
@@ -373,7 +373,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="이메일"
             autoComplete="email"
-            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
           />
           <label htmlFor="login-password" className="sr-only">
             비밀번호
@@ -385,12 +385,12 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호"
             autoComplete="current-password"
-            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={busy !== null}
-            className="btn-primary rounded-[10px] p-3 text-center text-sm font-bold disabled:opacity-60"
+            className="btn-primary rounded-[10px] p-3 text-center text-[13px] font-bold disabled:opacity-60"
           >
             {busy === "password" ? "로그인 중…" : "이메일로 로그인"}
           </button>
@@ -411,7 +411,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
                 <Icon name={b.icon} size={15} />
                 {b.label}
               </span>
-              <span className="text-[11px] leading-[1.5] text-text-3">{b.desc}</span>
+              <span className="text-[12px] leading-[1.5] text-text-3">{b.desc}</span>
             </li>
           ))}
         </ul>
@@ -422,7 +422,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             회원가입 온보딩
           </Link>
         </div>
-        <p className="text-center text-[11px] leading-[1.6] text-text-3">
+        <p className="text-center text-[12px] leading-[1.6] text-text-3">
           시작하면 이용약관·개인정보처리방침에 동의하게 됩니다
         </p>
       </div>

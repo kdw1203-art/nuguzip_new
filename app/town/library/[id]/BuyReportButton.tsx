@@ -55,11 +55,11 @@ export function BuyReportButton({
         type="button"
         onClick={() => void buy()}
         disabled={busy}
-        className="btn-primary rounded-xl p-3.5 text-[14px] disabled:opacity-60"
+        className="btn-primary rounded-xl p-3.5 text-[13px] disabled:opacity-60"
       >
         {busy ? "구매 중…" : `${price.toLocaleString("ko-KR")}P 로 구매하고 노트 열람`}
       </button>
-      {error && <p className="text-[11px] font-semibold text-danger">{error}</p>}
+      {error && <p className="text-[12px] font-semibold text-danger">{error}</p>}
       <p className="text-[10px] leading-[1.6] text-text-3">
         구매 즉시 연결된 임장노트 전문을 열람할 수 있어요 · 포인트는 마이 › 포인트에서 확인
       </p>

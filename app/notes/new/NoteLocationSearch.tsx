@@ -114,7 +114,7 @@ export function NoteLocationSearch({
       >
         <Icon name="📍" size={16} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold text-ink">{value.aptName || "단지·주소 검색"}</div>
+          <div className="truncate text-[13px] font-bold text-ink">{value.aptName || "단지·주소 검색"}</div>
           <div className="truncate t-sub text-text-3">
             {value.region ? `${value.region} · 눌러서 변경` : "단지명이나 주소를 검색해 연결"}
           </div>

@@ -3,7 +3,7 @@
 
 export function ExampleBadge({ label = "예시" }: { label?: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[9px] font-semibold leading-[1.4] text-text-3">
+    <span className="inline-flex shrink-0 items-center rounded border border-line px-1 py-px text-[10px] font-semibold leading-[1.4] text-text-3">
       {label}
     </span>
   );
@@ -16,7 +16,7 @@ export function SimulationNotice({
   text?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[11px] leading-[1.5] text-text-3">
+    <div className="flex flex-wrap items-center gap-1.5 text-[12px] leading-[1.5] text-text-3">
       <ExampleBadge label="예시 시뮬레이션" />
       <span>{text}</span>
     </div>

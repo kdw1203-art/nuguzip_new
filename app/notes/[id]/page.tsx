@@ -813,8 +813,8 @@ export default async function NoteDetailPage({
                   key={c}
                   className={
                     i === v.chips.length - 1
-                      ? "rounded-full bg-brand-navy px-2.5 py-1 text-[11px] font-extrabold text-surface"
-                      : "rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
+                      ? "rounded-full bg-brand-navy px-2.5 py-1 text-[12px] font-extrabold text-surface"
+                      : "rounded-full border border-line bg-surface px-2.5 py-1 text-[12px] font-bold text-text-2"
                   }
                 >
                   {c}
@@ -882,7 +882,7 @@ export default async function NoteDetailPage({
                 내던 것도 없앴다 — 캐러셀은 장수에 상관없이 다 보여 준다. */}
             {v.photos.length > 0 && <NotePhotoCarousel photos={v.photos} />}
 
-            <p className="text-sm leading-[1.7] text-text-1">{v.body}</p>
+            <p className="text-[13px] leading-[1.7] text-text-1">{v.body}</p>
 
             {/* ⑤⑥ 좋았던 점 · 주의할 점 */}
             <div className="rounded-[14px] border border-line bg-surface p-3.5 text-xs leading-[1.7] text-text-1">
@@ -1042,7 +1042,7 @@ export default async function NoteDetailPage({
           {/* [#72] 재방문 변화 리포트 — 직전 회차 대비, 바뀐 항목만 */}
           {revisitDelta && (
             <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-6">
-              <div className="text-base font-extrabold text-ink">
+              <div className="text-[15px] font-extrabold text-ink">
                 재방문 변화{" "}
                 <span className="t-sub font-medium text-text-3">
                   {revisitDelta.fromLabel}({revisitDelta.prevVisitDate}) →{" "}
@@ -1076,7 +1076,7 @@ export default async function NoteDetailPage({
           {/* 방문 기록 비교 */}
           <div className="rise-in-1 card flex flex-col gap-3 rounded-[18px] p-6">
             <div className="flex items-center justify-between">
-              <div className="text-base font-extrabold text-ink">방문 기록 비교</div>
+              <div className="text-[15px] font-extrabold text-ink">방문 기록 비교</div>
               <Link
                 href={`/notes/compare?noteId=${encodeURIComponent(id)}`}
                 className="text-xs font-bold text-primary"
@@ -1185,21 +1185,21 @@ export default async function NoteDetailPage({
               <div className="mt-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
                   <span className="text-xs">기록 종합 점수</span>
-                  <span className="text-sm font-extrabold text-white">
+                  <span className="text-[13px] font-extrabold text-white">
                     {v.totalScore != null ? `${v.totalScore} / 100` : "미입력"}
                   </span>
                 </div>
                 {/* 실기록 기반 수치만 노출 (허위 수치 금지) */}
                 <div className="flex items-center justify-between rounded-[10px] bg-[rgba(255,255,255,.07)] px-3 py-2.5">
                   <span className="text-xs">체크 항목 완료</span>
-                  <span className="text-sm font-extrabold text-white">
+                  <span className="text-[13px] font-extrabold text-white">
                     {v.checklistDone}/{v.checklistTotal}
                   </span>
                 </div>
               </div>
               <Link
                 href="/analysis/compare"
-                className="btn-primary mt-3 block rounded-xl p-3 text-center text-sm text-white"
+                className="btn-primary mt-3 block rounded-xl p-3 text-center text-[13px] text-white"
                 style={{ boxShadow: "0 8px 20px rgba(29,79,216,.4)" }}
               >
                 대안 단지와 나란히 비교
@@ -1254,7 +1254,7 @@ export default async function NoteDetailPage({
                     />
                   </div>
                   <span
-                    className={`text-[11px] font-extrabold ${
+                    className={`text-[12px] font-extrabold ${
                       b.bad ? "text-danger" : "text-ink"
                     }`}
                   >

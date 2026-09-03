@@ -344,13 +344,13 @@ export function ComplexHubTabs({
             >
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-md chip-pad text-[11px] font-extrabold ${
+                  className={`rounded-md chip-pad text-[12px] font-extrabold ${
                     l.urgent ? "bg-danger-soft text-danger" : "bg-bg font-bold text-text-2"
                   }`}
                 >
                   {l.badge}
                 </span>
-                <span className="text-sm font-extrabold text-ink">{l.price}</span>
+                <span className="text-[13px] font-extrabold text-ink">{l.price}</span>
                 {l.priceNote && (
                   <span className="text-xs font-bold text-primary">{l.priceNote}</span>
                 )}

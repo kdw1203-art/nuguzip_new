@@ -138,14 +138,14 @@ export default function DevelopersPage() {
       />
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">공개 집계 API</h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-2">
           내집나우(naezipnow.com)은 국토교통부 실거래 신고 자료로 만든 아파트 매매 월간 지역
           집계를 인증 없이 JSON 으로 제공합니다. 사이트 화면에 이미 공개된 수치와 같은
           값이며, 출처를 표기하면 누구나 쓸 수 있습니다.
         </p>
 
         <section className="rise-in-2 card mt-6 rounded-[18px] p-6">
-          <h2 className="text-[16px] font-extrabold text-ink">시작하기</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">시작하기</h2>
           <p className="mt-2 text-[13px] leading-[1.75] text-text-1">
             키 발급도 등록도 없습니다. 아래 한 줄이면 최신 월의 집계가 나옵니다.
           </p>
@@ -159,12 +159,12 @@ export default function DevelopersPage() {
         </section>
 
         <section className="rise-in-3 mt-6">
-          <h2 className="text-[16px] font-extrabold text-ink">엔드포인트</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">엔드포인트</h2>
           <div className="mt-3 flex flex-col gap-4">
             {ENDPOINTS.map((e) => (
               <div key={e.path} className="card rounded-[18px] p-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-md bg-primary/10 chip-pad text-[11px] font-extrabold text-primary">
+                  <span className="rounded-md bg-primary/10 chip-pad text-[12px] font-extrabold text-primary">
                     GET
                   </span>
                   <code className="text-[13px] font-bold text-ink">{e.path}</code>
@@ -189,7 +189,7 @@ export default function DevelopersPage() {
         </section>
 
         <section className="card mt-6 rounded-[18px] p-6">
-          <h2 className="text-[16px] font-extrabold text-ink">응답 필드</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">응답 필드</h2>
           <ul className="mt-3 flex flex-col gap-1">
             {FIELDS.map((f) => (
               <li key={f.name} className="text-[12px] leading-[1.75] text-text-2">
@@ -200,7 +200,7 @@ export default function DevelopersPage() {
         </section>
 
         <section className="card mt-6 rounded-[18px] p-6">
-          <h2 className="text-[16px] font-extrabold text-ink">상태 코드</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">상태 코드</h2>
           <ul className="mt-3 flex flex-col gap-1 text-[12px] leading-[1.75] text-text-2">
             <li>
               <code className="font-bold text-ink">200</code> — 정상. 조건에 맞는 행이 하나도
@@ -222,7 +222,7 @@ export default function DevelopersPage() {
         </section>
 
         <section className="card mt-6 rounded-[18px] p-6">
-          <h2 className="text-[16px] font-extrabold text-ink">인용 조건</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">인용 조건</h2>
           <p className="mt-2 text-[13px] leading-[1.75] text-text-1">
             출처를 표기하면 상업적 이용을 포함해 자유롭게 쓸 수 있습니다. 같은 내용이 모든
             응답의 <code>license</code> 필드에도 실려 있어, 문서를 보지 않고 API 만 쓴 경우에도
@@ -243,7 +243,7 @@ export default function DevelopersPage() {
         </section>
 
         <section className="card mt-6 rounded-[18px] p-6">
-          <h2 className="text-[16px] font-extrabold text-ink">자주 묻는 질문</h2>
+          <h2 className="text-[15px] font-extrabold text-ink">자주 묻는 질문</h2>
           <div className="mt-3 flex flex-col gap-4">
             {QA.map((x) => (
               <div key={x.q}>
@@ -254,7 +254,7 @@ export default function DevelopersPage() {
           </div>
         </section>
 
-        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[11px] leading-[1.7] text-text-3">
+        <div className="mt-6 rounded-[14px] bg-bg p-4 text-[12px] leading-[1.7] text-text-3">
           제공 범위·한도는 서비스 사정에 따라 바뀔 수 있으며, 바뀌면 이 페이지를 먼저
           갱신합니다. 데이터 오류 제보와 이용 문의는{" "}
           <Link href="/support" className="font-bold text-primary">

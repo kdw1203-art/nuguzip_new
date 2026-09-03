@@ -108,14 +108,14 @@ export default async function AdminQualityPage() {
       <div className="rise-in text-[19px] font-extrabold text-white">
         데이터 품질 · 사용자 세그먼트 · AI 품질 모니터링 · 인증 심사
       </div>
-      <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
+      <div className="rise-in -mt-2 mb-1 text-[12px] text-[#9aa6b8]">
         모든 수치는 실 테이블 집계입니다. 집계 소스가 없는 지표는 &quot;준비 중&quot;으로 표기해요.
       </div>
 
       {/* F4 — 데이터 품질 검사 (public.data_quality_report 실집계) */}
       <div className={`rise-in-1 ${darkCard}`}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span className="text-sm font-extrabold text-white">데이터 품질 검사</span>
+          <span className="text-[13px] font-extrabold text-white">데이터 품질 검사</span>
           <span className="text-[10px] text-[#9aa6b8]">
             {quality
               ? `${quality.generatedAt} 기준 · 검사 시점에 DB 전량을 다시 셉니다`
@@ -124,7 +124,7 @@ export default async function AdminQualityPage() {
         </div>
 
         {!quality ? (
-          <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[11px] text-[#9aa6b8]">
+          <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[12px] text-[#9aa6b8]">
             품질 집계를 불러오지 못했어요. 수치를 지어내지 않고 비워 둡니다.
           </div>
         ) : (
@@ -156,7 +156,7 @@ export default async function AdminQualityPage() {
                   </div>
 
                   {g.checks.length === 0 ? (
-                    <div className="py-3 text-center text-[11px] text-[#9aa6b8]">
+                    <div className="py-3 text-center text-[12px] text-[#9aa6b8]">
                       따로 볼 항목이 없어요.
                     </div>
                   ) : (
@@ -171,13 +171,13 @@ export default async function AdminQualityPage() {
                               className="rounded-[10px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-3 py-2.5"
                             >
                               <div className="flex items-baseline justify-between gap-2">
-                                <span className="text-[11px] font-extrabold text-white">
+                                <span className="text-[12px] font-extrabold text-white">
                                   <span style={{ color: VERDICT_COLOR[c.verdict] }}>
                                     {VERDICT_MARK[c.verdict]}
                                   </span>{" "}
                                   {c.label}
                                 </span>
-                                <span className="shrink-0 text-[11px] font-extrabold tabular-nums text-white">
+                                <span className="shrink-0 text-[12px] font-extrabold tabular-nums text-white">
                                   {fmt(c.count)}
                                   {ratio && (
                                     <span className="ml-1 font-bold text-[#9aa6b8]">({ratio})</span>
@@ -221,8 +221,8 @@ export default async function AdminQualityPage() {
       <div className="rise-in-2 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* 사용자 세그먼트 (실데이터) */}
         <div className={darkCard}>
-          <div className="text-sm font-extrabold text-white">사용자 세그먼트</div>
-          <div className="flex flex-col gap-1.5 text-[11px]">
+          <div className="text-[13px] font-extrabold text-white">사용자 세그먼트</div>
+          <div className="flex flex-col gap-1.5 text-[12px]">
             {segments.map((s) => (
               <div
                 key={s.label}
@@ -244,21 +244,21 @@ export default async function AdminQualityPage() {
         {/* AI 품질 모니터링 (실데이터 + 정직한 준비중) */}
         <div className={darkCard}>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-white">AI 품질 모니터링</span>
+            <span className="text-[13px] font-extrabold text-white">AI 품질 모니터링</span>
             <span className="text-[10px] text-[#9aa6b8]">최근 7일</span>
           </div>
           <div className="flex gap-2">
             <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.05)] p-3 text-center">
-              <div className="text-xl font-extrabold tabular-nums text-white">
+              <div className="text-[21px] font-extrabold tabular-nums text-white">
                 {kpi?.aiAnalysisRuns7d != null ? fmt(kpi.aiAnalysisRuns7d) : "—"}
               </div>
-              <div className="text-[9px] text-[#9aa6b8]">AI 분석 실행</div>
+              <div className="text-[10px] text-[#9aa6b8]">AI 분석 실행</div>
             </div>
             <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.05)] p-3 text-center">
-              <div className="text-xl font-extrabold tabular-nums text-white">
+              <div className="text-[21px] font-extrabold tabular-nums text-white">
                 {kpi?.platformActivityEvents7d != null ? fmt(kpi.platformActivityEvents7d) : "—"}
               </div>
-              <div className="text-[9px] text-[#9aa6b8]">플랫폼 활동 이벤트</div>
+              <div className="text-[10px] text-[#9aa6b8]">플랫폼 활동 이벤트</div>
             </div>
           </div>
           <div className="rounded-[9px] bg-[rgba(255,255,255,.05)] px-[11px] py-2 text-[10px] text-[#c9d2e0]">
@@ -270,7 +270,7 @@ export default async function AdminQualityPage() {
         {/* 인증 심사 (실 대기열) */}
         <div className={darkCard}>
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-extrabold text-white">전문가·중개사 인증 심사</span>
+            <span className="text-[13px] font-extrabold text-white">전문가·중개사 인증 심사</span>
             <span className="text-[10px] text-[#9aa6b8]">
               대기 {ops ? fmt(ops.pendingVerifications) : "—"}건
             </span>
@@ -297,7 +297,7 @@ export default async function AdminQualityPage() {
       {/* J7 전문가 성과 랭킹 · J8 이상행위 로그 (실집계, 없으면 안내) */}
       <div className="rise-in-3 mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className={darkCard}>
-          <div className="text-sm font-extrabold text-white">전문가 성과 랭킹</div>
+          <div className="text-[13px] font-extrabold text-white">전문가 성과 랭킹</div>
           {!perfLoaded.ok ? (
             <ErrorState
               tone="admin"
@@ -306,7 +306,7 @@ export default async function AdminQualityPage() {
               cause={perfLoaded.cause}
             />
           ) : perf.length === 0 ? (
-            <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[11px] text-[#9aa6b8]">
+            <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[12px] text-[#9aa6b8]">
               집계할 상담 데이터가 아직 없어요.
             </div>
           ) : (
@@ -320,7 +320,7 @@ export default async function AdminQualityPage() {
                     <b className="text-[#9aa6b8]">{i + 1}</b>
                     <b className="truncate text-xs text-white">{p.name}</b>
                   </span>
-                  <span className="shrink-0 text-[11px] text-[#c9d2e0]">
+                  <span className="shrink-0 text-[12px] text-[#c9d2e0]">
                     상담 <b className="text-white">{fmt(p.total)}</b> · 답변율{" "}
                     <b className={p.replyRate >= 70 ? "text-ai-success" : "text-[#c9d2e0]"}>
                       {p.replyRate}%
@@ -336,7 +336,7 @@ export default async function AdminQualityPage() {
         </div>
 
         <div className={darkCard}>
-          <div className="text-sm font-extrabold text-white">전문가 이상행위 로그</div>
+          <div className="text-[13px] font-extrabold text-white">전문가 이상행위 로그</div>
           {!fraudLoaded.ok ? (
             <ErrorState
               tone="admin"
@@ -345,7 +345,7 @@ export default async function AdminQualityPage() {
               cause={fraudLoaded.cause}
             />
           ) : fraud.length === 0 ? (
-            <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[11px] text-[#9aa6b8]">
+            <div className="rounded-[14px] bg-[rgba(255,255,255,.05)] px-3.5 py-6 text-center text-[12px] text-[#9aa6b8]">
               최근 감지된 이상행위가 없어요.
             </div>
           ) : (
@@ -360,15 +360,15 @@ export default async function AdminQualityPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`rounded px-1.5 py-px text-[9px] font-extrabold ${meta.cls}`}
+                          className={`rounded px-1.5 py-px text-[10px] font-extrabold ${meta.cls}`}
                         >
                           {meta.label}
                         </span>
                         <span className="truncate text-xs font-bold text-white">{f.eventType}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-[9px] text-[#9aa6b8]">{f.userEmail}</div>
+                      <div className="mt-0.5 truncate text-[10px] text-[#9aa6b8]">{f.userEmail}</div>
                     </div>
-                    <span className="shrink-0 text-[9px] text-[#9aa6b8]">{relDate(f.createdAt)}</span>
+                    <span className="shrink-0 text-[10px] text-[#9aa6b8]">{relDate(f.createdAt)}</span>
                   </div>
                 );
               })}

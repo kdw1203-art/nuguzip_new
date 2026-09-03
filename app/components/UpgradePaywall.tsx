@@ -51,14 +51,14 @@ export function UpgradePaywall({
         className="card w-full max-w-[400px] rounded-[18px] px-5 py-5 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="upgrade-paywall-title" className="text-[16px] font-extrabold text-ink">
+        <h2 id="upgrade-paywall-title" className="text-[15px] font-extrabold text-ink">
           {title}
         </h2>
         <p className="mt-2 text-[13px] leading-[1.65] text-text-2">{message}</p>
         <div className="mt-4 flex flex-col gap-2">
           <Link
             href={href}
-            className="btn-primary btn-cta rounded-xl py-3 text-center text-[14px] no-underline"
+            className="btn-primary btn-cta rounded-xl py-3 text-center text-[13px] no-underline"
             onClick={onClose}
           >
             {ctaLabel}

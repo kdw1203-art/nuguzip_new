@@ -83,7 +83,7 @@ function StarInput({
             aria-checked={value === n}
             aria-label={`${n}점`}
             onClick={() => onChange(n)}
-            className={`text-[18px] leading-none transition-colors ${
+            className={`text-[19px] leading-none transition-colors ${
               n <= value ? "text-brand-red" : "text-line hover:text-brand-red/50"
             }`}
           >
@@ -453,7 +453,7 @@ export function ComplexReviews({
                   onClick={() => void voteHelpful(r.id)}
                   disabled={votedIds[r.id] || helpfulBusy[r.id]}
                   aria-pressed={votedIds[r.id] ?? false}
-                  className={`press chip inline-flex items-center gap-1 border border-line px-2.5 py-1 text-[11px] ${
+                  className={`press chip inline-flex items-center gap-1 border border-line px-2.5 py-1 text-[12px] ${
                     votedIds[r.id]
                       ? "bg-primary-soft text-primary"
                       : "bg-surface text-text-2 hover:text-primary"

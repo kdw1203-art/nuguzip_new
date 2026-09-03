@@ -458,7 +458,7 @@ export default async function TownNewsDetailPage({
   });
 
   return (
-    <PageShell breadcrumb={`자료 › ${category} › ${region}`}>
+    <PageShell breadcrumb={`동네이야기 › 뉴스 › ${category} › ${region}`}>
       {/* [945-G] 읽기 진행 바 — 긴 글에서만 나타난다(컴포넌트가 판정) */}
       <ReadingProgress />
       {/* 구조화 데이터 — 우리 글로 렌더할 때만. 화면에 없는 내용을 마크업하지 않는다. */}
@@ -473,7 +473,7 @@ export default async function TownNewsDetailPage({
           {/* ---------- 기사 본문 ---------- */}
           <article className="rise-in card flex flex-col gap-4 rounded-[18px] p-7">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
+              <span className="rounded-md bg-warning-soft chip-pad text-[12px] font-extrabold text-warning">
                 {category}
               </span>
               <span className="truncate text-xs text-text-3">{byline}</span>
@@ -488,7 +488,7 @@ export default async function TownNewsDetailPage({
                 return rid ? (
                   <Link
                     href={`/region/${rid}`}
-                    className="chip border border-line bg-bg px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+                    className="chip border border-line bg-bg px-2.5 py-1 text-[12px] font-bold text-primary no-underline"
                   >
                     {region} 시세 보기 ›
                   </Link>
@@ -535,7 +535,7 @@ export default async function TownNewsDetailPage({
                   imgClassName="absolute inset-0 h-full w-full object-cover"
                 />
                 {post.sourceName && (
-                  <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[var(--glass-bg)] px-3 py-[5px] text-[11px] text-text-3">
+                  <span className="absolute bottom-0 left-0 rounded-tr-[10px] bg-[var(--glass-bg)] px-3 py-[5px] text-[12px] text-text-3">
                     사진: {post.sourceName}
                   </span>
                 )}
@@ -572,7 +572,7 @@ export default async function TownNewsDetailPage({
               </div>
             )}
 
-            <div className="flex flex-col gap-4 text-sm leading-[1.85] text-text-1">
+            <div className="flex flex-col gap-4 text-[13px] leading-[1.85] text-text-1">
               {/* 우리가 쓴 요약 — 원문 문장을 옮기지 않고 핵심 사실(수치·기관·
                   시점·영향)만 재구성한 글이다. */}
               {summaryParas.map((t, i) => (
@@ -623,7 +623,7 @@ export default async function TownNewsDetailPage({
                       className="tile flex items-center justify-between gap-3 rounded-[14px] border border-line bg-bg px-4 py-3 no-underline"
                     >
                       <span className="min-w-0">
-                        <span className="block text-[11px] font-semibold text-text-3">
+                        <span className="block text-[12px] font-semibold text-text-3">
                           원문 출처{post.sourceName ? ` · ${post.sourceName}` : ""}
                         </span>
                         <span className="block text-[13px] font-extrabold text-primary">
@@ -631,7 +631,7 @@ export default async function TownNewsDetailPage({
                         </span>
                       </span>
                       {host && (
-                        <span className="shrink-0 text-[11px] text-text-3">{host}</span>
+                        <span className="shrink-0 text-[12px] text-text-3">{host}</span>
                       )}
                     </a>
                   );
@@ -664,7 +664,7 @@ export default async function TownNewsDetailPage({
                 aria-label="관련 지역"
                 className="flex flex-wrap items-center gap-1.5 border-t border-divider pt-3.5"
               >
-                <span className="text-[11px] font-bold text-text-3">관련 지역</span>
+                <span className="text-[12px] font-bold text-text-3">관련 지역</span>
                 {geo.places.map((place) => {
                   /* "서울 서초구 반포동" → 전체 → 앞 2단어 → 시군구 순으로 시도. */
                   const words = place.split(/\s+/).filter(Boolean);
@@ -678,14 +678,14 @@ export default async function TownNewsDetailPage({
                     <Link
                       key={place}
                       href={`/region/${rid}`}
-                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[12px] font-bold text-primary no-underline"
                     >
                       {place}
                     </Link>
                   ) : (
                     <span
                       key={place}
-                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] text-text-2"
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[12px] text-text-2"
                     >
                       {place}
                     </span>
@@ -703,7 +703,7 @@ export default async function TownNewsDetailPage({
                     <Link
                       key={t.label}
                       href={t.href}
-                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] font-bold text-primary no-underline"
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[12px] font-bold text-primary no-underline"
                     >
                       #{t.label}
                       {t.kind === "complex" && (
@@ -713,7 +713,7 @@ export default async function TownNewsDetailPage({
                   ) : (
                     <span
                       key={t.label}
-                      className="chip border border-line bg-bg px-2.5 py-1 text-[11px] text-text-2"
+                      className="chip border border-line bg-bg px-2.5 py-1 text-[12px] text-text-2"
                     >
                       #{t.label}
                     </span>
@@ -723,7 +723,7 @@ export default async function TownNewsDetailPage({
             )}
 
             <div className="flex items-center justify-between border-t border-divider pt-3.5">
-              <div className="flex flex-wrap items-center gap-1 text-[11px] text-text-3">
+              <div className="flex flex-wrap items-center gap-1 text-[12px] text-text-3">
                 <span>
                   {renderOwnSummary
                     ? `내집나우가 원문을 요약·정리한 글입니다 · 원문 저작권은 ${post.sourceName || "원 매체"}에 있음 ·`
@@ -825,7 +825,7 @@ export default async function TownNewsDetailPage({
               />
               <Link
                 href={mapHref}
-                className="absolute bottom-2.5 right-2.5 rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[11px] font-bold text-primary"
+                className="absolute bottom-2.5 right-2.5 rounded-lg bg-[var(--glass-bg)] px-2.5 py-[5px] text-[12px] font-bold text-primary"
               >
                 {regionQuery ? `${regionQuery} 지도 열기` : "지도에서 열기"} ›
               </Link>
@@ -850,20 +850,20 @@ export default async function TownNewsDetailPage({
             <div className="text-[13px] font-extrabold text-ink">
               {regionQuery || "이 지역"} 임장노트
             </div>
-            <p className="text-[11px] leading-relaxed text-text-3">
+            <p className="text-[12px] leading-relaxed text-text-3">
               현장을 다녀오셨다면 임장노트로 기록해 이웃과 공유해 보세요.
               {regionQuery ? ` 지역은 ${regionQuery}로 미리 채워집니다.` : ""}
             </p>
             <div className="flex gap-2">
               <Link
                 href={noteNewHref}
-                className="btn-primary btn-cta flex-1 rounded-[10px] p-2.5 text-center text-[11px]"
+                className="btn-primary btn-cta flex-1 rounded-[10px] p-2.5 text-center text-[12px]"
               >
                 {regionQuery ? `${regionQuery} 노트 쓰기` : "이 지역 노트 쓰기"}
               </Link>
               <Link
                 href="/notes"
-                className="btn-soft flex-1 rounded-[10px] p-2.5 text-center text-[11px]"
+                className="btn-soft flex-1 rounded-[10px] p-2.5 text-center text-[12px]"
               >
                 공개 노트 보기
               </Link>
@@ -875,7 +875,7 @@ export default async function TownNewsDetailPage({
             <div className="rise-in-4 card flex flex-col gap-1 rounded-[18px] p-[18px]">
               <div className="mb-1.5 text-[13px] font-extrabold text-ink">
                 관련 보도 {clusterRelated.length}건{" "}
-                <span className="text-[11px] font-medium text-text-3">같은 사건 · 다른 매체</span>
+                <span className="text-[12px] font-medium text-text-3">같은 사건 · 다른 매체</span>
               </div>
               {clusterRelated.map((s, i) => (
                 <Link

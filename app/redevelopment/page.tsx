@@ -145,7 +145,7 @@ export default async function RedevelopmentPage() {
           {/* ===== 진행단계 개요 스트립 ===== */}
         <section className="rise-in card rounded-2xl px-5 py-4">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-extrabold text-ink">
+            <h2 className="text-[13px] font-extrabold text-ink">
               재개발·재건축은 이렇게 7단계로 진행돼요
             </h2>
             <span className="t-caption text-text-3">도시정비법 일반 절차 기준</span>
@@ -179,7 +179,7 @@ export default async function RedevelopmentPage() {
 
         {/* ===== 단계별 상세 트래커(세로 스테퍼) ===== */}
         <section className="rise-in-1 card rounded-2xl px-5 py-4">
-          <h2 className="text-sm font-extrabold text-ink">단계별 상세 · 이 단계에서 확인할 것</h2>
+          <h2 className="text-[13px] font-extrabold text-ink">단계별 상세 · 이 단계에서 확인할 것</h2>
           <ol className="mt-3 flex flex-col gap-0">
             {STAGE_GUIDES.map((s, i) => (
               <li key={s.key} className="flex gap-3">
@@ -257,7 +257,7 @@ export default async function RedevelopmentPage() {
 
         {/* ===== 자주 나오는 용어 ===== */}
         <section className="rise-in-2 card rounded-2xl px-5 py-4">
-          <h2 className="text-sm font-extrabold text-ink">자주 나오는 용어</h2>
+          <h2 className="text-[13px] font-extrabold text-ink">자주 나오는 용어</h2>
           <dl className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {REDEV_GLOSSARY.map((g) => (
               <div
@@ -294,7 +294,7 @@ export default async function RedevelopmentPage() {
         {/* ===== 정비사업 뉴스 (board_posts 실데이터) ===== */}
         <section className="rise-in-4 card flex flex-col gap-2.5 rounded-2xl px-5 py-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-extrabold text-ink">정비사업 뉴스</h2>
+            <h2 className="text-[13px] font-extrabold text-ink">정비사업 뉴스</h2>
             <Link href="/town/news" className="t-sub font-extrabold text-primary">
               전체 뉴스 ›
             </Link>

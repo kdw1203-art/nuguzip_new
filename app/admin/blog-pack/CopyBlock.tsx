@@ -29,7 +29,7 @@ export function CopyBlock({
               /* 클립보드 권한 없음 — 수동 선택 복사로 폴백 (textarea 는 그대로) */
             }
           }}
-          className="rounded-lg bg-[#3182f6] px-3 py-1 text-[11px] font-bold text-white"
+          className="rounded-lg bg-[#3182f6] px-3 py-1 text-[12px] font-bold text-white"
         >
           {copied ? "복사됨 ✓" : "복사"}
         </button>

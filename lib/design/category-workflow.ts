@@ -116,9 +116,9 @@ export const WORKFLOW_VISUAL = {
   progressTrack: "h-1.5 rounded-full bg-[#F2F4F6]",
   progressFill: "h-1.5 rounded-full bg-[#3182F6] transition-all",
   primaryBtn:
-    "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-[#3182F6] px-4 py-3 text-sm font-bold text-white active:scale-[0.98]",
+    "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-[#3182F6] px-4 py-3 text-[13px] font-bold text-white active:scale-[0.98]",
   secondaryBtn:
-    "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-[#E5E8EB] bg-white px-4 py-3 text-sm font-semibold text-[#191F28] active:scale-[0.98]",
+    "inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl border border-[#E5E8EB] bg-white px-4 py-3 text-[13px] font-semibold text-[#191F28] active:scale-[0.98]",
 } as const;
 
 export type AiPerspectiveId = "live" | "invest" | "gap" | "rent";

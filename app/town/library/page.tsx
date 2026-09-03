@@ -9,6 +9,7 @@ import { listReports, type UserReport } from "@/lib/reports/store-db";
 import { seedGradient, maskNoteAuthor } from "../shared";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { TownPageHead } from "../TownPageHead";
 import { ErrorState } from "../../components/ui/EmptyState";
 import type { Metadata } from "next";
 import { seoAlternates } from "@/lib/seo/alternates";
@@ -63,20 +64,16 @@ export default async function TownLibraryPage() {
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
       {/* ---------- 페이지 헤더 ---------- */}
-      <div className="rise-in mb-6">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="t-title text-ink">자료</h1>
-          <Link
-            href="/town/news"
-            className="t-body font-bold text-primary no-underline"
-          >
+      <TownPageHead
+        href="/town/library"
+        title="자료"
+        sub="리포트와 이웃들의 공개 임장노트를 한곳에서 열람하세요"
+        action={
+          <Link href="/town/news" className="t-sub font-bold text-primary no-underline">
             뉴스 ›
           </Link>
-        </div>
-        <p className="mt-1 t-body text-text-2">
-          리포트와 이웃들의 공개 임장노트를 한곳에서 열람하세요
-        </p>
-      </div>
+        }
+      />
 
       {/* ---------- 리포트 — reports 표 실조회 (가짜 카드 금지) ----------
            id 는 있지만 리포트 1건을 여는 페이지는 아직 없다(app/reports/[ym] 은
@@ -193,7 +190,7 @@ export default async function TownLibraryPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
               <Icon name="folder" size={22} />
             </div>
-            <div className="text-sm font-bold text-text-1">
+            <div className="text-[13px] font-bold text-text-1">
               공개된 임장노트가 아직 없어요
             </div>
             <div className="max-w-xs text-xs leading-[1.6] text-text-3">

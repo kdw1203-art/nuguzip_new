@@ -30,16 +30,16 @@ export default function OfflinePage() {
     >
       <div
         aria-hidden="true"
-        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-3xl"
+        className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-[28px]"
       >
         📡
       </div>
 
       <div className="flex flex-col gap-2">
-        <h1 className="text-[20px] font-extrabold text-slate-900">
+        <h1 className="text-[19px] font-extrabold text-slate-900">
           인터넷에 연결되어 있지 않아요
         </h1>
-        <p className="text-[14px] leading-relaxed text-slate-500">
+        <p className="text-[13px] leading-relaxed text-slate-500">
           내집나우는 시세·실거래를 항상 최신으로 보여주기 위해 오프라인에서는 데이터를
           저장해 두지 않습니다. 연결이 돌아오면 그대로 이어서 볼 수 있어요.
         </p>

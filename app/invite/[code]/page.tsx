@@ -181,7 +181,7 @@ export default async function InvitePage({
               </span>
               <div>
                 <div className="text-[13px] font-bold text-text-1">{b.t}</div>
-                <div className="text-[11px] text-text-3">{b.d}</div>
+                <div className="text-[12px] text-text-3">{b.d}</div>
               </div>
             </div>
           ))}
@@ -202,13 +202,13 @@ export default async function InvitePage({
           </Link>
         </div>
 
-        <p className="mt-4 flex items-center justify-center gap-1 text-[11px] text-text-3">
+        <p className="mt-4 flex items-center justify-center gap-1 text-[12px] text-text-3">
           <Icon name="check" size={12} className="text-primary" />
           가입만 완료하면 포인트가 자동으로 적립돼요
         </p>
       </div>
 
-      <p className="mt-4 text-center text-[11px] text-text-3">
+      <p className="mt-4 text-center text-[12px] text-text-3">
         내집나우 · 실거래가 · 임장노트 · 부동산 커뮤니티
       </p>
     </main>

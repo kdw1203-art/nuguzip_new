@@ -74,7 +74,7 @@ export function AttendanceButton() {
         type="button"
         onClick={checkIn}
         disabled={busy || checkedToday}
-        className="btn-primary rounded-[10px] py-2.5 text-center text-sm disabled:opacity-60"
+        className="btn-primary rounded-[10px] py-2.5 text-center text-[13px] disabled:opacity-60"
       >
         {busy
           ? "출석 확인 중…"

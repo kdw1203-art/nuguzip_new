@@ -190,12 +190,12 @@ export default async function SeasonReportPage({
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
           {def.label}({def.monthsLabel}), 정말 거래가 몰릴까
         </h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-1">{leadSentence}</p>
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-1">{leadSentence}</p>
 
         {/* 검증 대상이 된 통념을 먼저 밝힌다 — 이 페이지가 무엇에 답하는지 */}
         <div className="rise-in-1 mt-4 card rounded-2xl p-5">
           <p className="text-[12px] font-extrabold text-text-3">검증 대상 통념</p>
-          <p className="mt-1 text-[14px] font-bold leading-[1.6] text-ink">“{def.claim}”</p>
+          <p className="mt-1 text-[13px] font-bold leading-[1.6] text-ink">“{def.claim}”</p>
           <p className="mt-1.5 text-[12px] leading-[1.6] text-text-3">{def.rationale}</p>
         </div>
 
@@ -216,7 +216,7 @@ export default async function SeasonReportPage({
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-left text-[13px]">
               <thead>
-                <tr className="border-b border-border text-[11px] text-text-3">
+                <tr className="border-b border-border text-[12px] text-text-3">
                   <th className="py-2 font-medium">연도</th>
                   <th className="py-2 text-right font-medium">{def.monthsLabel} 거래</th>
                   <th className="py-2 text-right font-medium">{def.monthsLabel} 월평균</th>
@@ -256,7 +256,7 @@ export default async function SeasonReportPage({
             </table>
           </div>
           {compared.length > 0 && (
-            <p className="mt-3 text-[11px] leading-[1.6] text-text-3">
+            <p className="mt-3 text-[12px] leading-[1.6] text-text-3">
               비교는 해당 연도의 비교 대상 달에 <strong>모두 등장하는 공통 지역</strong>으로만
               계산했습니다 (가장 최근 연도 {compared[compared.length - 1]!.vsOffSeason!.regionCount}
               곳). 달마다 집계 지역 수가 달라 생기는 착시를 없애기 위해서입니다. ±
@@ -264,7 +264,7 @@ export default async function SeasonReportPage({
             </p>
           )}
           {report.pending.length > 0 && (
-            <p className="mt-2 text-[11px] leading-[1.6] text-text-3">
+            <p className="mt-2 text-[12px] leading-[1.6] text-text-3">
               아직 세지 않은 해:{" "}
               {report.pending.map((p) => `${p.year}년(${p.reason})`).join(" · ")}. 계절의 일부
               달만 있거나 신고가 진행 중인 해는 계절 합계에 넣지 않습니다.
@@ -284,7 +284,7 @@ export default async function SeasonReportPage({
             </p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-[10px] border border-border px-4 py-3">
-                <p className="text-[11px] font-semibold text-text-3">거래량</p>
+                <p className="text-[12px] font-semibold text-text-3">거래량</p>
                 <p className="mt-1 text-[15px] font-extrabold text-ink">
                   {yoy.fromTx.toLocaleString("ko-KR")}건 → {yoy.toTx.toLocaleString("ko-KR")}건{" "}
                   <span className={yoy.txDeltaPct >= 0 ? "text-danger" : "text-primary"}>
@@ -293,7 +293,7 @@ export default async function SeasonReportPage({
                 </p>
               </div>
               <div className="rounded-[10px] border border-border px-4 py-3">
-                <p className="text-[11px] font-semibold text-text-3">평균 매매가</p>
+                <p className="text-[12px] font-semibold text-text-3">평균 매매가</p>
                 <p className="mt-1 text-[15px] font-extrabold text-ink">
                   {eok(yoy.fromAvgKrw)} → {eok(yoy.toAvgKrw)}{" "}
                   {yoy.avgDeltaPct !== null && (
@@ -312,14 +312,14 @@ export default async function SeasonReportPage({
           <section className="rise-in-4 card mt-5 p-[var(--pad-card)]">
             <h2 className="text-[15px] font-extrabold text-ink">
               {latest.year}년 {def.monthsLabel} 거래 상위 지역{" "}
-              <span className="text-[11px] font-medium text-text-3">
+              <span className="text-[12px] font-medium text-text-3">
                 거래량순 · 상위 {report.topRegions.length}곳
               </span>
             </h2>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[420px] text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-border text-[11px] text-text-3">
+                  <tr className="border-b border-border text-[12px] text-text-3">
                     <th className="py-2 font-medium">지역</th>
                     <th className="py-2 text-right font-medium">{def.monthsLabel} 거래</th>
                     <th className="py-2 text-right font-medium">평균 매매가</th>
@@ -338,7 +338,7 @@ export default async function SeasonReportPage({
                 </tbody>
               </table>
             </div>
-            <p className="mt-3 text-[11px] leading-[1.6] text-text-3">
+            <p className="mt-3 text-[12px] leading-[1.6] text-text-3">
               평균가는 면적·타입 구분 없는 거래량 가중 평균입니다. 해제(취소) 신고분은 집계에서
               제외했습니다 —{" "}
               <Link href="/methodology" className="font-bold text-primary underline">

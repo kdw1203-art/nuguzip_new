@@ -124,12 +124,17 @@
   /* 2026-08-02 소유자 피드백 "글씨체가 조금 큰 것 같아" — 모바일 기준으로
      헤드라인·제목을 한 단계 내린다(본문 13px·보조 11px 은 더 줄이면 가독성이
      깨져 유지). md+ 에서는 아래 미디어쿼리가 원래 크기로 되돌린다. */
+  /* [957 · 2026-09-03] 보조·캡션 한 단계 상향: sub 11→12, caption 9→10.
+     모바일 실측 캡처에서 9px 캡션(배지·출처·각주)과 11px 보조문이 읽기 어려웠다.
+     헤드라인·제목·본문(13)은 소유자 피드백(2026-08-02 "조금 큰 것 같아")대로 유지 —
+     키운 것은 가장 작은 두 단뿐이다. 임의 px 도 같은 램프(10·12·13·15·19·21·24·28)로
+     스냅했다(857곳, scripts/check-type-ramp.mjs RAMP 동기). */
   --fs-display: 24px; /* lh 1.3 · ls -1% · 홈 헤드라인 (md+: 28px) */
   --fs-title: 19px; /* lh 1.35 · 화면 제목 (md+: 21px) */
   --fs-section: 15px; /* lh 1.4 · 카드 제목 */
   --fs-body: 13px; /* lh 1.6 · 최대 34자/행 */
-  --fs-sub: 11px; /* lh 1.5 · 보조 */
-  --fs-caption: 9px; /* ls +1% · 캡션·각주·출처 */
+  --fs-sub: 12px; /* lh 1.5 · 보조 (957: 11→12) */
+  --fs-caption: 10px; /* ls +1% · 캡션·각주·출처 (957: 9→10) */
 
   /* 15a 간격 8pt 스케일 */
   --sp-inline: 8px; /* 인라인 */
@@ -613,7 +618,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   height: 32px;
   padding: 0 12px;
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 12px; /* 957 램프 sub */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1980,35 +1985,28 @@ html[data-drag-scrolling] * {
    대비 게이트가 보증하는 범위 밖으로 나가고, 다크 대응도 갈라진다.
    ============================================================ */
 
-/* ---------- 히어로 (UI-05) — 검색이 화면 첫 요소가 된다 ---------- */
+/* ---------- 히어로 (UI-05 → 958 브랜드 네이비) — 검색이 화면 첫 요소가 된다 ----------
+   958: 전문가·동네이야기 허브와 같은 "브랜드 네이비 면"으로 통일한다. 어두운 면은
+   네이비, 그 위 글자는 한지, 신호는 주홍 — 라이트 틴트 그라데이션은 걷어냈다. */
 .hub-hero {
   position: relative;
   overflow: hidden;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--brand-navy);
+  border: 1px solid rgba(246, 241, 231, 0.08);
   border-radius: var(--radius-xl);
+  --glyph-accent: var(--brand-red-on-dark);
 }
-/* 브랜드 틴트 한 겹 — 카드 무리와 히어로를 색으로 구분한다(테두리만으론 평평하다) */
-.hub-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--grad-brand-soft);
-  pointer-events: none;
-}
-/* 오른쪽 위 은은한 광원 — 히어로가 카드 무리와 다른 "면"이라는 걸 알린다.
-   색은 브랜드 소프트 그라데이션 한 겹뿐이라 다크에서도 같이 접힌다. */
+/* 오른쪽 위 주홍 광원 한 점 — 카드 무리와 다른 "면"이라는 걸 알린다 */
 .hub-hero::after {
   content: "";
   position: absolute;
-  top: -40%;
-  right: -10%;
-  width: 46%;
+  top: -46%;
+  right: -12%;
+  width: 44%;
   aspect-ratio: 1;
   border-radius: var(--radius-pill);
-  background: var(--grad-brand-soft);
-  filter: blur(28px);
-  opacity: 0.9;
+  background: radial-gradient(closest-side, rgba(224, 86, 58, 0.28), transparent 70%);
+  filter: blur(18px);
   pointer-events: none;
 }
 .hub-hero > * {
@@ -2414,7 +2412,7 @@ a.rank-row:hover {
   padding: 3px 9px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 12px; /* 957 램프 sub */
   font-weight: 700;
   color: var(--text-3);
   background: var(--surface);
@@ -2670,71 +2668,7 @@ a.rank-row:hover {
    모든 신규 애니메이션은 블록 하단 reduced-motion 에서 해제.
    ============================================================ */
 
-/* ── 동네이야기 히어로 밴드 — 동네의 온기(웜 틴트) + 느린 드리프트 광원 ── */
-.town-hero {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-}
-.town-hero::before {
-  content: "";
-  position: absolute;
-  top: -55%;
-  left: -12%;
-  width: 58%;
-  aspect-ratio: 1;
-  border-radius: var(--radius-pill);
-  background: var(--grad-brand-soft);
-  filter: blur(30px);
-  animation: townDrift 11s var(--ease-inout) infinite;
-  pointer-events: none;
-}
-.town-hero::after {
-  content: "";
-  position: absolute;
-  bottom: -60%;
-  right: -8%;
-  width: 52%;
-  aspect-ratio: 1;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--brand-red) 14%, transparent);
-  filter: blur(34px);
-  animation: townDrift 13s var(--ease-inout) infinite reverse;
-  pointer-events: none;
-}
-.town-hero > * {
-  position: relative;
-}
-@keyframes townDrift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(4%, -5%, 0) scale(1.06);
-  }
-}
-
-/* 히어로 실측 스탯 — 숫자가 먼저 읽히는 칩 */
-.town-stat {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface) 72%, transparent);
-  backdrop-filter: blur(6px);
-  padding: 5px 11px;
-}
-.town-stat b {
-  font-size: var(--fs-title, 19px);
-  font-weight: 800;
-  line-height: 1;
-  color: var(--primary);
-  font-variant-numeric: tabular-nums;
-}
+/* [959] .town-hero / .town-stat / townDrift 제거 — 동네이야기 허브가 brand-navy-card 로 옮겨 가며 사용처 0. */
 
 /* 활동 1위 동네 칩 — 열기(웜 그라디언트 테두리) */
 .chip-heat {
@@ -2833,8 +2767,6 @@ a.rank-row:hover {
 
 /* [945-G] 신규 모션 해제 — 규약: 새 애니메이션은 반드시 여기 등록 */
 @media (prefers-reduced-motion: reduce) {
-  .town-hero::before,
-  .town-hero::after,
   .badge-new::before,
   .fab-breathe,
   .spark-line {

@@ -71,12 +71,12 @@ export default async function SharedRunPage({
     <PageShell breadcrumb={`${identity.title} 공유`}>
       <div className="mx-auto flex w-full max-w-[760px] flex-col gap-3">
         <div className="rise-in">
-          <div className="text-[11.5px] font-bold text-text-3">
+          <div className="text-[12px] font-bold text-text-3">
             내집나우 AI 분석 결과 공유 · {at} 실행 스냅샷
           </div>
           <h1 className="mt-1 text-[21px] font-extrabold text-ink">{identity.title}</h1>
           {run.structured_summary?.headline && (
-            <p className="mt-1 text-[14px] font-bold leading-[1.6] text-text-1">
+            <p className="mt-1 text-[13px] font-bold leading-[1.6] text-text-1">
               {run.structured_summary.headline}
             </p>
           )}
@@ -86,14 +86,14 @@ export default async function SharedRunPage({
           {run.markdown}
         </div>
 
-        <div className="rounded-[10px] bg-bg px-4 py-3 text-[11.5px] leading-[1.7] text-text-3">
+        <div className="rounded-[10px] bg-bg px-4 py-3 text-[12px] leading-[1.7] text-text-3">
           이 화면은 실행 시점의 데이터 스냅샷입니다 — 지금 데이터와 다를 수 있어요.
           수치는 공공 데이터 기반 규칙 계산이며 투자 권유가 아닙니다.
         </div>
 
         <Link
           href={`/analysis/ai/${run.tool}`}
-          className="btn-primary self-start rounded-[10px] px-4 py-2.5 text-[13.5px] font-extrabold no-underline"
+          className="btn-primary self-start rounded-[10px] px-4 py-2.5 text-[13px] font-extrabold no-underline"
         >
           지금 데이터로 직접 실행하기 ›
         </Link>

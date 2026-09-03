@@ -167,12 +167,12 @@ export function InstallPrompt() {
       <div className="flex items-start gap-3">
         <div
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-[18px] leading-none"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-[19px] leading-none"
         >
           🏠
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-extrabold text-ink">내집나우를 홈 화면에 추가</div>
+          <div className="text-[13px] font-extrabold text-ink">내집나우를 홈 화면에 추가</div>
           <p className="mt-1 text-[12px] leading-relaxed text-text-2">
             앱처럼 바로 열 수 있고, 저장한 임장노트는 오프라인에서도 다시 볼 수 있습니다.
           </p>

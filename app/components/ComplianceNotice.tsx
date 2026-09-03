@@ -40,7 +40,7 @@ export function ComplianceNotice({
 }) {
   return (
     <div
-      className={`rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3 ${className}`}
+      className={`rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3 ${className}`}
     >
       <p>{NO_PROFIT_GUARANTEE_TEXT}</p>
       {variant === "payment" && <p className="mt-1.5">{SUBSCRIPTION_SERVICE_PERIOD_TEXT}</p>}

@@ -10,6 +10,9 @@ import {
 } from "@/lib/inspection/store-db";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { loadHubTeasers, type HubTeaser } from "./hub-teasers";
+import { loadHomeCoverage } from "@/lib/newui/home-coverage";
+import { FEATURE_RULES } from "@/lib/subscriptions/access";
+import { ToolGlyph, HUB_GLYPH } from "./ToolGlyph";
 import { Sparkline } from "./Sparkline";
 import { HubPickedProvider } from "./hub-context";
 import { HubHero } from "./hub-hero";
@@ -52,7 +55,7 @@ import {
      [체험]    예시 계산 4종 — 접힘. 실데이터와 섞지 않는다 (UI-04)
 
    글자 크기는 램프 유틸(.t-display/.t-title/.t-section/.t-sub/.t-caption)만
-   쓴다 — 이 화면에 있던 text-[26px]·[15px]·[13.5px]·[11.5px]·[10.5px]·[9px]
+   쓴다 — 이 화면에 있던 text-[24px]·[15px]·[13.5px]·[11.5px]·[10.5px]·[9px]
    같은 임의값을 전부 걷어냈다(UI-07).
    ============================================================ */
 
@@ -137,10 +140,15 @@ function ToolCard({
       className="tile card ai-glow flex flex-col gap-2 rounded-[14px] p-4 no-underline"
     >
       <div className="flex items-start gap-2">
+        {/* [958] 결과물 모양을 그린 글리프 — 아이콘보다 "무엇이 나오는지"가 먼저 보인다 */}
         <span
-          className={`tile-ico flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${tier.iconClass}`}
+          className={`tile-ico flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] ${tier.iconClass}`}
         >
-          <Icon name={t.icon} size={17} />
+          {HUB_GLYPH[t.href] ? (
+            <ToolGlyph id={HUB_GLYPH[t.href]} size={34} />
+          ) : (
+            <Icon name={t.icon} size={17} />
+          )}
         </span>
         {spark && (
           <span className={`tile-spark ml-auto ${tier.sparkClass}`}>
@@ -153,6 +161,7 @@ function ToolCard({
       {teaser && (
         <span className="flex flex-col gap-0.5 rounded-[10px] bg-bg px-2.5 py-1.5">
           <span className="t-num t-section text-ink">{teaser.value}</span>
+          {/* [958] 티저는 강남구 고정 표본 — 지역을 캡션이 아니라 값 옆에서 말한다 */}
           <span className="t-caption text-text-3">{teaser.caption}</span>
         </span>
       )}
@@ -176,10 +185,18 @@ export default async function AnalysisHubPage({
   /* 카드별 실측 티저 + 12구간 추세선. 실패/없음이면 해당 키가 아예 없고,
      카드에서는 그 줄이 빠질 뿐이다(가짜 수치·"—" 채움 없음). */
   /* [949] 티저(1시간 데이터 캐시)와 세션 확인은 독립이라 나란히 받는다. */
-  const [teasers, session] = await Promise.all([
+  const [teasers, session, coverage] = await Promise.all([
     loadHubTeasers().catch(() => ({})),
     safeAuth(),
+    /* [958] 히어로 커버리지 — 홈과 같은 6시간 캐시 실측값(0이면 0, 실패면 —) */
+    loadHomeCoverage().catch(() => ({ txCount: null, complexCount: null, regionCount: null })),
   ]);
+  const aiLimit = FEATURE_RULES.ai_analysis.monthlyLimit ?? {};
+  const quota = {
+    free: aiLimit.basic ?? 0,
+    plus: aiLimit.pro ?? 0,
+    pro: aiLimit.expert === undefined ? null : aiLimit.expert,
+  };
 
   // 로그인 시 실데이터(내 노트 수)로 시작 섹션 구성 — 허위 수치 없음
   const email = session?.user?.email ?? null;
@@ -228,6 +245,9 @@ export default async function AnalysisHubPage({
           <HubHero
             initialComplexId={complexId ?? null}
             initialApt={apt ?? null}
+            coverage={coverage}
+            quota={quota}
+            toolCount={AI_TOOL_COUNT + MARKET_LIVE.length + RECORD_LIVE.length}
           />
 
           {/* ── 계열 1 · 단지 하나를 깊게 (UI-01·03) ── */}

@@ -163,7 +163,7 @@ export default function ResetPasswordPage() {
       style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
     >
       <div className="flex justify-end">
-        <Link href="/login" className="text-[17px] text-text-3" aria-label="닫기">
+        <Link href="/login" className="text-[15px] text-text-3" aria-label="닫기">
           ✕
         </Link>
       </div>
@@ -171,10 +171,10 @@ export default function ResetPasswordPage() {
         <div className="rise-in">
           <Logo size={34} />
         </div>
-        <h1 className="rise-in-1 text-[22px] font-extrabold leading-[1.35] text-ink">
+        <h1 className="rise-in-1 text-[21px] font-extrabold leading-[1.35] text-ink">
           새 비밀번호 설정
         </h1>
-        <p className="rise-in-2 text-sm text-text-2">
+        <p className="rise-in-2 text-[13px] text-text-2">
           8자 이상, 대소문자·숫자·특수문자 조합을 권장합니다
         </p>
 
@@ -185,13 +185,13 @@ export default function ResetPasswordPage() {
             <p className="text-[13px] text-text-2">3초 후 로그인 페이지로 이동합니다…</p>
             <Link
               href="/login"
-              className="btn-primary mt-2 rounded-[10px] p-3 text-center text-sm font-bold"
+              className="btn-primary mt-2 rounded-[10px] p-3 text-center text-[13px] font-bold"
             >
               지금 로그인하기
             </Link>
           </div>
         ) : mode === "checking" ? (
-          <div className="rise-in card rounded-2xl px-5 py-6 text-center text-sm text-text-2">
+          <div className="rise-in card rounded-2xl px-5 py-6 text-center text-[13px] text-text-2">
             링크를 확인하는 중입니다…
           </div>
         ) : mode === "invalid" ? (
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               href="/forgot-password"
-              className="btn-primary mt-2 rounded-[10px] p-3 text-center text-sm font-bold"
+              className="btn-primary mt-2 rounded-[10px] p-3 text-center text-[13px] font-bold"
             >
               비밀번호 찾기 다시 하기
             </Link>
@@ -228,7 +228,7 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="새 비밀번호 (8자 이상)"
-                  className="w-full rounded-[10px] border border-line bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
+                  className="w-full rounded-[10px] border border-line bg-surface px-4 py-3 pr-14 text-[13px] text-ink outline-none focus:border-primary"
                 />
                 <button
                   type="button"
@@ -241,7 +241,7 @@ export default function ResetPasswordPage() {
               {password && (
                 <div className="flex flex-col gap-1">
                   <div className="flex gap-1">{bars}</div>
-                  <p className="text-[11px] text-text-3">비밀번호 강도: {strength.hint}</p>
+                  <p className="text-[12px] text-text-3">비밀번호 강도: {strength.hint}</p>
                 </div>
               )}
               <input
@@ -251,15 +251,15 @@ export default function ResetPasswordPage() {
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}
                 placeholder="비밀번호 확인"
-                className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+                className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
               />
               {password2 && password !== password2 && (
-                <p className="text-[11px] font-bold text-danger">비밀번호가 일치하지 않습니다.</p>
+                <p className="text-[12px] font-bold text-danger">비밀번호가 일치하지 않습니다.</p>
               )}
               <button
                 type="submit"
                 disabled={busy}
-                className="btn-primary rounded-[10px] p-3 text-center text-sm font-bold disabled:opacity-60"
+                className="btn-primary rounded-[10px] p-3 text-center text-[13px] font-bold disabled:opacity-60"
               >
                 {busy ? "변경 중…" : "비밀번호 변경"}
               </button>

@@ -141,7 +141,7 @@ export function WidgetBuilder() {
               </button>
             ))}
           </div>
-          <span className="text-[11px] text-text-3">준공·세대수가 있으면 조금 더 길어집니다</span>
+          <span className="text-[12px] text-text-3">준공·세대수가 있으면 조금 더 길어집니다</span>
         </div>
       </div>
 
@@ -159,10 +159,10 @@ export function WidgetBuilder() {
             {copied ? "복사했습니다" : "복사"}
           </button>
         </div>
-        <pre className="mt-2 overflow-x-auto rounded-[10px] bg-bg p-3 text-[11px] leading-[1.7] text-text-1">
+        <pre className="mt-2 overflow-x-auto rounded-[10px] bg-bg p-3 text-[12px] leading-[1.7] text-text-1">
           <code>{code || "위에 단지 주소를 넣으면 코드가 만들어집니다."}</code>
         </pre>
-        <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+        <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
           네이버 블로그·티스토리처럼 HTML 삽입을 지원하는 편집기라면 그대로 붙여넣으면
           됩니다. iframe 을 막는 서비스에서는 표시되지 않습니다.
         </p>

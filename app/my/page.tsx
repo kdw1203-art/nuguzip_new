@@ -386,7 +386,7 @@ export default async function MyPage() {
                         }`}
                       >
                         <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[12px] font-extrabold ${
                             isDone
                               ? "bg-success-soft text-success"
                               : "bg-[rgba(0,0,0,.06)] text-text-3"
@@ -786,6 +786,10 @@ export default async function MyPage() {
                 <div className="t-body font-extrabold text-ink">보낸 상담 · 견적 요청은 상담함에서</div>
                 <div className="mt-0.5 t-sub text-text-3">
                   전문가 답변과 견적 제안이 도착하면 알림과 함께 상담함에 모여요. 답변 뒤에는 후기를 남길 수 있어요.
+                  {" "}
+                  <Link href="/town/experts/join" className="font-bold text-primary">
+                    자격이 있으시면 전문가로 참여 ›
+                  </Link>
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">

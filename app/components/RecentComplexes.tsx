@@ -154,7 +154,7 @@ export function RecentComplexChips({ className }: { className?: string }) {
         {items.map((r) => (
           <span
             key={r.id}
-            className="chip flex items-center gap-1.5 border border-line bg-bg px-3 py-1.5 text-[11px] text-text-2"
+            className="chip flex items-center gap-1.5 border border-line bg-bg px-3 py-1.5 text-[12px] text-text-2"
           >
             <Link
               href={complexHrefFromId(r.id)}

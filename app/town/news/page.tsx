@@ -10,6 +10,7 @@ import { getWeeklyDigest, type WeeklyDigest } from "@/lib/newui/digest";
 import { clusterNews } from "@/lib/news/cluster";
 import { NEWS_TAGS } from "@/lib/news/tags";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { TownPageHead } from "../TownPageHead";
 import { NewsListClient } from "./NewsListClient";
 import { NewsAlertSubscribe } from "./NewsAlertSubscribe";
 import { ErrorState } from "@/app/components/ui";
@@ -173,12 +174,16 @@ export default async function TownNewsPage() {
     <PageShell breadcrumb="동네이야기 › 뉴스">
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="rise-in t-title text-ink">뉴스</h1>
-        <Link href="/town/library" className="t-body font-bold text-primary">
-          자료·리포트 ›
-        </Link>
-      </div>
+      <TownPageHead
+        href="/town/news"
+        title="뉴스"
+        sub="매일 아침 수집한 부동산 기사를 우리 요약과 함께 · 주간 다이제스트"
+        action={
+          <Link href="/town/library" className="t-sub font-bold text-primary no-underline">
+            자료·리포트 ›
+          </Link>
+        }
+      />
 
       {/* 주간 다이제스트 요약 (#6) — 뉴스·다이제스트 통합. 실패·빈 데이터 시 생략(fail-soft) */}
       {digest && digestHasContent && (
@@ -265,7 +270,7 @@ export default async function TownNewsPage() {
           <ErrorState
             title="뉴스를 불러오지 못했어요"
             desc="데이터 조회가 실패했습니다. 수집된 뉴스가 없다는 뜻은 아니에요. 잠시 후 다시 열어봐 주세요."
-            action={{ label: "동네 이야기 보기", href: "/town" }}
+            action={{ label: "동네이야기 보기", href: "/town" }}
           />
         </div>
       ) : (

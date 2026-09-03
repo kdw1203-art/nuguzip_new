@@ -303,14 +303,14 @@ export function ChatRoom({
         <Link
           href={`/town/groups/${groupId}`}
           aria-label="뒤로"
-          className="text-base text-text-1"
+          className="text-[15px] text-text-1"
         >
           ‹
         </Link>
         <div className="flex-1">
-          <div className="text-sm font-extrabold text-ink">
+          <div className="text-[13px] font-extrabold text-ink">
             {title}{" "}
-            <span className="text-[11px] font-semibold text-text-3">
+            <span className="text-[12px] font-semibold text-text-3">
               {phase === "ready" ? shownMemberCount : memberCount}
             </span>
           </div>
@@ -339,7 +339,7 @@ export function ChatRoom({
 
         {phase === "error" && (
           <div className="mt-8 flex flex-col items-center gap-2.5 self-center text-center">
-            <div className="text-sm font-extrabold text-ink">
+            <div className="text-[13px] font-extrabold text-ink">
               채팅은 모임 참여 후 이용할 수 있어요
             </div>
             {errorMsg && (
@@ -358,7 +358,7 @@ export function ChatRoom({
 
         {phase === "ready" && messages.length === 0 && (
           <div className="mt-8 flex flex-col items-center gap-1.5 self-center text-center">
-            <div className="text-sm font-extrabold text-ink">
+            <div className="text-[13px] font-extrabold text-ink">
               아직 메시지가 없어요
             </div>
             <p className="text-xs text-text-2">
@@ -384,7 +384,7 @@ export function ChatRoom({
                 <div className="btn-primary max-w-[240px] self-end whitespace-pre-wrap break-words rounded-[14px] rounded-br-[4px] px-[13px] py-2.5 text-[13px] font-normal leading-[1.5]">
                   {m.body}
                 </div>
-                <span className="text-[9px] text-text-3">
+                <span className="text-[10px] text-text-3">
                   {timeLabel(m.createdAt)}
                 </span>
               </div>
@@ -405,7 +405,7 @@ export function ChatRoom({
                 >
                   {isBlocked ? "차단한 사용자의 메시지예요." : m.body}
                 </div>
-                <span className="text-[9px] text-text-3">
+                <span className="text-[10px] text-text-3">
                   {timeLabel(m.createdAt)}
                 </span>
               </div>
@@ -424,7 +424,7 @@ export function ChatRoom({
 
       {/* ---------- 처리 결과 안내 ---------- */}
       {notice && (
-        <div className="pointer-events-none mx-auto mb-1.5 w-fit max-w-[90%] rounded-full bg-[rgba(25,31,40,.78)] px-4 py-1.5 text-[11px] font-semibold text-white">
+        <div className="pointer-events-none mx-auto mb-1.5 w-fit max-w-[90%] rounded-full bg-[rgba(25,31,40,.78)] px-4 py-1.5 text-[12px] font-semibold text-white">
           {notice}
         </div>
       )}
@@ -448,7 +448,7 @@ export function ChatRoom({
           aria-label="전송"
           onClick={() => void send()}
           disabled={phase !== "ready" || sending || !draft.trim()}
-          className="btn-primary relative flex h-8 w-8 items-center justify-center rounded-full text-sm after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-50"
+          className="btn-primary relative flex h-8 w-8 items-center justify-center rounded-full text-[13px] after:absolute after:-inset-1.5 after:content-[''] disabled:opacity-50"
         >
           ↑
         </button>
@@ -468,9 +468,9 @@ export function ChatRoom({
             style={{ boxShadow: "-16px 0 44px rgba(16,28,54,.2)" }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-ink">
+              <span className="text-[13px] font-extrabold text-ink">
                 채팅방 메뉴{" "}
-                <span className="rounded bg-bg px-[7px] py-[2px] text-[9px] font-extrabold text-text-2">
+                <span className="rounded bg-bg px-[7px] py-[2px] text-[10px] font-extrabold text-text-2">
                   회원
                 </span>
               </span>
@@ -486,7 +486,7 @@ export function ChatRoom({
 
             <div className="flex flex-col gap-1 rounded-xl bg-bg px-3.5 py-3">
               <div className="text-[13px] font-extrabold text-ink">{title}</div>
-              <div className="text-[11px] text-text-3">{metaLine}</div>
+              <div className="text-[12px] text-text-3">{metaLine}</div>
             </div>
 
             <div className="flex flex-col">
@@ -505,7 +505,7 @@ export function ChatRoom({
                     <div className="text-xs font-bold text-ink">
                       {m.isSelf ? "나" : m.label}{" "}
                       {m.role === "owner" && (
-                        <span className="rounded bg-warning-soft px-[5px] py-px text-[9px] font-extrabold text-warning">
+                        <span className="rounded bg-warning-soft px-[5px] py-px text-[10px] font-extrabold text-warning">
                           모임장
                         </span>
                       )}
@@ -528,7 +528,7 @@ export function ChatRoom({
                 </div>
               ))}
               {members.length === 0 && (
-                <div className="py-2 text-[11px] text-text-3">
+                <div className="py-2 text-[12px] text-text-3">
                   멤버 정보를 불러오는 중이에요.
                 </div>
               )}
@@ -580,7 +580,7 @@ export function ChatRoom({
             style={{ boxShadow: "0 16px 44px rgba(16,28,54,.24)" }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-ink">
+              <span className="text-[13px] font-extrabold text-ink">
                 {actionMsg.senderLabel} 님의 메시지
               </span>
               <button
@@ -593,7 +593,7 @@ export function ChatRoom({
               </button>
             </div>
             {actionMsg.body && (
-              <p className="line-clamp-2 rounded-xl bg-bg px-3 py-2 text-[11px] leading-[1.5] text-text-2">
+              <p className="line-clamp-2 rounded-xl bg-bg px-3 py-2 text-[12px] leading-[1.5] text-text-2">
                 {actionMsg.body}
               </p>
             )}
@@ -608,7 +608,7 @@ export function ChatRoom({
                     type="button"
                     disabled={actionBusy}
                     onClick={() => void reportMessage(actionMsg, r)}
-                    className="chip border border-line bg-bg px-3 py-1.5 text-[11px] font-bold text-text-2 hover:border-danger hover:text-danger disabled:opacity-40"
+                    className="chip border border-line bg-bg px-3 py-1.5 text-[12px] font-bold text-text-2 hover:border-danger hover:text-danger disabled:opacity-40"
                   >
                     {r}
                   </button>

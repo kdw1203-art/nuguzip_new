@@ -35,7 +35,7 @@ export default async function AdminFreshnessPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-[20px] font-extrabold text-ink">데이터 신선도</h1>
+        <h1 className="text-[19px] font-extrabold text-ink">데이터 신선도</h1>
         <p className="mt-1 text-[13px] text-text-2">
           소스별 마지막 적재 시각 — 임계를 넘기면 freshness-watch 크론(매일)이 오류
           로그로 승격합니다.{" "}
@@ -50,7 +50,7 @@ export default async function AdminFreshnessPage() {
       <div className="card overflow-x-auto rounded-2xl px-4 py-2">
         <table className="w-full min-w-[640px] text-[13px]">
           <thead>
-            <tr className="border-b border-line text-left text-[11px] text-text-3">
+            <tr className="border-b border-line text-left text-[12px] text-text-3">
               <th className="py-2 pr-3 font-semibold">소스</th>
               <th className="py-2 pr-3 font-semibold">마지막 적재</th>
               <th className="py-2 pr-3 font-semibold">경과</th>
@@ -76,7 +76,7 @@ export default async function AdminFreshnessPage() {
                 <td className="py-2.5 pr-3 text-text-3">
                   {r.thresholdHours >= 48 ? `${Math.round(r.thresholdHours / 24)}일` : `${r.thresholdHours}시간`}
                 </td>
-                <td className="py-2.5 text-[11.5px] leading-[1.5] text-text-3">{r.pipeline}</td>
+                <td className="py-2.5 text-[12px] leading-[1.5] text-text-3">{r.pipeline}</td>
               </tr>
             ))}
           </tbody>
@@ -90,19 +90,19 @@ export default async function AdminFreshnessPage() {
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-[13px] font-extrabold text-ink">뉴스→지역 연결률</span>
             <span
-              className={`text-[20px] font-extrabold tabular-nums ${
+              className={`text-[19px] font-extrabold tabular-nums ${
                 linkPct >= 80 ? "text-success" : linkPct >= 50 ? "text-ink" : "text-danger"
               }`}
             >
               {linkPct}%
             </span>
-            <span className="text-[11.5px] text-text-3">
+            <span className="text-[12px] text-text-3">
               자동수집 {linkage.total.toLocaleString("ko-KR")}건 중{" "}
               {linkage.linked.toLocaleString("ko-KR")}건이 지역 허브로 연결
             </span>
           </div>
           {linkage.topUnlinked.length > 0 && (
-            <p className="mt-1.5 text-[11.5px] leading-[1.7] text-text-3">
+            <p className="mt-1.5 text-[12px] leading-[1.7] text-text-3">
               미매핑 상위:{" "}
               {linkage.topUnlinked
                 .map((u) => `${u.region} ${u.count.toLocaleString("ko-KR")}건`)
@@ -121,13 +121,13 @@ export default async function AdminFreshnessPage() {
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-[13px] font-extrabold text-ink">지오코딩 커버리지</span>
               <span
-                className={`text-[20px] font-extrabold tabular-nums ${
+                className={`text-[19px] font-extrabold tabular-nums ${
                   geocode.pct >= 95 ? "text-success" : geocode.pct >= 70 ? "text-ink" : "text-danger"
                 }`}
               >
                 {geocode.pct}%
               </span>
-              <span className="text-[11.5px] text-text-3">
+              <span className="text-[12px] text-text-3">
                 단지 {geocode.complexes.toLocaleString("ko-KR")}개 중{" "}
                 {geocode.geocoded.toLocaleString("ko-KR")}개 좌표 확보 — 지도에 찍을 수 있는 비율
               </span>
@@ -147,7 +147,7 @@ export default async function AdminFreshnessPage() {
                     err {r.error}
                   </span>
                   {r.error > 0 && r.lastMessage && (
-                    <span className="min-w-0 truncate text-[10.5px] text-text-3">{r.lastMessage}</span>
+                    <span className="min-w-0 truncate text-[10px] text-text-3">{r.lastMessage}</span>
                   )}
                 </div>
               ))}
@@ -156,7 +156,7 @@ export default async function AdminFreshnessPage() {
         )}
       </div>
 
-      <p className="text-[11px] leading-[1.7] text-text-3">
+      <p className="text-[12px] leading-[1.7] text-text-3">
         빨간 소스를 발견하면: 갱신 경로 열의 크론·워크플로를 먼저 확인하고, 키 미설정
         (정비사업 SEOUL_OPENAPI_KEY 등)이면 키 발급이 해법입니다. 이 표는 요청 시점
         실측이라 새로고침이 곧 재검사예요.

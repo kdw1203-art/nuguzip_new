@@ -42,7 +42,7 @@ export function AiFeedbackButtons({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[11px] text-text-3">
+    <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-3">
       <span>이 정리가 도움이 됐나요?</span>
       <button
         type="button"

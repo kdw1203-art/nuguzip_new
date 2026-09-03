@@ -46,7 +46,7 @@ export function HomeWatchlistBrief() {
       className="rounded-2xl border border-line bg-surface p-4"
     >
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-bold text-ink">{brief.title}</h2>
+        <h2 className="text-[13px] font-bold text-ink">{brief.title}</h2>
         <Link
           href={brief.href ?? "/my/watchlist"}
           className="shrink-0 text-xs font-semibold text-primary"
@@ -54,8 +54,8 @@ export function HomeWatchlistBrief() {
           {brief.linkLabel ?? "워치리스트 ›"}
         </Link>
       </div>
-      <p className="mt-1 text-sm text-text-2">{brief.body}</p>
-      <p className="mt-1 text-[11px] text-text-3">
+      <p className="mt-1 text-[13px] text-text-2">{brief.body}</p>
+      <p className="mt-1 text-[12px] text-text-3">
         {brief.complexCount > 0
           ? `관심 단지 ${brief.complexCount}곳 · 최근 7일 신규 신고 ${brief.tradeCount}건 · 국토부 실거래 기준`
           : "관심지역 요약 · 국토부 실거래·공표 지수 기준"}

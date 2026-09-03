@@ -568,7 +568,7 @@ export default async function RegionHubPage({
           <div key={k.label} className="card p-4">
             <div className="t-sub text-text-3">{k.label}</div>
             <div
-              className={`mt-1 text-[20px] font-extrabold ${
+              className={`mt-1 text-[19px] font-extrabold ${
                 k.subClass ?? "text-ink"
               }`}
             >

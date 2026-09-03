@@ -19,7 +19,7 @@ function GuestView() {
     <div className="mx-auto flex max-w-[720px] flex-col gap-3">
       <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[18px] px-5 py-8 text-center">
         <div className="text-2xl"><Icon name="shopping-bag" size={24} /></div>
-        <div className="mt-1 text-base font-extrabold text-white">
+        <div className="mt-1 text-[15px] font-extrabold text-white">
           로그인하고 포인트를 교환하세요
         </div>
         <div className="text-xs leading-[1.6] text-ai-muted">
@@ -27,7 +27,7 @@ function GuestView() {
         </div>
         <Link
           href="/login?callbackUrl=/points/shop"
-          className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-sm"
+          className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-[13px]"
         >
           로그인하고 시작하기
         </Link>
@@ -36,10 +36,10 @@ function GuestView() {
       <div className="rise-in-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {SPEND_ITEMS.map((item) => (
           <div key={item.key} className="card rounded-2xl p-5 opacity-80">
-            <div className="text-sm font-extrabold text-ink">
+            <div className="text-[13px] font-extrabold text-ink">
               {item.label}
               {item.season && (
-                <span className="ml-1.5 align-middle rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-extrabold text-warning">
+                <span className="ml-1.5 align-middle rounded-full bg-warning-soft px-2 py-0.5 text-[10px] font-extrabold text-warning">
                   {item.season} 한정
                 </span>
               )}
@@ -58,7 +58,7 @@ function GuestView() {
         className="rise-in-2 flex items-center justify-between rounded-2xl bg-primary-soft px-4 py-[15px] no-underline"
       >
         <div>
-          <div className="text-sm font-extrabold text-primary">
+          <div className="text-[13px] font-extrabold text-primary">
             자료실 유료 리포트도 포인트로 구매
           </div>
           <div className="mt-0.5 text-xs text-text-2">
@@ -67,7 +67,7 @@ function GuestView() {
         </div>
         <span className="text-[15px] font-extrabold text-primary">›</span>
       </Link>
-      <p className="rise-in-3 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <p className="rise-in-3 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         {POINTS_GRATUITOUS_NOTICE}
       </p>
     </div>
@@ -122,7 +122,7 @@ export default async function PointsShopPage() {
         className="mx-auto mt-4 flex w-full max-w-[720px] items-center justify-between rounded-2xl bg-primary-soft px-4 py-[15px] no-underline"
       >
         <div>
-          <div className="text-sm font-extrabold text-primary">
+          <div className="text-[13px] font-extrabold text-primary">
             자료실 유료 리포트도 포인트로 구매
           </div>
           <div className="mt-0.5 text-xs text-text-2">
@@ -132,7 +132,7 @@ export default async function PointsShopPage() {
         <span className="text-[15px] font-extrabold text-primary">›</span>
       </Link>
       {/* 무상성 고지 — PG 심사·소비자 오인 방지 공용(단일 출처) */}
-      <p className="mx-auto mt-4 w-full max-w-[720px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <p className="mx-auto mt-4 w-full max-w-[720px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         {POINTS_GRATUITOUS_NOTICE}
       </p>
     </PageShell>

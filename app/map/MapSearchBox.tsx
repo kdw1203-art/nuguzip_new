@@ -232,7 +232,7 @@ export function MapSearchBox({
   return (
     <div ref={rootRef} className={`relative ${className}`}>
       <div className={shellClass}>
-        <span aria-hidden="true" className="text-sm text-text-3">
+        <span aria-hidden="true" className="text-[13px] text-text-3">
           ⌕
         </span>
         <input
@@ -245,7 +245,7 @@ export function MapSearchBox({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           aria-label="단지·주소 검색"
-          className="min-w-0 flex-1 bg-transparent text-sm text-text-1 outline-none placeholder:text-text-3"
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-text-1 outline-none placeholder:text-text-3"
         />
         {query && (
           <button

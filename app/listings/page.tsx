@@ -49,7 +49,7 @@ export default async function ListingsPage() {
     <PageShell breadcrumb="홈 › 실매물">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="rise-in text-[22px] font-extrabold text-ink">실매물</h1>
+          <h1 className="rise-in text-[21px] font-extrabold text-ink">실매물</h1>
           <p className="mt-1 text-[13px] text-text-3">
             검수 통과 매물만 노출 · 현재 필터는 서울 구 단위(전국 등록은 가능, 목록 필터는 서울
             중심).
@@ -78,7 +78,7 @@ export default async function ListingsPage() {
       <ListingCompareTray />
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         매물 정보는 등록자(집주인·중개사)가 직접 입력한 내용으로, 그 정확성에 대한
         책임은 등록자에게 있습니다. 내집나우의 검수는 형식 요건 확인일 뿐 매물의 진위·
         권리관계를 보증하지 않습니다. 중개 행위는 해당 매물을 등록한 개업공인중개사가

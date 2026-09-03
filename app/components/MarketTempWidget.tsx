@@ -188,7 +188,7 @@ export async function MarketTempWidget({ className }: { className?: string }) {
         </span>
         <Link
           href="/analysis/temperature"
-          className="text-[11px] text-text-3 transition-colors hover:text-primary"
+          className="text-[12px] text-text-3 transition-colors hover:text-primary"
         >
           전체 지역
         </Link>
@@ -207,7 +207,7 @@ export async function MarketTempWidget({ className }: { className?: string }) {
               </span>
               <Sparkline scores={historyByRegion.get(r.current.regionId) ?? []} />
               <span className="flex shrink-0 items-baseline gap-1.5">
-                <span className={`t-num text-[14px] font-extrabold ${tone(r.current.score)}`}>
+                <span className={`t-num text-[13px] font-extrabold ${tone(r.current.score)}`}>
                   {r.current.score}
                 </span>
                 {delta !== null && delta !== 0 && (

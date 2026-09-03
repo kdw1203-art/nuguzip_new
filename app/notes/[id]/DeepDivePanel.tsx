@@ -119,7 +119,7 @@ export default function DeepDivePanel({
     <section className="rise-in-1 card flex flex-col gap-3 rounded-[18px] p-6">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="text-base font-extrabold text-ink">AI 심화 분석</div>
+          <div className="text-[15px] font-extrabold text-ink">AI 심화 분석</div>
           <div className="mt-0.5 t-sub text-text-3">
             노트에 적힌 내용과 공개 데이터를 함께 읽어 {total}개 축으로 정리했어요 · {filled}개 축
             확인

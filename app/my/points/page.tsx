@@ -81,7 +81,7 @@ async function readNicknameEffectUntil(
 function EarnGuide() {
   return (
     <div className="rise-in-3 card rounded-2xl p-5">
-      <div className="text-sm font-extrabold text-ink">포인트 적립 방법</div>
+      <div className="text-[13px] font-extrabold text-ink">포인트 적립 방법</div>
       <div className="mt-0.5 t-sub text-text-3">
         활동하면 자동으로 쌓여요 · 1P는 약 1원의 가치예요
       </div>
@@ -124,7 +124,7 @@ function GuestView() {
     <div className="mx-auto flex max-w-[640px] flex-col gap-3">
       <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[18px] px-5 py-8 text-center">
         <Icon name="🪙" size={24} className="text-white" />
-        <div className="mt-1 text-base font-extrabold text-white">
+        <div className="mt-1 text-[15px] font-extrabold text-white">
           로그인하고 내 포인트를 확인하세요
         </div>
         <div className="text-xs leading-[1.6] text-ai-muted">
@@ -134,7 +134,7 @@ function GuestView() {
         </div>
         <Link
           href="/login?callbackUrl=/my/points"
-          className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-sm"
+          className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-[13px]"
         >
           로그인하고 시작하기
         </Link>
@@ -145,7 +145,7 @@ function GuestView() {
         className="rise-in-1 flex items-center justify-between rounded-2xl bg-primary-soft px-4 py-[15px]"
       >
         <div>
-          <div className="text-sm font-extrabold text-primary">포인트 상점 구경하기</div>
+          <div className="text-[13px] font-extrabold text-primary">포인트 상점 구경하기</div>
           <div className="mt-0.5 text-xs text-text-2">
             어떤 혜택으로 바꿀 수 있는지 미리 살펴보세요
           </div>
@@ -187,19 +187,19 @@ function WalletView({
             <span className="t-title leading-none text-white">
               {balance.toLocaleString("ko-KR")}
             </span>
-            <span className="mb-1 text-lg font-extrabold text-ai-accent">P</span>
+            <span className="mb-1 text-[19px] font-extrabold text-ai-accent">P</span>
           </div>
         </div>
         <div className="flex gap-2">
           <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.07)] p-3 text-center">
             <div className="t-sub text-ai-muted">이번 달 적립</div>
-            <div className="mt-0.5 text-base font-extrabold text-ai-accent">
+            <div className="mt-0.5 text-[15px] font-extrabold text-ai-accent">
               +{monthEarned.toLocaleString("ko-KR")}P
             </div>
           </div>
           <div className="flex-1 rounded-xl bg-[rgba(255,255,255,.07)] p-3 text-center">
             <div className="t-sub text-ai-muted">이번 달 사용</div>
-            <div className="mt-0.5 text-base font-extrabold text-white">
+            <div className="mt-0.5 text-[15px] font-extrabold text-white">
               −{monthSpent.toLocaleString("ko-KR")}P
             </div>
           </div>
@@ -207,7 +207,7 @@ function WalletView({
         <AttendanceButton />
         <Link
           href="/points/shop"
-          className="btn-primary rounded-[10px] py-2.5 text-center text-sm"
+          className="btn-primary rounded-[10px] py-2.5 text-center text-[13px]"
         >
           포인트 상점 가기
         </Link>
@@ -238,7 +238,7 @@ function WalletView({
 
       {/* 적립·소비 내역 */}
       <div className="rise-in-2 card rounded-2xl p-5">
-        <div className="text-sm font-extrabold text-ink">포인트 내역</div>
+        <div className="text-[13px] font-extrabold text-ink">포인트 내역</div>
         {history.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-8 text-center">
             <div className="t-body font-bold text-ink">
@@ -260,7 +260,7 @@ function WalletView({
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-bold text-ink">
+                    <div className="truncate text-[13px] font-bold text-ink">
                       {reasonLabel(r.reason)}
                     </div>
                     <div className="t-sub text-text-3">
@@ -272,7 +272,7 @@ function WalletView({
                   </div>
                   <div className="shrink-0 pl-3 text-right">
                     <div
-                      className={`text-sm font-extrabold ${
+                      className={`text-[13px] font-extrabold ${
                         earn ? "text-primary" : "text-text-3"
                       }`}
                     >

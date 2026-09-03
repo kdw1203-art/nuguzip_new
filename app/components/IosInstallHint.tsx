@@ -163,7 +163,7 @@ export function IosInstallHint() {
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[14px] font-extrabold text-ink">주소창 없이 앱처럼 쓰기</div>
+          <div className="text-[13px] font-extrabold text-ink">주소창 없이 앱처럼 쓰기</div>
           <p className="mt-1 text-[12px] leading-relaxed text-text-2">
             사파리 <span className="font-semibold text-text-1">공유</span> 버튼을 누르고 목록에서{" "}
             <span className="font-semibold text-text-1">홈 화면에 추가</span>를 선택하세요. 위아래

@@ -290,7 +290,7 @@ export default async function TemperatureRegionPage({
         <div className="flex flex-wrap items-center gap-4">
           <div className="text-[40px] font-extrabold leading-none text-ink">{latest.score}</div>
           <div className="min-w-0 flex-1">
-            <div className="text-[14px] font-extrabold text-ink">{latest.headline}</div>
+            <div className="text-[13px] font-extrabold text-ink">{latest.headline}</div>
             <div className="mt-0.5 text-[12px] text-text-3">
               {formatWeekKorean(latest.weekStart)}이 속한 주
               {diff !== null && (
@@ -306,7 +306,7 @@ export default async function TemperatureRegionPage({
           </div>
         </div>
         {flow && <p className="mt-3 text-[13px] leading-[1.7] text-text-1">{flow}</p>}
-        <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+        <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
           이 값은 <strong className="text-ink">그 주에 마지막으로 관측한 온도</strong>입니다.
           주간 평균이 아니며, 수집 작업이 같은 주 안에서는 값을 갱신하고 주가 넘어가면 그대로
           굳습니다. 공식 버전 v{latest.formulaVersion} 기준으로 계산됐습니다.
@@ -317,7 +317,7 @@ export default async function TemperatureRegionPage({
       <section className="rise-in-1 card mb-6 p-[var(--pad-card)]">
         <h2 className="flex items-baseline justify-between gap-3 text-[15px] font-extrabold text-ink">
           주간 추이
-          <span className="shrink-0 text-[11px] font-medium text-text-3">
+          <span className="shrink-0 text-[12px] font-medium text-text-3">
             최고 {maxScore} · 평균 {avgScore} · 최저 {minScore}
           </span>
         </h2>
@@ -343,7 +343,7 @@ export default async function TemperatureRegionPage({
           <span>{formatWeekLabel(latest.weekStart)}</span>
         </div>
         {history.length < 4 && (
-          <p className="mt-3 text-[11px] leading-[1.7] text-text-3">
+          <p className="mt-3 text-[12px] leading-[1.7] text-text-3">
             아직 {history.length}주치 기록뿐이라 추세라고 부르기엔 이릅니다. 주가 쌓일수록 그래프가
             길어집니다.
           </p>
@@ -354,12 +354,12 @@ export default async function TemperatureRegionPage({
       <section className="rise-in-2 card mb-6 p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">
           주별 기록{" "}
-          <span className="text-[11px] font-medium text-text-3">최근 {recent.length}주</span>
+          <span className="text-[12px] font-medium text-text-3">최근 {recent.length}주</span>
         </h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[460px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-border text-[11px] text-text-3">
+              <tr className="border-b border-border text-[12px] text-text-3">
                 <th className="py-2 font-medium">주(월요일)</th>
                 <th className="py-2 text-right font-medium">온도</th>
                 <th className="py-2 text-right font-medium">지수 최근 평균</th>
@@ -378,7 +378,7 @@ export default async function TemperatureRegionPage({
                       <span className="font-extrabold text-ink">{h.score}</span>
                       {d !== null && (
                         <span
-                          className="ml-1 text-[11px]"
+                          className="ml-1 text-[12px]"
                           style={{
                             color: d > 0 ? "var(--danger)" : d < 0 ? "var(--primary)" : "var(--text-3)",
                           }}
@@ -400,7 +400,7 @@ export default async function TemperatureRegionPage({
             </tbody>
           </table>
         </div>
-        <p className="mt-2 text-[11px] leading-[1.7] text-text-3">
+        <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
           &ldquo;미반영&rdquo;은 그 주에 완결월 거래량이 4개월치에 못 미쳐 거래량 항을 빼고 지수
           모멘텀만으로 계산했다는 뜻입니다. 없는 값을 0으로 채우지 않습니다.
         </p>

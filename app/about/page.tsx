@@ -54,7 +54,7 @@ export default async function AboutPage() {
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
           내집나우 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다
         </h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-2">
           내집나우(naezipnow.com)은 집을 보러 다니는 기록(임장노트)을 국토교통부 실거래
           데이터와 나란히 놓고, 부동산 판단의 근거를 쌓도록 돕는 서비스입니다.
         </p>
@@ -64,7 +64,7 @@ export default async function AboutPage() {
         {coverage.complexes !== null && coverage.regions !== null && (
           <div className="rise-in-1 mt-4 grid grid-cols-2 gap-3">
             <div className="card rounded-2xl px-5 py-4">
-              <div className="t-num text-[22px] font-extrabold text-ink">
+              <div className="t-num text-[21px] font-extrabold text-ink">
                 {coverage.complexes.toLocaleString("ko-KR")}
               </div>
               <div className="mt-0.5 text-[12px] text-text-3">
@@ -72,7 +72,7 @@ export default async function AboutPage() {
               </div>
             </div>
             <div className="card rounded-2xl px-5 py-4">
-              <div className="t-num text-[22px] font-extrabold text-ink">
+              <div className="t-num text-[21px] font-extrabold text-ink">
                 {coverage.regions.toLocaleString("ko-KR")}
               </div>
               <div className="mt-0.5 text-[12px] text-text-3">
@@ -85,7 +85,7 @@ export default async function AboutPage() {
         <div className="mt-6 flex flex-col gap-4">
           {PRINCIPLES.map((p, i) => (
             <section key={p.title} className={`rise-in-${Math.min(i + 2, 6)} card rounded-[18px] p-6`}>
-              <h2 className="text-[16px] font-extrabold text-ink">{p.title}</h2>
+              <h2 className="text-[15px] font-extrabold text-ink">{p.title}</h2>
               <p className="mt-2 text-[13px] leading-[1.75] text-text-1">{p.body}</p>
             </section>
           ))}

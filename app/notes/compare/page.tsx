@@ -191,7 +191,7 @@ export default async function NotesComparePage({
               <h1 className="t-title text-ink">
                 노트 다회차 비교
               </h1>
-              <p className="mt-1.5 text-sm text-text-2">
+              <p className="mt-1.5 text-[13px] text-text-2">
                 {model.region ? `${model.region} · ` : ""}
                 {model.aptName} — 내 방문 기록 {model.colCount}회
               </p>
@@ -243,7 +243,7 @@ export default async function NotesComparePage({
 
           <div className="rise-in-3 card flex flex-col items-start gap-2.5 rounded-[18px] px-[22px] py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-extrabold text-ink">다음 방문 기록 남기기</div>
+              <div className="text-[13px] font-extrabold text-ink">다음 방문 기록 남기기</div>
               <p className="mt-0.5 text-xs text-text-2">
                 같은 단지를 한 번 더 기록하면 표에 새 열이 붙어요.
               </p>
@@ -289,7 +289,7 @@ export default async function NotesComparePage({
       <div className="flex flex-col gap-3.5">
         <div className="rise-in px-1">
           <h1 className="t-title text-ink">노트 다회차 비교</h1>
-          <p className="mt-1.5 text-sm text-text-2">
+          <p className="mt-1.5 text-[13px] text-text-2">
             같은 단지를 여러 번 기록하면 점수 축 변화를 표로 비교해요.
           </p>
         </div>

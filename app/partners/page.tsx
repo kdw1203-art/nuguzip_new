@@ -36,7 +36,7 @@ export default function PartnersPage() {
         <h1 className="rise-in text-[24px] font-extrabold leading-[1.35] text-ink">
           동네 매물, 내집나우에서 더 많은 이웃에게
         </h1>
-        <p className="mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="mt-2 text-[13px] leading-[1.7] text-text-2">
           내집나우는 국토부 실거래가 데이터를 보는 이웃들이 모이는 곳이에요. 제휴
           중개사무소가 되면 실거래가를 확인하던 이웃에게 보유 매물을 바로 보여줄 수
           있어요. 중개 행위는 제휴 중개사가 직접 수행하고, 내집나우는 광고 매체로서
@@ -61,11 +61,11 @@ export default function PartnersPage() {
       </div>
 
       <div className="rise-in-1 max-w-[640px]">
-        <h2 className="mb-3 text-[17px] font-extrabold text-ink">제휴 신청</h2>
+        <h2 className="mb-3 text-[15px] font-extrabold text-ink">제휴 신청</h2>
         <PartnerForm />
       </div>
 
-      <div className="mt-8 max-w-[720px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 max-w-[720px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         제휴는 개업공인중개사(중개사무소 등록번호 보유)에 한해 가능합니다. 신청
         내용은 검토 목적으로만 사용하며,{" "}
         <Link href="/legal/privacy" className="underline">

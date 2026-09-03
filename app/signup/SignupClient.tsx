@@ -234,10 +234,10 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
       >
         <div className="rise-in card flex flex-col items-center gap-3 rounded-[18px] p-7 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-xl">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-[21px]">
             {done === "confirm" ? <Icon name="✉" size={24} /> : "✓"}
           </span>
-          <h1 className="text-[20px] font-extrabold text-ink">
+          <h1 className="text-[19px] font-extrabold text-ink">
             {done === "confirm" ? "인증 메일을 보냈어요" : "가입이 완료됐어요"}
           </h1>
           <p className="text-[13px] leading-[1.6] text-text-2">
@@ -289,14 +289,14 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
                   setResendBusy(false);
                 }
               }}
-              className="w-full rounded-2xl border border-line bg-surface p-[15px] text-center text-base font-extrabold text-ink disabled:opacity-60"
+              className="w-full rounded-2xl border border-line bg-surface p-[15px] text-center text-[15px] font-extrabold text-ink disabled:opacity-60"
             >
               {resendBusy ? "보내는 중…" : "인증 메일 다시 보내기"}
             </button>
           ) : null}
           <Link
             href="/login?callbackUrl=/welcome"
-            className="btn-primary btn-cta mt-1 w-full rounded-2xl p-[15px] text-center text-base"
+            className="btn-primary btn-cta mt-1 w-full rounded-2xl p-[15px] text-center text-[15px]"
           >
             로그인하러 가기
           </Link>
@@ -325,7 +325,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
       style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
     >
       <div className="flex items-center justify-between">
-        <Link href="/login" className="text-base text-text-1" aria-label="뒤로">
+        <Link href="/login" className="text-[15px] text-text-1" aria-label="뒤로">
           ‹
         </Link>
         {/* 진행 막대 — 예전엔 w-1/2 하드코딩이라 페이지를 열자마자 50%,
@@ -348,7 +348,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         </Link>
       </div>
 
-      <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+      <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
         30초면 시작할 수 있어요
       </h1>
       <p className="rise-in-1 -mt-2 text-[13px] text-text-2">
@@ -368,7 +368,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
               {socialBusy === provider ? "연결 중…" : SOCIAL_BUTTON[provider].label}
             </button>
           ))}
-          <div className="flex items-center gap-3 text-[11px] text-text-3">
+          <div className="flex items-center gap-3 text-[12px] text-text-3">
             <span className="h-px flex-1 bg-bg" />
             또는 이메일로 가입
             <span className="h-px flex-1 bg-bg" />
@@ -381,7 +381,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
       <form onSubmit={onSubmit} className="rise-in-5 flex flex-col gap-2">
         <div className="text-[13px] font-extrabold text-ink">
           계정 만들기{" "}
-          <span className="text-[11px] font-medium text-text-3">이메일로 가입</span>
+          <span className="text-[12px] font-medium text-text-3">이메일로 가입</span>
         </div>
         {/* 항목 47 — sr-only 라벨 + id (placeholder 는 접근 가능한 이름이 아니다) */}
         <label htmlFor="signup-name" className="sr-only">
@@ -394,7 +394,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="이름 (선택)"
           autoComplete="name"
-          className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+          className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
         />
         <label htmlFor="signup-email" className="sr-only">
           이메일
@@ -406,7 +406,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="이메일"
           autoComplete="email"
-          className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+          className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
         />
         <label htmlFor="signup-password" className="sr-only">
           비밀번호 (8자 이상)
@@ -419,14 +419,14 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호 (8자 이상)"
             autoComplete="new-password"
-            className="w-full rounded-[10px] border border-line bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
+            className="w-full rounded-[10px] border border-line bg-surface px-4 py-3 pr-14 text-[13px] text-ink outline-none focus:border-primary"
           />
           <button
             type="button"
             onClick={() => setShowPw((v) => !v)}
             aria-pressed={showPw}
             aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 표시"}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[11px] font-bold text-text-3"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-[12px] font-bold text-text-3"
           >
             {showPw ? "숨김" : "표시"}
           </button>
@@ -478,7 +478,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         <button
           type="submit"
           disabled={busy}
-          className="btn-primary btn-cta rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+          className="btn-primary btn-cta rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
         >
           {busy ? "가입 중…" : "시작하기"}
         </button>

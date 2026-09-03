@@ -196,11 +196,11 @@ export default async function AdminRevenuePage() {
       <div className="rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-3">
         {kpis.map((k) => (
           <div key={k.label} className={`${darkCard} p-4`}>
-            <div className="text-[11px] text-[#9aa6b8]">{k.label}</div>
-            <div className="mt-1 text-[20px] font-extrabold tabular-nums text-white">
+            <div className="text-[12px] text-[#9aa6b8]">{k.label}</div>
+            <div className="mt-1 text-[19px] font-extrabold tabular-nums text-white">
               {k.value}
             </div>
-            {k.sub && <div className="mt-0.5 text-[11px] text-[#9aa6b8]">{k.sub}</div>}
+            {k.sub && <div className="mt-0.5 text-[12px] text-[#9aa6b8]">{k.sub}</div>}
           </div>
         ))}
       </div>
@@ -213,7 +213,7 @@ export default async function AdminRevenuePage() {
         <div className={`${darkCard} overflow-x-auto`}>
           <table className="w-full min-w-[520px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-[rgba(255,255,255,.08)] text-[11px] text-[#9aa6b8]">
+              <tr className="border-b border-[rgba(255,255,255,.08)] text-[12px] text-[#9aa6b8]">
                 <th className="px-4 py-2.5 font-semibold">플랜</th>
                 <th className="px-4 py-2.5 font-semibold">인원</th>
                 <th className="px-4 py-2.5 font-semibold">요금</th>
@@ -243,7 +243,7 @@ export default async function AdminRevenuePage() {
         <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">
           <div className="flex items-center justify-between">
             <div className="text-[13px] font-extrabold text-white">최근 플랜 만료 스윕</div>
-            <Link href="/admin/data" className="text-[11px] font-bold text-ai-accent no-underline">
+            <Link href="/admin/data" className="text-[12px] font-bold text-ai-accent no-underline">
               전체 실행 기록 →
             </Link>
           </div>
@@ -260,13 +260,13 @@ export default async function AdminRevenuePage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-[13px] font-extrabold text-white">
             애드센스 신청 게이트{" "}
-            <span className="text-[11px] font-medium text-[#9aa6b8]">
+            <span className="text-[12px] font-medium text-[#9aa6b8]">
               둘 다 충족되는 첫 주에 신청
             </span>
           </div>
           <Link
             href="/admin/seo"
-            className="text-[11px] font-bold text-ai-accent no-underline"
+            className="text-[12px] font-bold text-ai-accent no-underline"
           >
             색인 현황 →
           </Link>
@@ -276,11 +276,11 @@ export default async function AdminRevenuePage() {
           {/* 조건 1 — 트래픽 */}
           <div className="rounded-[12px] border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.03)] p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-[#9aa6b8]">
+              <span className="text-[12px] font-bold text-[#9aa6b8]">
                 조건 1 · 일 {ADSENSE_SESSION_DAILY}세션 × {ADSENSE_SESSION_DAYS}일 연속
               </span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                   adsense.dailyEvents && adsense.daysOver100 >= ADSENSE_SESSION_DAYS
                     ? "bg-[rgba(74,222,128,.15)] text-ai-success"
                     : "bg-[rgba(255,255,255,.08)] text-[#c9d2e0]"
@@ -293,12 +293,12 @@ export default async function AdminRevenuePage() {
                     : "미충족"}
               </span>
             </div>
-            <div className="mt-1.5 text-[18px] font-extrabold tabular-nums text-white">
+            <div className="mt-1.5 text-[19px] font-extrabold tabular-nums text-white">
               {adsense.eventDailyAvg != null
                 ? `일평균 ${adsense.eventDailyAvg.toLocaleString("ko-KR")}건`
                 : "—"}
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#9aa6b8]">
+            <p className="mt-1 text-[12px] leading-relaxed text-[#9aa6b8]">
               최근 {ADSENSE_SESSION_DAYS}일 활동 이벤트 기준 프록시 · 기준 넘긴 날{" "}
               {adsense.daysOver100}/{ADSENSE_SESSION_DAYS}일. 최종 판정은 Vercel
               Analytics 실측(봇 제외)으로 — 프록시 단독으로 신청하지 않습니다.
@@ -308,11 +308,11 @@ export default async function AdminRevenuePage() {
           {/* 조건 2 — 색인 */}
           <div className="rounded-[12px] border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.03)] p-3.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-bold text-[#9aa6b8]">
+              <span className="text-[12px] font-bold text-[#9aa6b8]">
                 조건 2 · 색인 등록 {ADSENSE_INDEXED_PAGES.toLocaleString("ko-KR")}p 이상
               </span>
               <span
-                className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+                className={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${
                   adsense.indexed != null && adsense.indexed >= ADSENSE_INDEXED_PAGES
                     ? "bg-[rgba(74,222,128,.15)] text-ai-success"
                     : "bg-[rgba(255,255,255,.08)] text-[#c9d2e0]"
@@ -327,12 +327,12 @@ export default async function AdminRevenuePage() {
                       : "미충족"}
               </span>
             </div>
-            <div className="mt-1.5 text-[18px] font-extrabold tabular-nums text-white">
+            <div className="mt-1.5 text-[19px] font-extrabold tabular-nums text-white">
               {adsense.indexed != null
                 ? `${adsense.indexed.toLocaleString("ko-KR")}p 색인`
                 : "—"}
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#9aa6b8]">
+            <p className="mt-1 text-[12px] leading-relaxed text-[#9aa6b8]">
               {adsense.indexState === "not_configured"
                 ? "Search Console 소유확인(오너 패킷 ②)이 끝나면 주간 스냅샷이 여기 쌓입니다."
                 : adsense.indexState === "empty"
@@ -344,7 +344,7 @@ export default async function AdminRevenuePage() {
           </div>
         </div>
 
-        <p className="mt-2.5 text-[11px] leading-relaxed text-[#9aa6b8]">
+        <p className="mt-2.5 text-[12px] leading-relaxed text-[#9aa6b8]">
           신청 당일 순서와 반려 리스크는 docs/adsense-timing-decision.md ·
           adsense-readiness.md 기준. 심사 중 빈 광고 슬롯 금지(하우스 광고 유지).
         </p>
@@ -354,13 +354,13 @@ export default async function AdminRevenuePage() {
       <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">
         <div className="text-[13px] font-extrabold text-white">
           데이터 투자 게이트 · 경매 유료 API{" "}
-          <span className="text-[11px] font-medium text-[#9aa6b8]">
+          <span className="text-[12px] font-medium text-[#9aa6b8]">
             충족 시 하이픈 TR슬림(월 10만원) 재검토
           </span>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span
-            className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+            className={`rounded-full px-2.5 py-1 text-[12px] font-extrabold ${
               kpiReady && paid >= 10
                 ? "bg-[rgba(74,222,128,.15)] text-ai-success"
                 : "bg-[rgba(255,255,255,.08)] text-[#c9d2e0]"
@@ -368,11 +368,11 @@ export default async function AdminRevenuePage() {
           >
             G1 유료 구독 {kpiReady ? paid.toLocaleString("ko-KR") : "—"}/10건
           </span>
-          <span className="rounded-full bg-[rgba(255,255,255,.08)] px-2.5 py-1 text-[11px] font-extrabold text-[#c9d2e0]">
+          <span className="rounded-full bg-[rgba(255,255,255,.08)] px-2.5 py-1 text-[12px] font-extrabold text-[#c9d2e0]">
             G2 월 3,000세션 — Vercel 실측 확인
           </span>
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-[#9aa6b8]">
+        <p className="mt-2 text-[12px] leading-relaxed text-[#9aa6b8]">
           둘 중 하나 충족 시 재검토(테스트베드 → 표본 30건 검증 → 오너 예산 승인 순).
           오너가 사법정보공유포털에서 무료 경매 API를 확인하면 게이트와 무관하게 즉시
           연동으로 전환합니다 — docs/court-auction-source-research.md #140 절.
@@ -383,7 +383,7 @@ export default async function AdminRevenuePage() {
       <div className="rise-in-2 mt-4 rounded-[14px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4">
         <div className="text-[13px] font-extrabold text-white">
           결제 실패 · 환불 분쟁 큐{" "}
-          <span className="text-[11px] font-medium text-[#9aa6b8]">준비 중</span>
+          <span className="text-[12px] font-medium text-[#9aa6b8]">준비 중</span>
         </div>
         <p className="mt-1 text-[12px] leading-relaxed text-[#9aa6b8]">
           결제·정산 파이프라인(PG) 연동 후 실 데이터로 집계합니다. 현재는 추정·조작

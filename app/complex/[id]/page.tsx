@@ -972,7 +972,7 @@ export default async function ComplexHubPage({
         if (typeof v.lng === "number") noteQs.set("lng", String(v.lng));
         const regionId = regionIdForName(v.city ?? "") ?? regionIdForName(v.dong ?? "");
         const pill =
-          "inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-[12.5px] font-bold text-ink tap-ripple";
+          "inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-2 text-[13px] font-bold text-ink tap-ripple";
         return (
           <div className="rise-in-1 mt-3 flex flex-wrap items-center gap-2">
             <Link href={`/notes/new?${noteQs.toString()}`} className={pill}>
@@ -993,7 +993,7 @@ export default async function ComplexHubPage({
       <div className="rise-in-1 mt-3 grid grid-cols-3 gap-1.5 md:grid-cols-6">
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
           <div className="t-caption text-text-3">시세</div>
-          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
+          <div className="mt-0.5 truncate t-section text-ink sm:text-[15px]">
             {v.metric.price}
           </div>
           <div className={`mt-0.5 truncate text-[10px] font-bold ${v.metric.priceSubClass}`}>
@@ -1002,28 +1002,28 @@ export default async function ComplexHubPage({
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
           <div className="t-caption text-text-3">거래</div>
-          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
+          <div className="mt-0.5 truncate t-section text-ink sm:text-[15px]">
             {v.metric.deals}
           </div>
           <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.dealsSub}</div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
           <div className="t-caption text-text-3">매물</div>
-          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
+          <div className="mt-0.5 truncate t-section text-ink sm:text-[15px]">
             {v.metric.listings}
           </div>
           <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.listingsSub}</div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
           <div className="t-caption text-text-3">노트</div>
-          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
+          <div className="mt-0.5 truncate t-section text-ink sm:text-[15px]">
             {v.metric.notes}
           </div>
           <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.notesSub}</div>
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
           <div className="t-caption text-text-3">세대</div>
-          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
+          <div className="mt-0.5 truncate t-section text-ink sm:text-[15px]">
             {v.households ? `${v.households.toLocaleString("ko-KR")}` : "—"}
           </div>
           <div className="mt-0.5 truncate t-caption text-text-3">
@@ -1032,7 +1032,7 @@ export default async function ComplexHubPage({
         </div>
         <div className="card rounded-xl px-2.5 py-2.5 text-center sm:px-3">
           <div className="t-caption text-text-3">연차</div>
-          <div className="mt-0.5 truncate t-section text-ink sm:text-base">
+          <div className="mt-0.5 truncate t-section text-ink sm:text-[15px]">
             {v.metric.age}
           </div>
           <div className="mt-0.5 truncate t-caption text-text-3">{v.metric.ageSub}</div>

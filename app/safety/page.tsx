@@ -141,7 +141,7 @@ export default function SafetyPage() {
           <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[18px] p-[22px]">
             <div className="text-[15px] font-extrabold text-ink">
               세입자 체크리스트{" "}
-              <span className="text-[11px] font-medium text-text-3">
+              <span className="text-[12px] font-medium text-text-3">
                 직접 확인 가이드
               </span>
             </div>
@@ -153,7 +153,7 @@ export default function SafetyPage() {
                 }`}
               >
                 <span className="text-[13px] font-bold text-text-1">{c.label}</span>
-                <span className="text-[11px] text-text-3">{c.how}</span>
+                <span className="text-[12px] text-text-3">{c.how}</span>
               </div>
             ))}
             <div className="text-[10px] leading-[1.6] text-text-3">

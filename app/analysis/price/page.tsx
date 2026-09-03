@@ -54,7 +54,7 @@ function ymLabel(ym: string | null): string {
 function EmptyState({ msg }: { msg: string }) {
   return (
     <div className="card mx-auto mt-8 max-w-[560px] rounded-2xl px-5 py-10 text-center">
-      <p className="text-[14px] font-extrabold text-ink">실거래 시세를 불러오지 못했어요</p>
+      <p className="text-[13px] font-extrabold text-ink">실거래 시세를 불러오지 못했어요</p>
       <p className="mt-1 text-[12px] leading-relaxed text-text-3">{msg}</p>
       <Link href="/tx" className="btn-soft btn-sm mt-4 inline-block no-underline">
         지역별 실거래 보기

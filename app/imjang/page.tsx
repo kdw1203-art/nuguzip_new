@@ -62,7 +62,7 @@ export default async function ImjangIndexPage() {
     <PageShell breadcrumb="홈 › 임장 가이드" title="임장 가이드">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }} />
 
-      <p className="rise-in mb-5 max-w-[720px] text-[13.5px] leading-[1.7] text-text-2">
+      <p className="rise-in mb-5 max-w-[720px] text-[13px] leading-[1.7] text-text-2">
         임장(臨場)은 집을 데이터가 아니라 현장에서 확인하는 일입니다. 시세·거래량은
         가기 전에 여기서 보고, 소음·주차·관리 상태처럼{" "}
         <strong className="text-ink">가야만 알 수 있는 것</strong>은 체크포인트로
@@ -72,7 +72,7 @@ export default async function ImjangIndexPage() {
       {/* 지역 목록 — 실데이터 있는 지역만, 거래 많은 순 */}
       <section className="mb-7">
         <h2 className="mb-2 text-[15px] font-extrabold text-ink">
-          지역별 가이드 <span className="text-[11px] font-medium text-text-3">거래 많은 순</span>
+          지역별 가이드 <span className="text-[12px] font-medium text-text-3">거래 많은 순</span>
         </h2>
         {loadError ? (
           <div className="card rounded-2xl px-4 py-4">
@@ -92,10 +92,10 @@ export default async function ImjangIndexPage() {
                 key={r.slug}
                 prefetch={false}
                 href={`/imjang/${encodeURIComponent(r.slug)}`}
-                className="chip bg-surface px-3.5 py-2 text-[12.5px] font-bold text-text-1 shadow-sm no-underline hover:text-primary"
+                className="chip bg-surface px-3.5 py-2 text-[13px] font-bold text-text-1 shadow-sm no-underline hover:text-primary"
               >
                 {r.name}
-                <span className="ml-1.5 text-[11px] font-medium text-text-3">
+                <span className="ml-1.5 text-[12px] font-medium text-text-3">
                   {r.txCount.toLocaleString("ko-KR")}건
                 </span>
               </Link>
@@ -126,10 +126,10 @@ export default async function ImjangIndexPage() {
         <Link href="/notes/new" className="btn-primary press rounded-xl px-4 py-2.5 text-[13px] no-underline">
           임장노트 쓰기 ›
         </Link>
-        <Link href="/notes/templates" className="chip bg-surface px-3.5 py-2.5 text-[12.5px] font-bold text-text-2 shadow-sm no-underline">
+        <Link href="/notes/templates" className="chip bg-surface px-3.5 py-2.5 text-[13px] font-bold text-text-2 shadow-sm no-underline">
           노트 템플릿 보기
         </Link>
-        <Link href="/tx" className="chip bg-surface px-3.5 py-2.5 text-[12.5px] font-bold text-text-2 shadow-sm no-underline">
+        <Link href="/tx" className="chip bg-surface px-3.5 py-2.5 text-[13px] font-bold text-text-2 shadow-sm no-underline">
           지역별 실거래 구간
         </Link>
       </section>

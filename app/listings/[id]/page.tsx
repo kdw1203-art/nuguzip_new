@@ -294,7 +294,7 @@ export default async function ListingDetailPage({
           {/* 배지 */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span
-              className={`rounded-md chip-pad text-[11px] font-extrabold ${
+              className={`rounded-md chip-pad text-[12px] font-extrabold ${
                 listing.source === "owner"
                   ? "bg-[rgba(29,79,216,.08)] text-primary"
                   : "bg-warning-soft text-warning"
@@ -302,27 +302,27 @@ export default async function ListingDetailPage({
             >
               {LISTING_SOURCE_LABEL[listing.source]}
             </span>
-            <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+            <span className="rounded-md bg-bg chip-pad text-[12px] font-extrabold text-text-2">
               {LISTING_TYPE_LABEL[listing.listingType]}
             </span>
             {category && (
-              <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+              <span className="rounded-md bg-bg chip-pad text-[12px] font-extrabold text-text-2">
                 {category}
               </span>
             )}
             {listing.ownerVerified && (
-              <span className="rounded-md bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+              <span className="rounded-md bg-success-soft chip-pad text-[12px] font-extrabold text-success">
                 소유확인
               </span>
             )}
             {boostOn && (
-              <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-warning">
+              <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad text-[12px] font-extrabold text-warning">
                 부스트
               </span>
             )}
             {stale && (
               <span
-                className="rounded-md chip-pad text-[11px] font-extrabold"
+                className="rounded-md chip-pad text-[12px] font-extrabold"
                 style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
               >
                 확인 필요
@@ -336,7 +336,7 @@ export default async function ListingDetailPage({
               {listing.complexName}
             </h1>
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <span className="text-[22px] font-extrabold text-primary">
+              <span className="text-[21px] font-extrabold text-primary">
                 {priceLine(listing)}
               </span>
               {compareBadge && (
@@ -366,7 +366,7 @@ export default async function ListingDetailPage({
           )}
 
           {/* 스펙 */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-text-2">
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[13px] text-text-2">
             {listing.areaM2 !== null && (
               <span>
                 전용 <b className="text-ink">{listing.areaM2}㎡</b>
@@ -398,7 +398,7 @@ export default async function ListingDetailPage({
           {body.trim() && (
             <div>
               <div className="mb-1.5 text-[13px] font-bold text-ink">상세 설명</div>
-              <p className="whitespace-pre-wrap text-[14px] leading-[1.75] text-text-2">
+              <p className="whitespace-pre-wrap text-[13px] leading-[1.75] text-text-2">
                 {body.trim()}
               </p>
             </div>
@@ -410,7 +410,7 @@ export default async function ListingDetailPage({
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="text-[15px] font-extrabold text-ink">
                   시세 비교{" "}
-                  <span className="text-[11px] font-medium text-text-3">
+                  <span className="text-[12px] font-medium text-text-3">
                     같은 단지·면적대 · 국토부 실거래가
                   </span>
                 </h2>
@@ -504,7 +504,7 @@ export default async function ListingDetailPage({
             <div className="text-[13px] font-bold text-ink">연락처</div>
             {viewerEmail ? (
               listing.contact ? (
-                <div className="text-[14px] font-bold text-ink break-all">{listing.contact}</div>
+                <div className="text-[13px] font-bold text-ink break-all">{listing.contact}</div>
               ) : (
                 <div className="text-[13px] text-text-3">
                   등록된 연락처가 없어요. 등록자에게 직접 문의가 어려울 수 있어요.
@@ -535,7 +535,7 @@ export default async function ListingDetailPage({
       </div>
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         내집나우는 광고 매체이며 중개하지 않습니다. 매물 정보의 정확성과 권리관계에 대한 책임은
         등록자에게 있으며, 내집나우의 검수는 형식 요건 확인일 뿐 진위를 보증하지 않습니다. 중개
         행위는 해당 매물을 등록한 개업공인중개사가 수행합니다.

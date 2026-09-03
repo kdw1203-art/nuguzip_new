@@ -142,7 +142,7 @@ export default async function DevDealsHubPage() {
 
         {/* 면책 고지(앰버 틴트) */}
         <div
-          className="rise-in-4 mt-8 rounded-xl bg-primary-soft px-4 py-3 text-[11px] leading-[1.7]"
+          className="rise-in-4 mt-8 rounded-xl bg-primary-soft px-4 py-3 text-[12px] leading-[1.7]"
           style={{ color: "var(--primary-strong)" }}
         >
           {DISCLAIMER}

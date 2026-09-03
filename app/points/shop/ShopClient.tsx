@@ -66,7 +66,7 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
           <div className="text-[12px] text-text-3">보유 포인트</div>
           <div className="mt-0.5 text-2xl font-extrabold text-ink">
             {balance.toLocaleString("ko-KR")}
-            <span className="ml-0.5 text-base text-primary">P</span>
+            <span className="ml-0.5 text-[15px] text-primary">P</span>
           </div>
         </div>
         <Link
@@ -89,10 +89,10 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
               key={item.key}
               className="card tile flex flex-col rounded-2xl p-5"
             >
-              <div className="text-sm font-extrabold text-ink">
+              <div className="text-[13px] font-extrabold text-ink">
                 {item.label}
                 {item.season && (
-                  <span className="ml-1.5 align-middle rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-extrabold text-warning">
+                  <span className="ml-1.5 align-middle rounded-full bg-warning-soft px-2 py-0.5 text-[10px] font-extrabold text-warning">
                     {item.season} 한정
                   </span>
                 )}
@@ -137,7 +137,7 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
         })}
       </div>
 
-      <p className="rise-in-2 px-1 text-[11px] leading-[1.6] text-text-3">
+      <p className="rise-in-2 px-1 text-[12px] leading-[1.6] text-text-3">
         교환한 효과는 즉시 적용돼요. 포인트는 환불되지 않으니 신중히 교환해 주세요.
       </p>
     </div>

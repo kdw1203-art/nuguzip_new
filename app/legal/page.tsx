@@ -59,7 +59,7 @@ export default function LegalHubPage() {
           Legal Center
         </p>
         <h1 className="mt-2 text-2xl font-bold text-ink">법적 고지</h1>
-        <p className="mt-2 text-sm leading-relaxed text-text-2">
+        <p className="mt-2 text-[13px] leading-relaxed text-text-2">
           약관 및 정책은 서비스 운영 상황에 맞춰 업데이트될 수 있으며, 중요한 변경 사항은
           공지 또는 이메일로 사전 안내합니다.
         </p>
@@ -68,7 +68,7 @@ export default function LegalHubPage() {
       <section className="mt-6 space-y-3">
         {ITEMS.map((item) => (
           <Link key={item.href} href={item.href} className="card tile block p-5">
-            <p className="text-sm font-semibold text-ink">{item.title}</p>
+            <p className="text-[13px] font-semibold text-ink">{item.title}</p>
             <p className="mt-1 text-xs leading-relaxed text-text-2">{item.desc}</p>
           </Link>
         ))}

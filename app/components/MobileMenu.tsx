@@ -257,7 +257,7 @@ export function MobileMenu() {
 
               {/* 서비스 */}
               <div className="mt-5">
-                <div className="mb-1 px-1 text-[11px] font-bold uppercase tracking-wide text-text-3">
+                <div className="mb-1 px-1 text-[12px] font-bold uppercase tracking-wide text-text-3">
                   서비스
                 </div>
                 <div className="grid grid-cols-2 gap-x-1">
@@ -272,7 +272,7 @@ export function MobileMenu() {
 
               {/* 내 계정 */}
               <div className="mt-5">
-                <div className="mb-1 px-1 text-[11px] font-bold uppercase tracking-wide text-text-3">
+                <div className="mb-1 px-1 text-[12px] font-bold uppercase tracking-wide text-text-3">
                   내 계정
                 </div>
                 <div className="grid grid-cols-2 gap-x-1">
@@ -287,7 +287,7 @@ export function MobileMenu() {
 
               {/* 고객지원 */}
               <div className="mt-5">
-                <div className="mb-1 px-1 text-[11px] font-bold uppercase tracking-wide text-text-3">
+                <div className="mb-1 px-1 text-[12px] font-bold uppercase tracking-wide text-text-3">
                   고객지원
                 </div>
                 <div className="grid grid-cols-2 gap-x-1">
@@ -302,7 +302,7 @@ export function MobileMenu() {
 
               {/* 화면·알림 설정 */}
               <div className="mt-5">
-                <div className="mb-1 px-1 text-[11px] font-bold uppercase tracking-wide text-text-3">
+                <div className="mb-1 px-1 text-[12px] font-bold uppercase tracking-wide text-text-3">
                   화면 · 알림
                 </div>
                 <div className="grid grid-cols-2 items-center gap-x-1">

@@ -61,7 +61,7 @@ export function RefreshButton({
         {phase === "busy" ? "갱신 중…" : "끌어올리기(갱신)"}
       </button>
       {phase === "error" && (
-        <span className="text-[11px] font-bold text-danger">
+        <span className="text-[12px] font-bold text-danger">
           갱신 실패 — 잠시 후 다시 시도해 주세요
         </span>
       )}

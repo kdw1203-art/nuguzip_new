@@ -10,7 +10,7 @@ export function SeedReplyForm({ postId, postTitle }: { postId: string; postTitle
   const [err, setErr] = useState("");
 
   if (state === "done") {
-    return <span className="text-[11px] font-bold text-[#4ecb8a]">답글 게시됨 ✓</span>;
+    return <span className="text-[12px] font-bold text-[#4ecb8a]">답글 게시됨 ✓</span>;
   }
   return (
     <div className="flex flex-col gap-1.5">
@@ -18,7 +18,7 @@ export function SeedReplyForm({ postId, postTitle }: { postId: string; postTitle
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-fit rounded-lg bg-[#3182f6] px-3 py-1.5 text-[11px] font-bold text-white"
+          className="w-fit rounded-lg bg-[#3182f6] px-3 py-1.5 text-[12px] font-bold text-white"
         >
           시드 답글 달기
         </button>
@@ -56,11 +56,11 @@ export function SeedReplyForm({ postId, postTitle }: { postId: string; postTitle
                   setState("err");
                 }
               }}
-              className="rounded-lg bg-[#3182f6] px-3.5 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+              className="rounded-lg bg-[#3182f6] px-3.5 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
             >
               {state === "busy" ? "게시 중…" : "공식 답글 게시"}
             </button>
-            {err && <span className="text-[11px] font-bold text-[#ff6b6b]">{err}</span>}
+            {err && <span className="text-[12px] font-bold text-[#ff6b6b]">{err}</span>}
           </div>
         </>
       )}

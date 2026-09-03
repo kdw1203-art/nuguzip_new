@@ -167,7 +167,7 @@ export function Modal({
 export function ModalHeader({ title, onClose }: { title: string; onClose: () => void }) {
   return (
     <div className="mb-3 flex items-start justify-between gap-2">
-      <span className="text-sm font-extrabold text-ink">{title}</span>
+      <span className="text-[13px] font-extrabold text-ink">{title}</span>
       <button
         type="button"
         aria-label="닫기"

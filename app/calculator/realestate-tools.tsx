@@ -67,10 +67,10 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="input w-full px-3 py-2.5 pr-12 text-right text-sm font-extrabold text-ink"
+          className="input w-full px-3 py-2.5 pr-12 text-right text-[13px] font-extrabold text-ink"
           aria-label={label}
         />
-        <span className="pointer-events-none absolute right-3 text-[11px] font-semibold text-text-3">
+        <span className="pointer-events-none absolute right-3 text-[12px] font-semibold text-text-3">
           {unit}
         </span>
       </div>
@@ -117,7 +117,7 @@ function ResultPanel({
         </div>
         {children}
       </div>
-      {note && <div className="px-1 text-[11px] leading-[1.6] text-text-3">{note}</div>}
+      {note && <div className="px-1 text-[12px] leading-[1.6] text-text-3">{note}</div>}
     </div>
   );
 }
@@ -126,8 +126,8 @@ function ToolCard({ title, subtitle, children }: { title: string; subtitle: stri
   return (
     <div className="card flex flex-col gap-3 rounded-[18px] p-[18px]">
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-extrabold text-ink">{title}</span>
-        <span className="text-[11px] font-medium text-text-3">{subtitle}</span>
+        <span className="text-[13px] font-extrabold text-ink">{title}</span>
+        <span className="text-[12px] font-medium text-text-3">{subtitle}</span>
       </div>
       {children}
     </div>
@@ -232,7 +232,7 @@ export function GapRatio() {
       >
         <div className="flex items-baseline justify-between text-xs">
           <span className="text-ai-muted">전세가율 (전세 ÷ 매매)</span>
-          <span className="text-base font-extrabold text-ai-accent">{pct(ratio, 1)}</span>
+          <span className="text-[15px] font-extrabold text-ai-accent">{pct(ratio, 1)}</span>
         </div>
         <ResultRow label="매매가" value={formatEok(num(price))} />
         <ResultRow label="전세가" value={formatEok(num(jeonse))} />
@@ -275,7 +275,7 @@ export function RentalYield() {
         <Field label="월세" value={monthly} onChange={setMonthly} unit="만원" />
         <div className="flex items-center gap-2 border-t border-divider pt-3">
           <Icon name="landmark" size={14} className="text-text-3" />
-          <span className="text-[11px] font-semibold text-text-3">대출 (선택 · 레버리지 반영)</span>
+          <span className="text-[12px] font-semibold text-text-3">대출 (선택 · 레버리지 반영)</span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Field label="대출금" value={loan} onChange={setLoan} unit="만원" />

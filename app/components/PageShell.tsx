@@ -28,10 +28,10 @@ export function PageShell({
         }`}
       >
         {breadcrumb && (
-          <div className="mb-2 text-[13px] text-text-3">{breadcrumb}</div>
+          <div className="mb-2 t-sub text-text-3">{breadcrumb}</div>
         )}
         {title && (
-          <h1 className="rise-in mb-3.5 text-[19px] font-extrabold leading-[1.35] text-ink md:mb-4 md:text-[21px]">
+          <h1 className="rise-in mb-3.5 t-title text-ink md:mb-4">
             {title}
           </h1>
         )}

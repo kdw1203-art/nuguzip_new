@@ -128,7 +128,7 @@ export async function ComplexQna({
             >
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-md chip-pad text-[11px] font-extrabold ${
+                  className={`rounded-md chip-pad text-[12px] font-extrabold ${
                     q.status === "answered"
                       ? "bg-success-soft text-success"
                       : "bg-primary-soft text-primary"

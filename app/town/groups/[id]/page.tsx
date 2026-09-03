@@ -78,7 +78,7 @@ export default async function TownGroupDetailPage({
     return (
       <PageShell breadcrumb="동네이야기 › 임장 모임">
         <div className="mx-auto flex max-w-[420px] flex-col items-center gap-3 py-20 text-center">
-          <div className="text-lg font-extrabold text-ink">모임을 찾을 수 없어요</div>
+          <div className="text-[19px] font-extrabold text-ink">모임을 찾을 수 없어요</div>
           <p className="text-[13px] leading-[1.6] text-text-2">
             삭제되었거나 잘못된 링크일 수 있어요.
           </p>
@@ -130,16 +130,16 @@ export default async function TownGroupDetailPage({
         <div className="flex flex-col gap-4">
           <div className="rise-in card flex flex-col gap-3 rounded-[18px] p-6">
             <div className="flex items-center justify-between">
-              <span className={`rounded-md chip-pad text-[11px] font-extrabold ${statusStyle}`}>
+              <span className={`rounded-md chip-pad text-[12px] font-extrabold ${statusStyle}`}>
                 {statusLabel} {meeting.currentMembers}/{meeting.maxMembers}
               </span>
-              <span className="text-[11px] text-text-3">
+              <span className="text-[12px] text-text-3">
                 {meeting.category}
                 {meeting.fee > 0 ? ` · 참가비 ${meeting.fee.toLocaleString("ko-KR")}원` : " · 무료"}
               </span>
             </div>
 
-            <h1 className="text-[22px] font-extrabold leading-[1.35] text-ink">{meeting.title}</h1>
+            <h1 className="text-[21px] font-extrabold leading-[1.35] text-ink">{meeting.title}</h1>
 
             <div className="flex flex-col gap-2 text-[13px] text-text-1">
               <div className="flex gap-2">
@@ -165,7 +165,7 @@ export default async function TownGroupDetailPage({
             {meeting.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {meeting.tags.slice(0, 6).map((t) => (
-                  <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[11px] text-text-2">
+                  <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[12px] text-text-2">
                     #{t}
                   </span>
                 ))}
@@ -184,7 +184,7 @@ export default async function TownGroupDetailPage({
                 참여자 {meeting.currentMembers}
                 <span className="text-text-3"> / {meeting.maxMembers}</span>
               </div>
-              <div className="text-[11px] text-text-3">{isFull ? "정원이 찼어요" : `${remaining}자리 남음`}</div>
+              <div className="text-[12px] text-text-3">{isFull ? "정원이 찼어요" : `${remaining}자리 남음`}</div>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-bg">
               <div className="h-full rounded-full bg-primary" style={{ width: `${fillPct}%` }} />
@@ -193,7 +193,7 @@ export default async function TownGroupDetailPage({
                 지운다. 참여자 프로필을 읽지 않고 색만 다른 원을 currentMembers 수만큼
                 그리던 것이라, 정원이 0명일 때도 원이 하나 떠서 "누군가 있다"고 보였다.
                 실제로 아는 사실은 인원수뿐이므로 인원수만 남긴다. */}
-            <p className="text-[11px] leading-[1.5] text-text-3">
+            <p className="text-[12px] leading-[1.5] text-text-3">
               참여 확정 시 채팅방에서 멤버들과 일정·체크리스트를 나눌 수 있어요 · 연락처는 공개되지 않아요
             </p>
           </div>
@@ -210,7 +210,7 @@ export default async function TownGroupDetailPage({
               district={meeting.district}
               label={meeting.region || meeting.city || "모임 장소"}
             />
-            <p className="text-[11px] leading-[1.5] text-text-3">
+            <p className="text-[12px] leading-[1.5] text-text-3">
               지역 기준 지도예요 · 정확한 집결 장소는 모임 채팅방에서 안내돼요.
             </p>
           </div>
@@ -227,15 +227,15 @@ export default async function TownGroupDetailPage({
                 <Link
                   prefetch={false}
                   href={`/imjang/${encodeURIComponent(imjangRegion.slug)}`}
-                  className="text-[12.5px] font-extrabold text-primary no-underline"
+                  className="text-[13px] font-extrabold text-primary no-underline"
                 >
                   {imjangRegion.name} 임장 가이드 ›
                 </Link>
               )}
-              <Link href="/notes/templates" className="text-[12.5px] font-bold text-text-2 no-underline hover:text-primary">
+              <Link href="/notes/templates" className="text-[13px] font-bold text-text-2 no-underline hover:text-primary">
                 노트 템플릿 보기 ›
               </Link>
-              <Link href="/notes/new" className="text-[12.5px] font-bold text-text-2 no-underline hover:text-primary">
+              <Link href="/notes/new" className="text-[13px] font-bold text-text-2 no-underline hover:text-primary">
                 임장노트 쓰기 ›
               </Link>
             </div>
@@ -275,7 +275,7 @@ export default async function TownGroupDetailPage({
                       ? "모집 마감 · 참여했다면 채팅방 입장"
                       : "참여하기 → 채팅방 입장"}
               </Link>
-              <p className="rise-in-3 text-center text-[11px] text-text-3">
+              <p className="rise-in-3 text-center text-[12px] text-text-3">
                 {isOrganizer
                   ? "내가 만든 모임이에요"
                   : isPast
@@ -294,7 +294,7 @@ export default async function TownGroupDetailPage({
               >
                 로그인하고 참여하기
               </Link>
-              <p className="rise-in-3 text-center text-[11px] text-text-3">
+              <p className="rise-in-3 text-center text-[12px] text-text-3">
                 로그인하면 모임 채팅에 참여할 수 있어요
               </p>
             </>

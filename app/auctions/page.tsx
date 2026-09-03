@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { PageShell } from "@/app/components/PageShell";
 import { AdSlot } from "@/app/components/ads/AdSlot";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
+import { TownPageHead } from "@/app/town/TownPageHead";
 import { getAuctions, getActiveAuctionCount } from "@/lib/onbid/store";
 import { seoAlternates } from "@/lib/seo/alternates";
 import { ErrorState } from "@/app/components/ui/EmptyState";
@@ -57,9 +58,9 @@ export default async function AuctionsPage() {
 
   if (!loaded.ok) {
     return (
-      <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
+      <PageShell breadcrumb="동네이야기 › 공매 물건" wide>
         <TownCategoryNav stick />
-        <h1 className="sr-only">공매·경매 물건</h1>
+        <TownPageHead href="/auctions" title="공매 물건" sub="온비드 진행·예정 물건 — 감정가·최저입찰가·입찰일" />
         <div style={AUCTION_THEME}>
           <ErrorState
             title="공매 물건을 지금 불러오지 못했어요"
@@ -72,9 +73,9 @@ export default async function AuctionsPage() {
   }
 
   return (
-    <PageShell breadcrumb="동네이야기 › 공매·경매" wide>
+    <PageShell breadcrumb="동네이야기 › 공매 물건" wide>
       <TownCategoryNav stick />
-      <h1 className="sr-only">공매·경매 물건</h1>
+      <TownPageHead href="/auctions" title="공매 물건" sub="온비드 진행·예정 물건 — 감정가·최저입찰가·입찰일" />
       <div style={AUCTION_THEME}>
         <AuctionsClient
           initialItems={slimAuctionItems(loaded.items)}

@@ -64,12 +64,12 @@ export function GeocodeRunButton({ configured }: { configured: boolean }) {
         </button>
       </div>
       {!configured && (
-        <div className="text-[11px] text-[#f2c94c]">
+        <div className="text-[12px] text-[#f2c94c]">
           NAVER Maps REST 키 미설정 — NCP 콘솔에서 Geocoding 활성화 후 Vercel 환경변수 설정 필요.
         </div>
       )}
       {msg && (
-        <div className={`text-[11px] ${msg.ok ? "text-ai-success" : "text-ai-danger"}`}>
+        <div className={`text-[12px] ${msg.ok ? "text-ai-success" : "text-ai-danger"}`}>
           {msg.text}
         </div>
       )}

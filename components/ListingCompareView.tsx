@@ -320,7 +320,7 @@ export function ListingCompareView({
         </table>
       </div>
 
-      <p className="text-[11px] leading-[1.7] text-text-3">
+      <p className="text-[12px] leading-[1.7] text-text-3">
         시세대비는 같은 단지·면적대의 국토부 실거래(매매) 중위가 대비 호가 변동률이며,
         데이터가 있는 매매 매물에 한해 표시돼요. 방향 등 일부 항목은 등록 정보에 없으면
         표시되지 않습니다.

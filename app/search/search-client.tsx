@@ -313,7 +313,7 @@ export function SearchClient() {
     <div className="flex flex-col gap-4">
       {/* 큰 검색 입력 */}
       <div className="rise-in flex w-full max-w-[560px] items-center gap-2.5 rounded-2xl border-[1.5px] border-primary bg-surface px-4 py-3 text-ink shadow-[0_8px_28px_rgba(16,28,54,.08)]">
-        <span aria-hidden className="text-lg text-text-3">
+        <span aria-hidden className="text-[19px] text-text-3">
           ⌕
         </span>
         <input
@@ -358,7 +358,7 @@ export function SearchClient() {
           <button
             type="button"
             onClick={() => setQ("")}
-            className="shrink-0 text-sm text-text-3"
+            className="shrink-0 text-[13px] text-text-3"
             aria-label="검색어 지우기"
           >
             ✕
@@ -482,7 +482,7 @@ export function SearchClient() {
 
       {/* 로딩 */}
       {hasQuery && busy && total === 0 && (
-        <div className="mt-6 text-center text-sm text-text-3">검색 중…</div>
+        <div className="mt-6 text-center text-[13px] text-text-3">검색 중…</div>
       )}
 
       {/* 조회 실패 — "없음"이 아니라 "못 불러왔음"으로 적는다 */}

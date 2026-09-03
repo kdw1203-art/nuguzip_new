@@ -19,7 +19,7 @@ export default function TossCallbackPage() {
     <Suspense
       fallback={
         <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6">
-          <p className="text-sm font-bold text-text-2">토스 로그인 처리 중…</p>
+          <p className="text-[13px] font-bold text-text-2">토스 로그인 처리 중…</p>
         </main>
       }
     >

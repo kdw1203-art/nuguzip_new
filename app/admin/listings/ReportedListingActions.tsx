@@ -75,7 +75,7 @@ export function ReportedListingActions({
           ? "해제하면 즉시 목록에 다시 노출되고, 누적 신고 수는 0으로 초기화돼요."
           : "신고 내용을 확인한 뒤 필요하면 직접 숨길 수 있어요."}
       </span>
-      {error && <span className="text-[11px] font-bold text-[#f2c94c]">{error}</span>}
+      {error && <span className="text-[12px] font-bold text-[#f2c94c]">{error}</span>}
     </div>
   );
 }

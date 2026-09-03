@@ -80,7 +80,7 @@ export function CancelPaymentButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="btn-soft btn-sm rounded-lg px-2.5 py-1 text-[11px] font-bold text-danger"
+          className="btn-soft btn-sm rounded-lg px-2.5 py-1 text-[12px] font-bold text-danger"
         >
           환불
         </button>
@@ -139,7 +139,7 @@ export function CancelPaymentButton({
           type="button"
           onClick={() => void run()}
           disabled={busy || !valid}
-          className="btn-soft btn-sm flex-1 rounded-md px-2 py-1 text-[11px] font-bold text-danger disabled:opacity-50"
+          className="btn-soft btn-sm flex-1 rounded-md px-2 py-1 text-[12px] font-bold text-danger disabled:opacity-50"
         >
           {busy
             ? "처리 중…"
@@ -153,7 +153,7 @@ export function CancelPaymentButton({
             setOpen(false);
             setError(null);
           }}
-          className="btn-soft btn-sm rounded-md px-2 py-1 text-[11px] font-bold"
+          className="btn-soft btn-sm rounded-md px-2 py-1 text-[12px] font-bold"
         >
           닫기
         </button>

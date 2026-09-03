@@ -54,7 +54,7 @@ export default async function AdminMarketPage() {
       <div className="rise-in text-[19px] font-extrabold text-white">
         마켓·정산 / 공지·배너 관리
       </div>
-      <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
+      <div className="rise-in -mt-2 mb-1 text-[12px] text-[#9aa6b8]">
         정산 수치는 조작하지 않아요 — 결제·정산 연동 전까지 실 의뢰·전문가·배너만 노출합니다.
       </div>
 
@@ -63,7 +63,7 @@ export default async function AdminMarketPage() {
         <div className={panelCard}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">마켓 · 정산</span>
-            <span className="text-[11px] text-[#9aa6b8]">실 의뢰 집계</span>
+            <span className="text-[12px] text-[#9aa6b8]">실 의뢰 집계</span>
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {stats.map((s) => (
@@ -72,7 +72,7 @@ export default async function AdminMarketPage() {
                 className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.05)] p-3"
               >
                 <div className="text-[10px] text-[#9aa6b8]">{s.label}</div>
-                <div className="text-lg font-extrabold" style={{ color: s.color }}>
+                <div className="text-[19px] font-extrabold" style={{ color: s.color }}>
                   {s.value}
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default async function AdminMarketPage() {
               전문가 정산(GMV·수수료){" "}
               <span className="text-[10px] font-medium text-[#9aa6b8]">준비 중</span>
             </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-[#9aa6b8]">
+            <p className="mt-1 text-[12px] leading-relaxed text-[#9aa6b8]">
               전문가 리포트·상담 결제와 정산 파이프라인(PG) 연동 후, 실 판매액·수수료·지급
               대기를 이 자리에서 집계합니다. 현재는 추정·예시 수치를 노출하지 않아요.
             </p>
@@ -94,17 +94,17 @@ export default async function AdminMarketPage() {
         <div className={panelCard}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">공지 · 배너 관리</span>
-            <span className="text-[11px] text-[#9aa6b8]">
+            <span className="text-[12px] text-[#9aa6b8]">
               활성 {banners.filter((b) => b.isActive).length} / 전체 {banners.length}
             </span>
           </div>
           {!bannersLoaded.ok ? (
-            <div className="rounded-xl border border-[rgba(255,120,120,.25)] bg-[rgba(255,120,120,.06)] p-4 text-[11px] text-[#f3b3b3]">
+            <div className="rounded-xl border border-[rgba(255,120,120,.25)] bg-[rgba(255,120,120,.06)] p-4 text-[12px] text-[#f3b3b3]">
               배너 목록을 지금 불러오지 못했습니다 — 없는 게 아니라 조회가 실패했습니다.
               잠시 후 새로고침해 주세요.
             </div>
           ) : banners.length === 0 ? (
-            <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4 text-[11px] text-[#9aa6b8]">
+            <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-4 text-[12px] text-[#9aa6b8]">
               설정된 배너가 없어요. 배너를 추가하면 홈·커뮤니티 등 지정 위치에 노출됩니다.
             </div>
           ) : (
@@ -119,7 +119,7 @@ export default async function AdminMarketPage() {
                     <div className="truncate text-xs font-extrabold text-white">
                       {b.title}{" "}
                       <span
-                        className={`text-[9px] font-extrabold ${
+                        className={`text-[10px] font-extrabold ${
                           b.isActive ? "text-ai-success" : "text-[#9aa6b8]"
                         }`}
                       >

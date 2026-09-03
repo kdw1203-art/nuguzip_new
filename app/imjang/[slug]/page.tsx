@@ -166,7 +166,7 @@ export default async function ImjangRegionPage({
                 <Link
                   prefetch={false}
                   href={`/search?q=${encodeURIComponent(c.name)}`}
-                  className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink no-underline hover:text-primary"
+                  className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink no-underline hover:text-primary"
                 >
                   {c.name}
                 </Link>
@@ -204,11 +204,11 @@ export default async function ImjangRegionPage({
       <section className="mb-6">
         <h2 className="mb-1 text-[15px] font-extrabold text-ink">이 지역을 다녀온 기록</h2>
         {notesFailed ? (
-          <p className="text-[12.5px] text-text-2">
+          <p className="text-[13px] text-text-2">
             공개 노트를 지금 불러오지 못했어요 — 없는 게 아니라 조회가 실패했다는 뜻이에요.
           </p>
         ) : regionNotes.length === 0 ? (
-          <p className="text-[12.5px] leading-[1.65] text-text-2">
+          <p className="text-[13px] leading-[1.65] text-text-2">
             아직 이 지역의 공개 임장노트가 없어요 —{" "}
             <Link href="/notes/new" className="font-bold text-primary underline">
               첫 기록의 주인공
@@ -230,7 +230,7 @@ export default async function ImjangRegionPage({
                     <span className="block truncate text-[13px] font-extrabold text-ink">
                       {n.title}
                     </span>
-                    <span className="mt-0.5 block truncate text-[11.5px] text-text-3">
+                    <span className="mt-0.5 block truncate text-[12px] text-text-3">
                       {[n.aptName, n.region].filter(Boolean).join(" · ")}
                     </span>
                   </span>
@@ -256,26 +256,26 @@ export default async function ImjangRegionPage({
         <Link
           prefetch={false}
           href={`/map?q=${encodeURIComponent(region.name)}`}
-          className="chip bg-surface px-3.5 py-2.5 text-[12.5px] font-bold text-text-2 shadow-sm no-underline"
+          className="chip bg-surface px-3.5 py-2.5 text-[13px] font-bold text-text-2 shadow-sm no-underline"
         >
           지도에서 보기
         </Link>
         <Link
           prefetch={false}
           href={`/tx/${encodeURIComponent(region.slug)}`}
-          className="chip bg-surface px-3.5 py-2.5 text-[12.5px] font-bold text-text-2 shadow-sm no-underline"
+          className="chip bg-surface px-3.5 py-2.5 text-[13px] font-bold text-text-2 shadow-sm no-underline"
         >
           면적대·가격대 실거래 자세히
         </Link>
-        <Link href="/notes/templates" className="chip bg-surface px-3.5 py-2.5 text-[12.5px] font-bold text-text-2 shadow-sm no-underline">
+        <Link href="/notes/templates" className="chip bg-surface px-3.5 py-2.5 text-[13px] font-bold text-text-2 shadow-sm no-underline">
           노트 템플릿
         </Link>
         {/* 크루 회로(전략 §5) — 혼자 갈 것 없다, 모임으로 잇는다 */}
-        <Link href="/town/groups" className="chip bg-surface px-3.5 py-2.5 text-[12.5px] font-bold text-text-2 shadow-sm no-underline">
+        <Link href="/town/groups" className="chip bg-surface px-3.5 py-2.5 text-[13px] font-bold text-text-2 shadow-sm no-underline">
           함께 갈 사람 찾기
         </Link>
       </section>
-      <p className="text-[11px] leading-[1.6] text-text-3">
+      <p className="text-[12px] leading-[1.6] text-text-3">
         실거래 수치는 국토교통부 신고 기준(해제분 제외)이며 매물 호가가 아닙니다.
         면적대 구간에 정리된 건수라 지역 전체 신고분과 다를 수 있습니다.
       </p>

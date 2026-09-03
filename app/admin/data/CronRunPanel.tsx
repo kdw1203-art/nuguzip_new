@@ -285,7 +285,7 @@ export function CronRunPanel() {
         return (
           <div key={g.key} className="flex flex-col gap-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-[11.5px] font-extrabold text-white">{g.key}</span>
+              <span className="text-[12px] font-extrabold text-white">{g.key}</span>
               <span
                 className={`text-[10px] ${g.key === "알림" ? "text-[#f2c94c]" : "text-[#9aa6b8]"}`}
               >
@@ -302,9 +302,9 @@ export function CronRunPanel() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[12.5px] font-bold text-white">{job.label}</span>
+                      <span className="text-[13px] font-bold text-white">{job.label}</span>
                       <span
-                        className={`rounded px-1.5 py-px text-[9px] font-bold ${
+                        className={`rounded px-1.5 py-px text-[10px] font-bold ${
                           job.schedule === "수동 전용"
                             ? "bg-[rgba(154,166,184,.14)] text-[#9aa6b8]"
                             : "bg-[rgba(126,162,255,.14)] text-ai-accent"
@@ -313,17 +313,17 @@ export function CronRunPanel() {
                         {job.schedule}
                       </span>
                       {job.needsKey && (
-                        <span className="rounded bg-[rgba(242,201,76,.14)] px-1.5 py-px text-[9px] font-bold text-[#f2c94c]">
+                        <span className="rounded bg-[rgba(242,201,76,.14)] px-1.5 py-px text-[10px] font-bold text-[#f2c94c]">
                           키 필요
                         </span>
                       )}
                       {job.sends && (
-                        <span className="rounded bg-[rgba(248,113,113,.14)] px-1.5 py-px text-[9px] font-bold text-ai-danger">
+                        <span className="rounded bg-[rgba(248,113,113,.14)] px-1.5 py-px text-[10px] font-bold text-ai-danger">
                           발송
                         </span>
                       )}
                     </div>
-                    <div className="truncate text-[10.5px] text-[#9aa6b8]">
+                    <div className="truncate text-[10px] text-[#9aa6b8]">
                       {st.text ?? job.hint}
                     </div>
                   </div>
@@ -331,7 +331,7 @@ export function CronRunPanel() {
                     type="button"
                     onClick={() => run(job)}
                     disabled={st.status === "busy"}
-                    className={`shrink-0 rounded-lg px-3 py-1.5 text-[11.5px] font-bold disabled:opacity-50 ${
+                    className={`shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-50 ${
                       armed
                         ? job.sends
                           ? "bg-ai-danger text-[#0e1320]"

@@ -124,7 +124,7 @@ export function ProjectDetailPanel({
                   {s.order}단계
                 </span>
                 <span
-                  className={`text-[11.5px] font-extrabold leading-[1.35] ${
+                  className={`text-[12px] font-extrabold leading-[1.35] ${
                     state === "now"
                       ? "text-primary"
                       : state === "past"

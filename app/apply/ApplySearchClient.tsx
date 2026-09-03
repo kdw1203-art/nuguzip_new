@@ -157,7 +157,7 @@ function StatusChip({ period }: { period?: string }) {
   if (!st) return null;
   return (
     <span
-      className={`ml-1.5 inline-block rounded-md px-1.5 py-0.5 align-middle text-[9.5px] font-extrabold ${st.cls}`}
+      className={`ml-1.5 inline-block rounded-md px-1.5 py-0.5 align-middle text-[10px] font-extrabold ${st.cls}`}
     >
       {st.label}
     </span>
@@ -283,8 +283,8 @@ export function ApplySearchClient({ initial }: Props) {
 
   const sortPill = (on: boolean) =>
     on
-      ? "press rounded-full bg-brand-navy px-3 py-1.5 text-[11px] font-bold text-surface"
-      : "press glass rounded-full px-3 py-1.5 text-[11px] font-semibold text-text-2";
+      ? "press rounded-full bg-brand-navy px-3 py-1.5 text-[12px] font-bold text-surface"
+      : "press glass rounded-full px-3 py-1.5 text-[12px] font-semibold text-text-2";
 
   return (
     <div className="flex flex-col gap-3">

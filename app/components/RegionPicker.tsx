@@ -218,7 +218,7 @@ export function RegionPicker({
           aria-expanded={open && list.length > 0}
           aria-controls={`${inputId}-listbox`}
           aria-autocomplete="list"
-          className="w-full rounded-[10px] border border-line bg-surface px-4 py-2.5 text-sm text-ink outline-none focus:border-primary"
+          className="w-full rounded-[10px] border border-line bg-surface px-4 py-2.5 text-[13px] text-ink outline-none focus:border-primary"
         />
         {open && query.trim() !== "" && (
           <div
@@ -254,7 +254,7 @@ export function RegionPicker({
                     setOpen(false);
                   }}
                   disabled={!active && full}
-                  className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm disabled:opacity-40 ${
+                  className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] disabled:opacity-40 ${
                     i === cursor ? "bg-primary-soft" : "bg-transparent"
                   }`}
                 >
@@ -262,7 +262,7 @@ export function RegionPicker({
                     {active ? "✓ " : ""}
                     {it.name}
                   </span>
-                  <span className="text-[11px] text-text-3">{it.sido}</span>
+                  <span className="text-[12px] text-text-3">{it.sido}</span>
                 </button>
               );
             })}

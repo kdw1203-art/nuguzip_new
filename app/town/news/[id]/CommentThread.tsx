@@ -95,7 +95,7 @@ export function CommentThread({
   return (
     <div className="flex flex-col gap-3">
       {error && (
-        <p role="alert" className="text-[11px] font-bold text-danger">
+        <p role="alert" className="text-[12px] font-bold text-danger">
           {error}
         </p>
       )}
@@ -162,7 +162,7 @@ function CommentRow({
             <button
               type="button"
               onClick={onReply}
-              className="text-[11px] font-bold text-text-3"
+              className="text-[12px] font-bold text-text-3"
             >
               {replying ? "답글 닫기" : "답글"}
             </button>
@@ -172,7 +172,7 @@ function CommentRow({
               type="button"
               onClick={onAdopt}
               disabled={busy}
-              className="text-[11px] font-bold text-primary disabled:opacity-50"
+              className="text-[12px] font-bold text-primary disabled:opacity-50"
             >
               {busy ? "채택 중…" : "채택하기 (+30P)"}
             </button>

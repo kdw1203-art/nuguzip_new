@@ -119,20 +119,20 @@ export default async function ReportDetailPage({
                 {r.region}
               </span>
             )}
-            <span className="ml-auto text-[11px] text-text-3">
+            <span className="ml-auto text-[12px] text-text-3">
               {r.authorLabel?.trim() || "내집나우 크리에이터"}
             </span>
           </div>
 
-          <h1 className="text-[20px] font-extrabold leading-[1.4] text-ink">{r.title}</h1>
+          <h1 className="text-[19px] font-extrabold leading-[1.4] text-ink">{r.title}</h1>
           {r.subtitle && (
-            <p className="text-[13.5px] leading-[1.7] text-text-2">{r.subtitle}</p>
+            <p className="text-[13px] leading-[1.7] text-text-2">{r.subtitle}</p>
           )}
 
           {r.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {r.tags.map((t) => (
-                <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[11px] text-text-2">
+                <span key={t} className="rounded-full bg-bg px-2.5 py-1 text-[12px] text-text-2">
                   #{t}
                 </span>
               ))}
@@ -143,7 +143,7 @@ export default async function ReportDetailPage({
             <div className="flex flex-col gap-1.5 rounded-2xl bg-bg p-4">
               <div className="text-[12px] font-extrabold text-ink">목차</div>
               {r.tableOfContents.map((t, i) => (
-                <div key={i} className="text-[12.5px] text-text-1">
+                <div key={i} className="text-[13px] text-text-1">
                   {i + 1}. {t}
                 </div>
               ))}
@@ -164,7 +164,7 @@ export default async function ReportDetailPage({
           <div className="border-t border-line pt-4">
             {canRead && noteHref ? (
               <div className="flex flex-col gap-2">
-                <Link href={noteHref} className="btn-primary rounded-xl p-3.5 text-center text-[14px] no-underline">
+                <Link href={noteHref} className="btn-primary rounded-xl p-3.5 text-center text-[13px] no-underline">
                   {isOwner ? "내 노트 열람 (판매 중)" : "구매 완료 — 노트 전문 열람"}
                 </Link>
                 {!isOwner && (
@@ -178,7 +178,7 @@ export default async function ReportDetailPage({
                  예전엔 price>0 게이트에 걸려 "열람 준비 중"이 나갔다(있는 무료
                  자료를 못 여는 화면). 바로 열람으로 잇는다. */
               <div className="flex flex-col gap-2">
-                <Link href={noteHref} className="btn-primary rounded-xl p-3.5 text-center text-[14px] no-underline">
+                <Link href={noteHref} className="btn-primary rounded-xl p-3.5 text-center text-[13px] no-underline">
                   무료 열람 — 노트 전문 보기
                 </Link>
                 <p className="text-center text-[10px] text-text-3">

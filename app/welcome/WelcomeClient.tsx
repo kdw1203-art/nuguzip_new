@@ -228,7 +228,7 @@ export function WelcomeClient() {
 
       {step === 0 && (
         <>
-          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
             어느 동네가
             <br />
             궁금하세요?
@@ -249,7 +249,7 @@ export function WelcomeClient() {
             type="button"
             onClick={nextFromStep1}
             disabled={regions.length === 0}
-            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
           >
             {regions.length > 0 ? `${regions.length}곳 선택 · 다음` : "지역을 선택해 주세요"}
           </button>
@@ -258,7 +258,7 @@ export function WelcomeClient() {
 
       {step === 1 && (
         <>
-          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
             예산대는
             <br />
             어느 정도인가요?
@@ -275,7 +275,7 @@ export function WelcomeClient() {
                 type="button"
                 onClick={() => pickBudgetType(t)}
                 aria-pressed={budgetType === t}
-                className={`flex-1 rounded-xl py-2.5 text-[14px] font-bold transition ${
+                className={`flex-1 rounded-xl py-2.5 text-[13px] font-bold transition ${
                   budgetType === t ? "bg-surface text-primary shadow-sm" : "text-text-3"
                 }`}
               >
@@ -294,7 +294,7 @@ export function WelcomeClient() {
                   type="button"
                   onClick={() => setBudgetBandId(b.id)}
                   aria-pressed={active}
-                  className={`rounded-2xl px-3 py-3.5 text-center text-sm transition ${
+                  className={`rounded-2xl px-3 py-3.5 text-center text-[13px] transition ${
                     active
                       ? "bg-primary-soft font-bold text-primary"
                       : "border border-line bg-surface text-text-2"
@@ -312,7 +312,7 @@ export function WelcomeClient() {
             type="button"
             onClick={nextFromStep2}
             disabled={!budgetBandId}
-            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
           >
             {budgetBandId ? "다음" : "예산대를 선택해 주세요"}
           </button>
@@ -321,7 +321,7 @@ export function WelcomeClient() {
 
       {step === 2 && (
         <>
-          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
             어떤 목적으로
             <br />
             찾고 계세요?
@@ -345,7 +345,7 @@ export function WelcomeClient() {
                       : "border border-line bg-surface"
                   }`}
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 text-lg">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 text-[19px]">
                     <Icon name={o.emoji} size={22} />
                   </span>
                   <span className="flex flex-col">
@@ -365,14 +365,14 @@ export function WelcomeClient() {
           {/* 선택 요약 */}
           {regions.length > 0 && (
             <div className="rise-in-2 flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 text-[11px] text-text-3">
+              <span className="inline-flex items-center gap-1 text-[12px] text-text-3">
                 <Icon name="📍" size={12} />
                 관심지역
               </span>
               {regions.map((r) => (
                 <span
                   key={r}
-                  className="rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-bold text-primary"
+                  className="rounded-full bg-primary-soft px-2.5 py-1 text-[12px] font-bold text-primary"
                 >
                   {r}
                 </span>
@@ -385,7 +385,7 @@ export function WelcomeClient() {
             type="button"
             onClick={nextFromStep3}
             disabled={!purpose}
-            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
           >
             {purpose ? "다음" : "목적을 선택해 주세요"}
           </button>
@@ -394,7 +394,7 @@ export function WelcomeClient() {
 
       {step === 3 && (
         <>
-          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
             어떤 임장러에
             <br />
             가까우세요?
@@ -419,7 +419,7 @@ export function WelcomeClient() {
                       : "border border-line bg-surface"
                   }`}
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-lg">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-[19px]">
                     {o.glyph}
                   </span>
                   <span className="flex flex-col">
@@ -440,7 +440,7 @@ export function WelcomeClient() {
           <button
             type="button"
             onClick={nextFromStep4}
-            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base"
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-[15px]"
           >
             {persona ? "다음" : "건너뛰고 다음"}
           </button>
@@ -449,7 +449,7 @@ export function WelcomeClient() {
 
       {step === 4 && (
         <>
-          <h1 className="rise-in text-[22px] font-extrabold leading-[1.35] text-ink">
+          <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
             맞춤에 쓸
             <br />
             기본 정보예요
@@ -496,7 +496,7 @@ export function WelcomeClient() {
             type="button"
             onClick={finish}
             disabled={busy || !purpose}
-            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-base disabled:opacity-60"
+            className="btn-primary btn-cta rise-in-3 rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
           >
             {busy ? "저장 중…" : "완료하고 첫 임장노트 써보기"}
           </button>

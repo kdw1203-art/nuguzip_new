@@ -56,7 +56,7 @@ export default async function AdminBannersPage() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-col gap-1">
         <h1 className="text-[19px] font-extrabold text-[#e8edf6]">배너 · 하우스광고</h1>
-        <p className="text-[12.5px] leading-relaxed text-[#9aa6b8]">
+        <p className="text-[13px] leading-relaxed text-[#9aa6b8]">
           등록 {withState.length}건 · 지금 노출 중 {liveCount}건. 노출 중인 배너가 없는
           위치에는 아래 하우스 광고가 대신 나갑니다.
         </p>
@@ -65,10 +65,10 @@ export default async function AdminBannersPage() {
       <BannersClient initial={withState} />
 
       <section className="flex flex-col gap-2 rounded-[20px] border border-[#243049] bg-[#141b2b] p-5">
-        <h2 className="text-[14px] font-extrabold text-[#e8edf6]">
+        <h2 className="text-[13px] font-extrabold text-[#e8edf6]">
           하우스 광고 (배너 없을 때 대체 노출)
         </h2>
-        <p className="text-[11.5px] leading-relaxed text-[#8d99ab]">
+        <p className="text-[12px] leading-relaxed text-[#8d99ab]">
           코드에 고정된 내부 안내입니다. 외부 광고 계정 없이 나가며, 문구는
           제품에서 확인 가능한 사실만 씁니다. 수정은 lib/ads/house-ads.ts 에서 합니다.
         </p>
@@ -78,9 +78,9 @@ export default async function AdminBannersPage() {
               key={ad.id}
               className="flex flex-col gap-0.5 rounded-xl border border-[#243049] px-3.5 py-2.5"
             >
-              <span className="text-[12.5px] font-bold text-[#dbe3f0]">{ad.title}</span>
-              <span className="text-[11px] text-[#8d99ab]">{ad.body}</span>
-              <span className="text-[11px] font-semibold text-ai-accent">
+              <span className="text-[13px] font-bold text-[#dbe3f0]">{ad.title}</span>
+              <span className="text-[12px] text-[#8d99ab]">{ad.body}</span>
+              <span className="text-[12px] font-semibold text-ai-accent">
                 {ad.ctaLabel} → {ad.href}
               </span>
             </li>

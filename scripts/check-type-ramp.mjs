@@ -21,7 +21,8 @@ import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
 const BASELINE = join(ROOT, "scripts", "type-ramp-baseline.json");
-const RAMP = new Set([9, 11, 13, 15, 19, 21, 24, 28]);
+/* [957] sub 11→12 · caption 9→10 (app/globals.css --fs-* 와 동기) */
+const RAMP = new Set([10, 12, 13, 15, 19, 21, 24, 28]);
 
 /* Tailwind 기본 스케일 → px. 램프에 있는 값(text-2xl=24)은 통과한다. */
 const TW = {
@@ -117,7 +118,7 @@ const mode = process.argv.includes("--report")
 if (mode === "report") {
   const rows = Object.entries(current).sort((a, b) => b[1] - a[1]);
   console.log(`[check-type-ramp] 램프 이탈 ${total}곳 · 파일 ${rows.length}개`);
-  console.log(`[check-type-ramp] 램프: 9 · 11 · 13 · 15 · 19 · 21 · 24 · 28 px`);
+  console.log(`[check-type-ramp] 램프: 10 · 12 · 13 · 15 · 19 · 21 · 24 · 28 px`);
   for (const [f, n] of rows.slice(0, 30)) console.log(`  ${String(n).padStart(4)}  ${f}`);
   if (rows.length > 30) console.log(`  … 외 ${rows.length - 30}개 파일`);
   process.exit(0);
@@ -156,7 +157,7 @@ for (const f of Object.keys(baseline)) {
 
 if (grew.length) {
   console.error("[check-type-ramp] 타입 램프 이탈이 늘었습니다.");
-  console.error("  램프: 9 · 11 · 13 · 15 · 19 · 21 · 24 px (유틸: t-caption·t-sub·t-body·t-section·t-title·t-display)");
+  console.error("  램프: 10 · 12 · 13 · 15 · 19 · 21 · 24 · 28 px (유틸: t-caption·t-sub·t-body·t-section·t-title·t-display)");
   for (const g of grew) {
     console.error(`  ✗ ${g.f} — ${g.b} → ${g.n}`);
     const hits = offRampHits(readFileSync(join(ROOT, g.f), "utf8"), g.f.endsWith(".css"));

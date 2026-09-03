@@ -98,7 +98,7 @@ export default async function ReportsIndexPage() {
       )}
       <div className="mx-auto max-w-[760px]">
         <h1 className="rise-in text-[24px] font-extrabold text-ink">월간 아파트 실거래 리포트</h1>
-        <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-2">
+        <p className="rise-in-1 mt-2 text-[13px] leading-[1.7] text-text-2">
           국토교통부 실거래 신고 집계에서 매월 자동으로 만들어지는 리포트입니다.
           사람이 쓰는 시황 글이 아니라 데이터 요약이며, 모든 수치는{" "}
           <Link href="/methodology" className="font-bold text-primary underline">
@@ -182,7 +182,7 @@ export default async function ReportsIndexPage() {
             하나라도 있어야 목록에 나온다. 절반만 모인 계절은 만들지 않는다. */}
         {seasons.length > 0 && (
           <section className="rise-in-4 mt-8">
-            <h2 className="text-[17px] font-extrabold text-ink">이사철 통념 검증 리포트</h2>
+            <h2 className="text-[15px] font-extrabold text-ink">이사철 통념 검증 리포트</h2>
             <p className="mt-1.5 text-[13px] leading-[1.7] text-text-2">
               &ldquo;2~3월은 이사철이라 거래가 몰린다&rdquo; 같은 말을 실거래 신고 집계로
               확인합니다. 같은 해 다른 달과 <strong className="text-ink">같은 지역끼리만</strong>{" "}

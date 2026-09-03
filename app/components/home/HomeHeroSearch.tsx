@@ -210,7 +210,7 @@ export function HomeHeroSearch({ regionChips = [] }: { regionChips?: HeroRegionC
                   {it.title}
                 </span>
                 {it.meta && (
-                  <span className="shrink-0 text-[11px] text-text-3">{it.meta}</span>
+                  <span className="shrink-0 text-[12px] text-text-3">{it.meta}</span>
                 )}
               </button>
             ))}
@@ -251,7 +251,7 @@ export function HomeHeroSearch({ regionChips = [] }: { regionChips?: HeroRegionC
             <>
               {/* [950] "열린 지역 · 수요 순 확장 중" 은 전국 218개 시군구를 다루는 지금과
                   맞지 않는 문구였다. 바로 눌러 볼 수 있는 지역(시세 카드와 같은 곳)만 보인다. */}
-              <span className="text-[11px] font-semibold text-text-3">바로 보기</span>
+              <span className="text-[12px] font-semibold text-text-3">바로 보기</span>
               {regionChips.map((r) => (
                 <button
                   key={r.label}

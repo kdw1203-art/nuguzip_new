@@ -137,7 +137,7 @@ export function PostActions({
   return (
     <div className="mb-4 flex flex-wrap items-center justify-end gap-2 text-[13px]">
       {error && (
-        <span className="text-[11px] font-bold text-danger">{error}</span>
+        <span className="text-[12px] font-bold text-danger">{error}</span>
       )}
       <button
         type="button"
@@ -325,12 +325,12 @@ export function CommentForm({
         </button>
       </div>
       {error && (
-        <p role="alert" className="px-1 text-[11px] font-bold text-danger">
+        <p role="alert" className="px-1 text-[12px] font-bold text-danger">
           {error}
         </p>
       )}
       {earned > 0 && (
-        <p className="px-1 text-[11px] font-bold text-success">
+        <p className="px-1 text-[12px] font-bold text-success">
           댓글 적립 +{earned}P — 포인트 내역에서 확인할 수 있어요
         </p>
       )}

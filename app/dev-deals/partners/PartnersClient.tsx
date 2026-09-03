@@ -29,7 +29,7 @@ function PartnerCard({ p }: { p: DevPartner }) {
     <div className="card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="rounded-full bg-primary-soft chip-pad text-[11px] font-semibold text-primary">
+          <span className="rounded-full bg-primary-soft chip-pad text-[12px] font-semibold text-primary">
             {p.partnerType}
           </span>
           {p.isVerified && (
@@ -51,8 +51,8 @@ function PartnerCard({ p }: { p: DevPartner }) {
         </div>
       </div>
 
-      <div className="mt-2 text-[14px] font-extrabold text-ink">{p.companyName}</div>
-      <div className="mt-0.5 text-[11px] text-text-3">{p.region ?? "지역 전국·협의"}</div>
+      <div className="mt-2 text-[13px] font-extrabold text-ink">{p.companyName}</div>
+      <div className="mt-0.5 text-[12px] text-text-3">{p.region ?? "지역 전국·협의"}</div>
 
       {p.intro && (
         <p className="mt-2 line-clamp-3 text-[12px] leading-[1.6] text-text-2">
@@ -73,7 +73,7 @@ function PartnerCard({ p }: { p: DevPartner }) {
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between text-[11px] text-text-3">
+      <div className="mt-3 flex items-center justify-between text-[12px] text-text-3">
         <span>연락처 {p.contactMasked ?? "문의 시 공개"}</span>
         {p.portfolioUrl && (
           <a
@@ -143,7 +143,7 @@ export function PartnersClient({
       </section>
 
       {truncated && (
-        <p className="rise-in-1 mb-3 text-[11px] leading-[1.6] text-text-3">
+        <p className="rise-in-1 mb-3 text-[12px] leading-[1.6] text-text-3">
           등록 업체가 조회 상한에 도달해 일부가 잘렸을 수 있어요 — 유형별 수가
           실제보다 적게 보일 수 있습니다.
         </p>

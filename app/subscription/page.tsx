@@ -101,7 +101,7 @@ const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; pr
 function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
     <span
-      className={`rounded-full bg-brand-navy chip-pad text-[9px] font-extrabold ${
+      className={`rounded-full bg-brand-navy chip-pad text-[10px] font-extrabold ${
         tier === "plus" ? "text-ai-accent" : "text-brand-red-dark"
       }`}
     >

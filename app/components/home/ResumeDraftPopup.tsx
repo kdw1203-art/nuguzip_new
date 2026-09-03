@@ -68,7 +68,7 @@ export function ResumeDraftPopup() {
           <span className="block text-[13px] font-extrabold leading-tight text-ink">
             작성 중인 노트 이어서 쓰기
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-text-3">
+          <span className="mt-0.5 block truncate text-[12px] text-text-3">
             {[where, ago ? `${ago} 저장됨` : null].filter(Boolean).join(" · ") ||
               "임시저장된 노트가 있어요"}
           </span>

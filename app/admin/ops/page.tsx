@@ -149,13 +149,13 @@ export default async function AdminOpsPage() {
       {alerts.length > 0 && (
         <div className="rise-in-1 flex flex-col gap-2.5 rounded-[20px] border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-extrabold text-white">운영 경보 (7일)</span>
+            <span className="text-[13px] font-extrabold text-white">운영 경보 (7일)</span>
             {criticalAlerts.length > 0 && (
-              <span className="rounded-md bg-[rgba(255,107,107,.16)] px-2 py-0.5 text-[11px] font-extrabold text-ai-danger">
+              <span className="rounded-md bg-[rgba(255,107,107,.16)] px-2 py-0.5 text-[12px] font-extrabold text-ai-danger">
                 critical {criticalAlerts.length}종
               </span>
             )}
-            <span className="ml-auto text-[11px] text-ai-muted">
+            <span className="ml-auto text-[12px] text-ai-muted">
               ops.health_alert_log · 같은 검사끼리 접어서 표시
             </span>
           </div>
@@ -174,13 +174,13 @@ export default async function AdminOpsPage() {
                 >
                   {a.severity}
                 </span>
-                <span className="text-[12.5px] font-bold text-white">{a.checkName}</span>
-                <span className="text-[11px] text-ai-muted">{a.count}회</span>
+                <span className="text-[13px] font-bold text-white">{a.checkName}</span>
+                <span className="text-[12px] text-ai-muted">{a.count}회</span>
                 {a.ageHours != null && (
-                  <span className="text-[11px] text-ai-muted">지연 {Math.round(a.ageHours)}h</span>
+                  <span className="text-[12px] text-ai-muted">지연 {Math.round(a.ageHours)}h</span>
                 )}
                 {a.detail && (
-                  <span className="w-full truncate text-[11px] text-ai-muted">{a.detail}</span>
+                  <span className="w-full truncate text-[12px] text-ai-muted">{a.detail}</span>
                 )}
               </div>
             ))}
@@ -193,7 +193,7 @@ export default async function AdminOpsPage() {
         <div className="rise-in-1 rounded-2xl border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.02)] p-4">
           <div className="flex items-baseline justify-between">
             <span className="text-[15px] font-extrabold text-white">관리자 행위 기록</span>
-            <span className="text-[11px] text-[#9aa6b8]">admin_audit_log · 최근 15건</span>
+            <span className="text-[12px] text-[#9aa6b8]">admin_audit_log · 최근 15건</span>
           </div>
           <div className="mt-2">
             {audits.map((a) => (
@@ -201,18 +201,18 @@ export default async function AdminOpsPage() {
                 key={a.id}
                 className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-[rgba(255,255,255,.06)] py-1.5 last:border-0"
               >
-                <span className="text-[11px] text-[#9aa6b8]">
+                <span className="text-[12px] text-[#9aa6b8]">
                   {new Date(a.created_at).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <span className="text-[13px] font-bold text-white">{a.action}</span>
                 {a.target_type && (
-                  <span className="text-[11px] text-[#9aa6b8]">
+                  <span className="text-[12px] text-[#9aa6b8]">
                     {a.target_type}
                     {a.target_id ? ` #${String(a.target_id).slice(0, 8)}` : ""}
                   </span>
                 )}
-                <span className="text-[11px] text-[#9aa6b8]">{a.actor_email}</span>
-                {a.note && <span className="w-full truncate text-[11px] text-[#9aa6b8]">{a.note}</span>}
+                <span className="text-[12px] text-[#9aa6b8]">{a.actor_email}</span>
+                {a.note && <span className="w-full truncate text-[12px] text-[#9aa6b8]">{a.note}</span>}
               </div>
             ))}
           </div>
@@ -225,7 +225,7 @@ export default async function AdminOpsPage() {
           {/* 공지·배너 스케줄러 */}
           <div className={darkCard}>
             <div className="flex items-center justify-between">
-              <span className="text-sm font-extrabold text-white">
+              <span className="text-[13px] font-extrabold text-white">
                 공지·배너 스케줄러
               </span>
               {/* 2026-07-27: async 서버 컴포넌트 안의 <button> 이라 onClick 을 붙일 수
@@ -233,12 +233,12 @@ export default async function AdminOpsPage() {
                   /admin/banners 의 BannersClient 가 담당하므로 그리로 보낸다. */}
               <Link
                 href="/admin/banners"
-                className="rounded-[9px] bg-primary px-3.5 py-[7px] text-[11px] font-bold text-white no-underline"
+                className="rounded-[9px] bg-primary px-3.5 py-[7px] text-[12px] font-bold text-white no-underline"
               >
                 + 새 게시
               </Link>
             </div>
-            <div className="flex flex-col gap-[5px] text-[11px]">
+            <div className="flex flex-col gap-[5px] text-[12px]">
               {banners.length === 0 ? (
                 <div className="rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-4 text-center text-[10px] text-[#9aa6b8]">
                   설정된 공지·배너가 없어요 — 추가하면 지정 지면에 노출됩니다
@@ -250,7 +250,7 @@ export default async function AdminOpsPage() {
                     className="flex items-center gap-2.5 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
                   >
                     <span
-                      className={`rounded-md chip-pad text-[9px] font-extrabold ${
+                      className={`rounded-md chip-pad text-[10px] font-extrabold ${
                         b.isActive
                           ? "bg-success-soft text-success"
                           : "bg-[rgba(0,0,0,.06)] text-[#9aa6b8]"
@@ -277,12 +277,12 @@ export default async function AdminOpsPage() {
               조회 실패는 "에러 없음"으로 위장하지 않는다(ok=false 를 구분 표기). */}
           <div className={darkCard}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-extrabold text-white">최근 에러</span>
+              <span className="text-[13px] font-extrabold text-white">최근 에러</span>
               <span className="text-[10px] text-[#9aa6b8]">
                 {errors.ok ? `24시간 ${errors.total24h.toLocaleString("ko-KR")}건` : "조회 실패"}
               </span>
             </div>
-            <div className="flex flex-col gap-[5px] text-[11px]">
+            <div className="flex flex-col gap-[5px] text-[12px]">
               {!errors.ok ? (
                 <div className="rounded-[10px] bg-[rgba(242,201,76,.10)] px-3 py-3 text-[10px] text-[#e3b23c]">
                   에러 로그를 불러오지 못했어요 — 에러가 없는 것과 다릅니다. 서비스 역할 키 설정을 확인하세요.
@@ -298,7 +298,7 @@ export default async function AdminOpsPage() {
                     className="flex items-start gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2.5"
                   >
                     <span
-                      className={`mt-[1px] shrink-0 rounded-md chip-pad text-[9px] font-extrabold ${
+                      className={`mt-[1px] shrink-0 rounded-md chip-pad text-[10px] font-extrabold ${
                         e.count >= 10 ? "bg-[rgba(192,54,44,.18)] text-[#ff6f61]" : "bg-[rgba(255,255,255,.08)] text-[#9aa6b8]"
                       }`}
                     >
@@ -308,7 +308,7 @@ export default async function AdminOpsPage() {
                       <div className="truncate font-bold text-white" title={e.message}>
                         {e.message}
                       </div>
-                      <div className="truncate text-[9px] text-[#9aa6b8]">
+                      <div className="truncate text-[10px] text-[#9aa6b8]">
                         {[e.source, e.path].filter(Boolean).join(" · ") || "—"} · {e.lastSeen.slice(5, 16).replace("T", " ")}
                       </div>
                     </div>
@@ -321,14 +321,14 @@ export default async function AdminOpsPage() {
           {/* 운영 지표 */}
           <div className={darkCard}>
             <div className="flex items-baseline justify-between">
-              <span className="text-sm font-extrabold text-white">운영 지표</span>
+              <span className="text-[13px] font-extrabold text-white">운영 지표</span>
               <span className="text-[10px] text-[#9aa6b8]">실집계</span>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {weekly.map((m) => (
                 <div key={m.label} className="rounded-xl bg-[rgba(255,255,255,.05)] p-3">
-                  <div className="text-[9px] text-[#9aa6b8]">{m.label}</div>
-                  <div className="text-[17px] font-extrabold tabular-nums text-white">
+                  <div className="text-[10px] text-[#9aa6b8]">{m.label}</div>
+                  <div className="text-[15px] font-extrabold tabular-nums text-white">
                     {m.value}
                   </div>
                 </div>
@@ -339,7 +339,7 @@ export default async function AdminOpsPage() {
                 <div className="min-w-0 text-[10px] font-extrabold text-[#9aa6b8]">
                   전환 퍼널: {funnelHeader}
                 </div>
-                <span className="shrink-0 text-[9px] text-[#9aa6b8]">
+                <span className="shrink-0 text-[10px] text-[#9aa6b8]">
                   가입 30일 기준
                 </span>
               </div>
@@ -355,7 +355,7 @@ export default async function AdminOpsPage() {
                           title={`${step.label} · ${step.count.toLocaleString(
                             "ko-KR",
                           )}명${pct != null ? ` · ${pct}%` : ""}`}
-                          className="flex h-[22px] items-center justify-center overflow-hidden rounded-md px-1 text-[9px] font-extrabold"
+                          className="flex h-[22px] items-center justify-center overflow-hidden rounded-md px-1 text-[10px] font-extrabold"
                           style={{
                             flex,
                             background: funnelBarColor(i),
@@ -367,7 +367,7 @@ export default async function AdminOpsPage() {
                       );
                     })}
                   </div>
-                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-[#9aa6b8]">
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#9aa6b8]">
                     {funnel.map((step) => (
                       <span key={step.label} className="tabular-nums">
                         {stripParen(step.label)}{" "}
@@ -378,7 +378,7 @@ export default async function AdminOpsPage() {
                     ))}
                   </div>
                   {maxDrop ? (
-                    <div className="text-[9px] text-[#9aa6b8]">
+                    <div className="text-[10px] text-[#9aa6b8]">
                       최대 이탈: {maxDrop.from} → {maxDrop.to} (−{maxDrop.pp}%p)
                     </div>
                   ) : null}
@@ -397,7 +397,7 @@ export default async function AdminOpsPage() {
           {/* RBAC */}
           <div className={darkCard}>
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-sm font-extrabold text-white">
+              <span className="text-[13px] font-extrabold text-white">
                 역할별 권한 (RBAC)
               </span>
               <span className="shrink-0 text-[10px] text-[#9aa6b8]">
@@ -460,16 +460,16 @@ export default async function AdminOpsPage() {
 
           {/* 약관 · 개인정보 버전 관리 */}
           <div className={darkCard}>
-            <div className="text-sm font-extrabold text-white">
+            <div className="text-[13px] font-extrabold text-white">
               약관 · 개인정보 버전 관리
             </div>
-            <div className="flex flex-col gap-[5px] text-[11px]">
+            <div className="flex flex-col gap-[5px] text-[12px]">
               <a
                 href="/legal/terms"
                 className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
                 <span className="text-[#c9d2e0]">이용약관 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-success-soft chip-pad text-[9px] font-extrabold text-success">
+                <span className="flex-shrink-0 rounded-md bg-success-soft chip-pad text-[10px] font-extrabold text-success">
                   보기
                 </span>
               </a>
@@ -478,7 +478,7 @@ export default async function AdminOpsPage() {
                 className="flex items-center justify-between gap-2 rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-[9px] no-underline"
               >
                 <span className="text-[#c9d2e0]">개인정보처리방침 (현행)</span>
-                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] chip-pad text-[9px] font-extrabold text-ai-accent">
+                <span className="flex-shrink-0 rounded-md bg-[rgba(126,162,255,.14)] chip-pad text-[10px] font-extrabold text-ai-accent">
                   보기
                 </span>
               </a>

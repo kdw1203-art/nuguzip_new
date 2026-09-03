@@ -266,10 +266,10 @@ export function HomeMiniMap({
         <Icon name="🗺" size={16} /> 지도를 불러오지 못했어요
       </p>
       <div className="mt-0.5 flex items-center gap-2">
-        <Link href="/welcome" className="btn-soft px-3 py-1.5 text-[11px]">
+        <Link href="/welcome" className="btn-soft px-3 py-1.5 text-[12px]">
           {focus.regionLabel ? "관심지역 수정" : "관심지역 설정"}
         </Link>
-        <Link href={mapHref(focus.regionQuery ?? focus.regionLabel, focus.regionQuery ? focus.center : null)} className="btn-soft px-3 py-1.5 text-[11px]">
+        <Link href={mapHref(focus.regionQuery ?? focus.regionLabel, focus.regionQuery ? focus.center : null)} className="btn-soft px-3 py-1.5 text-[12px]">
           지도 다시 열기 ›
         </Link>
       </div>
@@ -321,7 +321,7 @@ export function HomeMiniMap({
       {/* 상단 좌: 관심지역 배지 */}
       {!fallbackActive && (
       <div className="pointer-events-none absolute left-3.5 top-3.5 z-10">
-        <span className="glass inline-flex items-center gap-1 rounded-full px-3 py-[6px] text-[11px] font-extrabold text-ink shadow-sm">
+        <span className="glass inline-flex items-center gap-1 rounded-full px-3 py-[6px] text-[12px] font-extrabold text-ink shadow-sm">
           <Icon name="📍" size={12} />
           내 관심지역
           {focus.regionLabel ? (

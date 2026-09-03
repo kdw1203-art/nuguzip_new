@@ -83,7 +83,7 @@ export default async function ListingComparePage({
   return (
     <PageShell breadcrumb="홈 › 실매물 › 비교함">
       <div className="mb-4">
-        <h1 className="rise-in text-[22px] font-extrabold text-ink">매물 비교함</h1>
+        <h1 className="rise-in text-[21px] font-extrabold text-ink">매물 비교함</h1>
         <p className="mt-1 text-[13px] text-text-3">
           담은 매물의 가격·면적·층·시세대비·신선도·위치를 나란히 비교해요.
         </p>

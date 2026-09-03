@@ -38,7 +38,7 @@ export function SourceNote({
     );
   }
   return (
-    <p className="text-[11px] leading-[1.6] text-text-3">
+    <p className="text-[12px] leading-[1.6] text-text-3">
       {children}
       {link}
     </p>

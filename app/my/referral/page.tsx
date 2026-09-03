@@ -43,7 +43,7 @@ function GuestView() {
         <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
           <Icon name="gift" size={24} />
         </div>
-        <div className="text-base font-extrabold text-text-1">
+        <div className="text-[15px] font-extrabold text-text-1">
           친구를 초대하고 둘 다 300P 받으세요
         </div>
         <div className="text-xs leading-[1.6] text-text-3">
@@ -51,7 +51,7 @@ function GuestView() {
         </div>
         <Link
           href="/login?callbackUrl=/my/referral"
-          className="btn-primary press mt-3 rounded-[10px] px-6 py-2.5 text-sm no-underline"
+          className="btn-primary press mt-3 rounded-[10px] px-6 py-2.5 text-[13px] no-underline"
         >
           로그인하고 시작하기
         </Link>
@@ -94,7 +94,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
                 <Icon name={reached ? m.icon : "lock"} size={18} />
               </div>
               <div
-                className={`text-[11px] font-bold ${
+                className={`text-[12px] font-bold ${
                   reached ? "text-text-1" : "text-text-3"
                 }`}
               >

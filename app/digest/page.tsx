@@ -68,7 +68,7 @@ export default async function DigestPage() {
             title="주간 요약을 불러오지 못했어요"
             desc="데이터 조회가 실패했습니다. 이번 주에 소식이 없다는 뜻은 아니에요. 잠시 후 다시 열어봐 주세요."
             cause={cause ?? undefined}
-            action={{ label: "동네 이야기 보기", href: "/town" }}
+            action={{ label: "동네이야기 보기", href: "/town" }}
           />
         </div>
       </PageShell>
@@ -193,7 +193,7 @@ export default async function DigestPage() {
               </span>
               <span className="text-text-1">
                 {m.price}{" "}
-                <span className={`${deltaClass(m.tone)} text-[11px]`}>{m.delta}</span>
+                <span className={`${deltaClass(m.tone)} text-[12px]`}>{m.delta}</span>
               </span>
             </div>
           ))}
@@ -204,7 +204,7 @@ export default async function DigestPage() {
           <div className="flex items-center justify-between">
             <span className="text-xs font-extrabold text-ink">커뮤니티</span>
             <Link href="/town" className="t-sub font-extrabold text-primary">
-              동네 이야기 ›
+              동네이야기 ›
             </Link>
           </div>
           {failed.community ? (

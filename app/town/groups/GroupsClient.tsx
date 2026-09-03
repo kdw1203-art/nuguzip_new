@@ -400,7 +400,7 @@ export function GroupsClient({
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
             <Icon name="search" size={22} />
           </div>
-          <p className="text-sm font-bold text-ink">조건에 맞는 모임이 아직 없어요</p>
+          <p className="text-[13px] font-bold text-ink">조건에 맞는 모임이 아직 없어요</p>
           <p className="max-w-xs text-xs leading-[1.6] text-text-3">
             필터를 바꾸거나 직접 모임을 만들어 이웃을 모아보세요.
           </p>
@@ -433,7 +433,7 @@ export function GroupsClient({
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
                   <Icon name="users" size={22} />
                 </div>
-                <div className="text-sm font-bold text-text-1">지금 모집 중인 모임이 없어요</div>
+                <div className="text-[13px] font-bold text-text-1">지금 모집 중인 모임이 없어요</div>
                 <div className="max-w-xs text-xs leading-[1.6] text-text-3">
                   직접 모임을 만들어 이웃을 모아보세요.
                 </div>

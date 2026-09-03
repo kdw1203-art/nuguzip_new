@@ -79,7 +79,7 @@ export default async function NewsTagPage({
           ]),
         }}
       />
-      <h1 className="rise-in text-[22px] font-extrabold text-ink">{tag.label} 뉴스</h1>
+      <h1 className="rise-in text-[21px] font-extrabold text-ink">{tag.label} 뉴스</h1>
       <p className="rise-in-1 mt-1 max-w-[640px] text-[13px] leading-[1.7] text-text-2">
         {tag.label} 관련 보도를 매일 자동 수집해 같은 사건은 하나로 묶었습니다. 각 글에는
         출처와 원문 링크가 명시됩니다.
@@ -124,8 +124,8 @@ export default async function NewsTagPage({
                   href={`/town/news/${p.id}`}
                   className="flex flex-col gap-1 px-4 py-3.5 transition-colors hover:bg-bg"
                 >
-                  <span className="text-[14px] font-bold leading-[1.5] text-ink">{p.title}</span>
-                  <span className="text-[11px] text-text-3">
+                  <span className="text-[13px] font-bold leading-[1.5] text-ink">{p.title}</span>
+                  <span className="text-[12px] text-text-3">
                     {p.sourceName || "뉴스"} ·{" "}
                     {new Date(displayIso(p)).toLocaleDateString("ko-KR", {
                       month: "2-digit",

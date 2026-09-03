@@ -32,7 +32,7 @@ export default async function ListingNewPage() {
       <PageShell breadcrumb="실매물 › 매물 등록" title="매물 등록">
         <div className="mx-auto max-w-[520px]">
           <div className="rise-in card flex flex-col items-center gap-3 px-5 py-12 text-center">
-            <div className="text-[26px]"><Icon name="🏢" size={26} /></div>
+            <div className="text-[24px]"><Icon name="🏢" size={26} /></div>
             <div className="text-[15px] font-extrabold text-ink">
               매물 등록은 공인중개사 인증 후 이용할 수 있어요
             </div>
@@ -48,7 +48,7 @@ export default async function ListingNewPage() {
               마이로 돌아가기 ›
             </Link>
           </div>
-          <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+          <div className="mt-6 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
             중개 행위는 개업공인중개사가 수행하며, 내집나우는 광고 매체로서 정보를
             게재할 뿐 중개 당사자가 아닙니다.
           </div>
@@ -68,7 +68,7 @@ export default async function ListingNewPage() {
       <ListingForm />
 
       {/* 법적 고지 */}
-      <div className="mt-8 max-w-[640px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 max-w-[640px] rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         허위·과장 매물 등록 시 「공인중개사법」 등 관련 법령에 따라 제재를 받을 수
         있으며, 매물 정보의 정확성에 대한 책임은 등록자에게 있습니다. 내집나우의
         검수는 형식 요건 확인일 뿐 매물의 진위·권리관계를 보증하지 않습니다. 중개

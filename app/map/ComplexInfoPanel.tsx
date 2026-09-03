@@ -651,7 +651,7 @@ export function ComplexInfoPanel({
                 sub={`${region.district} · ㎡당 · ${region.period ? ymLabel(region.period) : "최근"} 기준`}
                 right={
                   <span
-                    className={`text-[18px] font-extrabold tabular-nums ${
+                    className={`text-[19px] font-extrabold tabular-nums ${
                       region.deltaPct >= 0 ? "text-primary" : "text-danger"
                     }`}
                   >
@@ -771,7 +771,7 @@ export function ComplexInfoPanel({
                   return (
                     <div
                       key={`${t.yyyymm}-${i}`}
-                      className={`flex items-center justify-between gap-2 px-3 py-2 text-[12.5px] ${
+                      className={`flex items-center justify-between gap-2 px-3 py-2 text-[13px] ${
                         i > 0 ? "border-t border-line" : ""
                       }`}
                     >

@@ -57,7 +57,7 @@ export async function RegionRelative({
         <div className="flex items-baseline gap-2">
           <span
             className={`font-extrabold tabular-nums ${higher ? "text-primary" : "text-text-2"} ${
-              compact ? "text-[20px]" : "text-[22px]"
+              compact ? "text-[19px]" : "text-[21px]"
             }`}
           >
             {higher ? "+" : ""}

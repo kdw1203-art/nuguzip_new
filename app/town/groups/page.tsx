@@ -6,6 +6,7 @@ import { CreateGroupCta } from "./CreateGroupCta";
 import { GroupsClient, type GroupView } from "./GroupsClient";
 import { Icon } from "@/app/components/Icon";
 import { TownCategoryNav } from "../TownCategoryNav";
+import { TownPageHead } from "../TownPageHead";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 
 /* 시안 6q(지역별 임장 모임 목록) 고도화 — meetings 실데이터 연동.
@@ -117,24 +118,19 @@ export default async function TownGroupsPage() {
       {/* 카테고리 줄 고정 — 여기서 바로 다른 카테고리로 넘어갈 수 있게 (뒤로가기 불필요) */}
       <TownCategoryNav stick />
       {/* ---------- 페이지 헤더 ---------- */}
-      <div className="rise-in mb-5 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="t-title text-ink">임장 모임</h1>
-          <p className="mt-1 t-body text-text-2">
-            같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요
-          </p>
-        </div>
-        <div className="shrink-0">
-          <CreateGroupCta />
-        </div>
-      </div>
+      <TownPageHead
+        href="/town/groups"
+        title="임장 모임"
+        sub="같은 단지를 함께 돌아볼 이웃을 찾아보세요 · 참여 확정 시 채팅방이 열려요"
+        action={<CreateGroupCta />}
+      />
 
       {loadFailed ? (
         <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
             <Icon name="warning" size={22} />
           </div>
-          <p className="text-sm font-bold text-ink">모임 목록을 불러오지 못했어요</p>
+          <p className="text-[13px] font-bold text-ink">모임 목록을 불러오지 못했어요</p>
           <p className="max-w-xs text-xs leading-[1.6] text-text-3">
             일시적인 오류예요. 모임이 없는 게 아니라, 지금 목록을 읽지 못한
             상태입니다. 잠시 뒤 새로고침해 주세요.

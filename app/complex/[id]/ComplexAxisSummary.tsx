@@ -62,7 +62,7 @@ export async function ComplexAxisSummary({
   return (
     <section aria-label="시장 축 요약" className="mt-4 rounded-2xl border border-line bg-surface p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-bold text-ink">시장 축 요약 — AI 워크벤치와 같은 근거</h2>
+        <h2 className="text-[13px] font-bold text-ink">시장 축 요약 — AI 워크벤치와 같은 근거</h2>
         <Link
           href={`/analysis/ai/ai-diagnosis?complexId=${encodeURIComponent(complexId)}`}
           className="shrink-0 text-xs font-semibold text-primary"
@@ -74,7 +74,7 @@ export async function ComplexAxisSummary({
         {cells.map((c) => (
           <div key={c.label} className="rounded-xl border border-line bg-bg p-2.5">
             <div className="t-caption font-bold uppercase tracking-wide text-text-3">{c.label}</div>
-            <div className="mt-0.5 text-lg font-extrabold text-ink tabular-nums">{c.value}</div>
+            <div className="mt-0.5 text-[19px] font-extrabold text-ink tabular-nums">{c.value}</div>
             <div className="t-caption text-text-3">{c.sub}</div>
           </div>
         ))}

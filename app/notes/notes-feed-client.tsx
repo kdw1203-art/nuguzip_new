@@ -186,7 +186,7 @@ function PostCard({ n }: { n: FeedNote }) {
           <div className="truncate t-sub text-text-3">{n.title}</div>
         </div>
         <span
-          className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+          className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-[12px] font-extrabold ${
             n.scoreTone === "primary"
               ? "bg-primary-soft text-primary"
               : "bg-[rgba(127,140,158,.12)] text-text-3"
@@ -338,7 +338,7 @@ export function NotesFeedClient({
           <h1 className="t-title text-ink md:t-title">
             {mine ? "내 임장노트" : "공개 임장노트"}
           </h1>
-          <p className="mt-1.5 text-sm text-text-2">
+          <p className="mt-1.5 text-[13px] text-text-2">
             {mine
               ? "내가 남긴 임장 기록 — 비공개 노트도 여기서만 보여요"
               : "이웃들의 실제 임장 기록 — 실회원 기록만 노출돼요"}
@@ -481,7 +481,7 @@ export function NotesFeedClient({
         <div className="rise-in-2 mx-auto flex w-full max-w-[468px] gap-2 md:hidden">
           <Link
             href="/notes/new"
-            className="btn-primary flex-1 rounded-2xl p-[15px] text-center text-base"
+            className="btn-primary flex-1 rounded-2xl p-[15px] text-center text-[15px]"
             style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
           >
             노트 쓰기

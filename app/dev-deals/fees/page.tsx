@@ -58,7 +58,7 @@ export default function DevFeesPage() {
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-soft text-[13px] font-extrabold text-primary">
               {s.n}
             </div>
-            <div className="mt-2 text-[14px] font-extrabold text-ink">{s.t}</div>
+            <div className="mt-2 text-[13px] font-extrabold text-ink">{s.t}</div>
             <p className="mt-1 text-[12px] leading-[1.7] text-text-2">{s.d}</p>
           </div>
         ))}
@@ -68,7 +68,7 @@ export default function DevFeesPage() {
       <section className="rise-in-2 card p-[var(--pad-card)]">
         <h2 className="text-[15px] font-extrabold text-ink">
           사업규모별 기준 수수료{" "}
-          <span className="text-[11px] font-medium text-text-3">(협의 가능)</span>
+          <span className="text-[12px] font-medium text-text-3">(협의 가능)</span>
         </h2>
         <div className="mt-3 overflow-x-auto">
           <table className="w-full border-collapse text-[13px]">
@@ -109,7 +109,7 @@ export default function DevFeesPage() {
       </section>
 
       {/* 법적 고지 */}
-      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[11px] leading-[1.7] text-text-3">
+      <div className="mt-8 rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3">
         {DISCLAIMER}
       </div>
       {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 수수료·정산 표면 고지 */}

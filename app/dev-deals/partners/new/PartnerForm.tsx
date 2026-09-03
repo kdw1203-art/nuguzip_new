@@ -69,7 +69,7 @@ export function PartnerForm() {
   if (done) {
     return (
       <div className="rise-in card flex max-w-[640px] flex-col items-start gap-3 p-6">
-        <div className="text-[16px] font-extrabold text-ink">협력업체 등록이 완료됐어요</div>
+        <div className="text-[15px] font-extrabold text-ink">협력업체 등록이 완료됐어요</div>
         <p className="text-[13px] leading-[1.7] text-text-2">
           디렉터리에 노출되며, 조건에 맞는 개발물건 매칭·참여 기회를 안내받을 수 있어요.
         </p>
@@ -204,7 +204,7 @@ export function PartnerForm() {
           placeholder="예: 010-0000-0000 (일부만 공개 표시됩니다)"
           maxLength={40}
         />
-        <p className="mt-1 text-[11px] text-text-3">
+        <p className="mt-1 text-[12px] text-text-3">
           공개 화면에는 가운데를 가린 형태로만 표시됩니다.
         </p>
       </div>

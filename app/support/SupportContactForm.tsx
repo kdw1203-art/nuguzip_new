@@ -60,7 +60,7 @@ export function SupportContactForm() {
   if (done) {
     return (
       <div className="flex flex-col items-center gap-2 py-8 text-center">
-        <div className="text-[26px]">✅</div>
+        <div className="text-[24px]">✅</div>
         <div className="text-[15px] font-extrabold text-ink">문의가 접수되었습니다</div>
         <div className="text-xs leading-[1.6] text-text-2">
           영업일 기준 24~72시간 이내에 입력하신 이메일로 답변 드립니다.

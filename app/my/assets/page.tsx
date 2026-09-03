@@ -49,7 +49,7 @@ export default function AssetsPage() {
     <PageShell breadcrumb="마이 › 자산 등록">
       <div className="mx-auto flex w-full max-w-[480px] flex-col gap-3">
         <div className="rise-in flex items-center justify-between">
-          <Link href="/my" className="text-base text-text-1" aria-label="닫기">
+          <Link href="/my" className="text-[15px] text-text-1" aria-label="닫기">
             ✕
           </Link>
           <h1 className="flex items-center gap-1.5 t-section text-ink">
@@ -79,7 +79,7 @@ export default function AssetsPage() {
         <div className="rise-in-1 card flex items-center gap-2 rounded-[14px] px-3.5 py-3">
           <Icon name="🏠" size={16} className="shrink-0" />
           <div className="flex-1">
-            <div className="text-sm font-bold text-ink">평촌 초원마을 6단지 512동</div>
+            <div className="text-[13px] font-bold text-ink">평촌 초원마을 6단지 512동</div>
             <div className="t-sub text-text-3">주소 검색 자동 인식 · 59㎡</div>
           </div>
         </div>

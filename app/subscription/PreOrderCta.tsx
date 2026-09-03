@@ -61,7 +61,7 @@ export function PreOrderCta({
         {state === "busy" ? "등록 중…" : "오픈 알림 받기"}
       </button>
       <p
-        className={`text-center text-[11px] leading-[1.6] ${dark ? "text-ai-muted" : "text-text-3"}`}
+        className={`text-center text-[12px] leading-[1.6] ${dark ? "text-ai-muted" : "text-text-3"}`}
       >
         결제 수단을 준비하고 있어요 — 아직 결제가 열리지 않았습니다.
         {state === "error" && " 등록에 실패했어요. 잠시 후 다시 눌러 주세요."}

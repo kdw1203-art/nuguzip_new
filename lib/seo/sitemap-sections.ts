@@ -76,43 +76,54 @@ type SitemapSection = {
    */
   required: boolean;
   load: () => MetadataRoute.Sitemap | Promise<MetadataRoute.Sitemap>;
+  /**
+   * [956] optional 유형이 정말로 0개일 때 대신 싣는 허브 페이지.
+   *
+   * 서치콘솔은 URL 0개인 사이트맵을 "오류 1개"로 표시한다(2026-09-03 실측:
+   * /sitemap-experts.xml · /sitemap-qna.xml 이 빈 <urlset> 으로 200 을 내자 둘 다 오류).
+   * 인덱스에서 빼는 것만으로는 부족하다 — 소유자가 자식 주소를 직접 제출한 상태라
+   * 인덱스와 무관하게 크롤러가 그 주소를 계속 읽는다. 그래서 자식은 절대 비지 않게
+   * 한다: 데이터가 0개면 그 유형의 목록 허브(색인 열린 정상 페이지) 한 줄을 싣는다.
+   * 다른 사이트맵과 URL 이 겹쳐도 표준상 문제없다.
+   */
+  hub: string;
 };
 
 export const SITEMAP_SECTIONS: readonly SitemapSection[] = [
-  { slug: "pages", label: "정적 페이지", required: true, load: loadStaticEntries },
-  { slug: "complexes", label: "단지", required: true, load: loadComplexEntries },
-  { slug: "regions", label: "지역 허브", required: true, load: loadRegionEntries },
-  { slug: "tx", label: "실거래 구간", required: true, load: loadBandEntries },
+  { slug: "pages", label: "정적 페이지", required: true, load: loadStaticEntries, hub: "/" },
+  { slug: "complexes", label: "단지", required: true, load: loadComplexEntries, hub: "/map" },
+  { slug: "regions", label: "지역 허브", required: true, load: loadRegionEntries, hub: "/map" },
+  { slug: "tx", label: "실거래 구간", required: true, load: loadBandEntries, hub: "/tx" },
   /* 단지 비교를 required 로 두는 이유: 조합의 통과 기준(같은 동 · 양쪽 12개월
      20건 이상 · 동별 상위 3개)은 서울·수도권 62개 구를 훑어 669개 조합을 남긴다.
      이 숫자가 0 이 되는 현실적인 경로는 "거래가 전부 사라졌다"가 아니라
      "조회가 실패했다"뿐이다. 그러니 0개는 실패로 다루는 편이 사실에 가깝다. */
-  { slug: "pairs", label: "단지 비교", required: true, load: loadPairEntries },
-  { slug: "reports", label: "월간 리포트", required: false, load: loadReportEntries },
-  { slug: "notes", label: "공개 임장노트", required: false, load: loadNoteEntries },
-  { slug: "glossary", label: "용어사전", required: true, load: loadGlossaryEntries },
+  { slug: "pairs", label: "단지 비교", required: true, load: loadPairEntries, hub: "/map" },
+  { slug: "reports", label: "월간 리포트", required: false, load: loadReportEntries, hub: "/reports" },
+  { slug: "notes", label: "공개 임장노트", required: false, load: loadNoteEntries, hub: "/notes" },
+  { slug: "glossary", label: "용어사전", required: true, load: loadGlossaryEntries, hub: "/glossary" },
   /* N11 시장 온도를 required 로 두지 않는 이유: 이 유형은 주간 스냅샷 크론이 한 번
      이라도 돌아야 행이 생긴다. 첫 실행 전에는 0개가 **사실**이고, 그때 503 을 내면
      "지금은 못 준다"는 거짓말이 된다. 크론이 도는 순간부터는 62개 언저리로 채워지고,
      그 뒤에 0 이 되면 required 여부와 무관하게 인덱스에서 빠지면서 드러난다. */
-  { slug: "temperature", label: "시장 온도 주간 기록", required: false, load: loadTemperatureEntries },
+  { slug: "temperature", label: "시장 온도 주간 기록", required: false, load: loadTemperatureEntries, hub: "/analysis/temperature" },
   /* 임장 가이드 — tx 와 같은 지역 원천이므로 tx 가 required 로 살아 있는 한
      0개가 되는 현실적 경로는 조회 실패뿐이다. required 로 같은 기준을 적용한다. */
-  { slug: "imjang", label: "임장 가이드", required: true, load: loadImjangEntries },
+  { slug: "imjang", label: "임장 가이드", required: true, load: loadImjangEntries, hub: "/imjang" },
   /* N23 주간 아카이브도 required 가 아니다. 아카이브는 **완결된** 주만 싣고
      항목이 기준 미만인 주는 아예 만들지 않으므로, 수집이 막 시작된 시기에는
      0개가 사실이다. 그때 503 을 내면 "지금은 못 준다"는 거짓이 된다. */
-  { slug: "digest", label: "주간 다이제스트 아카이브", required: false, load: loadDigestEntries },
+  { slug: "digest", label: "주간 다이제스트 아카이브", required: false, load: loadDigestEntries, hub: "/digest/archive" },
   /* 뉴스 요약을 required 로 두는 이유: 백필까지 끝나 우리 요약을 가진 기사가
      88건 있고(2026-08-04), 매일 08:00 KST 수집이 10건씩 더한다. 이 숫자가 0 이
      되는 현실적인 경로는 "기사가 전부 사라졌다"가 아니라 "조회가 실패했다" 또는
      "요약 파이프라인이 멈췄다"뿐이다. 둘 다 조용히 넘어가면 안 되는 상태다. */
-  { slug: "news", label: "뉴스 요약", required: true, load: loadNewsEntries },
+  { slug: "news", label: "뉴스 요약", required: true, load: loadNewsEntries, hub: "/town/news" },
   /* [개선 #3, 2026-08-22] 색인 열린 두 상세 표면의 사이트맵 공백 수리.
      둘 다 현재 0건이 사실(전문가·질문 미등록)이므로 optional — 0개면 인덱스에서
      빠지고, 첫 데이터가 생기는 즉시 자동으로 실린다. */
-  { slug: "experts", label: "전문가 프로필", required: false, load: loadExpertEntries },
-  { slug: "qna", label: "단지 Q&A", required: false, load: loadQnaEntries },
+  { slug: "experts", label: "전문가 프로필", required: false, load: loadExpertEntries, hub: "/town/experts" },
+  { slug: "qna", label: "단지 Q&A", required: false, load: loadQnaEntries, hub: "/qna" },
 ];
 
 const SECTION_BY_SLUG = new Map(SITEMAP_SECTIONS.map((s) => [s.slug, s]));
@@ -214,7 +225,9 @@ export async function buildSitemapIndex(): Promise<{ xml: string; cacheable: boo
         Promise.resolve().then(() => section.load()),
         INDEX_PROBE_BUDGET_MS,
       );
-      if (probe.state === "ok") return { slug: section.slug, include: probe.value.length > 0 };
+      /* [956] 자식이 비지 않으므로(0개면 허브 1줄) optional 도 항상 싣는다. 판정을
+         계속 하는 이유: 조회 실패·타임아웃을 로그로 남기고 인덱스 캐시를 끄기 위해. */
+      if (probe.state === "ok") return { slug: section.slug, include: true };
 
       cacheable = false;
       if (probe.state === "timeout") {
@@ -292,7 +305,11 @@ export function sitemapSectionRoute(slug: SitemapSectionSlug) {
       });
     }
 
-    const entries: MetadataRoute.Sitemap = capSitemapUrls(loaded.value);
+    let entries: MetadataRoute.Sitemap = capSitemapUrls(loaded.value);
+    /* [956] optional 유형이 정말로 0개면 허브 한 줄 — 빈 <urlset> 은 서치콘솔 오류다. */
+    if (!section.required && entries.length === 0) {
+      entries = [{ url: `${BASE_URL}${section.hub}`, priority: 0.5 }];
+    }
 
     /* 예외 없이 0개인데 그러면 안 되는 유형 = 조용한 실패다(로더가 부분 결과를
        정상처럼 돌려주는 경로가 남아 있을 수 있다). 이때도 200 대신 503 을 낸다. */

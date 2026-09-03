@@ -75,7 +75,7 @@ export function TossCallbackClient() {
         ) : (
           <>
             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#3182f6] border-t-transparent" />
-            <p className="mt-3 text-[14px] font-extrabold text-ink">
+            <p className="mt-3 text-[13px] font-extrabold text-ink">
               토스 로그인 처리 중…
             </p>
             <p className="mt-1 text-[12px] text-text-3">잠시만 기다려 주세요</p>

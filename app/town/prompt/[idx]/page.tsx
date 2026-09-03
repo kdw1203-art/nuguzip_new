@@ -68,7 +68,7 @@ export default async function PromptThreadPage({
       <TownCategoryNav />
       <div className="mx-auto w-full max-w-[720px]">
         <section className="rise-in card mb-4 p-5">
-          <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-primary">
+          <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-primary">
             <Icon name="notebook-pen" size={13} />
             동네 질문 {i + 1} / {TOWN_PROMPTS.length}
             {isToday && (
@@ -79,7 +79,7 @@ export default async function PromptThreadPage({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
               href={`/town/write?topic=${encodeURIComponent(question)}&pi=${i}`}
-              className="btn-cta rounded-full px-4 py-2 text-[12.5px] font-extrabold no-underline tap-ripple"
+              className="btn-cta rounded-full px-4 py-2 text-[13px] font-extrabold no-underline tap-ripple"
             >
               내 동네 이야기로 답하기 +50P
             </Link>
@@ -108,13 +108,13 @@ export default async function PromptThreadPage({
                 href={`/town/news/${p.id}`}
                 className={`rise-in-${Math.min(pi + 1, 6)} card block rounded-2xl p-4 no-underline tap-ripple`}
               >
-                <div className="flex items-center gap-2 text-[11px] text-text-3">
+                <div className="flex items-center gap-2 text-[12px] text-text-3">
                   <span className="font-bold text-text-2">{p.authorLabel}</span>
                   <span>{[p.city, p.district].filter(Boolean).join(" ") || "전국"}</span>
                   <span>· {relativeDay(p.createdAt)}</span>
                   {p.commentCount > 0 && <span>· 댓글 {p.commentCount}</span>}
                 </div>
-                <h2 className="mt-1 text-[14.5px] font-bold leading-[1.5] text-ink">{p.title}</h2>
+                <h2 className="mt-1 text-[15px] font-bold leading-[1.5] text-ink">{p.title}</h2>
                 <p className="mt-1 line-clamp-2 text-[13px] leading-[1.65] text-text-2">{p.body}</p>
               </Link>
             ))}
@@ -130,7 +130,7 @@ export default async function PromptThreadPage({
                 <Link
                   key={qi}
                   href={`/town/prompt/${qi}`}
-                  className="chip border border-line bg-surface px-3 py-1.5 text-[11.5px] font-semibold text-text-2 no-underline"
+                  className="chip border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-text-2 no-underline"
                 >
                   {q.length > 24 ? `${q.slice(0, 24)}…` : q}
                 </Link>

@@ -220,16 +220,16 @@ export default async function PaymentSuccessPage({
         {/* 체크 배지 — 이모지 대신 브랜드 색 원형. 실패면 경고색. */}
         <span
           aria-hidden
-          className={`flex h-16 w-16 items-center justify-center rounded-full text-[30px] text-white shadow-[0_10px_28px_rgba(16,28,54,.18)] ${
+          className={`flex h-16 w-16 items-center justify-center rounded-full text-[28px] text-white shadow-[0_10px_28px_rgba(16,28,54,.18)] ${
             ok ? "bg-primary" : "bg-danger"
           }`}
         >
           {ok ? "✓" : "!"}
         </span>
-        <h1 className="text-[22px] font-extrabold tracking-[-0.4px] text-ink">
+        <h1 className="text-[21px] font-extrabold tracking-[-0.4px] text-ink">
           {ok ? "결제가 완료되었습니다" : "결제 확인에 실패했습니다"}
         </h1>
-        <p className="text-sm leading-[1.6] text-text-2">{message}</p>
+        <p className="text-[13px] leading-[1.6] text-text-2">{message}</p>
 
         {/* 영수증 카드 — 무엇을 얼마에 샀는지 이 화면에서 확인된다.
             예전에는 "완료되었습니다" 한 줄과 주문번호뿐이라, 방금 얼마가
@@ -237,7 +237,7 @@ export default async function PaymentSuccessPage({
         {receiptRows.length > 0 && (
           <div className="mt-2 w-full overflow-hidden rounded-[18px] border border-line bg-surface text-left shadow-[0_8px_24px_rgba(16,28,54,.06)]">
             <div className="border-b border-dashed border-line px-5 py-3.5">
-              <div className="text-[11px] font-bold text-text-3">결제 내역</div>
+              <div className="text-[12px] font-bold text-text-3">결제 내역</div>
             </div>
             <dl className="flex flex-col gap-2.5 px-5 py-4">
               {receiptRows.map((r) => (
@@ -248,8 +248,8 @@ export default async function PaymentSuccessPage({
               ))}
               {orderId && (
                 <div className="flex items-baseline justify-between gap-3 border-t border-divider pt-2.5">
-                  <dt className="text-[11px] text-text-3">주문번호</dt>
-                  <dd className="break-all text-right text-[11px] text-text-3">{orderId}</dd>
+                  <dt className="text-[12px] text-text-3">주문번호</dt>
+                  <dd className="break-all text-right text-[12px] text-text-3">{orderId}</dd>
                 </div>
               )}
             </dl>
@@ -273,7 +273,7 @@ export default async function PaymentSuccessPage({
         {billingSub && (
           <div className="w-full overflow-hidden rounded-[18px] border border-line bg-surface text-left shadow-[0_8px_24px_rgba(16,28,54,.06)]">
             <div className="border-b border-dashed border-line px-5 py-3.5">
-              <div className="text-[11px] font-bold text-text-3">자동결제 정보</div>
+              <div className="text-[12px] font-bold text-text-3">자동결제 정보</div>
             </div>
             <dl className="flex flex-col gap-2.5 px-5 py-4">
               <div className="flex items-baseline justify-between gap-3">
@@ -312,7 +312,7 @@ export default async function PaymentSuccessPage({
                 </dd>
               </div>
             </dl>
-            <p className="border-t border-line bg-bg px-5 py-3 text-[11px] leading-[1.6] text-text-3">
+            <p className="border-t border-line bg-bg px-5 py-3 text-[12px] leading-[1.6] text-text-3">
               해지·카드 변경은 구독 페이지의 구독 관리에서 언제든 가능해요 — 해지하면 다음
               결제일에 청구되지 않아요.
             </p>
@@ -320,18 +320,18 @@ export default async function PaymentSuccessPage({
         )}
 
         <div className="mt-3 flex w-full flex-col gap-2.5">
-          <Link href="/my" className="btn-primary rounded-[14px] p-[13px] text-center text-sm font-bold">
+          <Link href="/my" className="btn-primary rounded-[14px] p-[13px] text-center text-[13px] font-bold">
             마이 페이지에서 플랜 확인
           </Link>
           <Link
             href="/subscription"
-            className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-sm font-bold text-text-1"
+            className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-[13px] font-bold text-text-1"
           >
             멤버십 안내
           </Link>
         </div>
         {ok && (
-          <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+          <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
             결제 7일 이내 청약철회(환불)가 가능합니다 ·{" "}
             <Link href="/legal/terms#refund" className="underline underline-offset-2">
               환불 규정

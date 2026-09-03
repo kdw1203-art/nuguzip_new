@@ -42,7 +42,7 @@ function StatusChip({ status }: { status: string }) {
         : status === "off"
           ? "text-[#9aa6b8]"
           : "text-ai-accent";
-  return <span className={`text-[11px] font-extrabold ${tone}`}>{STATUS_LABEL[status] ?? status}</span>;
+  return <span className={`text-[12px] font-extrabold ${tone}`}>{STATUS_LABEL[status] ?? status}</span>;
 }
 
 export function SocialPanel() {
@@ -102,22 +102,22 @@ export function SocialPanel() {
           <span className="text-[12px] font-extrabold !text-white">연결 상태</span>
           {configured ? (
             <>
-              <span className={`text-[11px] font-bold ${configured.instagram ? "text-ai-success" : "text-[#9aa6b8]"}`}>
+              <span className={`text-[12px] font-bold ${configured.instagram ? "text-ai-success" : "text-[#9aa6b8]"}`}>
                 인스타그램 {configured.instagram ? "연결됨" : "미설정 (META_IG_* env)"}
               </span>
-              <span className={`text-[11px] font-bold ${configured.youtube ? "text-ai-success" : "text-[#9aa6b8]"}`}>
+              <span className={`text-[12px] font-bold ${configured.youtube ? "text-ai-success" : "text-[#9aa6b8]"}`}>
                 유튜브 {configured.youtube ? "연결됨" : "미설정 (YT_* env)"}
               </span>
             </>
           ) : (
-            <span className="text-[11px] text-[#9aa6b8]">확인 중…</span>
+            <span className="text-[12px] text-[#9aa6b8]">확인 중…</span>
           )}
           <div className="ml-auto flex gap-2">
             <button
               type="button"
               disabled={busy !== null}
               onClick={() => void runAction("소재 생성", "/api/cron/social-autopost")}
-              className="rounded-[10px] bg-[rgba(126,162,255,.14)] px-3 py-1.5 text-[11px] font-extrabold text-ai-accent disabled:opacity-50"
+              className="rounded-[10px] bg-[rgba(126,162,255,.14)] px-3 py-1.5 text-[12px] font-extrabold text-ai-accent disabled:opacity-50"
             >
               {busy === "소재 생성" ? "생성 중…" : "소재 지금 생성"}
             </button>
@@ -125,14 +125,14 @@ export function SocialPanel() {
               type="button"
               disabled={busy !== null}
               onClick={() => void runAction("큐 집행", "/api/cron/social-upload-drain")}
-              className="rounded-[10px] bg-[rgba(126,162,255,.14)] px-3 py-1.5 text-[11px] font-extrabold text-ai-accent disabled:opacity-50"
+              className="rounded-[10px] bg-[rgba(126,162,255,.14)] px-3 py-1.5 text-[12px] font-extrabold text-ai-accent disabled:opacity-50"
             >
               {busy === "큐 집행" ? "집행 중…" : "큐 지금 집행"}
             </button>
           </div>
         </div>
         {actionMsg && (
-          <p className="break-all rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2 text-[11px] text-[#c9d2e0]">
+          <p className="break-all rounded-[10px] bg-[rgba(255,255,255,.05)] px-3 py-2 text-[12px] text-[#c9d2e0]">
             {actionMsg}
           </p>
         )}
@@ -175,7 +175,7 @@ export function SocialPanel() {
               setCaption("");
             })
           }
-          className="self-start rounded-[10px] bg-[rgba(126,162,255,.14)] px-4 py-2 text-[11px] font-extrabold text-ai-accent disabled:opacity-50"
+          className="self-start rounded-[10px] bg-[rgba(126,162,255,.14)] px-4 py-2 text-[12px] font-extrabold text-ai-accent disabled:opacity-50"
         >
           큐에 등록
         </button>
@@ -217,11 +217,11 @@ export function SocialPanel() {
                   </a>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
-                  <span className="text-[11px] text-[#c9d2e0]">
+                  <span className="text-[12px] text-[#c9d2e0]">
                     IG <StatusChip status={it.igStatus} />
                     {it.igMediaId ? ` · ${it.igMediaId}` : ""}
                   </span>
-                  <span className="text-[11px] text-[#c9d2e0]">
+                  <span className="text-[12px] text-[#c9d2e0]">
                     YT <StatusChip status={it.ytStatus} />
                     {it.ytVideoId ? ` · ${it.ytVideoId}` : ""}
                   </span>

@@ -183,7 +183,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
         {messages.length === 0 && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center">
             <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl t-body">AI</div>
-            <div className="text-sm font-extrabold text-ink">
+            <div className="text-[13px] font-extrabold text-ink">
               내 임장노트와 실거래 데이터로 답하는 에이전트예요
             </div>
             <div className="max-w-sm text-xs leading-[1.6] text-text-3">

@@ -40,7 +40,7 @@ export default async function TownGroupChatPage({
   if (!meeting) {
     return (
       <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col items-center justify-center gap-3 bg-bg px-6 text-center">
-        <div className="text-lg font-extrabold text-ink">모임을 찾을 수 없어요</div>
+        <div className="text-[19px] font-extrabold text-ink">모임을 찾을 수 없어요</div>
         <p className="text-[13px] leading-[1.6] text-text-2">
           삭제되었거나 잘못된 링크일 수 있어요.
         </p>
@@ -67,11 +67,11 @@ export default async function TownGroupChatPage({
     return (
       <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col bg-bg">
         <div className="glass mx-3.5 mt-3.5 flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5">
-          <Link href={`/town/groups/${id}`} aria-label="뒤로" className="text-base text-text-1">
+          <Link href={`/town/groups/${id}`} aria-label="뒤로" className="text-[15px] text-text-1">
             ‹
           </Link>
           <div className="flex-1">
-            <div className="text-sm font-extrabold text-ink">{meeting.title}</div>
+            <div className="text-[13px] font-extrabold text-ink">{meeting.title}</div>
             <div className="text-[10px] text-text-3">{metaLine}</div>
           </div>
         </div>

@@ -139,7 +139,7 @@ export default async function SupportPage() {
             href={`/support/faq#${encodeURIComponent(g.category)}`}
             className="card tile rounded-[14px] p-3.5 text-center no-underline"
           >
-            <div className="text-lg">
+            <div className="text-[19px]">
               <Icon
                 name={FAQ_CATEGORY_ICON[g.category] ?? "book"}
                 size={22}
@@ -215,8 +215,8 @@ export default async function SupportPage() {
           {/* 1:1 문의 폼 (P2-2) — /api/support 실연동 */}
           <div id="contact" className="rise-in-3 card flex flex-col gap-3 scroll-mt-24 rounded-2xl px-5 py-[18px]">
             <div>
-              <span className="text-sm font-extrabold text-ink">1:1 문의 남기기</span>
-              <span className="ml-2 text-[11px] text-text-3">영업일 기준 24~72시간 이내 답변</span>
+              <span className="text-[13px] font-extrabold text-ink">1:1 문의 남기기</span>
+              <span className="ml-2 text-[12px] text-text-3">영업일 기준 24~72시간 이내 답변</span>
             </div>
             <SupportContactForm />
           </div>
@@ -224,8 +224,8 @@ export default async function SupportPage() {
           {/* 공지사항 (9n) — board_posts 공지 카테고리 실데이터 (P2-2) */}
           <div id="notices" className="rise-in-3 card flex flex-col gap-1 scroll-mt-24 rounded-2xl px-5 py-[18px]">
             <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="text-sm font-extrabold text-ink">공지사항</span>
-              <Link href="/town" className="text-[11px] font-bold text-primary">
+              <span className="text-[13px] font-extrabold text-ink">공지사항</span>
+              <Link href="/town" className="text-[12px] font-bold text-primary">
                 전체 ›
               </Link>
             </div>
@@ -276,7 +276,7 @@ export default async function SupportPage() {
                   }`}
                 >
                   <div className="flex justify-between">
-                    <span className={`rounded-md chip-pad text-[11px] font-extrabold ${t.tagClass}`}>
+                    <span className={`rounded-md chip-pad text-[12px] font-extrabold ${t.tagClass}`}>
                       {t.tag}
                     </span>
                     <span className={`text-[10px] font-bold ${t.statusClass}`}>{t.status}</span>
@@ -295,14 +295,14 @@ export default async function SupportPage() {
             <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[18px] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="rounded-md bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
+                  <span className="rounded-md bg-warning-soft chip-pad text-[12px] font-extrabold text-warning">
                     결제
                   </span>
-                  <span className="ml-2 text-base font-extrabold text-ink">
+                  <span className="ml-2 text-[15px] font-extrabold text-ink">
                     플러스 연간 결제 영수증 재발급
                   </span>
                 </div>
-                <span className="flex items-center gap-1.5 text-[11px] text-text-3">
+                <span className="flex items-center gap-1.5 text-[12px] text-text-3">
                   #T-4821 <ExampleBadge />
                 </span>
               </div>
@@ -314,7 +314,7 @@ export default async function SupportPage() {
                   N
                 </div>
                 <div className="flex flex-col gap-1">
-                  <div className="text-[11px] text-text-3">
+                  <div className="text-[12px] text-text-3">
                     내집나우 지원팀 · 07.18 14:02 (접수 후 1시간 38분)
                   </div>
                   <div className="max-w-[460px] rounded-[14px] rounded-tl-[4px] bg-bg px-[15px] py-3 text-[13px] leading-[1.65] text-text-1">
@@ -351,7 +351,7 @@ export default async function SupportPage() {
           <div id="faq" className="rise-in-4 card flex flex-col gap-1 scroll-mt-24 rounded-[18px] px-6 py-[22px]">
             <div className="mb-2 flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
               <span className="text-[15px] font-extrabold text-ink">자주 묻는 질문</span>
-              <Link href="/support/faq" className="text-[11px] font-bold text-primary">
+              <Link href="/support/faq" className="text-[12px] font-bold text-primary">
                 전체 {faqAll.length}개 보기 ›
               </Link>
             </div>
@@ -383,7 +383,7 @@ export default async function SupportPage() {
           <div className="rise-in-5 ai-panel flex items-center justify-between rounded-2xl p-4">
             <div>
               <div className="text-[13px] font-extrabold text-white">해결이 안 되셨나요?</div>
-              <div className="mt-0.5 text-[11px] text-ai-muted">평일 10-18시 · 평균 응답 4시간</div>
+              <div className="mt-0.5 text-[12px] text-ai-muted">평일 10-18시 · 평균 응답 4시간</div>
             </div>
             <a href="#contact" className="btn-primary rounded-full px-4 py-[9px] text-xs">
               1:1 문의
@@ -393,7 +393,7 @@ export default async function SupportPage() {
           {/* 제휴 · 광고 (9n) */}
           <div className="rise-in-5 grid gap-3 md:grid-cols-2">
             <div id="partner" className="ai-panel flex scroll-mt-24 flex-col gap-2 rounded-2xl p-5">
-              <div className="text-sm font-extrabold text-white">투자 · 제휴 문의</div>
+              <div className="text-[13px] font-extrabold text-white">투자 · 제휴 문의</div>
               <div className="text-xs leading-[1.6] text-ai-text">
                 IR 자료 요청, 데이터 제휴, 금융사 연동 제안은 별도 채널로 받고 있습니다.
               </div>
@@ -409,7 +409,7 @@ export default async function SupportPage() {
               </a>
             </div>
             <div id="ads" className="card flex scroll-mt-24 flex-col gap-2 rounded-2xl p-5">
-              <div className="text-sm font-extrabold text-ink">광고 문의</div>
+              <div className="text-[13px] font-extrabold text-ink">광고 문의</div>
               <div className="text-xs leading-[1.6] text-text-2">
                 지면 소개서(AD 슬롯 위치·단가)를 보내드립니다. 커뮤니티 어뷰징성 광고는 게재하지
                 않습니다.
@@ -443,7 +443,7 @@ export default async function SupportPage() {
             </div>
             {/* "이전 버전 보기"를 붙여 뒀지만 약관 개정 이력 페이지가 없다 —
                 링크처럼 읽히는 글자만 남아 있었다. 있는 사실(시행일)만 적는다. */}
-            <span className="text-[11px] text-text-3">시행 2026.07.15</span>
+            <span className="text-[12px] text-text-3">시행 2026.07.15</span>
           </div>
           {/* 2026-07-28: 이 줄은 사업자 정보를 손으로 적어 두고 있었고, 그중
               "통신판매업 제2026-안양동안-0000호" 는 **없는 번호**였다(0000).
@@ -451,7 +451,7 @@ export default async function SupportPage() {
               전역 Footer 는 값이 없으면 줄에서 아예 뺀다. 신고도 안 한 번호를
               화면에 적어 두면 그건 표기 오류가 아니라 허위 표시다.
               같은 소스를 쓰고, 없는 항목은 같은 규칙으로 뺀다. */}
-          <p className="px-1 text-[11px] leading-[1.6] text-text-3">
+          <p className="px-1 text-[12px] leading-[1.6] text-text-3">
             {biz.legalName} · 대표 {biz.representative || "—"} · 사업자{" "}
             {biz.registrationNumber || "—"}
             {biz.mailOrderSalesNumber ? ` · 통신판매업 ${biz.mailOrderSalesNumber}` : ""} ·{" "}

@@ -20,7 +20,7 @@ export default function FeesPolicyPage() {
     // 페이지 전환 모션 일관화 — globals.css riseIn(dur-md) 재사용
     <main className="rise-in mx-auto w-full max-w-3xl">
       <h1 className="text-2xl font-bold text-ink">거래·수수료 안내</h1>
-      <p className="mt-2 text-sm leading-relaxed text-text-2">
+      <p className="mt-2 text-[13px] leading-relaxed text-text-2">
         nuguzip은 부동산 의사결정 도구에 맞게 거래 조건을 공개합니다. VAT·PG 실비는 별도 안내가
         없는 한 결제 영수증 기준입니다. 멤버십 요금은{" "}
         <Link href="/subscription" className="font-semibold text-primary hover:underline">
@@ -30,7 +30,7 @@ export default function FeesPolicyPage() {
       </p>
 
       <section className="mt-8">
-        <h2 className="text-lg font-bold text-ink">마켓플레이스 수수료</h2>
+        <h2 className="text-[19px] font-bold text-ink">마켓플레이스 수수료</h2>
         <p className="mt-1 text-xs text-text-3">
           크몽 공개 기준과 비교 — nuguzip 제안 요율 (2026년 6월 기준)
         </p>
@@ -70,8 +70,8 @@ export default function FeesPolicyPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-bold text-ink">전문가 인증·정산</h2>
-        <ul className="mt-3 space-y-2 rounded-[14px] border border-line bg-bg p-4 text-sm">
+        <h2 className="text-[19px] font-bold text-ink">전문가 인증·정산</h2>
+        <ul className="mt-3 space-y-2 rounded-[14px] border border-line bg-bg p-4 text-[13px]">
           {EXPERT_CERT_FEES.map((row) => (
             <li key={row.label} className="flex justify-between gap-4">
               <span className="text-text-1">{row.label}</span>

@@ -144,7 +144,7 @@ export function HeaderAuth() {
             style={{ background: "rgba(255,255,255,.94)" }}
             role="menu"
           >
-            <div className="truncate px-3 pb-1 pt-2 text-[11px] text-text-3">
+            <div className="truncate px-3 pb-1 pt-2 text-[12px] text-text-3">
               {user.name?.trim() || user.email}
             </div>
             {/* 관리자 콘솔 진입점 — 이 링크가 없어 관리자가 /admin 존재를

@@ -102,9 +102,9 @@ export default async function TownExpertsPage() {
             <a href="#experts" className="btn-primary btn-cta rounded-xl px-5 py-2.5 t-body no-underline">
               전문가 보기
             </a>
-            <a href="#apply" className="brand-photo-chip rounded-xl px-5 py-2.5 t-body font-bold no-underline">
+            <Link href="/town/experts/join" className="brand-photo-chip rounded-xl px-5 py-2.5 t-body font-bold no-underline">
               전문가로 참여
-            </a>
+            </Link>
           </div>
         </div>
         {/* 커버리지 — 실측만. 0 이면 0 */}
@@ -196,6 +196,9 @@ export default async function TownExpertsPage() {
           </div>
           <div className="flex shrink-0 flex-col items-start gap-2 md:items-end">
             <ExpertApplyCta />
+            <Link href="/town/experts/join" className="t-sub font-bold text-brand-hanji-ink underline underline-offset-2">
+              참여 안내 자세히(절차·비용·FAQ) ›
+            </Link>
             <Link href="/partners" className="t-sub font-bold text-brand-hanji-ink underline underline-offset-2">
               중개사무소 제휴 안내 ›
             </Link>

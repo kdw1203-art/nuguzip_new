@@ -25,6 +25,8 @@ const LEGAL_LINKS = [
   { label: "월간 리포트", href: "/reports", bold: false },
   /* N20 — 공개 집계 API 문서. 링크가 없으면 크롤러도 사람도 도달하지 못한다. */
   { label: "공개 API", href: "/developers", bold: false },
+  /* [959] 전문가 모집 랜딩 — 참여할 전문가가 검색·푸터로 닿는 경로 */
+  { label: "전문가 참여", href: "/town/experts/join", bold: false },
 ] as const;
 
 export function Footer() {

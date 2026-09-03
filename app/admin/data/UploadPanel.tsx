@@ -106,11 +106,11 @@ function UploadRow({ target }: { target: Target }) {
     <div className="rounded-xl border border-[rgba(255,255,255,.07)] bg-[rgba(255,255,255,.03)] px-3.5 py-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[12.5px] font-bold text-white">{target.label}</div>
-          <div className="truncate text-[10.5px] text-[#9aa6b8]">{target.hint}</div>
+          <div className="text-[13px] font-bold text-white">{target.label}</div>
+          <div className="truncate text-[10px] text-[#9aa6b8]">{target.hint}</div>
         </div>
         <label
-          className={`shrink-0 cursor-pointer rounded-lg border border-[rgba(126,162,255,.35)] px-3 py-1.5 text-[11.5px] font-bold text-ai-accent ${
+          className={`shrink-0 cursor-pointer rounded-lg border border-[rgba(126,162,255,.35)] px-3 py-1.5 text-[12px] font-bold text-ai-accent ${
             busy ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -127,7 +127,7 @@ function UploadRow({ target }: { target: Target }) {
       </div>
       {result && (
         <div
-          className={`mt-2 break-words text-[10.5px] ${result.ok ? "text-ai-success" : "text-ai-danger"}`}
+          className={`mt-2 break-words text-[10px] ${result.ok ? "text-ai-success" : "text-ai-danger"}`}
         >
           {result.text}
         </div>

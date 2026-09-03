@@ -68,7 +68,7 @@ function StatusChip({ status }: { status: FreshnessStatus }) {
   const m = STATUS_META[status];
   return (
     <span
-      className="rounded px-1.5 py-px text-[9.5px] font-bold"
+      className="rounded px-1.5 py-px text-[10px] font-bold"
       style={{ color: m.color, background: m.bg }}
     >
       {m.label}
@@ -80,7 +80,7 @@ function OutcomeChip({ outcome }: { outcome: IngestOutcome }) {
   const color = OUTCOME_COLOR[outcome];
   return (
     <span
-      className="rounded px-1.5 py-px text-[9.5px] font-bold"
+      className="rounded px-1.5 py-px text-[10px] font-bold"
       style={{ color, background: tint(color, 0.15) }}
     >
       {OUTCOME_LABEL[outcome]}
@@ -179,7 +179,7 @@ export default async function AdminDataPage() {
   return (
     <>
       <div className="rise-in text-[19px] font-extrabold text-white">데이터 관리</div>
-      <div className="rise-in -mt-2 mb-1 text-[11px] text-[#9aa6b8]">
+      <div className="rise-in -mt-2 mb-1 text-[12px] text-[#9aa6b8]">
         데이터셋별 신선도·적재 로그와 수동 수집 도구입니다.{" "}
         {summaryReady
           ? "표시되는 수치는 모두 DB 실집계입니다."
@@ -223,7 +223,7 @@ export default async function AdminDataPage() {
             className="rounded-2xl border border-[rgba(255,255,255,.06)] bg-[#12161f] px-4 py-3.5"
           >
             <div className="text-[10px] text-[#9aa6b8]">{s.label}</div>
-            <div className="mt-0.5 text-[17px] font-extrabold" style={{ color: s.color }}>
+            <div className="mt-0.5 text-[15px] font-extrabold" style={{ color: s.color }}>
               {s.value}
             </div>
           </div>
@@ -233,12 +233,12 @@ export default async function AdminDataPage() {
       {/* 부분 실패 배너 — 요약 숫자만으로는 어느 소스인지 알 수 없어서 한 줄 더 준다 */}
       {troubled.length > 0 && (
         <div className="rise-in-1 rounded-2xl border border-[rgba(251,146,60,.28)] bg-[rgba(251,146,60,.08)] px-4 py-3">
-          <div className="text-[11.5px] font-bold text-[#fb923c]">
+          <div className="text-[12px] font-bold text-[#fb923c]">
             마지막 수집에서 문제가 있었던 소스 {troubled.length}건
           </div>
           <ul className="mt-1.5 flex flex-col gap-1">
             {troubled.map((r) => (
-              <li key={`${r.source}|${r.dataset}`} className="text-[11px] text-[#c7d0de]">
+              <li key={`${r.source}|${r.dataset}`} className="text-[12px] text-[#c7d0de]">
                 <code className="text-[#fb923c]">{r.source}</code> {r.dataset} —{" "}
                 {OUTCOME_LABEL[r.outcome]} · {fmt(r.rows)}행 적재
                 {tallyText(r.tally) ? ` · ${tallyText(r.tally)}` : ""}
@@ -256,7 +256,7 @@ export default async function AdminDataPage() {
       <div className={`rise-in-2 ${card}`}>
         <div className="flex items-center justify-between">
           <span className="text-[15px] font-extrabold text-white">데이터셋 신선도</span>
-          <span className="text-[11px] text-[#9aa6b8]">테이블별 실집계</span>
+          <span className="text-[12px] text-[#9aa6b8]">테이블별 실집계</span>
         </div>
 
         {!freshnessLoaded.ok ? (
@@ -267,12 +267,12 @@ export default async function AdminDataPage() {
             cause={freshnessLoaded.cause}
           />
         ) : freshness.length === 0 ? (
-          <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-6 text-center text-[11.5px] text-[#9aa6b8]">
+          <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-6 text-center text-[12px] text-[#9aa6b8]">
             Supabase 연결이 없어 집계를 표시할 수 없습니다.
           </div>
         ) : (
           <div className="-mx-1 overflow-x-auto">
-            <table className="w-full min-w-[820px] border-collapse text-[11.5px]">
+            <table className="w-full min-w-[820px] border-collapse text-[12px]">
               <thead>
                 <tr className="text-left text-[10px] text-[#9aa6b8]">
                   <th className="px-2 py-2 font-semibold">데이터셋</th>
@@ -303,7 +303,7 @@ export default async function AdminDataPage() {
                           ) : null}
                         </div>
                         {r.note ? (
-                          <div className="mt-0.5 text-[9.5px] leading-snug text-[#6b7688]">
+                          <div className="mt-0.5 text-[10px] leading-snug text-[#6b7688]">
                             {r.note}
                           </div>
                         ) : null}
@@ -324,7 +324,7 @@ export default async function AdminDataPage() {
                         <span className="ml-1 text-[10px] text-[#6b7688]">
                           (기대 {r.expectedDays}일)
                         </span>
-                        <div className="text-[9.5px] text-[#6b7688]">
+                        <div className="text-[10px] text-[#6b7688]">
                           {r.lagBasis === "insert"
                             ? insertClock
                               ? `신규 행 ${insertClock}`
@@ -334,7 +334,7 @@ export default async function AdminDataPage() {
                               : "쓰기 기록 없음"}
                         </div>
                         {writeDiffers && (
-                          <div className="text-[9.5px] text-[#fb923c]">
+                          <div className="text-[10px] text-[#fb923c]">
                             쓰기 {writeClock} — 수집이 아닌 갱신
                           </div>
                         )}
@@ -343,7 +343,7 @@ export default async function AdminDataPage() {
                         {r.ingest ? (
                           <>
                             <OutcomeChip outcome={r.ingest.outcome} />
-                            <div className="mt-0.5 text-[9.5px] text-[#9aa6b8]">
+                            <div className="mt-0.5 text-[10px] text-[#9aa6b8]">
                               {relDays(r.ingest.lagDays)} · {runDetail(r.ingest)}
                             </div>
                           </>
@@ -376,11 +376,11 @@ export default async function AdminDataPage() {
         <div className={card}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">단지 좌표 지오코딩</span>
-            <span className="text-[11px] text-[#9aa6b8]">네이버(NCP)</span>
+            <span className="text-[12px] text-[#9aa6b8]">네이버(NCP)</span>
           </div>
 
           <div className="flex items-end gap-2">
-            <span className="text-[26px] font-extrabold text-ai-accent">{fmt(ok)}</span>
+            <span className="text-[24px] font-extrabold text-ai-accent">{fmt(ok)}</span>
             <span className="mb-1 text-[12px] text-[#9aa6b8]">
               / {fmt(total)} 단지 · {pct}%
             </span>
@@ -388,7 +388,7 @@ export default async function AdminDataPage() {
           <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(255,255,255,.08)]">
             <span className="block h-full rounded-full bg-ai-accent" style={{ width: `${pct}%` }} />
           </div>
-          <div className="flex gap-4 text-[11px] text-[#9aa6b8]">
+          <div className="flex gap-4 text-[12px] text-[#9aa6b8]">
             <span>
               성공 <b className="text-ai-success">{fmt(ok)}</b>
             </span>
@@ -407,7 +407,7 @@ export default async function AdminDataPage() {
         <div className={card}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">최근 적재 로그</span>
-            <span className="text-[11px] text-[#9aa6b8]">market_ingest_log</span>
+            <span className="text-[12px] text-[#9aa6b8]">market_ingest_log</span>
           </div>
           {!ingestLoaded.ok ? (
             <ErrorState
@@ -417,7 +417,7 @@ export default async function AdminDataPage() {
               cause={ingestLoaded.cause}
             />
           ) : ingest.length === 0 ? (
-            <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-6 text-center text-[11.5px] text-[#9aa6b8]">
+            <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[rgba(255,255,255,.03)] px-4 py-6 text-center text-[12px] text-[#9aa6b8]">
               적재 로그가 아직 없습니다.
             </div>
           ) : (
@@ -441,7 +441,7 @@ export default async function AdminDataPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <code className="text-[10px] text-[#f2c94c]">{r.source}</code>
-                          <span className="truncate text-[11.5px] text-white">{r.dataset}</span>
+                          <span className="truncate text-[12px] text-white">{r.dataset}</span>
                         </div>
                         <div className="truncate text-[10px] text-[#9aa6b8]">
                           {r.message ?? `${fmt(r.rows)}행`} ·{" "}
@@ -467,7 +467,7 @@ export default async function AdminDataPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <code className="text-[10px] text-ai-accent">{r.source}</code>
-                      <span className="truncate text-[11.5px] text-white">{r.dataset}</span>
+                      <span className="truncate text-[12px] text-white">{r.dataset}</span>
                     </div>
                     <div className="text-[10px] text-[#9aa6b8]">
                       {r.origin} · {r.rows > 0 ? `${fmt(r.rows)}행` : "0행"} ·{" "}
@@ -501,7 +501,7 @@ export default async function AdminDataPage() {
         <div className={card}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">수동 업로드</span>
-            <span className="text-[11px] text-[#9aa6b8]">CSV · XLSX · ZIP</span>
+            <span className="text-[12px] text-[#9aa6b8]">CSV · XLSX · ZIP</span>
           </div>
           <UploadPanel />
         </div>
@@ -510,7 +510,7 @@ export default async function AdminDataPage() {
         <div className={card}>
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-extrabold text-white">수집 작업 실행</span>
-            <span className="text-[11px] text-[#9aa6b8]">즉시 1회</span>
+            <span className="text-[12px] text-[#9aa6b8]">즉시 1회</span>
           </div>
           <CronRunPanel />
         </div>
@@ -520,7 +520,7 @@ export default async function AdminDataPage() {
       <div className={`rise-in-3 ${card}`}>
         <div className="flex items-center justify-between">
           <span className="text-[15px] font-extrabold text-white">R-ONE 통계표 카탈로그</span>
-          <span className="text-[11px] text-[#9aa6b8]">조회 전용</span>
+          <span className="text-[12px] text-[#9aa6b8]">조회 전용</span>
         </div>
         <RebCatalogPanel />
       </div>

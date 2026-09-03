@@ -256,11 +256,11 @@ export function CoachmarkTour({
             : { top: bubbleTop, left: bubbleLeft }
         }
       >
-        <div className="mb-1 text-[11px] font-bold text-primary">
+        <div className="mb-1 text-[12px] font-bold text-primary">
           {index + 1} / {visibleSteps.length}
         </div>
         <div className="text-[15px] font-extrabold text-ink">{step.title}</div>
-        <p className="mt-1.5 text-[12.5px] leading-relaxed text-text-2">{step.body}</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-text-2">{step.body}</p>
         <div className="mt-3.5 flex items-center justify-between">
           <button
             type="button"

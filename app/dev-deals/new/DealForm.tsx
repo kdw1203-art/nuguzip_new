@@ -83,7 +83,7 @@ export function DealForm() {
   if (doneId) {
     return (
       <div className="rise-in card flex max-w-[640px] flex-col items-start gap-3 p-6">
-        <div className="text-[16px] font-extrabold text-ink">개발물건이 등록됐어요</div>
+        <div className="text-[15px] font-extrabold text-ink">개발물건이 등록됐어요</div>
         <p className="text-[13px] leading-[1.7] text-text-2">
           협력업체가 이 물건을 발견하면 참여 문의를 보낼 수 있어요. 문의가 접수되면 등록한
           연락 수단으로 확인해 주세요.
@@ -236,7 +236,7 @@ export function DealForm() {
           onChange={(e) => setTotalCostEok(e.target.value)}
           placeholder="예: 420 (= 420억)"
         />
-        <p className="mt-1 text-[11px] text-text-3">
+        <p className="mt-1 text-[12px] text-text-3">
           억 단위로 입력하세요. 예상 중개수수료 구간 산정에 사용됩니다.
         </p>
       </div>
@@ -334,7 +334,7 @@ export function DealForm() {
             placeholder="예: 010-0000-0000 (일부만 공개 표시됩니다)"
             maxLength={40}
           />
-          <p className="mt-1 text-[11px] text-text-3">
+          <p className="mt-1 text-[12px] text-text-3">
             공개 화면에는 가운데를 가린 형태로만 표시됩니다.
           </p>
         </div>

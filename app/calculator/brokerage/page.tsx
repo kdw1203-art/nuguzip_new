@@ -42,14 +42,14 @@ export default function BrokerageCalculatorPage() {
 
         {/* [#55] 이용 방법 — HowTo JSON-LD 와 같은 배열에서 렌더 */}
         <section className="rise-in-2 mt-6">
-          <h2 className="mb-2 text-[14px] font-extrabold text-ink">이용 방법</h2>
+          <h2 className="mb-2 text-[13px] font-extrabold text-ink">이용 방법</h2>
           <ol className="flex list-none flex-col gap-2 p-0">
             {HOWTO_STEPS.map((s, i) => (
               <li key={s.name} className="card flex gap-3 rounded-xl px-4 py-3">
                 <span className="text-[13px] font-extrabold tabular-nums text-primary">{i + 1}</span>
                 <div>
                   <div className="text-[13px] font-bold text-ink">{s.name}</div>
-                  <p className="mt-0.5 text-[12.5px] leading-[1.7] text-text-2">{s.text}</p>
+                  <p className="mt-0.5 text-[13px] leading-[1.7] text-text-2">{s.text}</p>
                 </div>
               </li>
             ))}

@@ -226,7 +226,7 @@ export default function RegulationsGuidePage() {
             <div className="text-[13px] font-extrabold text-ink">
               계약 전 체크리스트 &amp; 특약 가이드
             </div>
-            <div className="mt-0.5 text-[11px] text-text-2">
+            <div className="mt-0.5 text-[12px] text-text-2">
               단계별 확인사항, 표준계약서 핵심 조항과 특약 예시를 이어서 확인하세요.
             </div>
           </div>
@@ -236,7 +236,7 @@ export default function RegulationsGuidePage() {
         </Link>
 
         {/* 공통 면책 */}
-        <p className="px-1 pb-2 text-[11px] leading-[1.7] text-text-3">
+        <p className="px-1 pb-2 text-[12px] leading-[1.7] text-text-3">
           본 안내는 일반 정보이며 법률·세무 자문이 아닙니다. 실제 거래·신고·세금은
           공인중개사·법무사·세무사 등 전문가와 관련 기관 확인이 필요합니다.
         </p>

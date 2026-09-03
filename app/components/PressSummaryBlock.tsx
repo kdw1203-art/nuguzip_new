@@ -30,7 +30,7 @@ export function PressSummaryBlock({
   return (
     <section className="card mb-6 p-[var(--pad-card)]">
       <h2 className="text-[13px] font-extrabold text-ink">언론 인용용 요약</h2>
-      <p className="mt-1 text-[11px] leading-[1.6] text-text-3">
+      <p className="mt-1 text-[12px] leading-[1.6] text-text-3">
         기사·리포트에 그대로 옮겨 쓰실 수 있도록 정리했습니다 · {asOfLabel}
       </p>
 
@@ -62,7 +62,7 @@ export function PressSummaryBlock({
         </dd>
       </dl>
 
-      <p className="mt-3 text-[11px] leading-[1.6] text-text-3">
+      <p className="mt-3 text-[12px] leading-[1.6] text-text-3">
         {provisional
           ? "이 달은 실거래 신고 기한(계약 후 30일)이 지나지 않아 잠정치입니다 — 인용 시 “잠정”을 함께 밝혀 주세요. "
           : ""}

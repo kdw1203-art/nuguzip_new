@@ -104,7 +104,7 @@ export function AuthConfirmClient() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col items-center justify-center gap-3 px-7">
-      <p className="text-sm font-bold text-text-1">{message}</p>
+      <p className="text-[13px] font-bold text-text-1">{message}</p>
     </main>
   );
 }

@@ -137,7 +137,7 @@ const GATE_UNCHECKED = [
 
 function StepDots({ current }: { current: number }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+    <div className="flex flex-wrap items-center gap-1.5 text-[12px]">
       {STEPS.map((label, i) => {
         const done = i < current;
         const active = i === current;
@@ -204,7 +204,7 @@ function StepVerify({
             ))}
           </div>
           {/* 유형별 세금·증빙 처리 (18a) */}
-          <div className="mt-1 flex flex-col text-[11px]">
+          <div className="mt-1 flex flex-col text-[12px]">
             <div className="flex rounded-t-lg bg-bg px-3 py-2 font-bold text-text-3">
               <span className="flex-1">유형</span>
               <span className="flex-[1.4]">필요 서류</span>
@@ -235,14 +235,14 @@ function StepVerify({
           아직 붙일 수 있는 인증 수단이 없으므로 안내만 남긴다. */}
       <div className="card flex flex-col gap-3 p-4">
         <div className="text-[13px] font-extrabold text-ink">정산 계좌</div>
-        <div className="rounded-2xl border border-line bg-bg p-3.5 text-[11px] leading-relaxed text-text-2">
+        <div className="rounded-2xl border border-line bg-bg p-3.5 text-[12px] leading-relaxed text-text-2">
           <b className="text-ink">정산 계좌 등록과 본인 확인은 심사 통과 후 안내드려요.</b>
           <div className="mt-1.5">
             이 화면에서는 계좌를 받지 않고, 계좌 인증도 진행하지 않습니다. 등록
             절차가 열리면 알림으로 안내해 드릴게요.
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 text-[11px] leading-relaxed text-text-2">
+        <div className="flex flex-col gap-1.5 text-[12px] leading-relaxed text-text-2">
           <div className="rounded-lg bg-bg px-3 py-2">
             등록 가능한 계좌는 <b className="text-text-1">본인(또는 사업자) 명의</b>
             로 한정되며, 판매자 검증 실명과 예금주를 대조합니다.
@@ -302,7 +302,7 @@ function PdfUpload({
   return (
     <div className="flex flex-col gap-1.5">
       <label
-        className={`flex cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-line-strong p-3 text-[11px] font-bold text-primary ${
+        className={`flex cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-dashed border-line-strong p-3 text-[12px] font-bold text-primary ${
           busy ? "pointer-events-none opacity-50" : ""
         }`}
       >
@@ -374,7 +374,7 @@ function StepProduct({
           />
           {/* "+ 미리보기 3p 지정"은 아무 동작도 없는 점선 버튼이었다.
               페이지 지정 UI 를 붙일 수단이 없어, 실제로 값을 받는 숫자 입력으로 바꿨다. */}
-          <label className="flex items-center gap-2 rounded-[10px] border border-line-strong px-3.5 py-2.5 text-[11px] text-text-2">
+          <label className="flex items-center gap-2 rounded-[10px] border border-line-strong px-3.5 py-2.5 text-[12px] text-text-2">
             <span className="shrink-0">무료 공개 페이지 수</span>
             <input
               type="number"
@@ -392,7 +392,7 @@ function StepProduct({
       </div>
       {/* 발행 게이트 검사 */}
       <div className="flex flex-col gap-1.5 rounded-xl bg-bg px-3.5 py-3">
-        <div className="text-[11px] font-extrabold text-ink">
+        <div className="text-[12px] font-extrabold text-ink">
           발행 게이트 검사 (11요소) — 이 화면에서 확인 가능 {passed}/
           {GATE_CHECKS.length}
         </div>
@@ -437,7 +437,7 @@ function StepPreview({ draft }: { draft: Draft }) {
       {/* 구매자에게 보이는 상세 미리보기 */}
       <div className="card mx-auto flex w-full max-w-[390px] flex-col gap-2.5 rounded-3xl bg-bg p-5">
         <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 truncate text-sm font-extrabold text-ink">
+          <span className="min-w-0 truncate text-[13px] font-extrabold text-ink">
             {draft.title.trim() || "제목 미입력"}
           </span>
           <span className="shrink-0 rounded-md bg-primary chip-pad text-[10px] font-extrabold text-white">
@@ -447,7 +447,7 @@ function StepPreview({ draft }: { draft: Draft }) {
         {/* 예전에는 여기에 "출처 국토부 실거래 · KB시세 / 기준일·표본 2026.7.19 · 거래 24건"이
             실제 출처 표기와 똑같은 스타일로 찍혀 있었다. 판매자가 그런 값을 입력한 적이 없어
             전부 지어낸 수치였다. 입력란이 생기기 전까지는 표시하지 않는다. */}
-        <div className="card flex flex-col gap-1.5 p-3.5 text-[11px] text-text-1">
+        <div className="card flex flex-col gap-1.5 p-3.5 text-[12px] text-text-1">
           <div className="flex justify-between">
             <span className="text-text-3">미리보기</span>
             <b>
@@ -461,7 +461,7 @@ function StepPreview({ draft }: { draft: Draft }) {
             <b>{draft.fileName ? "첨부됨" : "미첨부"}</b>
           </div>
         </div>
-        <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-line to-line-strong text-[11px] font-bold text-text-2">
+        <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-line to-line-strong text-[12px] font-bold text-text-2">
           미리보기 썸네일 영역 (자리표시)
         </div>
         <div className="rounded-xl bg-surface px-3.5 py-2.5 text-[10px] leading-relaxed text-text-2">
@@ -471,7 +471,7 @@ function StepPreview({ draft }: { draft: Draft }) {
         </div>
       </div>
 
-      <div className="card flex flex-col gap-2 p-4 text-[11px] leading-relaxed text-text-2">
+      <div className="card flex flex-col gap-2 p-4 text-[12px] leading-relaxed text-text-2">
         <div className="text-[13px] font-extrabold text-ink">
           미리보기 확인 사항
         </div>
@@ -519,7 +519,7 @@ function StepPrice({
           <div className="text-[13px] font-extrabold text-ink">
             가격 미리 계산
           </div>
-          <label className="flex items-center justify-between gap-2 rounded-lg border border-line-strong px-3 py-2 text-[11px] text-text-1 focus-within:border-primary">
+          <label className="flex items-center justify-between gap-2 rounded-lg border border-line-strong px-3 py-2 text-[12px] text-text-1 focus-within:border-primary">
             <span>판매가</span>
             <span className="flex items-center gap-1">
               <input
@@ -537,7 +537,7 @@ function StepPrice({
           </label>
           {valid ? (
             <>
-              <div className="flex justify-between rounded-lg bg-bg px-3 py-2 text-[11px] text-text-1">
+              <div className="flex justify-between rounded-lg bg-bg px-3 py-2 text-[12px] text-text-1">
                 <span>수수료 12% (일반 크리에이터 기준 · 최소 500원)</span>
                 <b className="tabular-nums text-danger">-{won(fee)}</b>
               </div>
@@ -547,7 +547,7 @@ function StepPrice({
               </div>
             </>
           ) : (
-            <div className="rounded-lg bg-bg px-3 py-2 text-[11px] text-text-3">
+            <div className="rounded-lg bg-bg px-3 py-2 text-[12px] text-text-3">
               판매가를 {won(MIN_PRICE)} 이상으로 입력하면 수수료와 정산액을
               계산해 드려요
             </div>
@@ -567,7 +567,7 @@ function StepPrice({
               구매자 추가 수수료 항상 0%
             </span>
           </div>
-          <div className="flex flex-col text-[11px] tabular-nums">
+          <div className="flex flex-col text-[12px] tabular-nums">
             <div className="flex rounded-t-lg bg-bg px-3 py-2 font-bold text-text-3">
               <span className="flex-[1.7]">판매자 유형</span>
               <span className="flex-1 text-right">통합 수수료</span>
@@ -622,7 +622,7 @@ function StepPrice({
             신청자 수를 집계하는 곳이 없어 지어낸 희소성이었다. 유료 구독 상품이라 더 위험해 삭제. */}
         <AIPanel title="파이오니어 전문가 플랜">
           <div className="flex flex-col gap-1.5">
-            <div className="text-lg font-extrabold tabular-nums text-white">
+            <div className="text-[19px] font-extrabold tabular-nums text-white">
               월 19,000원{" "}
               <span className="text-[10px] font-semibold text-ai-muted">
                 6개월 가격 유지 · 통합 수수료 7%
@@ -710,9 +710,9 @@ export default function SellerOnboardingPage() {
     <PageShell breadcrumb="마이 › 판매 시작하기" wide>
       {/* 위저드 헤더 바 */}
       <div className="glass rise-in mb-4 flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 md:px-5">
-        <span className="text-sm font-extrabold text-ink">판매 시작하기</span>
+        <span className="text-[13px] font-extrabold text-ink">판매 시작하기</span>
         <StepDots current={step} />
-        <span className="ml-auto flex items-center gap-2 text-[11px] text-text-3">
+        <span className="ml-auto flex items-center gap-2 text-[12px] text-text-3">
           {restored ? "이 브라우저에 임시 저장됨" : "입력하면 이 브라우저에 임시 저장돼요"}
           <button
             type="button"

@@ -37,7 +37,7 @@ const TITLE: Record<StateTone, string> = {
 
 const DESC: Record<StateTone, string> = {
   light: "text-[13px] leading-[1.6] text-text-3",
-  admin: "text-[11px] leading-[1.6] text-[#9aa6b8]",
+  admin: "text-[12px] leading-[1.6] text-[#9aa6b8]",
 };
 
 const ICON_WRAP: Record<StateTone, string> = {
@@ -52,13 +52,13 @@ const ERROR_ICON_WRAP: Record<StateTone, string> = {
 
 const CAUSE: Record<StateTone, string> = {
   light:
-    "rounded-lg bg-bg px-2.5 py-1.5 font-mono text-[11px] leading-[1.5] text-text-3",
+    "rounded-lg bg-bg px-2.5 py-1.5 font-mono text-[12px] leading-[1.5] text-text-3",
   admin:
     "rounded-lg bg-[rgba(255,255,255,.05)] px-2.5 py-1.5 font-mono text-[10px] leading-[1.5] text-[#9aa6b8]",
 };
 
 const ADMIN_LINK =
-  "press inline-flex items-center justify-center rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-[11px] font-extrabold text-ai-accent no-underline";
+  "press inline-flex items-center justify-center rounded-[10px] bg-[rgba(126,162,255,.15)] px-3.5 py-[7px] text-[12px] font-extrabold text-ai-accent no-underline";
 
 function ActionButton({ action, tone }: { action: EmptyStateAction; tone: StateTone }) {
   if (tone === "admin") {

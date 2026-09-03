@@ -123,7 +123,7 @@ export function BetaNoticeModal() {
           정해지면 이 자리에서 다시 안내드릴게요.
         </p>
 
-        <div className="rounded-2xl bg-primary-soft p-3 text-[12.5px] text-text-2">
+        <div className="rounded-2xl bg-primary-soft p-3 text-[13px] text-text-2">
           <p className="mb-1.5 font-bold text-primary">베타 기간에 알아 두시면 좋은 것</p>
           <p>
             시세·실거래는 공공데이터를 그대로 옮겨 보여 드립니다. 아직 확인되지 않은 값은 채워
@@ -132,7 +132,7 @@ export function BetaNoticeModal() {
           </p>
         </div>
 
-        <p className="text-[12.5px] text-text-2">
+        <p className="text-[13px] text-text-2">
           쓰다가 이상한 점이나 아쉬운 점이 있으면 알려 주세요. 베타 기간의 의견이 정식 출시 모습을
           정합니다.
         </p>

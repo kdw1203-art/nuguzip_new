@@ -185,7 +185,7 @@ export function RegionPulseCards({ regions }: { regions: HomeRegionCard[] }) {
             <span className="t-num text-[19px] text-ink">
               <PriceCountUp price={r.price} active={seen} />
             </span>
-            <span className={`text-[11px] ${DELTA_CLASS[r.tone]}`}>{r.delta}</span>
+            <span className={`text-[12px] ${DELTA_CLASS[r.tone]}`}>{r.delta}</span>
           </div>
           {/* CLS 방지 — 스파크라인은 SSR부터 자리를 차지하고(레이아웃 불변),
               뷰포트에 들어오면 그리기 애니메이션만 시작한다(페인트 변화만). */}
@@ -194,7 +194,7 @@ export function RegionPulseCards({ regions }: { regions: HomeRegionCard[] }) {
             <span className="t-caption text-text-3">
               {r.spark.length >= 4 ? `최근 ${r.spark.length}주 매매지수` : "국토부 실거래 기준"}
             </span>
-            <span className="translate-x-1 text-[11px] font-bold text-primary opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+            <span className="translate-x-1 text-[12px] font-bold text-primary opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
               지도에서 보기 →
             </span>
           </div>

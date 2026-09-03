@@ -152,7 +152,7 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
             className="absolute inset-0 h-full w-full cursor-default bg-[rgba(11,20,40,.5)]"
           />
           <div className="relative w-full max-w-[380px] rounded-[18px] bg-surface p-5 shadow-[0_24px_60px_rgba(16,28,54,.3)]">
-            <div id="soft-signup-title" className="text-[17px] font-extrabold text-ink">
+            <div id="soft-signup-title" className="text-[15px] font-extrabold text-ink">
               {intent.title}
             </div>
             <p className="mt-2 text-[13px] leading-relaxed text-text-2">{intent.benefit}</p>
@@ -169,7 +169,7 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
                   /* 계측 실패가 흐름을 막지 않는다 */
                 }
               }}
-              className="btn-primary mt-4 block rounded-xl px-4 py-3 text-center text-[14px] font-bold no-underline"
+              className="btn-primary mt-4 block rounded-xl px-4 py-3 text-center text-[13px] font-bold no-underline"
             >
               {ctaLabel}
             </a>
@@ -181,7 +181,7 @@ export function SoftSignupProvider({ children }: { children: ReactNode }) {
             >
               지금은 그냥 둘러볼게요
             </button>
-            <p className="mt-2 text-center text-[11px] text-text-3">
+            <p className="mt-2 text-center text-[12px] text-text-3">
               가입은 무료이고, 지금 보던 화면으로 돌아옵니다.
             </p>
           </div>

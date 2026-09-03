@@ -140,7 +140,7 @@ function FeatureRow({ f, dark }: { f: PlanFeature; dark: boolean }) {
       </span>
       {f.note && !off && (
         <span
-          className={`shrink-0 rounded-md chip-pad-tight text-[9px] font-bold ${
+          className={`shrink-0 rounded-md chip-pad-tight text-[10px] font-bold ${
             dark ? "bg-white/10 text-ai-accent" : "bg-primary-soft text-primary"
           }`}
         >
@@ -225,7 +225,7 @@ export function PlanCards({
               <div className="flex flex-col gap-1">
                 <div className={`text-[15px] font-extrabold ${p.nameTone}`}>{p.name}</div>
                 {/* 단일 출처 tagline — "누구를 위한 플랜인가" 한 줄 */}
-                <div className={`text-[11px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
+                <div className={`text-[12px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
                   {def.tagline}
                 </div>
               </div>
@@ -241,7 +241,7 @@ export function PlanCards({
                 </div>
                 {tierPrice != null && billing === "annual" && (
                   <>
-                    <span className={`text-[11px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
+                    <span className={`text-[12px] ${p.dark ? "text-ai-muted" : "text-text-3"}`}>
                       연 {fmtWon(tierPrice.annualTotal)} · -{Math.round(tierPrice.annualDiscountPct)}%
                     </span>
                     {/* 월 환산가는 싸 보이게 만드는 표기일 뿐, **얼마를 아끼는지**는

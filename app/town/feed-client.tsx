@@ -31,6 +31,10 @@ export type FeedCard = {
   isExample: boolean;
   /** 포인트 추천글 부스트 활성 — 정렬 우선 + '추천글' 배지 */
   boosted?: boolean;
+  /** [959] 내집나우 Lab(데이터 분석 카드) 노트 — "직접 방문"이 아니라 "Lab 데이터"로 표기한다 */
+  lab?: boolean;
+  /** 사진 없는 커버에 크게 적을 이름(단지명 등) */
+  aptName?: string | null;
 };
 
 /* [B19] 유형(무엇을 보나)과 정렬(어떤 순서로 보나)은 서로 다른 축인데
@@ -50,9 +54,52 @@ const SORTS = [
 ] as const;
 type SortId = (typeof SORTS)[number]["id"];
 
+/* [959] 사진이 없는 카드의 커버 — 예전엔 연한 그라디언트 빈 상자였다(23장 중 절반이
+   빈 상자라 피드가 "아무것도 없는 곳"처럼 보였다). 이제 **그 카드가 말하는 것**을 커버로
+   그린다: 단지명(또는 제목)을 크게, 지역을 작게, 노트는 네이비 위 한지 글자, 이야기는 한지
+   위 남색 글자. 사진처럼 꾸미지 않고 "데이터 카드"임을 드러낸다(가짜 사진 금지). */
+function GeneratedCover({ card }: { card: FeedCard }) {
+  const dark = card.kind === "note";
+  const big = (card.aptName?.trim() || card.title).slice(0, 28);
+  return (
+    <div
+      className={`absolute inset-0 flex flex-col justify-end p-3 ${
+        dark ? "bg-brand-navy text-on-dark" : "bg-brand-hanji text-brand-hanji-ink"
+      }`}
+      aria-hidden="true"
+    >
+      <span
+        className={`pointer-events-none absolute -right-3 -top-4 h-16 w-16 rounded-full ${
+          dark ? "bg-brand-red-dark/25" : "bg-brand-red/15"
+        }`}
+      />
+      <span className={`t-caption font-extrabold tracking-wider ${dark ? "text-on-dark-muted" : "opacity-70"}`}>
+        {card.region}
+      </span>
+      <span className="clamp-2 t-section leading-snug">{big}</span>
+      {typeof card.rating === "number" && card.rating > 0 && (
+        <span className={`mt-1 t-caption font-bold ${dark ? "text-brand-red-dark" : "text-brand-red"}`}>
+          ★ {card.rating.toFixed(1)}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Cover({ card }: { card: FeedCard }) {
-  const label = card.kind === "note" ? (card.visited ? "✓ 직접 방문" : "임장노트") : "이야기";
-  const labelColor = card.kind === "note" ? "text-success" : "text-primary";
+  /* [959] Lab 노트는 현장 방문 기록이 아니라 데이터 분석 카드다 — "✓ 직접 방문" 대신 "Lab 데이터".
+     사람이 다녀온 노트만 방문 배지를 단다. */
+  const label =
+    card.kind === "note"
+      ? card.lab
+        ? "Lab 데이터"
+        : card.visited
+          ? "✓ 직접 방문"
+          : "임장노트"
+      : "이야기";
+  const labelColor =
+    card.kind === "note" ? (card.lab ? "text-brand-navy" : "text-success") : "text-primary";
+  const hasPhoto = Boolean(card.cover);
   return (
     <div
       className="relative w-full overflow-hidden"
@@ -61,17 +108,21 @@ function Cover({ card }: { card: FeedCard }) {
          높이를 **먼저** 확정하고(카드별 시드 높이 = 기존 매소너리 리듬 유지)
          이미지는 absolute 로 그 안을 채운다. 로드 전후 높이가 같다 = 시프트 0. */
       style={{
-        background: seedGradient(card.region || card.id),
+        background: hasPhoto ? seedGradient(card.region || card.id) : undefined,
         height: seedCoverHeight(card.id),
       }}
     >
-      <CoverImage
-        src={card.cover}
-        alt={`${card.title} 커버 사진`}
-        imgClassName="absolute inset-0 h-full w-full object-cover object-top"
-      />
+      {hasPhoto ? (
+        <CoverImage
+          src={card.cover}
+          alt={`${card.title} 커버 사진`}
+          imgClassName="absolute inset-0 h-full w-full object-cover object-top"
+        />
+      ) : (
+        <GeneratedCover card={card} />
+      )}
       {/* 위쪽 배지가 밝은 이미지 위에 올라가면 읽히지 않는다 — 아주 옅은 스크림 */}
-      <span className="cover-scrim" aria-hidden="true" />
+      {hasPhoto && <span className="cover-scrim" aria-hidden="true" />}
       <span
         className={`absolute left-2 top-2 z-10 rounded-md bg-surface/90 chip-pad t-caption font-extrabold ${labelColor}`}
       >
@@ -338,13 +389,13 @@ export function TownFeed({
             {loadFailed
               ? "글을 불러오지 못했어요"
               : onlyMine
-                ? "내 관심지역의 첫 글이 비어 있어요 — 주인공이 되어 보세요"
-                : "이 조건의 첫 글이 비어 있어요 — 주인공이 되어 보세요"}
+                ? "내 관심지역 글이 아직 없어요 — 첫 글을 남겨 보세요"
+                : "이 조건의 글이 아직 없어요 — 첫 글을 남겨 보세요"}
           </div>
           <div className="t-sub text-text-3">
             {loadFailed
               ? "데이터 조회가 실패했습니다. 잠시 후 다시 시도해 주세요."
-              : "첫 임장노트나 동네 이야기를 남기면 가장 먼저 노출돼요"}
+              : "첫 임장노트나 동네이야기를 남기면 가장 먼저 노출돼요"}
           </div>
           <Link href="/town/write" className="btn-primary btn-md mt-2">
             글쓰기

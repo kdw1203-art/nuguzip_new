@@ -89,7 +89,7 @@ export function AdminNav() {
           const containsActive = g.items.some(isActive);
           return (
             <details key={g.title} open={g.defaultOpen || containsActive}>
-              <summary className="cursor-pointer select-none px-5 pb-1 pt-3 text-[11px] font-extrabold uppercase tracking-[0.12em] !text-[#5f6b7d] hover:!text-[#9aa6b8] [&::-webkit-details-marker]:hidden">
+              <summary className="cursor-pointer select-none px-5 pb-1 pt-3 text-[12px] font-extrabold uppercase tracking-[0.12em] !text-[#5f6b7d] hover:!text-[#9aa6b8] [&::-webkit-details-marker]:hidden">
                 {g.title}
               </summary>
               <div className="flex flex-col">

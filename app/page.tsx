@@ -119,14 +119,20 @@ function HomeAiGateway({
           </ul>
         </div>
       </div>
-      {exampleNoteId && (
-        <Link
-          href={`/notes/${exampleNoteId}`}
-          className="mt-1 w-fit text-[11px] font-bold text-ai-accent no-underline"
-        >
-          실제 정리된 공개 노트 보기 ›
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+        {exampleNoteId && (
+          <Link
+            href={`/notes/${exampleNoteId}`}
+            className="w-fit text-[12px] font-bold text-ai-accent no-underline"
+          >
+            실제 정리된 공개 노트 보기 ›
+          </Link>
+        )}
+        {/* [958] 홈에서 단지 분석 도구 12종으로 가는 길이 없었다 — 한 줄 링크 */}
+        <Link href="/analysis" className="w-fit text-[12px] font-bold text-ai-accent no-underline">
+          단지 분석 도구 12종 ›
         </Link>
-      )}
+      </div>
       <div className="mt-2 border-t border-white/15 pt-2">
         <div className="mb-1 t-caption font-extrabold text-ai-muted">
           {HOME_AI_BRIEFING_LABEL}
@@ -134,7 +140,7 @@ function HomeAiGateway({
         {briefing ? (
           <>
             {briefing.text}
-            <span className="ml-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[9px] font-semibold text-ai-muted">
+            <span className="ml-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[10px] font-semibold text-ai-muted">
               {briefing.asOfLabel}
             </span>
             {/* [950] 무엇을 잰 값인지 — 티커의 지역 평균과 같은 기준임을 한 줄로 */}
@@ -443,7 +449,7 @@ export default async function Home() {
               <h2 className="t-section text-ink">공개 임장노트</h2>
               <Link
                 href="/notes"
-                className="text-[11px] text-text-3 transition-colors hover:text-primary"
+                className="text-[12px] text-text-3 transition-colors hover:text-primary"
               >
                 더보기
               </Link>
@@ -546,7 +552,7 @@ export default async function Home() {
                 <span className="block font-bold text-text-1">
                   주간 다이제스트{digestWeekLabel ? ` · ${digestWeekLabel}` : ""}
                 </span>
-                <span className="mt-0.5 block truncate text-[11px] text-text-3">
+                <span className="mt-0.5 block truncate text-[12px] text-text-3">
                   {digestTeaser}
                 </span>
               </span>
@@ -701,7 +707,7 @@ export default async function Home() {
                   </h2>
                   <Link
                     href="/notes"
-                    className="text-[11px] text-text-3 transition-colors hover:text-primary"
+                    className="text-[12px] text-text-3 transition-colors hover:text-primary"
                   >
                     더보기
                   </Link>
@@ -754,7 +760,7 @@ export default async function Home() {
                   </h2>
                   <Link
                     href="/town"
-                    className="text-[11px] text-text-3 transition-colors hover:text-primary"
+                    className="text-[12px] text-text-3 transition-colors hover:text-primary"
                   >
                     더보기
                   </Link>
@@ -784,13 +790,13 @@ export default async function Home() {
                           </span>
                           <span className="min-w-0 truncate font-semibold text-text-1">{n.title}</span>
                           {n.source && (
-                            <span className="ml-auto shrink-0 text-[11px] text-text-3">{n.source}</span>
+                            <span className="ml-auto shrink-0 text-[12px] text-text-3">{n.source}</span>
                           )}
                         </Link>
                       ))}
                       <Link
                         href="/town/write"
-                        className="mt-1 text-[11px] font-bold text-primary no-underline"
+                        className="mt-1 text-[12px] font-bold text-primary no-underline"
                       >
                         다녀온 동네 한 줄 남기기 ›
                       </Link>
@@ -885,7 +891,7 @@ export default async function Home() {
                   주간 다이제스트{digestWeekLabel ? ` · ${digestWeekLabel}` : ""}
                   <span className="text-primary">›</span>
                 </span>
-                <span className="truncate text-[11px] text-text-3">{digestTeaser}</span>
+                <span className="truncate text-[12px] text-text-3">{digestTeaser}</span>
               </Link>
               <Link
                 href="/safety"
@@ -899,6 +905,13 @@ export default async function Home() {
                 className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
               >
                 전문가 찾아보기
+                <span className="text-primary">›</span>
+              </Link>
+              <Link
+                href="/town/experts/join"
+                className="flex justify-between py-1.5 t-body font-semibold text-text-1 no-underline"
+              >
+                전문가로 참여 · 자격 인증
                 <span className="text-primary">›</span>
               </Link>
               {/* 자료실 — 유료 리포트 판매 루프의 홈 발견 경로 (전에는 없었다) */}
@@ -940,7 +953,7 @@ export default async function Home() {
                   구독 안내
                   <span className="text-primary">›</span>
                 </span>
-                <span className="truncate text-[11px] text-text-3">
+                <span className="truncate text-[12px] text-text-3">
                   기록·지도는 무료 · 유료는 AI 분석 깊이·월 한도 확대
                 </span>
               </Link>
@@ -950,7 +963,7 @@ export default async function Home() {
                     <li key={m.id}>
                       <Link
                         href={`/town/groups/${m.id}`}
-                        className="block truncate text-[11px] text-text-3 no-underline hover:text-primary"
+                        className="block truncate text-[12px] text-text-3 no-underline hover:text-primary"
                       >
                         {m.label}
                       </Link>
@@ -959,7 +972,7 @@ export default async function Home() {
                 </ul>
               )}
               {meetings.length === 0 && failed.meetings && (
-                <p className="text-[11px] text-text-3">모임 목록을 지금 불러오지 못했어요.</p>
+                <p className="text-[12px] text-text-3">모임 목록을 지금 불러오지 못했어요.</p>
               )}
               {reports.length > 0 && (
                 <ul className="mt-0.5 flex flex-col gap-1 border-t border-divider pt-2">
@@ -973,7 +986,7 @@ export default async function Home() {
                           없다고 말하는 상태였다(지금은 그 페이지도 읽는다). */}
                       <Link
                         href="/town/library#reports"
-                        className="flex justify-between gap-2 text-[11px] no-underline hover:text-primary"
+                        className="flex justify-between gap-2 text-[12px] no-underline hover:text-primary"
                       >
                         <span className="truncate font-semibold text-text-1">{r.title}</span>
                         <span className="shrink-0 text-text-3">{r.priceLabel}</span>

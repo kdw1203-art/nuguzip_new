@@ -11,11 +11,11 @@ import Link from "next/link";
  */
 
 const DESTS = [
-  { id: "price", href: "/analysis/price", label: "면적대별 실거래" },
-  { id: "timing", href: "/analysis/timing", label: "시세·타이밍" },
-  { id: "scenario", href: "/analysis/scenario", label: "대출 시나리오" },
-  { id: "temperature", href: "/analysis/temperature", label: "온도 주간 기록" },
-  { id: "compare", href: "/analysis/compare", label: "후보 비교" },
+  { id: "price", href: "/analysis/price", label: "면적대별 실거래 시세" },
+  { id: "timing", href: "/analysis/timing", label: "시세·타이밍 분석" },
+  { id: "scenario", href: "/analysis/scenario", label: "시장·대출 시나리오" },
+  { id: "temperature", href: "/analysis/temperature", label: "지역별 시장 온도" },
+  { id: "compare", href: "/analysis/compare", label: "후보 단지 비교" },
   { id: "map", href: "/map", label: "지도에서 보기" },
 ] as const;
 
@@ -53,7 +53,7 @@ export function AnalysisCrossLinks({
         {note && (
           <Link
             href={note.href}
-            className="chip bg-primary px-3.5 py-1.5 text-[11.5px] font-bold text-white no-underline"
+            className="chip bg-primary px-3.5 py-1.5 text-[12px] font-bold text-white no-underline"
           >
             {note.label} ›
           </Link>
@@ -68,7 +68,7 @@ export function AnalysisCrossLinks({
             <Link
               key={d.id}
               href={href}
-              className="chip bg-bg px-3 py-1.5 text-[11.5px] font-bold text-text-2 no-underline transition-colors hover:text-primary"
+              className="chip bg-bg px-3 py-1.5 text-[12px] font-bold text-text-2 no-underline transition-colors hover:text-primary"
             >
               {d.label} ›
             </Link>

@@ -44,14 +44,14 @@ export function GlossarySearch({ groups }: { groups: GlossaryGroupData[] }) {
           onChange={(e) => setQ(e.target.value)}
           placeholder="용어 검색 (예: 전용면적, 갭투자)"
           aria-label="용어 검색"
-          className="w-full bg-transparent text-[16px] text-ink outline-none placeholder:text-text-3 md:text-[14px]"
+          className="w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-text-3 md:text-[13px]"
         />
         {searching && (
           <button
             type="button"
             onClick={() => setQ("")}
             aria-label="검색어 지우기"
-            className="shrink-0 text-sm text-text-3"
+            className="shrink-0 text-[13px] text-text-3"
           >
             ✕
           </button>
@@ -91,7 +91,7 @@ export function GlossarySearch({ groups }: { groups: GlossaryGroupData[] }) {
               id={encodeURIComponent(g.category)}
               className={`rise-in-${Math.min(gi + 2, 6)} scroll-mt-24`}
             >
-              <h2 className="text-[16px] font-extrabold text-ink">{g.category}</h2>
+              <h2 className="text-[15px] font-extrabold text-ink">{g.category}</h2>
               <div className="mt-2 grid gap-2 md:grid-cols-2">
                 {g.terms.map((t) => (
                   <Link
@@ -100,7 +100,7 @@ export function GlossarySearch({ groups }: { groups: GlossaryGroupData[] }) {
                     href={`/glossary/${t.slug}`}
                     className="card rounded-[14px] p-4"
                   >
-                    <div className="text-[14px] font-extrabold text-ink">{t.term}</div>
+                    <div className="text-[13px] font-extrabold text-ink">{t.term}</div>
                     <div className="mt-1 text-[12px] leading-[1.65] text-text-2">
                       {t.short}
                     </div>

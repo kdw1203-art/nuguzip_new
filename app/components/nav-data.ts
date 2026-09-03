@@ -29,10 +29,13 @@ export const NAV: NavItem[] = [
     label: "AI 분석",
     href: "/analysis",
     children: [
+      /* [958] 이름은 허브 카드(tool-catalog)와 글자까지 같게 — 세 곳이 다른 이름을 쓰면
+         "어떤 게 어느 기능인지"가 흐려진다 */
       { label: "분석 허브", href: "/analysis" },
+      { label: "이 단지 종합 진단", href: "/analysis/ai/ai-diagnosis" },
       { label: "후보 단지 비교", href: "/analysis/compare" },
+      { label: "시세·타이밍 분석", href: "/analysis/timing" },
       { label: "시장·대출 시나리오", href: "/analysis/scenario" },
-      { label: "시세·타이밍", href: "/analysis/timing" },
     ],
   },
   {
