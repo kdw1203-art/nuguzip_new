@@ -5,6 +5,7 @@ import { SwRegister } from "./components/SwRegister";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { IosInstallHint } from "./components/IosInstallHint";
 import { AdSenseLoader } from "./components/AdSenseLoader";
+import { getAdSenseClient } from "@/lib/ads/adsense-policy";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ClientErrorReporter } from "./components/ClientErrorReporter";
 import { TrafficRecorder } from "./components/TrafficRecorder";
@@ -32,6 +33,9 @@ export const metadata: Metadata = {
      구글: 정식 도메인 속성 인증은 Vercel DNS 의 TXT 레코드로 하고, 이 태그는
      URL 접두어 속성용 폴백. 네이버: 서치어드바이저 HTML 태그 방식(정식).
      검증 토큰은 공개돼도 되는 값이다(시크릿 아님). */
+  /* [960] 애드센스 사이트 연결 — 구글이 허용하는 세 방식(코드 스니펫·ads.txt·메타 태그)
+     을 전부 갖춘다. 스니펫은 아래 <head>, ads.txt 는 app/ads.txt/route.ts, 메타는 여기. */
+  other: { "google-adsense-account": getAdSenseClient() ?? "" },
   verification: {
     google: "d4jn9bf7SyTraz2EEnn4aNIPemHwz-Bqqflre4DEuXU",
     /* [955] 네이버 토큰 2개 — 첫 값은 nuguzip.com 속성(유지), 둘째는 naezipnow.com 속성
@@ -176,6 +180,23 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+        {/* [960] 구글 애드센스 공식 스니펫 — 소유자 제공(2026-09-03) 그대로 <head> 에.
+            정적 HTML 에 있어야 애드센스 "코드 삽입" 확인과 자동 광고가 동작한다
+            (예전엔 AdSenseLoader 가 세션 판정 뒤 클라이언트에서 끼워 넣어 크롤러가
+            못 볼 수 있었다). 대신 광고 **요청**은 pauseAdRequests=1 로 잠근 채
+            시작하고, AdSenseLoader 가 제외 경로(/payment·/my…)·광고 없는 플랜
+            (pro/expert/enterprise) 판정을 마친 뒤에만 푼다 — 스크립트는 모든
+            페이지에 있지만 광고는 정책이 허용하는 자리에만 나온다. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "window.adsbygoogle=window.adsbygoogle||[];window.adsbygoogle.pauseAdRequests=1;",
+          }}
+        />
+        <script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(getAdSenseClient() ?? "")}`}
+          crossOrigin="anonymous"
+        />
         {/* S16/G16 — Organization·WebSite JSON-LD (정적 값만, 데이터 페칭 없음) */}
         <SiteJsonLd />
         <meta name="apple-mobile-web-app-capable" content="yes" />

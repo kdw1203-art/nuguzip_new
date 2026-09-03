@@ -3,30 +3,42 @@
 import { getSessionLite } from "@/lib/client/session-lite";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import Script from "next/script";
 import { getAdSenseClient, isAdsExcludedPath } from "@/lib/ads/adsense-policy";
 
 /**
- * Google AdSense Auto ads — `NEXT_PUBLIC_ADSENSE_CLIENT`(ca-pub-…)가 설정된 경우에만 로드.
+ * Google AdSense — 광고 요청 게이트 (960 에서 역할이 바뀌었다).
  *
- * H1·H8 — 여기서 두 가지 게이트를 **실제로 건다**. 전에는 클라이언트 ID 유무만 보고
- * 무조건 로드했다. `lib/ads/adsense-policy.ts` 에 제외 경로 목록과 광고 없는 플랜
- * 판정이 있었지만 부르는 곳이 한 군데도 없어서(importer 0), 목록은 맞는데 아무것도
- * 막지 않는 상태였다 — "완료"로 기록돼 있던 항목이 실은 미집행이었다.
+ * 예전(H1·H8): 이 컴포넌트가 세션 판정 뒤 `adsbygoogle.js` 를 **클라이언트에서**
+ * 끼워 넣었다. 정책 게이트(경로·플랜)는 맞았지만, 스크립트가 정적 HTML 에 없어서
+ * 애드센스 "코드 삽입" 확인 크롤러가 못 볼 수 있었고 자동 광고도 판정 지연만큼 늦었다.
  *
- * 1) **경로 제외** — `/payment`·`/my`·`/subscription`·`/map` 등. 결제 화면에 광고를
- *    붙이는 것은 AdSense 정책 위반 소지가 있고, `/my` 는 포인트·리드·결제 내역이
- *    보이는 자리라 그 위에 외부 광고가 얹히면 안 된다.
- * 2) **플랜 제외** — pro/expert/enterprise 는 광고 제거가 포함된 플랜이다
- *    (`lib/subscriptions/access.ts` 의 `ad_free`, minTier "pro"). 돈을 낸 사람에게
- *    광고를 띄우면 판 것과 다른 물건을 주는 것이다.
+ * 지금: 공식 스니펫은 app/layout.tsx <head> 에 그대로 있고(모든 페이지), 그 앞에서
+ * `adsbygoogle.pauseAdRequests = 1` 로 **광고 요청만** 잠근다. 이 컴포넌트는
+ * 두 게이트를 판정한 뒤 잠금을 푼다(0) — 스크립트 유무가 아니라 요청 여부를 다룬다.
  *
- * 판정이 끝나기 전에는 스크립트를 넣지 않는다(모르면 안 띄운다). 비로그인 사용자는
- * 세션 응답이 비어 있어 곧바로 "광고 대상"으로 확정되므로 손해가 없다.
+ * 1) **경로 제외** — `/payment`·`/my`·`/subscription`·`/map` 등(adsense-policy 목록).
+ *    결제 화면 위 광고는 정책 위반 소지, `/my` 는 결제 내역이 보이는 자리다.
+ *    클라이언트 내비게이션으로 제외 경로에 들어가면 다시 잠근다(1).
+ * 2) **플랜 제외** — pro/expert/enterprise 는 광고 제거가 포함된 플랜
+ *    (`lib/subscriptions/access.ts` 의 `ad_free`). 돈을 낸 사람에게 광고를 띄우면
+ *    판 것과 다른 물건을 주는 것이다.
  *
- * 비용 주의: 세션 조회는 **클라이언트 ID 가 있고 제외 경로도 아닐 때만** 나간다.
- * 키가 붙기 전(현재)에는 요청이 한 건도 발생하지 않는다.
+ * 판정이 끝나기 전에는 풀지 않는다(모르면 안 띄운다). 세션 조회 실패도 "광고 없음"
+ * 쪽으로 둔다 — 결제한 사람에게 광고가 나가는 것이 반대 실수보다 나쁘다.
+ * 비로그인은 세션 응답이 비어 있어 곧바로 광고 대상으로 확정된다.
+ *
+ * 비용: 세션 조회는 클라이언트 ID 가 있고 제외 경로가 아닐 때만 나간다(공유 캐시).
  */
+
+type AdsQueue = unknown[] & { pauseAdRequests?: number };
+
+function setPaused(paused: boolean) {
+  if (typeof window === "undefined") return;
+  const w = window as unknown as { adsbygoogle?: AdsQueue };
+  const q = (w.adsbygoogle = w.adsbygoogle ?? ([] as unknown as AdsQueue));
+  q.pauseAdRequests = paused ? 1 : 0;
+}
+
 export function AdSenseLoader() {
   const client = getAdSenseClient();
   const pathname = usePathname() ?? "/";
@@ -44,8 +56,6 @@ export function AdSenseLoader() {
         // 최적화 26 — 공유 세션 조회로 수렴
         const data = await getSessionLite();
         if (data === null) {
-          // 세션 조회 실패는 "비로그인"과 구분되지 않는다. 광고를 띄우지 않는 쪽으로
-          // 둔다 — 결제한 사람에게 광고가 나가는 것이 반대 실수보다 나쁘다.
           if (alive) setAdFree(true);
           return;
         }
@@ -65,16 +75,12 @@ export function AdSenseLoader() {
     };
   }, [shouldCheckPlan]);
 
-  if (!client || excludedPath) return null;
-  if (adFree !== false) return null;
+  /* 잠금 상태를 경로·플랜 판정에 맞춘다. 제외 경로면 항상 잠금, 판정 전이면 잠금,
+     광고 대상으로 확정된 뒤에만 푼다. */
+  useEffect(() => {
+    if (!client) return;
+    setPaused(excludedPath || adFree !== false);
+  }, [client, excludedPath, adFree]);
 
-  return (
-    <Script
-      id="adsense-auto"
-      async
-      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(client)}`}
-      crossOrigin="anonymous"
-      strategy="afterInteractive"
-    />
-  );
+  return null;
 }
