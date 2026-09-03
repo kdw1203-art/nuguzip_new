@@ -54,7 +54,7 @@ const ENV = {
  * 1:1 문의가 쌓이는 관리자 인박스 키 (ADMIN_EMAIL 미설정 시 기본값).
  *
  * 쓰는 쪽(app/api/support/route.ts)과 읽는 쪽(lib/newui/admin-metrics.ts)이
- * 각자 "admin@naezipnow.com" 을 기본값으로 적고 있었다. 그 계정은 존재하지 않아
+ * 각자 "admin@nuguzip.com" 을 기본값으로 적고 있었다. 그 계정은 존재하지 않아
  * 문의가 아무도 안 보는 곳에 쌓였고, 한쪽만 고치면 두 값이 어긋나 이미 들어온
  * 문의를 못 읽게 된다. 두 곳이 같은 상수를 본다.
  */

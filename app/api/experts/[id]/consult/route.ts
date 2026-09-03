@@ -10,9 +10,10 @@ import {
   listConsultationsForExpert,
   listMyConsultations,
   replyConsultation,
+  closeConsultation,
   type ConsultType,
 } from "@/lib/expert-consultations/store-db";
-import { getExpert } from "@/lib/experts/store-db";
+import { getExpert, refreshExpertResponseStats } from "@/lib/experts/store-db";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { checkExpertConsultQuota, resolveQuotaPlan } from "@/lib/subscriptions/usage-summary";
 import { withUserQuotaLock } from "@/lib/subscriptions/quota-lock";
@@ -157,19 +158,39 @@ export async function PATCH(
 
   const { id: expertId } = await params;
 
+  const body = (await req.json().catch(() => ({}))) as {
+    consultationId?: string;
+    replyMessage?: string;
+    action?: string;
+  };
+
+  const consultationId = String(body.consultationId ?? "").trim();
+  const replyMessage = String(body.replyMessage ?? "").trim();
+
+  /* [953] 의뢰자 마감 — 아직 답변이 없는 내 상담을 접는다(전문가 응답률 분모에서
+     빠진다). 본인 소유(requester_email) 확인은 내 상담 목록에서 찾는 것으로 대신한다. */
+  if (body.action === "close") {
+    if (!consultationId) {
+      return NextResponse.json({ error: "consultationId가 필요합니다." }, { status: 400 });
+    }
+    const mine = (await listMyConsultations(session.user.email)).find(
+      (c) => c.id === consultationId && c.expertId === expertId,
+    );
+    if (!mine) return NextResponse.json({ error: "내 상담이 아니에요." }, { status: 403 });
+    if (mine.status !== "pending") {
+      return NextResponse.json({ error: "답변이 있거나 이미 마감된 상담이에요." }, { status: 409 });
+    }
+    const ok = await closeConsultation(consultationId);
+    if (!ok) return NextResponse.json({ error: "마감 실패" }, { status: 500 });
+    void refreshExpertResponseStats(expertId).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
   // 전문가 본인 확인
   const expert = await getExpert(expertId);
   if (!expert || (expert.ownerEmail !== session.user.email && session.user.role !== "admin")) {
     return NextResponse.json({ error: "답변 권한이 없습니다." }, { status: 403 });
   }
-
-  const body = (await req.json().catch(() => ({}))) as {
-    consultationId?: string;
-    replyMessage?: string;
-  };
-
-  const consultationId = String(body.consultationId ?? "").trim();
-  const replyMessage = String(body.replyMessage ?? "").trim();
 
   if (!consultationId || !replyMessage) {
     return NextResponse.json(
@@ -182,14 +203,17 @@ export async function PATCH(
   if (!result) {
     return NextResponse.json({ error: "답변 실패" }, { status: 500 });
   }
-  /* 답변 알림 — 신청 완료 화면이 "답변은 알림으로 안내됩니다"라고 약속하는데
-     여태 아무 알림도 없었다(상담 루프가 전문가 쪽에서 끊김). 요청자 전용 열람
-     페이지가 아직 없으므로 답변 본문을 알림에 실어 루프를 닫는다. */
+  /* 답변 알림 — 신청 완료 화면이 "답변은 알림으로 안내됩니다"라고 약속한다.
+     [953] 의뢰자 상담함(/my/consultations)이 생겼으므로 거기로 딥링크한다 — 답변
+     전문과 후기 작성 버튼이 그 화면에 있다. */
   void appendInboxNotification({
     userEmail: result.userEmail,
     title: `${expert.name} 전문가 답변이 도착했어요`,
     body: replyMessage.length > 160 ? `${replyMessage.slice(0, 159)}…` : replyMessage,
-    actionUrl: "/town/experts",
+    actionUrl: "/my/consultations#sent",
   }).catch(() => {});
+  /* [953] 응답률·상담 완료 수를 프로필 컬럼에 반영 — 목록 정렬("응답 빠른 순")과
+     카드 지표가 실측값을 쓴다. 실패해도 답변 자체는 이미 저장됐다. */
+  void refreshExpertResponseStats(expertId).catch(() => {});
   return NextResponse.json({ ok: true, consultation: result });
 }

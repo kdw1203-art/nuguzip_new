@@ -9,7 +9,7 @@
 
 ### 1. 토스 심사 회신 메일 발송
 `docs/toss-reply-final.md` 를 그대로 복사해 회신. 발송 전 3가지만 채우면 완료:
-- **테스트계정**: https://naezipnow.com/signup 에서 `test@naezipnow.com` 가입 →
+- **테스트계정**: https://naezipnow.com/signup 에서 `test@nuguzip.com` 가입 →
   이메일 인증 → 회신에 ID/PW 기재 (소셜 로그인 불가, 흔한 비밀번호는 거절되니
   무작위 문자열)
 - **빌링 신청 여부**에 맞춰 1) 문장만 조정 ("추가 신청합니다" ↔ "신청하였습니다")

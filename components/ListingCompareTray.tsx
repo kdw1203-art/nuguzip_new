@@ -66,7 +66,7 @@ export function ListingCompareTray() {
           {items.map((it) => (
             <span
               key={it.id}
-              className="inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-surface px-2.5 py-1.5 text-[12px]"
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-line bg-surface px-2.5 py-1.5 text-[12px]"
             >
               <span className="font-bold text-ink">{it.complexName}</span>
               <span className="text-text-3">{priceLine(it)}</span>

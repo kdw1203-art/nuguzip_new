@@ -65,7 +65,7 @@ export function AiFeedbackButtons({
         aria-pressed={choice === "down"}
         className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-bold transition ${
           choice === "down"
-            ? "border-danger/40 bg-[#fff5f5] text-danger"
+            ? "border-danger/40 bg-danger-soft text-danger"
             : "border-line bg-surface text-text-2 hover:border-danger/30"
         }`}
       >

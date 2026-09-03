@@ -82,7 +82,7 @@ export async function BillingPanel({
   const billingOpen = isTossBillingEnabled();
 
   return (
-    <section className="rise-in-3 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
+    <section className="rise-in-3 card mx-auto mt-8 w-full max-w-[1080px] rounded-[18px] px-[22px] py-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="t-section text-ink">구독 관리 · 결제 내역</h2>
         <span className="t-sub text-text-3">

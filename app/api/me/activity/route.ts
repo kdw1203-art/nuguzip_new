@@ -123,7 +123,8 @@ export async function GET() {
       const hrefs: Record<string, string> = {
         post: `/community/${b.targetId}`,
         report: `/reports/${b.targetId}`,
-        expert: "/town/experts",
+        /* [953] 전문가 상세가 생겼다 — 북마크는 상세로 */
+        expert: `/town/experts/${b.targetId}`,
         meeting: `/town/groups/${b.targetId}`,
         market: "/town/market",
       };

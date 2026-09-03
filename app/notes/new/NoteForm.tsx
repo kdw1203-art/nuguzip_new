@@ -1273,7 +1273,7 @@ export function NoteForm({
       {(preferAi || fromWelcome) && !isEdit && (
         <div
           role="status"
-          className="mt-2.5 rounded-[12px] border border-primary/25 bg-primary-soft px-3.5 py-2.5 t-sub text-text-1"
+          className="mt-2.5 rounded-[10px] border border-primary/25 bg-primary-soft px-3.5 py-2.5 t-sub text-text-1"
         >
           {fromWelcome ? (
             <>
@@ -1312,10 +1312,10 @@ export function NoteForm({
         {offline && !isEdit && (
           <div
             role="status"
-            className="rise-in flex items-center gap-2.5 rounded-[14px] border border-[#f0d9a8] bg-[#fdf6e3] px-4 py-3"
+            className="rise-in flex items-center gap-2.5 rounded-[14px] border border-warning-border bg-warning-soft px-4 py-3"
           >
             <Icon name="📴" size={16} className="shrink-0" />
-            <p className="text-xs leading-[1.6] text-[#7a5b1e]">
+            <p className="text-xs leading-[1.6] text-warning">
               <b>오프라인이에요.</b> 입력 내용은 이 기기에 자동으로 임시저장되고
               있어요. 연결이 돌아오면 그대로 이어서 저장하면 됩니다 (사진 업로드는
               연결 후에 해주세요).
@@ -1337,14 +1337,14 @@ export function NoteForm({
             <button
               type="button"
               onClick={restoreDraft}
-              className="shrink-0 rounded-[9px] bg-primary px-3 py-2 t-sub font-bold text-white"
+              className="shrink-0 rounded-[10px] bg-primary px-3 py-2 t-sub font-bold text-white"
             >
               이어서 쓰기
             </button>
             <button
               type="button"
               onClick={discardDraft}
-              className="shrink-0 rounded-[9px] border border-line bg-surface px-3 py-2 t-sub font-bold text-text-2"
+              className="shrink-0 rounded-[10px] border border-line bg-surface px-3 py-2 t-sub font-bold text-text-2"
             >
               삭제
             </button>
@@ -1378,7 +1378,7 @@ export function NoteForm({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading || photos.length >= MAX_PHOTOS}
-            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border-[1.5px] border-dashed border-line-strong bg-surface px-4 py-2.5 t-body font-bold text-text-2 disabled:opacity-60"
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] border-[1.5px] border-dashed border-line-strong bg-surface px-4 py-2.5 t-body font-bold text-text-2 disabled:opacity-60"
           >
             <Icon name="📷" size={16} className="inline align-middle" />
             {uploading
@@ -1411,7 +1411,7 @@ export function NoteForm({
                   type="button"
                   onClick={runVisitVerify}
                   disabled={verifyState === "asking"}
-                  className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1 disabled:opacity-60"
+                  className="rounded-[10px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1 disabled:opacity-60"
                 >
                   {verifyState === "asking" ? "위치 확인 중…" : "현재 위치로 인증하기"}
                 </button>
@@ -1567,7 +1567,7 @@ export function NoteForm({
             <button
               type="button"
               onClick={() => setQuickMode(false)}
-              className="shrink-0 rounded-[9px] border border-line-strong bg-surface px-3 py-2 t-sub font-bold text-text-1"
+              className="shrink-0 rounded-[10px] border border-line-strong bg-surface px-3 py-2 t-sub font-bold text-text-1"
             >
               세부 항목 펼치기
             </button>
@@ -1715,7 +1715,7 @@ export function NoteForm({
                           className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-surface"
                         >
                           <span
-                            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] text-[11px] ${
+                            className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[11px] ${
                               checked
                                 ? "bg-primary text-white"
                                 : "border-[1.5px] border-line-strong bg-surface"
@@ -1802,7 +1802,7 @@ export function NoteForm({
                 className="flex items-center gap-2.5 rounded-xl bg-bg px-3 py-[11px] text-left"
               >
                 <span
-                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] text-[11px] ${
+                  className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md text-[11px] ${
                     done
                       ? "bg-primary text-white"
                       : "border-[1.5px] border-line-strong bg-surface"
@@ -1888,7 +1888,7 @@ export function NoteForm({
                     type="button"
                     aria-label="사진 삭제"
                     onClick={() => removePhoto(p)}
-                    className="absolute -right-1 -top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-ink t-caption text-surface"
+                    className="absolute -right-1 -top-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-brand-navy t-caption text-surface"
                   >
                     ✕
                   </button>
@@ -1930,7 +1930,7 @@ export function NoteForm({
           <span
             aria-hidden="true"
             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-              isPublic ? "bg-primary" : "bg-[#d5dceb]"
+              isPublic ? "bg-primary" : "bg-line-strong"
             }`}
           >
             <span

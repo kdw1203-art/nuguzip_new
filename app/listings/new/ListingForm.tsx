@@ -348,7 +348,7 @@ export function ListingForm() {
           <p className="mt-2 text-[12px] font-bold text-danger">{geoMsg}</p>
         )}
         {picked && (
-          <div className="mt-2 rounded-xl bg-[rgba(29,79,216,.06)] px-3 py-2.5 text-[13px] leading-[1.6] text-[#3b56a8]">
+          <div className="mt-2 rounded-xl bg-[rgba(29,79,216,.06)] px-3 py-2.5 text-[13px] leading-[1.6] text-text-2">
             선택한 위치: <b className="text-ink">{picked.address}</b>
           </div>
         )}

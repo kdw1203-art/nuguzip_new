@@ -293,7 +293,7 @@ function ComplexCompareTable() {
           {/* 성격 비교 — 표는 항목별 우열은 보여 주지만 "어떤 단지인가"는 안 보여 준다.
               값이 있는 단지가 2곳 이상일 때만 그린다(한 곳짜리 레이더는 의미 없다). */}
           {radar.length >= 2 && (
-            <div className="flex flex-wrap items-center justify-center gap-4 rounded-[12px] bg-bg p-3">
+            <div className="flex flex-wrap items-center justify-center gap-4 rounded-[10px] bg-bg p-3">
               <Radar series={radar} size={200} />
               <ul className="flex flex-col gap-1.5">
                 {radar.map((r) => (
@@ -483,7 +483,7 @@ function RegionMarketSummary() {
   };
 
   return (
-    <div className="rise-in-2 card flex flex-col gap-3 rounded-[20px] p-[22px]">
+    <div className="rise-in-2 card flex flex-col gap-3 rounded-[18px] p-[22px]">
       <div className="flex items-center justify-between gap-2">
         <div className="t-section text-ink">
           후보 지역 실시세 스냅샷
@@ -516,7 +516,7 @@ function RegionMarketSummary() {
           담은 후보 지역의 실시세 데이터가 아직 없어요. 시세 수집 후 다시 시도해 주세요.
         </div>
       ) : state.kind === "limited" || state.kind === "error" ? (
-        <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
+        <div className="rounded-[10px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
           {state.message}
         </div>
       ) : (

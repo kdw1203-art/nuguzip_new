@@ -2,18 +2,21 @@
 
 /**
  * 전문가 견적 요청 플로우 (숨고 벤치마크 — docs/benchmark-proposals.md A4)
- * 카테고리(임장 동행/세무/대출/인테리어) + 지역 + 내용 → POST /api/market-requests
+ * 카테고리(세무/절세·금융/대출·임장 동행·인테리어) + 지역 + 내용 → POST /api/market-requests
  * 로그인 필요 · 시간당 3회 rate-limit(서버). 성공 시 "전문가가 확인하면 알림으로 알려드려요"
  *
  * - QuoteRequestModal: 외부에서 open/onClose 로 제어 (전문가 상세에서 재사용)
  * - QuoteRequestBanner: 목록 상단 배너 + 자체 트리거
  */
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
-import { Modal } from "@/app/components/ui/Modal";
+import { Modal, ModalHeader } from "@/app/components/ui/Modal";
+import { QUOTE_CATEGORIES, findSpecialty } from "@/lib/experts/taxonomy";
 
-const CATEGORIES = ["임장 동행", "세무", "대출", "인테리어"] as const;
-type Category = (typeof CATEGORIES)[number];
+/* [953] 카테고리는 분류 체계(taxonomy) 의 quotable 분야 — 목록 필터·프로필 분야와 같은 라벨 */
+const CATEGORIES = QUOTE_CATEGORIES;
+type Category = string;
 
 type MyRequest = {
   id: string;
@@ -140,8 +143,12 @@ export function QuoteRequestModal({
       {status === "done" ? (
         <div className="flex flex-col items-center gap-2.5 py-4 text-center">
           <div className="t-section text-ink">견적 요청이 접수됐어요</div>
-          <p className="text-xs leading-[1.6] text-text-2">
-            전문가가 확인하면 알림으로 알려드려요.
+          <p className="t-sub text-text-2">
+            인증 전문가가 제안을 보내면 알림과 함께{" "}
+            <Link href="/my/consultations#requests" className="font-bold text-primary">
+              마이 › 상담함
+            </Link>
+            에 모여요. 여러 제안을 비교하고 프로필로 이어가세요.
           </p>
           <button
             type="button"
@@ -153,17 +160,7 @@ export function QuoteRequestModal({
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-extrabold text-ink">{headline}</span>
-            <button
-              type="button"
-              aria-label="닫기"
-              onClick={onClose}
-              className="t-body text-text-3"
-            >
-              ✕
-            </button>
-          </div>
+          <ModalHeader title={headline} onClose={onClose} />
 
           <div>
             <div className="mb-1.5 t-sub font-bold text-text-2">카테고리</div>
@@ -173,7 +170,8 @@ export function QuoteRequestModal({
                   key={c}
                   type="button"
                   onClick={() => setCategory(c)}
-                  className={`chip px-3.5 py-2 text-[12px] font-bold ${
+                  aria-pressed={category === c}
+                  className={`chip px-3.5 py-2 t-sub font-bold ${
                     category === c ? "chip-active" : "border border-line bg-bg text-text-2"
                   }`}
                 >
@@ -181,6 +179,9 @@ export function QuoteRequestModal({
                 </button>
               ))}
             </div>
+            {category && findSpecialty(category) && (
+              <p className="mt-1.5 t-caption text-text-3">{findSpecialty(category)!.desc}</p>
+            )}
           </div>
 
           <div>
@@ -227,7 +228,12 @@ export function QuoteRequestModal({
 
           {myRequests !== null && (
             <div className="border-t border-line pt-3">
-              <div className="mb-1.5 t-sub font-bold text-text-2">내 요청</div>
+              <div className="mb-1.5 flex items-center justify-between t-sub font-bold text-text-2">
+                <span>내 요청</span>
+                <Link href="/my/consultations#requests" className="font-bold text-primary no-underline">
+                  받은 제안 보기 ›
+                </Link>
+              </div>
               {myRequests.length === 0 ? (
                 <p className="py-2 t-sub text-text-3">아직 보낸 견적 요청이 없어요.</p>
               ) : (
@@ -235,7 +241,7 @@ export function QuoteRequestModal({
                   {myRequests.slice(0, 5).map((r) => (
                     <li key={r.id} className="flex items-center gap-2 py-2">
                       <span
-                        className={`shrink-0 rounded-[5px] chip-pad-tight text-[10px] font-extrabold ${
+                        className={`shrink-0 rounded-md chip-pad-tight t-caption font-extrabold ${
                           r.status === "open"
                             ? "bg-primary-soft text-primary"
                             : "bg-bg text-text-3"
@@ -266,13 +272,13 @@ export function QuoteRequestBanner() {
 
   return (
     <>
-      <div className="rise-in-1 card mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[20px] px-[22px] py-4">
+      <div className="rise-in-1 card mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] px-[22px] py-4">
         <div>
           <div className="t-section text-ink">
             어떤 전문가가 필요한지 모르겠다면
           </div>
           <p className="mt-0.5 t-sub text-text-3">
-            임장 동행·세무·대출·인테리어 — 필요한 내용을 남기면 전문가가 확인해요
+            {CATEGORIES.join("·")} — 필요한 내용을 남기면 인증 전문가가 제안을 보내요 (요청당 전문가 1건)
           </p>
         </div>
         <button
@@ -284,6 +290,25 @@ export function QuoteRequestBanner() {
         </button>
       </div>
 
+      <QuoteRequestModal open={open} onClose={() => setOpen(false)} />
+    </>
+  );
+}
+
+/** 상세 페이지 등에서 쓰는 단일 버튼 트리거 — 배너 없이 모달만 */
+export function QuoteRequestLink({
+  className = "btn-secondary rounded-xl px-4 py-2.5 t-body",
+  label = "견적 요청",
+}: {
+  className?: string;
+  label?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={className}>
+        {label}
+      </button>
       <QuoteRequestModal open={open} onClose={() => setOpen(false)} />
     </>
   );

@@ -230,7 +230,7 @@ export function AiNoteAnalysisCard({
 
   return (
     <div className="card flex h-full flex-col gap-2.5 rounded-[14px] p-4">
-      <div className="flex h-9 w-9 items-center justify-center rounded-[11px] bg-warning-soft text-warning">
+      <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-warning-soft text-warning">
         <Icon name="bot" size={17} />
       </div>
       <div className="t-section text-ink">임장노트 AI 분석</div>
@@ -257,7 +257,7 @@ export function AiNoteAnalysisCard({
       )}
       {/* 허브 단지 선택기에서 고른 단지 컨텍스트 (실시세 프리필) */}
       {seedComplexName && (
-        <div className="flex flex-wrap items-center gap-1.5 rounded-[12px] bg-primary-soft px-3 py-2 text-[11px] font-bold text-primary">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2 text-[11px] font-bold text-primary">
           <span>선택 단지 {seedComplexName}</span>
           {seedRegionLabel && <span className="text-text-2">· {seedRegionLabel}</span>}
           {seedSnap && (
@@ -272,7 +272,7 @@ export function AiNoteAnalysisCard({
         </div>
       )}
       {loggedIn && notesLoaded && notes.length === 0 && state.kind !== "login" && (
-        <div className="flex items-center justify-between rounded-[12px] bg-primary-soft px-3 py-2.5">
+        <div className="flex items-center justify-between rounded-[10px] bg-primary-soft px-3 py-2.5">
           <span className="t-sub font-bold text-primary">
             분석할 임장노트가 아직 없어요
           </span>
@@ -368,7 +368,7 @@ export function AiNoteAnalysisCard({
           </div>
         </div>
       ) : state.kind === "login" ? (
-        <div className="flex items-center justify-between rounded-[12px] bg-primary-soft px-3 py-2.5">
+        <div className="flex items-center justify-between rounded-[10px] bg-primary-soft px-3 py-2.5">
           <span className="t-sub font-bold text-primary">
             AI 분석은 로그인 후 이용할 수 있어요
           </span>
@@ -377,7 +377,7 @@ export function AiNoteAnalysisCard({
           </Link>
         </div>
       ) : state.kind === "quota" ? (
-        <div className="flex flex-col gap-1.5 rounded-[12px] bg-danger-soft px-3 py-2.5">
+        <div className="flex flex-col gap-1.5 rounded-[10px] bg-danger-soft px-3 py-2.5">
           <span className="t-sub font-bold text-danger">{state.message}</span>
           {state.upgrade && (
             <Link
@@ -389,7 +389,7 @@ export function AiNoteAnalysisCard({
           )}
         </div>
       ) : state.kind === "error" ? (
-        <div className="rounded-[12px] bg-danger-soft px-3 py-2.5 t-sub font-bold text-danger">
+        <div className="rounded-[10px] bg-danger-soft px-3 py-2.5 t-sub font-bold text-danger">
           {state.message}
         </div>
       ) : null}
@@ -400,7 +400,7 @@ export function AiNoteAnalysisCard({
         disabled={
           state.kind === "running" || !loggedIn || (notesLoaded && notes.length === 0)
         }
-        className="btn-primary btn-cta mt-auto rounded-[11px] p-2.5 text-center text-[13px] disabled:opacity-60"
+        className="btn-primary btn-cta mt-auto rounded-[10px] p-2.5 text-center text-[13px] disabled:opacity-60"
       >
         {state.kind === "running"
           ? "분석 중…"

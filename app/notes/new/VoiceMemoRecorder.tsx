@@ -138,7 +138,7 @@ export function VoiceMemoRecorder({
           <button
             type="button"
             onClick={stop}
-            className="rounded-[9px] bg-danger px-3 py-1.5 t-sub font-bold text-white"
+            className="rounded-[10px] bg-danger px-3 py-1.5 t-sub font-bold text-white"
           >
             ■ 녹음 끝내기 {sec}s
           </button>
@@ -147,7 +147,7 @@ export function VoiceMemoRecorder({
             type="button"
             onClick={start}
             disabled={state === "uploading" || memos.length >= MAX_MEMOS}
-            className="rounded-[9px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1 disabled:opacity-50"
+            className="rounded-[10px] border border-line-strong bg-bg px-3 py-1.5 t-sub font-bold text-text-1 disabled:opacity-50"
           >
             {state === "uploading" ? "저장 중…" : "🎙 30초 녹음"}
           </button>
@@ -165,7 +165,7 @@ export function VoiceMemoRecorder({
                     type="button"
                     onClick={() => void transcribe(u)}
                     disabled={txState[u] === "busy" || txState[u] === "done"}
-                    className="shrink-0 rounded-[9px] border border-line px-2.5 py-1.5 t-caption font-bold text-text-1 disabled:opacity-60"
+                    className="shrink-0 rounded-[10px] border border-line px-2.5 py-1.5 t-caption font-bold text-text-1 disabled:opacity-60"
                   >
                     {txState[u] === "busy"
                       ? "옮기는 중…"

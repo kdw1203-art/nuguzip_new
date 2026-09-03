@@ -106,7 +106,7 @@ Supabase 기본 SMTP 는 발송량 제한이 빡빡해서, 사용자가 몰리�
 4. **API Keys** → 키 생성 → Vercel 환경변수 `RESEND_API_KEY` 에 입력
    (키는 `re_` 로 시작합니다. 이 접두사가 아니면 코드가 무시합니다.)
 
-> 발신 주소는 코드에 `누구집 <noreply@naezipnow.com>` 로 고정돼 있습니다. 그래서
+> 발신 주소는 코드에 `누구집 <noreply@nuguzip.com>` 로 고정돼 있습니다. 그래서
 > **다른 도메인이 아니라 반드시 `naezipnow.com` 을 인증**하셔야 합니다.
 
 ---

@@ -28,7 +28,7 @@ export function CardFrameView({
 }) {
   return (
     <div
-      className="relative flex aspect-[4/5] w-full flex-col justify-between overflow-hidden rounded-[20px] p-6"
+      className="relative flex aspect-[4/5] w-full flex-col justify-between overflow-hidden rounded-[18px] p-6"
       style={{ background: theme.bg, color: theme.ink }}
     >
       {/* 상단 브랜드 표식 + 페이지 인디케이터 */}

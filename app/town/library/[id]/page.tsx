@@ -109,7 +109,7 @@ export default async function ReportDetailPage({
           </Link>
         </div>
 
-        <div className="rise-in card flex flex-col gap-4 rounded-[20px] p-6">
+        <div className="rise-in card flex flex-col gap-4 rounded-[18px] p-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-primary-soft px-2 py-0.5 text-[10px] font-extrabold text-primary">
               {r.category}

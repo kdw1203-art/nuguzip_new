@@ -43,7 +43,7 @@ const deltaClass: Record<RecItem["tone"], string> = {
 function LoginPrompt() {
   return (
     <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3 py-6">
-      <div className="card glass flex w-full flex-col items-center gap-3 rounded-[20px] px-5 py-9 text-center">
+      <div className="card glass flex w-full flex-col items-center gap-3 rounded-[18px] px-5 py-9 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
           <Icon name="sparkles" size={24} />
         </div>
@@ -139,12 +139,12 @@ function RecCard({ item }: { item: RecItem }) {
 
   if (item.example) {
     // 예시 카드는 링크 없이 정적 표시
-    return <div className="card card-pad rounded-[16px]">{inner}</div>;
+    return <div className="card card-pad rounded-2xl">{inner}</div>;
   }
   return (
     <Link
       href={`/region/${item.regionId}`}
-      className="card tile card-pad rounded-[16px] no-underline"
+      className="card tile card-pad rounded-2xl no-underline"
     >
       {inner}
     </Link>

@@ -67,7 +67,7 @@ export function ToolHero({
           <div className="flex items-center gap-2.5">
             {icon && (
               <span
-                className={`tile-ico flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-primary-soft ${toneClass}`}
+                className={`tile-ico flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft ${toneClass}`}
               >
                 <Icon name={icon} size={17} />
               </span>

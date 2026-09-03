@@ -471,9 +471,9 @@ export default async function TownNewsDetailPage({
       <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex flex-col gap-4">
           {/* ---------- 기사 본문 ---------- */}
-          <article className="rise-in card flex flex-col gap-4 rounded-[20px] p-7">
+          <article className="rise-in card flex flex-col gap-4 rounded-[18px] p-7">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-[5px] bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
+              <span className="rounded-md bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
                 {category}
               </span>
               <span className="truncate text-xs text-text-3">{byline}</span>
@@ -557,7 +557,7 @@ export default async function TownNewsDetailPage({
                 {photos.map((url, i) => (
                   <div
                     key={url}
-                    className={`relative w-full overflow-hidden rounded-[12px] bg-bg ${
+                    className={`relative w-full overflow-hidden rounded-[10px] bg-bg ${
                       photos.length === 1 ? "aspect-[16/10] max-h-[420px]" : "aspect-square"
                     }`}
                   >
@@ -596,7 +596,7 @@ export default async function TownNewsDetailPage({
               {/* 시장에 주는 의미 — 원문에 없는 우리 해석. 실수요자가 무엇을
                   봐야 하는지까지 적는다. */}
               {renderOwnSummary && implication ? (
-                <section className="rounded-[14px] border border-primary/25 bg-[#f7faff] px-4 py-3">
+                <section className="rounded-[14px] border border-primary/25 bg-primary-soft px-4 py-3">
                   <h2 className="mb-1 text-[12px] font-extrabold text-primary">
                     시장에 주는 의미
                   </h2>
@@ -779,7 +779,7 @@ export default async function TownNewsDetailPage({
               여기 id 를 지우면 알림이 글 맨 위로 떨어져 "어느 댓글인지"를 다시 찾게 된다. */}
           <section
             id="comments"
-            className="rise-in-1 card flex flex-col gap-3 scroll-mt-24 rounded-[20px] px-[26px] py-[22px]"
+            className="rise-in-1 card flex flex-col gap-3 scroll-mt-24 rounded-[18px] px-[26px] py-[22px]"
           >
             <div className="text-[15px] font-extrabold text-ink">
               댓글 {commentCount}

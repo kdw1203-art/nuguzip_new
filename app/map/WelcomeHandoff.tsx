@@ -47,7 +47,7 @@ export function WelcomeHandoff() {
       className="pointer-events-auto absolute left-3 right-3 top-[max(12px,env(safe-area-inset-top))] z-30 md:left-auto md:right-4 md:w-[340px]"
       role="status"
     >
-      <div className="card flex flex-col gap-2 rounded-[16px] px-3.5 py-3 shadow-lg">
+      <div className="card flex flex-col gap-2 rounded-2xl px-3.5 py-3 shadow-lg">
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="t-body font-extrabold text-ink">온보딩 루프 완료</div>

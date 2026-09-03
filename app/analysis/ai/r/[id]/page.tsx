@@ -82,18 +82,18 @@ export default async function SharedRunPage({
           )}
         </div>
 
-        <div className="card whitespace-pre-wrap rounded-[16px] p-4 text-[13px] leading-[1.75] text-text-1">
+        <div className="card whitespace-pre-wrap rounded-2xl p-4 text-[13px] leading-[1.75] text-text-1">
           {run.markdown}
         </div>
 
-        <div className="rounded-[12px] bg-bg px-4 py-3 text-[11.5px] leading-[1.7] text-text-3">
+        <div className="rounded-[10px] bg-bg px-4 py-3 text-[11.5px] leading-[1.7] text-text-3">
           이 화면은 실행 시점의 데이터 스냅샷입니다 — 지금 데이터와 다를 수 있어요.
           수치는 공공 데이터 기반 규칙 계산이며 투자 권유가 아닙니다.
         </div>
 
         <Link
           href={`/analysis/ai/${run.tool}`}
-          className="btn-primary self-start rounded-[12px] px-4 py-2.5 text-[13.5px] font-extrabold no-underline"
+          className="btn-primary self-start rounded-[10px] px-4 py-2.5 text-[13.5px] font-extrabold no-underline"
         >
           지금 데이터로 직접 실행하기 ›
         </Link>

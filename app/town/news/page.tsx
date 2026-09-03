@@ -232,15 +232,15 @@ export default async function TownNewsPage() {
           (useSearchParams 는 프리렌더에서 Suspense 폴백을 박아 카드 0건 HTML 을
           만들었다 — 배포 실측 후 교체). */}
       {isMock ? (
-        <div className="rise-in card mb-5 overflow-hidden rounded-[20px]">
+        <div className="rise-in card mb-5 overflow-hidden rounded-[18px]">
           <div
             className="relative h-[200px] w-full"
             style={{ background: seedGradient("molit") }}
           >
-            <span className="absolute left-2 top-2 rounded-[5px] bg-primary-soft chip-pad t-caption font-extrabold text-primary">
+            <span className="absolute left-2 top-2 rounded-md bg-primary-soft chip-pad t-caption font-extrabold text-primary">
               {EXAMPLE_NEWS.category}
             </span>
-            <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">
+            <span className="absolute right-2 top-2 rounded-md bg-white/90 px-[3px] py-[2px]">
               <ExampleBadge />
             </span>
           </div>

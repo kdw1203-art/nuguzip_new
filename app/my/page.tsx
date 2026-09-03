@@ -56,7 +56,7 @@ function reasonLabel(reason: string): string {
 }
 /* planLabel 자체 구현을 지웠다 — lib/subscriptions/labels 단일 출처를 쓴다. */
 function planBadgeTone(plan: string): string {
-  return plan === "expert" ? "text-[#f2c94c]" : plan === "pro" ? "text-ai-accent" : "text-ai-muted";
+  return plan === "expert" ? "text-brand-red-dark" : plan === "pro" ? "text-ai-accent" : "text-ai-muted";
 }
 
 /** 일회성 결제·포인트 교환 플랜의 만료 시각 — 구독 카드 표기용 (Stripe 구독은 null) */
@@ -140,7 +140,7 @@ function GuestView() {
   ];
   return (
     <div className="mx-auto flex max-w-[640px] flex-col gap-3">
-      <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
+      <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[18px] px-5 py-8 text-center">
         <div className="h-11 w-11 rounded-full bg-[repeating-linear-gradient(45deg,#2a3242,#2a3242_5px,#333d4f_5px,#333d4f_10px)]" />
         <div className="mt-1 t-section font-extrabold text-white">
           로그인하고 내 활동을 한곳에서 관리하세요
@@ -148,7 +148,7 @@ function GuestView() {
         <div className="t-sub leading-[1.6] text-ai-muted">
           임장노트 · 포인트 · 관심 지역 · 구독이 마이 화면에 모여요
         </div>
-        <Link href="/login?callbackUrl=/my" className="btn-primary mt-3 rounded-[12px] px-6 py-2.5 text-[15px]">
+        <Link href="/login?callbackUrl=/my" className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-[15px]">
           로그인하고 시작하기
         </Link>
       </div>
@@ -162,7 +162,7 @@ function GuestView() {
             }`}
           >
             <span>{m.label}</span>
-            <span className="text-[#c3cad6]">›</span>
+            <span className="text-on-dark-muted">›</span>
           </Link>
         ))}
       </div>
@@ -327,7 +327,7 @@ export default async function MyPage() {
 
         {/* [3차 · 전환] 한도 임박 안내 — 사실(사용량)만 말하고 다음 단계를 보여준다 */}
         {!isAdminViewer && !isPaidPlan && nearLimitItems.length > 0 && (
-          <section className="rise-in card flex flex-wrap items-center justify-between gap-3 rounded-[16px] p-4">
+          <section className="rise-in card flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4">
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="t-body font-extrabold text-ink">
                 무료 한도가 가까워졌어요
@@ -359,7 +359,7 @@ export default async function MyPage() {
             const done = onboarding.completedSteps.length;
             const pct = Math.round((done / onboarding.total) * 100);
             return (
-              <section className="rise-in card flex flex-col gap-3 rounded-[16px] p-5">
+              <section className="rise-in card flex flex-col gap-3 rounded-2xl p-5">
                 <div className="flex items-center justify-between">
                   <span className="t-section text-ink">
                     시작하기 {done}/{onboarding.total}
@@ -514,7 +514,7 @@ export default async function MyPage() {
             return (
               <section className="flex flex-col gap-2.5">
                 <SectionHead title="지역 임장 레벨" href="/notes?mine=1" hrefLabel="내 노트" />
-                <div className="card flex flex-col gap-3 rounded-[16px] p-5">
+                <div className="card flex flex-col gap-3 rounded-2xl p-5">
                   <div className="t-sub text-text-3">
                     지금까지 <b className="text-ink">{summary.regionCount}개 지역</b>을 임장했어요
                     {summary.topLabel ? (
@@ -669,7 +669,7 @@ export default async function MyPage() {
             </span>
             <span className="shrink-0 t-body font-extrabold text-primary">초대 링크 ›</span>
           </Link>
-          <div className="card rounded-[16px] p-5">
+          <div className="card rounded-2xl p-5">
             {!ledgerLoaded.ok ? (
               <div className="flex flex-col items-center gap-1.5 py-6 text-center">
                 {/* 조회 실패는 "내역 없음" 이 아니다 */}
@@ -723,7 +723,7 @@ export default async function MyPage() {
         <section className="flex flex-col gap-2.5">
           <SectionHead title="내 매물" />
           {expert.isBroker ? (
-            <div className="card flex flex-col gap-3 rounded-[16px] p-5 md:flex-row md:items-center md:justify-between">
+            <div className="card flex flex-col gap-3 rounded-2xl p-5 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="t-body font-extrabold text-ink">공인중개사 인증 완료</div>
                 <div className="mt-0.5 t-sub text-text-3">
@@ -743,7 +743,7 @@ export default async function MyPage() {
               </div>
             </div>
           ) : (
-            <div className="card flex flex-col items-center gap-2 rounded-[16px] px-4 py-7 text-center">
+            <div className="card flex flex-col items-center gap-2 rounded-2xl px-4 py-7 text-center">
               <div className="t-title">
                 <Icon name="🏢" size={22} />
               </div>
@@ -760,33 +760,50 @@ export default async function MyPage() {
           )}
         </section>
 
-        {/* ── 전문가 활동 (인증 전문가 게이트) ── */}
-        {expert.isVerified && (
-          <section className="flex flex-col gap-2.5">
-            <SectionHead title="전문가 활동" />
-            <div className="card flex flex-col gap-3 rounded-[16px] p-5 md:flex-row md:items-center md:justify-between">
+        {/* ── 전문가 상담 (모든 회원: 상담함 · 인증 전문가: 콘솔) ── */}
+        <section className="flex flex-col gap-2.5">
+          <SectionHead title="전문가 상담" href="/my/consultations" hrefLabel="상담함" />
+          {expert.isVerified ? (
+            <div className="card flex flex-col gap-3 rounded-2xl p-5 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="t-body font-extrabold text-ink">전문가 인증 완료</div>
                 <div className="mt-0.5 t-sub text-text-3">
-                  받은 상담을 확인하고, 소개·전문분야·연락처를 직접 관리할 수 있어요
+                  받은 상담에 답변하고, 견적 요청에 제안을 보내고, 소개·전문분야·연락처를 직접 관리할 수 있어요
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 <Link href="/my/expert-profile" className="btn-soft btn-md no-underline">
                   프로필 수정
                 </Link>
-                <Link href="/my/consultations" className="btn-primary btn-md no-underline">
-                  상담 관리
+                <Link href="/my/consultations#received" className="btn-primary btn-md no-underline">
+                  받은 상담
                 </Link>
               </div>
             </div>
-          </section>
-        )}
+          ) : (
+            <div className="card flex flex-col gap-3 rounded-2xl p-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="t-body font-extrabold text-ink">보낸 상담 · 견적 요청은 상담함에서</div>
+                <div className="mt-0.5 t-sub text-text-3">
+                  전문가 답변과 견적 제안이 도착하면 알림과 함께 상담함에 모여요. 답변 뒤에는 후기를 남길 수 있어요.
+                </div>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Link href="/town/experts" className="btn-soft btn-md no-underline">
+                  전문가 찾기
+                </Link>
+                <Link href="/my/consultations" className="btn-primary btn-md no-underline">
+                  상담함
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* ── 구독 상태 ── */}
         <section className="flex flex-col gap-2.5">
           <SectionHead title="구독 상태" href="/subscription" hrefLabel="플랜 관리" />
-          <div className="card flex items-center justify-between rounded-[16px] p-5">
+          <div className="card flex items-center justify-between rounded-2xl p-5">
             <div>
               <div className="t-body font-extrabold text-ink">
                 현재 플랜 · {planLabel(profile.plan)}
@@ -818,7 +835,7 @@ export default async function MyPage() {
               const pct = unlimited ? 100 : Math.min(100, Math.round((aiUsage.used / Math.max(1, limit)) * 100));
               const atLimit = !unlimited && remaining === 0;
               return (
-                <div className="card flex flex-col gap-2 rounded-[16px] p-4">
+                <div className="card flex flex-col gap-2 rounded-2xl p-4">
                   <div className="flex items-center justify-between">
                     <span className="t-sub font-bold text-ink">이번 달 AI 분석</span>
                     <span className="t-sub tabular-nums text-text-2">
@@ -875,7 +892,7 @@ export default async function MyPage() {
               }`}
             >
               <span>{m.label}</span>
-              <span className="text-[#c3cad6]">›</span>
+              <span className="text-on-dark-muted">›</span>
             </Link>
           ))}
         </section>

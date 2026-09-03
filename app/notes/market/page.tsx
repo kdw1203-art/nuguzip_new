@@ -65,13 +65,13 @@ export default async function NotesMarketPage() {
           노트에서 무료로 읽을 수 있어요.
         </p>
         <div className="flex flex-wrap gap-1.5">
-          <span className="rounded-[9px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
+          <span className="rounded-[10px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
             기준 · 사진 {MIN_PHOTOS}장+
           </span>
-          <span className="rounded-[9px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
+          <span className="rounded-[10px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
             본문 {MIN_TEXT.toLocaleString("ko-KR")}자+
           </span>
-          <span className="rounded-[9px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
+          <span className="rounded-[10px] bg-bg px-2.5 py-1 t-sub font-bold text-text-2">
             직접 방문 인증 우대
           </span>
         </div>
@@ -99,7 +99,7 @@ export default async function NotesMarketPage() {
             return (
               <div
                 key={note.id}
-                className="flex flex-col overflow-hidden rounded-[16px] border border-line bg-surface"
+                className="flex flex-col overflow-hidden rounded-2xl border border-line bg-surface"
               >
                 <div className="relative h-[150px] w-full overflow-hidden bg-bg">
                   <CoverImage

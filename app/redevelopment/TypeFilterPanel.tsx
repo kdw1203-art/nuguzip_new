@@ -33,7 +33,7 @@ export function TypeFilterPanel({
         className="press flex w-full items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-left"
       >
         <span
-          className={`flex h-4 w-4 items-center justify-center rounded-[5px] border ${
+          className={`flex h-4 w-4 items-center justify-center rounded-md border ${
             allActive
               ? "border-primary bg-primary text-white"
               : "border-border bg-surface text-transparent"

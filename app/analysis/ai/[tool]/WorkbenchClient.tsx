@@ -483,7 +483,7 @@ export function WorkbenchClient({
     <div className="flex flex-col gap-3">
       {/* ── ① 대상 선택 ── */}
       {needsComplex && (
-        <div className="card rounded-[16px] p-4">
+        <div className="card rounded-2xl p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="t-body font-extrabold text-ink">① 단지 선택</span>
             <span className="t-sub text-text-3">{useCase}</span>
@@ -538,7 +538,7 @@ export function WorkbenchClient({
       )}
 
       {isContract && (
-        <div className="card rounded-[16px] p-4 t-body text-text-2">
+        <div className="card rounded-2xl p-4 t-body text-text-2">
           계약 리스크 점검은 전세 안전 셀프체크와 같은 문항 세트로 봅니다 —{" "}
           <Link href="/safety" className="font-bold text-primary no-underline">
             전세 안전 셀프체크 열기 ›
@@ -554,7 +554,7 @@ export function WorkbenchClient({
 
       {/* ── ② 자동 로드 데이터 ── */}
       {ctxState.phase !== "idle" && (
-        <div className="card rounded-[16px] p-4">
+        <div className="card rounded-2xl p-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <span className="t-body font-extrabold text-ink">② 자동 로드 데이터</span>
             <span className="t-sub text-text-3">수치마다 출처·시점을 아래 각주로 표기</span>
@@ -581,7 +581,7 @@ export function WorkbenchClient({
               {(ctx.news?.items?.length || ctx.notes) && (
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   {ctx.news?.items?.length ? (
-                    <div className="rounded-[12px] bg-bg px-3 py-2.5">
+                    <div className="rounded-[10px] bg-bg px-3 py-2.5">
                       <div className="t-sub font-bold text-text-3">최근 사건(자동수집 뉴스)</div>
                       {ctx.news.items.slice(0, 2).map((n) => (
                         <Link key={n.id} href={`/town/news/${n.id}`} className="mt-0.5 block truncate t-sub font-bold text-text-1 no-underline">
@@ -591,7 +591,7 @@ export function WorkbenchClient({
                     </div>
                   ) : null}
                   {ctx.notes ? (
-                    <div className="rounded-[12px] bg-bg px-3 py-2.5">
+                    <div className="rounded-[10px] bg-bg px-3 py-2.5">
                       <div className="t-sub font-bold text-text-3">이웃 임장노트</div>
                       <div className="mt-0.5 t-sub font-bold text-text-1">
                         {ctx.notes.count}건 · 평균 {ctx.notes.avgScore ?? "—"}점
@@ -709,7 +709,7 @@ export function WorkbenchClient({
 
       {/* ── 결과 ── */}
       {result && (
-        <div className="card flex flex-col gap-3 rounded-[16px] p-4">
+        <div className="card flex flex-col gap-3 rounded-2xl p-4">
           {!result.ok ? (
             <div className="t-body font-bold text-danger">
               {result.error ?? "실행에 실패했어요."}
@@ -743,7 +743,7 @@ export function WorkbenchClient({
 
               {/* [AI-04] 반대 시나리오 */}
               {insight && insight.counters.length > 0 && (
-                <div className="rounded-[12px] bg-bg px-3.5 py-3">
+                <div className="rounded-[10px] bg-bg px-3.5 py-3">
                   <div className="t-sub font-extrabold text-text-2">이 판단이 틀리는 조건 [규칙]</div>
                   {insight.counters.map((c, i) => (
                     <div key={i} className="mt-1 t-sub text-text-2">· {c}</div>
@@ -770,7 +770,7 @@ export function WorkbenchClient({
 
               {/* [AI-01·17] 근거 각주 */}
               {footnotes.length > 0 && (
-                <details className="rounded-[12px] bg-bg px-3.5 py-2.5">
+                <details className="rounded-[10px] bg-bg px-3.5 py-2.5">
                   <summary className="cursor-pointer t-sub font-extrabold text-text-2">
                     근거 각주 {footnotes.length}건 — 출처·기준 시점·표본 (표본 {UNCERTAINTY.thinSample}건 미만·{UNCERTAINTY.staleDays}일 초과는 주의 표기)
                   </summary>
@@ -871,13 +871,13 @@ export function WorkbenchClient({
                         setShareCopied(false);
                       }
                     }}
-                    className="rounded-[9px] bg-bg px-3 py-1.5 t-sub font-bold text-text-1"
+                    className="rounded-[10px] bg-bg px-3 py-1.5 t-sub font-bold text-text-1"
                   >
                     {shareCopied ? "링크 복사됨 ✓" : "결과 링크 복사"}
                   </button>
                 )}
                 {picked && (
-                  <button type="button" onClick={savePreset} className="rounded-[9px] bg-bg px-3 py-1.5 t-sub font-bold text-text-1">
+                  <button type="button" onClick={savePreset} className="rounded-[10px] bg-bg px-3 py-1.5 t-sub font-bold text-text-1">
                     프리셋 저장
                   </button>
                 )}
@@ -909,7 +909,7 @@ export function WorkbenchClient({
 
       {/* 도움말 */}
       {!result && tips.length > 0 && (
-        <div className="rounded-[12px] bg-bg px-4 py-3 t-sub text-text-3">
+        <div className="rounded-[10px] bg-bg px-4 py-3 t-sub text-text-3">
           {tips.map((t, i) => (
             <div key={i}>· {t}</div>
           ))}
@@ -921,7 +921,7 @@ export function WorkbenchClient({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-[12px] bg-bg px-3 py-2.5">
+    <div className="rounded-[10px] bg-bg px-3 py-2.5">
       <div className="t-caption font-bold text-text-3">{label}</div>
       <div className="t-section tabular-nums text-ink">{value}</div>
       {sub && <div className="t-caption text-text-3">{sub}</div>}
@@ -932,7 +932,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 /* [AI-19] 진단 레이더 — 축별 막대(모바일 가독 우선) + 근거 */
 function RadarBlock({ radar }: { radar: Insight["radar"] }) {
   return (
-    <div className="rounded-[12px] bg-bg px-3.5 py-3">
+    <div className="rounded-[10px] bg-bg px-3.5 py-3">
       <div className="t-sub font-extrabold text-text-2">진단 5축 [규칙 · 실데이터]</div>
       <div className="mt-2 flex flex-col gap-1.5">
         {radar.map((a) => (
@@ -958,7 +958,7 @@ function SignalBlock({ signals }: { signals: Insight["signals"] }) {
   return (
     <div className="grid gap-2 sm:grid-cols-3">
       {signals.map((s) => (
-        <div key={s.key} className="rounded-[12px] bg-bg px-3 py-2.5">
+        <div key={s.key} className="rounded-[10px] bg-bg px-3 py-2.5">
           <div className="flex items-center justify-between">
             <span className="t-sub font-bold text-text-2">{s.label}</span>
             <span className={`rounded-full px-2 py-0.5 t-caption font-extrabold ${SIGNAL_COLOR[s.state]}`}>
@@ -975,7 +975,7 @@ function SignalBlock({ signals }: { signals: Insight["signals"] }) {
 function FlagBlock({ flags }: { flags: Insight["flags"] }) {
   if (flags.length === 0)
     return (
-      <div className="rounded-[12px] bg-success-soft px-3.5 py-2.5 t-sub font-bold text-success">
+      <div className="rounded-[10px] bg-success-soft px-3.5 py-2.5 t-sub font-bold text-success">
         실측 조건 기준 점등된 리스크 플래그가 없습니다 — 표본·시점은 각주를 확인하세요.
       </div>
     );
@@ -984,7 +984,7 @@ function FlagBlock({ flags }: { flags: Insight["flags"] }) {
       {flags.map((f) => (
         <div
           key={f.key}
-          className={`rounded-[12px] px-3.5 py-2.5 ${f.level === "warn" ? "bg-warning-soft" : "bg-bg"}`}
+          className={`rounded-[10px] px-3.5 py-2.5 ${f.level === "warn" ? "bg-warning-soft" : "bg-bg"}`}
         >
           <div className={`t-sub font-extrabold ${f.level === "warn" ? "text-warning" : "text-text-1"}`}>
             ⚑ {f.title}
@@ -1027,7 +1027,7 @@ function EconomyWatchPanel({ currentRate }: { currentRate: number }) {
   };
 
   return (
-    <div className="card rounded-[16px] p-4">
+    <div className="card rounded-2xl p-4">
       <div className="t-body font-extrabold text-ink">
         기준금리 알림 걸기{" "}
         <span className="t-sub font-medium text-text-3">현재 {currentRate}% · 조건 도달 시 알림함으로 1회</span>

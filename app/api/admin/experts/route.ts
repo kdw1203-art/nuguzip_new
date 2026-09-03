@@ -6,6 +6,7 @@
  * 관리자 게이트: isAdminApiRequest. 결과는 신청자 인박스 알림 + 감사로그(best-effort).
  */
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import type { NextRequest } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
 import { safeAuth } from "@/lib/safe-auth";
@@ -64,6 +65,10 @@ export async function PATCH(req: NextRequest) {
       detail: { expertId: res.expertId, applicant: res.applicantEmail },
       ip: null,
     });
+    /* [953] 승인 즉시 목록·상세 ISR 을 무효화 — 승인된 전문가가 5분 뒤에야 보이면
+       "승인이 안 됐다"는 문의가 온다. */
+    revalidatePath("/town/experts");
+    if (res.expertId) revalidatePath(`/town/experts/${res.expertId}`);
     return NextResponse.json({ ok: true, expertId: res.expertId });
   }
 

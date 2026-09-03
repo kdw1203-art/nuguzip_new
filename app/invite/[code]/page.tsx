@@ -190,13 +190,13 @@ export default async function InvitePage({
         <div className="mt-6 flex flex-col gap-2.5">
           <Link
             href="/signup"
-            className="btn-primary btn-cta press rounded-[12px] py-3.5 text-center text-[15px] font-bold no-underline"
+            className="btn-primary btn-cta press rounded-[10px] py-3.5 text-center text-[15px] font-bold no-underline"
           >
             Google로 3초 가입하고 300P 받기
           </Link>
           <Link
             href="/login"
-            className="press rounded-[12px] py-2.5 text-center text-[13px] font-semibold text-text-2 no-underline"
+            className="press rounded-[10px] py-2.5 text-center text-[13px] font-semibold text-text-2 no-underline"
           >
             이미 계정이 있어요 · 로그인
           </Link>

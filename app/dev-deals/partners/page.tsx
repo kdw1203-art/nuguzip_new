@@ -53,7 +53,7 @@ export default async function DevPartnersPage() {
       ) : (
         /* 조회 실패 — "아직 없어요"(빈 상태)와 구별한다. 0건인 게 아니라 조회 실패다. */
         <section className="rise-in-2 card p-[var(--pad-card)]">
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-10 text-center text-[13px] text-text-2">
+          <div className="rounded-[10px] border border-line bg-surface px-4 py-10 text-center text-[13px] text-text-2">
             협력업체 목록을 불러오지 못했어요. 등록이 없는 게 아니라 조회에
             실패한 것이니, 잠시 뒤 새로고침해 주세요.
           </div>

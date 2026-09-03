@@ -15,7 +15,7 @@ export default function TownLoading() {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="card flex min-w-[118px] shrink-0 flex-col gap-2 rounded-[16px] px-4 py-3.5"
+            className="card flex min-w-[118px] shrink-0 flex-col gap-2 rounded-2xl px-4 py-3.5"
           >
             <Skeleton className="h-5 w-5 rounded" />
             <Skeleton className="mt-1 h-3.5 w-10 rounded" />

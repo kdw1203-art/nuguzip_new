@@ -106,7 +106,7 @@ export default async function PromptThreadPage({
               <Link
                 key={p.id}
                 href={`/town/news/${p.id}`}
-                className={`rise-in-${Math.min(pi + 1, 6)} card block rounded-[16px] p-4 no-underline tap-ripple`}
+                className={`rise-in-${Math.min(pi + 1, 6)} card block rounded-2xl p-4 no-underline tap-ripple`}
               >
                 <div className="flex items-center gap-2 text-[11px] text-text-3">
                   <span className="font-bold text-text-2">{p.authorLabel}</span>

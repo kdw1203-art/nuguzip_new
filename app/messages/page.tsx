@@ -24,7 +24,7 @@ export default function MessagesPage() {
       <div className="mx-auto w-full max-w-[480px]">
         <h1 className="rise-in text-[22px] font-extrabold text-ink">쪽지함</h1>
 
-        <div className="rise-in-1 card mt-4 flex flex-col items-center gap-3 rounded-[20px] px-6 py-12 text-center">
+        <div className="rise-in-1 card mt-4 flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-[22px]">
             ✉️
           </div>

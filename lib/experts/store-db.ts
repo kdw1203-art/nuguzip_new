@@ -1,4 +1,5 @@
 import { getServiceSupabase } from "@/lib/supabase/service";
+import { responseStats } from "./review-rules";
 
 export type UserExpertProfile = {
   id: string;
@@ -307,6 +308,41 @@ export async function markExpertVerified(
     .maybeSingle();
   if (error || !data) return null;
   return mapRow(data);
+}
+
+/**
+ * [953] 응답률·상담 완료 수를 프로필 컬럼(response_rate·consultations)에 반영한다.
+ * 전문가가 답변을 등록할 때마다 호출. 목록/상세는 여전히 원장 재계산을 우선하지만,
+ * 컬럼이 살아 있으면 정렬("응답 빠른 순")과 관리자 성과 화면이 값을 갖는다.
+ * 최근 90일 기준 — 오래된 미답변이 응답률을 영원히 깎지 않게.
+ */
+export async function refreshExpertResponseStats(
+  expertId: string,
+): Promise<{ responseRate: number | null; answered: number } | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("expert_consultations")
+    .select("created_at, replied_at, status")
+    .eq("expert_id", expertId)
+    .order("created_at", { ascending: false })
+    .limit(2000);
+  if (error) return null;
+  const rows = (data ?? []).map((r) => {
+    const x = r as { created_at: string; replied_at: string | null; status: string };
+    return { createdAt: x.created_at, repliedAt: x.replied_at, status: x.status };
+  });
+  const stats = responseStats(rows);
+  const answeredAll = rows.filter((r) => r.repliedAt).length;
+  await sb
+    .from("expert_profiles")
+    .update({
+      response_rate: stats.responseRate ?? 0,
+      consultations: answeredAll,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", expertId);
+  return { responseRate: stats.responseRate, answered: answeredAll };
 }
 
 export async function deleteExpert(id: string): Promise<void> {

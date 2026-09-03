@@ -315,7 +315,7 @@ export function MobileMenu() {
             {/* 하단 — 세션 상태 반영 + primary CTA.
                 판정 전(null)에는 마이페이지만(중립) — 틀린 로그인 버튼을 먼저
                 보여주지 않는다. */}
-            <div className="flex flex-col gap-2 border-t border-[#eef1f6] px-4 pt-3">
+            <div className="flex flex-col gap-2 border-t border-line px-4 pt-3">
               <div className="flex gap-2">
                 {loggedIn === false && (
                   <Link prefetch={false} href="/login" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-1">

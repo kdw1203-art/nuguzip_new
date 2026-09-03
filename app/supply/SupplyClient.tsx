@@ -205,7 +205,7 @@ export function SupplyClient({
       {/* ── 본문 ── */}
       <div className="flex flex-col gap-3">
         {truncated && (
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-3 t-sub text-text-3">
+          <div className="rounded-[10px] border border-line bg-surface px-4 py-3 t-sub text-text-3">
             데이터가 조회 상한에 도달해 일부가 잘렸을 수 있어요 — 지역별 곳수·
             세대수 합계가 실제보다 적게 보일 수 있습니다.
           </div>
@@ -293,7 +293,7 @@ export function SupplyClient({
               })}
             </div>
           ) : (
-            <div className="rounded-[12px] border border-line bg-surface px-4 py-8 text-center t-body text-text-3">
+            <div className="rounded-[10px] border border-line bg-surface px-4 py-8 text-center t-body text-text-3">
               표시할 월별 입주 물량 데이터가 없어요.
             </div>
           )}

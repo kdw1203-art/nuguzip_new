@@ -212,7 +212,7 @@ export function ComplexHubTabs({
             onClick={() => setTab(t)}
             className={`rounded-full px-3.5 py-2 font-bold transition-colors ${
               tab === t
-                ? "bg-ink text-surface"
+                ? "bg-brand-navy text-surface"
                 : "border border-line bg-surface font-semibold text-text-2"
             }`}
           >
@@ -338,13 +338,13 @@ export function ComplexHubTabs({
           {listings.map((l) => (
             <div
               key={l.price}
-              className={`card tile flex flex-col gap-1.5 rounded-[16px] px-[15px] py-3.5 ${
+              className={`card tile flex flex-col gap-1.5 rounded-2xl px-[15px] py-3.5 ${
                 l.urgent ? "border-[1.5px] border-primary" : ""
               }`}
             >
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${
+                  className={`rounded-md chip-pad text-[11px] font-extrabold ${
                     l.urgent ? "bg-danger-soft text-danger" : "bg-bg font-bold text-text-2"
                   }`}
                 >

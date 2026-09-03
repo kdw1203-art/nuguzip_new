@@ -112,7 +112,7 @@ export function AiBriefingCard({
           )}
           {draft.scoreRationale && (
             <p className="t-caption text-text-3">
-              <b className="text-[#b45309]">AI 추정(현장 확인 전)</b> — {draft.scoreRationale}
+              <b className="text-warning">AI 추정(현장 확인 전)</b> — {draft.scoreRationale}
             </p>
           )}
           <Link

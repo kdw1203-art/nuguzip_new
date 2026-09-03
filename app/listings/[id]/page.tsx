@@ -244,7 +244,7 @@ export default async function ListingDetailPage({
       {productJsonLd && <JsonLd data={productJsonLd} />}
       {/* 상태 안내 (소유주가 검수중/반려 매물을 볼 때) */}
       {listing.status !== "approved" && (
-        <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-[#5b74b8]">
+        <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-text-2">
           {listing.status === "pending" && "이 매물은 검수 중이에요. 승인 전까지는 나에게만 보여요."}
           {listing.status === "rejected" && (
             <>
@@ -294,7 +294,7 @@ export default async function ListingDetailPage({
           {/* 배지 */}
           <div className="flex flex-wrap items-center gap-1.5">
             <span
-              className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
+              className={`rounded-md chip-pad text-[11px] font-extrabold ${
                 listing.source === "owner"
                   ? "bg-[rgba(29,79,216,.08)] text-primary"
                   : "bg-warning-soft text-warning"
@@ -302,27 +302,27 @@ export default async function ListingDetailPage({
             >
               {LISTING_SOURCE_LABEL[listing.source]}
             </span>
-            <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+            <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
               {LISTING_TYPE_LABEL[listing.listingType]}
             </span>
             {category && (
-              <span className="rounded-[6px] bg-bg chip-pad text-[11px] font-extrabold text-text-2">
+              <span className="rounded-md bg-bg chip-pad text-[11px] font-extrabold text-text-2">
                 {category}
               </span>
             )}
             {listing.ownerVerified && (
-              <span className="rounded-[6px] bg-success-soft chip-pad text-[11px] font-extrabold text-success">
+              <span className="rounded-md bg-success-soft chip-pad text-[11px] font-extrabold text-success">
                 소유확인
               </span>
             )}
             {boostOn && (
-              <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-[#b45309]">
+              <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad text-[11px] font-extrabold text-warning">
                 부스트
               </span>
             )}
             {stale && (
               <span
-                className="rounded-[6px] chip-pad text-[11px] font-extrabold"
+                className="rounded-md chip-pad text-[11px] font-extrabold"
                 style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
               >
                 확인 필요

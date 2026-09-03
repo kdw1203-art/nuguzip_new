@@ -276,7 +276,7 @@ export default async function SupportPage() {
                   }`}
                 >
                   <div className="flex justify-between">
-                    <span className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${t.tagClass}`}>
+                    <span className={`rounded-md chip-pad text-[11px] font-extrabold ${t.tagClass}`}>
                       {t.tag}
                     </span>
                     <span className={`text-[10px] font-bold ${t.statusClass}`}>{t.status}</span>
@@ -292,10 +292,10 @@ export default async function SupportPage() {
               </p>
             </div>
 
-            <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[20px] p-6">
+            <div className="rise-in-4 card flex flex-col gap-3.5 rounded-[18px] p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="rounded-[5px] bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
+                  <span className="rounded-md bg-warning-soft chip-pad text-[11px] font-extrabold text-warning">
                     결제
                   </span>
                   <span className="ml-2 text-base font-extrabold text-ink">
@@ -310,7 +310,7 @@ export default async function SupportPage() {
                 연간 결제 영수증을 회사 제출용으로 재발급 받고 싶습니다. 사업자 정보 포함 가능한가요?
               </div>
               <div className="flex items-start gap-2.5">
-                <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[9px] bg-primary text-[10px] font-extrabold text-white">
+                <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[10px] bg-primary text-[10px] font-extrabold text-white">
                   N
                 </div>
                 <div className="flex flex-col gap-1">
@@ -348,7 +348,7 @@ export default async function SupportPage() {
           {/* FAQ (10b + 7g) — 답은 lib/support/faq.ts 한 곳에서 온다.
               여기 답을 따로 적어 두었더니 실제로 없는 기능(사진·텍스트 자동 마스킹)을
               있다고 약속하는 문장이 남아 있었다. 화면마다 답을 복제하지 않는다. */}
-          <div id="faq" className="rise-in-4 card flex flex-col gap-1 scroll-mt-24 rounded-[20px] px-6 py-[22px]">
+          <div id="faq" className="rise-in-4 card flex flex-col gap-1 scroll-mt-24 rounded-[18px] px-6 py-[22px]">
             <div className="mb-2 flex flex-col justify-between gap-2 md:flex-row md:items-baseline">
               <span className="text-[15px] font-extrabold text-ink">자주 묻는 질문</span>
               <Link href="/support/faq" className="text-[11px] font-bold text-primary">
@@ -374,7 +374,7 @@ export default async function SupportPage() {
                 }`}
               >
                 <span>Q. {it.q}</span>
-                <span className="text-[#c3cad6]">›</span>
+                <span className="text-on-dark-muted">›</span>
               </Link>
             ))}
           </div>

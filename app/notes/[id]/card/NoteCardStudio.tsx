@@ -109,7 +109,7 @@ export function NoteCardStudio({
         {activeFrame ? (
           <CardFrameView content={activeFrame.content} theme={theme} index={active} total={frames.length} />
         ) : (
-          <div className="aspect-[4/5] w-full rounded-[20px] bg-[rgba(0,0,0,.05)]" />
+          <div className="aspect-[4/5] w-full rounded-[18px] bg-[rgba(0,0,0,.05)]" />
         )}
         {/* 장 네비게이션 (점) */}
         <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">

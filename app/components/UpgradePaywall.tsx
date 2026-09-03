@@ -48,7 +48,7 @@ export function UpgradePaywall({
       onClick={onClose}
     >
       <div
-        className="card w-full max-w-[400px] rounded-[20px] px-5 py-5 shadow-lg"
+        className="card w-full max-w-[400px] rounded-[18px] px-5 py-5 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="upgrade-paywall-title" className="text-[16px] font-extrabold text-ink">

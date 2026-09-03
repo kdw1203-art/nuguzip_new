@@ -161,7 +161,7 @@ export function ListingCompareView({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-1">
                         <span
-                          className={`rounded-[6px] chip-pad-tight text-[10px] font-extrabold ${
+                          className={`rounded-md chip-pad-tight text-[10px] font-extrabold ${
                             r.source === "owner"
                               ? "bg-primary-soft text-primary"
                               : "bg-warning-soft text-warning"
@@ -169,7 +169,7 @@ export function ListingCompareView({
                         >
                           {SOURCE_LABEL[r.source]}
                         </span>
-                        <span className="rounded-[6px] bg-bg chip-pad-tight text-[10px] font-extrabold text-text-2">
+                        <span className="rounded-md bg-bg chip-pad-tight text-[10px] font-extrabold text-text-2">
                           {TYPE_LABEL[r.listingType]}
                         </span>
                       </div>
@@ -211,7 +211,7 @@ export function ListingCompareView({
                         {priceLine(r)}
                       </span>
                       {isMin && (
-                        <span className="rounded-[5px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
+                        <span className="rounded-md bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
                           최저가
                         </span>
                       )}
@@ -278,13 +278,13 @@ export function ListingCompareView({
                       <span className="text-ink">{formatDate(r.refreshedAt ?? r.createdAt)}</span>
                       {stale ? (
                         <span
-                          className="rounded-[5px] chip-pad-tight text-[10px] font-extrabold"
+                          className="rounded-md chip-pad-tight text-[10px] font-extrabold"
                           style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
                         >
                           확인 필요
                         </span>
                       ) : (
-                        <span className="rounded-[5px] bg-success-soft chip-pad-tight text-[10px] font-extrabold text-success">
+                        <span className="rounded-md bg-success-soft chip-pad-tight text-[10px] font-extrabold text-success">
                           최신
                         </span>
                       )}
@@ -308,7 +308,7 @@ export function ListingCompareView({
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-text-2">{SOURCE_LABEL[r.source]}</span>
                     {r.ownerVerified && (
-                      <span className="rounded-[5px] bg-success-soft chip-pad-tight text-[10px] font-extrabold text-success">
+                      <span className="rounded-md bg-success-soft chip-pad-tight text-[10px] font-extrabold text-success">
                         소유확인
                       </span>
                     )}

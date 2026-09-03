@@ -27,7 +27,7 @@
 
 | # | 결정 | 준비 상태 |
 |---|---|---|
-| 11 | **naezipnow.com 구매·연결·env** — `npx vercel domains buy naezipnow.com` → `npx vercel domains add naezipnow.com nuguzip-homepage` → 951 적용·푸시 → env `NEXT_PUBLIC_SITE_ORIGIN=https://naezipnow.com` → 재배포 | 세션 토큰은 구매 권한이 없어(확인됨) 소유자가 직접. 코드는 951 에서 전환 완료. 절차·외부 콘솔 표: docs/ops/domain-migration.md |
+| 11 | **naezipnow.com 연결·배포·env** — 구매 완료(9/3). 남은 순서: 대시보드 Domains → naezipnow.com → Connect(`nuguzip-homepage`) + `www.naezipnow.com` 추가 → 954 적용·푸시·`npx.cmd vercel --prod` → env `NEXT_PUBLIC_SITE_ORIGIN=https://naezipnow.com` → Redeploy → 외부 콘솔(Supabase Auth·Google/Kakao OAuth·GSC·네이버·토스·VWorld) | 코드는 954 에서 전환 완료. 절차·외부 콘솔 표: docs/ops/domain-migration.md |
 | 12 | `INGEST_SECRET` 회전 여부 | 대화에 값이 오간 적이 있어 원칙상 회전 대상(docs/ops/secrets-policy.md). 자동화 스크립트가 같은 값을 쓰므로 함께 교체해야 한다 |
 | 13 | 크롤러 차단 표 확정 | 950 에서 SEO 도구·스크레이퍼 12종을 robots+엣지에서 막았다. 949 의 UA 표본 로그로 정체가 확인되면 표를 넓히거나 줄인다 |
 | 14 | 콘텐츠 확보 주간 목표 | 공개 노트 22편이 전부 Lab 노트. community-playbook.md 의 카페 배포를 주 1회로 고정하고 "이웃 노트 N편/주"를 KPI 로 |

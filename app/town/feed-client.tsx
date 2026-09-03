@@ -73,7 +73,7 @@ function Cover({ card }: { card: FeedCard }) {
       {/* 위쪽 배지가 밝은 이미지 위에 올라가면 읽히지 않는다 — 아주 옅은 스크림 */}
       <span className="cover-scrim" aria-hidden="true" />
       <span
-        className={`absolute left-2 top-2 z-10 rounded-[6px] bg-surface/90 chip-pad t-caption font-extrabold ${labelColor}`}
+        className={`absolute left-2 top-2 z-10 rounded-md bg-surface/90 chip-pad t-caption font-extrabold ${labelColor}`}
       >
         {label}
       </span>
@@ -83,7 +83,7 @@ function Cover({ card }: { card: FeedCard }) {
         <span className="badge-new absolute right-2 top-2 z-10 t-caption">NEW</span>
       )}
       {card.isExample && (
-        <span className="absolute right-2 top-2 rounded-[5px] bg-white/90 px-[3px] py-[2px]">
+        <span className="absolute right-2 top-2 rounded-md bg-white/90 px-[3px] py-[2px]">
           <ExampleBadge />
         </span>
       )}
@@ -124,7 +124,7 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
               동네이야기의 축은 지역인데, 목록에서 어느 동네 글인지 훑어지지 않았다.
               "홍길동 · 관양동" 처럼 이름 뒤에 붙어 있으면 눈이 그걸 찾지 않는다. */}
           {card.region && (
-            <span className="w-fit rounded-[5px] bg-primary-soft px-1.5 py-px t-caption font-extrabold text-primary">
+            <span className="w-fit rounded-md bg-primary-soft px-1.5 py-px t-caption font-extrabold text-primary">
               {card.region}
             </span>
           )}
@@ -324,7 +324,7 @@ export function TownFeed({
         // 빨강 글씨 대신 배경으로 신호를 준다. --danger 토큰 자체는 이제 AA 를
         // 넘지만(#c62828, soft 위 4.83), 11px 안내문은 text-ink(14.24:1)가 확실히
         // 읽힌다 — 색은 "실패"라는 신호만 지고, 문장은 검정으로 읽는다.
-        <div className="rise-in-2 mb-3 rounded-[12px] border border-line bg-danger-soft px-3.5 py-2.5 t-sub text-ink">
+        <div className="rise-in-2 mb-3 rounded-[10px] border border-line bg-danger-soft px-3.5 py-2.5 t-sub text-ink">
           일부 글을 불러오지 못했어요 (조회 실패). 글이 없다는 뜻은 아니에요 — 잠시 후
           새로고침해 주세요.
         </div>

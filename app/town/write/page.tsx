@@ -363,7 +363,7 @@ function TownWriteForm() {
               <button
                 type="button"
                 onClick={() => applyDraft(restorable)}
-                className="btn-primary rounded-[9px] px-3 py-1.5 t-sub"
+                className="btn-primary rounded-[10px] px-3 py-1.5 t-sub"
               >
                 이어 쓰기
               </button>
@@ -373,7 +373,7 @@ function TownWriteForm() {
                   clearDraft();
                   setRestorable(null);
                 }}
-                className="btn-secondary rounded-[9px] px-3 py-1.5 t-sub"
+                className="btn-secondary rounded-[10px] px-3 py-1.5 t-sub"
               >
                 지우기
               </button>
@@ -504,7 +504,7 @@ function TownWriteForm() {
                       type="button"
                       aria-label="사진 빼기"
                       onClick={() => setImages((prev) => prev.filter((u) => u !== url))}
-                      className="absolute -right-1.5 -top-1.5 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-ink t-caption font-extrabold text-white"
+                      className="absolute -right-1.5 -top-1.5 flex h-[22px] w-[22px] items-center justify-center rounded-full bg-brand-navy t-caption font-extrabold text-white"
                     >
                       ×
                     </button>
@@ -543,7 +543,7 @@ function TownWriteForm() {
         <div className="flex gap-2">
           <Link
             href="/town"
-            className="btn-secondary flex-1 rounded-[11px] p-3 text-center t-body"
+            className="btn-secondary flex-1 rounded-[10px] p-3 text-center t-body"
           >
             취소
           </Link>
@@ -551,7 +551,7 @@ function TownWriteForm() {
             type="button"
             onClick={onSubmit}
             disabled={submitting}
-            className="btn-primary btn-cta flex-[2] rounded-[11px] p-3 text-center t-body disabled:opacity-60"
+            className="btn-primary btn-cta flex-[2] rounded-[10px] p-3 text-center t-body disabled:opacity-60"
           >
             {submitting ? "등록 중…" : "등록하기"}
           </button>

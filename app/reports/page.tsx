@@ -108,7 +108,7 @@ export default async function ReportsIndexPage() {
         </p>
 
         {loadError ? (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
+          <div className="mt-6 card rounded-2xl px-5 py-8 text-center text-[13px] leading-[1.7] text-text-3">
             월간 집계를 <strong className="text-ink">불러오지 못했습니다</strong>.
             <br />
             리포트가 없다는 뜻이 아니라 조회 자체가 실패했다는 뜻입니다. 잠시 후 다시
@@ -156,7 +156,7 @@ export default async function ReportsIndexPage() {
                           key={m.ym}
                           prefetch={false}
                           href={`/reports/${m.ym}`}
-                          className={`rise-in-${Math.min(i + 2, 6)} card tile flex items-center justify-between rounded-[16px] px-5 py-4 no-underline`}
+                          className={`rise-in-${Math.min(i + 2, 6)} card tile flex items-center justify-between rounded-2xl px-5 py-4 no-underline`}
                         >
                           <span className="text-[15px] font-extrabold text-ink">
                             {formatYmKo(m.ym)} 실거래 리포트
@@ -173,7 +173,7 @@ export default async function ReportsIndexPage() {
             );
           })()
         ) : (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center text-[13px] text-text-3">
+          <div className="mt-6 card rounded-2xl px-5 py-8 text-center text-[13px] text-text-3">
             아직 집계된 월이 없어요. 실거래 수집이 쌓이면 자동으로 생성됩니다.
           </div>
         )}
@@ -193,7 +193,7 @@ export default async function ReportsIndexPage() {
                 <Link
                   key={s.def.slug}
                   href={`/reports/season/${s.def.slug}`}
-                  className="card tile flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
+                  className="card tile flex items-center justify-between rounded-2xl px-5 py-4 no-underline"
                 >
                   <span>
                     <span className="block text-[15px] font-extrabold text-ink">

@@ -154,7 +154,7 @@ const StepDiagram = () => (
               {i + 1}
             </span>
             {i < STAGES.length - 1 && (
-              <span className="w-px flex-1 bg-[#dfe5ef]" aria-hidden="true" />
+              <span className="w-px flex-1 bg-line" aria-hidden="true" />
             )}
           </div>
           <div className={i < STAGES.length - 1 ? "pb-4" : ""}>
@@ -268,7 +268,7 @@ export default function ContractGuidePage() {
             {SPECIAL_TERMS.map((t) => (
               <div
                 key={t.title}
-                className="rounded-[12px] border border-line bg-bg p-3.5"
+                className="rounded-[10px] border border-line bg-bg p-3.5"
               >
                 <div className="flex items-center gap-1.5 text-[13px] font-bold text-ink">
                   <Icon name="check" size={14} className="text-primary" />
@@ -316,7 +316,7 @@ export default function ContractGuidePage() {
               </div>
             ))}
           </div>
-          <p className="mt-4 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 text-[11px] leading-[1.7] text-[#5b74b8]">
+          <p className="mt-4 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 text-[11px] leading-[1.7] text-text-2">
             등기부등본은 인터넷등기소(iros.go.kr), 건축물대장은 정부24(gov.kr)에서
             열람할 수 있어요. 계약~잔금 사이 권리가 바뀔 수 있으니 <b>잔금 직전에
             다시 한 번</b> 열람하세요.

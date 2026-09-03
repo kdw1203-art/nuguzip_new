@@ -34,7 +34,7 @@ export default async function AccuracyPage() {
         </div>
 
         {bt.total === 0 ? (
-          <div className="card rounded-[16px] px-5 py-8 text-center t-body font-bold text-text-3">
+          <div className="card rounded-2xl px-5 py-8 text-center t-body font-bold text-text-3">
             아직 계산 가능한 표본이 없어요 — 데이터가 쌓이면 이 자리에 성적표가 공개됩니다.
           </div>
         ) : (
@@ -65,7 +65,7 @@ export default async function AccuracyPage() {
               </div>
             </div>
 
-            <div className="rise-in-2 card overflow-hidden rounded-[16px]">
+            <div className="rise-in-2 card overflow-hidden rounded-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-left t-body">
                   <thead>
@@ -116,7 +116,7 @@ export default async function AccuracyPage() {
           </>
         )}
 
-        <div className="rounded-[12px] bg-bg px-4 py-3 t-sub text-text-3">
+        <div className="rounded-[10px] bg-bg px-4 py-3 t-sub text-text-3">
           이 성적표는 조회 시점의 실거래 집계로 재계산됩니다. 과거 적중률은 미래
           수익을 보장하지 않으며, 예측 도구도 이 한계를 화면에 함께 표시합니다.{" "}
           <Link href="/analysis/ai/ai-prediction" className="font-bold text-primary no-underline">

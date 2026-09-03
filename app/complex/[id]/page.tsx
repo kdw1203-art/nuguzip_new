@@ -865,13 +865,13 @@ export default async function ComplexHubPage({
             }
             return `/notes/new?${params.toString()}`;
           })()}
-          className="btn-primary btn-cta flex-1 rounded-[11px] p-3 text-center t-body"
+          className="btn-primary btn-cta flex-1 rounded-[10px] p-3 text-center t-body"
         >
           이 단지 임장노트 쓰기
         </Link>
         <CompareTrayButton complexId={complexId} name={v.name} region={v.dong} />
       </div>
-      <Link href="/map" className="btn-soft rounded-[11px] p-2.5 text-center text-xs">
+      <Link href="/map" className="btn-soft rounded-[10px] p-2.5 text-center text-xs">
         지도에서 보기 ›
       </Link>
     </div>
@@ -904,13 +904,13 @@ export default async function ComplexHubPage({
         >
           {v.dong}
         </Link>
-        <span className="chip bg-ink px-2.5 py-1 t-sub font-extrabold text-surface">
+        <span className="chip bg-brand-navy px-2.5 py-1 t-sub font-extrabold text-surface">
           {v.name}
         </span>
       </div>
 
       {/* 단지명 + 팔로우 — 가격 히어로와 한 덩어리 */}
-      <div className="rise-in mt-3 overflow-hidden rounded-[20px] border border-line bg-gradient-to-br from-primary-soft via-surface to-bg px-4 py-4 sm:px-5">
+      <div className="rise-in mt-3 overflow-hidden rounded-[18px] border border-line bg-gradient-to-br from-primary-soft via-surface to-bg px-4 py-4 sm:px-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="t-title tracking-tight text-ink md:t-title">
@@ -1041,7 +1041,7 @@ export default async function ComplexHubPage({
 
       {/* 스펙 시트 — 3열 밀도 */}
       {v.infoRows.length > 0 && (
-        <div className="rise-in-1 card mt-3 rounded-[16px] px-4 py-3">
+        <div className="rise-in-1 card mt-3 rounded-2xl px-4 py-3">
           <div className="mb-1 flex items-baseline justify-between">
             <div className="t-body font-extrabold text-ink">단지 스펙</div>
             <div className="t-caption text-text-3">{v.infoRows.length}항목</div>

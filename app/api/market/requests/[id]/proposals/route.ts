@@ -1,35 +1,24 @@
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/log";
-import { safeAuth } from "@/lib/safe-auth";
-import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const session = await safeAuth();
-  const email = session?.user?.email?.trim().toLowerCase();
-  if (!email) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
-
-  const { id } = await params;
-  const body = (await req.json().catch(() => ({}))) as { message?: string };
-  const message = String(body.message ?? "").trim().slice(0, 1000);
-
-  const sb = getServiceSupabase();
-  if (!sb) return NextResponse.json({ ok: true, stored: false });
-
-  const { error } = await sb.from("market_request_proposals").insert({
-    request_id: id,
-    proposer_email: email,
-    message: message || "전문가 제안 요청",
-    status: "pending",
-  });
-  if (error) {
-    logger.error("[api] DB 오류", error.message);
-    return NextResponse.json({ error: "서버 오류 — 잠시 후 다시 시도해 주세요." }, { status: 500 });
-  }
-  return NextResponse.json({ ok: true }, { status: 201 });
+/**
+ * [953] 폐기 — 같은 일을 하는 라우트가 둘이었다.
+ *
+ *  · /api/market-requests/[id]/propose   인증 전문가만 · 시간당 10회 · 사기 스캔 · UI 가 쓰는 쪽
+ *  · /api/market/requests/[id]/proposals 로그인만 있으면 누구나 · 상한 없음 · 이 파일
+ *
+ * 두 번째는 어떤 UI 도 부르지 않았고, 인증 게이트 없이 market_request_proposals 에
+ * 행을 넣을 수 있는 구멍이었다. 410 으로 닫고 정본 주소를 알려 준다.
+ * (파일을 지우지 않고 남기는 이유: 옛 클라이언트가 404 를 "일시 오류"로 오해하고
+ * 재시도하지 않게, 명시적으로 "사라졌다"고 답한다.)
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      error: "이 주소는 더 이상 쓰지 않아요. /api/market-requests/{id}/propose 를 사용해 주세요.",
+      replacement: "/api/market-requests/{id}/propose",
+    },
+    { status: 410 },
+  );
 }
-

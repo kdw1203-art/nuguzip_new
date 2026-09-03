@@ -609,7 +609,7 @@ export function ComplexInfoPanel({
 
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-3.5 sm:px-5">
           {failed && (
-            <div className="rounded-xl border border-[#f0d0d0] bg-[#fff7f7] px-3.5 py-2.5 text-xs text-text-2">
+            <div className="rounded-xl border border-danger-border bg-danger-soft px-3.5 py-2.5 text-xs text-text-2">
               단지 상세를 불러오지 못했어요. 전체 화면에서 다시 확인해 주세요.
             </div>
           )}
@@ -870,7 +870,7 @@ export function ComplexInfoPanel({
           {/* 부가 섹션 조회 실패 고지 — 섹션이 안 보이는 이유가 "없어서"가
               아니라 "지금 못 읽어서"일 때, 그 사실을 말한다. */}
           {(sideFailed.has("regionRelative") || sideFailed.has("nearby")) && (
-            <div className="rounded-2xl border border-[#f3d9a4] bg-[#fdf7ea] px-3.5 py-2.5 t-sub text-[#8a6d1f]">
+            <div className="rounded-2xl border border-warning-border bg-warning-soft px-3.5 py-2.5 t-sub text-warning">
               {[
                 sideFailed.has("regionRelative") ? "이 동네 대비" : null,
                 sideFailed.has("nearby") ? "인근 단지" : null,

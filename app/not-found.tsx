@@ -20,7 +20,7 @@ export const metadata = buildPageMetadata({
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col items-center justify-center gap-3.5 px-10 text-center">
-      <div className="rise-in text-[36px] font-extrabold tracking-[2px] md:text-[44px] text-[#dbe3f2]">404</div>
+      <div className="rise-in text-[36px] font-extrabold tracking-[2px] md:text-[44px] text-on-dark-muted">404</div>
       <h1 className="rise-in-1 text-[17px] font-extrabold text-ink">이 집은 이사 갔어요</h1>
       <p className="rise-in-2 text-[13px] leading-[1.6] text-text-3">
         주소가 바뀌었거나 삭제된 페이지예요.

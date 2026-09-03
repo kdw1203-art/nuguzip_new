@@ -1,7 +1,13 @@
 /**
  * 전문가 유형별 공식 출처 검증 링크.
- * `DATA_SOURCE_REGISTRY` 와 동일한 협회 URL을 UI·운영 큐에 노출합니다.
+ *
+ * [953] 정의는 lib/experts/taxonomy.ts(EXPERT_TYPES[].source) 한 곳으로 옮겼다 —
+ * 신청 폼이 받는 유형과 검증 출처가 어긋나던 문제(감정평가사·대출상담사는 신청은
+ * 받는데 출처가 없고, 건축사는 출처만 있고 신청 폼에 없었다)를 없앤다.
+ * 이 파일은 운영 큐·정책 페이지가 쓰던 모양(ExpertVerificationSource)을 유지하는
+ * 어댑터다.
  */
+import { EXPERT_TYPES } from "./taxonomy";
 
 export type ExpertVerificationSource = {
   expertTypes: string[];
@@ -11,32 +17,20 @@ export type ExpertVerificationSource = {
   searchHint: string;
 };
 
-export const EXPERT_VERIFICATION_SOURCES: ExpertVerificationSource[] = [
-  {
-    expertTypes: ["공인중개사"],
-    label: "한국공인중개사협회",
-    authority: "KAR / V-World",
-    verificationUrl: "https://www.kar.or.kr",
-    searchHint: "개설 등록번호·중개사명으로 등록 상태 확인",
-  },
-  /* [2026-08-12] 법무사·변호사 검증 소스(대한변협·대한법무사협)는 뺐다 — 토스 심사
-     정책상 법률 서비스 유료 입점이 불가해 이 유형의 전문가 신청 자체를 받지
-     않으므로, 대응하는 자격 검증 소스도 남길 이유가 없다. */
-  {
-    expertTypes: ["세무사"],
-    label: "한국세무사회",
-    authority: "KACPTA",
-    verificationUrl: "https://www.kacpta.or.kr",
-    searchHint: "세무사 등록번호·성명 검색",
-  },
-  {
-    expertTypes: ["건축사"],
-    label: "대한건축사협회",
-    authority: "KIRA",
-    verificationUrl: "https://www.kira.or.kr",
-    searchHint: "건축사 등록·사무소 검색",
-  },
-];
+export const EXPERT_VERIFICATION_SOURCES: ExpertVerificationSource[] = EXPERT_TYPES.flatMap(
+  (t) =>
+    t.source
+      ? [
+          {
+            expertTypes: [t.label],
+            label: t.source.label,
+            authority: t.source.authority,
+            verificationUrl: t.source.verificationUrl,
+            searchHint: t.source.searchHint,
+          },
+        ]
+      : [],
+);
 
 export function sourcesForExpertType(expertType: string): ExpertVerificationSource[] {
   const t = expertType.trim();

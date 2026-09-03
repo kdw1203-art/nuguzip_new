@@ -48,7 +48,7 @@ const inputCls =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink placeholder:text-text-3";
 const chip = (on: boolean) =>
   `press rounded-full px-3.5 py-2 text-[13px] ${
-    on ? "bg-ink font-bold text-surface" : "border border-line bg-surface font-semibold text-text-2"
+    on ? "bg-brand-navy font-bold text-surface" : "border border-line bg-surface font-semibold text-text-2"
   }`;
 
 export function BrokerageFeeCalc() {

@@ -138,13 +138,13 @@ export function IosInstallHint() {
       aria-label="홈 화면에 추가 안내"
       /* z-50 은 탭바, z-[190] 은 소프트 가입 모달 — 그 사이(InstallPrompt 와 동일).
          정렬에 transform 을 쓰지 않는다(.fade-in 과 충돌 방지, InstallPrompt 주석 참고). */
-      className="fade-in fixed inset-x-0 z-[60] mx-auto w-[min(420px,calc(100%-28px))] rounded-[20px] border border-line bg-surface p-4 shadow-[0_16px_40px_rgba(15,23,42,.18)]"
+      className="fade-in fixed inset-x-0 z-[60] mx-auto w-[min(420px,calc(100%-28px))] rounded-[18px] border border-line bg-surface p-4 shadow-[0_16px_40px_rgba(15,23,42,.18)]"
       style={{ bottom }}
     >
       <div className="flex items-start gap-3">
         <div
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-primary-soft text-primary"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-primary"
         >
           {/* iOS 공유 아이콘(위로 향한 화살표 + 상자) — 찾아야 할 버튼과 같은 모양 */}
           <svg

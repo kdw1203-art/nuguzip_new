@@ -277,13 +277,13 @@ export default async function PublicProfilePage({
 
           {/* 통계 2종 — 실데이터(공개 노트 수·팔로워)만 */}
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">
+            <div className="rounded-[10px] border border-line bg-bg px-2 py-[10px] text-center">
               <div className="text-[16px] font-extrabold text-ink">
                 {noteCount}
               </div>
               <div className="text-[10px] text-text-3">공개 노트</div>
             </div>
-            <div className="rounded-[12px] border border-line bg-bg px-2 py-[10px] text-center">
+            <div className="rounded-[10px] border border-line bg-bg px-2 py-[10px] text-center">
               <div className="text-[16px] font-extrabold text-ink">
                 {followerCount === null ? "—" : followerCount.toLocaleString("ko-KR")}
               </div>
@@ -317,11 +317,11 @@ export default async function PublicProfilePage({
             {grid.map((g, i) => {
               const inner = (
                 <>
-                  <span className="absolute inset-x-0 bottom-0 truncate bg-ink/70 px-2 py-1 text-[10px] font-bold text-surface">
+                  <span className="absolute inset-x-0 bottom-0 truncate bg-brand-navy/70 px-2 py-1 text-[10px] font-bold text-surface">
                     {g.title}
                   </span>
                   {i === grid.length - 1 && noteCount > grid.length && (
-                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-ink/85 chip-pad-tight text-[9px] font-extrabold text-surface">
+                    <span className="absolute right-[6px] top-[6px] rounded-[4px] bg-brand-navy/85 chip-pad-tight text-[9px] font-extrabold text-surface">
                       +{noteCount - grid.length}
                     </span>
                   )}

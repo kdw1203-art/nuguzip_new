@@ -167,9 +167,9 @@ export function HubHero({
                 <Link
                   key={id}
                   href={`${c.href}${q}`}
-                  className="tile card flex items-center gap-2 rounded-[12px] px-2.5 py-2 no-underline"
+                  className="tile card flex items-center gap-2 rounded-[10px] px-2.5 py-2 no-underline"
                 >
-                  <span className="tile-ico flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] bg-primary-soft text-primary">
+                  <span className="tile-ico flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-primary">
                     <Icon name={c.icon} size={15} />
                   </span>
                   <span className="t-sub min-w-0 flex-1 truncate font-bold text-ink">

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { canManageExpertProfile, sanitizeExpertForPublic } from "@/lib/experts/access";
 import { deleteExpert, getExpert, updateExpert } from "@/lib/experts/store-db";
+import { sanitizeExpertProfilePatch } from "@/lib/experts/profile-input";
+import { revalidatePath } from "next/cache";
 
 export async function GET(
   _req: Request,
@@ -28,8 +30,16 @@ export async function PATCH(
     return NextResponse.json({ error: "수정 권한이 없습니다." }, { status: 403 });
   }
   const body = await req.json().catch(() => ({}));
-  const updated = await updateExpert(id, body);
+  /* [953] 값 검증 — 예전엔 원본 body 가 그대로 스토어로 갔다(컬럼만 걸렀다). */
+  const { patch, errors } = sanitizeExpertProfilePatch(body);
+  if (errors.length > 0) {
+    return NextResponse.json({ error: errors[0], errors }, { status: 400 });
+  }
+  const updated = await updateExpert(id, patch);
   if (!updated) return NextResponse.json({ error: "없음" }, { status: 404 });
+  /* 목록·상세는 ISR(300s) — 본인이 저장한 값이 5분 뒤에 보이면 "저장 안 됐다"고 읽는다. */
+  revalidatePath("/town/experts");
+  revalidatePath(`/town/experts/${id}`);
   return NextResponse.json({ expert: sanitizeExpertForPublic(updated) });
 }
 

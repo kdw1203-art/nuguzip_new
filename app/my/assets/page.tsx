@@ -59,7 +59,7 @@ export default function AssetsPage() {
           <span className="t-body font-bold text-text-3">준비 중</span>
         </div>
 
-        <div className="rise-in flex items-start gap-1.5 rounded-xl bg-[rgba(29,79,216,.06)] px-3.5 py-2.5 t-sub text-[#5b74b8]">
+        <div className="rise-in flex items-start gap-1.5 rounded-xl bg-[rgba(29,79,216,.06)] px-3.5 py-2.5 t-sub text-text-2">
           <span>
             아래는 자산 등록 기능의 <b>예시 화면</b>이에요. 단지·금액은 가상의
             데이터이며 저장·자동 시세 연동은 준비 중입니다.{" "}
@@ -138,11 +138,11 @@ export default function AssetsPage() {
               <span className="t-sub font-extrabold text-primary">
                 갈아탈 만한 대출 (대환 추천)
               </span>
-              <span className="t-caption text-[#5b74b8]">07.19 기준</span>
+              <span className="t-caption text-text-2">07.19 기준</span>
             </div>
             {/* 더미 1개 원칙 — 예시 추천 상품은 1건만 */}
             <div className="flex justify-between t-sub">
-              <span className="text-[#5b74b8]">S은행 대환 고정 3.42%</span>
+              <span className="text-text-2">S은행 대환 고정 3.42%</span>
               <span className="font-extrabold text-primary">월 -9.8만 · 총 -2,700만</span>
             </div>
             {/* "자세히 ›" 는 상세 화면 링크처럼 보였지만 갈 곳이 없는 평문이었다 — 뺀다. */}

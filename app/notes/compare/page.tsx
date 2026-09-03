@@ -106,7 +106,7 @@ function CompareTable({ model }: { model: VisitCompareModel }) {
   const last = model.scores[model.scores.length - 1]?.value ?? 0;
 
   return (
-    <div className="rise-in-1 card overflow-x-auto rounded-[20px] px-[22px] py-5">
+    <div className="rise-in-1 card overflow-x-auto rounded-[18px] px-[22px] py-5">
       <div className="min-w-[520px]">
         <div
           className="grid items-end gap-2 border-b border-divider pb-2.5 pt-2 t-sub text-text-3"
@@ -241,7 +241,7 @@ export default async function NotesComparePage({
             </div>
           </div>
 
-          <div className="rise-in-3 card flex flex-col items-start gap-2.5 rounded-[20px] px-[22px] py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rise-in-3 card flex flex-col items-start gap-2.5 rounded-[18px] px-[22px] py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="text-sm font-extrabold text-ink">다음 방문 기록 남기기</div>
               <p className="mt-0.5 text-xs text-text-2">
@@ -293,7 +293,7 @@ export default async function NotesComparePage({
             같은 단지를 여러 번 기록하면 점수 축 변화를 표로 비교해요.
           </p>
         </div>
-        <div className="card flex flex-col gap-3 rounded-[20px] px-[22px] py-8 text-center">
+        <div className="card flex flex-col gap-3 rounded-[18px] px-[22px] py-8 text-center">
           <div className="t-section text-ink">{emptyTitle}</div>
           <p className="mx-auto max-w-[420px] t-body text-text-2">
             {emptyDesc}

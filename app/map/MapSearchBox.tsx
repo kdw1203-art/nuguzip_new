@@ -226,7 +226,7 @@ export function MapSearchBox({
   const hasResults = complexes.length > 0 || address !== null || places.length > 0;
   const shellClass =
     variant === "floating"
-      ? "glass-strong flex items-center gap-2 rounded-[16px] px-3.5 py-2.5"
+      ? "glass-strong flex items-center gap-2 rounded-2xl px-3.5 py-2.5"
       : "flex w-full items-center gap-2 rounded-xl border border-[rgba(255,255,255,.9)] bg-[var(--glass-bg)] px-3.5 py-2";
 
   return (

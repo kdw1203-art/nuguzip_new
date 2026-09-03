@@ -125,17 +125,17 @@ export default async function WishlistPage() {
             return (
               <div key={l.id} className="card card-pad-sm flex flex-col gap-2.5">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
+                  <span className="rounded-md bg-bg chip-pad t-sub font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-success-soft chip-pad t-sub font-extrabold text-success">
+                    <span className="rounded-md bg-success-soft chip-pad t-sub font-extrabold text-success">
                       소유확인
                     </span>
                   )}
                   {stale && (
                     <span
-                      className="rounded-[6px] chip-pad t-sub font-extrabold"
+                      className="rounded-md chip-pad t-sub font-extrabold"
                       style={{ background: "var(--warning-soft)", color: "var(--warning)" }}
                     >
                       확인 필요

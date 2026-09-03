@@ -183,7 +183,7 @@ export function BillingEnrollClient() {
         </p>
       )}
       {isTossTestEnv() && (
-        <p className="rounded-xl bg-[rgba(245,158,11,.12)] px-3.5 py-2.5 t-sub font-bold text-[#b45309]">
+        <p className="rounded-xl bg-[rgba(245,158,11,.12)] px-3.5 py-2.5 t-sub font-bold text-warning">
           테스트 환경 — 카드 등록·결제가 가상으로 이루어져 실제 금액이 청구되지 않아요.
         </p>
       )}

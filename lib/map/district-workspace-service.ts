@@ -253,20 +253,19 @@ function mapSourceToFetchId(
 async function loadVerifiedExperts(district: string): Promise<WorkspaceExpertChip[]> {
   const experts = await listExperts();
   return experts
-    .filter(
-      (e) =>
-        e.regions.some((r) => r.includes(district)) ||
-        e.category.includes("중개") ||
-        e.category.includes("법"),
-    )
+    /* [953] 지역이 맞는 전문가만 — 예전엔 "중개"·"법" 이 들어간 카테고리면 지역과
+       무관하게 끼워 넣어 강남 워크스페이스에 안양 중개사가 떴다. "법"(법무) 유형은
+       2026-08-12 이후 존재하지 않는다. */
+    .filter((e) => e.regions.some((r) => r.includes(district)))
     .slice(0, 6)
     .map((e) => ({
       id: e.id,
       name: e.name,
       category: e.category,
       verified: e.isVerified,
-      /* `/experts/{id}` 라우트 없음 — 목록으로. (전문가 상세가 생기면 되돌린다) */
-      href: "/town/experts",
+      /* [953] 전문가 상세가 생겼다(app/town/experts/[id]) — 인증 전문가는 상세로,
+         심사 중은 목록으로(상세가 noindex·상담 불가라 목록이 더 유용하다). */
+      href: e.isVerified ? `/town/experts/${e.id}` : "/town/experts",
     }));
 }
 
@@ -331,7 +330,8 @@ export async function buildDistrictWorkspace(input: {
         title: meta.label,
         description: meta.description,
         ...(listingCount != null ? { listingCount } : {}),
-        consultHref: `/experts?region=${encodeURIComponent(district)}`,
+        /* [953] `/experts` 는 리다이렉트 표를 한 번 거치는 경로였다 — 실제 주소로. */
+        consultHref: `/town/experts?region=${encodeURIComponent(district)}`,
         metrics: [
           {
             id: "listings",

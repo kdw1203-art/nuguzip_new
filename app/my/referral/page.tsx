@@ -39,7 +39,7 @@ async function currentOrigin(): Promise<string> {
 function GuestView() {
   return (
     <div className="mx-auto flex max-w-[520px] flex-col items-center gap-3">
-      <div className="card glass flex w-full flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
+      <div className="card glass flex w-full flex-col items-center gap-2 rounded-[18px] px-5 py-8 text-center">
         <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-primary">
           <Icon name="gift" size={24} />
         </div>
@@ -51,7 +51,7 @@ function GuestView() {
         </div>
         <Link
           href="/login?callbackUrl=/my/referral"
-          className="btn-primary press mt-3 rounded-[12px] px-6 py-2.5 text-sm no-underline"
+          className="btn-primary press mt-3 rounded-[10px] px-6 py-2.5 text-sm no-underline"
         >
           로그인하고 시작하기
         </Link>
@@ -72,7 +72,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
   const remaining = next ? next.n - invitedCount : 0;
 
   return (
-    <section className="card flex flex-col gap-4 rounded-[20px] p-5">
+    <section className="card flex flex-col gap-4 rounded-[18px] p-5">
       <div className="flex items-center gap-2">
         <Icon name="trophy" size={16} className="text-primary" />
         <div className="t-section text-text-1">초대 여정</div>
@@ -122,7 +122,7 @@ function MilestoneStrip({ invitedCount }: { invitedCount: number }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 rounded-[12px] bg-primary-soft px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-[10px] bg-primary-soft px-3 py-2.5">
           <Icon name="party" size={16} className="text-primary" />
           <div className="t-sub font-semibold text-primary">
             모든 배지를 모았어요! 초대는 계속 300P로 이어져요.
@@ -172,7 +172,7 @@ export default async function ReferralPage() {
 
           {code ? (
             <>
-              <div className="w-full rounded-[16px] bg-primary-soft px-4 py-4">
+              <div className="w-full rounded-2xl bg-primary-soft px-4 py-4">
                 <div className="t-sub font-bold text-primary">내 추천 코드</div>
                 <div className="mt-2">
                   <CopyLink value={code} variant="code" />
@@ -195,7 +195,7 @@ export default async function ReferralPage() {
         </section>
 
         {/* ── 성과 ── */}
-        <section className="card grid grid-cols-2 gap-3 rounded-[20px] p-5">
+        <section className="card grid grid-cols-2 gap-3 rounded-[18px] p-5">
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-1 t-sub text-text-3">
               <Icon name="user-plus" size={13} />
@@ -247,7 +247,7 @@ export default async function ReferralPage() {
         {stats.invitedCount !== null && <MilestoneStrip invitedCount={stats.invitedCount} />}
 
         {/* ── 이렇게 초대돼요 ── */}
-        <section className="card flex flex-col gap-3 rounded-[20px] p-5">
+        <section className="card flex flex-col gap-3 rounded-[18px] p-5">
           <div className="t-section text-text-1">이렇게 초대돼요</div>
           <ol className="flex flex-col gap-2.5">
             {[

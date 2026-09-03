@@ -129,9 +129,9 @@ export async function GET(req: Request) {
             type: "expert",
             title: pub.name,
             excerpt: (pub.introduction ?? "").slice(0, 200),
-            /* 모임과 같은 이유다. `/experts/{id}` 라우트는 없고
-               app/town/experts 에도 [id] 가 없다 — 상세가 없으니 목록으로. */
-            url: "/town/experts",
+            /* [953] 전문가 상세(/town/experts/[id])가 2026-08-22 에 생겼다 — 목록이
+               아니라 상세로 보낸다(위 주석은 그 전 사실이었다). */
+            url: `/town/experts/${pub.id}`,
             tags: pub.specialties ?? [],
             createdAt: pub.createdAt ?? new Date().toISOString(),
           });

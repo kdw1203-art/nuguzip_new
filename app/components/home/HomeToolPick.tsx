@@ -109,7 +109,7 @@ export function HomeToolPick() {
         href={pick.href}
         className="tile mt-2 flex items-center gap-3 rounded-xl border border-line px-3.5 py-3 no-underline"
       >
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[11px] bg-primary-soft text-primary">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-primary-soft text-primary">
           <Icon name={pick.icon} size={18} />
         </span>
         <span className="min-w-0 flex-1">

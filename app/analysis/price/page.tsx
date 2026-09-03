@@ -208,7 +208,7 @@ export default async function PricePage({
             예전에는 조용히 첫 지역으로 갈아탔다 — 화면에는 다른 동네의 숫자가
             아무 표시 없이 떠 있었고, 사용자는 그게 자기가 고른 지역인 줄 알았다. */}
         {regionMissed && (
-          <div className="mb-3 rounded-[12px] border border-line bg-warning-soft px-3.5 py-2.5 t-sub text-ink">
+          <div className="mb-3 rounded-[10px] border border-line bg-warning-soft px-3.5 py-2.5 t-sub text-ink">
             “{wanted}”는 실거래 집계에 아직 없는 지역이에요 — 대신{" "}
             <b>{target.name}</b>를 보여 드립니다. 아래에서 지역을 바꿀 수 있어요.
           </div>
@@ -222,7 +222,7 @@ export default async function PricePage({
           kpis={heroKpis}
           chart={
             perValues.some((v) => v > 0) ? (
-              <div className="rounded-[12px] border border-line bg-surface px-2 pb-1 pt-2 text-success">
+              <div className="rounded-[10px] border border-line bg-surface px-2 pb-1 pt-2 text-success">
                 <span className="t-caption block px-1 pb-1 text-text-3">
                   면적대별 평단가 (만원/평)
                 </span>

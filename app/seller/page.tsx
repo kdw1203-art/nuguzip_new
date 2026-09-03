@@ -402,7 +402,7 @@ function StepProduct({
             return (
               <span
                 key={g.label}
-                className={`rounded-[5px] px-1.5 py-[3px] font-bold ${
+                className={`rounded-md px-1.5 py-[3px] font-bold ${
                   ok ? "bg-success-soft text-success" : "bg-danger-soft text-danger"
                 }`}
               >
@@ -413,7 +413,7 @@ function StepProduct({
           {GATE_UNCHECKED.map((label) => (
             <span
               key={label}
-              className="rounded-[5px] bg-line-strong/60 px-1.5 py-[3px] font-bold text-text-3"
+              className="rounded-md bg-line-strong/60 px-1.5 py-[3px] font-bold text-text-3"
             >
               — {label}
             </span>
@@ -461,7 +461,7 @@ function StepPreview({ draft }: { draft: Draft }) {
             <b>{draft.fileName ? "첨부됨" : "미첨부"}</b>
           </div>
         </div>
-        <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-line to-line-strong text-[11px] font-bold text-[#33415e]">
+        <div className="flex h-24 items-center justify-center rounded-xl bg-gradient-to-br from-line to-line-strong text-[11px] font-bold text-text-2">
           미리보기 썸네일 영역 (자리표시)
         </div>
         <div className="rounded-xl bg-surface px-3.5 py-2.5 text-[10px] leading-relaxed text-text-2">
@@ -585,12 +585,12 @@ function StepPrice({
                 <span className="flex-[1.7] font-bold">
                   {t.type}{" "}
                   {t.badge === "인증" && (
-                    <span className="rounded-[5px] bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
+                    <span className="rounded-md bg-primary-soft chip-pad-tight text-[10px] font-extrabold text-primary">
                       인증
                     </span>
                   )}
                   {t.badge === "✦ 전문가" && (
-                    <span className="rounded-[5px] bg-ink chip-pad-tight text-[10px] font-extrabold text-[#f2c94c]">
+                    <span className="rounded-md bg-brand-navy chip-pad-tight t-caption font-extrabold text-brand-red-dark">
                       ✦ 전문가
                     </span>
                   )}
@@ -727,7 +727,7 @@ export default function SellerOnboardingPage() {
       {/* 정직한 상태 고지 (감사 P1-5) — 심사 접수 미오픈 안내 */}
       <div
         role="status"
-        className="rise-in mb-4 rounded-xl border border-[#f2c94c]/60 bg-[#fdf3dd] px-4 py-3 text-xs font-bold leading-relaxed text-[#946200]"
+        className="rise-in mb-4 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-xs font-bold leading-relaxed text-warning"
       >
         파트너 심사 접수는 준비 중입니다 — 아래 절차는 미리보기이며 실제 제출은
         아직 열리지 않았습니다. 입력한 내용은 서버로 전송되지 않고 이 브라우저에만
@@ -767,7 +767,7 @@ export default function SellerOnboardingPage() {
             type="button"
             disabled
             aria-disabled="true"
-            className="btn-primary flex-[2] cursor-not-allowed rounded-[10px] bg-[#c9d4e5] px-4 py-3 text-[13px] shadow-none"
+            className="btn-primary flex-[2] cursor-not-allowed rounded-[10px] bg-line-strong px-4 py-3 text-[13px] shadow-none"
           >
             입점 신청 접수 준비 중
           </button>

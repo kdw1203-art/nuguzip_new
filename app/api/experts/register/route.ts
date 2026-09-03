@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EXPERT_TYPE_LABELS, isExpertTypeLabel, normalizeSpecialties } from "@/lib/experts/taxonomy";
 import { auth } from "@/auth";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import {
@@ -23,17 +24,27 @@ export async function POST(req: Request) {
   const district = String(body.district ?? "").trim();
   const bio = String(body.bio ?? body.introduction ?? "").trim();
   const yearsExp = Number(body.yearsExp ?? body.yearsExperience ?? 0);
-  const specialties = Array.isArray(body.specialties)
-    ? body.specialties.map(String)
-    : String(body.specialties ?? "")
-        .split(/[,，]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
+  const specialties = normalizeSpecialties(
+    Array.isArray(body.specialties)
+      ? body.specialties.map(String)
+      : String(body.specialties ?? "")
+          .split(/[,，]/)
+          .map((s) => s.trim())
+          .filter(Boolean),
+  );
   const consent = (body.consent ?? {}) as { terms?: boolean; publicProfile?: boolean };
 
   if (!expertType || !name || !city || !bio) {
     return NextResponse.json(
       { error: "전문가 유형, 이름, 지역, 소개는 필수입니다." },
+      { status: 400 },
+    );
+  }
+  /* [953] 유형은 분류 체계(lib/experts/taxonomy.ts)에 있는 것만 — 법률 서비스 등
+     정책상 받지 않는 유형이 자유 입력으로 들어오는 길을 막는다. */
+  if (!isExpertTypeLabel(expertType)) {
+    return NextResponse.json(
+      { error: `전문가 유형은 ${EXPERT_TYPE_LABELS.join("·")} 중 하나여야 합니다.` },
       { status: 400 },
     );
   }

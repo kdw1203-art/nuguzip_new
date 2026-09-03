@@ -161,13 +161,13 @@ export function InstallPrompt() {
        *   - 가로: -translate-x-1/2 이 사라져 왼쪽 끝이 화면 중앙에 박힘
        * transform 을 안 쓰는 정렬로 바꾸면 애니메이션과 충돌할 여지 자체가 없다.
        * 등장 효과는 opacity 만 건드리는 .fade-in 으로 대체했다. */
-      className="fade-in fixed inset-x-0 z-[60] mx-auto w-[min(420px,calc(100%-28px))] rounded-[20px] border border-line bg-surface p-4 shadow-[0_16px_40px_rgba(15,23,42,.18)]"
+      className="fade-in fixed inset-x-0 z-[60] mx-auto w-[min(420px,calc(100%-28px))] rounded-[18px] border border-line bg-surface p-4 shadow-[0_16px_40px_rgba(15,23,42,.18)]"
       style={{ bottom }}
     >
       <div className="flex items-start gap-3">
         <div
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-primary-soft text-[18px] leading-none"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary-soft text-[18px] leading-none"
         >
           🏠
         </div>

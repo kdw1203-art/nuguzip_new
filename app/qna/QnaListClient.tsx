@@ -73,14 +73,14 @@ function QuestionCard({ row }: { row: QnaRow }) {
     <article className="card tile flex flex-col gap-2">
       <div className="flex items-center gap-1.5">
         <span
-          className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
+          className={`rounded-md chip-pad text-[11px] font-extrabold ${
             answered ? "bg-primary-soft text-primary" : "bg-[rgba(127,140,158,.14)] text-text-2"
           }`}
         >
           {answered ? "답변 완료" : "답변 대기"}
         </span>
         {q.bountyPoints > 0 && (
-          <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-[#b45309]">
+          <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-warning">
             현상금 {q.bountyPoints.toLocaleString()}P
           </span>
         )}

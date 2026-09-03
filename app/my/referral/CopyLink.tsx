@@ -47,7 +47,7 @@ export function CopyLink({
         <button
           type="button"
           onClick={copy}
-          className="btn-primary press rounded-[12px] px-6 py-2.5 text-sm"
+          className="btn-primary press rounded-[10px] px-6 py-2.5 text-sm"
         >
           {copied ? "복사됨!" : "코드 복사"}
         </button>
@@ -57,13 +57,13 @@ export function CopyLink({
 
   return (
     <div className="flex items-stretch gap-2">
-      <div className="flex-1 truncate rounded-[12px] bg-surface px-3.5 py-3 t-body text-text-2">
+      <div className="flex-1 truncate rounded-[10px] bg-surface px-3.5 py-3 t-body text-text-2">
         {value}
       </div>
       <button
         type="button"
         onClick={copy}
-        className="btn-primary press shrink-0 rounded-[12px] px-4 py-3 text-sm"
+        className="btn-primary press shrink-0 rounded-[10px] px-4 py-3 text-sm"
       >
         {copied ? "복사됨!" : "링크 복사"}
       </button>

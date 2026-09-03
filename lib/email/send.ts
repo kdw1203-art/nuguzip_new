@@ -4,11 +4,14 @@
  *  - RESEND_API_KEY 환경변수가 설정돼 있고 "re_" 로 시작하면 Resend REST API 로 발송.
  *  - 미설정이면 { sent: false, reason: "미설정" } 을 조용히 반환 (경고 로그는 최초 1회만).
  *
- * 발신 주소는 항상 "내집나우 <noreply@naezipnow.com>" 을 사용합니다.
+ * 발신 주소는 항상 "내집나우 <noreply@nuguzip.com>" 을 사용합니다.
  */
 import { logger } from "@/lib/log";
 
-export const EMAIL_FROM = "내집나우 <noreply@naezipnow.com>";
+/* [952] 발신 도메인은 Resend 에서 **인증한 도메인**과 같아야 한다 — 사이트 도메인이 바뀌어도
+   인증이 끝나기 전에는 바꾸면 안 된다. 그래서 env `EMAIL_FROM` 이 정본이고, 없으면 구 기본값.
+   도메인 전환(docs/ops/domain-migration.md ③ Resend) 뒤 env 로 `내집나우 <noreply@naezipnow.com>` 을 넣는다. */
+export const EMAIL_FROM = process.env.EMAIL_FROM?.trim() || "내집나우 <noreply@nuguzip.com>";
 
 export interface SendEmailInput {
   to: string | string[];

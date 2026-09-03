@@ -97,7 +97,7 @@ function Thumb({ card, tall = false }: { card: NewsCardDto; tall?: boolean }) {
         }
       />
       <span
-        className={`absolute left-2 top-2 rounded-[5px] chip-pad text-[10px] font-extrabold ${badgeStyle(card.category)}`}
+        className={`absolute left-2 top-2 rounded-md chip-pad text-[10px] font-extrabold ${badgeStyle(card.category)}`}
       >
         {card.category || "뉴스"}
       </span>
@@ -246,7 +246,7 @@ export function NewsListClient({
 
       {/* 대표 뉴스 — [#67] 관련 보도가 있으면 카드 하단에 접힘 목록 */}
       {featured && (
-        <div className="rise-in card tile mb-5 overflow-hidden rounded-[20px]">
+        <div className="rise-in card tile mb-5 overflow-hidden rounded-[18px]">
           <Link href={`/town/news/${featured.id}`} className="block">
             <Thumb card={featured} tall />
             <div className="flex flex-col gap-2 p-5">
@@ -295,7 +295,7 @@ export function NewsListClient({
           {rest.map((c, i) => (
             <div
               key={c.id}
-              className={`card tile rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-[16px]`}
+              className={`card tile rise-in-${Math.min(i + 1, 6)} flex flex-col overflow-hidden rounded-2xl`}
             >
               <Link href={`/town/news/${c.id}`} className="flex flex-1 flex-col">
                 <Thumb card={c} />

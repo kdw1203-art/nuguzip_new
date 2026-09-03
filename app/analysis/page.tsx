@@ -138,7 +138,7 @@ function ToolCard({
     >
       <div className="flex items-start gap-2">
         <span
-          className={`tile-ico flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] ${tier.iconClass}`}
+          className={`tile-ico flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${tier.iconClass}`}
         >
           <Icon name={t.icon} size={17} />
         </span>
@@ -297,7 +297,7 @@ export default async function AnalysisHubPage({
             ) : publicPreview ? (
               <div className="card flex flex-col gap-2.5 rounded-[14px] p-4">
                 <span className="t-section text-ink">공개 노트 AI 정리 미리보기</span>
-                <div className="ai-panel flex flex-col gap-1.5 rounded-[11px] p-3.5">
+                <div className="ai-panel flex flex-col gap-1.5 rounded-[10px] p-3.5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="t-caption inline-flex items-center rounded border border-line px-1.5 py-px font-semibold text-ai-muted">
                       {publicPreview.badge}
@@ -414,7 +414,7 @@ export default async function AnalysisHubPage({
                 <span className="hub-sim-closed">펼치기</span>
                 <span className="hub-sim-open">접기</span>{" "}
                 <span className="hub-sim-caret" aria-hidden="true">
-                  ▾
+                  ▾{/* dead-control-ok: <details><summary> 네이티브 토글의 열림 표시 — summary 전체가 실제 컨트롤이다 */}
                 </span>
               </span>
             </summary>

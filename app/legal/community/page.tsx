@@ -12,7 +12,7 @@ export const metadata = buildPageMetadata({
 const LAST_UPDATED = "2026-04-30";
 
 export default function CommunityPolicyPage() {
-  /* 2026-07-28: 여기 적혀 있던 report@naezipnow.com · support@naezipnow.com 은
+  /* 2026-07-28: 여기 적혀 있던 report@nuguzip.com · support@nuguzip.com 은
      받는 사람이 없는 주소였다. 정책 문서에서 "여기로 신고하세요"라고 안내하는
      주소가 실제로 아무도 안 읽는 곳이면, 신고 창구가 없는 것보다 나쁘다 —
      사용자는 보냈다고 믿고 기다린다.
@@ -45,7 +45,7 @@ export default function CommunityPolicyPage() {
         </section>
 
         {/* 2. 금지 행위 */}
-        <section className="mt-4 rounded-[16px] border border-danger/20 bg-danger-soft p-5">
+        <section className="mt-4 rounded-2xl border border-danger/20 bg-danger-soft p-5">
           <h2 className="text-base font-bold text-ink">2. 금지 행위</h2>
           <p className="mt-1 text-xs text-text-3">
             아래 행위는 경고·일시 정지·영구 탈퇴 조치를 받을 수 있습니다.
@@ -135,7 +135,7 @@ export default function CommunityPolicyPage() {
         </section>
 
         {/* 5. 전문가 인증 가이드 */}
-        <section className="mt-4 rounded-[16px] border border-primary/20 bg-primary-soft p-5">
+        <section className="mt-4 rounded-2xl border border-primary/20 bg-primary-soft p-5">
           <h2 className="text-base font-bold text-ink">5. 전문가 인증 가이드</h2>
           <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-text-1">
             <li>전문가 인증 신청은 마이페이지 → 전문가 등록에서 가능합니다.</li>
@@ -146,7 +146,7 @@ export default function CommunityPolicyPage() {
         </section>
 
         {/* 6. 정책 변경 안내 */}
-        <section className="mt-4 rounded-[16px] border border-line bg-bg p-5">
+        <section className="mt-4 rounded-2xl border border-line bg-bg p-5">
           <h2 className="text-base font-bold text-ink">6. 정책 변경 안내</h2>
           <p className="mt-2 text-sm leading-relaxed text-text-1">
             본 정책은 서비스 운영 필요에 따라 변경될 수 있습니다. 중요한 변경 사항은
@@ -158,7 +158,7 @@ export default function CommunityPolicyPage() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <a
             href={`mailto:${supportEmail}?subject=${encodeURIComponent("[신고] 커뮤니티 운영")}`}
-            className="inline-flex items-center justify-center rounded-[12px] bg-danger-fill px-4 py-2.5 text-center text-sm font-bold text-white hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-[10px] bg-danger-fill px-4 py-2.5 text-center text-sm font-bold text-white hover:opacity-90"
           >
             신고 메일 보내기 ({supportEmail})
           </a>

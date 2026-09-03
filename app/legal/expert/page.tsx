@@ -25,7 +25,7 @@ export default function ExpertLegalPolicyPage() {
       <article className="card rise-in p-6 md:p-8 text-sm leading-7 text-text-1">
         <h1 className="text-2xl font-extrabold text-ink">전문가 운영정책</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-text-2">
-          우리동네이야기 전문가 프로그램은 <strong>자격·소속·서류를 검증한 전문가</strong>만
+          우리동네이야기(내집나우 운영사) 전문가 프로그램은 <strong>자격·소속·서류를 검증한 전문가</strong>만
           상담·리포트 서비스를 제공하도록 설계되어 있습니다. 본 정책은 이용약관·
           <Link href="/legal/privacy" className="text-primary hover:underline">
             개인정보처리방침
@@ -112,6 +112,41 @@ export default function ExpertLegalPolicyPage() {
           </li>
         </ul>
 
+        <H2>5-1. 후기·평점</H2>
+        <ul className="ml-4 mt-2 list-disc space-y-1">
+          <li>
+            후기는 <strong>답변이 완료된 상담의 의뢰자</strong>만, 상담 1건당 1회 남길 수
+            있습니다(별점 1~5 · 300자 이하). 전문가 본인·제3자·대리 작성은 불가합니다.
+          </li>
+          <li>
+            평점은 공개 후기의 단순 평균이며, 후기가 없는 전문가는 &quot;평가 없음&quot;으로
+            표시합니다(0점으로 표시하지 않습니다).
+          </li>
+          <li>
+            전화번호·계좌번호·외부 결제 안내가 포함된 후기는 저장되지 않으며, 허위·비방
+            후기는 신고 검토 후 비공개 처리될 수 있습니다. 후기 작성자는 닉네임 앞 글자만
+            공개됩니다.
+          </li>
+          <li>
+            응답률은 최근 {90}일 안에 접수된 상담 중 답변한 비율이며, 의뢰자가 마감한
+            상담은 분모에서 제외합니다. 응답률 {EXPERT_POST_APPROVAL.responseRateMinPercent}% 미만,
+            미답변 상담 {EXPERT_POST_APPROVAL.openConsultSlaHours}시간 초과가 반복되면 노출 순위가
+            내려가거나 검토 큐에 편입됩니다.
+          </li>
+        </ul>
+
+        <H2>5-2. 견적 요청·제안</H2>
+        <ul className="ml-4 mt-2 list-disc space-y-1">
+          <li>
+            견적 요청은 세무/절세·금융/대출·임장 동행·인테리어 분야의 정보 상담 요청이며
+            중개 의뢰가 아닙니다. 요청은 계정당 시간당 3회로 제한됩니다.
+          </li>
+          <li>
+            제안은 <strong>인증 전문가</strong>만 요청당 1건 보낼 수 있고, 의뢰자의 상담함에
+            전문가 표시명·프로필 링크와 함께 저장됩니다. 제안 본문도 4항의 자동 탐지를 거칩니다.
+          </li>
+        </ul>
+
         <H2>6. 환불·분쟁</H2>
         <p className="mt-2">
           상담·리포트 환불은 이용약관 및 결제 시 고지된 규정을 따릅니다. 분쟁 접수
@@ -137,7 +172,7 @@ export default function ExpertLegalPolicyPage() {
         </ul>
 
         <p className="mt-8 border-t border-line pt-4 text-sm text-text-3">
-          시행일: 2026년 6월 19일 · 문의:{" "}
+          시행일: 2026년 6월 19일 · 개정: 2026년 9월 3일(후기·견적 제안 조항 신설) · 문의:{" "}
           <Link href="/support" className="text-primary hover:underline">
             고객센터
           </Link>

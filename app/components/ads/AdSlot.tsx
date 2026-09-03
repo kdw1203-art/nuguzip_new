@@ -135,7 +135,7 @@ function HouseAdCard({ ad }: { ad: HouseAd }) {
     <AdSlotTracker creativeId={ad.id} kind="house">
       <Link
         href={ad.href}
-        className="card group block overflow-hidden rounded-[16px] no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(29,79,216,.35)] hover:shadow-[0_14px_30px_rgba(16,28,54,.12)]"
+        className="card group block overflow-hidden rounded-2xl no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(29,79,216,.35)] hover:shadow-[0_14px_30px_rgba(16,28,54,.12)]"
       >
         {/* 브랜드 커버 밴드 — 지역 워터마크 아이콘이 호버에 살짝 커진다 */}
         <div
@@ -167,7 +167,7 @@ function HouseAdCard({ ad }: { ad: HouseAd }) {
           <span className="relative text-[11px] font-extrabold tracking-tight text-white">
             {ad.eyebrow}
           </span>
-          <span className="relative rounded-[6px] bg-white/20 chip-pad text-[9px] font-bold text-white">
+          <span className="relative rounded-md bg-white/20 chip-pad text-[9px] font-bold text-white">
             내집나우 안내
           </span>
         </div>

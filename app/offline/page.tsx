@@ -49,7 +49,7 @@ export default function OfflinePage() {
 
       <Link
         href="/"
-        className="text-[13px] font-semibold text-[#1d4fd8] underline underline-offset-4"
+        className="text-[13px] font-semibold text-primary underline underline-offset-4"
       >
         홈으로 가기
       </Link>

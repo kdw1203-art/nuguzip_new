@@ -141,7 +141,7 @@ function FeatureRow({ f, dark }: { f: PlanFeature; dark: boolean }) {
       {f.note && !off && (
         <span
           className={`shrink-0 rounded-md chip-pad-tight text-[9px] font-bold ${
-            dark ? "bg-white/10 text-[#9db9ff]" : "bg-primary-soft text-primary"
+            dark ? "bg-white/10 text-ai-accent" : "bg-primary-soft text-primary"
           }`}
         >
           {f.note}
@@ -181,7 +181,7 @@ export function PlanCards({
             type="button"
             onClick={() => setBilling(b)}
             className={`rounded-full px-4 py-1.5 font-bold transition-colors ${
-              billing === b ? "bg-ink text-surface" : "text-text-3"
+              billing === b ? "bg-brand-navy text-surface" : "text-text-3"
             }`}
           >
             {b === "monthly" ? "월간" : `연간 최대 -${Math.round(Math.max(pro.annualDiscountPct, expert.annualDiscountPct))}%`}
@@ -211,7 +211,7 @@ export function PlanCards({
               } ${isCurrent ? "ring-2 ring-primary" : ""}`}
             >
               {isCurrent ? (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-3.5 py-[5px] t-sub font-extrabold text-ai-accent">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-navy px-3.5 py-[5px] t-sub font-extrabold text-ai-accent">
                   현재 이용 중
                 </span>
               ) : (
@@ -249,7 +249,7 @@ export function PlanCards({
                     {p.defTier !== "basic" &&
                       annualSavingKrw(p.defTier as "pro" | "expert") !== null && (
                         <span
-                          className="mt-0.5 w-fit rounded-[5px] px-1.5 py-px t-caption font-extrabold"
+                          className="mt-0.5 w-fit rounded-md px-1.5 py-px t-caption font-extrabold"
                           style={
                             p.dark
                               ? { background: "rgba(255,255,255,.12)", color: "var(--ai-accent)" }

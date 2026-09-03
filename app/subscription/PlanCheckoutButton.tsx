@@ -198,7 +198,7 @@ export function PlanCheckoutButton({
           {/* 사실 우선 — 테스트 키 환경에서는 승인이 가상으로 이루어져 실제
               청구가 없다(토스 환경 가이드). 가짜 결제를 진짜처럼 보이게 두지 않는다. */}
           {isTossTestEnv() && (
-            <p className="text-center t-sub font-bold text-[#b45309]">
+            <p className="text-center t-sub font-bold text-warning">
               테스트 결제 환경 — 실제 금액이 청구되지 않아요
             </p>
           )}

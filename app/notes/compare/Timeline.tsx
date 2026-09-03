@@ -62,7 +62,7 @@ function ScoreDelta({ delta }: { delta: number }) {
 export function Timeline({ steps }: { steps: TimelineStep[] }) {
   const last = steps.length - 1;
   return (
-    <div className="rise-in-1 card rounded-[20px] px-[22px] py-5">
+    <div className="rise-in-1 card rounded-[18px] px-[22px] py-5">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Icon name="clock" size={16} className="text-primary" />
         <h2 className="text-sm font-extrabold text-ink">방문 타임라인</h2>

@@ -101,8 +101,8 @@ const FEATURE_ROWS: { label: string; free: string; plus: string; pro: string; pr
 function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   return (
     <span
-      className={`rounded-full bg-ink chip-pad text-[9px] font-extrabold ${
-        tier === "plus" ? "text-ai-accent" : "text-[#f2c94c]"
+      className={`rounded-full bg-brand-navy chip-pad text-[9px] font-extrabold ${
+        tier === "plus" ? "text-ai-accent" : "text-brand-red-dark"
       }`}
     >
       ✦ {tier === "plus" ? "플러스" : "프로"}
@@ -304,7 +304,7 @@ export default async function SubscriptionPage({
                   실제로는 **플러스를 카드 등록 없이 먼저 써보는 길**이다 —
                   월간·연간은 카드 등록형 자동결제(/subscription/billing)이고
                   이것만 단건이다. 그 차이가 고르는 이유이므로 먼저 적는다. */}
-              <span className="rounded-[6px] bg-primary-soft chip-pad t-caption font-extrabold text-primary">
+              <span className="rounded-md bg-primary-soft chip-pad t-caption font-extrabold text-primary">
                 카드 등록 없이
               </span>
               <div className="t-section text-ink">
@@ -331,7 +331,7 @@ export default async function SubscriptionPage({
                 tier="pro"
                 billing="weekly"
                 label="주간권 구매"
-                className="w-full bg-ink text-surface"
+                className="w-full bg-brand-navy text-surface"
               />
             </div>
           )}
@@ -360,7 +360,7 @@ export default async function SubscriptionPage({
           없었다. 데이터(FEATURE_ROWS)는 그대로 두고 좁은 화면용 배치를 따로 둔다:
           기능 이름을 한 줄 위로 올리고 값 세 칸을 가로로 나란히 —
           세 플랜이 한 화면에 들어오고 가로 스크롤이 사라진다. */}
-      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
+      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] rounded-[18px] px-[22px] py-5">
         {/* ── 좁은 화면(< md) ── */}
         <div className="md:hidden">
           <div className="mb-2 t-sub font-bold text-text-3">기능 비교</div>
@@ -386,7 +386,7 @@ export default async function SubscriptionPage({
               <div className="grid grid-cols-3 gap-1.5 text-center t-sub">
                 <span className={r.free === "—" ? "text-text-3" : "text-text-2"}>{r.free}</span>
                 <span
-                  className={`rounded-[6px] bg-[rgba(29,79,216,.04)] py-0.5 ${
+                  className={`rounded-md bg-[rgba(29,79,216,.04)] py-0.5 ${
                     r.plus === "—" ? "text-text-3" : "font-bold text-primary"
                   }`}
                 >
@@ -410,7 +410,7 @@ export default async function SubscriptionPage({
             <div className="mb-1 t-sub font-semibold text-text-2">프로필 인증배지</div>
             <div className="grid grid-cols-3 items-center gap-1.5 text-center">
               <span className="t-sub text-text-3">—</span>
-              <span className="rounded-[6px] bg-[rgba(29,79,216,.04)] py-0.5">
+              <span className="rounded-md bg-[rgba(29,79,216,.04)] py-0.5">
                 <PlanBadge tier="plus" />
               </span>
               <span>
@@ -579,7 +579,7 @@ export default async function SubscriptionPage({
       {/* 고도화 32 — 구독 FAQ. 결제 수단·환불·해지가 화면 곳곳에 흩어져 있던
           것을 한 자리에 모은다. 아래 JSON-LD 는 이 배열 그대로에서 생성한다
           (화면에 없는 질문을 스키마에만 넣지 않는다 — faqJsonLd 규칙). */}
-      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] rounded-[20px] px-[22px] py-5">
+      <section className="rise-in-4 card mx-auto mt-8 w-full max-w-[1080px] rounded-[18px] px-[22px] py-5">
         <h2 className="t-section text-ink">자주 묻는 질문</h2>
         <div className="mt-3 flex flex-col gap-3">
           {SUBSCRIPTION_FAQ.map((f) => (

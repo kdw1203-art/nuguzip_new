@@ -53,8 +53,8 @@ export function CompareTrayButton({
       type="button"
       onClick={onClick}
       aria-pressed={inTray}
-      className={`flex-1 rounded-[11px] p-3 text-center text-[13px] transition-colors ${
-        inTray ? "bg-ink font-extrabold text-surface" : "btn-secondary"
+      className={`flex-1 rounded-[10px] p-3 text-center text-[13px] transition-colors ${
+        inTray ? "bg-brand-navy font-extrabold text-surface" : "btn-secondary"
       }`}
     >
       {full ? "최대 5개까지 담겨요" : inTray ? "비교 담김 ✓" : "비교 담기"}

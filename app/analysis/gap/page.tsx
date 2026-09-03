@@ -293,7 +293,7 @@ export default async function GapScreenerPage() {
         kpis={kpis}
         chart={
           histValues.length > 1 ? (
-            <div className="rounded-[12px] border border-line bg-surface px-2 pb-1 pt-2 text-success">
+            <div className="rounded-[10px] border border-line bg-surface px-2 pb-1 pt-2 text-success">
               <span className="t-caption block px-1 pb-1 text-text-3">
                 전세가율 분포 · {BIN}%p 구간별 지역 수
               </span>
@@ -333,7 +333,7 @@ export default async function GapScreenerPage() {
       ) : (
         <>
           {yieldFailed && (
-            <div className="mb-4 rounded-[12px] border border-line bg-warning-soft px-3.5 py-2.5">
+            <div className="mb-4 rounded-[10px] border border-line bg-warning-soft px-3.5 py-2.5">
               <p className="t-sub text-ink">
                 월세 환산 수익률·실측 갭을 지금 불러오지 못했어요. 그 열이 비어 있는 건
                 <b> 표본이 없어서가 아니라 조회가 실패했기 때문</b>입니다 — 전세가율은

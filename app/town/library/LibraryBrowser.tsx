@@ -132,7 +132,7 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="card rounded-[16px] px-4 py-6 text-center t-sub text-text-3">
+        <div className="card rounded-2xl px-4 py-6 text-center t-sub text-text-3">
           {query.trim()
             ? `"${query.trim()}" 와 맞는 리포트가 없어요 — 검색어를 줄여 보세요.`
             : "이 조건의 리포트가 없어요 — 필터를 바꿔 보세요."}
@@ -142,7 +142,7 @@ export function ReportsBrowser({ reports }: { reports: ReportCardDto[] }) {
           {visible.map((r) => {
             const paid = r.isPremium && r.price > 0;
             return (
-              <li key={r.id} className="card tile rounded-[16px]">
+              <li key={r.id} className="card tile rounded-2xl">
                 <Link href={`/town/library/${r.id}`} className="block px-4 py-3.5 no-underline">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -237,7 +237,7 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="card rounded-[16px] px-4 py-6 text-center t-sub text-text-3">
+        <div className="card rounded-2xl px-4 py-6 text-center t-sub text-text-3">
           {query.trim()
             ? `"${query.trim()}" 와 맞는 노트가 없어요 — 검색어를 줄여 보세요.`
             : "이 조건의 노트가 없어요 — 필터를 바꿔 보세요."}
@@ -248,7 +248,7 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
             <Link
               key={n.id}
               href={`/notes/${n.id}`}
-              className="card tile flex flex-col overflow-hidden rounded-[16px]"
+              className="card tile flex flex-col overflow-hidden rounded-2xl"
             >
               <div
                 className="relative h-[112px] w-full overflow-hidden"
@@ -258,7 +258,7 @@ export function NotesBrowser({ notes }: { notes: NoteCardDto[] }) {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={n.cover} alt="" loading="lazy" className="h-full w-full object-cover" />
                 )}
-                <span className="absolute left-2 top-2 rounded-[5px] bg-white/90 chip-pad t-caption font-extrabold text-success">
+                <span className="absolute left-2 top-2 rounded-md bg-white/90 chip-pad t-caption font-extrabold text-success">
                   {n.visited ? "✓ 직접 방문" : "임장노트"}
                 </span>
               </div>

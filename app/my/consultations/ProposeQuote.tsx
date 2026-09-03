@@ -3,12 +3,19 @@
 import { useState } from "react";
 
 /* 견적 요청에 제안 보내기 — POST /api/market-requests/[id]/propose.
-   성공하면 버튼이 '제안 보냄'으로 잠긴다(같은 요청에 반복 전송 억제 — 서버는
-   시간당 10회 상한으로 한 번 더 막는다). */
-export function ProposeQuote({ requestId }: { requestId: string }) {
+   성공하면 버튼이 '제안 보냄'으로 잠긴다. [953] 서버가 요청당 1건(유니크)으로
+   저장하므로 새로고침 뒤에도 alreadyProposed 로 잠김이 유지된다. */
+export function ProposeQuote({
+  requestId,
+  alreadyProposed = false,
+}: {
+  requestId: string;
+  /** [953] 서버가 market_request_proposals 에서 읽어 넘긴다 — 새로고침해도 잠김 유지 */
+  alreadyProposed?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "done">(alreadyProposed ? "done" : "idle");
   const [error, setError] = useState<string | null>(null);
 
   const send = async () => {
@@ -41,7 +48,7 @@ export function ProposeQuote({ requestId }: { requestId: string }) {
   if (status === "done") {
     return (
       <span className="rounded-lg bg-success-soft px-3 py-1.5 t-sub font-extrabold text-success">
-        ✓ 제안 보냄 — 요청자 알림으로 전달됐어요
+        ✓ 제안 보냄 — 의뢰자 상담함과 알림으로 전달됐어요
       </span>
     );
   }

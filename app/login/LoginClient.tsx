@@ -322,7 +322,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         {verifiedNotice && (
           <div
             role="status"
-            className="rise-in rounded-[12px] bg-primary-soft px-4 py-3 text-[13px] font-bold text-primary"
+            className="rise-in rounded-[10px] bg-primary-soft px-4 py-3 text-[13px] font-bold text-primary"
           >
             이메일 인증이 완료됐어요. 이제 로그인해 주세요.
           </div>
@@ -331,7 +331,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
         {error && (
           <div
             role="alert"
-            className="rise-in rounded-[12px] bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger"
+            className="rise-in rounded-[10px] bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger"
           >
             {error}
           </div>
@@ -373,7 +373,7 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="이메일"
             autoComplete="email"
-            className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
           />
           <label htmlFor="login-password" className="sr-only">
             비밀번호
@@ -385,12 +385,12 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호"
             autoComplete="current-password"
-            className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
           />
           <button
             type="submit"
             disabled={busy !== null}
-            className="btn-primary rounded-[12px] p-3 text-center text-sm font-bold disabled:opacity-60"
+            className="btn-primary rounded-[10px] p-3 text-center text-sm font-bold disabled:opacity-60"
           >
             {busy === "password" ? "로그인 중…" : "이메일로 로그인"}
           </button>

@@ -114,7 +114,7 @@ export default function WidgetPage() {
           <h2 className="text-[16px] font-extrabold text-ink">자주 묻는 질문</h2>
           <dl className="mt-2 flex flex-col gap-2">
             {FAQ.map((f) => (
-              <div key={f.q} className="card rounded-[16px] p-5">
+              <div key={f.q} className="card rounded-2xl p-5">
                 <dt className="text-[14px] font-extrabold leading-[1.5] text-ink">{f.q}</dt>
                 <dd className="mt-2 text-[13px] leading-[1.8] text-text-1">{f.a}</dd>
               </div>

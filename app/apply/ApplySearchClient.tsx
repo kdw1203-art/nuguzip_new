@@ -283,7 +283,7 @@ export function ApplySearchClient({ initial }: Props) {
 
   const sortPill = (on: boolean) =>
     on
-      ? "press rounded-full bg-ink px-3 py-1.5 text-[11px] font-bold text-surface"
+      ? "press rounded-full bg-brand-navy px-3 py-1.5 text-[11px] font-bold text-surface"
       : "press glass rounded-full px-3 py-1.5 text-[11px] font-semibold text-text-2";
 
   return (

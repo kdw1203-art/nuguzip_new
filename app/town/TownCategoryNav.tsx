@@ -73,7 +73,7 @@ export function TownCategoryNav({
             title={`${l.label} — ${l.desc}`}
             /* 제안 모바일2(2026-08-03) — 카드 축소: 모바일 92×76px(기존 104×92).
                md+ 는 가로 균등 분배 유지. */
-            className={`press relative flex w-[92px] shrink-0 flex-col items-center justify-center rounded-[16px] border px-2 text-center transition-all duration-300 ease-out md:w-auto md:min-w-0 md:flex-1 md:basis-0 ${
+            className={`press relative flex w-[92px] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 text-center transition-all duration-300 ease-out md:w-auto md:min-w-0 md:flex-1 md:basis-0 ${
               pinned
                 ? "h-[64px] border-primary bg-primary-soft shadow-[0_6px_18px_rgba(29,79,216,.18)] md:h-[72px]"
                 : "card tile h-[76px] border-transparent md:h-[92px]"

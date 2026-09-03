@@ -85,12 +85,12 @@ export function ListingPreviewPanel({
                     {data.listingTypeLabel}
                   </span>
                   {data.ownerVerified ? (
-                    <span className="rounded-full bg-[rgba(14,159,110,.12)] chip-pad t-caption font-bold text-[#0b8058]">
+                    <span className="rounded-full bg-[rgba(14,159,110,.12)] chip-pad t-caption font-bold text-success">
                       소유확인
                     </span>
                   ) : null}
                   {data.boosted ? (
-                    <span className="rounded-full bg-[rgba(245,166,35,.14)] chip-pad t-caption font-bold text-[#b26a00]">
+                    <span className="rounded-full bg-[rgba(245,166,35,.14)] chip-pad t-caption font-bold text-warning">
                       부스트
                     </span>
                   ) : null}

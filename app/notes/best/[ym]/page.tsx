@@ -157,15 +157,15 @@ export default async function BestNotesMonthPage({
 
         {/* 집계 요약 — 뽑힌 수만 보여 주면 분모를 숨기는 셈이 된다 */}
         <div className="rise-in-1 mt-4 grid grid-cols-3 gap-2">
-          <div className="rounded-[12px] border border-border px-4 py-3">
+          <div className="rounded-[10px] border border-border px-4 py-3">
             <p className="t-sub font-bold text-text-3">그 달 공개 노트</p>
             <p className="mt-0.5 t-section text-ink">{month.totalCount}편</p>
           </div>
-          <div className="rounded-[12px] border border-border px-4 py-3">
+          <div className="rounded-[10px] border border-border px-4 py-3">
             <p className="t-sub font-bold text-text-3">{MIN_SCORE}점 이상</p>
             <p className="mt-0.5 t-section text-ink">{month.qualifiedCount}편</p>
           </div>
-          <div className="rounded-[12px] border border-border px-4 py-3">
+          <div className="rounded-[10px] border border-border px-4 py-3">
             <p className="t-sub font-bold text-text-3">여기 실린 노트</p>
             <p className="mt-0.5 t-section text-primary">
               {month.picks.length}편
@@ -184,7 +184,7 @@ export default async function BestNotesMonthPage({
         {/* 선정 노트 — 축별 원값과 배점을 그대로 노출해 검산 가능하게 한다 */}
         <div className="rise-in-2 mt-6 flex flex-col gap-4">
           {month.picks.map((p, i) => (
-            <article key={p.note.id} className="card rounded-[16px] p-[var(--pad-card)]">
+            <article key={p.note.id} className="card rounded-2xl p-[var(--pad-card)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="t-sub font-extrabold text-text-3">

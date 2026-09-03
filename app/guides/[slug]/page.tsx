@@ -55,7 +55,10 @@ export default async function GuidePage({
   const breadcrumb = breadcrumbJsonLd([
     { name: "홈", url: "/" },
     { name: "가이드", url: "/guides" },
-    { name: guide.title },
+    /* [952] 마지막 항목에도 URL 을 준다 — check-jsonld 가 모든 ListItem 의 item 을 요구하고,
+       Google 도 마지막 항목의 item 을 권장한다(없으면 "선택 항목 누락" 경고). 945 에서
+       비워 둔 이 한 줄이 CI 배포를 막고 있었다. */
+    { name: guide.title, url: `/guides/${guide.slug}` },
   ]);
 
   return (

@@ -58,7 +58,7 @@ function PerformanceTab({ stats }: { stats: CreatorStats }) {
       </div>
 
       {/* 협찬 라벨 원칙 */}
-      <div className="rise-in-3 rounded-[12px] bg-primary-soft px-4 py-[10px] t-sub font-bold text-primary">
+      <div className="rise-in-3 rounded-[10px] bg-primary-soft px-4 py-[10px] t-sub font-bold text-primary">
         협찬·제공 받은 임장은 반드시 &quot;광고&quot; 라벨을 켜야 해요 — 미표시
         확인 시 노출 제한
       </div>
@@ -241,14 +241,14 @@ function MonetizationTab({
           제거했다. 판매 보상 포인트는 무상 리워드와 동일한 규칙(현금 전환·출금 불가,
           사이트 내부 혜택 사용)을 따른다 — "1P≈1원"·"출금 오픈 전까지" 같은 환금성
           암시 문구가 유의업종 오해의 근거가 된다. */}
-      <div className="rise-in-2 rounded-[14px] bg-ink/[0.96] px-4 py-3">
+      <div className="rise-in-2 rounded-[14px] bg-brand-navy/[0.96] px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="t-body font-extrabold text-white">판매 보상 안내</span>
-          <span className="rounded-full bg-[#f2c94c]/20 chip-pad t-caption font-extrabold text-[#f2c94c]">
+          <span className="rounded-full bg-[rgba(224,86,58,.18)] chip-pad t-caption font-extrabold text-brand-red-dark">
             현금 전환 불가
           </span>
         </div>
-        <div className="mt-2 t-sub text-[#c7d0e0]">
+        <div className="mt-2 t-sub text-on-dark-muted">
           리포트가 열람되면 플랫폼 몫 7%를 뺀 포인트가 적립돼요
           {sales.available && (
             <>
@@ -268,11 +268,11 @@ function MonetizationTab({
       <div className="rise-in-3 card px-4 py-4">
         <div className="t-body font-extrabold text-ink">내 유료 리포트</div>
         {!sales.available ? (
-          <div className="mt-3 rounded-[12px] bg-bg px-4 py-6 text-center t-sub text-text-3">
+          <div className="mt-3 rounded-[10px] bg-bg px-4 py-6 text-center t-sub text-text-3">
             판매 실적을 불러올 수 없어요 — 잠시 후 다시 확인해 주세요.
           </div>
         ) : sales.reports.length === 0 ? (
-          <div className="mt-3 rounded-[12px] bg-bg px-4 py-6 text-center t-sub text-text-3">
+          <div className="mt-3 rounded-[10px] bg-bg px-4 py-6 text-center t-sub text-text-3">
             아직 등록한 유료 리포트가 없어요. 아래에서 첫 리포트를 판매해 보세요.
           </div>
         ) : (

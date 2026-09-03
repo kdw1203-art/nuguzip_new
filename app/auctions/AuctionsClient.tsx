@@ -403,7 +403,7 @@ export function AuctionsClient({
       {fetchFailed ? (
         /* 필터 조회 실패 — "0건"이 아니라 실패라고 말한다 */
         <div className="rise-in-1 card p-[var(--pad-card)]">
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
+          <div className="rounded-[10px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
             이 조건의 목록을 지금 불러오지 못했어요 — 물건이 0건인 게 아니라 조회가
             실패했습니다. 잠시 후 다시 시도하거나{" "}
             <button
@@ -418,7 +418,7 @@ export function AuctionsClient({
         </div>
       ) : fetchLoading ? (
         <div className="rise-in-1 card p-[var(--pad-card)]">
-          <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
+          <div className="rounded-[10px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
             조건에 맞는 물건을 불러오는 중…
           </div>
         </div>
@@ -451,7 +451,7 @@ export function AuctionsClient({
                       c.mark
                         ? "border border-line bg-primary-soft text-text-1"
                         : c.muted
-                          ? "bg-bg text-[#c7ced8]"
+                          ? "bg-bg text-on-dark-muted"
                           : "bg-bg text-text-3"
                     }`}
                   >
@@ -568,7 +568,7 @@ export function AuctionsClient({
             </div>
             {cards.length === 0 ? (
               <div className="rise-in-4 card p-[var(--pad-card)]">
-                <div className="rounded-[12px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
+                <div className="rounded-[10px] border border-line bg-surface px-4 py-12 text-center t-body text-text-3">
                   현재 조건의 진행·예정 공매 물건이 없어요. 데이터는 매일 자동
                   갱신됩니다.
                 </div>

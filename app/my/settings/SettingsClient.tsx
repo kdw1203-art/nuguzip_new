@@ -330,7 +330,7 @@ function NotificationTab({ channels }: { channels: NotifyChannels }) {
           <div className="t-body font-extrabold text-ink">관심 지역 · 급매 알림 구독</div>
           <div className="t-caption text-text-3">구독한 지역·키워드 추가/삭제</div>
         </div>
-        <span className="text-[#c3cad6]">›</span>
+        <span className="text-on-dark-muted">›</span>
       </Link>
 
       {phase === "loading" && (
@@ -580,7 +580,7 @@ function AccountTab() {
           className="flex items-center justify-between border-b border-divider py-3 t-body font-semibold text-text-1 no-underline"
         >
           <span>비밀번호 변경</span>
-          <span className="text-[#c3cad6]">›</span>
+          <span className="text-on-dark-muted">›</span>
         </Link>
         <div className="flex items-center justify-between border-b border-divider py-3">
           <span className="t-body font-semibold text-text-1">언어</span>
@@ -591,7 +591,7 @@ function AccountTab() {
           className="flex items-center justify-between py-3 t-body font-semibold text-text-1 no-underline"
         >
           <span>구독 · 결제 관리</span>
-          <span className="text-[#c3cad6]">›</span>
+          <span className="text-on-dark-muted">›</span>
         </Link>
       </div>
 

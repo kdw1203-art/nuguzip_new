@@ -109,7 +109,7 @@ export default async function BestNotesIndexPage() {
         </section>
 
         {loadFailed ? (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center t-body text-text-3">
+          <div className="mt-6 card rounded-2xl px-5 py-8 text-center t-body text-text-3">
             <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
             공개 임장노트가 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는
@@ -121,7 +121,7 @@ export default async function BestNotesIndexPage() {
               <Link
                 key={m.ym}
                 href={`/notes/best/${m.ym}`}
-                className="card tile flex items-center justify-between rounded-[16px] px-5 py-4 no-underline"
+                className="card tile flex items-center justify-between rounded-2xl px-5 py-4 no-underline"
               >
                 <span className="t-section text-ink">
                   {formatYmKo(m.ym)} 이달의 임장노트
@@ -133,7 +133,7 @@ export default async function BestNotesIndexPage() {
             ))}
           </div>
         ) : (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center t-body text-text-3">
+          <div className="mt-6 card rounded-2xl px-5 py-8 text-center t-body text-text-3">
             아직 기준을 채운 달이 없습니다. 한 달에 {MIN_SCORE}점 이상 노트가{" "}
             {MIN_NOTES_PER_MONTH}편 모이면 자동으로 만들어집니다.
             <br />
@@ -198,7 +198,7 @@ async function FieldVerifiedLeaderboard() {
           단지 반경 2km 위치 확인을 통과한 기록
         </span>
       </h2>
-      <div className="card mt-2 rounded-[16px] px-4 py-2">
+      <div className="card mt-2 rounded-2xl px-4 py-2">
         {rows.map((r, i) => (
           <div
             key={r.label}

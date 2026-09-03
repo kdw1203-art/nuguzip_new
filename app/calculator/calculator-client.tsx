@@ -358,7 +358,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
             onClick={() => setSection(s.key)}
             className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] ${
               section === s.key
-                ? "bg-ink font-bold text-surface"
+                ? "bg-brand-navy font-bold text-surface"
                 : "border border-line bg-surface font-semibold text-text-2"
             }`}
           >
@@ -527,7 +527,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
                     onClick={() => setYears(y)}
                     className={`rounded-full px-2.5 py-1 text-xs ${
                       years === y
-                        ? "bg-ink font-bold text-surface"
+                        ? "bg-brand-navy font-bold text-surface"
                         : "border border-line bg-surface text-text-2"
                     }`}
                   >
@@ -539,7 +539,7 @@ export function CalculatorClient({ mortgage }: { mortgage: MortgageRatesProp }) 
           </div>
 
           {/* 계산 결과 (6h 다크 패널) */}
-          <div className="rise-in-3 ai-panel flex flex-col gap-2.5 rounded-[20px] p-[18px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
+          <div className="rise-in-3 ai-panel flex flex-col gap-2.5 rounded-[18px] p-[18px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
             <div className="flex items-baseline justify-between">
               <span className="text-[13px] text-ai-muted">
                 월 원리금{" "}

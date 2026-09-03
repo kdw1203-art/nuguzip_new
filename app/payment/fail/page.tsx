@@ -89,7 +89,7 @@ export default async function PaymentFailPage({
         <span
           aria-hidden
           className={`flex h-16 w-16 items-center justify-center rounded-full text-[30px] text-white shadow-[0_10px_28px_rgba(16,28,54,.18)] ${
-            category === "user_cancel" ? "bg-[#8a94a6]" : "bg-danger"
+            category === "user_cancel" ? "bg-text-3" : "bg-danger"
           }`}
         >
           {category === "user_cancel" ? "−" : "!"}

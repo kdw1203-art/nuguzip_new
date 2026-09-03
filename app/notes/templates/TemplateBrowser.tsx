@@ -71,12 +71,12 @@ function ShareTemplateForm({ onDone }: { onDone: () => void }) {
           onChange={(e) => setTitle(e.target.value)}
           maxLength={60}
           placeholder="체크리스트 이름 (예: 아이 학령기 실거주 체크)"
-          className="min-w-[220px] flex-1 rounded-[11px] border border-line bg-surface px-3.5 py-2.5 t-body"
+          className="min-w-[220px] flex-1 rounded-[10px] border border-line bg-surface px-3.5 py-2.5 t-body"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-[11px] border border-line bg-surface px-3 py-2.5 t-body"
+          className="rounded-[10px] border border-line bg-surface px-3 py-2.5 t-body"
           aria-label="카테고리"
         >
           {CATEGORIES.filter((c) => c !== "전체").map((c) => (
@@ -91,14 +91,14 @@ function ShareTemplateForm({ onDone }: { onDone: () => void }) {
         onChange={(e) => setDescription(e.target.value)}
         maxLength={200}
         placeholder="한 줄 소개 (어떤 상황에 쓰는 체크리스트인가요?)"
-        className="rounded-[11px] border border-line bg-surface px-3.5 py-2.5 t-body"
+        className="rounded-[10px] border border-line bg-surface px-3.5 py-2.5 t-body"
       />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={7}
         placeholder={"# 등하교 동선\n정문에서 초등학교까지 직접 걸어보기\n횡단보도·신호등 개수 세기\n\n# 소음\n창문 닫고 5분, 열고 5분 있어보기"}
-        className="rounded-[11px] border border-line bg-surface px-3.5 py-2.5 font-mono t-body"
+        className="rounded-[10px] border border-line bg-surface px-3.5 py-2.5 font-mono t-body"
       />
       <p className="t-sub text-text-3">
         # 으로 시작하는 줄은 섹션 제목, 나머지 줄은 체크 항목이 됩니다. 항목 5개 이상 ·
@@ -118,7 +118,7 @@ function ShareTemplateForm({ onDone }: { onDone: () => void }) {
         type="button"
         onClick={submit}
         disabled={busy}
-        className="btn-primary w-fit rounded-[11px] px-5 py-2.5 t-body disabled:opacity-60"
+        className="btn-primary w-fit rounded-[10px] px-5 py-2.5 t-body disabled:opacity-60"
       >
         {busy ? "저장 중…" : "체크리스트 공유하기"}
       </button>
@@ -248,7 +248,7 @@ export function TemplateBrowser({ initial }: { initial: NoteTemplate[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="rise-in-1 flex flex-col items-center gap-2 rounded-[16px] border border-line bg-surface px-4 py-12 text-center">
+        <div className="rise-in-1 flex flex-col items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-12 text-center">
           <Icon name="search" size={22} className="text-text-3" />
           <p className="t-body text-text-2">
             해당 카테고리의 템플릿이 아직 없어요.

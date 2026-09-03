@@ -76,8 +76,8 @@ const STALE_META: Record<
 > = {
   1: {
     label: "확인 필요",
-    cls: "bg-[rgba(245,158,11,.14)] text-[#b45309]",
-    noticeCls: "bg-[rgba(245,158,11,.08)] text-[#b45309]",
+    cls: "bg-[rgba(245,158,11,.14)] text-warning",
+    noticeCls: "bg-[rgba(245,158,11,.08)] text-warning",
   },
   2: {
     label: "마감 검토",
@@ -187,7 +187,7 @@ export default async function MyListingsPage() {
 
       {/* I10 — 낡은 매물이 있을 때만 뜨는 안내. 없으면 아무 말도 하지 않는다. */}
       {staleCount > 0 && (
-        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 t-sub text-[#b45309]">
+        <div className="rise-in mb-4 rounded-xl bg-[rgba(245,158,11,.08)] px-4 py-3 t-sub text-warning">
           노출중 매물 {staleCount}건이 {LISTING_STALE_DAYS}일 넘게 갱신되지 않았어요.
           아직 거래 중이면 끌어올리고, 끝난 거래는 거래완료로 마감해 주세요. 오래된
           호가가 남아 있으면 문의가 와도 헛걸음이 돼요.
@@ -231,26 +231,26 @@ export default async function MyListingsPage() {
               <div key={l.id} className="card card-pad-sm flex flex-col gap-2.5">
                 <div className="flex items-center gap-1.5">
                   <span
-                    className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${meta.cls}`}
+                    className={`rounded-md chip-pad text-[11px] font-extrabold ${meta.cls}`}
                   >
                     {meta.label}
                   </span>
-                  <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
+                  <span className="rounded-md bg-bg chip-pad t-sub font-extrabold text-text-2">
                     {LISTING_TYPE_LABEL[l.listingType]}
                   </span>
                   {l.ownerVerified && (
-                    <span className="rounded-[6px] bg-success-soft chip-pad t-sub font-extrabold text-success">
+                    <span className="rounded-md bg-success-soft chip-pad t-sub font-extrabold text-success">
                       소유확인
                     </span>
                   )}
                   {boost && (
-                    <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-[#b45309]">
+                    <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-warning">
                       {boost}
                     </span>
                   )}
                   {staleMeta && (
                     <span
-                      className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${staleMeta.cls}`}
+                      className={`rounded-md chip-pad text-[11px] font-extrabold ${staleMeta.cls}`}
                     >
                       {staleMeta.label}
                     </span>
@@ -282,7 +282,7 @@ export default async function MyListingsPage() {
                 )}
 
                 {l.status !== "rejected" && l.flagReason && (
-                  <div className="rounded-lg bg-[rgba(245,158,11,.08)] px-3 py-2 t-sub text-[#b45309]">
+                  <div className="rounded-lg bg-[rgba(245,158,11,.08)] px-3 py-2 t-sub text-warning">
                     확인 필요 · {l.flagReason}
                   </div>
                 )}

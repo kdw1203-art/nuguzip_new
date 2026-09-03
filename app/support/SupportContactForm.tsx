@@ -105,7 +105,7 @@ export function SupportContactForm() {
         placeholder="제목 (2~200자)"
         maxLength={200}
         aria-label="문의 제목"
-        className="rounded-[12px] border border-line bg-surface px-3.5 py-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+        className="rounded-[10px] border border-line bg-surface px-3.5 py-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
       />
       <textarea
         value={message}
@@ -114,7 +114,7 @@ export function SupportContactForm() {
         maxLength={3000}
         rows={5}
         aria-label="문의 내용"
-        className="resize-y rounded-[12px] border border-line bg-surface px-3.5 py-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+        className="resize-y rounded-[10px] border border-line bg-surface px-3.5 py-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
       />
       <input
         type="email"
@@ -122,7 +122,7 @@ export function SupportContactForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="답변 받을 이메일"
         aria-label="답변 받을 이메일"
-        className="rounded-[12px] border border-line bg-surface px-3.5 py-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
+        className="rounded-[10px] border border-line bg-surface px-3.5 py-3 text-[13px] text-ink outline-none placeholder:text-text-3 focus:border-primary"
       />
       {error && (
         <p role="alert" className="text-xs font-semibold text-danger">
@@ -133,7 +133,7 @@ export function SupportContactForm() {
         <button
           type="submit"
           disabled={busy}
-          className="btn-primary w-full rounded-[12px] p-3 text-center text-[13px] disabled:opacity-60 md:w-auto md:px-6"
+          className="btn-primary w-full rounded-[10px] p-3 text-center text-[13px] disabled:opacity-60 md:w-auto md:px-6"
         >
           {busy ? "접수 중…" : "문의 접수하기"}
         </button>

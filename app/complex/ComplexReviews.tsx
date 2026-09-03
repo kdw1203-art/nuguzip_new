@@ -52,7 +52,7 @@ type ScoreKey = (typeof CATEGORIES)[number]["key"];
 function Stars({ value, size = 12 }: { value: number; size?: number }) {
   return (
     <span
-      className="font-bold text-[#e8a13a]"
+      className="font-bold text-brand-red"
       style={{ fontSize: size }}
       aria-label={`별점 ${value.toFixed(1)}점`}
     >
@@ -84,7 +84,7 @@ function StarInput({
             aria-label={`${n}점`}
             onClick={() => onChange(n)}
             className={`text-[18px] leading-none transition-colors ${
-              n <= value ? "text-[#e8a13a]" : "text-line hover:text-[#e8a13a]/50"
+              n <= value ? "text-brand-red" : "text-line hover:text-brand-red/50"
             }`}
           >
             ★

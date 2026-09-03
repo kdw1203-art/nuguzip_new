@@ -737,7 +737,7 @@ export default async function NoteDetailPage({
                 <CompareTrayButton complexId={c.id} name={c.name} region={realNote.region} />
                 <Link
                   href={`/notes/new?apt=${encodeURIComponent(c.name)}&region=${encodeURIComponent(realNote.region)}`}
-                  className="shrink-0 rounded-[9px] border border-line px-2.5 py-1.5 t-caption font-bold text-text-1 no-underline"
+                  className="shrink-0 rounded-[10px] border border-line px-2.5 py-1.5 t-caption font-bold text-text-1 no-underline"
                 >
                   다음 임장 노트
                 </Link>
@@ -805,7 +805,7 @@ export default async function NoteDetailPage({
         {/* ===== 좌측: 노트 본문 (20a 표준 구조) ===== */}
         <div className="flex min-w-0 flex-col gap-4">
           {/* 노트 카드 — 20a 표준 11항목 */}
-          <div className="rise-in card flex flex-col gap-3.5 rounded-[20px] p-6">
+          <div className="rise-in card flex flex-col gap-3.5 rounded-[18px] p-6">
             {/* ① 지역·단지 칩 */}
             <div className="flex flex-wrap items-center gap-1.5">
               {v.chips.map((c, i) => (
@@ -813,7 +813,7 @@ export default async function NoteDetailPage({
                   key={c}
                   className={
                     i === v.chips.length - 1
-                      ? "rounded-full bg-ink px-2.5 py-1 text-[11px] font-extrabold text-surface"
+                      ? "rounded-full bg-brand-navy px-2.5 py-1 text-[11px] font-extrabold text-surface"
                       : "rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-bold text-text-2"
                   }
                 >
@@ -1014,7 +1014,7 @@ export default async function NoteDetailPage({
 
           {/* [#131] 직전 저장본 — 본인에게만, 내용 수정이 있었던 노트만 */}
           {isOwner && realNote.metadata?.lastRevision && (
-            <details className="rise-in-1 card rounded-[20px] p-5">
+            <details className="rise-in-1 card rounded-[18px] p-5">
               <summary className="cursor-pointer t-section text-ink">
                 수정 전 저장본{" "}
                 <span className="t-sub font-medium text-text-3">
@@ -1041,7 +1041,7 @@ export default async function NoteDetailPage({
 
           {/* [#72] 재방문 변화 리포트 — 직전 회차 대비, 바뀐 항목만 */}
           {revisitDelta && (
-            <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-6">
+            <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-6">
               <div className="text-base font-extrabold text-ink">
                 재방문 변화{" "}
                 <span className="t-sub font-medium text-text-3">
@@ -1074,7 +1074,7 @@ export default async function NoteDetailPage({
           )}
 
           {/* 방문 기록 비교 */}
-          <div className="rise-in-1 card flex flex-col gap-3 rounded-[20px] p-6">
+          <div className="rise-in-1 card flex flex-col gap-3 rounded-[18px] p-6">
             <div className="flex items-center justify-between">
               <div className="text-base font-extrabold text-ink">방문 기록 비교</div>
               <Link
@@ -1117,7 +1117,7 @@ export default async function NoteDetailPage({
           </div>
 
           {/* 좋았던 점 · 주의할 점 상세 (10f) */}
-          <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[20px] p-6">
+          <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[18px] p-6">
             <div className="t-section text-ink">
               좋았던 점 · 주의할 점{" "}
               <span className="t-sub font-medium text-text-3">
@@ -1208,7 +1208,7 @@ export default async function NoteDetailPage({
           </div>
 
           {/* 기록 축 점수 — 입력된 축만 평균. 미입력이면 링을 그리지 않는다 */}
-          <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[20px] p-6">
+          <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] p-6">
             {v.totalScore != null ? (
               <div
                 className="relative h-[110px] w-[110px] rounded-full"

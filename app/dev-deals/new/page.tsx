@@ -21,7 +21,7 @@ export default async function DevDealNewPage() {
 
   return (
     <PageShell breadcrumb="개발물건 중개 › 등록" title="개발물건 등록">
-      <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-[#5b74b8]">
+      <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-text-2">
         정비사업·신축·부지 등 개발물건을 등록하면 <b>시공사·설계사·신탁·PF·기타 협력업체</b>가
         참여 문의를 보낼 수 있어요. 내집나우는 소개·매칭만 담당하며, 계약·정산은 당사자 간에
         진행됩니다.

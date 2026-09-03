@@ -96,6 +96,11 @@
   --brand-hanji-ink: #0B2545; /* 한지 위 글자 */
   --brand-symbol-ink: #0B2545; /* 로고 획 */
   --brand-dot: #C8442B; /* 로고 온점 */
+  /* [952 · 디자인 통일] 어두운 면(네이비·다크 카드) 위 글자 — 흰색이 아니라 한지 계열.
+     예전엔 #c3cad6·#c7d0e0·#c7ced8·#9aa6b8 처럼 파일마다 다른 회색을 손으로 적었다. */
+  --on-dark: #F6F1E7;
+  --on-dark-muted: rgba(246, 241, 231, 0.72);
+  --on-dark-faint: rgba(246, 241, 231, 0.45);
   --brand-wordmark: #0B2545;
   --danger-border: rgba(198, 40, 40, 0.35);
 
@@ -200,13 +205,17 @@
   --stagger: 40ms; /* 19a #4 목록 스태거 40ms 간격 · 최대 8개 */
 
   /* AI 패널 · 다크 패널 내 텍스트 (15b: 본문 #e2e8f2 · 보조 #9aa6b8 · 강조 #7ea2ff) */
-  --ai-panel: rgba(25, 31, 40, 0.96);
+  /* [952 · 디자인 통일] AI 패널의 어두운 면도 브랜드 네이비(#0B2545)로 — 사이트의 모든
+     어두운 면(티커·오늘의 한 줄·사진 프레임·AI 패널)이 같은 색이어야 "한 서비스"로 읽힌다.
+     글자는 한지(#F6F1E7) 계열. 대비: 한지/네이비 13.6:1 · #88aaff/네이비 6.9:1 ·
+     bg-white/10 칩 합성 배경(#233a5b)에서 #88aaff 5.3:1 — 모두 AA 이상. */
+  --ai-panel: rgba(11, 37, 69, 0.97);
   /* 2026-08-02: #7ea2ff → #88aaff. AI 패널 안 bg-white/10 칩의 합성 배경
      (#383d45)에서 4.42:1 로 AA(4.5:1)에 못 미쳤다(axe serious). #88aaff 는
      같은 배경에서 4.81:1, 패널 원 배경에서 6.26:1. 다크 위 파랑 #1d4fd8 금지. */
   --ai-accent: #88aaff;
-  --ai-text: #e2e8f2;
-  --ai-muted: #9aa6b8;
+  --ai-text: #f2eee6; /* 한지 계열(살짝 눌러 눈부심 방지) */
+  --ai-muted: rgba(246, 241, 231, 0.7);
   /* 다크 패널 위 상태색 — 라이트 모드 --success/--danger(#177a4a/#c62828)는 어두워
      다크 배경에서 대비 미달이라 별도 토큰을 둔다. 값은 기존 코드가 raw hex 로 쓰던
      것을 정본화한 것이다(2026-08-11): 성공 #4ade80(그대로), 위험은 #ff8a8a·#f87171
@@ -267,6 +276,18 @@
   --color-line-strong: var(--border-strong);
   --color-divider: var(--divider);
   --color-ai-accent: var(--ai-accent);
+  /* [952] 브랜드·다크면 토큰을 유틸로 — text-brand-red · bg-brand-navy · text-on-dark-muted */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-red: var(--brand-red);
+  --color-brand-red-dark: var(--brand-red-on-dark);
+  --color-brand-hanji: var(--brand-hanji);
+  --color-brand-hanji-ink: var(--brand-hanji-ink);
+  --color-on-dark: var(--on-dark);
+  --color-on-dark-muted: var(--on-dark-muted);
+  --color-on-dark-faint: var(--on-dark-faint);
+  --color-warning-border: var(--warning-border);
+  --color-danger-border: var(--danger-border);
+  --color-success-border: var(--success-border);
   --color-ai-text: var(--ai-text);
   --color-ai-muted: var(--ai-muted);
   --color-ai-success: var(--ai-success);

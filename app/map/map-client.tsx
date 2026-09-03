@@ -3853,7 +3853,7 @@ export function MapClient({
       {/* ===== 반경 · 거리 재기 안내/결과 ===== */}
       {mapClickMode && (
         <div
-          className="glass-strong absolute right-3 z-[42] flex max-h-[min(70dvh,520px)] w-[min(280px,calc(100vw-24px))] flex-col gap-2 overflow-y-auto rounded-[16px] px-3.5 py-3 shadow-[0_12px_32px_rgba(16,28,54,.18)] sm:right-5"
+          className="glass-strong absolute right-3 z-[42] flex max-h-[min(70dvh,520px)] w-[min(280px,calc(100vw-24px))] flex-col gap-2 overflow-y-auto rounded-2xl px-3.5 py-3 shadow-[0_12px_32px_rgba(16,28,54,.18)] sm:right-5"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 212px)" }}
         >
           {mapClickMode === "radius" ? (
@@ -3889,7 +3889,7 @@ export function MapClient({
                 <button
                   type="button"
                   onClick={() => setRadiusCenter(null)}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
+                  className="flex-1 rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                 >
                   중심 삭제
                 </button>
@@ -3898,7 +3898,7 @@ export function MapClient({
                   onClick={() => {
                     setRadiusCenter(center);
                   }}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
+                  className="flex-1 rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                 >
                   화면 중앙으로
                 </button>
@@ -3947,7 +3947,7 @@ export function MapClient({
                         <span>차량 (주황 점선)</span>
                         <span>{showDrivingRoute ? "표시" : "숨김"}</span>
                       </div>
-                      <div className="t-body font-extrabold text-[#c8640a]">
+                      <div className="t-body font-extrabold text-warning">
                         {formatDistanceM(routeResult.driving.distanceM)} · 약{" "}
                         {routeResult.driving.durationMin}분
                       </div>
@@ -3976,7 +3976,7 @@ export function MapClient({
                         </span>
                         <span>{showWalkingRoute ? "표시" : "숨김"}</span>
                       </div>
-                      <div className="t-body font-extrabold text-[#0f766e]">
+                      <div className="t-body font-extrabold text-success">
                         {formatDistanceM(routeResult.walking.distanceM)} · 약{" "}
                         {routeResult.walking.durationMin}분
                       </div>
@@ -4041,7 +4041,7 @@ export function MapClient({
                     setMeasureRelocate(false);
                   }}
                   disabled={measurePoints.length === 0}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2 disabled:opacity-40"
+                  className="flex-1 rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2 disabled:opacity-40"
                 >
                   되돌리기
                 </button>
@@ -4054,7 +4054,7 @@ export function MapClient({
                     setRouteResult(null);
                   }}
                   disabled={measurePoints.length === 0}
-                  className="flex-1 rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2 disabled:opacity-40"
+                  className="flex-1 rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2 disabled:opacity-40"
                 >
                   전체 삭제
                 </button>
@@ -4067,21 +4067,21 @@ export function MapClient({
                     <button
                       type="button"
                       onClick={() => void copyMeasureSummary()}
-                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
+                      className="rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       거리 복사
                     </button>
                     <button
                       type="button"
                       onClick={() => openExternalDirections("car")}
-                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
+                      className="rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       차량 길찾기
                     </button>
                     <button
                       type="button"
                       onClick={() => openExternalDirections("walk")}
-                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
+                      className="rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       도보 길찾기
                     </button>
@@ -4091,7 +4091,7 @@ export function MapClient({
                         setSelectedMeasureIdx(0);
                         setMeasureRelocate(true);
                       }}
-                      className="rounded-[9px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
+                      className="rounded-[10px] border border-line px-2 py-1.5 t-sub font-bold text-text-2"
                     >
                       시작점 수정
                     </button>
@@ -4111,7 +4111,7 @@ export function MapClient({
               setMeasureRelocate(false);
               setRouteResult(null);
             }}
-            className="rounded-[9px] bg-[rgba(16,28,54,.06)] px-2 py-1.5 t-sub font-bold text-text-2"
+            className="rounded-[10px] bg-[rgba(16,28,54,.06)] px-2 py-1.5 t-sub font-bold text-text-2"
           >
             끝내기
           </button>
@@ -4142,7 +4142,7 @@ export function MapClient({
       {!selected && !infoComplex && panelOpen && (
         <aside
           data-tour="map-price-panel"
-          className="glass-strong absolute bottom-[var(--nz-map-bottom-lane)] left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[20px] md:flex"
+          className="glass-strong absolute bottom-[var(--nz-map-bottom-lane)] left-5 z-30 hidden w-[320px] flex-col overflow-hidden rounded-[18px] md:flex"
           style={{ top: "calc(env(safe-area-inset-top, 0px) + 92px)" }}
         >
           <div className="flex items-baseline justify-between px-5 pb-1 pt-4">
@@ -4167,7 +4167,7 @@ export function MapClient({
               : "지도를 확대하면 그 지역 기준으로 바뀝니다"}
           </div>
           {popularFailed && (
-            <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+            <div className="mx-3 mb-2 rounded-[10px] border border-line bg-surface px-3.5 py-3">
               <div className="t-sub font-extrabold text-ink">
                 인기 단지를 지금 불러오지 못했어요
               </div>
@@ -4177,7 +4177,7 @@ export function MapClient({
             </div>
           )}
           {danjiLoadFailed && (
-            <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+            <div className="mx-3 mb-2 rounded-[10px] border border-line bg-surface px-3.5 py-3">
               <div className="t-sub font-extrabold text-ink">
                 단지 목록을 지금 불러오지 못했어요
               </div>
@@ -4188,7 +4188,7 @@ export function MapClient({
             </div>
           )}
           {!danjiLoadFailed && regionMarkersLoadFailed && (
-            <div className="mx-3 mb-2 rounded-[12px] border border-line bg-surface px-3.5 py-3">
+            <div className="mx-3 mb-2 rounded-[10px] border border-line bg-surface px-3.5 py-3">
               <div className="t-sub font-extrabold text-ink">
                 지역 시세 말풍선을 불러오지 못했어요
               </div>
@@ -4415,7 +4415,7 @@ export function MapClient({
               <div className="flex items-center gap-2">
                 <span className="t-title text-ink">{selected.name}</span>
                 {selected.note && (
-                  <span className="rounded-[5px] bg-primary-soft chip-pad t-caption font-extrabold text-primary">
+                  <span className="rounded-md bg-primary-soft chip-pad t-caption font-extrabold text-primary">
                     내 {selected.note}
                   </span>
                 )}
@@ -4769,7 +4769,7 @@ export function MapClient({
           type="button"
           aria-label="확대"
           onClick={() => setLevel((v) => Math.max(1, v - 1))}
-          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] t-body text-text-1"
+          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[10px] t-body text-text-1"
         >
           ＋
         </button>
@@ -4777,7 +4777,7 @@ export function MapClient({
           type="button"
           aria-label="축소"
           onClick={() => setLevel((v) => Math.min(14, v + 1))}
-          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[11px] t-body text-text-1"
+          className="glass flex h-[34px] w-[34px] items-center justify-center rounded-[10px] t-body text-text-1"
         >
           －
         </button>

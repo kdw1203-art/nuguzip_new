@@ -95,7 +95,7 @@ export function WidgetBuilder() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="card rounded-[16px] p-5">
+      <div className="card rounded-2xl p-5">
         <label
           htmlFor="widget-complex-input"
           className="block text-[13px] font-extrabold text-ink"
@@ -145,7 +145,7 @@ export function WidgetBuilder() {
         </div>
       </div>
 
-      <div className="card rounded-[16px] p-5">
+      <div className="card rounded-2xl p-5">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-[13px] font-extrabold text-ink">3. 코드 복사</span>
           <button
@@ -168,7 +168,7 @@ export function WidgetBuilder() {
         </p>
       </div>
 
-      <div className="card rounded-[16px] p-5">
+      <div className="card rounded-2xl p-5">
         <span className="text-[13px] font-extrabold text-ink">미리보기</span>
         {target ? (
           <iframe

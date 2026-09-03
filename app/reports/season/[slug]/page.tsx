@@ -193,7 +193,7 @@ export default async function SeasonReportPage({
         <p className="rise-in-1 mt-2 text-[14px] leading-[1.7] text-text-1">{leadSentence}</p>
 
         {/* 검증 대상이 된 통념을 먼저 밝힌다 — 이 페이지가 무엇에 답하는지 */}
-        <div className="rise-in-1 mt-4 card rounded-[16px] p-5">
+        <div className="rise-in-1 mt-4 card rounded-2xl p-5">
           <p className="text-[12px] font-extrabold text-text-3">검증 대상 통념</p>
           <p className="mt-1 text-[14px] font-bold leading-[1.6] text-ink">“{def.claim}”</p>
           <p className="mt-1.5 text-[12px] leading-[1.6] text-text-3">{def.rationale}</p>
@@ -283,7 +283,7 @@ export default async function SeasonReportPage({
               <strong className="text-ink">{yoy.regionCount}곳</strong> 기준입니다.
             </p>
             <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-[12px] border border-border px-4 py-3">
+              <div className="rounded-[10px] border border-border px-4 py-3">
                 <p className="text-[11px] font-semibold text-text-3">거래량</p>
                 <p className="mt-1 text-[15px] font-extrabold text-ink">
                   {yoy.fromTx.toLocaleString("ko-KR")}건 → {yoy.toTx.toLocaleString("ko-KR")}건{" "}
@@ -292,7 +292,7 @@ export default async function SeasonReportPage({
                   </span>
                 </p>
               </div>
-              <div className="rounded-[12px] border border-border px-4 py-3">
+              <div className="rounded-[10px] border border-border px-4 py-3">
                 <p className="text-[11px] font-semibold text-text-3">평균 매매가</p>
                 <p className="mt-1 text-[15px] font-extrabold text-ink">
                   {eok(yoy.fromAvgKrw)} → {eok(yoy.toAvgKrw)}{" "}

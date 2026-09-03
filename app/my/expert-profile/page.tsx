@@ -48,7 +48,7 @@ export default async function ExpertProfilePage() {
             전문가 인증을 신청하고 승인되면 프로필이 만들어져요. 인증 후 이
             화면에서 소개·전문 분야·상담료·연락처를 직접 관리할 수 있습니다.
           </p>
-          <Link href="/town/experts" className="btn-primary btn-md mt-4 inline-block no-underline">
+          <Link href="/town/experts#apply" className="btn-primary btn-md mt-4 inline-block no-underline">
             전문가 인증 신청하기
           </Link>
         </div>
@@ -59,20 +59,29 @@ export default async function ExpertProfilePage() {
   return (
     <PageShell breadcrumb="마이 › 전문가 프로필">
       <div className="mx-auto w-full max-w-[640px]">
-        <div className="mb-4">
-          <h1 className="t-title text-ink">전문가 프로필 관리</h1>
-          <p className="mt-1 t-sub text-text-3">
-            여기서 저장한 내용이 전문가 목록·상세에 그대로 노출돼요.
-            {expert.isVerified
-              ? " 인증 전문가라 연락처를 공개하면 상담 신청자에게 표시됩니다."
-              : " 인증 심사 중에는 연락처가 공개되지 않아요(승인 후 노출)."}
-          </p>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h1 className="t-title text-ink">전문가 프로필 관리</h1>
+            <p className="mt-1 t-sub text-text-3">
+              여기서 저장한 내용이 전문가 목록·상세에 바로 반영돼요.
+              {expert.isVerified
+                ? " 인증 전문가라 연락처를 공개하면 상담 신청자에게 표시됩니다."
+                : " 인증 심사 중에는 연락처가 공개되지 않아요(승인 후 노출)."}
+            </p>
+          </div>
+          <Link href="/my/consultations#received" className="btn-soft btn-sm no-underline">
+            상담함 ›
+          </Link>
         </div>
         <ExpertProfileForm
           expert={{
             id: expert.id,
             name: expert.name,
             title: expert.title,
+            category: expert.category,
+            reviews: expert.reviews,
+            rating: expert.rating,
+            consultations: expert.consultations,
             introduction: expert.introduction,
             specialties: expert.specialties,
             regions: expert.regions,

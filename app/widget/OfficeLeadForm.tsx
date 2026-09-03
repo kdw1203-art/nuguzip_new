@@ -75,7 +75,7 @@ export function OfficeLeadForm() {
   }
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-[16px] border border-line bg-surface p-5">
+    <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-5">
       <div className="grid gap-2.5 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
           <span className="text-[12px] font-bold text-text-2">사무소명 *</span>

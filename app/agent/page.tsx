@@ -42,7 +42,7 @@ export default async function AgentPage() {
           <AgentChat models={listAgentModels()} />
         </div>
       ) : (
-        <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[20px] px-6 py-12 text-center">
+        <div className="rise-in-2 card flex flex-col items-center gap-3 rounded-[18px] px-6 py-12 text-center">
           <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl t-body">AI</div>
           <div className="t-body font-extrabold text-ink">로그인하면 에이전트를 쓸 수 있어요</div>
           <div className="max-w-sm t-sub leading-[1.6] text-text-3">

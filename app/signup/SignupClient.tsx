@@ -233,7 +233,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col justify-center gap-4 px-7 pb-8"
         style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
       >
-        <div className="rise-in card flex flex-col items-center gap-3 rounded-[20px] p-7 text-center">
+        <div className="rise-in card flex flex-col items-center gap-3 rounded-[18px] p-7 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft text-xl">
             {done === "confirm" ? <Icon name="✉" size={24} /> : "✓"}
           </span>
@@ -394,7 +394,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="이름 (선택)"
           autoComplete="name"
-          className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+          className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
         <label htmlFor="signup-email" className="sr-only">
           이메일
@@ -406,7 +406,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="이메일"
           autoComplete="email"
-          className="rounded-[12px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
+          className="rounded-[10px] border border-line bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-primary"
         />
         <label htmlFor="signup-password" className="sr-only">
           비밀번호 (8자 이상)
@@ -419,7 +419,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="비밀번호 (8자 이상)"
             autoComplete="new-password"
-            className="w-full rounded-[12px] border border-line bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
+            className="w-full rounded-[10px] border border-line bg-surface px-4 py-3 pr-14 text-sm text-ink outline-none focus:border-primary"
           />
           <button
             type="button"
@@ -469,7 +469,7 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         {error && (
           <div
             role="alert"
-            className="rounded-[12px] bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger"
+            className="rounded-[10px] bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger"
           >
             {error}
           </div>

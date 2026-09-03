@@ -61,7 +61,7 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
   return (
     <div className="mx-auto flex max-w-[720px] flex-col gap-3">
       {/* 잔액 */}
-      <div className="rise-in card flex items-center justify-between rounded-[16px] px-5 py-4">
+      <div className="rise-in card flex items-center justify-between rounded-2xl px-5 py-4">
         <div>
           <div className="text-[12px] text-text-3">보유 포인트</div>
           <div className="mt-0.5 text-2xl font-extrabold text-ink">
@@ -87,7 +87,7 @@ export function ShopClient({ initialBalance }: { initialBalance: number }) {
           return (
             <div
               key={item.key}
-              className="card tile flex flex-col rounded-[16px] p-5"
+              className="card tile flex flex-col rounded-2xl p-5"
             >
               <div className="text-sm font-extrabold text-ink">
                 {item.label}

@@ -128,9 +128,9 @@ export default async function TownGroupDetailPage({
       <div className="mx-auto grid max-w-[900px] grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_320px]">
         {/* ---------- 모임 정보 카드 ---------- */}
         <div className="flex flex-col gap-4">
-          <div className="rise-in card flex flex-col gap-3 rounded-[20px] p-6">
+          <div className="rise-in card flex flex-col gap-3 rounded-[18px] p-6">
             <div className="flex items-center justify-between">
-              <span className={`rounded-[5px] chip-pad text-[11px] font-extrabold ${statusStyle}`}>
+              <span className={`rounded-md chip-pad text-[11px] font-extrabold ${statusStyle}`}>
                 {statusLabel} {meeting.currentMembers}/{meeting.maxMembers}
               </span>
               <span className="text-[11px] text-text-3">

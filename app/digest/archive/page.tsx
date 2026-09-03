@@ -79,7 +79,7 @@ export default async function DigestArchivePage() {
         </p>
 
         {loadFailed ? (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center t-body text-text-3">
+          <div className="mt-6 card rounded-2xl px-5 py-8 text-center t-body text-text-3">
             <strong className="text-ink">{LOAD_FAILED_LINE}</strong>
             <br />
             기록이 없다는 뜻이 아니라, 조회가 제때 끝나지 않았거나 실패했다는 뜻입니다.
@@ -90,7 +90,7 @@ export default async function DigestArchivePage() {
               <Link
                 key={w.slug}
                 href={`/digest/${w.slug}`}
-                className="card tile flex items-center justify-between gap-3 rounded-[16px] px-5 py-4 no-underline"
+                className="card tile flex items-center justify-between gap-3 rounded-2xl px-5 py-4 no-underline"
               >
                 <span className="min-w-0">
                   <span className="block t-section text-ink">
@@ -105,7 +105,7 @@ export default async function DigestArchivePage() {
             ))}
           </div>
         ) : (
-          <div className="mt-6 card rounded-[16px] px-5 py-8 text-center t-body text-text-3">
+          <div className="mt-6 card rounded-2xl px-5 py-8 text-center t-body text-text-3">
             아직 아카이브에 실을 주가 없습니다. 한 주에 {MIN_ITEMS}건 이상이 쌓이면 그 주가
             끝난 뒤 자동으로 만들어집니다.
           </div>

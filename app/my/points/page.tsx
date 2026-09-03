@@ -80,7 +80,7 @@ async function readNicknameEffectUntil(
 /* ── 적립 방법 안내 (로그인 여부 무관) ── */
 function EarnGuide() {
   return (
-    <div className="rise-in-3 card rounded-[16px] p-5">
+    <div className="rise-in-3 card rounded-2xl p-5">
       <div className="text-sm font-extrabold text-ink">포인트 적립 방법</div>
       <div className="mt-0.5 t-sub text-text-3">
         활동하면 자동으로 쌓여요 · 1P는 약 1원의 가치예요
@@ -122,7 +122,7 @@ function EarnGuide() {
 function GuestView() {
   return (
     <div className="mx-auto flex max-w-[640px] flex-col gap-3">
-      <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
+      <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[18px] px-5 py-8 text-center">
         <Icon name="🪙" size={24} className="text-white" />
         <div className="mt-1 text-base font-extrabold text-white">
           로그인하고 내 포인트를 확인하세요
@@ -134,7 +134,7 @@ function GuestView() {
         </div>
         <Link
           href="/login?callbackUrl=/my/points"
-          className="btn-primary mt-3 rounded-[12px] px-6 py-2.5 text-sm"
+          className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-sm"
         >
           로그인하고 시작하기
         </Link>
@@ -146,7 +146,7 @@ function GuestView() {
       >
         <div>
           <div className="text-sm font-extrabold text-primary">포인트 상점 구경하기</div>
-          <div className="mt-0.5 text-xs text-[#5b74b8]">
+          <div className="mt-0.5 text-xs text-text-2">
             어떤 혜택으로 바꿀 수 있는지 미리 살펴보세요
           </div>
         </div>
@@ -180,7 +180,7 @@ function WalletView({
   return (
     <div className="mx-auto flex max-w-[640px] flex-col gap-3">
       {/* 잔액 히어로 */}
-      <div className="rise-in ai-panel flex flex-col gap-4 rounded-[20px] p-[22px]">
+      <div className="rise-in ai-panel flex flex-col gap-4 rounded-[18px] p-[22px]">
         <div>
           <div className="text-xs text-ai-muted">사용 가능한 포인트</div>
           <div className="mt-1 flex items-end gap-1">
@@ -207,7 +207,7 @@ function WalletView({
         <AttendanceButton />
         <Link
           href="/points/shop"
-          className="btn-primary rounded-[12px] py-2.5 text-center text-sm"
+          className="btn-primary rounded-[10px] py-2.5 text-center text-sm"
         >
           포인트 상점 가기
         </Link>
@@ -215,7 +215,7 @@ function WalletView({
 
       {/* 적용 중인 상점 효과 — 산 것이 지금 켜져 있음을 지갑에서 확인시켜 준다 */}
       {nickEffect && (
-        <div className="rise-in-1 card flex items-center justify-between rounded-[16px] px-4 py-3">
+        <div className="rise-in-1 card flex items-center justify-between rounded-2xl px-4 py-3">
           <div className="min-w-0">
             <div className="t-body font-extrabold text-ink">
               <span className={nickEffect.kind === "sunset" ? "nick-sunset" : "nick-aurora"}>
@@ -237,7 +237,7 @@ function WalletView({
       </p>
 
       {/* 적립·소비 내역 */}
-      <div className="rise-in-2 card rounded-[16px] p-5">
+      <div className="rise-in-2 card rounded-2xl p-5">
         <div className="text-sm font-extrabold text-ink">포인트 내역</div>
         {history.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-8 text-center">

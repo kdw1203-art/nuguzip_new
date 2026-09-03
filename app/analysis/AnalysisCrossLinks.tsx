@@ -45,7 +45,7 @@ export function AnalysisCrossLinks({
 }) {
   const label = regionLabel?.trim() || null;
   return (
-    <div className={`card flex flex-col gap-2.5 rounded-[20px] px-[18px] py-4 ${className ?? ""}`}>
+    <div className={`card flex flex-col gap-2.5 rounded-[18px] px-[18px] py-4 ${className ?? ""}`}>
       <div className="text-xs font-extrabold text-text-3">
         이어서 분석{label ? ` — ${label} 그대로` : ""}
       </div>

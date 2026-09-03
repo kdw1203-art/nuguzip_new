@@ -332,7 +332,7 @@ function AlertSubscriptionSection() {
         <select
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          className="h-8 rounded-[9px] border border-line bg-surface px-2 t-sub text-ink"
+          className="h-8 rounded-[10px] border border-line bg-surface px-2 t-sub text-ink"
           aria-label="구독할 지역"
         >
           <option value="">지역 선택</option>
@@ -351,14 +351,14 @@ function AlertSubscriptionSection() {
           }}
           maxLength={30}
           placeholder="키워드 (예: 재건축)"
-          className="h-8 min-w-0 flex-1 rounded-[9px] border border-line bg-surface px-2.5 t-sub text-ink placeholder:text-text-3"
+          className="h-8 min-w-0 flex-1 rounded-[10px] border border-line bg-surface px-2.5 t-sub text-ink placeholder:text-text-3"
           aria-label="구독할 키워드"
         />
         <button
           type="button"
           onClick={() => void onAdd()}
           disabled={busy}
-          className="btn-primary h-8 rounded-[9px] px-3 t-sub font-extrabold disabled:opacity-60"
+          className="btn-primary h-8 rounded-[10px] px-3 t-sub font-extrabold disabled:opacity-60"
         >
           {busy ? "추가 중…" : "구독 추가"}
         </button>
@@ -427,7 +427,7 @@ function NotificationCard({
         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 t-caption text-text-3">
           {item.severity && (
             <span
-              className="rounded-[5px] px-1.5 py-px font-extrabold"
+              className="rounded-md px-1.5 py-px font-extrabold"
               style={
                 item.severity === "critical"
                   ? { background: "var(--danger-soft)", color: "var(--danger)" }
@@ -721,7 +721,7 @@ export default function NotificationsPage() {
             </span>
             <Link
               href="/admin/ops"
-              className="btn-soft shrink-0 rounded-[9px] px-2.5 py-1.5 t-sub font-extrabold no-underline"
+              className="btn-soft shrink-0 rounded-[10px] px-2.5 py-1.5 t-sub font-extrabold no-underline"
             >
               전체 보기
             </Link>

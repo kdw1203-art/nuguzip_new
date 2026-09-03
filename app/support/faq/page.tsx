@@ -78,7 +78,7 @@ export default function SupportFaqPage() {
               <h2 className="text-[16px] font-extrabold text-ink">{g.category}</h2>
               <dl className="mt-2 flex flex-col gap-2">
                 {g.items.map((it) => (
-                  <div key={it.id} id={it.id} className="card scroll-mt-24 rounded-[16px] p-5">
+                  <div key={it.id} id={it.id} className="card scroll-mt-24 rounded-2xl p-5">
                     <dt className="text-[14px] font-extrabold leading-[1.5] text-ink">
                       {it.q}
                     </dt>

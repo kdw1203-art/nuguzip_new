@@ -17,7 +17,7 @@ export function RetryButton() {
           setTried(true);
           window.location.reload();
         }}
-        className="press inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#1d4fd8] px-6 text-sm font-bold text-white"
+        className="press inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-primary px-6 text-sm font-bold text-white"
       >
         다시 시도
       </button>

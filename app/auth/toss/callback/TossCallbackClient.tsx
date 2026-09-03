@@ -56,7 +56,7 @@ export function TossCallbackClient() {
 
   return (
     <main className="flex min-h-[100dvh] items-center justify-center bg-bg px-6">
-      <div className="w-full max-w-[360px] rounded-[20px] border border-line bg-surface p-6 text-center shadow-[0_10px_30px_rgba(16,28,54,.08)]">
+      <div className="w-full max-w-[360px] rounded-[18px] border border-line bg-surface p-6 text-center shadow-[0_10px_30px_rgba(16,28,54,.08)]">
         {failed ? (
           <>
             <p className="text-[15px] font-extrabold text-ink">

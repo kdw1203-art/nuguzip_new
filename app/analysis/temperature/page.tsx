@@ -194,7 +194,7 @@ export default async function TemperatureHubPage() {
         kpis={heroKpis}
         chart={
           hottest ? (
-            <div className="flex items-center gap-3 rounded-[12px] border border-line bg-surface px-3 py-2">
+            <div className="flex items-center gap-3 rounded-[10px] border border-line bg-surface px-3 py-2">
               <Gauge
                 value={hottest.current.score}
                 label={String(hottest.current.score)}
@@ -280,10 +280,10 @@ export default async function TemperatureHubPage() {
                 <Link
                   key={current.regionId}
                   href={`${PATH}/${current.regionId}`}
-                  className="tile card flex items-center gap-3 rounded-[12px] px-3 py-2.5 no-underline"
+                  className="tile card flex items-center gap-3 rounded-[10px] px-3 py-2.5 no-underline"
                 >
                   <span
-                    className={`tile-ico t-num flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px] text-[15px] ${scoreToneClass(current.score)}`}
+                    className={`tile-ico t-num flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[10px] text-[15px] ${scoreToneClass(current.score)}`}
                   >
                     {current.score}
                   </span>

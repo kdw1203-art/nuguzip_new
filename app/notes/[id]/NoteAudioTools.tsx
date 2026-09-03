@@ -74,7 +74,7 @@ export function NoteAudioTools({
   };
 
   return (
-    <div className="rise-in-1 card flex flex-col gap-2 rounded-[20px] p-5">
+    <div className="rise-in-1 card flex flex-col gap-2 rounded-[18px] p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="t-section text-ink">
           현장 음성 메모{" "}
@@ -106,7 +106,7 @@ export function NoteAudioTools({
                 type="button"
                 onClick={() => void transcribe(u)}
                 disabled={busyUrl === u}
-                className="shrink-0 rounded-[9px] bg-bg px-2.5 py-1.5 t-sub font-bold text-text-1 disabled:opacity-60"
+                className="shrink-0 rounded-[10px] bg-bg px-2.5 py-1.5 t-sub font-bold text-text-1 disabled:opacity-60"
               >
                 {busyUrl === u ? "전사 중…" : transcripts[u] ? "다시 전사" : "글로 변환"}
               </button>

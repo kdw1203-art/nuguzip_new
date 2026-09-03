@@ -115,7 +115,7 @@ export function RecordsSearchClient() {
       </form>
 
       {status === "error" && (
-        <div className="mt-4 rounded-[12px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-2">
+        <div className="mt-4 rounded-[10px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-2">
           &ldquo;{query}&rdquo; 조회에 실패했어요 — 자료가 없는 게 아니라 지금 읽지
           못한 상태예요. 잠시 뒤{" "}
           <button
@@ -130,7 +130,7 @@ export function RecordsSearchClient() {
       )}
 
       {status === "ok" && records.length === 0 && (
-        <div className="mt-4 rounded-[12px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-3">
+        <div className="mt-4 rounded-[10px] border border-line bg-surface px-4 py-8 text-center text-[13px] text-text-3">
           &ldquo;{query}&rdquo; 관련 공개 자료가 아직 없어요. 실거래 데이터는{" "}
           <Link
             href={`/complex/browse`}

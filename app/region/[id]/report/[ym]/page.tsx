@@ -207,7 +207,7 @@ export default async function RegionMonthlyReportPage({
       )}
 
       {paragraphs.length > 0 && (
-        <section className="rise-in-2 card mt-4 rounded-[16px] px-5 py-4">
+        <section className="rise-in-2 card mt-4 rounded-2xl px-5 py-4">
           {paragraphs.map((p) => (
             <p key={p.slice(0, 20)} className="t-body text-text-1">
               {p}

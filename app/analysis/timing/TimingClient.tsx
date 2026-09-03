@@ -215,7 +215,7 @@ export function TimingClient({
   }
 
   const heroChart = trend ? (
-    <div className="rounded-[12px] border border-line bg-surface px-2 pb-1 pt-2">
+    <div className="rounded-[10px] border border-line bg-surface px-2 pb-1 pt-2">
       <TrendChart
         values={idxValues}
         labels={idxLabels}
@@ -432,7 +432,7 @@ export function TimingClient({
 
           {/* ── 알림 ── */}
           <div className="card tile flex flex-col gap-2 rounded-[14px] p-4" data-reveal="">
-            <span className="tile-ico flex h-9 w-9 items-center justify-center rounded-[11px] bg-primary-soft text-primary">
+            <span className="tile-ico flex h-9 w-9 items-center justify-center rounded-[10px] bg-primary-soft text-primary">
               <Icon name="bell" size={17} />
             </span>
             <span className="t-section text-ink">이 지역 알림 받기</span>

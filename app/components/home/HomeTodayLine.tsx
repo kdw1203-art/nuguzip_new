@@ -191,13 +191,13 @@ export function HomeTodayLine({
         <circle cx="60" cy="86" r="8.5" fill="#F6F1E7" />
       </svg>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <h2 id="home-today" className="t-sub font-extrabold" style={{ color: "#9FB2CC" }}>
+        <h2 id="home-today" className="t-sub font-extrabold" style={{ color: "var(--on-dark-muted)" }}>
           오늘의 한 줄
         </h2>
         {/* 근거 배지 — 이 지역이 어디서 왔는지 밝힌다. 없으면 사용자는
             자기 지역이라고 오해하거나 "왜 강남?" 에서 멈춘다. */}
         <span
-          className="rounded-[5px] px-1.5 py-px t-caption font-extrabold"
+          className="rounded-md px-1.5 py-px t-caption font-extrabold"
           style={
             personalized
               ? { background: "rgba(246,241,231,.16)", color: "#F6F1E7" }
@@ -210,7 +210,7 @@ export function HomeTodayLine({
           <Link
             href="/my/settings#region"
             className="ml-auto t-sub font-bold no-underline"
-            style={{ color: "#9FC0FF" }}
+            style={{ color: "var(--ai-accent)" }}
           >
             내 지역으로 바꾸기 ›
           </Link>
@@ -224,7 +224,7 @@ export function HomeTodayLine({
         /* 두 줄 높이를 미리 잡아 둔다 — 문장 길이가 바뀔 때 아래 카드가 밀리지 않게(CLS).
            짧은 문장에서 아래가 비어 보이지만, 넘길 때마다 화면이 튀는 쪽이 훨씬 나쁘다. */
         className="today-slide mt-1.5 block min-h-[2.9em] t-title no-underline md:min-h-[2.1em]"
-        style={{ color: "#F6F1E7" }}
+        style={{ color: "var(--on-dark)" }}
       >
         {cur.text}
       </Link>
@@ -250,7 +250,7 @@ export function HomeTodayLine({
               }}
             />
           ))}
-          <span className="ml-auto t-caption" style={{ color: "#9FB2CC" }}>
+          <span className="ml-auto t-caption" style={{ color: "var(--on-dark-muted)" }}>
             {i + 1}/{slides.length}
           </span>
         </div>

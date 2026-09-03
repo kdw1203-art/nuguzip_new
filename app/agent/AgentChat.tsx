@@ -179,7 +179,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
       )}
 
       {/* 대화 영역 */}
-      <div className="card flex min-h-[380px] flex-col gap-3 rounded-[20px] p-5">
+      <div className="card flex min-h-[380px] flex-col gap-3 rounded-[18px] p-5">
         {messages.length === 0 && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center">
             <div className="ai-chip flex h-11 w-11 items-center justify-center rounded-xl t-body">AI</div>
@@ -272,7 +272,7 @@ export function AgentChat({ models }: { models: AgentModelChoice[] }) {
           </div>
         )}
         {error && (
-          <div className="flex flex-wrap items-center gap-2 self-start rounded-[12px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
+          <div className="flex flex-wrap items-center gap-2 self-start rounded-[10px] bg-danger-soft px-3 py-2.5 text-xs font-bold text-danger">
             <span>{error}</span>
             {lastFailed && !busy && (
               <button

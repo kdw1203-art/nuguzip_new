@@ -149,7 +149,7 @@ export default function DevelopersPage() {
           <p className="mt-2 text-[13px] leading-[1.75] text-text-1">
             키 발급도 등록도 없습니다. 아래 한 줄이면 최신 월의 집계가 나옵니다.
           </p>
-          <pre className="mt-3 overflow-x-auto rounded-[12px] bg-bg p-3 text-[12px] leading-[1.6] text-text-1">
+          <pre className="mt-3 overflow-x-auto rounded-[10px] bg-bg p-3 text-[12px] leading-[1.6] text-text-1">
             <code>{`curl "${BASE}/regions/monthly?limit=5"`}</code>
           </pre>
           <p className="mt-2 text-[12px] leading-[1.7] text-text-3">
@@ -164,7 +164,7 @@ export default function DevelopersPage() {
             {ENDPOINTS.map((e) => (
               <div key={e.path} className="card rounded-[18px] p-6">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-[6px] bg-primary/10 chip-pad text-[11px] font-extrabold text-primary">
+                  <span className="rounded-md bg-primary/10 chip-pad text-[11px] font-extrabold text-primary">
                     GET
                   </span>
                   <code className="text-[13px] font-bold text-ink">{e.path}</code>
@@ -180,7 +180,7 @@ export default function DevelopersPage() {
                     ))}
                   </ul>
                 ) : null}
-                <pre className="mt-3 overflow-x-auto rounded-[12px] bg-bg p-3 text-[12px] leading-[1.6] text-text-1">
+                <pre className="mt-3 overflow-x-auto rounded-[10px] bg-bg p-3 text-[12px] leading-[1.6] text-text-1">
                   <code>{e.example}</code>
                 </pre>
               </div>
@@ -228,7 +228,7 @@ export default function DevelopersPage() {
             응답의 <code>license</code> 필드에도 실려 있어, 문서를 보지 않고 API 만 쓴 경우에도
             출처가 함께 이동합니다.
           </p>
-          <div className="mt-3 rounded-[12px] bg-bg p-3 text-[12px] leading-[1.7] text-text-1">
+          <div className="mt-3 rounded-[10px] bg-bg p-3 text-[12px] leading-[1.7] text-text-1">
             내집나우(naezipnow.com) 집계, {PUBLIC_API_LICENSE.sources[0].name} 자료 기반, ○○○○년
             ○월 기준
           </div>

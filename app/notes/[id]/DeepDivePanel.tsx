@@ -116,7 +116,7 @@ export default function DeepDivePanel({
   const total = deepDive.sections.length;
 
   return (
-    <section className="rise-in-1 card flex flex-col gap-3 rounded-[20px] p-6">
+    <section className="rise-in-1 card flex flex-col gap-3 rounded-[18px] p-6">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-base font-extrabold text-ink">AI 심화 분석</div>
@@ -135,7 +135,7 @@ export default function DeepDivePanel({
 
       {/* 못 읽은 소스 — 어떤 축이 왜 비었는지 한 곳에 모아 둔다. */}
       {deepDive.gaps.length > 0 && (
-        <div className="rounded-[12px] border border-line bg-bg px-3 py-2.5">
+        <div className="rounded-[10px] border border-line bg-bg px-3 py-2.5">
           <div className="t-sub font-bold text-text-2">이번에 확인하지 못한 자료</div>
           <ul className="mt-1 flex flex-col gap-0.5">
             {deepDive.gaps.map((gap) => (

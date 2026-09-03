@@ -34,7 +34,7 @@ export function PressSummaryBlock({
         기사·리포트에 그대로 옮겨 쓰실 수 있도록 정리했습니다 · {asOfLabel}
       </p>
 
-      <blockquote className="mt-3 rounded-[12px] border-l-[3px] border-primary bg-bg px-4 py-3 text-[13px] leading-[1.8] text-text-1">
+      <blockquote className="mt-3 rounded-[10px] border-l-[3px] border-primary bg-bg px-4 py-3 text-[13px] leading-[1.8] text-text-1">
         {clean.map((s, i) => (
           <span key={i}>
             {s}

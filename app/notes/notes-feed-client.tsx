@@ -78,7 +78,7 @@ function StoryRail({ notes }: { notes: FeedNote[] }) {
           href="/notes/new"
           className="flex w-[64px] shrink-0 flex-col items-center gap-1.5"
         >
-          <span className="flex h-[62px] w-[62px] items-center justify-center rounded-full border-2 border-dashed border-[#d5dceb] text-primary">
+          <span className="flex h-[62px] w-[62px] items-center justify-center rounded-full border-2 border-dashed border-line-strong text-primary">
             <Icon name="plus" size={22} />
           </span>
           <span className="w-full truncate text-center t-caption text-text-2">
@@ -171,7 +171,7 @@ function GridTile({ n }: { n: FeedNote }) {
 function PostCard({ n }: { n: FeedNote }) {
   const detailHref = noteHref(n);
   return (
-    <article className="mx-auto w-full max-w-[468px] overflow-hidden rounded-[16px] border border-line bg-surface shadow-[0_1px_2px_rgba(16,28,54,.04),0_10px_26px_rgba(16,28,54,.05)]">
+    <article className="mx-auto w-full max-w-[468px] overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(16,28,54,.04),0_10px_26px_rgba(16,28,54,.05)]">
       <div className="flex items-center gap-2.5 px-3.5 py-2.5">
         <div
           className="h-8 w-8 shrink-0 rounded-full ring-2 ring-primary-soft"
@@ -362,7 +362,7 @@ export function NotesFeedClient({
 
         {/* 조회 실패 — 이 경우 "노트가 없다" 고 읽히면 안 되므로 빈 상태와 분리한다 */}
         {loadError && (
-          <div className="rounded-[12px] border border-line bg-surface px-3.5 py-3 t-sub text-text-2">
+          <div className="rounded-[10px] border border-line bg-surface px-3.5 py-3 t-sub text-text-2">
             {mine ? "내 임장노트를" : "공개 임장노트를"}{" "}
             <strong className="text-ink">불러오지 못했습니다</strong>. 노트가 없다는 뜻이 아니라
             조회 자체가 실패했다는 뜻입니다. 잠시 후 다시 확인해 주세요.
@@ -418,7 +418,7 @@ export function NotesFeedClient({
 
         {/* 예시 안내 */}
         {exampleOnly && (
-          <div className="flex items-center gap-1.5 rounded-[12px] border border-line bg-surface px-3.5 py-2.5 t-sub text-text-3">
+          <div className="flex items-center gap-1.5 rounded-[10px] border border-line bg-surface px-3.5 py-2.5 t-sub text-text-3">
             <ExampleBadge />
             <span>
               아직 공개된 임장노트가 없어 샘플 1건을 보여드려요 — 실데이터가

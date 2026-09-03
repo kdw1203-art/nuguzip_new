@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { Modal, ModalHeader } from "@/app/components/ui/Modal";
+import { Icon } from "@/app/components/Icon";
 
 /* P1-6: 죽어 있던 상담 버튼 실배선 — POST /api/experts/[id]/consult
    비로그인(401) → /login?callbackUrl= 이동. 실제 write 성공 시에만 완료 표시 */
@@ -10,7 +12,7 @@ import { Modal, ModalHeader } from "@/app/components/ui/Modal";
 export function ConsultButton({
   expertId,
   expertName,
-  className = "btn-primary flex-1 rounded-xl p-[11px] text-[13px]",
+  className = "btn-primary flex-1 rounded-xl px-3 py-2.5 t-body",
 }: {
   expertId: string;
   expertName: string;
@@ -85,25 +87,33 @@ export function ConsultButton({
       >
         {status === "done" ? (
           <div className="flex flex-col items-center gap-2.5 py-4 text-center">
-            <div className="t-section text-ink">
-              상담 신청이 접수됐어요
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-navy text-on-dark">
+              <Icon name="check" size={22} />
             </div>
-            <p className="text-xs leading-[1.6] text-text-2">
-              {expertName} 님이 확인 후 답변을 보내드려요.
-              <br />
-              답변은 알림으로 안내됩니다.
+            <div className="t-section text-ink">상담 신청이 접수됐어요</div>
+            <p className="t-sub text-text-2">
+              {expertName} 님이 확인 후 글로 답변해요. 답변은 알림과{" "}
+              <Link href="/my/consultations#sent" className="font-bold text-primary">
+                마이 › 상담함
+              </Link>
+              에 함께 도착하고, 답변 뒤에는 후기를 남길 수 있어요.
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                setMessage("");
-                setStatus("idle");
-              }}
-              className="btn-primary mt-1 rounded-xl px-6 py-2.5 t-body"
-            >
-              확인
-            </button>
+            <div className="mt-1 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setMessage("");
+                  setStatus("idle");
+                }}
+                className="btn-primary rounded-xl px-6 py-2.5 t-body"
+              >
+                확인
+              </button>
+              <Link href="/my/consultations#sent" className="btn-soft rounded-xl px-5 py-2.5 t-body no-underline">
+                상담함 보기
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -122,10 +132,8 @@ export function ConsultButton({
                   type="button"
                   onClick={() => setConsultType(o.id)}
                   aria-pressed={consultType === o.id}
-                  className={`flex-1 rounded-xl px-3 py-2 text-[12px] font-bold transition ${
-                    consultType === o.id
-                      ? "bg-primary-soft text-primary ring-1 ring-primary/30"
-                      : "border border-line bg-surface text-text-2"
+                  className={`flex-1 rounded-xl px-3 py-2 t-sub font-bold transition ${
+                    consultType === o.id ? "chip-check-active" : "chip-check"
                   }`}
                 >
                   {o.label}
@@ -162,8 +170,8 @@ export function ConsultButton({
               {status === "sending" ? "신청 중…" : "상담 신청하기"}
             </button>
             <p className="t-caption text-text-3">
-              개인정보(전화번호·계좌)는 적지 마세요 · 플랫폼 밖 결제 유도는
-              신고 대상입니다
+              개인정보(전화번호·계좌)는 적지 마세요 · 플랫폼 밖 결제 유도는 신고 대상입니다 ·
+              플러스 월 2회 · 프로 월 10회
             </p>
           </div>
         )}

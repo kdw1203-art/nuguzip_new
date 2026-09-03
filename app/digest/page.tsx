@@ -95,7 +95,7 @@ export default async function DigestPage() {
       <div className="mx-auto flex w-full max-w-[480px] flex-col gap-2.5">
         {/* 푸시 미리보기 카드 */}
         <div className="rise-in glass-strong flex gap-2.5 rounded-2xl px-3.5 py-3 shadow-[0_8px_24px_rgba(16,28,54,.12)]">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-primary">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary">
             <HouseMark size={17} />
           </div>
           <div className="flex-1">

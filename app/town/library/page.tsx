@@ -88,7 +88,7 @@ export default async function TownLibraryPage() {
         <div className="mb-3 flex items-center gap-2">
           <h2 className="t-section text-ink">리포트</h2>
           {!reportsFailed && reports.length === 0 && (
-            <span className="rounded-[6px] bg-bg chip-pad t-sub font-extrabold text-text-2">
+            <span className="rounded-md bg-bg chip-pad t-sub font-extrabold text-text-2">
               오픈 전
             </span>
           )}
@@ -115,7 +115,7 @@ export default async function TownLibraryPage() {
             cause="잠시 후 새로고침해 주세요."
           />
         ) : reports.length === 0 ? (
-          <div className="card rise-in-1 rounded-[16px] px-4 py-5">
+          <div className="card rise-in-1 rounded-2xl px-4 py-5">
             <p className="t-body font-bold text-ink">유료·단지 리포트는 아직 없어요</p>
             <p className="mt-1 t-sub text-text-2">
               지금은 아래 공개 임장노트만 열람할 수 있어요. 리포트가 올라오면 이

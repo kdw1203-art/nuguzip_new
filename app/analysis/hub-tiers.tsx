@@ -42,7 +42,7 @@ export function WorkbenchGrid() {
               className="tile card flex flex-col gap-1.5 rounded-[14px] p-3.5 no-underline"
             >
               <span
-                className={`tile-ico flex h-9 w-9 items-center justify-center rounded-[11px] ${tier.iconClass}`}
+                className={`tile-ico flex h-9 w-9 items-center justify-center rounded-[10px] ${tier.iconClass}`}
               >
                 <Icon name={c.icon} size={17} />
               </span>

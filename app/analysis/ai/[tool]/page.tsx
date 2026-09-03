@@ -66,7 +66,7 @@ export default async function AiToolPage({
         {/* 면책 — check-ai-compliance.mjs 가 이 마커의 존재를 검사한다 */}
         <p
           data-ai-compliance="notice"
-          className="rounded-[12px] bg-bg px-4 py-3 t-sub text-text-3"
+          className="rounded-[10px] bg-bg px-4 py-3 t-sub text-text-3"
         >
           이 도구의 수치는 공공 데이터 기반의 규칙 계산이며(서술형 해석이 붙는 경우
           문장 단위로 [AI 서술] 라벨 표기), 투자 권유·수익 보장·법률·세무 자문이

@@ -87,8 +87,8 @@ function fmtWeek(weekStart: string): string {
 }
 
 function tone(score: number): string {
-  if (score >= 60) return "text-[#d13f3f]"; // 과열 쪽
-  if (score <= 40) return "text-[#2e6fd8]"; // 냉각 쪽
+  if (score >= 60) return "text-danger"; // 과열 쪽
+  if (score <= 40) return "text-primary"; // 냉각 쪽
   return "text-text-1";
 }
 

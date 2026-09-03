@@ -195,7 +195,7 @@ export default async function MonthlyReportPage({
         {(report.risers.length > 0 || report.fallers.length > 0) && (
           <div className="rise-in-2 mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
             {report.risers.length > 0 && (
-              <div className="card rounded-[16px] p-5">
+              <div className="card rounded-2xl p-5">
                 <h2 className="text-[13px] font-extrabold text-ink">평균가 상승 상위</h2>
                 {report.risers.map((r) => (
                   <div key={r.regionName} className="mt-2 flex justify-between text-[13px]">
@@ -206,7 +206,7 @@ export default async function MonthlyReportPage({
               </div>
             )}
             {report.fallers.length > 0 && (
-              <div className="card rounded-[16px] p-5">
+              <div className="card rounded-2xl p-5">
                 <h2 className="text-[13px] font-extrabold text-ink">평균가 하락 상위</h2>
                 {report.fallers.map((r) => (
                   <div key={r.regionName} className="mt-2 flex justify-between text-[13px]">

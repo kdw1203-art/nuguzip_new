@@ -265,7 +265,7 @@ export function ListingManageActions(props: {
         </label>
 
         {props.status === "approved" && (
-          <div className="rounded-lg bg-[rgba(245,158,11,.1)] px-2.5 py-1.5 t-sub text-[#b45309]">
+          <div className="rounded-lg bg-[rgba(245,158,11,.1)] px-2.5 py-1.5 t-sub text-warning">
             노출 중인 매물을 수정하면 재검수를 위해 잠시 검수중 상태로 전환돼요.
           </div>
         )}

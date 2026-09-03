@@ -335,7 +335,7 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
         {/* 조건 설정 */}
-        <div className="rise-in-1 card flex flex-col gap-3.5 rounded-[20px] p-[22px]">
+        <div className="rise-in-1 card flex flex-col gap-3.5 rounded-[18px] p-[22px]">
           <div className="t-section text-ink">조건 설정</div>
 
           {/* 단지 선택 → 그 단지 지역의 실시세로 기준가 프리필 */}
@@ -663,7 +663,7 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
 
           {/* 보유기간 결과 — 3·5·10년 칩이 실제로 계산에 연결된 유일한 화면.
               (예전엔 칩을 눌러도 아무 숫자도 바뀌지 않았다.) */}
-          <div className="rise-in-3 card flex flex-col gap-3 rounded-[20px] p-[22px]">
+          <div className="rise-in-3 card flex flex-col gap-3 rounded-[18px] p-[22px]">
             <div className="t-section text-ink">
               {calc.holdYears}년 보유 시 상환 현황
               <span className="ml-2 t-sub font-semibold text-text-3">
@@ -671,22 +671,22 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
               </span>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-[12px] bg-bg px-2 py-3">
+              <div className="rounded-[10px] bg-bg px-2 py-3">
                 <div className="t-sub text-text-3">갚은 원금</div>
                 <div className="mt-1 t-section text-ink">{eok(calc.holdPrincipal)}</div>
               </div>
-              <div className="rounded-[12px] bg-bg px-2 py-3">
+              <div className="rounded-[10px] bg-bg px-2 py-3">
                 <div className="t-sub text-text-3">낸 이자 (누적)</div>
                 <div className="mt-1 t-section text-danger">{eok(calc.holdInterest)}</div>
               </div>
-              <div className="rounded-[12px] bg-bg px-2 py-3">
+              <div className="rounded-[10px] bg-bg px-2 py-3">
                 <div className="t-sub text-text-3">잔여 원금</div>
                 <div className="mt-1 t-section text-ink">{eok(calc.holdBalance)}</div>
               </div>
             </div>
           </div>
 
-          <div className="rise-in-4 ai-panel flex flex-col gap-2 rounded-[20px] p-5 shadow-[0_14px_36px_rgba(16,28,54,.22)]">
+          <div className="rise-in-4 ai-panel flex flex-col gap-2 rounded-[18px] p-5 shadow-[0_14px_36px_rgba(16,28,54,.22)]">
             <div className="flex items-start gap-3">
               <span className="ai-chip h-[22px] w-[22px] shrink-0 rounded-[7px] t-sub">AI</span>
               <div className="flex-1 t-body text-ai-text">{aiComment}</div>

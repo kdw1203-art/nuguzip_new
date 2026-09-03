@@ -17,6 +17,36 @@
 | disabled | `opacity` 금지 — `--disabled-bg`(#eef1f6) + `--disabled-text`(#b0b8c1) |
 | 국문 조판 | `word-break: keep-all` 전면 적용(body), 자간 -1% |
 
+## 0. 브랜드 면 규칙 (946 리브랜딩 · 952 통일)
+
+마스터 가이드 v2.1(내집나우)을 사이트 전역에 적용하는 규칙. 값은 `globals.css` 의 `--brand-*` · `--on-dark*` 토큰이 단일 소스다.
+
+| 규칙 | 내용 |
+|---|---|
+| 어두운 면 = 네이비 | 티커·오늘의 한 줄·AI 패널·사진 프레임·다크 칩 등 **모든 어두운 면은 `--brand-navy`(#0B2545)**. `bg-ink`·`#0e1420`·`#12161f` 같은 검정 계열 면은 쓰지 않는다(952 에서 `bg-ink` 25곳 → `bg-brand-navy`, `--ai-panel` 도 네이비). `text-ink` 는 그대로 본문 글자색 |
+| 어두운 면 위 글자 = 한지 | `text-on-dark`(#F6F1E7) / `text-on-dark-muted`(72%) / `text-on-dark-faint`(45%). 흰색·회색 hex(#c3cad6·#9aa6b8…) 직접 지정 금지 |
+| 신호 = 주홍 | 노랑·연빨강·별점·"지금" 강조는 **주홍**: 라이트 면 `text-brand-red`(#C8442B), 어두운 면 `text-brand-red-dark`(#E0563A). 금색(#f2c94c) 계열은 쓰지 않는다 |
+| 나우블루는 CTA·링크 전용 | `--primary`(#1D4FD8)는 버튼·링크·하락 delta 에만. 선택 테두리·배지·장식에 쓰지 않는다(사진 썸네일 선택 = 주홍) |
+| 한지 = 브랜드 순간 | 슬로건 띠·빈 화면·선택 칩 배경은 `bg-brand-hanji`, 그 위 글자는 `text-brand-hanji-ink` |
+| 상태색은 토큰 3종 세트 | 경고 박스 `border-warning-border bg-warning-soft text-warning`, 위험 `…danger…`, 성공 `…success…`. 손으로 적은 `#fdf3dd`·`#fff7f7` 류는 952 에서 전부 토큰으로 옮겼다 |
+| 서드파티 브랜드색 예외 | 카카오(#FEE500/#191919)·토스(#3182F6) 로그인 버튼은 각사 가이드가 우선 — 그대로 둔다 |
+| 둥근 모서리 5단 | 6(뱃지·작은 칩) · 10(버튼·입력·칩) · 14(작은 카드·패널) · 16=`rounded-2xl`(카드) · 18~24(히어로·큰 패널). 5·9·11·12·20px 임의값은 952 에서 이 다섯으로 스냅했다 |
+
+### 0-1. 전문가 면 (953)
+
+전문가 목록·상세·상담함·프로필 폼이 브랜드 면 규칙을 그대로 따른 첫 세트다. 다른 "사람 프로필" 화면(크리에이터·파트너)을 만들 때 같은 배치를 쓴다.
+
+| 자리 | 규칙 |
+|---|---|
+| 히어로·프로필 머리 | `brand-navy-card` (네이비) + 아바타는 **한지 원 위 남색 글자**(`bg-brand-hanji text-brand-hanji-ink`), 목록 카드 아바타는 반대로 **남색 원 위 한지 글자**(`bg-brand-navy text-on-dark`) |
+| 인증 배지 | 라이트 면: `bg-primary-soft text-primary` + shield 아이콘(사이트 공통 "인증" 표기). 네이비 면: `bg-brand-hanji text-brand-hanji-ink` |
+| 별점 | 주홍 별(`text-brand-red`, 다크 면 `text-brand-red-dark`) · 빈 별은 같은 색 `opacity-25`. 후기 0건은 별 대신 "후기 아직 없음"(0.0 금지) |
+| 지표 줄 | 실측만 — 답변 완료 수·응답률/응답 시간·평점. 없는 값은 `—` 로 두고 지표처럼 꾸미지 않는다 |
+| 필터 칩 | 자격 유형 → 상담 분야 → 지역·정렬 세 줄. 선택 = `chip-active`(잉크). 다중 선택(전문 분야 편집)은 `chip-check` / `chip-check-active` |
+| 참여 유도 띠 | `bg-brand-hanji` + `text-brand-hanji-ink`(슬로건 띠와 같은 면), CTA 만 나우블루 |
+| 네이비 위 보조 버튼 | `brand-photo-chip`(한지 14% 면) — "전문가로 참여"·"견적 요청"·"공개 프로필 보기" |
+| 답변 대기 강조 | 카드 왼쪽 `border-l-[3px] border-l-brand-red`(주홍 = 지금 할 일) |
+
 ## 1. 컬러 토큰
 
 CSS 변수(`:root`)가 `@theme inline`을 통해 Tailwind 유틸(`text-primary`, `bg-surface`, `border-line` 등)로 노출된다.

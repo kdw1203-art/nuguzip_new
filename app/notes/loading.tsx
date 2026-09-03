@@ -21,7 +21,7 @@ export default function NotesLoading() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="card overflow-hidden rounded-[20px]">
+            <div key={i} className="card overflow-hidden rounded-[18px]">
               <Skeleton className="h-44 w-full" />
               <div className="flex flex-col gap-2 p-4">
                 <Skeleton className="h-4 w-3/4 rounded" />

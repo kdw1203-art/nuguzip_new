@@ -251,10 +251,12 @@ export async function middleware(request: NextRequest) {
       `www.${canonicalHost}`,
       `m.${canonicalHost}`,
     ]);
-    /* [951 · 도메인 전환] 구 도메인 → 새 도메인 308 은 **NEXT_PUBLIC_SITE_ORIGIN 이 명시적으로
-       설정된 뒤에만** 켠다. 코드 기본값(naezipnow.com)만으로 켜지면, 새 도메인을 Vercel 에
-       붙이기 전에 배포된 경우 nuguzip.com 요청이 아직 없는 호스트로 튕겨 사이트가 통째로
-       죽는다. 순서: 도메인 구매·연결 → env 설정 → 재배포(그때 이 분기가 산다).
+    /* [951→952 · 도메인 전환] 구 도메인 → 새 도메인 308 은 **NEXT_PUBLIC_SITE_ORIGIN 이 명시적으로
+       설정된 뒤에만** 켠다. 코드 기본값만으로 켜지면, 새 도메인을 Vercel 에 붙이기 전에
+       배포된 경우 nuguzip.com 요청이 아직 없는 호스트로 튕겨 사이트가 통째로 죽는다.
+       952 현재 기본 origin 은 다시 nuguzip.com 이고(구매 전), 2026-09-08 구매 뒤
+       `node scripts/domain-switch.mjs naezipnow.com` 이 기본값을 바꾼다. 그래도 이 분기는
+       env 가 있어야만 산다. 순서: 도메인 구매·연결 → env 설정 → 재배포.
        www./m. 서브도메인 정규화(같은 도메인 안)는 env 와 무관하게 항상 켠다. */
     const redirectArmed = Boolean(process.env.NEXT_PUBLIC_SITE_ORIGIN?.trim());
     const sameFamily = hostname === `www.${canonicalHost}` || hostname === `m.${canonicalHost}`;

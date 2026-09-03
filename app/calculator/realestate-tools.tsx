@@ -110,7 +110,7 @@ function ResultPanel({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="ai-panel flex flex-col gap-2.5 rounded-[20px] p-[18px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
+      <div className="ai-panel flex flex-col gap-2.5 rounded-[18px] p-[18px] shadow-[0_14px_36px_rgba(16,28,54,.22)]">
         <div className="flex items-baseline justify-between">
           <span className="text-[13px] text-ai-muted">{primaryLabel}</span>
           <span className="text-2xl font-extrabold text-white">{primaryValue}</span>
@@ -163,7 +163,7 @@ export function JeonseWolse() {
               onClick={() => setDir(key)}
               className={`flex-1 rounded-full p-[9px] text-center text-[13px] ${
                 dir === key
-                  ? "bg-ink font-bold text-surface"
+                  ? "bg-brand-navy font-bold text-surface"
                   : "border border-line bg-surface font-semibold text-text-2"
               }`}
             >
@@ -329,7 +329,7 @@ export function RealEstateTools() {
             onClick={() => setTool(t)}
             className={`flex-1 rounded-full p-[9px] text-center text-[13px] ${
               tool === t
-                ? "bg-ink font-bold text-surface"
+                ? "bg-brand-navy font-bold text-surface"
                 : "border border-line bg-surface font-semibold text-text-2"
             }`}
           >

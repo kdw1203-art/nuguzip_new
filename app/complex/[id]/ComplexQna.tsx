@@ -113,7 +113,7 @@ export async function ComplexQna({
             return (
               <Link
                 href={`/qna/${waiting[0].id}`}
-                className="rounded-[12px] border border-[rgba(29,79,216,.18)] bg-[rgba(29,79,216,.05)] px-4 py-2.5 t-sub font-bold text-primary no-underline"
+                className="rounded-[10px] border border-[rgba(29,79,216,.18)] bg-[rgba(29,79,216,.05)] px-4 py-2.5 t-sub font-bold text-primary no-underline"
               >
                 답변을 기다리는 질문 {waiting.length}개 — 이 단지를 다녀오셨다면
                 경험을 나눠 주세요 ›
@@ -128,7 +128,7 @@ export async function ComplexQna({
             >
               <div className="flex items-center gap-1.5">
                 <span
-                  className={`rounded-[6px] chip-pad text-[11px] font-extrabold ${
+                  className={`rounded-md chip-pad text-[11px] font-extrabold ${
                     q.status === "answered"
                       ? "bg-success-soft text-success"
                       : "bg-primary-soft text-primary"
@@ -137,7 +137,7 @@ export async function ComplexQna({
                   {q.status === "answered" ? "답변완료" : "답변대기"}
                 </span>
                 {q.bountyPoints > 0 && (
-                  <span className="rounded-[6px] bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-[#b45309]">
+                  <span className="rounded-md bg-[rgba(245,158,11,.14)] chip-pad t-sub font-extrabold text-warning">
                     {q.bountyPoints}P
                   </span>
                 )}

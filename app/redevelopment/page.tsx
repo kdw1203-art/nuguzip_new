@@ -192,7 +192,7 @@ export default async function RedevelopmentPage() {
                     </span>
                   </span>
                   {i < STAGE_GUIDES.length - 1 && (
-                    <span className="w-px flex-1 bg-[#dfe5ef]" aria-hidden="true" />
+                    <span className="w-px flex-1 bg-line" aria-hidden="true" />
                   )}
                 </div>
 
@@ -200,7 +200,7 @@ export default async function RedevelopmentPage() {
                 <div className={i < STAGE_GUIDES.length - 1 ? "min-w-0 pb-6" : "min-w-0"}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="t-section text-ink">{s.longLabel}</span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(29,79,216,.06)] chip-pad t-caption font-semibold text-[#5b74b8]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(29,79,216,.06)] chip-pad t-caption font-semibold text-text-2">
                       <Icon name="clock" size={11} />
                       {s.period}
                     </span>
@@ -245,7 +245,7 @@ export default async function RedevelopmentPage() {
           </ol>
 
           {/* 면책 */}
-          <p className="mt-3 flex gap-1.5 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 t-caption text-[#5b74b8]">
+          <p className="mt-3 flex gap-1.5 rounded-[10px] bg-[rgba(29,79,216,.06)] px-3 py-2 t-caption text-text-2">
             <Icon name="shield" size={13} className="mt-px shrink-0" />
             <span>
               개념 안내용 일반 절차예요. 실제 사업 단계·조합원 자격·분담금은 구역·조합마다

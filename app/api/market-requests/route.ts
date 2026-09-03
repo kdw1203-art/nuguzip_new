@@ -8,17 +8,14 @@ import type { NextRequest } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
 import { createMarketRequest, listMyMarketRequests } from "@/lib/market/store-db";
 import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
+import { QUOTE_CATEGORIES, isQuoteCategory } from "@/lib/experts/taxonomy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 견적 요청 카테고리 (숨고형 퍼널 — 중개 알선으로 보이지 않는 범위) */
-const QUOTE_CATEGORIES = ["임장 동행", "세무", "대출", "인테리어"] as const;
-type QuoteCategory = (typeof QUOTE_CATEGORIES)[number];
-
-function isQuoteCategory(v: string): v is QuoteCategory {
-  return (QUOTE_CATEGORIES as readonly string[]).includes(v);
-}
+/* [953] 견적 요청 카테고리는 lib/experts/taxonomy.ts(SPECIALTIES.quotable) 한 곳에서 —
+   목록 필터·프로필 분야와 같은 라벨을 쓴다(예전엔 "세무"·"대출" 처럼 필터 칩과
+   다른 이름이라 요청과 전문가가 서로 닿지 않았다). */
 
 /** 요청자 라벨 — 닉네임 없으면 이메일 마스킹 (목록 공개 시 원본 이메일 노출 금지) */
 function requesterLabel(name: string | null | undefined, email: string): string {

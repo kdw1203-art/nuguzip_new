@@ -119,7 +119,7 @@ export default function CreatorsPage() {
       </ol>
 
       {/* 사실 고지 — 이 정직함이 브랜드다 */}
-      <div className="mb-8 max-w-[720px] rounded-2xl border border-line bg-[#f7f9fc] px-4 py-3.5">
+      <div className="mb-8 max-w-[720px] rounded-2xl border border-line bg-bg px-4 py-3.5">
         <div className="text-[12.5px] font-extrabold text-ink">있는 그대로의 고지</div>
         <ul className="mt-1.5 flex flex-col gap-1 text-[12px] leading-[1.65] text-text-2">
           <li>· 판매 수익 규모는 보장하지도, 전망으로 제시하지도 않습니다.</li>

@@ -131,7 +131,7 @@ export function AiDraftPanel({
           <p className="t-sub font-bold text-primary">초안이 채워졌어요 — 아래에서 자유롭게 고쳐 쓰세요.</p>
           {hasScores && (
             <p className="mt-1 t-caption text-text-2">
-              <b className="text-[#b45309]">점수는 AI 추정(현장 확인 전)</b>
+              <b className="text-warning">점수는 AI 추정(현장 확인 전)</b>
               {applied.scoreRationale ? ` — ${applied.scoreRationale}` : ""} · 방문 후 직접 조정해 주세요.
             </p>
           )}

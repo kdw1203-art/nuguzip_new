@@ -51,7 +51,7 @@ export default async function NoteTemplateDetailPage({
           </p>
           <Link
             href="/notes/templates"
-            className="btn-primary press rounded-[12px] px-5 py-2.5 t-body font-bold no-underline"
+            className="btn-primary press rounded-[10px] px-5 py-2.5 t-body font-bold no-underline"
           >
             템플릿 목록으로
           </Link>

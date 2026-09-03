@@ -92,7 +92,7 @@ export async function RegionRelative({
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[rgba(0,0,0,.06)]">
               <span
-                className="block h-full rounded-full bg-[#c3cad6]"
+                className="block h-full rounded-full bg-line-strong"
                 style={{ width: `${districtW}%` }}
               />
             </div>

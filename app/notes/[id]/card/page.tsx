@@ -92,7 +92,7 @@ export default async function NoteCardPage({
           </Link>
         </div>
 
-        <div className="card rounded-[20px] p-5 md:p-6">
+        <div className="card rounded-[18px] p-5 md:p-6">
           <NoteCardStudio
             noteId={id}
             available={available}

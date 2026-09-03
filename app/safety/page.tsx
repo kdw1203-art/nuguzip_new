@@ -93,7 +93,7 @@ export default function SafetyPage() {
         <div className="flex flex-col gap-3.5">
           {/* 진단 상태 — 결과를 지어내지 않는다 */}
           {submitted ? (
-            <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
+            <div className="rise-in-1 card flex flex-col gap-2.5 rounded-[18px] p-[22px]">
               <div className="text-[15px] font-extrabold text-ink">
                 “{submitted}” 전세·월세 안전 진단
               </div>
@@ -125,7 +125,7 @@ export default function SafetyPage() {
               </div>
             </div>
           ) : (
-            <div className="rise-in-1 card flex flex-col gap-1.5 rounded-[20px] p-[22px]">
+            <div className="rise-in-1 card flex flex-col gap-1.5 rounded-[18px] p-[22px]">
               <div className="text-[15px] font-extrabold text-ink">
                 계약 전, 보증금을 지키는 6가지 확인
               </div>
@@ -138,7 +138,7 @@ export default function SafetyPage() {
           )}
 
           {/* 세입자 체크리스트 — 항목·확인 방법 안내 (판정값 없음) */}
-          <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[20px] p-[22px]">
+          <div className="rise-in-2 card flex flex-col gap-2.5 rounded-[18px] p-[22px]">
             <div className="text-[15px] font-extrabold text-ink">
               세입자 체크리스트{" "}
               <span className="text-[11px] font-medium text-text-3">

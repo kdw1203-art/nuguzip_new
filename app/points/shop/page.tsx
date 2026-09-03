@@ -17,7 +17,7 @@ export const metadata = { title: "포인트 상점" };
 function GuestView() {
   return (
     <div className="mx-auto flex max-w-[720px] flex-col gap-3">
-      <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[20px] px-5 py-8 text-center">
+      <div className="rise-in ai-panel flex flex-col items-center gap-2 rounded-[18px] px-5 py-8 text-center">
         <div className="text-2xl"><Icon name="shopping-bag" size={24} /></div>
         <div className="mt-1 text-base font-extrabold text-white">
           로그인하고 포인트를 교환하세요
@@ -27,7 +27,7 @@ function GuestView() {
         </div>
         <Link
           href="/login?callbackUrl=/points/shop"
-          className="btn-primary mt-3 rounded-[12px] px-6 py-2.5 text-sm"
+          className="btn-primary mt-3 rounded-[10px] px-6 py-2.5 text-sm"
         >
           로그인하고 시작하기
         </Link>
@@ -35,7 +35,7 @@ function GuestView() {
 
       <div className="rise-in-1 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {SPEND_ITEMS.map((item) => (
-          <div key={item.key} className="card rounded-[16px] p-5 opacity-80">
+          <div key={item.key} className="card rounded-2xl p-5 opacity-80">
             <div className="text-sm font-extrabold text-ink">
               {item.label}
               {item.season && (
@@ -61,7 +61,7 @@ function GuestView() {
           <div className="text-sm font-extrabold text-primary">
             자료실 유료 리포트도 포인트로 구매
           </div>
-          <div className="mt-0.5 text-xs text-[#5b74b8]">
+          <div className="mt-0.5 text-xs text-text-2">
             이웃·전문가가 올린 유료 자료를 보유 포인트로 바로 열람해요
           </div>
         </div>
@@ -125,7 +125,7 @@ export default async function PointsShopPage() {
           <div className="text-sm font-extrabold text-primary">
             자료실 유료 리포트도 포인트로 구매
           </div>
-          <div className="mt-0.5 text-xs text-[#5b74b8]">
+          <div className="mt-0.5 text-xs text-text-2">
             이웃·전문가가 올린 유료 자료를 보유 포인트로 바로 열람해요
           </div>
         </div>

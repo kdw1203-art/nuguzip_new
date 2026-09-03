@@ -5,6 +5,8 @@
  * 각 페이지는 query string `?sub=xxx` 형태로 하위 카테고리 필터링
  */
 
+import { SPECIALTIES } from "@/lib/experts/taxonomy";
+
 export type SubCategory = {
   id: string;
   label: string;
@@ -134,61 +136,26 @@ export const GROUP_LIST_SUBCATEGORIES: SubCategory[] = MEETING_SUBCATEGORIES.fil
 );
 
 // ── 전문가 (크몽 스타일: 서비스 카테고리 그리드) ─────────────────
+/* [953] 분야 정의는 lib/experts/taxonomy.ts(SPECIALTIES) 한 곳으로 옮겼다 —
+   목록 필터·신청 폼·견적 카테고리·프로필 편집이 전부 같은 목록을 읽는다.
+   여기서는 목록 필터 칩이 쓰는 SubCategory 모양으로 감싼다.
+   "법무/계약 검토" 카테고리는 2026-08-12 토스 정책(법률 서비스 입점 불가)으로
+   제거된 상태를 유지한다 — taxonomy 에도 없다. */
 export const EXPERT_SUBCATEGORIES: SubCategory[] = [
   {
     id: "all",
     label: "전체",
     emoji: "👥",
     match: [],
-    description: "등록된 전문가를 최근 등록·상담 완료 순으로 봅니다. (평점·응답률 집계는 후기 연동 후 제공)",
+    description: "등록된 전문가를 인증 우선 · 후기 평점 · 최근 등록 순으로 봅니다.",
   },
-  {
-    id: "trade",
-    label: "매매/투자 상담",
-    emoji: "💰",
-    match: ["매매", "투자", "상담", "중개"],
-    description: "매매·투자 타이밍, 대출·레버리지 등 1:1 상담.",
-  },
-  /* [2026-08-12] "법무/계약 검토"(법무사·변호사 법률 자문) 상담 카테고리는 제거했다.
-     토스페이먼츠 상점 심사 정책상 **법률 서비스(변호사·법무사 상담)는 입점 불가**다
-     (계약 담당자 회신 명시). 계약서 검토·소송 대응 같은 유료 법률 상담을 전문가
-     상담 상품으로 제공하지 않는다. 계약 시 공인중개사·법무사 검토 "권고" 안내
-     (app/guides/contract 등)는 유료 상담이 아니라 일반 정보라 그대로 둔다. */
-  {
-    id: "appraisal",
-    label: "감정/시장분석",
-    emoji: "📊",
-    match: ["감정", "평가", "시장", "분석", "리포트"],
-    description: "감정평가·시장 리포트·단지 분석 전문가.",
-  },
-  {
-    id: "tax",
-    label: "세무/절세",
-    emoji: "🧾",
-    match: ["세무", "세금", "절세"],
-    description: "양도세·취득세·종부세 최적화 세무사.",
-  },
-  {
-    id: "subscription",
-    label: "청약 전략",
-    emoji: "🎯",
-    match: ["청약", "subscription", "가점"],
-    description: "청약 가점 분석·일정 컨설팅.",
-  },
-  {
-    id: "remodel",
-    label: "정비사업",
-    emoji: "🏗️",
-    match: ["정비", "재건축", "재개발", "조합"],
-    description: "재건축·재개발 조합·분양권 전문가.",
-  },
-  {
-    id: "loan",
-    label: "금융/대출",
-    emoji: "🏦",
-    match: ["대출", "금융", "담보"],
-    description: "주담대·전세대출 금리 비교·컨설팅.",
-  },
+  ...SPECIALTIES.map((s) => ({
+    id: s.id,
+    label: s.label,
+    emoji: "",
+    match: [s.label, ...s.match],
+    description: s.desc,
+  })),
 ];
 
 // ── 리포트 (토스증권 리포트 + 크몽 디지털 스타일) ────────────────

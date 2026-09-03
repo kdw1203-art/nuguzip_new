@@ -21,7 +21,7 @@ export default async function DevPartnerNewPage() {
 
   return (
     <PageShell breadcrumb="개발물건 중개 › 협력업체 등록" title="협력업체 등록">
-      <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-[#5b74b8]">
+      <div className="rise-in mb-4 rounded-xl bg-[rgba(29,79,216,.06)] px-4 py-3 text-[13px] leading-[1.7] text-text-2">
         우리 회사를 협력업체로 등록하면 디렉터리에 노출되고, 조건에 맞는{" "}
         <b>개발물건 매칭·참여 기회</b>를 안내받을 수 있어요. 내집나우는 소개·매칭만 담당하며,
         계약·정산은 당사자 간에 진행됩니다.

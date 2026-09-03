@@ -552,7 +552,7 @@ export function SearchClient() {
                         <div className="truncate t-sub text-text-3">{c.region}</div>
                       )}
                     </div>
-                    <span className="shrink-0 t-body text-[#c3cad6]">›</span>
+                    <span className="shrink-0 t-body text-on-dark-muted">›</span>
                   </Link>
                 ))}
               </div>

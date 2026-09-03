@@ -37,13 +37,13 @@ export default async function MyAnalysesPage() {
         </div>
 
         {failed ? (
-          <div className="card rounded-[16px] px-5 py-8 text-center t-body font-bold text-text-3">
+          <div className="card rounded-2xl px-5 py-8 text-center t-body font-bold text-text-3">
             기록을 불러오지 못했어요 — 없는 게 아니라 조회가 실패했습니다. 잠시 후 다시 시도해 주세요.
           </div>
         ) : runs.length === 0 ? (
-          <div className="card rounded-[16px] px-5 py-8 text-center">
+          <div className="card rounded-2xl px-5 py-8 text-center">
             <p className="t-body font-bold text-text-2">아직 실행한 분석이 없어요.</p>
-            <Link href="/analysis" className="btn-primary mt-3 inline-block rounded-[12px] px-4 py-2 t-body font-extrabold no-underline">
+            <Link href="/analysis" className="btn-primary mt-3 inline-block rounded-[10px] px-4 py-2 t-body font-extrabold no-underline">
               첫 분석 실행하기 ›
             </Link>
           </div>

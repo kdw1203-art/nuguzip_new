@@ -15,7 +15,7 @@
     "dev:clean": "npm run clean && next dev --turbopack",
     "dev:turbo": "next dev --turbopack",
     "check:env": "node ./scripts/validate-env.mjs",
-    "build": "npm run check:env && npm run check:tx-filters && npm run check:review-freeze && npm run check:ai-compliance && npm run check:moderation-filter && npm run check:import-hygiene && npm run check:type-ramp && npm run check:plan-labels && npm run test:unit && next build && npm run check:bundle-budget",
+    "build": "npm run check:env && npm run check:tx-filters && npm run check:review-freeze && npm run check:ai-compliance && npm run check:moderation-filter && npm run check:import-hygiene && npm run check:type-ramp && npm run check:plan-labels && npm run check:dead-controls && npm run check:route-links && npm run check:icon-names && npm run check:contrast-tokens && npm run test:unit && next build && npm run check:bundle-budget && npm run check:jsonld && npm run check:cache-policy",
     "start": "next start",
     "lint": "eslint .",
     "test": "node --import ./tests/unit/register.mjs --test \"tests/unit/*.test.ts\"",

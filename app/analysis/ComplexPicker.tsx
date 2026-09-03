@@ -256,7 +256,7 @@ export function ComplexPicker({
       </div>
 
       {open && items.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-[12px] border border-line bg-surface shadow-[0_14px_36px_rgba(16,28,54,.16)]">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-[10px] border border-line bg-surface shadow-[0_14px_36px_rgba(16,28,54,.16)]">
           {items.map((s) => (
             <button
               key={s.id}
@@ -274,7 +274,7 @@ export function ComplexPicker({
       {loading && <span className="text-[10px] text-text-3">검색 중…</span>}
 
       {showChip && selected && (
-        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 rounded-[12px] bg-primary-soft px-3 py-2">
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 rounded-[10px] bg-primary-soft px-3 py-2">
           <span className="text-xs font-extrabold text-primary">{selected.name}</span>
           {selected.regionLabel && (
             <span className="text-[10px] font-bold text-text-2">{selected.regionLabel}</span>

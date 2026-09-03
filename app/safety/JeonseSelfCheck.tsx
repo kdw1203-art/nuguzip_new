@@ -177,7 +177,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
 
   return (
     <section id={SELF_CHECK_ANCHOR_ID} className="mt-5 scroll-mt-[72px]">
-      <div className="card flex flex-col gap-4 rounded-[20px] p-[22px]">
+      <div className="card flex flex-col gap-4 rounded-[18px] p-[22px]">
         {/* 헤더 */}
         <div className="flex items-start gap-2.5">
           <span
@@ -321,7 +321,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
               {result.indicators.map((ind) => (
                 <div
                   key={ind.key}
-                  className="rounded-[12px] border border-line bg-surface px-3.5 py-3"
+                  className="rounded-[10px] border border-line bg-surface px-3.5 py-3"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -350,7 +350,7 @@ export function JeonseSelfCheck({ subject }: { subject?: string | null }) {
             </div>
 
             {/* 실행 팁 */}
-            <div className="rounded-[12px] bg-bg px-4 py-3">
+            <div className="rounded-[10px] bg-bg px-4 py-3">
               <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-extrabold text-ink">
                 <Icon name="check" size={14} /> 계약 전 실행 팁
               </div>
