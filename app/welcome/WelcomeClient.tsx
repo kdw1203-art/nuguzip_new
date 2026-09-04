@@ -1,5 +1,8 @@
 "use client";
 
+import { Stepper } from "@/app/components/ui/Stepper";
+import { BrandSloganBand } from "@/app/components/BrandSloganBand";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -205,19 +208,13 @@ export function WelcomeClient() {
     >
       {/* 헤더 — progress dots + 건너뛰기 (항상 노출) */}
       <div className="flex items-center justify-between">
-        <div
-          className="flex items-center gap-1.5"
-          aria-label={`온보딩 ${step + 1} / ${STEP_IDS.length} 단계`}
-        >
-          {STEP_IDS.map((id, i) => (
-            <span
-              key={id}
-              className={`h-1.5 rounded-full transition-all ${
-                i === step ? "w-5 bg-primary" : i < step ? "w-1.5 bg-primary" : "w-1.5 bg-line"
-              }`}
-            />
-          ))}
-        </div>
+        {/* [961] 온점이 선을 타고 채워지는 단계 표시 */}
+        <Stepper
+          count={STEP_IDS.length}
+          current={step}
+          className="max-w-[160px]"
+          label={`온보딩 ${step + 1} / ${STEP_IDS.length} 단계`}
+        />
         <Link
           href={`${HOME_CTA_NOTE.href}?from=welcome&intent=ai`}
           className="text-[13px] text-text-3"
@@ -228,6 +225,8 @@ export function WelcomeClient() {
 
       {step === 0 && (
         <>
+          {/* [962] 첫 화면의 첫 줄은 브랜드 — 한지 띠 위 세리프 슬로건 */}
+          <BrandSloganBand className="rise-in" />
           <h1 className="rise-in text-[21px] font-extrabold leading-[1.35] text-ink">
             어느 동네가
             <br />

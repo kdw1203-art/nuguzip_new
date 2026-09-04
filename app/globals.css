@@ -204,6 +204,18 @@
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1); /* 등장·전환 기본 */
   --ease-inout: cubic-bezier(0.45, 0, 0.25, 1); /* 왕복·모프·패럴랙스 */
   /* 하위호환 별칭 */
+  /* [961] 온점 모션 언어 — 브랜드 모션 시스템 v1.0 · 인터랙션 라이브러리 v2.0.
+     탭·선택은 pop(살짝 넘쳤다 돌아옴), 등장·호버는 out(빠르게 붙고 부드럽게 멈춤).
+     주홍 점 하나가 로딩·저장·분석·알림 어디서든 "지금 무슨 일이 일어나는 중"을 말한다. */
+  --njn-pop: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --njn-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --njn-dur-tap: 180ms;
+  --njn-dur-pulse: 480ms;
+  --njn-dur-breathe: 1.6s;
+  --njn-hover-lift: -6px;
+  --njn-hover-shadow: 0 14px 30px rgba(11, 37, 69, 0.16);
+  --njn-glass-blur: 9px;
+  --njn-glass-bg: rgba(246, 241, 231, 0.14);
   --dur-tap: var(--dur-xs);
   --dur-ui: var(--dur-sm);
   --dur-page: var(--dur-md);
@@ -537,6 +549,34 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 .btn-primary:hover {
   background: var(--primary-strong);
 }
+/* [961] 버튼 4상태(인터랙션 라이브러리 02) — 기본 → 잉크 번짐(탭) → 진행(흐린 블루,
+   조작 잠금) → 완료(네이비 + 체크가 그려짐) / 실패(주홍 + 좌우 흔들림).
+   클래스만 토글하면 된다: .is-busy / .is-done / .is-error. 사용자는 문구를 읽기 전에
+   색으로 결과를 안다. 진행·완료·실패는 opacity 를 쓰지 않는다(디자인 시스템 규칙).
+   :disabled 보다 뒤에 와야 하므로 아래 disabled 규칙에도 같은 값을 다시 적는다. */
+.btn-primary.is-busy,
+.btn-primary.is-busy:disabled {
+  background: color-mix(in srgb, var(--primary) 72%, #fff);
+  color: #fff;
+  pointer-events: none;
+  transform: none;
+  box-shadow: none;
+}
+.btn-primary.is-done,
+.btn-primary.is-done:disabled {
+  background: var(--brand-navy);
+  color: var(--on-dark);
+}
+.btn-primary.is-error {
+  background: var(--brand-red);
+  color: #fff;
+  animation: njnShake 420ms linear;
+}
+.njn-check path {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 26;
+  animation: njnDraw 340ms var(--njn-out) forwards;
+}
 .btn-primary:active {
   transform: scale(0.98);
 }
@@ -707,10 +747,12 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   white-space: nowrap;
 }
 .chip-active {
-  background: var(--ink);
-  /* [#89] #fff 하드코딩이 다크에서 잉크(밝음)+흰 글자 = 투명 칩을 만들었다.
-     surface 는 라이트 #fff 그대로, 다크에선 어두운 면이라 양쪽 모두 대비 확보. */
-  color: var(--surface);
+  /* [962] 잉크 채움 → 한지 + 남색(홈 시안 "선택 칩·점수: 연블루 → 한지 — 브랜드 온기").
+     다크에서는 --brand-hanji 가 어두운 웜 서피스(#262119), 글자가 한지색이 돼 대비가 유지된다.
+     테두리를 남색으로 둬 옆의 비활성 칩(흰 면)과 형태로도 구분된다. */
+  background: var(--brand-hanji);
+  color: var(--brand-hanji-ink);
+  border-color: var(--brand-hanji-ink) !important;
   font-weight: 700;
 }
 .chip-soft {
@@ -845,15 +887,34 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 /* ---------- 15d 토스트 · 툴팁 · 구분선 · 테이블 · 배너 ---------- */
 /* 토스트: 탭바 위 12px · 3초 · 동시 1개 · 액션 링크 최대 1개 */
 .toast {
-  background: rgba(25, 31, 40, 0.96);
-  border-radius: 12px;
-  color: #fff;
+  /* [961] 잉크 → 브랜드 네이비, 글자는 한지, 앞에 숨쉬는 온점(모션 시스템 07) */
+  background: var(--brand-navy);
+  border-radius: 13px;
+  color: var(--brand-hanji);
+  border: 1px solid rgba(246, 241, 231, 0.1);
   box-shadow: var(--shadow-lg);
-  animation: toastIn var(--dur-sm) var(--ease-out) backwards;
+  animation: toastIn 340ms var(--njn-pop) backwards;
+}
+.toast[data-leaving="true"] {
+  animation: toastOut var(--dur-sm) var(--ease-out) forwards;
+}
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--brand-red-on-dark);
+  animation: njnBreathe var(--njn-dur-breathe) var(--ease-inout) infinite;
 }
 .toast-action {
-  color: var(--ai-accent);
-  font-weight: 700;
+  color: #8fb3ff; /* 네이비 위 링크 파랑 — 한지 위 --primary 는 대비가 모자란다 */
+  font-weight: 800;
 }
 /* 툴팁: 잉크 배경 · 최대 2줄 · 링크·버튼 포함 금지 */
 .tooltip {
@@ -938,7 +999,23 @@ body:has(textarea:focus-visible) .tabbar-autohide {
    테마 모두 "어두운 네이비 밴드 위 흰 글자" 설계이므로, 라이트에선 잉크 그대로,
    다크에선 살짝 들어올린 어두운 면으로 고정한다. 글자(text-white/70)는 그대로 산다. */
 .ticker-surface {
-  background: var(--ink);
+  /* [962] 어두운 면 = 네이비(브랜드 규칙). 앞머리에 "지금" 온점 칩이 붙는다(HomeTicker) */
+  background: var(--brand-navy);
+}
+.ticker-now {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 0 14px;
+  background: var(--brand-navy);
+  color: var(--on-dark);
+  font-size: 10px; /* 램프 caption */
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  box-shadow: 8px 0 12px var(--brand-navy);
 }
 .dark .ticker-surface {
   background: #1b2334;
@@ -1027,7 +1104,7 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -1125,9 +1202,10 @@ body:has(textarea:focus-visible) .tabbar-autohide {
 
 .skeleton {
   border-radius: 6px;
-  background: linear-gradient(90deg, #eef1f6 25%, #f7f9fc 50%, #eef1f6 75%);
+  /* [961] 손으로 적은 hex → 토큰(다크에서도 맞는다). 시머 리듬은 온점 시스템 1.3s */
+  background: linear-gradient(90deg, var(--divider) 25%, var(--bg) 50%, var(--divider) 75%);
   background-size: 720px 100%;
-  animation: shimmer 1.2s linear infinite;
+  animation: shimmer 1.3s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1522,8 +1600,9 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   width: 100%;
   transform-origin: left center;
   border-radius: 0 3px 3px 0;
-  background: var(--grad-brand);
-  box-shadow: var(--shadow-glow);
+  /* [961] 파랑 그라데이션 → 주홍 온점 언어(모션 스펙 01 '바 — 상단 페이지 전환').
+     페이지가 바뀌는 중 = "지금" 신호 */
+  background: var(--brand-red);
   /* 진행률을 알 수 없으므로 "점점 느려지며 80% 에서 멈추는" 곡선을 쓴다.
      100% 까지 스스로 가면 아직 안 끝났는데 끝난 것처럼 보인다. */
   animation: navProgress 7s var(--ease-out) forwards;
@@ -1571,15 +1650,22 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   }
 }
 .moment-card {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 28px 34px;
+  min-width: 250px;
+  max-width: min(320px, calc(100vw - 48px));
+  padding: 30px 34px 26px;
   border-radius: 24px;
-  background: var(--surface);
+  /* [961] 흰 카드 + 파랑 링 → 네이비 면 + 온점 심볼 도장(인터랙션 라이브러리 03·05).
+     "축하"보다 "약속"에 가까운 감각 — 인생 최대 지출을 다루는 서비스라 폭죽을 쓰지 않는다. */
+  background: var(--brand-navy);
+  border: 1px solid rgba(246, 241, 231, 0.1);
   box-shadow: var(--shadow-lg);
-  animation: momentCardIn var(--dur-md) var(--ease-out) both;
+  animation: momentCardIn var(--dur-md) var(--njn-pop) both;
 }
 @keyframes momentCardIn {
   from {
@@ -1591,43 +1677,125 @@ body:has(textarea:focus-visible) .tabbar-autohide {
     transform: scale(1);
   }
 }
-/* 링 그리기 — r30 원의 둘레는 2*pi*30 = 188.5 */
-.moment-ring {
-  stroke-dasharray: 189;
-  stroke-dashoffset: 189;
-  animation: momentDraw 520ms var(--ease-out) 120ms forwards;
+.moment-card > * {
+  position: relative;
 }
-/* 체크 획 — 경로 길이 약 44 */
-.moment-check {
-  stroke-dasharray: 44;
-  stroke-dashoffset: 44;
-  animation: momentDraw 320ms var(--ease-out) 520ms forwards;
-}
-@keyframes momentDraw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-/* 링이 다 그려지는 순간 한 번 퍼지는 잔물결 */
-.moment-halo {
+/* 심볼이 크게 날아와 도장처럼 안착한다(0.7s pop) */
+.moment-seal {
+  opacity: 0;
   transform-origin: center;
-  animation: momentHalo 620ms var(--ease-out) 560ms both;
+  animation: njnSeal 700ms var(--njn-pop) 100ms forwards;
 }
-@keyframes momentHalo {
-  from {
-    opacity: 0.45;
-    transform: scale(0.94);
-  }
-  to {
+@keyframes njnSeal {
+  0% {
+    transform: scale(2.6) rotate(-14deg);
     opacity: 0;
-    transform: scale(1.5);
+  }
+  55% {
+    transform: scale(0.92) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+/* 파문 두 겹 — 도장이 찍히는 순간 */
+.moment-ripple {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 70px;
+  height: 70px;
+  margin: -35px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-red-on-dark);
+  opacity: 0;
+  pointer-events: none;
+}
+.moment-card[data-kind="celebrate"] .moment-ripple {
+  animation: njnBigRing 1.3s ease-out 150ms;
+}
+.moment-card[data-kind="celebrate"] .moment-ripple + .moment-ripple {
+  animation-delay: 350ms;
+}
+@keyframes njnBigRing {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.4);
+  }
+}
+/* 절제된 조각 — 한지·주홍·회청 22개, 위치는 컴포넌트가 정한다(결정적) */
+.moment-conf {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  animation: njnConfetti 1.5s ease-out forwards;
+}
+@keyframes njnConfetti {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0) scale(0.5);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1);
   }
 }
 .moment-title {
-  animation: riseIn var(--dur-md) var(--ease-out) 620ms backwards;
+  color: var(--on-dark);
+  animation: njnFadeUp 450ms ease-out 550ms backwards;
 }
 .moment-sub {
-  animation: riseIn var(--dur-md) var(--ease-out) 700ms backwards;
+  color: var(--on-dark-muted);
+  animation: njnFadeUp 450ms ease-out 700ms backwards;
+}
+/* 슬로건 한 줄 — 세리프(서브셋 로드) · 마침표는 주홍 온점 */
+.moment-slogan {
+  font-family: "Noto Serif KR", "Nanum Myeongjo", Batang, serif;
+  font-size: 12px; /* 램프 sub */
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  padding-left: 0.18em;
+  color: var(--on-dark-faint);
+  animation: njnFadeUp 450ms ease-out 820ms backwards;
+}
+.moment-slogan i {
+  font-style: normal;
+  color: var(--brand-red-on-dark);
+  font-weight: 700;
+}
+.moment-pill {
+  margin-top: 4px;
+  padding: 7px 15px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-hanji);
+  color: var(--brand-hanji-ink);
+  font-size: 12px; /* 램프 sub */
+  font-weight: 800;
+  animation: njnFadeUp 450ms ease-out 880ms backwards;
+}
+@keyframes njnFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ---------- 3.5 빈 공간 자동 정리 (data-autotrim) ---------- */
@@ -1694,26 +1862,27 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
   border-radius: 50%;
-  background: currentColor;
+  /* [961] 회색 리플 → 한지색 잉크(브랜드 모션 03 "잉크가 번지듯"). */
+  background: rgba(246, 241, 231, 0.55);
   opacity: 0;
-  transform: scale(1);
+  transform: scale(0);
   pointer-events: none;
 }
 .tap-ripple:active::after {
-  animation: tapRipple 420ms var(--ease-out);
+  animation: tapRipple 550ms ease-out;
 }
 @keyframes tapRipple {
   from {
-    opacity: 0.28;
-    transform: scale(1);
+    opacity: 1;
+    transform: scale(0);
   }
   to {
     opacity: 0;
-    transform: scale(16);
+    transform: scale(18);
   }
 }
 
@@ -1763,20 +1932,25 @@ body:has(textarea:focus-visible) .tabbar-autohide {
   }
   .moment-title,
   .moment-sub,
-  .moment-halo,
+  .moment-slogan,
+  .moment-pill,
+  .moment-ripple,
+  .moment-conf,
+  .toast-dot,
   .nav-progress-bar,
   .pending-bar::after,
-  .tap-ripple:active::after {
+  .tap-ripple:active::after,
+  .btn-primary.is-error {
     animation: none;
   }
   /* 그림은 그려진 결과만 즉시 보여 준다 */
-  .moment-ring,
-  .moment-check {
+  .moment-seal {
+    animation: none;
+    opacity: 1;
+  }
+  .njn-check path {
     animation: none;
     stroke-dashoffset: 0;
-  }
-  .moment-halo {
-    opacity: 0;
   }
   .nav-progress-bar {
     transform: scaleX(0.6);
@@ -2202,7 +2376,8 @@ a.rank-row:hover {
 /* ---------- 게이지 호 그리기 ---------- */
 .gauge-arc {
   stroke-dasharray: 1000;
-  animation: arcDraw 900ms var(--ease-out) both;
+  /* [961] 온도는 차오른다 — 1.1s, 온점 out 이징(모션 시스템 06) */
+  animation: arcDraw 1.1s var(--njn-out) both;
 }
 @keyframes arcDraw {
   from {
@@ -2672,10 +2847,19 @@ a.rank-row:hover {
 
 /* 활동 1위 동네 칩 — 열기(웜 그라디언트 테두리) */
 .chip-heat {
+  /* [962] 그라데이션 테두리 → 한지 칩 + 앞의 주홍 온점("지금 가장 활발한"을 온점 언어로) */
   border-color: transparent !important;
-  background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    linear-gradient(120deg, var(--brand-navy), var(--brand-red)) border-box;
+  background: var(--brand-hanji) !important;
+  color: var(--brand-hanji-ink) !important;
+}
+.chip-heat::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--brand-red);
+  animation: njnBreathe 2.4s var(--ease-inout) infinite;
 }
 
 /* ── 피드 카드 살아나기 — 커버 줌 + NEW 배지 ── */
@@ -2716,19 +2900,7 @@ a.rank-row:hover {
   }
 }
 
-/* 글쓰기 FAB 숨쉬기 — "여기가 시작점"이라는 가장 조용한 신호 */
-.fab-breathe {
-  animation: fabBreathe 3.4s var(--ease-inout) infinite;
-}
-@keyframes fabBreathe {
-  0%,
-  100% {
-    box-shadow: 0 10px 24px rgba(29, 79, 216, 0.45);
-  }
-  50% {
-    box-shadow: 0 12px 34px rgba(29, 79, 216, 0.62);
-  }
-}
+/* [961] .fab-breathe(파랑 그림자 호흡)는 .njn-fab(네이비 + 주홍 파문)로 대체 — 사용처 0 */
 
 /* ── AI 분석 허브 — 도구 카드 글로우 + 스파크라인 드로우 ── */
 @media (hover: hover) and (pointer: fine) {
@@ -2761,14 +2933,14 @@ a.rank-row:hover {
   z-index: 120;
   transform-origin: left center;
   transform: scaleX(0);
-  background: var(--grad-brand);
+  /* [962] 읽기 진행 = 온점이 글을 따라 읽는다 — 파랑 그라데이션 → 주홍 */
+  background: var(--brand-red);
   pointer-events: none;
 }
 
 /* [945-G] 신규 모션 해제 — 규약: 새 애니메이션은 반드시 여기 등록 */
 @media (prefers-reduced-motion: reduce) {
   .badge-new::before,
-  .fab-breathe,
   .spark-line {
     animation: none;
   }
@@ -2881,5 +3053,775 @@ a.rank-row:hover {
   .njn-dot--breathe,
   .empty-dot-breathe {
     animation: none;
+  }
+}
+
+/* ============================================================
+   [961] 온점 인터랙션 라이브러리 — 모션 시스템 v1.0 · 인터랙션 라이브러리 v2.0 적용
+   원칙: 모든 모션이 온점(주홍 점) 하나에서 나온다. 로딩·저장·분석·알림이 같은 점이
+   형태만 바꿔 말하므로, 사용자는 배우지 않아도 "주홍 점 = 지금 무슨 일이 일어나는 중"
+   을 익힌다. 값은 :root 의 --njn-* 토큰. 모든 애니메이션은 블록 하단 reduced-motion
+   에 등록한다(규약).
+   ============================================================ */
+
+/* ── 공용 키프레임 ── */
+@keyframes njnRing {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+@keyframes njnPop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes njnDrip {
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1);
+  }
+  35% {
+    transform: scaleY(1.5) scaleX(0.8) translateY(-3px);
+  }
+  70% {
+    transform: scaleY(0.85) scaleX(1.15);
+  }
+}
+@keyframes njnOrbit {
+  from {
+    transform: rotate(0) translateX(19px) rotate(0);
+  }
+  to {
+    transform: rotate(360deg) translateX(19px) rotate(-360deg);
+  }
+}
+@keyframes njnWave {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-9px);
+    opacity: 1;
+  }
+}
+@keyframes njnSlide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(330%);
+  }
+}
+@keyframes njnShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+@keyframes njnDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes njnFabRing {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  60%,
+  100% {
+    opacity: 0;
+    transform: scale(1.65);
+  }
+}
+
+/* ── 01 로딩 인디케이터 5종 — 상황별로 골라 쓰되 모두 같은 주홍 점 언어 ──
+   호흡(.njn-dot--breathe, 인라인·짧은 대기) · 궤도(.njn-orbit, 전체화면·브랜드) ·
+   파동(.njn-wave, 목록·피드) · 링(.njn-ring, 버튼 내부·소형) · 바(.njn-bar, 상단) */
+.njn-orbit {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex: none;
+}
+.njn-orbit .eave {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-symbol-ink);
+}
+.njn-orbit .o {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px;
+  border-radius: 50%;
+  background: var(--brand-red-on-dark);
+  animation: njnOrbit 1.5s linear infinite;
+}
+.njn-orbit--light .eave {
+  color: var(--brand-symbol-ink);
+}
+.njn-orbit--light .o {
+  background: var(--brand-red);
+}
+.njn-wave {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+.njn-wave i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--brand-red);
+  animation: njnWave 1.1s var(--ease-inout) infinite;
+}
+.njn-wave i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.njn-wave i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+.njn-ring {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(246, 241, 231, 0.35);
+  border-top-color: var(--brand-hanji);
+  animation: spin 0.7s linear infinite;
+  vertical-align: -2px;
+  flex: none;
+}
+.njn-ring--ink {
+  border-color: var(--divider);
+  border-top-color: var(--brand-red);
+}
+.njn-ring--lg {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+.njn-bar {
+  position: relative;
+  width: 130px;
+  max-width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--divider);
+  overflow: hidden;
+}
+.njn-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--brand-red);
+  animation: njnSlide 1.3s var(--njn-out) infinite;
+}
+.njn-dot--drip {
+  animation: njnDrip 1.1s var(--ease-inout) infinite;
+  transform-origin: center bottom;
+}
+/* 전체화면 대기 — 네이비 94% 위에 궤도 온점과 한 줄. 지도·실거래처럼 긴 로드에만 */
+.njn-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  background: rgba(11, 37, 69, 0.94);
+  color: var(--on-dark-muted);
+  font-size: 12px; /* 램프 sub */
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.njn-overlay .njn-orbit .eave {
+  color: var(--brand-hanji);
+}
+
+/* ── 03 로그인 — 떠오르는 라벨 · 실패 흔들림 ── */
+.njn-field {
+  position: relative;
+}
+.njn-field input {
+  width: 100%;
+  padding: 17px 14px 7px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px; /* 램프 body */
+  outline: none;
+  transition:
+    border-color var(--dur-sm) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out);
+}
+.njn-field input:focus {
+  border-color: var(--brand-navy);
+  box-shadow: 0 0 0 3px rgba(11, 37, 69, 0.08);
+}
+.njn-field label {
+  position: absolute;
+  left: 14px;
+  top: 13px;
+  font-size: 13px; /* 램프 body */
+  color: var(--text-3);
+  pointer-events: none;
+  transition: all var(--dur-sm) var(--njn-out);
+}
+.njn-field input:focus + label,
+.njn-field input:not(:placeholder-shown) + label {
+  top: 5px;
+  font-size: 10px; /* 램프 caption */
+  font-weight: 700;
+  color: var(--brand-navy);
+}
+.njn-shake {
+  animation: njnShake 420ms linear;
+}
+
+/* ── 04 호버 — 카드 부양 + 주홍 밑줄 · 글래스 · 기울임 · 자석 (데스크톱·hover 기기만) ── */
+.njn-card-bar {
+  display: block;
+  height: 2px;
+  width: 0;
+  background: var(--brand-red);
+  transition: width 350ms var(--njn-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .tile:hover .njn-card-bar,
+  .card:hover .njn-card-bar {
+    width: 100%;
+  }
+  .njn-lift {
+    transition:
+      transform var(--dur-md) var(--njn-out),
+      box-shadow var(--dur-md) var(--njn-out);
+  }
+  .njn-lift:hover {
+    transform: translateY(var(--njn-hover-lift));
+    box-shadow: var(--njn-hover-shadow);
+  }
+  .njn-zoom img,
+  .njn-zoom > .njn-zoom-target {
+    transition: transform 450ms var(--njn-out);
+  }
+  .njn-zoom:hover img,
+  .njn-zoom:hover > .njn-zoom-target {
+    transform: scale(1.13);
+  }
+  /* 글래스 — 사진·지도 위에서만. 블러 + 한지 14% + 액션 등장 */
+  .njn-glass {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    background: var(--njn-glass-bg);
+    backdrop-filter: blur(var(--njn-glass-blur));
+    -webkit-backdrop-filter: blur(var(--njn-glass-blur));
+    transition: opacity 350ms ease;
+    pointer-events: none;
+  }
+  .njn-glass > span {
+    padding: 8px 15px;
+    border-radius: var(--radius-pill);
+    background: var(--brand-hanji);
+    color: var(--brand-hanji-ink);
+    font-size: 12px; /* 램프 sub */
+    font-weight: 800;
+    transform: scale(0.85);
+    transition: transform 350ms var(--njn-pop);
+  }
+  .group:hover .njn-glass,
+  .njn-glass-host:hover > .njn-glass {
+    opacity: 1;
+  }
+  .group:hover .njn-glass > span,
+  .njn-glass-host:hover > .njn-glass > span {
+    transform: scale(1);
+  }
+  .njn-tilt {
+    transition: transform 180ms var(--njn-out);
+    transform-style: preserve-3d;
+  }
+  .njn-magnet {
+    transition: transform 200ms var(--njn-out);
+  }
+}
+
+/* ── 05 지도 마커 — 핀 안에 처마와 온점. 선택하면 온점이 한 번 파문을 그린다 ── */
+.njn-pin {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 36px;
+  transition: transform 200ms var(--njn-pop);
+}
+.njn-pin:active {
+  transform: scale(0.92);
+}
+.njn-pin .njn-pin-ring {
+  position: absolute;
+  left: 50%;
+  top: 57%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-red-on-dark);
+  opacity: 0;
+  pointer-events: none;
+}
+.njn-pin.is-selected {
+  transform: scale(1.14);
+}
+.njn-pin.is-selected .njn-pin-ring {
+  animation: njnRing 700ms ease-out;
+}
+
+/* ── 06 FAB · 토글 · 관심 · 단계 ── */
+.njn-fab {
+  position: relative;
+  background: var(--brand-navy);
+  color: var(--on-dark);
+  box-shadow: 0 6px 18px rgba(11, 37, 69, 0.3);
+  transition: transform 220ms var(--njn-pop);
+}
+.njn-fab::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--brand-red-on-dark);
+  opacity: 0;
+  animation: njnFabRing 2.6s ease-out infinite;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .njn-fab:hover {
+    transform: scale(1.08);
+  }
+  .njn-fab[data-glyph="plus"]:hover {
+    transform: scale(1.08) rotate(90deg);
+  }
+}
+.njn-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 25px;
+  flex: none;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+  transition: background var(--dur-md) var(--ease-out);
+}
+.njn-switch[data-on="true"] {
+  background: var(--brand-navy);
+}
+.njn-switch i {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition:
+    transform var(--dur-md) var(--njn-pop),
+    background var(--dur-md) var(--ease-out);
+}
+.njn-switch[data-on="true"] i {
+  transform: translateX(19px);
+  background: var(--brand-red-on-dark);
+}
+.njn-burst {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-red);
+  opacity: 0;
+  pointer-events: none;
+  animation: njnBigRing 600ms ease-out;
+}
+.njn-stepper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.njn-stepper .sdot {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--border-strong);
+  transition:
+    background var(--dur-md) var(--njn-pop),
+    transform var(--dur-md) var(--njn-pop);
+}
+.njn-stepper .sdot[data-on="true"] {
+  background: var(--brand-red);
+  transform: scale(1.25);
+}
+.njn-stepper .sline {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+.njn-stepper .sline i {
+  position: absolute;
+  inset: 0;
+  background: var(--brand-red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 500ms var(--njn-out);
+}
+.njn-stepper .sline[data-on="true"] i {
+  transform: scaleX(1);
+}
+
+/* ── AI 분석 진행 — 진행률 바 대신 '무엇을 보고 있는지'(모션 시스템 05) ── */
+.run-step[data-state="active"] {
+  border-color: var(--brand-navy);
+  color: var(--brand-navy);
+  background: var(--brand-hanji);
+}
+.run-step[data-state="active"] .run-dot {
+  background: var(--brand-red);
+  animation: njnBreathe var(--njn-dur-breathe) var(--ease-inout) infinite;
+}
+.run-step[data-state="done"] {
+  color: var(--brand-navy);
+  border-color: var(--brand-navy);
+}
+.run-panel {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 16px;
+}
+.run-panel .stp {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px; /* 램프 sub */
+  color: var(--text-3);
+  transition: color var(--dur-md) var(--ease-out);
+}
+.run-panel .stp .box {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  border-radius: 5px;
+  border: 1.6px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--dur-md) var(--ease-out);
+}
+.run-panel .stp[data-on="true"] {
+  color: var(--brand-navy);
+  font-weight: 700;
+}
+.run-panel .stp[data-on="true"] .box {
+  border-color: var(--brand-navy);
+  background: var(--brand-navy);
+}
+.run-panel .stp .box svg {
+  opacity: 0;
+  transition: opacity var(--dur-sm) var(--ease-out);
+}
+.run-panel .stp[data-on="true"] .box svg {
+  opacity: 1;
+}
+
+/* ── 광고 공간(961) — 라벨 + 애드센스 유닛 + 채워지지 않으면 하우스 광고 ──
+   애드센스는 <ins> 에 data-ad-status="filled|unfilled" 를 적는다. 채워지면 대체 카드를
+   숨기고, 안 채워지면 빈 <ins> 를 숨긴다 — 어느 쪽이든 빈 상자는 남지 않는다. */
+.ad-zone ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
+}
+.ad-zone:has(ins.adsbygoogle[data-ad-status="filled"]) .ad-zone-fallback {
+  display: none;
+}
+/* "광고" 라벨은 유닛이 실제로 채워졌을 때만 — 빈 <ins> 위에 라벨만 떠 있으면 빈 상자다 */
+.ad-zone-label {
+  display: none;
+  font-size: 10px; /* 램프 caption */
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+.ad-zone:has(ins.adsbygoogle[data-ad-status="filled"]) .ad-zone-label {
+  display: block;
+}
+
+/* ── 스플래시(PWA 홈 화면 실행) — 처마가 그어지고 → 온점이 떨어지고 → 이름이 뜬다 ── */
+.njn-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: var(--brand-navy);
+  animation: njnSplashOut 300ms ease-out 1.5s forwards;
+  pointer-events: none;
+}
+.njn-splash .sp-eave {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: njnEaveDraw 620ms var(--ease-inout) forwards;
+}
+.njn-splash .sp-dot {
+  opacity: 0;
+  animation: njnDotDrop 500ms var(--njn-pop) 500ms forwards;
+}
+.njn-splash .sp-wm {
+  opacity: 0;
+  font-weight: 700;
+  font-size: 19px; /* 램프 title */
+  letter-spacing: 0.1em;
+  padding-left: 0.1em;
+  color: var(--brand-hanji);
+  animation: njnFadeUp 500ms ease-out 860ms forwards;
+}
+@keyframes njnEaveDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes njnDotDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.4);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(2px) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes njnSplashOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* 헤더 로고 — 호버·탭에 온점이 한 번 튄다(480ms pop) */
+@media (hover: hover) and (pointer: fine) {
+  .njn-logo:hover .brand-dot-el {
+    animation: njnPop var(--njn-dur-pulse) cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: 60px 86px;
+  }
+}
+
+/* [961] 신규 모션 해제 등록 — 규약 */
+@media (prefers-reduced-motion: reduce) {
+  .njn-orbit .o,
+  .njn-wave i,
+  .njn-ring,
+  .njn-bar i,
+  .njn-dot--drip,
+  .njn-shake,
+  .njn-fab::after,
+  .njn-burst,
+  .njn-pin.is-selected .njn-pin-ring,
+  .run-step[data-state="active"] .run-dot,
+  .njn-splash .sp-eave,
+  .njn-splash .sp-dot,
+  .njn-splash .sp-wm,
+  .njn-logo:hover .brand-dot-el {
+    animation: none;
+  }
+  .njn-splash {
+    display: none;
+  }
+  .njn-lift:hover,
+  .njn-zoom:hover img,
+  .njn-tilt,
+  .njn-magnet,
+  .njn-pin.is-selected {
+    transform: none;
+  }
+  .njn-card-bar,
+  .njn-switch i,
+  .njn-stepper .sdot,
+  .njn-stepper .sline i,
+  .njn-field label {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   [962] 온점 언어 응용 — 탭바·알림·도장·선택·로딩 힌트·워터마크·당겨서 새로고침
+   ============================================================ */
+/* 글자 선택 = 한지 위 남색 — 드래그하는 순간에도 브랜드 */
+::selection {
+  background: var(--brand-hanji);
+  color: var(--brand-hanji-ink);
+}
+.dark ::selection {
+  background: rgba(246, 241, 231, 0.24);
+  color: var(--brand-hanji);
+}
+
+/* 탭이 바뀌면 온점이 한 번 튄다 */
+.njn-pop-once {
+  animation: njnPop var(--njn-dur-pulse) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 알림 배지 — 주홍 온점 + 처음 나타날 때 파문 한 번 */
+.njn-badge {
+  background: var(--brand-red);
+  color: #fff;
+}
+.njn-badge::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid var(--brand-red);
+  opacity: 0;
+  animation: njnBigRing 900ms ease-out 200ms;
+}
+
+/* 도장 — "다녀왔다"는 흔적. 임장노트의 직접 방문 표식(주홍 이중 테두리 + 살짝 기운 각도) */
+.njn-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border: 1.5px solid var(--brand-red);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1.5px var(--brand-hanji), inset 0 0 0 2.5px var(--brand-red);
+  background: var(--brand-hanji);
+  color: var(--brand-red);
+  font-size: 12px; /* 램프 sub */
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  transform: rotate(-4deg);
+  transform-origin: center;
+}
+.njn-stamp .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-red);
+}
+.njn-stamp--flat {
+  transform: none;
+}
+
+/* 로딩 힌트 — 스켈레톤 위에 "지금 불러오는 중" 한 줄(온점이 숨쉰다) */
+.njn-loading-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px; /* 램프 sub */
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+/* 네이비 히어로 워터마크 — brand-navy-card 뿐 아니라 hub-hero 에서도 */
+.hub-hero .brand-wm {
+  position: absolute;
+  right: -22px;
+  top: -14px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* 당겨서 새로고침(standalone) — 스피너 대신 온점이 물방울처럼 늘어난다 */
+.njn-ptr {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 0;
+  overflow: hidden;
+  background: var(--brand-hanji);
+  color: var(--brand-hanji-ink);
+  font-size: 12px; /* 램프 sub */
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: height 200ms var(--njn-out);
+}
+.njn-ptr[data-state="pull"],
+.njn-ptr[data-state="refresh"] {
+  height: 56px;
+}
+.njn-ptr .njn-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--brand-red);
+}
+.njn-ptr[data-state="refresh"] .njn-dot {
+  animation: njnDrip 1.1s var(--ease-inout) infinite;
+  transform-origin: center bottom;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .njn-pop-once,
+  .njn-badge::after,
+  .chip-heat::before,
+  .njn-ptr[data-state="refresh"] .njn-dot {
+    animation: none;
+  }
+  .njn-stamp {
+    transform: none;
+  }
+  .njn-ptr {
+    transition: none;
   }
 }

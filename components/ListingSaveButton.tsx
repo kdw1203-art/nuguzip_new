@@ -76,11 +76,15 @@ export function ListingSaveButton({
         aria-label={saved ? "관심 매물에서 제거" : "관심 매물로 저장"}
         className={`chip press inline-flex items-center gap-1.5 border px-3 py-1.5 text-[13px] font-bold transition-colors disabled:opacity-50 ${
           saved
-            ? "border-danger bg-danger-soft text-danger"
-            : "border-line bg-surface text-text-2 hover:border-danger hover:text-danger"
+            ? "border-brand-red bg-brand-hanji text-brand-red"
+            : "border-line bg-surface text-text-2 hover:border-brand-red hover:text-brand-red"
         } ${className ?? ""}`}
       >
-        <Icon name="heart" size={15} style={saved ? { fill: "currentColor" } : undefined} />
+        {/* [961] 관심 등록 — 하트가 채워지며 주홍 파문 한 번(마커 선택과 같은 리듬) */}
+        <span className="relative inline-flex">
+          <Icon name="heart" size={15} style={saved ? { fill: "currentColor" } : undefined} />
+          {saved && <span key="burst" className="njn-burst" aria-hidden="true" />}
+        </span>
         {saved ? "관심 저장됨" : "관심"}
       </button>
       {error && <span className="text-[12px] font-bold text-danger">{error}</span>}

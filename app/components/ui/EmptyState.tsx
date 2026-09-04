@@ -130,7 +130,16 @@ export function EmptyState({
           </div>
         )
       )}
-      <p className={TITLE[tone]}>{title}</p>
+      {/* [961] 제목 끝의 마침표 = 주홍 온점(브랜드 시그니처 "지금."). 제목이 문장부호로
+          끝나면 붙이지 않는다 — 점이 두 개면 신호가 아니라 오타로 읽힌다. */}
+      <p className={TITLE[tone]}>
+        {title}
+        {tone === "light" && typeof title === "string" && !/[.!?…。]$/.test(title.trim()) && (
+          <span className="text-brand-red" aria-hidden="true">
+            .
+          </span>
+        )}
+      </p>
       {desc && <p className={DESC[tone]}>{desc}</p>}
       {action && <ActionButton action={action} tone={tone} />}
     </div>

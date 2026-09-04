@@ -123,10 +123,18 @@ function Cover({ card }: { card: FeedCard }) {
       )}
       {/* 위쪽 배지가 밝은 이미지 위에 올라가면 읽히지 않는다 — 아주 옅은 스크림 */}
       {hasPhoto && <span className="cover-scrim" aria-hidden="true" />}
+      {/* [961] 글래스 — 사진 위에서만 블러 + 한지 알약이 떠오른다(데스크톱 호버 전용, CSS 가 판정) */}
+      {hasPhoto && (
+        <span className="njn-glass" aria-hidden="true">
+          <span>{card.kind === "note" ? "노트 읽기" : "글 읽기"}</span>
+        </span>
+      )}
       <span
-        className={`absolute left-2 top-2 z-10 rounded-md bg-surface/90 chip-pad t-caption font-extrabold ${labelColor}`}
+        className={`absolute left-2 top-2 z-10 rounded-md bg-surface/90 chip-pad t-caption font-extrabold ${labelColor} ${
+          card.kind === "note" && !card.lab && card.visited ? "njn-stamp njn-stamp--flat" : ""
+        }`}
       >
-        {label}
+        {card.kind === "note" && !card.lab && card.visited ? "직접 방문" : label}
       </span>
       {/* [945-G] 24시간 내 새 글 — "지금 살아 있는 피드"의 실측 신호.
           점멸은 reduced-motion 에서 정지(badge-new 등록). */}
@@ -147,9 +155,11 @@ function FeedCardView({ card, delay }: { card: FeedCard; delay: number }) {
     <div className={`mb-3 break-inside-avoid rise-in-${Math.min(delay, 6)}`}>
       <Link
         href={card.href}
-        className="card tile card-zoom block overflow-hidden rounded-[14px] no-underline"
+        className="card tile card-zoom group block overflow-hidden rounded-[14px] no-underline"
       >
         <Cover card={card} />
+        {/* [961] 호버 — 커버 아래 주홍 밑줄이 왼쪽에서 차오른다(인터랙션 라이브러리 04) */}
+        <span className="njn-card-bar" aria-hidden="true" />
         <div className="flex flex-col gap-1.5 px-3 pb-3 pt-2.5">
           <div className="line-clamp-2 t-body font-extrabold text-ink">
             {card.boosted && (

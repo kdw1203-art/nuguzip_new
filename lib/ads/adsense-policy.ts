@@ -4,7 +4,22 @@
  * @see https://support.google.com/adsense/answer/7532444 (ads.txt)
  */
 
-export type AdPlacement = "home_feed" | "community_feed" | "report_free_body";
+/* [961] 광고 공간 6종 — 소유자 요청(2026-09-03 "광고를 넣을 수 있는 공간").
+ *  home_feed        홈 피드 6번째 카드 아래 · 데스크톱 사이드
+ *  community_feed   동네이야기·공매·입주·청약·Q&A 목록 사이(8번째마다)
+ *  report_free_body 리포트·뉴스 본문 안
+ *  article_end      글 본문 끝(임장노트·가이드·용어·뉴스 상세) — 다 읽은 뒤 자연스러운 쉼
+ *  page_bottom      페이지 맨 아래(지역·실거래·분석 허브·Q&A 상세)
+ *  sidebar          데스크톱 오른쪽 열(홈·실거래·리포트)
+ * 각 공간은 AdZone 이 그린다: 애드센스 유닛이 채워지면 그 광고, 안 채워지면 어드민 배너 →
+ * 하우스 광고. 제외 경로(/payment·/my…)·광고 없는 플랜에는 어느 쪽도 나가지 않는다. */
+export type AdPlacement =
+  | "home_feed"
+  | "community_feed"
+  | "report_free_body"
+  | "article_end"
+  | "page_bottom"
+  | "sidebar";
 
 /** Auto ads + 수동 슬롯 모두 로드하지 않는 경로 prefix */
 export const ADSENSE_EXCLUDED_PATH_PREFIXES = [
@@ -36,7 +51,25 @@ const PLACEMENT_ENV: Record<AdPlacement, string> = {
   home_feed: "NEXT_PUBLIC_ADSENSE_SLOT_HOME_FEED",
   community_feed: "NEXT_PUBLIC_ADSENSE_SLOT_COMMUNITY_FEED",
   report_free_body: "NEXT_PUBLIC_ADSENSE_SLOT_REPORT_BODY",
+  article_end: "NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE_END",
+  page_bottom: "NEXT_PUBLIC_ADSENSE_SLOT_PAGE_BOTTOM",
+  sidebar: "NEXT_PUBLIC_ADSENSE_SLOT_WEB",
 };
+
+/* 슬롯 ID 기본값 — 소유자 제공(2026-08-03, "nuguzip" 디스플레이 광고 단위). 페이지 소스에
+   노출되는 공개 값이라 기본값으로 둔다. 공간별로 애드센스에서 광고 단위를 따로 만들면
+   위 env 이름으로 넣는다(형식: 디스플레이 = auto, 인아티클 = fluid/in-article). */
+export const DEFAULT_ADSENSE_SLOT = "9196083291";
+
+/** 공간별 슬롯 ID — env 우선, 없으면 공용 디스플레이 단위 */
+export function getSlotForPlacementOrDefault(placement: AdPlacement): string {
+  return getSlotForPlacement(placement) ?? DEFAULT_ADSENSE_SLOT;
+}
+
+/** 공간별로 전용 단위가 env 에 지정됐는지 — 지정된 경우에만 인아티클 레이아웃을 쓴다 */
+export function hasDedicatedSlot(placement: AdPlacement): boolean {
+  return Boolean(getSlotForPlacement(placement));
+}
 
 /* 게시자 ID — 소유자 제공(2026-08-03, 애드센스 코드 생성기 캡처). 광고 스크립트
    URL·페이지 소스에 그대로 노출되는 공개 식별자라 코드 기본값으로 둔다

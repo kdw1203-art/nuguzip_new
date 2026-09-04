@@ -78,18 +78,17 @@ export function TabBar() {
             >
               <span
                 /* 52→44px, 돌출 -mt-6→-mt-3.5 — 바 위로 솟는 높이를 줄인다.
-                   44px 는 터치 타깃 하한선. */
-                className={`press -mt-3.5 mb-[2px] flex h-[44px] w-[44px] items-center justify-center rounded-full leading-none text-white transition-transform duration-300 ${
+                   44px 는 터치 타깃 하한선.
+                   [962] 파랑 그라데이션 → 브랜드 네이비 + 주홍 파문(FAB 와 같은 언어).
+                   "여기서 쓴다"는 신호가 앱 어디서나 같은 모양이다. */
+                className={`press njn-fab -mt-3.5 mb-[2px] flex h-[44px] w-[44px] items-center justify-center rounded-full leading-none transition-transform duration-300 ${
                   compact ? "scale-[.82]" : ""
                 }`}
-                style={{
-                  background: "linear-gradient(135deg,#4573f5 0%,#1d4fd8 100%)",
-                  boxShadow: "0 8px 22px rgba(29,79,216,.42)",
-                }}
+                data-glyph="plus"
               >
                 <Icon name={tab.icon} size={22} strokeWidth={2.2} />
               </span>
-              <span className="text-[12px] font-extrabold text-primary">
+              <span className="text-[12px] font-extrabold text-brand-navy">
                 {tab.label}
               </span>
             </Link>
@@ -99,12 +98,13 @@ export function TabBar() {
               href={tab.href}
               aria-current={isActive(tab.href) ? "page" : undefined}
               className={`relative flex flex-col items-center gap-[2px] py-1 transition-colors ${
-                isActive(tab.href) ? "text-primary" : "text-text-3"
+                isActive(tab.href) ? "text-brand-navy" : "text-text-3"
               }`}
             >
+              {/* [962] 현재 탭 = 온점. 탭이 바뀌면 한 번 튄다(njn-pop) — 브랜드 색이 상태 언어가 된다 */}
               <span
-                className={`absolute top-0 h-[3px] w-[3px] rounded-full bg-primary transition-opacity ${
-                  isActive(tab.href) ? "opacity-100" : "opacity-0"
+                className={`absolute top-0 h-[5px] w-[5px] rounded-full bg-brand-red transition-opacity ${
+                  isActive(tab.href) ? "njn-pop-once opacity-100" : "opacity-0"
                 }`}
               />
               <span

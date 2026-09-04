@@ -1,4 +1,5 @@
 import { PageShell } from "../components/PageShell";
+import { LoadingHint } from "@/app/components/ui/LoadingHint";
 import { Skeleton } from "@/components/Skeleton";
 
 /* 공개 임장노트 로딩 스켈레톤 (#41) — 헤더 + 필터 칩 + 노트 카드 그리드
@@ -6,6 +7,7 @@ import { Skeleton } from "@/components/Skeleton";
 export default function NotesLoading() {
   return (
     <PageShell>
+      <LoadingHint className="mb-3" />
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 px-1 md:flex-row md:items-end md:justify-between">
           <div>

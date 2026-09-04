@@ -2629,7 +2629,8 @@ export function MapClient({
       lat: n.lat,
       lng: n.lng,
       label: n.title,
-      pinColor: "#7c3aed",
+      /* [961] 내 임장노트 = 브랜드 핀(처마+온점). 노트가 쌓일수록 지도 위에 심볼이 퍼진다 */
+      brandPin: true,
       infoHtml: `<div style="min-width:160px"><p style="font-size:13px;font-weight:800;color:var(--ink);margin:0">${n.title}</p><p style="font-size:11px;color:#888;margin:3px 0 0">${n.visitDate ?? "내 임장 기록"}${n.avgScore ? ` · 평점 ${n.avgScore}/5` : ""}</p><a href="/notes/${n.id}" style="font-size:11px;color:var(--primary);font-weight:700">노트 열기 →</a></div>`,
     }));
   }, [showMyNotes, myNotes]);

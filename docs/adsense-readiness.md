@@ -32,6 +32,27 @@
 판정을 마친 뒤에만 푼다. 스크립트는 어디에나 있지만 광고는 정책이 허용하는 자리에만 나온다.
 심사 중 빈 슬롯은 하우스 광고(`lib/ads/house-ads.ts`)가 채운다.
 
+## 광고 공간 (961 · 2026-09-03 소유자 요청 "광고를 넣을 수 있는 공간")
+
+한 자리에 두 층: **애드센스 유닛**(승인·채움 시) 위에 **대체 카드**(어드민 배너 → 하우스 광고).
+CSS 가 `<ins data-ad-status>` 를 읽어 채워지면 대체 카드를, 안 채워지면 빈 유닛을 숨긴다 —
+심사 중에도 빈 상자가 남지 않는다. 컴포넌트: `app/components/ads/AdZone.tsx`.
+
+| 공간(placement) | 어디 | env(전용 단위 ID) |
+|---|---|---|
+| `home_feed` | 홈 피드 6번째 카드 아래 · 홈 하단 | `NEXT_PUBLIC_ADSENSE_SLOT_HOME_FEED` |
+| `community_feed` | 동네이야기 피드(8번째마다) · 공매 · 입주 · 청약 · Q&A 목록 | `NEXT_PUBLIC_ADSENSE_SLOT_COMMUNITY_FEED` |
+| `report_free_body` | 리포트 본문 안 | `NEXT_PUBLIC_ADSENSE_SLOT_REPORT_BODY` |
+| `article_end` | 임장노트 · 가이드 · 용어 상세 글 끝 | `NEXT_PUBLIC_ADSENSE_SLOT_ARTICLE_END` (지정 시 인아티클 fluid) |
+| `page_bottom` | 지역 · 실거래 · 분석 허브 · Q&A 상세 · 뉴스 목록 맨 아래 | `NEXT_PUBLIC_ADSENSE_SLOT_PAGE_BOTTOM` |
+| `sidebar` | 데스크톱 오른쪽 열(단지 상세 · 뉴스 상세 · 홈 · 실거래 · 리포트) | `NEXT_PUBLIC_ADSENSE_SLOT_WEB` |
+
+env 를 안 넣으면 전부 공용 디스플레이 단위(`9196083291`)로 나간다. 애드센스에서 공간별 광고
+단위를 만들면 Vercel 환경변수에 위 이름으로 넣고 재배포 — 코드 수정 없음.
+
+배치 원칙: 도구의 입력·결과 사이 금지, 한 화면 최대 2곳, 고정·팝업 금지, 항상 "광고" 라벨,
+제외 경로(`/payment`·`/my`·`/subscription`·`/map`·`/notes/new`·`/agent` …)와 프로 이상 플랜은 전부 미노출.
+
 ## 신청 절차 (때가 되면)
 1. 사장님: adsense.google.com 가입 → 사이트 추가(naezipnow.com) → 코드 스니펫 발급
 2. Claude: 스니펫을 AdSlot 인프라에 연결(자리 이미 있음) + ads.txt 배치 → 배포

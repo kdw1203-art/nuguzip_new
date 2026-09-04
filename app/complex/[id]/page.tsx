@@ -36,7 +36,8 @@ import { settle, startDeadline } from "@/lib/data/section-budget";
 import { getMarketFreshnessDateLabel } from "@/lib/newui/freshness";
 import { RecentComplexRecorder } from "../../components/RecentComplexes";
 import { QaBlock } from "../../components/QaBlock";
-import { AdSlot } from "@/app/components/ads/AdSlot";
+import { AdZone } from "@/app/components/ads/AdZone";
+import { BrandWatermark } from "@/app/components/BrandWatermark";
 import type { FaqItem } from "@/lib/seo/jsonld";
 import { ComplexReviews } from "../ComplexReviews";
 import { ComplexAreaBands } from "./ComplexAreaBands";
@@ -199,6 +200,8 @@ interface HubView {
     price: string;
     priceSub: string;
     priceSubClass: string;
+    /** [962] 네이비 히어로 위 델타 색 — 라이트용 delta-up/down 은 남색 위에서 안 읽힌다 */
+    priceSubDarkClass: string;
     listings: string;
     listingsSub: string;
     notes: string;
@@ -495,6 +498,13 @@ function toView(
           : tone === "up"
             ? "delta-up"
             : "text-text-3",
+      priceSubDarkClass: txFailed
+        ? "text-on-dark-muted"
+        : tone === "down"
+          ? "text-ai-accent"
+          : tone === "up"
+            ? "text-brand-red-dark"
+            : "text-on-dark-muted",
       // D8: 실 매물 연동 — 등록 건수 반영(없으면 "—", 못 읽었으면 그렇다고 적는다)
       listings: listingsFailed ? "매물 ?" : hubListings.length > 0 ? `매물 ${hubListings.length}` : "매물 —",
       listingsSub: listingsFailed
@@ -909,31 +919,35 @@ export default async function ComplexHubPage({
         </span>
       </div>
 
-      {/* 단지명 + 팔로우 — 가격 히어로와 한 덩어리 */}
-      <div className="rise-in mt-3 overflow-hidden rounded-[18px] border border-line bg-gradient-to-br from-primary-soft via-surface to-bg px-4 py-4 sm:px-5">
+      {/* 단지명 + 팔로우 — 가격 히어로와 한 덩어리.
+          [962] 옅은 파랑 그라데이션 → 브랜드 네이비 면 + 심볼 워터마크(홈 시안 "딥 네이비 단색 + 심볼").
+          시세 캡션 앞의 숨쉬는 온점 = "지금 값"(티커와 같은 언어). 델타 색은 남색 위 전용. */}
+      <div className="brand-navy-card rise-in mt-3 rounded-[18px] px-4 py-4 sm:px-5">
+        <BrandWatermark />
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="t-title tracking-tight text-ink md:t-title">
+            <h1 className="t-title tracking-tight text-on-dark">
               {v.name}
             </h1>
-            <p className="mt-0.5 t-sub text-text-2">
+            <p className="mt-0.5 t-sub text-on-dark-muted">
               {v.dong}
               {v.city && v.city !== v.dong ? ` · ${v.city}` : ""}
             </p>
           </div>
-          <WatchlistButton complexId={v.id} complexName={v.name} />
+          <WatchlistButton complexId={v.id} complexName={v.name} tone="dark" />
         </div>
 
         <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="t-caption font-bold uppercase tracking-wide text-text-3">
+            <div className="inline-flex items-center gap-1.5 t-caption font-bold uppercase tracking-wide text-on-dark-muted">
+              <span className="njn-dot njn-dot--breathe" style={{ width: 6, height: 6, background: "var(--brand-red-on-dark)" }} aria-hidden="true" />
               최근 실거래 평균
             </div>
             <div className="mt-0.5 flex items-baseline gap-2">
-              <span className="t-title leading-none text-ink tabular-nums md:t-title">
+              <span className="t-title leading-none text-on-dark tabular-nums">
                 {v.metric.price}
               </span>
-              <span className={`text-[13px] font-extrabold ${v.metric.priceSubClass}`}>
+              <span className={`text-[13px] font-extrabold ${v.metric.priceSubDarkClass}`}>
                 {v.metric.priceSub}
               </span>
             </div>
@@ -948,7 +962,7 @@ export default async function ComplexHubPage({
             {v.chips.map((c) => (
               <span
                 key={c}
-                className="chip-soft rounded-full px-2.5 py-[4px] t-sub font-bold text-text-2"
+                className="brand-photo-chip rounded-full px-2.5 py-[4px] t-sub font-bold"
               >
                 {c}
               </span>
@@ -1173,7 +1187,7 @@ export default async function ComplexHubPage({
               return `/notes/new?${p.toString()}`;
             })()}
           />
-          <AdSlot placement="community_feed" seed={0} plan={null} />
+          <AdZone placement="sidebar" seed={0} plan={null} />
         </aside>
       </div>
 

@@ -74,8 +74,12 @@ export function HomeTicker({ items }: { items: TickerItem[] }) {
      돌려 어색하다 — 4개 미만은 정적 가운데 정렬로 그린다(#409). */
   if (items.length < 4) {
     return (
-      <div className="ticker-surface overflow-x-auto rounded-xl px-4 py-2">
-        <div className="flex items-center justify-center gap-7">
+      <div className="ticker-surface flex items-center overflow-x-auto rounded-xl px-0 py-2">
+        <span className="ticker-now" aria-hidden="true">
+          <span className="njn-dot njn-dot--breathe" style={{ width: 7, height: 7 }} />
+          지금
+        </span>
+        <div className="flex flex-1 items-center justify-center gap-7 pr-4">
           {items.map((it, i) => (
             <Item key={i} it={it} />
           ))}
@@ -96,7 +100,12 @@ export function HomeTicker({ items }: { items: TickerItem[] }) {
   );
 
   return (
-    <div className="ticker-band ticker-surface overflow-hidden rounded-xl px-0 py-2">
+    <div className="ticker-band ticker-surface relative flex items-center overflow-hidden rounded-xl px-0 py-2">
+      {/* [962] 앞머리 "지금" 칩 — 숨쉬는 온점이 "이 숫자는 지금 값"이라고 말한다 */}
+      <span className="ticker-now" aria-hidden="true">
+        <span className="njn-dot njn-dot--breathe" style={{ width: 7, height: 7 }} />
+        지금
+      </span>
       <div className="ticker-track flex w-max">
         {row(false)}
         {row(true)}

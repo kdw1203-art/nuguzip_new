@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdZone } from "@/app/components/ads/AdZone";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
@@ -1199,6 +1200,8 @@ export default async function RegionHubPage({
           시세 알림 구독
         </Link>
       </section>
+      {/* [961] 광고 공간 — 페이지 끝 */}
+      <AdZone placement="page_bottom" seed={0} plan={null} className="mt-6" />
     </PageShell>
   );
 }

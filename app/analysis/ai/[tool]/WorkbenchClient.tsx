@@ -698,12 +698,60 @@ export function WorkbenchClient({
       {/* 실행 중에는 결과 자리를 미리 잡아 둔다 — 결과가 통째로 튀어나오면
           화면이 점프하고, 그 점프가 "느리다"는 인상의 대부분이다. */}
       {running && !result && (
-        <div className="card flex flex-col gap-3 rounded-[14px] p-4">
+        /* [961] 진행률 바 대신 '무엇을 보고 있는지'(모션 시스템 05). 이미 읽은 데이터는
+           실측(표본 수)과 함께 체크, 마지막 "근거 정리"만 온점이 숨쉰다. 가짜 진행률·
+           가짜 시간 약속은 쓰지 않는다 — 브랜드 원칙("사실·근거를 구분해 보여준다")을
+           로딩 화면에서부터 지킨다. */
+        <div className="run-panel flex flex-col gap-3" aria-live="polite">
+          <div className="flex items-center gap-2.5">
+            <span className="njn-dot njn-dot--breathe" aria-hidden="true" />
+            <b className="t-body font-extrabold text-ink">지금 분석하는 중</b>
+          </div>
+          <div className="flex flex-col gap-2">
+            {(
+              [
+                ready && ctxState.phase === "ready"
+                  ? {
+                      on: true,
+                      label: `국토부 실거래 ${ctxState.ctx.complex?.price ? "대조 완료" : "표본 확인"}${
+                        ctxState.ctx.region?.snapshot?.tradeCount != null
+                          ? ` · 지역 ${ctxState.ctx.region.snapshot.tradeCount.toLocaleString("ko-KR")}건`
+                          : ""
+                      }`,
+                    }
+                  : { on: false, label: "국토부 실거래 대조 중" },
+                ready && ctxState.phase === "ready"
+                  ? {
+                      on: true,
+                      label: `전월세 신고${ctxState.ctx.rent?.sample != null ? ` ${ctxState.ctx.rent.sample.toLocaleString("ko-KR")}건` : ""} · 입주 예정${
+                        ctxState.ctx.supply ? ` ${ctxState.ctx.supply.upcomingHouseholds.toLocaleString("ko-KR")}세대` : " 없음"
+                      }`,
+                    }
+                  : { on: false, label: "전월세·입주 예정 읽는 중" },
+                ready && ctxState.phase === "ready"
+                  ? {
+                      on: true,
+                      label: `임장노트 ${ctxState.ctx.notes?.count ?? 0}건 · 뉴스 ${ctxState.ctx.news?.items?.length ?? 0}건 읽음`,
+                    }
+                  : { on: false, label: "임장노트·뉴스 읽는 중" },
+                { on: false, label: "근거 정리 중 — 각주를 붙이는 중" },
+              ] as { on: boolean; label: string }[]
+            ).map((st) => (
+              <div key={st.label} className="stp" data-on={st.on ? "true" : "false"}>
+                <span className="box" aria-hidden="true">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#F6F1E7" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12l6 6L20 6" />
+                  </svg>
+                </span>
+                {st.label}
+              </div>
+            ))}
+          </div>
+          <span className="njn-bar w-full" aria-hidden="true">
+            <i />
+          </span>
           <SkLine w="70%" h={16} />
           <SkBlock h={92} />
-          <SkLine w="94%" h={11} />
-          <SkLine w="86%" h={11} />
-          <SkLine w="60%" h={11} />
         </div>
       )}
 

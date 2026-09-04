@@ -49,7 +49,8 @@ export function NotificationBell({ variant }: { variant: "desktop" | "mobile" })
     >
       <Icon name="bell" size={size} />
       {count > 0 && (
-        <span className="absolute right-0.5 top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-danger-fill px-1 text-[10px] font-extrabold leading-none text-white">
+        /* [962] 읽지 않은 알림 = 주홍 온점 배지, 처음 뜰 때 파문 한 번(njn-badge) */
+        <span className="njn-badge absolute right-0.5 top-0.5 flex h-[15px] min-w-[15px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold leading-none">
           {count > 99 ? "99+" : count}
         </span>
       )}

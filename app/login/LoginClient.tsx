@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionButton } from "@/app/components/ui/ActionButton";
+
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { safeInternalPath } from "@/lib/safe-path";
@@ -282,9 +284,12 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
       if (res?.ok) {
         /* 이동보다 먼저 부른다. Provider 가 루트에 있어서 화면이 바뀌어도
            장면은 이어진다 — 오히려 그 편이 전환을 덮어 준다. */
+        /* [961] 환영 장면 — 네이비 면에 온점 도장 + 슬로건(인터랙션 라이브러리 03).
+           로그인이 단순 통과가 아니라 맞이함이 된다. */
         showMoment({
-          title: "로그인됐어요",
+          title: "다시 오셨네요",
           subtitle: "기록해 둔 임장노트를 이어서 볼 수 있어요",
+          kind: "welcome",
         });
         router.push(resolveCallbackUrl());
         router.refresh();
@@ -360,40 +365,46 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
           </div>
         )}
 
-        <form onSubmit={passwordSignIn} className="rise-in-3 flex flex-col gap-2">
-          {/* 항목 47 — placeholder 는 접근 가능한 이름이 아니다(첫 타이핑에
-              사라지고, 음성 제어로 지목할 수 없다). sr-only 라벨 + id. */}
-          <label htmlFor="login-email" className="sr-only">
-            이메일
-          </label>
-          <input
-            id="login-email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="이메일"
-            autoComplete="email"
-            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
-          />
-          <label htmlFor="login-password" className="sr-only">
-            비밀번호
-          </label>
-          <input
-            id="login-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호"
-            autoComplete="current-password"
-            className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
-          />
-          <button
+        <form
+          onSubmit={passwordSignIn}
+          /* [961] 실패하면 폼이 좌우로 흔들린다(420ms) — key 를 바꿔 매번 다시 재생 */
+          key={error ? `err-${error}` : "form"}
+          className={`rise-in-3 flex flex-col gap-2 ${error ? "njn-shake" : ""}`}
+        >
+          {/* [961] 떠오르는 라벨(인터랙션 라이브러리 03) — placeholder 가 아니라 실제 <label>
+              이라 접근 가능한 이름이 그대로 남고(항목 47), 입력이 시작되면 위로 올라간다. */}
+          <div className="njn-field">
+            <input
+              id="login-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder=" "
+              autoComplete="email"
+            />
+            <label htmlFor="login-email">이메일</label>
+          </div>
+          <div className="njn-field">
+            <input
+              id="login-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder=" "
+              autoComplete="current-password"
+            />
+            <label htmlFor="login-password">비밀번호</label>
+          </div>
+          <ActionButton
             type="submit"
-            disabled={busy !== null}
-            className="btn-primary rounded-[10px] p-3 text-center text-[13px] font-bold disabled:opacity-60"
+            state={busy === "password" ? "busy" : error ? "error" : "idle"}
+            disabled={busy !== null && busy !== "password"}
+            busyLabel="로그인 중"
+            errorLabel="정보를 확인해 주세요"
+            className="rounded-[10px] p-3 text-center text-[13px] font-bold"
           >
-            {busy === "password" ? "로그인 중…" : "이메일로 로그인"}
-          </button>
+            이메일로 로그인
+          </ActionButton>
           <div className="text-center">
             <Link href="/forgot-password" className="text-xs font-bold text-text-2">
               비밀번호를 잊으셨나요?

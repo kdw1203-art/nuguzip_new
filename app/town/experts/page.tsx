@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CountUp } from "@/app/components/motion/CountUp";
 import { PageShell } from "../../components/PageShell";
 import { ExpertApplyCta } from "./ExpertApplyCta";
 import { QuoteRequestBanner } from "./QuoteRequest";
@@ -7,6 +8,7 @@ import { listExpertsAll, type UserExpertProfile } from "@/lib/experts/store-db";
 import { EXPERT_TYPES } from "@/lib/experts/taxonomy";
 import { EXPERT_FAQ } from "@/lib/experts/faq";
 import { Icon } from "@/app/components/Icon";
+import { BrandWatermark } from "@/app/components/BrandWatermark";
 import { JsonLd } from "@/app/components/JsonLd";
 import { faqJsonLd } from "@/lib/seo/jsonld";
 import { TownCategoryNav } from "../TownCategoryNav";
@@ -76,6 +78,7 @@ export default async function TownExpertsPage() {
 
       {/* ---------- 히어로 (브랜드 네이비) ---------- */}
       <section className="rise-in brand-navy-card mb-5 overflow-hidden rounded-[18px] px-5 py-6 md:px-7 md:py-7">
+        <BrandWatermark />
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-[560px]">
             <div className="t-caption font-extrabold tracking-wider text-on-dark-muted">전문가 상담</div>
@@ -110,11 +113,11 @@ export default async function TownExpertsPage() {
         {/* 커버리지 — 실측만. 0 이면 0 */}
         <div className="mt-5 grid grid-cols-3 gap-2 border-t border-on-dark-faint pt-4">
           <div>
-            <div className="t-section text-on-dark t-num">{loaded.ok ? verified.length : "—"}</div>
+            <div className="t-section text-on-dark t-num">{loaded.ok ? <CountUp value={verified.length} /> : "—"}</div>
             <div className="t-caption text-on-dark-muted">인증 전문가</div>
           </div>
           <div>
-            <div className="t-section text-on-dark t-num">{loaded.ok ? answered : "—"}</div>
+            <div className="t-section text-on-dark t-num">{loaded.ok ? <CountUp value={answered} /> : "—"}</div>
             <div className="t-caption text-on-dark-muted">답변 완료 상담</div>
           </div>
           <div>

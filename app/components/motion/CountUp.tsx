@@ -12,7 +12,8 @@ import { useEffect, useRef, useState } from "react";
  */
 /** 카운트업 기본 지속 시간(ms) — 손으로 만든 카운트업도 이 값을 쓴다.
  *  (RegionPulseCards 가 750ms 로 따로 적어 같은 화면에 두 속도가 있었다.) */
-export const COUNTUP_MS = 700;
+/* [961] 브랜드 모션 시스템 §06 "숫자가 도착하는 방식" — 900ms ease-out³. 700→900. */
+export const COUNTUP_MS = 900;
 
 export function CountUp({
   value,
@@ -69,7 +70,7 @@ export function CountUp({
   }, [value, decimals, prefix, suffix, duration]);
 
   return (
-    <span ref={ref} className={className}>
+    <span ref={ref} className={`t-num ${className ?? ""}`}>
       {text}
     </span>
   );

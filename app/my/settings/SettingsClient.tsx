@@ -1,5 +1,7 @@
 "use client";
 
+import { Switch } from "@/app/components/ui/Switch";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
@@ -113,22 +115,8 @@ const PREF_GROUPS: {
   },
 ];
 
-function Toggle({ on }: { on: boolean }) {
-  return (
-    <span
-      className={`relative inline-block h-6 w-10 shrink-0 rounded-full transition-colors ${
-        on ? "bg-primary" : "bg-line"
-      }`}
-      aria-hidden="true"
-    >
-      <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,.2)] transition-all ${
-          on ? "right-0.5" : "left-0.5"
-        }`}
-      />
-    </span>
-  );
-}
+/* [961] 토글 시각부는 공용 Switch(네이비 트랙 + 주홍 온점 손잡이)로 통일 */
+const Toggle = Switch;
 
 /* SMS(문자) 알림 옵트인 — 관심단지 가격 변동을 NCP SENS 문자로 수신.
    전화번호 저장 + 토글 + 동의 문구. 저장 시 토스트. */

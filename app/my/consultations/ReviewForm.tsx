@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionButton } from "@/app/components/ui/ActionButton";
+
 /**
  * 상담 후기 작성 (953) — 답변이 도착한 상담에 별점(1~5) + 한 줄 후기.
  * POST /api/experts/[expertId]/reviews  body: { consultationId, rating, comment? }
@@ -120,14 +122,15 @@ export function ReviewForm({
           <button type="button" onClick={() => setOpen(false)} className="btn-ghost btn-sm">
             취소
           </button>
-          <button
-            type="button"
+          <ActionButton
+            state={busy ? "busy" : error ? "error" : "idle"}
             onClick={() => void submit()}
-            disabled={busy}
-            className="btn-primary btn-sm press disabled:opacity-50"
+            busyLabel="저장 중"
+            errorLabel="다시 확인해 주세요"
+            className="btn-sm"
           >
-            {busy ? "저장 중…" : "후기 등록"}
-          </button>
+            후기 등록
+          </ActionButton>
         </div>
       </div>
       {error && <span className="t-sub font-bold text-danger">{error}</span>}

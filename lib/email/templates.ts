@@ -5,7 +5,12 @@
 
 import { getBusinessInfo } from "@/lib/brand/business-info";
 
-const ACCENT = "#1d4fd8";
+const ACCENT = "#1d4fd8"; /* 나우 블루 — 버튼·링크 전용(브랜드 규칙) */
+/* [962] 브랜드 마스터 v2.1 — 메일도 같은 언어: 네이비 워드마크 + 주홍 온점, 한지 머리띠, 슬로건 */
+const NAVY = "#0B2545";
+const RED = "#C8442B";
+const HANJI = "#F6F1E7";
+const SAND = "#8A7F6E";
 
 export function escapeHtml(value: string): string {
   return value
@@ -32,9 +37,15 @@ export function emailLayout(bodyHtml: string): string {
 <html lang="ko">
 <body style="margin:0;padding:0;background-color:#f4f6fb;">
   <div style="max-width:520px;margin:0 auto;padding:32px 16px;font-family:'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Arial,sans-serif;">
-    <div style="padding:0 4px 16px;">
-      <span style="font-size:20px;font-weight:700;color:${ACCENT};letter-spacing:-0.5px;">내집나우</span>
-    </div>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 16px;background-color:${HANJI};border-radius:12px;">
+      <tr>
+        <td style="padding:14px 18px;">
+          <span style="font-size:19px;font-weight:700;color:${NAVY};letter-spacing:2px;">내집나우</span><span style="display:inline-block;width:7px;height:7px;margin-left:3px;border-radius:50%;background-color:${RED};vertical-align:baseline;"></span>
+          <span style="display:block;margin-top:2px;font-size:9px;font-weight:700;color:${SAND};letter-spacing:4px;">NAEJIP NOW</span>
+        </td>
+        <td style="padding:14px 18px;text-align:right;font-size:11px;color:${NAVY};letter-spacing:2px;white-space:nowrap;">오래 머물 집을, 지금<span style="color:${RED};font-weight:700;">.</span></td>
+      </tr>
+    </table>
     <div style="background-color:#ffffff;border:1px solid #e5e9f2;border-radius:12px;padding:28px 24px;">
       ${bodyHtml}
     </div>
@@ -61,7 +72,7 @@ export function passwordResetEmail(params: { resetUrl: string; expiresMinutes?: 
   const { resetUrl, expiresMinutes = 60 } = params;
   const safeUrl = escapeHtml(resetUrl);
   const html = layout(`
-      <h1 style="margin:0 0 12px;font-size:18px;color:#1a2233;">비밀번호 재설정 안내</h1>
+      <h1 style="margin:0 0 12px;font-size:18px;color:#0B2545;">비밀번호 재설정 안내</h1>
       <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#3d4657;">
         내집나우 계정의 비밀번호 재설정 요청을 받았습니다.<br />
         아래 버튼을 눌러 새 비밀번호를 설정해 주세요. 링크는 <strong>${expiresMinutes}분</strong> 동안만 유효합니다.
@@ -100,7 +111,7 @@ export function supportInquiryEmail(params: {
   const fromEmail = escapeHtml(params.fromEmail);
   const messageHtml = escapeHtml(params.message).replace(/\r?\n/g, "<br />");
   const html = layout(`
-      <h1 style="margin:0 0 12px;font-size:18px;color:#1a2233;">새 고객 문의가 접수되었습니다</h1>
+      <h1 style="margin:0 0 12px;font-size:18px;color:#0B2545;">새 고객 문의가 접수되었습니다</h1>
       <table style="width:100%;border-collapse:collapse;font-size:14px;color:#3d4657;">
         <tr>
           <td style="padding:8px 12px 8px 0;color:#8a94a6;white-space:nowrap;vertical-align:top;">카테고리</td>

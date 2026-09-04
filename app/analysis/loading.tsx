@@ -1,4 +1,5 @@
 import { PageShell } from "../components/PageShell";
+import { LoadingHint } from "@/app/components/ui/LoadingHint";
 import { Skeleton } from "@/components/Skeleton";
 
 /* AI 분석 허브 로딩 스켈레톤 — [958] 실제 배치(네이비 히어로 + 검색 카드 + 계열 3개 ×
@@ -7,6 +8,7 @@ import { Skeleton } from "@/components/Skeleton";
 export default function AnalysisLoading() {
   return (
     <PageShell>
+      <LoadingHint className="mb-3" />
       <div className="flex flex-col gap-6">
         <div className="hub-hero card-pad-lg flex flex-col gap-4">
           <div className="flex flex-col gap-2">

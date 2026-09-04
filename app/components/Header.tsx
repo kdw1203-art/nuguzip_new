@@ -48,7 +48,7 @@ export function Header() {
           scrolled ? "glass-strong header-scrolled h-11 md:h-12" : "glass h-12 md:h-14"
         }`}
       >
-        <Link href="/" aria-label="내집나우 홈" className="press shrink-0">
+        <Link href="/" aria-label="내집나우 홈" className="press njn-logo shrink-0">
           <Logo />
         </Link>
 

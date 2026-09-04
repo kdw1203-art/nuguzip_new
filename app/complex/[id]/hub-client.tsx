@@ -47,9 +47,12 @@ export { CompareTrayButton } from "@/app/components/CompareTrayButton";
 export function WatchlistButton({
   complexId,
   complexName,
+  tone = "light",
 }: {
   complexId: string;
   complexName: string;
+  /** [962] 네이비 히어로 위에서는 한지 글자 */
+  tone?: "light" | "dark";
 }) {
   const { promptSignup } = useSoftSignup();
   const { handleUpgradeResponse } = useUpgradePaywall();
@@ -130,14 +133,28 @@ export function WatchlistButton({
         disabled={busy}
         aria-pressed={watching === true}
         className={`text-xs font-bold disabled:opacity-50 ${
-          watching ? "text-ink" : "text-primary"
+          tone === "dark"
+            ? watching
+              ? "brand-photo-chip rounded-full px-2.5 py-1"
+              : "rounded-full bg-brand-hanji px-2.5 py-1 text-brand-hanji-ink"
+            : watching
+              ? "text-ink"
+              : "text-primary"
         }`}
       >
         {busy ? "저장 중…" : watching ? "✓ 관심 단지" : "+ 단지 팔로우"}
       </button>
       {message && (
         <span
-          className={`mt-0.5 text-[10px] ${message.tone === "ok" ? "text-text-3" : "text-danger"}`}
+          className={`mt-0.5 text-[10px] ${
+            message.tone === "ok"
+              ? tone === "dark"
+                ? "text-on-dark-muted"
+                : "text-text-3"
+              : tone === "dark"
+                ? "text-brand-red-dark"
+                : "text-danger"
+          }`}
         >
           {message.text}
         </span>

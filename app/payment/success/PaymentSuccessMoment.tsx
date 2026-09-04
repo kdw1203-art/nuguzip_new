@@ -23,10 +23,13 @@ export function PaymentSuccessMoment({ status }: { status: "ok" | "mock" | "erro
   useEffect(() => {
     if (status !== "ok" || played.current) return;
     played.current = true;
+    /* [961] 구독 축하 = 도장 + 파문 + 절제된 조각(인터랙션 라이브러리 05).
+       "축하"보다 "약속"에 가까운 감각 — 제목도 그렇게 말한다. */
     showMoment({
-      title: "결제가 완료됐어요",
-      subtitle: "구독 플랜이 계정에 적용됐습니다",
+      title: "이제 함께합니다",
+      subtitle: "결제가 완료됐고, 구독 플랜이 계정에 적용됐습니다",
       kind: "celebrate",
+      pill: "멤버십 시작",
     });
   }, [status, showMoment]);
 

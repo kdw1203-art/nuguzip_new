@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { ActionButton, type ActionState } from "@/app/components/ui/ActionButton";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { Icon } from "@/app/components/Icon";
 import { RESPONSE_TIME_OPTIONS, SPECIALTIES } from "@/lib/experts/taxonomy";
@@ -69,6 +70,8 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
   const [contactPhone, setContactPhone] = useState(expert.contactPhone ?? "");
   const [contactKakao, setContactKakao] = useState(expert.contactKakao ?? "");
   const [busy, setBusy] = useState(false);
+  /* [961] 버튼 4상태 — 완료·실패를 색으로 먼저 말한다(2.2초 뒤 기본으로) */
+  const [saveState, setSaveState] = useState<ActionState>("idle");
   const [dirty, setDirty] = useState(false);
 
   const mark = <T,>(setter: (v: T) => void) => (v: T) => {
@@ -105,6 +108,11 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
   const save = async () => {
     if (busy) return;
     setBusy(true);
+    setSaveState("busy");
+    const settle = (next: ActionState) => {
+      setSaveState(next);
+      window.setTimeout(() => setSaveState("idle"), 2200);
+    };
     try {
       const extraList = extra
         .split(/[,，]/)
@@ -129,6 +137,7 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
       const data = (await res.json().catch(() => ({}))) as { error?: string; expert?: { specialties?: string[] } };
       if (!res.ok) {
         showToast(data.error ?? "저장에 실패했어요. 잠시 후 다시 시도해 주세요");
+        settle("error");
         return;
       }
       if (data.expert?.specialties) {
@@ -136,9 +145,11 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
         setExtra("");
       }
       setDirty(false);
+      settle("done");
       showToast("프로필이 저장됐어요 — 목록·상세에 바로 반영돼요");
     } catch {
       showToast("네트워크 오류가 발생했어요");
+      settle("error");
     } finally {
       setBusy(false);
     }
@@ -370,9 +381,16 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
 
         <div className="flex items-center justify-between gap-3">
           <span className="t-sub text-text-3">{dirty ? "저장하지 않은 변경이 있어요" : "저장된 내용이 목록·상세에 그대로 보여요"}</span>
-          <button type="button" onClick={() => void save()} disabled={busy} className="btn-primary rounded-xl px-6 py-3 t-body disabled:opacity-60">
-            {busy ? "저장 중…" : "프로필 저장"}
-          </button>
+          <ActionButton
+            state={saveState}
+            onClick={() => void save()}
+            busyLabel="저장 중"
+            doneLabel="저장됐어요"
+            errorLabel="다시 시도해 주세요"
+            className="rounded-xl px-6 py-3 t-body"
+          >
+            프로필 저장
+          </ActionButton>
         </div>
       </div>
     </div>

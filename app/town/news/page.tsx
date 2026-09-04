@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { PageShell } from "../../components/PageShell";
 import { ExampleBadge } from "../../components/ExampleBadge";
 import { readTownPosts } from "@/lib/newui/board-posts";
@@ -281,6 +282,8 @@ export default async function TownNewsPage() {
           listCap={LIST_CAP}
         />
       )}
+      {/* [961] 광고 공간 — 뉴스 목록 끝 */}
+      <AdZone placement="page_bottom" seed={4} plan={null} className="mt-6" />
     </PageShell>
   );
 }

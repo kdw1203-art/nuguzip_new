@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { PageShell } from "../../components/PageShell";
@@ -830,8 +831,10 @@ export default async function NoteDetailPage({
             {/* ③ 직접 방문 배지 + 방문일·작성자 */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {v.directVisit ? (
-                <span className="rounded-md bg-success-soft chip-pad t-sub font-extrabold text-success">
-                  ✓ 직접 방문
+                /* [962] 도장 — "다녀왔다"는 흔적을 배지가 아니라 도장으로. 주홍 이중 테두리, 살짝 기운 각도 */
+                <span className="njn-stamp">
+                  <span className="dot" aria-hidden="true" />
+                  직접 방문
                 </span>
               ) : (
                 <span className="rounded-md bg-bg chip-pad t-sub font-extrabold text-text-3">
@@ -1357,6 +1360,8 @@ export default async function NoteDetailPage({
       )}
 
       {/* A9 공개노트 전환 훅 — 비로그인 열람자에게 관심단지·알림 로그인 유도 */}
+      {/* [961] 광고 공간 — 글 끝. 본문을 다 읽은 뒤의 자연스러운 쉼에만 둔다 */}
+      <AdZone placement="article_end" seed={0} plan={null} className="mt-6" />
       {!viewerEmail && complexHref && (
         <div className="mt-4 rounded-2xl bg-[rgba(29,79,216,.05)] p-5 text-center">
           <div className="t-section text-ink">이 단지가 궁금하신가요?</div>

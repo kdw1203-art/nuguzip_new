@@ -148,7 +148,10 @@ export function PostActions({
           saved ? "bg-primary-soft text-primary" : "btn-soft"
         }`}
       >
-        <Icon name="bookmark" size={14} />
+        <span className="relative inline-flex">
+          <Icon name="bookmark" size={14} style={saved ? { fill: "currentColor" } : undefined} />
+          {saved && <span className="njn-burst" aria-hidden="true" />}
+        </span>
         {saved ? "저장됨" : "저장"} {saveCount}
       </button>
       <button

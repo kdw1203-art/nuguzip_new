@@ -21,7 +21,7 @@ import { NEWS_TAGS } from "@/lib/news/tags";
 import { townHandoff } from "@/lib/town/handoff";
 import { postAttachments } from "@/lib/community/attachments";
 import { CoverImage } from "@/app/components/CoverImage";
-import { AdSlot } from "@/app/components/ads/AdSlot";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { ReadingProgress } from "./ReadingProgress";
 import { PostActions, CommentForm, LikeButton } from "./PostInteractions";
 import { CommentThread } from "./CommentThread";
@@ -926,8 +926,8 @@ export default async function TownNewsDetailPage({
               하우스 광고도 없으면 AdSlot 이 null 을 반환해 빈 상자를 남기지 않는다.
               (/supply 에서 같은 이유로 이미 고친 것과 같은 처리) */}
           <div className="rise-in-5">
-            <AdSlot
-              placement="community_feed"
+            <AdZone
+              placement="sidebar"
               seed={0}
               plan={null}
             />

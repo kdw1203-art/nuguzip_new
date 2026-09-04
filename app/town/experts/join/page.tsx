@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { BrandWatermark } from "@/app/components/BrandWatermark";
 import { JsonLd } from "@/app/components/JsonLd";
 import { ComplianceNotice } from "@/app/components/ComplianceNotice";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
@@ -89,6 +90,7 @@ export default function ExpertJoinPage() {
 
       {/* ---------- 히어로 (브랜드 네이비) ---------- */}
       <section className="rise-in brand-navy-card mb-5 overflow-hidden rounded-[18px] px-5 py-6 md:px-7 md:py-7">
+        <BrandWatermark />
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-[580px]">
             <div className="t-caption font-extrabold tracking-wider text-on-dark-muted">전문가 모집</div>

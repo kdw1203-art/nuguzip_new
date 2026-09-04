@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { ActionButton } from "@/app/components/ui/ActionButton";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { Modal, ModalHeader } from "@/app/components/ui/Modal";
 import { useMoment } from "@/app/components/motion/MomentProvider";
@@ -367,9 +368,15 @@ export function ExpertApplyCta({
 
             {error && <div className="t-sub font-semibold text-danger">{error}</div>}
 
-            <button type="button" onClick={() => void submit()} disabled={phase === "sending"} className="btn-primary rounded-xl p-3 t-body disabled:opacity-60">
-              {phase === "sending" ? "접수 중…" : "인증 신청하기"}
-            </button>
+            <ActionButton
+              state={phase === "sending" ? "busy" : error ? "error" : "idle"}
+              onClick={() => void submit()}
+              busyLabel="접수 중"
+              errorLabel="다시 확인해 주세요"
+              className="rounded-xl p-3 t-body"
+            >
+              인증 신청하기
+            </ActionButton>
             <p className="t-caption text-text-3">본인인증·서류 확인 후 심사됩니다 · 개인정보(계좌 등)는 이 단계에서 적지 마세요</p>
           </div>
         )}

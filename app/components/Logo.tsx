@@ -32,7 +32,8 @@ export function BrandSymbol({ size = 22 }: { size?: number }) {
         strokeWidth="8"
         strokeLinecap="round"
       />
-      <circle cx="60" cy="86" r="10" fill="var(--brand-dot)" />
+      {/* [961] .njn-logo:hover 에서 온점이 한 번 튄다(480ms pop) — 로고 자체는 규정대로 정지 */}
+      <circle className="brand-dot-el" cx="60" cy="86" r="10" fill="var(--brand-dot)" />
     </svg>
   );
 }

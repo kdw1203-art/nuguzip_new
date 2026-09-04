@@ -1,4 +1,5 @@
 "use client";
+import { RingLoader } from "@/app/components/ui/BrandLoader";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { TrendChart } from "@/app/components/viz/TrendChart";
@@ -521,9 +522,7 @@ export function ComplexInfoPanel({
                 <h2 className="truncate t-title tracking-tight text-ink sm:t-title">
                   {name}
                 </h2>
-                {loading && (
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                )}
+                {loading && <RingLoader ink label="단지 정보 불러오는 중" />}
               </div>
               {address ? (
                 <div className="mt-0.5 truncate t-sub text-text-2">{address}</div>

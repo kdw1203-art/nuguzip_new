@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
 import { ErrorState } from "@/app/components/ui/EmptyState";
-import { AdSlot } from "@/app/components/ads/AdSlot";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { listQuestions } from "@/lib/qna/store";
 import { complexHrefKey, resolveComplexHrefs } from "@/lib/newui/complex-link";
@@ -193,7 +193,7 @@ export default async function QnaListPage() {
 
                 {/* 광고 — ISR 페이지: 세션을 읽지 않고 plan={null} 경로의
                     클라이언트 게이트(AdFreeGate)가 유료 플랜을 숨긴다 */}
-                <AdSlot placement="community_feed" seed={0} plan={null} />
+                <AdZone placement="community_feed" seed={0} plan={null} />
               </>
             }
           />

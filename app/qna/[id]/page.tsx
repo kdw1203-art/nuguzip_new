@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { AdZone } from "@/app/components/ads/AdZone";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
@@ -346,6 +347,8 @@ export default async function QnaDetailPage({
         <div>{body}</div>
         {aside}
       </div>
+      {/* [961] 광고 공간 — 질문·답변을 다 읽은 뒤 */}
+      <AdZone placement="page_bottom" seed={3} plan={null} className="mt-6" />
     </PageShell>
   );
 }

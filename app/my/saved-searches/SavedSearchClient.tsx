@@ -109,7 +109,23 @@ export function SavedSearchClient({ initial }: { initial: SavedSearch[] }) {
         throw new Error(data.error ?? "삭제에 실패했어요.");
       }
       await refresh();
-      showToast("검색을 삭제했어요");
+      /* [961] 되돌리기 토스트 — 파괴적 동작에 확인 모달 대신 흐름을 끊지 않고 되돌릴 길을 준다.
+         되돌리기는 같은 내용으로 다시 저장한다(서버는 새 id 를 발급). */
+      showToast("검색을 삭제했어요", {
+        label: "되돌리기",
+        onClick: () => {
+          void fetch("/api/saved-searches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              label: item.label,
+              query: item.query ?? "",
+              scope: item.scope,
+              filters: item.filters ?? {},
+            }),
+          }).then(() => refresh());
+        },
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "삭제에 실패했어요.");
     } finally {

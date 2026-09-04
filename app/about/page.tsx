@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CountUp } from "@/app/components/motion/CountUp";
+import { BrandSignature } from "@/app/components/BrandSignature";
 import { PageShell } from "../components/PageShell";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo/jsonld";
@@ -51,6 +53,8 @@ export default async function AboutPage() {
         dangerouslySetInnerHTML={{ __html: jsonLdScript(crumbs) }}
       />
       <div className="mx-auto max-w-[720px]">
+        {/* [961] 브랜드 시그니처 — 소개는 브랜드가 스스로를 말하는 자리 */}
+        <BrandSignature className="rise-in mb-6" />
         <h1 className="rise-in text-[24px] font-extrabold text-ink">
           내집나우 — 시세는 누구나 봅니다, 현장은 가 본 사람만 압니다
         </h1>
@@ -65,7 +69,7 @@ export default async function AboutPage() {
           <div className="rise-in-1 mt-4 grid grid-cols-2 gap-3">
             <div className="card rounded-2xl px-5 py-4">
               <div className="t-num text-[21px] font-extrabold text-ink">
-                {coverage.complexes.toLocaleString("ko-KR")}
+                <CountUp value={coverage.complexes} />
               </div>
               <div className="mt-0.5 text-[12px] text-text-3">
                 실거래 집계 단지 · 국토부 신고 기준
@@ -73,7 +77,7 @@ export default async function AboutPage() {
             </div>
             <div className="card rounded-2xl px-5 py-4">
               <div className="t-num text-[21px] font-extrabold text-ink">
-                {coverage.regions.toLocaleString("ko-KR")}
+                <CountUp value={coverage.regions} />
               </div>
               <div className="mt-0.5 text-[12px] text-text-3">
                 시세 랜딩 지역 · 매시간 갱신 집계

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CountUp } from "@/app/components/motion/CountUp";
+import { BrandWatermark } from "@/app/components/BrandWatermark";
 import { PageShell } from "../components/PageShell";
 import { readTownPosts } from "@/lib/newui/board-posts";
 import {
@@ -10,7 +12,7 @@ import {
 import { maskNoteAuthor } from "./shared";
 import { listHiddenPostIds } from "@/lib/moderation/reports-store";
 import { TownFeed, type FeedCard } from "./feed-client";
-import { AdSlot } from "../components/ads/AdSlot";
+import { AdZone } from "../components/ads/AdZone";
 import type { Post } from "@/lib/types/post";
 import { TownCategoryNav } from "./TownCategoryNav";
 import { TownPromptCard } from "./TownPromptCard";
@@ -165,6 +167,7 @@ export default async function TownPage() {
       {/* [959] 동네이야기 히어로 — 브랜드 네이비 면(전문가·AI 분석 허브와 같은 규칙).
           정적 제목 한 줄이 아니라 오늘의 활기(실측 카드 기준)와 글쓰기 출발점이 먼저 읽힌다. */}
       <section className="brand-navy-card rise-in mb-4 rounded-[18px] px-5 py-5 md:px-6">
+        <BrandWatermark />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="max-w-[560px]">
             <span className="t-caption font-extrabold tracking-wider text-on-dark-muted">동네이야기</span>
@@ -186,13 +189,13 @@ export default async function TownPage() {
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-on-dark-faint pt-3">
           <span className="t-sub text-on-dark-muted">
-            오늘 새 글 <b className="t-num text-on-dark">{todayCount}</b>
+            오늘 새 글 <b className="t-num text-on-dark"><CountUp value={todayCount} /></b>
           </span>
           <span className="t-sub text-on-dark-muted">
-            이번 주 <b className="t-num text-on-dark">{weekCount}</b>
+            이번 주 <b className="t-num text-on-dark"><CountUp value={weekCount} /></b>
           </span>
           <span className="t-sub text-on-dark-muted">
-            이 피드 <b className="t-num text-on-dark">{cards.length}</b>건
+            이 피드 <b className="t-num text-on-dark"><CountUp value={cards.length} /></b>건
           </span>
           {hottest && (
             <Link href={`/town/${hottest.id}`} className="t-sub text-on-dark-muted no-underline">
@@ -252,15 +255,15 @@ export default async function TownPage() {
       <TownFeed
         cards={cards}
         loadFailed={loadFailed}
-        ad={<AdSlot placement="community_feed" seed={0} plan={null} />}
+        ad={<AdZone placement="community_feed" seed={0} plan={null} />}
       />
 
-      {/* 모바일 글쓰기 FAB */}
+      {/* 모바일 글쓰기 FAB — [961] 네이비 원 + 주홍 파문(2.6초마다 조용히 "지금 쓸 수 있다") */}
       <Link
         href="/town/write"
         aria-label="글쓰기"
-        className="btn-primary fab-breathe fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full md:hidden"
-        style={{ bottom: "calc(var(--nz-tabbar-offset) + 12px)", boxShadow: "var(--shadow-cta)" }}
+        className="njn-fab fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full no-underline md:hidden"
+        style={{ bottom: "calc(var(--nz-tabbar-offset) + 12px)" }}
       >
         <Icon name="notebook-pen" size={22} />
       </Link>

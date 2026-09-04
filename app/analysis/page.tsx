@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AdZone } from "@/app/components/ads/AdZone";
 import Link from "next/link";
 import { PageShell } from "../components/PageShell";
 import { Icon } from "@/app/components/Icon";
@@ -463,6 +464,8 @@ export default async function AnalysisHubPage({
           </details>
         </div>
       </HubPickedProvider>
+      {/* [961] 광고 공간 — 허브 맨 아래(도구 입력·결과 사이에는 두지 않는다) */}
+      <AdZone placement="page_bottom" seed={2} plan={null} className="mt-8" />
     </PageShell>
   );
 }

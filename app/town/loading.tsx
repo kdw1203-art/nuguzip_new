@@ -1,10 +1,12 @@
 import { PageShell } from "../components/PageShell";
+import { LoadingHint } from "@/app/components/ui/LoadingHint";
 import { Skeleton } from "@/components/Skeleton";
 
 /* 동네이야기 로딩 스켈레톤 (#17) — 타이틀 + 카테고리 바로가기 행 + 피드 카드 그리드 */
 export default function TownLoading() {
   return (
     <PageShell wide>
+      <LoadingHint className="mb-3" />
       <div className="mb-4 flex items-center justify-between">
         <Skeleton className="h-7 w-32 rounded-lg" />
         <Skeleton className="hidden h-9 w-20 rounded-xl md:block" />

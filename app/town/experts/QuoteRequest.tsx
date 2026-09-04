@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionButton } from "@/app/components/ui/ActionButton";
+
 /**
  * 전문가 견적 요청 플로우 (숨고 벤치마크 — docs/benchmark-proposals.md A4)
  * 카테고리(세무/절세·금융/대출·임장 동행·인테리어) + 지역 + 내용 → POST /api/market-requests
@@ -213,14 +215,15 @@ export function QuoteRequestModal({
             className="w-full resize-none rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
           {error && <div className="t-sub font-semibold text-danger">{error}</div>}
-          <button
-            type="button"
+          <ActionButton
+            state={status === "sending" ? "busy" : error ? "error" : "idle"}
             onClick={() => void submit()}
-            disabled={status === "sending"}
-            className="btn-primary rounded-xl p-3 t-body disabled:opacity-60"
+            busyLabel="요청 중"
+            errorLabel="다시 확인해 주세요"
+            className="rounded-xl p-3 t-body"
           >
-            {status === "sending" ? "요청 중…" : "견적 요청하기"}
-          </button>
+            견적 요청하기
+          </ActionButton>
           <p className="t-caption text-text-3">
             시간당 3회까지 요청 가능 · 개인정보(전화번호·계좌)는 적지 마세요 · 중개
             의뢰가 아닌 정보 상담 요청입니다

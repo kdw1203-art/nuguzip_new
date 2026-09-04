@@ -20,8 +20,16 @@ export const metadata = buildPageMetadata({
 export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[440px] flex-col items-center justify-center gap-3.5 px-10 text-center">
-      <div className="rise-in text-[36px] font-extrabold tracking-[2px] md:text-[44px] text-on-dark-muted">404</div>
-      <h1 className="rise-in-1 text-[15px] font-extrabold text-ink">이 집은 이사 갔어요</h1>
+      {/* [962] 404 = 빈 화면의 브랜드 순간 — 처마 아래 온점이 조용히 숨쉬고, 슬로건이 마침표를 찍는다 */}
+      <svg className="rise-in" width="64" height="59" viewBox="0 0 120 120" aria-hidden="true">
+        <path d="M52 28 L68 28" fill="none" stroke="var(--brand-symbol-ink)" strokeWidth="7" strokeLinecap="round" />
+        <path d="M14 46 C 38 64, 82 64, 106 46" fill="none" stroke="var(--brand-symbol-ink)" strokeWidth="7" strokeLinecap="round" />
+        <circle className="empty-dot-breathe" cx="60" cy="86" r="8.5" fill="var(--brand-dot)" style={{ transformOrigin: "60px 86px" }} />
+      </svg>
+      <div className="rise-in t-caption font-extrabold tracking-[0.2em] text-text-3">404</div>
+      <h1 className="rise-in-1 text-[15px] font-extrabold text-ink">
+        이 집은 이사 갔어요<span className="text-brand-red">.</span>
+      </h1>
       <p className="rise-in-2 text-[13px] leading-[1.6] text-text-3">
         주소가 바뀌었거나 삭제된 페이지예요.
         <br />

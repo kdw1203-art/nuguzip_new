@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { CountUp } from "@/app/components/motion/CountUp";
 import { Icon } from "@/app/components/Icon";
+import { BrandWatermark } from "@/app/components/BrandWatermark";
 import { ComplexPicker } from "./ComplexPicker";
 import { ToolGlyph, WORKBENCH_GLYPH } from "./ToolGlyph";
 import {
@@ -90,8 +92,9 @@ function TierNav() {
   );
 }
 
-function fmt(n: number | null): string {
-  return n === null ? "—" : n.toLocaleString("ko-KR");
+/* [961] 숫자가 도착하는 방식 — 실측값을 900ms 동안 세어 올라온다(CountUp). null 은 — */
+function Num({ n }: { n: number | null }) {
+  return n === null ? <>—</> : <CountUp value={n} />;
 }
 
 export function HubHero({
@@ -114,6 +117,7 @@ export function HubHero({
 
   return (
     <section className="hub-hero rise-in card-pad-lg flex flex-col gap-4">
+      <BrandWatermark />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex max-w-[600px] flex-col gap-1.5">
           <span className="t-caption font-extrabold tracking-wider text-on-dark-muted">
@@ -219,15 +223,15 @@ export function HubHero({
       <div className="flex flex-col gap-3 border-t border-on-dark-faint pt-4 md:flex-row md:items-end md:justify-between">
         <div className="grid grid-cols-3 gap-3 md:gap-6">
           <div>
-            <div className="t-section t-num text-on-dark">{fmt(coverage.txCount)}</div>
+            <div className="t-section t-num text-on-dark"><Num n={coverage.txCount} /></div>
             <div className="t-caption text-on-dark-muted">실거래 신고분(취소 제외)</div>
           </div>
           <div>
-            <div className="t-section t-num text-on-dark">{fmt(coverage.complexCount)}</div>
+            <div className="t-section t-num text-on-dark"><Num n={coverage.complexCount} /></div>
             <div className="t-caption text-on-dark-muted">실거래 있는 단지</div>
           </div>
           <div>
-            <div className="t-section t-num text-on-dark">{toolCount}</div>
+            <div className="t-section t-num text-on-dark"><CountUp value={toolCount} /></div>
             <div className="t-caption text-on-dark-muted">분석 도구(실데이터)</div>
           </div>
         </div>

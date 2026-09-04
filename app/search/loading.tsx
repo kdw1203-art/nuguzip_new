@@ -1,10 +1,12 @@
 import { PageShell } from "../components/PageShell";
+import { LoadingHint } from "@/app/components/ui/LoadingHint";
 import { Skeleton } from "@/components/Skeleton";
 
 /* 통합 검색 로딩 스켈레톤 (#17) — 큰 검색 입력 + 최근/인기 검색 칩 */
 export default function SearchLoading() {
   return (
     <PageShell title="통합 검색" breadcrumb="검색">
+      <LoadingHint className="mb-3" />
       <div className="flex flex-col gap-4">
         {/* 검색 입력 박스 */}
         <Skeleton className="h-[52px] w-full max-w-[560px] rounded-2xl" />

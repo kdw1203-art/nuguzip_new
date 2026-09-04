@@ -8,6 +8,31 @@ const FONT_URL =
 
 let cachedFont: Uint8Array | null = null;
 
+/* [962] 브랜드 마스터 v2.1 — PDF 도 같은 색: 본문 네이비, 온점 주홍(pdf-lib 는 0~1 정규화) */
+const NAVY = rgb(11 / 255, 37 / 255, 69 / 255);
+const RED = rgb(200 / 255, 68 / 255, 43 / 255);
+const HANJI = rgb(246 / 255, 241 / 255, 231 / 255);
+
+/** 문서 머리띠 — 한지 띠 위 처마(곡선)+온점, 오른쪽에 워드마크. 첫 페이지 상단 */
+function drawBrandHeader(page: PDFPage, font: PDFFont, width: number, height: number): number {
+  const bandH = 44;
+  page.drawRectangle({ x: 0, y: height - bandH, width, height: bandH, color: HANJI });
+  // 처마: 짧은 직선 세 개로 곡선을 흉내(pdf-lib 에 베지어 API 가 없다) — 규정 비율 유지
+  const cx = 34;
+  const cy = height - bandH / 2 + 2;
+  page.drawLine({ start: { x: cx - 9, y: cy + 5 }, end: { x: cx - 3, y: cy + 1 }, thickness: 2.2, color: NAVY });
+  page.drawLine({ start: { x: cx - 3, y: cy + 1 }, end: { x: cx + 3, y: cy + 1 }, thickness: 2.2, color: NAVY });
+  page.drawLine({ start: { x: cx + 3, y: cy + 1 }, end: { x: cx + 9, y: cy + 5 }, thickness: 2.2, color: NAVY });
+  page.drawCircle({ x: cx, y: cy - 6, size: 2.6, color: RED });
+  page.drawText("내집나우", { x: cx + 18, y: cy - 4, size: 12, font, color: NAVY });
+  page.drawText("NAEJIP NOW", { x: cx + 18, y: cy - 14, size: 6, font, color: NAVY, opacity: 0.55 });
+  const slogan = "오래 머물 집을, 지금.";
+  const sw = font.widthOfTextAtSize(slogan, 8);
+  page.drawText(slogan, { x: width - 48 - sw, y: cy - 4, size: 8, font, color: NAVY });
+  page.drawCircle({ x: width - 48 - 1.5, y: cy - 3, size: 1.6, color: RED });
+  return bandH;
+}
+
 async function loadKoreanFont(): Promise<Uint8Array> {
   if (cachedFont) return cachedFont;
   const res = await fetch(FONT_URL);
@@ -45,7 +70,7 @@ function drawLines(ctx: DrawCtx, text: string, size = 11, gap = 4): DrawCtx {
       y: next.y,
       size,
       font: next.font,
-      color: rgb(0.12, 0.14, 0.18),
+      color: NAVY,
       maxWidth: next.maxWidth,
       lineHeight: size + 2,
     });
@@ -81,7 +106,8 @@ export async function buildInspectionReportPdf(opts: {
   const margin = 48;
   const maxWidth = width - margin * 2;
 
-  let ctx: DrawCtx = { pdfDoc, page, font, margin, maxWidth, y: height - margin };
+  const bandH = drawBrandHeader(page, font, width, height);
+  let ctx: DrawCtx = { pdfDoc, page, font, margin, maxWidth, y: height - bandH - margin + 8 };
 
   if (branding?.showProBadge) {
     const badge =

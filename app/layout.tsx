@@ -5,6 +5,8 @@ import { SwRegister } from "./components/SwRegister";
 import { InstallPrompt } from "./components/InstallPrompt";
 import { IosInstallHint } from "./components/IosInstallHint";
 import { AdSenseLoader } from "./components/AdSenseLoader";
+import { BrandSplash } from "./components/motion/BrandSplash";
+import { PullToRefresh } from "./components/motion/PullToRefresh";
 import { getAdSenseClient } from "@/lib/ads/adsense-policy";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ClientErrorReporter } from "./components/ClientErrorReporter";
@@ -248,6 +250,10 @@ export default function RootLayout({
                       안내만 하는 컴포넌트를 따로 둔다. */}
                   <IosInstallHint />
                   <AdSenseLoader />
+                  {/* [961] 홈 화면 설치 앱으로 열 때만, 세션당 한 번 — 로고가 그려지는 1.4초 */}
+                  <BrandSplash />
+                  {/* [962] 설치 앱에서만 — 당겨서 새로고침(온점 물방울) */}
+                  <PullToRefresh />
                   <WebVitalsReporter />
                   <ClientErrorReporter />
                   {/* 어드민 트래픽 대시보드용 1st-party 페이지뷰·체류 기록 —

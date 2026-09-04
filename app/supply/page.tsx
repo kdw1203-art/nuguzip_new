@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
-import { AdSlot } from "@/app/components/ads/AdSlot";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { getSupplyAll, getSupplyDataAsOf } from "@/lib/market/supply";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { TownPageHead } from "@/app/town/TownPageHead";
@@ -120,7 +120,7 @@ export default async function SupplyPage() {
             truncated={all.truncated}
             asOfLabel={asOfLabel}
             builtAtMs={Date.now()}
-            adSlot={<AdSlot placement="community_feed" seed={0} plan={null} />}
+            adSlot={<AdZone placement="community_feed" seed={0} plan={null} />}
           />
         ) : (
           /* 조회 실패 — "데이터 없음" 과 구별해 그린다 (0건이 아니라 조회 실패).

@@ -1,5 +1,8 @@
 "use client";
 
+import { ActionButton } from "@/app/components/ui/ActionButton";
+import { Switch } from "@/app/components/ui/Switch";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -1927,18 +1930,7 @@ export function NoteForm({
                 : "꺼져 있으면 나만 볼 수 있어요 (기본값)"}
             </div>
           </div>
-          <span
-            aria-hidden="true"
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-              isPublic ? "bg-primary" : "bg-line-strong"
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
-                isPublic ? "left-[22px]" : "left-0.5"
-              }`}
-            />
-          </span>
+          <Switch on={isPublic} />
         </button>
 
         {/* 소셜 소재 활용 동의 — 공개 노트일 때만 노출. 동의 없인 자동 소재로
@@ -1983,21 +1975,17 @@ export function NoteForm({
         )}
         {/* AI 처리 고지 — 버튼을 누르기 전에 알린다 (몰래 보내지 않는다) */}
         <FieldCaptureConsentNotice />
-        <button
-          type="button"
+        {/* [961] 4상태 버튼 — 진행(흐린 블루 + 링) → 실패(주홍 흔들림). 완료는 화면이
+            바뀌며 환영 장면(showMoment)이 맡는다. */}
+        <ActionButton
+          state={saving || uploading || aiRunning ? "busy" : saveError ? "error" : "idle"}
           onClick={handleSave}
-          disabled={saving || uploading}
-          className="btn-primary rounded-2xl p-[15px] text-center text-[15px] disabled:opacity-60"
-          style={{ boxShadow: "0 10px 26px rgba(29,79,216,.35)" }}
+          busyLabel={aiRunning ? "AI 정리 중" : uploading ? "사진 올리는 중" : "저장 중"}
+          errorLabel="다시 시도해 주세요"
+          className="btn-cta rounded-2xl p-[15px] text-center text-[15px]"
         >
-          {aiRunning
-            ? "AI 정리 중…"
-            : saving
-              ? "저장 중…"
-              : isEdit
-                ? "수정 완료 → AI 정리 받기"
-                : "기록 완료 → AI 정리 받기"}
-        </button>
+          {isEdit ? "수정 완료 → AI 정리 받기" : "기록 완료 → AI 정리 받기"}
+        </ActionButton>
         <div className="text-center text-xs text-text-3">
           저장할 때만 로그인 · 체크 항목은 다음 임장에도 유지
         </div>

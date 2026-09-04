@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdZone } from "@/app/components/ads/AdZone";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
@@ -185,6 +186,8 @@ export default async function GlossaryTermPage({
           </section>
         )}
 
+        {/* [961] 광고 공간 — 용어 풀이 끝 */}
+        <AdZone placement="article_end" seed={2} plan={null} className="mt-6" />
         <div className="mt-6 rounded-[14px] bg-bg p-4 text-[12px] leading-[1.7] text-text-3">
           용어 풀이는 일반적인 이해를 돕기 위한 것입니다. 대출 한도·세율·규제 지역
           지정처럼 제도에 따라 달라지는 수치는 시점마다 바뀌므로, 실제 적용 기준은

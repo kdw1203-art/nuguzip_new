@@ -73,33 +73,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
 const cx = (...parts: Array<string | false | null | undefined>): string =>
   parts.filter(Boolean).join(" ");
 
-function Spinner() {
-  return (
-    <svg
-      className="pending-spin shrink-0"
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-        stroke="currentColor"
-        strokeWidth="3"
-        opacity="0.28"
-      />
-      <path
-        d="M21 12a9 9 0 0 0-9-9"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+/* [961] 진행 표시는 온점 링(.njn-ring) — 인터랙션 라이브러리 §01 "링 · 버튼 내부·소형" */
 
 export function Button(props: ButtonProps) {
   const {
@@ -161,7 +135,7 @@ export function Button(props: ButtonProps) {
       aria-busy={loading || undefined}
       {...buttonRest}
     >
-      {loading && <Spinner />}
+      {loading && <span className="njn-ring" aria-hidden="true" />}
       {children}
     </button>
   );

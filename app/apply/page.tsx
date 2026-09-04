@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
-import { AdSlot } from "@/app/components/ads/AdSlot";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { searchApplyhome } from "@/lib/applyhome/applyhome-search";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { THEME_APPLY } from "@/lib/theme/presets";
@@ -192,7 +192,7 @@ export default async function ApplyPage() {
             </div>
 
             <div className="rise-in-5">
-              <AdSlot
+              <AdZone
                 placement="community_feed"
                 seed={0}
                 plan={null}

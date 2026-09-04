@@ -1,4 +1,5 @@
 "use client";
+import { tiltHandlers } from "@/app/components/motion/Magnetic";
 
 import { useState } from "react";
 import { annualSavingKrw } from "@/lib/subscriptions/billing-periods";
@@ -204,9 +205,12 @@ export function PlanCards({
           return (
             <div
               key={p.kind}
+              /* [961] 프리미엄 카드 = 브랜드 네이비 + 3D 기울임(데스크톱, 최대 ±9°).
+                 예전 잉크색(rgba(25,31,40))은 "어두운 면 = 네이비" 규칙 위반이었다. */
+              {...(p.dark ? tiltHandlers(9) : {})}
               className={`rise-in-${Math.min(i + 1, 6)} relative flex flex-col gap-4 rounded-3xl p-7 ${
                 p.dark
-                  ? "bg-[rgba(25,31,40,.96)] shadow-[0_24px_60px_rgba(16,28,54,.28)] md:-translate-y-2"
+                  ? "njn-tilt bg-brand-navy shadow-[0_24px_60px_rgba(16,28,54,.28)] md:-translate-y-2"
                   : "card"
               } ${isCurrent ? "ring-2 ring-primary" : ""}`}
             >

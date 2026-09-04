@@ -24,6 +24,9 @@ const PLACEMENT_MAP: Record<AdPlacement, BannerPlacement> = {
   home_feed: "home",
   community_feed: "community",
   report_free_body: "global",
+  article_end: "global",
+  page_bottom: "global",
+  sidebar: "global",
 };
 
 function BannerCard({ banner }: { banner: Banner }) {

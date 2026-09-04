@@ -144,7 +144,8 @@ function GridTile({ n }: { n: FeedNote }) {
         }
       />
       {/* 점수 배지 (인스타 조회수/캐러셀 인디케이터 위치) */}
-      <span className="absolute right-1.5 top-1.5 rounded-md bg-black/45 chip-pad-tight t-caption font-extrabold text-white backdrop-blur-sm md:right-2.5 md:top-2.5 md:t-sub">
+      {/* [962] 검정 반투명 → 네이비(어두운 면 = 네이비) + 한지 글자 */}
+      <span className="absolute right-1.5 top-1.5 rounded-md bg-brand-navy/80 chip-pad-tight t-caption font-extrabold text-on-dark backdrop-blur-sm md:right-2.5 md:top-2.5 md:t-sub">
         체크 {n.score}
       </span>
       {n.isExample && (
@@ -188,7 +189,7 @@ function PostCard({ n }: { n: FeedNote }) {
         <span
           className={`ml-auto shrink-0 rounded-full px-2.5 py-1 text-[12px] font-extrabold ${
             n.scoreTone === "primary"
-              ? "bg-primary-soft text-primary"
+              ? "bg-brand-hanji text-brand-hanji-ink" /* [962] 점수 = 한지 + 남색(홈 시안) */
               : "bg-[rgba(127,140,158,.12)] text-text-3"
           }`}
         >
@@ -495,17 +496,16 @@ export function NotesFeedClient({
         </div>
       </div>
 
-      {/* 모바일 노트 쓰기 FAB */}
+      {/* 모바일 노트 쓰기 FAB — [961] 동네이야기 FAB 와 같은 자리·같은 모양(네이비 + 주홍 파문).
+          예전엔 오프셋 공식·그림자·글리프가 서로 달랐다. */}
       <Link
         href="/notes/new"
         aria-label="노트 쓰기"
-        className="btn-primary fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full t-title md:hidden"
-        style={{
-          boxShadow: "0 10px 24px rgba(29,79,216,.45)",
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",
-        }}
+        data-glyph="plus"
+        className="njn-fab fixed right-[18px] z-40 flex h-[52px] w-[52px] items-center justify-center rounded-full no-underline md:hidden"
+        style={{ bottom: "calc(var(--nz-tabbar-offset) + 12px)" }}
       >
-        ＋
+        <Icon name="plus" size={24} />
       </Link>
     </PageShell>
   );

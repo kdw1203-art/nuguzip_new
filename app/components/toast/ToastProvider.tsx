@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   createContext,
   useCallback,
@@ -10,16 +11,20 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 
-/* 공용 토스트 (#42) — 동작 후 확인 피드백을 사이트 전역에서 일관되게.
-   기존 globals.css `.toast`(잉크 배경·toastIn 애니메이션) 재사용.
-   스펙: 동시 1개 · 3초 · 모바일 탭바 위 · 액션 링크 최대 1개.
+/* 공용 토스트 (#42 · 961 브랜드 모션) — 동작 후 확인 피드백을 사이트 전역에서 일관되게.
+   스펙: 동시 1개 · 3초(액션 있으면 5초) · 모바일 탭바 위 · 액션 최대 1개.
+   961: 네이비 면 + 한지 글자 + 앞의 숨쉬는 온점(모션 시스템 07). 액션은 링크(href)뿐
+   아니라 **되돌리기 같은 콜백(onClick)** 도 받는다 — 삭제 같은 파괴적 동작에 확인 모달을
+   띄우는 대신 흐름을 끊지 않고 되돌릴 길을 준다(인터랙션 라이브러리 06).
    Provider 밖에서 useToast()가 호출돼도 no-op으로 안전. */
 
-export type ToastAction = { label: string; href: string };
+export type ToastAction =
+  | { label: string; href: string; onClick?: never }
+  | { label: string; onClick: () => void; href?: never };
 type ToastContextValue = {
   showToast: (message: string, action?: ToastAction) => void;
 };
-type ToastState = { id: number; message: string; action?: ToastAction };
+type ToastState = { id: number; message: string; action?: ToastAction; leaving: boolean };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
@@ -28,25 +33,45 @@ export function useToast(): ToastContextValue {
   return ctx ?? { showToast: () => {} };
 }
 
+const HOLD_MS = 3000;
+const HOLD_WITH_ACTION_MS = 5000;
+const LEAVE_MS = 200;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastState | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timers = useRef<number[]>([]);
   const idRef = useRef(0);
 
-  useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current);
-    };
+  const clearTimers = useCallback(() => {
+    for (const t of timers.current) window.clearTimeout(t);
+    timers.current = [];
   }, []);
 
-  const showToast = useCallback((message: string, action?: ToastAction) => {
-    const msg = message?.trim();
-    if (!msg) return;
-    idRef.current += 1;
-    setToast({ id: idRef.current, message: msg, action });
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setToast(null), 3000);
-  }, []);
+  useEffect(() => clearTimers, [clearTimers]);
+
+  const dismiss = useCallback(() => {
+    clearTimers();
+    setToast((prev) => (prev ? { ...prev, leaving: true } : prev));
+    timers.current.push(window.setTimeout(() => setToast(null), LEAVE_MS));
+  }, [clearTimers]);
+
+  const showToast = useCallback(
+    (message: string, action?: ToastAction) => {
+      const msg = message?.trim();
+      if (!msg) return;
+      clearTimers();
+      idRef.current += 1;
+      setToast({ id: idRef.current, message: msg, action, leaving: false });
+      const hold = action ? HOLD_WITH_ACTION_MS : HOLD_MS;
+      timers.current.push(
+        window.setTimeout(() => {
+          setToast((prev) => (prev ? { ...prev, leaving: true } : prev));
+        }, hold),
+      );
+      timers.current.push(window.setTimeout(() => setToast(null), hold + LEAVE_MS));
+    },
+    [clearTimers],
+  );
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -61,17 +86,31 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={toast.id}
             role="status"
-            className="toast pointer-events-auto flex max-w-[calc(100vw-32px)] items-center gap-3 px-4 py-3 text-[13px] font-semibold"
+            data-leaving={toast.leaving ? "true" : "false"}
+            className="toast pointer-events-auto flex max-w-[calc(100vw-32px)] items-center gap-2.5 px-4 py-3 t-body font-semibold"
           >
+            <span className="toast-dot" aria-hidden="true" />
             <span className="min-w-0 truncate">{toast.message}</span>
-            {toast.action && (
-              <a
-                href={toast.action.href}
-                className="toast-action shrink-0 whitespace-nowrap no-underline"
-              >
-                {toast.action.label}
-              </a>
-            )}
+            {toast.action &&
+              (toast.action.href ? (
+                <Link
+                  href={toast.action.href}
+                  className="toast-action shrink-0 whitespace-nowrap no-underline"
+                >
+                  {toast.action.label}
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.action?.onClick?.();
+                    dismiss();
+                  }}
+                  className="toast-action shrink-0 whitespace-nowrap"
+                >
+                  {toast.action.label}
+                </button>
+              ))}
           </div>
         )}
       </div>

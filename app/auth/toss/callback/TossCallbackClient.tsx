@@ -1,4 +1,5 @@
 "use client";
+import { OrbitLoader } from "@/app/components/ui/BrandLoader";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -74,7 +75,9 @@ export function TossCallbackClient() {
           </>
         ) : (
           <>
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#3182f6] border-t-transparent" />
+            <div className="mx-auto flex justify-center">
+              <OrbitLoader light label="토스 로그인 처리 중" />
+            </div>
             <p className="mt-3 text-[13px] font-extrabold text-ink">
               토스 로그인 처리 중…
             </p>

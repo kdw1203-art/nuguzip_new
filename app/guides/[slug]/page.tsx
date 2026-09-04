@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdZone } from "@/app/components/ads/AdZone";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/app/components/PageShell";
@@ -160,6 +161,8 @@ export default async function GuidePage({
           </section>
         )}
 
+        {/* [961] 광고 공간 — 가이드 본문 끝 */}
+        <AdZone placement="article_end" seed={1} plan={null} className="mt-8" />
         <p className="mt-8 t-caption leading-[1.7] text-text-3">
           이 가이드는 일반적인 절차·개념 안내이며 특정 매물·투자에 대한 권유가 아닙니다.
           계약·세무 등 개별 사안은 공인중개사·법무사·세무사 등 전문가와 확인하세요.

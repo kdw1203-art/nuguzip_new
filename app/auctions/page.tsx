@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { PageShell } from "@/app/components/PageShell";
-import { AdSlot } from "@/app/components/ads/AdSlot";
+import { AdZone } from "@/app/components/ads/AdZone";
 import { TownCategoryNav } from "@/app/town/TownCategoryNav";
 import { TownPageHead } from "@/app/town/TownPageHead";
 import { getAuctions, getActiveAuctionCount } from "@/lib/onbid/store";
@@ -81,7 +81,7 @@ export default async function AuctionsPage() {
           initialItems={slimAuctionItems(loaded.items)}
           initialActiveTotal={loaded.activeTotal}
           builtAtMs={Date.now()}
-          adSlot={<AdSlot placement="community_feed" seed={0} plan={null} />}
+          adSlot={<AdZone placement="community_feed" seed={0} plan={null} />}
         />
         {/* 수익 문구 미기재 방침(소유자 방침 2026-08-11) — 마켓(공매) 표면 고지 */}
         <ComplianceNotice variant="market" className="mt-6" />

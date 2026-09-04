@@ -60,7 +60,7 @@ export function LocationMap({
           lat: hit.lat,
           lng: hit.lng,
           label: label || hit.name,
-          pinColor: "#1d4fd8",
+          brandPin: true,
         },
       ]
     : [];

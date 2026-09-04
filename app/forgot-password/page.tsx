@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionButton } from "@/app/components/ui/ActionButton";
+
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Logo } from "@/app/components/Logo";
@@ -110,13 +112,15 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
                 className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
               />
-              <button
+              <ActionButton
                 type="submit"
-                disabled={busy}
-                className="btn-primary rounded-[10px] p-3 text-center text-[13px] font-bold disabled:opacity-60"
+                state={busy ? "busy" : error ? "error" : "idle"}
+                busyLabel="전송 중"
+                errorLabel="다시 확인해 주세요"
+                className="rounded-[10px] p-3 text-center text-[13px] font-bold"
               >
-                {busy ? "전송 중…" : "초기화 링크 보내기"}
-              </button>
+                초기화 링크 보내기
+              </ActionButton>
             </form>
             <p className="rise-in-4 text-xs text-text-3">
               링크 유효시간이 지나면 다시 요청해야 합니다.

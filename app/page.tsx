@@ -6,7 +6,7 @@ import { ResumeDraftPopup } from "./components/home/ResumeDraftPopup";
 import { EmptyState, ErrorState } from "./components/ui/EmptyState";
 import { BetaNoticeModal } from "./components/BetaNoticeModal";
 import { HomeMiniMap } from "./components/HomeMiniMap";
-import { AdSlot } from "./components/ads/AdSlot";
+import { AdZone } from "./components/ads/AdZone";
 import { AdSenseUnit } from "./components/ads/AdSenseUnit";
 import { Footer } from "./components/Footer";
 import { HomeTicker, type TickerItem } from "./components/home/HomeTicker";
@@ -22,6 +22,7 @@ import { RegionPulseCards } from "./components/home/RegionPulseCards";
 import { loadLatestTemperatures } from "./components/MarketTempWidget";
 import { loadNewHomeData } from "@/lib/newui/home-data";
 import { loadHomeCoverage } from "@/lib/newui/home-coverage";
+import { MagneticLink } from "@/app/components/motion/Magnetic";
 import { HomeCoverageLine } from "./components/home/HomeCoverageLine";
 import { formatAsOfLabel } from "@/lib/newui/as-of-label";
 import { getBaseRate } from "@/lib/market/base-rate";
@@ -622,7 +623,7 @@ export default async function Home() {
               이 페이지는 revalidate=300 공유 캐시라 보는 사람의 플랜을 알 수 없다.
               그래서 plan={null} — 특정 플랜 겨냥 배너는 여기서 제외되고, 유료 플랜의
               광고 제거는 AdSlot 안의 AdFreeGate 가 클라이언트에서 처리한다(캐시 유지). */}
-          <AdSlot placement="home_feed" seed={0} plan={null} />
+          <AdZone placement="home_feed" seed={0} plan={null} />
         </section>
 
         {/* ================= 데스크탑 홈 ================= */}
@@ -689,12 +690,13 @@ export default async function Home() {
                 주 행동(임장노트 쓰기)은 지도 아래 전체 폭 막대로 남긴다. */}
             <div className="rise-in-1 flex flex-col gap-3">
               <HomeMiniMap regions={mapRegions} className="h-[360px]" />
-              <Link
+              {/* [961] 자석 버튼 — 홈의 핵심 CTA 하나에만(커서를 살짝 따라감, 데스크톱) */}
+              <MagneticLink
                 href={HOME_CTA_NOTE.href}
-                className="btn-primary btn-cta press rounded-2xl p-3.5 text-center t-section"
+                className="btn-primary btn-cta press tap-ripple block rounded-2xl p-3.5 text-center t-section"
               >
                 {HOME_CTA_NOTE.label}
-              </Link>
+              </MagneticLink>
             </div>
 
 
@@ -1002,7 +1004,7 @@ export default async function Home() {
                 H3: 여기 슬롯은 어드민 등록 배너 → 하우스 광고 순으로 채우고, 둘 다 없으면
                 역시 아무것도 그리지 않는다. seed 를 모바일(0)과 다르게 줘서 같은 방문에
                 같은 문구가 두 번 잡히지 않도록 한다. */}
-            <AdSlot placement="home_feed" seed={1} plan={null} className="rise-in-4" />
+            <AdZone placement="home_feed" seed={1} plan={null} className="rise-in-4" />
             {/* 애드센스 데스크탑 유닛 — 사이드바 말미(콘텐츠 아래 빈공간).
                 키·슬롯 미설정/광고 없는 플랜이면 아무것도 렌더하지 않는다. */}
             <AdSenseUnit />

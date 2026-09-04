@@ -1,4 +1,5 @@
 "use client";
+import { LoadingOverlay } from "@/app/components/ui/BrandLoader";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -39,6 +40,9 @@ export interface MapMarkerData {
   infoHtml?: string;
   /** 마커 핀 색 (HTML 마커) */
   pinColor?: string;
+  /** [961] 브랜드 핀 — 핀 안에 처마와 온점(마스터 가이드 v2.1 §07). 임장노트·모임 장소처럼
+   *  "사람이 찍은 자리"에 쓴다. 선택되면 온점이 한 번 파문을 그린다(.njn-pin.is-selected). */
+  brandPin?: boolean;
   /**
    * 클러스터 알약 라벨의 글자색. C1 시세 색상 오버레이는 옅은 노랑~진한 빨강까지
    * 배경 명도가 크게 벌어져서, 흰 글자 하나로는 옅은 칸에서 읽히지 않는다.
@@ -80,6 +84,7 @@ function markerSignature(d: MapMarkerData, collapsed = false): string {
     d.lng,
     d.label,
     d.pinColor ?? "",
+    d.brandPin ? 1 : 0,
     d.pinTextColor ?? "",
     d.tierColor ?? "",
     d.avgPriceWon ?? "",
@@ -766,14 +771,14 @@ export function NaverMap({
         items.push({ id: d.id, lat: d.lat, lng: d.lng, width: w, height: 40, priority: 1e12, anchor: "center" });
         continue;
       }
-      const box = isPrice ? priceMarkerBox(d) : namePillBox(d.label);
+      const box = isPrice ? priceMarkerBox(d) : d.brandPin ? brandPinBox(d.label) : namePillBox(d.label);
       items.push({
         id: d.id,
         lat: d.lat,
         lng: d.lng,
         width: box.width,
         height: box.height,
-        anchor: isPrice ? "bottom-center" : "center",
+        anchor: isPrice || d.brandPin ? "bottom-center" : "center",
         priority:
           (d.selected ? 1e9 : 0) + (d.favorite ? 1e8 : 0) + Math.min(1e7, d.households ?? 0),
       });
@@ -836,6 +841,9 @@ export function NaverMap({
       }
       if (isPriceMarker) {
         return { content: buildPriceMarkerHtml(data), anchor: new maps.Point(0, 0) };
+      }
+      if (data.brandPin) {
+        return { content: buildBrandPinHtml(data.label, Boolean(data.selected)), anchor: new maps.Point(0, 0) };
       }
       // 이름 알약은 가운데 정렬(transform)로 위치를 맞추므로 앵커는 0,0.
       return { content: buildMarkerHtml(data.label, color), anchor: new maps.Point(0, 0) };
@@ -1043,9 +1051,8 @@ export function NaverMap({
         </button>
       ) : null}
       {!loaded ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-br from-line to-line-strong">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
+        /* [961] 기본 스피너 → 네이비 덮개 위 궤도 온점(로딩 화면 자체가 로고) */
+        <LoadingOverlay text="지도 불러오는 중" />
       ) : null}
       {/* 지점을 찍는 모드에서는 커서로 "지금 클릭하면 찍힌다"를 알린다.
           [&_*]로 내부 타일까지 내려야 실제로 바뀐다 — SDK 가 그린 자식 요소가
@@ -1237,6 +1244,32 @@ function priceMarkerBox(data: MapMarkerData): { width: number; height: number } 
     width: content + 18 /* padding 9+9 */ + bw * 2,
     height: 15 /* 12px 글자 줄상자 */ + 6 /* padding 3+3 */ + bw * 2 + 5 /* 꼬리 6 - margin 1 */,
   };
+}
+
+/* [961] 브랜드 핀 — 네이비 핀 + 한지 처마 + 주홍 온점. 핀 끝이 좌표에 오도록
+   (-15px, -36px) 로 옮기고, 이름 알약은 오른쪽에 붙인다(핀 끝 위치에 영향 없음).
+   색은 마스터 가이드 고정값(반전형): 핀 #0B2545 · 처마 #F6F1E7 · 온점 #E0563A.
+   CSS 클래스(.njn-pin)는 globals.css — 선택 파문 애니메이션이 거기 있다. */
+const BRAND_PIN_SVG =
+  '<svg width="30" height="36" viewBox="0 0 120 140" aria-hidden="true"><path d="M60 10 C86 10 106 30 106 56 C106 90 60 132 60 132 C60 132 14 90 14 56 C14 30 34 10 60 10 Z" fill="#0B2545"/><path d="M32 48 C 46 60, 74 60, 88 48" fill="none" stroke="#F6F1E7" stroke-width="8" stroke-linecap="round"/><circle cx="60" cy="78" r="11" fill="#E0563A"/></svg>';
+
+function buildBrandPinHtml(label: string, selected: boolean): string {
+  const name = label.trim();
+  const shown =
+    name.length > NO_PRICE_LABEL_MAX ? `${name.slice(0, NO_PRICE_LABEL_MAX)}…` : name;
+  const pill = shown
+    ? `<span style="margin-top:7px;border-radius:9999px;background:rgba(255,255,255,.95);color:#0B2545;font:700 11px sans-serif;padding:4px 9px;white-space:nowrap;box-shadow:0 1px 5px rgba(16,28,54,.18);border:1px solid rgba(11,37,69,.14)">${escapeHtml(shown)}</span>`
+    : "";
+  return `<div style="transform:translate(-15px,-36px);display:inline-flex;align-items:flex-start;gap:4px;cursor:pointer"><span class="njn-pin${selected ? " is-selected" : ""}">${BRAND_PIN_SVG}<span class="njn-pin-ring"></span></span>${pill}</div>`;
+}
+
+/** buildBrandPinHtml 의 상자 크기(겹침 정리용 거울) — 핀 30×36 + 알약. */
+function brandPinBox(label: string): { width: number; height: number } {
+  const name = label.trim();
+  if (!name) return { width: 30, height: 36 };
+  const shown =
+    name.length > NO_PRICE_LABEL_MAX ? `${name.slice(0, NO_PRICE_LABEL_MAX)}…` : name;
+  return { width: 30 + 4 + textWidth(shown, "700 11px sans-serif", 7) + 18 + 2, height: 36 };
 }
 
 /** buildMarkerHtml(이름 알약) 의 상자 크기. */

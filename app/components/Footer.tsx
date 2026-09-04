@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/app/components/Logo";
 import { getBusinessInfo } from "@/lib/brand/business-info";
 import { CookieSettingsLink } from "@/components/consent/cookie-settings-link";
 import { NO_PROFIT_GUARANTEE_TEXT } from "@/app/components/ComplianceNotice";
@@ -35,6 +36,17 @@ export function Footer() {
   return (
     <footer className="mt-auto border-t border-line bg-surface px-5 pb-28 pt-6 md:pb-6">
       <div className="mx-auto flex max-w-[1240px] flex-col gap-2 t-sub text-text-3">
+        {/* [962] 0행: 브랜드 잠금 + 슬로건 — 모든 페이지의 마지막 줄이 브랜드로 끝난다 */}
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3 border-b border-divider pb-4">
+          <Link href="/" aria-label="내집나우 홈" className="press njn-logo no-underline">
+            <Logo size={19} />
+          </Link>
+          <span className="brand-slogan-band bg-transparent p-0">
+            <span className="slg" style={{ fontSize: 12 }}>
+              오래 머물 집을, 지금<i>.</i>
+            </span>
+          </span>
+        </div>
         {/* 1행: 사업자 고지 */}
         <div>
           내집나우 · 상호: {biz.legalName}({biz.domain}) · 대표:{" "}
