@@ -72,6 +72,7 @@
     "check:import-hygiene": "node scripts/check-import-hygiene.mjs",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:perf": "node scripts/check-perf.mjs",
+    "check:narrow-text": "node ./scripts/check-narrow-text.mjs",
     "check:type-ramp": "node scripts/check-type-ramp.mjs",
     "check:plan-labels": "node scripts/check-plan-labels.mjs",
     "check:void": "node scripts/check-void-space.mjs"

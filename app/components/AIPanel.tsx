@@ -22,7 +22,10 @@ export function AIPanel({
         <span className="ai-chip h-5 w-5 text-[10px]">AI</span>
         <span className="text-[13px] font-extrabold text-white">{title}</span>
       </div>
-      <div className="text-[13px] leading-[1.6] text-ai-text">{children}</div>
+      {/* [964] .fit — AI 패널 본문은 사이드바(340px)에도, 본문 전폭(1,200px)에도 들어간다.
+          판정을 화면이 아니라 **이 패널 폭**으로 하면 좁은 자리에서 글자가 한 단 내려가고
+          자간이 조여져, 어느 자리에 놓든 같은 밀도로 보인다(통일감). 값은 램프 안에서만 움직인다. */}
+      <div className="fit t-body t-fit leading-[1.6] text-ai-text">{children}</div>
       {cta && (
         <Link
           href={cta.href}
