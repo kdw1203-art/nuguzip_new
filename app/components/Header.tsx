@@ -80,7 +80,10 @@ export function Header() {
                         <Link
                           key={c.href + c.label}
                           href={c.href}
-                          className="block rounded-[10px] px-3 py-2 text-[13px] font-semibold text-text-1 transition-all duration-[120ms] hover:translate-x-0.5 hover:bg-[rgba(29,79,216,.08)] hover:text-primary"
+                          /* [963] whitespace-nowrap — "통합 지도 (탐색·실거래·매물)" 이
+                             168px 패널 안에서 3줄로 접혀 메뉴가 세로로 길어졌다.
+                             메뉴 항목은 접지 않고 패널이 가장 긴 라벨에 맞춰 넓어진다. */
+                          className="block whitespace-nowrap rounded-[10px] px-3 py-2 text-[13px] font-semibold text-text-1 transition-all duration-[120ms] hover:translate-x-0.5 hover:bg-[rgba(29,79,216,.08)] hover:text-primary"
                         >
                           {c.label}
                         </Link>

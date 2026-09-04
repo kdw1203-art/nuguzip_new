@@ -160,10 +160,12 @@ function ToolCard({
       <span className="t-section text-ink">{t.title}</span>
       <span className="t-sub text-text-2">{t.desc}</span>
       {teaser && (
-        <span className="flex flex-col gap-0.5 rounded-[10px] bg-bg px-2.5 py-1.5">
-          <span className="t-num t-section text-ink">{teaser.value}</span>
+        /* [963] .fit — 캡션이 화면이 아니라 **이 칸** 폭으로 판정되게. 2열 그리드의
+           좁은 칸에서 캡션이 3줄로 접히던 것을 자간·줄바꿈 규칙이 흡수한다. */
+        <span className="fit flex flex-col gap-0.5 rounded-[10px] bg-bg px-2.5 py-1.5">
+          <span className="t-num t-section t-fit text-ink">{teaser.value}</span>
           {/* [958] 티저는 강남구 고정 표본 — 지역을 캡션이 아니라 값 옆에서 말한다 */}
-          <span className="t-caption text-text-3">{teaser.caption}</span>
+          <span className="t-caption t-fit text-text-3">{teaser.caption}</span>
         </span>
       )}
       {extra}

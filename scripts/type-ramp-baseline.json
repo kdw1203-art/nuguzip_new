@@ -1,6 +1,5 @@
 {
   "app/analysis/temperature/[region]/page.tsx": 1,
   "app/embed/complex/[id]/page.tsx": 3,
-  "app/embed/region/[id]/page.tsx": 7,
-  "app/not-found.tsx": 2
+  "app/embed/region/[id]/page.tsx": 7
 }

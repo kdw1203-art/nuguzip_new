@@ -100,24 +100,32 @@ function HomeAiGateway({
       title={HOME_AI_GATEWAY_TITLE}
       cta={{ href: HOME_CTA_AI.href, label: HOME_CTA_AI.label }}
     >
-      <p className="m-0">{HOME_AI_GATEWAY_LEAD}</p>
-      <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-        <div className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-2">
-          <div className="t-caption font-extrabold text-ai-muted">예시 · 현장 메모</div>
-          <div className="mt-0.5 t-body leading-[1.5] text-white/85">
-            {HOME_AI_EXAMPLE_INPUT}
+      <p className="m-0 t-body t-fit">{HOME_AI_GATEWAY_LEAD}</p>
+      {/* [963] 예시 두 칸 — 판정 기준을 **화면 폭에서 칸 폭으로** 바꿨다(.fit).
+          예전엔 `sm:grid-cols-[1fr_auto_1fr]` 라 화면이 640px 만 넘으면 3열이 됐는데,
+          데스크톱 사이드바는 340px 이라 한 칸에 한글 4~5자만 들어갔다 — 메모 한 줄이
+          4줄로 접히며 카드가 세로로 늘어난 원인(소유자 캡처 2026-09-04).
+          이제 이 칸이 420px 이상일 때만 좌우로 놓고, 좁으면 위아래로 쌓는다.
+          글자는 .t-fit 이 램프 안에서 한 단 내려 준다. */}
+      <div className="fit mt-2">
+        <div className="fit-pair">
+          <div className="rounded-lg border border-white/15 bg-white/5 px-2.5 py-2">
+            <div className="t-caption t-fit font-extrabold text-ai-muted">예시 · 현장 메모</div>
+            <div className="mt-0.5 t-body t-fit leading-[1.5] text-white/85">
+              {HOME_AI_EXAMPLE_INPUT}
+            </div>
           </div>
-        </div>
-        <div className="hidden text-center text-ai-accent sm:block" aria-hidden="true">
-          →
-        </div>
-        <div className="rounded-lg border border-ai-accent/40 bg-white/5 px-2.5 py-2">
-          <div className="t-caption font-extrabold text-ai-muted">예시 · AI 정리</div>
-          <ul className="mt-0.5 m-0 list-none p-0 t-body leading-[1.5] text-white/85">
-            {HOME_AI_EXAMPLE_OUTPUT.map((line) => (
-              <li key={line}>· {line}</li>
-            ))}
-          </ul>
+          <div className="fit-pair-arrow text-center text-ai-accent" aria-hidden="true">
+            →
+          </div>
+          <div className="rounded-lg border border-ai-accent/40 bg-white/5 px-2.5 py-2">
+            <div className="t-caption t-fit font-extrabold text-ai-muted">예시 · AI 정리</div>
+            <ul className="mt-0.5 m-0 list-none p-0 t-body t-fit leading-[1.5] text-white/85">
+              {HOME_AI_EXAMPLE_OUTPUT.map((line) => (
+                <li key={line}>· {line}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
@@ -134,21 +142,23 @@ function HomeAiGateway({
           단지 분석 도구 12종 ›
         </Link>
       </div>
-      <div className="mt-2 border-t border-white/15 pt-2">
+      <div className="fit mt-2 border-t border-white/15 pt-2">
         <div className="mb-1 t-caption font-extrabold text-ai-muted">
           {HOME_AI_BRIEFING_LABEL}
         </div>
         {briefing ? (
-          <>
+          <div className="t-body t-fit">
             {briefing.text}
             <span className="ml-1.5 inline-flex items-center rounded border border-white/20 px-1 py-px align-middle text-[10px] font-semibold text-ai-muted">
               {briefing.asOfLabel}
             </span>
             {/* [950] 무엇을 잰 값인지 — 티커의 지역 평균과 같은 기준임을 한 줄로 */}
-            <div className="mt-0.5 t-caption text-ai-muted">{briefing.basis}</div>
-          </>
+            <div className="mt-0.5 t-caption t-fit text-ai-muted">{briefing.basis}</div>
+          </div>
         ) : (
-          <>오늘 브리핑을 아직 만들지 못했어요. 실거래 데이터가 갱신되면 표시됩니다.</>
+          <div className="t-body t-fit">
+            오늘 브리핑을 아직 만들지 못했어요. 실거래 데이터가 갱신되면 표시됩니다.
+          </div>
         )}
       </div>
     </AIPanel>
@@ -382,9 +392,14 @@ export default async function Home() {
             {/* [950] 무엇이 다른 서비스인지 한 줄(홈 비판 ①) — 히어로 블록 없이 보조문만 */}
             <p className="rise-in -mt-1 text-center t-sub text-text-2">{HOME_HERO_SUBLINE_SHORT}</p>
             <div className="rise-in-1">
-              <HomeHeroSearch regionChips={heroRegionChips} />
+              {/* [963] 커버리지 한 줄은 칩 행 안으로 — 두 줄이던 보조 정보를 한 줄로 */}
+              <HomeHeroSearch
+                regionChips={heroRegionChips}
+                coverage={
+                  <HomeCoverageLine coverage={coverage} publicNotes={data.publicNotesTotal} />
+                }
+              />
             </div>
-            <HomeCoverageLine coverage={coverage} publicNotes={data.publicNotesTotal} className="rise-in-1" />
           </div>
 
           {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
@@ -639,9 +654,20 @@ export default async function Home() {
             </p>
             {/* [950] 무엇이 다른 서비스인지 한 줄(홈 비판 ①) */}
             <p className="-mt-1 text-center t-sub text-text-2">{HOME_HERO_SUBLINE_SHORT}</p>
-            <HomeHeroSearch regionChips={heroRegionChips} />
-            <HomeCoverageLine coverage={coverage} publicNotes={data.publicNotesTotal} />
+            {/* [963] 커버리지 한 줄은 칩 행 안으로 — 두 줄이던 보조 정보를 한 줄로 */}
+            <HomeHeroSearch
+              regionChips={heroRegionChips}
+              coverage={
+                <HomeCoverageLine coverage={coverage} publicNotes={data.publicNotesTotal} />
+              }
+            />
           </div>
+
+          {/* [963] 슬로건 띠 ↔ 시세 티커 자리 맞바꿈 (소유자 지시 2026-09-04).
+              검색 바로 아래는 브랜드의 한 줄(한지·세리프)이고, 숫자 밴드는 그 다음에
+              상황판의 머리로 붙는다 — 어두운 티커가 검색창에 바로 붙어 화면을 가르던
+              것을 밝은 띠가 완충한다. */}
+          <BrandSloganBand className="rise-in-1 mb-4" />
 
           {/* #408 시세 티커 — 소유자 캡처 지시(2026-08-17): 헤더 밑이 아니라
               검색 아래·KPI 위 전폭 밴드로. 검색(질문)이 먼저, 숫자(상황판)가 다음. */}
@@ -650,9 +676,6 @@ export default async function Home() {
               <HomeTicker items={tickerItems} />
             </div>
           )}
-
-          {/* [946 리브랜딩 ⑤] 슬로건 띠 — 티커 아래 전폭 */}
-          <BrandSloganBand className="rise-in-1 mb-4" />
 
           {/* 이하 2열 — 본문(KPI부터) | 사이드바 (윗선이 같다) */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { pushRecentSearch, readRecentSearches } from "@/lib/search/recent-searches";
@@ -63,7 +63,14 @@ const PLACEHOLDERS = [
   "뉴스·재건축 — 예: 목동 재건축",
 ];
 
-export function HomeHeroSearch({ regionChips = [] }: { regionChips?: HeroRegionChip[] }) {
+export function HomeHeroSearch({
+  regionChips = [],
+  coverage,
+}: {
+  regionChips?: HeroRegionChip[];
+  /** [963] 커버리지 한 줄(서버 컴포넌트)을 칩 행 **안에** 받는다 — 아래 §칩 행 주석 참조 */
+  coverage?: ReactNode;
+}) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [phIdx, setPhIdx] = useState(0);
@@ -131,95 +138,107 @@ export function HomeHeroSearch({ regionChips = [] }: { regionChips?: HeroRegionC
   const hasHistory = recents.length > 0 || recentComplexes.length > 0;
 
   return (
-    <div ref={boxRef} className="relative mx-auto w-full max-w-[560px]">
-      <div className="flex items-center gap-2.5 rounded-2xl border-2 border-primary bg-surface py-3 pl-4 pr-2 shadow-[0_10px_32px_rgba(29,79,216,.14)] transition-shadow duration-300 focus-within:shadow-[0_14px_44px_rgba(29,79,216,.28)] md:py-3.5">
-        <Icon name="search" size={19} className="shrink-0 text-primary" />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          {...compositionProps}
-          onFocus={() => {
-            setFocused(true);
-            if (q.trim() && items.length > 0) setOpen(true);
-          }}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              submit();
-            } else if (e.key === "Escape") {
-              setOpen(false);
-            }
-          }}
-          placeholder={PLACEHOLDERS[phIdx]}
-          aria-label="통합 검색"
-          autoComplete="off"
-          className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-text-3"
-        />
-        <button
-          type="button"
-          onClick={submit}
-          className="btn-primary press shrink-0 rounded-xl px-4 py-2 text-[13px]"
-        >
-          검색
-        </button>
+    /* [963] 검색 상자만 560px 로 죄고, 칩·커버리지 행은 바깥 폭을 그대로 쓴다.
+       예전에는 칩 행이 상자 안(560px)에 갇혀 있어서 "칩 + 커버리지 한 줄"이 항상
+       두 줄로 접혔다 — 데스크톱은 1,200px 을 쓸 수 있는데도. */
+    <div className="w-full">
+      {/* 검색 상자 + 자동완성 패널 — 바깥 클릭 감지(boxRef)와 절대배치 기준이 여기다 */}
+      <div ref={boxRef} className="relative mx-auto w-full max-w-[560px]">
+        <div className="flex items-center gap-2.5 rounded-2xl border-2 border-primary bg-surface py-3 pl-4 pr-2 shadow-[0_10px_32px_rgba(29,79,216,.14)] transition-shadow duration-300 focus-within:shadow-[0_14px_44px_rgba(29,79,216,.28)] md:py-3.5">
+          <Icon name="search" size={19} className="shrink-0 text-primary" />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            {...compositionProps}
+            onFocus={() => {
+              setFocused(true);
+              if (q.trim() && items.length > 0) setOpen(true);
+            }}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submit();
+              } else if (e.key === "Escape") {
+                setOpen(false);
+              }
+            }}
+            placeholder={PLACEHOLDERS[phIdx]}
+            aria-label="통합 검색"
+            autoComplete="off"
+            className="w-full min-w-0 bg-transparent text-[15px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-text-3"
+          />
+          <button
+            type="button"
+            onClick={submit}
+            className="btn-primary press shrink-0 rounded-xl px-4 py-2 text-[13px]"
+          >
+            검색
+          </button>
+        </div>
+
+        {/* 제안 0건 — 커버리지 수요 루프(#413)로 연결: 홈이 제1 검색 표면이라
+            여기서 끊기면 수요가 기록되지 않는다. /search 무결과 화면에 수집
+            카드가 있으니 그리로 잇는다. */}
+        {open && q.trim().length >= 2 && items.length === 0 && (
+          <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
+            <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_48px_rgba(16,28,54,.16)]">
+              <button
+                type="button"
+                onClick={submit}
+                className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
+              >
+                <span className="min-w-0 truncate text-[13px] text-text-2">
+                  ‘{q.trim()}’ 제안이 없어요 — 아직 안 열린 지역일 수 있어요
+                </span>
+                <span className="shrink-0 t-body font-extrabold text-primary">
+                  전체 검색·수요 남기기 ›
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 제안 드롭다운 */}
+        {open && q.trim().length >= 2 && items.length > 0 && (
+          <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
+            <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_48px_rgba(16,28,54,.16)] [animation:riseIn_160ms_var(--ease-out)_backwards]">
+              {items.slice(0, 7).map((it) => (
+                <button
+                  key={it.key}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setQ("");
+                    router.push(it.href);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
+                >
+                  <span className="shrink-0 rounded-md bg-bg px-1.5 py-0.5 t-caption font-extrabold text-text-2">
+                    {it.label}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate t-body font-semibold text-text-1">
+                    {it.title}
+                  </span>
+                  {it.meta && (
+                    <span className="shrink-0 text-[12px] text-text-3">{it.meta}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* 제안 0건 — 커버리지 수요 루프(#413)로 연결: 홈이 제1 검색 표면이라
-          여기서 끊기면 수요가 기록되지 않는다. /search 무결과 화면에 수집
-          카드가 있으니 그리로 잇는다. */}
-      {open && q.trim().length >= 2 && items.length === 0 && (
-        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
-          <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_48px_rgba(16,28,54,.16)]">
-            <button
-              type="button"
-              onClick={submit}
-              className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2.5 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
-            >
-              <span className="min-w-0 truncate text-[13px] text-text-2">
-                ‘{q.trim()}’ 제안이 없어요 — 아직 안 열린 지역일 수 있어요
-              </span>
-              <span className="shrink-0 t-body font-extrabold text-primary">
-                전체 검색·수요 남기기 ›
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 제안 드롭다운 */}
-      {open && q.trim().length >= 2 && items.length > 0 && (
-        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-40">
-          <div className="overflow-hidden rounded-2xl border border-line bg-surface p-1.5 shadow-[0_18px_48px_rgba(16,28,54,.16)] [animation:riseIn_160ms_var(--ease-out)_backwards]">
-            {items.slice(0, 7).map((it) => (
-              <button
-                key={it.key}
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setQ("");
-                  router.push(it.href);
-                }}
-                className="flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-[rgba(29,79,216,.07)]"
-              >
-                <span className="shrink-0 rounded-md bg-bg px-1.5 py-0.5 t-caption font-extrabold text-text-2">
-                  {it.label}
-                </span>
-                <span className="min-w-0 flex-1 truncate t-body font-semibold text-text-1">
-                  {it.title}
-                </span>
-                {it.meta && (
-                  <span className="shrink-0 text-[12px] text-text-3">{it.meta}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 칩 — 최근 검색·최근 본 단지 (실기록), 없으면 커버 지역 바로가기 */}
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+      {/* 칩 — 최근 검색·최근 본 단지 (실기록), 없으면 커버 지역 바로가기.
+          [963] 커버리지 한 줄을 **같은 행**에 둔다(소유자 지시 2026-09-04 "한 줄로").
+          예전엔 칩 행과 커버리지 줄이 위아래 두 줄이었는데, 검색창과 티커 사이에
+          가운데 정렬 텍스트 두 덩이가 층을 이뤄 여백만 벌어졌다. 둘 다 "검색을 돕는
+          보조 정보"라 한 줄에 놓아도 읽는 순서가 흐트러지지 않는다.
+          flex-wrap 이라 칩이 여럿이거나 좁은 화면에서는 알아서 접힌다. */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1.5">
         {hasHistory ? (
           <>
             {recents.slice(0, 3).map((k) => (
@@ -273,6 +292,7 @@ export function HomeHeroSearch({ regionChips = [] }: { regionChips?: HeroRegionC
             </>
           )
         )}
+        {coverage}
       </div>
     </div>
   );

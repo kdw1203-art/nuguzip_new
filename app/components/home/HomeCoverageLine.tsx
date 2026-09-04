@@ -31,7 +31,9 @@ export function HomeCoverageLine({
   }
   if (parts.length === 0) return null;
   return (
-    <p className={`m-0 text-center t-caption text-text-3 ${className}`}>
+    /* [963] t-fit — 좁은 화면에서 두 줄로 접힐 때 마지막 줄에 한 조각만 떨어지지 않게
+       (text-wrap: pretty). 데스크톱에서는 칩과 함께 한 줄로 들어간다. */
+    <p className={`m-0 text-center t-caption t-fit text-text-3 ${className}`}>
       {parts.map((p, i) => (
         <span key={p.label}>
           {i > 0 && <span aria-hidden="true"> · </span>}
