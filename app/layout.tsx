@@ -7,6 +7,8 @@ import { IosInstallHint } from "./components/IosInstallHint";
 import { AdSenseLoader } from "./components/AdSenseLoader";
 import { BrandSplash } from "./components/motion/BrandSplash";
 import { PullToRefresh } from "./components/motion/PullToRefresh";
+import { BackToTop } from "./components/BackToTop";
+import { OfflineBanner } from "./components/OfflineBanner";
 import { getAdSenseClient } from "@/lib/ads/adsense-policy";
 import { WebVitalsReporter } from "./components/WebVitalsReporter";
 import { ClientErrorReporter } from "./components/ClientErrorReporter";
@@ -254,6 +256,10 @@ export default function RootLayout({
                   <BrandSplash />
                   {/* [962] 설치 앱에서만 — 당겨서 새로고침(온점 물방울) */}
                   <PullToRefresh />
+                  {/* [966] 800px 넘게 내려가면 우하단에 "맨 위로" — /town·/notes 는 글쓰기 FAB 위로 비킨다 */}
+                  <BackToTop />
+                  {/* [966] 끊기면 탭바 위 알약으로 알리고, 돌아오면 2.5초 뒤 접는다 */}
+                  <OfflineBanner />
                   <WebVitalsReporter />
                   <ClientErrorReporter />
                   {/* 어드민 트래픽 대시보드용 1st-party 페이지뷰·체류 기록 —

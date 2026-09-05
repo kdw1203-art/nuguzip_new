@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 import { LeadActions } from "./LeadActions";
 import { safeAuth } from "@/lib/safe-auth";
 import { getExpertStatus } from "@/lib/experts/is-verified";
@@ -95,16 +96,14 @@ export default async function MyLeadsPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="t-section text-ink">아직 받은 문의가 없어요</div>
-          <p className="max-w-[440px] t-body text-text-3">
-            노출 중인 매물에 관심 있는 이용자가 문의를 남기면 여기로 도착해요. 매물 정보와
-            사진을 충실히 채우면 문의가 늘어나요.
-          </p>
-          <Link href="/my/listings" className="btn-primary btn-md no-underline">
-            내 매물 보기
-          </Link>
-        </div>
+        /* [966] 빈 상태 정본화 */
+        <EmptyState
+          icon="mail"
+          className="rise-in"
+          title="아직 받은 문의가 없어요"
+          desc="노출 중인 매물에 관심 있는 이용자가 문의를 남기면 여기로 도착해요. 매물 정보와 사진을 충실히 채우면 문의가 늘어나요."
+          action={{ label: "내 매물 보기", href: "/my/listings" }}
+        />
       ) : (
         <div className="rise-in flex flex-col gap-3">
           {items.map((q: Inquiry) => {

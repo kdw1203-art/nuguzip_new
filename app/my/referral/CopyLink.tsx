@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
+import { useCopy } from "@/lib/ui/use-copy";
 
 /**
  * 복사 버튼 (마이 · 친구 추천).
  * variant="code" → 큰 코드 박스, variant="link" → 링크 필드.
+ * [966] 클립보드·폴백·토스트는 useCopy 로 — 버튼 라벨("복사됨!")은 그대로.
  */
 export function CopyLink({
   value,
@@ -14,29 +14,7 @@ export function CopyLink({
   value: string;
   variant?: "code" | "link";
 }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(value);
-      } else {
-        // 폴백: 임시 textarea
-        const ta = document.createElement("textarea");
-        ta.value = value;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-      }
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
-    } catch {
-      /* 클립보드 접근 실패 시 무시 */
-    }
-  }
+  const { copy, copied } = useCopy(variant === "code" ? "코드를 복사했어요" : "링크를 복사했어요");
 
   if (variant === "code") {
     return (
@@ -46,7 +24,7 @@ export function CopyLink({
         </div>
         <button
           type="button"
-          onClick={copy}
+          onClick={() => void copy(value)}
           className="btn-primary press rounded-[10px] px-6 py-2.5 text-[13px]"
         >
           {copied ? "복사됨!" : "코드 복사"}
@@ -62,7 +40,7 @@ export function CopyLink({
       </div>
       <button
         type="button"
-        onClick={copy}
+        onClick={() => void copy(value)}
         className="btn-primary press shrink-0 rounded-[10px] px-4 py-3 text-[13px]"
       >
         {copied ? "복사됨!" : "링크 복사"}

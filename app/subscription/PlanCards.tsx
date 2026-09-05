@@ -255,6 +255,11 @@ export function PlanCards({
                     </span>
                     {/* 월 환산가는 싸 보이게 만드는 표기일 뿐, **얼마를 아끼는지**는
                         말하지 않는다. 연간을 고르는 사람이 알고 싶은 건 그쪽이다. (C48) */}
+                    {/* [966] 카드에 실제로 찍히는 건 연 총액이다 — 월 환산가만 크게 보이면
+                        27,600원이 한 번에 나가는 사실을 결제창에서야 안다 */}
+                    <span className={`t-caption font-bold ${p.dark ? "text-white/80" : "text-text-2"}`}>
+                      오늘 {fmtWon(tierPrice.annualTotal)} 결제 · 이후 매년 갱신
+                    </span>
                     {p.defTier !== "basic" &&
                       annualSavingKrw(p.defTier as "pro" | "expert") !== null && (
                         <span
@@ -303,6 +308,7 @@ export function PlanCards({
                       billing={billing}
                       className={p.ctaClass}
                       dark={p.dark}
+                      weeklyAvailable={paymentsReady && recurringReady === false}
                     />
                   )}
                   {/* 2026-08-23: "포인트로 교환하기" 링크 제거 — 포인트↔구독 교환

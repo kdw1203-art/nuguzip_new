@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { BILLING_PERIOD_PRICES, WEEKLY_PASS } from "@/lib/subscriptions/billing-periods";
 
 type UpgradePaywallProps = {
   open: boolean;
@@ -34,6 +36,23 @@ export function UpgradePaywall({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  /* [966] 가격을 말한다 — 예전 페이월은 "요금제 보기" 만 있어 얼마인지 모른 채 넘어가야
+     했다. 숫자는 단일 출처(billing-periods)에서만. 현재 경로를 returnTo 로 붙여 결제 뒤
+     원래 하던 화면으로 돌아오게 한다(체크아웃·성공 화면이 읽는다). */
+  const pathname = usePathname();
+  const monthly = BILLING_PERIOD_PRICES.pro.find((p) => p.months === 1)?.totalKrw ?? 0;
+  const returnTo = pathname && pathname !== "/subscription" ? pathname : null;
+  const ctaHref = (() => {
+    if (!returnTo) return href;
+    try {
+      const u = new URL(href, "https://x.local");
+      u.searchParams.set("returnTo", returnTo);
+      return `${u.pathname}${u.search}`;
+    } catch {
+      return href;
+    }
+  })();
+
   if (!open) return null;
 
   return (
@@ -55,9 +74,13 @@ export function UpgradePaywall({
           {title}
         </h2>
         <p className="mt-2 text-[13px] leading-[1.65] text-text-2">{message}</p>
+        <p className="mt-2 rounded-xl bg-bg px-3 py-2 t-sub text-text-2">
+          <span className="font-bold text-ink">{WEEKLY_PASS.label} {WEEKLY_PASS.totalKrw.toLocaleString("ko-KR")}원</span>
+          ({WEEKLY_PASS.days}일 · 단건) 부터 · 플러스 월 {monthly.toLocaleString("ko-KR")}원 · VAT 포함
+        </p>
         <div className="mt-4 flex flex-col gap-2">
           <Link
-            href={href}
+            href={ctaHref}
             className="btn-primary btn-cta rounded-xl py-3 text-center text-[13px] no-underline"
             onClick={onClose}
           >

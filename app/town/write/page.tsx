@@ -10,6 +10,7 @@ import { CITY_OPTIONS, DISTRICTS } from "@/lib/regions";
 import { complexHrefFromId } from "@/lib/seo/complex-slug";
 import { compressImage } from "@/lib/client/image-compress";
 import { MAX_POST_IMAGES } from "@/lib/community/attachments";
+import { useDirtyTracker, useUnsavedGuard } from "@/lib/client/use-unsaved-guard";
 
 /* ============================================================
    동네이야기 글쓰기 — POST /api/community/posts 실연동
@@ -167,6 +168,14 @@ function TownWriteForm() {
   const [restorable, setRestorable] = useState<Draft | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* [966] 새로고침·탭 닫기 가드 — 임시저장(아래 800ms 디바운스)이 아직 못 따라온
+     구간에서만 묻는다. 마지막으로 localStorage 에 쓴 스냅샷과 지금 값이 같으면 나가도
+     잃는 게 없으니 묻지 않는다. 올린 뒤(posted)에도 묻지 않는다. */
+  const [posted, setPosted] = useState(false);
+  const draftSnapshot: Omit<Draft, "savedAt"> = { title, content, category, city, district };
+  const [savedSnapshot, setSavedSnapshot] = useState<Omit<Draft, "savedAt"> | null>(null);
+  const unsynced = useDirtyTracker(draftSnapshot, savedSnapshot);
+  useUnsavedGuard(Boolean(title.trim() || content.trim()) && unsynced && !posted);
 
   const districts = DISTRICTS[city] ?? [];
 
@@ -191,6 +200,7 @@ function TownWriteForm() {
           JSON.stringify({ title, content, category, city, district, savedAt: now } satisfies Draft),
         );
         setSavedAt(now);
+        setSavedSnapshot({ title, content, category, city, district });
       } catch {
         /* 저장소 차단(프라이빗 모드·용량 초과) — 표시를 켜지 않는다.
            "임시저장됨"이라고 적어 두고 실제로는 저장이 안 되는 게 최악이다. */
@@ -262,6 +272,14 @@ function TownWriteForm() {
     }
     setRestorable(null);
     setSavedAt(d.savedAt);
+    /* [966] 되살린 직후는 저장본과 같다 — 지역이 목록에 없어 바뀌었으면 800ms 뒤 자동 저장이 맞춘다 */
+    setSavedSnapshot({
+      title: d.title,
+      content: d.content,
+      category: d.category,
+      city: d.city,
+      district: d.district,
+    });
   }, []);
 
   const onCityChange = (next: CityOption) => {
@@ -325,6 +343,7 @@ function TownWriteForm() {
          이미 올린 글을 "이어서 쓸까요?"라고 다시 묻는다. */
       clearDraft();
       setSavedAt(null);
+      setPosted(true); /* [966] 올라갔다 — 가드 해제 */
       // 단지에서 넘어왔으면 그 단지로 돌려보낸다 — 방금 쓴 글이 붙은 자리다.
       router.push(complexId ? `/complex/${encodeURIComponent(complexId)}` : "/town");
       router.refresh();

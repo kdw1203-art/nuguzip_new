@@ -2,6 +2,7 @@ import Link from "next/link";
 import { planLabel } from "@/lib/subscriptions/labels";
 import { PageShell } from "@/app/components/PageShell";
 import { Icon } from "@/app/components/Icon";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 import { safeAuth } from "@/lib/safe-auth";
 import { loadMeProfile } from "@/lib/me/profile";
 import { getExpertStatus } from "@/lib/experts/is-verified";
@@ -26,6 +27,8 @@ import {
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { logger } from "@/lib/log";
 import { getUsageSummary } from "@/lib/subscriptions/usage-summary";
+import { loadBillingHistory } from "@/lib/subscriptions/billing-history";
+import { getLiveSubscriptionByEmail, toPublic } from "@/lib/payments/billing-store";
 import type { ProfilePlanTier } from "@/lib/subscriptions/labels";
 import { AttendanceButton } from "./points/AttendanceButton";
 
@@ -228,6 +231,23 @@ export default async function MyPage() {
 
   const savedNotes = savedNotesLoaded.ok ? savedNotesLoaded.notes : [];
 
+  /* [966] 구독 카드에 결제 사실을 붙인다 — 자동결제면 다음 결제일·금액, 아니면 최근 결제 1건.
+     예전엔 만료일 한 줄뿐이었고, 자동결제 사용자에게는 만료일과 다음 결제일이 달라 헷갈렸다. */
+  const [autopayLoaded, lastPaymentLoaded] = await Promise.all([
+    profile.plan === "free"
+      ? Promise.resolve(null)
+      : getLiveSubscriptionByEmail(email.trim().toLowerCase()).then(
+          (s) => (s ? toPublic(s) : null),
+          () => null,
+        ),
+    profile.plan === "free"
+      ? Promise.resolve(null)
+      : loadBillingHistory(email, 5).then(
+          (h) => (h.ok ? (h.payments.find((p) => p.status === "paid") ?? null) : null),
+          () => null,
+        ),
+  ]);
+
   // A10 — 무료 가치 카운터(AI 분석 월 사용량) — 결제 전 가치 증명·자연 유도
   /* 실패하면 null → 아래 사용량 카드가 통째로 빠진다. 없는 값을 "0회 사용"으로
      그리는 것보다는 낫지만, 조용히 사라지면 왜 안 보이는지 아무도 모른다.
@@ -413,13 +433,13 @@ export default async function MyPage() {
           <section className="flex flex-col gap-2.5">
             <SectionHead title="내 임장노트" href="/notes?mine=1" hrefLabel={`전체 ${total}`} />
             {recentNotes.length === 0 ? (
-              <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-                <div className="t-body font-bold text-ink">아직 임장노트가 없어요</div>
-                <div className="t-sub text-text-3">현장 기록을 남기면 여기에 모여요</div>
-                <Link href="/notes/new" className="btn-primary btn-md mt-1 no-underline">
-                  첫 노트 쓰기
-                </Link>
-              </div>
+              /* [966] 빈 상태 정본화 — 손으로 그린 카드 대신 EmptyState */
+              <EmptyState
+                icon="notebook-pen"
+                title="아직 임장노트가 없어요"
+                desc="현장 기록을 남기면 여기에 모여요"
+                action={{ label: "첫 노트 쓰기", href: "/notes/new" }}
+              />
             ) : (
               recentNotes.map((n) => (
                 <Link
@@ -472,15 +492,13 @@ export default async function MyPage() {
                 </div>
               </div>
             ) : savedNotes.length === 0 ? (
-              <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-                <div className="t-body font-bold text-ink">저장한 노트가 없어요</div>
-                <div className="t-sub text-text-3">
-                  마음에 드는 공개 노트를 저장하면 여기에 모여요
-                </div>
-                <Link href="/notes" className="btn-soft btn-md mt-1 no-underline">
-                  공개 노트 둘러보기
-                </Link>
-              </div>
+              /* [966] 빈 상태 정본화 */
+              <EmptyState
+                icon="heart"
+                title="저장한 노트가 없어요"
+                desc="마음에 드는 공개 노트를 저장하면 여기에 모여요"
+                action={{ label: "공개 노트 둘러보기", href: "/notes" }}
+              />
             ) : (
               savedNotes.slice(0, 4).map((n) => (
                 <Link
@@ -573,15 +591,13 @@ export default async function MyPage() {
         <section className="flex flex-col gap-2.5">
           <SectionHead title="관심 지역 · 급매 알림" href="/notifications" hrefLabel="관리" />
           {alerts.length === 0 ? (
-            <div className="card flex flex-col items-center gap-2 rounded-[14px] px-4 py-8 text-center">
-              <div className="t-body font-bold text-ink">구독한 알림이 없어요</div>
-              <div className="t-sub text-text-3">
-                관심 지역·키워드를 구독하면 급매·시세 변동을 알려드려요
-              </div>
-              <Link href="/notifications" className="btn-soft btn-md mt-1 no-underline">
-                알림 구독하기
-              </Link>
-            </div>
+            /* [966] 빈 상태 정본화 */
+            <EmptyState
+              icon="bell"
+              title="구독한 알림이 없어요"
+              desc="관심 지역·키워드를 구독하면 급매·시세 변동을 알려드려요"
+              action={{ label: "알림 구독하기", href: "/notifications" }}
+            />
           ) : (
             <div className="flex flex-wrap gap-2">
               {alerts.map((a: AlertSubscription) => (
@@ -681,10 +697,14 @@ export default async function MyPage() {
                 </div>
               </div>
             ) : history.length === 0 ? (
-              <div className="flex flex-col items-center gap-1.5 py-6 text-center">
-                <div className="t-body font-bold text-ink">아직 포인트 내역이 없어요</div>
-                <div className="t-sub text-text-3">활동하면 적립·사용 기록이 모여요</div>
-              </div>
+              /* [966] 빈 상태 정본화 — 카드 안이라 한지 패널로 들어앉는다.
+                 다음 행동 = 적립 방법(미션) 보기. 상점 버튼은 아래에 이미 있다. */
+              <EmptyState
+                icon="wallet"
+                title="아직 포인트 내역이 없어요"
+                desc="활동하면 적립·사용 기록이 모여요"
+                action={{ label: "적립 미션 보기", href: "/my/missions" }}
+              />
             ) : (
               <div className="flex flex-col">
                 {history.map((r: LedgerRow, i) => {
@@ -817,10 +837,23 @@ export default async function MyPage() {
                     Stripe 구독은 웹훅이 관리하므로 null → 만료일 없이 관리 안내만. */}
                 {profile.plan === "free"
                   ? "플러스로 업그레이드하면 AI 비교 리포트가 무제한이에요"
-                  : planExpiresAt
-                    ? `${fmtExpiry(planExpiresAt)}까지 이용할 수 있어요 · 이후 무료 플랜으로 전환돼요`
-                    : "결제 내역과 해지·환불 접수 방법은 구독 페이지에서 확인할 수 있어요"}
+                  : autopayLoaded && autopayLoaded.status === "active"
+                    ? `다음 결제 ${autopayLoaded.nextChargeAt ? fmtExpiry(autopayLoaded.nextChargeAt) : "—"} · ${autopayLoaded.amount.toLocaleString("ko-KR")}원/${autopayLoaded.billing === "annual" ? "년" : "월"} 자동결제`
+                    : autopayLoaded && autopayLoaded.status === "suspended"
+                      ? "자동결제가 결제 실패로 멈춰 있어요 — 카드를 다시 등록해 주세요"
+                      : planExpiresAt
+                        ? `${fmtExpiry(planExpiresAt)}까지 이용할 수 있어요 · 이후 무료 플랜으로 전환돼요`
+                        : "결제 내역과 해지·환불 접수 방법은 구독 페이지에서 확인할 수 있어요"}
               </div>
+              {lastPaymentLoaded && (
+                <div className="mt-1 t-caption text-text-3">
+                  최근 결제 · {lastPaymentLoaded.paidAt ? fmtExpiry(lastPaymentLoaded.paidAt) : "—"} ·{" "}
+                  {lastPaymentLoaded.amount != null ? `${lastPaymentLoaded.amount.toLocaleString("ko-KR")}원` : "—"}{" "}
+                  <Link href="/subscription#billing" className="underline underline-offset-2">
+                    결제 내역
+                  </Link>
+                </div>
+              )}
             </div>
             <Link
               href="/subscription"

@@ -1,5 +1,6 @@
 import { getBusinessInfo } from "@/lib/brand/business-info";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
+import { ExternalLink } from "@/app/components/ui/ExternalLink";
 
 export const metadata = buildPageMetadata({
   title: "개인정보처리방침",
@@ -283,50 +284,42 @@ export default function PrivacyPage() {
             <ul className="mt-1 space-y-0.5 text-xs text-text-2">
               <li>
                 • 개인정보 침해 신고센터:{" "}
-                <a
+                <ExternalLink
                   href="https://privacy.kisa.or.kr"
                   className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noreferrer"
                 >
                   privacy.kisa.or.kr
-                </a>{" "}
+                </ExternalLink>{" "}
                 (국번 없이 118)
               </li>
               <li>
                 • 개인정보 분쟁조정위원회:{" "}
-                <a
+                <ExternalLink
                   href="https://www.kopico.go.kr"
                   className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noreferrer"
                 >
                   www.kopico.go.kr
-                </a>{" "}
+                </ExternalLink>{" "}
                 (1833-6972)
               </li>
               <li>
                 • 대검찰청 사이버범죄수사단:{" "}
-                <a
+                <ExternalLink
                   href="https://www.spo.go.kr"
                   className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noreferrer"
                 >
                   www.spo.go.kr
-                </a>{" "}
+                </ExternalLink>{" "}
                 (02-3480-3573)
               </li>
               <li>
                 • 경찰청 사이버안전국:{" "}
-                <a
+                <ExternalLink
                   href="https://cyberbureau.police.go.kr"
                   className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noreferrer"
                 >
                   cyberbureau.police.go.kr
-                </a>{" "}
+                </ExternalLink>{" "}
                 (국번 없이 182)
               </li>
             </ul>

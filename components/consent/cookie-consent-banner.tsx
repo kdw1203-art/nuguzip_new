@@ -26,6 +26,8 @@ export function CookieConsentBanner() {
          md+ 는 탭바가 없어 원래도 무관 — 코너 카드 유지. */
       className="fixed inset-x-0 z-[70] px-4 md:inset-x-auto md:right-5 md:px-0"
       style={{ bottom: "max(16px, env(safe-area-inset-bottom, 0px))" }}
+      /* [966] 인쇄 제외 표식 — 고정 클래스가 없어 속성으로 잡는다(globals.css @media print) */
+      data-noprint
     >
       {/* 모바일 실측(2026-08-02): 글래스 60% 불투명이라 밑 본문 글자가 배너 문구와
           겹쳐 읽혔고, 패딩까지 더해 화면 하단 1/3 을 차지했다. 동의는 법적 행위의

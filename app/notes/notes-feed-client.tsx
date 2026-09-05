@@ -7,6 +7,7 @@ import { ExampleBadge } from "../components/ExampleBadge";
 import { EmptyState } from "@/app/components/ui/EmptyState";
 import { CoverImage } from "@/app/components/CoverImage";
 import { Icon } from "@/app/components/Icon";
+import { useScrollRestore, useScrollRestoreKey } from "@/lib/client/use-scroll-restore";
 
 /* 공개 임장노트 — 인스타그램형(스토리 줄 + 3열 그리드 ⇄ 피드 전환) */
 
@@ -318,6 +319,9 @@ export function NotesFeedClient({
   const [filter, setFilter] = useState<Filter>("최신");
   const [view, setView] = useState<ViewMode>("grid");
   const exampleOnly = notes.length > 0 && notes.every((n) => n.isExample);
+  /* [966] 상세 → 뒤로가기 스크롤 복원. 노트는 서버가 내려준 props 라 첫 렌더에 이미
+     그려져 있다(ready) — 타일은 3:4 고정 비율이라 사진이 늦게 와도 높이가 안 변한다. */
+  useScrollRestore(useScrollRestoreKey(), notes.length > 0);
 
   /* 구독 지역이 없으면 "내 관심 지역" 은 무엇을 눌러도 0건이라 칩 자체를 숨긴다.
      비활성 상태로 남겨 두면 눌리는데 아무 일도 안 하는 컨트롤이 된다. */

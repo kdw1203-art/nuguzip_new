@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
-import { ErrorState } from "@/app/components/ui/EmptyState";
-import { Icon } from "@/app/components/Icon";
+import { EmptyState, ErrorState } from "@/app/components/ui/EmptyState";
 import { safeAuth } from "@/lib/safe-auth";
 import { listWatchlist, type WatchlistItem } from "@/lib/watchlist/store-db";
 import { resolveComplexPrice, type ComplexPriceResult } from "@/lib/market/complex-price";
@@ -107,19 +106,14 @@ export default async function WatchlistDashboardPage() {
           cause={listFailed}
         />
       ) : items.length === 0 ? (
-        <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="t-title">
-            <Icon name="📌" size={26} />
-          </div>
-          <div className="t-section text-ink">아직 담아 둔 단지가 없어요</div>
-          <p className="max-w-[440px] t-body text-text-3">
-            단지 화면의 &ldquo;단지 팔로우&rdquo; 나 지도의 &ldquo;관심 단지 담기&rdquo;를
-            누르면 여기에 모이고, 시세가 ±1% 이상 움직이면 알림을 받아요.
-          </p>
-          <Link href="/map" className="btn-primary btn-md no-underline">
-            지도에서 단지 찾기
-          </Link>
-        </div>
+        /* [966] 빈 상태 정본화 */
+        <EmptyState
+          icon="📌"
+          className="rise-in"
+          title="아직 담아 둔 단지가 없어요"
+          desc="단지 화면의 “단지 팔로우” 나 지도의 “관심 단지 담기”를 누르면 여기에 모이고, 시세가 ±1% 이상 움직이면 알림을 받아요."
+          action={{ label: "지도에서 단지 찾기", href: "/map" }}
+        />
       ) : (
         <>
           {!notesR.ok && (

@@ -168,11 +168,12 @@ export function ModalHeader({ title, onClose }: { title: string; onClose: () => 
   return (
     <div className="mb-3 flex items-start justify-between gap-2">
       <span className="text-[13px] font-extrabold text-ink">{title}</span>
+      {/* [966] 15px 글자 하나가 터치 타깃이었다 — 32px 상자 + .tap(8px 히트 확장). 모양은 그대로. */}
       <button
         type="button"
         aria-label="닫기"
         onClick={onClose}
-        className="press shrink-0 rounded-full px-1.5 text-[15px] leading-none text-text-3"
+        className="press tap inline-flex min-h-[32px] min-w-[32px] shrink-0 items-center justify-center rounded-full px-1.5 text-[15px] leading-none text-text-3"
       >
         ✕
       </button>

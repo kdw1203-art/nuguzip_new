@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useCopy } from "@/lib/ui/use-copy";
 
 /* [AI-36·37] 노트 오디오 도구 —
    ① 브리핑 듣기: 기존 TTS API(이미 구현돼 있던 미노출 기능)를 노트 상세에 노출.
@@ -23,7 +24,9 @@ export function NoteAudioTools({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [transcripts, setTranscripts] = useState<Record<string, string>>({});
   const [busyUrl, setBusyUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
+  /* [966] 어느 메모를 복사했는지만 여기서 기억 — 복사·토스트·되돌림은 useCopy */
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+  const { copy, copied } = useCopy("전사 내용을 복사했어요");
 
   const playBriefing = async () => {
     if (ttsState === "loading") return;
@@ -118,16 +121,11 @@ export function NoteAudioTools({
               <button
                 type="button"
                 onClick={() => {
-                  try {
-                    void navigator.clipboard.writeText(transcripts[u]);
-                    setCopied(u);
-                  } catch {
-                    setCopied(null);
-                  }
+                  void copy(transcripts[u]).then((ok) => setCopiedUrl(ok ? u : null));
                 }}
                 className="ml-2 t-sub font-bold text-primary"
               >
-                {copied === u ? "복사됨 ✓" : "복사"}
+                {copied && copiedUrl === u ? "복사됨 ✓" : "복사"}
               </button>
               <span className="ml-1 t-caption text-text-3">
                 — 노트 수정에서 메모에 붙여넣어 저장하세요 (음성 메모 {i + 1})

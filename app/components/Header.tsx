@@ -57,7 +57,18 @@ export function Header() {
           {NAV.map((item) => {
             const active = isActive(item.href);
             return (
-              <div key={item.label} className="group relative">
+              <div
+                key={item.label}
+                className="group relative"
+                /* [966] 드롭다운은 CSS(group-focus-within)로만 열린다 — 키보드 사용자가
+                   Esc 로 닫을 길이 없었다. 활성 요소를 blur 하면 focus-within 이 풀린다.
+                   (브라우저는 blur 된 자리를 다음 Tab 시작점으로 기억한다) */
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape") return;
+                  const el = document.activeElement;
+                  if (el instanceof HTMLElement && e.currentTarget.contains(el)) el.blur();
+                }}
+              >
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}

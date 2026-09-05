@@ -50,18 +50,22 @@ async function sendPreExpiryReminders(
         to: new Date(now + 7 * day).toISOString(),
         title: "이용권이 7일 뒤 만료돼요",
         body: "지금 쓰시는 이용권이 일주일 뒤 끝나요. 만료 전에 연장하면 이용이 끊기지 않아요.",
+        /* [966] 7일짜리 주간권은 구매 다음 날 이 창에 걸린다 — "7일 뒤 만료" 는 그 사람에게
+           방금 산 것을 다시 사라는 말이다. 총 기간이 8일 미만인 이용권은 T-7 을 건너뛴다. */
+        minSpanDays: 8,
       },
       {
         from: nowIso,
         to: new Date(now + 1 * day).toISOString(),
         title: "이용권이 내일 만료돼요",
         body: "이용권이 24시간 안에 끝나요. 지금 연장하면 그대로 이어서 쓸 수 있어요.",
+        minSpanDays: 0,
       },
     ];
     for (const w of windows) {
       const { data: upcoming, error: upcomingError } = await sb
         .from("app_users")
-        .select("email")
+        .select("email, plan_expires_at, updated_at")
         .not("plan", "in", '("free","basic")')
         .not("plan_expires_at", "is", null)
         .gte("plan_expires_at", w.from)
@@ -75,6 +79,13 @@ async function sendPreExpiryReminders(
         const email = String(row.email ?? "").trim();
         if (!email) continue;
         if (autopayEmails.has(email.toLowerCase())) continue; // 자동 갱신 예정 — 알림 부적절
+        if (w.minSpanDays > 0) {
+          /* 이용권 총 기간 추정 = 만료 - 마지막 갱신(updated_at: applyPlan 이 쓴다).
+             8일 미만이면 주간권 — T-7 은 보내지 않는다. */
+          const exp = Date.parse(String(row.plan_expires_at ?? ""));
+          const upd = Date.parse(String(row.updated_at ?? ""));
+          if (Number.isFinite(exp) && Number.isFinite(upd) && exp - upd < w.minSpanDays * day) continue;
+        }
         try {
           await appendInboxNotification({
             userEmail: email,

@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { planLabel } from "@/lib/subscriptions/labels";
 import { PageShell } from "@/app/components/PageShell";
+import { Icon } from "@/app/components/Icon";
 import { safeAuth } from "@/lib/safe-auth";
+import { getServiceSupabase } from "@/lib/supabase/service";
 import { getUsageSummary, type UsageItem } from "@/lib/subscriptions/usage-summary";
 import { loadMeProfile } from "@/lib/me/profile";
 import { BILLING_PERIOD_PRICES, periodPrice, WEEKLY_PASS } from "@/lib/subscriptions/billing-periods";
 import { PlanCards, type TierPricing } from "./PlanCards";
 import { PlanCheckoutButton } from "./PlanCheckoutButton";
+import { PreOrderCta } from "./PreOrderCta";
 import {
   getBusinessInfo,
   isBusinessDisclosureComplete,
@@ -112,10 +115,26 @@ function PlanBadge({ tier }: { tier: "plus" | "pro" }) {
   );
 }
 
+/** [966] 단건 이용권 만료 — 구독 관리 헤더·해지 문구에 "언제까지" 를 적기 위해 */
+async function loadPlanExpiresAt(email: string): Promise<string | null> {
+  const sb = getServiceSupabase();
+  if (!sb) return null;
+  try {
+    const { data } = await sb
+      .from("app_users")
+      .select("plan_expires_at")
+      .eq("email", email.trim().toLowerCase())
+      .maybeSingle();
+    return data?.plan_expires_at ? String(data.plan_expires_at) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function SubscriptionPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ plan?: string; billing?: string }>;
+  searchParams?: Promise<{ plan?: string; billing?: string; history?: string }>;
 }) {
   // 결제 실패 페이지의 "다시 시도하기"가 plan/billing 쿼리를 들고 돌아온다 —
   // 고른 주기를 다시 고르게 하지 않도록 토글 초기값으로 반영한다.
@@ -154,6 +173,7 @@ export default async function SubscriptionPage({
   const isAdminViewer = (session?.user as { role?: string } | undefined)?.role === "admin";
   let currentPlan: "free" | "pro" | "expert" = "free";
   let usage: UsageItem[] = [];
+  let planExpiresAt: string | null = null;
   if (email) {
     const profile = await loadMeProfile(email, {
       name: session?.user?.name,
@@ -161,6 +181,7 @@ export default async function SubscriptionPage({
       role: (session?.user as { role?: string } | undefined)?.role,
     });
     currentPlan = profile.plan;
+    planExpiresAt = await loadPlanExpiresAt(email);
     /* 지금 얼마나 썼는지 — 한도는 카드에 적혀 있는데 내가 얼마 썼는지는 어디에도
        없었다. 살지 말지를 정하는 숫자가 그것인데. 실패해도 페이지는 그대로 산다. */
     usage = await getUsageSummary(email, profile.plan)
@@ -304,6 +325,27 @@ export default async function SubscriptionPage({
           paymentsReady={paymentsReady}
           recurringReady={recurringReady}
         />
+        {/* [966] 결제 신뢰 스트립 — 결제 버튼 바로 아래에서 "무엇이 보장되는지" 를 세 줄로.
+            전부 코드가 실제로 하는 일이다: 카드번호는 토스 결제창에서만 다뤄 우리 서버에
+            남지 않고, 결제 즉시 이용권이 적용되며 영수증 메일·알림이 나가고(965·966),
+            7일 이내 청약철회는 약관 제8조. */}
+        <ul className="mx-auto mt-4 grid w-full max-w-[1080px] grid-cols-1 gap-2 sm:grid-cols-3">
+          {[
+            { icon: "lock", title: "카드번호는 남지 않아요", desc: "결제는 토스페이먼츠 결제창에서 — 내집나우 서버에는 카드번호가 저장되지 않아요" },
+            { icon: "receipt", title: "즉시 적용 · 영수증 메일", desc: "결제가 끝나면 바로 이용권이 켜지고, 알림함과 이메일로 영수증을 보내드려요" },
+            { icon: "shield", title: "7일 이내 청약철회", desc: "결제 후 7일 이내 전액 환불, 이후 중도 해지는 잔여기간 일할 환불 (약관 제8조)" },
+          ].map((t) => (
+            <li key={t.title} className="flex items-start gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-3">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-hanji text-brand-hanji-ink">
+                <Icon name={t.icon} size={14} />
+              </span>
+              <span className="flex flex-col gap-0.5">
+                <span className="t-sub font-extrabold text-ink">{t.title}</span>
+                <span className="t-caption leading-[1.5] text-text-3">{t.desc}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* 플러스 주간권 — 1회성 단건 결제(자동갱신 없음). 운영자 확정 2026-08-12:
@@ -337,16 +379,37 @@ export default async function SubscriptionPage({
               저렴합니다.
             </p>
           </div>
-          {paymentsReady && (
-            <div className="w-full shrink-0 md:w-[180px]">
+          {/* [966] 상태별로 정직하게: 결제 미개통이면 사전 등록(예전엔 버튼이 통째로
+              사라져 설명만 남는 죽은 카드였다), 이미 프로(expert)면 사지 못하게 —
+              사면 applyPlan 이 "다른 플랜" 으로 보고 7일짜리 플러스로 **강등**된다. */}
+          <div className="w-full shrink-0 md:w-[200px]">
+            {currentPlan === "expert" ? (
+              <p className="rounded-[14px] bg-bg p-[13px] text-center t-sub font-bold text-text-2">
+                프로 이용 중이라 주간권이 필요 없어요 — 플러스 기능은 이미 전부 열려 있습니다.
+              </p>
+            ) : currentPlan === "pro" ? (
+              <div className="flex flex-col gap-1.5">
+                <PlanCheckoutButton
+                  tier="pro"
+                  billing="weekly"
+                  label="주간권 7일 연장"
+                  className="w-full bg-brand-navy text-surface"
+                />
+                <p className="text-center t-caption text-text-3">
+                  이용 중인 플러스 만료일 뒤로 7일이 이어 붙어요
+                </p>
+              </div>
+            ) : paymentsReady ? (
               <PlanCheckoutButton
                 tier="pro"
                 billing="weekly"
                 label="주간권 구매"
                 className="w-full bg-brand-navy text-surface"
               />
-            </div>
-          )}
+            ) : (
+              <PreOrderCta tier="pro" billing="weekly" className="w-full bg-brand-navy text-surface" />
+            )}
+          </div>
         </div>
       </section>
 
@@ -363,7 +426,14 @@ export default async function SubscriptionPage({
 
       {/* E1 — 구독 관리·결제 내역. `/my` 가 "구독 페이지에서 관리해요"라고 보내던 목적지.
           로그인하지 않았으면 보여 줄 사실이 없으므로 아예 렌더하지 않는다. */}
-      {email && <BillingPanel email={email} currentPlan={currentPlan} />}
+      {email && (
+        <BillingPanel
+          email={email}
+          currentPlan={currentPlan}
+          historyLimit={Number(sp.history) || 10}
+          planExpiresAt={planExpiresAt}
+        />
+      )}
 
       {/* 기능 비교표 (9k)
           [C49] 예전엔 640px 고정 폭 표 하나뿐이라, 390px 화면에서는 라벨 칸

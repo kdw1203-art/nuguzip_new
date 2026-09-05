@@ -11,6 +11,7 @@ import {
   METRO_EXPLORE_DISTRICTS,
 } from "@/lib/map/seoul-districts";
 import { pickRegionByAnyName } from "@/lib/regions/param";
+import { useCopy } from "@/lib/ui/use-copy";
 
 /* ============================================================
    시장·대출 시나리오 — 기준 시세를 지역 실데이터(스냅샷 평균가)로 프리필.
@@ -176,23 +177,18 @@ export default function ScenarioClient({ rates }: { rates: RateContext }) {
     if (offset !== null && offset >= -3 && offset <= 3) setRateOffset(offset);
   }, []);
 
-  /* [AI-27] 시나리오 공유 — 현재 입력 세트를 URL로. 열람은 로그인 불필요. */
-  const [shareCopied, setShareCopied] = useState(false);
+  /* [AI-27] 시나리오 공유 — 현재 입력 세트를 URL로. 열람은 로그인 불필요.
+     [966] 복사·토스트·"복사됨" 지속 시간은 useCopy(공용) — 화면마다 다르던 2.5s 를 없앤다. */
+  const { copy: copyLink, copied: shareCopied } = useCopy("링크를 복사했어요");
   const copyShareLink = () => {
-    try {
-      const sp = new URLSearchParams();
-      if (regionId) sp.set("region", regionId);
-      sp.set("ltv", String(ltvPct));
-      sp.set("income", String(incomeManwon));
-      sp.set("rate", String(baseRate));
-      sp.set("price", String(pricePct));
-      sp.set("offset", String(rateOffset));
-      void navigator.clipboard.writeText(`${location.origin}/analysis/scenario?${sp.toString()}`);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 2500);
-    } catch {
-      setShareCopied(false);
-    }
+    const sp = new URLSearchParams();
+    if (regionId) sp.set("region", regionId);
+    sp.set("ltv", String(ltvPct));
+    sp.set("income", String(incomeManwon));
+    sp.set("rate", String(baseRate));
+    sp.set("price", String(pricePct));
+    sp.set("offset", String(rateOffset));
+    void copyLink(`${location.origin}/analysis/scenario?${sp.toString()}`);
   };
 
   useEffect(() => {

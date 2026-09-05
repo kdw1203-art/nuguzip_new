@@ -12,6 +12,7 @@ import { BILLING_DURATION_DAYS } from "@/lib/subscriptions/billing-periods";
 import type { AppPlan } from "@/lib/billing/plan";
 import { idempotencyKeyForOrder } from "@/lib/payments/idempotency";
 import { logger } from "@/lib/log";
+import { notifyPaymentSettled } from "@/lib/payments/notify-paid";
 
 /**
  * 토스페이먼츠 단건 결제 승인(confirm) — 라우트(/api/payments/toss/confirm)와
@@ -302,4 +303,6 @@ export async function applyPlanForPayment(paid: PaymentRecord): Promise<void> {
   await applyPlanToUserByEmail(userEmail, appPlan, {
     durationDays: BILLING_DURATION_DAYS[paid.billing],
   });
+  /* [966] 결제 직후 확인 — 알림함 + 영수증 메일(주문당 1회, 목업 제외) */
+  await notifyPaymentSettled(paid, { kind: "one_off" });
 }

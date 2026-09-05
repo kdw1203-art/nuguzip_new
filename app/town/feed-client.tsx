@@ -7,6 +7,7 @@ import { seedGradient, seedCoverHeight } from "./shared";
 import { ExampleBadge } from "../components/ExampleBadge";
 import { Icon } from "@/app/components/Icon";
 import { CoverImage } from "@/app/components/CoverImage";
+import { useScrollRestore, useScrollRestoreKey } from "@/lib/client/use-scroll-restore";
 
 /* 동네이야기 통합 피드 — 오늘의집/인스타그램형 사진 우선 카드 그리드(매소너리).
    공개 임장노트(사진 우선) + 커뮤니티 글을 한 피드로 섞어 보여준다.
@@ -244,6 +245,9 @@ export function TownFeed({
 }) {
   const [kind, setKind] = useState<KindId>("all");
   const [sort, setSort] = useState<SortId>("reco");
+  /* [966] 상세 → 뒤로가기 스크롤 복원. 카드는 props 로 이미 와 있고 커버 높이는
+     시드로 먼저 확정되므로(위 Cover 주석) 첫 렌더가 곧 ready 다. */
+  useScrollRestore(useScrollRestoreKey(), cards.length > 0);
   /* 내 관심지역 — 로그인 사용자만. 홈에서 정한 지역이 여기서 초기화되던 문제(B21).
      null = 아직 모름 / [] = 설정 안 함 → 칩을 그리지 않는다. */
   const [myRegions, setMyRegions] = useState<string[] | null>(null);

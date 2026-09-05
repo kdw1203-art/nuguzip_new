@@ -8,6 +8,7 @@ import {
   type PaymentBilling,
 } from "@/lib/subscriptions/billing-periods";
 import Link from "next/link";
+import { safeInternalPath } from "@/lib/safe-path";
 import {
   isTossTestEnv,
   isWidgetKey,
@@ -51,6 +52,8 @@ type Phase =
 function parseParams(): {
   tier: "pro" | "expert";
   billing: "weekly" | "monthly" | "annual";
+  /** [966] 결제 뒤 돌아갈 내부 경로 — 페이월에서 넘어온 경우 */
+  returnTo: string | null;
 } | null {
   try {
     const sp = new URLSearchParams(window.location.search);
@@ -61,7 +64,8 @@ function parseParams(): {
     if (tier !== "pro" && tier !== "expert") return null;
     /* 주간권은 플러스 전용 — 서버(toss/create)도 거절하지만 여기서 먼저 막는다 */
     if (billing === "weekly" && tier !== "pro") return null;
-    return { tier, billing };
+    const rt = safeInternalPath(sp.get("returnTo"), "");
+    return { tier, billing, returnTo: rt && rt !== "/" ? rt : null };
   } catch {
     return null;
   }
@@ -119,6 +123,8 @@ function CheckoutSummary({
         <span className="text-text-3">결제 금액</span>
         <span className="t-section font-extrabold text-ink">
           {amount.toLocaleString("ko-KR")}원
+          {/* [966] 부가세는 /subscription 맨 아래 잔글씨에만 있었다 — 결제 직전 금액 옆에 */}
+          <span className="ml-1 t-caption font-bold text-text-3">VAT 포함</span>
         </span>
       </div>
       <div className="mt-1 flex flex-col gap-1 rounded-xl bg-bg px-3 py-2.5 t-sub text-text-2">
@@ -148,10 +154,7 @@ function CheckoutSummary({
 
 export function CheckoutClient() {
   const [phase, setPhase] = useState<Phase>({ kind: "loading", msg: "주문 준비 중…" });
-  const [params, setParams] = useState<{
-    tier: "pro" | "expert";
-    billing: "weekly" | "monthly" | "annual";
-  } | null>(null);
+  const [params, setParams] = useState<ReturnType<typeof parseParams>>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const widgetsRef = useRef<TossWidgets | null>(null);
@@ -213,6 +216,7 @@ export function CheckoutClient() {
             billing: p.billing,
             source: "subscription",
             campaign: "widget-checkout",
+            ...(p.returnTo ? { returnTo: p.returnTo } : {}),
           }),
         });
         const j = (await res.json().catch(() => ({}))) as {
@@ -410,21 +414,24 @@ export function CheckoutClient() {
         </div>
       )}
 
-      {/* 위젯 마운트 지점 — 렌더 호출 전에 DOM 에 있어야 하므로 항상 마운트.
-          display:none 컨테이너에는 위젯이 크기를 못 재므로 숨기지 않는다
-          (로딩 중에는 비어 있어 자리만 차지하지 않는다). */}
+      {/* [966] 주문 요약을 결제수단 위젯 **위에** 둔다 — 예전엔 카드 입력 UI 를 먼저
+          보고 그 아래에서야 무엇을 얼마에 사는지 봤다. 위젯 컨테이너는 렌더 호출 전에
+          DOM 에 있어야 하므로 항상 마운트하고(display:none 은 위젯이 크기를 못 잰다),
+          순서만 바꾼다. */}
       <div className="flex flex-col gap-2">
+        {(phase.kind === "ready" || phase.kind === "window-ready") && params && (
+          <CheckoutSummary
+            planName={label}
+            billing={params.billing}
+            billingLabel={billingLabel}
+            amount={phase.amount}
+            orderId={phase.orderId}
+          />
+        )}
         <div id="toss-payment-methods" className="overflow-hidden rounded-2xl" />
         <div id="toss-agreement" className="overflow-hidden rounded-2xl" />
         {phase.kind === "ready" && params && (
           <>
-            <CheckoutSummary
-              planName={label}
-              billing={params.billing}
-              billingLabel={billingLabel}
-              amount={phase.amount}
-              orderId={phase.orderId}
-            />
             <button
               type="button"
               onClick={() => void pay()}
@@ -444,13 +451,6 @@ export function CheckoutClient() {
         {/* 결제창형(ck 키) — 위젯 대신 요약 카드 + 결제창 버튼 */}
         {phase.kind === "window-ready" && params && (
           <>
-            <CheckoutSummary
-              planName={label}
-              billing={params.billing}
-              billingLabel={billingLabel}
-              amount={phase.amount}
-              orderId={phase.orderId}
-            />
             <p className="t-sub text-text-3">
               버튼을 누르면 토스페이먼츠 카드 결제창이 열려요.
             </p>
@@ -465,6 +465,16 @@ export function CheckoutClient() {
                 : `${phase.amount.toLocaleString("ko-KR")}원 카드로 결제하기`}
             </button>
           </>
+        )}
+        {/* [966] 되돌아갈 길은 오류 상태에만 있었다 — 위젯이 오래 걸리거나 마음이
+            바뀌어도 브라우저 뒤로가기뿐이었다. 모든 상태에서 한 줄 링크. */}
+        {phase.kind !== "error" && phase.kind !== "login" && (
+          <Link
+            href={params?.returnTo ?? "/subscription"}
+            className="mt-1 text-center t-sub font-bold text-text-3 no-underline"
+          >
+            {params?.returnTo ? "← 하던 화면으로 돌아가기" : "← 구독 안내로 돌아가기"}
+          </Link>
         )}
       </div>
     </div>

@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { useToast } from "@/app/components/toast/ToastProvider";
 
 export function ListingSaveButton({
   listingId,
@@ -23,6 +24,7 @@ export function ListingSaveButton({
 }) {
   const router = useRouter();
   const { promptSignup } = useSoftSignup();
+  const { showToast } = useToast();
   const [saved, setSaved] = useState(initialSaved);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,12 @@ export function ListingSaveButton({
     setBusy(true);
     setError(null);
     const next = !saved;
+    /* [966] 실패는 인라인 문구 + 토스트 둘 다 — 카드 목록에서는 버튼 아래 문구가
+       가려지는 자리가 있어 토스트가 보조한다. 성공은 토스트에 목록 링크를 싣는다. */
+    const fail = (msg: string) => {
+      setError(msg);
+      showToast(msg);
+    };
     try {
       const res = next
         ? await fetch("/api/bookmarks", {
@@ -54,13 +62,15 @@ export function ListingSaveButton({
       }
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "잠시 후 다시 시도해 주세요.");
+        fail(data.error ?? "저장하지 못했어요. 다시 시도해 주세요");
         return;
       }
       setSaved(next);
+      if (next) showToast("관심 매물로 저장했어요", { label: "목록 보기", href: "/my/wishlist" });
+      else showToast("관심 매물에서 뺐어요");
       router.refresh();
     } catch {
-      setError("네트워크 오류가 발생했어요.");
+      fail("네트워크 오류가 발생했어요. 다시 시도해 주세요");
     } finally {
       setBusy(false);
     }

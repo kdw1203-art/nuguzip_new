@@ -344,7 +344,8 @@ export function WelcomeClient() {
                       : "border border-line bg-surface"
                   }`}
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/70 text-[19px]">
+                  {/* [966] 표면 토큰 — 다크 모드에서 흰 원판이 튀지 않게(아래 페르소나 칸도 동일) */}
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-surface/70 text-[19px]">
                     <Icon name={o.emoji} size={22} />
                   </span>
                   <span className="flex flex-col">
@@ -418,7 +419,7 @@ export function WelcomeClient() {
                       : "border border-line bg-surface"
                   }`}
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 text-[19px]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface/70 text-[19px]">
                     {o.glyph}
                   </span>
                   <span className="flex flex-col">

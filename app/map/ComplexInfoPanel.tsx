@@ -532,7 +532,8 @@ export function ComplexInfoPanel({
               type="button"
               onClick={onClose}
               aria-label="패널 닫기"
-              className="relative ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 t-body text-text-3 after:absolute after:-inset-1.5 after:content-['']"
+              /* [966] 표면 토큰 — 다크 모드에서 흰 원 위에 밝은 글자가 얹히지 않게 */
+              className="relative ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface/70 t-body text-text-3 after:absolute after:-inset-1.5 after:content-['']"
             >
               ✕
             </button>
@@ -573,13 +574,14 @@ export function ComplexInfoPanel({
               </div>
             </div>
             <div className="grid shrink-0 grid-cols-2 gap-1.5 text-center">
-              <div className="min-w-[68px] rounded-xl bg-white/80 px-2 py-1.5 shadow-sm">
+              {/* [966] 표면 토큰 — text-ink 가 다크에서 밝아지므로 바탕도 같이 따라간다 */}
+              <div className="min-w-[68px] rounded-xl bg-surface/80 px-2 py-1.5 shadow-sm">
                 <div className="t-caption text-text-3">거래</div>
                 <div className="t-body font-extrabold text-ink">
                   {dealSum > 0 ? `${dealSum}` : "—"}
                 </div>
               </div>
-              <div className="min-w-[68px] rounded-xl bg-white/80 px-2 py-1.5 shadow-sm">
+              <div className="min-w-[68px] rounded-xl bg-surface/80 px-2 py-1.5 shadow-sm">
                 <div className="t-caption text-text-3">세대</div>
                 <div className="t-body font-extrabold text-ink">
                   {complex?.households

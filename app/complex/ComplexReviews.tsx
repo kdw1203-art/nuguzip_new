@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ReportButton } from "../components/ReportButton";
 import { Icon } from "@/app/components/Icon";
+import { CharCount } from "@/app/components/ui/CharCount";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 type ReviewItem = {
@@ -288,6 +289,10 @@ export function ComplexReviews({
             placeholder="한줄 후기 (선택 · 500자 이내) — 예: 저녁 8시 이후 주차 자리가 부족해요"
             className="w-full resize-none rounded-xl border border-line bg-surface p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
+          {/* [966] 글자 수 — maxLength 와 같은 상한 */}
+          <div className="-mt-1.5 flex justify-end">
+            <CharCount value={comment} max={500} />
+          </div>
 
           {/* 신뢰 신호 — 실거주/방문 인증 (선택) */}
           <div className="flex flex-col gap-2">

@@ -11,6 +11,7 @@ import type { AppPlan } from "@/lib/billing/plan";
 import { markDeletedByBillingKey } from "@/lib/payments/billing-store";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
 import { logger } from "@/lib/log";
+import { notifyPaymentSettled } from "@/lib/payments/notify-paid";
 
 export const runtime = "nodejs";
 
@@ -192,8 +193,10 @@ export async function POST(req: NextRequest) {
             receiptUrl: remote.receipt?.url ?? undefined,
             reason: `웹훅 DONE — 원장 상태 ${order.status}`,
           }));
-        if (paid) await applyPlanIfNeeded(paid.userEmail, paid.plan, paid.billing);
-        else {
+        if (paid) {
+          await applyPlanIfNeeded(paid.userEmail, paid.plan, paid.billing);
+          await notifyPaymentSettled(paid, { kind: "one_off" });
+        } else {
           logger.error("[toss-webhook] DONE 인데 원장을 paid 로 만들지 못함 — 사람 확인", {
             orderId: payloadOrderId,
           });

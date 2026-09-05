@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { CharCount } from "@/app/components/ui/CharCount";
 
 /* P2-2: 1:1 문의 폼 — POST /api/support 실연동.
    계약(app/api/support/route.ts): { category, subject(2~200자), message(10~3000자), email }
@@ -16,6 +17,44 @@ export function SupportContactForm() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /* [966] 결제 표면의 딥링크(/support?category=payment&order=…&amount=&plan=)를 읽어
+     카테고리·제목·본문을 미리 채운다. 예전엔 "결제·환불" 로 보내 놓고 여기서 다시
+     "일반 문의" 로 시작해 사용자가 카테고리를 또 골라야 했다. 주소창 값은 표시용
+     텍스트로만 들어간다(서버가 다시 검증). */
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const cat = sp.get("category");
+      const map: Record<string, (typeof CATEGORIES)[number]> = {
+        payment: "결제·환불",
+        refund: "결제·환불",
+        bug: "버그 신고",
+        privacy: "개인정보",
+        report: "악성 콘텐츠 신고",
+      };
+      const picked = cat ? map[cat] : undefined;
+      if (picked) setCategory(picked);
+      const order = (sp.get("order") ?? "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64);
+      const amount = Number(sp.get("amount"));
+      const plan = (sp.get("plan") ?? "").replace(/[^a-z]/g, "").slice(0, 20);
+      if (picked === "결제·환불" && order) {
+        setSubject((v) => v || `환불·문의 — 주문번호 ${order}`);
+        setMessage((v) =>
+          v ||
+          [
+            `주문번호: ${order}`,
+            ...(Number.isFinite(amount) && amount > 0 ? [`결제 금액: ${amount.toLocaleString("ko-KR")}원`] : []),
+            ...(plan ? [`플랜: ${plan}`] : []),
+            "",
+            "요청 내용: (예: 결제 후 7일 이내 청약철회 / 중도 해지 일할 환불 / 영수증 발급)",
+          ].join("\n"),
+        );
+      }
+    } catch {
+      /* 주소 파싱 실패는 무시 — 빈 폼으로 시작 */
+    }
+  }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -116,6 +155,10 @@ export function SupportContactForm() {
         aria-label="문의 내용"
         className="resize-y rounded-[10px] border border-line bg-surface px-3.5 py-3 text-[13px] leading-[1.6] text-ink outline-none placeholder:text-text-3 focus:border-primary"
       />
+      {/* [966] 글자 수 — maxLength 와 같은 상한 */}
+      <div className="-mt-1.5 flex justify-end">
+        <CharCount value={message} max={3000} />
+      </div>
       <input
         type="email"
         value={email}

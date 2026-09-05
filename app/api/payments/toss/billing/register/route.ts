@@ -21,7 +21,8 @@ import {
   promotePaidAfterProviderConfirmation,
 } from "@/lib/payments/store";
 import { cancelTossPayment } from "@/lib/payments/toss-cancel";
-import { BILLING_DURATION_DAYS } from "@/lib/subscriptions/billing-periods";
+import { BILLING_DURATION_DAYS, nextChargeAtFrom } from "@/lib/subscriptions/billing-periods";
+import { notifyPaymentSettled } from "@/lib/payments/notify-paid";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
@@ -202,27 +203,25 @@ export async function GET(req: NextRequest) {
     return fail(origin, "AMOUNT_MISMATCH");
   }
 
-  const paidRow = await markPaid({
-    orderId,
-    providerPaymentKey: charged.data.paymentKey,
-    method: "카드(자동결제)",
-  });
-  if (!paidRow) {
+  const paidRow =
+    (await markPaid({
+      orderId,
+      providerPaymentKey: charged.data.paymentKey,
+      method: "카드(자동결제)",
+    })) ??
     /* requested 가 아니었다(동시 요청 등) — 결제사 승인이 사실이므로 어떤 상태에서든 paid 로 */
-    await promotePaidAfterProviderConfirmation({
+    (await promotePaidAfterProviderConfirmation({
       orderId,
       providerPaymentKey: charged.data.paymentKey ?? "",
       method: "카드(자동결제)",
       reason: "빌링 첫 결제 승인 — requested 가 아니던 주문",
-    });
-  }
-  const periodDays = BILLING_DURATION_DAYS[sub.billing === "annual" ? "annual" : "monthly"];
+    }));
+  const cycle = sub.billing === "annual" ? "annual" : "monthly";
+  const periodDays = BILLING_DURATION_DAYS[cycle];
   await applyPlanToUserByEmail(userEmail, sub.plan as AppPlan, { durationDays: periodDays });
 
-  /* 다음 청구는 만료 이틀 전 — applyPlan 은 같은 플랜의 미래 만료 시각에 이어
-     붙이므로(연장 규칙) 미리 청구해도 이용 기간이 깎이지 않고, 실패 시 만료 전에
-     이틀의 재시도 창이 생긴다. */
-  const nextChargeAt = new Date(Date.now() + (periodDays - 2) * 86_400_000).toISOString();
+  /* 다음 청구는 만료 이틀 전 — [966] 등록 화면과 같은 식(nextChargeAtFrom) */
+  const nextChargeAt = nextChargeAtFrom(Date.now(), cycle).toISOString();
   const activated = await activateSubscription({
     id: sub.id,
     userEmail,
@@ -233,6 +232,8 @@ export async function GET(req: NextRequest) {
     // 결제는 성공했으므로 실패로 돌리지 않는다 — 로그만 남기고 성공 화면으로
     logger.error("[toss-billing] 활성화 전이 실패(결제는 성공)", { orderId });
   }
+  /* [966] 결제 직후 확인 — 알림함 + 영수증 메일(다음 결제 예정일 포함) */
+  if (paidRow) await notifyPaymentSettled(paidRow, { kind: "billing_first", nextChargeAt });
 
   const u = new URL("/payment/success", origin);
   u.searchParams.set("provider", "toss-billing");

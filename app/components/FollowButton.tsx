@@ -8,10 +8,12 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
+import { useToast } from "@/app/components/toast/ToastProvider";
 
 export function FollowButton({ handle }: { handle: string }) {
   const pathname = usePathname();
   const { promptSignup } = useSoftSignup();
+  const { showToast } = useToast();
   const [state, setState] = useState<"loading" | "anon" | "off" | "on">("loading");
   const [busy, setBusy] = useState(false);
 
@@ -54,6 +56,9 @@ export function FollowButton({ handle }: { handle: string }) {
       return;
     }
     setBusy(true);
+    /* [966] 결과를 토스트로 — 버튼 라벨만 바뀌면 작은 화면에서 눈에 안 띈다.
+       낙관적 갱신이 아니라 응답 후 반영이므로 실패 시 되돌릴 상태는 없다. */
+    const next = state === "on" ? "off" : "on";
     try {
       const res = await fetch("/api/me/follows", {
         method: state === "on" ? "DELETE" : "POST",
@@ -64,9 +69,14 @@ export function FollowButton({ handle }: { handle: string }) {
         askSignup();
         return;
       }
-      if (res.ok) setState(state === "on" ? "off" : "on");
+      if (!res.ok) {
+        showToast("처리하지 못했어요. 다시 시도해 주세요");
+        return;
+      }
+      setState(next);
+      showToast(next === "on" ? "팔로우했어요" : "팔로우를 해제했어요");
     } catch {
-      // 네트워크 실패 — 상태 유지
+      showToast("처리하지 못했어요. 다시 시도해 주세요");
     } finally {
       setBusy(false);
     }

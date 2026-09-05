@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { safeInternalPath } from "@/lib/safe-path";
 import { assertCheckoutAllowed } from "@/lib/payments/checkout-guard";
 import { createPayment, findRecentRequestedPayment } from "@/lib/payments/store";
 import type { PlanTier } from "@/components/ui-kit";
@@ -16,6 +17,8 @@ type Body = {
   campaign?: string;
   /** 유료 리포트 결제일 때의 대상 리포트. metadata 에 박아 결제를 그 리포트에 묶는다. */
   reportId?: string;
+  /** [966] 결제 완료 뒤 돌아갈 내부 경로(선택) */
+  returnTo?: string;
 };
 
 /** report_purchases 검증에서 쓰는 결속 값이라 형식(uuid)을 여기서 확정해 둔다. */
@@ -51,6 +54,9 @@ export async function POST(req: NextRequest) {
   if (reportId && !UUID_RE.test(reportId)) {
     return NextResponse.json({ error: "invalid reportId" }, { status: 400 });
   }
+  /* [966] 결제 뒤 돌아갈 곳 — 페이월에 막혀 결제한 사람이 원래 하던 일로 돌아가게.
+     내부 경로만(safeInternalPath), 200자 이내. 성공 화면이 metadata 에서 읽는다. */
+  const returnTo = body.returnTo ? safeInternalPath(String(body.returnTo).slice(0, 200), "") : "";
 
   const session = await safeAuth();
   const userEmail = session?.user?.email ?? null;
@@ -122,7 +128,12 @@ export async function POST(req: NextRequest) {
       plan: tier,
       billing,
       amount,
-      metadata: { source, campaign, ...(reportId ? { reportId } : {}) },
+      metadata: {
+        source,
+        campaign,
+        ...(reportId ? { reportId } : {}),
+        ...(returnTo && returnTo !== "/" ? { returnTo } : {}),
+      },
     });
     return NextResponse.json({
       orderId: rec.orderId,

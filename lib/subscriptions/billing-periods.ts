@@ -132,3 +132,16 @@ export function billingDurationLabel(billing: PaymentBilling): string {
 export function accessEndsAtMs(billing: PaymentBilling, fromMs: number): number {
   return fromMs + BILLING_DURATION_DAYS[billing] * 24 * 60 * 60 * 1000;
 }
+
+/**
+ * [966] 자동결제의 다음 청구 시각 — 만료 **이틀 전**에 청구한다(실패 시 만료 전에 재시도
+ * 창이 생기고, applyPlan 의 연장 규칙이 있어 미리 청구해도 기간이 깎이지 않는다).
+ * 등록 화면(BillingEnrollClient)·등록 라우트·갱신 크론이 같은 식을 써야 화면이 말한
+ * 날짜와 실제 청구일이 같다 — 예전엔 화면은 +1개월, 서버는 +28일이었다.
+ */
+export const BILLING_CHARGE_LEAD_DAYS = 2;
+
+export function nextChargeAtFrom(startMs: number, billing: "monthly" | "annual"): Date {
+  const days = BILLING_DURATION_DAYS[billing] - BILLING_CHARGE_LEAD_DAYS;
+  return new Date(startMs + days * 24 * 60 * 60 * 1000);
+}

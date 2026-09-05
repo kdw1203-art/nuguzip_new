@@ -11,6 +11,7 @@ import {
 import { safeAuth } from "@/lib/safe-auth";
 import { desktopBaseUrl, resolvePublicOriginFromHeaders } from "@/lib/platform-shell";
 import { logger } from "@/lib/log";
+import { notifyPaymentSettled } from "@/lib/payments/notify-paid";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { recordPlatformEvent } from "@/lib/platform-events";
 
@@ -120,6 +121,8 @@ export async function GET(req: NextRequest) {
 
     if (paid) {
       await maybeApplyPlan(paid.userEmail, paid.plan, paid.billing);
+      /* [966] 결제 직후 확인 — 알림함 + 영수증 메일 */
+      await notifyPaymentSettled(paid, { kind: "one_off" });
       /* 항목 39 — ready 단계가 payments.metadata 에 저장한 source/campaign 을
          이행 시점의 plan_granted 이벤트로 옮겨 적는다. 결제 행과 요금제 부여가
          조인되지 않으면 "어떤 벽이 전환시켰는지"를 셀 수 없다. fail-soft. */

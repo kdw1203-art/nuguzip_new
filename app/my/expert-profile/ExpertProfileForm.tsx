@@ -7,6 +7,7 @@ import { useToast } from "@/app/components/toast/ToastProvider";
 import { Icon } from "@/app/components/Icon";
 import { RESPONSE_TIME_OPTIONS, SPECIALTIES } from "@/lib/experts/taxonomy";
 import { CITY_OPTIONS, DISTRICTS } from "@/lib/regions";
+import { useDirtyTracker, useUnsavedGuard } from "@/lib/client/use-unsaved-guard";
 
 /* 전문가 프로필 수정 폼 (953 개편) — PATCH /api/experts/[id] (소유자·관리자만).
    953 에서 바뀐 것
@@ -73,6 +74,17 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
   /* [961] 버튼 4상태 — 완료·실패를 색으로 먼저 말한다(2.2초 뒤 기본으로) */
   const [saveState, setSaveState] = useState<ActionState>("idle");
   const [dirty, setDirty] = useState(false);
+
+  /* [966] 새로고침·탭 닫기 가드 — 마지막으로 저장된 스냅샷과 지금 값이 다를 때만.
+     위 dirty 플래그(문구용)는 되돌려도 남지만, 이건 되돌리면 풀린다. 저장에 성공하면
+     기준을 갱신하므로 저장 뒤 "저장됐어요"가 idle 로 돌아가도 다시 묻지 않는다. */
+  const snapshot = {
+    intro, specialties, extra, regions, experience, consultationFee, reportFee,
+    responseTime, organization, contactPhone, contactKakao,
+  };
+  const [savedSnapshot, setSavedSnapshot] = useState(snapshot);
+  const changed = useDirtyTracker(snapshot, savedSnapshot);
+  useUnsavedGuard(changed && saveState !== "done");
 
   const mark = <T,>(setter: (v: T) => void) => (v: T) => {
     setter(v);
@@ -144,6 +156,12 @@ export function ExpertProfileForm({ expert }: { expert: ExpertEditable }) {
         setSpecialties(data.expert.specialties);
         setExtra("");
       }
+      /* [966] 서버가 정리해 돌려준 값(전문 분야 병합·extra 비움)까지 기준에 반영 */
+      setSavedSnapshot({
+        ...snapshot,
+        specialties: data.expert?.specialties ?? snapshot.specialties,
+        extra: data.expert?.specialties ? "" : snapshot.extra,
+      });
       setDirty(false);
       settle("done");
       showToast("프로필이 저장됐어요 — 목록·상세에 바로 반영돼요");

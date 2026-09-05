@@ -14,6 +14,7 @@ import { normalizePlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import { PaymentSuccessMoment } from "./PaymentSuccessMoment";
 import { applyPlanForPayment, confirmTossOrder } from "@/lib/payments/confirm-toss-order";
+import { safeInternalPath } from "@/lib/safe-path";
 
 export const metadata: Metadata = {
   title: "결제 완료 | 내집나우",
@@ -178,6 +179,10 @@ export default async function PaymentSuccessPage({
   if (ok && orderId) {
     record = await getPaymentByOrderId(orderId).catch(() => null);
   }
+  const returnTo =
+    ok && typeof record?.metadata?.returnTo === "string"
+      ? safeInternalPath(record.metadata.returnTo, "")
+      : "";
   /* 결제 완료 화면의 플랜명 — 단일 출처(lib/subscriptions/labels). "베이직"은
      어디에도 없는 이름이었다. */
   const METHOD_LABEL: Record<string, string> = {
@@ -312,16 +317,34 @@ export default async function PaymentSuccessPage({
           </div>
         )}
 
+        {/* [966] 페이월에 막혀 결제한 사람은 원래 하던 일로 — 주문 metadata 의 returnTo
+            (toss/create 가 내부 경로만 저장)를 1차 행동으로. 없으면 마이 페이지. */}
         <div className="mt-3 flex w-full flex-col gap-2.5">
-          <Link href="/my" className="btn-primary rounded-[14px] p-[13px] text-center text-[13px] font-bold">
-            마이 페이지에서 플랜 확인
-          </Link>
-          <Link
-            href="/subscription"
-            className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-[13px] font-bold text-text-1"
-          >
-            멤버십 안내
-          </Link>
+          {returnTo ? (
+            <>
+              <Link href={returnTo} className="btn-primary rounded-[14px] p-[13px] text-center text-[13px] font-bold">
+                이어서 사용하기
+              </Link>
+              <Link
+                href="/my"
+                className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-[13px] font-bold text-text-1"
+              >
+                마이 페이지에서 플랜 확인
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/my" className="btn-primary rounded-[14px] p-[13px] text-center text-[13px] font-bold">
+                마이 페이지에서 플랜 확인
+              </Link>
+              <Link
+                href="/subscription"
+                className="rounded-[14px] border border-line bg-surface p-[13px] text-center text-[13px] font-bold text-text-1"
+              >
+                멤버십 안내
+              </Link>
+            </>
+          )}
         </div>
         {ok && (
           <p className="mt-1 text-[12px] leading-[1.6] text-text-3">

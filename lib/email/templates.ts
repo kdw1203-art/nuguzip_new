@@ -313,3 +313,112 @@ export function reengageEmail(params: { title: string; body: string; actionUrl: 
     text: `${params.title}\n\n${params.body}\n\n이어서 보기: ${url}`,
   };
 }
+
+/**
+ * [966] 결제 완료(영수증) 메일 — 결제 직후 사용자가 갖는 유일한 우리 쪽 기록.
+ *
+ * 예전엔 결제 완료 화면 한 번이 전부였다(이메일 0건·알림함 0건). 토스가 보내는
+ * 메일은 customerEmail 을 넘긴 결제에만, 그것도 토스 명의로 온다. 여기서는
+ * **무엇을·얼마에·언제까지** 와 영수증(매출전표) 링크, 환불 규정 위치만 적는다.
+ * 거래 확인 메일이라 마케팅 동의와 무관하게 나간다(광고 아님 — (광고) 표기 없음).
+ */
+export function paymentReceiptEmail(params: {
+  planLabel: string;
+  /** "주간권(7일)" · "월간" · "연간" · "월간 자동결제 갱신" 등 화면 표기 그대로 */
+  periodLabel: string;
+  amountKrw: number;
+  paidAt: Date;
+  orderId: string;
+  /** 이용 종료(만료) 시각 — 알 수 없으면 생략 */
+  endsAt?: Date | null;
+  receiptUrl?: string | null;
+  /** 자동결제면 다음 청구 예정일 */
+  nextChargeAt?: Date | null;
+}) {
+  const fmtDate = (d: Date) =>
+    d.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Seoul" });
+  const fmtDateTime = (d: Date) =>
+    d.toLocaleString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Seoul",
+    });
+  const amount = `${params.amountKrw.toLocaleString("ko-KR")}원`;
+  const row = (k: string, v: string) => `
+    <tr>
+      <td style="padding:7px 0;font-size:13px;color:#8a94a6;white-space:nowrap;vertical-align:top;">${k}</td>
+      <td style="padding:7px 0 7px 14px;font-size:13px;font-weight:700;color:#191f28;text-align:right;">${v}</td>
+    </tr>`;
+  const html = emailLayout(`
+    <h1 style="margin:0 0 6px;font-size:19px;color:${NAVY};">결제가 완료됐어요</h1>
+    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#4a5568;">
+      ${escapeHtml(params.planLabel)} ${escapeHtml(params.periodLabel)} 이용권이 바로 적용됐습니다.
+    </p>
+    <table style="width:100%;border-collapse:collapse;border-top:1px solid #e5e9f2;border-bottom:1px solid #e5e9f2;margin:0 0 16px;">
+      ${row("상품", `${escapeHtml(params.planLabel)} · ${escapeHtml(params.periodLabel)}`)}
+      ${row("결제 금액", `${amount} <span style="font-weight:400;color:#8a94a6;">(VAT 포함)</span>`)}
+      ${row("결제 일시", escapeHtml(fmtDateTime(params.paidAt)))}
+      ${params.endsAt ? row("이용 기간", `${escapeHtml(fmtDate(params.endsAt))}까지`) : ""}
+      ${params.nextChargeAt ? row("다음 결제 예정", escapeHtml(fmtDate(params.nextChargeAt))) : ""}
+      ${row("주문번호", `<span style="font-weight:400;font-family:monospace;">${escapeHtml(params.orderId)}</span>`)}
+    </table>
+    ${
+      params.receiptUrl
+        ? `<a href="${escapeHtml(params.receiptUrl)}" style="display:inline-block;background:${NAVY};color:#ffffff;font-size:14px;font-weight:700;padding:11px 22px;border-radius:8px;text-decoration:none;">매출전표(영수증) 보기</a>`
+        : `<a href="https://naezipnow.com/subscription#billing" style="display:inline-block;background:${NAVY};color:#ffffff;font-size:14px;font-weight:700;padding:11px 22px;border-radius:8px;text-decoration:none;">결제 내역 보기</a>`
+    }
+    <p style="margin:16px 0 0;font-size:12px;line-height:1.7;color:#8a94a6;">
+      결제 후 7일 이내 청약철회(전액 환불)가 가능해요 —
+      <a href="https://naezipnow.com/legal/terms#refund" style="color:#8a94a6;">환불 규정</a> ·
+      환불·문의는 <a href="https://naezipnow.com/support?category=payment&order=${encodeURIComponent(params.orderId)}" style="color:#8a94a6;">고객센터</a>
+    </p>
+  `);
+  const text = [
+    "결제가 완료됐어요",
+    `${params.planLabel} · ${params.periodLabel}`,
+    `결제 금액: ${amount} (VAT 포함)`,
+    `결제 일시: ${fmtDateTime(params.paidAt)}`,
+    ...(params.endsAt ? [`이용 기간: ${fmtDate(params.endsAt)}까지`] : []),
+    ...(params.nextChargeAt ? [`다음 결제 예정: ${fmtDate(params.nextChargeAt)}`] : []),
+    `주문번호: ${params.orderId}`,
+    ...(params.receiptUrl ? [`영수증: ${params.receiptUrl}`] : []),
+    "환불 규정: https://naezipnow.com/legal/terms#refund",
+  ].join("\n");
+  return {
+    subject: `[내집나우] 결제 완료 — ${params.planLabel} ${params.periodLabel} ${amount}`,
+    html,
+    text,
+  };
+}
+
+/** [966] 환불(취소) 안내 메일 — 관리자 취소 처리 시 사용자에게 */
+export function paymentRefundEmail(params: {
+  planLabel: string;
+  periodLabel: string;
+  refundedKrw: number;
+  /** 전액이면 null */
+  partialOfKrw?: number | null;
+  orderId: string;
+  reason?: string | null;
+}) {
+  const amount = `${params.refundedKrw.toLocaleString("ko-KR")}원`;
+  const html = emailLayout(`
+    <h1 style="margin:0 0 6px;font-size:19px;color:${NAVY};">환불이 처리됐어요</h1>
+    <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#4a5568;">
+      ${escapeHtml(params.planLabel)} ${escapeHtml(params.periodLabel)} 결제 ${params.partialOfKrw ? `중 ${amount}(부분 환불)` : `전액 ${amount}`}이
+      결제하신 수단으로 돌아갑니다. 카드사에 따라 3~7영업일이 걸릴 수 있어요.
+    </p>
+    ${params.reason ? `<p style="margin:0 0 12px;font-size:13px;line-height:1.7;color:#4a5568;">사유: ${escapeHtml(params.reason)}</p>` : ""}
+    <p style="margin:0;font-size:12px;line-height:1.7;color:#8a94a6;">주문번호 ${escapeHtml(params.orderId)} · 이용권은 무료 플랜으로 돌아갑니다. 문의는 <a href="https://naezipnow.com/support?category=payment" style="color:#8a94a6;">고객센터</a></p>
+  `);
+  const text = [
+    "환불이 처리됐어요",
+    `${params.planLabel} · ${params.periodLabel} — ${params.partialOfKrw ? "부분 환불" : "전액 환불"} ${amount}`,
+    ...(params.reason ? [`사유: ${params.reason}`] : []),
+    `주문번호: ${params.orderId}`,
+  ].join("\n");
+  return { subject: `[내집나우] 환불 처리 안내 — ${amount}`, html, text };
+}

@@ -4,6 +4,7 @@ import { getPaymentByOrderId, markRefunded } from "@/lib/payments/store";
 import { cancelTossPayment } from "@/lib/payments/toss-cancel";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import { logger } from "@/lib/log";
+import { notifyPaymentRefunded } from "@/lib/payments/notify-paid";
 
 export const runtime = "nodejs";
 
@@ -119,6 +120,14 @@ export async function POST(req: NextRequest) {
       });
     }
   }
+
+  /* [966] 환불 통보 — 예전엔 조용히 free 로 내려갔다(만료 스윕은 "무통보 강등 금지"
+     를 스스로 지키는데 이 경로만 예외였다). 알림함 + 메일. */
+  void notifyPaymentRefunded(refunded, {
+    refundedKrw: cancelAmount ?? record.amount,
+    partial: cancelAmount != null,
+    reason,
+  });
 
   return NextResponse.json({ ok: true });
 }

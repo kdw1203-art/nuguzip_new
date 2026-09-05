@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -69,6 +69,8 @@ export function MobileMenu() {
      먼저 보여주지 않는다). */
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  /* [966] ☰ → 시트를 aria-controls 로 잇는다(포털이라 DOM 상 떨어져 있어도 id 로 연결) */
+  const sheetId = useId();
   /* pointerdown 즉시 열기의 레이스 방어 — 여는 손가락을 떼는 순간의 click 이
      방금 나타난 딤 배경에 떨어져 "열리자마자 닫히는" 문제(로컬 재현 확인).
      열림 직후 350ms 동안은 배경 닫기를 무시한다(✕ 버튼·ESC 는 가드 없음). */
@@ -145,6 +147,7 @@ export function MobileMenu() {
         type="button"
         aria-label="전체 메뉴 열기"
         aria-expanded={open}
+        aria-controls={sheetId}
         onPointerDown={openMenu}
         onClick={openMenu}
         className="relative flex h-8 w-8 items-center justify-center rounded-xl text-text-1 transition-colors after:absolute after:-inset-1.5 after:content-[''] active:bg-[rgba(29,79,216,.08)] md:hidden"
@@ -161,6 +164,7 @@ export function MobileMenu() {
       {mounted &&
         createPortal(
         <div
+          id={sheetId}
           role="dialog"
           aria-modal="true"
           aria-label="전체 메뉴"

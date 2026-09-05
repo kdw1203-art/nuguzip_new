@@ -9,6 +9,7 @@ import type { MapIdleInfo } from "@/components/map/NaverMap";
 import { Icon } from "@/app/components/Icon";
 import { DISTRICTS } from "@/lib/regions";
 import { resizeImageFiles } from "@/lib/client/image-resize";
+import { useUnsavedGuard } from "@/lib/client/use-unsaved-guard";
 
 const TYPES = [
   { key: "sale", label: "매매" },
@@ -80,6 +81,17 @@ export function ListingForm() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [detailFieldsSaved, setDetailFieldsSaved] = useState(true);
+
+  /* [966] 새로고침·탭 닫기 가드 — 글자를 하나라도 적었거나 사진·위치를 잡았고 아직
+     접수 전이면 묻는다. 이 폼은 임시저장이 없어 나가면 그대로 사라진다. */
+  const hasInput =
+    [
+      complexName, regionName, priceManwon, depositManwon, monthlyManwon, areaM2,
+      floor, rooms, bathrooms, parkingSpaces, description, contact, thumbnailUrl,
+    ].some((v) => v.trim() !== "") ||
+    photos.length > 0 ||
+    picked !== null;
+  useUnsavedGuard(hasInput && !done);
 
   const onIdle = useCallback((info: MapIdleInfo) => {
     mapCenterRef.current = info.center;

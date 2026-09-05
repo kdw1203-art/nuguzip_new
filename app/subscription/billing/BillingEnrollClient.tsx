@@ -1,5 +1,6 @@
 "use client";
 
+import { nextChargeAtFrom, BILLING_CHARGE_LEAD_DAYS } from "@/lib/subscriptions/billing-periods";
 import { useEffect, useState } from "react";
 import { planLabel } from "@/lib/subscriptions/labels";
 import Link from "next/link";
@@ -56,20 +57,19 @@ function parseParams(): EnrollParams | null {
 }
 
 /**
- * 오늘 등록하면 다음 청구가 언제인가. (C43)
+ * 오늘 등록하면 다음 청구가 언제인가.
  *
- * 말일 보정: 1월 31일에 등록하면 2월 31일은 없다 — 그 달의 마지막 날로 당긴다
- * (토스 빌링도 같은 방식이고, 안 맞추면 화면과 실제 청구일이 어긋난다).
- * 이 값은 **표시용 안내**다. 실제 청구일은 서버가 결제 성공 시점에 확정한다.
+ * [966] 서버(register 라우트·갱신 크론)와 **같은 식**(nextChargeAtFrom: 만료 이틀 전)을
+ * 쓴다. 예전엔 화면은 "+1개월(말일 보정)", 서버는 "+28일" 이라 등록 화면(10/5)과
+ * 직후 성공 화면(10/3)이 다른 날짜를 말했다. 이 값은 표시용이고 실제 청구일은
+ * 서버가 결제 성공 시점에 확정한다 — 그래서 "약" 을 붙인다.
  */
 function nextChargeLabel(billing: "monthly" | "annual"): string {
-  const now = new Date();
-  const y = now.getFullYear() + (billing === "annual" ? 1 : 0);
-  const m = now.getMonth() + (billing === "annual" ? 0 : 1);
-  const target = new Date(y, m, 1);
-  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
-  target.setDate(Math.min(now.getDate(), lastDay));
-  return target.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  return nextChargeAtFrom(Date.now(), billing).toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 export function BillingEnrollClient() {
@@ -253,7 +253,10 @@ export function BillingEnrollClient() {
               <div className="flex items-center justify-between t-body">
                 <span className="text-text-3">다음 결제일</span>
                 <span className="font-bold text-ink">
-                  {nextChargeLabel(params?.billing === "annual" ? "annual" : "monthly")}
+                  약 {nextChargeLabel(params?.billing === "annual" ? "annual" : "monthly")}
+                  <span className="ml-1 t-caption font-normal text-text-3">
+                    (만료 {BILLING_CHARGE_LEAD_DAYS}일 전 자동 청구)
+                  </span>
                 </span>
               </div>
             )}

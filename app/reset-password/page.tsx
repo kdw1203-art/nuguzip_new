@@ -177,7 +177,8 @@ export default function ResetPasswordPage() {
       style={{ paddingTop: "max(20px, env(safe-area-inset-top, 0px))" }}
     >
       <div className="flex justify-end">
-        <Link href="/login" className="text-[15px] text-text-3" aria-label="닫기">
+        {/* [966] .tap — ✕ 링크 주변 8px 까지 눌린다 */}
+        <Link href="/login" className="tap text-[15px] text-text-3" aria-label="닫기">
           ✕
         </Link>
       </div>

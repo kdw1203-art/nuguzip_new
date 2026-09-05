@@ -58,6 +58,7 @@ import {
   tierTextColor,
 } from "@/lib/map/price-tiers";
 import { complexHrefFromId } from "@/lib/seo/complex-slug";
+import { useCopy } from "@/lib/ui/use-copy";
 
 /** A1 — 지도 첫 방문 3스텝 안내. 대상이 화면에 없으면 그 스텝은 자동 생략된다. */
 const MAP_TOUR_STEPS: CoachmarkStep[] = [
@@ -1472,6 +1473,7 @@ export function MapClient({
     [measurePoints],
   );
 
+  const { copy: copyMeasure } = useCopy();
   const copyMeasureSummary = useCallback(async () => {
     if (measurePoints.length < 2) return;
     const lines = [
@@ -1483,12 +1485,9 @@ export function MapClient({
         ? `도보 추정 ${formatDistanceM(routeResult.walking.distanceM)} · 약 ${routeResult.walking.durationMin}분`
         : null,
     ].filter(Boolean);
-    try {
-      await navigator.clipboard.writeText(lines.join("\n"));
-    } catch {
-      /* 클립보드 불가 — 조용히 무시 */
-    }
-  }, [measurePoints.length, measureStraightM, routeResult]);
+    /* [966] 공용 복사 — 성공·실패를 토스트로 말한다(예전엔 눌러도 아무 표시가 없었다) */
+    await copyMeasure(lines.join("\n"), "거리를 복사했어요");
+  }, [copyMeasure, measurePoints.length, measureStraightM, routeResult]);
 
   /** 상단 매매/전세/월세 강조 — 월세는 매물 레이어, 매매·전세는 실거래+매물 유형 */
   const topTradeKey =

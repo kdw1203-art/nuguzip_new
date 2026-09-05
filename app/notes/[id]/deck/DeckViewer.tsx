@@ -63,7 +63,8 @@ function ScoreBars({ scores, dark }: { scores: DeckPage["scores"]; dark: boolean
             {s.label}
           </span>
           <span
-            className={`h-2 flex-1 overflow-hidden rounded-full ${dark ? "bg-white/20" : "bg-white"}`}
+            /* [966] 밝은 카드의 트랙은 표면 토큰 — 다크 모드에서 흰 막대가 튀지 않게 */
+            className={`h-2 flex-1 overflow-hidden rounded-full ${dark ? "bg-white/20" : "bg-surface"}`}
           >
             <span
               className={`block h-full rounded-full ${dark ? "bg-white" : "bg-primary"}`}
@@ -186,7 +187,7 @@ function DeckCard({ page, index, total }: { page: DeckPage; index: number; total
                 <span
                   key={c}
                   className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${
-                    dark ? "bg-white/15 text-white" : "bg-white text-primary"
+                    dark ? "bg-white/15 text-white" : "bg-surface text-primary"
                   }`}
                 >
                   {page.kind === "keywords" ? `#${c}` : c}

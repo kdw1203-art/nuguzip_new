@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { scrollIntoViewSafely } from "@/lib/ui/scroll";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { CharCount } from "@/app/components/ui/CharCount";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 const INPUT =
@@ -148,6 +149,10 @@ export function AskForm() {
         onChange={(e) => setBody(e.target.value)}
         maxLength={4000}
       />
+      {/* [966] 글자 수 — maxLength 와 같은 상한 */}
+      <div className="-mt-1.5 flex justify-end">
+        <CharCount value={body} max={4000} />
+      </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input

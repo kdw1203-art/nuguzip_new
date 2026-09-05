@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { CharCount } from "@/app/components/ui/CharCount";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 
 const INPUT =
@@ -79,6 +80,10 @@ export function AnswerForm({
         onChange={(e) => setBody(e.target.value)}
         maxLength={4000}
       />
+      {/* [966] 글자 수 — maxLength 와 같은 상한 */}
+      <div className="-mt-1.5 flex justify-end">
+        <CharCount value={body} max={4000} />
+      </div>
 
       {error && <p className="t-sub text-danger">{error}</p>}
 

@@ -24,6 +24,7 @@ import { checklistHintsFromVoice } from "@/lib/inspection/voice-checklist-keywor
 import { NOTE_DRAFT_KEY as DRAFT_KEY } from "@/lib/notes/draft-summary";
 import { resizeImageFiles } from "@/lib/client/image-resize";
 import { readExifTakenAt } from "@/lib/client/exif-datetime";
+import { useDirtyTracker, useUnsavedGuard } from "@/lib/client/use-unsaved-guard";
 /* [OPT-27] 음성 녹음기는 새 노트에서만 쓰인다 — 폼 첫 로드 번들에서 분리 */
 import nextDynamic from "next/dynamic";
 const VoiceMemoRecorder = nextDynamic(
@@ -765,6 +766,17 @@ export function NoteForm({
   const [needLogin, setNeedLogin] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  /* [966] 새로고침·탭 닫기 가드.
+     작성 모드: 1초 자동 임시저장이 아직 못 따라온 구간(draftPending)에서만 묻는다 —
+       저장본이 있으면 나가도 잃는 게 없다.
+     수정 모드: 자동 저장이 없으니 처음 연 값과 달라졌으면 묻는다(되돌리면 풀린다).
+     저장 요청 중(saving)에는 묻지 않는다 — 노트는 이미 서버로 가고 있다. */
+  const [draftPending, setDraftPending] = useState(false);
+  const editSnapshot = { checks, visit, tags, doneTodos, satisfaction, memo, loc, photos, isPublic, weather };
+  const [editBaseline] = useState(editSnapshot);
+  const editChanged = useDirtyTracker(editSnapshot, editBaseline);
+  useUnsavedGuard(!saving && (isEdit ? editChanged : draftPending));
+
   const loginHref = `/login?callbackUrl=${encodeURIComponent(
     editId ? `/notes/${editId}/edit` : "/notes/new",
   )}`;
@@ -821,6 +833,7 @@ export function NoteForm({
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(buildDraft()));
       setSavedDraft(true);
+      setDraftPending(false);
     } catch {
       /* 저장 불가 환경 — 조용히 무시 */
     }
@@ -841,6 +854,7 @@ export function NoteForm({
       hydratedRef.current = true;
       return;
     }
+    setDraftPending(true); /* [966] 입력 → 저장 사이 1초가 가드 구간 */
     const t = setTimeout(() => {
       try {
         window.localStorage.setItem(
@@ -863,6 +877,7 @@ export function NoteForm({
           } satisfies NoteDraft),
         );
         setSavedDraft(true);
+        setDraftPending(false);
       } catch {
         /* no-op */
       }

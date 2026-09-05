@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { Modal, ModalHeader } from "@/app/components/ui/Modal";
+import { CharCount } from "@/app/components/ui/CharCount";
 import { QUOTE_CATEGORIES, findSpecialty } from "@/lib/experts/taxonomy";
 
 /* [953] 카테고리는 분류 체계(taxonomy) 의 quotable 분야 — 목록 필터·프로필 분야와 같은 라벨 */
@@ -214,6 +215,10 @@ export function QuoteRequestModal({
             placeholder="필요한 내용을 구체적으로 적어주세요 (10자 이상). 예: 관양동 구축 84㎡ 임장에 동행해 주실 분을 찾아요."
             className="w-full resize-none rounded-xl border border-line bg-bg p-3 t-body text-ink outline-none placeholder:text-text-3 focus:border-primary"
           />
+          {/* [966] 글자 수 — maxLength 와 같은 상한 */}
+          <div className="-mt-1.5 flex justify-end">
+            <CharCount value={content} max={2000} />
+          </div>
           {error && <div className="t-sub font-semibold text-danger">{error}</div>}
           <ActionButton
             state={status === "sending" ? "busy" : error ? "error" : "idle"}

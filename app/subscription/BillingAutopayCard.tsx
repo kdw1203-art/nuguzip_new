@@ -20,6 +20,8 @@ type Props = {
   cardCompany: string | null;
   cardNumberMasked: string | null;
   nextChargeAt: string | null;
+  /** [966] 이용 만료(app_users.plan_expires_at) — 해지 확인 문구에 "언제까지" 를 적는다 */
+  planExpiresAt?: string | null;
 };
 
 /* 플랜명은 단일 출처를 쓴다 — 지역 맵은 곧 다른 화면과 어긋난다. */
@@ -96,7 +98,9 @@ export function BillingAutopayCard(props: Props) {
       {state === "confirm" ? (
         <div className="flex flex-wrap items-center gap-2">
           <span className="t-sub text-text-2">
-            해지해도 이미 결제한 기간은 만료일까지 그대로 이용돼요. 해지할까요?
+            {props.planExpiresAt
+              ? `해지해도 ${fmtDate(props.planExpiresAt)}까지는 그대로 이용되고, 그 뒤 무료 플랜으로 전환돼요. 다음 결제일(${fmtDate(props.nextChargeAt)})에는 청구되지 않아요. 해지할까요?`
+              : "해지해도 이미 결제한 기간은 만료일까지 그대로 이용돼요. 다음 결제일에는 청구되지 않아요. 해지할까요?"}
           </span>
           <button
             type="button"

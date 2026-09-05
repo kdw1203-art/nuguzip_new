@@ -3919,3 +3919,127 @@ a.rank-row:hover {
     letter-spacing: -0.02em;
   }
 }
+
+/* ===== [966 · 맨 위로 · 오프라인 띠 · 탭 타깃 · 인쇄] ===== */
+
+/* 맨 위로 FAB(app/components/BackToTop.tsx) — 800px 넘게 내려가면 뜬다.
+   보이는 상태에는 transform 을 적지 않는다 — 적으면 같은 특이성의 .njn-lift:hover ·
+   .press:active 가 뒤에 온 이 규칙에 밀려 호버·눌림이 죽는다. 숨김 쪽에만 적는다.
+   숨김은 visibility 라 탭 순서·보조기술에서도 빠진다(사라지는 200ms 동안만 지연). */
+.back-to-top {
+  right: 14px;
+  bottom: calc(var(--nz-tabbar-offset) + 12px);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--njn-pop),
+    visibility 0s linear;
+}
+.back-to-top:not(.is-visible) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.9);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out),
+    visibility 0s linear 200ms;
+}
+/* /town·/notes 는 같은 자리에 글쓰기 FAB(52px)가 있어 그 위로 60px(52 + 여백 8).
+   그 FAB 는 md:hidden 이라 md 부터는 원래 자리로 내린다. */
+.back-to-top[data-lifted="true"] {
+  bottom: calc(var(--nz-tabbar-offset) + 72px);
+}
+@media (min-width: 768px) {
+  .back-to-top[data-lifted="true"] {
+    bottom: calc(var(--nz-tabbar-offset) + 12px);
+  }
+}
+
+/* 오프라인 알약(app/components/OfflineBanner.tsx) — 탭바 위 가운데.
+   좌우 76px 을 비워 우하단 FAB(52px + 18px)·맨 위로(44px + 14px)와 안 겹친다.
+   left/right/width 가 다 정해지면 margin auto 가 남는 폭을 반으로 나눠 가운데 놓는다 —
+   translateX 로 가운데를 잡지 않는 건 등장 애니메이션의 transform 과 부딪히기 때문. */
+.offline-banner {
+  left: 76px;
+  right: 76px;
+  width: fit-content;
+  margin-inline: auto;
+  text-align: center;
+  animation: offlineIn 240ms var(--ease-out) both;
+}
+@keyframes offlineIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 터치 히트 영역 확장 — 보이는 건 그대로, 눌리는 범위만 사방 8px.
+   12~15px 글자 하나(✕)가 버튼인 곳에 붙인다. position 이 이미 absolute/fixed 인
+   요소에는 쓰지 않는다(relative 로 덮어써 자리가 바뀐다). */
+.tap {
+  position: relative;
+}
+.tap::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-to-top,
+  .back-to-top:not(.is-visible) {
+    transition: none;
+  }
+  .back-to-top:not(.is-visible) {
+    transform: none;
+  }
+  .offline-banner {
+    animation: none;
+  }
+}
+
+/* 인쇄 — 화면 크롬(헤더·푸터·탭바·배너·FAB·광고·토스트)은 빼고 본문만.
+   실제 루트 선택자: 헤더 <header> · 푸터 <footer> · 탭바 nav.tabbar-autohide ·
+   쿠키 배너 [data-noprint](고정 클래스가 없어 속성으로) · 광고 .ad-zone ·
+   글쓰기 FAB .njn-fab · 토스트 .toast · 당겨서 새로고침 .njn-ptr.
+   외부 링크는 주소를 괄호로 덧붙인다 — 종이에서는 누를 수 없다. */
+@media print {
+  header,
+  footer,
+  nav,
+  .tabbar-autohide,
+  [data-noprint],
+  .back-to-top,
+  .offline-banner,
+  .ad-zone,
+  .njn-fab,
+  .toast,
+  .njn-ptr {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  a[href^="http"]:not([href*="naezipnow.com"])::after {
+    content: " (" attr(href) ")";
+    font-size: 10px; /* 램프 caption */
+  }
+  .card,
+  .glass {
+    box-shadow: none !important;
+    background: #fff !important;
+    border: 1px solid #ddd;
+  }
+}
+@page {
+  margin: 14mm;
+}

@@ -61,3 +61,17 @@ export function isPaidPlan(plan: AnyPlanTier | string | null | undefined): boole
   const k = String(plan ?? "").trim().toLowerCase();
   return k === "pro" || k === "expert" || k === "enterprise";
 }
+
+/**
+ * [966] 결제 주기 표기 — 결제 내역·관리자 결제표·영수증 메일이 같은 말을 쓴다.
+ * 관리자 표는 weekly 를 "월간" 으로 적고 있었다(annual 아니면 전부 월간).
+ */
+export function billingLabel(billing: string | null | undefined): string {
+  if (!billing) return "—";
+  const n = Number(billing);
+  if (Number.isFinite(n) && n > 0) return n === 1 ? "월간" : `${n}개월`;
+  if (billing === "weekly") return "주간권(7일)";
+  if (billing === "monthly") return "월간";
+  if (billing === "annual" || billing === "yearly") return "연간";
+  return billing;
+}

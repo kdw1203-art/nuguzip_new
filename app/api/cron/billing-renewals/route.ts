@@ -22,6 +22,7 @@ import {
 } from "@/lib/payments/store";
 import { cancelTossPayment } from "@/lib/payments/toss-cancel";
 import { BILLING_DURATION_DAYS } from "@/lib/subscriptions/billing-periods";
+import { notifyPaymentSettled } from "@/lib/payments/notify-paid";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
@@ -172,11 +173,14 @@ async function renewOne(sub: BillingSubscription): Promise<"charged" | "failed" 
   const periodDays = BILLING_DURATION_DAYS[sub.billing === "annual" ? "annual" : "monthly"];
   await applyPlanToUserByEmail(sub.userEmail, sub.plan as AppPlan, { durationDays: periodDays });
   const base = sub.nextChargeAt ? new Date(sub.nextChargeAt).getTime() : Date.now();
+  const nextChargeAt = new Date(base + periodDays * 86_400_000).toISOString();
   await recordRenewalSuccess({
     id: sub.id,
-    nextChargeAt: new Date(base + periodDays * 86_400_000).toISOString(),
+    nextChargeAt,
     lastOrderId: orderId,
   });
+  /* [966] 갱신도 확인을 보낸다 — 카드에서 돈이 나갔는데 우리 쪽 통보가 없었다 */
+  if (paidRow) await notifyPaymentSettled(paidRow, { kind: "renewal", nextChargeAt });
   return "charged";
 }
 

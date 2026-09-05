@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { isTossBillingOpenClient, isTossTestEnv, tossClientKey } from "./toss-rail";
+import { safeInternalPath } from "@/lib/safe-path";
 
 /**
  * 구독 플랜 결제 시작 버튼.
@@ -12,6 +13,14 @@ import { isTossBillingOpenClient, isTossTestEnv, tossClientKey } from "./toss-ra
  * 응답의 결제창 URL로 이동하는 것까지만 연결한다. (승인·확정은 결제창에서 사용자가 진행)
  */
 export type CheckoutTier = "pro" | "expert";
+
+/** [966] 페이월이 붙인 ?returnTo= — 내부 경로만, 없으면 null */
+function currentReturnTo(): string | null {
+  if (typeof window === "undefined") return null;
+  const raw = new URLSearchParams(window.location.search).get("returnTo");
+  const safe = safeInternalPath(raw, "");
+  return safe && safe !== "/" ? safe : null;
+}
 
 export function PlanCheckoutButton({
   tier,
@@ -51,7 +60,13 @@ export function PlanCheckoutButton({
       authed = false;
     }
     if (!authed) {
-      window.location.href = `/login?callbackUrl=${encodeURIComponent("/subscription")}`;
+      /* [966] 고른 플랜·주기(그리고 페이월의 returnTo)를 로그인 뒤에도 잃지 않는다 —
+         예전엔 /subscription 으로만 돌아와 처음부터 다시 골라야 했다. 서버 페이지가
+         ?billing= 을 읽어 토글을 복원한다. */
+      const back = new URLSearchParams({ plan: tier, billing });
+      const rt = currentReturnTo();
+      if (rt) back.set("returnTo", rt);
+      window.location.href = `/login?callbackUrl=${encodeURIComponent(`/subscription?${back}`)}`;
       return;
     }
 
@@ -131,10 +146,10 @@ export function PlanCheckoutButton({
          보내지 않는다 — 그 화면은 "준비 중" 카드로 /subscription 에 돌려보내
          사용자가 원을 돌았다. 그 경우 아래 단건 레일(카카오페이·카드)로 내려간다. */
       if (tossClientKey() && (billing === "weekly" || isTossBillingOpenClient())) {
+        const rt = currentReturnTo();
+        const q = `tier=${tier}&billing=${billing}${rt ? `&returnTo=${encodeURIComponent(rt)}` : ""}`;
         window.location.href =
-          billing === "weekly"
-            ? `/subscription/checkout?tier=${tier}&billing=${billing}`
-            : `/subscription/billing?tier=${tier}&billing=${billing}`;
+          billing === "weekly" ? `/subscription/checkout?${q}` : `/subscription/billing?${q}`;
         return;
       }
 

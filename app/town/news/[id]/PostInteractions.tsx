@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { INLINE_CONFIRM_MS } from "@/lib/ui/feedback-timing";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/components/Icon";
+import { ShareLinkButton } from "@/app/components/ShareLinkButton";
 import { useSoftSignup } from "@/app/components/soft-signup/SoftSignupProvider";
 import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
 
@@ -20,7 +20,7 @@ import { useUpgradePaywall } from "@/app/components/UpgradePaywallProvider";
    셋 다 API 는 이미 있었다:
      저장 → POST/DELETE /api/bookmarks (type: "post")
      댓글 → POST /api/community/posts/[id]/comments
-     공유 → Web Share API · 클립보드 폴백 (모임 공유 버튼과 같은 방식)
+     공유 → Web Share API · 클립보드 폴백 — [966] 공용 ShareLinkButton 으로 통일
    없던 것은 화면과 API 를 잇는 이 파일뿐이라, 지우는 대신 연결했다.
    ============================================================ */
 
@@ -40,7 +40,6 @@ export function PostActions({
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   /* 이미 저장한 글인지는 서버 렌더 시점에 알 수 없다(이 페이지는 공용 캐시가
      아니지만 세션별로 북마크를 조회하지는 않는다). 마운트 후 한 번만 확인해
@@ -114,26 +113,6 @@ export function PostActions({
     }
   }
 
-  async function share() {
-    const url = typeof window !== "undefined" ? window.location.href : "";
-    try {
-      if (navigator.share) {
-        await navigator.share({ title, url });
-        return;
-      }
-    } catch {
-      /* 사용자가 공유 시트를 닫음 — 클립보드로 대체하지 않는다 */
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), INLINE_CONFIRM_MS);
-    } catch {
-      /* 클립보드 권한 없음 — 주소창의 주소를 그대로 쓰면 된다 */
-    }
-  }
-
   return (
     <div className="mb-4 flex flex-wrap items-center justify-end gap-2 text-[13px]">
       {error && (
@@ -154,13 +133,13 @@ export function PostActions({
         </span>
         {saved ? "저장됨" : "저장"} {saveCount}
       </button>
-      <button
-        type="button"
-        onClick={() => void share()}
+      <ShareLinkButton
+        title={title}
+        label="공유"
+        copiedLabel="링크 복사됨 ✓"
+        variant="text"
         className="press rounded-[10px] bg-[var(--glass-bg)] px-3.5 py-2 font-semibold text-text-2"
-      >
-        {copied ? "링크 복사됨 ✓" : "공유"}
-      </button>
+      />
     </div>
   );
 }

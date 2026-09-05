@@ -1,3 +1,4 @@
+import { billingLabel } from "@/lib/subscriptions/labels";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listPayments, type PaymentRecord } from "@/lib/payments/store";
@@ -387,7 +388,7 @@ export default async function AdminPaymentsPage() {
                     <td className="py-2 pr-3 font-bold text-ink">
                       {p.plan}
                       <span className="ml-1 text-[10px] font-medium text-text-3">
-                        {p.billing === "annual" ? "연간" : "월간"}
+                        {billingLabel(p.billing)}
                       </span>
                     </td>
                     <td className="py-2 pr-3 text-right t-num text-ink">

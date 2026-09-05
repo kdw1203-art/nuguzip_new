@@ -1,6 +1,8 @@
 "use client";
 
 import { Switch } from "@/app/components/ui/Switch";
+import { Segmented } from "@/app/components/ui/Segmented";
+import { useTheme } from "next-themes";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,6 +11,7 @@ import { PageShell } from "@/app/components/PageShell";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { PushSubscribe } from "@/components/PushSubscribe";
 import { DELETE_CONFIRM_WORD, DELETE_GRACE_DAYS } from "@/lib/account/deletion";
+import { useUnsavedGuard } from "@/lib/client/use-unsaved-guard";
 
 /* 설정 (item 14) — 진짜 설정만 유지, 네비게이션성 항목 제거.
    섹션: 계정 · 알림 · 개인정보. 저장되는 토글만 실배선(/api/me/notification-prefs),
@@ -137,6 +140,9 @@ function SmsAlertCard({
 
   const digits = phone.replace(/\D/g, "");
   const phoneValid = /^01\d{8,9}$/.test(digits);
+  /* [966] 이 화면에서 "저장" 버튼이 따로 있는 입력은 이 번호 하나다(토글은 전부 즉시
+     저장). 적어 두고 저장 안 누른 채 새로고침하면 한 번 묻는다. */
+  useUnsavedGuard(digits !== "" && digits !== (savedPhone ?? "").replace(/\D/g, ""));
 
   async function patch(body: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
@@ -558,6 +564,40 @@ function PrivacyTab() {
   );
 }
 
+/* [966] 화면 테마 — 시스템 / 라이트 / 다크. 전체 메뉴의 토글은 라이트↔다크만
+   오가므로 "시스템을 따르기" 는 여기서만 고를 수 있다. next-themes 의 theme 는
+   서버에서 알 수 없어(localStorage) 마운트 뒤에만 컨트롤을 그린다 — 하이드레이션
+   불일치 방지. 그 전엔 같은 높이의 빈 자리만 둔다. */
+type ThemeChoice = "system" | "light" | "dark";
+const THEME_OPTIONS: ReadonlyArray<{ value: ThemeChoice; label: string }> = [
+  { value: "system", label: "시스템" },
+  { value: "light", label: "라이트" },
+  { value: "dark", label: "다크" },
+];
+
+function ThemeRow() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const current: ThemeChoice =
+    theme === "dark" || theme === "light" || theme === "system" ? theme : "light";
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-divider py-3">
+      <span className="t-body font-semibold text-text-1">화면 테마</span>
+      {mounted ? (
+        <Segmented<ThemeChoice>
+          options={THEME_OPTIONS}
+          value={current}
+          onChange={(v) => setTheme(v)}
+          ariaLabel="화면 테마"
+        />
+      ) : (
+        <span className="h-8" aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
 /* ---------------- 계정 탭 ---------------- */
 function AccountTab() {
   return (
@@ -576,6 +616,8 @@ function AccountTab() {
           <span className="t-body font-semibold text-text-1">언어</span>
           <span className="t-sub font-bold text-text-3">한국어</span>
         </div>
+        {/* [966] 화면 테마 */}
+        <ThemeRow />
         <Link
           href="/subscription"
           className="flex items-center justify-between py-3 t-body font-semibold text-text-1 no-underline"

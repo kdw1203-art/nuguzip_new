@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PageShell } from "../../components/PageShell";
-import { ErrorState } from "@/app/components/ui/EmptyState";
-import { Icon } from "@/app/components/Icon";
+import { EmptyState, ErrorState } from "@/app/components/ui/EmptyState";
 import { safeAuth } from "@/lib/safe-auth";
 import { listBookmarks } from "@/lib/bookmarks/store";
 import {
@@ -98,19 +97,14 @@ export default async function WishlistPage() {
           cause={loaded.cause}
         />
       ) : items.length === 0 ? (
-        <div className="rise-in card card-pad-sm flex flex-col items-center gap-3 py-14 text-center">
-          <div className="t-title">
-            <Icon name="🤍" size={26} />
-          </div>
-          <div className="t-section text-ink">아직 저장한 매물이 없어요</div>
-          <p className="max-w-[420px] t-body text-text-3">
-            마음에 드는 매물의 관심(♥) 버튼을 누르면 여기에 모여요. 실거래가와 비교하며
-            천천히 살펴보세요.
-          </p>
-          <Link href="/listings" className="btn-primary btn-md no-underline">
-            매물 둘러보기
-          </Link>
-        </div>
+        /* [966] 빈 상태 정본화 */
+        <EmptyState
+          icon="heart"
+          className="rise-in"
+          title="아직 저장한 매물이 없어요"
+          desc="마음에 드는 매물의 관심(♥) 버튼을 누르면 여기에 모여요. 실거래가와 비교하며 천천히 살펴보세요."
+          action={{ label: "매물 둘러보기", href: "/listings" }}
+        />
       ) : (
         <>
           {loaded.ok && loaded.failedCount > 0 && (

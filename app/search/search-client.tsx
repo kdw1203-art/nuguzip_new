@@ -13,6 +13,7 @@ import {
 import { useSettledSearchQuery } from "@/lib/search/settle";
 import { complexHrefFromId } from "@/lib/seo/complex-slug";
 import { trackPlatformEvent } from "@/lib/platform-events-client";
+import { useScrollRestore } from "@/lib/client/use-scroll-restore";
 
 /* ============================================================
    통합 검색 경험 — 단지·매물·임장노트·뉴스 통합 결과
@@ -244,6 +245,14 @@ export function SearchClient() {
     results.notes.length +
     results.news.length;
 
+  /* [966] 결과 → 상세 → 뒤로가기 스크롤 복원. 키는 URL 과 같은 꼴(/search?q=)로 직접
+     조립한다 — runSearch 가 replaceState 로 ?q= 를 바꾸므로 마운트 때 한 번 읽는 기본
+     키로는 나갈 때와 돌아올 때가 어긋난다. ready = 그 검색어의 응답이 그려진 뒤. */
+  useScrollRestore(
+    hasQuery ? `/search?q=${encodeURIComponent(q.trim())}` : "/search",
+    hasQuery && !busy && (total > 0 || failed.length > 0),
+  );
+
   const groups: Group[] = [
     {
       key: "complexes",
@@ -404,11 +413,12 @@ export function SearchClient() {
                     <button type="button" onClick={() => runSearch(k)} className="font-semibold">
                       {k}
                     </button>
+                    {/* [966] .tap — 12px ✕ 주변 8px 까지 눌린다(보이는 건 그대로) */}
                     <button
                       type="button"
                       onClick={() => removeRecent(k)}
                       aria-label={`최근 검색 ${k} 삭제`}
-                      className="text-text-3"
+                      className="tap text-text-3"
                     >
                       ✕
                     </button>

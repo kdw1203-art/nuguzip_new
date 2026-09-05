@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/app/components/Icon";
+import { useToast } from "@/app/components/toast/ToastProvider";
 import type { SavedSearchScope } from "@/lib/saved-search/types";
 
 /* [개선 #13] 지역·키워드 알림 원탭 구독 버튼.
@@ -31,13 +32,17 @@ export function KeywordAlertButton({
   className?: string;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
+  const { showToast } = useToast();
 
   const q = query.trim();
   if (!q) return null;
 
+  /* [966] 결과를 토스트로도 — 버튼이 문장으로 바뀌는 것만으로는 스크롤 중에 놓친다.
+     이 버튼은 구독만 만든다(해제는 /my/saved-searches) — 토글이 아니라 aria-pressed 는 없다. */
   async function subscribe() {
     if (phase === "busy" || phase === "done" || phase === "exists") return;
     setPhase("busy");
+    const manage = { label: "관리", href: "/my/saved-searches" } as const;
     try {
       // 중복 확인 — 같은 scope+query 가 이미 있으면 새로 만들지 않는다.
       const listRes = await fetch("/api/saved-searches", { cache: "no-store" });
@@ -50,6 +55,7 @@ export function KeywordAlertButton({
         );
         if (exists) {
           setPhase("exists");
+          showToast("이미 받고 있는 알림이에요", manage);
           return;
         }
       }
@@ -68,9 +74,16 @@ export function KeywordAlertButton({
         setPhase("need-login");
         return;
       }
-      setPhase(res.ok ? "done" : "error");
+      if (res.ok) {
+        setPhase("done");
+        showToast(`‘${q}’ 새 소식 알림을 설정했어요`, manage);
+      } else {
+        setPhase("error");
+        showToast("알림을 설정하지 못했어요. 다시 시도해 주세요");
+      }
     } catch {
       setPhase("error");
+      showToast("알림을 설정하지 못했어요. 다시 시도해 주세요");
     }
   }
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { getSessionLite } from "@/lib/client/session-lite";
 
 /* S13-13a 헤더 세션 영역 — /api/auth/session 지연 조회 (정적 셸 ISR 유지)
    로그인: 이니셜 원형 아바타 + 플랜 배지(✦, 시안 9m 4373행) + 드롭다운
-   비로그인: "로그인" 텍스트 링크 → /login */
+   비로그인: "로그인" 텍스트 링크 → /login
+   [966] 메뉴 키보드 — Esc 닫고 트리거로 복귀 · ↑↓ 로 menuitem 사이 이동(순환) ·
+   트리거에서 ↓/↑ 는 열면서 첫/마지막 항목으로. */
 
 type SessionUser = {
   name?: string | null;
@@ -41,6 +43,11 @@ export function HeaderAuth() {
   const [state, setState] = useState<AuthState>({ status: "loading" });
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuId = useId();
+  /* 트리거에서 ↓/↑ 로 열었을 때 첫/마지막 항목으로 포커스를 보낼 예약 */
+  const focusOnOpenRef = useRef<"first" | "last" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,6 +72,43 @@ export function HeaderAuth() {
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  /* [966] 열린 동안 키보드 — Esc: 닫고 트리거로 복귀 · ↑↓: menuitem 순환 · Home/End.
+     포커스가 메뉴 밖(트리거)에 있으면 ↓ 는 첫 항목, ↑ 는 마지막 항목으로. */
+  useEffect(() => {
+    if (!open) return;
+    const items = () =>
+      Array.from(
+        menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+      );
+    const pending = focusOnOpenRef.current;
+    focusOnOpenRef.current = null;
+    if (pending) {
+      const list = items();
+      (pending === "first" ? list[0] : list[list.length - 1])?.focus();
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+      const list = items();
+      if (list.length === 0) return;
+      e.preventDefault();
+      const cur = list.indexOf(document.activeElement as HTMLElement);
+      let next = 0;
+      if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = list.length - 1;
+      else if (e.key === "ArrowDown") next = cur < 0 ? 0 : (cur + 1) % list.length;
+      else next = cur <= 0 ? list.length - 1 : cur - 1;
+      list[next]?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   /* 세션 확인 중에도 게스트 링크를 그린다(#홈비판 — SSR/첫 페인트에 가입
@@ -104,10 +148,19 @@ export function HeaderAuth() {
   return (
     <div ref={rootRef} className="relative flex items-center gap-1.5">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          /* 닫힌 상태에서 ↓/↑ — 열면서 첫/마지막 항목으로(메뉴 버튼 관행) */
+          if (open || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+          e.preventDefault();
+          focusOnOpenRef.current = e.key === "ArrowDown" ? "first" : "last";
+          setOpen(true);
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
         aria-label="내 계정 메뉴"
         className="flex items-center"
       >
@@ -140,9 +193,12 @@ export function HeaderAuth() {
       {open && (
         <div className="absolute right-0 top-full z-50 pt-2">
           <div
+            ref={menuRef}
+            id={menuId}
             className="glass-strong min-w-[168px] rounded-2xl p-1.5 [animation:riseIn_180ms_var(--ease-out)_backwards]"
             style={{ background: "rgba(255,255,255,.94)" }}
             role="menu"
+            aria-label="내 계정"
           >
             <div className="truncate px-3 pb-1 pt-2 text-[12px] text-text-3">
               {user.name?.trim() || user.email}

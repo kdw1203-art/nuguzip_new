@@ -48,9 +48,11 @@ export async function applyPlanToUserByEmail(
     expiresAt = new Date(base + options.durationDays * DAY_MS).toISOString();
   }
 
+  /* [966] updated_at 을 함께 적는다 — 만료 스윕이 "이용권 총 기간(만료-갱신)" 으로
+     주간권(7일)을 가려내 T-7 알림을 건너뛰는 근거다. */
   const { data, error } = await sb
     .from("app_users")
-    .update({ plan: p, plan_expires_at: expiresAt })
+    .update({ plan: p, plan_expires_at: expiresAt, updated_at: new Date().toISOString() })
     .eq("email", em)
     .select("id");
   if (error) {

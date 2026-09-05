@@ -86,7 +86,17 @@ export default async function PaymentFailPage({
   const retryQuery = new URLSearchParams();
   if (retryPlan) retryQuery.set("plan", retryPlan);
   if (retryBilling) retryQuery.set("billing", retryBilling);
-  const retryHref = retryQuery.size > 0 ? `/subscription?${retryQuery}` : "/subscription";
+  /* [966] "다시 시도" 는 결제창 바로 앞으로 — 예전엔 /subscription 까지만 돌아가 카드
+     선택·토글·2단계 확인을 다시 밟았다. 주간권은 단건 체크아웃, 정기는 카드 등록창.
+     플랜을 모르면 예전처럼 구독 안내로. */
+  const retryHref =
+    retryPlan && retryBilling === "weekly"
+      ? `/subscription/checkout?tier=${retryPlan}&billing=weekly`
+      : retryPlan && (retryBilling === "monthly" || retryBilling === "annual") && sp.provider === "toss-billing"
+        ? `/subscription/billing?tier=${retryPlan}&billing=${retryBilling}`
+        : retryQuery.size > 0
+          ? `/subscription?${retryQuery}`
+          : "/subscription";
 
   const category = categorize(sp);
   const orderIdShown = safeToken(sp.orderId, 64);
