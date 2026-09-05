@@ -69,7 +69,7 @@ export default async function AdminQualityPage() {
   const [kpi, ops, queueLoaded, perfLoaded, fraudLoaded, quality] = await Promise.all([
     loadAdminKpi().catch(() => null),
     loadExpertOpsSummary().catch(() => null),
-    settle(loadPendingVerificationQueue(12), "전문가 인증 심사 큐"),
+    settle(loadPendingVerificationQueue(30), "전문가 인증 심사 큐"),
     settle(loadExpertPerformance(8), "전문가 성과"),
     settle(loadRecentFraudEvents(12), "이상행위 로그"),
     loadDataQuality().catch(() => null),

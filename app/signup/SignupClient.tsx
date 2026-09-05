@@ -202,16 +202,28 @@ export function SignupClient({ social }: { social: SocialProvider[] }) {
         setDone("confirm");
         return;
       }
-      // 가입 직후 자동 로그인 → /welcome 온보딩으로 이동 (실패해도 /welcome 이 로그인으로 안내)
+      // 가입 직후 자동 로그인 → /welcome 온보딩으로 이동
+      /* [965] 자동 로그인 결과를 본다. 예전엔 결과를 버리고 "가입이 끝났어요" 를
+         띄운 뒤 /welcome 으로 보냈는데, 로그인이 안 됐으면 /welcome 이 곧장
+         /login 으로 튕겨 축하 장면 뒤에 로그인 화면이 나오는 모순이 됐다.
+         가입 자체는 성공했으니 로그인 화면으로 보내되 이유를 붙인다. */
+      let signedIn = false;
       try {
-        await signIn("password", {
+        const res = await signIn("password", {
           email: normalizedEmail,
           password,
           redirect: false,
           callbackUrl: "/welcome",
         });
+        signedIn = Boolean(res?.ok) && !res?.error;
       } catch {
-        /* 로그인 실패는 /welcome 쪽 가드가 처리 */
+        signedIn = false;
+      }
+      if (!signedIn) {
+        router.replace(
+          `/login?callbackUrl=%2Fwelcome&email=${encodeURIComponent(normalizedEmail)}&notice=signup_done`,
+        );
+        return;
       }
       showMoment({
         title: "가입이 끝났어요",

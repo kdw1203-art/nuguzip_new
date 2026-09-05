@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { assertCheckoutAllowed } from "@/lib/payments/checkout-guard";
 import { getPlan } from "@/lib/subscriptions/plans";
 import { isTossBillingEnabled } from "@/lib/payments/toss-billing";
 import { startPendingSubscription, getLiveSubscriptionByEmail } from "@/lib/payments/billing-store";
@@ -39,6 +40,9 @@ export async function POST(req: NextRequest) {
   if (!userEmail) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
+  /* [965] 전자상거래법 고지 게이트 — 모든 유료 레일에 같은 문(lib/payments/checkout-guard) */
+  const blocked = assertCheckoutAllowed("payments:toss:billing:start");
+  if (blocked) return blocked;
 
   const body = (await req.json().catch(() => ({}))) as Body;
 

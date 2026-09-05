@@ -7,6 +7,9 @@ import { logger } from "@/lib/log";
 import { auth } from "@/auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { loadBillingHistory } from "@/lib/subscriptions/billing-history";
+import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
+import type { AppPlan } from "@/lib/billing/plan";
+import { maskEmailPublic } from "@/lib/privacy/mask-email";
 
 export const runtime = "nodejs";
 
@@ -59,13 +62,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const { error } = await sb
-    .from("app_users")
-    .update({ plan: newPlan })
-    .eq("email", targetEmail);
-
-  if (error) {
-    logger.error("[api] DB 오류", error.message);
+  /* [965] 플랜만 바꾸고 만료(plan_expires_at)를 남겨 두면 안 된다 — 지난 단건 이용권의
+     만료 시각이 그대로 있어, 다음 스윕(또는 [965]부터는 다음 세션 갱신)이 관리자
+     부여를 곧장 free 로 되돌렸다. 단일 기록 함수(applyPlanToUserByEmail)는 기간
+     없는 부여에 만료를 비운다(null). */
+  const ok = await applyPlanToUserByEmail(targetEmail, newPlan as AppPlan);
+  if (!ok) {
+    logger.error("[api] 관리자 플랜 변경 실패", { targetEmail: maskEmailPublic(targetEmail), newPlan });
     return NextResponse.json({ error: "서버 오류 — 잠시 후 다시 시도해 주세요." }, { status: 500 });
   }
   return NextResponse.json({ ok: true, email: targetEmail, plan: newPlan });

@@ -49,11 +49,26 @@ export async function GET(req: NextRequest) {
 
   const session = await safeAuth();
   const currentEmail = session?.user?.email ?? null;
-  if (existing.userEmail && currentEmail && existing.userEmail !== currentEmail) {
+  /* 카카오 인앱 브라우저·다른 컨텍스트로 돌아오면 세션 쿠키가 없을 수 있다 —
+     그때는 소유자 대조를 건너뛴다(승인 자체는 tid+pg_token 소지가 조건이고,
+     플랜은 주문 소유자에게 붙는다). 세션이 **있는데** 다른 사람이면 거절. */
+  if (
+    existing.userEmail &&
+    currentEmail &&
+    existing.userEmail.toLowerCase() !== currentEmail.toLowerCase()
+  ) {
     return NextResponse.redirect(`${base}/payment/fail?reason=forbidden`);
   }
 
+  /* [965] partner_user_id 는 ready 때 보낸 값과 **같아야** 승인된다. 예전엔 여기서
+     다시 계산해(세션 id 우선) 인앱 브라우저처럼 세션이 비면 ready 와 다른 값이
+     나가 승인이 거절됐다. ready 가 metadata 에 남긴 값을 그대로 쓴다. */
+  const storedPartnerUserId =
+    typeof existing.metadata?.partnerUserId === "string"
+      ? (existing.metadata.partnerUserId as string)
+      : null;
   const partnerUserId = (
+    storedPartnerUserId ||
     session?.user?.id ||
     existing.userEmail ||
     orderId

@@ -13,7 +13,15 @@ import {
   recordRenewalSuccess,
   type BillingSubscription,
 } from "@/lib/payments/billing-store";
-import { createPayment, getPaymentByOrderId, markFailed, markPaid } from "@/lib/payments/store";
+import {
+  createPayment,
+  getPaymentByOrderId,
+  markFailed,
+  markPaid,
+  promotePaidAfterProviderConfirmation,
+} from "@/lib/payments/store";
+import { cancelTossPayment } from "@/lib/payments/toss-cancel";
+import { BILLING_DURATION_DAYS } from "@/lib/subscriptions/billing-periods";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
 import { appendInboxNotification } from "@/lib/notifications/inbox";
@@ -54,7 +62,7 @@ async function renewOne(sub: BillingSubscription): Promise<"charged" | "failed" 
   const existing = await getPaymentByOrderId(orderId);
   if (existing?.status === "paid") {
     // 승인은 성공했는데 next_charge_at 전진 전에 죽었던 경우 — 전진만 마저 한다
-    const periodDays = sub.billing === "annual" ? 365 : 30;
+    const periodDays = BILLING_DURATION_DAYS[sub.billing === "annual" ? "annual" : "monthly"];
     const base = sub.nextChargeAt ? new Date(sub.nextChargeAt).getTime() : Date.now();
     await recordRenewalSuccess({
       id: sub.id,
@@ -117,16 +125,51 @@ async function renewOne(sub: BillingSubscription): Promise<"charged" | "failed" 
       expected: sub.amount,
       got: charged.data.totalAmount,
     });
+    /* [965] 승인은 이미 났다 — 즉시 전액 취소한다. 예전엔 구독만 멈추고 청구는 그대로
+       남겨 사용자 카드에서 돈이 나간 채 아무도 환불하지 않았다. */
+    const cancelled = await cancelTossPayment({
+      paymentKey: charged.data.paymentKey ?? "",
+      orderId,
+      cancelReason: "갱신 결제 금액 불일치 자동 취소",
+      rail: "billing",
+    });
+    if (cancelled.ok) {
+      await markFailed(orderId);
+    } else {
+      logger.error("[billing-renewals] 금액 불일치 자동 취소 실패 — 수동 환불 필요", {
+        orderId,
+        code: cancelled.code,
+      });
+      await promotePaidAfterProviderConfirmation({
+        orderId,
+        providerPaymentKey: charged.data.paymentKey ?? "",
+        method: "카드(자동결제)",
+        reason: "갱신 금액 불일치 — 취소 실패로 원장에 paid 보존",
+      });
+    }
     await recordRenewalFailure({ id: sub.id, error: "AMOUNT_MISMATCH", suspend: true });
     return "suspended";
   }
 
-  await markPaid({
-    orderId,
-    providerPaymentKey: charged.data.paymentKey,
-    method: "카드(자동결제)",
-  });
-  const periodDays = sub.billing === "annual" ? 365 : 30;
+  /* [965] 같은 주기의 앞 회차가 failed 로 남아 있으면 markPaid(requested 전용)는
+     null 을 돌려준다 — 예전엔 그 반환값을 버리고 플랜만 켜서, 돈은 받았는데 결제
+     내역에는 "실패" 로 남았다. 결제사 승인이 사실이므로 failed 에서도 paid 로 올린다. */
+  const paidRow =
+    (await markPaid({
+      orderId,
+      providerPaymentKey: charged.data.paymentKey,
+      method: "카드(자동결제)",
+    })) ??
+    (await promotePaidAfterProviderConfirmation({
+      orderId,
+      providerPaymentKey: charged.data.paymentKey ?? "",
+      method: "카드(자동결제)",
+      reason: "갱신 승인 성공 — 앞 회차 실패 행 재사용",
+    }));
+  if (!paidRow) {
+    logger.error("[billing-renewals] 승인은 났는데 원장을 paid 로 만들지 못함 — 사람 확인", { orderId });
+  }
+  const periodDays = BILLING_DURATION_DAYS[sub.billing === "annual" ? "annual" : "monthly"];
   await applyPlanToUserByEmail(sub.userEmail, sub.plan as AppPlan, { durationDays: periodDays });
   const base = sub.nextChargeAt ? new Date(sub.nextChargeAt).getTime() : Date.now();
   await recordRenewalSuccess({

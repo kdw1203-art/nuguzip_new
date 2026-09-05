@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { planLabel } from "@/lib/subscriptions/labels";
-import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
 import { markPaid, getPaymentByOrderId, type PaymentRecord } from "@/lib/payments/store";
@@ -14,7 +13,7 @@ import { getStripe } from "@/lib/billing/stripe";
 import { normalizePlan } from "@/lib/billing/plan";
 import { safeAuth } from "@/lib/safe-auth";
 import { PaymentSuccessMoment } from "./PaymentSuccessMoment";
-import type { AppPlan } from "@/lib/billing/plan";
+import { applyPlanForPayment, confirmTossOrder } from "@/lib/payments/confirm-toss-order";
 
 export const metadata: Metadata = {
   title: "결제 완료 | 내집나우",
@@ -118,22 +117,25 @@ export default async function PaymentSuccessPage({
     status = "ok";
     message = "결제가 완료되어 구독이 활성화됐습니다.";
   } else if (orderId && paymentKey && amount) {
+    /* [965] 승인은 같은 프로세스의 함수로 — 예전엔 Host 헤더로 만든 주소에 HTTP 를
+       다시 쏴서 (a) Host 조작 시 paymentKey 유출, (b) 서버 IP 하나로 모든 구매자가
+       속도 제한 한 버킷을 나눠 쓰는 문제, (c) 세션 없는 호출이라 본인 확인이 비는
+       문제가 있었다. */
     try {
-      const h = await headers();
-      const origin = h.get("origin") ?? h.get("host") ?? "";
-      const protocol = origin.startsWith("localhost") ? "http" : "https";
-      const base = origin.startsWith("http") ? origin : `${protocol}://${origin}`;
-      const res = await fetch(`${base}/api/payments/toss/confirm`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ paymentKey, orderId, amount }),
+      const auth = await safeAuth();
+      const result = await confirmTossOrder({
+        orderId,
+        paymentKey,
+        amount,
+        currentEmail: auth?.user?.email ?? null,
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (res.ok) {
+      if (result.status < 400 && result.body.ok && result.body.payment) {
         status = "ok";
-        message = "결제가 완료되어 구독이 활성화됐습니다.";
+        message = result.body.recovered
+          ? "결제가 완료되어 구독이 활성화됐습니다. (승인 응답이 늦어 결제 내역으로 다시 확인했어요)"
+          : "결제가 완료되어 구독이 활성화됐습니다.";
       } else {
-        message = data.error ?? message;
+        message = result.body.error ?? message;
       }
     } catch (e) {
       message = e instanceof Error ? e.message : message;
@@ -146,17 +148,8 @@ export default async function PaymentSuccessPage({
     } else {
       const paid = await markPaid({ orderId, providerPaymentKey: "MOCK-PAYMENT-KEY" });
       if (paid) {
-        const session = await safeAuth();
-        // tier === "basic" 은 단품으로 간주 — 멤버십 등급은 변경하지 않는다.
-        if (paid.plan !== "basic") {
-          const plan: AppPlan = paid.plan;
-          if (session?.user?.email) {
-            // 목업 재확정도 일회성 결제 경로 — 실제 경로와 같은 이용 기간을 기록한다
-            await applyPlanToUserByEmail(session.user.email, plan, {
-              durationDays: paid.billing === "annual" ? 365 : 30,
-            });
-          }
-        }
+        /* 목업 재확정도 실제 경로와 같은 기간 규칙(BILLING_DURATION_DAYS)·같은 소유자 기준 */
+        await applyPlanForPayment(paid);
         status = "mock";
         message = "결제가 기록되었습니다. (테스트 모드)";
       }

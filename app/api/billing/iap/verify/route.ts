@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 import { auth } from "@/auth";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { resolveIapProduct } from "@/lib/subscriptions/iap-products";
@@ -48,7 +49,10 @@ function pickAppleTransaction(
  * POST /api/billing/iap/verify
  * iOS App Store / Google Play 영수증 검증
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  /* [965] 다른 결제 라우트와 같은 제한 — 영수증 대입을 무제한으로 받지 않는다 */
+  const limited = await applyRateLimit(req, AUTH_RATE_LIMIT);
+  if (limited) return limited;
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
@@ -58,7 +62,15 @@ export async function POST(req: Request) {
   const platform = String(body.platform ?? "");
   const receipt = String(body.receipt ?? body.purchaseToken ?? "").trim();
   const productId = String(body.productId ?? "").trim();
-  const sandbox = Boolean(body.sandbox);
+  /* [965] 샌드박스 여부는 **요청이 아니라 응답**으로 정한다. 예전엔 `{"sandbox":true}`
+     한 줄로 샌드박스 검증기를 고를 수 있었고, 운영 분기도 status 가 0 이 아니면
+     무조건 샌드박스로 넘어갔다 — Xcode 테스트 계정으로 0원에 산 영수증이 운영에서
+     연간 프로 플랜이 됐다. 샌드박스 영수증은 운영이 아닌 환경(IAP_ALLOW_SANDBOX=1
+     또는 VERCEL_ENV≠production)에서, Apple 이 21007 로 안내했을 때만 받는다. */
+  const sandboxAllowed =
+    process.env.IAP_ALLOW_SANDBOX?.trim() === "1" ||
+    (process.env.VERCEL_ENV ?? (process.env.NODE_ENV === "production" ? "production" : "development")) !==
+      "production";
 
   if (!platform || !receipt || !productId) {
     return NextResponse.json(
@@ -115,13 +127,11 @@ export async function POST(req: Request) {
     verifyMessage = "dev_bypass";
     transactionKey = receipt;
   } else if (platform === "ios" && appleSecret) {
-    // Apple verifyReceipt — production / sandbox 자동 전환
-    const endpoints = sandbox
-      ? ["https://sandbox.itunes.apple.com/verifyReceipt"]
-      : [
-          "https://buy.itunes.apple.com/verifyReceipt",
-          "https://sandbox.itunes.apple.com/verifyReceipt",
-        ];
+    // Apple verifyReceipt — 운영 먼저, 21007(샌드박스 영수증) 이고 허용 환경일 때만 샌드박스
+    const endpoints = [
+      "https://buy.itunes.apple.com/verifyReceipt",
+      ...(sandboxAllowed ? ["https://sandbox.itunes.apple.com/verifyReceipt"] : []),
+    ];
     for (const url of endpoints) {
       const res = await fetch(url, {
         method: "POST",
@@ -162,7 +172,11 @@ export async function POST(req: Request) {
         rawEvidence = { ...matched };
         break;
       }
-      if (data.status === 21007 && !sandbox) continue;
+      if (data.status === 21007 && sandboxAllowed) continue;
+      /* 그 외 상태(21002 형식 오류·21003 인증 실패·21004 시크릿 불일치 …)는 여기서 끝 —
+         샌드박스로 흘러가지 않는다 */
+      verifyMessage = `apple_status_${data.status ?? "unknown"}`;
+      break;
     }
   } else if (platform === "android" && googlePackage) {
     // Play Developer API는 서비스 계정 JSON 필요 — 토큰 있으면 검증 시도

@@ -65,7 +65,9 @@ export async function POST(req: NextRequest) {
 
   const session = await safeAuth();
   const currentEmail = session?.user?.email ?? null;
-  if (existing.userEmail && currentEmail && existing.userEmail !== currentEmail) {
+  /* [965] fail-closed — 비로그인(currentEmail=null)이면 예전 조건은 그냥 통과했다.
+     주문 소유자가 있는 결제는 그 소유자의 세션에서만 다룬다. */
+  if (existing.userEmail && existing.userEmail.toLowerCase() !== (currentEmail ?? "").toLowerCase()) {
     return NextResponse.json({ error: "본인 결제만 승인할 수 있습니다." }, { status: 403 });
   }
   if (existing.providerPaymentKey && existing.providerPaymentKey !== payToken) {

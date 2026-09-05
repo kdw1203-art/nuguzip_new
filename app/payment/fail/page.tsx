@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { PageShell } from "@/app/components/PageShell";
-import { getPaymentByOrderId, markFailed } from "@/lib/payments/store";
+import { getPaymentByOrderId, markCancelled, markFailed } from "@/lib/payments/store";
+import { safeAuth } from "@/lib/safe-auth";
 
 export const metadata: Metadata = {
   title: "결제 실패 | 내집나우",
@@ -56,16 +57,27 @@ export default async function PaymentFailPage({
       ? sp.billing
       : null;
 
+  /* [965] 주문을 실패로 적는 건 **주문 소유자가 로그인한 상태**에서만.
+     예전엔 이 화면을 열기만 하면(로그인 없이, orderId 만 알면) markFailed 가 돌았다.
+     orderId 는 결제창·URL 에 그대로 보이는 값이라 비밀이 아니다 — 남의 결제창이
+     열려 있는 동안 이 주소를 치면 그 주문이 failed 가 되고, 이후 승인이 성공해도
+     markPaid(requested 전용)가 막혀 돈만 나가고 이용권은 안 켜졌다. 조회(플랜·주기
+     복원)도 같은 조건으로만 한다 — 남의 주문 내용을 보여 줄 이유가 없다.
+     (kakaopay/fail 라우트는 이미 이 규칙이었다.) */
   if (sp.orderId) {
     try {
-      const payment = await getPaymentByOrderId(sp.orderId);
-      if (payment) {
+      const session = await safeAuth();
+      const me = session?.user?.email?.trim().toLowerCase() ?? null;
+      const payment = me ? await getPaymentByOrderId(sp.orderId) : null;
+      if (payment && payment.userEmail && payment.userEmail.toLowerCase() === me) {
         if (!retryPlan && (payment.plan === "pro" || payment.plan === "expert")) {
           retryPlan = payment.plan;
         }
         if (!retryBilling) retryBilling = payment.billing;
+        /* 사용자가 결제창을 닫은 것(user_cancel)은 카드 거절이 아니다 — cancelled 로 */
+        if (categorize(sp) === "user_cancel") await markCancelled(sp.orderId);
+        else await markFailed(sp.orderId);
       }
-      await markFailed(sp.orderId);
     } catch {
       /* 기록 실패는 무시 — 안내는 그대로 노출 */
     }

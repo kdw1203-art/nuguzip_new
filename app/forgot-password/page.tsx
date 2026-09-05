@@ -103,13 +103,19 @@ export default function ForgotPasswordPage() {
               </div>
             )}
             <form onSubmit={onSubmit} className="rise-in-3 flex flex-col gap-2">
+              <label htmlFor="forgot-email" className="sr-only">
+                가입한 이메일 주소
+              </label>
               <input
+                id="forgot-email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="가입한 이메일 주소"
                 autoComplete="email"
+                inputMode="email"
+                aria-invalid={Boolean(error)}
                 className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
               />
               <ActionButton

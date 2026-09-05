@@ -147,7 +147,7 @@ export default function ExpertJoinPage() {
       <section className="mb-6">
         <h2 className="mb-1 t-section text-ink">누가 신청할 수 있나</h2>
         <p className="mb-3 t-sub text-text-2">
-          자격이 있는 유형은 각 협회·기관의 공개 조회로 등록 상태를 확인합니다. 그 밖의 전문가는 서류·인터뷰 심사로 확인해요.
+          자격이 있는 유형은 각 협회·기관의 공개 조회로 등록 상태를 확인합니다. 그 밖의 전문가는 증빙 서류 심사로 확인해요.
         </p>
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {verifiable.map((t) => (
@@ -169,10 +169,10 @@ export default function ExpertJoinPage() {
             <div className="card flex flex-col gap-1 rounded-2xl border-dashed p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="t-body font-extrabold text-ink">{other.label}</span>
-                <span className="rounded-md bg-warning-soft chip-pad t-caption font-bold text-warning">서류·인터뷰</span>
+                <span className="rounded-md bg-warning-soft chip-pad t-caption font-bold text-warning">서류 심사</span>
               </div>
               <span className="t-sub text-text-2">{other.desc}</span>
-              <span className="t-caption text-text-3">증빙 URL(자격·경력)과 소개를 바탕으로 인터뷰 심사</span>
+              <span className="t-caption text-text-3">증빙 URL(자격·경력)과 소개를 바탕으로 운영자가 서류 심사</span>
             </div>
           )}
         </div>

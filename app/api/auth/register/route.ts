@@ -15,6 +15,7 @@ import {
 import { logger } from "@/lib/log";
 import { maskEmailPublic } from "@/lib/privacy/mask-email";
 import { mapSignUpRejection } from "@/lib/auth/signup-error";
+import { findAuthUserByEmail } from "@/lib/auth/find-auth-user";
 
 export const runtime = "nodejs";
 
@@ -82,31 +83,19 @@ function isAlreadyRegisteredError(message: string | undefined): boolean {
   );
 }
 
-/** Auth Admin 으로 이메일 사용자 조회 (페이지네이션, 상한 5페이지). */
-async function findAuthUserByEmail(email: string) {
-  const sb = getServiceSupabase();
-  if (!sb) return null;
-  const target = email.trim().toLowerCase();
-  for (let page = 1; page <= 5; page++) {
-    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) return null;
-    const hit = data.users.find((u) => (u.email ?? "").toLowerCase() === target);
-    if (hit) return hit;
-    if (data.users.length < 200) break;
-  }
-  return null;
-}
-
 /**
- * 미인증 계정에 다시 가입을 시도한 경우:
- * 1) 방금 입력한 비밀번호로 갱신 (다음에 로그인할 수 있게)
- * 2) 인증 메일 재발송
+ * 미인증 계정에 다시 가입을 시도한 경우 — 인증 메일만 다시 보낸다.
+ *
+ * [965] 예전에는 여기서 **방금 입력한 비밀번호로 계정을 덮어썼다**. 인증이 안 된
+ * 계정은 아직 누구의 것도 아니므로, 다른 사람이 같은 이메일로 "가입" 을 누르는
+ * 것만으로 먼저 가입한 사람의 비밀번호가 바뀌었다 — 이메일 소유 증명 없이
+ * 비밀번호를 바꾸는 유일한 경로였다. 이제 비밀번호는 건드리지 않는다. 처음 정한
+ * 비밀번호를 잊었다면 인증 후 '비밀번호 찾기'(메일 소유 증명) 로 바꾼다.
  */
 async function recoverUnconfirmedSignup(opts: {
   supabaseUrl: string;
   supabasePublicKey: string;
   email: string;
-  password: string;
   name: string;
   emailRedirectTo?: string;
 }): Promise<NextResponse | null> {
@@ -123,29 +112,6 @@ async function recoverUnconfirmedSignup(opts: {
     );
   }
 
-  const sb = getServiceSupabase();
-  let passwordUpdated = false;
-  if (sb) {
-    const { error: updErr } = await sb.auth.admin.updateUserById(existing.id, {
-      password: opts.password,
-      email: opts.email,
-      user_metadata: {
-        ...(existing.user_metadata ?? {}),
-        name: opts.name,
-      },
-    });
-    if (updErr) {
-      return NextResponse.json(
-        {
-          error: "기존 미인증 계정을 갱신하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-          detail: "서버 오류 — 잠시 후 다시 시도해 주세요.",
-        },
-        { status: 500 },
-      );
-    }
-    passwordUpdated = true;
-  }
-
   const authClient = createClient(opts.supabaseUrl, opts.supabasePublicKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -157,18 +123,31 @@ async function recoverUnconfirmedSignup(opts: {
       : undefined,
   });
   if (resendErr) {
-    /* 재발송 한도 등 — 비밀번호는 이미 갱신됐을 수 있으므로 안내만 */
+    /* [965] 재발송 실패는 실패로 답한다. 예전엔 201 + `resent:false` 였고 화면은
+       그걸 "인증 메일을 보냈어요" 로 그렸다 — 오지 않을 메일을 기다리게 했다.
+       재발송 한도(429)는 그대로 429 로, 그 외는 502 로. */
+    const status = (resendErr as { status?: number }).status;
+    const rateLimited =
+      status === 429 || /rate|too many|over_email_send/i.test(resendErr.message ?? "");
+    logger.warn("[auth/register] 인증 메일 재발송 실패", {
+      code: (resendErr as { code?: string }).code ?? "",
+      status,
+      message: resendErr.message,
+      email: maskEmailPublic(opts.email),
+    });
     return NextResponse.json(
       {
-        user: { id: existing.id, email: opts.email, name: opts.name },
+        error: rateLimited
+          ? "인증 메일을 너무 자주 요청했어요. 몇 분 뒤 다시 시도해 주세요."
+          : "인증 메일을 다시 보내지 못했어요. 잠시 후 다시 시도해 주세요.",
+        code: rateLimited ? "resend_rate_limited" : "resend_failed",
         emailConfirmationRequired: true,
         resent: false,
-        message: passwordUpdated
-          ? "비밀번호는 갱신했습니다. 인증 메일 재발송에 실패했다면 잠시 후 ‘인증 메일 다시 보내기’를 눌러 주세요."
-          : "인증 메일 재발송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-        detail: "서버 오류 — 잠시 후 다시 시도해 주세요.",
       },
-      { status: 201 },
+      {
+        status: rateLimited ? 429 : 502,
+        ...(rateLimited ? { headers: { "Retry-After": "120" } } : {}),
+      },
     );
   }
 
@@ -214,7 +193,6 @@ async function signUpWithSupabaseAuth(
       supabaseUrl,
       supabasePublicKey,
       email,
-      password,
       name,
       emailRedirectTo,
     });
@@ -247,7 +225,6 @@ async function signUpWithSupabaseAuth(
       supabaseUrl,
       supabasePublicKey,
       email,
-      password,
       name,
       emailRedirectTo,
     });
@@ -271,7 +248,6 @@ async function signUpWithSupabaseAuth(
       supabaseUrl,
       supabasePublicKey,
       email,
-      password,
       name,
       emailRedirectTo,
     });
@@ -438,7 +414,9 @@ export async function POST(req: NextRequest) {
   if (!email.includes("@")) {
     return NextResponse.json({ error: "올바른 이메일을 입력해 주세요." }, { status: 400 });
   }
-  if (password.length < 8) {
+  /* [965] 재발송(resendOnly)은 비밀번호가 필요 없다 — 로그인 화면의
+     "인증 메일 다시 보내기" 는 이메일만 보낸다. */
+  if (!resendOnly && password.length < 8) {
     return NextResponse.json(
       { error: "비밀번호는 8자 이상이어야 합니다." },
       { status: 400 },

@@ -27,23 +27,39 @@ export const SUBSCRIPTION_SERVICE_PERIOD_TEXT =
 /** 자동결제(빌링) 표면 전용 — 단건 문구(위)와 섞으면 화면 고지가 모순된다.
  *  빌링 화면은 전자계약 승인 + NEXT_PUBLIC_TOSS_BILLING_ENABLED=1 에서만
  *  열리므로 이 문구도 그때만 노출된다. */
+/** [965] 빌링 개방 뒤 결제·구독 표면(/subscription)에 쓰는 문구 — 주간권은 단건,
+ *  월간·연간은 자동결제라는 사실을 한 문단에서 갈라 말한다. 개방 전에는 위
+ *  SUBSCRIPTION_SERVICE_PERIOD_TEXT(심사 회신과 동일, freeze 게이트 LOCKED)가 나간다.
+ *  개방 판정은 서버(page.tsx → recurringOpen)가 하고 prop 으로 내려준다. */
+export const MIXED_SERVICE_PERIOD_TEXT =
+  "서비스 제공기간: 결제(이용권 등록) 즉시 적용되며, 선택한 기간(주간권 7일 · 월간 1개월 ~ 최대 12개월) 동안 제공됩니다. 주간권은 1회성 단건 결제로 자동 반복청구가 없습니다. 월간·연간은 카드 등록 시 첫 결제가 진행되는 자동결제(정기결제)로, 선택한 주기마다 같은 금액이 자동 청구되며 다음 결제일 전까지 구독 관리에서 언제든 해지할 수 있습니다 — 해지 시 다음 결제일에 청구되지 않습니다. 결제 후 7일 이내 청약철회(전액 환불) 가능, 이후 중도 해지 시 잔여기간 일할 환불(고객센터 접수) — 상세 규정은 이용약관 제8조.";
+
 export const BILLING_SERVICE_PERIOD_TEXT =
   "서비스 제공기간(자동결제): 카드 등록 시 첫 결제가 진행되어 즉시 적용되며, 이후 선택한 주기(월간/연간)마다 같은 금액이 자동 결제됩니다. 결제 예정 금액과 다음 결제일은 등록 화면·구독 관리에 표시되며, 다음 결제일 전까지 구독 관리에서 언제든 해지할 수 있습니다 — 해지 시 다음 결제일에 청구되지 않으며 이미 결제한 기간은 만료일까지 이용할 수 있습니다. 결제 후 7일 이내 청약철회(전액 환불) 가능 — 상세 규정은 이용약관 제8조.";
 
 export function ComplianceNotice({
   variant = "default",
   className = "",
+  recurringOpen = false,
 }: {
   /** payment = 결제·구독 표면(제공기간·환불 요약 동반), market = 매물·개발물건·공매 표면 */
   variant?: "default" | "payment" | "market" | "billing";
   className?: string;
+  /** [965] payment 표면에서 월간·연간 자동결제가 실제로 열려 있는가(서버 판정).
+      true 면 "전부 단건" 문구 대신 주간권 단건 + 월간·연간 자동결제 문구를 낸다 —
+      화면 고지가 실제 청구 방식과 어긋나는 일이 없게. */
+  recurringOpen?: boolean;
 }) {
   return (
     <div
       className={`rounded-xl bg-[rgba(0,0,0,.03)] px-4 py-3 text-[12px] leading-[1.7] text-text-3 ${className}`}
     >
       <p>{NO_PROFIT_GUARANTEE_TEXT}</p>
-      {variant === "payment" && <p className="mt-1.5">{SUBSCRIPTION_SERVICE_PERIOD_TEXT}</p>}
+      {variant === "payment" && (
+        <p className="mt-1.5">
+          {recurringOpen ? MIXED_SERVICE_PERIOD_TEXT : SUBSCRIPTION_SERVICE_PERIOD_TEXT}
+        </p>
+      )}
       {variant === "billing" && <p className="mt-1.5">{BILLING_SERVICE_PERIOD_TEXT}</p>}
       {variant === "market" && (
         <p className="mt-1.5">

@@ -89,6 +89,17 @@ export default function ResetPasswordPage() {
       /* 로드가 끝나기 전에 화면을 떠났을 수 있다 — 그때는 바로 해지한다 */
       if (cancelled) sub.subscription.unsubscribe();
       else unsubscribe = () => sub.subscription.unsubscribe();
+      /* [965] token_hash(verifyOtp)·PKCE(/auth/callback) 경로는 세션이 **이미**
+         쿠키에 있고 이 화면에서는 PASSWORD_RECOVERY 가 다시 나지 않는다.
+         세션이 있으면 그 사용자가 비밀번호를 바꿀 수 있는 상태다 — 폼을 연다. */
+      try {
+        const { data: sess } = await sb.auth.getSession();
+        if (!cancelled && sess.session) {
+          setMode((m) => (m === "checking" ? "supabase" : m));
+        }
+      } catch {
+        /* 세션 조회 실패는 타이머가 invalid 로 정리한다 */
+      }
     })();
     return () => {
       cancelled = true;
@@ -132,6 +143,9 @@ export default function ResetPasswordPage() {
           setError(err.message ?? "비밀번호 변경에 실패했습니다.");
           return;
         }
+        /* [965] 복구 링크로 생긴 임시 세션은 여기서 끝낸다 — 이 화면의 목적은
+           비밀번호 변경이지 로그인이 아니고, 앱 세션은 Auth.js 쿠키가 따로 관리한다. */
+        await sb.auth.signOut({ scope: "local" }).catch(() => {});
       }
       setDone(true);
       setTimeout(() => router.push("/login"), 3000);
@@ -221,18 +235,26 @@ export default function ResetPasswordPage() {
             )}
             <form onSubmit={onSubmit} className="rise-in-3 flex flex-col gap-2">
               <div className="relative">
+                <label htmlFor="reset-password-new" className="sr-only">
+                  새 비밀번호
+                </label>
                 <input
+                  id="reset-password-new"
                   type={showPw ? "text" : "password"}
                   required
+                  minLength={8}
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="새 비밀번호 (8자 이상)"
+                  aria-describedby="reset-password-hint"
                   className="w-full rounded-[10px] border border-line bg-surface px-4 py-3 pr-14 text-[13px] text-ink outline-none focus:border-primary"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
+                  aria-pressed={showPw}
+                  aria-label={showPw ? "비밀번호 숨기기" : "비밀번호 표시"}
                   className="absolute inset-y-0 right-2 my-auto h-7 rounded-lg px-2 text-xs font-bold text-text-3"
                 >
                   {showPw ? "숨김" : "표시"}
@@ -241,20 +263,28 @@ export default function ResetPasswordPage() {
               {password && (
                 <div className="flex flex-col gap-1">
                   <div className="flex gap-1">{bars}</div>
-                  <p className="text-[12px] text-text-3">비밀번호 강도: {strength.hint}</p>
+                  <p id="reset-password-hint" className="text-[12px] text-text-3" aria-live="polite">
+                    비밀번호 강도: {strength.hint}
+                  </p>
                 </div>
               )}
+              <label htmlFor="reset-password-confirm" className="sr-only">
+                비밀번호 확인
+              </label>
               <input
+                id="reset-password-confirm"
                 type="password"
                 required
+                minLength={8}
                 autoComplete="new-password"
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}
                 placeholder="비밀번호 확인"
+                aria-invalid={Boolean(password2) && password !== password2}
                 className="rounded-[10px] border border-line bg-surface px-4 py-3 text-[13px] text-ink outline-none focus:border-primary"
               />
               {password2 && password !== password2 && (
-                <p className="text-[12px] font-bold text-danger">비밀번호가 일치하지 않습니다.</p>
+                <p role="alert" className="text-[12px] font-bold text-danger">비밀번호가 일치하지 않습니다.</p>
               )}
               <button
                 type="submit"

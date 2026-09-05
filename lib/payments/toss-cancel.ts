@@ -36,8 +36,13 @@ export async function cancelTossPayment(input: {
   cancelReason: string;
   /** 부분 취소 금액(원). 생략하면 전액 취소. */
   cancelAmount?: number;
+  /** [965] 자동결제(빌링) MID 의 결제는 그 MID 의 시크릿으로 취소해야 한다 */
+  rail?: "payment" | "billing";
 }): Promise<TossCancelResult> {
-  const secret = process.env.TOSS_SECRET_KEY?.trim();
+  const secret =
+    input.rail === "billing"
+      ? process.env.TOSS_BILLING_SECRET_KEY?.trim() || process.env.TOSS_SECRET_KEY?.trim()
+      : process.env.TOSS_SECRET_KEY?.trim();
   if (!secret) {
     return { ok: false, httpStatus: 0, code: "NOT_CONFIGURED", message: "TOSS_SECRET_KEY 미설정" };
   }

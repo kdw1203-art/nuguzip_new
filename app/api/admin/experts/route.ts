@@ -53,8 +53,8 @@ export async function PATCH(req: NextRequest) {
       void appendInboxNotification({
         userEmail: res.applicantEmail,
         title: "전문가 인증이 승인되었어요",
-        body: "인증이 완료되어 전문가 배지가 표시됩니다. 상담·프로필을 관리해 보세요.",
-        actionUrl: "/my/consultations",
+        body: "인증이 완료되어 전문가 배지가 표시됩니다. 프로필 화면에서 소개·상담료·연락처를 채워 주세요.",
+        actionUrl: "/my/expert-profile",
       });
     }
     void writeAuditLog({
@@ -84,8 +84,8 @@ export async function PATCH(req: NextRequest) {
     void appendInboxNotification({
       userEmail: res.applicantEmail,
       title: "전문가 인증이 반려되었어요",
-      body: `제출하신 인증 신청이 반려되었어요. 사유: ${note}`,
-      actionUrl: "/town/experts",
+      body: `제출하신 인증 신청이 반려되었어요. 사유: ${note} — 보완해서 다시 신청할 수 있어요.`,
+      actionUrl: "/my/expert-profile",
     });
   }
   void writeAuditLog({

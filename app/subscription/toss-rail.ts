@@ -127,3 +127,18 @@ export function loadTossSdk(): Promise<TossPaymentsFn> {
   });
   return sdkPromise;
 }
+
+/**
+ * [965] 자동결제(월간·연간 빌링) 창을 열어도 되는가 — 클라이언트 판정.
+ * 서버 판정(lib/payments/toss-billing.isTossBillingEnabled)은 시크릿 키 존재까지
+ * 보지만 클라이언트는 공개 값만 볼 수 있다: 개방 플래그 + 빌링 가능한(ck) 키.
+ * 이게 false 인데 월간·연간을 /subscription/billing 으로 보내면 "준비 중" 카드가
+ * 다시 /subscription 으로 돌려보내는 원(loop)이 된다 — 그래서 여기서 갈라
+ * 카카오페이·카드(Stripe) 단건 레일로 내려보낸다.
+ */
+export function isTossBillingOpenClient(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_TOSS_BILLING_ENABLED?.trim() === "1" &&
+    tossBillingClientKey() !== null
+  );
+}

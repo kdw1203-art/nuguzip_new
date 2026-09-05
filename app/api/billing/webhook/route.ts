@@ -94,13 +94,15 @@ export async function POST(req: Request) {
   if (sb) {
     const { error: claimErr } = await sb
       .from("stripe_webhook_events")
-      .insert({ event_id: event.id });
+      .insert({ event_id: event.id, event_type: event.type });
     if (claimErr) {
       if (claimErr.code === "23505") {
         return NextResponse.json({ received: true, duplicate: true });
       }
-      // 선점 기록 자체가 실패하면 처리를 막지 않는다(fail-soft). 핸들러가 멱등하다.
-      logger.warn("[billing:webhook] dedup claim failed", claimErr.message);
+      /* [965] 표가 없어서(42P01) 이 경고만 찍히던 상태가 오래 이어졌다 — 이제 표는
+         20260905094000 마이그레이션에 있다. 선점 실패는 error 로 올려 보이게 한다.
+         처리는 막지 않는다(fail-soft) — 핸들러가 멱등하다. */
+      logger.error("[billing:webhook] dedup claim failed — 재전송 중복 처리 위험", claimErr.message);
     }
   }
 

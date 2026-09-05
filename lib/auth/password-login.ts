@@ -1,6 +1,25 @@
 import bcrypt from "bcryptjs";
 import { createClient } from "@supabase/supabase-js";
+import { CredentialsSignin } from "next-auth";
 import type { UserRole } from "@/lib/auth/types";
+
+/**
+ * [965] 이메일 미인증을 Auth.js 가 **코드로** 전달하게 한다.
+ *
+ * 예전에는 `new Error("EMAIL_NOT_CONFIRMED")` 를 던졌다. Auth.js v5 는 authorize()
+ * 안에서 던진 일반 Error 를 `CallbackRouteError` 로 감싸고, 클라이언트 `signIn()`
+ * 결과에는 `error: "CallbackRouteError"` 만 남는다 — 메시지는 서버 로그에만 있다.
+ * 그래서 /login 은 "email_not_confirmed" 를 찾지 못하고 "비밀번호가 올바르지
+ * 않습니다" 를 보여줬다. 인증 메일만 누르면 되는 사람에게 비밀번호를 의심하게
+ * 만든 셈이다.
+ *
+ * `CredentialsSignin` 의 하위 클래스는 `code` 가 그대로 `signIn()` 결과의
+ * `res.code` 로 내려온다(리다이렉트 모드에서는 `?code=` 쿼리). 화면은 이 코드로
+ * "인증 메일 다시 보내기" 를 안내한다.
+ */
+export class EmailNotConfirmedError extends CredentialsSignin {
+  code = "email_not_confirmed";
+}
 import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { rateLimit } from "@/lib/rate-limit";
@@ -71,7 +90,7 @@ async function trySupabaseAuthPassword(
       msg.includes("email not confirmed") ||
       msg.includes("email_not_confirmed")
     ) {
-      throw new Error("EMAIL_NOT_CONFIRMED");
+      throw new EmailNotConfirmedError();
     }
     return null;
   }
@@ -165,7 +184,7 @@ export async function authorizeWithPassword(
     });
     return null;
   } catch (e) {
-    if (e instanceof Error && e.message === "EMAIL_NOT_CONFIRMED") {
+    if (e instanceof EmailNotConfirmedError) {
       void recordAuthLoginOutcome({
         ok: false,
         provider: "password",

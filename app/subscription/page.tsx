@@ -14,12 +14,14 @@ import {
 import { getStripe } from "@/lib/billing/stripe";
 import { isKakaoPayConfigured } from "@/lib/payments/kakaopay";
 import { isTossPaymentsConfigured } from "@/lib/payments/toss-config";
+import { isTossBillingEnabled } from "@/lib/payments/toss-billing";
 import { BillingPanel } from "./BillingPanel";
 import { SETTLEMENT } from "@/lib/creator/sales";
 import { PLAN_FEATURE_MATRIX } from "@/lib/subscriptions/plans";
 import { buildPageMetadata } from "@/lib/seo/page-metadata";
 import { faqJsonLd, jsonLdScript, type FaqItem } from "@/lib/seo/jsonld";
 import { ComplianceNotice } from "@/app/components/ComplianceNotice";
+import { DEFAULT_DESKTOP_ORIGIN } from "@/lib/platform-shell";
 
 /* 고도화 32 — 구독 FAQ. 사실만 적는다: 결제 개통 여부와 무관하게 참인 문장으로
    쓰고(조건부 서술), 수치·규정은 약관·구현과 대조했다. 화면과 JSON-LD 가 같은
@@ -136,6 +138,15 @@ export default async function SubscriptionPage({
     (isBusinessDisclosureComplete(getBusinessInfo()) &&
       (getStripe() !== null || isKakaoPayConfigured() || isTossPaymentsConfigured())) ||
     tossTestMode;
+  /* [965] 월간·연간을 실제로 팔 수 있는가. 토스 키만 있고 빌링(전자계약)이 개방되지
+     않은 상태에서는 월간·연간이 어느 창으로도 못 가는데, 예전 판정(paymentsReady)은
+     토스 키 하나로 true 가 되어 카드의 월간·연간 버튼이 눌러 보기 전엔 안 되는
+     버튼이었다. 빌링 개방 또는 단건 레일(카카오페이·카드) 중 하나는 있어야 한다. */
+  const recurringOpen = isTossBillingEnabled();
+  const recurringReady =
+    recurringOpen ||
+    (isBusinessDisclosureComplete(getBusinessInfo()) &&
+      (getStripe() !== null || isKakaoPayConfigured()));
   const initialBilling = sp.billing === "annual" ? ("annual" as const) : ("monthly" as const);
   const session = await safeAuth();
   const email = session?.user?.email ?? null;
@@ -185,7 +196,7 @@ export default async function SubscriptionPage({
               price: p.monthly,
               priceCurrency: "KRW",
               availability,
-              url: "https://naezipnow.com/subscription",
+              url: `${DEFAULT_DESKTOP_ORIGIN}/subscription`,
             },
             /* 주간권(단건) — 플러스 전용. 가격은 billing-periods 단일 출처. */
             ...(tier === WEEKLY_PASS.tier
@@ -195,7 +206,7 @@ export default async function SubscriptionPage({
                     price: WEEKLY_PASS.totalKrw,
                     priceCurrency: "KRW",
                     availability,
-                    url: "https://naezipnow.com/subscription?billing=weekly",
+                    url: `${DEFAULT_DESKTOP_ORIGIN}/subscription?billing=weekly`,
                   },
                 ]
               : []),
@@ -206,7 +217,7 @@ export default async function SubscriptionPage({
                     price: p.annualTotal,
                     priceCurrency: "KRW",
                     availability,
-                    url: "https://naezipnow.com/subscription?billing=annual",
+                    url: `${DEFAULT_DESKTOP_ORIGIN}/subscription?billing=annual`,
                   },
                 ]
               : []),
@@ -291,6 +302,7 @@ export default async function SubscriptionPage({
           expert={tierPricing("expert")}
           initialBilling={initialBilling}
           paymentsReady={paymentsReady}
+          recurringReady={recurringReady}
         />
       </section>
 
@@ -600,7 +612,7 @@ export default async function SubscriptionPage({
             셀프서비스 해지는 아직 없으므로 실제 접수 경로를 함께 적는다(E1). */}
       <div className="mx-auto mt-4 w-full max-w-[1080px]">
         {/* 수익 문구 미기재 방침 + 서비스 제공기간(무형재화 판매정책 필수 표기) */}
-        <ComplianceNotice variant="payment" />
+        <ComplianceNotice variant="payment" recurringOpen={recurringOpen} />
       </div>
 
         해지·환불은 고객센터 1:1 문의로 접수 · 결제 7일 이내 전액 환불 · 부가세 포함 · 커뮤니티

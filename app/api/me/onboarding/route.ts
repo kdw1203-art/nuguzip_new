@@ -17,7 +17,15 @@ export const dynamic = "force-dynamic";
  *   `onboarding_progress.wizardSteps` 에 기록한다. 퍼널 관측용일 뿐 스텝 완료·보너스와 무관하다.
  */
 
-const WIZARD_STEPS = new Set(["profile_region", "profile_budget", "profile_purpose"]);
+/* [965] /welcome 의 STEP_IDS 와 같은 다섯 개 — persona·demo 두 화면은 여기 없어서
+   퍼널 기록에서 조용히 빠졌다(화면 5단계 중 3단계만 셈). */
+const WIZARD_STEPS = new Set([
+  "profile_region",
+  "profile_budget",
+  "profile_purpose",
+  "profile_persona",
+  "profile_demo",
+]);
 
 function readWizardSteps(value: unknown): string[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];

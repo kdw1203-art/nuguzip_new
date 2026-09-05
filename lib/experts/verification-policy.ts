@@ -21,47 +21,41 @@ export type ExpertVerificationStage = {
   slaHours?: number;
 };
 
-/** 권장 워크플로 — 접수 → 자동 → 문서 → 출처 → 인터뷰 → 승인 */
+/**
+ * 실제 워크플로 — 접수 → 자동 검증 → 운영자 검토(서류·출처) → 승인.
+ *
+ * [965] 예전 목록은 문서 검증(48h)·출처 검증(72h)·인터뷰(120h) 를 따로 적고
+ * 각 단계에 "목표 N시간" 을 붙였다. 코드에는 그런 단계가 없다 — 자동 검증
+ * 다음은 /admin/quality 의 운영자 승인·반려 하나뿐이고, 인터뷰는 한 번도
+ * 구현된 적이 없다. 없는 절차와 지키지 않는 SLA 는 약속이 아니라 잘못된 정보라서,
+ * 실제로 일어나는 단계만 적는다. (workflow_stage 컬럼의 과거 값 호환을 위해
+ * 타입의 doc_review·source_check·interview 는 남긴다.)
+ */
 export const EXPERT_VERIFICATION_PIPELINE: ExpertVerificationStage[] = [
   {
     id: "intake",
     step: 1,
     label: "접수",
-    description: "실명, 연락처, 소속, 전문분야, 지역, 자격정보 제출",
+    description: "실명, 소속, 전문분야, 지역, 자격·등록번호, 증빙 링크 제출",
   },
   {
     id: "auto_check",
     step: 2,
-    label: "1차 자동 검증",
-    description: "형식 검증, 휴대폰·본인인증, 중복 계정·자격번호 탐지",
-    slaHours: 24,
+    label: "자동 검증",
+    description: "형식 검증, 중복 자격번호·중복 접수 탐지 — 접수 즉시",
   },
   {
     id: "doc_review",
     step: 3,
-    label: "2차 문서 검증",
-    description: "자격증·사업자·소속 서류 대조",
-    slaHours: 48,
-  },
-  {
-    id: "source_check",
-    step: 4,
-    label: "3차 출처 검증",
-    description: "협회·공식 디렉터리에서 등록 상태 확인",
+    label: "운영자 검토",
+    description: "증빙 서류와 협회·공식 디렉터리의 등록 상태를 함께 대조",
     slaHours: 72,
   },
   {
-    id: "interview",
-    step: 5,
-    label: "인터뷰",
-    description: "응대 정책, 상담 범위, 환불 규칙 교육",
-    slaHours: 120,
-  },
-  {
     id: "approved",
-    step: 6,
+    step: 4,
     label: "승인",
-    description: "인증 배지 부여, 약관·수수료 정책 적용",
+    description: "인증 배지 부여, 상담 수신·견적 제안 개방, 약관·수수료 정책 적용",
   },
 ];
 

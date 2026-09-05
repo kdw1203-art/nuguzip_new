@@ -120,3 +120,38 @@
 심사 제출 상태와 동일하게 유지된다. ComplianceNotice 의 "주간권은 1회성 단건 결제로
 자동 반복청구가 없습니다" 문구는 자동결제가 열려도 참이다(주간권은 빌링 대상이 아니다 —
 start API 가 weekly 를 400 으로 거절한다).
+
+---
+
+## D. 965 재점검 (2026-09-05) — 결제 연동 결함 25건 감사와 반영
+
+전 레일(토스 단건·빌링·웹훅·카카오페이·토스페이·Stripe·IAP)을 코드 기준으로 다시 훑었다.
+아래는 **실제로 고친 것**만이다. 포인트 충전형 부존재는 그대로(재도입 없음).
+
+| # | 증상(예전) | 반영 |
+|---|---|---|
+| P1 | `/payment/fail?orderId=…` 를 **누구나** 열면 그 주문이 failed 가 되고, 이후 승인이 성공해도 markPaid(requested 전용)가 막혀 돈만 나가고 이용권은 안 켜졌다 | 주문 소유자 세션에서만 상태를 적는다. 사용자가 창을 닫은 건(user_cancel)은 failed 가 아니라 cancelled 로 |
+| P2 | confirm 예외(응답 유실) 때 곧장 failed → 재시도가 성공해도 `ok:true, payment:null` 로 플랜 없이 "완료" | 예외·실패 뒤 **주문 조회(DONE)** 를 먼저 보고, DONE 이면 어떤 상태(failed/cancelled)에서든 paid 로 조정(`promotePaidAfterProviderConfirmation`) — 못 하면 실패로 답한다(`LEDGER_UNSETTLED`) |
+| P3 | 토스 키만 있고 빌링(전자계약) 미개방이면 월간·연간 버튼 → 빌링창 "준비 중" → /subscription 으로 되돌아오는 원 | 클라이언트가 개방 여부(`isTossBillingOpenClient`)를 보고 단건 레일(카카오페이·카드)로 내려가며, 서버는 `recurringReady` 로 월간·연간 CTA 를 "오픈 알림" 으로 그린다 |
+| P4 | 빌링을 열어도 `/subscription` 고지는 "모든 이용권 자동 반복청구 없음" 그대로 | `ComplianceNotice variant="payment"` 가 서버 판정(`recurringOpen`)에 따라 주간권 단건 + 월간·연간 자동결제 문구(`MIXED_SERVICE_PERIOD_TEXT`)로 바뀐다. 심사 회신 문구(LOCKED)는 파일에 그대로 |
+| P5 | IAP: `{"sandbox":true}` 로 샌드박스 검증기를 고를 수 있었고, 운영 분기도 status≠0 이면 전부 샌드박스로 넘어가 0원 테스트 영수증이 연간 프로가 됐다 | 샌드박스는 요청이 아니라 Apple 응답(21007)과 환경(비운영 또는 `IAP_ALLOW_SANDBOX=1`)으로만. 속도 제한 추가 |
+| P6·P7 | 결제 완료 화면이 Host 헤더로 만든 주소에 자기 API 를 HTTP 로 다시 불렀다 — Host 조작 시 paymentKey 유출, 서버 IP 하나로 모든 구매자가 5분 10회 fail-closed 한 버킷을 공유(11번째 결제부터 429) | 승인 로직을 `lib/payments/confirm-toss-order.ts` 로 빼서 화면과 라우트가 같은 함수를 부른다(HTTP 왕복·Host 의존·공유 버킷 제거) |
+| P8 | 빌링 첫 결제 금액 불일치 → 승인은 났는데 실패 화면, 환불 없음 | 즉시 전액 취소(빌링 MID 시크릿) → 실패 기록. 취소가 안 되면 paid 로 남겨 수동 환불 대상으로 |
+| P9 | 갱신 크론: 앞 회차 실패 행이 있으면 markPaid 가 null 인데 반환값을 버리고 플랜만 켜서 결제 내역엔 "실패" | failed 행도 paid 로 승격 + 갱신 금액 불일치는 자동 취소 |
+| P10 | 45분 방치 스윕이 cancelled 로 적은 뒤 지연 승인 웹훅이 오면 무시 | 웹훅 DONE(금액 대조 후)이면 cancelled/failed 에서도 paid 로 |
+| P11 | `plan_expires_at` 은 하루 1회 스윕에서만 적용 — 주간권이 최대 23시간 더 열려 있었다 | 세션·권한 조회(`fetchAppUserByEmail`)가 읽는 시점에 만료를 적용 |
+| P12 | 카카오페이 approve 가 partner_user_id 를 다시 계산 — 인앱 브라우저처럼 세션이 비면 ready 와 달라져 승인 거절 | ready 가 metadata 에 남긴 값을 그대로 사용 |
+| P13 | `stripe_webhook_events` 표가 없어 Stripe 재전송 선점이 한 번도 동작한 적 없음(warn 로 삼킴) | 표 생성 마이그레이션 + 실패는 error 로 |
+| P14 | 전자상거래 고지 게이트가 Stripe·부스트·카카오페이에만 있고 토스 두 레일에는 없음 | `assertCheckoutAllowed()` 를 토스 단건·빌링 시작 라우트에도 |
+| P16 | `create-pass`(Group Pass 1,900원) 주문을 만들 수 있는데 아무것도 부여하지 않음 | 라우트 삭제 |
+| P17 | pg_cron 의 `ops.run_billing_renewals()` 가 nuguzip.com 을 하드코딩 — 도메인 전환 뒤 308 만 받음 | naezipnow.com 으로 교체. (참고: vault `cron_secret` 미등록이라 이 경로는 아직 예외로 끝나고, 실제 갱신은 vercel.json 크론이 돌린다) |
+| P18 | 비로그인이면 소유자 대조가 통째로 건너뛰어짐(토스페이 status/execute) | fail-closed |
+| P19 | 토스페이 create 가 클라이언트 userKey 를 그대로 믿고 월간·연간을 단건으로 팔았다(부르는 화면 없음) | 레일 닫음(503 `RAIL_CLOSED`); refund 는 payToken 으로 찾은 주문만 갱신 |
+| P20 | 결제 키 중복 조회가 행이 둘이면 오류→"중복 없음" | `order/limit(1)` |
+| P21 | 관리자 플랜 부여가 만료를 남겨 다음 스윕이 되돌림 | `applyPlanToUserByEmail` 경유(기간 없는 부여는 만료 null) |
+| P22 | 환불 회수 로그에 이메일 | 주문번호만 |
+| P23 | 라이브 키 가드가 NODE_ENV 기준이라 Vercel 프리뷰(NODE_ENV=production)에서 실카드 청구 가능 | `VERCEL_ENV` 우선 판정 |
+| P24 | Offer.url 이 도메인 상수를 하드코딩 | `DEFAULT_DESKTOP_ORIGIN` |
+
+남긴 것(의도): P15 유료 리포트 결제(`reportId`)는 진입 화면이 없어 그대로 둔다 —
+상품을 열 때 `toss/create` 에 `kind:"report"` 분기와 화면을 함께 만든다.

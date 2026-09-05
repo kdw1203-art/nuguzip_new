@@ -14,7 +14,14 @@ import {
   getByCustomerKey,
   replaceSubscriptionCard,
 } from "@/lib/payments/billing-store";
-import { createPayment, markFailed, markPaid } from "@/lib/payments/store";
+import {
+  createPayment,
+  markFailed,
+  markPaid,
+  promotePaidAfterProviderConfirmation,
+} from "@/lib/payments/store";
+import { cancelTossPayment } from "@/lib/payments/toss-cancel";
+import { BILLING_DURATION_DAYS } from "@/lib/subscriptions/billing-periods";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
@@ -174,15 +181,42 @@ export async function GET(req: NextRequest) {
       expected: sub.amount,
       got: charged.data.totalAmount,
     });
+    /* [965] 승인은 이미 났다 — 돈이 나간 상태다. 예전엔 여기서 그냥 실패 화면으로
+       보내 원장은 requested(45분 뒤 cancelled)·플랜 없음·환불 없음이 됐다.
+       즉시 전액 취소하고, 취소가 안 되면 원장에 paid 로 남겨 운영자가 환불하게 한다. */
+    const cancelled = await cancelTossPayment({
+      paymentKey: charged.data.paymentKey ?? "",
+      orderId,
+      cancelReason: "결제 금액 불일치 자동 취소",
+      rail: "billing",
+    });
+    if (cancelled.ok) {
+      await markFailed(orderId);
+    } else {
+      logger.error("[toss-billing] 금액 불일치 자동 취소 실패 — 수동 환불 필요", {
+        orderId,
+        code: cancelled.code,
+      });
+      await markPaid({ orderId, providerPaymentKey: charged.data.paymentKey, method: "카드(자동결제)" });
+    }
     return fail(origin, "AMOUNT_MISMATCH");
   }
 
-  await markPaid({
+  const paidRow = await markPaid({
     orderId,
     providerPaymentKey: charged.data.paymentKey,
     method: "카드(자동결제)",
   });
-  const periodDays = sub.billing === "annual" ? 365 : 30;
+  if (!paidRow) {
+    /* requested 가 아니었다(동시 요청 등) — 결제사 승인이 사실이므로 어떤 상태에서든 paid 로 */
+    await promotePaidAfterProviderConfirmation({
+      orderId,
+      providerPaymentKey: charged.data.paymentKey ?? "",
+      method: "카드(자동결제)",
+      reason: "빌링 첫 결제 승인 — requested 가 아니던 주문",
+    });
+  }
+  const periodDays = BILLING_DURATION_DAYS[sub.billing === "annual" ? "annual" : "monthly"];
   await applyPlanToUserByEmail(userEmail, sub.plan as AppPlan, { durationDays: periodDays });
 
   /* 다음 청구는 만료 이틀 전 — applyPlan 은 같은 플랜의 미래 만료 시각에 이어

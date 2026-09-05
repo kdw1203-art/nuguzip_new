@@ -76,6 +76,15 @@ export function AuthConfirmClient() {
 
       /* 해시 토큰 (implicit) — 브릿지에서 넘어온 경우 */
       if (url.hash && url.hash.includes("access_token")) {
+        /* [965] 비밀번호 재설정 링크(type=recovery)는 해시를 **그대로 들고**
+           /reset-password 로 넘긴다. 예전엔 여기서 세션만 만들고 해시 없이
+           이동해서, 재설정 화면은 PASSWORD_RECOVERY 신호를 받지 못해 4초 뒤
+           "링크가 유효하지 않습니다" 를 그렸다 — 메일을 눌러도 비밀번호를 바꿀 수
+           없는 상태였다. 재설정 화면은 해시 토큰을 스스로 처리한다. */
+        if (next.startsWith("/reset-password")) {
+          window.location.replace(`${next}${url.hash}`);
+          return;
+        }
         try {
           const supabase = (await loadCreateClient())();
           const { error } = await supabase.auth.getSession();

@@ -4,6 +4,7 @@ import {
   markCancelled,
   markPaid,
   markRefunded,
+  promotePaidAfterProviderConfirmation,
 } from "@/lib/payments/store";
 import { applyPlanToUserByEmail } from "@/lib/billing/apply-plan-from-stripe";
 import type { AppPlan } from "@/lib/billing/plan";
@@ -172,14 +173,31 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json({ ok: true, ignored: "amount-mismatch" });
       }
-      if (order.status !== "paid") {
-        const paid = await markPaid({
-          orderId: payloadOrderId,
-          providerPaymentKey: payloadPaymentKey,
-          method: remote.method ?? undefined,
-          receiptUrl: remote.receipt?.url ?? undefined,
-        });
+      if (order.status !== "paid" && order.status !== "refunded") {
+        /* [965] failed/cancelled 에서도 paid 로 올린다. 45분 방치 스윕이 cancelled 로
+           적은 뒤 지연 승인·재전송 웹훅이 오면 markPaid(requested 전용)는 null 이라
+           돈은 정산됐는데 원장은 cancelled·플랜 없음이 됐다. 금액은 바로 위에서
+           결제사 조회값과 대조했으므로 안전하다. */
+        const paid =
+          (await markPaid({
+            orderId: payloadOrderId,
+            providerPaymentKey: payloadPaymentKey,
+            method: remote.method ?? undefined,
+            receiptUrl: remote.receipt?.url ?? undefined,
+          })) ??
+          (await promotePaidAfterProviderConfirmation({
+            orderId: payloadOrderId,
+            providerPaymentKey: payloadPaymentKey,
+            method: remote.method ?? undefined,
+            receiptUrl: remote.receipt?.url ?? undefined,
+            reason: `웹훅 DONE — 원장 상태 ${order.status}`,
+          }));
         if (paid) await applyPlanIfNeeded(paid.userEmail, paid.plan, paid.billing);
+        else {
+          logger.error("[toss-webhook] DONE 인데 원장을 paid 로 만들지 못함 — 사람 확인", {
+            orderId: payloadOrderId,
+          });
+        }
       }
     } else if (status === "CANCELED" || status === "PARTIAL_CANCELED") {
       if (order.status !== "refunded") {

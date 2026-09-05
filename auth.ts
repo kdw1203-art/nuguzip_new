@@ -162,6 +162,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   /** AUTH_URL에 잘못된 pathname이 있어도 라우트가 /api/auth 로 고정되도록 (OAuth 콜백 404 방지) */
   basePath: "/api/auth",
   trustHost: true,
+  /* [965] Auth.js 기본 화면을 쓰지 않는다. `pages` 가 비어 있으면 OAuth 실패는
+     /api/auth/error 의 영문 기본 페이지("Configuration" 한 단어)로, 로그인 유도는
+     /api/auth/signin 의 provider 나열 화면으로 떨어졌다 — 브랜드도 한국어도 없는
+     화면이다. 실패는 /login?error=… 로 돌아와 화면이 한국어로 설명한다. */
+  pages: {
+    signIn: "/login",
+    error: "/login",
+    signOut: "/logout",
+  },
   providers: [
     ...(googleConfigured
       ? [
@@ -216,21 +225,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               const { authorizeWithPassword } = await import(
                 "@/lib/auth/password-login"
               );
-              try {
-                return await authorizeWithPassword(
-                  credentials as
-                    | Record<"email" | "password", string>
-                    | undefined,
-                );
-              } catch (e) {
-                if (
-                  e instanceof Error &&
-                  e.message === "EMAIL_NOT_CONFIRMED"
-                ) {
-                  throw new Error("EMAIL_NOT_CONFIRMED");
-                }
-                throw e;
-              }
+              /* [965] EmailNotConfirmedError(CredentialsSignin 하위) 는 그대로
+                 던진다 — Auth.js 가 `code: "email_not_confirmed"` 로 화면에
+                 전달한다. 다른 예외는 CallbackRouteError 로 감싸이므로 여기서
+                 굳이 다시 포장하지 않는다. */
+              return authorizeWithPassword(
+                credentials as
+                  | Record<"email" | "password", string>
+                  | undefined,
+              );
             },
           }),
         ]
@@ -359,7 +362,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       : []),
   ],
   callbacks: {
-    async jwt({ token, user }): Promise<JWT> {
+    /* [965] 제재 계정은 어떤 provider 로도 로그인되지 않는다. `app_users.is_banned`
+       는 관리자 화면이 세우기만 하고 로그인 경로 어디에서도 읽지 않았다 — 제재가
+       화면의 표시일 뿐이었다. false 를 돌려주면 Auth.js 가 AccessDenied 로 /login
+       에 돌려보낸다(문구는 LoginClient 의 AUTH_ERROR_COPY). 관리자 허용 목록은
+       예외 — 잠금 실수로 운영자가 갇히지 않게. */
+    async signIn({ user }) {
+      const email = typeof user?.email === "string" ? user.email : "";
+      if (!email || !isSupabaseConfigured() || isAllowlistedAdmin(email)) return true;
+      try {
+        const profile = await fetchAppUserByEmail(email);
+        if (profile.banned) {
+          logger.warn("[auth] 제재 계정 로그인 거부");
+          return false;
+        }
+      } catch {
+        /* 판정을 못 하면 막지 않는다 — DB 장애가 전체 로그인 장애가 되지 않게 */
+      }
+      return true;
+    },
+    async jwt({ token, user }): Promise<JWT | null> {
       if (user?.email) {
         token.email = user.email;
         const u = user as { id?: string; role?: UserRole };
@@ -394,6 +416,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       ) {
         try {
           const profile = await fetchAppUserByEmail(token.email);
+          /* [965] 로그인 뒤에 제재된 계정 — 세션을 여기서 끝낸다(null = 로그아웃).
+             탈퇴 요청도 같은 플래그를 세우므로 요청 즉시 로그인이 풀린다. */
+          if (profile.banned && !isAllowlistedAdmin(token.email)) return null;
           token.role = profile.role;
           token.plan = profile.plan;
         } catch {

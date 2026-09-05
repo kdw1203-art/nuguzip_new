@@ -23,6 +23,10 @@ import { rateLimit, getClientIp, tooManyRequests } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function isOwner(ownerEmail: string | null | undefined, sessionEmail: string): boolean {
+  return Boolean(ownerEmail) && ownerEmail!.trim().toLowerCase() === sessionEmail.trim().toLowerCase();
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -39,7 +43,9 @@ export async function GET(
   if (mode === "expert") {
     // 전문가 본인만 조회 가능
     const expert = await getExpert(expertId);
-    if (!expert || expert.ownerEmail !== session.user.email) {
+    /* [965] 소유자 비교는 소문자 정규화 — 세션 이메일은 provider 가 준 대소문자
+       그대로 올 수 있고 owner_email 은 소문자로 저장된다. */
+    if (!expert || !isOwner(expert.ownerEmail, session.user.email)) {
       if (session.user.role !== "admin") {
         return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
       }
@@ -71,6 +77,17 @@ export async function POST(
   const expert = await getExpert(expertId);
   if (!expert) {
     return NextResponse.json({ error: "전문가를 찾을 수 없습니다." }, { status: 404 });
+  }
+  /* [965] 인증 전 프로필에는 상담을 받지 않는다 — 상세 화면은 "인증 심사 중" 을
+     그리는데 API 는 신청을 받아 사용량(한도)까지 소모했다. 인증이 나야 상담이 열린다. */
+  if (!expert.isVerified) {
+    return NextResponse.json(
+      {
+        error: "이 전문가는 아직 인증 심사 중이라 상담 신청을 받을 수 없어요. 인증이 끝나면 열립니다.",
+        code: "expert_unverified",
+      },
+      { status: 409 },
+    );
   }
 
   const body = (await req.json().catch(() => ({}))) as {
@@ -188,7 +205,7 @@ export async function PATCH(
 
   // 전문가 본인 확인
   const expert = await getExpert(expertId);
-  if (!expert || (expert.ownerEmail !== session.user.email && session.user.role !== "admin")) {
+  if (!expert || (!isOwner(expert.ownerEmail, session.user.email) && session.user.role !== "admin")) {
     return NextResponse.json({ error: "답변 권한이 없습니다." }, { status: 403 });
   }
 

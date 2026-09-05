@@ -14,10 +14,28 @@ export async function GET() {
   return NextResponse.json({ items });
 }
 
+/**
+ * POST /api/experts — 프로필 직접 생성.
+ *
+ * [965] 관리자 전용으로 잠근다. 예전엔 로그인만 하면 누구나 인증 절차 없이
+ * 공개 프로필을 만들 수 있었다("인증 심사 중" 표시로 목록에 노출) — 인증 신청
+ * (/api/experts/register → 운영자 승인)을 우회하는 길이었고, 부르는 화면도 없었다.
+ * 일반 사용자는 인증 신청으로 안내한다.
+ */
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  }
+  if (session.user.role !== "admin") {
+    return NextResponse.json(
+      {
+        error: "전문가 프로필은 인증 신청 → 승인으로만 만들어져요. /town/experts 에서 인증을 신청해 주세요.",
+        code: "use_verification",
+        applyUrl: "/town/experts#apply",
+      },
+      { status: 403 },
+    );
   }
   const body = await req.json().catch(() => ({}));
   if (!body.name || !body.title || !body.category) {

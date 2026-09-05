@@ -326,9 +326,8 @@ export function MobileMenu() {
                   마이페이지
                 </Link>
                 {loggedIn === true && (
-                  /* 라우트 핸들러 — 프리페치되면 안 되므로 <a> (HeaderAuth 와 동일 사유) */
-                  /* eslint-disable-next-line @next/next/no-html-link-for-pages */
-                  <a href="/api/auth/signout" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-2">
+                  /* [965] /logout 화면 — 프리페치되면 안 되므로 <a> (HeaderAuth 와 동일 사유) */
+                  <a href="/logout" className="glass flex-1 rounded-xl py-2.5 text-center text-[13px] font-bold text-text-2">
                     로그아웃
                   </a>
                 )}

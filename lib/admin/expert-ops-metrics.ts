@@ -124,8 +124,13 @@ export type PendingVerificationItem = {
 
 /**
  * 실데이터 인증 심사 대기열 — 전문가 인증 신청(expert_verification_requests)과
- * 소유주/중개 매물 소유확인(owner_verifications)의 pending 건을 최신순으로.
+ * 소유주/중개 매물 소유확인(owner_verifications)의 pending 건.
  * 사실 우선: 목업 신청자 없이 실제 신청만. env·권한 없으면 빈 배열.
+ *
+ * [965] **먼저 온 순(FIFO)** 으로, 두 종류를 각각 limit 건까지 합쳐 돌려준다.
+ * 예전엔 최신순 limit 건씩 읽어 합친 뒤 다시 limit 으로 잘랐다 — 소유확인이
+ * 12건 이상 더 최근이면 전문가 신청은 화면에 아예 안 나오고, 오래된 신청일수록
+ * 뒤로 밀려 영영 심사되지 않았다(기아). SLA 를 재는 건 오래된 것부터다.
  */
 export async function loadPendingVerificationQueue(
   limit = 12,
@@ -138,13 +143,13 @@ export async function loadPendingVerificationQueue(
         "id, display_name, applicant_email, specialty, regions, created_at, intro, organization, phone, cert_number, business_reg_no, years_experience, specialties, document_urls, source_verification_url, workflow_stage, fraud_flags",
       )
       .eq("status", "pending")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
       .limit(limit),
     sb
       .from("owner_verifications")
       .select("id, complex_name, region, property_address, created_at")
       .eq("status", "pending")
-      .order("created_at", { ascending: false })
+      .order("created_at", { ascending: true })
       .limit(limit),
   ]);
 
@@ -207,9 +212,9 @@ export async function loadPendingVerificationQueue(
     createdAt: (r.created_at as string | null) ?? null,
   }));
 
-  return [...experts, ...owners]
-    .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""))
-    .slice(0, limit);
+  return [...experts, ...owners].sort((a, b) =>
+    (a.createdAt ?? "").localeCompare(b.createdAt ?? ""),
+  );
 }
 
 /* ---------------- J8 전문가 이상행위 로그 ---------------- */

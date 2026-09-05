@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeAuth } from "@/lib/safe-auth";
+import { assertCheckoutAllowed } from "@/lib/payments/checkout-guard";
 import { createPayment, findRecentRequestedPayment } from "@/lib/payments/store";
 import type { PlanTier } from "@/components/ui-kit";
 import { getPlan } from "@/lib/subscriptions/plans";
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest) {
   if (!userEmail) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
+  /* [965] 전자상거래법 고지 게이트 — 모든 유료 레일에 같은 문(lib/payments/checkout-guard) */
+  const blocked = assertCheckoutAllowed("payments:toss:create");
+  if (blocked) return blocked;
 
   /* 주간권은 플러스(pro) 전용 단건 상품 — 다른 등급의 주간 요청은 없는 상품이다.
      조용히 월간으로 바꾸지 않고 400 으로 거절한다. */

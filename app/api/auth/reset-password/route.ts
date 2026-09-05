@@ -7,6 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getServiceSupabase } from "@/lib/supabase/service";
 import { applyRateLimit, AUTH_RATE_LIMIT, READ_RATE_LIMIT } from "@/lib/rate-limit";
+import { findAuthUserByEmail } from "@/lib/auth/find-auth-user";
+import { logger } from "@/lib/log";
+import { maskEmailPublic } from "@/lib/privacy/mask-email";
 
 export const runtime = "nodejs";
 
@@ -52,6 +55,39 @@ export async function POST(req: NextRequest) {
   }
   if (new Date(row.expires_at) < new Date()) {
     return NextResponse.json({ error: "링크가 만료됐습니다. 다시 요청해 주세요." }, { status: 400 });
+  }
+
+  /* [965] Supabase Auth 쪽 비밀번호도 같이 바꾼다.
+     가입은 대부분 Supabase Auth(인증 메일) 경로라 비밀번호가 그쪽에 있고,
+     app_users.password_hash 는 "supabase-auth-linked" 표식뿐이다. 예전엔 여기서
+     app_users 해시만 갱신해서 **새 비밀번호도 되고 옛 비밀번호도 되는** 계정이
+     됐다(로그인이 bcrypt → Supabase Auth 순서로 둘 다 시도한다). 재설정은 옛
+     비밀번호를 무효화해야 의미가 있다. 메일 링크를 눌렀으니 이메일 소유는
+     증명됐다 — 미인증 계정이면 그 사실도 함께 기록한다. */
+  try {
+    const authUser = await findAuthUserByEmail(row.user_email);
+    if (authUser) {
+      const { error: authErr } = await sb.auth.admin.updateUserById(authUser.id, {
+        password,
+        ...(authUser.email_confirmed_at ? {} : { email_confirm: true }),
+      });
+      if (authErr) {
+        logger.error("[reset-password] Supabase Auth 비밀번호 갱신 실패", {
+          message: authErr.message,
+          email: maskEmailPublic(row.user_email),
+        });
+        return NextResponse.json(
+          { error: "비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해 주세요." },
+          { status: 500 },
+        );
+      }
+    }
+  } catch (e) {
+    logger.error("[reset-password] Supabase Auth 사용자 조회 실패", e);
+    return NextResponse.json(
+      { error: "비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 500 },
+    );
   }
 
   const password_hash = await bcrypt.hash(password, 12);

@@ -97,3 +97,25 @@ Supabase 대시보드 → Authentication → Passwords 에서 "Leaked password p
 ## 재검 방법
 
 Security Advisor 재실행(대시보드 → Advisors → Security) 또는 MCP `get_advisors(type: security)`. DDL 변경 후에는 반드시 재실행.
+
+---
+
+## 965 (2026-09-05) — 회원가입·로그인 재점검
+
+- **비밀번호 재설정(Supabase Auth 경로)이 막혀 있었다**: 복구 링크가 `/auth/confirm` 을
+  거치며 해시 토큰을 버려 `/reset-password` 가 4초 뒤 "링크가 유효하지 않습니다" 를
+  그렸다. 해시를 들고 넘기고, 세션이 이미 있으면 폼을 연다.
+- **재설정이 옛 비밀번호를 무효화하지 않았다**: 자체 토큰 경로가 `app_users.password_hash`
+  만 바꿔, 로그인이 bcrypt→Supabase Auth 순으로 둘 다 시도하므로 새 비밀번호도 옛
+  비밀번호도 됐다. 이제 Supabase Auth 비밀번호를 먼저 바꾼다(미인증이면 인증 처리).
+- **미인증 계정 재가입이 비밀번호를 덮어썼다**(이메일 소유 증명 없이) → 재발송만.
+- **`is_banned` 를 로그인 어디서도 보지 않았다** → `signIn` 콜백 거부 + 세션 갱신 시
+  로그아웃(관리자 허용 목록은 예외).
+- 이메일 미인증을 `CredentialsSignin` 하위 클래스(`code: email_not_confirmed`)로 전달 —
+  화면이 "비밀번호가 틀렸다" 대신 재발송 버튼을 보여 준다. Auth.js `pages` 지정으로
+  영문 기본 오류·로그아웃 화면 제거(`/login?error=…`, `/logout`).
+- 회원탈퇴 앱 내 기능(`/api/me/delete-account`, `account_deletion_requests`) — SOP 는
+  docs/ops/privacy-requests.md.
+- `plan_expires_at`·`is_banned` 를 읽는 시점에 적용(`lib/auth/profile-rules.ts`, 단위검증).
+- Auth 사용자 조회의 1,000명 상한(listUsers 5페이지) 제거 — `app_users.supabase_user_id`
+  + `public.auth_user_id_by_email()`(service_role 전용).

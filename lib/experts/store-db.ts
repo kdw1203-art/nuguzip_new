@@ -294,15 +294,20 @@ export async function markExpertVerified(
     r.updatedAt = now;
     return r;
   }
+  /* [965] 넘기지 않은 칸은 건드리지 않는다 — 예전엔 undefined 를 null 로 써서
+     재승인 때 기존 등록번호·검수 메모가 지워졌다. */
+  const body: Record<string, unknown> = {
+    is_verified: true,
+    verification_checked_at: now,
+    updated_at: now,
+  };
+  if (patch.brokerRegistrationNo !== undefined) {
+    body.broker_registration_no = patch.brokerRegistrationNo;
+  }
+  if (patch.verificationNote !== undefined) body.verification_note = patch.verificationNote;
   const { data, error } = await sb
     .from("expert_profiles")
-    .update({
-      is_verified: true,
-      broker_registration_no: patch.brokerRegistrationNo ?? null,
-      verification_checked_at: now,
-      verification_note: patch.verificationNote ?? null,
-      updated_at: now,
-    })
+    .update(body)
     .eq("id", id)
     .select()
     .maybeSingle();

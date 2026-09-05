@@ -52,12 +52,17 @@ test.describe("인증 여정", () => {
     await expect(page.locator("h1")).toHaveText(/지도/, { timeout: 15_000 });
   });
 
-  test("로그아웃 상태 복원 — 세션 쿠키 없이 /my 는 로그인으로 보낸다", async ({ browser }) => {
+  test("로그아웃 상태 복원 — 세션 쿠키 없이 /my 는 게스트 안내(로그인 유도)를 그린다", async ({ browser }) => {
     // 새 컨텍스트 = 쿠키 없음. 위 테스트와 격리해 "보호가 실제로 걸려 있는가"를 본다.
+    /* [965] /my 는 탭바에서 바로 여는 화면이라 비로그인은 리다이렉트가 아니라
+       GuestView(로그인 CTA)를 그린다 — 개인 데이터는 한 줄도 나오지 않아야 한다. */
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     await page.goto("/my");
-    await page.waitForURL(/\/login/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/my/);
+    await expect(
+      page.getByText("로그인하고 내 활동을 한곳에서 관리하세요", { exact: false }),
+    ).toBeVisible({ timeout: 15_000 });
     await ctx.close();
   });
 });

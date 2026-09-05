@@ -20,7 +20,18 @@ Vercel → 프로젝트 → Settings → Environment Variables (Production):
 ### 2. 동결 게이트 갱신 (Claude, 5분)
 - check-toss-review-freeze.mjs 의 LOCKED 는 "심사 제출 사실" 기준이다. 승인 후
   가격·문구를 바꾸는 경우에만 LOCKED 값을 새 사실로 갱신한다(지우지 않는다).
+- **제공기간 고지는 자동으로 바뀐다(965)** — `/subscription` 의 `ComplianceNotice
+  variant="payment"` 는 서버가 `isTossBillingEnabled()` 로 판정해 개방 전에는
+  "모든 이용권 단건(자동 반복청구 없음)" 문구를, 개방 뒤에는 "주간권 단건 +
+  월간·연간 자동결제(해지 안내 포함)" 문구(`MIXED_SERVICE_PERIOD_TEXT`)를 낸다.
+  그러니 오픈 날 화면 고지가 실제 청구 방식과 어긋나는 일은 없다. 다만 LOCKED 는
+  파일 안에 옛 문구가 **있는지**를 보므로 그대로 통과한다 — 심사팀에 "월간·연간
+  자동결제 개시" 를 통지한 뒤에는 LOCKED 의 `자동 반복청구가 없습니다` 항목을
+  `MIXED_SERVICE_PERIOD_TEXT` 의 문장으로 갱신해 두는 것이 정직하다.
 - 빌링 오픈 자체는 LOCKED 위반이 아니다 — 플래그와 키만 바뀐다.
+- **월간·연간 CTA 는 개방 전에는 "오픈 알림" 으로 그려진다(965)** — 토스 키만
+  있고 빌링이 닫혀 있으면 예전엔 눌러야 실패하는 버튼이었다. 개방 플래그를 켜면
+  결제 버튼으로 바뀐다(`recurringReady`).
 
 ### 3. 재배포 (사장님, 5분)
 ```powershell

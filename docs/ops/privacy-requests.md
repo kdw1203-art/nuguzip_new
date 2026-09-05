@@ -19,6 +19,29 @@
 2. 소셜 가입자는 로그인 상태 스크린샷(설정 화면의 이메일 노출)으로 갈음할 수 있다.
 3. 확인 전에는 어떤 정보도 변경·제공하지 않는다(고객 SOP 3항과 동일).
 
+## 앱 안 회원탈퇴 (965)
+
+설정 › 계정 › **회원탈퇴** 가 열렸다(`POST /api/me/delete-account`, '탈퇴' 직접 입력).
+접수되면 코드가 SOP 1·2 항을 **즉시** 수행한다:
+
+- `account_deletion_requests` 에 행 생성(`purge_after` = 접수 + 30일).
+- `app_users.is_banned = true, ban_reason = 'account_deletion_requested'` → 로그인
+  차단(965부터 로그인·세션 갱신이 `is_banned` 를 실제로 본다).
+- 임장노트 `is_public=false`, 매물 `is_hidden=true` (게시글·질문은 SOP 2 항대로 수동).
+- 접수 회신 메일(Resend 설정 시) — 파기 예정일·취소 방법(가입 메일로 고객센터).
+- 자동결제(`billing_subscriptions.active`)가 있으면 접수를 거절하고 먼저 해지하게 한다.
+
+운영자가 할 일: 매일 5분 점검에서 아래를 보고, `purge_after` 가 지난 행은 SOP 4·5 항대로
+파기한 뒤 `purged_at` 을 적는다. 취소 요청(가입 메일 확인)은 `cancelled_at` 을 적고
+`app_users.is_banned=false, ban_reason=null` 로 되돌린다.
+
+```sql
+select user_email, requested_at, purge_after, cancelled_at, purged_at
+  from public.account_deletion_requests
+ where purged_at is null
+ order by purge_after;
+```
+
 ## 삭제·탈퇴 절차 (AGENT 세션에 위임 가능)
 
 1. 접수 회신: "접수했고 30일 뒤 파기됩니다. 그 사이 취소하려면 같은 메일로 알려 주세요."

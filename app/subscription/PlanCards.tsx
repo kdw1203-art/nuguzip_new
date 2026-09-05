@@ -158,6 +158,7 @@ export function PlanCards({
   expert,
   initialBilling = "monthly",
   paymentsReady = true,
+  recurringReady,
 }: {
   currentPlan: PlanKind;
   pro: TierPricing;
@@ -168,8 +169,12 @@ export function PlanCards({
       버튼 대신 사전 등록(오픈 알림)을 그린다 — 눌러 보기 전엔 알 수 없는
       실패 문구보다 사실을 먼저 말하는 쪽이 맞다. */
   paymentsReady?: boolean;
+  /** [965] 월간·연간을 실제로 팔 수 있는 레일이 있는가(빌링 개방 또는 카카오페이·카드
+      단건). false 면 월간·연간 CTA 는 사전 등록으로 그린다 — 주간권은 별도 섹션. */
+  recurringReady?: boolean;
 }) {
   const [billing, setBilling] = useState<Billing>(initialBilling);
+  const canCheckout = paymentsReady && (recurringReady ?? true);
   const pricing: Record<"pro" | "expert", TierPricing> = { pro, expert };
 
   return (
@@ -285,7 +290,7 @@ export function PlanCards({
                 </button>
               ) : p.checkoutTier ? (
                 <>
-                  {paymentsReady ? (
+                  {canCheckout ? (
                     <PlanCheckoutButton
                       tier={p.checkoutTier}
                       billing={billing}

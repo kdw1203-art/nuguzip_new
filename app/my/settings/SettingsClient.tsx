@@ -4,9 +4,11 @@ import { Switch } from "@/app/components/ui/Switch";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { PageShell } from "@/app/components/PageShell";
 import { useToast } from "@/app/components/toast/ToastProvider";
 import { PushSubscribe } from "@/components/PushSubscribe";
+import { DELETE_CONFIRM_WORD, DELETE_GRACE_DAYS } from "@/lib/account/deletion";
 
 /* 설정 (item 14) — 진짜 설정만 유지, 네비게이션성 항목 제거.
    섹션: 계정 · 알림 · 개인정보. 저장되는 토글만 실배선(/api/me/notification-prefs),
@@ -597,21 +599,153 @@ function AccountTab() {
 
       {/* 로그아웃 · 회원탈퇴 */}
       <div className="card flex flex-col gap-2 rounded-2xl p-4">
-        {/* API 라우트 전체 내비게이션 필요 — HeaderAuth와 동일 패턴 */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a
-          href="/api/auth/signout"
+        <Link
+          href="/logout"
+          prefetch={false}
           className="btn-soft rounded-[10px] p-2.5 text-center text-xs font-bold no-underline"
         >
           로그아웃
-        </a>
+        </Link>
+        <DeleteAccountSection />
+      </div>
+    </div>
+  );
+}
+
+/* [965] 회원탈퇴 — 약관·FAQ 가 약속한 "서비스 내 기능". 절차는 SOP(docs/ops/
+   privacy-requests.md) 그대로: 접수 즉시 로그인 차단·공개 글 비공개 → 30일 유예 →
+   파기. 실수를 막기 위해 '탈퇴' 를 직접 입력해야 한다. */
+function DeleteAccountSection() {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function submit() {
+    setError(null);
+    if (confirm.trim() !== DELETE_CONFIRM_WORD) {
+      setError(`'${DELETE_CONFIRM_WORD}' 를 정확히 입력해 주세요.`);
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/me/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: confirm.trim(), reason: reason.trim() || undefined }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+        purgeAfter?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "탈퇴 요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      const when = data.purgeAfter
+        ? new Date(data.purgeAfter).toLocaleDateString("ko-KR", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : `${DELETE_GRACE_DAYS}일 뒤`;
+      setDone(when);
+      window.setTimeout(() => {
+        void signOut({ callbackUrl: "/?bye=1" });
+      }, 2500);
+    } catch {
+      setError("네트워크 오류가 발생했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (done) {
+    return (
+      <div role="status" className="rounded-[10px] bg-primary-soft px-4 py-3 t-sub text-primary">
+        탈퇴 요청을 접수했어요. 개인정보는 <b>{done}</b> 이후 파기되며, 그 전에 취소하려면 가입
+        이메일로 고객센터에 알려 주세요. 잠시 후 로그아웃됩니다.
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="t-sub font-bold text-danger underline-offset-2 hover:underline"
+        >
+          회원탈퇴
+        </button>
         <p className="text-center t-sub text-text-3">
-          회원탈퇴는{" "}
-          <Link href="/support" className="font-bold text-danger no-underline">
-            고객센터
-          </Link>
-          를 통해 처리돼요 · 탈퇴 시 노트는 30일 보관 후 삭제돼요
+          탈퇴 시 공개 글은 즉시 비공개되고, 개인정보는 {DELETE_GRACE_DAYS}일 뒤 파기돼요
         </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-[12px] border border-danger/30 bg-danger-soft/40 p-3">
+      <div className="t-body font-extrabold text-ink">정말 탈퇴하시겠어요?</div>
+      <ul className="flex list-disc flex-col gap-1 pl-4 t-sub text-text-2">
+        <li>접수 즉시 로그인이 막히고, 공개한 임장노트·매물은 비공개로 바뀝니다.</li>
+        <li>
+          개인정보는 {DELETE_GRACE_DAYS}일 뒤 파기됩니다. 그 사이 가입 이메일로 고객센터에
+          알리면 취소할 수 있어요.
+        </li>
+        <li>사용 중인 이용권의 남은 기간은 소멸합니다. 자동결제 구독은 먼저 해지해 주세요.</li>
+        <li>결제·환불 기록 등 법령상 보존 대상은 가명 처리해 정해진 기간 보관됩니다.</li>
+      </ul>
+      <label className="flex flex-col gap-1 t-sub text-text-2">
+        떠나는 이유를 알려 주시면 개선에 참고할게요 (선택)
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={500}
+          className="rounded-[8px] border border-line bg-surface px-3 py-2 t-body text-ink outline-none focus:border-primary"
+        />
+      </label>
+      <label className="flex flex-col gap-1 t-sub text-text-2">
+        확인을 위해 <b className="text-ink">{DELETE_CONFIRM_WORD}</b> 를 입력해 주세요
+        <input
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          autoComplete="off"
+          aria-invalid={Boolean(error)}
+          className="rounded-[8px] border border-line bg-surface px-3 py-2 t-body text-ink outline-none focus:border-danger"
+        />
+      </label>
+      {error && (
+        <p role="alert" className="t-sub font-bold text-danger">
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setError(null);
+            setConfirm("");
+          }}
+          disabled={busy}
+          className="btn-soft flex-1 rounded-[10px] p-2.5 text-center text-xs font-bold"
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={busy || confirm.trim() !== DELETE_CONFIRM_WORD}
+          className="flex-1 rounded-[10px] bg-danger p-2.5 text-center text-xs font-bold text-white disabled:opacity-50"
+        >
+          {busy ? "접수 중…" : "탈퇴 요청"}
+        </button>
       </div>
     </div>
   );

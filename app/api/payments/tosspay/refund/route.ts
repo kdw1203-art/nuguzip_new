@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminApiRequest } from "@/lib/admin/api-auth";
-import { getPaymentByOrderId, markRefunded } from "@/lib/payments/store";
+import { getPaidPaymentByProviderKey, markRefunded } from "@/lib/payments/store";
+import { logger } from "@/lib/log";
 import { applyRateLimit, AUTH_RATE_LIMIT } from "@/lib/rate-limit";
 import {
   refundPayment,
@@ -59,11 +60,21 @@ export async function POST(req: NextRequest) {
         { status: 502 },
       );
     }
-    // 주문번호로 매칭되면 환불 상태 반영(메모리/Supabase 공통).
+    /* [965] 원장은 **payToken 으로 찾은 주문**만 환불 처리한다. 예전엔 요청 본문의
+       orderNo 를 그대로 믿어, A 를 환불하고 B 를 refunded 로 적어 B 소유자의 플랜을
+       회수할 수 있었다(환불된 건과 원장이 어긋난다). */
+    const byToken = await getPaidPaymentByProviderKey(payToken);
     const orderNo = body.orderNo?.trim();
-    if (orderNo) {
-      const existing = await getPaymentByOrderId(orderNo);
-      if (existing) await markRefunded({ orderId: orderNo, providerPaymentKey: payToken });
+    if (byToken) {
+      if (orderNo && orderNo !== byToken.orderId) {
+        logger.warn("[tosspay/refund] 요청 orderNo 가 payToken 의 주문과 달라 payToken 기준으로 처리", {
+          requested: orderNo,
+          actual: byToken.orderId,
+        });
+      }
+      await markRefunded({ orderId: byToken.orderId, providerPaymentKey: payToken });
+    } else {
+      logger.warn("[tosspay/refund] payToken 에 해당하는 paid 주문이 없어 원장을 갱신하지 않음");
     }
     return NextResponse.json({ ok: true, refund: result.success });
   } catch (e) {

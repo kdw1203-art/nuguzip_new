@@ -29,7 +29,8 @@ const CERT_NUMBER_RE = /^제?[0-9A-Za-z가-힣]{1,12}(-[0-9A-Za-z가-힣]{1,12})
 function isValidHttpUrl(raw: string): boolean {
   try {
     const u = new URL(raw);
-    return u.protocol === "http:" || u.protocol === "https:";
+    /* [965] 서버(validateDocumentUrls)와 같은 기준 — https 만 */
+    return u.protocol === "https:";
   } catch {
     return false;
   }
@@ -98,7 +99,7 @@ export function ExpertApplyCta({
     }
     const docUrls = documentUrls.map((u) => u.trim()).filter(Boolean);
     if (docUrls.some((u) => !isValidHttpUrl(u))) {
-      return setError("증빙 URL은 http(s)로 시작하는 주소여야 해요.");
+      return setError("증빙 URL은 https 로 시작하는 공개 주소여야 해요.");
     }
     if (!agree) return setError("전문가 운영정책 및 약관에 동의해 주세요.");
     setPhase("sending");
@@ -137,9 +138,14 @@ export function ExpertApplyCta({
         });
         return;
       }
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
       if (!res.ok) {
-        setError(data.error ?? "접수에 실패했어요. 잠시 후 다시 시도해 주세요.");
+        /* [965] 이미 심사 중이면 실패가 아니라 안내 — 진행 상태 화면으로 보낸다 */
+        if (data.code === "application_pending") {
+          setError("이미 심사 중인 신청이 있어요. 진행 상태는 마이 › 전문가 프로필에서 볼 수 있어요.");
+        } else {
+          setError(data.error ?? "접수에 실패했어요. 잠시 후 다시 시도해 주세요.");
+        }
         setPhase("idle");
         return;
       }
@@ -147,7 +153,7 @@ export function ExpertApplyCta({
       /* "접수"까지가 사실이다. 인증됐다고 쓰면 심사 전에 통과한 것으로 읽힌다. */
       showMoment({
         title: "인증 신청이 접수됐어요",
-        subtitle: "1차 자동 검증 결과를 알림으로 보내드릴게요",
+        subtitle: "심사 결과를 알림으로 보내드릴게요",
       });
     } catch {
       setError("접수에 실패했어요. 네트워크를 확인해 주세요.");
@@ -177,16 +183,16 @@ export function ExpertApplyCta({
             </div>
             <div className="t-section text-ink">인증 신청이 접수됐어요</div>
             <p className="t-sub text-text-2">
-              1차 자동 검증 → 서류 확인 → {type.source ? `${type.source.label} 조회` : "인터뷰"} 순서로 심사돼요.
+              자동 검증을 거쳐 운영자가 서류{type.source ? `와 ${type.source.label} 등록 상태` : ""}를 확인한 뒤 결과를 알려드려요.
               <br />
-              인증되면 상담 수신·견적 제안{type.extraScope ? `·${type.extraScope.split(" +")[0]}` : ""}이 열립니다. 진행 상황은 알림으로 안내드려요.
+              인증되면 상담 수신·견적 제안{type.extraScope ? `·${type.extraScope.split(" +")[0]}` : ""}이 열립니다. 진행 상태는 마이 › 전문가 프로필에서 볼 수 있어요.
             </p>
             <div className="mt-1 flex gap-2">
               <button type="button" onClick={() => setOpen(false)} className="btn-primary rounded-xl px-6 py-2.5 t-body">
                 확인
               </button>
-              <Link href="/my/consultations" className="btn-soft rounded-xl px-5 py-2.5 t-body no-underline">
-                상담함 보기
+              <Link href="/my/expert-profile" className="btn-soft rounded-xl px-5 py-2.5 t-body no-underline">
+                진행 상태 보기
               </Link>
             </div>
           </div>
@@ -194,7 +200,7 @@ export function ExpertApplyCta({
           <div className="flex flex-col gap-3.5">
             <ModalHeader title="전문가 인증 신청" onClose={() => setOpen(false)} />
             <p className="t-sub text-text-3">
-              자격을 검증한 뒤 &quot;인증&quot; 배지가 부여됩니다. 접수 → 1차 자동 검증(24시간) → 서류·출처 확인 → 승인.
+              자격을 검증한 뒤 &quot;인증&quot; 배지가 부여됩니다. 접수 → 자동 검증(즉시) → 운영자 서류·출처 확인 → 승인.
             </p>
 
             {/* 유형 */}

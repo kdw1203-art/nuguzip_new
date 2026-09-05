@@ -257,9 +257,9 @@ async function clawBackMembershipOnRefund(rec: PaymentRecord): Promise<void> {
       return; // 현재 플랜이 다르면(이미 다른 결제로 변경됨) 건드리지 않는다.
     }
     await applyPlanToUserByEmail(em, "free");
+    /* 로그에는 주문번호만 — 이메일은 payments 행에서 찾을 수 있다(개인정보 로그 유출 방지) */
     logger.warn("[payments:refund] membership clawed back to free", {
       orderId: rec.orderId,
-      email: em,
       refundedPlan: rec.plan,
     });
   } catch (e) {
@@ -352,14 +352,80 @@ export async function getPaidPaymentByProviderKey(
       ) ?? null
     );
   }
+  /* [965] 같은 결제 키로 paid 행이 둘이면 maybeSingle 은 오류(PGRST116)를 내고
+     예전 코드는 그걸 "중복 없음(null)" 으로 읽었다 — 중복을 잡으라고 있는 함수가
+     정확히 중복이 있을 때 꺼졌다. 가장 먼저 승인된 행 하나를 돌려준다. */
   const { data, error } = await sb
     .from("payments")
     .select("*")
     .eq("provider_payment_key", providerPaymentKey)
     .eq("status", "paid")
+    .order("paid_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
   if (error || !data) return null;
   return mapRow(data);
+}
+
+/**
+ * [965] 결제사가 "승인 완료(DONE)" 라고 확인한 주문을 **어떤 상태에서든** paid 로
+ * 올린다. markPaid 는 requested 에서만 전이한다(이중 부여 방지) — 그런데
+ *   · 승인 요청 뒤 응답이 유실돼 catch 가 failed 로 적어 둔 뒤 재시도가 성공하거나
+ *   · 45분 방치 스윕이 cancelled 로 적은 뒤 웹훅/지연 승인이 도착하거나
+ *   · 갱신 크론의 앞 회차 실패(failed) 뒤 같은 orderId 로 재시도가 성공하면
+ * 돈은 받았는데 원장은 failed/cancelled 로 남고 플랜은 안 켜졌다. 결제사 조회로
+ * DONE 이 확인된 경우에만 부르며, 이미 paid 면 그대로(멱등) 돌려준다.
+ * 원장 상태를 바꾼 사실은 warn 으로 남겨 조정(reconciliation)이 보이게 한다.
+ */
+export async function promotePaidAfterProviderConfirmation(input: {
+  orderId: string;
+  providerPaymentKey: string;
+  method?: string;
+  receiptUrl?: string;
+  reason: string;
+}): Promise<PaymentRecord | null> {
+  const sb = getServiceSupabase();
+  const now = new Date().toISOString();
+  if (!sb) {
+    const r = memory.find((x) => x.orderId === input.orderId);
+    if (!r) return null;
+    if (r.status === "paid") return r;
+    r.status = "paid";
+    r.providerPaymentKey = input.providerPaymentKey;
+    r.method = input.method ?? r.method;
+    r.receiptUrl = input.receiptUrl ?? r.receiptUrl;
+    r.paidAt = now;
+    return r;
+  }
+  const { data, error } = await sb
+    .from("payments")
+    .update({
+      status: "paid",
+      provider_payment_key: input.providerPaymentKey,
+      method: input.method,
+      receipt_url: input.receiptUrl,
+      paid_at: now,
+      failed_at: null,
+      cancelled_at: null,
+    })
+    .eq("order_id", input.orderId)
+    .in("status", ["requested", "failed", "cancelled"])
+    .select()
+    .maybeSingle();
+  if (error) {
+    logger.error("[payments] paid 승격 실패", { orderId: input.orderId, message: error.message });
+    return null;
+  }
+  if (data) {
+    logger.warn("[payments] 결제사 승인 확인 후 원장 상태를 paid 로 조정", {
+      orderId: input.orderId,
+      reason: input.reason,
+    });
+    return mapRow(data);
+  }
+  /* 매칭 행이 없다 = 이미 paid(멱등) 이거나 refunded — 현재 행을 그대로 */
+  const current = await getPaymentByOrderId(input.orderId);
+  return current?.status === "paid" ? current : null;
 }
 
 export async function listPayments(

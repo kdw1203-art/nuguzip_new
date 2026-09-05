@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { isTossTestEnv, tossClientKey } from "./toss-rail";
+import { isTossBillingOpenClient, isTossTestEnv, tossClientKey } from "./toss-rail";
 
 /**
  * 구독 플랜 결제 시작 버튼.
@@ -127,7 +127,10 @@ export function PlanCheckoutButton({
            requestBillingAuth → 빌링키 발급 → 첫 승인 → 갱신 크론)
          정기 상품을 단건 결제창으로 팔면 카드사 심사 기준 위반이자,
          "자동 갱신"이라는 상품 실체와 결제 UX 가 어긋난다(사실 우선). */
-      if (tossClientKey()) {
+      /* [965] 빌링이 아직 개방되지 않았으면(전자계약 전) 월간·연간을 빌링창으로
+         보내지 않는다 — 그 화면은 "준비 중" 카드로 /subscription 에 돌려보내
+         사용자가 원을 돌았다. 그 경우 아래 단건 레일(카카오페이·카드)로 내려간다. */
+      if (tossClientKey() && (billing === "weekly" || isTossBillingOpenClient())) {
         window.location.href =
           billing === "weekly"
             ? `/subscription/checkout?tier=${tier}&billing=${billing}`
@@ -164,7 +167,9 @@ export function PlanCheckoutButton({
         setNotice("네트워크 연결이 불안정해요. 연결을 확인한 뒤 다시 시도해 주세요.");
       } else if (stripeFailure.kind === "unavailable" && kakaoFailure.kind === "unavailable") {
         setNotice(
-          "지금은 카드·카카오페이 결제를 모두 사용할 수 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.",
+          tossClientKey()
+            ? "월간·연간 결제는 준비 중이에요. 지금은 플러스 주간권(7일)으로 이용할 수 있어요."
+            : "지금은 카드·카카오페이 결제를 모두 사용할 수 없어요. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.",
         );
       } else if (kakaoFailure.kind === "network") {
         setNotice("네트워크 연결이 불안정해요. 연결을 확인한 뒤 다시 시도해 주세요.");

@@ -167,6 +167,40 @@ function contextForCallback(cb: string, fallback: LoginContext): LoginContext {
   return hit ? hit.ctx : fallback;
 }
 
+/* [965] Auth.js 가 `pages.error = "/login"` 으로 돌려보낼 때 붙이는 `?error=` 코드를
+   한국어로 옮긴다. 예전엔 /api/auth/error 의 영문 기본 화면("Configuration")이
+   떴다. 코드 목록: https://authjs.dev/reference/core/errors */
+const AUTH_ERROR_COPY: Record<string, string> = {
+  Configuration: "이 로그인 수단이 아직 설정되지 않았어요. 다른 방법으로 로그인해 주세요.",
+  AccessDenied: "로그인이 거부됐어요. 계정 상태를 확인하거나 다른 방법으로 시도해 주세요.",
+  OAuthAccountNotLinked:
+    "같은 이메일로 다른 방법으로 가입된 계정이 있어요. 처음 가입한 방법으로 로그인해 주세요.",
+  OAuthSignin: "소셜 로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  OAuthCallback: "소셜 로그인 응답을 확인하지 못했어요. 다시 시도해 주세요.",
+  OAuthCreateAccount: "소셜 계정으로 회원을 만들지 못했어요. 잠시 후 다시 시도해 주세요.",
+  Callback: "로그인 처리 중 문제가 생겼어요. 다시 시도해 주세요.",
+  CredentialsSignin: "이메일 또는 비밀번호가 올바르지 않습니다.",
+  SessionRequired: "이 화면은 로그인 후 볼 수 있어요.",
+  Verification: "인증 링크가 만료됐거나 이미 사용됐어요. 다시 요청해 주세요.",
+};
+
+function authErrorCopy(code: string | null, subCode: string | null): string | null {
+  if (!code) return null;
+  if (code === "verify_failed") {
+    return "이메일 인증에 실패했습니다. 메일의 링크를 다시 눌러 주세요.";
+  }
+  if (code === "config") {
+    return "로그인 설정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";
+  }
+  if ((subCode ?? "").toLowerCase() === "email_not_confirmed") {
+    return EMAIL_NOT_CONFIRMED_COPY;
+  }
+  return AUTH_ERROR_COPY[code] ?? "로그인에 실패했어요. 잠시 후 다시 시도해 주세요.";
+}
+
+const EMAIL_NOT_CONFIRMED_COPY =
+  "이메일 인증이 아직 안 됐어요. 받은 인증 메일의 링크를 눌러 주세요.";
+
 /* 로그인 계정으로 실제로 할 수 있는 것만 적는다 — 각 항목은 코드에 로그인 벽이
    실제로 걸려 있는 기능이다(노트 저장·관심단지·Q&A 작성·모임 참여). 없는 기능을
    미끼로 적지 않는다. */
@@ -197,6 +231,11 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [verifiedNotice, setVerifiedNotice] = useState(false);
+  const [signupDoneNotice, setSignupDoneNotice] = useState(false);
+  /* [965] 미인증 계정 — 오류 문구 옆에 "인증 메일 다시 보내기" 를 붙인다 */
+  const [needsConfirm, setNeedsConfirm] = useState(false);
+  const [resendState, setResendState] = useState<"idle" | "busy" | "sent" | "failed">("idle");
+  const [resendNote, setResendNote] = useState<string | null>(null);
 
   /* callbackUrl 은 window 에만 있다. 서버 렌더 결과와 첫 클라이언트 렌더가
      달라지면 하이드레이션이 깨지므로, 일반 문구로 시작해서 마운트 후에만
@@ -207,13 +246,19 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
     setCtx(contextForCallback(resolveCallbackUrl(), generic));
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "1") setVerifiedNotice(true);
+    /* [965] 가입은 됐는데 자동 로그인이 안 된 경우(SignupClient) */
+    if (params.get("notice") === "signup_done") setSignupDoneNotice(true);
     const prefill = params.get("email");
     if (prefill?.includes("@")) setEmail(prefill);
-    if (params.get("error") === "verify_failed") {
-      setError("이메일 인증에 실패했습니다. 메일의 링크를 다시 눌러 주세요.");
+    const errParam = params.get("error");
+    const codeParam = params.get("code");
+    const copy = authErrorCopy(errParam, codeParam);
+    if (copy) {
+      setError(copy);
+      if (copy === EMAIL_NOT_CONFIRMED_COPY) setNeedsConfirm(true);
     }
     /* Auth.js OAuth 실패 시 ?error=… — 실패율 계측(비밀번호·이메일 미포함) */
-    const oauthErr = params.get("error");
+    const oauthErr = errParam;
     if (
       oauthErr &&
       oauthErr !== "verify_failed" &&
@@ -251,9 +296,48 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
     }
   }
 
+  /* [965] 미인증 계정의 인증 메일 재발송 — /api/auth/register 의 resendConfirmation
+     경로. 비밀번호는 보내지 않는다(재발송에 필요 없고, 서버도 더는 덮어쓰지 않는다). */
+  async function resendConfirmation() {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized.includes("@")) {
+      setError("올바른 이메일을 입력해 주세요.");
+      return;
+    }
+    setResendState("busy");
+    setResendNote(null);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalized, resendConfirmation: true }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        resent?: boolean;
+      };
+      if (!res.ok || data.resent === false) {
+        setResendState("failed");
+        setResendNote(
+          data.error ?? data.message ?? "인증 메일을 다시 보내지 못했어요. 잠시 후 다시 시도해 주세요.",
+        );
+        return;
+      }
+      setResendState("sent");
+      setResendNote(data.message ?? "인증 메일을 다시 보냈어요. 메일함의 새 링크를 눌러 주세요.");
+    } catch {
+      setResendState("failed");
+      setResendNote("네트워크 오류가 발생했습니다.");
+    }
+  }
+
   async function passwordSignIn(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setNeedsConfirm(false);
+    setResendState("idle");
+    setResendNote(null);
     if (!email.trim().includes("@")) {
       setError("올바른 이메일을 입력해 주세요.");
       return;
@@ -273,7 +357,8 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
       if (res?.error) {
         const detail = `${res.error} ${res.code ?? ""}`.toLowerCase();
         if (detail.includes("email_not_confirmed")) {
-          setError("이메일 인증이 아직 안 됐어요. 받은 인증 메일의 링크를 눌러 주세요.");
+          setError(EMAIL_NOT_CONFIRMED_COPY);
+          setNeedsConfirm(true);
         } else {
           setError(
             "이메일 또는 비밀번호가 올바르지 않습니다. 가입 직후라면 인증 메일도 확인해 주세요.",
@@ -332,6 +417,14 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             이메일 인증이 완료됐어요. 이제 로그인해 주세요.
           </div>
         )}
+        {signupDoneNotice && !verifiedNotice && (
+          <div
+            role="status"
+            className="rise-in rounded-[10px] bg-primary-soft px-4 py-3 text-[13px] font-bold text-primary"
+          >
+            가입이 완료됐어요. 방금 만든 계정으로 로그인해 주세요.
+          </div>
+        )}
 
         {error && (
           <div
@@ -339,6 +432,30 @@ export function LoginClient({ social }: { social: SocialProvider[] }) {
             className="rise-in rounded-[10px] bg-danger-soft px-4 py-3 text-[13px] font-bold text-danger"
           >
             {error}
+            {needsConfirm && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={resendConfirmation}
+                  disabled={resendState === "busy" || resendState === "sent"}
+                  className="w-fit rounded-[8px] border border-danger/40 bg-surface px-3 py-1.5 text-[12px] font-bold text-danger disabled:opacity-60"
+                >
+                  {resendState === "busy"
+                    ? "보내는 중…"
+                    : resendState === "sent"
+                      ? "인증 메일을 다시 보냈어요"
+                      : "인증 메일 다시 보내기"}
+                </button>
+                {resendNote && (
+                  <span
+                    role="status"
+                    className={`text-[12px] font-bold ${resendState === "sent" ? "text-ink" : "text-danger"}`}
+                  >
+                    {resendNote}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
